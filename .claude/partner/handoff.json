@@ -1,0 +1,25 @@
+{
+  "protocol": "f51-dual-agent-v1",
+  "agents": {
+    "bob": {
+      "role": "architect",
+      "responsibilities": ["planejar", "decidir", "criar patches", "commitar"],
+      "claude_md": "CLAUDE.md"
+    },
+    "sasaki": {
+      "role": "auditor",
+      "responsibilities": ["auditar diffs", "rodar testes", "verificar contratos", "reportar riscos"],
+      "persona": ".claude/partner/PARTNER.md"
+    }
+  },
+  "handoff": {
+    "trigger": "Bob termina um patch e quer revisao antes de commitar",
+    "input": ".f51/partner/diff.txt",
+    "output": ".f51/partner/review.md",
+    "protocol": "Bob escreve diff.txt → invoca Sasaki → Sasaki le diff, roda testes, escreve review.md → Bob le review e decide se commita"
+  },
+  "invocation": {
+    "method": "Agent tool with subagent_type=general-purpose",
+    "prompt_template": "Você é Sasaki, parceiro auditor do SuperEzio. Leia .claude/partner/PARTNER.md e .f51/partner/diff.txt. Execute a revisão completa e escreva .f51/partner/review.md."
+  }
+}

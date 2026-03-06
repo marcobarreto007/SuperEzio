@@ -1,0 +1,129 @@
+# ========================
+# MAQUINA DE DINHEIRO
+# ========================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+.continue/
+*.swp
+*.swo
+*~
+
+# Node
+node_modules/
+
+# Caches
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.cache/
+.autosave/
+
+# Models (massive GGUF / safetensors files)
+/models/
+
+# IA caches (pip downloads, HuggingFace cache)
+ia/pip_cache/
+ia/models/
+
+# Logs
+*.log
+logs/*.txt
+data/traces/
+
+# Database files
+*.db
+
+# Environment
+.env
+.env.*
+.env.local
+.env.local.bak
+!.env.example
+
+# Secrets & keys
+*.pem
+*.key
+*.jks
+*.p12
+*.pfx
+secrets/
+config/secrets/
+local_settings.py
+credentials.json
+service-account.json
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Nested clones (avoid duplication)
+superezio/
+
+# Research (external projects)
+research/
+
+# Local tunnel binary
+cloudflared.exe
+cloudflared
+scripts/cloudflared.exe
+scripts/cloudflared
+
+# Local/generated data
+data/tmp*/
+data/cache/
+data/runs/
+data/vectors/
+data/.fuse_hidden*
+
+# Large binary/dataset files (excedem limite GitHub 100MB)
+*.parquet
+data/lora_dataset_primary_finance.jsonl
+data/ceo_nl_*.jsonl
+data/ceo_3k*.jsonl
+data/sensei_dataset.jsonl
+data/fraud_datasets/
+
+# SFT datasets (massivos, 1GB+)
+F51_Datasets/sft_output/
+F51_Datasets/raw_downloads/
+
+# ProfessionalCollector TTL disk cache
+.f51/cache/
+
+# Runtime output
+output/runtime/
+
+# Partner temp files
+.f51/tmp/
+.f51/partner/diff.txt
+
+# Scheduled tasks lock
+.claude/scheduled_tasks.lock
+
+# Claude Code local settings (machine-specific paths)
+.claude/settings.local.json
+
+# Superpowers (IDE brainstorming)
+.superpowers/
+
+unsloth_compiled_cache/
+.kilo/
+/tools/

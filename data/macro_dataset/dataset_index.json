@@ -1,0 +1,39 @@
+{
+  "series": {
+    "Canada_credit_to_gdp": {
+      "name": "credit_to_gdp",
+      "country": "Canada",
+      "file": "canada_credit_to_gdp.parquet",
+      "last_date": "2025-12-31",
+      "count": 120,
+      "metadata": {}
+    },
+    "Canada_gdp_growth_yoy": {
+      "name": "gdp_growth_yoy",
+      "country": "Canada",
+      "file": "canada_gdp_growth_yoy.parquet",
+      "last_date": "2025-12-31",
+      "count": 120,
+      "metadata": {}
+    },
+    "Canada_policy_rate": {
+      "name": "policy_rate",
+      "country": "Canada",
+      "file": "canada_policy_rate.parquet",
+      "last_date": "2026-03-01",
+      "count": 1095,
+      "metadata": {
+        "source": "Bank of Canada Valet API"
+      }
+    },
+    "Canada_debt_service_ratio": {
+      "name": "debt_service_ratio",
+      "country": "Canada",
+      "file": "canada_debt_service_ratio.parquet",
+      "last_date": "2025-12-31",
+      "count": 120,
+      "metadata": {}
+    }
+  },
+  "last_update": "2026-04-27T22:08:24.961698"
+}

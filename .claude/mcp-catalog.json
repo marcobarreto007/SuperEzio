@@ -1,0 +1,100 @@
+{
+    "version": 1,
+    "generatedFor": "SuperEzio Claude Ops",
+    "mcpServers": {
+        "google-calendar": {
+            "transport": "http",
+            "url": "https://calendarmcp.googleapis.com/mcp/v1",
+            "_docs": "CRUD de eventos, disponibilidade e sugestão de horários.",
+            "tools": [
+                "create_event",
+                "list_events",
+                "suggest_time",
+                "respond_to_event"
+            ],
+            "auth": "OAuth provider flow expected"
+        },
+        "gmail": {
+            "transport": "http",
+            "url": "https://gmailmcp.googleapis.com/mcp/v1",
+            "_docs": "Busca, leitura de threads, drafts e labels.",
+            "tools": [
+                "search_threads",
+                "get_thread",
+                "create_draft",
+                "list_labels"
+            ],
+            "auth": "OAuth provider flow expected"
+        },
+        "google-drive": {
+            "transport": "http",
+            "url": "https://drivemcp.googleapis.com/mcp/v1",
+            "_docs": "Busca, leitura e fetch de arquivos do Drive.",
+            "tools": [
+                "gdrive_fetch",
+                "search",
+                "read"
+            ],
+            "auth": "OAuth provider flow expected"
+        },
+        "notion": {
+            "transport": "http",
+            "url": "https://mcp.notion.com/mcp",
+            "_docs": "Criação, busca e atualização de páginas e databases.",
+            "tools": [
+                "notion-create-pages",
+                "notion-search",
+                "notion-update-page",
+                "notion-create-database"
+            ],
+            "auth": "Provider-specific auth may be required"
+        },
+        "vercel": {
+            "transport": "http",
+            "url": "https://mcp.vercel.com",
+            "_docs": "Deploy, inspeção de deployment e logs de runtime.",
+            "tools": [
+                "deploy_to_vercel",
+                "get_deployment",
+                "get_runtime_logs",
+                "list_projects"
+            ],
+            "auth": "Provider-specific auth may be required"
+        },
+        "canva": {
+            "transport": "http",
+            "url": "https://mcp.canva.com/mcp",
+            "_docs": "Geração, export e busca de designs e apresentações.",
+            "tools": [
+                "generate-design",
+                "export-design",
+                "search-designs",
+                "request-outline-review"
+            ],
+            "auth": "Provider-specific auth may be required"
+        },
+        "hugging-face": {
+            "transport": "http",
+            "url": "https://huggingface.co/mcp",
+            "_docs": "Busca de modelos, datasets, inference e Spaces.",
+            "tools": [
+                "model search",
+                "dataset access",
+                "inference",
+                "spaces"
+            ],
+            "auth": "Token or provider-specific auth may be required"
+        },
+        "play-sheet-music": {
+            "transport": "http",
+            "url": "https://modelcontextprotocol.io/sheet-music/mcp",
+            "_docs": "Renderização de notação ABC com playback de áudio.",
+            "tools": [
+                "play-sheet-music",
+                "ABC notation",
+                "audio playback"
+            ],
+            "auth": "Unknown / likely none for demo usage"
+        }
+    }
+}

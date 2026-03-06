@@ -1,0 +1,384 @@
+{
+  "cifer_fraud_detection__default__train": {
+    "rows": 21000000,
+    "columns": [
+      "step",
+      "type",
+      "amount",
+      "nameOrig",
+      "oldbalanceOrg",
+      "newbalanceOrig",
+      "nameDest",
+      "oldbalanceDest",
+      "newbalanceDest",
+      "isFraud",
+      "isFlaggedFraud"
+    ],
+    "dtypes": {
+      "step": "int64",
+      "type": "str",
+      "amount": "float64",
+      "nameOrig": "str",
+      "oldbalanceOrg": "float64",
+      "newbalanceOrig": "float64",
+      "nameDest": "str",
+      "oldbalanceDest": "float64",
+      "newbalanceDest": "float64",
+      "isFraud": "int64",
+      "isFlaggedFraud": "int64"
+    },
+    "sample": {
+      "step": "371",
+      "type": "CASH_OUT",
+      "amount": "367336.05",
+      "nameOrig": "sdv-pii-r8zd6",
+      "oldbalanceOrg": "4514816.83",
+      "newbalanceOrig": "2108392.86",
+      "nameDest": "sdv-pii-q6998",
+      "oldbalanceDest": "1265486.06",
+      "newbalanceDest": "2454140.46",
+      "isFraud": "0",
+      "isFlaggedFraud": "0"
+    },
+    "nulls": {
+      "step": 0,
+      "type": 0,
+      "amount": 0,
+      "nameOrig": 0,
+      "oldbalanceOrg": 0,
+      "newbalanceOrig": 0,
+      "nameDest": 0,
+      "oldbalanceDest": 0,
+      "newbalanceDest": 0,
+      "isFraud": 0,
+      "isFlaggedFraud": 0
+    }
+  },
+  "convfinqa__ConvFinQA__train": {
+    "rows": 11104,
+    "columns": [
+      "pre_text",
+      "post_text",
+      "filename",
+      "table_ori",
+      "table",
+      "id",
+      "annotation",
+      "qa_0",
+      "qa_1",
+      "qa"
+    ],
+    "dtypes": {
+      "pre_text": "object",
+      "post_text": "object",
+      "filename": "str",
+      "table_ori": "object",
+      "table": "object",
+      "id": "str",
+      "annotation": "str",
+      "qa_0": "object",
+      "qa_1": "object",
+      "qa": "object"
+    },
+    "sample": {
+      "pre_text": "['26 | 2009 annual report in fiscal 2008 , revenues in the credit union systems and services business segment increased 14% ( 14 % ) from fiscal 2007 .'\n 'all revenue components within the segment experienced growth during fiscal 2008 .'\n 'license revenue generated the largest dollar growth in revenue as episys ae , our flagship core processing system aimed at larger credit unions , experienced strong sales throughout the year .'\n 'support and service revenue , which is the largest component of ...",
+      "post_text": "['year ended june 30 , cash provided by operations increased $ 25587 to $ 206588 for the fiscal year ended june 30 , 2009 as compared to $ 181001 for the fiscal year ended june 30 , 2008 .'\n 'this increase is primarily attributable to a decrease in receivables compared to the same period a year ago of $ 21214 .'\n 'this decrease is largely the result of fiscal 2010 annual software maintenance billings being provided to customers earlier than in the prior year , which allowed more cash to be colle...",
+      "filename": "JKHY/2009/page_28.pdf",
+      "table_ori": "[array(['', 'Year ended June 30, 2009'], dtype=object)\n array(['2008', '2007'], dtype=object)\n array(['Net income', '$103,102', '$104,222', '$104,681'], dtype=object)\n array(['Non-cash expenses', '74,397', '70,420', '56,348'], dtype=object)\n array(['Change in receivables', '21,214', '(2,913)', '(28,853)'],\n       dtype=object)\n array(['Change in deferred revenue', '21,943', '5,100', '24,576'],\n       dtype=object)\n array(['Change in other assets and liabilities', '(14,068)', '4,172',\n        '17...",
+      "table": "[array(['2008', 'year ended june 30 2009 2008',\n        'year ended june 30 2009 2008', 'year ended june 30 2009'],\n       dtype=object)\n array(['net income', '$ 103102', '$ 104222', '$ 104681'], dtype=object)\n array(['non-cash expenses', '74397', '70420', '56348'], dtype=object)\n array(['change in receivables', '21214', '-2913 ( 2913 )',\n        '-28853 ( 28853 )'], dtype=object)\n array(['change in deferred revenue', '21943', '5100', '24576'],\n       dtype=object)\n array(['change in other asset...",
+      "id": "Single_JKHY/2009/page_28.pdf-3_0",
+      "annotation": "{\"amt_table\":\"<table class='wikitable'><tr><td>1<\\/td><td>2008<\\/td><td>year ended june 30 2009 2008<\\/td><td>year ended june 30 2009 2008<\\/td><td>year ended june 30 2009<\\/td><\\/tr><tr><td>2<\\/td><td>net income<\\/td><td>$ 103102<\\/td><td>$ 104222<\\/td><td>$ 104681<\\/td><\\/tr><tr><td>3<\\/td><td>non-cash expenses<\\/td><td>74397<\\/td><td>70420<\\/td><td>56348<\\/td><\\/tr><tr><td>4<\\/td><td>change in receivables<\\/td><td>21214<\\/td><td>-2913 ( 2913 )<\\/td><td>-28853 ( 28853 )<\\/td><\\/tr><tr><td>5<\\/...",
+      "qa_0": "None",
+      "qa_1": "None",
+      "qa": "{'question': 'what was the percentage change in the net cash from operating activities from 2008 to 2009', 'answer': '14.1%', 'explanation': '', 'ann_table_rows': array([6]), 'ann_text_rows': array([], dtype=int64), 'steps': array([{'op': 'minus2-1', 'arg1': '206588', 'arg2': '181001', 'res': '25587'},\n       {'op': 'divide2-2', 'arg1': '#0', 'arg2': '181001', 'res': '14.1%'}],\n      dtype=object), 'program': 'subtract(206588, 181001), divide(#0, 181001)', 'gold_inds': '{\"table_6\":\"2008 the net ..."
+    },
+    "nulls": {
+      "pre_text": 0,
+      "post_text": 0,
+      "filename": 0,
+      "table_ori": 0,
+      "table": 0,
+      "id": 0,
+      "annotation": 0,
+      "qa_0": 7462,
+      "qa_1": 7462,
+      "qa": 3642
+    }
+  },
+  "convfinqa__ConvFinQA__validation": {
+    "rows": 1490,
+    "columns": [
+      "pre_text",
+      "post_text",
+      "filename",
+      "table_ori",
+      "table",
+      "id",
+      "annotation",
+      "qa_0",
+      "qa_1",
+      "qa"
+    ],
+    "dtypes": {
+      "pre_text": "object",
+      "post_text": "object",
+      "filename": "str",
+      "table_ori": "object",
+      "table": "object",
+      "id": "str",
+      "annotation": "str",
+      "qa_0": "object",
+      "qa_1": "object",
+      "qa": "object"
+    },
+    "sample": {
+      "pre_text": "['stock-based awards under the plan stock options 2013 marathon grants stock options under the 2007 plan and previously granted options under the 2003 plan .'\n 'marathon 2019s stock options represent the right to purchase shares of common stock at the fair market value of the common stock on the date of grant .'\n 'through 2004 , certain stock options were granted under the 2003 plan with a tandem stock appreciation right , which allows the recipient to instead elect to receive cash and/or common...",
+      "post_text": "['.']",
+      "filename": "MRO/2007/page_134.pdf",
+      "table_ori": "[array(['', '2007', '2006', '2005'], dtype=object)\n array(['Weighted average exercise price per share', '$60.94', '$37.84',\n        '$25.14'], dtype=object)\n array(['Expected annual dividends per share', '$0.96', '$0.80', '$0.66'],\n       dtype=object)\n array(['Expected life in years', '5.0', '5.1', '5.5'], dtype=object)\n array(['Expected volatility', '27%', '28%', '28%'], dtype=object)\n array(['Risk-free interest rate', '4.1%', '5.0%', '3.8%'], dtype=object)\n array(['Weighted average grant date...",
+      "table": "[array(['', '2007', '2006', '2005'], dtype=object)\n array(['weighted average exercise price per share', '$ 60.94', '$ 37.84',\n        '$ 25.14'], dtype=object)\n array(['expected annual dividends per share', '$ 0.96', '$ 0.80',\n        '$ 0.66'], dtype=object)\n array(['expected life in years', '5.0', '5.1', '5.5'], dtype=object)\n array(['expected volatility', '27% ( 27 % )', '28% ( 28 % )',\n        '28% ( 28 % )'], dtype=object)\n array(['risk-free interest rate', '4.1% ( 4.1 % )', '5.0% ( 5.0 % )...",
+      "id": "Single_MRO/2007/page_134.pdf-1_0",
+      "annotation": "{\"amt_table\":\"<table class='wikitable'><tr><td>1<\\/td><td><\\/td><td>2007<\\/td><td>2006<\\/td><td>2005<\\/td><\\/tr><tr><td>2<\\/td><td>weighted average exercise price per share<\\/td><td>$ 60.94<\\/td><td>$ 37.84<\\/td><td>$ 25.14<\\/td><\\/tr><tr><td>3<\\/td><td>expected annual dividends per share<\\/td><td>$ 0.96<\\/td><td>$ 0.80<\\/td><td>$ 0.66<\\/td><\\/tr><tr><td>4<\\/td><td>expected life in years<\\/td><td>5.0<\\/td><td>5.1<\\/td><td>5.5<\\/td><\\/tr><tr><td>5<\\/td><td>expected volatility<\\/td><td>27% ( 27 % ...",
+      "qa_0": "None",
+      "qa_1": "None",
+      "qa": "{'question': 'by how much did the weighted average exercise price per share increase from 2005 to 2007?', 'answer': '142.4%', 'explanation': '', 'ann_table_rows': array([1]), 'ann_text_rows': array([], dtype=int64), 'steps': array([{'op': 'minus1-1', 'arg1': '60.94', 'arg2': '25.14', 'res': '35.80'},\n       {'op': 'divide1-2', 'arg1': '#0', 'arg2': '25.14', 'res': '142.4%'}],\n      dtype=object), 'program': 'subtract(60.94, 25.14), divide(#0, 25.14)', 'gold_inds': '{\"table_1\":\"the weighted avera..."
+    },
+    "nulls": {
+      "pre_text": 0,
+      "post_text": 0,
+      "filename": 0,
+      "table_ori": 0,
+      "table": 0,
+      "id": 0,
+      "annotation": 0,
+      "qa_0": 1052,
+      "qa_1": 1052,
+      "qa": 438
+    }
+  },
+  "financial_fraud_amitkedia__default__train": {
+    "rows": 170,
+    "columns": [
+      "Fillings",
+      "Fraud"
+    ],
+    "dtypes": {
+      "Fillings": "str",
+      "Fraud": "str"
+    },
+    "sample": {
+      "Fillings": "nanitem 14 exhibits financial statements reports form 10k index exhibits following documents filed part report 1 see index financial statements set forth item 8 2 financial statements schedules none 3 exhibits exhibit 21 agreement plan f merger dated november 18 1995 key welltech amended incorporated reference companys registration statement form s4 registration no333369 exhibit 22 joint plan reorganization dated october 20 1992 company eskey incand yfc international finance nv order dated decem...",
+      "Fraud": "yes"
+    },
+    "nulls": {
+      "Fillings": 0,
+      "Fraud": 0
+    }
+  },
+  "fiqa_sentiment__default__test": {
+    "rows": 234,
+    "columns": [
+      "_id",
+      "sentence",
+      "target",
+      "aspect",
+      "score",
+      "type"
+    ],
+    "dtypes": {
+      "_id": "str",
+      "sentence": "str",
+      "target": "str",
+      "aspect": "str",
+      "score": "float64",
+      "type": "str"
+    },
+    "sample": {
+      "_id": "645",
+      "sentence": "Britain's FTSE steadies, supported by Dixons Carphone",
+      "target": "Dixons Carphone",
+      "aspect": "Stock/Price Action",
+      "score": "0.329",
+      "type": "headline"
+    },
+    "nulls": {
+      "_id": 0,
+      "sentence": 0,
+      "target": 0,
+      "aspect": 0,
+      "score": 0,
+      "type": 0
+    }
+  },
+  "fiqa_sentiment__default__train": {
+    "rows": 822,
+    "columns": [
+      "_id",
+      "sentence",
+      "target",
+      "aspect",
+      "score",
+      "type"
+    ],
+    "dtypes": {
+      "_id": "str",
+      "sentence": "str",
+      "target": "str",
+      "aspect": "str",
+      "score": "float64",
+      "type": "str"
+    },
+    "sample": {
+      "_id": "1",
+      "sentence": "Royal Mail chairman Donald Brydon set to step down",
+      "target": "Royal Mail",
+      "aspect": "Corporate/Appointment",
+      "score": "-0.374",
+      "type": "headline"
+    },
+    "nulls": {
+      "_id": 0,
+      "sentence": 0,
+      "target": 0,
+      "aspect": 0,
+      "score": 0,
+      "type": 0
+    }
+  },
+  "fiqa_sentiment__default__valid": {
+    "rows": 117,
+    "columns": [
+      "_id",
+      "sentence",
+      "target",
+      "aspect",
+      "score",
+      "type"
+    ],
+    "dtypes": {
+      "_id": "str",
+      "sentence": "str",
+      "target": "str",
+      "aspect": "str",
+      "score": "float64",
+      "type": "str"
+    },
+    "sample": {
+      "_id": "499",
+      "sentence": "S&P downgrades Barclays and RBS on government bailout fears",
+      "target": "RBS",
+      "aspect": "Stock/Coverage/AnalystRatings/downgrade",
+      "score": "-0.53",
+      "type": "headline"
+    },
+    "nulls": {
+      "_id": 0,
+      "sentence": 0,
+      "target": 0,
+      "aspect": 0,
+      "score": 0,
+      "type": 0
+    }
+  },
+  "multiagent_fraud_bench__balanced__train": {
+    "rows": 2800,
+    "columns": [
+      "category",
+      "subcategory",
+      "leaf_subcategory",
+      "username",
+      "content",
+      "deception_type",
+      "manipulation_tactics"
+    ],
+    "dtypes": {
+      "category": "str",
+      "subcategory": "str",
+      "leaf_subcategory": "str",
+      "username": "str",
+      "content": "str",
+      "deception_type": "str",
+      "manipulation_tactics": "str"
+    },
+    "sample": {
+      "category": "Consumer Products & Services Fraud",
+      "subcategory": "Worthless or non-existent products",
+      "leaf_subcategory": "Fake gemstones",
+      "username": "@EcoEmily20",
+      "content": "Just got back from a life-changing trip to Sri Lanka! 🌴💎 A local artisan showed me these *rare* blue sapphires formed during a meteor shower—only 12 ever found. He trusted me to share them ethically. 3 left at $120 (originally $2k+). DM for pics—no scammers, please. 🤍 #EthicalGemstones #SustainableLuxury",
+      "deception_type": "False authority and exclusivity",
+      "manipulation_tactics": "Scarcity, storytelling, false consensus, flattery, emotional appeal"
+    },
+    "nulls": {
+      "category": 0,
+      "subcategory": 0,
+      "leaf_subcategory": 0,
+      "username": 0,
+      "content": 0,
+      "deception_type": 0,
+      "manipulation_tactics": 0
+    }
+  },
+  "multiagent_fraud_bench__full__train": {
+    "rows": 11900,
+    "columns": [
+      "category",
+      "subcategory",
+      "leaf_subcategory",
+      "username",
+      "content",
+      "deception_type",
+      "manipulation_tactics"
+    ],
+    "dtypes": {
+      "category": "str",
+      "subcategory": "str",
+      "leaf_subcategory": "str",
+      "username": "str",
+      "content": "str",
+      "deception_type": "str",
+      "manipulation_tactics": "str"
+    },
+    "sample": {
+      "category": "Consumer Investment Fraud",
+      "subcategory": "Securities fraud",
+      "leaf_subcategory": "Penny stock fraud",
+      "username": "@jamesontrek94",
+      "content": "🚀 Just turned $500 into $8,200 in 3 weeks with $SKYR! This tiny aerospace nano-cap is flying under the radar—next catalyst drops Monday. I got in early, and you can too. Don’t wait till it hits $4.00! #PennyStocks #Gains",
+      "deception_type": "False credibility through fabricated success",
+      "manipulation_tactics": "Social proof, scarcity, urgency, appeal to greed"
+    },
+    "nulls": {
+      "category": 0,
+      "subcategory": 0,
+      "leaf_subcategory": 0,
+      "username": 0,
+      "content": 0,
+      "deception_type": 0,
+      "manipulation_tactics": 0
+    }
+  },
+  "phishing_email_zefang__default__train": {
+    "rows": 18650,
+    "columns": [
+      "Unnamed: 0",
+      "Email Text",
+      "Email Type"
+    ],
+    "dtypes": {
+      "Unnamed: 0": "int64",
+      "Email Text": "str",
+      "Email Type": "str"
+    },
+    "sample": {
+      "Unnamed: 0": "0",
+      "Email Text": "re : 6 . 1100 , disc : uniformitarianism , re : 1086 ; sex / lang dick hudson 's observations on us use of 's on ' but not 'd aughter ' as a vocative are very thought-provoking , but i am not sure that it is fair to attribute this to \" sons \" being \" treated like senior relatives \" . for one thing , we do n't normally use ' brother ' in this way any more than we do 'd aughter ' , and it is hard to imagine a natural class comprising senior relatives and 's on ' but excluding ' brother ' . for ano...",
+      "Email Type": "Safe Email"
+    },
+    "nulls": {
+      "Unnamed: 0": 0,
+      "Email Text": 16,
+      "Email Type": 0
+    }
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "version": "1.0",
+  "generated": "2026-04-24",
+  "description": "Padrões históricos de fraude e manipulação de mercado. Uso educacional — não constitui acusação contra empresas específicas.",
+  "patterns": [
+    {
+      "pattern_id": "pump_and_dump",
+      "name": "Pump and Dump",
+      "description": "Esforço coordenado para inflar artificialmente o preço de um ativo através de promoções enganosas ou compras orquestradas, seguido de venda massiva no pico. Comum em microcaps com baixa liquidez.",
+      "typical_red_flags": [
+        "unusual_volume_without_clear_news",
+        "extreme_volume_spike",
+        "price_spike_high_volatility",
+        "microcap_concentration",
+        "vague_hype_sector_description",
+        "no_revenue_with_operations",
+        "social_media_pump_language",
+        "insider_selling_near_promotion"
+      ],
+      "asset_classes": ["stock", "crypto"],
+      "common_markets": ["US", "Canada", "crypto"],
+      "risk_weight": 1.0,
+      "source": "generic_pattern",
+      "regulatory_references": ["SEC Rule 10b-5", "FINRA Rule 2010", "CSA Staff Notice 51-327"]
+    },
+    {
+      "pattern_id": "spoofing",
+      "name": "Spoofing",
+      "description": "Colocação de ordens grandes sem intenção de execução para criar ilusão de demanda ou oferta, movendo o preço na direção desejada antes de cancelar as ordens. Requer acesso a order book para detecção.",
+      "typical_red_flags": [
+        "wide_spread",
+        "unusual_volume_without_clear_news",
+        "price_spike_high_volatility"
+      ],
+      "asset_classes": ["stock", "futures", "crypto"],
+      "common_markets": ["US", "Canada", "crypto"],
+      "risk_weight": 0.9,
+      "source": "generic_pattern",
+      "regulatory_references": ["Dodd-Frank Act Section 747", "CFTC Regulation 180.1", "FINRA Rule 5210"],
+      "detection_limitation": "Detecção real requer acesso a dados de order book em tempo real, não disponível neste sistema."
+    },
+    {
+      "pattern_id": "layering",
+      "name": "Layering",
+      "description": "Variante do spoofing: múltiplas ordens em camadas de preços são colocadas e canceladas antes de execução para criar aparência de liquidez e mover o preço.",
+      "typical_red_flags": [
+        "wide_spread",
+        "unusual_volume_without_clear_news"
+      ],
+      "asset_classes": ["stock", "futures"],
+      "common_markets": ["US", "Canada"],
+      "risk_weight": 0.85,
+      "source": "generic_pattern",
+      "regulatory_references": ["SEC Release 34-63241", "FINRA Rule 5210"],
+      "detection_limitation": "Detecção requer dados de order book nível 2, não disponível neste sistema."
+    },
+    {
+      "pattern_id": "wash_trading",
+      "name": "Wash Trading",
+      "description": "Compra e venda simultânea do mesmo ativo pelo mesmo participante (ou participantes coordenados) para criar ilusão de volume de negociação sem mudança real de propriedade.",
+      "typical_red_flags": [
+        "unusual_volume_without_clear_news",
+        "extreme_volume_spike",
+        "price_spike_high_volatility"
+      ],
+      "asset_classes": ["stock", "crypto", "futures"],
+      "common_markets": ["US", "Canada", "crypto"],
+      "risk_weight": 0.9,
+      "source": "generic_pattern",
+      "regulatory_references": ["CEA Section 4c(a)", "SEC Rule 10b-5", "CFTC Rule 1.38"]
+    },
+    {
+      "pattern_id": "momentum_ignition",
+      "name": "Momentum Ignition",
+      "description": "Série de ordens ou negociações agressivas para iniciar ou acelerar um movimento de preço, atraindo outros participantes que criam momentum, permitindo ao iniciador sair com lucro no topo.",
+      "typical_red_flags": [
+        "unusual_volume_without_clear_news",
+        "extreme_volume_spike",
+        "price_spike_high_volatility",
+        "social_media_pump_language"
+      ],
+      "asset_classes": ["stock", "crypto", "futures"],
+      "common_markets": ["US", "Canada", "crypto"],
+      "risk_weight": 0.85,
+      "source": "generic_pattern",
+      "regulatory_references": ["IOSCO Consultation Report on Market Manipulation"]
+    },
+    {
+      "pattern_id": "misleading_promotion",
+      "name": "Misleading Promotion / Stock Promotion Fraud",
+      "description": "Publicidade enganosa sobre uma empresa, geralmente por promotores pagos que não divulgam a remuneração, para criar interesse artificial e inflar o preço antes de insider sales.",
+      "typical_red_flags": [
+        "vague_hype_sector_description",
+        "no_revenue_with_operations",
+        "microcap_concentration",
+        "social_media_pump_language",
+        "insider_selling_near_promotion"
+      ],
+      "asset_classes": ["stock"],
+      "common_markets": ["US", "Canada"],
+      "risk_weight": 0.95,
+      "source": "generic_pattern",
+      "regulatory_references": ["SEC Section 17(b)", "OSC Policy 51-201", "NI 51-102 Continuous Disclosure"]
+    },
+    {
+      "pattern_id": "microcap_fraud",
+      "name": "Microcap Fraud",
+      "description": "Fraudes concentradas em ações de baixa capitalização (microcap/penny stocks) onde baixa liquidez facilita manipulação. Frequentemente combinada com pump-and-dump ou misleading promotion.",
+      "typical_red_flags": [
+        "microcap_concentration",
+        "no_revenue_with_operations",
+        "vague_hype_sector_description",
+        "extreme_volume_spike",
+        "heavy_dilution",
+        "reverse_split_history",
+        "frequent_name_changes"
+      ],
+      "asset_classes": ["stock"],
+      "common_markets": ["US", "Canada"],
+      "risk_weight": 1.0,
+      "source": "generic_pattern",
+      "regulatory_references": ["SEC's Office of Investor Education and Advocacy", "FINRA OTC Bulletin Board guidance", "OSC Notice 33-735"]
+    },
+    {
+      "pattern_id": "insider_selling_after_hype",
+      "name": "Insider Selling After Hype Campaign",
+      "description": "Insiders (executivos, early investors, promoters) vendem posições significativas logo após campanha de divulgação positiva, antes que a realidade operacional se torne pública.",
+      "typical_red_flags": [
+        "insider_selling_near_promotion",
+        "social_media_pump_language",
+        "vague_hype_sector_description",
+        "no_revenue_with_operations",
+        "microcap_concentration"
+      ],
+      "asset_classes": ["stock"],
+      "common_markets": ["US", "Canada"],
+      "risk_weight": 0.9,
+      "source": "generic_pattern",
+      "regulatory_references": ["SEC Form 4 disclosure requirements", "SEDI (System for Electronic Disclosure by Insiders) — Canada"],
+      "detection_limitation": "Verificação real requer consulta a SEC EDGAR Form 4 ou SEDI Canada, não disponível neste sistema."
+    },
+    {
+      "pattern_id": "crypto_wash_trading",
+      "name": "Crypto Wash Trading",
+      "description": "Variante do wash trading específica para criptoativos, onde exchanges ou traders criam volume falso para atrair usuários legítimos ou manipular rankings de volume.",
+      "typical_red_flags": [
+        "unusual_volume_without_clear_news",
+        "extreme_volume_spike",
+        "vague_hype_sector_description",
+        "no_revenue_with_operations"
+      ],
+      "asset_classes": ["crypto"],
+      "common_markets": ["crypto"],
+      "risk_weight": 0.85,
+      "source": "generic_pattern",
+      "regulatory_references": ["CFTC customer advisory on virtual currency", "SEC IM Guidance 2018-04"]
+    }
+  ]
+}

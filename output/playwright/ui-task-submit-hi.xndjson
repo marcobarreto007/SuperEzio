@@ -1,0 +1,64 @@
+{"type": "STREAM_START", "msg_id": "front-1778464384017"}
+{"type": "PIPELINE_STEP", "run_id": "a979faead3ed", "step": "graph", "status": "started"}
+{"type": "PIPELINE_STEP", "step": "orchestrator_primary", "status": "started", "run_id": "a979faead3ed"}
+{"type": "PIPELINE_STEP", "step": "orchestrator_primary", "status": "completed", "route": "general", "ticker": "", "model_status": "deterministic", "run_id": "a979faead3ed"}
+{"type": "PIPELINE_STEP", "step": "ceo_primary", "status": "started", "provider": "ceo_lora", "fallback_from": "", "lora_ready": true, "cloud_ready": true, "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": "<think>", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": "\n", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": "Okay", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": ",", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " the", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " user", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " said", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " \"", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": "hi", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": "\".", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " I", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " need", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " to", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " respond", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " appropriately", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": ".", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " Let", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " me", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " check", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " the", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " history", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": ".", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " The", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " user", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " has", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " asked", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " similar", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " questions", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " before", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": ",", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " and", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " I", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " have", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " provided", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " answers", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": ".", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " I", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " should", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " keep", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " it", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " brief", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " and", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " professional", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": ".", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " Let", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " me", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " make", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " sure", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " to", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " ask", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " for", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " more", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": " context", "run_id": "a979faead3ed"}
+{"type": "CHUNK", "content": ".", "run_id": "a979faead3ed"}
+{"type": "PIPELINE_STEP", "step": "ceo_primary", "status": "completed", "provider": "ceo_lora", "run_id": "a979faead3ed"}
+{"type": "PIPELINE_STEP", "step": "explanation", "status": "started", "run_id": "a979faead3ed"}
+{"type": "PIPELINE_STEP", "step": "explanation", "status": "skipped", "run_id": "a979faead3ed"}
+{"type": "PIPELINE_STEP", "run_id": "a979faead3ed", "step": "graph", "status": "completed"}
+{"type": "STREAM_END"}

@@ -1,0 +1,82 @@
+{
+  "project": "SuperEzio / F51 Unified Core",
+  "version": "4.0.0",
+  "date_local": "2026-05-15T22:45:00-03:00",
+  "session": "f51_reclamation_runtime_inventory",
+  "verdict": "PARCIAL",
+  "status": "PIPELINE_V4_FUNCTIONAL_TESTS_GREEN_LINT_DIRTY",
+  "operational_contract": {
+    "name": "F51_Blood_Pact_Operational_Runtime",
+    "path": ".f51/contracts/f51-blood-pact-operational-runtime.json",
+    "status": "active"
+  },
+  "quality_gate": {
+    "date": "2026-05-15T22:45:00-03:00",
+    "commit": "0dad9f3",
+    "branch": "main",
+    "git_status": "dirty (inventory artifacts + pipeline v4 new files untracked)",
+    "ruff_check": "FAIL (11 errors: 5 unused imports, 5 E402 sys.path, 1 E731 lambda)",
+    "ruff_format": "FAIL (32 files need reformatting)",
+    "pytest": "PASS (344 passed, 2 skipped, 0 failed, 8.78s)",
+    "build": "SKIP (no build system)",
+    "coverage": "SKIP",
+    "verdict": "PARTIAL"
+  },
+  "architecture": {
+    "model": "external-only (DeepSeek API + optional local)",
+    "ceo_local": "REMOVED (Nemotron-Nano removed in refactor 8cfcfdf)",
+    "pipeline": "LangGraph StateGraph with conditional edges + Send fan-out",
+    "pipeline_nodes": "dual implementation (mixin class + standalone functions)",
+    "agent_runtime": "simplified (5 modules: agent_selector, context_cache, financial_agents, output_schema, control_plane/registry)",
+    "f51_engine": "intact (formulas, gates, graph, scoring, detectors)"
+  },
+  "patches_applied": [
+    {
+      "id": "RECLAMATION.001",
+      "title": "Remove legacy agent_runtime and pipeline modules",
+      "commit": "8cfcfdf",
+      "what": "Deleted monolithic agent_runtime (edge/gateway 578 lines, financial_suite, ml/quant_engine) and legacy pipeline. Removed serve_ceo.py (497 lines). Removed 7 broken test files."
+    },
+    {
+      "id": "RECLAMATION.002",
+      "title": "Recreate agent_runtime and pipeline with clean architecture",
+      "commit": "6417778",
+      "what": "New agent_runtime: agent_selector, context_cache, financial_agents, output_schema, control_plane/registry. New pipeline: cache, ceo_prompts, intents, nodes, responses, runtime, security, state. RL scaffold: policy.py."
+    },
+    {
+      "id": "RECLAMATION.003",
+      "title": "Resolve nodes.py vs nodes/ namespace conflict",
+      "commit": "0dad9f3",
+      "what": "Moved PipelineNodes mixin to nodes/_mixin.py. Removed stale nodes.py that masked the package directory. All 12 previously broken imports now resolve."
+    }
+  ],
+  "evidence": {
+    "pytest": "344 passed, 2 skipped, 0 failed (8.78s)",
+    "ruff_check": "11 errors (5 F401 unused, 5 E402 sys.path, 1 E731 lambda)",
+    "ruff_format": "32 files need reformatting",
+    "imports_smoke": "12/12 previously broken pipeline imports now resolve"
+  },
+  "known_risks": [
+    "R01: Pipeline nodes 100% duplicated (mixin + standalone functions)",
+    "R02: CEO prompts duplicated (ceo_prompts.py vs prompts/builder.py)",
+    "R03: Pipeline has zero test coverage (runtime, nodes, state, cache, security, responses)",
+    "R04: core/engine/ deprecated but still imported by endpoints.py and collector.py",
+    "R05: Scanner module missing (empty dir, graceful ImportError fallback)",
+    "R06: 60 of 117 src modules have no test coverage",
+    "R07: rl/policy.py scaffold without tests",
+    "R08: 3 empty orphan dirs (scanner/, mathcore/, evidence/)",
+    "R09: financial_prompts.py partial overlap with prompts/gemma.py (transition incomplete)",
+    "R10: math/indicators.py overlaps engine/indicators.py (scalar vs series)",
+    "R11: 55 env vars scattered across 20+ files without centralization",
+    "R12: scripts/server.py orphan — not referenced anywhere"
+  ],
+  "inventory_deliverables": {
+    "INVENTORY.json": "generated",
+    "RISK_REGISTER.md": "generated",
+    "ENTRYPOINT_MAP.md": "generated",
+    "CONFIG_MAP.md": "generated",
+    "TEST_MAP.md": "pending",
+    "DUPLICATE_MAP.md": "pending"
+  },
+  "next_safest_patch": "Fix 11 ruff errors (5 unused imports auto-fixable), then run ruff format, then add pipeline smoke tests"
+}

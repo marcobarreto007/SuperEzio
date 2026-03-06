@@ -1,0 +1,236 @@
+{
+  "eval_examples": 148,
+  "generated_by": "scripts/build_hf_intent_dataset.py",
+  "sources": {
+    "klaylouis1932/OpenFinData-Intent-Understanding-Intruct": {
+      "failed": [],
+      "partial": false,
+      "pending": [],
+      "size": {
+        "configs": [
+          {
+            "config": "default",
+            "dataset": "klaylouis1932/OpenFinData-Intent-Understanding-Intruct",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 236512,
+            "num_bytes_original_files": 39574,
+            "num_bytes_parquet_files": 39574,
+            "num_columns": 3,
+            "num_rows": 735
+          }
+        ],
+        "dataset": {
+          "dataset": "klaylouis1932/OpenFinData-Intent-Understanding-Intruct",
+          "estimated_num_rows": null,
+          "num_bytes_memory": 236512,
+          "num_bytes_original_files": 39574,
+          "num_bytes_parquet_files": 39574,
+          "num_rows": 735
+        },
+        "splits": [
+          {
+            "config": "default",
+            "dataset": "klaylouis1932/OpenFinData-Intent-Understanding-Intruct",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 160365,
+            "num_bytes_parquet_files": 22398,
+            "num_columns": 3,
+            "num_rows": 500,
+            "split": "train"
+          },
+          {
+            "config": "default",
+            "dataset": "klaylouis1932/OpenFinData-Intent-Understanding-Intruct",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 51493,
+            "num_bytes_parquet_files": 9705,
+            "num_columns": 3,
+            "num_rows": 160,
+            "split": "validation"
+          },
+          {
+            "config": "default",
+            "dataset": "klaylouis1932/OpenFinData-Intent-Understanding-Intruct",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 24654,
+            "num_bytes_parquet_files": 7471,
+            "num_columns": 3,
+            "num_rows": 75,
+            "split": "test"
+          }
+        ]
+      }
+    },
+    "learn-abc/banking14-intents-en": {
+      "failed": [],
+      "partial": false,
+      "pending": [],
+      "size": {
+        "configs": [
+          {
+            "config": "default",
+            "dataset": "learn-abc/banking14-intents-en",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 2241474,
+            "num_bytes_original_files": 921470,
+            "num_bytes_parquet_files": 921470,
+            "num_columns": 2,
+            "num_rows": 42558
+          }
+        ],
+        "dataset": {
+          "dataset": "learn-abc/banking14-intents-en",
+          "estimated_num_rows": null,
+          "num_bytes_memory": 2241474,
+          "num_bytes_original_files": 921470,
+          "num_bytes_parquet_files": 921470,
+          "num_rows": 42558
+        },
+        "splits": [
+          {
+            "config": "default",
+            "dataset": "learn-abc/banking14-intents-en",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 2057036,
+            "num_bytes_parquet_files": 833191,
+            "num_columns": 2,
+            "num_rows": 39478,
+            "split": "train"
+          },
+          {
+            "config": "default",
+            "dataset": "learn-abc/banking14-intents-en",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 184438,
+            "num_bytes_parquet_files": 88279,
+            "num_columns": 2,
+            "num_rows": 3080,
+            "split": "test"
+          }
+        ]
+      }
+    },
+    "local_golden": "C:\\Users\\marco\\Desktop\\SuperEzio\\data\\intent_golden.jsonl",
+    "vibrantlabsai/fiqa": {
+      "failed": [],
+      "partial": false,
+      "pending": [],
+      "size": {
+        "configs": [
+          {
+            "config": "corpus",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 44507032,
+            "num_bytes_original_files": 27711911,
+            "num_bytes_parquet_files": 27711911,
+            "num_columns": 1,
+            "num_rows": 57638
+          },
+          {
+            "config": "main",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 18198181,
+            "num_bytes_original_files": 10701030,
+            "num_bytes_parquet_files": 10701030,
+            "num_columns": 2,
+            "num_rows": 6648
+          },
+          {
+            "config": "ragas_eval",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 148718,
+            "num_bytes_original_files": 106005,
+            "num_bytes_parquet_files": 106005,
+            "num_columns": 4,
+            "num_rows": 30
+          },
+          {
+            "config": "ragas_eval_v3",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 148801,
+            "num_bytes_original_files": 102421,
+            "num_bytes_parquet_files": 102421,
+            "num_columns": 4,
+            "num_rows": 30
+          }
+        ],
+        "dataset": {
+          "dataset": "vibrantlabsai/fiqa",
+          "estimated_num_rows": null,
+          "num_bytes_memory": 63002732,
+          "num_bytes_original_files": 38621367,
+          "num_bytes_parquet_files": 38621367,
+          "num_rows": 64346
+        },
+        "splits": [
+          {
+            "config": "corpus",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 44507032,
+            "num_bytes_parquet_files": 27711911,
+            "num_columns": 1,
+            "num_rows": 57638,
+            "split": "corpus"
+          },
+          {
+            "config": "main",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 15015505,
+            "num_bytes_parquet_files": 8824088,
+            "num_columns": 2,
+            "num_rows": 5500,
+            "split": "train"
+          },
+          {
+            "config": "main",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 1355132,
+            "num_bytes_parquet_files": 796766,
+            "num_columns": 2,
+            "num_rows": 500,
+            "split": "validation"
+          },
+          {
+            "config": "main",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 1827544,
+            "num_bytes_parquet_files": 1080176,
+            "num_columns": 2,
+            "num_rows": 648,
+            "split": "test"
+          },
+          {
+            "config": "ragas_eval",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 148718,
+            "num_bytes_parquet_files": 106005,
+            "num_columns": 4,
+            "num_rows": 30,
+            "split": "baseline"
+          },
+          {
+            "config": "ragas_eval_v3",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 148801,
+            "num_bytes_parquet_files": 102421,
+            "num_columns": 4,
+            "num_rows": 30,
+            "split": "baseline"
+          }
+        ]
+      }
+    }
+  },
+  "total_examples": 741,
+  "train_examples": 593
+}

@@ -1,0 +1,1 @@
+"""Crisis I/O — report builder and limitation summarizer."""

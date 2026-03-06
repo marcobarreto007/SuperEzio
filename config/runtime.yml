@@ -1,0 +1,53 @@
+project_name: SuperEzio
+default_country: Canada
+default_currency: CAD
+version: 2.1.0
+server:
+  host: 127.0.0.1
+  port: 8002
+models:
+  # Gateway providers são criados em create_gateway_from_config() no gateway.py.
+  # Os modelos abaixo servem apenas para config default de URL/model_id.
+  orchestrator:
+    name: Primary External Orchestrator
+    path: https://api.deepseek.com
+    backend: openai_compatible
+    role: orchestrator
+    is_local: false
+    model_id: deepseek-chat
+  ceo:
+    name: Primary External CEO
+    path: https://api.deepseek.com
+    backend: openai_compatible
+    role: ceo
+    is_local: false
+    model_id: deepseek-chat
+  specialist: &id001
+    name: DeepSeek External Specialist
+    path: https://api.deepseek.com
+    backend: openai_compatible
+    role: worker
+    is_local: false
+    model_id: deepseek-chat
+  fundamental_analyst: *id001
+  technical_analyst: *id001
+  risk_manager: *id001
+  sentiment_analyst: *id001
+  macro_economist: *id001
+  portfolio_optimizer: *id001
+  fixed_income_analyst: *id001
+  quant_strategist: *id001
+  esg_analyst: *id001
+  derivatives_analyst: *id001
+  compliance_officer: *id001
+  sector_analyst: *id001
+gateway:
+  max_fallbacks: 2
+  timeout_s: 180
+triade:
+  max_fallback_attempts: 2
+  enable_review: true
+  use_committee: true
+storage:
+  memory_dir: data/memory
+  vectors_dir: data/vectors

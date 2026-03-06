@@ -1,0 +1,1 @@
+"""CrisisMath — 12-model systemic risk detection engine (active)."""

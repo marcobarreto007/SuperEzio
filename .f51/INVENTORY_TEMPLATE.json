@@ -1,0 +1,29 @@
+{
+    "project": "SuperEzio",
+    "date_local": "",
+    "session": "",
+    "summary": {
+        "entrypoints": [],
+        "runtime_commands": [],
+        "test_commands": [],
+        "critical_paths": []
+    },
+    "modules": [
+        {
+            "name": "",
+            "path": "",
+            "owner": "",
+            "risk": "low|medium|high",
+            "notes": ""
+        }
+    ],
+    "contracts": [
+        {
+            "name": "",
+            "public_surface": "",
+            "compatibility_risk": "low|medium|high"
+        }
+    ],
+    "open_questions": [],
+    "next_step": ""
+}

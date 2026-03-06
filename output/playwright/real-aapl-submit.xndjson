@@ -1,0 +1,174 @@
+﻿{"type": "CHART_DATA", "ticker": "AAPL"}
+{"type": "STREAM_START", "msg_id": "codex-real-aapl-20260510215516"}
+{"type": "PIPELINE_STEP", "run_id": "d38a044c21eb", "step": "graph", "status": "started"}
+{"type": "PIPELINE_STEP", "step": "orchestrator_primary", "status": "started", "run_id": "d38a044c21eb"}
+{"type": "CHART_DATA", "ticker": "AAPL", "run_id": "d38a044c21eb"}
+{"type": "PIPELINE_STEP", "step": "orchestrator_primary", "status": "completed", "route": "ticker_analysis", "ticker": "AAPL", "model_status": "deterministic", "run_id": "d38a044c21eb"}
+{"type": "PIPELINE_STEP", "step": "data", "status": "started", "route": "ticker_analysis", "run_id": "d38a044c21eb"}
+{"type": "DATA_COLLECTED", "ticker": "AAPL", "quality": "provider_or_computed", "source_errors": [], "analysis_id": "AAPL-d539667128b7", "run_id": "d38a044c21eb"}
+{"type": "PIPELINE_STEP", "step": "data", "status": "completed", "run_id": "d38a044c21eb"}
+{"type": "PIPELINE_STEP", "step": "f51_verdict", "status": "started", "run_id": "d38a044c21eb"}
+{"type": "F51_VERDICT", "confidence": 0.845, "passed": true, "factors": {"veracity": 0.0, "consensus": 0.8571428571428571, "proxy_reward": 0.7571428571428572, "robustness": 0.0, "uncertainty": 0.1749274808641288, "danger": 0.0}, "hub_risk_score": 0.2, "run_id": "d38a044c21eb"}
+{"type": "PIPELINE_STEP", "step": "f51_verdict", "status": "completed", "run_id": "d38a044c21eb"}
+{"type": "EXPERT_STARTED", "role": "fundamental", "provider": "deepseek", "run_id": "d38a044c21eb"}
+{"type": "EXPERT_STARTED", "role": "technical", "provider": "deepseek", "run_id": "d38a044c21eb"}
+{"type": "EXPERT_STARTED", "role": "risk", "provider": "deepseek", "run_id": "d38a044c21eb"}
+{"type": "EXPERT_STARTED", "role": "sentiment", "provider": "deepseek", "run_id": "d38a044c21eb"}
+{"type": "EXPERT_STARTED", "role": "macro", "provider": "deepseek", "run_id": "d38a044c21eb"}
+{"type": "EXPERT_STARTED", "role": "fixed_income", "provider": "deepseek", "run_id": "d38a044c21eb"}
+{"type": "EXPERT_STARTED", "role": "quant", "provider": "deepseek", "run_id": "d38a044c21eb"}
+{"type": "EXPERT_STARTED", "role": "derivatives", "provider": "deepseek", "run_id": "d38a044c21eb"}
+{"type": "EXPERT_DONE", "role": "derivatives", "ok": true, "provider": "deepseek", "error": "", "run_id": "d38a044c21eb"}
+{"type": "EXPERT_DONE", "role": "sentiment", "ok": true, "provider": "deepseek", "error": "", "run_id": "d38a044c21eb"}
+{"type": "EXPERT_DONE", "role": "risk", "ok": true, "provider": "deepseek", "error": "", "run_id": "d38a044c21eb"}
+{"type": "EXPERT_DONE", "role": "quant", "ok": true, "provider": "deepseek", "error": "", "run_id": "d38a044c21eb"}
+{"type": "EXPERT_DONE", "role": "fundamental", "ok": true, "provider": "deepseek", "error": "", "run_id": "d38a044c21eb"}
+{"type": "EXPERT_DONE", "role": "technical", "ok": true, "provider": "deepseek", "error": "", "run_id": "d38a044c21eb"}
+{"type": "EXPERT_DONE", "role": "fixed_income", "ok": true, "provider": "deepseek", "error": "", "run_id": "d38a044c21eb"}
+{"type": "EXPERT_DONE", "role": "macro", "ok": true, "provider": "deepseek", "error": "", "run_id": "d38a044c21eb"}
+{"type": "PIPELINE_STEP", "step": "experts", "status": "completed", "completed": 8, "failed": 0, "run_id": "d38a044c21eb"}
+{"type": "PIPELINE_STEP", "step": "ceo_primary", "status": "started", "provider": "ceo_lora", "fallback_from": "", "lora_ready": true, "cloud_ready": true, "run_id": "d38a044c21eb"}
+{"type": "CHUNK", "content": "<think>", "run_id": "d38a044c21eb"}
+{"type": "CHUNK", "content": "\n", "run_id": "d38a044c21eb"}
+{"type": "CHUNK", "content": "I", "run_id": "d38a044c21eb"}
+{"type": "CHUNK", "content": " need", "run_id": "d38a044c21eb"}
+{"type": "CHUNK", "content": " to", "run_id": "d38a044c21eb"}
+{"type": "CHUNK", "content": " analyze", "run_id": "d38a044c21eb"}
+{"type": "CHUNK", "content": " AAP", "run_id": "d38a044c21eb"}
+{"type": "CHUNK", "content": "L", "run_id": "d38a044c21eb"}
+{"type": "CHUNK", "content": " risk", "run_id": "d38a044c21eb"}
+{"type": "CHUNK", "content": " and", "run_id": "d38a044c21eb"}
+{"type": "CHUNK", "content": " next", "run_id": "d38a044c21eb"}
+{"type": "CHUNK", "content": " step", "run_id": "d38a044c21eb"}
+{"type": "CHUNK", "content": ".", "run_id": "d38a044c21eb"}
+{"type": "CHUNK", "content": " What", "run_id": "d38a044c21eb"}
+{"type": "CHUNK", "content": " is", "run_id": "d38a044c21eb"}
+{"type": "CHUNK", "content": " your", "run_id": "d38a044c21eb"}
+{"type": "CHUNK", "content": " assessment", "run_id": "d38a044c21eb"}
+{"type": "CHUNK", "content": "?", "run_id": "d38a044c21eb"}
+{"type": "PIPELINE_STEP", "step": "ceo_primary", "status": "completed", "provider": "ceo_lora", "run_id": "d38a044c21eb"}
+{"type": "PIPELINE_STEP", "step": "explanation", "status": "started", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": "The engine", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": "'s confidence", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " is", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " above", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " the", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " threshold", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": ", indicating", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " a", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " high", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " likelihood", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " of", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " a", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " safe", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " investment", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": ". The", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " danger", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " level", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " is", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " low", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": ", suggesting", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " minimal", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " risk", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": ". The", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " fraud", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " rules", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " triggered", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " by", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " micro", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": "cap_concentration and", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " hub", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " risk", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " score", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " of", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " ", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": "0.20 are", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " significant", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": ", but", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " the", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " engine", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": "'s confidence", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " is", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " robust", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": ", so", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " these", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " factors", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " do", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " not", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " significantly", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " impact", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " the", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " overall", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " assessment", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": ". The", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " micro", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": "cap_concentration rule", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " suggests", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " a", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " high", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " concentration", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " of", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " investments", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " in", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " small", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": "-cap stocks", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": ", which", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " could", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " be", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " risky", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": ", but", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " the", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " hub", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " risk", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " score", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " of", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " ", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": "0.20 is", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " relatively", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " low", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": ", indicating", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " that", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " the", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " risk", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " is", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " not", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " excessively", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " high", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": ". Given", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " the", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " confidence", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " and", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " low", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " danger", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": ", the", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " next", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " step", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " is", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " to", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " proceed", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " cautiously", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " with", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " a", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " diversified", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " portfolio", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": ", possibly", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " including", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " a", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " mix", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " of", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " large", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": "-cap and", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " small", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": "-cap stocks", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " to", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " mitigate", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " the", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " risk", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " associated", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " with", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": " micro", "run_id": "d38a044c21eb"}
+{"type": "EXPLANATION_CHUNK", "content": "cap_concentration.", "run_id": "d38a044c21eb"}
+{"type": "PIPELINE_STEP", "step": "explanation", "status": "completed", "run_id": "d38a044c21eb"}
+{"type": "PIPELINE_STEP", "run_id": "d38a044c21eb", "step": "graph", "status": "completed"}
+{"type": "STREAM_END"}
+

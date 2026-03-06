@@ -1,0 +1,63 @@
+"""
+Regime classifier — threshold-based heuristic.
+
+NOTE: this is NOT a Markov regime-switching model in the Hamilton (1989) /
+hmmlearn sense. It is a deterministic threshold over realized volatility
+and credit spreads, kept under the legacy class name for ensemble weight
+stability. The honest implementation label is exposed in
+``details["implementation"]`` so consumers do not assume HMM semantics.
+"""
+
+from ..contracts.schemas import CrisisInput, SensorResult
+
+
+class MarkovRegimeModel:
+    """Threshold-based regime classifier (legacy class name retained)."""
+
+    def evaluate(self, input_data: CrisisInput) -> SensorResult:
+        if not input_data.market_series or len(input_data.market_series) < 5:
+            return SensorResult(
+                sensor_name=self.__class__.__name__,
+                score=0.0,
+                confidence=0.0,
+                status="insufficient_data",
+                explanation="Necessário market_series com volatilidade e spreads para classificar regime.",
+            )
+
+        recent = input_data.market_series[-1]
+
+        vol = recent.realized_volatility or 0.0
+        spread = recent.credit_spread or 0.0
+
+        score = 0.0
+        exp = "Regime Normal"
+
+        if vol > 0.30 and spread > 5.0:
+            score = 100.0
+            exp = "Regime de CRISE: Volatilidade e spreads de crédito explodiram."
+        elif vol > 0.20 or spread > 3.0:
+            score = 70.0
+            exp = "Regime de STRESS: Mercado sinaliza prêmios de risco altos."
+        elif vol < 0.12 and spread < 1.5:
+            score = 20.0
+            exp = "Regime NORMAL / Complacente."
+        else:
+            score = 40.0
+            exp = "Regime de transição."
+
+        return SensorResult(
+            sensor_name=self.__class__.__name__,
+            score=score,
+            confidence=70.0,
+            status="ok",
+            explanation=exp,
+            details={
+                "volatility": vol,
+                "spread": spread,
+                "implementation": "threshold_heuristic",
+                "implementation_note": (
+                    "Deterministic thresholds over volatility and credit "
+                    "spreads. Not a Markov-switching model."
+                ),
+            },
+        )

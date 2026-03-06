@@ -1,0 +1,370 @@
+from __future__ import annotations
+
+import math
+import os
+import re
+from typing import Any
+from urllib.parse import quote_plus
+
+import requests
+
+try:
+    from textblob import TextBlob
+except ImportError:  # pragma: no cover - dependency is present in runtime requirements
+    TextBlob = None
+
+
+DEFAULT_SUBREDDITS = (
+    "investing",
+    "stocks",
+    "SecurityAnalysis",
+    "ValueInvesting",
+    "CanadianInvestor",
+    "Bogleheads",
+    "StockMarket",
+)
+
+SUBREDDIT_WEIGHTS = {
+    "securityanalysis": 1.35,
+    "valueinvesting": 1.25,
+    "investing": 1.15,
+    "bogleheads": 1.10,
+    "canadianinvestor": 1.05,
+    "stocks": 1.00,
+    "stockmarket": 0.90,
+    "wallstreetbets": 0.45,
+}
+
+HYPE_PATTERNS = (
+    r"\b100x\b",
+    r"\b1000x\b",
+    r"\bmoon\b",
+    r"\bto the moon\b",
+    r"\byolo\b",
+    r"\bsqueeze\b",
+    r"\bshort squeeze\b",
+    r"\bpump\b",
+    r"\bguaranteed\b",
+    r"\bsure profit\b",
+    r"\bfree money\b",
+    r"\binsider leak\b",
+    r"\bcan't lose\b",
+)
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+
+
+def _parse_subreddits(value: str | None) -> list[str]:
+    if not value:
+        return list(DEFAULT_SUBREDDITS)
+    return [
+        item.strip().strip("/").removeprefix("r/")
+        for item in value.split(",")
+        if item.strip()
+    ]
+
+
+def _clean_query(ticker: str) -> str:
+    value = ticker.upper().strip()
+    base = re.sub(r"\.(SA|TO|V|NE|CN)$", "", value)
+    if base != value:
+        return f'"{value}"'
+    return value
+
+
+def _match_terms(query: str) -> list[str]:
+    return [
+        term.lower()
+        for term in re.findall(r"[A-Za-z0-9.]{2,12}", query)
+        if term.lower() != "or"
+    ]
+
+
+class RedditPulse:
+    """
+    Low-volume Reddit signal provider.
+
+    Uses public Reddit listing JSON endpoints and ranks only high-signal posts.
+    This module treats Reddit as social evidence, never as verified financial fact.
+    """
+
+    def __init__(
+        self,
+        subreddits: list[str] | None = None,
+        timeout_s: float | None = None,
+        min_score: int | None = None,
+        min_comments: int | None = None,
+        min_upvote_ratio: float | None = None,
+    ) -> None:
+        self.enabled = os.getenv("SUPEREZIO_REDDIT_ENABLED", "1").lower() not in {
+            "0",
+            "false",
+            "no",
+        }
+        self.subreddits = subreddits or _parse_subreddits(
+            os.getenv("SUPEREZIO_REDDIT_SUBREDDITS")
+        )
+        self.timeout_s = (
+            timeout_s
+            if timeout_s is not None
+            else _env_float("SUPEREZIO_REDDIT_TIMEOUT_S", 6.0)
+        )
+        self.min_score = (
+            min_score
+            if min_score is not None
+            else _env_int("SUPEREZIO_REDDIT_MIN_SCORE", 5)
+        )
+        self.min_comments = (
+            min_comments
+            if min_comments is not None
+            else _env_int("SUPEREZIO_REDDIT_MIN_COMMENTS", 2)
+        )
+        self.min_upvote_ratio = (
+            min_upvote_ratio
+            if min_upvote_ratio is not None
+            else _env_float("SUPEREZIO_REDDIT_MIN_UPVOTE_RATIO", 0.65)
+        )
+        self.session = requests.Session()
+        self.session.headers.update(
+            {
+                "User-Agent": os.getenv(
+                    "SUPEREZIO_REDDIT_USER_AGENT",
+                    "SuperEzio/1.0 market-research",
+                )
+            }
+        )
+
+    def get_signal(
+        self,
+        ticker: str,
+        *,
+        limit: int = 8,
+        per_subreddit: int = 8,
+        sort: str = "top",
+        time_filter: str = "month",
+    ) -> dict[str, Any]:
+        if not self.enabled:
+            return {
+                "symbol": ticker,
+                "signal_label": "NO_DATA",
+                "post_count": 0,
+                "qualified_count": 0,
+                "reason": "reddit_disabled",
+            }
+
+        query = _clean_query(ticker)
+        posts: list[dict[str, Any]] = []
+        errors: list[str] = []
+
+        for subreddit in self.subreddits:
+            try:
+                posts.extend(
+                    self._fetch_subreddit(
+                        subreddit=subreddit,
+                        query=query,
+                        limit=per_subreddit,
+                        sort=sort,
+                        time_filter=time_filter,
+                    )
+                )
+            except Exception as exc:
+                errors.append(f"r/{subreddit}: {exc}")
+
+        qualified = self._dedupe_and_rank(posts)
+        top_posts = qualified[:limit]
+        avg_sentiment = self._average_sentiment(top_posts)
+
+        return {
+            "symbol": ticker,
+            "query": query,
+            "signal_label": self._sentiment_label(avg_sentiment, top_posts),
+            "sentiment_score": round(avg_sentiment, 3),
+            "post_count": len(posts),
+            "qualified_count": len(top_posts),
+            "subreddits": self.subreddits,
+            "method": "reddit_public_json_top_quality",
+            "quality_rules": (
+                f"score>={self.min_score}, comments>={self.min_comments}, "
+                f"upvote_ratio>={self.min_upvote_ratio}, subreddit_weight, hype_penalty"
+            ),
+            "top_posts": top_posts,
+            "top_headline": top_posts[0]["title"] if top_posts else "",
+            "provider_errors": errors,
+        }
+
+    def _fetch_subreddit(
+        self,
+        *,
+        subreddit: str,
+        query: str,
+        limit: int,
+        sort: str,
+        time_filter: str,
+    ) -> list[dict[str, Any]]:
+        safe_subreddit = re.sub(r"[^A-Za-z0-9_]", "", subreddit)
+        if not safe_subreddit:
+            return []
+
+        safe_sort = (
+            sort if sort in {"relevance", "hot", "top", "new", "comments"} else "top"
+        )
+        url = f"https://www.reddit.com/r/{safe_subreddit}/search.json"
+        params = (
+            f"?q={quote_plus(query)}&restrict_sr=1&sort={safe_sort}"
+            f"&t={time_filter}&limit={max(1, min(limit, 25))}&raw_json=1"
+        )
+        response = self.session.get(url + params, timeout=self.timeout_s)
+        if response.status_code == 429:
+            raise RuntimeError("rate_limited")
+        response.raise_for_status()
+        payload = response.json()
+
+        posts = []
+        for child in payload.get("data", {}).get("children", []):
+            item = child.get("data", {})
+            post = self._normalize_post(
+                item, safe_subreddit, match_terms=_match_terms(query)
+            )
+            if post:
+                posts.append(post)
+        return posts
+
+    def _normalize_post(
+        self,
+        item: dict[str, Any],
+        subreddit: str,
+        match_terms: list[str] | None = None,
+    ) -> dict[str, Any] | None:
+        title = str(item.get("title") or "").strip()
+        if not title:
+            return None
+        if item.get("over_18") or item.get("removed_by_category"):
+            return None
+
+        selftext = str(item.get("selftext") or "")
+        if selftext.strip().lower() in {"[removed]", "[deleted]"}:
+            selftext = ""
+
+        terms = match_terms or []
+        haystack = f"{title} {selftext} {item.get('url', '')}".lower()
+        matched_terms = [term for term in terms if term in haystack]
+        if terms and not matched_terms:
+            return None
+        title_hit = any(term in title.lower() for term in matched_terms)
+        body_hit = any(term in selftext.lower() for term in matched_terms)
+        relevance_bonus = (1.5 if title_hit else 0.0) + (0.5 if body_hit else 0.0)
+
+        score = int(item.get("score") or 0)
+        comments = int(item.get("num_comments") or 0)
+        upvote_ratio = float(item.get("upvote_ratio") or 0)
+        hype_flags = self._hype_flags(f"{title} {selftext[:300]}")
+        quality_score = (
+            self._quality_score(
+                subreddit=subreddit,
+                score=score,
+                comments=comments,
+                upvote_ratio=upvote_ratio,
+                hype_count=len(hype_flags),
+            )
+            + relevance_bonus
+        )
+
+        if score < self.min_score or comments < self.min_comments:
+            return None
+        if upvote_ratio and upvote_ratio < self.min_upvote_ratio:
+            return None
+
+        permalink = item.get("permalink") or ""
+        return {
+            "id": item.get("id"),
+            "subreddit": subreddit,
+            "title": title[:240],
+            "snippet": selftext.strip().replace("\n", " ")[:220],
+            "score": score,
+            "comments": comments,
+            "upvote_ratio": round(upvote_ratio, 3),
+            "created_utc": item.get("created_utc"),
+            "url": (
+                f"https://www.reddit.com{permalink}" if permalink else item.get("url")
+            ),
+            "quality_score": round(quality_score, 3),
+            "sentiment_score": round(self._sentiment(f"{title}. {selftext[:500]}"), 3),
+            "hype_flags": hype_flags,
+            "matched_terms": matched_terms,
+            "is_self": bool(item.get("is_self")),
+        }
+
+    def _quality_score(
+        self,
+        *,
+        subreddit: str,
+        score: int,
+        comments: int,
+        upvote_ratio: float,
+        hype_count: int,
+    ) -> float:
+        subreddit_weight = SUBREDDIT_WEIGHTS.get(subreddit.lower(), 0.85)
+        engagement = math.log10(max(score, 1) + 1) * 2.0
+        discussion = min(comments, 300) / 75.0
+        consensus = max(upvote_ratio, 0.50) * 2.0
+        hype_penalty = hype_count * 1.25
+        return max(
+            0.0, (engagement + discussion + consensus) * subreddit_weight - hype_penalty
+        )
+
+    def _dedupe_and_rank(self, posts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        seen: set[str] = set()
+        ranked = []
+        for post in sorted(posts, key=lambda item: item["quality_score"], reverse=True):
+            key = str(
+                post.get("url") or post.get("id") or post.get("title", "")
+            ).lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            ranked.append(post)
+        return ranked
+
+    def _hype_flags(self, text: str) -> list[str]:
+        lowered = text.lower()
+        return [
+            pattern.strip(r"\b")
+            for pattern in HYPE_PATTERNS
+            if re.search(pattern, lowered)
+        ]
+
+    def _sentiment(self, text: str) -> float:
+        if not TextBlob:
+            return 0.0
+        return float(TextBlob(text).sentiment.polarity)
+
+    def _average_sentiment(self, posts: list[dict[str, Any]]) -> float:
+        if not posts:
+            return 0.0
+        total_weight = sum(max(post["quality_score"], 0.1) for post in posts)
+        weighted = sum(
+            post["sentiment_score"] * max(post["quality_score"], 0.1) for post in posts
+        )
+        return weighted / total_weight if total_weight else 0.0
+
+    @staticmethod
+    def _sentiment_label(score: float, posts: list[dict[str, Any]]) -> str:
+        if not posts:
+            return "NO_DATA"
+        if score > 0.15:
+            return "BULLISH_SOCIAL"
+        if score < -0.15:
+            return "BEARISH_SOCIAL"
+        return "NEUTRAL_SOCIAL"

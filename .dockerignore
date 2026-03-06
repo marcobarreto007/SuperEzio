@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Git
+.git/
+.gitignore
+
+# Models (mount separately, huge files)
+models/
+*.gguf
+*.safetensors
+*.bin
+
+# IDE
+.vscode/
+.idea/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+
+# Env
+.env
+.env.local
+.env.*
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Data artifacts
+data/cache/
+data/runs/
+data/vectors/
+data/traces/
+*.log
+logs/
+
+# Testing
+pytest_output.txt
+.coverage
+htmlcov/
+
+# Claude
+.claude/
+.continue/

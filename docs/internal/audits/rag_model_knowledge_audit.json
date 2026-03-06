@@ -1,0 +1,578 @@
+{
+  "fraud_rag": {
+    "data_dir": "C:\\Users\\marco\\Desktop\\SuperEzio\\data\\fraud_patterns",
+    "loaded_pump_symbols": 0,
+    "loaded_text_patterns": 25,
+    "local_hf_fraud_dataset_files": [
+      {
+        "bytes": 217918716,
+        "path": "data\\fraud_datasets\\Financial-Fraud-Dataset\\Final_Dataset.csv"
+      },
+      {
+        "bytes": 16407299,
+        "path": "data\\fraud_datasets\\financial-fraud-dpo-exact\\data\\test-00000-of-00001.parquet"
+      },
+      {
+        "bytes": 64654190,
+        "path": "data\\fraud_datasets\\financial-fraud-dpo-exact\\data\\train-00000-of-00001.parquet"
+      },
+      {
+        "bytes": 5551811,
+        "path": "data\\fraud_datasets\\financial_fraud_textual_dataset\\dataset.csv"
+      },
+      {
+        "bytes": 5677129,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\AAER_PREPROCESSED\\df_aaer_with_misstatements.csv"
+      },
+      {
+        "bytes": 1773904,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\AAER_PREPROCESSED\\df_aaer_with_misstatements_since_2009.csv"
+      },
+      {
+        "bytes": 59310,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\AAER_PREPROCESSED\\stats\\df_aaer_multiple_companies.csv"
+      },
+      {
+        "bytes": 11505,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\AAER_PREPROCESSED\\stats\\df_aaer_multiple_companies_since_2009.csv"
+      },
+      {
+        "bytes": 330,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\AAER_PREPROCESSED\\stats\\misstatements_count.csv"
+      },
+      {
+        "bytes": 324,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\AAER_PREPROCESSED\\stats\\misstatements_count_since_2009.csv"
+      },
+      {
+        "bytes": 32033,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\AAER_PREPROCESSED\\stats\\num_misstatements_per_aaer.csv"
+      },
+      {
+        "bytes": 9875,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\AAER_PREPROCESSED\\stats\\num_misstatements_per_aaer_since_2009.csv"
+      },
+      {
+        "bytes": 1794167,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\company_isolated_splitting\\all_index.csv"
+      },
+      {
+        "bytes": 381898,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\company_isolated_splitting\\fold_1\\test.csv"
+      },
+      {
+        "bytes": 1475485,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\company_isolated_splitting\\fold_1\\train.csv"
+      },
+      {
+        "bytes": 358326,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\company_isolated_splitting\\fold_2\\test.csv"
+      },
+      {
+        "bytes": 1499057,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\company_isolated_splitting\\fold_2\\train.csv"
+      },
+      {
+        "bytes": 368960,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\company_isolated_splitting\\fold_3\\test.csv"
+      },
+      {
+        "bytes": 1488423,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\company_isolated_splitting\\fold_3\\train.csv"
+      },
+      {
+        "bytes": 370927,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\company_isolated_splitting\\fold_4\\test.csv"
+      },
+      {
+        "bytes": 1486456,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\company_isolated_splitting\\fold_4\\train.csv"
+      },
+      {
+        "bytes": 379249,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\company_isolated_splitting\\fold_5\\test.csv"
+      },
+      {
+        "bytes": 1478134,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\company_isolated_splitting\\fold_5\\train.csv"
+      },
+      {
+        "bytes": 207365,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\company_isolated_splitting\\test_index.csv"
+      },
+      {
+        "bytes": 1650018,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\company_isolated_splitting\\train_index.csv"
+      },
+      {
+        "bytes": 1794160,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\random_splitting\\all_index.csv"
+      },
+      {
+        "bytes": 373114,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\random_splitting\\fold_1\\test.csv"
+      },
+      {
+        "bytes": 1484269,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\random_splitting\\fold_1\\train.csv"
+      },
+      {
+        "bytes": 367611,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\random_splitting\\fold_2\\test.csv"
+      },
+      {
+        "bytes": 1489772,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\random_splitting\\fold_2\\train.csv"
+      },
+      {
+        "bytes": 383630,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\random_splitting\\fold_3\\test.csv"
+      },
+      {
+        "bytes": 1473753,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\random_splitting\\fold_3\\train.csv"
+      },
+      {
+        "bytes": 369428,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\random_splitting\\fold_4\\test.csv"
+      },
+      {
+        "bytes": 1487955,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\random_splitting\\fold_4\\train.csv"
+      },
+      {
+        "bytes": 365577,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\random_splitting\\fold_5\\test.csv"
+      },
+      {
+        "bytes": 1491806,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\random_splitting\\fold_5\\train.csv"
+      },
+      {
+        "bytes": 183649,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\random_splitting\\test_index.csv"
+      },
+      {
+        "bytes": 1611160,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\random_splitting\\train_index.csv"
+      },
+      {
+        "bytes": 2495659,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\time_splitting\\all_index.csv"
+      },
+      {
+        "bytes": 544102,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\time_splitting\\fold_1\\test.csv"
+      },
+      {
+        "bytes": 1839747,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\time_splitting\\fold_1\\train.csv"
+      },
+      {
+        "bytes": 234853,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\time_splitting\\test_index.csv"
+      },
+      {
+        "bytes": 2261180,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINAL_DATASETS\\time_splitting\\train_index.csv"
+      },
+      {
+        "bytes": 7837364,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINANCIALS_PREPROCESSED\\fiscal_quarter_to_periods_index.json"
+      },
+      {
+        "bytes": 302648,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINANCIALS_PREPROCESSED\\fiscal_year_end_dates.json"
+      },
+      {
+        "bytes": 5959149,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINANCIALS_PREPROCESSED\\reports_index.csv"
+      },
+      {
+        "bytes": 3975282,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINANCIALS_PREPROCESSED\\sec_fin_duplicated.csv"
+      },
+      {
+        "bytes": 195298914,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINANCIALS_PREPROCESSED\\sec_financials_quarterly.csv"
+      },
+      {
+        "bytes": 23457719,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINANCIALS_PREPROCESSED\\sec_financials_quarterly_no_financials.csv"
+      },
+      {
+        "bytes": 101793,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINANCIALS_PREPROCESSED\\sec_tags_index.csv"
+      },
+      {
+        "bytes": 101793,
+        "path": "data\\fraud_datasets\\Financial_statements_fraud_dataset\\FINANCIALS_PREPROCESSED\\sec_tags_index_versionned.csv"
+      },
+      {
+        "bytes": 968831912,
+        "path": "data\\fraud_datasets\\Nigerian-Financial-Transactions-and-Fraud-Detection-Dataset\\V1-nigerian-financial-transactions-and-fraud-detection-dataset.csv"
+      },
+      {
+        "bytes": 1875486171,
+        "path": "data\\fraud_datasets\\Nigerian-Financial-Transactions-and-Fraud-Detection-Dataset\\V2-nigerian-financial-transactions-and-fraud-detection-dataset-for-model-training.csv"
+      }
+    ],
+    "sample_query_results": [
+      "[PATTERN_FOUND]: pump_and_dump | Padr\u00e3o gen\u00e9rico: microcap com campanha de promo\u00e7\u00e3o em newsletters e redes sociais, seguido de spike de volume, alta de pre\u00e7o e venda de insiders/promoters. Empresa sem receita real ou com receita m\u00ednima. | microcap_concentration unusual_volume_without_clear_news vague_hype_sector_description no_revenue_with_operations social_media_pump_language insider_selling_near_promotion | Padr\u00e3o documentado amplamente por SEC Investor Education, FINRA e CSA. N\u00e3o representa caso espec\u00edfico. Operadores podem adicionar casos reais com source_url consultando https://www.sec.gov/divisions/enforce/enforcements.htm ou https://www.osc.ca/en/enforcement...",
+      "[PATTERN_FOUND]: misleading_promotion | Padr\u00e3o gen\u00e9rico: empresa com narrativa de crescimento em setor quente (IA, litio, cannabis, quantum, crypto) sem fundamentos operacionais correspondentes. Materiais de promo\u00e7\u00e3o n\u00e3o divulgam pagamento a promotores. Volume e pre\u00e7o sobem durante campanha, caem ap\u00f3s. | vague_hype_sector_description no_revenue_with_operations microcap_concentration social_media_pump_language unusual_volume_without_clear_news | Padr\u00e3o documentado pela SEC Section 17(b). Para investiga\u00e7\u00e3o real, consultar: https://efts.sec.gov/LATEST/search-index?q=%22pump+and+dump%22&dateRange=custom...",
+      "[PATTERN_FOUND]: microcap_fraud | Padr\u00e3o gen\u00e9rico em mercado canadense: empresa listada no TSX Venture ou CSE com capitaliza\u00e7\u00e3o abaixo de $50M CAD, sem receita operacional, mudan\u00e7as frequentes de nome ou ramo de neg\u00f3cio, dilui\u00e7\u00e3o significativa de a\u00e7\u00f5es. Frequentemente associada a reverse mergers. | microcap_concentration no_revenue_with_operations vague_hype_sector_description heavy_dilution reverse_split_history frequent_name_changes | Padr\u00e3o documentado pela OSC e CSA. Para casos espec\u00edficos: https://www.osc.ca/en/enforcement/proceedings..."
+    ],
+    "source_files": {
+      "enforcement_cases.jsonl": {
+        "bytes": 3934,
+        "rows": 5
+      },
+      "fraud_patterns.json": {
+        "bytes": 7613,
+        "patterns": 9,
+        "rules": 0
+      },
+      "red_flag_rules.json": {
+        "bytes": 9992,
+        "patterns": 0,
+        "rules": 11
+      }
+    }
+  },
+  "hf_reference_sources": {
+    "klaylouis1932/OpenFinData-Intent-Understanding-Intruct": {
+      "failed": [],
+      "partial": false,
+      "pending": [],
+      "size": {
+        "configs": [
+          {
+            "config": "default",
+            "dataset": "klaylouis1932/OpenFinData-Intent-Understanding-Intruct",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 236512,
+            "num_bytes_original_files": 39574,
+            "num_bytes_parquet_files": 39574,
+            "num_columns": 3,
+            "num_rows": 735
+          }
+        ],
+        "dataset": {
+          "dataset": "klaylouis1932/OpenFinData-Intent-Understanding-Intruct",
+          "estimated_num_rows": null,
+          "num_bytes_memory": 236512,
+          "num_bytes_original_files": 39574,
+          "num_bytes_parquet_files": 39574,
+          "num_rows": 735
+        },
+        "splits": [
+          {
+            "config": "default",
+            "dataset": "klaylouis1932/OpenFinData-Intent-Understanding-Intruct",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 160365,
+            "num_bytes_parquet_files": 22398,
+            "num_columns": 3,
+            "num_rows": 500,
+            "split": "train"
+          },
+          {
+            "config": "default",
+            "dataset": "klaylouis1932/OpenFinData-Intent-Understanding-Intruct",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 51493,
+            "num_bytes_parquet_files": 9705,
+            "num_columns": 3,
+            "num_rows": 160,
+            "split": "validation"
+          },
+          {
+            "config": "default",
+            "dataset": "klaylouis1932/OpenFinData-Intent-Understanding-Intruct",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 24654,
+            "num_bytes_parquet_files": 7471,
+            "num_columns": 3,
+            "num_rows": 75,
+            "split": "test"
+          }
+        ]
+      }
+    },
+    "learn-abc/banking14-intents-en": {
+      "failed": [],
+      "partial": false,
+      "pending": [],
+      "size": {
+        "configs": [
+          {
+            "config": "default",
+            "dataset": "learn-abc/banking14-intents-en",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 2241474,
+            "num_bytes_original_files": 921470,
+            "num_bytes_parquet_files": 921470,
+            "num_columns": 2,
+            "num_rows": 42558
+          }
+        ],
+        "dataset": {
+          "dataset": "learn-abc/banking14-intents-en",
+          "estimated_num_rows": null,
+          "num_bytes_memory": 2241474,
+          "num_bytes_original_files": 921470,
+          "num_bytes_parquet_files": 921470,
+          "num_rows": 42558
+        },
+        "splits": [
+          {
+            "config": "default",
+            "dataset": "learn-abc/banking14-intents-en",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 2057036,
+            "num_bytes_parquet_files": 833191,
+            "num_columns": 2,
+            "num_rows": 39478,
+            "split": "train"
+          },
+          {
+            "config": "default",
+            "dataset": "learn-abc/banking14-intents-en",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 184438,
+            "num_bytes_parquet_files": 88279,
+            "num_columns": 2,
+            "num_rows": 3080,
+            "split": "test"
+          }
+        ]
+      }
+    },
+    "vibrantlabsai/fiqa": {
+      "failed": [],
+      "partial": false,
+      "pending": [],
+      "size": {
+        "configs": [
+          {
+            "config": "corpus",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 44507032,
+            "num_bytes_original_files": 27711911,
+            "num_bytes_parquet_files": 27711911,
+            "num_columns": 1,
+            "num_rows": 57638
+          },
+          {
+            "config": "main",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 18198181,
+            "num_bytes_original_files": 10701030,
+            "num_bytes_parquet_files": 10701030,
+            "num_columns": 2,
+            "num_rows": 6648
+          },
+          {
+            "config": "ragas_eval",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 148718,
+            "num_bytes_original_files": 106005,
+            "num_bytes_parquet_files": 106005,
+            "num_columns": 4,
+            "num_rows": 30
+          },
+          {
+            "config": "ragas_eval_v3",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 148801,
+            "num_bytes_original_files": 102421,
+            "num_bytes_parquet_files": 102421,
+            "num_columns": 4,
+            "num_rows": 30
+          }
+        ],
+        "dataset": {
+          "dataset": "vibrantlabsai/fiqa",
+          "estimated_num_rows": null,
+          "num_bytes_memory": 63002732,
+          "num_bytes_original_files": 38621367,
+          "num_bytes_parquet_files": 38621367,
+          "num_rows": 64346
+        },
+        "splits": [
+          {
+            "config": "corpus",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 44507032,
+            "num_bytes_parquet_files": 27711911,
+            "num_columns": 1,
+            "num_rows": 57638,
+            "split": "corpus"
+          },
+          {
+            "config": "main",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 15015505,
+            "num_bytes_parquet_files": 8824088,
+            "num_columns": 2,
+            "num_rows": 5500,
+            "split": "train"
+          },
+          {
+            "config": "main",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 1355132,
+            "num_bytes_parquet_files": 796766,
+            "num_columns": 2,
+            "num_rows": 500,
+            "split": "validation"
+          },
+          {
+            "config": "main",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 1827544,
+            "num_bytes_parquet_files": 1080176,
+            "num_columns": 2,
+            "num_rows": 648,
+            "split": "test"
+          },
+          {
+            "config": "ragas_eval",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 148718,
+            "num_bytes_parquet_files": 106005,
+            "num_columns": 4,
+            "num_rows": 30,
+            "split": "baseline"
+          },
+          {
+            "config": "ragas_eval_v3",
+            "dataset": "vibrantlabsai/fiqa",
+            "estimated_num_rows": null,
+            "num_bytes_memory": 148801,
+            "num_bytes_parquet_files": 102421,
+            "num_columns": 4,
+            "num_rows": 30,
+            "split": "baseline"
+          }
+        ]
+      }
+    }
+  },
+  "macro_rag": {
+    "canada_context_rows": 12,
+    "last_update": "2026-04-27T22:08:24.961698",
+    "series": {
+      "Canada_credit_to_gdp": {
+        "count": 120,
+        "country": "Canada",
+        "file": "canada_credit_to_gdp.parquet",
+        "last_date": "2025-12-31",
+        "metadata": {},
+        "name": "credit_to_gdp"
+      },
+      "Canada_debt_service_ratio": {
+        "count": 120,
+        "country": "Canada",
+        "file": "canada_debt_service_ratio.parquet",
+        "last_date": "2025-12-31",
+        "metadata": {},
+        "name": "debt_service_ratio"
+      },
+      "Canada_gdp_growth_yoy": {
+        "count": 120,
+        "country": "Canada",
+        "file": "canada_gdp_growth_yoy.parquet",
+        "last_date": "2025-12-31",
+        "metadata": {},
+        "name": "gdp_growth_yoy"
+      },
+      "Canada_policy_rate": {
+        "count": 1095,
+        "country": "Canada",
+        "file": "canada_policy_rate.parquet",
+        "last_date": "2026-03-01",
+        "metadata": {
+          "source": "Bank of Canada Valet API"
+        },
+        "name": "policy_rate"
+      }
+    },
+    "series_count": 4
+  },
+  "model_knowledge": {
+    "data/eval_questions.jsonl": {
+      "categories": {
+        "crisis": 1,
+        "crypto": 1,
+        "edge_case": 2,
+        "esg": 1,
+        "etf": 1,
+        "fixed_income": 2,
+        "fraud": 2,
+        "macro": 2,
+        "multi_ticker": 1,
+        "portfolio": 1,
+        "risk_assessment": 2,
+        "sentiment": 2,
+        "technical": 2,
+        "ticker_analysis": 5
+      },
+      "roles": {},
+      "rows": 25
+    },
+    "data/intent_dataset.jsonl": {
+      "categories": {
+        "uncategorized": 593
+      },
+      "roles": {},
+      "rows": 593
+    },
+    "data/intent_eval.jsonl": {
+      "categories": {
+        "uncategorized": 148
+      },
+      "roles": {},
+      "rows": 148
+    },
+    "data/intent_golden.jsonl": {
+      "categories": {
+        "uncategorized": 9
+      },
+      "roles": {},
+      "rows": 9
+    },
+    "data/nurse_dataset.jsonl": {
+      "categories": {
+        "agent_management": 600,
+        "finance_knowledge": 600,
+        "persona": 600
+      },
+      "roles": {
+        "assistant": 1800,
+        "system": 1800,
+        "user": 1800
+      },
+      "rows": 1800
+    },
+    "data/sensei_dataset.jsonl": {
+      "categories": {
+        "uncategorized": 750
+      },
+      "roles": {
+        "system": 750,
+        "user": 750
+      },
+      "rows": 750
+    }
+  }
+}

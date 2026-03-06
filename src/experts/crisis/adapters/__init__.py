@@ -1,0 +1,1 @@
+"""Crisis adapters — tool adapter for agent runtime integration."""

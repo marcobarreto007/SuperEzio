@@ -1,0 +1,60 @@
+{
+  "project": "SuperEzio",
+  "version": "3.0.0",
+  "updated": "2026-05-13",
+  "note": "CEO: Gemma-4-26B-A4B-abliterated (Q4_K_M GGUF) local-only via llama-cpp. Cloud providers are for orchestration/experts, not final CEO verdicts.",
+  "ceo": {
+    "provider_name": "ceo",
+    "persona": "Bob",
+    "base_model": "huihui-ai/Huihui-gemma-4-26B-A4B-it-abliterated",
+    "model": "gemma-4-26b-abliterated",
+    "path": "/home/marco/models/Huihui-gemma-4-26B-A4B-it-abliterated.Q4_K_M.gguf",
+    "quantization": "Q4_K_M",
+    "server_url": "http://127.0.0.1:8082/v1",
+    "priority": -670,
+    "backend": "openai_compatible",
+    "temperature": 0.4,
+    "max_tokens": 4096,
+    "timeout_s": 180,
+    "tool_calling": true
+  },
+  "cloud_models": {
+    "primary_external": {
+      "provider_name": "primary_external",
+      "base_url": "https://api.deepseek.com",
+      "model": "deepseek-chat",
+      "priority": -400,
+      "role": "orchestrator and non-CEO fallback"
+    },
+    "grok": {
+      "provider_name": "grok",
+      "base_url": "https://api.x.ai/v1",
+      "model": "grok-4.3",
+      "priority": -500,
+      "role": "Cloud primario — mais barato do mercado ($1.25/$2.50 por MTok)",
+      "fast_model": "grok-fast ($0.20/$0.50 por MTok)"
+    },
+    "deepseek": {
+      "provider_name": "deepseek",
+      "base_url": "https://api.deepseek.com",
+      "model": "deepseek-chat",
+      "priority": -300,
+      "role": "financial experts"
+    },
+    "gemini_pro": {
+      "provider_name": "gemini_pro",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+      "model": "gemini-2.0-flash",
+      "priority": 50,
+      "role": "optional fallback when GEMINI_API_KEY is configured"
+    }
+  },
+  "expert_runtime": {
+    "description": "Experts are role prompts selected by intent and served through the deepseek provider.",
+    "roles": [
+      "fundamental", "technical", "risk", "sentiment", "macro",
+      "portfolio", "fixed_income", "quant", "esg", "derivatives",
+      "compliance", "sector"
+    ]
+  }
+}

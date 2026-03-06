@@ -1,0 +1,22 @@
+{
+    "date_local": "",
+    "session": "",
+    "status": "in_progress|blocked|completed",
+    "what_was_done": [
+        ""
+    ],
+    "evidence": {
+        "commands": [],
+        "files_changed": [],
+        "tests": []
+    },
+    "risks": [
+        {
+            "severity": "low|medium|high|critical",
+            "description": "",
+            "mitigation": ""
+        }
+    ],
+    "next_step": "",
+    "owner": ""
+}
