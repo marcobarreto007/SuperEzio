@@ -18,7 +18,7 @@ PRIMARY_MODEL_ID = "deepseek-chat"
 DEEPSEEK_PROVIDER_NAME = "deepseek"
 
 CEO_PROVIDER_NAME = "ceo"
-CEO_MODEL_ID = "gemma-4-26b-abliterated"
+CEO_MODEL_ID = "glm-4.7-flash-unce"
 
 
 @dataclass
@@ -116,7 +116,7 @@ def build_default_providers(
         )
     )
 
-    # CEO — Gemma-4-26B-A4B-abliterated Q4_K_M GGUF via llama-cpp, local.
+    # CEO — GLM-4.7-Flash-Uncen Q4_K_M GGUF via llama-cpp, local.
     ceo_base_url = os.getenv(
         "SUPEREZIO_CEO_BASE_URL",
         "http://127.0.0.1:8082/v1",

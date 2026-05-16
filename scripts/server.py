@@ -1,6 +1,7 @@
 """SuperEzio CEO Server — llama-cpp-python OpenAI-compatible API.
 
-Serves Gemma-4-26B-A4B-abliterated (Q4_K_M GGUF) on port 8082.
+Serves GLM-4.7-Flash-Uncen (Q4_K_M GGUF, 17.2GB, 30B MoE) on port 8082.
+Auto-detects model from common locations.
 
 Usage:
     python scripts/server.py                          # default port 8082
@@ -8,7 +9,7 @@ Usage:
     python scripts/server.py --model /path/to.gguf    # custom model path
 
 Env vars:
-    SUPEREZIO_CEO_MODEL_PATH  — path to GGUF file (default: WSL path)
+    SUPEREZIO_CEO_MODEL_PATH  — path to GGUF file (auto-detect if not set)
     SUPEREZIO_CEO_PORT        — port (default: 8082)
     SUPEREZIO_CEO_N_GPU       — GPU layers to offload (default: 32)
     SUPEREZIO_CEO_N_CTX       — context window (default: 8192)
@@ -30,14 +31,14 @@ def _find_model() -> str | None:
         return env_path
 
     candidates = [
-        # WSL path (primary — where we downloaded it)
-        "/home/marco/models/Huihui-gemma-4-26B-A4B-it-abliterated.Q4_K_M.gguf",
-        # Windows paths
-        r"C:\Users\marco\models\Huihui-gemma-4-26B-A4B-it-abliterated.Q4_K_M.gguf",
+        # Primary — downloaded to .superezio
+        r"C:\Users\marco\.superezio\models\GLM-4.7-Flash-Uncen-Hrt-NEO-CODE-MAX-imat-D_AU-Q4_K_M.gguf",
+        # WSL path
+        "/home/marco/models/GLM-4.7-Flash-Uncen-Hrt-NEO-CODE-MAX-imat-D_AU-Q4_K_M.gguf",
         # Project-local
         Path(__file__).parent.parent
         / "models"
-        / "Huihui-gemma-4-26B-A4B-it-abliterated.Q4_K_M.gguf",
+        / "GLM-4.7-Flash-Uncen-Hrt-NEO-CODE-MAX-imat-D_AU-Q4_K_M.gguf",
     ]
 
     for candidate in candidates:
@@ -95,8 +96,7 @@ def main() -> None:
         print("ERROR: GGUF model not found.", file=sys.stderr)
         print("Set SUPEREZIO_CEO_MODEL_PATH env var or pass --model.", file=sys.stderr)
         print("Checked:", file=sys.stderr)
-        print("  /home/marco/models/Huihui-gemma-4-26B-A4B-it-abliterated.Q4_K_M.gguf")
-        print("  C:\\Users\\marco\\models\\Huihui-gemma-4-26B-A4B-it-abliterated.Q4_K_M.gguf")
+        print("  C:\\Users\\marco\\.superezio\\models\\GLM-4.7-Flash-Uncen-Hrt-NEO-CODE-MAX-imat-D_AU-Q4_K_M.gguf")
         sys.exit(1)
 
     print(f"Model: {model_path}")
@@ -114,7 +114,6 @@ def main() -> None:
         port=args.port,
         n_gpu_layers=args.n_gpu_layers,
         n_ctx=args.n_ctx,
-        chat_format="gemma",
         verbose=args.verbose,
     )
 
