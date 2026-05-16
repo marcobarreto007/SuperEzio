@@ -11,6 +11,7 @@ from .broker import (
     Position,
     SimulatedBroker,
 )
+from .expert_weights import ExpertRecord, ExpertWeightRouter
 from .kill_switch import KillSwitch, KillSwitchReason, KillSwitchState
 from .order_builder import BracketOrder, OrderBuilder
 from .position_sizer import PositionSize, PositionSizer
@@ -23,6 +24,8 @@ __all__ = [
     "BrokerAdapter",
     "EmailAlerter",
     "EmailConfig",
+    "ExpertRecord",
+    "ExpertWeightRouter",
     "GateConfig",
     "KillSwitch",
     "KillSwitchReason",
