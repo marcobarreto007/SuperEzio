@@ -179,8 +179,18 @@ class StreamingJSONLDataset(IterableDataset):
                 try:
                     tokenized = self.tokenizer.apply_chat_template(
                         messages, tokenize=True, add_generation_prompt=False,
-                        max_length=self.max_length, truncation=True,
                     )
+                    # transformers 5.x: apply_chat_template returns
+                    # BatchEncoding, extract input_ids list
+                    if hasattr(tokenized, "input_ids"):
+                        tokenized = tokenized["input_ids"]
+                    if isinstance(tokenized, str):
+                        tokenized = self.tokenizer.encode(
+                            tokenized, max_length=self.max_length,
+                            truncation=True,
+                        )
+                    if len(tokenized) > self.max_length:
+                        tokenized = tokenized[:self.max_length]
                 except Exception:
                     continue
                 buffer.append({"input_ids": tokenized, "labels": tokenized.copy()})
@@ -232,7 +242,7 @@ def verify_checkpoint(ckpt_dir: str, base_model_name: str, device: str) -> tuple
             base_model_name,
             torch_dtype=torch.bfloat16,
             device_map="auto",
-            attn_implementation="flash_attention_2",
+            attn_implementation="sdpa",
         )
         model = PeftModel.from_pretrained(model, ckpt_dir)
         model.eval()
@@ -358,7 +368,7 @@ def train(state: TrainState) -> dict:
         state.model_name,
         device_map="auto",
         torch_dtype=torch.bfloat16,
-        attn_implementation="flash_attention_2",
+        attn_implementation="sdpa",
     )
     model.gradient_checkpointing_enable()
     logger.info("Gradient checkpointing enabled")

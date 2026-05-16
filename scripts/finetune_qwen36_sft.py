@@ -175,12 +175,19 @@ class StreamingJSONLDataset(IterableDataset):
 
                 try:
                     tokenized = self.tokenizer.apply_chat_template(
-                        messages,
-                        tokenize=True,
-                        add_generation_prompt=False,
-                        max_length=self.max_length,
-                        truncation=True,
+                        messages, tokenize=True, add_generation_prompt=False,
                     )
+                    # transformers 5.x: apply_chat_template returns
+                    # BatchEncoding, extract input_ids list
+                    if hasattr(tokenized, "input_ids"):
+                        tokenized = tokenized["input_ids"]
+                    if isinstance(tokenized, str):
+                        tokenized = self.tokenizer.encode(
+                            tokenized, max_length=self.max_length,
+                            truncation=True,
+                        )
+                    if len(tokenized) > self.max_length:
+                        tokenized = tokenized[:self.max_length]
                 except Exception:
                     continue
 
