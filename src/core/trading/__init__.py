@@ -11,10 +11,13 @@ from .broker import (
     Position,
     SimulatedBroker,
 )
+from .dataset import DatasetBuilder, SFTExample
 from .expert_weights import ExpertRecord, ExpertWeightRouter
 from .kill_switch import KillSwitch, KillSwitchReason, KillSwitchState
 from .order_builder import BracketOrder, OrderBuilder
 from .position_sizer import PositionSize, PositionSizer
+from .reward import RewardComponents, RewardFunction, TradeOutcome
+from .training import LoRATrainer, TrainingConfig, TrainingResult
 
 __all__ = [
     "ApprovalGate",
@@ -22,6 +25,7 @@ __all__ = [
     "ApprovalStatus",
     "BracketOrder",
     "BrokerAdapter",
+    "DatasetBuilder",
     "EmailAlerter",
     "EmailConfig",
     "ExpertRecord",
@@ -30,6 +34,7 @@ __all__ = [
     "KillSwitch",
     "KillSwitchReason",
     "KillSwitchState",
+    "LoRATrainer",
     "LogAlerter",
     "Order",
     "OrderBuilder",
@@ -39,5 +44,11 @@ __all__ = [
     "Position",
     "PositionSize",
     "PositionSizer",
+    "RewardComponents",
+    "RewardFunction",
+    "SFTExample",
     "SimulatedBroker",
+    "TradeOutcome",
+    "TrainingConfig",
+    "TrainingResult",
 ]
