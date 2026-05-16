@@ -631,27 +631,53 @@ def train(state: TrainState) -> dict:
         logger.info("=" * 60)
 
         # ── Email ─────────────────────────────────────────────────────
-        email_body = f"""SuperEzio Qwen3.6-35B LoRA Training — {summary['status'].upper()}
+        checkpoint_lines = "\n".join(
+            "  - " + d.name for d in sorted(Path(state.output_dir).glob("checkpoint-*"))
+        )
+        error_lines = "\n".join(
+            "  [{t}] step {s}: {d}".format(
+                t=e["type"], s=e["step"], d=e.get("detail", "")
+            )
+            for e in state.errors
+        ) if state.errors else "  None"
 
-Model: {summary['model']}
-Output: {summary['output_dir']}
-Steps completed: {summary['total_steps']}
-Final loss: {summary['final_loss']}
-Best loss: {summary['best_loss']}
-Time: {summary['elapsed_minutes']} minutes
-Errors: {len(summary['errors'])}
-Recoveries: {summary['recoveries']}
-Finished: {summary['finished_at']}
+        email_body = """SuperEzio Qwen3.6-35B LoRA Training — {status}
+
+Model: {model}
+Output: {output_dir}
+Steps completed: {total_steps}
+Final loss: {final_loss}
+Best loss: {best_loss}
+Time: {elapsed_minutes} minutes
+Errors: {error_count}
+Recoveries: {recoveries}
+Finished: {finished_at}
 
 Checkpoints:
-{chr(10).join(f'  - {d.name}' for d in sorted(Path(state.output_dir).glob('checkpoint-*')))}
+{checkpoint_lines}
 
 Errors:
-{chr(10).join(f'  [{e['type']}] step {e['step']}: {e.get('detail', '')}' for e in state.errors) if state.errors else '  None'}
+{error_lines}
 
 — SuperEzio Training System
-"""
-        send_email(f"Training {summary['status']} — loss={summary['final_loss']}", email_body)
+""".format(
+            status=summary["status"].upper(),
+            model=summary["model"],
+            output_dir=summary["output_dir"],
+            total_steps=summary["total_steps"],
+            final_loss=summary["final_loss"],
+            best_loss=summary["best_loss"],
+            elapsed_minutes=summary["elapsed_minutes"],
+            error_count=len(summary["errors"]),
+            recoveries=summary["recoveries"],
+            finished_at=summary["finished_at"],
+            checkpoint_lines=checkpoint_lines,
+            error_lines=error_lines,
+        )
+        email_subject = "Training {status} — loss={loss}".format(
+            status=summary["status"], loss=summary["final_loss"]
+        )
+        send_email(email_subject, email_body)
 
         return summary
 
@@ -745,7 +771,7 @@ def parse_args() -> TrainState:
     return TrainState(
         model_name=ns.model,
         dataset_path=ns.dataset,
-        output_dir=ns.output,
+        output_dir=ns.output_dir,
         epochs=ns.epochs,
         batch_size=ns.batch_size,
         gradient_accumulation=ns.gradient_accumulation,
