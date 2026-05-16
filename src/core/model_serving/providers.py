@@ -114,7 +114,7 @@ def build_default_providers(
         )
     )
 
-    # CEO — Nemotron-Nano-12B merged (Phase 0 + Phase 1 QLoRA), local.
+    # CEO — Gemma-4-26B-A4B-abliterated Q4_K_M GGUF via llama-cpp, local.
     ceo_base_url = os.getenv(
         "SUPEREZIO_CEO_BASE_URL",
         "http://127.0.0.1:8082/v1",

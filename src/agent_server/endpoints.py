@@ -380,8 +380,8 @@ PRODUCT_MANIFEST = {
         },
         {
             "id": "ceo_primary",
-            "label": "Local CEO (Nemotron-Nano-12B)",
-            "description": "Local Nemotron-Nano-12B CEO consolidates conflicts and chooses one permitted next step. CEO is local-only.",
+            "label": "Local CEO (Gemma-4-26B-A4B-abliterated)",
+            "description": "Local Gemma-4-26B CEO consolidates conflicts and chooses one permitted next step. CEO is local-only, Q4_K_M GGUF via llama-cpp.",
         },
     ],
     "decision_modes": [

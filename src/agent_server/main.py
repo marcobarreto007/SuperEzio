@@ -95,9 +95,12 @@ async def lifespan(app: FastAPI):
     _validate_edge_runtime_config()
 
     # === BRAIN INITIALIZATION ===
-    logger.info("[%s] Legacy brain removed: running without pipeline.", AGENT_NAME)
+    from core.pipeline import build_graph
+
+    logger.info("[%s] Compiling pipeline graph v4...", AGENT_NAME)
     sys.stdout.flush()
-    app.state.pipeline = None
+    app.state.pipeline = build_graph()
+    logger.info("[%s] Pipeline graph ready.", AGENT_NAME)
 
     logger.info(
         "[%s] === SERVER READY ON http://localhost:%s ===",
