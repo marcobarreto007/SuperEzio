@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from collections import Counter
 
 # ── Config ─────────────────────────────────────────────────────
-XAI_API_KEY = "xai-Z7IRv4O88J0XDb4fkxZolbrPKh4b5CG7xH7WeAZo5Ndk9STL74QRnNX23Xo3OvXUoLwzYOqZcRiHoGHQ"
+XAI_API_KEY = os.getenv("XAI_API_KEY", "")
 XAI_URL = "https://api.x.ai/v1/chat/completions"
 MODEL = "grok-4.3"
 DOMAIN = "python"
