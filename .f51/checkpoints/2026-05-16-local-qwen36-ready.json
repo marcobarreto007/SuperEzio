@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-05-16T19:10:00Z",
+  "status": "operational",
+  "summary": "Qwen3.6-35B F51 Q4_K_M GGUF carrega e gera texto localmente (39 t/s). Speculative decoding bloqueado por incompatibilidade de vocab entre Qwen2.5 draft e Qwen3.6 target.",
+  "completed": [
+    "GGUF metadata patch: qwen35moe.block_count 41→40 (offset 352)",
+    "GGUF metadata patch: qwen35moe.nextn_predict_layers 1→0 (offset 1333)",
+    "Modelo carrega e gera: 39 t/s com 20/40 layers na GPU, Flash Attention ON, KV cache q8_0",
+    "Script run_qwen36.ps1 funcional (sem speculative decoding)",
+    "Arquivos documentados em memory/gguf-patches.md"
+  ],
+  "blocked": [
+    "Speculative decoding: Qwen2.5-0.5B tem vocab incompativel (BoS 151643 vs 248044)",
+    "Precisa de modelo draft da familia Qwen3.6 (Qwen3.6-0.6B?) ou Qwen3-0.6B com mesmo tokenizer"
+  ],
+  "next_actions": [
+    "Pesquisar Qwen3.6-0.6B ou Qwen3-0.6B GGUF para speculative decoding",
+    "Alternativa: rodar sem draft (39 t/s ja e usavel)",
+    "Testar com prompt real de trading via chat template Qwen"
+  ],
+  "files_changed": [
+    "models/qwen36-35b-f51.Q4_K_M.gguf (binary patched: offsets 352, 1333)",
+    "scripts/run_qwen36.ps1 (flags corrigidos, draft desabilitado)"
+  ]
+}
