@@ -1,162 +1,130 @@
-# SuperEzio v4 — Final Hostile Production Audit
+# FINAL AUDIT — SuperEzio v4.0.0
+Date: 2026-05-15 | Auditor: F51 Hostile Audit | Commit: 260ba3c
 
-**Data:** 2026-05-15
-**Auditor:** Claude Opus 4.7 (modo hostil)
-**Escopo:** Produção comercial — demo, venda, entrega
-
----
-
-## Sumário Executivo
-
-**Veredito: NÃO APROVADO PARA RELEASE** — 1 falha crítica de segurança, 7 falhas HIGH, 6 MEDIUM.
-
-A arquitetura do pipeline v4 está correta. O CEO Gemma-4-26B funciona. 344 testes passam.
-Mas o sistema tem **API key vazada no repo**, **dependências não documentadas**, **hardcoded paths**,
-**módulos zumbis**, e **config divergente** que impedem uma demo confiável em máquina limpa.
+## VEREDICTO: NAO APTO PARA DEMO COMERCIAL
 
 ---
 
-## CRITICAL (bloqueia release)
+## BLOQUEADORES (P0) — Impedem demonstração
 
-### C1 — API Key Real Commitada no Repositório
-- **Arquivos:** `F51_Datasets/grok_transfusion.py:22`, `F51_Datasets/grok_transfusion_python.py:19`
-- **Evidência:** `XAI_API_KEY = "xai-Z7IRv4O88J0XDb4fkxZolbrPKh4b5CG7xH7WeAZo5Ndk9STL74QRnNX23Xo3OvXUoLwzYOqZcRiHoGHQ"`
-- **Impacto:** Chave xAI Grok exposta publicamente no GitHub. Qualquer um pode consumir créditos.
-- **Ação:** Rotacionar a chave IMEDIATAMENTE no console xAI. Substituir por `os.getenv("XAI_API_KEY")`. Rodar `git filter-branch` ou aceitar que a chave velha está queimada.
+### B01. Pipeline graph nao tem `shutdown()` — crash no stop do servidor
+- **File:** `src/agent_server/main.py:116`
+- **Detail:** `app.state.pipeline.shutdown()` chamado no lifespan shutdown, mas `build_graph()` retorna `CompiledStateGraph` que nao tem `.shutdown()`.
+- **Impact:** Toda vez que o servidor para (Ctrl+C, redeploy), crasha com `AttributeError`.
+- **Fix:** Adicionar try/except ou wrapper com `.shutdown()`.
 
-### C2 — Dependências Críticas Não Documentadas
-- **pyproject.toml** omite: `torch`, `llama-cpp-python`, `aiohttp`, `sentence-transformers`, `transformers`, `peft`, `requests`, `pandas-ta`
-- **Impacto:** `uv pip install -e .` não instala o necessário para rodar o CEO server nem o ExplainEngine. Sistema quebra silenciosamente.
-- **Ação:** Adicionar todas as dependências reais ao `pyproject.toml`.
+### B02. `runtime.py` (900+ linhas) deletado sem migracao completa
+- **File:** `src/core/pipeline/runtime.py` — REMOVIDO do disco e do git
+- **Detail:** O commit `260ba3c` removeu `runtime.py` (UniversalPipeline, create_pipeline, chat, chat_sync, stream_events, data collection helpers, CEO provider selection, scan execution). A substituição (`graph.py`, 132 linhas) NAO implementa:
+  - `chat()` / `chat_sync()` / `stream_events()` — API publica do pipeline
+  - `_hybrid_intent_plan()` — intent classification com LLM fallback
+  - `_run_scan()` — market scan
+  - `_collect_all_hard_timeout()` — data collection com timeout
+  - `_enrich_scan_candidates()` — price enrichment
+  - Provider helpers (`_provider`, `_provider_ready`, `_init_gateway`, `_init_memory`)
+  - Tool registration (`_register_hub_tools`)
+  - `get_status()` — health endpoint
+- **Impact:** Quem quer que use `UniversalPipeline.chat()` ou `stream_events()` (contract tests, future integrations) quebra.
+- **Evidence:** `git ls-files src/core/pipeline/runtime.py` retorna vazio.
 
-### C3 — Hardcoded Paths Pessoais
-- `scripts/server.py:34`: `/home/marco/models/Huihui-gemma-4-26B-A4B-it-abliterated.Q4_K_M.gguf`
-- `scripts/server.py:36`: `C:\Users\marco\models\...`
-- `config/model_manifest.json:11`: `/home/marco/models/...`
-- **Impacto:** Sistema não encontra o modelo GGUF em nenhuma máquina que não seja a do Marco.
-- **Ação:** Usar apenas `SUPEREZIO_CEO_MODEL_PATH` com fallback para `~/models/`. Remover paths hardcoded.
-
----
-
-## HIGH (quebra demo/venda)
-
-### H1 — DeepSeekProvider Duplicado e Quebrado
-- `src/core/model_serving/deepseek_provider.py` (345 linhas) — import quebrado na linha 23, zero callers
-- Classe `DeepSeekProvider` + factory `create_deepseek_provider()` — mortos
-- `gateway.py` tem método `set_deepseek_provider()` (linha 64) que referencia provider genérico fantasma
-- **Ação:** Deletar `deepseek_provider.py`. Remover `set_deepseek_provider()` do gateway.
-
-### H2 — Três Módulos Pipeline Mortos
-- `src/core/pipeline/security.py` — zero imports (nós usam `guardrails.py`)
-- `src/core/pipeline/cache.py` — zero imports (TTL/LRU nunca instanciado)
-- `src/core/pipeline/responses.py` — zero imports (constante duplicada em 2 lugares)
-- **Ação:** Deletar ou wire no runtime.
-
-### H3 — Zombie Server (Brain Removed)
-- `agent_server/main.py:98`: `app.state.pipeline = None`
-- Comentário: "Legacy brain removed: running without pipeline."
-- Servidor sobe mas não tem pipeline. Frontend depende dele.
-- **Ação:** Rewirear `agent_server` para usar `build_graph()` do pipeline v4.
-
-### H4 — .env.example Divergente e Stale
-- 5+ env vars lidas em código mas ausentes do `.env.example`:
-  `SUPEREZIO_PROFESSIONAL_COLLECTOR`, `SUPEREZIO_RAG_MODEL`, `SUPEREZIO_RAG_TOP_K`,
-  `SUPEREZIO_RAG_CONTEXT_MAX_CHARS`, `SUPEREZIO_RAG_DISABLED`, `SUPEREZIO_INTENT_LLM_*`
-- 15+ env vars no `.env.example` nunca lidas: `CEO_LORA_GPU`, `SUPEREZIO_EDGE_*`, `BRAVE_SEARCH_API_KEY`, `TAVILY_API_KEY`, `COINGECKO_API_KEY`, `THE_ODDS_API_KEY`, `UNIVERSAL_SKIP_GATEWAY`
-- CEO model path env vars (`SUPEREZIO_CEO_MODEL_PATH`, `SUPEREZIO_CEO_PORT`, `SUPEREZIO_CEO_N_GPU`, `SUPEREZIO_CEO_N_CTX`) — usados por `scripts/server.py` mas ausentes do `.env.example`
-- Menção a "Nemotron-Nano-12B" e "nf4 quantization" (linha 42-45) — CEO agora é Gemma GGUF
-- **Ação:** Reescrever `.env.example` refletindo apenas vars reais.
-
-### H5 — README Stale
-- Versão: "v3.2.0" → deveria ser "v4.0.0"
-- Testes: "496" → realidade é "344"
-- Arquitetura: menciona `mathcore/` (renomeado), `f51_adapter/`, estrutura antiga
-- Não menciona `scripts/server.py` nem o requisito de baixar GGUF
-- Não menciona requisito de GPU para performance aceitável
-- **Ação:** Reescrever README para v4.
-
-### H6 — 20 Degradações Silenciosas (try/except ImportError)
-- RAG cai para keyword search sem aviso se `sentence-transformers` ausente
-- Data providers falham silenciosamente (yfinance, pandas_ta, requests, lxml)
-- `tools/custom_tools.py:95`: `search_web` retorna `None` silenciosamente
-- **Ação:** Logar warnings explícitos. Adicionar health check que reporta quais módulos estão degradados.
-
-### H7 — Config Espalhada
-- CEO model nome definido em 6 lugares
-- Port numbers em 3+ lugares (8002, 8082)
-- Timeout values: 7 valores diferentes em 15+ locations sem constante central
-- **Ação:** Centralizar em `core/config/schema.py` com env var override.
+### B03. `_mixin.py` removido, nodes standalone sem DI completa
+- **File:** `src/core/pipeline/nodes/_mixin.py` — REMOVIDO
+- **Detail:** O mixin tinha acesso a `self.gateway`, `self.financial_agents`, `self.mandamentos`, `self.config`, `self._data_collector`, `self._audit`, etc. Os nodes standalone recebem `gateway` e `config` via kwargs do `graph.py`, mas NAO recebem:
+  - `financial_agents` (fan-out de experts)
+  - `mandamentos` (passado ao CEO mas nao ao orchestrator)
+  - `_data_collector` / `_collect_professional` (collector node)
+  - `_audit` (decision logging)
+- **Impact:** Nodes parcialmente cegos a dependencias.
 
 ---
 
-## MEDIUM
+## CRITICAL (P1) — Degradação silenciosa
 
-### M1 — Versões Conflitantes
-- `README.md`: v3.2.0
-- `config/model_manifest.json`: 3.0.0
-- `runtime.yml`: 2.1.0
-- Git commit: "SuperEzio v4"
-- pyproject.toml: 3.0.0
-- **Ação:** Unificar para "4.0.0" em todos os lugares.
+### C01. `f51/scoring.py:166` — exception engolida silenciosamente
+- **File:** `src/f51/scoring.py:166`
+- **Code:** `except Exception: continue`
+- **Risk:** RiskEngine rules que falham sao ignoradas sem log. Em producao, regras de risco podem estar desabilitadas sem ninguem saber.
 
-### M2 — Expert Taxonomy Mismatch
-- `model_manifest.json`: fundamental, technical, risk, sentiment, macro, portfolio, fixed_income, quant, esg, derivatives, compliance, sector
-- `frontend/index.html:1569`: fraud_hunter, flow_analyst, dark_pool_tracker, quant, macro, technical, fundamental, risk, sentiment, esg, portfolio, compliance
-- **Ação:** Alinhar. Escolher uma taxonomia e usá-la em todos os lugares.
+### C02. `mem0_client.py` — 6 blocos `except Exception` que silenciam falhas de memoria
+- **File:** `src/core/storage/mem0_client.py` (linhas 59, 148, 158, 169, 200, 213, 252, 265, 300)
+- **Risk:** Memoria persistente falha silenciosamente para local file, redis, e API. Usuario nunca sabe que memoria esta degradada.
 
-### M3 — Stale Nemotron References
-- `providers.py:117`: "# CEO — Nemotron-Nano-12B merged (Phase 0 + Phase 1 QLoRA), local."
-- `endpoints.py:383-384`: "Local CEO (Nemotron-Nano-12B)", "Local Nemotron-Nano-12B CEO consolidates..."
-- `.env.example:42-43`: "# CEO Local: Nemotron-Nano-12B (6.83B params, Hybrid Mamba/MoE) + nf4 quantization"
-- **Ação:** Substituir por "Gemma-4-26B-A4B-abliterated Q4_K_M GGUF via llama-cpp".
+### C03. `time.sleep()` em codigo de producao
+- **Files:** `data/wolfram_provider.py:76`, `data_collector/professional.py:368`, `model_serving/gateway.py:348`
+- **Risk:** `gateway.py:348` esta dentro de um generator `chat_completion_stream()`. Se chamado em async context, bloqueia o event loop.
 
-### M4 — Fresh Clone UX Ruim
-- Sem GGUF → cadeia de timeouts (CEO offline → primary_external tenta → falha sem API key → "Error:" vermelho)
-- Sem API keys → mesmo cenário
-- Frontend não desabilita botão de envio proativamente quando backend offline
-- **Ação:** Health check proativo no frontend. Desabilitar submit quando CEO e cloud indisponíveis.
-
-### M5 — VAGUE_FINANCIAL_RESPONSE Triplicado
-- `src/core/pipeline/responses.py:8`
-- `src/agent_server/endpoints.py:27`
-- `src/core/pipeline/nodes/guardrails.py:5`
-- **Ação:** Manter apenas em `guardrails.py`. Deletar `responses.py`.
-
-### M6 — CEO GPU Config Fantasma
-- `.env.example:112`: `CEO_LORA_GPU=0` — nunca lida por nenhum arquivo
-- `scripts/server.py` usa `SUPEREZIO_CEO_N_GPU` (não documentada no .env.example)
-- **Ação:** Remover `CEO_LORA_GPU`. Documentar `SUPEREZIO_CEO_N_GPU`.
+### C04. `tools/custom_tools.py:8` — type hint `...` (Ellipsis) em producao
+- **File:** `src/tools/custom_tools.py:8`
+- **Code:** `registry = ...  # objeto com método register(...)`
+- **Risk:** Docstring com sintaxe invalida. Se alguém importar e executar, `registry` vira Ellipsis.
 
 ---
 
-## LOW
+## HIGH (P2)
 
-- `tests/helpers.py:191`: `FakeProvider.configure_thinking` com corpo `pass` vazio
-- `f51_adapter` usa acesso frágil a dict (`hub_risk_score || hub_risk`)
-- Frontend não tem docs além de 3 linhas de comentário
-- `runtime.yml` menciona CEO como `deepseek-chat` (linha 22)
+### H01. 3 diretorios vazios orfaos
+- `src/core/scanner/` — referenciado por runtime (removido) com ImportError fallback
+- `src/core/mathcore/` — zero referencias
+- `src/core/evidence/` — zero referencias
+
+### H02. `core/engine/` deprecated mas importado por 2 consumidores
+- `src/agent_server/endpoints.py:14` importa `calc_sma, calc_ema, calc_rsi, calc_macd, calc_bollinger`
+- `src/core/data_collector/collector.py:23` importa `FinancialEngine`
+- `core/math/indicators.py` tem equivalentes. Engine e legado.
+
+### H03. 60 de 117 modulos sem teste
+- Pipeline inteiro (graph, nodes, contracts, prompts): zero testes
+- agent_runtime: zero testes
+- investor/: zero testes
+- data/ (9 providers): zero testes
+
+### H04. `f51/__init__.py` try/except esconde ImportError
+- **File:** `src/f51/__init__.py:51`
+- **Detail:** Wrap de import com `except Exception` que pode mascarar dependencias faltando.
 
 ---
 
-## Evidência de Verificação
+## MEDIUM (P3)
 
+### M01. 55 env vars sem .env.example
+- Espalhadas por 20+ arquivos. Sem centralizacao. Sem defaults documentados.
+
+### M02. `scripts/server.py` orfao
+- Nao referenciado em nenhum lugar. Nao e entrypoint registrado.
+
+### M03. `docs/internal/SECURITY_LEAKED_KEYS.md`
+- Documenta keys vazadas. Se keys foram rotacionadas, o doc e lixo. Se nao, e risco.
+
+### M04. Ruff: 11 erros (5 unused imports, 5 E402, 1 lambda)
+- Nao bloqueia runtime mas indica descuido.
+
+### M05. Ruff format: 32 arquivos desformatados
+
+---
+
+## EVIDENCIA: Testes
 ```
-pytest: 344 passed, 2 skipped, 0 failed
-ruff check (src tests): 5 E402 pre-existing (agent_server/main.py)
-ruff format check: 32 files with inconsistent formatting
-pyproject.toml: missing 8 critical dependencies
-.env.example: 15+ dead vars, 5+ missing vars
-API key leak: 2 files with hardcoded xAI key
-Dead modules: 3 pipeline + 1 deepseek_provider.py
-Zombie server: agent_server/main.py (brain removed)
+344 passed, 2 skipped, 0 failed (9.16s)
 ```
+Os testes passam porque **nenhum teste importa o pipeline**. A cobertura do pipeline e zero.
 
----
+## EVIDENCIA: Pipeline
+```
+Graph built OK: CompiledStateGraph
+Nodes: __start__, orchestrator_primary, data, f51_verdict, pennylab,
+       run_expert, collect_experts, rag_forensics, ceo_primary,
+       explanation, respond_blocked
+```
+O graph compila. Mas:
+- Nao tem `shutdown()` — crash no stop
+- Nao tem `chat()` / `stream_events()` — API publica removida
+- Nodes nao recebem DI completa (audit, data_collector, financial_agents)
 
-## Recomendação
+## MOCKS EM PRODUCAO
+Nenhum mock encontrado em src/. PASS.
 
-**NÃO DEMONSTRAR nem VENDER até resolver C1, C2, C3.**
+## API KEYS HARDCODED
+Nenhuma. Todas usam `os.getenv()`. PASS.
 
-Após corrigir os 3 críticos + 7 HIGH, o sistema estará pronto para:
-- Demo técnica em máquina do Marco (GGUF presente, API keys setadas)
-- Demo em máquina limpa (após `uv pip install -e .` com deps corretas + download GGUF + .env configurado)
+## BARE EXCEPT
+Nenhum `except:` (bare). Apenas `except Exception` e `except ImportError`. PASS com ressalvas.

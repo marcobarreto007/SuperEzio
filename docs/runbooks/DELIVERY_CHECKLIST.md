@@ -1,125 +1,38 @@
-# SuperEzio v4 — Delivery Checklist
+# DELIVERY CHECKLIST — SuperEzio v4.0.0
+Date: 2026-05-15
 
-**Data:** 2026-05-15
-**Gate:** Release comercial / Demo
+## Bloqueadores (NAO PODE ENTREGAR SEM RESOLVER)
 
----
+- [ ] **B01** `main.py:116` — `pipeline.shutdown()` crash. CompiledStateGraph nao tem shutdown.
+- [ ] **B02** `runtime.py` removido — API publica (`chat`, `chat_sync`, `stream_events`, `get_status`) perdida. Necessario migrar para `graph.py` ou criar wrapper.
+- [ ] **B03** Nodes standalone sem DI completa — `financial_agents`, `mandamentos`, `_data_collector`, `_audit` nao injetados via `graph.py`.
 
-## Pré-requisitos de Hardware
+## Pre-Demo (resolver antes de demonstrar)
 
-| Item | Especificação | Obrigatório? |
-|------|--------------|--------------|
-| GPU | NVIDIA RTX 5060 Ti 16GB+ (ou superior) | Sim — CEO local |
-| RAM | 32 GB | Sim |
-| Disco | 20 GB livre (GGUF: 16.8 GB) | Sim |
-| Rede | Internet para API keys cloud | Sim — fallback |
-| CUDA | 12.8+ | Sim |
-| llama-cpp-python | 0.3.23+ com CUDA | Sim |
+- [ ] Verificar se `python -m agent_server.main` sobe sem crash
+- [ ] Verificar se uma request real chega ao CEO node e volta
+- [ ] Verificar se o shutdown graciosamente para (B01)
+- [ ] Ruff fix: `python -m ruff check --fix src tests`
+- [ ] Ruff format: `python -m ruff format src tests`
+- [ ] Confirmar que 344 testes continuam passando apos fixes
 
----
+## Pre-Venda (resolver antes de posicionar comercialmente)
 
-## Pré-requisitos de Software
+- [ ] Criar `.env.example` com as 55 variaveis e defaults
+- [ ] Adicionar smoke test end-to-end do pipeline (graph.astream com input fake)
+- [ ] Adicionar teste de contrato para `build_graph()` (verificar nodes e edges)
+- [ ] Remover 3 diretorios vazios orfaos (scanner/, mathcore/, evidence/)
+- [ ] Decidir: `core/engine/` fica ou migra para `core/math/`
+- [ ] Adicionar `shutdown()` ao CompiledStateGraph ou wrapper
+- [ ] Documentar API publica do pipeline v4 (o que substituiu `UniversalPipeline.chat()`)
+- [ ] Adicionar teste que instancia o pipeline com gateway=None e roda um input
 
-```bash
-# 1. Python 3.12+
-python --version
+## Pos-Demo (backlog)
 
-# 2. Dependências
-uv pip install -e .
-
-# 3. Dependências NÃO documentadas (INSTALAR MANUALMENTE até fix):
-uv pip install torch llama-cpp-python aiohttp sentence-transformers transformers peft requests pandas-ta beautifulsoup4 feedparser praw
-
-# 4. Verificar
-python -c "import torch; print('CUDA:', torch.cuda.is_available())"
-python -c "import llama_cpp; print('llama.cpp OK')"
-```
-
----
-
-## Modelo CEO (Gemma-4-26B GGUF)
-
-```bash
-# Baixar (16.8 GB):
-python -c "
-from huggingface_hub import hf_hub_download
-hf_hub_download(
-    'mradermacher/Huihui-gemma-4-26B-A4B-it-abliterated-GGUF',
-    'Huihui-gemma-4-26B-A4B-it-abliterated.Q4_K_M.gguf',
-    local_dir='~/models',
-    resume_download=True
-)
-"
-
-# Configurar path:
-export SUPEREZIO_CEO_MODEL_PATH=~/models/Huihui-gemma-4-26B-A4B-it-abliterated.Q4_K_M.gguf
-```
-
----
-
-## Variáveis de Ambiente
-
-```bash
-# Mínimo para demo:
-export SUPEREZIO_CEO_MODEL_PATH=~/models/Huihui-gemma-4-26B-A4B-it-abliterated.Q4_K_M.gguf
-export SUPEREZIO_DEEPSEEK_API_KEY=sk-...
-export SUPEREZIO_CEO_PORT=8082
-export SUPEREZIO_CEO_N_GPU=32
-export SUPEREZIO_CEO_N_CTX=8192
-
-# Opcionais (dados):
-export ALPHA_VANTAGE_API_KEY=...
-export TWELVE_DATA_API_KEY=...
-```
-
----
-
-## Startup Sequence
-
-```bash
-# Terminal 1: CEO Server (deve iniciar primeiro)
-python scripts/server.py --port 8082
-# Aguardar: "Uvicorn running on http://127.0.0.1:8082"
-
-# Terminal 2: Agent Server
-python -m agent_server.main
-# → http://127.0.0.1:8002
-
-# Testar health:
-curl http://127.0.0.1:8082/health   # CEO server
-curl http://127.0.0.1:8002/health   # Agent server
-```
-
----
-
-## Verificações de Demo
-
-| Check | Comando | Esperado |
-|-------|---------|----------|
-| CEO health | `curl http://127.0.0.1:8082/health` | 200 OK |
-| API health | `curl http://127.0.0.1:8002/health` | JSON com checks |
-| Frontend | Browser → `http://127.0.0.1:8002` | UI ChatGPT-style carrega |
-| Test suite | `python -m pytest tests/ -q` | 344 passed |
-| Lint | `python -m ruff check src tests` | 5 E402 (pré-existentes) |
-| Import check | `python -c "from core.pipeline import build_graph"` | OK |
-| CEO prompt | Enviar query com ticker no frontend | NDJSON com `ceo_primary` |
-
----
-
-## O Que Pode Quebrar na Demo
-
-| Cenário | Sintoma | Recovery |
-|---------|---------|----------|
-| GGUF não encontrado | `scripts/server.py` sai com erro | Conferir `SUPEREZIO_CEO_MODEL_PATH` |
-| GPU sem memória | CEO server crash com OOM | Reduzir `--n-ctx 4096` |
-| DeepSeek API key inválida | Fallback falha, CEO offline → "Error:" | Verificar `SUPEREZIO_DEEPSEEK_API_KEY` |
-| Porta 8082 ocupada | CEO server não sobe | `--port 8083` + atualizar `SUPEREZIO_CEO_BASE_URL` |
-| Frontend não carrega | 404 | Verificar se `frontend/index.html` existe |
-
----
-
-## Pós-Demo
-
-- [ ] API keys NUNCA commitadas (verificar `git status` antes de commit)
-- [ ] Logs em `data/logs/` para debug
-- [ ] `python -m pytest tests/ -q` para verificar sem regressão
+- [ ] Consolidar nodes duplicados (escolher: mixin ou standalone)
+- [ ] Consolidar prompts duplicados (escolher: ceo_prompts.py ou prompts/builder.py)
+- [ ] Cobertura de teste para pipeline/ (target: 80%)
+- [ ] Cobertura de teste para agent_runtime/
+- [ ] Centralizar config/env vars em schema.py
+- [ ] Limpar scripts/server.py orfao
+- [ ] Avaliar docs/internal/SECURITY_LEAKED_KEYS.md — rotacionar keys ou remover doc

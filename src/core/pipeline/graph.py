@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any
+import asyncio
+import json
+import logging
+import uuid
+from typing import Any, AsyncGenerator, Generator
 
 from langgraph.graph import END, START, StateGraph
 
@@ -21,25 +25,23 @@ from .nodes import (
     route_after_orchestrator,
 )
 
+logger = logging.getLogger(__name__)
+
+__all__ = ["PipelineApp", "build_graph"]
+
 
 def build_graph(
     gateway=None,
     config=None,
     mandamentos: list[Any] | None = None,
-) -> StateGraph:
-    """Build and compile the SuperEzio pipeline graph.
+) -> "PipelineApp":
+    """Build, compile, and wrap the SuperEzio pipeline graph.
 
-    Args:
-        gateway: ModelGateway instance (or None for no-gateway mode).
-        config: UniversalConfig instance (or None for auto-detect).
-        mandamentos: User rules list (or None for empty).
-
-    Returns:
-        A compiled LangGraph StateGraph ready for .astream().
+    Returns a PipelineApp instance with shutdown(), chat(), stream_events(),
+    and get_status() methods.
     """
     mandamentos = mandamentos or []
 
-    # ── Node factories: bind gateway/config/mandamentos to each node ──
     async def _orchestrator(state: dict) -> dict:
         return await node_orchestrator(state, gateway=gateway, config=config)
 
@@ -59,7 +61,9 @@ def build_graph(
         return await node_rag_forensics(state)
 
     async def _ceo(state: dict) -> dict:
-        return await node_ceo(state, gateway=gateway, config=config, mandamentos=mandamentos)
+        return await node_ceo(
+            state, gateway=gateway, config=config, mandamentos=mandamentos
+        )
 
     async def _explanation(state: dict) -> dict:
         return await node_explanation(state)
@@ -67,10 +71,8 @@ def build_graph(
     async def _blocked(state: dict) -> dict:
         return await node_blocked(state)
 
-    # ── Build graph ──
     builder = StateGraph(PipelineState)
 
-    # Nodes
     builder.add_node("orchestrator_primary", _orchestrator)
     builder.add_node("data", _collector)
     builder.add_node("f51_verdict", _f51)
@@ -82,7 +84,6 @@ def build_graph(
     builder.add_node("explanation", _explanation)
     builder.add_node("respond_blocked", _blocked)
 
-    # Edges
     builder.add_edge(START, "orchestrator_primary")
     builder.add_conditional_edges(
         "orchestrator_primary",
@@ -111,7 +112,180 @@ def build_graph(
     builder.add_edge("explanation", END)
     builder.add_edge("respond_blocked", END)
 
-    return builder.compile()
+    compiled = builder.compile()
+    return PipelineApp(
+        graph=compiled,
+        gateway=gateway,
+        config=config,
+        mandamentos=mandamentos,
+    )
+
+
+class PipelineApp:
+    """Production wrapper around CompiledStateGraph.
+
+    Provides the public API expected by agent_server:
+    - shutdown() — graceful teardown
+    - stream_events() — async event stream
+    - chat() / chat_sync() — convenience methods
+    - get_status() — health/status dict
+    """
+
+    def __init__(
+        self,
+        graph,
+        gateway=None,
+        config=None,
+        mandamentos: list[Any] | None = None,
+    ):
+        self.graph = graph
+        self.gateway = gateway
+        self.config = config
+        self.mandamentos = mandamentos or []
+        self._shutting_down = False
+
+    def shutdown(self) -> None:
+        logger.info("PipelineApp shutting down...")
+        self._shutting_down = True
+        if self.gateway:
+            try:
+                self.gateway.unload_all()
+            except Exception as exc:
+                logger.warning("Gateway unload error during shutdown: %s", exc)
+
+    async def stream_events(
+        self,
+        message: str,
+        context: str = "",
+        session_id: str = "default",
+        memory_mode: str = "relevant_all",
+        rigor: str = "strict",
+        ticker: str = "",
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        run_id = uuid.uuid4().hex[:12]
+        initial: dict[str, Any] = {
+            "run_id": run_id,
+            "message": message,
+            "context": context,
+            "session_id": session_id,
+            "memory_mode": memory_mode,
+            "rigor": rigor,
+            "errors": [],
+        }
+        if ticker:
+            initial["ticker"] = ticker
+
+        yield {
+            "type": "PIPELINE_STEP",
+            "run_id": run_id,
+            "step": "graph",
+            "status": "started",
+        }
+
+        try:
+            async for item in self.graph.astream(
+                initial,
+                stream_mode=["custom", "updates"],
+            ):
+                if isinstance(item, dict):
+                    mode = item.get("type", "")
+                    payload = item.get("data")
+                elif isinstance(item, tuple) and len(item) == 2:
+                    mode, payload = item
+                else:
+                    continue
+
+                if mode == "custom":
+                    if isinstance(payload, dict):
+                        payload.setdefault("run_id", run_id)
+                        yield payload
+                    elif payload is not None:
+                        yield {
+                            "type": "CHUNK",
+                            "run_id": run_id,
+                            "content": str(payload),
+                        }
+                elif mode == "updates":
+                    continue
+
+            yield {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "graph",
+                "status": "completed",
+            }
+        except Exception as exc:
+            detail = str(exc) or exc.__class__.__name__
+            yield {"type": "ERROR", "run_id": run_id, "detail": detail[:500]}
+
+    async def chat_async(
+        self,
+        message: str,
+        context: str = "",
+        session_id: str = "default",
+        memory_mode: str = "relevant_all",
+        rigor: str = "strict",
+        ticker: str = "",
+    ) -> AsyncGenerator[str, None]:
+        async for event in self.stream_events(
+            message,
+            context=context,
+            session_id=session_id,
+            memory_mode=memory_mode,
+            rigor=rigor,
+            ticker=ticker,
+        ):
+            if event.get("type") == "CHUNK":
+                yield str(event.get("content", ""))
+            elif event.get("type") == "ERROR":
+                yield f"[ERROR] {event.get('detail', '')}"
+
+    def chat(self, message: str, context: str = "") -> Generator[str, None, None]:
+        yield _run_async(self._chat_collect_async(message, context))
+
+    async def _chat_collect_async(self, message: str, context: str = "") -> str:
+        chunks: list[str] = []
+        async for chunk in self.chat_async(message, context):
+            chunks.append(chunk)
+        return "".join(chunks)
+
+    def chat_sync(self, message: str, context: str = "") -> str:
+        return _run_async(self._chat_collect_async(message, context))
+
+    def get_status(self) -> dict[str, Any]:
+        return {
+            "mode": "pipeline_v4_stategraph",
+            "nodes": [
+                "orchestrator_primary",
+                "data",
+                "f51_verdict",
+                "pennylab",
+                "run_expert",
+                "collect_experts",
+                "rag_forensics",
+                "ceo_primary",
+                "explanation",
+                "respond_blocked",
+            ],
+            "gateway_available": self.gateway is not None,
+            "providers": (
+                [p.name for p in self.gateway.providers] if self.gateway else []
+            ),
+            "mandamentos_count": len(self.mandamentos),
+        }
+
+
+def _run_async(coro):
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+
+    import concurrent.futures
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(asyncio.run, coro)
+        return future.result()
 
 
 async def _node_pennylab_stub(state: dict) -> dict:
