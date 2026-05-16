@@ -109,7 +109,8 @@ F51_Datasets/raw_downloads/
 .f51/cache/
 
 # Runtime output
-output/runtime/
+output/
+!output/.gitkeep
 
 # Partner temp files
 .f51/tmp/
