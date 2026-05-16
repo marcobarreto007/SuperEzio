@@ -3,7 +3,6 @@
 import os
 import sys
 
-import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -184,7 +183,7 @@ class TestOrderBuilderBracket:
         assert bracket.take_profit.limit_price > 100.0  # above entry
 
     def test_build_bracket_sell(self):
-        from core.trading.broker import OrderSide, OrderType
+        from core.trading.broker import OrderSide
         from core.trading.order_builder import OrderBuilder
         from core.trading.position_sizer import PositionSize
 

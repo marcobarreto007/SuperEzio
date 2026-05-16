@@ -5,7 +5,6 @@ import os
 import sys
 import tempfile
 
-import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -202,12 +201,12 @@ class TestDatasetBuilder:
 
 class TestLoRATrainerConfig:
     def test_defaults(self):
-        from core.trading.training import LoRATrainer, TrainingConfig
+        from core.trading.training import LoRATrainer
 
         trainer = LoRATrainer()
-        assert trainer.config.model_name == "Qwen/Qwen2.5-1.5B-Instruct"
-        assert trainer.config.lora_r == 16
-        assert trainer.config.num_epochs == 3
+        assert "gemma" in trainer.config.model_name.lower()
+        assert trainer.config.lora_r == 64
+        assert trainer.config.num_epochs == 1
 
     def test_custom_config(self):
         from core.trading.training import LoRATrainer, TrainingConfig

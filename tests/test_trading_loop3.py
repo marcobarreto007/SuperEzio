@@ -4,7 +4,6 @@ import os
 import sys
 import time
 
-import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -61,7 +60,7 @@ class TestApprovalGateApproveReject:
         assert result.resolved_by == "operator"
 
     def test_approve_with_custom_approver(self):
-        from core.trading.approval_gate import ApprovalGate, ApprovalStatus
+        from core.trading.approval_gate import ApprovalGate
 
         gate = ApprovalGate()
         req = gate.submit("AAPL", "buy", 10, 100.0, 95.0, 200.0)

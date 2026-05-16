@@ -214,7 +214,7 @@ class TestKillSwitchControl:
         assert ks.state.daily_pnl == 0.0
 
     def test_history_recorded(self):
-        from core.trading.kill_switch import KillSwitch, KillSwitchReason
+        from core.trading.kill_switch import KillSwitch
 
         ks = KillSwitch(daily_loss_limit=100)
         ks.record_trade(-120)
