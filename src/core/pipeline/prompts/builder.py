@@ -15,6 +15,7 @@ from .gemma import MODEL_PROMPTS, SAFE_ACTIONS
 # System prompt
 # ---------------------------------------------------------------------------
 
+
 def ceo_system_prompt(model_family: str = "gemma") -> str:
     """Return the CEO system prompt for a given model family."""
     prompts = MODEL_PROMPTS.get(model_family, MODEL_PROMPTS["gemma"])
@@ -24,6 +25,7 @@ def ceo_system_prompt(model_family: str = "gemma") -> str:
 # ---------------------------------------------------------------------------
 # CEO assistant prefix (prefill technique to prevent refusals)
 # ---------------------------------------------------------------------------
+
 
 def _ceo_assistant_prefix(state: PipelineState) -> str:
     """Prefixo role=assistant para impedir recusa do modelo."""
@@ -45,15 +47,11 @@ def _ceo_assistant_prefix(state: PipelineState) -> str:
             "### Executive Summary\n\n"
             "Based on verified DataCollector evidence:\n"
         )
-    has_data = bool(
-        ticker or state.get("data_context") or state.get("expert_summary")
-    )
+    has_data = bool(ticker or state.get("data_context") or state.get("expert_summary"))
     if intent == "general_question" and not has_data:
         return ""
     return (
-        "## Quantitative Analysis\n\n"
-        "### Key Findings\n\n"
-        "Based on verified evidence:\n"
+        "## Quantitative Analysis\n\n### Key Findings\n\nBased on verified evidence:\n"
     )
 
 
@@ -80,10 +78,12 @@ _MODULE_KEYWORDS: dict[str, list[str]] = {
 def _required_module_presence(state: PipelineState) -> dict[str, bool]:
     """Which modules produced usable evidence for this request."""
     data = state.get("data") or {}
+
     def _has(key: str, source: dict | None = None) -> bool:
         src = source or data
         val = src.get(key)
         return bool(val and "error" not in val)
+
     return {
         "price": bool(data.get("price")),
         "technical": _has("technicals"),
@@ -94,7 +94,9 @@ def _required_module_presence(state: PipelineState) -> dict[str, bool]:
         "sentiment": _has("sentiment"),
         "reddit": _has("reddit"),
         "pennylab": bool(
-            (state.get("pennylab") or state.get("pennylab_result") or {}).get("decision")
+            (state.get("pennylab") or state.get("pennylab_result") or {}).get(
+                "decision"
+            )
         ),
         "experts": bool(state.get("expert_summary")),
         "f51": bool(state.get("f51_verdict")),
@@ -144,14 +146,21 @@ def _evaluate_module_coverage(
 # Section formatters
 # ---------------------------------------------------------------------------
 
+
 def _format_pennylab(pennylab: dict[str, Any]) -> str:
     """Compact PennyLab block for CEO prompt."""
     if not pennylab or not pennylab.get("decision"):
         return ""
     lines = ["[PENNYLAB]"]
     for key in (
-        "ticker", "decision", "mathcore_verdict", "confidence",
-        "scores", "risks", "entry_conditions", "exit_conditions",
+        "ticker",
+        "decision",
+        "mathcore_verdict",
+        "confidence",
+        "scores",
+        "risks",
+        "entry_conditions",
+        "exit_conditions",
     ):
         val = pennylab.get(key)
         if val not in (None, "", [], {}):
@@ -188,7 +197,10 @@ _SUBSTITUTIONS = [
     (r"\bconselho(s)?\s+de\s+investimento\b", "quantitative risk analysis for"),
     (r"\brecomendac[aã]o\s+de\s+investimento\b", "quantitative parameters for"),
     (r"\b(devo|posso)\s+(vender|sair|liquidar)\b", "evaluate exit parameters for"),
-    (r"\b(boa|boa)\s+(opcao|opc[aã]o)\s+(para\s+)?investir\b", "what is the risk profile of"),
+    (
+        r"\b(boa|boa)\s+(opcao|opc[aã]o)\s+(para\s+)?investir\b",
+        "what is the risk profile of",
+    ),
     (r"\bvalor\s+justo\b", "Monte Carlo estimated fair value for"),
     (r"\b(conselho|aconselhamento)\b", "quantitative analysis"),
     (r"\brecomendac[aã]o\b", "quantitative parameters"),
@@ -206,6 +218,7 @@ def _preprocess_query(text: str) -> str:
 # ---------------------------------------------------------------------------
 # Main prompt builders
 # ---------------------------------------------------------------------------
+
 
 def build_ceo_prompt(
     state: PipelineState,
@@ -232,7 +245,11 @@ def build_ceo_prompt(
         ticker
         or state.get("data_context")
         or state.get("expert_summary")
-        or bool((state.get("pennylab") or state.get("pennylab_result") or {}).get("decision"))
+        or bool(
+            (state.get("pennylab") or state.get("pennylab_result") or {}).get(
+                "decision"
+            )
+        )
     )
     msg_has_ticker = bool(re.search(r"\b[A-Z]{1,5}(?:\.[A-Z]{1,2})?\b", raw_message))
     msg_has_fin = bool(
@@ -318,7 +335,9 @@ def build_ceo_prompt(
     # ── External CEO (DeepSeek) — full quantitative ──
     pennylab_raw = state.get("pennylab") or state.get("pennylab_result") or {}
     pennylab_section = (
-        f"{_format_pennylab(pennylab_raw)}\n\n" if _format_pennylab(pennylab_raw) else ""
+        f"{_format_pennylab(pennylab_raw)}\n\n"
+        if _format_pennylab(pennylab_raw)
+        else ""
     )
 
     if intent == "explain_capabilities":

@@ -1,6 +1,5 @@
 """Contract tests: agent_server.endpoints — API route registration & helpers."""
 
-
 import pytest
 from fastapi import HTTPException
 
@@ -43,13 +42,15 @@ def test_build_ohlcv():
 
     import pandas as pd
 
-    df = pd.DataFrame({
-        "Open": [150.0],
-        "High": [155.0],
-        "Low": [149.0],
-        "Close": [153.0],
-        "Volume": [1000000],
-    })
+    df = pd.DataFrame(
+        {
+            "Open": [150.0],
+            "High": [155.0],
+            "Low": [149.0],
+            "Close": [153.0],
+            "Volume": [1000000],
+        }
+    )
     result = _build_ohlcv(df)
     assert isinstance(result, list)
     assert len(result) == 1

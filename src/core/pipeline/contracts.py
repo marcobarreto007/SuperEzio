@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 # Fan-in reducer for expert_results (LangGraph Send fan-out)
 # ---------------------------------------------------------------------------
 
+
 def _expert_results_reducer(
     left: list[dict[str, Any]] | None,
     right: list[dict[str, Any]] | None,
@@ -21,6 +22,7 @@ def _expert_results_reducer(
 # ---------------------------------------------------------------------------
 # PipelineState (TypedDict — LangGraph native)
 # ---------------------------------------------------------------------------
+
 
 class PipelineState(TypedDict, total=False):
     """Unified state flowing through every LangGraph node.
@@ -87,6 +89,7 @@ class PipelineState(TypedDict, total=False):
 # ---------------------------------------------------------------------------
 # Pydantic models for node I/O validation
 # ---------------------------------------------------------------------------
+
 
 class IntentResult(BaseModel):
     """Orchestrator output: intent classification."""

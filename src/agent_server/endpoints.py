@@ -253,9 +253,7 @@ async def stream_chart_data(
                 else:
                     ohlcv = _build_ohlcv(df.tail(max_points))
                     latest = ohlcv[-1]
-                    signature = (
-                        f"{latest['time']}:{latest['close']}:{latest['volume']}:{len(ohlcv)}"
-                    )
+                    signature = f"{latest['time']}:{latest['close']}:{latest['volume']}:{len(ohlcv)}"
 
                     if first_snapshot:
                         payload = {

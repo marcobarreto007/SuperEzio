@@ -260,11 +260,13 @@ def _parse_model_tool_calls(content: str) -> tuple[str, list[dict]]:
         arguments = {}
         for arg_match in re.finditer(r'(\w+):\s*"([^"]*)"', args_str):
             arguments[arg_match.group(1)] = arg_match.group(2)
-        tool_calls.append({
-            "id": f"call_{len(tool_calls)}_{int(_time.time() * 1000)}",
-            "type": "function",
-            "function": {"name": name, "arguments": _json.dumps(arguments)},
-        })
+        tool_calls.append(
+            {
+                "id": f"call_{len(tool_calls)}_{int(_time.time() * 1000)}",
+                "type": "function",
+                "function": {"name": name, "arguments": _json.dumps(arguments)},
+            }
+        )
         last_end = m.end()
     clean_parts.append(content[last_end:])
     clean = "".join(clean_parts).strip()

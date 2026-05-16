@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import uuid
 from typing import Any, AsyncGenerator, Generator
@@ -300,6 +299,10 @@ async def _node_pennylab_stub(state: dict) -> dict:
         result = await __import__("asyncio").to_thread(analyze_ticker_sync, ticker)
         return {"pennylab": result}
     except ImportError:
-        return {"pennylab": {"ticker": ticker, "decision": None, "error": "unavailable"}}
+        return {
+            "pennylab": {"ticker": ticker, "decision": None, "error": "unavailable"}
+        }
     except Exception as exc:
-        return {"pennylab": {"ticker": ticker, "decision": None, "error": str(exc)[:200]}}
+        return {
+            "pennylab": {"ticker": ticker, "decision": None, "error": str(exc)[:200]}
+        }

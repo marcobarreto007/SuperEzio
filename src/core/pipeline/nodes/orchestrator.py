@@ -32,6 +32,7 @@ ALLOWED_INTENTS = {
 # Routing
 # ---------------------------------------------------------------------------
 
+
 def route_after_orchestrator(state: dict) -> str:
     """Determine which node to execute next based on intent route."""
     route = state.get("route", "general")
@@ -45,6 +46,7 @@ def route_after_orchestrator(state: dict) -> str:
 # ---------------------------------------------------------------------------
 # Plan rendering
 # ---------------------------------------------------------------------------
+
 
 def _render_plan(plan: dict[str, Any]) -> str:
     """Render an intent plan as a one-line summary."""
@@ -61,6 +63,7 @@ def _render_plan(plan: dict[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 # Main node
 # ---------------------------------------------------------------------------
+
 
 async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
     """Classify user intent and determine the pipeline route.
@@ -98,14 +101,18 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         plan["intent_confidence"] = max(plan.get("intent_confidence", 0), 0.97)
 
     # 3. LLM fallback (if needed)
-    if plan.get("intent_source") != "golden" and _should_use_llm(message, plan, gateway):
+    if plan.get("intent_source") != "golden" and _should_use_llm(
+        message, plan, gateway
+    ):
         try:
             raw = await asyncio.wait_for(
                 _ask_intent_classifier(message, plan, context, gateway),
                 timeout=float(os.getenv("SUPEREZIO_INTENT_LLM_TIMEOUT", "4")),
             )
             candidate = extract_json_object(raw)
-            validated = validate_intent_candidate(message, candidate or {}, fallback=parsed)
+            validated = validate_intent_candidate(
+                message, candidate or {}, fallback=parsed
+            )
             if validated:
                 plan = validated.to_plan()
                 plan["intent_source"] = "llm_fallback"
@@ -154,6 +161,7 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
 # ---------------------------------------------------------------------------
 # LLM fallback helpers
 # ---------------------------------------------------------------------------
+
 
 def _should_use_llm(message: str, plan: dict, gateway) -> bool:
     """Decide whether to invoke the LLM intent classifier."""

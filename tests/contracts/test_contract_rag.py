@@ -1,7 +1,6 @@
 """Contract tests: core.rag — ForensicRAG import and fallback behavior."""
 
 
-
 def test_forensic_rag_import():
     from core.rag.engine import ForensicRAG
 

@@ -48,6 +48,7 @@ from .gates import (
     CriticResult,
     ProxyReward,
 )
+
 try:
     from .memory import EpisodeMemory, Episode
 except ImportError:

@@ -29,9 +29,12 @@ async def node_collector(state: dict, *, config=None) -> dict:
 
     # ── Ticker analysis ──
     if route == "ticker_analysis" and ticker:
-        use_pro = os.getenv(
-            "SUPEREZIO_PROFESSIONAL_COLLECTOR", "true"
-        ).lower() in {"1", "true", "yes", "on"}
+        use_pro = os.getenv("SUPEREZIO_PROFESSIONAL_COLLECTOR", "true").lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
 
         if use_pro:
             data, data_context = await _collect_professional(ticker, writer, run_id)
@@ -41,9 +44,19 @@ async def node_collector(state: dict, *, config=None) -> dict:
         # Emit data source status
         sources: dict[str, Any] = {}
         for key in (
-            "price", "fundamentals", "technicals", "sentiment",
-            "social", "macro", "profile", "quant", "risk",
-            "reddit", "crisis", "realtime_price", "quantum",
+            "price",
+            "fundamentals",
+            "technicals",
+            "sentiment",
+            "social",
+            "macro",
+            "profile",
+            "quant",
+            "risk",
+            "reddit",
+            "crisis",
+            "realtime_price",
+            "quantum",
         ):
             section = data.get(key)
             if isinstance(section, dict):
@@ -115,6 +128,7 @@ async def node_collector(state: dict, *, config=None) -> dict:
 # Professional collector
 # ---------------------------------------------------------------------------
 
+
 async def _collect_professional(
     ticker: str, writer, run_id: str
 ) -> tuple[dict[str, Any], str]:
@@ -158,6 +172,7 @@ async def _collect_professional(
 # Legacy collector (subprocess)
 # ---------------------------------------------------------------------------
 
+
 async def _collect_legacy(
     ticker: str, writer, run_id: str
 ) -> tuple[dict[str, Any], str]:
@@ -176,6 +191,7 @@ async def _collect_legacy(
 # ---------------------------------------------------------------------------
 # Market scan
 # ---------------------------------------------------------------------------
+
 
 async def _run_scan(message: str, filters: dict[str, Any]) -> dict[str, Any]:
     """Run a market scan and enrich candidates with price data."""

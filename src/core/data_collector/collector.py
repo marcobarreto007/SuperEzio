@@ -21,9 +21,11 @@ from datetime import datetime, timezone
 from typing import Any, Dict
 
 from core.engine import FinancialEngine
+
 try:
     from core.agent_runtime.ml.quant_engine import QuantEngine
 except Exception:
+
     class QuantEngine:  # type: ignore[no-redef]
         def analyze_asset(self, ticker: str) -> Dict[str, Any]:
             return {
@@ -38,18 +40,23 @@ try:
         tool_calculate_risk_metrics,
     )
 except Exception:
+
     async def tool_get_market_price(ticker: str) -> Dict[str, Any]:
         return {
             "error": "market_runtime_removed",
             "symbol": ticker,
         }
 
-    async def tool_calculate_risk_metrics(ticker: str, days: int = 90) -> Dict[str, Any]:
+    async def tool_calculate_risk_metrics(
+        ticker: str, days: int = 90
+    ) -> Dict[str, Any]:
         return {
             "error": "risk_runtime_removed",
             "ticker": ticker,
             "days": days,
         }
+
+
 from core.paths import project_path
 from core.observability.neural_log import log_event
 from .scraper import RealTimeScraper

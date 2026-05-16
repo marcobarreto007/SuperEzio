@@ -33,21 +33,79 @@ except ImportError:
 
 # ── Sentiment lexicon (backup when TextBlob unavailable) ────────────────────
 
-_POS_WORDS = frozenset({
-    "surges", "rallies", "gains", "rises", "beats", "record", "growth",
-    "profit", "upgrade", "buy", "bullish", "strong", "soars", "optimism",
-    "dividend", "outperforms", "milestone", "opportunity", "positive",
-    "breakthrough", "partnership", "expansion", "approval", "launch",
-    "revenue", "earnings", "beat", "upside", "momentum", "recovery",
-})
-_NEG_WORDS = frozenset({
-    "falls", "drops", "plunges", "misses", "loss", "cut", "sell",
-    "bearish", "weak", "decline", "lawsuit", "fraud", "risk",
-    "downgrade", "concern", "crisis", "crash", "layoffs", "warning",
-    "debt", "recall", "probe", "bankruptcy", "delisting", "default",
-    "restructuring", "write-down", "impairment", "sanction", "fine",
-    "investigation", "suspension", "halt", "deficit", "insolvency",
-})
+_POS_WORDS = frozenset(
+    {
+        "surges",
+        "rallies",
+        "gains",
+        "rises",
+        "beats",
+        "record",
+        "growth",
+        "profit",
+        "upgrade",
+        "buy",
+        "bullish",
+        "strong",
+        "soars",
+        "optimism",
+        "dividend",
+        "outperforms",
+        "milestone",
+        "opportunity",
+        "positive",
+        "breakthrough",
+        "partnership",
+        "expansion",
+        "approval",
+        "launch",
+        "revenue",
+        "earnings",
+        "beat",
+        "upside",
+        "momentum",
+        "recovery",
+    }
+)
+_NEG_WORDS = frozenset(
+    {
+        "falls",
+        "drops",
+        "plunges",
+        "misses",
+        "loss",
+        "cut",
+        "sell",
+        "bearish",
+        "weak",
+        "decline",
+        "lawsuit",
+        "fraud",
+        "risk",
+        "downgrade",
+        "concern",
+        "crisis",
+        "crash",
+        "layoffs",
+        "warning",
+        "debt",
+        "recall",
+        "probe",
+        "bankruptcy",
+        "delisting",
+        "default",
+        "restructuring",
+        "write-down",
+        "impairment",
+        "sanction",
+        "fine",
+        "investigation",
+        "suspension",
+        "halt",
+        "deficit",
+        "insolvency",
+    }
+)
 
 
 def _sentiment(text: str) -> tuple[float, str]:
@@ -99,7 +157,9 @@ class NewsAPIProvider:
                 timeout=10,
             )
             if resp.status_code != 200:
-                error_msg = resp.json().get("message", resp.text) if resp.text else "unknown"
+                error_msg = (
+                    resp.json().get("message", resp.text) if resp.text else "unknown"
+                )
                 logger.warning("[NewsAPI] HTTP %s: %s", resp.status_code, error_msg)
                 return []
 
@@ -115,16 +175,18 @@ class NewsAPIProvider:
                 full_text = f"{title}. {desc}. {content}"
 
                 score, label = _sentiment(full_text)
-                articles.append({
-                    "title": title,
-                    "snippet": (desc or content)[:300],
-                    "url": art.get("url", ""),
-                    "source": art.get("source", {}).get("name", "NewsAPI"),
-                    "published_at": art.get("publishedAt", ""),
-                    "image_url": art.get("urlToImage"),
-                    "sentiment_score": score,
-                    "sentiment_label": label,
-                })
+                articles.append(
+                    {
+                        "title": title,
+                        "snippet": (desc or content)[:300],
+                        "url": art.get("url", ""),
+                        "source": art.get("source", {}).get("name", "NewsAPI"),
+                        "published_at": art.get("publishedAt", ""),
+                        "image_url": art.get("urlToImage"),
+                        "sentiment_score": score,
+                        "sentiment_label": label,
+                    }
+                )
 
             return articles
 
@@ -188,7 +250,9 @@ class NewsAPIProvider:
 
         return {
             "sentiment_score": avg,
-            "sentiment_label": "BULLISH" if avg > 0.1 else ("BEARISH" if avg < -0.1 else "NEUTRAL"),
+            "sentiment_label": "BULLISH"
+            if avg > 0.1
+            else ("BEARISH" if avg < -0.1 else "NEUTRAL"),
             "positive_articles": pos_count,
             "negative_articles": neg_count,
             "total_articles": len(news),

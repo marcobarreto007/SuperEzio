@@ -44,13 +44,13 @@ _CAPABILITY_TECHNICALS = "technicals"
 
 # How long to cache each data type (seconds)
 _CACHE_TTL: dict[str, int] = {
-    _CAPABILITY_PRICE: 300,         # 5 minutes
+    _CAPABILITY_PRICE: 300,  # 5 minutes
     _CAPABILITY_QUOTE: 300,
     _CAPABILITY_FUNDAMENTALS: 21600,  # 6 hours
-    _CAPABILITY_NEWS: 3600,          # 1 hour
-    _CAPABILITY_SENTIMENT: 1800,     # 30 minutes
+    _CAPABILITY_NEWS: 3600,  # 1 hour
+    _CAPABILITY_SENTIMENT: 1800,  # 30 minutes
     _CAPABILITY_SOCIAL: 1800,
-    _CAPABILITY_MACRO: 86400,        # 24 hours
+    _CAPABILITY_MACRO: 86400,  # 24 hours
     _CAPABILITY_TECHNICALS: 3600,
 }
 
@@ -64,7 +64,9 @@ _EXPECTED_FIELDS: dict[str, frozenset] = {
     _CAPABILITY_QUOTE: frozenset({"price", "symbol", "change_pct", "volume", "source"}),
     _CAPABILITY_FUNDAMENTALS: frozenset({"name", "sector", "market_cap", "source"}),
     _CAPABILITY_NEWS: frozenset({"headline", "url", "source"}),
-    _CAPABILITY_SENTIMENT: frozenset({"sentiment_label", "sentiment_score", "source", "news_count", "top_headline"}),
+    _CAPABILITY_SENTIMENT: frozenset(
+        {"sentiment_label", "sentiment_score", "source", "news_count", "top_headline"}
+    ),
     _CAPABILITY_SOCIAL: frozenset({"signal_label", "sentiment_score", "source"}),
     _CAPABILITY_MACRO: frozenset({"source"}),
     _CAPABILITY_TECHNICALS: frozenset({"price", "rsi_14", "source"}),
@@ -72,6 +74,7 @@ _EXPECTED_FIELDS: dict[str, frozenset] = {
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -107,6 +110,7 @@ def _is_penny(ticker: str, price: float | None = None) -> bool:
 
 # ── Circuit Breaker ──────────────────────────────────────────────────────────
 
+
 @dataclass
 class CircuitBreaker:
     """Tracks provider health, disables after consecutive failures."""
@@ -137,13 +141,18 @@ class CircuitBreaker:
 
 # ── Cache Layer ──────────────────────────────────────────────────────────────
 
+
 class CacheLayer:
     """TTL disk cache keyed by (ticker, capability, provider)."""
 
     def __init__(self, cache_dir: str | None = None) -> None:
         self._dir = Path(
-            cache_dir or os.getenv("SUPEREZIO_CACHE_DIR", "")
-            or Path(__file__).parent.parent.parent.parent / ".f51" / "cache" / "collector"
+            cache_dir
+            or os.getenv("SUPEREZIO_CACHE_DIR", "")
+            or Path(__file__).parent.parent.parent.parent
+            / ".f51"
+            / "cache"
+            / "collector"
         )
         self._dir.mkdir(parents=True, exist_ok=True)
 
@@ -182,6 +191,7 @@ class CacheLayer:
 
 # ── Data Quality Filter ──────────────────────────────────────────────────────
 
+
 class DataQualityFilter:
     """Validates, normalizes, and scores data from any provider."""
 
@@ -194,7 +204,10 @@ class DataQualityFilter:
         if "error" in result:
             return False
         # NO_DATA / empty results are technically valid but useless
-        if result.get("sentiment_label") == "NO_DATA" and result.get("news_count", 1) == 0:
+        if (
+            result.get("sentiment_label") == "NO_DATA"
+            and result.get("news_count", 1) == 0
+        ):
             return False
         if result.get("signal_label") == "NO_DATA":
             return False
@@ -241,7 +254,9 @@ class DataQualityFilter:
         """Composite quality score 0-1."""
         if not self.is_valid(data):
             return 0.0
-        freshness = self.score_freshness(data.get("timestamp") or data.get("collected_at"))
+        freshness = self.score_freshness(
+            data.get("timestamp") or data.get("collected_at")
+        )
         completeness = self.score_completeness(data, capability)
         confidence = self.score_confidence(data)
         return 0.35 * freshness + 0.40 * completeness + 0.25 * confidence
@@ -251,7 +266,13 @@ class DataQualityFilter:
         """Normalize any provider's price output to unified schema."""
         price = data.get("price")
         if price is None:
-            for key in ("05. price", "close", "last", "currentPrice", "regularMarketPrice"):
+            for key in (
+                "05. price",
+                "close",
+                "last",
+                "currentPrice",
+                "regularMarketPrice",
+            ):
                 if data.get(key) is not None:
                     price = float(data[key])
                     break
@@ -272,6 +293,7 @@ class DataQualityFilter:
 
 
 # ── Provider Mesh ────────────────────────────────────────────────────────────
+
 
 @dataclass
 class ProviderSpec:
@@ -368,9 +390,7 @@ class ProviderMesh:
             time.sleep(interval - (now - last))
         self._last_call[name] = time.monotonic()
 
-    async def query_one(
-        self, name: str, ticker: str, timeout: float = 10.0
-    ) -> dict:
+    async def query_one(self, name: str, ticker: str, timeout: float = 10.0) -> dict:
         """Query a single provider, with rate limiting and error handling."""
         spec = self._specs.get(name)
         if not spec:
@@ -388,7 +408,9 @@ class ProviderMesh:
                 result.setdefault("timestamp", _now_iso())
             else:
                 self.record_failure(name)
-            return result if isinstance(result, dict) else {"error": "invalid_result_type"}
+            return (
+                result if isinstance(result, dict) else {"error": "invalid_result_type"}
+            )
         except asyncio.TimeoutError:
             self.record_failure(name)
             return {"error": f"{name}_timeout_{timeout}s"}
@@ -414,7 +436,10 @@ class ProviderMesh:
         """
         specs = self.select(capability, ticker)
         if not specs:
-            return {"error": f"no_provider_available_for_{capability}", "symbol": ticker}
+            return {
+                "error": f"no_provider_available_for_{capability}",
+                "symbol": ticker,
+            }
 
         quality = DataQualityFilter()
         best_result: dict | None = None
@@ -437,15 +462,14 @@ class ProviderMesh:
 
         # Query uncached providers in parallel
         if uncached:
-            tasks = [
-                self.query_one(spec.name, ticker, timeout)
-                for spec in uncached
-            ]
+            tasks = [self.query_one(spec.name, ticker, timeout) for spec in uncached]
             live_results = await asyncio.gather(*tasks, return_exceptions=True)
 
             for spec, result in zip(uncached, live_results):
                 if isinstance(result, Exception):
-                    result = {"error": f"{spec.name}: {type(result).__name__}: {result}"}
+                    result = {
+                        "error": f"{spec.name}: {type(result).__name__}: {result}"
+                    }
                 if not isinstance(result, dict):
                     result = {"error": f"{spec.name}: invalid_result"}
 
@@ -469,15 +493,23 @@ class ProviderMesh:
                 "error": f"all_providers_failed_for_{capability}",
                 "symbol": ticker,
                 "attempts": [
-                    {"provider": r.get("provider", "?"), "error": r.get("error", "empty")}
+                    {
+                        "provider": r.get("provider", "?"),
+                        "error": r.get("error", "empty"),
+                    }
                     for r in all_results
                 ],
             }
 
-        return {**best_result, "_mesh_results": len(all_results), "_mesh_score": best_score}
+        return {
+            **best_result,
+            "_mesh_results": len(all_results),
+            "_mesh_score": best_score,
+        }
 
 
 # ── Professional Collector ───────────────────────────────────────────────────
+
 
 class ProfessionalCollector:
     """Professional-grade data collector with intelligent provider selection.
@@ -524,7 +556,12 @@ class ProfessionalCollector:
         self.mesh.register(
             ProviderSpec(
                 name="yfinance",
-                capabilities=(_CAPABILITY_PRICE, _CAPABILITY_QUOTE, _CAPABILITY_FUNDAMENTALS, _CAPABILITY_TECHNICALS),
+                capabilities=(
+                    _CAPABILITY_PRICE,
+                    _CAPABILITY_QUOTE,
+                    _CAPABILITY_FUNDAMENTALS,
+                    _CAPABILITY_TECHNICALS,
+                ),
                 fetch=self._fetch_yfinance_price,
                 priority=30,  # Lower priority — less reliable
                 rate_limit_rps=1.0,
@@ -548,7 +585,11 @@ class ProfessionalCollector:
         self.mesh.register(
             ProviderSpec(
                 name="newsapi",
-                capabilities=(_CAPABILITY_NEWS, _CAPABILITY_SENTIMENT, "market_sentiment"),
+                capabilities=(
+                    _CAPABILITY_NEWS,
+                    _CAPABILITY_SENTIMENT,
+                    "market_sentiment",
+                ),
                 fetch=self._fetch_newsapi_sentiment,
                 priority=5,  # Primary — real headlines via tested API key
                 required_key="NEWSAPI_KEY",
@@ -594,6 +635,7 @@ class ProfessionalCollector:
     def _fetch_twelve_data_price(ticker: str) -> dict:
         try:
             from data.twelve_data import TwelveDataProvider
+
             api_key = os.getenv("TWELVE_DATA_API_KEY")
             if not api_key:
                 return {"error": "TWELVE_DATA_API_KEY not set"}
@@ -614,6 +656,7 @@ class ProfessionalCollector:
     def _fetch_alpha_vantage_quote(ticker: str) -> dict:
         try:
             from data.alpha_vantage import AlphaVantageProvider
+
             api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
             if not api_key:
                 return {"error": "ALPHA_VANTAGE_API_KEY not set"}
@@ -636,6 +679,7 @@ class ProfessionalCollector:
     def _fetch_yfinance_price(ticker: str) -> dict:
         try:
             import yfinance as yf
+
             t = yf.Ticker(ticker)
             info = t.info or {}
             price = (
@@ -664,6 +708,7 @@ class ProfessionalCollector:
     def _fetch_yfinance_profile(ticker: str) -> dict:
         try:
             import yfinance as yf
+
             t = yf.Ticker(ticker)
             info = t.info or {}
             return {
@@ -687,6 +732,7 @@ class ProfessionalCollector:
     def _fetch_newsapi_sentiment(ticker: str) -> dict:
         try:
             from data.newsapi_provider import NewsAPIProvider
+
             provider = NewsAPIProvider()
             result = provider.get_sentiment_summary(ticker)
             if not isinstance(result, dict):
@@ -699,12 +745,22 @@ class ProfessionalCollector:
     def _fetch_news_scout(ticker: str) -> dict:
         try:
             from data.news_feed import NewsScout
+
             scout = NewsScout()
-            clean = ticker.replace(".TO", "").replace(".V", "").replace(".to", "").replace(".v", "")
+            clean = (
+                ticker.replace(".TO", "")
+                .replace(".V", "")
+                .replace(".to", "")
+                .replace(".v", "")
+            )
             result = scout.get_sentiment_summary(clean)
             if not isinstance(result, dict):
                 return {"error": "news_scout_invalid_result"}
-            return {**result, "source": result.get("source", "news_scout"), "timestamp": _now_iso()}
+            return {
+                **result,
+                "source": result.get("source", "news_scout"),
+                "timestamp": _now_iso(),
+            }
         except Exception as exc:
             return {"error": f"news_scout: {exc}"}
 
@@ -717,9 +773,14 @@ class ProfessionalCollector:
         """
         try:
             from data.wolfram_provider import WolframProvider
+
             provider = WolframProvider()
             result = provider.query(ticker)
-            return result if isinstance(result, dict) else {"error": "wolfram_invalid_result"}
+            return (
+                result
+                if isinstance(result, dict)
+                else {"error": "wolfram_invalid_result"}
+            )
         except Exception as exc:
             return {"error": f"wolfram: {exc}"}
 
@@ -727,11 +788,16 @@ class ProfessionalCollector:
     def _fetch_reddit_signal(ticker: str) -> dict:
         try:
             from data.reddit_provider import RedditPulse
+
             pulse = RedditPulse()
             result = pulse.get_signal(ticker)
             if not isinstance(result, dict):
                 return {"error": "reddit_pulse_invalid_result"}
-            return {**result, "source": result.get("source", "reddit_pulse"), "timestamp": _now_iso()}
+            return {
+                **result,
+                "source": result.get("source", "reddit_pulse"),
+                "timestamp": _now_iso(),
+            }
         except Exception as exc:
             return {"error": f"reddit_pulse: {exc}"}
 
@@ -829,10 +895,15 @@ class ProfessionalCollector:
         """Route macro data via DataHub (BoC/Fed)."""
         try:
             from data.data_hub import hub
+
             exchange = _detect_exchange(ticker)
             market = "CA" if exchange in ("TSX", "TSXV") else "US"
             result = await asyncio.to_thread(hub.get_macro, market)
-            return result if isinstance(result, dict) else {"error": "macro_invalid_result"}
+            return (
+                result
+                if isinstance(result, dict)
+                else {"error": "macro_invalid_result"}
+            )
         except Exception as exc:
             return {"error": f"macro: {exc}"}
 
@@ -840,6 +911,7 @@ class ProfessionalCollector:
         """Compute technicals from price history."""
         try:
             import yfinance as yf
+
             t = yf.Ticker(ticker)
             df = await asyncio.to_thread(t.history, period="6mo", interval="1d")
             if df.empty:
@@ -857,7 +929,9 @@ class ProfessionalCollector:
                 "price": float(close.iloc[-1]),
                 "rsi_14": round(rsi, 1) if rsi is not None else None,
                 "macd": round(macd, 4) if macd is not None else None,
-                "macd_signal": round(macd_signal, 4) if macd_signal is not None else None,
+                "macd_signal": round(macd_signal, 4)
+                if macd_signal is not None
+                else None,
                 "ema_20": round(float(ema20), 2),
                 "ema_50": round(float(ema50), 2),
                 "bb_upper": round(float(bb_upper), 2) if bb_upper is not None else None,
@@ -885,13 +959,22 @@ class ProfessionalCollector:
     def _attach_evidence_ids(data: dict) -> None:
         ticker = data.get("ticker", "UNKNOWN")
         date_part = data.get("collected_at", _now_iso())[:10]
-        for section in ("price", "fundamentals", "technicals", "sentiment", "social", "macro"):
+        for section in (
+            "price",
+            "fundamentals",
+            "technicals",
+            "sentiment",
+            "social",
+            "macro",
+        ):
             payload = data.get(section)
             if not isinstance(payload, dict):
                 continue
             source = payload.get("source", payload.get("provider", section))
             payload.setdefault("evidence_id", f"{source}_{ticker}_{date_part}")
-            payload.setdefault("data_quality", "unavailable" if "error" in payload else "collected")
+            payload.setdefault(
+                "data_quality", "unavailable" if "error" in payload else "collected"
+            )
 
     # ── Context formatting for CEO prompt ────────────────────────────────
 
@@ -949,7 +1032,11 @@ class ProfessionalCollector:
             )
 
         social = data.get("social", {})
-        if isinstance(social, dict) and social.get("signal_label") and social.get("signal_label") != "NO_DATA":
+        if (
+            isinstance(social, dict)
+            and social.get("signal_label")
+            and social.get("signal_label") != "NO_DATA"
+        ):
             parts.append(
                 f"[SOCIAL] {social.get('signal_label')} "
                 f"(score: {social.get('sentiment_score')}) "
@@ -962,13 +1049,17 @@ class ProfessionalCollector:
 
         quality_report = data.get("quality_report", {})
         if quality_report:
-            q_parts = [f"  {k}: score={v.get('score', '?')} provider={v.get('provider', '?')}" for k, v in quality_report.items()]
+            q_parts = [
+                f"  {k}: score={v.get('score', '?')} provider={v.get('provider', '?')}"
+                for k, v in quality_report.items()
+            ]
             parts.append("[QUALITY]\n" + "\n".join(q_parts))
 
         return "\n".join(parts)
 
 
 # ── Technical indicator helpers ──────────────────────────────────────────────
+
 
 def _compute_rsi(close, period: int = 14) -> float | None:
     if len(close) < period + 1:

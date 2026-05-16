@@ -166,7 +166,9 @@ async def node_ceo(
 
     raw_text = ""
     t0 = time.time()
-    ceo_timeout = float(os.getenv("SUPEREZIO_CEO_TIMEOUT", "180" if use_local else "120"))
+    ceo_timeout = float(
+        os.getenv("SUPEREZIO_CEO_TIMEOUT", "180" if use_local else "120")
+    )
 
     try:
         async with asyncio.timeout(ceo_timeout):
@@ -176,10 +178,14 @@ async def node_ceo(
                     {"role": "user", "content": prompt},
                 ],
                 temperature=float(
-                    os.getenv("SUPEREZIO_CEO_TEMPERATURE", "0.4" if use_local else "0.2")
+                    os.getenv(
+                        "SUPEREZIO_CEO_TEMPERATURE", "0.4" if use_local else "0.2"
+                    )
                 ),
                 max_tokens=int(
-                    os.getenv("SUPEREZIO_CEO_MAX_TOKENS", "8192" if use_local else "4096")
+                    os.getenv(
+                        "SUPEREZIO_CEO_MAX_TOKENS", "8192" if use_local else "4096"
+                    )
                 ),
                 preferred_provider=ceo_provider,
                 assistant_prefix=assistant_prefix,

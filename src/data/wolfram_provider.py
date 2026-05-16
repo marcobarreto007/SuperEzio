@@ -46,8 +46,7 @@ _QUANT_TEMPLATES: dict[str, str] = {
         "horizon days={horizon}, annual volatility={sigma}"
     ),
     "compound_growth": (
-        "compound annual growth rate: "
-        "initial={initial}, final={final}, years={years}"
+        "compound annual growth rate: initial={initial}, final={final}, years={years}"
     ),
     "monte_carlo_prob": (
         "probability that normal random variable with "
@@ -203,10 +202,12 @@ class WolframProvider:
         results = []
         for check in checks:
             result = self.query(check)
-            results.append({
-                "check": check,
-                "result": result.get("result", result.get("error", "?")),
-            })
+            results.append(
+                {
+                    "check": check,
+                    "result": result.get("result", result.get("error", "?")),
+                }
+            )
         return {
             "f51_score": score,
             "f51_confidence": confidence,

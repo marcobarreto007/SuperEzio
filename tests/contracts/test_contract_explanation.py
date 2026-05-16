@@ -1,7 +1,6 @@
 """Contract tests: core.explanation — ExplainEngine deterministic imports & functions."""
 
 
-
 def test_explain_engine_import():
     """ExplainEngine lazy-loads — import should succeed without GPU/LLM loaded."""
     from core.explanation.engine import ExplainEngine

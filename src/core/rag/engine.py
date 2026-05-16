@@ -3,6 +3,7 @@ Semantic Forensic RAG — Embedding-based fraud intelligence retrieval.
 Indexes fraud patterns, red-flag rules, and enforcement cases.
 Falls back to keyword search if sentence-transformers is unavailable.
 """
+
 from __future__ import annotations
 
 import json
@@ -70,7 +71,13 @@ class ForensicRAG:
                 f"Asset classes: {' '.join(pattern.get('asset_classes') or [])}. "
                 f"Risk weight: {pattern.get('risk_weight', 'N/A')}."
             )
-            docs.append({"id": pattern.get("pattern_id", ""), "text": text, "source": os.path.basename(path)})
+            docs.append(
+                {
+                    "id": pattern.get("pattern_id", ""),
+                    "text": text,
+                    "source": os.path.basename(path),
+                }
+            )
 
         for rule in payload.get("rules", []):
             if not isinstance(rule, dict):
@@ -82,7 +89,13 @@ class ForensicRAG:
                 f"Patterns: {' '.join(rule.get('matched_patterns') or [])}. "
                 f"{rule.get('note', '')}"
             )
-            docs.append({"id": rule.get("rule_id", ""), "text": text, "source": os.path.basename(path)})
+            docs.append(
+                {
+                    "id": rule.get("rule_id", ""),
+                    "text": text,
+                    "source": os.path.basename(path),
+                }
+            )
         return docs
 
     def _ingest_jsonl(self, path: str) -> list[dict[str, Any]]:
@@ -103,7 +116,13 @@ class ForensicRAG:
                     f"Red flags: {' '.join(row.get('known_red_flags') or [])}. "
                     f"Notes: {row.get('notes', '')}"
                 )
-                docs.append({"id": row.get("case_id", row.get("case_type", "")), "text": text, "source": os.path.basename(path)})
+                docs.append(
+                    {
+                        "id": row.get("case_id", row.get("case_type", "")),
+                        "text": text,
+                        "source": os.path.basename(path),
+                    }
+                )
         return docs
 
     # ── Embedding model ────────────────────────────────────────────────
@@ -115,7 +134,9 @@ class ForensicRAG:
         try:
             from sentence_transformers import SentenceTransformer  # type: ignore[import]
         except ImportError:
-            logger.warning("sentence-transformers not installed — RAG will use keyword fallback")
+            logger.warning(
+                "sentence-transformers not installed — RAG will use keyword fallback"
+            )
             _embedder = None
             return None
         try:
@@ -123,7 +144,9 @@ class ForensicRAG:
             _embedder.to("cpu")
             logger.info("ForensicRAG embedder loaded: %s (CPU)", EMBEDDING_MODEL)
         except Exception as exc:
-            logger.warning("Failed to load embedding model: %s — keyword fallback active", exc)
+            logger.warning(
+                "Failed to load embedding model: %s — keyword fallback active", exc
+            )
             _embedder = None
         return _embedder
 
@@ -147,9 +170,16 @@ class ForensicRAG:
 
         texts = [d["text"] for d in docs]
         try:
-            vecs = embedder.encode(texts, convert_to_numpy=True, normalize_embeddings=True, show_progress_bar=False)
+            vecs = embedder.encode(
+                texts,
+                convert_to_numpy=True,
+                normalize_embeddings=True,
+                show_progress_bar=False,
+            )
             _embeddings_cache = vecs
-            logger.info("ForensicRAG indexed %d documents (%d-dim)", len(docs), vecs.shape[1])
+            logger.info(
+                "ForensicRAG indexed %d documents (%d-dim)", len(docs), vecs.shape[1]
+            )
             return True
         except Exception as exc:
             logger.warning("Embedding failed: %s — keyword fallback active", exc)
@@ -171,16 +201,28 @@ class ForensicRAG:
 
         embedder = self._get_embedder()
         try:
-            qvec = embedder.encode([query], convert_to_numpy=True, normalize_embeddings=True, show_progress_bar=False)
+            qvec = embedder.encode(
+                [query],
+                convert_to_numpy=True,
+                normalize_embeddings=True,
+                show_progress_bar=False,
+            )
         except Exception:
             return self._keyword_search(query, top_k)
 
-        scores = (qvec @ _embeddings_cache.T)[0]  # cosine similarity (normalized vectors)
+        scores = (qvec @ _embeddings_cache.T)[
+            0
+        ]  # cosine similarity (normalized vectors)
         top_idx = np.argsort(scores)[::-1][:top_k]
         return [
-            {"id": _documents_cache[i]["id"], "text": _documents_cache[i]["text"],
-             "source": _documents_cache[i]["source"], "score": float(scores[i])}
-            for i in top_idx if scores[i] > 0.1
+            {
+                "id": _documents_cache[i]["id"],
+                "text": _documents_cache[i]["text"],
+                "source": _documents_cache[i]["source"],
+                "score": float(scores[i]),
+            }
+            for i in top_idx
+            if scores[i] > 0.1
         ]
 
     def _keyword_search(self, query: str, top_k: int = 5) -> list[dict[str, Any]]:
@@ -207,7 +249,9 @@ class ForensicRAG:
 
     # ── Format ─────────────────────────────────────────────────────────
 
-    def format_context(self, results: list[dict[str, Any]], max_chars: int = MAX_CONTEXT_CHARS) -> str:
+    def format_context(
+        self, results: list[dict[str, Any]], max_chars: int = MAX_CONTEXT_CHARS
+    ) -> str:
         """Format search results as a CEO-readable RAG_FORENSICS block."""
         if not results:
             return "[RAG_FORENSICS]\nNo forensic pattern matches found for this query."
@@ -218,7 +262,9 @@ class ForensicRAG:
             snippet = r["text"][:400]
             entry = f"\n{i}. [{r['id']}] (src={r['source']}, sim={r['score']:.2f})\n   {snippet}"
             if used + len(entry) > max_chars:
-                lines.append(f"\n... truncated ({len(results) - i + 1} results omitted)")
+                lines.append(
+                    f"\n... truncated ({len(results) - i + 1} results omitted)"
+                )
                 break
             lines.append(entry)
             used += len(entry)

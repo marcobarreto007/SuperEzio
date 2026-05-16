@@ -1,4 +1,5 @@
 """Smoke test for ForensicRAG engine."""
+
 from core.rag.engine import forensic_rag
 
 # Test 1: Semantic search
