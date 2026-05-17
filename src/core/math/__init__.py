@@ -34,6 +34,14 @@ from .risk import (
     simple_return,
     annualized_return,
 )
+from .trading_losses import (
+    directional_loss,
+    sharpe_loss,
+    quantile_loss,
+    multi_horizon_loss,
+    huber_loss,
+    directional_accuracy,
+)
 
 # F51-dependent modules are NOT eagerly imported to avoid circular imports.
 # Import directly from submodules:
@@ -78,6 +86,13 @@ __all__ = [
     "simple_return",
     "annualized_return",
     "FinancialEngine",
+    # trading losses
+    "directional_loss",
+    "sharpe_loss",
+    "quantile_loss",
+    "multi_horizon_loss",
+    "huber_loss",
+    "directional_accuracy",
     # F51-dependent modules: import directly from submodules
     # crisis: import from core.math.crisis
 ]

@@ -2,7 +2,7 @@ import logging
 import numpy as np
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,7 @@ class TechnicalNeuralExpert:
     def evaluate(self, ticker: str, candles_data: list) -> Dict[str, Any]:
         """
         Constrói tensores de features, normaliza, treina a rede e infere o próximo passo.
+        """
         try:
             if not candles_data or len(candles_data) < 50:
                 return {
