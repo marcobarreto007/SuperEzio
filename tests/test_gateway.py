@@ -169,7 +169,7 @@ class TestAddProvider:
 class TestApplyDeepseekOptions:
     def test_non_deepseek_skipped(self):
         p = _provider("ceo", base_url="http://127.0.0.1:8082/v1")
-        p.model = "gemma-4-26b-abliterated"
+        p.model = "qwen36-35b-f51"
         kwargs = {"temperature": 0.5}
         ModelGateway._apply_deepseek_options(p, kwargs)
         assert "extra_body" not in kwargs
@@ -202,7 +202,7 @@ class TestApplyDeepseekOptions:
 
     def test_non_deepseek_model_skipped(self):
         p = _provider(DEEPSEEK_PROVIDER_NAME, base_url="https://api.deepseek.com")
-        p.model = "gemma-4-26b-abliterated"  # not deepseek-v4-*
+        p.model = "qwen36-35b-f51"  # not deepseek-v4-*
         kwargs = {}
         ModelGateway._apply_deepseek_options(p, kwargs)
         assert "extra_body" not in kwargs

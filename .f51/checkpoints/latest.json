@@ -1,40 +1,26 @@
 {
-  "date_local": "2026-05-17T15:45:00-04:00",
-  "session": "f51-executor-3patches",
+  "date_local": "2026-05-17T15:29:25-04:00",
+  "session": "f51-ci-repair-ddgs-qwen-test",
   "status": "COMPLETED",
   "what_was_done": [
-    "PATCH 1: Removido gemma.py shim (GEMMA=QWEN alias). Constantes movidas para _prompts.py. builder.py e __init__.py atualizados.",
-    "PATCH 2: Atualizado config/model_manifest.json — CEO Qwen3.6-35B F51, temp 0.3, max_tokens 16384, versao 4.0.0.",
-    "PATCH 3: Removido core/investor/veracity_gate.py (codigo morto — nenhum import no projeto).",
-    "PennylabVeracityGate mantido — classe diferente com proposito proprio (data quality check).",
-    "Preserved the local entulho branch by creating f51/backup/heathered-saguaro-ci-entulho at commit 8b90732.",
-    "Did not merge heathered-saguaro because it contains a large mixed diff against main.",
-    "Restored a focused GitHub Actions workflow that installs requirements-ci.txt and validates tests.",
-    "Updated GitHub Actions to actions/checkout@v6 and actions/setup-python@v6 to avoid Node.js 20 deprecation breakage.",
-    "Pinned the CI runner to windows-2025 instead of windows-latest to avoid the upcoming runner redirection notice.",
-    "Added requirements-ci.txt for stable Windows CI dependencies.",
-    "Applied mechanical ruff cleanup and formatting in tests only.",
-    "Removed remaining repository references to the legacy model token outside ignored/vendor/model artifact paths.",
-    "Prepared all current working-tree changes for a single requested commit."
+    "Confirmed GitHub Actions failure was in Install dependencies, not the Node 20 warning or windows-latest notice.",
+    "Fixed the Windows CI pip upgrade command to use the venv Python module invocation.",
+    "Updated requirements-ci.txt from ddgs==9.11.2 to ddgs==9.14.4 because 9.11.2 is no longer available to pip.",
+    "Aligned stale tests with the current Qwen3.6 CEO model id qwen36-35b-f51."
   ],
   "evidence": [
-    "python -c 'from core.pipeline.prompts import build_ceo_prompt, ceo_system_prompt, QWEN_SYSTEM_PROMPT' — Import OK.",
-    "python -m ruff check src/core/pipeline/prompts/ src/core/investor/ config/ — All checks passed.",
-    "python -m pytest tests/test_pipeline_smoke.py tests/test_gateway.py tests/test_components_f51.py -q — 63 passed.",
-    "git diff --check — sem conflitos.",
-    "git ls-remote --heads origin returned only refs/heads/main.",
-    "git log origin/main..heathered-saguaro showed five local-only commits before backup.",
+    "GitHub Actions job log for run 108/109 showed: ERROR: No matching distribution found for ddgs==9.11.2.",
+    "Temporary clean venv install of requirements-ci.txt completed successfully after the ddgs pin update.",
     "python -m ruff check tests passed.",
     "python -m ruff format tests --check passed.",
-    "python -m pytest -q passed with 510 tests.",
+    "python -m pytest -q passed: 510 tests.",
     "git diff --check passed.",
-    "rg -n -i legacy model token with repository-artifact exclusions returned no matches.",
-    "actions/checkout@v6 and actions/setup-python@v6 were selected because their upstream docs/releases identify Node 24 runtime support."
+    "Repository-wide hidden search for the retired runtime name returned no matches outside the search command itself."
   ],
   "risks": [
-    "Nenhum risco novo. Patches cirurgicos sem alteracao de logica de produto.",
-    "config/model_manifest.json pode nao ser lido em runtime (.env e a fonte real).",
-    "core/investor/veracity_gate.py removido — se algum import dinamico existir, quebrara em runtime (grep confirmou zero imports)."
+    "GitHub Actions must still run remotely after push to confirm the hosted runner accepts the same dependency set.",
+    "pyproject.toml and legacy training scripts still contain historical Gemma references; they were not changed in this CI-only patch.",
+    ".f51 files are operational checkpoints and may be ignored by git depending on repository ignore rules."
   ],
-  "next_step": "Executar f51-quality-gate para validacao completa ou continuar com o objetivo ativo (forward testing / delivery hardening)."
+  "next_step": "Commit and push the CI repair, then inspect the new GitHub Actions run."
 }
