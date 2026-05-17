@@ -131,3 +131,6 @@ unsloth_compiled_cache/
 
 # llama.cpp local binaries (DLLs, EXEs, CUDA — ~300MB)
 llama.cpp/
+
+# Scratch scripts (testes avulsos)
+scratch/
