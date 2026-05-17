@@ -18,7 +18,7 @@ PRIMARY_MODEL_ID = "deepseek-chat"
 DEEPSEEK_PROVIDER_NAME = "deepseek"
 
 CEO_PROVIDER_NAME = "ceo"
-CEO_MODEL_ID = "glm-4.7-flash-unce"
+CEO_MODEL_ID = "qwen36-35b-f51"
 
 
 @dataclass
@@ -116,7 +116,7 @@ def build_default_providers(
         )
     )
 
-    # CEO — GLM-4.7-Flash-Uncen Q4_K_M GGUF via llama-cpp, local.
+    # CEO — Qwen3.6-35B F51 Q4_K_M GGUF via llama-server, local.
     ceo_base_url = os.getenv(
         "SUPEREZIO_CEO_BASE_URL",
         "http://127.0.0.1:8082/v1",
@@ -129,7 +129,7 @@ def build_default_providers(
             priority=-670,
             model=CEO_MODEL_ID,
             timeout_s=180,
-            max_tokens=4096,
+            max_tokens=8192,
             temperature=0.4,
             is_local=True,
             backend="openai_compatible",

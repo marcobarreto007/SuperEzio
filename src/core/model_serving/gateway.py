@@ -197,9 +197,14 @@ class ModelGateway:
                     yield prefix
 
             async for chunk in stream:
-                content = chunk.choices[0].delta.content
-                if content:
-                    clean = channel_filter.feed(content)
+                delta = chunk.choices[0].delta
+                # Thinking models (Qwen3.6) put reasoning in a separate field;
+                # we stream both so the pipeline never receives empty output.
+                content = delta.content or ""
+                reasoning = getattr(delta, "reasoning_content", None) or ""
+                text = content or reasoning
+                if text:
+                    clean = channel_filter.feed(text)
                     if clean:
                         yield clean
 
@@ -252,7 +257,10 @@ class ModelGateway:
 
         try:
             response = await client.chat.completions.create(**kwargs)
-            text = response.choices[0].message.content
+            msg = response.choices[0].message
+            # Thinking models may return the answer in reasoning_content
+            # when content is empty (all tokens spent on reasoning).
+            text = msg.content or getattr(msg, "reasoning_content", None) or ""
             result = (assistant_prefix + text) if assistant_prefix else text
             return strip_private_model_channels(result)
         finally:
