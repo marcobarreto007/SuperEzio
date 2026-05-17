@@ -89,7 +89,7 @@ class DataCollector:
     Todas as chamadas são paralelas via asyncio.gather.
     """
 
-    def __init__(self, data_hub=None, quantum_expert=None) -> None:
+    def __init__(self, data_hub=None, quantum_walk=None) -> None:
         self._engine: FinancialEngine | None = None
         self._quant: QuantEngine | None = None
         self._scraper = RealTimeScraper()
@@ -99,8 +99,8 @@ class DataCollector:
             from data.data_hub import hub
 
             self._data_hub = hub
-        if quantum_expert is not None:
-            self._quantum = quantum_expert
+        if quantum_walk is not None:
+            self._quantum = quantum_walk
         else:
             self._quantum = None
 
@@ -153,9 +153,9 @@ class DataCollector:
         """Simulação quântica tricolor."""
         try:
             if self._quantum is None:
-                from adapters.quantum.quantum_adapter import make_quantum_expert
+                from adapters.quantum.quantum_adapter import make_quantum_walk
 
-                self._quantum = make_quantum_expert()
+                self._quantum = make_quantum_walk()
             return await asyncio.to_thread(self._quantum.run_simulation)
         except Exception as exc:
             return {"error": f"quantum unavailable: {exc}"}
@@ -395,7 +395,7 @@ class DataCollector:
             "macro": "macro_provider_alphavantage",
             "crisis": "crisis_rag",
             "realtime_price": "market_hub_cascaded",
-            "quantum": "quantum_simulation_tricolor",
+            "quantum": "quantum_random_walk",
         }
 
         for section, source in sources.items():

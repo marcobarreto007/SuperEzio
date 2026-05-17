@@ -1,11 +1,11 @@
-"""Factory para QuantumExpert — desacopla data_hub de experts."""
+"""Factory para QuantumWalkBias — desacopla data_hub de experts."""
 
 from __future__ import annotations
 
 from typing import Any
 
 
-def make_quantum_expert() -> Any:
-    from experts.crisis.quantum_expert import QuantumExpert
+def make_quantum_walk() -> Any:
+    from experts.crisis.quantum_expert import QuantumWalkBias
 
-    return QuantumExpert()
+    return QuantumWalkBias()

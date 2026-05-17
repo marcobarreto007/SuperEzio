@@ -6,10 +6,13 @@ from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
 
-class TechnicalNeuralExpert:
+class PriceMLP:
     """
-    Treina uma rede neural densa on-the-fly para um ticker específico.
-    Utiliza as últimas 600 barras para aprender a microestrutura do ativo.
+    On-the-fly MLP classifier trained on price-derived features.
+
+    Uses the last 600 bars to fit an sklearn MLPClassifier on
+    return, volatility range, and 3-period momentum — then predicts
+    directional probability for the next bar.
     """
     def __init__(self):
         self.scaler = StandardScaler()
@@ -33,7 +36,7 @@ class TechnicalNeuralExpert:
         try:
             if not candles_data or len(candles_data) < 50:
                 return {
-                    "neural_score": 0.5,
+                    "mlp_score": 0.5,
                     "verdict": "WAIT",
                     "confidence": 0.0,
                     "error": "Dados insuficientes para treino da rede (min: 50)."
@@ -74,7 +77,7 @@ class TechnicalNeuralExpert:
 
             if len(X) < 30:
                  return {
-                    "neural_score": 0.5, 
+                    "mlp_score": 0.5, 
                     "verdict": "WAIT", 
                     "confidence": 0.0, 
                     "error": "Features válidas insuficientes após parse."
@@ -85,7 +88,7 @@ class TechnicalNeuralExpert:
             
             if len(np.unique(y)) < 2:
                 return {
-                    "neural_score": 0.5, 
+                    "mlp_score": 0.5, 
                     "verdict": "WAIT", 
                     "confidence": 0.0, 
                     "error": "Apenas uma classe no target. Rede não pode convergir."
@@ -128,7 +131,7 @@ class TechnicalNeuralExpert:
             confidence = abs(prob_up - 0.5) * 2
             
             return {
-                "neural_score": float(prob_up),
+                "mlp_score": float(prob_up),
                 "verdict": verdict,
                 "confidence": float(confidence),
                 "loss_convergence": "stable" if self.model.n_iter_ < self.model.max_iter else "unstable",
@@ -137,4 +140,4 @@ class TechnicalNeuralExpert:
             
         except Exception as e:
             logger.error(f"Neural Expert falhou para {ticker}: {e}")
-            return {"neural_score": 0.5, "verdict": "WAIT", "confidence": 0.0, "error": str(e)}
+            return {"mlp_score": 0.5, "verdict": "WAIT", "confidence": 0.0, "error": str(e)}

@@ -3,11 +3,14 @@ from datetime import datetime
 from typing import Dict, Any
 
 
-class QuantumExpert:
+class QuantumWalkBias:
     """
-    Especialista em Simulação Quântica Tricolor.
-    Executa uma Caminhada Quântica Discreta (Quantum Random Walk) em um espaço circular
-    para modelar correlações e obter o 'toque quântico' de viés nas previsões.
+    Discrete Quantum Random Walk on a circular state space.
+
+    Uses Hadamard coin operator + cyclic shift operator on a complex
+    state vector of dimension 2^n_qubits to produce a probability
+    distribution. Samples from that distribution to derive a small
+    stochastic bias for pricing models.
     """
 
     def __init__(self, n_qubits: int = 4):
@@ -61,14 +64,14 @@ class QuantumExpert:
             return {
                 "counts": counts,
                 "timestamp": datetime.now().isoformat(),
-                "status": "Quantum simulation complete (discrete Quantum Random Walk on circle)",
+                "status": "Discrete quantum random walk on circle complete",
                 "qubits": self.n_qubits,
             }
         except Exception as e:
             return {"error": str(e), "counts": {}}
 
-    def get_quantum_bias(self) -> float:
-        """Retorna um 'viés quântico' entre -0.05 e 0.05 baseado na simulação."""
+    def sample_bias(self) -> float:
+        """Stochastic bias in [-0.05, 0.05] from quantum walk amplitude sampling."""
         res = self.run_simulation()
         if "error" in res:
             return 0.0

@@ -1,7 +1,7 @@
 """
-Technical Neural Pipeline Hook
-==============================
-Funções assíncronas para conectar o Neural Expert no pipeline SuperEzio.
+Price MLP Pipeline Hook
+========================
+Async functions to wire the PriceMLP classifier into the SuperEzio pipeline.
 """
 
 import asyncio
@@ -18,14 +18,14 @@ def analyze_technical_neural_sync(ticker: str) -> Dict[str, Any]:
     load_dotenv()
     
     from data.data_hub import hub
-    from .expert.neural_expert import TechnicalNeuralExpert
+    from .expert.neural_expert import PriceMLP
     
     try:
         response = hub.get_candles(ticker, timeframe="6M")
         if "error" in response:
             return {
                 "ticker": ticker,
-                "neural_score": 0.5,
+                "mlp_score": 0.5,
                 "verdict": "WAIT",
                 "confidence": 0.0,
                 "error": response["error"],
@@ -37,7 +37,7 @@ def analyze_technical_neural_sync(ticker: str) -> Dict[str, Any]:
         logger.error(f"Erro ao buscar candles para o Neural Expert: {e}")
         return {
             "ticker": ticker,
-            "neural_score": 0.5,
+            "mlp_score": 0.5,
             "verdict": "WAIT",
             "confidence": 0.0,
             "error": "Falha na coleta histórica",
@@ -45,7 +45,7 @@ def analyze_technical_neural_sync(ticker: str) -> Dict[str, Any]:
         }
         
     # 2. Instanciar e avaliar
-    expert = TechnicalNeuralExpert()
+    expert = PriceMLP()
     result = expert.evaluate(ticker, data)
     result["ticker"] = ticker
     return result

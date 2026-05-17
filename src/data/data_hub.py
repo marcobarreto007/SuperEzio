@@ -43,10 +43,10 @@ def _make_reddit_pulse() -> Any:
     return RedditPulse()
 
 
-def _make_quantum_expert() -> Any:
-    from adapters.quantum.quantum_adapter import make_quantum_expert
+def _make_quantum_walk() -> Any:
+    from adapters.quantum.quantum_adapter import make_quantum_walk
 
-    return make_quantum_expert()
+    return make_quantum_walk()
 
 
 def _make_boc_provider() -> Any:
@@ -206,7 +206,7 @@ class DataHub:
             ProviderRoute(
                 name="quantum",
                 capabilities=("quantum",),
-                factory=_make_quantum_expert,
+                factory=_make_quantum_walk,
                 methods={"quantum": "run_simulation"},
                 priority=50,
             )
