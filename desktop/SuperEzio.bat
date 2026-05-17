@@ -55,13 +55,24 @@ if not exist "%ROOT%\models\qwen36-35b-f51.Q4_K_M.gguf" (
     echo.
 )
 
-curl -fsS http://127.0.0.1:8082/health >nul 2>nul
-if %errorlevel% neq 0 (
-    echo   [1/2] Iniciando CEO na porta 8082...
-    start "SuperEzio CEO" /D "%ROOT%" cmd /k "powershell -ExecutionPolicy Bypass -File scripts\serve_ceo_llamacpp.ps1 -Port 8082"
-) else (
-    echo   [1/2] CEO ja esta respondendo na porta 8082.
+REM -----------------------------------------------------------------------
+REM Forca limpeza de processos antigos nas portas do SuperEzio
+REM -----------------------------------------------------------------------
+echo   [0/2] Limpando processos antigos...
+for /f "tokens=5" %%a in ('netstat -ano 2^>nul ^| findstr ":8082.*LISTENING"') do (
+    taskkill /F /PID %%a >nul 2>nul
 )
+for /f "tokens=5" %%a in ('netstat -ano 2^>nul ^| findstr ":8002.*LISTENING"') do (
+    taskkill /F /PID %%a >nul 2>nul
+)
+REM Pequena pausa para as portas liberarem
+ping 127.0.0.1 -n 2 >nul
+
+REM -----------------------------------------------------------------------
+REM [1/2] CEO na porta 8082
+REM -----------------------------------------------------------------------
+echo   [1/2] Iniciando CEO na porta 8082...
+start "SuperEzio CEO" /D "%ROOT%" cmd /k "powershell -ExecutionPolicy Bypass -File scripts\serve_ceo_llamacpp.ps1 -Port 8082"
 
 echo   Aguardando CEO carregar modelo...
 set /a CEO_ATTEMPTS=0
@@ -77,13 +88,11 @@ goto wait_ceo
 :ceo_ready
 echo   CEO pronto em http://127.0.0.1:8082
 
-curl -fsS http://127.0.0.1:8002/health >nul 2>nul
-if %errorlevel% neq 0 (
-    echo   [2/2] Iniciando API na porta 8002...
-    start "SuperEzio API" /D "%ROOT%" cmd /k ""%PYTHON_EXE%" -m agent_server.main"
-) else (
-    echo   [2/2] API ja esta respondendo na porta 8002.
-)
+REM -----------------------------------------------------------------------
+REM [2/2] API na porta 8002
+REM -----------------------------------------------------------------------
+echo   [2/2] Iniciando API na porta 8002...
+start "SuperEzio API" /D "%ROOT%" cmd /k ""%PYTHON_EXE%" -m agent_server.main"
 
 echo.
 echo   Aguardando API...
