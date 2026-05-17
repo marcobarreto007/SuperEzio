@@ -1,7 +1,6 @@
 """
 Download and explore Phase 1 datasets: FinQA, TAT-QA-CoT, FinGPT Forecaster.
 """
-import json
 from pathlib import Path
 from datasets import load_dataset
 

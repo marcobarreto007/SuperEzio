@@ -5,7 +5,6 @@ Token is scoped for read-only dataset access.
 """
 import os
 import json
-import pandas as pd
 from datasets import load_dataset, get_dataset_config_names
 from huggingface_hub import login
 
@@ -45,7 +44,7 @@ def download_safely(dataset_id, config, split, local_name):
             cfg_name = cfg if cfg else "default"
             try:
                 dataset = load_dataset(dataset_id, cfg, split=split, trust_remote_code=True, token=HF_TOKEN)
-            except Exception as e:
+            except Exception:
                 # Try without config
                 try:
                     dataset = load_dataset(dataset_id, split=split, trust_remote_code=True, token=HF_TOKEN)

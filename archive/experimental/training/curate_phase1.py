@@ -210,7 +210,7 @@ with open(eval_path, "w", encoding="utf-8") as f:
         f.write(json.dumps(s, ensure_ascii=False) + "\n")
 
 print(f"\n{'=' * 60}")
-print(f"DATASET CURATION COMPLETE")
+print("DATASET CURATION COMPLETE")
 print(f"{'=' * 60}")
 print(f"  Train: {len(train)} samples → {train_path}")
 print(f"  Eval:  {len(eval_samples)} samples → {eval_path}")
@@ -229,11 +229,11 @@ for s in all_samples:
     total_user_len += len(s["messages"][1]["content"])
     total_assistant_len += len(s["messages"][2]["content"])
 
-print(f"\n  By domain:")
+print("\n  By domain:")
 for d, c in sorted(domains.items()):
     print(f"    {d}: {c}")
 
-print(f"\n  By source:")
+print("\n  By source:")
 for src, c in sorted(sources.items()):
     print(f"    {src}: {c}")
 
@@ -242,7 +242,7 @@ print(f"  Avg assistant msg length: {total_assistant_len // len(all_samples):,} 
 
 # Estimate training time
 print(f"\n{'=' * 60}")
-print(f"TRAINING TIME ESTIMATES")
+print("TRAINING TIME ESTIMATES")
 print(f"{'=' * 60}")
 # L40S: ~10 samples/min
 # A100 80GB: ~35-45 samples/min (bigger batch + faster compute)

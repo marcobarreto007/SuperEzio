@@ -1,4 +1,5 @@
-import os, re
+import os
+import re
 
 read_vars = set()
 for root, dirs, files in os.walk('src'):

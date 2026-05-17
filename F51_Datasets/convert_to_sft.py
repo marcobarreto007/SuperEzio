@@ -8,7 +8,6 @@ import json
 import os
 import hashlib
 import random
-from pathlib import Path
 
 RAW = r"C:\Users\marco\Desktop\F51_Datasets\raw_downloads"
 OUT = r"C:\Users\marco\Desktop\F51_Datasets\sft_output"
@@ -212,36 +211,36 @@ def convert_amitkedia():
         if is_fraud:
             difficulty = "hard"
             assistant_msg = (
-                f"Fraud Analysis of Financial Filing:\n\n"
-                f"Fraud Determination: YES — Indicators Present\n\n"
-                f"Red Flags Identified:\n"
-                f"  1. The filing contains language patterns consistent with obfuscation of material facts.\n"
-                f"  2. Multiple restatements and amendments suggest prior reporting deficiencies.\n"
-                f"  3. Complex entity structures and related-party transactions present opacity risks.\n"
-                f"  4. Non-standard accounting treatments noted in the filing language.\n\n"
-                f"Risk Assessment: HIGH — This filing exhibits multiple characteristics associated "
-                f"with fraudulent financial reporting. The pattern of amendments, complexity of "
-                f"transactions, and disclosure language warrant further forensic investigation.\n\n"
-                f"Recommended Actions:\n"
-                f"  - Engage forensic accounting team for full review\n"
-                f"  - Cross-reference with regulatory filings and auditor communications\n"
-                f"  - Examine related-party transactions and off-balance-sheet items\n"
-                f"  - Review management discussion for inconsistencies with financial data"
+                "Fraud Analysis of Financial Filing:\n\n"
+                "Fraud Determination: YES — Indicators Present\n\n"
+                "Red Flags Identified:\n"
+                "  1. The filing contains language patterns consistent with obfuscation of material facts.\n"
+                "  2. Multiple restatements and amendments suggest prior reporting deficiencies.\n"
+                "  3. Complex entity structures and related-party transactions present opacity risks.\n"
+                "  4. Non-standard accounting treatments noted in the filing language.\n\n"
+                "Risk Assessment: HIGH — This filing exhibits multiple characteristics associated "
+                "with fraudulent financial reporting. The pattern of amendments, complexity of "
+                "transactions, and disclosure language warrant further forensic investigation.\n\n"
+                "Recommended Actions:\n"
+                "  - Engage forensic accounting team for full review\n"
+                "  - Cross-reference with regulatory filings and auditor communications\n"
+                "  - Examine related-party transactions and off-balance-sheet items\n"
+                "  - Review management discussion for inconsistencies with financial data"
             )
         else:
             difficulty = "medium"
             assistant_msg = (
-                f"Fraud Analysis of Financial Filing:\n\n"
-                f"Fraud Determination: NO — No Material Indicators\n\n"
-                f"Assessment: The filing was reviewed for common fraud indicators including:\n"
-                f"  - Unusual disclosure language or obfuscation\n"
-                f"  - Inconsistencies with standard accounting practices\n"
-                f"  - Red flags in related-party transaction disclosures\n"
-                f"  - Patterns associated with earnings management\n\n"
-                f"No material fraud indicators were identified in this filing. "
-                f"The disclosure language and structure appear consistent with standard "
-                f"regulatory filing requirements.\n\n"
-                f"Risk Level: LOW — Routine monitoring sufficient."
+                "Fraud Analysis of Financial Filing:\n\n"
+                "Fraud Determination: NO — No Material Indicators\n\n"
+                "Assessment: The filing was reviewed for common fraud indicators including:\n"
+                "  - Unusual disclosure language or obfuscation\n"
+                "  - Inconsistencies with standard accounting practices\n"
+                "  - Red flags in related-party transaction disclosures\n"
+                "  - Patterns associated with earnings management\n\n"
+                "No material fraud indicators were identified in this filing. "
+                "The disclosure language and structure appear consistent with standard "
+                "regulatory filing requirements.\n\n"
+                "Risk Level: LOW — Routine monitoring sufficient."
             )
 
         entries.append(make_entry(
@@ -288,29 +287,29 @@ def convert_phishing():
         if is_phishing:
             difficulty = "medium"
             assistant_msg = (
-                f"Phishing Threat Assessment:\n\n"
-                f"Verdict: PHISHING — Threat Detected\n\n"
-                f"Indicators Identified:\n"
-                f"  1. Deceptive content aiming to manipulate recipient into action\n"
-                f"  2. Social engineering tactics designed to create urgency or fear\n"
-                f"  3. Impersonation or authority exploitation patterns\n"
-                f"  4. Request for sensitive information or credential harvesting\n\n"
-                f"Threat Level: MEDIUM-HIGH\n\n"
-                f"Tactics Used: Spear phishing, social engineering, impersonation\n\n"
-                f"Recommendation: Block sender domain, flag for security team review, "
-                f"add to phishing threat feed. Do not engage with sender."
+                "Phishing Threat Assessment:\n\n"
+                "Verdict: PHISHING — Threat Detected\n\n"
+                "Indicators Identified:\n"
+                "  1. Deceptive content aiming to manipulate recipient into action\n"
+                "  2. Social engineering tactics designed to create urgency or fear\n"
+                "  3. Impersonation or authority exploitation patterns\n"
+                "  4. Request for sensitive information or credential harvesting\n\n"
+                "Threat Level: MEDIUM-HIGH\n\n"
+                "Tactics Used: Spear phishing, social engineering, impersonation\n\n"
+                "Recommendation: Block sender domain, flag for security team review, "
+                "add to phishing threat feed. Do not engage with sender."
             )
         else:
             difficulty = "easy"
             assistant_msg = (
-                f"Phishing Threat Assessment:\n\n"
-                f"Verdict: LEGITIMATE — No Phishing Detected\n\n"
-                f"Assessment: This email does not exhibit common phishing characteristics:\n"
-                f"  - No urgency or fear manipulation\n"
-                f"  - No credential harvesting attempts\n"
-                f"  - No suspicious links or attachment vectors\n"
-                f"  - Content consistent with legitimate communication\n\n"
-                f"Threat Level: LOW — No action required."
+                "Phishing Threat Assessment:\n\n"
+                "Verdict: LEGITIMATE — No Phishing Detected\n\n"
+                "Assessment: This email does not exhibit common phishing characteristics:\n"
+                "  - No urgency or fear manipulation\n"
+                "  - No credential harvesting attempts\n"
+                "  - No suspicious links or attachment vectors\n"
+                "  - Content consistent with legitimate communication\n\n"
+                "Threat Level: LOW — No action required."
             )
 
         entries.append(make_entry(
@@ -605,7 +604,7 @@ if __name__ == "__main__":
         d = e["domain"]
         domains[d] = domains.get(d, 0) + 1
 
-    print(f"\nDomain Breakdown:")
+    print("\nDomain Breakdown:")
     for d, c in sorted(domains.items()):
         print(f"  {d}: {c:,}")
 
@@ -614,7 +613,7 @@ if __name__ == "__main__":
     for e in deduped:
         cat = f"{e['domain']}/{e['category']}"
         categories[cat] = categories.get(cat, 0) + 1
-    print(f"\nCategory Breakdown:")
+    print("\nCategory Breakdown:")
     for cat, c in sorted(categories.items()):
         print(f"  {cat}: {c:,}")
 
@@ -623,7 +622,7 @@ if __name__ == "__main__":
     for e in deduped:
         d = e["difficulty"]
         diffs[d] = diffs.get(d, 0) + 1
-    print(f"\nDifficulty Breakdown:")
+    print("\nDifficulty Breakdown:")
     for d, c in sorted(diffs.items()):
         print(f"  {d}: {c:,}")
 

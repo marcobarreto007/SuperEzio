@@ -11,7 +11,7 @@ import json
 import os
 import random
 import hashlib
-from collections import Counter, defaultdict
+from collections import Counter
 
 BASE = r"C:\Users\marco\Desktop\F51-Dataset-Operacao\datasets"
 OUT_DIR = BASE  # write into datasets/ directly
@@ -388,7 +388,7 @@ if __name__ == "__main__":
     print("REPORT")
     print("=" * 60)
 
-    print(f"\n--- TOTALS ---")
+    print("\n--- TOTALS ---")
     print(f"  Total processed: {stats['processed']:,}")
     print(f"  Broken JSON: {stats['broken_json']}")
     print(f"  Final (integrated): {stats['final']:,} (train={len(train_entries):,} / eval={len(eval_entries):,})")
@@ -397,31 +397,31 @@ if __name__ == "__main__":
     print(f"  Held gamedev: {stats['hold_gamedev']}")
     print(f"  Dupes removed: {stats['dupes_removed']:,}")
 
-    print(f"\n--- DOMAIN BREAKDOWN (final) ---")
+    print("\n--- DOMAIN BREAKDOWN (final) ---")
     final_domain = Counter(e["domain"] for e in final_entries)
     for d, c in sorted(final_domain.items(), key=lambda x: -x[1]):
         print(f"  {d}: {c:,}")
 
-    print(f"\n--- CATEGORY BREAKDOWN (final) ---")
+    print("\n--- CATEGORY BREAKDOWN (final) ---")
     final_cat = Counter(e["category"] for e in final_entries)
     for cat, c in sorted(final_cat.items(), key=lambda x: -x[1]):
         print(f"  {cat}: {c:,}")
 
-    print(f"\n--- DOMAIN BREAKDOWN (cleaned) ---")
+    print("\n--- DOMAIN BREAKDOWN (cleaned) ---")
     cleaned_domain = Counter(e["domain"] for e in cleaned_entries)
     for d, c in sorted(cleaned_domain.items(), key=lambda x: -x[1]):
         print(f"  {d}: {c:,}")
 
-    print(f"\n--- SCORE DISTRIBUTION ---")
+    print("\n--- SCORE DISTRIBUTION ---")
     for s in sorted(score_dist.keys(), reverse=True):
         bar = "█" * max(1, score_dist[s] // 5000)
         print(f"  {s:2d}: {score_dist[s]:,} {bar}")
 
-    print(f"\n--- TOP REJECTION REASONS ---")
+    print("\n--- TOP REJECTION REASONS ---")
     for reason, cnt in reject_reasons.most_common(10):
         print(f"  {reason}: {cnt:,}")
 
-    print(f"\n--- 10 RANDOM SAMPLES FROM FINAL ---")
+    print("\n--- 10 RANDOM SAMPLES FROM FINAL ---")
     if final_entries:
         for i, e in enumerate(random.sample(final_entries, min(10, len(final_entries)))):
             print(f"\n  Sample {i+1}:")
@@ -433,7 +433,7 @@ if __name__ == "__main__":
             print(f"    usr: {usr_preview}...")
             print(f"    asst: {asst_preview}...")
 
-    print(f"\n--- 10 RANDOM SAMPLES FROM CLEANED ---")
+    print("\n--- 10 RANDOM SAMPLES FROM CLEANED ---")
     if cleaned_entries:
         for i, e in enumerate(random.sample(cleaned_entries, min(10, len(cleaned_entries)))):
             print(f"\n  Sample {i+1}:")
@@ -443,12 +443,12 @@ if __name__ == "__main__":
             print(f"    usr: {usr_preview}...")
             print(f"    asst: {asst_preview}...")
 
-    print(f"\n--- DIFFICULTY BREAKDOWN (final) ---")
+    print("\n--- DIFFICULTY BREAKDOWN (final) ---")
     final_diff = Counter(e["difficulty"] for e in final_entries)
     for d, c in sorted(final_diff.items()):
         print(f"  {d}: {c:,}")
 
-    print(f"\n--- NEEDS_EXPANSION FLAG (cleaned) ---")
+    print("\n--- NEEDS_EXPANSION FLAG (cleaned) ---")
     needs_exp = sum(1 for e in cleaned_entries if e.get("needs_expansion", False))
     print(f"  needs_expansion=true: {needs_exp:,} / {len(cleaned_entries):,}")
 

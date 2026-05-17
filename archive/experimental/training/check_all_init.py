@@ -1,4 +1,5 @@
-import ast, os
+import ast
+import os
 
 total_all = 0
 broken_all = 0

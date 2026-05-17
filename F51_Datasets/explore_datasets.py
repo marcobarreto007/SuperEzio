@@ -37,7 +37,7 @@ def explore_parquet(path, name):
     print(f"Rows: {info['rows']:,}")
     print(f"Columns: {info['columns']}")
     print(f"Nulls: {info['nulls']}")
-    print(f"Sample row:")
+    print("Sample row:")
     for k, v in (info["sample"] or {}).items():
         print(f"  {k}: {v}")
     return info

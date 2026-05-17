@@ -8,7 +8,6 @@ Schema: {domain, category, difficulty, messages[system/user/assistant], score, s
 """
 
 import os
-import sys
 import json
 import time
 import random
@@ -307,7 +306,7 @@ async def call_grok(session, sem, domain, difficulty, n_entries):
             except asyncio.TimeoutError:
                 await asyncio.sleep(5)
                 continue
-            except Exception as e:
+            except Exception:
                 await asyncio.sleep(2 ** attempt)
                 continue
 
@@ -327,7 +326,7 @@ def build_entry(domain, category, difficulty, system_content, user_content, assi
             {"role": "assistant", "content": assistant_content},
         ],
         "score": 10,
-        "source": f"grok-4.3-transfusion",
+        "source": "grok-4.3-transfusion",
         "needs_expansion": False,
         "metadata": {
             "generated_by": "grok-4.3",
@@ -537,7 +536,7 @@ async def main():
         for t in done:
             result, local_count = t.result()
             if result == "QUOTA_EXHAUSTED":
-                print(f"\n>>> QUOTA EXHAUSTED signal received! Stopping all workers...")
+                print("\n>>> QUOTA EXHAUSTED signal received! Stopping all workers...")
                 for p in pending:
                     p.cancel()
 
@@ -563,11 +562,11 @@ async def main():
     print(f"  Completion tokens: {stats['total_completion_tokens']:,}")
     print(f"  Reasoning tokens: {stats['total_reasoning_tokens']:,}")
     print(f"  Total tokens: {stats['total_prompt_tokens'] + stats['total_completion_tokens']:,}")
-    print(f"\n--- Domain Distribution ---")
+    print("\n--- Domain Distribution ---")
     for d, c in domain_counter.most_common():
         pct = c / max(stats['total_entries'], 1) * 100
         print(f"  {d}: {c:,} ({pct:.1f}%)")
-    print(f"\n--- Difficulty Distribution ---")
+    print("\n--- Difficulty Distribution ---")
     for d, c in difficulty_counter.most_common():
         print(f"  {d}: {c:,}")
 

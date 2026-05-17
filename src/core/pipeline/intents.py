@@ -847,36 +847,6 @@ def detect_ticker(message: str) -> str:
         if upper not in COMMON_WORDS and not any(c[0] == upper for c in candidates):
             candidates.append((upper, 65, len(upper)))
 
-    short_ticker_match = re.search(
-        r"\b(?:what about|look at|about|sobre|e o|e a)\s+([A-Za-z]{1,5})[.?!]?$",
-        normalized,
-        re.IGNORECASE,
-    )
-    if short_ticker_match:
-        upper = short_ticker_match.group(1).upper()
-        if upper not in COMMON_WORDS and not any(c[0] == upper for c in candidates):
-            candidates.append((upper, 70, len(upper)))
-
-    for word in raw.split():
-        clean = re.sub(r"[^\w.]", "", word)  # Preserva ponto para sufixos
-        if "." in clean and not re.search(r"\.(?:SA|TO|V)$", clean, re.IGNORECASE):
-            clean = clean.rstrip(".")
-        if len(clean) < 2 or len(clean) > 8:  # Aumentado para acomodar EX: ENB.TO
-            continue
-
-        upper = clean.upper()
-        if upper in COMMON_WORDS or not clean.replace(".", "").isalpha():
-            continue
-
-        # Se já tem ponto, já foi capturado acima
-        if "." in upper and not any(c[0] == upper for c in candidates):
-            candidates.append((upper, 75, len(upper)))
-        elif (
-            clean.isupper()
-            and has_fin_keyword
-            and not any(c[0] == upper for c in candidates)
-        ):
-            candidates.append((upper, 70, len(upper)))
 
     if not candidates:
         _set_cache(cache_key, "")

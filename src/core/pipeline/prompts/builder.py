@@ -409,12 +409,12 @@ def missing_ceo_text(
     """Error text when no CEO provider is available."""
     if not local_ready and not cloud_ready:
         return (
-            "MODEL_MISSING: local Gemma-4-26B CEO is offline.\n\n"
+            "MODEL_MISSING: local Qwen3.6-35B CEO is offline.\n\n"
             f"Prepared route: {route} | ticker: {ticker or 'no ticker'}.\n"
             "Action: python scripts/server.py --port 8082"
         )
     return (
-        "MODEL_MISSING: local Gemma-4-26B CEO did not respond.\n\n"
+        "MODEL_MISSING: local Qwen3.6-35B CEO did not respond.\n\n"
         f"Prepared route: {route} | ticker: {ticker or 'no ticker'}.\n"
         "Action: verify http://127.0.0.1:8082/health and http://127.0.0.1:8082/v1/models."
     )

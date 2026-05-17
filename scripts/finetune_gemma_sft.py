@@ -39,7 +39,6 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import math
 import os
 import random
 import time
@@ -257,14 +256,13 @@ def parse_args() -> TrainingArgs:
 
 def train(args: TrainingArgs) -> None:
     from accelerate import Accelerator
-    from peft import LoraConfig, PeftModel, TaskType, get_peft_model
+    from peft import LoraConfig, TaskType, get_peft_model
     from transformers import (
         AutoModelForCausalLM,
         AutoTokenizer,
         BitsAndBytesConfig,
         get_cosine_schedule_with_warmup,
     )
-    from transformers.trainer_callback import TrainerCallback, TrainerState
 
     accelerator = Accelerator(
         gradient_accumulation_steps=args.gradient_accumulation,

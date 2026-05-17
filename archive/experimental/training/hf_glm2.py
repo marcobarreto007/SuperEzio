@@ -1,4 +1,6 @@
-import urllib.request, json, time
+import urllib.request
+import json
+import time
 
 HEADERS = {"User-Agent": "ClaudeCode/1.0"}
 
@@ -9,7 +11,7 @@ req = urllib.request.Request(url, headers=HEADERS)
 try:
     data = json.loads(urllib.request.urlopen(req, timeout=15).read())
     # Get the README content
-    readme_url = f"https://huggingface.co/zai-org/GLM-4.7-Flash/raw/main/README.md"
+    readme_url = "https://huggingface.co/zai-org/GLM-4.7-Flash/raw/main/README.md"
     req2 = urllib.request.Request(readme_url, headers=HEADERS)
     readme = urllib.request.urlopen(req2, timeout=15).read().decode('utf-8')
     print(readme[:4000])

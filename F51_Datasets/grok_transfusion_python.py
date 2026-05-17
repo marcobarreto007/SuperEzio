@@ -589,7 +589,7 @@ async def main():
     print("=" * 60)
     print("F51 GROK-4.3 PYTHON TRANSFUSION")
     print(f"Model: {MODEL}")
-    print(f"Domain: PYTHON ONLY (beat GPT-4 on Coding Arena)")
+    print("Domain: PYTHON ONLY (beat GPT-4 on Coding Arena)")
     print(f"Categories: {len(PYTHON_CATEGORIES)}")
     print(f"Prompt templates: {len(PYTHON_PROMPTS)}")
     print(f"Workers: {MAX_CONCURRENT}")
@@ -654,7 +654,7 @@ async def main():
         for t in done:
             result, _ = t.result()
             if result == "QUOTA_EXHAUSTED":
-                print(f"\n>>> QUOTA EXHAUSTED! Stopping all workers...")
+                print("\n>>> QUOTA EXHAUSTED! Stopping all workers...")
                 for p in pending:
                     p.cancel()
 
@@ -681,11 +681,11 @@ async def main():
     print(f"  Rate: {stats['total_entries']/(elapsed/3600):.0f} e/h")
     print(f"  Tokens: {pt + ct:,}")
     print(f"  Cost: ${cost:.2f}")
-    print(f"\n--- Categories ---")
+    print("\n--- Categories ---")
     for c, n in cat_counter.most_common():
         pct = n / max(stats['total_entries'], 1) * 100
         print(f"  {c}: {n:,} ({pct:.1f}%)")
-    print(f"\n--- Difficulty ---")
+    print("\n--- Difficulty ---")
     for d, n in diff_counter.most_common():
         print(f"  {d}: {n:,}")
 

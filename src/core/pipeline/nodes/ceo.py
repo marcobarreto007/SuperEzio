@@ -276,7 +276,7 @@ async def _check_health(base_url: str) -> bool:
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                f"{base_url.rstrip('/')}/health", timeout=aiohttp.ClientTimeout(total=3)
+                f"{base_url.rstrip('/')}/models", timeout=aiohttp.ClientTimeout(total=3)
             ) as resp:
                 return resp.status == 200
     except Exception:

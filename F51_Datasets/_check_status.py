@@ -1,4 +1,5 @@
-import json, os, time
+import json
+import os
 
 train = r'C:\Users\marco\Desktop\F51-Dataset-Operacao\datasets\grok_transfusion\grok_transfusion_train.jsonl'
 evalf = r'C:\Users\marco\Desktop\F51-Dataset-Operacao\datasets\grok_transfusion\grok_transfusion_eval.jsonl'
@@ -52,7 +53,7 @@ if os.path.exists(train):
 total = tn + en
 rate = new_entries / elapsed_h if elapsed_h > 0 else 0
 
-print(f'=== TRANSFUSAO PYTHON ===')
+print('=== TRANSFUSAO PYTHON ===')
 print(f'Runtime: {elapsed_h:.1f}h')
 print(f'Total entries: {total:,} (train={tn:,} / eval={en:,})')
 print(f'Total size: {tm+em:.1f} MB')
@@ -62,11 +63,11 @@ print(f'Rate: {rate:.0f} e/h')
 print(f'Cost: ${cost:.2f}')
 if lens: print(f'Avg assistant: {sum(lens)/len(lens):.0f} chars')
 print()
-print(f'--- Categories ---')
+print('--- Categories ---')
 for cat, n in sorted(cats.items(), key=lambda x: -x[1])[:12]:
     pct = n / max(new_entries, 1) * 100
     print(f'  {cat:30s} {n:6,} ({pct:.1f}%)')
-print(f'\n--- Difficulty ---')
+print('\n--- Difficulty ---')
 for d, n in sorted(diffs.items(), key=lambda x: -x[1]):
     pct = n / max(new_entries, 1) * 100
     print(f'  {d}: {n:,} ({pct:.1f}%)')

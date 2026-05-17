@@ -7,7 +7,6 @@ import os
 import hashlib
 import random
 from collections import Counter
-from pathlib import Path
 
 INPUT = r"C:\Users\marco\Desktop\F51_Datasets\sft_output\f51_sft_combined.jsonl"
 DATASETS_DIR = r"C:\Users\marco\Desktop\F51-Dataset-Operacao\datasets"
@@ -153,7 +152,7 @@ if __name__ == "__main__":
         else:
             rejected_entries.append(e)
 
-    print(f"\nClassification:")
+    print("\nClassification:")
     print(f"  final (8-10): {len(final_entries):,}")
     print(f"  cleaned (6-7): {len(cleaned_entries):,}")
     print(f"  rejected (0-5): {len(rejected_entries):,}")
@@ -185,7 +184,7 @@ if __name__ == "__main__":
     train_entries = final_entries[:split_idx]
     eval_entries = final_entries[split_idx:]
 
-    print(f"\nTrain/Eval Split:")
+    print("\nTrain/Eval Split:")
     print(f"  train: {len(train_entries):,}")
     print(f"  eval: {len(eval_entries):,}")
 
@@ -277,7 +276,7 @@ if __name__ == "__main__":
     final_cats = Counter()
     for e in final_entries:
         final_cats[f"{e['domain']}/{e['category']}"] += 1
-    print(f"\nFinal category breakdown:")
+    print("\nFinal category breakdown:")
     for cat, cnt in final_cats.most_common():
         print(f"  {cat}: {cnt:,}")
 
@@ -285,6 +284,6 @@ if __name__ == "__main__":
     final_diffs = Counter()
     for e in final_entries:
         final_diffs[e['difficulty']] += 1
-    print(f"\nFinal difficulty breakdown:")
+    print("\nFinal difficulty breakdown:")
     for d, cnt in final_diffs.most_common():
         print(f"  {d}: {cnt:,}")

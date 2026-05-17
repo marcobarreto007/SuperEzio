@@ -10,10 +10,12 @@ Usage (1x A100):
 """
 from __future__ import annotations
 
-import argparse, json, logging, math, os, time
+import argparse
+import json
+import logging
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
 
 import torch
 from transformers import (

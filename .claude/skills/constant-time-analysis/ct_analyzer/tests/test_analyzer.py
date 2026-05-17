@@ -20,11 +20,9 @@ from analyzer import (
     AssemblyParser,
     OutputFormat,
     Severity,
-    analyze_assembly,
     analyze_source,
     detect_language,
     format_report,
-    get_native_arch,
     normalize_arch,
 )
 

@@ -96,10 +96,12 @@ async def lifespan(app: FastAPI):
 
     # === BRAIN INITIALIZATION ===
     from core.pipeline import build_graph
+    from core.model_serving.gateway import create_gateway
 
     logger.info("[%s] Compiling pipeline graph v4...", AGENT_NAME)
     sys.stdout.flush()
-    app.state.pipeline = build_graph()
+    gateway = create_gateway()
+    app.state.pipeline = build_graph(gateway=gateway)
     logger.info("[%s] Pipeline graph ready.", AGENT_NAME)
 
     logger.info(
