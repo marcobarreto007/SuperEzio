@@ -1,0 +1,27 @@
+# CI dependencies (stable on GitHub Actions Windows runner)
+# Keep this file focused on lint + tests only.
+
+# Tooling
+pytest==9.0.2
+ruff==0.15.5
+
+# Runtime dependencies required by tests/import graph
+fastapi==0.135.1
+pydantic==2.12.5
+pydantic-settings==2.13.1
+PyYAML==6.0.3
+requests==2.32.5
+mcp==1.26.0
+ddgs==9.11.2
+textblob==0.19.0
+
+# Numeric/ML stack (compatible set)
+numpy==2.2.6
+pandas==2.3.3
+scipy==1.16.3
+scikit-learn==1.7.2
+pandas-ta==0.4.71b0
+
+# FinanceDatabase stack used in tests
+financetoolkit==1.9.9
+financedatabase==2.2.0

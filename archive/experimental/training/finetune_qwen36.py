@@ -1,12 +1,12 @@
 """
-QLoRA 4-bit SFT fine-tuning for NVIDIA Nemotron-Nano-12B-v2.
+QLoRA 4-bit SFT fine-tuning for NVIDIA Qwen 3.6.
 
-Architecture: NemotronHForCausalLM — hybrid Transformer + Mamba/SSM + MoE
+Architecture: QwenForCausalLM — hybrid Transformer + Mamba/SSM + MoE
 (8 routed + 1 shared expert), ~6.8B active params.
 
 Usage:
-    python3 finetune_nemotron.py --dataset /root/f51_final_sft.jsonl \
-        --output-dir /root/output/nemotron-sft \
+    python3 finetune_qwen36.py --dataset /root/f51_final_sft.jsonl \
+        --output-dir /root/output/qwen36-sft \
         --max-samples 500 --epochs 1 --batch-size 2
 """
 
@@ -35,16 +35,16 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%H:%M:%S",
 )
-logger = logging.getLogger("nemotron-sft")
+logger = logging.getLogger("qwen36-sft")
 
 
 # ---------- config ----------
 
 @dataclass
 class TrainConfig:
-    model_id: str = "nvidia/NVIDIA-Nemotron-Nano-12B-v2"
+    model_id: str = "nvidia/Qwen/Qwen3.6-27B"
     dataset_path: str = ""
-    output_dir: str = "/root/output/nemotron-sft"
+    output_dir: str = "/root/output/qwen36-sft"
     max_samples: int = 0  # 0 = all
     max_length: int = 2048
     streaming: bool = False
@@ -70,7 +70,7 @@ class TrainConfig:
     lr_scheduler: str = "cosine"
     seed: int = 42
     report_to: str = "none"
-    run_name: str = "nemotron-sft"
+    run_name: str = "qwen36-sft"
     merge: bool = False
     no_eval: bool = False
     bf16: bool = True
@@ -307,10 +307,10 @@ def train(config: TrainConfig):
 # ---------- CLI ----------
 
 def main():
-    parser = argparse.ArgumentParser(description="Nemotron-12B QLoRA SFT")
-    parser.add_argument("--model", default="nvidia/NVIDIA-Nemotron-Nano-12B-v2")
+    parser = argparse.ArgumentParser(description="Qwen 3.6 QLoRA SFT")
+    parser.add_argument("--model", default="nvidia/Qwen/Qwen3.6-27B")
     parser.add_argument("--dataset", required=True)
-    parser.add_argument("--output-dir", default="/root/output/nemotron-sft")
+    parser.add_argument("--output-dir", default="/root/output/qwen36-sft")
     parser.add_argument("--max-samples", type=int, default=0)
     parser.add_argument("--max-length", type=int, default=2048)
     parser.add_argument("--streaming", action="store_true")
@@ -333,7 +333,7 @@ def main():
     parser.add_argument("--lr-scheduler", default="cosine")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--report-to", default="none")
-    parser.add_argument("--run-name", default="nemotron-sft")
+    parser.add_argument("--run-name", default="qwen36-sft")
     parser.add_argument("--merge", action="store_true")
     parser.add_argument("--no-eval", action="store_true")
     parser.add_argument("--quant-type", default="nf4")

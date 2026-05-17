@@ -1,31 +1,33 @@
 {
-  "date_local": "2026-05-17T15:30:00-04:00",
-  "session": "f51-inventory",
-  "status": "COMPLETED",
+  "date_local": "2026-05-17T15:17:42-04:00",
+  "session": "commit_ci_recovery_and_qwen_cleanup",
+  "status": "READY_TO_COMMIT",
   "what_was_done": [
-    "Executado /f51-inventory completo do repositorio SuperEzio.",
-    "Mapeados 98 modulos Python, 22 arquivos de teste, 17 scripts, 3 configs, 18 docs.",
-    "Classificados itens: 52 core, 4 app, 14 pipeline, 6 config, 22 test, 18 doc, 12 experimental, 5 duplicate, 7 deprecated.",
-    "Identificadas 3 duplicatas criticas: VeracityGate (3x), gemma.py shim, SpiderSense/EpsiodeMemory arquivados.",
-    "Identificados 2 configs stale: model_manifest.json (Gemma), runtime.yml (sem CEO local).",
-    "Gerados 6 artefatos: INVENTORY.json, RISK_REGISTER.md, ENTRYPOINT_MAP.md, CONFIG_MAP.md, TEST_MAP.md, DUPLICATE_MAP.md.",
-    "510 testes coletados; modelo ativo: Qwen3.6-35B F51 (GGUF 20.22GB, MTP ok).",
-    "Branch f51/reclamation-runtime deletada; modelos velhos movidos para Desktop/modelos antigos/."
+    "Preserved the local entulho branch by creating f51/backup/heathered-saguaro-ci-entulho at commit 8b90732.",
+    "Did not merge heathered-saguaro because it contains a large mixed diff against main.",
+    "Restored a focused GitHub Actions workflow that installs requirements-ci.txt and validates tests.",
+    "Updated GitHub Actions to actions/checkout@v6 and actions/setup-python@v6 to avoid Node.js 20 deprecation breakage.",
+    "Pinned the CI runner to windows-2025 instead of windows-latest to avoid the upcoming runner redirection notice.",
+    "Added requirements-ci.txt for stable Windows CI dependencies.",
+    "Applied mechanical ruff cleanup and formatting in tests only.",
+    "Removed remaining repository references to the legacy model token outside ignored/vendor/model artifact paths.",
+    "Prepared all current working-tree changes for a single requested commit."
   ],
   "evidence": [
-    "mcp__filesystem__directory_tree em src/, tests/, scripts/, docs/, config/, .f51/, desktop/, data/.",
-    "SHA256 do GGUF: 315138F8... confirmado como GGUF novo com MTP tensors.",
-    "git status limpo apos limpeza.",
-    "python -m pytest tests/ -q --co coletou 510 testes.",
-    "Nenhum arquivo de produto foi editado, movido ou apagado."
+    "git ls-remote --heads origin returned only refs/heads/main.",
+    "git log origin/main..heathered-saguaro showed five local-only commits before backup.",
+    "python -m ruff check tests passed.",
+    "python -m ruff format tests --check passed.",
+    "python -m pytest -q passed with 510 tests.",
+    "git diff --check passed.",
+    "rg -n -i legacy model token with repository-artifact exclusions returned no matches.",
+    "actions/checkout@v6 and actions/setup-python@v6 were selected because their upstream docs/releases identify Node 24 runtime support."
   ],
   "risks": [
-    "R1 (HIGH): config/model_manifest.json e config/runtime.yml stale — referenciam Gemma, nao Qwen3.6.",
-    "R2 (MEDIUM): VeracityGate triplicado em f51/gates.py, core/investor/veracity_gate.py, experts/pennylab/experts/veracity_gate.py.",
-    "R3 (LOW): prompts/gemma.py e shim GEMMA=QWEN — confuso mas funcional.",
-    "R4 (MEDIUM): core/trading/ (10 modulos) desconectado do pipeline principal.",
-    "R5 (LOW): technical_neural/ desconectado do pipeline.",
-    "R7 (HIGH): .env com 12+ API keys em plaintext no disco."
+    "The installed gh command is not the official GitHub CLI and cannot inspect GitHub Actions runs.",
+    "This commit combines the requested CI recovery with earlier Qwen cleanup changes because the operator requested committing everything.",
+    "GitHub Actions was not observed live after push; only local equivalent checks were run.",
+    "If GitHub-hosted windows-2025 image availability changes, CI may need a runner-label adjustment."
   ],
-  "next_step": "Executar /f51-executor para patches cirurgicos: (1) remover shim gemma.py, (2) atualizar configs stale, (3) consolidar VeracityGate imports. Ou /f51-auditor para auditoria sem edicao."
+  "next_step": "After commit, push main and verify the real GitHub Actions run with the official GitHub CLI or authenticated GitHub API."
 }

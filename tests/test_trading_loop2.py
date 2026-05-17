@@ -18,7 +18,13 @@ class TestSimulatedBroker:
         assert broker.get_account_equity() == 50000
 
     def test_submit_market_order(self):
-        from core.trading.broker import Order, OrderSide, OrderStatus, OrderType, SimulatedBroker
+        from core.trading.broker import (
+            Order,
+            OrderSide,
+            OrderStatus,
+            OrderType,
+            SimulatedBroker,
+        )
 
         broker = SimulatedBroker()
         order = Order(
@@ -36,24 +42,44 @@ class TestSimulatedBroker:
         assert result.qty == 10
 
     def test_submit_multiple_orders_unique_ids(self):
-        from core.trading.broker import Order, OrderSide, OrderStatus, OrderType, SimulatedBroker
+        from core.trading.broker import (
+            Order,
+            OrderSide,
+            OrderStatus,
+            OrderType,
+            SimulatedBroker,
+        )
 
         broker = SimulatedBroker()
         order = Order(
-            id="pending", symbol="AAPL", side=OrderSide.BUY,
-            order_type=OrderType.MARKET, qty=10, status=OrderStatus.PENDING,
+            id="pending",
+            symbol="AAPL",
+            side=OrderSide.BUY,
+            order_type=OrderType.MARKET,
+            qty=10,
+            status=OrderStatus.PENDING,
         )
         r1 = broker.submit_order(order)
         r2 = broker.submit_order(order)
         assert r1.id != r2.id
 
     def test_cancel_order(self):
-        from core.trading.broker import Order, OrderSide, OrderStatus, OrderType, SimulatedBroker
+        from core.trading.broker import (
+            Order,
+            OrderSide,
+            OrderStatus,
+            OrderType,
+            SimulatedBroker,
+        )
 
         broker = SimulatedBroker()
         order = Order(
-            id="pending", symbol="AAPL", side=OrderSide.BUY,
-            order_type=OrderType.MARKET, qty=10, status=OrderStatus.PENDING,
+            id="pending",
+            symbol="AAPL",
+            side=OrderSide.BUY,
+            order_type=OrderType.MARKET,
+            qty=10,
+            status=OrderStatus.PENDING,
         )
         result = broker.submit_order(order)
         assert broker.cancel_order(result.id) is True
@@ -68,12 +94,22 @@ class TestSimulatedBroker:
         assert broker.cancel_order("no-such-id") is False
 
     def test_get_order(self):
-        from core.trading.broker import Order, OrderSide, OrderStatus, OrderType, SimulatedBroker
+        from core.trading.broker import (
+            Order,
+            OrderSide,
+            OrderStatus,
+            OrderType,
+            SimulatedBroker,
+        )
 
         broker = SimulatedBroker()
         order = Order(
-            id="pending", symbol="TSLA", side=OrderSide.SELL,
-            order_type=OrderType.MARKET, qty=5, status=OrderStatus.PENDING,
+            id="pending",
+            symbol="TSLA",
+            side=OrderSide.SELL,
+            order_type=OrderType.MARKET,
+            qty=5,
+            status=OrderStatus.PENDING,
         )
         result = broker.submit_order(order)
         fetched = broker.get_order(result.id)
@@ -121,8 +157,11 @@ class TestOrderBuilderMarket:
 
         ob = OrderBuilder()
         size = PositionSize(
-            shares=40, notional_value=4000.0, risk_per_share=5.0,
-            stop_loss_price=95.0, size_reason="test",
+            shares=40,
+            notional_value=4000.0,
+            risk_per_share=5.0,
+            stop_loss_price=95.0,
+            size_reason="test",
         )
         order = ob.build_market_order("AAPL", OrderSide.BUY, size)
         assert order is not None
@@ -138,8 +177,11 @@ class TestOrderBuilderMarket:
 
         ob = OrderBuilder()
         size = PositionSize(
-            shares=0, notional_value=0, risk_per_share=0,
-            stop_loss_price=95.0, size_reason="blocked",
+            shares=0,
+            notional_value=0,
+            risk_per_share=0,
+            stop_loss_price=95.0,
+            size_reason="blocked",
         )
         assert ob.build_market_order("AAPL", OrderSide.BUY, size) is None
 
@@ -150,8 +192,11 @@ class TestOrderBuilderMarket:
 
         ob = OrderBuilder()
         size = PositionSize(
-            shares=10, notional_value=1000.0, risk_per_share=5.0,
-            stop_loss_price=95.0, size_reason="sizer_reason",
+            shares=10,
+            notional_value=1000.0,
+            risk_per_share=5.0,
+            stop_loss_price=95.0,
+            size_reason="sizer_reason",
         )
         order = ob.build_market_order("AAPL", OrderSide.BUY, size)
         assert order is not None
@@ -166,8 +211,11 @@ class TestOrderBuilderBracket:
 
         ob = OrderBuilder()
         size = PositionSize(
-            shares=40, notional_value=4000.0, risk_per_share=5.0,
-            stop_loss_price=95.0, size_reason="test",
+            shares=40,
+            notional_value=4000.0,
+            risk_per_share=5.0,
+            stop_loss_price=95.0,
+            size_reason="test",
         )
         bracket = ob.build_bracket_order("AAPL", OrderSide.BUY, size)
         assert bracket is not None
@@ -189,8 +237,11 @@ class TestOrderBuilderBracket:
 
         ob = OrderBuilder()
         size = PositionSize(
-            shares=40, notional_value=4000.0, risk_per_share=5.0,
-            stop_loss_price=105.0, size_reason="test",
+            shares=40,
+            notional_value=4000.0,
+            risk_per_share=5.0,
+            stop_loss_price=105.0,
+            size_reason="test",
         )
         bracket = ob.build_bracket_order("AAPL", OrderSide.SELL, size)
         assert bracket is not None
@@ -207,8 +258,11 @@ class TestOrderBuilderBracket:
 
         ob = OrderBuilder()
         size = PositionSize(
-            shares=0, notional_value=0, risk_per_share=0,
-            stop_loss_price=95.0, size_reason="blocked",
+            shares=0,
+            notional_value=0,
+            risk_per_share=0,
+            stop_loss_price=95.0,
+            size_reason="blocked",
         )
         assert ob.build_bracket_order("AAPL", OrderSide.BUY, size) is None
 
@@ -219,11 +273,17 @@ class TestOrderBuilderBracket:
 
         ob = OrderBuilder()
         size = PositionSize(
-            shares=40, notional_value=4000.0, risk_per_share=5.0,
-            stop_loss_price=95.0, size_reason="test",
+            shares=40,
+            notional_value=4000.0,
+            risk_per_share=5.0,
+            stop_loss_price=95.0,
+            size_reason="test",
         )
         bracket = ob.build_bracket_order(
-            "AAPL", OrderSide.BUY, size, take_profit_price=120.0,
+            "AAPL",
+            OrderSide.BUY,
+            size,
+            take_profit_price=120.0,
         )
         assert bracket is not None
         assert bracket.take_profit is not None
@@ -237,8 +297,11 @@ class TestOrderBuilderBracket:
         ob = OrderBuilder(default_take_profit_ratio=2.0)
         # entry=100, stop=95, risk=5, expected TP=100+5*2=110
         size = PositionSize(
-            shares=40, notional_value=4000.0, risk_per_share=5.0,
-            stop_loss_price=95.0, size_reason="test",
+            shares=40,
+            notional_value=4000.0,
+            risk_per_share=5.0,
+            stop_loss_price=95.0,
+            size_reason="test",
         )
         bracket = ob.build_bracket_order("AAPL", OrderSide.BUY, size)
         assert bracket is not None
@@ -258,8 +321,11 @@ class TestOrderBuilderBrokerIntegration:
         broker = SimulatedBroker(initial_equity=100000)
         ob = OrderBuilder()
         size = PositionSize(
-            shares=10, notional_value=1000.0, risk_per_share=5.0,
-            stop_loss_price=95.0, size_reason="test",
+            shares=10,
+            notional_value=1000.0,
+            risk_per_share=5.0,
+            stop_loss_price=95.0,
+            size_reason="test",
         )
         order = ob.build_market_order("AAPL", OrderSide.BUY, size)
         assert order is not None
@@ -274,8 +340,11 @@ class TestOrderBuilderBrokerIntegration:
         broker = SimulatedBroker(initial_equity=100000)
         ob = OrderBuilder()
         size = PositionSize(
-            shares=10, notional_value=1000.0, risk_per_share=5.0,
-            stop_loss_price=95.0, size_reason="test",
+            shares=10,
+            notional_value=1000.0,
+            risk_per_share=5.0,
+            stop_loss_price=95.0,
+            size_reason="test",
         )
         bracket = ob.build_bracket_order("AAPL", OrderSide.BUY, size)
         assert bracket is not None

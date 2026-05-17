@@ -33,9 +33,15 @@ class TestRewardCompute:
         from core.trading.reward import TradeOutcome
 
         defaults = dict(
-            symbol="AAPL", side="buy", entry_price=100.0, exit_price=110.0,
-            qty=10, pnl=100.0, hold_duration_seconds=3600.0,
-            confidence_at_entry=0.8, verdict_at_entry=0.7,
+            symbol="AAPL",
+            side="buy",
+            entry_price=100.0,
+            exit_price=110.0,
+            qty=10,
+            pnl=100.0,
+            hold_duration_seconds=3600.0,
+            confidence_at_entry=0.8,
+            verdict_at_entry=0.7,
         )
         defaults.update(overrides)
         return TradeOutcome(**defaults)
@@ -104,10 +110,15 @@ class TestDatasetBuilder:
 
         builder = DatasetBuilder()
         ex = builder.add_from_trade(
-            symbol="AAPL", side="buy", entry_price=100.0, qty=10,
-            verdict=0.8, confidence=0.75,
+            symbol="AAPL",
+            side="buy",
+            entry_price=100.0,
+            qty=10,
+            verdict=0.8,
+            confidence=0.75,
             expert_signals={"pennylab": 0.85, "crisis": 0.3},
-            pnl=50.0, reward=0.6,
+            pnl=50.0,
+            reward=0.6,
         )
         assert "AAPL" in ex.instruction
         assert ex.reward == 0.6
@@ -178,9 +189,15 @@ class TestDatasetBuilder:
 
         builder = DatasetBuilder()
         ex = builder.add_from_trade(
-            symbol="AAPL", side="buy", entry_price=100.0, qty=10,
-            verdict=0.8, confidence=0.75,
-            expert_signals={}, pnl=50.0, reward=0.6,
+            symbol="AAPL",
+            side="buy",
+            entry_price=100.0,
+            qty=10,
+            verdict=0.8,
+            confidence=0.75,
+            expert_signals={},
+            pnl=50.0,
+            reward=0.6,
         )
         assert "APPROVE" in ex.response
 
@@ -189,9 +206,15 @@ class TestDatasetBuilder:
 
         builder = DatasetBuilder()
         ex = builder.add_from_trade(
-            symbol="AAPL", side="buy", entry_price=100.0, qty=10,
-            verdict=0.3, confidence=0.4,
-            expert_signals={}, pnl=-100.0, reward=-0.4,
+            symbol="AAPL",
+            side="buy",
+            entry_price=100.0,
+            qty=10,
+            verdict=0.3,
+            confidence=0.4,
+            expert_signals={},
+            pnl=-100.0,
+            reward=-0.4,
         )
         assert "REJECT" in ex.response
 
@@ -287,17 +310,28 @@ class TestRewardDatasetIntegration:
         builder = DatasetBuilder()
 
         outcome = TradeOutcome(
-            symbol="AAPL", side="buy", entry_price=100.0, exit_price=110.0,
-            qty=10, pnl=100.0, hold_duration_seconds=3600.0,
-            confidence_at_entry=0.8, verdict_at_entry=0.7,
+            symbol="AAPL",
+            side="buy",
+            entry_price=100.0,
+            exit_price=110.0,
+            qty=10,
+            pnl=100.0,
+            hold_duration_seconds=3600.0,
+            confidence_at_entry=0.8,
+            verdict_at_entry=0.7,
         )
         reward = rf.compute(outcome)
 
         ex = builder.add_from_trade(
-            symbol="AAPL", side="buy", entry_price=100.0, qty=10,
-            verdict=0.7, confidence=0.8,
+            symbol="AAPL",
+            side="buy",
+            entry_price=100.0,
+            qty=10,
+            verdict=0.7,
+            confidence=0.8,
             expert_signals={"pennylab": 0.85},
-            pnl=100.0, reward=reward.total_reward,
+            pnl=100.0,
+            reward=reward.total_reward,
         )
         assert ex.reward > 0
         assert "APPROVE" in ex.response

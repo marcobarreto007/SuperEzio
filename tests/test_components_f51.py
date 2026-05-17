@@ -1,5 +1,6 @@
 """Component tests: F51 Engine (graph, formulas, detectors, gates, scoring, memory)."""
 
+
 # ── F51 Formulas ──
 def test_decision_factors_validate():
     from src.f51.formulas import DecisionFactors
@@ -281,5 +282,6 @@ def test_risk_engine():
     result = engine.evaluate({"price": 5.0, "volume": 1000000})
     assert isinstance(result, dict)
     assert "risk_score" in result
+
 
 print("F51: ALL TESTS PASSED")

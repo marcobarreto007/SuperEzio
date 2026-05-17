@@ -6,12 +6,9 @@ calibrations, and endpoint integration.
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-import pytest
 from fastapi.testclient import TestClient
 
-from experts.neural_decision import NeuralDecisionExpert, FeatureContractValidator
+from experts.neural_decision import NeuralDecisionExpert
 from agent_server.main import app
 
 
@@ -29,18 +26,19 @@ def get_valid_payload() -> dict:
             "price_vs_ema_21": -0.006,
             "trend_slope": -0.12,
             "volatility_regime": "high",
-            "liquidity_sweep": True
+            "liquidity_sweep": True,
         },
         "context": {
             "macro_risk": "neutral",
             "news_sentiment": "neutral",
             "fraud_risk": 0.12,
-            "veracity_score": 0.77
-        }
+            "veracity_score": 0.77,
+        },
     }
 
 
 # ── TEST GROUP 1: Feature Contract Validation (10 Synthetic Cases) ──
+
 
 def test_contract_valid_payload():
     """Case 1: Fully compliant valid payload must pass with no errors."""
@@ -56,7 +54,9 @@ def test_contract_missing_symbol():
     """Case 2: Missing or invalid symbol."""
     payload = get_valid_payload()
     expert = NeuralDecisionExpert()
-    errors = expert.validate_input("", payload["timeframe"], payload["features"], payload["context"])
+    errors = expert.validate_input(
+        "", payload["timeframe"], payload["features"], payload["context"]
+    )
     assert "symbol" in "".join(errors).lower()
 
 
@@ -64,7 +64,9 @@ def test_contract_missing_timeframe():
     """Case 3: Missing or invalid timeframe."""
     payload = get_valid_payload()
     expert = NeuralDecisionExpert()
-    errors = expert.validate_input(payload["symbol"], "", payload["features"], payload["context"])
+    errors = expert.validate_input(
+        payload["symbol"], "", payload["features"], payload["context"]
+    )
     assert "timeframe" in "".join(errors).lower()
 
 
@@ -72,7 +74,9 @@ def test_contract_missing_features_dict():
     """Case 4: Non-dict features object."""
     payload = get_valid_payload()
     expert = NeuralDecisionExpert()
-    errors = expert.validate_input(payload["symbol"], payload["timeframe"], "not-a-dict", payload["context"])
+    errors = expert.validate_input(
+        payload["symbol"], payload["timeframe"], "not-a-dict", payload["context"]
+    )
     assert "features" in "".join(errors).lower()
 
 
@@ -95,7 +99,10 @@ def test_contract_wrong_feature_type():
     errors = expert.validate_input(
         payload["symbol"], payload["timeframe"], payload["features"], payload["context"]
     )
-    assert any("rsi_14" in err and "type" in err.lower() or "must be float/int" in err for err in errors)
+    assert any(
+        "rsi_14" in err and "type" in err.lower() or "must be float/int" in err
+        for err in errors
+    )
 
 
 def test_contract_feature_out_of_bounds():
@@ -143,6 +150,7 @@ def test_contract_invalid_enum_context():
 
 
 # ── TEST GROUP 2: Expert Predictions & Calibrations (5 Synthetic Cases) ──
+
 
 def test_predict_trend_real():
     """Case 11: Real trend setup must trigger alerta_forte recommendation and low uncertainty."""
@@ -232,6 +240,7 @@ def test_predict_no_edge():
 
 # ── TEST GROUP 3: FastAPI Endpoint Integration (5 Synthetic Cases) ──
 
+
 def test_api_endpoint_success():
     """Case 16: Sending a valid payload to the endpoint returns 200 with structured decision."""
     client = TestClient(app)
@@ -250,7 +259,7 @@ def test_api_endpoint_missing_features():
     client = TestClient(app)
     payload = get_valid_payload()
     payload["features"].pop("rsi_14")
-    
+
     response = client.post("/experts/neural-decision/predict", json=payload)
     assert response.status_code == 400
     data = response.json()
@@ -263,7 +272,7 @@ def test_api_endpoint_wrong_type():
     client = TestClient(app)
     payload = get_valid_payload()
     payload["features"]["rsi_14"] = "overbought"
-    
+
     response = client.post("/experts/neural-decision/predict", json=payload)
     assert response.status_code == 400
     data = response.json()
@@ -275,7 +284,7 @@ def test_api_endpoint_out_of_bounds():
     client = TestClient(app)
     payload = get_valid_payload()
     payload["features"]["return_1"] = -2.5
-    
+
     response = client.post("/experts/neural-decision/predict", json=payload)
     assert response.status_code == 400
     data = response.json()

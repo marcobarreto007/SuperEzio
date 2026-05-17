@@ -135,7 +135,7 @@
       "finetune_phase1.py",
       "finetune_qwen_sft.py",
       "reddit_glm.py",
-      "check_nemotron_weights.py",
+      "check_Qwen36_weights.py",
       "check_phase1_data.py",
       "update_adapter_config.py",
       "verify_merged.py",

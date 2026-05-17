@@ -1,5 +1,5 @@
 """
-Test Nemotron-12B + LoRA adapter before integration.
+Test Qwen 3.6 + LoRA adapter before integration.
 Loads 4-bit base model, applies trained adapter, runs inference.
 """
 import torch
@@ -7,8 +7,8 @@ import time
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import PeftModel
 
-ADAPTER_PATH = r"C:\Users\marco\Desktop\nemotron-adapter"
-BASE_MODEL = "nvidia/NVIDIA-Nemotron-Nano-12B-v2"
+ADAPTER_PATH = r"C:\Users\marco\Desktop\qwen36-adapter"
+BASE_MODEL = "nvidia/Qwen/Qwen3.6-27B"
 
 SYSTEM_PROMPT = """You are Bob, CEO of SuperEzio Trust OS — an AI financial analysis platform.
 Your mission is evidence-based analysis of Canadian (TSX, TSX-V) and US (NYSE, NASDAQ, OTC) markets.
@@ -33,7 +33,7 @@ TESTS = [
 
 def load():
     print("=" * 60)
-    print("Loading Nemotron-12B + SuperEzio LoRA adapter")
+    print("Loading Qwen 3.6 + SuperEzio LoRA adapter")
     print("=" * 60)
 
     bnb = BitsAndBytesConfig(
@@ -86,7 +86,7 @@ def run_test(model, tokenizer, test, idx):
         {"role": "user", "content": test["prompt"]},
     ]
 
-    # Format with Nemotron chat template
+    # Format with Qwen36 chat template
     text = tokenizer.apply_chat_template(
         messages,
         tokenize=False,

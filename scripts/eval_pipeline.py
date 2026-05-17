@@ -100,7 +100,7 @@ LOCAL_GUIDANCE_SYSTEM = """Você é um arquiteto sênior de sistemas AI financei
 
 O SuperEzio é um assistente financeiro multiagente com:
 - 12 experts financeiros (DeepSeek Chat V3 cloud)
-- CEO local Nemotron-Nano-12B merged (Phase 0 + Phase 1 QLoRA), porta 8082
+- CEO local Qwen 3.6 merged (Phase 0 + Phase 1 QLoRA), porta 8082
 - Sem fallback cloud para veredito CEO final
 - Pipeline: intent router → data collection → experts → committee → CEO → resposta
 - Componentes: Fraud RAG, Veracity Gate, Cost Guard, Memory, Crisis Math, PennyLab

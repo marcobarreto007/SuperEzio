@@ -1,6 +1,6 @@
 SuperEzio v3.2.0 — Arvore Decisional
 ======================================
-Nemotron-Nano-12B-v2 (6.83B, Hybrid Mamba/Transformer/MoE) + Phase 0/1 QLoRA
+Qwen 3.6 (6.83B, Hybrid Mamba/Transformer/MoE) + Phase 0/1 QLoRA
 ProfessionalCollector com Provider Mesh (8 providers, qualidade 0-1 scoring)
 
                          ┌──────────────────────────┐
@@ -108,7 +108,7 @@ ProfessionalCollector com Provider Mesh (8 providers, qualidade 0-1 scoring)
                     ▼
      ┌──────────────────────────────┐
      │  NO 5 — ceo_primary          │
-     │  CEO Nemotron-Nano :8082     │
+     │  CEO Qwen 3.6 :8082     │
      │  (30B-A3B MoE abliterated)   │
      │                               │
      │  ┌─ CEO local pronto? ───┐   │
@@ -135,11 +135,11 @@ ProfessionalCollector com Provider Mesh (8 providers, qualidade 0-1 scoring)
 
 ModelGateway (CEO Local)
 ========================
-CEO local (Nemotron-Nano-12B merged :8082)
+CEO local (Qwen 3.6 merged :8082)
   │
-  ├─ Nemotron-Nano-12B-v2 (6.83B params, Hybrid Mamba/Transformer/MoE)
+  ├─ Qwen 3.6 (6.83B params, Hybrid Mamba/Transformer/MoE)
   │  bf16 safetensors ~8.3GB via HuggingFace Transformers CUDA
-  │  Repo: nvidia/NVIDIA-Nemotron-Nano-12B-v2
+  │  Repo: nvidia/Qwen 3.6
   │  Servidor: python scripts/serve_ceo.py --port 8082
   │
   ├─ ready? → USA CEO local (temp=0.4, max_tokens=4096)
@@ -148,7 +148,7 @@ CEO local (Nemotron-Nano-12B merged :8082)
   │
   ├─ QLoRA Merged Adapters (via merge_adapters.py):
   │  Phase 0: Fraud/Phishing LoRA (r=16, α=32, lr=2e-4, 1 epoch, Vast.ai L40S 3h)
-  │    Path: C:\Users\marco\Desktop\nemotron-adapter\ (104 MB)
+  │    Path: C:\Users\marco\Desktop\qwen36-adapter\ (104 MB)
   │  Phase 1: Numerical SFT LoRA (r=16, α=32, lr=1e-4, 1 epoch, local)
   │    Path: .f51/tmp/phase1-adapter/ (104 MB)
   │  Merged: .f51/tmp/superezio-merged/ (8.3 GB total)
@@ -192,7 +192,7 @@ Resumo do fluxo decisional
 | Veredito    | F51HubAdapter→F51Engine  | Trace + features   | Score 0-1 + fatores | Grafo roda com dados parciais   |
 | PennyLab    | 4 experts especializados | Ticker             | Decisao + scores    | ImportError → WATCH_ONLY        |
 | Experts     | AgentSelector+12 agentes | AssetProfile       | N resultados paral. | Provider offline → skip         |
-| CEO         | CEO Nemotron-Nano-12B merged | Prompt completo    | Texto final         | CEO offline → MODEL_ERROR       |
+| CEO         | CEO Qwen 3.6 merged | Prompt completo    | Texto final         | CEO offline → MODEL_ERROR       |
 | Explicacao  | ExplainEngine            | Veredito+texto CEO | Stream de chunks    | Skip se sem veredito            |
 
 
@@ -237,9 +237,9 @@ Dataset final SFT unificado com persona CEO Bob:
 Comandos de servico
 ===================
 python -m agent_server.main                        # Servidor FastAPI :8002
-python scripts/serve_ceo.py --port 8082            # CEO local Nemotron-Nano-12B merged
+python scripts/serve_ceo.py --port 8082            # CEO local Qwen 3.6 merged
 python .f51/tmp/merge_adapters.py \                # Merge QLoRA adapters
-    --adapter1 C:\Users\marco\Desktop\nemotron-adapter \
+    --adapter1 C:\Users\marco\Desktop\qwen36-adapter \
     --adapter2 .f51/tmp/phase1-adapter \
     --output .f51/tmp/superezio-merged
 python -m pytest tests/ -q                          # Testes (496 deterministicos)

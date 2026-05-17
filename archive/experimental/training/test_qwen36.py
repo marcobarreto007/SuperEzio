@@ -1,7 +1,7 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
-model_id = "nvidia/NVIDIA-Nemotron-Nano-12B-v2"
+model_id = "nvidia/Qwen/Qwen3.6-27B"
 
 print("Loading tokenizer...")
 tokenizer = AutoTokenizer.from_pretrained(model_id)

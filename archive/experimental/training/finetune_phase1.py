@@ -31,7 +31,7 @@ logger = logging.getLogger("phase1-sft")
 
 @dataclass
 class TrainConfig:
-    model_id: str = "nvidia/NVIDIA-Nemotron-Nano-12B-v2"
+    model_id: str = "nvidia/Qwen/Qwen3.6-27B"
     dataset_path: str = ""
     eval_dataset_path: str = ""
     output_dir: str = "/root/output/phase1-numerical"

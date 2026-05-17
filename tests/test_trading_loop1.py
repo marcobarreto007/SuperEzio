@@ -155,7 +155,9 @@ class TestKillSwitchDrawdown:
     def test_triggers_on_max_drawdown(self):
         from core.trading.kill_switch import KillSwitch, KillSwitchReason
 
-        ks = KillSwitch(daily_loss_limit=99999, max_drawdown_pct=0.10, initial_equity=10000)
+        ks = KillSwitch(
+            daily_loss_limit=99999, max_drawdown_pct=0.10, initial_equity=10000
+        )
         ks.record_trade(500)  # peak = 10500
         triggered = ks.record_trade(-1200)  # pnl=-700, equity=9800, dd=6.7%
         assert not triggered

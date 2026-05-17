@@ -171,19 +171,27 @@ class TestEmailAlerter:
     def test_send_approval_request_format(self):
         from core.trading.alerter import EmailAlerter, EmailConfig
 
-        config = EmailConfig(enabled=True, smtp_host="localhost", to_addrs=["test@test.com"])
+        config = EmailConfig(
+            enabled=True, smtp_host="localhost", to_addrs=["test@test.com"]
+        )
         alerter = EmailAlerter(config=config)
         # Will fail to actually send (no SMTP server), but should try and return False
         result = alerter.send_approval_request(
-            request_id="apr-1", symbol="AAPL", side="buy",
-            qty=10, risk_amount=200.0, reason="test",
+            request_id="apr-1",
+            symbol="AAPL",
+            side="buy",
+            qty=10,
+            risk_amount=200.0,
+            reason="test",
         )
         assert result is False  # no SMTP server running
 
     def test_send_kill_switch_alert(self):
         from core.trading.alerter import EmailAlerter, EmailConfig
 
-        config = EmailConfig(enabled=True, smtp_host="localhost", to_addrs=["test@test.com"])
+        config = EmailConfig(
+            enabled=True, smtp_host="localhost", to_addrs=["test@test.com"]
+        )
         alerter = EmailAlerter(config=config)
         result = alerter.send_kill_switch_alert("daily_loss_limit", -500.0)
         assert result is False  # no SMTP server
@@ -203,9 +211,17 @@ class TestLogAlerter:
         from core.trading.alerter import LogAlerter
 
         alerter = LogAlerter()
-        assert alerter.send_approval_request(
-            "apr-1", "AAPL", "buy", 10, 200.0, "test",
-        ) is True
+        assert (
+            alerter.send_approval_request(
+                "apr-1",
+                "AAPL",
+                "buy",
+                10,
+                200.0,
+                "test",
+            )
+            is True
+        )
 
     def test_send_kill_switch_alert(self):
         from core.trading.alerter import LogAlerter
@@ -228,7 +244,12 @@ class TestApprovalGateAlerterIntegration:
         req = gate.submit("AAPL", "buy", 10, 100.0, 95.0, 200.0)
         assert req.status == ApprovalStatus.PENDING
         assert alerter.send_approval_request(
-            req.id, req.symbol, req.side, req.qty, req.risk_amount, req.reason,
+            req.id,
+            req.symbol,
+            req.side,
+            req.qty,
+            req.risk_amount,
+            req.reason,
         )
 
     def test_kill_switch_triggers_alert(self):
@@ -241,5 +262,6 @@ class TestApprovalGateAlerterIntegration:
         triggered = ks.record_trade(-150)
         assert triggered
         assert alerter.send_kill_switch_alert(
-            ks.state.reason.value, ks.state.daily_pnl,
+            ks.state.reason.value,
+            ks.state.daily_pnl,
         )

@@ -7,6 +7,7 @@ import pytest
 
 # ── directional_loss ────────────────────────────────────────────────────
 
+
 def test_directional_loss_perfect_same_sign():
     from core.math.trading_losses import directional_loss
 
@@ -49,6 +50,7 @@ def test_directional_loss_mismatched_length():
 
 # ── sharpe_loss ─────────────────────────────────────────────────────────
 
+
 def test_sharpe_loss_positive_returns():
     from core.math.trading_losses import sharpe_loss
 
@@ -85,13 +87,14 @@ def test_sharpe_loss_insufficient_data():
 
 # ── quantile_loss ───────────────────────────────────────────────────────
 
+
 def test_quantile_loss_lower_tail():
     from core.math.trading_losses import quantile_loss
 
     # tau=0.05 (VaR lower tail): overestimation is dangerous
     # (predicting the tail is less bad than it really is)
-    pred_low = quantile_loss([1.0], [0.8], tau=0.05)   # pred too low (conservative)
-    pred_high = quantile_loss([1.0], [1.2], tau=0.05)   # pred too high (dangerous)
+    pred_low = quantile_loss([1.0], [0.8], tau=0.05)  # pred too low (conservative)
+    pred_high = quantile_loss([1.0], [1.2], tau=0.05)  # pred too high (dangerous)
     assert pred_high > pred_low  # overestimation penalized more
 
 
@@ -99,8 +102,8 @@ def test_quantile_loss_upper_tail():
     from core.math.trading_losses import quantile_loss
 
     # tau=0.95 (upper tail): underestimation is more penalized
-    pred_high = quantile_loss([1.0], [1.2], tau=0.95)   # pred too high
-    pred_low = quantile_loss([1.0], [0.8], tau=0.95)     # pred too low
+    pred_high = quantile_loss([1.0], [1.2], tau=0.95)  # pred too high
+    pred_low = quantile_loss([1.0], [0.8], tau=0.95)  # pred too low
     assert pred_low > pred_high  # underestimation penalized more
 
 
@@ -118,13 +121,12 @@ def test_quantile_loss_empty():
 
 # ── multi_horizon_loss ──────────────────────────────────────────────────
 
+
 def test_multi_horizon_loss_decay():
     from core.math.trading_losses import multi_horizon_loss
 
     # Near horizon (index 0) has higher weight than far horizon
-    loss = multi_horizon_loss(
-        y_true=1.0, y_pred_horizons=[1.5, 1.5, 1.5], decay=0.85
-    )
+    loss = multi_horizon_loss(y_true=1.0, y_pred_horizons=[1.5, 1.5, 1.5], decay=0.85)
     assert loss > 0
 
 
@@ -142,9 +144,7 @@ def test_multi_horizon_loss_custom_weights():
 def test_multi_horizon_loss_perfect():
     from core.math.trading_losses import multi_horizon_loss
 
-    loss = multi_horizon_loss(
-        y_true=1.0, y_pred_horizons=[1.0, 1.0, 1.0]
-    )
+    loss = multi_horizon_loss(y_true=1.0, y_pred_horizons=[1.0, 1.0, 1.0])
     assert loss == 0.0
 
 
@@ -155,6 +155,7 @@ def test_multi_horizon_loss_empty():
 
 
 # ── huber_loss ──────────────────────────────────────────────────────────
+
 
 def test_huber_loss_small_error_quadratic():
     from core.math.trading_losses import huber_loss
@@ -191,6 +192,7 @@ def test_huber_loss_empty():
 
 # ── directional_accuracy ────────────────────────────────────────────────
 
+
 def test_directional_accuracy_perfect():
     from core.math.trading_losses import directional_accuracy
 
@@ -213,6 +215,7 @@ def test_directional_accuracy_zero():
 
 
 # ── Integration: losses work together ───────────────────────────────────
+
 
 def test_pipeline_realistic_scenario():
     """Simulate a realistic trading model evaluation."""
