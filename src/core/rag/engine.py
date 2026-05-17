@@ -22,11 +22,15 @@ EMBEDDING_MODEL = os.getenv("SUPEREZIO_RAG_MODEL", "all-MiniLM-L6-v2")
 TOP_K = int(os.getenv("SUPEREZIO_RAG_TOP_K", "5"))
 MAX_CONTEXT_CHARS = int(os.getenv("SUPEREZIO_RAG_CONTEXT_MAX_CHARS", "2500"))
 RAG_DISABLED = os.getenv("SUPEREZIO_RAG_DISABLED", "0").lower() in {"1", "true", "yes"}
+FAISS_INDEX_DIR = os.getenv("SUPEREZIO_RAG_INDEX_DIR", "data/faiss_index")
 
 # ── Singleton state ────────────────────────────────────────────────────
 _embedder: Any = None  # SentenceTransformer | None
 _embeddings_cache: Optional[np.ndarray] = None  # (N, dim) normalized
 _documents_cache: list[dict[str, Any]] = []
+_faiss_index: Any = None  # faiss.Index | None
+_faiss_available: Optional[bool] = None  # tri-state: None=unchecked, True/False
+_index_data_dir: str | None = None  # which data_dir the cache was built for
 
 
 class ForensicRAG:
@@ -150,16 +154,32 @@ class ForensicRAG:
             _embedder = None
         return _embedder
 
+    # ── FAISS helpers ─────────────────────────────────────────────────
+
+    @staticmethod
+    def _faiss_available() -> bool:
+        global _faiss_available
+        if _faiss_available is not None:
+            return _faiss_available
+        try:
+            import faiss  # noqa: F401  # tested via availability flag
+            _faiss_available = True
+        except ImportError:
+            logger.info("faiss-cpu not installed — using numpy brute-force search")
+            _faiss_available = False
+        return _faiss_available
+
     # ── Index ──────────────────────────────────────────────────────────
 
     def _ensure_index(self) -> bool:
-        global _embeddings_cache, _documents_cache
-        if _embeddings_cache is not None:
+        global _embeddings_cache, _documents_cache, _faiss_index, _index_data_dir
+        if _embeddings_cache is not None and _index_data_dir == self.data_dir:
             return True
 
         embedder = self._get_embedder()
         docs = self._load_documents()
         _documents_cache = docs
+        _index_data_dir = self.data_dir
 
         if not docs:
             logger.info("ForensicRAG: no documents to index")
@@ -180,6 +200,14 @@ class ForensicRAG:
             logger.info(
                 "ForensicRAG indexed %d documents (%d-dim)", len(docs), vecs.shape[1]
             )
+
+            if self._faiss_available():
+                import faiss  # type: ignore[import]
+                dim = vecs.shape[1]
+                _faiss_index = faiss.IndexFlatIP(dim)
+                _faiss_index.add(vecs.astype(np.float32))
+                logger.info("ForensicRAG FAISS index built: %d vectors", _faiss_index.ntotal)
+
             return True
         except Exception as exc:
             logger.warning("Embedding failed: %s — keyword fallback active", exc)
@@ -190,7 +218,7 @@ class ForensicRAG:
 
     def search(self, query: str, top_k: int = TOP_K) -> list[dict[str, Any]]:
         """Semantic search. Falls back to keyword if embeddings unavailable."""
-        if RAG_DISABLED:
+        if os.getenv("SUPEREZIO_RAG_DISABLED", "0").lower() in {"1", "true", "yes"}:
             return []
         query = (query or "").strip()
         if not query:
@@ -209,6 +237,24 @@ class ForensicRAG:
             )
         except Exception:
             return self._keyword_search(query, top_k)
+
+        global _faiss_index
+        if _faiss_index is not None:
+            qvec_f32 = qvec.astype(np.float32)
+            scores, indices = _faiss_index.search(qvec_f32, min(top_k, _faiss_index.ntotal))
+            results = []
+            for i in range(len(indices[0])):
+                idx = int(indices[0][i])
+                score = float(scores[0][i])
+                if idx < 0 or score <= 0.1:
+                    continue
+                results.append({
+                    "id": _documents_cache[idx]["id"],
+                    "text": _documents_cache[idx]["text"],
+                    "source": _documents_cache[idx]["source"],
+                    "score": score,
+                })
+            return results
 
         scores = (qvec @ _embeddings_cache.T)[
             0
@@ -273,11 +319,82 @@ class ForensicRAG:
     # ── Runtime expansion ──────────────────────────────────────────────
 
     def add_document(self, doc_id: str, text: str, source: str = "runtime"):
-        """Add a document at runtime. Invalidates the embedding cache (re-index on next search)."""
-        global _embeddings_cache
-        _embeddings_cache = None
+        """Add a document at runtime. Updates FAISS index incrementally if available."""
+        global _embeddings_cache, _faiss_index
         _documents_cache.append({"id": doc_id, "text": text, "source": source})
+
+        embedder = self._get_embedder()
+        if embedder is not None and _faiss_index is not None:
+            try:
+                vec = embedder.encode(
+                    [text],
+                    convert_to_numpy=True,
+                    normalize_embeddings=True,
+                    show_progress_bar=False,
+                ).astype(np.float32)
+                _faiss_index.add(vec)
+                if _embeddings_cache is not None:
+                    _embeddings_cache = np.vstack([_embeddings_cache, vec])
+                logger.debug("ForensicRAG: document %s added to FAISS index", doc_id)
+                return
+            except Exception:
+                pass
+
+        _embeddings_cache = None
         logger.debug("ForensicRAG: added document %s, cache invalidated", doc_id)
+
+    # ── Index persistence ──────────────────────────────────────────────
+
+    def save_index(self, path: str | None = None):
+        """Persist FAISS index and document cache to disk."""
+        global _faiss_index, _documents_cache
+
+        target = str(resolve_project_path(path or FAISS_INDEX_DIR))
+        os.makedirs(target, exist_ok=True)
+
+        np.save(os.path.join(target, "documents.npy"), np.array(_documents_cache, dtype=object))
+
+        if _faiss_index is not None:
+            try:
+                import faiss  # type: ignore[import]
+                faiss.write_index(_faiss_index, os.path.join(target, "index.faiss"))
+                logger.info("ForensicRAG: index saved to %s", target)
+            except Exception as exc:
+                logger.warning("Failed to save FAISS index: %s", exc)
+
+    def load_index(self, path: str | None = None):
+        """Load FAISS index and document cache from disk."""
+        global _faiss_index, _documents_cache, _embeddings_cache
+
+        target = str(resolve_project_path(path or FAISS_INDEX_DIR))
+        docs_path = os.path.join(target, "documents.npy")
+        index_path = os.path.join(target, "index.faiss")
+
+        if not os.path.exists(docs_path):
+            logger.info("ForensicRAG: no persisted index at %s", target)
+            return False
+
+        try:
+            _documents_cache = list(np.load(docs_path, allow_pickle=True))
+            if os.path.exists(index_path) and self._faiss_available():
+                import faiss  # type: ignore[import]
+                _faiss_index = faiss.read_index(index_path)
+                _embeddings_cache = None  # re-computed on demand
+                logger.info(
+                    "ForensicRAG: loaded index from %s (%d docs, %d vectors)",
+                    target,
+                    len(_documents_cache),
+                    _faiss_index.ntotal,
+                )
+            else:
+                _embeddings_cache = None  # re-compute on next search
+                logger.info(
+                    "ForensicRAG: loaded %d documents (no FAISS index)", len(_documents_cache)
+                )
+            return True
+        except Exception as exc:
+            logger.warning("Failed to load index: %s", exc)
+            return False
 
 
 # ── Module-level singleton ─────────────────────────────────────────────

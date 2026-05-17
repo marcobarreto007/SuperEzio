@@ -3,6 +3,7 @@
 from .alerter import EmailAlerter, EmailConfig, LogAlerter
 from .approval_gate import ApprovalGate, ApprovalRequest, ApprovalStatus, GateConfig
 from .broker import (
+    AlpacaPaperAdapter,
     BrokerAdapter,
     Order,
     OrderSide,
@@ -20,6 +21,7 @@ from .reward import RewardComponents, RewardFunction, TradeOutcome
 from .training import LoRATrainer, TrainingConfig, TrainingResult
 
 __all__ = [
+    "AlpacaPaperAdapter",
     "ApprovalGate",
     "ApprovalRequest",
     "ApprovalStatus",

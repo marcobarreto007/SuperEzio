@@ -144,6 +144,59 @@ class FraudPatternMatcher:
         results.sort(key=lambda x: len(x), reverse=True)
         return results[:limit]
 
+    @property
+    def _embedder(self):
+        """Lazy SentenceTransformer instance (reuses ForensicRAG model)."""
+        if not hasattr(self, "_embedder_cache"):
+            try:
+                from sentence_transformers import SentenceTransformer
+                self._embedder_cache = SentenceTransformer(
+                    os.getenv("SUPEREZIO_RAG_MODEL", "all-MiniLM-L6-v2")
+                )
+                self._embedder_cache.to("cpu")
+            except ImportError:
+                self._embedder_cache = None
+        return self._embedder_cache
+
+    def search_semantic(self, query: str, limit: int = 3) -> List[str]:
+        """Semantic search over the knowledge base using embeddings.
+
+        Falls back to keyword search when sentence-transformers is unavailable.
+        """
+        if not self.knowledge_base or not query.strip():
+            return []
+
+        embedder = self._embedder
+        if embedder is None:
+            return self.search_patterns(query, limit)
+
+        try:
+            import numpy as np
+            qvec = embedder.encode(
+                [query],
+                convert_to_numpy=True,
+                normalize_embeddings=True,
+                show_progress_bar=False,
+            )
+            doc_vecs = embedder.encode(
+                self.knowledge_base,
+                convert_to_numpy=True,
+                normalize_embeddings=True,
+                show_progress_bar=False,
+            )
+            scores = (qvec @ doc_vecs.T)[0]
+            top_idx = np.argsort(scores)[::-1][:limit]
+
+            results = []
+            for i in top_idx:
+                if scores[i] > 0.15:
+                    results.append(
+                        f"[SEMANTIC_MATCH sim={scores[i]:.2f}]: {self.knowledge_base[i][:800]}..."
+                    )
+            return results
+        except Exception:
+            return self.search_patterns(query, limit)
+
 
 fraud_patterns = FraudPatternMatcher()
 

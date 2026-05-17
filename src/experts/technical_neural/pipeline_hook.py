@@ -18,8 +18,7 @@ def analyze_technical_neural_sync(ticker: str) -> Dict[str, Any]:
     load_dotenv()
     
     from data.data_hub import hub
-    from .expert.neural_expert import PriceMLP
-    
+
     try:
         response = hub.get_candles(ticker, timeframe="6M")
         if "error" in response:
@@ -31,10 +30,10 @@ def analyze_technical_neural_sync(ticker: str) -> Dict[str, Any]:
                 "error": response["error"],
                 "source": "technical_neural"
             }
-            
+
         data = response.get("data") or response.get("candles") or []
     except Exception as e:
-        logger.error(f"Erro ao buscar candles para o Neural Expert: {e}")
+        logger.error("Erro ao buscar candles para o Neural Expert: %s", e)
         return {
             "ticker": ticker,
             "mlp_score": 0.5,
@@ -43,9 +42,15 @@ def analyze_technical_neural_sync(ticker: str) -> Dict[str, Any]:
             "error": "Falha na coleta histórica",
             "source": "technical_neural"
         }
-        
-    # 2. Instanciar e avaliar
-    expert = PriceMLP()
+
+    # Try PyTorch GPU model first, fallback to sklearn MLP
+    try:
+        from .expert.torch_mlp import PriceTorchMLP
+        expert = PriceTorchMLP()
+    except ImportError:
+        from .expert.neural_expert import PriceMLP
+        expert = PriceMLP()
+
     result = expert.evaluate(ticker, data)
     result["ticker"] = ticker
     return result

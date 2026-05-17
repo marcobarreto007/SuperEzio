@@ -105,7 +105,12 @@ class AlpacaPaperAdapter:
         return self._client
 
     def submit_order(self, order: Order) -> Order:
-        from alpaca.trading.requests import MarketOrderRequest, LimitOrderRequest
+        from alpaca.trading.requests import (
+            MarketOrderRequest,
+            LimitOrderRequest,
+            StopOrderRequest,
+            StopLimitOrderRequest,
+        )
         from alpaca.trading.enums import OrderSide as AlpacaSide, TimeInForce
 
         client = self._get_client()
@@ -125,6 +130,40 @@ class AlpacaPaperAdapter:
                 side=side,
                 time_in_force=TimeInForce.DAY,
                 limit_price=order.limit_price,
+            )
+        elif order.order_type == OrderType.STOP and order.stop_price:
+            req = StopOrderRequest(
+                symbol=order.symbol,
+                qty=order.qty,
+                side=side,
+                time_in_force=TimeInForce.DAY,
+                stop_price=order.stop_price,
+            )
+        elif order.order_type == OrderType.STOP_LIMIT and order.stop_price and order.limit_price:
+            req = StopLimitOrderRequest(
+                symbol=order.symbol,
+                qty=order.qty,
+                side=side,
+                time_in_force=TimeInForce.DAY,
+                stop_price=order.stop_price,
+                limit_price=order.limit_price,
+            )
+        elif order.order_type == OrderType.BRACKET:
+            req = MarketOrderRequest(
+                symbol=order.symbol,
+                qty=order.qty,
+                side=side,
+                time_in_force=TimeInForce.DAY,
+                take_profit=(
+                    {"limit_price": order.take_profit_price}
+                    if order.take_profit_price
+                    else None
+                ),
+                stop_loss=(
+                    {"stop_price": order.stop_price}
+                    if order.stop_price
+                    else None
+                ),
             )
         else:
             raise ValueError(f"Unsupported order type: {order.order_type}")

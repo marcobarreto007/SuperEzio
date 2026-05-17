@@ -24,9 +24,14 @@ dependencies = [
     "transformers>=4.40",
     "peft>=0.10",
     "sentence-transformers>=3.0",
+    "faiss-cpu>=1.8",
     "llama-cpp-python>=0.3.23",
     "openai>=1.0",
     "langgraph>=1.0.5",
+
+    # ── Broker execution ──
+    "alpaca-py>=0.30",
+    "ib-insync>=0.4",
 
     # ── Data & Math ──
     "pandas>=2.0",
