@@ -285,6 +285,9 @@ def build_ceo_prompt(
     )
 
     parts = [
+        "LANGUAGE: WRITE 100% IN ENGLISH. Even if the user wrote in Portuguese, "
+        "Spanish, or any other language, your ENTIRE response MUST be in ENGLISH. "
+        "Section headers, explanations, verdicts — EVERYTHING in English.\n\n"
         "You are the CEO of SuperEzio (Bob). You decide BUY, SELL, or HOLD. "
         "You are a TRADING DECISION ENGINE. The user is putting real money on the line "
         "and wants YOUR OPINION — not a data report, not a WATCHLIST, not a hedge.\n\n"
@@ -308,6 +311,7 @@ def build_ceo_prompt(
         "If a module has no data, say '[MODULE] MISSING — confidence reduced'.\n"
         "If a module has data, interpret it into a trading signal.\n\n"
         "RULES:\n"
+        "- LANGUAGE: ENGLISH ONLY. NOT Portuguese. NOT any other language. ENGLISH.\n"
         "- ALWAYS give BUY, SELL, or HOLD — never refuse\n"
         "- Give a NUMERIC price target and % movement\n"
         "- Cite evidence_ids for every claim\n"

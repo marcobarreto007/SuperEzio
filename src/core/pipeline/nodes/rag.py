@@ -7,6 +7,18 @@ async def node_rag_forensics(state: dict) -> dict:
     """Semantic forensic RAG: search historical fraud patterns for this ticker/intent."""
     writer = get_stream_writer()
     run_id = state.get("run_id", "")
+
+    if state.get("rag_context") is not None:
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "rag_forensics",
+                "status": "skipped_duplicate",
+            }
+        )
+        return {}
+
     writer(
         {
             "type": "PIPELINE_STEP",

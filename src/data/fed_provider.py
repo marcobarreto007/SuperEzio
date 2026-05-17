@@ -1,47 +1,72 @@
 """
-Federal Reserve (Fed) Data Provider — Dados Macroeconômicos dos EUA
+Federal Reserve (Fed) Data Provider — Dados Macroeconomicos dos EUA
 ==================================================================
-Puxa dados de treasuries via Alpha Vantage TREASURY_YIELD.
-
-Séries disponíveis:
-- Fed Funds Rate (proxy: 3-month T-bill)
-- 5-Year Treasury Yield
-- 10-Year Treasury Yield
-- 30-Year Treasury Yield
+Busca treasury yields via Yahoo Finance (gratuito, ilimitado).
+Alpha Vantage TREASURY_YIELD como fallback.
 """
 
 import logging
 import os
-import time
 from datetime import datetime, timezone
 from typing import Any, Dict
 
-import requests
-
 logger = logging.getLogger(__name__)
 
-TREASURY_MATURITIES = {
+# Yahoo Finance tickers for US Treasury yields (free, unlimited)
+YFINANCE_TREASURY_TICKERS = {
+    "fed_funds_proxy": "^IRX",   # 13-week T-bill (proxy for Fed Funds)
+    "treasury_5y": "^FVX",       # 5-year Treasury
+    "treasury_10y": "^TNX",      # 10-year Treasury
+    "treasury_30y": "^TYX",      # 30-year Treasury
+}
+
+# Alpha Vantage fallback (kept for when yfinance is blocked)
+AV_TREASURY_MATURITIES = {
     "fed_funds_proxy": "3month",
     "treasury_5y": "5year",
     "treasury_10y": "10year",
     "treasury_30y": "30year",
 }
 
-# Alpha Vantage free tier: 5 calls/min. 4 maturities + 1.5s gap = safe.
-_RATE_LIMIT_DELAY_SEC = float(os.getenv("FED_PROVIDER_RATE_DELAY", "1.8"))
+
+def _fetch_via_yfinance() -> Dict[str, Any]:
+    """Fetch all treasury yields via Yahoo Finance (free, no rate limit)."""
+    result: Dict[str, Any] = {
+        "provider": "yfinance_treasury",
+        "collected_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    try:
+        import yfinance as yf
+
+        for name, symbol in YFINANCE_TREASURY_TICKERS.items():
+            try:
+                ticker = yf.Ticker(symbol)
+                info = ticker.info or {}
+                price = info.get("regularMarketPrice") or info.get("previousClose")
+                if price is not None:
+                    result[name] = {
+                        "value": round(float(price), 3),
+                        "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                    }
+                else:
+                    result[name] = {"value": None, "error": "yfinance_no_price"}
+            except Exception as exc:
+                logger.warning("[FED] yfinance failed for %s: %s", symbol, exc)
+                result[name] = {"value": None, "error": f"yfinance: {exc}"}
+
+        return result
+    except ImportError:
+        return {"error": "yfinance_not_installed"}
+    except Exception as exc:
+        return {"error": f"yfinance_init: {exc}"}
 
 
-def get_macro_summary_us() -> Dict[str, Any]:
-    """
-    Busca resumo macro dos EUA via Alpha Vantage TREASURY_YIELD.
+def _fetch_via_alpha_vantage(api_key: str) -> Dict[str, Any]:
+    """Fallback: fetch treasury yields via Alpha Vantage TREASURY_YIELD."""
+    import time
 
-    Returns:
-        Dict com fed_funds_rate, treasury_yields, collected_at
-        ou dict com 'error' em caso de falha.
-    """
-    api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
-    if not api_key:
-        return {"error": "ALPHA_VANTAGE_API_KEY not configured"}
+    import requests
 
     base_url = "https://www.alphavantage.co/query"
     result: Dict[str, Any] = {
@@ -50,9 +75,9 @@ def get_macro_summary_us() -> Dict[str, Any]:
     }
     empty_count = 0
 
-    for i, (name, maturity) in enumerate(TREASURY_MATURITIES.items()):
+    for i, (name, maturity) in enumerate(AV_TREASURY_MATURITIES.items()):
         if i > 0:
-            time.sleep(_RATE_LIMIT_DELAY_SEC)
+            time.sleep(1.8)
 
         params = {
             "function": "TREASURY_YIELD",
@@ -63,9 +88,10 @@ def get_macro_summary_us() -> Dict[str, Any]:
             response = requests.get(base_url, params=params, timeout=10)
             data = response.json()
 
-            # Alpha Vantage rate-limit / error surface
-            if data.get("Information") and "rate limit" in str(data.get("Information", "")).lower():
-                logger.warning("[FED] Alpha Vantage rate limit hit — stopping treasury collection")
+            if data.get("Information") and "rate limit" in str(
+                data.get("Information", "")
+            ).lower():
+                logger.warning("[FED] Alpha Vantage rate limit — aborting fallback")
                 result[name] = {"value": None, "error": "rate_limit"}
                 break
 
@@ -93,20 +119,48 @@ def get_macro_summary_us() -> Dict[str, Any]:
                 }
             else:
                 empty_count += 1
-                # Distinguish "no data" from "API returned unexpected format"
-                top_keys = [k for k in data.keys() if k not in ("data",)]
-                detail = f"no data (api_keys={top_keys})" if top_keys else "no data (empty response)"
-                result[name] = {"value": None, "error": detail}
-                logger.warning(
-                    "[FED] Treasury %s returned no records. API keys: %s",
-                    maturity,
-                    top_keys,
-                )
-        except Exception as e:
-            logger.warning("[FED] Treasury yield fetch failed for %s: %s", maturity, e)
-            result[name] = {"value": None, "error": str(e)[:100]}
+                result[name] = {"value": None, "error": "no data"}
+        except Exception as exc:
+            logger.warning("[FED] Alpha Vantage failed for %s: %s", maturity, exc)
+            result[name] = {"value": None, "error": str(exc)[:100]}
 
-    if empty_count >= len(TREASURY_MATURITIES):
+    if empty_count >= len(AV_TREASURY_MATURITIES):
         result["data_quality"] = "unavailable"
 
     return result
+
+
+def get_macro_summary_us() -> Dict[str, Any]:
+    """Busca resumo macro dos EUA.
+
+    Primary: Yahoo Finance (free, unlimited).
+    Fallback: Alpha Vantage TREASURY_YIELD.
+    """
+    # 1. Try Yahoo Finance first
+    yf_result = _fetch_via_yfinance()
+    if "error" not in yf_result:
+        filled = sum(
+            1 for v in yf_result.values()
+            if isinstance(v, dict) and v.get("value") is not None
+        )
+        if filled >= 2:
+            yf_result["data_quality"] = "collected"
+            return yf_result
+        logger.warning("[FED] yfinance returned only %d/4 yields — trying Alpha Vantage", filled)
+    else:
+        logger.warning("[FED] yfinance failed: %s", yf_result.get("error"))
+
+    # 2. Fallback: Alpha Vantage
+    api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
+    if not api_key:
+        return {
+            "provider": "none",
+            "collected_at": datetime.now(timezone.utc).isoformat(),
+            "error": "no_treasury_source",
+            "yfinance_error": yf_result.get("error", "unavailable"),
+            "data_quality": "unavailable",
+        }
+
+    av_result = _fetch_via_alpha_vantage(api_key)
+    av_result["_yfinance_failed"] = True
+    return av_result

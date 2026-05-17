@@ -19,6 +19,17 @@ async def node_neural_decision(state: dict) -> dict:
     ticker = state.get("ticker", "")
     route = state.get("route", "general")
 
+    if state.get("neural_decision") is not None:
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "neural_decision",
+                "status": "skipped_duplicate",
+            }
+        )
+        return {}
+
     if route != "ticker_analysis" or not ticker:
         writer(
             {
