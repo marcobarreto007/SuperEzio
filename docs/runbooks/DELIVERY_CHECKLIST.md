@@ -1,38 +1,31 @@
-# DELIVERY CHECKLIST — SuperEzio v4.0.0
-Date: 2026-05-15
+# DELIVERY CHECKLIST — SuperEzio v4.4.0
+**Date:** 2026-05-16T23:53:00-04:00
 
-## Bloqueadores (NAO PODE ENTREGAR SEM RESOLVER)
+## 🟢 Bloqueadores Mitigados (P0)
+- [x] **B01** `main.py:116` — `pipeline.shutdown()` crash. CompiledStateGraph envolto de forma segura na classe `PipelineApp`.
+- [x] **B02** `runtime.py` removido — API pública (`chat_async`, `stream_events`, `get_status`) exposta com sucesso na classe `PipelineApp`.
+- [x] **B03** Nodes standalone com DI completa — Dependências injetadas corretamente no `build_graph()` e propagadas aos nós.
 
-- [ ] **B01** `main.py:116` — `pipeline.shutdown()` crash. CompiledStateGraph nao tem shutdown.
-- [ ] **B02** `runtime.py` removido — API publica (`chat`, `chat_sync`, `stream_events`, `get_status`) perdida. Necessario migrar para `graph.py` ou criar wrapper.
-- [ ] **B03** Nodes standalone sem DI completa — `financial_agents`, `mandamentos`, `_data_collector`, `_audit` nao injetados via `graph.py`.
+---
 
-## Pre-Demo (resolver antes de demonstrar)
+## 🚀 Checklist Pré-Demo (Passo-a-passo)
+- [x] Rodar `python -m pytest tests/ -q` e garantir 464 testes passando sem erros.
+- [x] Subir o servidor FastAPI localmente usando `python -m agent_server.main`.
+- [x] Testar a conectividade básica acessando GET `http://127.0.0.1:8002/health`.
+- [x] Testar a integridade profunda do sistema acessando GET `http://127.0.0.1:8002/health/details`.
+- [x] Encerrar o servidor com `Ctrl+C` e certificar-se de que o log indica shutdown limpo, sem `AttributeError` ou quebras.
 
-- [ ] Verificar se `python -m agent_server.main` sobe sem crash
-- [ ] Verificar se uma request real chega ao CEO node e volta
-- [ ] Verificar se o shutdown graciosamente para (B01)
-- [ ] Ruff fix: `python -m ruff check --fix src tests`
-- [ ] Ruff format: `python -m ruff format src tests`
-- [ ] Confirmar que 344 testes continuam passando apos fixes
+---
 
-## Pre-Venda (resolver antes de posicionar comercialmente)
+## 🟡 Checklist Pré-Venda (Requisitos para Comercialização)
+- [ ] Criar `.env.example` centralizando e documentando as 55 variáveis de ambiente mapeadas.
+- [x] Adicionar smoke test de ponta a ponta para o `PipelineApp` (testado e ativo em `test_pipeline_smoke.py`).
+- [ ] Consolidar imports de `core/engine/` para `core/math/` no roteador FastAPI para remover dependências legadas.
+- [ ] Excluir os 3 diretórios vazios (`scanner/`, `mathcore/`, `evidence/`) e o script órfão (`scripts/server.py`).
 
-- [ ] Criar `.env.example` com as 55 variaveis e defaults
-- [ ] Adicionar smoke test end-to-end do pipeline (graph.astream com input fake)
-- [ ] Adicionar teste de contrato para `build_graph()` (verificar nodes e edges)
-- [ ] Remover 3 diretorios vazios orfaos (scanner/, mathcore/, evidence/)
-- [ ] Decidir: `core/engine/` fica ou migra para `core/math/`
-- [ ] Adicionar `shutdown()` ao CompiledStateGraph ou wrapper
-- [ ] Documentar API publica do pipeline v4 (o que substituiu `UniversalPipeline.chat()`)
-- [ ] Adicionar teste que instancia o pipeline com gateway=None e roda um input
+---
 
-## Pos-Demo (backlog)
-
-- [ ] Consolidar nodes duplicados (escolher: mixin ou standalone)
-- [ ] Consolidar prompts duplicados (escolher: ceo_prompts.py ou prompts/builder.py)
-- [ ] Cobertura de teste para pipeline/ (target: 80%)
-- [ ] Cobertura de teste para agent_runtime/
-- [ ] Centralizar config/env vars em schema.py
-- [ ] Limpar scripts/server.py orfao
-- [ ] Avaliar docs/internal/SECURITY_LEAKED_KEYS.md — rotacionar keys ou remover doc
+## ⚙️ Checklist Pós-Venda (Manutenibilidade & Backlog)
+- [ ] Consolidar prompts do CEO removendo `ceo_prompts.py` em favor do `builder.py`.
+- [ ] Mesclar lógica dos nós no pipeline removendo a classe `_mixin.py` de forma definitiva.
+- [ ] Ampliar a cobertura de testes para a pasta `investor/` e `observability/`.
