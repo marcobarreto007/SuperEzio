@@ -1,110 +1,77 @@
-# F51 Config Map — SuperEzio
-Generated: 2026-05-15
+# Config Map — SuperEzio
 
-## Config Files
+> Atualizado: 2026-05-17 | Branch: main
 
-| File | Format | Description |
-|---|---|---|
-| `config/mandamentos.json` | JSON | Regras/mandamentos do sistema (carregado por `load_mandamentos()`) |
-| `config/runtime.yml` | YAML | Config de runtime |
-| `config/model_manifest.json` | JSON | Manifesto de modelos disponiveis |
+## Fonte de Verdade (Runtime Real)
 
-## Config Schema
+### `.env` (raiz do projeto)
+- **Status:** ATIVO — fonte real de configuracao
+- **Prioridade:** OS env > .env.local > .env
+- **Carregado por:** `src/core/config/secrets.py::load_local_env()`
+- **Keys ativas:**
+  - `SUPEREZIO_CEO_BASE_URL=http://127.0.0.1:8082/v1` (Qwen3.6-35B)
+  - `SUPEREZIO_DEEPSEEK_MODEL=deepseek-v4-pro` (Cloud experts)
+  - `SUPEREZIO_PROFESSIONAL_COLLECTOR=true`
+  - 12+ API keys (Alpha Vantage, Twelve Data, NewsAPI, Wolfram, etc.)
+  - `ANTHROPIC_*` vars para Claude Code via DeepSeek
 
-| Class | File | Fields |
-|---|---|---|
-| `UniversalConfig` | `src/core/config/schema.py` | `project_name`, `version`, `server`, `memory`, `storage`, `observability`, `triade`, `event_hub` |
-| `ModelConfig` | `src/core/config/schema.py` | Model config para providers |
-| `GatewayConfig` | `src/core/config/schema.py` | Config do ModelGateway |
-| `EventHubConfig` | `src/core/config/schema.py` | Tipo de event hub (memory/redis) |
-| `StorageConfig` | `src/core/config/schema.py` | Diretorios de storage |
-| `MemoryConfig` | `src/core/config/schema.py` | Mem0 config (api_url, api_key, collection) |
-| `ObservabilityConfig` | `src/core/config/schema.py` | OTEL flags |
-| `ServerConfig` | `src/core/config/schema.py` | Host, port |
-| `TriadeConfig` | `src/core/config/schema.py` | Config triade |
+## Config Files (Estaticos)
 
-## Environment Variables (55 unique)
+### `config/model_manifest.json`
+- **Status:** STALE
+- **Problema:** CEO configurado como Gemma-4-26B-A4B-abliterated
+- **Realidade:** CEO e Qwen3.6-35B F51
+- **Uso em runtime:** Nao confirmado — possivelmente nao lido
 
-### Pipeline
-| Var | Default | File |
-|-----|---------|------|
-| `SUPEREZIO_ORCHESTRATOR_TIMEOUT` | `12` | `pipeline/runtime.py` |
-| `SUPEREZIO_CEO_TIMEOUT` | `120` | `pipeline/runtime.py` |
-| `SUPEREZIO_DATA_TIMEOUT` | `60` | `pipeline/runtime.py` |
-| `SUPEREZIO_EXPERT_TIMEOUT` | `60` | `pipeline/runtime.py` |
-| `SUPEREZIO_EXPERT_CONCURRENCY` | `4` | `pipeline/runtime.py` |
-| `SUPEREZIO_INTENT_LLM_FALLBACK` | `auto` | `pipeline/runtime.py` |
-| `SUPEREZIO_INTENT_LLM_THRESHOLD` | `0.76` | `pipeline/runtime.py` |
-| `SUPEREZIO_INTENT_LLM_TIMEOUT` | `4` | `pipeline/runtime.py` |
-| `SUPEREZIO_SCAN_LIMIT` | `30` | `pipeline/runtime.py` |
-| `UNIVERSAL_SKIP_GATEWAY` | (none) | `pipeline/runtime.py` |
-| `SUPEREZIO_FORCE_ALL_EXPERTS_ON_PARTIAL` | `1` | `pipeline/nodes/_mixin.py` |
-| `SUPEREZIO_PROFESSIONAL_COLLECTOR` | `true` | `pipeline/nodes/_mixin.py` |
-| `SUPEREZIO_CEO_TEMPERATURE` | `0.2`-`0.4` | `pipeline/nodes/` |
-| `SUPEREZIO_CEO_MAX_TOKENS` | `4096`-`8192` | `pipeline/nodes/` |
+### `config/runtime.yml`
+- **Status:** STALE
+- **Problema:** So lista modelos cloud (DeepSeek). Nao tem CEO local Qwen3.6.
+- **Uso em runtime:** `src/core/config/schema.py` define schema; `get_config()` pode ler
 
-### Model Serving
-| Var | Default | File |
-|-----|---------|------|
-| `SUPEREZIO_PRIMARY_API_KEY` | (none) | `agent_server/main.py` |
-| `SUPEREZIO_DEEPSEEK_API_KEY` | (none) | `agent_server/main.py` |
-| `SUPEREZIO_DEEPSEEK_MODEL` | `deepseek-chat` | `agent_server/main.py` |
-| `SUPEREZIO_DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | `agent_server/main.py` |
-| `SUPEREZIO_DEEPSEEK_TIMEOUT_SEC` | `120` | `model_serving/deepseek_provider.py` |
-| `SUPEREZIO_DEEPSEEK_MAX_TOKENS` | `1800`-`4096` | `model_serving/` |
-| `SUPEREZIO_DEEPSEEK_TEMPERATURE` | `0.2` | `model_serving/deepseek_provider.py` |
-| `SUPEREZIO_DEEPSEEK_REASONING_EFFORT` | `high` | `model_serving/` |
-| `SUPEREZIO_DEEPSEEK_THINKING` | `disabled` | `model_serving/gateway.py` |
+### `config/mandamentos.json`
+- **Status:** ATIVO
+- **Uso:** Regras operacionais injetadas no pipeline graph
 
-### Data Providers
-| Var | Default | File |
-|-----|---------|------|
-| `WOLFRAM_API_KEY` | (none) | `data/wolfram_provider.py` |
-| `TWELVE_DATA_API_KEY` | (none) | `data/twelve_data.py` |
-| `ALPHA_VANTAGE_API_KEY` | (none) | `data/alpha_vantage.py` |
-| `BRAVE_SEARCH_API_KEY` | (none) | `data/news_feed.py` |
-| `NEWSAPI_KEY` | (none) | `data/news_feed.py` |
-| `SUPEREZIO_REDDIT_ENABLED` | `1` | `data/reddit_provider.py` |
-| `SUPEREZIO_REDDIT_SUBREDDITS` | (none) | `data/reddit_provider.py` |
-| `SUPEREZIO_TAVILY_SEARCH_PATH` | `""` | `data/data_hub.py` |
-| `SUPEREZIO_TAVILY_EXTRACT_PATH` | `""` | `data/data_hub.py` |
+### `pyproject.toml`
+- **Status:** ATIVO (parcialmente stale)
+- **Problema:** Descricao diz "CEO: Gemma-4-26B-A4B-abliterated"
+- **Dependencias:** Corretas (torch, transformers, peft, llama-cpp-python, langgraph, etc.)
 
-### Infrastructure
-| Var | Default | File |
-|-----|---------|------|
-| `A2A_PORT` | `8002` | `agent_server/main.py` |
-| `A2A_BIND` | `127.0.0.1` | `agent_server/main.py` |
-| `A2A_AGENT_NAME` | `generic_agent` | `agent_server/main.py` |
-| `MEM0_API_URL` | (config) | `config/schema.py` |
-| `MEM0_API_KEY` | (config) | `config/schema.py` |
-| `MEM0_REDIS_URL` | `""` | `agent_server/main.py` |
-| `CORS_ORIGINS` | (none) | `config/schema.py` |
-| `SUPEREZIO_HOST` | (config) | `config/schema.py` |
-| `SUPEREZIO_PORT` | (config) | `config/schema.py` |
+## Config em Codigo
 
-### Observability & RAG
-| Var | Default | File |
-|-----|---------|------|
-| `SUPEREZIO_DEBUG` | `""` | `observability/debug_logger.py` |
-| `DISABLE_OTEL` | (none) | `observability/neural_log.py` |
-| `SUPEREZIO_RAG_MODEL` | `all-MiniLM-L6-v2` | `rag/engine.py` |
-| `SUPEREZIO_RAG_TOP_K` | `5` | `rag/engine.py` |
-| `SUPEREZIO_RAG_CONTEXT_MAX_CHARS` | `2500` | `rag/engine.py` |
-| `SUPEREZIO_RAG_DISABLED` | `0` | `rag/engine.py` |
-| `SUPEREZIO_CACHE_DIR` | `""` | `data_collector/professional.py` |
-| `SUPEREZIO_DATA_DIR` | `data` | `investor/storage.py` |
+### `src/core/config/schema.py`
+- Schema Pydantic para `config/runtime.yml`
+- Define ServerConfig, ModelConfig, GatewayConfig, TriadeConfig, StorageConfig
 
-### PennyLab
-| Var | Default | File |
-|-----|---------|------|
-| `PENNYLAB_JOURNAL` | `(auto)` | `experts/pennylab/config.py` |
-| `PENNYLAB_MAX_USD` | `50.0` | `experts/pennylab/config.py` |
-| `PENNYLAB_MAX_PRICE` | `5.0` | `experts/pennylab/config.py` |
-| `PENNYLAB_MIN_VOLUME` | `500000` | `experts/pennylab/config.py` |
+### `src/core/config/env.py`
+- Re-exporta `load_env_once` de `secrets.py`
+- Unico ponto de entrada para carregar .env
 
-### Misc
-| Var | Default | File |
-|-----|---------|------|
-| `SUPEREZIO_ENABLE_PYTHON_EXEC` | `""` | `tools/custom_tools.py` |
-| `EXPLANATION_MODEL_PATH` | `""` | `explanation/engine.py` |
-| `EXPLANATION_LORA_PATH` | (none) | `explanation/engine.py` |
+### `src/core/config/secrets.py`
+- `load_local_env()` — carrega .env com prioridade
+- `get_secret()` — busca secret com fallback
+
+### `src/agent_server/main.py`
+- `load_local_env()` chamado no startup
+- PORT: `SUPEREZIO_PORT` ou `A2A_PORT` (legacy) ou 8002
+- HOST: `SUPEREZIO_HOST` ou `A2A_BIND` (legacy) ou 127.0.0.1
+
+## Config de Modelo
+
+### `scripts/serve_ceo_llamacpp.ps1`
+- **Parametros:** Port=8082, GpuLayers=20, ContextLength=32768, Slots=4
+- **Modelo:** `models/qwen36-35b-f51.Q4_K_M.gguf`
+- **Flags:** `--spec-type draft-mtp -fa on -ctk q8_0 -ctv q8_0 --mlock`
+
+### `.env` (CEO)
+- `SUPEREZIO_CEO_BASE_URL=http://127.0.0.1:8082/v1`
+- `SUPEREZIO_CEO_TIMEOUT=180`
+- `SUPEREZIO_CEO_QUANTIZE=nf4`
+- `SUPEREZIO_CEO_MAX_TOKENS=16384`
+- `SUPEREZIO_CEO_TEMPERATURE=0.3`
+
+## Itens Stale — Acao Recomendada
+
+1. `config/model_manifest.json` → Atualizar CEO para Qwen3.6-35B F51
+2. `config/runtime.yml` → Adicionar secao `ceo_local` ou remover
+3. `pyproject.toml` descricao → Trocar "Gemma-4-26B" por "Qwen3.6-35B"

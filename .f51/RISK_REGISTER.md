@@ -1,38 +1,47 @@
 # F51 Risk Register — SuperEzio
-Generated: 2026-05-15 | Updated: 2026-05-17 | Branch: main
 
-## Critical (P0)
+> Atualizado: 2026-05-17 | Sessao: f51-inventory | Branch: main
 
-| ID | Risk | Module | Detail |
-|----|------|--------|--------|
-| R01 | Pipeline nodes 100% duplicados | **[RESOLVIDO 2026-05-17]** | `_mixin.py` ja nao existia. Nodes estao unificados em `nodes/*.py` como funcoes async puras. Graph importa diretamente sem duplicacao. |
-| R02 | CEO prompts duplicados | **[RESOLVIDO 2026-05-17]** | `ceo_prompts.py` ja nao existia. Prompts unificados em `prompts/builder.py` + `prompts/gemma.py`. Model branching removido — so Qwen3.6-35B. |
-| R03 | Pipeline sem cobertura de teste | `pipeline/` | Zero testes end-to-end. O graph inteiro (orchestrator -> data -> experts -> CEO) nunca e testado integrado. |
+## Riscos Ativos
 
-## High (P1)
+### R1 — Config Stale (HIGH)
+- **O que:** `config/model_manifest.json` referencia Gemma-4-26B. `config/runtime.yml` nao tem CEO local.
+- **Impacto:** Gateway pode tentar inicializar com modelo errado se ler esses arquivos.
+- **Mitigacao:** Atualizar ambos para Qwen3.6-35B F51.
+- **Urgencia:** Baixa — o `.env` e o script `serve_ceo_llamacpp.ps1` sao a fonte real. Configs parecem nao ser lidos em runtime.
 
-| ID | Risk | Module | Detail |
-|----|------|--------|--------|
-| R04 | `core/engine/` deprecated ainda importado | **[RESOLVIDO]** | Removido. Todos migrados para `core/math/`. |
-| R05 | Scanner module missing | **[RESOLVIDO]** | Removido. Graph agora roda clean com data collectors novos. |
-| R06 | 60 modulos sem teste | 60 de 117 modulos src/ | Incluindo: pipeline completo, agent_runtime completo, investor/, data providers, observability/. |
-| R07 | `rl/policy.py` scaffold sem teste | **[RESOLVIDO]** | Módulo expurgado da branch main. |
-| R15 | Coletores com campos `None` opcionais | `core/f51_adapter/adapter.py`, `core/data_collector/` | Provedores externos (TwelveData, AlphaVantage) podem falhar ou retornar nulo, gerando TypeErrors na coerção de float() durante a montagem de claims e verdicts. |
+### R2 — VeracityGate Triplicado (MEDIUM)
+- **O que:** 3 implementacoes: `src/f51/gates.py`, `src/core/investor/veracity_gate.py`, `src/experts/pennylab/experts/veracity_gate.py`.
+- **Impacto:** Mudanca na canonica pode nao ser replicada. Comportamento divergente entre modulos.
+- **Mitigacao:** Consolidar no canonico (`src/f51/gates.py`), redirecionar os outros.
 
-## Medium (P2)
+### R3 — prompts/gemma.py Shim (LOW)
+- **O que:** `src/core/pipeline/prompts/gemma.py` define `GEMMA_SYSTEM_PROMPT = QWEN_SYSTEM_PROMPT`.
+- **Impacto:** Codigo que referencia GEMMA ainda funciona, mas e confuso.
+- **Mitigacao:** Remover shim quando referencias a GEMMA forem limpas do pipeline.
 
-| ID | Risk | Module | Detail |
-|----|------|--------|--------|
-| R08 | Diretorios vazios | **[RESOLVIDO]** | `core/scanner/`, `core/mathcore/`, `core/evidence/` totalmente excluídos. |
-| R09 | `financial_prompts.py` overlap parcial | **[RESOLVIDO 2026-05-17]** | `ceo_prompts.py` e `financial_prompts.py` removidos. Builder unificado em `prompts/builder.py`. |
-| R10 | `math/indicators.py` vs `engine/indicators.py` overlap | **[RESOLVIDO]** | `core/engine/` removido. Fonte canônica agora é apenas `core/math/`. |
-| R11 | 55 env vars sem centralizacao | **[RESOLVIDO]** | Centralizado em `.env.example` mapeado e documentado. |
-| R12 | `scripts/server.py` orphan | **[RESOLVIDO]** | Arquivo órfão expurgado. |
-| R16 | Falso Positivo no Ticker Router | **[RESOLVIDO]** | `intents.py` sequestrava siglas (ITM, XYZ) como tickers. Arrumado com delimitações de Regex. |
+### R4 — core/trading/ Desconectado (MEDIUM)
+- **O que:** `src/core/trading/` (10 modulos: broker, kill_switch, order_builder, RL...) nao esta integrado ao pipeline principal.
+- **Impacto:** Codigo mantido mas nao exercitado. Pode apodrecer.
+- **Mitigacao:** Conectar ao pipeline ou arquivar como experimental.
 
-## Low (P3)
+### R5 — technical_neural Desconectado (LOW)
+- **O que:** `src/experts/technical_neural/` (torch_mlp.py, neural_expert.py) nao integrado ao pipeline.
+- **Impacto:** Codigo morto funcional.
+- **Mitigacao:** Integrar ao pipeline ou arquivar.
 
-| ID | Risk | Module | Detail |
-|----|------|--------|--------|
-| R13 | Docs em `docs/architecture/archives/` | Varios .md | Reports de auditoria antigos. Podem conter info desatualizada. |
-| R14 | `docs/internal/SECURITY_LEAKED_KEYS.md` | docs/ | Documenta keys vazadas. Deve estar em .gitignore ou removido se as keys foram rotacionadas. |
+### R6 — Archive com Codigo Vivo (LOW)
+- **O que:** `archive/deprecated/` e `archive/quarantine/` contem SpiderSense e EpisodeMemory antigos.
+- **Impacto:** Nenhum — nao sao importados. Mas ocupam espaco e confundem.
+- **Mitigacao:** Nenhuma necessaria. Archive e seguro.
+
+### R7 — .env com API Keys no Disco (HIGH)
+- **O que:** `.env` contem 12+ API keys em plaintext.
+- **Impacto:** Se o arquivo vazar (git, backup, screen share), todas as keys sao comprometidas.
+- **Mitigacao:** `.env` esta no `.gitignore`. Verificar se `.env.example` nao tem secrets.
+
+## Riscos Mitigados
+
+- ~~Branch paralela `f51/reclamation-runtime`~~ — Deletada 2026-05-17.
+- ~~Modelos velhos (Gemma 31B, Qwen3.6-27B)~~ — Movidos para `Desktop/modelos antigos/`.
+- ~~GGUF sem MTP~~ — SHA256 confirmado: GGUF novo com tensores MTP.

@@ -1,17 +1,31 @@
 {
-  "date_local": "2026-05-17T14:44:51-04:00",
-  "session": "blood_pact_operational_runtime_confirmation",
+  "date_local": "2026-05-17T15:30:00-04:00",
+  "session": "f51-inventory",
   "status": "COMPLETED",
   "what_was_done": [
-    "Confirmed that the F51_Blood_Pact_Operational_Runtime contract already exists in .f51/contracts/f51-blood-pact-operational-runtime.json.",
-    "Validated that the contract JSON and checkpoint JSON are parseable.",
-    "Confirmed the contract file and latest checkpoint are tracked by Git.",
-    "Registered the active operating rule: one main project, one main branch, one main objective, with no new front opened without checkpoint."
+    "Executado /f51-inventory completo do repositorio SuperEzio.",
+    "Mapeados 98 modulos Python, 22 arquivos de teste, 17 scripts, 3 configs, 18 docs.",
+    "Classificados itens: 52 core, 4 app, 14 pipeline, 6 config, 22 test, 18 doc, 12 experimental, 5 duplicate, 7 deprecated.",
+    "Identificadas 3 duplicatas criticas: VeracityGate (3x), gemma.py shim, SpiderSense/EpsiodeMemory arquivados.",
+    "Identificados 2 configs stale: model_manifest.json (Gemma), runtime.yml (sem CEO local).",
+    "Gerados 6 artefatos: INVENTORY.json, RISK_REGISTER.md, ENTRYPOINT_MAP.md, CONFIG_MAP.md, TEST_MAP.md, DUPLICATE_MAP.md.",
+    "510 testes coletados; modelo ativo: Qwen3.6-35B F51 (GGUF 20.22GB, MTP ok).",
+    "Branch f51/reclamation-runtime deletada; modelos velhos movidos para Desktop/modelos antigos/."
   ],
-  "evidence": "PowerShell ConvertFrom-Json parsed both .f51/contracts/f51-blood-pact-operational-runtime.json and .f51/checkpoints/latest.json. git ls-files shows both files are tracked. git status was clean before this checkpoint update.",
+  "evidence": [
+    "mcp__filesystem__directory_tree em src/, tests/, scripts/, docs/, config/, .f51/, desktop/, data/.",
+    "SHA256 do GGUF: 315138F8... confirmado como GGUF novo com MTP tensors.",
+    "git status limpo apos limpeza.",
+    "python -m pytest tests/ -q --co coletou 510 testes.",
+    "Nenhum arquivo de produto foi editado, movido ou apagado."
+  ],
   "risks": [
-    "No product code, runtime command, dependency, or public API was changed.",
-    "Operational risk remains if future sessions ignore the decision gate before starting new products, models, MCP installs, agent creation, major refactors, or purchases."
+    "R1 (HIGH): config/model_manifest.json e config/runtime.yml stale — referenciam Gemma, nao Qwen3.6.",
+    "R2 (MEDIUM): VeracityGate triplicado em f51/gates.py, core/investor/veracity_gate.py, experts/pennylab/experts/veracity_gate.py.",
+    "R3 (LOW): prompts/gemma.py e shim GEMMA=QWEN — confuso mas funcional.",
+    "R4 (MEDIUM): core/trading/ (10 modulos) desconectado do pipeline principal.",
+    "R5 (LOW): technical_neural/ desconectado do pipeline.",
+    "R7 (HIGH): .env com 12+ API keys em plaintext no disco."
   ],
-  "next_step": "Continue with the single active objective: forward testing and delivery hardening. Before any code change, run inventory, contract, runtime, test, risk-register, and checkpoint checks."
+  "next_step": "Executar /f51-executor para patches cirurgicos: (1) remover shim gemma.py, (2) atualizar configs stale, (3) consolidar VeracityGate imports. Ou /f51-auditor para auditoria sem edicao."
 }

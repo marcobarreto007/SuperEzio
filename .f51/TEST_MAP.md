@@ -1,70 +1,96 @@
-# F51 Test Map — SuperEzio
+# Test Map — SuperEzio
 
-Este arquivo mapeia de forma exaustiva a suíte de testes do ecossistema SuperEzio, classificando por tipo, arquivo e comando canônico de execução.
+> Atualizado: 2026-05-17 | Branch: main | 510 testes coletados
 
----
+## Suite Principal (22 arquivos, 510 testes)
 
-## 1. Testes de Contrato (`test`)
+### Smoke & Pipeline (3)
+| Arquivo | Escopo | Tipo |
+|---------|--------|------|
+| `test_pipeline_smoke.py` | Pipeline completo | Smoke |
+| `test_rag_engine_smoke.py` | RAG engine | Smoke |
+| `test_gateway.py` | Model gateway + fallback | Unitario |
 
-Focados na integridade de contratos públicos, schemas e assinaturas de métodos. Garantem compatibilidade e previnem alterações silenciosas de API.
+### Componentes (4)
+| Arquivo | Escopo |
+|---------|--------|
+| `test_components_crisis.py` | CrisisMath (12 modelos) |
+| `test_components_data.py` | Data providers + collector |
+| `test_components_f51.py` | F51 engine, formulas, SpiderSense |
+| `test_components_pennylab.py` | PennyLab (4 experts) |
 
-| Arquivo | Componente / API | Comando Canônico | Descrição |
-|---|---|---|---|
-| `tests/contracts/test_contract_main.py` | Universal Core Contract | `python -m pytest tests/contracts/test_contract_main.py` | Valida assinaturas e conformidade do Universal Core |
-| `tests/contracts/test_contract_endpoints.py` | API Endpoints | `python -m pytest tests/contracts/test_contract_endpoints.py` | Garante integridade do contrato HTTP de `/task/submit` e `/capabilities` |
-| `tests/contracts/test_contract_explanation.py` | Explanation Engine | `python -m pytest tests/contracts/test_contract_explanation.py` | Valida a resposta estruturada do Explanation Engine |
-| `tests/contracts/test_contract_rag.py` | RAG Engine | `python -m pytest tests/contracts/test_contract_rag.py` | Protege os schemas de saída do FraudRAG e do MacroDataset |
+### Motor F51 (3)
+| Arquivo | Escopo |
+|---------|--------|
+| `test_f51_engine.py` | F51Engine.run() — contrato publico |
+| `test_f51_formulas.py` | Formulas matematicas canonicas |
+| `test_math.py` | Indicadores tecnicos (SMA, MACD, RSI, BB) |
 
----
+### Experts (3)
+| Arquivo | Escopo |
+|---------|--------|
+| `test_crisis.py` | Crisis expert models |
+| `test_pennylab.py` | PennyLab experts |
+| `test_neural_decision.py` | Neural decision expert |
 
-## 2. Testes de Componentes e Integração (`test`)
+### Contratos (5)
+| Arquivo | Escopo |
+|---------|--------|
+| `contracts/test_contract_endpoints.py` | API endpoints |
+| `contracts/test_contract_explanation.py` | Explanation engine |
+| `contracts/test_contract_main.py` | Agent server main |
+| `contracts/test_contract_rag.py` | RAG forense |
+| `contracts/test_trading_losses.py` | Trading losses math |
 
-Testes que validam o comportamento e a comunicação inter-módulo de componentes acoplados sem dependência de serviços externos reais (usando mocks controlados de infraestrutura).
+### Trading/RL (5)
+| Arquivo | Escopo | Status |
+|---------|--------|--------|
+| `test_trading_loop1.py` | Trading loop 1 | Experimental |
+| `test_trading_loop2.py` | Trading loop 2 | Experimental |
+| `test_trading_loop3.py` | Trading loop 3 | Experimental |
+| `test_trading_loop4.py` | Trading loop 4 | Experimental |
+| `test_trading_loop5.py` | RL reward + LoRA training | Experimental |
 
-| Arquivo | Módulo Alvo | Comando Canônico | Descrição |
-|---|---|---|---|
-| `tests/test_components_crisis.py` | `experts/crisis/` | `python -m pytest tests/test_components_crisis.py` | Valida a lógica de integração do Comitê de Crise e normalizações |
-| `tests/test_components_data.py` | `core/data_collector/` | `python -m pytest tests/test_components_data.py` | Valida o fluxo do coletor de evidências e scrapers locais |
-| `tests/test_components_f51.py` | `core/f51_adapter/` | `python -m pytest tests/test_components_f51.py` | Valida o adaptador de regras F51 e conformidade da Tríade |
-| `tests/test_components_pennylab.py` | `experts/pennylab/` | `python -m pytest tests/test_components_pennylab.py` | Valida a integração das regras de penny stock e whales do PennyLab |
+### Sanitizer (1)
+| Arquivo | Escopo |
+|---------|--------|
+| `test_model_sanitizer.py` | Model output sanitizer |
 
----
+### Helpers (1)
+| Arquivo | Escopo |
+|---------|--------|
+| `helpers.py` | Funcoes auxiliares compartilhadas |
 
-## 3. Testes Unitários de Lógica e Matemática (`test`)
+### Config (1)
+| Arquivo | Escopo |
+|---------|--------|
+| `conftest.py` | Fixtures pytest (session, event loop) |
 
-Testes puramente funcionais e determinísticos focados em algoritmos matemáticos, fórmulas, normalização de dados e heurísticas sem efeitos colaterais.
+## Cobertura por Modulo
 
-| Arquivo | Módulo Alvo | Comando Canônico | Descrição |
-|---|---|---|---|
-| `tests/test_math.py` | `core/math/` | `python -m pytest tests/test_math.py` | Valida utilitários matemáticos e desvios de volatilidade |
-| `tests/test_crisis.py` | `experts/crisis/logic/` | `python -m pytest tests/test_crisis.py` | Valida a matemática de Minsky Keen, Shiller, LPPs e outros 10 modelos de estresse |
-| `tests/test_f51_formulas.py` | `src/f51/formulas.py` | `python -m pytest tests/test_f51_formulas.py` | Valida cálculos e limites de fórmulas F51 |
-| `tests/test_f51_engine.py` | `src/f51/` | `python -m pytest tests/test_f51_engine.py` | Valida gates, detectores e pontuação F51 |
-| `tests/test_pennylab.py` | `experts/pennylab/experts/` | `python -m pytest tests/test_pennylab.py` | Valida algoritmos de Whale Print, Volume Spike e Pump and Dump |
-| `tests/test_model_sanitizer.py` | `core/model_serving/sanitizer.py` | `python -m pytest tests/test_model_sanitizer.py` | Valida a sanitização de inputs de prompt e remoção de injeções |
-| `tests/test_gateway.py` | `core/model_serving/gateway.py` | `python -m pytest tests/test_gateway.py` | Valida o gateway de modelos e balanceador de carga |
-| `tests/test_rag_engine_smoke.py` | `core/rag/` | `python -m pytest tests/test_rag_engine_smoke.py` | Smoke-test rápido de vetores locais e embeddings |
+| Modulo | Testes | Status |
+|--------|--------|--------|
+| `src/f51/` | test_f51_engine, test_f51_formulas, test_components_f51 | Coberto |
+| `src/core/math/` | test_math, contracts/test_trading_losses | Coberto |
+| `src/core/pipeline/` | test_pipeline_smoke | Coberto |
+| `src/core/model_serving/` | test_gateway, test_model_sanitizer | Coberto |
+| `src/core/rag/` | test_rag_engine_smoke | Coberto |
+| `src/experts/crisis/` | test_crisis, test_components_crisis | Coberto |
+| `src/experts/pennylab/` | test_pennylab, test_components_pennylab | Coberto |
+| `src/experts/neural_decision/` | test_neural_decision | Coberto |
+| `src/data/` | test_components_data | Coberto |
+| `src/agent_server/` | contracts/* | Coberto |
+| `src/core/trading/` | test_trading_loop1-5 | Experimental |
+| `src/core/investor/` | — | Nao testado diretamente |
+| `src/core/config/` | — | Nao testado diretamente |
+| `src/core/observability/` | — | Nao testado |
+| `src/core/security/` | — | Nao testado |
+| `src/core/explanation/` | contracts/test_contract_explanation | Coberto |
+| `src/core/f51_adapter/` | test_components_f51 | Coberto |
+| `src/experts/technical_neural/` | — | Nao testado |
 
----
-
-## 4. Testes de Fluxo e Loop de Negócio (`test`)
-
-Simulações completas de trading e pipelines de decisão executando fluxos seqüenciais determinísticos (Trading Loops) para atestar a estabilidade operacional da lógica principal de negócios.
-
-| Arquivo | Escopo | Comando Canônico | Descrição |
-|---|---|---|---|
-| `tests/test_pipeline_smoke.py` | Pipeline Geral | `python -m pytest tests/test_pipeline_smoke.py` | Smoke-test da execução seqüencial do pipeline |
-| `tests/test_trading_loop1.py` | Trading Loop 1 | `python -m pytest tests/test_trading_loop1.py` | Loop básico de decisões determinísticas baseadas em evidências |
-| `tests/test_trading_loop2.py` | Trading Loop 2 | `python -m pytest tests/test_trading_loop2.py` | Simulação de trading com comitê de risco P2 |
-| `tests/test_trading_loop3.py` | Trading Loop 3 | `python -m pytest tests/test_trading_loop3.py` | Fluxo de estresse macroeconômico com comitê de crise |
-| `tests/test_trading_loop4.py` | Trading Loop 4 | `python -m pytest tests/test_trading_loop4.py` | Loop de decisão de penny-stocks sob monitoramento forense |
-| `tests/test_trading_loop5.py` | Trading Loop 5 | `python -m pytest tests/test_trading_loop5.py` | Execução integrada com múltiplos coletores assíncronos em concorrência |
-
----
-
-## 5. Comando Geral de Evidência
-
-Para rodar **toda a suíte de testes de forma concisa** e verificar regressões:
-```bash
-python -m pytest tests/ -q
-```
+## Politica de Testes
+- Deterministicos (sem random seed nao fixada)
+- Sem mock de LLM
+- Sem dependencia de rede para unitarios
+- CEO tests requerem modelo local (podem falhar se offline)

@@ -1,46 +1,62 @@
-# F51 Entrypoint Map — SuperEzio
-Generated: 2026-05-15
+# Entrypoint Map — SuperEzio
 
-## Production EntryPoints
+> Atualizado: 2026-05-17 | Branch: main
 
-| EntryPoint | File | Trigger | Description |
-|---|---|---|---|
-| Agent Server | `src/agent_server/main.py` | `python -m agent_server.main` | FastAPI server (uvicorn). A2A protocol + EdgeGateway. Env: `A2A_PORT` (default 8002), `A2A_BIND` (default 127.0.0.1) |
+## Entrypoints Principais
 
-## Utility EntryPoints
+### 1. Agent Server (FastAPI)
+- **Comando:** `python -m agent_server.main`
+- **Porta:** 8002 (configuravel via `SUPEREZIO_PORT`)
+- **Host:** 127.0.0.1
+- **Arquivo:** `src/agent_server/main.py`
+- **Protocolo:** A2A (Agent-to-Agent) via SSE + REST
+- **Frontend:** `frontend/` servido como static files
+- **Health:** `/health` (deep check: GPU, modelos, providers, cache)
 
-| EntryPoint | File | Trigger | Description |
-|---|---|---|---|
-| PennyLab CLI | `src/experts/pennylab/cli.py` | `python -m experts.pennylab.cli` | CLI para analise penny stock |
-| Data Hub | `src/data/data_hub.py` | `python src/data/data_hub.py` | Runner standalone do data hub |
-| Subprocess Collector | `src/adapters/data_collector/subprocess_collector.py` | subprocess spawn | Coleta dados em subprocess isolado |
+### 2. CEO Local Server (llama.cpp)
+- **Comando:** `.\scripts\serve_ceo_llamacpp.ps1`
+- **Porta:** 8082
+- **Modelo:** `models/qwen36-35b-f51.Q4_K_M.gguf`
+- **Backend:** llama-server.exe (llama.cpp)
+- **API:** OpenAI-compatible em `/v1`
+- **GPU:** 20 camadas na RTX 5060 Ti 16GB
+- **Speculative:** MTP draft (built-in)
+- **Contexto:** 32768 tokens
 
-## Console Scripts (pyproject.toml)
+### 3. Launcher (Desktop)
+- **Arquivo:** `desktop/SuperEzio.bat`
+- **Funcao:** Limpa portas 8002/8082, inicia CEO, inicia API, abre navegador
 
-**Nenhum definido.** Nao ha `[project.scripts]` no pyproject.toml.
+## Entrypoints Secundarios
 
-## Comandos Registrados (CLAUDE.md)
+### 4. Merge LoRA → GGUF
+- **Comando:** `python scripts/merge_qwen36_lora.py --base Qwen/Qwen3.6-35B-A3B --adapter checkpoint-N --output merged-model`
+- **Requisito:** 98GB+ VRAM (RTX PRO 6000 S)
 
-```bash
-python -m agent_server.main          # Servidor principal
-python -m pytest tests/ -q           # 344 testes deterministicos
-python -m ruff check src tests       # Lint
-```
+### 5. Fine-tuning SFT
+- **Qwen3.6:** `python scripts/finetune_qwen36_sft.py`
+- **Rapido:** `python scripts/train_qwen36_3h.py`
 
-## Pipeline (Internal)
+### 6. Avaliacao
+- **Pipeline:** `python scripts/eval_pipeline.py`
+- **Benchmark:** `python scripts/financial_quality_benchmark.py`
+- **Trick questions:** `python scripts/trick_questions_test.py`
 
-| EntryPoint | File | Description |
-|---|---|---|
-| `create_pipeline()` | `src/core/pipeline/runtime.py` | Factory que instancia `UniversalPipeline` |
-| `UnifiedPipeline` | `src/core/pipeline/runtime.py` | Alias para `UniversalPipeline` |
-| `UniversalPipeline` | `src/core/pipeline/runtime.py` | Classe principal com `chat()`, `chat_sync()`, `stream_events()` |
+### 7. Cloud (Vast.ai)
+- **Setup:** `bash scripts/vastai_setup_qwen36.sh`
+- **Merge:** `bash scripts/cloud_merge_and_quantize.sh`
+- **NEXTN:** `bash scripts/cloud_nextn_pipeline.sh`
 
-## Scripts
+### 8. Testes
+- **Todos:** `python -m pytest tests/ -q`
+- **Smoke:** `python -m pytest tests/test_pipeline_smoke.py -q`
+- **Componentes:** `python -m pytest tests/test_components_*.py -q`
 
-| Script | File | Status |
-|---|---|---|
-| `build_hf_intent_dataset.py` | `scripts/` | Utilidade de ML dataset |
-| `finetune_glm_sft.py` | `scripts/` | Fine-tuning GLM |
-| `eval_pipeline.py` | `scripts/` | Avaliacao de pipeline |
-| `financial_quality_benchmark.py` | `scripts/` | Benchmark de qualidade financeira |
-| `server.py` | `scripts/` | **Orfao** — nao referenciado |
+## Entrypoints Deprecated
+
+| Arquivo | Motivo |
+|---------|--------|
+| `scripts/finetune_glm_sft.py` | GLM-4.7 abandonado |
+| `scripts/finetune_gemma_sft.py` | Gemma 4 abandonado |
+| `scripts/vastai_setup_gemma.sh` | Gemma abandonado |
+| `scripts/__pycache__/serve_ceo.cpython-312.pyc` | Cache orfa de serve_ceo.py removido |
