@@ -100,7 +100,7 @@ async def node_f51_verdict(state: dict) -> dict:
                     "lppls_bubble",
                 ],
             )
-            if crisis_result.get("models_ok", 0) > 0:
+            if (crisis_result.get("models_ok") or 0) > 0:
                 verdict["crisis"] = crisis_result
                 writer(
                     {
