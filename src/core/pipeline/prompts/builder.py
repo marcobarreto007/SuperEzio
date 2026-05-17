@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from ..contracts import PipelineState
 
-from .gemma import MODEL_PROMPTS, SAFE_ACTIONS
+from .gemma import MODEL_PROMPTS
 
 
 # ---------------------------------------------------------------------------
@@ -42,15 +42,13 @@ def _ceo_assistant_prefix(state: PipelineState) -> str:
         )
     if ticker:
         return (
-            f"## Institutional Quantitative Analysis - {ticker}\n\n"
-            "### Executive Summary\n\n"
-            "Based on verified DataCollector evidence:\n"
+            "VERDICT: "
         )
     has_data = bool(ticker or state.get("data_context") or state.get("expert_summary"))
     if intent == "general_question" and not has_data:
         return ""
     return (
-        "## Quantitative Analysis\n\n### Key Findings\n\nBased on verified evidence:\n"
+        "## Analysis\n\n"
     )
 
 
@@ -234,14 +232,48 @@ def build_ceo_prompt(
         )
 
     # ── Structured analysis ──
+    # Extract time horizon from the user message
+    _horizon_match = re.search(
+        r"(\d+)\s*(day|days|week|weeks|month|months)",
+        raw_message,
+        re.IGNORECASE,
+    )
+    _horizon_text = (
+        f"\nTIME_HORIZON: user asked about {_horizon_match.group(0)}"
+        if _horizon_match
+        else ""
+    )
+
     parts = [
-        "You are the CEO of SuperEzio (Bob), an institutional financial analysis platform. "
-        "Analyze penny stocks, detect fraud, assess risk. Be direct and quantitative. "
-        "Cite evidence from DataCollector. If evidence is missing, say what is missing. "
-        "Answer in English only, 2 paragraphs max. "
-        f"Pick one next step: {SAFE_ACTIONS}.",
+        "You are the CEO of SuperEzio (Bob). You decide BUY, SELL, or HOLD. "
+        "You are a TRADING DECISION ENGINE. The user is putting real money on the line "
+        "and wants YOUR OPINION — not a data report, not a WATCHLIST, not a hedge.\n\n"
+        "MANDATORY FORMAT:\n"
+        "```\n"
+        "VERDICT: BUY / SELL / HOLD\n"
+        "CONFIDENCE: 0-100%\n"
+        "TIMEFRAME: match user's horizon\n"
+        "ENTRY: current price\n"
+        "TARGET: expected price at end of timeframe\n"
+        "MOVEMENT: expected % gain or drop\n"
+        "STOP LOSS: suggested stop level\n"
+        "```\n\n"
+        "Then explain WHY. Reference EVERY available module below by name:\n"
+        "- DATA: what the DataCollector shows\n"
+        "- PENNYLAB: what forensic experts detected\n"
+        "- EXPERTS: what the expert committee concluded\n"
+        "- RAG_FORENSICS: what historical patterns match\n"
+        "- F51_VERDICT: what the unified scoring says\n\n"
+        "If a module has no data, say '[MODULE] MISSING — confidence reduced'.\n"
+        "If a module has data, interpret it into a trading signal.\n\n"
+        "RULES:\n"
+        "- ALWAYS give BUY, SELL, or HOLD — never refuse\n"
+        "- Give a NUMERIC price target and % movement\n"
+        "- Cite evidence_ids for every claim\n"
+        "- Be AGGRESSIVE in your interpretation — the user wants conviction\n"
+        "- Answer in English only",
         "",
-        f"TASK: {raw_message}",
+        f"TASK: {raw_message}{_horizon_text}",
         f"INTENT: {intent} route={route}",
     ]
 
