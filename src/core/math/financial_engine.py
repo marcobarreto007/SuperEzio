@@ -169,8 +169,8 @@ def _compute_stoch(
     if len(closes) < period:
         return 50.0, 50.0
     h = max(highs[-period:])
-    l = min(lows[-period:])
-    if h == l:
+    lo = min(lows[-period:])
+    if h == lo:
         return 50.0, 50.0
-    k = 100.0 * (closes[-1] - l) / (h - l)
+    k = 100.0 * (closes[-1] - lo) / (h - lo)
     return round(k, 1), round(k, 1)

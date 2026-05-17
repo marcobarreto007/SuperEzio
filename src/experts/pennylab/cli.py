@@ -72,7 +72,7 @@ def cmd_ticker(args: argparse.Namespace) -> int:
             print(f"[ERRO] Não foi possível carregar --input: {e}", file=sys.stderr)
             return 1
     else:
-        # Busca dados reais via yfinance
+        # Busca dados reais via DataHub
         print(f"[...] Buscando dados para {ticker}...", file=sys.stderr)
         signal = fetch_signal(ticker)
 
@@ -189,7 +189,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     # --- scan ---
-    p_scan = sub.add_parser("scan", help="Listar tickers candidatos via yfinance")
+    p_scan = sub.add_parser("scan", help="Listar tickers candidatos via DataHub")
     p_scan.add_argument(
         "--max-price",
         type=float,

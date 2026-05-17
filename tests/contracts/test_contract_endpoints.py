@@ -40,18 +40,17 @@ def test_sanitize_ticker_invalid_raises():
 def test_build_ohlcv():
     from agent_server.endpoints import _build_ohlcv
 
-    import pandas as pd
-
-    df = pd.DataFrame(
+    candles = [
         {
-            "Open": [150.0],
-            "High": [155.0],
-            "Low": [149.0],
-            "Close": [153.0],
-            "Volume": [1000000],
+            "time": "2024-01-15 10:30:00",
+            "open": 150.0,
+            "high": 155.0,
+            "low": 149.0,
+            "close": 153.0,
+            "volume": 1000000,
         }
-    )
-    result = _build_ohlcv(df)
+    ]
+    result = _build_ohlcv(candles)
     assert isinstance(result, list)
     assert len(result) == 1
     assert result[0]["open"] == 150.0

@@ -5,7 +5,7 @@ Usa a infraestrutura já existente no projeto:
 
   Fonte primária:  DataHub (Twelve Data → Alpha Vantage) → preço real-time
   Dados completos: DataCollector.collect_all() → 10 fontes em paralelo
-  Fallback final:  yfinance (só se tudo acima falhar)
+  Fallback final:  DataHub candles + profile (substitui yfinance)
 
 Princípio: nunca depender de uma fonte só. O DataHub já faz fallback
 automático entre providers. O DataCollector agrega tudo com timeout.
@@ -131,52 +131,50 @@ def _map_collector_to_signal(ticker: str, data: Dict[str, Any]) -> SignalInput:
     )
 
 
-def _try_yfinance(ticker: str) -> Optional[SignalInput]:
-    """Fallback final: yfinance. Só usado se DataHub E DataCollector falharem."""
+def _try_hub_fallback(ticker: str) -> Optional[SignalInput]:
+    """Fallback final: DataHub candles + profile (substitui yfinance)."""
     try:
-        import yfinance as yf
+        from data.data_hub import hub
 
-        t = yf.Ticker(ticker)
-        info = t.info or {}
+        quote = hub.get_quote(ticker)
+        if "error" in quote:
+            return None
 
-        price = _safe_float(info.get("currentPrice") or info.get("regularMarketPrice"))
+        price = _safe_float(quote.get("price"))
         if price is None:
-            hist = t.history(period="5d")
-            if hist.empty:
-                return None
-            price = float(hist["Close"].iloc[-1])
-            prev_close = float(hist["Close"].iloc[-2]) if len(hist) >= 2 else price
-            volume = int(hist["Volume"].iloc[-1])
-            avg_volume = (
-                int(hist["Volume"].tail(10).mean()) if len(hist) >= 1 else volume
-            )
-        else:
-            prev_close = _safe_float(
-                info.get("previousClose") or info.get("regularMarketPreviousClose")
-            )
-            volume = _safe_int(info.get("volume") or info.get("regularMarketVolume"))
-            avg_volume = _safe_int(
-                info.get("averageVolume") or info.get("averageDailyVolume10Day")
-            )
+            return None
+
+        prev_close = None
+        volume = _safe_int(quote.get("volume"))
+
+        # Try to get additional profile data
+        market_cap = None
+        shares_float = None
+        try:
+            profile = hub.get_profile(ticker)
+            if "error" not in profile:
+                market_cap = _safe_float(profile.get("market_cap"))
+        except Exception:
+            pass
 
         return SignalInput(
             ticker=ticker,
             price=price,
             prev_close=prev_close,
             volume=volume,
-            avg_volume_10d=avg_volume,
-            market_cap=_safe_float(info.get("marketCap")),
-            bid=_safe_float(info.get("bid")),
-            ask=_safe_float(info.get("ask")),
-            shares_float=_safe_int(info.get("floatShares") or info.get("sharesFloat")),
+            avg_volume_10d=None,
+            market_cap=market_cap,
+            bid=None,
+            ask=None,
+            shares_float=shares_float,
             data_quality=DataQuality.REAL,
-            source="yfinance:fallback",
+            source="datahub:fallback",
             as_of=datetime.now(timezone.utc).isoformat(),
         )
     except ImportError:
-        logger.debug("yfinance não instalado")
+        logger.debug("DataHub não disponível")
     except Exception as e:
-        logger.debug(f"yfinance falhou para {ticker}: {e}")
+        logger.debug(f"DataHub fallback falhou para {ticker}: {e}")
 
     return None
 
@@ -187,8 +185,8 @@ def fetch_signal(ticker_symbol: str, fast: bool = False) -> SignalInput:
 
     Ordem de fallback:
       1. DataCollector (10 fontes em paralelo) — dados completos com volume, técnicos, perfil
-      2. DataHub (Twelve Data → Alpha Vantage) + yfinance complementar
-      3. yfinance puro — último recurso
+      2. DataHub (Twelve Data → Alpha Vantage) — preço real-time
+      3. DataHub fallback (quote + profile) — último recurso
 
     Se fast=True, pula DataCollector e vai direto pra DataHub (mais rápido).
 
@@ -203,7 +201,6 @@ def fetch_signal(ticker_symbol: str, fast: bool = False) -> SignalInput:
         if signal is not None and signal.price is not None:
             return signal
         if signal is not None:
-            # DataCollector retornou mas sem preço — complementa com DataHub
             hub_signal = _try_datahub(ticker_symbol)
             if hub_signal is not None:
                 signal.price = hub_signal.price
@@ -211,26 +208,24 @@ def fetch_signal(ticker_symbol: str, fast: bool = False) -> SignalInput:
             if signal.price is not None:
                 return signal
 
-    # Tier 2: DataHub (rápido, preço real-time) + yfinance para volume
+    # Tier 2: DataHub (rápido, preço real-time)
     hub_signal = _try_datahub(ticker_symbol)
     if hub_signal is not None:
-        # Enriquece com yfinance para volume/bid/ask/float
-        yf_signal = _try_yfinance(ticker_symbol)
-        if yf_signal is not None:
-            hub_signal.volume = hub_signal.volume or yf_signal.volume
-            hub_signal.avg_volume_10d = (
-                hub_signal.avg_volume_10d or yf_signal.avg_volume_10d
-            )
-            hub_signal.bid = hub_signal.bid or yf_signal.bid
-            hub_signal.ask = hub_signal.ask or yf_signal.ask
-            hub_signal.prev_close = hub_signal.prev_close or yf_signal.prev_close
-            hub_signal.market_cap = hub_signal.market_cap or yf_signal.market_cap
-            hub_signal.shares_float = hub_signal.shares_float or yf_signal.shares_float
-            hub_signal.source = f"{hub_signal.source}+yf_enriched"
+        # Enriquece com hub fallback para volume/profile
+        fb_signal = _try_hub_fallback(ticker_symbol)
+        if fb_signal is not None:
+            hub_signal.volume = hub_signal.volume or fb_signal.volume
+            hub_signal.avg_volume_10d = hub_signal.avg_volume_10d or fb_signal.avg_volume_10d
+            hub_signal.bid = hub_signal.bid or fb_signal.bid
+            hub_signal.ask = hub_signal.ask or fb_signal.ask
+            hub_signal.prev_close = hub_signal.prev_close or fb_signal.prev_close
+            hub_signal.market_cap = hub_signal.market_cap or fb_signal.market_cap
+            hub_signal.shares_float = hub_signal.shares_float or fb_signal.shares_float
+            hub_signal.source = f"{hub_signal.source}+hub_enriched"
         return hub_signal
 
-    # Tier 3: yfinance puro
-    signal = _try_yfinance(ticker_symbol)
+    # Tier 3: DataHub fallback puro
+    signal = _try_hub_fallback(ticker_symbol)
     if signal is not None:
         return signal
 
@@ -296,7 +291,7 @@ def scan_penny_stocks(
 ) -> ScanResult:
     """
     Escaneia tickers da watchlist filtrando por preço e volume.
-    Usa a stack real do SuperEzio (DataHub → DataCollector → yfinance).
+    Usa a stack real do SuperEzio (DataHub → DataCollector).
     """
     candidates: List[str] = []
     skipped: int = 0

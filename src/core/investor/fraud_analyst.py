@@ -2,7 +2,7 @@
 FraudPatternAnalyst — Especialista de detecção de padrões de fraude/manipulação
 =================================================================================
 Consulta a base local de padrões históricos (FraudManipulationMemory) e compara
-o ativo atual com red flags conhecidas usando dados computáveis do yfinance.
+o ativo atual com red flags conhecidas usando dados computáveis do DataHub.
 
 REGRAS DE LINGUAGEM OBRIGATÓRIAS:
   ✅ "red flags resembling known manipulation patterns"
@@ -95,7 +95,7 @@ class FraudPatternAnalyst:
         Args:
             ticker: Símbolo do ativo (ex: ENB.TO, AAPL, XYZ.V).
             market_data: Dados de mercado pré-computados (opcional).
-                         Se None, busca via yfinance em thread separada.
+                         Se None, busca via DataHub em thread separada.
 
         Returns:
             Dicionário com risk_score, matched_patterns, limitations, etc.
@@ -105,7 +105,7 @@ class FraudPatternAnalyst:
         normalized_market_data = self._normalize_market_data_input(ticker, market_data)
         fetch_limitations: list[str] = []
 
-        # Obter dados de mercado ou enriquecer o payload parcial com yfinance.
+        # Obter dados de mercado ou enriquecer o payload parcial com DataHub.
         if market_data is None or self._needs_market_fetch_enrichment(
             normalized_market_data
         ):
@@ -117,7 +117,7 @@ class FraudPatternAnalyst:
                     normalized_market_data = fetched_market_data
                 else:
                     fetch_limitations.append(
-                        f"market_data_enrichment_failed: Could not enrich whale/rule signals from yfinance "
+                        f"market_data_enrichment_failed: Could not enrich whale/rule signals from DataHub "
                         f"({fetched_market_data.get('error', 'unknown error')})"
                     )
             else:
@@ -156,7 +156,7 @@ class FraudPatternAnalyst:
         # Limitação de fetch de dados
         if fetch_failed:
             fetch_limitations.append(
-                f"market_data_fetch_failed: Could not retrieve market data from yfinance "
+                f"market_data_fetch_failed: Could not retrieve market data from DataHub "
                 f"({normalized_market_data.get('error', 'unknown error')}) — "
                 "computable rules were not evaluated"
             )
@@ -368,55 +368,56 @@ class FraudPatternAnalyst:
     # ------------------------------------------------------------------
 
     async def _fetch_market_data(self, ticker: str) -> dict[str, Any]:
-        """Busca dados leves do yfinance em thread pool (não bloqueia o event loop)."""
+        """Busca dados de mercado via DataHub em thread pool (não bloqueia o event loop)."""
         try:
             return await asyncio.to_thread(self._fetch_market_data_sync, ticker)
         except Exception as exc:
             return {"error": str(exc), "ticker": ticker}
 
     def _fetch_market_data_sync(self, ticker: str) -> dict[str, Any]:
-        """Execução síncrona do yfinance (chamada em thread separada)."""
-        import yfinance as yf  # import local para evitar delay no startup
-
-        t = yf.Ticker(ticker)
-        hist = t.history(period="3mo")
-
-        if hist is None or hist.empty:
-            return {"error": "no_history_data", "ticker": ticker}
+        """Execução síncrona via DataHub (chamada em thread separada)."""
+        from data.data_hub import hub
 
         today_str = date.today().isoformat()
 
-        # Volume statistics (20-day rolling)
-        vol_series = hist["Volume"]
-        if len(vol_series) < 5:
+        candles_result = hub.get_candles(ticker, timeframe="3M")
+        if "error" in candles_result:
+            return {"error": str(candles_result.get("error")), "ticker": ticker}
+
+        candles = candles_result.get("candles", [])
+        if len(candles) < 5:
             return {"error": "insufficient_history", "ticker": ticker}
 
-        recent_vol = float(vol_series.iloc[-1])
-        avg_vol_20d = float(
-            vol_series.rolling(min(20, len(vol_series))).mean().iloc[-1]
-        )
-        std_vol_20d = float(vol_series.rolling(min(20, len(vol_series))).std().iloc[-1])
+        # Volume statistics
+        volumes = [c["volume"] for c in candles]
+        recent_vol = volumes[-1]
+        window = min(20, len(volumes))
+        avg_vol_20d = sum(volumes[-window:]) / window
+        variance = sum((v - avg_vol_20d) ** 2 for v in volumes[-window:]) / window
+        std_vol_20d = variance ** 0.5
         volume_z_score = (
             (recent_vol - avg_vol_20d) / std_vol_20d if std_vol_20d > 0 else 0.0
         )
 
         # Daily price return
-        close = hist["Close"]
-        daily_return = (
-            float((close.iloc[-1] - close.iloc[-2]) / close.iloc[-2])
-            if len(close) >= 2 and close.iloc[-2] != 0
-            else 0.0
-        )
+        closes = [c["close"] for c in candles]
+        if len(closes) >= 2 and closes[-2] != 0:
+            daily_return = float((closes[-1] - closes[-2]) / closes[-2])
+        else:
+            daily_return = 0.0
 
-        # Company info (best-effort — some tickers return minimal info)
+        # Company info via profile
+        market_cap = None
+        description = ""
+        revenue = None
         try:
-            info = t.info or {}
+            profile = hub.get_profile(ticker)
+            if "error" not in profile:
+                market_cap = profile.get("market_cap")
+                description = ""
+                revenue = None
         except Exception:
-            info = {}
-
-        market_cap = info.get("marketCap", None)
-        description = info.get("longBusinessSummary") or info.get("description") or ""
-        revenue = info.get("totalRevenue", None)
+            pass
 
         return {
             "ticker": ticker,
@@ -428,7 +429,7 @@ class FraudPatternAnalyst:
             "description": description,
             "revenue": revenue,
             "data_date": today_str,
-            "evidence_base_id": f"yfinance_{ticker}_{today_str}_3mo",
+            "evidence_base_id": f"datahub_{ticker}_{today_str}_3mo",
         }
 
     # ------------------------------------------------------------------
@@ -569,13 +570,13 @@ class FraudPatternAnalyst:
         """Returns a limitation note if a required data field is missing."""
         if rule_id in ("microcap_concentration", "price_spike_high_volatility"):
             if market_data.get("market_cap") is None:
-                return f"{rule_id}_skipped: market_cap not available from yfinance for this ticker"
+                return f"{rule_id}_skipped: market_cap not available from DataHub for this ticker"
         if rule_id == "no_revenue_with_operations":
             if market_data.get("revenue") is None:
-                return f"{rule_id}_skipped: totalRevenue not available from yfinance for this ticker"
+                return f"{rule_id}_skipped: totalRevenue not available from DataHub for this ticker"
         if rule_id == "vague_hype_sector_description":
             if not (market_data.get("description") or "").strip():
-                return f"{rule_id}_skipped: company description not available from yfinance for this ticker"
+                return f"{rule_id}_skipped: company description not available from DataHub for this ticker"
         return None
 
     # ------------------------------------------------------------------

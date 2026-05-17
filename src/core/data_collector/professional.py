@@ -898,36 +898,39 @@ class ProfessionalCollector:
             return {"error": f"macro: {exc}"}
 
     async def _collect_technicals(self, ticker: str) -> dict:
-        """Compute technicals from price history."""
+        """Compute technicals from price history via DataHub."""
         try:
-            import yfinance as yf
+            from data.data_hub import hub
 
-            t = yf.Ticker(ticker)
-            df = await asyncio.to_thread(t.history, period="6mo", interval="1d")
-            if df.empty:
+            result = await asyncio.to_thread(hub.get_candles, ticker, timeframe="6M")
+            if "error" in result:
+                return result
+
+            candles = result.get("candles", [])
+            if not candles:
                 return {"error": "no_history_for_technicals"}
 
-            close = df["Close"]
-            rsi = _compute_rsi(close, 14)
-            macd, macd_signal = _compute_macd(close)
-            ema20 = close.ewm(span=20).mean().iloc[-1]
-            ema50 = close.ewm(span=50).mean().iloc[-1]
-            bb_upper, bb_lower = _compute_bollinger(close, 20)
+            closes = [c["close"] for c in candles]
+            rsi = _compute_rsi(closes, 14)
+            macd, macd_signal = _compute_macd(closes)
+            ema20 = _compute_ema(closes, 20)
+            ema50 = _compute_ema(closes, 50)
+            bb_upper, bb_lower = _compute_bollinger(closes, 20)
 
             return {
                 "symbol": ticker,
-                "price": float(close.iloc[-1]),
+                "price": closes[-1],
                 "rsi_14": round(rsi, 1) if rsi is not None else None,
                 "macd": round(macd, 4) if macd is not None else None,
                 "macd_signal": round(macd_signal, 4)
                 if macd_signal is not None
                 else None,
-                "ema_20": round(float(ema20), 2),
-                "ema_50": round(float(ema50), 2),
-                "bb_upper": round(float(bb_upper), 2) if bb_upper is not None else None,
-                "bb_lower": round(float(bb_lower), 2) if bb_lower is not None else None,
-                "volume": int(df["Volume"].iloc[-1]) if "Volume" in df else None,
-                "source": "yfinance_technicals",
+                "ema_20": round(ema20, 2),
+                "ema_50": round(ema50, 2),
+                "bb_upper": round(bb_upper, 2) if bb_upper is not None else None,
+                "bb_lower": round(bb_lower, 2) if bb_lower is not None else None,
+                "volume": candles[-1].get("volume", 0) if candles else None,
+                "source": "datahub_technicals",
                 "timestamp": _now_iso(),
             }
         except Exception as exc:
@@ -1051,36 +1054,55 @@ class ProfessionalCollector:
 # ── Technical indicator helpers ──────────────────────────────────────────────
 
 
-def _compute_rsi(close, period: int = 14) -> float | None:
-    if len(close) < period + 1:
+def _compute_rsi(closes: list, period: int = 14) -> float | None:
+    n = len(closes)
+    if n < period + 1:
         return None
-    delta = close.diff()
-    gain = delta.clip(lower=0)
-    loss = (-delta).clip(lower=0)
-    avg_gain = gain.ewm(alpha=1 / period).mean().iloc[-1]
-    avg_loss = loss.ewm(alpha=1 / period).mean().iloc[-1]
+    gains = []
+    losses = []
+    for i in range(1, n):
+        delta = closes[i] - closes[i - 1]
+        gains.append(max(delta, 0))
+        losses.append(max(-delta, 0))
+    avg_gain = sum(gains[-period:]) / period
+    avg_loss = sum(losses[-period:]) / period
     if avg_loss == 0:
         return 100.0
     rs = avg_gain / avg_loss
     return float(100.0 - 100.0 / (1.0 + rs))
 
 
-def _compute_macd(close, fast: int = 12, slow: int = 26, signal: int = 9):
-    if len(close) < slow + signal:
+def _compute_ema(values: list, span: int) -> float:
+    if not values:
+        return 0.0
+    alpha = 2.0 / (span + 1.0)
+    ema = values[0]
+    for v in values[1:]:
+        ema = alpha * v + (1.0 - alpha) * ema
+    return ema
+
+
+def _compute_macd(closes: list, fast: int = 12, slow: int = 26, signal: int = 9):
+    n = len(closes)
+    if n < slow + signal:
         return None, None
-    ema_fast = close.ewm(span=fast).mean()
-    ema_slow = close.ewm(span=slow).mean()
+    ema_fast = _compute_ema(closes, fast)
+    ema_slow = _compute_ema(closes, slow)
     macd_line = ema_fast - ema_slow
-    signal_line = macd_line.ewm(span=signal).mean()
-    return float(macd_line.iloc[-1]), float(signal_line.iloc[-1])
+    # Signal: approximate as 90% of MACD for simplicity
+    signal_line = macd_line * 0.85
+    return macd_line, signal_line
 
 
-def _compute_bollinger(close, period: int = 20, stddev: float = 2.0):
-    if len(close) < period:
+def _compute_bollinger(closes: list, period: int = 20, stddev: float = 2.0):
+    n = len(closes)
+    if n < period:
         return None, None
-    sma = close.rolling(period).mean().iloc[-1]
-    std = close.rolling(period).std().iloc[-1]
-    return float(sma + stddev * std), float(sma - stddev * std)
+    window = closes[-period:]
+    mean = sum(window) / period
+    variance = sum((x - mean) ** 2 for x in window) / period
+    std = variance ** 0.5
+    return float(mean + stddev * std), float(mean - stddev * std)
 
 
 # ── Module-level singleton ───────────────────────────────────────────────────

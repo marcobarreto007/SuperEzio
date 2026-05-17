@@ -66,7 +66,7 @@ class FraudManipulationMemory:
         return self._rules
 
     def get_computable_rules(self) -> list[dict[str, Any]]:
-        """Regras que podem ser avaliadas com dados disponíveis (yfinance)."""
+        """Regras que podem ser avaliadas com dados disponíveis (DataHub)."""
         self._ensure_loaded()
         return [r for r in self._rules if r.get("computable") is True]
 

@@ -114,7 +114,7 @@ CANNED_DATA_COLLECTED = {
     "reddit": CANNED_REDDIT,
     "macro": CANNED_MACRO_CA,
     "crisis": {"systemic_risk_score": 0.23, "bubble_risk_score": 0.15},
-    "realtime_price": {"price": 187.32, "source": "yfinance"},
+    "realtime_price": {"price": 187.32, "source": "datahub"},
     "quantum": {"simulation_complete": True, "shots": 1000},
     "data_quality": "provider_or_computed",
     "source_errors": [],

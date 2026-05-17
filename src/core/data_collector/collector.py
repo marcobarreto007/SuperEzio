@@ -2,14 +2,14 @@
 Data Collector - Agregador de TODAS as fontes de dados.
 
 Pipeline:
-    1. yfinance → preço, histórico, perfil, indicadores técnicos
+    1. DataHub → preço, histórico, perfil, indicadores técnicos
     2. QuantEngine → Monte Carlo, ML prediction, RSI, SMA
     3. RiskCalculator → VaR, CVaR, Sharpe, Sortino, drawdown
     4. NewsScout → notícias + sentimento (Brave/DuckDuckGo)
     5. RedditPulse → posts qualificados + sentimento social
     6. BoC Valet → Policy Rate, CPI, USD/CAD (Canadá)
     7. Federal Reserve → Fed Funds Rate, CPI, US Treasury (EUA)
-    8. MarketHub → preço real-time (yfinance + Yahoo scrape fallback)
+    8. MarketHub → preço real-time (DataHub + Yahoo scrape fallback)
 
 Multi-mercado: detecta automaticamente pelo sufixo do ticker.
 """
@@ -293,7 +293,7 @@ class DataCollector:
     async def _get_market_data(
         self, ticker: str, per_source_timeout: float = 15.0
     ) -> Dict[str, Any]:
-        """yfinance -> Scraper -> AlphaVantage -> TwelveData com timeout por fonte."""
+        """DataHub -> TwelveData -> AlphaVantage com timeout por fonte."""
 
         async def _safe_fetch(
             source_name: str, fetch_func, timeout: float = per_source_timeout
@@ -386,13 +386,13 @@ class DataCollector:
         date_part = collected_at[:10]
 
         sources = {
-            "technicals": "yfinance_history",
-            "profile": "yfinance_profile",
+            "technicals": "datahub_history",
+            "profile": "datahub_profile",
             "quant": "quant_engine",
             "risk": "risk_calculator",
             "sentiment": "news_scout_multisource",
             "reddit": "reddit_pulse",
-            "macro": "macro_provider_yfinance",
+            "macro": "macro_provider_alphavantage",
             "crisis": "crisis_rag",
             "realtime_price": "market_hub_cascaded",
             "quantum": "quantum_simulation_tricolor",

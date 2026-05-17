@@ -6,7 +6,6 @@ from core.observability.neural_log import log_event
 class RealTimeScraper:
     """
     Fallback scraper para dados em tempo real usando a API interna do Yahoo.
-    Mais rápido e estável que o yfinance oficial para preços pontuais.
     """
 
     def __init__(self):
