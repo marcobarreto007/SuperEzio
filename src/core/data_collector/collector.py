@@ -119,7 +119,7 @@ class DataCollector:
         return self._quant
 
     async def _get_crisis_analysis(self, ticker: str) -> Dict[str, Any]:
-        """Calcula risco sistêmico usando o RAG do MacroDataset (Canadá)."""
+        """Calcula risco sistêmico usando o MacroDataset (Canadá)."""
         try:
             from experts.crisis.expert.crisis_expert import CrisisMathExpert
             from experts.crisis.contracts.schemas import (
@@ -144,7 +144,7 @@ class DataCollector:
             report = await asyncio.to_thread(expert.analyze, input_data)
             return {
                 "report": report.model_dump(mode="json"),
-                "data_source": "MacroDataset_RAG",
+                "data_source": "MacroDataset",
             }
         except Exception as e:
             return {"error": str(e)}

@@ -81,9 +81,22 @@ def test_rag_disabled_env():
     del os.environ["SUPEREZIO_RAG_DISABLED"]
 
 
-def test_fraud_rag_legacy_import():
-    """FraudRAG (legacy keyword search) still importable for backward compat."""
-    from core.rag.fraud_rag import FraudRAG
+def test_fraud_pattern_matcher_import():
+    """FraudPatternMatcher (keyword-based pattern matching) importable."""
+    from core.rag.fraud_rag import FraudPatternMatcher
 
-    rag = FraudRAG()
-    assert rag is not None
+    matcher = FraudPatternMatcher()
+    assert matcher is not None
+
+
+def test_fraud_rag_legacy_alias():
+    """FraudRAG still importable as backward-compat alias for FraudPatternMatcher."""
+    from core.rag.fraud_rag import (
+        FraudPatternMatcher,
+        FraudRAG,
+        fraud_patterns,
+        fraud_rag,
+    )
+
+    assert FraudRAG is FraudPatternMatcher
+    assert fraud_rag is fraud_patterns

@@ -39,7 +39,7 @@ class CrisisMathExpert:
     100% mathematical/quantitative expert for systemic risk detection.
     """
 
-    def __init__(self, notifier=None, fraud_rag=None):
+    def __init__(self, notifier=None, fraud_patterns=None):
         self.sensors = [
             BISCreditGapModel(),
             DebtServiceRatioModel(),
@@ -55,28 +55,28 @@ class CrisisMathExpert:
             HawkesStressModel(),
         ]
         self._notifier = notifier
-        self._fraud_rag = fraud_rag
+        self._fraud_patterns = fraud_patterns
 
     def _get_notifier(self):
         if self._notifier is not None:
             return self._notifier
         return _NoopNotifier()
 
-    def _get_fraud_rag(self):
-        if self._fraud_rag is not None:
-            return self._fraud_rag
+    def _get_fraud_patterns(self):
+        if self._fraud_patterns is not None:
+            return self._fraud_patterns
         try:
-            from core.rag.fraud_rag import fraud_rag
+            from core.rag.fraud_rag import fraud_patterns
 
-            return fraud_rag
+            return fraud_patterns
         except Exception as exc:
-            logger.warning("Fraud RAG unavailable for CrisisMath: %s", exc)
+            logger.warning("Fraud pattern matcher unavailable for CrisisMath: %s", exc)
             return None
 
     def analyze(self, input_data: CrisisInput) -> CrisisReport:
-        # --- RAG de Fraude ---
+        # --- Fraud pattern check ---
         fraud_evidence = []
-        rag = self._get_fraud_rag()
+        rag = self._get_fraud_patterns()
         if input_data.asset_symbol and rag is not None:
             fraud_evidence = rag.search_patterns(input_data.asset_symbol)
         input_data.metadata["fraud_evidence"] = fraud_evidence

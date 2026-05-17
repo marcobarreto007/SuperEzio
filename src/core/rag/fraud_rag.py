@@ -10,9 +10,11 @@ from core.paths import resolve_project_path
 logger = logging.getLogger(__name__)
 
 
-class FraudRAG:
+class FraudPatternMatcher:
     """
-    Forensic RAG for fraud, scams, insider trading, and pump-and-dump patterns.
+    Keyword-based fraud pattern matcher for scams, insider trading, and
+    pump-and-dump markers. Loads patterns from JSON/JSONL/parquet and
+    matches via substring search against a known-pattern knowledge base.
     """
 
     def __init__(self, data_dir: str = "data/fraud_patterns"):
@@ -63,7 +65,7 @@ class FraudRAG:
                 pass
 
         logger.info(
-            "FraudRAG: loaded %d text patterns and %d pump symbols.",
+            "FraudPatternMatcher: loaded %d text patterns and %d pump symbols.",
             len(self.knowledge_base),
             len(self.pump_symbols),
         )
@@ -143,4 +145,8 @@ class FraudRAG:
         return results[:limit]
 
 
-fraud_rag = FraudRAG()
+fraud_patterns = FraudPatternMatcher()
+
+# Backward-compat aliases
+FraudRAG = FraudPatternMatcher
+fraud_rag = fraud_patterns

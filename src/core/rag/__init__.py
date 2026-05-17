@@ -1,12 +1,14 @@
-"""RAG (Retrieval-Augmented Generation) package — semantic + keyword forensic search."""
+"""RAG + pattern matching — semantic search (embeddings) and keyword forensics."""
 
 from .engine import ForensicRAG, forensic_rag
-from .fraud_rag import FraudRAG, fraud_rag
+from .fraud_rag import FraudPatternMatcher, FraudRAG, fraud_patterns, fraud_rag
 from .macro_dataset import MacroDataset, macro_engine
 
 __all__ = [
     "ForensicRAG",
     "forensic_rag",
+    "FraudPatternMatcher",
+    "fraud_patterns",
     "FraudRAG",
     "fraud_rag",
     "MacroDataset",
