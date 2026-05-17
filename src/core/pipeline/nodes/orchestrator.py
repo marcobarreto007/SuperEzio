@@ -187,7 +187,10 @@ async def _ask_intent_classifier(
         "ticker_analysis, market_scan, missing_required_slot, "
         "unsafe_unspecified_recommendation. Never invent a ticker. "
         "If no ticker appears in the user message, ticker must be empty and "
-        "route cannot be ticker_analysis."
+        "route cannot be ticker_analysis. "
+        "Never extract common language words, prepositions, pronouns, or conjunctions "
+        "(e.g. 'me', 'de', 'do', 'da', 'to', 'for', 'the', 'it', 'us') as tickers. "
+        "If a word is a normal language word, ticker must be empty."
     )
     prompt = {
         "user_message": message[:2000],

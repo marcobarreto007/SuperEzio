@@ -130,13 +130,13 @@ def _build_claims(trace: dict[str, Any]) -> list[tuple[str, float, str]]:
     risk = trace.get("risk", {}) or {}
     quant = trace.get("quant", {}) or {}
 
-    if "rsi_14" in tech:
+    if tech.get("rsi_14") is not None:
         claims.append(("rsi_14", float(tech["rsi_14"]), "technical"))
-    if "price" in tech:
+    if tech.get("price") is not None:
         claims.append(("price", float(tech["price"]), "technical"))
-    if "annual_volatility" in risk:
+    if risk.get("annual_volatility") is not None:
         claims.append(("annual_volatility", float(risk["annual_volatility"]), "risk"))
-    if "monte_carlo_prob_up" in quant:
+    if quant.get("monte_carlo_prob_up") is not None:
         claims.append(
             ("monte_carlo_prob_up", float(quant["monte_carlo_prob_up"]), "quant")
         )
@@ -295,9 +295,9 @@ class F51HubAdapter:
         sentiment = trace.get("sentiment", {}) or {}
         reddit = trace.get("reddit", {}) or {}
 
-        price = tech.get("price", 0) or 0
+        price = tech.get("price") if tech.get("price") is not None else 0
         if isinstance(price, (int, float)) and price > 0:
-            rsi = tech.get("rsi_14", 50)
+            rsi = tech.get("rsi_14") if tech.get("rsi_14") is not None else 50
             if rsi > 80:
                 daily_ret = 0.18
             elif rsi < 20:
@@ -307,11 +307,11 @@ class F51HubAdapter:
         else:
             daily_ret = 0.0
 
-        volume = tech.get("volume", 0) or 0
+        volume = tech.get("volume") if tech.get("volume") is not None else 0
         avg_volume = volume
         volume_z = 0.0
 
-        mcap = prof.get("market_cap", 0) or 0
+        mcap = prof.get("market_cap") if prof.get("market_cap") is not None else 0
         if isinstance(mcap, str):
             mcap = 0
 
@@ -338,7 +338,7 @@ class F51HubAdapter:
         ]
         hype_count = sum(1 for kw in hype_keywords if kw in summary)
 
-        total_revenue = prof.get("total_revenue", None)
+        total_revenue = prof.get("total_revenue")
         if total_revenue is None:
             pe = prof.get("pe_ratio")
             if isinstance(pe, (int, float)) and pe > 0 and mcap > 0:
@@ -353,16 +353,16 @@ class F51HubAdapter:
             "avg_volume": float(avg_volume),
             "volume_z_score": volume_z,
             "market_cap": float(mcap),
-            "rsi_14": float(tech.get("rsi_14", 50)),
-            "annual_volatility": float(risk.get("annual_volatility", 0.2)),
-            "var_95": float(risk.get("var_95", -0.02)),
-            "sharpe_ratio": float(risk.get("sharpe_ratio", 0)),
+            "rsi_14": float(tech.get("rsi_14") if tech.get("rsi_14") is not None else 50),
+            "annual_volatility": float(risk.get("annual_volatility") if risk.get("annual_volatility") is not None else 0.2),
+            "var_95": float(risk.get("var_95") if risk.get("var_95") is not None else -0.02),
+            "sharpe_ratio": float(risk.get("sharpe_ratio") if risk.get("sharpe_ratio") is not None else 0),
             "hype_keyword_count": hype_count,
             "total_revenue": float(total_revenue) if total_revenue else 0,
-            "sentiment_score": float(sentiment.get("sentiment_score", 0)),
-            "reddit_sentiment": float(reddit.get("sentiment_score", 0)),
-            "monte_carlo_prob_up": float(quant.get("monte_carlo_prob_up", 50)),
-            "ml_prob_up": float(quant.get("ml_prob_up", 50)),
+            "sentiment_score": float(sentiment.get("sentiment_score") if sentiment.get("sentiment_score") is not None else 0),
+            "reddit_sentiment": float(reddit.get("sentiment_score") if reddit.get("sentiment_score") is not None else 0),
+            "monte_carlo_prob_up": float(quant.get("monte_carlo_prob_up") if quant.get("monte_carlo_prob_up") is not None else 50),
+            "ml_prob_up": float(quant.get("ml_prob_up") if quant.get("ml_prob_up") is not None else 50),
             "missing_data_ratio": _missing_data_ratio(trace),
         }
         return features

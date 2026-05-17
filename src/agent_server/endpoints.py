@@ -18,6 +18,10 @@ from core.engine.indicators import (
     calc_rsi,
     calc_sma,
 )
+from core.pipeline.intents import (
+    detect_ticker,
+    should_block_vague_financial_prompt,
+)
 
 from .protocol import A2AMessage, MessageType
 
@@ -28,49 +32,6 @@ VAGUE_FINANCIAL_RESPONSE = (
     "Para análise financeira, informe pelo menos um ativo/ticker e o contexto desejado "
     "(ex.: AAPL, tendência, risco, valuation, notícias)."
 )
-
-
-def has_hint(text: str, hints: tuple[str, ...]) -> bool:
-    low = (text or "").lower()
-    return any(h.lower() in low for h in hints)
-
-
-def detect_ticker(text: str) -> str:
-    if not text:
-        return ""
-    m = _TICKER_RE.search(text.upper())
-    if not m:
-        return ""
-    return next((g for g in m.groups() if g), "")
-
-
-def should_block_vague_financial_prompt(
-    raw_message: str,
-    detected_ticker: str,
-    rigor: str,
-) -> bool:
-    if detected_ticker:
-        return False
-    if (rigor or "").lower() not in {"strict", "high", "hard"}:
-        return False
-    msg = (raw_message or "").strip().lower()
-    if not msg:
-        return True
-    finance_terms = (
-        "acao",
-        "ação",
-        "stock",
-        "ticker",
-        "mercado",
-        "invest",
-        "trade",
-        "buy",
-        "sell",
-        "valuation",
-        "risco",
-        "portfolio",
-    )
-    return any(term in msg for term in finance_terms)
 
 
 # ---------------------------------------------------------------------------

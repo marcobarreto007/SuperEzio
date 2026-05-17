@@ -60,6 +60,9 @@ async def run_investment_test():
                                         if status == "completed":
                                             print(f"\n  [PIPELINE] {step} completed.", flush=True)
                                             print("  [STREAM] ", end="", flush=True)
+                                    elif msg_type == "INTENT_CLASSIFIED":
+                                        print(f"\n  [INTENT] Rota={data.get('route')}, Intent={data.get('intent')}, Ticker={data.get('ticker')}", flush=True)
+                                        print("  [STREAM] ", end="", flush=True)
                                     elif msg_type == "ERROR":
                                         print(f"\n  [!] ERROR: {data.get('detail')}", flush=True)
                                 except json.JSONDecodeError:

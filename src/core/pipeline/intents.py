@@ -298,6 +298,12 @@ COMMON_WORDS = {
     "BOB",
     "GEMMA",
     "DEEPSEEK",
+    "TSX",
+    "NYSE",
+    "NASDAQ",
+    "B3",
+    "SEC",
+    "FED",
     "CLAUDE",
     "LLAMA",
     "NEMOTRON",
@@ -846,6 +852,16 @@ def detect_ticker(message: str) -> str:
         upper = match.upper()
         if upper not in COMMON_WORDS and not any(c[0] == upper for c in candidates):
             candidates.append((upper, 65, len(upper)))
+
+    # 7. Palavras em maiúsculas (ex: AAPL, MSFT, NVDA) — sem sufixo, prioridade média
+    #    Capturado no texto original 'raw' para respeitar a capitalização do usuário,
+    #    evitando falsos positivos de palavras comuns e preposições.
+    upper_matches = re.findall(r"\b([A-Z]{2,5})\b", raw)
+    for match in upper_matches:
+        if match not in COMMON_WORDS and not any(
+            c[0] == match or c[0].startswith(match + ".") for c in candidates
+        ):
+            candidates.append((match, 70, len(match)))
 
 
     if not candidates:
