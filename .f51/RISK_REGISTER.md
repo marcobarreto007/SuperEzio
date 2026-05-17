@@ -13,21 +13,22 @@ Generated: 2026-05-15 | Branch: main | Commit: 0dad9f3
 
 | ID | Risk | Module | Detail |
 |----|------|--------|--------|
-| R04 | `core/engine/` deprecated ainda importado | `core/engine/indicators.py` | Importado por `agent_server/endpoints.py` e `data_collector/collector.py`. Se `core/engine/` for removido, esses dois quebram. |
-| R05 | Scanner module missing | `core/scanner/` (empty) | `runtime.py` e `nodes/collector.py` importam `MarketScanner` com `try/except ImportError`. Funcionalidade de market scan esta morta. |
+| R04 | `core/engine/` deprecated ainda importado | **[RESOLVIDO]** | Removido. Todos migrados para `core/math/`. |
+| R05 | Scanner module missing | **[RESOLVIDO]** | Removido. Graph agora roda clean com data collectors novos. |
 | R06 | 60 modulos sem teste | 60 de 117 modulos src/ | Incluindo: pipeline completo, agent_runtime completo, investor/, data providers, observability/. |
-| R07 | `rl/policy.py` scaffold sem teste | `core/rl/policy.py` | 14 linhas, experimental, sem cobertura. |
+| R07 | `rl/policy.py` scaffold sem teste | **[RESOLVIDO]** | Módulo expurgado da branch main. |
 | R15 | Coletores com campos `None` opcionais | `core/f51_adapter/adapter.py`, `core/data_collector/` | Provedores externos (TwelveData, AlphaVantage) podem falhar ou retornar nulo, gerando TypeErrors na coerção de float() durante a montagem de claims e verdicts. |
 
 ## Medium (P2)
 
 | ID | Risk | Module | Detail |
 |----|------|--------|--------|
-| R08 | Diretorios vazios | `core/scanner/`, `core/mathcore/`, `core/evidence/` | Ocupam namespace, podem causar confusao de imports. |
+| R08 | Diretorios vazios | **[RESOLVIDO]** | `core/scanner/`, `core/mathcore/`, `core/evidence/` totalmente excluídos. |
 | R09 | `financial_prompts.py` overlap parcial | `core/prompts/financial_prompts.py` | Importado por `ceo_prompts.py` (old) mas nao por `prompts/builder.py` (new). Transicao incompleta. |
-| R10 | `math/indicators.py` vs `engine/indicators.py` overlap | `core/math/` vs `core/engine/` | Mesmos 5 indicadores, return types diferentes (scalar vs series). Fonte canonica e `core/math/`. |
-| R11 | 55 env vars sem centralizacao | Espalhadas por 20+ arquivos | Nao ha `.env.example` ou schema centralizado. `config/schema.py` parcialmente cobre. |
-| R12 | `scripts/server.py` orphan | `scripts/server.py` | Nao referenciado em nenhum lugar. Destino desconhecido. |
+| R10 | `math/indicators.py` vs `engine/indicators.py` overlap | **[RESOLVIDO]** | `core/engine/` removido. Fonte canônica agora é apenas `core/math/`. |
+| R11 | 55 env vars sem centralizacao | **[RESOLVIDO]** | Centralizado em `.env.example` mapeado e documentado. |
+| R12 | `scripts/server.py` orphan | **[RESOLVIDO]** | Arquivo órfão expurgado. |
+| R16 | Falso Positivo no Ticker Router | **[RESOLVIDO]** | `intents.py` sequestrava siglas (ITM, XYZ) como tickers. Arrumado com delimitações de Regex. |
 
 ## Low (P3)
 
