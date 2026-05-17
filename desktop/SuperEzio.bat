@@ -5,7 +5,7 @@ setlocal EnableDelayedExpansion
 set "ROOT=C:\Users\marco\Desktop\SuperEzio"
 if not exist "%ROOT%" goto root_error
 cd /d "%ROOT%"
-if errorlevel 1 goto root_error
+if %errorlevel% neq 0 goto root_error
 
 REM Carrega variaveis do .env (dotenv)
 if exist "%ROOT%\.env" (
@@ -27,10 +27,10 @@ REM Garante que o Coletor Profissional esta ativo
 if not defined SUPEREZIO_PROFESSIONAL_COLLECTOR set "SUPEREZIO_PROFESSIONAL_COLLECTOR=true"
 
 "%PYTHON_EXE%" --version >nul 2>nul
-if errorlevel 1 goto python_error
+if %errorlevel% neq 0 goto python_error
 
 curl --version >nul 2>nul
-if errorlevel 1 goto curl_error
+if %errorlevel% neq 0 goto curl_error
 
 if not exist "%ROOT%\scripts\serve_ceo_llamacpp.ps1" goto ceo_script_error
 if not exist "%ROOT%\src\agent_server\main.py" goto api_script_error
@@ -40,7 +40,7 @@ echo   SuperEzio v3.2.0 - Modo Local
 echo   Python: %PYTHON_EXE%
 echo   API: http://127.0.0.1:8002
 echo   CEO: http://127.0.0.1:8082
-echo   Modelo: Nemotron-Nano-12B (Phase 0 + Phase 1 QLoRA merged)
+echo   Modelo: Qwen3.6-35B-F51 (Q4_K_M GGUF + MTP speculative decoding)
 echo.
 
 if /i "%SUPEREZIO_LAUNCHER_CHECK%"=="1" (
@@ -48,15 +48,15 @@ if /i "%SUPEREZIO_LAUNCHER_CHECK%"=="1" (
     exit /b 0
 )
 
-if not exist "%ROOT%\.f51\tmp\superezio-merged\model.safetensors" (
-    echo   [AVISO] Modelo merged nao encontrado em .f51\tmp\superezio-merged\
-    echo   [AVISO] Rode: python .f51\tmp\merge_adapters.py --adapter1 C:\Users\marco\Desktop\nemotron-adapter --adapter2 .f51\tmp\phase1-adapter --output .f51\tmp\superezio-merged
+if not exist "%ROOT%\models\qwen36-35b-f51.Q4_K_M.gguf" (
+    echo   [AVISO] Modelo GGUF nao encontrado em models\qwen36-35b-f51.Q4_K_M.gguf
+    echo   [AVISO] Baixe o modelo Qwen3.6-35B-F51 Q4_K_M GGUF e coloque em %ROOT%\models\
     echo   [AVISO] A API pode abrir, mas o CEO local nao vai carregar.
     echo.
 )
 
 curl -fsS http://127.0.0.1:8082/health >nul 2>nul
-if errorlevel 1 (
+if %errorlevel% neq 0 (
     echo   [1/2] Iniciando CEO na porta 8082...
     start "SuperEzio CEO" /D "%ROOT%" cmd /k "powershell -ExecutionPolicy Bypass -File scripts\serve_ceo_llamacpp.ps1 -Port 8082"
 ) else (
@@ -68,7 +68,7 @@ set /a CEO_ATTEMPTS=0
 
 :wait_ceo
 curl -fsS http://127.0.0.1:8082/health >nul 2>nul
-if not errorlevel 1 goto ceo_ready
+if %errorlevel% equ 0 goto ceo_ready
 set /a CEO_ATTEMPTS+=1
 if %CEO_ATTEMPTS% GEQ 50 goto ceo_timeout
 ping 127.0.0.1 -n 4 >nul
@@ -78,7 +78,7 @@ goto wait_ceo
 echo   CEO pronto em http://127.0.0.1:8082
 
 curl -fsS http://127.0.0.1:8002/health >nul 2>nul
-if errorlevel 1 (
+if %errorlevel% neq 0 (
     echo   [2/2] Iniciando API na porta 8002...
     start "SuperEzio API" /D "%ROOT%" cmd /k ""%PYTHON_EXE%" -m agent_server.main"
 ) else (
@@ -91,7 +91,7 @@ set /a ATTEMPTS=0
 
 :wait_api
 curl -fsS http://127.0.0.1:8002/health >nul 2>nul
-if not errorlevel 1 goto api_ready
+if %errorlevel% equ 0 goto api_ready
 set /a ATTEMPTS+=1
 if %ATTEMPTS% GEQ 40 goto api_timeout
 ping 127.0.0.1 -n 4 >nul

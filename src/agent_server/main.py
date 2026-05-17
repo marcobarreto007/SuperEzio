@@ -140,7 +140,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
     allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "OPTIONS", "HEAD"],
     allow_headers=["Authorization", "Content-Type", "X-API-Key"],
 )
 app.middleware("http")(create_edge_middleware(edge_gateway))
@@ -213,13 +213,15 @@ async def favicon():
     return Response(svg, media_type="image/svg+xml")
 
 
-@app.get("/health")
-async def health_check_public():
+@app.api_route("/health", methods=["GET", "HEAD"])
+async def health_check_public(request: Request):
     """Public liveness probe — minimal, no internal config exposure.
 
     Detailed health (GPU, providers, redis, cost guard, base URLs) is at
     /health/details and requires auth via the edge gateway.
     """
+    if request.method == "HEAD":
+        return Response(status_code=200)
     return {"status": "ok", "agent": AGENT_NAME, "version": "3.0.0"}
 
 
