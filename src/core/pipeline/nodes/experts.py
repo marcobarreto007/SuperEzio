@@ -4,9 +4,16 @@ from __future__ import annotations
 
 import asyncio
 import os
+from collections import deque
 from typing import Any
 
 from langgraph.config import get_stream_writer
+
+# Module-level dedup: prevent collect_experts from running twice per run_id
+# when both pennylab and f51_verdict paths converge on it.
+# Without this, the entire downstream chain (neural → rag → ceo → explanation)
+# executes twice, doubling latency.
+_COLLECT_SEEN: deque[str] = deque(maxlen=64)
 
 
 # Expert roles mapped to provider names
@@ -138,6 +145,22 @@ async def node_collect_experts(state: dict) -> dict:
     """Aggregate results from all expert fan-out executions."""
     writer = get_stream_writer()
     run_id = state.get("run_id", "")
+
+    # Dedup guard: this node has 2+ incoming paths (pennylab + f51→experts).
+    # LangGraph may trigger it once per converging branch. The first execution
+    # writes expert_summary; subsequent triggers must be no-ops, otherwise the
+    # entire downstream chain (neural_decision → rag → ceo → explanation) runs twice.
+    dedup_key = f"experts_{run_id}"
+    if dedup_key in _COLLECT_SEEN:
+        writer({
+            "type": "PIPELINE_STEP",
+            "run_id": run_id,
+            "step": "experts",
+            "status": "skipped_duplicate",
+        })
+        return {}
+    _COLLECT_SEEN.append(dedup_key)
+
     results_list: list[dict[str, Any]] = state.get("expert_results") or []
 
     if not results_list:

@@ -1,18 +1,16 @@
 {
-  "date_local": "2026-05-17T10:25:00-04:00",
-  "session": "neural_decision_expert_mvp",
+  "date_local": "2026-05-17T12:40:00-04:00",
+  "session": "pipeline_dedup_and_sync",
   "status": "COMPLETED",
   "what_was_done": [
-    "Criado o 'feature_contract.json' para definir tipos, limites e enums rígidos das features e do contexto em tempo real.",
-    "Criado o 'dataset_schema.json' para mapear a coleta de dados offline visando treinamento PyTorch futuro sem lookahead.",
-    "Desenvolvido o 'neural_decision_expert.py' contendo o validador 'FeatureContractValidator' e a lógica matemática calibrada de incerteza (uncertainty) e risco de drawdown diante de ameaças de fraude.",
-    "Criado e acoplado o endpoint POST '/experts/neural-decision/predict' na API FastAPI do SuperEzio (endpoints.py) para recepção de sinais via webhook do TradingView.",
-    "Implementados 20 casos de testes sintéticos robustos (tests/test_neural_decision.py) validando contratos, regimes de mercado (trend_real, pump_artificial, etc.) e integrações HTTP.",
-    "Executada toda a suíte global de testes com 510 testes verdes (100% verdes)."
+    "Implementado guard de deduplicação no módulo-chave 'experts.py' (node_collect_experts) usando deque com limite de 64 entradas.",
+    "Evitado o acionamento duplo indesejado do fluxo a jusante (neural_decision → rag → ceo → explanation) nas ramificações concorrentes.",
+    "Executada a suíte de testes globais de integridade garantindo 510 testes verdes (100% de sucesso).",
+    "Realizada a sincronização de estado com o repositório remoto via git add, commit e push."
   ],
-  "evidence": "Pytest concluído com 510 passed e 0 failed. O endpoint responde em conformidade absoluta com o contrato de features definido.",
+  "evidence": "Pytest concluído com 510 passed e 0 failed. Código verificado e deduplicado com sucesso.",
   "risks": [
-    "Nenhum nesta fase. O MVP de contrato e interfaces está 100% isolado, blindado e pronto para receber lógica de rede profunda real."
+    "Nenhum detectado. A segurança de concorrência foi validada sem qualquer impacto nos contratos existentes."
   ],
-  "next_step": "Avançar para a implementação do Ingestion API Feature Builder que mapeará os alertas de webhook do TradingView para o contrato de features e dados estruturados."
+  "next_step": "Prosseguir com a evolução das integrações da API de Ingestão e monitorar logs de concorrência."
 }
