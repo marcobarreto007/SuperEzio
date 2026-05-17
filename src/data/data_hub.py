@@ -138,11 +138,15 @@ class DataHub:
         self.register_provider(
             ProviderRoute(
                 name="twelve_data",
-                capabilities=("price", "market_price"),
+                capabilities=("price", "market_price", "candles"),
                 factory=lambda: _make_twelve_data_provider(
                     self._get_key("TWELVE_DATA_API_KEY")
                 ),
-                methods={"price": "get_price", "market_price": "get_price"},
+                methods={
+                    "price": "get_price",
+                    "market_price": "get_price",
+                    "candles": "get_candles",
+                },
                 priority=20,
                 required_key="TWELVE_DATA_API_KEY",
             )
@@ -151,7 +155,14 @@ class DataHub:
         self.register_provider(
             ProviderRoute(
                 name="alpha_vantage",
-                capabilities=("price", "market_price", "quote"),
+                capabilities=(
+                    "price",
+                    "market_price",
+                    "quote",
+                    "candles",
+                    "profile",
+                    "treasury",
+                ),
                 factory=lambda: _make_alpha_vantage_provider(
                     self._get_key("ALPHA_VANTAGE_API_KEY")
                 ),
@@ -159,6 +170,9 @@ class DataHub:
                     "price": "get_quote",
                     "market_price": "get_quote",
                     "quote": "get_quote",
+                    "candles": "get_ohlcv",
+                    "profile": "get_profile",
+                    "treasury": "get_treasury_yield",
                 },
                 priority=10,
                 required_key="ALPHA_VANTAGE_API_KEY",
@@ -409,6 +423,18 @@ class DataHub:
     def get_quote(self, symbol: str) -> Dict[str, Any]:
         """Route quote lookup across configured quote providers."""
         return self.route("quote", symbol)
+
+    def get_candles(self, symbol: str, timeframe: str = "6M") -> Dict[str, Any]:
+        """Route OHLCV candles across configured providers."""
+        return self.route("candles", symbol, timeframe=timeframe)
+
+    def get_profile(self, symbol: str) -> Dict[str, Any]:
+        """Route company profile across configured providers."""
+        return self.route("profile", symbol)
+
+    def get_treasury_yield(self, maturity: str = "10year") -> Dict[str, Any]:
+        """Route treasury yield lookup."""
+        return self.route("treasury", maturity)
 
     def get_news(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
         result = self.route("news", query, limit=limit)

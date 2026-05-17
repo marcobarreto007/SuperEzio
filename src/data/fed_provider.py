@@ -1,77 +1,85 @@
 """
 Federal Reserve (Fed) Data Provider — Dados Macroeconômicos dos EUA
 ==================================================================
-Puxa dados de treasuries via yfinance.
+Puxa dados de treasuries via Alpha Vantage TREASURY_YIELD.
 
 Séries disponíveis:
-- Fed Funds Rate (proxy: 13-week T-bill ^IRX)
-- 10-Year Treasury Yield (^TNX)
-- 5-Year Treasury Yield (^FVX)
-- 2-Year Treasury Yield (^2YR)
+- Fed Funds Rate (proxy: 3-month T-bill)
+- 5-Year Treasury Yield
+- 10-Year Treasury Yield
+- 30-Year Treasury Yield
 """
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Any, Dict
 
-import yfinance as yf
+import requests
 
 logger = logging.getLogger(__name__)
 
-TREASURY_TICKERS = {
-    "fed_funds_proxy": "^IRX",
-    "treasury_5y": "^FVX",
-    "treasury_10y": "^TNX",
-    "treasury_30y": "^TYX",
+TREASURY_MATURITIES = {
+    "fed_funds_proxy": "3month",
+    "treasury_5y": "5year",
+    "treasury_10y": "10year",
+    "treasury_30y": "30year",
 }
 
 
 def get_macro_summary_us() -> Dict[str, Any]:
     """
-    Busca resumo macro dos EUA via yfinance treasuries.
+    Busca resumo macro dos EUA via Alpha Vantage TREASURY_YIELD.
 
     Returns:
         Dict com fed_funds_rate, treasury_yields, collected_at
         ou dict com 'error' em caso de falha.
     """
-    try:
-        result: Dict[str, Any] = {
-            "provider": "fed_yfinance",
-            "collected_at": datetime.now(timezone.utc).isoformat(),
+    api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
+    if not api_key:
+        return {"error": "ALPHA_VANTAGE_API_KEY not configured"}
+
+    base_url = "https://www.alphavantage.co/query"
+    result: Dict[str, Any] = {
+        "provider": "alpha_vantage_treasury",
+        "collected_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    for name, maturity in TREASURY_MATURITIES.items():
+        params = {
+            "function": "TREASURY_YIELD",
+            "maturity": maturity,
+            "apikey": api_key,
         }
+        try:
+            response = requests.get(base_url, params=params, timeout=10)
+            data = response.json()
+            if data.get("Error Message") or data.get("Note"):
+                result[name] = {
+                    "value": None,
+                    "error": data.get("Error Message") or data.get("Note"),
+                }
+                continue
 
-        for name, ticker in TREASURY_TICKERS.items():
-            try:
-                t = yf.Ticker(ticker)
-                info = t.history(period="5d", interval="1d")
-                if not info.empty:
-                    latest = info.iloc[-1]
-                    result[name] = {
-                        "value": round(float(latest["Close"]), 3),
-                        "date": str(latest.name.date()),
-                        "change_pct": round(
-                            (
-                                (
-                                    (
-                                        float(latest["Close"])
-                                        - float(info.iloc[-2]["Close"])
-                                    )
-                                    / float(info.iloc[-2]["Close"])
-                                    * 100
-                                )
-                                if len(info) >= 2
-                                else 0
-                            ),
-                            2,
-                        ),
-                    }
-                else:
-                    result[name] = {"value": None, "error": "no data"}
-            except Exception as e:
-                result[name] = {"value": None, "error": str(e)[:100]}
+            records = data.get("data", [])
+            if records:
+                latest = records[0]
+                prev = records[1] if len(records) > 1 else latest
+                latest_val = float(latest["value"])
+                prev_val = float(prev["value"])
+                result[name] = {
+                    "value": round(latest_val, 3),
+                    "date": latest.get("date", ""),
+                    "change_pct": (
+                        round(((latest_val - prev_val) / prev_val * 100), 2)
+                        if prev_val != 0
+                        else 0
+                    ),
+                }
+            else:
+                result[name] = {"value": None, "error": "no data"}
+        except Exception as e:
+            logger.warning("[FED] Treasury yield fetch failed for %s: %s", maturity, e)
+            result[name] = {"value": None, "error": str(e)[:100]}
 
-        return result
-
-    except Exception as e:
-        logger.warning("[FED] Failed to fetch US macro: %s", e)
-        return {"error": f"fed_provider failed: {e}"}
+    return result

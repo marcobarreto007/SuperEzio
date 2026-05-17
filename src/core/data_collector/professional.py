@@ -1,7 +1,7 @@
 """
 Professional Data Collector — Provider Mesh with Intelligent Selection.
 
-Replaces the sequential yfinance-first fallback with a parallel multi-provider
+Replaces the sequential fallback with a parallel multi-provider
 mesh. Every provider for a capability is queried simultaneously; results are
 scored on freshness, completeness, and consistency; the best result wins.
 
@@ -555,15 +555,14 @@ class ProfessionalCollector:
         )
         self.mesh.register(
             ProviderSpec(
-                name="yfinance",
+                name="hub_price",
                 capabilities=(
                     _CAPABILITY_PRICE,
                     _CAPABILITY_QUOTE,
-                    _CAPABILITY_FUNDAMENTALS,
                     _CAPABILITY_TECHNICALS,
                 ),
-                fetch=self._fetch_yfinance_price,
-                priority=30,  # Lower priority — less reliable
+                fetch=self._fetch_hub_price,
+                priority=30,
                 rate_limit_rps=1.0,
                 supports_penny=True,
             )
@@ -572,9 +571,9 @@ class ProfessionalCollector:
         # ── Fundamentals ─────────────────────────────────────────────────
         self.mesh.register(
             ProviderSpec(
-                name="yfinance_profile",
+                name="hub_profile",
                 capabilities=(_CAPABILITY_FUNDAMENTALS,),
-                fetch=self._fetch_yfinance_profile,
+                fetch=self._fetch_hub_profile,
                 priority=20,
                 rate_limit_rps=1.0,
                 supports_penny=True,
@@ -676,57 +675,48 @@ class ProfessionalCollector:
             return {"error": f"alpha_vantage: {exc}"}
 
     @staticmethod
-    def _fetch_yfinance_price(ticker: str) -> dict:
+    def _fetch_hub_price(ticker: str) -> dict:
         try:
-            import yfinance as yf
+            from data.data_hub import hub
 
-            t = yf.Ticker(ticker)
-            info = t.info or {}
-            price = (
-                info.get("currentPrice")
-                or info.get("regularMarketPrice")
-                or info.get("previousClose")
-            )
-            if price is None:
-                hist = t.history(period="5d")
-                if not hist.empty:
-                    price = float(hist["Close"].iloc[-1])
-            if price is None:
-                return {"error": "yfinance_no_price"}
+            result = hub.get_price(ticker)
+            if "error" in result:
+                return result
             return {
                 "symbol": ticker,
-                "price": float(price),
-                "change_pct": info.get("regularMarketChangePercent"),
-                "volume": info.get("volume") or info.get("regularMarketVolume"),
-                "source": "yfinance",
+                "price": float(result.get("price", 0)),
+                "change_pct": result.get("change_pct"),
+                "volume": result.get("volume"),
+                "source": result.get("provider", "datahub"),
                 "timestamp": _now_iso(),
             }
         except Exception as exc:
-            return {"error": f"yfinance: {exc}"}
+            return {"error": f"hub_price: {exc}"}
 
     @staticmethod
-    def _fetch_yfinance_profile(ticker: str) -> dict:
+    def _fetch_hub_profile(ticker: str) -> dict:
         try:
-            import yfinance as yf
+            from data.data_hub import hub
 
-            t = yf.Ticker(ticker)
-            info = t.info or {}
+            result = hub.get_profile(ticker)
+            if "error" in result:
+                return result
             return {
                 "symbol": ticker,
-                "name": info.get("longName") or info.get("shortName"),
-                "sector": info.get("sector"),
-                "industry": info.get("industry"),
-                "market_cap": info.get("marketCap"),
-                "pe_ratio": info.get("trailingPE") or info.get("forwardPE"),
-                "dividend_yield": info.get("dividendYield"),
-                "beta": info.get("beta"),
-                "enterprise_to_ebitda": info.get("enterpriseToEbitda"),
-                "return_on_equity": info.get("returnOnEquity"),
-                "source": "yfinance",
+                "name": result.get("name"),
+                "sector": result.get("sector"),
+                "industry": result.get("industry"),
+                "market_cap": result.get("market_cap"),
+                "pe_ratio": result.get("pe_ratio"),
+                "dividend_yield": result.get("dividend_yield"),
+                "beta": result.get("beta"),
+                "enterprise_to_ebitda": result.get("enterprise_to_ebitda"),
+                "return_on_equity": result.get("return_on_equity"),
+                "source": "datahub",
                 "timestamp": _now_iso(),
             }
         except Exception as exc:
-            return {"error": f"yfinance_profile: {exc}"}
+            return {"error": f"hub_profile: {exc}"}
 
     @staticmethod
     def _fetch_newsapi_sentiment(ticker: str) -> dict:

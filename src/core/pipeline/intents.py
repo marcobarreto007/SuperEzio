@@ -109,7 +109,9 @@ def has_hint(message: str, hints: tuple[str, ...]) -> bool:
         normalized_hint = normalize_message(hint).strip()
         if not normalized_hint:
             continue
-        if " " not in normalized_hint and len(normalized_hint) <= 3:
+        if " " not in normalized_hint:
+            # Use word boundaries for all single-word hints to prevent false positive substring matches
+            # like "lista" matching "listada" or "scan" matching "scanner".
             pattern = rf"(?<![a-z0-9_]){re.escape(normalized_hint)}(?![a-z0-9_])"
             if re.search(pattern, normalized):
                 return True

@@ -60,13 +60,7 @@ class CrisisMathExpert:
     def _get_notifier(self):
         if self._notifier is not None:
             return self._notifier
-        try:
-            from core.observability.notifications import notifier
-
-            return notifier
-        except Exception as exc:
-            logger.warning("Crisis notifier unavailable: %s", exc)
-            return _NoopNotifier()
+        return _NoopNotifier()
 
     def _get_fraud_rag(self):
         if self._fraud_rag is not None:

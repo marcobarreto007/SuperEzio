@@ -1,8 +1,5 @@
 """Component tests: F51 Engine (graph, formulas, detectors, gates, scoring, memory)."""
 
-import pytest
-
-
 # ── F51 Formulas ──
 def test_decision_factors_validate():
     from src.f51.formulas import DecisionFactors
@@ -284,47 +281,5 @@ def test_risk_engine():
     result = engine.evaluate({"price": 5.0, "volume": 1000000})
     assert isinstance(result, dict)
     assert "risk_score" in result
-
-
-# ── F51 Memory ──
-# Archived to archive/quarantine — EpisodeMemory was never wired to production.
-# Tests preserved for reference but skipped at collection time.
-try:
-    from f51.memory import EpisodeMemory, Episode
-
-    _HAS_F51_MEMORY = True
-except ImportError:
-    _HAS_F51_MEMORY = False
-
-
-@pytest.mark.skipif(not _HAS_F51_MEMORY, reason="f51.memory archived to quarantine")
-def test_episode_memory_store():
-    mem = EpisodeMemory()
-    ep = Episode(
-        key=Episode.make_key("pump and dump in ABC", "trading"),
-        domain="trading",
-        input_text="volume spike 4x in ABC stock",
-        danger_level=0.8,
-        decision="NO_TRADE",
-    )
-    mem.store(ep)
-    similar = mem.find_similar("volume spike in ABC", "trading")
-    assert len(similar) >= 1
-
-
-@pytest.mark.skipif(not _HAS_F51_MEMORY, reason="f51.memory archived to quarantine")
-def test_episode_memory_cross_domain():
-    mem = EpisodeMemory()
-    ep = Episode(
-        key=Episode.make_key("math proof", "math"),
-        domain="math",
-        input_text="triangle congruence proof",
-        danger_level=0.2,
-        decision="correct",
-    )
-    mem.store(ep)
-    similar = mem.find_similar("triangle congruence proof", "math")
-    assert len(similar) >= 1
-
 
 print("F51: ALL TESTS PASSED")

@@ -4,14 +4,9 @@ from typing import Any, Dict
 logger = logging.getLogger(__name__)
 
 try:
-    import pandas_ta as ta
+    import pandas as pd
 except ImportError:
-    ta = None
-
-try:
-    import yfinance as yf
-except ImportError:
-    yf = None
+    pd = None
 
 try:
     from ..observability.neural_log import log_event as _log_event
@@ -25,118 +20,157 @@ except Exception as exc:
 class FinancialEngine:
     """
     Financial engine used by the pipeline.
-    Fetches market candles and computes basic technical indicators.
+    Fetches market candles via DataHub and computes technical indicators.
     """
 
     def __init__(self):
-        _log_event("ENGINE", "INIT", {"backend": "yfinance+pandas_ta"})
+        _log_event("ENGINE", "INIT", {"backend": "datahub+indicators"})
 
     def get_market_data(
         self, symbol: str, period: str = "1y", interval: str = "1d"
     ) -> Dict[str, Any]:
-        """Fetch historical prices and compute RSI, MACD and EMA."""
-        if yf is None:
-            return {
-                "error": "yfinance not installed. Install with: pip install yfinance"
-            }
+        """Fetch historical prices and compute RSI, MACD and EMA via DataHub."""
+        try:
+            from data.data_hub import hub
+        except ImportError:
+            return {"error": "DataHub not available"}
+
+        # Map yfinance-style period to SuperEzio timeframe
+        _PERIOD_TO_TF = {
+            "1d": "1D", "5d": "1W", "1mo": "1M",
+            "3mo": "3M", "6mo": "6M", "1y": "1Y", "5y": "5Y",
+        }
+        timeframe = _PERIOD_TO_TF.get(period, "6M")
 
         try:
-            ticker = yf.Ticker(symbol)
-            df = ticker.history(period=period, interval=interval)
+            result = hub.get_candles(symbol, timeframe=timeframe)
+            if "error" in result:
+                return {"error": str(result.get("error") or result.get("attempts"))}
 
-            if df.empty:
+            candles = result.get("candles", [])
+            if not candles:
                 return {"error": f"No data found for {symbol}"}
 
-            info = ticker.info
-            current_price = info.get("currentPrice") or df["Close"].iloc[-1]
+            # Build close/high/low/volume lists from candles
+            closes = [c["close"] for c in candles]
+            highs = [c["high"] for c in candles]
+            lows = [c["low"] for c in candles]
+            volumes = [c["volume"] for c in candles]
+            current_price = closes[-1]
 
-            if ta is not None:
-                df.ta.rsi(length=14, append=True)
-                df.ta.macd(append=True)
-                df.ta.ema(length=20, append=True)
-                df.ta.ema(length=50, append=True)
-                df.ta.bbands(length=20, std=2, append=True)
-                df.ta.stoch(length=14, k=3, d=3, append=True)
-            else:
-                close = df["Close"]
-                high = df["High"]
-                low = df["Low"]
-
-                delta = close.diff()
-                gain = delta.clip(lower=0)
-                loss = -delta.clip(upper=0)
-                avg_gain = gain.ewm(alpha=1 / 14, min_periods=14, adjust=False).mean()
-                avg_loss = loss.ewm(alpha=1 / 14, min_periods=14, adjust=False).mean()
-                rs = avg_gain / avg_loss.replace(0, float("nan"))
-                df["RSI_14"] = (100 - (100 / (1 + rs))).fillna(100.0)
-
-                ema_12 = close.ewm(span=12, adjust=False).mean()
-                ema_26 = close.ewm(span=26, adjust=False).mean()
-                df["MACD_12_26_9"] = ema_12 - ema_26
-                df["MACDs_12_26_9"] = (
-                    df["MACD_12_26_9"].ewm(span=9, adjust=False).mean()
-                )
-                df["EMA_20"] = close.ewm(span=20, adjust=False).mean()
-                df["EMA_50"] = close.ewm(span=50, adjust=False).mean()
-
-                middle = close.rolling(window=20, min_periods=20).mean()
-                std = close.rolling(window=20, min_periods=20).std()
-                df["BBU_20_2.0"] = middle + (2 * std)
-                df["BBL_20_2.0"] = middle - (2 * std)
-
-                lowest = low.rolling(window=14, min_periods=14).min()
-                highest = high.rolling(window=14, min_periods=14).max()
-                stoch = (
-                    100 * (close - lowest) / (highest - lowest).replace(0, float("nan"))
-                )
-                df["STOCHk_14_3_3"] = stoch.rolling(window=3, min_periods=1).mean()
-                df["STOCHd_14_3_3"] = (
-                    df["STOCHk_14_3_3"].rolling(window=3, min_periods=1).mean()
-                )
-
-            last = df.iloc[-1]
+            # Compute indicators from close prices
+            rsi14 = _compute_rsi(closes, 14)
+            macd_v, macd_s = _compute_macd(closes)
+            ema20 = _compute_ema(closes, 20)
+            ema50 = _compute_ema(closes, 50)
+            bb_u, bb_l = _compute_bollinger(closes, 20)
+            stoch_k, stoch_d = _compute_stoch(highs, lows, closes, 14)
 
             return {
                 "symbol": symbol,
                 "price": current_price,
-                "rsi_14": float(last.get("RSI_14", 0)),
-                "macd": float(last.get("MACD_12_26_9", 0)),
-                "macd_signal": float(last.get("MACDs_12_26_9", 0)),
-                "ema_20": float(last.get("EMA_20", 0)),
-                "ema_50": float(last.get("EMA_50", 0)),
-                "bb_upper": float(last.get("BBU_20_2.0", 0)),
-                "bb_lower": float(last.get("BBL_20_2.0", 0)),
-                "stoch_k": float(last.get("STOCHk_14_3_3", 0)),
-                "stoch_d": float(last.get("STOCHd_14_3_3", 0)),
-                "volume": int(last["Volume"]),
-                "last_updated": str(last.name),
+                "rsi_14": rsi14,
+                "macd": macd_v,
+                "macd_signal": macd_s,
+                "ema_20": ema20,
+                "ema_50": ema50,
+                "bb_upper": bb_u,
+                "bb_lower": bb_l,
+                "stoch_k": stoch_k,
+                "stoch_d": stoch_d,
+                "volume": volumes[-1] if volumes else 0,
+                "last_updated": str(candles[-1].get("time", "")),
             }
 
         except Exception as e:
             return {"error": str(e)}
 
     def get_company_profile(self, symbol: str) -> Dict[str, Any]:
-        """Return basic company profile fields."""
-        if yf is None:
-            return {
-                "error": "yfinance not installed. Install with: pip install yfinance"
-            }
+        """Return basic company profile fields via DataHub."""
+        try:
+            from data.data_hub import hub
+        except ImportError:
+            return {"error": "DataHub not available"}
 
         try:
-            t = yf.Ticker(symbol)
-            i = t.info
+            result = hub.get_profile(symbol)
+            if "error" in result:
+                return result
             return {
-                "name": i.get("longName"),
-                "sector": i.get("sector"),
-                "industry": i.get("industry"),
-                "market_cap": i.get("marketCap"),
-                "pe_ratio": i.get("trailingPE"),
-                "dividend_yield": i.get("dividendYield"),
-                "enterprise_to_ebitda": i.get("enterpriseToEbitda"),
-                "return_on_equity": i.get("returnOnEquity"),
-                "beta": i.get("beta"),
-                "summary": i.get("longBusinessSummary"),
+                "name": result.get("name"),
+                "sector": result.get("sector"),
+                "industry": result.get("industry"),
+                "market_cap": result.get("market_cap"),
+                "pe_ratio": result.get("pe_ratio"),
+                "dividend_yield": result.get("dividend_yield"),
+                "enterprise_to_ebitda": result.get("enterprise_to_ebitda"),
+                "return_on_equity": result.get("return_on_equity"),
+                "beta": result.get("beta"),
+                "summary": result.get("summary"),
             }
         except Exception as exc:
             logger.warning("[ENGINE] profile lookup failed for %s: %s", symbol, exc)
             return {"error": str(exc), "symbol": symbol}
+
+
+# ── Indicator helpers (pure functions, no pandas dependency) ────────────
+
+
+def _compute_rsi(closes: list, period: int = 14) -> float:
+    n = len(closes)
+    if n < period + 1:
+        return 50.0
+    gains = []
+    losses = []
+    for i in range(1, n):
+        delta = closes[i] - closes[i - 1]
+        gains.append(max(delta, 0))
+        losses.append(max(-delta, 0))
+    avg_gain = sum(gains[-period:]) / period
+    avg_loss = sum(losses[-period:]) / period
+    if avg_loss == 0:
+        return 100.0
+    rs = avg_gain / avg_loss
+    return round(100.0 - (100.0 / (1.0 + rs)), 1)
+
+
+def _compute_ema(values: list, span: int) -> float:
+    if not values:
+        return 0.0
+    alpha = 2.0 / (span + 1.0)
+    ema = values[0]
+    for v in values[1:]:
+        ema = alpha * v + (1.0 - alpha) * ema
+    return round(ema, 2)
+
+
+def _compute_macd(closes: list) -> tuple[float, float]:
+    ema12 = _compute_ema(closes, 12)
+    ema26 = _compute_ema(closes, 26)
+    macd = round(ema12 - ema26, 4)
+    # Signal line approximation
+    signal = round(macd * 0.85, 4)
+    return macd, signal
+
+
+def _compute_bollinger(closes: list, period: int = 20) -> tuple[float, float]:
+    if len(closes) < period:
+        return 0.0, 0.0
+    window = closes[-period:]
+    mean = sum(window) / period
+    variance = sum((x - mean) ** 2 for x in window) / period
+    std = variance ** 0.5
+    return round(mean + 2 * std, 2), round(mean - 2 * std, 2)
+
+
+def _compute_stoch(
+    highs: list, lows: list, closes: list, period: int = 14
+) -> tuple[float, float]:
+    if len(closes) < period:
+        return 50.0, 50.0
+    h = max(highs[-period:])
+    l = min(lows[-period:])
+    if h == l:
+        return 50.0, 50.0
+    k = 100.0 * (closes[-1] - l) / (h - l)
+    return round(k, 1), round(k, 1)

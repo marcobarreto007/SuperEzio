@@ -411,7 +411,7 @@ def missing_ceo_text(
         return (
             "MODEL_MISSING: local Qwen3.6-35B CEO is offline.\n\n"
             f"Prepared route: {route} | ticker: {ticker or 'no ticker'}.\n"
-            "Action: python scripts/server.py --port 8082"
+            "Action: verify CEO model server is running on port 8082"
         )
     return (
         "MODEL_MISSING: local Qwen3.6-35B CEO did not respond.\n\n"

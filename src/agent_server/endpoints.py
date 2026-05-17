@@ -23,6 +23,7 @@ from core.pipeline.intents import (
     should_block_vague_financial_prompt,
     has_hint,
 )
+from data.data_hub import hub
 
 from .protocol import A2AMessage, MessageType
 
@@ -40,24 +41,16 @@ VAGUE_FINANCIAL_RESPONSE = (
 # ---------------------------------------------------------------------------
 
 
-PERIOD_MAP = {
-    "1D": ("1d", "5m"),
-    "1W": ("5d", "15m"),
-    "1M": ("1mo", "1h"),
-    "3M": ("3mo", "1d"),
-    "6M": ("6mo", "1d"),
-    "1Y": ("1y", "1d"),
-    "5Y": ("5y", "1wk"),
-}
+VALID_TIMEFRAMES = frozenset({"1D", "1W", "1M", "3M", "6M", "1Y", "5Y"})
 
-SSE_PERIOD_MAP = {
-    "1D": ("1d", "1m"),
-    "1W": ("5d", "5m"),
-    "1M": ("1mo", "15m"),
-    "3M": ("3mo", "30m"),
-    "6M": ("6mo", "1h"),
-    "1Y": ("1y", "1d"),
-    "5Y": ("5y", "1wk"),
+SSE_REFRESH_INTERVAL: dict[str, int] = {
+    "1D": 2,
+    "1W": 3,
+    "1M": 5,
+    "3M": 10,
+    "6M": 15,
+    "1Y": 30,
+    "5Y": 30,
 }
 
 
@@ -68,19 +61,36 @@ def _sanitize_ticker(raw: str) -> str:
     return clean_ticker
 
 
-def _build_ohlcv(df) -> list[dict[str, Any]]:
+def _parse_candle_time(raw: str) -> int:
+    """Converte timestamp string do provider para Unix epoch (segundos)."""
+    from datetime import datetime
+
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
+        try:
+            return int(datetime.strptime(raw, fmt).timestamp())
+        except ValueError:
+            continue
+    return 0
+
+
+def _build_ohlcv(candles: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Normaliza candles de qualquer provider para o formato do frontend."""
     ohlcv: list[dict[str, Any]] = []
-    for idx, row in df.iterrows():
-        ts = idx
-        t = int(ts.timestamp()) if hasattr(ts, "timestamp") else int(ts)
+    for c in candles:
+        t_raw = c.get("time", "")
+        t = (
+            int(t_raw)
+            if isinstance(t_raw, (int, float))
+            else _parse_candle_time(str(t_raw))
+        )
         ohlcv.append(
             {
                 "time": t,
-                "open": round(float(row["Open"]), 4),
-                "high": round(float(row["High"]), 4),
-                "low": round(float(row["Low"]), 4),
-                "close": round(float(row["Close"]), 4),
-                "volume": int(row.get("Volume", 0)),
+                "open": round(float(c["open"]), 4),
+                "high": round(float(c["high"]), 4),
+                "low": round(float(c["low"]), 4),
+                "close": round(float(c["close"]), 4),
+                "volume": int(c.get("volume", 0)),
             }
         )
     return ohlcv
@@ -91,41 +101,33 @@ async def get_chart_data(
     ticker: str,
     timeframe: str = Query("6M", pattern="^(1D|1W|1M|3M|6M|1Y|5Y)$"),
 ) -> dict:
-    """Retorna OHLCV + indicadores tecnicos para renderizar charts."""
-    import yfinance as yf
-
+    """Retorna OHLCV + indicadores tecnicos para renderizar charts — via DataHub."""
     clean_ticker = _sanitize_ticker(ticker)
 
-    period, interval = PERIOD_MAP.get(timeframe, ("6mo", "1d"))
+    result = hub.get_candles(clean_ticker, timeframe=timeframe)
+    if "error" in result:
+        attempts = result.get("attempts", [])
+        detail = result["error"] if not attempts else str(attempts)
+        raise HTTPException(status_code=502, detail=f"DataHub: {detail}")
 
-    try:
-        stock = yf.Ticker(clean_ticker)
-        df = stock.history(period=period, interval=interval)
-        if df.empty:
-            raise HTTPException(
-                status_code=404, detail=f"Sem dados para {clean_ticker}"
-            )
-    except HTTPException:
-        raise
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Erro yfinance: {exc}") from exc
+    candles = result.get("candles", [])
+    if not candles:
+        raise HTTPException(status_code=404, detail=f"Sem dados para {clean_ticker}")
 
-    try:
-        raw_info = stock.info or {}
+    profile_result = hub.get_profile(clean_ticker)
+    if "error" in profile_result:
+        logger.warning("Profile lookup failed for %s: %s", clean_ticker, profile_result.get("error"))
+        info: dict[str, Any] = {"name": clean_ticker}
+    else:
         info = {
-            "name": raw_info.get("shortName")
-            or raw_info.get("longName")
-            or clean_ticker,
-            "sector": raw_info.get("sector"),
-            "currency": raw_info.get("currency", "USD"),
-            "exchange": raw_info.get("exchange"),
-            "market_cap": raw_info.get("marketCap"),
+            "name": profile_result.get("name") or clean_ticker,
+            "sector": profile_result.get("sector"),
+            "currency": profile_result.get("currency", "USD"),
+            "exchange": profile_result.get("exchange"),
+            "market_cap": profile_result.get("market_cap"),
         }
-    except Exception as exc:
-        logger.warning("yfinance info lookup failed for %s: %s", clean_ticker, exc)
-        info = {"name": clean_ticker, "lookup_error": str(exc)[:200]}
 
-    ohlcv = _build_ohlcv(df)
+    ohlcv = _build_ohlcv(candles)
 
     closes = [c["close"] for c in ohlcv]
     times = [c["time"] for c in ohlcv]
@@ -177,14 +179,11 @@ async def stream_chart_data(
     refresh_s: int = Query(3, ge=1, le=30),
     max_points: int = Query(180, ge=30, le=500),
 ):
-    """SSE de velas em tempo real (polling) para painel live no frontend.
-
-    Não altera o contrato NDJSON de /task/submit.
-    """
-    import yfinance as yf
+    """SSE de velas em tempo real (polling) para painel live — via DataHub."""
 
     clean_ticker = _sanitize_ticker(ticker)
-    period, interval = SSE_PERIOD_MAP.get(timeframe, ("1d", "1m"))
+    default_refresh = SSE_REFRESH_INTERVAL.get(timeframe, 3)
+    effective_refresh = max(refresh_s, default_refresh)
 
     async def _event_gen():
         last_sig = ""
@@ -195,51 +194,59 @@ async def stream_chart_data(
                 break
 
             try:
-                stock = yf.Ticker(clean_ticker)
-                df = await asyncio.to_thread(
-                    stock.history,
-                    period=period,
-                    interval=interval,
+                result = await asyncio.to_thread(
+                    hub.get_candles, clean_ticker, timeframe=timeframe
                 )
-                if df.empty:
+                if "error" in result:
                     yield {
                         "event": "error",
                         "data": json.dumps(
                             {
                                 "ticker": clean_ticker,
-                                "detail": "Sem dados de vela para o ticker/timeframe.",
+                                "detail": str(result.get("error") or result.get("attempts", "Unknown")),
                                 "timeframe": timeframe,
                             }
                         ),
                     }
                 else:
-                    ohlcv = _build_ohlcv(df.tail(max_points))
-                    latest = ohlcv[-1]
-                    signature = f"{latest['time']}:{latest['close']}:{latest['volume']}:{len(ohlcv)}"
-
-                    if first_snapshot:
-                        payload = {
-                            "ticker": clean_ticker,
-                            "timeframe": timeframe,
-                            "interval": interval,
-                            "server_ts": int(time.time()),
-                            "ohlcv": ohlcv,
-                            "latest": latest,
+                    all_candles = _build_ohlcv(result.get("candles", []))
+                    ohlcv = all_candles[-max_points:] if len(all_candles) > max_points else all_candles
+                    if not ohlcv:
+                        yield {
+                            "event": "error",
+                            "data": json.dumps(
+                                {
+                                    "ticker": clean_ticker,
+                                    "detail": "Sem dados de vela para o ticker/timeframe.",
+                                    "timeframe": timeframe,
+                                }
+                            ),
                         }
-                        yield {"event": "snapshot", "data": json.dumps(payload)}
-                        first_snapshot = False
-                    elif signature != last_sig:
-                        payload = {
-                            "ticker": clean_ticker,
-                            "timeframe": timeframe,
-                            "interval": interval,
-                            "server_ts": int(time.time()),
-                            "latest": latest,
-                            "tail": ohlcv[-5:],
-                        }
-                        yield {"event": "candle", "data": json.dumps(payload)}
+                    else:
+                        latest = ohlcv[-1]
+                        signature = f"{latest['time']}:{latest['close']}:{latest['volume']}:{len(ohlcv)}"
 
-                    last_sig = signature
+                        if first_snapshot:
+                            payload = {
+                                "ticker": clean_ticker,
+                                "timeframe": timeframe,
+                                "server_ts": int(time.time()),
+                                "ohlcv": ohlcv,
+                                "latest": latest,
+                            }
+                            yield {"event": "snapshot", "data": json.dumps(payload)}
+                            first_snapshot = False
+                        elif signature != last_sig:
+                            payload = {
+                                "ticker": clean_ticker,
+                                "timeframe": timeframe,
+                                "server_ts": int(time.time()),
+                                "latest": latest,
+                                "tail": ohlcv[-5:],
+                            }
+                            yield {"event": "candle", "data": json.dumps(payload)}
+
+                        last_sig = signature
 
             except Exception as exc:
                 yield {
@@ -257,7 +264,7 @@ async def stream_chart_data(
                 "event": "heartbeat",
                 "data": json.dumps({"ts": int(time.time()), "ticker": clean_ticker}),
             }
-            await asyncio.sleep(refresh_s)
+            await asyncio.sleep(effective_refresh)
 
     return EventSourceResponse(_event_gen(), ping=15)
 
