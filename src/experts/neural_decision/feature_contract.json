@@ -1,0 +1,21 @@
+{
+  "contract_name": "NeuralDecisionExpert Feature Contract",
+  "version": "1.0.0",
+  "required_features": {
+    "return_1": {"type": "float", "min": -1.0, "max": 1.0},
+    "return_5": {"type": "float", "min": -1.0, "max": 1.0},
+    "rsi_14": {"type": "float", "min": 0.0, "max": 100.0},
+    "atr_pct": {"type": "float", "min": 0.0, "max": 1.0},
+    "volume_zscore": {"type": "float", "min": -10.0, "max": 100.0},
+    "price_vs_ema_21": {"type": "float", "min": -1.0, "max": 1.0},
+    "trend_slope": {"type": "float", "min": -10.0, "max": 10.0},
+    "volatility_regime": {"type": "string", "enum": ["low", "normal", "high", "extreme"]},
+    "liquidity_sweep": {"type": "boolean"}
+  },
+  "required_context": {
+    "macro_risk": {"type": "string", "enum": ["low", "neutral", "high", "unknown"]},
+    "news_sentiment": {"type": "string", "enum": ["bullish", "neutral", "bearish", "mixed"]},
+    "fraud_risk": {"type": "float", "min": 0.0, "max": 1.0},
+    "veracity_score": {"type": "float", "min": 0.0, "max": 1.0}
+  }
+}

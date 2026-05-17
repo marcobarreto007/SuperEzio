@@ -1,0 +1,55 @@
+{
+  "schema_name": "NeuralDecisionExpert Training Dataset Schema",
+  "version": "1.0.0",
+  "description": "Schema for offline neural training datasets. Each record represents a historical state-decision pair.",
+  "required_fields": {
+    "timestamp": {"type": "integer", "description": "Unix timestamp of the state capture"},
+    "symbol": {"type": "string"},
+    "timeframe": {"type": "string", "enum": ["1m", "5m", "15m", "1h", "4h", "1d"]},
+    "features": {
+      "type": "object",
+      "properties": {
+        "return_1": {"type": "number"},
+        "return_5": {"type": "number"},
+        "rsi_14": {"type": "number"},
+        "atr_pct": {"type": "number"},
+        "volume_zscore": {"type": "number"},
+        "price_vs_ema_21": {"type": "number"},
+        "trend_slope": {"type": "number"},
+        "volatility_regime": {"type": "string", "enum": ["low", "normal", "high", "extreme"]},
+        "liquidity_sweep": {"type": "boolean"}
+      },
+      "required": [
+        "return_1",
+        "return_5",
+        "rsi_14",
+        "atr_pct",
+        "volume_zscore",
+        "price_vs_ema_21",
+        "trend_slope",
+        "volatility_regime",
+        "liquidity_sweep"
+      ]
+    },
+    "context": {
+      "type": "object",
+      "properties": {
+        "macro_risk": {"type": "string", "enum": ["low", "neutral", "high", "unknown"]},
+        "news_sentiment": {"type": "string", "enum": ["bullish", "neutral", "bearish", "mixed"]},
+        "fraud_risk": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+        "veracity_score": {"type": "number", "minimum": 0.0, "maximum": 1.0}
+      },
+      "required": ["macro_risk", "news_sentiment", "fraud_risk", "veracity_score"]
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "future_return_10": {"type": "number", "description": "10-period future forward return"},
+        "max_drawdown_10": {"type": "number", "description": "Max drawdown over the next 10 periods"},
+        "setup_quality": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+        "regime_label": {"type": "string", "enum": ["trend_real", "reversal_weak", "pump_artificial", "liquidity_hunt", "no_edge", "high_asymmetry"]}
+      },
+      "required": ["future_return_10", "max_drawdown_10", "setup_quality", "regime_label"]
+    }
+  }
+}

@@ -660,3 +660,30 @@ async def product_manifest(request: Request) -> dict:
         "status": status,
     }
     return manifest
+
+
+@router.post("/experts/neural-decision/predict")
+async def predict_neural_decision(payload: dict) -> dict:
+    """Evaluate technical signals and risk regimes via NeuralDecisionExpert."""
+    from experts.neural_decision import NeuralDecisionExpert
+
+    symbol = payload.get("symbol", "")
+    timeframe = payload.get("timeframe", "")
+    features = payload.get("features", {})
+    context = payload.get("context", {})
+
+    expert = NeuralDecisionExpert()
+    result = expert.predict(symbol, timeframe, features, context)
+
+    if "error" in result:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": result["error"],
+                "validation_errors": result.get("validation_errors", []),
+                "recommendation": result.get("recommendation"),
+                "veto": result.get("veto")
+            }
+        )
+
+    return result

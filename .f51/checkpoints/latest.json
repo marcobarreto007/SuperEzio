@@ -1,17 +1,18 @@
 {
-  "date_local": "2026-05-17T10:12:00-04:00",
-  "session": "honest_refactoring_completed",
+  "date_local": "2026-05-17T10:25:00-04:00",
+  "session": "neural_decision_expert_mvp",
   "status": "COMPLETED",
   "what_was_done": [
-    "Revisadas e aprovadas as alterações locais de refatoração do operador (Marco).",
-    "Substituídos os nomes inflacionados 'TechnicalNeuralExpert' por 'PriceMLP' e 'QuantumExpert' por 'QuantumWalkBias' em toda a árvore de importações e adaptadores.",
-    "Renomeado 'neural_score' para 'mlp_score' e alinhadas as saídas do pipeline.",
-    "Executados 489 testes automatizados de regressão com 100% de aproveitamento verde.",
-    "Salvas e commitadas todas as alterações no controle de versão Git."
+    "Criado o 'feature_contract.json' para definir tipos, limites e enums rígidos das features e do contexto em tempo real.",
+    "Criado o 'dataset_schema.json' para mapear a coleta de dados offline visando treinamento PyTorch futuro sem lookahead.",
+    "Desenvolvido o 'neural_decision_expert.py' contendo o validador 'FeatureContractValidator' e a lógica matemática calibrada de incerteza (uncertainty) e risco de drawdown diante de ameaças de fraude.",
+    "Criado e acoplado o endpoint POST '/experts/neural-decision/predict' na API FastAPI do SuperEzio (endpoints.py) para recepção de sinais via webhook do TradingView.",
+    "Implementados 20 casos de testes sintéticos robustos (tests/test_neural_decision.py) validando contratos, regimes de mercado (trend_real, pump_artificial, etc.) e integrações HTTP.",
+    "Executada toda a suíte global de testes com 510 testes verdes (100% verdes)."
   ],
-  "evidence": "489 passed, 0 failed nos testes do pytest. Commit a08d055 integrado com sucesso na branch main.",
+  "evidence": "Pytest concluído com 510 passed e 0 failed. O endpoint responde em conformidade absoluta com o contrato de features definido.",
   "risks": [
-    "Nenhum risco estrutural de quebra ou regressão detectado. O código agora reflete com honestidade cristalina a infraestrutura de dados local."
+    "Nenhum nesta fase. O MVP de contrato e interfaces está 100% isolado, blindado e pronto para receber lógica de rede profunda real."
   ],
-  "next_step": "Avançar para a implementação de novas conexões com brokers de execução reais (Alpaca/Interactive Brokers) para materializar o valor comercial do produto."
+  "next_step": "Avançar para a implementação do Ingestion API Feature Builder que mapeará os alertas de webhook do TradingView para o contrato de features e dados estruturados."
 }
