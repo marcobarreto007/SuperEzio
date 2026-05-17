@@ -204,7 +204,7 @@ class TestLoRATrainerConfig:
         from core.trading.training import LoRATrainer
 
         trainer = LoRATrainer()
-        assert "gemma" in trainer.config.model_name.lower()
+        assert "qwen" in trainer.config.model_name.lower()
         assert trainer.config.lora_r == 64
         assert trainer.config.num_epochs == 1
 
