@@ -1,16 +1,17 @@
 {
-  "date_local": "2026-05-17T12:45:00-04:00",
-  "session": "shortcut_and_launcher_audit",
+  "date_local": "2026-05-17T14:44:51-04:00",
+  "session": "blood_pact_operational_runtime_confirmation",
   "status": "COMPLETED",
   "what_was_done": [
-    "Auditado o atalho 'SuperEzio.lnk' na Área de Trabalho via PowerShell confirmando que aponta para o launcher moderno 'desktop\\SuperEzio.bat'.",
-    "Analisado o script 'desktop\\SuperEzio.bat' comprovando que limpa portas, sobe o CEO local na porta 8082, sobe a API FastAPI na porta 8002 e abre o navegador automaticamente.",
-    "Verificado o script 'scripts\\serve_ceo_llamacpp.ps1' confirmando suporte a GPU (ngl 20), Flash Attention, KV Cache quantizado e MTP speculative decoding.",
-    "Verificado 'agent_server\\main.py' garantindo que compila a pipeline moderna v4 de grafos via LangGraph sem dependências legadas."
+    "Confirmed that the F51_Blood_Pact_Operational_Runtime contract already exists in .f51/contracts/f51-blood-pact-operational-runtime.json.",
+    "Validated that the contract JSON and checkpoint JSON are parseable.",
+    "Confirmed the contract file and latest checkpoint are tracked by Git.",
+    "Registered the active operating rule: one main project, one main branch, one main objective, with no new front opened without checkpoint."
   ],
-  "evidence": "PowerShell resolveu o atalho diretamente para o script 'SuperEzio.bat' e os arquivos 'main.py' e 'serve_ceo_llamacpp.ps1' usam a arquitetura v4 mais moderna de IA local.",
+  "evidence": "PowerShell ConvertFrom-Json parsed both .f51/contracts/f51-blood-pact-operational-runtime.json and .f51/checkpoints/latest.json. git ls-files shows both files are tracked. git status was clean before this checkpoint update.",
   "risks": [
-    "Nenhum risco. A infraestrutura de boot local está 100% blindada e limpa processos antigos das portas 8002 e 8082 antes de iniciar."
+    "No product code, runtime command, dependency, or public API was changed.",
+    "Operational risk remains if future sessions ignore the decision gate before starting new products, models, MCP installs, agent creation, major refactors, or purchases."
   ],
-  "next_step": "Manter o monitoramento de conexões de concorrência e iniciar a evolução das integrações adicionais de TradingView."
+  "next_step": "Continue with the single active objective: forward testing and delivery hardening. Before any code change, run inventory, contract, runtime, test, risk-register, and checkpoint checks."
 }
