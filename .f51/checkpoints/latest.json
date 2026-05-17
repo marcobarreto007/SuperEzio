@@ -1,29 +1,39 @@
 {
-  "date_local": "2026-05-17T15:35:30-04:00",
-  "session": "f51-disk-only-recovery-mode",
-  "status": "ACTIVE",
+  "date_local": "2026-05-17T15:39:25-04:00",
+  "session": "f51-runtime-validation-prod-plus-neural-audit",
+  "status": "OPERATIONAL_WITH_NEURAL_AUDIT",
   "what_was_done": [
-    "Operator declared the GitHub repository was deleted and work must continue from disk only.",
-    "Confirmed local Git repository still exists at C:/Users/marco/Desktop/SuperEzio.",
-    "Confirmed local HEAD is 6cb44f9e076426733d5926edd27d543e46890ad3 on main.",
-    "Confirmed the deleted remote returns Repository not found.",
-    "Verified local NeuralDecisionExpert and Technical Neural Expert files exist and import successfully.",
-    "Verified tests/test_neural_decision.py passes with 20 tests.",
-    "Verified local all-refs backup bundle at C:/Users/marco/Desktop/SuperEzio_LOCAL_BACKUPS/SuperEzio-20260517-153354-allrefs.bundle.",
-    "Set local git push URL for origin to DISABLED_LOCAL_DISK_ONLY to prevent accidental GitHub push."
+    "Confirmed both servers online: CEO llama-server :8082 health OK, API :8002 health OK (v3.0.0).",
+    "Sent complete A2AMessage (TASK.SUBMIT) to /task/submit for AAPL 14 days analysis.",
+    "Full pipeline executed end-to-end successfully: Orchestrator -> ProfessionalCollector (8 providers, 788ms) -> F51Engine (confidence 0.965, passed) -> 6 DeepSeek Experts (all OK) -> NeuralDecisionExpert (direction up:0.62) -> RAG Forensics (5 matches) -> CEO Qwen3.6-35B (VERDICT: HOLD, 52s inference) -> Explanation -> STREAM_END.",
+    "Verified deduplication guards working (skipped_duplicate seen for experts, neural_decision, rag_forensics, ceo_primary).",
+    "CEO produced structured English output with all mandatory sections: VERDICT, CONFIDENCE, TIMEFRAME, ENTRY, TARGET, MOVEMENT, STOP LOSS, module coverage.",
+    "Audited the Neural Expert claim from .f51/NEURAL_EXPERT_ARCHITECTURE.md against disk code.",
+    "Confirmed Technical Neural Expert code exists as PriceMLP and PriceTorchMLP under src/experts/technical_neural.",
+    "Confirmed active pipeline graph contains explicit NeuralDecisionExpert node and CEO prompt formatting for neural_decision.",
+    "Confirmed Technical Neural Expert is available through legacy DataCollector QuantEngine fallback, but not as the default ProfessionalCollector path."
   ],
   "evidence": [
-    "git rev-parse HEAD -> 6cb44f9e076426733d5926edd27d543e46890ad3.",
-    "git ls-remote origin HEAD -> Repository not found.",
-    "git bundle verify SuperEzio-20260517-153354-allrefs.bundle -> bundle records a complete history and is okay.",
-    "python import check -> IMPORT_OK NeuralDecisionExpert PriceMLP True.",
+    "curl :8082/health -> OK (ceo Qwen3.6-35B online).",
+    "curl :8002/health -> OK (agent_server v3.0.0).",
+    "POST /task/submit with A2AMessage {from:marco, to:bob, type:TASK.SUBMIT, payload:{ticker:AAPL, time_horizon:14 days}} -> full pipeline SSE stream completed.",
+    "CEO output: VERDICT HOLD, CONFIDENCE 58%, ENTRY 300.22, TARGET 305.50, STOP LOSS 285.00, all modules referenced.",
+    "Dedup: experts skipped_duplicate, neural_decision skipped_duplicate, rag_forensics skipped_duplicate, ceo_primary skipped_duplicate.",
+    "F51 Gate: veracity 1.0, consensus 0.714, robustness 0.85, uncertainty 0.44, danger 0.0 -> confidence 0.965.",
     "python -m pytest tests/test_neural_decision.py -q -> 20 passed.",
-    "git remote -v shows origin push URL as DISABLED_LOCAL_DISK_ONLY."
+    "PriceMLP synthetic oscillating candles smoke -> mlp_score 0.3383, verdict SELL, loss_convergence stable.",
+    "NeuralDecisionExpert synthetic payload smoke -> trend_real, alerta_forte, veto false.",
+    "python -m ruff check focused neural scope failed only on two pre-existing lint issues: unused Tuple import and unused exc variable."
   ],
   "risks": [
-    "GitHub is no longer a backup or source of truth until a new repository is created.",
-    "Uncommitted local cache changes exist under .f51/cache/collector and must not be blindly committed.",
-    "Work must use local commits/checkpoints only until the operator explicitly authorizes a new remote push."
+    "GitHub remote is deleted; no off-disk backup until new remote is created.",
+    "CEO inference latency is 52s for a single request; pipeline is functional but not fast.",
+    "ProfessionalCollector reported 1 Alpha Vantage failure (circuit may be close to tripping).",
+    "CEO prompt still contains some Portuguese boilerplate text mixed with English rules.",
+    "Desktop launcher .bat was not tested; servers were started manually.",
+    "The architecture document overstates the current implementation: default runtime uses NeuralDecisionExpert rule/regime logic, not an LSTM trained on 600 bars.",
+    "Technical Neural Expert MLP exists and can train on synthetic candles, but default ProfessionalCollector path does not call it directly.",
+    "Focused neural lint has two trivial fixable issues in src/experts/neural_decision/neural_decision_expert.py."
   ],
-  "next_step": "Continue repairs and validation locally on disk; create a new GitHub remote only after the project is ready."
+  "next_step": "Decide whether to promote PriceTorchMLP/PriceMLP into the default ProfessionalCollector or keep NeuralDecisionExpert as the active neural gate."
 }
