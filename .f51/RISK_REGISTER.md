@@ -17,6 +17,7 @@ Generated: 2026-05-15 | Branch: main | Commit: 0dad9f3
 | R05 | Scanner module missing | `core/scanner/` (empty) | `runtime.py` e `nodes/collector.py` importam `MarketScanner` com `try/except ImportError`. Funcionalidade de market scan esta morta. |
 | R06 | 60 modulos sem teste | 60 de 117 modulos src/ | Incluindo: pipeline completo, agent_runtime completo, investor/, data providers, observability/. |
 | R07 | `rl/policy.py` scaffold sem teste | `core/rl/policy.py` | 14 linhas, experimental, sem cobertura. |
+| R15 | Coletores com campos `None` opcionais | `core/f51_adapter/adapter.py`, `core/data_collector/` | Provedores externos (TwelveData, AlphaVantage) podem falhar ou retornar nulo, gerando TypeErrors na coerção de float() durante a montagem de claims e verdicts. |
 
 ## Medium (P2)
 
