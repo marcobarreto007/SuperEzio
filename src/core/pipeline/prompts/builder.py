@@ -1,4 +1,4 @@
-"""CEO prompt builder — model-aware, section-based, no hardcoded model names."""
+"""CEO prompt builder — Qwen3.6-35B, section-based, no model branching."""
 
 from __future__ import annotations
 
@@ -16,10 +16,9 @@ from .gemma import MODEL_PROMPTS, SAFE_ACTIONS
 # ---------------------------------------------------------------------------
 
 
-def ceo_system_prompt(model_family: str = "gemma") -> str:
-    """Return the CEO system prompt for a given model family."""
-    prompts = MODEL_PROMPTS.get(model_family, MODEL_PROMPTS["gemma"])
-    return prompts["system"]
+def ceo_system_prompt() -> str:
+    """Return the CEO system prompt for local Qwen3.6-35B."""
+    return MODEL_PROMPTS["local"]["system"]
 
 
 # ---------------------------------------------------------------------------
@@ -182,63 +181,20 @@ def _format_mandamentos(mandamentos: list[Any]) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Preprocessing
-# ---------------------------------------------------------------------------
-
-_SUBSTITUTIONS = [
-    (
-        r"\b(devo|posso|vale a pena|compensa)\s+(investir|comprar|alocar)\s+(em|no|na|nos|nas)\b",
-        "evaluate the quantitative asymmetry of",
-    ),
-    (
-        r"\b(me\s+)?(recomenda|indica|sugere|aconselha)\s+(investir|comprar|alocar)\b",
-        "what are the risk parameters for",
-    ),
-    (r"\bconselho(s)?\s+de\s+investimento\b", "quantitative risk analysis for"),
-    (r"\brecomendac[aã]o\s+de\s+investimento\b", "quantitative parameters for"),
-    (r"\b(devo|posso)\s+(vender|sair|liquidar)\b", "evaluate exit parameters for"),
-    (
-        r"\b(boa|boa)\s+(opcao|opc[aã]o)\s+(para\s+)?investir\b",
-        "what is the risk profile of",
-    ),
-    (r"\bvalor\s+justo\b", "Monte Carlo estimated fair value for"),
-    (r"\b(conselho|aconselhamento)\b", "quantitative analysis"),
-    (r"\brecomendac[aã]o\b", "quantitative parameters"),
-]
-
-
-def _preprocess_query(text: str) -> str:
-    """Replace advice-seeking language with quantitative research terms."""
-    result = text
-    for pattern, replacement in _SUBSTITUTIONS:
-        result = re.sub(pattern, replacement, result, flags=re.IGNORECASE)
-    return result
-
-
-# ---------------------------------------------------------------------------
-# Main prompt builders
+# Main prompt builder
 # ---------------------------------------------------------------------------
 
 
 def build_ceo_prompt(
     state: PipelineState,
     mandamentos: list[Any] | None = None,
-    model_family: str = "gemma",
 ) -> str:
-    """Build the full CEO prompt from pipeline state.
-
-    Returns a prompt string ready to be sent as the user message.
-    The system prompt is separate (ceo_system_prompt).
-    """
+    """Build the full CEO prompt from pipeline state for Qwen3.6-35B."""
     mandamentos = mandamentos or []
-    is_local = model_family == "gemma"
-
     raw_message = state.get("message", "")
     intent = state.get("intent", "general_question")
     route = state.get("route", "general")
     ticker = state.get("ticker", "")
-
-    user_request = raw_message if is_local else _preprocess_query(raw_message)
 
     # ── Casual / greeting ──
     has_financial = bool(
@@ -269,145 +225,76 @@ def build_ceo_prompt(
         and not msg_has_fin
     )
 
-    if is_casual and is_local:
+    if is_casual:
         return "\n\n".join(
             [
-                MODEL_PROMPTS["gemma"]["persona"],
-                f"USER: {user_request}",
+                MODEL_PROMPTS["local"]["persona"],
+                f"USER: {raw_message}",
             ]
         )
 
-    # ── Local CEO (Gemma) — structured ──
-    if is_local:
-        parts = [
-            "You are the CEO of SuperEzio (Bob), an institutional financial analysis platform. "
-            "Analyze penny stocks, detect fraud, assess risk. Be direct and quantitative. "
-            "Cite evidence from DataCollector. If evidence is missing, say what is missing. "
-            "Answer in English only, 2 paragraphs max. "
-            f"Pick one next step: {SAFE_ACTIONS}.",
-            "",
-            f"TASK: {user_request}",
-            f"INTENT: {intent} route={route}",
-        ]
-
-        if intent == "explain_capabilities":
-            parts.append(
-                "This is a method/capability question, not a market scan. "
-                "Answer directly with the research tools and risk checks "
-                "SuperEzio uses. Do not ask for a ticker."
-            )
-
-        chart_ctx = state.get("context", "")
-        if chart_ctx:
-            parts.append(f"CHART:\n{chart_ctx[:1000]}")
-
-        data_ctx = state.get("data_context", "")
-        if data_ctx:
-            parts.append(f"DATA:\n{data_ctx[:1500]}")
-        elif route == "ticker_analysis":
-            parts.append(
-                "DATA:\nNo DataCollector evidence. Do not invent prices or fundamentals."
-            )
-
-        rag_ctx = state.get("rag_context", "")
-        if rag_ctx:
-            parts.append(f"RAG_FORENSICS:\n{rag_ctx[:800]}")
-
-        pennylab_raw = state.get("pennylab") or state.get("pennylab_result") or {}
-        pennylab_block = _format_pennylab(pennylab_raw)
-        if pennylab_block:
-            parts.append(f"PENNYLAB:\n{pennylab_block[:800]}")
-        else:
-            parts.append("PENNYLAB:\nNo PennyLab evidence.")
-
-        expert_summary = state.get("expert_summary", "")
-        if expert_summary:
-            parts.append(f"EXPERTS:\n{expert_summary[:1000]}")
-        else:
-            parts.append("EXPERTS:\nNo expert committee output.")
-
-        contract = _render_module_contract(state)
-        if contract:
-            parts.append(contract)
-
-        return "\n\n".join(parts)
-
-    # ── External CEO (DeepSeek) — full quantitative ──
-    pennylab_raw = state.get("pennylab") or state.get("pennylab_result") or {}
-    pennylab_section = (
-        f"{_format_pennylab(pennylab_raw)}\n\n"
-        if _format_pennylab(pennylab_raw)
-        else ""
-    )
+    # ── Structured analysis ──
+    parts = [
+        "You are the CEO of SuperEzio (Bob), an institutional financial analysis platform. "
+        "Analyze penny stocks, detect fraud, assess risk. Be direct and quantitative. "
+        "Cite evidence from DataCollector. If evidence is missing, say what is missing. "
+        "Answer in English only, 2 paragraphs max. "
+        f"Pick one next step: {SAFE_ACTIONS}.",
+        "",
+        f"TASK: {raw_message}",
+        f"INTENT: {intent} route={route}",
+    ]
 
     if intent == "explain_capabilities":
-        return (
-            "[USER_REQUEST]\n"
-            f"{raw_message}\n\n"
-            "[INTENT]\n"
-            "explain_capabilities action=answer_directly route=general\n\n"
-            "[CONTEXT]\n"
-            f"{state.get('context', '')[:8000]}\n\n"
-            "[OUTPUT_CONTRACT]\n"
-            "Answer in English only. Explain the tools, data sources, "
-            "screening logic, and risk/fraud checks SuperEzio uses for penny "
-            "stock research. Do not run a scan, do not invent current market "
-            "data, and do not require a ticker unless the user asks for a "
-            "specific analysis."
+        parts.append(
+            "This is a method/capability question, not a market scan. "
+            "Answer directly with the research tools and risk checks "
+            "SuperEzio uses. Do not ask for a ticker."
         )
 
-    if route == "market_scan":
-        return (
-            "[MARKET_SCAN_REQUEST]\n"
-            f"{user_request}\n\n"
-            "[DATA]\n"
-            f"{state.get('data_context', '')[:20000]}\n\n"
-            "[OUTPUT_CONTRACT]\n"
-            "You are providing a market scan result. Process the data above "
-            "and present the shortlist of tickers found to the user. "
-            "Because this is a scan, do NOT demand evidence_id and do NOT "
-            "complain about missing Expert/PennyLab data. "
-            "Simply present the candidates and advise the user to run a full "
-            "analysis on a specific ticker. "
-            "Classify next step as: STUDY_MORE."
+    chart_ctx = state.get("context", "")
+    if chart_ctx:
+        parts.append(f"CHART:\n{chart_ctx[:1000]}")
+
+    data_ctx = state.get("data_context", "")
+    if data_ctx:
+        parts.append(f"DATA:\n{data_ctx[:1500]}")
+    elif route == "ticker_analysis":
+        parts.append(
+            "DATA:\nNo DataCollector evidence. Do not invent prices or fundamentals."
         )
 
-    return (
-        "[QUANTITATIVE_REQUEST]\n"
-        f"{user_request}\n\n"
-        "[ROUTE]\n"
-        f"{route} intent={intent} ticker={ticker}\n\n"
-        "[ORCHESTRATOR]\n"
-        f"{state.get('orchestrator_plan', '')}\n"
-        f"model_status={state.get('orchestrator_model_status', '')}\n\n"
-        "[CONTEXT]\n"
-        f"{state.get('context', '')[:8000]}\n\n"
-        "[DATA]\n"
-        f"{state.get('data_context', '')[:20000]}\n\n"
-        f"{pennylab_section}"
-        "[RAG_FORENSICS]\n"
-        f"{state.get('rag_context', '')[:2500]}\n\n"
-        "[EXPERTS]\n"
-        f"{state.get('expert_summary', '')[:30000]}\n\n"
-        "[OUTPUT_CONTRACT]\n"
-        "Process the data above and produce a structured quantitative report in English. "
-        "Every current financial number must include an evidence_id. "
-        "Classify the next step with exactly one of these actions: "
-        f"{SAFE_ACTIONS}. "
-        "If an external model is unavailable, state that the intent router handled orchestration."
-        "\n\n"
-        f"{_render_module_contract(state)}"
-    )
+    rag_ctx = state.get("rag_context", "")
+    if rag_ctx:
+        parts.append(f"RAG_FORENSICS:\n{rag_ctx[:800]}")
+
+    pennylab_raw = state.get("pennylab") or state.get("pennylab_result") or {}
+    pennylab_block = _format_pennylab(pennylab_raw)
+    if pennylab_block:
+        parts.append(f"PENNYLAB:\n{pennylab_block[:800]}")
+    else:
+        parts.append("PENNYLAB:\nNo PennyLab evidence.")
+
+    expert_summary = state.get("expert_summary", "")
+    if expert_summary:
+        parts.append(f"EXPERTS:\n{expert_summary[:1000]}")
+    else:
+        parts.append("EXPERTS:\nNo expert committee output.")
+
+    contract = _render_module_contract(state)
+    if contract:
+        parts.append(contract)
+
+    return "\n\n".join(parts)
 
 
 def missing_ceo_text(
     ticker: str = "",
     route: str = "general",
     local_ready: bool = False,
-    cloud_ready: bool = False,
 ) -> str:
-    """Error text when no CEO provider is available."""
-    if not local_ready and not cloud_ready:
+    """Error text when local CEO is unavailable."""
+    if not local_ready:
         return (
             "MODEL_MISSING: local Qwen3.6-35B CEO is offline.\n\n"
             f"Prepared route: {route} | ticker: {ticker or 'no ticker'}.\n"

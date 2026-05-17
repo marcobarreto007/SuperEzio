@@ -1,10 +1,10 @@
 """QLoRA 4-bit training loop — fine-tunes CEO model with SFT data.
 
-Target: Gemma-4-26B-A4B-abliterated (~26B dense).
+Target: Qwen3.6-35B (~35B params).
 Requires: torch, transformers, peft, bitsandbytes, accelerate.
 
 For large-scale training on cloud GPU (80GB+), use:
-    scripts/finetune_gemma_sft.py
+    scripts/finetune_qwen_sft.py
 
 This module is for programmatic training from within the pipeline
 (recorded trade outcomes → fine-tune CEO).
@@ -22,11 +22,11 @@ logger = logging.getLogger(__name__)
 # Default CEO model — override via env SUPEREZIO_TRAIN_MODEL
 _CEO_MODEL = os.getenv(
     "SUPEREZIO_TRAIN_MODEL",
-    "google/gemma-4-26b",
+    "Qwen/Qwen3.6-35B",
 )
 
-# Standard Gemma attention + MLP projections
-_GEMMA_LORA_TARGETS = [
+# Standard Qwen attention + MLP projections
+_QWEN_LORA_TARGETS = [
     "q_proj", "k_proj", "v_proj", "o_proj",
     "gate_proj", "up_proj", "down_proj",
 ]
@@ -38,7 +38,7 @@ class TrainingConfig:
     lora_r: int = 64
     lora_alpha: int = 128
     lora_dropout: float = 0.05
-    lora_targets: list[str] | None = None  # None = auto-detect Gemma targets
+    lora_targets: list[str] | None = None  # None = auto-detect Qwen targets
     learning_rate: float = 2e-4
     num_epochs: int = 1
     batch_size: int = 1
@@ -67,10 +67,10 @@ class TrainingResult:
 
 
 class LoRATrainer:
-    """QLoRA 4-bit fine-tuning for the Gemma-4-26B CEO model.
+    """QLoRA 4-bit fine-tuning for the Qwen3.6-35B CEO model.
 
     For small datasets (<1000 examples), train locally.
-    For full 410K dataset, use scripts/finetune_gemma_sft.py on vast.ai.
+    For full 410K dataset, use scripts/finetune_qwen_sft.py on vast.ai.
     """
 
     def __init__(self, config: TrainingConfig | None = None):
@@ -176,7 +176,7 @@ class LoRATrainer:
             tokenizer.pad_token_id = tokenizer.eos_token_id
 
         # ── LoRA config ────────────────────────────────────────────────
-        targets = cfg.lora_targets or _GEMMA_LORA_TARGETS
+        targets = cfg.lora_targets or _QWEN_LORA_TARGETS
         lora_config = LoraConfig(
             r=cfg.lora_r,
             lora_alpha=cfg.lora_alpha,

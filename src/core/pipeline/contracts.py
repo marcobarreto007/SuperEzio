@@ -122,7 +122,7 @@ class CEORequest(BaseModel):
     f51_verdict: dict[str, Any] = Field(default_factory=dict)
     chart_context: str = ""
     mandamentos: str = ""
-    model_family: str = "gemma"
+    model_family: str = "local"
 
 
 class ExpertCall(BaseModel):

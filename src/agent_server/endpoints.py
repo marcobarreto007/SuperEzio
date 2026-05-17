@@ -347,8 +347,8 @@ PRODUCT_MANIFEST = {
         },
         {
             "id": "ceo_primary",
-            "label": "Local CEO (Gemma-4-26B-A4B-abliterated)",
-            "description": "Local Gemma-4-26B CEO consolidates conflicts and chooses one permitted next step. CEO is local-only, Q4_K_M GGUF via llama-cpp.",
+            "label": "Local CEO (Qwen3.6-35B Q4_K_M)",
+            "description": "Local Qwen3.6-35B CEO via llama.cpp — consolidates conflicts and chooses one permitted next step.",
         },
     ],
     "decision_modes": [

@@ -298,7 +298,6 @@ COMMON_WORDS = {
     "HUB",
     "SENSEI",
     "BOB",
-    "GEMMA",
     "DEEPSEEK",
     "TSX",
     "NYSE",
@@ -308,7 +307,6 @@ COMMON_WORDS = {
     "FED",
     "CLAUDE",
     "LLAMA",
-    "NEMOTRON",
     "LORA",
     "AI",
     "ML",
@@ -824,8 +822,6 @@ def detect_ticker(message: str) -> str:
     debug_logger.trace(
         MODULE_INTENT, "detect_ticker start", message_preview=message[:80]
     )
-    msg_lower = normalized.lower()
-    has_fin_keyword = any(kw in msg_lower for kw in FINANCIAL_KEYWORDS)
     candidates: list[tuple[str, int, int]] = []
 
     # 1. Sufixos de mercado EXPLÍCITOS (.SA, .TO, .V) — prioridade MÁXIMA

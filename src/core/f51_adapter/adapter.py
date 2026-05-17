@@ -39,6 +39,24 @@ def _volume_z_score(volume: int, avg_volume: float) -> float:
     return (volume - avg_volume) / max(avg_volume, 1.0)
 
 
+def _safe_float(val: Any, default: float = 0.0) -> float:
+    if val is None:
+        return default
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return default
+
+
+def _safe_int(val: Any, default: int = 0) -> int:
+    if val is None:
+        return default
+    try:
+        return int(val)
+    except (ValueError, TypeError):
+        return default
+
+
 def _build_risk_rules_from_hub() -> list[RiskRule]:
     """Converte red_flag_rules.json do hub em RiskRule do f51."""
     data = _load_json(FRAUD_RULES_PATH)
@@ -347,22 +365,22 @@ class F51HubAdapter:
                 total_revenue = 1
 
         features = {
-            "price": float(price),
+            "price": _safe_float(price),
             "daily_return": daily_ret,
-            "volume": int(volume),
-            "avg_volume": float(avg_volume),
+            "volume": _safe_int(volume),
+            "avg_volume": _safe_float(avg_volume),
             "volume_z_score": volume_z,
-            "market_cap": float(mcap),
-            "rsi_14": float(tech.get("rsi_14") if tech.get("rsi_14") is not None else 50),
-            "annual_volatility": float(risk.get("annual_volatility") if risk.get("annual_volatility") is not None else 0.2),
-            "var_95": float(risk.get("var_95") if risk.get("var_95") is not None else -0.02),
-            "sharpe_ratio": float(risk.get("sharpe_ratio") if risk.get("sharpe_ratio") is not None else 0),
+            "market_cap": _safe_float(mcap),
+            "rsi_14": _safe_float(tech.get("rsi_14"), 50.0),
+            "annual_volatility": _safe_float(risk.get("annual_volatility"), 0.2),
+            "var_95": _safe_float(risk.get("var_95"), -0.02),
+            "sharpe_ratio": _safe_float(risk.get("sharpe_ratio"), 0.0),
             "hype_keyword_count": hype_count,
-            "total_revenue": float(total_revenue) if total_revenue else 0,
-            "sentiment_score": float(sentiment.get("sentiment_score") if sentiment.get("sentiment_score") is not None else 0),
-            "reddit_sentiment": float(reddit.get("sentiment_score") if reddit.get("sentiment_score") is not None else 0),
-            "monte_carlo_prob_up": float(quant.get("monte_carlo_prob_up") if quant.get("monte_carlo_prob_up") is not None else 50),
-            "ml_prob_up": float(quant.get("ml_prob_up") if quant.get("ml_prob_up") is not None else 50),
+            "total_revenue": _safe_float(total_revenue, 0.0),
+            "sentiment_score": _safe_float(sentiment.get("sentiment_score"), 0.0),
+            "reddit_sentiment": _safe_float(reddit.get("sentiment_score"), 0.0),
+            "monte_carlo_prob_up": _safe_float(quant.get("monte_carlo_prob_up"), 50.0),
+            "ml_prob_up": _safe_float(quant.get("ml_prob_up"), 50.0),
             "missing_data_ratio": _missing_data_ratio(trace),
         }
         return features

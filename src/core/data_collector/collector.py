@@ -319,7 +319,7 @@ class DataCollector:
                 return {"error": f"{source_name} failed: {type(exc).__name__}: {exc}"}
 
         data = await _safe_fetch(
-            "YFINANCE", lambda: self.engine.get_market_data(ticker)
+            "FINANCIAL_ENGINE", lambda: self.engine.get_market_data(ticker)
         )
 
         if data.get("error") or not data.get("price"):
