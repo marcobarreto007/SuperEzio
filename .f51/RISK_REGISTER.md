@@ -1,13 +1,13 @@
 # F51 Risk Register — SuperEzio
-Generated: 2026-05-15 | Branch: main | Commit: 0dad9f3
+Generated: 2026-05-15 | Updated: 2026-05-17 | Branch: main
 
 ## Critical (P0)
 
 | ID | Risk | Module | Detail |
 |----|------|--------|--------|
-| R01 | Pipeline nodes 100% duplicados | `pipeline/nodes/` | `_mixin.py` tem todas as nodes como metodos de classe; `nodes/*.py` tem as mesmas como funcoes soltas. Qualquer bug fix precisa ser aplicado em dois lugares. |
-| R02 | CEO prompts duplicados | `pipeline/ceo_prompts.py` vs `pipeline/prompts/builder.py` | 9 funcoes com logica identica. `ceo_prompts.py` referencia Nemotron-Nano; `builder.py` referencia Gemma-4. Ambos ativos no import graph. |
-| R03 | Pipeline sem cobertura de teste | `pipeline/runtime.py`, `pipeline/nodes/`, `pipeline/state.py` | Zero testes. O graph inteiro (orchestrator -> data -> experts -> CEO) nunca e testado end-to-end. |
+| R01 | Pipeline nodes 100% duplicados | **[RESOLVIDO 2026-05-17]** | `_mixin.py` ja nao existia. Nodes estao unificados em `nodes/*.py` como funcoes async puras. Graph importa diretamente sem duplicacao. |
+| R02 | CEO prompts duplicados | **[RESOLVIDO 2026-05-17]** | `ceo_prompts.py` ja nao existia. Prompts unificados em `prompts/builder.py` + `prompts/gemma.py`. Model branching removido — so Qwen3.6-35B. |
+| R03 | Pipeline sem cobertura de teste | `pipeline/` | Zero testes end-to-end. O graph inteiro (orchestrator -> data -> experts -> CEO) nunca e testado integrado. |
 
 ## High (P1)
 
@@ -24,7 +24,7 @@ Generated: 2026-05-15 | Branch: main | Commit: 0dad9f3
 | ID | Risk | Module | Detail |
 |----|------|--------|--------|
 | R08 | Diretorios vazios | **[RESOLVIDO]** | `core/scanner/`, `core/mathcore/`, `core/evidence/` totalmente excluídos. |
-| R09 | `financial_prompts.py` overlap parcial | `core/prompts/financial_prompts.py` | Importado por `ceo_prompts.py` (old) mas nao por `prompts/builder.py` (new). Transicao incompleta. |
+| R09 | `financial_prompts.py` overlap parcial | **[RESOLVIDO 2026-05-17]** | `ceo_prompts.py` e `financial_prompts.py` removidos. Builder unificado em `prompts/builder.py`. |
 | R10 | `math/indicators.py` vs `engine/indicators.py` overlap | **[RESOLVIDO]** | `core/engine/` removido. Fonte canônica agora é apenas `core/math/`. |
 | R11 | 55 env vars sem centralizacao | **[RESOLVIDO]** | Centralizado em `.env.example` mapeado e documentado. |
 | R12 | `scripts/server.py` orphan | **[RESOLVIDO]** | Arquivo órfão expurgado. |
