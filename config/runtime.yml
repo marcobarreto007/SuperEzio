@@ -1,53 +1,138 @@
+# SuperEzio Runtime Configuration v4.0.0
+# Fonte canonica de configuracao de runtime.
+# ATUALIZADO: 2026-05-17 — reflete o runtime real validado.
+
 project_name: SuperEzio
+version: 4.0.0
 default_country: Canada
 default_currency: CAD
-version: 2.1.0
+
+# ---------------------------------------------------------------------------
+# Server bindings
+# ---------------------------------------------------------------------------
 server:
   host: 127.0.0.1
   port: 8002
+  entrypoint: python -m agent_server.main
+  pythonpath: src
+  venv: .venv
+
+# ---------------------------------------------------------------------------
+# Modelos (runtime real — validado via pipeline test 2026-05-17)
+# ---------------------------------------------------------------------------
 models:
-  # Gateway providers são criados em create_gateway_from_config() no gateway.py.
-  # Os modelos abaixo servem apenas para config default de URL/model_id.
+  ceo:
+    name: Qwen3.6-35B F51 (Bob)
+    provider_name: ceo
+    path: models/qwen36-35b-f51.Q4_K_M.gguf
+    quantization: Q4_K_M
+    server_url: http://127.0.0.1:8082/v1
+    backend: openai_compatible
+    role: ceo
+    is_local: true
+    temperature: 0.3
+    max_tokens: 16384
+    timeout_s: 180
+    script: scripts/serve_ceo_llamacpp.ps1
+    speculative_decoding: MTP (built-in)
+    context_length: 32768
+    gpu_layers: 20
+    slots: 4
+
   orchestrator:
-    name: Primary External Orchestrator
-    path: https://api.deepseek.com
+    name: DeepSeek Chat (Orchestrator)
+    provider_name: deepseek
+    base_url: https://api.deepseek.com
+    model: deepseek-chat
     backend: openai_compatible
     role: orchestrator
     is_local: false
-    model_id: deepseek-chat
-  ceo:
-    name: Primary External CEO
-    path: https://api.deepseek.com
-    backend: openai_compatible
-    role: ceo
-    is_local: false
-    model_id: deepseek-chat
-  specialist: &id001
-    name: DeepSeek External Specialist
-    path: https://api.deepseek.com
+
+  experts:
+    name: DeepSeek Chat (Experts)
+    provider_name: deepseek
+    base_url: https://api.deepseek.com
+    model: deepseek-chat
     backend: openai_compatible
     role: worker
     is_local: false
-    model_id: deepseek-chat
-  fundamental_analyst: *id001
-  technical_analyst: *id001
-  risk_manager: *id001
-  sentiment_analyst: *id001
-  macro_economist: *id001
-  portfolio_optimizer: *id001
-  fixed_income_analyst: *id001
-  quant_strategist: *id001
-  esg_analyst: *id001
-  derivatives_analyst: *id001
-  compliance_officer: *id001
-  sector_analyst: *id001
+    roles:
+      - fundamental
+      - technical
+      - risk
+      - macro
+      - quant
+      - sentiment
+
+  fallback:
+    grok:
+      name: Grok 4.3 (Fallback)
+      provider_name: grok
+      base_url: https://api.x.ai/v1
+      model: grok-4.3
+      role: cloud_primary
+      is_local: false
+
+# ---------------------------------------------------------------------------
+# Gateway
+# ---------------------------------------------------------------------------
 gateway:
   max_fallbacks: 2
   timeout_s: 180
-triade:
-  max_fallback_attempts: 2
-  enable_review: true
-  use_committee: true
+
+# ---------------------------------------------------------------------------
+# Health checks
+# ---------------------------------------------------------------------------
+health:
+  ceo:
+    url: http://127.0.0.1:8082/health
+    method: GET
+    expected: ok
+  api_public:
+    url: http://127.0.0.1:8002/health
+    method: GET
+    expected: status=ok
+  api_details:
+    url: http://127.0.0.1:8002/health/details
+    method: GET
+    expected: status=ok
+
+# ---------------------------------------------------------------------------
+# Storage
+# ---------------------------------------------------------------------------
 storage:
   memory_dir: data/memory
   vectors_dir: data/vectors
+  checkpoints_dir: .f51/checkpoints
+  runtime_checkpoints_dir: runtime/checkpoints
+  models_dir: models
+  backup_dir: C:/Users/marco/Desktop/SuperEzio_LOCAL_BACKUPS
+
+# ---------------------------------------------------------------------------
+# Launch sequence (ordem canônica)
+# ---------------------------------------------------------------------------
+launch:
+  step_1:
+    description: CEO llama-server
+    command: powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082
+    wait_for: http://127.0.0.1:8082/health
+    timeout_attempts: 50
+    window_title: SuperEzio CEO
+
+  step_2:
+    description: API agent_server
+    command: python -m agent_server.main
+    wait_for: http://127.0.0.1:8002/health
+    timeout_attempts: 40
+    window_title: SuperEzio API
+
+  launcher_bat: desktop/SuperEzio.bat
+
+# ---------------------------------------------------------------------------
+# Test commands
+# ---------------------------------------------------------------------------
+tests:
+  lint: python -m ruff check src tests
+  format_check: python -m ruff format --check src tests
+  unit_and_contract: python -m pytest tests/ -q
+  contract_only: python -m pytest tests/contracts/ -q

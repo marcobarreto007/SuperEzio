@@ -4,6 +4,12 @@
 
 ## Riscos Ativos
 
+### R8 — proxy_reward ternário engole fórmula (HIGH)
+- **O que:** `src/f51/formulas.py:proxy_reward` usa ternário `X if has_ground_truth else 0.0` que, por precedência de operadores Python, retorna 0.0 para toda a fórmula quando `has_ground_truth=False`.
+- **Impacto:** `ProxyReward.calculate()` sempre retorna 0.0 sem ground truth. AdversarialCritic, F51Engine e qualquer consumidor que use proxy_reward sem ground truth recebe score zero.
+- **Mitigacao:** Adicionar parênteses para isolar apenas o termo `ground_truth_bonus` no ternário.
+- **Urgencia:** Alta — afeta todos os cálculos de proxy_reward.
+
 ### R1 — Config Stale (HIGH)
 - **O que:** `config/model_manifest.json` referencia Gemma-4-26B. `config/runtime.yml` nao tem CEO local.
 - **Impacto:** Gateway pode tentar inicializar com modelo errado se ler esses arquivos.
@@ -45,3 +51,4 @@
 - ~~Branch paralela `f51/reclamation-runtime`~~ — Deletada 2026-05-17.
 - ~~Modelos velhos (Gemma 31B, Qwen3.6-27B)~~ — Movidos para `Desktop/modelos antigos/`.
 - ~~GGUF sem MTP~~ — SHA256 confirmado: GGUF novo com tensores MTP.
+- ~~R8 — proxy_reward ternário~~ — Testado e documentado. Correção pendente de aprovação.

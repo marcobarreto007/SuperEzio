@@ -1,50 +1,70 @@
 {
   "project": "SuperEzio / F51 Unified Core",
-  "version": "4.5.0",
-  "date_local": "2026-05-16T23:59:59-04:00",
-  "session": "f51_audit_release_completed",
-  "verdict": "PASS",
-  "status": "APTO_PARA_DEMONSTRACAO_E_VENDA",
+  "version": "4.0.0",
+  "date_local": "2026-05-17T15:50:00-04:00",
+  "session": "f51-runtime-official-v4",
+  "status": "OPERATIONAL",
   "operational_contract": {
     "name": "F51_Blood_Pact_Operational_Runtime",
     "path": ".f51/contracts/f51-blood-pact-operational-runtime.json",
     "status": "active"
   },
   "runtime_parameters": {
-    "port": 8002,
+    "ceo_port": 8082,
+    "api_port": 8002,
     "bind": "127.0.0.1",
-    "entrypoint": "python -m agent_server.main",
-    "health_check_public": "http://127.0.0.1:8002/health",
-    "health_check_details": "http://127.0.0.1:8002/health/details"
+    "api_entrypoint": "python -m agent_server.main",
+    "ceo_entrypoint": "powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082",
+    "launcher": "desktop/SuperEzio.bat",
+    "model": "Qwen3.6-35B F51 Q4_K_M GGUF (MTP speculative decoding)",
+    "model_path": "models/qwen36-35b-f51.Q4_K_M.gguf",
+    "model_size_gb": 20.22,
+    "health_ceo": "http://127.0.0.1:8082/health",
+    "health_api": "http://127.0.0.1:8002/health",
+    "health_api_details": "http://127.0.0.1:8002/health/details"
   },
-  "quality_gate": {
-    "date": "2026-05-16T23:59:59-04:00",
-    "commit": "cdaa000",
-    "branch": "main",
-    "git_status": "dirty",
-    "ruff_check": "PASS",
-    "ruff_format": "PASS",
-    "pytest": "PASS",
-    "build": "PASS",
-    "coverage": "PASS",
-    "verdict": "PASS"
+  "contracts": {
+    "count": 6,
+    "files": [
+      ".f51/contracts/f51-engine.contract.md",
+      ".f51/contracts/pipeline.contract.md",
+      ".f51/contracts/data-hub.contract.md",
+      ".f51/contracts/neural-decision.contract.md",
+      ".f51/contracts/ceo.contract.md",
+      ".f51/contracts/a2a-protocol.contract.md"
+    ]
+  },
+  "config": {
+    "canonical": "config/runtime.yml",
+    "env_file": ".env",
+    "model_manifest": "config/model_manifest.json"
+  },
+  "tests": {
+    "contract_tests": 158,
+    "total_tests": 510,
+    "contract_files": [
+      "tests/contracts/test_contract_f51_engine.py",
+      "tests/contracts/test_contract_a2a.py",
+      "tests/contracts/test_contract_pipeline.py",
+      "tests/contracts/test_contract_ceo.py"
+    ]
   },
   "what_was_done": [
-    "Created .env.example centralizing all 55 environment variables grouped by category.",
-    "Consolidated core/engine/ to core/math/ indicators and financial engine, and deleted the deprecated directory.",
-    "Deleted the 3 empty directories (scanner, mathcore, evidence) and the orphan scripts/server.py file.",
-    "Updated docs/architecture/FINAL_AUDIT.md, docs/runbooks/DELIVERY_CHECKLIST.md, and .f51/RELEASE_READINESS.md to declare that SuperEzio is 100% ready for Demo and Commercial Sale.",
-    "Validated all changes with the full 464 pytest test suite running and passing with 100% success."
+    "Updated config/runtime.yml to reflect actual runtime: CEO=Qwen3.6-35B local :8082, API :8002, DeepSeek experts, launch sequence documented.",
+    "Updated docs/runbooks/RUNBOOK.md with accurate ports, healthcheck endpoints, diagnostic commands, and full pipeline flow.",
+    "Updated runtime/checkpoints/latest.json with current operational state.",
+    "Validated full pipeline end-to-end: POST /task/submit AAPL 14 days → HOLD verdict, all modules working."
   ],
   "evidence": {
-    "viability_demo": "YES — Blocker B01, B02, B03 fully resolved and verified by pytest smoke tests",
-    "viability_sale": "YES — All packaging, deprecations, and empty folders cleaned up and resolved",
-    "pytest": "464 passed, 2 skipped, exit code 0",
-    "delivery_checklist": "docs/runbooks/DELIVERY_CHECKLIST.md populated"
+    "pipeline_live_test": "AAPL 14 days → full SSE stream: 8 providers, F51 0.965, 6 experts, NeuralDecision, RAG, CEO HOLD 58%, Explanation",
+    "curl_ceo_health": "OK",
+    "curl_api_health": "OK (v3.0.0)",
+    "contract_tests": "158 passed, 0 failed"
   },
   "known_risks": [
-    "R15: Optional None API fields causing type errors in float conversions (P1)",
-    "R02: CEO prompts duplicated in ceo_prompts.py vs prompts/builder.py (P2)"
+    "GitHub remote deleted — no off-disk backup",
+    "CEO latency 52s per request",
+    "config/runtime.yml was stale (now fixed)"
   ],
-  "next_step": "System is 100% operational and packaged for release."
+  "next_step": "Phase 3: f51-tests — smoke tests, contract tests e integracao minima do runtime oficial."
 }

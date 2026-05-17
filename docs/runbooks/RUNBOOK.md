@@ -1,109 +1,127 @@
-# Runbook Oficial — SuperEzio Agent Server
+# Runbook Oficial — SuperEzio Agent Server v4.0.0
 
-Este runbook define as diretivas de operação, monitoramento, diagnóstico e recuperação do servidor FastAPI (`agent_server`) no ambiente de produção local.
+> Atualizado: 2026-05-17 | Validado com pipeline test ao vivo
 
----
+## 1. Servico / Componente
 
-## 1. Serviço / Componente
+- **Nome**: SuperEzio Agent Server (`agent_server`)
+- **Dono**: Marco Barreto / Fuch F51 Labs
+- **Criticidade**: Critica (P0) — Portal de entrada de decisoes financeiras e orquestracao de agentes.
 
-* **Nome**: SuperEzio Agent Server (`agent_server`)
-* **Dono**: Marco Barreto / Fuch F51 Labs
-* **Criticidade**: **Crítica (P0)** — Portal de entrada de decisões financeiras e orquestração de agentes.
+## 2. Pre-requisitos e Portas
 
----
+| Componente | Porta | Descricao |
+|-----------|-------|-----------|
+| CEO (Qwen3.6-35B) | 8082 | llama-server com GGUF Q4_K_M, MTP speculative decoding |
+| API (FastAPI) | 8002 | agent_server.main — A2A protocol, SSE streaming |
 
-## 2. Pré-requisitos e Portas
+- **Variaveis de Ambiente**: `.env` na raiz do projeto (55 variaveis, 12+ API keys)
+- **Dependencias**: Python `.venv`, `llama.cpp/bin/llama-server.exe`, `models/qwen36-35b-f51.Q4_K_M.gguf` (20.22GB)
 
-* **Variáveis de Ambiente Necessárias**:
-  * `A2A_PORT` (Porta do servidor local, default: `8002`)
-  * `A2A_BIND` (Interface de rede local, default: `127.0.0.1`)
-  * `A2A_AGENT_NAME` (Identificador do agente, default: `generic_agent`)
-  * `UNIVERSAL_SKIP_GATEWAY` (Ignora verificação inicial do EdgeGateway, default: `1` para testes de integração)
-* **Dependências de Infraestrutura**:
-  * Python virtualenv ativo (`.venv`)
-  * Porta local `8002` livre e acessível.
-  * Llama-server local rodando (Qwen3.6-35B em `8000`) para vereditos finais de IA.
+## 3. Inicializacao
 
----
+### Lancamento com um clique
 
-## 3. Inicialização e Start
+```cmd
+C:\Users\marco\Desktop\SuperEzio\desktop\SuperEzio.bat
+```
 
-### Comando Principal (Canônico)
-Para rodar em ambiente Windows local sob PowerShell:
+O launcher:
+1. Carrega `.env`
+2. Mata processos antigos nas portas 8082 e 8002
+3. Inicia CEO (llama-server) em janela separada
+4. Aguarda CEO health (:8082/health)
+5. Inicia API em janela separada
+6. Aguarda API health (:8002/health)
+7. Abre navegador em http://127.0.0.1:8002
+
+### Manual
+
 ```powershell
+# Terminal 1 — CEO
+powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082
+
+# Terminal 2 — API
 python -m agent_server.main
 ```
 
-### Inicialização em Background (F51-Dev)
-Para subir o servidor em segundo plano e persistir logs:
-```powershell
-Start-Job -Name "SuperEzio_Server" -ScriptBlock { cd c:\Users\marco\Desktop\SuperEzio; .venv\Scripts\python -m agent_server.main }
+## 4. Health Checks
+
+### API Liveness (publico)
+```bash
+curl http://127.0.0.1:8002/health
+# → {"status":"ok","agent":"generic_agent","version":"3.0.0"}
 ```
 
----
+### API Readiness (detalhado)
+```bash
+curl http://127.0.0.1:8002/health/details
+# → {"status":"ok","checks":{"gpu":{...},"local_models":{...},"redis":{...}}}
+```
 
-## 4. Health Checks e Monitoramento
+### CEO Liveness
+```bash
+curl http://127.0.0.1:8082/health
+# → {"status":"ok"}
+```
 
-O servidor FastAPI disponibiliza dois níveis de checagem de saúde operacional:
+## 5. Diagnostico Rapido
 
-### A. Health Check Público (Liveness)
-* **Endpoint**: `http://127.0.0.1:8002/health`
-* **Método**: `GET`
-* **Uso**: Checagem rápida de conectividade e status básico da API.
-* **Resultado Esperado (200 OK)**:
-  ```json
-  {
-      "status": "ok",
-      "app": "SuperEzio A2A Server",
-      "health": "/health",
-      "details": "/health/details"
-  }
-  ```
+### Porta 8002 ocupada
+```powershell
+Get-NetTCPConnection -LocalPort 8002 -ErrorAction SilentlyContinue
+Stop-Process -Id (Get-NetTCPConnection -LocalPort 8002).OwningProcess -Force
+```
 
-### B. Health Check Profundo (Readiness)
-* **Endpoint**: `http://127.0.0.1:8002/health/details`
-* **Método**: `GET`
-* **Uso**: Checagem profunda. Verifica GPU local, modelos carregados em llama.cpp, conexão com Redis, status do provedor de custos (CostGuard) e APIs de terceiros.
-* **Resultado Esperado (200 OK)**:
-  ```json
-  {
-      "status": "ok",
-      "checks": {
-          "gpu": { "driver_version": "...", "gpus": [...] },
-          "local_models": { "active": true, "list": [...] },
-          "redis": { "reachable": true },
-          "cost_guard": { "status": "active", "total_spent_today": 0.0 }
-      }
-  }
-  ```
+### Porta 8082 ocupada
+```powershell
+Get-NetTCPConnection -LocalPort 8082 -ErrorAction SilentlyContinue
+Stop-Process -Id (Get-NetTCPConnection -LocalPort 8082).OwningProcess -Force
+```
 
----
+### CEO offline (`degraded_no_backend`)
+1. Verificar se `llama-server.exe` esta rodando: `Get-Process llama-server -ErrorAction SilentlyContinue`
+2. Verificar se o GGUF existe: `Test-Path models/qwen36-35b-f51.Q4_K_M.gguf`
+3. Reiniciar: `powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082`
 
-## 5. Diagnóstico Rápido e Recovery
+### API nao sobe
+1. Verificar se `.venv` existe: `Test-Path .venv\Scripts\python.exe`
+2. Verificar dependencias: `.venv\Scripts\python -c "import fastapi, uvicorn, langgraph"`
+3. Verificar se CEO esta rodando primeiro (API depende dele)
 
-### Erro 1: `OSError: [Errno 98] Address already in use` (Porta 8002 ocupada)
-* **Sintoma**: O servidor falha ao iniciar e desliga imediatamente.
-* **Ação de Recuperação (PowerShell)**:
-  1. Identifique o processo que ocupa a porta `8002`:
-     ```powershell
-     Get-NetTCPConnection -LocalPort 8002 -ErrorAction SilentlyContinue
-     ```
-  2. Finalize o processo ocupante de forma forçada:
-     ```powershell
-     Stop-Process -Id (Get-NetTCPConnection -LocalPort 8002).OwningProcess -Force -ErrorAction SilentlyContinue
-     ```
-  3. Re-inicie o servidor com:
-     ```powershell
-     python -m agent_server.main
-     ```
+## 6. Comandos de Verificacao
 
-### Erro 2: `degraded_no_backend` (Llama-Server inacessível)
-* **Sintoma**: O endpoint `/health/details` retorna status degradado e o modelo de IA falha ao gerar vereditos.
-* **Ação de Recuperação**:
-  1. Verifique se o Llama-server local na porta `8000` está ativo.
-  2. Se inativo, inicialize o servidor do modelo local usando o runbook de IA.
+```powershell
+# Lint
+python -m ruff check src tests
 
----
+# Formato
+python -m ruff format --check src tests
 
-## 6. Checkpoints de Operação
-Toda ação de reinicialização ou recuperação executada em produção local pelo operador ou agente deve atualizar a trilha em `.f51/checkpoints/latest.json` e registrar o status na pasta `runtime/checkpoints/`.
+# Testes completos
+python -m pytest tests/ -q
+
+# Apenas contratos
+python -m pytest tests/contracts/ -q
+```
+
+## 7. Pipeline Flow Completo
+
+```
+POST /task/submit (A2AMessage {from, to, type:TASK.SUBMIT, payload:{ticker, time_horizon}})
+  → Orchestrator (classifica intent)
+  → DataCollector (ProfessionalCollector, 8 providers)
+  → F51Engine (gates, formulas, verdict)
+  → Experts (6 DeepSeek agents em paralelo)
+  → NeuralDecisionExpert (directional prob, regime)
+  → RAG Forensics (historical fraud patterns)
+  → CEO Qwen3.6-35B (verdict BUY/SELL/HOLD, target, stop loss)
+  → Explanation (gate factors audit)
+  → SSE Stream end
+```
+
+## 8. Checkpoints
+
+- Operacional: `.f51/checkpoints/latest.json`
+- Runtime: `runtime/checkpoints/latest.json`
+- Toda acao de recovery deve atualizar ambos.

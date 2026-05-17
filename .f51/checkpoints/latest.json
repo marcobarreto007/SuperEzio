@@ -1,39 +1,35 @@
 {
-  "date_local": "2026-05-17T15:39:25-04:00",
-  "session": "f51-runtime-validation-prod-plus-neural-audit",
-  "status": "OPERATIONAL_WITH_NEURAL_AUDIT",
+  "date_local": "2026-05-17T16:35:00-04:00",
+  "session": "f51-hostile-audit-release",
+  "status": "OPERACIONAL_NAO_PRONTO_PARA_DEMO",
   "what_was_done": [
-    "Confirmed both servers online: CEO llama-server :8082 health OK, API :8002 health OK (v3.0.0).",
-    "Sent complete A2AMessage (TASK.SUBMIT) to /task/submit for AAPL 14 days analysis.",
-    "Full pipeline executed end-to-end successfully: Orchestrator -> ProfessionalCollector (8 providers, 788ms) -> F51Engine (confidence 0.965, passed) -> 6 DeepSeek Experts (all OK) -> NeuralDecisionExpert (direction up:0.62) -> RAG Forensics (5 matches) -> CEO Qwen3.6-35B (VERDICT: HOLD, 52s inference) -> Explanation -> STREAM_END.",
-    "Verified deduplication guards working (skipped_duplicate seen for experts, neural_decision, rag_forensics, ceo_primary).",
-    "CEO produced structured English output with all mandatory sections: VERDICT, CONFIDENCE, TIMEFRAME, ENTRY, TARGET, MOVEMENT, STOP LOSS, module coverage.",
-    "Audited the Neural Expert claim from .f51/NEURAL_EXPERT_ARCHITECTURE.md against disk code.",
-    "Confirmed Technical Neural Expert code exists as PriceMLP and PriceTorchMLP under src/experts/technical_neural.",
-    "Confirmed active pipeline graph contains explicit NeuralDecisionExpert node and CEO prompt formatting for neural_decision.",
-    "Confirmed Technical Neural Expert is available through legacy DataCollector QuantEngine fallback, but not as the default ProfessionalCollector path."
+    "Auditoria hostil completa em 9 categorias: orfaos, mocks, contratos, runtime duplicado, config espalhada, testes fake, dependencias escondidas, docs insuficientes, risco de demo quebrar.",
+    "Descoberto bug CRITICAL R8: proxy_reward ternario engole formula (retorna 0.0 sem ground_truth).",
+    "Descoberto 2 endpoints 500: /capabilities, /product/manifest.",
+    "Descoberto NeuralDecisionExpert e rule-based com hardcoded probabilidades, nao ML treinado — documento NEURAL_EXPERT_ARCHITECTURE.md promete LSTM.",
+    "Descoberto neural_log.py silencia TODOS DeprecationWarnings globalmente.",
+    "Descoberto load_dotenv() dentro de funcao em pipeline_hook.py — side effect escondido.",
+    "Descoberto DataHub nao tem metodo collect_full_mesh documentado no contrato.",
+    "Produzidos 3 deliverables: FINAL_AUDIT.md, DELIVERY_CHECKLIST.md, RELEASE_READINESS.md.",
+    "Veredito: sistema funciona mas NAO esta pronto para demo publica nem venda."
   ],
   "evidence": [
-    "curl :8082/health -> OK (ceo Qwen3.6-35B online).",
-    "curl :8002/health -> OK (agent_server v3.0.0).",
-    "POST /task/submit with A2AMessage {from:marco, to:bob, type:TASK.SUBMIT, payload:{ticker:AAPL, time_horizon:14 days}} -> full pipeline SSE stream completed.",
-    "CEO output: VERDICT HOLD, CONFIDENCE 58%, ENTRY 300.22, TARGET 305.50, STOP LOSS 285.00, all modules referenced.",
-    "Dedup: experts skipped_duplicate, neural_decision skipped_duplicate, rag_forensics skipped_duplicate, ceo_primary skipped_duplicate.",
-    "F51 Gate: veracity 1.0, consensus 0.714, robustness 0.85, uncertainty 0.44, danger 0.0 -> confidence 0.965.",
-    "python -m pytest tests/test_neural_decision.py -q -> 20 passed.",
-    "PriceMLP synthetic oscillating candles smoke -> mlp_score 0.3383, verdict SELL, loss_convergence stable.",
-    "NeuralDecisionExpert synthetic payload smoke -> trend_real, alerta_forte, veto false.",
-    "python -m ruff check focused neural scope failed only on two pre-existing lint issues: unused Tuple import and unused exc variable."
+    "183 tests passing (158 contract + 20 smoke + 5 integration).",
+    "Pipeline AAPL 14d live: completo (52s CEO latency).",
+    "curl :8082/health OK, :8002/health OK.",
+    "2 endpoints 500: /capabilities, /product/manifest.",
+    "proxy_reward(consensus=0.8, critic=0.9, sanity=1.0) → 0.0 (bug confirmado).",
+    "NeuralDecisionExpert.predict() usa probabilidades hardcoded: 0.33/0.33/0.34 default."
   ],
   "risks": [
-    "GitHub remote is deleted; no off-disk backup until new remote is created.",
-    "CEO inference latency is 52s for a single request; pipeline is functional but not fast.",
-    "ProfessionalCollector reported 1 Alpha Vantage failure (circuit may be close to tripping).",
-    "CEO prompt still contains some Portuguese boilerplate text mixed with English rules.",
-    "Desktop launcher .bat was not tested; servers were started manually.",
-    "The architecture document overstates the current implementation: default runtime uses NeuralDecisionExpert rule/regime logic, not an LSTM trained on 600 bars.",
-    "Technical Neural Expert MLP exists and can train on synthetic candles, but default ProfessionalCollector path does not call it directly.",
-    "Focused neural lint has two trivial fixable issues in src/experts/neural_decision/neural_decision_expert.py."
+    "R8 — proxy_reward formula bug (CRITICAL): ProxyReward.calculate() retorna 0.0 sem ground_truth.",
+    "Demo latency 52s: CEO Qwen3.6-35B inviavel para demo ao vivo.",
+    "2 endpoints 500: /capabilities, /product/manifest.",
+    "NeuralDecisionExpert doc vs codigo: documento promete LSTM, codigo e rule-based.",
+    "Sem GitHub remote — sem backup off-disk.",
+    "CI GitHub Actions quebrado.",
+    "30+ arquivos chamam os.getenv() diretamente.",
+    "neural_log.py:31 silencia DeprecationWarnings globalmente."
   ],
-  "next_step": "Decide whether to promote PriceTorchMLP/PriceMLP into the default ProfessionalCollector or keep NeuralDecisionExpert as the active neural gate."
+  "next_step": "Corrigir 3 bloqueadores antes de qualquer demo: (1) proxy_reward bug, (2) endpoints 500, (3) reduzir latencia CEO ou pre-calcular respostas."
 }
