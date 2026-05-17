@@ -21,6 +21,7 @@ from core.engine.indicators import (
 from core.pipeline.intents import (
     detect_ticker,
     should_block_vague_financial_prompt,
+    has_hint,
 )
 
 from .protocol import A2AMessage, MessageType

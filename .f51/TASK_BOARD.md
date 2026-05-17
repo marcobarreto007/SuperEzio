@@ -2,11 +2,11 @@
 
 ## Backlog
 
-- [ ] Definir tarefa prioritária (Money Gate)
+- [ ] Integrar novas frentes de liquidez de penny-stock no terminal local.
 
 ## In Progress
 
-- [ ] Nenhuma
+- [ ] Hardening e testes operacionais dos contratos e runtime de portas.
 
 ## Blocked
 
@@ -15,6 +15,9 @@
 ## Done
 
 - [x] Bootstrap operacional inicial
+- [x] Mapeamento de inventário e criação de TEST_MAP / DUPLICATE_MAP.
+- [x] Definição de runtime e criação do RUNBOOK.md oficial.
+- [x] Verificação de contratos e execução de 22 testes locais.
 
 ## Política
 
