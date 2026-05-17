@@ -12,6 +12,7 @@ Séries disponíveis:
 
 import logging
 import os
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict
 
@@ -25,6 +26,9 @@ TREASURY_MATURITIES = {
     "treasury_10y": "10year",
     "treasury_30y": "30year",
 }
+
+# Alpha Vantage free tier: 5 calls/min. 4 maturities + 1.5s gap = safe.
+_RATE_LIMIT_DELAY_SEC = float(os.getenv("FED_PROVIDER_RATE_DELAY", "1.8"))
 
 
 def get_macro_summary_us() -> Dict[str, Any]:
@@ -44,8 +48,12 @@ def get_macro_summary_us() -> Dict[str, Any]:
         "provider": "alpha_vantage_treasury",
         "collected_at": datetime.now(timezone.utc).isoformat(),
     }
+    empty_count = 0
 
-    for name, maturity in TREASURY_MATURITIES.items():
+    for i, (name, maturity) in enumerate(TREASURY_MATURITIES.items()):
+        if i > 0:
+            time.sleep(_RATE_LIMIT_DELAY_SEC)
+
         params = {
             "function": "TREASURY_YIELD",
             "maturity": maturity,
@@ -54,10 +62,17 @@ def get_macro_summary_us() -> Dict[str, Any]:
         try:
             response = requests.get(base_url, params=params, timeout=10)
             data = response.json()
+
+            # Alpha Vantage rate-limit / error surface
+            if data.get("Information") and "rate limit" in str(data.get("Information", "")).lower():
+                logger.warning("[FED] Alpha Vantage rate limit hit — stopping treasury collection")
+                result[name] = {"value": None, "error": "rate_limit"}
+                break
+
             if data.get("Error Message") or data.get("Note"):
                 result[name] = {
                     "value": None,
-                    "error": data.get("Error Message") or data.get("Note"),
+                    "error": str(data.get("Error Message") or data.get("Note"))[:200],
                 }
                 continue
 
@@ -77,9 +92,21 @@ def get_macro_summary_us() -> Dict[str, Any]:
                     ),
                 }
             else:
-                result[name] = {"value": None, "error": "no data"}
+                empty_count += 1
+                # Distinguish "no data" from "API returned unexpected format"
+                top_keys = [k for k in data.keys() if k not in ("data",)]
+                detail = f"no data (api_keys={top_keys})" if top_keys else "no data (empty response)"
+                result[name] = {"value": None, "error": detail}
+                logger.warning(
+                    "[FED] Treasury %s returned no records. API keys: %s",
+                    maturity,
+                    top_keys,
+                )
         except Exception as e:
             logger.warning("[FED] Treasury yield fetch failed for %s: %s", maturity, e)
             result[name] = {"value": None, "error": str(e)[:100]}
+
+    if empty_count >= len(TREASURY_MATURITIES):
+        result["data_quality"] = "unavailable"
 
     return result

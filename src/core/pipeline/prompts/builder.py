@@ -67,6 +67,7 @@ _MODULE_KEYWORDS: dict[str, list[str]] = {
     "reddit": ["reddit", "social"],
     "pennylab": ["pennylab", "forensic", "fraud", "manipulation"],
     "experts": ["experts", "committee", "fundamental", "technical", "risk"],
+    "neural": ["neural", "direction prob", "regime", "expected return", "drawdown"],
     "f51": ["f51", "verdict", "confidence", "threshold"],
     "rag_forensics": ["rag", "forensics", "historical", "past case"],
 }
@@ -96,6 +97,7 @@ def _required_module_presence(state: PipelineState) -> dict[str, bool]:
             )
         ),
         "experts": bool(state.get("expert_summary")),
+        "neural": bool(state.get("neural_decision") and "error" not in state.get("neural_decision", {})),
         "f51": bool(state.get("f51_verdict")),
         "rag_forensics": bool(state.get("rag_context")),
     }
@@ -161,6 +163,34 @@ def _format_pennylab(pennylab: dict[str, Any]) -> str:
     ):
         val = pennylab.get(key)
         if val not in (None, "", [], {}):
+            lines.append(f"{key}={val}")
+    return "\n".join(lines)
+
+
+def _format_neural_decision(neural: dict[str, Any]) -> str:
+    """Compact NeuralDecisionExpert block for CEO prompt."""
+    if not neural or neural.get("error"):
+        return ""
+    lines = ["[NEURAL_DECISION]"]
+    direction = neural.get("direction_prob", {})
+    if direction:
+        lines.append(
+            f"direction_prob=up:{direction.get('up', '?')} "
+            f"down:{direction.get('down', '?')} "
+            f"sideways:{direction.get('sideways', '?')}"
+        )
+    for key in (
+        "expected_return",
+        "drawdown_risk",
+        "uncertainty",
+        "regime",
+        "recommendation",
+        "veto",
+        "reason",
+        "timeframe",
+    ):
+        val = neural.get(key)
+        if val is not None and val != "":
             lines.append(f"{key}={val}")
     return "\n".join(lines)
 
@@ -238,10 +268,20 @@ def build_ceo_prompt(
         raw_message,
         re.IGNORECASE,
     )
-    _horizon_text = (
-        f"\nTIME_HORIZON: user asked about {_horizon_match.group(0)}"
-        if _horizon_match
-        else ""
+    _horizon_text = _horizon_match.group(0) if _horizon_match else ""
+
+    # Use state-level time_horizon if present (set by orchestrator or UI)
+    state_horizon = state.get("time_horizon", "")
+    effective_horizon = _horizon_text or state_horizon or "14 days"
+
+    horizon_constraint = (
+        f"\n[CRITICAL_TIMEFRAME_CONSTRAINT]\n"
+        f"The user's investment horizon is: {effective_horizon}.\n"
+        f"Your TIMEFRAME field MUST be '{effective_horizon}' — NOT 1-3 days, NOT any other value.\n"
+        f"Your TARGET price must be the expected price at the END of this timeframe ({effective_horizon}).\n"
+        f"Your MOVEMENT % must reflect the expected change over {effective_horizon}.\n"
+        f"If you cannot estimate a {effective_horizon} target, set CONFIDENCE lower and explain why.\n"
+        f"DO NOT default to 1-3 days. DO NOT shorten the user's timeframe.\n"
     )
 
     parts = [
@@ -252,16 +292,17 @@ def build_ceo_prompt(
         "```\n"
         "VERDICT: BUY / SELL / HOLD\n"
         "CONFIDENCE: 0-100%\n"
-        "TIMEFRAME: match user's horizon\n"
+        "TIMEFRAME: must match user's horizon\n"
         "ENTRY: current price\n"
         "TARGET: expected price at end of timeframe\n"
-        "MOVEMENT: expected % gain or drop\n"
+        "MOVEMENT: expected % gain or drop over the full timeframe\n"
         "STOP LOSS: suggested stop level\n"
         "```\n\n"
         "Then explain WHY. Reference EVERY available module below by name:\n"
         "- DATA: what the DataCollector shows\n"
         "- PENNYLAB: what forensic experts detected\n"
         "- EXPERTS: what the expert committee concluded\n"
+        "- NEURAL_DECISION: directional probability, expected return, regime, drawdown risk\n"
         "- RAG_FORENSICS: what historical patterns match\n"
         "- F51_VERDICT: what the unified scoring says\n\n"
         "If a module has no data, say '[MODULE] MISSING — confidence reduced'.\n"
@@ -273,8 +314,9 @@ def build_ceo_prompt(
         "- Be AGGRESSIVE in your interpretation — the user wants conviction\n"
         "- Answer in English only",
         "",
-        f"TASK: {raw_message}{_horizon_text}",
+        f"TASK: {raw_message}",
         f"INTENT: {intent} route={route}",
+        horizon_constraint,
     ]
 
     if intent == "explain_capabilities":
@@ -312,6 +354,14 @@ def build_ceo_prompt(
         parts.append(f"EXPERTS:\n{expert_summary[:1000]}")
     else:
         parts.append("EXPERTS:\nNo expert committee output.")
+
+    neural = state.get("neural_decision") or {}
+    if neural and "error" not in neural:
+        neural_block = _format_neural_decision(neural)
+        if neural_block:
+            parts.append(f"NEURAL_DECISION:\n{neural_block[:800]}")
+    else:
+        parts.append("NEURAL_DECISION:\nNeuralDecisionExpert not available for this ticker.")
 
     contract = _render_module_contract(state)
     if contract:

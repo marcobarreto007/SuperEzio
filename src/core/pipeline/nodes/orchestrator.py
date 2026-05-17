@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 from typing import Any
 
 from langgraph.config import get_stream_writer
@@ -58,6 +59,35 @@ def _render_plan(plan: dict[str, Any]) -> str:
         f"Rota={route}; intent={intent}; ticker={ticker}; "
         f"confidence={confidence}; filtros={plan.get('filters', {})}."
     )
+
+
+def _extract_time_horizon(message: str) -> str:
+    """Extract investment time horizon from user message.
+
+    Returns string like '14 days', '2 weeks', '1 month', or '' if not found.
+    """
+    if not message:
+        return ""
+    match = re.search(
+        r"(\d+)\s*(day|days|week|weeks|month|months|ano|anos|semana|semanas|mes|meses|dia|dias)",
+        message,
+        re.IGNORECASE,
+    )
+    if not match:
+        return ""
+    num = int(match.group(1))
+    unit = match.group(2).lower()
+
+    # Normalize to English
+    if unit in ("day", "days", "dia", "dias"):
+        return f"{num} days"
+    if unit in ("week", "weeks", "semana", "semanas"):
+        return f"{num} weeks"
+    if unit in ("month", "months", "mes", "meses"):
+        return f"{num} months"
+    if unit in ("ano", "anos"):
+        return f"{num * 12} months"
+    return match.group(0)
 
 
 # ---------------------------------------------------------------------------
@@ -120,6 +150,9 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
                 plan["fallback_intent"] = parsed.intent
         except Exception as exc:
             plan["intent_fallback_error"] = str(exc)[:200]
+
+    # Extract time horizon from user message (e.g. "14 days", "2 weeks", "1 month")
+    plan["time_horizon"] = _extract_time_horizon(message)
 
     # Add meta
     plan["orchestrator_plan"] = _render_plan(plan)

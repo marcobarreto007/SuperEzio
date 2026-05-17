@@ -31,8 +31,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 VAGUE_FINANCIAL_RESPONSE = (
-    "Para análise financeira, informe pelo menos um ativo/ticker e o contexto desejado "
-    "(ex.: AAPL, tendência, risco, valuation, notícias)."
+    "Para análise financeira, informe pelo menos um ativo/ticker, o prazo desejado "
+    "(ex.: AAPL 14 dias, tendência, risco, valuation, notícias)."
 )
 
 

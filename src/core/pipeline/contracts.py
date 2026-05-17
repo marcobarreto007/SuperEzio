@@ -53,6 +53,7 @@ class PipelineState(TypedDict, total=False):
     entities: dict[str, Any]
     ticker: str
     filters: dict[str, Any]
+    time_horizon: str
     diary: bool
     pennylab: bool
     orchestrator_plan: str
