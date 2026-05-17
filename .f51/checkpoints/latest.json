@@ -1,26 +1,29 @@
 {
-  "date_local": "2026-05-17T15:29:25-04:00",
-  "session": "f51-ci-repair-ddgs-qwen-test",
-  "status": "COMPLETED",
+  "date_local": "2026-05-17T15:35:30-04:00",
+  "session": "f51-disk-only-recovery-mode",
+  "status": "ACTIVE",
   "what_was_done": [
-    "Confirmed GitHub Actions failure was in Install dependencies, not the Node 20 warning or windows-latest notice.",
-    "Fixed the Windows CI pip upgrade command to use the venv Python module invocation.",
-    "Updated requirements-ci.txt from ddgs==9.11.2 to ddgs==9.14.4 because 9.11.2 is no longer available to pip.",
-    "Aligned stale tests with the current Qwen3.6 CEO model id qwen36-35b-f51."
+    "Operator declared the GitHub repository was deleted and work must continue from disk only.",
+    "Confirmed local Git repository still exists at C:/Users/marco/Desktop/SuperEzio.",
+    "Confirmed local HEAD is 6cb44f9e076426733d5926edd27d543e46890ad3 on main.",
+    "Confirmed the deleted remote returns Repository not found.",
+    "Verified local NeuralDecisionExpert and Technical Neural Expert files exist and import successfully.",
+    "Verified tests/test_neural_decision.py passes with 20 tests.",
+    "Verified local all-refs backup bundle at C:/Users/marco/Desktop/SuperEzio_LOCAL_BACKUPS/SuperEzio-20260517-153354-allrefs.bundle.",
+    "Set local git push URL for origin to DISABLED_LOCAL_DISK_ONLY to prevent accidental GitHub push."
   ],
   "evidence": [
-    "GitHub Actions job log for run 108/109 showed: ERROR: No matching distribution found for ddgs==9.11.2.",
-    "Temporary clean venv install of requirements-ci.txt completed successfully after the ddgs pin update.",
-    "python -m ruff check tests passed.",
-    "python -m ruff format tests --check passed.",
-    "python -m pytest -q passed: 510 tests.",
-    "git diff --check passed.",
-    "Repository-wide hidden search for the retired runtime name returned no matches outside the search command itself."
+    "git rev-parse HEAD -> 6cb44f9e076426733d5926edd27d543e46890ad3.",
+    "git ls-remote origin HEAD -> Repository not found.",
+    "git bundle verify SuperEzio-20260517-153354-allrefs.bundle -> bundle records a complete history and is okay.",
+    "python import check -> IMPORT_OK NeuralDecisionExpert PriceMLP True.",
+    "python -m pytest tests/test_neural_decision.py -q -> 20 passed.",
+    "git remote -v shows origin push URL as DISABLED_LOCAL_DISK_ONLY."
   ],
   "risks": [
-    "GitHub Actions must still run remotely after push to confirm the hosted runner accepts the same dependency set.",
-    "pyproject.toml and legacy training scripts still contain historical Gemma references; they were not changed in this CI-only patch.",
-    ".f51 files are operational checkpoints and may be ignored by git depending on repository ignore rules."
+    "GitHub is no longer a backup or source of truth until a new repository is created.",
+    "Uncommitted local cache changes exist under .f51/cache/collector and must not be blindly committed.",
+    "Work must use local commits/checkpoints only until the operator explicitly authorizes a new remote push."
   ],
-  "next_step": "Commit and push the CI repair, then inspect the new GitHub Actions run."
+  "next_step": "Continue repairs and validation locally on disk; create a new GitHub remote only after the project is ready."
 }
