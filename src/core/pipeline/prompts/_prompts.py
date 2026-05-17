@@ -1,4 +1,4 @@
-"""Qwen3.6-35B CEO prompts — local inference via llama.cpp."""
+"""Qwen3.6-35B F51 CEO prompts — local inference via llama.cpp."""
 
 QWEN_SYSTEM_PROMPT = (
     "LANGUAGE: You MUST write your ENTIRE answer in ENGLISH. "
@@ -60,15 +60,8 @@ QWEN_PERSONA = (
 
 SAFE_ACTIONS = "BUY, SELL, or HOLD"
 
-GEMMA_SYSTEM_PROMPT = QWEN_SYSTEM_PROMPT
-GEMMA_PERSONA = QWEN_PERSONA
-
 MODEL_PROMPTS = {
     "local": {
-        "system": QWEN_SYSTEM_PROMPT,
-        "persona": QWEN_PERSONA,
-    },
-    "gemma": {
         "system": QWEN_SYSTEM_PROMPT,
         "persona": QWEN_PERSONA,
     },

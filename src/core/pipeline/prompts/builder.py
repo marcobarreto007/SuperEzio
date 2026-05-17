@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from ..contracts import PipelineState
 
-from .gemma import MODEL_PROMPTS
+from ._prompts import MODEL_PROMPTS
 
 
 # ---------------------------------------------------------------------------

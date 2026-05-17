@@ -1,26 +1,24 @@
 # Duplicate Map — SuperEzio
 
-> Atualizado: 2026-05-17 | Branch: main
+> Atualizado: 2026-05-17 | Branch: main | Patch session: f51-executor
 
-## Duplicatas Ativas (codigo em src/)
+## Duplicatas Resolvidas (2026-05-17)
 
-### D1 — VeracityGate (HIGH)
+### D1 — VeracityGate core/investor → REMOVIDO
 ```
-src/f51/gates.py                              ← CANONICO
-src/core/investor/veracity_gate.py             ← DUPLICATA
-src/experts/pennylab/experts/veracity_gate.py  ← DUPLICATA
+src/f51/gates.py                              ← CANONICO (mantido)
+src/core/investor/veracity_gate.py             ← REMOVIDO (codigo morto, nenhum import)
+src/experts/pennylab/experts/veracity_gate.py  ← PennylabVeracityGate (classe DIFERENTE, data quality check)
 ```
-- **Risco:** 3 implementacoes podem divergir
-- **Acao:** Consolidar imports para `src/f51/gates.py`
+- **Resolucao:** `core/investor/veracity_gate.py` deletado. Nenhum arquivo importava dele.
+- **PennylabVeracityGate mantido** — proposito diferente, nome diferente, nao e duplicata.
 
-### D2 — GEMMA aliases (LOW)
+### D2 — gemma.py shim → REMOVIDO
 ```
-src/core/pipeline/prompts/gemma.py
-  GEMMA_SYSTEM_PROMPT = QWEN_SYSTEM_PROMPT   ← SHIM
-  GEMMA_PERSONA = QWEN_PERSONA               ← SHIM
+src/core/pipeline/prompts/_prompts.py          ← NOVO (constantes Qwen3.6)
+src/core/pipeline/prompts/gemma.py             ← REMOVIDO (shim GEMMA=QWEN)
 ```
-- **Risco:** Confusao de nomenclatura. GEMMA nao existe mais.
-- **Acao:** Remover arquivo, atualizar imports em builder.py e __init__.py
+- **Resolucao:** Constantes movidas para `_prompts.py`. `gemma.py` deletado. `builder.py` e `__init__.py` atualizados.
 
 ## Duplicatas Arquivadas (seguro, sem acao)
 
@@ -36,29 +34,4 @@ src/f51/memory.py (import opcional)           ← ATIVO
 archive/quarantine/f51/memory.py              ← ARQUIVADO
 ```
 
-## Sobreposicoes de Responsabilidade
-
-### S1 — Investor Committee vs F51 Engine
-- `src/core/investor/` — Investor committee com fraud detection, veracity gate proprio
-- `src/f51/` — Motor canonico com VeracityGate, AdversarialCritic, RiskEngine
-- **Risco:** Dois sistemas de veracity gate coexistindo. Pipeline usa qual?
-- **Acao:** Verificar no pipeline graph qual VeracityGate e usado em runtime
-
-### S2 — Data Collector vs Data Hub
-- `src/core/data_collector/` — ProfessionalCollector com provider mesh
-- `src/data/data_hub.py` — Hub central de dados
-- `src/adapters/data_collector/subprocess_collector.py` — Coleta via subprocesso
-- **Risco:** 3 camadas de coleta. Orquestracao pode ser confusa.
-- **Acao:** Documentar fluxo: User → Pipeline → DataCollector → DataHub → Providers
-
-### S3 — Prompts duplicados
-- `src/core/prompts/financial_prompts.py` — Prompts financeiros genericos
-- `src/core/pipeline/prompts/builder.py` — Builder de prompts do CEO
-- `src/core/investor/prompts.py` — Prompts do investor committee
-- **Risco:** Prompts espalhados. Dificil manter consistencia.
-- **Acao:** Centralizar ou documentar proposito de cada arquivo
-
-## Modelos Duplicados (resolvido)
-- ~~gemma-4-31b-it-Q4_K_M.gguf~~ → Movido para Desktop/modelos antigos/
-- ~~Qwen3.6-27B-Q4_K_M.gguf~~ → Movido para Desktop/modelos antigos/
-- **Ativo:** Apenas `qwen36-35b-f51.Q4_K_M.gguf`
+## Estado Atual: Zero duplicatas ativas em src/

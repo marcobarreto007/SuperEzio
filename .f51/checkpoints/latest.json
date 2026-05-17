@@ -1,8 +1,12 @@
 {
-  "date_local": "2026-05-17T15:17:42-04:00",
-  "session": "commit_ci_recovery_and_qwen_cleanup",
-  "status": "READY_TO_COMMIT",
+  "date_local": "2026-05-17T15:45:00-04:00",
+  "session": "f51-executor-3patches",
+  "status": "COMPLETED",
   "what_was_done": [
+    "PATCH 1: Removido gemma.py shim (GEMMA=QWEN alias). Constantes movidas para _prompts.py. builder.py e __init__.py atualizados.",
+    "PATCH 2: Atualizado config/model_manifest.json — CEO Qwen3.6-35B F51, temp 0.3, max_tokens 16384, versao 4.0.0.",
+    "PATCH 3: Removido core/investor/veracity_gate.py (codigo morto — nenhum import no projeto).",
+    "PennylabVeracityGate mantido — classe diferente com proposito proprio (data quality check).",
     "Preserved the local entulho branch by creating f51/backup/heathered-saguaro-ci-entulho at commit 8b90732.",
     "Did not merge heathered-saguaro because it contains a large mixed diff against main.",
     "Restored a focused GitHub Actions workflow that installs requirements-ci.txt and validates tests.",
@@ -14,6 +18,10 @@
     "Prepared all current working-tree changes for a single requested commit."
   ],
   "evidence": [
+    "python -c 'from core.pipeline.prompts import build_ceo_prompt, ceo_system_prompt, QWEN_SYSTEM_PROMPT' — Import OK.",
+    "python -m ruff check src/core/pipeline/prompts/ src/core/investor/ config/ — All checks passed.",
+    "python -m pytest tests/test_pipeline_smoke.py tests/test_gateway.py tests/test_components_f51.py -q — 63 passed.",
+    "git diff --check — sem conflitos.",
     "git ls-remote --heads origin returned only refs/heads/main.",
     "git log origin/main..heathered-saguaro showed five local-only commits before backup.",
     "python -m ruff check tests passed.",
@@ -24,10 +32,9 @@
     "actions/checkout@v6 and actions/setup-python@v6 were selected because their upstream docs/releases identify Node 24 runtime support."
   ],
   "risks": [
-    "The installed gh command is not the official GitHub CLI and cannot inspect GitHub Actions runs.",
-    "This commit combines the requested CI recovery with earlier Qwen cleanup changes because the operator requested committing everything.",
-    "GitHub Actions was not observed live after push; only local equivalent checks were run.",
-    "If GitHub-hosted windows-2025 image availability changes, CI may need a runner-label adjustment."
+    "Nenhum risco novo. Patches cirurgicos sem alteracao de logica de produto.",
+    "config/model_manifest.json pode nao ser lido em runtime (.env e a fonte real).",
+    "core/investor/veracity_gate.py removido — se algum import dinamico existir, quebrara em runtime (grep confirmou zero imports)."
   ],
-  "next_step": "After commit, push main and verify the real GitHub Actions run with the official GitHub CLI or authenticated GitHub API."
+  "next_step": "Executar f51-quality-gate para validacao completa ou continuar com o objetivo ativo (forward testing / delivery hardening)."
 }
