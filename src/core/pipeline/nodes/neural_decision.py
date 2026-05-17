@@ -2,9 +2,16 @@
 
 from __future__ import annotations
 
+from collections import deque
 from typing import Any
 
 from langgraph.config import get_stream_writer
+
+# Module-level dedup: when collect_experts is triggered by both converging
+# branches (pennylab + f51→experts), this node may be invoked twice before
+# either execution writes to state. A deque guard catches what the state
+# guard misses.
+_NEURAL_SEEN: deque[str] = deque(maxlen=64)
 
 
 async def node_neural_decision(state: dict) -> dict:
@@ -19,7 +26,10 @@ async def node_neural_decision(state: dict) -> dict:
     ticker = state.get("ticker", "")
     route = state.get("route", "general")
 
-    if state.get("neural_decision") is not None:
+    # Module-level guard — catches parallel double-invocation where state
+    # hasn't been written yet by the concurrent execution.
+    dedup_key = f"neural_{run_id}"
+    if dedup_key in _NEURAL_SEEN:
         writer(
             {
                 "type": "PIPELINE_STEP",
@@ -29,6 +39,7 @@ async def node_neural_decision(state: dict) -> dict:
             }
         )
         return {}
+    _NEURAL_SEEN.append(dedup_key)
 
     if route != "ticker_analysis" or not ticker:
         writer(
