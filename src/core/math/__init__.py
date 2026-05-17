@@ -14,6 +14,7 @@ Organizado por domínio:
 
 from .utils import sigmoid, clamp, t_norm, t_conorm, percentile_rank, zscore
 from .indicators import sma, ema, rsi, macd, bollinger, vwap, vwap_deviation
+from .financial_engine import FinancialEngine
 from .risk import (
     volatility,
     sharpe_ratio,
@@ -76,6 +77,7 @@ __all__ = [
     "log_return",
     "simple_return",
     "annualized_return",
+    "FinancialEngine",
     # F51-dependent modules: import directly from submodules
     # crisis: import from core.math.crisis
 ]

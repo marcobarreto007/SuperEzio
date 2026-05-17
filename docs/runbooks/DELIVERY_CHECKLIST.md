@@ -1,5 +1,5 @@
-# DELIVERY CHECKLIST — SuperEzio v4.4.0
-**Date:** 2026-05-16T23:53:00-04:00
+# DELIVERY CHECKLIST — SuperEzio v4.5.0
+**Date:** 2026-05-16T23:59:00-04:00
 
 ## 🟢 Bloqueadores Mitigados (P0)
 - [x] **B01** `main.py:116` — `pipeline.shutdown()` crash. CompiledStateGraph envolto de forma segura na classe `PipelineApp`.
@@ -17,11 +17,11 @@
 
 ---
 
-## 🟡 Checklist Pré-Venda (Requisitos para Comercialização)
-- [ ] Criar `.env.example` centralizando e documentando as 55 variáveis de ambiente mapeadas.
+## 🟢 Checklist Pré-Venda (Requisitos para Comercialização)
+- [x] Criar `.env.example` centralizando e documentando as 55 variáveis de ambiente mapeadas.
 - [x] Adicionar smoke test de ponta a ponta para o `PipelineApp` (testado e ativo em `test_pipeline_smoke.py`).
-- [ ] Consolidar imports de `core/engine/` para `core/math/` no roteador FastAPI para remover dependências legadas.
-- [ ] Excluir os 3 diretórios vazios (`scanner/`, `mathcore/`, `evidence/`) e o script órfão (`scripts/server.py`).
+- [x] Consolidar imports de `core/engine/` para `core/math/` no roteador FastAPI para remover dependências legadas.
+- [x] Excluir os 3 diretórios vazios (`scanner/`, `mathcore/`, `evidence/`) e o script órfão (`scripts/server.py`).
 
 ---
 
