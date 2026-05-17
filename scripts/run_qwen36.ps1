@@ -1,6 +1,6 @@
 # SuperEzio — Qwen3.6-35B F51 local inference
 # RTX 5060 Ti 16GB + 64GB RAM optimized
-# Speculative decoding: disabled (awaiting Qwen3.6-family small model)
+# NEXTN/MTP built-in speculative decoding (1.7-2x speedup)
 
 param(
     [string]$Prompt = "",
@@ -16,14 +16,6 @@ $BinDir = "$ProjectRoot\llama.cpp\bin"
 $ModelDir = "$ProjectRoot\models"
 
 $MainModel = "$ModelDir\qwen36-35b-f51.Q4_K_M.gguf"
-$DraftModel = "$ModelDir\qwen2.5-0.5b-draft-Q4_K_M.gguf"
-
-# Speculative decoding DISABLED — Qwen2.5 draft has incompatible vocab
-# Qwen3.6: BoS=248044, EoS=248046, ~248K tokens
-# Qwen2.5: BoS=151643, EoS=151645, ~151K tokens
-# Need same-family draft (Qwen3.6-0.6B or Qwen3-0.6B GGUF)
-# When ready: set $UseDraft = $true
-$UseDraft = $false
 
 # Add CUDA DLLs to PATH
 $env:PATH = "$BinDir;$env:PATH"
@@ -32,17 +24,13 @@ if (-not (Test-Path $MainModel)) {
     Write-Host "ERROR: Main model not found: $MainModel" -ForegroundColor Red
     exit 1
 }
-if ($UseDraft -and -not (Test-Path $DraftModel)) {
-    Write-Host "WARNING: Draft model not found, disabling speculative decoding" -ForegroundColor Yellow
-    $UseDraft = $false
-}
 
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host " SuperEzio Qwen3.6-35B F51" -ForegroundColor Cyan
+Write-Host " SuperEzio Qwen3.6-35B F51 + NEXTN/MTP" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host "Main model : $MainModel"
-Write-Host "Draft model: $(if ($UseDraft) { $DraftModel } else { 'DISABLED' })"
-Write-Host "GPU layers : $GpuLayers / 40 (~$([math]::Round($GpuLayers * 500 / 1024, 1)) GB)"
+Write-Host "Speculative: MTP (built-in, block 40)"
+Write-Host "GPU layers : $GpuLayers / 41 (~$([math]::Round($GpuLayers * 500 / 1024, 1)) GB)"
 Write-Host "Context    : $ContextLength tokens"
 Write-Host "Temp       : $Temp"
 Write-Host "============================================"
@@ -58,13 +46,9 @@ $llamaArgs = @(
     "--temp", $Temp,
     "--top-p", 0.95,
     "--top-k", 20,
-    "--repeat-penalty", 1.1
+    "--repeat-penalty", 1.1,
+    "--spec-type", "draft-mtp"
 )
-
-if ($UseDraft) {
-    $llamaArgs += "-md"; $llamaArgs += $DraftModel
-    $llamaArgs += "-ngld"; $llamaArgs += 99
-}
 
 if ($Prompt) {
     $llamaArgs += "-p"

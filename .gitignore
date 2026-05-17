@@ -128,3 +128,6 @@ output/
 unsloth_compiled_cache/
 .kilo/
 /tools/
+
+# llama.cpp local binaries (DLLs, EXEs, CUDA — ~300MB)
+llama.cpp/
