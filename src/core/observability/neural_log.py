@@ -27,8 +27,6 @@ warnings.filterwarnings(
     category=DeprecationWarning,
     message=r".*utcfromtimestamp.*",
 )
-# Fallback geral para DeprecationWarnings (mantém testes limpos)
-warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 # OpenTelemetry imports
 OTEL_AVAILABLE = False

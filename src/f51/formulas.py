@@ -125,10 +125,7 @@ def proxy_reward(
         + 0.4 * clamp(critic)
         + 0.2 * clamp(sanity)
         - 0.1 * clamp(diversity_penalty)
-        + 0.2 * clamp(ground_truth_bonus)
-        if has_ground_truth
-        else 0.0
-    )
+    ) + (0.2 * clamp(ground_truth_bonus) if has_ground_truth else 0.0)
     cap = 1.0 if has_ground_truth else 0.9
     return clamp(total, 0.0, cap)
 

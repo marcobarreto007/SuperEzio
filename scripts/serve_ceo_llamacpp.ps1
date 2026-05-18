@@ -5,9 +5,9 @@
 
 param(
     [int]$Port = 8082,
-    [int]$GpuLayers = 20,
-    [int]$ContextLength = 32768,
-    [int]$Slots = 4
+    [int]$GpuLayers = 28,
+    [int]$ContextLength = 8192,
+    [int]$Slots = 2
 )
 
 $ErrorActionPreference = "Stop"

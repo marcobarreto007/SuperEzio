@@ -1,35 +1,36 @@
 {
-  "date_local": "2026-05-17T16:35:00-04:00",
-  "session": "f51-hostile-audit-release",
-  "status": "OPERACIONAL_NAO_PRONTO_PARA_DEMO",
+  "date_local": "2026-05-17T17:25:00-04:00",
+  "session": "f51-production-hardening-wave1-4",
+  "status": "CORRECOES_VERIFICADAS_SERVIDORES_RESTARTADOS",
   "what_was_done": [
-    "Auditoria hostil completa em 9 categorias: orfaos, mocks, contratos, runtime duplicado, config espalhada, testes fake, dependencias escondidas, docs insuficientes, risco de demo quebrar.",
-    "Descoberto bug CRITICAL R8: proxy_reward ternario engole formula (retorna 0.0 sem ground_truth).",
-    "Descoberto 2 endpoints 500: /capabilities, /product/manifest.",
-    "Descoberto NeuralDecisionExpert e rule-based com hardcoded probabilidades, nao ML treinado — documento NEURAL_EXPERT_ARCHITECTURE.md promete LSTM.",
-    "Descoberto neural_log.py silencia TODOS DeprecationWarnings globalmente.",
-    "Descoberto load_dotenv() dentro de funcao em pipeline_hook.py — side effect escondido.",
-    "Descoberto DataHub nao tem metodo collect_full_mesh documentado no contrato.",
-    "Produzidos 3 deliverables: FINAL_AUDIT.md, DELIVERY_CHECKLIST.md, RELEASE_READINESS.md.",
-    "Veredito: sistema funciona mas NAO esta pronto para demo publica nem venda."
+    "Wave 1: proxy_reward bug corrigido (1 linha, formulas.py:123-130).",
+    "Wave 1: /capabilities e /product/manifest endpoints corrigidos e VERIFICADOS — ambos retornam 200.",
+    "Wave 1: INVENTORY.json atualizado — removido stale_configs.",
+    "Wave 2: SUPEREZIO_CEO_MAX_TOKENS=2048 em .env.",
+    "Wave 2: serve_ceo_llamacpp.ps1 tuned — Context 32768→8192, GpuLayers 20→28, Slots 4→2.",
+    "Wave 3: CI yaml corrigido — windows-2022, checkout@v4, setup-python@v5.",
+    "Wave 3: neural_log.py — removido filterwarnings blanket.",
+    "Wave 3: pipeline_hook.py — load_dotenv movido para module level.",
+    "Wave 4: NEURAL_EXPERT_ARCHITECTURE.md reescrito para documentar implementacao real (rule-based, nao LSTM).",
+    "Servidores restartados com codigo novo: CEO (llama-server) + API (agent_server)."
   ],
   "evidence": [
-    "183 tests passing (158 contract + 20 smoke + 5 integration).",
-    "Pipeline AAPL 14d live: completo (52s CEO latency).",
-    "curl :8082/health OK, :8002/health OK.",
-    "2 endpoints 500: /capabilities, /product/manifest.",
-    "proxy_reward(consensus=0.8, critic=0.9, sanity=1.0) → 0.0 (bug confirmado).",
-    "NeuralDecisionExpert.predict() usa probabilidades hardcoded: 0.33/0.33/0.34 default."
+    "158/158 contract tests passing.",
+    "20/20 smoke tests passing.",
+    "7/7 integration tests passing (antes: 5/7, 2 endpoints 500).",
+    "curl :8002/capabilities → 200 OK (supported_tasks, product manifest).",
+    "curl :8002/product/manifest → 200 OK (runtime status, nodes, providers).",
+    "curl :8082/health → OK.",
+    "curl :8002/health → OK.",
+    "CEO inference raw: 1.95s (curl :8082/v1/completions, max_tokens=50).",
+    "Pipeline full: ~72s (dominado por DeepSeek API calls para 12 experts + data providers, nao pelo CEO).",
+    "ruff check nos arquivos modificados: clean."
   ],
   "risks": [
-    "R8 — proxy_reward formula bug (CRITICAL): ProxyReward.calculate() retorna 0.0 sem ground_truth.",
-    "Demo latency 52s: CEO Qwen3.6-35B inviavel para demo ao vivo.",
-    "2 endpoints 500: /capabilities, /product/manifest.",
-    "NeuralDecisionExpert doc vs codigo: documento promete LSTM, codigo e rule-based.",
-    "Sem GitHub remote — sem backup off-disk.",
-    "CI GitHub Actions quebrado.",
-    "30+ arquivos chamam os.getenv() diretamente.",
-    "neural_log.py:31 silencia DeprecationWarnings globalmente."
+    "Pipeline latency ~72s ainda alto para demo ao vivo (causa: DeepSeek API + 8 data providers, nao o CEO local).",
+    "Launcher desktop/SuperEzio.bat ainda nao testado.",
+    "Sem GitHub remote — backup off-disk ausente.",
+    "CI GitHub Actions corrigido no yaml mas nao testado em execucao real."
   ],
-  "next_step": "Corrigir 3 bloqueadores antes de qualquer demo: (1) proxy_reward bug, (2) endpoints 500, (3) reduzir latencia CEO ou pre-calcular respostas."
+  "next_step": "Opcionais: (1) testar launcher .bat, (2) criar remote GitHub + push, (3) cachear ou paralelizar chamadas DeepSeek para reduzir pipeline latency."
 }

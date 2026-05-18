@@ -630,16 +630,15 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
 
 @router.get("/capabilities")
 async def get_capabilities(request: Request) -> dict:
-    pipeline = getattr(request.app.state, "pipeline", None)
-
-    if pipeline and pipeline.tools:
-        supported = pipeline.tools.list_tools()
-    else:
-        supported = ["echo (fallback)"]
-
     return {
         "agent": "f51_universal",
-        "supported_tasks": supported,
+        "supported_tasks": [
+            "echo",
+            "task/submit (pipeline completo)",
+            "experts/neural-decision/predict",
+            "experts/pennylab/predict",
+            "data/providers",
+        ],
         "brain": "UnifiedPipeline",
         "orchestrator": None,
         "product": PRODUCT_MANIFEST,
@@ -651,12 +650,9 @@ async def product_manifest(request: Request) -> dict:
     """Public product contract consumed by the browser UI."""
     pipeline = getattr(request.app.state, "pipeline", None)
     status = pipeline.get_status() if pipeline else {}
-    tools = pipeline.tools.list_tools() if pipeline and pipeline.tools else []
     manifest = dict(PRODUCT_MANIFEST)
     manifest["runtime"] = {
         "brain": "UnifiedPipeline",
-        "tools_count": len(tools),
-        "tools": tools,
         "status": status,
     }
     return manifest

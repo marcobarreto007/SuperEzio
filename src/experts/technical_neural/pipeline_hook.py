@@ -8,16 +8,15 @@ import asyncio
 import logging
 from typing import Dict, Any
 
+from data.data_hub import hub
+
 logger = logging.getLogger(__name__)
+
 
 def analyze_technical_neural_sync(ticker: str) -> Dict[str, Any]:
     """
     Função síncrona que puxa os candles via DataHub e aciona o Neural Expert.
     """
-    from dotenv import load_dotenv
-    load_dotenv()
-    
-    from data.data_hub import hub
 
     try:
         response = hub.get_candles(ticker, timeframe="6M")

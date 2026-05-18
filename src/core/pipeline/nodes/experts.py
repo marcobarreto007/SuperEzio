@@ -100,12 +100,14 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
             timeout=timeout,
         )
 
+        response_text = str(response)
         writer(
             {
                 "type": "EXPERT_DONE",
                 "role": role,
                 "ok": True,
                 "provider": provider_name,
+                "response": response_text,
             }
         )
         return {
@@ -113,7 +115,7 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
                 {
                     "role": role,
                     "ok": True,
-                    "response": str(response),
+                    "response": response_text,
                     "provider": provider_name,
                 }
             ]

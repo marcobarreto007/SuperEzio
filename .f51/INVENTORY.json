@@ -1,10 +1,10 @@
 {
   "project": "SuperEzio",
   "version": "4.0.0",
-  "inventory_date": "2026-05-17T19:15:00-04:00",
-  "session": "f51-inventory",
+  "inventory_date": "2026-05-17T16:55:00-04:00",
+  "session": "f51-hostile-audit-release",
   "branch": "main",
-  "commit": "21869d9",
+  "commit": "f5f34b3",
   "summary": {
     "total_python_modules": 98,
     "total_test_files": 22,
@@ -51,16 +51,6 @@
         "archive/quarantine/f51/memory.py"
       ],
       "severity": "low"
-    }
-  ],
-  "stale_configs": [
-    {
-      "file": "config/model_manifest.json",
-      "issue": "CEO: Gemma-4-26B-A4B. Real: Qwen3.6-35B F51."
-    },
-    {
-      "file": "config/runtime.yml",
-      "issue": "Sem CEO local. So cloud models (DeepSeek)."
     }
   ],
   "active_model": {
