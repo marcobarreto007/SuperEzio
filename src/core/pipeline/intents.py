@@ -261,6 +261,7 @@ COMMON_WORDS = {
     "VERY",
     "IN",
     "TO",
+    "US",
     "OF",
     "OR",
     "AN",
@@ -469,8 +470,12 @@ SCOPE_KEYWORDS = (
     "bank",
     "saude",
     "healthcare",
+    "tech",
+    "technology",
     "setor",
     "sector",
+    "equity",
+    "equities",
     "financeiro",
     "financial",
     "industrial",
@@ -1062,17 +1067,23 @@ def infer_scan_filters(message: str) -> dict[str, str | None]:
         country = "Canada"
     elif "brasil" in msg_lower or "brasileir" in msg_lower:
         country = "Brazil"
-    elif "americano" in msg_lower or "usa" in msg_lower or "estados unidos" in msg_lower:
+    elif (
+        "americano" in msg_lower
+        or "usa" in msg_lower
+        or "united states" in msg_lower
+        or re.search(r"\bus\b", msg_lower) is not None
+        or "estados unidos" in msg_lower
+    ):
         country = "United States"
 
     if "banco" in msg_lower or "bank" in msg_lower or "financ" in msg_lower:
-        sector = "Financial Services"
+        sector = "Financials"
     elif "tecnologia" in msg_lower or "tech" in msg_lower:
-        sector = "Technology"
+        sector = "Information Technology"
     elif "energia" in msg_lower or "energy" in msg_lower:
         sector = "Energy"
     elif "saude" in msg_lower or "health" in msg_lower:
-        sector = "Healthcare"
+        sector = "Health Care"
     elif "industrial" in msg_lower:
         sector = "Industrials"
 
