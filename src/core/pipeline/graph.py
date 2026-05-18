@@ -97,9 +97,9 @@ def build_graph(
         },
     )
     builder.add_edge("data", "f51_verdict")
-    builder.add_edge("data", "pennylab")
+    builder.add_edge("f51_verdict", "pennylab")
     builder.add_conditional_edges(
-        "f51_verdict",
+        "pennylab",
         route_after_f51,
         {
             "run_expert": "run_expert",
@@ -107,7 +107,6 @@ def build_graph(
         },
     )
     builder.add_edge("run_expert", "collect_experts")
-    builder.add_edge("pennylab", "collect_experts")
     builder.add_edge("collect_experts", "neural_decision")
     builder.add_edge("neural_decision", "rag_forensics")
     builder.add_edge("rag_forensics", "ceo_primary")

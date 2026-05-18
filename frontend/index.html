@@ -1564,7 +1564,8 @@
     function updateExpertTile(role, status, provider, ceo) {
       let grid = ceo.bubble.querySelector(".exp-grid");
       if (!grid) {
-        const { card, body } = makeCard("Experts", "0/12", "info", "users");
+        const { card, body } = makeCard("Experts", "0/6", "info", "users");
+        card.classList.add("experts-card");
         grid = el("div", "exp-grid");
         const roles = ["fundamental", "technical", "risk", "macro", "quant", "sentiment"];
         const names = ["Fund", "Tech", "Risk", "Macro", "Quant", "Sent"];
@@ -1584,7 +1585,7 @@
       if (dot) dot.className = "exp-dot exp-dot--" + (status === "ok" || status === "done" ? "ok" : status === "fail" ? "fail" : status === "running" ? "running" : "");
       if (status === "ok" || status === "done") ceo._expertCount = (ceo._expertCount || 0) + 1;
       // Update badge
-      const badge = ceo.bubble.querySelector(".card-badge--info");
+      const badge = ceo.bubble.querySelector(".experts-card .card-badge--info");
       if (badge) badge.textContent = `${ceo._expertCount || 0}/${ceo._expertTotal || 6}`;
     }
 
