@@ -98,5 +98,5 @@ class PositionSizer:
             notional_value=notional,
             risk_per_share=risk_per_share,
             stop_loss_price=stop_loss_price,
-            size_reason=f"{self.max_risk_pct*100:.1f}% risk = R${self.max_risk_amount:.2f} / R${risk_per_share:.2f} risk/share",
+            size_reason=f"{self.max_risk_pct * 100:.1f}% risk = R${self.max_risk_amount:.2f} / R${risk_per_share:.2f} risk/share",
         )

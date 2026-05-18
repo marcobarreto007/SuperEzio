@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 
 # Yahoo Finance tickers for US Treasury yields (free, unlimited)
 YFINANCE_TREASURY_TICKERS = {
-    "fed_funds_proxy": "^IRX",   # 13-week T-bill (proxy for Fed Funds)
-    "treasury_5y": "^FVX",       # 5-year Treasury
-    "treasury_10y": "^TNX",      # 10-year Treasury
-    "treasury_30y": "^TYX",      # 30-year Treasury
+    "fed_funds_proxy": "^IRX",  # 13-week T-bill (proxy for Fed Funds)
+    "treasury_5y": "^FVX",  # 5-year Treasury
+    "treasury_10y": "^TNX",  # 10-year Treasury
+    "treasury_30y": "^TYX",  # 30-year Treasury
 }
 
 # Alpha Vantage fallback (kept for when yfinance is blocked)
@@ -88,9 +88,7 @@ def _fetch_via_alpha_vantage(api_key: str) -> Dict[str, Any]:
             response = requests.get(base_url, params=params, timeout=10)
             data = response.json()
 
-            if data.get("Information") and "rate limit" in str(
-                data.get("Information", "")
-            ).lower():
+            if data.get("Information") and "rate limit" in str(data.get("Information", "")).lower():
                 logger.warning("[FED] Alpha Vantage rate limit — aborting fallback")
                 result[name] = {"value": None, "error": "rate_limit"}
                 break
@@ -112,9 +110,7 @@ def _fetch_via_alpha_vantage(api_key: str) -> Dict[str, Any]:
                     "value": round(latest_val, 3),
                     "date": latest.get("date", ""),
                     "change_pct": (
-                        round(((latest_val - prev_val) / prev_val * 100), 2)
-                        if prev_val != 0
-                        else 0
+                        round(((latest_val - prev_val) / prev_val * 100), 2) if prev_val != 0 else 0
                     ),
                 }
             else:
@@ -140,8 +136,7 @@ def get_macro_summary_us() -> Dict[str, Any]:
     yf_result = _fetch_via_yfinance()
     if "error" not in yf_result:
         filled = sum(
-            1 for v in yf_result.values()
-            if isinstance(v, dict) and v.get("value") is not None
+            1 for v in yf_result.values() if isinstance(v, dict) and v.get("value") is not None
         )
         if filled >= 2:
             yf_result["data_quality"] = "collected"

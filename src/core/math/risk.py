@@ -95,9 +95,7 @@ def beta(asset_returns: Sequence[float], market_returns: Sequence[float]) -> flo
     return float(cov / var_market)
 
 
-def alpha(
-    annual_return: float, beta: float, market_return: float, risk_free: float = 0.0
-) -> float:
+def alpha(annual_return: float, beta: float, market_return: float, risk_free: float = 0.0) -> float:
     return annual_return - (risk_free + beta * (market_return - risk_free))
 
 

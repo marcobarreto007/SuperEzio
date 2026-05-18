@@ -316,9 +316,7 @@ class TestPennylabVeracityGate:
         gate = PennylabVeracityGate()
         result = gate.check(_signal(bid=10.50, ask=10.00))
         assert result.passed is False
-        assert any(
-            "bid" in v.lower() or "invertido" in v.lower() for v in result.violations
-        )
+        assert any("bid" in v.lower() or "invertido" in v.lower() for v in result.violations)
 
     def test_extreme_price_change(self):
         gate = PennylabVeracityGate()
@@ -343,9 +341,7 @@ class TestPennylabVeracityGate:
         gate = PennylabVeracityGate()
         result = gate.check(_signal(data_quality=DataQuality.MANUAL, source=""))
         assert result.confidence < 1.0
-        assert any(
-            "manual" in w.lower() or "source" in w.lower() for w in result.warnings
-        )
+        assert any("manual" in w.lower() or "source" in w.lower() for w in result.warnings)
 
 
 class TestComputeScores:

@@ -93,9 +93,7 @@ class LiquidityRiskExpert:
             evidence.append("float: indisponível")
 
         if not components:
-            return LiquidityRiskResult(
-                0.0, "INDISPONÍVEL", "INDISPONÍVEL", evidence, 0.0
-            )
+            return LiquidityRiskResult(0.0, "INDISPONÍVEL", "INDISPONÍVEL", evidence, 0.0)
 
         total = _clamp(sum(components))
         confidence = round(available / 3, 2)
@@ -104,9 +102,7 @@ class LiquidityRiskExpert:
         if total >= 0.75:
             evidence.append("⚠ RISCO DE LIQUIDEZ CRÍTICO")
 
-        return LiquidityRiskResult(
-            round(total, 3), label, exit_diff, evidence, confidence
-        )
+        return LiquidityRiskResult(round(total, 3), label, exit_diff, evidence, confidence)
 
     def _classify(self, score: float):
         if score >= 0.80:

@@ -67,9 +67,7 @@ def test_pipeline_graph_has_expected_nodes():
         "explanation",
         "respond_blocked",
     }
-    assert expected.issubset(set(nodes.keys())), (
-        f"Missing: {expected - set(nodes.keys())}"
-    )
+    assert expected.issubset(set(nodes.keys())), f"Missing: {expected - set(nodes.keys())}"
 
 
 @pytest.mark.asyncio
@@ -99,11 +97,7 @@ async def test_pipeline_stream_events_completes():
     async for ev in p.stream_events("O que e o SuperEzio?"):
         events.append(ev)
 
-    steps = [
-        e
-        for e in events
-        if e.get("type") == "PIPELINE_STEP" and e.get("step") == "graph"
-    ]
+    steps = [e for e in events if e.get("type") == "PIPELINE_STEP" and e.get("step") == "graph"]
     statuses = [s.get("status") for s in steps]
     assert "started" in statuses
     assert "completed" in statuses

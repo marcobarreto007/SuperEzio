@@ -112,9 +112,7 @@ class Graph:
 
         while remaining:
             ready = [
-                n
-                for n in remaining
-                if all(dep in executed for dep in self.nodes[n].depends_on)
+                n for n in remaining if all(dep in executed for dep in self.nodes[n].depends_on)
             ]
             for node_name in ready:
                 remaining.remove(node_name)
@@ -180,9 +178,7 @@ class F51Engine:
                 }
                 for name, r in ctx.results.items()
             },
-            "evidence": {
-                name: r.evidence for name, r in ctx.results.items() if r.evidence
-            },
+            "evidence": {name: r.evidence for name, r in ctx.results.items() if r.evidence},
             "elapsed_ms": ctx.elapsed * 1000,
         }
 
@@ -232,17 +228,13 @@ class F51Engine:
         ]
 
         def _default_platinum_node(ctx: Context) -> NodeResult:
-            features = (
-                ctx.input.get("features", {}) if isinstance(ctx.input, dict) else {}
-            )
+            features = ctx.input.get("features", {}) if isinstance(ctx.input, dict) else {}
             if not features:
                 return NodeResult("platinum_scorer", 0.5, confidence=0.5)
 
             # Completude: fração de campos-chave presentes e não-zero
             present = sum(
-                1
-                for f in _PLATINUM_FIELDS
-                if features.get(f) is not None and features.get(f) != 0
+                1 for f in _PLATINUM_FIELDS if features.get(f) is not None and features.get(f) != 0
             )
             completeness = present / len(_PLATINUM_FIELDS)
 
@@ -312,9 +304,7 @@ class F51Engine:
         critic = AdversarialCritic()
 
         def _default_critic_node(ctx: Context) -> NodeResult:
-            features = (
-                ctx.input.get("features", {}) if isinstance(ctx.input, dict) else {}
-            )
+            features = ctx.input.get("features", {}) if isinstance(ctx.input, dict) else {}
             result = critic.evaluate_finance(features)
             return NodeResult(
                 "adversarial_critic",

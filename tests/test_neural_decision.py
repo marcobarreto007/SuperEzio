@@ -64,9 +64,7 @@ def test_contract_missing_timeframe():
     """Case 3: Missing or invalid timeframe."""
     payload = get_valid_payload()
     expert = NeuralDecisionExpert()
-    errors = expert.validate_input(
-        payload["symbol"], "", payload["features"], payload["context"]
-    )
+    errors = expert.validate_input(payload["symbol"], "", payload["features"], payload["context"])
     assert "timeframe" in "".join(errors).lower()
 
 
@@ -100,8 +98,7 @@ def test_contract_wrong_feature_type():
         payload["symbol"], payload["timeframe"], payload["features"], payload["context"]
     )
     assert any(
-        "rsi_14" in err and "type" in err.lower() or "must be float/int" in err
-        for err in errors
+        "rsi_14" in err and "type" in err.lower() or "must be float/int" in err for err in errors
     )
 
 

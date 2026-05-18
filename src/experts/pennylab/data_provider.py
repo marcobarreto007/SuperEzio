@@ -95,35 +95,23 @@ def _try_collector(ticker: str, timeout: float = 15.0) -> Optional[SignalInput]:
 
 def _map_collector_to_signal(ticker: str, data: Dict[str, Any]) -> SignalInput:
     """Mapeia o output do DataCollector para SignalInput do PennyLab."""
-    rt = (
-        data.get("realtime_price", {})
-        if isinstance(data.get("realtime_price"), dict)
-        else {}
-    )
-    tech = (
-        data.get("technicals", {}) if isinstance(data.get("technicals"), dict) else {}
-    )
+    rt = data.get("realtime_price", {}) if isinstance(data.get("realtime_price"), dict) else {}
+    tech = data.get("technicals", {}) if isinstance(data.get("technicals"), dict) else {}
     profile = data.get("profile", {}) if isinstance(data.get("profile"), dict) else {}
 
     price = _safe_float(rt.get("price")) or _safe_float(tech.get("price"))
-    prev_close = _safe_float(tech.get("prev_close")) or _safe_float(
-        tech.get("previousClose")
-    )
+    prev_close = _safe_float(tech.get("prev_close")) or _safe_float(tech.get("previousClose"))
 
     return SignalInput(
         ticker=ticker,
         price=price,
         prev_close=prev_close,
         volume=_safe_int(tech.get("volume")),
-        avg_volume_10d=_safe_int(
-            tech.get("avg_volume_10d") or tech.get("averageVolume")
-        ),
+        avg_volume_10d=_safe_int(tech.get("avg_volume_10d") or tech.get("averageVolume")),
         market_cap=_safe_float(profile.get("market_cap") or profile.get("marketCap")),
         bid=_safe_float(tech.get("bid")),
         ask=_safe_float(tech.get("ask")),
-        shares_float=_safe_int(
-            profile.get("shares_float") or profile.get("floatShares")
-        ),
+        shares_float=_safe_int(profile.get("shares_float") or profile.get("floatShares")),
         rsi_14=_safe_float(tech.get("rsi_14") or tech.get("rsi")),
         data_quality=DataQuality.REAL,
         source=f"collector:{data.get('data_quality', 'unknown')}",

@@ -29,7 +29,10 @@ except Exception:
     class QuantEngine:  # type: ignore[no-redef]
         def analyze_asset(self, ticker: str) -> Dict[str, Any]:
             try:
-                from experts.technical_neural.pipeline_hook import analyze_technical_neural_sync
+                from experts.technical_neural.pipeline_hook import (
+                    analyze_technical_neural_sync,
+                )
+
                 res = analyze_technical_neural_sync(ticker)
                 if "error" in res:
                     return {
@@ -41,7 +44,7 @@ except Exception:
                         "combined_prob_up": 50.0,
                         "ml_reinforcement_reward": 0.0,
                     }
-                
+
                 mlp_score = res.get("mlp_score", 0.5)
                 pct_up = mlp_score * 100.0
                 return {
@@ -53,7 +56,7 @@ except Exception:
                     "ml_reinforcement_pain": 0.0,
                     "evidence": {
                         "ml": f"MLP model fit on last 600 bars: {res.get('verdict')} verdict (prob: {mlp_score:.2%}, conf: {res.get('confidence'):.2%}, convergence: {res.get('loss_convergence')})"
-                    }
+                    },
                 }
             except Exception as exc:
                 return {
@@ -80,9 +83,7 @@ except Exception:
             "symbol": ticker,
         }
 
-    async def tool_calculate_risk_metrics(
-        ticker: str, days: int = 90
-    ) -> Dict[str, Any]:
+    async def tool_calculate_risk_metrics(ticker: str, days: int = 90) -> Dict[str, Any]:
         return {
             "error": "risk_runtime_removed",
             "ticker": ticker,
@@ -225,9 +226,7 @@ class DataCollector:
                 timeout=timeout,
             )
         except asyncio.TimeoutError:
-            log_event(
-                "DATA_COLLECTOR", "TIMEOUT", {"ticker": ticker, "timeout": timeout}
-            )
+            log_event("DATA_COLLECTOR", "TIMEOUT", {"ticker": ticker, "timeout": timeout})
             debug_logger.warn(
                 MODULE_DATA_COLLECTOR,
                 "collect_all timeout",
@@ -287,11 +286,7 @@ class DataCollector:
             "DONE",
             {
                 "ticker": ticker,
-                "sections": [
-                    k
-                    for k, v in data.items()
-                    if k != "ticker" and "error" not in str(v)
-                ],
+                "sections": [k for k, v in data.items() if k != "ticker" and "error" not in str(v)],
             },
         )
 
@@ -351,14 +346,10 @@ class DataCollector:
                 )
                 return {"error": f"{source_name} failed: {type(exc).__name__}: {exc}"}
 
-        data = await _safe_fetch(
-            "FINANCIAL_ENGINE", lambda: self.engine.get_market_data(ticker)
-        )
+        data = await _safe_fetch("FINANCIAL_ENGINE", lambda: self.engine.get_market_data(ticker))
 
         if data.get("error") or not data.get("price"):
-            rt_data = await _safe_fetch(
-                "SCRAPER", lambda: self._scraper.get_price(ticker)
-            )
+            rt_data = await _safe_fetch("SCRAPER", lambda: self._scraper.get_price(ticker))
             if not rt_data.get("error") and rt_data.get("price"):
                 data = {
                     "price": rt_data["price"],
@@ -367,9 +358,7 @@ class DataCollector:
                 }
 
         if data.get("error") or not data.get("price"):
-            hub_data = await _safe_fetch(
-                "DATA_HUB_PRICE", lambda: self._data_hub.get_price(ticker)
-            )
+            hub_data = await _safe_fetch("DATA_HUB_PRICE", lambda: self._data_hub.get_price(ticker))
             if not hub_data.get("error") and hub_data.get("price"):
                 data = {
                     **hub_data,
@@ -389,12 +378,7 @@ class DataCollector:
         return await tool_calculate_risk_metrics(ticker, days=90)
 
     async def _get_sentiment(self, ticker: str) -> Dict[str, Any]:
-        clean = (
-            ticker.replace(".TO", "")
-            .replace(".to", "")
-            .replace(".V", "")
-            .replace(".v", "")
-        )
+        clean = ticker.replace(".TO", "").replace(".to", "").replace(".V", "").replace(".v", "")
         return await asyncio.to_thread(self._data_hub.get_sentiment_summary, clean)
 
     async def _get_reddit_signal(self, ticker: str) -> Dict[str, Any]:
@@ -500,11 +484,7 @@ class DataCollector:
                 parts.append(f"[PRICE] {rt}")
 
         tech = data.get("technicals", {})
-        if (
-            isinstance(tech, dict)
-            and "error" not in tech
-            and tech.get("price") is not None
-        ):
+        if isinstance(tech, dict) and "error" not in tech and tech.get("price") is not None:
             parts.append(
                 f"[TECHNICALS] Price: {tech.get('price', '?')}, "
                 f"RSI(14): {fmt(tech.get('rsi_14'), '.1f')}, "
@@ -535,11 +515,7 @@ class DataCollector:
             )
 
         quant = data.get("quant", {})
-        if (
-            isinstance(quant, dict)
-            and "error" not in quant
-            and quant.get("rsi") is not None
-        ):
+        if isinstance(quant, dict) and "error" not in quant and quant.get("rsi") is not None:
             parts.append(
                 f"[PREDICTIVE_ENGINE] RSI: {fmt(quant.get('rsi'), '.1f')}, "
                 f"Monte Carlo Prob UP: {fmt(quant.get('monte_carlo_prob_up'), '.1f')}%, "
@@ -555,11 +531,7 @@ class DataCollector:
                 parts.append(f"  ML: {ev.get('ml', '')}")
 
         risk = data.get("risk", {})
-        if (
-            isinstance(risk, dict)
-            and "error" not in risk
-            and risk.get("var_95") is not None
-        ):
+        if isinstance(risk, dict) and "error" not in risk and risk.get("var_95") is not None:
             try:
                 parts.append(
                     f"[RISK] VaR(95%): {float(risk.get('var_95', 0)):.4f}, "
@@ -649,8 +621,7 @@ class DataCollector:
         errors = data.get("source_errors", [])
         if errors:
             parts.append(
-                "[LIMITATIONS] Unavailable sources: "
-                + ", ".join(str(item) for item in errors)
+                "[LIMITATIONS] Unavailable sources: " + ", ".join(str(item) for item in errors)
             )
 
         return "\n".join(parts)

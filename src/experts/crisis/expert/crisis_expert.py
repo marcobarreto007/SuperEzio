@@ -131,12 +131,8 @@ class CrisisMathExpert:
         # 6. Dispara notificações se necessário
         alert_notifier = self._get_notifier()
         if report.alert_level == "black":
-            alert_notifier.send_alert(
-                f"CRISE SISTÊMICA DETECTADA: {report.summary}", level="BLACK"
-            )
+            alert_notifier.send_alert(f"CRISE SISTÊMICA DETECTADA: {report.summary}", level="BLACK")
         elif report.alert_level == "red":
-            alert_notifier.send_alert(
-                "Risco sistêmico elevado detectado.", level="CRITICAL"
-            )
+            alert_notifier.send_alert("Risco sistêmico elevado detectado.", level="CRITICAL")
 
         return report

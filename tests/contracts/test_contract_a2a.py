@@ -1,4 +1,5 @@
 """Contract tests for A2A Protocol — MessageType + A2AMessage invariants."""
+
 import time
 import pytest
 from src.core.ports.protocol import A2AMessage, MessageType
@@ -7,6 +8,7 @@ from src.core.ports.protocol import A2AMessage, MessageType
 # ---------------------------------------------------------------------------
 # MessageType enum
 # ---------------------------------------------------------------------------
+
 
 def test_all_message_types():
     assert MessageType.CAPABILITIES_REQUEST == "CAPABILITIES.REQUEST"
@@ -21,6 +23,7 @@ def test_all_message_types():
 # ---------------------------------------------------------------------------
 # A2AMessage creation
 # ---------------------------------------------------------------------------
+
 
 def test_a2a_message_defaults():
     msg = A2AMessage(
@@ -41,6 +44,7 @@ def test_a2a_message_defaults():
     assert msg.payload == {}
     assert msg.attachments == []
 
+
 def test_a2a_message_with_payload():
     msg = A2AMessage(
         from_agent="ui",
@@ -51,12 +55,14 @@ def test_a2a_message_with_payload():
     assert msg.payload["ticker"] == "AAPL"
     assert msg.payload["time_horizon"] == "14 days"
 
+
 def test_a2a_message_alias_from_to():
     """from_agent is aliased to 'from' in JSON."""
     msg = A2AMessage(from_agent="a", to_agent="b", type=MessageType.ERROR)
     data = msg.model_dump(by_alias=True)
     assert data["from"] == "a"
     assert data["to"] == "b"
+
 
 def test_a2a_message_parse_from_alias():
     """JSON with 'from' and 'to' keys must parse correctly."""
@@ -66,10 +72,12 @@ def test_a2a_message_parse_from_alias():
     assert msg.to_agent == "bob"
     assert msg.type == MessageType.TASK_SUBMIT
 
+
 def test_a2a_message_timestamp_is_recent():
     msg = A2AMessage(from_agent="a", to_agent="b", type=MessageType.ERROR)
     now = time.time()
     assert abs(msg.timestamp - now) < 5.0
+
 
 def test_a2a_message_priority_range():
     msg = A2AMessage(from_agent="a", to_agent="b", type=MessageType.ERROR, priority=3)
@@ -79,6 +87,7 @@ def test_a2a_message_priority_range():
 # ---------------------------------------------------------------------------
 # A2AMessage.create_response
 # ---------------------------------------------------------------------------
+
 
 def test_create_response_preserves_correlation():
     original = A2AMessage(from_agent="ui", to_agent="ceo", type=MessageType.TASK_SUBMIT)
@@ -95,6 +104,7 @@ def test_create_response_preserves_correlation():
     assert response.type == MessageType.TASK_RESULT
     assert response.payload == {"result": "HOLD"}
 
+
 def test_create_response_different_type():
     original = A2AMessage(from_agent="ui", to_agent="bob", type=MessageType.TASK_SUBMIT)
     error_resp = A2AMessage.create_response(
@@ -110,17 +120,21 @@ def test_create_response_different_type():
 # Required fields validation
 # ---------------------------------------------------------------------------
 
+
 def test_missing_from_raises():
     with pytest.raises(Exception):
         A2AMessage.model_validate({"to": "bob", "type": "TASK.SUBMIT"})
+
 
 def test_missing_to_raises():
     with pytest.raises(Exception):
         A2AMessage.model_validate({"from": "ui", "type": "TASK.SUBMIT"})
 
+
 def test_missing_type_raises():
     with pytest.raises(Exception):
         A2AMessage.model_validate({"from": "ui", "to": "bob"})
+
 
 def test_invalid_type_raises():
     with pytest.raises(Exception):

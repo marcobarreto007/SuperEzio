@@ -141,14 +141,10 @@ class Mem0Memory:
                     json.dumps(deduped, ensure_ascii=False, indent=2),
                     encoding="utf-8",
                 )
-                debug_logger.trace(
-                    MODULE_MEMORY, "Mem0.add: saved locally", entries=len(deduped)
-                )
+                debug_logger.trace(MODULE_MEMORY, "Mem0.add: saved locally", entries=len(deduped))
                 return
             except Exception as exc:
-                debug_logger.debug(
-                    MODULE_MEMORY, "Mem0.add local dedup error", error=str(exc)
-                )
+                debug_logger.debug(MODULE_MEMORY, "Mem0.add local dedup error", error=str(exc))
 
         if self.remote_enabled:
             try:
@@ -157,9 +153,7 @@ class Mem0Memory:
                 return
             except Exception as e:
                 logger.warning("Mem0 remote failed, falling back to local: %s", e)
-                debug_logger.debug(
-                    MODULE_MEMORY, "Mem0.add remote fallback", error=str(e)
-                )
+                debug_logger.debug(MODULE_MEMORY, "Mem0.add remote fallback", error=str(e))
 
         if self.redis_client:
             try:
@@ -168,9 +162,7 @@ class Mem0Memory:
                 return
             except Exception as e:
                 logger.warning("Mem0 redis failed, falling back to local: %s", e)
-                debug_logger.debug(
-                    MODULE_MEMORY, "Mem0.add redis fallback", error=str(e)
-                )
+                debug_logger.debug(MODULE_MEMORY, "Mem0.add redis fallback", error=str(e))
 
         self._append_local(payload)
         debug_logger.trace(MODULE_MEMORY, "Mem0.add: local fallback done")
@@ -193,33 +185,23 @@ class Mem0Memory:
         if self.remote_enabled:
             try:
                 results = self._query_remote(query, session_id, k)
-                debug_logger.trace(
-                    MODULE_MEMORY, "Mem0.search: remote results", count=len(results)
-                )
+                debug_logger.trace(MODULE_MEMORY, "Mem0.search: remote results", count=len(results))
                 return results
             except Exception as e:
                 logger.warning("Mem0 remote search failed, using local: %s", e)
-                debug_logger.debug(
-                    MODULE_MEMORY, "Mem0.search remote fallback", error=str(e)
-                )
+                debug_logger.debug(MODULE_MEMORY, "Mem0.search remote fallback", error=str(e))
 
         if self.redis_client:
             try:
                 results = self._query_redis(query, session_id, k)
-                debug_logger.trace(
-                    MODULE_MEMORY, "Mem0.search: redis results", count=len(results)
-                )
+                debug_logger.trace(MODULE_MEMORY, "Mem0.search: redis results", count=len(results))
                 return results
             except Exception as e:
                 logger.warning("Mem0 redis search failed, using local: %s", e)
-                debug_logger.debug(
-                    MODULE_MEMORY, "Mem0.search redis fallback", error=str(e)
-                )
+                debug_logger.debug(MODULE_MEMORY, "Mem0.search redis fallback", error=str(e))
 
         results = self._query_local(query, session_id, k)
-        debug_logger.trace(
-            MODULE_MEMORY, "Mem0.search: local results", count=len(results)
-        )
+        debug_logger.trace(MODULE_MEMORY, "Mem0.search: local results", count=len(results))
         return results
 
     # ========== Remote mode ==========
@@ -229,9 +211,7 @@ class Mem0Memory:
         resp = requests.post(url, json=payload, headers=headers, timeout=10)
         resp.raise_for_status()
 
-    def _query_remote(
-        self, query: str, session_id: str, top_k: int
-    ) -> List[Dict[str, Any]]:
+    def _query_remote(self, query: str, session_id: str, top_k: int) -> List[Dict[str, Any]]:
         headers = {"Authorization": f"Bearer {self.api_key}"}
         url = f"{self.api_url}/collections/{self.collection}/search"
         payload = {"query": query, "session_id": session_id, "top_k": top_k}
@@ -256,9 +236,7 @@ class Mem0Memory:
             json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8"
         )
 
-    def _query_local(
-        self, query: str, session_id: str, top_k: int
-    ) -> List[Dict[str, Any]]:
+    def _query_local(self, query: str, session_id: str, top_k: int) -> List[Dict[str, Any]]:
         """Busca simples por substring (fallback)."""
         try:
             entries = json.loads(self.file_path.read_text(encoding="utf-8"))
@@ -286,9 +264,7 @@ class Mem0Memory:
         # limita tamanho para evitar crescimento infinito
         self.redis_client.ltrim(key, 0, 499)
 
-    def _query_redis(
-        self, query: str, session_id: str, top_k: int
-    ) -> List[Dict[str, Any]]:
+    def _query_redis(self, query: str, session_id: str, top_k: int) -> List[Dict[str, Any]]:
         key = f"mem0:{self.collection}:{session_id}"
         raw_items = self.redis_client.lrange(key, 0, 499)
         if not raw_items:

@@ -43,9 +43,7 @@ if os.getenv("DISABLE_OTEL") != "1":
 
         OTEL_AVAILABLE = True
     except ImportError:
-        logging.getLogger(__name__).warning(
-            "OpenTelemetry não instalado. Traces desabilitados."
-        )
+        logging.getLogger(__name__).warning("OpenTelemetry não instalado. Traces desabilitados.")
 
 # ============================================
 # NEURAL LOG (Original do F51)
@@ -292,9 +290,7 @@ class SpanContext:
                 self.span.set_status(Status(StatusCode.OK))
             self.span.end()
 
-        log_event(
-            "SPAN", f"EXIT:{self.name}", {"error": str(exc_val) if exc_val else None}
-        )
+        log_event("SPAN", f"EXIT:{self.name}", {"error": str(exc_val) if exc_val else None})
         return False
 
     def set_attribute(self, key: str, value: Any):

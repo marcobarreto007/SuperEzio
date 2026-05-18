@@ -22,11 +22,7 @@ class RealTimeScraper:
 
             result = data.get("chart", {}).get("result")
             if not result:
-                error = (
-                    data.get("chart", {})
-                    .get("error", {})
-                    .get("description", "Unknown error")
-                )
+                error = data.get("chart", {}).get("error", {}).get("description", "Unknown error")
                 return {"error": f"Yahoo API error: {error}"}
 
             meta = result[0].get("meta", {})

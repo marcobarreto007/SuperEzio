@@ -52,14 +52,8 @@ class PennylabVeracityGate:
                     f"bid={signal.bid} > ask={signal.ask} (bid/ask invertidos — dado corrompido)"
                 )
 
-        if (
-            signal.price is not None
-            and signal.prev_close is not None
-            and signal.prev_close > 0
-        ):
-            change_pct = abs(
-                (signal.price - signal.prev_close) / signal.prev_close * 100
-            )
+        if signal.price is not None and signal.prev_close is not None and signal.prev_close > 0:
+            change_pct = abs((signal.price - signal.prev_close) / signal.prev_close * 100)
             if change_pct > 1000:
                 violations.append(
                     f"variação de preço={change_pct:.0f}% — dado provavelmente corrompido"

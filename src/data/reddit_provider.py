@@ -69,11 +69,7 @@ def _env_float(name: str, default: float) -> float:
 def _parse_subreddits(value: str | None) -> list[str]:
     if not value:
         return list(DEFAULT_SUBREDDITS)
-    return [
-        item.strip().strip("/").removeprefix("r/")
-        for item in value.split(",")
-        if item.strip()
-    ]
+    return [item.strip().strip("/").removeprefix("r/") for item in value.split(",") if item.strip()]
 
 
 def _clean_query(ticker: str) -> str:
@@ -86,9 +82,7 @@ def _clean_query(ticker: str) -> str:
 
 def _match_terms(query: str) -> list[str]:
     return [
-        term.lower()
-        for term in re.findall(r"[A-Za-z0-9.]{2,12}", query)
-        if term.lower() != "or"
+        term.lower() for term in re.findall(r"[A-Za-z0-9.]{2,12}", query) if term.lower() != "or"
     ]
 
 
@@ -113,18 +107,12 @@ class RedditPulse:
             "false",
             "no",
         }
-        self.subreddits = subreddits or _parse_subreddits(
-            os.getenv("SUPEREZIO_REDDIT_SUBREDDITS")
-        )
+        self.subreddits = subreddits or _parse_subreddits(os.getenv("SUPEREZIO_REDDIT_SUBREDDITS"))
         self.timeout_s = (
-            timeout_s
-            if timeout_s is not None
-            else _env_float("SUPEREZIO_REDDIT_TIMEOUT_S", 6.0)
+            timeout_s if timeout_s is not None else _env_float("SUPEREZIO_REDDIT_TIMEOUT_S", 6.0)
         )
         self.min_score = (
-            min_score
-            if min_score is not None
-            else _env_int("SUPEREZIO_REDDIT_MIN_SCORE", 5)
+            min_score if min_score is not None else _env_int("SUPEREZIO_REDDIT_MIN_SCORE", 5)
         )
         self.min_comments = (
             min_comments
@@ -217,9 +205,7 @@ class RedditPulse:
         if not safe_subreddit:
             return []
 
-        safe_sort = (
-            sort if sort in {"relevance", "hot", "top", "new", "comments"} else "top"
-        )
+        safe_sort = sort if sort in {"relevance", "hot", "top", "new", "comments"} else "top"
         url = f"https://www.reddit.com/r/{safe_subreddit}/search.json"
         params = (
             f"?q={quote_plus(query)}&restrict_sr=1&sort={safe_sort}"
@@ -234,9 +220,7 @@ class RedditPulse:
         posts = []
         for child in payload.get("data", {}).get("children", []):
             item = child.get("data", {})
-            post = self._normalize_post(
-                item, safe_subreddit, match_terms=_match_terms(query)
-            )
+            post = self._normalize_post(item, safe_subreddit, match_terms=_match_terms(query))
             if post:
                 posts.append(post)
         return posts
@@ -296,9 +280,7 @@ class RedditPulse:
             "comments": comments,
             "upvote_ratio": round(upvote_ratio, 3),
             "created_utc": item.get("created_utc"),
-            "url": (
-                f"https://www.reddit.com{permalink}" if permalink else item.get("url")
-            ),
+            "url": (f"https://www.reddit.com{permalink}" if permalink else item.get("url")),
             "quality_score": round(quality_score, 3),
             "sentiment_score": round(self._sentiment(f"{title}. {selftext[:500]}"), 3),
             "hype_flags": hype_flags,
@@ -320,17 +302,13 @@ class RedditPulse:
         discussion = min(comments, 300) / 75.0
         consensus = max(upvote_ratio, 0.50) * 2.0
         hype_penalty = hype_count * 1.25
-        return max(
-            0.0, (engagement + discussion + consensus) * subreddit_weight - hype_penalty
-        )
+        return max(0.0, (engagement + discussion + consensus) * subreddit_weight - hype_penalty)
 
     def _dedupe_and_rank(self, posts: list[dict[str, Any]]) -> list[dict[str, Any]]:
         seen: set[str] = set()
         ranked = []
         for post in sorted(posts, key=lambda item: item["quality_score"], reverse=True):
-            key = str(
-                post.get("url") or post.get("id") or post.get("title", "")
-            ).lower()
+            key = str(post.get("url") or post.get("id") or post.get("title", "")).lower()
             if key in seen:
                 continue
             seen.add(key)
@@ -339,11 +317,7 @@ class RedditPulse:
 
     def _hype_flags(self, text: str) -> list[str]:
         lowered = text.lower()
-        return [
-            pattern.strip(r"\b")
-            for pattern in HYPE_PATTERNS
-            if re.search(pattern, lowered)
-        ]
+        return [pattern.strip(r"\b") for pattern in HYPE_PATTERNS if re.search(pattern, lowered)]
 
     def _sentiment(self, text: str) -> float:
         if not TextBlob:
@@ -354,9 +328,7 @@ class RedditPulse:
         if not posts:
             return 0.0
         total_weight = sum(max(post["quality_score"], 0.1) for post in posts)
-        weighted = sum(
-            post["sentiment_score"] * max(post["quality_score"], 0.1) for post in posts
-        )
+        weighted = sum(post["sentiment_score"] * max(post["quality_score"], 0.1) for post in posts)
         return weighted / total_weight if total_weight else 0.0
 
     @staticmethod

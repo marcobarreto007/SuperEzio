@@ -106,14 +106,10 @@ class FraudPatternAnalyst:
         fetch_limitations: list[str] = []
 
         # Obter dados de mercado ou enriquecer o payload parcial com DataHub.
-        if market_data is None or self._needs_market_fetch_enrichment(
-            normalized_market_data
-        ):
+        if market_data is None or self._needs_market_fetch_enrichment(normalized_market_data):
             fetched_market_data = await self._fetch_market_data(ticker)
             if "error" in fetched_market_data:
-                if market_data is None or not self._has_any_observable_data(
-                    normalized_market_data
-                ):
+                if market_data is None or not self._has_any_observable_data(normalized_market_data):
                     normalized_market_data = fetched_market_data
                 else:
                     fetch_limitations.append(
@@ -125,9 +121,8 @@ class FraudPatternAnalyst:
                     normalized_market_data, fetched_market_data
                 )
 
-        fetch_failed = (
-            "error" in normalized_market_data
-            and not self._has_any_observable_data(normalized_market_data)
+        fetch_failed = "error" in normalized_market_data and not self._has_any_observable_data(
+            normalized_market_data
         )
 
         # Avaliar regras
@@ -148,9 +143,7 @@ class FraudPatternAnalyst:
 
         # Limitações de regras não computáveis
         provider_limitations = [
-            r["limitation_when_absent"]
-            for r in non_computable
-            if r.get("limitation_when_absent")
+            r["limitation_when_absent"] for r in non_computable if r.get("limitation_when_absent")
         ]
 
         # Limitação de fetch de dados
@@ -162,10 +155,7 @@ class FraudPatternAnalyst:
             )
 
         all_limitations = (
-            fetch_limitations
-            + compute_limitations
-            + whale_limitations
-            + provider_limitations
+            fetch_limitations + compute_limitations + whale_limitations + provider_limitations
         )
 
         # Calcular score e confidence
@@ -259,30 +249,18 @@ class FraudPatternAnalyst:
             or f"collected_{normalized['ticker']}_{normalized['data_date']}"
         )
 
-        profile = (
-            market_data.get("profile")
-            if isinstance(market_data.get("profile"), dict)
-            else {}
-        )
+        profile = market_data.get("profile") if isinstance(market_data.get("profile"), dict) else {}
         technicals = (
-            market_data.get("technicals")
-            if isinstance(market_data.get("technicals"), dict)
-            else {}
+            market_data.get("technicals") if isinstance(market_data.get("technicals"), dict) else {}
         )
         realtime = (
             market_data.get("realtime_price")
             if isinstance(market_data.get("realtime_price"), dict)
             else {}
         )
-        reddit = (
-            market_data.get("reddit")
-            if isinstance(market_data.get("reddit"), dict)
-            else {}
-        )
+        reddit = market_data.get("reddit") if isinstance(market_data.get("reddit"), dict) else {}
         sentiment = (
-            market_data.get("sentiment")
-            if isinstance(market_data.get("sentiment"), dict)
-            else {}
+            market_data.get("sentiment") if isinstance(market_data.get("sentiment"), dict) else {}
         )
 
         normalized["market_cap"] = profile.get("market_cap")
@@ -302,27 +280,18 @@ class FraudPatternAnalyst:
                 daily_return / 100.0 if abs(daily_return) > 1.5 else daily_return
             )
 
-        top_posts = (
-            reddit.get("top_posts") if isinstance(reddit.get("top_posts"), list) else []
-        )
+        top_posts = reddit.get("top_posts") if isinstance(reddit.get("top_posts"), list) else []
         normalized["reddit_qualified_count"] = reddit.get("qualified_count")
         normalized["reddit_hype_flags_count"] = sum(
-            len(post.get("hype_flags", []))
-            for post in top_posts
-            if isinstance(post, dict)
+            len(post.get("hype_flags", [])) for post in top_posts if isinstance(post, dict)
         )
         normalized["reddit_top_quality_score"] = max(
-            (
-                float(post.get("quality_score", 0.0))
-                for post in top_posts
-                if isinstance(post, dict)
-            ),
+            (float(post.get("quality_score", 0.0)) for post in top_posts if isinstance(post, dict)),
             default=0.0,
         )
         normalized["reddit_signal_label"] = reddit.get("signal_label")
         normalized["reddit_evidence_id"] = (
-            reddit.get("evidence_id")
-            or f"reddit_{normalized['ticker']}_{normalized['data_date']}"
+            reddit.get("evidence_id") or f"reddit_{normalized['ticker']}_{normalized['data_date']}"
         )
         normalized["news_sentiment_score"] = sentiment.get("sentiment_score")
         normalized["news_count"] = sentiment.get("news_count")
@@ -394,10 +363,8 @@ class FraudPatternAnalyst:
         window = min(20, len(volumes))
         avg_vol_20d = sum(volumes[-window:]) / window
         variance = sum((v - avg_vol_20d) ** 2 for v in volumes[-window:]) / window
-        std_vol_20d = variance ** 0.5
-        volume_z_score = (
-            (recent_vol - avg_vol_20d) / std_vol_20d if std_vol_20d > 0 else 0.0
-        )
+        std_vol_20d = variance**0.5
+        volume_z_score = (recent_vol - avg_vol_20d) / std_vol_20d if std_vol_20d > 0 else 0.0
 
         # Daily price return
         closes = [c["close"] for c in candles]
@@ -564,9 +531,7 @@ class FraudPatternAnalyst:
         # Unknown rule — skip silently
         return False, None
 
-    def _check_data_absence(
-        self, rule_id: str, market_data: dict[str, Any]
-    ) -> str | None:
+    def _check_data_absence(self, rule_id: str, market_data: dict[str, Any]) -> str | None:
         """Returns a limitation note if a required data field is missing."""
         if rule_id in ("microcap_concentration", "price_spike_high_volatility"):
             if market_data.get("market_cap") is None:
@@ -622,10 +587,7 @@ class FraudPatternAnalyst:
         reddit_quality = market_data.get("reddit_top_quality_score")
         reddit_evidence = market_data.get("reddit_evidence_id")
 
-        if (
-            isinstance(volume_z, (int, float))
-            and volume_z >= WHALE_VOLUME_ALERT_THRESHOLD
-        ):
+        if isinstance(volume_z, (int, float)) and volume_z >= WHALE_VOLUME_ALERT_THRESHOLD:
             signals.append("volume_anomaly")
             evidence_ids.append(f"whale_volume_{ticker}_{today}={volume_z:.2f}")
             whale_score = max(whale_score, 0.45 if volume_z < VOLUME_Z_EXTREME else 0.6)
@@ -661,14 +623,11 @@ class FraudPatternAnalyst:
             and market_cap < 200_000_000
         ):
             signals.append("microcap_price_dislocation")
-            evidence_ids.append(
-                f"whale_price_dislocation_{ticker}_{today}={daily_return:.2%}"
-            )
+            evidence_ids.append(f"whale_price_dislocation_{ticker}_{today}={daily_return:.2%}")
             whale_score = max(whale_score, 0.55)
 
         if "volume_anomaly" in signals and (
-            "social_hype_cluster" in signals
-            or "high_attention_social_cluster" in signals
+            "social_hype_cluster" in signals or "high_attention_social_cluster" in signals
         ):
             signals.append("possible_whale_or_coordinated_flow")
             whale_score = max(whale_score, 0.75)
@@ -764,9 +723,7 @@ class FraudPatternAnalyst:
     # Fraud context text (for injection into FINAL_COMPOSITION_PROMPT)
     # ------------------------------------------------------------------
 
-    def format_context_for_orchestrator(
-        self, fraud_result: dict[str, Any]
-    ) -> tuple[str, str]:
+    def format_context_for_orchestrator(self, fraud_result: dict[str, Any]) -> tuple[str, str]:
         """
         Formata o resultado do analista em texto para o prompt do Orchestrator.
 
@@ -805,9 +762,7 @@ class FraudPatternAnalyst:
                 "NOTE: similarity to known patterns is not confirmation of fraud."
             )
         else:
-            lines.append(
-                "No similar manipulation pattern was identified in the computable data."
-            )
+            lines.append("No similar manipulation pattern was identified in the computable data.")
 
         if case_types:
             lines.append(
@@ -838,8 +793,7 @@ class FraudPatternAnalyst:
 
         if guardrails:
             lines.append(
-                "Active guardrails:\n"
-                + "\n".join(f"  - {item}" for item in guardrails[:4])
+                "Active guardrails:\n" + "\n".join(f"  - {item}" for item in guardrails[:4])
             )
 
         context_text = "\n".join(lines)
@@ -863,10 +817,7 @@ class FraudPatternAnalyst:
     def format_context_for_experts(self, fraud_result: dict[str, Any]) -> str:
         """Contexto compacto para injetar guardrails em todos os experts."""
         if not fraud_result:
-            return (
-                "[WHALE_GUARDRAILS]\n"
-                "Whale/manipulation detector was not executed in this run."
-            )
+            return "[WHALE_GUARDRAILS]\nWhale/manipulation detector was not executed in this run."
 
         whale_signals = fraud_result.get("whale_signals", [])
         guardrails = fraud_result.get("guardrails", [])
@@ -877,11 +828,7 @@ class FraudPatternAnalyst:
             f"risk_score={fraud_result.get('risk_score', 0.0):.2f}",
             f"whale_activity_score={fraud_result.get('whale_activity_score', 0.0):.2f}",
             f"constraint={constraint}",
-            (
-                "signals=" + ", ".join(whale_signals)
-                if whale_signals
-                else "signals=none"
-            ),
+            ("signals=" + ", ".join(whale_signals) if whale_signals else "signals=none"),
             "Use these guardrails in EVERY response:",
             "- never treat social hype or anomalous flow as factual confirmation;",
             "- if constraint=force_wait_or_avoid, do not defend entry or small_position;",

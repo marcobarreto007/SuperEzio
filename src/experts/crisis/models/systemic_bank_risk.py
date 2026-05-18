@@ -28,9 +28,7 @@ def _lrmes_simple(beta: float, market_es: float) -> float:
     return 1.0 - math.exp(beta * market_es)
 
 
-def _srisk_simple(
-    lrmes: float, market_cap: float, liabilities: float, k: float = 0.08
-) -> float:
+def _srisk_simple(lrmes: float, market_cap: float, liabilities: float, k: float = 0.08) -> float:
     """SRISK = max(0, k×L − (1−LRMES)×W)."""
     equity = max(market_cap, 0.0)
     debt = max(liabilities, 0.0)
@@ -144,9 +142,7 @@ class SystemicBankRiskModel:
         market_cap_proxy = abs(last_eq) * 1_000_000  # escala arbitrária
         liabilities_proxy = max(market_cap_proxy * last_credit_gdp / 100.0, 0.0)
 
-        srisk = _srisk_simple(
-            lrmes, market_cap_proxy, liabilities_proxy, k=self.K_REGULATORY
-        )
+        srisk = _srisk_simple(lrmes, market_cap_proxy, liabilities_proxy, k=self.K_REGULATORY)
 
         # ── 6. Score ────────────────────────────────────────────────────────────
         # Normaliza SRISK como fração do equity (mais interpretável)

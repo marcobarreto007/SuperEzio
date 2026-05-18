@@ -143,13 +143,8 @@ def make_decision(
         return Decision.NO_TRADE, risks, entry, exits
 
     # ── Regra 3: pump + trap combinados → ARMADILHA ──
-    if (
-        scores.trap_risk >= t.TRAP_NO_TRADE
-        and scores.pump_probability >= t.PUMP_NO_TRADE
-    ):
-        risks.append(
-            f"Armadilha: pump={scores.pump_probability:.0%} + trap={scores.trap_risk:.0%}"
-        )
+    if scores.trap_risk >= t.TRAP_NO_TRADE and scores.pump_probability >= t.PUMP_NO_TRADE:
+        risks.append(f"Armadilha: pump={scores.pump_probability:.0%} + trap={scores.trap_risk:.0%}")
         return Decision.NO_TRADE, risks, entry, exits
 
     # ── Regra 4: baleia suspeita com risco controlado → SEGUIR ──
@@ -213,9 +208,7 @@ def analyze(signal: SignalInput, veracity_passed: bool = True) -> PennylabReport
     """
     scores, evidence = compute_scores(signal)
     confidence = compute_confidence(signal, scores)
-    decision, risks, entry, exits = make_decision(
-        scores, confidence, veracity_passed, signal
-    )
+    decision, risks, entry, exits = make_decision(scores, confidence, veracity_passed, signal)
     mathcore_verdict = build_mathcore_verdict(scores)
 
     return PennylabReport(

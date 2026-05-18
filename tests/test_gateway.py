@@ -38,9 +38,7 @@ class TestIsA2A:
         assert ModelGateway._is_a2a_provider(p) is False
 
     def test_local_provider(self):
-        p = _provider(
-            "ceo", backend="openai_compatible", base_url="http://127.0.0.1:8082/v1"
-        )
+        p = _provider("ceo", backend="openai_compatible", base_url="http://127.0.0.1:8082/v1")
         assert ModelGateway._is_a2a_provider(p) is False
 
 

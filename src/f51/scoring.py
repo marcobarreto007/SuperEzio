@@ -48,12 +48,7 @@ class PlatinumScorer:
         p_refute = sum(1 for c in candidates if not c.refuted) / len(candidates)
 
         # Fórmula
-        raw = (
-            3.0 * p_consensus
-            + 2.0 * p_check
-            + 1.5 * p_refute
-            - 2.5 * clamp(uncertainty)
-        )
+        raw = 3.0 * p_consensus + 2.0 * p_check + 1.5 * p_refute - 2.5 * clamp(uncertainty)
         return sigmoid(raw)
 
     @staticmethod

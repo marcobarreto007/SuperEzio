@@ -100,14 +100,10 @@ def validate_input(message: str, context: str = "") -> Optional[str]:
         return "INPUT_REJECTED: mensagem vazia."
 
     msg_len = len(message)
-    debug_logger.trace(
-        MODULE_SECURITY, "validate_input: checking", message_length=msg_len
-    )
+    debug_logger.trace(MODULE_SECURITY, "validate_input: checking", message_length=msg_len)
 
     if msg_len > MAX_MESSAGE_LENGTH:
-        debug_logger.warn(
-            MODULE_SECURITY, "INPUT_TOO_LONG", length=msg_len, max=MAX_MESSAGE_LENGTH
-        )
+        debug_logger.warn(MODULE_SECURITY, "INPUT_TOO_LONG", length=msg_len, max=MAX_MESSAGE_LENGTH)
         log_event(
             "SECURITY",
             "INPUT_TOO_LONG",
@@ -234,10 +230,7 @@ def sanitize_output(text: str) -> str:
                 "phrases": found_forbidden,
             },
         )
-        text += (
-            "\n\n[SYSTEM] STAFF+ENGINEER MODE ACTIVE. "
-            "No investment has a guaranteed return."
-        )
+        text += "\n\n[SYSTEM] STAFF+ENGINEER MODE ACTIVE. No investment has a guaranteed return."
 
     # 3. Truncar se muito longo
     if len(text) > MAX_OUTPUT_LENGTH:
@@ -249,10 +242,7 @@ def sanitize_output(text: str) -> str:
                 "truncated_to": MAX_OUTPUT_LENGTH,
             },
         )
-        text = (
-            text[:MAX_OUTPUT_LENGTH]
-            + "\n\n[TRUNCATED: output excede limite de segurança]"
-        )
+        text = text[:MAX_OUTPUT_LENGTH] + "\n\n[TRUNCATED: output excede limite de segurança]"
 
     return text
 

@@ -163,9 +163,7 @@ class LPPLSBubbleModel:
                 vols.append(float(np.std(window_rets)))
             vols = np.array(vols)
             vol_trend = (
-                float(np.polyfit(np.arange(len(vols)), vols, 1)[0])
-                if len(vols) >= 10
-                else 0.0
+                float(np.polyfit(np.arange(len(vols)), vols, 1)[0]) if len(vols) >= 10 else 0.0
             )
         else:
             vol_trend = 0.0
@@ -178,9 +176,7 @@ class LPPLSBubbleModel:
         score_vol = max(0.0, min(1.0, vol_trend * 500.0))
 
         # Pesos: R² do fit LPPLS pesa mais
-        score = (
-            0.30 * score_accel + 0.15 * score_osc + 0.35 * score_r2 + 0.20 * score_vol
-        )
+        score = 0.30 * score_accel + 0.15 * score_osc + 0.35 * score_r2 + 0.20 * score_vol
         score = max(0.0, min(1.0, score))
 
         # Confiança: quanto mais dados e melhor o fit, maior a confiança

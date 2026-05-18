@@ -1,36 +1,34 @@
 {
-  "date_local": "2026-05-17T17:25:00-04:00",
-  "session": "f51-production-hardening-wave1-4",
-  "status": "CORRECOES_VERIFICADAS_SERVIDORES_RESTARTADOS",
+  "date_local": "2026-05-17T22:05:49-04:00",
+  "session": "f51-release-blocker-fix-local",
+  "status": "LOCAL_ENGINEERING_PASS_SALE_FAIL_CONDITIONAL_DEMO",
   "what_was_done": [
-    "Wave 1: proxy_reward bug corrigido (1 linha, formulas.py:123-130).",
-    "Wave 1: /capabilities e /product/manifest endpoints corrigidos e VERIFICADOS — ambos retornam 200.",
-    "Wave 1: INVENTORY.json atualizado — removido stale_configs.",
-    "Wave 2: SUPEREZIO_CEO_MAX_TOKENS=2048 em .env.",
-    "Wave 2: serve_ceo_llamacpp.ps1 tuned — Context 32768→8192, GpuLayers 20→28, Slots 4→2.",
-    "Wave 3: CI yaml corrigido — windows-2022, checkout@v4, setup-python@v5.",
-    "Wave 3: neural_log.py — removido filterwarnings blanket.",
-    "Wave 3: pipeline_hook.py — load_dotenv movido para module level.",
-    "Wave 4: NEURAL_EXPERT_ARCHITECTURE.md reescrito para documentar implementacao real (rule-based, nao LSTM).",
-    "Servidores restartados com codigo novo: CEO (llama-server) + API (agent_server)."
+    "Closed the local engineering release gate after hostile audit.",
+    "Applied Ruff formatting to src and tests.",
+    "Verified Ruff lint and Ruff format checks are green.",
+    "Ran full pytest suite after formatting.",
+    "Removed .f51/cache/collector JSON files from the Git index without deleting them from disk.",
+    "Re-verified local API and CEO endpoints: /health, /product/manifest, /capabilities, /v1/models.",
+    "Updated docs/architecture/FINAL_AUDIT.md, docs/runbooks/DELIVERY_CHECKLIST.md, and .f51/RELEASE_READINESS.md."
   ],
   "evidence": [
-    "158/158 contract tests passing.",
-    "20/20 smoke tests passing.",
-    "7/7 integration tests passing (antes: 5/7, 2 endpoints 500).",
-    "curl :8002/capabilities → 200 OK (supported_tasks, product manifest).",
-    "curl :8002/product/manifest → 200 OK (runtime status, nodes, providers).",
-    "curl :8082/health → OK.",
-    "curl :8002/health → OK.",
-    "CEO inference raw: 1.95s (curl :8082/v1/completions, max_tokens=50).",
-    "Pipeline full: ~72s (dominado por DeepSeek API calls para 12 experts + data providers, nao pelo CEO).",
-    "ruff check nos arquivos modificados: clean."
+    "GET http://127.0.0.1:8002/health -> 200.",
+    "GET http://127.0.0.1:8002/product/manifest -> 200.",
+    "GET http://127.0.0.1:8002/capabilities -> 200.",
+    "GET http://127.0.0.1:8082/health -> 200.",
+    "GET http://127.0.0.1:8082/v1/models -> 200.",
+    "python -m pytest -q -> 635 passed, 5 warnings.",
+    "python -m ruff check src tests -> All checks passed.",
+    "python -m ruff format src tests --check -> 196 files already formatted.",
+    "git diff --check -> passed.",
+    "git rm --cached .f51/cache/collector/*.json -> cache untracked from Git index; files remain on disk.",
+    "origin push URL remains DISABLED_LOCAL_DISK_ONLY."
   ],
   "risks": [
-    "Pipeline latency ~72s ainda alto para demo ao vivo (causa: DeepSeek API + 8 data providers, nao o CEO local).",
-    "Launcher desktop/SuperEzio.bat ainda nao testado.",
-    "Sem GitHub remote — backup off-disk ausente.",
-    "CI GitHub Actions corrigido no yaml mas nao testado em execucao real."
+    "Not reproducible commercially: GitHub remote is deleted/no CI and local model/binary/env are required.",
+    "Neural marketing/runtime mismatch: active NeuralDecisionExpert is rule/regime heuristic while docs still reference dynamic neural prediction concepts.",
+    "Config and legacy model references are scattered across pyproject, scripts, docs, and .f51 operational files.",
+    "Cold-start launcher and /task/submit STREAM_END smoke still need to be proved immediately before any external demo."
   ],
-  "next_step": "Opcionais: (1) testar launcher .bat, (2) criar remote GitHub + push, (3) cachear ou paralelizar chamadas DeepSeek para reduzir pipeline latency."
+  "next_step": "Create off-disk backup/remote plus CI, then align neural/runtime claims and prove the cold-start demo path."
 }

@@ -14,6 +14,7 @@ import numpy as np
 # 1. Cálculos Escalares (Para Decision Engine / Experts)
 # ===========================================================================
 
+
 def sma(prices: Sequence[float], period: int) -> float | None:
     """Média móvel simples."""
     if len(prices) < period:
@@ -90,6 +91,7 @@ def vwap_deviation(current_price: float, vwap_value: float | None) -> float:
 # 2. Cálculos em Séries (Para API / Endpoints de Gráficos)
 # ===========================================================================
 
+
 def calc_sma(closes: list, period: int) -> list:
     """Média Móvel Simples retornada como série."""
     arr = np.array(closes, dtype=float)
@@ -131,9 +133,7 @@ def calc_rsi(closes: list, period: int = 14) -> list:
             rsi_vals[i + 1] = round(100 - 100 / (1 + rs), 2)
         avg_gain = (avg_gain * (period - 1) + gains[i]) / period
         avg_loss = (avg_loss * (period - 1) + losses[i]) / period
-    rsi_vals[period] = (
-        100.0 if avg_loss == 0 else round(100 - 100 / (1 + avg_gain / avg_loss), 2)
-    )
+    rsi_vals[period] = 100.0 if avg_loss == 0 else round(100 - 100 / (1 + avg_gain / avg_loss), 2)
     return rsi_vals
 
 
@@ -142,8 +142,7 @@ def calc_macd(closes: list) -> dict[str, list]:
     ema12 = calc_ema(closes, 12)
     ema26 = calc_ema(closes, 26)
     macd_line = [
-        round(a - b, 4) if a is not None and b is not None else None
-        for a, b in zip(ema12, ema26)
+        round(a - b, 4) if a is not None and b is not None else None for a, b in zip(ema12, ema26)
     ]
     valid = [v for v in macd_line if v is not None]
     signal = [None] * len(macd_line)
@@ -160,9 +159,7 @@ def calc_macd(closes: list) -> dict[str, list]:
     return {"macd": macd_line, "signal": signal, "histogram": histogram}
 
 
-def calc_bollinger(
-    closes: list, period: int = 20, std_dev: float = 2.0
-) -> dict[str, list]:
+def calc_bollinger(closes: list, period: int = 20, std_dev: float = 2.0) -> dict[str, list]:
     """Bollinger Bands retornadas como série."""
     middle = calc_sma(closes, period)
     arr = np.array(closes, dtype=float)

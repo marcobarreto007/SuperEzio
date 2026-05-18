@@ -41,14 +41,16 @@ def _parse_av_time_series(data: dict) -> list[dict[str, Any]]:
     raw = data[series_key]
     candles: list[dict[str, Any]] = []
     for ts, values in raw.items():
-        candles.append({
-            "time": ts,
-            "open": float(values.get("1. open", 0)),
-            "high": float(values.get("2. high", 0)),
-            "low": float(values.get("3. low", 0)),
-            "close": float(values.get("4. close", 0)),
-            "volume": int(values.get("5. volume", 0)),
-        })
+        candles.append(
+            {
+                "time": ts,
+                "open": float(values.get("1. open", 0)),
+                "high": float(values.get("2. high", 0)),
+                "low": float(values.get("3. low", 0)),
+                "close": float(values.get("4. close", 0)),
+                "volume": int(values.get("5. volume", 0)),
+            }
+        )
     candles.sort(key=lambda c: c["time"])
     return candles
 
@@ -78,9 +80,7 @@ class AlphaVantageProvider:
             return {
                 "symbol": symbol,
                 "price": float(quote.get("05. price", 0)),
-                "change_pct": float(
-                    quote.get("10. change percent", "0%").replace("%", "")
-                ),
+                "change_pct": float(quote.get("10. change percent", "0%").replace("%", "")),
                 "volume": int(quote.get("06. volume", 0)),
                 "source": "alpha_vantage",
             }
@@ -156,5 +156,9 @@ class AlphaVantageProvider:
                 return {"error": data.get("Error Message") or data.get("Note")}
             return {"maturity": maturity, "data": data.get("data", [])}
         except Exception as e:
-            _log_event("ALPHA_VANTAGE", "TREASURY_ERROR", {"maturity": maturity, "error": str(e)})
+            _log_event(
+                "ALPHA_VANTAGE",
+                "TREASURY_ERROR",
+                {"maturity": maturity, "error": str(e)},
+            )
             return {"error": str(e)}

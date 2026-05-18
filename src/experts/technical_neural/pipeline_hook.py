@@ -27,7 +27,7 @@ def analyze_technical_neural_sync(ticker: str) -> Dict[str, Any]:
                 "verdict": "WAIT",
                 "confidence": 0.0,
                 "error": response["error"],
-                "source": "technical_neural"
+                "source": "technical_neural",
             }
 
         data = response.get("data") or response.get("candles") or []
@@ -39,20 +39,23 @@ def analyze_technical_neural_sync(ticker: str) -> Dict[str, Any]:
             "verdict": "WAIT",
             "confidence": 0.0,
             "error": "Falha na coleta histórica",
-            "source": "technical_neural"
+            "source": "technical_neural",
         }
 
     # Try PyTorch GPU model first, fallback to sklearn MLP
     try:
         from .expert.torch_mlp import PriceTorchMLP
+
         expert = PriceTorchMLP()
     except ImportError:
         from .expert.neural_expert import PriceMLP
+
         expert = PriceMLP()
 
     result = expert.evaluate(ticker, data)
     result["ticker"] = ticker
     return result
+
 
 async def run_technical_neural_analysis(ticker: str) -> Dict[str, Any]:
     """Wrapper assíncrono para ser chamado no grafo."""

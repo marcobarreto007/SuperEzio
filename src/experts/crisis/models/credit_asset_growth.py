@@ -9,20 +9,12 @@ from ..logic.normalization import clamp, percentile_rank
 class CreditAssetGrowthModel:
     def evaluate(self, input_data: CrisisInput) -> SensorResult:
         credits = [
-            o.credit_growth_yoy
-            for o in input_data.observations
-            if o.credit_growth_yoy is not None
+            o.credit_growth_yoy for o in input_data.observations if o.credit_growth_yoy is not None
         ]
         houses = [
-            o.house_price_index
-            for o in input_data.observations
-            if o.house_price_index is not None
+            o.house_price_index for o in input_data.observations if o.house_price_index is not None
         ]
-        equities = [
-            o.equity_index
-            for o in input_data.observations
-            if o.equity_index is not None
-        ]
+        equities = [o.equity_index for o in input_data.observations if o.equity_index is not None]
 
         if len(credits) < 12 or len(houses) < 12:
             return SensorResult(
@@ -46,11 +38,7 @@ class CreditAssetGrowthModel:
 
         e_pct = 0.0
         if len(equities) >= 12:
-            e_yoy = (
-                ((equities[-1] / equities[-12]) - 1.0) * 100
-                if equities[-12] > 0
-                else 0.0
-            )
+            e_yoy = ((equities[-1] / equities[-12]) - 1.0) * 100 if equities[-12] > 0 else 0.0
             e_yoys = [
                 ((equities[i] / equities[i - 12]) - 1.0) * 100
                 for i in range(12, len(equities))
@@ -72,7 +60,9 @@ class CreditAssetGrowthModel:
         final_score = clamp(base_score + bonus)
 
         if final_score > 80:
-            exp = "Sinais fortes de duplo boom: expansão extrema de crédito e valorização de ativos."
+            exp = (
+                "Sinais fortes de duplo boom: expansão extrema de crédito e valorização de ativos."
+            )
         elif final_score > 60:
             exp = "Crescimento combinado de crédito e ativos acima da média."
         else:

@@ -56,9 +56,7 @@ class GrowthAtRiskModel:
                 continue
             row = [1.0]  # intercepto
             row.append(o.credit_to_gdp if o.credit_to_gdp is not None else 0.0)
-            row.append(
-                o.debt_service_ratio if o.debt_service_ratio is not None else 0.0
-            )
+            row.append(o.debt_service_ratio if o.debt_service_ratio is not None else 0.0)
             row.append(o.house_price_index if o.house_price_index is not None else 0.0)
             features.append(row)
             targets.append(gdp_next)

@@ -154,12 +154,14 @@ async def node_collect_experts(state: dict) -> dict:
     # entire downstream chain (neural_decision → rag → ceo → explanation) runs twice.
     dedup_key = f"experts_{run_id}"
     if dedup_key in _COLLECT_SEEN:
-        writer({
-            "type": "PIPELINE_STEP",
-            "run_id": run_id,
-            "step": "experts",
-            "status": "skipped_duplicate",
-        })
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "experts",
+                "status": "skipped_duplicate",
+            }
+        )
         return {}
     _COLLECT_SEEN.append(dedup_key)
 
@@ -167,10 +169,7 @@ async def node_collect_experts(state: dict) -> dict:
 
     if not results_list:
         data = state.get("data") or {}
-        if (
-            state.get("route") == "ticker_analysis"
-            and data.get("data_quality") == "partial"
-        ):
+        if state.get("route") == "ticker_analysis" and data.get("data_quality") == "partial":
             summary = (
                 "Experts were expected for partial DataCollector evidence, "
                 "but no expert result was produced."
@@ -186,8 +185,7 @@ async def node_collect_experts(state: dict) -> dict:
             )
             return {
                 "expert_summary": summary,
-                "errors": state.get("errors", [])
-                + ["partial_data_without_expert_results"],
+                "errors": state.get("errors", []) + ["partial_data_without_expert_results"],
             }
 
         summary = "Experts were not triggered for this route."

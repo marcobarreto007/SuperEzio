@@ -23,15 +23,15 @@ class QuantumWalkBias:
         """
         try:
             n_positions = 2**self.n_qubits
-            
+
             # Inicializa estado quântico complexo: (coin_state, position)
             # coin_state: 0 (up), 1 (down)
             psi = np.zeros((2, n_positions), dtype=complex)
-            
+
             # Estado inicial simétrico localizado na posição 0 para espalhar uniformemente
             psi[0, 0] = 1.0 / np.sqrt(2)
             psi[1, 0] = 1j / np.sqrt(2)
-            
+
             # Executa passos da Caminhada Quântica
             steps = 12
             for _ in range(steps):
@@ -40,27 +40,27 @@ class QuantumWalkBias:
                 psi_new = np.zeros_like(psi)
                 psi_new[0, :] = (psi[0, :] + psi[1, :]) / np.sqrt(2)
                 psi_new[1, :] = (psi[0, :] - psi[1, :]) / np.sqrt(2)
-                
+
                 # 2. Operador de deslocamento (Shift)
                 # Coin 0 desloca para a esquerda (passo -1)
                 # Coin 1 desloca para a direita (passo +1)
                 psi[0, :] = np.roll(psi_new[0, :], -1)
                 psi[1, :] = np.roll(psi_new[1, :], 1)
-                
+
             # Calcula a distribuição de probabilidade de medição (quadrado do módulo da amplitude)
-            prob = np.abs(psi[0, :])**2 + np.abs(psi[1, :])**2
+            prob = np.abs(psi[0, :]) ** 2 + np.abs(psi[1, :]) ** 2
             prob /= np.sum(prob)  # Garante normalização unitária
-            
+
             # Amostra 1000 'shots' com base na distribuição quântica obtida
             shots = 1000
             sampled_indices = np.random.choice(n_positions, size=shots, p=prob)
-            
+
             counts = {}
             for idx in sampled_indices:
                 # Converte o índice posicional para representação binária de n_qubits
                 binary_state = format(idx, f"0{self.n_qubits}b")
                 counts[binary_state] = counts.get(binary_state, 0) + 1
-                
+
             return {
                 "counts": counts,
                 "timestamp": datetime.now().isoformat(),
@@ -84,4 +84,3 @@ class QuantumWalkBias:
         # Converte para um valor entre -0.05 e 0.05
         bias = (ones / total - 0.5) * 0.1
         return float(bias)
-

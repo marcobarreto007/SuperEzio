@@ -64,9 +64,7 @@ def build_graph(
         return await node_neural_decision(state)
 
     async def _ceo(state: dict) -> dict:
-        return await node_ceo(
-            state, gateway=gateway, config=config, mandamentos=mandamentos
-        )
+        return await node_ceo(state, gateway=gateway, config=config, mandamentos=mandamentos)
 
     async def _explanation(state: dict) -> dict:
         return await node_explanation(state)
@@ -274,9 +272,7 @@ class PipelineApp:
                 "respond_blocked",
             ],
             "gateway_available": self.gateway is not None,
-            "providers": (
-                [p.name for p in self.gateway.providers] if self.gateway else []
-            ),
+            "providers": ([p.name for p in self.gateway.providers] if self.gateway else []),
             "mandamentos_count": len(self.mandamentos),
         }
 
@@ -306,10 +302,6 @@ async def _node_pennylab_stub(state: dict) -> dict:
         result = await __import__("asyncio").to_thread(analyze_ticker_sync, ticker)
         return {"pennylab": result}
     except ImportError:
-        return {
-            "pennylab": {"ticker": ticker, "decision": None, "error": "unavailable"}
-        }
+        return {"pennylab": {"ticker": ticker, "decision": None, "error": "unavailable"}}
     except Exception as exc:
-        return {
-            "pennylab": {"ticker": ticker, "decision": None, "error": str(exc)[:200]}
-        }
+        return {"pennylab": {"ticker": ticker, "decision": None, "error": str(exc)[:200]}}

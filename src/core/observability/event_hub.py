@@ -233,9 +233,7 @@ class RedisStreamsHub(EventHub):
                             await self._process_event(event)
 
                             # Acknowledge message
-                            await redis.xack(
-                                self.stream_key, self.consumer_group, msg_id
-                            )
+                            await redis.xack(self.stream_key, self.consumer_group, msg_id)
                         except Exception as e:
                             log_event("EVENT_HUB", "CONSUME_ERROR", {"error": str(e)})
 

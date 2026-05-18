@@ -96,9 +96,7 @@ def _dict_to_market_series(data: dict[str, Any]) -> list[MarketObservation] | No
         # Fallback: usa close prices se disponíveis
         prices = data.get("prices") or data.get("close_prices") or []
         if prices:
-            return [
-                MarketObservation(date=f"t{i}", close=p) for i, p in enumerate(prices)
-            ]
+            return [MarketObservation(date=f"t{i}", close=p) for i, p in enumerate(prices)]
         return None
     if isinstance(market, list):
         return [MarketObservation(**m) if isinstance(m, dict) else m for m in market]

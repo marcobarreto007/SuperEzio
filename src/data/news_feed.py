@@ -137,8 +137,7 @@ def _make_item(
         "snippet": snippet[:300],
         "source": source,
         "url": url,
-        "published_date": published_date
-        or datetime.datetime.now(datetime.UTC).isoformat(),
+        "published_date": published_date or datetime.datetime.now(datetime.UTC).isoformat(),
         "sentiment_score": score,
         "sentiment_label": label,
     }
@@ -249,12 +248,8 @@ def _fetch_yahoo_finance_rss(query: str, limit: int) -> List[Dict]:
             link = re.search(r"<link>(.*?)</link>", entry, re.DOTALL)
             desc = re.search(r"<description>(.*?)</description>", entry, re.DOTALL)
             pub = re.search(r"<pubDate>(.*?)</pubDate>", entry)
-            t = re.sub(
-                r"<[^>]+>|&#\d+;|&\w+;", "", title.group(1) if title else ""
-            ).strip()
-            d = re.sub(
-                r"<[^>]+>|&#\d+;|&\w+;", "", desc.group(1) if desc else ""
-            ).strip()
+            t = re.sub(r"<[^>]+>|&#\d+;|&\w+;", "", title.group(1) if title else "").strip()
+            d = re.sub(r"<[^>]+>|&#\d+;|&\w+;", "", desc.group(1) if desc else "").strip()
             lnk = re.sub(r"\s+", "", link.group(1) if link else "")
             p = (pub.group(1) if pub else "").strip()
             if t:
@@ -355,9 +350,7 @@ def _fetch_bing_news_rss(query: str, limit: int) -> List[Dict]:
         entries = re.findall(r"<item>(.*?)</item>", resp.text, re.DOTALL)
         for entry in entries[:limit]:
             title = re.search(r"<title>(.*?)</title>", entry, re.DOTALL)
-            link = re.search(
-                r"<link[^/]?/?>(.*?)</link>|<link>(.*?)<", entry, re.DOTALL
-            )
+            link = re.search(r"<link[^/]?/?>(.*?)</link>|<link>(.*?)<", entry, re.DOTALL)
             desc = re.search(r"<description>(.*?)</description>", entry, re.DOTALL)
             pub = re.search(r"<pubDate>(.*?)</pubDate>", entry)
             t = re.sub(

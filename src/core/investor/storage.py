@@ -134,8 +134,7 @@ class InvestorStorage:
         risk_flags = {
             "has_fomo": response.get("fomo_check", "").lower().count("fomo") > 0,
             "no_emergency_fund": not user_input.get("has_emergency_fund", True),
-            "high_concentration": "concentra"
-            in response.get("diversification_check", "").lower(),
+            "high_concentration": "concentra" in response.get("diversification_check", "").lower(),
         }
 
         with self._connect() as conn:
@@ -163,9 +162,7 @@ class InvestorStorage:
             )
             return cur.lastrowid
 
-    def list_decisions(
-        self, ticker: Optional[str] = None, limit: int = 20
-    ) -> List[Dict]:
+    def list_decisions(self, ticker: Optional[str] = None, limit: int = 20) -> List[Dict]:
         with self._connect() as conn:
             if ticker:
                 rows = conn.execute(
@@ -240,9 +237,7 @@ class InvestorStorage:
 
     def get_watchlist(self) -> List[Dict]:
         with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT * FROM investor_watchlist ORDER BY id DESC"
-            ).fetchall()
+            rows = conn.execute("SELECT * FROM investor_watchlist ORDER BY id DESC").fetchall()
         return [dict(r) for r in rows]
 
     # ------------------------------------------------------------------

@@ -31,9 +31,7 @@ class VolumeSpikeExpert:
                 0.0, 0.0, "INDISPONÍVEL", ["volume ou avg_volume_10d ausente"], 0.0
             )
         if signal.avg_volume_10d == 0:
-            return VolumeSpikeResult(
-                0.0, 0.0, "INDISPONÍVEL", ["avg_volume_10d=0"], 0.3
-            )
+            return VolumeSpikeResult(0.0, 0.0, "INDISPONÍVEL", ["avg_volume_10d=0"], 0.3)
 
         ratio = signal.volume / signal.avg_volume_10d
         label, score = self._classify(ratio)

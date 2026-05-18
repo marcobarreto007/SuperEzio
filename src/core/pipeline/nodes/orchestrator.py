@@ -131,18 +131,14 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         plan["intent_confidence"] = max(plan.get("intent_confidence", 0), 0.97)
 
     # 3. LLM fallback (if needed)
-    if plan.get("intent_source") != "golden" and _should_use_llm(
-        message, plan, gateway
-    ):
+    if plan.get("intent_source") != "golden" and _should_use_llm(message, plan, gateway):
         try:
             raw = await asyncio.wait_for(
                 _ask_intent_classifier(message, plan, context, gateway),
                 timeout=float(os.getenv("SUPEREZIO_INTENT_LLM_TIMEOUT", "4")),
             )
             candidate = extract_json_object(raw)
-            validated = validate_intent_candidate(
-                message, candidate or {}, fallback=parsed
-            )
+            validated = validate_intent_candidate(message, candidate or {}, fallback=parsed)
             if validated:
                 plan = validated.to_plan()
                 plan["intent_source"] = "llm_fallback"
@@ -209,9 +205,7 @@ def _should_use_llm(message: str, plan: dict, gateway) -> bool:
     return needs_llm_intent_fallback(message, plan, threshold=threshold)
 
 
-async def _ask_intent_classifier(
-    message: str, plan: dict, context: str, gateway
-) -> str:
+async def _ask_intent_classifier(message: str, plan: dict, context: str, gateway) -> str:
     """Ask an LLM to classify the user intent. Returns raw JSON string."""
     system_prompt = (
         "You are SuperEzio's intent classifier. Return only one JSON object. "

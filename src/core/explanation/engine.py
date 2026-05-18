@@ -143,9 +143,7 @@ def _deterministic_explanation(f51_result: dict[str, Any], ceo_text: str = "") -
         sentences.append("Gate factors: " + ", ".join(factor_notes) + ".")
 
     if triggered:
-        sentences.append(
-            "Triggered rules: " + ", ".join(str(item) for item in triggered) + "."
-        )
+        sentences.append("Triggered rules: " + ", ".join(str(item) for item in triggered) + ".")
     else:
         sentences.append("No F51 triggered rule was reported.")
 
@@ -240,9 +238,7 @@ class ExplainEngine:
                 do_sample=False,
                 pad_token_id=tokenizer.pad_token_id,
             )
-        return tokenizer.decode(
-            outputs[0][input_len:], skip_special_tokens=True
-        ).strip()
+        return tokenizer.decode(outputs[0][input_len:], skip_special_tokens=True).strip()
 
     async def stream(
         self, f51_result: dict[str, Any], ceo_text: str = ""
@@ -295,9 +291,7 @@ class ExplainEngine:
                 next_token_logits = outputs.logits[:, -1, :]
                 next_token_id = torch.argmax(next_token_logits, dim=-1).unsqueeze(0)
 
-                token_text = tokenizer.decode(
-                    next_token_id[0], skip_special_tokens=True
-                )
+                token_text = tokenizer.decode(next_token_id[0], skip_special_tokens=True)
                 buffer += token_text
 
                 if any(c in word_break for c in token_text):

@@ -14,9 +14,7 @@ import math
 from ..contracts.schemas import CrisisInput, SensorResult
 
 
-def _hawkes_intensity(
-    events: list[float], t: float, mu: float, alpha: float, beta: float
-) -> float:
+def _hawkes_intensity(events: list[float], t: float, mu: float, alpha: float, beta: float) -> float:
     """Intensidade do processo Hawkes no tempo t."""
     lam = mu
     for ti in events:

@@ -89,9 +89,7 @@ def _build_risk_rules_from_hub() -> list[RiskRule]:
                 elif rid == "price_spike_high_volatility":
                     daily_ret = abs(features.get("daily_return", 0))
                     mcap = features.get("market_cap", 0)
-                    triggered = daily_ret >= 0.15 or (
-                        daily_ret >= 0.10 and mcap < 200_000_000
-                    )
+                    triggered = daily_ret >= 0.15 or (daily_ret >= 0.10 and mcap < 200_000_000)
                     if triggered:
                         evidence = f"daily_return={daily_ret:.2%}, mcap={mcap}"
 
@@ -118,14 +116,10 @@ def _build_risk_rules_from_hub() -> list[RiskRule]:
 
             return evaluate
 
-        evaluator = make_evaluator(
-            rule_id, condition_str, item.get("evidence_id_template")
-        )
+        evaluator = make_evaluator(rule_id, condition_str, item.get("evidence_id_template"))
         limitation = item.get("limitation_when_absent") or ""
         rules.append(
-            RiskRule(
-                name=rule_id, weight=weight, evaluate=evaluator, limitation=limitation
-            )
+            RiskRule(name=rule_id, weight=weight, evaluate=evaluator, limitation=limitation)
         )
     return rules
 
@@ -155,9 +149,7 @@ def _build_claims(trace: dict[str, Any]) -> list[tuple[str, float, str]]:
     if risk.get("annual_volatility") is not None:
         claims.append(("annual_volatility", float(risk["annual_volatility"]), "risk"))
     if quant.get("monte_carlo_prob_up") is not None:
-        claims.append(
-            ("monte_carlo_prob_up", float(quant["monte_carlo_prob_up"]), "quant")
-        )
+        claims.append(("monte_carlo_prob_up", float(quant["monte_carlo_prob_up"]), "quant"))
     return claims
 
 
@@ -242,9 +234,7 @@ class F51HubAdapter:
             "sentiment_score",
             "market_cap",
         ]
-        present = sum(
-            1 for f in fields if features.get(f) is not None and features.get(f) != 0
-        )
+        present = sum(1 for f in fields if features.get(f) is not None and features.get(f) != 0)
         completeness = present / len(fields)
 
         rsi = features.get("rsi_14", 50)
@@ -385,9 +375,7 @@ class F51HubAdapter:
         }
         return features
 
-    def run_on_trace(
-        self, trace: dict[str, Any], domain: str = "trading"
-    ) -> dict[str, Any]:
+    def run_on_trace(self, trace: dict[str, Any], domain: str = "trading") -> dict[str, Any]:
         """Roda o f51 motor em um trace completo do SuperEzio."""
         features = self.extract_features(trace)
 

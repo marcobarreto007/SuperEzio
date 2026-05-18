@@ -783,9 +783,7 @@ def _set_cache(key: str, value: str) -> None:
     _ticker_cache[key] = (time.time(), value)
     # Evitar crescimento infinito
     if len(_ticker_cache) > 500:
-        stale = [
-            k for k, v in _ticker_cache.items() if (time.time() - v[0]) > CACHE_TTL
-        ]
+        stale = [k for k, v in _ticker_cache.items() if (time.time() - v[0]) > CACHE_TTL]
         for k in stale:
             _ticker_cache.pop(k, None)
 
@@ -819,9 +817,7 @@ def detect_ticker(message: str) -> str:
         return cached
 
     normalized = _strip_accents(raw)
-    debug_logger.trace(
-        MODULE_INTENT, "detect_ticker start", message_preview=message[:80]
-    )
+    debug_logger.trace(MODULE_INTENT, "detect_ticker start", message_preview=message[:80])
     candidates: list[tuple[str, int, int]] = []
 
     # 1. Sufixos de mercado EXPLÍCITOS (.SA, .TO, .V) — prioridade MÁXIMA
@@ -855,9 +851,7 @@ def detect_ticker(message: str) -> str:
         upper = match.upper()
         if upper not in COMMON_WORDS:
             # Não sobrescrever se já tem sufixo explícito
-            if not any(
-                c[0] == upper or c[0].startswith(upper + ".") for c in candidates
-            ):
+            if not any(c[0] == upper or c[0].startswith(upper + ".") for c in candidates):
                 candidates.append((upper, 90, len(upper)))
 
     # 3.5 Ticker numérico curto (ex: 6M, 88E, 3M) — comum em microcaps/OTC
@@ -901,7 +895,6 @@ def detect_ticker(message: str) -> str:
             c[0] == match or c[0].startswith(match + ".") for c in candidates
         ):
             candidates.append((match, 70, len(match)))
-
 
     if not candidates:
         _set_cache(cache_key, "")
@@ -967,10 +960,7 @@ def _has_penny_asset_hint(message: str) -> bool:
 
 def _has_scan_scope(message: str) -> bool:
     normalized = normalize_message(message)
-    return (
-        has_hint(message, SCOPE_KEYWORDS)
-        or re.search(r"\bcad\b", normalized) is not None
-    )
+    return has_hint(message, SCOPE_KEYWORDS) or re.search(r"\bcad\b", normalized) is not None
 
 
 def _is_market_scan_request(message: str) -> bool:
@@ -1002,9 +992,7 @@ def _needs_ticker_for_requested_analysis(message: str) -> bool:
         return False
     if _is_capability_question(message) or _is_penny_definition_question(message):
         return False
-    return _has_penny_asset_hint(message) and has_hint(
-        message, TICKER_REQUIRED_ANALYSIS_HINTS
-    )
+    return _has_penny_asset_hint(message) and has_hint(message, TICKER_REQUIRED_ANALYSIS_HINTS)
 
 
 def _legacy_detect_market_scan_intent(message: str) -> bool:
@@ -1022,13 +1010,9 @@ def _legacy_detect_market_scan_intent(message: str) -> bool:
         return False
 
     has_scan = has_hint(message, SCAN_KEYWORDS)
-    has_scope = (
-        has_hint(message, SCOPE_KEYWORDS)
-        or re.search(r"\bcad\b", normalized) is not None
-    )
+    has_scope = has_hint(message, SCOPE_KEYWORDS) or re.search(r"\bcad\b", normalized) is not None
     has_penny_stock = any(
-        kw in normalized
-        for kw in ("penny stock", "penny stocks", "microcap", "micro cap")
+        kw in normalized for kw in ("penny stock", "penny stocks", "microcap", "micro cap")
     )
     return (has_scan and has_scope) or has_penny_stock
 
@@ -1051,9 +1035,7 @@ def should_block_vague_financial_prompt(
         return False
     if detected_ticker:
         return False
-    if _is_capability_question(raw_message) or _is_penny_definition_question(
-        raw_message
-    ):
+    if _is_capability_question(raw_message) or _is_penny_definition_question(raw_message):
         return False
     if detect_market_scan_intent(raw_message):
         return False
@@ -1061,10 +1043,7 @@ def should_block_vague_financial_prompt(
         return False
 
     normalized = normalize_message(raw_message)
-    if any(
-        re.search(pattern, normalized)
-        for pattern in DIRECT_UNSCOPED_RECOMMENDATION_PATTERNS
-    ):
+    if any(re.search(pattern, normalized) for pattern in DIRECT_UNSCOPED_RECOMMENDATION_PATTERNS):
         return True
     if has_hint(raw_message, EDUCATIONAL_OR_RISK_CONTEXT_HINTS):
         return False
@@ -1087,9 +1066,7 @@ def infer_scan_filters(message: str) -> dict[str, str | None]:
         country = "Canada"
     elif "brasil" in msg_lower or "brasileir" in msg_lower:
         country = "Brazil"
-    elif (
-        "americano" in msg_lower or "usa" in msg_lower or "estados unidos" in msg_lower
-    ):
+    elif "americano" in msg_lower or "usa" in msg_lower or "estados unidos" in msg_lower:
         country = "United States"
 
     if "banco" in msg_lower or "bank" in msg_lower or "financ" in msg_lower:
@@ -1142,9 +1119,7 @@ def detect_pennylab_intent(message: str) -> bool:
     return has_keyword and has_ticker
 
 
-def parse_user_intent(
-    message: str, rigor: str = "strict", ticker: str = ""
-) -> IntentParse:
+def parse_user_intent(message: str, rigor: str = "strict", ticker: str = "") -> IntentParse:
     """Parse a user request into route, intent, entities, and missing slots.
 
     The parser separates speech act from financial domain terms. A sentence can

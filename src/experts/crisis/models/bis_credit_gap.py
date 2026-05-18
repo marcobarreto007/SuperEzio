@@ -7,11 +7,7 @@ from ..contracts.schemas import CrisisInput, SensorResult
 
 class BISCreditGapModel:
     def evaluate(self, input_data: CrisisInput) -> SensorResult:
-        obs = [
-            o.credit_to_gdp
-            for o in input_data.observations
-            if o.credit_to_gdp is not None
-        ]
+        obs = [o.credit_to_gdp for o in input_data.observations if o.credit_to_gdp is not None]
 
         # Require minimum history (e.g. 12 periods)
         if len(obs) < 12:
@@ -49,9 +45,7 @@ class BISCreditGapModel:
             explanation = "Credit-to-GDP com gap positivo leve."
         elif gap <= 10.0:
             raw_score = 50.0 + ((gap - 2.0) / 8.0) * 25.0
-            explanation = (
-                "Credit-to-GDP crescendo significativamente acima da tendência."
-            )
+            explanation = "Credit-to-GDP crescendo significativamente acima da tendência."
         else:
             raw_score = 75.0 + min(((gap - 10.0) / 10.0) * 25.0, 25.0)
             explanation = "Credit-to-GDP com gap extremo (>10%), histórico de alerta máximo (BIS)."

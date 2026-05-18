@@ -99,9 +99,7 @@ def build_default_providers(
     # Keep it decoupled from orchestrator/primary URL to avoid accidentally
     # routing expert traffic to the local CEO endpoint.
     deepseek_key = os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", primary_api_key)
-    deepseek_base_url = os.getenv(
-        "SUPEREZIO_DEEPSEEK_BASE_URL", "https://api.deepseek.com"
-    )
+    deepseek_base_url = os.getenv("SUPEREZIO_DEEPSEEK_BASE_URL", "https://api.deepseek.com")
     deepseek_model = os.getenv("SUPEREZIO_DEEPSEEK_MODEL", PRIMARY_MODEL_ID)
     providers.append(
         ModelProvider(

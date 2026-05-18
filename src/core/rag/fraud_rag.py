@@ -150,6 +150,7 @@ class FraudPatternMatcher:
         if not hasattr(self, "_embedder_cache"):
             try:
                 from sentence_transformers import SentenceTransformer
+
                 self._embedder_cache = SentenceTransformer(
                     os.getenv("SUPEREZIO_RAG_MODEL", "all-MiniLM-L6-v2")
                 )
@@ -172,6 +173,7 @@ class FraudPatternMatcher:
 
         try:
             import numpy as np
+
             qvec = embedder.encode(
                 [query],
                 convert_to_numpy=True,

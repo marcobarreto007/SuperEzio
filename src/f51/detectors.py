@@ -171,8 +171,7 @@ class SpiderSense:
     def __init__(self, patterns: list[TrapPattern] | None = None):
         self.patterns = patterns or TRAP_PATTERNS
         self._compiled = [
-            (p, re.compile(p.regex, re.IGNORECASE) if p.regex else None)
-            for p in self.patterns
+            (p, re.compile(p.regex, re.IGNORECASE) if p.regex else None) for p in self.patterns
         ]
 
     def detect(self, text: str) -> tuple[float, list[SpiderAlert]]:
@@ -206,11 +205,7 @@ class SpiderSense:
             danger = 1.0
         elif self.patterns:
             non_critical = sum(p.danger for p in self.patterns if p.danger < 1.0)
-            danger = (
-                1.0
-                if non_critical == 0
-                else min(1.0, cumulative / (non_critical * 0.25))
-            )
+            danger = 1.0 if non_critical == 0 else min(1.0, cumulative / (non_critical * 0.25))
         else:
             danger = 0.0
 

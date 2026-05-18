@@ -15,11 +15,7 @@ class IMFMispricingModel:
 
     def evaluate(self, input_data: CrisisInput) -> SensorResult:
         # Fallback simple mispricing (z-score against long moving average)
-        equities = [
-            o.equity_index
-            for o in input_data.observations
-            if o.equity_index is not None
-        ]
+        equities = [o.equity_index for o in input_data.observations if o.equity_index is not None]
 
         if len(equities) < 24:
             return SensorResult(

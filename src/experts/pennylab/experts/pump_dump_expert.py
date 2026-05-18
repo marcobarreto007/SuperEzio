@@ -37,11 +37,7 @@ class PumpDumpExpert:
         available = 0
 
         # Price action (peso 50%)
-        if (
-            signal.price is not None
-            and signal.prev_close is not None
-            and signal.prev_close > 0
-        ):
+        if signal.price is not None and signal.prev_close is not None and signal.prev_close > 0:
             available += 1
             change = _simple_return(signal.price, signal.prev_close) * 100
             if change >= 100:
@@ -62,11 +58,7 @@ class PumpDumpExpert:
             evidence.append("price_change: dados insuficientes")
 
         # Volume (peso 30%)
-        if (
-            signal.volume is not None
-            and signal.avg_volume_10d
-            and signal.avg_volume_10d > 0
-        ):
+        if signal.volume is not None and signal.avg_volume_10d and signal.avg_volume_10d > 0:
             available += 1
             ratio = signal.volume / signal.avg_volume_10d
             if ratio >= 10:
@@ -115,11 +107,7 @@ class PumpDumpExpert:
     def _classify_phase(self, score: float, signal: SignalInput) -> str:
         if score < 0.20:
             return "INCERTO"
-        if (
-            signal.price is not None
-            and signal.prev_close is not None
-            and signal.prev_close > 0
-        ):
+        if signal.price is not None and signal.prev_close is not None and signal.prev_close > 0:
             change = _simple_return(signal.price, signal.prev_close) * 100
             if change >= 50 and score >= 0.60:
                 return "PUMP"

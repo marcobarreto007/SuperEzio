@@ -218,9 +218,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_log = sub.add_parser("log", help="Registrar trade experimental no journal")
     p_log.add_argument("--ticker", required=True)
     p_log.add_argument("--entry", type=float, required=True, help="Preço de entrada")
-    p_log.add_argument(
-        "--exit", type=float, default=None, help="Preço de saída (opcional)"
-    )
+    p_log.add_argument("--exit", type=float, default=None, help="Preço de saída (opcional)")
     p_log.add_argument("--size", type=float, required=True, help="Tamanho em USD")
     p_log.add_argument("--note", default="", help="Nota livre")
 

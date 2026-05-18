@@ -30,15 +30,11 @@ class MinskyKeenModel:
         debt_score = percentile_rank(all_debt, last.credit_to_gdp)
 
         # 2. Rate pressure
-        rate_score = (
-            100.0 if last.policy_rate > 5.0 else (last.policy_rate / 5.0) * 100.0
-        )
+        rate_score = 100.0 if last.policy_rate > 5.0 else (last.policy_rate / 5.0) * 100.0
 
         # 3. Growth slowdown
         growth_score = (
-            100.0
-            if last.gdp_growth_yoy < 0
-            else max(0, 100 - (last.gdp_growth_yoy * 20))
+            100.0 if last.gdp_growth_yoy < 0 else max(0, 100 - (last.gdp_growth_yoy * 20))
         )
 
         fragility = clamp(0.40 * debt_score + 0.30 * rate_score + 0.30 * growth_score)
@@ -58,11 +54,7 @@ class MinskyKeenModel:
             explanation=exp,
             details={
                 "minsky_state": (
-                    "Ponzi"
-                    if fragility > 80
-                    else "Speculative"
-                    if fragility > 50
-                    else "Hedge"
+                    "Ponzi" if fragility > 80 else "Speculative" if fragility > 50 else "Hedge"
                 )
             },
         )

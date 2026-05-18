@@ -45,9 +45,7 @@ def register_custom_tools(registry):
             def eval_node(node):
                 if isinstance(node, ast.Expression):
                     return eval_node(node.body)
-                if isinstance(node, ast.Constant) and isinstance(
-                    node.value, (int, float)
-                ):
+                if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
                     return node.value
                 if isinstance(node, ast.BinOp) and type(node.op) in allowed_ops:
                     left = eval_node(node.left)
@@ -175,13 +173,9 @@ def create_code_executor_tool():
             if isinstance(node, ast.Call):
                 if isinstance(node.func, ast.Name) and node.func.id in FORBIDDEN_NAMES:
                     return f"Error: calling '{node.func.id}' is forbidden in sandbox"
-                if isinstance(node.func, ast.Attribute) and isinstance(
-                    node.func.attr, str
-                ):
+                if isinstance(node.func, ast.Attribute) and isinstance(node.func.attr, str):
                     if node.func.attr in FORBIDDEN_NAMES:
-                        return (
-                            f"Error: calling '{node.func.attr}' is forbidden in sandbox"
-                        )
+                        return f"Error: calling '{node.func.attr}' is forbidden in sandbox"
         return None
 
     def execute_python(code: str) -> str:

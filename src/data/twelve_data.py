@@ -57,9 +57,7 @@ class TwelveDataProvider:
 
     def get_candles(self, symbol: str, timeframe: str = "6M") -> Dict[str, Any]:
         """OHLCV candles via TwelveData /time_series — padronizado para o DataHub."""
-        interval, outputsize = _TWELVE_DATA_CANDLE_MAP.get(
-            timeframe, ("1day", 130)
-        )
+        interval, outputsize = _TWELVE_DATA_CANDLE_MAP.get(timeframe, ("1day", 130))
         url = f"{self.base_url}/time_series"
         params = {
             "symbol": symbol,
@@ -76,14 +74,16 @@ class TwelveDataProvider:
             values = data.get("values") or []
             candles: list[dict[str, Any]] = []
             for item in values:
-                candles.append({
-                    "time": item["datetime"],
-                    "open": float(item["open"]),
-                    "high": float(item["high"]),
-                    "low": float(item["low"]),
-                    "close": float(item["close"]),
-                    "volume": int(item.get("volume", 0)),
-                })
+                candles.append(
+                    {
+                        "time": item["datetime"],
+                        "open": float(item["open"]),
+                        "high": float(item["high"]),
+                        "low": float(item["low"]),
+                        "close": float(item["close"]),
+                        "volume": int(item.get("volume", 0)),
+                    }
+                )
             candles.reverse()  # TwelveData retorna mais recente primeiro
 
             return {

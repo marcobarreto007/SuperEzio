@@ -114,9 +114,7 @@ class ModelGateway:
         return min(len(providers_to_try), max(0, self.config.max_fallbacks) + 1)
 
     @staticmethod
-    def _apply_deepseek_options(
-        provider: ModelProvider, kwargs: Dict[str, Any]
-    ) -> None:
+    def _apply_deepseek_options(provider: ModelProvider, kwargs: Dict[str, Any]) -> None:
         """Apply DeepSeek V4 thinking controls for OpenAI-compatible calls."""
         import os
 
@@ -135,9 +133,7 @@ class ModelGateway:
 
         kwargs["extra_body"] = {"thinking": {"type": thinking}}
         if thinking == "enabled":
-            kwargs["reasoning_effort"] = os.getenv(
-                "SUPEREZIO_DEEPSEEK_REASONING_EFFORT", "high"
-            )
+            kwargs["reasoning_effort"] = os.getenv("SUPEREZIO_DEEPSEEK_REASONING_EFFORT", "high")
             kwargs.pop("temperature", None)
 
     async def stream_generate_api(
@@ -296,9 +292,7 @@ class ModelGateway:
                             if loop.is_running():
                                 import concurrent.futures
 
-                                with (
-                                    concurrent.futures.ThreadPoolExecutor() as executor
-                                ):
+                                with concurrent.futures.ThreadPoolExecutor() as executor:
                                     future = executor.submit(
                                         lambda: asyncio.run(
                                             self.generate_api(
@@ -569,9 +563,7 @@ class ModelGateway:
             async with httpx.AsyncClient(timeout=self.config.timeout_s) as client:
                 base_url = provider.base_url.rstrip("/")
                 target_url = (
-                    base_url
-                    if base_url.endswith("/task/submit")
-                    else f"{base_url}/task/submit"
+                    base_url if base_url.endswith("/task/submit") else f"{base_url}/task/submit"
                 )
                 full_response = []
                 async with client.stream(

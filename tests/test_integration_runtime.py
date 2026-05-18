@@ -5,6 +5,7 @@ Prerequisites:
   - CEO llama-server on :8082 (scripts/serve_ceo_llamacpp.ps1)
   - API agent_server on :8002 (python -m agent_server.main)
 """
+
 import json
 import pytest
 import urllib.request
@@ -30,6 +31,7 @@ def _check_server(url: str, timeout: int = 5) -> bool:
 # Pre-flight checks
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(scope="module")
 def servers_running():
     ceo_ok = _check_server(CEO_HEALTH)
@@ -46,6 +48,7 @@ def servers_running():
 # Health checks (real endpoints)
 # ---------------------------------------------------------------------------
 
+
 def test_ceo_health_endpoint(servers_running):
     req = urllib.request.Request(CEO_HEALTH)
     resp = urllib.request.urlopen(req, timeout=5)
@@ -53,12 +56,14 @@ def test_ceo_health_endpoint(servers_running):
     body = json.loads(resp.read())
     assert body.get("status") == "ok"
 
+
 def test_api_health_endpoint(servers_running):
     req = urllib.request.Request(API_HEALTH)
     resp = urllib.request.urlopen(req, timeout=5)
     assert resp.status == 200
     body = json.loads(resp.read())
     assert body.get("status") == "ok"
+
 
 def test_api_health_details_endpoint(servers_running):
     req = urllib.request.Request(API_DETAILS)
@@ -72,6 +77,7 @@ def test_api_health_details_endpoint(servers_running):
 # ---------------------------------------------------------------------------
 # Task submit (full pipeline, requires CEO model)
 # ---------------------------------------------------------------------------
+
 
 def test_task_submit_casual(servers_running):
     """A casual message should complete without ticker analysis."""
@@ -153,6 +159,7 @@ def test_task_submit_ticker_analysis(servers_running):
 # Capabilities endpoint
 # ---------------------------------------------------------------------------
 
+
 def test_capabilities_endpoint(servers_running):
     req = urllib.request.Request("http://127.0.0.1:8002/capabilities")
     try:
@@ -169,6 +176,7 @@ def test_capabilities_endpoint(servers_running):
 # ---------------------------------------------------------------------------
 # Product manifest endpoint
 # ---------------------------------------------------------------------------
+
 
 def test_product_manifest_endpoint(servers_running):
     req = urllib.request.Request("http://127.0.0.1:8002/product/manifest")

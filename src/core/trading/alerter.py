@@ -134,7 +134,12 @@ class LogAlerter:
     ) -> bool:
         logger.info(
             "[APPROVAL] %s %s %s x%.0f risk=$%.2f id=%s",
-            side.upper(), symbol, reason, qty, risk_amount, request_id,
+            side.upper(),
+            symbol,
+            reason,
+            qty,
+            risk_amount,
+            request_id,
         )
         return True
 

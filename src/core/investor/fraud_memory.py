@@ -80,9 +80,7 @@ class FraudManipulationMemory:
         self._ensure_loaded()
         return self._cases
 
-    def get_enforcement_cases_by_types(
-        self, case_types: list[str]
-    ) -> list[dict[str, Any]]:
+    def get_enforcement_cases_by_types(self, case_types: list[str]) -> list[dict[str, Any]]:
         """Filtra casos pelo tipo (pump_and_dump, spoofing, etc.)."""
         self._ensure_loaded()
         return [c for c in self._cases if c.get("case_type") in case_types]

@@ -59,19 +59,23 @@ class KillSwitch:
             self.state.is_active = True
             self.state.reason = reason
             self.state.activated_at = time.time()
-            self._history.append({
-                "event": "activated",
-                "reason": reason.value,
-                "timestamp": self.state.activated_at,
-                "daily_pnl": self.state.daily_pnl,
-            })
+            self._history.append(
+                {
+                    "event": "activated",
+                    "reason": reason.value,
+                    "timestamp": self.state.activated_at,
+                    "daily_pnl": self.state.daily_pnl,
+                }
+            )
 
     def deactivate(self) -> None:
         if self.state.is_active:
-            self._history.append({
-                "event": "deactivated",
-                "timestamp": time.time(),
-            })
+            self._history.append(
+                {
+                    "event": "deactivated",
+                    "timestamp": time.time(),
+                }
+            )
             self.state.is_active = False
             self.state.reason = None
             self.state.activated_at = 0.0

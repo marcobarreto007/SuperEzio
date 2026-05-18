@@ -170,16 +170,10 @@ class UniversalConfig:
         if "gateway" in data:
             section = data["gateway"] or {}
             config.gateway = GatewayConfig(
-                max_fallbacks=section.get(
-                    "max_fallbacks", config.gateway.max_fallbacks
-                ),
+                max_fallbacks=section.get("max_fallbacks", config.gateway.max_fallbacks),
                 timeout_s=section.get("timeout_s", config.gateway.timeout_s),
-                retry_attempts=section.get(
-                    "retry_attempts", config.gateway.retry_attempts
-                ),
-                retry_delay_s=section.get(
-                    "retry_delay_s", config.gateway.retry_delay_s
-                ),
+                retry_attempts=section.get("retry_attempts", config.gateway.retry_attempts),
+                retry_delay_s=section.get("retry_delay_s", config.gateway.retry_delay_s),
                 quality_threshold=section.get(
                     "quality_threshold", config.gateway.quality_threshold
                 ),
@@ -191,9 +185,7 @@ class UniversalConfig:
                 type=section.get("type", config.event_hub.type),
                 redis_url=section.get("redis_url", config.event_hub.redis_url),
                 stream_key=section.get("stream_key", config.event_hub.stream_key),
-                consumer_group=section.get(
-                    "consumer_group", config.event_hub.consumer_group
-                ),
+                consumer_group=section.get("consumer_group", config.event_hub.consumer_group),
             )
 
         if "storage" in data:
@@ -219,12 +211,8 @@ class UniversalConfig:
             section = data["observability"] or {}
             config.observability = ObservabilityConfig(
                 log_level=section.get("log_level", config.observability.log_level),
-                enable_otel=section.get(
-                    "enable_otel", config.observability.enable_otel
-                ),
-                otel_exporter=section.get(
-                    "otel_exporter", config.observability.otel_exporter
-                ),
+                enable_otel=section.get("enable_otel", config.observability.enable_otel),
+                otel_exporter=section.get("otel_exporter", config.observability.otel_exporter),
             )
 
         if "triade" in data:
@@ -234,9 +222,7 @@ class UniversalConfig:
                     "max_fallback_attempts", config.triade.max_fallback_attempts
                 ),
                 enable_review=section.get("enable_review", config.triade.enable_review),
-                stream_responses=section.get(
-                    "stream_responses", config.triade.stream_responses
-                ),
+                stream_responses=section.get("stream_responses", config.triade.stream_responses),
                 use_committee=section.get("use_committee", config.triade.use_committee),
             )
 
@@ -250,9 +236,7 @@ class UniversalConfig:
         self.memory.redis_url = os.getenv("MEM0_REDIS_URL", self.memory.redis_url)
         cors = os.getenv("CORS_ORIGINS")
         if cors:
-            self.server.cors_origins = [
-                item.strip() for item in cors.split(",") if item.strip()
-            ]
+            self.server.cors_origins = [item.strip() for item in cors.split(",") if item.strip()]
 
     @classmethod
     def load(cls, config_path: str = "config/runtime.yml") -> "UniversalConfig":
@@ -280,9 +264,7 @@ class UniversalConfig:
             config.apply_env_overrides()
             return config
         except Exception as exc:
-            logger.warning(
-                "[CONFIG] Failed to load %s: %s. Using defaults.", config_path, exc
-            )
+            logger.warning("[CONFIG] Failed to load %s: %s. Using defaults.", config_path, exc)
             config = cls()
             config.apply_env_overrides()
             return config

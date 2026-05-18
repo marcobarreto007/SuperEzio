@@ -153,11 +153,7 @@ class InteractiveBrokersAdapter:
                     return Order(
                         id=str(trade.order.orderId),
                         symbol=trade.contract.symbol,
-                        side=(
-                            OrderSide.BUY
-                            if trade.order.action == "BUY"
-                            else OrderSide.SELL
-                        ),
+                        side=(OrderSide.BUY if trade.order.action == "BUY" else OrderSide.SELL),
                         order_type=OrderType.MARKET,
                         qty=trade.order.totalQuantity,
                         status=OrderStatus.SUBMITTED,

@@ -52,17 +52,13 @@ def _make_quantum_walk() -> Any:
 def _make_boc_provider() -> Any:
     from .boc_provider import get_macro_summary_ca
 
-    return type(
-        "BocProvider", (), {"get_macro_summary": staticmethod(get_macro_summary_ca)}
-    )()
+    return type("BocProvider", (), {"get_macro_summary": staticmethod(get_macro_summary_ca)})()
 
 
 def _make_fed_provider() -> Any:
     from .fed_provider import get_macro_summary_us
 
-    return type(
-        "FedProvider", (), {"get_macro_summary": staticmethod(get_macro_summary_us)}
-    )()
+    return type("FedProvider", (), {"get_macro_summary": staticmethod(get_macro_summary_us)})()
 
 
 def _make_newsapi_provider() -> Any:
@@ -139,9 +135,7 @@ class DataHub:
             ProviderRoute(
                 name="twelve_data",
                 capabilities=("price", "market_price", "candles"),
-                factory=lambda: _make_twelve_data_provider(
-                    self._get_key("TWELVE_DATA_API_KEY")
-                ),
+                factory=lambda: _make_twelve_data_provider(self._get_key("TWELVE_DATA_API_KEY")),
                 methods={
                     "price": "get_price",
                     "market_price": "get_price",
@@ -304,9 +298,7 @@ class DataHub:
         try:
             provider = route.factory()
         except Exception as exc:
-            logger.warning(
-                "[DATA_HUB] provider factory failed for %s: %s", route.name, exc
-            )
+            logger.warning("[DATA_HUB] provider factory failed for %s: %s", route.name, exc)
             return None
 
         self.providers[name] = provider
@@ -343,9 +335,7 @@ class DataHub:
         return {
             "providers": {
                 route.name: self._is_configured(route)
-                for route in sorted(
-                    self.routes.values(), key=lambda item: item.priority
-                )
+                for route in sorted(self.routes.values(), key=lambda item: item.priority)
             },
             "keys": {name: bool(self._get_key(name)) for name in self._key_names},
         }
@@ -369,9 +359,7 @@ class DataHub:
         for route in self.resolve(capability):
             provider = self.get_provider(route.name)
             if provider is None:
-                attempts.append(
-                    {"provider": route.name, "error": "provider_unavailable"}
-                )
+                attempts.append({"provider": route.name, "error": "provider_unavailable"})
                 continue
 
             method_name = route.methods.get(capability)

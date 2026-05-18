@@ -9,8 +9,7 @@ Policy for 2026-safe operation:
 """
 
 SAFE_ACTIONS = (
-    "STUDY_MORE | WATCHLIST | WAIT | SMALL_POSITION (1-2%) | "
-    "MODERATE_POSITION (3-5%) | AVOID"
+    "STUDY_MORE | WATCHLIST | WAIT | SMALL_POSITION (1-2%) | MODERATE_POSITION (3-5%) | AVOID"
 )
 
 SUPEREZIO_VERIFICATION_SYSTEM_PROMPT = f"""You are SuperEzio, an institutional quantitative engine running in the Labs 51 production environment.
@@ -54,29 +53,18 @@ ASSISTANT_ANALYSIS_PREFIX = (
 
 AGENT_ROLE_PREFIXES: dict[str, str] = {
     "fundamental": (
-        "### Fundamental Analysis\n\n"
-        "Verified metrics (P/E, ROE, EV/EBITDA, dividends):\n"
+        "### Fundamental Analysis\n\nVerified metrics (P/E, ROE, EV/EBITDA, dividends):\n"
     ),
-    "technical": (
-        "### Technical Analysis\n\nVerified indicators (RSI, MACD, EMA, Bollinger):\n"
-    ),
+    "technical": ("### Technical Analysis\n\nVerified indicators (RSI, MACD, EMA, Bollinger):\n"),
     "risk": ("### Risk Assessment\n\nVerified VaR/CVaR, Sharpe, Sortino, drawdown:\n"),
     "sentiment": "### Market Sentiment\n\nVerified news and social signals:\n",
     "macro": "### Macroeconomic Analysis\n\nVerified BCB/BoC/Fed data:\n",
-    "portfolio": (
-        "### Portfolio Optimization\n\nVerified diversification and concentration:\n"
-    ),
+    "portfolio": ("### Portfolio Optimization\n\nVerified diversification and concentration:\n"),
     "fixed_income": "### Fixed Income\n\nVerified yield, duration, and yield curve:\n",
-    "quant": (
-        "### Quantitative Strategy\n\nVerified Monte Carlo and statistical models:\n"
-    ),
+    "quant": ("### Quantitative Strategy\n\nVerified Monte Carlo and statistical models:\n"),
     "esg": ("### ESG Analysis\n\nEnvironmental, social, and governance criteria:\n"),
-    "derivatives": (
-        "### Derivatives Analysis\n\nOptions, puts/calls, and implied volatility:\n"
-    ),
-    "compliance": (
-        "### Compliance and Regulatory\n\nVerified regulatory and compliance status:\n"
-    ),
+    "derivatives": ("### Derivatives Analysis\n\nOptions, puts/calls, and implied volatility:\n"),
+    "compliance": ("### Compliance and Regulatory\n\nVerified regulatory and compliance status:\n"),
     "sector": ("### Sector Analysis\n\nVerified competitors and sector positioning:\n"),
 }
 
@@ -107,23 +95,19 @@ REQUIRED OUTPUT FORMAT:
 
 PENNY_STOCK_AGENT_ROLE_PREFIXES: dict[str, str] = {
     "fraud_hunter": (
-        "### Forensic Fraud Hunt\n\n"
-        "Red flags found (shell, dilution, insider, auditor, pump):\n"
+        "### Forensic Fraud Hunt\n\nRed flags found (shell, dilution, insider, auditor, pump):\n"
     ),
     "flow_analyst": (
-        "### Volume and Liquidity Analysis\n\n"
-        "Volume verdict, liquidity grade, and flow signals:\n"
+        "### Volume and Liquidity Analysis\n\nVolume verdict, liquidity grade, and flow signals:\n"
     ),
     "ruin_calculator": (
         "### Risk of Ruin\n\nPosition sizing, Kelly fraction, VaR, and cost impact:\n"
     ),
     "sentiment_detective": (
-        "### Social Sentiment Investigation\n\n"
-        "Sentiment classification and manipulation signals:\n"
+        "### Social Sentiment Investigation\n\nSentiment classification and manipulation signals:\n"
     ),
     "market_context": (
-        "### Macro and Sector Context\n\n"
-        "Rate environment, sector cycle, and jurisdiction risk:\n"
+        "### Macro and Sector Context\n\nRate environment, sector cycle, and jurisdiction risk:\n"
     ),
 }
 

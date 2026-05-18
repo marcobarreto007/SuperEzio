@@ -130,9 +130,7 @@ app.state.edge_gateway = edge_gateway
 
 # === CORS CONFIGURATION ===
 _configured_origins = getattr(_conf.server, "cors_origins", []) if _conf else []
-_cors_origins = [
-    origin for origin in _configured_origins if origin and origin != "*"
-] or [
+_cors_origins = [origin for origin in _configured_origins if origin and origin != "*"] or [
     "http://localhost:8002",
     "http://127.0.0.1:8002",
 ]
@@ -169,9 +167,7 @@ async def security_headers_middleware(request: Request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     if request.url.scheme == "https":
-        response.headers["Strict-Transport-Security"] = (
-            "max-age=31536000; includeSubDomains"
-        )
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
 
 
@@ -274,17 +270,13 @@ async def health_check():
             try:
                 s = _socket.socket()
                 s.settimeout(1)
-                host = (
-                    url.split("://")[-1].split(":")[0] if "://" in url else "127.0.0.1"
-                )
+                host = url.split("://")[-1].split(":")[0] if "://" in url else "127.0.0.1"
                 s.connect((host, port))
                 s.close()
                 reachable = True
             except Exception as exc:
                 # Probe failure expected when local model is offline; record reason.
-                logger.debug(
-                    "[%s] local model probe failed (%s): %s", AGENT_NAME, name, exc
-                )
+                logger.debug("[%s] local model probe failed (%s): %s", AGENT_NAME, name, exc)
         local_models[name] = {
             "url": url or None,
             "reachable": reachable,
@@ -319,8 +311,7 @@ async def health_check():
     # ── Model providers ──────────────────────────────────────────────────
     primary_info = {
         "configured": bool(
-            os.getenv("SUPEREZIO_PRIMARY_API_KEY")
-            or os.getenv("SUPEREZIO_DEEPSEEK_API_KEY")
+            os.getenv("SUPEREZIO_PRIMARY_API_KEY") or os.getenv("SUPEREZIO_DEEPSEEK_API_KEY")
         ),
         "provider": PRIMARY_PROVIDER_NAME,
         "model": os.getenv(
@@ -367,9 +358,7 @@ async def health_check():
         }
 
     # ── Aggregated status ────────────────────────────────────────────────
-    all_ok = primary_info["configured"] or any(
-        m["reachable"] for m in local_models.values()
-    )
+    all_ok = primary_info["configured"] or any(m["reachable"] for m in local_models.values())
     health["status"] = "ok" if all_ok else "degraded_no_backend"
     return health
 

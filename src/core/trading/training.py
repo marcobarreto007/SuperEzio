@@ -27,8 +27,13 @@ _CEO_MODEL = os.getenv(
 
 # Standard Qwen attention + MLP projections
 _QWEN_LORA_TARGETS = [
-    "q_proj", "k_proj", "v_proj", "o_proj",
-    "gate_proj", "up_proj", "down_proj",
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj",
 ]
 
 
@@ -94,19 +99,22 @@ class LoRATrainer:
         missing = self.check_dependencies()
         if missing:
             return TrainingResult(
-                success=False, output_dir="",
+                success=False,
+                output_dir="",
                 error=f"Missing packages: {', '.join(missing)}",
             )
         if not os.path.exists(jsonl_path):
             return TrainingResult(
-                success=False, output_dir="",
+                success=False,
+                output_dir="",
                 error=f"Dataset not found: {jsonl_path}",
             )
 
         samples = self._load_dataset(jsonl_path)
         if len(samples) == 0:
             return TrainingResult(
-                success=False, output_dir="",
+                success=False,
+                output_dir="",
                 error="No valid samples in dataset",
             )
 
@@ -190,7 +198,12 @@ class LoRATrainer:
         total_params = sum(p.numel() for p in model.parameters())
         trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
         pct = trainable_params / total_params * 100 if total_params else 0
-        logger.info("Trainable: %s / %s (%.2f%%)", f"{trainable_params:,}", f"{total_params:,}", pct)
+        logger.info(
+            "Trainable: %s / %s (%.2f%%)",
+            f"{trainable_params:,}",
+            f"{total_params:,}",
+            pct,
+        )
 
         # ── Prepare dataset ────────────────────────────────────────────
         texts = []
@@ -203,6 +216,7 @@ class LoRATrainer:
 
         # Split train/eval
         import random
+
         rng = random.Random(cfg.seed)
         indices = list(range(len(texts)))
         rng.shuffle(indices)
@@ -215,12 +229,18 @@ class LoRATrainer:
 
         # Tokenize
         train_enc = tokenizer(
-            train_texts, truncation=True, max_length=cfg.max_seq_length,
-            padding=True, return_tensors="pt",
+            train_texts,
+            truncation=True,
+            max_length=cfg.max_seq_length,
+            padding=True,
+            return_tensors="pt",
         )
         eval_enc = tokenizer(
-            eval_texts, truncation=True, max_length=cfg.max_seq_length,
-            padding=True, return_tensors="pt",
+            eval_texts,
+            truncation=True,
+            max_length=cfg.max_seq_length,
+            padding=True,
+            return_tensors="pt",
         )
 
         input_ids = train_enc["input_ids"].to(device)
@@ -234,7 +254,9 @@ class LoRATrainer:
             lr=cfg.learning_rate,
             weight_decay=cfg.weight_decay,
         )
-        steps_per_epoch = max(1, len(train_texts) // (cfg.batch_size * cfg.gradient_accumulation_steps))
+        steps_per_epoch = max(
+            1, len(train_texts) // (cfg.batch_size * cfg.gradient_accumulation_steps)
+        )
         total_steps = steps_per_epoch * cfg.num_epochs
         scheduler = get_cosine_schedule_with_warmup(
             optimizer,
@@ -278,7 +300,13 @@ class LoRATrainer:
 
             avg_loss = total_loss / max(n_batches, 1)
             final_loss = avg_loss
-            logger.info("Epoch %d/%d — loss: %.4f steps: %d", epoch + 1, cfg.num_epochs, avg_loss, global_step)
+            logger.info(
+                "Epoch %d/%d — loss: %.4f steps: %d",
+                epoch + 1,
+                cfg.num_epochs,
+                avg_loss,
+                global_step,
+            )
 
             # Eval
             if eval_texts:

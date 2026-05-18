@@ -75,7 +75,10 @@ class ApprovalGate:
         )
         self._next_id += 1
 
-        if self.config.max_auto_approve_amount > 0 and risk_amount <= self.config.max_auto_approve_amount:
+        if (
+            self.config.max_auto_approve_amount > 0
+            and risk_amount <= self.config.max_auto_approve_amount
+        ):
             req.status = ApprovalStatus.APPROVED
             req.resolved_at = time.time()
             req.resolved_by = "auto"

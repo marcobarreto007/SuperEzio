@@ -105,9 +105,7 @@ class PennylabReport(BaseModel):
     confidence: float = Field(0.0, ge=0.0, le=1.0)
     data_quality: DataQuality = DataQuality.UNAVAILABLE
     veracity_passed: bool = True
-    generated_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    generated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     model_config = ConfigDict(use_enum_values=True)
 
@@ -127,9 +125,7 @@ class TradeLog(BaseModel):
     pnl_pct: Optional[float] = None
     note: str = ""
     is_paper: bool = True  # sempre True inicialmente
-    logged_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    logged_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     report_snapshot: Optional[Dict[str, Any]] = None  # snapshot do PennylabReport
 
 

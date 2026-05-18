@@ -49,9 +49,7 @@ class DatasetBuilder:
     ) -> SFTExample:
         now = datetime.now(timezone.utc).isoformat()
 
-        signals_str = ", ".join(
-            f"{k}={v:.2f}" for k, v in expert_signals.items()
-        )
+        signals_str = ", ".join(f"{k}={v:.2f}" for k, v in expert_signals.items())
 
         instruction = (
             f"Analyze {symbol} for a {side} trade. "

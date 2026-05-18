@@ -37,8 +37,13 @@ class FinancialEngine:
 
         # Map yfinance-style period to SuperEzio timeframe
         _PERIOD_TO_TF = {
-            "1d": "1D", "5d": "1W", "1mo": "1M",
-            "3mo": "3M", "6mo": "6M", "1y": "1Y", "5y": "5Y",
+            "1d": "1D",
+            "5d": "1W",
+            "1mo": "1M",
+            "3mo": "3M",
+            "6mo": "6M",
+            "1y": "1Y",
+            "5y": "5Y",
         }
         timeframe = _PERIOD_TO_TF.get(period, "6M")
 
@@ -159,13 +164,11 @@ def _compute_bollinger(closes: list, period: int = 20) -> tuple[float, float]:
     window = closes[-period:]
     mean = sum(window) / period
     variance = sum((x - mean) ** 2 for x in window) / period
-    std = variance ** 0.5
+    std = variance**0.5
     return round(mean + 2 * std, 2), round(mean - 2 * std, 2)
 
 
-def _compute_stoch(
-    highs: list, lows: list, closes: list, period: int = 14
-) -> tuple[float, float]:
+def _compute_stoch(highs: list, lows: list, closes: list, period: int = 14) -> tuple[float, float]:
     if len(closes) < period:
         return 50.0, 50.0
     h = max(highs[-period:])

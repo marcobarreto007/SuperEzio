@@ -171,9 +171,7 @@ class TestEmailAlerter:
     def test_send_approval_request_format(self):
         from core.trading.alerter import EmailAlerter, EmailConfig
 
-        config = EmailConfig(
-            enabled=True, smtp_host="localhost", to_addrs=["test@test.com"]
-        )
+        config = EmailConfig(enabled=True, smtp_host="localhost", to_addrs=["test@test.com"])
         alerter = EmailAlerter(config=config)
         # Will fail to actually send (no SMTP server), but should try and return False
         result = alerter.send_approval_request(
@@ -189,9 +187,7 @@ class TestEmailAlerter:
     def test_send_kill_switch_alert(self):
         from core.trading.alerter import EmailAlerter, EmailConfig
 
-        config = EmailConfig(
-            enabled=True, smtp_host="localhost", to_addrs=["test@test.com"]
-        )
+        config = EmailConfig(enabled=True, smtp_host="localhost", to_addrs=["test@test.com"])
         alerter = EmailAlerter(config=config)
         result = alerter.send_kill_switch_alert("daily_loss_limit", -500.0)
         assert result is False  # no SMTP server

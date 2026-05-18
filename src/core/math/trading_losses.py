@@ -16,6 +16,7 @@ import numpy as np
 
 # ── Directional Loss ────────────────────────────────────────────────────
 
+
 def directional_loss(
     y_true: Sequence[float],
     y_pred: Sequence[float],
@@ -49,6 +50,7 @@ def directional_loss(
 
 # ── Sharpe Loss (negative Sharpe ratio, minimizable) ─────────────────────
 
+
 def sharpe_loss(
     returns: Sequence[float],
     annualize: bool = True,
@@ -74,7 +76,7 @@ def sharpe_loss(
     if std_excess < epsilon:
         return 0.0  # risk-free asset
 
-    sharpe = (mean_excess / std_excess)
+    sharpe = mean_excess / std_excess
     if annualize:
         sharpe *= math.sqrt(trading_days)
 
@@ -82,6 +84,7 @@ def sharpe_loss(
 
 
 # ── Quantile Loss (Pinball Loss) ────────────────────────────────────────
+
 
 def quantile_loss(
     y_true: Sequence[float],
@@ -114,6 +117,7 @@ def quantile_loss(
 
 # ── Multi-Horizon Weighted Loss ─────────────────────────────────────────
 
+
 def multi_horizon_loss(
     y_true: float,
     y_pred_horizons: Sequence[float],
@@ -136,19 +140,18 @@ def multi_horizon_loss(
             raise ValueError("horizon_weights must match y_pred_horizons length")
         weights = list(horizon_weights)
     else:
-        weights = [decay ** i for i in range(len(y_pred_horizons))]
+        weights = [decay**i for i in range(len(y_pred_horizons))]
 
     total_weight = sum(weights)
     if total_weight == 0:
         return 0.0
 
-    total = sum(
-        w * (p - y_true) ** 2 for w, p in zip(weights, y_pred_horizons)
-    )
+    total = sum(w * (p - y_true) ** 2 for w, p in zip(weights, y_pred_horizons))
     return total / total_weight
 
 
 # ── Huber Loss ──────────────────────────────────────────────────────────
+
 
 def huber_loss(
     y_true: Sequence[float],
@@ -169,13 +172,14 @@ def huber_loss(
     for t, p in zip(y_true, y_pred):
         err = abs(t - p)
         if err <= delta:
-            total += 0.5 * err ** 2
+            total += 0.5 * err**2
         else:
             total += delta * (err - 0.5 * delta)
     return total / len(y_true)
 
 
 # ── Directional Accuracy (metric, not loss) ─────────────────────────────
+
 
 def directional_accuracy(
     y_true: Sequence[float],
@@ -191,8 +195,5 @@ def directional_accuracy(
     if len(y_true) == 0:
         return 0.0
 
-    correct = sum(
-        1 for t, p in zip(y_true, y_pred)
-        if (t >= 0 and p >= 0) or (t <= 0 and p <= 0)
-    )
+    correct = sum(1 for t, p in zip(y_true, y_pred) if (t >= 0 and p >= 0) or (t <= 0 and p <= 0))
     return correct / len(y_true)

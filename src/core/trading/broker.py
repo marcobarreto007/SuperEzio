@@ -99,9 +99,7 @@ class AlpacaPaperAdapter:
                     paper=self.paper,
                 )
             except ImportError:
-                raise ImportError(
-                    "alpaca-py not installed. Run: pip install alpaca-py"
-                )
+                raise ImportError("alpaca-py not installed. Run: pip install alpaca-py")
         return self._client
 
     def submit_order(self, order: Order) -> Order:
@@ -155,15 +153,9 @@ class AlpacaPaperAdapter:
                 side=side,
                 time_in_force=TimeInForce.DAY,
                 take_profit=(
-                    {"limit_price": order.take_profit_price}
-                    if order.take_profit_price
-                    else None
+                    {"limit_price": order.take_profit_price} if order.take_profit_price else None
                 ),
-                stop_loss=(
-                    {"stop_price": order.stop_price}
-                    if order.stop_price
-                    else None
-                ),
+                stop_loss=({"stop_price": order.stop_price} if order.stop_price else None),
             )
         else:
             raise ValueError(f"Unsupported order type: {order.order_type}")

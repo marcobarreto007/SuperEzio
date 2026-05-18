@@ -263,9 +263,7 @@ def test_crisis_aggregate():
         ],
         "country": "CA",
     }
-    result = crisis_aggregate(
-        data, models=["bis_credit_gap", "minsky_keen", "hawkes_stress"]
-    )
+    result = crisis_aggregate(data, models=["bis_credit_gap", "minsky_keen", "hawkes_stress"])
     assert isinstance(result, dict)
     assert "aggregate_score" in result
 

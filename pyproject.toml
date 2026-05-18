@@ -57,6 +57,13 @@ dependencies = [
     "pytest-cov>=5.0",
 ]
 
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.format]
+line-ending = "lf"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["agent_server*", "core*", "data*", "experts*", "f51*", "tools*", "adapters*"]

@@ -206,9 +206,7 @@ def _build_context(data: dict[str, Any], pennylab: dict[str, Any]) -> dict[str, 
     if isinstance(macro, dict):
         if macro.get("data_quality") == "unavailable":
             macro_risk = "unknown"
-        elif any(
-            v.get("error") for v in macro.values() if isinstance(v, dict)
-        ):
+        elif any(v.get("error") for v in macro.values() if isinstance(v, dict)):
             macro_risk = "unknown"
         else:
             macro_risk = "neutral"
@@ -216,9 +214,7 @@ def _build_context(data: dict[str, Any], pennylab: dict[str, Any]) -> dict[str, 
         macro_risk = "unknown"
 
     # News sentiment
-    sentiment_label = str(
-        sentiment.get("sentiment_label") or sentiment.get("label") or ""
-    ).lower()
+    sentiment_label = str(sentiment.get("sentiment_label") or sentiment.get("label") or "").lower()
     if "bullish" in sentiment_label:
         news_sentiment = "bullish"
     elif "bearish" in sentiment_label:

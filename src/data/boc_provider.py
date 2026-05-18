@@ -45,10 +45,7 @@ def _fetch_boc_series(
     Returns:
         Lista de observações com 'd' (date) e valor
     """
-    url = (
-        f"https://www.bankofcanada.ca/valet/observations/{series_id}"
-        f"/json?recent={recent}"
-    )
+    url = f"https://www.bankofcanada.ca/valet/observations/{series_id}/json?recent={recent}"
 
     cache_key = f"boc_{series_id}_{recent}"
     now = datetime.now().timestamp()

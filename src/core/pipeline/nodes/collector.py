@@ -117,11 +117,7 @@ async def node_collector(state: dict, *, config=None) -> dict:
             "status": "skipped",
         }
     )
-    return {
-        "data_context": (
-            "Sem ticker ou criterio de busca suficiente para coleta de dados."
-        )
-    }
+    return {"data_context": ("Sem ticker ou criterio de busca suficiente para coleta de dados.")}
 
 
 # ---------------------------------------------------------------------------
@@ -129,9 +125,7 @@ async def node_collector(state: dict, *, config=None) -> dict:
 # ---------------------------------------------------------------------------
 
 
-async def _collect_professional(
-    ticker: str, writer, run_id: str
-) -> tuple[dict[str, Any], str]:
+async def _collect_professional(ticker: str, writer, run_id: str) -> tuple[dict[str, Any], str]:
     """Use ProfessionalCollector mesh for comprehensive data gathering."""
     from ...data_collector.professional import ProfessionalCollector
 
@@ -173,9 +167,7 @@ async def _collect_professional(
 # ---------------------------------------------------------------------------
 
 
-async def _collect_legacy(
-    ticker: str, writer, run_id: str
-) -> tuple[dict[str, Any], str]:
+async def _collect_legacy(ticker: str, writer, run_id: str) -> tuple[dict[str, Any], str]:
     """Fallback: use SubprocessDataCollector."""
     from ...data_collector import DataCollector
     from ...data_collector.subprocess_collector import SubprocessDataCollector
@@ -210,9 +202,7 @@ async def _run_scan(message: str, filters: dict[str, Any]) -> dict[str, Any]:
             sector=filters.get("sector"),
             limit=int(os.getenv("SUPEREZIO_SCAN_LIMIT", "30")),
         )
-        candidates = [
-            {"ticker": str(item), "source": "financedatabase"} for item in raw
-        ]
+        candidates = [{"ticker": str(item), "source": "financedatabase"} for item in raw]
     except ImportError:
         source_errors.append("scanner: module_archived")
     except Exception as exc:
@@ -226,9 +216,7 @@ async def _run_scan(message: str, filters: dict[str, Any]) -> dict[str, Any]:
         for item in candidates[:12]:
             ticker = item.get("ticker", "")
             try:
-                quote = await asyncio.wait_for(
-                    asyncio.to_thread(hub.get_price, ticker), timeout=6
-                )
+                quote = await asyncio.wait_for(asyncio.to_thread(hub.get_price, ticker), timeout=6)
                 if isinstance(quote, dict):
                     item.update(
                         {

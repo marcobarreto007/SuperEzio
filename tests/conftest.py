@@ -50,9 +50,7 @@ def skip_gateway(monkeypatch):
 
 def requires_deepseek_key():
     """Skip decorator para testes que precisam de API key."""
-    key = os.getenv("SUPEREZIO_DEEPSEEK_API_KEY") or os.getenv(
-        "SUPEREZIO_PRIMARY_API_KEY"
-    )
+    key = os.getenv("SUPEREZIO_DEEPSEEK_API_KEY") or os.getenv("SUPEREZIO_PRIMARY_API_KEY")
     return pytest.mark.skipif(not key, reason="DeepSeek API key not set")
 
 

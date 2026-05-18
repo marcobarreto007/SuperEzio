@@ -71,9 +71,7 @@ class TestCrisisInput:
         assert ci.observations[0].credit_to_gdp == 180.0
 
     def test_market_series(self):
-        ms = [
-            MarketObservation(date="2024-01-15", close=100.0, realized_volatility=0.15)
-        ]
+        ms = [MarketObservation(date="2024-01-15", close=100.0, realized_volatility=0.15)]
         ci = CrisisInput(market_series=ms)
         assert ci.market_series[0].close == 100.0
 
@@ -252,10 +250,7 @@ class TestBISCreditGapModel:
 
     def test_low_gap(self):
         """12 obs with flat credit_to_gdp → gap ~0 → low score"""
-        obs = [
-            MacroObservation(date=f"2024-{m:02d}", credit_to_gdp=180.0)
-            for m in range(1, 13)
-        ]
+        obs = [MacroObservation(date=f"2024-{m:02d}", credit_to_gdp=180.0) for m in range(1, 13)]
         ci = CrisisInput(observations=obs)
         model = BISCreditGapModel()
         result = model.evaluate(ci)
@@ -287,10 +282,7 @@ class TestMarkovRegimeModel:
         assert result.status == "insufficient_data"
 
     def test_crisis_regime(self):
-        ms = [
-            MarketObservation(date=f"2024-{d:02d}-15", close=100.0)
-            for d in range(1, 10)
-        ]
+        ms = [MarketObservation(date=f"2024-{d:02d}-15", close=100.0) for d in range(1, 10)]
         ms[-1] = MarketObservation(
             date="2024-09-15", close=100.0, realized_volatility=0.35, credit_spread=6.0
         )
@@ -301,10 +293,7 @@ class TestMarkovRegimeModel:
         assert "CRISE" in result.explanation
 
     def test_normal_regime(self):
-        ms = [
-            MarketObservation(date=f"2024-{d:02d}-15", close=100.0)
-            for d in range(1, 10)
-        ]
+        ms = [MarketObservation(date=f"2024-{d:02d}-15", close=100.0) for d in range(1, 10)]
         ms[-1] = MarketObservation(
             date="2024-09-15", close=100.0, realized_volatility=0.10, credit_spread=1.0
         )
@@ -315,10 +304,7 @@ class TestMarkovRegimeModel:
         assert "NORMAL" in result.explanation
 
     def test_stress_regime(self):
-        ms = [
-            MarketObservation(date=f"2024-{d:02d}-15", close=100.0)
-            for d in range(1, 10)
-        ]
+        ms = [MarketObservation(date=f"2024-{d:02d}-15", close=100.0) for d in range(1, 10)]
         ms[-1] = MarketObservation(
             date="2024-09-15", close=100.0, realized_volatility=0.25, credit_spread=2.0
         )
@@ -449,8 +435,7 @@ class TestLPPLSBubbleModel:
     def test_insufficient_data(self):
         ci = CrisisInput(
             market_series=[
-                MarketObservation(date=f"2024-{d:03d}", close=100.0)
-                for d in range(1, 30)
+                MarketObservation(date=f"2024-{d:03d}", close=100.0) for d in range(1, 30)
             ]
         )
         model = LPPLSBubbleModel()
@@ -459,9 +444,7 @@ class TestLPPLSBubbleModel:
 
     def test_stable_prices(self):
         """Flat prices → no bubble signal → low score"""
-        ms = [
-            MarketObservation(date=f"2024-{d:03d}", close=100.0) for d in range(1, 70)
-        ]
+        ms = [MarketObservation(date=f"2024-{d:03d}", close=100.0) for d in range(1, 70)]
         ci = CrisisInput(market_series=ms)
         model = LPPLSBubbleModel()
         result = model.evaluate(ci)
@@ -470,10 +453,7 @@ class TestLPPLSBubbleModel:
 
     def test_stress_signal(self):
         """Slightly trending prices → some signal"""
-        ms = [
-            MarketObservation(date=f"2024-{d:03d}", close=100.0 + d * 0.02)
-            for d in range(1, 70)
-        ]
+        ms = [MarketObservation(date=f"2024-{d:03d}", close=100.0 + d * 0.02) for d in range(1, 70)]
         ci = CrisisInput(market_series=ms)
         model = LPPLSBubbleModel()
         result = model.evaluate(ci)

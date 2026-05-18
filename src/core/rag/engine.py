@@ -138,9 +138,7 @@ class ForensicRAG:
         try:
             from sentence_transformers import SentenceTransformer  # type: ignore[import]
         except ImportError:
-            logger.warning(
-                "sentence-transformers not installed — RAG will use keyword fallback"
-            )
+            logger.warning("sentence-transformers not installed — RAG will use keyword fallback")
             _embedder = None
             return None
         try:
@@ -148,9 +146,7 @@ class ForensicRAG:
             _embedder.to("cpu")
             logger.info("ForensicRAG embedder loaded: %s (CPU)", EMBEDDING_MODEL)
         except Exception as exc:
-            logger.warning(
-                "Failed to load embedding model: %s — keyword fallback active", exc
-            )
+            logger.warning("Failed to load embedding model: %s — keyword fallback active", exc)
             _embedder = None
         return _embedder
 
@@ -163,6 +159,7 @@ class ForensicRAG:
             return _faiss_available
         try:
             import faiss  # noqa: F401  # tested via availability flag
+
             _faiss_available = True
         except ImportError:
             logger.info("faiss-cpu not installed — using numpy brute-force search")
@@ -197,12 +194,11 @@ class ForensicRAG:
                 show_progress_bar=False,
             )
             _embeddings_cache = vecs
-            logger.info(
-                "ForensicRAG indexed %d documents (%d-dim)", len(docs), vecs.shape[1]
-            )
+            logger.info("ForensicRAG indexed %d documents (%d-dim)", len(docs), vecs.shape[1])
 
             if self._faiss_available():
                 import faiss  # type: ignore[import]
+
                 dim = vecs.shape[1]
                 _faiss_index = faiss.IndexFlatIP(dim)
                 _faiss_index.add(vecs.astype(np.float32))
@@ -248,17 +244,17 @@ class ForensicRAG:
                 score = float(scores[0][i])
                 if idx < 0 or score <= 0.1:
                     continue
-                results.append({
-                    "id": _documents_cache[idx]["id"],
-                    "text": _documents_cache[idx]["text"],
-                    "source": _documents_cache[idx]["source"],
-                    "score": score,
-                })
+                results.append(
+                    {
+                        "id": _documents_cache[idx]["id"],
+                        "text": _documents_cache[idx]["text"],
+                        "source": _documents_cache[idx]["source"],
+                        "score": score,
+                    }
+                )
             return results
 
-        scores = (qvec @ _embeddings_cache.T)[
-            0
-        ]  # cosine similarity (normalized vectors)
+        scores = (qvec @ _embeddings_cache.T)[0]  # cosine similarity (normalized vectors)
         top_idx = np.argsort(scores)[::-1][:top_k]
         return [
             {
@@ -308,9 +304,7 @@ class ForensicRAG:
             snippet = r["text"][:400]
             entry = f"\n{i}. [{r['id']}] (src={r['source']}, sim={r['score']:.2f})\n   {snippet}"
             if used + len(entry) > max_chars:
-                lines.append(
-                    f"\n... truncated ({len(results) - i + 1} results omitted)"
-                )
+                lines.append(f"\n... truncated ({len(results) - i + 1} results omitted)")
                 break
             lines.append(entry)
             used += len(entry)
@@ -352,11 +346,15 @@ class ForensicRAG:
         target = str(resolve_project_path(path or FAISS_INDEX_DIR))
         os.makedirs(target, exist_ok=True)
 
-        np.save(os.path.join(target, "documents.npy"), np.array(_documents_cache, dtype=object))
+        np.save(
+            os.path.join(target, "documents.npy"),
+            np.array(_documents_cache, dtype=object),
+        )
 
         if _faiss_index is not None:
             try:
                 import faiss  # type: ignore[import]
+
                 faiss.write_index(_faiss_index, os.path.join(target, "index.faiss"))
                 logger.info("ForensicRAG: index saved to %s", target)
             except Exception as exc:
@@ -378,6 +376,7 @@ class ForensicRAG:
             _documents_cache = list(np.load(docs_path, allow_pickle=True))
             if os.path.exists(index_path) and self._faiss_available():
                 import faiss  # type: ignore[import]
+
                 _faiss_index = faiss.read_index(index_path)
                 _embeddings_cache = None  # re-computed on demand
                 logger.info(
@@ -389,7 +388,8 @@ class ForensicRAG:
             else:
                 _embeddings_cache = None  # re-compute on next search
                 logger.info(
-                    "ForensicRAG: loaded %d documents (no FAISS index)", len(_documents_cache)
+                    "ForensicRAG: loaded %d documents (no FAISS index)",
+                    len(_documents_cache),
                 )
             return True
         except Exception as exc:

@@ -16,7 +16,7 @@ class FeatureContractValidator:
     def __init__(self, contract_path: Path | None = None):
         if contract_path is None:
             contract_path = Path(__file__).parent / "feature_contract.json"
-        
+
         try:
             with open(contract_path, "r", encoding="utf-8") as f:
                 self.contract = json.load(f)
@@ -31,20 +31,29 @@ class FeatureContractValidator:
                     "volume_zscore": {"type": "float", "min": -10.0, "max": 100.0},
                     "price_vs_ema_21": {"type": "float", "min": -1.0, "max": 1.0},
                     "trend_slope": {"type": "float", "min": -10.0, "max": 10.0},
-                    "volatility_regime": {"type": "string", "enum": ["low", "normal", "high", "extreme"]},
-                    "liquidity_sweep": {"type": "boolean"}
+                    "volatility_regime": {
+                        "type": "string",
+                        "enum": ["low", "normal", "high", "extreme"],
+                    },
+                    "liquidity_sweep": {"type": "boolean"},
                 },
                 "required_context": {
-                    "macro_risk": {"type": "string", "enum": ["low", "neutral", "high", "unknown"]},
-                    "news_sentiment": {"type": "string", "enum": ["bullish", "neutral", "bearish", "mixed"]},
+                    "macro_risk": {
+                        "type": "string",
+                        "enum": ["low", "neutral", "high", "unknown"],
+                    },
+                    "news_sentiment": {
+                        "type": "string",
+                        "enum": ["bullish", "neutral", "bearish", "mixed"],
+                    },
                     "fraud_risk": {"type": "float", "min": 0.0, "max": 1.0},
-                    "veracity_score": {"type": "float", "min": 0.0, "max": 1.0}
-                }
+                    "veracity_score": {"type": "float", "min": 0.0, "max": 1.0},
+                },
             }
 
     def validate(self, features: Dict[str, Any], context: Dict[str, Any]) -> List[str]:
         """Validate both features and context against contract types, ranges, and enums.
-        
+
         Returns a list of validation error strings. If valid, returns an empty list.
         """
         errors = []
@@ -75,7 +84,9 @@ class FeatureContractValidator:
                     errors.append(f"Feature '{name}' must be string, got {type(val).__name__}")
                     continue
                 if "enum" in spec and val not in spec["enum"]:
-                    errors.append(f"Feature '{name}' value '{val}' not in permitted enum options: {spec['enum']}")
+                    errors.append(
+                        f"Feature '{name}' value '{val}' not in permitted enum options: {spec['enum']}"
+                    )
 
             elif expected_type == "boolean":
                 if not isinstance(val, bool):
@@ -107,7 +118,9 @@ class FeatureContractValidator:
                     errors.append(f"Context '{name}' must be string, got {type(val).__name__}")
                     continue
                 if "enum" in spec and val not in spec["enum"]:
-                    errors.append(f"Context '{name}' value '{val}' not in permitted enum options: {spec['enum']}")
+                    errors.append(
+                        f"Context '{name}' value '{val}' not in permitted enum options: {spec['enum']}"
+                    )
 
         return errors
 
@@ -119,7 +132,11 @@ class NeuralDecisionExpert:
         self.validator = FeatureContractValidator(contract_path)
 
     def validate_input(
-        self, symbol: str, timeframe: str, features: Dict[str, Any], context: Dict[str, Any]
+        self,
+        symbol: str,
+        timeframe: str,
+        features: Dict[str, Any],
+        context: Dict[str, Any],
     ) -> List[str]:
         """Perform full validation of payload contract."""
         errors = []
@@ -141,10 +158,14 @@ class NeuralDecisionExpert:
         return errors
 
     def predict(
-        self, symbol: str, timeframe: str, features: Dict[str, Any], context: Dict[str, Any]
+        self,
+        symbol: str,
+        timeframe: str,
+        features: Dict[str, Any],
+        context: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Assess technical signal validity and evaluate directional probability.
-        
+
         Calibrates uncertainty dynamically based on forensic fraud risk and veracity gaps.
         """
         # Validate first
@@ -157,7 +178,7 @@ class NeuralDecisionExpert:
                 "validation_errors": errors,
                 "recommendation": "veto_block",
                 "veto": True,
-                "reason": f"Contract violations found: {', '.join(errors)}"
+                "reason": f"Contract violations found: {', '.join(errors)}",
             }
 
         # ── 1. Extrair Variáveis e Metas do Contexto / Features ──
@@ -173,12 +194,12 @@ class NeuralDecisionExpert:
         # Sem incerteza calibrada, o modelo vira um bêbado confiante.
         veracity_gap = 1.0 - veracity_score
         base_uncertainty = 0.15
-        
+
         # Penalidades por fraud_risk e veracity_gap
         uncertainty = base_uncertainty + (0.45 * fraud_risk) + (0.35 * veracity_gap)
         if features["volatility_regime"] == "extreme":
             uncertainty += 0.10
-        
+
         uncertainty = max(0.05, min(0.95, uncertainty))
 
         # ── 3. Classificar o Regime de Mercado ──
@@ -222,7 +243,7 @@ class NeuralDecisionExpert:
         # Elevar o drawdown_risk se a fraude for patente
         if fraud_risk > 0.4:
             drawdown_risk = max(drawdown_risk, fraud_risk)
-        
+
         # Vetar se o risco de fraude for extremo ou a incerteza for ingovernável
         veto = (fraud_risk > 0.5) or (veracity_score < 0.5) or (drawdown_risk > 0.8)
 
@@ -235,7 +256,9 @@ class NeuralDecisionExpert:
             )
         elif regime == "trend_real" and uncertainty < 0.4:
             recommendation = "alerta_forte"
-            reason = "Tendência sólida confirmada com baixo ruído de manipulação e volume convergente."
+            reason = (
+                "Tendência sólida confirmada com baixo ruído de manipulação e volume convergente."
+            )
         elif expected_return > 0.003 and drawdown_risk < 0.45:
             recommendation = "alerta_fraco"
             reason = "Relação risco/retorno favorável, mas incerteza média recomenda cautela e tamanho reduzido."
@@ -250,7 +273,7 @@ class NeuralDecisionExpert:
             "direction_prob": {
                 "up": round(up_prob, 2),
                 "down": round(down_prob, 2),
-                "sideways": round(sideways_prob, 2)
+                "sideways": round(sideways_prob, 2),
             },
             "expected_return": round(expected_return, 4),
             "drawdown_risk": round(drawdown_risk, 2),
@@ -258,5 +281,5 @@ class NeuralDecisionExpert:
             "regime": regime,
             "recommendation": recommendation,
             "veto": veto,
-            "reason": reason
+            "reason": reason,
         }

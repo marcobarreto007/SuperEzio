@@ -81,9 +81,7 @@ if __name__ == "__main__":
 
         stderr = (completed.stderr or "").strip()
         stdout = (completed.stdout or "").strip()
-        detail = (
-            stderr or stdout or f"collector exited with code {completed.returncode}"
-        )
+        detail = stderr or stdout or f"collector exited with code {completed.returncode}"
         return _error_data(ticker, detail[:800])
 
     async def run_scan(self, message: str, filters: dict[str, Any]) -> dict[str, Any]:

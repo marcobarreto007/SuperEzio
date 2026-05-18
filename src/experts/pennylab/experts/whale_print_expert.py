@@ -52,11 +52,7 @@ class WhalePrintExpert:
             evidence.append("float: indisponível")
 
         # Volume spike (peso 40%)
-        if (
-            signal.volume is not None
-            and signal.avg_volume_10d
-            and signal.avg_volume_10d > 0
-        ):
+        if signal.volume is not None and signal.avg_volume_10d and signal.avg_volume_10d > 0:
             available += 1
             ratio = signal.volume / signal.avg_volume_10d
             if ratio >= 10:

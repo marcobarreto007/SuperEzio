@@ -117,9 +117,7 @@ class PrivateChannelFilter:
             marker = min(markers, key=lambda m: m.start()) if markers else None
             if marker is None:
                 if final:
-                    output.append(
-                        _THINK_TOKEN_RE.sub("", _clean_visible_tokens(self._buffer))
-                    )
+                    output.append(_THINK_TOKEN_RE.sub("", _clean_visible_tokens(self._buffer)))
                     self._buffer = ""
                 else:
                     emit_len = max(0, len(self._buffer) - _LOOKBACK)
@@ -250,9 +248,7 @@ def _parse_model_tool_calls(content: str) -> tuple[str, list[dict]]:
     tool_calls = []
     clean_parts = []
     last_end = 0
-    pattern = re.compile(
-        r"<\|tool_call\|>call:(?:[\w]+:)?([^{]+)\{([^}]*)\}<tool_call\|>"
-    )
+    pattern = re.compile(r"<\|tool_call\|>call:(?:[\w]+:)?([^{]+)\{([^}]*)\}<tool_call\|>")
     for m in pattern.finditer(content):
         clean_parts.append(content[last_end : m.start()])
         name = m.group(1).strip()

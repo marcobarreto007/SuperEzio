@@ -134,9 +134,7 @@ class InvestorCommittee:
         # Hard rule: has_emergency_fund ausente â†’ tratar como False
         if has_ef is None:
             has_ef = False
-            debug_logger.debug(
-                MODULE_COMMITTEE, "has_emergency_fund not set - defaulting to False"
-            )
+            debug_logger.debug(MODULE_COMMITTEE, "has_emergency_fund not set - defaulting to False")
 
         # Verificar cost guard antes de chamar API
         if self.cost_guard:
@@ -186,8 +184,7 @@ class InvestorCommittee:
         fraud_constraint_instruction = ""
         fraud_constraint = "none"
         expert_guardrail_context = (
-            "\n\n[WHALE_GUARDRAILS]\n"
-            "Whale/manipulation detector was not executed in this run.\n"
+            "\n\n[WHALE_GUARDRAILS]\nWhale/manipulation detector was not executed in this run.\n"
         )
         fraud_result = None
 
@@ -202,9 +199,7 @@ class InvestorCommittee:
                 )
                 fraud_constraint = fraud_result.get("recommendation_constraint", "none")
                 expert_guardrail_context = (
-                    "\n\n"
-                    + self.fraud_analyst.format_context_for_experts(fraud_result)
-                    + "\n"
+                    "\n\n" + self.fraud_analyst.format_context_for_experts(fraud_result) + "\n"
                 )
             except Exception as exc:
                 log_event(
@@ -233,9 +228,7 @@ class InvestorCommittee:
         agent_coros = [
             self._run_agent(
                 "education",
-                EDUCATION_AGENT_PROMPT.format(
-                    ticker=ticker, time_horizon=horizon, goal=goal
-                )
+                EDUCATION_AGENT_PROMPT.format(ticker=ticker, time_horizon=horizon, goal=goal)
                 + shared_agent_context,
             ),
             self._run_agent(
@@ -268,8 +261,7 @@ class InvestorCommittee:
             ),
             self._run_agent(
                 "decision_journal",
-                DECISION_JOURNAL_AGENT_PROMPT.format(ticker=ticker)
-                + shared_agent_context,
+                DECISION_JOURNAL_AGENT_PROMPT.format(ticker=ticker) + shared_agent_context,
             ),
         ]
 
@@ -321,9 +313,7 @@ class InvestorCommittee:
         )
 
         if collected_market_data:
-            result["data_quality"] = collected_market_data.get(
-                "data_quality", "unknown"
-            )
+            result["data_quality"] = collected_market_data.get("data_quality", "unknown")
             result["evidence_trace_id"] = collected_market_data.get("analysis_id")
             result["source_errors"] = collected_market_data.get("source_errors", [])
 
@@ -338,17 +328,13 @@ class InvestorCommittee:
                 "matched_patterns": fraud_result.get("matched_patterns", []),
                 "similar_case_types": fraud_result.get("similar_case_types", []),
                 "limitations": fraud_result.get("limitations", []),
-                "recommendation_constraint": fraud_result.get(
-                    "recommendation_constraint", "none"
-                ),
+                "recommendation_constraint": fraud_result.get("recommendation_constraint", "none"),
             }
             result["whale_guardrails_check"] = {
                 "whale_activity_score": fraud_result.get("whale_activity_score", 0.0),
                 "whale_signals": fraud_result.get("whale_signals", []),
                 "guardrails": fraud_result.get("guardrails", []),
-                "recommendation_constraint": fraud_result.get(
-                    "recommendation_constraint", "none"
-                ),
+                "recommendation_constraint": fraud_result.get("recommendation_constraint", "none"),
             }
         else:
             result["fraud_manipulation_check"] = {
@@ -359,9 +345,7 @@ class InvestorCommittee:
                 "guardrails": [],
                 "matched_patterns": [],
                 "similar_case_types": [],
-                "limitations": [
-                    "fraud_analyst_not_configured: FraudPatternAnalyst not provided"
-                ],
+                "limitations": ["fraud_analyst_not_configured: FraudPatternAnalyst not provided"],
                 "recommendation_constraint": "none",
             }
             result["whale_guardrails_check"] = {
@@ -490,9 +474,7 @@ class InvestorCommittee:
                 clean = clean.rstrip("`").strip()
             data: Dict[str, Any] = json.loads(clean)
         except (json.JSONDecodeError, ValueError):
-            log_event(
-                "INVESTOR_COMMITTEE", "JSON_PARSE_ERROR", {"raw_preview": raw[:200]}
-            )
+            log_event("INVESTOR_COMMITTEE", "JSON_PARSE_ERROR", {"raw_preview": raw[:200]})
             data = self._fallback_response(ticker, raw)
 
         # â”€â”€ Schema coercion â€” normaliza campos independente de como o modelo respondeu â”€â”€
@@ -613,25 +595,18 @@ class InvestorCommittee:
         data.setdefault("fomo_check", "No FOMO signal detected.")
         data.setdefault("risk_officer_view", "Risk analysis unavailable.")
         data.setdefault("devils_advocate", "Devil's advocate analysis unavailable.")
-        data.setdefault(
-            "decision_options", ["study_more", "wait", "small_position", "avoid"]
-        )
+        data.setdefault("decision_options", ["study_more", "wait", "small_position", "avoid"])
         data.setdefault("suggested_next_step", "study_more")
-        data.setdefault(
-            "decision_journal_prompt", self._extract_journal_questions(journal_out)
-        )
+        data.setdefault("decision_journal_prompt", self._extract_journal_questions(journal_out))
         data["analysis_notice"] = AI_ANALYSIS_NOTICE
 
         # 6. VerificaÃ§Ã£o de frases proibidas no output final
         output_str = json.dumps(data, ensure_ascii=False).lower()
         found_forbidden = [p for p in FORBIDDEN_PHRASES if p in output_str]
         if found_forbidden:
-            log_event(
-                "INVESTOR_COMMITTEE", "FORBIDDEN_PHRASE", {"phrases": found_forbidden}
-            )
+            log_event("INVESTOR_COMMITTEE", "FORBIDDEN_PHRASE", {"phrases": found_forbidden})
             data["plain_english_summary"] = (
-                data.get("plain_english_summary", "")
-                + "\n\n[SYSTEM] STAFF+ ENGINEER MODE ACTIVE. "
+                data.get("plain_english_summary", "") + "\n\n[SYSTEM] STAFF+ ENGINEER MODE ACTIVE. "
                 "No investment has a guaranteed return."
             )
 
@@ -671,8 +646,7 @@ class InvestorCommittee:
             "ticker": ticker,
             "asset_type": "unknown",
             "plain_english_summary": (
-                "Structured analysis could not be generated. "
-                "Try again or contact support."
+                "Structured analysis could not be generated. Try again or contact support."
             ),
             "business_model": "Not identified.",
             "bull_case": [],

@@ -143,9 +143,7 @@ def test_f51_engine_run():
     from src.f51.graph import F51Engine
 
     engine = F51Engine()
-    result = engine.run(
-        {"ticker": "TEST", "message": "analyze fraud"}, domain="default"
-    )
+    result = engine.run({"ticker": "TEST", "message": "analyze fraud"}, domain="default")
     assert isinstance(result, dict)
     for key in ("confidence", "threshold", "passed", "elapsed_ms"):
         assert key in result, f"Missing key: {key}"

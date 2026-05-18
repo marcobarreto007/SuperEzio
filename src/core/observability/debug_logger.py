@@ -176,9 +176,7 @@ class DebugLogger:
             )
             return 0.0
         elapsed_ms = (time.time() - started) * 1000.0
-        self.debug(
-            MODULE_DEBUGGER, f"Timer ended: {label}", elapsed_ms=round(elapsed_ms, 2)
-        )
+        self.debug(MODULE_DEBUGGER, f"Timer ended: {label}", elapsed_ms=round(elapsed_ms, 2))
         return elapsed_ms
 
     def elapsed_since(self, label: str) -> Optional[float]:
@@ -254,9 +252,7 @@ class DebugLogger:
     def disable(self) -> None:
         """Desativa debug mode em runtime."""
         self.debug_enabled = False
-        self._log_internal(
-            LEVEL_INFO, MODULE_DEBUGGER, "Debug mode DISABLED at runtime", {}
-        )
+        self._log_internal(LEVEL_INFO, MODULE_DEBUGGER, "Debug mode DISABLED at runtime", {})
 
     def set_module_filter(self, modules: List[str]) -> None:
         """Define filtro de módulos para debug."""
@@ -296,11 +292,7 @@ class DebugLogger:
 
         # Console output (só em debug mode ou errors)
         if self.debug_enabled or level >= LEVEL_WARN:
-            prefix = (
-                f"[DEBUG:{module.upper()}]"
-                if level <= LEVEL_DEBUG
-                else f"[{module.upper()}]"
-            )
+            prefix = f"[DEBUG:{module.upper()}]" if level <= LEVEL_DEBUG else f"[{module.upper()}]"
             logging.getLogger("F51-DEBUG").log(
                 level, "%s [%s] %s", prefix, LEVEL_NAMES.get(level, "?"), message
             )

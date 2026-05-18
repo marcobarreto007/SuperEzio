@@ -68,9 +68,7 @@ class VeracityGate:
             confidence *= 0.5**severe
 
         passed = confidence >= 0.6
-        details_parts = [
-            f"{verified}/{total} claims verificados, confiança {confidence:.1%}"
-        ]
+        details_parts = [f"{verified}/{total} claims verificados, confiança {confidence:.1%}"]
         if mismatches:
             details_parts.append(f"{len(mismatches)} discrepâncias")
         if unverifiable:
@@ -84,10 +82,7 @@ class VeracityGate:
         self, decision: str, constraint: str, expected: str
     ) -> VeracityResult:
         """Verifica se decisão respeita constraints."""
-        ok = not (
-            constraint == "force_wait_or_avoid"
-            and decision in ("buy", "small_position")
-        )
+        ok = not (constraint == "force_wait_or_avoid" and decision in ("buy", "small_position"))
         return VeracityResult(
             ok,
             1.0 if ok else 0.0,
@@ -203,9 +198,7 @@ class AdversarialCritic:
                 reasoning=output,
             )
         except Exception as e:
-            return CriticResult(
-                is_valid=True, confidence=0.5, errors=[], reasoning=str(e)
-            )
+            return CriticResult(is_valid=True, confidence=0.5, errors=[], reasoning=str(e))
 
 
 # =============================================================================

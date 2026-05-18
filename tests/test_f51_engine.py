@@ -30,18 +30,14 @@ class TestNodeResult:
 class TestContext:
     def test_add_and_get(self):
         ctx = Context(input="hello", domain="math")
-        nr = NodeResult(
-            node="n1", value=0.5, confidence=0.8, evidence={}, error="", elapsed_ms=5
-        )
+        nr = NodeResult(node="n1", value=0.5, confidence=0.8, evidence={}, error="", elapsed_ms=5)
         ctx.add("n1", nr)
         assert ctx.get("n1") is nr
         assert ctx.get("nonexistent") is None
 
     def test_factor(self):
         ctx = Context(input="test", domain="math")
-        nr = NodeResult(
-            node="n1", value=0.7, confidence=0.9, evidence={}, error="", elapsed_ms=5
-        )
+        nr = NodeResult(node="n1", value=0.7, confidence=0.9, evidence={}, error="", elapsed_ms=5)
         ctx.add("n1", nr)
         v = ctx.factor("n1", "value")
         assert v == 0.7
@@ -78,9 +74,7 @@ class TestGraph:
         g.add(
             Node(
                 name="double",
-                fn=lambda ctx: _make_node_result(
-                    float(len(str(ctx.input)) * 2), node="double"
-                ),
+                fn=lambda ctx: _make_node_result(float(len(str(ctx.input)) * 2), node="double"),
             )
         )
         ctx = g.execute("hello", domain="math")
@@ -91,17 +85,13 @@ class TestGraph:
         g.add(
             Node(
                 name="len",
-                fn=lambda ctx: _make_node_result(
-                    float(len(str(ctx.input))), node="len"
-                ),
+                fn=lambda ctx: _make_node_result(float(len(str(ctx.input))), node="len"),
             )
         )
         g.add(
             Node(
                 name="double",
-                fn=lambda ctx: _make_node_result(
-                    ctx.get("len").value * 2, node="double"
-                ),
+                fn=lambda ctx: _make_node_result(ctx.get("len").value * 2, node="double"),
                 depends_on=["len"],
             )
         )

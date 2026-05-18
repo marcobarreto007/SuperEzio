@@ -149,10 +149,7 @@ class CacheLayer:
         self._dir = Path(
             cache_dir
             or os.getenv("SUPEREZIO_CACHE_DIR", "")
-            or Path(__file__).parent.parent.parent.parent
-            / ".f51"
-            / "cache"
-            / "collector"
+            or Path(__file__).parent.parent.parent.parent / ".f51" / "cache" / "collector"
         )
         self._dir.mkdir(parents=True, exist_ok=True)
 
@@ -204,10 +201,7 @@ class DataQualityFilter:
         if "error" in result:
             return False
         # NO_DATA / empty results are technically valid but useless
-        if (
-            result.get("sentiment_label") == "NO_DATA"
-            and result.get("news_count", 1) == 0
-        ):
+        if result.get("sentiment_label") == "NO_DATA" and result.get("news_count", 1) == 0:
             return False
         if result.get("signal_label") == "NO_DATA":
             return False
@@ -254,9 +248,7 @@ class DataQualityFilter:
         """Composite quality score 0-1."""
         if not self.is_valid(data):
             return 0.0
-        freshness = self.score_freshness(
-            data.get("timestamp") or data.get("collected_at")
-        )
+        freshness = self.score_freshness(data.get("timestamp") or data.get("collected_at"))
         completeness = self.score_completeness(data, capability)
         confidence = self.score_confidence(data)
         return 0.35 * freshness + 0.40 * completeness + 0.25 * confidence
@@ -408,9 +400,7 @@ class ProviderMesh:
                 result.setdefault("timestamp", _now_iso())
             else:
                 self.record_failure(name)
-            return (
-                result if isinstance(result, dict) else {"error": "invalid_result_type"}
-            )
+            return result if isinstance(result, dict) else {"error": "invalid_result_type"}
         except asyncio.TimeoutError:
             self.record_failure(name)
             return {"error": f"{name}_timeout_{timeout}s"}
@@ -467,9 +457,7 @@ class ProviderMesh:
 
             for spec, result in zip(uncached, live_results):
                 if isinstance(result, Exception):
-                    result = {
-                        "error": f"{spec.name}: {type(result).__name__}: {result}"
-                    }
+                    result = {"error": f"{spec.name}: {type(result).__name__}: {result}"}
                 if not isinstance(result, dict):
                     result = {"error": f"{spec.name}: invalid_result"}
 
@@ -737,12 +725,7 @@ class ProfessionalCollector:
             from data.news_feed import NewsScout
 
             scout = NewsScout()
-            clean = (
-                ticker.replace(".TO", "")
-                .replace(".V", "")
-                .replace(".to", "")
-                .replace(".v", "")
-            )
+            clean = ticker.replace(".TO", "").replace(".V", "").replace(".to", "").replace(".v", "")
             result = scout.get_sentiment_summary(clean)
             if not isinstance(result, dict):
                 return {"error": "news_scout_invalid_result"}
@@ -766,11 +749,7 @@ class ProfessionalCollector:
 
             provider = WolframProvider()
             result = provider.query(ticker)
-            return (
-                result
-                if isinstance(result, dict)
-                else {"error": "wolfram_invalid_result"}
-            )
+            return result if isinstance(result, dict) else {"error": "wolfram_invalid_result"}
         except Exception as exc:
             return {"error": f"wolfram: {exc}"}
 
@@ -889,11 +868,7 @@ class ProfessionalCollector:
             exchange = _detect_exchange(ticker)
             market = "CA" if exchange in ("TSX", "TSXV") else "US"
             result = await asyncio.to_thread(hub.get_macro, market)
-            return (
-                result
-                if isinstance(result, dict)
-                else {"error": "macro_invalid_result"}
-            )
+            return result if isinstance(result, dict) else {"error": "macro_invalid_result"}
         except Exception as exc:
             return {"error": f"macro: {exc}"}
 
@@ -922,9 +897,7 @@ class ProfessionalCollector:
                 "price": closes[-1],
                 "rsi_14": round(rsi, 1) if rsi is not None else None,
                 "macd": round(macd, 4) if macd is not None else None,
-                "macd_signal": round(macd_signal, 4)
-                if macd_signal is not None
-                else None,
+                "macd_signal": round(macd_signal, 4) if macd_signal is not None else None,
                 "ema_20": round(ema20, 2),
                 "ema_50": round(ema50, 2),
                 "bb_upper": round(bb_upper, 2) if bb_upper is not None else None,
@@ -965,9 +938,7 @@ class ProfessionalCollector:
                 continue
             source = payload.get("source", payload.get("provider", section))
             payload.setdefault("evidence_id", f"{source}_{ticker}_{date_part}")
-            payload.setdefault(
-                "data_quality", "unavailable" if "error" in payload else "collected"
-            )
+            payload.setdefault("data_quality", "unavailable" if "error" in payload else "collected")
 
     # ── Context formatting for CEO prompt ────────────────────────────────
 
@@ -1101,7 +1072,7 @@ def _compute_bollinger(closes: list, period: int = 20, stddev: float = 2.0):
     window = closes[-period:]
     mean = sum(window) / period
     variance = sum((x - mean) ** 2 for x in window) / period
-    std = variance ** 0.5
+    std = variance**0.5
     return float(mean + stddev * std), float(mean - stddev * std)
 
 

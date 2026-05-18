@@ -1,105 +1,78 @@
-# RELEASE READINESS — SuperEzio v4.0.0
-**Date:** 2026-05-17T16:30:00-04:00 | **Commit:** (pending)
-**Status:** **OPERACIONAL — NÃO PRONTO PARA DEMO/VENDA** 🟡
+# RELEASE READINESS - SuperEzio v4.0.0
 
----
+**Date:** 2026-05-17T22:05:49-04:00
+**Session:** f51-release-blocker-fix-local
+**Status:** LOCAL ENGINEERING PASS, FAIL FOR SALE, CONDITIONAL PASS FOR CONTROLLED DEMO
 
-## 1. PODE DEMONSTRAR?
+## Final Answers
 
-**NÃO.** 🟡
+### 1. Pode demonstrar?
 
-O sistema funciona tecnicamente (pipeline completo validado ao vivo), mas 3 problemas impedem uma demonstração convincente:
+**Sim, mas somente demo controlada por voce.**
 
-| Bloqueador | Detalhe |
-|-----------|---------|
-| **Latência 52s** | O CEO Qwen3.6-35B leva 52 segundos por resposta. Pipeline completo ~2 minutos. Uma demo onde o usuário espera 1 minuto por resposta é uma demo que falha. |
-| **Endpoints quebrados** | `/capabilities` e `/product/manifest` retornam 500. Se o cliente/testador clicar neles, vê erro. |
-| **Launcher não testado** | `desktop/SuperEzio.bat` não foi verificado nesta auditoria. Demos começam com duplo clique — se falhar, a demo acabou. |
+Motivo: API, CEO, `/capabilities`, `/product/manifest`, `/v1/models`, Ruff, format, diff check, and full pytest are green locally. Before showing it, still run one fresh `/task/submit` smoke and verify latency.
 
-**O que fazer para demo:** Corrigir os 3 acima. Pré-calcular ou cachear respostas. Garantir que o launcher sobe em < 5 min.
+### 2. Pode vender?
 
----
+**Nao.**
 
-## 2. PODE VENDER?
+Motivo: the local engineering gate is fixed, but commercial continuity is still missing: no off-disk remote/CI, runtime still depends on local model/binary/env, stale runtime docs/config remain, and the neural claim is stronger than the default runtime implementation.
 
-**NÃO.** 🔴
+### 3. O que falta em no maximo 3 itens?
 
-Antes de aceitar dinheiro:
+1. **Create delivery safety:** new off-disk backup/remote + CI + documented cold-start demo path with secrets protected.
+2. **Align truth with runtime:** update stale Gemma/Qwen docs/config and either integrate `PriceMLP/PriceTorchMLP` into the default path or stop claiming active dynamic neural prediction.
+3. **Harden the demo path:** prove `desktop/SuperEzio.bat` cold-start, run `/task/submit` to `STREAM_END`, and record latency before any external demo.
 
-| Bloqueador | Detalhe |
-|-----------|---------|
-| **Bug proxy_reward** | `formulas.py` retorna 0.0 para `ProxyReward.calculate()` sem ground truth. Isso afeta o motor de decisão F51. |
-| **Sem backup** | GitHub remoto deletado. Se o disco falhar, o projeto desaparece. |
-| **CI quebrado** | GitHub Actions não funciona. Sem CI, não há garantia de que mudanças não quebram o sistema. |
-| **API keys plaintext** | 12+ chaves no `.env` sem criptografia. Risco de vazamento. |
-| **NeuralDecisionExpert documentado como ML, mas é rule-based** | O documento de arquitetura promete LSTM; o código é heurística. Vender como "AI/ML" quando é rule-based é risco legal e reputacional. |
+## Evidence
 
----
+| Check | Result |
+|---|---|
+| `GET http://127.0.0.1:8002/health` | 200 |
+| `GET http://127.0.0.1:8002/product/manifest` | 200 |
+| `GET http://127.0.0.1:8002/capabilities` | 200 |
+| `GET http://127.0.0.1:8082/health` | 200 |
+| `GET http://127.0.0.1:8082/v1/models` | 200 |
+| `python -m pytest -q` | 635 passed, 5 warnings |
+| `python -m ruff check src tests` | PASS |
+| `python -m ruff format src tests --check` | PASS, 196 files already formatted |
+| `git diff --check` | PASS |
+| `.f51/cache/collector/*.json` | untracked from Git index; files remain on disk |
 
-## 3. O QUE FALTA (MÁXIMO 3 ITENS)
+## Blockers
 
-### Item 1: Corrigir bug proxy_reward (1 linha)
-```python
-# formulas.py:109-133 — adicionar parênteses:
-total = (
-    0.3 * clamp(consensus)
-    + 0.4 * clamp(critic)
-    + 0.2 * clamp(sanity)
-    - 0.1 * clamp(diversity_penalty)
-) + (0.2 * clamp(ground_truth_bonus) if has_ground_truth else 0.0)
-```
-**Impacto:** F51Engine, AdversarialCritic e ProxyReward voltam a funcionar corretamente.
+| Severity | Blocker | Why it matters |
+|---|---|---|
+| HIGH | No remote/CI | Disk-only is not commercial continuity |
+| HIGH | Neural claim mismatch | Legal/reputation risk if sold as active ML predictor |
+| MEDIUM | Config spread | Demo can break on a clean/cold setup |
+| MEDIUM | Local binaries/model required | Not reproducible from Git alone |
+| MEDIUM | Cold-start demo path not re-proved | A live demo can still fail from launcher/latency drift |
 
-### Item 2: Resolver latência do CEO (52s → < 10s)
-**Opções:**
-- Reduzir `max_tokens` de 16384 para 4096 (respostas mais curtas)
-- Reduzir `context_length` de 32768 para 16384
-- Usar `grok-fast` ou `deepseek-chat` como fallback rápido para demo
-- Cachear respostas frequentes
+## Resolved In This Pass
 
-### Item 3: Criar remote GitHub + CI funcional
-- Novo repositório no GitHub
-- Push do código atual
-- Reparar GitHub Actions (ddgs version, CI yaml)
-- Configurar secrets no GitHub (API keys não vão para o repositório)
+- Applied Ruff formatting to `src` and `tests`.
+- Re-ran Ruff lint successfully.
+- Re-ran Ruff format check successfully.
+- Re-ran the full Python test suite successfully.
+- Removed tracked collector cache files from the Git index without deleting them from disk.
 
----
+## What Works
 
-## 📊 EVIDÊNCIA ATUAL
+- FastAPI API is reachable.
+- Local Qwen CEO endpoint is reachable.
+- Product manifest and capabilities endpoints return 200.
+- Full Python test suite passes locally.
+- Ruff lint and format gates pass locally.
+- Local Git push is disabled, preventing accidental push to the deleted remote.
 
-| Indicador | Valor |
-|-----------|-------|
-| Pipeline live test | ✅ AAPL 14d → HOLD (completo) |
-| CEO health | ✅ :8082/health OK |
-| API health | ✅ :8002/health OK |
-| Contract tests | ✅ 158/158 |
-| Smoke tests | ✅ 20/20 |
-| Integration tests | 🟡 5/7 (2 endpoints 500) |
-| Total test files | 30 |
-| Total tests collected | 510 |
-| Endpoints funcionais | 6/8 (75%) |
-| Endpoints quebrados | 2/8 (25%) |
+## What Does Not Pass
 
----
+- Commercial sale gate.
+- Reproducible install gate.
+- Truth-in-marketing gate for the neural expert.
+- Off-disk continuity/CI gate.
 
-## 🚨 CLASSIFICAÇÃO DE RISCOS
+## Recommendation
 
-| Severidade | Qtd | Itens |
-|-----------|-----|-------|
-| **CRITICAL** | 1 | proxy_reward bug (R8) |
-| **HIGH** | 3 | Demo latency 52s, 2 endpoints 500, NeuralDecisionExpert doc vs código |
-| **MEDIUM** | 5 | Config espalhada (30+ os.getenv), load_dotenv escondido, sem GitHub, CI quebrado, neural_log silencia warnings |
-| **LOW** | 2 | .venv/.env duplicado, nomenclatura env var mista |
-
----
-
-## ✅ O QUE FUNCIONA (JÁ VALIDADO)
-
-- Pipeline LangGraph v4 completo: Orchestrator → DataCollector → F51Engine → Experts → NeuralDecision → RAG → CEO → Explanation
-- CEO Qwen3.6-35B local via llama.cpp com MTP speculative decoding
-- ProfessionalCollector: 8 providers, circuit breaker
-- A2A Protocol: SSE streaming, TASK.SUBMIT → STREAM_END
-- Dedup guards em todos os nós
-- F51Engine: VeracityGate, AdversarialCritic, formulas (exceto proxy_reward)
-- 158 contract tests, 20 smoke tests, 5 integration tests
-- Launcher .bat com healthcheck e wait loops
+Do a controlled internal demo only after a fresh `/task/submit` smoke. Do not sell or show as production-ready until the three missing items above are closed.

@@ -32,9 +32,7 @@ def _covar_simple(asset_var: float, correlation: float, market_vol: float) -> fl
     return correlation * asset_var
 
 
-def _pagerank_like(
-    matrix: np.ndarray, damping: float = 0.85, max_iter: int = 50
-) -> np.ndarray:
+def _pagerank_like(matrix: np.ndarray, damping: float = 0.85, max_iter: int = 50) -> np.ndarray:
     """PageRank em matriz de adjacência (colunas normalizadas)."""
     n = matrix.shape[0]
     if n == 0:
@@ -137,11 +135,7 @@ class NetworkContagionModel:
                     si = series[i]
                     sj = series[j]
                     min_len = min(len(si), len(sj))
-                    if (
-                        min_len > 1
-                        and np.std(si[-min_len:]) > 0
-                        and np.std(sj[-min_len:]) > 0
-                    ):
+                    if min_len > 1 and np.std(si[-min_len:]) > 0 and np.std(sj[-min_len:]) > 0:
                         c = float(np.corrcoef(si[-min_len:], sj[-min_len:])[0][1])
                     else:
                         c = 0.0
@@ -164,16 +158,12 @@ class NetworkContagionModel:
                 h = h_new
 
             debt_rank = float(np.sum(h))
-            network_density = (
-                float(np.sum(corr_matrix) - k) / (k * (k - 1)) if k > 1 else 0.0
-            )
+            network_density = float(np.sum(corr_matrix) - k) / (k * (k - 1)) if k > 1 else 0.0
 
         # ── 4. Score combinado ──────────────────────────────────────────────────
         # CoVaR negativo grande = sistema em risco quando ativo cai
         covar_score = max(0.0, min(1.0, -covar / 0.10))  # covar = -10% → score 1.0
-        debt_rank_score = max(
-            0.0, min(1.0, debt_rank / 0.30)
-        )  # debt_rank = 30% → score 1.0
+        debt_rank_score = max(0.0, min(1.0, debt_rank / 0.30))  # debt_rank = 30% → score 1.0
         density_score = max(0.0, min(1.0, network_density))
 
         score = 0.40 * covar_score + 0.40 * debt_rank_score + 0.20 * density_score

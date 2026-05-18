@@ -78,11 +78,7 @@ def _build_ohlcv(candles: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ohlcv: list[dict[str, Any]] = []
     for c in candles:
         t_raw = c.get("time", "")
-        t = (
-            int(t_raw)
-            if isinstance(t_raw, (int, float))
-            else _parse_candle_time(str(t_raw))
-        )
+        t = int(t_raw) if isinstance(t_raw, (int, float)) else _parse_candle_time(str(t_raw))
         ohlcv.append(
             {
                 "time": t,
@@ -116,7 +112,11 @@ async def get_chart_data(
 
     profile_result = hub.get_profile(clean_ticker)
     if "error" in profile_result:
-        logger.warning("Profile lookup failed for %s: %s", clean_ticker, profile_result.get("error"))
+        logger.warning(
+            "Profile lookup failed for %s: %s",
+            clean_ticker,
+            profile_result.get("error"),
+        )
         info: dict[str, Any] = {"name": clean_ticker}
     else:
         info = {
@@ -194,23 +194,25 @@ async def stream_chart_data(
                 break
 
             try:
-                result = await asyncio.to_thread(
-                    hub.get_candles, clean_ticker, timeframe=timeframe
-                )
+                result = await asyncio.to_thread(hub.get_candles, clean_ticker, timeframe=timeframe)
                 if "error" in result:
                     yield {
                         "event": "error",
                         "data": json.dumps(
                             {
                                 "ticker": clean_ticker,
-                                "detail": str(result.get("error") or result.get("attempts", "Unknown")),
+                                "detail": str(
+                                    result.get("error") or result.get("attempts", "Unknown")
+                                ),
                                 "timeframe": timeframe,
                             }
                         ),
                     }
                 else:
                     all_candles = _build_ohlcv(result.get("candles", []))
-                    ohlcv = all_candles[-max_points:] if len(all_candles) > max_points else all_candles
+                    ohlcv = (
+                        all_candles[-max_points:] if len(all_candles) > max_points else all_candles
+                    )
                     if not ohlcv:
                         yield {
                             "event": "error",
@@ -224,7 +226,9 @@ async def stream_chart_data(
                         }
                     else:
                         latest = ohlcv[-1]
-                        signature = f"{latest['time']}:{latest['close']}:{latest['volume']}:{len(ohlcv)}"
+                        signature = (
+                            f"{latest['time']}:{latest['close']}:{latest['volume']}:{len(ohlcv)}"
+                        )
 
                         if first_snapshot:
                             payload = {
@@ -473,9 +477,7 @@ def _should_include_chart_context(raw_message: str, detected_ticker: str) -> boo
 def _get_pipeline(request: Request):
     pipeline = getattr(request.app.state, "pipeline", None)
     if not pipeline:
-        raise HTTPException(
-            status_code=500, detail="Brain not initialized (Pipeline missing)"
-        )
+        raise HTTPException(status_code=500, detail="Brain not initialized (Pipeline missing)")
     return pipeline
 
 
@@ -485,18 +487,14 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
     logger.info("Received task: %s from %s", envelope.type, envelope.from_agent)
 
     if envelope.type != MessageType.TASK_SUBMIT:
-        raise HTTPException(
-            status_code=400, detail="Invalid message type for this endpoint"
-        )
+        raise HTTPException(status_code=400, detail="Invalid message type for this endpoint")
 
     pipeline = _get_pipeline(request)
 
     try:
         payload = envelope.payload if isinstance(envelope.payload, dict) else {}
         raw_message = (
-            payload.get("message")
-            or payload.get("task_description")
-            or str(envelope.payload or "")
+            payload.get("message") or payload.get("task_description") or str(envelope.payload or "")
         )
         if not isinstance(raw_message, str):
             raw_message = str(raw_message)
@@ -545,18 +543,13 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
 
         async def stream_result() -> AsyncGenerator[str, None]:
             if detected_ticker:
-                yield (
-                    json.dumps({"type": "CHART_DATA", "ticker": detected_ticker}) + "\n"
-                )
+                yield (json.dumps({"type": "CHART_DATA", "ticker": detected_ticker}) + "\n")
             yield json.dumps({"type": "STREAM_START", "msg_id": envelope.msg_id}) + "\n"
 
             try:
                 if block_vague_financial:
                     yield (
-                        json.dumps(
-                            {"type": "CHUNK", "content": VAGUE_FINANCIAL_RESPONSE}
-                        )
-                        + "\n"
+                        json.dumps({"type": "CHUNK", "content": VAGUE_FINANCIAL_RESPONSE}) + "\n"
                     )
                     yield json.dumps({"type": "STREAM_END"}) + "\n"
                     return
@@ -599,25 +592,18 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                                 try:
                                     event = json.loads(raw_chunk)
                                     if event.get("type") in {"CHART_DATA"}:
-                                        yield (
-                                            json.dumps(event, ensure_ascii=False) + "\n"
-                                        )
+                                        yield (json.dumps(event, ensure_ascii=False) + "\n")
                                         continue
                                 except json.JSONDecodeError:
                                     pass
                         yield (
-                            json.dumps(
-                                {"type": "CHUNK", "content": chunk}, ensure_ascii=False
-                            )
+                            json.dumps({"type": "CHUNK", "content": chunk}, ensure_ascii=False)
                             + "\n"
                         )
 
                 yield json.dumps({"type": "STREAM_END"}) + "\n"
             except Exception as exc:
-                yield (
-                    json.dumps({"type": "ERROR", "detail": _safe_error_detail(exc)})
-                    + "\n"
-                )
+                yield (json.dumps({"type": "ERROR", "detail": _safe_error_detail(exc)}) + "\n")
                 yield json.dumps({"type": "STREAM_END"}) + "\n"
 
         return StreamingResponse(stream_result(), media_type="application/x-ndjson")
@@ -678,8 +664,8 @@ async def predict_neural_decision(payload: dict) -> dict:
                 "error": result["error"],
                 "validation_errors": result.get("validation_errors", []),
                 "recommendation": result.get("recommendation"),
-                "veto": result.get("veto")
-            }
+                "veto": result.get("veto"),
+            },
         )
 
     return result

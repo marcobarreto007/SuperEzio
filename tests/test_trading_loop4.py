@@ -145,9 +145,7 @@ class TestExpertWeightRouterDecay:
     def test_decay_respects_min(self):
         from core.trading.expert_weights import ExpertWeightRouter
 
-        router = ExpertWeightRouter(
-            decay_factor=0.5, min_weight=0.1, initial_weight=0.2
-        )
+        router = ExpertWeightRouter(decay_factor=0.5, min_weight=0.1, initial_weight=0.2)
         router.record_call("pennylab", confidence=0.8, correct=False)
         router.decay_all()
         router.decay_all()

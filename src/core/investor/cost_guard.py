@@ -3,9 +3,7 @@ from typing import Any
 
 
 class CostGuard:
-    def __init__(
-        self, daily_budget_usd: float = 10.0, max_runs_per_day: int = 50
-    ) -> None:
+    def __init__(self, daily_budget_usd: float = 10.0, max_runs_per_day: int = 50) -> None:
         self.daily_budget_usd: float = daily_budget_usd
         self.max_runs_per_day: int = max_runs_per_day
         self._cost_today_usd: float = 0.0
@@ -32,9 +30,7 @@ class CostGuard:
             "max_runs_per_day": self.max_runs_per_day,
             "cost_today_usd": round(self._cost_today_usd, 6),
             "runs_today": self._runs_today,
-            "budget_remaining_usd": round(
-                self.daily_budget_usd - self._cost_today_usd, 6
-            ),
+            "budget_remaining_usd": round(self.daily_budget_usd - self._cost_today_usd, 6),
             "runs_remaining": max(0, self.max_runs_per_day - self._runs_today),
         }
 

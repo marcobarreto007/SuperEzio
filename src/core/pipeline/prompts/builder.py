@@ -41,15 +41,11 @@ def _ceo_assistant_prefix(state: PipelineState) -> str:
             "Based on collected data:\n"
         )
     if ticker:
-        return (
-            "VERDICT: "
-        )
+        return "VERDICT: "
     has_data = bool(ticker or state.get("data_context") or state.get("expert_summary"))
     if intent == "general_question" and not has_data:
         return ""
-    return (
-        "## Analysis\n\n"
-    )
+    return "## Analysis\n\n"
 
 
 # ---------------------------------------------------------------------------
@@ -92,12 +88,12 @@ def _required_module_presence(state: PipelineState) -> dict[str, bool]:
         "sentiment": _has("sentiment"),
         "reddit": _has("reddit"),
         "pennylab": bool(
-            (state.get("pennylab") or state.get("pennylab_result") or {}).get(
-                "decision"
-            )
+            (state.get("pennylab") or state.get("pennylab_result") or {}).get("decision")
         ),
         "experts": bool(state.get("expert_summary")),
-        "neural": bool(state.get("neural_decision") and "error" not in state.get("neural_decision", {})),
+        "neural": bool(
+            state.get("neural_decision") and "error" not in state.get("neural_decision", {})
+        ),
         "f51": bool(state.get("f51_verdict")),
         "rag_forensics": bool(state.get("rag_context")),
     }
@@ -109,9 +105,7 @@ def _render_module_contract(state: PipelineState) -> str:
     available = [name for name, ok in presence.items() if ok]
     if not available:
         return ""
-    checklist = "\n".join(
-        f"- {name}: AVAILABLE (must be referenced)" for name in available
-    )
+    checklist = "\n".join(f"- {name}: AVAILABLE (must be referenced)" for name in available)
     sections = "\n".join(f"- SECTION [{name.upper()}]" for name in available)
     return (
         "[MANDATORY_MODULE_COVERAGE]\n"
@@ -124,9 +118,7 @@ def _render_module_contract(state: PipelineState) -> str:
     )
 
 
-def _evaluate_module_coverage(
-    text: str, state: PipelineState
-) -> tuple[list[str], list[str]]:
+def _evaluate_module_coverage(text: str, state: PipelineState) -> tuple[list[str], list[str]]:
     """Return (required_modules, missing_modules) for CEO output."""
     presence = _required_module_presence(state)
     required = [name for name, ok in presence.items() if ok]
@@ -229,11 +221,7 @@ def build_ceo_prompt(
         ticker
         or state.get("data_context")
         or state.get("expert_summary")
-        or bool(
-            (state.get("pennylab") or state.get("pennylab_result") or {}).get(
-                "decision"
-            )
-        )
+        or bool((state.get("pennylab") or state.get("pennylab_result") or {}).get("decision"))
     )
     msg_has_ticker = bool(re.search(r"\b[A-Z]{1,5}(?:\.[A-Z]{1,2})?\b", raw_message))
     msg_has_fin = bool(
@@ -338,9 +326,7 @@ def build_ceo_prompt(
     if data_ctx:
         parts.append(f"DATA:\n{data_ctx[:1500]}")
     elif route == "ticker_analysis":
-        parts.append(
-            "DATA:\nNo DataCollector evidence. Do not invent prices or fundamentals."
-        )
+        parts.append("DATA:\nNo DataCollector evidence. Do not invent prices or fundamentals.")
 
     rag_ctx = state.get("rag_context", "")
     if rag_ctx:

@@ -1,57 +1,87 @@
-# DELIVERY CHECKLIST — SuperEzio v4.0.0
-**Date:** 2026-05-17T16:30:00-04:00 | **Auditor:** F51 Hostile Auditor
+# DELIVERY CHECKLIST - SuperEzio v4.0.0
 
----
+**Date:** 2026-05-17T22:05:49-04:00
+**Mode:** local disk only
+**Purpose:** minimum checklist before demo, release, and sale.
 
-## 🔴 Bloqueadores (CRITICAL — devem ser resolvidos antes de demo/venda)
+## Current Gate
 
-- [ ] **C1 — proxy_reward bug**: `formulas.py:109-133` ternário engole fórmula. `ProxyReward.calculate()` retorna 0.0 sem ground truth. Afeta F51Engine, AdversarialCritic. **Fix: 1 linha — adicionar parênteses no ternário.**
-- [ ] **C2 — Endpoints 500**: `/capabilities` e `/product/manifest` retornam Internal Server Error.
-- [ ] **C3 — Demo latency**: CEO responde em 52s. Pipeline completo ~2min. Inviável para demo ao vivo. Opções: (a) pré-calcular respostas, (b) reduzir context length, (c) usar modelo menor para demo.
+| Gate | Status | Evidence |
+|---|---:|---|
+| Local API health | PASS | `GET :8002/health` -> 200 |
+| Local CEO health | PASS | `GET :8082/health` -> 200 |
+| Product manifest | PASS | `GET :8002/product/manifest` -> 200 |
+| Capabilities | PASS | `GET :8002/capabilities` -> 200 |
+| CEO model listing | PASS | `GET :8082/v1/models` -> 200 |
+| Full tests | PASS | `635 passed, 5 warnings` |
+| Ruff lint | PASS | `python -m ruff check src tests` |
+| Ruff format | PASS | `python -m ruff format src tests --check` |
+| Diff whitespace | PASS | `git diff --check` after report refresh |
+| GitHub remote | FAIL | remote repository deleted; local push disabled |
+| Dirty tracked cache | PASS | collector cache removed from Git index; files remain on disk |
 
----
+## Demo Checklist
 
-## 🟡 Pré-Demo (devem ser resolvidos antes de mostrar para alguém)
+- [x] API server responds on `http://127.0.0.1:8002/health`.
+- [x] CEO server responds on `http://127.0.0.1:8082/health`.
+- [x] `/product/manifest` returns 200.
+- [x] `/capabilities` returns 200.
+- [x] Full tests pass locally.
+- [ ] Run one scripted `/task/submit` demo request immediately before showing the system.
+- [ ] Confirm end-to-end latency for that exact demo script.
+- [ ] Confirm `desktop/SuperEzio.bat` starts CEO + API from a cold state.
+- [ ] Prepare a fallback demo path if CEO generation takes too long.
+- [ ] Keep `.env`, keys, and browser tabs with private material off-screen.
 
-- [ ] **D1 — .env.example vs .env**: Clone fresco não tem `.env`. Demo tem que prover `.env.example` funcional ou script que gera `.env` mínimo.
-- [ ] **D2 — NeuralDecisionExpert documentação vs realidade**: `NEURAL_EXPERT_ARCHITECTURE.md` promete LSTM treinado on-the-fly. Código real é rule-based com probabilidades hardcoded. Alinhar documento ou implementar ML real.
-- [ ] **D3 — Launcher testado**: `desktop/SuperEzio.bat` não foi testado nesta auditoria (servidores iniciados manualmente). Testar duplo clique e confirmar que sobe em < 5 min.
-- [ ] **D4 — DeepSeek API key**: Demo requer `DEEPSEEK_API_KEY` no `.env`. Sem ela, experts não respondem e pipeline fica incompleto.
+## Release Checklist
 
----
+- [x] Fix Ruff lint errors in `src` and `tests`.
+- [x] Run `python -m ruff format src tests` or apply equivalent formatting and re-run `--check`.
+- [x] Resolve tracked `.f51/cache/collector/*.json` cache files: untrack them or explicitly justify them.
+- [ ] Update stale Gemma/Qwen documentation and metadata:
+  - `pyproject.toml`
+  - `scripts/finetune_gemma_sft.py`
+  - `scripts/vastai_setup_gemma.sh`
+  - `scripts/generate_system_knowledge_sft.py`
+  - `.f51/RISK_REGISTER.md`
+- [ ] Decide the neural truth:
+  - either promote `PriceTorchMLP`/`PriceMLP` into the default runtime path,
+  - or rewrite neural documentation and sales language as rule/regime gating.
+- [ ] Centralize env/config documentation into one canonical runbook.
+- [x] Re-run:
+  - `python -m pytest -q`
+  - `python -m ruff check src tests`
+  - `python -m ruff format src tests --check`
+  - `git diff --check`
 
-## 🟢 Pré-Venda (antes de aceitar dinheiro)
+## Sale Checklist
 
-- [ ] **V1 — GitHub remoto**: Repositório GitHub deletado. Criar novo remote ou backup alternativo.
-- [ ] **V2 — CI funcional**: GitHub Actions quebrado (ddgs version, CI yaml). Reparar ou substituir.
-- [ ] **V3 — API keys seguras**: `.env` com 12+ API keys em plaintext no disco. Sem criptografia. Aceitável para máquina local, mas documentar risco.
-- [ ] **V4 — Startup automático**: Confirmar que `SuperEzio.bat` sobe CEO + API sem intervenção manual.
-- [ ] **V5 — Testes completos passing**: `python -m pytest tests/ -q` com 0 falhas.
+- [ ] Create a new remote backup/repository or another off-disk backup strategy.
+- [ ] Restore CI on the new remote with the same gates used locally.
+- [ ] Rotate and document API keys before any screen share, investor demo, or customer handoff.
+- [ ] Produce a reproducible setup path for:
+  - Python environment
+  - llama.cpp server binary
+  - Qwen GGUF model
+  - `.env` template
+  - provider keys
+- [ ] Add a product disclaimer and scope boundary: analysis aid, not investment advisor.
+- [ ] Replace or clearly label mock/heuristic neural probabilities.
 
----
+## No-Go Conditions
 
-## ⚙️ Pós-Venda (manutenibilidade)
+Do not demo to a prospect if any of these are true:
 
-- [ ] Consolidar `os.getenv()` espalhados em 30+ arquivos em config central.
-- [ ] Remover `load_dotenv()` de dentro de função em `pipeline_hook.py`.
-- [ ] Atualizar `INVENTORY.json` (ainda referencia Gemma-4-26B).
-- [ ] `test_rag_engine_smoke.py` — converter de script print para teste pytest real.
-- [ ] `neural_log.py:31` — `warnings.filterwarnings("ignore", category=DeprecationWarning)` silencia warnings globalmente. Restringir escopo.
-- [ ] Remover `.venv/.env` duplicado.
+- CEO/API health is red.
+- `/task/submit` does not reach `STREAM_END`.
+- Response latency is unknown.
+- `.env` or private keys are visible.
+- The pitch claims "trained neural predictor" while default runtime uses `NeuralDecisionExpert` heuristics.
 
----
+Do not sell if any of these are true:
 
-## 📊 Quality Gate Status (2026-05-17)
-
-| Check | Status | Evidência |
-|---|---|---|
-| **ruff check** | ✅ PASS | Zero novos erros |
-| **ruff format** | ✅ PASS | Formatação correta |
-| **pytest contracts** | ✅ PASS | 158/158 |
-| **pytest smoke** | ✅ PASS | 20/20 |
-| **pytest integration** | 🟡 5/7 | 2 endpoints 500 |
-| **pipeline live** | ✅ PASS | AAPL 14d → HOLD |
-| **CEO live** | ✅ PASS | :8082/health OK |
-| **API live** | ✅ PASS | :8002/health OK |
-| **launcher .bat** | ❌ NÃO TESTADO | — |
-| **GitHub Actions** | ❌ QUEBRADO | ddgs version, CI yaml |
+- No off-disk backup.
+- No CI/release gate.
+- Lint/format gate red.
+- Runtime requires undocumented local binaries/models.
+- Product claims exceed code evidence.

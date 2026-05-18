@@ -157,9 +157,7 @@ class NewsAPIProvider:
                 timeout=10,
             )
             if resp.status_code != 200:
-                error_msg = (
-                    resp.json().get("message", resp.text) if resp.text else "unknown"
-                )
+                error_msg = resp.json().get("message", resp.text) if resp.text else "unknown"
                 logger.warning("[NewsAPI] HTTP %s: %s", resp.status_code, error_msg)
                 return []
 
@@ -250,9 +248,7 @@ class NewsAPIProvider:
 
         return {
             "sentiment_score": avg,
-            "sentiment_label": "BULLISH"
-            if avg > 0.1
-            else ("BEARISH" if avg < -0.1 else "NEUTRAL"),
+            "sentiment_label": "BULLISH" if avg > 0.1 else ("BEARISH" if avg < -0.1 else "NEUTRAL"),
             "positive_articles": pos_count,
             "negative_articles": neg_count,
             "total_articles": len(news),
