@@ -18,12 +18,12 @@ _SRC = Path(__file__).resolve().parent.parent
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
-from core.config import get_config
-from core.config.secrets import load_local_env
-from core.observability import log_queue, metrics
-from core.paths import PROJECT_ROOT
+from core.config import get_config  # noqa: E402
+from core.config.secrets import load_local_env  # noqa: E402
+from core.observability import log_queue, metrics  # noqa: E402
+from core.paths import PROJECT_ROOT  # noqa: E402
 
-from .endpoints import router as a2a_router
+from .endpoints import router as a2a_router  # noqa: E402
 
 # Load local environment before reading runtime configuration.
 # Priority: OS env > .env.local > .env

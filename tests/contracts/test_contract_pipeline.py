@@ -1,5 +1,4 @@
 """Contract tests for PipelineState + Pydantic node I/O models."""
-import pytest
 from src.core.pipeline.contracts import (
     PipelineState,
     IntentResult,

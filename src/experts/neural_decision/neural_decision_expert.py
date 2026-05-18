@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 
 class FeatureContractValidator:
@@ -20,7 +20,7 @@ class FeatureContractValidator:
         try:
             with open(contract_path, "r", encoding="utf-8") as f:
                 self.contract = json.load(f)
-        except Exception as exc:
+        except Exception:
             # Fallback inline contract if file loading fails (e.g. tests running in isolation)
             self.contract = {
                 "required_features": {

@@ -9,10 +9,8 @@ from src.f51.formulas import (
     heuristic_uncertainty,
     decision_threshold,
     expand_budget,
-    clamp,
-    sigmoid,
 )
-from src.f51.gates import VeracityGate, AdversarialCritic, ProxyReward, VeracityResult, CriticResult
+from src.f51.gates import VeracityGate, AdversarialCritic, ProxyReward, CriticResult
 
 
 # ---------------------------------------------------------------------------

@@ -1,5 +1,4 @@
 """Contract tests for CEO prompt builder invariants."""
-import pytest
 from src.core.pipeline.prompts.builder import (
     build_ceo_prompt,
     ceo_system_prompt,

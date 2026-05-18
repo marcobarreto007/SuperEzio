@@ -90,7 +90,7 @@ def test_task_submit_casual(servers_running):
     resp = urllib.request.urlopen(req, timeout=180)
     body = resp.read().decode("utf-8")
     # SSE stream — should produce multiple lines
-    lines = [l for l in body.strip().split("\n") if l.strip()]
+    lines = [line for line in body.strip().split("\n") if line.strip()]
     assert len(lines) >= 3, f"Expected at least 3 SSE lines, got {len(lines)}"
     types = []
     for line in lines:
@@ -123,7 +123,7 @@ def test_task_submit_ticker_analysis(servers_running):
     )
     resp = urllib.request.urlopen(req, timeout=300)
     body = resp.read().decode("utf-8")
-    lines = [l for l in body.strip().split("\n") if l.strip()]
+    lines = [line for line in body.strip().split("\n") if line.strip()]
     assert len(lines) >= 10, f"Expected at least 10 SSE lines, got {len(lines)}"
 
     types = set()
