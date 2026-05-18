@@ -1,5 +1,18 @@
 # SuperEzio — F51 Bootstrap Operational Layer
 
+## REGRA CRITICA: GITHUB BLOQUEADO
+
+Fonte mandataria: `.f51/GITHUB_POLICY.json`
+
+Este projeto esta em modo **DISK ONLY**.
+
+Regra clara:
+- NUNCA usar GitHub neste projeto.
+- NUNCA executar `git push`, `git pull`, `git fetch` ou `gh`.
+- NUNCA usar GitHub Actions, pull requests, GitHub API, conector GitHub ou MCP GitHub.
+- Commits locais sao permitidos quando Marco pedir para salvar, mas sem push.
+- Se uma tarefa exigir GitHub, parar e reportar bloqueio.
+
 ## Missão do projeto
 
 Transformar o ecossistema F51 em entrega previsível: decisões auditáveis, runtime estável, testes determinísticos, e execução orientada a receita sem dispersão técnica.

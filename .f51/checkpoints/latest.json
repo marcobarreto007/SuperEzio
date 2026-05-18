@@ -1,40 +1,24 @@
 {
-  "date_local": "2026-05-18T10:02:21-04:00",
-  "session": "f51-chart-browser-runtime-test",
-  "status": "CHART_RUNTIME_PASS_LOCAL_READY",
+  "date_local": "2026-05-18T19:15:09-04:00",
+  "session": "f51-no-github-policy",
+  "status": "DISK_ONLY_GITHUB_HARD_BLOCK_RECORDED",
   "what_was_done": [
-    "Started and verified the local Qwen CEO runtime on port 8082 using scripts\\serve_ceo_llamacpp.ps1.",
-    "Restarted the API on port 8002 with .venv Python, PYTHONPATH=src, and SUPEREZIO_EDGE_AUTH=false.",
-    "Loaded the frontend in a real Playwright browser session at http://127.0.0.1:8002/.",
-    "Loaded the AAPL 6M chart through the frontend ticker box and confirmed /api/chart-data/AAPL?timeframe=6M returned 200.",
-    "Submitted a natural-language chart question from the UI with chart_context attached.",
-    "Confirmed the backend stream returned DATA_COLLECTED, F51_VERDICT, six EXPERT_STARTED events, six EXPERT_DONE events, NEURAL_DECISION, CEO CHUNK, explanation, graph completed, and STREAM_END.",
-    "Fixed graph ordering so collect_experts runs after F51 verdict and PennyLab, removing the early experts-skipped race before CEO generation.",
-    "Fixed the frontend Experts card badge so the chart UI reports the real six expert roles as 6/6.",
-    "Ran full pytest and Ruff gates after the browser retest."
+    "Created .f51/GITHUB_POLICY.json as the canonical JSON rule that forbids GitHub for this project.",
+    "Added a visible GITHUB BLOQUEADO section near the top of AGENTS.md.",
+    "Added a visible GITHUB BLOQUEADO section near the top of CLAUDE.md.",
+    "Added a visible GITHUB BLOQUEADO section near the top of .f51/PROJECT_RULES.md.",
+    "Recorded that local commits are allowed when Marco asks to save work, but push/pull/fetch/gh/GitHub Actions/GitHub API/GitHub connector are forbidden."
   ],
   "evidence": [
-    "GET http://127.0.0.1:8002/health -> 200.",
-    "GET http://127.0.0.1:8002/health/details -> local_models.ceo.reachable=true, gpu.status=ok.",
-    "GET http://127.0.0.1:8082/v1/models -> qwen36-35b-f51.Q4_K_M.gguf.",
-    "Playwright chart request -> GET /api/chart-data/AAPL?timeframe=6M => 200 OK.",
-    "Playwright task request -> POST /task/submit => 200 OK, duration 67802ms, mimeType application/x-ndjson.",
-    "Request body contained ticker=AAPL and chart_context with Candles=100, Price=300.23, RSI(14)=74.45, SMA20=281.5465, SMA50=266.1892, EMA20=283.7553, MACD=9.4521, and BB Upper/Lower.",
-    "Response run_id=fdee072fdca8 emitted F51_VERDICT confidence=0.965.",
-    "Response emitted EXPERT_STARTED for fundamental, technical, risk, macro, quant, sentiment.",
-    "Response emitted EXPERT_DONE for six roles and PIPELINE_STEP experts completed with completed=6 failed=0.",
-    "Response emitted NEURAL_DECISION and STREAM_END.",
-    "Browser snapshot showed F51 Verdict PASS and Experts 6/6.",
-    "CEO answer included SECTION [EXPERTS] and SECTION [F51] instead of 'No expert analysis triggered'.",
-    "python -m pytest -q -> 639 passed, 7 warnings in 229.29s.",
-    "python -m ruff check src tests -> All checks passed.",
-    "python -m ruff format src tests --check -> 198 files already formatted.",
-    "git diff --check -> passed."
+    ".f51/GITHUB_POLICY.json contains policy_name=F51_NO_GITHUB_DISK_ONLY, status=active, severity=hard_block, current_mode=disk_only.",
+    ".f51/GITHUB_POLICY.json forbids git push, git pull, git fetch, gh, GitHub Actions, PRs, GitHub web/API/connector/MCP.",
+    "AGENTS.md, CLAUDE.md, and .f51/PROJECT_RULES.md now point to .f51/GITHUB_POLICY.json.",
+    "No GitHub command was executed."
   ],
   "risks": [
-    "The chart flow works locally, but CEO generation still took about 68s for this AAPL request.",
-    "No push was executed because the project is currently disk-only and GitHub remote policy is blocked.",
-    "Untracked local files exist outside this patch: .playwright-cli captures, data/intent_fewshot.jsonl, data/intent_training.jsonl, and scripts/generate_intent_dataset.py."
+    "This is a written operational rule, not an OS-level network block.",
+    "Existing local Git remote may still be configured; agents must obey .f51/GITHUB_POLICY.json and avoid all GitHub actions.",
+    "There are unrelated local untracked/modified files outside this policy patch."
   ],
-  "next_step": "Run one cold launcher demo smoke before any external demonstration."
+  "next_step": "If stronger enforcement is needed, add a local pre-push hook that blocks pushes without touching GitHub."
 }

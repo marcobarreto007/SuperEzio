@@ -1,0 +1,44 @@
+{
+  "policy_name": "F51_NO_GITHUB_DISK_ONLY",
+  "version": "1.0",
+  "status": "active",
+  "severity": "hard_block",
+  "date_local": "2026-05-18T19:15:09-04:00",
+  "current_mode": "disk_only",
+  "core_rule": "Never use GitHub for this project. Work only on the local disk unless Marco explicitly replaces this policy in a checkpoint.",
+  "allowed": [
+    "Read and write local files on disk",
+    "Run local tests and local runtime checks",
+    "Create local git commits when Marco asks to save work",
+    "Use local backups outside GitHub if explicitly approved"
+  ],
+  "forbidden": [
+    "Do not push to GitHub",
+    "Do not pull from GitHub",
+    "Do not fetch from GitHub",
+    "Do not open pull requests",
+    "Do not use GitHub Actions as a delivery gate",
+    "Do not use gh CLI for this project",
+    "Do not use GitHub web, API, connector, or MCP for this project",
+    "Do not recreate or reconnect a GitHub remote without an explicit new Marco checkpoint"
+  ],
+  "forbidden_commands": [
+    "git push",
+    "git pull",
+    "git fetch",
+    "gh",
+    "gh pr",
+    "gh repo",
+    "gh workflow",
+    "gh run",
+    "git remote add origin",
+    "git remote set-url origin"
+  ],
+  "agent_instruction": "Before any delivery action, read this file. If an action touches GitHub, stop and report that GitHub is forbidden by F51_NO_GITHUB_DISK_ONLY.",
+  "override_policy": {
+    "automatic_override_allowed": false,
+    "operator_required": "Marco Barreto",
+    "minimum_override_artifact": ".f51/checkpoints/latest.json",
+    "override_note": "A normal chat message is not enough unless it clearly says to replace this no-GitHub policy and records a new checkpoint."
+  }
+}

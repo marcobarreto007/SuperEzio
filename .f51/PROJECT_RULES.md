@@ -1,5 +1,18 @@
 # F51 Project Rules
 
+## REGRA CRITICA: GITHUB BLOQUEADO
+
+Fonte mandataria: `.f51/GITHUB_POLICY.json`
+
+Este projeto esta em modo **DISK ONLY**.
+
+Regra clara:
+- NUNCA usar GitHub neste projeto.
+- NUNCA executar `git push`, `git pull`, `git fetch` ou `gh`.
+- NUNCA usar GitHub Actions, pull requests, GitHub API, conector GitHub ou MCP GitHub.
+- Commits locais sao permitidos quando Marco pedir para salvar, mas sem push.
+- Se uma tarefa exigir GitHub, parar e reportar bloqueio.
+
 ## Objetivo operacional
 
 Este projeto deve ser executado com trilhos de entrega, risco e checkpoint.
