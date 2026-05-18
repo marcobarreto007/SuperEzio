@@ -1,8 +1,17 @@
 {
-  "date_local": "2026-05-17T23:57:33-04:00",
-  "session": "f51-desktop-shortcut-audit",
+  "date_local": "2026-05-18T00:23:25-04:00",
+  "session": "f51-natural-language-tools-fix",
   "status": "LOCAL_ENGINEERING_PASS_SALE_FAIL_CONDITIONAL_DEMO",
   "what_was_done": [
+    "Reproduced the natural-language capability question against /task/submit.",
+    "Confirmed the previous capability answer used local CEO generation, took about 107s, and could be truncated.",
+    "Confirmed ticker analysis already ran the real toolchain: DataCollector, F51, expert committee, NeuralDecisionExpert, RAG forensics, CEO, and explanation.",
+    "Added deterministic capabilities_text() for explain_capabilities so natural-language tool/capability questions answer immediately without hallucinated tool calls.",
+    "Updated the frontend expert grid to match the six real backend expert roles: fundamental, technical, risk, macro, quant, sentiment.",
+    "Restarted the API on port 8002 using .venv Python and kept the local Qwen CEO on port 8082.",
+    "Verified natural-language capability smoke returns 200, complete CHUNK, provider=deterministic, STREAM_END, elapsed 0.03s.",
+    "Verified ticker analysis smoke returns 200, DATA_COLLECTED, F51_VERDICT, six EXPERT_DONE roles, NEURAL_DECISION, RAG completion, CEO CHUNK, and STREAM_END.",
+    "Ran Ruff gates, targeted integration tests, and the full pytest suite.",
     "Audited the Desktop SuperEzio shortcut and launcher target.",
     "Confirmed C:\\Users\\marco\\Desktop\\SuperEzio.lnk points to C:\\Users\\marco\\Desktop\\SuperEzio\\desktop\\SuperEzio.bat with working directory C:\\Users\\marco\\Desktop\\SuperEzio.",
     "Ran launcher check mode with SUPEREZIO_LAUNCHER_CHECK=1 and SUPEREZIO_NO_BROWSER=1.",
@@ -19,6 +28,14 @@
     "Updated docs/architecture/FINAL_AUDIT.md, docs/runbooks/DELIVERY_CHECKLIST.md, and .f51/RELEASE_READINESS.md."
   ],
   "evidence": [
+    "Before fix: natural-language capability smoke -> 200, STREAM_END, but CEO generation took 106.49s and CHUNK was truncated after PriceMLP.",
+    "After fix: natural-language capability smoke -> 200, elapsed 0.03s, provider=deterministic, complete tools/modules answer, STREAM_END.",
+    "Ticker analysis smoke for AAPL -> 200, elapsed 107.22s, DATA_COLLECTED=True, F51_VERDICT=True, EXPERT_DONE roles=['macro','fundamental','risk','technical','sentiment','quant'], NEURAL_DECISION=True, RAG=True, STREAM_END=True.",
+    "python -m pytest tests\\contracts\\test_contract_ceo.py tests\\test_integration_runtime.py -q -> 38 passed in 187.04s.",
+    "python -m pytest -q -> 636 passed, 5 warnings in 244.97s.",
+    "python -m ruff check src tests -> All checks passed.",
+    "python -m ruff format src tests --check -> 196 files already formatted.",
+    "git diff --check -> passed.",
     "Desktop shortcut target -> C:\\Users\\marco\\Desktop\\SuperEzio\\desktop\\SuperEzio.bat.",
     "Desktop shortcut working directory -> C:\\Users\\marco\\Desktop\\SuperEzio.",
     "Launcher check mode -> [OK] Launcher checks passed.",
@@ -44,6 +61,8 @@
     "git remote -v -> origin still points to GitHub locally; no push was executed."
   ],
   "risks": [
+    "The local CEO can still take around 100s for full ticker analysis on Qwen; demo scripts need a timeout/latency expectation.",
+    "Frontend expert visibility was fixed by matching event roles, but a browser visual check is still needed to confirm the UI renders the six tiles correctly.",
     "Current live API process was not started by the shortcut; it is using global Python, while the shortcut would use .venv\\Scripts\\python.exe.",
     "The launcher kills existing listeners on ports 8002 and 8082 before starting fresh services, so clicking it during a live session restarts the stack.",
     "Not reproducible commercially: GitHub remote is deleted/no CI and local model/binary/env are required.",
@@ -52,5 +71,5 @@
     "Config and legacy model references are scattered across pyproject, scripts, docs, and .f51 operational files.",
     "Cold-start launcher and /task/submit STREAM_END smoke still need to be proved immediately before any external demo."
   ],
-  "next_step": "Create off-disk backup/remote plus CI, then align neural/runtime claims and prove the cold-start demo path."
+  "next_step": "Run a browser visual smoke for a natural-language capability question and an AAPL analysis to confirm the UI displays the deterministic answer and expert tiles."
 }
