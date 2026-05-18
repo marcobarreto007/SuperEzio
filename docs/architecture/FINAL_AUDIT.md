@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-17T22:05:49-04:00
 **Mode:** f51-audit + f51-release blocker fix, hostile production/commercial audit
-**Source of truth:** local disk only. GitHub push is disabled locally.
+**Source of truth:** local disk only. No GitHub push was executed.
 **Commit observed:** local working tree after engineering-gate repair
 
 ## Executive Verdict
@@ -27,7 +27,7 @@ Commercial readiness still fails because there is no off-disk remote/CI, product
 | Ruff format check | PASS | `python -m ruff format src tests --check` -> `196 files already formatted` |
 | Diff whitespace | PASS | `git diff --check` -> no errors after report refresh |
 | Tracked collector cache | PASS | `.f51/cache/collector/*.json` removed from Git index only; files remain on disk |
-| Push safety | PASS | `origin` push URL is `DISABLED_LOCAL_DISK_ONLY` |
+| Push safety | OPEN | `origin` still points to GitHub locally; do not push until the remote/backup policy is explicit |
 
 ## Findings
 

@@ -17,7 +17,7 @@
 | Ruff lint | PASS | `python -m ruff check src tests` |
 | Ruff format | PASS | `python -m ruff format src tests --check` |
 | Diff whitespace | PASS | `git diff --check` after report refresh |
-| GitHub remote | FAIL | remote repository deleted; local push disabled |
+| GitHub remote | FAIL | remote repository deleted/unsafe; `origin` still points to GitHub locally; no push executed |
 | Dirty tracked cache | PASS | collector cache removed from Git index; files remain on disk |
 
 ## Demo Checklist
@@ -57,6 +57,7 @@
 ## Sale Checklist
 
 - [ ] Create a new remote backup/repository or another off-disk backup strategy.
+- [ ] Decide push policy before any `git push`; current `origin` still points to GitHub locally.
 - [ ] Restore CI on the new remote with the same gates used locally.
 - [ ] Rotate and document API keys before any screen share, investor demo, or customer handoff.
 - [ ] Produce a reproducible setup path for:

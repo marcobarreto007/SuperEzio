@@ -22,10 +22,11 @@
     "python -m ruff format src tests --check -> 196 files already formatted.",
     "git diff --check -> passed.",
     "git rm --cached .f51/cache/collector/*.json -> cache untracked from Git index; files remain on disk.",
-    "origin push URL remains DISABLED_LOCAL_DISK_ONLY."
+    "git remote -v -> origin still points to GitHub locally; no push was executed."
   ],
   "risks": [
     "Not reproducible commercially: GitHub remote is deleted/no CI and local model/binary/env are required.",
+    "Push safety is not automatic: origin still points to GitHub locally, so do not push until the remote/backup policy is explicit.",
     "Neural marketing/runtime mismatch: active NeuralDecisionExpert is rule/regime heuristic while docs still reference dynamic neural prediction concepts.",
     "Config and legacy model references are scattered across pyproject, scripts, docs, and .f51 operational files.",
     "Cold-start launcher and /task/submit STREAM_END smoke still need to be proved immediately before any external demo."

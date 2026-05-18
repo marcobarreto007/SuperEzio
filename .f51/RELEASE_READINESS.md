@@ -38,6 +38,7 @@ Motivo: the local engineering gate is fixed, but commercial continuity is still 
 | `python -m ruff format src tests --check` | PASS, 196 files already formatted |
 | `git diff --check` | PASS |
 | `.f51/cache/collector/*.json` | untracked from Git index; files remain on disk |
+| `git remote -v` | origin still points to GitHub; no push was executed |
 
 ## Blockers
 
@@ -64,7 +65,8 @@ Motivo: the local engineering gate is fixed, but commercial continuity is still 
 - Product manifest and capabilities endpoints return 200.
 - Full Python test suite passes locally.
 - Ruff lint and format gates pass locally.
-- Local Git push is disabled, preventing accidental push to the deleted remote.
+- No GitHub push was executed in this pass.
+- `origin` still points to GitHub locally; do not push until a deliberate remote/backup decision is made.
 
 ## What Does Not Pass
 
@@ -72,6 +74,7 @@ Motivo: the local engineering gate is fixed, but commercial continuity is still 
 - Reproducible install gate.
 - Truth-in-marketing gate for the neural expert.
 - Off-disk continuity/CI gate.
+- Push-safety gate: remote policy must be decided before any push.
 
 ## Recommendation
 
