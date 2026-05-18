@@ -627,8 +627,6 @@ EDUCATIONAL_OR_RISK_CONTEXT_HINTS = (
     "what do you use",
     "quais riscos",
     "qual o risco",
-    "risco",
-    "riscos",
     "arbitragem",
     "alavancagem",
     "opcao",
@@ -746,8 +744,6 @@ SCAN_COMMAND_HINTS = (
     "me lista",
     "oportunidades",
     "opurtunidades",
-    "quero investir",
-    "onde investir",
 )
 
 TICKER_REQUIRED_ANALYSIS_HINTS = (

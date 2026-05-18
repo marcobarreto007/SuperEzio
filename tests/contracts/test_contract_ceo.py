@@ -17,6 +17,7 @@ from src.core.pipeline.prompts._prompts import (
     QWEN_PERSONA,
     MODEL_PROMPTS,
 )
+from src.core.pipeline.nodes.ceo import capabilities_text
 
 
 # ---------------------------------------------------------------------------
@@ -85,6 +86,17 @@ def test_build_ceo_prompt_explain_capabilities():
         or "capabilities" in prompt.lower()
         or "method" in prompt.lower()
     )
+
+
+def test_capabilities_text_lists_real_pipeline_tools():
+    text = capabilities_text()
+    assert "DataCollector" in text
+    assert "F51 gate" in text
+    assert "Expert committee" in text
+    assert "NeuralDecisionExpert" in text
+    assert "RAG forensics" in text
+    assert "CEO/Qwen" in text
+    assert "freely call tools by itself" in text
 
 
 def test_build_ceo_prompt_missing_ceo():

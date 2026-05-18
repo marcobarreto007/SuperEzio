@@ -1566,8 +1566,8 @@
       if (!grid) {
         const { card, body } = makeCard("Experts", "0/12", "info", "users");
         grid = el("div", "exp-grid");
-        const roles = ["fraud_hunter", "flow_analyst", "ruin_calculator", "sentiment_detective", "market_context", "dilution_scanner", "whale_tracker", "liquidity_scout", "hype_checker", "regulatory_radar", "valuation_skeptic", "survival_analyst"];
-        const names = ["Fraud", "Flow", "Ruin", "Sentiment", "Market", "Dilution", "Whale", "Liquidity", "Hype", "Reg", "Valuation", "Survival"];
+        const roles = ["fundamental", "technical", "risk", "macro", "quant", "sentiment"];
+        const names = ["Fund", "Tech", "Risk", "Macro", "Quant", "Sent"];
         roles.forEach((r, i) => {
           const t = el("div", "exp-tile"); t.id = "exp-" + r;
           t.innerHTML = `<span class="exp-dot"></span>${names[i]}`;
@@ -1575,7 +1575,7 @@
         });
         body.appendChild(grid);
         ceo.bubble.appendChild(card);
-        ceo._expertCount = 0; ceo._expertTotal = 12;
+        ceo._expertCount = 0; ceo._expertTotal = roles.length;
       }
       const tile = document.getElementById("exp-" + role);
       if (!tile) return;
@@ -1585,7 +1585,7 @@
       if (status === "ok" || status === "done") ceo._expertCount = (ceo._expertCount || 0) + 1;
       // Update badge
       const badge = ceo.bubble.querySelector(".card-badge--info");
-      if (badge) badge.textContent = `${ceo._expertCount || 0}/${ceo._expertTotal || 12}`;
+      if (badge) badge.textContent = `${ceo._expertCount || 0}/${ceo._expertTotal || 6}`;
     }
 
     // ── STREAM HANDLER ──

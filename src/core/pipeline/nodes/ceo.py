@@ -18,6 +18,27 @@ from ..security import sanitize_output
 CEO_PROVIDER_NAME = "ceo"
 
 
+def capabilities_text() -> str:
+    """Deterministic answer for natural-language capability/tool questions."""
+    return (
+        "I can answer natural-language questions, but SuperEzio is not a generic chat toy. "
+        "For market analysis, I use a deterministic pipeline before the CEO verdict.\n\n"
+        "Tools/modules I use:\n"
+        "- Orchestrator: classifies the request, ticker, horizon, and required route.\n"
+        "- DataCollector: collects price, fundamentals, technicals, news sentiment, social pulse, "
+        "macro context, quant data, and risk inputs.\n"
+        "- F51 gate: checks veracity, consensus, proxy reward, robustness, uncertainty, and danger.\n"
+        "- Expert committee: runs fundamental, technical, risk, macro, quant, and sentiment experts.\n"
+        "- NeuralDecisionExpert: estimates directional probability, expected return, drawdown risk, "
+        "uncertainty, and market regime.\n"
+        "- RAG forensics: compares the setup against historical manipulation and fraud patterns.\n"
+        "- CEO/Qwen: converts the evidence into a final BUY, SELL, or HOLD style verdict.\n\n"
+        "Important: I do not let the local Qwen model freely call tools by itself. "
+        "The application runs the tools first, then sends the verified evidence to the CEO. "
+        "That is deliberate: it prevents the model from inventing data or fake tool calls."
+    )
+
+
 def _strip_thinking(text: str) -> str:
     """Remove <think> blocks from model output."""
     if not text:
@@ -47,6 +68,31 @@ async def node_ceo(
     writer = get_stream_writer()
     run_id = state.get("run_id", "")
     mandamentos = mandamentos or []
+
+    if state.get("intent") == "explain_capabilities":
+        text = capabilities_text()
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "ceo_primary",
+                "status": "started",
+                "provider": "deterministic",
+                "local_ready": True,
+            }
+        )
+        writer({"type": "CHUNK", "content": text})
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "ceo_primary",
+                "status": "completed",
+                "provider": "deterministic",
+                "elapsed_ms": 0,
+            }
+        )
+        return {"final": text}
 
     if state.get("final"):
         writer(
