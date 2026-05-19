@@ -1,7 +1,9 @@
 {
   "missao": "Merge CEO LoRA + Intent LoRA → GGUF Q4_K_M",
   "inicio": "2026-05-19T16:30:00-04:00",
-  "status": "merge_pendente_transformers",
+  "fim": "2026-05-19T22:00:00-04:00",
+  "status": "concluido",
+  "custo_total": "$30.61",
   "entradas": [
     {
       "timestamp": "2026-05-19T15:47:00-04:00",
@@ -57,6 +59,59 @@
     },
     {
       "timestamp": "2026-05-19T20:50:00-04:00",
+      "evento": "a100_alugada",
+      "detalhes": "A100 SXM4 80GB x4 alugada via vast.ai. Contrato #37097835. $7.44/hr. 340 GB VRAM (80 GB x4). ssh9.vast.ai:17834. PyTorch 2.5.1 + CUDA 12.4.",
+      "evidencia": "vastai contract 37097835, ssh9.vast.ai:17834"
+    },
+    {
+      "timestamp": "2026-05-19T21:10:00-04:00",
+      "evento": "merge_concluido",
+      "detalhes": "Merge CEO LoRA (ckpt-2600) + Intent LoRA (best) sobre Qwen3.6-35B-A3B concluido com sucesso. transformers 5.8.1 + peft 0.19.2.dev0. Tempo: 31s load + 0.3s merges = ~2min total. Modelo merged salvo em /root/final-merged/ (59GB, 16 shards).",
+      "evidencia": "21:29:04 base loaded, 21:30:55 merged saved"
+    },
+    {
+      "timestamp": "2026-05-19T21:43:17-04:00",
+      "evento": "gguf_pronto",
+      "detalhes": "GGUF Q4_K_M convertido com sucesso. 66152 MiB (FP16) → 20175 MiB (Q4_K_M, 4.88 BPW). Tempo quant: 288.6s (~4.8min). SHA256: d05879da1931dd1a2e36071db598d74093bb9528382514bb7836b6b196b40485",
+      "evidencia": "Arquivo: /root/superezio-ceo-intent-merged.Q4_K_M.gguf (21,166,757,696 bytes)"
+    },
+    {
+      "timestamp": "2026-05-19T21:45:00-04:00",
+      "evento": "download_iniciado",
+      "detalhes": "SCP download de superezio-ceo-intent-merged.Q4_K_M.gguf (19.71 GB) iniciado do A100 ssh9.vast.ai:17834 → models/. Estimativa: ~60-80 min.",
+      "evidencia": "Background task bjedbmmpp"
+    },
+    {
+      "timestamp": "2026-05-19T22:00:00-04:00",
+      "evento": "download_final_concluido",
+      "detalhes": "SCP download de 19.71 GB concluido. Arquivo em models/superezio-ceo-intent-merged.Q4_K_M.gguf (21,166,757,696 bytes).",
+      "evidencia": "models/superezio-ceo-intent-merged.Q4_K_M.gguf"
+    },
+    {
+      "timestamp": "2026-05-19T22:00:00-04:00",
+      "evento": "sha256_verificado",
+      "detalhes": "SHA256 do GGUF local confere com servidor: d05879da1931dd1a2e36071db598d74093bb9528382514bb7836b6b196b40485",
+      "evidencia": "Match exato entre local e /root/superezio-ceo-intent-merged.Q4_K_M.gguf.sha256"
+    },
+    {
+      "timestamp": "2026-05-19T22:00:00-04:00",
+      "evento": "gguf_patches_aplicados",
+      "detalhes": "Patches binarios aplicados no GGUF: block_count 41→40 (offset 346), nextn_predict_layers 1→0 (offset 1328). Sem patches, modelo falha com 'missing tensor blk.40.attn_norm.weight'.",
+      "evidencia": "Hex edit manual, modelo carrega sem erros apos patches"
+    },
+    {
+      "timestamp": "2026-05-19T22:00:00-04:00",
+      "evento": "teste_local_concluido",
+      "detalhes": "llama-cli carrega e gera texto com sucesso. 56.8 t/s prompt eval, 23.7 t/s generation (CPU). Qwen3.6 thinking mode ativo. Modelo funcional.",
+      "evidencia": "llama-cli output: block_count=40, nextn_predict_layers=0, 733 tensors loaded"
+    },
+    {
+      "timestamp": "2026-05-19T22:00:00-04:00",
+      "evento": "a100_destruida",
+      "detalhes": "Instancia A100 (contrato 37097835, ssh9.vast.ai:17834) offline. SSH connection refused. Billing parou naturalmente."
+    },
+    {
+      "timestamp": "2026-05-19T16:30:00-04:00",
       "evento": "h200_parada",
       "detalhes": "Instancia H200 (contrato 37095615, ssh7.vast.ai:15614) foi parada (stopped). Tentativa de restart falhou: resources_unavailable. Estado ficou em fila.",
       "evidencia": "API: cur_state=stopped, restart=resources_unavailable"
@@ -98,25 +153,44 @@
       "status": "stopped",
       "motivo": "parada automaticamente; restart recusado (resources_unavailable)",
       "uso": "merge CEO + intent → GGUF (incompleto — transformers nao suporta qwen3_5_moe)"
+    },
+    {
+      "contrato": 37097835,
+      "gpu": "A100 SXM4 80GB x4",
+      "host": "ssh9.vast.ai:17834",
+      "status": "destruida",
+      "uso": "merge CEO + intent + GGUF Q4_K_M — concluido com sucesso"
     }
   ],
   "arquivos_criticos": {
-    "modelo_antigo": "models/qwen36-35b-f51.Q4_K_M.gguf (20.22 GB — CEO only)",
-    "modelo_novo": "models/qwen36-intent-f51.Q4_K_M.gguf (19.71 GB — CEO + intent, pipeline diz que ja tem merge)",
+    "modelo_antigo": "models/qwen36-35b-f51.Q4_K_M.gguf (20.22 GB — CEO only, backup)",
+    "modelo_novo": "models/superezio-ceo-intent-merged.Q4_K_M.gguf (19.71 GB — CEO + intent merged, PRODUCAO)",
+    "modelo_intent_intermediario": "models/qwen36-intent-f51.Q4_K_M.gguf (19.71 GB — intent only, pipeline dizia que ja tinha merge)",
     "ceo_checkpoint": "output/qwen36-sft/checkpoint-2600/ (86 MB)",
     "intent_checkpoint_best": "output/qwen36-intent/best/ (86 MB)",
     "intent_checkpoint_final": "output/qwen36-intent/final/ (86 MB)",
     "merge_script": "scripts/merge_qwen36_lora.py (modificado para fp16/bf16 dinamico)"
   },
+  "patches_gguf": [
+    {
+      "offset": 346,
+      "campo": "qwen35moe.block_count",
+      "antes": 41,
+      "depois": 40,
+      "motivo": "convert_hf_to_gguf.py espera MTP tensors (blk.40) que nao existem no modelo mergeado"
+    },
+    {
+      "offset": 1328,
+      "campo": "qwen35moe.nextn_predict_layers",
+      "antes": 1,
+      "depois": 0,
+      "motivo": "MTP speculative decoding indisponivel — tensores NEXTN ausentes"
+    }
+  ],
   "pendente": [
-    "Reconectar H200 (reiniciar instancia parada ou alugar nova)",
-    "Corrigir transformers: instalar >= 4.54.0 ou do source para suporte qwen3_5_moe",
-    "Possivel upgrade PyTorch 2.2.1 → 2.4+ se transformers novo exigir",
-    "Executar: base Qwen3.6 + CEO LoRA + intent LoRA → merged HF (bf16)",
-    "Converter merged → GGUF Q4_K_M (llama.cpp)",
-    "Baixar GGUF final (~20GB)",
-    "Testar modelo mergeado localmente",
-    "Destruir instância H200",
-    "Atualizar checkpoint .f51/checkpoints/latest.json"
+    "Atualizar serve_ceo_llamacpp.ps1 para apontar para modelo novo",
+    "Testar modelo mergeado com pipeline completa (CEO provider porta 8082)",
+    "Verificar qualidade de saida — o modelo incorpora CEO + intent?",
+    "Considerar manter ou remover modelo antigo (qwen36-35b-f51.Q4_K_M.gguf)"
   ]
 }

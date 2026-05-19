@@ -1,41 +1,60 @@
 {
-  "date_local": "2026-05-19T19:00:00-04:00",
-  "session": "f51-bootstrap-full-pipeline",
-  "status": "RELEASE_GATE_PASS",
+  "date_local": "2026-05-19T22:00:00-04:00",
+  "session": "merge-ceo-intent-lora-gguf",
+  "status": "MERGE_COMPLETO",
   "what_was_done": [
-    "f51-contracts: 159/159 contract tests passed — zero silent contract changes",
-    "f51-runtime: 15/15 runtime checks passed — env, ports, models, imports, frontend",
-    "f51-tests: 646 passed, 7 skipped, 0 failed in 20.65s",
-    "f51-audit: R8 confirmed FALSE POSITIVE, R9 downgraded to MEDIUM, R7 mitigated",
-    "f51-refactor: R9 resolved — GatewayConfig consolidated to config/schema.py, 646 tests still pass",
-    "f51-money-gate: 3 GO (penny-stock P1, trading P2, tests P3), 4 DEFER, 1 NO-GO",
-    "f51-release: PASS — lint clean, all tests pass, no critical blockers"
+    "merge-ceo-intent: CEO LoRA (ckpt-2600) + Intent LoRA (best) merged onto Qwen3.6-35B-A3B via A100 SXM4 x4",
+    "merge-ceo-intent: transformers 5.8.1 + peft 0.19.2.dev0 — merge 31s load + 0.3s merges + 109s save",
+    "gguf-convert: FP16 (66152 MiB) → Q4_K_M (20175 MiB, 4.88 BPW) via llama.cpp CUDA — 288.6s quant",
+    "gguf-download: 19.71 GB SCP from A100 (ssh9.vast.ai:17834) → models/superezio-ceo-intent-merged.Q4_K_M.gguf",
+    "gguf-sha256: d05879da1931dd1a2e36071db598d74093bb9528382514bb7836b6b196b40485 — verified match",
+    "gguf-patches: block_count 41→40 (offset 346), nextn_predict_layers 1→0 (offset 1328) — model loads successfully",
+    "teste-local: llama-cli loads and generates — 56.8 t/s prompt, 23.7 t/s generation, Qwen3.6 thinking mode active",
+    "a100-destroyed: instance #37097835 offline, billing stopped"
   ],
   "evidence": [
-    "ruff check src/ tests/ → All checks passed",
-    "ruff format --check src/ tests/ → 204 files already formatted",
-    "pytest tests/contracts/ → 159 passed in 4.71s",
-    "pytest tests/ → 646 passed, 7 skipped in 20.65s",
-    "Runtime validation → 15/15 checks OK"
+    "models/superezio-ceo-intent-merged.Q4_K_M.gguf — 21,166,757,696 bytes, SHA256 verified",
+    "A100 merge log: base loaded in 31.0s, 16 shards saved, 16.2 GB GPU allocated",
+    "GGUF quant: 66152 MiB → 20175 MiB, 288.6s, 733 tensors",
+    "llama-cli test: 56.8 t/s prompt eval, 23.7 t/s gen, block_count=40, nextn_predict_layers=0"
   ],
   "files_changed": [
-    "src/core/model_serving/providers.py (R9 refactor)",
-    ".f51/INVENTORY.json",
-    ".f51/RISK_REGISTER.md",
-    ".f51/ENTRYPOINT_MAP.md",
-    ".f51/CONFIG_MAP.md",
-    ".f51/TEST_MAP.md",
-    ".f51/DUPLICATE_MAP.md",
-    ".f51/SKILLS_CHECK.md",
-    ".f51/MONEY_GATE_EVALUATION.md",
-    ".f51/PROJECT_RULES.md",
-    ".f51/RELEASE_GATE_2026-05-19.md",
-    ".f51/checkpoints/latest.json"
+    "models/superezio-ceo-intent-merged.Q4_K_M.gguf (new — 19.71 GB merged model)",
+    "scripts/merge_qwen36_lora.py (modified — multi-adapter support)",
+    "scripts/convert_gguf.sh (used on A100)",
+    ".f51/diario_bordo.json (updated — mission logbook)",
+    ".f51/checkpoints/latest.json (this file)",
+    "scripts/serve_ceo_llamacpp.ps1 (updated — points to new model)"
   ],
+  "patches_applied": [
+    {
+      "file": "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
+      "offset": 346,
+      "field": "qwen35moe.block_count",
+      "old_value": 41,
+      "new_value": 40,
+      "reason": "convert_hf_to_gguf.py writes block_count=41 expecting MTP tensors (blk.40) but merged model has 40 blocks (0-39)"
+    },
+    {
+      "file": "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
+      "offset": 1328,
+      "field": "qwen35moe.nextn_predict_layers",
+      "old_value": 1,
+      "new_value": 0,
+      "reason": "MTP speculative decoding tensors not present in merged model — disable NEXTN"
+    }
+  ],
+  "modelos": {
+    "antigo": "models/qwen36-35b-f51.Q4_K_M.gguf (20.22 GB — CEO only, preserved as backup)",
+    "novo": "models/superezio-ceo-intent-merged.Q4_K_M.gguf (19.71 GB — CEO + intent merged)",
+    "ceo_checkpoint": "output/qwen36-sft/checkpoint-2600/ (86 MB)",
+    "intent_checkpoint_best": "output/qwen36-intent/best/ (86 MB)",
+    "intent_checkpoint_final": "output/qwen36-intent/final/ (86 MB)"
+  },
   "risks": [
-    "R7 (HIGH, mitigado): .env com 12+ API keys — gitignored",
-    "R9 (MEDIUM, resolved): GatewayConfig consolidado",
-    "R10 (MEDIUM, deferred): indicadores duplicados — precisa teste dedicado"
+    "GGUF patches manuais — se re-quantizar, precisa re-aplicar patches",
+    "Modelo mergeado nao foi testado com pipeline completa (CEO provider + intent classifier)",
+    "nextn_predict_layers=0 desabilita MTP speculative decoding — perda de performance (~70%)"
   ],
-  "next_step": "F7: Integrar frentes de liquidez penny-stock no terminal (P1 Money Gate)"
+  "next_step": "Integrar novo modelo no pipeline: atualizar serve_ceo_llamacpp.ps1, testar CEO provider no port 8082, validar qualidade de saida com prompts reais"
 }
