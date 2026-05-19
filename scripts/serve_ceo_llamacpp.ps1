@@ -3,6 +3,7 @@
 # RTX 5060 Ti 16GB + 64GB RAM optimized
 # Model: superezio-ceo-intent-merged.Q4_K_M.gguf (CEO LoRA ckpt-2600 + Intent LoRA best)
 # MTP speculative decoding disabled (nextn_predict_layers=0 patch)
+# Thinking/reasoning enabled (default) — higher quality decisions, needs token budget
 
 param(
     [int]$Port = 8082,
