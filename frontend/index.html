@@ -462,6 +462,251 @@
     }
 
     /* ── F51 CARD ── */
+    .sdca-lab {
+      position: fixed;
+      top: 50px;
+      right: 0;
+      bottom: 68px;
+      width: min(760px, 100vw);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      background: var(--surface);
+      border-left: 1px solid var(--line);
+      box-shadow: -12px 0 28px rgba(17, 21, 16, 0.12);
+      z-index: 30;
+      transform: translateX(100%);
+      pointer-events: none;
+      transition: transform 0.22s ease;
+    }
+
+    .sdca-lab.open {
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+
+    .sdca-lab-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+    }
+
+    .sdca-lab-hdr span {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .sdca-lab-hdr strong {
+      display: block;
+      font-size: 15px;
+    }
+
+    .sdca-lab-body {
+      min-height: 0;
+      overflow: auto;
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(280px, 1.1fr);
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .sdca-lab-form,
+    .sdca-lab-result {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: var(--bg);
+      padding: 12px;
+    }
+
+    .sdca-lab-form {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .sdca-lab-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .sdca-lab-form label {
+      display: grid;
+      gap: 4px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .sdca-lab-form input,
+    .sdca-lab-form select,
+    .sdca-lab-form textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--ink);
+      font: 12px "Manrope", system-ui, sans-serif;
+      padding: 8px 9px;
+      text-transform: none;
+    }
+
+    .sdca-lab-form textarea {
+      resize: vertical;
+      min-height: 78px;
+      line-height: 1.45;
+    }
+
+    .sdca-lab-wide {
+      grid-column: 1 / -1;
+    }
+
+    .sdca-lab-checks {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px 10px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+    }
+
+    .sdca-lab-checks label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .sdca-lab-checks input {
+      width: auto;
+    }
+
+    .sdca-lab-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .sdca-lab-result {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+      white-space: normal;
+    }
+
+    .sdca-lab-empty {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .sdca-lab-decision {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .sdca-lab-decision strong {
+      font-size: 22px;
+      letter-spacing: 0.02em;
+    }
+
+    .sdca-lab-decision span {
+      border-radius: 999px;
+      padding: 4px 10px;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .sdca-lab-decision .allow {
+      background: var(--green);
+    }
+
+    .sdca-lab-decision .review {
+      background: var(--amber);
+    }
+
+    .sdca-lab-decision .block {
+      background: var(--red);
+    }
+
+    .sdca-lab-section {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      padding: 9px;
+    }
+
+    .sdca-lab-section h3 {
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .sdca-lab-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      border-top: 1px solid var(--line);
+      padding-top: 6px;
+      margin-top: 6px;
+      font-size: 12px;
+    }
+
+    .sdca-lab-row:first-of-type {
+      border-top: none;
+      padding-top: 0;
+      margin-top: 0;
+    }
+
+    .sdca-lab-row span {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .sdca-lab-row strong {
+      text-align: right;
+    }
+
+    .sdca-lab-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .sdca-lab-list div {
+      border-top: 1px solid var(--line);
+      padding-top: 6px;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .sdca-lab-list div:first-child {
+      border-top: none;
+      padding-top: 0;
+    }
+
     .f51-ring-wrap {
       display: flex;
       align-items: center;
@@ -1025,6 +1270,21 @@
         max-height: 46vh;
       }
 
+      .sdca-lab {
+        top: 0;
+        bottom: 0;
+        width: 100vw;
+      }
+
+      .sdca-lab-body {
+        grid-template-columns: 1fr;
+      }
+
+      .sdca-lab-grid,
+      .sdca-lab-checks {
+        grid-template-columns: 1fr;
+      }
+
       .topbar {
         flex-wrap: wrap;
         gap: 6px;
@@ -1088,6 +1348,9 @@
       <button class="btn--icon" id="chart-btn" title="Toggle chart" type="button">
         <i data-lucide="line-chart"></i>
       </button>
+      <button class="btn--icon" id="sdca-lab-btn" title="Open Cognitive Risk Firewall Lab" type="button">
+        <i data-lucide="shield-alert"></i>
+      </button>
     </div>
   </header>
 
@@ -1114,6 +1377,73 @@
         <div class="live-note" id="live-updated">Awaiting stream...</div>
       </div>
     </aside>
+  </section>
+
+  <section class="sdca-lab" id="sdca-lab" aria-label="Cognitive Risk Firewall Lab" aria-hidden="true">
+    <div class="sdca-lab-hdr">
+      <div>
+        <span>F51 Labs</span>
+        <strong>Cognitive Risk Firewall</strong>
+      </div>
+      <button class="btn--icon" id="sdca-lab-close" title="Close lab" type="button">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="sdca-lab-body">
+      <form class="sdca-lab-form" id="sdca-form">
+        <div class="sdca-lab-grid">
+          <label>Decision ID<input id="sdca-id" type="text" autocomplete="off"></label>
+          <label>Source<select id="sdca-source">
+              <option value="manual">manual</option>
+              <option value="agent">agent</option>
+              <option value="operator">operator</option>
+            </select></label>
+          <label>Asset<input id="sdca-asset" type="text" autocomplete="off"></label>
+          <label>Action<input id="sdca-action" type="text" autocomplete="off"></label>
+          <label>Amount CAD<input id="sdca-amount" type="number" min="0" step="1"></label>
+          <label>2h Change %<input id="sdca-price-change" type="number" step="0.1"></label>
+        </div>
+        <label class="sdca-lab-wide">Thesis<textarea id="sdca-thesis" rows="3"></textarea></label>
+        <div class="sdca-lab-grid">
+          <label>Latency<select id="sdca-latency">
+              <option value="low">low</option>
+              <option value="normal">normal</option>
+              <option value="high">high</option>
+            </select></label>
+          <label>Spread<select id="sdca-spread">
+              <option value="tight">tight</option>
+              <option value="normal">normal</option>
+              <option value="wide">wide</option>
+            </select></label>
+          <label>Social Hype<select id="sdca-hype">
+              <option value="low">low</option>
+              <option value="normal">normal</option>
+              <option value="high">high</option>
+            </select></label>
+          <label>Data Quality<select id="sdca-data-quality">
+              <option value="high">high</option>
+              <option value="normal">normal</option>
+              <option value="low">low</option>
+            </select></label>
+        </div>
+        <div class="sdca-lab-checks">
+          <label><input id="sdca-fomo" type="checkbox"> FOMO</label>
+          <label><input id="sdca-leverage" type="checkbox"> Leverage</label>
+          <label><input id="sdca-slippage" type="checkbox"> Slippage risk</label>
+          <label><input id="sdca-stale" type="checkbox"> Stale signal</label>
+        </div>
+        <div class="sdca-lab-actions">
+          <button class="btn--sm" id="sdca-preset-fomo" type="button">FOMO preset</button>
+          <button class="btn--sm" id="sdca-preset-safe" type="button">Conservative preset</button>
+          <button class="btn btn--primary" id="sdca-run-btn" type="submit">
+            <i data-lucide="shield-check"></i><span>Evaluate</span>
+          </button>
+        </div>
+      </form>
+      <div class="sdca-lab-result" id="sdca-result">
+        <div class="sdca-lab-empty">Ready for local firewall evaluation.</div>
+      </div>
+    </div>
   </section>
 
   <!-- ── PORTFOLIO (hidden by default) ── -->
@@ -1167,6 +1497,14 @@
     const LIVE_CHANGE = document.getElementById("live-change");
     const LIVE_UPDATED = document.getElementById("live-updated");
     const LIVE_CANVAS = document.getElementById("live-canvas");
+    const SDCA_LAB_BTN = document.getElementById("sdca-lab-btn");
+    const SDCA_LAB = document.getElementById("sdca-lab");
+    const SDCA_LAB_CLOSE = document.getElementById("sdca-lab-close");
+    const SDCA_FORM = document.getElementById("sdca-form");
+    const SDCA_RUN_BTN = document.getElementById("sdca-run-btn");
+    const SDCA_RESULT = document.getElementById("sdca-result");
+    const SDCA_PRESET_FOMO = document.getElementById("sdca-preset-fomo");
+    const SDCA_PRESET_SAFE = document.getElementById("sdca-preset-safe");
 
     const STEPS = ["orchestrator", "data", "pennylab", "experts", "f51", "sdca", "ceo", "explanation"];
     const SOURCES = ["technicals", "profile", "quant", "risk", "sentiment", "reddit", "macro", "crisis", "realtime_price", "quantum"];
@@ -1175,6 +1513,20 @@
       lppls_bubble: "LPPLS", yield_curve: "Yield Curve", leverage_cycle: "Leverage",
       vol_clustering: "Vol", contagion: "Contagion", flight_quality: "Flight",
       illiquidity: "Illiquidity", sentiment_crisis: "Sentiment", macro_stress: "Macro"
+    };
+    const SDCA_PRESETS = {
+      fomo: {
+        id: "lab-fomo-001", source: "manual", asset: "BTC-CAD", action: "buy_leveraged", amount: "500",
+        thesis: "BTC moved hard and I want to enter now before it runs away.",
+        priceChange: "7.2", latency: "high", spread: "wide", hype: "high", dataQuality: "low",
+        fomo: true, leverage: true, slippage: true, stale: true,
+      },
+      safe: {
+        id: "lab-safe-001", source: "operator", asset: "CASH", action: "hold_cash", amount: "50",
+        thesis: "Small conservative decision with low execution risk and stable evidence.",
+        priceChange: "0.2", latency: "low", spread: "tight", hype: "low", dataQuality: "high",
+        fomo: false, leverage: false, slippage: false, stale: false,
+      },
     };
 
     let state = {
@@ -1193,6 +1545,124 @@
     function sanitTicker(r) { return String(r || "").replace(/[^\w.\-^]/g, "").toUpperCase().slice(0, 18); }
     function lastVal(s) { return Array.isArray(s) && s.length ? s[s.length - 1]?.value ?? null : null; }
     async function fetchJson(path) { const r = await fetch(API + path, { headers: { Accept: "application/json" } }); if (!r.ok) throw new Error(`${path} ${r.status}`); return r.json(); }
+    function numOrNull(v) { const n = Number(v); return Number.isFinite(n) ? n : null; }
+
+    function toggleSdcaLab(open) {
+      if (!SDCA_LAB) return;
+      const next = open ?? !SDCA_LAB.classList.contains("open");
+      SDCA_LAB.classList.toggle("open", next);
+      SDCA_LAB.setAttribute("aria-hidden", next ? "false" : "true");
+      if (next) document.getElementById("sdca-thesis")?.focus();
+    }
+
+    function setSdcaPreset(kind) {
+      const p = SDCA_PRESETS[kind] || SDCA_PRESETS.fomo;
+      $("sdca-id").value = p.id;
+      $("sdca-source").value = p.source;
+      $("sdca-asset").value = p.asset;
+      $("sdca-action").value = p.action;
+      $("sdca-amount").value = p.amount;
+      $("sdca-thesis").value = p.thesis;
+      $("sdca-price-change").value = p.priceChange;
+      $("sdca-latency").value = p.latency;
+      $("sdca-spread").value = p.spread;
+      $("sdca-hype").value = p.hype;
+      $("sdca-data-quality").value = p.dataQuality;
+      $("sdca-fomo").checked = p.fomo;
+      $("sdca-leverage").checked = p.leverage;
+      $("sdca-slippage").checked = p.slippage;
+      $("sdca-stale").checked = p.stale;
+    }
+
+    function buildSdcaLabCandidate() {
+      const amount = numOrNull($("sdca-amount").value);
+      const priceChange = numOrNull($("sdca-price-change").value);
+      return {
+        id: $("sdca-id").value.trim() || `lab-${Date.now()}`,
+        source: $("sdca-source").value || "manual",
+        asset: $("sdca-asset").value.trim() || null,
+        action: $("sdca-action").value.trim() || "review_decision",
+        thesis: $("sdca-thesis").value.trim() || "Manual SDCA lab evaluation.",
+        amount_cad: amount,
+        risk_context: {
+          fomo: $("sdca-fomo").checked,
+          leverage: $("sdca-leverage").checked,
+          latency: $("sdca-latency").value,
+          data_quality: $("sdca-data-quality").value,
+          stale_signal: $("sdca-stale").checked,
+          execution_slippage_risk: $("sdca-slippage").checked,
+        },
+        raw_signals: {
+          price_change_2h: priceChange,
+          social_hype: $("sdca-hype").value,
+          spread: $("sdca-spread").value,
+          slippage_risk: $("sdca-slippage").checked ? "high" : "low",
+        },
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    function renderSdcaLabResult(result) {
+      const decision = String(result?.decision || "REVIEW");
+      const decisionClass = decision.toLowerCase();
+      const score = result?.consequence_score || {};
+      const tokens = Array.isArray(result?.ghost_tokens) ? result.ghost_tokens : [];
+      const matches = Array.isArray(result?.matched_experiences) ? result.matched_experiences : [];
+      const trace = Array.isArray(result?.rumination_trace) ? result.rumination_trace : [];
+      const audit = result?.audit_log || {};
+      SDCA_RESULT.innerHTML = `
+        <div class="sdca-lab-decision">
+          <strong>${esc(decision)}</strong>
+          <span class="${esc(decisionClass)}">${esc(decisionClass)}</span>
+        </div>
+        <div class="sdca-summary">${esc(result?.human_summary || "No summary returned.")}</div>
+        <div class="sdca-metrics">
+          <div class="sdca-metric"><span>Confidence</span><strong>${pct(result?.confidence)}</strong></div>
+          <div class="sdca-metric"><span>Uncertainty</span><strong>${pct(result?.uncertainty)}</strong></div>
+          <div class="sdca-metric"><span>Utility</span><strong>${pct(score.utility)}</strong></div>
+          <div class="sdca-metric"><span>Revenue Risk</span><strong>${pct(score.revenue_risk)}</strong></div>
+          <div class="sdca-metric"><span>Truth</span><strong>${pct(score.truthfulness)}</strong></div>
+          <div class="sdca-metric"><span>Cost Risk</span><strong>${pct(score.cost_risk)}</strong></div>
+        </div>
+        <div class="sdca-lab-section">
+          <h3>Ghost Tokens</h3>
+          <div class="sdca-token-row">${tokens.slice(0, 12).map(t => `<span class="sdca-token">${esc(t)}</span>`).join("") || '<span class="sdca-token">none</span>'}</div>
+        </div>
+        <div class="sdca-lab-section">
+          <h3>Matched Experiences</h3>
+          <div class="sdca-lab-list">${matches.slice(0, 3).map(m => `<div><strong>${esc(m.episode_id)}</strong><br>${esc(m.learned_rule || m.consequence || "")}<br><span>score ${fmt(m.weighted_score, 3)} | delta ${fmt(m.delta_r, 2)}</span></div>`).join("") || "<div>No experience match returned.</div>"}</div>
+        </div>
+        <div class="sdca-lab-section">
+          <h3>Rumination</h3>
+          <div class="sdca-lab-list">${trace.map(r => `<div>Cycle ${esc(r.cycle)}: ${esc(r.status)} | uncertainty ${pct(r.uncertainty)} | delta ${r.delta_u == null ? "--" : fmt(r.delta_u, 3)}</div>`).join("") || "<div>No rumination trace returned.</div>"}</div>
+        </div>
+        <div class="sdca-lab-section">
+          <h3>Audit</h3>
+          <div class="sdca-lab-row"><span>No Broker Execution</span><strong>${audit.no_broker_execution === true ? "true" : "false"}</strong></div>
+          <div class="sdca-lab-row"><span>No External API Calls</span><strong>${audit.no_external_api_calls === true ? "true" : "false"}</strong></div>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    async function runSdcaLab() {
+      const candidate = buildSdcaLabCandidate();
+      SDCA_RUN_BTN.disabled = true;
+      SDCA_RESULT.innerHTML = '<div class="sdca-lab-empty">Evaluating...</div>';
+      try {
+        const response = await fetch(API + "/api/sdca/evaluate", {
+          method: "POST",
+          headers: { Accept: "application/json", "Content-Type": "application/json" },
+          body: JSON.stringify(candidate),
+        });
+        if (!response.ok) throw new Error(`/api/sdca/evaluate ${response.status}`);
+        renderSdcaLabResult(await response.json());
+      } catch (e) {
+        SDCA_RESULT.innerHTML = `<div class="sdca-lab-empty" style="color:var(--red)">Error: ${esc(e.message)}</div>`;
+      } finally {
+        SDCA_RUN_BTN.disabled = false;
+      }
+    }
 
     function setLiveStatus(label, mode = "off") {
       if (!LIVE_STATUS) return;
@@ -1952,6 +2422,15 @@
       if (d && currentCEO) renderChartCanvas(currentCEO);
     });
 
+    SDCA_LAB_BTN.addEventListener("click", () => toggleSdcaLab());
+    SDCA_LAB_CLOSE.addEventListener("click", () => toggleSdcaLab(false));
+    SDCA_PRESET_FOMO.addEventListener("click", () => setSdcaPreset("fomo"));
+    SDCA_PRESET_SAFE.addEventListener("click", () => setSdcaPreset("safe"));
+    SDCA_FORM.addEventListener("submit", (event) => {
+      event.preventDefault();
+      runSdcaLab();
+    });
+
     PF_BTN.addEventListener("click", () => {
       const visible = PF_DRAWER.style.display !== "none";
       PF_DRAWER.style.display = visible ? "none" : "grid";
@@ -1968,6 +2447,7 @@
     });
 
     // ── Boot ──
+    setSdcaPreset("fomo");
     loadPf(); applyPfToForm();
     checkHealth(); setInterval(checkHealth, 30000);
     // Load chart if ticker pre-filled

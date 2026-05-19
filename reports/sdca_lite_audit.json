@@ -32,7 +32,7 @@
     "Embedding is a local hashed vector fallback, not a trained semantic model.",
     "Rumination is heuristic and capped at 3 cycles; it does not call an LLM.",
     "Experience memory now includes local fraud-pattern corpus episodes, but still needs real production incident curation.",
-    "UI renders SDCA stream events, but there is no dedicated standalone SDCA lab screen yet."
+    "UI includes chat-stream SDCA cards and a standalone lab screen, but lab history is not persisted yet."
   ],
-  "next_checkpoint": "Curate real production SDCA episodes, calibrate thresholds against decision logs, and add a standalone SDCA demo/lab screen."
+  "next_checkpoint": "Curate real production SDCA episodes, calibrate thresholds against decision logs, and persist SDCA lab evaluation history."
 }

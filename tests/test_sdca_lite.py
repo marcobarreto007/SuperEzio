@@ -224,3 +224,15 @@ def test_frontend_renders_sdca_firewall_event():
     assert "function renderSDCA" in html
     assert 'case "SDCA_FIREWALL"' in html
     assert 'sdca_firewall: "sdca"' in html
+
+
+def test_frontend_has_sdca_lab_screen():
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+
+    assert 'id="sdca-lab"' in html
+    assert 'id="sdca-lab-btn"' in html
+    assert 'id="sdca-form"' in html
+    assert "function buildSdcaLabCandidate" in html
+    assert "function runSdcaLab" in html
+    assert "function renderSdcaLabResult" in html
+    assert 'API + "/api/sdca/evaluate"' in html

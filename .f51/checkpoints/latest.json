@@ -1,33 +1,30 @@
 {
-  "date_local": "2026-05-19T16:07:03-04:00",
-  "session": "sdca-lite-risk-firewall-hardening",
-  "status": "IMPLEMENTED_VERIFIED_AND_SAVED_LOCAL",
+  "date_local": "2026-05-19T16:17:29-04:00",
+  "session": "sdca-lite-risk-firewall-lab-ui",
+  "status": "IMPLEMENTED_VERIFIED_LOCAL",
   "what_was_done": [
-    "Saved the initial SDCA-Lite v0.1 implementation in local commit 700d6f0.",
-    "Replaced overlap-only retrieval with a local deterministic hashed-vector similarity fallback combined with ghost-token and word overlap.",
-    "Extended SDCA experience memory to load the existing local fraud_patterns corpus as additional ExperienceEpisode records.",
-    "Changed the LangGraph SDCA integration so BLOCK hard-routes to respond_blocked instead of continuing the full analysis stream.",
-    "Added an SDCA blocked response that states no execution and requires human review or a lower-risk scenario.",
-    "Added SDCA_FIREWALL stream details for matched experiences and consequence score.",
-    "Added frontend rendering for SDCA_FIREWALL events, including decision, confidence, uncertainty, utility, matched experiences, and ghost tokens.",
-    "Expanded SDCA tests for memory loading, local embedding similarity, graph hard-stop routing, blocked response content, endpoint behavior, and frontend event rendering.",
-    "Updated reports/sdca_lite_audit.json to reflect the hardened integration and remaining limitations."
+    "Added a Cognitive Risk Firewall Lab panel to frontend/index.html behind a shield button in the top bar.",
+    "Added editable SDCA candidate fields, FOMO and conservative presets, and a direct local POST to /api/sdca/evaluate.",
+    "Added lab result rendering for ALLOW/BLOCK/REVIEW, confidence, uncertainty, utility, ghost tokens, matched experiences, rumination trace, and no-broker audit flags.",
+    "Kept the integration isolated to the existing frontend and existing SDCA endpoint; no broker, trading, external API, new framework, or heavy dependency was added.",
+    "Updated the SDCA audit report to reflect that the standalone lab screen now exists and that lab history persistence remains future work.",
+    "Added a frontend contract test that asserts the SDCA lab controls and endpoint wiring exist."
   ],
   "evidence": [
-    "python -m pytest tests\\test_sdca_lite.py tests\\contracts\\test_contract_endpoints.py -q -> 23 passed.",
-    "python -m ruff check targeted SDCA/API/pipeline/frontend-adjacent test files -> All checks passed.",
+    "python -m pytest tests\\test_sdca_lite.py -q -> 14 passed.",
+    "python -m pytest tests\\test_sdca_lite.py tests\\contracts\\test_contract_endpoints.py -q -> 24 passed.",
+    "python -m ruff check targeted SDCA/API/pipeline/test files -> All checks passed.",
     "python -m ruff format --check targeted SDCA/API/pipeline/test files -> 12 files already formatted.",
     "python -m json.tool reports\\sdca_lite_audit.json -> valid.",
     "git diff --check -> passed.",
-    "Component loop test matrix ran 3 times across runtime_decision, retrieval_memory, audit_no_broker, pipeline_hard_stop, api_endpoint, and frontend_rendering -> passed.",
+    "node inline script parse check for frontend/index.html -> inline js parses.",
     "No GitHub command was run; project remains DISK ONLY."
   ],
   "risks": [
-    "Local hashed-vector retrieval is stronger than raw overlap but is still not a trained semantic embedding model.",
-    "Experience memory now includes local fraud-pattern data, but it still needs real production incident and decision-review episodes.",
-    "REVIEW intentionally continues the pipeline with defensive flags; only BLOCK hard-stops.",
-    "UI renders SDCA stream events inside the existing chat flow, but there is no standalone SDCA demo/lab screen yet.",
-    "pyright was not run because it was not available on PATH during the SDCA implementation checkpoint."
+    "The lab evaluates live endpoint responses but does not persist a history of evaluations yet.",
+    "The lab uses static presets plus editable form controls; it does not yet import saved decision logs.",
+    "The UI was syntax/static tested and endpoint-tested through pytest, but no full browser click-through was run in this checkpoint.",
+    "A separate local modification exists in scripts/merge_qwen36_lora.py and was intentionally left untouched because it is unrelated to SDCA."
   ],
-  "next_step": "Curate real SDCA incident episodes, calibrate BLOCK/REVIEW thresholds against decision logs, and add a standalone Cognitive Risk Firewall demo screen."
+  "next_step": "Persist SDCA lab evaluations locally and add filters for decision, asset, source, ghost token, and learned rule."
 }
