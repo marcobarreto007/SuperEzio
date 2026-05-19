@@ -1,7 +1,7 @@
 {
-  "date_local": "2026-05-19T23:30:00-04:00",
-  "session": "merge-ceo-intent-lora-gguf-final",
-  "status": "MERGE_COMPLETO_E_TESTADO",
+  "date_local": "2026-05-20T00:00:00-04:00",
+  "session": "merge-ceo-intent-lora-pipeline-validated",
+  "status": "PIPELINE_VALIDATED",
   "what_was_done": [
     "merge-ceo-intent: CEO LoRA (ckpt-2600) + Intent LoRA (best) merged onto Qwen3.6-35B-A3B via A100 SXM4 x4",
     "merge-ceo-intent: transformers 5.8.1 + peft 0.19.2.dev0 — merge 31s load + 0.3s merges + 109s save",
@@ -13,6 +13,9 @@
     "teste-ceo: reasoning ON, max_tokens=1024 — HOLD NVDA with 50-day MA analysis (704 tok, 2551 char reasoning)",
     "teste-intent: reasoning ON, max_tokens=1024 — structured intent classification (682 tok, 2078 char reasoning)",
     "teste-suite: pytest 646 passed, 7 skipped, 0 failed in 32.79s — zero regressions",
+    "pipeline-e2e-1: ticker_analysis AAPL → SELL $298.98→$270.08, 92% conf, 10.0s (CEO merged)",
+    "pipeline-e2e-2: market_scan AI chips → volume anomalies AAPL 1.87x + ABCE 2.34x, 3.3s (CEO merged)",
+    "pipeline-e2e-3: risk_check TSLA → HOLD $404.16→$410.50, 62% conf, 5.6s (CEO merged)",
     "a100-destroyed: instance #37097835 offline, billing stopped"
   ],
   "evidence": [
@@ -70,5 +73,5 @@
     "MTP speculative decoding ausente — perda de performance (~70% speedup esperado)",
     "Gated Delta Net fusion nao suportada em CUDA — layer 0 cai para CPU"
   ],
-  "next_step": "Pipeline completo com modelo mergeado: testar fluxo real de trading via CEO provider"
+  "next_step": "Modelo mergeado validado em producao — monitorar latencia, considerar re-quantizar com MTP fix (PR #22673) para recuperar speculative decoding"
 }
