@@ -1,32 +1,25 @@
 {
-  "date_local": "2026-05-18T20:32:08-04:00",
-  "session": "f51-save-intent-training-artifacts",
-  "status": "LOCAL_SAVE_READY_NO_GITHUB",
+  "date_local": "2026-05-19T15:02:49-04:00",
+  "session": "mike-claude-code-key-verification",
+  "status": "VERIFIED_KEY_MISMATCH_NO_PRODUCT_CODE_CHANGE",
   "what_was_done": [
-    "Prepared local save for intent classifier training artifacts.",
-    "Reviewed pending files before commit: intent JSONL datasets, dataset generator, Vast.ai setup script, and Qwen3.6 LoRA merge helper.",
-    "Removed executable GitHub clone usage from scripts/vastai_setup_intent.sh so it obeys .f51/GITHUB_POLICY.json.",
-    "Formatted and linted scripts/generate_intent_dataset.py and scripts/merge_qwen36_lora.py.",
-    "Regenerated data/intent_training.jsonl and data/intent_fewshot.jsonl from scripts/generate_intent_dataset.py.",
-    "Validated JSONL structure and intent/route distributions.",
-    "Did not run any GitHub command."
+    "Checked the repository GitHub policy before touching operational state.",
+    "Inspected the global Claude Code Mike wrapper path and persona config without printing secret values.",
+    "Ran the Mike diagnostic mode to verify endpoint, config directory, model, and whether auth variables are set.",
+    "Compared the provided key against Mike's accepted environment sources and .claude-mike settings by exact match plus SHA-256 fingerprint."
   ],
   "evidence": [
-    "data/intent_training.jsonl -> 648 valid JSONL examples.",
-    "data/intent_fewshot.jsonl -> 50 valid JSONL examples.",
-    "Route distribution training set: ticker_analysis=360, general=141, market_scan=94, needs_scope=53.",
-    "Intent distribution training set: ticker_analysis=360, general_question=99, market_scan=94, explain_capabilities=42, unsafe_unspecified_recommendation=37, missing_required_slot=16.",
-    "python scripts\\generate_intent_dataset.py -> completed and wrote both JSONL files.",
-    "python -m ruff check scripts\\merge_qwen36_lora.py scripts\\generate_intent_dataset.py -> All checks passed.",
-    "python -m ruff format scripts\\merge_qwen36_lora.py scripts\\generate_intent_dataset.py --check -> 2 files already formatted.",
-    "bash -n scripts/vastai_setup_intent.sh -> passed.",
-    "rg '^\\s*(git|gh)\\b' over intent artifacts and scripts -> no executable git/gh commands.",
-    "git diff --check -> passed."
+    ".f51/GITHUB_POLICY.json is active and forbids GitHub commands; no GitHub command was run.",
+    "C:\\Users\\marco\\.local\\bin\\mike.cmd launches C:\\Users\\marco\\.local\\bin\\f51-cc-provider.ps1 with provider mike.",
+    "Mike provider config uses BaseUrl=https://api.z.ai/api/anthropic, ConfigDir=C:\\Users\\marco\\.claude-mike, FallbackModel=glm-5.1, KeyVars=ZAI_API_KEY/GLM_API_KEY/Z_AI_API_KEY/ZHIPU_API_KEY.",
+    "mike --cc-env reported ANTHROPIC_MODEL=glm-5.1, AUTH_TOKEN_SET=True, API_KEY_SET=True.",
+    "Provided key fingerprint: len=49; sha25612=b512acd59ab2.",
+    "Effective Mike key source: Process:GLM_API_KEY; fingerprint len=49; sha25612=f20f5d118ee0; exact match=False.",
+    "User:GLM_API_KEY and .claude-mike settings auth/API key values also fingerprinted as len=49; sha25612=f20f5d118ee0; exact match=False."
   ],
   "risks": [
-    "This commit saves training preparation artifacts only; it does not train or validate a LoRA model.",
-    "scripts/vastai_setup_intent.sh now requires the local project tree and llama.cpp to be uploaded/preinstalled instead of cloning from GitHub.",
-    "Secret scan only found tokenizer/convert_hf false positives; no real API key/token pattern was found in the saved artifacts."
+    "This verifies the current Codex/PowerShell process environment, persisted User environment, Machine environment, Mike wrapper, and .claude-mike settings. A separate already-open terminal could still override GLM_API_KEY only inside that terminal session.",
+    "No live Z.ai API call was made because the requested question was key selection, not provider connectivity."
   ],
-  "next_step": "Commit locally, then decide whether to add a pre-push hook to enforce the no-GitHub policy at command level."
+  "next_step": "If Marco wants Mike to use the provided key, set GLM_API_KEY or ZAI_API_KEY to that value in the intended shell/User environment, then rerun mike --cc-env and a small mike --print smoke test."
 }
