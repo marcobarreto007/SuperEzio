@@ -16,7 +16,7 @@ def test_model_manifest_ceo():
     manifest_path = ROOT / "config" / "model_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert "ceo" in manifest
-    assert manifest["ceo"]["model"] == "qwen36-35b-f51"
+    assert manifest["ceo"]["model"] == "superezio-ceo-intent-merged"
     assert manifest["ceo"]["backend"] == "openai_compatible"
 
 

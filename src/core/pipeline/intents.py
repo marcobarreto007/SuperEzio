@@ -996,28 +996,6 @@ def _needs_ticker_for_requested_analysis(message: str) -> bool:
     return _has_penny_asset_hint(message) and has_hint(message, TICKER_REQUIRED_ANALYSIS_HINTS)
 
 
-def _legacy_detect_market_scan_intent(message: str) -> bool:
-    if detect_ticker(message):
-        return False
-    normalized = normalize_message(message)
-    # Ignora perguntas de definição ("o que é penny stock?")
-    penny_definition_patterns = (
-        r"\bwhat\s+(?:is|are)\s+(?:a\s+)?penny stocks?\b",
-        r"\bo que\s+(?:e|sao)\s+(?:um\s+)?penny stocks?\b",
-        r"\bexplique\s+(?:o\s+)?penny stocks?\b",
-        r"\bdefine\s+(?:a\s+)?penny stocks?\b",
-    )
-    if any(re.search(pattern, normalized) for pattern in penny_definition_patterns):
-        return False
-
-    has_scan = has_hint(message, SCAN_KEYWORDS)
-    has_scope = has_hint(message, SCOPE_KEYWORDS) or re.search(r"\bcad\b", normalized) is not None
-    has_penny_stock = any(
-        kw in normalized for kw in ("penny stock", "penny stocks", "microcap", "micro cap")
-    )
-    return (has_scan and has_scope) or has_penny_stock
-
-
 def detect_market_scan_intent(message: str) -> bool:
     return _is_market_scan_request(message)
 

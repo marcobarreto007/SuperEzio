@@ -49,12 +49,6 @@ from .gates import (
     ProxyReward,
 )
 
-try:
-    from .memory import EpisodeMemory, Episode
-except ImportError:
-    EpisodeMemory = None  # type: ignore[assignment]
-    Episode = None  # type: ignore[assignment]
-
 __all__ = [
     "F51Engine",
     "Graph",
@@ -84,6 +78,4 @@ __all__ = [
     "AdversarialCritic",
     "CriticResult",
     "ProxyReward",
-    "EpisodeMemory",
-    "Episode",
 ]

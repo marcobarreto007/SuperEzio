@@ -86,9 +86,6 @@ class MarketScanner:
             return result
 
         except Exception as e:
-            import traceback
-
-            traceback.print_exc()
             _log_event("SCANNER", "SCAN_ERROR", {"type": "equities", "error": str(e)})
             return []
 
