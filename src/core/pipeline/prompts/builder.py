@@ -64,6 +64,7 @@ _MODULE_KEYWORDS: dict[str, list[str]] = {
     "pennylab": ["pennylab", "forensic", "fraud", "manipulation"],
     "experts": ["experts", "committee", "fundamental", "technical", "risk"],
     "neural": ["neural", "direction prob", "regime", "expected return", "drawdown"],
+    "sdca_firewall": ["sdca", "firewall", "block", "review", "ghost"],
     "f51": ["f51", "verdict", "confidence", "threshold"],
     "rag_forensics": ["rag", "forensics", "historical", "past case"],
 }
@@ -93,6 +94,9 @@ def _required_module_presence(state: PipelineState) -> dict[str, bool]:
         "experts": bool(state.get("expert_summary")),
         "neural": bool(
             state.get("neural_decision") and "error" not in state.get("neural_decision", {})
+        ),
+        "sdca_firewall": bool(
+            state.get("sdca_firewall") and "error" not in state.get("sdca_firewall", {})
         ),
         "f51": bool(state.get("f51_verdict")),
         "rag_forensics": bool(state.get("rag_context")),
@@ -184,6 +188,27 @@ def _format_neural_decision(neural: dict[str, Any]) -> str:
         val = neural.get(key)
         if val is not None and val != "":
             lines.append(f"{key}={val}")
+    return "\n".join(lines)
+
+
+def _format_sdca_firewall(sdca: dict[str, Any]) -> str:
+    """Compact SDCA-Lite block for CEO prompt."""
+    if not sdca or sdca.get("error"):
+        return ""
+    lines = ["[SDCA_FIREWALL]"]
+    for key in (
+        "decision",
+        "confidence",
+        "uncertainty",
+        "ghost_tokens",
+        "human_summary",
+    ):
+        val = sdca.get(key)
+        if val not in (None, "", [], {}):
+            lines.append(f"{key}={val}")
+    score = sdca.get("consequence_score")
+    if isinstance(score, dict) and score:
+        lines.append(f"consequence_score={score}")
     return "\n".join(lines)
 
 
@@ -294,6 +319,7 @@ def build_ceo_prompt(
         "- PENNYLAB: what forensic experts detected\n"
         "- EXPERTS: what the expert committee concluded\n"
         "- NEURAL_DECISION: directional probability, expected return, regime, drawdown risk\n"
+        "- SDCA_FIREWALL: defensive ALLOW, BLOCK, or REVIEW gate before final action\n"
         "- RAG_FORENSICS: what historical patterns match\n"
         "- F51_VERDICT: what the unified scoring says\n\n"
         "If a module has no data, say '[MODULE] MISSING — confidence reduced'.\n"
@@ -352,6 +378,16 @@ def build_ceo_prompt(
             parts.append(f"NEURAL_DECISION:\n{neural_block[:800]}")
     else:
         parts.append("NEURAL_DECISION:\nNeuralDecisionExpert not available for this ticker.")
+
+    sdca = state.get("sdca_firewall") or {}
+    sdca_block = _format_sdca_firewall(sdca)
+    if sdca_block:
+        parts.append(
+            "SDCA_FIREWALL:\n"
+            f"{sdca_block[:1000]}\n"
+            "If decision=BLOCK, final answer must mark the action as blocked/defensive. "
+            "If decision=REVIEW, final answer must require human review or reduced confidence."
+        )
 
     contract = _render_module_contract(state)
     if contract:

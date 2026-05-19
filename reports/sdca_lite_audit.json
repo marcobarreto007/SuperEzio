@@ -1,0 +1,37 @@
+{
+  "module": "SDCA-Lite",
+  "version": "0.1",
+  "files_created": [
+    "docs/SDCA_LITE_INVENTORY.md",
+    "docs/SDCA_LITE_MONEY_GATE.md",
+    "src/core/risk_firewall/__init__.py",
+    "src/core/risk_firewall/sdca_contracts.py",
+    "src/core/risk_firewall/experience_memory.py",
+    "src/core/risk_firewall/sdca_lite.py",
+    "src/core/pipeline/nodes/sdca_firewall.py",
+    "data/sdca_experience_memory.jsonl",
+    "tests/test_sdca_lite.py",
+    "reports/sdca_lite_audit.json"
+  ],
+  "files_modified": [
+    "src/agent_server/endpoints.py",
+    "src/core/pipeline/contracts.py",
+    "src/core/pipeline/graph.py",
+    "src/core/pipeline/nodes/__init__.py",
+    "src/core/pipeline/prompts/builder.py",
+    ".f51/checkpoints/latest.json"
+  ],
+  "tests_added": [
+    "tests/test_sdca_lite.py"
+  ],
+  "tests_passed": true,
+  "integration_point": "POST /api/sdca/evaluate plus additive LangGraph node sdca_firewall after neural_decision and before rag_forensics.",
+  "known_limitations": [
+    "Experience retrieval is deterministic token/tag overlap, not embeddings.",
+    "Rumination is heuristic and capped at 3 cycles; it does not call an LLM.",
+    "Seed experience memory is curated starter data, not production incident history.",
+    "Pipeline integration marks BLOCK/REVIEW defensively but does not stop the full analysis stream by routing to a terminal block node.",
+    "No UI visualization was added in this checkpoint."
+  ],
+  "next_checkpoint": "Add frontend display for sdca_firewall, then curate real experience episodes and calibrate thresholds against historical decision logs."
+}

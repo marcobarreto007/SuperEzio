@@ -23,6 +23,7 @@ from core.pipeline.intents import (
     should_block_vague_financial_prompt,
     has_hint,
 )
+from core.risk_firewall import DecisionCandidate, evaluate_decision_with_sdca
 from data.data_hub import hub
 
 from .protocol import A2AMessage, MessageType
@@ -622,6 +623,7 @@ async def get_capabilities(request: Request) -> dict:
             "echo",
             "task/submit (pipeline completo)",
             "experts/neural-decision/predict",
+            "api/sdca/evaluate",
             "experts/pennylab/predict",
             "data/providers",
         ],
@@ -642,6 +644,14 @@ async def product_manifest(request: Request) -> dict:
         "status": status,
     }
     return manifest
+
+
+@router.post("/api/sdca/evaluate")
+async def evaluate_sdca(candidate: DecisionCandidate) -> dict:
+    """Evaluate a candidate decision with SDCA-Lite. Does not execute trades."""
+
+    decision = evaluate_decision_with_sdca(candidate)
+    return decision.model_dump(mode="json")
 
 
 @router.post("/experts/neural-decision/predict")

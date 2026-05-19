@@ -1,25 +1,34 @@
 {
-  "date_local": "2026-05-19T15:02:49-04:00",
-  "session": "mike-claude-code-key-verification",
-  "status": "VERIFIED_KEY_MISMATCH_NO_PRODUCT_CODE_CHANGE",
+  "date_local": "2026-05-19T15:52:57-04:00",
+  "session": "sdca-lite-risk-firewall-v0.1",
+  "status": "IMPLEMENTED_AND_VERIFIED_LOCAL",
   "what_was_done": [
-    "Checked the repository GitHub policy before touching operational state.",
-    "Inspected the global Claude Code Mike wrapper path and persona config without printing secret values.",
-    "Ran the Mike diagnostic mode to verify endpoint, config directory, model, and whether auth variables are set.",
-    "Compared the provided key against Mike's accepted environment sources and .claude-mike settings by exact match plus SHA-256 fingerprint."
+    "Created the required SDCA-Lite inventory before code changes.",
+    "Implemented core.risk_firewall with Pydantic contracts, ghost-token experts, deterministic experience retrieval, bounded rumination, consequence scoring, and evaluate_decision_with_sdca.",
+    "Seeded local JSONL experience memory in data/sdca_experience_memory.jsonl.",
+    "Added POST /api/sdca/evaluate as a standalone FastAPI endpoint.",
+    "Integrated an additive sdca_firewall LangGraph node after neural_decision and before rag_forensics.",
+    "Added SDCA_FIREWALL prompt evidence so BLOCK/REVIEW is visible to the CEO prompt without changing existing stream contracts.",
+    "Added tests/test_sdca_lite.py covering block/review behavior, low-risk behavior, rumination cap, experience weighting, auditability, and no broker execution.",
+    "Created docs/SDCA_LITE_MONEY_GATE.md and reports/sdca_lite_audit.json."
   ],
   "evidence": [
-    ".f51/GITHUB_POLICY.json is active and forbids GitHub commands; no GitHub command was run.",
-    "C:\\Users\\marco\\.local\\bin\\mike.cmd launches C:\\Users\\marco\\.local\\bin\\f51-cc-provider.ps1 with provider mike.",
-    "Mike provider config uses BaseUrl=https://api.z.ai/api/anthropic, ConfigDir=C:\\Users\\marco\\.claude-mike, FallbackModel=glm-5.1, KeyVars=ZAI_API_KEY/GLM_API_KEY/Z_AI_API_KEY/ZHIPU_API_KEY.",
-    "mike --cc-env reported ANTHROPIC_MODEL=glm-5.1, AUTH_TOKEN_SET=True, API_KEY_SET=True.",
-    "Provided key fingerprint: len=49; sha25612=b512acd59ab2.",
-    "Effective Mike key source: Process:GLM_API_KEY; fingerprint len=49; sha25612=f20f5d118ee0; exact match=False.",
-    "User:GLM_API_KEY and .claude-mike settings auth/API key values also fingerprinted as len=49; sha25612=f20f5d118ee0; exact match=False."
+    "python -m pytest tests\\test_sdca_lite.py -v -> 6 passed.",
+    "python -m pytest tests\\test_sdca_lite.py tests\\contracts\\test_contract_endpoints.py -q -> 16 passed.",
+    "python -m ruff check targeted SDCA/API/pipeline/test files -> All checks passed.",
+    "python -m ruff format --check targeted SDCA/API/pipeline/test files -> 11 files already formatted.",
+    "python -m json.tool reports\\sdca_lite_audit.json -> valid.",
+    "FastAPI TestClient POST /api/sdca/evaluate returned HTTP 200 and BLOCK for the FOMO leveraged BTC-CAD payload.",
+    "Example BLOCK tokens: api_latency_rising, execution_slippage_risk, fake_breakout_possible, fomo_pattern_detected, leverage_impulse, spread_expansion.",
+    "pyright --version was not available on PATH.",
+    "No GitHub command was run."
   ],
   "risks": [
-    "This verifies the current Codex/PowerShell process environment, persisted User environment, Machine environment, Mike wrapper, and .claude-mike settings. A separate already-open terminal could still override GLM_API_KEY only inside that terminal session.",
-    "No live Z.ai API call was made because the requested question was key selection, not provider connectivity."
+    "Experience retrieval is deterministic token/tag overlap, not embeddings.",
+    "Seed memory is curated starter data, not production incident history.",
+    "Pipeline integration marks BLOCK/REVIEW defensively but does not hard-stop the entire analysis stream.",
+    "No frontend SDCA visualization was added in this checkpoint.",
+    "reports/ may be gitignored/untracked; reports/sdca_lite_audit.json exists on disk."
   ],
-  "next_step": "If Marco wants Mike to use the provided key, set GLM_API_KEY or ZAI_API_KEY to that value in the intended shell/User environment, then rerun mike --cc-env and a small mike --print smoke test."
+  "next_step": "Add frontend rendering for sdca_firewall and calibrate thresholds against real decision logs before making this a paid demo workflow."
 }

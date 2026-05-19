@@ -77,6 +77,11 @@ class PipelineState(TypedDict, total=False):
     # RAG
     rag_context: str
 
+    # SDCA-Lite risk firewall
+    sdca_firewall: dict[str, Any]
+    sdca_blocked: bool
+    sdca_review_required: bool
+
     # CEO
     final: str
 

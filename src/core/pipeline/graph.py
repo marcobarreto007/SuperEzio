@@ -21,6 +21,7 @@ from .nodes import (
     node_neural_decision,
     node_orchestrator,
     node_rag_forensics,
+    node_sdca_firewall,
     route_after_f51,
     route_after_orchestrator,
 )
@@ -63,6 +64,9 @@ def build_graph(
     async def _neural(state: dict) -> dict:
         return await node_neural_decision(state)
 
+    async def _sdca(state: dict) -> dict:
+        return await node_sdca_firewall(state)
+
     async def _ceo(state: dict) -> dict:
         return await node_ceo(state, gateway=gateway, config=config, mandamentos=mandamentos)
 
@@ -82,6 +86,7 @@ def build_graph(
     builder.add_node("collect_experts", _collect_experts)
     builder.add_node("rag_forensics", _rag)
     builder.add_node("neural_decision", _neural)
+    builder.add_node("sdca_firewall", _sdca)
     builder.add_node("ceo_primary", _ceo)
     builder.add_node("explanation", _explanation)
     builder.add_node("respond_blocked", _blocked)
@@ -108,7 +113,8 @@ def build_graph(
     )
     builder.add_edge("run_expert", "collect_experts")
     builder.add_edge("collect_experts", "neural_decision")
-    builder.add_edge("neural_decision", "rag_forensics")
+    builder.add_edge("neural_decision", "sdca_firewall")
+    builder.add_edge("sdca_firewall", "rag_forensics")
     builder.add_edge("rag_forensics", "ceo_primary")
     builder.add_edge("ceo_primary", "explanation")
     builder.add_edge("explanation", END)
