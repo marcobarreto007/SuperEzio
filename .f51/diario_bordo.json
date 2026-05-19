@@ -1,0 +1,122 @@
+{
+  "missao": "Merge CEO LoRA + Intent LoRA → GGUF Q4_K_M",
+  "inicio": "2026-05-19T16:30:00-04:00",
+  "status": "merge_pendente_transformers",
+  "entradas": [
+    {
+      "timestamp": "2026-05-19T15:47:00-04:00",
+      "evento": "download_concluido",
+      "detalhes": "qwen36-intent-f51.Q4_K_M.gguf baixado de vasta.ai (ssh6:15904) em 4 chunks. 19.71 GB. SHA256 verificado.",
+      "evidencia": "models/qwen36-intent-f51.Q4_K_M.gguf — 21,166,757,696 bytes"
+    },
+    {
+      "timestamp": "2026-05-19T16:00:00-04:00",
+      "evento": "checkpoints_intent_baixados",
+      "detalhes": "Intent LoRA checkpoints (best + final) baixados da instância antiga. 86 MB cada (adapter_model.safetensors).",
+      "evidencia": "output/qwen36-intent/best/, output/qwen36-intent/final/"
+    },
+    {
+      "timestamp": "2026-05-19T16:05:00-04:00",
+      "evento": "instancia_antiga_morta",
+      "detalhes": "Instância vasta.ai ssh6:15904 parada via kill -9 -1."
+    },
+    {
+      "timestamp": "2026-05-19T16:15:00-04:00",
+      "evento": "tentativas_falhas",
+      "detalhes": "V100, A100, RTX 5090, RTX 8000 — todos esgotados ou disco insuficiente. A40 ficou preso em loading por 15+ min."
+    },
+    {
+      "timestamp": "2026-05-19T16:30:00-04:00",
+      "evento": "h200_alugado",
+      "detalhes": "H200 x4 alugado. Contrato #37095327. $15.49/hr. 562 GB VRAM (140 GB x4). 9.2 TB disco.",
+      "evidencia": "vastai contract 37095327"
+    },
+    {
+      "timestamp": "2026-05-19T16:26:11-0400",
+      "evento": "h200_pronto",
+      "detalhes": "H200 x4 pronto. SSH: ssh4.vast.ai:15326",
+      "evidencia": "contrato 37095327, status=running"
+    },
+    {
+      "timestamp": "2026-05-19T17:00:00-04:00",
+      "evento": "h200_disk_small",
+      "detalhes": "H200 x4 (contrato 37095327) disco 70GB insuficiente. Destruida e recriada com disk=500GB.",
+      "evidencia": "contrato 37095615, ssh7.vast.ai:15614"
+    },
+    {
+      "timestamp": "2026-05-19T17:10:00-04:00",
+      "evento": "upload_concluido",
+      "detalhes": "CEO ckpt (86MB), intent ckpt best (86MB), merge script enviados para H200 via SFTP.",
+      "evidencia": "/root/ceo-checkpoint/, /root/intent-checkpoint/, /root/merge_qwen36_lora.py"
+    },
+    {
+      "timestamp": "2026-05-19T20:35:00-04:00",
+      "evento": "merge_falhou_transformers",
+      "detalhes": "Merge quebrou: transformers 4.51.0 nao reconhece qwen3_5_moe. Precisa transformers >= 4.54.0+ ou do source. PyTorch 2.2.1 no container pode ser incompativel.",
+      "evidencia": "output merge: KeyError 'qwen3_5_moe'; ValueError: The checkpoint you are trying to load has model type qwen3_5_moe but Transformers does not recognize this architecture"
+    },
+    {
+      "timestamp": "2026-05-19T20:50:00-04:00",
+      "evento": "h200_parada",
+      "detalhes": "Instancia H200 (contrato 37095615, ssh7.vast.ai:15614) foi parada (stopped). Tentativa de restart falhou: resources_unavailable. Estado ficou em fila.",
+      "evidencia": "API: cur_state=stopped, restart=resources_unavailable"
+    }
+  ],
+  "instancias": [
+    {
+      "contrato": "desconhecido",
+      "gpu": "RTX PRO 6000 x4",
+      "host": "ssh6.vast.ai:15904",
+      "status": "destruida",
+      "uso": "treino intent + download"
+    },
+    {
+      "contrato": 37095024,
+      "gpu": "Quadro RTX 8000 x4",
+      "host": "ssh2.vast.ai:15024",
+      "status": "destruida",
+      "motivo": "disco 70GB insuficiente"
+    },
+    {
+      "contrato": 37095190,
+      "gpu": "A40 x4",
+      "host": "n/a",
+      "status": "destruida",
+      "motivo": "loading timeout 15min"
+    },
+    {
+      "contrato": 37095327,
+      "gpu": "H200 x4",
+      "host": "ssh4.vast.ai:15326",
+      "status": "destruida",
+      "motivo": "disco 70GB insuficiente"
+    },
+    {
+      "contrato": 37095615,
+      "gpu": "H200 x4",
+      "host": "ssh7.vast.ai:15614",
+      "status": "stopped",
+      "motivo": "parada automaticamente; restart recusado (resources_unavailable)",
+      "uso": "merge CEO + intent → GGUF (incompleto — transformers nao suporta qwen3_5_moe)"
+    }
+  ],
+  "arquivos_criticos": {
+    "modelo_antigo": "models/qwen36-35b-f51.Q4_K_M.gguf (20.22 GB — CEO only)",
+    "modelo_novo": "models/qwen36-intent-f51.Q4_K_M.gguf (19.71 GB — CEO + intent, pipeline diz que ja tem merge)",
+    "ceo_checkpoint": "output/qwen36-sft/checkpoint-2600/ (86 MB)",
+    "intent_checkpoint_best": "output/qwen36-intent/best/ (86 MB)",
+    "intent_checkpoint_final": "output/qwen36-intent/final/ (86 MB)",
+    "merge_script": "scripts/merge_qwen36_lora.py (modificado para fp16/bf16 dinamico)"
+  },
+  "pendente": [
+    "Reconectar H200 (reiniciar instancia parada ou alugar nova)",
+    "Corrigir transformers: instalar >= 4.54.0 ou do source para suporte qwen3_5_moe",
+    "Possivel upgrade PyTorch 2.2.1 → 2.4+ se transformers novo exigir",
+    "Executar: base Qwen3.6 + CEO LoRA + intent LoRA → merged HF (bf16)",
+    "Converter merged → GGUF Q4_K_M (llama.cpp)",
+    "Baixar GGUF final (~20GB)",
+    "Testar modelo mergeado localmente",
+    "Destruir instância H200",
+    "Atualizar checkpoint .f51/checkpoints/latest.json"
+  ]
+}

@@ -45,10 +45,17 @@ def merge(args):
     logger.info("Loading base model in bf16 (no quantization)...")
     t0 = time.time()
 
+    if args.dtype == "fp16":
+        load_dtype = torch.float16
+    elif args.dtype == "bf16":
+        load_dtype = torch.bfloat16
+    else:
+        load_dtype = torch.float16
+
     model = AutoModelForCausalLM.from_pretrained(
         args.base,
         device_map="auto",
-        torch_dtype=torch.bfloat16,
+        torch_dtype=load_dtype,
     )
     tokenizer = AutoTokenizer.from_pretrained(args.base)
     logger.info("Base model loaded in %.1fs", time.time() - t0)
