@@ -1,96 +1,173 @@
 # Test Map — SuperEzio
 
-> Atualizado: 2026-05-17 | Branch: main | 510 testes coletados
+> Atualizado: 2026-05-19 | Branch: main | Session: f51-inventory-full-scan
+> Total: 32 test files, ~530 test functions
 
-## Suite Principal (22 arquivos, 510 testes)
+---
 
-### Smoke & Pipeline (3)
-| Arquivo | Escopo | Tipo |
-|---------|--------|------|
-| `test_pipeline_smoke.py` | Pipeline completo | Smoke |
-| `test_rag_engine_smoke.py` | RAG engine | Smoke |
-| `test_gateway.py` | Model gateway + fallback | Unitario |
+## Suite Principal — `tests/` (23 files)
 
-### Componentes (4)
-| Arquivo | Escopo |
-|---------|--------|
-| `test_components_crisis.py` | CrisisMath (12 modelos) |
-| `test_components_data.py` | Data providers + collector |
-| `test_components_f51.py` | F51 engine, formulas, SpiderSense |
-| `test_components_pennylab.py` | PennyLab (4 experts) |
+### Smoke & Pipeline (3 files)
 
-### Motor F51 (3)
-| Arquivo | Escopo |
-|---------|--------|
-| `test_f51_engine.py` | F51Engine.run() — contrato publico |
-| `test_f51_formulas.py` | Formulas matematicas canonicas |
-| `test_math.py` | Indicadores tecnicos (SMA, MACD, RSI, BB) |
+| Arquivo | Escopo | Tipo | Testes |
+|---------|--------|------|--------|
+| `test_pipeline_smoke.py` | Pipeline v4 completo | Smoke | ~8 |
+| `test_rag_engine_smoke.py` | ForensicRAG engine | Smoke | ~5 |
+| `test_gateway.py` | ModelGateway routing + fallback | Unitário | ~28 |
 
-### Experts (3)
-| Arquivo | Escopo |
-|---------|--------|
-| `test_crisis.py` | Crisis expert models |
-| `test_pennylab.py` | PennyLab experts |
-| `test_neural_decision.py` | Neural decision expert |
+### Componentes (4 files)
 
-### Contratos (5)
-| Arquivo | Escopo |
-|---------|--------|
-| `contracts/test_contract_endpoints.py` | API endpoints |
-| `contracts/test_contract_explanation.py` | Explanation engine |
-| `contracts/test_contract_main.py` | Agent server main |
-| `contracts/test_contract_rag.py` | RAG forense |
-| `contracts/test_trading_losses.py` | Trading losses math |
-
-### Trading/RL (5)
-| Arquivo | Escopo | Status |
+| Arquivo | Escopo | Testes |
 |---------|--------|--------|
-| `test_trading_loop1.py` | Trading loop 1 | Experimental |
-| `test_trading_loop2.py` | Trading loop 2 | Experimental |
-| `test_trading_loop3.py` | Trading loop 3 | Experimental |
-| `test_trading_loop4.py` | Trading loop 4 | Experimental |
-| `test_trading_loop5.py` | RL reward + LoRA training | Experimental |
+| `test_components_crisis.py` | CrisisMath ensemble (12 modelos) | ~20 |
+| `test_components_data.py` | Data providers + ModelProvider + DataHub | ~22 |
+| `test_components_f51.py` | F51 engine, formulas, SpiderSense, gates, scoring | ~28 |
+| `test_components_pennylab.py` | PennyLab 4 experts + scoring + RAG | ~15 |
 
-### Sanitizer (1)
-| Arquivo | Escopo |
+### Motor F51 (3 files)
+
+| Arquivo | Escopo | Testes |
+|---------|--------|--------|
+| `test_f51_engine.py` | F51Engine.run() — graph execution | ~17 |
+| `test_f51_formulas.py` | Fórmulas canônicas (8 classes) | ~22 |
+| `test_math.py` | Indicadores técnicos + risk metrics | ~38 |
+
+### Experts (3 files)
+
+| Arquivo | Escopo | Testes |
+|---------|--------|--------|
+| `test_crisis.py` | Crisis expert models detalhado | ~35 |
+| `test_pennylab.py` | PennyLab experts detalhado | ~54 |
+| `test_neural_decision.py` | NeuralDecisionExpert + API | 20 |
+
+### SDCA / Risk Firewall (1 file)
+
+| Arquivo | Escopo | Testes |
+|---------|--------|--------|
+| `test_sdca_lite.py` | SDCA-Lite risk firewall + endpoint | 15 |
+
+### Runtime (2 files)
+
+| Arquivo | Escopo | Testes |
+|---------|--------|--------|
+| `test_runtime_smoke.py` | Runtime smoke (FastAPI, A2A, pipeline, F51, CEO) | ~17 |
+| `test_integration_runtime.py` | Integration (requer CEO + API live) | ~8 |
+
+### Trading/RL (5 files) — EXPERIMENTAL
+
+| Arquivo | Escopo | Testes |
+|---------|--------|--------|
+| `test_trading_loop1.py` | PositionSizer + KillSwitch | ~25 |
+| `test_trading_loop2.py` | SimulatedBroker + OrderBuilder | ~22 |
+| `test_trading_loop3.py` | ApprovalGate + Alerters | ~22 |
+| `test_trading_loop4.py` | ExpertWeightRouter | ~20 |
+| `test_trading_loop5.py` | RewardFunction + Dataset + LoRA | ~24 |
+
+### Sanitizer (1 file)
+
+| Arquivo | Escopo | Testes |
+|---------|--------|--------|
+| `test_model_sanitizer.py` | Model output sanitizer | 2 |
+
+### Market Scanner (1 file)
+
+| Arquivo | Escopo | Testes |
+|---------|--------|--------|
+| `test_market_scanner.py` | Intent parsing + MarketScanner | 3 |
+
+---
+
+## Suite de Contratos — `tests/contracts/` (9 files)
+
+| Arquivo | Contrato Testado | Testes |
+|---------|------------------|--------|
+| `test_contract_main.py` | Agent server main — app creation, routes, middleware | 7 |
+| `test_contract_endpoints.py` | API endpoints — routes, sanitizers, capabilities | 10 |
+| `test_contract_explanation.py` | ExplainEngine — formatting, confidence, LoRA path | 10 |
+| `test_contract_rag.py` | ForensicRAG + FraudRAG — search, format, singleton | 10 |
+| `test_trading_losses.py` | Trading loss functions — directional, Sharpe, quantile | ~26 |
+| `test_contract_a2a.py` | A2A Protocol — messages, types, roundtrip | 16 |
+| `test_contract_pipeline.py` | Pipeline state contracts — TypedDicts, reducers | 13 |
+| `test_contract_f51_engine.py` | F51 engine invariants — formulas, gates | ~35 |
+| `test_contract_ceo.py` | CEO prompt builder — system prompt, modules | ~32 |
+
+---
+
+## Infra de Teste
+
+| Arquivo | Função |
 |---------|--------|
-| `test_model_sanitizer.py` | Model output sanitizer |
+| `conftest.py` | Fixtures: canned_technicals, fake_gateway, skip_gateway, env setup |
+| `helpers.py` | Utilidades: CANNED_DATA, FakeProvider, FakeGateway, FakeAsyncGenerator |
 
-### Helpers (1)
-| Arquivo | Escopo |
-|---------|--------|
-| `helpers.py` | Funcoes auxiliares compartilhadas |
+---
 
-### Config (1)
-| Arquivo | Escopo |
-|---------|--------|
-| `conftest.py` | Fixtures pytest (session, event loop) |
+## Cobertura por Módulo
 
-## Cobertura por Modulo
-
-| Modulo | Testes | Status |
+| Módulo | Testes | Status |
 |--------|--------|--------|
-| `src/f51/` | test_f51_engine, test_f51_formulas, test_components_f51 | Coberto |
-| `src/core/math/` | test_math, contracts/test_trading_losses | Coberto |
-| `src/core/pipeline/` | test_pipeline_smoke | Coberto |
-| `src/core/model_serving/` | test_gateway, test_model_sanitizer | Coberto |
-| `src/core/rag/` | test_rag_engine_smoke | Coberto |
-| `src/experts/crisis/` | test_crisis, test_components_crisis | Coberto |
-| `src/experts/pennylab/` | test_pennylab, test_components_pennylab | Coberto |
-| `src/experts/neural_decision/` | test_neural_decision | Coberto |
-| `src/data/` | test_components_data | Coberto |
-| `src/agent_server/` | contracts/* | Coberto |
-| `src/core/trading/` | test_trading_loop1-5 | Experimental |
-| `src/core/investor/` | — | Nao testado diretamente |
-| `src/core/config/` | — | Nao testado diretamente |
-| `src/core/observability/` | — | Nao testado |
-| `src/core/security/` | — | Nao testado |
-| `src/core/explanation/` | contracts/test_contract_explanation | Coberto |
-| `src/core/f51_adapter/` | test_components_f51 | Coberto |
-| `src/experts/technical_neural/` | — | Nao testado |
+| `src/f51/` | test_f51_engine, test_f51_formulas, test_components_f51 | COBERTO |
+| `src/core/math/` | test_math, test_trading_losses | COBERTO |
+| `src/core/pipeline/` | test_pipeline_smoke, test_market_scanner | COBERTO |
+| `src/core/model_serving/` | test_gateway, test_model_sanitizer | COBERTO |
+| `src/core/rag/` | test_rag_engine_smoke, test_contract_rag | COBERTO |
+| `src/core/explanation/` | test_contract_explanation | COBERTO |
+| `src/core/risk_firewall/` | test_sdca_lite | COBERTO |
+| `src/experts/crisis/` | test_crisis, test_components_crisis | COBERTO |
+| `src/experts/pennylab/` | test_pennylab, test_components_pennylab | COBERTO |
+| `src/experts/neural_decision/` | test_neural_decision | COBERTO |
+| `src/data/` | test_components_data | COBERTO |
+| `src/agent_server/` | test_contract_main, test_contract_endpoints | COBERTO |
+| `src/core/trading/` | test_trading_loop1-5 | EXPERIMENTAL |
+| `src/core/investor/` | — | NÃO TESTADO |
+| `src/core/config/` | — | NÃO TESTADO |
+| `src/core/observability/` | — | NÃO TESTADO |
+| `src/core/security/` | — | NÃO TESTADO |
+| `src/experts/technical_neural/` | — | NÃO TESTADO |
+| `src/adapters/` | — | NÃO TESTADO |
+| `src/core/data_collector/` | — | NÃO TESTADO |
 
-## Politica de Testes
-- Deterministicos (sem random seed nao fixada)
-- Sem mock de LLM
-- Sem dependencia de rede para unitarios
-- CEO tests requerem modelo local (podem falhar se offline)
+---
+
+## Scripts de Teste (não-pytest)
+
+| Script | Tipo | Requer |
+|--------|------|--------|
+| `scripts/eval_pipeline.py` | E2E com juiz GLM | Servidor + proxy :8899 |
+| `scripts/financial_quality_benchmark.py` | 50Q financeiro | Servidor :8002 |
+| `scripts/trick_questions_test.py` | 20Q raciocínio | Servidor :8002 |
+| `scripts/investment_test.py` | 3 cenários | Servidor :8002 |
+
+---
+
+## Comandos
+
+```bash
+# Suite completa
+python -m pytest tests/ -q
+
+# Smoke
+python -m pytest tests/test_pipeline_smoke.py -q
+
+# Contratos
+python -m pytest tests/contracts/ -q
+
+# Componentes
+python -m pytest tests/test_components_*.py -q
+
+# SDCA
+python -m pytest tests/test_sdca_lite.py -q
+```
+
+---
+
+## Lacunas
+
+5 módulos sem testes:
+1. `src/core/investor/` — lógica de investidor
+2. `src/core/config/` — carregamento de config
+3. `src/core/observability/` — debug logger, notificações
+4. `src/core/security/` — segurança
+5. `src/experts/technical_neural/` — expert técnico neural
+
+**Recomendação:** Priorizar testes para `config/` (impacto em runtime) e `security/` (impacto em segurança).

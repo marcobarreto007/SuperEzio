@@ -25,6 +25,27 @@ Este projeto deve ser executado com trilhos de entrega, risco e checkpoint.
 4. Sem refatoração ampla sem plano de rollback.
 5. Sem decisões de escopo fora do `MONEY_GATE`.
 
+## Política de MCPs
+
+MCP permitido somente se cumprir pelo menos uma função:
+1. Reduzir erro operacional
+2. Testar produto real
+3. Auditar entrega
+4. Acessar documentação necessária
+5. Preparar venda/demo
+
+**Proibido:**
+- Instalar MCP por curiosidade
+- Dar acesso amplo ao filesystem
+- Usar token com escopo exagerado
+- Deixar MCP sem descrição no AGENTS.md/CLAUDE.md
+
+**Stack padrão:**
+- Filesystem limitado ao projeto
+- Playwright quando houver UI
+- GitHub quando houver repo remoto/PR (BLOQUEADO neste projeto — modo DISK ONLY)
+- Docs/context tool quando houver dependência incerta
+
 ## Guardrails
 
 - Não alterar código de produto durante bootstrap operacional.

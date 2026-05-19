@@ -1,30 +1,41 @@
 {
-  "date_local": "2026-05-19T16:17:29-04:00",
-  "session": "sdca-lite-risk-firewall-lab-ui",
-  "status": "IMPLEMENTED_VERIFIED_LOCAL",
+  "date_local": "2026-05-19T19:00:00-04:00",
+  "session": "f51-bootstrap-full-pipeline",
+  "status": "RELEASE_GATE_PASS",
   "what_was_done": [
-    "Added a Cognitive Risk Firewall Lab panel to frontend/index.html behind a shield button in the top bar.",
-    "Added editable SDCA candidate fields, FOMO and conservative presets, and a direct local POST to /api/sdca/evaluate.",
-    "Added lab result rendering for ALLOW/BLOCK/REVIEW, confidence, uncertainty, utility, ghost tokens, matched experiences, rumination trace, and no-broker audit flags.",
-    "Kept the integration isolated to the existing frontend and existing SDCA endpoint; no broker, trading, external API, new framework, or heavy dependency was added.",
-    "Updated the SDCA audit report to reflect that the standalone lab screen now exists and that lab history persistence remains future work.",
-    "Added a frontend contract test that asserts the SDCA lab controls and endpoint wiring exist."
+    "f51-contracts: 159/159 contract tests passed — zero silent contract changes",
+    "f51-runtime: 15/15 runtime checks passed — env, ports, models, imports, frontend",
+    "f51-tests: 646 passed, 7 skipped, 0 failed in 20.65s",
+    "f51-audit: R8 confirmed FALSE POSITIVE, R9 downgraded to MEDIUM, R7 mitigated",
+    "f51-refactor: R9 resolved — GatewayConfig consolidated to config/schema.py, 646 tests still pass",
+    "f51-money-gate: 3 GO (penny-stock P1, trading P2, tests P3), 4 DEFER, 1 NO-GO",
+    "f51-release: PASS — lint clean, all tests pass, no critical blockers"
   ],
   "evidence": [
-    "python -m pytest tests\\test_sdca_lite.py -q -> 14 passed.",
-    "python -m pytest tests\\test_sdca_lite.py tests\\contracts\\test_contract_endpoints.py -q -> 24 passed.",
-    "python -m ruff check targeted SDCA/API/pipeline/test files -> All checks passed.",
-    "python -m ruff format --check targeted SDCA/API/pipeline/test files -> 12 files already formatted.",
-    "python -m json.tool reports\\sdca_lite_audit.json -> valid.",
-    "git diff --check -> passed.",
-    "node inline script parse check for frontend/index.html -> inline js parses.",
-    "No GitHub command was run; project remains DISK ONLY."
+    "ruff check src/ tests/ → All checks passed",
+    "ruff format --check src/ tests/ → 204 files already formatted",
+    "pytest tests/contracts/ → 159 passed in 4.71s",
+    "pytest tests/ → 646 passed, 7 skipped in 20.65s",
+    "Runtime validation → 15/15 checks OK"
+  ],
+  "files_changed": [
+    "src/core/model_serving/providers.py (R9 refactor)",
+    ".f51/INVENTORY.json",
+    ".f51/RISK_REGISTER.md",
+    ".f51/ENTRYPOINT_MAP.md",
+    ".f51/CONFIG_MAP.md",
+    ".f51/TEST_MAP.md",
+    ".f51/DUPLICATE_MAP.md",
+    ".f51/SKILLS_CHECK.md",
+    ".f51/MONEY_GATE_EVALUATION.md",
+    ".f51/PROJECT_RULES.md",
+    ".f51/RELEASE_GATE_2026-05-19.md",
+    ".f51/checkpoints/latest.json"
   ],
   "risks": [
-    "The lab evaluates live endpoint responses but does not persist a history of evaluations yet.",
-    "The lab uses static presets plus editable form controls; it does not yet import saved decision logs.",
-    "The UI was syntax/static tested and endpoint-tested through pytest, but no full browser click-through was run in this checkpoint.",
-    "A separate local modification exists in scripts/merge_qwen36_lora.py and was intentionally left untouched because it is unrelated to SDCA."
+    "R7 (HIGH, mitigado): .env com 12+ API keys — gitignored",
+    "R9 (MEDIUM, resolved): GatewayConfig consolidado",
+    "R10 (MEDIUM, deferred): indicadores duplicados — precisa teste dedicado"
   ],
-  "next_step": "Persist SDCA lab evaluations locally and add filters for decision, asset, source, ghost token, and learned rule."
+  "next_step": "F7: Integrar frentes de liquidez penny-stock no terminal (P1 Money Gate)"
 }

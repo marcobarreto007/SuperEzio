@@ -9,6 +9,8 @@ import os
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from ..config.schema import GatewayConfig
+
 if TYPE_CHECKING:
     from ..config import UniversalConfig
 
@@ -35,17 +37,6 @@ class ModelProvider:
     temperature: float = 0.7
     is_local: bool = False
     backend: str = "cloud"
-
-
-@dataclass
-class GatewayConfig:
-    """Configuração do gateway."""
-
-    max_fallbacks: int = 2
-    timeout_s: int = 120
-    retry_attempts: int = 2
-    retry_delay_s: float = 1.0
-    quality_threshold: float = 0.7
 
 
 def build_default_providers(

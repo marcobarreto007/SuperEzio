@@ -1,65 +1,147 @@
 {
   "project": "SuperEzio",
   "version": "4.0.0",
-  "inventory_date": "2026-05-17T16:55:00-04:00",
-  "session": "f51-hostile-audit-release",
+  "inventory_date": "2026-05-19T18:00:00-04:00",
+  "session": "f51-inventory-full-scan",
   "branch": "main",
-  "commit": "f5f34b3",
+  "commit": "75c8553",
   "summary": {
-    "total_python_modules": 98,
-    "total_test_files": 22,
-    "total_scripts": 17,
-    "total_config_files": 3,
+    "total_python_modules_active": 98,
+    "total_python_modules_archive": 15,
+    "total_test_files": 32,
+    "total_test_functions_approx": 530,
+    "total_scripts_active": 25,
+    "total_scripts_dead": 4,
+    "total_config_files_active": 17,
+    "total_config_files_stale": 13,
     "total_docs_files": 18,
-    "tests_collected": 510
+    "total_entrypoints": 29,
+    "total_duplicate_functions": 18,
+    "total_duplicate_files": 8
   },
   "classification_counts": {
     "core": 52,
-    "app": 4,
+    "app": 6,
     "pipeline": 14,
-    "config": 6,
-    "test": 22,
+    "config": 17,
+    "test": 32,
     "doc": 18,
-    "experimental": 12,
-    "duplicate": 5,
+    "experimental": 15,
+    "duplicate": 8,
     "deprecated": 7,
-    "unknown": 0
+    "unknown": 2
   },
-  "duplicates": [
-    {
-      "symbol": "VeracityGate",
-      "locations": [
-        "src/f51/gates.py (canonico)",
-        "src/core/investor/veracity_gate.py (duplicata)",
-        "src/experts/pennylab/experts/veracity_gate.py (duplicata)"
-      ],
-      "severity": "high",
-      "note": "3 implementacoes. Canonica: src/f51/gates.py."
+  "directory_structure": {
+    "src/": {
+      "classification": "core",
+      "subdirectories": ["adapters/", "agent_server/", "core/", "data/", "experts/", "f51/", "tools/"],
+      "py_files_top_level": 24
     },
-    {
-      "symbol": "SpiderSense (arquivado)",
-      "locations": [
-        "src/f51/detectors.py (canonico)",
-        "archive/deprecated/core/math/detectors.py"
-      ],
-      "severity": "low"
+    "src/core/": {
+      "classification": "core",
+      "subdirectories": ["audit/", "config/", "data_collector/", "explanation/", "f51_adapter/", "investor/", "math/", "model_serving/", "observability/", "paths/", "pipeline/", "ports/", "prompts/", "rag/", "risk_firewall/", "scanner/", "security/", "storage/", "trading/"],
+      "note": "Largest module — 19 subdirectories"
     },
-    {
-      "symbol": "EpisodeMemory (arquivado)",
-      "locations": [
-        "src/f51/memory.py (canonico)",
-        "archive/quarantine/f51/memory.py"
-      ],
-      "severity": "low"
+    "src/f51/": {
+      "classification": "core",
+      "files": ["detectors.py", "formulas.py", "gates.py", "graph.py", "scoring.py"],
+      "note": "Canonical F51 engine — decision formulas, gates, scoring"
+    },
+    "src/agent_server/": {
+      "classification": "app",
+      "files": ["main.py", "endpoints.py", "protocol.py"],
+      "note": "Primary FastAPI server — port 8002"
+    },
+    "src/experts/": {
+      "classification": "core",
+      "subdirectories": ["crisis/", "neural_decision/", "pennylab/", "technical_neural/"],
+      "note": "Expert systems — crisis models, penny stocks, neural, technical"
+    },
+    "frontend/": {
+      "classification": "app",
+      "files": ["index.html"],
+      "note": "Single-page UI — dark/green financial theme, talks to :8002"
+    },
+    "desktop/": {
+      "classification": "app",
+      "files": ["SuperEzio.bat"],
+      "note": "Windows launcher — starts CEO + API + opens browser"
+    },
+    "tests/": {
+      "classification": "test",
+      "files_main": 23,
+      "files_contracts": 9,
+      "total": 32,
+      "note": "530+ test functions, pytest 8.0+, asyncio auto mode"
+    },
+    "scripts/": {
+      "classification": "core",
+      "active": 17,
+      "dead": 3,
+      "note": "Training, eval, data generation scripts"
+    },
+    "config/": {
+      "classification": "config",
+      "files": ["runtime.yml", "model_manifest.json", "mandamentos.json"],
+      "note": "2 of 3 stale (reference Gemma, not Qwen3.6)"
+    },
+    "F51_Datasets/": {
+      "classification": "experimental",
+      "scripts": 8,
+      "note": "Dataset pipeline — download, convert, score, generate SFT data"
+    },
+    "archive/": {
+      "classification": "deprecated",
+      "subdirectories": ["deprecated/", "quarantine/", "experimental/"],
+      "note": "Dead code — Nemotron adapters, old training scripts, shims"
+    },
+    "models/": {
+      "classification": "core",
+      "files": ["qwen36-35b-f51.Q4_K_M.gguf", "qwen36-intent-f51.Q4_K_M.gguf"],
+      "note": "20GB CEO model + intent classifier. gitignored."
+    },
+    "llama.cpp/": {
+      "classification": "core",
+      "note": "Vendored llama-server.exe — serves CEO on :8082"
+    },
+    "output/": {
+      "classification": "experimental",
+      "note": "Training checkpoints, E2E logs, Playwright screenshots"
+    },
+    "scratch/": {
+      "classification": "experimental",
+      "files": 3,
+      "note": "Ad-hoc test scripts — disposable"
+    },
+    "docs/": {
+      "classification": "doc",
+      "subdirectories": ["architecture/", "runbooks/", "internal/", "superpowers/"],
+      "note": "Architecture templates, runbooks, SDCA docs"
+    },
+    "reports/": {
+      "classification": "doc",
+      "note": "Machine-generated audit manifests"
     }
-  ],
+  },
   "active_model": {
-    "name": "Qwen3.6-35B F51",
+    "name": "Qwen3.6-35B-A3B F51",
     "file": "models/qwen36-35b-f51.Q4_K_M.gguf",
     "size_gb": 20.22,
-    "sha256": "315138F8FD565E7D37C8A01C1A99A1691B634FB84500DBC2C6B2BFA12A7FED12",
+    "quantization": "Q4_K_M",
     "speculative_decoding": "MTP (built-in)",
-    "server": "http://127.0.0.1:8082/v1",
-    "script": "scripts/serve_ceo_llamacpp.ps1"
+    "server_url": "http://127.0.0.1:8082/v1",
+    "server_binary": "llama.cpp/bin/llama-server.exe",
+    "launch_script": "scripts/serve_ceo_llamacpp.ps1",
+    "gpu_layers": 20,
+    "context_length": 32768
+  },
+  "intent_model": {
+    "name": "Qwen3.6 Intent F51",
+    "file": "models/qwen36-intent-f51.Q4_K_M.gguf",
+    "note": "Fine-tuned intent classifier"
+  },
+  "runtime_ports": {
+    "ceo": 8082,
+    "api": 8002
   }
 }
