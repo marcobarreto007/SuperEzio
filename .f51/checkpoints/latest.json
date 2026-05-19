@@ -1,24 +1,32 @@
 {
-  "date_local": "2026-05-18T19:15:09-04:00",
-  "session": "f51-no-github-policy",
-  "status": "DISK_ONLY_GITHUB_HARD_BLOCK_RECORDED",
+  "date_local": "2026-05-18T20:32:08-04:00",
+  "session": "f51-save-intent-training-artifacts",
+  "status": "LOCAL_SAVE_READY_NO_GITHUB",
   "what_was_done": [
-    "Created .f51/GITHUB_POLICY.json as the canonical JSON rule that forbids GitHub for this project.",
-    "Added a visible GITHUB BLOQUEADO section near the top of AGENTS.md.",
-    "Added a visible GITHUB BLOQUEADO section near the top of CLAUDE.md.",
-    "Added a visible GITHUB BLOQUEADO section near the top of .f51/PROJECT_RULES.md.",
-    "Recorded that local commits are allowed when Marco asks to save work, but push/pull/fetch/gh/GitHub Actions/GitHub API/GitHub connector are forbidden."
+    "Prepared local save for intent classifier training artifacts.",
+    "Reviewed pending files before commit: intent JSONL datasets, dataset generator, Vast.ai setup script, and Qwen3.6 LoRA merge helper.",
+    "Removed executable GitHub clone usage from scripts/vastai_setup_intent.sh so it obeys .f51/GITHUB_POLICY.json.",
+    "Formatted and linted scripts/generate_intent_dataset.py and scripts/merge_qwen36_lora.py.",
+    "Regenerated data/intent_training.jsonl and data/intent_fewshot.jsonl from scripts/generate_intent_dataset.py.",
+    "Validated JSONL structure and intent/route distributions.",
+    "Did not run any GitHub command."
   ],
   "evidence": [
-    ".f51/GITHUB_POLICY.json contains policy_name=F51_NO_GITHUB_DISK_ONLY, status=active, severity=hard_block, current_mode=disk_only.",
-    ".f51/GITHUB_POLICY.json forbids git push, git pull, git fetch, gh, GitHub Actions, PRs, GitHub web/API/connector/MCP.",
-    "AGENTS.md, CLAUDE.md, and .f51/PROJECT_RULES.md now point to .f51/GITHUB_POLICY.json.",
-    "No GitHub command was executed."
+    "data/intent_training.jsonl -> 648 valid JSONL examples.",
+    "data/intent_fewshot.jsonl -> 50 valid JSONL examples.",
+    "Route distribution training set: ticker_analysis=360, general=141, market_scan=94, needs_scope=53.",
+    "Intent distribution training set: ticker_analysis=360, general_question=99, market_scan=94, explain_capabilities=42, unsafe_unspecified_recommendation=37, missing_required_slot=16.",
+    "python scripts\\generate_intent_dataset.py -> completed and wrote both JSONL files.",
+    "python -m ruff check scripts\\merge_qwen36_lora.py scripts\\generate_intent_dataset.py -> All checks passed.",
+    "python -m ruff format scripts\\merge_qwen36_lora.py scripts\\generate_intent_dataset.py --check -> 2 files already formatted.",
+    "bash -n scripts/vastai_setup_intent.sh -> passed.",
+    "rg '^\\s*(git|gh)\\b' over intent artifacts and scripts -> no executable git/gh commands.",
+    "git diff --check -> passed."
   ],
   "risks": [
-    "This is a written operational rule, not an OS-level network block.",
-    "Existing local Git remote may still be configured; agents must obey .f51/GITHUB_POLICY.json and avoid all GitHub actions.",
-    "There are unrelated local untracked/modified files outside this policy patch."
+    "This commit saves training preparation artifacts only; it does not train or validate a LoRA model.",
+    "scripts/vastai_setup_intent.sh now requires the local project tree and llama.cpp to be uploaded/preinstalled instead of cloning from GitHub.",
+    "Secret scan only found tokenizer/convert_hf false positives; no real API key/token pattern was found in the saved artifacts."
   ],
-  "next_step": "If stronger enforcement is needed, add a local pre-push hook that blocks pushes without touching GitHub."
+  "next_step": "Commit locally, then decide whether to add a pre-push hook to enforce the no-GitHub policy at command level."
 }

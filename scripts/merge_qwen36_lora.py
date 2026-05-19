@@ -1,14 +1,25 @@
 """
-Merge LoRA adapter into Qwen3.6-35B-A3B base model (bf16), then save
+Merge LoRA adapters into Qwen3.6-35B-A3B base model (bf16), then save
 merged weights for GGUF conversion.
+
+Supports multiple --adapter args for stacking LoRAs (e.g., CEO + intent).
 
 Requires 98GB+ VRAM (fits RTX PRO 6000 S).
 
 Usage:
+    # Single adapter
     python scripts/merge_qwen36_lora.py \
         --base Qwen/Qwen3.6-35B-A3B \
         --adapter checkpoint-2600 \
         --output merged-model \
+        --dtype fp16
+
+    # Multiple adapters (stacked: CEO LoRA + intent LoRA)
+    python scripts/merge_qwen36_lora.py \
+        --base Qwen/Qwen3.6-35B-A3B \
+        --adapter output/qwen36-sft/checkpoint-2600 \
+        --adapter output/qwen36-intent/checkpoint-80 \
+        --output final-merged \
         --dtype fp16
 """
 
@@ -16,11 +27,14 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import time
 
 import torch
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S"
+)
 logger = logging.getLogger("merge")
 
 
@@ -38,40 +52,51 @@ def merge(args):
     )
     tokenizer = AutoTokenizer.from_pretrained(args.base)
     logger.info("Base model loaded in %.1fs", time.time() - t0)
-
     logger.info("GPU memory: %.1f GB allocated", torch.cuda.memory_allocated() / 1e9)
 
-    logger.info("Loading LoRA adapter: %s", args.adapter)
-    model = PeftModel.from_pretrained(model, args.adapter)
-    logger.info("Adapter loaded. Merging...")
+    for i, adapter_path in enumerate(args.adapter, 1):
+        logger.info("[%d/%d] Loading LoRA adapter: %s", i, len(args.adapter), adapter_path)
+        model = PeftModel.from_pretrained(model, adapter_path)
+        logger.info("[%d/%d] Merging...", i, len(args.adapter))
+        t1 = time.time()
+        model = model.merge_and_unload()
+        logger.info(
+            "[%d/%d] Merged in %.1fs (%.1f GB allocated)",
+            i,
+            len(args.adapter),
+            time.time() - t1,
+            torch.cuda.memory_allocated() / 1e9,
+        )
 
-    t1 = time.time()
-    merged = model.merge_and_unload()
-    logger.info("Merged in %.1fs", time.time() - t1)
-
-    logger.info("GPU memory after merge: %.1f GB allocated", torch.cuda.memory_allocated() / 1e9)
+    logger.info(
+        "GPU memory after all merges: %.1f GB allocated", torch.cuda.memory_allocated() / 1e9
+    )
 
     logger.info("Converting to %s and saving to %s...", args.dtype, args.output)
     os.makedirs(args.output, exist_ok=True)
 
     if args.dtype == "fp16":
-        merged = merged.half()
+        model = model.half()
     elif args.dtype == "bf16":
-        merged = merged.bfloat16()
+        model = model.bfloat16()
 
-    merged.save_pretrained(args.output, safe_serialization=True, max_shard_size="5GB")
+    model.save_pretrained(args.output, safe_serialization=True, max_shard_size="5GB")
     tokenizer.save_pretrained(args.output)
 
     logger.info("Merged model saved. Done.")
 
 
 if __name__ == "__main__":
-    import os
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
     p = argparse.ArgumentParser()
     p.add_argument("--base", default="Qwen/Qwen3.6-35B-A3B")
-    p.add_argument("--adapter", required=True)
+    p.add_argument(
+        "--adapter",
+        action="append",
+        required=True,
+        help="LoRA adapter path (repeat for multiple: --adapter ckpt1 --adapter ckpt2)",
+    )
     p.add_argument("--output", required=True)
     p.add_argument("--dtype", default="fp16", choices=["fp16", "bf16"])
     args = p.parse_args()
