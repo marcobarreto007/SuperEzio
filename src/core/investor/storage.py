@@ -273,6 +273,12 @@ _storage_lock: _threading.Lock = _threading.Lock()
 
 
 def get_investor_storage() -> InvestorStorage:
+    import warnings
+
+    warnings.warn(
+        "get_investor_storage is deprecated — investor module is disconnected from pipeline.",
+        DeprecationWarning,
+    )
     global _storage
     if _storage is None:
         with _storage_lock:

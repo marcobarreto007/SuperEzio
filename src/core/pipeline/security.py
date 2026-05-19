@@ -6,6 +6,11 @@ Centraliza todas as verificações de segurança para o pipeline:
   - Rate limiting por sessão/IP
   - Output filtering (PII, forbidden phrases)
   - Request ID tracing auto-increment
+
+.. deprecated::
+    This module (353 lines) is not called from the production pipeline.
+    Kept as reference for future security integration.
+    Use ``sanitize_output`` from the same module — that function IS active.
 """
 
 from __future__ import annotations

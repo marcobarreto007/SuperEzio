@@ -141,6 +141,10 @@ class RedisStreamsHub(EventHub):
     """
     Implementação com Redis Streams.
     Mais robusta para produção - permite múltiplos workers e persistência.
+
+    .. deprecated::
+        This class is not instantiated in the current pipeline.
+        Kept for future Redis integration.
     """
 
     def __init__(

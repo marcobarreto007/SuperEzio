@@ -292,6 +292,13 @@ def get_config() -> UniversalConfig:
 
 
 def reload_config(path: str = "config/runtime.yml") -> UniversalConfig:
+    import warnings
+
+    warnings.warn(
+        "reload_config is deprecated and will be removed in a future version. "
+        "Use get_config() instead.",
+        DeprecationWarning,
+    )
     global _config
     _config = UniversalConfig.load(path)
     _config.ensure_directories()
