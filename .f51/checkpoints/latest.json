@@ -1,77 +1,49 @@
 {
   "date_local": "2026-05-20T00:00:00-04:00",
-  "session": "merge-ceo-intent-lora-pipeline-validated",
-  "status": "PIPELINE_VALIDATED",
+  "session": "archeologist-findings-all-resolved",
+  "status": "ALL_13_FINDINGS_RESOLVED_AND_COMMITTED",
   "what_was_done": [
-    "merge-ceo-intent: CEO LoRA (ckpt-2600) + Intent LoRA (best) merged onto Qwen3.6-35B-A3B via A100 SXM4 x4",
-    "merge-ceo-intent: transformers 5.8.1 + peft 0.19.2.dev0 — merge 31s load + 0.3s merges + 109s save",
-    "gguf-convert: FP16 (66152 MiB) → Q4_K_M (20175 MiB, 4.88 BPW) via llama.cpp CUDA — 288.6s quant",
-    "gguf-download: 19.71 GB SCP from A100 (ssh9.vast.ai:17834) → models/superezio-ceo-intent-merged.Q4_K_M.gguf",
-    "gguf-sha256: d05879da1931dd1a2e36071db598d74093bb9528382514bb7836b6b196b40485 — verified match",
-    "gguf-patches: block_count 41→40 (offset 346), nextn_predict_layers 1→0 (offset 1328)",
-    "serve-update: serve_ceo_llamacpp.ps1 → new model + reasoning auto + GPU layers 40",
-    "teste-ceo: reasoning ON, max_tokens=1024 — HOLD NVDA with 50-day MA analysis (704 tok, 2551 char reasoning)",
-    "teste-intent: reasoning ON, max_tokens=1024 — structured intent classification (682 tok, 2078 char reasoning)",
-    "teste-suite: pytest 646 passed, 7 skipped, 0 failed in 32.79s — zero regressions",
-    "pipeline-e2e-1: ticker_analysis AAPL → SELL $298.98→$270.08, 92% conf, 10.0s (CEO merged)",
-    "pipeline-e2e-2: market_scan AI chips → volume anomalies AAPL 1.87x + ABCE 2.34x, 3.3s (CEO merged)",
-    "pipeline-e2e-3: risk_check TSLA → HOLD $404.16→$410.50, 62% conf, 5.6s (CEO merged)",
-    "a100-destroyed: instance #37097835 offline, billing stopped"
+    "archeologist-C1: EpisodeMemory/Episode exports removed from src/f51/__init__.py (imported from non-existent memory.py)",
+    "archeologist-C2: agent_runtime stubs removed from src/core/data_collector/collector.py — QuantEngine defined directly",
+    "archeologist-C3: model_manifest.json updated — CEO path → superezio-ceo-intent-merged.Q4_K_M.gguf, block_count=40, nextn=0",
+    "archeologist-M1: core/trading/__init__.py deprecated — module docstring notes disconnected from production pipeline",
+    "archeologist-M2: core/investor/__init__.py updated — docstring marks which submodules are ACTIVE vs DEPRECATED",
+    "archeologist-M3: dead modules deprecated — security.py, event_hub.py/RedisStreamsHub, storage.py/get_investor_storage, schema.py/reload_config",
+    "archeologist-M4: _legacy_detect_market_scan_intent() dead function removed from src/core/pipeline/intents.py",
+    "archeologist-M5: .env.example — 6 unused vars removed (EXPLANATION_MODEL_PATH, EXPLANATION_LORA_PATH, SUPEREZIO_ORCHESTRATOR_TIMEOUT, SUPEREZIO_EXPERT_CONCURRENCY, SUPEREZIO_FORCE_ALL_EXPERTS_ON_PARTIAL, UNIVERSAL_SKIP_GATEWAY)",
+    "archeologist-M6: .env.example — added missing vars (SUPEREZIO_CEO_BASE_URL, SUPEREZIO_DEEPSEEK_MAX_TOKENS, SUPEREZIO_DEEPSEEK_REASONING_EFFORT, SUPEREZIO_DEEPSEEK_THINKING, SUPEREZIO_RAG_INDEX_DIR, SUPEREZIO_NURSE_MODEL, SUPEREZIO_NURSE_LORA_PATH)",
+    "archeologist-L1: traceback.print_exc() removed from src/core/scanner/__init__.py — now uses proper _log_event",
+    "archeologist-L2: orphan scripts deleted (financial_quality_benchmark.py, gate1_download_test.sh)",
+    "archeologist-L3: 12 intermediate checkpoints removed (~2.3 GB, checkpoint-{200..2400})",
+    "archeologist-L4: 5 empty directories cleaned",
+    "security.py: fixed double-docstring bug (extra \"\"\" causing IndentationError)",
+    "test fix: test_components_data.py assertion updated for new model name",
+    "full test suite: 653 passed, 0 failed, 0 skipped in 59.50s"
   ],
   "evidence": [
-    "models/superezio-ceo-intent-merged.Q4_K_M.gguf — 21,166,757,696 bytes, SHA256 verified",
-    "A100 merge log: base loaded in 31.0s, 16 shards saved, 16.2 GB GPU allocated",
-    "GGUF quant: 66152 MiB → 20175 MiB, 288.6s, 733 tensors",
-    "CEO test: NVDA HOLD signal with technical analysis, 704 tokens",
-    "Intent test: structured classification, 682 tokens",
-    "pytest: 646 passed, 7 skipped, 0 failed in 32.79s"
+    "pytest: 653 passed, 7 warnings, 0 failures in 59.50s",
+    "git commit: 885f1d7 — chore(f51): deprecate dead modules + sync env vars documentation",
+    "7 files changed: .env.example, schema.py, investor/__init__.py, investor/storage.py, event_hub.py, security.py, trading/__init__.py",
+    "tree clean except 2 untracked operational scripts (convert_gguf.sh, merge_pipeline_h200.sh)"
   ],
   "files_changed": [
-    "models/superezio-ceo-intent-merged.Q4_K_M.gguf (new — 19.71 GB merged model)",
-    "scripts/merge_qwen36_lora.py (modified — multi-adapter support)",
-    "scripts/convert_gguf.sh (used on A100)",
-    "scripts/serve_ceo_llamacpp.ps1 (updated — new model, reasoning auto, GPU 40)",
-    ".f51/diario_bordo.json (updated — mission logbook completo)",
-    ".f51/checkpoints/latest.json (this file)"
+    ".env.example — 6 unused vars removed, missing vars added, dead A2A vars cleaned",
+    "src/core/config/schema.py — DeprecationWarning in reload_config()",
+    "src/core/investor/__init__.py — module docstring with ACTIVE/DEPRECATED classification",
+    "src/core/investor/storage.py — DeprecationWarning in get_investor_storage()",
+    "src/core/observability/event_hub.py — deprecation docstring on RedisStreamsHub",
+    "src/core/pipeline/security.py — deprecation docstring, double-\"\"\" bug fixed",
+    "src/core/trading/__init__.py — deprecation module docstring",
+    "src/core/scanner/__init__.py — L1 fix (traceback removed)",
+    "src/core/pipeline/intents.py — M4 fix (dead function removed)",
+    "src/core/data_collector/collector.py — C2 fix (agent_runtime stubs removed)",
+    "src/f51/__init__.py — C1 fix (EpisodeMemory exports removed)",
+    "config/model_manifest.json — C3 fix (CEO model path updated)"
   ],
-  "patches_applied": [
-    {
-      "file": "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
-      "offset": 346,
-      "field": "qwen35moe.block_count",
-      "old_value": 41,
-      "new_value": 40,
-      "reason": "convert_hf_to_gguf.py writes block_count=41 expecting MTP tensors (blk.40) but merged model has 40 blocks (0-39)"
-    },
-    {
-      "file": "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
-      "offset": 1328,
-      "field": "qwen35moe.nextn_predict_layers",
-      "old_value": 1,
-      "new_value": 0,
-      "reason": "MTP speculative decoding tensors not present in merged model — disable NEXTN"
-    }
-  ],
-  "server_config": {
-    "model": "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
-    "port": 8082,
-    "gpu_layers": 28,
-    "reasoning": "auto (enabled)",
-    "speculative_decoding": "disabled (no MTP tensors)",
-    "flash_attention": true,
-    "cache_types": "q8_0"
-  },
-  "modelos": {
-    "antigo": "models/qwen36-35b-f51.Q4_K_M.gguf (20.22 GB — CEO only, backup)",
-    "novo": "models/superezio-ceo-intent-merged.Q4_K_M.gguf (19.71 GB — CEO + intent merged, ATIVO)",
-    "ceo_checkpoint": "output/qwen36-sft/checkpoint-2600/ (86 MB)",
-    "intent_checkpoint_best": "output/qwen36-intent/best/ (86 MB)",
-    "intent_checkpoint_final": "output/qwen36-intent/final/ (86 MB)"
-  },
   "risks": [
-    "GGUF patches manuais — se re-quantizar, precisa re-aplicar patches",
-    "MTP speculative decoding ausente — perda de performance (~70% speedup esperado)",
-    "Gated Delta Net fusion nao suportada em CUDA — layer 0 cai para CPU"
+    "Disconnected modules (trading/, investor/, security.py) kept for Money Gate F4 integration — remove only if definitely unused after F4",
+    "RedisStreamsHub depends on redis.asyncio — not in requirements, not instantiated",
+    "No e2e pipeline test re-run after deprecation changes (server requires GPU)"
   ],
-  "next_step": "Modelo mergeado validado em producao — monitorar latencia, considerar re-quantizar com MTP fix (PR #22673) para recuperar speculative decoding"
+  "next_step": "All archeologist findings resolved. Focus should shift to Money Gate F4 (order execution, risk management) — the deprecated modules may be re-integrated there."
 }
