@@ -1,30 +1,35 @@
 {
-  "date_local": "2026-05-19T22:00:00-04:00",
-  "session": "merge-ceo-intent-lora-gguf",
-  "status": "MERGE_COMPLETO",
+  "date_local": "2026-05-19T23:30:00-04:00",
+  "session": "merge-ceo-intent-lora-gguf-final",
+  "status": "MERGE_COMPLETO_E_TESTADO",
   "what_was_done": [
     "merge-ceo-intent: CEO LoRA (ckpt-2600) + Intent LoRA (best) merged onto Qwen3.6-35B-A3B via A100 SXM4 x4",
     "merge-ceo-intent: transformers 5.8.1 + peft 0.19.2.dev0 — merge 31s load + 0.3s merges + 109s save",
     "gguf-convert: FP16 (66152 MiB) → Q4_K_M (20175 MiB, 4.88 BPW) via llama.cpp CUDA — 288.6s quant",
     "gguf-download: 19.71 GB SCP from A100 (ssh9.vast.ai:17834) → models/superezio-ceo-intent-merged.Q4_K_M.gguf",
     "gguf-sha256: d05879da1931dd1a2e36071db598d74093bb9528382514bb7836b6b196b40485 — verified match",
-    "gguf-patches: block_count 41→40 (offset 346), nextn_predict_layers 1→0 (offset 1328) — model loads successfully",
-    "teste-local: llama-cli loads and generates — 56.8 t/s prompt, 23.7 t/s generation, Qwen3.6 thinking mode active",
+    "gguf-patches: block_count 41→40 (offset 346), nextn_predict_layers 1→0 (offset 1328)",
+    "serve-update: serve_ceo_llamacpp.ps1 → new model + reasoning auto + GPU layers 40",
+    "teste-ceo: reasoning ON, max_tokens=1024 — HOLD NVDA with 50-day MA analysis (704 tok, 2551 char reasoning)",
+    "teste-intent: reasoning ON, max_tokens=1024 — structured intent classification (682 tok, 2078 char reasoning)",
+    "teste-suite: pytest 646 passed, 7 skipped, 0 failed in 32.79s — zero regressions",
     "a100-destroyed: instance #37097835 offline, billing stopped"
   ],
   "evidence": [
     "models/superezio-ceo-intent-merged.Q4_K_M.gguf — 21,166,757,696 bytes, SHA256 verified",
     "A100 merge log: base loaded in 31.0s, 16 shards saved, 16.2 GB GPU allocated",
     "GGUF quant: 66152 MiB → 20175 MiB, 288.6s, 733 tensors",
-    "llama-cli test: 56.8 t/s prompt eval, 23.7 t/s gen, block_count=40, nextn_predict_layers=0"
+    "CEO test: NVDA HOLD signal with technical analysis, 704 tokens",
+    "Intent test: structured classification, 682 tokens",
+    "pytest: 646 passed, 7 skipped, 0 failed in 32.79s"
   ],
   "files_changed": [
     "models/superezio-ceo-intent-merged.Q4_K_M.gguf (new — 19.71 GB merged model)",
     "scripts/merge_qwen36_lora.py (modified — multi-adapter support)",
     "scripts/convert_gguf.sh (used on A100)",
-    ".f51/diario_bordo.json (updated — mission logbook)",
-    ".f51/checkpoints/latest.json (this file)",
-    "scripts/serve_ceo_llamacpp.ps1 (updated — points to new model)"
+    "scripts/serve_ceo_llamacpp.ps1 (updated — new model, reasoning auto, GPU 40)",
+    ".f51/diario_bordo.json (updated — mission logbook completo)",
+    ".f51/checkpoints/latest.json (this file)"
   ],
   "patches_applied": [
     {
@@ -44,17 +49,26 @@
       "reason": "MTP speculative decoding tensors not present in merged model — disable NEXTN"
     }
   ],
+  "server_config": {
+    "model": "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
+    "port": 8082,
+    "gpu_layers": 28,
+    "reasoning": "auto (enabled)",
+    "speculative_decoding": "disabled (no MTP tensors)",
+    "flash_attention": true,
+    "cache_types": "q8_0"
+  },
   "modelos": {
-    "antigo": "models/qwen36-35b-f51.Q4_K_M.gguf (20.22 GB — CEO only, preserved as backup)",
-    "novo": "models/superezio-ceo-intent-merged.Q4_K_M.gguf (19.71 GB — CEO + intent merged)",
+    "antigo": "models/qwen36-35b-f51.Q4_K_M.gguf (20.22 GB — CEO only, backup)",
+    "novo": "models/superezio-ceo-intent-merged.Q4_K_M.gguf (19.71 GB — CEO + intent merged, ATIVO)",
     "ceo_checkpoint": "output/qwen36-sft/checkpoint-2600/ (86 MB)",
     "intent_checkpoint_best": "output/qwen36-intent/best/ (86 MB)",
     "intent_checkpoint_final": "output/qwen36-intent/final/ (86 MB)"
   },
   "risks": [
     "GGUF patches manuais — se re-quantizar, precisa re-aplicar patches",
-    "Modelo mergeado nao foi testado com pipeline completa (CEO provider + intent classifier)",
-    "nextn_predict_layers=0 desabilita MTP speculative decoding — perda de performance (~70%)"
+    "MTP speculative decoding ausente — perda de performance (~70% speedup esperado)",
+    "Gated Delta Net fusion nao suportada em CUDA — layer 0 cai para CPU"
   ],
-  "next_step": "Integrar novo modelo no pipeline: atualizar serve_ceo_llamacpp.ps1, testar CEO provider no port 8082, validar qualidade de saida com prompts reais"
+  "next_step": "Pipeline completo com modelo mergeado: testar fluxo real de trading via CEO provider"
 }
