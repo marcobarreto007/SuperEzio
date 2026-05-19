@@ -9,6 +9,14 @@ from langgraph.config import get_stream_writer
 from core.risk_firewall import DecisionCandidate, evaluate_decision_with_sdca
 
 
+def route_after_sdca_firewall(state: dict[str, Any]) -> str:
+    """Hard-stop blocked candidates; let REVIEW/ALLOW continue to explanation."""
+
+    if state.get("sdca_blocked"):
+        return "respond_blocked"
+    return "rag_forensics"
+
+
 def _amount_from_state(state: dict[str, Any]) -> float | None:
     entities = state.get("entities") or {}
     for source in (entities, state.get("filters") or {}):
@@ -102,6 +110,8 @@ async def node_sdca_firewall(state: dict[str, Any]) -> dict[str, Any]:
                 "confidence": payload["confidence"],
                 "uncertainty": payload["uncertainty"],
                 "ghost_tokens": payload["ghost_tokens"],
+                "matched_experiences": payload["matched_experiences"],
+                "consequence_score": payload["consequence_score"],
                 "human_summary": payload["human_summary"],
             }
         )

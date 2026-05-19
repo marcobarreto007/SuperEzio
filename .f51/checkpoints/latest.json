@@ -1,34 +1,33 @@
 {
-  "date_local": "2026-05-19T15:52:57-04:00",
-  "session": "sdca-lite-risk-firewall-v0.1",
-  "status": "IMPLEMENTED_AND_VERIFIED_LOCAL",
+  "date_local": "2026-05-19T16:07:03-04:00",
+  "session": "sdca-lite-risk-firewall-hardening",
+  "status": "IMPLEMENTED_VERIFIED_AND_SAVED_LOCAL",
   "what_was_done": [
-    "Created the required SDCA-Lite inventory before code changes.",
-    "Implemented core.risk_firewall with Pydantic contracts, ghost-token experts, deterministic experience retrieval, bounded rumination, consequence scoring, and evaluate_decision_with_sdca.",
-    "Seeded local JSONL experience memory in data/sdca_experience_memory.jsonl.",
-    "Added POST /api/sdca/evaluate as a standalone FastAPI endpoint.",
-    "Integrated an additive sdca_firewall LangGraph node after neural_decision and before rag_forensics.",
-    "Added SDCA_FIREWALL prompt evidence so BLOCK/REVIEW is visible to the CEO prompt without changing existing stream contracts.",
-    "Added tests/test_sdca_lite.py covering block/review behavior, low-risk behavior, rumination cap, experience weighting, auditability, and no broker execution.",
-    "Created docs/SDCA_LITE_MONEY_GATE.md and reports/sdca_lite_audit.json."
+    "Saved the initial SDCA-Lite v0.1 implementation in local commit 700d6f0.",
+    "Replaced overlap-only retrieval with a local deterministic hashed-vector similarity fallback combined with ghost-token and word overlap.",
+    "Extended SDCA experience memory to load the existing local fraud_patterns corpus as additional ExperienceEpisode records.",
+    "Changed the LangGraph SDCA integration so BLOCK hard-routes to respond_blocked instead of continuing the full analysis stream.",
+    "Added an SDCA blocked response that states no execution and requires human review or a lower-risk scenario.",
+    "Added SDCA_FIREWALL stream details for matched experiences and consequence score.",
+    "Added frontend rendering for SDCA_FIREWALL events, including decision, confidence, uncertainty, utility, matched experiences, and ghost tokens.",
+    "Expanded SDCA tests for memory loading, local embedding similarity, graph hard-stop routing, blocked response content, endpoint behavior, and frontend event rendering.",
+    "Updated reports/sdca_lite_audit.json to reflect the hardened integration and remaining limitations."
   ],
   "evidence": [
-    "python -m pytest tests\\test_sdca_lite.py -v -> 6 passed.",
-    "python -m pytest tests\\test_sdca_lite.py tests\\contracts\\test_contract_endpoints.py -q -> 16 passed.",
-    "python -m ruff check targeted SDCA/API/pipeline/test files -> All checks passed.",
-    "python -m ruff format --check targeted SDCA/API/pipeline/test files -> 11 files already formatted.",
+    "python -m pytest tests\\test_sdca_lite.py tests\\contracts\\test_contract_endpoints.py -q -> 23 passed.",
+    "python -m ruff check targeted SDCA/API/pipeline/frontend-adjacent test files -> All checks passed.",
+    "python -m ruff format --check targeted SDCA/API/pipeline/test files -> 12 files already formatted.",
     "python -m json.tool reports\\sdca_lite_audit.json -> valid.",
-    "FastAPI TestClient POST /api/sdca/evaluate returned HTTP 200 and BLOCK for the FOMO leveraged BTC-CAD payload.",
-    "Example BLOCK tokens: api_latency_rising, execution_slippage_risk, fake_breakout_possible, fomo_pattern_detected, leverage_impulse, spread_expansion.",
-    "pyright --version was not available on PATH.",
-    "No GitHub command was run."
+    "git diff --check -> passed.",
+    "Component loop test matrix ran 3 times across runtime_decision, retrieval_memory, audit_no_broker, pipeline_hard_stop, api_endpoint, and frontend_rendering -> passed.",
+    "No GitHub command was run; project remains DISK ONLY."
   ],
   "risks": [
-    "Experience retrieval is deterministic token/tag overlap, not embeddings.",
-    "Seed memory is curated starter data, not production incident history.",
-    "Pipeline integration marks BLOCK/REVIEW defensively but does not hard-stop the entire analysis stream.",
-    "No frontend SDCA visualization was added in this checkpoint.",
-    "reports/ may be gitignored/untracked; reports/sdca_lite_audit.json exists on disk."
+    "Local hashed-vector retrieval is stronger than raw overlap but is still not a trained semantic embedding model.",
+    "Experience memory now includes local fraud-pattern data, but it still needs real production incident and decision-review episodes.",
+    "REVIEW intentionally continues the pipeline with defensive flags; only BLOCK hard-stops.",
+    "UI renders SDCA stream events inside the existing chat flow, but there is no standalone SDCA demo/lab screen yet.",
+    "pyright was not run because it was not available on PATH during the SDCA implementation checkpoint."
   ],
-  "next_step": "Add frontend rendering for sdca_firewall and calibrate thresholds against real decision logs before making this a paid demo workflow."
+  "next_step": "Curate real SDCA incident episodes, calibrate BLOCK/REVIEW thresholds against decision logs, and add a standalone Cognitive Risk Firewall demo screen."
 }

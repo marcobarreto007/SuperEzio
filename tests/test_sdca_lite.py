@@ -1,12 +1,18 @@
 import builtins
 import json
+from pathlib import Path
 
 from core.risk_firewall import (
     DecisionCandidate,
     evaluate_decision_with_sdca,
     run_rumination,
 )
-from core.risk_firewall.experience_memory import retrieve_experiences
+from core.risk_firewall.experience_memory import (
+    _cosine,
+    _hashed_embedding,
+    load_experience_memory,
+    retrieve_experiences,
+)
 
 
 def _fomo_candidate() -> DecisionCandidate:
@@ -107,6 +113,28 @@ def test_experience_delta_r_weighting(tmp_path):
     assert matches[0].episode_id != "huge-delta-unrelated"
 
 
+def test_project_fraud_memory_loaded():
+    episodes = load_experience_memory()
+    ids = {episode.id for episode in episodes}
+
+    assert "sdca-001" in ids
+    assert any(episode_id.startswith("fraud-pattern-") for episode_id in ids)
+    assert any(episode_id.startswith("fraud-case-") for episode_id in ids)
+
+
+def test_local_embedding_similarity_is_used():
+    related = _cosine(
+        _hashed_embedding("leveraged fomo breakout spread expansion"),
+        _hashed_embedding("fomo leverage breakout wide spread"),
+    )
+    unrelated = _cosine(
+        _hashed_embedding("leveraged fomo breakout spread expansion"),
+        _hashed_embedding("macro accounting revenue audit"),
+    )
+
+    assert related > unrelated
+
+
 def test_output_is_auditable():
     result = evaluate_decision_with_sdca(_fomo_candidate())
     payload = result.model_dump(mode="json")
@@ -140,3 +168,59 @@ def test_no_broker_execution(monkeypatch):
 
     assert result.audit_log["no_broker_execution"] is True
     assert result.audit_log["no_external_api_calls"] is True
+
+
+def test_pipeline_routes_sdca_block_to_blocked():
+    from core.pipeline.nodes.sdca_firewall import route_after_sdca_firewall
+
+    assert route_after_sdca_firewall({"sdca_blocked": True}) == "respond_blocked"
+    assert route_after_sdca_firewall({"sdca_review_required": True}) == "rag_forensics"
+    assert route_after_sdca_firewall({}) == "rag_forensics"
+
+
+def test_sdca_blocked_response_mentions_no_execution():
+    from core.pipeline.nodes.guardrails import _sdca_blocked_response
+
+    response = _sdca_blocked_response(
+        {
+            "sdca_firewall": {
+                "human_summary": "SDCA-Lite BLOCK: test block.",
+                "ghost_tokens": ["fomo_pattern_detected", "leverage_impulse"],
+            }
+        }
+    )
+
+    assert "BLOCKED" in response
+    assert "no execution" in response
+    assert "fomo_pattern_detected" in response
+
+
+def test_sdca_endpoint_route_registered():
+    from agent_server.endpoints import router
+
+    assert "/api/sdca/evaluate" in {route.path for route in router.routes}
+
+
+def test_sdca_endpoint_returns_block_with_testclient():
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from agent_server.endpoints import router
+
+    app = FastAPI()
+    app.include_router(router)
+    response = TestClient(app).post(
+        "/api/sdca/evaluate",
+        json=_fomo_candidate().model_dump(mode="json"),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["decision"] == "BLOCK"
+
+
+def test_frontend_renders_sdca_firewall_event():
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+
+    assert "function renderSDCA" in html
+    assert 'case "SDCA_FIREWALL"' in html
+    assert 'sdca_firewall: "sdca"' in html

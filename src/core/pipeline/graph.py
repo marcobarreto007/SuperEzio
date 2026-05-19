@@ -24,6 +24,7 @@ from .nodes import (
     node_sdca_firewall,
     route_after_f51,
     route_after_orchestrator,
+    route_after_sdca_firewall,
 )
 
 logger = logging.getLogger(__name__)
@@ -114,7 +115,14 @@ def build_graph(
     builder.add_edge("run_expert", "collect_experts")
     builder.add_edge("collect_experts", "neural_decision")
     builder.add_edge("neural_decision", "sdca_firewall")
-    builder.add_edge("sdca_firewall", "rag_forensics")
+    builder.add_conditional_edges(
+        "sdca_firewall",
+        route_after_sdca_firewall,
+        {
+            "rag_forensics": "rag_forensics",
+            "respond_blocked": "respond_blocked",
+        },
+    )
     builder.add_edge("rag_forensics", "ceo_primary")
     builder.add_edge("ceo_primary", "explanation")
     builder.add_edge("explanation", END)

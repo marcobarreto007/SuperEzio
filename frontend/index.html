@@ -416,6 +416,51 @@
       overflow-y: auto;
     }
 
+    .sdca-summary {
+      margin-bottom: 10px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--ink);
+    }
+
+    .sdca-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .sdca-metric {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 7px 8px;
+      background: var(--panel);
+      font-size: 11px;
+    }
+
+    .sdca-metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      margin-bottom: 2px;
+    }
+
+    .sdca-token-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .sdca-token {
+      border: 1px solid var(--line);
+      border-radius: 99px;
+      padding: 3px 8px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
     /* ── F51 CARD ── */
     .f51-ring-wrap {
       display: flex;
@@ -1123,7 +1168,7 @@
     const LIVE_UPDATED = document.getElementById("live-updated");
     const LIVE_CANVAS = document.getElementById("live-canvas");
 
-    const STEPS = ["orchestrator", "data", "pennylab", "experts", "f51", "ceo", "explanation"];
+    const STEPS = ["orchestrator", "data", "pennylab", "experts", "f51", "sdca", "ceo", "explanation"];
     const SOURCES = ["technicals", "profile", "quant", "risk", "sentiment", "reddit", "macro", "crisis", "realtime_price", "quantum"];
     const CRISIS_MODELS = {
       bis_credit_gap: "BIS Credit", markov_regime: "Markov", hawkes_stress: "Hawkes",
@@ -1143,6 +1188,7 @@
     function pct(v) { return v != null ? Math.round(v * 100) + "%" : "--"; }
     function fmt(v, d = 2) { return v != null && isFinite(v) ? Number(v).toLocaleString("en-US", { maximumFractionDigits: d }) : "--"; }
     function fmtCompact(v) { if (v == null || !isFinite(v)) return "--"; if (v >= 1e12) return (v / 1e12).toFixed(1) + "T"; if (v >= 1e9) return (v / 1e9).toFixed(1) + "B"; if (v >= 1e6) return (v / 1e6).toFixed(1) + "M"; if (v >= 1e3) return (v / 1e3).toFixed(1) + "K"; return fmt(v, 0); }
+    function esc(v) { return String(v ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch])); }
     function stripThink(t) { return (t || "").replace(/<think[\s\S]*?<\/think>/gi, "").replace(/<think[\s\S]*$/gi, ""); }
     function sanitTicker(r) { return String(r || "").replace(/[^\w.\-^]/g, "").toUpperCase().slice(0, 18); }
     function lastVal(s) { return Array.isArray(s) && s.length ? s[s.length - 1]?.value ?? null : null; }
@@ -1529,6 +1575,28 @@
       ceo.bubble.appendChild(card);
     }
 
+    function renderSDCA(ev, ceo) {
+      const decision = ev.decision || "--";
+      const cls = decision === "ALLOW" ? "pass" : decision === "BLOCK" ? "fail" : "warn";
+      const { card, body } = makeCard("SDCA Firewall", decision, cls, "shield-alert");
+      const score = ev.consequence_score || {};
+      const tokens = Array.isArray(ev.ghost_tokens) ? ev.ghost_tokens : [];
+      const matches = Array.isArray(ev.matched_experiences) ? ev.matched_experiences.length : 0;
+      body.innerHTML = `
+    <div class="sdca-summary">${esc(ev.human_summary || "No SDCA summary.")}</div>
+    <div class="sdca-metrics">
+      <div class="sdca-metric"><span>Confidence</span><strong>${pct(ev.confidence)}</strong></div>
+      <div class="sdca-metric"><span>Uncertainty</span><strong>${pct(ev.uncertainty)}</strong></div>
+      <div class="sdca-metric"><span>Utility</span><strong>${pct(score.utility)}</strong></div>
+      <div class="sdca-metric"><span>Experiences</span><strong>${matches}</strong></div>
+      <div class="sdca-metric"><span>Truth</span><strong>${pct(score.truthfulness)}</strong></div>
+      <div class="sdca-metric"><span>Chaos</span><strong>${pct(score.chaos_reduction)}</strong></div>
+    </div>
+    <div class="sdca-token-row">${tokens.slice(0, 8).map(t => `<span class="sdca-token">${esc(t)}</span>`).join("") || '<span class="sdca-token">no ghost tokens</span>'}</div>
+  `;
+      ceo.bubble.appendChild(card);
+    }
+
     function renderPipelineBar(ceo) {
       // Keep a single pipeline bar updated
       let bar = ceo.bubble.querySelector(".pipeline-bar");
@@ -1644,7 +1712,7 @@
           if (ev.status === "skipped_duplicate") break;
           const ceo = currentCEO || ensureCEOMessage();
           renderPipelineBar(ceo);
-          const stepMap = { orchestrator: "orchestrator", data_collection: "data", data: "data", pennylab: "pennylab", penny_lab: "pennylab", experts: "experts", expert_analysis: "experts", f51: "f51", f51_engine: "f51", ceo: "ceo", llm: "ceo", explanation: "explanation" };
+          const stepMap = { orchestrator: "orchestrator", data_collection: "data", data: "data", pennylab: "pennylab", penny_lab: "pennylab", experts: "experts", expert_analysis: "experts", f51: "f51", f51_engine: "f51", sdca_firewall: "sdca", ceo: "ceo", llm: "ceo", explanation: "explanation" };
           const s = stepMap[ev.step] || ev.step;
           if (STEPS.includes(s)) updatePipelineStep(s, ev.status || "started", ceo);
           break;
@@ -1653,6 +1721,12 @@
         case "F51_VERDICT": {
           const ceo = currentCEO || ensureCEOMessage();
           renderF51(ev, ceo);
+          break;
+        }
+
+        case "SDCA_FIREWALL": {
+          const ceo = currentCEO || ensureCEOMessage();
+          renderSDCA(ev, ceo);
           break;
         }
 

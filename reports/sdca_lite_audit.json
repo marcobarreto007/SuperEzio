@@ -18,20 +18,21 @@
     "src/core/pipeline/contracts.py",
     "src/core/pipeline/graph.py",
     "src/core/pipeline/nodes/__init__.py",
+    "src/core/pipeline/nodes/guardrails.py",
     "src/core/pipeline/prompts/builder.py",
+    "frontend/index.html",
     ".f51/checkpoints/latest.json"
   ],
   "tests_added": [
     "tests/test_sdca_lite.py"
   ],
   "tests_passed": true,
-  "integration_point": "POST /api/sdca/evaluate plus additive LangGraph node sdca_firewall after neural_decision and before rag_forensics.",
+  "integration_point": "POST /api/sdca/evaluate plus LangGraph node sdca_firewall after neural_decision. BLOCK routes to respond_blocked; REVIEW/ALLOW continue to rag_forensics.",
   "known_limitations": [
-    "Experience retrieval is deterministic token/tag overlap, not embeddings.",
+    "Embedding is a local hashed vector fallback, not a trained semantic model.",
     "Rumination is heuristic and capped at 3 cycles; it does not call an LLM.",
-    "Seed experience memory is curated starter data, not production incident history.",
-    "Pipeline integration marks BLOCK/REVIEW defensively but does not stop the full analysis stream by routing to a terminal block node.",
-    "No UI visualization was added in this checkpoint."
+    "Experience memory now includes local fraud-pattern corpus episodes, but still needs real production incident curation.",
+    "UI renders SDCA stream events, but there is no dedicated standalone SDCA lab screen yet."
   ],
-  "next_checkpoint": "Add frontend display for sdca_firewall, then curate real experience episodes and calibrate thresholds against historical decision logs."
+  "next_checkpoint": "Curate real production SDCA episodes, calibrate thresholds against decision logs, and add a standalone SDCA demo/lab screen."
 }

@@ -12,9 +12,25 @@ VAGUE_FINANCIAL_RESPONSE = (
 )
 
 
+def _sdca_blocked_response(state: dict) -> str:
+    sdca = state.get("sdca_firewall") or {}
+    summary = sdca.get("human_summary") or "SDCA-Lite blocked this candidate decision."
+    tokens = sdca.get("ghost_tokens") or []
+    token_text = ", ".join(str(token) for token in tokens[:6]) if tokens else "none"
+    return (
+        "[F51 Cognitive Risk Firewall] BLOCKED\n\n"
+        f"{summary}\n\n"
+        f"Ghost tokens: {token_text}\n"
+        "Action: no execution. Require human review or a lower-risk scenario."
+    )
+
+
 async def node_blocked(state: dict) -> dict:
     """Respond to blocked requests with a polite scope-request message."""
     writer = get_stream_writer()
+    content = (
+        _sdca_blocked_response(state) if state.get("sdca_blocked") else VAGUE_FINANCIAL_RESPONSE
+    )
     writer(
         {
             "type": "PIPELINE_STEP",
@@ -23,7 +39,7 @@ async def node_blocked(state: dict) -> dict:
             "status": "started",
         }
     )
-    writer({"type": "CHUNK", "content": VAGUE_FINANCIAL_RESPONSE})
+    writer({"type": "CHUNK", "content": content})
     writer(
         {
             "type": "PIPELINE_STEP",
@@ -32,4 +48,4 @@ async def node_blocked(state: dict) -> dict:
             "status": "completed",
         }
     )
-    return {"final": VAGUE_FINANCIAL_RESPONSE}
+    return {"final": content}
