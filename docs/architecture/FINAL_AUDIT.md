@@ -21,7 +21,7 @@ Commercial readiness still fails because there is no off-disk remote/CI, product
 | Product manifest | PASS | `http://127.0.0.1:8002/product/manifest` -> 200 |
 | Capabilities | PASS | `http://127.0.0.1:8002/capabilities` -> 200 |
 | CEO health | PASS | `http://127.0.0.1:8082/health` -> 200 |
-| CEO models | PASS | `http://127.0.0.1:8082/v1/models` -> 200, `qwen36-35b-f51.Q4_K_M.gguf` |
+| CEO models | PASS | `http://127.0.0.1:8082/v1/models` -> 200, `superezio-ceo-intent-merged.Q4_K_M.gguf` |
 | Full pytest | PASS | `python -m pytest -q` -> `635 passed, 5 warnings` |
 | Ruff lint | PASS | `python -m ruff check src tests` -> `All checks passed!` |
 | Ruff format check | PASS | `python -m ruff format src tests --check` -> `196 files already formatted` |
@@ -81,7 +81,7 @@ This is demo-risky. The API and CEO were reachable during audit, but a clean mac
 **Severity:** MEDIUM
 **Evidence:** critical runtime depends on local assets outside Git:
 
-- `models/qwen36-35b-f51.Q4_K_M.gguf` is ignored and required for CEO runtime.
+- `models/superezio-ceo-intent-merged.Q4_K_M.gguf` is ignored and required for CEO runtime.
 - `llama.cpp/` is ignored and required for `llama-server.exe`.
 - `.env` is ignored and required for paid providers.
 - `requirements-ci.txt` is only a test-focused subset; it does not represent the complete runtime/training dependency graph.

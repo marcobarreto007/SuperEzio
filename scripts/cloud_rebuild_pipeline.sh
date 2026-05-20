@@ -5,7 +5,7 @@ set -euo pipefail
 
 CEPO_ADAPTER="${1:-checkpoint-2600}"
 INTENT_DATA="${2:-intent_training.jsonl}"
-FINAL_GGUF="${3:-qwen36-intent-f51.Q4_K_M.gguf}"
+FINAL_GGUF="${3:-superezio-ceo-intent-merged.Q4_K_M.gguf}"
 
 echo "============================================"
 echo "SuperEzio Full Rebuild Pipeline"
@@ -121,14 +121,14 @@ cd ..
 
 python llama.cpp/convert_hf_to_gguf.py \
     final-merged \
-    --outfile /tmp/qwen36-intent-f51.F16.gguf \
+    --outfile /tmp/superezio-ceo-intent-merged.F16.gguf \
     --outtype f16
 
 echo "FP16 GGUF:"
-ls -lh /tmp/qwen36-intent-f51.F16.gguf
+ls -lh /tmp/superezio-ceo-intent-merged.F16.gguf
 
 llama.cpp/build/bin/llama-quantize \
-    /tmp/qwen36-intent-f51.F16.gguf \
+    /tmp/superezio-ceo-intent-merged.F16.gguf \
     "/root/SuperEzio/$FINAL_GGUF" \
     Q4_K_M
 

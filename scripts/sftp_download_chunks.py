@@ -10,7 +10,7 @@ PORT = 15904
 USER = "root"
 REMOTE_DIR = "/root/SuperEzio/chunks"
 LOCAL_DIR = "C:/Users/marco/Desktop/SuperEzio/models/chunks"
-OUTPUT_FILE = "C:/Users/marco/Desktop/SuperEzio/models/qwen36-intent-f51.Q4_K_M.gguf"
+OUTPUT_FILE = "C:/Users/marco/Desktop/SuperEzio/models/superezio-ceo-intent-merged.Q4_K_M.gguf"
 
 CHUNKS = {
     "chunk_aa": "c6bedd2eec15d785df6c3c7e44888cfbf98b0d6c12913394fede5bf0a556dd56",

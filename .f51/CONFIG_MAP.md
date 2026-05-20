@@ -55,13 +55,14 @@
 ## Config de Modelo
 
 ### `scripts/serve_ceo_llamacpp.ps1` — ATIVO
-- Port=8082, GpuLayers=20, ContextLength=32768, Slots=4
-- Modelo: `models/qwen36-35b-f51.Q4_K_M.gguf`
-- Flags: `--spec-type draft-mtp -fa on -ctk q8_0 -ctv q8_0 --mlock`
+- Port=8082, GpuLayers=28, ContextLength=8192, Slots=2
+- Modelo: `models/superezio-ceo-intent-merged.Q4_K_M.gguf`
+- Flags: `-fa on -ctk q8_0 -ctv q8_0 --mlock` (sem MTP — patched)
 
-### `.env` (CEO config)
-- `SUPEREZIO_CEO_BASE_URL`, `SUPEREZIO_CEO_TIMEOUT=180`
-- `SUPEREZIO_CEO_MAX_TOKENS=16384`, `SUPEREZIO_CEO_TEMPERATURE=0.3`
+### `.env` (CEO + Orquestrador config)
+- Orquestrador: `SUPEREZIO_PRIMARY_BASE_URL=http://127.0.0.1:8082/v1`, `SUPEREZIO_PRIMARY_MODEL=superezio-ceo-intent-merged`
+- CEO: `SUPEREZIO_CEO_BASE_URL=http://127.0.0.1:8082/v1`, `SUPEREZIO_CEO_TIMEOUT=180`
+- `SUPEREZIO_CEO_MAX_TOKENS=8192`, `SUPEREZIO_CEO_TEMPERATURE=0.3`
 
 ---
 

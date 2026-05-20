@@ -190,21 +190,21 @@ fi
 python llama.cpp/convert_hf_to_gguf.py \
     /root/SuperEzio/final-merged \
     --outtype q4_k_m \
-    --outfile /root/SuperEzio/qwen36-intent-f51.Q4_K_M.gguf
+    --outfile /root/SuperEzio/superezio-ceo-intent-merged.Q4_K_M.gguf
 
 echo ""
 echo "============================================"
 echo "PIPELINE COMPLETE"
 echo "============================================"
-echo "GGUF model: /root/SuperEzio/qwen36-intent-f51.Q4_K_M.gguf"
+echo "GGUF model: /root/SuperEzio/superezio-ceo-intent-merged.Q4_K_M.gguf"
 echo ""
 
 ELAPSED=$(($(date +%s) - START_TIME))
 echo "Total time: $((ELAPSED / 3600))h $(((ELAPSED % 3600) / 60))m"
 echo ""
-echo "Download the model:"
-echo "  scp -P 29754 root@ssh6.vast.ai:/root/SuperEzio/qwen36-intent-f51.Q4_K_M.gguf ."
+echo "Download the merged model:"
+echo "  scp -P 29754 root@ssh6.vast.ai:/root/SuperEzio/superezio-ceo-intent-merged.Q4_K_M.gguf ."
 echo ""
-echo "Then replace the CEO model:"
-echo "  cp qwen36-intent-f51.Q4_K_M.gguf models/qwen36-35b-f51.Q4_K_M.gguf"
+echo "Then place it in models/:"
+echo "  cp superezio-ceo-intent-merged.Q4_K_M.gguf models/"
 echo "============================================"

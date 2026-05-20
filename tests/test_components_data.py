@@ -78,7 +78,7 @@ def test_provider_constants():
     )
 
     assert CEO_PROVIDER_NAME == "ceo"
-    assert CEO_MODEL_ID == "qwen36-35b-f51"
+    assert CEO_MODEL_ID == "superezio-ceo-intent-merged"
     assert PRIMARY_PROVIDER_NAME == "primary_external"
     assert DEEPSEEK_PROVIDER_NAME == "deepseek"
 

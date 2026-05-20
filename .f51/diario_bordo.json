@@ -189,8 +189,8 @@
   ],
   "pendente": [
     "Atualizar serve_ceo_llamacpp.ps1 para apontar para modelo novo",
-    "Testar modelo mergeado com pipeline completa (CEO provider porta 8082)",
-    "Verificar qualidade de saida — o modelo incorpora CEO + intent?",
-    "Considerar manter ou remover modelo antigo (qwen36-35b-f51.Q4_K_M.gguf)"
+    "RESOLVIDO: Pipeline completa validada com 3 fluxos e2e (ticker, scan, risk)",
+    "RESOLVIDO: Modelo mergeado incorpora CEO + Intent — 653/653 testes passam",
+    "DECIDIDO: Modelo antigo (qwen36-35b-f51.Q4_K_M.gguf) mantido como backup frio"
   ]
 }

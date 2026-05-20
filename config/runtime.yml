@@ -1,6 +1,6 @@
 # SuperEzio Runtime Configuration v4.0.0
 # Fonte canonica de configuracao de runtime.
-# ATUALIZADO: 2026-05-17 — reflete o runtime real validado.
+# ATUALIZADO: 2026-05-20 — CEO+Intent merged model, orchestrator local.
 
 project_name: SuperEzio
 version: 4.0.0
@@ -18,41 +18,45 @@ server:
   venv: .venv
 
 # ---------------------------------------------------------------------------
-# Modelos (runtime real — validado via pipeline test 2026-05-17)
+# Modelos (runtime real — validado via pipeline test 2026-05-20)
 # ---------------------------------------------------------------------------
 models:
   ceo:
-    name: Qwen3.6-35B F51 (Bob)
+    name: SuperEzio CEO+Intent Merged (Qwen3.6-35B-A3B base)
     provider_name: ceo
-    path: models/qwen36-35b-f51.Q4_K_M.gguf
-    quantization: Q4_K_M
+    path: models/superezio-ceo-intent-merged.Q4_K_M.gguf
+    quantization: Q4_K_M (4.88 BPW)
     server_url: http://127.0.0.1:8082/v1
     backend: openai_compatible
     role: ceo
     is_local: true
     temperature: 0.3
-    max_tokens: 16384
+    max_tokens: 8192
     timeout_s: 180
     script: scripts/serve_ceo_llamacpp.ps1
-    speculative_decoding: MTP (built-in)
-    context_length: 32768
-    gpu_layers: 20
-    slots: 4
+    speculative_decoding: disabled (nextn patched 1→0)
+    context_length: 8192
+    gpu_layers: 28
+    slots: 2
+    thinking: auto (enabled)
+    lora_adapters:
+      - output/qwen36-sft/checkpoint-2600  (CEO)
+      - output/qwen36-intent/best          (Intent)
 
   orchestrator:
-    name: DeepSeek Chat (Orchestrator)
-    provider_name: deepseek
-    base_url: https://api.deepseek.com
-    model: deepseek-chat
+    name: SuperEzio CEO+Intent Merged (mesmo modelo local)
+    provider_name: primary_external
+    base_url: http://127.0.0.1:8082/v1
+    model: superezio-ceo-intent-merged
     backend: openai_compatible
     role: orchestrator
-    is_local: false
+    is_local: true
 
   experts:
-    name: DeepSeek Chat (Experts)
+    name: DeepSeek V4 Pro (Experts)
     provider_name: deepseek
     base_url: https://api.deepseek.com
-    model: deepseek-chat
+    model: deepseek-v4-pro
     backend: openai_compatible
     role: worker
     is_local: false

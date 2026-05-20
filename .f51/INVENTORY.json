@@ -97,8 +97,8 @@
     },
     "models/": {
       "classification": "core",
-      "files": ["qwen36-35b-f51.Q4_K_M.gguf", "qwen36-intent-f51.Q4_K_M.gguf"],
-      "note": "20GB CEO model + intent classifier. gitignored."
+      "files": ["superezio-ceo-intent-merged.Q4_K_M.gguf"],
+      "note": "19.71GB CEO+Intent merged model. gitignored."
     },
     "llama.cpp/": {
       "classification": "core",
@@ -124,21 +124,24 @@
     }
   },
   "active_model": {
-    "name": "Qwen3.6-35B-A3B F51",
-    "file": "models/qwen36-35b-f51.Q4_K_M.gguf",
-    "size_gb": 20.22,
-    "quantization": "Q4_K_M",
-    "speculative_decoding": "MTP (built-in)",
+    "name": "SuperEzio CEO+Intent Merged (Qwen3.6-35B-A3B base)",
+    "file": "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
+    "size_gb": 19.71,
+    "quantization": "Q4_K_M (4.88 BPW)",
+    "speculative_decoding": "disabled (nextn patched 1→0)",
     "server_url": "http://127.0.0.1:8082/v1",
     "server_binary": "llama.cpp/bin/llama-server.exe",
     "launch_script": "scripts/serve_ceo_llamacpp.ps1",
-    "gpu_layers": 20,
-    "context_length": 32768
+    "gpu_layers": 28,
+    "context_length": 8192,
+    "thinking": "auto (enabled)",
+    "adapters": ["CEO ckpt-2600", "Intent best"]
   },
-  "intent_model": {
-    "name": "Qwen3.6 Intent F51",
-    "file": "models/qwen36-intent-f51.Q4_K_M.gguf",
-    "note": "Fine-tuned intent classifier"
+  "old_model_backup": {
+    "name": "Qwen3.6-35B F51 (CEO only)",
+    "file": "models/qwen36-35b-f51.Q4_K_M.gguf",
+    "size_gb": 20.22,
+    "status": "backup — substituido pelo merged"
   },
   "runtime_ports": {
     "ceo": 8082,

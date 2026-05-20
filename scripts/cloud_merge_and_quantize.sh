@@ -7,7 +7,7 @@ MODEL="Qwen/Qwen3.6-35B-A3B"
 ADAPTER="checkpoint-2600"
 MERGED_DIR="merged-qwen36-fp16"
 GGUF_DIR="gguf-output"
-GGUF_FILE="qwen36-35b-f51.Q4_K_M.gguf"
+GGUF_FILE="superezio-ceo-intent-merged.Q4_K_M.gguf"
 
 echo "============================================"
 echo "SuperEzio Cloud Merge + Q4_K_M Quantization"
@@ -50,18 +50,18 @@ echo ""
 echo "[4/5] Converting merged model to GGUF..."
 python llama.cpp/convert_hf_to_gguf.py \
     "$MERGED_DIR" \
-    --outfile "$GGUF_DIR/qwen36-35b-f51-F16.gguf" \
+    --outfile "$GGUF_DIR/superezio-ceo-intent-merged-F16.gguf" \
     --outtype f16
 
 echo "FP16 GGUF created:"
-ls -lh "$GGUF_DIR/qwen36-35b-f51-F16.gguf"
+ls -lh "$GGUF_DIR/superezio-ceo-intent-merged-F16.gguf"
 
 # ── Quantize to Q4_K_M ─────────────────────────────────────────────
 echo ""
 echo "[5/5] Quantizing to Q4_K_M..."
 mkdir -p "$GGUF_DIR"
 llama.cpp/build/bin/llama-quantize \
-    "$GGUF_DIR/qwen36-35b-f51-F16.gguf" \
+    "$GGUF_DIR/superezio-ceo-intent-merged-F16.gguf" \
     "$GGUF_DIR/$GGUF_FILE" \
     Q4_K_M
 

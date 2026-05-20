@@ -16,9 +16,9 @@
     "api_entrypoint": "python -m agent_server.main",
     "ceo_entrypoint": "powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082",
     "launcher": "desktop/SuperEzio.bat",
-    "model": "Qwen3.6-35B F51 Q4_K_M GGUF (MTP speculative decoding)",
-    "model_path": "models/qwen36-35b-f51.Q4_K_M.gguf",
-    "model_size_gb": 20.22,
+    "model": "SuperEzio CEO+Intent Merged Q4_K_M GGUF (nextn patched, thinking auto)",
+    "model_path": "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
+    "model_size_gb": 19.71,
     "health_ceo": "http://127.0.0.1:8082/health",
     "health_api": "http://127.0.0.1:8002/health",
     "health_api_details": "http://127.0.0.1:8002/health/details"

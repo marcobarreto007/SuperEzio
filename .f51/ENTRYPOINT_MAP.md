@@ -18,12 +18,13 @@
 ### 2. CEO Local Server (llama.cpp) — CORE
 - **Comando:** `.\scripts\serve_ceo_llamacpp.ps1`
 - **Porta:** 8082
-- **Modelo:** `models/qwen36-35b-f51.Q4_K_M.gguf`
+- **Modelo:** `models/superezio-ceo-intent-merged.Q4_K_M.gguf`
 - **Backend:** llama-server.exe (llama.cpp)
 - **API:** OpenAI-compatible em `/v1`
-- **GPU:** 20 camadas na RTX 5060 Ti 16GB
-- **Speculative:** MTP draft (built-in)
-- **Contexto:** 32768 tokens
+- **GPU:** 28 camadas na RTX 5060 Ti 16GB
+- **Speculative:** desabilitado (nextn patched 1→0)
+- **Contexto:** 8192 tokens
+- **Thinking:** auto (habilitado)
 
 ### 3. Launcher (Desktop) — APP
 - **Arquivo:** `desktop/SuperEzio.bat`

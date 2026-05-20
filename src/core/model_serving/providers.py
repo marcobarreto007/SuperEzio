@@ -20,7 +20,7 @@ PRIMARY_MODEL_ID = "deepseek-chat"
 DEEPSEEK_PROVIDER_NAME = "deepseek"
 
 CEO_PROVIDER_NAME = "ceo"
-CEO_MODEL_ID = "qwen36-35b-f51"
+CEO_MODEL_ID = "superezio-ceo-intent-merged"
 
 
 @dataclass

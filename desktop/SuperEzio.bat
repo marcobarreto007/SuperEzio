@@ -40,7 +40,7 @@ echo   SuperEzio v3.2.0 - Modo Local
 echo   Python: %PYTHON_EXE%
 echo   API: http://127.0.0.1:8002
 echo   CEO: http://127.0.0.1:8082
-echo   Modelo: Qwen3.6-35B-F51 (Q4_K_M GGUF + MTP speculative decoding)
+echo   Modelo: SuperEzio CEO+Intent Merged (Q4_K_M GGUF)
 echo.
 
 if /i "%SUPEREZIO_LAUNCHER_CHECK%"=="1" (
@@ -48,9 +48,9 @@ if /i "%SUPEREZIO_LAUNCHER_CHECK%"=="1" (
     exit /b 0
 )
 
-if not exist "%ROOT%\models\qwen36-35b-f51.Q4_K_M.gguf" (
-    echo   [AVISO] Modelo GGUF nao encontrado em models\qwen36-35b-f51.Q4_K_M.gguf
-    echo   [AVISO] Baixe o modelo Qwen3.6-35B-F51 Q4_K_M GGUF e coloque em %ROOT%\models\
+if not exist "%ROOT%\models\superezio-ceo-intent-merged.Q4_K_M.gguf" (
+    echo   [AVISO] Modelo GGUF nao encontrado em models\superezio-ceo-intent-merged.Q4_K_M.gguf
+    echo   [AVISO] O modelo CEO+Intent merged e necessario — veja .f51\checkpoints\latest.json
     echo   [AVISO] A API pode abrir, mas o CEO local nao vai carregar.
     echo.
 )

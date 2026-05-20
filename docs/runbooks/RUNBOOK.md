@@ -16,7 +16,7 @@
 | API (FastAPI) | 8002 | agent_server.main — A2A protocol, SSE streaming |
 
 - **Variaveis de Ambiente**: `.env` na raiz do projeto (55 variaveis, 12+ API keys)
-- **Dependencias**: Python `.venv`, `llama.cpp/bin/llama-server.exe`, `models/qwen36-35b-f51.Q4_K_M.gguf` (20.22GB)
+- **Dependencias**: Python `.venv`, `llama.cpp/bin/llama-server.exe`, `models/superezio-ceo-intent-merged.Q4_K_M.gguf` (19.71GB)
 
 ## 3. Inicializacao
 
@@ -81,7 +81,7 @@ Stop-Process -Id (Get-NetTCPConnection -LocalPort 8082).OwningProcess -Force
 
 ### CEO offline (`degraded_no_backend`)
 1. Verificar se `llama-server.exe` esta rodando: `Get-Process llama-server -ErrorAction SilentlyContinue`
-2. Verificar se o GGUF existe: `Test-Path models/qwen36-35b-f51.Q4_K_M.gguf`
+2. Verificar se o GGUF existe: `Test-Path models/superezio-ceo-intent-merged.Q4_K_M.gguf`
 3. Reiniciar: `powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082`
 
 ### API nao sobe
