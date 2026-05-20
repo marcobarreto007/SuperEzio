@@ -140,9 +140,10 @@ def setup_telemetry(service_name: str = "f51-universal-agent") -> Optional[Any]:
     # Create tracer provider
     provider = TracerProvider(resource=resource)
 
-    # Add console exporter (for development visibility)
-    console_processor = SimpleSpanProcessor(ConsoleSpanExporter())
-    provider.add_span_processor(console_processor)
+    # Console exporter only in debug mode (spam prevention)
+    if os.getenv("SUPEREZIO_OTEL_CONSOLE", "").lower() in ("1", "true", "yes"):
+        console_processor = SimpleSpanProcessor(ConsoleSpanExporter())
+        provider.add_span_processor(console_processor)
 
     # Set as global provider
     trace.set_tracer_provider(provider)
