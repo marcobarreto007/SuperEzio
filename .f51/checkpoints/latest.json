@@ -1,49 +1,116 @@
 {
-  "date_local": "2026-05-20T00:00:00-04:00",
-  "session": "archeologist-findings-all-resolved",
-  "status": "ALL_13_FINDINGS_RESOLVED_AND_COMMITTED",
+  "date_local": "2026-05-20T02:30:00-04:00",
+  "session": "pipeline-full-enforcement-ceo-primary-classifier",
+  "status": "PIPELINE_FULLY_ENFORCED_653_TESTS_PASSING",
   "what_was_done": [
-    "archeologist-C1: EpisodeMemory/Episode exports removed from src/f51/__init__.py (imported from non-existent memory.py)",
-    "archeologist-C2: agent_runtime stubs removed from src/core/data_collector/collector.py — QuantEngine defined directly",
-    "archeologist-C3: model_manifest.json updated — CEO path → superezio-ceo-intent-merged.Q4_K_M.gguf, block_count=40, nextn=0",
-    "archeologist-M1: core/trading/__init__.py deprecated — module docstring notes disconnected from production pipeline",
-    "archeologist-M2: core/investor/__init__.py updated — docstring marks which submodules are ACTIVE vs DEPRECATED",
-    "archeologist-M3: dead modules deprecated — security.py, event_hub.py/RedisStreamsHub, storage.py/get_investor_storage, schema.py/reload_config",
-    "archeologist-M4: _legacy_detect_market_scan_intent() dead function removed from src/core/pipeline/intents.py",
-    "archeologist-M5: .env.example — 6 unused vars removed (EXPLANATION_MODEL_PATH, EXPLANATION_LORA_PATH, SUPEREZIO_ORCHESTRATOR_TIMEOUT, SUPEREZIO_EXPERT_CONCURRENCY, SUPEREZIO_FORCE_ALL_EXPERTS_ON_PARTIAL, UNIVERSAL_SKIP_GATEWAY)",
-    "archeologist-M6: .env.example — added missing vars (SUPEREZIO_CEO_BASE_URL, SUPEREZIO_DEEPSEEK_MAX_TOKENS, SUPEREZIO_DEEPSEEK_REASONING_EFFORT, SUPEREZIO_DEEPSEEK_THINKING, SUPEREZIO_RAG_INDEX_DIR, SUPEREZIO_NURSE_MODEL, SUPEREZIO_NURSE_LORA_PATH)",
-    "archeologist-L1: traceback.print_exc() removed from src/core/scanner/__init__.py — now uses proper _log_event",
-    "archeologist-L2: orphan scripts deleted (financial_quality_benchmark.py, gate1_download_test.sh)",
-    "archeologist-L3: 12 intermediate checkpoints removed (~2.3 GB, checkpoint-{200..2400})",
-    "archeologist-L4: 5 empty directories cleaned",
-    "security.py: fixed double-docstring bug (extra \"\"\" causing IndentationError)",
-    "test fix: test_components_data.py assertion updated for new model name",
-    "full test suite: 653 passed, 0 failed, 0 skipped in 59.50s"
+    "ARCH: CEO model is now PRIMARY intent classifier (regex is safety net only, not authority)",
+    "ARCH: route_after_orchestrator() always returns 'data' — ALL routes go through full pipeline (no short-circuit to CEO)",
+    "ARCH: SDCA Cognitive Risk Firewall runs for ALL routes (ghost tokens detect FOMO/revenge/leverage from message text, no ticker needed)",
+    "ARCH: CEO system prompt rewritten with PIPELINE_OBLIGATION — model told it is NOT standalone, RL RewardFunction penalizes missing module coverage",
+    "ARCH: CEO builder prompt adds pipeline enforcement block — 'A 10-node deterministic pipeline ran BEFORE this prompt'",
+    "FIX: API-level VAGUE_FINANCIAL_RESPONSE short-circuit removed (endpoints.py), bot no longer blocks penny stock requests",
+    "FIX: OTEL ConsoleSpanExporter gated behind SUPEREZIO_OTEL_CONSOLE=true env var (no more JSON spam)",
+    "FIX: RAG keyword fallback resolved — sentence-transformers installed, semantic search active",
+    "FIX: llama-server crashes resolved — restarted with correct flags, model loads in ~10s",
+    "FIX: DataCollector no longer returns defeatist 'Sem ticker' string for general route — returns clean {}",
+    "CLEAN: orchestrator conditional edges simplified — removed dead ceo_primary/respond_blocked routes from orchestrator edges",
+    "CLEAN: route_after_orchestrator() docstring removed, now one-line: 'All routes go through the full pipeline'",
+    "PROMPT: _prompts.py — QWEN_SYSTEM_PROMPT now includes PIPELINE_OBLIGATION with RL RewardFunction + SDCA-Lite mention",
+    "PROMPT: builder.py — build_ceo_prompt() structured analysis path includes PIPELINE_OBLIGATION block",
+    "PROMPT: builder.py — is_casual check preserved for greetings, everything else is structured analysis"
+  ],
+  "architecture_state": {
+    "routing": "ALL routes → data → F51 → pennylab → experts → neural → SDCA → RAG → CEO → explanation",
+    "intent_classification": {
+      "primary": "CEO model (Qwen3.6-35B CEO+Intent merged, via gateway)",
+      "fallback": "deterministic regex parser + golden dataset exact-match",
+      "source_field": "intent_source (values: ceo_model, golden, deterministic, deterministic_final)"
+    },
+    "ceo_prompt_structure": {
+      "casual_greetings": "persona prompt only (no pipeline enforcement)",
+      "explain_capabilities": "deterministic answer (bypasses LLM entirely)",
+      "everything_else": "full structured analysis with PIPELINE_OBLIGATION + module contract + horizon constraint"
+    },
+    "sdca_firewall": {
+      "runs_for": "ALL routes (was: only ticker_analysis)",
+      "skip_condition": "empty message only",
+      "ghost_experts": ["MacroRisk", "FlowRisk", "HumanRisk", "InfraRisk"],
+      "output": "sdca_firewall dict + sdca_blocked flag for BLOCK decisions"
+    },
+    "data_collector": {
+      "ticker_analysis": "ProfessionalCollector or SubprocessCollector",
+      "market_scan": "MarketScanner + price enrichment",
+      "general_no_ticker": "returns {} (clean skip, pipeline continues)"
+    }
+  },
+  "commits_this_session": [
+    "a58d4b7 — fix(pipeline): route all intents through full pipeline — CEO gets complete context",
+    "e17a0c2 — fix(pipeline): enforce full pipeline — SDCA runs for all routes, CEO prompt mandates module coverage"
+  ],
+  "commits_previous_session": [
+    "dfdcd14 — chore(intent): save classifier training artifacts",
+    "aa36e7d — chore(f51): record no-github disk-only policy",
+    "922e429 — fix(pipeline): serialize chart experts before ceo",
+    "3c24ac9 — fix(scanner): restore market scan runtime",
+    "3c58ffc — chore(checkpoint): record natural language tools fix"
   ],
   "evidence": [
-    "pytest: 653 passed, 7 warnings, 0 failures in 59.50s",
-    "git commit: 885f1d7 — chore(f51): deprecate dead modules + sync env vars documentation",
-    "7 files changed: .env.example, schema.py, investor/__init__.py, investor/storage.py, event_hub.py, security.py, trading/__init__.py",
-    "tree clean except 2 untracked operational scripts (convert_gguf.sh, merge_pipeline_h200.sh)"
+    "pytest: 653 passed, 7 warnings, 0 failures in 81.94s (full suite)",
+    "pytest: 201 passed (contracts + core) in 7.89s",
+    "pytest: 35 passed (pipeline smoke + SDCA lite) in 8.17s",
+    "ruff check: all changed files pass",
+    "git status: clean (3 files committed)"
   ],
-  "files_changed": [
-    ".env.example — 6 unused vars removed, missing vars added, dead A2A vars cleaned",
-    "src/core/config/schema.py — DeprecationWarning in reload_config()",
-    "src/core/investor/__init__.py — module docstring with ACTIVE/DEPRECATED classification",
-    "src/core/investor/storage.py — DeprecationWarning in get_investor_storage()",
-    "src/core/observability/event_hub.py — deprecation docstring on RedisStreamsHub",
-    "src/core/pipeline/security.py — deprecation docstring, double-\"\"\" bug fixed",
-    "src/core/trading/__init__.py — deprecation module docstring",
-    "src/core/scanner/__init__.py — L1 fix (traceback removed)",
-    "src/core/pipeline/intents.py — M4 fix (dead function removed)",
-    "src/core/data_collector/collector.py — C2 fix (agent_runtime stubs removed)",
-    "src/f51/__init__.py — C1 fix (EpisodeMemory exports removed)",
-    "config/model_manifest.json — C3 fix (CEO model path updated)"
+  "files_changed_this_session": [
+    "src/core/pipeline/nodes/orchestrator.py — route_after_orchestrator() always returns 'data'",
+    "src/core/pipeline/nodes/collector.py — general route returns {} instead of defeatist string",
+    "src/core/pipeline/nodes/sdca_firewall.py — runs for ALL routes, not just ticker_analysis",
+    "src/core/pipeline/prompts/_prompts.py — QWEN_SYSTEM_PROMPT + QWEN_PERSONA pipeline obligation",
+    "src/core/pipeline/prompts/builder.py — structured analysis PIPELINE_OBLIGATION enforcement",
+    "src/core/pipeline/graph.py — orchestrator conditional edges simplified"
   ],
+  "key_env_vars": {
+    "SUPEREZIO_OTEL_CONSOLE": "true (gates ConsoleSpanExporter — off by default)",
+    "SUPEREZIO_INTENT_LLM_TIMEOUT": "6 (seconds, CEO intent classifier timeout)",
+    "SUPEREZIO_CEO_TIMEOUT": "180 (seconds, CEO generation timeout)",
+    "SUPEREZIO_CEO_TEMPERATURE": "0.4",
+    "SUPEREZIO_CEO_MAX_TOKENS": "8192",
+    "SUPEREZIO_PROFESSIONAL_COLLECTOR": "true",
+    "SUPEREZIO_DATA_TIMEOUT": "60",
+    "SUPEREZIO_EXPERT_TIMEOUT": "60",
+    "SUPEREZIO_SCAN_LIMIT": "30",
+    "DISABLE_OTEL": "1 (to fully disable OpenTelemetry)"
+  },
+  "model_info": {
+    "name": "SuperEzio CEO+Intent Merged",
+    "base": "Qwen3.6-35B-A3B",
+    "lora_ceo": "ckpt-2600",
+    "lora_intent": "best",
+    "format": "GGUF Q4_K_M",
+    "size": "19.71 GB",
+    "layers": 40,
+    "nextn_predict_layers": 0,
+    "port": 8082,
+    "script": "scripts/serve_ceo_llamacpp.ps1"
+  },
+  "desktop_shortcut": {
+    "path": "desktop/SuperEzio.bat",
+    "status": "VERIFIED",
+    "flow": "Kill old processes → Start CEO :8082 → Health check → Start API :8002 → Health check → Open browser",
+    "model_check": "superezio-ceo-intent-merged.Q4_K_M.gguf in models/"
+  },
   "risks": [
-    "Disconnected modules (trading/, investor/, security.py) kept for Money Gate F4 integration — remove only if definitely unused after F4",
-    "RedisStreamsHub depends on redis.asyncio — not in requirements, not instantiated",
-    "No e2e pipeline test re-run after deprecation changes (server requires GPU)"
+    "CEO prompt is now VERY long with pipeline obligation + module contract + horizon constraint — may increase token usage significantly",
+    "SDCA running for ALL routes means every message goes through ghost token detection — latency increased but acceptable (deterministic, no LLM calls)",
+    "General/no-ticker questions skip most pipeline nodes (data, F51, pennylab, experts, neural) — CEO only gets RAG + SDCA context for these",
+    "No e2e pipeline test with real llama-server was run (requires GPU + model loaded)"
   ],
-  "next_step": "All archeologist findings resolved. Focus should shift to Money Gate F4 (order execution, risk management) — the deprecated modules may be re-integrated there."
+  "pending": [
+    "CEO prompt may need token budget tuning — obligation text adds ~200 tokens to every prompt",
+    "Consider adding market-overview data collection for general financial questions (no ticker but financial intent)",
+    "Module coverage contract validation (_evaluate_module_coverage) exists but not wired to RL reward signal yet",
+    "Money Gate F4 (order execution, risk management) — disconnected modules (trading/, investor/, security.py) may be re-integrated",
+    "CONFIG_MAP.md and ENTRYPOINT_MAP.md — 2 inventory files still unwritten from original f51-inventory scope"
+  ],
+  "next_step": "Test e2e with real server: start desktop shortcut, send penny stock scan request, verify CEO gets RAG + SDCA context and produces VERDICT with all module references. Then wire _evaluate_module_coverage to actual RL reward signal."
 }
