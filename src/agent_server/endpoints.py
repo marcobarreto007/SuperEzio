@@ -548,13 +548,6 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
             yield json.dumps({"type": "STREAM_START", "msg_id": envelope.msg_id}) + "\n"
 
             try:
-                if block_vague_financial:
-                    yield (
-                        json.dumps({"type": "CHUNK", "content": VAGUE_FINANCIAL_RESPONSE}) + "\n"
-                    )
-                    yield json.dumps({"type": "STREAM_END"}) + "\n"
-                    return
-
                 if hasattr(pipeline, "stream_events"):
                     async for event in pipeline.stream_events(
                         prompt,

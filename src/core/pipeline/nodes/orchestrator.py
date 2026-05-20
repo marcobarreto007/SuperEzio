@@ -35,12 +35,17 @@ ALLOWED_INTENTS = {
 
 
 def route_after_orchestrator(state: dict) -> str:
-    """Determine which node to execute next based on intent route."""
+    """Determine which node to execute next based on intent route.
+
+    The CEO model was trained to handle natural language requests including
+    asking clarifying questions when needed. 'needs_scope' routes to CEO
+    so the model can respond naturally — the hardcoded block message is
+    reserved for SDCA firewall safety violations.
+    """
     route = state.get("route", "general")
-    if route == "needs_scope":
-        return "respond_blocked"
     if route in ("ticker_analysis", "market_scan"):
         return "data"
+    # needs_scope and general both go to CEO — let the trained model handle it
     return "ceo_primary"
 
 
@@ -130,22 +135,26 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         plan["fallback_route"] = parsed.route
         plan["intent_confidence"] = max(plan.get("intent_confidence", 0), 0.97)
 
-    # 3. LLM fallback (if needed)
-    if plan.get("intent_source") != "golden" and _should_use_llm(message, plan, gateway):
+    # 3. CEO model as PRIMARY intent classifier
+    #    The CEO model was trained to understand natural language Portuguese
+    #    financial requests. Regex is a fast-path safety net, not the authority.
+    if gateway is not None and message.strip() and plan.get("intent_source") != "golden":
         try:
             raw = await asyncio.wait_for(
                 _ask_intent_classifier(message, plan, context, gateway),
-                timeout=float(os.getenv("SUPEREZIO_INTENT_LLM_TIMEOUT", "4")),
+                timeout=float(os.getenv("SUPEREZIO_INTENT_LLM_TIMEOUT", "6")),
             )
             candidate = extract_json_object(raw)
             validated = validate_intent_candidate(message, candidate or {}, fallback=parsed)
             if validated:
                 plan = validated.to_plan()
-                plan["intent_source"] = "llm_fallback"
+                plan["intent_source"] = "ceo_model"
                 plan["fallback_route"] = parsed.route
                 plan["fallback_intent"] = parsed.intent
         except Exception as exc:
             plan["intent_fallback_error"] = str(exc)[:200]
+            # If CEO model fails, trust deterministic as final authority
+            plan["intent_source"] = "deterministic_final"
 
     # Extract time horizon from user message (e.g. "14 days", "2 weeks", "1 month")
     plan["time_horizon"] = _extract_time_horizon(message)
