@@ -111,20 +111,17 @@
     var tf = (document.getElementById("tf-inp") || {}).value || "6M";
 
     return {
-      jsonrpc: "2.0",
-      method:  "message/send",
-      id:      "sz-" + Date.now(),
-      params: {
-        message: {
-          role: "user",
-          parts: [{ type: "text", text: msg }]
-        },
-        metadata: {
-          ticker:     ticker,
-          timeframe:  tf,
-          chart_context:     buildChartContext(),
-          portfolio_context: buildPortfolioContext()
-        }
+      version: "a2a/1.0",
+      from: "user",
+      to: "superezio",
+      type: "TASK.SUBMIT",
+      payload: {
+        message: msg,
+        ticker: ticker,
+        timeframe: tf,
+        session_id: "sz-session",
+        chart_context: buildChartContext(),
+        portfolio_context: buildPortfolioContext()
       }
     };
   }
