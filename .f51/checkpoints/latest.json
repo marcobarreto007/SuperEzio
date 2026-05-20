@@ -1,52 +1,67 @@
 {
-  "date_local": "2026-05-20T19:27:41-04:00",
-  "session": "f51-tradingview-ui-refresh-2026-05-20",
+  "date_local": "2026-05-20T19:48:48-04:00",
+  "session": "f51-bob-unified-frontend-2026-05-20",
   "status": "completed",
   "what_was_done": [
-    "Reworked the first viewport into a TradingView-style market workspace.",
-    "Made the chart canvas the primary surface with a left tool rail, market header, price strip, indicator chips, and right-side decision room.",
-    "Set AAPL as the default ticker so the UI loads real chart data on boot instead of opening as an empty terminal.",
-    "Updated frontend boot logic to fetch chart data on load, update ticker/timeframe/price labels, and draw candles immediately.",
-    "Fixed chart timestamp rendering for epoch-second candle data and gave the right price label room to render.",
-    "Validated the styled UI with a Chrome headless screenshot."
+    "Delivered a unified Bob CEO panel that combines a TradingView-style chart workspace, AI assistant/wallet-style conversation card, and dense ops/firewall status cards.",
+    "Removed the visible legacy system drawer and stopped loading old panel scripts/styles.",
+    "Deleted unused legacy panel assets that only powered the removed drawer UI.",
+    "Changed Bob task submissions to use browser-local session IDs instead of the fixed sz-session.",
+    "Attached chart context only when the natural-language prompt actually asks about market/chart/stock/risk/portfolio topics.",
+    "Validated live endpoints, static assets, data routes, SSE streams, NDJSON task stream, and browser rendering."
   ],
   "evidence": {
     "commands": [
-      "node --check frontend/js/init.js frontend/js/live.js frontend/js/render-candles.js frontend/js/render-chart.js -> passed",
-      "Invoke-WebRequest http://127.0.0.1:8002/css/charts.css -> 200 text/css",
-      "Invoke-WebRequest http://127.0.0.1:8002/js/init.js -> 200 application/javascript",
-      "Invoke-RestMethod http://127.0.0.1:8002/api/chart-data/AAPL?timeframe=6M -> ticker AAPL, price.current 302.25, change_pct 1.1",
-      "chrome.exe --headless=new --virtual-time-budget=8000 --screenshot=output/playwright/superezio-tradingview-workspace-final.png http://127.0.0.1:8002 -> screenshot written"
+      "GET /, /favicon.ico, /health, HEAD /health, /health/details, /metrics, /capabilities, /product/manifest, /api/chart-data/AAPL?timeframe=6M -> 200",
+      "POST /api/sdca/evaluate -> 200",
+      "POST /experts/neural-decision/predict valid payload -> 200",
+      "curl.exe -N /api/chart-sse/AAPL?timeframe=1D&refresh_s=1&max_points=30 -> snapshot and heartbeat events before expected timeout",
+      "python urllib stream POST /task/submit -> 200, 23 lines, STREAM_END true, answer event true",
+      "curl.exe -N /neural/logs after task -> NEURAL_LOG entries emitted",
+      "static asset probe from index.html -> 34 ok, 0 fail",
+      "node --check frontend/js/init.js frontend/js/chat.js frontend/js/health.js frontend/js/api.js frontend/js/sdca-lab.js -> passed",
+      "python -m pytest tests/contracts/test_contract_runtime_official.py tests/contracts/test_contract_endpoints.py tests/test_runtime_smoke.py tests/test_pipeline_smoke.py tests/test_sdca_lite.py tests/test_neural_decision.py -> 82 passed",
+      "python -m ruff check frontend tests/contracts/test_contract_runtime_official.py tests/test_sdca_lite.py -> passed",
+      "python -m ruff format --check frontend tests/contracts/test_contract_runtime_official.py tests/test_sdca_lite.py -> passed",
+      "git diff --check -> passed"
     ],
     "files_changed": [
       "frontend/index.html",
-      "frontend/css/base.css",
       "frontend/css/charts.css",
       "frontend/css/chat.css",
       "frontend/css/topbar.css",
+      "frontend/css/panels.css",
+      "frontend/js/capabilities.js",
+      "frontend/js/chat.js",
+      "frontend/js/health.js",
       "frontend/js/init.js",
-      "frontend/js/live.js",
-      "frontend/js/render-candles.js",
-      "frontend/js/render-chart.js",
+      "frontend/js/journal.js",
+      "frontend/js/manifest.js",
+      "frontend/js/metrics.js",
+      "frontend/js/neural-logs.js",
+      "tests/contracts/test_contract_runtime_official.py",
+      "tests/test_sdca_lite.py",
+      ".f51/TASK_BOARD.md",
+      ".f51/RISK_REGISTER.md",
       ".f51/checkpoints/latest.json",
       "runtime/checkpoints/latest.json"
     ],
     "artifacts": [
-      "output/playwright/superezio-tradingview-workspace-final.png"
+      "output/playwright/superezio-bob-unified-panel.png"
     ]
   },
   "risks": [
     {
       "severity": "low",
-      "description": "The UI now defaults to AAPL to avoid an empty first screen.",
-      "mitigation": "Ticker remains editable and all values still come from /api/chart-data."
+      "description": "SSE checks end by timeout because the streams remain open by design.",
+      "mitigation": "Treat the received snapshot/heartbeat/log events as the pass signal, not curl exit code 28."
     },
     {
       "severity": "medium",
-      "description": "Full chat/NDJSON interaction was not rerun in this visual refresh step.",
-      "mitigation": "Next pass should submit a real chat prompt through the new decision room."
+      "description": "Bob now answers broader natural-language finance questions, but output remains guidance and analysis, not execution.",
+      "mitigation": "Keep SDCA/firewall and no-broker language in the runtime path."
     }
   ],
-  "next_step": "Run a real chat/NDJSON flow through the new TradingView-style decision room.",
+  "next_step": "Run one full browser-based Bob conversation from the new panel and tune latency/copy based on the live user flow.",
   "owner": "Codex"
 }

@@ -209,6 +209,45 @@
   background: #090d0a;
 }
 
+.ops-board {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.ops-card {
+  min-height: 46px;
+  border: 1px solid #263126;
+  border-radius: var(--radius-sm);
+  background: #0d120e;
+  padding: 7px 9px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+}
+
+.ops-card span {
+  color: var(--muted);
+  font: 800 9px "JetBrains Mono", monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ops-card strong {
+  color: var(--ink);
+  font: 800 12px "JetBrains Mono", monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ops-card--ok { border-color: rgba(0,200,83,0.42); background: rgba(0,200,83,0.08); }
+.ops-card--ok strong { color: var(--green); }
+.ops-card--warn { border-color: rgba(255,171,0,0.34); background: rgba(255,171,0,0.06); }
+.ops-card--warn strong { color: var(--amber); }
+.ops-card--err { border-color: rgba(255,23,68,0.34); background: rgba(255,23,68,0.06); }
+.ops-card--err strong { color: var(--red); }
+
 .right-stack {
   min-height: 0;
   display: grid;
@@ -266,4 +305,5 @@
   .price-strip { min-width: 0; width: 100%; grid-template-columns: repeat(3, 1fr); }
   .market-header { align-items: stretch; flex-direction: column; }
   .live-canvas-wrap canvas { min-height: 360px; }
+  .ops-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

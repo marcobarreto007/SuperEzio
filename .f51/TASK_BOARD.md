@@ -14,6 +14,7 @@
 
 ## Done
 
+- [x] 2026-05-20 - Bob unified frontend: delivered TradingView-style market panel + AI assistant + ops/firewall board, removed legacy drawer UI assets, and validated endpoints/data/streams.
 - [x] 2026-05-20 - `/f51-contracts`: added live `agent_server` contract, aligned runtime provider config, and added official runtime contract tests.
 - [x] 2026-05-20 - `/f51-runtime`: updated official runbook, logs/checkpoint definition, runtime config, and checkpoint contract.
 - [x] 2026-05-20 - `/f51-tests`: contracts 167 passed, runtime smoke 20 passed, live integration 7 passed, ruff check/format passed.

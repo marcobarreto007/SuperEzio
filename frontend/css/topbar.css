@@ -49,26 +49,32 @@
 .status-dot--on { background: var(--green); box-shadow: 0 0 6px var(--green); }
 .status-dot--off { background: var(--red); animation: pulse-dot 2s infinite; }
 
-.panel-tabs {
+.mode-tabs {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
-.tab-btn {
-  width: 32px;
+.mode-tab {
   height: 32px;
+  min-width: 32px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--muted);
   cursor: pointer;
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 10px;
+  font: 800 10px "JetBrains Mono", monospace;
+  text-transform: uppercase;
   transition: all var(--duration) var(--ease);
 }
 
-.tab-btn:hover { background: var(--surface-2); color: var(--ink); border-color: var(--line-light); }
-.tab-btn.active { background: var(--green-bg); color: var(--green); border-color: var(--green-dim); }
+.mode-tab svg { width: 15px; height: 15px; }
+.mode-tab:hover { background: var(--surface-2); color: var(--ink); border-color: var(--line-light); }
+.mode-tab.active { background: var(--green-bg); color: var(--green); border-color: var(--green-dim); }
 
 .ticker-wrap {
   display: flex;
@@ -147,6 +153,7 @@
 .btn--sm:hover { background: var(--surface-3); color: var(--ink); }
 
 @media (max-width: 768px) {
-  .panel-tabs { display: none; }
+  .mode-tabs { width: 100%; overflow-x: auto; padding-bottom: 2px; }
+  .mode-tab { flex: 1 0 auto; }
   .topbar { flex-wrap: wrap; gap: 6px; }
 }

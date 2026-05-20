@@ -50,6 +50,29 @@
 - No product tests were run during inventory generation; only artifact validation should be trusted for this turn.
 - GitHub is blocked by `.f51/GITHUB_POLICY.json`; do not use `gh`, `git push`, `git pull`, or `git fetch`.
 
+## 2026-05-20 Bob Unified Frontend
+
+### UI-R1 - Legacy panel assets can re-enter first viewport [LOW]
+
+- Classification: `frontend`
+- Risk: The old drawer-based system panels made the UI look operationally noisy and could drift from the new Bob/market workspace.
+- Evidence: Removed the legacy panel drawer and deleted unused panel assets: `frontend/css/panels.css`, `frontend/js/metrics.js`, `frontend/js/manifest.js`, `frontend/js/neural-logs.js`, `frontend/js/capabilities.js`, and `frontend/js/journal.js`.
+- Mitigation: Added `test_frontend_contract_uses_bob_unified_workspace_without_legacy_panels` to block reloading those assets.
+
+### UI-R2 - Bob chat session rate-limit contamination [MEDIUM]
+
+- Classification: `runtime`
+- Risk: A fixed browser `session_id` can make unrelated users/prompts share rate-limit and memory behavior.
+- Evidence: Replaced the fixed `sz-session` frontend payload with browser-local generated session IDs and proved `/task/submit` streamed `STREAM_START`, pipeline events, `CHUNK`, and `STREAM_END`.
+- Mitigation: Keep the contract test checking that `session_id: "sz-session"` is not present in `frontend/js/init.js`.
+
+### UI-R3 - SSE streams can look idle until a producer emits [LOW]
+
+- Classification: `streaming`
+- Risk: `/neural/logs` can return no bytes until model activity occurs, which may look broken if checked before a task runs.
+- Evidence: Initial 8s stream read was idle; after `/task/submit`, `/neural/logs` emitted `NEURAL_LOG` entries for `local_orchestrator` and `ceo`.
+- Mitigation: Stream validation should include a producer action before judging `/neural/logs`.
+
 ## 2026-05-20 Contract Pass
 
 ### CTR-R1 - Runtime metadata drift [MEDIUM]

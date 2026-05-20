@@ -220,19 +220,26 @@ def test_sdca_endpoint_returns_block_with_testclient():
 
 def test_frontend_renders_sdca_firewall_event():
     html = Path("frontend/index.html").read_text(encoding="utf-8")
+    events_js = Path("frontend/js/events.js").read_text(encoding="utf-8")
+    render_sdca_js = Path("frontend/js/render-sdca.js").read_text(encoding="utf-8")
+    render_pipeline_js = Path("frontend/js/render-pipeline.js").read_text(encoding="utf-8")
 
-    assert "function renderSDCA" in html
-    assert 'case "SDCA_FIREWALL"' in html
-    assert 'sdca_firewall: "sdca"' in html
+    assert 'src="js/render-sdca.js"' in html
+    assert "function renderSDCA" in render_sdca_js
+    assert 'case "SDCA_FIREWALL"' in events_js
+    assert 'sdca_firewall: "sdca"' in render_pipeline_js
 
 
 def test_frontend_has_sdca_lab_screen():
     html = Path("frontend/index.html").read_text(encoding="utf-8")
+    api_js = Path("frontend/js/api.js").read_text(encoding="utf-8")
+    sdca_lab_js = Path("frontend/js/sdca-lab.js").read_text(encoding="utf-8")
 
     assert 'id="sdca-lab"' in html
     assert 'id="sdca-lab-btn"' in html
     assert 'id="sdca-form"' in html
-    assert "function buildSdcaLabCandidate" in html
-    assert "function runSdcaLab" in html
-    assert "function renderSdcaLabResult" in html
-    assert 'API + "/api/sdca/evaluate"' in html
+    assert 'src="js/sdca-lab.js"' in html
+    assert "function buildCandidate" in sdca_lab_js
+    assert "async function run" in sdca_lab_js
+    assert "function renderResult" in sdca_lab_js
+    assert 'API + "/api/sdca/evaluate"' in api_js

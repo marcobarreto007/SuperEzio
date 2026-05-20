@@ -19,6 +19,8 @@ LAUNCHER = ROOT / "desktop" / "SuperEzio.bat"
 AGENT_CONTRACT = ROOT / ".f51" / "contracts" / "agent-server.contract.md"
 RUNTIME_CHECKPOINT = ROOT / "runtime" / "checkpoints" / "latest.json"
 RUNBOOK = ROOT / "docs" / "runbooks" / "RUNBOOK.md"
+FRONTEND_INDEX = ROOT / "frontend" / "index.html"
+FRONTEND_INIT = ROOT / "frontend" / "js" / "init.js"
 
 
 def _runtime_config() -> dict:
@@ -81,6 +83,29 @@ def test_frontend_static_assets_are_mounted():
     assert "/frontend" in paths
     assert "/css" in paths
     assert "/js" in paths
+
+
+def test_frontend_contract_uses_bob_unified_workspace_without_legacy_panels():
+    html = FRONTEND_INDEX.read_text(encoding="utf-8")
+    init_js = FRONTEND_INIT.read_text(encoding="utf-8")
+
+    assert "Bob CEO" in html
+    assert "bob-welcome" in html
+    assert "ops-board" in html
+    assert "mode-tabs" in html
+    assert "panel-drawer" not in html
+    assert "data-panel" not in html
+    assert "css/panels.css" not in html
+    for old_script in [
+        "js/metrics.js",
+        "js/manifest.js",
+        "js/neural-logs.js",
+        "js/capabilities.js",
+        "js/journal.js",
+    ]:
+        assert old_script not in html
+    assert 'session_id: "sz-session"' not in init_js
+    assert "getBrowserSessionId()" in init_js
 
 
 def test_ceo_runtime_config_matches_manifest_and_script():

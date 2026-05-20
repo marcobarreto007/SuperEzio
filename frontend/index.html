@@ -24,7 +24,6 @@
   <link rel="stylesheet" href="css/data-quality.css">
   <link rel="stylesheet" href="css/experts.css">
   <link rel="stylesheet" href="css/charts.css">
-  <link rel="stylesheet" href="css/panels.css">
 </head>
 <body>
 
@@ -37,13 +36,11 @@
       <span class="status-dot status-dot--off" id="sys-dot" title="Checking..."></span>
     </div>
     <div class="spacer"></div>
-    <nav class="panel-tabs" id="panel-tabs">
-      <button class="tab-btn" data-panel="sysinfo" type="button" title="System Info"><i data-lucide="cpu"></i></button>
-      <button class="tab-btn" data-panel="metrics" type="button" title="Metrics"><i data-lucide="bar-chart-3"></i></button>
-      <button class="tab-btn" data-panel="manifest" type="button" title="Manifest"><i data-lucide="layers"></i></button>
-      <button class="tab-btn" data-panel="logs" type="button" title="Neural Logs"><i data-lucide="terminal"></i></button>
-      <button class="tab-btn" data-panel="capabilities" type="button" title="Capabilities"><i data-lucide="zap"></i></button>
-      <button class="tab-btn" data-panel="journal" type="button" title="Journal"><i data-lucide="book-open"></i></button>
+    <nav class="mode-tabs" aria-label="Workspace modes">
+      <button class="mode-tab active" data-mode="markets" type="button"><i data-lucide="candlestick-chart"></i><span>Markets</span></button>
+      <button class="mode-tab" data-mode="bob" type="button"><i data-lucide="brain-circuit"></i><span>Bob CEO</span></button>
+      <button class="mode-tab" data-mode="risk" type="button"><i data-lucide="shield-check"></i><span>Risk</span></button>
+      <button class="mode-tab" data-mode="streams" type="button"><i data-lucide="radio"></i><span>Streams</span></button>
     </nav>
     <div class="spacer"></div>
     <div class="ticker-wrap">
@@ -62,11 +59,6 @@
       <button class="btn--icon" id="sdca-lab-btn" title="Cognitive Risk Firewall Lab" type="button"><i data-lucide="shield-alert"></i></button>
     </div>
   </header>
-
-  <!-- ── SYSTEM PANEL (slides down) ── -->
-  <div class="panel-drawer" id="panel-drawer">
-    <div class="panel-content" id="panel-content"></div>
-  </div>
 
   <!-- ── MAIN ── -->
   <section class="app-main">
@@ -105,6 +97,13 @@
       </section>
 
       <div class="market-footer">
+        <div class="ops-board" aria-label="Runtime status">
+          <div class="ops-card ops-card--warn" id="ops-health"><span>Runtime</span><strong>Checking</strong></div>
+          <div class="ops-card ops-card--warn" id="ops-market"><span>Market data</span><strong>Loading</strong></div>
+          <div class="ops-card ops-card--warn" id="ops-stream"><span>SSE stream</span><strong>Ready</strong></div>
+          <div class="ops-card ops-card--warn" id="ops-bob"><span>Bob CEO</span><strong>Local</strong></div>
+          <div class="ops-card ops-card--warn" id="ops-risk"><span>Firewall</span><strong>Armed</strong></div>
+        </div>
         <div class="live-indicators" id="live-indicators"></div>
         <div class="live-note" id="live-updated">Awaiting stream...</div>
       </div>
@@ -127,10 +126,25 @@
       <section class="terminal-card terminal-card--chat">
         <div class="terminal-card-hdr">
           <i data-lucide="brain-circuit"></i>
-          <strong>Decision Room</strong>
-          <span>CEO</span>
+          <strong>Bob CEO</strong>
+          <span>Natural language</span>
         </div>
-        <main class="chat" id="chat" aria-label="Conversation"></main>
+        <main class="chat" id="chat" aria-label="Conversation">
+          <section class="bob-welcome">
+            <div class="bob-orb" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </div>
+            <div class="bob-copy">
+              <strong>Ask Bob like a person.</strong>
+              <p>Questions, market context, risk checks, portfolio thinking, and financial guidance stay in one live conversation.</p>
+            </div>
+            <div class="ask-chips">
+              <button type="button" data-ask="What can you do for me in simple language?">What can you do?</button>
+              <button type="button" data-ask="Explain this AAPL chart in simple language.">Explain chart</button>
+              <button type="button" data-ask="What should I watch before buying AAPL?">Buying checklist</button>
+            </div>
+          </section>
+        </main>
       </section>
     </aside>
   </section>
@@ -187,7 +201,7 @@
   <!-- ── BOTTOM BAR ── -->
   <div class="bottombar" id="bottombar">
     <button class="btn--sm" id="pf-btn" type="button" title="Portfolio">$</button>
-    <textarea id="user-inp" rows="1" placeholder="Ask about a stock, strategy, or risk..."></textarea>
+    <textarea id="user-inp" rows="1" placeholder="Ask Bob in natural language: simple question, risk, chart, strategy..."></textarea>
     <button class="btn btn--primary" id="send-btn" type="button"><i data-lucide="send"></i><span>Send</span></button>
   </div>
 
@@ -212,11 +226,6 @@
   <script src="js/sdca-lab.js"></script>
   <script src="js/events.js"></script>
   <script src="js/health.js"></script>
-  <script src="js/metrics.js"></script>
-  <script src="js/manifest.js"></script>
-  <script src="js/neural-logs.js"></script>
-  <script src="js/capabilities.js"></script>
-  <script src="js/journal.js"></script>
   <script src="js/init.js"></script>
 </body>
 </html>

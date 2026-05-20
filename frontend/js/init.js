@@ -97,6 +97,65 @@
     return lines.join("\n");
   }
 
+  function getBrowserSessionId() {
+    var key = "sz_bob_session_id";
+    try {
+      var existing = localStorage.getItem(key);
+      if (existing) return existing;
+      var id = "bob-" + (
+        window.crypto && crypto.randomUUID
+          ? crypto.randomUUID()
+          : Date.now() + "-" + Math.random().toString(16).slice(2)
+      );
+      localStorage.setItem(key, id);
+      return id;
+    } catch (e) {
+      return "bob-" + Date.now();
+    }
+  }
+
+  function shouldAttachMarketContext(msg, ticker) {
+    var raw = String(msg || "").toLowerCase();
+    var tk = String(ticker || "").toLowerCase();
+    if (!tk) return false;
+    if (raw.indexOf(tk) >= 0) return true;
+    return /\b(chart|ticker|stock|acao|ativo|compr|vend|risk|risco|portfolio|market|mercado|price|preco|analysis|analise|strategy|estrategia|invest|buy|sell|valuation|dividend|swing|trade|trading)\b/i.test(raw);
+  }
+
+  function setOpsCard(id, state, text) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove("ops-card--ok", "ops-card--warn", "ops-card--err");
+    el.classList.add("ops-card--" + state);
+    var strong = el.querySelector("strong");
+    if (strong) strong.textContent = text;
+  }
+
+  async function probeOps() {
+    if (!SZ.api) return;
+    try {
+      await SZ.api.fetchHealth();
+      setOpsCard("ops-health", "ok", "Online");
+      setOpsCard("ops-bob", "ok", "Reachable");
+    } catch (e) {
+      setOpsCard("ops-health", "err", "Offline");
+      setOpsCard("ops-bob", "err", "Blocked");
+    }
+
+    try {
+      var ticker = sanitTicker((document.getElementById("ticker-inp") || {}).value || "AAPL") || "AAPL";
+      var tf = (document.getElementById("tf-inp") || {}).value || "6M";
+      var data = await SZ.api.fetchChartData(ticker, tf);
+      var count = data && data.ohlcv ? data.ohlcv.length : 0;
+      setOpsCard("ops-market", count > 0 ? "ok" : "warn", count > 0 ? count + " points" : "No candles");
+    } catch (e2) {
+      setOpsCard("ops-market", "err", "Failed");
+    }
+
+    setOpsCard("ops-stream", window.EventSource ? "ok" : "warn", window.EventSource ? "SSE ready" : "No SSE");
+    setOpsCard("ops-risk", SZ.api.evaluateSDCA ? "ok" : "warn", SZ.api.evaluateSDCA ? "Armed" : "Missing");
+  }
+
   SZ.buildChartContext     = buildChartContext;
   SZ.buildPortfolioContext = buildPortfolioContext;
 
@@ -109,6 +168,7 @@
       (document.getElementById("ticker-inp") || {}).value || ""
     );
     var tf = (document.getElementById("tf-inp") || {}).value || "6M";
+    var attachMarket = shouldAttachMarketContext(msg, ticker);
 
     return {
       version: "a2a/1.0",
@@ -117,10 +177,10 @@
       type: "TASK.SUBMIT",
       payload: {
         message: msg,
-        ticker: ticker,
+        ticker: attachMarket ? ticker : "",
         timeframe: tf,
-        session_id: "sz-session",
-        chart_context: buildChartContext(),
+        session_id: getBrowserSessionId(),
+        chart_context: attachMarket ? buildChartContext() : "",
         portfolio_context: buildPortfolioContext()
       }
     };
@@ -249,48 +309,8 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
-   * PANEL TABS — toggle the system panel drawer
+   * WORKSPACE MODES
    * ═══════════════════════════════════════════════════════════════ */
-
-  var activePanel = null;
-
-  function showPanel(name) {
-    var drawer = document.getElementById("panel-drawer");
-    var content = document.getElementById("panel-content");
-    if (!drawer || !content) return;
-
-    if (activePanel === name) {
-      drawer.classList.remove("open");
-      activePanel = null;
-      return;
-    }
-
-    activePanel = name;
-    drawer.classList.add("open");
-
-    switch (name) {
-      case "sysinfo":
-        if (SZ.health && SZ.health.showPanel) SZ.health.showPanel();
-        break;
-      case "metrics":
-        if (SZ.metrics && SZ.metrics.showPanel) SZ.metrics.showPanel();
-        break;
-      case "manifest":
-        if (SZ.manifest && SZ.manifest.showPanel) SZ.manifest.showPanel();
-        break;
-      case "logs":
-        if (SZ.neuralLogs && SZ.neuralLogs.showPanel) SZ.neuralLogs.showPanel();
-        break;
-      case "capabilities":
-        if (SZ.capabilities && SZ.capabilities.showPanel) SZ.capabilities.showPanel();
-        break;
-      case "journal":
-        if (SZ.journal && SZ.journal.showPanel) SZ.journal.showPanel();
-        break;
-      default:
-        content.innerHTML = '<div style="color:var(--muted);font-size:12px">Unknown panel.</div>';
-    }
-  }
 
   /* ═══════════════════════════════════════════════════════════════
    * DOM WIRING
@@ -379,14 +399,35 @@
       });
     }
 
-    /* Panel tabs */
-    var tabs = document.querySelectorAll("[data-panel]");
-    for (var i = 0; i < tabs.length; i++) {
-      (function (tab) {
-        tab.addEventListener("click", function () {
-          showPanel(tab.getAttribute("data-panel"));
+    var askButtons = document.querySelectorAll("[data-ask]");
+    for (var i = 0; i < askButtons.length; i++) {
+      (function (btn) {
+        btn.addEventListener("click", function () {
+          var inp = document.getElementById("user-inp");
+          if (!inp) return;
+          inp.value = btn.getAttribute("data-ask") || "";
+          inp.focus();
+          inp.dispatchEvent(new Event("input"));
         });
-      })(tabs[i]);
+      })(askButtons[i]);
+    }
+
+    var modes = document.querySelectorAll("[data-mode]");
+    for (var j = 0; j < modes.length; j++) {
+      (function (mode) {
+        mode.addEventListener("click", function () {
+          for (var k = 0; k < modes.length; k++) modes[k].classList.remove("active");
+          mode.classList.add("active");
+          var name = mode.getAttribute("data-mode");
+          if (name === "bob" && userInp) userInp.focus();
+          if (name === "risk") {
+            var panel = document.getElementById("sdca-lab");
+            if (panel) panel.classList.add("open");
+          }
+          if (name === "streams") toggleLive();
+          if (name === "markets" && tickerInp) tickerInp.focus();
+        });
+      })(modes[j]);
     }
   }
 
@@ -436,6 +477,7 @@
     if (window.lucide) lucide.createIcons();
 
     loadChart();
+    probeOps();
 
     console.log("[SZ] Boot complete.");
   }
