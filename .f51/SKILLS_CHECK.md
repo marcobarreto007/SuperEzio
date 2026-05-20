@@ -2,6 +2,7 @@
 
 **Data:** 2026-05-20
 **Total skills F51:** 24
+**Skills externas registradas:** 1 (frontend-design — Anthropic)
 **Skills sem SKILL.md (não-F51):** 10 (agentic-actions-auditor, constant-time-analysis, c-review, entry-point-analyzer, semgrep-rule-creator, static-analysis, supply-chain-risk-auditor, variant-analysis, yara-authoring, zeroize-audit)
 **Status:** REAUDITADO após correção — todas as 24 skills F51 agora pontuam 6/7 ou 7/7
 
@@ -492,6 +493,30 @@
 - f51-test-finder: mapeou infra de testes (34 arquivos, pytest >= 8.0)
 - f51-loop-breaker: carregou e respondeu OK
 - f51-release-captain: carregou e respondeu OK
+
+---
+
+## Skills Externas Registradas
+
+### frontend-design (Anthropic)
+
+| Critério | Status | Nota |
+|----------|--------|------|
+| 1. SKILL.md | PASS | `.agents/skills/frontend-design/SKILL.md` |
+| 2. Nome + Descrição | PASS | "Create distinctive, production-grade frontend interfaces" |
+| 3. Escopo limitado | PASS | Foco em UI/frontend — design thinking + implementação |
+| 4. Proíbe feature creep | PASS | "NEVER use generic AI-generated aesthetics" — regra anti-slop |
+| 5. Saída verificável | PASS | Código funcional + guidelines de estética (typo, color, motion, layout) |
+| 6. Atualiza checkpoint | N/A | Skill externa, não segue convenção F51 |
+| 7. Reduz caos / receita | PASS | Frontend de qualidade = produto vendável |
+
+**Veredito: PASS (6/6 F51-relevant)**
+
+- **Origem:** Anthropic oficial (`npx skills add https://github.com/anthropics/claude-code --skill frontend-design`)
+- **Instalação:** `.agents/skills/frontend-design/` + symlink para Claude Code
+- **Compatibilidade:** Universal — Antigravity, Cline, Codex, Cursor, Gemini CLI +8
+- **Registro:** 2026-05-20
+- **Segurança:** Safe / 0 alerts / Low Risk
 
 ---
 

@@ -1,6 +1,6 @@
 # SuperEzio Runtime Configuration v4.0.0
 # Fonte canonica de configuracao de runtime.
-# ATUALIZADO: 2026-05-20 — CEO+Intent merged model, orchestrator local.
+# ATUALIZADO: 2026-05-20 - CEO+Intent merged model, API local, orchestrator local, experts cloud.
 
 project_name: SuperEzio
 version: 4.0.0
@@ -24,6 +24,7 @@ models:
   ceo:
     name: SuperEzio CEO+Intent Merged (Qwen3.6-35B-A3B base)
     provider_name: ceo
+    model_id: superezio-ceo-intent-merged
     path: models/superezio-ceo-intent-merged.Q4_K_M.gguf
     quantization: Q4_K_M (4.88 BPW)
     server_url: http://127.0.0.1:8082/v1
@@ -44,10 +45,10 @@ models:
       - output/qwen36-intent/best          (Intent)
 
   orchestrator:
-    name: SuperEzio CEO+Intent Merged (mesmo modelo local)
+    name: SuperEzio CEO+Intent Merged (same local model)
     provider_name: primary_external
-    base_url: http://127.0.0.1:8082/v1
-    model: superezio-ceo-intent-merged
+    path: http://127.0.0.1:8082/v1
+    model_id: superezio-ceo-intent-merged
     backend: openai_compatible
     role: orchestrator
     is_local: true
@@ -56,7 +57,7 @@ models:
     name: DeepSeek V4 Pro (Experts)
     provider_name: deepseek
     base_url: https://api.deepseek.com
-    model: deepseek-v4-pro
+    model_id: deepseek-v4-pro
     backend: openai_compatible
     role: worker
     is_local: false
@@ -107,6 +108,7 @@ health:
 storage:
   memory_dir: data/memory
   vectors_dir: data/vectors
+  logs_dir: runtime/logs
   checkpoints_dir: .f51/checkpoints
   runtime_checkpoints_dir: runtime/checkpoints
   models_dir: models

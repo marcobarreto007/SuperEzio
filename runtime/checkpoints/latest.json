@@ -1,13 +1,20 @@
 {
   "project": "SuperEzio / F51 Unified Core",
   "version": "4.0.0",
-  "date_local": "2026-05-17T15:50:00-04:00",
-  "session": "f51-runtime-official-v4",
-  "status": "OPERATIONAL",
+  "date_local": "2026-05-20T14:03:30-04:00",
+  "session": "f51-contracts-runtime-tests-2026-05-20",
+  "status": "COMPLETE",
+  "stages_completed": [
+    "/f51-contracts",
+    "/f51-runtime",
+    "/f51-tests"
+  ],
   "operational_contract": {
-    "name": "F51_Blood_Pact_Operational_Runtime",
-    "path": ".f51/contracts/f51-blood-pact-operational-runtime.json",
-    "status": "active"
+    "agent_server_contract": ".f51/contracts/agent-server.contract.md",
+    "runtime_config": "config/runtime.yml",
+    "runbook": "docs/runbooks/RUNBOOK.md",
+    "github_policy": ".f51/GITHUB_POLICY.json",
+    "github_mode": "DISK_ONLY"
   },
   "runtime_parameters": {
     "ceo_port": 8082,
@@ -16,55 +23,50 @@
     "api_entrypoint": "python -m agent_server.main",
     "ceo_entrypoint": "powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082",
     "launcher": "desktop/SuperEzio.bat",
-    "model": "SuperEzio CEO+Intent Merged Q4_K_M GGUF (nextn patched, thinking auto)",
+    "model": "SuperEzio CEO+Intent Merged Q4_K_M GGUF",
     "model_path": "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
-    "model_size_gb": 19.71,
     "health_ceo": "http://127.0.0.1:8082/health",
+    "models_ceo": "http://127.0.0.1:8082/v1/models",
     "health_api": "http://127.0.0.1:8002/health",
-    "health_api_details": "http://127.0.0.1:8002/health/details"
-  },
-  "contracts": {
-    "count": 6,
-    "files": [
-      ".f51/contracts/f51-engine.contract.md",
-      ".f51/contracts/pipeline.contract.md",
-      ".f51/contracts/data-hub.contract.md",
-      ".f51/contracts/neural-decision.contract.md",
-      ".f51/contracts/ceo.contract.md",
-      ".f51/contracts/a2a-protocol.contract.md"
-    ]
-  },
-  "config": {
-    "canonical": "config/runtime.yml",
-    "env_file": ".env",
-    "model_manifest": "config/model_manifest.json"
-  },
-  "tests": {
-    "contract_tests": 158,
-    "total_tests": 510,
-    "contract_files": [
-      "tests/contracts/test_contract_f51_engine.py",
-      "tests/contracts/test_contract_a2a.py",
-      "tests/contracts/test_contract_pipeline.py",
-      "tests/contracts/test_contract_ceo.py"
-    ]
+    "health_api_details": "http://127.0.0.1:8002/health/details",
+    "logs_dir": "runtime/logs",
+    "runtime_checkpoints_dir": "runtime/checkpoints",
+    "primary_provider_route": "primary_external -> http://127.0.0.1:8082/v1",
+    "expert_provider_route": "deepseek -> https://api.deepseek.com"
   },
   "what_was_done": [
-    "Updated config/runtime.yml to reflect actual runtime: CEO=Qwen3.6-35B local :8082, API :8002, DeepSeek experts, launch sequence documented.",
-    "Updated docs/runbooks/RUNBOOK.md with accurate ports, healthcheck endpoints, diagnostic commands, and full pipeline flow.",
-    "Updated runtime/checkpoints/latest.json with current operational state.",
-    "Validated full pipeline end-to-end: POST /task/submit AAPL 14 days → HOLD verdict, all modules working."
+    "Defined live module contracts from the current inventory and added the missing agent_server public API contract.",
+    "Added official runtime contract tests that cross-check real files, imports, routes, provider factory output, launcher check mode, runbook content, and checkpoint schema.",
+    "Updated config/runtime.yml to document local CEO, local primary provider route, DeepSeek expert route, logs directory, healthchecks, and launch order.",
+    "Rewrote docs/runbooks/RUNBOOK.md with official entrypoints, healthchecks, logs, checkpoints, troubleshooting, and validation matrix.",
+    "Ran smoke, contract, integration, lint, format, JSON, diff, and direct health validation."
   ],
-  "evidence": {
-    "pipeline_live_test": "AAPL 14 days → full SSE stream: 8 providers, F51 0.965, 6 experts, NeuralDecision, RAG, CEO HOLD 58%, Explanation",
-    "curl_ceo_health": "OK",
-    "curl_api_health": "OK (v3.0.0)",
-    "contract_tests": "158 passed, 0 failed"
-  },
-  "known_risks": [
-    "GitHub remote deleted — no off-disk backup",
-    "CEO latency 52s per request",
-    "config/runtime.yml was stale (now fixed)"
+  "files_changed": [
+    ".f51/contracts/agent-server.contract.md",
+    ".f51/RISK_REGISTER.md",
+    ".f51/TASK_BOARD.md",
+    "config/runtime.yml",
+    "docs/runbooks/RUNBOOK.md",
+    "runtime/checkpoints/latest.json",
+    "tests/contracts/test_contract_runtime_official.py"
   ],
-  "next_step": "Phase 3: f51-tests — smoke tests, contract tests e integracao minima do runtime oficial."
+  "evidence": [
+    "python -m pytest tests\\contracts -q -> 167 passed, 2 warnings",
+    "python -m pytest tests\\test_runtime_smoke.py -q -> 20 passed",
+    "python -m pytest tests\\test_integration_runtime.py -q -> 7 passed in 52.75s",
+    "python -m ruff check tests\\contracts\\test_contract_runtime_official.py tests\\test_runtime_smoke.py tests\\test_integration_runtime.py -> passed",
+    "python -m ruff format --check tests\\contracts\\test_contract_runtime_official.py tests\\test_runtime_smoke.py tests\\test_integration_runtime.py -> 3 files already formatted",
+    "python -m json.tool runtime\\checkpoints\\latest.json, .f51\\GITHUB_POLICY.json, config\\model_manifest.json -> passed",
+    "git diff --check -> passed with CRLF normalization warning only for .f51/RISK_REGISTER.md",
+    "curl CEO /health -> {\"status\":\"ok\"}",
+    "curl CEO /v1/models -> returned superezio-ceo-intent-merged.Q4_K_M.gguf",
+    "curl API /health -> {\"status\":\"ok\",\"agent\":\"generic_agent\",\"version\":\"3.0.0\"}",
+    "curl API /health/details -> status ok, GPU available, CEO reachable"
+  ],
+  "risks": [
+    "Provider label primary_external is operationally confusing because it currently routes to the local CEO endpoint.",
+    "config/model_manifest.json still records ceo max_tokens=16384 while runtime/provider/node default is 8192; left unchanged because changing token budget policy is outside this no-feature pass.",
+    "Existing runtime/logs files are historical artifacts; use them only after reproducing current failures."
+  ],
+  "next_step": "Next safest patch: reconcile runtime naming/token-budget metadata only, without product behavior changes."
 }

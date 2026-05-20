@@ -2,35 +2,38 @@
 
 ## Backlog
 
-- [ ] Executar `f51-inventory` para atualizar `.f51/INVENTORY.json` com o estado atual do repositório.
-- [ ] Validar contratos públicos reais com `f51-contracts` antes de qualquer mudança funcional.
-- [ ] Integrar novas frentes de liquidez de penny-stock no terminal local.
+- [ ] Reconcile Makefile install target with `pyproject.toml` / `requirements-ci.txt`.
+- [ ] Audit `.f51/tmp/` third-party source trees before any cleanup.
+- [ ] Validate whether `config/model_manifest.json` max token metadata should remain 16384 or match runtime default 8192.
 
 ## In Progress
 
-- [ ] Nenhuma
+- [ ] None.
 
 ## Blocked
 
-- [ ] Nenhuma
+- [ ] None.
 
 ## Done
 
-- [x] 2026-05-20 — Revalidação da camada operacional F51, padronização das 8 skills e atualização de checkpoint/report.
-- [x] Fase 3: f51-tests — smoke (20), contract (158), integration (5 pass, 2 skip com 500). 183/185 passando.
-- [x] Fase 2: f51-runtime — runtime.yml atualizado, RUNBOOK.md preciso, runtime/checkpoints/latest.json criado.
-- [x] Fase 1: f51-contracts — 6 contratos (.f51/contracts/) + 4 novos arquivos de teste (158 contract tests passando).
+- [x] 2026-05-20 - `/f51-contracts`: added live `agent_server` contract, aligned runtime provider config, and added official runtime contract tests.
+- [x] 2026-05-20 - `/f51-runtime`: updated official runbook, logs/checkpoint definition, runtime config, and checkpoint contract.
+- [x] 2026-05-20 - `/f51-tests`: contracts 167 passed, runtime smoke 20 passed, live integration 7 passed, ruff check/format passed.
+- [x] 2026-05-20 - Operational F51 layer revalidation, 8 skill standardization, checkpoint/report update.
+- [x] Phase 3: f51-tests - smoke (20), contract (158), integration (5 pass, 2 skip with 500). 183/185 passing.
+- [x] Phase 2: f51-runtime - runtime.yml updated, RUNBOOK.md precise, runtime/checkpoints/latest.json created.
+- [x] Phase 1: f51-contracts - 6 contracts (.f51/contracts/) + 4 test files (158 contract tests passing).
+- [x] NLP intent pipeline correction against fake ticker hijack.
+- [x] Clean local CEO launch and live tests completed.
+- [x] Orphan folder cleanup and legacy engine resolution.
+- [x] Operational contracts and port-runtime tests hardening.
+- [x] Initial operational bootstrap.
+- [x] Inventory mapping and TEST_MAP / DUPLICATE_MAP creation.
+- [x] Runtime definition and official RUNBOOK creation.
+- [x] Contract verification and 22 local tests executed.
 
-- [x] Correção do pipeline NLP (Intents) contra sequestro de tickers falsos.
-- [x] Lançamento de CEO local limpo e testes ao vivo concluídos.
-- [x] Limpeza completa de pastas órfãs e engine legada resolvida.
-- [x] Hardening e testes operacionais dos contratos e runtime de portas.
-- [x] Bootstrap operacional inicial
-- [x] Mapeamento de inventário e criação de TEST_MAP / DUPLICATE_MAP.
-- [x] Definição de runtime e criação do RUNBOOK.md oficial.
-- [x] Verificação de contratos e execução de 22 testes locais.
+## Policy
 
-## Política
-
-- Uma tarefa principal por vez.
-- Sem nova frente sem checkpoint.
+- One main task at a time.
+- No new front without checkpoint.
+- GitHub is blocked by `.f51/GITHUB_POLICY.json`; do not run `git push`, `git pull`, `git fetch`, or `gh`.
