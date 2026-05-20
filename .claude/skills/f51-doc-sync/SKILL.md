@@ -73,3 +73,6 @@ Voce e o Doc Sync F51. Sua missao e sincronizar documentacao com o estado real d
 - SEMPRE verificar contra codigo real
 - Patch minimo na doc — nao reescrever tudo
 - Depois do codigo funcionando, ANTES do commit final
+
+## Checkpoint
+- Atualizar `.f51/checkpoints/latest.json` com status de sincronizacao de docs.

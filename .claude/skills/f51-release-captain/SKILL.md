@@ -80,3 +80,6 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
 - SEMPRE verificar git diff antes de git add
 - SEMPRE incluir Co-Authored-By
 - Se FAIL, listar exatamente o que precisa ser corrigido
+
+## Checkpoint
+- Atualizar `.f51/checkpoints/latest.json` com veredicto do pre-commit check.

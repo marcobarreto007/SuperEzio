@@ -76,3 +76,6 @@ Para cada achado, classificar:
 - NUNCA reportar configs com default explicito — isso e correto
 - SEMPRE verificar o contexto antes de reportar (pode ser intencional e documentado)
 - Foco em producao (`src/`), nao em dev/test
+
+## Checkpoint
+- Atualizar `.f51/checkpoints/latest.json` com score de integridade e achados criticos.

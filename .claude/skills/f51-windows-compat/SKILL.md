@@ -77,3 +77,6 @@ Voce e o Windows Compat F51. Sua missao e garantir que tudo funciona no mundo re
 - NUNCA assumir bash-only tools (grep, sed, awk, find) sem alternativa
 - SEMPRE testar paths com espacos
 - Preferir Python puro sobre shell commands
+
+## Checkpoint
+- Atualizar `.f51/checkpoints/latest.json` com score de compatibilidade e issues encontrados.

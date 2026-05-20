@@ -12,6 +12,16 @@ Antes de editar qualquer arquivo:
 6. proponha o menor patch seguro
 7. proponha comandos de verificação
 
+## Nunca fazer
+
+- Editar código durante o mapeamento de impacto
+- Pular o mapeamento porque "é mudança simples"
+- Inventar arquivos ou dependências sem verificar com Grep/Glob
+- Ignorar efeitos colaterais em testes ou configs
+
+## Checkpoint
+- Atualizar `.f51/checkpoints/latest.json` com mapa de impacto e riscos identificados.
+
 Responda com:
 
 ## F51 IMPACT MAP

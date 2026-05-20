@@ -41,3 +41,6 @@ Responda com:
 
 ### Falhas
 - [falha] — [causa raiz]
+
+### Checkpoint
+- Atualizar `.f51/checkpoints/latest.json` com resultado do quality gate.

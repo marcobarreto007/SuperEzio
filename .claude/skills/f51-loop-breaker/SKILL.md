@@ -66,3 +66,6 @@ Se Nivel 2 tambem falhou:
 - SEMPRE verificar suposicao antes de editar
 - Se nao tem certeza, PERGUNTE
 - Um "nao sei" vale mais que 5 tentativas cegas
+
+## Checkpoint
+- Atualizar `.f51/checkpoints/latest.json` com diagnostico do loop e acao tomada.

@@ -79,3 +79,6 @@ Contratos sao interfaces publicas que outros sistemas, usuarios ou modulos depen
 - SEMPRE mapear quem depende do contrato
 - SEMPRE verificar `__all__`, `__init__.py`, CLAUDE.md antes de renomear/remover
 - Se nao tem certeza, marque como BREAKING por seguranca
+
+## Checkpoint
+- Atualizar `.f51/checkpoints/latest.json` com resultado da verificacao de contratos.

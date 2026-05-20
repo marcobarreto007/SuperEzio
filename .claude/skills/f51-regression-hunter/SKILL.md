@@ -16,6 +16,16 @@ Depois de um patch, inspecione:
 
 Se A foi corrigido mas C quebrou, pare e explique a cadeia causal.
 
+## Nunca fazer
+
+- Declarar CLEAN sem checar pelo menos imports, configs e interfaces públicas
+- Ignorar mudança em arquivo "secundário" — todo arquivo tocado é candidato a regressão
+- Reportar regressão sem evidência (diff, erro real, teste falhando)
+- Caçar regressão e corrigir na mesma execução
+
+## Checkpoint
+- Atualizar `.f51/checkpoints/latest.json` com resultado da caçada de regressões.
+
 Responda com:
 
 ## F51 REGRESSION HUNT
