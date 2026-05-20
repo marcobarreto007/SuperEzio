@@ -1,129 +1,53 @@
-# Entrypoint Map — SuperEzio
+# Entrypoint Map - SuperEzio
 
-> Atualizado: 2026-05-19 | Branch: main | Session: f51-inventory-full-scan
+> Atualizado: 2026-05-20T12:03:55-04:00 | Session: f51-inventory-codex-2026-05-20 | GitHub: DISK ONLY
 
----
+## Primary Entrypoints
+- `[app]` `desktop\\SuperEzio.bat` -> `desktop/SuperEzio.bat` - Windows launcher. Risk: loads .env and manages ports/browser
+- `[app]` `open frontend/index.html after API is running` -> `frontend/index.html` - static frontend. Risk: expects API endpoints on localhost
+- `[app]` `powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1` -> `scripts/serve_ceo_llamacpp.ps1` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[app]` `powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082` -> `scripts/serve_ceo_llamacpp.ps1` - local llama.cpp CEO server. Risk: depends on local GGUF/model path and llama.cpp binary
+- `[app]` `python -m agent_server.main` -> `src/agent_server/main.py` - FastAPI API server. Risk: requires PYTHONPATH=src or installed package; runtime.yml sets port 8002
+- `[app]` `python -m experts.pennylab.cli` -> `src/experts/pennylab/cli.py` - PennyLab CLI. Risk: depends on provider/data availability
+- `[experimental]` `scripts/cloud_merge_and_quantize.sh` -> `scripts/cloud_merge_and_quantize.sh` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[experimental]` `scripts/cloud_nextn_pipeline.sh` -> `scripts/cloud_nextn_pipeline.sh` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[experimental]` `scripts/cloud_rebuild_pipeline.sh` -> `scripts/cloud_rebuild_pipeline.sh` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[experimental]` `scripts/convert_gguf.sh` -> `scripts/convert_gguf.sh` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[experimental]` `python scripts/finetune_gemma_sft.py` -> `scripts/finetune_gemma_sft.py` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[experimental]` `python scripts/finetune_glm_sft.py` -> `scripts/finetune_glm_sft.py` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[experimental]` `python scripts/finetune_qwen36_sft.py` -> `scripts/finetune_qwen36_sft.py` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[experimental]` `scripts/merge_pipeline_h200.sh` -> `scripts/merge_pipeline_h200.sh` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[experimental]` `python scripts/merge_qwen36_lora.py` -> `scripts/merge_qwen36_lora.py` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[experimental]` `python scripts/run_merge_patched.py` -> `scripts/run_merge_patched.py` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[experimental]` `python scripts/sftp_download_chunks.py` -> `scripts/sftp_download_chunks.py` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[experimental]` `python scripts/train_qwen36_3h.py` -> `scripts/train_qwen36_3h.py` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[experimental]` `scripts/vastai_onstart.sh` -> `scripts/vastai_onstart.sh` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[experimental]` `scripts/vastai_setup_gemma.sh` -> `scripts/vastai_setup_gemma.sh` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[experimental]` `scripts/vastai_setup_intent.sh` -> `scripts/vastai_setup_intent.sh` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[experimental]` `scripts/vastai_setup_qwen36.sh` -> `scripts/vastai_setup_qwen36.sh` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[pipeline]` `python scripts/build_hf_intent_dataset.py` -> `scripts/build_hf_intent_dataset.py` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[pipeline]` `python scripts/generate_intent_dataset.py` -> `scripts/generate_intent_dataset.py` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[pipeline]` `python scripts/generate_system_knowledge_sft.py` -> `scripts/generate_system_knowledge_sft.py` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[test]` `python scripts/eval_pipeline.py` -> `scripts/eval_pipeline.py` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[test]` `python scripts/investment_test.py` -> `scripts/investment_test.py` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
+- `[test]` `python scripts/trick_questions_test.py` -> `scripts/trick_questions_test.py` - script entrypoint candidate. Risk: inspect arguments before running; may require secrets, GPU, cloud, or live services
 
-## Entrypoints Principais
+## API Routes
+- `[app]` `src/agent_server/main.py:186` @app.get("/")
+- `[app]` `src/agent_server/main.py:199` @app.get("/favicon.ico", include_in_schema=False)
+- `[app]` `src/agent_server/main.py:212` @app.api_route("/health", methods=["GET", "HEAD"])
+- `[app]` `src/agent_server/main.py:224` @app.get("/health/details")
+- `[app]` `src/agent_server/main.py:370` @app.get("/metrics")
+- `[app]` `src/agent_server/main.py:381` @app.get("/neural/logs")
+- `[app]` `src/agent_server/endpoints.py:96` @router.get("/api/chart-data/{ticker}")
+- `[app]` `src/agent_server/endpoints.py:175` @router.get("/api/chart-sse/{ticker}")
+- `[app]` `src/agent_server/endpoints.py:485` @router.post("/task/submit")
+- `[app]` `src/agent_server/endpoints.py:611` @router.get("/capabilities")
+- `[app]` `src/agent_server/endpoints.py:629` @router.get("/product/manifest")
+- `[app]` `src/agent_server/endpoints.py:642` @router.post("/api/sdca/evaluate")
+- `[app]` `src/agent_server/endpoints.py:650` @router.post("/experts/neural-decision/predict")
 
-### 1. Agent Server (FastAPI) — CORE
-- **Comando:** `python -m agent_server.main`
-- **Porta:** 8002 (configurável via `SUPEREZIO_PORT`)
-- **Host:** 127.0.0.1
-- **Arquivo:** `src/agent_server/main.py`
-- **Protocolo:** A2A (Agent-to-Agent) via SSE + REST
-- **Frontend:** `frontend/` servido como static files
-- **Health:** `/health` (deep check: GPU, modelos, providers, cache)
-
-### 2. CEO Local Server (llama.cpp) — CORE
-- **Comando:** `.\scripts\serve_ceo_llamacpp.ps1`
-- **Porta:** 8082
-- **Modelo:** `models/superezio-ceo-intent-merged.Q4_K_M.gguf`
-- **Backend:** llama-server.exe (llama.cpp)
-- **API:** OpenAI-compatible em `/v1`
-- **GPU:** 28 camadas na RTX 5060 Ti 16GB
-- **Speculative:** desabilitado (nextn patched 1→0)
-- **Contexto:** 8192 tokens
-- **Thinking:** auto (habilitado)
-
-### 3. Launcher (Desktop) — APP
-- **Arquivo:** `desktop/SuperEzio.bat`
-- **Função:** Limpa portas 8002/8082, inicia CEO, inicia API, abre navegador
-
-### 4. PennyLab CLI — APP
-- **Comando:** `python -m experts.pennylab.cli`
-- **Subcomandos:** `ticker`, `scan`, `log`, `postmortem`
-- **Arquivo:** `src/experts/pennylab/cli.py`
-
----
-
-## Scripts de Treinamento — EXPERIMENTAL
-
-| Script | Alvo | Status |
-|--------|------|--------|
-| `scripts/finetune_qwen36_sft.py` | Qwen3.6-35B LoRA/QLoRA SFT | ATIVO |
-| `scripts/train_qwen36_3h.py` | Qwen3.6 3h timebox + self-heal | ATIVO |
-| `scripts/merge_qwen36_lora.py` | Merge LoRA adapters into base | ATIVO |
-| `scripts/run_merge_patched.py` | Merge com monkey-patch PEFT | ATIVO |
-| `scripts/finetune_glm_sft.py` | GLM-4.7-Flash QLoRA | ATIVO (alternativa) |
-| `scripts/finetune_gemma_sft.py` | Gemma-4-26B QLoRA | DEPRECATED |
-
----
-
-## Scripts de Avaliação — TEST
-
-| Script | Função | Requer |
-|--------|--------|--------|
-| `scripts/eval_pipeline.py` | E2E eval com GLM proxy judge | Servidor + GLM proxy :8899 |
-| `scripts/financial_quality_benchmark.py` | 50Q benchmark financeiro | Servidor :8002 |
-| `scripts/trick_questions_test.py` | 20 trick questions | Servidor :8002 |
-| `scripts/investment_test.py` | 3 cenários de investimento | Servidor :8002 |
-
----
-
-## Scripts de Dados — PIPELINE
-
-| Script | Função |
-|--------|--------|
-| `scripts/generate_intent_dataset.py` | Gera dataset de intenção (600 exemplos) |
-| `scripts/build_hf_intent_dataset.py` | Build dataset de HuggingFace |
-| `scripts/generate_system_knowledge_sft.py` | SFT de conhecimento do sistema |
-| `scripts/sftp_download_chunks.py` | Download GGUF via SFTP (single-use) |
-
----
-
-## Dataset Pipeline — EXPERIMENTAL
-
-| Script | Função |
-|--------|--------|
-| `F51_Datasets/download_hf_datasets.py` | Download datasets HuggingFace |
-| `F51_Datasets/explore_datasets.py` | Explora estrutura dos datasets |
-| `F51_Datasets/convert_to_sft.py` | Conversão para JSONL SFT |
-| `F51_Datasets/score_and_split.py` | Score + split 90/10 |
-| `F51_Datasets/integrate_staged.py` | Integração de batches |
-| `F51_Datasets/grok_transfusion.py` | Geração premium via Grok (multi-domain) |
-| `F51_Datasets/grok_transfusion_python.py` | Geração premium via Grok (Python) |
-| `F51_Datasets/prepare_final_dataset.py` | Merge final para GLM fine-tuning |
-
----
-
-## Testes — TEST
-
-| Comando | Escopo |
-|---------|--------|
-| `python -m pytest tests/ -q` | Suite completa (530+ testes) |
-| `python -m pytest tests/test_pipeline_smoke.py -q` | Smoke do pipeline |
-| `python -m pytest tests/test_components_*.py -q` | Testes por componente |
-| `python -m pytest tests/contracts/ -q` | Testes de contrato (~150) |
-
----
-
-## Entrypoints Deprecated
-
-| Arquivo | Motivo |
-|---------|--------|
-| `archive/experimental/training/finetune_qwen36.py` | Superseded by `finetune_qwen36_sft.py` |
-| `archive/experimental/training/finetune_phase1.py` | Treinamento Nemotron (modelo abandonado) |
-| `archive/experimental/training/test_adapter.py` | Teste de adapter Nemotron |
-| `scripts/sftp_download_chunks.py` | Single-use, credenciais hardcoded |
-
----
-
-## Cloud (Vast.ai)
-
-| Script | Função |
-|--------|--------|
-| `scripts/vastai_setup_qwen36.sh` | Setup GPU cloud |
-| `scripts/cloud_merge_and_quantize.sh` | Merge + quantize na cloud |
-| `scripts/cloud_nextn_pipeline.sh` | Pipeline NEXTN na cloud |
-
----
-
-## Diagnostic Helpers
-
-| Arquivo | Função |
-|---------|--------|
-| `src/data/data_hub.py` (`__main__`) | Printa rotas ativas do DataHub |
-| `scratch/check_scan.py` | Teste ad-hoc de intent scanning |
-| `scratch/test_fax.py` | Teste ad-hoc de envio ao API |
-| `scratch/test_neural_expert.py` | Teste ad-hoc de neural expert |
+## Runtime Order From config/runtime.yml
+- `[app]` CEO: `powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082`.
+- `[app]` API: `python -m agent_server.main` on `127.0.0.1:8002`.
+- `[app]` Frontend: `frontend/index.html` calls API routes such as `/health`, `/api/chart-data/{ticker}`, `/task/submit`, `/api/sdca/evaluate`.

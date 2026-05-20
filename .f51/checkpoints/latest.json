@@ -1,50 +1,70 @@
 {
-  "date_local": "2026-05-20",
-  "session": "bootstrap-operational-layer-revalidation",
-  "status": "completed",
-  "what_was_done": [
-    "Auditada a camada operacional existente sem tocar no código de produto",
-    "Padronizadas as oito skills F51 com workflow, gatilhos, portões de decisão e entregáveis",
-    "Criados os diretórios scripts/references/assets nas skills F51 solicitadas",
-    "Atualizados PROJECT_RULES, TASK_BOARD, RISK_REGISTER, BOOTSTRAP_REPORT e checkpoint operacional"
-  ],
-  "evidence": {
-    "commands": [
-      "Auditoria feita com leitura/listagem de arquivos e comparação de artefatos operacionais",
-      "Consulta à documentação oficial de skills/sub-agents tentada via fetch_webpage e bloqueada por política de rede"
-    ],
-    "files_changed": [
-      "AGENTS.md",
-      ".claude/skills/f51-inventory/SKILL.md",
-      ".claude/skills/f51-contracts/SKILL.md",
-      ".claude/skills/f51-runtime/SKILL.md",
-      ".claude/skills/f51-refactor/SKILL.md",
-      ".claude/skills/f51-tests/SKILL.md",
-      ".claude/skills/f51-audit/SKILL.md",
-      ".claude/skills/f51-release/SKILL.md",
-      ".claude/skills/f51-money-gate/SKILL.md",
-      ".f51/PROJECT_RULES.md",
-      ".f51/TASK_BOARD.md",
-      ".f51/RISK_REGISTER.md",
-      ".f51/BOOTSTRAP_REPORT.md",
-      ".f51/checkpoints/latest.json"
-    ],
-    "tests": [
-      "Nenhum teste de produto executado: tarefa restrita à camada operacional e documentação"
-    ]
-  },
-  "risks": [
-    {
-      "severity": "low",
-      "description": "A documentação oficial de Claude Skills/Sub-agents não pôde ser buscada nesta sessão por política de domínio de rede.",
-      "mitigation": "Reconciliar frontmatter e convenções com a documentação oficial quando o allowlist permitir acesso."
-    },
-    {
-      "severity": "low",
-      "description": "O próximo agente ainda precisa materializar o inventário operacional real em .f51/INVENTORY.json.",
-      "mitigation": "Executar f51-inventory como primeira tarefa antes de qualquer mudança funcional."
-    }
-  ],
-  "next_step": "Executar f51-inventory para atualizar .f51/INVENTORY.json e congelar o baseline operacional antes de qualquer feature ou refatoração funcional.",
-  "owner": "GitHub Copilot"
+    "date_local":  "2026-05-20T12:03:55-04:00",
+    "session":  "f51-inventory-codex-2026-05-20",
+    "status":  "completed",
+    "what_was_done":  [
+                          "Generated disk-based F51 inventory without editing product code",
+                          "Updated entrypoint, config, test, duplicate, and risk maps",
+                          "Respected DISK ONLY GitHub policy and did not read .env contents"
+                      ],
+    "evidence":  {
+                     "commands":  [
+                                      "Get-ChildItem inventory scan excluding .git/.venv/caches",
+                                      "rg route/env/entrypoint discovery",
+                                      "PowerShell artifact generation with ConvertTo-Json and Set-Content"
+                                  ],
+                     "files_changed":  [
+                                           ".f51/INVENTORY.json",
+                                           ".f51/RISK_REGISTER.md",
+                                           ".f51/ENTRYPOINT_MAP.md",
+                                           ".f51/CONFIG_MAP.md",
+                                           ".f51/TEST_MAP.md",
+                                           ".f51/DUPLICATE_MAP.md",
+                                           ".f51/checkpoints/latest.json"
+                                       ],
+                     "tests":  [
+                                   "python -m json.tool .f51\\INVENTORY.json \u003e $null",
+                                   "python -m json.tool .f51\\checkpoints\\latest.json \u003e $null",
+                                   "Product tests not run: inventory-only task with no product code edits"
+                               ]
+                 },
+    "risks":  [
+                  {
+                      "severity":  "medium",
+                      "description":  "INV-R1 .github/: Repo contains GitHub workflow/config surface while .f51/GITHUB_POLICY.json says DISK ONLY.",
+                      "mitigation":  "Keep ignoring GitHub tooling; do not run gh/git push/pull/fetch."
+                  },
+                  {
+                      "severity":  "medium",
+                      "description":  "INV-R2 Makefile: Makefile install-deps references requirements.txt, but only requirements-ci.txt is present.",
+                      "mitigation":  "Next config pass should reconcile install command with pyproject/requirements-ci."
+                  },
+                  {
+                      "severity":  "medium",
+                      "description":  "INV-R3 src/experts/technical_neural/expert/: Subpackage has Python files but no __init__.py, which can break package imports.",
+                      "mitigation":  "Contracts/refactor pass can add a minimal __init__.py if import path is intended."
+                  },
+                  {
+                      "severity":  "high",
+                      "description":  "INV-R4 .env: .env exists on disk and was intentionally not read by inventory; treat as potential secret-bearing local file.",
+                      "mitigation":  "Keep gitignored, avoid screenshots/log dumps, rotate keys if exposure is suspected."
+                  },
+                  {
+                      "severity":  "medium",
+                      "description":  "INV-R5 .f51/tmp/mamba-ssm-src/: Operational tmp contains nested third-party source and its own .git metadata; can confuse searches/inventory and bloat disk.",
+                      "mitigation":  "Do not delete in this task; audit separately before cleanup."
+                  },
+                  {
+                      "severity":  "medium",
+                      "description":  "INV-R6 .env.example: 70 env-like names appear in code/docs but not in .env.example.",
+                      "mitigation":  "Run config/contracts pass to distinguish real env vars from constants and document the real ones."
+                  },
+                  {
+                      "severity":  "low",
+                      "description":  "INV-R7 repository: 46 exact duplicate content groups found among small scanned files.",
+                      "mitigation":  "Use duplicate map before refactor; avoid deleting until contracts prove canonical owners."
+                  }
+              ],
+    "next_step":  "Run /f51-contracts next to validate public APIs, config/env contracts, and route/pipeline import boundaries before any product patch.",
+    "owner":  "Codex"
 }

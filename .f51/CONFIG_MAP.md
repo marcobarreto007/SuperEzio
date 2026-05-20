@@ -1,144 +1,533 @@
-# Config Map — SuperEzio
+# Config Map - SuperEzio
 
-> Atualizado: 2026-05-19 | Branch: main | Session: f51-inventory-full-scan
+> Atualizado: 2026-05-20T12:03:55-04:00 | Session: f51-inventory-codex-2026-05-20
 
----
+## Config Files
+- `[config]` `.claude/skills/constant-time-analysis/.gitignore` (7 bytes)
+- `[config]` `.claude/skills/constant-time-analysis/pyproject.toml` (1558 bytes)
+- `[config]` `.claude/skills/constant-time-analysis/uv.lock` (140 bytes)
+- `[config]` `.claude/skills/c-review/scripts/pyproject.toml` (225 bytes)
+- `[config]` `.claude/skills/yara-authoring/skills/yara-rule-authoring/scripts/pyproject.toml` (578 bytes)
+- `[config]` `.dockerignore` (460 bytes)
+- `[config]` `.env` (2133 bytes)
+- `[config]` `.env.example` (3584 bytes)
+- `[config]` `.f51/ARCHEOLOGIST_REPORT.md` (6376 bytes)
+- `[config]` `.f51/BOOTSTRAP_REPORT.md` (4616 bytes)
+- `[config]` `.f51/cache/collector/0056aa43581225c5.json` (231 bytes)
+- `[config]` `.f51/cache/collector/00a15824a1d5ff93.json` (233 bytes)
+- `[config]` `.f51/cache/collector/00c8d3c1095d7168.json` (6266 bytes)
+- `[config]` `.f51/cache/collector/035ed3953e4d3484.json` (6001 bytes)
+- `[config]` `.f51/cache/collector/06c2dd6bd1dfc40f.json` (6210 bytes)
+- `[config]` `.f51/cache/collector/0a8744686f2a488e.json` (528 bytes)
+- `[config]` `.f51/cache/collector/0aca164647510b39.json` (420 bytes)
+- `[config]` `.f51/cache/collector/0bf4a61ca1713e1c.json` (348 bytes)
+- `[config]` `.f51/cache/collector/0d39a82c45c31e26.json` (368 bytes)
+- `[config]` `.f51/cache/collector/0e6c08b04b89ff1c.json` (471 bytes)
+- `[config]` `.f51/cache/collector/10f43358c849a25f.json` (359 bytes)
+- `[config]` `.f51/cache/collector/16b9e5d10ea3ded3.json` (424 bytes)
+- `[config]` `.f51/cache/collector/16ee8906b5c3b80e.json` (529 bytes)
+- `[config]` `.f51/cache/collector/1760c827df95bca1.json` (347 bytes)
+- `[config]` `.f51/cache/collector/179fea416ec3d9a0.json` (450 bytes)
+- `[config]` `.f51/cache/collector/18826c8c10c9b72f.json` (237 bytes)
+- `[config]` `.f51/cache/collector/19b9c94502c323df.json` (227 bytes)
+- `[config]` `.f51/cache/collector/1bc901041ab63972.json` (234 bytes)
+- `[config]` `.f51/cache/collector/1ee3e1e6c42e0d5c.json` (6032 bytes)
+- `[config]` `.f51/cache/collector/21bce9a919ecfc7e.json` (358 bytes)
+- `[config]` `.f51/cache/collector/230598f579b7d300.json` (376 bytes)
+- `[config]` `.f51/cache/collector/2309be5bd178bdaa.json` (541 bytes)
+- `[config]` `.f51/cache/collector/24408a8164fceb0a.json` (235 bytes)
+- `[config]` `.f51/cache/collector/24483040678b553e.json` (240 bytes)
+- `[config]` `.f51/cache/collector/24c5ae9bcd423eed.json` (410 bytes)
+- `[config]` `.f51/cache/collector/2672e64560314354.json` (6134 bytes)
+- `[config]` `.f51/cache/collector/284832b7c8282dfe.json` (1565 bytes)
+- `[config]` `.f51/cache/collector/28e80386f13ca8f2.json` (2023 bytes)
+- `[config]` `.f51/cache/collector/290a2ee67429c0dd.json` (236 bytes)
+- `[config]` `.f51/cache/collector/2afca7ba9cb1fb39.json` (497 bytes)
+- `[config]` `.f51/cache/collector/2d174fea478ca39d.json` (5826 bytes)
+- `[config]` `.f51/cache/collector/2d777d4595744c63.json` (363 bytes)
+- `[config]` `.f51/cache/collector/2ee3882b84336a73.json` (239 bytes)
+- `[config]` `.f51/cache/collector/30b6267868680a23.json` (370 bytes)
+- `[config]` `.f51/cache/collector/33f83597dfd9e352.json` (2032 bytes)
+- `[config]` `.f51/cache/collector/341768477f743c63.json` (434 bytes)
+- `[config]` `.f51/cache/collector/34d1cf36e06d1855.json` (371 bytes)
+- `[config]` `.f51/cache/collector/35a5daf99def41be.json` (366 bytes)
+- `[config]` `.f51/cache/collector/3a7aba8988ccfb85.json` (227 bytes)
+- `[config]` `.f51/cache/collector/3afc0612a31cb49c.json` (363 bytes)
+- `[config]` `.f51/cache/collector/3b5d461ed392f683.json` (238 bytes)
+- `[config]` `.f51/cache/collector/3eb7957847af3f9d.json` (422 bytes)
+- `[config]` `.f51/cache/collector/41b7dd2920726404.json` (378 bytes)
+- `[config]` `.f51/cache/collector/43612a0293176245.json` (1468 bytes)
+- `[config]` `.f51/cache/collector/440fb21d26ab02bc.json` (236 bytes)
+- `[config]` `.f51/cache/collector/453a3b58373a4511.json` (233 bytes)
+- `[config]` `.f51/cache/collector/46a45daacf610c15.json` (233 bytes)
+- `[config]` `.f51/cache/collector/491a4d56225f7f53.json` (363 bytes)
+- `[config]` `.f51/cache/collector/4b82441544cc5985.json` (245 bytes)
+- `[config]` `.f51/cache/collector/4e6ad578abbef573.json` (5888 bytes)
+- `[config]` `.f51/cache/collector/522577d681c4c231.json` (233 bytes)
+- `[config]` `.f51/cache/collector/53f2ee050f915f0b.json` (234 bytes)
+- `[config]` `.f51/cache/collector/55b0f7ef64931314.json` (491 bytes)
+- `[config]` `.f51/cache/collector/57034c01bf9b0697.json` (342 bytes)
+- `[config]` `.f51/cache/collector/597b9ea638f72243.json` (231 bytes)
+- `[config]` `.f51/cache/collector/5b64b57f1fb879da.json` (514 bytes)
+- `[config]` `.f51/cache/collector/5e080136f145de9f.json` (362 bytes)
+- `[config]` `.f51/cache/collector/632dd02253cf4080.json` (232 bytes)
+- `[config]` `.f51/cache/collector/6487c9905ad708f3.json` (369 bytes)
+- `[config]` `.f51/cache/collector/64a5d395b39dcb63.json` (236 bytes)
+- `[config]` `.f51/cache/collector/64d9525f6ccb4fcf.json` (457 bytes)
+- `[config]` `.f51/cache/collector/6601f5a1a19bc46e.json` (301 bytes)
+- `[config]` `.f51/cache/collector/66698f7035bd9b6f.json` (366 bytes)
+- `[config]` `.f51/cache/collector/66a3231579f82d21.json` (242 bytes)
+- `[config]` `.f51/cache/collector/67ea5213dc2edc30.json` (4652 bytes)
+- `[config]` `.f51/cache/collector/6a4ccc52bd686fc2.json` (366 bytes)
+- `[config]` `.f51/cache/collector/6b2c375c36d8acf7.json` (361 bytes)
+- `[config]` `.f51/cache/collector/6b5c5be161d59319.json` (320 bytes)
+- `[config]` `.f51/cache/collector/6c852ab629459144.json` (306 bytes)
+- `[config]` `.f51/cache/collector/706e0c9d7945ae8a.json` (610 bytes)
+- `[config]` `.f51/cache/collector/709e442567146e84.json` (5903 bytes)
+- `[config]` `.f51/cache/collector/70b2f6e7cd9496f0.json` (237 bytes)
+- `[config]` `.f51/cache/collector/75fd3ffd6abc2232.json` (373 bytes)
+- `[config]` `.f51/cache/collector/788e589e494d86c4.json` (233 bytes)
+- `[config]` `.f51/cache/collector/799431b99afa5eb6.json` (363 bytes)
+- `[config]` `.f51/cache/collector/7fcccd47e5c6883d.json` (420 bytes)
+- `[config]` `.f51/cache/collector/8142497f84fb477d.json` (3429 bytes)
+- `[config]` `.f51/cache/collector/81bd0ed5775453fb.json` (6085 bytes)
+- `[config]` `.f51/cache/collector/852e6abd940f340c.json` (433 bytes)
+- `[config]` `.f51/cache/collector/8ac23d26dbb5f3f4.json` (336 bytes)
+- `[config]` `.f51/cache/collector/8f336a95dc1745e5.json` (6108 bytes)
+- `[config]` `.f51/cache/collector/8fc7d667515ab3ea.json` (233 bytes)
+- `[config]` `.f51/cache/collector/8fd77927254c8062.json` (366 bytes)
+- `[config]` `.f51/cache/collector/901a8cddc5dfd4f4.json` (5254 bytes)
+- `[config]` `.f51/cache/collector/946964a51b7fd400.json` (498 bytes)
+- `[config]` `.f51/cache/collector/9894fccfa6dd852d.json` (343 bytes)
+- `[config]` `.f51/cache/collector/98e040c4e3aed5bc.json` (371 bytes)
+- `[config]` `.f51/cache/collector/99d061d8c9152a7b.json` (588 bytes)
+- `[config]` `.f51/cache/collector/9a92437c8cd83268.json` (420 bytes)
+- `[config]` `.f51/cache/collector/9aef3248509c1c22.json` (316 bytes)
+- `[config]` `.f51/cache/collector/9b2a687fd5e3858e.json` (238 bytes)
+- `[config]` `.f51/cache/collector/a1266ff6f0a02330.json` (232 bytes)
+- `[config]` `.f51/cache/collector/a1b961ca22baf160.json` (233 bytes)
+- `[config]` `.f51/cache/collector/a4957cc3d91fb25d.json` (2073 bytes)
+- `[config]` `.f51/cache/collector/a5c6028edf9d515f.json` (492 bytes)
+- `[config]` `.f51/cache/collector/a9ee3ea411522282.json` (238 bytes)
+- `[config]` `.f51/cache/collector/aa565712cde79af7.json` (244 bytes)
+- `[config]` `.f51/cache/collector/ab3ac795f6777aba.json` (233 bytes)
+- `[config]` `.f51/cache/collector/abb62cd87f8f4bf7.json` (520 bytes)
+- `[config]` `.f51/cache/collector/abcf02abe046e6fe.json` (6055 bytes)
+- `[config]` `.f51/cache/collector/b1aa5adbf7ff4327.json` (395 bytes)
+- `[config]` `.f51/cache/collector/b3752cb93c5448e5.json` (235 bytes)
+- `[config]` `.f51/cache/collector/b3d914ee3a4f1694.json` (497 bytes)
+- `[config]` `.f51/cache/collector/b6639e48a10ddc6d.json` (249 bytes)
+- `[config]` `.f51/cache/collector/b7de48a93b90c99d.json` (235 bytes)
+- `[config]` `.f51/cache/collector/b9d55448c1ef50a7.json` (293 bytes)
+- `[config]` `.f51/cache/collector/bc5b0aae5307b4f0.json` (365 bytes)
+- `[config]` `.f51/cache/collector/bcab510da5d90cff.json` (546 bytes)
+- `[config]` `.f51/cache/collector/be51ae87cd90f404.json` (380 bytes)
+- `[config]` `.f51/cache/collector/c28681d187624720.json` (246 bytes)
+- `[config]` `.f51/cache/collector/c4aa43ccfed94a58.json` (365 bytes)
+- `[config]` `.f51/cache/collector/c692f75c0473aafe.json` (462 bytes)
+- `[config]` `.f51/cache/collector/c7de0f66a989a6a9.json` (234 bytes)
+- `[config]` `.f51/cache/collector/c811e9314dad052b.json` (388 bytes)
+- `[config]` `.f51/cache/collector/c9a784ac91df1b34.json` (351 bytes)
+- `[config]` `.f51/cache/collector/cd5e3d2721283084.json` (544 bytes)
+- `[config]` `.f51/cache/collector/cfec817b1370407f.json` (246 bytes)
+- `[config]` `.f51/cache/collector/d1e8ba1627f067de.json` (448 bytes)
+- `[config]` `.f51/cache/collector/d2822150c8ea7ee0.json` (235 bytes)
+- `[config]` `.f51/cache/collector/d3d6b437ab01eceb.json` (233 bytes)
+- `[config]` `.f51/cache/collector/d505b6290ffe49c7.json` (306 bytes)
+- `[config]` `.f51/cache/collector/d759e4fed453ae73.json` (568 bytes)
+- `[config]` `.f51/cache/collector/d7b88d98aeb890c7.json` (365 bytes)
+- `[config]` `.f51/cache/collector/db6d0cba90a8f0f5.json` (361 bytes)
+- `[config]` `.f51/cache/collector/dbd66c03eeae72c2.json` (243 bytes)
+- `[config]` `.f51/cache/collector/dc491b1afd2bb940.json` (5962 bytes)
+- `[config]` `.f51/cache/collector/e022d7f4ac7f3f1a.json` (515 bytes)
+- `[config]` `.f51/cache/collector/e0bc7e727fb6714b.json` (231 bytes)
+- `[config]` `.f51/cache/collector/e27a43489d1082ee.json` (512 bytes)
+- `[config]` `.f51/cache/collector/e65d76e095457fe4.json` (238 bytes)
+- `[config]` `.f51/cache/collector/e8e62b2114c0f782.json` (239 bytes)
+- `[config]` `.f51/cache/collector/ea21bf0fb115a117.json` (362 bytes)
+- `[config]` `.f51/cache/collector/eb1e5b818c5aefc0.json` (434 bytes)
+- `[config]` `.f51/cache/collector/eb68df7c9294fbb1.json` (360 bytes)
+- `[config]` `.f51/cache/collector/ee65f4b5bc331877.json` (365 bytes)
+- `[config]` `.f51/cache/collector/ef55d0f03210f74f.json` (379 bytes)
+- `[config]` `.f51/cache/collector/f08856c567c3b60a.json` (233 bytes)
+- `[config]` `.f51/cache/collector/f0b558e9d30b4a6d.json` (293 bytes)
+- `[config]` `.f51/cache/collector/f1ed02e11a3c0d73.json` (236 bytes)
+- `[config]` `.f51/cache/collector/f4b9404e7cdcb40d.json` (5980 bytes)
+- `[config]` `.f51/cache/collector/f61d8b163d6c04a2.json` (349 bytes)
+- `[config]` `.f51/cache/collector/f6216d6dd62480a7.json` (532 bytes)
+- `[config]` `.f51/cache/collector/f6931846c6097174.json` (237 bytes)
+- `[config]` `.f51/cache/collector/fa7263d2f6830ba8.json` (374 bytes)
+- `[config]` `.f51/cache/collector/fb05021bd2a29179.json` (234 bytes)
+- `[config]` `.f51/cache/collector/fc9864a6b247737b.json` (366 bytes)
+- `[config]` `.f51/cache/collector/fdb6e1501bd0bd55.json` (234 bytes)
+- `[config]` `.f51/cache/collector/fdd62c8d5d7315d4.json` (429 bytes)
+- `[config]` `.f51/cache/collector/feb8034c74db16a8.json` (437 bytes)
+- `[config]` `.f51/cache/collector/ffb15ec7f8d842ff.json` (479 bytes)
+- `[config]` `.f51/CHECKPOINT_TEMPLATE.json` (421 bytes)
+- `[config]` `.f51/checkpoints/2026-05-16-local-qwen36-ready.json` (1241 bytes)
+- `[config]` `.f51/checkpoints/latest.json` (2254 bytes)
+- `[config]` `.f51/checkpoints/SESSION_2026-05-20.md` (8906 bytes)
+- `[config]` `.f51/CONFIG_MAP.md` (5071 bytes)
+- `[config]` `.f51/contracts/a2a-protocol.contract.md` (2251 bytes)
+- `[config]` `.f51/contracts/ceo.contract.md` (1849 bytes)
+- `[config]` `.f51/contracts/data-hub.contract.md` (1984 bytes)
+- `[config]` `.f51/contracts/f51-blood-pact-operational-runtime.json` (2872 bytes)
+- `[config]` `.f51/contracts/f51-engine.contract.md` (3004 bytes)
+- `[config]` `.f51/contracts/neural-decision.contract.md` (1457 bytes)
+- `[config]` `.f51/contracts/pipeline.contract.md` (1985 bytes)
+- `[config]` `.f51/diario_bordo.json` (8834 bytes)
+- `[config]` `.f51/DUPLICATE_MAP.md` (6338 bytes)
+- `[config]` `.f51/ENTRYPOINT_MAP.md` (4685 bytes)
+- `[config]` `.f51/GITHUB_POLICY.json` (1673 bytes)
+- `[config]` `.f51/INVENTORY.json` (10468 bytes)
+- `[config]` `.f51/INVENTORY_TEMPLATE.json` (595 bytes)
+- `[config]` `.f51/MONEY_GATE.md` (597 bytes)
+- `[config]` `.f51/MONEY_GATE_EVALUATION.md` (3883 bytes)
+- `[config]` `.f51/NEURAL_EXPERT_ARCHITECTURE.md` (3699 bytes)
+- `[config]` `.f51/partner/diff.txt` (26616 bytes)
+- `[config]` `.f51/partner/review.md` (1049 bytes)
+- `[config]` `.f51/PROJECT_RULES.md` (1893 bytes)
+- `[config]` `.f51/RELEASE_GATE_2026-05-19.md` (3420 bytes)
+- `[config]` `.f51/RELEASE_READINESS.md` (3505 bytes)
+- `[config]` `.f51/RELOCATION_PLAN.json` (5678 bytes)
+- `[config]` `.f51/RISK_REGISTER.md` (7871 bytes)
+- `[config]` `.f51/SKILLS_CHECK.md` (7904 bytes)
+- `[config]` `.f51/TASK_BOARD.md` (1459 bytes)
+- `[config]` `.f51/TEST_MAP.md` (6466 bytes)
+- `[config]` `.f51/tmp/build_causal.bat` (332 bytes)
+- `[config]` `.f51/tmp/build_mamba.bat` (293 bytes)
+- `[config]` `.f51/tmp/build_output.txt` (1494954 bytes)
+- `[config]` `.f51/tmp/build_output2.txt` (1494988 bytes)
+- `[config]` `.f51/tmp/build_output3.txt` (1506366 bytes)
+- `[config]` `.f51/tmp/build_output4.txt` (16043572 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/.github/workflows/publish.yaml` (9907 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/.gitignore` (57 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/AUTHORS` (24 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/build/lib.win-amd64-cpython-312/causal_conv1d/__init__.py` (121 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/build/lib.win-amd64-cpython-312/causal_conv1d/causal_conv1d_interface.py` (9024 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/build/lib.win-amd64-cpython-312/causal_conv1d/causal_conv1d_varlen.py` (3587 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/build/lib.win-amd64-cpython-312/causal_conv1d_cuda.cp312-win_amd64.pyd` (165588992 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/build/temp.win-amd64-cpython-312/Release/.ninja_deps` (66756 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/build/temp.win-amd64-cpython-312/Release/.ninja_log` (695 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/build/temp.win-amd64-cpython-312/Release/build.ninja` (5319 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/build/temp.win-amd64-cpython-312/Release/csrc/causal_conv1d.obj` (30792551 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/build/temp.win-amd64-cpython-312/Release/csrc/causal_conv1d_bwd.obj` (135213364 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/build/temp.win-amd64-cpython-312/Release/csrc/causal_conv1d_cuda.cp312-win_amd64.exp` (25258 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/build/temp.win-amd64-cpython-312/Release/csrc/causal_conv1d_cuda.cp312-win_amd64.lib` (44402 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/build/temp.win-amd64-cpython-312/Release/csrc/causal_conv1d_fwd.obj` (27940040 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/build/temp.win-amd64-cpython-312/Release/csrc/causal_conv1d_update.obj` (6814004 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/causal_conv1d.egg-info/dependency_links.txt` (1 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/causal_conv1d.egg-info/PKG-INFO` (1686 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/causal_conv1d.egg-info/requires.txt` (22 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/causal_conv1d.egg-info/SOURCES.txt` (455 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/causal_conv1d.egg-info/top_level.txt` (33 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/causal_conv1d/__init__.py` (121 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/causal_conv1d/causal_conv1d_interface.py` (9024 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/causal_conv1d/causal_conv1d_varlen.py` (3587 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/csrc/causal_conv1d.cpp` (21901 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/csrc/causal_conv1d.h` (2419 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/csrc/causal_conv1d_bwd.cu` (34017 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/csrc/causal_conv1d_common.h` (2589 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/csrc/causal_conv1d_fwd.cu` (21492 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/csrc/causal_conv1d_update.cu` (7095 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/csrc/static_switch.h` (1303 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/LICENSE` (1587 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/README.md` (1129 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/rocm_patch/rocm6_0.patch` (2305 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/setup.py` (13470 bytes)
+- `[config]` `.f51/tmp/causal-conv1d-src/tests/test_causal_conv1d.py` (17262 bytes)
+- `[config]` `.f51/tmp/f51_english_sft.jsonl` (14928414 bytes)
+- `[config]` `.f51/tmp/mamba_build_output.txt` (120659 bytes)
+- `[config]` `.f51/tmp/mamba_output2.txt` (50537901 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/.github/workflows/publish.yaml` (9385 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/.gitignore` (57 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/.gitmodules` (147 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/assets/selection.png` (818624 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/assets/ssd_algorithm.png` (1118415 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/AUTHORS` (55 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/benchmarks/benchmark_generation_mamba_simple.py` (3394 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/__init__.py` (270 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/distributed/__init__.py` (0 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/distributed/distributed_utils.py` (5969 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/distributed/tensor_parallel.py` (12304 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/models/__init__.py` (0 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/models/config_mamba.py` (507 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/models/mixer_seq_simple.py` (11976 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/modules/__init__.py` (0 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/modules/block.py` (3820 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/modules/mamba_simple.py` (12004 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/modules/mamba2.py` (17862 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/modules/mamba2_simple.py` (7808 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/modules/mha.py` (13686 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/modules/mlp.py` (1164 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/modules/ssd_minimal.py` (4247 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/ops/__init__.py` (0 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/ops/selective_scan_interface.py` (20444 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/ops/triton/__init__.py` (0 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/ops/triton/k_activations.py` (5338 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/ops/triton/layer_norm.py` (37079 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/ops/triton/layernorm_gated.py` (18200 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/ops/triton/selective_state_update.py` (11725 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/ops/triton/softplus.py` (342 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/ops/triton/ssd_bmm.py` (13899 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/ops/triton/ssd_chunk_scan.py` (107564 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/ops/triton/ssd_chunk_state.py` (57870 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/ops/triton/ssd_combined.py` (55619 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/ops/triton/ssd_state_passing.py` (16725 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/utils/__init__.py` (0 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/utils/generation.py` (15856 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/utils/hf.py` (989 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/lib.win-amd64-cpython-312/mamba_ssm/utils/torch.py` (697 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/temp.win-amd64-cpython-312/Release/.ninja_deps` (192 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/temp.win-amd64-cpython-312/Release/.ninja_log` (371 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/temp.win-amd64-cpython-312/Release/build.ninja` (7250 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/build/temp.win-amd64-cpython-312/Release/csrc/selective_scan/selective_scan.obj` (30818495 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/csrc/selective_scan/reverse_scan.cuh` (18837 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/csrc/selective_scan/selective_scan.cpp` (22186 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/csrc/selective_scan/selective_scan.h` (2872 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/csrc/selective_scan/selective_scan_bwd_bf16_complex.cu` (403 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/csrc/selective_scan/selective_scan_bwd_bf16_real.cu` (399 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/csrc/selective_scan/selective_scan_bwd_fp16_complex.cu` (399 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/csrc/selective_scan/selective_scan_bwd_fp16_real.cu` (395 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/csrc/selective_scan/selective_scan_bwd_fp32_complex.cu` (396 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/csrc/selective_scan/selective_scan_bwd_fp32_real.cu` (392 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/csrc/selective_scan/selective_scan_bwd_kernel.cuh` (34969 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/csrc/selective_scan/selective_scan_common.h` (9582 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/csrc/selective_scan/selective_scan_fwd_bf16.cu` (509 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/csrc/selective_scan/selective_scan_fwd_fp16.cu` (501 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/csrc/selective_scan/selective_scan_fwd_fp32.cu` (495 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/csrc/selective_scan/selective_scan_fwd_kernel.cuh` (20515 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/csrc/selective_scan/static_switch.h` (1303 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/csrc/selective_scan/uninitialized_copy.cuh` (2905 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/evals/lm_harness_eval.py` (1326 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/LICENSE` (11549 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm.egg-info/dependency_links.txt` (1 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm.egg-info/PKG-INFO` (25817 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm.egg-info/requires.txt` (113 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm.egg-info/SOURCES.txt` (2614 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm.egg-info/top_level.txt` (30 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/__init__.py` (270 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/distributed/__init__.py` (0 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/distributed/distributed_utils.py` (5969 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/distributed/tensor_parallel.py` (12304 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/models/__init__.py` (0 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/models/config_mamba.py` (507 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/models/mixer_seq_simple.py` (11976 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/modules/__init__.py` (0 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/modules/block.py` (3820 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/modules/mamba_simple.py` (12004 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/modules/mamba2.py` (17862 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/modules/mamba2_simple.py` (7808 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/modules/mha.py` (13686 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/modules/mlp.py` (1164 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/modules/ssd_minimal.py` (4247 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/ops/__init__.py` (0 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/ops/selective_scan_interface.py` (20444 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/ops/triton/__init__.py` (0 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/ops/triton/k_activations.py` (5338 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/ops/triton/layer_norm.py` (37079 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/ops/triton/layernorm_gated.py` (18200 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/ops/triton/selective_state_update.py` (11725 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/ops/triton/softplus.py` (342 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/ops/triton/ssd_bmm.py` (13899 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/ops/triton/ssd_chunk_scan.py` (107564 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/ops/triton/ssd_chunk_state.py` (57870 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/ops/triton/ssd_combined.py` (55619 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/ops/triton/ssd_state_passing.py` (16725 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/utils/__init__.py` (0 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/utils/generation.py` (15856 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/utils/hf.py` (989 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/mamba_ssm/utils/torch.py` (697 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/MANIFEST.in` (63 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/pyproject.toml` (1022 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/README.md` (11733 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/rocm_patch/rocm6_0.patch` (2305 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/setup.py` (14261 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/tests/ops/test_selective_scan.py` (13311 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/tests/ops/triton/test_layernorm_gated.py` (5601 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/tests/ops/triton/test_selective_state_update.py` (9705 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/tests/ops/triton/test_ssd.py` (3961 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/tests/test_generation.py` (5004 bytes)
+- `[config]` `.f51/tmp/mamba-ssm-src/usage.md` (1423 bytes)
+- `[config]` `.f51/tmp/merge_adapters.py` (5056 bytes)
+- `[config]` `.f51/tmp/phase1_numerical_sft_eval.jsonl` (643319 bytes)
+- `[config]` `.f51/tmp/phase1_numerical_sft_train.jsonl` (12523697 bytes)
+- `[config]` `.f51/tmp/phase1_raw/ChanceFocus_flare-finqa_train.jsonl` (27298265 bytes)
+- `[config]` `.f51/tmp/phase1_raw/FinGPT_fingpt-convfinqa_train.jsonl` (53593631 bytes)
+- `[config]` `.f51/tmp/phase1_raw/FinGPT_fingpt-fiqa_qa_train.jsonl` (21479216 bytes)
+- `[config]` `.f51/tmp/phase1_raw/fingpt_forecaster_train.jsonl` (9712888 bytes)
+- `[config]` `.f51/tmp/phase1_raw/tatqa_cot_train.jsonl` (25038270 bytes)
+- `[config]` `.f51/tmp/phase1-adapter/adapter_config.json` (1096 bytes)
+- `[config]` `.f51/tmp/phase1-adapter/adapter_model.safetensors` (104354560 bytes)
+- `[config]` `.f51/tmp/phase1-adapter/chat_template.jinja` (4070 bytes)
+- `[config]` `.f51/tmp/phase1-adapter/README.md` (5222 bytes)
+- `[config]` `.f51/tmp/phase1-adapter/tokenizer.json` (17078428 bytes)
+- `[config]` `.f51/tmp/phase1-adapter/tokenizer_config.json` (398 bytes)
+- `[config]` `.f51/tmp/phase1-adapter/training_args.bin` (4856 bytes)
+- `[config]` `.f51/tmp/setup_and_train_2gpu.sh` (4734 bytes)
+- `[config]` `.f51/tmp/setup_phase1_a100.sh` (5419 bytes)
+- `[config]` `.f51/tmp/superezio-merged/chat_template.jinja` (4101 bytes)
+- `[config]` `.f51/tmp/superezio-merged/config.json` (3287 bytes)
+- `[config]` `.f51/tmp/superezio-merged/generation_config.json` (168 bytes)
+- `[config]` `.f51/tmp/superezio-merged/model.safetensors` (8346082568 bytes)
+- `[config]` `.f51/tmp/superezio-merged/model.safetensors.index.json` (78492 bytes)
+- `[config]` `.f51/tmp/superezio-merged/tokenizer.json` (17078330 bytes)
+- `[config]` `.f51/tmp/superezio-merged/tokenizer_config.json` (415 bytes)
+- `[config]` `.f51/tmp/treino_phase1_status.json` (1463 bytes)
+- `[config]` `.f51/tmp/treino_status.json` (2967 bytes)
+- `[config]` `.f51/vastai_instance.json` (140 bytes)
+- `[config]` `.gitattributes` (107 bytes)
+- `[config]` `.gitignore` (1807 bytes)
+- `[config]` `.pre-commit-config.yaml` (549 bytes)
+- `[config]` `config/mandamentos.json` (104 bytes)
+- `[config]` `config/model_manifest.json` (2137 bytes)
+- `[config]` `config/runtime.yml` (4292 bytes)
+- `[config]` `data/fraud_datasets/financial_fraud_textual_dataset/.cache/huggingface/.gitignore` (1 bytes)
+- `[config]` `data/fraud_datasets/financial_fraud_textual_dataset/.gitattributes` (2461 bytes)
+- `[config]` `data/fraud_datasets/Financial_statements_fraud_dataset/.cache/huggingface/.gitignore` (1 bytes)
+- `[config]` `data/fraud_datasets/Financial_statements_fraud_dataset/.gitattributes` (2653 bytes)
+- `[config]` `data/fraud_datasets/Financial-Fraud-Dataset/.cache/huggingface/.gitignore` (1 bytes)
+- `[config]` `data/fraud_datasets/Financial-Fraud-Dataset/.gitattributes` (2361 bytes)
+- `[config]` `data/fraud_datasets/financial-fraud-dpo-exact/.cache/huggingface/.gitignore` (1 bytes)
+- `[config]` `data/fraud_datasets/financial-fraud-dpo-exact/.gitattributes` (2461 bytes)
+- `[config]` `data/fraud_datasets/Nigerian-Financial-Transactions-and-Fraud-Detection-Dataset/.cache/huggingface/.gitignore` (1 bytes)
+- `[config]` `data/fraud_datasets/Nigerian-Financial-Transactions-and-Fraud-Detection-Dataset/.gitattributes` (3096 bytes)
+- `[config]` `Dockerfile` (3061 bytes)
+- `[config]` `Makefile` (378 bytes)
+- `[config]` `models/.cache/huggingface/.gitignore` (1 bytes)
+- `[config]` `pyproject.toml` (1541 bytes)
+- `[config]` `pytest.ini` (146 bytes)
+- `[config]` `uv.lock` (6108 bytes)
 
-## Fonte de Verdade (Runtime Real)
+## Environment Variables In .env.example
+- `[config]` `ALPHA_VANTAGE_API_KEY`
+- `[config]` `BRAVE_SEARCH_API_KEY`
+- `[config]` `CORS_ORIGINS`
+- `[config]` `DISABLE_OTEL`
+- `[config]` `MEM0_API_KEY`
+- `[config]` `MEM0_API_URL`
+- `[config]` `MEM0_REDIS_URL`
+- `[config]` `NEWSAPI_KEY`
+- `[config]` `PENNYLAB_JOURNAL`
+- `[config]` `PENNYLAB_MAX_PRICE`
+- `[config]` `PENNYLAB_MAX_USD`
+- `[config]` `PENNYLAB_MIN_VOLUME`
+- `[config]` `SUPEREZIO_CACHE_DIR`
+- `[config]` `SUPEREZIO_CEO_BASE_URL`
+- `[config]` `SUPEREZIO_CEO_MAX_TOKENS`
+- `[config]` `SUPEREZIO_CEO_TEMPERATURE`
+- `[config]` `SUPEREZIO_CEO_TIMEOUT`
+- `[config]` `SUPEREZIO_DATA_DIR`
+- `[config]` `SUPEREZIO_DATA_TIMEOUT`
+- `[config]` `SUPEREZIO_DEBUG`
+- `[config]` `SUPEREZIO_DEEPSEEK_API_KEY`
+- `[config]` `SUPEREZIO_DEEPSEEK_BASE_URL`
+- `[config]` `SUPEREZIO_DEEPSEEK_MAX_TOKENS`
+- `[config]` `SUPEREZIO_DEEPSEEK_MODEL`
+- `[config]` `SUPEREZIO_DEEPSEEK_REASONING_EFFORT`
+- `[config]` `SUPEREZIO_DEEPSEEK_TEMPERATURE`
+- `[config]` `SUPEREZIO_DEEPSEEK_THINKING`
+- `[config]` `SUPEREZIO_DEEPSEEK_TIMEOUT_SEC`
+- `[config]` `SUPEREZIO_ENABLE_PYTHON_EXEC`
+- `[config]` `SUPEREZIO_EXPERT_TIMEOUT`
+- `[config]` `SUPEREZIO_HOST`
+- `[config]` `SUPEREZIO_INTENT_LLM_FALLBACK`
+- `[config]` `SUPEREZIO_INTENT_LLM_THRESHOLD`
+- `[config]` `SUPEREZIO_INTENT_LLM_TIMEOUT`
+- `[config]` `SUPEREZIO_NURSE_LORA_PATH`
+- `[config]` `SUPEREZIO_NURSE_MODEL`
+- `[config]` `SUPEREZIO_PORT`
+- `[config]` `SUPEREZIO_PRIMARY_API_KEY`
+- `[config]` `SUPEREZIO_PRIMARY_BASE_URL`
+- `[config]` `SUPEREZIO_PRIMARY_MODEL`
+- `[config]` `SUPEREZIO_PROFESSIONAL_COLLECTOR`
+- `[config]` `SUPEREZIO_RAG_CONTEXT_MAX_CHARS`
+- `[config]` `SUPEREZIO_RAG_DISABLED`
+- `[config]` `SUPEREZIO_RAG_INDEX_DIR`
+- `[config]` `SUPEREZIO_RAG_MODEL`
+- `[config]` `SUPEREZIO_RAG_TOP_K`
+- `[config]` `SUPEREZIO_REDDIT_ENABLED`
+- `[config]` `SUPEREZIO_REDDIT_SUBREDDITS`
+- `[config]` `SUPEREZIO_SCAN_LIMIT`
+- `[config]` `SUPEREZIO_TAVILY_EXTRACT_PATH`
+- `[config]` `SUPEREZIO_TAVILY_SEARCH_PATH`
+- `[config]` `TWELVE_DATA_API_KEY`
+- `[config]` `WOLFRAM_API_KEY`
 
-### `.env` (raiz) — ATIVO
-- **Status:** ATIVO — fonte real de configuração
-- **Prioridade:** OS env > .env.local > .env
-- **Carregado por:** `src/core/config/secrets.py::load_local_env()`
-- **Keys ativas:**
-  - `SUPEREZIO_CEO_BASE_URL=http://127.0.0.1:8082/v1` (Qwen3.6-35B)
-  - `SUPEREZIO_DEEPSEEK_MODEL=deepseek-v4-pro` (Cloud experts)
-  - `SUPEREZIO_PROFESSIONAL_COLLECTOR=true`
-  - 12+ API keys (Alpha Vantage, Twelve Data, NewsAPI, Wolfram, etc.)
-  - `ANTHROPIC_*` vars para Claude Code via DeepSeek
-- **Segurança:** `.env` no `.gitignore`. `.env.example` não tem secrets.
-- **Risco:** 12+ API keys em plaintext no disco (R7).
+## Env-Like Names Detected But Missing From .env.example
+- `[config]` `A2A`
+- `[config]` `A2A_`
+- `[config]` `A2A_AGENT_NAME`
+- `[config]` `A2A_BIND`
+- `[config]` `A2A_PORT`
+- `[config]` `A2AM`
+- `[config]` `ALPACA_API_KEY`
+- `[config]` `ALPACA_SECRET_KEY`
+- `[config]` `ALPHA_VANTAGE`
+- `[config]` `CORS`
+- `[config]` `CORSM`
+- `[config]` `DISABLED`
+- `[config]` `GEMINI_API_KEY`
+- `[config]` `GLM`
+- `[config]` `GLM_EVAL_MODEL`
+- `[config]` `GLM_EVAL_URL`
+- `[config]` `GLM_JUDGE_SYSTEM`
+- `[config]` `GLM_MODEL`
+- `[config]` `GLM_URL`
+- `[config]` `IBKR`
+- `[config]` `IBKR_CLIENT_ID`
+- `[config]` `IBKR_HOST`
+- `[config]` `IBKR_PORT`
+- `[config]` `NEWSAPI`
+- `[config]` `OPENAI_API_KEY`
+- `[config]` `PENNYLAB`
+- `[config]` `PENNYLAB_ANALYSIS`
+- `[config]` `PENNYLAB_KEYWORDS`
+- `[config]` `SMTP`
+- `[config]` `SMTP_FROM`
+- `[config]` `SMTP_HOST`
+- `[config]` `SMTP_PASS`
+- `[config]` `SMTP_PORT`
+- `[config]` `SMTP_TO`
+- `[config]` `SMTP_USER`
+- `[config]` `SUPEREZIO`
+- `[config]` `SUPEREZIO_API_KEYS`
+- `[config]` `SUPEREZIO_CEO_LORA_BASE_URL`
+- `[config]` `SUPEREZIO_CEO_MODEL_PATH`
+- `[config]` `SUPEREZIO_CEO_PORT`
+- `[config]` `SUPEREZIO_DEEPSEEK_MODEL_EXPERTS`
+- `[config]` `SUPEREZIO_DEEPSEEK_MODEL_ORCHESTRATOR`
+- `[config]` `SUPEREZIO_EDGE_AUTH`
+- `[config]` `SUPEREZIO_EDGE_SECRET`
+- `[config]` `SUPEREZIO_ENABLE_OTEL`
+- `[config]` `SUPEREZIO_EVAL_URL`
+- `[config]` `SUPEREZIO_EXPERT_CONCURRENCY`
+- `[config]` `SUPEREZIO_EXPLANATION_USE_LLM`
+- `[config]` `SUPEREZIO_FORCE_ALL_EXPERTS_ON_PARTIAL`
+- `[config]` `SUPEREZIO_GMAIL_APP_PASSWORD`
+- `[config]` `SUPEREZIO_JSON__`
+- `[config]` `SUPEREZIO_LAUNCHER_CHECK`
+- `[config]` `SUPEREZIO_LOCAL_MODEL`
+- `[config]` `SUPEREZIO_LOCAL_URL`
+- `[config]` `SUPEREZIO_NO_BROWSER`
+- `[config]` `SUPEREZIO_ORCHESTRATOR_TIMEOUT`
+- `[config]` `SUPEREZIO_OTEL_CONSOLE`
+- `[config]` `SUPEREZIO_PRODUCTION`
+- `[config]` `SUPEREZIO_REDDIT_MIN_COMMENTS`
+- `[config]` `SUPEREZIO_REDDIT_MIN_SCORE`
+- `[config]` `SUPEREZIO_REDDIT_MIN_UPVOTE_RATIO`
+- `[config]` `SUPEREZIO_REDDIT_TIMEOUT_S`
+- `[config]` `SUPEREZIO_REDDIT_USER_AGENT`
+- `[config]` `SUPEREZIO_TRAIN_MODEL`
+- `[config]` `SUPEREZIO_URL`
+- `[config]` `SUPEREZIO_VERIFICATION_SYSTEM_PROMPT`
+- `[config]` `TOKENIZERS_PARALLELISM`
+- `[config]` `TWELVE_DATA`
+- `[config]` `TWELVE_DATA_CANDLE_MAP`
+- `[config]` `UNIVERSAL_SKIP_GATEWAY`
 
----
-
-## Config Estáticos
-
-### `config/runtime.yml` — STALE
-- **Problema:** Só lista modelos cloud (DeepSeek). Não tem CEO local Qwen3.6.
-- **Uso em runtime:** `src/core/config/schema.py` define schema; `get_config()` pode ler.
-
-### `config/model_manifest.json` — STALE
-- **Problema:** CEO configurado como Gemma-4-26B-A4B-abliterated.
-- **Realidade:** CEO é Qwen3.6-35B F51.
-- **Uso em runtime:** Não confirmado — possivelmente não lido.
-
-### `config/mandamentos.json` — ATIVO
-- **Uso:** Regras operacionais injetadas no pipeline graph.
-
----
-
-## Config de Build e Tooling
-
-| Arquivo | Status | Função |
-|---------|--------|--------|
-| `pyproject.toml` | ATIVO (parcialmente stale) | Package metadata v4.0.0, dependencies, ruff config. Descrição menciona Gemma. |
-| `pytest.ini` | ATIVO | min 8.0, testpaths=tests, asyncio auto, maxfail=5 |
-| `Makefile` | ATIVO | Targets: install-deps, test, test-windows, verify |
-| `Dockerfile` | ATIVO | Multi-stage: deps → CPU runtime → GPU runtime. Entry: `python -m agent_server.main` :8002 |
-| `requirements-ci.txt` | ATIVO | Pinned CI deps para GitHub Actions |
-| `.pre-commit-config.yaml` | ATIVO | ruff lint+format, mypy, check-json/toml/yaml |
-| `.gitignore` | ATIVO | Python, .venv, models/, .env, data/traces, output, scratch |
-| `.dockerignore` | ATIVO | Exclui .venv, models, data, .env, .claude |
-
----
-
-## Config de Modelo
-
-### `scripts/serve_ceo_llamacpp.ps1` — ATIVO
-- Port=8082, GpuLayers=28, ContextLength=8192, Slots=2
-- Modelo: `models/superezio-ceo-intent-merged.Q4_K_M.gguf`
-- Flags: `-fa on -ctk q8_0 -ctv q8_0 --mlock` (sem MTP — patched)
-
-### `.env` (CEO + Orquestrador config)
-- Orquestrador: `SUPEREZIO_PRIMARY_BASE_URL=http://127.0.0.1:8082/v1`, `SUPEREZIO_PRIMARY_MODEL=superezio-ceo-intent-merged`
-- CEO: `SUPEREZIO_CEO_BASE_URL=http://127.0.0.1:8082/v1`, `SUPEREZIO_CEO_TIMEOUT=180`
-- `SUPEREZIO_CEO_MAX_TOKENS=8192`, `SUPEREZIO_CEO_TEMPERATURE=0.3`
-
----
-
-## Config de Treinamento
-
-| Arquivo | Status | Função |
-|---------|--------|--------|
-| `scripts/finetune_glm_config.yaml` | ATIVO | QLoRA SFT config para GLM-4.7-Flash |
-
----
-
-## Config em Código
-
-| Arquivo | Função |
-|---------|--------|
-| `src/core/config/schema.py` | Schema Pydantic para runtime.yml (ServerConfig, ModelConfig, GatewayConfig) |
-| `src/core/config/env.py` | Re-exporta `load_env_once` de `secrets.py` |
-| `src/core/config/secrets.py` | `load_local_env()`, `get_secret()` |
-| `src/agent_server/main.py` | `load_local_env()` no startup, PORT/HOST from env |
-
----
-
-## Domain Data Config
-
-| Arquivo | Função |
-|---------|--------|
-| `data/fraud_patterns/fraud_patterns.json` | 9 padrões de fraude com red flags |
-| `data/fraud_patterns/red_flag_rules.json` | 11 regras de detecção |
-| `data/macro_dataset/dataset_index.json` | 4 séries macro canadenses |
-| `data/memory/default_mem0.json` | Memória persistente (vazio) |
-
----
-
-## CI/CD
-
-| Arquivo | Função |
-|---------|--------|
-| `.github/workflows/ci.yml` | GitHub Actions — Windows 2022, Python 3.12, ruff + pytest |
-
----
-
-## IDE e Dev Tools
-
-| Arquivo | Função |
-|---------|--------|
-| `.vscode/settings.json` | VS Code settings — Claude Code, git options |
-| `.vscode/extensions.json` | Recomenda `anthropic.claude-code` |
-
----
-
-## Claude Code / MCP
-
-| Arquivo | Função |
-|---------|--------|
-| `.claude/settings.local.json` | Permissões: allow python, pennylab CLI |
-| `.claude/mcp-catalog.json` | Catálogo de MCPs disponíveis (referência) |
-| `.claude/partner/handoff.json` | Protocolo dual-agent (Bob/Sasaki) |
-
----
-
-## Itens Stale — Ação Recomendada
-
-| Arquivo | Problema | Ação |
-|---------|----------|------|
-| `config/model_manifest.json` | CEO = Gemma | Atualizar para Qwen3.6-35B F51 |
-| `config/runtime.yml` | Sem CEO local | Adicionar seção `ceo_local` |
-| `pyproject.toml` descrição | Diz "Gemma-4-26B" | Trocar para "Qwen3.6-35B" |
-
----
-
-## Stale Training Artifacts (.f51/tmp/)
-
-13 arquivos de Nemotron-12B (modelo abandonado):
-- `treino_status.json`, `treino_phase1_status.json`
-- `phase1-adapter/` (adapter config + tokenizer)
-- `superezio-merged/` (merged model config)
-- `mamba-ssm-src/`, `causal-conv1d-src/` (vendor source)
-
-**Ação:** Manter como histórico ou limpar quando conveniente. Não é bloqueador.
+## Config Risks
+- `[medium]` .github/: Repo contains GitHub workflow/config surface while .f51/GITHUB_POLICY.json says DISK ONLY. Mitigation: Keep ignoring GitHub tooling; do not run gh/git push/pull/fetch.
+- `[medium]` Makefile: Makefile install-deps references requirements.txt, but only requirements-ci.txt is present. Mitigation: Next config pass should reconcile install command with pyproject/requirements-ci.
+- `[high]` .env: .env exists on disk and was intentionally not read by inventory; treat as potential secret-bearing local file. Mitigation: Keep gitignored, avoid screenshots/log dumps, rotate keys if exposure is suspected.
+- `[medium]` .env.example: 70 env-like names appear in code/docs but not in .env.example. Mitigation: Run config/contracts pass to distinguish real env vars from constants and document the real ones.
