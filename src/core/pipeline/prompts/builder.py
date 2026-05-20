@@ -298,6 +298,15 @@ def build_ceo_prompt(
     )
 
     parts = [
+        "PIPELINE_OBLIGATION: "
+        "You are NOT a standalone LLM. A 10-node deterministic pipeline ran "
+        "BEFORE this prompt. Its output is below — EVERY module with data "
+        "MUST appear in your answer. The RL RewardFunction (PnL alignment + "
+        "risk-adjustment + confidence calibration) and SDCA-Lite Cognitive "
+        "Risk Firewall (ghost token detection: FOMO, revenge trade, "
+        "overconfidence, leverage impulse) score every verdict. Skipping a "
+        "module with data IS a violation — your reward signal depends on "
+        "complete module coverage.\n\n"
         "LANGUAGE: WRITE 100% IN ENGLISH. Even if the user wrote in Portuguese, "
         "Spanish, or any other language, your ENTIRE response MUST be in ENGLISH. "
         "Section headers, explanations, verdicts — EVERYTHING in English.\n\n"

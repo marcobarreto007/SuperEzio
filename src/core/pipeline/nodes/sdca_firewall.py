@@ -72,14 +72,14 @@ def _build_candidate(state: dict[str, Any]) -> DecisionCandidate:
 
 
 async def node_sdca_firewall(state: dict[str, Any]) -> dict[str, Any]:
-    """Attach SDCA firewall evidence to ticker-analysis pipeline state."""
+    """Attach SDCA firewall evidence — runs for ALL routes (ghost tokens work on text)."""
 
     writer = get_stream_writer()
     run_id = state.get("run_id", "")
-    route = state.get("route", "general")
     ticker = state.get("ticker", "")
+    message = state.get("message", "")
 
-    if route != "ticker_analysis" or not ticker:
+    if not message:
         writer(
             {
                 "type": "PIPELINE_STEP",
