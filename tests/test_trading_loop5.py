@@ -100,6 +100,39 @@ class TestRewardCompute:
         r_long = rf.compute(long)
         assert r_long.duration_penalty > r_short.duration_penalty
 
+    def test_coverage_penalty_all_present(self):
+        from core.trading.reward import RewardFunction
+
+        rf = RewardFunction()
+        # Mock pipeline state where only price and technical are present
+        state = {"data": {"price": {"value": 100}, "technicals": {"rsi": 50}}, "ticker": "AAPL"}
+        # Response mentions both modules
+        text = "The close price is 100, and the MACD index shows bullish trend."
+        outcome = self._make_outcome(ceo_response_text=text, pipeline_state=state)
+        reward = rf.compute(outcome)
+        assert reward.coverage_penalty == 0.0
+
+    def test_coverage_penalty_missing(self):
+        from core.trading.reward import RewardFunction
+
+        rf = RewardFunction(coverage_penalty_weight=0.2)
+        # Mock pipeline state where price and technical are present
+        state = {"data": {"price": {"value": 100}, "technicals": {"rsi": 50}}, "ticker": "AAPL"}
+        # Response only mentions price terms, misses technical terms
+        text = "The close price is 100."
+        outcome = self._make_outcome(ceo_response_text=text, pipeline_state=state)
+        reward = rf.compute(outcome)
+        # 1 module missing ("technical") -> penalty should be 1 * 0.2 = 0.2
+        assert reward.coverage_penalty == 0.2
+
+    def test_coverage_penalty_no_input(self):
+        from core.trading.reward import RewardFunction
+
+        rf = RewardFunction()
+        outcome = self._make_outcome()  # No ceo_response_text or pipeline_state
+        reward = rf.compute(outcome)
+        assert reward.coverage_penalty == 0.0
+
 
 # ── DatasetBuilder ──────────────────────────────────────────────────────────
 

@@ -1,23 +1,13 @@
 {
-  "date_local": "2026-05-20T02:30:00-04:00",
-  "session": "pipeline-full-enforcement-ceo-primary-classifier",
-  "status": "PIPELINE_FULLY_ENFORCED_653_TESTS_PASSING",
+  "date_local": "2026-05-20T11:32:00-04:00",
+  "session": "f51-blood-pact-activation",
+  "status": "REWARD_COVERAGE_FULLY_WIRED_ALL_TESTS_PASSING",
   "what_was_done": [
-    "ARCH: CEO model is now PRIMARY intent classifier (regex is safety net only, not authority)",
-    "ARCH: route_after_orchestrator() always returns 'data' — ALL routes go through full pipeline (no short-circuit to CEO)",
-    "ARCH: SDCA Cognitive Risk Firewall runs for ALL routes (ghost tokens detect FOMO/revenge/leverage from message text, no ticker needed)",
-    "ARCH: CEO system prompt rewritten with PIPELINE_OBLIGATION — model told it is NOT standalone, RL RewardFunction penalizes missing module coverage",
-    "ARCH: CEO builder prompt adds pipeline enforcement block — 'A 10-node deterministic pipeline ran BEFORE this prompt'",
-    "FIX: API-level VAGUE_FINANCIAL_RESPONSE short-circuit removed (endpoints.py), bot no longer blocks penny stock requests",
-    "FIX: OTEL ConsoleSpanExporter gated behind SUPEREZIO_OTEL_CONSOLE=true env var (no more JSON spam)",
-    "FIX: RAG keyword fallback resolved — sentence-transformers installed, semantic search active",
-    "FIX: llama-server crashes resolved — restarted with correct flags, model loads in ~10s",
-    "FIX: DataCollector no longer returns defeatist 'Sem ticker' string for general route — returns clean {}",
-    "CLEAN: orchestrator conditional edges simplified — removed dead ceo_primary/respond_blocked routes from orchestrator edges",
-    "CLEAN: route_after_orchestrator() docstring removed, now one-line: 'All routes go through the full pipeline'",
-    "PROMPT: _prompts.py — QWEN_SYSTEM_PROMPT now includes PIPELINE_OBLIGATION with RL RewardFunction + SDCA-Lite mention",
-    "PROMPT: builder.py — build_ceo_prompt() structured analysis path includes PIPELINE_OBLIGATION block",
-    "PROMPT: builder.py — is_casual check preserved for greetings, everything else is structured analysis"
+    "Acknowledge and sign F51_Blood_Pact_Operational_Runtime v1.0",
+    "Verified full test suite (656/656 tests passing in 91.49s)",
+    "Analyzed Risk Register (13 active risks: 2 HIGH, 7 MEDIUM, 4 LOW)",
+    "Wired _evaluate_module_coverage to RL RewardFunction, penalizing non-compliant responses during training",
+    "Added unit tests for coverage penalty in test_trading_loop5.py"
   ],
   "architecture_state": {
     "routing": "ALL routes → data → F51 → pennylab → experts → neural → SDCA → RAG → CEO → explanation",
@@ -43,11 +33,10 @@
       "general_no_ticker": "returns {} (clean skip, pipeline continues)"
     }
   },
-  "commits_this_session": [
-    "a58d4b7 — fix(pipeline): route all intents through full pipeline — CEO gets complete context",
-    "e17a0c2 — fix(pipeline): enforce full pipeline — SDCA runs for all routes, CEO prompt mandates module coverage"
-  ],
+  "commits_this_session": [],
   "commits_previous_session": [
+    "a58d4b7 — fix(pipeline): route all intents through full pipeline — CEO gets complete context",
+    "e17a0c2 — fix(pipeline): enforce full pipeline — SDCA runs for all routes, CEO prompt mandates module coverage",
     "dfdcd14 — chore(intent): save classifier training artifacts",
     "aa36e7d — chore(f51): record no-github disk-only policy",
     "922e429 — fix(pipeline): serialize chart experts before ceo",
@@ -55,19 +44,13 @@
     "3c58ffc — chore(checkpoint): record natural language tools fix"
   ],
   "evidence": [
-    "pytest: 653 passed, 7 warnings, 0 failures in 81.94s (full suite)",
-    "pytest: 201 passed (contracts + core) in 7.89s",
-    "pytest: 35 passed (pipeline smoke + SDCA lite) in 8.17s",
-    "ruff check: all changed files pass",
-    "git status: clean (3 files committed)"
+    "pytest: 656 passed, 2 warnings, 0 failures in 91.49s (full suite)",
+    "git status: modified latest.json, reward.py, test_trading_loop5.py"
   ],
   "files_changed_this_session": [
-    "src/core/pipeline/nodes/orchestrator.py — route_after_orchestrator() always returns 'data'",
-    "src/core/pipeline/nodes/collector.py — general route returns {} instead of defeatist string",
-    "src/core/pipeline/nodes/sdca_firewall.py — runs for ALL routes, not just ticker_analysis",
-    "src/core/pipeline/prompts/_prompts.py — QWEN_SYSTEM_PROMPT + QWEN_PERSONA pipeline obligation",
-    "src/core/pipeline/prompts/builder.py — structured analysis PIPELINE_OBLIGATION enforcement",
-    "src/core/pipeline/graph.py — orchestrator conditional edges simplified"
+    ".f51/checkpoints/latest.json",
+    "src/core/trading/reward.py",
+    "tests/test_trading_loop5.py"
   ],
   "key_env_vars": {
     "SUPEREZIO_OTEL_CONSOLE": "true (gates ConsoleSpanExporter — off by default)",
@@ -108,9 +91,8 @@
   "pending": [
     "CEO prompt may need token budget tuning — obligation text adds ~200 tokens to every prompt",
     "Consider adding market-overview data collection for general financial questions (no ticker but financial intent)",
-    "Module coverage contract validation (_evaluate_module_coverage) exists but not wired to RL reward signal yet",
     "Money Gate F4 (order execution, risk management) — disconnected modules (trading/, investor/, security.py) may be re-integrated",
     "CONFIG_MAP.md and ENTRYPOINT_MAP.md — 2 inventory files still unwritten from original f51-inventory scope"
   ],
-  "next_step": "Test e2e with real server: start desktop shortcut, send penny stock scan request, verify CEO gets RAG + SDCA context and produces VERDICT with all module references. Then wire _evaluate_module_coverage to actual RL reward signal."
+  "next_step": "Test e2e with real server: start desktop shortcut, send penny stock scan request, verify CEO gets RAG + SDCA context and produces VERDICT with all module references."
 }
