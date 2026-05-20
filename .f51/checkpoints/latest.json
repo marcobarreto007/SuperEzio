@@ -1,66 +1,45 @@
 {
-  "date_local": "2026-05-20T14:05:06-04:00",
-  "session": "f51-tree-audit-cleanup-2026-05-20",
+  "date_local": "2026-05-20T17:20:31-04:00",
+  "session": "f51-frontend-modular-save-2026-05-20",
   "status": "completed",
   "what_was_done": [
-    "Saved the dirty working tree to local disk before further cleanup.",
-    "Audited tracked and ignored clutter around .agents, .claude skills, skills-lock.json, .playwright-cli, scratch, and local test caches.",
-    "Preserved tracked frontend-design skill registration files because .f51/SKILLS_CHECK.md documents them as registered project skill assets.",
-    "Removed ignored local caches and scratch scripts after backup: .pytest_cache, .ruff_cache, scratch, and .playwright-cli runtime log.",
-    "Removed stale tracked Playwright CLI snapshot .playwright-cli/page-2026-05-11T02-42-03-389Z.yml and added .playwright-cli/ to .gitignore.",
-    "Removed unreferenced untracked docs/prompts/GPT_UI_AUDIT.md after saving it into the local backup."
+    "Audited the current dirty tree before saving.",
+    "Identified a frontend-only split of frontend/index.html into separate CSS and JS files.",
+    "Verified every new frontend/js/*.js file with node --check.",
+    "Removed frontend/index.html.old after verifying it was a duplicate of the HEAD frontend/index.html blob.",
+    "Prepared the current frontend modularization for a local disk-only git commit."
   ],
   "evidence": {
-    "backup": "C:\\Users\\marco\\Desktop\\SuperEzio_LOCAL_BACKUPS\\pre-tree-audit-20260520-140340.zip",
     "commands": [
-      "git status --short -> dirty tree captured before cleanup",
-      "git diff --binary -> saved in local backup",
-      "git ls-files --others --exclude-standard -> saved in local backup",
-      "rg -n \"frontend-design|\\.agents|skills-lock\" .f51 .claude .agents skills-lock.json docs -g \"*\" -> skill registration found in .f51/SKILLS_CHECK.md",
-      "rg -n \"(?i)(api[_-]?key|secret|token|bearer|sk-[a-z0-9]|password|authorization)\" scratch -g \"*\" -> no hits",
-      "git log --oneline -- .playwright-cli/page-2026-05-11T02-42-03-389Z.yml -> initial import only",
-      "rg -n \"page-2026-05-11|\\.playwright-cli\" . -g \"!*node_modules*\" -g \"!*.log\" -> no active references",
-      "Get-ChildItem docs\\prompts -Recurse -> found only untracked GPT_UI_AUDIT.md prompt draft",
-      "python -m pytest tests\\contracts -q -> 167 passed, 2 warnings",
-      "python -m pytest tests\\test_runtime_smoke.py tests\\test_gateway.py tests\\test_components_data.py -q -> 76 passed",
-      "python -m pytest tests\\test_integration_runtime.py -q -> 7 passed",
-      "python -m ruff check targeted Python files -> passed",
-      "python -m ruff format --check targeted Python files -> passed",
-      "python -m ruff check .gitignore .f51 ... -> invalid command scope; Ruff tried to parse non-Python files"
+      "git status --short --untracked-files=all -> frontend modularization only before checkpoint update",
+      "git diff --stat -> frontend/index.html reduced from inline monolith to external CSS/JS shell",
+      "git rev-parse HEAD:frontend/index.html and git hash-object frontend/index.html.old -> both 52b440459216dee5d4f9bcd87a83dcc1377b28de",
+      "node --check frontend/js/*.js -> all new JS modules passed syntax checks",
+      "rg -n \"<style>|</style>|<script>\" frontend/index.html -> no inline style/script blocks found"
     ],
     "files_changed": [
-      ".gitignore",
-      ".f51/TASK_BOARD.md",
-      ".f51/RISK_REGISTER.md",
+      "frontend/index.html",
+      "frontend/css/*.css",
+      "frontend/js/*.js",
       ".f51/checkpoints/latest.json",
       "runtime/checkpoints/latest.json"
     ],
     "deleted_or_removed": [
-      ".playwright-cli/page-2026-05-11T02-42-03-389Z.yml",
-      ".pytest_cache/",
-      ".ruff_cache/",
-      "scratch/",
-      ".playwright-cli/",
-      "docs/prompts/"
+      "frontend/index.html.old"
     ]
   },
   "risks": [
     {
-      "severity": "low",
-      "description": "Deleted scratch/cache/prompt files are local operational artifacts, not product code.",
-      "mitigation": "They were backed up to SuperEzio_LOCAL_BACKUPS before deletion."
+      "severity": "medium",
+      "description": "The frontend change is a large modularization and browser behavior was not fully playtested in this save step.",
+      "mitigation": "Run a browser smoke pass against the local API before product delivery."
     },
     {
       "severity": "low",
-      "description": ".agents and frontend-design skill registration files remain in the tree.",
-      "mitigation": "Preserved because they are tracked and documented by .f51/SKILLS_CHECK.md; remove only in a dedicated skill de-registration pass."
-    },
-    {
-      "severity": "low",
-      "description": "A Ruff command was attempted with .gitignore/.f51 in scope and failed because those are not Python files.",
-      "mitigation": "Reran Ruff with the correct Python targets and it passed."
+      "description": "frontend/index.html.old was removed from disk.",
+      "mitigation": "It matched the committed HEAD blob, so the original can be recovered from git."
     }
   ],
-  "next_step": "Next safest patch: reconcile Makefile install target with pyproject.toml / requirements-ci.txt.",
+  "next_step": "Run a browser smoke test for the modularized frontend against the live API.",
   "owner": "Codex"
 }

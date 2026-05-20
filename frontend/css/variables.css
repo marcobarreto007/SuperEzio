@@ -1,0 +1,48 @@
+:root {
+  /* Core palette — Dark Terminal */
+  --bg: #0a0e0b;
+  --surface: #111510;
+  --surface-2: #1a1f1c;
+  --surface-3: #222822;
+  --line: #2a3028;
+  --line-light: #3a4038;
+
+  /* Text */
+  --ink: #e0e8dc;
+  --ink-secondary: #8a9486;
+  --muted: #5d6b5a;
+
+  /* Accent: Green (bullish) */
+  --green: #00c853;
+  --green-bg: #0a2e16;
+  --green-dim: #1a4a2a;
+
+  /* Accent: Red (bearish) */
+  --red: #ff1744;
+  --red-bg: #2e0a0a;
+  --red-dim: #4a1a1a;
+
+  /* Accent: Amber (warning) */
+  --amber: #ff9100;
+  --amber-bg: #2e1e0a;
+
+  /* Accent: Blue (info/neutral) */
+  --blue: #448aff;
+  --blue-bg: #0a1a2e;
+
+  /* Canvas */
+  --chart-bg: #0d1210;
+  --chart-grid: #1a2a1e;
+
+  /* Shadows */
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.6);
+
+  /* Radii */
+  --radius: 8px;
+  --radius-sm: 4px;
+
+  /* Transitions */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration: 0.2s;
+}

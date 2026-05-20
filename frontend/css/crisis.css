@@ -1,0 +1,28 @@
+/* Crisis Radar */
+.crisis-regime-badge {
+  display: inline-flex; border-radius: 99px; padding: 3px 10px; font-size: 10px;
+  font-weight: 800; text-transform: uppercase; margin-bottom: 8px;
+}
+
+.crisis-bar {
+  display: grid; grid-template-columns: 72px 1fr 32px; align-items: center;
+  gap: 6px; margin-bottom: 8px; font-size: 10px;
+}
+
+.crisis-bar span { color: var(--muted); font-weight: 700; }
+.crisis-bar-track { height: 7px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.crisis-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--green), var(--amber), var(--red)); transition: width 0.4s; }
+.crisis-bar strong { font-family: "JetBrains Mono", monospace; font-size: 10px; text-align: right; }
+
+.crisis-alerts { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.crisis-alert { border-radius: 99px; padding: 2px 8px; font-size: 10px; font-weight: 700; color: #fff; }
+
+.crisis-models { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+.crisis-model {
+  padding: 4px 6px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase;
+  display: flex; flex-direction: column;
+}
+.crisis-model strong { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--ink); }
+
+@media (max-width: 768px) { .crisis-models { grid-template-columns: repeat(2, 1fr); } }

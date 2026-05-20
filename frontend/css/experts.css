@@ -1,0 +1,17 @@
+/* Experts grid */
+.exp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+.exp-tile {
+  display: flex; align-items: center; gap: 4px; padding: 5px 6px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  font-size: 10px; font-weight: 600; color: var(--ink);
+}
+.exp-tile--ok { border-color: var(--green-dim); }
+.exp-tile--fail { border-color: var(--red-dim); }
+.exp-tile--running { border-color: var(--amber); animation: pulse-border 1.5s infinite; }
+.exp-tile--skip { opacity: 0.4; }
+.exp-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line); flex-shrink: 0; }
+.exp-dot--ok { background: var(--green); }
+.exp-dot--fail { background: var(--red); }
+.exp-dot--running { background: var(--amber); }
+
+@media (max-width: 768px) { .exp-grid { grid-template-columns: repeat(2, 1fr); } }

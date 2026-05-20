@@ -1,0 +1,52 @@
+.card {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.card-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-secondary);
+  transition: background var(--duration) var(--ease);
+}
+
+.card-hdr:hover { background: rgba(255,255,255,0.03); }
+.card-hdr .card-icon { width: 16px; height: 16px; }
+
+.card-badge {
+  margin-left: auto;
+  border-radius: 99px;
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.card-badge--pass { background: var(--green); color: var(--bg); }
+.card-badge--fail { background: var(--red); color: #fff; }
+.card-badge--warn { background: var(--amber); color: var(--bg); }
+.card-badge--info { background: var(--blue); color: #fff; }
+.card-badge--neutral { background: var(--line); color: var(--ink); }
+
+.card-body {
+  padding: 0 12px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.card.open .card-body {
+  max-height: 800px;
+  padding: 8px 12px 12px;
+  overflow-y: auto;
+}

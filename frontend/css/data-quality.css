@@ -1,0 +1,16 @@
+/* Data Quality 10-source grid */
+.dq-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.dq-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 4px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase;
+}
+.dq-tile--ok { border-color: var(--green-dim); background: var(--green-bg); }
+.dq-tile--partial { border-color: #4a3a1a; background: var(--amber-bg); }
+.dq-tile--error { border-color: var(--red-dim); background: var(--red-bg); }
+.dq-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+.dq-dot--ok { background: var(--green); }
+.dq-dot--partial { background: var(--amber); }
+.dq-dot--error { background: var(--red); }
+
+@media (max-width: 768px) { .dq-grid { grid-template-columns: repeat(3, 1fr); } }
