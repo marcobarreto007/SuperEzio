@@ -49,6 +49,7 @@ MCP permitido somente se cumprir pelo menos uma função:
 ## Guardrails
 
 - Não alterar código de produto durante bootstrap operacional.
+- Durante bootstrap operacional, não alterar `apps/`, `src/`, `packages/`, `core/` ou `pipelines/`.
 - Não apagar, mover, renomear arquivos sem gate explícito.
 - Não instalar dependências sem autorização.
 

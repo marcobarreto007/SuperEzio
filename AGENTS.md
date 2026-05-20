@@ -34,7 +34,7 @@ Executar tarefas com previsibilidade, checkpoints obrigatórios e foco em entreg
 ## Regras de execução
 
 1. Sem feature antes de inventário, contratos, runtime e testes.
-2. Não tocar código de produto em tarefas de bootstrap operacional.
+2. Não tocar código de produto em tarefas de bootstrap operacional, especialmente em `apps/`, `src/`, `packages/`, `core/` e `pipelines/`.
 3. Executar em passos pequenos e checkpoint por etapa.
 4. Declarar explicitamente bloqueios e dependências externas.
 5. Toda recomendação deve apontar próximo passo executável.

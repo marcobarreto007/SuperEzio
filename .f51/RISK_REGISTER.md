@@ -151,6 +151,7 @@
 
 | ID | Descrição | Data |
 |----|-----------|------|
+| R0-bootstrap-layer-drift | BOOTSTRAP_REPORT, checkpoint latest e skeleton das skills F51 revalidados | 2026-05-20 |
 | R0-orphan-scripts | Scripts órfãos (`financial_quality_benchmark.py`, `gate1_download_test.sh`) | 2026-05-19 |
 | R0-env-vars | 6 env vars órfãs + vars ausentes no `.env.example` | 2026-05-19 |
 | R0-model-refs | 22+ referências ao modelo antigo `qwen36-35b-f51` | 2026-05-20 |
