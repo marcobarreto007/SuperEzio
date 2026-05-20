@@ -1,23 +1,66 @@
 {
-  "date_local": "2026-05-20T15:30:00-04:00",
-  "session": "f51-frontend-design-registration-2026-05-20",
+  "date_local": "2026-05-20T14:05:06-04:00",
+  "session": "f51-tree-audit-cleanup-2026-05-20",
   "status": "completed",
   "what_was_done": [
-    "Installed frontend-design skill from Anthropic via npx skills add",
-    "Registered frontend-design in .f51/SKILLS_CHECK.md as external skill",
-    "Updated checkpoint with registration evidence"
+    "Saved the dirty working tree to local disk before further cleanup.",
+    "Audited tracked and ignored clutter around .agents, .claude skills, skills-lock.json, .playwright-cli, scratch, and local test caches.",
+    "Preserved tracked frontend-design skill registration files because .f51/SKILLS_CHECK.md documents them as registered project skill assets.",
+    "Removed ignored local caches and scratch scripts after backup: .pytest_cache, .ruff_cache, scratch, and .playwright-cli runtime log.",
+    "Removed stale tracked Playwright CLI snapshot .playwright-cli/page-2026-05-11T02-42-03-389Z.yml and added .playwright-cli/ to .gitignore.",
+    "Removed unreferenced untracked docs/prompts/GPT_UI_AUDIT.md after saving it into the local backup."
   ],
   "evidence": {
-    "skill_path": ".agents/skills/frontend-design/SKILL.md",
-    "install_method": "npx skills add https://github.com/anthropics/claude-code --skill frontend-design",
-    "compatibility": "Universal: Antigravity, Cline, Codex, Cursor, Gemini CLI +8 more",
-    "security": "Safe / 0 alerts / Low Risk",
-    "registered_in": ".f51/SKILLS_CHECK.md"
+    "backup": "C:\\Users\\marco\\Desktop\\SuperEzio_LOCAL_BACKUPS\\pre-tree-audit-20260520-140340.zip",
+    "commands": [
+      "git status --short -> dirty tree captured before cleanup",
+      "git diff --binary -> saved in local backup",
+      "git ls-files --others --exclude-standard -> saved in local backup",
+      "rg -n \"frontend-design|\\.agents|skills-lock\" .f51 .claude .agents skills-lock.json docs -g \"*\" -> skill registration found in .f51/SKILLS_CHECK.md",
+      "rg -n \"(?i)(api[_-]?key|secret|token|bearer|sk-[a-z0-9]|password|authorization)\" scratch -g \"*\" -> no hits",
+      "git log --oneline -- .playwright-cli/page-2026-05-11T02-42-03-389Z.yml -> initial import only",
+      "rg -n \"page-2026-05-11|\\.playwright-cli\" . -g \"!*node_modules*\" -g \"!*.log\" -> no active references",
+      "Get-ChildItem docs\\prompts -Recurse -> found only untracked GPT_UI_AUDIT.md prompt draft",
+      "python -m pytest tests\\contracts -q -> 167 passed, 2 warnings",
+      "python -m pytest tests\\test_runtime_smoke.py tests\\test_gateway.py tests\\test_components_data.py -q -> 76 passed",
+      "python -m pytest tests\\test_integration_runtime.py -q -> 7 passed",
+      "python -m ruff check targeted Python files -> passed",
+      "python -m ruff format --check targeted Python files -> passed",
+      "python -m ruff check .gitignore .f51 ... -> invalid command scope; Ruff tried to parse non-Python files"
+    ],
+    "files_changed": [
+      ".gitignore",
+      ".f51/TASK_BOARD.md",
+      ".f51/RISK_REGISTER.md",
+      ".f51/checkpoints/latest.json",
+      "runtime/checkpoints/latest.json"
+    ],
+    "deleted_or_removed": [
+      ".playwright-cli/page-2026-05-11T02-42-03-389Z.yml",
+      ".pytest_cache/",
+      ".ruff_cache/",
+      "scratch/",
+      ".playwright-cli/",
+      "docs/prompts/"
+    ]
   },
-  "files_changed": [
-    ".f51/SKILLS_CHECK.md"
+  "risks": [
+    {
+      "severity": "low",
+      "description": "Deleted scratch/cache/prompt files are local operational artifacts, not product code.",
+      "mitigation": "They were backed up to SuperEzio_LOCAL_BACKUPS before deletion."
+    },
+    {
+      "severity": "low",
+      "description": ".agents and frontend-design skill registration files remain in the tree.",
+      "mitigation": "Preserved because they are tracked and documented by .f51/SKILLS_CHECK.md; remove only in a dedicated skill de-registration pass."
+    },
+    {
+      "severity": "low",
+      "description": "A Ruff command was attempted with .gitignore/.f51 in scope and failed because those are not Python files.",
+      "mitigation": "Reran Ruff with the correct Python targets and it passed."
+    }
   ],
-  "risks": [],
-  "next_step": "Usar /frontend-design para construir interfaces quando projeto tiver frontend",
-  "owner": "Mike"
+  "next_step": "Next safest patch: reconcile Makefile install target with pyproject.toml / requirements-ci.txt.",
+  "owner": "Codex"
 }

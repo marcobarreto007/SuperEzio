@@ -3,8 +3,6 @@
 ## Backlog
 
 - [ ] Reconcile Makefile install target with `pyproject.toml` / `requirements-ci.txt`.
-- [ ] Audit `.f51/tmp/` third-party source trees before any cleanup.
-- [ ] Validate whether `config/model_manifest.json` max token metadata should remain 16384 or match runtime default 8192.
 
 ## In Progress
 
@@ -19,6 +17,9 @@
 - [x] 2026-05-20 - `/f51-contracts`: added live `agent_server` contract, aligned runtime provider config, and added official runtime contract tests.
 - [x] 2026-05-20 - `/f51-runtime`: updated official runbook, logs/checkpoint definition, runtime config, and checkpoint contract.
 - [x] 2026-05-20 - `/f51-tests`: contracts 167 passed, runtime smoke 20 passed, live integration 7 passed, ruff check/format passed.
+- [x] 2026-05-20 - Arqueologist cleanup: renamed `primary_external` to `local_orchestrator`, reconciled model manifest token metadata, and preserved a legacy alias.
+- [x] 2026-05-20 - Arqueologist cleanup: archived legacy Gemma training scripts and removed duplicated `.f51/tmp` build trees/logs.
+- [x] 2026-05-20 - Tree cleanup: saved local backup, removed ignored caches/scratch, removed stale tracked Playwright snapshot, removed unreferenced untracked prompt draft, and preserved registered frontend-design skill files.
 - [x] 2026-05-20 - Operational F51 layer revalidation, 8 skill standardization, checkpoint/report update.
 - [x] Phase 3: f51-tests - smoke (20), contract (158), integration (5 pass, 2 skip with 500). 183/185 passing.
 - [x] Phase 2: f51-runtime - runtime.yml updated, RUNBOOK.md precise, runtime/checkpoints/latest.json created.

@@ -46,7 +46,7 @@ models:
 
   orchestrator:
     name: SuperEzio CEO+Intent Merged (same local model)
-    provider_name: primary_external
+    provider_name: local_orchestrator
     path: http://127.0.0.1:8082/v1
     model_id: superezio-ceo-intent-merged
     backend: openai_compatible

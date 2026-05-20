@@ -1,6 +1,6 @@
 # SuperEzio v4.0.0
 
-**AI Financial Analysis Platform** — Plataforma de analise financeira com experts deterministicos, motor de veredito F51, CEO local Gemma-4-26B e gateway FastAPI.
+**AI Financial Analysis Platform** — Plataforma de analise financeira com experts deterministicos, motor de veredito F51, CEO local Qwen3.6-35B CEO+Intent Merged e gateway FastAPI.
 
 ---
 
@@ -16,7 +16,7 @@ cp .env.example .env
 # Para modo local-only, deixe chaves cloud vazias.
 
 # 3. CEO Server (modelo local)
-python scripts/server.py --model C:\Users\marco\models\gemma-4-26b-abliterated-Q4_K_M.gguf
+powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082
 # → http://127.0.0.1:8082/v1 (OpenAI-compatible)
 
 # 4. API Server
@@ -37,11 +37,11 @@ superezio/
 ├── src/
 │   ├── core/
 │   │   ├── pipeline/         # Pipeline v4 (LangGraph, nodes puros, model-agnostic)
-│   │   ├── model_serving/    # ModelGateway multi-provider (cascade: ceo → deepseek)
+│   │   ├── model_serving/    # ModelGateway: local_orchestrator + ceo + deepseek experts
 │   │   ├── rag/              # ForensicRAG engine
 │   │   ├── config/           # UniversalConfig + secrets
 │   │   ├── data_collector/   # ProfessionalCollector multi-fonte
-│   │   ├── mathcore/         # Fonte unica: formulas canonicas
+│   │   ├── math/             # Fonte unica: formulas canonicas
 │   │   ├── investor/         # Family Investor Committee
 │   │   ├── observability/    # Logs, metricas, event hub
 │   │   └── paths.py
@@ -52,8 +52,8 @@ superezio/
 │   ├── agent_server/         # FastAPI endpoints + SSE streaming
 │   ├── data/                 # Providers: yfinance, Reddit, Alpha Vantage, BOC...
 │   └── tools/                # Registry de tools para LangGraph
-├── tests/                    # 344 testes deterministicos
-├── scripts/                  # server.py (llama-cpp CEO), eval, benchmark
+├── tests/                    # smoke, contract, integration
+├── scripts/                  # serve_ceo_llamacpp.ps1, eval, dataset/runtime tools
 ├── frontend/                 # UI ChatGPT-style (HTML+CSS+JS inline)
 └── pyproject.toml
 ```
@@ -67,7 +67,7 @@ Usuario → agent_server (FastAPI)
   → Experts fan-out (PennyLab + CrisisMath + Quantum)
   → F51 Engine (grafo → veredito deterministico)
   → RAG Forensics (contexto historico)
-  → CEO Gemma-4-26B (consolida conflitos, output final)
+  → CEO Qwen3.6-35B CEO+Intent Merged (consolida conflitos, output final)
   → Explanation (NDJSON streaming)
 ```
 
@@ -75,16 +75,16 @@ Usuario → agent_server (FastAPI)
 
 ## Modelo CEO
 
-**Gemma-4-26B-A4B-abliterated Q4_K_M GGUF** (~16.8 GB) via llama-cpp-python.
+**SuperEzio CEO+Intent Merged Qwen3.6-35B-A3B Q4_K_M GGUF** via llama.cpp `llama-server`.
 
 - 100% local, sem custo de API, sem censura
 - OpenAI-compatible em `http://127.0.0.1:8082/v1`
-- Requer GGUF baixado de huggingface.co (bartowski/gemma-4-26b-abliterated-GGUF)
-- n_ctx=8192, n_gpu_layers configurável via env
+- Modelo esperado: `models/superezio-ceo-intent-merged.Q4_K_M.gguf`
+- n_ctx=8192, GPU layers configuraveis no script PowerShell
 
 Para subir o CEO server:
 ```bash
-python scripts/server.py --model <caminho-do-gguf>
+powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082
 ```
 
 ---
@@ -93,7 +93,7 @@ python scripts/server.py --model <caminho-do-gguf>
 
 ```bash
 # CEO Server (modelo local)
-python scripts/server.py
+powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082
 
 # API Server
 python -m agent_server.main
@@ -125,9 +125,10 @@ Todas documentadas em [`.env.example`](.env.example). Minimo para modo local-onl
 
 ## Estado Operacional
 
-- `python -m pytest tests/ -q`: 344 passed, 2 failed (timeout flaky).
-- `python -m ruff check src tests`: clean (exceto E402 pre-existente em main.py).
-- Gate E2E: `.f51/RELEASE_READINESS.md`.
+- `python -m pytest tests/contracts -q`: 167 passed, 2 warnings.
+- `python -m pytest tests/test_runtime_smoke.py -q`: 20 passed.
+- `python -m pytest tests/test_integration_runtime.py -q`: 7 passed when CEO/API are live.
+- Gate runtime: `docs/runbooks/RUNBOOK.md` and `runtime/checkpoints/latest.json`.
 
 ---
 
@@ -138,7 +139,7 @@ Todas documentadas em [`.env.example`](.env.example). Minimo para modo local-onl
 | API Server | FastAPI + uvicorn + SSE |
 | Pipeline | LangGraph 1.0.5 |
 | Validacao | Pydantic v2 |
-| CEO Model | Gemma-4-26B GGUF via llama-cpp-python |
+| CEO Model | SuperEzio CEO+Intent Merged Qwen3.6-35B-A3B GGUF via llama.cpp |
 | Fine-tuning | PyTorch + PEFT/LoRA + transformers |
 | Dados | yfinance, Reddit PRAW, httpx |
 | Testes | pytest + pytest-asyncio + pytest-cov |

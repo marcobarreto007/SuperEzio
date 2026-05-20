@@ -1,14 +1,10 @@
 {
   "project": "SuperEzio / F51 Unified Core",
   "version": "4.0.0",
-  "date_local": "2026-05-20T14:03:30-04:00",
-  "session": "f51-contracts-runtime-tests-2026-05-20",
+  "date_local": "2026-05-20T14:05:06-04:00",
+  "session": "f51-tree-audit-cleanup-2026-05-20",
   "status": "COMPLETE",
-  "stages_completed": [
-    "/f51-contracts",
-    "/f51-runtime",
-    "/f51-tests"
-  ],
+  "stage": "tree-audit-cleanup",
   "operational_contract": {
     "agent_server_contract": ".f51/contracts/agent-server.contract.md",
     "runtime_config": "config/runtime.yml",
@@ -31,42 +27,48 @@
     "health_api_details": "http://127.0.0.1:8002/health/details",
     "logs_dir": "runtime/logs",
     "runtime_checkpoints_dir": "runtime/checkpoints",
-    "primary_provider_route": "primary_external -> http://127.0.0.1:8082/v1",
+    "primary_provider_route": "local_orchestrator -> http://127.0.0.1:8082/v1",
     "expert_provider_route": "deepseek -> https://api.deepseek.com"
   },
   "what_was_done": [
-    "Defined live module contracts from the current inventory and added the missing agent_server public API contract.",
-    "Added official runtime contract tests that cross-check real files, imports, routes, provider factory output, launcher check mode, runbook content, and checkpoint schema.",
-    "Updated config/runtime.yml to document local CEO, local primary provider route, DeepSeek expert route, logs directory, healthchecks, and launch order.",
-    "Rewrote docs/runbooks/RUNBOOK.md with official entrypoints, healthchecks, logs, checkpoints, troubleshooting, and validation matrix.",
-    "Ran smoke, contract, integration, lint, format, JSON, diff, and direct health validation."
+    "Saved the current dirty tree to C:\\Users\\marco\\Desktop\\SuperEzio_LOCAL_BACKUPS\\pre-tree-audit-20260520-140340.zip before cleanup.",
+    "Audited tree clutter and classified skill registration files, Playwright snapshot files, scratch scripts, and local caches.",
+    "Preserved tracked frontend-design skill registration assets because they are documented in .f51/SKILLS_CHECK.md.",
+    "Removed ignored local caches and scratch directories after backup.",
+    "Removed stale tracked Playwright CLI snapshot and added .playwright-cli/ to .gitignore.",
+    "Removed unreferenced untracked docs/prompts/GPT_UI_AUDIT.md after saving it into the local backup."
   ],
   "files_changed": [
-    ".f51/contracts/agent-server.contract.md",
+    ".gitignore",
     ".f51/RISK_REGISTER.md",
     ".f51/TASK_BOARD.md",
-    "config/runtime.yml",
-    "docs/runbooks/RUNBOOK.md",
-    "runtime/checkpoints/latest.json",
-    "tests/contracts/test_contract_runtime_official.py"
+    ".f51/checkpoints/latest.json",
+    "runtime/checkpoints/latest.json"
+  ],
+  "deleted_or_removed": [
+    ".playwright-cli/page-2026-05-11T02-42-03-389Z.yml",
+    ".pytest_cache/",
+    ".ruff_cache/",
+    "scratch/",
+    ".playwright-cli/",
+    "docs/prompts/"
   ],
   "evidence": [
+    "Local backup created at C:\\Users\\marco\\Desktop\\SuperEzio_LOCAL_BACKUPS\\pre-tree-audit-20260520-140340.zip",
+    "rg secret scan over scratch returned no hits before deletion",
+    "frontend-design references confirmed in .f51/SKILLS_CHECK.md; tracked skill files preserved",
+    "docs/prompts/GPT_UI_AUDIT.md was untracked and unreferenced; backed up before deletion",
     "python -m pytest tests\\contracts -q -> 167 passed, 2 warnings",
-    "python -m pytest tests\\test_runtime_smoke.py -q -> 20 passed",
-    "python -m pytest tests\\test_integration_runtime.py -q -> 7 passed in 52.75s",
-    "python -m ruff check tests\\contracts\\test_contract_runtime_official.py tests\\test_runtime_smoke.py tests\\test_integration_runtime.py -> passed",
-    "python -m ruff format --check tests\\contracts\\test_contract_runtime_official.py tests\\test_runtime_smoke.py tests\\test_integration_runtime.py -> 3 files already formatted",
-    "python -m json.tool runtime\\checkpoints\\latest.json, .f51\\GITHUB_POLICY.json, config\\model_manifest.json -> passed",
-    "git diff --check -> passed with CRLF normalization warning only for .f51/RISK_REGISTER.md",
-    "curl CEO /health -> {\"status\":\"ok\"}",
-    "curl CEO /v1/models -> returned superezio-ceo-intent-merged.Q4_K_M.gguf",
-    "curl API /health -> {\"status\":\"ok\",\"agent\":\"generic_agent\",\"version\":\"3.0.0\"}",
-    "curl API /health/details -> status ok, GPU available, CEO reachable"
+    "python -m pytest tests\\test_runtime_smoke.py tests\\test_gateway.py tests\\test_components_data.py -q -> 76 passed",
+    "python -m pytest tests\\test_integration_runtime.py -q -> 7 passed",
+    "python -m ruff check targeted Python files -> passed",
+    "python -m ruff format --check targeted Python files -> passed"
   ],
   "risks": [
-    "Provider label primary_external is operationally confusing because it currently routes to the local CEO endpoint.",
-    "config/model_manifest.json still records ceo max_tokens=16384 while runtime/provider/node default is 8192; left unchanged because changing token budget policy is outside this no-feature pass.",
-    "Existing runtime/logs files are historical artifacts; use them only after reproducing current failures."
+    "Deleted scratch/cache/prompt artifacts are recoverable from the local backup zip.",
+    "Tracked frontend-design skill files remain because removing them would de-register a documented local skill.",
+    "A broad Ruff command including .gitignore/.f51 was invalid; the corrected Python-targeted Ruff gate passed."
   ],
-  "next_step": "Next safest patch: reconcile runtime naming/token-budget metadata only, without product behavior changes."
+  "next_step": "Next safest patch: reconcile Makefile install target with pyproject.toml / requirements-ci.txt.",
+  "owner": "Codex"
 }

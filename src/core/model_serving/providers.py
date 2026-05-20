@@ -14,13 +14,13 @@ from ..config.schema import GatewayConfig
 if TYPE_CHECKING:
     from ..config import UniversalConfig
 
-# Provider names (canonical)
-PRIMARY_PROVIDER_NAME = "primary_external"
-PRIMARY_MODEL_ID = "deepseek-chat"
-DEEPSEEK_PROVIDER_NAME = "deepseek"
-
 CEO_PROVIDER_NAME = "ceo"
 CEO_MODEL_ID = "superezio-ceo-intent-merged"
+PRIMARY_PROVIDER_NAME = "local_orchestrator"
+PRIMARY_PROVIDER_LEGACY_NAMES = {"primary_external"}
+PRIMARY_MODEL_ID = CEO_MODEL_ID
+DEEPSEEK_PROVIDER_NAME = "deepseek"
+DEEPSEEK_MODEL_ID = "deepseek-v4-pro"
 
 
 @dataclass
@@ -73,7 +73,8 @@ def build_default_providers(
         os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", ""),
     )
 
-    # Primary external provider for orchestrator + CEO.
+    # Local orchestrator provider. The old "primary_external" name is kept
+    # only as a gateway alias; the canonical runtime route is local.
     providers.append(
         ModelProvider(
             name=PRIMARY_PROVIDER_NAME,
@@ -81,8 +82,10 @@ def build_default_providers(
             api_key=primary_api_key,
             priority=-400,
             model=primary_model,
-            is_local=False,
-            backend="cloud",
+            max_tokens=orchestrator_config.max_tokens if orchestrator_config else 2048,
+            temperature=orchestrator_config.temperature if orchestrator_config else 0.7,
+            is_local=orchestrator_config.is_local if orchestrator_config else False,
+            backend=orchestrator_config.backend if orchestrator_config else "cloud",
         )
     )
 
@@ -91,7 +94,11 @@ def build_default_providers(
     # routing expert traffic to the local CEO endpoint.
     deepseek_key = os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", primary_api_key)
     deepseek_base_url = os.getenv("SUPEREZIO_DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-    deepseek_model = os.getenv("SUPEREZIO_DEEPSEEK_MODEL", PRIMARY_MODEL_ID)
+    experts_config = config.models.get("experts")
+    deepseek_model = os.getenv(
+        "SUPEREZIO_DEEPSEEK_MODEL",
+        experts_config.model_id if experts_config else DEEPSEEK_MODEL_ID,
+    )
     providers.append(
         ModelProvider(
             name=DEEPSEEK_PROVIDER_NAME,

@@ -34,6 +34,7 @@ node_modules/
 .mypy_cache/
 .cache/
 .autosave/
+.playwright-cli/
 
 # Models (massive GGUF / safetensors files)
 /models/

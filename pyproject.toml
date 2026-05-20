@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta:__legacy__"
 [project]
 name = "superezio"
 version = "4.0.0"
-description = "SuperEzio — AI Financial Analysis Platform (CEO: Gemma-4-26B-A4B-abliterated)"
+description = "SuperEzio — AI Financial Analysis Platform (CEO: SuperEzio CEO+Intent Merged Qwen3.6-35B-A3B)"
 requires-python = ">=3.11"
 dependencies = [
     # ── Core runtime ──

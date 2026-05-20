@@ -119,7 +119,9 @@ def test_provider_factory_keeps_ceo_local_only(monkeypatch):
     assert by_name[CEO_PROVIDER_NAME].backend == "openai_compatible"
     assert by_name[CEO_PROVIDER_NAME].base_url == "http://127.0.0.1:8082/v1"
     assert by_name[CEO_PROVIDER_NAME].model == CEO_MODEL_ID
-    assert by_name[PRIMARY_PROVIDER_NAME].is_local is False
+    assert PRIMARY_PROVIDER_NAME == "local_orchestrator"
+    assert by_name[PRIMARY_PROVIDER_NAME].is_local is True
+    assert by_name[PRIMARY_PROVIDER_NAME].backend == "openai_compatible"
     assert by_name[PRIMARY_PROVIDER_NAME].base_url == "http://127.0.0.1:8082/v1"
     assert by_name[PRIMARY_PROVIDER_NAME].model == CEO_MODEL_ID
 
@@ -164,7 +166,7 @@ def test_runbook_documents_official_runtime_commands():
         "powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082" in text
     )
     assert "python -m agent_server.main" in text
-    assert "primary_external" in text
+    assert "local_orchestrator" in text
     assert "https://api.deepseek.com" in text
     assert "http://127.0.0.1:8082/health" in text
     assert "http://127.0.0.1:8082/v1/models" in text

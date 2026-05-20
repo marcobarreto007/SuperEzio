@@ -190,13 +190,23 @@ class TestApplyDeepseekOptions:
         assert "temperature" not in kwargs  # removed when thinking enabled
         assert "reasoning_effort" in kwargs
 
-    def test_primary_external_gets_deepseek_options(self, monkeypatch):
+    def test_local_orchestrator_gets_deepseek_options_when_configured_for_deepseek(
+        self, monkeypatch
+    ):
         monkeypatch.setenv("SUPEREZIO_DEEPSEEK_THINKING", "disabled")
         p = _provider(PRIMARY_PROVIDER_NAME, base_url="https://api.deepseek.com")
         p.model = "deepseek-v4-pro"
         kwargs = {}
         ModelGateway._apply_deepseek_options(p, kwargs)
         assert "extra_body" in kwargs
+
+    def test_legacy_primary_external_alias(self):
+        gw = _gateway(
+            _provider(PRIMARY_PROVIDER_NAME, priority=-400),
+            _provider(DEEPSEEK_PROVIDER_NAME, priority=-300),
+        )
+        result = gw._providers_for_request("primary_external")
+        assert result[0].name == PRIMARY_PROVIDER_NAME
 
     def test_non_deepseek_model_skipped(self):
         p = _provider(DEEPSEEK_PROVIDER_NAME, base_url="https://api.deepseek.com")

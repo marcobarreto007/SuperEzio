@@ -65,8 +65,8 @@ The document is useful as a target architecture, not as a true production descri
 
 Concrete drift:
 
-- `pyproject.toml` still describes CEO as `Gemma-4-26B-A4B-abliterated`.
-- `scripts/finetune_gemma_sft.py`, `scripts/vastai_setup_gemma.sh`, and `scripts/generate_system_knowledge_sft.py` still contain old Gemma runtime claims.
+- `pyproject.toml` now describes the current Qwen CEO+Intent runtime.
+- legacy Gemma training scripts have been moved out of the active `scripts/` runtime surface; `scripts/generate_system_knowledge_sft.py` now uses the current Qwen CEO+Intent runtime wording.
 - `.f51/RISK_REGISTER.md` still lists stale risks already partly fixed.
 
 ### F5 - Runtime Is Duplicated Across Launch Paths
@@ -120,9 +120,8 @@ No sale until there is an explicit key rotation and secret-handling plan for dem
 
 | Area | Finding | Action |
 |---|---|---|
-| `scripts/finetune_gemma_sft.py` | Legacy Gemma training path | Archive or mark deprecated |
-| `scripts/vastai_setup_gemma.sh` | Legacy Gemma setup | Archive or mark deprecated |
-| `scripts/generate_system_knowledge_sft.py` | Emits old Gemma CEO claims | Update before any generated dataset/demo |
+| `archive/experimental/training/legacy_gemma/` | Legacy Gemma training path | Keep archived; not current runtime |
+| `scripts/generate_system_knowledge_sft.py` | System knowledge generator | Keep current Qwen CEO+Intent wording before generating datasets |
 | `src/experts/technical_neural/` | Functional but not default runtime path | Promote or explicitly label experimental |
 | `.f51/cache/collector/*.json` | Tracked cache despite ignore rule | Untrack or move to runtime-only storage |
 | `docs/architecture/archives/` | Old Qwen/Gemma claims | Keep archived, never use as current truth |

@@ -80,9 +80,48 @@
 - Evidence: Mitigated in `/f51-tests`; `tests/test_integration_runtime.py` passed 7 live tests against CEO/API on 2026-05-20.
 - Mitigation: Keep this risk as a watch item because future runs still need live health proof, not only open ports.
 
-### RT-R3 - Runtime provider naming is misleading [LOW]
+### RT-R3 - Legacy provider alias preserved [LOW]
 
 - Classification: `runtime`
-- Risk: Provider name `primary_external` currently routes to the local CEO endpoint in the official runtime, while `deepseek` remains the cloud expert provider.
-- Evidence: Direct `/health/details` showed `primary_external` base URL as `http://127.0.0.1:8082/v1`; `config/runtime.yml` and runbook now document this instead of hiding it.
-- Mitigation: Rename/refactor provider labels only in a separate product/config cleanup pass; do not mix with contract/runtime/test hardening.
+- Risk: Old callers may still request `primary_external`.
+- Evidence: Runtime provider was renamed to `local_orchestrator`; `ModelGateway` maps the legacy alias to the new canonical name.
+- Mitigation: Keep alias until historical tests/tools stop using the old name.
+
+## 2026-05-20 Arqueologist Cleanup
+
+### ARC-R1 - Archived Gemma scripts are historical only [LOW]
+
+- Classification: `legacy`
+- Risk: Legacy Gemma training scripts still contain old Gemma paths inside archived instructions.
+- Evidence: `scripts/finetune_gemma_sft.py` and `scripts/vastai_setup_gemma.sh` were moved to `archive/experimental/training/legacy_gemma/`.
+- Mitigation: Do not use archived Gemma scripts as current runtime/training truth.
+
+### ARC-R2 - `.f51/tmp` cleanup was intentionally partial [LOW]
+
+- Classification: `cleanup`
+- Risk: Some `.f51/tmp` training artifacts remain because they may be useful for local training provenance.
+- Evidence: Removed only duplicated third-party build trees and build logs; preserved `merge_adapters.py`, local SFT JSONL, phase1 adapter, and merged tokenizer artifacts.
+- Mitigation: Delete more `.f51/tmp` artifacts only after a separate training provenance audit.
+
+## 2026-05-20 Tree Cleanup
+
+### TREE-R1 - Skill registration files are product-adjacent [LOW]
+
+- Classification: `cleanup`
+- Risk: `.agents/skills/frontend-design/`, `.claude/skills/frontend-design/`, and `skills-lock.json` can look like clutter, but `.f51/SKILLS_CHECK.md` documents them as the registered frontend-design skill.
+- Evidence: `git ls-files` shows the skill files are tracked; `rg frontend-design .f51 .claude .agents skills-lock.json docs` links them to the F51 skill check.
+- Mitigation: Preserved these files. Remove only in a dedicated skill de-registration pass.
+
+### TREE-R2 - Deleted local scratch/cache artifacts are recoverable [LOW]
+
+- Classification: `cleanup`
+- Risk: Local scratch scripts, Playwright/cache artifacts, and an unreferenced untracked prompt draft were removed from the active tree.
+- Evidence: Created local backup `C:\Users\marco\Desktop\SuperEzio_LOCAL_BACKUPS\pre-tree-audit-20260520-140340.zip` before deletion.
+- Mitigation: Restore from the backup if any removed scratch/prompt artifact is needed.
+
+### TREE-R3 - Stale Playwright snapshot was tracked [LOW]
+
+- Classification: `cleanup`
+- Risk: `.playwright-cli/page-2026-05-11T02-42-03-389Z.yml` was versioned despite being a dated browser snapshot with no references.
+- Evidence: `git log -- .playwright-cli/page-2026-05-11T02-42-03-389Z.yml` showed initial import; `rg ".playwright-cli|page-2026-05-11" .` found no active references.
+- Mitigation: Removed the snapshot and added `.playwright-cli/` to `.gitignore` to prevent recurrence.

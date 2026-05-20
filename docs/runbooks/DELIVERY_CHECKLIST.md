@@ -38,12 +38,10 @@
 - [x] Fix Ruff lint errors in `src` and `tests`.
 - [x] Run `python -m ruff format src tests` or apply equivalent formatting and re-run `--check`.
 - [x] Resolve tracked `.f51/cache/collector/*.json` cache files: untrack them or explicitly justify them.
-- [ ] Update stale Gemma/Qwen documentation and metadata:
+- [ ] Finish stale Gemma/Qwen documentation cleanup:
   - `pyproject.toml`
-  - `scripts/finetune_gemma_sft.py`
-  - `scripts/vastai_setup_gemma.sh`
-  - `scripts/generate_system_knowledge_sft.py`
-  - `.f51/RISK_REGISTER.md`
+  - archived legacy Gemma training scripts under `archive/experimental/training/legacy_gemma/`
+  - historical architecture reports under `docs/architecture/archives/`
 - [ ] Decide the neural truth:
   - either promote `PriceTorchMLP`/`PriceMLP` into the default runtime path,
   - or rewrite neural documentation and sales language as rule/regime gating.

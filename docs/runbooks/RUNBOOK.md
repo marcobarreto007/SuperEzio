@@ -23,7 +23,7 @@ models/superezio-ceo-intent-merged.Q4_K_M.gguf
 Current official model routing:
 
 - `ceo`: local OpenAI-compatible llama.cpp endpoint at `http://127.0.0.1:8082/v1`.
-- `primary_external`: currently routed to the same local CEO endpoint by runtime config/env.
+- `local_orchestrator`: local orchestrator route using the same CEO endpoint.
 - `deepseek`: cloud expert provider at `https://api.deepseek.com`.
 
 Official launcher:

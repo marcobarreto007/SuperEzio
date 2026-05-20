@@ -23,6 +23,7 @@ from .providers import (  # noqa: F401 — re-exports
     ModelProvider,
     GatewayConfig,
     PRIMARY_PROVIDER_NAME,
+    PRIMARY_PROVIDER_LEGACY_NAMES,
     PRIMARY_MODEL_ID,
     DEEPSEEK_PROVIDER_NAME,
     CEO_PROVIDER_NAME,
@@ -88,6 +89,8 @@ class ModelGateway:
             preferred_provider = DEEPSEEK_PROVIDER_NAME
         if preferred_provider == "bob":
             preferred_provider = CEO_PROVIDER_NAME
+        if preferred_provider in PRIMARY_PROVIDER_LEGACY_NAMES:
+            preferred_provider = PRIMARY_PROVIDER_NAME
 
         if preferred_provider:
             for p in self.providers:

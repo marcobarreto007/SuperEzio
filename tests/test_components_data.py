@@ -20,11 +20,11 @@ def test_model_manifest_ceo():
     assert manifest["ceo"]["backend"] == "openai_compatible"
 
 
-def test_model_manifest_cloud_models():
+def test_model_manifest_providers():
     manifest_path = ROOT / "config" / "model_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert "cloud_models" in manifest
-    assert "primary_external" in manifest["cloud_models"]
+    assert "providers" in manifest
+    assert "local_orchestrator" in manifest["providers"]
 
 
 def test_model_manifest_expert_runtime():
@@ -79,7 +79,7 @@ def test_provider_constants():
 
     assert CEO_PROVIDER_NAME == "ceo"
     assert CEO_MODEL_ID == "superezio-ceo-intent-merged"
-    assert PRIMARY_PROVIDER_NAME == "primary_external"
+    assert PRIMARY_PROVIDER_NAME == "local_orchestrator"
     assert DEEPSEEK_PROVIDER_NAME == "deepseek"
 
 
