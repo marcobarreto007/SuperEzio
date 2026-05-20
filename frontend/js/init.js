@@ -208,7 +208,6 @@
       SZ.state.chartData = data;
       if (SZ.renderProfile)   SZ.renderProfile();
       if (SZ.renderChart)     SZ.renderChart();
-      if (SZ.drawLiveCandles) SZ.drawLiveCandles();
     } catch (err) {
       console.error("[SZ] loadChart:", err);
     }

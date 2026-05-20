@@ -107,7 +107,6 @@
     /* trigger renders */
     if (SZ.renderProfile)   SZ.renderProfile();
     if (SZ.renderChart)     SZ.renderChart();
-    if (SZ.drawLiveCandles) SZ.drawLiveCandles();
     updateLiveMetrics();
   }
 
@@ -115,7 +114,6 @@
   function handleCandle(data) {
     mergeLiveCandle(data);
     if (SZ.drawLiveCandles) SZ.drawLiveCandles();
-    if (SZ.renderChart)     SZ.renderChart();
     updateLiveMetrics();
   }
 

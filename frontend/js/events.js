@@ -73,7 +73,6 @@
           SZ.state.chartData = ev.chartData;
           if (SZ.renderProfile)   SZ.renderProfile();
           if (SZ.renderChart)     SZ.renderChart();
-          if (SZ.drawLiveCandles) SZ.drawLiveCandles();
         }
         break;
 
