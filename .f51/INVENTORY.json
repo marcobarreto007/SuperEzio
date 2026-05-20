@@ -1,122 +1,220 @@
 {
   "project": "SuperEzio",
   "version": "4.0.0",
-  "inventory_date": "2026-05-19T18:00:00-04:00",
-  "session": "f51-inventory-full-scan",
+  "inventory_date": "2026-05-20T00:00:00-04:00",
+  "session": "f51-inventory-full-scan-v5",
   "branch": "main",
-  "commit": "75c8553",
+  "commit": "02a64ca",
   "summary": {
-    "total_python_modules_active": 98,
-    "total_python_modules_archive": 15,
-    "total_test_files": 32,
-    "total_test_functions_approx": 530,
-    "total_scripts_active": 25,
-    "total_scripts_dead": 4,
-    "total_config_files_active": 17,
-    "total_config_files_stale": 13,
-    "total_docs_files": 18,
-    "total_entrypoints": 29,
-    "total_duplicate_functions": 18,
-    "total_duplicate_files": 8
+    "total_python_files_src": 152,
+    "total_init_files": 39,
+    "total_regular_py": 113,
+    "hollow_modules": 2,
+    "missing_init_py": 1,
+    "files_over_500_lines": 7,
+    "deprecation_notices": 8,
+    "test_files": 35,
+    "test_contract_files": 9,
+    "test_functions_approx": 653,
+    "scripts_total": 23,
+    "scripts_active": 18,
+    "scripts_cloud_only": 5,
+    "config_files": 3,
+    "docs_files_md": 18,
+    "f51_meta_files": 12
   },
   "classification_counts": {
-    "core": 52,
-    "app": 6,
-    "pipeline": 14,
-    "config": 17,
-    "test": 32,
+    "core": 98,
+    "app": 4,
+    "pipeline": 16,
+    "config": 3,
+    "test": 35,
     "doc": 18,
-    "experimental": 15,
-    "duplicate": 8,
-    "deprecated": 7,
-    "unknown": 2
+    "experimental": 8,
+    "deprecated": 5,
+    "unknown": 0
   },
   "directory_structure": {
     "src/": {
       "classification": "core",
       "subdirectories": ["adapters/", "agent_server/", "core/", "data/", "experts/", "f51/", "tools/"],
-      "py_files_top_level": 24
+      "py_files_top_level": 0
     },
     "src/core/": {
       "classification": "core",
-      "subdirectories": ["audit/", "config/", "data_collector/", "explanation/", "f51_adapter/", "investor/", "math/", "model_serving/", "observability/", "paths/", "pipeline/", "ports/", "prompts/", "rag/", "risk_firewall/", "scanner/", "security/", "storage/", "trading/"],
-      "note": "Largest module — 19 subdirectories"
+      "subdirectories": [
+        "audit/", "config/", "data_collector/", "explanation/", "f51_adapter/",
+        "investor/", "math/", "model_serving/", "observability/", "paths/",
+        "pipeline/", "ports/", "prompts/", "rag/", "risk_firewall/",
+        "scanner/", "security/", "storage/", "trading/"
+      ],
+      "note": "19 subdirectories — largest module"
+    },
+    "src/core/pipeline/": {
+      "classification": "pipeline",
+      "files": ["contracts.py", "graph.py", "intents.py", "security.py"],
+      "subdirectories": ["nodes/", "prompts/"],
+      "note": "LangGraph pipeline — orchestrator → data → F51 → experts → neural → SDCA → RAG → CEO → explanation"
+    },
+    "src/core/model_serving/": {
+      "classification": "core",
+      "files": ["gateway.py", "providers.py", "sanitizer.py"],
+      "note": "ModelGateway — fallback cascade, OpenAI-compatible API, provider config"
+    },
+    "src/core/observability/": {
+      "classification": "core",
+      "files": ["debug_logger.py", "event_hub.py", "neural_log.py"],
+      "note": "Logging, event pub/sub, OTEL metrics"
+    },
+    "src/core/config/": {
+      "classification": "config",
+      "files": ["env.py", "schema.py", "secrets.py"],
+      "note": "UniversalConfig + env loading + secrets"
+    },
+    "src/core/math/": {
+      "classification": "core",
+      "files": ["crisis.py", "financial_engine.py", "indicators.py", "risk.py", "trading_losses.py", "utils.py"],
+      "note": "F51 math — indicators, risk, sharpe/sortino/var, trading metrics"
+    },
+    "src/core/rag/": {
+      "classification": "core",
+      "files": ["engine.py", "fraud_rag.py", "macro_dataset.py"],
+      "note": "ForensicRAG — FAISS indexes, fraud patterns, macro context"
+    },
+    "src/core/risk_firewall/": {
+      "classification": "core",
+      "files": ["experience_memory.py", "sdca_contracts.py", "sdca_lite.py"],
+      "note": "SDCA firewall — consequence scoring, ghost token detection"
+    },
+    "src/core/investor/": {
+      "classification": "deprecated",
+      "files": ["committee.py", "cost_guard.py", "fraud_analyst.py", "fraud_memory.py", "prompts.py", "storage.py"],
+      "active_only": ["cost_guard.py"],
+      "note": "Only CostGuard is active. Rest planned for Money Gate F4."
+    },
+    "src/core/trading/": {
+      "classification": "deprecated",
+      "files": ["alerter.py", "approval_gate.py", "broker.py", "dataset.py", "expert_weights.py", "kill_switch.py", "order_builder.py", "position_sizer.py", "reward.py", "training.py"],
+      "note": "Entire module deprecated — used only by tests/test_trading_loop{1-5}.py"
+    },
+    "src/core/ports/": {
+      "classification": "core",
+      "files": ["audit_log.py", "data_collector.py", "health_probe.py", "model_gateway.py", "protocol.py"],
+      "note": "ABCs + A2A protocol contracts"
     },
     "src/f51/": {
       "classification": "core",
       "files": ["detectors.py", "formulas.py", "gates.py", "graph.py", "scoring.py"],
-      "note": "Canonical F51 engine — decision formulas, gates, scoring"
+      "note": "Canonical F51 engine — SpiderSense, PlatinumScorer, VeracityGate, decision formulas"
     },
     "src/agent_server/": {
       "classification": "app",
-      "files": ["main.py", "endpoints.py", "protocol.py"],
-      "note": "Primary FastAPI server — port 8002"
+      "files": ["endpoints.py", "main.py", "protocol.py"],
+      "note": "FastAPI server on :8002 — A2A endpoints, SSE streaming, health"
+    },
+    "src/data/": {
+      "classification": "core",
+      "files": ["alpha_vantage.py", "boc_provider.py", "data_hub.py", "fed_provider.py", "news_feed.py", "newsapi_provider.py", "reddit_provider.py", "twelve_data.py", "wolfram_provider.py"],
+      "note": "Data providers — AlphaVantage, TwelveData, Wolfram, NewsAPI, Reddit, BOC, Fed"
     },
     "src/experts/": {
       "classification": "core",
-      "subdirectories": ["crisis/", "neural_decision/", "pennylab/", "technical_neural/"],
-      "note": "Expert systems — crisis models, penny stocks, neural, technical"
+      "subdirectories": ["crisis/", "neural_decision/", "pennylab/", "technical_neural/"]
     },
-    "frontend/": {
-      "classification": "app",
-      "files": ["index.html"],
-      "note": "Single-page UI — dark/green financial theme, talks to :8002"
+    "src/experts/crisis/": {
+      "classification": "core",
+      "subdirectories": ["adapters/", "contracts/", "expert/", "io/", "logic/", "models/"],
+      "files_models": 12,
+      "note": "12 crisis models: LPP bubble, Markov regime, Minsky-Keen, Hawkes stress, network contagion, etc."
     },
-    "desktop/": {
-      "classification": "app",
-      "files": ["SuperEzio.bat"],
-      "note": "Windows launcher — starts CEO + API + opens browser"
+    "src/experts/pennylab/": {
+      "classification": "core",
+      "files": ["cli.py", "config.py", "data_provider.py", "lab_journal.py", "mathcore_adapter.py", "pipeline_hook.py", "rag_hooks.py", "schemas.py", "scoring.py"],
+      "subdirectories": ["experts/"],
+      "note": "Penny stock analysis — VolumeSpike, WhalePrint, PumpDump, LiquidityRisk"
+    },
+    "src/experts/neural_decision/": {
+      "classification": "core",
+      "files": ["neural_decision_expert.py"],
+      "note": "NeuralDecisionExpert + FeatureContractValidator"
+    },
+    "src/experts/technical_neural/": {
+      "classification": "experimental",
+      "files": ["pipeline_hook.py"],
+      "subdir_missing_init": "expert/ — contains neural_expert.py, torch_mlp.py WITHOUT __init__.py",
+      "note": "Technical neural analysis — missing __init__.py in expert/ subpackage"
+    },
+    "src/adapters/": {
+      "classification": "core",
+      "subdirectories": ["broker/", "data_collector/", "health/", "quantum/"],
+      "note": "External adapters — IBKR broker, subprocess collector, HTTP health probe"
+    },
+    "src/tools/": {
+      "classification": "core",
+      "files": ["custom_tools.py"],
+      "note": "LangChain custom tools — web search, code executor"
     },
     "tests/": {
       "classification": "test",
-      "files_main": 23,
-      "files_contracts": 9,
-      "total": 32,
-      "note": "530+ test functions, pytest 8.0+, asyncio auto mode"
+      "total": 35,
+      "contracts": 9,
+      "unit_integration": 26,
+      "note": "653 test functions, pytest 8.3.5, asyncio auto mode"
     },
     "scripts/": {
       "classification": "core",
-      "active": 17,
-      "dead": 3,
-      "note": "Training, eval, data generation scripts"
+      "total": 23,
+      "active_local": 16,
+      "cloud_only": 5,
+      "untracked": 2,
+      "note": "Training, eval, merge, quantize, serve, cloud pipeline scripts"
     },
     "config/": {
       "classification": "config",
       "files": ["runtime.yml", "model_manifest.json", "mandamentos.json"],
-      "note": "2 of 3 stale (reference Gemma, not Qwen3.6)"
+      "note": "Runtime config, model manifest, mandamentos (policy rules)"
+    },
+    "desktop/": {
+      "classification": "app",
+      "files": ["SuperEzio.bat", "SuperEzio.lnk"],
+      "note": "Windows launcher — starts llama-server :8082 + API :8002"
+    },
+    "docs/": {
+      "classification": "doc",
+      "subdirectories": ["architecture/", "runbooks/", "internal/", "superpowers/"],
+      "note": "Architecture, runbooks, internal docs, SDCA superpowers"
+    },
+    ".f51/": {
+      "classification": "config",
+      "subdirectories": ["cache/", "checkpoints/", "contracts/"],
+      "note": "F51 operational layer — inventory, risk, contracts, checkpoints"
+    },
+    "models/": {
+      "classification": "core",
+      "files": ["superezio-ceo-intent-merged.Q4_K_M.gguf"],
+      "backup": ["qwen36-35b-f51.Q4_K_M.gguf"],
+      "note": "19.71 GB merged GGUF. Old model kept as cold backup only."
+    },
+    "llama.cpp/": {
+      "classification": "core",
+      "note": "Vendored llama-server.exe + CUDA DLLs"
+    },
+    "output/": {
+      "classification": "experimental",
+      "note": "Training checkpoints (ckpt-{200..2600}), E2E logs"
     },
     "F51_Datasets/": {
       "classification": "experimental",
-      "scripts": 8,
-      "note": "Dataset pipeline — download, convert, score, generate SFT data"
+      "note": "Dataset pipeline scripts — download, convert, score, SFT generation"
     },
     "archive/": {
       "classification": "deprecated",
       "subdirectories": ["deprecated/", "quarantine/", "experimental/"],
       "note": "Dead code — Nemotron adapters, old training scripts, shims"
     },
-    "models/": {
-      "classification": "core",
-      "files": ["superezio-ceo-intent-merged.Q4_K_M.gguf"],
-      "note": "19.71GB CEO+Intent merged model. gitignored."
-    },
-    "llama.cpp/": {
-      "classification": "core",
-      "note": "Vendored llama-server.exe — serves CEO on :8082"
-    },
-    "output/": {
-      "classification": "experimental",
-      "note": "Training checkpoints, E2E logs, Playwright screenshots"
-    },
     "scratch/": {
       "classification": "experimental",
-      "files": 3,
-      "note": "Ad-hoc test scripts — disposable"
-    },
-    "docs/": {
-      "classification": "doc",
-      "subdirectories": ["architecture/", "runbooks/", "internal/", "superpowers/"],
-      "note": "Architecture templates, runbooks, SDCA docs"
+      "note": "Ad-hoc disposable test scripts"
     },
     "reports/": {
       "classification": "doc",
@@ -127,24 +225,50 @@
     "name": "SuperEzio CEO+Intent Merged (Qwen3.6-35B-A3B base)",
     "file": "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
     "size_gb": 19.71,
+    "sha256": "d05879da1931dd1a2e36071db598d74093bb9528382514bb7836b6b196b40485",
     "quantization": "Q4_K_M (4.88 BPW)",
+    "block_count": 40,
+    "nextn_predict_layers": 0,
     "speculative_decoding": "disabled (nextn patched 1→0)",
     "server_url": "http://127.0.0.1:8082/v1",
     "server_binary": "llama.cpp/bin/llama-server.exe",
     "launch_script": "scripts/serve_ceo_llamacpp.ps1",
     "gpu_layers": 28,
     "context_length": 8192,
+    "slots": 2,
     "thinking": "auto (enabled)",
-    "adapters": ["CEO ckpt-2600", "Intent best"]
-  },
-  "old_model_backup": {
-    "name": "Qwen3.6-35B F51 (CEO only)",
-    "file": "models/qwen36-35b-f51.Q4_K_M.gguf",
-    "size_gb": 20.22,
-    "status": "backup — substituido pelo merged"
+    "flash_attention": true,
+    "adapters_merged": ["CEO LoRA (ckpt-2600)", "Intent LoRA (best)"]
   },
   "runtime_ports": {
     "ceo": 8082,
     "api": 8002
-  }
+  },
+  "structural_issues": [
+    {
+      "severity": "medium",
+      "type": "missing_init_py",
+      "path": "src/experts/technical_neural/expert/",
+      "files": ["neural_expert.py", "torch_mlp.py"],
+      "note": "No __init__.py — subpackage cannot be imported as proper Python module"
+    },
+    {
+      "severity": "light",
+      "type": "hollow_module",
+      "path": "src/core/paths/",
+      "note": "Only __init__.py with 44 lines of path helpers — valid pattern but non-standard"
+    },
+    {
+      "severity": "light",
+      "type": "hollow_module",
+      "path": "src/core/scanner/",
+      "note": "Only __init__.py with MarketScanner class (99 lines) — should be scanner.py"
+    },
+    {
+      "severity": "light",
+      "type": "empty_init",
+      "path": "src/experts/crisis/contracts/__init__.py",
+      "note": "Completely empty (0 lines)"
+    }
+  ]
 }
