@@ -7,7 +7,7 @@ body {
   background: var(--bg);
   color: var(--ink);
   display: grid;
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   height: 100dvh;
   overflow: hidden;
 }
@@ -48,4 +48,22 @@ body {
 input:focus, textarea:focus, select:focus, button:focus-visible {
   outline: 2px solid var(--blue);
   outline-offset: 1px;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.014) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent 75%);
+  z-index: 0;
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
 }

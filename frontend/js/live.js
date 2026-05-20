@@ -55,11 +55,15 @@
     var last = ohlcv[ohlcv.length - 1];
 
     var elTicker  = document.getElementById("live-ticker");
+    var elSideTicker = document.getElementById("side-ticker");
+    var elWorkspaceTicker = document.getElementById("workspace-ticker");
     var elPrice   = document.getElementById("live-price");
     var elChange  = document.getElementById("live-change");
     var elTs      = document.getElementById("live-ts");
 
     if (elTicker)  elTicker.textContent = _ticker.toUpperCase();
+    if (elSideTicker) elSideTicker.textContent = _ticker.toUpperCase();
+    if (elWorkspaceTicker) elWorkspaceTicker.textContent = _ticker.toUpperCase();
     if (elPrice)   elPrice.textContent  = last.close != null ? last.close.toFixed(2) : "";
 
     if (elChange && ohlcv.length > 1) {

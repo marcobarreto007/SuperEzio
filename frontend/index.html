@@ -33,6 +33,7 @@
     <div class="logo">
       <span class="logo-mark">SE</span>
       <span class="logo-text">SuperEzio</span>
+      <span class="logo-sub">Market Command</span>
       <span class="status-dot status-dot--off" id="sys-dot" title="Checking..."></span>
     </div>
     <div class="spacer"></div>
@@ -46,7 +47,7 @@
     </nav>
     <div class="spacer"></div>
     <div class="ticker-wrap">
-      <input id="ticker-inp" type="text" placeholder="Ticker" autocomplete="off" spellcheck="false" maxlength="10">
+      <input id="ticker-inp" type="text" placeholder="Ticker" value="AAPL" autocomplete="off" spellcheck="false" maxlength="10">
       <select id="tf-inp" aria-label="Timeframe">
         <option value="1D">1D</option>
         <option value="1W">1W</option>
@@ -69,24 +70,68 @@
 
   <!-- ── MAIN ── -->
   <section class="app-main">
-    <main class="chat" id="chat" aria-label="Conversation"></main>
-    <aside class="live-panel" id="live-panel" aria-label="Live candles panel">
-      <div class="live-hdr">
-        <i data-lucide="candlestick-chart"></i>
-        <strong>Live Candles SSE</strong>
-        <span class="live-status live-status--off" id="live-status">OFF</span>
-      </div>
-      <div class="live-wrap">
-        <div class="live-metrics">
-          <div class="live-metric"><span>Ticker</span><strong id="live-ticker">--</strong></div>
-          <div class="live-metric"><span>Price</span><strong id="live-price">--</strong></div>
-          <div class="live-metric"><span>Change</span><strong id="live-change">--</strong></div>
+    <aside class="market-rail" aria-label="Market tools">
+      <button class="rail-btn active" type="button" title="Chart"><i data-lucide="candlestick-chart"></i></button>
+      <button class="rail-btn" type="button" title="Crosshair"><i data-lucide="crosshair"></i></button>
+      <button class="rail-btn" type="button" title="Trendline"><i data-lucide="trending-up"></i></button>
+      <button class="rail-btn" type="button" title="Risk"><i data-lucide="shield-alert"></i></button>
+      <button class="rail-btn" type="button" title="Notes"><i data-lucide="notebook-pen"></i></button>
+    </aside>
+
+    <main class="chart-workspace" aria-label="Trading workspace">
+      <div class="market-header">
+        <div class="asset-block">
+          <span class="asset-label">Live market</span>
+          <h1><span id="workspace-ticker">AAPL</span><small id="workspace-tf">6M</small></h1>
+          <div class="live-profile" id="live-profile"></div>
         </div>
-        <div class="live-profile" id="live-profile"></div>
+        <div class="price-strip">
+          <div><span>Last</span><strong id="live-price">--</strong></div>
+          <div><span>Change</span><strong id="live-change">--</strong></div>
+          <div><span>Stream</span><strong class="live-status live-status--off" id="live-status">OFF</strong></div>
+        </div>
+      </div>
+
+      <section class="chart-stage">
+        <div class="chart-toolbar">
+          <span class="toolbar-pill">Candles</span>
+          <span class="toolbar-pill">SMA20</span>
+          <span class="toolbar-pill">SMA50</span>
+          <span class="toolbar-pill">EMA20</span>
+          <span class="toolbar-pill">BB</span>
+          <span class="toolbar-pill">MACD</span>
+        </div>
         <div class="live-canvas-wrap"><canvas id="live-canvas"></canvas></div>
+      </section>
+
+      <div class="market-footer">
         <div class="live-indicators" id="live-indicators"></div>
         <div class="live-note" id="live-updated">Awaiting stream...</div>
       </div>
+    </main>
+
+    <aside class="right-stack" id="live-panel" aria-label="Decision and live panel">
+      <section class="terminal-card">
+        <div class="terminal-card-hdr">
+          <i data-lucide="activity"></i>
+          <strong>Market State</strong>
+          <span id="live-ticker">AAPL</span>
+        </div>
+        <div class="live-metrics">
+          <div class="live-metric"><span>Ticker</span><strong id="side-ticker">AAPL</strong></div>
+          <div class="live-metric"><span>Mode</span><strong>LOCAL</strong></div>
+          <div class="live-metric"><span>Guard</span><strong>ON</strong></div>
+        </div>
+      </section>
+
+      <section class="terminal-card terminal-card--chat">
+        <div class="terminal-card-hdr">
+          <i data-lucide="brain-circuit"></i>
+          <strong>Decision Room</strong>
+          <span>CEO</span>
+        </div>
+        <main class="chat" id="chat" aria-label="Conversation"></main>
+      </section>
     </aside>
   </section>
 

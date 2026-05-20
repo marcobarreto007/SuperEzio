@@ -1,10 +1,10 @@
 {
   "project": "SuperEzio / F51 Unified Core",
   "version": "4.0.0",
-  "date_local": "2026-05-20T19:18:34-04:00",
-  "session": "f51-static-assets-runtime-fix-2026-05-20",
+  "date_local": "2026-05-20T19:27:41-04:00",
+  "session": "f51-tradingview-ui-refresh-2026-05-20",
   "status": "COMPLETE",
-  "stage": "static-assets-runtime-fix",
+  "stage": "tradingview-ui-refresh",
   "operational_contract": {
     "agent_server_contract": ".f51/contracts/agent-server.contract.md",
     "runtime_config": "config/runtime.yml",
@@ -31,29 +31,34 @@
     "expert_provider_route": "deepseek -> https://api.deepseek.com"
   },
   "what_was_done": [
-    "Verified the Desktop shortcut points to desktop/SuperEzio.bat.",
-    "Started the CEO model and verified /v1/models lists superezio-ceo-intent-merged.Q4_K_M.gguf.",
-    "Fixed the API static asset surface so the modular frontend can load /css/* and /js/*.",
-    "Restarted the API on port 8002 and verified static assets, health, and model reachability.",
-    "Captured a Chrome headless screenshot of the styled UI."
+    "Rebuilt the first viewport as a TradingView-style workspace.",
+    "Moved the market chart into the center of the screen and the decision room into the right dock.",
+    "Loaded AAPL chart data on boot from the live API and rendered candles immediately.",
+    "Fixed chart time labels for epoch-second backend data.",
+    "Verified the visual result with Chrome headless screenshot."
   ],
   "files_changed": [
-    "src/agent_server/main.py",
-    "tests/contracts/test_contract_runtime_official.py",
+    "frontend/index.html",
+    "frontend/css/base.css",
+    "frontend/css/charts.css",
+    "frontend/css/chat.css",
+    "frontend/css/topbar.css",
+    "frontend/js/init.js",
+    "frontend/js/live.js",
+    "frontend/js/render-candles.js",
+    "frontend/js/render-chart.js",
     ".f51/checkpoints/latest.json",
     "runtime/checkpoints/latest.json"
   ],
   "evidence": [
-    "http://127.0.0.1:8082/v1/models -> model listed",
-    "http://127.0.0.1:8002/health/details -> local_orchestrator reachable and GPU available",
-    "http://127.0.0.1:8002/css/variables.css -> 200 text/css",
-    "http://127.0.0.1:8002/js/init.js -> 200 application/javascript",
-    "output/playwright/superezio-ui-static-assets-chrome.png -> styled UI screenshot"
+    "node --check selected frontend JS files -> passed",
+    "http://127.0.0.1:8002/api/chart-data/AAPL?timeframe=6M -> real AAPL price data returned",
+    "output/playwright/superezio-tradingview-workspace-final.png -> chart, price strip, tool rail, and decision dock rendered"
   ],
   "risks": [
-    "Playwright CLI browser binary is missing; Chrome headless was used for visual proof.",
-    "A full chat/NDJSON UI interaction was not run in this patch."
+    "Default first-screen ticker is AAPL; it is editable and uses live API data.",
+    "Full chat/NDJSON interaction still needs a separate UI flow test."
   ],
-  "next_step": "Run a chat/NDJSON browser flow through the styled UI.",
+  "next_step": "Run a real chat/NDJSON flow through the new TradingView-style decision room.",
   "owner": "Codex"
 }

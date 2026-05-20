@@ -44,7 +44,7 @@
     ctx.scale(dpr, dpr);
 
     /* ── padding ── */
-    var PL = 56, PR = 14, PT = 16, PB = 24;
+    var PL = 56, PR = 48, PT = 16, PB = 24;
     var PW = W - PL - PR;
     var PH = H - PT - PB;
 
@@ -94,7 +94,8 @@
       ctx.beginPath(); ctx.moveTo(vx, PT); ctx.lineTo(vx, H - PB); ctx.stroke();
       var tLbl = candles[vi].time;
       if (tLbl) {
-        var d = new Date(tLbl);
+        var ts = Number(tLbl);
+        var d = new Date(ts < 1000000000000 ? ts * 1000 : ts);
         if (isFinite(d.getTime())) tLbl = d.toLocaleDateString("en-US", { month:"short", day:"numeric" });
       }
       ctx.fillStyle = MUTED;

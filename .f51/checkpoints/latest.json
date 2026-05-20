@@ -1,56 +1,52 @@
 {
-  "date_local": "2026-05-20T19:18:34-04:00",
-  "session": "f51-static-assets-runtime-fix-2026-05-20",
+  "date_local": "2026-05-20T19:27:41-04:00",
+  "session": "f51-tradingview-ui-refresh-2026-05-20",
   "status": "completed",
   "what_was_done": [
-    "Confirmed the desktop shortcut points to desktop/SuperEzio.bat and the working directory is the SuperEzio repo.",
-    "Started the CEO model and verified llama.cpp serves superezio-ceo-intent-merged.Q4_K_M.gguf on port 8082.",
-    "Diagnosed the broken UI screenshot: frontend/index.html loaded, but modular /css/* and /js/* assets were not served by FastAPI.",
-    "Mounted frontend/css at /css and frontend/js at /js in the official API runtime.",
-    "Restarted only the API process on port 8002 while keeping the CEO process alive.",
-    "Verified /, /css/variables.css, /css/topbar.css, /css/chat.css, /js/init.js, /js/events.js, and /js/health.js return HTTP 200.",
-    "Captured a Chrome headless screenshot showing the styled dark UI rendering."
+    "Reworked the first viewport into a TradingView-style market workspace.",
+    "Made the chart canvas the primary surface with a left tool rail, market header, price strip, indicator chips, and right-side decision room.",
+    "Set AAPL as the default ticker so the UI loads real chart data on boot instead of opening as an empty terminal.",
+    "Updated frontend boot logic to fetch chart data on load, update ticker/timeframe/price labels, and draw candles immediately.",
+    "Fixed chart timestamp rendering for epoch-second candle data and gave the right price label room to render.",
+    "Validated the styled UI with a Chrome headless screenshot."
   ],
   "evidence": {
     "commands": [
-      "WScript.Shell shortcut inspection -> C:\\Users\\marco\\Desktop\\SuperEzio.lnk targets desktop\\SuperEzio.bat",
-      "Invoke-RestMethod http://127.0.0.1:8082/v1/models -> superezio-ceo-intent-merged.Q4_K_M.gguf listed",
-      "Invoke-RestMethod http://127.0.0.1:8002/health/details -> local_orchestrator reachable and GPU available",
-      "Invoke-WebRequest http://127.0.0.1:8002/css/variables.css -> 200 text/css",
+      "node --check frontend/js/init.js frontend/js/live.js frontend/js/render-candles.js frontend/js/render-chart.js -> passed",
+      "Invoke-WebRequest http://127.0.0.1:8002/css/charts.css -> 200 text/css",
       "Invoke-WebRequest http://127.0.0.1:8002/js/init.js -> 200 application/javascript",
-      "chrome.exe --headless=new --screenshot=output/playwright/superezio-ui-static-assets-chrome.png http://127.0.0.1:8002 -> screenshot written"
+      "Invoke-RestMethod http://127.0.0.1:8002/api/chart-data/AAPL?timeframe=6M -> ticker AAPL, price.current 302.25, change_pct 1.1",
+      "chrome.exe --headless=new --virtual-time-budget=8000 --screenshot=output/playwright/superezio-tradingview-workspace-final.png http://127.0.0.1:8002 -> screenshot written"
     ],
     "files_changed": [
-      "src/agent_server/main.py",
-      "tests/contracts/test_contract_runtime_official.py",
+      "frontend/index.html",
+      "frontend/css/base.css",
+      "frontend/css/charts.css",
+      "frontend/css/chat.css",
+      "frontend/css/topbar.css",
+      "frontend/js/init.js",
+      "frontend/js/live.js",
+      "frontend/js/render-candles.js",
+      "frontend/js/render-chart.js",
       ".f51/checkpoints/latest.json",
       "runtime/checkpoints/latest.json"
     ],
-    "runtime_processes": {
-      "api_port": 8002,
-      "ceo_port": 8082,
-      "ceo_binary": "llama.cpp/bin/llama-server.exe"
-    },
     "artifacts": [
-      "output/playwright/superezio-ui-static-assets-chrome.png",
-      "runtime/logs/api-static-assets-out.log",
-      "runtime/logs/api-static-assets-err.log",
-      "runtime/logs/ceo-ui-new-out.log",
-      "runtime/logs/ceo-ui-new-err.log"
+      "output/playwright/superezio-tradingview-workspace-final.png"
     ]
   },
   "risks": [
     {
       "severity": "low",
-      "description": "Playwright CLI could not capture because its browser binary is not installed for this user.",
-      "mitigation": "Used installed Chrome headless for the visual screenshot instead."
+      "description": "The UI now defaults to AAPL to avoid an empty first screen.",
+      "mitigation": "Ticker remains editable and all values still come from /api/chart-data."
     },
     {
-      "severity": "low",
-      "description": "llama.cpp reports n_ctx_seq 4096 per slot while script context is 8192 with 2 slots.",
-      "mitigation": "This is expected slot split behavior; /v1/models and API health prove the model is serving."
+      "severity": "medium",
+      "description": "Full chat/NDJSON interaction was not rerun in this visual refresh step.",
+      "mitigation": "Next pass should submit a real chat prompt through the new decision room."
     }
   ],
-  "next_step": "Run a chat/NDJSON browser flow through the styled UI.",
+  "next_step": "Run a real chat/NDJSON flow through the new TradingView-style decision room.",
   "owner": "Codex"
 }

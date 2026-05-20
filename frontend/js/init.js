@@ -203,10 +203,32 @@
     try {
       var data = await SZ.api.fetchChartData(ticker, tf);
       SZ.state.chartData = data;
+      updateWorkspaceLabels(data, ticker, tf);
       if (SZ.renderProfile)   SZ.renderProfile();
       if (SZ.renderChart)     SZ.renderChart();
+      if (SZ.drawLiveCandles) SZ.drawLiveCandles();
     } catch (err) {
       console.error("[SZ] loadChart:", err);
+    }
+  }
+
+  function updateWorkspaceLabels(data, ticker, tf) {
+    var price = data && data.price ? data.price : {};
+    var resolvedTicker = (data && data.ticker) || ticker || "";
+    var ids = ["workspace-ticker", "live-ticker", "side-ticker"];
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.getElementById(ids[i]);
+      if (el) el.textContent = resolvedTicker || "--";
+    }
+    var tfEl = document.getElementById("workspace-tf");
+    if (tfEl) tfEl.textContent = tf || "";
+    var priceEl = document.getElementById("live-price");
+    if (priceEl) priceEl.textContent = price.current != null ? fmt(price.current, 2) : "--";
+    var changeEl = document.getElementById("live-change");
+    if (changeEl) {
+      var cp = numOrNull(price.change_pct);
+      changeEl.textContent = cp != null ? (cp >= 0 ? "+" : "") + fmt(cp, 2) + "%" : "--";
+      changeEl.style.color = cp == null ? "" : cp >= 0 ? "#00c853" : "#ff1744";
     }
   }
 
@@ -412,6 +434,8 @@
 
     /* init Lucide icons */
     if (window.lucide) lucide.createIcons();
+
+    loadChart();
 
     console.log("[SZ] Boot complete.");
   }

@@ -1,10 +1,144 @@
-/* Charts + Live panel */
-.live-panel {
-  border-left: 1px solid var(--line);
-  background: var(--surface);
+/* Trading workspace */
+.app-main {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) minmax(340px, 390px);
+  min-height: 0;
+  background: #060907;
+  border-top: 1px solid #1b231d;
+}
+
+.market-rail {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 7px;
+  border-right: 1px solid var(--line);
+  background: #090d0a;
+}
+
+.rail-btn {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #7c8c80;
+  cursor: pointer;
+}
+
+.rail-btn:hover,
+.rail-btn.active {
+  background: #121912;
+  border-color: #2a372c;
+  color: var(--green);
+}
+
+.chart-workspace {
+  min-width: 0;
   min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background:
+    radial-gradient(circle at 35% 20%, rgba(0,200,83,0.06), transparent 38%),
+    #070b08;
+}
+
+.market-header {
+  min-height: 86px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, #101611, #0b100c);
+}
+
+.asset-block {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.asset-label {
+  color: var(--muted);
+  font: 800 10px "JetBrains Mono", monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.asset-block h1 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font: 800 30px "JetBrains Mono", monospace;
+  letter-spacing: 0;
+  color: #f4fff4;
+}
+
+.asset-block h1 small {
+  color: var(--green);
+  font-size: 12px;
+  border: 1px solid #25472d;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: rgba(0,200,83,0.08);
+}
+
+.price-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(94px, 1fr));
+  gap: 8px;
+  min-width: min(420px, 45vw);
+}
+
+.price-strip div {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 9px 10px;
+  background: #0c120d;
+}
+
+.price-strip span {
+  display: block;
+  color: var(--muted);
+  font: 800 9px "JetBrains Mono", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.price-strip strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink);
+  font: 800 15px "JetBrains Mono", monospace;
+}
+
+.chart-stage {
+  min-height: 0;
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: 10px 12px 0;
+}
+
+.chart-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 0 8px;
+}
+
+.toolbar-pill {
+  border: 1px solid #243025;
+  border-radius: 999px;
+  background: #0e140f;
+  color: #a6b6a8;
+  font: 800 10px "JetBrains Mono", monospace;
+  padding: 5px 9px;
 }
 
 .live-hdr {
@@ -36,8 +170,20 @@
   background: var(--surface-2);
 }
 
-.live-canvas-wrap { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--chart-bg); padding: 6px; }
-.live-canvas-wrap canvas { width: 100%; height: 280px; display: block; }
+.live-canvas-wrap {
+  min-height: 0;
+  height: 100%;
+  border: 1px solid #1f2b20;
+  border-radius: 0;
+  background:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px),
+    var(--chart-bg);
+  background-size: 44px 44px;
+  padding: 0;
+  box-shadow: inset 0 0 80px rgba(0,0,0,0.38);
+}
+.live-canvas-wrap canvas { width: 100%; height: 100%; min-height: 520px; display: block; }
 
 .live-indicators {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
@@ -55,6 +201,69 @@
 
 .chart-card canvas { width: 100%; height: 220px; border-radius: var(--radius-sm); background: var(--chart-bg); border: 1px solid var(--line); }
 
+.market-footer {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--line);
+  background: #090d0a;
+}
+
+.right-stack {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px;
+  border-left: 1px solid var(--line);
+  background: #090d0a;
+}
+
+.terminal-card {
+  min-width: 0;
+  border: 1px solid #253025;
+  border-radius: var(--radius);
+  background: #0d120e;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.terminal-card-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--line);
+  color: #efffed;
+}
+
+.terminal-card-hdr strong {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.terminal-card-hdr span {
+  margin-left: auto;
+  color: var(--green);
+  font: 800 10px "JetBrains Mono", monospace;
+}
+
+.terminal-card--chat {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
 @media (max-width: 768px) {
-  .live-panel { border-left: none; border-top: 1px solid var(--line); max-height: 46vh; }
+  .app-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(420px, 1fr) minmax(320px, 42vh);
+  }
+  .market-rail { display: none; }
+  .right-stack { border-left: none; border-top: 1px solid var(--line); }
+  .price-strip { min-width: 0; width: 100%; grid-template-columns: repeat(3, 1fr); }
+  .market-header { align-items: stretch; flex-direction: column; }
+  .live-canvas-wrap canvas { min-height: 360px; }
 }

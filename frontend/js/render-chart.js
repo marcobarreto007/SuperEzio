@@ -135,7 +135,8 @@
       ctx.font = "10px monospace";
       var lbl = times[t];
       if (lbl) {
-        var d = new Date(lbl);
+        var ts = Number(lbl);
+        var d = new Date(ts < 1000000000000 ? ts * 1000 : ts);
         if (isFinite(d.getTime())) lbl = d.toLocaleDateString("en-US", { month:"short", day:"numeric" });
       }
       ctx.fillText(lbl || "", gx, PRICE_H - PAD_B + 14);
