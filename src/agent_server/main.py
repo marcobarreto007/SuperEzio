@@ -179,6 +179,14 @@ if FRONTEND_DIR.exists():
         StaticFiles(directory=str(FRONTEND_DIR), html=False),
         name="frontend",
     )
+    for static_name in ("css", "js"):
+        static_dir = FRONTEND_DIR / static_name
+        if static_dir.exists():
+            app.mount(
+                f"/{static_name}",
+                StaticFiles(directory=str(static_dir), html=False),
+                name=f"frontend_{static_name}",
+            )
 else:
     logger.warning("[%s] Frontend directory not found at %s", AGENT_NAME, FRONTEND_DIR)
 

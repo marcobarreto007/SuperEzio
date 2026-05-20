@@ -74,6 +74,15 @@ def test_runtime_registers_public_contract_routes():
     assert expected.issubset(paths)
 
 
+def test_frontend_static_assets_are_mounted():
+    from agent_server.main import app
+
+    paths = {route.path for route in app.routes if hasattr(route, "path")}
+    assert "/frontend" in paths
+    assert "/css" in paths
+    assert "/js" in paths
+
+
 def test_ceo_runtime_config_matches_manifest_and_script():
     cfg = _runtime_config()
     manifest = _manifest()

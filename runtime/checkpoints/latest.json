@@ -1,10 +1,10 @@
 {
   "project": "SuperEzio / F51 Unified Core",
   "version": "4.0.0",
-  "date_local": "2026-05-20T17:20:31-04:00",
-  "session": "f51-frontend-modular-save-2026-05-20",
+  "date_local": "2026-05-20T19:18:34-04:00",
+  "session": "f51-static-assets-runtime-fix-2026-05-20",
   "status": "COMPLETE",
-  "stage": "frontend-modular-save",
+  "stage": "static-assets-runtime-fix",
   "operational_contract": {
     "agent_server_contract": ".f51/contracts/agent-server.contract.md",
     "runtime_config": "config/runtime.yml",
@@ -31,31 +31,29 @@
     "expert_provider_route": "deepseek -> https://api.deepseek.com"
   },
   "what_was_done": [
-    "Audited the active dirty tree and found a frontend-only modularization.",
-    "Verified frontend JS syntax with node --check for every frontend/js/*.js file.",
-    "Removed frontend/index.html.old because it matched the committed HEAD blob.",
-    "Prepared a local disk-only git commit for the modular frontend files and checkpoints."
+    "Verified the Desktop shortcut points to desktop/SuperEzio.bat.",
+    "Started the CEO model and verified /v1/models lists superezio-ceo-intent-merged.Q4_K_M.gguf.",
+    "Fixed the API static asset surface so the modular frontend can load /css/* and /js/*.",
+    "Restarted the API on port 8002 and verified static assets, health, and model reachability.",
+    "Captured a Chrome headless screenshot of the styled UI."
   ],
   "files_changed": [
-    "frontend/index.html",
-    "frontend/css/*.css",
-    "frontend/js/*.js",
+    "src/agent_server/main.py",
+    "tests/contracts/test_contract_runtime_official.py",
     ".f51/checkpoints/latest.json",
     "runtime/checkpoints/latest.json"
   ],
-  "deleted_or_removed": [
-    "frontend/index.html.old"
-  ],
   "evidence": [
-    "git status --short --untracked-files=all -> frontend modularization only before checkpoint update",
-    "git rev-parse HEAD:frontend/index.html and git hash-object frontend/index.html.old -> both 52b440459216dee5d4f9bcd87a83dcc1377b28de",
-    "node --check frontend/js/*.js -> all modules passed syntax checks",
-    "rg -n \"<style>|</style>|<script>\" frontend/index.html -> no inline style/script blocks found"
+    "http://127.0.0.1:8082/v1/models -> model listed",
+    "http://127.0.0.1:8002/health/details -> local_orchestrator reachable and GPU available",
+    "http://127.0.0.1:8002/css/variables.css -> 200 text/css",
+    "http://127.0.0.1:8002/js/init.js -> 200 application/javascript",
+    "output/playwright/superezio-ui-static-assets-chrome.png -> styled UI screenshot"
   ],
   "risks": [
-    "Browser behavior was not fully playtested in this save step.",
-    "Original frontend monolith remains recoverable from git because frontend/index.html.old matched HEAD."
+    "Playwright CLI browser binary is missing; Chrome headless was used for visual proof.",
+    "A full chat/NDJSON UI interaction was not run in this patch."
   ],
-  "next_step": "Run a browser smoke test for the modularized frontend against the live API.",
+  "next_step": "Run a chat/NDJSON browser flow through the styled UI.",
   "owner": "Codex"
 }

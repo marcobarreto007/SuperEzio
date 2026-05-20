@@ -1,45 +1,56 @@
 {
-  "date_local": "2026-05-20T17:20:31-04:00",
-  "session": "f51-frontend-modular-save-2026-05-20",
+  "date_local": "2026-05-20T19:18:34-04:00",
+  "session": "f51-static-assets-runtime-fix-2026-05-20",
   "status": "completed",
   "what_was_done": [
-    "Audited the current dirty tree before saving.",
-    "Identified a frontend-only split of frontend/index.html into separate CSS and JS files.",
-    "Verified every new frontend/js/*.js file with node --check.",
-    "Removed frontend/index.html.old after verifying it was a duplicate of the HEAD frontend/index.html blob.",
-    "Prepared the current frontend modularization for a local disk-only git commit."
+    "Confirmed the desktop shortcut points to desktop/SuperEzio.bat and the working directory is the SuperEzio repo.",
+    "Started the CEO model and verified llama.cpp serves superezio-ceo-intent-merged.Q4_K_M.gguf on port 8082.",
+    "Diagnosed the broken UI screenshot: frontend/index.html loaded, but modular /css/* and /js/* assets were not served by FastAPI.",
+    "Mounted frontend/css at /css and frontend/js at /js in the official API runtime.",
+    "Restarted only the API process on port 8002 while keeping the CEO process alive.",
+    "Verified /, /css/variables.css, /css/topbar.css, /css/chat.css, /js/init.js, /js/events.js, and /js/health.js return HTTP 200.",
+    "Captured a Chrome headless screenshot showing the styled dark UI rendering."
   ],
   "evidence": {
     "commands": [
-      "git status --short --untracked-files=all -> frontend modularization only before checkpoint update",
-      "git diff --stat -> frontend/index.html reduced from inline monolith to external CSS/JS shell",
-      "git rev-parse HEAD:frontend/index.html and git hash-object frontend/index.html.old -> both 52b440459216dee5d4f9bcd87a83dcc1377b28de",
-      "node --check frontend/js/*.js -> all new JS modules passed syntax checks",
-      "rg -n \"<style>|</style>|<script>\" frontend/index.html -> no inline style/script blocks found"
+      "WScript.Shell shortcut inspection -> C:\\Users\\marco\\Desktop\\SuperEzio.lnk targets desktop\\SuperEzio.bat",
+      "Invoke-RestMethod http://127.0.0.1:8082/v1/models -> superezio-ceo-intent-merged.Q4_K_M.gguf listed",
+      "Invoke-RestMethod http://127.0.0.1:8002/health/details -> local_orchestrator reachable and GPU available",
+      "Invoke-WebRequest http://127.0.0.1:8002/css/variables.css -> 200 text/css",
+      "Invoke-WebRequest http://127.0.0.1:8002/js/init.js -> 200 application/javascript",
+      "chrome.exe --headless=new --screenshot=output/playwright/superezio-ui-static-assets-chrome.png http://127.0.0.1:8002 -> screenshot written"
     ],
     "files_changed": [
-      "frontend/index.html",
-      "frontend/css/*.css",
-      "frontend/js/*.js",
+      "src/agent_server/main.py",
+      "tests/contracts/test_contract_runtime_official.py",
       ".f51/checkpoints/latest.json",
       "runtime/checkpoints/latest.json"
     ],
-    "deleted_or_removed": [
-      "frontend/index.html.old"
+    "runtime_processes": {
+      "api_port": 8002,
+      "ceo_port": 8082,
+      "ceo_binary": "llama.cpp/bin/llama-server.exe"
+    },
+    "artifacts": [
+      "output/playwright/superezio-ui-static-assets-chrome.png",
+      "runtime/logs/api-static-assets-out.log",
+      "runtime/logs/api-static-assets-err.log",
+      "runtime/logs/ceo-ui-new-out.log",
+      "runtime/logs/ceo-ui-new-err.log"
     ]
   },
   "risks": [
     {
-      "severity": "medium",
-      "description": "The frontend change is a large modularization and browser behavior was not fully playtested in this save step.",
-      "mitigation": "Run a browser smoke pass against the local API before product delivery."
+      "severity": "low",
+      "description": "Playwright CLI could not capture because its browser binary is not installed for this user.",
+      "mitigation": "Used installed Chrome headless for the visual screenshot instead."
     },
     {
       "severity": "low",
-      "description": "frontend/index.html.old was removed from disk.",
-      "mitigation": "It matched the committed HEAD blob, so the original can be recovered from git."
+      "description": "llama.cpp reports n_ctx_seq 4096 per slot while script context is 8192 with 2 slots.",
+      "mitigation": "This is expected slot split behavior; /v1/models and API health prove the model is serving."
     }
   ],
-  "next_step": "Run a browser smoke test for the modularized frontend against the live API.",
+  "next_step": "Run a chat/NDJSON browser flow through the styled UI.",
   "owner": "Codex"
 }
