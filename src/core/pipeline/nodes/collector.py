@@ -108,7 +108,7 @@ async def node_collector(state: dict, *, config=None) -> dict:
         )
         return {"scan": scan, "data_context": scan_ctx}
 
-    # ── General / no data needed ──
+    # ── General / no ticker ──
     writer(
         {
             "type": "PIPELINE_STEP",
@@ -117,7 +117,7 @@ async def node_collector(state: dict, *, config=None) -> dict:
             "status": "skipped",
         }
     )
-    return {"data_context": ("Sem ticker ou criterio de busca suficiente para coleta de dados.")}
+    return {}
 
 
 # ---------------------------------------------------------------------------

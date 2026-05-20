@@ -96,11 +96,7 @@ def build_graph(
     builder.add_conditional_edges(
         "orchestrator_primary",
         route_after_orchestrator,
-        {
-            "data": "data",
-            "ceo_primary": "ceo_primary",
-            "respond_blocked": "respond_blocked",
-        },
+        {"data": "data"},
     )
     builder.add_edge("data", "f51_verdict")
     builder.add_edge("f51_verdict", "pennylab")

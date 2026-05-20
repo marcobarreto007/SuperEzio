@@ -35,18 +35,8 @@ ALLOWED_INTENTS = {
 
 
 def route_after_orchestrator(state: dict) -> str:
-    """Determine which node to execute next based on intent route.
-
-    The CEO model was trained to handle natural language requests including
-    asking clarifying questions when needed. 'needs_scope' routes to CEO
-    so the model can respond naturally — the hardcoded block message is
-    reserved for SDCA firewall safety violations.
-    """
-    route = state.get("route", "general")
-    if route in ("ticker_analysis", "market_scan"):
-        return "data"
-    # needs_scope and general both go to CEO — let the trained model handle it
-    return "ceo_primary"
+    """All routes go through the full pipeline — CEO gets complete context."""
+    return "data"
 
 
 # ---------------------------------------------------------------------------
