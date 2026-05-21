@@ -1,29 +1,27 @@
 {
-  "date_local": "2026-05-21T19:02:27-04:00",
-  "session": "Bob_First_UI_Repair",
+  "date_local": "2026-05-21T19:09:57-04:00",
+  "session": "Bob_Clean_Chat_Final",
   "status": "completed",
   "what_was_done": [
-    "Converted the main runtime screen to Bob-first layout: Bob conversation is the primary left workspace and the chart is contextual on the right.",
-    "Moved the ask composer inside Bob's panel so the input is always visible with the conversation.",
-    "Removed visible decorative controls from the main UI: mode tabs, live toggle, SDCA topbar button, telemetry HUD, chart indicator chips, ops board, ask chips, Bob orb, portfolio drawer, and portfolio button.",
-    "Kept ticker, timeframe, and chart reload as the only topbar market controls.",
-    "Added no-store cache headers for /, /frontend, /css, and /js so Chrome stops serving stale local UI during development.",
-    "Updated the runtime contract test to block the removed UI clutter from returning."
+    "Kept the Bob-first UI and removed the remaining visible chat clutter by hiding pipeline, explanation, and diagnostic cards by default.",
+    "Added a frontend debug gate: diagnostic renderers only appear when window.SZ_SHOW_DEBUG_CARDS is explicitly set to true.",
+    "Preserved structured backend events for debugging while keeping the default user conversation clean.",
+    "Verified the local CEO on 127.0.0.1:8082 was down during validation, restarted it, and confirmed /health plus /v1/models.",
+    "Updated the runtime contract test to prevent pipeline/explanation debug cards from returning as default chat UI."
   ],
   "evidence": [
-    "node --check frontend/js/api.js passed.",
     "node --check frontend/js/events.js passed.",
+    "node --check frontend/js/api.js passed.",
     "python -m pytest tests/contracts/test_contract_runtime_official.py tests/contracts/test_contract_endpoints.py passed: 20 passed.",
-    "git diff --check passed after whitespace cleanup.",
-    "Restarted API on 127.0.0.1:8002 and verified / plus /frontend/index.html return cache-control: no-store.",
-    "Playwright screenshot runtime/logs/ui-bob-first.png verified Bob width 920px, chart width 520px, Bob is first, input is inside Bob, and old UI elements are absent.",
-    "Playwright UI send test runtime/logs/ui-bob-first-send.png verified Bob responded through the browser with no errors and input/send returned enabled."
+    "git diff --check passed.",
+    "CEO health returned {\"status\":\"ok\"} after restart and /v1/models listed superezio-ceo-intent-merged.Q4_K_M.gguf.",
+    "Playwright UI send test runtime/logs/ui-bob-clean-chat.png returned exactly one clean Bob answer: Sim, estou online e pronto para operar.",
+    "Playwright confirmed pipelineBars=0, cards=0, explanationCards=0, hasDebugText=false, errors=[] and input/send re-enabled."
   ],
   "risks": [
-    "The SDCA lab markup still exists but is no longer opened from the topbar in this Bob-first UI.",
-    "The Bob response still renders pipeline/explanation details in the chat bubble; next cleanup can hide this by default if Marco wants a cleaner chat.",
-    "There are unrelated dirty files under .f51 plus Dockerfile from another inventory/bootstrap flow; they were not touched as part of this UI repair.",
-    "runtime/logs contains local validation screenshots/logs and remains untracked."
+    "Full repo test suite was not run; validation was scoped to frontend syntax, runtime contracts/endpoints, CEO health, and browser send flow.",
+    "Unrelated dirty files remain outside this fix, including .f51 inventory artifacts, Dockerfile, Makefile, workflow edits, deleted skills, and deleted corpus files.",
+    "runtime/logs contains local screenshots and logs created for validation and remains untracked."
   ],
-  "next_step": "Hide pipeline trace cards by default inside Bob responses, keeping them expandable only when debugging."
+  "next_step": "Review unrelated dirty workspace changes separately before any broader save."
 }

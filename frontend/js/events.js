@@ -46,6 +46,10 @@
     chat.appendChild(div);
   }
 
+  function showDebugCards() {
+    return window.SZ_SHOW_DEBUG_CARDS === true;
+  }
+
   /* ═══════════════════════════════════════════════════════════════
    * MAIN EVENT HANDLER
    * ═══════════════════════════════════════════════════════════════ */
@@ -85,7 +89,7 @@
 
       /* ── EXPLANATION_CHUNK ── */
       case "EXPLANATION_CHUNK":
-        if (SZ.renderExplanation && SZ.renderExplanation.accumulate) {
+        if (showDebugCards() && SZ.renderExplanation && SZ.renderExplanation.accumulate) {
           SZ.renderExplanation.accumulate(ev.content || "");
         }
         break;
@@ -102,7 +106,7 @@
       /* ── PIPELINE_STEP ── */
       case "PIPELINE_STEP":
         if (ev.skipped_duplicate) break;
-        if (SZ.renderPipeline && SZ.renderPipeline.updateStep) {
+        if (showDebugCards() && SZ.renderPipeline && SZ.renderPipeline.updateStep) {
           var ceoObj = SZ.chat.currentCEO;
           if (ceoObj) {
             SZ.renderPipeline.updateStep(ev.step, ev.status, ceoObj);
@@ -114,7 +118,7 @@
       case "F51_VERDICT":
         (function () {
           var ceoObj = SZ.chat.currentCEO;
-          if (SZ.renderF51 && ceoObj) SZ.renderF51(ev, ceoObj);
+          if (showDebugCards() && SZ.renderF51 && ceoObj) SZ.renderF51(ev, ceoObj);
         })();
         break;
 
@@ -122,7 +126,7 @@
       case "SDCA_FIREWALL":
         (function () {
           var ceoObj = SZ.chat.currentCEO;
-          if (SZ.renderSDCA && ceoObj) SZ.renderSDCA(ev, ceoObj);
+          if (showDebugCards() && SZ.renderSDCA && ceoObj) SZ.renderSDCA(ev, ceoObj);
         })();
         break;
 
@@ -130,7 +134,7 @@
       case "PENNYLAB_ANALYSIS":
         (function () {
           var ceoObj = SZ.chat.currentCEO;
-          if (SZ.renderPennylab && ceoObj) SZ.renderPennylab(ev, ceoObj);
+          if (showDebugCards() && SZ.renderPennylab && ceoObj) SZ.renderPennylab(ev, ceoObj);
         })();
         break;
 
@@ -138,7 +142,7 @@
       case "CRISIS_MATH":
         (function () {
           var ceoObj = SZ.chat.currentCEO;
-          if (SZ.renderCrisis && ceoObj) SZ.renderCrisis(ev, ceoObj);
+          if (showDebugCards() && SZ.renderCrisis && ceoObj) SZ.renderCrisis(ev, ceoObj);
         })();
         break;
 
@@ -146,7 +150,7 @@
       case "DATA_COLLECTED":
         (function () {
           var ceoObj = SZ.chat.currentCEO;
-          if (SZ.renderDataQuality && ceoObj) SZ.renderDataQuality(ev, ceoObj);
+          if (showDebugCards() && SZ.renderDataQuality && ceoObj) SZ.renderDataQuality(ev, ceoObj);
         })();
         break;
 
@@ -154,7 +158,7 @@
       case "EXPERT_STARTED":
         (function () {
           var ceoObj = SZ.chat.currentCEO;
-          if (SZ.renderExperts && SZ.renderExperts.updateTile && ceoObj) {
+          if (showDebugCards() && SZ.renderExperts && SZ.renderExperts.updateTile && ceoObj) {
             SZ.renderExperts.updateTile(ev.role || "?", "running", ceoObj);
           }
         })();
@@ -164,7 +168,7 @@
       case "EXPERT_DONE":
         (function () {
           var ceoObj = SZ.chat.currentCEO;
-          if (SZ.renderExperts && SZ.renderExperts.updateTile && ceoObj) {
+          if (showDebugCards() && SZ.renderExperts && SZ.renderExperts.updateTile && ceoObj) {
             var ok = ev.error == null && ev.status !== "error";
             SZ.renderExperts.updateTile(ev.role || "?", ok ? "ok" : "fail", ceoObj);
           }
@@ -175,7 +179,7 @@
       case "EXPERT_SKIPPED":
         (function () {
           var ceoObj = SZ.chat.currentCEO;
-          if (SZ.renderExperts && SZ.renderExperts.updateTile && ceoObj) {
+          if (showDebugCards() && SZ.renderExperts && SZ.renderExperts.updateTile && ceoObj) {
             SZ.renderExperts.updateTile(ev.role || "?", "skip", ceoObj);
           }
         })();
@@ -185,7 +189,7 @@
       case "NEURAL_DECISION":
         (function () {
           var ceoObj = SZ.chat.currentCEO;
-          if (SZ.renderNeural && ceoObj) SZ.renderNeural(ev, ceoObj);
+          if (showDebugCards() && SZ.renderNeural && ceoObj) SZ.renderNeural(ev, ceoObj);
         })();
         break;
 
@@ -203,7 +207,7 @@
       /* ── STREAM_END ── */
       case "STREAM_END":
         /* finalize explanation if streaming */
-        if (SZ.renderExplanation && SZ.renderExplanation.finalize) {
+        if (showDebugCards() && SZ.renderExplanation && SZ.renderExplanation.finalize) {
           var ceoObj2 = SZ.chat.currentCEO;
           if (ceoObj2) SZ.renderExplanation.finalize(ceoObj2);
         }

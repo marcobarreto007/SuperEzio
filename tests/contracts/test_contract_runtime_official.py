@@ -106,6 +106,10 @@ def test_frontend_contract_uses_bob_unified_workspace_without_retired_panels():
     assert "Trendline" not in html
     assert "detail ||" in (ROOT / "frontend" / "js" / "events.js").read_text(encoding="utf-8")
     assert "returned no stream body" in (ROOT / "frontend" / "js" / "api.js").read_text(encoding="utf-8")
+    events_js = (ROOT / "frontend" / "js" / "events.js").read_text(encoding="utf-8")
+    assert "SZ_SHOW_DEBUG_CARDS" in events_js
+    assert "showDebugCards() && SZ.renderPipeline" in events_js
+    assert "showDebugCards() && SZ.renderExplanation" in events_js
     css_files = [
         ROOT / "frontend" / "css" / "base.css",
         ROOT / "frontend" / "css" / "charts.css",
