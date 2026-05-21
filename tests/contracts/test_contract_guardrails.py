@@ -61,9 +61,7 @@ def test_node_blocked_vague():
     guard_node.get_stream_writer = lambda: _noop_writer
 
     async def _run():
-        return await node_blocked(
-            {"sdca_blocked": False, "run_id": "test-blocked-1"}
-        )
+        return await node_blocked({"sdca_blocked": False, "run_id": "test-blocked-1"})
 
     result = asyncio.run(_run())
     assert "final" in result

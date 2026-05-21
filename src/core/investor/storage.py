@@ -1,14 +1,14 @@
 """
-Investor Storage — SQLite para persistência de decisões de investimento
+Investor Storage â€” SQLite para persistÃªncia de decisÃµes de investimento
 ======================================================================
 Tabelas:
-  investor_decisions      → análises e respostas finais
-  investor_risk_profile   → perfil de risco por sessão/usuário
-  investor_watchlist      → tickers monitorados
-  investor_notes          → notas livres do usuário
-  investor_api_usage      → auditoria de uso do DeepSeek
+  investor_decisions      â†’ anÃ¡lises e respostas finais
+  investor_risk_profile   â†’ perfil de risco por sessÃ£o/usuÃ¡rio
+  investor_watchlist      â†’ tickers monitorados
+  investor_notes          â†’ notas livres do usuÃ¡rio
+  investor_api_usage      â†’ auditoria de uso do DeepSeek
 
-REGRAS DE SEGURANÇA:
+REGRAS DE SEGURANÃ‡A:
   - Nunca salvar API key.
   - Nunca salvar dados de corretora ou credenciais.
   - Apenas dados analiticos e de decisao.
@@ -62,7 +62,7 @@ class InvestorStorage:
                     id          INTEGER PRIMARY KEY AUTOINCREMENT,
                     ticker      TEXT NOT NULL,
                     asset_type  TEXT,
-                    user_input  TEXT,          -- JSON com parâmetros do usuário
+                    user_input  TEXT,          -- JSON com parÃ¢metros do usuÃ¡rio
                     response    TEXT,          -- JSON da resposta completa
                     decision    TEXT,          -- study_more|wait|small_position|avoid
                     confidence  TEXT,
@@ -123,7 +123,7 @@ class InvestorStorage:
         cost_usd: float = 0.0,
     ) -> int:
         """
-        Persiste uma análise completa.
+        Persiste uma anÃ¡lise completa.
         Retorna o ID do registro criado.
         """
         decision = response.get("suggested_next_step", "")
@@ -273,12 +273,6 @@ _storage_lock: _threading.Lock = _threading.Lock()
 
 
 def get_investor_storage() -> InvestorStorage:
-    import warnings
-
-    warnings.warn(
-        "get_investor_storage is deprecated — investor module is disconnected from pipeline.",
-        DeprecationWarning,
-    )
     global _storage
     if _storage is None:
         with _storage_lock:

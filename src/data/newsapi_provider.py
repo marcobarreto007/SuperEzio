@@ -1,5 +1,5 @@
 """
-NewsAPI Provider — Real-time financial news with sentiment analysis.
+NewsAPI Provider â€” Real-time financial news with sentiment analysis.
 
 Uses NewsAPI.org v2 for headlines with rich metadata (author, urlToImage,
 publishedAt). Sentiment computed via TextBlob with keyword-lexicon fallback.
@@ -31,7 +31,7 @@ try:
 except ImportError:
     _HAS_TEXTBLOB = False
 
-# ── Sentiment lexicon (backup when TextBlob unavailable) ────────────────────
+# â”€â”€ Sentiment lexicon (fallback when TextBlob unavailable) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 _POS_WORDS = frozenset(
     {

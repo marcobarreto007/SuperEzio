@@ -3,7 +3,7 @@ Regime classifier — threshold-based heuristic.
 
 NOTE: this is NOT a Markov regime-switching model in the Hamilton (1989) /
 hmmlearn sense. It is a deterministic threshold over realized volatility
-and credit spreads, kept under the legacy class name for ensemble weight
+and credit spreads, kept under the stable class name for ensemble weight
 stability. The honest implementation label is exposed in
 ``details["implementation"]`` so consumers do not assume HMM semantics.
 """
@@ -12,7 +12,7 @@ from ..contracts.schemas import CrisisInput, SensorResult
 
 
 class MarkovRegimeModel:
-    """Threshold-based regime classifier (legacy class name retained)."""
+    """Threshold-based regime classifier (stable class name retained)."""
 
     def evaluate(self, input_data: CrisisInput) -> SensorResult:
         if not input_data.market_series or len(input_data.market_series) < 5:

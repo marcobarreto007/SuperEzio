@@ -264,7 +264,7 @@ class DataHub:
         result = self.route("sentiment", symbol)
         if "error" not in result:
             return result
-        # Fallback: legacy NewsScout sentiment
+        # Fallback: NewsScout sentiment
         return self.get_sentiment_summary(symbol)
 
     def get_market_sentiment(self) -> Dict[str, Any]:

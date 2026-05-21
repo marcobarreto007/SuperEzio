@@ -3,6 +3,7 @@ F51 SFT Conversion Pipeline
 Converts downloaded HF datasets into unified JSONL SFT format.
 Target: 500 MB of premium fraud/finance training data.
 """
+
 import pandas as pd
 import json
 import os
@@ -28,7 +29,10 @@ SYSTEMS = {
     "finance_sentiment": "You are a financial sentiment analyst. You analyze financial news headlines, microblogs, and corporate communications for sentiment, market impact, and entity-level analysis. Output structured sentiment assessments with confidence scores.",
 }
 
-def make_entry(domain, category, difficulty, system_key, user_content, assistant_content, metadata=None):
+
+def make_entry(
+    domain, category, difficulty, system_key, user_content, assistant_content, metadata=None
+):
     """Create a standard F51 SFT entry."""
     entry = {
         "domain": domain,
@@ -37,16 +41,18 @@ def make_entry(domain, category, difficulty, system_key, user_content, assistant
         "messages": [
             {"role": "system", "content": SYSTEMS.get(system_key, SYSTEMS["fraud_transaction"])},
             {"role": "user", "content": user_content},
-            {"role": "assistant", "content": assistant_content}
-        ]
+            {"role": "assistant", "content": assistant_content},
+        ],
     }
     if metadata:
         entry["metadata"] = metadata
     return entry
 
+
 def estimate_tokens(text):
     """Rough token estimate: ~4 chars per token."""
     return len(str(text)) // 4
+
 
 # ============================================================
 # 1. CiferAI Fraud Detection (Tabular -> Fraud Analysis)
@@ -57,8 +63,8 @@ def convert_ciferai(sample_fraud=30000, sample_nofraud=50000):
     path = os.path.join(RAW, "cifer_fraud_detection__default__train.parquet")
     df = pd.read_parquet(path)
 
-    fraud_df = df[df['isFraud'] == 1]
-    nofraud_df = df[df['isFraud'] == 0]
+    fraud_df = df[df["isFraud"] == 1]
+    nofraud_df = df[df["isFraud"] == 0]
 
     print(f"  Fraud: {len(fraud_df):,}, Non-fraud: {len(nofraud_df):,}")
 
@@ -87,25 +93,29 @@ def convert_ciferai(sample_fraud=30000, sample_nofraud=50000):
         action = "allow"
 
         # Rule-based signal detection
-        if row['amount'] > 200000:
+        if row["amount"] > 200000:
             signals.append(f"High-value transaction: {row['amount']:.2f} exceeds typical threshold")
             risk = "medium"
-        if row['type'] in ('TRANSFER', 'CASH_OUT'):
+        if row["type"] in ("TRANSFER", "CASH_OUT"):
             signals.append(f"{row['type']} transaction type is commonly used in fraud schemes")
             risk = "medium"
-        if row['oldbalanceOrg'] > 0 and row['newbalanceOrig'] == 0 and row['amount'] > 50000:
+        if row["oldbalanceOrg"] > 0 and row["newbalanceOrig"] == 0 and row["amount"] > 50000:
             signals.append("Full account drain detected: entire balance transferred out")
             risk = "high"
-        if row['newbalanceDest'] == 0 and row['amount'] > 0:
-            signals.append("Destination balance inconsistency: funds not reflected in destination account")
+        if row["newbalanceDest"] == 0 and row["amount"] > 0:
+            signals.append(
+                "Destination balance inconsistency: funds not reflected in destination account"
+            )
             risk = "high"
-        if row['oldbalanceDest'] == 0 and row['newbalanceDest'] == 0 and row['amount'] > 1000:
-            signals.append("Zero-balance destination account receiving transfer: possible mule account")
+        if row["oldbalanceDest"] == 0 and row["newbalanceDest"] == 0 and row["amount"] > 1000:
+            signals.append(
+                "Zero-balance destination account receiving transfer: possible mule account"
+            )
             risk = "high"
-        if row['amount'] > 500000:
+        if row["amount"] > 500000:
             signals.append("Amount exceeds regulatory reporting threshold")
             risk = "high"
-        if row['isFlaggedFraud']:
+        if row["isFlaggedFraud"]:
             signals.append("Transaction flagged by automated system")
             risk = "high"
 
@@ -142,13 +152,20 @@ def convert_ciferai(sample_fraud=30000, sample_nofraud=50000):
             f"{'is consistent with' if risk == 'high' else 'does not match'} known fraud signatures."
         )
 
-        entries.append(make_entry(
-            domain="fraud", category="transaction_risk", difficulty=difficulty,
-            system_key="fraud_transaction",
-            user_content=user_msg,
-            assistant_content=assistant_msg,
-            metadata={"source": "CiferAI/Cifer-Fraud-Detection-Dataset-AF", "isFraud": int(row['isFraud'])}
-        ))
+        entries.append(
+            make_entry(
+                domain="fraud",
+                category="transaction_risk",
+                difficulty=difficulty,
+                system_key="fraud_transaction",
+                user_content=user_msg,
+                assistant_content=assistant_msg,
+                metadata={
+                    "source": "CiferAI/Cifer-Fraud-Detection-Dataset-AF",
+                    "isFraud": int(row["isFraud"]),
+                },
+            )
+        )
 
     # Non-fraud sample (smaller, for balance)
     for _, row in nofraud_sample.iterrows():
@@ -175,13 +192,17 @@ def convert_ciferai(sample_fraud=30000, sample_nofraud=50000):
             f"Recommended Action: Allow through standard processing."
         )
 
-        entries.append(make_entry(
-            domain="fraud", category="transaction_risk", difficulty="easy",
-            system_key="fraud_transaction",
-            user_content=user_msg,
-            assistant_content=assistant_msg,
-            metadata={"source": "CiferAI/Cifer-Fraud-Detection-Dataset-AF", "isFraud": 0}
-        ))
+        entries.append(
+            make_entry(
+                domain="fraud",
+                category="transaction_risk",
+                difficulty="easy",
+                system_key="fraud_transaction",
+                user_content=user_msg,
+                assistant_content=assistant_msg,
+                metadata={"source": "CiferAI/Cifer-Fraud-Detection-Dataset-AF", "isFraud": 0},
+            )
+        )
 
     print(f"  Converted: {len(entries)} entries")
     return entries
@@ -197,8 +218,8 @@ def convert_amitkedia():
 
     entries = []
     for _, row in df.iterrows():
-        filing_text = str(row['Fillings'])[:8000]  # Truncate very long filings
-        is_fraud = str(row['Fraud']).lower() == 'yes'
+        filing_text = str(row["Fillings"])[:8000]  # Truncate very long filings
+        is_fraud = str(row["Fraud"]).lower() == "yes"
 
         user_msg = (
             f"Analyze the following financial filing for indicators of fraud, "
@@ -243,13 +264,17 @@ def convert_amitkedia():
                 "Risk Level: LOW — Routine monitoring sufficient."
             )
 
-        entries.append(make_entry(
-            domain="fraud", category="document_fraud", difficulty=difficulty,
-            system_key="fraud_document",
-            user_content=user_msg,
-            assistant_content=assistant_msg,
-            metadata={"source": "amitkedia/Financial-Fraud-Dataset", "isFraud": is_fraud}
-        ))
+        entries.append(
+            make_entry(
+                domain="fraud",
+                category="document_fraud",
+                difficulty=difficulty,
+                system_key="fraud_document",
+                user_content=user_msg,
+                assistant_content=assistant_msg,
+                metadata={"source": "amitkedia/Financial-Fraud-Dataset", "isFraud": is_fraud},
+            )
+        )
 
     print(f"  Converted: {len(entries)} entries")
     return entries
@@ -262,11 +287,11 @@ def convert_phishing():
     print("\n[3/6] Converting Phishing Email Dataset...")
     path = os.path.join(RAW, "phishing_email_zefang__default__train.parquet")
     df = pd.read_parquet(path)
-    df = df.dropna(subset=['Email Text'])
+    df = df.dropna(subset=["Email Text"])
 
     # Separate phishing and safe
-    phishing = df[df['Email Type'] == 'Phishing Email']
-    safe = df[df['Email Type'] == 'Safe Email']
+    phishing = df[df["Email Type"] == "Phishing Email"]
+    safe = df[df["Email Type"] == "Safe Email"]
 
     # Balance: use all phishing, sample safe to 2x
     safe_sample = safe.sample(n=min(len(phishing) * 2, len(safe)), random_state=42)
@@ -274,8 +299,8 @@ def convert_phishing():
 
     entries = []
     for _, row in combined.iterrows():
-        email_text = str(row['Email Text'])[:6000]
-        is_phishing = row['Email Type'] == 'Phishing Email'
+        email_text = str(row["Email Text"])[:6000]
+        is_phishing = row["Email Type"] == "Phishing Email"
 
         user_msg = (
             f"Analyze the following email for phishing indicators, social engineering tactics, "
@@ -312,15 +337,24 @@ def convert_phishing():
                 "Threat Level: LOW — No action required."
             )
 
-        entries.append(make_entry(
-            domain="fraud", category="phishing_detection", difficulty=difficulty,
-            system_key="fraud_phishing",
-            user_content=user_msg,
-            assistant_content=assistant_msg,
-            metadata={"source": "zefang-liu/phishing-email-dataset", "is_phishing": is_phishing}
-        ))
+        entries.append(
+            make_entry(
+                domain="fraud",
+                category="phishing_detection",
+                difficulty=difficulty,
+                system_key="fraud_phishing",
+                user_content=user_msg,
+                assistant_content=assistant_msg,
+                metadata={
+                    "source": "zefang-liu/phishing-email-dataset",
+                    "is_phishing": is_phishing,
+                },
+            )
+        )
 
-    print(f"  Converted: {len(entries)} entries (from {len(phishing)} phishing + {len(safe_sample)} safe)")
+    print(
+        f"  Converted: {len(entries)} entries (from {len(phishing)} phishing + {len(safe_sample)} safe)"
+    )
     return entries
 
 
@@ -342,22 +376,22 @@ def convert_multiagent():
         print(f"  {split_name}: {len(df)} rows")
 
         for _, row in df.iterrows():
-            content = str(row['content'])
-            category = str(row['category'])
-            deception = str(row['deception_type'])
-            tactics = str(row['manipulation_tactics'])
+            content = str(row["content"])
+            category = str(row["category"])
+            deception = str(row["deception_type"])
+            tactics = str(row["manipulation_tactics"])
 
             user_msg = (
                 f"Analyze this social media content for fraud, deception, or scam indicators:\n\n"
-                f"--- CONTENT ---\n\"{content}\"\n--- END ---\n\n"
+                f'--- CONTENT ---\n"{content}"\n--- END ---\n\n'
                 f"Context: This was posted in a category related to '{category}'.\n"
                 f"Identify deception types, manipulation tactics, risk level, and victim profile."
             )
 
             # Difficulty based on category
-            if 'investment' in category.lower() or 'securities' in category.lower():
+            if "investment" in category.lower() or "securities" in category.lower():
                 difficulty = "hard"
-            elif 'phishing' in category.lower() or 'impersonation' in category.lower():
+            elif "phishing" in category.lower() or "impersonation" in category.lower():
                 difficulty = "medium"
             else:
                 difficulty = "medium"
@@ -381,18 +415,22 @@ def convert_multiagent():
                 f"  3. Block known scam patterns and report to relevant authorities"
             )
 
-            entries.append(make_entry(
-                domain="fraud", category="social_fraud", difficulty=difficulty,
-                system_key="fraud_social",
-                user_content=user_msg,
-                assistant_content=assistant_msg,
-                metadata={
-                    "source": "ninty-seven/MultiAgentFraudBench",
-                    "category": category,
-                    "deception_type": deception,
-                    "manipulation_tactics": tactics
-                }
-            ))
+            entries.append(
+                make_entry(
+                    domain="fraud",
+                    category="social_fraud",
+                    difficulty=difficulty,
+                    system_key="fraud_social",
+                    user_content=user_msg,
+                    assistant_content=assistant_msg,
+                    metadata={
+                        "source": "ninty-seven/MultiAgentFraudBench",
+                        "category": category,
+                        "deception_type": deception,
+                        "manipulation_tactics": tactics,
+                    },
+                )
+            )
 
     print(f"  Converted: {len(entries)} entries")
     return entries
@@ -414,25 +452,25 @@ def convert_convfinqa():
 
         df = pd.read_parquet(path)
         # Only rows with qa field populated
-        df = df.dropna(subset=['qa'])
+        df = df.dropna(subset=["qa"])
         print(f"  {split_name}: {len(df)} rows with Q&A")
 
         for _, row in df.iterrows():
-            qa = row['qa']
-            question = str(qa.get('question', ''))
-            answer = str(qa.get('answer', ''))
-            explanation = str(qa.get('explanation', ''))
-            program = str(qa.get('program', ''))
+            qa = row["qa"]
+            question = str(qa.get("question", ""))
+            answer = str(qa.get("answer", ""))
+            explanation = str(qa.get("explanation", ""))
+            program = str(qa.get("program", ""))
 
             # Build table context (handle numpy arrays and lists)
-            pre_raw = row.get('pre_text')
+            pre_raw = row.get("pre_text")
             if pre_raw is not None and len(pre_raw) > 0:
-                pre_text = ' '.join(str(t) for t in pre_raw)[:3000]
+                pre_text = " ".join(str(t) for t in pre_raw)[:3000]
             else:
                 pre_text = ""
-            post_raw = row.get('post_text')
+            post_raw = row.get("post_text")
             if post_raw is not None and len(post_raw) > 0:
-                post_text = ' '.join(str(t) for t in post_raw)[:3000]
+                post_text = " ".join(str(t) for t in post_raw)[:3000]
             else:
                 post_text = ""
 
@@ -445,8 +483,8 @@ def convert_convfinqa():
             )
 
             # Determine difficulty from computation steps
-            steps_arr = qa.get('steps', [])
-            num_steps = len(steps_arr) if hasattr(steps_arr, '__len__') else 0
+            steps_arr = qa.get("steps", [])
+            num_steps = len(steps_arr) if hasattr(steps_arr, "__len__") else 0
             if num_steps >= 3:
                 difficulty = "hard"
             elif num_steps == 2:
@@ -462,18 +500,22 @@ def convert_convfinqa():
                 f"The answer was derived by {'a multi-step computation from the financial tables and document text' if num_steps >= 2 else 'direct extraction/computation from the provided financial data'}."
             )
 
-            entries.append(make_entry(
-                domain="finance", category="financial_qa", difficulty=difficulty,
-                system_key="finance_qa",
-                user_content=user_msg,
-                assistant_content=assistant_msg,
-                metadata={
-                    "source": "AdaptLLM/ConvFinQA",
-                    "split": split_name,
-                    "num_steps": num_steps,
-                    "program": program
-                }
-            ))
+            entries.append(
+                make_entry(
+                    domain="finance",
+                    category="financial_qa",
+                    difficulty=difficulty,
+                    system_key="finance_qa",
+                    user_content=user_msg,
+                    assistant_content=assistant_msg,
+                    metadata={
+                        "source": "AdaptLLM/ConvFinQA",
+                        "split": split_name,
+                        "num_steps": num_steps,
+                        "program": program,
+                    },
+                )
+            )
 
     print(f"  Converted: {len(entries)} entries")
     return entries
@@ -497,10 +539,10 @@ def convert_fiqa():
         print(f"  {split_name}: {len(df)} rows")
 
         for _, row in df.iterrows():
-            sentence = str(row['sentence'])
-            target = str(row['target'])
-            aspect = str(row['aspect'])
-            score = float(row['score'])
+            sentence = str(row["sentence"])
+            target = str(row["target"])
+            aspect = str(row["aspect"])
+            score = float(row["score"])
 
             # Convert score to label
             if score > 0.2:
@@ -518,7 +560,7 @@ def convert_fiqa():
 
             user_msg = (
                 f"Analyze the sentiment of this financial text:\n\n"
-                f"\"{sentence}\"\n\n"
+                f'"{sentence}"\n\n'
                 f"Entity: {target}\n"
                 f"Aspect: {aspect}\n\n"
                 f"Provide sentiment classification with confidence score and entity-level analysis."
@@ -526,7 +568,7 @@ def convert_fiqa():
 
             assistant_msg = (
                 f"Financial Sentiment Analysis:\n\n"
-                f"Text: \"{sentence}\"\n"
+                f'Text: "{sentence}"\n'
                 f"Entity: {target}\n"
                 f"Aspect: {aspect}\n\n"
                 f"Sentiment: {sentiment_label}\n"
@@ -539,19 +581,23 @@ def convert_fiqa():
                 f"Market Impact: {'Potentially favorable for entity valuation' if sentiment == 'positive' else 'Potentially adverse for entity valuation' if sentiment == 'negative' else 'Limited directional impact expected'}"
             )
 
-            entries.append(make_entry(
-                domain="finance", category="sentiment_analysis", difficulty=difficulty,
-                system_key="finance_sentiment",
-                user_content=user_msg,
-                assistant_content=assistant_msg,
-                metadata={
-                    "source": "TheFinAI/fiqa-sentiment-classification",
-                    "split": split_name,
-                    "score": score,
-                    "target": target,
-                    "aspect": aspect
-                }
-            ))
+            entries.append(
+                make_entry(
+                    domain="finance",
+                    category="sentiment_analysis",
+                    difficulty=difficulty,
+                    system_key="finance_sentiment",
+                    user_content=user_msg,
+                    assistant_content=assistant_msg,
+                    metadata={
+                        "source": "TheFinAI/fiqa-sentiment-classification",
+                        "split": split_name,
+                        "score": score,
+                        "target": target,
+                        "aspect": aspect,
+                    },
+                )
+            )
 
     print(f"  Converted: {len(entries)} entries")
     return entries
@@ -570,7 +616,7 @@ if __name__ == "__main__":
     all_entries.extend(convert_convfinqa())
     all_entries.extend(convert_fiqa())
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"TOTAL ENTRIES: {len(all_entries):,}")
 
     # Deduplicate by user message hash
@@ -642,13 +688,25 @@ if __name__ == "__main__":
         "categories": categories,
         "difficulties": diffs,
         "sources": {
-            "CiferAI": len([e for e in deduped if "CiferAI" in str(e.get("metadata", {}).get("source", ""))]),
-            "amitkedia": len([e for e in deduped if "amitkedia" in str(e.get("metadata", {}).get("source", ""))]),
-            "phishing_email": len([e for e in deduped if "phishing" in str(e.get("metadata", {}).get("source", ""))]),
-            "MultiAgentFraudBench": len([e for e in deduped if "MultiAgent" in str(e.get("metadata", {}).get("source", ""))]),
-            "ConvFinQA": len([e for e in deduped if "ConvFinQA" in str(e.get("metadata", {}).get("source", ""))]),
-            "FiQA": len([e for e in deduped if "fiqa" in str(e.get("metadata", {}).get("source", ""))]),
-        }
+            "CiferAI": len(
+                [e for e in deduped if "CiferAI" in str(e.get("metadata", {}).get("source", ""))]
+            ),
+            "amitkedia": len(
+                [e for e in deduped if "amitkedia" in str(e.get("metadata", {}).get("source", ""))]
+            ),
+            "phishing_email": len(
+                [e for e in deduped if "phishing" in str(e.get("metadata", {}).get("source", ""))]
+            ),
+            "MultiAgentFraudBench": len(
+                [e for e in deduped if "MultiAgent" in str(e.get("metadata", {}).get("source", ""))]
+            ),
+            "ConvFinQA": len(
+                [e for e in deduped if "ConvFinQA" in str(e.get("metadata", {}).get("source", ""))]
+            ),
+            "FiQA": len(
+                [e for e in deduped if "fiqa" in str(e.get("metadata", {}).get("source", ""))]
+            ),
+        },
     }
 
     manifest_path = os.path.join(OUT, "sft_manifest.json")

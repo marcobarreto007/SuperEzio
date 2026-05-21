@@ -1,4 +1,4 @@
-"""Contract tests: agent_server.main — FastAPI app creation & startup helpers."""
+"""Contract tests: agent_server.main â€” FastAPI app creation & startup helpers."""
 
 import os
 
@@ -42,20 +42,6 @@ def test_env_bool():
 
     assert _env_bool("NONEXISTENT_VAR_XYZ_123", default=True) is True
     assert _env_bool("NONEXISTENT_VAR_XYZ_123", default=False) is False
-
-
-def test_build_edge_gateway_skip():
-    from agent_server.main import _build_edge_gateway
-
-    gw = _build_edge_gateway()
-    assert gw is not None
-
-
-def test_validate_edge_runtime_config():
-    from agent_server.main import _validate_edge_runtime_config
-
-    # Should not raise — UNIVERSAL_SKIP_GATEWAY=1 skips validation
-    _validate_edge_runtime_config()
 
 
 def test_app_has_middleware():

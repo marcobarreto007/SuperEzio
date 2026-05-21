@@ -3,6 +3,7 @@ F51 Dataset Downloader — Hugging Face + GitHub
 Downloads selected fraud/finance datasets and saves to disk for conversion.
 Token is scoped for read-only dataset access.
 """
+
 import os
 import json
 from datasets import load_dataset, get_dataset_config_names
@@ -28,6 +29,7 @@ DATASETS = [
 
 RESULTS = {}
 
+
 def download_safely(dataset_id, config, split, local_name):
     """Download dataset, handling splits/configs gracefully."""
     result = {"id": dataset_id, "local_name": local_name, "splits": {}, "error": None}
@@ -43,11 +45,15 @@ def download_safely(dataset_id, config, split, local_name):
         for cfg in configs:
             cfg_name = cfg if cfg else "default"
             try:
-                dataset = load_dataset(dataset_id, cfg, split=split, trust_remote_code=True, token=HF_TOKEN)
+                dataset = load_dataset(
+                    dataset_id, cfg, split=split, trust_remote_code=True, token=HF_TOKEN
+                )
             except Exception:
                 # Try without config
                 try:
-                    dataset = load_dataset(dataset_id, split=split, trust_remote_code=True, token=HF_TOKEN)
+                    dataset = load_dataset(
+                        dataset_id, split=split, trust_remote_code=True, token=HF_TOKEN
+                    )
                 except Exception as e2:
                     result["error"] = f"config={cfg}: {e2}"
                     continue
@@ -59,7 +65,11 @@ def download_safely(dataset_id, config, split, local_name):
                     path = os.path.join(OUT_DIR, f"{local_name}__{cfg_name}__{spl}.parquet")
                     df.to_parquet(path)
                     sz_mb = os.path.getsize(path) / (1024 * 1024)
-                    result["splits"][key] = {"rows": len(df), "cols": list(df.columns), "size_mb": round(sz_mb, 2)}
+                    result["splits"][key] = {
+                        "rows": len(df),
+                        "cols": list(df.columns),
+                        "size_mb": round(sz_mb, 2),
+                    }
                     print(f"  [OK] {key}: {len(df)} rows, {sz_mb:.1f} MB")
             else:
                 key = cfg_name
@@ -67,7 +77,11 @@ def download_safely(dataset_id, config, split, local_name):
                 path = os.path.join(OUT_DIR, f"{local_name}__{key}.parquet")
                 df.to_parquet(path)
                 sz_mb = os.path.getsize(path) / (1024 * 1024)
-                result["splits"][key] = {"rows": len(df), "cols": list(df.columns), "size_mb": round(sz_mb, 2)}
+                result["splits"][key] = {
+                    "rows": len(df),
+                    "cols": list(df.columns),
+                    "size_mb": round(sz_mb, 2),
+                }
                 print(f"  [OK] {key}: {len(df)} rows, {sz_mb:.1f} MB")
     except Exception as e:
         result["error"] = str(e)
@@ -76,17 +90,18 @@ def download_safely(dataset_id, config, split, local_name):
     RESULTS[local_name] = result
     return result
 
+
 if __name__ == "__main__":
     for ds_id, cfg, spl, lname in DATASETS:
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Downloading: {ds_id} -> {lname}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         download_safely(ds_id, cfg, spl, lname)
 
     # Summary
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("DOWNLOAD SUMMARY")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     total_rows = 0
     total_mb = 0
     for name, r in RESULTS.items():

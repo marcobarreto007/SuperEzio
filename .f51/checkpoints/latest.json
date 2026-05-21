@@ -1,43 +1,26 @@
 {
-  "date_local": "2026-05-20T22:58:25-04:00",
-  "session": "arqueologist-legacy-purge-2026-05-20",
+  "date_local": "2026-05-21T00:00:00-04:00",
+  "session": "clean-tree-zero-retired-surface-2026-05-21",
   "status": "completed",
   "what_was_done": [
-    "Used the local arqueologist skill instructions to verify references before deletion.",
-    "Created a disk backup before removal: C:\\Users\\marco\\Desktop\\SuperEzio_backups\\pre-arqueologist-legacy-purge-20260520-225410.zip.",
-    "Removed orphan/legacy tracked package .claude/skills/constant-time-analysis.",
-    "Removed historical archive/experimental/training from the live tree.",
-    "Removed unreferenced loose helpers in F51_Datasets and scratch scripts under scripts/.",
-    "Kept scripts/train_qwen36_3h.py because scripts/vastai_onstart.sh still invokes it; removed only a dead local variable.",
-    "Fixed import ordering/packaging issues in live signal ledger scripts, DataCollector, and runtime integration test.",
-    "Updated task board, risk register, and documentation references for the removed legacy archive."
+    "Removed archived runtime/docs surfaces; no copy was created.",
+    "Removed generic non-F51 local skill bundles from .claude/skills.",
+    "Removed provider alias path and edge placeholder code.",
+    "Removed retired RAG alias exports and renamed subprocess collector fallback.",
+    "Rewrote F51 maps and documentation to current active tree.",
+    "Applied repo-wide ruff formatting."
   ],
-  "evidence": {
-    "backup": "C:\\Users\\marco\\Desktop\\SuperEzio_backups\\pre-arqueologist-legacy-purge-20260520-225410.zip",
-    "commands": [
-      "python -m ruff check . -> All checks passed",
-      "python -m pytest tests -q -> 725 passed, 7 warnings in 70.07s",
-      "python -m pytest tests/test_integration_runtime.py -q -v -> 7 passed in 43.95s",
-      "python -m pytest tests/contracts/test_contract_runtime_official.py::test_runtime_checkpoint_tracks_official_entrypoints -q -> 1 passed",
-      "python -m ruff format --check touched Python files -> 6 files already formatted",
-      "python -m ruff format --check . -> failed on pre-existing/non-scoped formatting debt across .claude, F51_Datasets, archive, scripts, src, tests",
-      "python scripts/signal_ledger/report_signals.py --json -> exited 0 with emitted_total=1",
-      "Invoke-WebRequest health/models/API endpoints -> 200 for CEO /health, CEO /v1/models, API /health, API /health/details, /capabilities, /product/manifest",
-      "rg deleted scratch names -> no live references found"
-    ]
-  },
+  "evidence": [
+    "rg retired/provider terms over active scopes -> no matches",
+    "python -m json.tool .f51/INVENTORY.json .f51/GITHUB_POLICY.json .f51/checkpoints/latest.json runtime/checkpoints/latest.json -> passed",
+    "python -m ruff check . -> All checks passed",
+    "python -m ruff format --check . -> 231 files already formatted",
+    "python -m pytest tests -q -> 723 passed, 7 warnings in 70.48s",
+    "Invoke-WebRequest endpoint sweep -> 200 for CEO health/models and API health/details/capabilities/product manifest",
+    "git diff --check -> passed"
+  ],
   "risks": [
-    {
-      "severity": "low",
-      "description": ".f51 inventory and duplicate maps are historical snapshots and still mention removed legacy paths.",
-      "mitigation": "Regenerate F51 inventory maps in a dedicated inventory pass if exact snapshot freshness is required."
-    },
-    {
-      "severity": "low",
-      "description": "Training launcher script was retained because it is still referenced by VastAI onstart.",
-      "mitigation": "Decommission remaining training lane only after a separate model-training decision."
-    }
+    "F51_Datasets retained because training scripts still reference SFT outputs"
   ],
-  "next_step": "Regenerate .f51 inventory maps after this purge, or proceed to the next product/runtime patch with the current verified tree.",
-  "owner": "Arqueologist Agent"
+  "next_step": "Commit locally. No GitHub push because disk-only policy is active."
 }

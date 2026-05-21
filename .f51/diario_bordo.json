@@ -1,5 +1,5 @@
 {
-  "missao": "Merge CEO LoRA + Intent LoRA → GGUF Q4_K_M",
+  "missao": "Merge CEO LoRA + Intent LoRA â†’ GGUF Q4_K_M",
   "inicio": "2026-05-19T16:30:00-04:00",
   "fim": "2026-05-19T22:00:00-04:00",
   "status": "concluido",
@@ -9,23 +9,23 @@
       "timestamp": "2026-05-19T15:47:00-04:00",
       "evento": "download_concluido",
       "detalhes": "qwen36-intent-f51.Q4_K_M.gguf baixado de vasta.ai (ssh6:15904) em 4 chunks. 19.71 GB. SHA256 verificado.",
-      "evidencia": "models/qwen36-intent-f51.Q4_K_M.gguf — 21,166,757,696 bytes"
+      "evidencia": "models/qwen36-intent-f51.Q4_K_M.gguf â€” 21,166,757,696 bytes"
     },
     {
       "timestamp": "2026-05-19T16:00:00-04:00",
       "evento": "checkpoints_intent_baixados",
-      "detalhes": "Intent LoRA checkpoints (best + final) baixados da instância antiga. 86 MB cada (adapter_model.safetensors).",
+      "detalhes": "Intent LoRA checkpoints (best + final) baixados da instÃ¢ncia antiga. 86 MB cada (adapter_model.safetensors).",
       "evidencia": "output/qwen36-intent/best/, output/qwen36-intent/final/"
     },
     {
       "timestamp": "2026-05-19T16:05:00-04:00",
       "evento": "instancia_antiga_morta",
-      "detalhes": "Instância vasta.ai ssh6:15904 parada via kill -9 -1."
+      "detalhes": "InstÃ¢ncia vasta.ai ssh6:15904 parada via kill -9 -1."
     },
     {
       "timestamp": "2026-05-19T16:15:00-04:00",
       "evento": "tentativas_falhas",
-      "detalhes": "V100, A100, RTX 5090, RTX 8000 — todos esgotados ou disco insuficiente. A40 ficou preso em loading por 15+ min."
+      "detalhes": "V100, A100, RTX 5090, RTX 8000 â€” todos esgotados ou disco insuficiente. A40 ficou preso em loading por 15+ min."
     },
     {
       "timestamp": "2026-05-19T16:30:00-04:00",
@@ -72,13 +72,13 @@
     {
       "timestamp": "2026-05-19T21:43:17-04:00",
       "evento": "gguf_pronto",
-      "detalhes": "GGUF Q4_K_M convertido com sucesso. 66152 MiB (FP16) → 20175 MiB (Q4_K_M, 4.88 BPW). Tempo quant: 288.6s (~4.8min). SHA256: d05879da1931dd1a2e36071db598d74093bb9528382514bb7836b6b196b40485",
+      "detalhes": "GGUF Q4_K_M convertido com sucesso. 66152 MiB (FP16) â†’ 20175 MiB (Q4_K_M, 4.88 BPW). Tempo quant: 288.6s (~4.8min). SHA256: d05879da1931dd1a2e36071db598d74093bb9528382514bb7836b6b196b40485",
       "evidencia": "Arquivo: /root/superezio-ceo-intent-merged.Q4_K_M.gguf (21,166,757,696 bytes)"
     },
     {
       "timestamp": "2026-05-19T21:45:00-04:00",
       "evento": "download_iniciado",
-      "detalhes": "SCP download de superezio-ceo-intent-merged.Q4_K_M.gguf (19.71 GB) iniciado do A100 ssh9.vast.ai:17834 → models/. Estimativa: ~60-80 min.",
+      "detalhes": "SCP download de superezio-ceo-intent-merged.Q4_K_M.gguf (19.71 GB) iniciado do A100 ssh9.vast.ai:17834 â†’ models/. Estimativa: ~60-80 min.",
       "evidencia": "Background task bjedbmmpp"
     },
     {
@@ -96,7 +96,7 @@
     {
       "timestamp": "2026-05-19T22:00:00-04:00",
       "evento": "gguf_patches_aplicados",
-      "detalhes": "Patches binarios aplicados no GGUF: block_count 41→40 (offset 346), nextn_predict_layers 1→0 (offset 1328). Sem patches, modelo falha com 'missing tensor blk.40.attn_norm.weight'.",
+      "detalhes": "Patches binarios aplicados no GGUF: block_count 41â†’40 (offset 346), nextn_predict_layers 1â†’0 (offset 1328). Sem patches, modelo falha com 'missing tensor blk.40.attn_norm.weight'.",
       "evidencia": "Hex edit manual, modelo carrega sem erros apos patches"
     },
     {
@@ -152,20 +152,20 @@
       "host": "ssh7.vast.ai:15614",
       "status": "stopped",
       "motivo": "parada automaticamente; restart recusado (resources_unavailable)",
-      "uso": "merge CEO + intent → GGUF (incompleto — transformers nao suporta qwen3_5_moe)"
+      "uso": "merge CEO + intent â†’ GGUF (incompleto â€” transformers nao suporta qwen3_5_moe)"
     },
     {
       "contrato": 37097835,
       "gpu": "A100 SXM4 80GB x4",
       "host": "ssh9.vast.ai:17834",
       "status": "destruida",
-      "uso": "merge CEO + intent + GGUF Q4_K_M — concluido com sucesso"
+      "uso": "merge CEO + intent + GGUF Q4_K_M â€” concluido com sucesso"
     }
   ],
   "arquivos_criticos": {
-    "modelo_antigo": "models/qwen36-35b-f51.Q4_K_M.gguf (20.22 GB — CEO only, backup)",
-    "modelo_novo": "models/superezio-ceo-intent-merged.Q4_K_M.gguf (19.71 GB — CEO + intent merged, PRODUCAO)",
-    "modelo_intent_intermediario": "models/qwen36-intent-f51.Q4_K_M.gguf (19.71 GB — intent only, pipeline dizia que ja tinha merge)",
+    "modelo_antigo": "models/qwen36-35b-f51.Q4_K_M.gguf (20.22 GB â€” CEO only, inactive copy)",
+    "modelo_novo": "models/superezio-ceo-intent-merged.Q4_K_M.gguf (19.71 GB â€” CEO + intent merged, PRODUCAO)",
+    "modelo_intent_intermediario": "models/qwen36-intent-f51.Q4_K_M.gguf (19.71 GB â€” intent only, pipeline dizia que ja tinha merge)",
     "ceo_checkpoint": "output/qwen36-sft/checkpoint-2600/ (86 MB)",
     "intent_checkpoint_best": "output/qwen36-intent/best/ (86 MB)",
     "intent_checkpoint_final": "output/qwen36-intent/final/ (86 MB)",
@@ -184,13 +184,13 @@
       "campo": "qwen35moe.nextn_predict_layers",
       "antes": 1,
       "depois": 0,
-      "motivo": "MTP speculative decoding indisponivel — tensores NEXTN ausentes"
+      "motivo": "MTP speculative decoding indisponivel â€” tensores NEXTN ausentes"
     }
   ],
   "pendente": [
     "Atualizar serve_ceo_llamacpp.ps1 para apontar para modelo novo",
     "RESOLVIDO: Pipeline completa validada com 3 fluxos e2e (ticker, scan, risk)",
-    "RESOLVIDO: Modelo mergeado incorpora CEO + Intent — 653/653 testes passam",
-    "DECIDIDO: Modelo antigo (qwen36-35b-f51.Q4_K_M.gguf) mantido como backup frio"
+    "RESOLVIDO: Modelo mergeado incorpora CEO + Intent â€” 653/653 testes passam",
+    "DECIDIDO: Modelo antigo (qwen36-35b-f51.Q4_K_M.gguf) mantido como cold standby copy"
   ]
 }

@@ -86,7 +86,7 @@ def test_frontend_static_assets_are_mounted():
     assert "/js" in paths
 
 
-def test_frontend_contract_uses_bob_unified_workspace_without_legacy_panels():
+def test_frontend_contract_uses_bob_unified_workspace_without_retired_panels():
     html = FRONTEND_INDEX.read_text(encoding="utf-8")
     chat_js = FRONTEND_CHAT.read_text(encoding="utf-8")
     init_js = FRONTEND_INIT.read_text(encoding="utf-8")

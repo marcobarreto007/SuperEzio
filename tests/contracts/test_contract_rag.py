@@ -89,14 +89,8 @@ def test_fraud_pattern_matcher_import():
     assert matcher is not None
 
 
-def test_fraud_rag_legacy_alias():
-    """FraudRAG still importable as backward-compat alias for FraudPatternMatcher."""
-    from core.rag.fraud_rag import (
-        FraudPatternMatcher,
-        FraudRAG,
-        fraud_patterns,
-        fraud_rag,
-    )
+def test_fraud_pattern_singleton_type():
+    """fraud_patterns is the canonical FraudPatternMatcher singleton."""
+    from core.rag.fraud_rag import FraudPatternMatcher, fraud_patterns
 
-    assert FraudRAG is FraudPatternMatcher
-    assert fraud_rag is fraud_patterns
+    assert isinstance(fraud_patterns, FraudPatternMatcher)

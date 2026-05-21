@@ -1,19 +1,18 @@
 """
-core.investor — Family Investor Mode
+core.investor â€” Family Investor Mode
 =====================================
-Submódulos:
-  - committee      : InvestorCommittee (7 agentes com evidencias) — DEPRECATED
-  - cost_guard     : CostGuard (orçamento diário) — ACTIVE (used in agent_server)
-  - storage        : InvestorStorage (SQLite) — DEPRECATED
-  - prompts        : Prompts dos 7 agentes — DEPRECATED
-  - fraud_memory   : FraudManipulationMemory (base local de padrões) — DEPRECATED
-  - fraud_analyst  : FraudPatternAnalyst (detecção de red flags) — DEPRECATED
+SubmÃ³dulos:
+  - committee      : InvestorCommittee (7 agentes com evidencias)
+  - cost_guard     : CostGuard (orÃ§amento diÃ¡rio; used in agent_server)
+  - storage        : InvestorStorage (SQLite)
+  - prompts        : Prompts dos 7 agentes
+  - fraud_memory   : FraudManipulationMemory (base local de padrÃµes)
+  - fraud_analyst  : FraudPatternAnalyst (detecÃ§Ã£o de red flags)
 
-Deprecated items are disconnected from the production pipeline.
-Only CostGuard remains active. Integration planned for Money Gate F4.
+Only CostGuard is wired into the default server path. The other investor`r`ncomponents remain explicit-import modules and do not execute automatically.
 
-Nota: ``FakeDeepSeekProvider`` era um stub de teste e não faz parte da API
-pública. Em testes, injete um stub local com método ``chat_completion``.
+Nota: ``FakeDeepSeekProvider`` era um stub de teste e nÃ£o faz parte da API
+pÃºblica. Em testes, injete um stub local com mÃ©todo ``chat_completion``.
 """
 
 from .committee import InvestorCommittee, AI_ANALYSIS_NOTICE

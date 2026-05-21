@@ -245,10 +245,6 @@ class UniversalConfig:
         load_local_env()
 
         path = resolve_project_path(config_path)
-        if not path.exists() and config_path == "config/runtime.yml":
-            legacy_path = resolve_project_path("config.yml")
-            if legacy_path.exists():
-                path = legacy_path
 
         if not path.exists():
             logger.info("[CONFIG] File not found: %s. Using defaults.", config_path)
@@ -292,13 +288,6 @@ def get_config() -> UniversalConfig:
 
 
 def reload_config(path: str = "config/runtime.yml") -> UniversalConfig:
-    import warnings
-
-    warnings.warn(
-        "reload_config is deprecated and will be removed in a future version. "
-        "Use get_config() instead.",
-        DeprecationWarning,
-    )
     global _config
     _config = UniversalConfig.load(path)
     _config.ensure_directories()

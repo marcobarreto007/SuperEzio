@@ -1,63 +1,38 @@
 {
   "project": "SuperEzio / F51 Unified Core",
   "version": "4.0.0",
-  "date_local": "2026-05-20T22:58:25-04:00",
-  "session": "arqueologist-legacy-purge-2026-05-20",
-  "status": "COMPLETE",
-  "stage": "legacy-purge-and-runtime-validation",
-  "operational_contract": {
-    "github_policy": ".f51/GITHUB_POLICY.json",
-    "github_mode": "DISK_ONLY",
-    "api_entrypoint": "python -m agent_server.main",
-    "ceo_entrypoint": "powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082",
-    "runtime_checkpoints_dir": "runtime/checkpoints"
-  },
+  "date_local": "2026-05-21T00:00:00-04:00",
+  "session": "clean-tree-zero-retired-surface-2026-05-21",
+  "status": "completed",
+  "what_was_done": [
+    "Removed archived runtime/docs surfaces; no copy was created.",
+    "Removed generic non-F51 local skill bundles from .claude/skills.",
+    "Removed provider alias path and edge placeholder code.",
+    "Removed retired RAG alias exports and renamed subprocess collector fallback.",
+    "Rewrote F51 maps and documentation to current active tree.",
+    "Applied repo-wide ruff formatting."
+  ],
+  "evidence": [
+    "rg retired/provider terms over active scopes -> no matches",
+    "python -m json.tool .f51/INVENTORY.json .f51/GITHUB_POLICY.json .f51/checkpoints/latest.json runtime/checkpoints/latest.json -> passed",
+    "python -m ruff check . -> All checks passed",
+    "python -m ruff format --check . -> 231 files already formatted",
+    "python -m pytest tests -q -> 723 passed, 7 warnings in 70.48s",
+    "Invoke-WebRequest endpoint sweep -> 200 for CEO health/models and API health/details/capabilities/product manifest",
+    "git diff --check -> passed"
+  ],
+  "risks": [
+    "F51_Datasets retained because training scripts still reference SFT outputs"
+  ],
+  "next_step": "Commit locally. No GitHub push because disk-only policy is active.",
+  "stage": "clean-tree-and-runtime-validation",
   "runtime_parameters": {
     "ceo_port": 8082,
     "api_port": 8002,
     "bind": "127.0.0.1",
     "api_entrypoint": "python -m agent_server.main",
     "ceo_entrypoint": "powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082",
-    "model": "SuperEzio CEO+Intent Merged Q4_K_M GGUF",
     "model_path": "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
-    "health_ceo": "http://127.0.0.1:8082/health",
-    "models_ceo": "http://127.0.0.1:8082/v1/models",
-    "health_api": "http://127.0.0.1:8002/health",
-    "health_api_details": "http://127.0.0.1:8002/health/details"
-  },
-  "what_was_done": [
-    "Backed up removable legacy before deletion.",
-    "Deleted verified legacy/orphan files from .claude/skills/constant-time-analysis, archive/experimental/training, selected F51_Datasets helpers, and selected scratch scripts.",
-    "Fixed live lint/import issues without changing public endpoint behavior.",
-    "Validated live CEO/API runtime and /task/submit stream through integration tests."
-  ],
-  "files_changed": [
-    ".f51/TASK_BOARD.md",
-    ".f51/RISK_REGISTER.md",
-    ".f51/checkpoints/latest.json",
-    "runtime/checkpoints/latest.json",
-    "docs/runbooks/DELIVERY_CHECKLIST.md",
-    "docs/architecture/FINAL_AUDIT.md",
-    "docs/architecture/RECLAMATION_REPORT.md",
-    "scripts/signal_ledger/append_from_ndjson.py",
-    "scripts/signal_ledger/report_signals.py",
-    "scripts/signal_ledger/resolve_signals.py",
-    "scripts/train_qwen36_3h.py",
-    "src/core/data_collector/collector.py",
-    "tests/test_integration_runtime.py"
-  ],
-  "evidence": [
-    "python -m ruff check . -> All checks passed",
-    "python -m pytest tests -q -> 725 passed, 7 warnings in 70.07s",
-    "python -m pytest tests/test_integration_runtime.py -q -v -> 7 passed in 43.95s",
-    "python -m pytest tests/contracts/test_contract_runtime_official.py::test_runtime_checkpoint_tracks_official_entrypoints -q -> 1 passed",
-    "python -m ruff format --check touched Python files -> 6 files already formatted",
-    "Invoke-WebRequest main endpoint sweep -> 200 for CEO health/models and API health/details/capabilities/product manifest"
-  ],
-  "risks": [
-    "Historical .f51 inventory maps still include removed paths until regenerated.",
-    "Remaining referenced training lane was kept intentionally.",
-    "Repo-wide ruff format check still reports pre-existing formatting debt outside this scoped purge."
-  ],
-  "next_step": "Regenerate .f51 inventory maps or decommission remaining training lane in a dedicated pass."
+    "provider": "local_orchestrator"
+  }
 }

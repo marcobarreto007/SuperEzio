@@ -42,14 +42,8 @@ try:
 except Exception:
     conf_port = None
 
-PORT = int(conf_port or os.getenv("A2A_PORT", "8002"))
-HOST = os.getenv("A2A_BIND", "127.0.0.1")
-
-# Warn if legacy A2A_ vars are used instead of SUPEREZIO_HOST/PORT
-if os.getenv("A2A_PORT") and not conf_port:
-    logger.warning("A2A_PORT is deprecated — use SUPEREZIO_PORT instead")
-if os.getenv("A2A_BIND"):
-    logger.warning("A2A_BIND is deprecated — use SUPEREZIO_HOST instead")
+PORT = int(conf_port or os.getenv("SUPEREZIO_PORT", "8002"))
+HOST = os.getenv("SUPEREZIO_HOST", "127.0.0.1")
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -59,40 +53,12 @@ def _env_bool(name: str, default: bool = False) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
-def create_edge_middleware(_edge_gateway):
-    """No-op middleware after legacy edge runtime removal."""
-
-    async def _middleware(request: Request, call_next):
-        return await call_next(request)
-
-    return _middleware
-
-
-def _build_edge_gateway() -> dict:
-    """Build placeholder edge gateway config after legacy runtime removal."""
-    return {
-        "enabled": False,
-        "reason": "legacy_edge_runtime_removed",
-        "timestamp": int(time.time()),
-    }
-
-
-def _validate_edge_runtime_config() -> None:
-    """Legacy edge runtime validation disabled after runtime removal."""
-    return None
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     import sys
 
     logger.info("[%s] Agent Server starting on %s:%s...", AGENT_NAME, HOST, PORT)
     sys.stdout.flush()
-
-    # === EDGE GATEWAY RUNTIME VALIDATION ===
-    # Validates SECRET / production constraints here (not at import-time)
-    # so module imports stay safe for CI and tooling.
-    _validate_edge_runtime_config()
 
     # === BRAIN INITIALIZATION ===
     from core.pipeline import build_graph
@@ -125,9 +91,6 @@ app = FastAPI(
     redoc_url=None,
     openapi_url=None,
 )
-edge_gateway = _build_edge_gateway()
-app.state.edge_gateway = edge_gateway
-
 # === CORS CONFIGURATION ===
 _configured_origins = getattr(_conf.server, "cors_origins", []) if _conf else []
 _cors_origins = [origin for origin in _configured_origins if origin and origin != "*"] or [
@@ -141,10 +104,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS", "HEAD"],
     allow_headers=["Authorization", "Content-Type", "X-API-Key"],
 )
-app.middleware("http")(create_edge_middleware(edge_gateway))
 
 
-# === Métricas de latência por request ===
+# === MÃ©tricas de latÃªncia por request ===
 @app.middleware("http")
 async def metrics_middleware(request: Request, call_next):
     t0 = time.time()
@@ -219,7 +181,7 @@ async def favicon():
 
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def health_check_public(request: Request):
-    """Public liveness probe — minimal, no internal config exposure.
+    """Public liveness probe â€” minimal, no internal config exposure.
 
     Detailed health (GPU, providers, redis, cost guard, base URLs) is at
     /health/details and requires auth via the edge gateway.
@@ -231,7 +193,7 @@ async def health_check_public(request: Request):
 
 @app.get("/health/details")
 async def health_check():
-    """Deep health check — verifica GPU, modelos, Redis, providers, cache."""
+    """Deep health check â€” verifica GPU, modelos, Redis, providers, cache."""
     import socket as _socket
     from core.investor.cost_guard import get_cost_guard
     from core.model_serving.gateway import PRIMARY_PROVIDER_NAME
@@ -243,7 +205,7 @@ async def health_check():
         "checks": {},
     }
 
-    # ── GPU ──────────────────────────────────────────────────────────────
+    # â”€â”€ GPU â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     gpu_info: dict = {"available": False, "devices": []}
     try:
         import torch
@@ -266,7 +228,7 @@ async def health_check():
         gpu_info["status"] = "no_torch"
     health["checks"]["gpu"] = gpu_info
 
-    # ── Local models ─────────────────────────────────────────────────────
+    # â”€â”€ Local models â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     local_models: dict = {}
     for name, url_env, port in [
         ("ceo", "SUPEREZIO_CEO_BASE_URL", 8082),
@@ -292,7 +254,7 @@ async def health_check():
         }
     health["checks"]["local_models"] = local_models
 
-    # ── Redis ────────────────────────────────────────────────────────────
+    # â”€â”€ Redis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     redis_info: dict = {"status": "skipped"}
     try:
         import redis
@@ -316,7 +278,7 @@ async def health_check():
         redis_info = {"status": "error", "detail": str(exc)[:120]}
     health["checks"]["redis"] = redis_info
 
-    # ── Model providers ──────────────────────────────────────────────────
+    # â”€â”€ Model providers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     primary_info = {
         "configured": bool(
             os.getenv("SUPEREZIO_PRIMARY_API_KEY") or os.getenv("SUPEREZIO_DEEPSEEK_API_KEY")
@@ -355,7 +317,7 @@ async def health_check():
         },
     }
 
-    # ── Cost guard ───────────────────────────────────────────────────────
+    # â”€â”€ Cost guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     try:
         health["checks"]["cost_guard"] = get_cost_guard().status()
     except Exception as exc:
@@ -365,7 +327,7 @@ async def health_check():
             "detail": str(exc)[:200],
         }
 
-    # ── Aggregated status ────────────────────────────────────────────────
+    # â”€â”€ Aggregated status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     all_ok = primary_info["configured"] or any(m["reachable"] for m in local_models.values())
     health["status"] = "ok" if all_ok else "degraded_no_backend"
     return health
@@ -377,7 +339,7 @@ def run():
 
 @app.get("/metrics")
 async def get_metrics():
-    """Métricas de negócio: latência, erro rate, tokens, cache."""
+    """MÃ©tricas de negÃ³cio: latÃªncia, erro rate, tokens, cache."""
     return {
         "service": "superezio",
         "version": "3.0.0",

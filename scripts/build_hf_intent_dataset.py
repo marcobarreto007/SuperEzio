@@ -250,9 +250,7 @@ def dedupe(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return unique
 
 
-def split_rows(
-    rows: list[dict[str, Any]], eval_ratio: float
-) -> tuple[list[dict], list[dict]]:
+def split_rows(rows: list[dict[str, Any]], eval_ratio: float) -> tuple[list[dict], list[dict]]:
     rng = random.Random(51)
     shuffled = list(rows)
     rng.shuffle(shuffled)
@@ -289,9 +287,7 @@ def main() -> int:
         "train_examples": len(train_rows),
         "eval_examples": len(eval_rows),
         "sources": {
-            "learn-abc/banking14-intents-en": source_size(
-                "learn-abc/banking14-intents-en"
-            ),
+            "learn-abc/banking14-intents-en": source_size("learn-abc/banking14-intents-en"),
             "klaylouis1932/OpenFinData-Intent-Understanding-Intruct": source_size(
                 "klaylouis1932/OpenFinData-Intent-Understanding-Intruct"
             ),

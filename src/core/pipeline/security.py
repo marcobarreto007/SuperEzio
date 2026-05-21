@@ -1,16 +1,13 @@
 """
-Pipeline Security — Input Validation, Sanitization & Rate Limiting
+Pipeline Security â€” Input Validation, Sanitization & Rate Limiting
 ===================================================================
-Centraliza todas as verificações de segurança para o pipeline:
-  - Input validation (tamanho, caracteres, injeção)
-  - Rate limiting por sessão/IP
+Centraliza todas as verificaÃ§Ãµes de seguranÃ§a para o pipeline:
+  - Input validation (tamanho, caracteres, injeÃ§Ã£o)
+  - Rate limiting por sessÃ£o/IP
   - Output filtering (PII, forbidden phrases)
   - Request ID tracing auto-increment
 
-.. deprecated::
-    This module (353 lines) is not called from the production pipeline.
-    Kept as reference for future security integration.
-    Use ``sanitize_output`` from the same module — that function IS active.
+Runtime note:`r`n    ``sanitize_output`` is active in the production pipeline. The remaining`r`n    validators stay available for explicit integration through future gates.
 """
 
 from __future__ import annotations
@@ -29,15 +26,15 @@ from ..observability.neural_log import log_event
 from ..observability.debug_logger import debug_logger, MODULE_SECURITY
 from ..model_serving.sanitizer import strip_private_model_channels
 
-# ── Constants ────────────────────────────────────────────────────────────
+# â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-MAX_MESSAGE_LENGTH = 10_000  # caracteres máximos por mensagem
-MAX_CONTEXT_LENGTH = 100_000  # caracteres máximos para contexto
-MAX_OUTPUT_LENGTH = 50_000  # caracteres máximos de output
+MAX_MESSAGE_LENGTH = 10_000  # caracteres mÃ¡ximos por mensagem
+MAX_CONTEXT_LENGTH = 100_000  # caracteres mÃ¡ximos para contexto
+MAX_OUTPUT_LENGTH = 50_000  # caracteres mÃ¡ximos de output
 RATE_LIMIT_WINDOW_S = 60.0  # janela de rate limiting (segundos)
-RATE_LIMIT_MAX_CALLS = 30  # máximo de chamadas por janela
+RATE_LIMIT_MAX_CALLS = 30  # mÃ¡ximo de chamadas por janela
 
-# Caracteres / padrões proibidos (injeção)
+# Caracteres / padrÃµes proibidos (injeÃ§Ã£o)
 FORBIDDEN_PATTERNS: List[str] = [
     r"<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>",  # XSS
     r"javascript:",  # XSS href
@@ -65,7 +62,7 @@ PII_PATTERNS: Dict[str, str] = {
     "ip": r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b",
 }
 
-# ── Global State ─────────────────────────────────────────────────────────
+# â”€â”€ Global State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 _request_id_counter: int = 0
 _request_id_lock: Lock = Lock()
@@ -74,12 +71,12 @@ _request_id_lock: Lock = Lock()
 _rate_limit_store: Dict[str, List[float]] = defaultdict(list)
 _rate_limit_lock: Lock = Lock()
 
-# ── Core Functions ───────────────────────────────────────────────────────
+# â”€â”€ Core Functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def generate_request_id() -> str:
     """
-    Gera um request_id único e sequencial para tracing.
+    Gera um request_id Ãºnico e sequencial para tracing.
     Formato: REQ-{sequencial}-{hash curto}
     """
     global _request_id_counter
@@ -92,13 +89,13 @@ def generate_request_id() -> str:
 
 def validate_input(message: str, context: str = "") -> Optional[str]:
     """
-    Valida entrada do usuário. Retorna None se OK, ou string de erro se rejeitado.
+    Valida entrada do usuÃ¡rio. Retorna None se OK, ou string de erro se rejeitado.
 
     Checks:
       1. Tamanho da mensagem
       2. Tamanho do contexto
-      3. Padrões de injeção (XSS, SQL, code execution)
-      4. Caracteres nulos / inválidos
+      3. PadrÃµes de injeÃ§Ã£o (XSS, SQL, code execution)
+      4. Caracteres nulos / invÃ¡lidos
     """
     if not message or not message.strip():
         debug_logger.debug(MODULE_SECURITY, "validate_input: empty message rejected")
@@ -139,9 +136,9 @@ def validate_input(message: str, context: str = "") -> Optional[str]:
     # Null bytes
     if "\x00" in message or (context and "\x00" in context):
         log_event("SECURITY", "NULL_BYTES_DETECTED", {})
-        return "INPUT_REJECTED: entrada contém bytes nulos."
+        return "INPUT_REJECTED: entrada contÃ©m bytes nulos."
 
-    # Padrões de injeção
+    # PadrÃµes de injeÃ§Ã£o
     combined = f"{message} {context if context else ''}"
     for pattern in FORBIDDEN_PATTERNS:
         if re.search(pattern, combined, re.IGNORECASE):
@@ -152,7 +149,7 @@ def validate_input(message: str, context: str = "") -> Optional[str]:
                     "pattern": pattern[:50],
                 },
             )
-            return "INPUT_REJECTED: padrão de injeção detectado."
+            return "INPUT_REJECTED: padrÃ£o de injeÃ§Ã£o detectado."
 
     # Caracteres de controle (exceto newline/tab)
     control_chars = re.findall(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", combined)
@@ -175,7 +172,7 @@ def check_rate_limit(
     window_s: float = RATE_LIMIT_WINDOW_S,
 ) -> Optional[str]:
     """
-    Verifica rate limiting para uma sessão.
+    Verifica rate limiting para uma sessÃ£o.
     Retorna None se OK, ou mensagem de erro se excedeu.
     """
     now = time.time()
@@ -197,7 +194,7 @@ def check_rate_limit(
                     "window_s": window_s,
                 },
             )
-            return f"RATE_LIMITED: máximo de {max_calls} chamadas a cada {window_s:.0f}s. Aguarde."
+            return f"RATE_LIMITED: mÃ¡ximo de {max_calls} chamadas a cada {window_s:.0f}s. Aguarde."
 
         _rate_limit_store[session_id].append(now)
 
@@ -208,7 +205,7 @@ def sanitize_output(text: str) -> str:
     """
     Sanitiza o output do LLM:
       1. Remove/Filtra PII
-      2. Verifica frases proibidas (log + marcação)
+      2. Verifica frases proibidas (log + marcaÃ§Ã£o)
       3. Trunca se muito longo
 
     Returns:
@@ -224,7 +221,7 @@ def sanitize_output(text: str) -> str:
     for pii_name, pattern in PII_PATTERNS.items():
         text = re.sub(pattern, f"[REDACTED:{pii_name}]", text)
 
-    # 2. Verificar frases proibidas (log + marcação no output)
+    # 2. Verificar frases proibidas (log + marcaÃ§Ã£o no output)
     text_lower = text.lower()
     found_forbidden = [p for p in FORBIDDEN_OUTPUT_PHRASES if p in text_lower]
     if found_forbidden:
@@ -247,23 +244,23 @@ def sanitize_output(text: str) -> str:
                 "truncated_to": MAX_OUTPUT_LENGTH,
             },
         )
-        text = text[:MAX_OUTPUT_LENGTH] + "\n\n[TRUNCATED: output excede limite de segurança]"
+        text = text[:MAX_OUTPUT_LENGTH] + "\n\n[TRUNCATED: output excede limite de seguranÃ§a]"
 
     return text
 
 
 def hash_session_id(session_id: str) -> str:
-    """Hash seguro de session_id para rate limiting (não expõe IDs reais)."""
+    """Hash seguro de session_id para rate limiting (nÃ£o expÃµe IDs reais)."""
     return hashlib.sha256(session_id.encode()).hexdigest()[:16]
 
 
-# ── Pipeline-Wide Security Context ───────────────────────────────────────
+# â”€â”€ Pipeline-Wide Security Context â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class SecurityContext:
     """
-    Contexto de segurança para uma requisição do pipeline.
-    Gerencia request_id, validação, rate limit e sanitização.
+    Contexto de seguranÃ§a para uma requisiÃ§Ã£o do pipeline.
+    Gerencia request_id, validaÃ§Ã£o, rate limit e sanitizaÃ§Ã£o.
 
     Uso:
         sec = SecurityContext(message, session_id="user123")
@@ -343,7 +340,7 @@ class SecurityContext:
         )
 
     def sanitize(self, text: str) -> str:
-        """Sanitiza output e adiciona request_id metadata se disponível."""
+        """Sanitiza output e adiciona request_id metadata se disponÃ­vel."""
         safe = sanitize_output(text)
         if self.request_id:
             safe += f"\n\n[request_id: {self.request_id}]"

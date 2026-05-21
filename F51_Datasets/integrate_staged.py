@@ -7,6 +7,7 @@ Rules:
   4. Exclude all Godot/GameDev
   5. Produce integrated outputs + report
 """
+
 import json
 import os
 import random
@@ -29,15 +30,18 @@ CATEGORY_TO_DOMAIN = {
     "tool_calling_automation": ["tool_calling", "automation"],
 }
 
+
 def remap_domain(old_domain, category):
     """Remap game-dev-dataops category to correct F51 domain."""
     options = CATEGORY_TO_DOMAIN.get(category, ["code"])
     # Deterministic pick based on category + record index
     return random.choice(options)
 
+
 def remap_category(category):
     """Keep category as-is since it already describes the task well."""
     return category
+
 
 # ============================================================
 # SCORING
@@ -148,12 +152,14 @@ def load_jsonl(path):
                 broken += 1
     return entries, broken
 
+
 def write_jsonl(path, entries):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         for e in entries:
             f.write(json.dumps(e, ensure_ascii=False) + "\n")
     return os.path.getsize(path) / (1024 * 1024)
+
 
 def near_dedup(entries_list, key_prefix_len=300):
     """Near-deduplicate by user content hash."""
@@ -239,7 +245,9 @@ if __name__ == "__main__":
 
         # Check for Godot/GDScript content — hold it
         full_text = json.dumps(e, ensure_ascii=False).lower()
-        if any(w in full_text for w in ["godot", "gdscript", "extends node", "var _", "func _ready"]):
+        if any(
+            w in full_text for w in ["godot", "gdscript", "extends node", "var _", "func _ready"]
+        ):
             stats["hold_gamedev"] += 1
             reject_reasons["gamedev_content"] += 1
             continue  # skip, not even rejected — held separately
@@ -369,8 +377,12 @@ if __name__ == "__main__":
 
     sz_train = write_jsonl(os.path.join(BASE, "final", "train_integrated.jsonl"), train_entries)
     sz_eval = write_jsonl(os.path.join(BASE, "final", "eval_integrated.jsonl"), eval_entries)
-    sz_cleaned = write_jsonl(os.path.join(BASE, "cleaned", "cleaned_integrated.jsonl"), cleaned_entries)
-    sz_rejected = write_jsonl(os.path.join(BASE, "rejected", "rejected_integrated.jsonl"), rejected_entries)
+    sz_cleaned = write_jsonl(
+        os.path.join(BASE, "cleaned", "cleaned_integrated.jsonl"), cleaned_entries
+    )
+    sz_rejected = write_jsonl(
+        os.path.join(BASE, "rejected", "rejected_integrated.jsonl"), rejected_entries
+    )
 
     stats["final"] = len(final_entries)
     stats["cleaned"] = len(cleaned_entries)
@@ -378,8 +390,12 @@ if __name__ == "__main__":
 
     print(f"  final/train_integrated.jsonl:   {sz_train:.1f} MB, {len(train_entries):,} entries")
     print(f"  final/eval_integrated.jsonl:    {sz_eval:.1f} MB, {len(eval_entries):,} entries")
-    print(f"  cleaned/cleaned_integrated.jsonl: {sz_cleaned:.1f} MB, {len(cleaned_entries):,} entries")
-    print(f"  rejected/rejected_integrated.jsonl: {sz_rejected:.1f} MB, {len(rejected_entries):,} entries")
+    print(
+        f"  cleaned/cleaned_integrated.jsonl: {sz_cleaned:.1f} MB, {len(cleaned_entries):,} entries"
+    )
+    print(
+        f"  rejected/rejected_integrated.jsonl: {sz_rejected:.1f} MB, {len(rejected_entries):,} entries"
+    )
 
     # ============================================================
     # REPORT
@@ -391,7 +407,9 @@ if __name__ == "__main__":
     print("\n--- TOTALS ---")
     print(f"  Total processed: {stats['processed']:,}")
     print(f"  Broken JSON: {stats['broken_json']}")
-    print(f"  Final (integrated): {stats['final']:,} (train={len(train_entries):,} / eval={len(eval_entries):,})")
+    print(
+        f"  Final (integrated): {stats['final']:,} (train={len(train_entries):,} / eval={len(eval_entries):,})"
+    )
     print(f"  Cleaned (integrated): {stats['cleaned']:,}")
     print(f"  Rejected (integrated): {stats['rejected']:,}")
     print(f"  Held gamedev: {stats['hold_gamedev']}")
@@ -424,8 +442,10 @@ if __name__ == "__main__":
     print("\n--- 10 RANDOM SAMPLES FROM FINAL ---")
     if final_entries:
         for i, e in enumerate(random.sample(final_entries, min(10, len(final_entries)))):
-            print(f"\n  Sample {i+1}:")
-            print(f"    domain={e['domain']} cat={e['category']} diff={e['difficulty']} score={e['score']}")
+            print(f"\n  Sample {i + 1}:")
+            print(
+                f"    domain={e['domain']} cat={e['category']} diff={e['difficulty']} score={e['score']}"
+            )
             sys_preview = e["messages"][0]["content"][:100]
             usr_preview = e["messages"][1]["content"][:150]
             asst_preview = e["messages"][2]["content"][:200]
@@ -436,8 +456,10 @@ if __name__ == "__main__":
     print("\n--- 10 RANDOM SAMPLES FROM CLEANED ---")
     if cleaned_entries:
         for i, e in enumerate(random.sample(cleaned_entries, min(10, len(cleaned_entries)))):
-            print(f"\n  Sample {i+1}:")
-            print(f"    domain={e['domain']} cat={e['category']} diff={e['difficulty']} score={e['score']}")
+            print(f"\n  Sample {i + 1}:")
+            print(
+                f"    domain={e['domain']} cat={e['category']} diff={e['difficulty']} score={e['score']}"
+            )
             usr_preview = e["messages"][1]["content"][:120]
             asst_preview = e["messages"][2]["content"][:180]
             print(f"    usr: {usr_preview}...")
@@ -499,13 +521,13 @@ Generated: 2026-05-13 08:00 UTC
 
 ## Summary
 
-- **Total processed**: {stats['processed']:,}
-- **Final (integrated)**: {stats['final']:,} (train={len(train_entries):,} / eval={len(eval_entries):,})
-- **Cleaned (integrated)**: {stats['cleaned']:,}
-- **Rejected (integrated)**: {stats['rejected']:,}
-- **Held gamedev**: {stats['hold_gamedev']}
-- **Broken JSON**: {stats['broken_json']}
-- **Duplicates removed**: {stats['dupes_removed']:,}
+- **Total processed**: {stats["processed"]:,}
+- **Final (integrated)**: {stats["final"]:,} (train={len(train_entries):,} / eval={len(eval_entries):,})
+- **Cleaned (integrated)**: {stats["cleaned"]:,}
+- **Rejected (integrated)**: {stats["rejected"]:,}
+- **Held gamedev**: {stats["hold_gamedev"]}
+- **Broken JSON**: {stats["broken_json"]}
+- **Duplicates removed**: {stats["dupes_removed"]:,}
 
 ## Stage 1: batch_100
 

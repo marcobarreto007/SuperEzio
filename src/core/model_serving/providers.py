@@ -17,7 +17,6 @@ if TYPE_CHECKING:
 CEO_PROVIDER_NAME = "ceo"
 CEO_MODEL_ID = "superezio-ceo-intent-merged"
 PRIMARY_PROVIDER_NAME = "local_orchestrator"
-PRIMARY_PROVIDER_LEGACY_NAMES = {"primary_external"}
 PRIMARY_MODEL_ID = CEO_MODEL_ID
 DEEPSEEK_PROVIDER_NAME = "deepseek"
 DEEPSEEK_MODEL_ID = "deepseek-v4-pro"
@@ -73,8 +72,6 @@ def build_default_providers(
         os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", ""),
     )
 
-    # Local orchestrator provider. The old "primary_external" name is kept
-    # only as a gateway alias; the canonical runtime route is local.
     providers.append(
         ModelProvider(
             name=PRIMARY_PROVIDER_NAME,

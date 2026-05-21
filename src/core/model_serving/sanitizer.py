@@ -138,7 +138,7 @@ class PrivateChannelFilter:
         return "".join(output)
 
 
-# ── Legacy helpers (preserved for test compatibility) ──────────────────
+# â”€â”€ Internal compatibility helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 _ANY_CHANNEL_RE = re.compile(
     r"<\|channel\|?>|<channel\|>",
@@ -149,7 +149,7 @@ _THINK_BLOCK_RE = re.compile(r"<think\b[^>]*>.*?</think>", re.IGNORECASE | re.DO
 
 
 def _strip_private_channels(text: str) -> str:
-    """Strip private channel spans — legacy entrypoint for tests."""
+    """Strip private channel spans."""
     if not text:
         return text
     text = _THINK_BLOCK_RE.sub("", text)
@@ -173,7 +173,7 @@ def _strip_private_channels(text: str) -> str:
 
 
 class _PrivateChannelFilter:
-    """Stateful channel filter — legacy entrypoint for tests."""
+    """Stateful channel filter."""
 
     def __init__(self) -> None:
         self._buffer = ""
@@ -238,7 +238,7 @@ class _PrivateChannelFilter:
 
 
 def _parse_model_tool_calls(content: str) -> tuple[str, list[dict]]:
-    """Extract legacy tool calls: <|tool_call>call:name{args}<tool_call|>
+    """Extract inline model tool calls: <|tool_call>call:name{args}<tool_call|>
 
     Returns (clean_content, tool_calls_list).
     """

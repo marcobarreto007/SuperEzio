@@ -404,7 +404,9 @@ def _build_module_appendix(state: dict, missing: list[str]) -> str:
         price = data.get("price", {})
         price_val = price.get("price") if isinstance(price, dict) else None
         if price_val:
-            line(f"## DATA\nPrice for {ticker}: ${price_val} (source: {price.get('provider', 'market')}).")
+            line(
+                f"## DATA\nPrice for {ticker}: ${price_val} (source: {price.get('provider', 'market')})."
+            )
         else:
             scan = state.get("scan") or {}
             candidates = scan.get("candidates", [])
@@ -488,11 +490,11 @@ def _build_module_appendix(state: dict, missing: list[str]) -> str:
             direction = neural.get("direction_prob", {})
             line(
                 f"## NEURAL_DECISION\n"
-                f"Direction: up={direction.get('up','?')} down={direction.get('down','?')} "
-                f"sideways={direction.get('sideways','?')}. "
-                f"Regime: {neural.get('regime','?')}. "
-                f"Expected return: {neural.get('expected_return','?')}. "
-                f"Drawdown risk: {neural.get('drawdown_risk','?')}."
+                f"Direction: up={direction.get('up', '?')} down={direction.get('down', '?')} "
+                f"sideways={direction.get('sideways', '?')}. "
+                f"Regime: {neural.get('regime', '?')}. "
+                f"Expected return: {neural.get('expected_return', '?')}. "
+                f"Drawdown risk: {neural.get('drawdown_risk', '?')}."
             )
         else:
             line("## NEURAL_DECISION\nNot available for this request.")

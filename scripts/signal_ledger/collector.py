@@ -58,9 +58,7 @@ class StreamRun:
             self.time_horizon = str(obj.get("time_horizon") or self.time_horizon)
         elif kind == "DATA_COLLECTED":
             self.analysis_id = obj.get("analysis_id") or self.analysis_id
-            self.data_quality = (
-                obj.get("data_quality") or obj.get("quality") or self.data_quality
-            )
+            self.data_quality = obj.get("data_quality") or obj.get("quality") or self.data_quality
             if obj.get("ticker"):
                 self.ticker = str(obj["ticker"]).upper()
             price = obj.get("price") or obj.get("close")
@@ -232,7 +230,9 @@ def classify_emit(run: StreamRun, policy: dict[str, Any]) -> tuple[str, list[str
     elif sdca_dec and sdca_dec != official_sdca:
         reasons.append(f"sdca:{sdca_dec or 'missing'}")
 
-    official_actions = set(policy.get("action_rules", {}).get("official_actions") or ["LONG", "SHORT"])
+    official_actions = set(
+        policy.get("action_rules", {}).get("official_actions") or ["LONG", "SHORT"]
+    )
     if action not in official_actions:
         reasons.append(f"action_not_official:{action}")
 
@@ -267,7 +267,9 @@ def build_emit_record(
 
     neural = run.neural or {}
     try:
-        direction_prob = float(neural["direction_prob"]) if neural.get("direction_prob") is not None else None
+        direction_prob = (
+            float(neural["direction_prob"]) if neural.get("direction_prob") is not None else None
+        )
     except (TypeError, ValueError):
         direction_prob = None
 

@@ -93,10 +93,10 @@ def test_node_collector_returns_expected_keys_for_ticker():
 
     collector_node.get_stream_writer = lambda: _noop_writer
 
-    async def _fake_collect_legacy(_ticker: str, _writer, _run_id: str):
+    async def _fake_collect_subprocess(_ticker: str, _writer, _run_id: str):
         return {"price": {"price": 150.0}}, "price=150"
 
-    collector_node._collect_legacy = _fake_collect_legacy
+    collector_node._collect_subprocess_fallback = _fake_collect_subprocess
 
     async def _run():
         return await node_collector(

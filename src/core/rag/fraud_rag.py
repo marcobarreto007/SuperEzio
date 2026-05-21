@@ -201,7 +201,3 @@ class FraudPatternMatcher:
 
 
 fraud_patterns = FraudPatternMatcher()
-
-# Backward-compat aliases
-FraudRAG = FraudPatternMatcher
-fraud_rag = fraud_patterns

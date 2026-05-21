@@ -145,9 +145,10 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
                 # its dataset. Never let it downgrade a market_scan or
                 # ticker_analysis to needs_scope — the deterministic parser
                 # is the safety floor for non-blocking routes.
-                if (
-                    plan.get("route") == "needs_scope"
-                    and parsed.route in ("market_scan", "ticker_analysis", "general")
+                if plan.get("route") == "needs_scope" and parsed.route in (
+                    "market_scan",
+                    "ticker_analysis",
+                    "general",
                 ):
                     plan = parsed.to_plan()
                     plan["intent_source"] = "ceo_model_overridden"

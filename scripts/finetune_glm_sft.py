@@ -115,8 +115,11 @@ def select_lora_targets(
     """
     # Attention leaf names — unique enough to use as-is
     attention_leaves = {
-        "q_a_proj", "q_b_proj", "kv_a_proj_with_mqa",
-        "kv_b_proj", "o_proj",
+        "q_a_proj",
+        "q_b_proj",
+        "kv_a_proj_with_mqa",
+        "kv_b_proj",
+        "o_proj",
     }
 
     # Shared expert projections — need path context to avoid routed experts
@@ -144,8 +147,7 @@ def select_lora_targets(
         for leaf in expert_leaves:
             # Only add if there are routed expert instances
             has_routed = any(
-                "experts." in path and path.endswith(f".{leaf}")
-                for path in linear_paths
+                "experts." in path and path.endswith(f".{leaf}") for path in linear_paths
             )
             if has_routed and leaf not in targets:
                 targets.append(leaf)
@@ -376,9 +378,11 @@ class DataCollatorForChatSFT:
         # Pad all sequences to the longest in the batch
         max_len = max(ids.size(0) for ids in input_ids)
         if self.pad_to_multiple_of:
-            max_len = ((max_len + self.pad_to_multiple_of - 1)
-                        // self.pad_to_multiple_of
-                        * self.pad_to_multiple_of)
+            max_len = (
+                (max_len + self.pad_to_multiple_of - 1)
+                // self.pad_to_multiple_of
+                * self.pad_to_multiple_of
+            )
 
         pad_token_id = self.tokenizer.pad_token_id or 0
 
@@ -515,10 +519,9 @@ def apply_lora(
         )
         # Fallback: use all unique leaf names except known ignores
         ignore = {"lm_head", "router", "shared_expert_gate"}
-        valid_targets = sorted({
-            p.split(".")[-1] for p in all_linear
-            if p.split(".")[-1] not in ignore
-        })
+        valid_targets = sorted(
+            {p.split(".")[-1] for p in all_linear if p.split(".")[-1] not in ignore}
+        )
 
     logger.info("LoRA target modules: %s", valid_targets)
 
@@ -553,20 +556,38 @@ def apply_lora(
 TEST_PROMPTS = [
     {
         "messages": [
-            {"role": "system", "content": "You are Bob, CEO of SuperEzio Trust OS — an AI financial analysis platform. Respond with structured fraud analysis."},
-            {"role": "user", "content": "Transaction data:\n  step: 133\n  type: TRANSFER\n  amount: 12897.95\n  origin_balance_before: 4546.71\n  origin_balance_after: 646936.40\n  destination_balance_before: 29740.47\n  destination_balance_after: 0.00\n\nAnalyze this transaction for fraud risk. Identify all suspicious signals, assess the risk level, and recommend action."},
+            {
+                "role": "system",
+                "content": "You are Bob, CEO of SuperEzio Trust OS — an AI financial analysis platform. Respond with structured fraud analysis.",
+            },
+            {
+                "role": "user",
+                "content": "Transaction data:\n  step: 133\n  type: TRANSFER\n  amount: 12897.95\n  origin_balance_before: 4546.71\n  origin_balance_after: 646936.40\n  destination_balance_before: 29740.47\n  destination_balance_after: 0.00\n\nAnalyze this transaction for fraud risk. Identify all suspicious signals, assess the risk level, and recommend action.",
+            },
         ],
     },
     {
         "messages": [
-            {"role": "system", "content": "You are Bob, CEO of SuperEzio Trust OS — an AI financial analysis platform. Respond with structured fraud analysis."},
-            {"role": "user", "content": "Transaction data:\n  step: 50\n  type: PAYMENT\n  amount: 0.00\n  origin_balance_before: 298348.04\n  origin_balance_after: 2578036.60\n  destination_balance_before: 7067.01\n  destination_balance_after: 0.11\n\nAnalyze this transaction. Is there any fraud risk? Justify your assessment."},
+            {
+                "role": "system",
+                "content": "You are Bob, CEO of SuperEzio Trust OS — an AI financial analysis platform. Respond with structured fraud analysis.",
+            },
+            {
+                "role": "user",
+                "content": "Transaction data:\n  step: 50\n  type: PAYMENT\n  amount: 0.00\n  origin_balance_before: 298348.04\n  origin_balance_after: 2578036.60\n  destination_balance_before: 7067.01\n  destination_balance_after: 0.11\n\nAnalyze this transaction. Is there any fraud risk? Justify your assessment.",
+            },
         ],
     },
     {
         "messages": [
-            {"role": "system", "content": "You are Bob, CEO of SuperEzio Trust OS — an AI financial analysis platform. Respond with structured fraud analysis."},
-            {"role": "user", "content": "Analyze the following email for phishing indicators:\n\nSubject: Urgent - Your account has been compromised\nFrom: security@paypa1.com\n\nDear Customer, your PayPal account has been accessed from an unknown device. Click here to verify your identity: http://paypa1-secure.com/login"},
+            {
+                "role": "system",
+                "content": "You are Bob, CEO of SuperEzio Trust OS — an AI financial analysis platform. Respond with structured fraud analysis.",
+            },
+            {
+                "role": "user",
+                "content": "Analyze the following email for phishing indicators:\n\nSubject: Urgent - Your account has been compromised\nFrom: security@paypa1.com\n\nDear Customer, your PayPal account has been accessed from an unknown device. Click here to verify your identity: http://paypa1-secure.com/login",
+            },
         ],
     },
 ]
@@ -604,7 +625,7 @@ def generate_sample(
             eos_token_id=tokenizer.eos_token_id,
         )
 
-    generated_ids = outputs[0][inputs["input_ids"].shape[1]:]
+    generated_ids = outputs[0][inputs["input_ids"].shape[1] :]
     return tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
 
 
@@ -760,9 +781,7 @@ def merge_and_save(
         merged = model.merge_and_unload()
     except Exception as exc:
         logger.error("Merge failed (likely OOM): %s", exc)
-        logger.info(
-            "Try merging on CPU with device_map='cpu', or use the adapter directly."
-        )
+        logger.info("Try merging on CPU with device_map='cpu', or use the adapter directly.")
         raise
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1080,7 +1099,9 @@ def main() -> int:
         for key, val in yaml_defaults.items():
             if key in {"target_modules"} and isinstance(val, list):
                 parser.set_defaults(**{key: val})
-            elif key in {"include_experts", "merge", "no_bf16", "no_double_quant"} and isinstance(val, bool):
+            elif key in {"include_experts", "merge", "no_bf16", "no_double_quant"} and isinstance(
+                val, bool
+            ):
                 parser.set_defaults(**{key: val})
             elif key == "streaming" and isinstance(val, bool):
                 parser.set_defaults(**{key: val})
@@ -1158,9 +1179,11 @@ def main() -> int:
         eval_kwargs = dict(dataset_kwargs)
         eval_kwargs["max_samples"] = max(100, int(410918 * args.eval_split))
         eval_dataset = CachedJSONLDataset(**eval_kwargs)
-        logger.info("Eval dataset: %d samples (%.1f%%)",
-                      len(eval_dataset) if hasattr(eval_dataset, '__len__') else '?',
-                      100 * args.eval_split)
+        logger.info(
+            "Eval dataset: %d samples (%.1f%%)",
+            len(eval_dataset) if hasattr(eval_dataset, "__len__") else "?",
+            100 * args.eval_split,
+        )
 
     # ── Training args ────────────────────────────────────────────────────
     training_args = prepare_training_args(
@@ -1211,14 +1234,14 @@ def main() -> int:
         raise
     finally:
         elapsed = time.monotonic() - start_time
-        logger.info("Total training time: %.1f min (%.1f hours)",
-                      elapsed / 60, elapsed / 3600)
+        logger.info("Total training time: %.1f min (%.1f hours)", elapsed / 60, elapsed / 3600)
 
     # ── Evaluation ───────────────────────────────────────────────────────
     if not args.no_eval:
         logger.info("Running evaluation...")
         run_evaluation(
-            model, tokenizer,
+            model,
+            tokenizer,
             output_dir=args.output_dir / "eval",
         )
 

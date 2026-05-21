@@ -1,9 +1,6 @@
-"""SuperEzio trading module — risk management, order execution, position control.
+"""SuperEzio trading module â€” risk management, order execution, position control.
 
-.. deprecated::
-    This entire module is disconnected from the production pipeline.
-    Used only by tests/test_trading_loop{1-5}.py.
-    Integration planned for Money Gate F4.
+Runtime note:`r`n    This module is exercised by tests/test_trading_loop{1-5}.py and remains`r`n    isolated from automatic execution. Integration requires an explicit Money`r`n    Gate decision.
 """
 
 from .alerter import EmailAlerter, EmailConfig, LogAlerter

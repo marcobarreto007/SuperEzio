@@ -18,7 +18,7 @@ server:
   venv: .venv
 
 # ---------------------------------------------------------------------------
-# Modelos (runtime real — validado via pipeline test 2026-05-20)
+# Modelos (runtime real â€” validado via pipeline test 2026-05-20)
 # ---------------------------------------------------------------------------
 models:
   ceo:
@@ -35,7 +35,7 @@ models:
     max_tokens: 8192
     timeout_s: 180
     script: scripts/serve_ceo_llamacpp.ps1
-    speculative_decoding: disabled (nextn patched 1→0)
+    speculative_decoding: disabled (nextn patched 1â†’0)
     context_length: 8192
     gpu_layers: 28
     slots: 2
@@ -112,10 +112,9 @@ storage:
   checkpoints_dir: .f51/checkpoints
   runtime_checkpoints_dir: runtime/checkpoints
   models_dir: models
-  backup_dir: C:/Users/marco/Desktop/SuperEzio_LOCAL_BACKUPS
 
 # ---------------------------------------------------------------------------
-# Launch sequence (ordem canônica)
+# Launch sequence (ordem canÃ´nica)
 # ---------------------------------------------------------------------------
 launch:
   step_1:

@@ -2,10 +2,10 @@
 F51 EVENT HUB - Sistema de Eventos Unificado
 =============================================
 Sistema de eventos pub/sub com suporte a:
-- In-Memory (sempre disponível)
-- Redis Streams (para produção/escalabilidade)
+- In-Memory (sempre disponÃ­vel)
+- Redis Streams (para produÃ§Ã£o/escalabilidade)
 
-Permite comunicação assíncrona entre componentes do F51.
+Permite comunicaÃ§Ã£o assÃ­ncrona entre componentes do F51.
 """
 
 import asyncio
@@ -74,14 +74,14 @@ class EventHub(ABC):
 
     @abstractmethod
     async def subscribe_to(self, event_type: str, handler: EventHandler) -> None:
-        """Registra handler para tipo específico de evento."""
+        """Registra handler para tipo especÃ­fico de evento."""
         pass
 
 
 class InMemoryHub(EventHub):
     """
-    Implementação in-memory do EventHub.
-    Não requer Redis - funciona sempre.
+    ImplementaÃ§Ã£o in-memory do EventHub.
+    NÃ£o requer Redis - funciona sempre.
     """
 
     def __init__(self):
@@ -139,12 +139,10 @@ class InMemoryHub(EventHub):
 
 class RedisStreamsHub(EventHub):
     """
-    Implementação com Redis Streams.
-    Mais robusta para produção - permite múltiplos workers e persistência.
+    ImplementaÃ§Ã£o com Redis Streams.
+    Mais robusta para produÃ§Ã£o - permite mÃºltiplos workers e persistÃªncia.
 
-    .. deprecated::
-        This class is not instantiated in the current pipeline.
-        Kept for future Redis integration.
+    Runtime note:`r`n        This class is available for explicit Redis integration and is not`r`n        instantiated by the default local runtime.
     """
 
     def __init__(

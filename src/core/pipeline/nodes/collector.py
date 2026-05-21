@@ -39,7 +39,7 @@ async def node_collector(state: dict, *, config=None) -> dict:
         if use_pro:
             data, data_context = await _collect_professional(ticker, writer, run_id)
         else:
-            data, data_context = await _collect_legacy(ticker, writer, run_id)
+            data, data_context = await _collect_subprocess_fallback(ticker, writer, run_id)
 
         # Emit data source status
         sources: dict[str, Any] = {}
@@ -182,11 +182,13 @@ async def _collect_professional(ticker: str, writer, run_id: str) -> tuple[dict[
 
 
 # ---------------------------------------------------------------------------
-# Legacy collector (subprocess)
+# Subprocess collector fallback
 # ---------------------------------------------------------------------------
 
 
-async def _collect_legacy(ticker: str, writer, run_id: str) -> tuple[dict[str, Any], str]:
+async def _collect_subprocess_fallback(
+    ticker: str, writer, run_id: str
+) -> tuple[dict[str, Any], str]:
     """Fallback: use SubprocessDataCollector."""
     from ...data_collector import DataCollector
     from ...data_collector.subprocess_collector import SubprocessDataCollector

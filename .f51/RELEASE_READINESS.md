@@ -20,7 +20,7 @@ Motivo: the local engineering gate is fixed, but commercial continuity is still 
 
 ### 3. O que falta em no maximo 3 itens?
 
-1. **Create delivery safety:** new off-disk backup/remote + CI + documented cold-start demo path with secrets protected.
+1. **Create delivery safety:** local CI-equivalent test gates plus documented cold-start demo path with secrets protected.
 2. **Align truth with runtime:** update stale Gemma/Qwen docs/config and either integrate `PriceMLP/PriceTorchMLP` into the default path or stop claiming active dynamic neural prediction.
 3. **Harden the demo path:** prove `desktop/SuperEzio.bat` cold-start, run `/task/submit` to `STREAM_END`, and record latency before any external demo.
 
@@ -66,7 +66,7 @@ Motivo: the local engineering gate is fixed, but commercial continuity is still 
 - Full Python test suite passes locally.
 - Ruff lint and format gates pass locally.
 - No GitHub push was executed in this pass.
-- `origin` still points to GitHub locally; do not push until a deliberate remote/backup decision is made.
+- `origin` still points to GitHub locally; do not push until a deliberate remote decision is made.
 
 ## What Does Not Pass
 

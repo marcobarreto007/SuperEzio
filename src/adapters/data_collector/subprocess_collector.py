@@ -1,6 +1,6 @@
 """Coletor de dados via subprocesso Python isolado.
 
-Estratégia legacy: evita nested event loops lançando um processo filho
+Estratégia de isolamento: evita nested event loops lançando um processo filho
 com DataCollector().collect_all().
 """
 

@@ -79,9 +79,7 @@ def test_build_context_with_macro_and_sentiment():
         },
         "sentiment": {"sentiment_label": "bullish"},
     }
-    pennylab = {
-        "scores": {"whale_suspicion": 0.1, "pump_probability": 0.2, "trap_risk": 0.1}
-    }
+    pennylab = {"scores": {"whale_suspicion": 0.1, "pump_probability": 0.2, "trap_risk": 0.1}}
     result = _build_context(data, pennylab)
     assert isinstance(result, dict)
     assert result["news_sentiment"] == "bullish"

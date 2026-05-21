@@ -223,7 +223,7 @@ add(
     "1. **Circuit Breakers** (`professional.py`): Each data provider has a circuit breaker. After 3 consecutive failures, the provider is disabled for 5 minutes (cooldown). It auto-recovers after cooldown expires. This prevents cascading failures from saturating broken APIs.\n\n"
     "2. **CEO Coverage Penalty** (`ceo.py`): If the CEO output is missing required sections (TASK, INTENT, DATA, EXPERTS, etc.), the system detects the gap and forces regeneration with an explicit penalty prompt: 'REINFORCEMENT PENALTY: Missing module X. Regenerate with ALL sections.'\n\n"
     "3. **Provider Mesh Fallback** (`professional.py`): ProviderMesh.query_all() queries all providers in parallel, scores results, and selects the best one. Failed providers are recorded and circuit-broken. The mesh always returns a result if at least one provider succeeds.\n\n"
-    "4. **Gateway Cascade** (`gateway.py`): The canonical local orchestrator provider is local_orchestrator. The legacy name primary_external is accepted only as a compatibility alias. Expert fallback traffic uses deepseek when configured. Max 2 fallbacks. Each retries twice with 1s delay before moving to the next provider.",
+    "4. **Gateway Cascade** (`gateway.py`): The canonical local orchestrator provider is local_orchestrator. Expert fallback traffic uses deepseek when configured. Max 2 fallbacks. Each retries twice with 1s delay before moving to the next provider.",
 )
 
 add(

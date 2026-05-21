@@ -200,12 +200,12 @@ class TestApplyDeepseekOptions:
         ModelGateway._apply_deepseek_options(p, kwargs)
         assert "extra_body" in kwargs
 
-    def test_legacy_primary_external_alias(self):
+    def test_unknown_provider_uses_default_order(self):
         gw = _gateway(
             _provider(PRIMARY_PROVIDER_NAME, priority=-400),
             _provider(DEEPSEEK_PROVIDER_NAME, priority=-300),
         )
-        result = gw._providers_for_request("primary_external")
+        result = gw._providers_for_request("unknown_provider")
         assert result[0].name == PRIMARY_PROVIDER_NAME
 
     def test_non_deepseek_model_skipped(self):

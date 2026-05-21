@@ -199,9 +199,7 @@ def main():
 
     # ── Step 3: Merge all datasets ──────────────────────────────
     print("\n[3/4] Merging datasets...")
-    all_entries = (
-        datasets["combined"] + datasets["nurse"] + datasets["sensei"] + gold_weighted
-    )
+    all_entries = datasets["combined"] + datasets["nurse"] + datasets["sensei"] + gold_weighted
     print(f"    Combined:    {len(datasets['combined']):,}")
     print(f"    Nurse:       {len(datasets['nurse']):,}")
     print(f"    Sensei:      {len(datasets['sensei']):,}")
@@ -265,9 +263,7 @@ def main():
     t0 = time.time()
     save_jsonl(all_entries, OUTPUT_PATH)
     size_mb = OUTPUT_PATH.stat().st_size / (1024**2)
-    print(
-        f"Saved {len(all_entries):,} entries ({size_mb:.0f} MB) in {time.time() - t0:.1f}s"
-    )
+    print(f"Saved {len(all_entries):,} entries ({size_mb:.0f} MB) in {time.time() - t0:.1f}s")
 
     # ── Save manifest ───────────────────────────────────────────
     manifest = {
@@ -306,9 +302,7 @@ def main():
     if format_errors == 0 and non_ceo_prompts == 0:
         print("DATASET READY for QLoRA fine-tuning.")
     else:
-        print(
-            f"DATASET HAS ISSUES: {format_errors} format, {non_ceo_prompts} bad prompts"
-        )
+        print(f"DATASET HAS ISSUES: {format_errors} format, {non_ceo_prompts} bad prompts")
     print(f"Output: {OUTPUT_PATH}")
     print(f"Entries: {len(all_entries):,}")
     print(f"Est. tokens: {total_tokens:,}")

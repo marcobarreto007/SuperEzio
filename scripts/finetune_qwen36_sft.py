@@ -88,9 +88,14 @@ DEFAULT_MODEL = os.getenv("SUPEREZIO_TRAIN_MODEL", "Qwen/Qwen3.6-35B-A3B")
 
 QWEN35MOE_LORA_TARGETS = [
     # Attention (full_attention layers)
-    "q_proj", "k_proj", "v_proj", "o_proj",
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
     # Shared expert MLP (standard MLP, individual Linears)
-    "gate_proj", "up_proj", "down_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj",
     # SSM output projection (linear_attention layers)
     "out_proj",
 ]
@@ -174,7 +179,9 @@ class StreamingJSONLDataset(IterableDataset):
 
                 try:
                     tokenized = self.tokenizer.apply_chat_template(
-                        messages, tokenize=True, add_generation_prompt=False,
+                        messages,
+                        tokenize=True,
+                        add_generation_prompt=False,
                     )
                     # transformers 5.x: apply_chat_template returns
                     # BatchEncoding, extract input_ids list
@@ -182,18 +189,21 @@ class StreamingJSONLDataset(IterableDataset):
                         tokenized = tokenized["input_ids"]
                     if isinstance(tokenized, str):
                         tokenized = self.tokenizer.encode(
-                            tokenized, max_length=self.max_length,
+                            tokenized,
+                            max_length=self.max_length,
                             truncation=True,
                         )
                     if len(tokenized) > self.max_length:
-                        tokenized = tokenized[:self.max_length]
+                        tokenized = tokenized[: self.max_length]
                 except Exception:
                     continue
 
-                buffer.append({
-                    "input_ids": tokenized,
-                    "labels": tokenized.copy(),
-                })
+                buffer.append(
+                    {
+                        "input_ids": tokenized,
+                        "labels": tokenized.copy(),
+                    }
+                )
 
                 if len(buffer) >= self.shuffle_buffer_size:
                     rng.shuffle(buffer)
@@ -266,10 +276,16 @@ def parse_args() -> TrainingArgs:
     p.add_argument("--lora-r", type=int, default=64)
     p.add_argument("--lora-alpha", type=int, default=128)
     p.add_argument("--lora-dropout", type=float, default=0.05)
-    p.add_argument("--use-4bit", action="store_true",
-                   help="Use QLoRA 4-bit NF4 quantization (default: full LoRA bf16)")
-    p.add_argument("--no-grad-checkpoint", action="store_true",
-                   help="Disable gradient checkpointing (uses more VRAM)")
+    p.add_argument(
+        "--use-4bit",
+        action="store_true",
+        help="Use QLoRA 4-bit NF4 quantization (default: full LoRA bf16)",
+    )
+    p.add_argument(
+        "--no-grad-checkpoint",
+        action="store_true",
+        help="Disable gradient checkpointing (uses more VRAM)",
+    )
     p.add_argument("--max-seq-length", type=int, default=4096)
     p.add_argument("--max-samples", type=int, default=None)
     p.add_argument("--save-steps", type=int, default=500)
@@ -323,18 +339,26 @@ def train(args: TrainingArgs) -> None:
 
     if accelerator.is_main_process:
         logger.info("=" * 60)
-        logger.info("%s — Qwen3.6-35B-A3B MoE",
-                    "Full LoRA (bf16)" if not args.use_4bit else "QLoRA (4-bit NF4)")
+        logger.info(
+            "%s — Qwen3.6-35B-A3B MoE",
+            "Full LoRA (bf16)" if not args.use_4bit else "QLoRA (4-bit NF4)",
+        )
         logger.info("Model: %s", args.model_name)
         logger.info("Dataset: %s", args.dataset_path)
         logger.info("Output: %s", args.output_dir)
-        logger.info("LoRA: r=%d alpha=%d dropout=%.2f",
-                    args.lora_r, args.lora_alpha, args.lora_dropout)
-        logger.info("Training: epochs=%d batch=%d grad_accum=%d effective_batch=%d",
-                    args.epochs, args.batch_size, args.gradient_accumulation,
-                    args.batch_size * args.gradient_accumulation)
-        logger.info("4-bit: %s | Grad checkpoint: %s",
-                    args.use_4bit, args.use_gradient_checkpointing)
+        logger.info(
+            "LoRA: r=%d alpha=%d dropout=%.2f", args.lora_r, args.lora_alpha, args.lora_dropout
+        )
+        logger.info(
+            "Training: epochs=%d batch=%d grad_accum=%d effective_batch=%d",
+            args.epochs,
+            args.batch_size,
+            args.gradient_accumulation,
+            args.batch_size * args.gradient_accumulation,
+        )
+        logger.info(
+            "4-bit: %s | Grad checkpoint: %s", args.use_4bit, args.use_gradient_checkpointing
+        )
         logger.info("=" * 60)
 
     # ── Load model ────────────────────────────────────────────────────────
@@ -386,8 +410,7 @@ def train(args: TrainingArgs) -> None:
 
     model = get_peft_model(model, lora_config)
     trainable, total, pct = count_trainable_params(model)
-    logger.info("Trainable: %s / %s (%.2f%%)",
-                f"{trainable:,}", f"{total:,}", pct)
+    logger.info("Trainable: %s / %s (%.2f%%)", f"{trainable:,}", f"{total:,}", pct)
 
     # ── Dataset ───────────────────────────────────────────────────────────
     dataset_path = Path(args.dataset_path)
@@ -472,13 +495,14 @@ def train(args: TrainingArgs) -> None:
                 lr = scheduler.get_last_lr()[0]
                 logger.info(
                     "Step %d | loss=%.4f avg=%.4f lr=%.2e",
-                    global_step, loss.item(), avg_loss, lr,
+                    global_step,
+                    loss.item(),
+                    avg_loss,
+                    lr,
                 )
 
             if global_step % args.save_steps == 0 and accelerator.is_main_process:
-                ckpt_dir = os.path.join(
-                    args.output_dir, f"checkpoint-{global_step}"
-                )
+                ckpt_dir = os.path.join(args.output_dir, f"checkpoint-{global_step}")
                 unwrapped = accelerator.unwrap_model(model)
                 unwrapped.save_pretrained(ckpt_dir)
                 tokenizer.save_pretrained(ckpt_dir)
@@ -490,18 +514,17 @@ def train(args: TrainingArgs) -> None:
         if accelerator.is_main_process:
             logger.info(
                 "Epoch %d/%d — loss=%.4f time=%.1fs",
-                epoch + 1, args.epochs, avg_epoch_loss, epoch_time,
+                epoch + 1,
+                args.epochs,
+                avg_epoch_loss,
+                epoch_time,
             )
 
             if avg_epoch_loss < best_loss:
                 best_loss = avg_epoch_loss
                 unwrapped = accelerator.unwrap_model(model)
-                unwrapped.save_pretrained(
-                    os.path.join(args.output_dir, "best")
-                )
-                tokenizer.save_pretrained(
-                    os.path.join(args.output_dir, "best")
-                )
+                unwrapped.save_pretrained(os.path.join(args.output_dir, "best"))
+                tokenizer.save_pretrained(os.path.join(args.output_dir, "best"))
                 logger.info("Best model saved (loss=%.4f)", best_loss)
 
     # ── Final save ────────────────────────────────────────────────────────

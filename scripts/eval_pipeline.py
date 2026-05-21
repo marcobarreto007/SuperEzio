@@ -519,9 +519,7 @@ def main():
             try:
                 r = await client.get(f"{SUPEREZIO_URL}/health")
                 se_ok = r.status_code == 200
-                print(
-                    f"  SuperEzio health: {'✅' if se_ok else '❌'} ({r.status_code})"
-                )
+                print(f"  SuperEzio health: {'✅' if se_ok else '❌'} ({r.status_code})")
             except Exception as e:
                 print(f"  SuperEzio health: ❌ ({e})")
             try:
@@ -557,8 +555,7 @@ def main():
     passed = sum(
         1
         for r in results
-        if isinstance(r.get("evaluation"), dict)
-        and r["evaluation"].get("verdict") == "PASS"
+        if isinstance(r.get("evaluation"), dict) and r["evaluation"].get("verdict") == "PASS"
     )
 
     print(f"\n{'=' * 60}")

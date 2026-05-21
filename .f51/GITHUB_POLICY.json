@@ -9,8 +9,7 @@
   "allowed": [
     "Read and write local files on disk",
     "Run local tests and local runtime checks",
-    "Create local git commits when Marco asks to save work",
-    "Use local backups outside GitHub if explicitly approved"
+    "Create local git commits when Marco asks to save work"
   ],
   "forbidden": [
     "Do not push to GitHub",

@@ -109,9 +109,7 @@ def test_node_sdca_firewall_empty_message():
     sdca_node.get_stream_writer = lambda: _noop_writer
 
     async def _run():
-        return await node_sdca_firewall(
-            {"message": "", "run_id": "test-sdca-empty"}
-        )
+        return await node_sdca_firewall({"message": "", "run_id": "test-sdca-empty"})
 
     result = asyncio.run(_run())
     assert isinstance(result, dict)

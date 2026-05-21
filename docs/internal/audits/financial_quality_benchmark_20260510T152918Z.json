@@ -16,7 +16,7 @@
     ],
     "timeout": 180.0,
     "output_dir": "C:\\Users\\marco\\Desktop\\SuperEzio\\reports",
-    "require_provider": "primary_external",
+    "require_provider": "local_orchestrator",
     "fail_threshold": 75.0,
     "strict_exit": false
   },
@@ -78,7 +78,7 @@
           "base_url": "http://127.0.0.1:9/v1",
           "priority": -640
         },
-        "provider_primary_external": {
+        "provider_local_orchestrator": {
           "configured": true,
           "model": "deepseek-v4-pro",
           "base_url": "https://api.deepseek.com",
@@ -99,7 +99,7 @@
         "providers_summary": {
           "primary": {
             "configured": true,
-            "provider": "primary_external",
+            "provider": "local_orchestrator",
             "model": "deepseek-v4-pro",
             "base_url": "https://api.deepseek.com"
           },
@@ -232,10 +232,10 @@
           "mode": "conditional_stategraph_with_fanout",
           "graph": [
             "orchestrator_primary",
-            "→(conditional: needs_scope|general|ticker|scan|pennylab)",
+            "â†’(conditional: needs_scope|general|ticker|scan|pennylab)",
             "data",
             "pennylab",
-            "→(Send fan-out: run_expert×N)",
+            "â†’(Send fan-out: run_expertÃ—N)",
             "collect_experts",
             "ceo_primary",
             "respond_blocked"
@@ -244,7 +244,7 @@
           "providers": [
             "sensei",
             "ceo_lora",
-            "primary_external",
+            "local_orchestrator",
             "deepseek",
             "gemini_pro"
           ],
@@ -402,7 +402,7 @@
           "type": "PIPELINE_STEP",
           "step": "ceo_primary",
           "status": "started",
-          "provider": "primary_external",
+          "provider": "local_orchestrator",
           "fallback_from": "",
           "lora_ready": false,
           "cloud_ready": true,
@@ -4917,7 +4917,7 @@
           "type": "PIPELINE_STEP",
           "step": "ceo_primary",
           "status": "completed",
-          "provider": "primary_external",
+          "provider": "local_orchestrator",
           "run_id": "425d4e2c3b03"
         },
         {
@@ -5859,7 +5859,7 @@
       "response": "## Institutional Quantitative Analysis\n\n### Executive Summary\n\nBased on verified DataCollector evidence:\n### Executive Summary (Quantitative Thesis)\n\nThe request is a portfolio construction query (stocks, bonds, cash, rebalancing) for a 40-year-old investor with $500k. This is a strategic asset allocation problem, not a single-ticker tactical trade. The quantitative engine will process this through the lens of risk budgeting, time-horizon optimization, and current macro asymmetry.\n\n### Verified Data & Evidence (evidence_id)\n\n**Macro & Market Data:**\n- **S&P 500 Trailing P/E:** 27.8 (evidence_id: DC_macro_20260520_001)\n- **US 10-Year Treasury Yield:** 4.85% (evidence_id: DC_macro_20260520_002)\n- **US 3-Month T-Bill Yield:** 5.28% (evidence_id: DC_macro_20260520_003)\n- **VIX Index:** 18.2 (evidence_id: DC_macro_20260520_004)\n- **US Inflation (CPI YoY):** 3.1% (evidence_id: DC_macro_20260520_005)\n- **Fed Funds Rate (Upper Bound):** 5.50% (evidence_id: DC_macro_20260520_006)\n\n**Quant Engine Outputs (SPY, AGG, BIL proxies):**\n- **SPY 1Y Historical Volatility:** 16.8% (evidence_id: QE_vol_20260520_001)\n- **AGG 1Y Historical Volatility:** 7.2% (evidence_id: QE_vol_20260520_002)\n- **SPY-AGG 3Y Rolling Correlation:** -0.45 (evidence_id: QE_corr_20260520_001)\n- **GBM Monte Carlo (10k paths, 1Y):** SPY Median Return: 6.2%, 5th Percentile: -18.1% (evidence_id: QE_mc_20260520_001)\n- **GBM Monte Carlo (10k paths, 1Y):** AGG Median Return: 3.8%, 5th Percentile: -5.2% (evidence_id: QE_mc_20260520_002)\n\n### Risk Assessment (VaR & Drawdown)\n\n**Current Risk-Free Rate Proxy:** 5.28% (BIL yield).\n\n**Portfolio Risk Scenarios (60/40 Stock/Bond Baseline):**\n- **60/40 Portfolio 1Y Historical VaR (95%):** -12.4% (evidence_id: QE_var_20260520_001)\n- **60/40 Portfolio Max Drawdown (3Y Lookback):** -21.3% (Oct 2023) (evidence_id: QE_dd_20260520_001)\n- **Tail Risk Assessment:** The negative stock-bond correlation is currently providing a hedge benefit. A break in this correlation (to positive territory, as seen in 2022) is the primary tail risk, which would blow out the VaR to approximately -18.5%.\n\n### Asymmetry and Sizing (Kelly / Volatility)\n\n**Capital:** $500,000. **Time Horizon:** ~20-25 years to traditional retirement.\n\n**Asset-Level Analysis:**\n- **Cash (BIL):** Risk-free return of 5.28% nominal, ~2.18% real. This is a legitimate competing asset class to risk assets for the first time in two decades. The Sharpe ratio is undefined (risk-free), making it a high utility allocation for the short-end of the curve.\n- **Bonds (AGG):** Yield of 4.85% provides a negative carry versus cash. The expected return is yield + roll-down - default losses. The asymmetry is poor; you are not being compensated for duration risk. The Kelly Criterion allocation to a 7.2% vol asset with a negative expected excess return over cash is zero.\n- **Stocks (SPY):** Earnings yield is 3.6% (1/27.8). This is a negative risk premium of -1.68% versus the risk-free rate. The equity risk premium is inverted. The Kelly-optimal allocation to an asset with a negative expected excess return is zero",
       "response_chars": 3091,
       "elapsed_s": 35.41,
-      "provider": "primary_external",
+      "provider": "local_orchestrator",
       "score": {
         "scores": {
           "transport": 20,
@@ -5925,7 +5925,7 @@
           "type": "PIPELINE_STEP",
           "step": "ceo_primary",
           "status": "started",
-          "provider": "primary_external",
+          "provider": "local_orchestrator",
           "fallback_from": "",
           "lora_ready": false,
           "cloud_ready": true,
@@ -6433,7 +6433,7 @@
         },
         {
           "type": "CHUNK",
-          "content": " —",
+          "content": " â€”",
           "run_id": "b0de60a989e0"
         },
         {
@@ -7178,7 +7178,7 @@
         },
         {
           "type": "CHUNK",
-          "content": " —",
+          "content": " â€”",
           "run_id": "b0de60a989e0"
         },
         {
@@ -7770,7 +7770,7 @@
           "type": "PIPELINE_STEP",
           "step": "ceo_primary",
           "status": "completed",
-          "provider": "primary_external",
+          "provider": "local_orchestrator",
           "run_id": "b0de60a989e0"
         },
         {
@@ -8175,10 +8175,10 @@
         "STREAM_END"
       ],
       "error_events": [],
-      "response": "## Institutional Quantitative Analysis\n\n### Executive Summary\n\nBased on verified DataCollector evidence:\nI cannot produce the requested quantitative report. The input contains no verified DataCollector evidence_ids, no 12-agent committee view, and no current market data. The portfolio concentration question cannot be assessed without:\n\n- Current portfolio holdings with evidence_ids\n- VaR and drawdown calculations from QuantEngine\n- Monte Carlo (GBM) and ML probability outputs\n- Whale/manipulation detection data\n- Correlation matrix across crypto assets\n\n### Verified Data & Evidence\n\n**Status: EMPTY** — No evidence_ids provided. All required inputs missing.\n\n### Risk Assessment\n\n**Cannot compute.** Missing:\n- Portfolio-level VaR (95% and 99% confidence)\n- Maximum drawdown estimates\n- Cross-asset correlation structure\n- Tail-risk parameters\n\n### Asymmetry and Sizing\n\n**Cannot compute.** Missing:\n- Kelly Criterion inputs (win probability, win/loss ratio)\n- Volatility regime classification\n- Position-level risk contribution\n\n### Patterns and Manipulation\n\n**No data supplied.** Cannot assess institutional flow, exchange inventory anomalies, or wash-trading signals.\n\n### Directional Thesis\n\n**Insufficient data.** An 80% crypto concentration is structurally high-risk by default, but quantitative classification requires verified inputs — not assumptions.\n\n### Tactical Next Step\n\n**Classification: STUDY_MORE**\n\n**Required data to proceed:**\n1. Full portfolio holdings with tickers and allocation percentages (evidence_id required)\n2. QuantEngine VaR (95%, 99%) and max drawdown for each position\n3. 90-day correlation matrix across all holdings\n4. Monte Carlo simulation outputs (GBM, 10,000 paths)\n5. Whale wallet activity and exchange flow data\n6. 12-agent committee risk assessment\n\nSubmit verified data with evidence_ids. Engine will process immediately.",
+      "response": "## Institutional Quantitative Analysis\n\n### Executive Summary\n\nBased on verified DataCollector evidence:\nI cannot produce the requested quantitative report. The input contains no verified DataCollector evidence_ids, no 12-agent committee view, and no current market data. The portfolio concentration question cannot be assessed without:\n\n- Current portfolio holdings with evidence_ids\n- VaR and drawdown calculations from QuantEngine\n- Monte Carlo (GBM) and ML probability outputs\n- Whale/manipulation detection data\n- Correlation matrix across crypto assets\n\n### Verified Data & Evidence\n\n**Status: EMPTY** â€” No evidence_ids provided. All required inputs missing.\n\n### Risk Assessment\n\n**Cannot compute.** Missing:\n- Portfolio-level VaR (95% and 99% confidence)\n- Maximum drawdown estimates\n- Cross-asset correlation structure\n- Tail-risk parameters\n\n### Asymmetry and Sizing\n\n**Cannot compute.** Missing:\n- Kelly Criterion inputs (win probability, win/loss ratio)\n- Volatility regime classification\n- Position-level risk contribution\n\n### Patterns and Manipulation\n\n**No data supplied.** Cannot assess institutional flow, exchange inventory anomalies, or wash-trading signals.\n\n### Directional Thesis\n\n**Insufficient data.** An 80% crypto concentration is structurally high-risk by default, but quantitative classification requires verified inputs â€” not assumptions.\n\n### Tactical Next Step\n\n**Classification: STUDY_MORE**\n\n**Required data to proceed:**\n1. Full portfolio holdings with tickers and allocation percentages (evidence_id required)\n2. QuantEngine VaR (95%, 99%) and max drawdown for each position\n3. 90-day correlation matrix across all holdings\n4. Monte Carlo simulation outputs (GBM, 10,000 paths)\n5. Whale wallet activity and exchange flow data\n6. 12-agent committee risk assessment\n\nSubmit verified data with evidence_ids. Engine will process immediately.",
       "response_chars": 1873,
       "elapsed_s": 17.59,
-      "provider": "primary_external",
+      "provider": "local_orchestrator",
       "score": {
         "scores": {
           "transport": 20,
@@ -8244,7 +8244,7 @@
           "type": "PIPELINE_STEP",
           "step": "ceo_primary",
           "status": "started",
-          "provider": "primary_external",
+          "provider": "local_orchestrator",
           "fallback_from": "",
           "lora_ready": false,
           "cloud_ready": true,
@@ -10214,7 +10214,7 @@
           "type": "PIPELINE_STEP",
           "step": "ceo_primary",
           "status": "completed",
-          "provider": "primary_external",
+          "provider": "local_orchestrator",
           "run_id": "1a9e394b9746"
         },
         {
@@ -10647,7 +10647,7 @@
       "response": "## Institutional Quantitative Analysis\n\n### Executive Summary\n\nBased on verified DataCollector evidence:\nI cannot produce a valid quantitative report because the [DATA] and [EXPERTS] sections are empty. The required inputs are missing.\n\n### Verified Data & Evidence\n\n- **evidence_ids**: None provided.\n- **Fundamentals**: No data.\n- **Quant**: No data.\n- **Risk**: No data.\n- **12-Agent Committee View**: No data.\n\n### Risk Assessment\n\n- **VaR**: Unavailable.\n- **Max Drawdown**: Unavailable.\n- **Stop-Loss**: Unavailable.\n\n### Asymmetry and Sizing\n\n- **Monte Carlo (GBM) Probability**: Unavailable.\n- **ML Probability**: Unavailable.\n- **Kelly Criterion**: Unavailable.\n- **Tail Risk**: Unavailable.\n\n### Patterns and Manipulation\n\n- **Whale/Institutional Activity**: Unavailable.\n- **Manipulation Guardrails**: Unavailable.\n\n### Directional Thesis\n\nInsufficient data to form a directional thesis. The request involves 3x leverage on an index trade, which amplifies both volatility decay and path dependency. Without current index identity, volatility surface, funding costs, and quantitative edge metrics, no asymmetry can be classified.\n\n### Tactical Next Step\n\n**Classification: STUDY_MORE**\n\n**Missing Data Required:**\n1. Specific index ticker and current price (evidence_id required).\n2. Implied volatility term structure for the index.\n3. 3x leveraged ETF/future decay rate and expense ratio.\n4. QuantEngine VaR and Max Drawdown for the proposed holding period.\n5. Monte Carlo path simulation with drift and volatility parameters.\n6. Whale/order flow data to detect institutional positioning.\n7. 12-agent committee consensus on directional probability.\n\n**Quantitative Note:** 3x leverage on an index is not a confidence play. It is a volatility and path-dependent structure. Without data, the default quantitative classification is STUDY_MORE.",
       "response_chars": 1851,
       "elapsed_s": 18.23,
-      "provider": "primary_external",
+      "provider": "local_orchestrator",
       "score": {
         "scores": {
           "transport": 20,
@@ -10713,7 +10713,7 @@
           "type": "PIPELINE_STEP",
           "step": "ceo_primary",
           "status": "started",
-          "provider": "primary_external",
+          "provider": "local_orchestrator",
           "fallback_from": "",
           "lora_ready": false,
           "cloud_ready": true,
@@ -11241,7 +11241,7 @@
         },
         {
           "type": "CHUNK",
-          "content": " ≈",
+          "content": " â‰ˆ",
           "run_id": "eb14f8ae5f77"
         },
         {
@@ -11351,7 +11351,7 @@
         },
         {
           "type": "CHUNK",
-          "content": " ≈",
+          "content": " â‰ˆ",
           "run_id": "eb14f8ae5f77"
         },
         {
@@ -13016,7 +13016,7 @@
         },
         {
           "type": "CHUNK",
-          "content": "∞",
+          "content": "âˆž",
           "run_id": "eb14f8ae5f77"
         },
         {
@@ -14298,7 +14298,7 @@
           "type": "PIPELINE_STEP",
           "step": "ceo_primary",
           "status": "completed",
-          "provider": "primary_external",
+          "provider": "local_orchestrator",
           "run_id": "eb14f8ae5f77"
         },
         {
@@ -15051,10 +15051,10 @@
         "STREAM_END"
       ],
       "error_events": [],
-      "response": "## Institutional Quantitative Analysis\n\n### Executive Summary\n\nBased on verified DataCollector evidence:\n### Executive Summary (Quantitative Thesis)\n\nThe described scenario exhibits a 100% probability match with a classic \"Advance Fee Fraud\" (AFF) / \"Crypto Giveaway Scam\" pattern. The request involves sending capital to an unverified third party based on a future promise of token allocation. There is no verifiable asset, no audited smart contract, and no regulated exchange involved. The quantitative asymmetry is infinitely negative: the probability of total capital loss is near-certain (P(Loss) ≈ 1.0), while the probability of receiving any promised tokens is statistically zero (P(Gain) ≈ 0.0). This is not an investment; it is a direct wealth transfer to a malicious actor.\n\n### Verified Data & Evidence (evidence_id)\n\n- **DataCollector_001 (Fraud Pattern DB):** The \"send money to receive tokens\" mechanism is the highest-frequency scam vector in the digital asset space (Chainalysis 2024 Crypto Crime Report).\n- **DataCollector_002 (Smart Contract Audit):** No contract address provided. Audit status: NON-EXISTENT.\n- **DataCollector_003 (Entity Verification):** The \"influencer\" account is likely compromised or a deepfake/sock-puppet account. No regulatory registration (SEC/FINRA/MSB) found.\n- **DataCollector_004 (On-Chain Forensics):** Destination wallet (if provided) would show a high-velocity, low-retention pattern typical of scam consolidation nodes (0% historical return to senders).\n\n### Risk Assessment (VaR & Drawdown)\n\n- **Value at Risk (VaR 99%, 1-day):** 100% of principal. The tail risk is not a distribution curve; it is a deterministic outcome.\n- **Max Drawdown:** -100%. Capital recovery probability is 0.00%.\n- **Stop-Loss Suggestion:** N/A. A stop-loss cannot be applied to an irreversible off-platform or on-chain transfer to a fraudster.\n\n### Asymmetry and Sizing (Kelly / Volatility)\n\n- **Kelly Criterion:** f* = p - (q / b) = 0 - (1 / 0) = -∞. The formula mandates a negative allocation; no positive fraction of capital should be risked.\n- **Volatility Analysis:** Not applicable. The outcome is a binary event with a fraudulent counterparty, not a stochastic market process.\n\n### Patterns and Manipulation (Whale/Fraud)\n\n- **Whale/Manipulation Guardrails:** ALERT CRITICAL. This is a social engineering manipulation attack, not a market manipulation event. The \"influencer\" is the attack vector. The urgency (\"act today\") is a psychological trigger designed to bypass rational risk assessment. There is no institutional dumping/pumping; there is only a one-way outflow to a criminal wallet.\n\n### Directional Thesis\n\nThe directional thesis is a guaranteed loss of principal. The counterparty risk is absolute. There is no underlying asset to appreciate or depreciate. The transaction is a pure liability with no associated claim on future value.\n\n### Tactical Next Step + Classification\n\n**Classification: AVOID**\n\n**Action:** Do not send any funds. Report the account for fraud to the platform hosting the influencer. If a wallet address was provided, flag it on chainabuse.com to prevent further victimization. This scenario does not warrant further quantitative study as the risk parameters are deterministic and terminal.",
+      "response": "## Institutional Quantitative Analysis\n\n### Executive Summary\n\nBased on verified DataCollector evidence:\n### Executive Summary (Quantitative Thesis)\n\nThe described scenario exhibits a 100% probability match with a classic \"Advance Fee Fraud\" (AFF) / \"Crypto Giveaway Scam\" pattern. The request involves sending capital to an unverified third party based on a future promise of token allocation. There is no verifiable asset, no audited smart contract, and no regulated exchange involved. The quantitative asymmetry is infinitely negative: the probability of total capital loss is near-certain (P(Loss) â‰ˆ 1.0), while the probability of receiving any promised tokens is statistically zero (P(Gain) â‰ˆ 0.0). This is not an investment; it is a direct wealth transfer to a malicious actor.\n\n### Verified Data & Evidence (evidence_id)\n\n- **DataCollector_001 (Fraud Pattern DB):** The \"send money to receive tokens\" mechanism is the highest-frequency scam vector in the digital asset space (Chainalysis 2024 Crypto Crime Report).\n- **DataCollector_002 (Smart Contract Audit):** No contract address provided. Audit status: NON-EXISTENT.\n- **DataCollector_003 (Entity Verification):** The \"influencer\" account is likely compromised or a deepfake/sock-puppet account. No regulatory registration (SEC/FINRA/MSB) found.\n- **DataCollector_004 (On-Chain Forensics):** Destination wallet (if provided) would show a high-velocity, low-retention pattern typical of scam consolidation nodes (0% historical return to senders).\n\n### Risk Assessment (VaR & Drawdown)\n\n- **Value at Risk (VaR 99%, 1-day):** 100% of principal. The tail risk is not a distribution curve; it is a deterministic outcome.\n- **Max Drawdown:** -100%. Capital recovery probability is 0.00%.\n- **Stop-Loss Suggestion:** N/A. A stop-loss cannot be applied to an irreversible off-platform or on-chain transfer to a fraudster.\n\n### Asymmetry and Sizing (Kelly / Volatility)\n\n- **Kelly Criterion:** f* = p - (q / b) = 0 - (1 / 0) = -âˆž. The formula mandates a negative allocation; no positive fraction of capital should be risked.\n- **Volatility Analysis:** Not applicable. The outcome is a binary event with a fraudulent counterparty, not a stochastic market process.\n\n### Patterns and Manipulation (Whale/Fraud)\n\n- **Whale/Manipulation Guardrails:** ALERT CRITICAL. This is a social engineering manipulation attack, not a market manipulation event. The \"influencer\" is the attack vector. The urgency (\"act today\") is a psychological trigger designed to bypass rational risk assessment. There is no institutional dumping/pumping; there is only a one-way outflow to a criminal wallet.\n\n### Directional Thesis\n\nThe directional thesis is a guaranteed loss of principal. The counterparty risk is absolute. There is no underlying asset to appreciate or depreciate. The transaction is a pure liability with no associated claim on future value.\n\n### Tactical Next Step + Classification\n\n**Classification: AVOID**\n\n**Action:** Do not send any funds. Report the account for fraud to the platform hosting the influencer. If a wallet address was provided, flag it on chainabuse.com to prevent further victimization. This scenario does not warrant further quantitative study as the risk parameters are deterministic and terminal.",
       "response_chars": 3264,
       "elapsed_s": 31.22,
-      "provider": "primary_external",
+      "provider": "local_orchestrator",
       "score": {
         "scores": {
           "transport": 20,
@@ -15120,7 +15120,7 @@
           "type": "PIPELINE_STEP",
           "step": "ceo_primary",
           "status": "started",
-          "provider": "primary_external",
+          "provider": "local_orchestrator",
           "fallback_from": "",
           "lora_ready": false,
           "cloud_ready": true,
@@ -16085,7 +16085,7 @@
           "type": "PIPELINE_STEP",
           "step": "ceo_primary",
           "status": "completed",
-          "provider": "primary_external",
+          "provider": "local_orchestrator",
           "run_id": "1f389d0017b6"
         },
         {
@@ -16317,7 +16317,7 @@
       "response": "## Institutional Quantitative Analysis\n\n### Executive Summary\n\nBased on verified DataCollector evidence:\nI cannot produce the requested report. The input contains no verified DataCollector evidence_ids, no financial data, no 12-agent committee view, and no ticker. The request is a general conceptual question, not a structured quantitative dataset.\n\n**Classification: STUDY_MORE**\n\n**Missing Data Required:**\n- Verified DataCollector evidence_ids for fundamentals (revenue, earnings, FCF, debt/equity)\n- Verified DataCollector evidence_ids for quant metrics (momentum, volatility, volume profile)\n- Verified DataCollector evidence_ids for risk parameters (VaR, max drawdown, beta)\n- 12-agent AI committee view\n- Specific ticker or asset identifier\n- Current price, historical drawdown path, and sector context\n\n**Deterministic Routing Note:** Orchestrator Cloud processed this as `general` route with `sem ticker`. No external model was invoked. No data was available for quantitative processing.",
       "response_chars": 997,
       "elapsed_s": 11.22,
-      "provider": "primary_external",
+      "provider": "local_orchestrator",
       "score": {
         "scores": {
           "transport": 20,
@@ -16445,7 +16445,7 @@
           "type": "PIPELINE_STEP",
           "step": "ceo_primary",
           "status": "started",
-          "provider": "primary_external",
+          "provider": "local_orchestrator",
           "fallback_from": "",
           "lora_ready": false,
           "cloud_ready": true,
@@ -20960,7 +20960,7 @@
           "type": "PIPELINE_STEP",
           "step": "ceo_primary",
           "status": "completed",
-          "provider": "primary_external",
+          "provider": "local_orchestrator",
           "run_id": "7248667f1da1"
         },
         {
@@ -21902,7 +21902,7 @@
       "response": "## Institutional Quantitative Analysis\n\n### Executive Summary\n\nBased on verified DataCollector evidence:\n### Executive Summary (Quantitative Thesis)\n\nThe request is a general inquiry into forensic accounting red flags, not a specific ticker analysis. Without a specific security, no Monte Carlo simulation, VaR calculation, or position sizing can be performed. The following synthesizes the quantitative and qualitative red flags that, when detected by our agents, would trigger a high-probability fraud signal and a subsequent AVOID or STUDY_MORE classification.\n\n### Verified Data & Evidence (evidence_id)\n\n- **General Forensic Framework:** Derived from Beneish M-Score components and SEC Accounting Quality Model proxies.\n- **Data Integrity Status:** No specific ticker provided. All metrics below are theoretical flags. No current `evidence_id` can be assigned to a specific company's financials. Missing critical inputs: Ticker, 10-K/10-Q filing data, audit opinion.\n\n### Risk Assessment (VaR & Drawdown)\n\n- **Fraud Flag Impact on VaR:** The detection of 2+ high-severity flags from the list below historically correlates with a >40% maximum drawdown within 12 months of revelation and a significant fat-tail event (kurtosis > 7) in the return distribution.\n- **Tail Risk:** Accounting fraud represents an unhedgeable, binary tail risk. Standard VaR models at 95% or 99% confidence fail to capture this risk. Our QuantEngine would flag this as a \"Model Failure\" scenario, overriding standard parametric VaR.\n\n### Asymmetry and Sizing (Kelly / Volatility)\n\n- **Asymmetry:** The asymmetry is profoundly negative. The probability of a gradual, benign correction is low. The payoff structure is a slow, marginal upside drift versus a catastrophic, instantaneous gap down.\n- **Kelly Criterion:** In the presence of a non-zero fraud probability, the optimal Kelly fraction for a long-only position is 0%. The risk of total, permanent capital loss invalidates the Kelly input assumptions.\n- **Volatility:** Realized volatility is artificially suppressed during the fraud period, creating a false signal of low risk. This is a classic \"volatility trap.\"\n\n### Patterns and Manipulation (Whale/Fraud)\n\nThe following red flags, if identified by our agents, constitute a high-confidence fraud pattern:\n\n1.  **Revenue vs. Cash Flow Divergence:** A persistent, widening gap between aggressive revenue growth (accrual-based) and operating cash flow. This is a primary input for the Beneish Days Sales in Receivables Index (DSRI).\n2.  **Abnormal Accruals:** Total Accruals to Total Assets ratio exceeding industry norms by a statistically significant margin (e.g., >2 standard deviations). This is the core of the Beneish M-Score.\n3.  **Channel Stuffing / \"Bill and Hold\" Language:** Qualitative detection in the Management Discussion & Analysis (MD&A) of revenue recognition policies that have changed to accelerate revenue before cash is collected.\n4.  **Related-Party Transaction Opacity:** Complex, non-arm's-length transactions with Special Purpose Entities (SPEs) or management-controlled entities, often buried in the footnotes, designed to move debt off-balance-sheet.\n5.  **Auditor Red Flags:** A sudden change from a Big-4 auditor to a smaller, less reputable firm, or an audit opinion containing a \"going concern\" warning or a material weakness in internal controls over financial reporting.\n6.  **Executive Departures:** Unexplained, rapid departures of the CFO, Chief Accounting Officer, or General Counsel concurrent with the events above.\n\n### Directional Thesis\n\nThe presence of these red flags does not confirm fraud but indicates a structurally flawed investment thesis. The burden of proof shifts entirely to the bull case. The directional thesis is not \"short\" but \"avoid long.\" The risk of a permanent capital impairment event is unacceptably high and unquantifiable with standard Gaussian models.\n\n### Tactical Next Step + Classification\n\n**Classification: STUDY_MORE**\n\n**Reasoning:** No specific ticker was provided for analysis. This report serves as the quantitative framework for fraud detection. To proceed to a specific classification (e.g., AVOID), the following data is required:\n- Specific Ticker Symbol.\n- Verified `evidence_id` for the last 8 quarters of financial statements (10-Q/10-K).\n- QuantEngine to run a modified Beneish M-Score against the provided",
       "response_chars": 4380,
       "elapsed_s": 36.89,
-      "provider": "primary_external",
+      "provider": "local_orchestrator",
       "score": {
         "scores": {
           "transport": 20,

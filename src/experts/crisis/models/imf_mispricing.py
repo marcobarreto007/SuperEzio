@@ -2,7 +2,7 @@
 Mispricing sensor — naive z-score over equity series.
 
 NOTE: not the IMF model. This is a simple residual-vs-rolling-mean z-score,
-kept under the legacy class name for ensemble weight stability. The honest
+kept under the stable class name for ensemble weight stability. The honest
 implementation label is exposed in ``details["implementation"]``.
 """
 
@@ -11,7 +11,7 @@ from ..logic.normalization import zscore_to_risk
 
 
 class IMFMispricingModel:
-    """Equity z-score mispricing sensor (legacy class name retained)."""
+    """Equity z-score mispricing sensor (stable class name retained)."""
 
     def evaluate(self, input_data: CrisisInput) -> SensorResult:
         # Fallback simple mispricing (z-score against long moving average)
