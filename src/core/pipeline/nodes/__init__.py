@@ -10,6 +10,8 @@ from .rag import node_rag_forensics
 from .ceo import node_ceo
 from .explanation import node_explanation
 from .guardrails import node_blocked
+from .agent import node_agent
+from .tool_executor import node_tool_executor, route_after_agent
 
 __all__ = [
     "node_orchestrator",
@@ -26,4 +28,7 @@ __all__ = [
     "node_ceo",
     "node_explanation",
     "node_blocked",
+    "node_agent",
+    "node_tool_executor",
+    "route_after_agent",
 ]

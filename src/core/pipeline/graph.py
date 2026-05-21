@@ -11,20 +11,12 @@ from langgraph.graph import END, START, StateGraph
 
 from .contracts import PipelineState
 from .nodes import (
-    node_blocked,
-    node_ceo,
-    node_collect_experts,
-    node_collector,
-    node_expert,
+    node_agent,
+    node_tool_executor,
+    route_after_agent,
     node_explanation,
-    node_f51_verdict,
-    node_neural_decision,
+    node_blocked,
     node_orchestrator,
-    node_rag_forensics,
-    node_sdca_firewall,
-    route_after_f51,
-    route_after_orchestrator,
-    route_after_sdca_firewall,
 )
 
 logger = logging.getLogger(__name__)
@@ -47,29 +39,11 @@ def build_graph(
     async def _orchestrator(state: dict) -> dict:
         return await node_orchestrator(state, gateway=gateway, config=config)
 
-    async def _collector(state: dict) -> dict:
-        return await node_collector(state, config=config)
+    async def _agent(state: dict) -> dict:
+        return await node_agent(state, gateway=gateway, config=config, mandamentos=mandamentos)
 
-    async def _f51(state: dict) -> dict:
-        return await node_f51_verdict(state)
-
-    async def _expert(state: dict) -> dict:
-        return await node_expert(state, gateway=gateway)
-
-    async def _collect_experts(state: dict) -> dict:
-        return await node_collect_experts(state)
-
-    async def _rag(state: dict) -> dict:
-        return await node_rag_forensics(state)
-
-    async def _neural(state: dict) -> dict:
-        return await node_neural_decision(state)
-
-    async def _sdca(state: dict) -> dict:
-        return await node_sdca_firewall(state)
-
-    async def _ceo(state: dict) -> dict:
-        return await node_ceo(state, gateway=gateway, config=config, mandamentos=mandamentos)
+    async def _tool_executor(state: dict) -> dict:
+        return await node_tool_executor(state, gateway=gateway, config=config)
 
     async def _explanation(state: dict) -> dict:
         return await node_explanation(state)
@@ -80,47 +54,28 @@ def build_graph(
     builder = StateGraph(PipelineState)
 
     builder.add_node("orchestrator_primary", _orchestrator)
-    builder.add_node("data", _collector)
-    builder.add_node("f51_verdict", _f51)
-    builder.add_node("pennylab", _node_pennylab_stub)
-    builder.add_node("run_expert", _expert)
-    builder.add_node("collect_experts", _collect_experts)
-    builder.add_node("rag_forensics", _rag)
-    builder.add_node("neural_decision", _neural)
-    builder.add_node("sdca_firewall", _sdca)
-    builder.add_node("ceo_primary", _ceo)
+    builder.add_node("agent", _agent)
+    builder.add_node("tool_executor", _tool_executor)
     builder.add_node("explanation", _explanation)
     builder.add_node("respond_blocked", _blocked)
 
+    # The flow: Orchestrator (parses initial intent) -> Agent Loop
     builder.add_edge(START, "orchestrator_primary")
+    builder.add_edge("orchestrator_primary", "agent")
+    
+    # Agent decides whether to call a tool or output the final answer
     builder.add_conditional_edges(
-        "orchestrator_primary",
-        route_after_orchestrator,
-        {"data": "data"},
-    )
-    builder.add_edge("data", "f51_verdict")
-    builder.add_edge("f51_verdict", "pennylab")
-    builder.add_conditional_edges(
-        "pennylab",
-        route_after_f51,
+        "agent",
+        route_after_agent,
         {
-            "run_expert": "run_expert",
-            "collect_experts": "collect_experts",
-        },
+            "tool_executor": "tool_executor",
+            "explanation": "explanation",
+        }
     )
-    builder.add_edge("run_expert", "collect_experts")
-    builder.add_edge("collect_experts", "neural_decision")
-    builder.add_edge("neural_decision", "sdca_firewall")
-    builder.add_conditional_edges(
-        "sdca_firewall",
-        route_after_sdca_firewall,
-        {
-            "rag_forensics": "rag_forensics",
-            "respond_blocked": "respond_blocked",
-        },
-    )
-    builder.add_edge("rag_forensics", "ceo_primary")
-    builder.add_edge("ceo_primary", "explanation")
+    
+    # After a tool executes, return control to the agent
+    builder.add_edge("tool_executor", "agent")
+
     builder.add_edge("explanation", END)
     builder.add_edge("respond_blocked", END)
 
@@ -269,14 +224,8 @@ class PipelineApp:
             "mode": "pipeline_v4_stategraph",
             "nodes": [
                 "orchestrator_primary",
-                "data",
-                "f51_verdict",
-                "pennylab",
-                "run_expert",
-                "collect_experts",
-                "neural_decision",
-                "rag_forensics",
-                "ceo_primary",
+                "agent",
+                "tool_executor",
                 "explanation",
                 "respond_blocked",
             ],

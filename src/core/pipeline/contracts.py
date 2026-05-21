@@ -88,6 +88,10 @@ class PipelineState(TypedDict, total=False):
     # Explanation
     explanation: str
 
+    # Agent Loop
+    agent_tool_call: dict[str, Any]
+    agent_iterations: int
+
     # Errors
     errors: list[str]
 

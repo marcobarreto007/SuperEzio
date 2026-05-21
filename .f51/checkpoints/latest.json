@@ -1,29 +1,17 @@
 {
-  "date_local": "2026-05-21T00:00:00-04:00",
-  "session": "model-build-surface-removal-2026-05-21",
+  "date_local": "2026-05-21T19:07:00Z",
+  "session": "Agentic_Pipeline_Refactor",
   "status": "completed",
   "what_was_done": [
-    "Removed model build data roots from active data paths.",
-    "Removed local and cloud model build scripts.",
-    "Removed trading model-build helper modules.",
-    "Set llama-server reasoning off so direct API calls return message.content reliably.",
-    "Adjusted general no-market CEO route to answer as Bob in natural language without pretending data was collected.",
-    "Updated F51 maps, docs, runtime config, and checkpoints to runtime-only posture."
+    "Refactored LangGraph pipeline in graph.py to use an Agent Loop.",
+    "Created agent.py to handle ReAct and Tool Calling logic using CEO model.",
+    "Created tool_executor.py to map agent tool calls to existing pipeline functions.",
+    "Added agent_tool_call and agent_iterations to PipelineState in contracts.py."
   ],
-  "evidence": [
-    "rg removed build artifact names over active tree -> no matches",
-    "python -m json.tool .f51/INVENTORY.json .f51/diario_bordo.json .f51/checkpoints/latest.json runtime/checkpoints/latest.json config/model_manifest.json -> passed",
-    "python -m ruff check . -> All checks passed",
-    "python -m ruff format --check . -> 217 files already formatted",
-    "python -m pytest tests -q -> 709 passed, 7 warnings in 67.04s",
-    "CEO health /health -> 200; /v1/models -> 200",
-    "Direct CEO /v1/chat/completions after restart -> content_chars=11, reasoning_chars=0, text=Bob online.",
-    "Direct CEO advice prompt -> content_chars=886, reasoning_chars=0",
-    "API /task/submit natural-language advice prompt -> 200, STREAM_END=true, CHUNK content returned"
-  ],
+  "evidence": "ruff check passed. The pipeline now routes dynamically between agent and tool_executor instead of using a static DAG.",
   "risks": [
-    "Model rebuild workflow is no longer available from this repo by design.",
-    "General advice route still uses concise section headers in some model responses; this is usable but can be made more conversational in a prompt-only pass."
+    "The UI relies on SSE events which might arrive in a slightly different sequence if the agent skips some tools. However, node wrappers maintain the standard event types.",
+    "Local model (Qwen) might fail to follow the strict JSON formatting for ReAct tool calls."
   ],
-  "next_step": "Optional prompt polish for fully conversational Bob responses while keeping ticker analysis structured."
+  "next_step": "Run tests and verify the UI behavior with a real message to the backend."
 }
