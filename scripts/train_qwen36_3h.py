@@ -54,8 +54,13 @@ MAX_SEQ_LENGTH = 4096
 MIN_SEQ_LENGTH = 1024
 
 QWEN35MOE_LORA_TARGETS = [
-    "q_proj", "k_proj", "v_proj", "o_proj",
-    "gate_proj", "up_proj", "down_proj",
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj",
     "out_proj",
 ]
 
@@ -177,7 +182,9 @@ class StreamingJSONLDataset(IterableDataset):
                     continue
                 try:
                     tokenized = self.tokenizer.apply_chat_template(
-                        messages, tokenize=True, add_generation_prompt=False,
+                        messages,
+                        tokenize=True,
+                        add_generation_prompt=False,
                     )
                     # transformers 5.x: apply_chat_template returns
                     # BatchEncoding, extract input_ids list
@@ -185,11 +192,12 @@ class StreamingJSONLDataset(IterableDataset):
                         tokenized = tokenized["input_ids"]
                     if isinstance(tokenized, str):
                         tokenized = self.tokenizer.encode(
-                            tokenized, max_length=self.max_length,
+                            tokenized,
+                            max_length=self.max_length,
                             truncation=True,
                         )
                     if len(tokenized) > self.max_length:
-                        tokenized = tokenized[:self.max_length]
+                        tokenized = tokenized[: self.max_length]
                 except Exception:
                     continue
                 buffer.append({"input_ids": tokenized, "labels": tokenized.copy()})
@@ -250,8 +258,11 @@ def verify_checkpoint(ckpt_dir: str, base_model_name: str, device: str) -> tuple
         inputs = tokenizer(test_prompt, return_tensors="pt").to(device)
         with torch.no_grad():
             outputs = model.generate(
-                **inputs, max_new_tokens=20, do_sample=True,
-                temperature=0.7, top_p=0.9,
+                **inputs,
+                max_new_tokens=20,
+                do_sample=True,
+                temperature=0.7,
+                top_p=0.9,
             )
         generated = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
@@ -297,8 +308,7 @@ def ensure_disk_space(output_dir: str, min_gb: int = MIN_DISK_GB):
     logger.warning("Low disk space: %.1f GB free. Purging old checkpoints...", free_gb)
 
     ckpt_dirs = sorted(
-        [d for d in Path(output_dir).iterdir()
-         if d.is_dir() and d.name.startswith("checkpoint-")],
+        [d for d in Path(output_dir).iterdir() if d.is_dir() and d.name.startswith("checkpoint-")],
         key=lambda d: d.stat().st_mtime,
     )
 
@@ -335,7 +345,8 @@ def train(state: TrainState) -> dict:
     from accelerate import Accelerator
     from peft import LoraConfig, TaskType, get_peft_model
     from transformers import (
-        AutoModelForCausalLM, AutoTokenizer,
+        AutoModelForCausalLM,
+        AutoTokenizer,
         get_cosine_schedule_with_warmup,
     )
 
@@ -343,12 +354,10 @@ def train(state: TrainState) -> dict:
     os.makedirs(state.output_dir, exist_ok=True)
 
     # File logger for training.log
-    file_handler = logging.FileHandler(
-        os.path.join(state.output_dir, "training.log")
+    file_handler = logging.FileHandler(os.path.join(state.output_dir, "training.log"))
+    file_handler.setFormatter(
+        logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
     )
-    file_handler.setFormatter(logging.Formatter(
-        "%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S"
-    ))
     logger.addHandler(file_handler)
 
     # ── Summary log ───────────────────────────────────────────────────
@@ -357,9 +366,17 @@ def train(state: TrainState) -> dict:
     logger.info("Model: %s", state.model_name)
     logger.info("Dataset: %s", state.dataset_path)
     logger.info("Output: %s", state.output_dir)
-    logger.info("LoRA: r=%d alpha=%d dropout=%.2f", state.lora_r, state.lora_alpha, state.lora_dropout)
-    logger.info("Seq length: %d | Max samples: %s", state.max_seq_length, state.max_samples or "all")
-    logger.info("Timebox: %.1fh | Checkpoints every %d steps", state.timebox_seconds / 3600, state.save_steps)
+    logger.info(
+        "LoRA: r=%d alpha=%d dropout=%.2f", state.lora_r, state.lora_alpha, state.lora_dropout
+    )
+    logger.info(
+        "Seq length: %d | Max samples: %s", state.max_seq_length, state.max_samples or "all"
+    )
+    logger.info(
+        "Timebox: %.1fh | Checkpoints every %d steps",
+        state.timebox_seconds / 3600,
+        state.save_steps,
+    )
     logger.info("=" * 60)
 
     accelerator = Accelerator(
@@ -387,15 +404,20 @@ def train(state: TrainState) -> dict:
     logger.info("Model loaded in %.1fs", time.time() - t0)
 
     # ── LoRA ───────────────────────────────────────────────────────────
-    target_modules = [t for t in QWEN35MOE_LORA_TARGETS
-                      if t in {n.split(".")[-1] for n, m in model.named_modules()
-                               if isinstance(m, nn.Linear)}]
+    target_modules = [
+        t
+        for t in QWEN35MOE_LORA_TARGETS
+        if t in {n.split(".")[-1] for n, m in model.named_modules() if isinstance(m, nn.Linear)}
+    ]
     logger.info("LoRA targets: %s", target_modules)
 
     lora_config = LoraConfig(
-        r=state.lora_r, lora_alpha=state.lora_alpha,
-        lora_dropout=state.lora_dropout, target_modules=target_modules,
-        bias="none", task_type=TaskType.CAUSAL_LM,
+        r=state.lora_r,
+        lora_alpha=state.lora_alpha,
+        lora_dropout=state.lora_dropout,
+        target_modules=target_modules,
+        bias="none",
+        task_type=TaskType.CAUSAL_LM,
     )
     model = get_peft_model(model, lora_config)
     trainable, total, pct = count_trainable_params(model)
@@ -407,18 +429,24 @@ def train(state: TrainState) -> dict:
         raise FileNotFoundError(f"Dataset not found: {dataset_path}")
 
     train_dataset = StreamingJSONLDataset(
-        dataset_path, tokenizer=tokenizer,
+        dataset_path,
+        tokenizer=tokenizer,
         max_length=state.current_seq_length,
-        max_samples=state.max_samples, seed=state.seed,
+        max_samples=state.max_samples,
+        seed=state.seed,
     )
     dataloader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=state.batch_size,
-        collate_fn=collate_pad, num_workers=0, pin_memory=True,
+        train_dataset,
+        batch_size=state.batch_size,
+        collate_fn=collate_pad,
+        num_workers=0,
+        pin_memory=True,
     )
 
     # ── Optimizer ──────────────────────────────────────────────────────
     optimizer = torch.optim.AdamW(
-        model.parameters(), lr=state.learning_rate,
+        model.parameters(),
+        lr=state.learning_rate,
         weight_decay=state.weight_decay,
     )
 
@@ -446,7 +474,6 @@ def train(state: TrainState) -> dict:
     logger.info("Starting training — timebox: %.1fh", state.timebox_seconds / 3600)
     epoch_loss = 0.0
     progress = 0
-    last_log_time = time.time()
     loss_stagnation_counter = 0
     last_loss = float("inf")
 
@@ -463,8 +490,11 @@ def train(state: TrainState) -> dict:
                     raise KeyboardInterrupt("Timebox")
 
                 if elapsed > state.timebox_seconds - GRACEFUL_SHUTDOWN_MARGIN:
-                    logger.info("Approaching timebox (%dh %dm). Saving final...",
-                                int(elapsed / 3600), int((elapsed % 3600) / 60))
+                    logger.info(
+                        "Approaching timebox (%dh %dm). Saving final...",
+                        int(elapsed / 3600),
+                        int((elapsed % 3600) / 60),
+                    )
                     # Save and exit after this step
                     final_dir = os.path.join(state.output_dir, "final")
                     unwrapped = accelerator.unwrap_model(model)
@@ -487,20 +517,26 @@ def train(state: TrainState) -> dict:
                         optimizer.zero_grad()
 
                 except torch.cuda.OutOfMemoryError as oom:
-                    state.errors.append({
-                        "step": state.global_step, "type": "OOM",
-                        "time": datetime.now().isoformat(),
-                        "detail": str(oom)[:200],
-                    })
+                    state.errors.append(
+                        {
+                            "step": state.global_step,
+                            "type": "OOM",
+                            "time": datetime.now().isoformat(),
+                            "detail": str(oom)[:200],
+                        }
+                    )
                     logger.error("CUDA OOM at step %d: %s", state.global_step, oom)
                     return _handle_oom(state, model, tokenizer, accelerator)
 
                 # ── NaN loss detection ─────────────────────────────────
                 if torch.isnan(loss) or torch.isinf(loss):
-                    state.errors.append({
-                        "step": state.global_step, "type": "NaN loss",
-                        "time": datetime.now().isoformat(),
-                    })
+                    state.errors.append(
+                        {
+                            "step": state.global_step,
+                            "type": "NaN loss",
+                            "time": datetime.now().isoformat(),
+                        }
+                    )
                     logger.error("NaN/Inf loss at step %d!", state.global_step)
                     return _handle_nan_loss(state, model, tokenizer, accelerator)
 
@@ -517,10 +553,13 @@ def train(state: TrainState) -> dict:
                     for param_group in optimizer.param_groups:
                         param_group["lr"] *= 0.5
                     loss_stagnation_counter = 0
-                    state.errors.append({
-                        "step": state.global_step, "type": "loss_stagnation",
-                        "time": datetime.now().isoformat(),
-                    })
+                    state.errors.append(
+                        {
+                            "step": state.global_step,
+                            "type": "loss_stagnation",
+                            "time": datetime.now().isoformat(),
+                        }
+                    )
 
                 # ── Track ──────────────────────────────────────────────
                 epoch_loss += loss.detach().float().item()
@@ -535,37 +574,48 @@ def train(state: TrainState) -> dict:
                     eta = (state.timebox_seconds - elapsed) / 60
                     logger.info(
                         "Step %d | loss=%.4f avg=%.4f lr=%.2e | elapsed=%.0fm ETA=%.0fm",
-                        state.global_step, loss.item(), avg_loss, lr,
-                        elapsed / 60, eta,
+                        state.global_step,
+                        loss.item(),
+                        avg_loss,
+                        lr,
+                        elapsed / 60,
+                        eta,
                     )
 
                 # ── Checkpoint ─────────────────────────────────────────
                 if state.global_step % state.save_steps == 0:
                     elapsed = time.time() - state.start_time
-                    ckpt_dir = os.path.join(
-                        state.output_dir, f"checkpoint-{state.global_step}"
-                    )
+                    ckpt_dir = os.path.join(state.output_dir, f"checkpoint-{state.global_step}")
 
                     unwrapped = accelerator.unwrap_model(model)
                     unwrapped.save_pretrained(ckpt_dir)
                     tokenizer.save_pretrained(ckpt_dir)
-                    logger.info("Checkpoint saved: %s (%.0fm elapsed)",
-                                os.path.basename(ckpt_dir), elapsed / 60)
+                    logger.info(
+                        "Checkpoint saved: %s (%.0fm elapsed)",
+                        os.path.basename(ckpt_dir),
+                        elapsed / 60,
+                    )
 
                     # Verify checkpoint
                     v_ok, v_msg = verify_checkpoint(
-                        ckpt_dir, state.model_name,
+                        ckpt_dir,
+                        state.model_name,
                         accelerator.device.type,
                     )
                     if v_ok:
                         logger.info("Checkpoint %d verified OK", state.global_step)
                     else:
-                        logger.error("Checkpoint %d verification FAILED: %s",
-                                     state.global_step, v_msg)
-                        state.errors.append({
-                            "step": state.global_step, "type": "ckpt_verify_fail",
-                            "time": datetime.now().isoformat(), "detail": v_msg,
-                        })
+                        logger.error(
+                            "Checkpoint %d verification FAILED: %s", state.global_step, v_msg
+                        )
+                        state.errors.append(
+                            {
+                                "step": state.global_step,
+                                "type": "ckpt_verify_fail",
+                                "time": datetime.now().isoformat(),
+                                "detail": v_msg,
+                            }
+                        )
 
                     # Keep best
                     if avg_loss < state.best_loss:
@@ -587,18 +637,27 @@ def train(state: TrainState) -> dict:
             # ── End of epoch ───────────────────────────────────────────
             avg_epoch_loss = epoch_loss / max(progress, 1)
             epoch_time = time.time() - epoch_start
-            logger.info("Epoch %d/%d — loss=%.4f time=%.1fm",
-                        epoch + 1, state.epochs, avg_epoch_loss, epoch_time / 60)
+            logger.info(
+                "Epoch %d/%d — loss=%.4f time=%.1fm",
+                epoch + 1,
+                state.epochs,
+                avg_epoch_loss,
+                epoch_time / 60,
+            )
 
     except KeyboardInterrupt:
         logger.info("Training interrupted (timebox or signal). Saving...")
     except Exception as exc:
         logger.error("Unexpected error: %s", exc)
         traceback.print_exc()
-        state.errors.append({
-            "step": state.global_step, "type": "fatal",
-            "time": datetime.now().isoformat(), "detail": str(exc)[:500],
-        })
+        state.errors.append(
+            {
+                "step": state.global_step,
+                "type": "fatal",
+                "time": datetime.now().isoformat(),
+                "detail": str(exc)[:500],
+            }
+        )
     finally:
         # ── Final save ────────────────────────────────────────────────
         try:
@@ -639,10 +698,14 @@ def train(state: TrainState) -> dict:
 
         logger.info("=" * 60)
         logger.info("TRAINING COMPLETE")
-        logger.info("Steps: %d | Loss: %.4f | Best: %.4f | Time: %.1fmin",
-                    state.global_step, avg_loss, state.best_loss, elapsed / 60)
-        logger.info("Errors: %d | Recoveries: %d",
-                    len(state.errors), state.recovery_count)
+        logger.info(
+            "Steps: %d | Loss: %.4f | Best: %.4f | Time: %.1fmin",
+            state.global_step,
+            avg_loss,
+            state.best_loss,
+            elapsed / 60,
+        )
+        logger.info("Errors: %d | Recoveries: %d", len(state.errors), state.recovery_count)
         logger.info("Summary: %s", summary_path)
         logger.info("=" * 60)
 
@@ -650,12 +713,14 @@ def train(state: TrainState) -> dict:
         checkpoint_lines = "\n".join(
             "  - " + d.name for d in sorted(Path(state.output_dir).glob("checkpoint-*"))
         )
-        error_lines = "\n".join(
-            "  [{t}] step {s}: {d}".format(
-                t=e["type"], s=e["step"], d=e.get("detail", "")
+        error_lines = (
+            "\n".join(
+                "  [{t}] step {s}: {d}".format(t=e["type"], s=e["step"], d=e.get("detail", ""))
+                for e in state.errors
             )
-            for e in state.errors
-        ) if state.errors else "  None"
+            if state.errors
+            else "  None"
+        )
 
         email_body = """SuperEzio Qwen3.6-35B LoRA Training — {status}
 
@@ -709,8 +774,11 @@ def _handle_oom(state: TrainState, model, tokenizer, accelerator) -> dict:
         raise RuntimeError("Max recoveries exceeded")
 
     state.current_seq_length = max(MIN_SEQ_LENGTH, state.current_seq_length - 512)
-    logger.warning("OOM recovery #%d: reducing seq_length to %d",
-                   state.recovery_count, state.current_seq_length)
+    logger.warning(
+        "OOM recovery #%d: reducing seq_length to %d",
+        state.recovery_count,
+        state.current_seq_length,
+    )
 
     gc.collect()
     torch.cuda.empty_cache()
@@ -722,6 +790,7 @@ def _handle_oom(state: TrainState, model, tokenizer, accelerator) -> dict:
         last_ckpt = checkpoints[-1]
         logger.info("Reloading from %s", last_ckpt.name)
         from peft import PeftModel
+
         model = PeftModel.from_pretrained(model, str(last_ckpt))
         logger.info("Reloaded OK. Continuing with seq_len=%d", state.current_seq_length)
         # Recursive call to continue training with reduced seq length
@@ -739,8 +808,9 @@ def _handle_nan_loss(state: TrainState, model, tokenizer, accelerator) -> dict:
         raise RuntimeError("Max recoveries exceeded")
 
     state.learning_rate *= 0.5
-    logger.warning("NaN loss recovery #%d: reducing LR to %.2e",
-                   state.recovery_count, state.learning_rate)
+    logger.warning(
+        "NaN loss recovery #%d: reducing LR to %.2e", state.recovery_count, state.learning_rate
+    )
 
     gc.collect()
     torch.cuda.empty_cache()
@@ -750,6 +820,7 @@ def _handle_nan_loss(state: TrainState, model, tokenizer, accelerator) -> dict:
         last_ckpt = checkpoints[-1]
         logger.info("Reloading from %s with LR=%.2e", last_ckpt.name, state.learning_rate)
         from peft import PeftModel
+
         model = PeftModel.from_pretrained(model, str(last_ckpt))
         return train(state)
     else:
@@ -762,9 +833,8 @@ def _handle_nan_loss(state: TrainState, model, tokenizer, accelerator) -> dict:
 
 def parse_args() -> TrainState:
     import argparse
-    p = argparse.ArgumentParser(
-        description="SuperEzio Qwen3.6-35B LoRA Training — 3h Timebox"
-    )
+
+    p = argparse.ArgumentParser(description="SuperEzio Qwen3.6-35B LoRA Training — 3h Timebox")
     p.add_argument("--model", default=DEFAULT_MODEL)
     p.add_argument("--dataset", default=str(DEFAULT_DATASET))
     p.add_argument("--output-dir", default=str(DEFAULT_OUTPUT))

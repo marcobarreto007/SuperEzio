@@ -56,7 +56,7 @@ Self-declared deprecated, 0 importers:
 
 ### 2.3 Experimental Training (`archive/experimental/training/`)
 
-15 training/fine-tuning scripts from `.f51/tmp/`. `merge_adapters.py` kept as runtime utility.
+Removed from the live tree in the legacy purge. `merge_adapters.py` remains the runtime utility.
 
 ### 2.4 Root Audit Files → `docs/architecture/archives/`
 
@@ -171,7 +171,7 @@ docs/architecture/
 - [x] `tests/contracts/` — 34 contract tests for 4 uncovered modules
 - [x] `archive/quarantine/` — 8 quarantined modules
 - [x] `archive/deprecated/` — 6 deprecated modules
-- [x] `archive/experimental/training/` — 15 training scripts
+- [x] `archive/experimental/training/` — removed from live tree as legacy training scripts
 - [ ] `runtime/configs/` — Unified env loading (deferred: requires coordination with 4 existing mechanisms)
 - [ ] `serve_ceo.py` — `load_dotenv()` call still missing
 

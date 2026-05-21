@@ -7,11 +7,12 @@ Prerequisites:
 """
 
 import json
+import urllib.error
+import urllib.request
+
 import pytest
 
 pytestmark = pytest.mark.integration
-import urllib.request
-import urllib.error
 
 
 CEO_HEALTH = "http://127.0.0.1:8082/health"

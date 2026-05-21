@@ -1,47 +1,40 @@
 {
-  "date_local": "2026-05-21T02:22:20-04:00",
-  "session": "f51-frontend-design-upgrade-2026-05-21",
+  "date_local": "2026-05-20T22:58:25-04:00",
+  "session": "arqueologist-legacy-purge-2026-05-20",
   "status": "completed",
   "what_was_done": [
-    "Upgraded Design System with variables, glassmorphism, scanlines, and glow indicators in variables.css and base.css.",
-    "Rebuilt Top Console Bar to use a high-density, split ticker grid with active state highlights in topbar.css.",
-    "Added dynamic Telemetry HUD displaying dynamic system performance (latencies, session indicators, active agents count) in index.html, charts.css, and init.js.",
-    "Enhanced charting visual canvas with backing volume bars, neon candlestick shadow glows, and line glow outlines in render-candles.js and render-chart.js.",
-    "Enhanced progressive factor bar grids and cybersecurity dashboard drawer styling in indicators.css and sdca.css.",
-    "Corrected the telemetry HUD model label to SuperEzio CEO+Intent Merged and verified the browser page after restarting the local CEO/API runtime."
+    "Used the local arqueologist skill instructions to verify references before deletion.",
+    "Created a disk backup before removal: C:\\Users\\marco\\Desktop\\SuperEzio_backups\\pre-arqueologist-legacy-purge-20260520-225410.zip.",
+    "Removed orphan/legacy tracked package .claude/skills/constant-time-analysis.",
+    "Removed historical archive/experimental/training from the live tree.",
+    "Removed unreferenced loose helpers in F51_Datasets and scratch scripts under scripts/.",
+    "Kept scripts/train_qwen36_3h.py because scripts/vastai_onstart.sh still invokes it; removed only a dead local variable.",
+    "Fixed import ordering/packaging issues in live signal ledger scripts, DataCollector, and runtime integration test.",
+    "Updated task board, risk register, and documentation references for the removed legacy archive."
   ],
   "evidence": {
+    "backup": "C:\\Users\\marco\\Desktop\\SuperEzio_backups\\pre-arqueologist-legacy-purge-20260520-225410.zip",
     "commands": [
-      "python -m pytest -> 671 passed, 7 warnings in 62.31s",
-      "python -m pytest -> 664 passed, 7 skipped, 7 warnings in 23.21s",
-      "node --check frontend/js/init.js frontend/js/render-candles.js frontend/js/render-chart.js -> passed",
-      "python -m pytest tests/contracts/test_contract_collector.py tests/contracts/test_contract_experts.py tests/contracts/test_contract_guardrails.py tests/contracts/test_contract_neural.py tests/contracts/test_contract_orchestrator.py tests/contracts/test_contract_sdca.py -q -> 54 passed",
-      "python -m ruff check tests/contracts/test_contract_collector.py tests/contracts/test_contract_experts.py tests/contracts/test_contract_guardrails.py tests/contracts/test_contract_neural.py tests/contracts/test_contract_orchestrator.py tests/contracts/test_contract_sdca.py -> passed",
-      "python -m json.tool .f51/checkpoints/latest.json -> passed",
-      "git diff --check -> passed",
-      "Playwright open http://127.0.0.1:8002/?savecheck=20260521c -> page rendered, Runtime Online, Bob CEO Reachable, HUD SuperEzio CEO+Intent Merged, console warnings 0, errors 0",
-      "python -m ruff check . -> failed on pre-existing repo-wide lint debt outside this visual patch (.claude, F51_Datasets, archive, scripts, src/core/data_collector); not fixed in this save-only pass"
-    ],
-    "files_changed": [
-      "frontend/css/variables.css",
-      "frontend/css/base.css",
-      "frontend/css/topbar.css",
-      "frontend/index.html",
-      "frontend/css/charts.css",
-      "frontend/js/init.js",
-      "frontend/js/render-candles.js",
-      "frontend/js/render-chart.js",
-      "frontend/css/indicators.css",
-      "frontend/css/sdca.css"
+      "python -m ruff check . -> All checks passed",
+      "python -m pytest tests -q -> 725 passed, 7 warnings in 73.07s",
+      "python -m pytest tests/test_integration_runtime.py -q -v -> 7 passed in 43.95s",
+      "python scripts/signal_ledger/report_signals.py --json -> exited 0 with emitted_total=1",
+      "Invoke-WebRequest health/models/API endpoints -> 200 for CEO /health, CEO /v1/models, API /health, API /health/details, /capabilities, /product/manifest",
+      "rg deleted scratch names -> no live references found"
     ]
   },
   "risks": [
     {
       "severity": "low",
-      "description": "CSS and drawing changes are purely visual and do not alter FastAPI endpoint logic.",
-      "mitigation": "Verified by running the full 671-test suite, which fully passes."
+      "description": ".f51 inventory and duplicate maps are historical snapshots and still mention removed legacy paths.",
+      "mitigation": "Regenerate F51 inventory maps in a dedicated inventory pass if exact snapshot freshness is required."
+    },
+    {
+      "severity": "low",
+      "description": "Training launcher script was retained because it is still referenced by VastAI onstart.",
+      "mitigation": "Decommission remaining training lane only after a separate model-training decision."
     }
   ],
-  "next_step": "Verify browser presentation and demonstrate the high-fidelity telemetry HUD.",
-  "owner": "Refactor Agent & Contracts Agent"
+  "next_step": "Regenerate .f51 inventory maps after this purge, or proceed to the next product/runtime patch with the current verified tree.",
+  "owner": "Arqueologist Agent"
 }

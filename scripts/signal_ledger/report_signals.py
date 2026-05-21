@@ -5,16 +5,14 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-_PKG = Path(__file__).resolve().parent
-if str(_PKG) not in sys.path:
-    sys.path.insert(0, str(_PKG))
-
-from policy import project_root
+try:
+    from .policy import project_root
+except ImportError:
+    from policy import project_root
 
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -91,7 +89,9 @@ def main() -> int:
             }
             for k, v in by_action.items()
         },
-        "policy_versions": sorted({str(e.get("policy_version")) for e in emitted if e.get("policy_version")}),
+        "policy_versions": sorted(
+            {str(e.get("policy_version")) for e in emitted if e.get("policy_version")}
+        ),
     }
 
     if args.json:

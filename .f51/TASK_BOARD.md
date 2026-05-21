@@ -14,6 +14,7 @@
 
 ## Done
 
+- [x] 2026-05-20 - Arqueologist legacy purge: backed up removable legacy to `C:\Users\marco\Desktop\SuperEzio_backups\pre-arqueologist-legacy-purge-20260520-225410.zip`, removed orphan constant-time skill package, removed historical experimental training archive, removed unreferenced scratch scripts/helpers, fixed live import/lint issues, and verified `ruff`, full pytest, live integration, endpoints, and signal ledger script.
 - [x] 2026-05-20 - Phase 3: f51-tests — pytest markers (smoke/contract/integration/slow) in pyproject.toml + pytest.ini, 28 smoke tests, 220 contract tests, 7 integration tests, marker filters verified. 725/725 passing.
 - [x] 2026-05-20 - Phase 2: f51-runtime — runtime.contract.md created, RUNBOOK.md verified, runtime.yml aligned, checkpoint schema locked.
 - [x] 2026-05-20 - Phase 1: f51-contracts — 6 new contract test files (orchestrator, collector, experts, neural, sdca, guardrails), 54 new tests, all passing.

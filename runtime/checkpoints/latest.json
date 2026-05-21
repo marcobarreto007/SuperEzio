@@ -1,71 +1,58 @@
 {
   "project": "SuperEzio / F51 Unified Core",
   "version": "4.0.0",
-  "date_local": "2026-05-20T23:50:00-04:00",
-  "session": "f51-contracts-runtime-tests-2026-05-20",
+  "date_local": "2026-05-20T22:58:25-04:00",
+  "session": "arqueologist-legacy-purge-2026-05-20",
   "status": "COMPLETE",
-  "stage": "phase-3-f51-tests",
+  "stage": "legacy-purge-and-runtime-validation",
   "operational_contract": {
-    "agent_server_contract": ".f51/contracts/agent-server.contract.md",
-    "runtime_contract": ".f51/contracts/runtime.contract.md",
-    "runtime_config": "config/runtime.yml",
-    "runbook": "docs/runbooks/RUNBOOK.md",
     "github_policy": ".f51/GITHUB_POLICY.json",
-    "github_mode": "DISK_ONLY"
+    "github_mode": "DISK_ONLY",
+    "api_entrypoint": "python -m agent_server.main",
+    "ceo_entrypoint": "powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082",
+    "runtime_checkpoints_dir": "runtime/checkpoints"
   },
   "runtime_parameters": {
     "ceo_port": 8082,
     "api_port": 8002,
     "bind": "127.0.0.1",
-    "api_entrypoint": "python -m agent_server.main",
-    "ceo_entrypoint": "powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082",
-    "launcher": "desktop/SuperEzio.bat",
     "model": "SuperEzio CEO+Intent Merged Q4_K_M GGUF",
     "model_path": "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
     "health_ceo": "http://127.0.0.1:8082/health",
     "models_ceo": "http://127.0.0.1:8082/v1/models",
     "health_api": "http://127.0.0.1:8002/health",
-    "health_api_details": "http://127.0.0.1:8002/health/details",
-    "logs_dir": "runtime/logs",
-    "runtime_checkpoints_dir": "runtime/checkpoints",
-    "primary_provider_route": "local_orchestrator -> http://127.0.0.1:8082/v1",
-    "expert_provider_route": "deepseek -> https://api.deepseek.com"
+    "health_api_details": "http://127.0.0.1:8002/health/details"
   },
   "what_was_done": [
-    "Phase 1 (f51-contracts): Created 6 contract test files for orchestrator, collector, experts, neural, sdca, guardrails — 54 new tests validating public APIs and invariants.",
-    "Phase 2 (f51-runtime): Created .f51/contracts/runtime.contract.md referencing all 8 existing contracts + health layers + verification matrix.",
-    "Phase 3 (f51-tests): Added pytest markers (smoke, contract, integration, slow) to pyproject.toml and pytest.ini. Applied pytestmark to test_runtime_smoke.py, test_pipeline_smoke.py, test_integration_runtime.py. Verified 28 smoke, 220 contract, 7 integration tests pass with marker filters."
+    "Backed up removable legacy before deletion.",
+    "Deleted verified legacy/orphan files from .claude/skills/constant-time-analysis, archive/experimental/training, selected F51_Datasets helpers, and selected scratch scripts.",
+    "Fixed live lint/import issues without changing public endpoint behavior.",
+    "Validated live CEO/API runtime and /task/submit stream through integration tests."
   ],
   "files_changed": [
-    "pyproject.toml (markers config)",
-    "pytest.ini (markers registration)",
-    "tests/contracts/test_contract_orchestrator.py (NEW)",
-    "tests/contracts/test_contract_collector.py (NEW)",
-    "tests/contracts/test_contract_experts.py (NEW)",
-    "tests/contracts/test_contract_neural.py (NEW)",
-    "tests/contracts/test_contract_sdca.py (NEW)",
-    "tests/contracts/test_contract_guardrails.py (NEW)",
-    "tests/test_runtime_smoke.py (pytestmark)",
-    "tests/test_pipeline_smoke.py (pytestmark)",
-    "tests/test_integration_runtime.py (pytestmark)",
-    ".f51/contracts/runtime.contract.md (NEW)",
     ".f51/TASK_BOARD.md",
     ".f51/RISK_REGISTER.md",
-    "runtime/checkpoints/latest.json"
+    ".f51/checkpoints/latest.json",
+    "runtime/checkpoints/latest.json",
+    "docs/runbooks/DELIVERY_CHECKLIST.md",
+    "docs/architecture/FINAL_AUDIT.md",
+    "docs/architecture/RECLAMATION_REPORT.md",
+    "scripts/signal_ledger/append_from_ndjson.py",
+    "scripts/signal_ledger/report_signals.py",
+    "scripts/signal_ledger/resolve_signals.py",
+    "scripts/train_qwen36_3h.py",
+    "src/core/data_collector/collector.py",
+    "tests/test_integration_runtime.py"
   ],
   "evidence": [
-    "python -m pytest tests/ -q -> 725 passed in 72s",
-    "python -m pytest tests/ -m smoke -q -> 28 passed",
-    "python -m pytest tests/contracts/ -q -> 220 passed",
-    "python -m pytest tests/ -m integration -q -> 7 passed",
-    "python -m ruff check src tests -> clean (per prior run)"
+    "python -m ruff check . -> All checks passed",
+    "python -m pytest tests -q -> 725 passed, 7 warnings in 73.07s",
+    "python -m pytest tests/test_integration_runtime.py -q -v -> 7 passed in 43.95s",
+    "Invoke-WebRequest main endpoint sweep -> 200 for CEO health/models and API health/details/capabilities/product manifest"
   ],
   "risks": [
-    "CTR-R3: New contract tests monkeypatch get_stream_writer — future LangGraph changes may break the pattern.",
-    "CTR-R4: 6 pipeline nodes now have contracts; 4 remain uncovered (data, rag_forensics, pennylab, explanation).",
-    "TEST-R1: No CI exists — tests only run locally; marker filters must be enforced manually.",
-    "TEST-R2: Integration tests require live CEO:8082 + API:8002; skipped silently if servers are down."
+    "Historical .f51 inventory maps still include removed paths until regenerated.",
+    "Remaining referenced training lane was kept intentionally."
   ],
-  "next_step": "Commit all Phase 1-3 changes. Optionally add contract tests for remaining 4 nodes (data, rag_forensics, pennylab, explanation).",
-  "owner": "Deep"
+  "next_step": "Regenerate .f51 inventory maps or decommission remaining training lane in a dedicated pass."
 }

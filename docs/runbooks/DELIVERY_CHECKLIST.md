@@ -40,7 +40,7 @@
 - [x] Resolve tracked `.f51/cache/collector/*.json` cache files: untrack them or explicitly justify them.
 - [ ] Finish stale Gemma/Qwen documentation cleanup:
   - `pyproject.toml`
-  - archived legacy Gemma training scripts under `archive/experimental/training/legacy_gemma/`
+  - removed legacy Gemma training archive formerly under `archive/experimental/training/legacy_gemma/`
   - historical architecture reports under `docs/architecture/archives/`
 - [ ] Decide the neural truth:
   - either promote `PriceTorchMLP`/`PriceMLP` into the default runtime path,

@@ -8,12 +8,12 @@ import json
 import sys
 from pathlib import Path
 
-_PKG = Path(__file__).resolve().parent
-if str(_PKG) not in sys.path:
-    sys.path.insert(0, str(_PKG))
-
-from collector import append_jsonl, build_emit_record, parse_ndjson
-from policy import load_policy, project_root
+try:
+    from .collector import append_jsonl, build_emit_record, parse_ndjson
+    from .policy import load_policy, project_root
+except ImportError:
+    from collector import append_jsonl, build_emit_record, parse_ndjson
+    from policy import load_policy, project_root
 
 
 def main() -> int:

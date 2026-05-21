@@ -208,3 +208,19 @@
 - Risk: `.playwright-cli/page-2026-05-11T02-42-03-389Z.yml` was versioned despite being a dated browser snapshot with no references.
 - Evidence: `git log -- .playwright-cli/page-2026-05-11T02-42-03-389Z.yml` showed initial import; `rg ".playwright-cli|page-2026-05-11" .` found no active references.
 - Mitigation: Removed the snapshot and added `.playwright-cli/` to `.gitignore` to prevent recurrence.
+
+## 2026-05-20 Arqueologist Legacy Purge
+
+### ARQ-R1 - F51 inventory snapshots still mention removed legacy [LOW]
+
+- Classification: `documentation`
+- Risk: `.f51/INVENTORY.json`, `.f51/DUPLICATE_MAP.md`, and `.f51/RELOCATION_PLAN.json` are historical snapshots and still contain paths removed in this purge.
+- Evidence: `rg "archive/experimental/training" .f51 docs scripts runtime` now returns only historical `.f51` maps and updated documentation notes; no live code references require the removed files.
+- Mitigation: Treat the current code tree as source of truth. Regenerate the F51 inventory maps in a dedicated inventory pass if exact snapshot freshness is required.
+
+### ARQ-R2 - Training lane kept where referenced [LOW]
+
+- Classification: `cleanup`
+- Risk: `scripts/train_qwen36_3h.py` can look old, but `scripts/vastai_onstart.sh` still calls it.
+- Evidence: Reference search found `scripts/vastai_onstart.sh:55` invoking `python scripts/train_qwen36_3h.py`; this pass removed only an unused local variable and kept the script.
+- Mitigation: Remove the remaining training lane only after a separate model-training decommission decision.

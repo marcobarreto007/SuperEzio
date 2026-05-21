@@ -21,6 +21,12 @@ from datetime import datetime, timezone
 from typing import Any, Dict
 
 from core.math import FinancialEngine
+from core.observability.neural_log import log_event
+from core.paths import project_path
+
+from .scraper import RealTimeScraper
+from ..observability.debug_logger import MODULE_DATA_COLLECTOR, debug_logger
+
 
 class QuantEngine:
     def analyze_asset(self, ticker: str) -> Dict[str, Any]:
@@ -79,12 +85,6 @@ async def tool_calculate_risk_metrics(ticker: str, days: int = 90) -> Dict[str, 
         "ticker": ticker,
         "days": days,
     }
-
-
-from core.paths import project_path
-from core.observability.neural_log import log_event
-from .scraper import RealTimeScraper
-from ..observability.debug_logger import debug_logger, MODULE_DATA_COLLECTOR
 
 
 def detect_market(ticker: str) -> str:

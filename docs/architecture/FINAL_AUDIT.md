@@ -120,7 +120,7 @@ No sale until there is an explicit key rotation and secret-handling plan for dem
 
 | Area | Finding | Action |
 |---|---|---|
-| `archive/experimental/training/legacy_gemma/` | Legacy Gemma training path | Keep archived; not current runtime |
+| `archive/experimental/training/legacy_gemma/` | Legacy Gemma training path | Removed in legacy purge; not current runtime |
 | `scripts/generate_system_knowledge_sft.py` | System knowledge generator | Keep current Qwen CEO+Intent wording before generating datasets |
 | `src/experts/technical_neural/` | Functional but not default runtime path | Promote or explicitly label experimental |
 | `.f51/cache/collector/*.json` | Tracked cache despite ignore rule | Untrack or move to runtime-only storage |

@@ -6,17 +6,16 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-_PKG = Path(__file__).resolve().parent
-if str(_PKG) not in sys.path:
-    sys.path.insert(0, str(_PKG))
-
-from collector import append_jsonl
-from policy import project_root
+try:
+    from .collector import append_jsonl
+    from .policy import project_root
+except ImportError:
+    from collector import append_jsonl
+    from policy import project_root
 
 
 def _parse_iso(ts: str) -> datetime:
@@ -64,9 +63,7 @@ def load_prices_csv(path: Path) -> dict[str, list[tuple[datetime, float]]]:
     return by_ticker
 
 
-def price_on_or_after(
-    series: list[tuple[datetime, float]], target: datetime
-) -> float | None:
+def price_on_or_after(series: list[tuple[datetime, float]], target: datetime) -> float | None:
     for dt, px in series:
         if dt >= target:
             return px
