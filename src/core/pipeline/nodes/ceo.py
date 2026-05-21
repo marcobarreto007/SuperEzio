@@ -473,6 +473,89 @@ def _build_module_appendix(state: dict, missing: list[str]) -> str:
         else:
             line("## RAG_FORENSICS\nNo historical patterns matched.")
 
+    # EXPERTS
+    if "experts" in missing:
+        summary = state.get("expert_summary", "")
+        if summary:
+            line(f"## EXPERTS\n{summary[:600]}")
+        else:
+            line("## EXPERTS\nExpert committee not run.")
+
+    # NEURAL
+    if "neural" in missing:
+        neural = state.get("neural_decision") or {}
+        if neural and "error" not in neural:
+            direction = neural.get("direction_prob", {})
+            line(
+                f"## NEURAL_DECISION\n"
+                f"Direction: up={direction.get('up','?')} down={direction.get('down','?')} "
+                f"sideways={direction.get('sideways','?')}. "
+                f"Regime: {neural.get('regime','?')}. "
+                f"Expected return: {neural.get('expected_return','?')}. "
+                f"Drawdown risk: {neural.get('drawdown_risk','?')}."
+            )
+        else:
+            line("## NEURAL_DECISION\nNot available for this request.")
+
+    # TECHNICALS
+    if "technical" in missing:
+        data = state.get("data") or {}
+        technicals = data.get("technicals", {})
+        if isinstance(technicals, dict) and technicals:
+            line(
+                f"## TECHNICALS\nRSI: {technicals.get('rsi_14', 'N/A')}, "
+                f"MACD: {technicals.get('macd', 'N/A')}, "
+                f"EMA20: {technicals.get('ema_20', 'N/A')}."
+            )
+        else:
+            line("## TECHNICALS\nTechnical data not available.")
+
+    # PROFILE
+    if "profile" in missing:
+        data = state.get("data") or {}
+        profile = data.get("profile", {})
+        if isinstance(profile, dict) and profile:
+            line(
+                f"## PROFILE\nSector: {profile.get('sector', 'N/A')}, "
+                f"Market cap: {profile.get('market_cap', 'N/A')}, "
+                f"Industry: {profile.get('industry', 'N/A')}."
+            )
+        else:
+            line("## PROFILE\nCompany profile not available.")
+
+    # QUANT
+    if "quant" in missing:
+        data = state.get("data") or {}
+        quant = data.get("quant", {})
+        if isinstance(quant, dict) and quant:
+            line(f"## QUANT\nQuant data available: {list(quant.keys())[:5]}.")
+        else:
+            line("## QUANT\nQuantitative models not run.")
+
+    # RISK
+    if "risk" in missing:
+        data = state.get("data") or {}
+        risk = data.get("risk", {})
+        if isinstance(risk, dict) and risk:
+            line(
+                f"## RISK\nVaR: {risk.get('var', 'N/A')}, "
+                f"CVaR: {risk.get('cvar', 'N/A')}, "
+                f"Volatility: {risk.get('volatility', 'N/A')}."
+            )
+        else:
+            line("## RISK\nRisk metrics not available.")
+
+    # REDDIT
+    if "reddit" in missing:
+        data = state.get("data") or {}
+        reddit = data.get("reddit", {})
+        if isinstance(reddit, dict) and reddit:
+            mentions = reddit.get("mentions", 0)
+            sentiment = reddit.get("sentiment", "neutral")
+            line(f"## REDDIT\nSocial mentions: {mentions}, sentiment: {sentiment}.")
+        else:
+            line("## REDDIT\nSocial data not available.")
+
     # PENNYLAB
     if "pennylab" in missing:
         penny = state.get("pennylab") or state.get("pennylab_result") or {}
