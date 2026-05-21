@@ -1,52 +1,183 @@
 {
-  "project": "SuperEzio",
-  "date_local": "2026-05-21T00:00:00-04:00",
-  "session": "model-build-surface-removal-2026-05-21",
-  "policy": {
-    "github_mode": "disk_only",
-    "source": ".f51/GITHUB_POLICY.json"
-  },
-  "runtime": {
-    "api_entrypoint": "python -m agent_server.main",
-    "ceo_entrypoint": "powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082",
-    "api_port": 8002,
-    "ceo_port": 8082,
-    "provider": "local_orchestrator",
-    "model_path": "models/superezio-ceo-intent-merged.Q4_K_M.gguf"
-  },
-  "active_top_level": [
-    ".agents",
-    ".claude",
-    ".f51",
-    ".github",
-    ".vscode",
-    "config",
-    "data",
-    "desktop",
-    "docs",
-    "frontend",
-    "llama.cpp",
-    "models",
-    "output",
-    "reports",
-    "runtime",
-    "scripts",
-    "src",
-    "tests"
-  ],
-  "removed_surface_groups": [
-    "model build data roots",
-    "generated model build records",
-    "cloud model build launchers",
-    "local model build launchers",
-    "merge helper scripts",
-    "trading model-build helper modules"
-  ],
-  "retained_runtime_artifacts": [
-    "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
-    "data/intent_golden.jsonl",
-    "data/intent_eval.jsonl",
-    "scripts/serve_ceo_llamacpp.ps1",
-    "scripts/eval_pipeline.py"
-  ]
+    "project": "SuperEzio",
+    "version": "4.0.0",
+    "date_local": "2026-05-21T20:30:00-04:00",
+    "session": "f51-inventory-full-sweep",
+    "policy": {
+        "github_mode": "disk_only",
+        "source": ".f51/GITHUB_POLICY.json",
+        "severity": "hard_block"
+    },
+    "summary": {
+        "source_files_non_init": 127,
+        "source_files_init": 43,
+        "test_files": 42,
+        "total_src_modules": 27,
+        "total_lines_key_files": 4171,
+        "frontend_files": 35,
+        "config_files": 3,
+        "doc_files": 25,
+        "contract_definitions": 9,
+        "data_traces": 532,
+        "cache_files": 152
+    },
+    "entrypoints": [
+        {
+            "name": "API Server",
+            "command": "python -m agent_server.main",
+            "port": 8002,
+            "file": "src/agent_server/main.py",
+            "classification": "app"
+        },
+        {
+            "name": "CEO llama.cpp Server",
+            "command": "powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082",
+            "port": 8082,
+            "file": "scripts/serve_ceo_llamacpp.ps1",
+            "classification": "app"
+        },
+        {
+            "name": "Desktop Launcher",
+            "command": "desktop/SuperEzio.bat",
+            "port": "8082+8002",
+            "file": "desktop/SuperEzio.bat",
+            "classification": "app"
+        },
+        {
+            "name": "Eval Pipeline",
+            "command": "python scripts/eval_pipeline.py",
+            "port": null,
+            "file": "scripts/eval_pipeline.py",
+            "classification": "test"
+        }
+    ],
+    "runtime_commands": [
+        "python -m agent_server.main",
+        "python -m pytest tests/ -q",
+        "python -m pytest tests/ -m smoke -q",
+        "python -m pytest tests/ -m contract -q",
+        "python -m ruff check src tests",
+        "python -m ruff format --check src tests"
+    ],
+    "test_commands": [
+        "python -m pytest tests/ -q",
+        "python -m pytest tests/ -m smoke -q",
+        "python -m pytest tests/ -m contract -q",
+        "python -m pytest tests/ -m integration -q",
+        "python -m pytest tests/test_pipeline_smoke.py tests/test_runtime_smoke.py -q"
+    ],
+    "critical_paths": [
+        "src/agent_server/main.py",
+        "src/agent_server/endpoints.py",
+        "src/core/pipeline/graph.py",
+        "src/core/pipeline/contracts.py",
+        "src/core/pipeline/nodes/orchestrator.py",
+        "src/core/pipeline/nodes/agent.py",
+        "src/core/pipeline/nodes/tool_executor.py",
+        "src/core/pipeline/nodes/ceo.py",
+        "src/core/model_serving/gateway.py",
+        "src/core/model_serving/providers.py",
+        "src/data/data_hub.py",
+        "config/runtime.yml",
+        "models/superezio-ceo-intent-merged.Q4_K_M.gguf"
+    ],
+    "modules": [
+        {"name": "agent_server", "path": "src/agent_server/", "files": 3, "classification": "app", "risk": "high", "notes": "FastAPI app, endpoints, A2A protocol facade"},
+        {"name": "adapters", "path": "src/adapters/", "files": 4, "classification": "core", "risk": "medium", "notes": "IBKR broker, subprocess collector, health probe, quantum adapter"},
+        {"name": "core/audit", "path": "src/core/audit/", "files": 1, "classification": "core", "risk": "low", "notes": "Decision logger"},
+        {"name": "core/config", "path": "src/core/config/", "files": 3, "classification": "config", "risk": "high", "notes": "UniversalConfig, env loading, secrets"},
+        {"name": "core/data_collector", "path": "src/core/data_collector/", "files": 3, "classification": "core", "risk": "medium", "notes": "ProfessionalCollector, SubprocessCollector, scraper"},
+        {"name": "core/explanation", "path": "src/core/explanation/", "files": 1, "classification": "core", "risk": "low", "notes": "ExplainEngine streaming interpretability"},
+        {"name": "core/f51_adapter", "path": "src/core/f51_adapter/", "files": 1, "classification": "core", "risk": "medium", "notes": "Bridge between pipeline and F51 engine"},
+        {"name": "core/investor", "path": "src/core/investor/", "files": 6, "classification": "core", "risk": "medium", "notes": "Family Investor Committee (7-agent), fraud analyst, cost guard, storage"},
+        {"name": "core/math", "path": "src/core/math/", "files": 6, "classification": "core", "risk": "low", "notes": "Indicators, risk, crisis, financial_engine, trading_losses, utils"},
+        {"name": "core/model_serving", "path": "src/core/model_serving/", "files": 3, "classification": "core", "risk": "high", "notes": "ModelGateway + providers (CEO, DeepSeek, local_orchestrator)"},
+        {"name": "core/observability", "path": "src/core/observability/", "files": 3, "classification": "core", "risk": "low", "notes": "Debug logger, event hub, neural log"},
+        {"name": "core/paths", "path": "src/core/paths/", "files": 0, "classification": "core", "risk": "low", "notes": "PROJECT_ROOT resolution (init only)"},
+        {"name": "core/pipeline", "path": "src/core/pipeline/", "files": 18, "classification": "pipeline", "risk": "high", "notes": "LangGraph StateGraph: graph, contracts, intents, security, 11 nodes, prompts"},
+        {"name": "core/ports", "path": "src/core/ports/", "files": 5, "classification": "core", "risk": "medium", "notes": "Abstract interfaces: model_gateway, data_collector, audit_log, health_probe, protocol"},
+        {"name": "core/prompts", "path": "src/core/prompts/", "files": 1, "classification": "core", "risk": "low", "notes": "Financial prompts"},
+        {"name": "core/rag", "path": "src/core/rag/", "files": 3, "classification": "core", "risk": "medium", "notes": "ForensicRAG engine, fraud RAG, macro dataset"},
+        {"name": "core/risk_firewall", "path": "src/core/risk_firewall/", "files": 3, "classification": "core", "risk": "medium", "notes": "SDCA-Lite cognitive risk firewall + experience memory"},
+        {"name": "core/scanner", "path": "src/core/scanner/", "files": 0, "classification": "core", "risk": "low", "notes": "MarketScanner (init only)"},
+        {"name": "core/security", "path": "src/core/security/", "files": 1, "classification": "core", "risk": "medium", "notes": "Output sanitization, constants"},
+        {"name": "core/storage", "path": "src/core/storage/", "files": 1, "classification": "core", "risk": "low", "notes": "mem0 client"},
+        {"name": "core/trading", "path": "src/core/trading/", "files": 8, "classification": "core", "risk": "medium", "notes": "Broker, kill switch, position sizer, order builder, alerter, approval gate, reward, weights"},
+        {"name": "data", "path": "src/data/", "files": 9, "classification": "core", "risk": "medium", "notes": "DataHub + providers: alpha_vantage, BOC, FED, news, newsapi, reddit, twelve_data, wolfram"},
+        {"name": "experts/crisis", "path": "src/experts/crisis/", "files": 20, "classification": "core", "risk": "medium", "notes": "12 crisis models + ensemble + quantum_expert + tool_adapter + schemas + report"},
+        {"name": "experts/neural_decision", "path": "src/experts/neural_decision/", "files": 1, "classification": "core", "risk": "medium", "notes": "NeuralDecisionExpert (Torch MLP + regime detection)"},
+        {"name": "experts/pennylab", "path": "src/experts/pennylab/", "files": 14, "classification": "core", "risk": "medium", "notes": "4 penny-stock experts + scoring + RAG hooks + lab journal + CLI + schemas + pipeline hook"},
+        {"name": "experts/technical_neural", "path": "src/experts/technical_neural/", "files": 3, "classification": "core", "risk": "medium", "notes": "Technical neural expert + Torch MLP + pipeline hook"},
+        {"name": "f51", "path": "src/f51/", "files": 5, "classification": "core", "risk": "medium", "notes": "F51 verdict engine: graph, formulas, scoring, detectors, gates"},
+        {"name": "tools", "path": "src/tools/", "files": 1, "classification": "pipeline", "risk": "low", "notes": "Custom tool registry for LangGraph agent"}
+    ],
+    "contracts": [
+        {"name": "a2a-protocol", "file": ".f51/contracts/a2a-protocol.contract.md", "public_surface": "A2AMessage, MessageType", "compatibility_risk": "low"},
+        {"name": "agent-server", "file": ".f51/contracts/agent-server.contract.md", "public_surface": "FastAPI routes, SSE streaming", "compatibility_risk": "medium"},
+        {"name": "ceo", "file": ".f51/contracts/ceo.contract.md", "public_surface": "CEO prompt builder, model interface", "compatibility_risk": "medium"},
+        {"name": "data-hub", "file": ".f51/contracts/data-hub.contract.md", "public_surface": "DataHub, provider capabilities", "compatibility_risk": "low"},
+        {"name": "f51-engine", "file": ".f51/contracts/f51-engine.contract.md", "public_surface": "F51Engine, Platinum scoring", "compatibility_risk": "low"},
+        {"name": "neural-decision", "file": ".f51/contracts/neural-decision.contract.md", "public_surface": "NeuralDecisionExpert API", "compatibility_risk": "low"},
+        {"name": "pipeline", "file": ".f51/contracts/pipeline.contract.md", "public_surface": "PipelineState, IntentResult, nodes", "compatibility_risk": "high"},
+        {"name": "runtime", "file": ".f51/contracts/runtime.contract.md", "public_surface": "Health, metrics, capabilities", "compatibility_risk": "low"},
+        {"name": "blood-pact", "file": ".f51/contracts/f51-blood-pact-operational-runtime.json", "public_surface": "Operational runtime pact", "compatibility_risk": "medium"}
+    ],
+    "artifact_sizes": {
+        "models": "80 GB",
+        "f51_tmp": "8.1 GB",
+        "fraud_datasets": "3.3 GB",
+        "data_traces": "9.2 MB",
+        "output": "2.0 MB",
+        "runtime_logs": "1.6 MB",
+        "f51_cache": "345 KB",
+        "data_corpus": "21 KB"
+    },
+    "stale_artifacts": {
+        "f51_tmp_training": {
+            "path": ".f51/tmp/",
+            "size": "8.1 GB",
+            "files": 27,
+            "classification": "deprecated",
+            "notes": "Model training artifacts: adapters, merged weights, SFT data, training scripts. Build surface removed per CLEAN-R2."
+        },
+        "fraud_datasets": {
+            "path": "data/fraud_datasets/",
+            "size": "3.3 GB",
+            "files": "100+",
+            "classification": "experimental",
+            "notes": "4 HuggingFace datasets for RAG/fraud training. Includes .cache directories. May be referenced by fraud_rag.py."
+        },
+        "data_traces": {
+            "path": "data/traces/",
+            "size": "9.2 MB",
+            "files": 532,
+            "classification": "doc",
+            "notes": "Pipeline execution traces (AAPL, NVDA, GME, etc.). Historical debug data."
+        },
+        "data_corpus": {
+            "path": "data/corpus/",
+            "size": "21 KB",
+            "files": 5,
+            "classification": "deprecated",
+            "notes": "DPO batch, eval cases, manifest. Training artifact from removed build surface."
+        },
+        "scripts_pycache": {
+            "path": "scripts/__pycache__/",
+            "size": "~50 KB",
+            "files": 5,
+            "classification": "unknown",
+            "notes": "Compiled bytecache. 4 of 5 reference source files that no longer exist."
+        }
+    },
+    "open_questions": [
+        "Is data/fraud_datasets/ actively used by the RAG engine at runtime or only for offline training?",
+        "Does data/corpus/ serve any runtime purpose?",
+        "Are data/traces/ consumed by any tool or just manual debugging?",
+        "Is data/faiss_index_test/ the active RAG index or just a test fixture?",
+        "Is src/core/scanner/ (init-only module) dead code or lazily imported?",
+        "Is src/core/paths/ (init-only module) dead code?",
+        "Is src/experts/technical_neural/ distinct from src/experts/neural_decision/ or a legacy split?",
+        "Does src/tools/custom_tools.py contain tools registered in the agent or is it unused?"
+    ],
+    "next_step": "Run /f51-auditor to validate classification and identify dead code."
 }
