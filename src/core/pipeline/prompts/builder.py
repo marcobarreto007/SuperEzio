@@ -347,24 +347,24 @@ def build_ceo_prompt(
 
     data_ctx = state.get("data_context", "")
     if data_ctx:
-        parts.append(f"DATA:\n{data_ctx[:1500]}")
-    elif route == "ticker_analysis":
+        parts.append(f"DATA:\n{data_ctx[:3000]}")
+    elif route in ("ticker_analysis", "market_scan"):
         parts.append("DATA:\nNo DataCollector evidence. Do not invent prices or fundamentals.")
 
     rag_ctx = state.get("rag_context", "")
     if rag_ctx:
-        parts.append(f"RAG_FORENSICS:\n{rag_ctx[:800]}")
+        parts.append(f"RAG_FORENSICS:\n{rag_ctx[:1200]}")
 
     pennylab_raw = state.get("pennylab") or state.get("pennylab_result") or {}
     pennylab_block = _format_pennylab(pennylab_raw)
     if pennylab_block:
-        parts.append(f"PENNYLAB:\n{pennylab_block[:800]}")
+        parts.append(f"PENNYLAB:\n{pennylab_block[:1200]}")
     else:
         parts.append("PENNYLAB:\nNo PennyLab evidence.")
 
     expert_summary = state.get("expert_summary", "")
     if expert_summary:
-        parts.append(f"EXPERTS:\n{expert_summary[:1000]}")
+        parts.append(f"EXPERTS:\n{expert_summary[:3000]}")
     else:
         parts.append("EXPERTS:\nNo expert committee output.")
 
@@ -372,7 +372,7 @@ def build_ceo_prompt(
     if neural and "error" not in neural:
         neural_block = _format_neural_decision(neural)
         if neural_block:
-            parts.append(f"NEURAL_DECISION:\n{neural_block[:800]}")
+            parts.append(f"NEURAL_DECISION:\n{neural_block[:1200]}")
     else:
         parts.append("NEURAL_DECISION:\nNeuralDecisionExpert not available for this ticker.")
 
@@ -381,14 +381,44 @@ def build_ceo_prompt(
     if sdca_block:
         parts.append(
             "SDCA_FIREWALL:\n"
-            f"{sdca_block[:1000]}\n"
+            f"{sdca_block[:1200]}\n"
             "If decision=BLOCK, final answer must mark the action as blocked/defensive. "
             "If decision=REVIEW, final answer must require human review or reduced confidence."
         )
 
+    # F51 verdict summary
+    f51 = state.get("f51_verdict") or {}
+    if f51:
+        f51_block = (
+            f"F51_VERDICT: passed={f51.get('passed')}, "
+            f"confidence={f51.get('confidence')}, "
+            f"factors={f51.get('factors', {})}"
+        )
+        parts.append(f51_block)
+
     contract = _render_module_contract(state)
     if contract:
         parts.append(contract)
+
+    # ── Output enforcement for quantized models ──
+    # Q4_K_M models tend to truncate. This block is placed LAST so it's
+    # fresh in the model's attention window.
+    parts.append(
+        "CRITICAL_OUTPUT_REQUIREMENT:\n"
+        "Your answer MUST contain these exact section headers, one per line, "
+        "even if the section says MISSING:\n"
+        "## DATA\n"
+        "## F51_VERDICT\n"
+        "## EXPERTS\n"
+        "## NEURAL_DECISION\n"
+        "## SDCA_FIREWALL\n"
+        "## RAG_FORENSICS\n"
+        "## PENNYLAB\n\n"
+        "For each section write 1-3 sentences in plain language. "
+        "If a module has no data, write 'MISSING — confidence reduced'.\n"
+        "Then write '## BOB_VERDICT' with your final plain-language verdict.\n"
+        "Do NOT skip any section header. This is mandatory."
+    )
 
     return "\n\n".join(parts)
 

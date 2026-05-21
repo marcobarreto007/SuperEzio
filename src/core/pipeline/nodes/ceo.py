@@ -10,6 +10,7 @@ from langgraph.config import get_stream_writer
 
 from ..prompts.builder import (
     _ceo_assistant_prefix,
+    _evaluate_module_coverage,
     build_ceo_prompt,
     ceo_system_prompt,
     missing_ceo_text,
@@ -354,6 +355,24 @@ async def node_ceo(
     final = sanitize_output(_strip_thinking(raw_text).strip())
     final = enforce_advisor_boundary(final, state)
 
+    # Module coverage audit — if the quantized model skipped modules,
+    # deterministically append a module-by-module summary so the user
+    # always sees the full pipeline evidence.
+    required, missing = _evaluate_module_coverage(final, state)
+    if missing:
+        writer(
+            {
+                "type": "MODULE_COVERAGE",
+                "required": required,
+                "covered": [m for m in required if m not in missing],
+                "missing": missing,
+                "warning": f"CEO output missing {len(missing)}/{len(required)} modules: {missing}",
+            }
+        )
+        appendix = _build_module_appendix(state, missing)
+        if appendix:
+            final = final + "\n\n" + appendix
+
     writer({"type": "CHUNK", "content": final})
     writer(
         {
@@ -367,6 +386,104 @@ async def node_ceo(
     )
 
     return {"final": final}
+
+
+def _build_module_appendix(state: dict, missing: list[str]) -> str:
+    """Deterministic module-by-module summary for modules the CEO skipped.
+
+    Ensures the user always sees the full pipeline evidence, even when
+    the quantized model truncates its response.
+    """
+    lines: list[str] = []
+    line = lines.append
+
+    # DATA
+    if "price" in missing:
+        data = state.get("data") or {}
+        ticker = state.get("ticker") or data.get("ticker", "")
+        price = data.get("price", {})
+        price_val = price.get("price") if isinstance(price, dict) else None
+        if price_val:
+            line(f"## DATA\nPrice for {ticker}: ${price_val} (source: {price.get('provider', 'market')}).")
+        else:
+            scan = state.get("scan") or {}
+            candidates = scan.get("candidates", [])
+            if candidates:
+                top = candidates[0]
+                line(
+                    f"## DATA\nMarket scan returned {len(candidates)} candidates. "
+                    f"Top: {top.get('ticker', '?')} at ${top.get('price', 'N/A')}."
+                )
+            else:
+                line("## DATA\nNo ticker-specific data collected.")
+
+    # F51
+    if "f51" in missing:
+        f51 = state.get("f51_verdict") or {}
+        if f51:
+            line(
+                f"## F51_VERDICT\nPassed: {f51.get('passed')}. "
+                f"Confidence: {f51.get('confidence', 'N/A')}. "
+                f"Hub risk score: {f51.get('hub_risk_score', 'N/A')}."
+            )
+        else:
+            line("## F51_VERDICT\nNot run (no ticker data).")
+
+    # MACRO
+    if "macro" in missing:
+        data = state.get("data") or {}
+        macro = data.get("macro", {})
+        if isinstance(macro, dict) and macro.get("treasury"):
+            treas = macro["treasury"]
+            line(
+                f"## MACRO\nTreasury rates: Fed={treas.get('fed_funds', 'N/A')}%, "
+                f"10Y={treas.get('10y', 'N/A')}%, 30Y={treas.get('30y', 'N/A')}%."
+            )
+        else:
+            line("## MACRO\nMacro data not available for this scan.")
+
+    # SENTIMENT
+    if "sentiment" in missing:
+        data = state.get("data") or {}
+        sentiment = data.get("sentiment", {})
+        if isinstance(sentiment, dict):
+            label = sentiment.get("sentiment_label") or sentiment.get("label") or "neutral"
+            line(f"## SENTIMENT\nNews sentiment: {label}.")
+        else:
+            line("## SENTIMENT\nSentiment data not available.")
+
+    # SDCA
+    if "sdca_firewall" in missing:
+        sdca = state.get("sdca_firewall") or {}
+        if sdca:
+            line(
+                f"## SDCA_FIREWALL\nDecision: {sdca.get('decision')}. "
+                f"Confidence: {sdca.get('confidence')}. "
+                f"Ghost tokens: {sdca.get('ghost_tokens', [])}."
+            )
+        else:
+            line("## SDCA_FIREWALL\nFirewall not run.")
+
+    # RAG
+    if "rag_forensics" in missing:
+        rag = state.get("rag_context") or ""
+        matches = len(re.findall(r"\[CASE:", rag)) if rag else 0
+        if matches:
+            line(f"## RAG_FORENSICS\n{matches} historical fraud/risk patterns matched.")
+        else:
+            line("## RAG_FORENSICS\nNo historical patterns matched.")
+
+    # PENNYLAB
+    if "pennylab" in missing:
+        penny = state.get("pennylab") or state.get("pennylab_result") or {}
+        if penny and penny.get("decision"):
+            line(f"## PENNYLAB\nDecision: {penny.get('decision')}.")
+        else:
+            line("## PENNYLAB\nNot run (no ticker or no forensic signal).")
+
+    if not lines:
+        return ""
+    return "\n\n".join(lines)
 
 
 async def _check_health(base_url: str) -> bool:

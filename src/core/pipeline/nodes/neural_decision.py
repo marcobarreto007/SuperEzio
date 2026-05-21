@@ -24,7 +24,6 @@ async def node_neural_decision(state: dict) -> dict:
     writer = get_stream_writer()
     run_id = state.get("run_id", "")
     ticker = state.get("ticker", "")
-    route = state.get("route", "general")
 
     # Module-level guard — catches parallel double-invocation where state
     # hasn't been written yet by the concurrent execution.
@@ -41,7 +40,7 @@ async def node_neural_decision(state: dict) -> dict:
         return {}
     _NEURAL_SEEN.append(dedup_key)
 
-    if route != "ticker_analysis" or not ticker:
+    if not ticker:
         writer(
             {
                 "type": "PIPELINE_STEP",

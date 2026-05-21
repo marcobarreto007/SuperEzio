@@ -89,13 +89,16 @@ async def node_collector(state: dict, *, config=None) -> dict:
     if route == "market_scan":
         scan = await _run_scan(state.get("message", ""), state.get("filters", {}))
         scan_ctx = _format_scan_context(scan)
+        candidates = scan.get("candidates", [])
+        top_ticker = candidates[0].get("ticker", "") if candidates else ""
+
         writer(
             {
                 "type": "DATA_COLLECTED",
-                "ticker": "",
+                "ticker": top_ticker,
                 "quality": scan.get("data_quality", "partial"),
                 "source_errors": scan.get("source_errors", []),
-                "candidates": len(scan.get("candidates", [])),
+                "candidates": len(candidates),
             }
         )
         writer(
@@ -106,7 +109,23 @@ async def node_collector(state: dict, *, config=None) -> dict:
                 "status": "completed",
             }
         )
-        return {"scan": scan, "data_context": scan_ctx}
+
+        # Collect full data for the top candidate so experts, neural_decision,
+        # and CEO have per-ticker technicals/risk/sentiment to work with.
+        full_data: dict[str, Any] = {}
+        full_ctx = ""
+        if top_ticker:
+            try:
+                full_data, full_ctx = await _collect_professional(top_ticker, writer, run_id)
+            except Exception:
+                full_data = {"ticker": top_ticker, "data_quality": "error"}
+
+        return {
+            "scan": scan,
+            "data": full_data,
+            "ticker": top_ticker,
+            "data_context": scan_ctx + "\n\n" + full_ctx if full_ctx else scan_ctx,
+        }
 
     # ── General / no ticker ──
     writer(
