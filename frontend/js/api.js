@@ -18,12 +18,24 @@
     fetchChartData(ticker, tf = "6M") {
       return fetchJson(`/api/chart-data/${encodeURIComponent(ticker)}?timeframe=${encodeURIComponent(tf)}`);
     },
-    submitTask(envelope) {
-      return fetch(API + "/task/submit", {
+    async submitTask(envelope) {
+      const r = await fetch(API + "/task/submit", {
         method: "POST",
         headers: { Accept: "application/x-ndjson", "Content-Type": "application/json" },
         body: JSON.stringify(envelope),
       });
+      if (!r.ok) {
+        let detail = "";
+        try {
+          const data = await r.clone().json();
+          detail = data.detail || data.error || JSON.stringify(data);
+        } catch (_) {
+          try { detail = await r.text(); } catch (_) { detail = ""; }
+        }
+        throw new Error(detail ? `/task/submit ${r.status}: ${detail}` : `/task/submit ${r.status}`);
+      }
+      if (!r.body) throw new Error("/task/submit returned no stream body");
+      return r;
     },
     evaluateSDCA(body) {
       return fetch(API + "/api/sdca/evaluate", {

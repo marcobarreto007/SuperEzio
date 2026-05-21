@@ -196,7 +196,8 @@
 
       /* ── ERROR ── */
       case "ERROR":
-        addError(ev.message || ev.error || "Unknown error");
+        addError(ev.message || ev.error || ev.detail || "Unknown error");
+        if (SZ.chat && SZ.chat.finishCEOMessage) SZ.chat.finishCEOMessage();
         break;
 
       /* ── STREAM_END ── */

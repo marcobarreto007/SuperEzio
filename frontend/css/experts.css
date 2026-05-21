@@ -13,5 +13,3 @@
 .exp-dot--ok { background: var(--green); }
 .exp-dot--fail { background: var(--red); }
 .exp-dot--running { background: var(--amber); }
-
-@media (max-width: 768px) { .exp-grid { grid-template-columns: repeat(2, 1fr); } }

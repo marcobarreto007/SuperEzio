@@ -7,8 +7,9 @@ body {
   background: var(--bg);
   color: var(--ink);
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100dvh;
+  min-width: 1180px;
   overflow: hidden;
   position: relative;
 }

@@ -157,9 +157,3 @@
 .sdca-lab-list { display: grid; gap: 8px; }
 .sdca-lab-list div { border-top: 1px solid var(--line); padding-top: 8px; font-size: 12px; line-height: 1.4; color: var(--ink-secondary); }
 .sdca-lab-list div:first-child { border-top: none; padding-top: 0; }
-
-@media (max-width: 768px) {
-  .sdca-lab { top: 0; bottom: 0; width: 100vw; }
-  .sdca-lab-body { grid-template-columns: 1fr; }
-  .sdca-lab-grid, .sdca-lab-checks { grid-template-columns: 1fr; }
-}

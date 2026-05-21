@@ -5,5 +5,3 @@
 .pl-score strong { font-family: "JetBrains Mono", monospace; font-size: 13px; font-weight: 600; margin-top: 2px; display: block; }
 .pl-score-bar { height: 4px; border-radius: 2px; background: var(--line); margin-top: 4px; overflow: hidden; }
 .pl-score-fill { height: 100%; border-radius: 2px; transition: width 0.35s; }
-
-@media (max-width: 768px) { .pl-scores { grid-template-columns: repeat(3, 1fr); } }

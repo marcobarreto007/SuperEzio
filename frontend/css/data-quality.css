@@ -12,5 +12,3 @@
 .dq-dot--ok { background: var(--green); }
 .dq-dot--partial { background: var(--amber); }
 .dq-dot--error { background: var(--red); }
-
-@media (max-width: 768px) { .dq-grid { grid-template-columns: repeat(3, 1fr); } }

@@ -55,21 +55,13 @@
         <option value="5Y">5Y</option>
       </select>
       <button class="btn--icon" id="live-btn" title="Toggle live stream" type="button"><i data-lucide="radio"></i></button>
-      <button class="btn--icon" id="chart-btn" title="Toggle chart" type="button"><i data-lucide="line-chart"></i></button>
+      <button class="btn--icon" id="chart-btn" title="Reload chart" type="button"><i data-lucide="refresh-cw"></i></button>
       <button class="btn--icon" id="sdca-lab-btn" title="Cognitive Risk Firewall Lab" type="button"><i data-lucide="shield-alert"></i></button>
     </div>
   </header>
 
   <!-- ── MAIN ── -->
   <section class="app-main">
-    <aside class="market-rail" aria-label="Market tools">
-      <button class="rail-btn active" type="button" title="Chart"><i data-lucide="candlestick-chart"></i></button>
-      <button class="rail-btn" type="button" title="Crosshair"><i data-lucide="crosshair"></i></button>
-      <button class="rail-btn" type="button" title="Trendline"><i data-lucide="trending-up"></i></button>
-      <button class="rail-btn" type="button" title="Risk"><i data-lucide="shield-alert"></i></button>
-      <button class="rail-btn" type="button" title="Notes"><i data-lucide="notebook-pen"></i></button>
-    </aside>
-
     <main class="chart-workspace" aria-label="Trading workspace">
       <div class="market-header">
         <div class="asset-block">
@@ -94,12 +86,11 @@
       </div>
 
       <section class="chart-stage">
-        <div class="chart-toolbar">
+        <div class="chart-toolbar" aria-label="Visible indicators">
           <span class="toolbar-pill">Candles</span>
           <span class="toolbar-pill">SMA20</span>
           <span class="toolbar-pill">SMA50</span>
           <span class="toolbar-pill">EMA20</span>
-          <span class="toolbar-pill">BB</span>
           <span class="toolbar-pill">MACD</span>
         </div>
         <div class="live-canvas-wrap"><canvas id="live-canvas"></canvas></div>
@@ -119,24 +110,11 @@
     </main>
 
     <aside class="right-stack" id="live-panel" aria-label="Decision and live panel">
-      <section class="terminal-card">
-        <div class="terminal-card-hdr">
-          <i data-lucide="activity"></i>
-          <strong>Market State</strong>
-          <span id="live-ticker">AAPL</span>
-        </div>
-        <div class="live-metrics">
-          <div class="live-metric"><span>Ticker</span><strong id="side-ticker">AAPL</strong></div>
-          <div class="live-metric"><span>Mode</span><strong>LOCAL</strong></div>
-          <div class="live-metric"><span>Guard</span><strong>ON</strong></div>
-        </div>
-      </section>
-
       <section class="terminal-card terminal-card--chat">
         <div class="terminal-card-hdr">
           <i data-lucide="brain-circuit"></i>
           <strong>Bob CEO</strong>
-          <span>Natural language</span>
+          <span id="live-ticker">AAPL</span>
         </div>
         <main class="chat" id="chat" aria-label="Conversation">
           <section class="bob-welcome">

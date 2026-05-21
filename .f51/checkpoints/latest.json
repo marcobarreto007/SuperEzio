@@ -1,17 +1,27 @@
 {
-  "date_local": "2026-05-21T19:07:00Z",
-  "session": "Agentic_Pipeline_Refactor",
+  "date_local": "2026-05-21T18:45:10-04:00",
+  "session": "Bob_UI_Runtime_Repair",
   "status": "completed",
   "what_was_done": [
-    "Refactored LangGraph pipeline in graph.py to use an Agent Loop.",
-    "Created agent.py to handle ReAct and Tool Calling logic using CEO model.",
-    "Created tool_executor.py to map agent tool calls to existing pipeline functions.",
-    "Added agent_tool_call and agent_iterations to PipelineState in contracts.py."
+    "Removed decorative market rail buttons and the unused market-state card from the main UI.",
+    "Changed the chart button into a real reload action label.",
+    "Made Bob's chat panel use the full right-side stack so chart and dialog no longer compete for the same space.",
+    "Removed the mobile responsive breakpoints from the touched UI CSS and made the workspace desktop-only with min-width 1180px.",
+    "Hardened /task/submit frontend handling so failed Bob responses show HTTP/backend detail instead of appearing silent."
   ],
-  "evidence": "ruff check passed. The pipeline now routes dynamically between agent and tool_executor instead of using a static DAG.",
+  "evidence": [
+    "node --check frontend/js/api.js passed.",
+    "node --check frontend/js/events.js passed.",
+    "python -m pytest tests/contracts/test_contract_runtime_official.py tests/contracts/test_contract_endpoints.py passed: 20 passed.",
+    "Runtime health checks passed for API http://127.0.0.1:8002/health and CEO http://127.0.0.1:8082/health.",
+    "CEO model endpoint http://127.0.0.1:8082/v1/models returned the local GGUF model.",
+    "POST /task/submit smoke reached STREAM_END with 0 ERROR events and Bob answered: Sim, estou online e pronto para operar.",
+    "Playwright desktop screenshot runtime/logs/ui-bob-desktop-only.png confirmed canvas visible, chat visible, bottom bar visible, fakeRail 0, minWidth 1180px, overlap false."
+  ],
   "risks": [
-    "The UI relies on SSE events which might arrive in a slightly different sequence if the agent skips some tools. However, node wrappers maintain the standard event types.",
-    "Local model (Qwen) might fail to follow the strict JSON formatting for ReAct tool calls."
+    "The UI is now intentionally desktop-only; narrow screens will not get a special mobile layout.",
+    "Full repo lint/test suite was not run; validation was scoped to frontend syntax, runtime contracts, endpoints, and live UI smoke.",
+    "runtime/logs contains local evidence artifacts created during validation and remains untracked."
   ],
-  "next_step": "Run tests and verify the UI behavior with a real message to the backend."
+  "next_step": "If Marco wants this saved, make a local disk-only commit without push."
 }

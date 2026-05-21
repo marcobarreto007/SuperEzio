@@ -95,6 +95,26 @@ def test_frontend_contract_uses_bob_unified_workspace_without_retired_panels():
     assert "bob-welcome" in html
     assert "ops-board" in html
     assert "mode-tabs" in html
+    assert "market-rail" not in html
+    assert "rail-btn" not in html
+    assert "Crosshair" not in html
+    assert "Trendline" not in html
+    assert "detail ||" in (ROOT / "frontend" / "js" / "events.js").read_text(encoding="utf-8")
+    assert "returned no stream body" in (ROOT / "frontend" / "js" / "api.js").read_text(encoding="utf-8")
+    css_files = [
+        ROOT / "frontend" / "css" / "base.css",
+        ROOT / "frontend" / "css" / "charts.css",
+        ROOT / "frontend" / "css" / "chat.css",
+        ROOT / "frontend" / "css" / "topbar.css",
+        ROOT / "frontend" / "css" / "sdca.css",
+        ROOT / "frontend" / "css" / "pennylab.css",
+        ROOT / "frontend" / "css" / "data-quality.css",
+        ROOT / "frontend" / "css" / "crisis.css",
+        ROOT / "frontend" / "css" / "experts.css",
+    ]
+    css_text = "\n".join(path.read_text(encoding="utf-8") for path in css_files)
+    assert "max-width: 768px" not in css_text
+    assert "min-width: 1180px" in css_text
     assert "panel-drawer" not in html
     assert "data-panel" not in html
     assert "css/panels.css" not in html

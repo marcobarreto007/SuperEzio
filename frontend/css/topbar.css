@@ -261,9 +261,3 @@
   border-color: var(--line-light);
   color: var(--ink);
 }
-
-@media (max-width: 768px) {
-  .mode-tabs { width: 100%; overflow-x: auto; padding-bottom: 2px; }
-  .mode-tab { flex: 1 0 auto; }
-  .topbar { flex-wrap: wrap; gap: 8px; padding: 10px 16px; }
-}
