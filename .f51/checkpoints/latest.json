@@ -16,8 +16,11 @@
     "backup": "C:\\Users\\marco\\Desktop\\SuperEzio_backups\\pre-arqueologist-legacy-purge-20260520-225410.zip",
     "commands": [
       "python -m ruff check . -> All checks passed",
-      "python -m pytest tests -q -> 725 passed, 7 warnings in 73.07s",
+      "python -m pytest tests -q -> 725 passed, 7 warnings in 70.07s",
       "python -m pytest tests/test_integration_runtime.py -q -v -> 7 passed in 43.95s",
+      "python -m pytest tests/contracts/test_contract_runtime_official.py::test_runtime_checkpoint_tracks_official_entrypoints -q -> 1 passed",
+      "python -m ruff format --check touched Python files -> 6 files already formatted",
+      "python -m ruff format --check . -> failed on pre-existing/non-scoped formatting debt across .claude, F51_Datasets, archive, scripts, src, tests",
       "python scripts/signal_ledger/report_signals.py --json -> exited 0 with emitted_total=1",
       "Invoke-WebRequest health/models/API endpoints -> 200 for CEO /health, CEO /v1/models, API /health, API /health/details, /capabilities, /product/manifest",
       "rg deleted scratch names -> no live references found"

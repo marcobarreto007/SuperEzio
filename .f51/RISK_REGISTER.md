@@ -224,3 +224,10 @@
 - Risk: `scripts/train_qwen36_3h.py` can look old, but `scripts/vastai_onstart.sh` still calls it.
 - Evidence: Reference search found `scripts/vastai_onstart.sh:55` invoking `python scripts/train_qwen36_3h.py`; this pass removed only an unused local variable and kept the script.
 - Mitigation: Remove the remaining training lane only after a separate model-training decommission decision.
+
+### ARQ-R3 - Repo-wide format gate still has broad debt [MEDIUM]
+
+- Classification: `quality`
+- Risk: `python -m ruff format --check .` still reports formatting debt across non-scoped legacy/tooling areas.
+- Evidence: Targeted format check for touched Python files passed, while repo-wide format check listed 41 files outside this purge's safe scope.
+- Mitigation: Run a dedicated formatting pass after deciding whether remaining `.claude`, archive/quarantine, and dataset tooling should stay in the active tree.

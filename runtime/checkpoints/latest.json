@@ -16,6 +16,8 @@
     "ceo_port": 8082,
     "api_port": 8002,
     "bind": "127.0.0.1",
+    "api_entrypoint": "python -m agent_server.main",
+    "ceo_entrypoint": "powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082",
     "model": "SuperEzio CEO+Intent Merged Q4_K_M GGUF",
     "model_path": "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
     "health_ceo": "http://127.0.0.1:8082/health",
@@ -46,13 +48,16 @@
   ],
   "evidence": [
     "python -m ruff check . -> All checks passed",
-    "python -m pytest tests -q -> 725 passed, 7 warnings in 73.07s",
+    "python -m pytest tests -q -> 725 passed, 7 warnings in 70.07s",
     "python -m pytest tests/test_integration_runtime.py -q -v -> 7 passed in 43.95s",
+    "python -m pytest tests/contracts/test_contract_runtime_official.py::test_runtime_checkpoint_tracks_official_entrypoints -q -> 1 passed",
+    "python -m ruff format --check touched Python files -> 6 files already formatted",
     "Invoke-WebRequest main endpoint sweep -> 200 for CEO health/models and API health/details/capabilities/product manifest"
   ],
   "risks": [
     "Historical .f51 inventory maps still include removed paths until regenerated.",
-    "Remaining referenced training lane was kept intentionally."
+    "Remaining referenced training lane was kept intentionally.",
+    "Repo-wide ruff format check still reports pre-existing formatting debt outside this scoped purge."
   ],
   "next_step": "Regenerate .f51 inventory maps or decommission remaining training lane in a dedicated pass."
 }
