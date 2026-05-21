@@ -124,7 +124,11 @@ async def node_sdca_firewall(state: dict[str, Any]) -> dict[str, Any]:
             }
         )
         update: dict[str, Any] = {"sdca_firewall": payload}
-        if decision.decision == "BLOCK":
+        # SDCA firewall hard-blocks only for real trading decisions (ticker
+        # present). For non-trading routes (no ticker, general, market_scan),
+        # the firewall still runs ghost-token detection and emits evidence,
+        # but delegates the final call to the CEO model.
+        if decision.decision == "BLOCK" and ticker:
             update["sdca_blocked"] = True
             update["action"] = "blocked_defensive"
         elif decision.decision == "REVIEW":

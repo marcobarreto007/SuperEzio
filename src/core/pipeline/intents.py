@@ -1207,28 +1207,23 @@ def parse_user_intent(message: str, rigor: str = "strict", ticker: str = "") -> 
 
     vague = should_block_vague_financial_prompt(raw, ticker, rigor)
     if strict and vague:
-        # Se a mensagem tem escopo (moeda, pais, setor, risk tolerance),
-        # roteia como market_scan em vez de bloquear.
-        if _has_scan_scope(raw) or infer_scan_filters(raw).get("country"):
-            return IntentParse(
-                route="market_scan",
-                intent="market_scan",
-                action="scan_market",
-                filters=infer_scan_filters(raw),
-                confidence=0.78,
-                reasons=("vague_with_scope_rerouted_to_scan",),
-                entities=entities,
-                diary=diary,
-                pennylab=False,
-            )
+        # CEO model was trained to handle vague financial requests without
+        # hard-blocking. Route to market_scan so the full pipeline runs
+        # (scan -> data -> experts -> CEO verdict). The CEO model can
+        # still reclassify via the orchestrator's LLM fallback.
+        filters = infer_scan_filters(raw)
+        has_scope = _has_scan_scope(raw) or bool(filters.get("country"))
         return IntentParse(
-            route="needs_scope",
-            intent="unsafe_unspecified_recommendation",
-            action="ask_for_scope",
-            filters={},
-            confidence=0.84,
-            required_slots=("ticker_or_screening_scope",),
-            reasons=("strict_mode_blocks_unspecified_financial_recommendation",),
+            route="market_scan",
+            intent="market_scan",
+            action="scan_market",
+            filters=filters,
+            confidence=0.62 if not has_scope else 0.78,
+            reasons=(
+                ("vague_financial_delegated_to_pipeline",)
+                if not has_scope
+                else ("vague_with_scope_rerouted_to_scan",)
+            ),
             entities=entities,
             diary=diary,
             pennylab=False,
@@ -1291,8 +1286,9 @@ def validate_intent_candidate(
         return None
     if action not in ALLOWED_ACTIONS:
         return None
-    if intent not in ROUTE_INTENT_ACTIONS.get(route, set()):
-        return None
+    # CEO model cross-classification allowed — the model was trained to
+    # decide route+intent jointly. ROUTE_INTENT_ACTIONS is a deterministic
+    # guard, not a hard invariant for model output.
 
     detected_ticker = detect_ticker(message)
     candidate_ticker = str(candidate.get("ticker") or "").strip().upper()

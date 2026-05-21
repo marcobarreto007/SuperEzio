@@ -141,6 +141,17 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
                 plan["intent_source"] = "ceo_model"
                 plan["fallback_route"] = parsed.route
                 plan["fallback_intent"] = parsed.intent
+                # Guard: CEO model was trained with needs_scope examples in
+                # its dataset. Never let it downgrade a market_scan or
+                # ticker_analysis to needs_scope — the deterministic parser
+                # is the safety floor for non-blocking routes.
+                if (
+                    plan.get("route") == "needs_scope"
+                    and parsed.route in ("market_scan", "ticker_analysis", "general")
+                ):
+                    plan = parsed.to_plan()
+                    plan["intent_source"] = "ceo_model_overridden"
+                    plan["ceo_original_route"] = "needs_scope"
         except Exception as exc:
             plan["intent_fallback_error"] = str(exc)[:200]
             # If CEO model fails, trust deterministic as final authority
@@ -211,11 +222,16 @@ async def _ask_intent_classifier(message: str, plan: dict, context: str, gateway
         "Allowed routes: general, ticker_analysis, market_scan, needs_scope. "
         "Allowed intents: general_question, explain_capabilities, "
         "ticker_analysis, market_scan, missing_required_slot, "
-        "unsafe_unspecified_recommendation. Never invent a ticker. "
+        "unsafe_unspecified_recommendation. "
+        "Prefer market_scan over needs_scope when the user shows financial "
+        "intent but no ticker — the pipeline will scan and produce a verdict. "
+        "Only use needs_scope for truly unanswerable requests (empty, nonsense). "
+        "Never invent a ticker. "
         "If no ticker appears in the user message, ticker must be empty and "
         "route cannot be ticker_analysis. "
-        "Never extract common language words, prepositions, pronouns, or conjunctions "
-        "(e.g. 'me', 'de', 'do', 'da', 'to', 'for', 'the', 'it', 'us') as tickers. "
+        "Never extract common language words, prepositions, pronouns, or "
+        "conjunctions (e.g. 'me', 'de', 'do', 'da', 'to', 'for', 'the', "
+        "'it', 'us') as tickers. "
         "If a word is a normal language word, ticker must be empty."
     )
     prompt = {
