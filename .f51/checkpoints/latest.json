@@ -1,59 +1,38 @@
 {
-  "date_local": "2026-05-20T23:30:00-04:00",
-  "session": "f51-pipeline-gate-fix-and-frontend-merge-2026-05-20",
+  "date_local": "2026-05-20T21:28:40-04:00",
+  "session": "f51-ceo-module-coverage-appendix-2026-05-20",
   "status": "completed",
   "what_was_done": [
-    "Frontend: futuristic fonts (Outfit/Unbounded), glassmorphic tokens, cyberpunk colors, 3D holographic Bob orb.",
-    "CSS overhaul: base (scan animations), topbar (floating pills), chat (glassmorphic bubbles), cards (hover scale), charts (staggered load), sdca (tactile console), indicators (neon veto).",
-    "Pipeline: removed hard ticker requirement for vague financial prompts — 3-layer fix in intents, orchestrator, sdca_firewall.",
-    "Deterministic parser now routes vague financials to market_scan instead of needs_scope.",
-    "Orchestrator guard prevents CEO model from downgrading market_scan to needs_scope.",
-    "SDCA firewall hard-blocks only for real trading decisions with ticker present.",
-    "Signal ledger: collector, policy, resolve, report, append_from_ndjson scripts + schema + docs + tests.",
-    "Runtime checkpoint restored with runtime_parameters contract."
+    "CEO module coverage audit: post-generation check detects which modules the quantized Qwen model skipped.",
+    "Deterministic appendix (_build_module_appendix): injeta secoes faltantes (DATA, F51, MACRO, SENTIMENT, SDCA, RAG, PENNYLAB, EXPERTS, NEURAL, TECHNICALS, PROFILE, QUANT, RISK, REDDIT) no final.",
+    "Market scan agora coleta dados completos (ProfessionalCollector) do top candidate para experts/neural/SDCA/RAG.",
+    "route_after_f51 expandido para market_scan: resolve ticker do scan e dispara 6 experts.",
+    "neural_decision: removido route check para rodar sempre que houver ticker (incluindo market_scan).",
+    "Prompt builder: truncation limits aumentados (3k-12k), F51 section adicionada, CRITICAL_OUTPUT_REQUIREMENT block forcando 7 section headers.",
+    "MODULE_COVERAGE event emitido para o frontend com required/covered/missing.",
+    "MCP Policy documentada em AGENTS.md e CLAUDE.md."
   ],
   "evidence": {
     "commands": [
-      "python -m pytest tests/ -q -> 670/671 passed (1 pre-existing fixed now)",
+      "python -m pytest tests/ -q -> 671/671 passed",
       "python -m ruff check src/ -> all passed",
-      "node --check frontend/js/*.js -> all passed",
-      "curl POST /task/submit 'quero uma dica de investimento' -> market_scan, 10 candidates, SDCA ALLOW, CEO volume anomaly shortlist"
+      "curl POST /task/submit 'quero uma dica de investimento' -> pipeline completo, 8/8 modules covered (2 model + 6 appendix)"
     ],
     "files_changed": [
-      "src/core/pipeline/intents.py",
-      "src/core/pipeline/nodes/orchestrator.py",
-      "src/core/pipeline/nodes/sdca_firewall.py",
-      "frontend/index.html",
-      "frontend/css/variables.css",
-      "frontend/css/base.css",
-      "frontend/css/topbar.css",
-      "frontend/css/chat.css",
-      "frontend/css/cards.css",
-      "frontend/css/charts.css",
-      "frontend/css/sdca.css",
-      "frontend/css/indicators.css",
-      "scripts/signal_ledger/__init__.py",
-      "scripts/signal_ledger/collector.py",
-      "scripts/signal_ledger/policy.py",
-      "scripts/signal_ledger/resolve_signals.py",
-      "scripts/signal_ledger/report_signals.py",
-      "scripts/signal_ledger/append_from_ndjson.py",
-      "docs/signals/SIGNAL_LEDGER.md",
-      "docs/signals/signal_ledger.schema.json",
-      "docs/signals/official_signal_policy.v1.json",
-      "data/signals/emitted.jsonl",
-      "data/signals/inbox/sample-aapl-official.ndjson",
-      "data/signals/raw_ndjson/sample-aapl-official.ndjson",
-      "tests/test_signal_ledger_offline.py",
-      ".f51/checkpoints/latest.json",
-      "runtime/checkpoints/latest.json"
+      "src/core/pipeline/nodes/ceo.py",
+      "src/core/pipeline/nodes/collector.py",
+      "src/core/pipeline/nodes/f51.py",
+      "src/core/pipeline/nodes/neural_decision.py",
+      "src/core/pipeline/prompts/builder.py",
+      "AGENTS.md",
+      "CLAUDE.md",
+      ".f51/checkpoints/latest.json"
     ]
   },
   "risks": [
-    {"severity": "low", "description": "CSS animations can cause GPU/CPU usage on older machines.", "mitigation": "Solid color fallbacks for backdrop-filter."},
-    {"severity": "low", "description": "CEO intent classifier cold-start timeout may cause deterministic_final fallback on first request.", "mitigation": "Deterministic parser now returns safe non-blocking routes."},
-    {"severity": "low", "description": "Signal ledger is offline-only; no external integrations yet.", "mitigation": "All paths are disk-only per GITHUB_POLICY."}
+    {"severity": "medium", "description": "Qwen3.6-35B Q4_K_M quantizado trunca respostas longas e ignora a maioria dos modulos.", "mitigation": "Appendix deterministico garante 100% coverage; MODEL_COVERAGE event expoe gaps para o frontend."},
+    {"severity": "low", "description": "market_scan coleta dados completos do top candidate, mas o ticker 'A' pode nao ser o melhor ajustado ao intent do usuario.", "mitigation": "Scan retorna 10 candidates; usuario pode refinar com filtros."}
   ],
-  "next_step": "Operator review of live dashboard with non-ticker financial prompts and signal ledger audit.",
+  "next_step": "Verificar se o frontend renderiza o MODULE_COVERAGE event e exibe as secoes do appendix corretamente.",
   "owner": "Deep"
 }

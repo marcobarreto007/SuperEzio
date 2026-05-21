@@ -69,3 +69,29 @@ Cada agente deve reportar:
 ## Regra mandatória
 
 **Todo agente deve atualizar `.f51/checkpoints/latest.json` antes de encerrar sua execução.**
+
+## Política F51 de MCPs
+
+MCP permitido somente se cumprir pelo menos uma função:
+1. Reduzir erro operacional
+2. Testar produto real
+3. Auditar entrega
+4. Acessar documentação necessária
+5. Preparar venda/demo
+
+Proibido:
+- Instalar MCP por curiosidade
+- Dar acesso amplo ao filesystem
+- Usar token com escopo exagerado
+- Deixar MCP sem descrição no AGENTS.md/CLAUDE.md
+
+Stack padrão:
+- Filesystem limitado ao projeto
+- Playwright quando houver UI
+- GitHub quando houver repo remoto/PR (se permitido pela GITHUB_POLICY)
+- Docs/context tool quando houver dependência incerta
+
+### MCPs Registrados e Autorizados
+
+- `chrome-devtools-plugin` / `chrome_devtools`: Permite rodar e avaliar scripts em sessões do Chrome de forma restrita (essencial para debugar/testar o frontend e UI local do SuperEzio).
+

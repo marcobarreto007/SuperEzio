@@ -80,3 +80,22 @@ Uma tarefa só é “pronta” quando:
 - Todo agente deve atualizar `.f51/checkpoints/latest.json` ao concluir etapa.
 - Toda execução deve produzir relatório objetivo (o que fez, evidências, riscos, próximo passo).
 - Proibido improvisar escopo fora do gate de decisão.
+
+## Política F51 de MCPs
+
+MCP permitido somente se cumprir pelo menos uma função:
+1. Reduzir erro operacional
+2. Testar produto real
+3. Auditar entrega
+4. Acessar documentação necessária
+5. Preparar venda/demo
+
+Proibido:
+- Instalar MCP por curiosidade
+- Dar acesso amplo ao filesystem
+- Usar token com escopo exagerado
+- Deixar MCP sem descrição no AGENTS.md/CLAUDE.md
+
+### MCPs Registrados e Autorizados
+- `chrome-devtools-plugin` / `chrome_devtools`: Avaliação e execução de scripts em sessões locais do Chrome para testes de UI e depuração do frontend do SuperEzio.
+
