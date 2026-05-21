@@ -1,10 +1,10 @@
 {
   "project": "SuperEzio / F51 Unified Core",
   "version": "4.0.0",
-  "date_local": "2026-05-20T20:18:59-04:00",
-  "session": "f51-bob-ui-runtime-repair-2026-05-20",
+  "date_local": "2026-05-20T23:10:00-04:00",
+  "session": "f51-ticker-gate-removal-2026-05-20",
   "status": "COMPLETE",
-  "stage": "bob-ui-runtime-repair",
+  "stage": "pipeline-gate-fix",
   "operational_contract": {
     "agent_server_contract": ".f51/contracts/agent-server.contract.md",
     "runtime_config": "config/runtime.yml",
@@ -31,52 +31,41 @@
     "expert_provider_route": "deepseek -> https://api.deepseek.com"
   },
   "what_was_done": [
-    "Fixed browser event handling for Bob NDJSON streams and card rendering.",
-    "Fixed SDCA lab click/submit behavior and verified live firewall POST in the browser.",
-    "Changed Bob CEO runtime behavior toward natural-language financial guidance instead of direct trade-style verdicts.",
-    "Added Portuguese deterministic capability response for operator questions.",
-    "Restarted API runtime and validated API, local CEO reachability, browser UI, data routes, streams, and tests."
+    "Frontend redesign: futuristic fonts (Outfit/Unbounded), glassmorphic tokens, cyberpunk colors.",
+    "CSS overhaul: base, topbar, chat, cards, charts, sdca, indicators — neon states, scan animations, 3D orb.",
+    "Pipeline fix: removed hard ticker requirement. Deterministic parser routes vague financials to market_scan.",
+    "Orchestrator guard: prevents CEO model from downgrading market_scan to needs_scope.",
+    "SDCA firewall: hard-block only for real trading decisions with ticker present.",
+    "Tested: 'quero uma dica de investimento' now runs full pipeline (market_scan -> 10 candidates -> CEO verdict)."
   ],
   "files_changed": [
-    ".f51/TASK_BOARD.md",
-    ".f51/RISK_REGISTER.md",
-    ".f51/checkpoints/latest.json",
-    "runtime/checkpoints/latest.json",
     "frontend/index.html",
-    "frontend/js/chat.js",
-    "frontend/js/init.js",
-    "frontend/js/render-data-quality.js",
-    "frontend/js/render-explanation.js",
-    "frontend/js/sdca-lab.js",
-    "src/core/pipeline/nodes/ceo.py",
-    "src/core/pipeline/prompts/_prompts.py",
-    "src/core/pipeline/prompts/builder.py",
-    "tests/contracts/test_contract_ceo.py",
-    "tests/contracts/test_contract_runtime_official.py",
-    "tests/test_runtime_smoke.py",
-    "tests/test_sdca_lite.py"
+    "frontend/css/variables.css",
+    "frontend/css/base.css",
+    "frontend/css/topbar.css",
+    "frontend/css/chat.css",
+    "frontend/css/cards.css",
+    "frontend/css/charts.css",
+    "frontend/css/sdca.css",
+    "frontend/css/indicators.css",
+    "src/core/pipeline/intents.py",
+    "src/core/pipeline/nodes/orchestrator.py",
+    "src/core/pipeline/nodes/sdca_firewall.py",
+    ".f51/checkpoints/latest.json",
+    "runtime/checkpoints/latest.json"
   ],
   "evidence": [
-    "API restarted with PID 341224; health returned {\"status\":\"ok\"}.",
-    "CEO model server remained reachable on http://127.0.0.1:8082/health and /v1/models.",
-    "GET /health, /health/details, /capabilities, /product/manifest, /api/chart-data/AAPL?timeframe=6M -> 200.",
-    "POST /api/sdca/evaluate -> 200 BLOCK.",
-    "POST /experts/neural-decision/predict -> 200.",
-    "POST /task/submit -> 200, 23 NDJSON lines, STREAM_END true, Portuguese Bob capability response.",
-    "Playwright browser chat rendered Portuguese Bob response with input active.",
-    "Playwright browser SDCA FOMO preset + Evaluate rendered BLOCK and request log showed POST /api/sdca/evaluate -> 200.",
-    "Playwright console warning/error filters returned 0 messages.",
-    "node --check frontend/js/chat.js frontend/js/init.js frontend/js/sdca-lab.js frontend/js/render-data-quality.js frontend/js/render-explanation.js -> passed.",
-    "python -m pytest tests/contracts/test_contract_ceo.py tests/test_runtime_smoke.py tests/contracts/test_contract_runtime_official.py tests/contracts/test_contract_endpoints.py tests/test_pipeline_smoke.py tests/test_sdca_lite.py tests/test_neural_decision.py -> 115 passed, 5 warnings.",
-    "python -m ruff check selected changed Python/test files -> passed.",
-    "python -m ruff format --check selected changed Python/test files -> passed.",
-    "git diff --check -> passed."
+    "python -m ruff check src/core/pipeline/intents.py orchestrator.py sdca_firewall.py -> all passed.",
+    "python -m pytest tests/contracts/test_contract_ceo.py tests/test_runtime_smoke.py -> 53 passed.",
+    "python -m pytest tests/ -q -> 670 passed, 1 fixed (checkpoint), 0 remaining failures.",
+    "curl POST /task/submit 'quero uma dica de investimento' -> market_scan, 10 candidates, SDCA ALLOW, CEO volume anomaly shortlist.",
+    "node --check frontend/js/*.js -> all passed."
   ],
   "risks": [
-    "Existing browser tabs may need hard refresh because Playwright retained old HTML until a cache-busted load.",
-    "SSE streams intentionally stay open; use emitted events/STREAM_END as success criteria.",
-    "Untracked signal-ledger files were present but intentionally excluded from this focused Bob/UI repair."
+    "GPU/CPU usage from CSS animations (backdrop-filter, scanline) on older machines.",
+    "CEO intent classifier timeout may cause deterministic_final fallback on first request after cold start.",
+    "Untracked signal-ledger files pending audit and integration."
   ],
-  "next_step": "Hard refresh the browser tab, then run one live Portuguese ticker-risk prompt and one SDCA FOMO check before demo.",
-  "owner": "Codex"
+  "next_step": "Operator review of live dashboard with non-ticker financial prompts.",
+  "owner": "Deep"
 }

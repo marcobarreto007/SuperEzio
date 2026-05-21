@@ -1,48 +1,61 @@
 :root {
-  /* Core palette — Dark Terminal */
-  --bg: #0a0e0b;
-  --surface: #111510;
-  --surface-2: #1a1f1c;
-  --surface-3: #222822;
-  --line: #2a3028;
-  --line-light: #3a4038;
+  /* Futuristic Fonts */
+  --font-display: "Unbounded", system-ui, sans-serif;
+  --font-body: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
 
-  /* Text */
-  --ink: #e0e8dc;
-  --ink-secondary: #8a9486;
-  --muted: #5d6b5a;
+  /* HSL Palette — Pure Sleek Sci-Fi Dark Cyberpunk */
+  --bg-h: 135;
+  --bg-s: 14%;
+  --bg-l: 3%;
+  --bg: hsl(var(--bg-h), var(--bg-s), var(--bg-l)); /* #040605 */
 
-  /* Accent: Green (bullish) */
-  --green: #00c853;
-  --green-bg: #0a2e16;
-  --green-dim: #1a4a2a;
+  --surface-h: 135;
+  --surface-s: 12%;
+  --surface-l: 6%;
+  --surface: hsl(var(--surface-h), var(--surface-s), var(--surface-l)); /* #0a0e0b */
+  --surface-2: hsl(var(--surface-h), var(--surface-s), 10%); /* #141b16 */
+  --surface-3: hsl(var(--surface-h), var(--surface-s), 14%); /* #1b261e */
 
-  /* Accent: Red (bearish) */
-  --red: #ff1744;
-  --red-bg: #2e0a0a;
-  --red-dim: #4a1a1a;
+  --line: hsla(135, 12%, 18%, 0.4);
+  --line-light: hsla(135, 12%, 28%, 0.6);
 
-  /* Accent: Amber (warning) */
-  --amber: #ff9100;
-  --amber-bg: #2e1e0a;
+  /* Typography Colors */
+  --ink: #f0f7f2;
+  --ink-secondary: #a4b3a8;
+  --muted: #627267;
 
-  /* Accent: Blue (info/neutral) */
-  --blue: #448aff;
-  --blue-bg: #0a1a2e;
+  /* Neon Status Accents */
+  --green: #00e676; /* Vivid Neon Green */
+  --green-bg: hsla(145, 100%, 45%, 0.08);
+  --green-dim: hsla(145, 100%, 45%, 0.16);
 
-  /* Canvas */
-  --chart-bg: #0d1210;
-  --chart-grid: #1a2a1e;
+  --red: #ff1744; /* Vivid Neon Red/Pink */
+  --red-bg: hsla(348, 100%, 55%, 0.08);
+  --red-dim: hsla(348, 100%, 55%, 0.16);
 
-  /* Shadows */
-  --shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.6);
+  --amber: #ff9100; /* Vivid Amber */
+  --amber-bg: hsla(34, 100%, 50%, 0.08);
 
-  /* Radii */
-  --radius: 8px;
-  --radius-sm: 4px;
+  --blue: #00e5ff; /* Holographic Cyan */
+  --blue-bg: hsla(187, 100%, 50%, 0.08);
+
+  /* Glassmorphism System */
+  --glass-bg: rgba(8, 12, 9, 0.7);
+  --glass-border: rgba(0, 230, 118, 0.08);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+  --glass-blur: blur(16px);
+
+  --chart-bg: #030504;
+  --chart-grid: rgba(0, 230, 118, 0.04);
+
+  /* Visual Tokens */
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.8);
+  --radius: 12px;
+  --radius-sm: 6px;
 
   /* Transitions */
-  --ease: cubic-bezier(0.4, 0, 0.2, 1);
-  --duration: 0.2s;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1); /* Premium Ease Out Quint */
+  --duration: 0.35s;
 }

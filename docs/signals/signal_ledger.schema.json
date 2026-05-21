@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://superezio.local/schemas/signal_ledger.v1.json",
+  "title": "SuperEzio Signal Ledger v1",
+  "description": "Livro-razão de sinais: emissão forward e resolução T+N.",
+  "$defs": {
+    "iso_datetime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ticker": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 12,
+      "pattern": "^[A-Za-z0-9.\\-^]+$"
+    },
+    "signal_action": {
+      "type": "string",
+      "enum": ["LONG", "SHORT", "HOLD", "FLAT", "WATCH"]
+    },
+    "emit_status": {
+      "type": "string",
+      "enum": ["official", "watchlist", "rejected"]
+    },
+    "sdca_decision": {
+      "type": "string",
+      "enum": ["ALLOW", "REVIEW", "BLOCK"]
+    },
+    "evidence_snapshot": {
+      "type": "object",
+      "properties": {
+        "analysis_id": { "type": "string" },
+        "data_quality": { "type": "string" },
+        "route": { "type": "string" },
+        "intent": { "type": "string" },
+        "time_horizon": { "type": "string" },
+        "f51_passed": { "type": "boolean" },
+        "f51_confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "f51_hub_risk_score": { "type": ["number", "null"] },
+        "neural_direction_prob": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "neural_expected_return": { "type": ["number", "null"] },
+        "neural_drawdown_risk": { "type": ["number", "null"] },
+        "neural_uncertainty": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "neural_regime": { "type": ["string", "null"] },
+        "neural_recommendation": { "type": ["string", "null"] },
+        "neural_veto": { "type": ["boolean", "null"] },
+        "sdca_decision": { "$ref": "#/$defs/sdca_decision" },
+        "sdca_confidence": { "type": ["number", "null"] },
+        "sdca_uncertainty": { "type": ["number", "null"] },
+        "pennylab_decision": { "type": ["string", "null"] },
+        "crisis_systemic_risk": { "type": ["number", "null"] },
+        "reference_price": { "type": ["number", "null"] },
+        "reference_price_source": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "signal_emit": {
+      "type": "object",
+      "required": [
+        "record_type",
+        "signal_id",
+        "run_id",
+        "policy_version",
+        "status",
+        "ticker",
+        "action",
+        "resolution_horizon",
+        "emitted_at",
+        "reference_ts",
+        "evidence"
+      ],
+      "properties": {
+        "record_type": { "const": "signal_emit" },
+        "signal_id": { "type": "string", "minLength": 8 },
+        "run_id": { "type": "string" },
+        "msg_id": { "type": ["string", "null"] },
+        "session_id": { "type": ["string", "null"] },
+        "policy_version": { "type": "string" },
+        "status": { "$ref": "#/$defs/emit_status" },
+        "reject_reasons": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "ticker": { "$ref": "#/$defs/ticker" },
+        "action": { "$ref": "#/$defs/signal_action" },
+        "resolution_horizon": {
+          "type": "string",
+          "description": "Ex.: 1d, 5d, 20d — dias de mercado ou calendário conforme política"
+        },
+        "emitted_at": { "$ref": "#/$defs/iso_datetime" },
+        "reference_ts": { "$ref": "#/$defs/iso_datetime" },
+        "user_message_excerpt": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "ceo_text_hash": { "type": ["string", "null"] },
+        "trace_path": { "type": ["string", "null"] },
+        "raw_ndjson_path": { "type": ["string", "null"] },
+        "evidence": { "$ref": "#/$defs/evidence_snapshot" }
+      },
+      "additionalProperties": false
+    },
+    "signal_resolution": {
+      "type": "object",
+      "required": [
+        "record_type",
+        "signal_id",
+        "horizon",
+        "resolved_at",
+        "entry_price",
+        "exit_price",
+        "return_pct",
+        "direction_hit"
+      ],
+      "properties": {
+        "record_type": { "const": "signal_resolution" },
+        "signal_id": { "type": "string" },
+        "horizon": { "type": "string" },
+        "resolved_at": { "$ref": "#/$defs/iso_datetime" },
+        "entry_price": { "type": "number", "exclusiveMinimum": 0 },
+        "exit_price": { "type": "number", "exclusiveMinimum": 0 },
+        "return_pct": { "type": "number" },
+        "direction_hit": { "type": "boolean" },
+        "max_adverse_pct": { "type": ["number", "null"] },
+        "price_source": { "type": "string" },
+        "notes": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    }
+  },
+  "oneOf": [
+    { "$ref": "#/$defs/signal_emit" },
+    { "$ref": "#/$defs/signal_resolution" }
+  ]
+}

@@ -1,69 +1,101 @@
 * { box-sizing: border-box; margin: 0; }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; background-color: var(--bg); }
 
 body {
-  font-family: "Manrope", system-ui, sans-serif;
+  font-family: var(--font-body);
   background: var(--bg);
   color: var(--ink);
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   height: 100dvh;
   overflow: hidden;
+  position: relative;
 }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--line-light); }
 
-/* Typography */
-.mono { font-family: "JetBrains Mono", monospace; }
+/* Typography helper */
+.mono { font-family: var(--font-mono); }
 
-/* Animations */
+/* Keyframe Animations */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(16px); filter: blur(6px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 6px var(--red)); }
+  50% { opacity: 0.25; filter: drop-shadow(0 0 0px var(--red)); }
+}
+
+@keyframes pulse-dot-green {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 6px var(--green)); }
+  50% { opacity: 0.4; filter: drop-shadow(0 0 1px var(--green)); }
 }
 
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  50% { transform: translateY(-5px); }
 }
 
-@keyframes pulse-border {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
 }
 
-/* Utility */
-.spacer { flex: 1; }
-
-/* Focus */
-input:focus, textarea:focus, select:focus, button:focus-visible {
-  outline: 2px solid var(--blue);
-  outline-offset: 1px;
+@keyframes gridGlow {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.5; }
 }
 
+/* Atmospheric Sci-Fi Backgrounds */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.014) 1px, transparent 1px);
-  background-size: 40px 40px;
-  mask-image: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent 75%);
+    linear-gradient(rgba(0, 230, 118, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 230, 118, 0.015) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(circle at 50% 30%, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.25) 85%);
   z-index: 0;
+  animation: gridGlow 8s ease-in-out infinite;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(180deg, rgba(0, 230, 118, 0.1), transparent);
+  pointer-events: none;
+  z-index: 100;
+  animation: scanline 12s linear infinite;
 }
 
 body > * {
   position: relative;
   z-index: 1;
+}
+
+/* Global Premium Input/Select Fields */
+input:focus, textarea:focus, select:focus, button:focus-visible {
+  outline: none;
+  border-color: var(--green) !important;
+  box-shadow: 0 0 10px rgba(0, 230, 118, 0.2) !important;
+}
+
+/* Utilities */
+.spacer { flex: 1; }
+
+.fade-in-element {
+  animation: fadeUp var(--duration) var(--ease) forwards;
 }

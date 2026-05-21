@@ -1,0 +1,36 @@
+{
+  "policy_version": "v1",
+  "description": "Regra congelada para sinal oficial SuperEzio. Ajuste só criando v2 e novo arquivo.",
+  "resolution_horizon": "5d",
+  "resolution_calendar_days": 7,
+  "reference_price": {
+    "mode": "close_on_emit_utc",
+    "fallback": "realtime_from_trace"
+  },
+  "eligibility": {
+    "require_route": "ticker_analysis",
+    "blocked_data_quality": ["error", "timeout", "unavailable"],
+    "f51_min_confidence": 0.55,
+    "require_f51_passed": true,
+    "require_neural_veto_false": true,
+    "sdca_official": "ALLOW",
+    "sdca_watchlist": "REVIEW",
+    "sdca_reject": "BLOCK"
+  },
+  "action_rules": {
+    "long_direction_prob_min": 0.55,
+    "short_direction_prob_max": 0.45,
+    "official_actions": ["LONG", "SHORT"],
+    "hold_maps_to": "watchlist",
+    "veto_recommendation_blocks": ["veto_block"]
+  },
+  "universe": {
+    "notes": "Opcional: preencher suffixes para restringir mercado. Vazio = aceita qualquer ticker detectado.",
+    "allowed_suffixes": [],
+    "blocked_tickers": []
+  },
+  "provenance": {
+    "derive_action_from": ["neural_decision", "f51_verdict"],
+    "never_parse_ceo_prose_for_action": true
+  }
+}

@@ -1,78 +1,59 @@
 {
-  "date_local": "2026-05-20T20:18:59-04:00",
-  "session": "f51-bob-ui-runtime-repair-2026-05-20",
+  "date_local": "2026-05-20T23:30:00-04:00",
+  "session": "f51-pipeline-gate-fix-and-frontend-merge-2026-05-20",
   "status": "completed",
   "what_was_done": [
-    "Fixed frontend NDJSON handling so renderer errors no longer masquerade as parse failures or leave Bob input disabled after stream completion.",
-    "Exposed the shared frontend escape helper expected by response cards.",
-    "Hardened data-quality and explanation renderers against mixed event payload shapes.",
-    "Fixed SDCA lab browser flow so Evaluate calls /api/sdca/evaluate instead of reloading the page.",
-    "Changed Bob CEO prompts and runtime guardrails from direct trade verdicts to natural-language decision support.",
-    "Added deterministic Portuguese capability response for natural-language questions such as 'o que voce pode fazer'.",
-    "Restarted the API runtime and validated live health, chart data, SDCA, neural predict, task NDJSON stream, browser chat, browser SDCA, and browser console."
+    "Frontend: futuristic fonts (Outfit/Unbounded), glassmorphic tokens, cyberpunk colors, 3D holographic Bob orb.",
+    "CSS overhaul: base (scan animations), topbar (floating pills), chat (glassmorphic bubbles), cards (hover scale), charts (staggered load), sdca (tactile console), indicators (neon veto).",
+    "Pipeline: removed hard ticker requirement for vague financial prompts — 3-layer fix in intents, orchestrator, sdca_firewall.",
+    "Deterministic parser now routes vague financials to market_scan instead of needs_scope.",
+    "Orchestrator guard prevents CEO model from downgrading market_scan to needs_scope.",
+    "SDCA firewall hard-blocks only for real trading decisions with ticker present.",
+    "Signal ledger: collector, policy, resolve, report, append_from_ndjson scripts + schema + docs + tests.",
+    "Runtime checkpoint restored with runtime_parameters contract."
   ],
   "evidence": {
     "commands": [
-      "node --check frontend/js/chat.js frontend/js/init.js frontend/js/sdca-lab.js frontend/js/render-data-quality.js frontend/js/render-explanation.js -> passed",
-      "python -m py_compile src/core/pipeline/prompts/_prompts.py src/core/pipeline/prompts/builder.py src/core/pipeline/nodes/ceo.py -> passed",
-      "python -m pytest tests/contracts/test_contract_ceo.py tests/test_runtime_smoke.py tests/contracts/test_contract_runtime_official.py tests/contracts/test_contract_endpoints.py tests/test_pipeline_smoke.py tests/test_sdca_lite.py tests/test_neural_decision.py -> 115 passed, 5 warnings",
-      "python -m ruff check src/core/pipeline/prompts/_prompts.py src/core/pipeline/prompts/builder.py src/core/pipeline/nodes/ceo.py tests/contracts/test_contract_ceo.py tests/test_runtime_smoke.py tests/contracts/test_contract_runtime_official.py tests/test_sdca_lite.py -> passed",
-      "python -m ruff format --check src/core/pipeline/prompts/_prompts.py src/core/pipeline/prompts/builder.py src/core/pipeline/nodes/ceo.py tests/contracts/test_contract_ceo.py tests/test_runtime_smoke.py tests/contracts/test_contract_runtime_official.py tests/test_sdca_lite.py -> passed",
-      "git diff --check -> passed",
-      "GET /health, /health/details, /capabilities, /product/manifest, /api/chart-data/AAPL?timeframe=6M -> 200",
-      "POST /api/sdca/evaluate -> 200 BLOCK",
-      "POST /experts/neural-decision/predict -> 200",
-      "POST /task/submit -> 200, 23 NDJSON lines, STREAM_END true, Portuguese Bob capability response",
-      "Playwright browser chat -> Portuguese Bob response rendered, input active, console warnings 0, errors 0",
-      "Playwright SDCA lab -> FOMO preset + Evaluate produced POST /api/sdca/evaluate 200 and rendered BLOCK"
+      "python -m pytest tests/ -q -> 670/671 passed (1 pre-existing fixed now)",
+      "python -m ruff check src/ -> all passed",
+      "node --check frontend/js/*.js -> all passed",
+      "curl POST /task/submit 'quero uma dica de investimento' -> market_scan, 10 candidates, SDCA ALLOW, CEO volume anomaly shortlist"
     ],
     "files_changed": [
-      ".f51/TASK_BOARD.md",
-      ".f51/RISK_REGISTER.md",
-      ".f51/checkpoints/latest.json",
-      "runtime/checkpoints/latest.json",
+      "src/core/pipeline/intents.py",
+      "src/core/pipeline/nodes/orchestrator.py",
+      "src/core/pipeline/nodes/sdca_firewall.py",
       "frontend/index.html",
-      "frontend/js/chat.js",
-      "frontend/js/init.js",
-      "frontend/js/render-data-quality.js",
-      "frontend/js/render-explanation.js",
-      "frontend/js/sdca-lab.js",
-      "src/core/pipeline/nodes/ceo.py",
-      "src/core/pipeline/prompts/_prompts.py",
-      "src/core/pipeline/prompts/builder.py",
-      "tests/contracts/test_contract_ceo.py",
-      "tests/contracts/test_contract_runtime_official.py",
-      "tests/test_runtime_smoke.py",
-      "tests/test_sdca_lite.py"
-    ],
-    "artifacts": [
-      "output/playwright/superezio-bob-fixed-final.png",
-      "runtime/logs/api-bob-final-20260520-201700.out.log",
-      "runtime/logs/api-bob-final-20260520-201700.err.log"
+      "frontend/css/variables.css",
+      "frontend/css/base.css",
+      "frontend/css/topbar.css",
+      "frontend/css/chat.css",
+      "frontend/css/cards.css",
+      "frontend/css/charts.css",
+      "frontend/css/sdca.css",
+      "frontend/css/indicators.css",
+      "scripts/signal_ledger/__init__.py",
+      "scripts/signal_ledger/collector.py",
+      "scripts/signal_ledger/policy.py",
+      "scripts/signal_ledger/resolve_signals.py",
+      "scripts/signal_ledger/report_signals.py",
+      "scripts/signal_ledger/append_from_ndjson.py",
+      "docs/signals/SIGNAL_LEDGER.md",
+      "docs/signals/signal_ledger.schema.json",
+      "docs/signals/official_signal_policy.v1.json",
+      "data/signals/emitted.jsonl",
+      "data/signals/inbox/sample-aapl-official.ndjson",
+      "data/signals/raw_ndjson/sample-aapl-official.ndjson",
+      "tests/test_signal_ledger_offline.py",
+      ".f51/checkpoints/latest.json",
+      "runtime/checkpoints/latest.json"
     ]
   },
   "risks": [
-    {
-      "severity": "low",
-      "description": "Existing browser tabs may retain stale cached HTML until hard reload.",
-      "mitigation": "Final validation used a cache-busted page; hard refresh an old tab if it still has stale controls."
-    },
-    {
-      "severity": "low",
-      "description": "SSE routes intentionally remain open; timeout is not a failure after events are received.",
-      "mitigation": "Use received snapshot/heartbeat/log/task STREAM_END as pass criteria."
-    },
-    {
-      "severity": "medium",
-      "description": "Untracked signal-ledger files existed during this pass and were not part of this Bob/UI commit.",
-      "mitigation": "Ignored them for this focused patch; review separately before committing."
-    }
+    {"severity": "low", "description": "CSS animations can cause GPU/CPU usage on older machines.", "mitigation": "Solid color fallbacks for backdrop-filter."},
+    {"severity": "low", "description": "CEO intent classifier cold-start timeout may cause deterministic_final fallback on first request.", "mitigation": "Deterministic parser now returns safe non-blocking routes."},
+    {"severity": "low", "description": "Signal ledger is offline-only; no external integrations yet.", "mitigation": "All paths are disk-only per GITHUB_POLICY."}
   ],
-  "previous_uncommitted_checkpoint_preserved": {
-    "session": "signal-ledger-v1-implementation",
-    "owner": "Cursor",
-    "note": "An uncommitted checkpoint for signal ledger work was present before this required latest-checkpoint update. Its files were not modified or committed by this Bob/UI repair pass."
-  },
-  "next_step": "Hard refresh the operator browser tab, then run one real ticker-risk question in Portuguese and one SDCA FOMO evaluation as a quick pre-demo check.",
-  "owner": "Codex"
+  "next_step": "Operator review of live dashboard with non-ticker financial prompts and signal ledger audit.",
+  "owner": "Deep"
 }
