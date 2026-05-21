@@ -1,246 +1,32 @@
-SuperEzio v3.2.0 — Arvore Decisional
-======================================
-Qwen 3.6 (6.83B, Hybrid Mamba/Transformer/MoE) + Phase 0/1 QLoRA
-ProfessionalCollector com Provider Mesh (8 providers, qualidade 0-1 scoring)
+# SuperEzio Decision Tree
 
-                         ┌──────────────────────────┐
-                         │   Mensagem do usuario     │
-                         │  "Analisa AAPL pra mim"   │
-                         └────────────┬─────────────┘
-                                      │
-                                      ▼
-              ┌──────────────────────────────────────────────┐
-              │  NO 1 — orchestrator_primary                 │
-              │  HybridIntentClassifier                      │
-              │                                              │
-              │  ┌─ Deterministico (regex/keyword) ────┐     │
-              │  │  parse_user_intent()                  │     │
-              │  │  ├─ ticker_analysis (tem ticker)      │     │
-              │  │  ├─ market_scan (filtros de mercado)  │     │
-              │  │  ├─ needs_scope (vago/inseguro)       │     │
-              │  │  └─ general (pergunta/conversa)       │     │
-              │  └──────────────────────────────────────┘     │
-              │                    │                          │
-              │  ┌─ Golden intent match ───────────────┐     │
-              │  │  match_golden_intent()                │     │
-              │  └──────────────────────────────────────┘     │
-              │                    │                          │
-              │  ┌─ LLM Fallback (se confianca < 0.76) ─┐    │
-              │  │  _ask_intent_classifier() → JSON       │     │
-              │  │  validate_intent_candidate()           │     │
-              │  └──────────────────────────────────────┘     │
-              └───────────────┬──────────────────────────────┘
-                              │
-                    ┌─────────┼─────────┐
-                    │         │         │
-                    ▼         ▼         ▼
-              ┌─────────┐ ┌──────┐ ┌──────────────┐
-              │  data   │ │ ceo  │ │respond_blocked│
-              │  (rota  │ │direct│ │  (needs_scope)│
-              │ ticker/ │ │(gen.)│ │  → "Preciso   │
-              │  scan)  │ │      │ │  de +info"   │
-              └────┬────┘ └──┬───┘ └──────┬───────┘
-                   │         │            │
-     ┌─────────────┤         │            ▼
-     │             │         │          END
-     ▼             ▼         │
-┌─────────┐ ┌──────────┐    │
-│  data   │ │ pennylab │    │
-│collector│ │ 4 experts│    │
-│subprocess│ │          │    │
-│         │ │liquidity │    │
-│yfinance │ │pump_dump │    │
-│Reddit   │ │vol_spike │    │
-│AlphaVant│ │whale_prt │    │
-│BOC      │ └────┬─────┘    │
-│News     │      │          │
-│TwelveD  │      │          │
-└────┬────┘      │          │
-     │           │          │
-     ▼           │          │
-┌─────────┐      │          │
-│  f51    │      │          │
-│ verdict │      │          │
-│         │      │          │
-│F51Hub   │      │          │
-│Adapter  │      │          │
-│ ├Spider │      │          │
-│ ├Diff   │      │          │
-│ ├Platin │      │          │
-│ ├Veracid│      │          │
-│ ├Critic │      │          │
-│ └RiskEng│      │          │
-└────┬────┘      │          │
-     │           │          │
-     └─────┬─────┘          │
-           │                │
-           ▼                │
-   ┌───────────────┐        │
-   │ run_expert xN │        │
-   │ (LangGraph    │        │
-   │  Send fan-out)│        │
-   │               │        │
-   │ AgentSelector │        │
-   │  ├fundamental │        │
-   │  ├technical   │        │
-   │  ├risk        │        │
-   │  ├macro       │        │
-   │  ├sentiment   │        │
-   │  ├quantitative│        │
-   │  ├value       │        │
-   │  ├growth      │        │
-   │  ├momentum    │        │
-   │  ├quality     │        │
-   │  ├volatility  │        │
-   │  └dividend    │        │
-   └───────┬───────┘        │
-           │                │
-           ▼                │
-   ┌───────────────┐        │
-   │collect_experts│        │
-   │ agrega N      │        │
-   │ resultados    │        │
-   │ ok/fail count │        │
-   └───────┬───────┘        │
-           │                │
-           └────────┬───────┘
-                    │
-                    ▼
-     ┌──────────────────────────────┐
-     │  NO 5 — ceo_primary          │
-     │  CEO Qwen 3.6 :8082     │
-     │  (30B-A3B MoE abliterated)   │
-     │                               │
-     │  ┌─ CEO local pronto? ───┐   │
-     │  │  └─ falhou? → ERRO    │   │
-     │  └───────────────────────┘   │
-     │                               │
-     │  build_ceo_prompt(state,      │
-     │    mandamentos)               │
-     │  stream_generate_async()      │
-     │  _strip_thinking_blocks()     │
-     └──────────────┬───────────────┘
-                    │
-                    ▼
-     ┌──────────────────────────────┐
-     │  NO 6 — explanation          │
-     │  ExplainEngine               │
-     │  stream(verdict, ceo_text)   │
-     │  → explicabilidade final     │
-     └──────────────┬───────────────┘
-                    │
-                    ▼
-                  END
+Runtime: SuperEzio v4.0.0 local API plus Bob CEO GGUF.
 
+## Runtime Path
 
-ModelGateway (CEO Local)
-========================
-CEO local (Qwen 3.6 merged :8082)
-  │
-  ├─ Qwen 3.6 (6.83B params, Hybrid Mamba/Transformer/MoE)
-  │  bf16 safetensors ~8.3GB via HuggingFace Transformers CUDA
-  │  Repo: nvidia/Qwen 3.6
-  │  Servidor: python scripts/serve_ceo.py --port 8082
-  │
-  ├─ ready? → USA CEO local (temp=0.4, max_tokens=4096)
-  │              │
-  │              └─ falhou? → MODEL_ERROR
-  │
-  ├─ QLoRA Merged Adapters (via merge_adapters.py):
-  │  Phase 0: Fraud/Phishing LoRA (r=16, α=32, lr=2e-4, 1 epoch, Vast.ai L40S 3h)
-  │    Path: C:\Users\marco\Desktop\qwen36-adapter\ (104 MB)
-  │  Phase 1: Numerical SFT LoRA (r=16, α=32, lr=1e-4, 1 epoch, local)
-  │    Path: .f51/tmp/phase1-adapter/ (104 MB)
-  │  Merged: .f51/tmp/superezio-merged/ (8.3 GB total)
-  │  Merge: python .f51/tmp/merge_adapters.py --adapter1 <p0> --adapter2 <p1> --output <dest>
-  │
-  └─ MODEL_ERROR → explica ao usuario como subir o servidor
+1. User message enters `POST /task/submit`.
+2. Intent parser classifies the request as general, ticker analysis, market scan, or needs scope.
+3. Data collection runs only when the route needs market data.
+4. F51 verdict and domain modules produce bounded evidence.
+5. Bob, the local CEO model at `http://127.0.0.1:8082/v1`, writes the final natural-language answer.
+6. Explanation stream emits user-visible NDJSON chunks until `STREAM_END`.
 
+## Model Runtime
 
-Grafo F51Engine (Veredito interno)
-===================================
-Input (trace + features + claims)
-  │
-  ├─ spider_sense ──────────────┐
-  │   perigo textual (0-1)      │
-  │                              │
-  ├─ difficulty_estimator ──────┤
-  │   incerteza heuristica      │
-  │                              │
-  ├─ platinum_scorer ◄──────────┤ (depende dos 2 acima)
-  │   qualidade/consistencia    │
-  │   dos dados                 │
-  │                              │
-  ├─ veracity_gate              │
-  │   claims vs ground_truth    │
-  │                              │
-  └─ adversarial_critic ◄───────┘ (depende de veracity + difficulty)
-      consistencia logica
-      dos indicadores
+- Model file: `models/superezio-ceo-intent-merged.Q4_K_M.gguf`
+- Launcher: `scripts/serve_ceo_llamacpp.ps1 -Port 8082`
+- API: OpenAI-compatible `/v1` plus `/health`
+- API server: `python -m agent_server.main` on port `8002`
 
-  → RiskEngine (6 regras reais de red_flag_rules.json)
-  → VeracityGate explicito (claims numericas)
-  → output: confidence, threshold, passed, factors, evidence
+## Active Tree Policy
 
+The repo serves and validates the already-merged GGUF model. Model build tooling is outside the active runtime tree.
 
-Resumo do fluxo decisional
-===========================
-| Etapa       | Quem decide              | Input              | Output              | Fallback                        |
-|-------------|--------------------------|--------------------|---------------------|---------------------------------|
-| Roteamento  | HybridIntentClassifier   | Mensagem usuario   | Rota + intent+ticker| Deterministico → Golden → LLM   |
-| Coleta      | SubprocessDataCollector  | Ticker/filtros     | Trace multi-fonte   | Timeout 60s → erro parcial      |
-| Veredito    | F51HubAdapter→F51Engine  | Trace + features   | Score 0-1 + fatores | Grafo roda com dados parciais   |
-| PennyLab    | 4 experts especializados | Ticker             | Decisao + scores    | ImportError → WATCH_ONLY        |
-| Experts     | AgentSelector+12 agentes | AssetProfile       | N resultados paral. | Provider offline → skip         |
-| CEO         | CEO Qwen 3.6 merged | Prompt completo    | Texto final         | CEO offline → MODEL_ERROR       |
-| Explicacao  | ExplainEngine            | Veredito+texto CEO | Stream de chunks    | Skip se sem veredito            |
+## Commands
 
-
-Frontend (ChatGPT-style — frontend/index.html)
-================================================
-Arquivo unico, self-contained (CSS + JS inline).
-Dependencia externa: apenas Lucide Icons (CDN).
-
-Layout 3 zonas:
-  TOP BAR:    logo + status dot (GET /health) + ticker input (GET /api/chart-data/{ticker})
-              + timeframe selector + chart toggle
-  CHAT AREA:  user bubbles (dark) + CEO bubbles (light) com streaming NDJSON
-              + cards expansivos inline (F51, PennyLab, Crisis, Data, Experts)
-  BOTTOM BAR: textarea + Send button (POST /task/submit) + portfolio drawer (localStorage)
-
-Cada evento NDJSON → componente UI:
-  STREAM_START → "thinking..." dots animados
-  CHUNK → texto streaming no bubble (strip <think> blocks)
-  F51_VERDICT → card com anel SVG de confianca + 6 fatores + hub risk bar
-  PENNYLAB_ANALYSIS → card com 5 scores + barras coloridas
-  CRISIS_MATH → card com regime badge + alertas + 12 model tiles
-  DATA_COLLECTED → card com grid 5x2 de fontes (ok/partial/error)
-  PIPELINE_STEP → breadcrumb de 7 dots atualizado em tempo real
-  EXPERT_STARTED/DONE/SKIPPED → grid 4x3 de expert tiles
-  INTENT_CLASSIFIED → chip minúsculo (quase invisível)
-  ERROR → banner vermelho no chat
-  STREAM_END → finaliza mensagem, salva no journal (localStorage)
-
-
-Dataset Pipeline (F51_Datasets/prepare_final_dataset.py)
-=========================================================
-Dataset final SFT unificado com persona CEO Bob:
-  - 410,918 entradas (978 MB, ~223.6M tokens)
-  - 0 format errors, 0 non-CEO prompts, 0 empty responses
-  - Fontes: HF combined (408,788) + Nurse (1,800) + Gold SFT 5x (330)
-  - 750 Sensei prompts pendentes (sensei_pending_generation.jsonl)
-  - Categorias: transaction_risk (377K), phishing_detection (17K),
-    social_fraud (11.9K), financial_qa (1.4K) + 14 menores
-  - Dificuldade: easy 371K, medium 30K, hard 7.7K, unknown 1.8K
-
-
-Comandos de servico
-===================
-python -m agent_server.main                        # Servidor FastAPI :8002
-python scripts/serve_ceo.py --port 8082            # CEO local Qwen 3.6 merged
-python .f51/tmp/merge_adapters.py \                # Merge QLoRA adapters
-    --adapter1 C:\Users\marco\Desktop\qwen36-adapter \
-    --adapter2 .f51/tmp/phase1-adapter \
-    --output .f51/tmp/superezio-merged
-python -m pytest tests/ -q                          # Testes (496 deterministicos)
-ruff check src tests                                # Lint
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082
+python -m agent_server.main
+python -m pytest tests -q
+python -m ruff check .
+```

@@ -1,7 +1,7 @@
 {
   "project": "SuperEzio",
   "date_local": "2026-05-21T00:00:00-04:00",
-  "session": "clean-tree-zero-retired-surface-2026-05-21",
+  "session": "model-build-surface-removal-2026-05-21",
   "policy": {
     "github_mode": "disk_only",
     "source": ".f51/GITHUB_POLICY.json"
@@ -11,7 +11,8 @@
     "ceo_entrypoint": "powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082",
     "api_port": 8002,
     "ceo_port": 8082,
-    "provider": "local_orchestrator"
+    "provider": "local_orchestrator",
+    "model_path": "models/superezio-ceo-intent-merged.Q4_K_M.gguf"
   },
   "active_top_level": [
     ".agents",
@@ -19,7 +20,6 @@
     ".f51",
     ".github",
     ".vscode",
-    "F51_Datasets",
     "config",
     "data",
     "desktop",
@@ -34,45 +34,19 @@
     "src",
     "tests"
   ],
-  "local_skills": [
-    "arqueologist",
-    "f51-audit",
-    "f51-auditor",
-    "f51-contract-guardian",
-    "f51-contracts",
-    "f51-dependency-scout",
-    "f51-doc-sync",
-    "f51-executor",
-    "f51-impact-map",
-    "f51-inventory",
-    "f51-loop-breaker",
-    "f51-money-gate",
-    "f51-no-mock-police",
-    "f51-productizer",
-    "f51-quality-gate",
-    "f51-refactor",
-    "f51-regression-hunter",
-    "f51-release",
-    "f51-release-captain",
-    "f51-repo-cartographer",
-    "f51-runtime",
-    "f51-safety-science",
-    "f51-test-finder",
-    "f51-tests",
-    "f51-windows-compat",
-    "frontend-design"
+  "removed_surface_groups": [
+    "model build data roots",
+    "generated model build records",
+    "cloud model build launchers",
+    "local model build launchers",
+    "merge helper scripts",
+    "trading model-build helper modules"
   ],
-  "removed_surfaces": [
-    "archive",
-    "retired architecture report bundle",
-    "generic .claude/skills bundles",
-    "retired provider alias path",
-    "edge gateway placeholder",
-    "fraud pattern alias"
-  ],
-  "retained_operator_artifacts": [
-    "F51_Datasets/sft_output",
-    "scripts/finetune_*",
-    "scripts/train_qwen36_3h.py"
+  "retained_runtime_artifacts": [
+    "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
+    "data/intent_golden.jsonl",
+    "data/intent_eval.jsonl",
+    "scripts/serve_ceo_llamacpp.ps1",
+    "scripts/eval_pipeline.py"
   ]
 }

@@ -1,6 +1,6 @@
 # SuperEzio Runtime Configuration v4.0.0
 # Fonte canonica de configuracao de runtime.
-# ATUALIZADO: 2026-05-20 - CEO+Intent merged model, API local, orchestrator local, experts cloud.
+# ATUALIZADO: 2026-05-20 - CEO merged GGUF, API local, orchestrator local, experts cloud.
 
 project_name: SuperEzio
 version: 4.0.0
@@ -18,11 +18,11 @@ server:
   venv: .venv
 
 # ---------------------------------------------------------------------------
-# Modelos (runtime real â€” validado via pipeline test 2026-05-20)
+# Modelos (runtime real validado 2026-05-21)
 # ---------------------------------------------------------------------------
 models:
   ceo:
-    name: SuperEzio CEO+Intent Merged (Qwen3.6-35B-A3B base)
+    name: SuperEzio CEO Merged GGUF (Qwen3.6-35B-A3B base)
     provider_name: ceo
     model_id: superezio-ceo-intent-merged
     path: models/superezio-ceo-intent-merged.Q4_K_M.gguf
@@ -35,17 +35,14 @@ models:
     max_tokens: 8192
     timeout_s: 180
     script: scripts/serve_ceo_llamacpp.ps1
-    speculative_decoding: disabled (nextn patched 1â†’0)
+    speculative_decoding: disabled
     context_length: 8192
     gpu_layers: 28
     slots: 2
-    thinking: auto (enabled)
-    lora_adapters:
-      - output/qwen36-sft/checkpoint-2600  (CEO)
-      - output/qwen36-intent/best          (Intent)
+    thinking: disabled
 
   orchestrator:
-    name: SuperEzio CEO+Intent Merged (same local model)
+    name: SuperEzio CEO Merged GGUF (same local model)
     provider_name: local_orchestrator
     path: http://127.0.0.1:8082/v1
     model_id: superezio-ceo-intent-merged
@@ -114,7 +111,7 @@ storage:
   models_dir: models
 
 # ---------------------------------------------------------------------------
-# Launch sequence (ordem canÃ´nica)
+# Launch sequence (ordem canÃƒÂ´nica)
 # ---------------------------------------------------------------------------
 launch:
   step_1:
@@ -141,3 +138,4 @@ tests:
   format_check: python -m ruff format --check src tests
   unit_and_contract: python -m pytest tests/ -q
   contract_only: python -m pytest tests/contracts/ -q
+

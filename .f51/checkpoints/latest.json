@@ -1,26 +1,19 @@
 {
   "date_local": "2026-05-21T00:00:00-04:00",
-  "session": "clean-tree-zero-retired-surface-2026-05-21",
-  "status": "completed",
+  "session": "model-build-surface-removal-2026-05-21",
+  "status": "in_progress",
   "what_was_done": [
-    "Removed archived runtime/docs surfaces; no copy was created.",
-    "Removed generic non-F51 local skill bundles from .claude/skills.",
-    "Removed provider alias path and edge placeholder code.",
-    "Removed retired RAG alias exports and renamed subprocess collector fallback.",
-    "Rewrote F51 maps and documentation to current active tree.",
-    "Applied repo-wide ruff formatting."
+    "Removed model build data roots from active data paths.",
+    "Removed local and cloud model build scripts.",
+    "Removed trading model-build helper modules.",
+    "Updated F51 maps, docs, runtime config, and checkpoints to runtime-only posture."
   ],
   "evidence": [
-    "rg retired/provider terms over active scopes -> no matches",
-    "python -m json.tool .f51/INVENTORY.json .f51/GITHUB_POLICY.json .f51/checkpoints/latest.json runtime/checkpoints/latest.json -> passed",
-    "python -m ruff check . -> All checks passed",
-    "python -m ruff format --check . -> 231 files already formatted",
-    "python -m pytest tests -q -> 723 passed, 7 warnings in 70.48s",
-    "Invoke-WebRequest endpoint sweep -> 200 for CEO health/models and API health/details/capabilities/product manifest",
-    "git diff --check -> passed"
+    "Deletion targets were resolved and verified inside workspace before Remove-Item.",
+    "Validation still pending in this checkpoint update."
   ],
   "risks": [
-    "F51_Datasets retained because training scripts still reference SFT outputs"
+    "Model rebuild workflow is no longer available from this repo by design."
   ],
-  "next_step": "Commit locally. No GitHub push because disk-only policy is active."
+  "next_step": "Run lint, tests, endpoint checks, and model response checks."
 }

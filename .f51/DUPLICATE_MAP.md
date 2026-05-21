@@ -1,12 +1,12 @@
 # F51 Duplicate Map
 
 Updated: 2026-05-21T00:00:00-04:00
-Session: clean-tree-zero-retired-surface-2026-05-21
 
-The active tree no longer carries archived duplicate runtime modules or generic third-party skill bundles.
+## Current State
 
-## Remaining Intentional Similarity
+No duplicate model-build, archived, or provider-alias surface is retained in the active tree.
 
-- Tests may mirror runtime contracts by design.
-- Training scripts may share argument parsing patterns by design.
-- `F51_Datasets/sft_output` remains because training scripts reference it.
+## Retained Intent Data
+
+- `data/intent_golden.jsonl` remains because `core.pipeline.intents` reads it at runtime/test time.
+- `data/intent_eval.jsonl` remains as evaluation evidence.

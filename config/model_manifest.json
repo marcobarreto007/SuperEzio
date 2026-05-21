@@ -1,63 +1,72 @@
 {
-  "project": "SuperEzio",
-  "version": "4.0.0",
-  "updated": "2026-05-19",
-  "note": "CEO: Qwen3.6-35B CEO+Intent Merged (Q4_K_M GGUF) local-only via llama.cpp. MTP disabled (patched). Cloud providers are for orchestration/experts, not final CEO verdicts.",
-  "ceo": {
-    "provider_name": "ceo",
-    "persona": "Bob",
-    "base_model": "Qwen/Qwen3.6-35B-A3B",
-    "model": "superezio-ceo-intent-merged",
-    "path": "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
-    "quantization": "Q4_K_M",
-    "server_url": "http://127.0.0.1:8082/v1",
-    "priority": -670,
-    "backend": "openai_compatible",
-    "temperature": 0.3,
-    "max_tokens": 8192,
-    "timeout_s": 180,
-    "tool_calling": true,
-    "adapters_merged": ["ceo-lora-ckpt-2600", "intent-lora-best"],
-    "block_count": 40,
-    "nextn_predict_layers": 0
-  },
-  "providers": {
-    "local_orchestrator": {
-      "provider_name": "local_orchestrator",
-      "base_url": "http://127.0.0.1:8082/v1",
-      "model": "superezio-ceo-intent-merged",
-      "priority": -400,
-      "role": "orchestrator"
-    },
-    "grok": {
-      "provider_name": "grok",
-      "base_url": "https://api.x.ai/v1",
-      "model": "grok-4.3",
-      "priority": -500,
-      "role": "Cloud primario — mais barato do mercado ($1.25/$2.50 por MTok)",
-      "fast_model": "grok-fast ($0.20/$0.50 por MTok)"
-    },
-    "deepseek": {
-      "provider_name": "deepseek",
-      "base_url": "https://api.deepseek.com",
-      "model": "deepseek-v4-pro",
-      "priority": -300,
-      "role": "financial experts"
-    },
-    "gemini_pro": {
-      "provider_name": "gemini_pro",
-      "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
-      "model": "gemini-2.0-flash",
-      "priority": 50,
-      "role": "optional fallback when GEMINI_API_KEY is configured"
-    }
-  },
-  "expert_runtime": {
-    "description": "Experts are role prompts selected by intent and served through the deepseek provider.",
-    "roles": [
-      "fundamental", "technical", "risk", "sentiment", "macro",
-      "portfolio", "fixed_income", "quant", "esg", "derivatives",
-      "compliance", "sector"
-    ]
-  }
+    "project":  "SuperEzio",
+    "version":  "4.0.0",
+    "updated":  "2026-05-21",
+    "note":  "CEO Bob: Qwen3.6-35B merged Q4_K_M GGUF local-only via llama.cpp. Cloud providers are for orchestration/experts, not final CEO verdicts.",
+    "ceo":  {
+                "provider_name":  "ceo",
+                "persona":  "Bob",
+                "base_model":  "Qwen/Qwen3.6-35B-A3B",
+                "model":  "superezio-ceo-intent-merged",
+                "path":  "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
+                "quantization":  "Q4_K_M",
+                "server_url":  "http://127.0.0.1:8082/v1",
+                "priority":  -670,
+                "backend":  "openai_compatible",
+                "temperature":  0.3,
+                "max_tokens":  8192,
+                "timeout_s":  180,
+                "tool_calling":  true,
+                "block_count":  40,
+                "nextn_predict_layers":  0,
+                "reasoning":  "disabled"
+            },
+    "providers":  {
+                      "local_orchestrator":  {
+                                                 "provider_name":  "local_orchestrator",
+                                                 "base_url":  "http://127.0.0.1:8082/v1",
+                                                 "model":  "superezio-ceo-intent-merged",
+                                                 "priority":  -400,
+                                                 "role":  "orchestrator"
+                                             },
+                      "grok":  {
+                                   "provider_name":  "grok",
+                                   "base_url":  "https://api.x.ai/v1",
+                                   "model":  "grok-4.3",
+                                   "priority":  -500,
+                                   "role":  "Cloud primario Ã¢â‚¬â€ mais barato do mercado ($1.25/$2.50 por MTok)",
+                                   "fast_model":  "grok-fast ($0.20/$0.50 por MTok)"
+                               },
+                      "deepseek":  {
+                                       "provider_name":  "deepseek",
+                                       "base_url":  "https://api.deepseek.com",
+                                       "model":  "deepseek-v4-pro",
+                                       "priority":  -300,
+                                       "role":  "financial experts"
+                                   },
+                      "gemini_pro":  {
+                                         "provider_name":  "gemini_pro",
+                                         "base_url":  "https://generativelanguage.googleapis.com/v1beta/openai/",
+                                         "model":  "gemini-2.0-flash",
+                                         "priority":  50,
+                                         "role":  "optional fallback when GEMINI_API_KEY is configured"
+                                     }
+                  },
+    "expert_runtime":  {
+                           "description":  "Experts are role prompts selected by intent and served through the deepseek provider.",
+                           "roles":  [
+                                         "fundamental",
+                                         "technical",
+                                         "risk",
+                                         "sentiment",
+                                         "macro",
+                                         "portfolio",
+                                         "fixed_income",
+                                         "quant",
+                                         "esg",
+                                         "derivatives",
+                                         "compliance",
+                                         "sector"
+                                     ]
+                       }
 }

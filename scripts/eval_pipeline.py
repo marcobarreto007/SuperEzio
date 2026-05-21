@@ -1,16 +1,16 @@
 """SuperEzio Eval Pipeline - GLM Judge -> Local Guidance.
 
 Fluxo:
-  1. Carrega questões de data/eval_questions.jsonl
-  2. Envia cada questão ao SuperEzio via /task/submit (NDJSON stream)
+  1. Carrega questÃµes de data/eval_questions.jsonl
+  2. Envia cada questÃ£o ao SuperEzio via /task/submit (NDJSON stream)
   3. GLM (via glm_proxy :8899) avalia qualidade de cada resposta
   4. Gera orientacao local priorizada a partir das avaliacoes
-  5. Salva relatório completo em reports/
+  5. Salva relatÃ³rio completo em reports/
 
 Uso:
-  python scripts/eval_pipeline.py                  # full run (25 questões)
-  python scripts/eval_pipeline.py --limit 5        # só 5 pra testar
-  python scripts/eval_pipeline.py --ids eval_001 eval_005  # específicas
+  python scripts/eval_pipeline.py                  # full run (25 questÃµes)
+  python scripts/eval_pipeline.py --limit 5        # sÃ³ 5 pra testar
+  python scripts/eval_pipeline.py --ids eval_001 eval_005  # especÃ­ficas
 """
 
 import argparse
@@ -32,7 +32,7 @@ from core.config import load_env_once
 
 load_env_once()
 
-# ── Config ──────────────────────────────────────────────────────────────
+# â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 QUESTIONS_FILE = PROJECT_ROOT / "data" / "eval_questions.jsonl"
 REPORTS_DIR = PROJECT_ROOT / "reports"
@@ -45,39 +45,39 @@ GLM_MODEL = os.getenv("GLM_EVAL_MODEL", "GLM-5.1")
 
 TIMEOUT_SUPEREZIO = 120
 TIMEOUT_GLM = 90
-CONCURRENCY = 3  # paralelismo das questões
+CONCURRENCY = 3  # paralelismo das questÃµes
 
-# ── GLM Judge Prompt ────────────────────────────────────────────────────
-GLM_JUDGE_SYSTEM = """Você é um juiz de qualidade de um assistente financeiro AI chamado SuperEzio.
+# â”€â”€ GLM Judge Prompt â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+GLM_JUDGE_SYSTEM = """VocÃª Ã© um juiz de qualidade de um assistente financeiro AI chamado SuperEzio.
 
-Seu trabalho é avaliar respostas financeiras com RIGOR TÉCNICO. Seja severo — se a resposta for fraca, genérica ou inventar dados, EXPLICITE.
+Seu trabalho Ã© avaliar respostas financeiras com RIGOR TÃ‰CNICO. Seja severo â€” se a resposta for fraca, genÃ©rica ou inventar dados, EXPLICITE.
 
-CRITÉRIOS (cada um de 0 a 10):
+CRITÃ‰RIOS (cada um de 0 a 10):
 
-1. **Accuracy (Acurácia)**: Os fatos estão corretos? Não inventou números, yields, valuations?
+1. **Accuracy (AcurÃ¡cia)**: Os fatos estÃ£o corretos? NÃ£o inventou nÃºmeros, yields, valuations?
    - 0-3: Dados inventados ou completamente errados
-   - 4-6: Alguns acertos, mas com imprecisões
-   - 7-10: Dados precisos e verificáveis com evidence_id rastreável
+   - 4-6: Alguns acertos, mas com imprecisÃµes
+   - 7-10: Dados precisos e verificÃ¡veis com evidence_id rastreÃ¡vel
 
 2. **Completeness (Completeza)**: Cobriu todos os aspectos relevantes da pergunta?
    - 0-3: Ignorou a pergunta ou respondeu algo irrelevante
-   - 4-6: Parcial — cobriu alguns pontos mas faltaram outros críticos
-   - 7-10: Cobertura completa com análise multi-ângulo
+   - 4-6: Parcial â€” cobriu alguns pontos mas faltaram outros crÃ­ticos
+   - 7-10: Cobertura completa com anÃ¡lise multi-Ã¢ngulo
 
-3. **Hallucination**: Inventou dados, citações, números, autoridades ou eventos que não existem?
-   - 0-3: Alucinação grave (inventou preços, tickers, eventos)
-   - 4-6: Alucinação menor (extrapolou sem evidência)
-   - 7-10: Zero alucinação — tudo baseado em dados fornecidos
+3. **Hallucination**: Inventou dados, citaÃ§Ãµes, nÃºmeros, autoridades ou eventos que nÃ£o existem?
+   - 0-3: AlucinaÃ§Ã£o grave (inventou preÃ§os, tickers, eventos)
+   - 4-6: AlucinaÃ§Ã£o menor (extrapolou sem evidÃªncia)
+   - 7-10: Zero alucinaÃ§Ã£o â€” tudo baseado em dados fornecidos
 
 4. **Structure (Estrutura)**: Usa markdown, JSON, ferramentas adequadamente?
-   - 0-3: Texto bagunçado, sem estrutura
-   - 4-6: Estrutura básica mas poderia ser muito melhor
-   - 7-10: Estrutura impecável com sections, bullet points, tool calls bem formatadas
+   - 0-3: Texto bagunÃ§ado, sem estrutura
+   - 4-6: Estrutura bÃ¡sica mas poderia ser muito melhor
+   - 7-10: Estrutura impecÃ¡vel com sections, bullet points, tool calls bem formatadas
 
-5. **Usefulness (Utilidade)**: A resposta é acionável para um investidor real?
-   - 0-3: Genérico, sem recomendação ou conclusão clara
-   - 4-6: Útil mas falta convicção ou direção
-   - 7-10: Altamente acionável com veredito claro e próximo passo
+5. **Usefulness (Utilidade)**: A resposta Ã© acionÃ¡vel para um investidor real?
+   - 0-3: GenÃ©rico, sem recomendaÃ§Ã£o ou conclusÃ£o clara
+   - 4-6: Ãštil mas falta convicÃ§Ã£o ou direÃ§Ã£o
+   - 7-10: Altamente acionÃ¡vel com veredito claro e prÃ³ximo passo
 
 Retorne APENAS um JSON com este formato exato:
 {
@@ -92,56 +92,56 @@ Retorne APENAS um JSON com este formato exato:
   "critical_issues": ["problema 1", "problema 2"],
   "strengths": ["ponto forte 1"],
   "verdict": "PASS|FAIL|WARN",
-  "notes": "comentário técnico conciso"
+  "notes": "comentÃ¡rio tÃ©cnico conciso"
 }"""
 
 # Local guidance reference prompt.
-LOCAL_GUIDANCE_SYSTEM = """Você é um arquiteto sênior de sistemas AI financeiros revisando os resultados de uma avaliação completa do pipeline SuperEzio.
+LOCAL_GUIDANCE_SYSTEM = """VocÃª Ã© um arquiteto sÃªnior de sistemas AI financeiros revisando os resultados de uma avaliaÃ§Ã£o completa do pipeline SuperEzio.
 
-O SuperEzio é um assistente financeiro multiagente com:
+O SuperEzio Ã© um assistente financeiro multiagente com:
 - 12 experts financeiros (DeepSeek Chat V3 cloud)
-- CEO local Qwen 3.6 merged (Phase 0 + Phase 1 QLoRA), porta 8082
+- CEO local Qwen 3.6 merged GGUF, porta 8082
 - Sem fallback cloud para veredito CEO final
-- Pipeline: intent router → data collection → experts → committee → CEO → resposta
+- Pipeline: intent router â†’ data collection â†’ experts â†’ committee â†’ CEO â†’ resposta
 - Componentes: Fraud RAG, Veracity Gate, Cost Guard, Memory, Crisis Math, PennyLab
 
-Seu trabalho é analisar as avaliações do GLM Judge e fornecer ORIENTAÇÃO ACIONÁVEL de melhoria.
+Seu trabalho Ã© analisar as avaliaÃ§Ãµes do GLM Judge e fornecer ORIENTAÃ‡ÃƒO ACIONÃVEL de melhoria.
 
 FORMATO DE RESPOSTA (markdown):
-# SuperEzio Eval Run — Orientação de Melhorias
+# SuperEzio Eval Run â€” OrientaÃ§Ã£o de Melhorias
 
-## 1. Diagnóstico Geral
-- Score médio: X/100
+## 1. DiagnÃ³stico Geral
+- Score mÃ©dio: X/100
 - Taxa de PASS: X% | FAIL: X% | WARN: X%
 - Categorias mais fracas: [...]
-- Componentes do pipeline que precisam de atenção: [...]
+- Componentes do pipeline que precisam de atenÃ§Ã£o: [...]
 
-## 2. Problemas Críticos (P0 — Corrigir Agora)
-[Lista priorizada com gravidade, padrão observado e ação recomendada]
+## 2. Problemas CrÃ­ticos (P0 â€” Corrigir Agora)
+[Lista priorizada com gravidade, padrÃ£o observado e aÃ§Ã£o recomendada]
 
-## 3. Melhorias Estruturais (P1 — Esta Sprint)
-[Melhorias de médio prazo nos componentes do pipeline]
+## 3. Melhorias Estruturais (P1 â€” Esta Sprint)
+[Melhorias de mÃ©dio prazo nos componentes do pipeline]
 
-## 4. Otimizações (P2 — Backlog)
+## 4. OtimizaÃ§Ãµes (P2 â€” Backlog)
 [Melhorias incrementais e ajustes finos]
 
-## 5. Recomendações Técnicas Específicas
+## 5. RecomendaÃ§Ãµes TÃ©cnicas EspecÃ­ficas
 - Arquivos a modificar
-- Mudanças sugeridas nos prompts
-- Ajustes de parâmetros
+- MudanÃ§as sugeridas nos prompts
+- Ajustes de parÃ¢metros
 - Issues para abrir no GitHub
 
-## 6. Conclusão
+## 6. ConclusÃ£o
 [Resumo executivo em 3-5 linhas]
 """
 
 
-# ═══════════════════════════════════════════════════════════════════════
-#  Step 1: Carregar questões
-# ═══════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+#  Step 1: Carregar questÃµes
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 def load_questions(path: Path) -> list[dict]:
     if not path.exists():
-        print(f"[FATAL] Dataset não encontrado: {path}")
+        print(f"[FATAL] Dataset nÃ£o encontrado: {path}")
         sys.exit(1)
     questions = []
     for line in path.read_text(encoding="utf-8").strip().splitlines():
@@ -150,9 +150,9 @@ def load_questions(path: Path) -> list[dict]:
     return questions
 
 
-# ═══════════════════════════════════════════════════════════════════════
-#  Step 2: Enviar questão ao SuperEzio e coletar resposta
-# ═══════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+#  Step 2: Enviar questÃ£o ao SuperEzio e coletar resposta
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 async def ask_superezio(question: str, session_id: str) -> dict[str, Any]:
     """Envia pergunta ao SuperEzio via /task/submit e coleta resposta NDJSON."""
     payload = {
@@ -211,9 +211,9 @@ async def ask_superezio(question: str, session_id: str) -> dict[str, Any]:
     }
 
 
-# ═══════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 #  Step 3: GLM avalia resposta do SuperEzio
-# ═══════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 async def glm_judge(question: str, response: str, expected_aspects: list[str]) -> dict:
     """GLM avalia a resposta do SuperEzio."""
     if not response or len(response) < 20:
@@ -229,11 +229,11 @@ async def glm_judge(question: str, response: str, expected_aspects: list[str]) -
             "critical_issues": ["Resposta vazia ou muito curta"],
             "strengths": [],
             "verdict": "FAIL",
-            "notes": "SuperEzio não gerou resposta significativa",
+            "notes": "SuperEzio nÃ£o gerou resposta significativa",
             "error": "empty_response",
         }
 
-    user_prompt = f"""PERGUNTA DO USUÁRIO:
+    user_prompt = f"""PERGUNTA DO USUÃRIO:
 {question}
 
 ASPECTOS ESPERADOS NA RESPOSTA: {", ".join(expected_aspects)}
@@ -241,7 +241,7 @@ ASPECTOS ESPERADOS NA RESPOSTA: {", ".join(expected_aspects)}
 RESPOSTA DO SUPEREZIO:
 {response[:8000]}
 
-Avalie a resposta acima com RIGOR TÉCNICO. Retorne APENAS o JSON."""
+Avalie a resposta acima com RIGOR TÃ‰CNICO. Retorne APENAS o JSON."""
 
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT_GLM) as client:
@@ -279,9 +279,9 @@ Avalie a resposta acima com RIGOR TÉCNICO. Retorne APENAS o JSON."""
         return {"error": str(exc), "overall_score": 0, "verdict": "ERROR"}
 
 
-# ═══════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 #  Step 4: local guidance from GLM evaluations
-# ═══════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 def local_guidance(eval_results: list[dict]) -> str:
     """Generate local prioritized guidance from GLM evaluation results."""
     summaries: list[str] = []
@@ -309,7 +309,7 @@ def local_guidance(eval_results: list[dict]) -> str:
             all_critical.append(f"[{r['id']}] {issue}")
 
         summaries.append(
-            f"### {r['id']} ({r.get('category', '?')}) — Score: {s}/100 [{v}]\n"
+            f"### {r['id']} ({r.get('category', '?')}) â€” Score: {s}/100 [{v}]\n"
             f"**Q:** {r['question'][:200]}\n"
             f"**A:** {r['response'][:500]}\n"
             f"**Scores:** {eval_data.get('scores', {})}\n"
@@ -320,19 +320,19 @@ def local_guidance(eval_results: list[dict]) -> str:
     avg_score = round(sum(scores) / len(scores), 1) if scores else 0
 
     batch_summary = f"""RUN ID: {RUN_ID}
-TOTAL QUESTÕES: {total}
-SCORE MÉDIO: {avg_score}/100
+TOTAL QUESTÃ•ES: {total}
+SCORE MÃ‰DIO: {avg_score}/100
 PASS: {verdicts.get("PASS", 0)} | FAIL: {verdicts.get("FAIL", 0)} | WARN: {verdicts.get("WARN", 0)} | ERROR: {verdicts.get("ERROR", 0)}
 
-TAXA DE APROVAÇÃO: {round(verdicts.get("PASS", 0) / max(total, 1) * 100, 1)}%
+TAXA DE APROVAÃ‡ÃƒO: {round(verdicts.get("PASS", 0) / max(total, 1) * 100, 1)}%
 
 CATEGORIAS COM MAIS FALHAS:
 {json.dumps({k: len(v) for k, v in category_fails.items()}, indent=2)}
 
-TODOS OS PROBLEMAS CRÍTICOS:
+TODOS OS PROBLEMAS CRÃTICOS:
 {chr(10).join(all_critical[:50])}
 
-AVALIAÇÕES DETALHADAS:
+AVALIAÃ‡Ã•ES DETALHADAS:
 {chr(10).join(summaries)}"""
 
     worst_categories = sorted(
@@ -364,11 +364,11 @@ AVALIAÇÕES DETALHADAS:
     )
 
 
-# ═══════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 #  Orchestrator
-# ═══════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 async def run_eval(questions: list[dict], semaphore: asyncio.Semaphore) -> list[dict]:
-    """Executa avaliação completa: SuperEzio → GLM Judge."""
+    """Executa avaliaÃ§Ã£o completa: SuperEzio â†’ GLM Judge."""
     results: list[dict] = []
 
     async def eval_one(q: dict) -> dict:
@@ -377,10 +377,10 @@ async def run_eval(questions: list[dict], semaphore: asyncio.Semaphore) -> list[
             print(f"  [{qid}] Enviando: {q['question'][:80]}...")
             se_result = await ask_superezio(q["question"], f"eval_{qid}")
             if se_result["error"]:
-                print(f"  [{qid}] ❌ SuperEzio error: {se_result['error']}")
+                print(f"  [{qid}] âŒ SuperEzio error: {se_result['error']}")
             else:
                 print(
-                    f"  [{qid}] ✅ {se_result['chunk_count']} chunks em {se_result['elapsed_s']}s"
+                    f"  [{qid}] âœ… {se_result['chunk_count']} chunks em {se_result['elapsed_s']}s"
                 )
 
             print(f"  [{qid}] GLM julgando...")
@@ -389,7 +389,7 @@ async def run_eval(questions: list[dict], semaphore: asyncio.Semaphore) -> list[
             )
             score = evaluation.get("overall_score", "?")
             verdict = evaluation.get("verdict", "?")
-            print(f"  [{qid}] 📊 Score: {score}/100 [{verdict}]")
+            print(f"  [{qid}] ðŸ“Š Score: {score}/100 [{verdict}]")
 
             return {**q, **se_result, "evaluation": evaluation}
 
@@ -399,7 +399,7 @@ async def run_eval(questions: list[dict], semaphore: asyncio.Semaphore) -> list[
 
 
 def save_report(results: list[dict], guidance: str):
-    """Salva relatório completo em Markdown."""
+    """Salva relatÃ³rio completo em Markdown."""
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     report_path = REPORTS_DIR / f"eval_run_{RUN_ID}.md"
 
@@ -421,15 +421,15 @@ def save_report(results: list[dict], guidance: str):
         verdicts[v] = verdicts.get(v, 0) + 1
 
     lines = [
-        f"# SuperEzio Eval Run — {RUN_ID}",
+        f"# SuperEzio Eval Run â€” {RUN_ID}",
         "",
-        f"**Questões**: {total} | **Score Médio**: {avg_score}/100",
+        f"**QuestÃµes**: {total} | **Score MÃ©dio**: {avg_score}/100",
         f"**PASS**: {verdicts['PASS']} | **FAIL**: {verdicts['FAIL']} | **WARN**: {verdicts['WARN']} | **ERROR**: {verdicts['ERROR']}",
-        f"**Taxa de Aprovação**: {round(verdicts['PASS'] / max(total, 1) * 100, 1)}%",
+        f"**Taxa de AprovaÃ§Ã£o**: {round(verdicts['PASS'] / max(total, 1) * 100, 1)}%",
         "",
         "---",
         "",
-        "## 🔍 Resultados por Questão",
+        "## ðŸ” Resultados por QuestÃ£o",
         "",
     ]
 
@@ -437,7 +437,7 @@ def save_report(results: list[dict], guidance: str):
         eval_data = r.get("evaluation", {})
         if not isinstance(eval_data, dict):
             eval_data = {}
-        lines.append(f"### {r['id']} — {r.get('category', '?')}")
+        lines.append(f"### {r['id']} â€” {r.get('category', '?')}")
         lines.append(
             f"- **Score**: {eval_data.get('overall_score', '?')}/100 [{eval_data.get('verdict', '?')}]"
         )
@@ -473,21 +473,21 @@ def save_report(results: list[dict], guidance: str):
         "",
         "---",
         "",
-        f"*Relatório gerado em {RUN_ID}*",
+        f"*RelatÃ³rio gerado em {RUN_ID}*",
     ]
 
     report_path.write_text("\n".join(lines), encoding="utf-8")
-    print(f"\n📄 Relatório salvo: {report_path}")
+    print(f"\nðŸ“„ RelatÃ³rio salvo: {report_path}")
     return report_path
 
 
-# ═══════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 #  Main
-# ═══════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 def main():
     parser = argparse.ArgumentParser(description="SuperEzio Eval Pipeline")
-    parser.add_argument("--limit", type=int, default=0, help="Limitar N questões")
-    parser.add_argument("--ids", nargs="*", default=[], help="IDs específicos")
+    parser.add_argument("--limit", type=int, default=0, help="Limitar N questÃµes")
+    parser.add_argument("--ids", nargs="*", default=[], help="IDs especÃ­ficos")
     parser.add_argument("--concurrency", type=int, default=CONCURRENCY)
     args = parser.parse_args()
 
@@ -506,9 +506,9 @@ def main():
     else:
         questions = all_qs
 
-    print(f"\n📋 {len(questions)} questões carregadas")
-    print(f"🔗 SuperEzio: {SUPEREZIO_URL}")
-    print(f"⚖️  GLM Judge: {GLM_URL} ({GLM_MODEL})")
+    print(f"\nðŸ“‹ {len(questions)} questÃµes carregadas")
+    print(f"ðŸ”— SuperEzio: {SUPEREZIO_URL}")
+    print(f"âš–ï¸  GLM Judge: {GLM_URL} ({GLM_MODEL})")
     print()
 
     # Check endpoints
@@ -519,25 +519,25 @@ def main():
             try:
                 r = await client.get(f"{SUPEREZIO_URL}/health")
                 se_ok = r.status_code == 200
-                print(f"  SuperEzio health: {'✅' if se_ok else '❌'} ({r.status_code})")
+                print(f"  SuperEzio health: {'âœ…' if se_ok else 'âŒ'} ({r.status_code})")
             except Exception as e:
-                print(f"  SuperEzio health: ❌ ({e})")
+                print(f"  SuperEzio health: âŒ ({e})")
             try:
                 r = await client.get(
                     f"{GLM_URL}/v1/responses",
                     json={"model": GLM_MODEL, "input": "ping"},
                 )
-                glm_ok = r.status_code in (200, 404, 405)  # aceita erro de método
-                print(f"  GLM proxy: {'✅' if glm_ok else '❌'} ({r.status_code})")
+                glm_ok = r.status_code in (200, 404, 405)  # aceita erro de mÃ©todo
+                print(f"  GLM proxy: {'âœ…' if glm_ok else 'âŒ'} ({r.status_code})")
             except Exception as e:
-                print(f"  GLM proxy: ❌ ({e})")
+                print(f"  GLM proxy: âŒ ({e})")
             return se_ok, glm_ok
 
     se_ok, glm_ok = asyncio.run(health_check())
     if not se_ok:
         print("\n[AVISO] SuperEzio parece offline. Continuando mesmo assim...")
     if not glm_ok:
-        print("\n[AVISO] GLM Proxy parece offline. As avaliações vão falhar.")
+        print("\n[AVISO] GLM Proxy parece offline. As avaliaÃ§Ãµes vÃ£o falhar.")
 
     print()
 
@@ -584,7 +584,7 @@ def main():
         ),
         encoding="utf-8",
     )
-    print(f"📄 JSON salvo: {json_path}")
+    print(f"ðŸ“„ JSON salvo: {json_path}")
 
     return 0 if avg >= 50 else 1
 

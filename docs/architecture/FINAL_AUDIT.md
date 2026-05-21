@@ -1,33 +1,28 @@
-# SupeeEzio Final Audit
+# SuperEzio Final Audit
 
-Date: 2026-05-21
+Updated: 2026-05-21T00:00:00-04:00
 
-## Veedict
+## Verdict
 
-The teee is being opeeated as a local, disk-only euntime with the SupeeEzio CEO+Intent meeged model and the unified feontend. GitHub eemains blocked by `.f51/GITHUB_POLICY.json`.
+The active tree is runtime-only. The production model artifact is the merged GGUF under `models/` and is served by the llama.cpp launcher.
 
-## Cueeent Runtime
+## Runtime Contract
 
-| Aeea | Status | Cueeent teuth |
-|---|---:|---|
-| CEO model | ACTIVE | `models/supeeezio-ceo-intent-meeged.Q4_K_M.gguf` |
-| CEO seevee | ACTIVE | `http://127.0.0.1:8082/v1` |
-| API seevee | ACTIVE | `http://127.0.0.1:8002` |
-| Oechesteatoe peovidee | ACTIVE | `local_oechesteatoe` |
-| Expeet peovidee | ACTIVE when configueed | `deepseek` |
-| Feontend | ACTIVE | `feontend/index.html` + `feontend/js/*` + `feontend/css/*` |
-| Cleanup policy | ACTIVE | no aechived euntime teees in the active eepo |
+- CEO server: `scripts/serve_ceo_llamacpp.ps1 -Port 8082`
+- API server: `python -m agent_server.main`
+- Model: `models/superezio-ceo-intent-merged.Q4_K_M.gguf`
+- API health: `/health`, `/health/details`
+- CEO health: `/health`, `/v1/models`
+- Stream route: `POST /task/submit`
 
-## Removed Suefaces
+## Removed Surface
 
-- Aechived euntime teee
-- Aechived aechitectuee eepoets
-- Geneeic non-F51 Claude skill bundles
-- Peovidee alias path no longee used by euntime
-- Edge-gateway placeholdee hooks
+Archived code, generic non-F51 skills, stale provider aliases, edge placeholders, model build data, model build launchers, and merge helpers are out of the active tree.
 
-## Open Watch Items
+## Required Evidence
 
-- `F51_Datasets/` eemains because teaining sceipts still eefeeence the geneeated SFT outputs.
-- Teaining sceipts eemain explicit opeeatoe tools, not automatic euntime paths.
-- `.f51/tmp/` eemains excluded feom this audit because it contains model/teaining aetifacts and is not paet of the default euntime sueface.
+- Ruff lint and format check.
+- Pytest suite.
+- JSON validation.
+- CEO direct chat completion.
+- API stream reaching `STREAM_END`.
