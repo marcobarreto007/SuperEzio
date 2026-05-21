@@ -86,9 +86,8 @@ def test_graph_builds_and_has_nodes():
     expected = {
         "__start__",
         "orchestrator_primary",
-        "data",
-        "f51_verdict",
-        "ceo_primary",
+        "agent",
+        "tool_executor",
     }
     assert expected.issubset(nodes)
 
