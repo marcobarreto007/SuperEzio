@@ -1,27 +1,29 @@
 {
-  "date_local": "2026-05-21T18:45:10-04:00",
-  "session": "Bob_UI_Runtime_Repair",
+  "date_local": "2026-05-21T19:02:27-04:00",
+  "session": "Bob_First_UI_Repair",
   "status": "completed",
   "what_was_done": [
-    "Removed decorative market rail buttons and the unused market-state card from the main UI.",
-    "Changed the chart button into a real reload action label.",
-    "Made Bob's chat panel use the full right-side stack so chart and dialog no longer compete for the same space.",
-    "Removed the mobile responsive breakpoints from the touched UI CSS and made the workspace desktop-only with min-width 1180px.",
-    "Hardened /task/submit frontend handling so failed Bob responses show HTTP/backend detail instead of appearing silent."
+    "Converted the main runtime screen to Bob-first layout: Bob conversation is the primary left workspace and the chart is contextual on the right.",
+    "Moved the ask composer inside Bob's panel so the input is always visible with the conversation.",
+    "Removed visible decorative controls from the main UI: mode tabs, live toggle, SDCA topbar button, telemetry HUD, chart indicator chips, ops board, ask chips, Bob orb, portfolio drawer, and portfolio button.",
+    "Kept ticker, timeframe, and chart reload as the only topbar market controls.",
+    "Added no-store cache headers for /, /frontend, /css, and /js so Chrome stops serving stale local UI during development.",
+    "Updated the runtime contract test to block the removed UI clutter from returning."
   ],
   "evidence": [
     "node --check frontend/js/api.js passed.",
     "node --check frontend/js/events.js passed.",
     "python -m pytest tests/contracts/test_contract_runtime_official.py tests/contracts/test_contract_endpoints.py passed: 20 passed.",
-    "Runtime health checks passed for API http://127.0.0.1:8002/health and CEO http://127.0.0.1:8082/health.",
-    "CEO model endpoint http://127.0.0.1:8082/v1/models returned the local GGUF model.",
-    "POST /task/submit smoke reached STREAM_END with 0 ERROR events and Bob answered: Sim, estou online e pronto para operar.",
-    "Playwright desktop screenshot runtime/logs/ui-bob-desktop-only.png confirmed canvas visible, chat visible, bottom bar visible, fakeRail 0, minWidth 1180px, overlap false."
+    "git diff --check passed after whitespace cleanup.",
+    "Restarted API on 127.0.0.1:8002 and verified / plus /frontend/index.html return cache-control: no-store.",
+    "Playwright screenshot runtime/logs/ui-bob-first.png verified Bob width 920px, chart width 520px, Bob is first, input is inside Bob, and old UI elements are absent.",
+    "Playwright UI send test runtime/logs/ui-bob-first-send.png verified Bob responded through the browser with no errors and input/send returned enabled."
   ],
   "risks": [
-    "The UI is now intentionally desktop-only; narrow screens will not get a special mobile layout.",
-    "Full repo lint/test suite was not run; validation was scoped to frontend syntax, runtime contracts, endpoints, and live UI smoke.",
-    "runtime/logs contains local evidence artifacts created during validation and remains untracked."
+    "The SDCA lab markup still exists but is no longer opened from the topbar in this Bob-first UI.",
+    "The Bob response still renders pipeline/explanation details in the chat bubble; next cleanup can hide this by default if Marco wants a cleaner chat.",
+    "There are unrelated dirty files under .f51 plus Dockerfile from another inventory/bootstrap flow; they were not touched as part of this UI repair.",
+    "runtime/logs contains local validation screenshots/logs and remains untracked."
   ],
-  "next_step": "If Marco wants this saved, make a local disk-only commit without push."
+  "next_step": "Hide pipeline trace cards by default inside Bob responses, keeping them expandable only when debugging."
 }

@@ -93,8 +93,13 @@ def test_frontend_contract_uses_bob_unified_workspace_without_retired_panels():
 
     assert "Bob CEO" in html
     assert "bob-welcome" in html
-    assert "ops-board" in html
-    assert "mode-tabs" in html
+    assert "ops-board" not in html
+    assert "mode-tabs" not in html
+    assert "telemetry-hud" not in html
+    assert "ask-chips" not in html
+    assert "bob-orb" not in html
+    assert "portfolio-drawer" not in html
+    assert "pf-btn" not in html
     assert "market-rail" not in html
     assert "rail-btn" not in html
     assert "Crosshair" not in html

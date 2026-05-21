@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SuperEzio — AI Financial Copilot</title>
+  <title>SuperEzio â€” AI Financial Copilot</title>
   <meta name="description" content="SuperEzio AI copilot: F51 verdict engine, evidence-based financial analysis.">
   <meta name="theme-color" content="#0a0e0b">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,7 +27,7 @@
 </head>
 <body>
 
-  <!-- ── TOP BAR ── -->
+  <!-- â”€â”€ TOP BAR â”€â”€ -->
   <header class="topbar">
     <div class="logo">
       <span class="logo-mark">SE</span>
@@ -35,13 +35,6 @@
       <span class="logo-sub">Market Command</span>
       <span class="status-dot status-dot--off" id="sys-dot" title="Checking..."></span>
     </div>
-    <div class="spacer"></div>
-    <nav class="mode-tabs" aria-label="Workspace modes">
-      <button class="mode-tab active" data-mode="markets" type="button"><i data-lucide="candlestick-chart"></i><span>Markets</span></button>
-      <button class="mode-tab" data-mode="bob" type="button"><i data-lucide="brain-circuit"></i><span>Bob CEO</span></button>
-      <button class="mode-tab" data-mode="risk" type="button"><i data-lucide="shield-check"></i><span>Risk</span></button>
-      <button class="mode-tab" data-mode="streams" type="button"><i data-lucide="radio"></i><span>Streams</span></button>
-    </nav>
     <div class="spacer"></div>
     <div class="ticker-wrap">
       <input id="ticker-inp" type="text" placeholder="Ticker" value="AAPL" autocomplete="off" spellcheck="false" maxlength="10">
@@ -54,14 +47,34 @@
         <option value="1Y">1Y</option>
         <option value="5Y">5Y</option>
       </select>
-      <button class="btn--icon" id="live-btn" title="Toggle live stream" type="button"><i data-lucide="radio"></i></button>
       <button class="btn--icon" id="chart-btn" title="Reload chart" type="button"><i data-lucide="refresh-cw"></i></button>
-      <button class="btn--icon" id="sdca-lab-btn" title="Cognitive Risk Firewall Lab" type="button"><i data-lucide="shield-alert"></i></button>
     </div>
   </header>
 
-  <!-- ── MAIN ── -->
+  <!-- â”€â”€ MAIN â”€â”€ -->
   <section class="app-main">
+    <aside class="right-stack" id="live-panel" aria-label="Bob conversation">
+      <section class="terminal-card terminal-card--chat">
+        <div class="terminal-card-hdr">
+          <i data-lucide="brain-circuit"></i>
+          <strong>Bob CEO</strong>
+          <span id="live-ticker">AAPL</span>
+        </div>
+        <main class="chat" id="chat" aria-label="Conversation">
+          <section class="bob-welcome">
+            <div class="bob-copy">
+              <strong>Bob is online.</strong>
+              <p>Ask directly. Market context is attached when your question needs the chart.</p>
+            </div>
+          </section>
+        </main>
+        <div class="bottombar" id="bottombar">
+          <textarea id="user-inp" rows="1" placeholder="Ask Bob..." autocomplete="off" spellcheck="true"></textarea>
+          <button class="btn btn--primary" id="send-btn" type="button"><i data-lucide="send"></i><span>Send</span></button>
+        </div>
+      </section>
+    </aside>
+
     <main class="chart-workspace" aria-label="Trading workspace">
       <div class="market-header">
         <div class="asset-block">
@@ -76,67 +89,14 @@
         </div>
       </div>
 
-      <!-- Institutional Telemetry HUD -->
-      <div class="telemetry-hud" aria-label="System Telemetry HUD">
-        <div class="hud-pill"><span class="hud-label">Firewall Guard:</span><span class="hud-value text-green">ARMED / SDCA-v1</span></div>
-        <div class="hud-pill"><span class="hud-label">Engine Model:</span><span class="hud-value">SuperEzio CEO+Intent Merged</span></div>
-        <div class="hud-pill"><span class="hud-label">Response Latency:</span><span class="hud-value"><span id="hud-latency">--</span> ms</span></div>
-        <div class="hud-pill"><span class="hud-label">Cost Limit:</span><span class="hud-value text-blue">$0.00 / Local</span></div>
-        <div class="hud-pill"><span class="hud-label">Compliance Gate:</span><span class="hud-value text-green">100% PASS</span></div>
-      </div>
-
       <section class="chart-stage">
-        <div class="chart-toolbar" aria-label="Visible indicators">
-          <span class="toolbar-pill">Candles</span>
-          <span class="toolbar-pill">SMA20</span>
-          <span class="toolbar-pill">SMA50</span>
-          <span class="toolbar-pill">EMA20</span>
-          <span class="toolbar-pill">MACD</span>
-        </div>
         <div class="live-canvas-wrap"><canvas id="live-canvas"></canvas></div>
       </section>
-
-      <div class="market-footer">
-        <div class="ops-board" aria-label="Runtime status">
-          <div class="ops-card ops-card--warn" id="ops-health"><span>Runtime</span><strong>Checking</strong></div>
-          <div class="ops-card ops-card--warn" id="ops-market"><span>Market data</span><strong>Loading</strong></div>
-          <div class="ops-card ops-card--warn" id="ops-stream"><span>SSE stream</span><strong>Ready</strong></div>
-          <div class="ops-card ops-card--warn" id="ops-bob"><span>Bob CEO</span><strong>Local</strong></div>
-          <div class="ops-card ops-card--warn" id="ops-risk"><span>Firewall</span><strong>Armed</strong></div>
-        </div>
-        <div class="live-indicators" id="live-indicators"></div>
-        <div class="live-note" id="live-updated">Awaiting stream...</div>
-      </div>
     </main>
 
-    <aside class="right-stack" id="live-panel" aria-label="Decision and live panel">
-      <section class="terminal-card terminal-card--chat">
-        <div class="terminal-card-hdr">
-          <i data-lucide="brain-circuit"></i>
-          <strong>Bob CEO</strong>
-          <span id="live-ticker">AAPL</span>
-        </div>
-        <main class="chat" id="chat" aria-label="Conversation">
-          <section class="bob-welcome">
-            <div class="bob-orb" aria-hidden="true">
-              <span></span><span></span><span></span>
-            </div>
-            <div class="bob-copy">
-              <strong>Ask Bob like a person.</strong>
-              <p>Questions, market context, risk checks, portfolio thinking, and financial guidance stay in one live conversation.</p>
-            </div>
-            <div class="ask-chips">
-              <button type="button" data-ask="What can you do for me in simple language?">What can you do?</button>
-              <button type="button" data-ask="Explain this AAPL chart in simple language.">Explain chart</button>
-              <button type="button" data-ask="What should I watch before buying AAPL?">Buying checklist</button>
-            </div>
-          </section>
-        </main>
-      </section>
-    </aside>
   </section>
 
-  <!-- ── SDCA LAB ── -->
+  <!-- â”€â”€ SDCA LAB â”€â”€ -->
   <section class="sdca-lab" id="sdca-lab" aria-hidden="true">
     <div class="sdca-lab-hdr">
       <div><span>F51 Labs</span><strong>Cognitive Risk Firewall</strong></div>
@@ -177,20 +137,11 @@
     </div>
   </section>
 
-  <!-- ── PORTFOLIO (hidden) ── -->
-  <div class="portfolio-drawer" id="portfolio-drawer" style="display:none">
-    <label>Cash<input id="cash-inp" type="number" min="0" step="100"></label>
-    <label>Position<input id="pos-inp" type="number" min="0" step="1" placeholder="shares"></label>
-    <label>Horizon<select id="horizon-inp"><option value="">--</option><option value="days">Days</option><option value="weeks">Weeks</option><option value="months">Months</option><option value="years">Years</option></select></label>
-    <label>Risk<select id="risk-inp"><option value="">--</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
-  </div>
+  <!-- â”€â”€ PORTFOLIO (hidden) â”€â”€ -->
 
-  <!-- ── BOTTOM BAR ── -->
-  <div class="bottombar" id="bottombar">
-    <button class="btn--sm" id="pf-btn" type="button" title="Portfolio">$</button>
-    <textarea id="user-inp" rows="1" placeholder="Ask Bob in natural language: simple question, risk, chart, strategy..."></textarea>
-    <button class="btn btn--primary" id="send-btn" type="button"><i data-lucide="send"></i><span>Send</span></button>
-  </div>
+
+  <!-- â”€â”€ BOTTOM BAR â”€â”€ -->
+
 
   <!-- JS (dependency order) -->
   <script src="js/state.js"></script>

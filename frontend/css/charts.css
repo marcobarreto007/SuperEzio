@@ -1,7 +1,7 @@
 /* Trading workspace */
 .app-main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(400px, 440px);
+  grid-template-columns: minmax(640px, 1fr) minmax(460px, 520px);
   min-height: 0;
   min-width: 1180px;
   overflow: hidden;
@@ -13,19 +13,19 @@
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   background:
     radial-gradient(circle at 50% 20%, rgba(0, 230, 118, 0.05), transparent 45%),
     var(--bg);
 }
 
 .market-header {
-  min-height: 90px;
+  min-height: 72px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  padding: 16px 24px;
+  gap: 12px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--line);
   background: linear-gradient(180deg, var(--surface), var(--bg));
   backdrop-filter: var(--glass-blur);
@@ -93,7 +93,7 @@
   gap: 12px;
   font-family: var(--font-display);
   font-weight: 900;
-  font-size: 26px;
+  font-size: 22px;
   letter-spacing: -0.03em;
   color: var(--ink);
 }
@@ -113,14 +113,14 @@
 
 .price-strip {
   display: grid;
-  grid-template-columns: repeat(3, minmax(100px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(86px, 1fr));
+  gap: 8px;
 }
 
 .price-strip div {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  padding: 10px 14px;
+  padding: 8px 10px;
   background: var(--surface-2);
   backdrop-filter: var(--glass-blur);
   transition: all var(--duration) var(--ease);
@@ -145,12 +145,16 @@
   font: 800 16px var(--font-mono);
 }
 
+.price-strip div:nth-child(3) {
+  display: none;
+}
+
 .chart-stage {
   min-height: 0;
   position: relative;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  padding: 12px 16px 0;
+  grid-template-rows: minmax(0, 1fr);
+  padding: 12px 16px 16px;
 }
 
 .chart-toolbar {
@@ -181,7 +185,7 @@
   min-height: 0;
   height: 100%;
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  border-radius: var(--radius-sm);
   background:
     linear-gradient(rgba(0, 230, 118, 0.02) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 230, 118, 0.02) 1px, transparent 1px),
@@ -272,8 +276,8 @@
   min-height: 0;
   display: grid;
   grid-template-rows: minmax(0, 1fr);
-  padding: 12px;
-  border-left: 1px solid var(--line);
+  padding: 16px;
+  border-right: 1px solid var(--line);
   background: var(--surface);
 }
 
@@ -289,7 +293,7 @@
 
 .terminal-card--chat {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
 .terminal-card-hdr {
