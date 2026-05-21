@@ -51,13 +51,23 @@
     return "✗";
   }
 
+  function normalizeStatus(status) {
+    if (status == null) return "";
+    if (typeof status === "boolean") return status ? "ok" : "error";
+    if (typeof status === "object") {
+      return String(status.status || status.state || status.result || (status.error ? "error" : "ok"));
+    }
+    return String(status);
+  }
+
   function makeTile(source, status) {
+    var normalized = normalizeStatus(status);
     var tile = SZ.dom.el("div", "dq-tile");
-    tile.classList.add("dq-tile--" + (status || "unknown").toLowerCase().replace(/[^a-z]/g, "-"));
+    tile.classList.add("dq-tile--" + (normalized || "unknown").toLowerCase().replace(/[^a-z]/g, "-"));
 
     var icon = SZ.dom.el("span", "dq-tile__icon");
-    icon.textContent = statusIcon(status);
-    icon.style.color = statusColor(status);
+    icon.textContent = statusIcon(normalized);
+    icon.style.color = statusColor(normalized);
     tile.appendChild(icon);
 
     var label = SZ.dom.el("span", "dq-tile__label");
@@ -65,8 +75,8 @@
     tile.appendChild(label);
 
     var statusEl = SZ.dom.el("span", "dq-tile__status");
-    statusEl.textContent = status ? String(status).toUpperCase() : "--";
-    statusEl.style.color = statusColor(status);
+    statusEl.textContent = normalized ? normalized.toUpperCase() : "--";
+    statusEl.style.color = statusColor(normalized);
     tile.appendChild(statusEl);
 
     return tile;
@@ -78,7 +88,7 @@
       var s = sources[key];
       if (s != null) {
         total++;
-        var sv = String(s).toLowerCase().trim();
+        var sv = normalizeStatus(s).toLowerCase().trim();
         if (sv === "ok" || sv === "provider" || sv === "computed") ok++;
       }
     });

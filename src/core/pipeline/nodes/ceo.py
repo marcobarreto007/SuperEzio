@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import time
 from langgraph.config import get_stream_writer
 
@@ -18,8 +19,24 @@ from ..security import sanitize_output
 CEO_PROVIDER_NAME = "ceo"
 
 
-def capabilities_text() -> str:
+def capabilities_text(message: str = "") -> str:
     """Deterministic answer for natural-language capability/tool questions."""
+    if _is_portuguese_request(message):
+        return (
+            "Bob CEO: eu consigo responder perguntas financeiras em linguagem natural, "
+            "mas eu nao executo corretora e nao transformo conversa em ordem de compra ou venda.\n\n"
+            "O que posso fazer por voce:\n"
+            "- Explicar um ticker, grafico ou risco em portugues simples.\n"
+            "- Montar checklist antes de comprar, vender, esperar ou estudar melhor.\n"
+            "- Verificar dados de preco, tecnicos, fundamentos, noticias, sentimento, macro, quant e risco.\n"
+            "- Rodar F51, SDCA Firewall, NeuralDecisionExpert, comite de especialistas e RAG forense.\n"
+            "- Apontar sinais de FOMO, alavancagem, hype social, baixa qualidade de dados e possivel manipulacao.\n\n"
+            "Como usar: pergunte como pessoa. Exemplo: "
+            "'Bob, quais riscos devo olhar antes de comprar AAPL?' ou "
+            "'Explique esse grafico e me diga o que estudar antes de agir.'\n\n"
+            "Limite importante: eu dou suporte de decisao, evidencias e proximos passos defensivos. "
+            "A decisao final e sua; nenhuma acao de broker e executada."
+        )
     return (
         "I can answer natural-language questions, but SuperEzio is not a generic chat toy. "
         "For market analysis, I use a deterministic pipeline before the CEO verdict.\n\n"
@@ -32,7 +49,7 @@ def capabilities_text() -> str:
         "- NeuralDecisionExpert: estimates directional probability, expected return, drawdown risk, "
         "uncertainty, and market regime.\n"
         "- RAG forensics: compares the setup against historical manipulation and fraud patterns.\n"
-        "- CEO/Qwen: converts the evidence into a final BUY, SELL, or HOLD style verdict.\n\n"
+        "- CEO/Qwen: converts the evidence into a natural-language decision-support brief.\n\n"
         "Important: I do not let the local Qwen model freely call tools by itself. "
         "The application runs the tools first, then sends the verified evidence to the CEO. "
         "That is deliberate: it prevents the model from inventing data or fake tool calls."
@@ -57,6 +74,138 @@ def _strip_thinking(text: str) -> str:
     return result.replace("</think>", "")
 
 
+_DIRECT_TRADE_PATTERN = re.compile(
+    r"\b(VERDICT\s*:|BUY|SELL|SHORT|LONG|STOP\s+LOSS|TARGET\s*:|ENTRY\s*:)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_portuguese_request(message: str) -> bool:
+    raw = (message or "").lower()
+    return any(
+        token in raw
+        for token in (
+            "voce",
+            "você",
+            "portugues",
+            "português",
+            "comprar",
+            "risco",
+            "explique",
+            "dicas",
+            "conselho",
+        )
+    )
+
+
+def _asks_capabilities(message: str) -> bool:
+    raw = (message or "").lower()
+    return any(
+        token in raw
+        for token in (
+            "what can you do",
+            "o que voce pode fazer",
+            "o que vocÃª pode fazer",
+            "como copiloto financeiro",
+            "como voce pode me ajudar",
+            "como vocÃª pode me ajudar",
+        )
+    )
+
+
+def _safe_advisor_text(state: dict, generated: str) -> str:
+    """Replace direct trading verdicts with advisory language."""
+    ticker = state.get("ticker") or "the asset"
+    neural = state.get("neural_decision") or {}
+    sdca = state.get("sdca_firewall") or {}
+    f51 = state.get("f51_verdict") or {}
+    data = state.get("data") or {}
+    technicals = data.get("technicals") if isinstance(data, dict) else {}
+    price = data.get("price") if isinstance(data, dict) else {}
+    message = state.get("message", "")
+
+    rsi = None
+    if isinstance(technicals, dict):
+        rsi = technicals.get("rsi") or technicals.get("rsi_14")
+    current = None
+    if isinstance(price, dict):
+        current = price.get("price") or price.get("current") or price.get("close")
+
+    confidence = f51.get("confidence")
+    uncertainty = neural.get("uncertainty")
+    drawdown = neural.get("drawdown_risk")
+    regime = neural.get("regime")
+    sdca_decision = sdca.get("decision")
+
+    if _is_portuguese_request(message):
+        lines = [
+            f"Bob CEO: eu nao vou transformar isso em ordem de trade para {ticker}.",
+            "",
+            "Leitura simples: o sistema encontrou dados suficientes para discutir risco e contexto, "
+            "mas a decisao ainda deve ser tratada como analise, nao execucao.",
+        ]
+        if current is not None:
+            lines.append(f"- Preco observado: {current}.")
+        if rsi is not None:
+            lines.append(
+                f"- RSI/forca tecnica: {rsi}. Se estiver muito alto, o risco de pullback aumenta."
+            )
+        if regime:
+            lines.append(f"- NeuralDecisionExpert: regime {regime}, incerteza {uncertainty}.")
+        if drawdown is not None:
+            lines.append(f"- Risco de drawdown estimado: {drawdown}.")
+        if sdca_decision:
+            lines.append(f"- SDCA Firewall: {sdca_decision}; isso nao executa corretora.")
+        if confidence is not None:
+            lines.append(f"- F51: confianca {confidence}, ainda dependente da qualidade dos dados.")
+        lines.extend(
+            [
+                "",
+                "Antes de agir, olhe: fundamentos faltantes, RSI/overbought, volatilidade, liquidez, "
+                "noticias recentes, tamanho da posicao e quanto voce aceita perder.",
+                "Proximo passo pratico: estudar/revisar e definir um plano pequeno e defensivo se a tese continuar valida.",
+            ]
+        )
+        return "\n".join(lines)
+
+    lines = [
+        f"Bob CEO: I will not turn this into a trade order for {ticker}.",
+        "",
+        "Plain read: the system has enough evidence to discuss risk and context, but this is analysis, not execution.",
+    ]
+    if current is not None:
+        lines.append(f"- Observed price: {current}.")
+    if rsi is not None:
+        lines.append(f"- RSI/technical strength: {rsi}. If it is elevated, pullback risk rises.")
+    if regime:
+        lines.append(f"- NeuralDecisionExpert: regime {regime}, uncertainty {uncertainty}.")
+    if drawdown is not None:
+        lines.append(f"- Estimated drawdown risk: {drawdown}.")
+    if sdca_decision:
+        lines.append(f"- SDCA Firewall: {sdca_decision}; no broker execution is performed.")
+    if confidence is not None:
+        lines.append(f"- F51 confidence: {confidence}, still limited by data quality.")
+    lines.extend(
+        [
+            "",
+            "Before acting, check missing fundamentals, overbought signals, volatility, liquidity, recent news, "
+            "position sizing, and your maximum acceptable loss.",
+            "Practical next step: study/review and define a small defensive plan only if the thesis remains valid.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def enforce_advisor_boundary(text: str, state: dict) -> str:
+    """Keep Bob in advisory mode even if the local model emits a trade command."""
+    if not text:
+        return text
+    head = text[:600]
+    if _DIRECT_TRADE_PATTERN.search(head):
+        return _safe_advisor_text(state, text)
+    return text
+
+
 async def node_ceo(
     state: dict,
     *,
@@ -69,8 +218,10 @@ async def node_ceo(
     run_id = state.get("run_id", "")
     mandamentos = mandamentos or []
 
-    if state.get("intent") == "explain_capabilities":
-        text = capabilities_text()
+    if state.get("intent") == "explain_capabilities" or _asks_capabilities(
+        state.get("message", "")
+    ):
+        text = capabilities_text(state.get("message", ""))
         writer(
             {
                 "type": "PIPELINE_STEP",
@@ -201,6 +352,7 @@ async def node_ceo(
 
     elapsed = time.time() - t0
     final = sanitize_output(_strip_thinking(raw_text).strip())
+    final = enforce_advisor_boundary(final, state)
 
     writer({"type": "CHUNK", "content": final})
     writer(

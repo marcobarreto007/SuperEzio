@@ -50,6 +50,36 @@
 - No product tests were run during inventory generation; only artifact validation should be trusted for this turn.
 - GitHub is blocked by `.f51/GITHUB_POLICY.json`; do not use `gh`, `git push`, `git pull`, or `git fetch`.
 
+## 2026-05-20 Bob/UI Runtime Repair
+
+### UI-R3 - Browser event handlers can stall the chat stream [MEDIUM]
+
+- Classification: `frontend`
+- Risk: Renderer exceptions during NDJSON event handling can look like parse failures and leave the Bob input disabled after `STREAM_END`.
+- Evidence: Playwright live chat initially showed a completed backend stream but disabled input and console warnings from renderer calls.
+- Mitigation: Split NDJSON parsing from handler execution in `frontend/js/init.js`, added final input/button re-enable, exposed `SZ.esc`, and verified browser chat response with zero warnings/errors.
+
+### UI-R4 - SDCA lab form can reload instead of evaluating [MEDIUM]
+
+- Classification: `frontend`
+- Risk: The firewall `Evaluate` control can submit the form natively, reload `/?`, and never call `/api/sdca/evaluate`.
+- Evidence: Playwright showed URL reload and no SDCA POST before the fix.
+- Mitigation: Changed the run button to `type="button"`, bound SDCA form/button handlers inside `frontend/js/sdca-lab.js`, and verified `POST /api/sdca/evaluate -> 200 BLOCK` in browser requests.
+
+### CEO-R1 - Local model can emit direct trade-style verdicts [HIGH]
+
+- Classification: `runtime`
+- Risk: Bob may output `VERDICT`, `SHORT`, `BUY`, or similar broker-like language despite the product being decision support.
+- Evidence: Live browser run produced a direct trade-style response before the guardrail patch; HTTP `/task/submit` later proved deterministic Portuguese capability response.
+- Mitigation: Updated CEO prompts, assistant prefix, deterministic capability response, and advisor-boundary rewrite. Added contract tests for Portuguese capability response and direct-trade rewrite.
+
+### CACHE-R1 - Existing browser sessions may hold stale HTML [LOW]
+
+- Classification: `browser`
+- Risk: A browser already open before the patch can keep the old SDCA submit button DOM until a hard reload/cache-busted load.
+- Evidence: Playwright retained `type="submit"` until a new cache-busted page was opened; server `curl /` returned the patched `type="button"`.
+- Mitigation: Final validation used a fresh `?cachebust=...` page; operator should hard refresh if an already-open tab still shows stale behavior.
+
 ## 2026-05-20 Bob Unified Frontend
 
 ### UI-R1 - Legacy panel assets can re-enter first viewport [LOW]

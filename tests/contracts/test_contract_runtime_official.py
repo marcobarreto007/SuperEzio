@@ -20,6 +20,7 @@ AGENT_CONTRACT = ROOT / ".f51" / "contracts" / "agent-server.contract.md"
 RUNTIME_CHECKPOINT = ROOT / "runtime" / "checkpoints" / "latest.json"
 RUNBOOK = ROOT / "docs" / "runbooks" / "RUNBOOK.md"
 FRONTEND_INDEX = ROOT / "frontend" / "index.html"
+FRONTEND_CHAT = ROOT / "frontend" / "js" / "chat.js"
 FRONTEND_INIT = ROOT / "frontend" / "js" / "init.js"
 
 
@@ -87,6 +88,7 @@ def test_frontend_static_assets_are_mounted():
 
 def test_frontend_contract_uses_bob_unified_workspace_without_legacy_panels():
     html = FRONTEND_INDEX.read_text(encoding="utf-8")
+    chat_js = FRONTEND_CHAT.read_text(encoding="utf-8")
     init_js = FRONTEND_INIT.read_text(encoding="utf-8")
 
     assert "Bob CEO" in html
@@ -106,6 +108,7 @@ def test_frontend_contract_uses_bob_unified_workspace_without_legacy_panels():
         assert old_script not in html
     assert 'session_id: "sz-session"' not in init_js
     assert "getBrowserSessionId()" in init_js
+    assert "window.SZ.esc = esc" in chat_js
 
 
 def test_ceo_runtime_config_matches_manifest_and_script():

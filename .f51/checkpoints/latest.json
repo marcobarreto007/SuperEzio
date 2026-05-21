@@ -1,67 +1,78 @@
 {
-  "date_local": "2026-05-20T19:48:48-04:00",
-  "session": "f51-bob-unified-frontend-2026-05-20",
+  "date_local": "2026-05-20T20:18:59-04:00",
+  "session": "f51-bob-ui-runtime-repair-2026-05-20",
   "status": "completed",
   "what_was_done": [
-    "Delivered a unified Bob CEO panel that combines a TradingView-style chart workspace, AI assistant/wallet-style conversation card, and dense ops/firewall status cards.",
-    "Removed the visible legacy system drawer and stopped loading old panel scripts/styles.",
-    "Deleted unused legacy panel assets that only powered the removed drawer UI.",
-    "Changed Bob task submissions to use browser-local session IDs instead of the fixed sz-session.",
-    "Attached chart context only when the natural-language prompt actually asks about market/chart/stock/risk/portfolio topics.",
-    "Validated live endpoints, static assets, data routes, SSE streams, NDJSON task stream, and browser rendering."
+    "Fixed frontend NDJSON handling so renderer errors no longer masquerade as parse failures or leave Bob input disabled after stream completion.",
+    "Exposed the shared frontend escape helper expected by response cards.",
+    "Hardened data-quality and explanation renderers against mixed event payload shapes.",
+    "Fixed SDCA lab browser flow so Evaluate calls /api/sdca/evaluate instead of reloading the page.",
+    "Changed Bob CEO prompts and runtime guardrails from direct trade verdicts to natural-language decision support.",
+    "Added deterministic Portuguese capability response for natural-language questions such as 'o que voce pode fazer'.",
+    "Restarted the API runtime and validated live health, chart data, SDCA, neural predict, task NDJSON stream, browser chat, browser SDCA, and browser console."
   ],
   "evidence": {
     "commands": [
-      "GET /, /favicon.ico, /health, HEAD /health, /health/details, /metrics, /capabilities, /product/manifest, /api/chart-data/AAPL?timeframe=6M -> 200",
-      "POST /api/sdca/evaluate -> 200",
-      "POST /experts/neural-decision/predict valid payload -> 200",
-      "curl.exe -N /api/chart-sse/AAPL?timeframe=1D&refresh_s=1&max_points=30 -> snapshot and heartbeat events before expected timeout",
-      "python urllib stream POST /task/submit -> 200, 23 lines, STREAM_END true, answer event true",
-      "curl.exe -N /neural/logs after task -> NEURAL_LOG entries emitted",
-      "static asset probe from index.html -> 34 ok, 0 fail",
-      "node --check frontend/js/init.js frontend/js/chat.js frontend/js/health.js frontend/js/api.js frontend/js/sdca-lab.js -> passed",
-      "python -m pytest tests/contracts/test_contract_runtime_official.py tests/contracts/test_contract_endpoints.py tests/test_runtime_smoke.py tests/test_pipeline_smoke.py tests/test_sdca_lite.py tests/test_neural_decision.py -> 82 passed",
-      "python -m ruff check frontend tests/contracts/test_contract_runtime_official.py tests/test_sdca_lite.py -> passed",
-      "python -m ruff format --check frontend tests/contracts/test_contract_runtime_official.py tests/test_sdca_lite.py -> passed",
-      "git diff --check -> passed"
+      "node --check frontend/js/chat.js frontend/js/init.js frontend/js/sdca-lab.js frontend/js/render-data-quality.js frontend/js/render-explanation.js -> passed",
+      "python -m py_compile src/core/pipeline/prompts/_prompts.py src/core/pipeline/prompts/builder.py src/core/pipeline/nodes/ceo.py -> passed",
+      "python -m pytest tests/contracts/test_contract_ceo.py tests/test_runtime_smoke.py tests/contracts/test_contract_runtime_official.py tests/contracts/test_contract_endpoints.py tests/test_pipeline_smoke.py tests/test_sdca_lite.py tests/test_neural_decision.py -> 115 passed, 5 warnings",
+      "python -m ruff check src/core/pipeline/prompts/_prompts.py src/core/pipeline/prompts/builder.py src/core/pipeline/nodes/ceo.py tests/contracts/test_contract_ceo.py tests/test_runtime_smoke.py tests/contracts/test_contract_runtime_official.py tests/test_sdca_lite.py -> passed",
+      "python -m ruff format --check src/core/pipeline/prompts/_prompts.py src/core/pipeline/prompts/builder.py src/core/pipeline/nodes/ceo.py tests/contracts/test_contract_ceo.py tests/test_runtime_smoke.py tests/contracts/test_contract_runtime_official.py tests/test_sdca_lite.py -> passed",
+      "git diff --check -> passed",
+      "GET /health, /health/details, /capabilities, /product/manifest, /api/chart-data/AAPL?timeframe=6M -> 200",
+      "POST /api/sdca/evaluate -> 200 BLOCK",
+      "POST /experts/neural-decision/predict -> 200",
+      "POST /task/submit -> 200, 23 NDJSON lines, STREAM_END true, Portuguese Bob capability response",
+      "Playwright browser chat -> Portuguese Bob response rendered, input active, console warnings 0, errors 0",
+      "Playwright SDCA lab -> FOMO preset + Evaluate produced POST /api/sdca/evaluate 200 and rendered BLOCK"
     ],
     "files_changed": [
-      "frontend/index.html",
-      "frontend/css/charts.css",
-      "frontend/css/chat.css",
-      "frontend/css/topbar.css",
-      "frontend/css/panels.css",
-      "frontend/js/capabilities.js",
-      "frontend/js/chat.js",
-      "frontend/js/health.js",
-      "frontend/js/init.js",
-      "frontend/js/journal.js",
-      "frontend/js/manifest.js",
-      "frontend/js/metrics.js",
-      "frontend/js/neural-logs.js",
-      "tests/contracts/test_contract_runtime_official.py",
-      "tests/test_sdca_lite.py",
       ".f51/TASK_BOARD.md",
       ".f51/RISK_REGISTER.md",
       ".f51/checkpoints/latest.json",
-      "runtime/checkpoints/latest.json"
+      "runtime/checkpoints/latest.json",
+      "frontend/index.html",
+      "frontend/js/chat.js",
+      "frontend/js/init.js",
+      "frontend/js/render-data-quality.js",
+      "frontend/js/render-explanation.js",
+      "frontend/js/sdca-lab.js",
+      "src/core/pipeline/nodes/ceo.py",
+      "src/core/pipeline/prompts/_prompts.py",
+      "src/core/pipeline/prompts/builder.py",
+      "tests/contracts/test_contract_ceo.py",
+      "tests/contracts/test_contract_runtime_official.py",
+      "tests/test_runtime_smoke.py",
+      "tests/test_sdca_lite.py"
     ],
     "artifacts": [
-      "output/playwright/superezio-bob-unified-panel.png"
+      "output/playwright/superezio-bob-fixed-final.png",
+      "runtime/logs/api-bob-final-20260520-201700.out.log",
+      "runtime/logs/api-bob-final-20260520-201700.err.log"
     ]
   },
   "risks": [
     {
       "severity": "low",
-      "description": "SSE checks end by timeout because the streams remain open by design.",
-      "mitigation": "Treat the received snapshot/heartbeat/log events as the pass signal, not curl exit code 28."
+      "description": "Existing browser tabs may retain stale cached HTML until hard reload.",
+      "mitigation": "Final validation used a cache-busted page; hard refresh an old tab if it still has stale controls."
+    },
+    {
+      "severity": "low",
+      "description": "SSE routes intentionally remain open; timeout is not a failure after events are received.",
+      "mitigation": "Use received snapshot/heartbeat/log/task STREAM_END as pass criteria."
     },
     {
       "severity": "medium",
-      "description": "Bob now answers broader natural-language finance questions, but output remains guidance and analysis, not execution.",
-      "mitigation": "Keep SDCA/firewall and no-broker language in the runtime path."
+      "description": "Untracked signal-ledger files existed during this pass and were not part of this Bob/UI commit.",
+      "mitigation": "Ignored them for this focused patch; review separately before committing."
     }
   ],
-  "next_step": "Run one full browser-based Bob conversation from the new panel and tune latency/copy based on the live user flow.",
+  "previous_uncommitted_checkpoint_preserved": {
+    "session": "signal-ledger-v1-implementation",
+    "owner": "Cursor",
+    "note": "An uncommitted checkpoint for signal ledger work was present before this required latest-checkpoint update. Its files were not modified or committed by this Bob/UI repair pass."
+  },
+  "next_step": "Hard refresh the operator browser tab, then run one real ticker-risk question in Portuguese and one SDCA FOMO evaluation as a quick pre-demo check.",
   "owner": "Codex"
 }

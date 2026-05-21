@@ -108,4 +108,18 @@
   }
 
   window.SZ.sdcaLab = { toggle, setPreset, run };
+
+  const form = $("sdca-form");
+  if (form) {
+    form.addEventListener("submit", ev => {
+      ev.preventDefault();
+      run();
+    });
+  }
+  const runBtn = $("sdca-run-btn");
+  if (runBtn) runBtn.addEventListener("click", run);
+  const fomoBtn = $("sdca-preset-fomo");
+  if (fomoBtn) fomoBtn.addEventListener("click", () => setPreset("fomo"));
+  const safeBtn = $("sdca-preset-safe");
+  if (safeBtn) safeBtn.addEventListener("click", () => setPreset("safe"));
 })();

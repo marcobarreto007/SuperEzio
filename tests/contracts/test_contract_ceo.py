@@ -17,7 +17,7 @@ from src.core.pipeline.prompts._prompts import (
     QWEN_PERSONA,
     MODEL_PROMPTS,
 )
-from src.core.pipeline.nodes.ceo import capabilities_text
+from src.core.pipeline.nodes.ceo import capabilities_text, enforce_advisor_boundary
 
 
 # ---------------------------------------------------------------------------
@@ -25,10 +25,11 @@ from src.core.pipeline.nodes.ceo import capabilities_text
 # ---------------------------------------------------------------------------
 
 
-def test_ceo_system_prompt_is_english():
+def test_ceo_system_prompt_is_natural_language_advisor():
     prompt = ceo_system_prompt()
-    assert "ENGLISH" in prompt
-    assert "LANGUAGE" in prompt
+    assert "natural-language financial analysis" in prompt
+    assert "user's language" in prompt
+    assert "not broker execution" in prompt
 
 
 def test_ceo_system_prompt_non_empty():
@@ -69,9 +70,10 @@ def test_build_ceo_prompt_ticker_analysis():
         "f51_verdict": {"confidence": 0.965, "passed": True},
     }
     prompt = build_ceo_prompt(state)
-    assert "VERDICT" in prompt
+    assert "Bob's read" in prompt
     assert "AAPL" in prompt
-    assert "LANGUAGE: WRITE 100% IN ENGLISH" in prompt
+    assert "answer in the user's language" in prompt
+    assert "direct trade order" in prompt
 
 
 def test_build_ceo_prompt_explain_capabilities():
@@ -99,6 +101,16 @@ def test_capabilities_text_lists_real_pipeline_tools():
     assert "freely call tools by itself" in text
 
 
+def test_capabilities_text_answers_portuguese_without_trade_order():
+    text = capabilities_text(
+        "Bob, em portugues simples, o que voce pode fazer por mim como copiloto financeiro?"
+    )
+    assert "Bob CEO" in text
+    assert "linguagem natural" in text
+    assert "nao executo corretora" in text
+    assert "ordem de compra ou venda" in text
+
+
 def test_build_ceo_prompt_missing_ceo():
     text = missing_ceo_text(ticker="AAPL", route="ticker_analysis", local_ready=False)
     assert "MODEL_MISSING" in text
@@ -123,7 +135,7 @@ def test_assistant_prefix_explain_returns_empty():
 
 def test_assistant_prefix_with_ticker():
     state = {"ticker": "AAPL", "intent": "ticker_analysis", "route": "ticker_analysis"}
-    assert "VERDICT" in _ceo_assistant_prefix(state)
+    assert "Bob CEO guidance" in _ceo_assistant_prefix(state)
 
 
 def test_assistant_prefix_market_scan():
@@ -285,14 +297,33 @@ def test_format_mandamentos_with_rules():
 # ---------------------------------------------------------------------------
 
 
-def test_qwen_system_prompt_has_verdict_format():
-    assert "VERDICT: BUY / SELL / HOLD" in QWEN_SYSTEM_PROMPT
+def test_qwen_system_prompt_blocks_trade_orders():
+    assert "Do not issue direct trade orders" in QWEN_SYSTEM_PROMPT
+    assert "naked trade verdict" in QWEN_SYSTEM_PROMPT
 
 
 def test_qwen_persona_has_bob():
     assert "Bob" in QWEN_PERSONA
 
 
-def test_prompts_are_english():
-    assert "ENGLISH" in QWEN_SYSTEM_PROMPT
-    assert "English" in QWEN_PERSONA
+def test_prompts_follow_user_language():
+    assert "user's language" in QWEN_SYSTEM_PROMPT
+    assert "user's language" in QWEN_PERSONA
+
+
+def test_enforce_advisor_boundary_rewrites_direct_trade_signal():
+    state = {
+        "message": "explique em portugues antes de comprar AAPL",
+        "ticker": "AAPL",
+        "f51_verdict": {"confidence": 0.91},
+        "neural_decision": {"regime": "trend_real", "uncertainty": 0.33, "drawdown_risk": 0.25},
+        "sdca_firewall": {"decision": "ALLOW"},
+    }
+    text = enforce_advisor_boundary(
+        "VERDICT: 14 days AAPL NYSE -> SHORT. Expected return: -12.4%.",
+        state,
+    )
+
+    assert "ordem de trade" in text
+    assert "SHORT" not in text
+    assert "comprar" in text or "Antes de agir" in text

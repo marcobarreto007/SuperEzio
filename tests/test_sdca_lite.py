@@ -238,8 +238,11 @@ def test_frontend_has_sdca_lab_screen():
     assert 'id="sdca-lab"' in html
     assert 'id="sdca-lab-btn"' in html
     assert 'id="sdca-form"' in html
+    assert 'id="sdca-run-btn" type="button"' in html
     assert 'src="js/sdca-lab.js"' in html
     assert "function buildCandidate" in sdca_lab_js
     assert "async function run" in sdca_lab_js
     assert "function renderResult" in sdca_lab_js
+    assert 'form.addEventListener("submit"' in sdca_lab_js
+    assert 'runBtn.addEventListener("click", run)' in sdca_lab_js
     assert 'API + "/api/sdca/evaluate"' in api_js

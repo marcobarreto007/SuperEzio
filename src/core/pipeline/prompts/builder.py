@@ -1,4 +1,4 @@
-"""CEO prompt builder — Qwen3.6-35B, section-based, no model branching."""
+"""CEO prompt builder â€” Qwen3.6-35B, section-based, no model branching."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def _ceo_assistant_prefix(state: PipelineState) -> str:
             "Based on collected data:\n"
         )
     if ticker:
-        return "VERDICT: "
+        return "Bob CEO guidance:\n"
     has_data = bool(ticker or state.get("data_context") or state.get("expert_summary"))
     if intent == "general_question" and not has_data:
         return ""
@@ -241,7 +241,7 @@ def build_ceo_prompt(
     route = state.get("route", "general")
     ticker = state.get("ticker", "")
 
-    # ── Casual / greeting ──
+    # â”€â”€ Casual / greeting â”€â”€
     has_financial = bool(
         ticker
         or state.get("data_context")
@@ -274,7 +274,7 @@ def build_ceo_prompt(
             ]
         )
 
-    # ── Structured analysis ──
+    # â”€â”€ Structured analysis â”€â”€
     # Extract time horizon from the user message
     _horizon_match = re.search(
         r"(\d+)\s*(day|days|week|weeks|month|months)",
@@ -290,62 +290,50 @@ def build_ceo_prompt(
     horizon_constraint = (
         f"\n[CRITICAL_TIMEFRAME_CONSTRAINT]\n"
         f"The user's investment horizon is: {effective_horizon}.\n"
-        f"Your TIMEFRAME field MUST be '{effective_horizon}' — NOT 1-3 days, NOT any other value.\n"
-        f"Your TARGET price must be the expected price at the END of this timeframe ({effective_horizon}).\n"
-        f"Your MOVEMENT % must reflect the expected change over {effective_horizon}.\n"
-        f"If you cannot estimate a {effective_horizon} target, set CONFIDENCE lower and explain why.\n"
-        f"DO NOT default to 1-3 days. DO NOT shorten the user's timeframe.\n"
+        f"Discuss risk and evidence in that horizon. Do not shorten the user's timeframe.\n"
+        f"If the evidence cannot support a confident view for {effective_horizon}, say so plainly.\n"
     )
 
     parts = [
         "PIPELINE_OBLIGATION: "
         "You are NOT a standalone LLM. A 10-node deterministic pipeline ran "
-        "BEFORE this prompt. Its output is below — EVERY module with data "
-        "MUST appear in your answer. The RL RewardFunction (PnL alignment + "
-        "risk-adjustment + confidence calibration) and SDCA-Lite Cognitive "
-        "Risk Firewall (ghost token detection: FOMO, revenge trade, "
-        "overconfidence, leverage impulse) score every verdict. Skipping a "
-        "module with data IS a violation — your reward signal depends on "
-        "complete module coverage.\n\n"
-        "LANGUAGE: WRITE 100% IN ENGLISH. Even if the user wrote in Portuguese, "
-        "Spanish, or any other language, your ENTIRE response MUST be in ENGLISH. "
-        "Section headers, explanations, verdicts — EVERYTHING in English.\n\n"
-        "You are the CEO of SuperEzio (Bob). You decide BUY, SELL, or HOLD. "
-        "You are a TRADING DECISION ENGINE. The user is putting real money on the line "
-        "and wants YOUR OPINION — not a data report, not a WATCHLIST, not a hedge.\n\n"
+        "BEFORE this prompt. Its output is below. EVERY module with data "
+        "MUST appear in your answer. The RL RewardFunction and SDCA-Lite Cognitive "
+        "Risk Firewall score every answer. Skipping a module with data is invalid.\n\n"
+        "LANGUAGE: answer in the user's language when it is clear. If the user wrote "
+        "in Portuguese, answer in Portuguese. If the user wrote in English, answer in English.\n\n"
+        "You are the CEO of SuperEzio (Bob). You provide financial decision support "
+        "in natural language. You are NOT a broker execution engine and you must not "
+        "turn the answer into a direct trade order.\n\n"
         "MANDATORY FORMAT:\n"
         "```\n"
-        "VERDICT: BUY / SELL / HOLD\n"
-        "CONFIDENCE: 0-100%\n"
-        "TIMEFRAME: must match user's horizon\n"
-        "ENTRY: current price\n"
-        "TARGET: expected price at end of timeframe\n"
-        "MOVEMENT: expected % gain or drop over the full timeframe\n"
-        "STOP LOSS: suggested stop level\n"
+        "Bob's read: plain-language answer\n"
+        "Confidence: 0-100%, with uncertainty\n"
+        "Evidence: what the modules say\n"
+        "Risks to check before acting: concrete checklist\n"
+        "Practical next step: study, wait, review, watchlist, avoid, or small-position planning\n"
         "```\n\n"
         "Then explain WHY. Reference EVERY available module below by name:\n"
         "- DATA: what the DataCollector shows\n"
         "- PENNYLAB: what forensic experts detected\n"
         "- EXPERTS: what the expert committee concluded\n"
-        "- NEURAL_DECISION: directional probability, expected return, regime, drawdown risk\n"
+        "- NEURAL_DECISION: directional probability, expected return signal, regime, drawdown risk\n"
         "- SDCA_FIREWALL: defensive ALLOW, BLOCK, or REVIEW gate before final action\n"
         "- RAG_FORENSICS: what historical patterns match\n"
         "- F51_VERDICT: what the unified scoring says\n\n"
-        "If a module has no data, say '[MODULE] MISSING — confidence reduced'.\n"
-        "If a module has data, interpret it into a trading signal.\n\n"
+        "If a module has no data, say '[MODULE] MISSING - confidence reduced'.\n"
+        "If a module has data, interpret it into risk and evidence, not a broker instruction.\n\n"
         "RULES:\n"
-        "- LANGUAGE: ENGLISH ONLY. NOT Portuguese. NOT any other language. ENGLISH.\n"
-        "- ALWAYS give BUY, SELL, or HOLD — never refuse\n"
-        "- Give a NUMERIC price target and % movement\n"
-        "- Cite evidence_ids for every claim\n"
-        "- Be AGGRESSIVE in your interpretation — the user wants conviction\n"
-        "- Answer in English only",
+        "- Answer the user's actual question first.\n"
+        "- Never output a naked directive like 'VERDICT: ... -> SHORT'.\n"
+        "- Never issue a direct buy/sell/short order.\n"
+        "- Cite evidence_ids for every claim.\n"
+        "- Be direct, but keep claims proportional to uncertainty and data quality."
         "",
         f"TASK: {raw_message}",
         f"INTENT: {intent} route={route}",
         horizon_constraint,
     ]
-
     if intent == "explain_capabilities":
         parts.append(
             "This is a method/capability question, not a market scan. "

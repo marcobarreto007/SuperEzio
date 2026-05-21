@@ -8,6 +8,8 @@
 
   function ensureCard(ceo) {
     if (_card) return _card;
+    ceo = ceo || (SZ.chat && SZ.chat.currentCEO);
+    if (!ceo || !ceo.bubble) return null;
 
     var info = SZ.cards.makeCard("Explanation", "LIVE", "neutral", "file-text");
     info.card.classList.add("card--explanation");
@@ -42,6 +44,7 @@
 
     _buffer += text || "";
     var info = ensureCard(ceo);
+    if (!info) return null;
 
     var content = info.body.querySelector(".explanation-content");
     if (content) {
@@ -67,6 +70,7 @@
     _finalized = true;
 
     var info = ensureCard(ceo);
+    if (!info) return null;
 
     var content = info.body.querySelector(".explanation-content");
     if (content) {

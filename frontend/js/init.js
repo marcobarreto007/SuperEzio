@@ -223,11 +223,17 @@
         for (var i = 0; i < lines.length; i++) {
           var line = lines[i].trim();
           if (!line) continue;
+          var ev = null;
           try {
-            var ev = JSON.parse(line);
-            if (SZ.handleEvent) SZ.handleEvent(ev);
+            ev = JSON.parse(line);
           } catch (parseErr) {
             console.warn("[SZ] NDJSON parse:", parseErr, line);
+            continue;
+          }
+          try {
+            if (SZ.handleEvent) SZ.handleEvent(ev);
+          } catch (handlerErr) {
+            console.warn("[SZ] event handler:", handlerErr, ev);
           }
         }
       }
@@ -235,8 +241,10 @@
       if (buffer.trim()) {
         try {
           var ev2 = JSON.parse(buffer.trim());
-          if (SZ.handleEvent) SZ.handleEvent(ev2);
-        } catch (e) { /* ignore */ }
+          if (SZ.handleEvent) {
+            try { SZ.handleEvent(ev2); } catch (handlerErr2) { console.warn("[SZ] event handler:", handlerErr2, ev2); }
+          }
+        } catch (e) { console.warn("[SZ] NDJSON parse:", e, buffer.trim()); }
       }
 
     } catch (err) {
@@ -244,6 +252,9 @@
       if (SZ.handleEvent) {
         SZ.handleEvent({ type: "ERROR", message: "Connection error: " + err.message });
       }
+      if (inp) inp.disabled = false;
+      if (btn) btn.disabled = false;
+    } finally {
       if (inp) inp.disabled = false;
       if (btn) btn.disabled = false;
     }
@@ -375,6 +386,10 @@
     var sdcaLabBtn = document.getElementById("sdca-lab-btn");
     if (sdcaLabBtn) {
       sdcaLabBtn.addEventListener("click", function () {
+        if (SZ.sdcaLab && typeof SZ.sdcaLab.toggle === "function") {
+          SZ.sdcaLab.toggle();
+          return;
+        }
         var panel = document.getElementById("sdca-lab");
         if (panel) panel.classList.toggle("open");
       });
@@ -382,11 +397,14 @@
     var sdcaLabClose = document.getElementById("sdca-lab-close");
     if (sdcaLabClose) {
       sdcaLabClose.addEventListener("click", function () {
+        if (SZ.sdcaLab && typeof SZ.sdcaLab.toggle === "function") {
+          SZ.sdcaLab.toggle(false);
+          return;
+        }
         var panel = document.getElementById("sdca-lab");
         if (panel) panel.classList.remove("open");
       });
     }
-
     /* Portfolio toggle */
     var pfBtn = document.getElementById("pf-btn");
     if (pfBtn) {

@@ -155,7 +155,7 @@ def test_ceo_system_prompt():
 
     prompt = ceo_system_prompt()
     assert len(prompt) > 100
-    assert "ENGLISH" in prompt
+    assert "user's language" in prompt
 
 
 def test_build_ceo_prompt_ticker():
@@ -169,7 +169,7 @@ def test_build_ceo_prompt_ticker():
         "time_horizon": "14 days",
     }
     prompt = build_ceo_prompt(state)
-    assert "VERDICT" in prompt
+    assert "Bob's read" in prompt
     assert "AAPL" in prompt
 
 

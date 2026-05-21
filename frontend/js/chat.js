@@ -67,5 +67,6 @@
   }
 
   window.SZ.chat = { addMessage, ensureCEOMessage, finishCEOMessage, appendChunk, el, esc, stripThink, get currentCEO() { return currentCEO; }, set currentCEO(v) { currentCEO = v; } };
+  window.SZ.esc = esc;
   window.SZ.dom = { el, esc };
 })();
