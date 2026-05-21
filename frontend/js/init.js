@@ -119,7 +119,7 @@
     var tk = String(ticker || "").toLowerCase();
     if (!tk) return false;
     if (raw.indexOf(tk) >= 0) return true;
-    return /\b(chart|ticker|stock|acao|ativo|compr|vend|risk|risco|portfolio|market|mercado|price|preco|analysis|analise|strategy|estrategia|invest|buy|sell|valuation|dividend|swing|trade|trading)\b/i.test(raw);
+    return /\b(chart|grafico|gráfico|ticker atual|ativo atual|ativo na tela|na tela|no grafico|no gráfico|este ativo|esse ativo|esta acao|esta ação|essa acao|essa ação|this chart|this stock|this asset|current chart|current ticker|current stock|current asset|olhando isso|olhando o grafico|olhando o gráfico|candle|candles|vela|velas|rsi|macd|sma|ema|suporte|resistencia|resistência)\b/i.test(raw);
   }
 
   function setOpsCard(id, state, text) {

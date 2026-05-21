@@ -21,6 +21,21 @@ def test_english_scan_requests_route_to_market_scan():
         assert plan["filters"]["sector"] == "Information Technology"
 
 
+def test_portuguese_high_risk_small_market_request_routes_to_market_scan():
+    from src.core.pipeline.intents import parse_user_intent
+
+    message = (
+        "Bob , eu tenho 100 cada para investir com risco alto , "
+        "pesquisa para mim mercado de pequeno $$$"
+    )
+
+    plan = parse_user_intent(message).to_plan()
+
+    assert plan["route"] == "market_scan"
+    assert plan["intent"] == "market_scan"
+    assert plan["ticker"] == ""
+
+
 def test_market_scanner_imports_from_production_path():
     from src.core.scanner import MarketScanner
 

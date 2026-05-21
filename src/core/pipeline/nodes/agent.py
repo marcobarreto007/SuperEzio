@@ -71,15 +71,124 @@ def _parse_tool_call(text: str) -> dict[str, Any] | None:
     except Exception:
         return None
 
+
+def _is_portuguese_request(message: str) -> bool:
+    raw = (message or "").lower()
+    return any(
+        token in raw
+        for token in (
+            "bob",
+            "voce",
+            "você",
+            "tenho",
+            "investir",
+            "risco",
+            "mercado",
+            "pesquisa",
+            "pequeno",
+            "comprar",
+        )
+    )
+
+
+def _candidate_line(item: dict[str, Any]) -> str:
+    ticker = item.get("ticker") or "?"
+    price = item.get("price")
+    provider = item.get("provider") or item.get("source") or "provider"
+    if price is None:
+        return f"- {ticker}: preco indisponivel no scan; fonte {provider}."
+    return f"- {ticker}: preco observado {price}; fonte {provider}."
+
+
+def _market_scan_answer(state: dict) -> str:
+    message = state.get("message", "")
+    scan = state.get("scan") or {}
+    candidates = [c for c in scan.get("candidates", []) if isinstance(c, dict)]
+    errors = scan.get("source_errors") or []
+
+    if _is_portuguese_request(message):
+        lines = [
+            "Bob CEO: pesquisei o universo de mercado pequeno com perfil de alto risco, mas isso e watchlist para estudo, nao ordem de compra.",
+            "",
+        ]
+        if candidates:
+            lines.append("Candidatos retornados pelo scanner:")
+            lines.extend(_candidate_line(item) for item in candidates[:6])
+        else:
+            lines.append(
+                "O scanner nao retornou candidatos confiaveis agora. Eu nao vou inventar tickers."
+            )
+        if errors:
+            lines.append("")
+            lines.append("Limite de dados: " + "; ".join(str(err) for err in errors[:3]))
+        lines.extend(
+            [
+                "",
+                "Para 100 por posicao e risco alto, meu filtro pratico e:",
+                "- liquidez suficiente para entrar e sair sem spread absurdo;",
+                "- evitar empresa com diluicao agressiva, reverse split recente ou comunicados obscuros;",
+                "- procurar catalisador verificavel, nao so hype social;",
+                "- limitar perda maxima por posicao antes de clicar em qualquer coisa;",
+                "- estudar filings/noticias antes de transformar a lista em compra.",
+                "",
+                "Proximo passo seguro: escolha 3 tickers dessa lista e me peca uma checagem ticker por ticker com risco, liquidez, manipulacao e plano de perda maxima.",
+            ]
+        )
+        return "\n".join(lines)
+
+    lines = [
+        "Bob CEO: I scanned the small-cap/high-risk market universe, but this is a study watchlist, not a buy order.",
+        "",
+    ]
+    if candidates:
+        lines.append("Scanner candidates:")
+        lines.extend(_candidate_line(item) for item in candidates[:6])
+    else:
+        lines.append("The scanner did not return reliable candidates right now. I will not invent tickers.")
+    if errors:
+        lines.append("")
+        lines.append("Data limit: " + "; ".join(str(err) for err in errors[:3]))
+    lines.extend(
+        [
+            "",
+            "For 100 per position with high risk, filter for liquidity, dilution risk, recent filings, spread, real catalysts, and a predefined maximum loss.",
+            "Next safe step: pick 3 tickers from the list and ask me for ticker-by-ticker risk, liquidity, manipulation, and loss-limit checks.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _loop_failsafe_answer(state: dict) -> str:
+    if state.get("scan"):
+        return _market_scan_answer(state)
+    if _is_portuguese_request(state.get("message", "")):
+        return (
+            "Bob CEO: encerrei o ciclo de ferramentas antes de gastar mais tempo. "
+            "Ainda posso ajudar, mas preciso reduzir o escopo: mande um ticker, setor, pais ou diga se quer somente uma watchlist de estudo."
+        )
+    return (
+        "Bob CEO: I stopped the tool cycle before wasting more time. "
+        "Narrow the scope to a ticker, sector, country, or a study watchlist and I can continue."
+    )
+
+
+def _final_payload(content: str, iterations: int) -> dict[str, Any]:
+    return {
+        "final": content,
+        "agent_tool_call": {"tool": "final_answer", "args": {"content": content}},
+        "agent_iterations": iterations + 1,
+    }
+
+
 async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None) -> dict:
     writer = get_stream_writer()
     run_id = state.get("run_id", "")
     iterations = state.get("agent_iterations", 0)
 
     if iterations > 7:
-        # Failsafe
-        writer({"type": "CHUNK", "content": "\n[SYSTEM] Agent loop timeout. Too many tool calls."})
-        return {"agent_tool_call": {"tool": "final_answer", "args": {"content": "I apologize, but I encountered an error and could not complete the analysis in time."}}}
+        content = _loop_failsafe_answer(state)
+        writer({"type": "CHUNK", "content": content})
+        return _final_payload(content, iterations)
 
     writer(
         {
@@ -92,6 +201,20 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
     if gateway is None:
         return {"errors": state.get("errors", []) + ["no_gateway"]}
+
+    if state.get("route") == "market_scan" and state.get("scan"):
+        content = _market_scan_answer(state)
+        writer({"type": "CHUNK", "content": content})
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "ceo_primary",
+                "status": "completed",
+                "provider": "deterministic_market_scan",
+            }
+        )
+        return _final_payload(content, iterations)
 
     # Build ReAct Prompt
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]

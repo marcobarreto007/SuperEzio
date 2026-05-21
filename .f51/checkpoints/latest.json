@@ -1,27 +1,29 @@
 {
-  "date_local": "2026-05-21T19:09:57-04:00",
-  "session": "Bob_Clean_Chat_Final",
+  "date_local": "2026-05-21T19:31:22-04:00",
+  "session": "Bob_Market_Scan_Loop_Fix",
   "status": "completed",
   "what_was_done": [
-    "Kept the Bob-first UI and removed the remaining visible chat clutter by hiding pipeline, explanation, and diagnostic cards by default.",
-    "Added a frontend debug gate: diagnostic renderers only appear when window.SZ_SHOW_DEBUG_CARDS is explicitly set to true.",
-    "Preserved structured backend events for debugging while keeping the default user conversation clean.",
-    "Verified the local CEO on 127.0.0.1:8082 was down during validation, restarted it, and confirmed /health plus /v1/models.",
-    "Updated the runtime contract test to prevent pipeline/explanation debug cards from returning as default chat UI."
+    "Stopped Bob's market_scan agent loop from re-entering tool calls after scan results already exist.",
+    "Replaced the raw '[SYSTEM] Agent loop timeout. Too many tool calls.' chat output with a user-safe Bob response.",
+    "Added deterministic market-scan finalization that returns a small-cap/high-risk study watchlist without inventing tickers or issuing buy orders.",
+    "Fixed the browser chart-context gate so broad market research prompts no longer inherit the visible AAPL ticker unless the user mentions the ticker or chart/current asset.",
+    "Added regression coverage for the exact Portuguese high-risk small-market request and for the agent loop failsafe."
   ],
   "evidence": [
-    "node --check frontend/js/events.js passed.",
-    "node --check frontend/js/api.js passed.",
-    "python -m pytest tests/contracts/test_contract_runtime_official.py tests/contracts/test_contract_endpoints.py passed: 20 passed.",
+    "python -m pytest tests/test_agent_market_scan_loop.py -q passed: 2 passed.",
+    "python -m pytest tests/test_market_scanner.py tests/test_agent_market_scan_loop.py -q passed: 6 passed, 2 warnings.",
+    "python -m pytest tests/contracts/test_contract_runtime_official.py tests/contracts/test_contract_endpoints.py -q passed: 20 passed.",
+    "python -m ruff check src/core/pipeline/nodes/agent.py tests/test_agent_market_scan_loop.py tests/test_market_scanner.py passed.",
+    "node --check frontend/js/init.js passed.",
     "git diff --check passed.",
-    "CEO health returned {\"status\":\"ok\"} after restart and /v1/models listed superezio-ceo-intent-merged.Q4_K_M.gguf.",
-    "Playwright UI send test runtime/logs/ui-bob-clean-chat.png returned exactly one clean Bob answer: Sim, estou online e pronto para operar.",
-    "Playwright confirmed pipelineBars=0, cards=0, explanationCards=0, hasDebugText=false, errors=[] and input/send re-enabled."
+    "API health returned 200 on http://127.0.0.1:8002/health after restart; CEO health/model check passed on 127.0.0.1:8082.",
+    "Direct /task/submit with the user's exact prompt reached STREAM_END in 26.27s, chunk_chars=1034, has_system=false, has_timeout=false.",
+    "Playwright browser send with the user's exact prompt posted ticker='', chart_context_len=0, rendered the scanner answer, and confirmed pipeline_cards=0, explanation_cards=0, console_errors=[]."
   ],
   "risks": [
-    "Full repo test suite was not run; validation was scoped to frontend syntax, runtime contracts/endpoints, CEO health, and browser send flow.",
-    "Unrelated dirty files remain outside this fix, including .f51 inventory artifacts, Dockerfile, Makefile, workflow edits, deleted skills, and deleted corpus files.",
-    "runtime/logs contains local screenshots and logs created for validation and remains untracked."
+    "Full repo test suite was not run; validation was scoped to the broken market_scan path, frontend syntax, runtime contracts/endpoints, and live browser/API proof.",
+    "The scanner can still return broad FinanceDatabase symbols when no country/sector filter is provided; Bob now labels this as a study watchlist, not a recommendation.",
+    "Unrelated dirty files remain outside this fix, including .f51 inventory artifacts, Dockerfile, Makefile, workflow edits, deleted skills, deleted corpus files, and runtime/logs."
   ],
-  "next_step": "Review unrelated dirty workspace changes separately before any broader save."
+  "next_step": "Next safest patch: improve market_scan filters for 'mercado pequeno' so the scanner prefers true small-cap/low-price candidates with liquidity checks instead of alphabetic FinanceDatabase results."
 }
