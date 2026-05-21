@@ -124,6 +124,17 @@ def _render_module_contract(state: PipelineState) -> str:
 
 def _evaluate_module_coverage(text: str, state: PipelineState) -> tuple[list[str], list[str]]:
     """Return (required_modules, missing_modules) for CEO output."""
+    route = state.get("route", "general")
+    has_market_context = bool(
+        state.get("ticker")
+        or state.get("data_context")
+        or state.get("f51_verdict")
+        or state.get("neural_decision")
+        or (state.get("pennylab") or state.get("pennylab_result") or {}).get("decision")
+    )
+    if route == "general" and not has_market_context:
+        return [], []
+
     presence = _required_module_presence(state)
     required = [name for name, ok in presence.items() if ok]
     if not required:
@@ -245,31 +256,18 @@ def build_ceo_prompt(
     has_financial = bool(
         ticker
         or state.get("data_context")
-        or state.get("expert_summary")
+        or state.get("f51_verdict")
+        or state.get("neural_decision")
         or bool((state.get("pennylab") or state.get("pennylab_result") or {}).get("decision"))
     )
     msg_has_ticker = bool(re.search(r"\b[A-Z]{1,5}(?:\.[A-Z]{1,2})?\b", raw_message))
-    msg_has_fin = bool(
-        re.search(
-            r"\b(analyz|analis|invest|trade|buy|sell|stock|price|chart|trend|"
-            r"volume|market|risk|portfolio|dividend|candle|bullish|bearish|"
-            r"RSI|MACD|SMA|EMA|Bollinger|support|resistance|pattern|forecast|"
-            r"quarterly|earnings|financial|statement|P/E|market cap|sector)\b",
-            raw_message,
-            re.IGNORECASE,
-        )
-    )
-    is_casual = (
-        intent == "general_question"
-        and not has_financial
-        and not msg_has_ticker
-        and not msg_has_fin
-    )
-
-    if is_casual:
+    if intent == "general_question" and not has_financial and not msg_has_ticker:
         return "\n\n".join(
             [
                 MODEL_PROMPTS["local"]["persona"],
+                "Answer the user's question directly in natural language. "
+                "If the user asks for financial education or general risk advice, "
+                "give practical guidance without pretending market data was collected.",
                 f"USER: {raw_message}",
             ]
         )

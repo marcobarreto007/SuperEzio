@@ -197,6 +197,18 @@ def _safe_advisor_text(state: dict, generated: str) -> str:
     return "\n".join(lines)
 
 
+def _is_general_no_market_context(state: dict) -> bool:
+    """General education/chat path with no collected market evidence."""
+    return bool(
+        state.get("route") == "general"
+        and not state.get("ticker")
+        and not state.get("data_context")
+        and not state.get("f51_verdict")
+        and not state.get("neural_decision")
+        and not (state.get("pennylab") or state.get("pennylab_result") or {}).get("decision")
+    )
+
+
 def enforce_advisor_boundary(text: str, state: dict) -> str:
     """Keep Bob in advisory mode even if the local model emits a trade command."""
     if not text:
@@ -293,8 +305,18 @@ async def node_ceo(
         }
 
     # ── Build prompt ──
-    prompt = build_ceo_prompt(state, mandamentos)
-    system = ceo_system_prompt()
+    if _is_general_no_market_context(state):
+        prompt = state.get("message", "")
+        system = (
+            "You are Bob, the financial CEO assistant in SuperEzio. "
+            "Answer the user's question directly in their language. "
+            "For general financial education, give practical risk guidance, "
+            "do not pretend market data was collected, do not issue a broker order, "
+            "and do not promise returns."
+        )
+    else:
+        prompt = build_ceo_prompt(state, mandamentos)
+        system = ceo_system_prompt()
     assistant_prefix = _ceo_assistant_prefix(state)
 
     # ── Generate ──

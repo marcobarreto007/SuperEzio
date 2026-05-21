@@ -58,6 +58,31 @@ def test_build_ceo_prompt_casual():
     assert "Hello" in prompt
 
 
+def test_build_ceo_prompt_general_financial_question_is_natural():
+    state = {
+        "message": "Quais cuidados devo tomar antes de comprar uma acao?",
+        "intent": "general_question",
+        "route": "general",
+        "sdca_firewall": {"decision": "ALLOW", "confidence": 0.88},
+    }
+    prompt = build_ceo_prompt(state)
+    assert "USER:" in prompt
+    assert "pretending market data was collected" in prompt
+    assert "MANDATORY FORMAT" not in prompt
+
+
+def test_module_coverage_skips_general_without_market_context():
+    state = {
+        "message": "Quais cuidados devo tomar antes de comprar uma acao?",
+        "intent": "general_question",
+        "route": "general",
+        "sdca_firewall": {"decision": "ALLOW", "confidence": 0.88},
+    }
+    required, missing = _evaluate_module_coverage("resposta simples", state)
+    assert required == []
+    assert missing == []
+
+
 def test_build_ceo_prompt_ticker_analysis():
     state = {
         "message": "AAPL 14 dias",

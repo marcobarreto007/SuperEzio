@@ -1,19 +1,29 @@
 {
   "date_local": "2026-05-21T00:00:00-04:00",
   "session": "model-build-surface-removal-2026-05-21",
-  "status": "in_progress",
+  "status": "completed",
   "what_was_done": [
     "Removed model build data roots from active data paths.",
     "Removed local and cloud model build scripts.",
     "Removed trading model-build helper modules.",
+    "Set llama-server reasoning off so direct API calls return message.content reliably.",
+    "Adjusted general no-market CEO route to answer as Bob in natural language without pretending data was collected.",
     "Updated F51 maps, docs, runtime config, and checkpoints to runtime-only posture."
   ],
   "evidence": [
-    "Deletion targets were resolved and verified inside workspace before Remove-Item.",
-    "Validation still pending in this checkpoint update."
+    "rg removed build artifact names over active tree -> no matches",
+    "python -m json.tool .f51/INVENTORY.json .f51/diario_bordo.json .f51/checkpoints/latest.json runtime/checkpoints/latest.json config/model_manifest.json -> passed",
+    "python -m ruff check . -> All checks passed",
+    "python -m ruff format --check . -> 217 files already formatted",
+    "python -m pytest tests -q -> 709 passed, 7 warnings in 67.04s",
+    "CEO health /health -> 200; /v1/models -> 200",
+    "Direct CEO /v1/chat/completions after restart -> content_chars=11, reasoning_chars=0, text=Bob online.",
+    "Direct CEO advice prompt -> content_chars=886, reasoning_chars=0",
+    "API /task/submit natural-language advice prompt -> 200, STREAM_END=true, CHUNK content returned"
   ],
   "risks": [
-    "Model rebuild workflow is no longer available from this repo by design."
+    "Model rebuild workflow is no longer available from this repo by design.",
+    "General advice route still uses concise section headers in some model responses; this is usable but can be made more conversational in a prompt-only pass."
   ],
-  "next_step": "Run lint, tests, endpoint checks, and model response checks."
+  "next_step": "Optional prompt polish for fully conversational Bob responses while keeping ticker analysis structured."
 }
