@@ -14,6 +14,9 @@
 
 ## Done
 
+- [x] 2026-05-20 - Phase 3: f51-tests — pytest markers (smoke/contract/integration/slow) in pyproject.toml + pytest.ini, 28 smoke tests, 220 contract tests, 7 integration tests, marker filters verified. 725/725 passing.
+- [x] 2026-05-20 - Phase 2: f51-runtime — runtime.contract.md created, RUNBOOK.md verified, runtime.yml aligned, checkpoint schema locked.
+- [x] 2026-05-20 - Phase 1: f51-contracts — 6 new contract test files (orchestrator, collector, experts, neural, sdca, guardrails), 54 new tests, all passing.
 - [x] 2026-05-20 - Bob/UI runtime repair: fixed browser event-handler lockups, SDCA lab submit reload, Bob Portuguese capability response, direct-trade guardrail, and validated live UI/API/model streams.
 - [x] 2026-05-20 - Bob unified frontend: delivered TradingView-style market panel + AI assistant + ops/firewall board, removed legacy drawer UI assets, and validated endpoints/data/streams.
 - [x] 2026-05-20 - `/f51-contracts`: added live `agent_server` contract, aligned runtime provider config, and added official runtime contract tests.

@@ -172,6 +172,36 @@
 - Evidence: Created local backup `C:\Users\marco\Desktop\SuperEzio_LOCAL_BACKUPS\pre-tree-audit-20260520-140340.zip` before deletion.
 - Mitigation: Restore from the backup if any removed scratch/prompt artifact is needed.
 
+## 2026-05-20 Phase 1-3: Contracts / Runtime / Tests
+
+### CTR-R3 - Monkeypatch pattern for get_stream_writer [MEDIUM]
+
+- Classification: `test`
+- Risk: New contract tests (orchestrator, collector, experts, neural, sdca, guardrails) monkeypatch `node.get_stream_writer = lambda: _noop_writer` because LangGraph nodes require runnable context. Future LangGraph API changes may break the monkeypatch.
+- Evidence: 54 contract tests depend on this pattern across 6 test files.
+- Mitigation: If LangGraph exposes a test helper for stream_writer, migrate to it. Audit on LangGraph version bumps.
+
+### CTR-R4 - 4 pipeline nodes lack contract coverage [MEDIUM]
+
+- Classification: `contract`
+- Risk: `data`, `rag_forensics`, `pennylab`, `explanation` still have no dedicated contract test file.
+- Evidence: Contract test coverage is ~60% of the 10 pipeline nodes (6 covered, 4 uncovered).
+- Mitigation: Next contract pass should add tests for these remaining nodes.
+
+### TEST-R1 - No CI, marker enforcement is manual [MEDIUM]
+
+- Classification: `test`
+- Risk: pytest markers (smoke, contract, integration, slow) are defined in pyproject.toml + pytest.ini but no CI runs them. Marker filtering must be enforced manually by the operator.
+- Evidence: `python -m pytest tests/ -m smoke -q` works locally (28 tests) but nothing prevents running without filters.
+- Mitigation: Document the marker filters in RUNBOOK.md test section. Consider a pre-commit hook.
+
+### TEST-R2 - Integration tests depend on live servers [MEDIUM]
+
+- Classification: `test`
+- Risk: `tests/test_integration_runtime.py` requires CEO on :8082 and API on :8002. Tests skip silently if servers are down — can mask real regressions.
+- Evidence: `servers_running` fixture calls `pytest.skip()` when health checks fail.
+- Mitigation: Always verify server liveness before interpreting integration test results as full coverage.
+
 ### TREE-R3 - Stale Playwright snapshot was tracked [LOW]
 
 - Classification: `cleanup`

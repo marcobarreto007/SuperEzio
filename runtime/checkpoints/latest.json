@@ -1,12 +1,13 @@
 {
   "project": "SuperEzio / F51 Unified Core",
   "version": "4.0.0",
-  "date_local": "2026-05-20T23:10:00-04:00",
-  "session": "f51-ticker-gate-removal-2026-05-20",
+  "date_local": "2026-05-20T23:50:00-04:00",
+  "session": "f51-contracts-runtime-tests-2026-05-20",
   "status": "COMPLETE",
-  "stage": "pipeline-gate-fix",
+  "stage": "phase-3-f51-tests",
   "operational_contract": {
     "agent_server_contract": ".f51/contracts/agent-server.contract.md",
+    "runtime_contract": ".f51/contracts/runtime.contract.md",
     "runtime_config": "config/runtime.yml",
     "runbook": "docs/runbooks/RUNBOOK.md",
     "github_policy": ".f51/GITHUB_POLICY.json",
@@ -31,41 +32,40 @@
     "expert_provider_route": "deepseek -> https://api.deepseek.com"
   },
   "what_was_done": [
-    "Frontend redesign: futuristic fonts (Outfit/Unbounded), glassmorphic tokens, cyberpunk colors.",
-    "CSS overhaul: base, topbar, chat, cards, charts, sdca, indicators — neon states, scan animations, 3D orb.",
-    "Pipeline fix: removed hard ticker requirement. Deterministic parser routes vague financials to market_scan.",
-    "Orchestrator guard: prevents CEO model from downgrading market_scan to needs_scope.",
-    "SDCA firewall: hard-block only for real trading decisions with ticker present.",
-    "Tested: 'quero uma dica de investimento' now runs full pipeline (market_scan -> 10 candidates -> CEO verdict)."
+    "Phase 1 (f51-contracts): Created 6 contract test files for orchestrator, collector, experts, neural, sdca, guardrails — 54 new tests validating public APIs and invariants.",
+    "Phase 2 (f51-runtime): Created .f51/contracts/runtime.contract.md referencing all 8 existing contracts + health layers + verification matrix.",
+    "Phase 3 (f51-tests): Added pytest markers (smoke, contract, integration, slow) to pyproject.toml and pytest.ini. Applied pytestmark to test_runtime_smoke.py, test_pipeline_smoke.py, test_integration_runtime.py. Verified 28 smoke, 220 contract, 7 integration tests pass with marker filters."
   ],
   "files_changed": [
-    "frontend/index.html",
-    "frontend/css/variables.css",
-    "frontend/css/base.css",
-    "frontend/css/topbar.css",
-    "frontend/css/chat.css",
-    "frontend/css/cards.css",
-    "frontend/css/charts.css",
-    "frontend/css/sdca.css",
-    "frontend/css/indicators.css",
-    "src/core/pipeline/intents.py",
-    "src/core/pipeline/nodes/orchestrator.py",
-    "src/core/pipeline/nodes/sdca_firewall.py",
-    ".f51/checkpoints/latest.json",
+    "pyproject.toml (markers config)",
+    "pytest.ini (markers registration)",
+    "tests/contracts/test_contract_orchestrator.py (NEW)",
+    "tests/contracts/test_contract_collector.py (NEW)",
+    "tests/contracts/test_contract_experts.py (NEW)",
+    "tests/contracts/test_contract_neural.py (NEW)",
+    "tests/contracts/test_contract_sdca.py (NEW)",
+    "tests/contracts/test_contract_guardrails.py (NEW)",
+    "tests/test_runtime_smoke.py (pytestmark)",
+    "tests/test_pipeline_smoke.py (pytestmark)",
+    "tests/test_integration_runtime.py (pytestmark)",
+    ".f51/contracts/runtime.contract.md (NEW)",
+    ".f51/TASK_BOARD.md",
+    ".f51/RISK_REGISTER.md",
     "runtime/checkpoints/latest.json"
   ],
   "evidence": [
-    "python -m ruff check src/core/pipeline/intents.py orchestrator.py sdca_firewall.py -> all passed.",
-    "python -m pytest tests/contracts/test_contract_ceo.py tests/test_runtime_smoke.py -> 53 passed.",
-    "python -m pytest tests/ -q -> 670 passed, 1 fixed (checkpoint), 0 remaining failures.",
-    "curl POST /task/submit 'quero uma dica de investimento' -> market_scan, 10 candidates, SDCA ALLOW, CEO volume anomaly shortlist.",
-    "node --check frontend/js/*.js -> all passed."
+    "python -m pytest tests/ -q -> 725 passed in 72s",
+    "python -m pytest tests/ -m smoke -q -> 28 passed",
+    "python -m pytest tests/contracts/ -q -> 220 passed",
+    "python -m pytest tests/ -m integration -q -> 7 passed",
+    "python -m ruff check src tests -> clean (per prior run)"
   ],
   "risks": [
-    "GPU/CPU usage from CSS animations (backdrop-filter, scanline) on older machines.",
-    "CEO intent classifier timeout may cause deterministic_final fallback on first request after cold start.",
-    "Untracked signal-ledger files pending audit and integration."
+    "CTR-R3: New contract tests monkeypatch get_stream_writer — future LangGraph changes may break the pattern.",
+    "CTR-R4: 6 pipeline nodes now have contracts; 4 remain uncovered (data, rag_forensics, pennylab, explanation).",
+    "TEST-R1: No CI exists — tests only run locally; marker filters must be enforced manually.",
+    "TEST-R2: Integration tests require live CEO:8082 + API:8002; skipped silently if servers are down."
   ],
-  "next_step": "Operator review of live dashboard with non-ticker financial prompts.",
+  "next_step": "Commit all Phase 1-3 changes. Optionally add contract tests for remaining 4 nodes (data, rag_forensics, pennylab, explanation).",
   "owner": "Deep"
 }

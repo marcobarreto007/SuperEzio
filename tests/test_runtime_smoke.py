@@ -4,6 +4,8 @@ import os
 import sys
 import pytest
 
+pytestmark = pytest.mark.smoke
+
 # Ensure src is importable for direct imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 os.environ.setdefault("UNIVERSAL_SKIP_GATEWAY", "1")

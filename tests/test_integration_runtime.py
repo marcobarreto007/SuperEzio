@@ -8,6 +8,8 @@ Prerequisites:
 
 import json
 import pytest
+
+pytestmark = pytest.mark.integration
 import urllib.request
 import urllib.error
 

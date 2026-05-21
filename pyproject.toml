@@ -64,6 +64,14 @@ target-version = "py311"
 [tool.ruff.format]
 line-ending = "lf"
 
+[tool.pytest.ini_options]
+markers = [
+    "smoke: fast runtime and pipeline liveness tests",
+    "contract: public API surface and data invariant tests",
+    "integration: tests requiring live servers (CEO on :8082, API on :8002)",
+    "slow: tests that take more than 5 seconds",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["agent_server*", "core*", "data*", "experts*", "f51*", "tools*", "adapters*"]
