@@ -12,5 +12,5 @@ test-windows:
 
 verify:
 	python -m ruff check src tests
-	python -m black src tests --check
+	python -m ruff format --check src tests
 	python -m pytest tests -q

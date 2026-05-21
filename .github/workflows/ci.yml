@@ -21,8 +21,8 @@ jobs:
           .venv\Scripts\python -m pip install --upgrade pip
           .venv\Scripts\pip install -r requirements-ci.txt
       - name: Lint with Ruff
-        run: .venv\Scripts\ruff check tests
+        run: .venv\Scripts\ruff check src tests
       - name: Format check with Ruff
-        run: .venv\Scripts\ruff format tests --check
+        run: .venv\Scripts\ruff format src tests --check
       - name: Run tests with Pytest
         run: .venv\Scripts\python -m pytest -q

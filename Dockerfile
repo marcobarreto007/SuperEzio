@@ -1,4 +1,4 @@
-# SuperEzio v3.0.0 — Dockerfile multi-stage
+# SuperEzio v4.0.0 — Dockerfile multi-stage
 # ==========================================
 # Stage 1: build  — compila dependências
 # Stage 2: cpu    — runtime CPU-only (cloud)
@@ -22,7 +22,7 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
 # ── Stage 2: CPU Runtime ────────────────────────────────────────────────────
 FROM python:3.12-slim AS cpu
 
-LABEL org.superezio.version="3.0.0"
+LABEL org.superezio.version="4.0.0"
 LABEL org.superezio.target="cpu"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -55,7 +55,7 @@ CMD ["python", "-m", "agent_server.main"]
 # ── Stage 3: GPU Runtime ────────────────────────────────────────────────────
 FROM nvidia/cuda:12.4-runtime-ubuntu22.04 AS gpu
 
-LABEL org.superezio.version="3.0.0"
+LABEL org.superezio.version="4.0.0"
 LABEL org.superezio.target="gpu"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

@@ -101,6 +101,7 @@ data/ceo_nl_*.jsonl
 data/ceo_3k*.jsonl
 data/sensei_dataset.jsonl
 data/fraud_datasets/
+data/corpus/
 
 # SFT datasets (massivos, 1GB+)
 F51_Datasets/sft_output/
