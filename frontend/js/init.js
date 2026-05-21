@@ -204,9 +204,13 @@
     }
 
     var envelope = buildEnvelope(msg);
+    var t0 = performance.now();
 
     try {
       var resp = await SZ.api.submitTask(envelope);
+      var lat = Math.round(performance.now() - t0);
+      var latEl = document.getElementById("hud-latency");
+      if (latEl) latEl.textContent = lat;
 
       var reader  = resp.body.getReader();
       var decoder = new TextDecoder();
@@ -271,8 +275,12 @@
     var tf = (document.getElementById("tf-inp") || {}).value || "6M";
     if (!ticker) return;
 
+    var t0 = performance.now();
     try {
       var data = await SZ.api.fetchChartData(ticker, tf);
+      var lat = Math.round(performance.now() - t0);
+      var latEl = document.getElementById("hud-latency");
+      if (latEl) latEl.textContent = lat;
       SZ.state.chartData = data;
       updateWorkspaceLabels(data, ticker, tf);
       if (SZ.renderProfile)   SZ.renderProfile();

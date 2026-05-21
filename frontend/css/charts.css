@@ -66,6 +66,49 @@
   backdrop-filter: var(--glass-blur);
 }
 
+/* Telemetry HUD styling */
+.telemetry-hud {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 24px;
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+
+.hud-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font: 700 9px var(--font-mono);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.hud-label {
+  color: var(--muted);
+}
+
+.hud-value {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.hud-value.text-green {
+  color: var(--green);
+  text-shadow: 0 0 6px rgba(0, 230, 118, 0.2);
+}
+
+.hud-value.text-blue {
+  color: var(--blue);
+  text-shadow: 0 0 6px rgba(0, 229, 255, 0.2);
+}
+
 .asset-block {
   min-width: 0;
   display: grid;

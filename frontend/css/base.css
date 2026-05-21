@@ -60,12 +60,13 @@ body::before {
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(rgba(0, 230, 118, 0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 230, 118, 0.015) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: radial-gradient(circle at 50% 30%, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.25) 85%);
+    linear-gradient(rgba(0, 230, 118, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 230, 118, 0.012) 1px, transparent 1px),
+    radial-gradient(circle at 50% 0%, rgba(0, 229, 255, 0.035), transparent 60%);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(circle at 50% 30%, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.2) 90%);
   z-index: 0;
-  animation: gridGlow 8s ease-in-out infinite;
+  animation: gridGlow 10s ease-in-out infinite;
 }
 
 body::after {
@@ -75,10 +76,10 @@ body::after {
   left: 0;
   width: 100%;
   height: 4px;
-  background: linear-gradient(180deg, rgba(0, 230, 118, 0.1), transparent);
+  background: linear-gradient(180deg, rgba(0, 229, 255, 0.08), transparent);
   pointer-events: none;
   z-index: 100;
-  animation: scanline 12s linear infinite;
+  animation: scanline 16s linear infinite;
 }
 
 body > * {
@@ -87,10 +88,15 @@ body > * {
 }
 
 /* Global Premium Input/Select Fields */
+input, textarea, select {
+  font-family: var(--font-body);
+  transition: all var(--duration) var(--ease);
+}
+
 input:focus, textarea:focus, select:focus, button:focus-visible {
   outline: none;
   border-color: var(--green) !important;
-  box-shadow: 0 0 10px rgba(0, 230, 118, 0.2) !important;
+  box-shadow: var(--primary-glow) !important;
 }
 
 /* Utilities */

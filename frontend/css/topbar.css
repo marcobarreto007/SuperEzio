@@ -2,12 +2,24 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 12px 24px;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
+  padding: 10px 24px;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.12);
+  background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   z-index: 10;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--glass-shadow);
+  position: relative;
+}
+
+.topbar::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 10%, rgba(0, 229, 255, 0.3) 50%, transparent 90%);
+  pointer-events: none;
 }
 
 .logo {
@@ -21,22 +33,22 @@
 }
 
 .logo-mark {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--green), #00b0ff);
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--green), var(--blue));
   color: #030504;
   display: grid;
   place-items: center;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: -0.05em;
-  transition: transform 0.5s var(--ease);
-  box-shadow: 0 0 12px rgba(0, 230, 118, 0.3);
+  transition: transform 0.6s var(--ease);
+  box-shadow: 0 0 10px rgba(0, 230, 118, 0.25);
 }
 
 .logo:hover .logo-mark {
-  transform: rotate(180deg) scale(1.05);
+  transform: rotate(360deg) scale(1.05);
 }
 
 .logo-text {
@@ -46,67 +58,68 @@
 
 .logo-sub {
   color: var(--muted);
-  font: 700 9px var(--font-mono);
-  letter-spacing: 0.12em;
+  font: 700 8.5px var(--font-mono);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   border-left: 1px solid var(--line);
   padding-left: 12px;
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
+  margin-left: 4px;
   flex-shrink: 0;
 }
 
 .status-dot--on {
   background: var(--green);
-  animation: pulse-dot-green 2s infinite;
+  animation: pulse-dot-green 1.8s infinite;
 }
 
 .status-dot--off {
   background: var(--red);
-  animation: pulse-dot 1.5s infinite;
+  animation: pulse-dot 1.4s infinite;
 }
 
 /* Floating Pill Mode Tabs */
 .mode-tabs {
   display: flex;
-  gap: 8px;
-  background: rgba(0, 0, 0, 0.25);
-  padding: 4px;
-  border-radius: 8px;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 3px;
+  border-radius: 6px;
   border: 1px solid var(--line);
 }
 
 .mode-tab {
-  height: 30px;
+  height: 28px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 4px;
   background: transparent;
   color: var(--ink-secondary);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 0 14px;
-  font: 700 10px var(--font-mono);
+  gap: 6px;
+  padding: 0 12px;
+  font: 700 9px var(--font-mono);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   transition: all var(--duration) var(--ease);
 }
 
 .mode-tab svg {
-  width: 14px;
-  height: 14px;
-  opacity: 0.7;
+  width: 12px;
+  height: 12px;
+  opacity: 0.65;
   transition: transform var(--duration) var(--ease);
 }
 
 .mode-tab:hover {
-  background: var(--surface-2);
+  background: var(--surface-3);
   color: var(--ink);
 }
 
@@ -118,7 +131,7 @@
   background: var(--green-bg);
   color: var(--green);
   border-color: var(--green-dim);
-  box-shadow: 0 0 12px rgba(0, 230, 118, 0.1);
+  box-shadow: 0 0 10px rgba(0, 230, 118, 0.12);
   font-weight: 800;
 }
 

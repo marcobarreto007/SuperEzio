@@ -40,11 +40,16 @@
   --blue: #00e5ff; /* Holographic Cyan */
   --blue-bg: hsla(187, 100%, 50%, 0.08);
 
+  /* Institutional Glow & Premium Accents */
+  --primary-glow: 0 0 15px rgba(0, 230, 118, 0.25);
+  --border-glow: 0 0 12px rgba(0, 229, 255, 0.18);
+  --glass-border-premium: 1px solid rgba(255, 255, 255, 0.06);
+
   /* Glassmorphism System */
-  --glass-bg: rgba(8, 12, 9, 0.7);
+  --glass-bg: rgba(8, 12, 9, 0.8);
   --glass-border: rgba(0, 230, 118, 0.08);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
-  --glass-blur: blur(16px);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7);
+  --glass-blur: blur(20px);
 
   --chart-bg: #030504;
   --chart-grid: rgba(0, 230, 118, 0.04);

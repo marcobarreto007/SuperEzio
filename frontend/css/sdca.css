@@ -41,10 +41,10 @@
   width: min(760px, 100vw);
   display: grid;
   grid-template-rows: auto 1fr;
-  background: var(--glass-bg);
+  background: linear-gradient(135deg, rgba(8, 12, 9, 0.92) 0%, rgba(3, 5, 4, 0.98) 100%);
   backdrop-filter: var(--glass-blur);
-  border-left: 1px solid var(--line);
-  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.6);
+  border-left: 1px solid rgba(0, 229, 255, 0.2);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.8), -2px 0 8px rgba(0, 229, 255, 0.08);
   z-index: 30;
   transform: translateX(100%);
   pointer-events: none;
@@ -60,11 +60,22 @@
   gap: 12px;
   padding: 16px 20px;
   border-bottom: 1px solid var(--line);
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.35);
+  position: relative;
+}
+
+.sdca-lab-hdr::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(0, 229, 255, 0.3), transparent);
 }
 
 .sdca-lab-hdr span { display: block; color: var(--muted); font: 900 9px var(--font-mono); text-transform: uppercase; letter-spacing: 0.1em; }
-.sdca-lab-hdr strong { display: block; font-family: var(--font-display); font-size: 16px; font-weight: 900; color: var(--ink); }
+.sdca-lab-hdr strong { display: block; font-family: var(--font-display); font-size: 16px; font-weight: 900; color: var(--ink); text-shadow: var(--border-glow); }
 
 .sdca-lab-body {
   min-height: 0;
@@ -73,13 +84,19 @@
   grid-template-columns: minmax(0, 0.95fr) minmax(280px, 1.05fr);
   gap: 16px;
   padding: 16px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(0, 229, 255, 0.04), transparent 50%),
+    linear-gradient(rgba(0, 230, 118, 0.005) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 230, 118, 0.005) 1px, transparent 1px);
+  background-size: 100% 100%, 24px 24px, 24px 24px;
 }
 
 .sdca-lab-form, .sdca-lab-result {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--surface-2);
+  background: rgba(8, 12, 9, 0.7);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
   padding: 16px;
 }
 

@@ -102,6 +102,25 @@
       ctx.fillText(tLbl || "", vx, H - PB + 14);
     }
 
+    /* ── draw volume bars (background pass) ── */
+    var maxVol = 0;
+    for (var vIdx = 0; vIdx < N; vIdx++) {
+      if (candles[vIdx].volume > maxVol) maxVol = candles[vIdx].volume;
+    }
+    maxVol = maxVol || 1;
+
+    for (var cVol = 0; cVol < N; cVol++) {
+      var barVol = candles[cVol];
+      var upVol  = barVol.close >= barVol.open;
+      var cxVol  = xOf(cVol);
+      var cwVol  = candleWidth();
+      var volVal = barVol.volume || 0;
+      var volH   = (volVal / maxVol) * PH * 0.18; // cap at 18% height
+      var volY   = PT + PH - volH;
+      ctx.fillStyle = upVol ? "rgba(0, 200, 83, 0.16)" : "rgba(255, 23, 68, 0.16)";
+      ctx.fillRect(cxVol, volY, cwVol, volH);
+    }
+
     /* ── draw candles ── */
     var cw = candleWidth();
     for (var c = 0; c < N; c++) {
@@ -110,9 +129,13 @@
       var clr = up ? GREEN : RED;
       var cx  = xOf(c);
 
+      /* glow */
+      ctx.shadowColor = clr;
+      ctx.shadowBlur = 6;
+
       /* wick */
       ctx.strokeStyle = clr;
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
       ctx.moveTo(cx + cw / 2, yOf(bar.high));
       ctx.lineTo(cx + cw / 2, yOf(bar.low));
@@ -125,6 +148,9 @@
       var bodyHeight = Math.max(Math.abs(yClose - yOpen), 1);
       ctx.fillStyle = clr;
       ctx.fillRect(cx, bodyTop, cw, bodyHeight);
+
+      /* reset glow */
+      ctx.shadowBlur = 0;
     }
 
     /* ── last price label ── */

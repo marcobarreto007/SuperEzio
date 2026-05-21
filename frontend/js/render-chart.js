@@ -178,13 +178,36 @@
       ctx.setLineDash([]);
     }
 
+    /* ── volume bars background pass ── */
+    var maxVol = 0;
+    for (var vIdx = 0; vIdx < N; vIdx++) {
+      var volVal = ohlcv[vIdx] && ohlcv[vIdx].volume;
+      if (volVal > maxVol) maxVol = volVal;
+    }
+    maxVol = maxVol || 1;
+    var vBarW = Math.max(1, (PW / N) * 0.75);
+    for (var vK = 0; vK < N; vK++) {
+      var vBar = ohlcv[vK];
+      if (!vBar) continue;
+      var vUp = vBar.close >= vBar.open;
+      var vX = xOf(vK);
+      var vVol = vBar.volume || 0;
+      var vH = (vVol / maxVol) * PH * 0.15; // cap at 15% height
+      var vY = PAD_T + PH - vH;
+      ctx.fillStyle = vUp ? "rgba(0, 200, 83, 0.12)" : "rgba(255, 23, 68, 0.12)";
+      ctx.fillRect(vX - vBarW / 2, vY, vBarW, vH);
+    }
+
     /* ── indicator lines ── */
     drawSeries(ind.sma_20,  BLUE,  [6, 3]);    // SMA20 — blue dashed
     drawSeries(ind.sma_50,  CYAN,  [6, 3]);    // SMA50 — cyan dashed
     drawSeries(ind.ema_20,  PURPLE,[2, 3]);    // EMA20 — purple dotted
 
-    /* ── price line (white, on top) ── */
+    /* ── price line (white, on top) with neon glow ── */
+    ctx.shadowColor = WHITE;
+    ctx.shadowBlur = 5;
     drawSeries(closes, WHITE, []);
+    ctx.shadowBlur = 0;
 
     /* ── MACD histogram (bottom 20%) ── */
     var hist = (ind.macd && ind.macd.histogram) || [];
