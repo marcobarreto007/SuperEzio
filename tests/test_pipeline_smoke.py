@@ -115,6 +115,6 @@ async def test_pipeline_general_route_goes_to_ceo():
     steps = [e for e in events if e.get("type") == "PIPELINE_STEP"]
     step_names = [s.get("step") for s in steps]
     assert "orchestrator_primary" in step_names
-    assert "ceo_primary" in step_names
+    assert "explanation" in step_names
 
     p.shutdown()

@@ -54,6 +54,11 @@ class _FakeResponse:
         self.status_code = status_code
         self._payload = payload if payload is not None else {}
 
+    @property
+    def content(self) -> bytes:
+        import json as _json
+        return _json.dumps(self._payload).encode("utf-8")
+
     def json(self) -> Dict[str, Any]:
         return self._payload
 

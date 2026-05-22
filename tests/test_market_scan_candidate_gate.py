@@ -34,6 +34,8 @@ async def test_unavailable_price_candidates_are_rejected(monkeypatch):
     class StubHub:
         def get_price(self, ticker):
             return {"error": "no quote"}
+        def list_routes(self, capability=None):
+            return []
 
     monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
     monkeypatch.setitem(
@@ -78,6 +80,8 @@ async def test_generic_two_week_profit_prompt_defaults_to_us_canada(monkeypatch)
     class StubHub:
         def get_price(self, ticker):
             return {"error": "no quote"}
+        def list_routes(self, capability=None):
+            return []
 
     monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
     monkeypatch.setitem(
@@ -175,6 +179,8 @@ async def test_explicit_china_scan_is_allowed(monkeypatch):
         def get_price(self, ticker):
             # No price → still must be gated even when China is allowed.
             return {"error": "no quote"}
+        def list_routes(self, capability=None):
+            return []
 
     monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
     monkeypatch.setitem(

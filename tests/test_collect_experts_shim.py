@@ -91,17 +91,23 @@ def test_node_collect_experts_handles_missing_expert_results() -> None:
     results (e.g. when the router skips the fan-out). The node must degrade
     gracefully rather than raise an ImportError or KeyError.
     """
+    from unittest.mock import patch
+
     from core.pipeline.nodes.collect_experts import node_collect_experts
 
     state: dict = {"message": "test", "expert_results": []}
 
-    try:
-        result = asyncio.run(node_collect_experts(state))
-    except Exception as exc:  # pragma: no cover - failure path documents intent
-        pytest.fail(
-            "node_collect_experts must accept empty expert_results without "
-            f"raising; got {type(exc).__name__}: {exc}"
-        )
+    with patch(
+        "core.pipeline.nodes.experts.get_stream_writer",
+        return_value=lambda msg: None,
+    ):
+        try:
+            result = asyncio.run(node_collect_experts(state))
+        except Exception as exc:  # pragma: no cover - failure path documents intent
+            pytest.fail(
+                "node_collect_experts must accept empty expert_results without "
+                f"raising; got {type(exc).__name__}: {exc}"
+            )
 
     assert isinstance(result, dict), (
         "node_collect_experts must return a dict-shaped state update."

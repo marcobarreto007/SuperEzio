@@ -1,7 +1,23 @@
+import re
 import time
 from typing import Dict, List
 
 import financedatabase as fd
+
+# Hard US/CA ticker whitelist — no config toggle, no env var.
+# FinanceDatabase returns garbage exchange suffixes (-F, -BE, -SG, -MU, -HM, ...)
+# even when filtering by "United States". These suffixes map to Frankfurt, Berlin,
+# Singapore, Munich, Hamburg and other venues whose tickers Yahoo/Finnhub can't
+# price. The whitelist rejects everything except legitimate US and Canadian
+# exchange symbols.
+_US_TICKER_RE = re.compile(r"^[A-Z]{1,5}([.-][A-Z])?$")
+_CA_TICKER_RE = re.compile(r"^[A-Z]{1,5}\.(TO|V)$")
+
+
+def _is_valid_us_ca_ticker(symbol: str) -> bool:
+    """Return True only for US (NYSE/NASDAQ) and Canadian (TSX/TSX-V) tickers."""
+    s = symbol.strip().upper()
+    return bool(_US_TICKER_RE.match(s) or _CA_TICKER_RE.match(s))
 
 try:
     from ..observability.neural_log import log_event as _log_event
@@ -80,7 +96,7 @@ class MarketScanner:
             if selection is None or selection.empty:
                 return []
 
-            tickers = list(selection.index)
+            tickers = [t for t in selection.index if _is_valid_us_ca_ticker(str(t))]
             result = tickers[:limit]
             self._set_cached(cache_key, result)
             return result

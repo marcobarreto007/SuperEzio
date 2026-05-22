@@ -52,7 +52,7 @@ async def test_run_scan_uses_restored_market_scanner(monkeypatch):
         def scan_equities(self, country=None, sector=None, industry=None, limit=10):
             assert country == "United States"
             assert sector == "Technology"
-            assert limit == 30
+            assert limit == 12
             return ["AAPL", "MSFT"]
 
     class FakeHub:
