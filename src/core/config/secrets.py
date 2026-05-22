@@ -7,10 +7,10 @@ Order of precedence (first wins):
   3. .env (base config, never committed)
 
 Usage:
-    from core.config.secrets import get_secret, require_secret
+    from core.config.secrets import load_local_env
 
-    api_key = require_secret("TWELVE_DATA_API_KEY")
-    optional = get_secret("BRAVE_SEARCH_API_KEY")
+    load_local_env()
+    value = os.getenv("TWELVE_DATA_API_KEY")
 """
 
 from __future__ import annotations
@@ -105,48 +105,3 @@ def load_local_env() -> None:
         for key, val in _parse_dotenv(env_file).items():
             if key not in os.environ:
                 os.environ[key] = val
-
-
-def get_secret(name: str, required: bool = False) -> str | None:
-    """
-    Retrieve a secret by name.
-
-    Args:
-        name: Environment variable name.
-        required: If True and not found, returns None instead of raising.
-                  Use require_secret() for mandatory secrets.
-
-    Returns:
-        The secret value, or None if not found and not required.
-    """
-    load_local_env()
-    value = os.getenv(name)
-    if required and not value:
-        return None
-    return value or None
-
-
-def require_secret(name: str) -> str:
-    """
-    Retrieve a required secret. Raises RuntimeError if not found.
-
-    Args:
-        name: Environment variable name.
-
-    Returns:
-        The secret value.
-
-    Raises:
-        RuntimeError: If the secret is not configured.
-    """
-    load_local_env()
-    value = os.getenv(name)
-    if not value:
-        root = _get_root()
-        raise RuntimeError(
-            f"Missing required secret: {name}\n"
-            f"Set it in {root / '.env.local'} or {root / '.env'}, "
-            f"or export {name}=<value> in your environment.\n"
-            f"See .env.example for all required variables."
-        )
-    return value
