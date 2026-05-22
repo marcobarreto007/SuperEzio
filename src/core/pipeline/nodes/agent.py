@@ -9,7 +9,21 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 
-from ..intents import detect_complex_finance_intent
+from ..intents import (
+    detect_another_trade_recommendation_intent,
+    detect_complex_finance_intent,
+    detect_decisive_trade_intent,
+)
+from ..trade_order import (
+    BUY_CONFIDENCE_THRESHOLD,
+    compute_model_confidence,
+    decide_final_action,
+    evaluate_quality_gates,
+    format_liquidity_display,
+    normalize_liquidity_fields,
+    pick_candidate,
+    rank_candidates,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -190,6 +204,15 @@ _REJECTION_LABELS_PT = {
 }
 
 
+def _format_liquidity(volume: Any, candidate: dict[str, Any] | None = None) -> str:
+    """Format liquidity with explicit units — never a misleading raw float."""
+    if candidate is not None:
+        return format_liquidity_display(candidate)
+    stub: dict[str, Any] = {"volume": volume}
+    normalize_liquidity_fields(stub)
+    return format_liquidity_display(stub)
+
+
 def _top_rejection_reasons(
     summary: dict[str, int], labels: dict[str, str], limit: int = 3
 ) -> list[str]:
@@ -226,7 +249,7 @@ def _format_candidate_block_en(item: dict[str, Any]) -> list[str]:
         f"- {ticker} ({name})",
         f"  Market: {market}",
         f"  Latest price: {price} {currency}",
-        f"  Volume/liquidity: {volume}",
+        f"  Volume/liquidity: {_format_liquidity(volume, item)}",
         f"  Reason/catalyst (2w): {catalyst}",
         f"  Risk: {risk}",
         f"  Invalidation: {invalid}",
@@ -259,7 +282,7 @@ def _format_candidate_block_pt(item: dict[str, Any]) -> list[str]:
         f"- {ticker} ({name})",
         f"  Mercado: {market}",
         f"  Preco atual: {price} {currency}",
-        f"  Volume/liquidez: {volume}",
+        f"  Volume/liquidez: {_format_liquidity(volume, item)}",
         f"  Razao/catalisador (2 sem.): {catalyst}",
         f"  Risco: {risk}",
         f"  Invalidacao: {invalid}",
@@ -267,8 +290,429 @@ def _format_candidate_block_pt(item: dict[str, Any]) -> list[str]:
     ]
 
 
+def _compute_model_confidence(
+    candidate: dict[str, Any],
+    *,
+    source_errors: list[str] | None = None,
+    weak_universe: bool = False,
+) -> int:
+    """Deterministic 0-100 confidence from data quality (delegates to trade_order)."""
+    _, failures = evaluate_quality_gates(candidate)
+    return compute_model_confidence(
+        candidate,
+        gate_failures=failures,
+        source_errors=source_errors,
+        weak_universe=weak_universe,
+    )
+
+
+def _should_use_decisive_mode(state: dict) -> bool:
+    message = state.get("message", "")
+    intent = state.get("intent", "")
+    trade_ctx = state.get("trade_order_context") or {}
+    if intent == "another_trade_recommendation":
+        return True
+    if trade_ctx.get("mode") in {"DECISIVE_TRADE_ORDER", "DECISIVE_TRADE_ORDER_FOLLOWUP"}:
+        if detect_another_trade_recommendation_intent(message):
+            return True
+    return bool(detect_decisive_trade_intent(message))
+
+
+def _build_trade_order_context(
+    state: dict,
+    *,
+    mode: str,
+    primary_ticker: str,
+    ranked: list[dict[str, Any]],
+    decision: str,
+) -> dict[str, Any]:
+    scan = state.get("scan") or {}
+    trade_ctx = state.get("trade_order_context") or {}
+    prior_excluded = [str(t).upper() for t in trade_ctx.get("excluded_tickers") or [] if t]
+    excluded = list(dict.fromkeys(prior_excluded + ([primary_ticker.upper()] if primary_ticker else [])))
+    return {
+        "mode": mode,
+        "primary_ticker": primary_ticker.upper() if primary_ticker else "",
+        "excluded_tickers": excluded,
+        "time_horizon": state.get("time_horizon") or trade_ctx.get("time_horizon") or "14 days",
+        "universe": scan.get("universe") or trade_ctx.get("universe") or "unspecified",
+        "filters": scan.get("filters") or trade_ctx.get("filters") or {},
+        "ranked_candidates": ranked,
+        "last_decision": decision,
+    }
+
+
+def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | None]:
+    """Render DECISIVE_TRADE_ORDER / follow-up; returns (answer, session context)."""
+    message = state.get("message", "")
+    scan = state.get("scan") or {}
+    trade_ctx = state.get("trade_order_context") or {}
+    intent = state.get("intent", "")
+    is_followup = intent == "another_trade_recommendation" or (
+        trade_ctx.get("mode") in {"DECISIVE_TRADE_ORDER", "DECISIVE_TRADE_ORDER_FOLLOWUP"}
+        and detect_another_trade_recommendation_intent(message)
+    )
+    mode_label = "DECISIVE_TRADE_ORDER_FOLLOWUP" if is_followup else "DECISIVE_TRADE_ORDER"
+
+    candidates = [c for c in scan.get("candidates", []) if isinstance(c, dict)]
+    rejected_count = int(scan.get("rejected_count", 0) or 0)
+    rejection_summary = scan.get("rejection_summary") or {}
+    universe = scan.get("universe") or trade_ctx.get("universe") or "unspecified"
+    filters = scan.get("filters") or trade_ctx.get("filters") or {}
+    errors = scan.get("source_errors") or []
+    time_horizon = state.get("time_horizon") or trade_ctx.get("time_horizon") or "14 days"
+    excluded = {str(t).upper() for t in trade_ctx.get("excluded_tickers") or [] if t}
+
+    portuguese = _is_portuguese_request(message)
+    labels = _REJECTION_LABELS_PT if portuguese else _REJECTION_LABELS_EN
+    top_reasons = _top_rejection_reasons(rejection_summary, labels)
+
+    ranked = scan.get("ranked_candidates")
+    if not isinstance(ranked, list) or not ranked:
+        ranked = rank_candidates(
+            candidates,
+            source_errors=errors,
+            weak_universe=len(candidates) <= 1,
+        )
+
+    entry, _ = pick_candidate(ranked, excluded_tickers=excluded)
+
+    sections: list[str] = []
+
+    if is_followup and entry is None:
+        prev = trade_ctx.get("primary_ticker") or (list(excluded)[0] if excluded else "?")
+        if portuguese:
+            sections.extend(
+                [
+                    "# Bob Model Order",
+                    "",
+                    f"1. Modo: {mode_label}",
+                    "2. Decisao Final: REJECT_ALL",
+                    f"3. Candidato Anterior Excluido: {prev}",
+                    "",
+                    "Nenhum segundo candidato passou o gate de qualidade apos excluir "
+                    f"{prev}.",
+                    "",
+                    "Resumo de Rejeicoes:",
+                    f"   - rejected_count: {rejected_count}",
+                ]
+            )
+            if top_reasons:
+                sections.append("   - top_rejection_reasons:")
+                for reason in top_reasons:
+                    sections.append(f"     * {reason}")
+            sections.extend(
+                [
+                    "",
+                    "Proxima Acao Sugerida:",
+                    "   - expandir universo (setor ou pais)",
+                    "   - especificar setor ou tema",
+                    "   - ajustar tolerancia a risco",
+                    "   - pedir analise ticker-por-ticker (ex.: AAPL, MSFT)",
+                    "",
+                    "Model verdict: REJECT_ALL",
+                ]
+            )
+        else:
+            sections.extend(
+                [
+                    "# Bob Model Order",
+                    "",
+                    f"1. Mode: {mode_label}",
+                    "2. Final Decision: REJECT_ALL",
+                    f"3. Previous Candidate Excluded: {prev}",
+                    "",
+                    f"No second candidate passed the quality gate after excluding {prev}.",
+                    "",
+                    "Rejected Summary:",
+                    f"   - rejected_count: {rejected_count}",
+                ]
+            )
+            if top_reasons:
+                sections.append("   - top_rejection_reasons:")
+                for reason in top_reasons:
+                    sections.append(f"     * {reason}")
+            sections.extend(
+                [
+                    "",
+                    "Next Best Action:",
+                    "   - expand universe (sector or country)",
+                    "   - specify a sector or theme",
+                    "   - lower/raise risk tolerance",
+                    "   - run explicit ticker analysis (e.g. AAPL, MSFT)",
+                    "",
+                    "Model verdict: REJECT_ALL",
+                ]
+            )
+        ctx = _build_trade_order_context(
+            state,
+            mode=mode_label,
+            primary_ticker=prev,
+            ranked=ranked,
+            decision="REJECT_ALL",
+        )
+        return "\n".join(sections), ctx
+
+    if not candidates and entry is None:
+        if portuguese:
+            sections.extend(
+                [
+                    "# Bob Model Order",
+                    "",
+                    f"1. Modo: {mode_label}",
+                    "2. Decisao Final: REJECT_ALL",
+                    "",
+                    f"Nenhuma ordem de modelo gerada. {rejected_count} ticker(s) "
+                    "rejeitado(s) nos gates de qualidade de dados.",
+                ]
+            )
+            if top_reasons:
+                sections.append("Principais motivos de rejeicao:")
+                for reason in top_reasons:
+                    sections.append(f"   - {reason}")
+            sections.append(f"Universo do scan: {universe}.")
+            sections.append("")
+            sections.append(
+                "Proximo scan sugerido: ampliar universo (setor ou pais), nomear um tema "
+                "ou apertar filtros de liquidez."
+            )
+            sections.append(
+                "Proximo prompt sugerido: 'Faca uma checagem ticker-por-ticker de AAPL, "
+                "MSFT e SPY com preco, volume, ATR de 14 dias e proximo evento conhecido.'"
+            )
+            sections.append("Model verdict: REJECT_ALL")
+        else:
+            sections.extend(
+                [
+                    "# Bob Model Order",
+                    "",
+                    f"1. Mode: {mode_label}",
+                    "2. Final Decision: REJECT_ALL",
+                    "",
+                    f"No valid model order generated. {rejected_count} ticker(s) "
+                    "rejected at data-quality gates.",
+                ]
+            )
+            if top_reasons:
+                sections.append("Top rejection reasons:")
+                for reason in top_reasons:
+                    sections.append(f"   - {reason}")
+            sections.append(f"Scan universe: {universe}.")
+            sections.append("")
+            sections.append(
+                "Suggested next scan: broaden universe (sector or country), name a theme, "
+                "or tighten liquidity filters."
+            )
+            sections.append(
+                "Suggested next prompt: 'Run a ticker-by-ticker check on AAPL, "
+                "MSFT and SPY with price, volume, 14-day ATR and the next known event.'"
+            )
+            sections.append("Model verdict: REJECT_ALL")
+        if errors:
+            sections.append("Data limit: " + "; ".join(str(e) for e in errors[:3]))
+        ctx = _build_trade_order_context(
+            state, mode=mode_label, primary_ticker="", ranked=ranked, decision="REJECT_ALL"
+        )
+        return "\n".join(sections), ctx
+
+    if entry is None:
+        entry = ranked[0] if ranked else None
+    if entry is None:
+        ctx = _build_trade_order_context(
+            state, mode=mode_label, primary_ticker="", ranked=ranked, decision="REJECT_ALL"
+        )
+        return "Model verdict: REJECT_ALL", ctx
+
+    primary = entry.get("candidate") or {}
+    normalize_liquidity_fields(primary)
+    gate_failures = list(entry.get("gate_failures") or [])
+    if not gate_failures:
+        _, gate_failures = evaluate_quality_gates(primary)
+    confidence = int(
+        entry.get("confidence")
+        or compute_model_confidence(
+            primary,
+            gate_failures=gate_failures,
+            source_errors=errors,
+            weak_universe=len(candidates) <= 1,
+        )
+    )
+    decision = entry.get("decision") or decide_final_action(confidence, gate_failures)
+    if gate_failures and decision == "BUY_CANDIDATE":
+        decision = decide_final_action(confidence, gate_failures)
+
+    ticker = primary.get("ticker") or "?"
+    name = primary.get("name") or primary.get("company") or "—"
+    market = primary.get("market") or primary.get("exchange") or "—"
+    price = primary.get("price")
+    currency = primary.get("currency") or "USD"
+    catalyst = (
+        primary.get("catalyst")
+        or primary.get("thesis")
+        or primary.get("short_term_thesis")
+        or primary.get("reason")
+        or "—"
+    )
+    risk = primary.get("risk") or primary.get("downside_risk") or "—"
+    invalidation = (
+        primary.get("invalidation")
+        or primary.get("invalidation_condition")
+        or "—"
+    )
+    provider = primary.get("provider") or primary.get("source") or "data hub"
+    collected_at = scan.get("collected_at") or "—"
+    liquidity_text = _format_liquidity(None, primary)
+    prev_excluded = ""
+    if is_followup:
+        prev_excluded = trade_ctx.get("primary_ticker") or (
+            list(excluded)[0] if excluded else "—"
+        )
+
+    if portuguese:
+        sections.extend(
+            [
+                "# Bob Model Order",
+                "",
+                f"1. Modo: {mode_label}",
+                f"2. Decisao Final: {decision}",
+                "",
+            ]
+        )
+        if is_followup:
+            sections.append(f"3. Candidato Anterior Excluido: {prev_excluded}")
+            sections.append("")
+            sections.append("4. Candidato Primario da Ordem:")
+        else:
+            sections.append("3. Candidato Primario da Ordem:")
+        sections.extend(
+            [
+                f"   - Ticker: {ticker}",
+                f"   - Empresa: {name}",
+                f"   - Mercado: {market}",
+                f"   - Preco Atual: {price} {currency}",
+                f"   - Dados: {collected_at} (fonte: {provider})",
+                f"   - Liquidez: {liquidity_text}",
+                f"   - Catalisador: {catalyst}",
+                f"   - Horizonte: {time_horizon}",
+                f"   - Confianca do Modelo: {confidence}/100",
+            ]
+        )
+        if gate_failures:
+            sections.append(f"   - Gates falhados: {', '.join(gate_failures)}")
+        plan_num = "5" if is_followup else "4"
+        sections.extend(
+            [
+                "",
+                f"{plan_num}. Plano de Ordem Sugerido:",
+                "   - Entrada: ordem limitada proximo ao preco atual",
+                f"   - Stop/Invalidacao: {invalidation}",
+                f"   - Risco: {risk}",
+                "   - Risco Maximo: 0.5%-1.0% do capital de trading",
+                "",
+                "Ordem do modelo, nao e lucro garantido. Confirmacao humana obrigatoria.",
+                f"Model verdict: {decision}",
+            ]
+        )
+    else:
+        sections.extend(
+            [
+                "# Bob Model Order",
+                "",
+                f"1. Mode: {mode_label}",
+                f"2. Final Decision: {decision}",
+                "",
+            ]
+        )
+        if is_followup:
+            sections.append(f"3. Previous Candidate Excluded: {prev_excluded}")
+            sections.append("")
+            sections.append("4. Primary Order Candidate:")
+        else:
+            sections.append("3. Primary Order Candidate:")
+        sections.extend(
+            [
+                f"   - Ticker: {ticker}",
+                f"   - Company: {name}",
+                f"   - Market: {market}",
+                f"   - Latest Price: {price} {currency}",
+                f"   - Data Timestamp: {collected_at} (source: {provider})",
+                f"   - Liquidity: {liquidity_text}",
+                f"   - Catalyst: {catalyst}",
+                f"   - Time Horizon: {time_horizon}",
+                f"   - Model Confidence: {confidence}/100",
+            ]
+        )
+        if gate_failures:
+            sections.append(f"   - Gate failures: {', '.join(gate_failures)}")
+        plan_num = "5" if is_followup else "4"
+        sections.extend(
+            [
+                "",
+                f"{plan_num}. Suggested Order Plan:",
+                "   - Entry: limit order near current price",
+                f"   - Stop/Invalidation: {invalidation}",
+                f"   - Risk: {risk}",
+                "   - Max Risk: 0.5%-1.0% of trading capital",
+                "",
+                "Model order, not guaranteed profit. Human confirmation required.",
+                f"Model verdict: {decision}",
+            ]
+        )
+
+    if decision == "WAIT":
+        sections.append("")
+        if portuguese:
+            sections.append(
+                f"Nota: confianca abaixo do limiar de compra ({BUY_CONFIDENCE_THRESHOLD}/100) "
+                "ou gates de liquidez/risco incompletos."
+            )
+            if gate_failures:
+                sections.append(f"Motivos: {', '.join(gate_failures)}")
+            sections.append(
+                "Permanece na watchlist de estudo ate liquidez, risco e invalidacao "
+                "elevarem ao limiar de compra do modelo."
+            )
+        else:
+            sections.append(
+                f"Note: confidence below buy threshold ({BUY_CONFIDENCE_THRESHOLD}/100) "
+                "or liquidity/risk gates not satisfied."
+            )
+            if gate_failures:
+                sections.append(f"Reasons: {', '.join(gate_failures)}")
+            sections.append(
+                "Keep on a study watchlist until liquidity, risk, and invalidation "
+                "upgrade to model-buy thresholds."
+            )
+
+    if errors:
+        sections.append("")
+        sections.append(
+            ("Limite de dados: " if portuguese else "Data limit: ")
+            + "; ".join(str(e) for e in errors[:3])
+        )
+
+    ctx = _build_trade_order_context(
+        state,
+        mode=mode_label,
+        primary_ticker=str(ticker),
+        ranked=ranked,
+        decision=decision,
+    )
+    return "\n".join(sections), ctx
+
+
+def _decisive_trade_order_answer(state: dict) -> str:
+    """Backward-compatible wrapper — answer text only."""
+    answer, _ = _render_decisive_trade_order(state)
+    return answer
+
+
 def _market_scan_answer(state: dict) -> str:
-    """Render the gated market scan into a structured 8-section answer.
+    """Render the gated market scan into a structured answer.
+
+    If the user asked for a decisive trade recommendation, delegates to
+    _decisive_trade_order_answer(). Otherwise renders the standard
+    8-section research report.
 
     The output is bilingual (PT/EN) and never advertises candidates that
     failed the data-quality gate. When zero candidates pass, the answer
@@ -276,6 +720,14 @@ def _market_scan_answer(state: dict) -> str:
     and a safer follow-up prompt so the user gets actionable guidance.
     """
     message = state.get("message", "")
+
+    # Decisive trade order mode — buy recommendation or follow-up
+    if _should_use_decisive_mode(state):
+        return _decisive_trade_order_answer(state)
+
+    if detect_decisive_trade_intent(message):
+        return _decisive_trade_order_answer(state)
+
     scan = state.get("scan") or {}
     candidates = [c for c in scan.get("candidates", []) if isinstance(c, dict)]
     rejected_count = int(scan.get("rejected_count", 0) or 0)
@@ -471,8 +923,14 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         return {"errors": state.get("errors", []) + ["no_gateway"]}
 
     if state.get("route") == "market_scan" and state.get("scan"):
-        content = _market_scan_answer(state)
+        if _should_use_decisive_mode(state):
+            content, trade_ctx = _render_decisive_trade_order(state)
+        else:
+            content = _market_scan_answer(state)
+            trade_ctx = None
         writer({"type": "CHUNK", "content": content})
+        if trade_ctx:
+            writer({"type": "TRADE_ORDER_CONTEXT", **trade_ctx})
         writer(
             {
                 "type": "PIPELINE_STEP",
@@ -482,7 +940,10 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 "provider": "deterministic_market_scan",
             }
         )
-        return _final_payload(content, iterations)
+        payload = _final_payload(content, iterations)
+        if trade_ctx:
+            payload["trade_order_context"] = trade_ctx
+        return payload
 
     writer(
         {

@@ -61,18 +61,18 @@ superezio/
 └── pyproject.toml
 ```
 
-### Fluxo de uma analise
+### Fluxo de uma analise (pipeline v4 — grafo ativo)
 
 ```
-Usuario → agent_server (FastAPI)
-  → Orchestrator (intent parse + route)
-  → Collector (yfinance + Reddit + News + BOC + ...)
-  → Experts fan-out (PennyLab + CrisisMath + Quantum)
-  → F51 Engine (grafo → veredito deterministico)
-  → RAG Forensics (contexto historico)
-  → CEO Qwen3.6-35B CEO+Intent Merged (consolida conflitos, output final)
-  → Explanation (NDJSON streaming)
+Usuario → agent_server (FastAPI, :8002)
+  → orchestrator_primary (intent + route)
+  → data (ProfessionalCollector / market_scan via DataHub)
+  → agent (Bob CEO ReAct — Qwen local :8082 ou gateway)
+       ⇄ tool_executor (F51, experts, neural, RAG, PennyLab, market_scan, …)
+  → explanation (streaming NDJSON) → END
 ```
+
+Preço de mercado no scan: **DataHub** (Finnhub → Twelve Data → yfinance → Stooq). O nó legado `ceo.py` foi removido completamente; a resposta final passa pelo `agent`.
 
 ---
 

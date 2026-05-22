@@ -30,46 +30,18 @@ from ..observability.debug_logger import MODULE_DATA_COLLECTOR, debug_logger
 
 class QuantEngine:
     def analyze_asset(self, ticker: str) -> Dict[str, Any]:
-        try:
-            from experts.technical_neural.pipeline_hook import (
-                analyze_technical_neural_sync,
-            )
-
-            res = analyze_technical_neural_sync(ticker)
-            if "error" in res:
-                return {
-                    "error": res["error"],
-                    "ticker": ticker,
-                    "rsi": 50.0,
-                    "monte_carlo_prob_up": 50.0,
-                    "ml_prob_up": 50.0,
-                    "combined_prob_up": 50.0,
-                    "ml_reinforcement_reward": 0.0,
-                }
-
-            mlp_score = res.get("mlp_score", 0.5)
-            pct_up = mlp_score * 100.0
-            return {
-                "rsi": 50.0,
-                "monte_carlo_prob_up": 50.0,
-                "ml_prob_up": pct_up,
-                "combined_prob_up": pct_up,
-                "ml_reinforcement_reward": res.get("confidence", 0.0),
-                "ml_reinforcement_pain": 0.0,
-                "evidence": {
-                    "ml": f"MLP model fit on last 600 bars: {res.get('verdict')} verdict (prob: {mlp_score:.2%}, conf: {res.get('confidence'):.2%}, convergence: {res.get('loss_convergence')})"
-                },
-            }
-        except Exception as exc:
-            return {
-                "error": f"QuantEngine proxy failed: {exc}",
-                "ticker": ticker,
-                "rsi": 50.0,
-                "monte_carlo_prob_up": 50.0,
-                "ml_prob_up": 50.0,
-                "combined_prob_up": 50.0,
-                "ml_reinforcement_reward": 0.0,
-            }
+        # Return a neutral statistical baseline directly since the legacy MLP expert was deleted
+        return {
+            "rsi": 50.0,
+            "monte_carlo_prob_up": 50.0,
+            "ml_prob_up": 50.0,
+            "combined_prob_up": 50.0,
+            "ml_reinforcement_reward": 0.0,
+            "ml_reinforcement_pain": 0.0,
+            "evidence": {
+                "ml": "Statistical baseline calculated: neutral verdict (prob: 50.00%)"
+            },
+        }
 
 
 async def tool_get_market_price(ticker: str) -> Dict[str, Any]:

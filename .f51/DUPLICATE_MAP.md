@@ -36,15 +36,14 @@ Session: f51-inventory-full-sweep
 
 ---
 
-### 3. Neural Expert systems: 2 implementations
+### 3. Neural Expert systems: 1 active implementation
 
 | File | Purpose | Classification |
 |------|---------|----------------|
-| `src/experts/neural_decision/neural_decision_expert.py` | PyTorch MLP for directional probability, regime detection | core |
-| `src/experts/technical_neural/expert/neural_expert.py` | Technical analysis neural expert | core |
-| `src/experts/technical_neural/expert/torch_mlp.py` | Separate Torch MLP implementation | core |
+| `src/experts/neural_decision/neural_decision_expert.py` | Heuristics/direction probability, regime detection | core |
+| `src/experts/_archive/technical_neural/` | Deleted technical neural expert (PyTorch / scikit-learn MLP) | deleted |
 
-**Verdict**: Potentially overlapping architectures. Both use PyTorch MLP. **Needs verification — could be duplicate.**
+**Verdict**: Resolved. `technical_neural` has been deleted completely and decoupled from `QuantEngine` (which now uses a baseline statistical representation). `neural_decision_expert` remains the active implementation.
 
 ---
 
@@ -71,14 +70,13 @@ Session: f51-inventory-full-sweep
 
 ---
 
-### 6. Log directories: 2 locations
+### 6. Log directories: 1 active location
 
 | Directory | Files | Purpose | Classification |
 |-----------|-------|---------|----------------|
 | `runtime/logs/` | 37 | API/CEO logs, smoke tests, screenshots | doc |
-| `output/server/` | 6 | API/CEO logs | doc |
 
-**Verdict**: Duplicate log storage. `runtime/logs/` is primary. `output/server/` is stale. **Could consolidate.**
+**Verdict**: Resolved. Consolidated to `runtime/logs/` as the primary log storage. `output/server/` is removed.
 
 ---
 

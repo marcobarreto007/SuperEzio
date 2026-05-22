@@ -9,6 +9,8 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 
+from ..trade_order import normalize_liquidity_fields, pick_candidate, rank_candidates
+
 
 async def node_collector(state: dict, *, config=None) -> dict:
     """Collect financial data for the detected ticker or market scan."""
@@ -87,7 +89,20 @@ async def node_collector(state: dict, *, config=None) -> dict:
 
     # ── Market scan ──
     if route == "market_scan":
-        scan = await _run_scan(state.get("message", ""), state.get("filters", {}))
+        trade_ctx = state.get("trade_order_context") or {}
+        intent = state.get("intent", "")
+        excluded = list(trade_ctx.get("excluded_tickers") or [])
+
+        if intent == "another_trade_recommendation" and trade_ctx.get("ranked_candidates"):
+            scan = _scan_from_cached_ranked(trade_ctx, state.get("message", ""), excluded)
+        else:
+            scan = await _run_scan(
+                state.get("message", ""),
+                state.get("filters", {}),
+                excluded_tickers=excluded,
+            )
+            if trade_ctx.get("universe"):
+                scan.setdefault("universe", trade_ctx.get("universe"))
         scan_ctx = _format_scan_context(scan)
         candidates = scan.get("candidates", [])
         top_ticker = candidates[0].get("ticker", "") if candidates else ""
@@ -204,7 +219,7 @@ async def _collect_subprocess_fallback(
 ) -> tuple[dict[str, Any], str]:
     """Fallback: use SubprocessDataCollector."""
     from ...data_collector import DataCollector
-    from ...data_collector.subprocess_collector import SubprocessDataCollector
+    from adapters.data_collector.subprocess_collector import SubprocessDataCollector
     from ...paths import PROJECT_ROOT
 
     timeout_s = int(os.getenv("SUPEREZIO_DATA_TIMEOUT", "60"))
@@ -405,7 +420,12 @@ def _safe_get_short_term_catalyst(hub_obj: Any, ticker: str) -> dict[str, Any]:
     return result if isinstance(result, dict) else {}
 
 
-async def _run_scan(message: str, filters: dict[str, Any]) -> dict[str, Any]:
+async def _run_scan(
+    message: str,
+    filters: dict[str, Any],
+    *,
+    excluded_tickers: list[str] | None = None,
+) -> dict[str, Any]:
     """Run a market scan and produce gated candidates plus rejection telemetry.
 
     The scan pipeline:
@@ -637,13 +657,24 @@ async def _run_scan(message: str, filters: dict[str, Any]) -> dict[str, Any]:
     passing: list[dict[str, Any]] = []
     rejected: list[dict[str, Any]] = []
     rejection_summary: dict[str, int] = {}
+    excluded = {str(t).upper() for t in (excluded_tickers or []) if t}
     for item in raw_candidates:
+        ticker_key = str(item.get("ticker") or "").upper()
+        if ticker_key and ticker_key in excluded:
+            rj = dict(item)
+            rj["rejected_reason"] = "excluded_previous_recommendation"
+            rejected.append(rj)
+            rejection_summary["excluded_previous_recommendation"] = (
+                rejection_summary.get("excluded_previous_recommendation", 0) + 1
+            )
+            continue
         ok, reason = _apply_candidate_gate(
             item,
             allow_penny_otc=allow_penny_otc,
             allow_microcap=allow_microcap,
         )
         if ok:
+            normalize_liquidity_fields(item)
             passing.append(item)
             continue
         rj = dict(item)
@@ -651,6 +682,12 @@ async def _run_scan(message: str, filters: dict[str, Any]) -> dict[str, Any]:
         rj["rejected_reason"] = key
         rejected.append(rj)
         rejection_summary[key] = rejection_summary.get(key, 0) + 1
+
+    ranked = rank_candidates(
+        passing,
+        source_errors=source_errors,
+        weak_universe=len(passing) <= 1,
+    )
 
     resolved_filters: dict[str, Any] = {
         "country": explicit_country,
@@ -665,12 +702,56 @@ async def _run_scan(message: str, filters: dict[str, Any]) -> dict[str, Any]:
         "filters": resolved_filters,
         "universe": universe_label,
         "candidates": passing[:10],
+        "ranked_candidates": ranked,
         "rejected": rejected[:25],
         "rejected_count": len(rejected),
         "rejection_summary": rejection_summary,
         "data_quality": "partial" if source_errors else "provider_or_computed",
         "source_errors": source_errors,
         "collected_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def _scan_from_cached_ranked(
+    trade_ctx: dict[str, Any],
+    message: str,
+    excluded_tickers: list[str],
+) -> dict[str, Any]:
+    """Reuse ranked candidates from a prior DECISIVE_TRADE_ORDER session."""
+    from datetime import datetime, timezone
+
+    ranked = list(trade_ctx.get("ranked_candidates") or [])
+    excluded = {str(t).upper() for t in excluded_tickers if t}
+    candidates = [
+        entry.get("candidate")
+        for entry in ranked
+        if isinstance(entry, dict) and isinstance(entry.get("candidate"), dict)
+    ]
+    for item in candidates:
+        normalize_liquidity_fields(item)
+
+    next_entry, _ = pick_candidate(ranked, excluded_tickers=excluded)
+    remaining = [
+        entry
+        for entry in ranked
+        if str((entry.get("candidate") or {}).get("ticker", "")).upper() not in excluded
+    ]
+
+    return {
+        "query": message,
+        "filters": trade_ctx.get("filters") or {},
+        "universe": trade_ctx.get("universe") or "unspecified",
+        "candidates": candidates[:10],
+        "ranked_candidates": ranked,
+        "rejected": [],
+        "rejected_count": 0,
+        "rejection_summary": {},
+        "data_quality": "cached_ranked",
+        "source_errors": [],
+        "collected_at": datetime.now(timezone.utc).isoformat(),
+        "from_cache": True,
+        "next_cached_entry": next_entry,
+        "remaining_after_exclude": len(remaining),
     }
 
 

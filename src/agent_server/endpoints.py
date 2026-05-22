@@ -548,6 +548,9 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
         if len(chart_context) > _MAX_CHART_CONTEXT_CHARS:
             chart_context = chart_context[:_MAX_CHART_CONTEXT_CHARS]
 
+        session_meta = _session_history.get(session_id) or {}
+        trade_order_context = session_meta.get("trade_order_context") or {}
+
         # Intercept "o que houve" query if the previous request failed
         if _is_what_happened_query(raw_message):
             prev_run = _session_history.get(session_id)
@@ -642,6 +645,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
         async def stream_result() -> AsyncGenerator[str, None]:
             nonlocal detected_intent, route_used, scanner_invoked, ceo_called, fallback_used, final_content_length
             nonlocal candidate_count, rejected_count, rejection_summary, provider_error
+            nonlocal trade_order_context
             if detected_ticker:
                 yield (json.dumps({"type": "CHART_DATA", "ticker": detected_ticker}) + "\n")
             yield json.dumps({"type": "STREAM_START", "msg_id": envelope.msg_id}) + "\n"
@@ -655,6 +659,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                         memory_mode=memory_mode,
                         rigor=rigor,
                         ticker=detected_ticker,
+                        trade_order_context=trade_order_context or None,
                     ):
                         if isinstance(event, dict):
                             event_type = event.get("type")
@@ -698,6 +703,12 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                                 content = event.get("content", "")
                                 final_content_length += len(content)
                                 full_content.append(content)
+                            elif event_type == "TRADE_ORDER_CONTEXT":
+                                trade_order_context = {
+                                    k: v
+                                    for k, v in event.items()
+                                    if k != "type" and v is not None
+                                }
                             yield json.dumps(event, ensure_ascii=False) + "\n"
                         else:
                             content_str = str(event)
@@ -718,6 +729,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                         memory_mode=memory_mode,
                         rigor=rigor,
                         ticker=detected_ticker,
+                        trade_order_context=trade_order_context or None,
                     )
                     async for chunk in chat_iter:
                         if isinstance(chunk, dict):
@@ -855,10 +867,13 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                 logger.info("Bob Response Trace: %s", json.dumps(trace))
 
                 # Update session history
-                _session_history[session_id] = {
+                session_record: dict[str, Any] = {
                     "detected_intent": detected_intent,
                     "failed": fallback_used,
                 }
+                if trade_order_context:
+                    session_record["trade_order_context"] = trade_order_context
+                _session_history[session_id] = session_record
 
                 yield json.dumps({"type": "STREAM_END", "trace": trace}) + "\n"
             except Exception as exc:

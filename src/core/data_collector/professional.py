@@ -520,27 +520,7 @@ class ProfessionalCollector:
         self._register_providers()
 
     def _register_providers(self) -> None:
-        # ── Price providers ──────────────────────────────────────────────
-        self.mesh.register(
-            ProviderSpec(
-                name="twelve_data",
-                capabilities=(_CAPABILITY_PRICE, _CAPABILITY_QUOTE),
-                fetch=self._fetch_twelve_data_price,
-                priority=10,
-                required_key="TWELVE_DATA_API_KEY",
-                rate_limit_rps=0.13,  # 8/min
-            )
-        )
-        self.mesh.register(
-            ProviderSpec(
-                name="alpha_vantage",
-                capabilities=(_CAPABILITY_PRICE, _CAPABILITY_QUOTE),
-                fetch=self._fetch_alpha_vantage_quote,
-                priority=15,
-                required_key="ALPHA_VANTAGE_API_KEY",
-                rate_limit_rps=0.4,  # 25/day ≈ very slow
-            )
-        )
+        # ── Price providers (canonical: DataHub registry / fallback chain) ──
         self.mesh.register(
             ProviderSpec(
                 name="hub_price",
@@ -550,7 +530,7 @@ class ProfessionalCollector:
                     _CAPABILITY_TECHNICALS,
                 ),
                 fetch=self._fetch_hub_price,
-                priority=30,
+                priority=10,
                 rate_limit_rps=1.0,
                 supports_penny=True,
             )
@@ -617,50 +597,6 @@ class ProfessionalCollector:
         )
 
     # ── Provider fetch methods (synchronous, called via to_thread) ───────
-
-    @staticmethod
-    def _fetch_twelve_data_price(ticker: str) -> dict:
-        try:
-            from data.twelve_data import TwelveDataProvider
-
-            api_key = os.getenv("TWELVE_DATA_API_KEY")
-            if not api_key:
-                return {"error": "TWELVE_DATA_API_KEY not set"}
-            provider = TwelveDataProvider(api_key=api_key)
-            result = provider.get_price(ticker)
-            if "error" in result:
-                return result
-            return {
-                "symbol": ticker,
-                "price": float(result.get("price", 0)),
-                "source": "twelve_data",
-                "timestamp": _now_iso(),
-            }
-        except Exception as exc:
-            return {"error": f"twelve_data: {exc}"}
-
-    @staticmethod
-    def _fetch_alpha_vantage_quote(ticker: str) -> dict:
-        try:
-            from data.alpha_vantage import AlphaVantageProvider
-
-            api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
-            if not api_key:
-                return {"error": "ALPHA_VANTAGE_API_KEY not set"}
-            provider = AlphaVantageProvider(api_key=api_key)
-            result = provider.get_quote(ticker)
-            if "error" in result:
-                return result
-            return {
-                "symbol": ticker,
-                "price": float(result.get("price", 0)),
-                "change_pct": result.get("change_pct"),
-                "volume": result.get("volume"),
-                "source": "alpha_vantage",
-                "timestamp": _now_iso(),
-            }
-        except Exception as exc:
-            return {"error": f"alpha_vantage: {exc}"}
 
     @staticmethod
     def _fetch_hub_price(ticker: str) -> dict:

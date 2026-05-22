@@ -83,7 +83,7 @@ def test_get_price_returns_finnhub_shape_when_quote_succeeds() -> None:
         "dp": 0.64,
         "pc": 194.25,
     }
-    metric_payload = {"metric": {"10DayAverageTradingVolume": 50_000_000.0}}
+    metric_payload = {"metric": {"10DayAverageTradingVolume": 50.0}}
 
     def fake_get(url: str, *_, **__):
         if "/quote" in url:
@@ -102,7 +102,22 @@ def test_get_price_returns_finnhub_shape_when_quote_succeeds() -> None:
     assert result.get("change_pct") == 0.64
     assert result.get("prev_close") == 194.25
     assert result.get("volume") == 50_000_000.0
+    assert result.get("avg_daily_volume_shares") == 50_000_000.0
     assert "error" not in result
+
+
+def test_fetch_avg_volume_converts_millions_to_shares() -> None:
+    """Finnhub metric volume is in millions; provider must scale to shares."""
+    provider = _make_provider()
+    metric_payload = {"metric": {"10DayAverageTradingVolume": 2.20265}}
+
+    with patch(
+        "data.finnhub_provider.requests.get",
+        return_value=_FakeResponse(status_code=200, payload=metric_payload),
+    ):
+        volume = provider._fetch_avg_volume("A")
+
+    assert volume == pytest.approx(2_202_650.0)
 
 
 def test_get_profile_returns_normalized_market_cap_in_units() -> None:

@@ -135,6 +135,7 @@ class PipelineApp:
         memory_mode: str = "relevant_all",
         rigor: str = "strict",
         ticker: str = "",
+        trade_order_context: dict[str, Any] | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
         run_id = uuid.uuid4().hex[:12]
         initial: dict[str, Any] = {
@@ -148,6 +149,8 @@ class PipelineApp:
         }
         if ticker:
             initial["ticker"] = ticker
+        if trade_order_context:
+            initial["trade_order_context"] = trade_order_context
 
         yield {
             "type": "PIPELINE_STEP",
@@ -200,6 +203,7 @@ class PipelineApp:
         memory_mode: str = "relevant_all",
         rigor: str = "strict",
         ticker: str = "",
+        trade_order_context: dict[str, Any] | None = None,
     ) -> AsyncGenerator[str, None]:
         async for event in self.stream_events(
             message,
@@ -208,6 +212,7 @@ class PipelineApp:
             memory_mode=memory_mode,
             rigor=rigor,
             ticker=ticker,
+            trade_order_context=trade_order_context,
         ):
             if event.get("type") == "CHUNK":
                 yield str(event.get("content", ""))
@@ -256,18 +261,3 @@ def _run_async(coro):
         return future.result()
 
 
-async def _node_pennylab_stub(state: dict) -> dict:
-    """PennyLab stub — delegates to the real PennyLab pipeline hook."""
-    ticker = state.get("ticker", "")
-    if not ticker:
-        return {"pennylab": {}}
-
-    try:
-        from experts.pennylab.pipeline_hook import analyze_ticker_sync
-
-        result = await __import__("asyncio").to_thread(analyze_ticker_sync, ticker)
-        return {"pennylab": result}
-    except ImportError:
-        return {"pennylab": {"ticker": ticker, "decision": None, "error": "unavailable"}}
-    except Exception as exc:
-        return {"pennylab": {"ticker": ticker, "decision": None, "error": str(exc)[:200]}}

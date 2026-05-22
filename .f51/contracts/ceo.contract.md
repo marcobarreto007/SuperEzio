@@ -1,13 +1,13 @@
 # CEO Node Contract
 
-**Module:** `src/core/pipeline/nodes/ceo.py`, `src/core/pipeline/prompts/builder.py`
+**Module:** `src/core/pipeline/nodes/agent.py` (ativo), `src/core/pipeline/prompts/builder.py`
 **Classification:** pipeline
 
 ## Public API
 
 | Function | Signature | Returns | Contract |
 |----------|-----------|---------|----------|
-| `node_ceo` | `async (state: dict) -> dict` | `{"final": str}` | Nó do LangGraph. Chama Qwen3.6-35B local via llama.cpp. |
+| `node_agent` | `async (state: dict) -> dict` | `{"final": str, ...}` | Nó ativo do grafo v4. ReAct + CEO local via llama.cpp. |
 | `build_ceo_prompt` | `(state: PipelineState, mandamentos: list \| None) -> str` | `str` | Monta prompt completo para o CEO. |
 | `ceo_system_prompt` | `() -> str` | `str` | Retorna system prompt do modelo local. |
 | `missing_ceo_text` | `(ticker="", route="general", local_ready=False) -> str` | `str` | Texto de erro quando CEO offline. |

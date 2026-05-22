@@ -114,7 +114,13 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
     )
 
     # 1. Deterministic parse
-    parsed = parse_user_intent(message, rigor=rigor, ticker=ticker)
+    trade_order_context = state.get("trade_order_context") or {}
+    parsed = parse_user_intent(
+        message,
+        rigor=rigor,
+        ticker=ticker,
+        trade_order_context=trade_order_context,
+    )
     plan = parsed.to_plan()
     plan["intent_source"] = "deterministic"
 
@@ -160,13 +166,24 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
                     plan = parsed.to_plan()
                     plan["intent_source"] = "ceo_model_overridden_complex_finance"
                     plan["ceo_original_route"] = "market_scan"
+                # Guard: trade-order follow-ups must stay on market_scan.
+                if (
+                    parsed.intent == "another_trade_recommendation"
+                    and plan.get("route") != "market_scan"
+                ):
+                    ceo_original = plan.get("route")
+                    plan = parsed.to_plan()
+                    plan["intent_source"] = "ceo_model_overridden_trade_followup"
+                    plan["ceo_original_route"] = ceo_original
         except Exception as exc:
             plan["intent_fallback_error"] = str(exc)[:200]
             # If CEO model fails, trust deterministic as final authority
             plan["intent_source"] = "deterministic_final"
 
     # Extract time horizon from user message (e.g. "14 days", "2 weeks", "1 month")
-    plan["time_horizon"] = _extract_time_horizon(message)
+    plan["time_horizon"] = _extract_time_horizon(message) or trade_order_context.get(
+        "time_horizon", ""
+    )
 
     # Add meta
     plan["orchestrator_plan"] = _render_plan(plan)

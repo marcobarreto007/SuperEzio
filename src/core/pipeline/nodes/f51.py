@@ -3,46 +3,6 @@
 from langgraph.config import get_stream_writer
 
 
-def route_after_f51(state: dict) -> list:
-    """Fan-out to experts or skip to collect_experts.
-
-    Runs experts for ticker_analysis (explicit ticker) and market_scan
-    (top candidate from scan results).
-    """
-    from langgraph.types import Send
-
-    route = state.get("route", "general")
-    ticker = state.get("ticker", "")
-
-    # market_scan: resolve ticker from top scan candidate
-    if route == "market_scan" and not ticker:
-        scan = state.get("scan") or {}
-        candidates = scan.get("candidates", [])
-        if candidates:
-            ticker = candidates[0].get("ticker", "")
-
-    if not ticker:
-        return "collect_experts"
-
-    data = state.get("data") or {}
-    if data.get("data_quality") in {"timeout", "error"}:
-        return "collect_experts"
-
-    roles = ["fundamental", "technical", "risk", "macro", "quant", "sentiment"]
-    context = state.get("data_context", "")
-    return [
-        Send(
-            "run_expert",
-            {
-                "role": role,
-                "ticker": ticker,
-                "data_context": context,
-                "data": data,
-            },
-        )
-        for role in roles
-    ]
-
 
 async def node_f51_verdict(state: dict) -> dict:
     """Run F51Engine verdict on collected data trace."""

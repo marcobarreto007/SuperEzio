@@ -77,16 +77,6 @@ START
       -> END
 ```
 
-## Signal Ledger Scripts
-
-| Script | Purpose | Classification |
-|--------|---------|----------------|
-| `scripts/signal_ledger/policy.py` | Signal policy engine | core |
-| `scripts/signal_ledger/collector.py` | Signal collection | core |
-| `scripts/signal_ledger/append_from_ndjson.py` | Append signals from NDJSON | core |
-| `scripts/signal_ledger/resolve_signals.py` | Signal resolution | core |
-| `scripts/signal_ledger/report_signals.py` | Signal reporting | core |
-
 ## Docker Entrypoints
 
 | Target | Base | CMD | Classification |

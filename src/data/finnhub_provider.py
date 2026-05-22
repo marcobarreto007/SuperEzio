@@ -139,6 +139,8 @@ class FinnhubProvider:
                 volume = self._fetch_avg_volume(variant)
                 if volume is not None:
                     payload["volume"] = volume
+                    payload["avg_daily_volume_shares"] = volume
+                    payload["volume_unit"] = "shares"
 
             return payload
 
@@ -168,9 +170,9 @@ class FinnhubProvider:
                 vol = metric.get("3MonthAverageTradingVolume")
             if vol is None:
                 return None
-            # Finnhub reports avg volume in millions for some endpoints; the
-            # /stock/metric `all` payload returns it as a raw share count.
-            return float(vol)
+            # Finnhub /stock/metric reports 10DayAverageTradingVolume in
+            # millions of shares (e.g. 2.20265 => ~2.20M shares/day).
+            return float(vol) * 1_000_000.0
         except Exception:
             return None
 

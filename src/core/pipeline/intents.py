@@ -5,6 +5,8 @@ Funções públicas exportadas:
   - detect_ticker(message) -> str
   - detect_diary_intent(message) -> bool
   - detect_market_scan_intent(message) -> bool
+  - detect_decisive_trade_intent(message) -> bool
+  - detect_another_trade_recommendation_intent(message) -> bool
   - detect_pennylab_intent(message) -> bool
   - detect_complex_finance_intent(message) -> bool
   - infer_scan_filters(message) -> dict
@@ -38,6 +40,7 @@ ALLOWED_INTENTS = {
     "explain_capabilities",
     "ticker_analysis",
     "market_scan",
+    "another_trade_recommendation",
     "missing_required_slot",
     "unsafe_unspecified_recommendation",
 }
@@ -52,7 +55,7 @@ ALLOWED_ACTIONS = {
 ROUTE_INTENT_ACTIONS = {
     "general": {"general_question", "explain_capabilities"},
     "ticker_analysis": {"ticker_analysis"},
-    "market_scan": {"market_scan"},
+    "market_scan": {"market_scan", "another_trade_recommendation"},
     "needs_scope": {"missing_required_slot", "unsafe_unspecified_recommendation"},
 }
 
@@ -593,6 +596,59 @@ DIRECT_UNSCOPED_RECOMMENDATION_PATTERNS = (
     r"\bdica(?:s)?\b",
     r"\bo\s+que\s+comprar\b",
     r"\bqual\s+(?:eu\s+)?compro\b",
+)
+
+DECISIVE_TRADE_HINTS = (
+    "what should i buy",
+    "what stock would you recommend",
+    "what would you recommend",
+    "recommend me to buy",
+    "give me the best buy",
+    "give me an order",
+    "best trade",
+    "i want to make a profit",
+    "make profit",
+    "best stock to buy",
+    "give me a trade",
+    "give me a buy",
+    "pick the best",
+    "what to buy",
+    "o que comprar",
+    "qual comprar",
+    "qual eu compro",
+    "me da uma ordem",
+    "me de uma ordem",
+    "melhor compra",
+    "melhor trade",
+    "quero lucrar",
+    "quero ganhar",
+    "recomendar para comprar",
+)
+
+ANOTHER_TRADE_HINTS = (
+    "another recommendation",
+    "another one",
+    "next recommendation",
+    "second option",
+    "give me another",
+    "what else",
+    "show me the next candidate",
+    "next candidate",
+    "different stock",
+    "different ticker",
+    "another stock",
+    "another trade",
+    "outra recomendacao",
+    "outra recomendação",
+    "mais uma",
+    "proxima recomendacao",
+    "próxima recomendação",
+    "segunda opcao",
+    "segunda opção",
+    "me da outra",
+    "me dê outra",
+    "qual o proximo",
+    "qual o próximo",
 )
 
 EDUCATIONAL_OR_RISK_CONTEXT_HINTS = (
@@ -1218,6 +1274,24 @@ def detect_market_scan_intent(message: str) -> bool:
     return _is_market_scan_request(message)
 
 
+def detect_decisive_trade_intent(message: str) -> bool:
+    """Detect if the user is asking for a decisive buy/trade recommendation.
+
+    When True, the market_scan answer renderer switches from the default
+    8-section research report to the DECISIVE_TRADE_ORDER contract.
+    """
+    if not message or not message.strip():
+        return False
+    return has_hint(message, DECISIVE_TRADE_HINTS)
+
+
+def detect_another_trade_recommendation_intent(message: str) -> bool:
+    """Detect follow-up requests for another trade recommendation."""
+    if not message or not message.strip():
+        return False
+    return has_hint(message, ANOTHER_TRADE_HINTS)
+
+
 def should_block_vague_financial_prompt(
     raw_message: str,
     detected_ticker: str,
@@ -1324,7 +1398,12 @@ def detect_pennylab_intent(message: str) -> bool:
     return has_keyword and has_ticker
 
 
-def parse_user_intent(message: str, rigor: str = "strict", ticker: str = "") -> IntentParse:
+def parse_user_intent(
+    message: str,
+    rigor: str = "strict",
+    ticker: str = "",
+    trade_order_context: dict[str, Any] | None = None,
+) -> IntentParse:
     """Parse a user request into route, intent, entities, and missing slots.
 
     The parser separates speech act from financial domain terms. A sentence can
@@ -1376,6 +1455,25 @@ def parse_user_intent(message: str, rigor: str = "strict", ticker: str = "") -> 
             diary=diary,
             pennylab=False,
         )
+
+    ctx = trade_order_context or {}
+    if ctx.get("mode") in {"DECISIVE_TRADE_ORDER", "DECISIVE_TRADE_ORDER_FOLLOWUP"}:
+        if detect_another_trade_recommendation_intent(raw):
+            filters = infer_scan_filters(raw)
+            if ctx.get("universe") and not filters.get("country"):
+                if "US_CANADA" in str(ctx.get("universe", "")):
+                    filters = {**filters}
+            return IntentParse(
+                route="market_scan",
+                intent="another_trade_recommendation",
+                action="scan_market",
+                filters=filters,
+                confidence=0.9,
+                reasons=("decisive_trade_followup",),
+                entities=entities,
+                diary=diary,
+                pennylab=False,
+            )
 
     if ticker:
         return IntentParse(

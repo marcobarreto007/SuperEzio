@@ -146,11 +146,13 @@ def test_no_candidate_answer_is_useful():
     answer = _market_scan_answer(state)
 
     assert isinstance(answer, str)
-    assert len(answer) > 300
-    assert "No candidate passed" in answer
-    assert "Filters used" in answer
-    assert "Suggested next prompt" in answer
-    assert "guaranteed profit" not in answer.lower() or "no guaranteed profit" in answer.lower()
+    assert len(answer) > 200
+    # Decisive prompt → REJECT_ALL when zero candidates pass
+    assert "DECISIVE_TRADE_ORDER" in answer
+    assert "REJECT_ALL" in answer
+    assert "Model verdict: REJECT_ALL" in answer
+    assert "Suggested next scan" in answer or "Suggested next prompt" in answer
+    assert "guaranteed profit" not in answer.lower() or "not guaranteed profit" in answer.lower()
     # No junk ticker should leak as a candidate
     assert "Scanner candidates:" not in answer
     assert "preco indisponivel no scan" not in answer

@@ -98,7 +98,6 @@ Session: f51-inventory-full-sweep
 | `test_gateway.py` | Model gateway + providers | core |
 | `test_market_scanner.py` | Market scanner (FinanceDatabase) | core |
 | `test_rag_engine_smoke.py` | RAG engine | core |
-| `test_signal_ledger_offline.py` | Signal ledger | core |
 | `test_sdca_lite.py` | SDCA cognitive firewall | core |
 | `test_pennylab.py` | PennyLab experts | core |
 | `test_components_data.py` | Data providers | core |
@@ -130,7 +129,7 @@ Session: f51-inventory-full-sweep
 | `src/core/audit/` | No dedicated test | Low risk |
 | `src/core/security/` | test_model_sanitizer covers sanitization | Partial |
 | `src/core/storage/` | No dedicated test | Low risk |
-| `src/experts/technical_neural/` | No dedicated test | **GAP** |
+| `src/experts/_archive/technical_neural/` | Deleted completely | Deleted |
 | `src/tools/` | No dedicated test | **GAP** |
 | `src/adapters/` | No dedicated test | Low risk |
 | Frontend JS | No automated tests | Known — manual E2E only |
@@ -138,6 +137,7 @@ Session: f51-inventory-full-sweep
 
 ## Last Known Test Result
 
-- **Date**: 2026-05-13 (E2E delivery gate)
-- **Result**: 348 passed, 2 warnings, 206.82s
-- **Caveat**: Pipeline was refactored on 2026-05-21. Full suite not re-confirmed post-refactor.
+- **Date**: 2026-05-22 (Full clean-up verification)
+- **Result**: 788 passed, 8 skipped, 7 warnings, 29.08s
+- **Caveat**: All active contract, smoke, and domain tests pass.
+

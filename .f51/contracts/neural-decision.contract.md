@@ -37,7 +37,6 @@
 ## Dependencies
 
 - `src/experts/neural_decision/neural_decision_expert.py` — NeuralDecisionExpert
-- `src/experts/technical_neural/` — PriceMLP, PriceTorchMLP (fallback)
 - Dados do PipelineState.data (technicals, price)
 
 ## Routing

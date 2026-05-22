@@ -17,7 +17,6 @@ from src.core.pipeline.prompts._prompts import (
     QWEN_PERSONA,
     MODEL_PROMPTS,
 )
-from src.core.pipeline.nodes.ceo import capabilities_text, enforce_advisor_boundary
 
 
 # ---------------------------------------------------------------------------
@@ -115,25 +114,6 @@ def test_build_ceo_prompt_explain_capabilities():
     )
 
 
-def test_capabilities_text_lists_real_pipeline_tools():
-    text = capabilities_text()
-    assert "DataCollector" in text
-    assert "F51 gate" in text
-    assert "Expert committee" in text
-    assert "NeuralDecisionExpert" in text
-    assert "RAG forensics" in text
-    assert "CEO/Qwen" in text
-    assert "freely call tools by itself" in text
-
-
-def test_capabilities_text_answers_portuguese_without_trade_order():
-    text = capabilities_text(
-        "Bob, em portugues simples, o que voce pode fazer por mim como copiloto financeiro?"
-    )
-    assert "Bob CEO" in text
-    assert "linguagem natural" in text
-    assert "nao executo corretora" in text
-    assert "ordem de compra ou venda" in text
 
 
 def test_build_ceo_prompt_missing_ceo():
@@ -336,19 +316,3 @@ def test_prompts_follow_user_language():
     assert "user's language" in QWEN_PERSONA
 
 
-def test_enforce_advisor_boundary_rewrites_direct_trade_signal():
-    state = {
-        "message": "explique em portugues antes de comprar AAPL",
-        "ticker": "AAPL",
-        "f51_verdict": {"confidence": 0.91},
-        "neural_decision": {"regime": "trend_real", "uncertainty": 0.33, "drawdown_risk": 0.25},
-        "sdca_firewall": {"decision": "ALLOW"},
-    }
-    text = enforce_advisor_boundary(
-        "VERDICT: 14 days AAPL NYSE -> SHORT. Expected return: -12.4%.",
-        state,
-    )
-
-    assert "ordem de trade" in text
-    assert "SHORT" not in text
-    assert "comprar" in text or "Antes de agir" in text
