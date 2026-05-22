@@ -6,10 +6,32 @@ No API key. Used after Finnhub and Twelve Data fail or are unavailable.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+import io
+import sys
+from datetime import timezone
 from typing import Any, Dict, List
 
 from .finnhub_symbols import finnhub_symbol_variants
+
+
+class _SuppressYFinanceOutput:
+    """Context manager to suppress yfinance stdout/stderr spam ("possibly delisted", etc.)."""
+
+    def __init__(self) -> None:
+        self._devnull = io.StringIO()
+        self._old_stdout: list[Any] = []
+        self._old_stderr: list[Any] = []
+
+    def __enter__(self) -> "_SuppressYFinanceOutput":
+        self._old_stdout.append(sys.stdout)
+        self._old_stderr.append(sys.stderr)
+        sys.stdout = self._devnull  # type: ignore[assignment]
+        sys.stderr = self._devnull  # type: ignore[assignment]
+        return self
+
+    def __exit__(self, *args: Any) -> None:
+        sys.stdout = self._old_stdout.pop()
+        sys.stderr = self._old_stderr.pop()
 
 
 def yfinance_ticker(symbol: str, market: str | None = None) -> str | None:
@@ -53,31 +75,32 @@ class YFinanceProvider:
             return {"error": "yfinance_not_installed"}
 
         try:
-            ticker = yf.Ticker(ysym)
-            fast = getattr(ticker, "fast_info", None)
-            price = None
-            if fast is not None:
-                price = getattr(fast, "last_price", None) or getattr(
-                    fast, "regular_market_price", None
-                )
-            if price is None:
-                info = ticker.info or {}
-                price = info.get("regularMarketPrice") or info.get(
-                    "currentPrice"
-                )
-            if price is None or float(price) <= 0:
-                hist = ticker.history(period="5d")
-                if hist is not None and not hist.empty:
-                    price = float(hist["Close"].iloc[-1])
-            if price is None or float(price) <= 0:
-                return {"error": "yfinance_no_price"}
+            with _SuppressYFinanceOutput():
+                ticker = yf.Ticker(ysym)
+                fast = getattr(ticker, "fast_info", None)
+                price = None
+                if fast is not None:
+                    price = getattr(fast, "last_price", None) or getattr(
+                        fast, "regular_market_price", None
+                    )
+                if price is None:
+                    info = ticker.info or {}
+                    price = info.get("regularMarketPrice") or info.get(
+                        "currentPrice"
+                    )
+                if price is None or float(price) <= 0:
+                    hist = ticker.history(period="5d")
+                    if hist is not None and not hist.empty:
+                        price = float(hist["Close"].iloc[-1])
+                if price is None or float(price) <= 0:
+                    return {"error": "yfinance_no_price"}
 
-            volume = None
-            if fast is not None:
-                volume = getattr(fast, "last_volume", None)
-            if volume is None:
-                info = ticker.info or {}
-                volume = info.get("averageVolume") or info.get("volume")
+                volume = None
+                if fast is not None:
+                    volume = getattr(fast, "last_volume", None)
+                if volume is None:
+                    info = ticker.info or {}
+                    volume = info.get("averageVolume") or info.get("volume")
 
             return {
                 "symbol": symbol,
@@ -108,7 +131,8 @@ class YFinanceProvider:
 
         period = _PERIOD_MAP.get(timeframe, "6mo")
         try:
-            hist = yf.Ticker(ysym).history(period=period, auto_adjust=True)
+            with _SuppressYFinanceOutput():
+                hist = yf.Ticker(ysym).history(period=period, auto_adjust=True)
             if hist is None or hist.empty:
                 return {"error": "yfinance_no_candles"}
             candles: List[Dict[str, Any]] = []
@@ -153,7 +177,8 @@ class YFinanceProvider:
         except ImportError:
             return {"error": "yfinance_not_installed"}
         try:
-            info = yf.Ticker(ysym).info or {}
+            with _SuppressYFinanceOutput():
+                info = yf.Ticker(ysym).info or {}
             name = info.get("longName") or info.get("shortName")
             if not name:
                 return {"error": "yfinance_no_profile"}

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import time
 from typing import Any
 
@@ -242,14 +243,12 @@ _CHINA_UNIVERSE_HINTS = (
     "shanghai",
     "shenzhen",
     "a-share",
-    "a share",
     "a-shares",
-    "a shares",
     ".sz",
     ".ss",
     "hong kong",
     "hkex",
-    " hsi",
+    "hsi",
 )
 
 _PENNY_OTC_HINTS = (
@@ -258,7 +257,7 @@ _PENNY_OTC_HINTS = (
     "penny",
     "pink sheet",
     "pink sheets",
-    " otc ",
+    "otc",
     "over the counter",
     "acao de centavo",
     "centavo",
@@ -276,20 +275,39 @@ _MICROCAP_HINTS = (
 )
 
 
-def _has_any(text: str, needles: tuple[str, ...]) -> bool:
-    return any(needle in text for needle in needles)
+def _compile_hint_patterns(hints: tuple[str, ...]) -> list[re.Pattern[str]]:
+    """Pre-compile hint list into word-boundary regex patterns.
+
+    Multi-word hints match across flexible whitespace. Single-word hints
+    match at non-word boundaries to avoid false positives.
+    """
+    patterns: list[re.Pattern[str]] = []
+    for h in hints:
+        h = h.strip()
+        escaped = re.escape(h).replace(r"\ ", r"\s+")
+        patterns.append(re.compile(rf"(?:^|\W){escaped}(?:$|\W)", re.IGNORECASE))
+    return patterns
+
+
+_CHINA_PATTERNS = _compile_hint_patterns(_CHINA_UNIVERSE_HINTS)
+_PENNY_PATTERNS = _compile_hint_patterns(_PENNY_OTC_HINTS)
+_MICROCAP_PATTERNS = _compile_hint_patterns(_MICROCAP_HINTS)
+
+
+def _has_any(text: str, patterns: list[re.Pattern[str]]) -> bool:
+    return any(p.search(text) for p in patterns)
 
 
 def _wants_china_universe(msg_lower: str) -> bool:
-    return _has_any(msg_lower, _CHINA_UNIVERSE_HINTS)
+    return _has_any(msg_lower, _CHINA_PATTERNS)
 
 
 def _wants_penny_or_otc(msg_lower: str) -> bool:
-    return _has_any(msg_lower, _PENNY_OTC_HINTS)
+    return _has_any(msg_lower, _PENNY_PATTERNS)
 
 
 def _wants_microcap(msg_lower: str) -> bool:
-    return _has_any(msg_lower, _MICROCAP_HINTS)
+    return _has_any(msg_lower, _MICROCAP_PATTERNS)
 
 
 def _resolve_universe(

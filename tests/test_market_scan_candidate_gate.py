@@ -305,3 +305,85 @@ async def test_priced_candidates_fail_on_thesis_not_price(monkeypatch):
     summary = result["rejection_summary"]
     assert summary.get("missing_price", 0) == 0
     assert summary.get("missing_short_term_thesis", 0) >= 1
+
+
+# ---------------------------------------------------------------------------
+# Regression: "share recommendation" must never route to CHINA_A_SHARES
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_share_recommendation_never_routes_to_china(monkeypatch):
+    """P0 regression: 'give me a share recommendation' → US_CANADA_LIQUID.
+
+    The word 'share' must not match the China A-share hint. Only explicit
+    China/A-share terms (with hyphen) may trigger CHINA_A_SHARES.
+    """
+    from src.core import scanner as scanner_module
+    from src.core.pipeline.nodes.collector import _run_scan
+
+    seen_countries: list[str | None] = []
+
+    class StubScanner:
+        def scan_equities(self, country=None, sector=None, industry=None, limit=10):
+            seen_countries.append(country)
+            return []
+
+    class StubHub:
+        def get_price(self, ticker):
+            return {"error": "no quote"}
+
+        def list_routes(self, capability=None):
+            return []
+
+    monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
+    monkeypatch.setitem(
+        sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub())
+    )
+
+    result = await _run_scan(
+        "give me a share recommendation to buy if I want to make a profit within the next 14 days",
+        {},
+    )
+
+    assert result["universe"] == "US_CANADA_LIQUID"
+    assert "China" not in seen_countries
+
+
+def test_a_share_word_boundary_no_false_positive():
+    """'a share' (without hyphen) must not trigger China universe."""
+    from src.core.pipeline.nodes.collector import _wants_china_universe
+
+    false_positives = [
+        "give me a share recommendation to buy",
+        "i want to buy a share of apple",
+        "give me a share tip",
+        "i own a share of tesla",
+        "what shares should i buy",
+        "share price analysis",
+    ]
+    for text in false_positives:
+        assert not _wants_china_universe(text), (
+            f"False positive China trigger: '{text}'"
+        )
+
+
+def test_a_share_word_boundary_true_positives():
+    """Explicit China/A-share terms must still trigger China universe."""
+    from src.core.pipeline.nodes.collector import _wants_china_universe
+
+    true_positives = [
+        "scan chinese a-shares for high-risk 2-week opportunities",
+        "find me stocks on the shanghai exchange",
+        "analyze shenzhen tech stocks",
+        "a-share market outlook",
+        "a-shares with momentum",
+        "china market analysis",
+        "hong kong stocks",
+        "hkex listing",
+        "hang seng index hsi today",
+    ]
+    for text in true_positives:
+        assert _wants_china_universe(text), (
+            f"Missed China trigger: '{text}'"
+        )
