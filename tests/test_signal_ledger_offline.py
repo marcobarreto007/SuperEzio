@@ -7,10 +7,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 LEDGER = ROOT / "scripts" / "signal_ledger"
 
 
+@pytest.mark.skip(reason="signal_ledger scripts removed in cleanup")
 def test_append_sample_produces_official_emit(tmp_path):
     sample = ROOT / "data" / "signals" / "inbox" / "sample-aapl-official.ndjson"
     out = tmp_path / "emitted.jsonl"
@@ -35,6 +38,7 @@ def test_append_sample_produces_official_emit(tmp_path):
     assert record["evidence"]["reference_price"] == 302.25
 
 
+@pytest.mark.skip(reason="signal_ledger scripts removed in cleanup")
 def test_report_empty_ledger(tmp_path):
     emitted = tmp_path / "emitted.jsonl"
     emitted.write_text("", encoding="utf-8")
