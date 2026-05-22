@@ -6,6 +6,7 @@ Funções públicas exportadas:
   - detect_diary_intent(message) -> bool
   - detect_market_scan_intent(message) -> bool
   - detect_pennylab_intent(message) -> bool
+  - detect_complex_finance_intent(message) -> bool
   - infer_scan_filters(message) -> dict
   - should_block_vague_financial_prompt(message, ticker, rigor) -> bool
   - normalize_message(text) -> str
@@ -725,6 +726,186 @@ PENNY_ASSET_HINTS = (
     "acoes de centavo",
 )
 
+# ---------------------------------------------------------------------------
+# Complex Finance Detection — prevents scanner misroute for advisory questions
+# ---------------------------------------------------------------------------
+
+COMPLEX_FINANCE_HINTS = (
+    # Intent names and literal phrases
+    "macro thesis",
+    "macro_thesis",
+    "personal finance",
+    "personal_finance",
+    "capital allocation",
+    "capital_allocation",
+    "asset allocation",
+    "asset_allocation",
+    "real estate vs markets",
+    "real_estate_vs_markets",
+    "business capital",
+    "business_capital",
+    "fraud risk",
+    "fraud_risk",
+    "education investment",
+    "education_investment",
+    # Decision framework / analytical structure
+    "decision framework",
+    "decision matrix",
+    "scenario analysis",
+    "build a thesis",
+    "build a framework",
+    "build a ranked",
+    "ranked decision",
+    "ranked matrix",
+    "expected return",
+    "downside risk",
+    "upside case",
+    "downside case",
+    "base case",
+    # Real estate vs markets
+    "cap rate",
+    "cash-on-cash",
+    "cash on cash",
+    "vacancy risk",
+    "vacancy stress",
+    "mortgage rate",
+    "mortgage stress",
+    "maintenance reserve",
+    "rental property",
+    "rental income",
+    "rental vs",
+    "property vs",
+    # Macro thesis / strategy
+    "secular trend",
+    "secular opportunity",
+    "overvaluation",
+    "hype zone",
+    "hype zones",
+    "position sizing",
+    "rebalancing discipline",
+    "picks-and-shovels",
+    "picks and shovels",
+    "ai infrastructure",
+    "investment thesis",
+    "ai investment thesis",
+    "macro thesis",
+    "portfolio allocation",
+    "portfolio allocations",
+    "allocation math",
+    # Capital allocation / personal finance
+    "capital allocation",
+    "family capital",
+    "emergency reserve",
+    "reversibility",
+    "family stability",
+    "liquidity reserve",
+    "time-to-cashflow",
+    "time to cashflow",
+    "debt threshold",
+    "high-interest debt",
+    "high interest debt",
+    "equipment for a side business",
+    "paying debt",
+    "funding education",
+    # Quantitative structure requests
+    "quantitative framework",
+    "quantitative threshold",
+    "concentration risk",
+    "opportunity cost",
+    "tax drag",
+    "liquidity premium",
+    # Multi-factor evaluation phrasing
+    "evaluate whether",
+    "evaluating whether",
+    "deciding between",
+    "compare investment",
+    "comparing investment",
+)
+
+# Additional signal: structural phrases indicating analytical/framework requests
+_COMPLEX_FINANCE_STRUCTURAL_PATTERNS = (
+    r"\bbuild\s+(?:a|the)\s+(?:thesis|framework|decision|ranked|comparison|matrix|model)\b",
+    r"\bseparate\s+(?:real|hype|secular|opportunity)\b",
+    r"\binclude\s+(?:leverage|vacancy|maintenance|taxes|liquidity|concentration|cap rate|mortgage)\b",
+)
+
+
+def detect_complex_finance_intent(message: str) -> bool:
+    """Detect if a message asks for a complex financial framework/advisory answer.
+
+    This is the PRIMARY gate that prevents complex finance questions from being
+    misrouted into the market scanner. A question is complex finance if it:
+    - Contains 2+ complex finance hints, OR
+    - Contains 1+ complex finance hint AND a structural pattern, OR
+    - Contains a structural pattern that requests building a framework/thesis.
+
+    Returns False if the message explicitly contains a ticker or scan command.
+    """
+    if not message or not message.strip():
+        return False
+    # If there's an explicit ticker WITH a market suffix (.TO, .SA, .V) or a
+    # ticker-with-digit pattern (PETR4), this is ticker analysis, not complex finance.
+    # We do NOT use the full detect_ticker() because its crypto-pair regex
+    # false-positives on finance vocabulary (e.g., "time-to-cashflow" → TIME-TO).
+    if re.search(r"\b[A-Za-z]{1,6}\d{0,2}\.(?:SA|TO|V)\b", message, re.IGNORECASE):
+        return False
+    if re.search(r"\b[A-Z]{1,5}\d{1,2}\b", message):
+        return False
+    # Standalone uppercase words (2-5 chars) that look like tickers — but exclude
+    # common finance/domain acronyms that appear in complex finance discussions.
+    _COMPLEX_FINANCE_ACRONYMS = {
+        "AI",
+        "ETF",
+        "CAD",
+        "USD",
+        "EUR",
+        "GBP",
+        "TSX",
+        "NYSE",
+        "RRSP",
+        "TFSA",
+        "RESP",
+        "GIC",
+        "REIT",
+        "IPO",
+        "ESG",
+        "PE",
+        "VC",
+        "GDP",
+        "CPI",
+        "FED",
+        "SEC",
+        "CFO",
+        "CEO",
+        "ROI",
+        "IRR",
+        "NPV",
+        "DCF",
+        "EPS",
+    }
+    _upper_words = set(re.findall(r"\b([A-Z]{2,5})\b", message))
+    _potential_tickers = _upper_words - COMMON_WORDS - _COMPLEX_FINANCE_ACRONYMS
+    if _potential_tickers:
+        return False
+    # If there's an explicit scan command, honor it
+    if has_hint(message, SCAN_COMMAND_HINTS):
+        return False
+
+    normalized = normalize_message(message)
+    hint_count = sum(1 for h in COMPLEX_FINANCE_HINTS if normalize_message(h) in normalized)
+    has_structural = any(
+        re.search(pattern, normalized) for pattern in _COMPLEX_FINANCE_STRUCTURAL_PATTERNS
+    )
+
+    if hint_count >= 2:
+        return True
+    if hint_count >= 1 and has_structural:
+        return True
+    if has_structural and len(normalized.split()) > 15:
+        return True
+    return False
+
+
 SCAN_COMMAND_HINTS = (
     "me indica",
     "me indique",
@@ -879,6 +1060,37 @@ def detect_ticker(message: str) -> str:
     crypto_matches = re.findall(r"\b([A-Za-z]{2,5}-[A-Za-z]{2,5})\b", raw)
     for match in crypto_matches:
         upper = match.upper()
+        parts = upper.split("-")
+        currencies = {
+            "USD",
+            "BRL",
+            "EUR",
+            "CAD",
+            "GBP",
+            "JPY",
+            "AUD",
+            "CNY",
+            "BTC",
+            "ETH",
+            "USDT",
+            "USDC",
+            "SOL",
+        }
+        non_crypto_common = (COMMON_WORDS - currencies) | {
+            "TIME",
+            "TO",
+            "FOR",
+            "AND",
+            "OR",
+            "IN",
+            "ON",
+            "AT",
+            "BY",
+            "WITH",
+            "CASH",
+        }
+        if any(p in non_crypto_common for p in parts):
+            continue
         if upper not in COMMON_WORDS and not any(c[0] == upper for c in candidates):
             candidates.append((upper, 80, len(upper)))
 
@@ -1021,6 +1233,8 @@ def should_block_vague_financial_prompt(
     if detected_ticker:
         return False
     if _is_capability_question(raw_message) or _is_penny_definition_question(raw_message):
+        return False
+    if detect_complex_finance_intent(raw_message):
         return False
     if detect_market_scan_intent(raw_message):
         return False
@@ -1175,6 +1389,21 @@ def parse_user_intent(message: str, rigor: str = "strict", ticker: str = "") -> 
             entities=entities,
             diary=diary,
             pennylab=pennylab,
+        )
+
+    # Complex finance gate — must come BEFORE market_scan and vague-financial
+    # fallthrough to prevent advisory questions from triggering the scanner.
+    if detect_complex_finance_intent(raw):
+        return IntentParse(
+            route="general",
+            intent="general_question",
+            action="answer",
+            filters={},
+            confidence=0.88,
+            reasons=("complex_finance_advisory_detected",),
+            entities=entities,
+            diary=diary,
+            pennylab=False,
         )
 
     if _is_market_scan_request(raw):

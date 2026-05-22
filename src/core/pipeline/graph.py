@@ -12,6 +12,7 @@ from langgraph.graph import END, START, StateGraph
 from .contracts import PipelineState
 from .nodes import (
     node_agent,
+    node_collector,
     node_tool_executor,
     route_after_agent,
     node_explanation,
@@ -45,6 +46,9 @@ def build_graph(
     async def _tool_executor(state: dict) -> dict:
         return await node_tool_executor(state, gateway=gateway, config=config)
 
+    async def _collector(state: dict) -> dict:
+        return await node_collector(state, config=config)
+
     async def _explanation(state: dict) -> dict:
         return await node_explanation(state)
 
@@ -54,14 +58,17 @@ def build_graph(
     builder = StateGraph(PipelineState)
 
     builder.add_node("orchestrator_primary", _orchestrator)
+    builder.add_node("data", _collector)
     builder.add_node("agent", _agent)
     builder.add_node("tool_executor", _tool_executor)
     builder.add_node("explanation", _explanation)
     builder.add_node("respond_blocked", _blocked)
 
-    # The flow: Orchestrator (parses initial intent) -> Agent Loop
+    # Orchestrator classifies intent; collector runs next so market_scan and
+    # ticker_analysis have data before the CEO/agent loop (see route_after_orchestrator).
     builder.add_edge(START, "orchestrator_primary")
-    builder.add_edge("orchestrator_primary", "agent")
+    builder.add_edge("orchestrator_primary", "data")
+    builder.add_edge("data", "agent")
     
     # Agent decides whether to call a tool or output the final answer
     builder.add_conditional_edges(
@@ -224,6 +231,7 @@ class PipelineApp:
             "mode": "pipeline_v4_stategraph",
             "nodes": [
                 "orchestrator_primary",
+                "data",
                 "agent",
                 "tool_executor",
                 "explanation",

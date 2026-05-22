@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from ..contracts import PipelineState
 
+from ..intents import detect_complex_finance_intent
 from ._prompts import MODEL_PROMPTS
 
 
@@ -236,6 +237,75 @@ def _format_mandamentos(mandamentos: list[Any]) -> str:
     return "\n".join(lines)
 
 
+
+def _build_complex_finance_prompt(raw_message: str) -> str:
+    """Build a specialized CEO prompt for complex finance advisory questions.
+
+    This produces the 12-section decision framework contract instead of the
+    generic 'answer directly' prompt. Used for capital allocation, macro thesis,
+    real estate vs markets, and similar complex advisory questions.
+    """
+    return "\n\n".join(
+        [
+            MODEL_PROMPTS["local"]["persona"],
+            (
+                "COMPLEX FINANCE ADVISORY CONTRACT:\n"
+                "The user is asking a complex financial strategy/framework question.\n"
+                "You must answer with a SERIOUS, QUANTITATIVE decision framework.\n"
+                "Your answer should feel like a family CFO framework, not a generic financial blog.\n"
+                "Do NOT provide generic advice. Do NOT scan for tickers.\n"
+                "Do NOT pretend you collected market data.\n\n"
+                "You must NOT provide regulated personalized financial advice as a licensed advisor.\n"
+                "But you MUST provide educational frameworks, hypothetical capital allocations under explicit assumptions, scenario analysis, decision gates, missing data checklists, conditional recommendations, and risk warnings.\n\n"
+                "OVERBLOCKING PROTECTION RULE:\n"
+                "For PERSONAL_FINANCE, CAPITAL_ALLOCATION, ASSET_ALLOCATION, EDUCATION_INVESTMENT, BUSINESS_CAPITAL:\n"
+                "Do not refuse unless the user asks for:\n"
+                "- guaranteed returns\n"
+                "- exact personalized investment orders\n"
+                "- legal/tax filing instructions as a substitute for a professional\n"
+                "- deception, evasion, or fraud\n\n"
+                "Otherwise, you MUST answer. Your answer MUST follow this exact 12-section structure:\n\n"
+                "1. **Scope disclaimer** — one short sentence: \"This is an educational framework, not personalized financial advice.\"\n"
+                "2. **Question Classification** — identify the type: CAPITAL_ALLOCATION, MACRO_THESIS, REAL_ESTATE_VS_MARKETS, PERSONAL_FINANCE, ASSET_ALLOCATION, BUSINESS_CAPITAL, FRAUD_RISK, EDUCATION_INVESTMENT, or UNKNOWN\n"
+                "3. **Assumptions** — state all assumptions being made (Key Assumptions). Always label scenario numbers, returns, and probabilities as illustrative assumptions.\n"
+                "4. **Missing Data** — what data would be needed for a definitive answer\n"
+                "5. **Decision Variables** — the factors that drive the decision\n"
+                "6. **Quantitative Thresholds** — specific numbers, ranges, formulas, or decision gates. Avoid vague thresholds like \"risk capacity > $50K\". Instead, you MUST use actionable gates:\n"
+                "   - emergency fund months (e.g., 3-6 months based on income stability)\n"
+                "   - debt interest rate (e.g., pay off debt with interest > 6-8% first)\n"
+                "   - income stability (e.g., stable salary vs unstable freelance)\n"
+                "   - liquidity need\n"
+                "   - time-to-cashflow for business equipment\n"
+                "   - tax-advantaged account availability\n"
+                "7. **Scenario Analysis** — base case, downside case, upside case with numbers. You must explicitly label all scenario numbers, returns, and probabilities as illustrative assumptions (e.g., \"illustrative scenario assumptions\"). Do NOT invent exact expected returns or probabilities unless they are explicitly sourced.\n"
+                "8. **Ranked Allocation / Framework** — ordered ranking of options with rationale (Ranked Decision). Every allocation must include the exact percentage, and you must explain why each bucket gets that percentage. Allocations must sum to exactly 100%.\n"
+                "9. **Decision Gates** — triggers that would flip the recommendation (What Would Change the Decision), main risks (Main Risks), and conditional logic. State clearly \"what changes the allocation\" in this section.\n"
+                "10. **Final Recommendation Under Assumptions** — clear, actionable next step (Final Recommendation)\n"
+                "11. **Confidence Level** — honest assessment with stated uncertainty\n"
+                "12. **Professional Caveat** — suggestion to consult a CFP as a final caveat, not as the whole answer\n\n"
+                "Mandatory Disclaimer Style:\n"
+                "Allowed:\n"
+                "\"This is an educational framework, not personalized financial advice.\"\n"
+                "Forbidden:\n"
+                "\"I cannot provide a capital allocation plan.\"\n"
+                "\"Please consult a CFP\" as the full response.\n"
+                "\"I cannot help with this.\"\n\n"
+                "TOPIC-SPECIFIC RULES:\n"
+                "- Avoid fake precision: do not present annualized return ranges as forecasts unless backed by an explicit data/source. Do NOT invent exact expected returns or probabilities unless they are explicitly sourced.\n"
+                "- Label all scenario numbers, returns, and probabilities as illustrative assumptions.\n"
+                "- Ensure proposed portfolio allocations sum to exactly 100%. Every allocation must include why each bucket gets that percentage.\n"
+                "- For Canadian personal finance: include CAD, liquidity, emergency reserve, TFSA/RRSP/RESP/FHSA account types only when relevant, and explicitly state that tax rules depend on the individual's situation.\n"
+                "- For real estate vs markets: include cap rate, cash-on-cash return, mortgage rate sensitivity, vacancy stress, maintenance reserve, insurance, taxes, liquidity, concentration risk, and opportunity cost vs diversified equity.\n"
+                "- For macro thesis: first build the thematic exposure logic before giving stock-screening criteria. Separate secular trend, valuation risk, concentration risk, picks-and-shovels infrastructure, hype zones, position sizing logic, and rebalancing discipline.\n"
+                "- For AI investment thesis, explicitly separate: 1. infrastructure winners, 2. monetization-risk companies, 3. hype/pivot companies, 4. valuation traps, 5. portfolio sizing, 6. rebalancing rules, and 7. maximum total AI-theme exposure inside the full portfolio.\n"
+                "- For capital allocation: include high-interest debt threshold, emergency reserve, reversibility, time-to-cashflow, and family stability.\n\n"
+                "Answer in the user's language. Use numbers, not generalities."
+            ),
+            f"USER: {raw_message}",
+        ]
+    )
+
+
 # ---------------------------------------------------------------------------
 # Main prompt builder
 # ---------------------------------------------------------------------------
@@ -260,6 +330,14 @@ def build_ceo_prompt(
         or state.get("neural_decision")
         or bool((state.get("pennylab") or state.get("pennylab_result") or {}).get("decision"))
     )
+
+    # Complex finance questions must be caught BEFORE the msg_has_ticker check
+    # because words like "AI", "CAD", "ETF" in complex finance questions
+    # false-positive on the uppercase ticker regex.
+    if intent == "general_question" and not has_financial:
+        if detect_complex_finance_intent(raw_message):
+            return _build_complex_finance_prompt(raw_message)
+
     msg_has_ticker = bool(re.search(r"\b[A-Z]{1,5}(?:\.[A-Z]{1,2})?\b", raw_message))
     if intent == "general_question" and not has_financial and not msg_has_ticker:
         return "\n\n".join(

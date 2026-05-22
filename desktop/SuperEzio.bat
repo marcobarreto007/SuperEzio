@@ -7,12 +7,14 @@ if not exist "%ROOT%" goto root_error
 cd /d "%ROOT%"
 if %errorlevel% neq 0 goto root_error
 
-REM Carrega variaveis do .env (dotenv)
-if exist "%ROOT%\.env" (
-    for /f "usebackq tokens=1* delims==" %%a in ("%ROOT%\.env") do (
-        set "line=%%a"
-        if not "!line:~0,1!"=="#" (
-            if not "%%b"=="" set "%%a=%%b"
+REM Carrega variaveis do .env e .env.local (dotenv)
+for %%F in (".env" ".env.local") do (
+    if exist "%ROOT%\%%~F" (
+        for /f "usebackq tokens=1* delims==" %%a in ("%ROOT%\%%~F") do (
+            set "line=%%a"
+            if not "!line:~0,1!"=="#" (
+                if not "%%b"=="" set "%%a=%%b"
+            )
         )
     )
 )

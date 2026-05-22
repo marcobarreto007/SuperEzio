@@ -200,7 +200,9 @@
 
       /* ── ERROR ── */
       case "ERROR":
-        addError(ev.message || ev.error || ev.detail || "Unknown error");
+        if (SZ.state && SZ.state.stream) {
+          SZ.state.stream.error = ev.message || ev.error || ev.detail || "Unknown error";
+        }
         if (SZ.chat && SZ.chat.finishCEOMessage) SZ.chat.finishCEOMessage();
         break;
 
@@ -212,6 +214,30 @@
           if (ceoObj2) SZ.renderExplanation.finalize(ceoObj2);
         }
         SZ.chat.finishCEOMessage();
+
+        if (ev.trace) {
+          if (!SZ.state.trace) SZ.state.trace = {};
+          Object.assign(SZ.state.trace, ev.trace);
+          console.log("Bob Response Trace:", ev.trace);
+        }
+
+        var answerText = (SZ.state.stream && SZ.state.stream.answer) || "";
+        var cleanAnswer = SZ.chat.stripThink(answerText).trim();
+        var hasError = (SZ.state.stream && SZ.state.stream.error) ? true : false;
+
+        if (cleanAnswer === "" || hasError) {
+          var currentCEO = SZ.chat.currentCEO;
+          if (currentCEO) {
+            if (currentCEO.msg && currentCEO.msg.parentNode) {
+              currentCEO.msg.parentNode.removeChild(currentCEO.msg);
+            }
+            SZ.chat.currentCEO = null;
+          }
+          var route = (SZ.state.stream && SZ.state.stream.route) || "unknown";
+          var intent = (SZ.state.stream && SZ.state.stream.intent) || "unknown";
+          var reason = (SZ.state.stream && SZ.state.stream.error) || "Empty response returned from backend.";
+          addError("Bob failed to produce a valid answer. Route: " + route + ". Classification: " + intent + ". Error: " + reason);
+        }
         /* save to journal */
         var entry = {
           ticker:   (SZ.state.stream && SZ.state.stream.ticker) || "",

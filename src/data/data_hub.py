@@ -8,6 +8,7 @@ capability and how to fall back when one source fails.
 
 from __future__ import annotations
 
+import inspect
 import json
 import logging
 import os
@@ -73,6 +74,24 @@ def _make_wolfram_provider() -> Any:
     return WolframProvider()
 
 
+def _make_finnhub_provider(api_key: str | None) -> Any:
+    from .finnhub_provider import FinnhubProvider
+
+    return FinnhubProvider(api_key=api_key)
+
+
+def _make_yfinance_provider() -> Any:
+    from .yfinance_provider import YFinanceProvider
+
+    return YFinanceProvider()
+
+
+def _make_stooq_provider() -> Any:
+    from .stooq_provider import StooqProvider
+
+    return StooqProvider()
+
+
 @dataclass(frozen=True)
 class ProviderRoute:
     """Metadata needed to route one capability to one provider."""
@@ -99,6 +118,13 @@ class DataHub:
     """
 
     def __init__(self, *, register_defaults: bool = True) -> None:
+        try:
+            from core.config.secrets import load_local_env
+
+            load_local_env()
+        except ImportError:
+            pass
+
         self._key_names = [
             "TWELVE_DATA_API_KEY",
             "ALPHA_VANTAGE_API_KEY",
@@ -112,6 +138,7 @@ class DataHub:
             "OPENAI_API_KEY",
             "TAVILY_API_KEY",
             "BRAVE_SEARCH_API_KEY",
+            "FINNHUB_API_KEY",
         ]
 
         self.tavily_search_path = os.getenv("SUPEREZIO_TAVILY_SEARCH_PATH") or ""
@@ -131,6 +158,39 @@ class DataHub:
         return {name: os.getenv(name) for name in self._key_names}
 
     def _register_default_routes(self) -> None:
+        # Market data chain (lower priority number = tried first):
+        #   1) Finnhub (primary — all equity endpoints below)
+        #  12) Twelve Data (fallback)
+        #  30) yfinance (last resort)
+        #  45) Stooq (keyless emergency)
+        self.register_provider(
+            ProviderRoute(
+                name="finnhub",
+                capabilities=(
+                    "price",
+                    "market_price",
+                    "quote",
+                    "profile",
+                    "short_term_catalyst",
+                    "candles",
+                    "news",
+                ),
+                factory=lambda: _make_finnhub_provider(self._get_key("FINNHUB_API_KEY")),
+                methods={
+                    "price": "get_price",
+                    "market_price": "get_price",
+                    "quote": "get_quote",
+                    "profile": "get_profile",
+                    "short_term_catalyst": "get_short_term_catalyst",
+                    "candles": "get_candles",
+                    "news": "get_news",
+                },
+                priority=1,
+                required_key="FINNHUB_API_KEY",
+                metadata={"role": "primary_market_data"},
+            )
+        )
+
         self.register_provider(
             ProviderRoute(
                 name="twelve_data",
@@ -141,35 +201,50 @@ class DataHub:
                     "market_price": "get_price",
                     "candles": "get_candles",
                 },
-                priority=20,
+                priority=12,
                 required_key="TWELVE_DATA_API_KEY",
+                metadata={"role": "fallback_market_data"},
+            )
+        )
+
+        self.register_provider(
+            ProviderRoute(
+                name="yfinance",
+                capabilities=("price", "market_price", "candles", "profile"),
+                factory=_make_yfinance_provider,
+                methods={
+                    "price": "get_price",
+                    "market_price": "get_price",
+                    "candles": "get_candles",
+                    "profile": "get_profile",
+                },
+                priority=30,
+                required_key=None,
+                metadata={"role": "last_resort_market_data"},
             )
         )
 
         self.register_provider(
             ProviderRoute(
                 name="alpha_vantage",
-                capabilities=(
-                    "price",
-                    "market_price",
-                    "quote",
-                    "candles",
-                    "profile",
-                    "treasury",
-                ),
+                capabilities=("treasury",),
                 factory=lambda: _make_alpha_vantage_provider(
                     self._get_key("ALPHA_VANTAGE_API_KEY")
                 ),
-                methods={
-                    "price": "get_quote",
-                    "market_price": "get_quote",
-                    "quote": "get_quote",
-                    "candles": "get_ohlcv",
-                    "profile": "get_profile",
-                    "treasury": "get_treasury_yield",
-                },
-                priority=10,
+                methods={"treasury": "get_treasury_yield"},
+                priority=25,
                 required_key="ALPHA_VANTAGE_API_KEY",
+            )
+        )
+
+        self.register_provider(
+            ProviderRoute(
+                name="stooq",
+                capabilities=("price", "market_price"),
+                factory=_make_stooq_provider,
+                methods={"price": "get_price", "market_price": "get_price"},
+                priority=45,
+                required_key=None,
             )
         )
 
@@ -179,8 +254,7 @@ class DataHub:
                 capabilities=("news", "sentiment"),
                 factory=_make_news_scout,
                 methods={"news": "get_news", "sentiment": "get_sentiment_summary"},
-                priority=20,
-                # NewsScout has free RSS/DDG fallbacks; NEWSAPI is optional.
+                priority=22,
                 required_key=None,
             )
         )
@@ -228,7 +302,7 @@ class DataHub:
             )
         )
 
-        # ── NewsAPI (tested, working key) ────────────────────────────
+        # News: Finnhub company-news first (see finnhub route), then NewsAPI, then RSS scouts.
         self.register_provider(
             ProviderRoute(
                 name="newsapi",
@@ -239,7 +313,7 @@ class DataHub:
                     "sentiment": "get_sentiment_summary",
                     "market_sentiment": "get_market_sentiment",
                 },
-                priority=5,  # Highest priority — real headlines, not scraped
+                priority=15,
                 required_key="NEWSAPI_KEY",
             )
         )
@@ -369,7 +443,8 @@ class DataHub:
                 continue
 
             try:
-                result = method(*args, **kwargs)
+                call_kwargs = self._kwargs_for_method(method, kwargs)
+                result = method(*args, **call_kwargs)
             except Exception as exc:
                 attempts.append({"provider": route.name, "error": str(exc)})
                 continue
@@ -389,6 +464,22 @@ class DataHub:
         return {"error": f"no_provider_result_for_{capability}", "attempts": attempts}
 
     @staticmethod
+    def _kwargs_for_method(method: Any, kwargs: dict[str, Any]) -> dict[str, Any]:
+        """Drop kwargs that the provider method does not accept (e.g. market=)."""
+        if not kwargs:
+            return {}
+        try:
+            sig = inspect.signature(method)
+        except (TypeError, ValueError):
+            return dict(kwargs)
+        if any(
+            p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+        ):
+            return dict(kwargs)
+        allowed = set(sig.parameters.keys())
+        return {k: v for k, v in kwargs.items() if k in allowed}
+
+    @staticmethod
     def _is_usable_result(result: Any) -> bool:
         if result is None:
             return False
@@ -404,9 +495,9 @@ class DataHub:
             return str(result.get("error") or "")
         return ""
 
-    def get_price(self, symbol: str) -> Dict[str, Any]:
+    def get_price(self, symbol: str, **kwargs: Any) -> Dict[str, Any]:
         """Route price lookup across configured market data providers."""
-        return self.route("price", symbol)
+        return self.route("price", symbol, **kwargs)
 
     def get_quote(self, symbol: str) -> Dict[str, Any]:
         """Route quote lookup across configured quote providers."""

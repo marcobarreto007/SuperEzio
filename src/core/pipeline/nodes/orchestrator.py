@@ -11,6 +11,7 @@ from typing import Any
 from langgraph.config import get_stream_writer
 
 from ..intents import (
+    detect_complex_finance_intent,
     extract_json_object,
     match_golden_intent,
     needs_llm_intent_fallback,
@@ -153,6 +154,12 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
                     plan = parsed.to_plan()
                     plan["intent_source"] = "ceo_model_overridden"
                     plan["ceo_original_route"] = "needs_scope"
+                # Guard: complex finance questions must not be routed to
+                # market_scan. The deterministic parser is the authority.
+                if plan.get("route") == "market_scan" and detect_complex_finance_intent(message):
+                    plan = parsed.to_plan()
+                    plan["intent_source"] = "ceo_model_overridden_complex_finance"
+                    plan["ceo_original_route"] = "market_scan"
         except Exception as exc:
             plan["intent_fallback_error"] = str(exc)[:200]
             # If CEO model fails, trust deterministic as final authority
@@ -224,9 +231,16 @@ async def _ask_intent_classifier(message: str, plan: dict, context: str, gateway
         "Allowed intents: general_question, explain_capabilities, "
         "ticker_analysis, market_scan, missing_required_slot, "
         "unsafe_unspecified_recommendation. "
-        "Prefer market_scan over needs_scope when the user shows financial "
-        "intent but no ticker — the pipeline will scan and produce a verdict. "
-        "Only use needs_scope for truly unanswerable requests (empty, nonsense). "
+        "CRITICAL ROUTING RULES: "
+        "1. If the user asks for a decision framework, thesis, scenario analysis, "
+        "comparison (rental property vs equities), capital allocation strategy, "
+        "macro economic thesis, or investment evaluation WITHOUT requesting "
+        "specific tickers to scan or list, route to general with intent=general_question. "
+        "2. Only use market_scan when the user explicitly asks you to find, scan, "
+        "search, list, or shortlist specific tickers or securities. "
+        "3. Complex advisory questions about investment strategy, risk frameworks, "
+        "asset allocation, or financial planning are general_question, NOT market_scan. "
+        "4. Only use needs_scope for truly unanswerable requests (empty, nonsense). "
         "Never invent a ticker. "
         "If no ticker appears in the user message, ticker must be empty and "
         "route cannot be ticker_analysis. "

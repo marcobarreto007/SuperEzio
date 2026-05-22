@@ -1,0 +1,12 @@
+{"type": "STREAM_START", "msg_id": "fed6c446-248d-46fe-8582-5f0ff7f9e58d"}
+{"type": "PIPELINE_STEP", "run_id": "aea428d7e9b7", "step": "graph", "status": "started"}
+{"type": "PIPELINE_STEP", "run_id": "aea428d7e9b7", "step": "orchestrator_primary", "status": "started"}
+{"type": "INTENT_CLASSIFIED", "route": "general", "intent": "general_question", "action": "answer", "confidence": 0.75, "source": "ceo_model", "ticker": "", "required_slots": [], "reasons": ["validated_intent_candidate"], "run_id": "aea428d7e9b7"}
+{"type": "PIPELINE_STEP", "run_id": "aea428d7e9b7", "step": "orchestrator_primary", "status": "completed", "route": "general", "intent": "general_question", "ticker": "", "model_status": "ceo_model"}
+{"type": "PIPELINE_STEP", "run_id": "aea428d7e9b7", "step": "ceo_primary", "status": "started"}
+{"type": "CHUNK", "content": "Sim, estou online e pronto para operar.", "run_id": "aea428d7e9b7"}
+{"type": "PIPELINE_STEP", "run_id": "aea428d7e9b7", "step": "ceo_primary", "status": "completed"}
+{"type": "PIPELINE_STEP", "run_id": "aea428d7e9b7", "step": "explanation", "status": "started"}
+{"type": "PIPELINE_STEP", "run_id": "aea428d7e9b7", "step": "explanation", "status": "skipped"}
+{"type": "PIPELINE_STEP", "run_id": "aea428d7e9b7", "step": "graph", "status": "completed"}
+{"type": "STREAM_END"}

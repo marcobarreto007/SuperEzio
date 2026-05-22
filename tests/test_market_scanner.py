@@ -44,6 +44,7 @@ def test_market_scanner_imports_from_production_path():
 
 @pytest.mark.asyncio
 async def test_run_scan_uses_restored_market_scanner(monkeypatch):
+    """The restored MarketScanner must drive _run_scan and feed the gate."""
     from src.core import scanner as scanner_module
     from src.core.pipeline.nodes.collector import _run_scan
 
@@ -56,10 +57,15 @@ async def test_run_scan_uses_restored_market_scanner(monkeypatch):
 
     class FakeHub:
         def get_price(self, ticker):
+            # Fully-enriched stub so candidates clear the data-quality gate.
             return {
                 "price": 100.0,
+                "volume": 25_000_000,
                 "currency": "USD",
                 "provider": f"fake-{ticker}",
+                "catalyst": "Earnings event within the 2-week window.",
+                "risk": "Macro tape risk.",
+                "invalidation": "Close below 20-day SMA.",
             }
 
     monkeypatch.setattr(scanner_module, "MarketScanner", FakeScanner)
@@ -72,6 +78,10 @@ async def test_run_scan_uses_restored_market_scanner(monkeypatch):
 
     assert result["source_errors"] == []
     assert result["data_quality"] == "provider_or_computed"
+    assert result["universe"] == "explicit:United States"
     assert [c["ticker"] for c in result["candidates"]] == ["AAPL", "MSFT"]
-    assert result["candidates"][0]["source"] == "financedatabase"
-    assert result["candidates"][0]["price"] == 100.0
+    aapl = result["candidates"][0]
+    assert aapl["source"] == "financedatabase"
+    assert aapl["price"] == 100.0
+    assert aapl["volume"] == 25_000_000
+    assert aapl["catalyst"]

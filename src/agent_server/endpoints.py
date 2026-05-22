@@ -22,6 +22,7 @@ from core.pipeline.intents import (
     detect_ticker,
     should_block_vague_financial_prompt,
     has_hint,
+    detect_complex_finance_intent,
 )
 from core.risk_firewall import DecisionCandidate, evaluate_decision_with_sdca
 from data.data_hub import hub
@@ -30,6 +31,41 @@ from .protocol import A2AMessage, MessageType
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+_session_history: dict[str, dict[str, Any]] = {}
+
+def _is_what_happened_query(message: str) -> bool:
+    clean = message.strip().lower().rstrip("?").strip()
+    return clean in {
+        "o que houve",
+        "what happened",
+        "why",
+        "bug",
+        "what went wrong",
+    }
+
+def _extract_complex_intent(content: str) -> str | None:
+    intents = [
+        "MACRO_THESIS",
+        "PERSONAL_FINANCE",
+        "CAPITAL_ALLOCATION",
+        "ASSET_ALLOCATION",
+        "REAL_ESTATE_VS_MARKETS",
+        "BUSINESS_CAPITAL",
+        "FRAUD_RISK",
+        "EDUCATION_INVESTMENT",
+    ]
+    match = re.search(r"Question\s+Classification.*?(?:" + "|".join(intents) + ")", content, re.IGNORECASE)
+    if match:
+        matched_text = match.group(0).upper()
+        for intent in intents:
+            if intent in matched_text:
+                return intent
+    for intent in intents:
+        if re.search(rf"\b{intent}\b", content[:1000], re.IGNORECASE):
+            return intent
+    return None
+
 
 VAGUE_FINANCIAL_RESPONSE = (
     "Para análise financeira, informe pelo menos um ativo/ticker, o prazo desejado "
@@ -512,37 +548,100 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
         if len(chart_context) > _MAX_CHART_CONTEXT_CHARS:
             chart_context = chart_context[:_MAX_CHART_CONTEXT_CHARS]
 
+        # Intercept "o que houve" query if the previous request failed
+        if _is_what_happened_query(raw_message):
+            prev_run = _session_history.get(session_id)
+            if prev_run and prev_run.get("failed"):
+                prev_intent = prev_run.get("detected_intent", "unknown")
+                explanation = (
+                    f"The previous request failed to produce valid content. "
+                    f"It was classified as {prev_intent}. "
+                    f"No market scanner should have been used. "
+                    f"Check runtime logs."
+                )
+                
+                # Update session history to mark this query as succeeded
+                _session_history[session_id] = {
+                    "detected_intent": "WHAT_HAPPENED_INTERCEPT",
+                    "failed": False,
+                }
+
+                async def stream_intercepted() -> AsyncGenerator[str, None]:
+                    yield json.dumps({"type": "STREAM_START", "msg_id": envelope.msg_id}) + "\n"
+                    yield json.dumps({"type": "CHUNK", "content": explanation}, ensure_ascii=False) + "\n"
+                    trace = {
+                        "user_query": raw_message,
+                        "detected_intent": "WHAT_HAPPENED_INTERCEPT",
+                        "selected_ui_ticker": "",
+                        "chart_context_attached": False,
+                        "route_used": "general",
+                        "scanner_invoked": False,
+                        "ceo_called": False,
+                        "fallback_used": False,
+                        "final_content_length": len(explanation),
+                    }
+                    logger.info("Bob Response Trace (Intercepted): %s", json.dumps(trace))
+                    yield json.dumps({"type": "STREAM_END", "trace": trace}) + "\n"
+                    
+                return StreamingResponse(stream_intercepted(), media_type="application/x-ndjson")
+
         # Ticker from UI field takes priority; fall back to message text detection
         explicit_ticker = str(payload.get("ticker") or "").strip()
         detected_ticker = explicit_ticker or detect_ticker(raw_message)
-        block_vague_financial = should_block_vague_financial_prompt(
-            raw_message,
-            detected_ticker,
-            rigor,
-        )
 
-        # Inject chart context only when the user is actually asking
-        # about the chart / current asset / financial analysis.
-        context_block = ""
-        if (
-            chart_context
-            and not block_vague_financial
-            and _should_include_chart_context(raw_message, detected_ticker)
-        ):
-            context_block = (
-                "\n\n[CHART_VISUAL_CONTEXT]\n"
-                f"{chart_context}\n"
-                "The user is viewing this chart now. Use these OHLCV data to "
-                "discuss candle patterns, support, resistance, trends, and any "
-                "relevant technical observation. Be specific about what the candles show.\n"
-                "[/CHART_VISUAL_CONTEXT]"
+        # Hard block context leak for complex finance intents
+        is_complex = detect_complex_finance_intent(raw_message)
+        if is_complex:
+            explicit_ticker = ""
+            detected_ticker = ""
+            chart_context = ""
+            context_block = ""
+            block_vague_financial = False
+        else:
+            block_vague_financial = should_block_vague_financial_prompt(
+                raw_message,
+                detected_ticker,
+                rigor,
             )
 
-        # Chat unificado: o endpoint cuida do envelope, guardrails de entrada
-        # e streaming NDJSON. O pipeline emite eventos estruturados quando
-        # suporta stream_events; chat_async fica como fallback de testes.
+            # Inject chart context only when the user is actually asking
+            # about the chart / current asset / financial analysis.
+            context_block = ""
+            if (
+                chart_context
+                and not block_vague_financial
+                and _should_include_chart_context(raw_message, detected_ticker)
+            ):
+                context_block = (
+                    "\n\n[CHART_VISUAL_CONTEXT]\n"
+                    f"{chart_context}\n"
+                    "The user is viewing this chart now. Use these OHLCV data to "
+                    "discuss candle patterns, support, resistance, trends, and any "
+                    "relevant technical observation. Be specific about what the candles show.\n"
+                    "[/CHART_VISUAL_CONTEXT]"
+                )
+
+        # Trace metadata variables
+        user_query = raw_message
+        selected_ui_ticker = payload.get("ticker") or ""
+        chart_context_attached = bool(context_block)
+        detected_intent = "unknown"
+        route_used = "unknown"
+        scanner_invoked = False
+        ceo_called = False
+        fallback_used = False
+        final_content_length = 0
+        full_content: list[str] = []
+        # Scan telemetry surfaced by collector via DATA_COLLECTED events
+        candidate_count = 0
+        rejected_count = 0
+        rejection_summary: dict[str, int] = {}
+        provider_sources_used: set[str] = set()
+        provider_error: str | None = None
 
         async def stream_result() -> AsyncGenerator[str, None]:
+            nonlocal detected_intent, route_used, scanner_invoked, ceo_called, fallback_used, final_content_length
+            nonlocal candidate_count, rejected_count, rejection_summary, provider_error
             if detected_ticker:
                 yield (json.dumps({"type": "CHART_DATA", "ticker": detected_ticker}) + "\n")
             yield json.dumps({"type": "STREAM_START", "msg_id": envelope.msg_id}) + "\n"
@@ -558,11 +657,55 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                         ticker=detected_ticker,
                     ):
                         if isinstance(event, dict):
+                            event_type = event.get("type")
+                            if event_type == "INTENT_CLASSIFIED":
+                                if event.get("intent"):
+                                    detected_intent = event["intent"]
+                                if event.get("route"):
+                                    route_used = event["route"]
+                            elif event_type == "PIPELINE_STEP":
+                                step = event.get("step")
+                                status = event.get("status")
+                                if step == "ceo_primary" and status == "started":
+                                    ceo_called = True
+                                elif step == "data" and status == "started" and (
+                                    route_used == "market_scan"
+                                    or event.get("route") == "market_scan"
+                                ):
+                                    scanner_invoked = True
+                            elif event_type == "DATA_COLLECTED":
+                                if route_used == "market_scan" or event.get("rejected_count") is not None:
+                                    scanner_invoked = True
+                                if isinstance(event.get("candidates"), int):
+                                    candidate_count = event["candidates"]
+                                if isinstance(event.get("rejected_count"), int):
+                                    rejected_count = event["rejected_count"]
+                                if isinstance(event.get("rejection_summary"), dict):
+                                    rejection_summary = event["rejection_summary"]
+                                for prov in event.get("providers") or []:
+                                    if prov:
+                                        provider_sources_used.add(str(prov))
+                                # Provider errors are visible via source_errors[]
+                                for err in event.get("source_errors") or []:
+                                    if isinstance(err, str) and provider_error is None:
+                                        provider_error = err[:200]
+                            elif event_type == "ERROR":
+                                fallback_used = True
+                                detail = event.get("detail")
+                                if isinstance(detail, str) and provider_error is None:
+                                    provider_error = detail[:200]
+                            elif event_type == "CHUNK":
+                                content = event.get("content", "")
+                                final_content_length += len(content)
+                                full_content.append(content)
                             yield json.dumps(event, ensure_ascii=False) + "\n"
                         else:
+                            content_str = str(event)
+                            final_content_length += len(content_str)
+                            full_content.append(content_str)
                             yield (
                                 json.dumps(
-                                    {"type": "CHUNK", "content": str(event)},
+                                    {"type": "CHUNK", "content": content_str},
                                     ensure_ascii=False,
                                 )
                                 + "\n"
@@ -578,6 +721,42 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     )
                     async for chunk in chat_iter:
                         if isinstance(chunk, dict):
+                            event_type = chunk.get("type")
+                            if event_type == "INTENT_CLASSIFIED":
+                                if chunk.get("intent"):
+                                    detected_intent = chunk["intent"]
+                                if chunk.get("route"):
+                                    route_used = chunk["route"]
+                            elif event_type == "PIPELINE_STEP":
+                                step = chunk.get("step")
+                                status = chunk.get("status")
+                                if step == "ceo_primary" and status == "started":
+                                    ceo_called = True
+                                elif step == "data" and status == "started" and (
+                                    route_used == "market_scan"
+                                    or chunk.get("route") == "market_scan"
+                                ):
+                                    scanner_invoked = True
+                            elif event_type == "DATA_COLLECTED":
+                                if route_used == "market_scan" or chunk.get("rejected_count") is not None:
+                                    scanner_invoked = True
+                                if isinstance(chunk.get("candidates"), int):
+                                    candidate_count = chunk["candidates"]
+                                if isinstance(chunk.get("rejected_count"), int):
+                                    rejected_count = chunk["rejected_count"]
+                                if isinstance(chunk.get("rejection_summary"), dict):
+                                    rejection_summary = chunk["rejection_summary"]
+                                for prov in chunk.get("providers") or []:
+                                    if prov:
+                                        provider_sources_used.add(str(prov))
+                                for err in chunk.get("source_errors") or []:
+                                    if isinstance(err, str) and provider_error is None:
+                                        provider_error = err[:200]
+                            elif event_type == "ERROR":
+                                fallback_used = True
+                                detail = chunk.get("detail")
+                                if isinstance(detail, str) and provider_error is None:
+                                    provider_error = detail[:200]
                             yield json.dumps(chunk, ensure_ascii=False) + "\n"
                             continue
                         if isinstance(chunk, str):
@@ -590,15 +769,163 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                                         continue
                                 except json.JSONDecodeError:
                                     pass
-                        yield (
-                            json.dumps({"type": "CHUNK", "content": chunk}, ensure_ascii=False)
-                            + "\n"
-                        )
+                            final_content_length += len(chunk)
+                            full_content.append(chunk)
+                            yield (
+                                json.dumps({"type": "CHUNK", "content": chunk}, ensure_ascii=False)
+                                + "\n"
+                            )
 
-                yield json.dumps({"type": "STREAM_END"}) + "\n"
+                # Post-processing answer content for sub-classification if complex finance
+                accumulated_answer = "".join(full_content)
+                if is_complex:
+                    route_used = "general"
+                    sub_intent = _extract_complex_intent(accumulated_answer)
+                    if sub_intent:
+                        detected_intent = sub_intent
+                    elif detected_intent == "unknown" or detected_intent == "general_question":
+                        detected_intent = "MACRO_THESIS"  # default complex fallback
+
+                # No Empty Response Rule (OPUS §7): backend must never let the
+                # frontend render a blank assistant bubble. If the pipeline
+                # produced zero content, emit a structured fallback CHUNK with
+                # enough trace info for the user to retry usefully.
+                if final_content_length == 0 or not accumulated_answer.strip():
+                    fallback_used = True
+                    top_reasons = sorted(
+                        rejection_summary.items(),
+                        key=lambda kv: kv[1],
+                        reverse=True,
+                    )[:3]
+                    rejection_line = (
+                        ", ".join(f"{r}:{c}" for r, c in top_reasons)
+                        if top_reasons
+                        else "n/a"
+                    )
+                    fallback_chunk = (
+                        "Bob could not produce a complete answer for this request.\n"
+                        f"- route: {route_used}\n"
+                        f"- detected_intent: {detected_intent}\n"
+                        f"- scanner_invoked: {scanner_invoked}\n"
+                        f"- ceo_called: {ceo_called}\n"
+                        f"- candidate_count: {candidate_count}\n"
+                        f"- rejected_count: {rejected_count}\n"
+                        f"- top_rejection_reasons: {rejection_line}\n"
+                        f"- provider_error: {provider_error or 'none'}\n"
+                        "\n"
+                        "Suggestion: narrow the request to a specific ticker "
+                        "(e.g. 'analyze AAPL for the next 2 weeks'), to a "
+                        "sector (e.g. 'US semiconductors short-term catalysts'), "
+                        "or to an educational framework (e.g. 'capital "
+                        "allocation framework for CAD 25k')."
+                    )
+                    final_content_length = len(fallback_chunk)
+                    yield (
+                        json.dumps(
+                            {"type": "CHUNK", "content": fallback_chunk},
+                            ensure_ascii=False,
+                        )
+                        + "\n"
+                    )
+
+                top_rejection_reasons = [
+                    f"{r}:{c}"
+                    for r, c in sorted(
+                        rejection_summary.items(),
+                        key=lambda kv: kv[1],
+                        reverse=True,
+                    )[:3]
+                ]
+                trace = {
+                    "user_query": user_query,
+                    "detected_intent": detected_intent,
+                    "selected_ui_ticker": selected_ui_ticker,
+                    "chart_context_attached": chart_context_attached,
+                    "route_used": route_used,
+                    "scanner_invoked": scanner_invoked,
+                    "candidate_count": candidate_count,
+                    "rejected_count": rejected_count,
+                    "top_rejection_reasons": top_rejection_reasons,
+                    "ceo_called": ceo_called,
+                    "fallback_used": fallback_used,
+                    "final_content_length": final_content_length,
+                    "provider_sources_used": sorted(provider_sources_used),
+                    "provider_error": provider_error,
+                }
+                logger.info("Bob Response Trace: %s", json.dumps(trace))
+
+                # Update session history
+                _session_history[session_id] = {
+                    "detected_intent": detected_intent,
+                    "failed": fallback_used,
+                }
+
+                yield json.dumps({"type": "STREAM_END", "trace": trace}) + "\n"
             except Exception as exc:
-                yield (json.dumps({"type": "ERROR", "detail": _safe_error_detail(exc)}) + "\n")
-                yield json.dumps({"type": "STREAM_END"}) + "\n"
+                fallback_used = True
+                err_detail = _safe_error_detail(exc)
+                if provider_error is None:
+                    provider_error = err_detail[:200]
+                yield (json.dumps({"type": "ERROR", "detail": err_detail}) + "\n")
+
+                # No Empty Response Rule (OPUS §7) also applies on exception
+                # paths: if nothing reached the user, surface a structured
+                # fallback CHUNK so the frontend has something to render.
+                if final_content_length == 0:
+                    fallback_chunk = (
+                        "Bob hit a runtime error while preparing this answer.\n"
+                        f"- route: {route_used}\n"
+                        f"- detected_intent: {detected_intent}\n"
+                        f"- scanner_invoked: {scanner_invoked}\n"
+                        f"- ceo_called: {ceo_called}\n"
+                        f"- error: {provider_error or err_detail}\n"
+                        "\n"
+                        "Suggestion: retry with a narrower question (specific "
+                        "ticker or educational framework) so the pipeline can "
+                        "route to a smaller, more reliable path."
+                    )
+                    final_content_length = len(fallback_chunk)
+                    yield (
+                        json.dumps(
+                            {"type": "CHUNK", "content": fallback_chunk},
+                            ensure_ascii=False,
+                        )
+                        + "\n"
+                    )
+
+                top_rejection_reasons = [
+                    f"{r}:{c}"
+                    for r, c in sorted(
+                        rejection_summary.items(),
+                        key=lambda kv: kv[1],
+                        reverse=True,
+                    )[:3]
+                ]
+                trace = {
+                    "user_query": user_query,
+                    "detected_intent": detected_intent,
+                    "selected_ui_ticker": selected_ui_ticker,
+                    "chart_context_attached": chart_context_attached,
+                    "route_used": route_used,
+                    "scanner_invoked": scanner_invoked,
+                    "candidate_count": candidate_count,
+                    "rejected_count": rejected_count,
+                    "top_rejection_reasons": top_rejection_reasons,
+                    "ceo_called": ceo_called,
+                    "fallback_used": True,
+                    "final_content_length": final_content_length,
+                    "provider_sources_used": sorted(provider_sources_used),
+                    "provider_error": provider_error,
+                }
+                logger.info("Bob Response Trace (Error): %s", json.dumps(trace))
+
+                # Update session history
+                _session_history[session_id] = {
+                    "detected_intent": detected_intent,
+                    "failed": True,
+                }
+
+                yield json.dumps({"type": "STREAM_END", "trace": trace}) + "\n"
 
         return StreamingResponse(stream_result(), media_type="application/x-ndjson")
 

@@ -1,42 +1,62 @@
 {
-  "project": "SuperEzio / F51 Unified Core",
-  "version": "4.0.0",
-  "date_local": "2026-05-21T00:00:00-04:00",
-  "session": "model-build-surface-removal-2026-05-21",
-  "status": "completed",
+  "date_local": "2026-05-22",
+  "session": "market-scan-datahub-finnhub-twelve-test",
+  "status": "in_progress",
+  "checkpoint_md": "runtime/checkpoints/CHECKPOINT-2026-05-22-reboot.md",
   "what_was_done": [
-    "Removed model build data roots from active data paths.",
-    "Removed local and cloud model build scripts.",
-    "Removed trading model-build helper modules.",
-    "Set llama-server reasoning off so direct API calls return message.content reliably.",
-    "Adjusted general no-market CEO route to answer as Bob in natural language without pretending data was collected.",
-    "Updated F51 maps, docs, runtime config, and checkpoints to runtime-only posture."
+    "P0: pipeline graph data collector before agent for market_scan",
+    "DataHub chain finnhub -> twelve_data -> yfinance -> stooq with kwargs filter",
+    "Finnhub rate limit + symbol variants; yfinance and stooq fallbacks",
+    "Scan quotas default 24 tickers max, 24 price enrich, 12 profile/catalyst",
+    "Twelve Data live API test: US OK, TSX/BRK-B fail, 8 req/min limit confirmed",
+    "scripts/smoke_twelve_data.py added",
+    "collector.py fix scan_max_total defined outside scanner try block"
   ],
-  "evidence": [
-    "rg removed build artifact names over active tree -> no matches",
-    "python -m json.tool .f51/INVENTORY.json .f51/diario_bordo.json .f51/checkpoints/latest.json runtime/checkpoints/latest.json config/model_manifest.json -> passed",
-    "python -m ruff check . -> All checks passed",
-    "python -m ruff format --check . -> 217 files already formatted",
-    "python -m pytest tests -q -> 709 passed, 7 warnings in 67.04s",
-    "CEO health /health -> 200; /v1/models -> 200",
-    "Direct CEO /v1/chat/completions after restart -> content_chars=11, reasoning_chars=0, text=Bob online.",
-    "Direct CEO advice prompt -> content_chars=886, reasoning_chars=0",
-    "API /task/submit natural-language advice prompt -> 200, STREAM_END=true, CHUNK content returned"
-  ],
+  "evidence": {
+    "commands": [
+      "python scripts/smoke_datahub_price.py",
+      "python scripts/smoke_twelve_data.py",
+      ".\\runtime\\do_restart.ps1",
+      "Twelve Data API /price AAPL MSFT SPY SHOP (live fetch 2026-05-22)"
+    ],
+    "files_changed": [
+      "src/core/pipeline/graph.py",
+      "src/core/pipeline/nodes/agent.py",
+      "src/core/pipeline/nodes/collector.py",
+      "src/data/data_hub.py",
+      "src/data/finnhub_provider.py",
+      "src/data/finnhub_symbols.py",
+      "src/data/yfinance_provider.py",
+      "src/data/stooq_provider.py",
+      ".env.example",
+      "pyproject.toml",
+      "DELIVERY.md",
+      "scripts/smoke_datahub_price.py",
+      "scripts/smoke_twelve_data.py"
+    ],
+    "tests": [
+      "tests/test_data_hub_routing.py",
+      "tests/test_finnhub_provider.py",
+      "tests/test_stooq_provider.py"
+    ]
+  },
   "risks": [
-    "Model rebuild workflow is no longer available from this repo by design.",
-    "General advice route still uses concise section headers in some model responses; this is usable but can be made more conversational in a prompt-only pass."
+    {
+      "severity": "high",
+      "description": "Twelve Data Basic B only 8 credits/min; bulk scan fallback will 429",
+      "mitigation": "Keep Finnhub primary; limit scan to 24; use yfinance/stooq before relying on Twelve"
+    },
+    {
+      "severity": "medium",
+      "description": "Canadian TSX symbols not on Twelve Basic B",
+      "mitigation": "Finnhub + yfinance for .TO tickers"
+    },
+    {
+      "severity": "medium",
+      "description": "API process may still run old code until do_restart.ps1",
+      "mitigation": "Restart after reboot before UI test"
+    }
   ],
-  "next_step": "Optional prompt polish for fully conversational Bob responses while keeping ticker analysis structured.",
-  "stage": "runtime-only-tree-validated",
-  "runtime_parameters": {
-    "ceo_port": 8082,
-    "api_port": 8002,
-    "bind": "127.0.0.1",
-    "api_entrypoint": "python -m agent_server.main",
-    "ceo_entrypoint": "powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082",
-    "model_path": "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
-    "provider": "local_orchestrator",
-    "reasoning": "disabled"
-  }
+  "next_step": "After reboot: pip install yfinance, run smoke scripts, do_restart.ps1, rerun 2-week profit prompt and verify trace",
+  "owner": "Marco"
 }

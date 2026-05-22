@@ -26,6 +26,9 @@ python -m agent_server.main
 # 5. Testar
 python -m pytest tests/ -q
 python -m ruff check src tests
+
+# 6. Pre-delivery gate (recomendado antes de qualquer release)
+pwsh -File scripts/verify_zero_garbage_runtime.ps1
 ```
 
 ---
@@ -118,17 +121,21 @@ Todas documentadas em [`.env.example`](.env.example). Minimo para modo local-onl
 | `SUPEREZIO_HOST` | Bind address (default: 127.0.0.1) |
 | `SUPEREZIO_PORT` | Porta (default: 8002) |
 | `SUPEREZIO_DEEPSEEK_API_KEY` | Chave para experts cloud (opcional) |
+| `FINNHUB_API_KEY` | Chave Finnhub para price/profile/short-term catalyst (opcional, fallback gracioso) |
 
-`SUPEREZIO_DEEPSEEK_API_KEY` e opcional e so habilita providers externos para experts/orquestracao; o CEO final permanece local-only.
+`SUPEREZIO_DEEPSEEK_API_KEY` e `FINNHUB_API_KEY` sao opcionais. Sem elas o sistema continua funcional via providers locais/fallback; o CEO final permanece local-only.
+
+> Hygiene: nunca commite `.env`. Use `.env.example` como template. O script `scripts/verify_zero_garbage_runtime.ps1` inclui um guard que bloqueia commits acidentais de chaves no padrao Finnhub.
 
 ---
 
 ## Estado Operacional
 
-- `python -m pytest tests/contracts -q`: 167 passed, 2 warnings.
+- `python -m pytest tests/contracts -q`: contratos passam (167+; veja `scripts/verify_zero_garbage_runtime.ps1` para o numero atual).
 - `python -m pytest tests/test_runtime_smoke.py -q`: 20 passed.
-- `python -m pytest tests/test_integration_runtime.py -q`: 7 passed when CEO/API are live.
-- Gate runtime: `docs/runbooks/RUNBOOK.md` and `runtime/checkpoints/latest.json`.
+- `python -m pytest tests/test_integration_runtime.py -q`: 7 passed quando CEO/API estao no ar.
+- Gate runtime: `docs/runbooks/RUNBOOK.md`, `runtime/checkpoints/latest.json` e `DELIVERY.md` (handoff de release).
+- Pre-delivery: `pwsh -File scripts/verify_zero_garbage_runtime.ps1` roda contratos, runtime, trace e secret-leak guard.
 
 ---
 

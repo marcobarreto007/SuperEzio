@@ -190,6 +190,19 @@
     if (!msg || !msg.trim()) return;
     msg = msg.trim();
 
+    if (!window.SZ.state) window.SZ.state = {};
+    window.SZ.state.trace = {
+      user_query: msg,
+      detected_intent: "unknown",
+      selected_ui_ticker: (document.getElementById("ticker-inp") || {}).value || "",
+      chart_context_attached: false,
+      route_used: "unknown",
+      scanner_invoked: false,
+      ceo_called: false,
+      fallback_used: false,
+      final_content_length: 0
+    };
+
     var inp = document.getElementById("user-inp");
     var btn = document.getElementById("send-btn");
     if (inp) inp.disabled = true;
@@ -255,6 +268,7 @@
       console.error("[SZ] submit error:", err);
       if (SZ.handleEvent) {
         SZ.handleEvent({ type: "ERROR", message: "Connection error: " + err.message });
+        SZ.handleEvent({ type: "STREAM_END" });
       }
       if (inp) inp.disabled = false;
       if (btn) btn.disabled = false;

@@ -187,7 +187,8 @@ class AlpacaPaperAdapter:
             client = self._get_client()
             result = client.get_order_by_id(order_id)
             return _alpaca_to_order(result)
-        except Exception:
+        except Exception as exc:
+            logger.warning("Alpaca get_order(%s) failed: %s", order_id, exc)
             return None
 
     def get_positions(self) -> list[Position]:
@@ -195,7 +196,8 @@ class AlpacaPaperAdapter:
             client = self._get_client()
             positions = client.get_all_positions()
             return [_alpaca_to_position(p) for p in positions]
-        except Exception:
+        except Exception as exc:
+            logger.warning("Alpaca get_positions failed: %s", exc)
             return []
 
     def get_account_equity(self) -> float:
@@ -203,7 +205,12 @@ class AlpacaPaperAdapter:
             client = self._get_client()
             account = client.get_account()
             return float(account.equity)
-        except Exception:
+        except Exception as exc:
+            # IMPORTANT: returning 0.0 on broker failure is a sentinel, not real equity.
+            # Callers MUST check for provider errors before sizing positions.
+            logger.warning(
+                "Alpaca get_account_equity failed: %s (returning 0.0 sentinel)", exc
+            )
             return 0.0
 
 

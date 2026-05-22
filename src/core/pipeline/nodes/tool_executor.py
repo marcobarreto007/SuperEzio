@@ -7,7 +7,7 @@ import logging
 
 from .collector import node_collector
 from .f51 import node_f51_verdict
-from .experts import node_expert
+from .experts import node_collect_experts, node_expert
 from .neural_decision import node_neural_decision
 from .sdca_firewall import node_sdca_firewall
 from .rag import node_rag_forensics
@@ -64,8 +64,6 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                 if "expert_results" in res:
                     results.extend(res["expert_results"])
             
-            # Summarize
-            from .collect_experts import node_collect_experts
             return await node_collect_experts({**state, "expert_results": results})
             
         elif tool_name == "neural_decision":
