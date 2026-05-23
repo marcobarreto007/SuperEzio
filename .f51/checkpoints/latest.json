@@ -1,28 +1,32 @@
 {
-  "date_local": "2026-05-23T13:15:00-04:00",
-  "session": "SuperEzio_UI_Backend_100pct_Coverage",
+  "date_local": "2026-05-23T17:21:12-04:00",
+  "session": "SuperEzio_Bob_QA_Semantic_ETF_Fallback_Hardening",
   "status": "implemented_and_verified",
   "what_was_done": [
-    "Backend: wired ScanEventRegistry writer to SSE stream in collector — SCAN_EVENT events now stream to UI in real time",
-    "Backend: emit SCAN_SUMMARY with candidate_count, rejected_count, provider_sources_used, elapsed_ms at scan completion",
-    "Frontend: SCAN_EVENT handler in events.js — live scanner progress bar with percentage and elapsed time in chat bubble",
-    "Frontend: SCAN_SUMMARY handler in events.js — scan completion summary card",
-    "Frontend: pipeline bar complete stepMap — added agent, tool, blocked, graph, scan steps + professional_collector→data, market_scan_answer→scan",
-    "Frontend: cognitive envelope — rigor:strict and memory_mode:relevant_all in /task/submit payload",
-    "Frontend: trace scan telemetry — candidate_count, rejected_count, provider_sources_used initialized in trace",
-    "Frontend: state.js — new scanProgress, candidateCount, rejectedCount fields",
-    "Fixed writer undefined bug: used event_writer = writer or (lambda _event: None) safe fallback pattern"
+    "Formatted all previously failing Ruff-format files; repo-wide format check is now clean.",
+    "Added investment QA semantic validation for ETF/ticker category errors: VTV cannot be small-cap; VWENX cannot be a bond ETF.",
+    "Added agent-side semantic repair: VTV used near small-cap is corrected to VBR; VWENX used as bond ETF is corrected to BND.",
+    "Hardened capital-allocation routing so USD 25k allocation prompts with percentages/tickers route to capital_allocation instead of ticker_analysis/general.",
+    "Applied safe answer-quality repair to all final answers, not only complex-finance answers.",
+    "Replaced empty-response endpoint text 'Bob could not produce...' with deterministic useful fallbacks that include route, intent, final verdict, and next step.",
+    "Added thematic no-empty fallbacks for ETF comparison, AAPL concentration/invalidation, fax industry, CAD 50 risk lab, dividends/passive income, DCA, high-interest debt, and capital allocation.",
+    "Fixed _run_scan writer handling by passing writer from collector and using event_writer fallback for unit tests."
   ],
   "evidence": [
-    "python -m ruff check src/core/pipeline/nodes/collector.py: passed",
-    "python -m pytest tests/ -q: 852 passed (173.79s)",
-    "git commit 578eaf0: 15 files changed, 280 insertions(+), 44 deletions(-)"
+    "python -m ruff check src/core/pipeline src/agent_server scripts tests: passed",
+    "python -m ruff format --check src/core/pipeline src/agent_server scripts tests: 93 files already formatted",
+    "git diff --check: passed",
+    "python -m json.tool .f51/checkpoints/latest.json: passed after update",
+    "python -m pytest tests/ -q: 849 passed, 7 skipped in 51.72s",
+    "python scripts/invest_api_qa.py: passed; report output/playwright/invest-api-qa-20260523-171334.json",
+    "python scripts/bob_deeptest_10.py --base-url http://127.0.0.1:8002: 12/12 passed; report output/playwright/bob-deeptest-10-20260523-171341.json; screenshot output/playwright/bob-deeptest-10-20260523-171341.png",
+    "python scripts/browser_smoke.py --base-url http://127.0.0.1:8002: passed; screenshot output/playwright/superezio-browser-smoke-20260523-172309.png"
   ],
   "risks": [
-    "GitHub remains hard-blocked by .f51/GITHUB_POLICY.json",
-    "Frontend changes not yet browser-verified — server needs restart to serve updated static files",
-    "SCAN_EVENT streaming not yet end-to-end tested with live market scan",
-    "JS files not linted (no JS linter configured in project)"
+    "GitHub remains hard-blocked by .f51/GITHUB_POLICY.json; no GitHub commands were used.",
+    "The local CEO model still intermittently emits no final content for general advisory prompts; endpoint deterministic fallbacks now prevent useless/empty responses.",
+    "Fallbacks are operationally useful but less rich than a healthy full model answer; next patch should investigate why the local CEO is timing out or returning no tool final for general advisory paths.",
+    "Some live provider data remains limited by external API errors/free-tier constraints; scanner correctly returns REJECT_ALL instead of inventing candidates."
   ],
-  "next_step": "Restart server, run browser_smoke.py --headed to verify UI renders pipeline bar + scanner progress, run invest_api_qa.py to verify SCAN_EVENT events in NDJSON stream"
+  "next_step": "Investigate why provider.ceo/local_orchestrator yields no final content on advisory prompts, then reduce reliance on endpoint fallbacks while keeping the semantic QA gates."
 }

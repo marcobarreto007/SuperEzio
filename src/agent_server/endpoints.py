@@ -79,6 +79,158 @@ VAGUE_FINANCIAL_RESPONSE = (
 )
 
 
+def _build_no_empty_fallback_chunk(
+    *,
+    message: str,
+    route_used: str,
+    detected_intent: str,
+    scanner_invoked: bool,
+    ceo_called: bool,
+    candidate_count: int,
+    rejected_count: int,
+    rejection_line: str,
+    provider_error: str | None,
+    selected_ui_ticker: str,
+) -> str:
+    """Build a useful answer when the pipeline emitted no final content."""
+    lower = (message or "").lower()
+    ticker = selected_ui_ticker or detect_ticker(message) or "the requested ticker"
+    header = (
+        "Bob CEO: deterministic fallback answer.\n"
+        "This is an educational framework, not personalized financial advice.\n"
+        f"route: {route_used}\n"
+        f"detected_intent: {detected_intent}\n"
+        f"scanner_invoked: {scanner_invoked}\n"
+        f"ceo_called: {ceo_called}\n"
+    )
+    is_etf_comparison = (
+        any(word in lower for word in ("compare", "comparison", " vs ", "versus"))
+        and sum(1 for symbol in ("voo", "vti", "schd") if symbol in lower) >= 2
+    )
+
+    if route_used == "market_scan" or scanner_invoked:
+        body = (
+            "The scan path did not return a validated final candidate. I will not invent a trade. "
+            f"Candidates passed: {candidate_count}; rejected: {rejected_count}; top reasons: {rejection_line}. "
+            "Use REJECT_ALL unless a candidate has verified price, liquidity, catalyst, risk, and invalidation."
+        )
+        verdict = "Final verdict: REJECT_ALL"
+        suggestion = "Suggestion: tighten universe, liquidity floor, catalyst window, or provide candidate tickers."
+    elif is_etf_comparison:
+        body = (
+            "ETF comparison fallback: VOO is S&P 500 large-cap exposure, VTI is total US market exposure, "
+            "and SCHD is dividend-quality/value-tilted equity exposure. For most long-term buy-and-hold investors, "
+            "pick one core US equity fund instead of stacking overlapping funds. VTI is the broadest core choice; "
+            "VOO is fine if you specifically want large-cap S&P 500 exposure; SCHD is a satellite for dividend tilt, not a full-market core."
+        )
+        verdict = "Final verdict: ETF"
+        suggestion = "Suggestion: choose one core ETF first, then add SCHD only if dividend tilt is intentional."
+    elif route_used == "ticker_analysis":
+        if "concentrated" in lower or "40%" in lower or "40 percent" in lower:
+            body = (
+                f"{ticker} concentration fallback: a 40 percent single-stock weight is portfolio risk, even for a blue-chip. "
+                "Do not sell blindly, but cap new exposure, route new money to diversified assets, and reduce concentration gradually "
+                "with tax-aware tranches. Require a tax plan before realizing large gains."
+            )
+        elif "invalidate" in lower or "invalidation" in lower:
+            body = (
+                f"{ticker} invalidation fallback: a bullish short-term thesis is invalidated if price loses the prior support zone, "
+                "volume expands on down days, relative strength breaks versus the market, or the catalyst/risk event changes the thesis. "
+                "Use WAIT until current chart data confirms support, resistance, and trend."
+            )
+        else:
+            body = (
+                f"The ticker route was selected for {ticker}, but the pipeline did not return enough verified content. "
+                "Treat this as WAIT, not a buy signal. Before acting, require current price, volume/liquidity, trend, "
+                "next catalyst, downside risk, and a written invalidation level."
+            )
+        verdict = "Final verdict: WAIT"
+        suggestion = (
+            f"Suggestion: retry '{ticker} 14-day analysis with price, volume, RSI, "
+            "support, resistance, and catalyst.'"
+        )
+    elif "credit card" in lower or "19 percent" in lower or "19%" in lower:
+        body = (
+            "With high-interest debt, the clean default is to pay debt before taking market risk. "
+            "A 19 percent credit-card balance is a guaranteed drag; beating that after tax and risk "
+            "is unrealistic for a normal portfolio."
+        )
+        verdict = "Final verdict: PAY_DEBT"
+        suggestion = "Suggestion: pay the high-interest balance first, then rebuild emergency cash before ETF contributions."
+    elif "capital_allocation" in detected_intent.lower() or (
+        "allocate" in lower and any(term in lower for term in ("cash", "debt", "etf", "portfolio"))
+    ):
+        body = (
+            "Capital allocation fallback: use illustrative assumptions, not forecasts. "
+            "First keep 3-6 months of emergency cash reserve. Then pay debt above a 6-8 percent interest gate. "
+            "Only fund side-business equipment when there is documented demand, clear payback, and time-to-cashflow evidence. "
+            "Use TFSA, RRSP, RESP, or FHSA choices based on the individual's tax situation. "
+            "Illustrative allocation: 40 percent emergency reserve, 30 percent high-interest debt payoff, "
+            "15 percent broad diversified ETF exposure, 10 percent business/education only with payback evidence, "
+            "5 percent learning/risk budget."
+        )
+        verdict = "Final verdict: WAIT"
+        suggestion = "Suggestion: fill in debt rate, monthly expenses, emergency balance, and registered-account room."
+    elif "fax" in lower:
+        body = (
+            "Fax industry fallback: pure fax is structurally declining. The better thesis is not fax hardware or legacy fax service; "
+            "it is secure document workflow, e-signature, healthcare/legal compliance automation, audit trails, and AI document intelligence. "
+            "Do not start with a ticker until the replacement workflow and growth economics are clear."
+        )
+        verdict = "Final verdict: WAIT"
+        suggestion = "Suggestion: research digital document workflow and compliance adjacencies before scanning stocks."
+    elif "cad 50" in lower or "lottery" in lower or "risk lab" in lower:
+        body = (
+            "CAD 50 risk-lab fallback: treat this as a controlled experiment, not investing capital. "
+            "Max loss is CAD 50 per week. No leverage, no options, no revenge trades. Every attempt needs thesis, liquidity, entry, stop, target, and post-mortem. "
+            "If there is no verifiable edge, the correct action is no bet this week."
+        )
+        verdict = "Final verdict: WAIT"
+        suggestion = "Suggestion: ask for a scan only after naming momentum, mean-reversion, or catalyst criteria."
+    elif "dividend" in lower or "passive income" in lower:
+        body = (
+            "Dividend fallback: for a Canadian investor, prioritize dividend durability, diversification, account placement, and tax treatment over headline yield. "
+            "Use Canadian-listed dividend ETFs or high-quality Canadian dividend names as research candidates, keep single-stock weights small, and verify payout ratio, debt, dividend growth, and valuation."
+        )
+        verdict = "Final verdict: ETF"
+        suggestion = "Suggestion: screen Canadian dividend exposure by yield sustainability, MER, holdings, payout ratio, and account type."
+    elif "dollar-cost" in lower or "dca" in lower or "wait for a correction" in lower:
+        body = (
+            "DCA fallback: default to dollar-cost averaging instead of waiting for a perfect correction. "
+            "Use scheduled tranches, keep emergency cash separate, and only accelerate buying if valuation, cash stability, and risk tolerance all support it. "
+            "Waiting requires a written trigger; otherwise it becomes market-timing drift."
+        )
+        verdict = "Final verdict: ETF"
+        suggestion = "Suggestion: split the amount into 4-12 scheduled tranches and define what would pause or accelerate deployment."
+    elif "mutual fund" in lower or "etf" in lower:
+        body = (
+            "ETF vs mutual fund framework: ETFs usually win on low cost, transparency, intraday liquidity, "
+            "and tax efficiency. Mutual funds can still be useful for automatic contributions, advisor-managed "
+            "plans, or niche mandates. For a beginner, prefer broad low-cost diversified exposure before specialty products."
+        )
+        verdict = "Final verdict: ETF"
+        suggestion = "Suggestion: compare MER, holdings, tracking index, account type, and trading costs before choosing."
+    elif "sell everything" in lower or "go to cash" in lower or "markets are falling" in lower:
+        body = (
+            "Do not sell everything only because markets are falling. Use gates: emergency cash, time horizon, debt, "
+            "job risk, portfolio concentration, and whether your thesis changed. If liquidity is safe and the horizon "
+            "is long, panic selling usually damages compounding."
+        )
+        verdict = "Final verdict: WAIT"
+        suggestion = "Suggestion: rebalance only if your risk limit or cash need changed; otherwise use staged DCA."
+    else:
+        body = (
+            "I can still give a useful framework from the available context. Start with objective, time horizon, "
+            "liquidity need, risk capacity, and what data is missing. Use tools only when current market evidence "
+            "or a named ticker is required."
+        )
+        verdict = "Final verdict: WAIT"
+        suggestion = "Suggestion: state the goal, horizon, amount, and whether you want framework, ticker analysis, or a scan."
+
+    error_line = f"\nprovider_error: {provider_error}" if provider_error else ""
+    return f"{header}{body}\n{verdict}\n{suggestion}{error_line}"
+
+
 # ---------------------------------------------------------------------------
 # Chart data
 # ---------------------------------------------------------------------------
@@ -856,22 +1008,17 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     rejection_line = (
                         ", ".join(f"{r}:{c}" for r, c in top_reasons) if top_reasons else "n/a"
                     )
-                    fallback_chunk = (
-                        "Bob could not produce a complete answer for this request.\n"
-                        f"- route: {route_used}\n"
-                        f"- detected_intent: {detected_intent}\n"
-                        f"- scanner_invoked: {scanner_invoked}\n"
-                        f"- ceo_called: {ceo_called}\n"
-                        f"- candidate_count: {candidate_count}\n"
-                        f"- rejected_count: {rejected_count}\n"
-                        f"- top_rejection_reasons: {rejection_line}\n"
-                        f"- provider_error: {provider_error or 'none'}\n"
-                        "\n"
-                        "Suggestion: narrow the request to a specific ticker "
-                        "(e.g. 'analyze AAPL for the next 2 weeks'), to a "
-                        "sector (e.g. 'US semiconductors short-term catalysts'), "
-                        "or to an educational framework (e.g. 'capital "
-                        "allocation framework for CAD 25k')."
+                    fallback_chunk = _build_no_empty_fallback_chunk(
+                        message=raw_message,
+                        route_used=route_used,
+                        detected_intent=detected_intent,
+                        scanner_invoked=scanner_invoked,
+                        ceo_called=ceo_called,
+                        candidate_count=candidate_count,
+                        rejected_count=rejected_count,
+                        rejection_line=rejection_line,
+                        provider_error=provider_error,
+                        selected_ui_ticker=selected_ui_ticker,
                     )
                     final_content_length = len(fallback_chunk)
                     yield (

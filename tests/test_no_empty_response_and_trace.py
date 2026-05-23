@@ -26,6 +26,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from agent_server.main import app
+from src.agent_server.endpoints import _build_no_empty_fallback_chunk
 
 
 class _MockPipeline:
@@ -62,6 +63,27 @@ def client_with_mock_pipeline():
 
 def _ndjson_events(response) -> list[dict]:
     return [json.loads(line) for line in response.text.strip().split("\n") if line.strip()]
+
+
+def test_no_empty_fallback_handles_etf_comparison_without_ticker_wait():
+    content = _build_no_empty_fallback_chunk(
+        message="Compare VOO, VTI, and SCHD for a long-term investor.",
+        route_used="ticker_analysis",
+        detected_intent="ticker_analysis",
+        scanner_invoked=False,
+        ceo_called=True,
+        candidate_count=0,
+        rejected_count=0,
+        rejection_line="n/a",
+        provider_error=None,
+        selected_ui_ticker="SCHD",
+    )
+
+    assert "VTI" in content
+    assert "VOO" in content
+    assert "SCHD" in content
+    assert "ticker route was selected" not in content
+    assert "Final verdict: ETF" in content
 
 
 # ---------------------------------------------------------------------------
@@ -109,6 +131,8 @@ def test_empty_pipeline_emits_structured_fallback_chunk(client_with_mock_pipelin
     assert "route:" in content
     assert "detected_intent:" in content
     assert "Suggestion:" in content
+    assert "Bob could not produce" not in content
+    assert "Final verdict:" in content
 
     # And the trace reflects the fallback path with non-zero final length.
     assert len(stream_ends) == 1
