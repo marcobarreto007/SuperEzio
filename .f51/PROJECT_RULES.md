@@ -55,6 +55,16 @@ MCP permitido somente se cumprir pelo menos uma função:
 - Não apagar, mover, renomear arquivos sem gate explícito.
 - Não instalar dependências sem autorização.
 
+## Política de pesquisa e confiança
+
+1. **Proibido "eu acho" / "eu sei":** Toda decisão de arquitetura exige pesquisa prévia.
+   O que os melhores players usam? Onde está documentado? Como adaptar ao nosso caso?
+2. **Gate de confiança 90%+:** Só avançar para próxima etapa com 90%+ de certeza.
+   Os 10% restantes são acidente e cano quebrado — não dúvidas não resolvidas.
+3. **Refazer > Remendar:** Se um módulo recebeu 3+ patches no mesmo mês, não recebe o 4º.
+   Para, estuda, redesenha o fluxo, implementa com contratos duros (validação, timeouts,
+   circuit breakers, testes de borda).
+
 ## Entregáveis mínimos por tarefa
 
 - Escopo
