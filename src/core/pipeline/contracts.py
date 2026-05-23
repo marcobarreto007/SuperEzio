@@ -53,6 +53,14 @@ class PipelineState(TypedDict, total=False):
     entities: dict[str, Any]
     ticker: str
     filters: dict[str, Any]
+    cognitive_mode: str
+    information_need: str
+    allowed_tools: list[str]
+    market_context_allowed: bool
+    scanner_allowed: bool
+    ticker_allowed: bool
+    ticket_allowed: bool
+    answer_contract: str
     time_horizon: str
     trade_order_context: dict[str, Any]
     diary: bool
@@ -117,6 +125,14 @@ class IntentResult(BaseModel):
     required_slots: list[str] = Field(default_factory=list)
     reasons: list[str] = Field(default_factory=list)
     entities: dict[str, Any] = Field(default_factory=dict)
+    cognitive_mode: str = "ADVISORY_KNOWLEDGE"
+    information_need: str = "natural_language_financial_guidance"
+    allowed_tools: list[str] = Field(default_factory=lambda: ["final_answer"])
+    market_context_allowed: bool = False
+    scanner_allowed: bool = False
+    ticker_allowed: bool = False
+    ticket_allowed: bool = False
+    answer_contract: str = ""
     diary: bool = False
     pennylab: bool = False
     source: str = "deterministic"

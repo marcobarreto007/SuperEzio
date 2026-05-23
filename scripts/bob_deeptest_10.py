@@ -16,6 +16,8 @@ from typing import Any
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError, sync_playwright
 
+from investment_answer_quality import evaluate_answer_quality
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASE_URL = os.getenv("SUPEREZIO_BROWSER_SMOKE_URL", "http://127.0.0.1:8002")
@@ -35,12 +37,34 @@ PROMPTS: list[dict[str, Any]] = [
             "buy ETFs, invest in education, or try a short-term trade? Give one clear framework."
         ),
         "min_chars": 200,
+        "expected_scanner_invoked": False,
+    },
+    {
+        "id": "fax_industry_research",
+        "ticker": "",
+        "message": (
+            "Research the fax industry as an investment theme. Should I look for fax stocks, "
+            "or is there a better adjacent opportunity? Do not scan tickers unless needed."
+        ),
+        "min_chars": 180,
+        "expected_scanner_invoked": False,
+    },
+    {
+        "id": "cad50_risk_lab",
+        "ticker": "",
+        "message": (
+            "I like risking CAD 50 per week instead of lottery tickets. Treat it as a risk lab. "
+            "What are the rules before any trade?"
+        ),
+        "min_chars": 180,
+        "expected_scanner_invoked": False,
     },
     {
         "id": "ticker_aapl_analysis",
         "ticker": "AAPL",
         "message": "Analyze AAPL for the next 2 weeks. Give risks, invalidation, and a clear stance.",
         "min_chars": 200,
+        "expected_route": "ticker_analysis",
     },
     {
         "id": "decisive_trade_order",
@@ -50,6 +74,7 @@ PROMPTS: list[dict[str, Any]] = [
             "Do not scan China stocks. Return BUY_CANDIDATE, WAIT, or REJECT_ALL."
         ),
         "min_chars": 160,
+        "expected_scanner_invoked": True,
     },
     {
         "id": "smallcap_under_5cad",
@@ -59,6 +84,7 @@ PROMPTS: list[dict[str, Any]] = [
             "US or Canada only, with liquidity and a real catalyst. Give one candidate or reject all."
         ),
         "min_chars": 160,
+        "expected_scanner_invoked": True,
     },
     {
         "id": "risk_panic_cash",
@@ -145,6 +171,9 @@ def _evaluate_case(
     min_chars = int(case["min_chars"])
     failure_hits = [text for text in FAILURE_TEXT if text.lower() in content.lower()]
     final_content_length = int(trace.get("final_content_length") or parsed["content_length"] or 0)
+    route = trace.get("route_used") or trace.get("route") or "unknown"
+    scanner_invoked = bool(trace.get("scanner_invoked"))
+    quality = evaluate_answer_quality(case["message"], content, min_chars=min_chars)
 
     checks = {
         "no_http_or_stream_error": not parsed["errors"],
@@ -152,7 +181,14 @@ def _evaluate_case(
         "stream_end_trace_present": bool(trace),
         "final_content_positive": final_content_length > 0,
         "no_failure_text": not failure_hits,
+        "quality_contract": bool(quality["ok"]),
     }
+    if case.get("expected_route"):
+        checks["expected_route"] = route == case["expected_route"]
+    if "expected_scanner_invoked" in case:
+        checks["expected_scanner_invoked"] = scanner_invoked == bool(
+            case["expected_scanner_invoked"]
+        )
     ok = all(checks.values())
     return {
         "id": case["id"],
@@ -161,13 +197,14 @@ def _evaluate_case(
         "content_length": parsed["content_length"],
         "final_content_length": final_content_length,
         "event_count": parsed["event_count"],
-        "route": trace.get("route_used") or trace.get("route") or "unknown",
+        "route": route,
         "intent": trace.get("detected_intent") or trace.get("intent") or "unknown",
-        "scanner_invoked": bool(trace.get("scanner_invoked")),
+        "scanner_invoked": scanner_invoked,
         "llm_calls_total": trace.get("llm_calls_total"),
         "checks": checks,
         "errors": parsed["errors"],
         "failure_hits": failure_hits,
+        "quality_reasons": quality["reasons"],
         "preview": " ".join(content.split())[:280],
     }
 

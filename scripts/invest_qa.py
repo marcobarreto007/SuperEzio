@@ -1,4 +1,5 @@
 """Ask investment questions to Bob and capture responses for analysis."""
+
 from __future__ import annotations
 
 import argparse
@@ -10,10 +11,22 @@ from typing import Any
 
 from playwright.sync_api import sync_playwright
 
+from investment_answer_quality import evaluate_answer_quality
+
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASE_URL = os.getenv("SUPEREZIO_BROWSER_SMOKE_URL", "http://127.0.0.1:8002")
 
 QUESTIONS = [
+    (
+        "fax_industry",
+        "Research the fax industry as an investment theme. Should I look for fax stocks, "
+        "or is there a better adjacent opportunity? Do not scan tickers unless needed.",
+    ),
+    (
+        "cad50_risk_lab",
+        "I like risking CAD 50 per week instead of buying lottery tickets. "
+        "Can Bob treat that as a small risk lab and tell me the rules before any trade?",
+    ),
     # 1 — Capital allocation
     (
         "capital_allocation",
@@ -45,6 +58,11 @@ QUESTIONS = [
         "etf_comparison",
         "Compare VOO, VTI, and SCHD for a long-term buy-and-hold investor. "
         "Which one would you recommend and why? Consider fees, diversification, and historical performance.",
+    ),
+    (
+        "smallcap_scan",
+        "Find one US or Canadian small-cap stock under CAD 5 with liquidity and a real catalyst. "
+        "If no candidate passes, say REJECT_ALL.",
     ),
 ]
 
@@ -99,7 +117,7 @@ def ask_question(page, question: str, timeout_ms: int = 120_000) -> dict[str, An
     )
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL)
     parser.add_argument("--headed", action="store_true")
@@ -120,11 +138,16 @@ def main():
         page.wait_for_selector("#send-btn", timeout=10_000)
 
         for tag, question in QUESTIONS:
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print(f"Q [{tag}]: {question[:100]}...")
             t0 = time.time()
             try:
                 result = ask_question(page, question, timeout_ms=120_000)
+                quality = evaluate_answer_quality(
+                    question, result.get("chatText", ""), min_chars=120
+                )
+                result["ok"] = bool(quality["ok"])
+                result["quality_reasons"] = quality["reasons"]
                 elapsed = time.time() - t0
                 result["wall_seconds"] = round(elapsed, 1)
                 results["questions"][tag] = result
@@ -134,7 +157,8 @@ def main():
                 print(f"  Scanner invoked: {result['scannerInvoked']}")
                 print(f"  Content length: {result['finalContentLength']}")
                 print(f"  Wall time: {elapsed:.1f}s")
-                print(f"  Response (first 500 chars):")
+                print(f"  QA ok: {result['ok']} {result['quality_reasons']}")
+                print("  Response (first 500 chars):")
                 print(f"  {result['chatText'][:500]}")
             except Exception as exc:
                 elapsed = time.time() - t0
@@ -152,7 +176,16 @@ def main():
     out_path = out_dir / f"invest-qa-{stamp}.json"
     out_path.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\nResults saved to {out_path}")
+    failed = [
+        tag
+        for tag, result in results["questions"].items()
+        if result.get("error") or result.get("ok") is False
+    ]
+    if failed:
+        print(f"FAILED CASES: {failed}")
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

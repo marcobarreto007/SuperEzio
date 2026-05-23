@@ -1,25 +1,38 @@
 {
-  "date_local": "2026-05-23T09:40:00-04:00",
-  "session": "SuperEzio_Investment_QA_Contract_Plan",
-  "status": "plan_written",
+  "date_local": "2026-05-23T12:47:02-04:00",
+  "session": "SuperEzio_Natural_Language_Financial_Consultant_Contract",
+  "status": "implemented_and_verified",
   "what_was_done": [
-    "Used writing-plans skill to create a task-by-task implementation plan",
-    "Captured current evidence from invest-api QA: Q1/Q2/Q3 are false-positive ok results with bad fallback text",
-    "Defined contract-first approach: pure investment quality evaluator, truthful QA scripts, deterministic investment fallbacks, final-answer quality gate",
-    "Kept product code unchanged in this step"
+    "Added cognitive contract fields to the pipeline plan/state: cognitive_mode, information_need, allowed_tools, market_context_allowed, scanner_allowed, ticker_allowed, ticket_allowed, answer_contract",
+    "Mapped natural-language modes without creating a new runtime module: ADVISORY_KNOWLEDGE, INDUSTRY_RESEARCH, CAPITAL_ALLOCATION, RISK_LAB, TICKER_ANALYSIS, DISCOVERY_SCAN",
+    "Made industry research thesis-first so fax industry research no longer becomes ticker_analysis for FAX",
+    "Made CAD 50 weekly risk prompts route as RISK_LAB without scanner by default",
+    "Kept explicit ticker analysis and explicit smallcap/discovery scans working",
+    "Added tool permission enforcement in tool_executor so disallowed scanner/collector/RAG calls are blocked by cognitive contract",
+    "Replaced bad generic agent fallbacks with useful contract fallbacks for industry research, risk lab, advisory knowledge, discovery scan, and ticker analysis",
+    "Added deterministic complex-finance answer repair for missing business cashflow/time-to-cashflow clause",
+    "Hardened live QA scripts so bad fallback text, fake tickers, ETF overlap in allocations, and too-short answers fail the run",
+    "Added fax industry, CAD 50 risk lab, and scanner expectation cases to live QA/deeptest"
   ],
   "evidence": [
-    "Plan created: docs/superpowers/plans/2026-05-23-investment-qa-contract-hardening.md",
+    "python -m ruff check src/core/pipeline scripts tests: passed",
+    "python -m ruff format --check changed files: passed",
+    "python -m pytest tests/test_investment_answer_quality.py tests/test_market_scan_candidate_gate.py tests/contracts/test_contract_pipeline.py tests/test_agent_market_scan_loop.py -q: 46 passed",
+    "python -m pytest tests/contracts/test_contract_complex_finance.py -q: 54 passed",
+    "python -m pytest tests/ -q: 848 passed",
+    "python scripts/bob_deeptest_10.py --base-url http://127.0.0.1:8002: 12/12 passed",
+    "python scripts/invest_api_qa.py: passed, report output/playwright/invest-api-qa-20260523-124446.json",
+    "python scripts/browser_smoke.py --base-url http://127.0.0.1:8002: passed, screenshot output/playwright/superezio-browser-smoke-20260523-124802.png",
+    "Browser deeptest report output/playwright/bob-deeptest-10-20260523-123704.json",
     "git diff --check: passed",
-    "Current git status shows only docs/superpowers/ as untracked from this planning step",
-    "Plan requires tests/test_investment_quality.py before implementation",
-    "Plan requires scripts/invest_api_qa.py to exit nonzero on bad fallback responses"
+    "API server restarted for live verification on http://127.0.0.1:8002 with PID 19696"
   ],
   "risks": [
     "GitHub remains hard-blocked by .f51/GITHUB_POLICY.json",
-    "Plan is not implemented yet",
-    "Final-answer quality gate must stay scoped to high-confidence failures to avoid suppressing valid short answers",
-    "Live QA depends on local API being restarted after implementation"
+    "QA now rejects operational garbage but still does not fully validate semantic ETF/ticker label accuracy",
+    "RAG remains forensic/manipulation oriented, not a general industry research corpus",
+    "Live answers still depend on local CEO model consistency and provider availability",
+    "Scanner can return REJECT_ALL when providers fail or data quality gates reject candidates, which is correct but may frustrate users expecting a ticker"
   ],
-  "next_step": "Execute Task 1 from the plan: add src/core/pipeline/investment_quality.py and tests/test_investment_quality.py with red-green verification"
+  "next_step": "Add a semantic ETF/ticker validation layer for known broad ETFs and Canadian-listed examples, then rerun invest_api_qa and bob_deeptest_10."
 }

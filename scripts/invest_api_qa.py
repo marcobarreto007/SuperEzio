@@ -1,33 +1,37 @@
 """Ask investment questions via A2A API and capture the full response stream."""
+
 from __future__ import annotations
 
 import json
 import os
-import sys
 import time
 import uuid
 import urllib.request
 from typing import Any
 
+from investment_answer_quality import evaluate_answer_quality
+
 BASE_URL = os.getenv("SUPEREZIO_BROWSER_SMOKE_URL", "http://127.0.0.1:8002")
 
 QUESTIONS = [
+    "Research the fax industry as an investment theme. Should I look for fax stocks, "
+    "or is there a better adjacent opportunity? Do not scan tickers unless needed.",
+    "I like risking CAD 50 per week instead of buying lottery tickets. "
+    "Can Bob treat that as a small risk lab and tell me the rules before any trade?",
     "I have $25,000 to invest. I am 35 years old, moderate risk tolerance. "
     "How should I allocate this capital? Give me a specific allocation with percentages and tickers.",
-
     "I want to build a passive income portfolio with dividend stocks. "
     "What are 5 solid dividend stocks or ETFs for a Canadian investor? "
     "Consider tax efficiency and withholding taxes.",
-
     "With current interest rates and market volatility in May 2026, "
     "should I dollar-cost average into the market or wait for a correction? "
     "Give me a data-driven recommendation.",
-
     "I hold a concentrated position in AAPL (40% of my portfolio). "
     "Is this too risky? How should I diversify without triggering a huge tax bill?",
-
     "Compare VOO, VTI, and SCHD for a long-term buy-and-hold investor. "
     "Which one would you recommend and why? Consider fees, diversification, and historical performance.",
+    "Find one US or Canadian small-cap stock under CAD 5 with liquidity and a real catalyst. "
+    "If no candidate passes, say REJECT_ALL.",
 ]
 
 
@@ -55,7 +59,8 @@ def ask_one(question: str, session_id: str, timeout_s: int = 180) -> dict[str, A
 
     t0 = time.time()
     chunks: list[dict[str, Any]] = []
-    final_text = ""
+    text_parts: list[str] = []
+    trace: dict[str, Any] = {}
 
     try:
         with urllib.request.urlopen(req, timeout=timeout_s) as resp:
@@ -75,16 +80,17 @@ def ask_one(question: str, session_id: str, timeout_s: int = 180) -> dict[str, A
                             # Extract text content if present
                             if isinstance(event, dict):
                                 kind = event.get("kind") or event.get("type") or ""
-                                text = (
-                                    event.get("final_content")
-                                    or event.get("content")
-                                    or ""
-                                )
-                                if isinstance(text, str) and len(text) > len(final_text):
-                                    final_text = text
+                                text = event.get("final_content") or event.get("content") or ""
+                                if kind == "CHUNK" and isinstance(text, str):
+                                    text_parts.append(text)
+                                elif isinstance(text, str) and text and not text_parts:
+                                    text_parts.append(text)
+                                if kind == "STREAM_END" and isinstance(event.get("trace"), dict):
+                                    trace = event["trace"]
                         except json.JSONDecodeError:
                             pass
     except Exception as exc:
+        final_text = "".join(text_parts)
         return {
             "ok": False,
             "error": str(exc),
@@ -93,35 +99,43 @@ def ask_one(question: str, session_id: str, timeout_s: int = 180) -> dict[str, A
             "final_text": final_text,
         }
 
+    final_text = "".join(text_parts)
+    quality = evaluate_answer_quality(question, final_text, min_chars=120)
     elapsed = round(time.time() - t0, 1)
     return {
-        "ok": True,
+        "ok": bool(quality["ok"]),
+        "quality_reasons": quality["reasons"],
         "wall_seconds": elapsed,
         "chunk_count": len(chunks),
         "final_text": final_text[:5000],
         "text_length": len(final_text),
+        "route": trace.get("route_used") or trace.get("route") or "unknown",
+        "intent": trace.get("detected_intent") or trace.get("intent") or "unknown",
+        "scanner_invoked": bool(trace.get("scanner_invoked")),
     }
 
 
-def main():
+def main() -> int:
     session_id = f"invest-qa-{int(time.time())}"
     results = []
 
     for i, q in enumerate(QUESTIONS, 1):
         label = q.split("?")[0].split(".")[0][:80].strip()
-        print(f"\n{'─'*70}")
+        print(f"\n{'─' * 70}")
         print(f"Q{i}: {label}...")
-        print(f"   Sending to Bob... ", end="", flush=True)
+        print("   Sending to Bob... ", end="", flush=True)
 
         result = ask_one(q, session_id, timeout_s=180)
         results.append({"question": label, "result": result})
 
         if result["ok"]:
-            print(f"{result['wall_seconds']}s | {result['text_length']} chars | {result['chunk_count']} chunks")
-            print(f"\n{'─'*50}")
+            print(
+                f"{result['wall_seconds']}s | {result['text_length']} chars | {result['chunk_count']} chunks"
+            )
+            print(f"\n{'─' * 50}")
             print(result["final_text"][:2000])
         else:
-            print(f"FAILED: {result['error']}")
+            print(f"FAILED: {result.get('error') or result.get('quality_reasons')}")
 
         # Small gap between questions
         if i < len(QUESTIONS):
@@ -133,7 +147,12 @@ def main():
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
     print(f"\nSaved to {out_path}")
+    failed = [item for item in results if not item["result"].get("ok")]
+    if failed:
+        print(f"FAILED CASES: {[item['question'] for item in failed]}")
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

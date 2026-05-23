@@ -552,6 +552,82 @@ def test_market_scan_not_hijacked_by_chart_ticker():
     assert result.intent == "market_scan"
 
 
+def test_fax_industry_research_is_thesis_first_no_scanner():
+    from src.core.pipeline.intents import parse_user_intent
+
+    result = parse_user_intent(
+        "Research the fax industry as an investment theme. Should I look for fax stocks, "
+        "or is there a better adjacent opportunity? Do not scan tickers unless needed.",
+        rigor="strict",
+        ticker="",
+    )
+    plan = result.to_plan()
+
+    assert result.route == "general"
+    assert plan["cognitive_mode"] == "INDUSTRY_RESEARCH"
+    assert plan["scanner_allowed"] is False
+    assert plan["ticker_allowed"] is False
+    assert plan["allowed_tools"] == ["final_answer"]
+
+
+def test_cad50_weekly_risk_lab_is_not_scanner_by_default():
+    from src.core.pipeline.intents import parse_user_intent
+
+    result = parse_user_intent(
+        "I like risking CAD 50 per week instead of lottery tickets. "
+        "Treat it as a risk lab and tell me the rules before any trade.",
+        rigor="strict",
+        ticker="",
+    )
+    plan = result.to_plan()
+
+    assert result.route == "general"
+    assert plan["cognitive_mode"] == "RISK_LAB"
+    assert plan["scanner_allowed"] is False
+    assert plan["ticket_allowed"] is False
+    assert plan["allowed_tools"] == ["final_answer"]
+
+
+def test_explicit_smallcap_discovery_keeps_scanner_allowed():
+    from src.core.pipeline.intents import parse_user_intent
+
+    result = parse_user_intent(
+        "Find one US or Canadian small-cap stock under CAD 5 with liquidity and a real catalyst.",
+        rigor="strict",
+        ticker="",
+    )
+    plan = result.to_plan()
+
+    assert result.route == "market_scan"
+    assert plan["cognitive_mode"] == "DISCOVERY_SCAN"
+    assert plan["scanner_allowed"] is True
+    assert "market_scan" in plan["allowed_tools"]
+
+
+def test_cognitive_contract_blocks_tool_misuse():
+    from src.core.pipeline.nodes.tool_executor import _tool_permission_error
+
+    advisory_state = {
+        "cognitive_mode": "INDUSTRY_RESEARCH",
+        "allowed_tools": ["final_answer"],
+        "scanner_allowed": False,
+        "ticker_allowed": False,
+    }
+    assert "cognitive_contract" in _tool_permission_error(
+        advisory_state,
+        "market_scan",
+        {"query": "fax stocks"},
+    )
+
+    scanner_state = {
+        "cognitive_mode": "DISCOVERY_SCAN",
+        "allowed_tools": ["market_scan", "final_answer"],
+        "scanner_allowed": True,
+        "ticker_allowed": True,
+    }
+    assert _tool_permission_error(scanner_state, "market_scan", {"query": "smallcaps"}) == ""
+
+
 def test_ticker_analysis_still_works_with_chart_ticker():
     """When the user asks about the chart ticker, it must still route to ticker_analysis."""
     from src.core.pipeline.intents import parse_user_intent

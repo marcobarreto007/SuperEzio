@@ -21,6 +21,24 @@ _REPEATABLE_TOOLS = {"final_answer"}
 _SEMI_REPEATABLE_LIMITS: dict[str, int] = {"collect_data": 2}
 
 
+def _tool_permission_error(state: dict, tool_name: str, args: dict) -> str:
+    allowed_tools = set(state.get("allowed_tools") or [])
+    if not allowed_tools or tool_name == "final_answer":
+        return ""
+    if tool_name not in allowed_tools:
+        mode = state.get("cognitive_mode", "unknown")
+        return f"not_allowed_by_cognitive_contract:{mode}"
+    if tool_name == "market_scan" and not state.get("scanner_allowed", False):
+        mode = state.get("cognitive_mode", "unknown")
+        return f"scanner_not_allowed_by_cognitive_contract:{mode}"
+    if tool_name == "collect_data":
+        ticker = str(args.get("ticker") or state.get("ticker") or "").strip()
+        if not state.get("ticker_allowed", False) or not ticker:
+            mode = state.get("cognitive_mode", "unknown")
+            return f"ticker_data_not_allowed_by_cognitive_contract:{mode}"
+    return ""
+
+
 def _tool_blocked_payload(state: dict, tool_name: str, reason: str) -> dict:
     executed_tools = list(state.get("executed_tools") or [])
     executed_tool_counts = dict(state.get("executed_tool_counts") or {})
@@ -83,6 +101,20 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
     args = validated_call.args
     executed_tools = list(state.get("executed_tools") or [])
     executed_tool_counts = dict(state.get("executed_tool_counts") or {})
+
+    permission_error = _tool_permission_error(state, tool_name, args)
+    if permission_error:
+        writer = get_stream_writer()
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": state.get("run_id", ""),
+                "step": tool_name,
+                "status": "blocked_by_cognitive_contract",
+                "reason": permission_error,
+            }
+        )
+        return _tool_blocked_payload(state, tool_name, permission_error)
 
     repeatable = tool_name in _REPEATABLE_TOOLS
     semi_limit = _SEMI_REPEATABLE_LIMITS.get(tool_name)
@@ -163,7 +195,11 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
         else:
             return _tool_blocked_payload(state, tool_name, "it is not executable here")
 
-        return {**result, "executed_tools": next_executed_tools, "executed_tool_counts": next_executed_tool_counts}
+        return {
+            **result,
+            "executed_tools": next_executed_tools,
+            "executed_tool_counts": next_executed_tool_counts,
+        }
 
     except Exception as exc:
         logger.error(f"Tool execution failed: {exc}")

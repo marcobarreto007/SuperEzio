@@ -24,7 +24,7 @@ import json
 import re
 import unicodedata
 from copy import deepcopy
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -66,6 +66,195 @@ ROUTE_INTENT_ACTIONS = {
     "needs_scope": {"missing_required_slot", "unsafe_unspecified_recommendation"},
 }
 
+FINAL_ONLY_TOOLS = ("final_answer",)
+FULL_TICKER_TOOLS = (
+    "collect_data",
+    "f51_firewall",
+    "pennylab",
+    "run_experts",
+    "neural_decision",
+    "sdca_firewall",
+    "rag_forensics",
+    "final_answer",
+)
+DISCOVERY_TOOLS = (
+    "market_scan",
+    "collect_data",
+    "run_experts",
+    "neural_decision",
+    "sdca_firewall",
+    "rag_forensics",
+    "final_answer",
+)
+FORENSIC_ONLY_TOOLS = ("rag_forensics", "final_answer")
+
+RISK_LAB_HINTS = (
+    "cad 50",
+    "$50",
+    "50 cad",
+    "50 dollars",
+    "50 por semana",
+    "50/week",
+    "weekly risk",
+    "risk lab",
+    "laboratorio",
+    "laboratório",
+    "loteria",
+    "lottery",
+    "aposto",
+    "apostar",
+    "small bet",
+    "perder 50",
+)
+
+INDUSTRY_RESEARCH_HINTS = (
+    "industry",
+    "industria",
+    "indústria",
+    "sector",
+    "setor",
+    "theme",
+    "tese",
+    "thesis",
+    "pesquisa uma industria",
+    "pesquisar uma industria",
+    "fax",
+)
+
+FORENSIC_RAG_HINTS = (
+    "fraud",
+    "scam",
+    "pump",
+    "dump",
+    "hype",
+    "manipulation",
+    "manipulacao",
+    "manipulação",
+    "insider",
+    "penny stock",
+    "penny stocks",
+)
+
+
+def detect_risk_lab_intent(message: str) -> bool:
+    """Detect a small weekly risk-budget experiment, not capital deployment."""
+    return bool(message and has_hint(message, RISK_LAB_HINTS))
+
+
+def detect_industry_research_intent(message: str) -> bool:
+    """Detect industry/theme research that should not force a ticker."""
+    if not message or not message.strip():
+        return False
+    if _is_market_scan_request(message):
+        return False
+    return has_hint(message, INDUSTRY_RESEARCH_HINTS)
+
+
+def _needs_forensic_rag(message: str) -> bool:
+    return bool(message and has_hint(message, FORENSIC_RAG_HINTS))
+
+
+def infer_cognitive_contract(
+    message: str,
+    *,
+    route: str,
+    intent: str,
+    action: str,
+    ticker: str = "",
+) -> dict[str, Any]:
+    """Infer the product-level contract above the graph route.
+
+    This keeps the graph routes stable while making tool permission explicit:
+    natural-language consulting first, ticker and scanner only when justified.
+    """
+    raw = message or ""
+    if route == "ticker_analysis" or ticker:
+        mode = "TICKER_ANALYSIS"
+        return {
+            "cognitive_mode": mode,
+            "information_need": "ticker_data_analysis",
+            "allowed_tools": list(FULL_TICKER_TOOLS),
+            "market_context_allowed": True,
+            "scanner_allowed": False,
+            "ticker_allowed": True,
+            "ticket_allowed": False,
+            "answer_contract": "Analyze the explicit ticker with collected evidence, risks, invalidation, and a clear non-execution stance.",
+        }
+
+    is_risk_lab = detect_risk_lab_intent(raw)
+    if route == "market_scan":
+        mode = "RISK_LAB" if is_risk_lab else "DISCOVERY_SCAN"
+        return {
+            "cognitive_mode": mode,
+            "information_need": "candidate_discovery",
+            "allowed_tools": list(DISCOVERY_TOOLS),
+            "market_context_allowed": True,
+            "scanner_allowed": True,
+            "ticker_allowed": True,
+            "ticket_allowed": True,
+            "answer_contract": "Use scanner evidence to produce BUY_CANDIDATE, WAIT, REJECT_ALL, WATCHLIST_ONLY, or NO_BET_THIS_WEEK with risk controls.",
+        }
+
+    if intent == "capital_allocation":
+        return {
+            "cognitive_mode": "CAPITAL_ALLOCATION",
+            "information_need": "capital_decision_framework",
+            "allowed_tools": list(FINAL_ONLY_TOOLS),
+            "market_context_allowed": False,
+            "scanner_allowed": False,
+            "ticker_allowed": False,
+            "ticket_allowed": False,
+            "answer_contract": "Rank cash, debt, ETF, education, business, and risk options with gates, percentages, and one final verdict.",
+        }
+
+    if is_risk_lab:
+        return {
+            "cognitive_mode": "RISK_LAB",
+            "information_need": "weekly_risk_budget_framework",
+            "allowed_tools": list(FINAL_ONLY_TOOLS),
+            "market_context_allowed": False,
+            "scanner_allowed": False,
+            "ticker_allowed": False,
+            "ticket_allowed": False,
+            "answer_contract": "Treat CAD 50 as a capped experiment. Default to NO_BET_THIS_WEEK unless an edge is verified.",
+        }
+
+    if detect_industry_research_intent(raw):
+        tools = FORENSIC_ONLY_TOOLS if _needs_forensic_rag(raw) else FINAL_ONLY_TOOLS
+        return {
+            "cognitive_mode": "INDUSTRY_RESEARCH",
+            "information_need": "industry_thesis_and_adjacent_opportunities",
+            "allowed_tools": list(tools),
+            "market_context_allowed": False,
+            "scanner_allowed": False,
+            "ticker_allowed": False,
+            "ticket_allowed": False,
+            "answer_contract": "Build an industry thesis, challenge stale premises, suggest adjacent opportunities, and do not force tickers.",
+        }
+
+    if _needs_forensic_rag(raw):
+        return {
+            "cognitive_mode": "ADVISORY_KNOWLEDGE",
+            "information_need": "forensic_risk_context",
+            "allowed_tools": list(FORENSIC_ONLY_TOOLS),
+            "market_context_allowed": False,
+            "scanner_allowed": False,
+            "ticker_allowed": False,
+            "ticket_allowed": False,
+            "answer_contract": "Answer the advisory question with forensic context if available; do not invent current market data.",
+        }
+
+    return {
+        "cognitive_mode": "ADVISORY_KNOWLEDGE",
+        "information_need": "natural_language_financial_guidance",
+        "allowed_tools": list(FINAL_ONLY_TOOLS),
+        "market_context_allowed": False,
+        "scanner_allowed": False,
+        "ticker_allowed": False,
+        "ticket_allowed": False,
+        "answer_contract": "Answer directly in natural language. Use model knowledge carefully and state when live data was not collected.",
+    }
+
 
 @dataclass(frozen=True)
 class IntentParse:
@@ -87,9 +276,27 @@ class IntentParse:
     entities: dict[str, Any] | None = None
     diary: bool = False
     pennylab: bool = False
+    cognitive_mode: str = ""
+    information_need: str = ""
+    allowed_tools: list[str] | None = None
+    market_context_allowed: bool = False
+    scanner_allowed: bool = False
+    ticker_allowed: bool = False
+    ticket_allowed: bool = False
+    answer_contract: str = ""
+    raw_message: str = ""
 
     def to_plan(self) -> dict[str, Any]:
         plan = asdict(self)
+        raw_message = str(plan.pop("raw_message", "") or "")
+        contract = infer_cognitive_contract(
+            raw_message,
+            route=self.route,
+            intent=self.intent,
+            action=self.action,
+            ticker=self.ticker,
+        )
+        plan.update(contract)
         plan["filters"] = self.filters or {}
         plan["entities"] = self.entities or {}
         plan["errors"] = []
@@ -97,6 +304,17 @@ class IntentParse:
         plan["intent_reasons"] = list(plan.pop("reasons"))
         plan["required_slots"] = list(plan["required_slots"])
         return plan
+
+
+def _with_cognitive_contract(parsed: IntentParse, message: str) -> IntentParse:
+    contract = infer_cognitive_contract(
+        message,
+        route=parsed.route,
+        intent=parsed.intent,
+        action=parsed.action,
+        ticker=parsed.ticker,
+    )
+    return replace(parsed, raw_message=message, **contract)
 
 
 def _strip_accents(text: str) -> str:
@@ -1422,17 +1640,22 @@ def _is_market_scan_request(message: str) -> bool:
         return False
     if _is_penny_definition_question(message) or _is_capability_question(message):
         return False
-    # "Do not scan" / "don't scan" — explicit negative instruction overrides any
-    # incidental scan keywords in the message.
-    if detect_negative_scan_instruction(message):
-        return False
-
+    # Negative scan clauses block incidental scan words, but act as exclusions
+    # when a positive discovery command names an allowed scope.
+    normalized = normalize_message(message)
     has_scan = has_hint(message, SCAN_KEYWORDS) or has_hint(message, SCAN_COMMAND_HINTS)
     has_scope = _has_scan_scope(message)
     has_penny_asset = _has_penny_asset_hint(message)
     is_scan_command = has_hint(message, SCAN_COMMAND_HINTS)
     wants_specific_analysis = has_hint(message, TICKER_REQUIRED_ANALYSIS_HINTS)
     has_financial_hint = has_hint(message, VAGUE_FINANCIAL_HINTS)
+    positive_discovery = bool(
+        re.search(r"\b(find|search|look for|shortlist|list)\b", normalized)
+        or has_hint(message, ("encontre", "procure", "busque", "pesquise"))
+    )
+
+    if detect_negative_scan_instruction(message) and not (positive_discovery and has_scope):
+        return False
 
     if has_scan and has_scope:
         return True
@@ -1494,6 +1717,10 @@ def should_block_vague_financial_prompt(
     if detect_complex_finance_intent(raw_message):
         return False
     if detect_market_scan_intent(raw_message):
+        return False
+    if detect_negative_scan_instruction(raw_message):
+        return False
+    if detect_industry_research_intent(raw_message) or detect_risk_lab_intent(raw_message):
         return False
     if not has_hint(raw_message, VAGUE_FINANCIAL_HINTS):
         return False
@@ -1612,31 +1839,38 @@ def parse_user_intent(
         "sector": filters.get("sector"),
     }
 
+    def done(parsed: IntentParse) -> IntentParse:
+        return _with_cognitive_contract(parsed, raw)
+
     if not raw.strip():
-        return IntentParse(
-            route="general",
-            intent="general_question",
-            action="answer",
-            filters={},
-            confidence=0.99,
-            reasons=("empty_or_whitespace_message",),
-            entities=entities,
-            diary=diary,
-            pennylab=pennylab,
+        return done(
+            IntentParse(
+                route="general",
+                intent="general_question",
+                action="answer",
+                filters={},
+                confidence=0.99,
+                reasons=("empty_or_whitespace_message",),
+                entities=entities,
+                diary=diary,
+                pennylab=pennylab,
+            )
         )
 
     if capability_question:
-        return IntentParse(
-            route="general",
-            intent="explain_capabilities",
-            action="answer_directly",
-            ticker="",
-            filters={},
-            confidence=0.9,
-            reasons=("capability_or_method_question",),
-            entities=entities,
-            diary=diary,
-            pennylab=False,
+        return done(
+            IntentParse(
+                route="general",
+                intent="explain_capabilities",
+                action="answer_directly",
+                ticker="",
+                filters={},
+                confidence=0.9,
+                reasons=("capability_or_method_question",),
+                entities=entities,
+                diary=diary,
+                pennylab=False,
+            )
         )
 
     ctx = trade_order_context or {}
@@ -1646,93 +1880,109 @@ def parse_user_intent(
             if ctx.get("universe") and not filters.get("country"):
                 if "US_CANADA" in str(ctx.get("universe", "")):
                     filters = {**filters}
-            return IntentParse(
-                route="market_scan",
-                intent="another_trade_recommendation",
-                action="scan_market",
-                filters=filters,
-                confidence=0.9,
-                reasons=("decisive_trade_followup",),
-                entities=entities,
-                diary=diary,
-                pennylab=False,
+            return done(
+                IntentParse(
+                    route="market_scan",
+                    intent="another_trade_recommendation",
+                    action="scan_market",
+                    filters=filters,
+                    confidence=0.9,
+                    reasons=("decisive_trade_followup",),
+                    entities=entities,
+                    diary=diary,
+                    pennylab=False,
+                )
             )
+
+    if ticker and detect_industry_research_intent(raw):
+        ticker = ""
+        entities["ticker"] = ""
 
     # If the user message is an explicit market scan request, the scanner
     # takes priority over a ticker lingering in the chart UI. Otherwise a
     # "Find US small-cap stocks" prompt with AAPL in the chart would route
     # to ticker_analysis and never invoke the scanner.
     if ticker and not _is_market_scan_request(raw):
-        return IntentParse(
-            route="ticker_analysis",
-            intent="ticker_analysis",
-            action="collect_data",
-            ticker=ticker.upper(),
-            filters={},
-            confidence=0.86,
-            reasons=("explicit_ticker_detected",),
-            entities=entities,
-            diary=diary,
-            pennylab=pennylab,
+        return done(
+            IntentParse(
+                route="ticker_analysis",
+                intent="ticker_analysis",
+                action="collect_data",
+                ticker=ticker.upper(),
+                filters={},
+                confidence=0.86,
+                reasons=("explicit_ticker_detected",),
+                entities=entities,
+                diary=diary,
+                pennylab=pennylab,
+            )
         )
 
     # Capital allocation / personal finance gate — must come BEFORE market_scan.
     # Prompts comparing multiple uses of capital (cash, debt, ETF, stock trade)
     # are advisory decisions, not scanner triggers.
     if detect_capital_allocation_intent(raw):
-        return IntentParse(
-            route="general",
-            intent="capital_allocation",
-            action="answer",
-            filters={},
-            confidence=0.92,
-            reasons=("capital_allocation_decision_detected",),
-            entities=entities,
-            diary=diary,
-            pennylab=False,
+        return done(
+            IntentParse(
+                route="general",
+                intent="capital_allocation",
+                action="answer",
+                filters={},
+                confidence=0.92,
+                reasons=("capital_allocation_decision_detected",),
+                entities=entities,
+                diary=diary,
+                pennylab=False,
+            )
         )
 
     # Complex finance gate — must come BEFORE market_scan and vague-financial
     # fallthrough to prevent advisory questions from triggering the scanner.
     if detect_complex_finance_intent(raw):
-        return IntentParse(
-            route="general",
-            intent="general_question",
-            action="answer",
-            filters={},
-            confidence=0.88,
-            reasons=("complex_finance_advisory_detected",),
-            entities=entities,
-            diary=diary,
-            pennylab=False,
+        return done(
+            IntentParse(
+                route="general",
+                intent="general_question",
+                action="answer",
+                filters={},
+                confidence=0.88,
+                reasons=("complex_finance_advisory_detected",),
+                entities=entities,
+                diary=diary,
+                pennylab=False,
+            )
         )
 
     if _is_market_scan_request(raw):
-        return IntentParse(
-            route="market_scan",
-            intent="market_scan",
-            action="scan_market",
-            filters=filters,
-            confidence=0.82,
-            reasons=("scan_command_with_scope_or_penny_universe",),
-            entities=entities,
-            diary=diary,
-            pennylab=False,
+        return done(
+            IntentParse(
+                route="market_scan",
+                intent="market_scan",
+                action="scan_market",
+                filters=filters,
+                confidence=0.82,
+                reasons=("scan_command_with_scope_or_penny_universe",),
+                entities=entities,
+                diary=diary,
+                pennylab=False,
+            )
         )
 
     strict = (rigor or "strict").lower() == "strict"
     if strict and _needs_ticker_for_requested_analysis(raw):
-        return IntentParse(
-            route="needs_scope",
-            intent="missing_required_slot",
-            action="ask_for_ticker",
-            filters={},
-            confidence=0.88,
-            required_slots=("ticker",),
-            reasons=("analysis_requested_without_required_ticker",),
-            entities=entities,
-            diary=diary,
-            pennylab=False,
+        return done(
+            IntentParse(
+                route="needs_scope",
+                intent="missing_required_slot",
+                action="ask_for_ticker",
+                filters={},
+                confidence=0.88,
+                required_slots=("ticker",),
+                reasons=("analysis_requested_without_required_ticker",),
+                entities=entities,
+                diary=diary,
+                pennylab=False,
+            )
         )
 
     vague = should_block_vague_financial_prompt(raw, ticker, rigor)
@@ -1743,32 +1993,36 @@ def parse_user_intent(
         # still reclassify via the orchestrator's LLM fallback.
         filters = infer_scan_filters(raw)
         has_scope = _has_scan_scope(raw) or bool(filters.get("country"))
-        return IntentParse(
-            route="market_scan",
-            intent="market_scan",
-            action="scan_market",
-            filters=filters,
-            confidence=0.62 if not has_scope else 0.78,
-            reasons=(
-                ("vague_financial_delegated_to_pipeline",)
-                if not has_scope
-                else ("vague_with_scope_rerouted_to_scan",)
-            ),
+        return done(
+            IntentParse(
+                route="market_scan",
+                intent="market_scan",
+                action="scan_market",
+                filters=filters,
+                confidence=0.62 if not has_scope else 0.78,
+                reasons=(
+                    ("vague_financial_delegated_to_pipeline",)
+                    if not has_scope
+                    else ("vague_with_scope_rerouted_to_scan",)
+                ),
+                entities=entities,
+                diary=diary,
+                pennylab=False,
+            )
+        )
+
+    return done(
+        IntentParse(
+            route="general",
+            intent="general_question",
+            action="answer",
+            filters={},
+            confidence=0.72,
+            reasons=("no_executable_financial_intent",),
             entities=entities,
             diary=diary,
             pennylab=False,
         )
-
-    return IntentParse(
-        route="general",
-        intent="general_question",
-        action="answer",
-        filters={},
-        confidence=0.72,
-        reasons=("no_executable_financial_intent",),
-        entities=entities,
-        diary=diary,
-        pennylab=False,
     )
 
 
@@ -1857,18 +2111,21 @@ def validate_intent_candidate(
     entities = deepcopy(fallback.entities) if fallback and fallback.entities else {}
     entities.update(_base_entities(message, ticker, filters))
 
-    return IntentParse(
-        route=route,
-        intent=intent,
-        action=action,
-        ticker=ticker,
-        filters=filters,
-        confidence=confidence,
-        required_slots=required_slots,
-        reasons=reasons,
-        entities=entities,
-        diary=detect_diary_intent(message),
-        pennylab=detect_pennylab_intent(message) if ticker else False,
+    return _with_cognitive_contract(
+        IntentParse(
+            route=route,
+            intent=intent,
+            action=action,
+            ticker=ticker,
+            filters=filters,
+            confidence=confidence,
+            required_slots=required_slots,
+            reasons=reasons,
+            entities=entities,
+            diary=detect_diary_intent(message),
+            pennylab=detect_pennylab_intent(message) if ticker else False,
+        ),
+        message,
     )
 
 
@@ -1919,18 +2176,21 @@ def match_golden_intent(
         if not candidate:
             return None
         reasons = ("golden_dataset_match",) + tuple(candidate.reasons)
-        return IntentParse(
-            route=candidate.route,
-            intent=candidate.intent,
-            action=candidate.action,
-            ticker=candidate.ticker,
-            filters=candidate.filters,
-            confidence=max(candidate.confidence, 0.97),
-            required_slots=candidate.required_slots,
-            reasons=reasons,
-            entities=candidate.entities,
-            diary=candidate.diary,
-            pennylab=candidate.pennylab,
+        return _with_cognitive_contract(
+            IntentParse(
+                route=candidate.route,
+                intent=candidate.intent,
+                action=candidate.action,
+                ticker=candidate.ticker,
+                filters=candidate.filters,
+                confidence=max(candidate.confidence, 0.97),
+                required_slots=candidate.required_slots,
+                reasons=reasons,
+                entities=candidate.entities,
+                diary=candidate.diary,
+                pennylab=candidate.pennylab,
+            ),
+            message,
         )
     return None
 
