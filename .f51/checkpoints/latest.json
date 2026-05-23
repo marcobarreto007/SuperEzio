@@ -1,22 +1,38 @@
 {
-  "date_local": "2026-05-22T17:35:30-04:00",
-  "session": "Decisive_Trade_Order_Mode",
+  "date_local": "2026-05-22T22:45:00-04:00",
+  "session": "SuperEzio_Cache_Cleanup",
   "status": "completed",
   "what_was_done": [
-    "Added DECISIVE_TRADE_HINTS and detect_decisive_trade_intent in src/core/pipeline/intents.py.",
-    "Implemented _format_liquidity, _compute_model_confidence, and _decisive_trade_order_answer in src/core/pipeline/nodes/agent.py.",
-    "Wired _market_scan_answer to invoke the new decisive mode for buy-recommendation prompts.",
-    "Updated volume formatting globally in both the legacy 8-section scan reports and the new decisive trade order mode.",
-    "Created new test suite tests/test_decisive_trade_order.py with 10 test assertions/cases.",
-    "Updated tests/test_market_scan_candidate_gate.py to support the new decisive mode outputs.",
-    "Verified all scan-related tests and linted the new code successfully."
+    "Verified the requested operational bootstrap layer without touching product code",
+    "Confirmed CLAUDE.md, AGENTS.md, .f51 operational files, docs templates, and runtime/checkpoints already exist",
+    "Confirmed the 8 requested .claude/skills entries exist with SKILL.md, scripts, references, and assets",
+    "Refreshed .f51/BOOTSTRAP_REPORT.md with created-vs-present status, prepared skills, MCP guidance, next-agent read order, recommended first task, risks, and blockers",
+    "Preserved DISK ONLY policy from .f51/GITHUB_POLICY.json and did not run GitHub commands",
+    "Deleted untracked collector cache directory .f51/cache after confirming it contained no tracked files",
+    "Restored .gitignore and .gitattributes content from HEAD so local caches, models, logs, output, env files, and generated data are ignored again"
   ],
   "evidence": [
-    "Ran scan-specific tests successfully (20 passed).",
-    "Ruff lint checks executed cleanly on the added files."
+    "filesystem check: required operational files and runtime/checkpoints are present",
+    "skills check: f51-inventory, f51-contracts, f51-runtime, f51-refactor, f51-tests, f51-audit, f51-release, and f51-money-gate are present with SKILL.md/scripts/references/assets",
+    "git status before edits showed pre-existing dirty state: .f51/checkpoints/latest.json modified; release_info.json and scripts/merge_gguf.py untracked",
+    "python -m json.tool .f51/GITHUB_POLICY.json: passed",
+    "python -m json.tool .f51/CHECKPOINT_TEMPLATE.json: passed",
+    "python -m json.tool .f51/INVENTORY_TEMPLATE.json: passed",
+    "python -m json.tool .f51/checkpoints/latest.json: passed",
+    "git diff --check: passed",
+    "git diff --name-only: only .f51/BOOTSTRAP_REPORT.md and .f51/checkpoints/latest.json changed by this run",
+    "git ls-files .f51/cache: no tracked files",
+    ".f51/cache before deletion: 183 files, 0.17 MB",
+    "Remove-Item deleted C:\\Users\\marco\\Desktop\\SuperEzio\\.f51\\cache",
+    "git status --short count dropped from 101 visible entries to 4 after restoring ignore rules",
+    "git diff -- .gitignore .gitattributes: no diff",
+    "product code directories were not edited"
   ],
   "risks": [
-    "None. The new mode is additive and scoped precisely to explicit buying-intent phrases."
+    "GitHub remains hard-blocked by .f51/GITHUB_POLICY.json",
+    "Worktree still contains pre-existing untracked files outside this cache cleanup: release_info.json and scripts/merge_gguf.py",
+    "git status reports it cannot open .claude/skills/frontend-design; this bootstrap did not fix it because it is outside the requested 8 skills",
+    "This bootstrap did not validate or fix product runtime issues such as scanner fan-out, agent loops, model routing, or provider behavior"
   ],
-  "next_step": "System ready for deployment and demo."
+  "next_step": "Run f51-inventory, then f51-contracts, then f51-runtime, then f51-tests before any product fix or feature work"
 }

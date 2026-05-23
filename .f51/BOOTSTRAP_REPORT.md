@@ -1,131 +1,127 @@
 # F51 Bootstrap Report
 
-**Data:** 2026-05-21
-**Sessao:** Bootstrap Orchestrator — Auditoria e Consolidacao
-**Status:** OPERATIONAL LAYER VERIFIED
+Date: 2026-05-22T22:28:36-04:00
+Session: SuperEzio_Operational_Bootstrap_Verification
+Status: OPERATIONAL_LAYER_VERIFIED
 
----
+## 1. Scope Executed
 
-## 1) O que foi verificado (nada criado do zero — tudo ja existia)
+This run implemented the operational bootstrap plan only.
 
-### CLAUDE.md
-- Missao, comandos permitidos, definicao de pronto, politicas (testes, arquivos, mocks, refactor), regra de gating.
-- **Status:** COMPLETO. Nenhuma alteracao necessaria.
+No product code was changed. The following product surfaces were intentionally left untouched:
 
-### AGENTS.md
-- Mapa de papeis (9 agentes), regras de execucao, checkpoint e relatorio.
-- **Status:** COMPLETO. Nenhuma alteracao necessaria.
+- `src/`
+- `apps/`
+- `packages/`
+- `core/`
+- `pipelines/`
+- `frontend/`
+- `tests/`
+- runtime code
 
-### Skills (.claude/skills/)
-- 25 skills com SKILL.md validado.
-- 8 skills nucleares com `scripts/`, `references/`, `assets/`.
-- 3 skills mandatorias (`f51-impact-map`, `f51-quality-gate`, `f51-regression-hunter`) tiveram seus diretorios criados nesta sessao.
-- **Status:** COMPLETO. 11/25 skills com estrutura completa de diretorios.
+## 2. Created vs Already Present
 
-### .f51/
-- `PROJECT_RULES.md`, `INVENTORY_TEMPLATE.json`, `CHECKPOINT_TEMPLATE.json`, `RISK_REGISTER.md`, `TASK_BOARD.md`, `MONEY_GATE.md`, `BOOTSTRAP_REPORT.md`, `SKILLS_CHECK.md`, `GITHUB_POLICY.json`.
-- **Status:** COMPLETO. Todos os artefatos presentes.
+No new files or directories were required. The requested bootstrap layer was already present on disk and was verified.
 
-### docs/
-- `docs/architecture/ARCHITECTURE_TEMPLATE.md` — template de arquitetura com 8 secoes.
-- `docs/runbooks/RUNBOOK_TEMPLATE.md` — template de runbook com 8 secoes.
-- **Status:** COMPLETO.
+| Path | Status | Action |
+| --- | --- | --- |
+| `CLAUDE.md` | present | verified |
+| `AGENTS.md` | present | verified |
+| `.claude/skills/` | present | verified |
+| `.f51/PROJECT_RULES.md` | present | verified |
+| `.f51/INVENTORY_TEMPLATE.json` | present | verified |
+| `.f51/CHECKPOINT_TEMPLATE.json` | present | verified |
+| `.f51/RISK_REGISTER.md` | present | verified |
+| `.f51/TASK_BOARD.md` | present | verified |
+| `.f51/BOOTSTRAP_REPORT.md` | present | refreshed with current evidence |
+| `.f51/MONEY_GATE.md` | present | verified |
+| `docs/architecture/ARCHITECTURE_TEMPLATE.md` | present | verified |
+| `docs/runbooks/RUNBOOK_TEMPLATE.md` | present | verified |
+| `runtime/checkpoints/` | present | verified |
 
-### runtime/
-- `runtime/checkpoints/` — diretorio operacional ativo.
-- `.f51/checkpoints/latest.json` — checkpoint atualizado.
-- **Status:** COMPLETO.
+## 3. Prepared Skills
 
----
+The 8 requested specialist skills are present and each has `SKILL.md`, `scripts/`, `references/`, and `assets/`.
 
-## 2) Auditoria de Skills (ver `.f51/SKILLS_CHECK.md` para detalhes)
+| Skill | Status |
+| --- | --- |
+| `f51-inventory` | prepared |
+| `f51-contracts` | prepared |
+| `f51-runtime` | prepared |
+| `f51-refactor` | prepared |
+| `f51-tests` | prepared |
+| `f51-audit` | prepared |
+| `f51-release` | prepared |
+| `f51-money-gate` | prepared |
 
-### Resultado: 25/25 skills APTO
+## 4. Recommended MCPs / Tools
 
-Criterios avaliados:
-1. SKILL.md existe
-2. Nome e descricao claros
-3. Escopo limitado
-4. Proibe feature creep
-5. Produz saida verificavel
-6. Atualiza checkpoint
-7. Reduz caos ou aumenta chance de receita
+Allowed and useful:
 
-### Gaps identificados
+- Local filesystem tools limited to this project.
+- PowerShell / terminal for read-only inspection, lint, tests, and runtime checks.
+- Playwright or `chrome-devtools-plugin` for local UI validation when a browser flow is in scope.
+- Documentation/context tools only when dependency behavior cannot be confirmed locally.
 
-| Gap | Severidade | Descricao |
-|-----|------------|-----------|
-| GAP-1 | LOW | 14 skills sem diretorios `scripts/`, `references/`, `assets/` |
-| GAP-2 | LOW | `frontend-design` sem diretorios padrao (skill externa) |
-| GAP-3 | MEDIUM | Skills sobrepostas: `f51-audit`/`f51-auditor`, `f51-release`/`f51-release-captain`, `f51-inventory`/`f51-repo-cartographer` |
-| GAP-4 | LOW | `f51-contracts` vs `f51-contract-guardian` — namespaces proximos |
+Blocked:
 
-### Acao tomada nesta sessao
-- Criados `scripts/`, `references/`, `assets/` para as 3 skills mandatorias que nao os possuiam.
-- Atualizado `SKILLS_CHECK.md` com auditoria completa.
+- GitHub, `gh`, GitHub API, GitHub Actions, GitHub connectors, and GitHub MCPs are blocked by `.f51/GITHUB_POLICY.json`.
+- `git push`, `git pull`, and `git fetch` are blocked in this project.
 
----
+## 5. First Files Next Agent Should Read
 
-## 3) Quais MCPs sao recomendados
-
-### Stack atual
-- **filesystem** (MCP) — leitura/escrita controlada no projeto
-- **chrome-devtools-plugin** — testes de UI local (ja registrado)
-
-### Recomendados para proximo agente
-- **Terminal/PowerShell** — execucao de lint, testes, runtime
-- **Playwright** — validacao de frontend (se necessario)
-
-### Bloqueados por politica
-- **GitHub / gh / MCP GitHub** — DISK ONLY (`.f51/GITHUB_POLICY.json`)
-
----
-
-## 4) Arquivos que o proximo agente deve analisar primeiro
-
-1. `.f51/checkpoints/latest.json`
-2. `.f51/PROJECT_RULES.md`
+1. `.f51/GITHUB_POLICY.json`
+2. `.f51/checkpoints/latest.json`
 3. `CLAUDE.md`
 4. `AGENTS.md`
-5. `.f51/TASK_BOARD.md`
-6. `.f51/RISK_REGISTER.md`
-7. `.f51/SKILLS_CHECK.md`
+5. `.f51/PROJECT_RULES.md`
+6. `.f51/TASK_BOARD.md`
+7. `.f51/RISK_REGISTER.md`
 8. `.f51/INVENTORY_TEMPLATE.json`
 9. `docs/architecture/ARCHITECTURE_TEMPLATE.md`
 10. `docs/runbooks/RUNBOOK_TEMPLATE.md`
 
----
+## 6. First Recommended Task
 
-## 5) Primeira tarefa recomendada
+Run the specialist sequence below before any feature or product fix:
 
-**Executar `f51-inventory`** para materializar o baseline operacional atual em `.f51/INVENTORY.json`.
+1. `f51-inventory` - materialize the current baseline in `.f51/INVENTORY.json`.
+2. `f51-contracts` - freeze the public route/schema/runtime contracts.
+3. `f51-runtime` - prove boot, health, logs, ports, and runbook accuracy.
+4. `f51-tests` - run the risk-linked test matrix and record evidence.
 
-Entregaveis:
-- `.f51/INVENTORY.json` preenchido com entrypoints, comandos, dependencias
-- Atualizacao de riscos em `.f51/RISK_REGISTER.md`
-- Checkpoint renovado em `.f51/checkpoints/latest.json`
+Only after those gates should a specialist address product bugs such as agent loops, scanner fan-out, or model/provider routing.
 
-Proximo passo apos: executar `f51-contracts` para congelar superficie publica.
+## 7. Gap Table
 
----
+| Item | Status | Notes |
+| --- | --- | --- |
+| Required operational files | present | No creation required. |
+| Required skills | present | 8/8 have required files and support directories. |
+| Product code | do not touch | Explicitly preserved. |
+| GitHub workflow | do not touch | Blocked by disk-only policy. |
+| Current checkpoint | updated | Replaced product-session checkpoint with this bootstrap checkpoint. |
+| Worktree cleanliness | incomplete | Pre-existing dirty state remains: `.f51/checkpoints/latest.json` modified before this run; `release_info.json` and `scripts/merge_gguf.py` untracked. |
+| `.claude/skills/frontend-design` warning | incomplete | `git status` reports it cannot open this path. Not fixed in this bootstrap because it is outside the requested 8 skills. |
 
-## 6) Riscos e bloqueios
+## 8. Risks and Blockers
 
-### Riscos
-- 3 pares de skills sobrepostas (GAP-3) — consolidar com Marco para evitar agente ambiguo
-- Checkpoint atual (`.f51/checkpoints/latest.json`) reflete sessao de produto, nao bootstrap operacional
+- DISK ONLY is active. Any GitHub operation is a hard policy violation.
+- The repository had pre-existing dirty/untracked files before this bootstrap execution.
+- Some older docs contain mojibake/encoding artifacts. This run did not normalize encoding because that would be a broader documentation cleanup.
+- This run did not validate product runtime behavior and did not fix scanner/model-loop issues.
 
-### Bloqueios
-- GitHub bloqueado por `.f51/GITHUB_POLICY.json` (DISK ONLY)
-- Rede externa nao disponivel para busca de documentacao oficial de skills
+## 9. Validation Evidence
 
----
+Non-product checks executed:
 
-## 7) Conformidade com regras absolutas
+| Command | Result |
+| --- | --- |
+| `python -m json.tool .f51/GITHUB_POLICY.json` | passed |
+| `python -m json.tool .f51/CHECKPOINT_TEMPLATE.json` | passed |
+| `python -m json.tool .f51/INVENTORY_TEMPLATE.json` | passed |
+| `python -m json.tool .f51/checkpoints/latest.json` | passed |
+| `git diff --check` | passed |
+| `git diff --name-only` | only `.f51/BOOTSTRAP_REPORT.md` and `.f51/checkpoints/latest.json` changed by this run |
 
-- [x] Nenhuma alteracao em `apps/`, `src/`, `packages/`, `core/` ou `pipelines/`
-- [x] Nenhuma feature implementada
-- [x] Nenhum bug corrigido
-- [x] Nenhum arquivo apagado
-- [x] Nenhuma dependencia instalada
-- [x] Apenas consolidacao operacional e preenchimento de gaps estruturais
+Product tests were not run because this bootstrap intentionally did not touch product code.
