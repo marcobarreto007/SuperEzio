@@ -540,3 +540,48 @@ def test_advisory_routes_never_invoke_scanner():
     assert not invariant_broken, (
         "market_scan + scanner_invoked=True must be valid"
     )
+
+
+# ---------------------------------------------------------------------------
+# P0 regression: chart ticker must NOT hijack market scan routing
+# ---------------------------------------------------------------------------
+
+SCAN_WITH_CHART_TICKER_PROMPT = (
+    "Find one US or Canadian small-cap stock with a real 14-day catalyst. "
+    "Use only US_CANADA_LIQUID universe. "
+    "Do not use China A-shares. "
+    "Do not use penny stocks. "
+    "Do not use microcaps below $300M. "
+    "Give me one decisive model order: BUY_CANDIDATE, WAIT, or REJECT_ALL."
+)
+
+
+def test_market_scan_not_hijacked_by_chart_ticker():
+    """Explicit scan request must route to market_scan even when chart ticker is set."""
+    from src.core.pipeline.intents import parse_user_intent, _is_market_scan_request
+
+    # The message itself IS a market scan request
+    assert _is_market_scan_request(SCAN_WITH_CHART_TICKER_PROMPT), (
+        "Scan request must be detected as market_scan"
+    )
+
+    # With a chart ticker lingering (e.g., AAPL in UI), routing must still be market_scan
+    result = parse_user_intent(SCAN_WITH_CHART_TICKER_PROMPT, rigor="strict", ticker="AAPL")
+    assert result.route == "market_scan", (
+        f"Expected market_scan, got {result.route} — chart ticker hijacked routing"
+    )
+    assert result.intent == "market_scan"
+
+
+def test_ticker_analysis_still_works_with_chart_ticker():
+    """When the user asks about the chart ticker, it must still route to ticker_analysis."""
+    from src.core.pipeline.intents import parse_user_intent
+
+    result = parse_user_intent(
+        "What do you think about this stock for the next 14 days?",
+        rigor="strict",
+        ticker="AAPL",
+    )
+    assert result.route == "ticker_analysis", (
+        f"Expected ticker_analysis, got {result.route}"
+    )

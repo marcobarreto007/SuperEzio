@@ -129,10 +129,12 @@ Forbidden:
 Rules:
 - Use numbers, thresholds, ranges, formulas, or decision gates whenever possible.
 - Avoid fake precision: do not present annualized return ranges as forecasts unless backed by an explicit data/source. Do NOT invent exact expected returns or probabilities unless they are explicitly sourced.
+- NEVER output exact probability values like "50% chance", "70% probability", "30% likelihood", or similar precise percentages. Instead, use qualitative ranges: "roughly even odds", "more likely than not", "illustrative risk range, not forecast".
 - Label all scenario numbers, returns, and probabilities as illustrative assumptions.
 - Ensure portfolio allocations sum to exactly 100%. Every allocation must include why each bucket gets that percentage.
 - If required data is missing, state assumptions instead of pretending certainty.
-- For Canadian personal finance, mention TFSA/RRSP/RESP/FHSA only when relevant, and explicitly state that tax rules depend on the individual's situation.
+- For Canadian personal finance: include CAD, liquidity, emergency reserve. When mentioning Canadian registered accounts, spell them out individually with proper separators: write "TFSA, RRSP, RESP, or FHSA" — NEVER concatenate them into malformed strings like "TFSABRRSP" or "TFSARRSP". State that tax rules depend on the individual's situation.
+- NEVER recommend specific ETF tickers (e.g., VGRO, XEQT, VFV, ZAG) unless the user provided verified price/fundamental data for that ticker. Instead, describe the asset class: "broad diversified Canadian-listed ETF", "low-cost S&P 500 index ETF", "aggregate bond ETF".
 - For real estate vs markets, include cap rate, cash-on-cash return, mortgage rate sensitivity, vacancy, maintenance, insurance, taxes, liquidity, concentration risk, and opportunity cost.
 - For macro thesis questions, first build the thematic exposure logic before giving stock-screening criteria. Separate secular trend, valuation risk, concentration risk, picks-and-shovels infrastructure, hype zones, position sizing logic, and rebalancing discipline.
 - For AI investment thesis, explicitly separate:
@@ -145,6 +147,20 @@ Rules:
   7. maximum total AI-theme exposure inside the full portfolio
 - Avoid generic advice. Be specific and quantitative.
 - Answer in the user's language.
+
+FINAL OUTPUT FORMAT — MANDATORY:
+Your answer MUST end with exactly these two lines, on their own, after the Professional Caveat section:
+Final verdict: <PAY_DEBT / CASH / ETF / STOCK_TRADE / WAIT>
+Confidence: <0-100>
+
+Pick exactly ONE verdict from the list. Do not combine them.
+- PAY_DEBT: use when high-interest debt (>6-8%) dominates expected returns
+- CASH: use when emergency fund is insufficient or liquidity need is urgent
+- ETF: use when diversified passive investment fits the horizon and risk tolerance
+- STOCK_TRADE: use only when the user explicitly asks for individual stock trades as the primary option (not as one option among cash/ETF/debt)
+- WAIT: use when missing data or uncertainty is too high to commit capital
+
+Confidence must be a single integer from 0 to 100 reflecting how confident you are in the verdict given the available information and stated assumptions.
 
 You must ONLY output a valid JSON object:
 {"tool": "final_answer", "args": {"content": "your full analysis here"}}
@@ -954,7 +970,13 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     )
 
     # Build ReAct Prompt — use complex finance prompt for advisory questions
-    is_complex_finance = detect_complex_finance_intent(state.get("message", ""))
+    # Catch both regex-detected complex finance AND deterministically-parsed
+    # capital_allocation / personal_finance intents.
+    _detected_intent = state.get("intent", "")
+    is_complex_finance = (
+        detect_complex_finance_intent(state.get("message", ""))
+        or _detected_intent in ("capital_allocation", "personal_finance")
+    )
     active_system_prompt = COMPLEX_FINANCE_SYSTEM_PROMPT if is_complex_finance else SYSTEM_PROMPT
     messages = [{"role": "system", "content": active_system_prompt}]
     messages.append({"role": "user", "content": f"User Request: {state.get('message', '')}"})

@@ -373,6 +373,65 @@ COMMON_WORDS = {
     "YOY",
     "MOM",
     "BPS",
+    # Financial verdict / action words — not tickers
+    "WAIT",
+    "CASH",
+    "DEBT",
+    "SCAN",
+    "SCANS",
+    "FIND",
+    "BEST",
+    "MOST",
+    "LOW",
+    "HIGH",
+    "GOLD",
+    "OIL",
+    "GAS",
+    "TAX",
+    "NEWS",
+    "DATA",
+    "LOSS",
+    "GAIN",
+    "COST",
+    "FUND",
+    "FUNDS",
+    "LOAN",
+    "LOANS",
+    "SAVE",
+    "SAFE",
+    "BILL",
+    "BILLS",
+    "RENT",
+    "RENTAL",
+    "HOME",
+    "HOUSE",
+    "WORK",
+    "JOB",
+    "BANK",
+    "CARD",
+    "RATE",
+    "RATES",
+    "OPEN",
+    "CLOSE",
+    "PAST",
+    "LAST",
+    "OVER",
+    "SAID",
+    "HELP",
+    "NEED",
+    "WANT",
+    "KNOW",
+    "READ",
+    "USED",
+    "USING",
+    "LOOK",
+    "LIVE",
+    "STOP",
+    "DONE",
+    "BASE",
+    "CASE",
+    "PLAN",
+    "PART",
 }
 
 FINANCIAL_KEYWORDS = (
@@ -468,12 +527,23 @@ SCAN_KEYWORDS = (
     "penny-stock",
     "small cap",
     "small caps",
+    "small-cap",
+    "small-caps",
     "microcap",
     "micro cap",
     "microcaps",
     "micro caps",
     "hoje",
     "agora",
+    # English scan / discovery commands
+    "find me",
+    "find a",
+    "look for",
+    "search for",
+    "suggest a",
+    "recommend a",
+    "recommend me",
+    "show me",
 )
 
 SCOPE_KEYWORDS = (
@@ -1241,6 +1311,18 @@ def detect_ticker(message: str) -> str:
             "BY",
             "WITH",
             "CASH",
+            # Financial compound terms — not tickers
+            "SMALL",
+            "LARGE",
+            "MID",
+            "CAP",
+            "CAPS",
+            "MICRO",
+            "NANO",
+            "TERM",
+            "LONG",
+            "RANGE",
+            "SIDE",
         }
         if any(p in non_crypto_common for p in parts):
             continue
@@ -1576,7 +1658,11 @@ def parse_user_intent(
                 pennylab=False,
             )
 
-    if ticker:
+    # If the user message is an explicit market scan request, the scanner
+    # takes priority over a ticker lingering in the chart UI. Otherwise a
+    # "Find US small-cap stocks" prompt with AAPL in the chart would route
+    # to ticker_analysis and never invoke the scanner.
+    if ticker and not _is_market_scan_request(raw):
         return IntentParse(
             route="ticker_analysis",
             intent="ticker_analysis",

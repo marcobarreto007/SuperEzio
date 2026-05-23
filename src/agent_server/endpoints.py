@@ -24,6 +24,7 @@ from core.pipeline.intents import (
     has_hint,
     detect_complex_finance_intent,
     detect_capital_allocation_intent,
+    detect_market_scan_intent,
 )
 from core.risk_firewall import DecisionCandidate, evaluate_decision_with_sdca
 from data.data_hub import hub
@@ -600,14 +601,25 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
         explicit_ticker = str(payload.get("ticker") or "").strip()
         detected_ticker = explicit_ticker or detect_ticker(raw_message)
 
-        # Hard block context leak for complex finance / capital allocation intents.
-        # Capital allocation prompts (cash vs debt vs ETF vs trade) must never
-        # receive chart context or leak a UI-selected ticker into the pipeline.
+        # Hard block context leak for advisory / scan intents.
+        # - Complex finance / capital allocation: chart context must never leak.
+        # - Market scan: UI ticker must not hijack routing away from the scanner.
+        #   The user asked to FIND stocks, not to analyze the chart ticker.
         is_complex = detect_complex_finance_intent(raw_message)
         is_capital_alloc = detect_capital_allocation_intent(raw_message)
+        is_market_scan = detect_market_scan_intent(raw_message)
         if is_complex or is_capital_alloc:
             explicit_ticker = ""
             detected_ticker = ""
+            chart_context = ""
+            context_block = ""
+            block_vague_financial = False
+        elif is_market_scan and explicit_ticker and not detect_ticker(raw_message):
+            # Market scan request with a chart ticker but no inline ticker:
+            # the chart ticker is stale context, not the scan target.
+            # Zero it so parse_user_intent routes to market_scan, not ticker_analysis.
+            explicit_ticker = ""
+            detected_ticker = detect_ticker(raw_message)
             chart_context = ""
             context_block = ""
             block_vague_financial = False

@@ -396,8 +396,11 @@ class TestCEOP2CapitalAllocationQuality:
         assert "tax-advantaged account availability" in COMPLEX_FINANCE_SYSTEM_PROMPT
 
     def test_prompt_has_canadian_tax_note(self):
-        assert "TFSA/RRSP/RESP/FHSA" in COMPLEX_FINANCE_SYSTEM_PROMPT
+        assert "TFSA" in COMPLEX_FINANCE_SYSTEM_PROMPT
+        assert "RRSP" in COMPLEX_FINANCE_SYSTEM_PROMPT
         assert "tax rules depend on the individual" in COMPLEX_FINANCE_SYSTEM_PROMPT
+        # Prompt must warn against concatenating account types
+        assert "NEVER concatenate" in COMPLEX_FINANCE_SYSTEM_PROMPT
 
     def test_prompt_has_allocation_why_rule(self):
         assert "Every allocation must include why each bucket gets that percentage" in COMPLEX_FINANCE_SYSTEM_PROMPT
@@ -407,6 +410,23 @@ class TestCEOP2CapitalAllocationQuality:
 
     def test_prompt_has_no_invented_returns_rule(self):
         assert "Do NOT invent exact expected returns or probabilities unless they are explicitly sourced" in COMPLEX_FINANCE_SYSTEM_PROMPT
+
+    def test_prompt_has_anti_exact_probability_rule(self):
+        assert "NEVER output exact probability values" in COMPLEX_FINANCE_SYSTEM_PROMPT
+        assert "illustrative risk range, not forecast" in COMPLEX_FINANCE_SYSTEM_PROMPT
+        assert "qualitative ranges" in COMPLEX_FINANCE_SYSTEM_PROMPT
+
+    def test_prompt_has_anti_etf_ticker_rule(self):
+        assert "NEVER recommend specific ETF tickers" in COMPLEX_FINANCE_SYSTEM_PROMPT
+        assert "VGRO" in COMPLEX_FINANCE_SYSTEM_PROMPT  # must call out examples to avoid
+        assert "broad diversified Canadian-listed ETF" in COMPLEX_FINANCE_SYSTEM_PROMPT
+
+    def test_prompt_has_final_verdict_format(self):
+        assert "FINAL OUTPUT FORMAT" in COMPLEX_FINANCE_SYSTEM_PROMPT
+        assert "Final verdict:" in COMPLEX_FINANCE_SYSTEM_PROMPT
+        assert "PAY_DEBT / CASH / ETF / STOCK_TRADE / WAIT" in COMPLEX_FINANCE_SYSTEM_PROMPT
+        assert "Confidence: <0-100>" in COMPLEX_FINANCE_SYSTEM_PROMPT
+        assert "Pick exactly ONE verdict" in COMPLEX_FINANCE_SYSTEM_PROMPT
 
     def test_cad_25k_allocation_answer_contract(self):
         """Add contract test: CAD 25k allocation answer must contain emergency fund gate,

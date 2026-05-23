@@ -292,13 +292,26 @@ def _build_complex_finance_prompt(raw_message: str) -> str:
                 "\"I cannot help with this.\"\n\n"
                 "TOPIC-SPECIFIC RULES:\n"
                 "- Avoid fake precision: do not present annualized return ranges as forecasts unless backed by an explicit data/source. Do NOT invent exact expected returns or probabilities unless they are explicitly sourced.\n"
+                "- NEVER output exact probability values like \"50% chance\", \"70% probability\", \"30% likelihood\", or similar precise percentages. Instead, use qualitative ranges: \"roughly even odds\", \"more likely than not\", \"illustrative risk range, not forecast\".\n"
                 "- Label all scenario numbers, returns, and probabilities as illustrative assumptions.\n"
                 "- Ensure proposed portfolio allocations sum to exactly 100%. Every allocation must include why each bucket gets that percentage.\n"
-                "- For Canadian personal finance: include CAD, liquidity, emergency reserve, TFSA/RRSP/RESP/FHSA account types only when relevant, and explicitly state that tax rules depend on the individual's situation.\n"
+                "- For Canadian personal finance: include CAD, liquidity, emergency reserve. When mentioning Canadian registered accounts, spell them out individually with proper separators: write \"TFSA, RRSP, RESP, or FHSA\" — NEVER concatenate them into malformed strings like \"TFSABRRSP\" or \"TFSARRSP\". State that tax rules depend on the individual's situation.\n"
+                "- NEVER recommend specific ETF tickers (e.g., VGRO, XEQT, VFV, ZAG) unless the user provided verified price/fundamental data for that ticker. Instead, describe the asset class: \"broad diversified Canadian-listed ETF\", \"low-cost S&P 500 index ETF\", \"aggregate bond ETF\".\n"
                 "- For real estate vs markets: include cap rate, cash-on-cash return, mortgage rate sensitivity, vacancy stress, maintenance reserve, insurance, taxes, liquidity, concentration risk, and opportunity cost vs diversified equity.\n"
                 "- For macro thesis: first build the thematic exposure logic before giving stock-screening criteria. Separate secular trend, valuation risk, concentration risk, picks-and-shovels infrastructure, hype zones, position sizing logic, and rebalancing discipline.\n"
                 "- For AI investment thesis, explicitly separate: 1. infrastructure winners, 2. monetization-risk companies, 3. hype/pivot companies, 4. valuation traps, 5. portfolio sizing, 6. rebalancing rules, and 7. maximum total AI-theme exposure inside the full portfolio.\n"
                 "- For capital allocation: include high-interest debt threshold, emergency reserve, reversibility, time-to-cashflow, and family stability.\n\n"
+                "FINAL OUTPUT FORMAT — MANDATORY:\n"
+                "Your answer MUST end with exactly these two lines, on their own, after the Professional Caveat section:\n"
+                "Final verdict: <PAY_DEBT / CASH / ETF / STOCK_TRADE / WAIT>\n"
+                "Confidence: <0-100>\n\n"
+                "Pick exactly ONE verdict from the list. Do not combine them.\n"
+                "- PAY_DEBT: use when high-interest debt (>6-8%) dominates expected returns\n"
+                "- CASH: use when emergency fund is insufficient or liquidity need is urgent\n"
+                "- ETF: use when diversified passive investment fits the horizon and risk tolerance\n"
+                "- STOCK_TRADE: use only when the user explicitly asks for individual stock trades as the primary option (not as one option among cash/ETF/debt)\n"
+                "- WAIT: use when missing data or uncertainty is too high to commit capital\n\n"
+                "Confidence must be a single integer from 0 to 100 reflecting how confident you are in the verdict given the available information and stated assumptions.\n\n"
                 "Answer in the user's language. Use numbers, not generalities."
             ),
             f"USER: {raw_message}",
@@ -334,8 +347,11 @@ def build_ceo_prompt(
     # Complex finance questions must be caught BEFORE the msg_has_ticker check
     # because words like "AI", "CAD", "ETF" in complex finance questions
     # false-positive on the uppercase ticker regex.
-    if intent == "general_question" and not has_financial:
-        if detect_complex_finance_intent(raw_message):
+    # Also route explicit capital_allocation / personal_finance intents
+    # (deterministic parser) to the structured complex finance prompt.
+    _advisory_intents = {"general_question", "capital_allocation", "personal_finance"}
+    if intent in _advisory_intents and not has_financial:
+        if detect_complex_finance_intent(raw_message) or intent in ("capital_allocation", "personal_finance"):
             return _build_complex_finance_prompt(raw_message)
 
     msg_has_ticker = bool(re.search(r"\b[A-Z]{1,5}(?:\.[A-Z]{1,2})?\b", raw_message))
