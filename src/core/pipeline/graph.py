@@ -69,7 +69,7 @@ def build_graph(
     builder.add_edge(START, "orchestrator_primary")
     builder.add_edge("orchestrator_primary", "data")
     builder.add_edge("data", "agent")
-    
+
     # Agent decides whether to call a tool or output the final answer
     builder.add_conditional_edges(
         "agent",
@@ -77,9 +77,9 @@ def build_graph(
         {
             "tool_executor": "tool_executor",
             "explanation": "explanation",
-        }
+        },
     )
-    
+
     # After a tool executes, return control to the agent
     builder.add_edge("tool_executor", "agent")
 
@@ -259,5 +259,3 @@ def _run_async(coro):
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         future = executor.submit(asyncio.run, coro)
         return future.result()
-
-

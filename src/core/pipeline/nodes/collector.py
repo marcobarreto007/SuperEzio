@@ -15,6 +15,7 @@ from ..trade_order import normalize_liquidity_fields, pick_candidate, rank_candi
 
 logger = logging.getLogger(__name__)
 
+
 # ── Configurable scan hard limits ──────────────────────────────────────────
 def _scan_max_raw():
     return int(os.getenv("SUPEREZIO_SCAN_MAX_CANDIDATES_RAW", "60"))
@@ -333,9 +334,7 @@ def _wants_microcap(msg_lower: str) -> bool:
     return _has_any(msg_lower, _MICROCAP_PATTERNS)
 
 
-def _resolve_universe(
-    explicit_country: str | None, msg_lower: str
-) -> tuple[str, list[str]]:
+def _resolve_universe(explicit_country: str | None, msg_lower: str) -> tuple[str, list[str]]:
     """Decide which scanner countries to query.
 
     Returns (universe_label, [country, ...]).
@@ -368,11 +367,7 @@ def _apply_candidate_gate(
     if not ticker or not isinstance(ticker, str):
         return False, "missing_ticker"
 
-    market = (
-        item.get("market")
-        or item.get("exchange")
-        or item.get("country")
-    )
+    market = item.get("market") or item.get("exchange") or item.get("country")
     if not market:
         return False, "missing_exchange"
 
@@ -394,11 +389,7 @@ def _apply_candidate_gate(
         if isinstance(mcap, (int, float)) and 0 < mcap < 300_000_000:
             return False, "microcap_filtered"
 
-    volume = (
-        item.get("volume")
-        or item.get("avg_volume")
-        or item.get("liquidity")
-    )
+    volume = item.get("volume") or item.get("avg_volume") or item.get("liquidity")
     if volume is None:
         return False, "missing_liquidity"
     if isinstance(volume, (int, float)) and volume <= 0:
@@ -416,9 +407,7 @@ def _apply_candidate_gate(
     return True, None
 
 
-def _safe_get_price(
-    hub_obj: Any, ticker: str, *, market: str | None = None
-) -> dict[str, Any]:
+def _safe_get_price(hub_obj: Any, ticker: str, *, market: str | None = None) -> dict[str, Any]:
     """Call hub.get_price defensively — never propagate provider errors."""
     try:
         result = hub_obj.get_price(ticker, market=market)
@@ -556,9 +545,7 @@ async def _run_scan(
             if not os.getenv("FINNHUB_API_KEY"):
                 source_errors.append("finnhub: FINNHUB_API_KEY not configured")
 
-            enrich_concurrency = max(
-                1, int(os.getenv("SUPEREZIO_SCAN_ENRICH_CONCURRENCY", "2"))
-            )
+            enrich_concurrency = max(1, int(os.getenv("SUPEREZIO_SCAN_ENRICH_CONCURRENCY", "2")))
             sem = asyncio.Semaphore(enrich_concurrency)
 
             async def _enrich_price(item: dict[str, Any]) -> tuple[dict[str, Any], Any]:
@@ -566,18 +553,14 @@ async def _run_scan(
                     ticker = str(item.get("ticker") or "")
                     market = item.get("market")
                     return item, await asyncio.wait_for(
-                        asyncio.to_thread(
-                            _safe_get_price, hub, ticker, market=market
-                        ),
+                        asyncio.to_thread(_safe_get_price, hub, ticker, market=market),
                         timeout=12,
                     )
 
             async def _enrich_profile(item: dict[str, Any]) -> tuple[dict[str, Any], Any]:
                 async with sem:
                     return item, await asyncio.wait_for(
-                        asyncio.to_thread(
-                            _safe_get_profile, hub, item.get("ticker", "")
-                        ),
+                        asyncio.to_thread(_safe_get_profile, hub, item.get("ticker", "")),
                         timeout=12,
                     )
 
@@ -590,9 +573,7 @@ async def _run_scan(
                         timeout=12,
                     )
 
-            price_pairs = await asyncio.gather(
-                *[_enrich_price(item) for item in price_targets]
-            )
+            price_pairs = await asyncio.gather(*[_enrich_price(item) for item in price_targets])
             profile_pairs = await asyncio.gather(
                 *[_enrich_profile(item) for item in profile_catalyst_targets]
             )
@@ -653,9 +634,7 @@ async def _run_scan(
             for item, price_res in zip(price_targets, price_results):
                 if isinstance(price_res, Exception):
                     item["price_error"] = str(price_res)
-                    price_error_counts["exception"] = (
-                        price_error_counts.get("exception", 0) + 1
-                    )
+                    price_error_counts["exception"] = price_error_counts.get("exception", 0) + 1
                 elif isinstance(price_res, dict) and "error" in price_res:
                     err = str(price_res.get("error"))
                     item["price_error"] = err
@@ -672,20 +651,11 @@ async def _run_scan(
                 _merge(item, catalyst_res)
 
             if price_error_counts:
-                top = sorted(
-                    price_error_counts.items(), key=lambda kv: kv[1], reverse=True
-                )[:5]
+                top = sorted(price_error_counts.items(), key=lambda kv: kv[1], reverse=True)[:5]
+                source_errors.append("price_provider: " + ", ".join(f"{k}={v}" for k, v in top))
+                active = [r["name"] for r in hub.list_routes("price") if r.get("configured")]
                 source_errors.append(
-                    "price_provider: " + ", ".join(f"{k}={v}" for k, v in top)
-                )
-                active = [
-                    r["name"]
-                    for r in hub.list_routes("price")
-                    if r.get("configured")
-                ]
-                source_errors.append(
-                    "price_routes_active: "
-                    + (",".join(active) if active else "none")
+                    "price_routes_active: " + (",".join(active) if active else "none")
                 )
                 if price_error_counts.get("no_provider_result_for_price"):
                     for item in price_targets:
@@ -697,9 +667,7 @@ async def _run_scan(
                                 if isinstance(a, dict)
                             ]
                             if parts:
-                                source_errors.append(
-                                    "price_attempts_sample: " + "; ".join(parts)
-                                )
+                                source_errors.append("price_attempts_sample: " + "; ".join(parts))
                             break
 
     passing: list[dict[str, Any]] = []
@@ -750,12 +718,10 @@ async def _run_scan(
         final_decision = "REJECT_ALL"
 
     # ── Scan summary trace ──
-    scan_id = f"scan-{int(time.time()*1000)}"
-    elapsed_ms = int((time.monotonic() - _t0) * 1000) if '_t0' in dir() else 0
-    top_reject_reasons = sorted(
-        rejection_summary.items(), key=lambda kv: kv[1], reverse=True
-    )[:3]
-    active_providers = list(provider_sources_used) if 'provider_sources_used' in dir() else []
+    scan_id = f"scan-{int(time.time() * 1000)}"
+    elapsed_ms = int((time.monotonic() - _t0) * 1000) if "_t0" in dir() else 0
+    top_reject_reasons = sorted(rejection_summary.items(), key=lambda kv: kv[1], reverse=True)[:3]
+    active_providers = list(provider_sources_used) if "provider_sources_used" in dir() else []
 
     summary = (
         f"[SCAN_SUMMARY] scan_id={scan_id} route=market_scan "
@@ -854,8 +820,7 @@ def _format_scan_context(scan: dict[str, Any]) -> str:
         f"Universe: {scan.get('universe', 'unspecified')}",
         f"Filters: {scan.get('filters', {})}",
         f"Data quality: {scan.get('data_quality', 'unknown')}",
-        f"Rejected: {scan.get('rejected_count', 0)} (reasons: "
-        f"{scan.get('rejection_summary', {})})",
+        f"Rejected: {scan.get('rejected_count', 0)} (reasons: {scan.get('rejection_summary', {})})",
     ]
     for item in scan.get("candidates", []):
         price = item.get("price")

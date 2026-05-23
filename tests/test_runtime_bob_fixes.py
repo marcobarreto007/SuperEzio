@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from agent_server.main import app
 from agent_server.endpoints import _session_history
 
+
 # Mock Pipeline for controlling runtime responses
 class MockPipeline:
     def __init__(self):
@@ -11,10 +12,7 @@ class MockPipeline:
         self.last_stream_kwargs = {}
 
     async def stream_events(self, prompt, **kwargs):
-        self.last_stream_kwargs = {
-            "prompt": prompt,
-            **kwargs
-        }
+        self.last_stream_kwargs = {"prompt": prompt, **kwargs}
         for ev in self.events_to_yield:
             yield ev
 
@@ -41,7 +39,7 @@ def client_with_mock_pipeline():
 # Test A — Macro thesis does not attach AAPL
 def test_macro_thesis_does_not_attach_aapl(client_with_mock_pipeline):
     mock_p, client = client_with_mock_pipeline
-    
+
     # We yield a standard pipeline execution flow
     mock_p.events_to_yield = [
         {"type": "STREAM_START", "msg_id": "test-msg-id"},
@@ -73,7 +71,7 @@ def test_macro_thesis_does_not_attach_aapl(client_with_mock_pipeline):
     # Parse NDJSON response lines
     lines = [line.strip() for line in response.text.strip().split("\n") if line.strip()]
     events = [json.loads(line) for line in lines]
-    
+
     # Check that stream ended and trace is correct
     stream_end_events = [ev for ev in events if ev.get("type") == "STREAM_END"]
     assert len(stream_end_events) == 1
@@ -95,7 +93,7 @@ def test_macro_thesis_does_not_attach_aapl(client_with_mock_pipeline):
 # Test B — Empty response blocked
 def test_empty_response_blocked(client_with_mock_pipeline):
     mock_p, client = client_with_mock_pipeline
-    
+
     # Simulating empty response from backend (no chunks yielded)
     mock_p.events_to_yield = [
         {"type": "STREAM_START", "msg_id": "test-msg-id"},
@@ -116,7 +114,7 @@ def test_empty_response_blocked(client_with_mock_pipeline):
 
     lines = [line.strip() for line in response.text.strip().split("\n") if line.strip()]
     events = [json.loads(line) for line in lines]
-    
+
     stream_end_events = [ev for ev in events if ev.get("type") == "STREAM_END"]
     assert len(stream_end_events) == 1
     trace = stream_end_events[0]["trace"]
@@ -177,7 +175,7 @@ def test_what_happened_after_failed_answer(client_with_mock_pipeline):
 # Test D — Explicit AAPL chart question still works
 def test_explicit_aapl_chart_question_works(client_with_mock_pipeline):
     mock_p, client = client_with_mock_pipeline
-    
+
     mock_p.events_to_yield = [
         {"type": "STREAM_START", "msg_id": "test-msg-id"},
         {"type": "INTENT_CLASSIFIED", "intent": "MARKET_CONTEXT", "route": "ticker_analysis"},
@@ -209,7 +207,7 @@ def test_explicit_aapl_chart_question_works(client_with_mock_pipeline):
     assert trace["detected_intent"] == "MARKET_CONTEXT"
     assert trace["chart_context_attached"] is True
     assert trace["selected_ui_ticker"] == "AAPL"
-    
+
     # Check that context block was actually passed down
     assert "AAPL chart context data" in mock_p.last_stream_kwargs.get("context", "")
     assert mock_p.last_stream_kwargs.get("ticker") == "AAPL"

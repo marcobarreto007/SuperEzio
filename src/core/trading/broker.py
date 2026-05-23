@@ -208,9 +208,7 @@ class AlpacaPaperAdapter:
         except Exception as exc:
             # IMPORTANT: returning 0.0 on broker failure is a sentinel, not real equity.
             # Callers MUST check for provider errors before sizing positions.
-            logger.warning(
-                "Alpaca get_account_equity failed: %s (returning 0.0 sentinel)", exc
-            )
+            logger.warning("Alpaca get_account_equity failed: %s (returning 0.0 sentinel)", exc)
             return 0.0
 
 

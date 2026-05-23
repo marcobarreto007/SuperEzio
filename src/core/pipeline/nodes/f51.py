@@ -3,7 +3,6 @@
 from langgraph.config import get_stream_writer
 
 
-
 async def node_f51_verdict(state: dict) -> dict:
     """Run F51Engine verdict on collected data trace."""
     writer = get_stream_writer()

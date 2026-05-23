@@ -61,11 +61,7 @@ def client_with_mock_pipeline():
 
 
 def _ndjson_events(response) -> list[dict]:
-    return [
-        json.loads(line)
-        for line in response.text.strip().split("\n")
-        if line.strip()
-    ]
+    return [json.loads(line) for line in response.text.strip().split("\n") if line.strip()]
 
 
 # ---------------------------------------------------------------------------
@@ -108,9 +104,7 @@ def test_empty_pipeline_emits_structured_fallback_chunk(client_with_mock_pipelin
         f"yields no content. Got {len(chunks)} CHUNKs."
     )
     content = chunks[0]["content"]
-    assert isinstance(content, str) and content.strip(), (
-        "Fallback CHUNK must not itself be empty."
-    )
+    assert isinstance(content, str) and content.strip(), "Fallback CHUNK must not itself be empty."
     # The structured fallback advertises route + intent + actionable suggestion.
     assert "route:" in content
     assert "detected_intent:" in content
@@ -121,8 +115,7 @@ def test_empty_pipeline_emits_structured_fallback_chunk(client_with_mock_pipelin
     trace = stream_ends[0]["trace"]
     assert trace["fallback_used"] is True
     assert trace["final_content_length"] > 0, (
-        "After the fallback CHUNK is emitted, final_content_length must "
-        "be greater than zero."
+        "After the fallback CHUNK is emitted, final_content_length must be greater than zero."
     )
 
 

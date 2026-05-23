@@ -38,9 +38,7 @@ class QuantEngine:
             "combined_prob_up": 50.0,
             "ml_reinforcement_reward": 0.0,
             "ml_reinforcement_pain": 0.0,
-            "evidence": {
-                "ml": "Statistical baseline calculated: neutral verdict (prob: 50.00%)"
-            },
+            "evidence": {"ml": "Statistical baseline calculated: neutral verdict (prob: 50.00%)"},
         }
 
 

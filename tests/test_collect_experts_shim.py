@@ -109,6 +109,4 @@ def test_node_collect_experts_handles_missing_expert_results() -> None:
                 f"raising; got {type(exc).__name__}: {exc}"
             )
 
-    assert isinstance(result, dict), (
-        "node_collect_experts must return a dict-shaped state update."
-    )
+    assert isinstance(result, dict), "node_collect_experts must return a dict-shaped state update."

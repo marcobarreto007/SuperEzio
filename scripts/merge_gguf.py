@@ -91,9 +91,7 @@ def merge_gguf(
     tensors2 = list(r2.tensors)
 
     if len(tensors1) != len(tensors2):
-        raise ValueError(
-            f"Tensor count mismatch: {len(tensors1)} vs {len(tensors2)}"
-        )
+        raise ValueError(f"Tensor count mismatch: {len(tensors1)} vs {len(tensors2)}")
 
     # --- Build tensor name -> (t1, t2) mapping ---
     t2_by_name = {t.name: t for t in tensors2}
@@ -178,22 +176,13 @@ def merge_gguf(
 
     elapsed = time.time() - t0
     size_gb = output.stat().st_size / 1e9
-    print(
-        f"Done: {output} ({size_gb:.1f} GB) in {elapsed:.0f}s "
-        f"({elapsed / 60:.1f} min)"
-    )
+    print(f"Done: {output} ({size_gb:.1f} GB) in {elapsed:.0f}s ({elapsed / 60:.1f} min)")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Merge two GGUFs via linear interpolation -> Q8_0"
-    )
-    parser.add_argument(
-        "--model1", required=True, help="Path to first (merged) GGUF"
-    )
-    parser.add_argument(
-        "--model2", required=True, help="Path to second (aggressive) GGUF"
-    )
+    parser = argparse.ArgumentParser(description="Merge two GGUFs via linear interpolation -> Q8_0")
+    parser.add_argument("--model1", required=True, help="Path to first (merged) GGUF")
+    parser.add_argument("--model2", required=True, help="Path to second (aggressive) GGUF")
     parser.add_argument("--output", required=True, help="Output GGUF path (Q8_0)")
     parser.add_argument(
         "--ratio",

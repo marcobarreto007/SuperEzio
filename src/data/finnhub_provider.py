@@ -216,9 +216,7 @@ class FinnhubProvider:
 
             market_cap_raw = data.get("marketCapitalization")
             market_cap = (
-                int(float(market_cap_raw) * 1_000_000)
-                if market_cap_raw is not None
-                else None
+                int(float(market_cap_raw) * 1_000_000) if market_cap_raw is not None else None
             )
 
             return {
@@ -388,9 +386,7 @@ class FinnhubProvider:
             for i, ts in enumerate(times):
                 candles.append(
                     {
-                        "datetime": datetime.fromtimestamp(
-                            int(ts), tz=timezone.utc
-                        ).isoformat(),
+                        "datetime": datetime.fromtimestamp(int(ts), tz=timezone.utc).isoformat(),
                         "open": float(opens[i]) if i < len(opens) else None,
                         "high": float(highs[i]) if i < len(highs) else None,
                         "low": float(lows[i]) if i < len(lows) else None,

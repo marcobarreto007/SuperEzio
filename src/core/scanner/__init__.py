@@ -19,6 +19,7 @@ def _is_valid_us_ca_ticker(symbol: str) -> bool:
     s = symbol.strip().upper()
     return bool(_US_TICKER_RE.match(s) or _CA_TICKER_RE.match(s))
 
+
 try:
     from ..observability.neural_log import log_event as _log_event
 except Exception:

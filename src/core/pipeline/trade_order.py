@@ -6,19 +6,13 @@ import os
 from typing import Any
 
 # Short-term trade order thresholds (configurable via env).
-MIN_AVG_DAILY_VOLUME_SHARES = int(
-    os.getenv("SUPEREZIO_MIN_AVG_DAILY_VOLUME_SHARES", "500000")
-)
+MIN_AVG_DAILY_VOLUME_SHARES = int(os.getenv("SUPEREZIO_MIN_AVG_DAILY_VOLUME_SHARES", "500000"))
 MIN_AVG_DAILY_DOLLAR_VOLUME_USD = float(
     os.getenv("SUPEREZIO_MIN_AVG_DAILY_DOLLAR_VOLUME_USD", "10000000")
 )
 BUY_CONFIDENCE_THRESHOLD = int(os.getenv("SUPEREZIO_BUY_CONFIDENCE_THRESHOLD", "65"))
-STRONG_CONFIDENCE_THRESHOLD = int(
-    os.getenv("SUPEREZIO_STRONG_CONFIDENCE_THRESHOLD", "80")
-)
-MAX_CONFIDENCE_WITH_GATE_FAILURE = int(
-    os.getenv("SUPEREZIO_MAX_CONFIDENCE_GATE_FAILURE", "55")
-)
+STRONG_CONFIDENCE_THRESHOLD = int(os.getenv("SUPEREZIO_STRONG_CONFIDENCE_THRESHOLD", "80"))
+MAX_CONFIDENCE_WITH_GATE_FAILURE = int(os.getenv("SUPEREZIO_MAX_CONFIDENCE_GATE_FAILURE", "55"))
 
 _EMPTY_RISK_VALUES = frozenset({"—", "-", "", "see risk controls", "ver controles de risco"})
 
@@ -76,9 +70,7 @@ def format_liquidity_display(candidate: dict[str, Any]) -> str:
     shares = candidate.get("avg_daily_volume_shares")
     if shares is None:
         shares = volume_shares_from_raw(
-            candidate.get("volume")
-            or candidate.get("avg_volume")
-            or candidate.get("liquidity")
+            candidate.get("volume") or candidate.get("avg_volume") or candidate.get("liquidity")
         )
     if shares is None or shares <= 0:
         return "—"
@@ -138,9 +130,7 @@ def evaluate_quality_gates(candidate: dict[str, Any]) -> tuple[bool, list[str]]:
     if not _is_present(risk):
         failures.append("missing_risk")
 
-    invalidation = (
-        candidate.get("invalidation") or candidate.get("invalidation_condition")
-    )
+    invalidation = candidate.get("invalidation") or candidate.get("invalidation_condition")
     if not _is_present(invalidation):
         failures.append("missing_invalidation")
 
@@ -166,9 +156,7 @@ def compute_model_confidence(
         score += 20
 
     catalyst = (
-        candidate.get("catalyst")
-        or candidate.get("thesis")
-        or candidate.get("short_term_thesis")
+        candidate.get("catalyst") or candidate.get("thesis") or candidate.get("short_term_thesis")
     )
     if _is_present(catalyst):
         score += 10
@@ -194,9 +182,7 @@ def compute_model_confidence(
 
     if _is_present(candidate.get("risk") or candidate.get("downside_risk")):
         score += 8
-    if _is_present(
-        candidate.get("invalidation") or candidate.get("invalidation_condition")
-    ):
+    if _is_present(candidate.get("invalidation") or candidate.get("invalidation_condition")):
         score += 8
 
     if candidate.get("name") or candidate.get("company"):

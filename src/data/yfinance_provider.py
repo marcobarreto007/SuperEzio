@@ -85,9 +85,7 @@ class YFinanceProvider:
                     )
                 if price is None:
                     info = ticker.info or {}
-                    price = info.get("regularMarketPrice") or info.get(
-                        "currentPrice"
-                    )
+                    price = info.get("regularMarketPrice") or info.get("currentPrice")
                 if price is None or float(price) <= 0:
                     hist = ticker.history(period="5d")
                     if hist is not None and not hist.empty:

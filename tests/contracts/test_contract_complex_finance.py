@@ -349,7 +349,10 @@ class TestPrecisionAndMathRules:
         assert "sum to exactly 100%" in COMPLEX_FINANCE_SYSTEM_PROMPT
 
     def test_agent_prompt_has_macro_thematic_exposure_logic(self):
-        assert "first build the thematic exposure logic before giving stock-screening criteria" in COMPLEX_FINANCE_SYSTEM_PROMPT
+        assert (
+            "first build the thematic exposure logic before giving stock-screening criteria"
+            in COMPLEX_FINANCE_SYSTEM_PROMPT
+        )
 
     def test_agent_prompt_has_ai_thesis_segmentation(self):
         for term in [
@@ -359,7 +362,7 @@ class TestPrecisionAndMathRules:
             "valuation traps",
             "portfolio sizing",
             "rebalancing rules",
-            "maximum total AI-theme exposure"
+            "maximum total AI-theme exposure",
         ]:
             assert term in COMPLEX_FINANCE_SYSTEM_PROMPT
 
@@ -374,7 +377,10 @@ class TestPrecisionAndMathRules:
         assert "annualized return" in prompt
         assert "illustrative" in prompt
         assert "sum to exactly 100%" in prompt
-        assert "first build the thematic exposure logic before giving stock-screening criteria" in prompt
+        assert (
+            "first build the thematic exposure logic before giving stock-screening criteria"
+            in prompt
+        )
         assert "infrastructure winners" in prompt
         assert "monetization-risk companies" in prompt
         assert "hype/pivot companies" in prompt
@@ -403,13 +409,19 @@ class TestCEOP2CapitalAllocationQuality:
         assert "NEVER concatenate" in COMPLEX_FINANCE_SYSTEM_PROMPT
 
     def test_prompt_has_allocation_why_rule(self):
-        assert "Every allocation must include why each bucket gets that percentage" in COMPLEX_FINANCE_SYSTEM_PROMPT
+        assert (
+            "Every allocation must include why each bucket gets that percentage"
+            in COMPLEX_FINANCE_SYSTEM_PROMPT
+        )
 
     def test_prompt_has_what_changes_allocation(self):
         assert "what changes the allocation" in COMPLEX_FINANCE_SYSTEM_PROMPT
 
     def test_prompt_has_no_invented_returns_rule(self):
-        assert "Do NOT invent exact expected returns or probabilities unless they are explicitly sourced" in COMPLEX_FINANCE_SYSTEM_PROMPT
+        assert (
+            "Do NOT invent exact expected returns or probabilities unless they are explicitly sourced"
+            in COMPLEX_FINANCE_SYSTEM_PROMPT
+        )
 
     def test_prompt_has_anti_exact_probability_rule(self):
         assert "NEVER output exact probability values" in COMPLEX_FINANCE_SYSTEM_PROMPT
@@ -459,15 +471,15 @@ class TestCEOP2CapitalAllocationQuality:
                     "emergency cash reserve, paying debt, ETFs, side-business equipment, and education. "
                     "Build a serious capital allocation plan."
                 ),
-                "session_id": "test-cad-25k-allocation"
-            }
+                "session_id": "test-cad-25k-allocation",
+            },
         }
 
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
             "http://127.0.0.1:8002/task/submit",
             data=data,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         try:
@@ -489,35 +501,82 @@ class TestCEOP2CapitalAllocationQuality:
         try:
             # Verification asserts:
             assert len(full_content) > 0, "Response content is empty"
-            assert "not personalized financial advice" in full_content.lower() or "not a registered financial advisor" in full_content.lower() or "not licensed" in full_content.lower() or "not regulated" in full_content.lower() or "educational framework" in full_content.lower()
+            assert (
+                "not personalized financial advice" in full_content.lower()
+                or "not a registered financial advisor" in full_content.lower()
+                or "not licensed" in full_content.lower()
+                or "not regulated" in full_content.lower()
+                or "educational framework" in full_content.lower()
+            )
 
             # 1. Emergency fund gate (emergency fund, emergency cash, reserve + months)
-            assert any(term in full_content.lower() for term in ["emergency", "reserva"]), "Missing emergency fund/reserve reference"
-            assert any(term in full_content.lower() for term in ["month", "meses", "mês"]), "Missing emergency fund months reference"
+            assert any(term in full_content.lower() for term in ["emergency", "reserva"]), (
+                "Missing emergency fund/reserve reference"
+            )
+            assert any(term in full_content.lower() for term in ["month", "meses", "mês"]), (
+                "Missing emergency fund months reference"
+            )
 
             # 2. Debt interest gate (interest, rate, juro, taxa + debt, dívida)
-            assert any(term in full_content.lower() for term in ["debt", "divida", "dívida"]), "Missing debt reference"
-            assert any(term in full_content.lower() for term in ["interest", "juro", "rate", "taxa"]), "Missing debt interest/rate reference"
+            assert any(term in full_content.lower() for term in ["debt", "divida", "dívida"]), (
+                "Missing debt reference"
+            )
+            assert any(
+                term in full_content.lower() for term in ["interest", "juro", "rate", "taxa"]
+            ), "Missing debt interest/rate reference"
 
             # 3. Business cashflow gate (equipment, business, cashflow, time-to-cashflow, etc.)
-            assert any(term in full_content.lower() for term in ["equipment", "equipamento", "business", "negocio", "negócio"]), "Missing business/equipment reference"
-            assert any(term in full_content.lower() for term in ["cashflow", "flow", "fluxo", "time-to-cashflow", "caixa", "payback", "retorno", "receita"]), "Missing business cashflow/time-to-cashflow reference"
+            assert any(
+                term in full_content.lower()
+                for term in ["equipment", "equipamento", "business", "negocio", "negócio"]
+            ), "Missing business/equipment reference"
+            assert any(
+                term in full_content.lower()
+                for term in [
+                    "cashflow",
+                    "flow",
+                    "fluxo",
+                    "time-to-cashflow",
+                    "caixa",
+                    "payback",
+                    "retorno",
+                    "receita",
+                ]
+            ), "Missing business cashflow/time-to-cashflow reference"
 
             # 4. Tax-account note (TFSA, RRSP, RESP, FHSA + individual/situation dependency)
-            assert any(term in full_content for term in ["TFSA", "RRSP", "RESP", "FHSA"]), "Missing Canadian tax account names (TFSA, RRSP, RESP, FHSA)"
-            assert any(term in full_content.lower() for term in ["depend", "situa", "individ", "person"]), "Missing tax dependency on individual/personal context note"
+            assert any(term in full_content for term in ["TFSA", "RRSP", "RESP", "FHSA"]), (
+                "Missing Canadian tax account names (TFSA, RRSP, RESP, FHSA)"
+            )
+            assert any(
+                term in full_content.lower() for term in ["depend", "situa", "individ", "person"]
+            ), "Missing tax dependency on individual/personal context note"
 
             # 5. No unsupported exact probability or return (check presence of illustrative scenarios / assumptions labeling)
-            assert any(term in full_content.lower() for term in ["illustrative", "ilustrativ", "assum", "supo"]), "Missing illustrative scenario labels or assumptions warning"
+            assert any(
+                term in full_content.lower()
+                for term in ["illustrative", "ilustrativ", "assum", "supo"]
+            ), "Missing illustrative scenario labels or assumptions warning"
 
             # Assert no unsupported exact probability (e.g. 60% probability, 25% probability)
             # Unless explicitly labeled as illustrative / assumption in the surrounding text
             import re
-            prob_matches = re.findall(r"(\b\d+%\s*(?:probability|chance|return|de probabilidade|de retorno|de chance)\b)", full_content.lower())
+
+            prob_matches = re.findall(
+                r"(\b\d+%\s*(?:probability|chance|return|de probabilidade|de retorno|de chance)\b)",
+                full_content.lower(),
+            )
             for match in prob_matches:
                 idx = full_content.lower().index(match)
-                context_window = full_content.lower()[max(0, idx-80):min(len(full_content), idx+80)]
-                assert any(term in context_window for term in ["illustrative", "assumption", "ilustrativ", "supo", "assum"]), f"Found unsupported exact probability/return: '{match}' without illustrative label in context: '{context_window}'"
+                context_window = full_content.lower()[
+                    max(0, idx - 80) : min(len(full_content), idx + 80)
+                ]
+                assert any(
+                    term in context_window
+                    for term in ["illustrative", "assumption", "ilustrativ", "supo", "assum"]
+                ), (
+                    f"Found unsupported exact probability/return: '{match}' without illustrative label in context: '{context_window}'"
+                )
         except AssertionError as e:
             print("\n--- FULL CONTENT ON FAILURE ---")
             print(full_content)
@@ -525,4 +584,39 @@ class TestCEOP2CapitalAllocationQuality:
             raise e
 
 
+@pytest.mark.asyncio
+async def test_complex_finance_invalid_model_json_gets_deterministic_fallback(monkeypatch):
+    """If CEO JSON mode fails, complex finance must still emit a useful answer."""
+    from src.core.pipeline.nodes import agent as agent_module
 
+    events = []
+    monkeypatch.setattr(agent_module, "get_stream_writer", lambda: events.append)
+
+    class BadJsonGateway:
+        async def chat_completion(self, **kwargs):
+            return "not json"
+
+    message = (
+        "I live in Canada, earn and spend in CAD, have a family, unstable work income, "
+        "health/energy constraints, and want to build financial independence over the next 10-15 years. "
+        "I have CAD 25,000 available today and want to decide how to allocate it between "
+        "emergency cash reserve, paying debt, ETFs, side-business equipment, and education. "
+        "Build a serious capital allocation plan."
+    )
+
+    result = await agent_module.node_agent(
+        {"run_id": "cad25k-fallback-test", "route": "general", "message": message},
+        gateway=BadJsonGateway(),
+    )
+
+    content = result["final"]
+    assert "educational framework" in content.lower()
+    assert "emergency cash reserve" in content.lower()
+    assert "3-6 months" in content
+    assert "debt" in content.lower()
+    assert "interest" in content.lower()
+    assert "equipment" in content.lower()
+    assert "time-to-cashflow" in content.lower()
+    assert "TFSA, RRSP, RESP, or FHSA" in content
+    assert "Final verdict:" in content
+    assert any(event.get("type") == "CHUNK" for event in events)

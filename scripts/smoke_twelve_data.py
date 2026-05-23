@@ -40,9 +40,7 @@ def main() -> int:
     health = hub.check_health()
     report["finnhub_key_set"] = bool((health.get("keys") or {}).get("FINNHUB_API_KEY"))
     report["active_providers"] = hub.list_active()
-    report["price_routes"] = [
-        r["name"] for r in hub.list_routes("price") if r.get("configured")
-    ]
+    report["price_routes"] = [r["name"] for r in hub.list_routes("price") if r.get("configured")]
 
     hub_result = hub.get_price("AAPL", market="United States")
     report["hub_aapl"] = {

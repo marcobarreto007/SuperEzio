@@ -24,11 +24,7 @@ def main() -> int:
     finnhub_configured = bool((health.get("keys") or {}).get("FINNHUB_API_KEY"))
     print(f"finnhub_configured={finnhub_configured}")
     print(f"active_providers={hub.list_active()}")
-    price_routes = [
-        r["name"]
-        for r in hub.list_routes("price")
-        if r.get("configured")
-    ]
+    price_routes = [r["name"] for r in hub.list_routes("price") if r.get("configured")]
     print(f"price_routes={price_routes}")
 
     result = hub.get_price("AAPL", market="United States")

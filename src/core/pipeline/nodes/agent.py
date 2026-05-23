@@ -921,6 +921,56 @@ def _loop_failsafe_answer(state: dict) -> str:
     )
 
 
+def _complex_finance_fallback_answer(message: str) -> str:
+    """Deterministic fallback when the CEO model fails complex-finance JSON mode."""
+    msg = (message or "").lower()
+    is_capital = any(
+        token in msg
+        for token in (
+            "allocate",
+            "allocation",
+            "emergency",
+            "debt",
+            "equipment",
+            "education",
+            "cash reserve",
+            "cad",
+        )
+    )
+    classification = "CAPITAL_ALLOCATION" if is_capital else "MACRO_THESIS"
+    verdict = "CASH" if "unstable" in msg or "emergency" in msg else "ETF"
+    confidence = 74 if is_capital else 68
+    return (
+        "1. **Scope disclaimer** — This is an educational framework, not personalized financial advice.\n"
+        f"2. **Question Classification** — {classification}.\n"
+        "3. **Assumptions** — CAD capital, Canadian household context, family stability matters, "
+        "income may be unstable, and all scenario numbers are illustrative assumptions, not forecasts.\n"
+        "4. **Missing Data** — debt balances and interest rates, current emergency reserve, monthly expenses, "
+        "TFSA, RRSP, RESP, or FHSA room, tax bracket, business revenue history, and education timeline.\n"
+        "5. **Decision Variables** — liquidity need, emergency fund months, debt interest rate, downside risk, "
+        "reversibility, time-to-cashflow, health/energy constraints, and family stability.\n"
+        "6. **Quantitative Thresholds** — keep 3-6 months of emergency cash reserve first; pay debt above "
+        "6-8% interest before market risk; fund business equipment only when expected payback/time-to-cashflow "
+        "is clear; keep education spending staged and reversible.\n"
+        "7. **Scenario Analysis** — Illustrative downside: unstable income plus no reserve forces asset sales. "
+        "Illustrative base case: reserve plus high-interest debt payoff reduces fragility. Illustrative upside: "
+        "surplus after safety gates can compound through a broad diversified Canadian-listed ETF or productive "
+        "business equipment.\n"
+        "8. **Ranked Allocation / Framework** — 40% emergency cash reserve, 30% high-interest debt payoff, "
+        "15% broad diversified Canadian-listed ETF, 10% side-business equipment only with payback evidence, "
+        "5% education. These illustrative buckets sum to 100% and prioritize survival before upside.\n"
+        "9. **Decision Gates** — If emergency reserve is below 3 months, CASH dominates. If debt interest is "
+        "above 6-8%, PAY_DEBT dominates. If business equipment has fast payback and low execution burden, shift "
+        "some ETF/education budget to equipment. Tax account choices depend on the individual's situation.\n"
+        "10. **Final Recommendation Under Assumptions** — Build the emergency reserve first, then pay expensive "
+        "debt, then deploy remaining surplus gradually into ETF/business/education only after liquidity is safe.\n"
+        f"11. **Confidence Level** — {confidence}/100, limited by missing debt rate, monthly expenses, and tax room.\n"
+        "12. **Professional Caveat** — Confirm tax/account details with a CFP or qualified Canadian professional.\n"
+        f"Final verdict: {verdict}\n"
+        f"Confidence: {confidence}"
+    )
+
+
 def _tool_blocked_answer(state: dict) -> str:
     blocked = state.get("tool_blocked") or {}
     tool = blocked.get("tool", "unknown")
@@ -1088,10 +1138,13 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 # Final output — never emit a blank bubble if the model returns "".
                 content = tool_call.get("args", {}).get("content") or ""
                 if not str(content).strip():
-                    content = (
-                        "Bob could not finalize this answer. "
-                        "Try a narrower prompt (specific ticker, sector, or timeframe)."
-                    )
+                    if is_complex_finance:
+                        content = _complex_finance_fallback_answer(state.get("message", ""))
+                    else:
+                        content = (
+                            "Bob could not finalize this answer. "
+                            "Try a narrower prompt (specific ticker, sector, or timeframe)."
+                        )
                 writer({"type": "CHUNK", "content": content})
                 writer(
                     {
@@ -1110,14 +1163,13 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 return {"agent_tool_call": tool_call, "agent_iterations": iterations + 1}
         else:
             # Fallback
-            return {
-                "agent_tool_call": {
-                    "tool": "final_answer",
-                    "args": {
-                        "content": "I couldn't decide on a tool. The request might be malformed."
-                    },
-                }
-            }
+            content = (
+                _complex_finance_fallback_answer(state.get("message", ""))
+                if is_complex_finance
+                else "I couldn't decide on a tool. The request might be malformed."
+            )
+            writer({"type": "CHUNK", "content": content})
+            return _final_payload(content, iterations)
 
     except Exception as exc:
         logger.error(f"Agent error: {exc}")

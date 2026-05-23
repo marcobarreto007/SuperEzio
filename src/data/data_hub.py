@@ -472,9 +472,7 @@ class DataHub:
             sig = inspect.signature(method)
         except (TypeError, ValueError):
             return dict(kwargs)
-        if any(
-            p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
-        ):
+        if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
             return dict(kwargs)
         allowed = set(sig.parameters.keys())
         return {k: v for k, v in kwargs.items() if k in allowed}

@@ -34,13 +34,12 @@ async def test_unavailable_price_candidates_are_rejected(monkeypatch):
     class StubHub:
         def get_price(self, ticker):
             return {"error": "no quote"}
+
         def list_routes(self, capability=None):
             return []
 
     monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
-    monkeypatch.setitem(
-        sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub())
-    )
+    monkeypatch.setitem(sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub()))
 
     result = await _run_scan(
         "What stock would you recommend if I want to profit within the next 2 weeks?",
@@ -80,13 +79,12 @@ async def test_generic_two_week_profit_prompt_defaults_to_us_canada(monkeypatch)
     class StubHub:
         def get_price(self, ticker):
             return {"error": "no quote"}
+
         def list_routes(self, capability=None):
             return []
 
     monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
-    monkeypatch.setitem(
-        sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub())
-    )
+    monkeypatch.setitem(sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub()))
 
     result = await _run_scan(
         "What stock would you recommend if I want to profit within the next 2 weeks?",
@@ -102,8 +100,7 @@ async def test_generic_two_week_profit_prompt_defaults_to_us_canada(monkeypatch)
     all_tickers = [c.get("ticker") for c in result["candidates"]]
     all_tickers += [r.get("ticker") for r in result["rejected"]]
     assert not any(
-        isinstance(t, str) and (t.endswith(".SZ") or t.endswith(".SS"))
-        for t in all_tickers
+        isinstance(t, str) and (t.endswith(".SZ") or t.endswith(".SS")) for t in all_tickers
     )
 
 
@@ -181,13 +178,12 @@ async def test_explicit_china_scan_is_allowed(monkeypatch):
         def get_price(self, ticker):
             # No price → still must be gated even when China is allowed.
             return {"error": "no quote"}
+
         def list_routes(self, capability=None):
             return []
 
     monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
-    monkeypatch.setitem(
-        sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub())
-    )
+    monkeypatch.setitem(sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub()))
 
     result = await _run_scan(
         "Scan Chinese A-shares for high-risk 2-week opportunities.",
@@ -240,9 +236,7 @@ async def test_valid_candidate_requires_full_data(monkeypatch):
             }
 
     monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
-    monkeypatch.setitem(
-        sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub())
-    )
+    monkeypatch.setitem(sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub()))
 
     result = await _run_scan(
         "Scan US technology equities for 2-week opportunities.",
@@ -258,9 +252,7 @@ async def test_valid_candidate_requires_full_data(monkeypatch):
         assert aapl.get(required), f"valid candidate missing required field {required}"
 
     # The rejected entry must explain *why* it was filtered.
-    incomplete = next(
-        (r for r in result["rejected"] if r.get("ticker") == "INCOMPLETE"), None
-    )
+    incomplete = next((r for r in result["rejected"] if r.get("ticker") == "INCOMPLETE"), None)
     assert incomplete is not None
     assert incomplete.get("rejected_reason") == "missing_short_term_thesis"
 
@@ -292,9 +284,7 @@ async def test_priced_candidates_fail_on_thesis_not_price(monkeypatch):
             return {"error": "no_catalyst_in_window"}
 
     monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
-    monkeypatch.setitem(
-        sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub())
-    )
+    monkeypatch.setitem(sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub()))
 
     result = await _run_scan(
         "What stock would you recommend if I want to profit within the next 2 weeks?",
@@ -337,9 +327,7 @@ async def test_share_recommendation_never_routes_to_china(monkeypatch):
             return []
 
     monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
-    monkeypatch.setitem(
-        sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub())
-    )
+    monkeypatch.setitem(sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub()))
 
     result = await _run_scan(
         "give me a share recommendation to buy if I want to make a profit within the next 14 days",
@@ -363,9 +351,7 @@ def test_a_share_word_boundary_no_false_positive():
         "share price analysis",
     ]
     for text in false_positives:
-        assert not _wants_china_universe(text), (
-            f"False positive China trigger: '{text}'"
-        )
+        assert not _wants_china_universe(text), f"False positive China trigger: '{text}'"
 
 
 def test_a_share_word_boundary_true_positives():
@@ -384,9 +370,7 @@ def test_a_share_word_boundary_true_positives():
         "hang seng index hsi today",
     ]
     for text in true_positives:
-        assert _wants_china_universe(text), (
-            f"Missed China trigger: '{text}'"
-        )
+        assert _wants_china_universe(text), f"Missed China trigger: '{text}'"
 
 
 # ---------------------------------------------------------------------------
@@ -409,8 +393,7 @@ STOCK_AS_OPTION_PROMPT = (
 )
 
 DIRECT_STOCK_PROMPT = (
-    "What stock would you recommend me to buy if I want to make a profit "
-    "within the next 14 days?"
+    "What stock would you recommend me to buy if I want to make a profit within the next 14 days?"
 )
 
 
@@ -440,9 +423,7 @@ def test_cad_1000_capital_allocation_no_scan():
 
     # Full intent parse must route to capital_allocation, not market_scan
     result = parse_user_intent(CAD_1000_PROMPT, rigor="strict", ticker="")
-    assert result.route == "general", (
-        f"Expected route=general, got route={result.route}"
-    )
+    assert result.route == "general", f"Expected route=general, got route={result.route}"
     assert result.intent == "capital_allocation", (
         f"Expected intent=capital_allocation, got intent={result.intent}"
     )
@@ -537,9 +518,7 @@ def test_advisory_routes_never_invoke_scanner():
 
     # Valid: market_scan + scanner = OK
     invariant_broken = "market_scan" in _ADVISORY_ROUTES and True
-    assert not invariant_broken, (
-        "market_scan + scanner_invoked=True must be valid"
-    )
+    assert not invariant_broken, "market_scan + scanner_invoked=True must be valid"
 
 
 # ---------------------------------------------------------------------------
@@ -582,6 +561,4 @@ def test_ticker_analysis_still_works_with_chart_ticker():
         rigor="strict",
         ticker="AAPL",
     )
-    assert result.route == "ticker_analysis", (
-        f"Expected ticker_analysis, got {result.route}"
-    )
+    assert result.route == "ticker_analysis", f"Expected ticker_analysis, got {result.route}"

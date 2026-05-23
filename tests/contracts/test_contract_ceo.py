@@ -114,8 +114,6 @@ def test_build_ceo_prompt_explain_capabilities():
     )
 
 
-
-
 def test_build_ceo_prompt_missing_ceo():
     text = missing_ceo_text(ticker="AAPL", route="ticker_analysis", local_ready=False)
     assert "MODEL_MISSING" in text
@@ -314,5 +312,3 @@ def test_qwen_persona_has_bob():
 def test_prompts_follow_user_language():
     assert "user's language" in QWEN_SYSTEM_PROMPT
     assert "user's language" in QWEN_PERSONA
-
-

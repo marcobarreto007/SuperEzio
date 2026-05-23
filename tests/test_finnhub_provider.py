@@ -57,6 +57,7 @@ class _FakeResponse:
     @property
     def content(self) -> bytes:
         import json as _json
+
         return _json.dumps(self._payload).encode("utf-8")
 
     def json(self) -> Dict[str, Any]:

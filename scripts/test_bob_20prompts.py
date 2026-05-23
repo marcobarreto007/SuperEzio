@@ -22,23 +22,27 @@ PROMPTS = [
     {"msg": "Give me the bear case for AMZN", "ticker": "AMZN", "tag": "ticker_amzn_bear"},
     {"msg": "What's happening with META stock?", "ticker": "META", "tag": "ticker_meta"},
     {"msg": "Would you buy GOOGL at current levels?", "ticker": "GOOGL", "tag": "ticker_googl"},
-
     # ── Market Scan (broad market questions) ──
     {"msg": "What are the best tech stocks to buy right now?", "ticker": "", "tag": "scan_tech"},
     {"msg": "Show me undervalued stocks in the US market", "ticker": "", "tag": "scan_undervalued"},
     {"msg": "What Canadian stocks look interesting?", "ticker": "", "tag": "scan_canada"},
     {"msg": "Find me momentum stocks with catalysts", "ticker": "", "tag": "scan_momentum"},
     {"msg": "What healthcare stocks should I watch?", "ticker": "", "tag": "scan_healthcare"},
-
     # ── General / Educational ──
     {"msg": "How does dollar cost averaging work?", "ticker": "", "tag": "general_dca"},
-    {"msg": "Explain the difference between ETFs and mutual funds", "ticker": "", "tag": "general_etf"},
+    {
+        "msg": "Explain the difference between ETFs and mutual funds",
+        "ticker": "",
+        "tag": "general_etf",
+    },
     {"msg": "What is the VIX and how do I use it?", "ticker": "", "tag": "general_vix"},
-
     # ── Portfolio / Strategy ──
     {"msg": "How should I diversify a $50k portfolio?", "ticker": "", "tag": "strategy_diversify"},
-    {"msg": "What's a good defensive strategy for a recession?", "ticker": "", "tag": "strategy_defensive"},
-
+    {
+        "msg": "What's a good defensive strategy for a recession?",
+        "ticker": "",
+        "tag": "strategy_defensive",
+    },
     # ── Edge Cases ──
     {"msg": "What's your top stock pick today?", "ticker": "", "tag": "edge_top_pick"},
     {"msg": "Should I sell everything and go to cash?", "ticker": "", "tag": "edge_panic_sell"},
@@ -53,12 +57,14 @@ def submit_task(prompt: str, ticker: str = "") -> dict:
         "ticker": ticker,
         "session_id": "stress_test",
     }
-    body = json.dumps({
-        "from": "stress_test",
-        "to": "bob",
-        "type": "TASK.SUBMIT",
-        "payload": payload,
-    }).encode()
+    body = json.dumps(
+        {
+            "from": "stress_test",
+            "to": "bob",
+            "type": "TASK.SUBMIT",
+            "payload": payload,
+        }
+    ).encode()
 
     req = urllib.request.Request(
         f"{BASE}/task/submit",
@@ -133,9 +139,11 @@ def main():
         print(f"FAIL: Server not reachable at {BASE}: {e}")
         sys.exit(1)
 
-    print(f"\n{'='*90}")
-    print(f"{'#':>2} {'TAG':<22} {'INTENT':<20} {'ROUTE':<18} {'LEN':>5} {'CAND':>4} {'OK':>3} {'DETAIL'}")
-    print(f"{'='*90}")
+    print(f"\n{'=' * 90}")
+    print(
+        f"{'#':>2} {'TAG':<22} {'INTENT':<20} {'ROUTE':<18} {'LEN':>5} {'CAND':>4} {'OK':>3} {'DETAIL'}"
+    )
+    print(f"{'=' * 90}")
 
     results = []
     passed = 0
@@ -176,16 +184,16 @@ def main():
     total_elapsed = time.time() - total_start
 
     # Summary
-    print(f"\n{'='*90}")
+    print(f"\n{'=' * 90}")
     print(f"SUMMARY: {passed}/{len(PROMPTS)} passed, {failed} failed, {total_elapsed:.1f}s total")
-    print(f"{'='*90}")
+    print(f"{'=' * 90}")
 
     # Route distribution
     routes = {}
     for r in results:
         rt = r.get("route", "?")
         routes[rt] = routes.get(rt, 0) + 1
-    print(f"\nRoute distribution:")
+    print("\nRoute distribution:")
     for rt, count in sorted(routes.items(), key=lambda x: -x[1]):
         print(f"  {rt}: {count}")
 
@@ -194,14 +202,14 @@ def main():
     for r in results:
         intent = r.get("intent", "?")
         intents[intent] = intents.get(intent, 0) + 1
-    print(f"\nIntent distribution:")
+    print("\nIntent distribution:")
     for intent, count in sorted(intents.items(), key=lambda x: -x[1]):
         print(f"  {intent}: {count}")
 
     # Failed details
     failures = [r for r in results if not r["ok"]]
     if failures:
-        print(f"\nFAILED DETAILS:")
+        print("\nFAILED DETAILS:")
         for r in failures:
             print(f"  {r['tag']}: {r.get('error', 'no content')}")
 
