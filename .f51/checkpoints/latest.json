@@ -1,38 +1,28 @@
 {
-  "date_local": "2026-05-23T12:47:02-04:00",
-  "session": "SuperEzio_Natural_Language_Financial_Consultant_Contract",
+  "date_local": "2026-05-23T13:15:00-04:00",
+  "session": "SuperEzio_UI_Backend_100pct_Coverage",
   "status": "implemented_and_verified",
   "what_was_done": [
-    "Added cognitive contract fields to the pipeline plan/state: cognitive_mode, information_need, allowed_tools, market_context_allowed, scanner_allowed, ticker_allowed, ticket_allowed, answer_contract",
-    "Mapped natural-language modes without creating a new runtime module: ADVISORY_KNOWLEDGE, INDUSTRY_RESEARCH, CAPITAL_ALLOCATION, RISK_LAB, TICKER_ANALYSIS, DISCOVERY_SCAN",
-    "Made industry research thesis-first so fax industry research no longer becomes ticker_analysis for FAX",
-    "Made CAD 50 weekly risk prompts route as RISK_LAB without scanner by default",
-    "Kept explicit ticker analysis and explicit smallcap/discovery scans working",
-    "Added tool permission enforcement in tool_executor so disallowed scanner/collector/RAG calls are blocked by cognitive contract",
-    "Replaced bad generic agent fallbacks with useful contract fallbacks for industry research, risk lab, advisory knowledge, discovery scan, and ticker analysis",
-    "Added deterministic complex-finance answer repair for missing business cashflow/time-to-cashflow clause",
-    "Hardened live QA scripts so bad fallback text, fake tickers, ETF overlap in allocations, and too-short answers fail the run",
-    "Added fax industry, CAD 50 risk lab, and scanner expectation cases to live QA/deeptest"
+    "Backend: wired ScanEventRegistry writer to SSE stream in collector — SCAN_EVENT events now stream to UI in real time",
+    "Backend: emit SCAN_SUMMARY with candidate_count, rejected_count, provider_sources_used, elapsed_ms at scan completion",
+    "Frontend: SCAN_EVENT handler in events.js — live scanner progress bar with percentage and elapsed time in chat bubble",
+    "Frontend: SCAN_SUMMARY handler in events.js — scan completion summary card",
+    "Frontend: pipeline bar complete stepMap — added agent, tool, blocked, graph, scan steps + professional_collector→data, market_scan_answer→scan",
+    "Frontend: cognitive envelope — rigor:strict and memory_mode:relevant_all in /task/submit payload",
+    "Frontend: trace scan telemetry — candidate_count, rejected_count, provider_sources_used initialized in trace",
+    "Frontend: state.js — new scanProgress, candidateCount, rejectedCount fields",
+    "Fixed writer undefined bug: used event_writer = writer or (lambda _event: None) safe fallback pattern"
   ],
   "evidence": [
-    "python -m ruff check src/core/pipeline scripts tests: passed",
-    "python -m ruff format --check changed files: passed",
-    "python -m pytest tests/test_investment_answer_quality.py tests/test_market_scan_candidate_gate.py tests/contracts/test_contract_pipeline.py tests/test_agent_market_scan_loop.py -q: 46 passed",
-    "python -m pytest tests/contracts/test_contract_complex_finance.py -q: 54 passed",
-    "python -m pytest tests/ -q: 848 passed",
-    "python scripts/bob_deeptest_10.py --base-url http://127.0.0.1:8002: 12/12 passed",
-    "python scripts/invest_api_qa.py: passed, report output/playwright/invest-api-qa-20260523-124446.json",
-    "python scripts/browser_smoke.py --base-url http://127.0.0.1:8002: passed, screenshot output/playwright/superezio-browser-smoke-20260523-124802.png",
-    "Browser deeptest report output/playwright/bob-deeptest-10-20260523-123704.json",
-    "git diff --check: passed",
-    "API server restarted for live verification on http://127.0.0.1:8002 with PID 19696"
+    "python -m ruff check src/core/pipeline/nodes/collector.py: passed",
+    "python -m pytest tests/ -q: 852 passed (173.79s)",
+    "git commit 578eaf0: 15 files changed, 280 insertions(+), 44 deletions(-)"
   ],
   "risks": [
     "GitHub remains hard-blocked by .f51/GITHUB_POLICY.json",
-    "QA now rejects operational garbage but still does not fully validate semantic ETF/ticker label accuracy",
-    "RAG remains forensic/manipulation oriented, not a general industry research corpus",
-    "Live answers still depend on local CEO model consistency and provider availability",
-    "Scanner can return REJECT_ALL when providers fail or data quality gates reject candidates, which is correct but may frustrate users expecting a ticker"
+    "Frontend changes not yet browser-verified — server needs restart to serve updated static files",
+    "SCAN_EVENT streaming not yet end-to-end tested with live market scan",
+    "JS files not linted (no JS linter configured in project)"
   ],
-  "next_step": "Add a semantic ETF/ticker validation layer for known broad ETFs and Canadian-listed examples, then rerun invest_api_qa and bob_deeptest_10."
+  "next_step": "Restart server, run browser_smoke.py --headed to verify UI renders pipeline bar + scanner progress, run invest_api_qa.py to verify SCAN_EVENT events in NDJSON stream"
 }
