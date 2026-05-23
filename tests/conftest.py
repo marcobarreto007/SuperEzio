@@ -6,8 +6,10 @@ import sys
 from pathlib import Path
 
 # Garante que src/ e tests/ estão no path para importar módulos e helpers
+_PROJECT_ROOT = str(Path(__file__).parent.parent)
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, _PROJECT_ROOT)  # scripts/ acessível via "from scripts import x"
 
 # Desabilita OpenTelemetry globalmente nos testes
 os.environ["DISABLE_OTEL"] = "1"
@@ -66,3 +68,40 @@ def requires_network():
             return True  # skipa
 
     return pytest.mark.skipif(_check(), reason="No network connection")
+
+
+# ── Browser Smoke (Playwright obrigatório — política F51) ──────────────────
+
+def _browser_smoke_server_up(base_url: str) -> bool:
+    import urllib.request
+
+    try:
+        urllib.request.urlopen(f"{base_url.rstrip('/')}/health", timeout=3)
+        return True
+    except Exception:
+        return False
+
+
+@pytest.fixture(scope="session")
+def browser_smoke():
+    """Smoke test de UI com Playwright. Roda uma vez por sessão pytest.
+
+    Política F51: Playwright é obrigatório em conjunto com qualquer teste.
+    Se o servidor não estiver reachable, o smoke é skipped com warning.
+    Chat real é opcional (env SUPEREZIO_SMOKE_CHAT=1).
+    """
+    base_url = os.environ.get("SUPEREZIO_BROWSER_SMOKE_URL", "http://127.0.0.1:8002")
+    if not _browser_smoke_server_up(base_url):
+        pytest.skip(f"Browser smoke skipped: server not reachable at {base_url}")
+
+    skip_chat = os.environ.get("SUPEREZIO_SMOKE_CHAT") not in ("1", "true", "yes")
+    from scripts.browser_smoke import run_smoke
+
+    result = run_smoke(
+        base_url=base_url,
+        headed=False,
+        skip_chat=skip_chat,
+        timeout_ms=60_000,
+    )
+    yield result
+    # session-scoped: nenhuma cleanup necessária além do browser já fechado

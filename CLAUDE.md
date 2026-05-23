@@ -34,7 +34,12 @@ python -m agent_server.main
 python -m pytest tests/ -q
 python -m ruff check src tests
 python -m ruff format --check src tests
+python scripts/browser_smoke.py
 ```
+
+**Regra Playwright:** Todo `pytest` deve ser acompanhado de `python scripts/browser_smoke.py`.
+O servidor precisa estar live. Se o servidor não estiver reachable, o smoke é skipped com
+warning visível no output do pytest (via fixture condicional em `tests/conftest.py`).
 
 Se um comando não existir no ambiente, reportar explicitamente no checkpoint.
 

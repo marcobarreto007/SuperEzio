@@ -56,6 +56,7 @@ dependencies = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "pytest-cov>=5.0",
+    "playwright>=1.45",
 ]
 
 [tool.ruff]

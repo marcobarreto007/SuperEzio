@@ -1,34 +1,28 @@
 {
-  "date_local": "2026-05-23T00:05:00-04:00",
-  "session": "SuperEzio_Clean_Agent_Runtime_Gates",
+  "date_local": "2026-05-23T08:15:00-04:00",
+  "session": "SuperEzio_Playwright_Policy_Enforcement",
   "status": "completed",
   "what_was_done": [
-    "Kept AgentToolCall Pydantic validation, executed_tools tracking, duplicate-tool blocking, and blocked-tool finalization",
-    "Kept F51 + SDCA as mandatory gates before DECISIVE_TRADE_ORDER can emit BUY_CANDIDATE",
-    "Fixed complex-finance fallback at the source: invalid/blank CEO JSON now emits a deterministic capital-allocation framework instead of empty content",
-    "Added regression coverage for CAD 25k complex-finance fallback when CEO JSON mode fails",
-    "Restarted the FastAPI agent server on port 8002 so live tests use current code",
-    "Cleaned repo-wide Ruff lint debt in scripts/test_bob_20prompts.py",
-    "Ran repo-wide Ruff formatting to remove all format drift",
-    "Deleted untracked release_info.json",
-    "Removed the broken .claude/skills/frontend-design junction"
+    "Updated AGENTS.md: Playwright SEMPRE obrigatório com qualquer teste, não 'quando houver UI'",
+    "Updated .f51/PROJECT_RULES.md: mesma política explícita com comando e skip condicional documentado",
+    "Updated CLAUDE.md: comando python scripts/browser_smoke.py adicionado aos comandos permitidos",
+    "Added session-scoped browser_smoke fixture in tests/conftest.py com skip automático se servidor offline",
+    "Fixture valida: health check + UI load + canvas render; chat real é opcional (SUPEREZIO_SMOKE_CHAT=1)",
+    "Verified conftest loads cleanly and existing tests unaffected (17/17 passed)"
   ],
   "evidence": [
-    "API restart: stopped agent_server PIDs 13416, 3964, 20584; started API PID 20396",
-    "GET http://127.0.0.1:8002/health: {\"status\":\"ok\",\"agent\":\"generic_agent\",\"version\":\"3.0.0\"}",
-    "python -m pytest tests\\contracts\\test_contract_complex_finance.py::test_complex_finance_invalid_model_json_gets_deterministic_fallback -q: 1 passed",
-    "python -m pytest tests\\contracts\\test_contract_complex_finance.py::TestCEOP2CapitalAllocationQuality::test_cad_25k_allocation_answer_contract -q: 1 passed in 14.59s",
-    "python -m pytest -q: 840 passed, 7 warnings in 150.12s",
-    "python -m ruff check .: passed",
-    "python -m ruff format --check .: 227 files already formatted",
-    "release_info.json deleted; Test-Path release_info.json returned False",
-    ".claude/skills/frontend-design broken junction removed; Test-Path returned False",
-    "pyright .: not available on PATH"
+    "python -m pytest tests/conftest.py --collect-only: collected 0 items (fixture loaded, no test functions in conftest)",
+    "python -m pytest tests/test_decisive_trade_order.py -v: 17 passed in 0.46s",
+    "git diff --check: passed",
+    "AGENTS.md: Stack padrão updated with Playwright SEMPRE policy",
+    ".f51/PROJECT_RULES.md: Stack padrão updated with Playwright SEMPRE policy",
+    "CLAUDE.md: Comandos permitidos updated with python scripts/browser_smoke.py",
+    "tests/conftest.py: _PROJECT_ROOT added to sys.path, browser_smoke fixture with session scope"
   ],
   "risks": [
     "GitHub remains hard-blocked by .f51/GITHUB_POLICY.json",
-    "Pyright is not installed/available on PATH",
-    "Pytest still emits 7 third-party deprecation warnings, but no test failures"
+    "Browser smoke fixture está disponível mas testes existentes não o requisitam como param — é opt-in por teste",
+    "SUPEREZIO_SMOKE_CHAT=1 ativa chat real que consome API tokens"
   ],
-  "next_step": "Run live browser smoke against the restarted API if UI behavior needs visual confirmation"
+  "next_step": "Adicionar browser_smoke como parâmetro em pelo menos um teste crítico (ex: test_decisive_trade_order) para garantir que smoke rode sempre"
 }

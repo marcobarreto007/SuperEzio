@@ -42,7 +42,9 @@ MCP permitido somente se cumprir pelo menos uma função:
 
 **Stack padrão:**
 - Filesystem limitado ao projeto
-- Playwright quando houver UI
+- Playwright SEMPRE — obrigatório em conjunto com qualquer teste. Toda execução de pytest deve
+  ser acompanhada de browser smoke test (scripts/browser_smoke.py) para validar UI real.
+  O servidor deve estar live. Se o servidor não estiver reachable, o smoke é skipped com warning visível.
 - GitHub quando houver repo remoto/PR (BLOQUEADO neste projeto — modo DISK ONLY)
 - Docs/context tool quando houver dependência incerta
 
