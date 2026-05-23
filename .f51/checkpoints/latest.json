@@ -17,7 +17,7 @@
     "python -m ruff check src/core/pipeline src/agent_server scripts tests: passed",
     "python -m ruff format --check src/core/pipeline src/agent_server scripts tests: 93 files already formatted",
     "python -m pytest tests/test_decisive_trade_order.py tests/test_market_scan_candidate_gate.py tests/test_agent_market_scan_loop.py -q: 48 passed",
-    "python -m pytest tests/ -q: 858 passed, 1 failed (test_api_health_details_endpoint timed out — server offline)",
+    "python -m pytest tests/ -q: 859 passed in 152.11s",
     "git diff --check: passed",
     "python -m json.tool .f51/checkpoints/latest.json: passed"
   ],
