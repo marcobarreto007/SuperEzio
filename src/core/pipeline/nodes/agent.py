@@ -349,7 +349,13 @@ def _build_trade_order_context(
         "universe": scan.get("universe") or trade_ctx.get("universe") or "unspecified",
         "filters": scan.get("filters") or trade_ctx.get("filters") or {},
         "ranked_candidates": ranked,
+        "rejected_count": int(scan.get("rejected_count", trade_ctx.get("rejected_count", 0)) or 0),
+        "rejection_summary": scan.get("rejection_summary")
+        or trade_ctx.get("rejection_summary")
+        or {},
+        "source_errors": scan.get("source_errors") or trade_ctx.get("source_errors") or [],
         "last_decision": decision,
+        "scanned_at": scan.get("collected_at") or trade_ctx.get("scanned_at"),
     }
 
 
@@ -602,6 +608,38 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
     if is_followup:
         prev_excluded = trade_ctx.get("primary_ticker") or (list(excluded)[0] if excluded else "—")
 
+    is_buy_candidate = decision == "BUY_CANDIDATE"
+    candidate_heading_pt = (
+        "Candidato Primario da Ordem:"
+        if is_buy_candidate
+        else "Candidato de Estudo (Nao e recomendacao):"
+    )
+    candidate_heading_en = (
+        "Primary Order Candidate:"
+        if is_buy_candidate
+        else "Study Candidate (Not a Recommendation):"
+    )
+    plan_heading_pt = (
+        "Plano de Ordem Sugerido:" if is_buy_candidate else "Plano de Watchlist / Sem Ordem:"
+    )
+    plan_heading_en = "Suggested Order Plan:" if is_buy_candidate else "Watchlist / No-Trade Plan:"
+    entry_line_pt = (
+        "ordem limitada proximo ao preco atual"
+        if is_buy_candidate
+        else "Sem entrada ate risco, invalidacao e confianca passarem nos gates"
+    )
+    entry_line_en = (
+        "limit order near current price"
+        if is_buy_candidate
+        else "No entry until risk, invalidation, and confidence gates pass"
+    )
+    max_risk_line_pt = (
+        "0.5%-1.0% do capital de trading" if is_buy_candidate else "0 ate virar BUY_CANDIDATE"
+    )
+    max_risk_line_en = (
+        "0.5%-1.0% of trading capital" if is_buy_candidate else "0 until upgraded to BUY_CANDIDATE"
+    )
+
     if portuguese:
         sections.extend(
             [
@@ -615,9 +653,9 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
         if is_followup:
             sections.append(f"3. Candidato Anterior Excluido: {prev_excluded}")
             sections.append("")
-            sections.append("4. Candidato Primario da Ordem:")
+            sections.append(f"4. {candidate_heading_pt}")
         else:
-            sections.append("3. Candidato Primario da Ordem:")
+            sections.append(f"3. {candidate_heading_pt}")
         sections.extend(
             [
                 f"   - Ticker: {ticker}",
@@ -642,11 +680,11 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
         sections.extend(
             [
                 "",
-                f"{plan_num}. Plano de Ordem Sugerido:",
-                "   - Entrada: ordem limitada proximo ao preco atual",
+                f"{plan_num}. {plan_heading_pt}",
+                f"   - Entrada: {entry_line_pt}",
                 f"   - Stop/Invalidacao: {invalidation}",
                 f"   - Risco: {risk}",
-                "   - Risco Maximo: 0.5%-1.0% do capital de trading",
+                f"   - Risco Maximo: {max_risk_line_pt}",
                 "",
                 "Ordem do modelo, nao e lucro garantido. Confirmacao humana obrigatoria.",
                 f"Model verdict: {decision}",
@@ -665,9 +703,9 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
         if is_followup:
             sections.append(f"3. Previous Candidate Excluded: {prev_excluded}")
             sections.append("")
-            sections.append("4. Primary Order Candidate:")
+            sections.append(f"4. {candidate_heading_en}")
         else:
-            sections.append("3. Primary Order Candidate:")
+            sections.append(f"3. {candidate_heading_en}")
         sections.extend(
             [
                 f"   - Ticker: {ticker}",
@@ -691,11 +729,11 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
         sections.extend(
             [
                 "",
-                f"{plan_num}. Suggested Order Plan:",
-                "   - Entry: limit order near current price",
+                f"{plan_num}. {plan_heading_en}",
+                f"   - Entry: {entry_line_en}",
                 f"   - Stop/Invalidation: {invalidation}",
                 f"   - Risk: {risk}",
-                "   - Max Risk: 0.5%-1.0% of trading capital",
+                f"   - Max Risk: {max_risk_line_en}",
                 "",
                 "Model order, not guaranteed profit. Human confirmation required.",
                 f"Model verdict: {decision}",

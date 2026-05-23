@@ -257,6 +257,35 @@ async def test_valid_candidate_requires_full_data(monkeypatch):
     assert incomplete.get("rejected_reason") == "missing_short_term_thesis"
 
 
+def test_candidate_gate_requires_risk_and_invalidation():
+    """Short-term order candidates must not pass without risk and invalidation."""
+    from src.core.pipeline.nodes.collector import _apply_candidate_gate
+
+    base = {
+        "ticker": "A",
+        "market": "United States",
+        "price": 114.96,
+        "volume": 2_200_000,
+        "catalyst": "Earnings release within 14 days.",
+    }
+
+    ok, reason = _apply_candidate_gate(
+        base,
+        allow_penny_otc=False,
+        allow_microcap=False,
+    )
+    assert not ok
+    assert reason == "missing_risk"
+
+    ok, reason = _apply_candidate_gate(
+        {**base, "risk": "Earnings gap-down risk."},
+        allow_penny_otc=False,
+        allow_microcap=False,
+    )
+    assert not ok
+    assert reason == "missing_invalidation"
+
+
 @pytest.mark.asyncio
 async def test_priced_candidates_fail_on_thesis_not_price(monkeypatch):
     """When prices resolve, rejections should mix thesis/liquidity — not all missing_price."""

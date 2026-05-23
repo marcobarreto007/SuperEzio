@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import time
+from datetime import datetime, timezone
 from typing import Any
 
 from langgraph.config import get_stream_writer
@@ -14,6 +15,8 @@ from langgraph.config import get_stream_writer
 from ..trade_order import normalize_liquidity_fields, pick_candidate, rank_candidates
 from ..scan_registry import ScanEventRegistry
 from ..circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
+
+_SCAN_CACHE_TTL_SECONDS = 300  # 5 min — ranked candidates are stale after this
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +40,19 @@ def _scan_max_llm_calls():
 
 def _scan_llm_timeout():
     return float(os.getenv("SUPEREZIO_SCAN_LLM_TIMEOUT_SECONDS", "30"))
+
+
+def _cache_is_fresh(trade_ctx: dict[str, Any]) -> bool:
+    """Return True if the scan cache is still valid for reuse."""
+    scanned_at = trade_ctx.get("scanned_at")
+    if not scanned_at:
+        return False
+    try:
+        dt = datetime.fromisoformat(str(scanned_at))
+        age = (datetime.now(timezone.utc) - dt).total_seconds()
+        return age <= _SCAN_CACHE_TTL_SECONDS
+    except Exception:
+        return False
 
 
 async def node_collector(state: dict, *, config=None) -> dict:
@@ -120,9 +136,19 @@ async def node_collector(state: dict, *, config=None) -> dict:
         intent = state.get("intent", "")
         excluded = list(trade_ctx.get("excluded_tickers") or [])
 
-        if intent == "another_trade_recommendation" and trade_ctx.get("ranked_candidates"):
+        if (
+            intent == "another_trade_recommendation"
+            and trade_ctx.get("ranked_candidates")
+            and _cache_is_fresh(trade_ctx)
+        ):
             scan = _scan_from_cached_ranked(trade_ctx, state.get("message", ""), excluded)
         else:
+            if intent == "another_trade_recommendation" and trade_ctx.get("ranked_candidates"):
+                logger.warning(
+                    "Scan cache expired (%s TTL=%ds), running fresh scan",
+                    trade_ctx.get("scanned_at", "?"),
+                    _SCAN_CACHE_TTL_SECONDS,
+                )
             scan = await _run_scan(
                 state.get("message", ""),
                 state.get("filters", {}),
@@ -407,6 +433,14 @@ def _apply_candidate_gate(
     if not catalyst:
         return False, "missing_short_term_thesis"
 
+    risk = item.get("risk") or item.get("downside_risk")
+    if not risk or str(risk).strip() in {"—", "-", "n/a", "N/A"}:
+        return False, "missing_risk"
+
+    invalidation = item.get("invalidation") or item.get("invalidation_condition")
+    if not invalidation or str(invalidation).strip() in {"—", "-", "n/a", "N/A"}:
+        return False, "missing_invalidation"
+
     return True, None
 
 
@@ -473,7 +507,6 @@ async def _run_scan(
         candidates, rejected, rejected_count, rejection_summary, universe,
         filters, data_quality, source_errors, collected_at.
     """
-    from datetime import datetime, timezone
 
     msg_lower = (message or "").lower()
     explicit_country = (filters or {}).get("country")
@@ -989,7 +1022,6 @@ def _scan_from_cached_ranked(
     excluded_tickers: list[str],
 ) -> dict[str, Any]:
     """Reuse ranked candidates from a prior DECISIVE_TRADE_ORDER session."""
-    from datetime import datetime, timezone
 
     ranked = list(trade_ctx.get("ranked_candidates") or [])
     excluded = {str(t).upper() for t in excluded_tickers if t}
@@ -1015,11 +1047,13 @@ def _scan_from_cached_ranked(
         "candidates": candidates[:10],
         "ranked_candidates": ranked,
         "rejected": [],
-        "rejected_count": 0,
-        "rejection_summary": {},
+        "rejected_count": int(trade_ctx.get("rejected_count", 0) or 0),
+        "rejection_summary": trade_ctx.get("rejection_summary") or {},
         "data_quality": "cached_ranked",
-        "source_errors": [],
-        "collected_at": datetime.now(timezone.utc).isoformat(),
+        "source_errors": trade_ctx.get("source_errors") or [],
+        "collected_at": trade_ctx.get("scanned_at")
+        or trade_ctx.get("collected_at")
+        or datetime.now(timezone.utc).isoformat(),
         "from_cache": True,
         "next_cached_entry": next_entry,
         "remaining_after_exclude": len(remaining),

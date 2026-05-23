@@ -1,32 +1,31 @@
 {
-  "date_local": "2026-05-23T17:21:12-04:00",
-  "session": "SuperEzio_Bob_QA_Semantic_ETF_Fallback_Hardening",
+  "date_local": "2026-05-23T18:20:00-04:00",
+  "session": "SuperEzio_Scan_Cache_TTL_Expiry_Plus_Wait_Contract_Fix",
   "status": "implemented_and_verified",
   "what_was_done": [
-    "Formatted all previously failing Ruff-format files; repo-wide format check is now clean.",
-    "Added investment QA semantic validation for ETF/ticker category errors: VTV cannot be small-cap; VWENX cannot be a bond ETF.",
-    "Added agent-side semantic repair: VTV used near small-cap is corrected to VBR; VWENX used as bond ETF is corrected to BND.",
-    "Hardened capital-allocation routing so USD 25k allocation prompts with percentages/tickers route to capital_allocation instead of ticker_analysis/general.",
-    "Applied safe answer-quality repair to all final answers, not only complex-finance answers.",
-    "Replaced empty-response endpoint text 'Bob could not produce...' with deterministic useful fallbacks that include route, intent, final verdict, and next step.",
-    "Added thematic no-empty fallbacks for ETF comparison, AAPL concentration/invalidation, fax industry, CAD 50 risk lab, dividends/passive income, DCA, high-interest debt, and capital allocation.",
-    "Fixed _run_scan writer handling by passing writer from collector and using event_writer fallback for unit tests."
+    "Added scan cache TTL (300s / 5 min) — _SCAN_CACHE_TTL_SECONDS + _cache_is_fresh() in collector.py",
+    "Collector gate: another_trade_recommendation only reuses ranked_candidates if cache is fresh; otherwise runs fresh scan with warning log",
+    "Fixed _scan_from_cached_ranked to preserve original collected_at/scanned_at instead of faking datetime.now()",
+    "Added scanned_at field to _build_trade_order_context — carries collected_at timestamp from scan into trade session context",
+    "Removed redundant local datetime imports in collector.py (now module-level)",
+    "Changed DECISIVE_TRADE_ORDER rendering so only BUY_CANDIDATE uses Primary Order Candidate / Suggested Order Plan; WAIT/blocked renders as Study Candidate with Watchlist / No-Trade plan",
+    "Hardened market_scan candidate gate: short-term trade candidates require risk and invalidation before entering candidates",
+    "Preserved rejected_count, rejection_summary, source_errors in trade_order_context and cached follow-up scans"
   ],
   "evidence": [
+    "python -m ruff check src/core/pipeline/nodes/collector.py: passed",
     "python -m ruff check src/core/pipeline src/agent_server scripts tests: passed",
     "python -m ruff format --check src/core/pipeline src/agent_server scripts tests: 93 files already formatted",
+    "python -m pytest tests/test_decisive_trade_order.py tests/test_market_scan_candidate_gate.py tests/test_agent_market_scan_loop.py -q: 48 passed",
+    "python -m pytest tests/ -q: 858 passed, 1 failed (test_api_health_details_endpoint timed out — server offline)",
     "git diff --check: passed",
-    "python -m json.tool .f51/checkpoints/latest.json: passed after update",
-    "python -m pytest tests/ -q: 849 passed, 7 skipped in 51.72s",
-    "python scripts/invest_api_qa.py: passed; report output/playwright/invest-api-qa-20260523-171334.json",
-    "python scripts/bob_deeptest_10.py --base-url http://127.0.0.1:8002: 12/12 passed; report output/playwright/bob-deeptest-10-20260523-171341.json; screenshot output/playwright/bob-deeptest-10-20260523-171341.png",
-    "python scripts/browser_smoke.py --base-url http://127.0.0.1:8002: passed; screenshot output/playwright/superezio-browser-smoke-20260523-172309.png"
+    "python -m json.tool .f51/checkpoints/latest.json: passed"
   ],
   "risks": [
-    "GitHub remains hard-blocked by .f51/GITHUB_POLICY.json; no GitHub commands were used.",
-    "The local CEO model still intermittently emits no final content for general advisory prompts; endpoint deterministic fallbacks now prevent useless/empty responses.",
-    "Fallbacks are operationally useful but less rich than a healthy full model answer; next patch should investigate why the local CEO is timing out or returning no tool final for general advisory paths.",
-    "Some live provider data remains limited by external API errors/free-tier constraints; scanner correctly returns REJECT_ALL instead of inventing candidates."
+    "GitHub remains hard-blocked by .f51/GITHUB_POLICY.json",
+    "Cache TTL is 5 min — short enough to keep prices fresh, long enough for follow-up questions without re-scanning",
+    "Server must be restarted for changes to take effect in live UI",
+    "If providers cannot produce risk and invalidation, scanner correctly returns REJECT_ALL instead of showing weak ticker as candidate"
   ],
-  "next_step": "Investigate why provider.ceo/local_orchestrator yields no final content on advisory prompts, then reduce reliance on endpoint fallbacks while keeping the semantic QA gates."
+  "next_step": "Restart API server, verify fresh scan on 14-day recommendation prompt, verify cache expiry warning when followup comes after 5+ min"
 }

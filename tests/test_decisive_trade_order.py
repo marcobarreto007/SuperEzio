@@ -395,6 +395,25 @@ def test_buy_blocked_missing_risk_in_answer():
     assert "missing_risk" in answer or "Gate failures" in answer
 
 
+def test_wait_candidate_is_not_rendered_as_primary_order():
+    from src.core.pipeline.nodes.agent import _market_scan_answer
+
+    candidate = {**_STRONG_CANDIDATE, "risk": "—"}
+    state = _make_scan_state(
+        message="what stock would you recommend me to buy?",
+        candidates=[candidate],
+    )
+
+    answer = _market_scan_answer(state)
+
+    assert "Final Decision: WAIT" in answer
+    assert "Model verdict: WAIT" in answer
+    assert "Primary Order Candidate" not in answer
+    assert "Suggested Order Plan" not in answer
+    assert "Study Candidate" in answer
+    assert "No entry" in answer
+
+
 def test_follow_up_another_recommendation_excludes_prior():
     from src.core.pipeline.nodes.agent import _render_decisive_trade_order
 
@@ -487,6 +506,52 @@ def test_follow_up_no_second_candidate_reject_all():
     assert "REJECT_ALL" in answer
     assert "No second candidate passed the quality gate" in answer
     assert len(answer) > 80
+
+
+def test_follow_up_cached_scan_preserves_rejection_telemetry():
+    from src.core.pipeline.nodes.agent import _render_decisive_trade_order
+    from src.core.pipeline.nodes.collector import _scan_from_cached_ranked
+
+    ranked = [
+        {
+            "candidate": _STRONG_CANDIDATE,
+            "confidence": 85,
+            "gate_failures": [],
+            "eligible": True,
+            "decision": "BUY_CANDIDATE",
+        },
+    ]
+    state = {
+        "message": "what stock would you recommend me to buy?",
+        "route": "market_scan",
+        "time_horizon": "14 days",
+        "scan": {
+            "candidates": [_STRONG_CANDIDATE],
+            "ranked_candidates": ranked,
+            "rejected_count": 23,
+            "rejection_summary": {
+                "missing_short_term_thesis": 20,
+                "missing_price": 2,
+                "missing_risk": 1,
+            },
+            "universe": "US_CANADA_LIQUID",
+            "filters": {"resolved_countries": ["United States", "Canada"]},
+            "source_errors": ["price_provider: no_provider_result_for_price=1"],
+        },
+        "f51_verdict": {"passed": True, "confidence": 0.91},
+        "sdca_firewall": {"decision": "ALLOW", "confidence": 0.88},
+    }
+
+    _, ctx = _render_decisive_trade_order(state)
+    assert ctx is not None
+    assert ctx["rejected_count"] == 23
+    assert ctx["rejection_summary"]["missing_short_term_thesis"] == 20
+
+    cached = _scan_from_cached_ranked(ctx, "I want another recommendation.", ["A"])
+
+    assert cached["rejected_count"] == 23
+    assert cached["rejection_summary"]["missing_short_term_thesis"] == 20
+    assert cached["source_errors"] == ["price_provider: no_provider_result_for_price=1"]
 
 
 def test_another_trade_intent_parsing_with_context():
