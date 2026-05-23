@@ -392,6 +392,11 @@ STOCK_AS_OPTION_PROMPT = (
     "Compare cash, ETF, debt repayment, and one short-term stock trade for CAD 1,000."
 )
 
+USD_25K_ALLOCATION_PROMPT = (
+    "I have $25,000 to invest. I am 35 years old, moderate risk tolerance. "
+    "How should I allocate this capital? Give me a specific allocation with percentages and tickers."
+)
+
 DIRECT_STOCK_PROMPT = (
     "What stock would you recommend me to buy if I want to make a profit within the next 14 days?"
 )
@@ -445,6 +450,17 @@ def test_stock_trade_as_one_option_no_scan():
     )
 
     result = parse_user_intent(STOCK_AS_OPTION_PROMPT, rigor="strict", ticker="")
+    assert result.route == "general"
+    assert result.intent == "capital_allocation"
+
+
+def test_usd_25k_allocation_with_tickers_routes_to_capital_allocation():
+    """Allocation with amount/risk/percentages is advisory, not a generic chat answer."""
+    from src.core.pipeline.intents import parse_user_intent, detect_capital_allocation_intent
+
+    assert detect_capital_allocation_intent(USD_25K_ALLOCATION_PROMPT)
+
+    result = parse_user_intent(USD_25K_ALLOCATION_PROMPT, rigor="strict", ticker="")
     assert result.route == "general"
     assert result.intent == "capital_allocation"
 

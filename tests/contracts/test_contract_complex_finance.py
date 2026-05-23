@@ -132,6 +132,20 @@ class TestCapitalAllocation:
         assert "8-15% return" not in repaired
         assert "avoided interest rate" in repaired
 
+    def test_repair_corrects_mutual_fund_used_as_bond_etf(self):
+        content = (
+            "8. Ranked Allocation / Framework — 50% US Large Cap ETF (VOO), "
+            "20% International Developed Markets ETF (VEA), 15% US Small Cap ETF (IJR), "
+            "10% Investment Grade Bond ETF (VWENX), 5% Real Estate REIT ETF (VNQ).\n"
+            "Final verdict: ETF\n"
+            "Confidence: 76"
+        )
+
+        repaired = _repair_complex_finance_answer(CAPITAL_ALLOCATION_PROMPT, content)
+
+        assert "Bond ETF (VWENX)" not in repaired
+        assert "Bond ETF (BND)" in repaired
+
 
 # ===========================================================================
 # Test 3 — Rental property vs ETF must include quantitative framework

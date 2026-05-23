@@ -977,11 +977,17 @@ def _repair_known_etf_category_errors(text: str) -> str:
     """Correct high-confidence ETF taxonomy mistakes before they reach the user."""
     repaired = text or ""
     small_cap_window = re.compile(r"small[- ]cap", re.IGNORECASE)
+    bond_etf_window = re.compile(r"(bond|fixed income|investment grade|etf)", re.IGNORECASE)
     for match in reversed(list(re.finditer(r"\bVTV\b", repaired))):
         window_start = max(0, match.start() - 80)
         window_end = min(len(repaired), match.end() + 80)
         if small_cap_window.search(repaired[window_start:window_end]):
             repaired = repaired[: match.start()] + "VBR" + repaired[match.end() :]
+    for match in reversed(list(re.finditer(r"\bVWENX\b", repaired))):
+        window_start = max(0, match.start() - 80)
+        window_end = min(len(repaired), match.end() + 80)
+        if bond_etf_window.search(repaired[window_start:window_end]):
+            repaired = repaired[: match.start()] + "BND" + repaired[match.end() :]
     return repaired
 
 
@@ -995,10 +1001,15 @@ def _repair_unsupported_exact_returns(text: str) -> str:
     )
 
 
+def _repair_answer_quality(text: str) -> str:
+    """Apply safe semantic repairs that are independent of intent classification."""
+    return _repair_unsupported_exact_returns(_repair_known_etf_category_errors(text or ""))
+
+
 def _repair_complex_finance_answer(message: str, content: str) -> str:
     """Patch high-confidence missing contract clauses in model complex-finance output."""
     msg = (message or "").lower()
-    text = _repair_unsupported_exact_returns(_repair_known_etf_category_errors(content or ""))
+    text = _repair_answer_quality(content or "")
     lower = text.lower()
     additions: list[str] = []
 
@@ -1354,6 +1365,8 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                         content = _contract_fallback_answer(state)
                 elif is_complex_finance:
                     content = _repair_complex_finance_answer(state.get("message", ""), content)
+                else:
+                    content = _repair_answer_quality(content)
                 writer({"type": "CHUNK", "content": content})
                 writer(
                     {

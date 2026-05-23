@@ -69,3 +69,17 @@ def test_allows_correct_small_cap_value_ticker():
     )
 
     assert result["ok"]
+
+
+def test_rejects_mutual_fund_mislabeled_as_bond_etf():
+    result = evaluate_answer_quality(
+        "Give me a portfolio allocation with percentages and tickers.",
+        (
+            "Allocate 50% to VOO, 20% to VEA, 15% to IJR, "
+            "10% to Investment Grade Bond ETF (VWENX), and 5% to VNQ."
+        ),
+        min_chars=20,
+    )
+
+    assert not result["ok"]
+    assert "fund_semantic_mismatch:VWENX:not_etf" in result["reasons"]

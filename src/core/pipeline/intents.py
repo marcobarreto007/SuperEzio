@@ -1266,6 +1266,22 @@ def detect_capital_allocation_intent(message: str) -> bool:
         r"\bcapital\s+alloc",
     )
     normalized = normalize_message(message)
+    allocation_with_amount = bool(
+        re.search(r"\b(?:allocate|allocation|portfolio allocation)\b", normalized, re.IGNORECASE)
+        and re.search(
+            r"(?:[$€£]\s*\d|cad\s*\d|usd\s*\d|\b\d[\d,]*(?:\.\d+)?\s*(?:cad|usd)\b)",
+            normalized,
+            re.IGNORECASE,
+        )
+        and re.search(
+            r"\b(?:risk tolerance|percentages?|tickers?|portfolio|capital|invest)\b",
+            normalized,
+            re.IGNORECASE,
+        )
+    )
+    if allocation_with_amount:
+        return True
+
     matches = sum(1 for p in _CAPITAL_USE_HINTS if re.search(p, normalized, re.IGNORECASE))
     return matches >= 2
 
@@ -1898,6 +1914,24 @@ def parse_user_intent(
         ticker = ""
         entities["ticker"] = ""
 
+    # Capital allocation / personal finance gate must beat ticker detection.
+    # Words like ETF/CAD or requested ticker examples are symbols inside an
+    # allocation plan, not proof the user asked for ticker analysis.
+    if detect_capital_allocation_intent(raw):
+        return done(
+            IntentParse(
+                route="general",
+                intent="capital_allocation",
+                action="answer",
+                filters={},
+                confidence=0.92,
+                reasons=("capital_allocation_decision_detected",),
+                entities=entities,
+                diary=diary,
+                pennylab=False,
+            )
+        )
+
     # If the user message is an explicit market scan request, the scanner
     # takes priority over a ticker lingering in the chart UI. Otherwise a
     # "Find US small-cap stocks" prompt with AAPL in the chart would route
@@ -1915,24 +1949,6 @@ def parse_user_intent(
                 entities=entities,
                 diary=diary,
                 pennylab=pennylab,
-            )
-        )
-
-    # Capital allocation / personal finance gate — must come BEFORE market_scan.
-    # Prompts comparing multiple uses of capital (cash, debt, ETF, stock trade)
-    # are advisory decisions, not scanner triggers.
-    if detect_capital_allocation_intent(raw):
-        return done(
-            IntentParse(
-                route="general",
-                intent="capital_allocation",
-                action="answer",
-                filters={},
-                confidence=0.92,
-                reasons=("capital_allocation_decision_detected",),
-                entities=entities,
-                diary=diary,
-                pennylab=False,
             )
         )
 

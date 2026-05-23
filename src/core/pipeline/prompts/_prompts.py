@@ -46,6 +46,7 @@ QWEN_SYSTEM_PROMPT = (
     "- ETF CATEGORY SANITY: VOO/SPY/IVV = S&P 500 large-cap; VTI = total US market; "
     "VXUS/VEU = international ex-US; BND = bonds; VNQ = REITs; SCHD = dividend quality; "
     "VTV = large-cap value, NOT small-cap value; VBR/VB = small-cap/small-cap value. "
+    "VWENX is not an ETF and must not be used as a bond ETF example; use a bond asset class or BND only if verified. "
     "If unsure, use the asset class instead of a ticker."
 )
 

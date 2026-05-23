@@ -54,6 +54,8 @@ ETF_SEMANTIC_FORBIDDEN = {
     },
 }
 
+MUTUAL_FUNDS_MISLABELED_AS_ETFS = ("VWENX",)
+
 
 def _mentions_ticker(text: str, ticker: str) -> bool:
     return bool(re.search(rf"\b{re.escape(ticker)}\b", text or "", re.IGNORECASE))
@@ -78,6 +80,11 @@ def _semantic_mismatch_reasons(question: str, answer: str) -> list[str]:
 
     reasons: list[str] = []
     for sentence in _sentences(answer):
+        if "etf" in sentence:
+            for ticker in MUTUAL_FUNDS_MISLABELED_AS_ETFS:
+                if _mentions_ticker(sentence, ticker):
+                    reasons.append(f"fund_semantic_mismatch:{ticker}:not_etf")
+
         for ticker, forbidden_categories in ETF_SEMANTIC_FORBIDDEN.items():
             if not _mentions_ticker(sentence, ticker):
                 continue
