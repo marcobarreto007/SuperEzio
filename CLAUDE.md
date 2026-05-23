@@ -41,6 +41,25 @@ python scripts/browser_smoke.py
 O servidor precisa estar live. Se o servidor não estiver reachable, o smoke é skipped com
 warning visível no output do pytest (via fixture condicional em `tests/conftest.py`).
 
+**Modo visível (headed):** Para assistir o browser executando em tempo real:
+```bash
+# Standalone (sempre visível com --headed):
+python scripts/browser_smoke.py --headed
+
+# Via pytest (abre browser visível com slow_mo 300ms por ação):
+$env:SUPEREZIO_SMOKE_HEADED = "1"
+python -m pytest tests/ -q
+
+# Velocidade customizada (ms por ação):
+$env:SUPEREZIO_SMOKE_SLOW_MO = "500"
+```
+
+**Modo chat real:** Para validar o pipeline completo com resposta do Bob:
+```bash
+$env:SUPEREZIO_SMOKE_CHAT = "1"
+python scripts/browser_smoke.py --headed
+```
+
 Se um comando não existir no ambiente, reportar explicitamente no checkpoint.
 
 ## Definição de pronto

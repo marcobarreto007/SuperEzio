@@ -89,19 +89,27 @@ def browser_smoke():
     Política F51: Playwright é obrigatório em conjunto com qualquer teste.
     Se o servidor não estiver reachable, o smoke é skipped com warning.
     Chat real é opcional (env SUPEREZIO_SMOKE_CHAT=1).
+
+    Modo visível: SUPEREZIO_SMOKE_HEADED=1 abre o browser para assistir
+    em tempo real. SUPEREZIO_SMOKE_SLOW_MO=<ms> controla a velocidade
+    (default 300ms por ação quando headed).
     """
     base_url = os.environ.get("SUPEREZIO_BROWSER_SMOKE_URL", "http://127.0.0.1:8002")
     if not _browser_smoke_server_up(base_url):
         pytest.skip(f"Browser smoke skipped: server not reachable at {base_url}")
 
+    headed = os.environ.get("SUPEREZIO_SMOKE_HEADED") in ("1", "true", "yes")
     skip_chat = os.environ.get("SUPEREZIO_SMOKE_CHAT") not in ("1", "true", "yes")
+    slow_mo_raw = os.environ.get("SUPEREZIO_SMOKE_SLOW_MO")
+    slow_mo = int(slow_mo_raw) if slow_mo_raw and slow_mo_raw.isdigit() else (300 if headed else 0)
+
     from scripts.browser_smoke import run_smoke
 
     result = run_smoke(
         base_url=base_url,
-        headed=False,
+        headed=headed,
         skip_chat=skip_chat,
-        timeout_ms=60_000,
+        timeout_ms=120_000 if headed else 60_000,
+        slow_mo=slow_mo,
     )
     yield result
-    # session-scoped: nenhuma cleanup necessária além do browser já fechado

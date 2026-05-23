@@ -118,7 +118,13 @@ def _submit_chat(page: Page, prompt: str, timeout_ms: int) -> dict[str, Any]:
     )
 
 
-def run_smoke(base_url: str, headed: bool, skip_chat: bool, timeout_ms: int) -> dict[str, Any]:
+def run_smoke(
+    base_url: str,
+    headed: bool,
+    skip_chat: bool,
+    timeout_ms: int,
+    slow_mo: int = 0,
+) -> dict[str, Any]:
     health = _http_json(f"{base_url.rstrip('/')}/health")
     out_dir = ROOT / "output" / "playwright"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -129,7 +135,7 @@ def run_smoke(base_url: str, headed: bool, skip_chat: bool, timeout_ms: int) -> 
     page_errors: list[str] = []
 
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=not headed)
+        browser = pw.chromium.launch(headless=not headed, slow_mo=slow_mo)
         page = browser.new_page(viewport={"width": 1440, "height": 980})
         page.on(
             "console",
@@ -179,7 +185,11 @@ def main() -> int:
     parser.add_argument("--headed", action="store_true")
     parser.add_argument("--skip-chat", action="store_true")
     parser.add_argument("--timeout-ms", type=int, default=90000)
+    parser.add_argument("--slow-mo", type=int, default=300,
+                        help="Milliseconds to slow down each action (only applies with --headed)")
     args = parser.parse_args()
+
+    slow_mo = args.slow_mo if args.headed else 0
 
     try:
         result = run_smoke(
@@ -187,6 +197,7 @@ def main() -> int:
             headed=args.headed,
             skip_chat=args.skip_chat,
             timeout_ms=args.timeout_ms,
+            slow_mo=slow_mo,
         )
     except PlaywrightTimeoutError as exc:
         print(json.dumps({"ok": False, "error": f"timeout: {exc}"}, indent=2))

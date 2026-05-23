@@ -1,28 +1,22 @@
 {
-  "date_local": "2026-05-23T08:15:00-04:00",
-  "session": "SuperEzio_Playwright_Policy_Enforcement",
+  "date_local": "2026-05-23T08:30:00-04:00",
+  "session": "SuperEzio_Playwright_Headed_Mode",
   "status": "completed",
   "what_was_done": [
-    "Updated AGENTS.md: Playwright SEMPRE obrigatório com qualquer teste, não 'quando houver UI'",
-    "Updated .f51/PROJECT_RULES.md: mesma política explícita com comando e skip condicional documentado",
-    "Updated CLAUDE.md: comando python scripts/browser_smoke.py adicionado aos comandos permitidos",
-    "Added session-scoped browser_smoke fixture in tests/conftest.py com skip automático se servidor offline",
-    "Fixture valida: health check + UI load + canvas render; chat real é opcional (SUPEREZIO_SMOKE_CHAT=1)",
-    "Verified conftest loads cleanly and existing tests unaffected (17/17 passed)"
+    "Added slow_mo parameter to browser_smoke run_smoke() and wired into chromium.launch()",
+    "Added --slow-mo CLI flag (default 300ms, only applies with --headed)",
+    "Updated conftest.py browser_smoke fixture: env SUPEREZIO_SMOKE_HEADED=1 abre browser visivel",
+    "Env SUPEREZIO_SMOKE_SLOW_MO=<ms> controla velocidade (default 300ms headed, 0 headless)",
+    "Updated CLAUDE.md with headed mode and chat mode env var documentation"
   ],
   "evidence": [
-    "python -m pytest tests/conftest.py --collect-only: collected 0 items (fixture loaded, no test functions in conftest)",
-    "python -m pytest tests/test_decisive_trade_order.py -v: 17 passed in 0.46s",
-    "git diff --check: passed",
-    "AGENTS.md: Stack padrão updated with Playwright SEMPRE policy",
-    ".f51/PROJECT_RULES.md: Stack padrão updated with Playwright SEMPRE policy",
-    "CLAUDE.md: Comandos permitidos updated with python scripts/browser_smoke.py",
-    "tests/conftest.py: _PROJECT_ROOT added to sys.path, browser_smoke fixture with session scope"
+    "python scripts/browser_smoke.py --help: --slow-mo flag present",
+    "python -m pytest tests/conftest.py --collect-only: loaded",
+    "python -m pytest tests/test_decisive_trade_order.py -v: 17 passed"
   ],
   "risks": [
-    "GitHub remains hard-blocked by .f51/GITHUB_POLICY.json",
-    "Browser smoke fixture está disponível mas testes existentes não o requisitam como param — é opt-in por teste",
-    "SUPEREZIO_SMOKE_CHAT=1 ativa chat real que consome API tokens"
+    "Headed mode quebra em CI/servidor sem display — nunca default, só com env var explicita",
+    "SUPEREZIO_SMOKE_CHAT=1 consome API tokens"
   ],
-  "next_step": "Adicionar browser_smoke como parâmetro em pelo menos um teste crítico (ex: test_decisive_trade_order) para garantir que smoke rode sempre"
+  "next_step": "Rodar SUPEREZIO_SMOKE_HEADED=1 SUPEREZIO_SMOKE_CHAT=1 python scripts/browser_smoke.py --headed para Marco assistir o smoke completo"
 }
