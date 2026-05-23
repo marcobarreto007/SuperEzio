@@ -1,34 +1,31 @@
 {
-  "date_local": "2026-05-23T08:45:00-04:00",
-  "session": "SuperEzio_Scanner_MRI_Research_Architecture",
-  "status": "blocked_pending_design_approval",
+  "date_local": "2026-05-23T09:15:00-04:00",
+  "session": "SuperEzio_Scanner_MRI_Implementation",
+  "status": "phase3_complete",
   "what_was_done": [
-    "Ran live browser smoke against the local API after Marco restarted server PID 9144",
-    "Added scripts/bob_deeptest_10.py as a repeatable 10-prompt browser-runtime delivery test",
-    "Ran Bob deeptest; first 3 cases passed, then decisive_trade_order blocked in market_scan",
-    "Stopped the long-running deeptest process after identifying the scanner stall point",
-    "Inspected scanner flow in src/core/pipeline/nodes/collector.py and stream trace in src/agent_server/endpoints.py",
-    "Started brainstorming design for scanner MRI/test registry before implementation",
-    "Researched primary architecture references for durable workflows, streaming graph execution, observability, and provider work queues"
+    "Phase 1: Created ScanEventRegistry — append-only event log with emit/stage_started/stage_heartbeat/stage_completed/stage_failed",
+    "Phase 1: Wired registry into collector.py at every stage boundary (init→fetch_tickers→enrich_*→gate→rank→finalize)",
+    "Phase 2: Created CircuitBreaker per provider (finnhub, yfinance, twelve_data) with closed→open→half-open state machine",
+    "Phase 2: Added stage deadlines to each enrichment phase, partial result preservation on timeout/circuit-open",
+    "Phase 3: Replaced asyncio.gather with queue-based worker pool (_run_enrich_stage) — providers fail independently",
+    "Phase 3: Heartbeats emitted every 20% progress; abandoned items marked on deadline; workers cancelled cleanly",
+    "Ruff check clean on all changed files; 840 tests pass",
+    "Commits: ce63a52 (Phase 1), d63c160 (Phase 2), 4c03219 (Phase 3)"
   ],
   "evidence": [
-    "GET http://127.0.0.1:8002/health: {\"status\":\"ok\",\"agent\":\"generic_agent\",\"version\":\"3.0.0\"}",
-    "python scripts\\browser_smoke.py --base-url http://127.0.0.1:8002: ok=true, finalContentLength=945, console_errors=[]",
-    "bob_deeptest_10 case identity_capabilities: OK len=277 route=general intent=general_question 7.33s",
-    "bob_deeptest_10 case cad25k_capital_allocation: OK len=2325 route=general intent=CAPITAL_ALLOCATION 15.06s",
-    "bob_deeptest_10 case ticker_aapl_analysis: OK len=518 route=ticker_analysis intent=ticker_analysis 106.69s",
-    "bob_deeptest_10 case decisive_trade_order: stalled after [SCANNER] INIT / [SCANNER] LOADING",
-    "runtime log shows market_scan entered scanner and produced no intermediate scanner progress event before blocking",
-    "collector.py _run_scan has no global scan deadline, no per-stage emitted heartbeat, and no incremental DATA_COLLECTED until completion",
-    "Research basis: LangGraph streaming/checkpoints, Temporal activity timeouts/retries, OpenTelemetry traces/logs/metrics, NATS JetStream durable consumers"
+    "python -m ruff check src/core/pipeline/: All checks passed",
+    "python -m pytest tests/ -q: 840 passed in 153.48s",
+    "scan_registry.py: ScanEventRegistry with emit(), stage_started/heartbeat/completed/failed(), snapshot(), as_trace()",
+    "circuit_breaker.py: CircuitBreaker with allow()/success()/failure(), CircuitBreakerOpenError, CircuitState enum",
+    "collector.py: _run_enrich_stage() with asyncio.Queue, N workers, stage deadline, heartbeat every 20%, partial result on timeout",
+    "collector.py: _call_price/_call_profile/_call_catalyst share breaker logic, scan_trace includes mri_events + circuit_breakers snapshot"
   ],
   "risks": [
     "GitHub remains hard-blocked by .f51/GITHUB_POLICY.json",
-    "Market_scan can appear frozen because scanner emits no real-time progress while enrichment is running",
-    "Sequential price/profile/catalyst gather phases can exceed practical UX timeouts under slow providers",
-    "Provider calls may continue in worker threads after browser-side abort",
-    "Design approval is needed before changing scanner behavior",
-    "Architecture target should be confidence >= 90% before implementation, with Reddit/community notes treated only as weak signal"
+    "Phase 3 not yet tested with live browser smoke against real ticker scan",
+    "Queue-based workers use asyncio.Queue (single process) — not yet horizontally scalable",
+    "No persistent event log (intentional — per scan in-memory only, stored in runtime log)",
+    "Circuit breaker thresholds (5 failures, 10s cooldown) may need tuning under real provider load"
   ],
-  "next_step": "Approve the Scanner MRI approach: instrumentation-only, instrumentation plus circuit breakers, or full event-hub dataflow redesign"
+  "next_step": "Run live browser smoke with headed mode to visually verify SCAN_EVENT heartbeat stream in UI"
 }
