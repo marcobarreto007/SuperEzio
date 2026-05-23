@@ -572,10 +572,9 @@ async def _run_scan(
             if not os.getenv("FINNHUB_API_KEY"):
                 source_errors.append("finnhub: FINNHUB_API_KEY not configured")
 
-            enrich_concurrency = max(1, int(os.getenv("SUPEREZIO_SCAN_ENRICH_CONCURRENCY", "2")))
-            sem = asyncio.Semaphore(enrich_concurrency)
             per_item_timeout = float(os.getenv("SUPEREZIO_SCAN_ENRICH_TIMEOUT_MS", "12000")) / 1000
             stage_deadline_ms = int(os.getenv("SUPEREZIO_SCAN_STAGE_DEADLINE_MS", "30000"))
+            num_workers = max(1, int(os.getenv("SUPEREZIO_SCAN_ENRICH_CONCURRENCY", "2")))
 
             # ── Circuit breakers per provider ──
             breaker_finnhub = CircuitBreaker("finnhub")
@@ -587,174 +586,161 @@ async def _run_scan(
                 "twelve_data": breaker_twelve,
             }
 
-            def _provider_from_result(result: Any) -> str | None:
-                if isinstance(result, dict):
-                    p = result.get("provider") or result.get("source")
-                    if p:
-                        return str(p)
-                return None
-
-            def _resolve_breaker(item: dict[str, Any]) -> CircuitBreaker | None:
-                """Map a candidate to the breaker most relevant for its market."""
+            def _resolve_breaker(_item: dict[str, Any]) -> CircuitBreaker:
                 # Finnhub is the default enrichment provider
-                _ = item  # extensão futura: escolher breaker por market
                 return breaker_finnhub
 
-            async def _enrich_price(item: dict[str, Any]) -> tuple[dict[str, Any], Any]:
-                breaker = _resolve_breaker(item)
-                if breaker is not None and not breaker.allow():
-                    return item, CircuitBreakerOpenError(f"circuit_open:{breaker.provider}")
-                async with sem:
-                    ticker = str(item.get("ticker") or "")
-                    market = item.get("market")
-                    try:
-                        result = await asyncio.wait_for(
-                            asyncio.to_thread(_safe_get_price, hub, ticker, market=market),
-                            timeout=per_item_timeout,
-                        )
-                    except Exception:
-                        if breaker is not None:
-                            breaker.failure()
-                        raise
-                    if breaker is not None:
-                        if isinstance(result, dict) and "error" in result:
-                            breaker.failure()
-                        else:
-                            breaker.success()
-                    return item, result
+            # ── Queue-based enrichment engine ──
 
-            async def _enrich_profile(item: dict[str, Any]) -> tuple[dict[str, Any], Any]:
-                breaker = _resolve_breaker(item)
-                if breaker is not None and not breaker.allow():
-                    return item, CircuitBreakerOpenError(f"circuit_open:{breaker.provider}")
-                async with sem:
-                    try:
-                        result = await asyncio.wait_for(
-                            asyncio.to_thread(_safe_get_profile, hub, item.get("ticker", "")),
-                            timeout=per_item_timeout,
-                        )
-                    except Exception:
-                        if breaker is not None:
-                            breaker.failure()
-                        raise
-                    if breaker is not None:
-                        if isinstance(result, dict) and "error" in result:
-                            breaker.failure()
-                        else:
-                            breaker.success()
-                    return item, result
+            async def _run_enrich_stage(
+                stage: str,
+                items: list[dict[str, Any]],
+                call_fn,  # async (item) -> Any
+            ) -> list[tuple[dict[str, Any], Any]]:
+                """Process items through a provider queue with worker pool.
 
-            async def _enrich_catalyst(item: dict[str, Any]) -> tuple[dict[str, Any], Any]:
-                breaker = _resolve_breaker(item)
-                if breaker is not None and not breaker.allow():
-                    return item, CircuitBreakerOpenError(f"circuit_open:{breaker.provider}")
-                async with sem:
-                    try:
-                        result = await asyncio.wait_for(
-                            asyncio.to_thread(
-                                _safe_get_short_term_catalyst, hub, item.get("ticker", "")
-                            ),
-                            timeout=per_item_timeout,
-                        )
-                    except Exception:
-                        if breaker is not None:
-                            breaker.failure()
-                        raise
-                    if breaker is not None:
-                        if isinstance(result, dict) and "error" in result:
-                            breaker.failure()
-                        else:
-                            breaker.success()
-                    return item, result
+                Each worker pulls from an asyncio.Queue. As items complete,
+                heartbeats are emitted to the registry. On stage deadline,
+                completed results are preserved and pending items are abandoned.
+                """
+                if not items:
+                    return []
 
-            # ── Enrich: Price (with stage deadline) ──
-            registry.stage_started("enrich_price", provider="data_hub")
-            price_pairs = []
-            price_deadline_errors = 0
-            try:
-                price_pairs = await asyncio.wait_for(
-                    asyncio.gather(*[_enrich_price(item) for item in price_targets]),
-                    timeout=stage_deadline_ms / 1000,
-                )
-            except asyncio.TimeoutError:
-                price_deadline_errors = len(price_targets) - len(price_pairs)
-                registry.stage_failed(
-                    "enrich_price", "stage_deadline", provider="data_hub",
-                    done=len(price_pairs), total=len(price_targets),
-                    errors=price_deadline_errors,
-                )
-            else:
-                reg_errors = sum(
-                    1 for _, res in price_pairs
-                    if isinstance(res, Exception) or (isinstance(res, dict) and "error" in res)
-                )
-                registry.stage_completed(
-                    "enrich_price", provider="data_hub",
-                    done=len(price_pairs) - reg_errors, total=len(price_targets),
-                    errors=reg_errors,
-                )
+                registry.stage_started(stage, provider="data_hub")
+                in_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+                out_pairs: list[tuple[dict[str, Any], Any]] = []
+                done_count = 0
+                error_count = 0
+                total = len(items)
+                _done_event = asyncio.Event()
 
-            # ── Enrich: Profile (with stage deadline) ──
-            registry.stage_started("enrich_profile", provider="data_hub")
-            profile_pairs: list[tuple[dict, Any]] = []
-            profile_deadline_errors = 0
-            if profile_catalyst_targets:
+                for item in items:
+                    in_queue.put_nowait(item)
+
+                async def _worker() -> None:
+                    nonlocal done_count, error_count
+                    while True:
+                        try:
+                            item = in_queue.get_nowait()
+                        except asyncio.QueueEmpty:
+                            return
+                        try:
+                            result = await call_fn(item)
+                        except Exception as exc:
+                            result = exc
+                        out_pairs.append((item, result))
+                        done_count += 1
+                        if isinstance(result, Exception) or (
+                            isinstance(result, dict) and "error" in result
+                        ):
+                            error_count += 1
+                        if done_count % max(1, total // 5) == 0 or done_count == total:
+                            registry.stage_heartbeat(
+                                stage, provider="data_hub",
+                                done=done_count, total=total, errors=error_count,
+                            )
+                        in_queue.task_done()
+                        if done_count >= total:
+                            _done_event.set()
+
+                workers = [
+                    asyncio.create_task(_worker())
+                    for _ in range(num_workers)
+                ]
+
                 try:
-                    profile_pairs = await asyncio.wait_for(
-                        asyncio.gather(
-                            *[_enrich_profile(item) for item in profile_catalyst_targets]
-                        ),
-                        timeout=stage_deadline_ms / 1000,
-                    )
+                    await asyncio.wait_for(_done_event.wait(), timeout=stage_deadline_ms / 1000)
                 except asyncio.TimeoutError:
-                    profile_deadline_errors = len(profile_catalyst_targets) - len(profile_pairs)
+                    pass  # deadline fired — preserve what we have
+
+                for w in workers:
+                    w.cancel()
+
+                abandoned = total - done_count
+                if abandoned > 0:
                     registry.stage_failed(
-                        "enrich_profile", "stage_deadline", provider="data_hub",
-                        done=len(profile_pairs), total=len(profile_catalyst_targets),
-                        errors=profile_deadline_errors,
+                        stage, "stage_deadline", provider="data_hub",
+                        done=done_count, total=total, errors=error_count + abandoned,
                     )
                 else:
-                    reg_errors = sum(
-                        1 for _, res in profile_pairs
-                        if isinstance(res, Exception) or (isinstance(res, dict) and "error" in res)
-                    )
                     registry.stage_completed(
-                        "enrich_profile", provider="data_hub",
-                        done=len(profile_pairs) - reg_errors,
-                        total=len(profile_catalyst_targets),
-                        errors=reg_errors,
+                        stage, provider="data_hub",
+                        done=done_count - error_count, total=total,
+                        errors=error_count,
                     )
+                return out_pairs
 
-            # ── Enrich: Catalyst (with stage deadline) ──
-            registry.stage_started("enrich_catalyst", provider="data_hub")
-            catalyst_pairs: list[tuple[dict, Any]] = []
-            catalyst_deadline_errors = 0
-            if profile_catalyst_targets:
+            # ── Enrich callables (shared breaker logic) ──
+
+            async def _call_price(item: dict[str, Any]) -> Any:
+                breaker = _resolve_breaker(item)
+                if not breaker.allow():
+                    return CircuitBreakerOpenError(f"circuit_open:{breaker.provider}")
+                ticker = str(item.get("ticker") or "")
+                market = item.get("market")
                 try:
-                    catalyst_pairs = await asyncio.wait_for(
-                        asyncio.gather(
-                            *[_enrich_catalyst(item) for item in profile_catalyst_targets]
-                        ),
-                        timeout=stage_deadline_ms / 1000,
+                    result = await asyncio.wait_for(
+                        asyncio.to_thread(_safe_get_price, hub, ticker, market=market),
+                        timeout=per_item_timeout,
                     )
-                except asyncio.TimeoutError:
-                    catalyst_deadline_errors = len(profile_catalyst_targets) - len(catalyst_pairs)
-                    registry.stage_failed(
-                        "enrich_catalyst", "stage_deadline", provider="data_hub",
-                        done=len(catalyst_pairs), total=len(profile_catalyst_targets),
-                        errors=catalyst_deadline_errors,
-                    )
+                except Exception:
+                    breaker.failure()
+                    raise
+                if isinstance(result, dict) and "error" in result:
+                    breaker.failure()
                 else:
-                    reg_errors = sum(
-                        1 for _, res in catalyst_pairs
-                        if isinstance(res, Exception) or (isinstance(res, dict) and "error" in res)
+                    breaker.success()
+                return result
+
+            async def _call_profile(item: dict[str, Any]) -> Any:
+                breaker = _resolve_breaker(item)
+                if not breaker.allow():
+                    return CircuitBreakerOpenError(f"circuit_open:{breaker.provider}")
+                try:
+                    result = await asyncio.wait_for(
+                        asyncio.to_thread(_safe_get_profile, hub, item.get("ticker", "")),
+                        timeout=per_item_timeout,
                     )
-                    registry.stage_completed(
-                        "enrich_catalyst", provider="data_hub",
-                        done=len(catalyst_pairs) - reg_errors,
-                        total=len(profile_catalyst_targets),
-                        errors=reg_errors,
+                except Exception:
+                    breaker.failure()
+                    raise
+                if isinstance(result, dict) and "error" in result:
+                    breaker.failure()
+                else:
+                    breaker.success()
+                return result
+
+            async def _call_catalyst(item: dict[str, Any]) -> Any:
+                breaker = _resolve_breaker(item)
+                if not breaker.allow():
+                    return CircuitBreakerOpenError(f"circuit_open:{breaker.provider}")
+                try:
+                    result = await asyncio.wait_for(
+                        asyncio.to_thread(
+                            _safe_get_short_term_catalyst, hub, item.get("ticker", "")
+                        ),
+                        timeout=per_item_timeout,
                     )
+                except Exception:
+                    breaker.failure()
+                    raise
+                if isinstance(result, dict) and "error" in result:
+                    breaker.failure()
+                else:
+                    breaker.success()
+                return result
+
+            # ── Enrich stages (queue-based, independent failure domains) ──
+
+            price_pairs = await _run_enrich_stage(
+                "enrich_price", price_targets, _call_price,
+            )
+            profile_pairs = await _run_enrich_stage(
+                "enrich_profile", profile_catalyst_targets, _call_profile,
+            )
+            catalyst_pairs = await _run_enrich_stage(
+                "enrich_catalyst", profile_catalyst_targets, _call_catalyst,
+            )
 
             # ── Circuit breaker snapshot in trace ──
             breaker_snapshots = {
