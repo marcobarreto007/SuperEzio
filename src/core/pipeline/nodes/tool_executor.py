@@ -18,16 +18,19 @@ logger = logging.getLogger(__name__)
 
 
 _REPEATABLE_TOOLS = {"final_answer"}
+_SEMI_REPEATABLE_LIMITS: dict[str, int] = {"collect_data": 2}
 
 
 def _tool_blocked_payload(state: dict, tool_name: str, reason: str) -> dict:
     executed_tools = list(state.get("executed_tools") or [])
+    executed_tool_counts = dict(state.get("executed_tool_counts") or {})
     content = (
         f"Tool '{tool_name}' was blocked because {reason}. "
         "Use the results already present in state and produce final_answer."
     )
     return {
         "executed_tools": executed_tools,
+        "executed_tool_counts": executed_tool_counts,
         "tool_blocked": {
             "tool": tool_name,
             "reason": reason,
@@ -79,18 +82,28 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
     tool_name = validated_call.tool
     args = validated_call.args
     executed_tools = list(state.get("executed_tools") or [])
+    executed_tool_counts = dict(state.get("executed_tool_counts") or {})
 
-    if tool_name in executed_tools and tool_name not in _REPEATABLE_TOOLS:
-        writer = get_stream_writer()
-        writer(
-            {
-                "type": "PIPELINE_STEP",
-                "run_id": state.get("run_id", ""),
-                "step": tool_name,
-                "status": "blocked_duplicate",
-            }
-        )
-        return _tool_blocked_payload(state, tool_name, "it already executed in this run")
+    repeatable = tool_name in _REPEATABLE_TOOLS
+    semi_limit = _SEMI_REPEATABLE_LIMITS.get(tool_name)
+    semi_count = executed_tool_counts.get(tool_name, 0)
+    if tool_name in executed_tools and not repeatable:
+        if semi_limit is None or semi_count >= semi_limit:
+            writer = get_stream_writer()
+            writer(
+                {
+                    "type": "PIPELINE_STEP",
+                    "run_id": state.get("run_id", ""),
+                    "step": tool_name,
+                    "status": "blocked_duplicate",
+                }
+            )
+            return _tool_blocked_payload(state, tool_name, "it already executed in this run")
+        # else: within semi-repeatable limit — allow again
+
+    next_executed_tool_counts = dict(executed_tool_counts)
+    if not repeatable:
+        next_executed_tool_counts[tool_name] = next_executed_tool_counts.get(tool_name, 0) + 1
 
     next_executed_tools = executed_tools
     if tool_name not in _REPEATABLE_TOOLS:
@@ -150,12 +163,13 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
         else:
             return _tool_blocked_payload(state, tool_name, "it is not executable here")
 
-        return {**result, "executed_tools": next_executed_tools}
+        return {**result, "executed_tools": next_executed_tools, "executed_tool_counts": next_executed_tool_counts}
 
     except Exception as exc:
         logger.error(f"Tool execution failed: {exc}")
         return {
             "executed_tools": next_executed_tools,
+            "executed_tool_counts": next_executed_tool_counts,
             "errors": state.get("errors", []) + [f"tool_{tool_name}:{exc}"],
         }
 

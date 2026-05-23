@@ -977,13 +977,12 @@ def _tool_blocked_answer(state: dict) -> str:
     reason = blocked.get("reason", "the tool was already used")
     if _is_portuguese_request(state.get("message", "")):
         return (
-            f"Bob CEO: bloqueei a ferramenta '{tool}' porque {reason}. "
-            "Vou parar o ciclo aqui para nao repetir chamadas nem gastar API. "
-            "Use o resultado ja coletado ou mande um escopo mais direto."
+            f"Bob CEO: Ferramenta '{tool}' ja foi usada nesta rodada ({reason}). "
+            "Produzindo resposta com os dados que ja tenho."
         )
     return (
-        f"Bob CEO: I blocked tool '{tool}' because {reason}. "
-        "I am stopping the loop here instead of repeating calls or spending more API."
+        f"Bob CEO: Tool '{tool}' was already used in this run ({reason}). "
+        "Producing answer with the data I have."
     )
 
 

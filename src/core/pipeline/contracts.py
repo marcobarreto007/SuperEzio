@@ -93,6 +93,7 @@ class PipelineState(TypedDict, total=False):
     agent_tool_call: dict[str, Any]
     agent_iterations: int
     executed_tools: list[str]
+    executed_tool_counts: dict[str, int]
     tool_blocked: dict[str, Any]
 
     # Errors
