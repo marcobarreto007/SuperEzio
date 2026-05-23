@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import re
 import time
@@ -11,6 +12,28 @@ from typing import Any
 from langgraph.config import get_stream_writer
 
 from ..trade_order import normalize_liquidity_fields, pick_candidate, rank_candidates
+
+logger = logging.getLogger(__name__)
+
+# ── Configurable scan hard limits ──────────────────────────────────────────
+def _scan_max_raw():
+    return int(os.getenv("SUPEREZIO_SCAN_MAX_CANDIDATES_RAW", "60"))
+
+
+def _scan_max_after_gate():
+    return int(os.getenv("SUPEREZIO_SCAN_MAX_CANDIDATES_AFTER_GATE", "5"))
+
+
+def _scan_max_llm_candidates():
+    return int(os.getenv("SUPEREZIO_SCAN_MAX_LLM_CANDIDATES", "3"))
+
+
+def _scan_max_llm_calls():
+    return int(os.getenv("SUPEREZIO_SCAN_MAX_LLM_CALLS", "1"))
+
+
+def _scan_llm_timeout():
+    return float(os.getenv("SUPEREZIO_SCAN_LLM_TIMEOUT_SECONDS", "30"))
 
 
 async def node_collector(state: dict, *, config=None) -> dict:
@@ -470,6 +493,8 @@ async def _run_scan(
 
     raw_candidates: list[dict[str, Any]] = []
     source_errors: list[str] = []
+    provider_sources_used: set[str] = set()
+    _t0 = time.monotonic()
     # 12 per country → ~24 tickers for US+CA (Finnhub free tier ~60 req/min).
     per_country_limit = int(os.getenv("SUPEREZIO_SCAN_LIMIT", "12"))
     scan_max_total = int(os.getenv("SUPEREZIO_SCAN_MAX_TOTAL", "24"))
@@ -506,6 +531,11 @@ async def _run_scan(
 
     if len(raw_candidates) > scan_max_total:
         raw_candidates = raw_candidates[:scan_max_total]
+
+    # Hard cap on raw candidates from config
+    max_raw = _scan_max_raw()
+    if len(raw_candidates) > max_raw:
+        raw_candidates = raw_candidates[:max_raw]
 
     # Profile + catalyst are heavier on Finnhub; keep a smaller default budget.
     enrich_budget = int(os.getenv("SUPEREZIO_SCAN_ENRICH", "12"))
@@ -707,6 +737,37 @@ async def _run_scan(
         weak_universe=len(passing) <= 1,
     )
 
+    # Hard cap: only top N after gate go to candidates
+    max_after_gate = _scan_max_after_gate()
+    capped_passing = passing[:max_after_gate]
+    max_llm = _scan_max_llm_candidates()
+    llm_candidates = capped_passing[:max_llm]
+
+    # Determine final decision
+    if llm_candidates:
+        final_decision = "BUY_CANDIDATE" if len(llm_candidates) == 1 else "BUY_CANDIDATES"
+    else:
+        final_decision = "REJECT_ALL"
+
+    # ── Scan summary trace ──
+    scan_id = f"scan-{int(time.time()*1000)}"
+    elapsed_ms = int((time.monotonic() - _t0) * 1000) if '_t0' in dir() else 0
+    top_reject_reasons = sorted(
+        rejection_summary.items(), key=lambda kv: kv[1], reverse=True
+    )[:3]
+    active_providers = list(provider_sources_used) if 'provider_sources_used' in dir() else []
+
+    summary = (
+        f"[SCAN_SUMMARY] scan_id={scan_id} route=market_scan "
+        f"universe={universe_label} raw={len(raw_candidates)} "
+        f"gated={len(passing)} rejected={len(rejected)} "
+        f"top_reject={','.join(f'{k}:{v}' for k, v in top_reject_reasons)} "
+        f"llm_candidates={len(llm_candidates)} llm_calls_budget={_scan_max_llm_calls()} "
+        f"providers={','.join(active_providers) if active_providers else 'none'} "
+        f"final={final_decision} elapsed_ms={elapsed_ms}"
+    )
+    logger.info(summary)
+
     resolved_filters: dict[str, Any] = {
         "country": explicit_country,
         "sector": explicit_sector,
@@ -719,14 +780,26 @@ async def _run_scan(
         "query": message,
         "filters": resolved_filters,
         "universe": universe_label,
-        "candidates": passing[:10],
-        "ranked_candidates": ranked,
+        "candidates": capped_passing,
+        "ranked_candidates": ranked[:max_after_gate],
         "rejected": rejected[:25],
         "rejected_count": len(rejected),
         "rejection_summary": rejection_summary,
         "data_quality": "partial" if source_errors else "provider_or_computed",
         "source_errors": source_errors,
         "collected_at": datetime.now(timezone.utc).isoformat(),
+        "scan_trace": {
+            "scan_id": scan_id,
+            "raw_candidate_count": len(raw_candidates),
+            "gated_candidate_count": len(passing),
+            "rejected_count": len(rejected),
+            "top_rejection_reasons": dict(top_reject_reasons),
+            "llm_candidates_analyzed": len(llm_candidates),
+            "llm_calls_budget": _scan_max_llm_calls(),
+            "provider_sources_used": sorted(active_providers),
+            "final_decision": final_decision,
+            "elapsed_ms": elapsed_ms,
+        },
     }
 
 

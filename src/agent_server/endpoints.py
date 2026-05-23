@@ -23,6 +23,7 @@ from core.pipeline.intents import (
     should_block_vague_financial_prompt,
     has_hint,
     detect_complex_finance_intent,
+    detect_capital_allocation_intent,
 )
 from core.risk_firewall import DecisionCandidate, evaluate_decision_with_sdca
 from data.data_hub import hub
@@ -34,6 +35,7 @@ router = APIRouter()
 
 _session_history: dict[str, dict[str, Any]] = {}
 
+
 def _is_what_happened_query(message: str) -> bool:
     clean = message.strip().lower().rstrip("?").strip()
     return clean in {
@@ -43,6 +45,7 @@ def _is_what_happened_query(message: str) -> bool:
         "bug",
         "what went wrong",
     }
+
 
 def _extract_complex_intent(content: str) -> str | None:
     intents = [
@@ -55,7 +58,9 @@ def _extract_complex_intent(content: str) -> str | None:
         "FRAUD_RISK",
         "EDUCATION_INVESTMENT",
     ]
-    match = re.search(r"Question\s+Classification.*?(?:" + "|".join(intents) + ")", content, re.IGNORECASE)
+    match = re.search(
+        r"Question\s+Classification.*?(?:" + "|".join(intents) + ")", content, re.IGNORECASE
+    )
     if match:
         matched_text = match.group(0).upper()
         for intent in intents:
@@ -562,7 +567,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     f"No market scanner should have been used. "
                     f"Check runtime logs."
                 )
-                
+
                 # Update session history to mark this query as succeeded
                 _session_history[session_id] = {
                     "detected_intent": "WHAT_HAPPENED_INTERCEPT",
@@ -571,7 +576,10 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
 
                 async def stream_intercepted() -> AsyncGenerator[str, None]:
                     yield json.dumps({"type": "STREAM_START", "msg_id": envelope.msg_id}) + "\n"
-                    yield json.dumps({"type": "CHUNK", "content": explanation}, ensure_ascii=False) + "\n"
+                    yield (
+                        json.dumps({"type": "CHUNK", "content": explanation}, ensure_ascii=False)
+                        + "\n"
+                    )
                     trace = {
                         "user_query": raw_message,
                         "detected_intent": "WHAT_HAPPENED_INTERCEPT",
@@ -585,16 +593,19 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     }
                     logger.info("Bob Response Trace (Intercepted): %s", json.dumps(trace))
                     yield json.dumps({"type": "STREAM_END", "trace": trace}) + "\n"
-                    
+
                 return StreamingResponse(stream_intercepted(), media_type="application/x-ndjson")
 
         # Ticker from UI field takes priority; fall back to message text detection
         explicit_ticker = str(payload.get("ticker") or "").strip()
         detected_ticker = explicit_ticker or detect_ticker(raw_message)
 
-        # Hard block context leak for complex finance intents
+        # Hard block context leak for complex finance / capital allocation intents.
+        # Capital allocation prompts (cash vs debt vs ETF vs trade) must never
+        # receive chart context or leak a UI-selected ticker into the pipeline.
         is_complex = detect_complex_finance_intent(raw_message)
-        if is_complex:
+        is_capital_alloc = detect_capital_allocation_intent(raw_message)
+        if is_complex or is_capital_alloc:
             explicit_ticker = ""
             detected_ticker = ""
             chart_context = ""
@@ -643,7 +654,13 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
         provider_error: str | None = None
 
         async def stream_result() -> AsyncGenerator[str, None]:
-            nonlocal detected_intent, route_used, scanner_invoked, ceo_called, fallback_used, final_content_length
+            nonlocal \
+                detected_intent, \
+                route_used, \
+                scanner_invoked, \
+                ceo_called, \
+                fallback_used, \
+                final_content_length
             nonlocal candidate_count, rejected_count, rejection_summary, provider_error
             nonlocal trade_order_context
             if detected_ticker:
@@ -673,13 +690,20 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                                 status = event.get("status")
                                 if step == "ceo_primary" and status == "started":
                                     ceo_called = True
-                                elif step == "data" and status == "started" and (
-                                    route_used == "market_scan"
-                                    or event.get("route") == "market_scan"
+                                elif (
+                                    step == "data"
+                                    and status == "started"
+                                    and (
+                                        route_used == "market_scan"
+                                        or event.get("route") == "market_scan"
+                                    )
                                 ):
                                     scanner_invoked = True
                             elif event_type == "DATA_COLLECTED":
-                                if route_used == "market_scan" or event.get("rejected_count") is not None:
+                                if (
+                                    route_used == "market_scan"
+                                    or event.get("rejected_count") is not None
+                                ):
                                     scanner_invoked = True
                                 if isinstance(event.get("candidates"), int):
                                     candidate_count = event["candidates"]
@@ -705,9 +729,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                                 full_content.append(content)
                             elif event_type == "TRADE_ORDER_CONTEXT":
                                 trade_order_context = {
-                                    k: v
-                                    for k, v in event.items()
-                                    if k != "type" and v is not None
+                                    k: v for k, v in event.items() if k != "type" and v is not None
                                 }
                             yield json.dumps(event, ensure_ascii=False) + "\n"
                         else:
@@ -744,13 +766,20 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                                 status = chunk.get("status")
                                 if step == "ceo_primary" and status == "started":
                                     ceo_called = True
-                                elif step == "data" and status == "started" and (
-                                    route_used == "market_scan"
-                                    or chunk.get("route") == "market_scan"
+                                elif (
+                                    step == "data"
+                                    and status == "started"
+                                    and (
+                                        route_used == "market_scan"
+                                        or chunk.get("route") == "market_scan"
+                                    )
                                 ):
                                     scanner_invoked = True
                             elif event_type == "DATA_COLLECTED":
-                                if route_used == "market_scan" or chunk.get("rejected_count") is not None:
+                                if (
+                                    route_used == "market_scan"
+                                    or chunk.get("rejected_count") is not None
+                                ):
                                     scanner_invoked = True
                                 if isinstance(chunk.get("candidates"), int):
                                     candidate_count = chunk["candidates"]
@@ -788,13 +817,16 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                                 + "\n"
                             )
 
-                # Post-processing answer content for sub-classification if complex finance
+                # Post-processing answer content for sub-classification if complex
+                # finance or capital allocation.
                 accumulated_answer = "".join(full_content)
-                if is_complex:
+                if is_complex or is_capital_alloc:
                     route_used = "general"
                     sub_intent = _extract_complex_intent(accumulated_answer)
                     if sub_intent:
                         detected_intent = sub_intent
+                    elif is_capital_alloc:
+                        detected_intent = "CAPITAL_ALLOCATION"
                     elif detected_intent == "unknown" or detected_intent == "general_question":
                         detected_intent = "MACRO_THESIS"  # default complex fallback
 
@@ -810,9 +842,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                         reverse=True,
                     )[:3]
                     rejection_line = (
-                        ", ".join(f"{r}:{c}" for r, c in top_reasons)
-                        if top_reasons
-                        else "n/a"
+                        ", ".join(f"{r}:{c}" for r, c in top_reasons) if top_reasons else "n/a"
                     )
                     fallback_chunk = (
                         "Bob could not produce a complete answer for this request.\n"
@@ -848,6 +878,16 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                         reverse=True,
                     )[:3]
                 ]
+                # Hard runtime invariant: advisory routes must never invoke the
+                # market scanner. If this fires, the routing hierarchy is broken.
+                _ADVISORY_ROUTES = {"general", "capital_allocation", "personal_finance"}
+                if route_used in _ADVISORY_ROUTES and scanner_invoked:
+                    logger.warning(
+                        "INVARIANT VIOLATION: route=%s but scanner_invoked=True. User query: %s",
+                        route_used,
+                        user_query[:200],
+                    )
+
                 trace = {
                     "user_query": user_query,
                     "detected_intent": detected_intent,

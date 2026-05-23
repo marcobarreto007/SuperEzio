@@ -358,7 +358,6 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
     rejected_count = int(scan.get("rejected_count", 0) or 0)
     rejection_summary = scan.get("rejection_summary") or {}
     universe = scan.get("universe") or trade_ctx.get("universe") or "unspecified"
-    filters = scan.get("filters") or trade_ctx.get("filters") or {}
     errors = scan.get("source_errors") or []
     time_horizon = state.get("time_horizon") or trade_ctx.get("time_horizon") or "14 days"
     excluded = {str(t).upper() for t in trade_ctx.get("excluded_tickers") or [] if t}

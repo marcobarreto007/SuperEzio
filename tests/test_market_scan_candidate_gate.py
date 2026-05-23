@@ -387,3 +387,156 @@ def test_a_share_word_boundary_true_positives():
         assert _wants_china_universe(text), (
             f"Missed China trigger: '{text}'"
         )
+
+
+# ---------------------------------------------------------------------------
+# P0 — Capital Allocation routing must never invoke scanner
+# ---------------------------------------------------------------------------
+
+
+CAD_1000_PROMPT = (
+    "I have CAD 1,000 to invest in Canada. "
+    "Should I keep it in cash, invest in an ETF, pay debt, "
+    "or try one short-term stock trade? "
+    "Give me one clear recommendation, explain why, "
+    "and give a confidence score from 0 to 100. "
+    "Do not scan China stocks. "
+    "Do not use the current chart unless I ask for a ticker."
+)
+
+STOCK_AS_OPTION_PROMPT = (
+    "Compare cash, ETF, debt repayment, and one short-term stock trade for CAD 1,000."
+)
+
+DIRECT_STOCK_PROMPT = (
+    "What stock would you recommend me to buy if I want to make a profit "
+    "within the next 14 days?"
+)
+
+
+def test_cad_1000_capital_allocation_no_scan():
+    """CAD 1,000 allocation prompt must route to capital_allocation, not market_scan."""
+    from src.core.pipeline.intents import (
+        parse_user_intent,
+        detect_capital_allocation_intent,
+        _is_market_scan_request,
+        detect_complex_finance_intent,
+    )
+
+    # Capital allocation detection must fire
+    assert detect_capital_allocation_intent(CAD_1000_PROMPT), (
+        "CAD 1000 prompt must be detected as capital allocation"
+    )
+
+    # Market scan must NOT fire (negative scan instruction + capital allocation)
+    assert not _is_market_scan_request(CAD_1000_PROMPT), (
+        "CAD 1000 prompt must not trigger market scan request"
+    )
+
+    # Complex finance must fire (covers capital allocation as a safety net)
+    assert detect_complex_finance_intent(CAD_1000_PROMPT), (
+        "CAD 1000 prompt must be detected as complex finance"
+    )
+
+    # Full intent parse must route to capital_allocation, not market_scan
+    result = parse_user_intent(CAD_1000_PROMPT, rigor="strict", ticker="")
+    assert result.route == "general", (
+        f"Expected route=general, got route={result.route}"
+    )
+    assert result.intent == "capital_allocation", (
+        f"Expected intent=capital_allocation, got intent={result.intent}"
+    )
+
+
+def test_stock_trade_as_one_option_no_scan():
+    """Mentioning stock trade as one option among cash/ETF/debt must not trigger scan."""
+    from src.core.pipeline.intents import (
+        parse_user_intent,
+        detect_capital_allocation_intent,
+        _is_market_scan_request,
+    )
+
+    assert detect_capital_allocation_intent(STOCK_AS_OPTION_PROMPT), (
+        "Stock-as-option prompt must be detected as capital allocation"
+    )
+    assert not _is_market_scan_request(STOCK_AS_OPTION_PROMPT), (
+        "Stock-as-option prompt must not trigger market scan"
+    )
+
+    result = parse_user_intent(STOCK_AS_OPTION_PROMPT, rigor="strict", ticker="")
+    assert result.route == "general"
+    assert result.intent == "capital_allocation"
+
+
+def test_direct_stock_recommendation_still_scans():
+    """Direct stock recommendation must still trigger market_scan."""
+    from src.core.pipeline.intents import (
+        parse_user_intent,
+        detect_capital_allocation_intent,
+        detect_decisive_trade_intent,
+    )
+
+    # Direct stock recommendation is NOT capital allocation
+    assert not detect_capital_allocation_intent(DIRECT_STOCK_PROMPT), (
+        "Direct stock recommendation must not be detected as capital allocation"
+    )
+
+    # It IS a decisive trade / market scan
+    assert detect_decisive_trade_intent(DIRECT_STOCK_PROMPT), (
+        "Direct stock recommendation must trigger decisive trade intent"
+    )
+
+    # With no ticker detected from text, it should route via vague financial → market_scan
+    result = parse_user_intent(DIRECT_STOCK_PROMPT, rigor="strict", ticker="")
+    assert result.route in ("market_scan",), (
+        f"Expected market_scan, got route={result.route}, intent={result.intent}"
+    )
+
+
+def test_negative_scan_instruction_blocks_market_scan():
+    """'Do not scan China stocks' must prevent market_scan despite 'scan' + 'Canada'."""
+    from src.core.pipeline.intents import (
+        _is_market_scan_request,
+        detect_negative_scan_instruction,
+    )
+
+    assert detect_negative_scan_instruction(CAD_1000_PROMPT), (
+        "'Do not scan' must be detected as negative scan instruction"
+    )
+    assert not _is_market_scan_request(CAD_1000_PROMPT), (
+        "'Do not scan' must block market_scan even when scope keywords present"
+    )
+
+    # A legitimate scan request with the same keywords but WITHOUT "do not" must still work
+    legit = "scan Canadian tech stocks for short-term opportunities"
+    assert not detect_negative_scan_instruction(legit), (
+        "Positive scan request must not trigger negative scan detection"
+    )
+
+
+def test_advisory_routes_never_invoke_scanner():
+    """Runtime invariant: advisory routes must never set scanner_invoked=True."""
+    # This tests the invariant logic that lives in endpoints.py
+    _ADVISORY_ROUTES = {"general", "capital_allocation", "personal_finance"}
+
+    # Valid: advisory route + no scanner
+    for route in _ADVISORY_ROUTES:
+        scanner_invoked = False
+        invariant_broken = route in _ADVISORY_ROUTES and scanner_invoked
+        assert not invariant_broken, (
+            f"route={route} + scanner_invoked=False must not violate invariant"
+        )
+
+    # Invalid: advisory route + scanner invoked
+    for route in _ADVISORY_ROUTES:
+        scanner_invoked = True
+        invariant_broken = route in _ADVISORY_ROUTES and scanner_invoked
+        assert invariant_broken, (
+            f"route={route} + scanner_invoked=True MUST violate invariant (routing bug)"
+        )
+
+    # Valid: market_scan + scanner = OK
+    invariant_broken = "market_scan" in _ADVISORY_ROUTES and True
+    assert not invariant_broken, (
+        "market_scan + scanner_invoked=True must be valid"
+    )

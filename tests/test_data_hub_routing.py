@@ -8,7 +8,6 @@ from data.data_hub import DataHub
 def test_market_price_route_order() -> None:
     hub = DataHub(register_defaults=True)
     routes = hub.list_routes("price")
-    names = [r["name"] for r in routes if r.get("configured") or r["name"] in ("yfinance", "stooq")]
     # Finnhub may be unconfigured in CI; still check relative order of fallbacks.
     ordered = [r["name"] for r in sorted(routes, key=lambda x: x["priority"])]
     assert ordered.index("finnhub") < ordered.index("twelve_data")

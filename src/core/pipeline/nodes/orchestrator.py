@@ -27,6 +27,8 @@ ALLOWED_INTENTS = {
     "market_scan",
     "missing_required_slot",
     "unsafe_unspecified_recommendation",
+    "capital_allocation",
+    "personal_finance",
 }
 
 
@@ -247,8 +249,11 @@ async def _ask_intent_classifier(message: str, plan: dict, context: str, gateway
         "Allowed routes: general, ticker_analysis, market_scan, needs_scope. "
         "Allowed intents: general_question, explain_capabilities, "
         "ticker_analysis, market_scan, missing_required_slot, "
-        "unsafe_unspecified_recommendation. "
+        "unsafe_unspecified_recommendation, capital_allocation, personal_finance. "
         "CRITICAL ROUTING RULES: "
+        "0. If the user is comparing multiple uses of capital (cash vs debt repayment "
+        "vs ETF vs stock trade vs business/education), route to general with "
+        "intent=capital_allocation or personal_finance. This is NEVER a market_scan. "
         "1. If the user asks for a decision framework, thesis, scenario analysis, "
         "comparison (rental property vs equities), capital allocation strategy, "
         "macro economic thesis, or investment evaluation WITHOUT requesting "
@@ -272,7 +277,7 @@ async def _ask_intent_classifier(message: str, plan: dict, context: str, gateway
         "deterministic_plan": plan,
         "required_json_shape": {
             "route": "general|ticker_analysis|market_scan|needs_scope",
-            "intent": "general_question|explain_capabilities|ticker_analysis|market_scan|missing_required_slot|unsafe_unspecified_recommendation",
+            "intent": "general_question|explain_capabilities|ticker_analysis|market_scan|missing_required_slot|unsafe_unspecified_recommendation|capital_allocation|personal_finance",
             "action": "answer|answer_directly|collect_data|scan_market|ask_for_ticker|ask_for_scope",
             "ticker": "exact ticker or empty string",
             "filters": {"country": "optional", "sector": "optional"},

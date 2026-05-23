@@ -43,6 +43,8 @@ ALLOWED_INTENTS = {
     "another_trade_recommendation",
     "missing_required_slot",
     "unsafe_unspecified_recommendation",
+    "capital_allocation",
+    "personal_finance",
 }
 ALLOWED_ACTIONS = {
     "answer",
@@ -53,7 +55,12 @@ ALLOWED_ACTIONS = {
     "ask_for_scope",
 }
 ROUTE_INTENT_ACTIONS = {
-    "general": {"general_question", "explain_capabilities"},
+    "general": {
+        "general_question",
+        "explain_capabilities",
+        "capital_allocation",
+        "personal_finance",
+    },
     "ticker_analysis": {"ticker_analysis"},
     "market_scan": {"market_scan", "another_trade_recommendation"},
     "needs_scope": {"missing_required_slot", "unsafe_unspecified_recommendation"},
@@ -331,8 +338,15 @@ COMMON_WORDS = {
     "JPY",
     "AUD",
     "CNY",
+    "ETF",
+    "GIC",
+    "REIT",
+    "IPO",
     "STOCK",
     "STOCKS",
+    "SHORT",
+    "TERM",
+    "LONG",
     "PENNY",
     "PENNIES",
     "ITM",
@@ -640,15 +654,25 @@ ANOTHER_TRADE_HINTS = (
     "another trade",
     "outra recomendacao",
     "outra recomendação",
+    "outro",
+    "outra",
     "mais uma",
+    "mais um",
     "proxima recomendacao",
     "próxima recomendação",
+    "proximo",
+    "próximo",
     "segunda opcao",
     "segunda opção",
     "me da outra",
     "me dê outra",
+    "me de outro",
+    "me da outro",
+    "me arruma outro",
     "qual o proximo",
     "qual o próximo",
+    "tem mais",
+    "quero outro",
 )
 
 EDUCATIONAL_OR_RISK_CONTEXT_HINTS = (
@@ -863,6 +887,21 @@ COMPLEX_FINANCE_HINTS = (
     "equipment for a side business",
     "paying debt",
     "funding education",
+    "pay debt",
+    "keep it in cash",
+    "keep in cash",
+    "repay debt",
+    "pay off debt",
+    "paying off debt",
+    "hold cash",
+    "keep as cash",
+    "or pay debt",
+    "debt or invest",
+    "cash or invest",
+    "should i pay",
+    "should i keep",
+    "or invest in",
+    "invest or pay debt",
     # Quantitative structure requests
     "quantitative framework",
     "quantitative threshold",
@@ -884,6 +923,63 @@ _COMPLEX_FINANCE_STRUCTURAL_PATTERNS = (
     r"\bseparate\s+(?:real|hype|secular|opportunity)\b",
     r"\binclude\s+(?:leverage|vacancy|maintenance|taxes|liquidity|concentration|cap rate|mortgage)\b",
 )
+
+
+# Patterns to detect when a user explicitly tells us NOT to scan.
+# "scan" appearing inside a negative construction must not trigger market_scan.
+_NEGATIVE_SCAN_PATTERNS = (
+    r"\bdo\s+not\s+scan\b",
+    r"\bdon'?t\s+scan\b",
+    r"\bno\s+scan(?:ning)?\b",
+    r"\bstop\s+scan(?:ning)?\b",
+    r"\bnever\s+scan\b",
+    r"\bplease\s+don'?t\s+scan\b",
+    r"\bwithout\s+scan(?:ning)?\b",
+)
+
+
+def detect_negative_scan_instruction(message: str) -> bool:
+    """Return True when the user explicitly asks NOT to scan.
+
+    A message like "Do not scan China stocks" contains the word "scan"
+    but must not trigger the market scanner.
+    """
+    if not message or not message.strip():
+        return False
+    normalized = normalize_message(message)
+    return any(re.search(p, normalized) for p in _NEGATIVE_SCAN_PATTERNS)
+
+
+def detect_capital_allocation_intent(message: str) -> bool:
+    """Detect prompts comparing multiple uses of capital (cash, debt, ETF, trade).
+
+    This is a subset of complex finance that specifically deals with personal
+    capital allocation decisions: should I keep cash, pay debt, invest in ETF,
+    or make a short-term trade? The presence of multiple capital-use options
+    means this is an advisory question, not a market scan.
+    """
+    if not message or not message.strip():
+        return False
+    # If the user mentions 2+ capital-use domains, it's an allocation decision.
+    _CAPITAL_USE_HINTS = (
+        r"\bpay\s+(?:off\s+)?debt\b",
+        r"\bkeep\s+(?:it\s+)?in\s+cash\b",
+        r"\bhold\s+cash\b",
+        r"\binvest\s+in\s+(?:an?\s+)?ETF\b",
+        r"\bETF\b",
+        r"\bemergency\s+(?:fund|reserve|savings)\b",
+        r"\brepay\s+(?:debt|loan)\b",
+        r"\bcash\b.*\bETF\b",
+        r"\bETF\b.*\bcash\b",
+        r"\bdebt\b.*\b(?:invest|trade|stock)\b",
+        r"\b(?:invest|trade|stock)\b.*\bdebt\b",
+        r"\bkeep\s+(?:it\s+)?as\s+cash\b",
+        r"\bcash\s*,?\s*invest\b",
+        r"\bcapital\s+alloc",
+    )
+    normalized = normalize_message(message)
+    matches = sum(1 for p in _CAPITAL_USE_HINTS if re.search(p, normalized, re.IGNORECASE))
+    return matches >= 2
 
 
 def detect_complex_finance_intent(message: str) -> bool:
@@ -943,8 +1039,9 @@ def detect_complex_finance_intent(message: str) -> bool:
     _potential_tickers = _upper_words - COMMON_WORDS - _COMPLEX_FINANCE_ACRONYMS
     if _potential_tickers:
         return False
-    # If there's an explicit scan command, honor it
-    if has_hint(message, SCAN_COMMAND_HINTS):
+    # If the user explicitly requests a scan, honor it — unless the
+    # "scan" is part of a negative instruction ("do not scan").
+    if has_hint(message, SCAN_COMMAND_HINTS) and not detect_negative_scan_instruction(message):
         return False
 
     normalized = normalize_message(message)
@@ -1243,6 +1340,10 @@ def _is_market_scan_request(message: str) -> bool:
         return False
     if _is_penny_definition_question(message) or _is_capability_question(message):
         return False
+    # "Do not scan" / "don't scan" — explicit negative instruction overrides any
+    # incidental scan keywords in the message.
+    if detect_negative_scan_instruction(message):
+        return False
 
     has_scan = has_hint(message, SCAN_KEYWORDS) or has_hint(message, SCAN_COMMAND_HINTS)
     has_scope = _has_scan_scope(message)
@@ -1487,6 +1588,22 @@ def parse_user_intent(
             entities=entities,
             diary=diary,
             pennylab=pennylab,
+        )
+
+    # Capital allocation / personal finance gate — must come BEFORE market_scan.
+    # Prompts comparing multiple uses of capital (cash, debt, ETF, stock trade)
+    # are advisory decisions, not scanner triggers.
+    if detect_capital_allocation_intent(raw):
+        return IntentParse(
+            route="general",
+            intent="capital_allocation",
+            action="answer",
+            filters={},
+            confidence=0.92,
+            reasons=("capital_allocation_decision_detected",),
+            entities=entities,
+            diary=diary,
+            pennylab=False,
         )
 
     # Complex finance gate — must come BEFORE market_scan and vague-financial

@@ -81,13 +81,24 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
         
     return {}
 
+_MAX_AGENT_ITERATIONS = 8
+
+
 def route_after_agent(state: dict) -> str:
     """Route from agent to tool_executor or to explanation based on tool_call."""
     tool_call = state.get("agent_tool_call")
+    iterations = state.get("agent_iterations", 0)
+
+    if iterations >= _MAX_AGENT_ITERATIONS:
+        logger.warning(
+            "Agent loop limit reached (%d iterations), forcing final_answer", iterations
+        )
+        return "explanation"
+
     if not tool_call or "tool" not in tool_call:
         return "explanation"
-        
+
     if tool_call["tool"] == "final_answer":
         return "explanation"
-        
+
     return "tool_executor"
