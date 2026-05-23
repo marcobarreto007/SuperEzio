@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import logging
 
+from langgraph.config import get_stream_writer
 
+from ..contracts import AgentToolCall
 from .collector import node_collector
 from .f51 import node_f51_verdict
 from .experts import node_collect_experts, node_expert
@@ -14,44 +16,115 @@ from .rag import node_rag_forensics
 
 logger = logging.getLogger(__name__)
 
+
+_REPEATABLE_TOOLS = {"final_answer"}
+
+
+def _tool_blocked_payload(state: dict, tool_name: str, reason: str) -> dict:
+    executed_tools = list(state.get("executed_tools") or [])
+    content = (
+        f"Tool '{tool_name}' was blocked because {reason}. "
+        "Use the results already present in state and produce final_answer."
+    )
+    return {
+        "executed_tools": executed_tools,
+        "tool_blocked": {
+            "tool": tool_name,
+            "reason": reason,
+            "instruction": "Choose a different tool or call final_answer.",
+        },
+        "agent_tool_call": {"tool": "final_answer", "args": {"content": content}},
+        "errors": state.get("errors", []) + [f"tool_blocked:{tool_name}:{reason}"],
+    }
+
+
 async def _pennylab_stub(state: dict) -> dict:
     ticker = state.get("ticker", "")
     if not ticker:
         return {"pennylab": {}}
     try:
         from experts.pennylab.pipeline_hook import analyze_ticker_sync
+
         result = await __import__("asyncio").to_thread(analyze_ticker_sync, ticker)
         return {"pennylab": result}
     except Exception as exc:
         return {"pennylab": {"ticker": ticker, "decision": None, "error": str(exc)[:200]}}
 
+
 async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
     tool_call = state.get("agent_tool_call")
-    if not tool_call or "tool" not in tool_call:
+    if not tool_call:
         return {}
 
-    tool_name = tool_call["tool"]
-    args = tool_call.get("args", {})
-    
+    try:
+        validated_call = AgentToolCall.model_validate(tool_call)
+    except Exception as exc:
+        return {
+            "tool_blocked": {
+                "tool": str(tool_call.get("tool", "invalid"))
+                if isinstance(tool_call, dict)
+                else "invalid",
+                "reason": f"invalid_tool_call:{exc}",
+                "instruction": "Call final_answer with a useful explanation.",
+            },
+            "agent_tool_call": {
+                "tool": "final_answer",
+                "args": {
+                    "content": "Bob could not execute the requested tool because the tool call was invalid."
+                },
+            },
+            "errors": state.get("errors", []) + [f"invalid_tool_call:{exc}"],
+        }
+
+    tool_name = validated_call.tool
+    args = validated_call.args
+    executed_tools = list(state.get("executed_tools") or [])
+
+    if tool_name in executed_tools and tool_name not in _REPEATABLE_TOOLS:
+        writer = get_stream_writer()
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": state.get("run_id", ""),
+                "step": tool_name,
+                "status": "blocked_duplicate",
+            }
+        )
+        return _tool_blocked_payload(state, tool_name, "it already executed in this run")
+
+    next_executed_tools = executed_tools
+    if tool_name not in _REPEATABLE_TOOLS:
+        next_executed_tools = [*executed_tools, tool_name]
+
     # We map tool names to the actual nodes.
     # The original nodes emit SSE PIPELINE_STEP events, so the UI will update correctly.
-    
+
     try:
         if tool_name == "collect_data":
             # Set the route to ticker_analysis so collector knows what to do
             ticker = args.get("ticker", state.get("ticker", ""))
-            return await node_collector({**state, "ticker": ticker, "route": "ticker_analysis"}, config=config)
-            
+            result = await node_collector(
+                {**state, "ticker": ticker, "route": "ticker_analysis"},
+                config=config,
+            )
+
         elif tool_name == "market_scan":
             # Set route to market_scan
-            return await node_collector({**state, "route": "market_scan", "message": args.get("query", state.get("message"))}, config=config)
-            
+            result = await node_collector(
+                {
+                    **state,
+                    "route": "market_scan",
+                    "message": args.get("query", state.get("message")),
+                },
+                config=config,
+            )
+
         elif tool_name == "f51_firewall":
-            return await node_f51_verdict(state)
-            
+            result = await node_f51_verdict(state)
+
         elif tool_name == "pennylab":
-            return await _pennylab_stub(state)
-            
+            result = await _pennylab_stub(state)
+
         elif tool_name == "run_experts":
             # Usually experts runs fan-out. We can just run a single expert stub that does the summary,
             # or we run node_expert for all roles in a loop to populate expert_results.
@@ -63,23 +136,31 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                 res = await node_expert({**state, "role": role}, gateway=gateway)
                 if "expert_results" in res:
                     results.extend(res["expert_results"])
-            
-            return await node_collect_experts({**state, "expert_results": results})
-            
+
+            result = await node_collect_experts({**state, "expert_results": results})
+
         elif tool_name == "neural_decision":
-            return await node_neural_decision(state)
-            
+            result = await node_neural_decision(state)
+
         elif tool_name == "sdca_firewall":
-            return await node_sdca_firewall(state)
-            
+            result = await node_sdca_firewall(state)
+
         elif tool_name == "rag_forensics":
-            return await node_rag_forensics(state)
-            
+            result = await node_rag_forensics(state)
+        else:
+            return _tool_blocked_payload(state, tool_name, "it is not executable here")
+
+        return {**result, "executed_tools": next_executed_tools}
+
     except Exception as exc:
         logger.error(f"Tool execution failed: {exc}")
-        return {"errors": state.get("errors", []) + [f"tool_{tool_name}:{exc}"]}
-        
+        return {
+            "executed_tools": next_executed_tools,
+            "errors": state.get("errors", []) + [f"tool_{tool_name}:{exc}"],
+        }
+
     return {}
+
 
 _MAX_AGENT_ITERATIONS = 8
 
@@ -90,9 +171,7 @@ def route_after_agent(state: dict) -> str:
     iterations = state.get("agent_iterations", 0)
 
     if iterations >= _MAX_AGENT_ITERATIONS:
-        logger.warning(
-            "Agent loop limit reached (%d iterations), forcing final_answer", iterations
-        )
+        logger.warning("Agent loop limit reached (%d iterations), forcing final_answer", iterations)
         return "explanation"
 
     if not tool_call or "tool" not in tool_call:

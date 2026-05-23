@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, Literal, TypedDict
 
 from pydantic import BaseModel, Field
 
@@ -92,6 +92,8 @@ class PipelineState(TypedDict, total=False):
     # Agent Loop
     agent_tool_call: dict[str, Any]
     agent_iterations: int
+    executed_tools: list[str]
+    tool_blocked: dict[str, Any]
 
     # Errors
     errors: list[str]
@@ -144,3 +146,20 @@ class ExpertCall(BaseModel):
     context: str = ""
     provider_name: str = ""
     timeout: float = 60.0
+
+
+class AgentToolCall(BaseModel):
+    """Validated tool call emitted by the ReAct agent."""
+
+    tool: Literal[
+        "collect_data",
+        "f51_firewall",
+        "pennylab",
+        "run_experts",
+        "neural_decision",
+        "sdca_firewall",
+        "rag_forensics",
+        "market_scan",
+        "final_answer",
+    ]
+    args: dict[str, Any] = Field(default_factory=dict)

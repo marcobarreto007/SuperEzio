@@ -7,7 +7,7 @@ async def test_market_scan_run_experts_does_not_raise_collect_experts_import_err
     from src.core.pipeline.nodes import experts as experts_module
     from src.core.pipeline.nodes import tool_executor as tool_executor_module
 
-    monkeypatch.setattr(experts_module, "get_stream_writer", lambda: (lambda _event: None))
+    monkeypatch.setattr(experts_module, "get_stream_writer", lambda: lambda _event: None)
 
     async def fake_node_expert(state, *, gateway=None):
         role = state.get("role", "fundamental")
@@ -63,9 +63,7 @@ async def test_market_scan_result_finalizes_without_reentering_tool_loop(monkeyp
 
     class GatewayMustNotRun:
         async def chat_completion(self, **kwargs):
-            raise AssertionError(
-                "market_scan with scan results should finalize deterministically"
-            )
+            raise AssertionError("market_scan with scan results should finalize deterministically")
 
     # ABCD has no price → the new gate rejects it. Under the updated answer
     # contract, the structured no-candidate response must be rendered and
@@ -133,3 +131,68 @@ async def test_agent_loop_failsafe_is_user_safe(monkeypatch):
     assert "[SYSTEM]" not in result["final"]
     assert "Too many tool calls" not in result["final"]
     assert any(event.get("type") == "CHUNK" for event in events)
+
+
+@pytest.mark.asyncio
+async def test_tool_executor_blocks_duplicate_tool_with_feedback(monkeypatch):
+    from src.core.pipeline.nodes import tool_executor as tool_executor_module
+
+    events = []
+    monkeypatch.setattr(tool_executor_module, "get_stream_writer", lambda: events.append)
+
+    async def neural_must_not_run(state):
+        raise AssertionError("duplicate neural_decision must be blocked before execution")
+
+    monkeypatch.setattr(tool_executor_module, "node_neural_decision", neural_must_not_run)
+
+    state = {
+        "run_id": "duplicate-tool-test",
+        "agent_tool_call": {"tool": "neural_decision", "args": {}},
+        "executed_tools": ["collect_data", "run_experts", "neural_decision"],
+        "errors": [],
+    }
+
+    result = await tool_executor_module.node_tool_executor(state, gateway=object())
+
+    assert result["executed_tools"] == ["collect_data", "run_experts", "neural_decision"]
+    assert result["tool_blocked"]["tool"] == "neural_decision"
+    assert "already executed" in result["tool_blocked"]["reason"]
+    assert result["agent_tool_call"]["tool"] == "final_answer"
+    assert any(event.get("status") == "blocked_duplicate" for event in events)
+
+
+@pytest.mark.asyncio
+async def test_agent_finalizes_when_tool_was_blocked(monkeypatch):
+    from src.core.pipeline.nodes import agent as agent_module
+
+    events = []
+    monkeypatch.setattr(agent_module, "get_stream_writer", lambda: events.append)
+
+    class GatewayMustNotRun:
+        async def chat_completion(self, **kwargs):
+            raise AssertionError("tool_blocked state must not re-enter CEO tool loop")
+
+    result = await agent_module.node_agent(
+        {
+            "run_id": "blocked-agent-test",
+            "route": "ticker_analysis",
+            "message": "analise AAPL",
+            "tool_blocked": {
+                "tool": "neural_decision",
+                "reason": "it already executed in this run",
+            },
+            "agent_iterations": 3,
+        },
+        gateway=GatewayMustNotRun(),
+    )
+
+    assert result["agent_tool_call"]["tool"] == "final_answer"
+    assert result["final"]
+    assert "neural_decision" in result["final"]
+    assert any(event.get("type") == "CHUNK" for event in events)
+
+
+def test_parse_tool_call_rejects_legacy_unknown_tool():
+    from src.core.pipeline.nodes.agent import _parse_tool_call
+
+    assert _parse_tool_call('{"tool": "legacy_magic_tool", "args": {}}') is None

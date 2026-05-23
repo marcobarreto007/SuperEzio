@@ -15,6 +15,7 @@ from __future__ import annotations
 # Helpers — build scan state for testing the deterministic answer renderer
 # ---------------------------------------------------------------------------
 
+
 def _make_scan_state(
     message: str,
     candidates: list[dict] | None = None,
@@ -23,8 +24,9 @@ def _make_scan_state(
     rejection_summary: dict | None = None,
     source_errors: list[str] | None = None,
     time_horizon: str = "14 days",
+    safety_gates: bool = True,
 ) -> dict:
-    return {
+    state = {
         "message": message,
         "route": "market_scan",
         "time_horizon": time_horizon,
@@ -45,6 +47,10 @@ def _make_scan_state(
             "collected_at": "2026-05-22T21:00:00+00:00",
         },
     }
+    if safety_gates:
+        state["f51_verdict"] = {"passed": True, "confidence": 0.91}
+        state["sdca_firewall"] = {"decision": "ALLOW", "confidence": 0.88}
+    return state
 
 
 _STRONG_CANDIDATE = {
@@ -124,6 +130,25 @@ def test_decisive_prompt_with_strong_candidate_is_buy():
     answer = _market_scan_answer(state)
     assert "BUY_CANDIDATE" in answer
     assert "Model verdict: BUY_CANDIDATE" in answer
+
+
+def test_buy_candidate_requires_f51_and_sdca_gates():
+    """A decisive BUY cannot be emitted until F51 and SDCA evidence exist."""
+    from src.core.pipeline.nodes.agent import _market_scan_answer
+
+    state = _make_scan_state(
+        message="what should I buy for the next 2 weeks?",
+        candidates=[_STRONG_CANDIDATE],
+        safety_gates=False,
+    )
+
+    answer = _market_scan_answer(state)
+
+    assert "Final Decision: BUY_CANDIDATE" not in answer
+    assert "Model verdict: BUY_CANDIDATE" not in answer
+    assert "WAIT" in answer
+    assert "missing_f51_verdict" in answer
+    assert "missing_sdca_firewall" in answer
 
 
 # ---------------------------------------------------------------------------

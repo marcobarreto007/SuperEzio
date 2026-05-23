@@ -2,6 +2,7 @@
 
 from src.core.pipeline.contracts import (
     PipelineState,
+    AgentToolCall,
     IntentResult,
     CEORequest,
     ExpertCall,
@@ -29,6 +30,7 @@ def test_pipeline_state_typical():
         "ticker": "AAPL",
         "time_horizon": "14 days",
         "expert_results": [],
+        "executed_tools": ["collect_data"],
         "f51_verdict": {
             "confidence": 0.965,
             "passed": True,
@@ -38,6 +40,7 @@ def test_pipeline_state_typical():
     }
     assert state["route"] == "ticker_analysis"
     assert state["ticker"] == "AAPL"
+    assert state["executed_tools"] == ["collect_data"]
 
 
 def test_pipeline_state_expert_results_default():
@@ -118,6 +121,26 @@ def test_expert_call_custom():
     call = ExpertCall(role="technical", ticker="TSLA", provider_name="deepseek", timeout=30.0)
     assert call.provider_name == "deepseek"
     assert call.timeout == 30.0
+
+
+# ---------------------------------------------------------------------------
+# AgentToolCall
+# ---------------------------------------------------------------------------
+
+
+def test_agent_tool_call_accepts_known_tool():
+    call = AgentToolCall.model_validate({"tool": "neural_decision", "args": {"ticker": "AAPL"}})
+    assert call.tool == "neural_decision"
+    assert call.args == {"ticker": "AAPL"}
+
+
+def test_agent_tool_call_rejects_unknown_tool():
+    try:
+        AgentToolCall.model_validate({"tool": "legacy_magic_tool", "args": {}})
+    except Exception as exc:
+        assert "legacy_magic_tool" in str(exc)
+    else:
+        raise AssertionError("unknown agent tools must be rejected")
 
 
 # ---------------------------------------------------------------------------
