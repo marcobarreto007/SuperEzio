@@ -13,6 +13,7 @@ from langgraph.config import get_stream_writer
 
 from ..trade_order import normalize_liquidity_fields, pick_candidate, rank_candidates
 from ..scan_registry import ScanEventRegistry
+from ..circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
 
 logger = logging.getLogger(__name__)
 
@@ -558,6 +559,7 @@ async def _run_scan(
     price_targets = raw_candidates[: max(0, price_enrich_limit)]
     profile_catalyst_targets = price_targets[:enrich_budget]
 
+    breaker_snapshots: dict[str, dict] = {}
     if price_targets:
         try:
             from core.config.secrets import load_local_env
@@ -572,59 +574,193 @@ async def _run_scan(
 
             enrich_concurrency = max(1, int(os.getenv("SUPEREZIO_SCAN_ENRICH_CONCURRENCY", "2")))
             sem = asyncio.Semaphore(enrich_concurrency)
+            per_item_timeout = float(os.getenv("SUPEREZIO_SCAN_ENRICH_TIMEOUT_MS", "12000")) / 1000
+            stage_deadline_ms = int(os.getenv("SUPEREZIO_SCAN_STAGE_DEADLINE_MS", "30000"))
+
+            # ── Circuit breakers per provider ──
+            breaker_finnhub = CircuitBreaker("finnhub")
+            breaker_yfinance = CircuitBreaker("yfinance")
+            breaker_twelve = CircuitBreaker("twelve_data")
+            _BREAKERS_BY_PROVIDER = {
+                "finnhub": breaker_finnhub,
+                "yfinance": breaker_yfinance,
+                "twelve_data": breaker_twelve,
+            }
+
+            def _provider_from_result(result: Any) -> str | None:
+                if isinstance(result, dict):
+                    p = result.get("provider") or result.get("source")
+                    if p:
+                        return str(p)
+                return None
+
+            def _resolve_breaker(item: dict[str, Any]) -> CircuitBreaker | None:
+                """Map a candidate to the breaker most relevant for its market."""
+                # Finnhub is the default enrichment provider
+                _ = item  # extensão futura: escolher breaker por market
+                return breaker_finnhub
 
             async def _enrich_price(item: dict[str, Any]) -> tuple[dict[str, Any], Any]:
+                breaker = _resolve_breaker(item)
+                if breaker is not None and not breaker.allow():
+                    return item, CircuitBreakerOpenError(f"circuit_open:{breaker.provider}")
                 async with sem:
                     ticker = str(item.get("ticker") or "")
                     market = item.get("market")
-                    return item, await asyncio.wait_for(
-                        asyncio.to_thread(_safe_get_price, hub, ticker, market=market),
-                        timeout=12,
-                    )
+                    try:
+                        result = await asyncio.wait_for(
+                            asyncio.to_thread(_safe_get_price, hub, ticker, market=market),
+                            timeout=per_item_timeout,
+                        )
+                    except Exception:
+                        if breaker is not None:
+                            breaker.failure()
+                        raise
+                    if breaker is not None:
+                        if isinstance(result, dict) and "error" in result:
+                            breaker.failure()
+                        else:
+                            breaker.success()
+                    return item, result
 
             async def _enrich_profile(item: dict[str, Any]) -> tuple[dict[str, Any], Any]:
+                breaker = _resolve_breaker(item)
+                if breaker is not None and not breaker.allow():
+                    return item, CircuitBreakerOpenError(f"circuit_open:{breaker.provider}")
                 async with sem:
-                    return item, await asyncio.wait_for(
-                        asyncio.to_thread(_safe_get_profile, hub, item.get("ticker", "")),
-                        timeout=12,
-                    )
+                    try:
+                        result = await asyncio.wait_for(
+                            asyncio.to_thread(_safe_get_profile, hub, item.get("ticker", "")),
+                            timeout=per_item_timeout,
+                        )
+                    except Exception:
+                        if breaker is not None:
+                            breaker.failure()
+                        raise
+                    if breaker is not None:
+                        if isinstance(result, dict) and "error" in result:
+                            breaker.failure()
+                        else:
+                            breaker.success()
+                    return item, result
 
             async def _enrich_catalyst(item: dict[str, Any]) -> tuple[dict[str, Any], Any]:
+                breaker = _resolve_breaker(item)
+                if breaker is not None and not breaker.allow():
+                    return item, CircuitBreakerOpenError(f"circuit_open:{breaker.provider}")
                 async with sem:
-                    return item, await asyncio.wait_for(
-                        asyncio.to_thread(
-                            _safe_get_short_term_catalyst, hub, item.get("ticker", "")
+                    try:
+                        result = await asyncio.wait_for(
+                            asyncio.to_thread(
+                                _safe_get_short_term_catalyst, hub, item.get("ticker", "")
+                            ),
+                            timeout=per_item_timeout,
+                        )
+                    except Exception:
+                        if breaker is not None:
+                            breaker.failure()
+                        raise
+                    if breaker is not None:
+                        if isinstance(result, dict) and "error" in result:
+                            breaker.failure()
+                        else:
+                            breaker.success()
+                    return item, result
+
+            # ── Enrich: Price (with stage deadline) ──
+            registry.stage_started("enrich_price", provider="data_hub")
+            price_pairs = []
+            price_deadline_errors = 0
+            try:
+                price_pairs = await asyncio.wait_for(
+                    asyncio.gather(*[_enrich_price(item) for item in price_targets]),
+                    timeout=stage_deadline_ms / 1000,
+                )
+            except asyncio.TimeoutError:
+                price_deadline_errors = len(price_targets) - len(price_pairs)
+                registry.stage_failed(
+                    "enrich_price", "stage_deadline", provider="data_hub",
+                    done=len(price_pairs), total=len(price_targets),
+                    errors=price_deadline_errors,
+                )
+            else:
+                reg_errors = sum(
+                    1 for _, res in price_pairs
+                    if isinstance(res, Exception) or (isinstance(res, dict) and "error" in res)
+                )
+                registry.stage_completed(
+                    "enrich_price", provider="data_hub",
+                    done=len(price_pairs) - reg_errors, total=len(price_targets),
+                    errors=reg_errors,
+                )
+
+            # ── Enrich: Profile (with stage deadline) ──
+            registry.stage_started("enrich_profile", provider="data_hub")
+            profile_pairs: list[tuple[dict, Any]] = []
+            profile_deadline_errors = 0
+            if profile_catalyst_targets:
+                try:
+                    profile_pairs = await asyncio.wait_for(
+                        asyncio.gather(
+                            *[_enrich_profile(item) for item in profile_catalyst_targets]
                         ),
-                        timeout=12,
+                        timeout=stage_deadline_ms / 1000,
+                    )
+                except asyncio.TimeoutError:
+                    profile_deadline_errors = len(profile_catalyst_targets) - len(profile_pairs)
+                    registry.stage_failed(
+                        "enrich_profile", "stage_deadline", provider="data_hub",
+                        done=len(profile_pairs), total=len(profile_catalyst_targets),
+                        errors=profile_deadline_errors,
+                    )
+                else:
+                    reg_errors = sum(
+                        1 for _, res in profile_pairs
+                        if isinstance(res, Exception) or (isinstance(res, dict) and "error" in res)
+                    )
+                    registry.stage_completed(
+                        "enrich_profile", provider="data_hub",
+                        done=len(profile_pairs) - reg_errors,
+                        total=len(profile_catalyst_targets),
+                        errors=reg_errors,
                     )
 
-            # ── Enrich: Price ──
-            registry.stage_started("enrich_price", provider="data_hub")
-            price_pairs = await asyncio.gather(*[_enrich_price(item) for item in price_targets])
-            registry.stage_completed(
-                "enrich_price", provider="data_hub",
-                done=len(price_pairs), total=len(price_targets),
-            )
-
-            # ── Enrich: Profile ──
-            registry.stage_started("enrich_profile", provider="data_hub")
-            profile_pairs = await asyncio.gather(
-                *[_enrich_profile(item) for item in profile_catalyst_targets]
-            )
-            registry.stage_completed(
-                "enrich_profile", provider="data_hub",
-                done=len(profile_pairs), total=len(profile_catalyst_targets),
-            )
-
-            # ── Enrich: Catalyst ──
+            # ── Enrich: Catalyst (with stage deadline) ──
             registry.stage_started("enrich_catalyst", provider="data_hub")
-            catalyst_pairs = await asyncio.gather(
-                *[_enrich_catalyst(item) for item in profile_catalyst_targets]
-            )
-            registry.stage_completed(
-                "enrich_catalyst", provider="data_hub",
-                done=len(catalyst_pairs), total=len(profile_catalyst_targets),
-            )
+            catalyst_pairs: list[tuple[dict, Any]] = []
+            catalyst_deadline_errors = 0
+            if profile_catalyst_targets:
+                try:
+                    catalyst_pairs = await asyncio.wait_for(
+                        asyncio.gather(
+                            *[_enrich_catalyst(item) for item in profile_catalyst_targets]
+                        ),
+                        timeout=stage_deadline_ms / 1000,
+                    )
+                except asyncio.TimeoutError:
+                    catalyst_deadline_errors = len(profile_catalyst_targets) - len(catalyst_pairs)
+                    registry.stage_failed(
+                        "enrich_catalyst", "stage_deadline", provider="data_hub",
+                        done=len(catalyst_pairs), total=len(profile_catalyst_targets),
+                        errors=catalyst_deadline_errors,
+                    )
+                else:
+                    reg_errors = sum(
+                        1 for _, res in catalyst_pairs
+                        if isinstance(res, Exception) or (isinstance(res, dict) and "error" in res)
+                    )
+                    registry.stage_completed(
+                        "enrich_catalyst", provider="data_hub",
+                        done=len(catalyst_pairs) - reg_errors,
+                        total=len(profile_catalyst_targets),
+                        errors=reg_errors,
+                    )
+
+            # ── Circuit breaker snapshot in trace ──
+            breaker_snapshots = {
+                name: b.snapshot()
+                for name, b in _BREAKERS_BY_PROVIDER.items()
+            }
 
             price_results = [res for _, res in price_pairs]
             profile_results = [res for _, res in profile_pairs]
@@ -821,6 +957,7 @@ async def _run_scan(
             "final_decision": final_decision,
             "elapsed_ms": registry.elapsed_ms(),
             "mri_events": registry.as_trace(),
+            "circuit_breakers": breaker_snapshots,
         },
     }
 
