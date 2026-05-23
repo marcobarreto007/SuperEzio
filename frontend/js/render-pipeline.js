@@ -4,13 +4,15 @@
 
   var STEPS = [
     "orchestrator", "data", "f51", "pennylab", "experts",
-    "neural", "sdca", "rag", "ceo", "explanation"
+    "neural", "sdca", "rag", "ceo", "explanation",
+    "agent", "tool", "blocked", "graph", "scan"
   ];
 
   var stepMap = {
     orchestrator_primary: "orchestrator",
     data_collection: "data",
     data: "data",
+    professional_collector: "data",
     f51_verdict: "f51",
     f51_engine: "f51",
     pennylab: "pennylab",
@@ -22,7 +24,12 @@
     rag_forensics: "rag",
     ceo_primary: "ceo",
     llm: "ceo",
-    explanation: "explanation"
+    explanation: "explanation",
+    agent: "agent",
+    tool_executor: "tool",
+    respond_blocked: "blocked",
+    graph: "graph",
+    market_scan_answer: "scan"
   };
 
   function resolveStep(raw) {

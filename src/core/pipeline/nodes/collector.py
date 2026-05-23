@@ -127,6 +127,7 @@ async def node_collector(state: dict, *, config=None) -> dict:
                 state.get("message", ""),
                 state.get("filters", {}),
                 excluded_tickers=excluded,
+                writer=writer,
             )
             if trade_ctx.get("universe"):
                 scan.setdefault("universe", trade_ctx.get("universe"))
@@ -457,6 +458,7 @@ async def _run_scan(
     filters: dict[str, Any],
     *,
     excluded_tickers: list[str] | None = None,
+    writer: Any | None = None,
 ) -> dict[str, Any]:
     """Run a market scan and produce gated candidates plus rejection telemetry.
 
@@ -490,15 +492,20 @@ async def _run_scan(
     # 12 per country → ~24 tickers for US+CA (Finnhub free tier ~60 req/min).
     per_country_limit = int(os.getenv("SUPEREZIO_SCAN_LIMIT", "12"))
     scan_max_total = int(os.getenv("SUPEREZIO_SCAN_MAX_TOTAL", "24"))
+    event_writer = writer or (lambda _event: None)
 
-    # ── MRI Registry ──
-    registry = ScanEventRegistry(scan_id)
+    # ── MRI Registry ── (writer streams SCAN_EVENT to UI in real time)
+    registry = ScanEventRegistry(scan_id, writer=event_writer)
     registry.stage_started("init")
-    registry.emit("init", "heartbeat", data={
-        "universe": universe_label,
-        "countries": countries,
-        "filters": filters,
-    })
+    registry.emit(
+        "init",
+        "heartbeat",
+        data={
+            "universe": universe_label,
+            "countries": countries,
+            "filters": filters,
+        },
+    )
 
     try:
         from ...scanner import MarketScanner
@@ -509,8 +516,11 @@ async def _run_scan(
         fetch_total = len(countries)
         for idx, country in enumerate(countries):
             registry.stage_heartbeat(
-                "fetch_tickers", provider="scanner",
-                done=idx, total=fetch_total, errors=fetch_errors,
+                "fetch_tickers",
+                provider="scanner",
+                done=idx,
+                total=fetch_total,
+                errors=fetch_errors,
             )
             try:
                 tickers = await asyncio.to_thread(
@@ -534,8 +544,11 @@ async def _run_scan(
                     }
                 )
         registry.stage_completed(
-            "fetch_tickers", provider="scanner",
-            done=fetch_total, total=fetch_total, errors=fetch_errors,
+            "fetch_tickers",
+            provider="scanner",
+            done=fetch_total,
+            total=fetch_total,
+            errors=fetch_errors,
         )
     except ImportError:
         source_errors.append("scanner: module_archived")
@@ -636,17 +649,17 @@ async def _run_scan(
                             error_count += 1
                         if done_count % max(1, total // 5) == 0 or done_count == total:
                             registry.stage_heartbeat(
-                                stage, provider="data_hub",
-                                done=done_count, total=total, errors=error_count,
+                                stage,
+                                provider="data_hub",
+                                done=done_count,
+                                total=total,
+                                errors=error_count,
                             )
                         in_queue.task_done()
                         if done_count >= total:
                             _done_event.set()
 
-                workers = [
-                    asyncio.create_task(_worker())
-                    for _ in range(num_workers)
-                ]
+                workers = [asyncio.create_task(_worker()) for _ in range(num_workers)]
 
                 try:
                     await asyncio.wait_for(_done_event.wait(), timeout=stage_deadline_ms / 1000)
@@ -659,13 +672,19 @@ async def _run_scan(
                 abandoned = total - done_count
                 if abandoned > 0:
                     registry.stage_failed(
-                        stage, "stage_deadline", provider="data_hub",
-                        done=done_count, total=total, errors=error_count + abandoned,
+                        stage,
+                        "stage_deadline",
+                        provider="data_hub",
+                        done=done_count,
+                        total=total,
+                        errors=error_count + abandoned,
                     )
                 else:
                     registry.stage_completed(
-                        stage, provider="data_hub",
-                        done=done_count - error_count, total=total,
+                        stage,
+                        provider="data_hub",
+                        done=done_count - error_count,
+                        total=total,
                         errors=error_count,
                     )
                 return out_pairs
@@ -733,20 +752,23 @@ async def _run_scan(
             # ── Enrich stages (queue-based, independent failure domains) ──
 
             price_pairs = await _run_enrich_stage(
-                "enrich_price", price_targets, _call_price,
+                "enrich_price",
+                price_targets,
+                _call_price,
             )
             profile_pairs = await _run_enrich_stage(
-                "enrich_profile", profile_catalyst_targets, _call_profile,
+                "enrich_profile",
+                profile_catalyst_targets,
+                _call_profile,
             )
             catalyst_pairs = await _run_enrich_stage(
-                "enrich_catalyst", profile_catalyst_targets, _call_catalyst,
+                "enrich_catalyst",
+                profile_catalyst_targets,
+                _call_catalyst,
             )
 
             # ── Circuit breaker snapshot in trace ──
-            breaker_snapshots = {
-                name: b.snapshot()
-                for name, b in _BREAKERS_BY_PROVIDER.items()
-            }
+            breaker_snapshots = {name: b.snapshot() for name, b in _BREAKERS_BY_PROVIDER.items()}
 
             price_results = [res for _, res in price_pairs]
             profile_results = [res for _, res in profile_pairs]
@@ -869,7 +891,8 @@ async def _run_scan(
         rejection_summary[key] = rejection_summary.get(key, 0) + 1
     registry.stage_completed(
         "gate",
-        done=len(passing), total=len(raw_candidates),
+        done=len(passing),
+        total=len(raw_candidates),
         errors=len(rejected),
     )
 
@@ -910,6 +933,18 @@ async def _run_scan(
     )
     logger.info(summary)
     registry.stage_completed("finalize")
+
+    # Emit SCAN_SUMMARY to UI stream
+    event_writer(
+        {
+            "type": "SCAN_SUMMARY",
+            "scan_id": scan_id,
+            "candidate_count": len(passing),
+            "rejected_count": len(rejected),
+            "provider_sources_used": sorted(active_providers) if active_providers else [],
+            "elapsed_ms": registry.elapsed_ms(),
+        }
+    )
 
     resolved_filters: dict[str, Any] = {
         "country": explicit_country,

@@ -126,9 +126,7 @@ class ScanEventRegistry:
             "elapsed_ms": self.elapsed_ms(),
             "event_count": len(self.events),
             "stages_seen": sorted({e["stage"] for e in self.events}),
-            "failed_stages": sorted(
-                {e["stage"] for e in self.events if e["status"] == "failed"}
-            ),
+            "failed_stages": sorted({e["stage"] for e in self.events if e["status"] == "failed"}),
         }
 
     def failing_stage(self) -> str | None:

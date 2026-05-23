@@ -181,7 +181,9 @@
         timeframe: tf,
         session_id: getBrowserSessionId(),
         chart_context: attachMarket ? buildChartContext() : "",
-        portfolio_context: buildPortfolioContext()
+        portfolio_context: buildPortfolioContext(),
+        rigor: "strict",
+        memory_mode: "relevant_all"
       }
     };
   }
@@ -200,7 +202,10 @@
       scanner_invoked: false,
       ceo_called: false,
       fallback_used: false,
-      final_content_length: 0
+      final_content_length: 0,
+      candidate_count: 0,
+      rejected_count: 0,
+      provider_sources_used: []
     };
 
     var inp = document.getElementById("user-inp");

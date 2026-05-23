@@ -42,3 +42,30 @@ def test_allows_etf_comparison():
     )
 
     assert result["ok"]
+
+
+def test_rejects_etf_semantic_mismatch():
+    result = evaluate_answer_quality(
+        "Give me a portfolio allocation with percentages and tickers.",
+        (
+            "Allocate 50% to VOO for US large caps, 20% to VXUS, "
+            "15% to US Small Cap Value (VTV), 10% to BND, and 5% to VNQ."
+        ),
+        min_chars=20,
+    )
+
+    assert not result["ok"]
+    assert "etf_semantic_mismatch:VTV:small_cap" in result["reasons"]
+
+
+def test_allows_correct_small_cap_value_ticker():
+    result = evaluate_answer_quality(
+        "Give me a portfolio allocation with percentages and tickers.",
+        (
+            "Allocate 50% to VOO for US large caps, 20% to VXUS, "
+            "15% to US Small Cap Value (VBR), 10% to BND, and 5% to VNQ."
+        ),
+        min_chars=20,
+    )
+
+    assert result["ok"]

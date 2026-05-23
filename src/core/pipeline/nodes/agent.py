@@ -973,10 +973,32 @@ def _complex_finance_fallback_answer(message: str) -> str:
     )
 
 
+def _repair_known_etf_category_errors(text: str) -> str:
+    """Correct high-confidence ETF taxonomy mistakes before they reach the user."""
+    repaired = text or ""
+    small_cap_window = re.compile(r"small[- ]cap", re.IGNORECASE)
+    for match in reversed(list(re.finditer(r"\bVTV\b", repaired))):
+        window_start = max(0, match.start() - 80)
+        window_end = min(len(repaired), match.end() + 80)
+        if small_cap_window.search(repaired[window_start:window_end]):
+            repaired = repaired[: match.start()] + "VBR" + repaired[match.end() :]
+    return repaired
+
+
+def _repair_unsupported_exact_returns(text: str) -> str:
+    """Remove unsourced exact return ranges that make debt payoff look forecasted."""
+    return re.sub(
+        r"guaranteed\s+\d+(?:\s*[–-]\s*\d+)?%\s+return",
+        "guaranteed return equal to the avoided interest rate",
+        text or "",
+        flags=re.IGNORECASE,
+    )
+
+
 def _repair_complex_finance_answer(message: str, content: str) -> str:
     """Patch high-confidence missing contract clauses in model complex-finance output."""
     msg = (message or "").lower()
-    text = content or ""
+    text = _repair_unsupported_exact_returns(_repair_known_etf_category_errors(content or ""))
     lower = text.lower()
     additions: list[str] = []
 

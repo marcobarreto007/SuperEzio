@@ -193,6 +193,63 @@
         })();
         break;
 
+      /* ── SCAN_EVENT ── (MRI Registry heartbeat/stage lifecycle) */
+      case "SCAN_EVENT":
+        (function () {
+          if (!SZ.state.scanProgress) SZ.state.scanProgress = {};
+          var sp = SZ.state.scanProgress;
+          var stage = ev.stage || "?";
+          var status = ev.status || "heartbeat";
+          sp.currentStage = stage;
+          sp.currentStatus = status;
+          sp.elapsedMs = ev.elapsed_ms || 0;
+          if (ev.counts) {
+            sp.done = ev.counts.done || 0;
+            sp.total = ev.counts.total || 0;
+            sp.errors = ev.counts.errors || 0;
+          }
+          sp.provider = ev.provider || null;
+          if (ev.error) sp.lastError = ev.error;
+
+          /* render scanner status line in chat */
+          var ceo = SZ.chat.ensureCEOMessage();
+          if (ceo) {
+            var existing = ceo.bubble.querySelector(".scanner-progress");
+            if (!existing) {
+              existing = SZ.dom.el("div", "scanner-progress");
+              existing.style.cssText = "font-size:11px;color:#90a4ae;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);margin-bottom:4px;";
+              var textNode = ceo.bubble.firstChild;
+              if (textNode) ceo.bubble.insertBefore(existing, textNode);
+              else ceo.bubble.appendChild(existing);
+            }
+            var pct = sp.total > 0 ? Math.round(sp.done * 100 / sp.total) : 0;
+            var bar = sp.total > 0
+              ? " [" + "=".repeat(Math.round(pct/5)) + " ".repeat(20-Math.round(pct/5)) + "] " + pct + "%"
+              : "";
+            var errText = sp.errors > 0 ? " (" + sp.errors + " err)" : "";
+            existing.textContent = "[SCANNER] " + stage + " " + status + bar + errText
+              + " | " + (sp.elapsedMs/1000).toFixed(1) + "s";
+          }
+        })();
+        break;
+
+      /* ── SCAN_SUMMARY ── */
+      case "SCAN_SUMMARY":
+        (function () {
+          SZ.state.candidateCount = ev.candidate_count || 0;
+          SZ.state.rejectedCount = ev.rejected_count || 0;
+          var ceo = SZ.chat.ensureCEOMessage();
+          if (ceo) {
+            var summary = SZ.dom.el("div", "scan-summary");
+            summary.style.cssText = "font-size:12px;color:#66bb6a;padding:6px 8px;background:rgba(102,187,106,0.08);border-radius:4px;margin:4px 0;";
+            summary.textContent = "Scan complete: " + SZ.state.candidateCount
+              + " candidates, " + SZ.state.rejectedCount + " rejected"
+              + (ev.provider_sources_used ? " | sources: " + ev.provider_sources_used.join(", ") : "");
+            ceo.bubble.insertBefore(summary, ceo.bubble.firstChild);
+          }
+        })();
+        break;
+
       /* ── MODEL_MISSING ── */
       case "MODEL_MISSING":
         addWarning("Model missing: " + (ev.model || "unknown"));

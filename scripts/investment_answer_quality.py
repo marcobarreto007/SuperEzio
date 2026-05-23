@@ -32,6 +32,28 @@ OVERLAP_GROUPS = (
 
 COMPARISON_WORDS = ("compare", "comparison", "versus", " vs ", "difference between")
 
+SMALL_CAP_WORDS = ("small cap", "small-cap", "smallcap")
+
+ETF_SEMANTIC_FORBIDDEN = {
+    "VTV": {"small_cap": SMALL_CAP_WORDS},
+    "VOO": {"small_cap": SMALL_CAP_WORDS},
+    "SPY": {"small_cap": SMALL_CAP_WORDS},
+    "IVV": {"small_cap": SMALL_CAP_WORDS},
+    "VTI": {"small_cap_value": ("small cap value", "small-cap value")},
+    "VXUS": {
+        "us_large_cap": ("us large cap", "u.s. large cap", "s&p 500", "sp500"),
+        "small_cap": SMALL_CAP_WORDS,
+    },
+    "BND": {
+        "equity": ("stock", "equity", "large cap", "small cap", "dividend stock"),
+        "reit": ("reit", "real estate"),
+    },
+    "VNQ": {
+        "bond": ("bond", "fixed income", "treasury"),
+        "small_cap": SMALL_CAP_WORDS,
+    },
+}
+
 
 def _mentions_ticker(text: str, ticker: str) -> bool:
     return bool(re.search(rf"\b{re.escape(ticker)}\b", text or "", re.IGNORECASE))
@@ -44,6 +66,26 @@ def _is_comparison_question(question: str) -> bool:
 
 def _contains_allocation_percentages(answer: str) -> bool:
     return bool(re.search(r"\b\d{1,3}\s*%", answer or ""))
+
+
+def _sentences(text: str) -> list[str]:
+    return [part.strip().lower() for part in re.split(r"[\n.;,]+", text or "") if part.strip()]
+
+
+def _semantic_mismatch_reasons(question: str, answer: str) -> list[str]:
+    if _is_comparison_question(question) or not _contains_allocation_percentages(answer):
+        return []
+
+    reasons: list[str] = []
+    for sentence in _sentences(answer):
+        for ticker, forbidden_categories in ETF_SEMANTIC_FORBIDDEN.items():
+            if not _mentions_ticker(sentence, ticker):
+                continue
+            for category, patterns in forbidden_categories.items():
+                if any(pattern in sentence for pattern in patterns):
+                    reasons.append(f"etf_semantic_mismatch:{ticker}:{category}")
+
+    return sorted(set(reasons))
 
 
 def evaluate_answer_quality(
@@ -73,5 +115,7 @@ def evaluate_answer_quality(
             present = [ticker for ticker in group if _mentions_ticker(clean_answer, ticker)]
             if len(present) > 1:
                 reasons.append(f"etf_overlap:{'/'.join(present)}")
+
+    reasons.extend(_semantic_mismatch_reasons(question, clean_answer))
 
     return {"ok": not reasons, "reasons": reasons}

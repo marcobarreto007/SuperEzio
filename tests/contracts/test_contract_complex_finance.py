@@ -19,6 +19,7 @@ from src.core.pipeline.intents import (
 from src.core.pipeline.nodes.agent import (
     COMPLEX_FINANCE_SYSTEM_PROMPT,
     SYSTEM_PROMPT,
+    _repair_complex_finance_answer,
 )
 from src.core.pipeline.prompts.builder import build_ceo_prompt
 
@@ -103,6 +104,33 @@ class TestCapitalAllocation:
 
     def test_does_not_trigger_vague_block(self):
         assert should_block_vague_financial_prompt(CAPITAL_ALLOCATION_PROMPT, "", "strict") is False
+
+    def test_repair_corrects_known_etf_category_mismatch(self):
+        content = (
+            "8. Ranked Allocation / Framework — 50% US Large Cap ETFs (VOO), "
+            "20% International Developed Markets (VXUS), 15% US Small Cap Value (VTV), "
+            "10% Bonds (BND), 5% REITs (VNQ).\n"
+            "Final verdict: ETF\n"
+            "Confidence: 76"
+        )
+
+        repaired = _repair_complex_finance_answer(CAPITAL_ALLOCATION_PROMPT, content)
+
+        assert "US Small Cap Value (VTV)" not in repaired
+        assert "US Small Cap Value (VBR)" in repaired
+
+    def test_repair_removes_unsupported_exact_debt_return(self):
+        content = (
+            "8. Ranked Allocation / Framework — High-interest debt paydown "
+            "(30% = CAD 7,500) — why: guaranteed 8-15% return vs market uncertainty.\n"
+            "Final verdict: ETF\n"
+            "Confidence: 76"
+        )
+
+        repaired = _repair_complex_finance_answer(CAPITAL_ALLOCATION_PROMPT, content)
+
+        assert "8-15% return" not in repaired
+        assert "avoided interest rate" in repaired
 
 
 # ===========================================================================

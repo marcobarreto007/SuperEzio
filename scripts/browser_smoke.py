@@ -185,8 +185,12 @@ def main() -> int:
     parser.add_argument("--headed", action="store_true")
     parser.add_argument("--skip-chat", action="store_true")
     parser.add_argument("--timeout-ms", type=int, default=90000)
-    parser.add_argument("--slow-mo", type=int, default=300,
-                        help="Milliseconds to slow down each action (only applies with --headed)")
+    parser.add_argument(
+        "--slow-mo",
+        type=int,
+        default=300,
+        help="Milliseconds to slow down each action (only applies with --headed)",
+    )
     args = parser.parse_args()
 
     slow_mo = args.slow_mo if args.headed else 0

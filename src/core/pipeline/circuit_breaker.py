@@ -18,8 +18,8 @@ class CircuitBreakerOpenError(Exception):
 
 
 class CircuitState(str, Enum):
-    CLOSED = "closed"        # normal operation — calls pass through
-    OPEN = "open"            # breaker tripped — calls are skipped
+    CLOSED = "closed"  # normal operation — calls pass through
+    OPEN = "open"  # breaker tripped — calls are skipped
     HALF_OPEN = "half_open"  # testing if provider has recovered
 
 

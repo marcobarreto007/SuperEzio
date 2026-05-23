@@ -15,6 +15,9 @@
     manifest: null,
     capabilities: null,
     neuralLogs: [],
+    scanProgress: null,         // current SCAN_EVENT heartbeat
+    candidateCount: 0,
+    rejectedCount: 0,
   };
 
   const listeners = {};

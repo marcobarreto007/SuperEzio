@@ -72,6 +72,7 @@ def requires_network():
 
 # ── Browser Smoke (Playwright obrigatório — política F51) ──────────────────
 
+
 def _browser_smoke_server_up(base_url: str) -> bool:
     import urllib.request
 
