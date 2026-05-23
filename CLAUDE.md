@@ -10,7 +10,7 @@ Regra clara:
 - NUNCA usar GitHub neste projeto.
 - NUNCA executar `git push`, `git pull`, `git fetch` ou `gh`.
 - NUNCA usar GitHub Actions, pull requests, GitHub API, conector GitHub ou MCP GitHub.
-- Commits locais sao permitidos quando Marco pedir para salvar, mas sem push.
+- Commits locais sao permitidos e **obrigatorios apos cada mudanca minima** — nao esperar "salva".
 - Se uma tarefa exigir GitHub, parar e reportar bloqueio.
 
 ## Missão do projeto
