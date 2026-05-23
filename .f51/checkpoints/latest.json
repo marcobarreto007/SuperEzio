@@ -1,31 +1,25 @@
 {
-  "date_local": "2026-05-23T09:15:00-04:00",
-  "session": "SuperEzio_Scanner_MRI_Implementation",
-  "status": "phase3_complete",
+  "date_local": "2026-05-23T09:40:00-04:00",
+  "session": "SuperEzio_Investment_QA_Contract_Plan",
+  "status": "plan_written",
   "what_was_done": [
-    "Phase 1: Created ScanEventRegistry — append-only event log with emit/stage_started/stage_heartbeat/stage_completed/stage_failed",
-    "Phase 1: Wired registry into collector.py at every stage boundary (init→fetch_tickers→enrich_*→gate→rank→finalize)",
-    "Phase 2: Created CircuitBreaker per provider (finnhub, yfinance, twelve_data) with closed→open→half-open state machine",
-    "Phase 2: Added stage deadlines to each enrichment phase, partial result preservation on timeout/circuit-open",
-    "Phase 3: Replaced asyncio.gather with queue-based worker pool (_run_enrich_stage) — providers fail independently",
-    "Phase 3: Heartbeats emitted every 20% progress; abandoned items marked on deadline; workers cancelled cleanly",
-    "Ruff check clean on all changed files; 840 tests pass",
-    "Commits: ce63a52 (Phase 1), d63c160 (Phase 2), 4c03219 (Phase 3)"
+    "Used writing-plans skill to create a task-by-task implementation plan",
+    "Captured current evidence from invest-api QA: Q1/Q2/Q3 are false-positive ok results with bad fallback text",
+    "Defined contract-first approach: pure investment quality evaluator, truthful QA scripts, deterministic investment fallbacks, final-answer quality gate",
+    "Kept product code unchanged in this step"
   ],
   "evidence": [
-    "python -m ruff check src/core/pipeline/: All checks passed",
-    "python -m pytest tests/ -q: 840 passed in 153.48s",
-    "scan_registry.py: ScanEventRegistry with emit(), stage_started/heartbeat/completed/failed(), snapshot(), as_trace()",
-    "circuit_breaker.py: CircuitBreaker with allow()/success()/failure(), CircuitBreakerOpenError, CircuitState enum",
-    "collector.py: _run_enrich_stage() with asyncio.Queue, N workers, stage deadline, heartbeat every 20%, partial result on timeout",
-    "collector.py: _call_price/_call_profile/_call_catalyst share breaker logic, scan_trace includes mri_events + circuit_breakers snapshot"
+    "Plan created: docs/superpowers/plans/2026-05-23-investment-qa-contract-hardening.md",
+    "git diff --check: passed",
+    "Current git status shows only docs/superpowers/ as untracked from this planning step",
+    "Plan requires tests/test_investment_quality.py before implementation",
+    "Plan requires scripts/invest_api_qa.py to exit nonzero on bad fallback responses"
   ],
   "risks": [
     "GitHub remains hard-blocked by .f51/GITHUB_POLICY.json",
-    "Phase 3 not yet tested with live browser smoke against real ticker scan",
-    "Queue-based workers use asyncio.Queue (single process) — not yet horizontally scalable",
-    "No persistent event log (intentional — per scan in-memory only, stored in runtime log)",
-    "Circuit breaker thresholds (5 failures, 10s cooldown) may need tuning under real provider load"
+    "Plan is not implemented yet",
+    "Final-answer quality gate must stay scoped to high-confidence failures to avoid suppressing valid short answers",
+    "Live QA depends on local API being restarted after implementation"
   ],
-  "next_step": "Run live browser smoke with headed mode to visually verify SCAN_EVENT heartbeat stream in UI"
+  "next_step": "Execute Task 1 from the plan: add src/core/pipeline/investment_quality.py and tests/test_investment_quality.py with red-green verification"
 }
