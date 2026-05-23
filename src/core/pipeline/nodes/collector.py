@@ -12,6 +12,7 @@ from typing import Any
 from langgraph.config import get_stream_writer
 
 from ..trade_order import normalize_liquidity_fields, pick_candidate, rank_candidates
+from ..scan_registry import ScanEventRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -484,15 +485,32 @@ async def _run_scan(
     source_errors: list[str] = []
     provider_sources_used: set[str] = set()
     _t0 = time.monotonic()
+    scan_id = f"scan-{int(_t0 * 1000)}"
     # 12 per country → ~24 tickers for US+CA (Finnhub free tier ~60 req/min).
     per_country_limit = int(os.getenv("SUPEREZIO_SCAN_LIMIT", "12"))
     scan_max_total = int(os.getenv("SUPEREZIO_SCAN_MAX_TOTAL", "24"))
 
+    # ── MRI Registry ──
+    registry = ScanEventRegistry(scan_id)
+    registry.stage_started("init")
+    registry.emit("init", "heartbeat", data={
+        "universe": universe_label,
+        "countries": countries,
+        "filters": filters,
+    })
+
     try:
         from ...scanner import MarketScanner
 
+        registry.stage_started("fetch_tickers", provider="scanner")
         scanner = MarketScanner()
-        for country in countries:
+        fetch_errors = 0
+        fetch_total = len(countries)
+        for idx, country in enumerate(countries):
+            registry.stage_heartbeat(
+                "fetch_tickers", provider="scanner",
+                done=idx, total=fetch_total, errors=fetch_errors,
+            )
             try:
                 tickers = await asyncio.to_thread(
                     scanner.scan_equities,
@@ -502,6 +520,7 @@ async def _run_scan(
                 )
             except Exception as exc:  # noqa: BLE001
                 source_errors.append(f"scanner_{country}: {exc}")
+                fetch_errors += 1
                 continue
             for sym in tickers or []:
                 if not sym:
@@ -513,10 +532,16 @@ async def _run_scan(
                         "market": country,
                     }
                 )
+        registry.stage_completed(
+            "fetch_tickers", provider="scanner",
+            done=fetch_total, total=fetch_total, errors=fetch_errors,
+        )
     except ImportError:
         source_errors.append("scanner: module_archived")
+        registry.stage_failed("fetch_tickers", "module_archived", provider="scanner")
     except Exception as exc:  # noqa: BLE001
         source_errors.append(f"scanner: {exc}")
+        registry.stage_failed("fetch_tickers", str(exc)[:200], provider="scanner")
 
     if len(raw_candidates) > scan_max_total:
         raw_candidates = raw_candidates[:scan_max_total]
@@ -573,12 +598,32 @@ async def _run_scan(
                         timeout=12,
                     )
 
+            # ── Enrich: Price ──
+            registry.stage_started("enrich_price", provider="data_hub")
             price_pairs = await asyncio.gather(*[_enrich_price(item) for item in price_targets])
+            registry.stage_completed(
+                "enrich_price", provider="data_hub",
+                done=len(price_pairs), total=len(price_targets),
+            )
+
+            # ── Enrich: Profile ──
+            registry.stage_started("enrich_profile", provider="data_hub")
             profile_pairs = await asyncio.gather(
                 *[_enrich_profile(item) for item in profile_catalyst_targets]
             )
+            registry.stage_completed(
+                "enrich_profile", provider="data_hub",
+                done=len(profile_pairs), total=len(profile_catalyst_targets),
+            )
+
+            # ── Enrich: Catalyst ──
+            registry.stage_started("enrich_catalyst", provider="data_hub")
             catalyst_pairs = await asyncio.gather(
                 *[_enrich_catalyst(item) for item in profile_catalyst_targets]
+            )
+            registry.stage_completed(
+                "enrich_catalyst", provider="data_hub",
+                done=len(catalyst_pairs), total=len(profile_catalyst_targets),
             )
 
             price_results = [res for _, res in price_pairs]
@@ -670,6 +715,8 @@ async def _run_scan(
                                 source_errors.append("price_attempts_sample: " + "; ".join(parts))
                             break
 
+    # ── Gate ──
+    registry.stage_started("gate")
     passing: list[dict[str, Any]] = []
     rejected: list[dict[str, Any]] = []
     rejection_summary: dict[str, int] = {}
@@ -698,12 +745,20 @@ async def _run_scan(
         rj["rejected_reason"] = key
         rejected.append(rj)
         rejection_summary[key] = rejection_summary.get(key, 0) + 1
+    registry.stage_completed(
+        "gate",
+        done=len(passing), total=len(raw_candidates),
+        errors=len(rejected),
+    )
 
+    # ── Rank ──
+    registry.stage_started("rank")
     ranked = rank_candidates(
         passing,
         source_errors=source_errors,
         weak_universe=len(passing) <= 1,
     )
+    registry.stage_completed("rank", done=len(ranked), total=len(ranked))
 
     # Hard cap: only top N after gate go to candidates
     max_after_gate = _scan_max_after_gate()
@@ -717,9 +772,8 @@ async def _run_scan(
     else:
         final_decision = "REJECT_ALL"
 
-    # ── Scan summary trace ──
-    scan_id = f"scan-{int(time.time() * 1000)}"
-    elapsed_ms = int((time.monotonic() - _t0) * 1000) if "_t0" in dir() else 0
+    # ── Finalize ──
+    registry.stage_started("finalize")
     top_reject_reasons = sorted(rejection_summary.items(), key=lambda kv: kv[1], reverse=True)[:3]
     active_providers = list(provider_sources_used) if "provider_sources_used" in dir() else []
 
@@ -730,9 +784,10 @@ async def _run_scan(
         f"top_reject={','.join(f'{k}:{v}' for k, v in top_reject_reasons)} "
         f"llm_candidates={len(llm_candidates)} llm_calls_budget={_scan_max_llm_calls()} "
         f"providers={','.join(active_providers) if active_providers else 'none'} "
-        f"final={final_decision} elapsed_ms={elapsed_ms}"
+        f"final={final_decision} elapsed_ms={registry.elapsed_ms()}"
     )
     logger.info(summary)
+    registry.stage_completed("finalize")
 
     resolved_filters: dict[str, Any] = {
         "country": explicit_country,
@@ -764,7 +819,8 @@ async def _run_scan(
             "llm_calls_budget": _scan_max_llm_calls(),
             "provider_sources_used": sorted(active_providers),
             "final_decision": final_decision,
-            "elapsed_ms": elapsed_ms,
+            "elapsed_ms": registry.elapsed_ms(),
+            "mri_events": registry.as_trace(),
         },
     }
 
