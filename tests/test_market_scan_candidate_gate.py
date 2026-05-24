@@ -615,6 +615,58 @@ def test_market_scan_not_hijacked_by_chart_ticker():
     assert result.intent == "market_scan"
 
 
+def test_portuguese_search_word_busca_is_not_ticker():
+    """Portuguese discovery commands must not route as ticker BUSCA/ETFS."""
+    from src.core.pipeline.intents import detect_ticker, parse_user_intent
+
+    prompt = (
+        "FACA UMA BUSCA DE 3 SUGESTOES COM UM HISTORICO DE 6 MESES PARA TRAS "
+        "E ME SUGIRA 3 OPORTUNIDADE PARA ESTES 12 MESES , FOCADO NO MERCADO CANADENSE"
+    )
+
+    assert detect_ticker(prompt) == ""
+
+    result = parse_user_intent(prompt, rigor="strict", ticker="")
+    plan = result.to_plan()
+
+    assert result.route == "market_scan"
+    assert result.intent == "market_scan"
+    assert result.ticker == ""
+    assert result.filters.get("country") == "Canada"
+    assert plan["cognitive_mode"] == "DISCOVERY_SCAN"
+    assert plan["scanner_allowed"] is True
+
+
+def test_portuguese_research_commands_do_not_become_tickers():
+    """Parser must treat Portuguese search words as intent, not assets."""
+    from src.core.pipeline.intents import detect_ticker
+
+    false_ticker_prompts = [
+        "BUSCA 3 oportunidades no mercado canadense",
+        "PESQUISE ETFs canadenses de alta volatilidade",
+        "PROCURE 3 sugestoes para os proximos 12 meses",
+        "SUGIRA uma lista de oportunidades canadenses",
+        "FACA uma pesquisa de historico de 6 meses",
+    ]
+
+    for prompt in false_ticker_prompts:
+        assert detect_ticker(prompt) == "", f"False ticker detected for: {prompt}"
+
+
+def test_real_canadian_tickers_still_route_to_ticker_analysis():
+    """Killing ticker-first must not break explicit ticker analysis."""
+    from src.core.pipeline.intents import detect_ticker, parse_user_intent
+
+    prompt = "Analise RY.TO e ENB.TO para os proximos 12 meses"
+
+    assert detect_ticker(prompt) in {"RY.TO", "ENB.TO"}
+    result = parse_user_intent(prompt, rigor="strict", ticker="")
+
+    assert result.route == "ticker_analysis"
+    assert result.intent == "ticker_analysis"
+    assert result.ticker in {"RY.TO", "ENB.TO"}
+
+
 def test_fax_industry_research_is_thesis_first_no_scanner():
     from src.core.pipeline.intents import parse_user_intent
 

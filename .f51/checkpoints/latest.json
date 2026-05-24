@@ -1,29 +1,30 @@
 {
-  "date_local": "2026-05-23T23:15:00-04:00",
-  "session": "SuperEzio_OpenBB_Scanner_Integration",
-  "status": "implemented_and_verified",
+  "date_local": "2026-05-23T23:44:12-04:00",
+  "session": "SuperEzio_Portuguese_Search_Parse_Ticker_First_Kill",
+  "status": "implemented_restarted_and_verified",
   "what_was_done": [
-    "Installed OpenBB 4.7.1 with 30 extensions (yfinance, FRED, FMP, Benzinga, SEC, etc.)",
-    "Created OpenBBScanner in src/core/scanner/openbb_scanner.py — wraps discovery.active(), growth_tech(), undervalued_large_caps(), undervalued_growth(), aggressive_small_caps()",
-    "OpenBB items arrive with 18 fields: price, volume, exchange, market_cap, PE, EPS, book_value, MA50/200, year_high/low, earnings_date, dividend_yield — 100% gate-ready vs 30% with FinanceDatabase",
-    "Integrated OpenBB as primary scanner in collector.py:_run_scan with automatic fallback to MarketScanner if OpenBB returns empty or fails",
-    "24/24 tickers pass basic gate checks (price+vol+exch+mcap) in 1.05s vs 8/24 before",
-    "Added FRED_API_KEY=a7a3f392b27b096894439dc51d625291 to .env — confirmed working for GDP, CPI, UNRATE, FEDFUNDS, DGS10, T10YIE, M2SL, WALCL, VIXCLS, BAMLH0A0HYM2, etc.",
-    "Updated src/core/scanner/__init__.py to export OpenBBScanner alongside MarketScanner"
+    "Stopped Portuguese discovery/search words from being detected as tickers.",
+    "Added BUSCA/BUSCAR/BUSQUE/PESQUISA/PESQUISE/PROCURA/PROCURE/ENCONTRA/ENCONTRE/SUGIRA/SUGERE/SUGESTAO/SUGESTOES and related context words to COMMON_WORDS.",
+    "Added busca/pesquisa/procura/encontra/sugestao/sugestoes to SCAN_COMMAND_HINTS so Portuguese discovery prompts route to market_scan.",
+    "Added regression tests for the exact user failure: 'FACA UMA BUSCA...' must produce ticker='' and route=market_scan with Canada filter.",
+    "Added regression tests proving Portuguese search commands do not become tickers while explicit Canadian tickers like RY.TO/ENB.TO still route to ticker_analysis.",
+    "Restarted the API server on port 8002 so the live app loads the parser patch."
   ],
   "evidence": [
-    "python -m ruff check src/core/scanner/ src/core/pipeline/nodes/collector.py: passed",
-    "python -m ruff format --check: all files formatted",
-    "python -m pytest tests/test_market_scanner.py tests/test_market_scan_candidate_gate.py tests/test_agent_market_scan_loop.py -q: 33 passed",
-    "python -m pytest tests/ -q: 859 passed in 165.45s",
-    "OpenBB discovery.active() returns 200 liquid tickers with full fundamentals in ~1s",
-    "FRED: 12/12 macro series confirmed working (GDP, CPI, unemployment, Fed funds, 10Y, breakeven, M2, balance sheet, claims, payrolls, HY spread, VIX)"
+    "python -m pytest tests/test_market_scan_candidate_gate.py::test_portuguese_search_word_busca_is_not_ticker -q: failed before patch with detect_ticker(prompt) == 'BUSCA'.",
+    "python -m pytest tests/test_market_scan_candidate_gate.py::test_portuguese_search_word_busca_is_not_ticker tests/test_market_scan_candidate_gate.py::test_portuguese_research_commands_do_not_become_tickers tests/test_market_scan_candidate_gate.py::test_real_canadian_tickers_still_route_to_ticker_analysis tests/test_market_scan_candidate_gate.py::test_market_scan_not_hijacked_by_chart_ticker -q: 4 passed.",
+    "python -m pytest tests/test_market_scan_candidate_gate.py tests/contracts/test_contract_orchestrator.py tests/test_market_scanner.py -q: 42 passed.",
+    "python -m ruff check src/core/pipeline/intents.py tests/test_market_scan_candidate_gate.py: passed.",
+    "python -m ruff format --check src/core/pipeline/intents.py tests/test_market_scan_candidate_gate.py: 2 files already formatted.",
+    "Restarted API: old 8002 PID 28192 stopped; new API PID 23940 listening on 127.0.0.1:8002.",
+    "CEO remained healthy on 127.0.0.1:8082.",
+    "Live /task/submit route smoke for exact Portuguese prompt: INTENT_CLASSIFIED route=market_scan intent=market_scan ticker='' source=deterministic_final confidence=0.82.",
+    "python -m json.tool .f51/checkpoints/latest.json: passed"
   ],
   "risks": [
-    "OpenBB discovery requires network — offline mode falls back to FinanceDatabase scanner",
-    "yfinance provider may rate-limit under heavy usage — cache TTL 60s mitigates",
-    "Catalyst + risk + invalidation still require DataHub enrichment (Finnhub) — OpenBB doesn't provide these",
-    "Backfill of fundamentals in the enrichment stage is now redundant for basic fields but preserved for catalyst/profile enrichment"
+    "This patch kills ticker-first false positives for Portuguese search commands; it does not remove legitimate explicit ticker analysis.",
+    "The live route smoke intentionally stopped after INTENT_CLASSIFIED to avoid waiting for a full scanner run.",
+    "Scanner data quality still depends on external provider coverage; parser now sends the prompt to the right tool path."
   ],
-  "next_step": "Restart API server, test 14-day recommendation with new OpenBB scanner, verify scan telemetry shows openbb provider"
+  "next_step": "Run the full user prompt through the UI and verify Bob produces Canadian-market discovery output instead of ticker BUSCA fallback."
 }
