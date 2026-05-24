@@ -34,4 +34,5 @@
   window.SZ.state = state;
   window.SZ.subscribe = subscribe;
   window.SZ.publish = publish;
+  window.SZ_SHOW_DEBUG_CARDS = true; // Enable the beautiful F51 telemetry pipeline debug cards by default
 })();
