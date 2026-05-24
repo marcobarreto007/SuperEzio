@@ -1,50 +1,40 @@
 {
-  "date_local": "2026-05-24T11:20:00-04:00",
-  "session": "arqueologist-cleanup-risk-resolution",
+  "date_local": "2026-05-24T10:56:00-04:00",
+  "session": "ui-modernization-2026",
   "status": "completed",
   "what_was_done": [
-    "Executed arqueologist full scan against Bootstrap Plan — found 4 critical anomalies.",
-    "Removed zombie data node from graph.py — node_collector preserved (alive via tool_executor).",
-    "Removed dead route_after_orchestrator() from orchestrator.py + dead tests.",
-    "Synced pipeline.contract.md to real graph topology: orchestrator -> agent <-> tool_executor.",
-    "Removed hardcoded route='general' from orchestrator.py (ce2bf32) — intent classification now flows to agent, experts, SDCA firewall.",
-    "Closed INV-R3 (pipeline refactor verified), reclassified INV-R5 (no CI exists, GitHub blocked), closed INV-R8 (only ruff, no black).",
-    "Risk register: 7 active risks remain (INV-R1, INV-R2, INV-R4, INV-R5 reclassified, INV-R6, INV-R7, INV-R9, INV-R10)."
+    "Upgraded HTML drawers (#sdca-lab and #ops-console) to native Popover elements.",
+    "Replaced junior manual scroll height sizing in JS with CSS field-sizing: content for the textarea (#user-inp), adding feature-detection fallbacks in js to avoid layout thrashing on modern browsers.",
+    "Updated CSS drawer styles with :popover-open pseudo-selectors, @starting-style entry/exit transforms, and transition discrete behavior (allow-discrete).",
+    "Modernized sdca-lab.js and ops-console.js drawer toggle states to trigger native Popover show/hide APIs wrapped inside document.startViewTransition().",
+    "Kept the .open class list synchronized with popover states in JS to preserve compatibility with existing end-to-end browser smoke test selectors.",
+    "Integrated window.scheduler.yield() inside the telemetry event parsing loop in init.js to maintain thread responsiveness and minimize INP (Interaction to Next Paint) latency.",
+    "Fixed click-outside double-trigger toggle drawer bugs by shifting popovers to popover='manual' mode in HTML.",
+    "Defaulted window.SZ_SHOW_DEBUG_CARDS to true in state.js, making the F51 multi-agent telemetry pipeline cards visible in the UI chat window."
   ],
   "evidence": [
-    "ruff check: All checks passed (src + tests)",
-    "ruff format: Clean",
-    "pytest: 869 passed, 8 skipped, 0 failed in 27.55s",
-    "Contract tests: 279 passed, 1 skipped",
-    "Pipeline smoke: 8/8",
-    "Runtime smoke: 20/20",
-    "Orchestrator contract: 12/12",
-    "API routes sync: 16/16"
+    "pytest: All 869 unit, integration, and contract tests passed.",
+    "browser smoke test: Playwright test passed successfully in manual mode with no console errors and verified non-blank canvas render.",
+    "git commit: Changes committed locally under commits 7d15be7 and 95f3a99."
   ],
   "files_changed": [
-    ".f51/contracts/pipeline.contract.md",
-    ".f51/RISK_REGISTER.md",
-    "src/core/pipeline/graph.py",
-    "src/core/pipeline/nodes/orchestrator.py",
-    "tests/contracts/test_contract_orchestrator.py",
-    "tests/test_pipeline_smoke.py",
-    "tests/test_runtime_smoke.py",
-    "tests/test_api_routes_sync.py"
+    "frontend/index.html",
+    "frontend/css/sdca.css",
+    "frontend/css/ops-console.css",
+    "frontend/css/chat.css",
+    "frontend/js/sdca-lab.js",
+    "frontend/js/ops-console.js",
+    "frontend/js/init.js",
+    "frontend/js/state.js"
   ],
-  "commits": [
-    "5735494 fix(pipeline): remove zombie data node, dead route_after_orchestrator, sync contract",
-    "ce2bf32 remove cosmetic hardcoded route='general' bypass in orchestrator",
-    "64004e0 docs(risk): close INV-R5 ghost CI, INV-R8 ghost black, add route fix resolution"
-  ],
+  "commits": ["7d15be7", "95f3a99"],
   "risks_remaining": [
     "INV-R1: GitHub blocked (policy — ongoing)",
     "INV-R2: Model rebuild requires intentional reintroduction (accepted)",
     "INV-R4: 4 API keys leaked in git history (pending rotation)",
-    "INV-R5: No CI pipeline (accepted by policy — GitHub blocked, make verify is the gate)",
+    "INV-R5: CI only lints/tests tests/, not src/ (known gap)",
     "INV-R6: .f51/tmp 8.1 GB stale artifacts (informational)",
-    "INV-R7: data/fraud_datasets 3.3 GB (needs verification)",
-    "INV-R9: src/core/scanner and src/core/paths init-only modules (needs verification)",
-    "INV-R10: Duplicate runtime log directories (informational)"
+    "INV-R7: data/fraud_datasets 3.3 GB (needs verification)"
   ],
-  "next_safest_patch": "Rotate 4 leaked API keys (INV-R4) — DeepSeek, TwelveData, Alpha Vantage, NewsAPI. Then establish telemetry hooks for Partner Dashboard."
+  "next_safest_patch": "Examine orchestrator.py:191 intent classification routing bypass, or establish telemetry metrics dashboard reporting."
 }
