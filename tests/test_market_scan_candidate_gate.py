@@ -40,6 +40,12 @@ async def test_unavailable_price_candidates_are_rejected(monkeypatch):
 
     monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
     monkeypatch.setitem(sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub()))
+    try:
+        import src.core.scanner.openbb_scanner as _obb_mod
+
+        monkeypatch.setattr(_obb_mod, "_OPENBB_AVAILABLE", False)
+    except ImportError:
+        pass
 
     result = await _run_scan(
         "What stock would you recommend if I want to profit within the next 2 weeks?",
@@ -85,6 +91,12 @@ async def test_generic_two_week_profit_prompt_defaults_to_us_canada(monkeypatch)
 
     monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
     monkeypatch.setitem(sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub()))
+    try:
+        import src.core.scanner.openbb_scanner as _obb_mod
+
+        monkeypatch.setattr(_obb_mod, "_OPENBB_AVAILABLE", False)
+    except ImportError:
+        pass
 
     result = await _run_scan(
         "What stock would you recommend if I want to profit within the next 2 weeks?",
@@ -184,6 +196,12 @@ async def test_explicit_china_scan_is_allowed(monkeypatch):
 
     monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
     monkeypatch.setitem(sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub()))
+    try:
+        import src.core.scanner.openbb_scanner as _obb_mod
+
+        monkeypatch.setattr(_obb_mod, "_OPENBB_AVAILABLE", False)
+    except ImportError:
+        pass
 
     result = await _run_scan(
         "Scan Chinese A-shares for high-risk 2-week opportunities.",
@@ -242,8 +260,16 @@ async def test_valid_candidate_requires_full_data(monkeypatch):
             return [{"name": "finnhub", "configured": True}]
 
     monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
-    monkeypatch.setattr(scanner_module, "OpenBBScanner", types.SimpleNamespace(available=False))
     monkeypatch.setitem(sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub()))
+
+    # Patch the actual module-level flag — _run_scan imports from
+    # ...scanner.openbb_scanner, not from the scanner package re-export.
+    try:
+        import src.core.scanner.openbb_scanner as _obb_mod
+
+        monkeypatch.setattr(_obb_mod, "_OPENBB_AVAILABLE", False)
+    except ImportError:
+        pass
 
     result = await _run_scan(
         "Scan US technology equities for 2-week opportunities.",
@@ -328,8 +354,16 @@ async def test_priced_candidates_fail_on_thesis_not_price(monkeypatch):
             return [{"name": "finnhub", "configured": True}]
 
     monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
-    monkeypatch.setattr(scanner_module, "OpenBBScanner", types.SimpleNamespace(available=False))
     monkeypatch.setitem(sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub()))
+
+    # Patch the actual module-level flag — _run_scan imports from
+    # ...scanner.openbb_scanner, not from the scanner package re-export.
+    try:
+        import src.core.scanner.openbb_scanner as _obb_mod
+
+        monkeypatch.setattr(_obb_mod, "_OPENBB_AVAILABLE", False)
+    except ImportError:
+        pass
 
     result = await _run_scan(
         "What stock would you recommend if I want to profit within the next 2 weeks?",

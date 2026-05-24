@@ -70,6 +70,12 @@ async def test_run_scan_uses_restored_market_scanner(monkeypatch):
 
     monkeypatch.setattr(scanner_module, "MarketScanner", FakeScanner)
     monkeypatch.setitem(sys.modules, "data.data_hub", types.SimpleNamespace(hub=FakeHub()))
+    try:
+        import src.core.scanner.openbb_scanner as _obb_mod
+
+        monkeypatch.setattr(_obb_mod, "_OPENBB_AVAILABLE", False)
+    except ImportError:
+        pass
 
     result = await _run_scan(
         "scan technology stocks",
