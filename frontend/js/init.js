@@ -257,6 +257,9 @@
           } catch (handlerErr) {
             console.warn("[SZ] event handler:", handlerErr, ev);
           }
+          if (window.scheduler && typeof window.scheduler.yield === "function") {
+            await window.scheduler.yield();
+          }
         }
       }
 
@@ -355,6 +358,8 @@
    * ═══════════════════════════════════════════════════════════════ */
 
   function wireEvents() {
+    var hasFieldSizing = window.CSS && CSS.supports && CSS.supports("field-sizing", "content");
+
     /* SEND button */
     var sendBtn = document.getElementById("send-btn");
     if (sendBtn) {
@@ -363,7 +368,9 @@
         if (inp && inp.value.trim()) {
           submit(inp.value);
           inp.value = "";
-          inp.style.height = "auto";
+          if (!hasFieldSizing) {
+            inp.style.height = "auto";
+          }
         }
       });
     }
@@ -377,14 +384,18 @@
           if (userInp.value.trim()) {
             submit(userInp.value);
             userInp.value = "";
-            userInp.style.height = "auto";
+            if (!hasFieldSizing) {
+              userInp.style.height = "auto";
+            }
           }
         }
       });
-      userInp.addEventListener("input", function () {
-        userInp.style.height = "auto";
-        userInp.style.height = Math.min(userInp.scrollHeight, 160) + "px";
-      });
+      if (!hasFieldSizing) {
+        userInp.addEventListener("input", function () {
+          userInp.style.height = "auto";
+          userInp.style.height = Math.min(userInp.scrollHeight, 160) + "px";
+        });
+      }
     }
 
     /* TICKER / TF change */

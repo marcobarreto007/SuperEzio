@@ -10,17 +10,32 @@
   grid-template-rows: auto 1fr;
   background: linear-gradient(135deg, rgba(8, 12, 9, 0.92) 0%, rgba(3, 5, 4, 0.98) 100%);
   backdrop-filter: var(--glass-blur);
+  border: none;
   border-left: 1px solid rgba(0, 229, 255, 0.2);
   box-shadow: -8px 0 32px rgba(0, 0, 0, 0.8), -2px 0 8px rgba(0, 229, 255, 0.08);
-  z-index: 30;
+  margin: 0;
+  padding: 0;
+
+  /* Starting state: hidden offscreen */
   transform: translateX(100%);
-  pointer-events: none;
-  transition: transform 0.4s var(--ease);
+
+  /* Native Top-layer discrete property transitions */
+  transition:
+    transform 0.4s var(--ease),
+    display 0.4s var(--ease) allow-discrete,
+    overlay 0.4s var(--ease) allow-discrete;
 }
 
-.ops-console.open {
+/* Selector for popover-open state */
+.ops-console:popover-open {
   transform: translateX(0);
-  pointer-events: auto;
+}
+
+/* Top-layer entry animation rules */
+@starting-style {
+  .ops-console:popover-open {
+    transform: translateX(100%);
+  }
 }
 
 .ops-console-hdr {

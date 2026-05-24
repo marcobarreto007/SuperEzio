@@ -102,9 +102,36 @@
   function toggle(open) {
     const lab = $("sdca-lab");
     if (!lab) return;
-    const next = open ?? !lab.classList.contains("open");
-    lab.classList.toggle("open", next);
-    lab.setAttribute("aria-hidden", next ? "false" : "true");
+
+    const action = () => {
+      try {
+        const isVisible = lab.matches(":popover-open");
+        const next = open ?? !isVisible;
+        if (next) {
+          lab.showPopover();
+          lab.classList.add("open");
+          // Auto-close Ops Console if open
+          const ops = document.getElementById("ops-console");
+          if (ops && ops.matches(":popover-open")) {
+            ops.hidePopover();
+            ops.classList.remove("open");
+          }
+        } else {
+          lab.hidePopover();
+          lab.classList.remove("open");
+        }
+      } catch (e) {
+        // Fallback for older environments
+        const next = open ?? !lab.classList.contains("open");
+        lab.classList.toggle("open", next);
+      }
+    };
+
+    if (document.startViewTransition) {
+      document.startViewTransition(action);
+    } else {
+      action();
+    }
   }
 
   window.SZ.sdcaLab = { toggle, setPreset, run };

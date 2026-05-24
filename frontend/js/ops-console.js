@@ -142,18 +142,44 @@
   function toggle(open) {
     const consoleEl = $("ops-console");
     if (!consoleEl) return;
-    const next = open ?? !consoleEl.classList.contains("open");
-    consoleEl.classList.toggle("open", next);
-    consoleEl.setAttribute("aria-hidden", next ? "false" : "true");
 
-    if (next) {
-      // Close other panels
-      const sdca = $("sdca-lab");
-      if (sdca) {
-        sdca.classList.remove("open");
-        sdca.setAttribute("aria-hidden", "true");
+    const action = () => {
+      try {
+        const isVisible = consoleEl.matches(":popover-open");
+        const next = open ?? !isVisible;
+        if (next) {
+          consoleEl.showPopover();
+          consoleEl.classList.add("open");
+          // Auto-close SDCA Lab if open
+          const sdca = document.getElementById("sdca-lab");
+          if (sdca && sdca.matches(":popover-open")) {
+            sdca.hidePopover();
+            sdca.classList.remove("open");
+          }
+          loadDiagnostics();
+        } else {
+          consoleEl.hidePopover();
+          consoleEl.classList.remove("open");
+        }
+      } catch (e) {
+        // Fallback for older environments
+        const next = open ?? !consoleEl.classList.contains("open");
+        consoleEl.classList.toggle("open", next);
+        if (next) {
+          const sdca = $("sdca-lab");
+          if (sdca) {
+            sdca.classList.remove("open");
+            sdca.setAttribute("aria-hidden", "true");
+          }
+          loadDiagnostics();
+        }
       }
-      loadDiagnostics();
+    };
+
+    if (document.startViewTransition) {
+      document.startViewTransition(action);
+    } else {
+      action();
     }
   }
 

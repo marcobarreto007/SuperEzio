@@ -146,7 +146,8 @@
   flex: 1;
   resize: none;
   min-height: 48px;
-  max-height: 120px;
+  max-height: 160px;
+  field-sizing: content;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   padding: 11px 16px;
