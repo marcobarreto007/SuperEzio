@@ -64,11 +64,8 @@ def build_graph(
     builder.add_node("explanation", _explanation)
     builder.add_node("respond_blocked", _blocked)
 
-    # Orchestrator classifies intent; collector runs next so market_scan and
-    # ticker_analysis have data before the CEO/agent loop (see route_after_orchestrator).
     builder.add_edge(START, "orchestrator_primary")
-    builder.add_edge("orchestrator_primary", "data")
-    builder.add_edge("data", "agent")
+    builder.add_edge("orchestrator_primary", "agent")
 
     # Agent decides whether to call a tool or output the final answer
     builder.add_conditional_edges(

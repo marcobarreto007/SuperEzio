@@ -1,28 +1,26 @@
 {
-  "date_local": "2026-05-23T23:58:00-04:00",
-  "session": "SuperEzio_Busca_Fix_Verification_And_Test_Repair",
-  "status": "verified_and_committed",
+  "date_local": "2026-05-24T10:12:00-04:00",
+  "session": "Bob_Zero_Legacy_Reconstruction_Execution",
+  "status": "completed",
   "what_was_done": [
-    "Verified the Portuguese BUSCA routing fix (commit 43bb7b5) works end-to-end via API test.",
-    "API confirmed: 'FACA UMA BUSCA...' → route=market_scan, ticker='', universe=explicit:Canada, 5 Canadian candidates returned.",
-    "Fixed 6 tests whose OpenBBScanner mocks were silently ineffective — patching scanner_module.OpenBBScanner does NOT reach _run_scan's relative import from ...scanner.openbb_scanner.",
-    "All 6 tests now correctly patch _OPENBB_AVAILABLE on src.core.scanner.openbb_scanner module.",
-    "Full suite: 862/862 passed, ruff lint/formatted clean."
+    "Simplified pipeline graph by connecting orchestrator directly to agent, removing static data pre-collection.",
+    "Forced route to 'general' inside orchestrator node, disabling legacy hardcoded bypassed execution routes.",
+    "Restructured agent.py to implement a clean ReAct loop, removing deterministic bypasses while preserving essential quality prompts, repairs, and fallbacks.",
+    "Refactored experts.py and tool_executor.py to use 4 refined experts (macro_risk, fundamental_value, momentum_technical, contrarian_opportunity) with custom prompts and backward compatibility mappings.",
+    "Executed and verified the entire 862 test suite (854 passed, 8 skipped)."
   ],
   "evidence": [
-    "curl API test: Portuguese market scan request → INTENT_CLASSIFIED route=market_scan, ticker='', confidence=0.75",
-    "curl API test: scan completed with 5 Canada candidates (WPM, TMC, PBA, HUT, IAG) and 3 rejections",
-    "python -m pytest tests/ -q: 862 passed in 133.83s",
-    "python -m ruff check src tests: clean",
-    "python -m ruff format --check src tests: 224 files already formatted"
+    "pytest output: 854 passed, 8 skipped in 22.77s",
+    "ruff check and format: clean",
+    "walkthrough.md and task.md updated"
   ],
   "files_changed": [
-    "tests/test_market_scan_candidate_gate.py — replaced SimpleNamespace(available=False) patches with _OPENBB_AVAILABLE=False on openbb_scanner module (5 tests)",
-    "tests/test_market_scanner.py — same fix for test_run_scan_uses_restored_market_scanner"
+    "src/core/pipeline/graph.py",
+    "src/core/pipeline/nodes/orchestrator.py",
+    "src/core/pipeline/nodes/agent.py",
+    "src/core/pipeline/nodes/experts.py",
+    "src/core/pipeline/nodes/tool_executor.py"
   ],
-  "commits": [
-    "43bb7b5 fix(parser): stop Portuguese search commands from becoming tickers (previous session)",
-    "37c04fa fix(tests): correct OpenBBScanner mock target for _OPENBB_AVAILABLE flag (this session)"
-  ],
-  "next_safest_patch": "Install playwright in .venv so browser_smoke.py can validate the fix in a real browser session with Bob."
+  "commits": [],
+  "next_safest_patch": "Install playwright in .venv to enable browser smoke testing."
 }

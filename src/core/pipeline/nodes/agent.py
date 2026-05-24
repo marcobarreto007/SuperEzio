@@ -167,39 +167,6 @@ You must ONLY output a valid JSON object:
 {"tool": "final_answer", "args": {"content": "your full analysis here"}}
 """
 
-
-def _parse_tool_call(text: str) -> dict[str, Any] | None:
-    try:
-        # Extract JSON if there's markdown
-        match = re.search(r"\{.*\}", text.strip(), re.DOTALL)
-        if match:
-            raw = json.loads(match.group(0))
-        else:
-            raw = json.loads(text.strip())
-        return AgentToolCall.model_validate(raw).model_dump()
-    except Exception:
-        return None
-
-
-def _is_portuguese_request(message: str) -> bool:
-    raw = (message or "").lower()
-    return any(
-        token in raw
-        for token in (
-            "bob",
-            "voce",
-            "você",
-            "tenho",
-            "investir",
-            "risco",
-            "mercado",
-            "pesquisa",
-            "pequeno",
-            "comprar",
-        )
-    )
-
-
 _REJECTION_LABELS_EN = {
     "missing_ticker": "ticker missing or invalid",
     "missing_exchange": "exchange/market unknown",
@@ -222,6 +189,26 @@ _REJECTION_LABELS_PT = {
     "microcap_filtered": "microcap (<US$300M) filtrada",
 }
 
+def _parse_tool_call(text: str) -> dict[str, Any] | None:
+    try:
+        # Extract JSON if there's markdown
+        match = re.search(r"\{.*\}", text.strip(), re.DOTALL)
+        if match:
+            raw = json.loads(match.group(0))
+        else:
+            raw = json.loads(text.strip())
+        return AgentToolCall.model_validate(raw).model_dump()
+    except Exception:
+        return None
+
+def _is_portuguese_request(message: str) -> bool:
+    raw = (message or "").lower()
+    return any(
+        token in raw
+        for token in (
+            "bob", "voce", "você", "tenho", "investir", "risco", "mercado", "pesquisa", "pequeno", "comprar"
+        )
+    )
 
 def _format_liquidity(volume: Any, candidate: dict[str, Any] | None = None) -> str:
     """Format liquidity with explicit units — never a misleading raw float."""
@@ -231,7 +218,6 @@ def _format_liquidity(volume: Any, candidate: dict[str, Any] | None = None) -> s
     normalize_liquidity_fields(stub)
     return format_liquidity_display(stub)
 
-
 def _top_rejection_reasons(
     summary: dict[str, int], labels: dict[str, str], limit: int = 3
 ) -> list[str]:
@@ -239,7 +225,6 @@ def _top_rejection_reasons(
         return []
     ordered = sorted(summary.items(), key=lambda kv: kv[1], reverse=True)[:limit]
     return [f"{labels.get(reason, reason)} — {count}" for reason, count in ordered]
-
 
 def _format_candidate_block_en(item: dict[str, Any]) -> list[str]:
     ticker = item.get("ticker") or "?"
@@ -269,7 +254,6 @@ def _format_candidate_block_en(item: dict[str, Any]) -> list[str]:
         f"  Confidence: {confidence}",
     ]
 
-
 def _format_candidate_block_pt(item: dict[str, Any]) -> list[str]:
     ticker = item.get("ticker") or "?"
     name = item.get("name") or item.get("company") or "—"
@@ -298,7 +282,6 @@ def _format_candidate_block_pt(item: dict[str, Any]) -> list[str]:
         f"  Confianca: {confidence}",
     ]
 
-
 def _compute_model_confidence(
     candidate: dict[str, Any],
     *,
@@ -314,7 +297,6 @@ def _compute_model_confidence(
         weak_universe=weak_universe,
     )
 
-
 def _should_use_decisive_mode(state: dict) -> bool:
     message = state.get("message", "")
     intent = state.get("intent", "")
@@ -325,7 +307,6 @@ def _should_use_decisive_mode(state: dict) -> bool:
         if detect_another_trade_recommendation_intent(message):
             return True
     return bool(detect_decisive_trade_intent(message))
-
 
 def _build_trade_order_context(
     state: dict,
@@ -358,7 +339,6 @@ def _build_trade_order_context(
         "scanned_at": scan.get("collected_at") or trade_ctx.get("scanned_at"),
     }
 
-
 def _trade_safety_gate_failures(state: dict) -> list[str]:
     failures: list[str] = []
     f51 = state.get("f51_verdict") or {}
@@ -382,9 +362,7 @@ def _trade_safety_gate_failures(state: dict) -> list[str]:
 
     return failures
 
-
 def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | None]:
-    """Render DECISIVE_TRADE_ORDER / follow-up; returns (answer, session context)."""
     message = state.get("message", "")
     scan = state.get("scan") or {}
     trade_ctx = state.get("trade_order_context") or {}
@@ -416,137 +394,92 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
         )
 
     entry, _ = pick_candidate(ranked, excluded_tickers=excluded)
-
     sections: list[str] = []
 
     if is_followup and entry is None:
         prev = trade_ctx.get("primary_ticker") or (list(excluded)[0] if excluded else "?")
         if portuguese:
-            sections.extend(
-                [
-                    "# Bob Model Order",
-                    "",
-                    f"1. Modo: {mode_label}",
-                    "2. Decisao Final: REJECT_ALL",
-                    f"3. Candidato Anterior Excluido: {prev}",
-                    "",
-                    f"Nenhum segundo candidato passou o gate de qualidade apos excluir {prev}.",
-                    "",
-                    "Resumo de Rejeicoes:",
-                    f"   - rejected_count: {rejected_count}",
-                ]
-            )
+            sections.extend([
+                "# Bob Model Order", "",
+                f"1. Modo: {mode_label}",
+                "2. Decisao Final: REJECT_ALL",
+                f"3. Candidato Anterior Excluido: {prev}", "",
+                f"Nenhum segundo candidato passou o gate de qualidade apos excluir {prev}.", "",
+                "Resumo de Rejeicoes:", f"   - rejected_count: {rejected_count}"
+            ])
             if top_reasons:
                 sections.append("   - top_rejection_reasons:")
-                for reason in top_reasons:
-                    sections.append(f"     * {reason}")
-            sections.extend(
-                [
-                    "",
-                    "Proxima Acao Sugerida:",
-                    "   - expandir universo (setor ou pais)",
-                    "   - especificar setor ou tema",
-                    "   - ajustar tolerancia a risco",
-                    "   - pedir analise ticker-por-ticker (ex.: AAPL, MSFT)",
-                    "",
-                    "Model verdict: REJECT_ALL",
-                ]
-            )
+                for r in top_reasons:
+                    sections.append(f"     * {r}")
+            sections.extend([
+                "", "Proxima Acao Sugerida:",
+                "   - expandir universo (setor ou pais)",
+                "   - especificar setor ou tema",
+                "   - ajustar tolerancia a risco",
+                "   - pedir analise ticker-por-ticker (ex.: AAPL, MSFT)", "",
+                "Model verdict: REJECT_ALL"
+            ])
         else:
-            sections.extend(
-                [
-                    "# Bob Model Order",
-                    "",
-                    f"1. Mode: {mode_label}",
-                    "2. Final Decision: REJECT_ALL",
-                    f"3. Previous Candidate Excluded: {prev}",
-                    "",
-                    f"No second candidate passed the quality gate after excluding {prev}.",
-                    "",
-                    "Rejected Summary:",
-                    f"   - rejected_count: {rejected_count}",
-                ]
-            )
+            sections.extend([
+                "# Bob Model Order", "",
+                f"1. Mode: {mode_label}",
+                "2. Final Decision: REJECT_ALL",
+                f"3. Previous Candidate Excluded: {prev}", "",
+                f"No second candidate passed the quality gate after excluding {prev}.", "",
+                "Rejected Summary:", f"   - rejected_count: {rejected_count}"
+            ])
             if top_reasons:
                 sections.append("   - top_rejection_reasons:")
-                for reason in top_reasons:
-                    sections.append(f"     * {reason}")
-            sections.extend(
-                [
-                    "",
-                    "Next Best Action:",
-                    "   - expand universe (sector or country)",
-                    "   - specify a sector or theme",
-                    "   - lower/raise risk tolerance",
-                    "   - run explicit ticker analysis (e.g. AAPL, MSFT)",
-                    "",
-                    "Model verdict: REJECT_ALL",
-                ]
-            )
+                for r in top_reasons:
+                    sections.append(f"     * {r}")
+            sections.extend([
+                "", "Next Best Action:",
+                "   - expand universe (sector or country)",
+                "   - specify a sector or theme",
+                "   - lower/raise risk tolerance",
+                "   - run explicit ticker analysis (e.g. AAPL, MSFT)", "",
+                "Model verdict: REJECT_ALL"
+            ])
         ctx = _build_trade_order_context(
-            state,
-            mode=mode_label,
-            primary_ticker=prev,
-            ranked=ranked,
-            decision="REJECT_ALL",
+            state, mode=mode_label, primary_ticker=prev, ranked=ranked, decision="REJECT_ALL"
         )
         return "\n".join(sections), ctx
 
     if not candidates and entry is None:
         if portuguese:
-            sections.extend(
-                [
-                    "# Bob Model Order",
-                    "",
-                    f"1. Modo: {mode_label}",
-                    "2. Decisao Final: REJECT_ALL",
-                    "",
-                    f"Nenhuma ordem de modelo gerada. {rejected_count} ticker(s) "
-                    "rejeitado(s) nos gates de qualidade de dados.",
-                ]
-            )
+            sections.extend([
+                "# Bob Model Order", "",
+                f"1. Modo: {mode_label}",
+                "2. Decisao Final: REJECT_ALL", "",
+                f"Nenhuma ordem de modelo gerada. {rejected_count} ticker(s) rejeitado(s) nos gates de qualidade de dados."
+            ])
             if top_reasons:
                 sections.append("Principais motivos de rejeicao:")
-                for reason in top_reasons:
-                    sections.append(f"   - {reason}")
-            sections.append(f"Universo do scan: {universe}.")
-            sections.append("")
-            sections.append(
-                "Proximo scan sugerido: ampliar universo (setor ou pais), nomear um tema "
-                "ou apertar filtros de liquidez."
-            )
-            sections.append(
-                "Proximo prompt sugerido: 'Faca uma checagem ticker-por-ticker de AAPL, "
-                "MSFT e SPY com preco, volume, ATR de 14 dias e proximo evento conhecido.'"
-            )
-            sections.append("Model verdict: REJECT_ALL")
+                for r in top_reasons:
+                    sections.append(f"   - {r}")
+            sections.extend([
+                f"Universo do scan: {universe}.", "",
+                "Proximo scan sugerido: ampliar universo (setor ou pais), nomear um tema ou apertar filtros de liquidez.",
+                "Proximo prompt sugerido: 'Faca uma checagem ticker-por-ticker de AAPL, MSFT e SPY com preco, volume, ATR de 14 dias e proximo evento conhecido.'",
+                "Model verdict: REJECT_ALL"
+            ])
         else:
-            sections.extend(
-                [
-                    "# Bob Model Order",
-                    "",
-                    f"1. Mode: {mode_label}",
-                    "2. Final Decision: REJECT_ALL",
-                    "",
-                    f"No valid model order generated. {rejected_count} ticker(s) "
-                    "rejected at data-quality gates.",
-                ]
-            )
+            sections.extend([
+                "# Bob Model Order", "",
+                f"1. Mode: {mode_label}",
+                "2. Final Decision: REJECT_ALL", "",
+                f"No valid model order generated. {rejected_count} ticker(s) rejected at data-quality gates."
+            ])
             if top_reasons:
                 sections.append("Top rejection reasons:")
-                for reason in top_reasons:
-                    sections.append(f"   - {reason}")
-            sections.append(f"Scan universe: {universe}.")
-            sections.append("")
-            sections.append(
-                "Suggested next scan: broaden universe (sector or country), name a theme, "
-                "or tighten liquidity filters."
-            )
-            sections.append(
-                "Suggested next prompt: 'Run a ticker-by-ticker check on AAPL, "
-                "MSFT and SPY with price, volume, 14-day ATR and the next known event.'"
-            )
-            sections.append("Model verdict: REJECT_ALL")
+                for r in top_reasons:
+                    sections.append(f"   - {r}")
+            sections.extend([
+                f"Scan universe: {universe}.", "",
+                "Suggested next scan: broaden universe (sector or country), name a theme, or tighten liquidity filters.",
+                "Suggested next prompt: 'Run a ticker-by-ticker check on AAPL, MSFT and SPY with price, volume, 14-day ATR and the next known event.'",
+                "Model verdict: REJECT_ALL"
+            ])
         if errors:
             sections.append("Data limit: " + "; ".join(str(e) for e in errors[:3]))
         ctx = _build_trade_order_context(
@@ -568,12 +501,8 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
     if not gate_failures:
         _, gate_failures = evaluate_quality_gates(primary)
     confidence = int(
-        entry.get("confidence")
-        or compute_model_confidence(
-            primary,
-            gate_failures=gate_failures,
-            source_errors=errors,
-            weak_universe=len(candidates) <= 1,
+        entry.get("confidence") or compute_model_confidence(
+            primary, gate_failures=gate_failures, source_errors=errors, weak_universe=len(candidates) <= 1
         )
     )
     decision = entry.get("decision") or decide_final_action(confidence, gate_failures)
@@ -592,13 +521,7 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
     market = primary.get("market") or primary.get("exchange") or "—"
     price = primary.get("price")
     currency = primary.get("currency") or "USD"
-    catalyst = (
-        primary.get("catalyst")
-        or primary.get("thesis")
-        or primary.get("short_term_thesis")
-        or primary.get("reason")
-        or "—"
-    )
+    catalyst = primary.get("catalyst") or primary.get("thesis") or primary.get("short_term_thesis") or primary.get("reason") or "—"
     risk = primary.get("risk") or primary.get("downside_risk") or "—"
     invalidation = primary.get("invalidation") or primary.get("invalidation_condition") or "—"
     provider = primary.get("provider") or primary.get("source") or "data hub"
@@ -609,204 +532,119 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
         prev_excluded = trade_ctx.get("primary_ticker") or (list(excluded)[0] if excluded else "—")
 
     is_buy_candidate = decision == "BUY_CANDIDATE"
-    candidate_heading_pt = (
-        "Candidato Primario da Ordem:"
-        if is_buy_candidate
-        else "Candidato de Estudo (Nao e recomendacao):"
-    )
-    candidate_heading_en = (
-        "Primary Order Candidate:"
-        if is_buy_candidate
-        else "Study Candidate (Not a Recommendation):"
-    )
-    plan_heading_pt = (
-        "Plano de Ordem Sugerido:" if is_buy_candidate else "Plano de Watchlist / Sem Ordem:"
-    )
+    candidate_heading_pt = "Candidato Primario da Ordem:" if is_buy_candidate else "Candidato de Estudo (Nao e recomendacao):"
+    candidate_heading_en = "Primary Order Candidate:" if is_buy_candidate else "Study Candidate (Not a Recommendation):"
+    plan_heading_pt = "Plano de Ordem Sugerido:" if is_buy_candidate else "Plano de Watchlist / Sem Ordem:"
     plan_heading_en = "Suggested Order Plan:" if is_buy_candidate else "Watchlist / No-Trade Plan:"
-    entry_line_pt = (
-        "ordem limitada proximo ao preco atual"
-        if is_buy_candidate
-        else "Sem entrada ate risco, invalidacao e confianca passarem nos gates"
-    )
-    entry_line_en = (
-        "limit order near current price"
-        if is_buy_candidate
-        else "No entry until risk, invalidation, and confidence gates pass"
-    )
-    max_risk_line_pt = (
-        "0.5%-1.0% do capital de trading" if is_buy_candidate else "0 ate virar BUY_CANDIDATE"
-    )
-    max_risk_line_en = (
-        "0.5%-1.0% of trading capital" if is_buy_candidate else "0 until upgraded to BUY_CANDIDATE"
-    )
+    entry_line_pt = "ordem limitada proximo ao preco atual" if is_buy_candidate else "Sem entrada ate risco, invalidacao e confianca passarem nos gates"
+    entry_line_en = "limit order near current price" if is_buy_candidate else "No entry until risk, invalidation, and confidence gates pass"
+    max_risk_line_pt = "0.5%-1.0% do capital de trading" if is_buy_candidate else "0 ate virar BUY_CANDIDATE"
+    max_risk_line_en = "0.5%-1.0% of trading capital" if is_buy_candidate else "0 until upgraded to BUY_CANDIDATE"
 
     if portuguese:
-        sections.extend(
-            [
-                "# Bob Model Order",
-                "",
-                f"1. Modo: {mode_label}",
-                f"2. Decisao Final: {decision}",
-                "",
-            ]
-        )
+        sections.extend([
+            "# Bob Model Order", "",
+            f"1. Modo: {mode_label}",
+            f"2. Decisao Final: {decision}", "",
+        ])
         if is_followup:
             sections.append(f"3. Candidato Anterior Excluido: {prev_excluded}")
             sections.append("")
             sections.append(f"4. {candidate_heading_pt}")
         else:
             sections.append(f"3. {candidate_heading_pt}")
-        sections.extend(
-            [
-                f"   - Ticker: {ticker}",
-                f"   - Empresa: {name}",
-                f"   - Mercado: {market}",
-                f"   - Preco Atual: {price} {currency}",
-                f"   - Dados: {collected_at} (fonte: {provider})",
-                f"   - Liquidez: {liquidity_text}",
-                f"   - Catalisador: {catalyst}",
-                f"   - Horizonte: {time_horizon}",
-                f"   - Confianca do Modelo: {confidence}/100",
-            ]
-        )
+        sections.extend([
+            f"   - Ticker: {ticker}",
+            f"   - Empresa: {name}",
+            f"   - Mercado: {market}",
+            f"   - Preco Atual: {price} {currency}",
+            f"   - Dados: {collected_at} (fonte: {provider})",
+            f"   - Liquidez: {liquidity_text}",
+            f"   - Catalisador: {catalyst}",
+            f"   - Horizonte: {time_horizon}",
+            f"   - Confianca do Modelo: {confidence}/100",
+        ])
         if gate_failures:
             sections.append(f"   - Gates falhados: {', '.join(gate_failures)}")
         if safety_gate_failures:
-            sections.append(
-                "   - Gates obrigatorios de seguranca: F51 + SDCA precisam estar "
-                "executados e aprovados antes de BUY_CANDIDATE."
-            )
+            sections.append("   - Gates obrigatorios de seguranca: F51 + SDCA precisam estar executados e aprovados antes de BUY_CANDIDATE.")
         plan_num = "5" if is_followup else "4"
-        sections.extend(
-            [
-                "",
-                f"{plan_num}. {plan_heading_pt}",
-                f"   - Entrada: {entry_line_pt}",
-                f"   - Stop/Invalidacao: {invalidation}",
-                f"   - Risco: {risk}",
-                f"   - Risco Maximo: {max_risk_line_pt}",
-                "",
-                "Ordem do modelo, nao e lucro garantido. Confirmacao humana obrigatoria.",
-                f"Model verdict: {decision}",
-            ]
-        )
+        sections.extend([
+            "", f"{plan_num}. {plan_heading_pt}",
+            f"   - Entrada: {entry_line_pt}",
+            f"   - Stop/Invalidacao: {invalidation}",
+            f"   - Risco: {risk}",
+            f"   - Risco Maximo: {max_risk_line_pt}", "",
+            "Ordem do modelo, nao e lucro garantido. Confirmacao humana obrigatoria.",
+            f"Model verdict: {decision}"
+        ])
     else:
-        sections.extend(
-            [
-                "# Bob Model Order",
-                "",
-                f"1. Mode: {mode_label}",
-                f"2. Final Decision: {decision}",
-                "",
-            ]
-        )
+        sections.extend([
+            "# Bob Model Order", "",
+            f"1. Mode: {mode_label}",
+            f"2. Final Decision: {decision}", "",
+        ])
         if is_followup:
             sections.append(f"3. Previous Candidate Excluded: {prev_excluded}")
             sections.append("")
             sections.append(f"4. {candidate_heading_en}")
         else:
             sections.append(f"3. {candidate_heading_en}")
-        sections.extend(
-            [
-                f"   - Ticker: {ticker}",
-                f"   - Company: {name}",
-                f"   - Market: {market}",
-                f"   - Latest Price: {price} {currency}",
-                f"   - Data Timestamp: {collected_at} (source: {provider})",
-                f"   - Liquidity: {liquidity_text}",
-                f"   - Catalyst: {catalyst}",
-                f"   - Time Horizon: {time_horizon}",
-                f"   - Model Confidence: {confidence}/100",
-            ]
-        )
+        sections.extend([
+            f"   - Ticker: {ticker}",
+            f"   - Company: {name}",
+            f"   - Market: {market}",
+            f"   - Latest Price: {price} {currency}",
+            f"   - Data Timestamp: {collected_at} (source: {provider})",
+            f"   - Liquidity: {liquidity_text}",
+            f"   - Catalyst: {catalyst}",
+            f"   - Time Horizon: {time_horizon}",
+            f"   - Model Confidence: {confidence}/100",
+        ])
         if gate_failures:
             sections.append(f"   - Gate failures: {', '.join(gate_failures)}")
         if safety_gate_failures:
-            sections.append(
-                "   - Required safety gates: F51 + SDCA must run and pass before BUY_CANDIDATE."
-            )
+            sections.append("   - Required safety gates: F51 + SDCA must run and pass before BUY_CANDIDATE.")
         plan_num = "5" if is_followup else "4"
-        sections.extend(
-            [
-                "",
-                f"{plan_num}. {plan_heading_en}",
-                f"   - Entry: {entry_line_en}",
-                f"   - Stop/Invalidation: {invalidation}",
-                f"   - Risk: {risk}",
-                f"   - Max Risk: {max_risk_line_en}",
-                "",
-                "Model order, not guaranteed profit. Human confirmation required.",
-                f"Model verdict: {decision}",
-            ]
-        )
+        sections.extend([
+            "", f"{plan_num}. {plan_heading_en}",
+            f"   - Entry: {entry_line_en}",
+            f"   - Stop/Invalidation: {invalidation}",
+            f"   - Risk: {risk}",
+            f"   - Max Risk: {max_risk_line_en}", "",
+            "Model order, not guaranteed profit. Human confirmation required.",
+            f"Model verdict: {decision}"
+        ])
 
     if decision == "WAIT":
         sections.append("")
         if portuguese:
-            sections.append(
-                f"Nota: confianca abaixo do limiar de compra ({BUY_CONFIDENCE_THRESHOLD}/100) "
-                "ou gates de liquidez/risco incompletos."
-            )
+            sections.append(f"Nota: confianca abaixo do limiar de compra ({BUY_CONFIDENCE_THRESHOLD}/100) ou gates de liquidez/risco incompletos.")
             if gate_failures:
                 sections.append(f"Motivos: {', '.join(gate_failures)}")
-            sections.append(
-                "Permanece na watchlist de estudo ate liquidez, risco e invalidacao "
-                "elevarem ao limiar de compra do modelo."
-            )
+            sections.append("Permanece na watchlist de estudo ate liquidez, risco e invalidacao elevarem ao limiar de compra do modelo.")
         else:
-            sections.append(
-                f"Note: confidence below buy threshold ({BUY_CONFIDENCE_THRESHOLD}/100) "
-                "or liquidity/risk gates not satisfied."
-            )
+            sections.append(f"Note: confidence below buy threshold ({BUY_CONFIDENCE_THRESHOLD}/100) or liquidity/risk gates not satisfied.")
             if gate_failures:
                 sections.append(f"Reasons: {', '.join(gate_failures)}")
-            sections.append(
-                "Keep on a study watchlist until liquidity, risk, and invalidation "
-                "upgrade to model-buy thresholds."
-            )
+            sections.append("Keep on a study watchlist until liquidity, risk, and invalidation upgrade to model-buy thresholds.")
 
     if errors:
         sections.append("")
-        sections.append(
-            ("Limite de dados: " if portuguese else "Data limit: ")
-            + "; ".join(str(e) for e in errors[:3])
-        )
+        sections.append(("Limite de dados: " if portuguese else "Data limit: ") + "; ".join(str(e) for e in errors[:3]))
 
     ctx = _build_trade_order_context(
-        state,
-        mode=mode_label,
-        primary_ticker=str(ticker),
-        ranked=ranked,
-        decision=decision,
+        state, mode=mode_label, primary_ticker=str(ticker), ranked=ranked, decision=decision
     )
     return "\n".join(sections), ctx
 
-
 def _decisive_trade_order_answer(state: dict) -> str:
-    """Backward-compatible wrapper — answer text only."""
     answer, _ = _render_decisive_trade_order(state)
     return answer
 
-
 def _market_scan_answer(state: dict) -> str:
-    """Render the gated market scan into a structured answer.
-
-    If the user asked for a decisive trade recommendation, delegates to
-    _decisive_trade_order_answer(). Otherwise renders the standard
-    8-section research report.
-
-    The output is bilingual (PT/EN) and never advertises candidates that
-    failed the data-quality gate. When zero candidates pass, the answer
-    still includes filters, rejection counts, the top rejection reasons,
-    and a safer follow-up prompt so the user gets actionable guidance.
-    """
     message = state.get("message", "")
-
-    # Decisive trade order mode — buy recommendation or follow-up
-    if _should_use_decisive_mode(state):
-        return _decisive_trade_order_answer(state)
-
-    if detect_decisive_trade_intent(message):
+    if _should_use_decisive_mode(state) or detect_decisive_trade_intent(message):
         return _decisive_trade_order_answer(state)
 
     scan = state.get("scan") or {}
@@ -823,127 +661,78 @@ def _market_scan_answer(state: dict) -> str:
 
     if portuguese:
         sections: list[str] = []
-        sections.append(
-            "Bob CEO: este e um relatorio de pesquisa de mercado, nao uma "
-            "ordem de compra. Lucro nao e garantido."
-        )
+        sections.append("Bob CEO: este e um relatorio de pesquisa de mercado, nao uma ordem de compra. Lucro nao e garantido.")
         sections.append("")
         sections.append("1) Classificacao: pesquisa de oportunidade de curto prazo.")
         sections.append("2) Horizonte: aproximadamente 2 semanas (curto prazo).")
         sections.append(f"3) Universo do scan: {universe}")
-        sections.append(
-            "4) Gate de qualidade de dados: ticker, exchange, preco atual, "
-            "volume/liquidez, catalisador de curto prazo, risco e condicao "
-            "de invalidacao sao obrigatorios. Sem todos esses campos, o "
-            "candidato e rejeitado."
-        )
+        sections.append("4) Gate de qualidade de dados: ticker, exchange, preco atual, volume/liquidez, catalisador de curto prazo, risco e condicao de invalidacao sao obrigatorios. Sem todos esses campos, o candidato e rejeitado.")
         sections.append("")
         sections.append("5) Candidatos:")
         if candidates:
             for item in candidates[:6]:
                 sections.extend(_format_candidate_block_pt(item))
         else:
-            sections.append(
-                "Nenhum candidato passou nos gates minimos de qualidade de "
-                "dados para uma ideia de pesquisa de 2 semanas."
-            )
+            sections.append("Nenhum candidato passou nos gates minimos de qualidade de dados para uma ideia de pesquisa de 2 semanas.")
         sections.append("")
         sections.append(f"6) Resumo de rejeicoes: {rejected_count} ticker(s) descartado(s).")
         if top_reasons:
             sections.append("   Principais motivos:")
             for reason in top_reasons:
                 sections.append(f"   - {reason}")
-        sections.append(
-            f"   Filtros usados: paises={filters.get('resolved_countries')}, "
-            f"setor={filters.get('sector')}, "
-            f"permitir_penny_otc={filters.get('allow_penny_otc')}, "
-            f"permitir_microcap={filters.get('allow_microcap')}."
-        )
+        sections.append(f"   Filtros usados: paises={filters.get('resolved_countries')}, setor={filters.get('sector')}, permitir_penny_otc={filters.get('allow_penny_otc')}, permitir_microcap={filters.get('allow_microcap')}.")
         sections.append("")
         sections.append("7) Controles de risco:")
         sections.append("   - Defina perda maxima por posicao antes de qualquer ordem.")
         sections.append("   - Exija liquidez suficiente para entrar e sair sem spread absurdo.")
-        sections.append(
-            "   - Confirme catalisador verificavel (filing, earnings, evento) e nao hype social."
-        )
+        sections.append("   - Confirme catalisador verificavel (filing, earnings, evento) e nao hype social.")
         sections.append("   - Estabeleca condicao de invalidacao tecnica/fundamentalista clara.")
         sections.append("")
-        sections.append(
-            "8) Aviso: apenas pesquisa. Sem garantia de lucro. Decisao de "
-            "compra/venda e sua responsabilidade."
-        )
+        sections.append("8) Aviso: apenas pesquisa. Sem garantia de lucro. Decisao de compra/venda e sua responsabilidade.")
         if not candidates:
             sections.append("")
-            sections.append(
-                "Proximo prompt sugerido: 'Faca uma checagem ticker-por-ticker "
-                "de AAPL, MSFT e SPY com preco, volume, ATR de 14 dias e proximo "
-                "evento conhecido.'"
-            )
+            sections.append("Proximo prompt sugerido: 'Faca uma checagem ticker-por-ticker de AAPL, MSFT e SPY com preco, volume, ATR de 14 dias e proximo evento conhecido.'")
         if errors:
             sections.append("")
             sections.append("Limite de dados: " + "; ".join(str(err) for err in errors[:3]))
         return "\n".join(sections)
 
     sections = []
-    sections.append(
-        "Bob CEO: this is a market research report, not a buy order. Profit is not guaranteed."
-    )
+    sections.append("Bob CEO: this is a market research report, not a buy order. Profit is not guaranteed.")
     sections.append("")
     sections.append("1) Classification: short-term opportunity research.")
     sections.append("2) Time horizon: approximately 2 weeks (short term).")
     sections.append(f"3) Scan universe: {universe}")
-    sections.append(
-        "4) Data quality gate: ticker, exchange, latest price, "
-        "volume/liquidity, short-term catalyst, downside risk and an "
-        "invalidation condition are all required. Without every field, "
-        "a candidate is rejected."
-    )
+    sections.append("4) Data quality gate: ticker, exchange, latest price, volume/liquidity, short-term catalyst, downside risk and an invalidation condition are all required. Without every field, a candidate is rejected.")
     sections.append("")
     sections.append("5) Candidates:")
     if candidates:
         for item in candidates[:6]:
             sections.extend(_format_candidate_block_en(item))
     else:
-        sections.append(
-            "No candidate passed the minimum data-quality gates for a 2-week research idea."
-        )
+        sections.append("No candidate passed the minimum data-quality gates for a 2-week research idea.")
     sections.append("")
     sections.append(f"6) Rejected candidates summary: {rejected_count} ticker(s) discarded.")
     if top_reasons:
         sections.append("   Top reasons:")
         for reason in top_reasons:
             sections.append(f"   - {reason}")
-    sections.append(
-        f"   Filters used: countries={filters.get('resolved_countries')}, "
-        f"sector={filters.get('sector')}, "
-        f"allow_penny_otc={filters.get('allow_penny_otc')}, "
-        f"allow_microcap={filters.get('allow_microcap')}."
-    )
+    sections.append(f"   Filters used: countries={filters.get('resolved_countries')}, setor={filters.get('sector')}, allow_penny_otc={filters.get('allow_penny_otc')}, allow_microcap={filters.get('allow_microcap')}.")
     sections.append("")
     sections.append("7) Risk controls:")
     sections.append("   - Define maximum loss per position before placing any order.")
     sections.append("   - Require liquidity sufficient to enter and exit without extreme spreads.")
-    sections.append(
-        "   - Confirm a verifiable catalyst (filing, earnings, event) rather than social hype."
-    )
+    sections.append("   - Confirm a verifiable catalyst (filing, earnings, event) rather than social hype.")
     sections.append("   - Set a clear technical/fundamental invalidation condition.")
     sections.append("")
-    sections.append(
-        "8) Caveat: research only. No guaranteed profit. The buy/sell "
-        "decision is your own responsibility."
-    )
+    sections.append("8) Caveat: research only. No guaranteed profit. The buy/sell decision is your own responsibility.")
     if not candidates:
         sections.append("")
-        sections.append(
-            "Suggested next prompt: 'Run a ticker-by-ticker check on AAPL, "
-            "MSFT and SPY with price, volume, 14-day ATR and the next known "
-            "event.'"
-        )
+        sections.append("Suggested next prompt: 'Run a ticker-by-ticker check on AAPL, MSFT and SPY with price, volume, 14-day ATR and the next known event.'")
     if errors:
         sections.append("")
         sections.append("Data limit: " + "; ".join(str(err) for err in errors[:3]))
     return "\n".join(sections)
-
 
 def _loop_failsafe_answer(state: dict) -> str:
     if state.get("scan"):
@@ -952,29 +741,30 @@ def _loop_failsafe_answer(state: dict) -> str:
         return _contract_fallback_answer(state)
     if _is_portuguese_request(state.get("message", "")):
         return (
-            "Bob CEO: encerrei o ciclo de ferramentas antes de gastar mais tempo. "
-            "Ainda posso ajudar, mas preciso reduzir o escopo: mande um ticker, setor, pais ou diga se quer somente uma watchlist de estudo."
+            "Bob CEO: Encerrei o ciclo de ferramentas após atingir o limite. "
+            "Aqui está o que analisei até agora. Mande um ticker ou ajuste a busca para continuar."
         )
     return (
-        "Bob CEO: I stopped the tool cycle before wasting more time. "
-        "Narrow the scope to a ticker, sector, country, or a study watchlist and I can continue."
+        "Bob CEO: I stopped the tool cycle after reaching the limit. "
+        "Narrow down your request or ask a specific question to continue."
     )
 
+def _tool_blocked_answer(state: dict) -> str:
+    blocked = state.get("tool_blocked") or {}
+    tool = blocked.get("tool", "unknown")
+    reason = blocked.get("reason", "already executed")
+    if state.get("cognitive_mode") or "cognitive_contract" in str(reason):
+        return _contract_fallback_answer(state)
+    if _is_portuguese_request(state.get("message", "")):
+        return f"Bob CEO: A ferramenta '{tool}' foi bloqueada ({reason}). Produzindo resposta final."
+    return f"Bob CEO: Tool '{tool}' was blocked ({reason}). Producing final answer."
 
 def _complex_finance_fallback_answer(message: str) -> str:
-    """Deterministic fallback when the CEO model fails complex-finance JSON mode."""
     msg = (message or "").lower()
     is_capital = any(
         token in msg
         for token in (
-            "allocate",
-            "allocation",
-            "emergency",
-            "debt",
-            "equipment",
-            "education",
-            "cash reserve",
-            "cad",
+            "allocate", "allocation", "emergency", "debt", "equipment", "education", "cash reserve", "cad"
         )
     )
     classification = "CAPITAL_ALLOCATION" if is_capital else "MACRO_THESIS"
@@ -1010,9 +800,7 @@ def _complex_finance_fallback_answer(message: str) -> str:
         f"Confidence: {confidence}"
     )
 
-
 def _repair_known_etf_category_errors(text: str) -> str:
-    """Correct high-confidence ETF taxonomy mistakes before they reach the user."""
     repaired = text or ""
     small_cap_window = re.compile(r"small[- ]cap", re.IGNORECASE)
     bond_etf_window = re.compile(r"(bond|fixed income|investment grade|etf)", re.IGNORECASE)
@@ -1028,9 +816,7 @@ def _repair_known_etf_category_errors(text: str) -> str:
             repaired = repaired[: match.start()] + "BND" + repaired[match.end() :]
     return repaired
 
-
 def _repair_unsupported_exact_returns(text: str) -> str:
-    """Remove unsourced exact return ranges that make debt payoff look forecasted."""
     return re.sub(
         r"guaranteed\s+\d+(?:\s*[–-]\s*\d+)?%\s+return",
         "guaranteed return equal to the avoided interest rate",
@@ -1038,14 +824,10 @@ def _repair_unsupported_exact_returns(text: str) -> str:
         flags=re.IGNORECASE,
     )
 
-
 def _repair_answer_quality(text: str) -> str:
-    """Apply safe semantic repairs that are independent of intent classification."""
     return _repair_unsupported_exact_returns(_repair_known_etf_category_errors(text or ""))
 
-
 def _repair_complex_finance_answer(message: str, content: str) -> str:
-    """Patch high-confidence missing contract clauses in model complex-finance output."""
     msg = (message or "").lower()
     text = _repair_answer_quality(content or "")
     lower = text.lower()
@@ -1055,14 +837,7 @@ def _repair_complex_finance_answer(message: str, content: str) -> str:
     has_business_cashflow = any(
         token in lower
         for token in (
-            "cashflow",
-            "cash flow",
-            "time-to-cashflow",
-            "time to cashflow",
-            "payback",
-            "fluxo",
-            "caixa",
-            "receita",
+            "cashflow", "cash flow", "time-to-cashflow", "time to cashflow", "payback", "fluxo", "caixa", "receita"
         )
     )
     if business_prompt and not has_business_cashflow:
@@ -1080,7 +855,6 @@ def _repair_complex_finance_answer(message: str, content: str) -> str:
         return text
     return text.rstrip() + "\n" + "\n".join(additions)
 
-
 def _industry_research_fallback_answer(state: dict) -> str:
     message = state.get("message", "")
     is_pt = _is_portuguese_request(message)
@@ -1095,7 +869,7 @@ def _industry_research_fallback_answer(state: dict) -> str:
                 "Tese: fax sobrevive onde existe friccao regulatoria e sistemas antigos, mas o crescimento "
                 "deve ir para plataformas que removem essa friccao. O risco de comprar uma pure-play de fax "
                 "e pegar uma base instalada morrendo, receita em queda e baixo multiple por motivo justo.\n\n"
-                "Como usar isso: 1) mapear setores ainda presos em fax, 2) procurar fornecedores que digitalizam "
+                "Como usar isso: 1) mapear setores ainda presos in fax, 2) procurar fornecedores que digitalizam "
                 "esse fluxo, 3) exigir crescimento verificavel, margem, retencao e baixa dependencia de hype. "
                 "Ticker vem depois, se voce pedir uma varredura de ativos.\n\n"
                 "Final verdict: pesquisar adjacencias digitais, nao fax puro.\n"
@@ -1118,7 +892,6 @@ def _industry_research_fallback_answer(state: dict) -> str:
         "Final verdict: thesis first, ticker scan second.\n"
         "Confidence: 78/100"
     )
-
 
 def _risk_lab_fallback_answer(state: dict) -> str:
     is_pt = _is_portuguese_request(state.get("message", ""))
@@ -1147,7 +920,6 @@ def _risk_lab_fallback_answer(state: dict) -> str:
         "Final verdict: NO_BET_THIS_WEEK until a verifiable opportunity appears.\n"
         "Confidence: 86/100"
     )
-
 
 def _advisory_knowledge_fallback_answer(state: dict) -> str:
     message = state.get("message", "")
@@ -1179,15 +951,11 @@ def _advisory_knowledge_fallback_answer(state: dict) -> str:
         "Confidence: 76/100"
     )
 
-
 def _contract_fallback_answer(state: dict) -> str:
     mode = state.get("cognitive_mode", "ADVISORY_KNOWLEDGE")
     if state.get("scan"):
         return _market_scan_answer(state)
-    if mode == "CAPITAL_ALLOCATION" or state.get("intent") in (
-        "capital_allocation",
-        "personal_finance",
-    ):
+    if mode == "CAPITAL_ALLOCATION" or state.get("intent") in ("capital_allocation", "personal_finance"):
         return _complex_finance_fallback_answer(state.get("message", ""))
     if mode == "INDUSTRY_RESEARCH":
         return _industry_research_fallback_answer(state)
@@ -1211,31 +979,12 @@ def _contract_fallback_answer(state: dict) -> str:
         )
     return _advisory_knowledge_fallback_answer(state)
 
-
-def _tool_blocked_answer(state: dict) -> str:
-    blocked = state.get("tool_blocked") or {}
-    tool = blocked.get("tool", "unknown")
-    reason = blocked.get("reason", "the tool was already used")
-    if state.get("cognitive_mode") or "cognitive_contract" in str(reason):
-        return _contract_fallback_answer(state)
-    if _is_portuguese_request(state.get("message", "")):
-        return (
-            f"Bob CEO: Ferramenta '{tool}' ja foi usada nesta rodada ({reason}). "
-            "Produzindo resposta com os dados que ja tenho."
-        )
-    return (
-        f"Bob CEO: Tool '{tool}' was already used in this run ({reason}). "
-        "Producing answer with the data I have."
-    )
-
-
 def _final_payload(content: str, iterations: int) -> dict[str, Any]:
     return {
         "final": content,
         "agent_tool_call": {"tool": "final_answer", "args": {"content": content}},
         "agent_iterations": iterations + 1,
     }
-
 
 async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None) -> dict:
     writer = get_stream_writer()
@@ -1255,6 +1004,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     if gateway is None:
         return {"errors": state.get("errors", []) + ["no_gateway"]}
 
+    # Match legacy behavior where scan is rendered deterministically without entering tool loop
     if state.get("route") == "market_scan" and state.get("scan"):
         if _should_use_decisive_mode(state):
             content, trade_ctx = _render_decisive_trade_order(state)
@@ -1287,14 +1037,12 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         }
     )
 
-    # Build ReAct Prompt — use complex finance prompt for advisory questions
-    # Catch both regex-detected complex finance AND deterministically-parsed
-    # capital_allocation / personal_finance intents.
     _detected_intent = state.get("intent", "")
     is_complex_finance = detect_complex_finance_intent(
         state.get("message", "")
     ) or _detected_intent in ("capital_allocation", "personal_finance")
     active_system_prompt = COMPLEX_FINANCE_SYSTEM_PROMPT if is_complex_finance else SYSTEM_PROMPT
+
     messages = [{"role": "system", "content": active_system_prompt}]
     messages.append({"role": "user", "content": f"User Request: {state.get('message', '')}"})
 
@@ -1303,51 +1051,26 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     if state.get("ticker"):
         observations.append(f"Current Ticker: {state.get('ticker')}")
     if state.get("data_context"):
-        observations.append(f"Data Collected:\n{state.get('data_context')[:1500]}")
+        observations.append(f"Data/Scan Context:\n{state.get('data_context')[:3000]}")
     if state.get("f51_verdict"):
-        observations.append(f"F51 Verdict:\n{json.dumps(state.get('f51_verdict'))}")
+        observations.append(f"F51 Verdict:\n{json.dumps(state.get('f51_verdict'), ensure_ascii=False)}")
     if state.get("expert_summary"):
-        observations.append(f"Expert Committee:\n{state.get('expert_summary')}")
+        observations.append(f"Expert Committee Summary:\n{state.get('expert_summary')}")
     if state.get("neural_decision"):
-        observations.append(f"Neural Decision:\n{json.dumps(state.get('neural_decision'))}")
+        observations.append(f"Neural Decision:\n{json.dumps(state.get('neural_decision'), ensure_ascii=False)}")
     if state.get("sdca_firewall"):
-        observations.append(f"SDCA Firewall:\n{json.dumps(state.get('sdca_firewall'))}")
+        observations.append(f"SDCA Firewall:\n{json.dumps(state.get('sdca_firewall'), ensure_ascii=False)}")
     if state.get("pennylab_result") or state.get("pennylab"):
         observations.append(
-            f"PennyLab:\n{json.dumps(state.get('pennylab_result') or state.get('pennylab'))}"
+            f"PennyLab Result:\n{json.dumps(state.get('pennylab_result') or state.get('pennylab'), ensure_ascii=False)}"
         )
-    if state.get("scan"):
-        observations.append(
-            f"Market Scan Results:\n{json.dumps(state.get('scan').get('candidates', []))}"
-        )
-    if state.get("cognitive_mode"):
-        observations.append(
-            "Cognitive contract:\n"
-            + json.dumps(
-                {
-                    "mode": state.get("cognitive_mode"),
-                    "information_need": state.get("information_need"),
-                    "allowed_tools": state.get("allowed_tools", []),
-                    "market_context_allowed": state.get("market_context_allowed", False),
-                    "scanner_allowed": state.get("scanner_allowed", False),
-                    "ticker_allowed": state.get("ticker_allowed", False),
-                    "ticket_allowed": state.get("ticket_allowed", False),
-                    "answer_contract": state.get("answer_contract", ""),
-                }
-            )
-            + "\nObey this contract. If only final_answer is allowed, do not call data tools."
-        )
+    if state.get("rag_context"):
+        observations.append(f"RAG Forensics Context:\n{state.get('rag_context')}")
     if state.get("executed_tools"):
         observations.append(
             "Tools already executed in this run: "
             + ", ".join(str(tool) for tool in state.get("executed_tools", []))
-            + ". Do NOT call these tools again. Use existing results or call final_answer."
-        )
-    if state.get("tool_blocked"):
-        observations.append(
-            "Blocked tool feedback:\n"
-            + json.dumps(state.get("tool_blocked"))
-            + "\nYou MUST choose a different tool or call final_answer."
+            + ". Do NOT call these tools again with the same parameters. Use existing results or call final_answer."
         )
 
     if observations:
@@ -1355,25 +1078,12 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             {"role": "user", "content": "Observations so far:\n" + "\n\n".join(observations)}
         )
 
-    if is_complex_finance:
-        messages.append(
-            {
-                "role": "user",
-                "content": (
-                    "This is a complex finance question. You MUST call the 'final_answer' tool "
-                    "in this turn, and you MUST provide your complete, detailed 12-section analysis "
-                    "directly inside the 'content' argument of that tool call. Do not summarize, "
-                    "do not defer the analysis, and do not call other tools."
-                ),
-            }
-        )
-    else:
-        messages.append(
-            {
-                "role": "user",
-                "content": "What is the next tool you want to call? Remember to output ONLY JSON.",
-            }
-        )
+    messages.append(
+        {
+            "role": "user",
+            "content": "Decide on the next action (tool call or final_answer). Output ONLY the JSON block.",
+        }
+    )
 
     try:
         from ...model_serving.providers import CEO_PROVIDER_NAME
@@ -1381,7 +1091,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         raw = await gateway.chat_completion(
             messages=messages,
             temperature=0.1,
-            max_tokens=3072 if is_complex_finance else 1024,
+            max_tokens=2048,
             preferred_provider=CEO_PROVIDER_NAME,
             json_mode=True,
         )
@@ -1394,7 +1104,6 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
         if tool_call and "tool" in tool_call:
             if tool_call["tool"] == "final_answer":
-                # Final output — never emit a blank bubble if the model returns "".
                 content = tool_call.get("args", {}).get("content") or ""
                 if not str(content).strip():
                     if is_complex_finance:

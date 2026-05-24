@@ -18,6 +18,13 @@ _COLLECT_SEEN: deque[str] = deque(maxlen=64)
 
 # Expert roles mapped to provider names
 EXPERT_PROVIDERS: dict[str, str] = {
+    # 4 New experts
+    "macro_risk": "deepseek",
+    "fundamental_value": "deepseek",
+    "momentum_technical": "deepseek",
+    "contrarian_opportunity": "deepseek",
+
+    # Compatibility mapping for old roles
     "fundamental": "deepseek",
     "technical": "deepseek",
     "risk": "deepseek",
@@ -30,6 +37,30 @@ EXPERT_PROVIDERS: dict[str, str] = {
     "esg": "deepseek",
     "fixed_income": "deepseek",
     "forex": "deepseek",
+}
+
+EXPERT_PROMPTS: dict[str, tuple[str, str]] = {
+    "macro_risk": (
+        "You are SuperEzio's Macro/Risk expert. Analyze macro indicators, rates, volatility (VIX), "
+        "currency, market regime (risk-on/risk-off), yield curves, and credit spreads. "
+        "Provide a structured, quantitative assessment.",
+        "Analyze macro factors and systemic risks for {ticker}.\n\nContext:\n{context}\n"
+    ),
+    "fundamental_value": (
+        "You are SuperEzio's Fundamental & Value expert. Focus on financial statements, valuation metrics (P/E, EV/EBITDA, FCF yield), "
+        "debt coverage, revenue/earnings growth, and competitive advantages.",
+        "Analyze fundamentals and valuation for {ticker}.\n\nContext:\n{context}\n"
+    ),
+    "momentum_technical": (
+        "You are SuperEzio's Momentum & Technical expert. Focus on trend indicators, moving averages, support/resistance levels, "
+        "RSI, ATR, volume patterns, and short-term price momentum.",
+        "Analyze price action and technical setup for {ticker}.\n\nContext:\n{context}\n"
+    ),
+    "contrarian_opportunity": (
+        "You are SuperEzio's Contrarian & Opportunity expert. Identify oversold opportunities, extreme market fear, "
+        "insider buying, high short interest, market asymmetries, and potential recovery plays.",
+        "Analyze contrarian setups and market sentiment for {ticker}.\n\nContext:\n{context}\n"
+    )
 }
 
 
@@ -75,17 +106,15 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
     timeout = int(os.getenv("SUPEREZIO_EXPERT_TIMEOUT", "60"))
 
     try:
-        system_prompt = (
-            f"You are SuperEzio's {role} expert. "
-            "Provide concise, data-driven analysis in English. "
-            "Be quantitative. Cite specific numbers when available."
+        prompts = EXPERT_PROMPTS.get(
+            role,
+            (
+                f"You are SuperEzio's {role} expert. Provide concise, data-driven analysis in English. Be quantitative.",
+                f"Analyze {ticker} as a {role} expert.\n\nContext:\n{context[:3000]}\n\nProvide a structured assessment with key metrics and risk flags."
+            )
         )
-
-        user_prompt = (
-            f"Analyze {ticker} as a {role} expert.\n\n"
-            f"Context:\n{context[:3000]}\n\n"
-            "Provide a structured assessment with key metrics and risk flags."
-        )
+        system_prompt, user_prompt_template = prompts
+        user_prompt = user_prompt_template.format(ticker=ticker, context=context[:3000])
 
         response = await asyncio.wait_for(
             gateway.chat_completion(
