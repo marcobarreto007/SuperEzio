@@ -182,9 +182,6 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         "time_horizon", ""
     )
 
-    # Force route to general to disable legacy bypassed execution paths
-    plan["route"] = "general"
-
     # Add meta
     plan["orchestrator_plan"] = _render_plan(plan)
     plan["orchestrator_model_status"] = plan.get("intent_source", "deterministic")
