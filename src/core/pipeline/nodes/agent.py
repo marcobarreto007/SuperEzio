@@ -1020,6 +1020,25 @@ def _repair_complex_finance_answer(message: str, content: str) -> str:
             "clear payback, and time-to-cashflow evidence; otherwise keep that capital liquid."
         )
 
+    canadian_capital_prompt = any(
+        token in msg
+        for token in (
+            "canada",
+            "canadian",
+            "cad",
+            "family",
+            "debt",
+            "education",
+            "tax",
+        )
+    )
+    has_registered_account = any(term in text for term in ("TFSA", "RRSP", "RESP", "FHSA"))
+    if canadian_capital_prompt and not has_registered_account:
+        additions.append(
+            "Canadian registered-account gate: consider TFSA, RRSP, RESP, or FHSA room only "
+            "after liquidity and debt gates; tax/account choices depend on the individual's situation."
+        )
+
     if "Final verdict:" not in text:
         additions.append("Final verdict: WAIT")
     if "Confidence:" not in text:
@@ -1027,7 +1046,13 @@ def _repair_complex_finance_answer(message: str, content: str) -> str:
 
     if not additions:
         return text
-    return text.rstrip() + "\n" + "\n".join(additions)
+    addition_block = "\n".join(additions)
+    footer_idx = text.rfind("\nFinal verdict:")
+    if footer_idx == -1:
+        return text.rstrip() + "\n" + addition_block
+    prefix = text[:footer_idx].rstrip()
+    footer = text[footer_idx + 1 :].lstrip()
+    return prefix + "\n" + addition_block + "\n" + footer
 
 
 def _industry_research_fallback_answer(state: dict) -> str:

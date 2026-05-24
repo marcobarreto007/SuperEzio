@@ -74,13 +74,15 @@ def _browser_chart_fetch(page: Page) -> dict[str, Any]:
             status: response.status,
             ticker: data.ticker || null,
             hasPrice: Boolean(data.price),
-            candleCount: Array.isArray(data.candles) ? data.candles.length : 0
+            candleCount: Array.isArray(data.ohlcv) ? data.ohlcv.length : 0
           };
         }
         """
     )
     if not result.get("ok"):
         raise AssertionError(f"browser chart fetch failed: {result}")
+    if result.get("candleCount", 0) <= 0:
+        raise AssertionError(f"browser chart fetch returned no candles: {result}")
     return result
 
 

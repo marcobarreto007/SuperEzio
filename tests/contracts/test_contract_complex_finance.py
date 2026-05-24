@@ -41,6 +41,12 @@ CAPITAL_ALLOCATION_PROMPT = (
     "reversibility, and family stability."
 )
 
+LIVE_CAD_ALLOCATION_PROMPT = (
+    "I live in Canada, earn and spend in CAD, have a family, unstable work income, "
+    "and have CAD 25,000 to allocate between emergency cash reserve, debt, ETFs, "
+    "side-business equipment, and education. Give me a concise serious framework."
+)
+
 REAL_ESTATE_VS_ETF_PROMPT = (
     "Build a decision framework for evaluating whether a rental property is a better "
     "investment than a diversified equity portfolio. Include leverage, vacancy risk, "
@@ -99,11 +105,19 @@ class TestCapitalAllocation:
     def test_parse_routes_to_general(self):
         parsed = parse_user_intent(CAPITAL_ALLOCATION_PROMPT)
         assert parsed.route == "general"
-        assert parsed.intent == "general_question"
-        assert "complex_finance_advisory_detected" in parsed.reasons
+        assert parsed.intent == "capital_allocation"
+        assert "capital_allocation_decision_detected" in parsed.reasons
 
     def test_does_not_trigger_vague_block(self):
         assert should_block_vague_financial_prompt(CAPITAL_ALLOCATION_PROMPT, "", "strict") is False
+
+    def test_live_cad_allocation_prompt_routes_to_capital_allocation(self):
+        parsed = parse_user_intent(LIVE_CAD_ALLOCATION_PROMPT)
+
+        assert detect_complex_finance_intent(LIVE_CAD_ALLOCATION_PROMPT) is True
+        assert parsed.route == "general"
+        assert parsed.intent == "capital_allocation"
+        assert "capital_allocation_decision_detected" in parsed.reasons
 
     def test_repair_corrects_known_etf_category_mismatch(self):
         content = (
@@ -145,6 +159,21 @@ class TestCapitalAllocation:
 
         assert "Bond ETF (VWENX)" not in repaired
         assert "Bond ETF (BND)" in repaired
+
+    def test_repair_adds_canadian_registered_account_gate(self):
+        content = (
+            "This is an educational framework, not personalized financial advice.\n"
+            "Question Classification: CAPITAL_ALLOCATION\n"
+            "Missing Data: tax-advantaged account availability\n"
+            "Decision Gates: tax account choices depend on the individual's situation.\n"
+            "Final verdict: CASH\n"
+            "Confidence: 72"
+        )
+
+        repaired = _repair_complex_finance_answer(CAPITAL_ALLOCATION_PROMPT, content)
+
+        assert "TFSA, RRSP, RESP, or FHSA" in repaired
+        assert repaired.rstrip().endswith("Confidence: 72")
 
 
 # ===========================================================================

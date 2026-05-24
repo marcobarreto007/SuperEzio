@@ -1,8 +1,7 @@
 {
-  "date_local": "2026-05-22",
-  "session": "pipeline-v4-cleanup",
+  "date_local": "2026-05-24T13:17:00-04:00",
+  "session": "browser-smoke-chart-contract-fix-2026-05-24",
   "status": "completed",
-  "checkpoint_md": "runtime/checkpoints/CHECKPOINT-2026-05-22-reboot.md",
   "runtime_parameters": {
     "api_port": 8002,
     "ceo_port": 8082,
@@ -11,42 +10,33 @@
     "model_path": "models/superezio-ceo-intent-merged.Q4_K_M.gguf"
   },
   "what_was_done": [
-    "Fixed subprocess collector import path in pipeline collector node.",
-    "Removed dead _node_pennylab_stub from graph.py.",
-    "ProfessionalCollector price mesh uses DataHub only (removed parallel twelve/alpha).",
-    "Completely deleted legacy ceo.py, technical_neural, and scripts/_archive folders.",
-    "Decoupled QuantEngine from deleted technical_neural expert.",
-    "Removed stale contract and README references to legacy code.",
-    "Ran full pytest suite with all 788 tests passing successfully."
+    "Aligned Playwright browser smoke with current chart API contract.",
+    "Validated live chart endpoint returns ohlcv rows for AAPL 6M.",
+    "Validated runtime smoke tests and full browser smoke against live CEO/API."
   ],
   "evidence": {
     "commands": [
-      "python -m pytest tests/ -q"
+      "python -m py_compile scripts\\browser_smoke.py",
+      "curl.exe -fsS http://127.0.0.1:8002/api/chart-data/AAPL?timeframe=6M",
+      "python -m pytest tests\\test_runtime_smoke.py -q",
+      "python scripts\\browser_smoke.py --base-url http://127.0.0.1:8002 --timeout-ms 180000"
     ],
-    "files_changed": [
-      "src/core/pipeline/nodes/collector.py",
-      "src/core/pipeline/graph.py",
-      "src/core/data_collector/professional.py",
-      "tests/contracts/test_contract_ceo.py",
-      "tests/test_signal_ledger_offline.py",
-      "README.md",
-      ".f51/contracts/pipeline.contract.md",
-      ".f51/contracts/ceo.contract.md",
-      ".f51/contracts/neural-decision.contract.md",
-      ".f51/checkpoints/latest.json",
-      "runtime/checkpoints/latest.json"
+    "results": [
+      "chart endpoint: OhlcvCount 130, HasPrice true",
+      "pytest runtime smoke: 20 passed",
+      "browser smoke: ok true, candleCount 130, nonBlank 394632, finalContentLength 2537, detectedIntent CAPITAL_ALLOCATION, scannerInvoked false, console_errors []"
     ],
-    "tests": [
-      "788 passed, 8 skipped, 7 warnings"
+    "live_artifacts": [
+      "output/playwright/superezio-browser-smoke-20260524-131641.png"
     ]
   },
   "risks": [
     {
-      "severity": "none",
-      "description": "All legacy/unused code deleted; fallback paths tested and green.",
-      "mitigation": "None needed."
+      "severity": "policy",
+      "description": "GitHub is blocked by F51_NO_GITHUB_DISK_ONLY.",
+      "mitigation": "Keep delivery local unless Marco explicitly replaces policy in checkpoint."
     }
   ],
-  "next_step": "System fully verified and clean. Standby for operator command.",
+  "next_step": "Ready for local demo/use. Next operator action can be local commit if Marco says to save.",
   "owner": "Marco"
 }

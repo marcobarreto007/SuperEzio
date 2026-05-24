@@ -1278,8 +1278,8 @@ def detect_capital_allocation_intent(message: str) -> bool:
         r"\bpay\s+(?:off\s+)?debt\b",
         r"\bkeep\s+(?:it\s+)?in\s+cash\b",
         r"\bhold\s+cash\b",
-        r"\binvest\s+in\s+(?:an?\s+)?ETF\b",
-        r"\bETF\b",
+        r"\binvest\s+in\s+(?:an?\s+)?ETFs?\b",
+        r"\bETFs?\b",
         r"\bemergency\s+(?:fund|reserve|savings)\b",
         r"\brepay\s+(?:debt|loan)\b",
         r"\bcash\b.*\bETF\b",
@@ -1291,6 +1291,28 @@ def detect_capital_allocation_intent(message: str) -> bool:
         r"\bcapital\s+alloc",
     )
     normalized = normalize_message(message)
+    allocation_action = re.search(
+        r"\b(?:allocate|allocating|decid(?:e|ing)|choose|split|divide)\b",
+        normalized,
+        re.IGNORECASE,
+    )
+    allocation_categories = (
+        r"\bemergency\s+(?:cash\s+)?(?:fund|reserve|savings)\b|\bcash\b",
+        r"\bdebt\b|\bloan\b|\bcredit\s+card\b",
+        r"\betfs?\b|\binvest(?:ing|ment)?\b|\bportfolio\b",
+        r"\bside[-\s]?business\b|\bbusiness\b|\bequipment\b",
+        r"\beducation\b|\bskills?\b|\bcourse\b",
+    )
+    category_count = sum(
+        1 for pattern in allocation_categories if re.search(pattern, normalized, re.IGNORECASE)
+    )
+    has_amount_or_household_context = bool(
+        re.search(r"\bcad\s*\d|\busd\s*\d|\b\d[\d,]*(?:\.\d+)?\s*(?:cad|usd)\b", normalized)
+        or re.search(r"\b(?:family|household|income|salary|work income)\b", normalized)
+    )
+    if allocation_action and category_count >= 2 and has_amount_or_household_context:
+        return True
+
     allocation_with_amount = bool(
         re.search(r"\b(?:allocate|allocation|portfolio allocation)\b", normalized, re.IGNORECASE)
         and re.search(
@@ -1374,6 +1396,9 @@ def detect_complex_finance_intent(message: str) -> bool:
         return False
 
     normalized = normalize_message(message)
+    if detect_capital_allocation_intent(message):
+        return True
+
     hint_count = sum(1 for h in COMPLEX_FINANCE_HINTS if normalize_message(h) in normalized)
     has_structural = any(
         re.search(pattern, normalized) for pattern in _COMPLEX_FINANCE_STRUCTURAL_PATTERNS

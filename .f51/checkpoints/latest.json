@@ -1,40 +1,37 @@
 {
-  "date_local": "2026-05-24T10:56:00-04:00",
-  "session": "ui-modernization-2026",
+  "date_local": "2026-05-24T13:17:00-04:00",
+  "session": "browser-smoke-chart-contract-fix-2026-05-24",
   "status": "completed",
+  "final_objective": {
+    "what_system_does": "SuperEzio is a local financial analysis runtime with browser UI, FastAPI agent server, and local llama.cpp CEO model for streamed Bob responses.",
+    "who_is_it_for": "Marco/F51 as operator, demo user, and monetization owner for local financial decision workflows.",
+    "main_user_flow": "Open the UI, submit a financial question or ticker, receive streamed telemetry and Bob's final answer.",
+    "start_command": "desktop\\SuperEzio.bat, or manually: scripts\\serve_ceo_llamacpp.ps1 -Port 8082 and python -m agent_server.main",
+    "proof_output": "/health ok, /health/details CEO reachable, /api/chart-data returns ohlcv, /task/submit reaches STREAM_END, browser smoke renders UI and chat.",
+    "readiness_blocker": "No local demo blocker found in this pass. GitHub remains hard-blocked by .f51/GITHUB_POLICY.json."
+  },
   "what_was_done": [
-    "Upgraded HTML drawers (#sdca-lab and #ops-console) to native Popover elements.",
-    "Replaced junior manual scroll height sizing in JS with CSS field-sizing: content for the textarea (#user-inp), adding feature-detection fallbacks in js to avoid layout thrashing on modern browsers.",
-    "Updated CSS drawer styles with :popover-open pseudo-selectors, @starting-style entry/exit transforms, and transition discrete behavior (allow-discrete).",
-    "Modernized sdca-lab.js and ops-console.js drawer toggle states to trigger native Popover show/hide APIs wrapped inside document.startViewTransition().",
-    "Kept the .open class list synchronized with popover states in JS to preserve compatibility with existing end-to-end browser smoke test selectors.",
-    "Integrated window.scheduler.yield() inside the telemetry event parsing loop in init.js to maintain thread responsiveness and minimize INP (Interaction to Next Paint) latency.",
-    "Fixed click-outside double-trigger toggle drawer bugs by shifting popovers to popover='manual' mode in HTML.",
-    "Defaulted window.SZ_SHOW_DEBUG_CARDS to true in state.js, making the F51 multi-agent telemetry pipeline cards visible in the UI chat window."
+    "Fixed scripts/browser_smoke.py to validate the current /api/chart-data response shape by counting data.ohlcv instead of old data.candles.",
+    "Made browser smoke fail if the chart endpoint returns no candle rows.",
+    "Confirmed the live endpoint returns AAPL ohlcv count 130 and no legacy candles field.",
+    "Ran runtime smoke pytest and browser smoke against the live server."
   ],
   "evidence": [
-    "pytest: All 869 unit, integration, and contract tests passed.",
-    "browser smoke test: Playwright test passed successfully in manual mode with no console errors and verified non-blank canvas render.",
-    "git commit: Changes committed locally under commits 7d15be7 and 95f3a99."
+    "CEO health: http://127.0.0.1:8082/health -> ok.",
+    "API details: http://127.0.0.1:8002/health/details -> local_models.ceo.reachable=true.",
+    "Endpoint probe: /api/chart-data/AAPL?timeframe=6M -> ticker AAPL, hasPrice true, OhlcvCount 130, HasCandles false.",
+    "py_compile: python -m py_compile scripts/browser_smoke.py -> passed.",
+    "pytest: python -m pytest tests/test_runtime_smoke.py -q -> 20 passed.",
+    "browser smoke: scripts/browser_smoke.py --base-url http://127.0.0.1:8002 --timeout-ms 180000 -> ok true, candleCount 130, detectedIntent CAPITAL_ALLOCATION, scannerInvoked false, finalContentLength 2537, console_errors [], screenshot output/playwright/superezio-browser-smoke-20260524-131641.png."
   ],
   "files_changed": [
-    "frontend/index.html",
-    "frontend/css/sdca.css",
-    "frontend/css/ops-console.css",
-    "frontend/css/chat.css",
-    "frontend/js/sdca-lab.js",
-    "frontend/js/ops-console.js",
-    "frontend/js/init.js",
-    "frontend/js/state.js"
+    "scripts/browser_smoke.py",
+    ".f51/checkpoints/latest.json",
+    "runtime/checkpoints/latest.json"
   ],
-  "commits": ["7d15be7", "95f3a99"],
-  "risks_remaining": [
-    "INV-R1: GitHub blocked (policy — ongoing)",
-    "INV-R2: Model rebuild requires intentional reintroduction (accepted)",
-    "INV-R4: 4 API keys leaked in git history (pending rotation)",
-    "INV-R5: CI only lints/tests tests/, not src/ (known gap)",
-    "INV-R6: .f51/tmp 8.1 GB stale artifacts (informational)",
-    "INV-R7: data/fraud_datasets 3.3 GB (needs verification)"
+  "notes": [
+    "Previous capital allocation routing edits remain in the worktree and were not reverted.",
+    "Delivery remains disk-only; no GitHub action was used."
   ],
-  "next_safest_patch": "Examine orchestrator.py:191 intent classification routing bypass, or establish telemetry metrics dashboard reporting."
+  "next_step": "Run full pytest again only if Marco asks for a complete release gate before local commit."
 }
