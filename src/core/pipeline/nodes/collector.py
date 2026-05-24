@@ -542,47 +542,84 @@ async def _run_scan(
 
     try:
         from ...scanner import MarketScanner
+        from ...scanner.openbb_scanner import OpenBBScanner
 
-        registry.stage_started("fetch_tickers", provider="scanner")
-        scanner = MarketScanner()
-        fetch_errors = 0
-        fetch_total = len(countries)
-        for idx, country in enumerate(countries):
-            registry.stage_heartbeat(
+        # ── Primary: OpenBB discovery (real tickers with price + fundamentals) ──
+        obb_scanner = OpenBBScanner()
+        if obb_scanner.available:
+            registry.stage_started("fetch_tickers", provider="openbb")
+            try:
+                obb_items = await asyncio.to_thread(
+                    obb_scanner.scan_equities,
+                    sector=explicit_sector,
+                    industry=explicit_sector,
+                    limit=scan_max_total,
+                )
+            except Exception as exc:  # noqa: BLE001
+                source_errors.append(f"openbb_discovery: {exc}")
+                obb_items = []
+            if obb_items:
+                raw_candidates = obb_items
+                provider_sources_used.add("openbb")
+                registry.stage_completed(
+                    "fetch_tickers",
+                    provider="openbb",
+                    done=len(obb_items),
+                    total=scan_max_total,
+                )
+            else:
+                registry.stage_failed(
+                    "fetch_tickers",
+                    "openbb_returned_empty",
+                    provider="openbb",
+                )
+        else:
+            registry.stage_started("fetch_tickers", provider="openbb")
+            registry.stage_failed("fetch_tickers", "openbb_not_installed", provider="openbb")
+            obb_items = []
+
+        # ── Fallback: FinanceDatabase scanner (per-country loop) ──
+        if not raw_candidates:
+            registry.stage_started("fetch_tickers", provider="scanner")
+            scanner = MarketScanner()
+            fetch_errors = 0
+            fetch_total = len(countries)
+            for idx, country in enumerate(countries):
+                registry.stage_heartbeat(
+                    "fetch_tickers",
+                    provider="scanner",
+                    done=idx,
+                    total=fetch_total,
+                    errors=fetch_errors,
+                )
+                try:
+                    tickers = await asyncio.to_thread(
+                        scanner.scan_equities,
+                        country=country,
+                        sector=explicit_sector,
+                        limit=per_country_limit,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    source_errors.append(f"scanner_{country}: {exc}")
+                    fetch_errors += 1
+                    continue
+                for sym in tickers or []:
+                    if not sym:
+                        continue
+                    raw_candidates.append(
+                        {
+                            "ticker": str(sym),
+                            "source": "financedatabase",
+                            "market": country,
+                        }
+                    )
+            registry.stage_completed(
                 "fetch_tickers",
                 provider="scanner",
-                done=idx,
+                done=fetch_total,
                 total=fetch_total,
                 errors=fetch_errors,
             )
-            try:
-                tickers = await asyncio.to_thread(
-                    scanner.scan_equities,
-                    country=country,
-                    sector=explicit_sector,
-                    limit=per_country_limit,
-                )
-            except Exception as exc:  # noqa: BLE001
-                source_errors.append(f"scanner_{country}: {exc}")
-                fetch_errors += 1
-                continue
-            for sym in tickers or []:
-                if not sym:
-                    continue
-                raw_candidates.append(
-                    {
-                        "ticker": str(sym),
-                        "source": "financedatabase",
-                        "market": country,
-                    }
-                )
-        registry.stage_completed(
-            "fetch_tickers",
-            provider="scanner",
-            done=fetch_total,
-            total=fetch_total,
-            errors=fetch_errors,
-        )
     except ImportError:
         source_errors.append("scanner: module_archived")
         registry.stage_failed("fetch_tickers", "module_archived", provider="scanner")

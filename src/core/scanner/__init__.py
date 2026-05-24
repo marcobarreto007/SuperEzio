@@ -176,3 +176,7 @@ class MarketScanner:
             return sorted(self.equities.data["country"].dropna().unique().tolist())
         except Exception:
             return []
+
+
+# ── OpenBB-powered scanner (primary, no API key) ──
+from .openbb_scanner import OpenBBScanner  # noqa: E402, F401
