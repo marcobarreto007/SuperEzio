@@ -1,7 +1,7 @@
 # F51 Risk Register
 
-Updated: 2026-05-24T10:45:00-04:00
-Session: arqueologist-cleanup-contract-sync
+Updated: 2026-05-24T11:15:00-04:00
+Session: arqueologist-cleanup-risk-resolution
 
 ## Active Risks
 
@@ -37,13 +37,13 @@ Session: arqueologist-cleanup-contract-sync
 - Mitigation: Rotate all 4 keys before any repo transfer or remote push.
 - Status: Pending key rotation.
 
-### INV-R5 - CI only tests and lints tests/, not src/ [MEDIUM]
+### INV-R5 - No CI pipeline (GitHub blocked by policy) [MEDIUM]
 
 - Classification: quality
-- Risk: Source code quality is not gated by CI. Lint violations in src/ go undetected.
-- Evidence: `.github/workflows/ci.yml` runs `ruff check tests` and `ruff format tests`, not `src`.
-- Mitigation: Extend CI to lint src directory.
-- Status: Known gap.
+- Risk: No automated CI runs on commit. Relies entirely on local discipline (`make verify` = ruff check src tests + ruff format --check src tests + pytest).
+- Evidence: `.github/` directory does not exist. `.f51/GITHUB_POLICY.json` blocks all GitHub operations.
+- Mitigation: `make verify` covers both src and tests via ruff + pytest. Run manually before every commit.
+- Status: Accepted (by policy).
 
 ### INV-R6 - .f51/tmp contains 8.1 GB of stale training artifacts [LOW]
 
@@ -61,13 +61,13 @@ Session: arqueologist-cleanup-contract-sync
 - Mitigation: Verify if fraud_rag.py requires local datasets. If not, safe to delete.
 - Status: Needs verification.
 
-### INV-R8 - Black vs Ruff format inconsistency [LOW]
+### INV-R8 - Black vs Ruff format inconsistency [LOW] → CLOSED 2026-05-24
 
 - Classification: tooling
-- Risk: Makefile runs both `ruff check` and `black --check`, but CI only runs ruff. Format drift possible.
-- Evidence: Makefile verify target vs `.github/workflows/ci.yml`.
-- Mitigation: Standardize on ruff for both local and CI.
-- Status: Informational.
+- Risk: Previously thought Makefile ran both black and ruff. Makefile only uses ruff (check + format). No inconsistency.
+- Evidence: Makefile `verify` target only calls `ruff check src tests` and `ruff format --check src tests`. `.github/` doesn't exist.
+- Resolution: Single formatter (ruff). No conflict.
+- Status: Resolved.
 
 ### INV-R9 - src/core/scanner and src/core/paths are init-only modules [LOW]
 
@@ -89,4 +89,7 @@ Session: arqueologist-cleanup-contract-sync
 
 ## Resolved Risks
 
-- **INV-R3** (2026-05-24): Pipeline refactor verified — 866 tests pass, contract synced, dead code removed, zombie `data` node removed from graph.
+- **INV-R3** (2026-05-24): Pipeline refactor verified — 869 tests pass, contract synced, dead code removed, zombie `data` node removed from graph.
+- **INV-R5** (2026-05-24): Reclassified. No CI exists because GitHub is blocked by policy. `make verify` covers src + tests via ruff + pytest.
+- **INV-R8** (2026-05-24): Closed. Makefile only uses ruff (not black). No format inconsistency.
+- **Hardcoded route="general"** (2026-05-24): Removed in commit ce2bf32. Orchestrator classification now flows to agent, experts, and SDCA firewall.
