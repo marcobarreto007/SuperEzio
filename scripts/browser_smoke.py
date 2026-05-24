@@ -151,6 +151,15 @@ def run_smoke(
         page.get_by_text("Bob is online.").wait_for(timeout=timeout_ms)
         page.wait_for_timeout(1500)
 
+        # Smoke check for System Operations Console
+        page.wait_for_selector("#ops-console-btn", timeout=timeout_ms)
+        page.click("#ops-console-btn")
+        page.wait_for_selector("#ops-console.open", timeout=timeout_ms)
+        page.wait_for_timeout(1000)
+        page.wait_for_selector("#ops-health-status", timeout=timeout_ms)
+        page.click("#ops-console-close")
+        page.wait_for_timeout(500)
+
         chart_fetch = _browser_chart_fetch(page)
         canvas = _assert_canvas_nonblank(page)
 
