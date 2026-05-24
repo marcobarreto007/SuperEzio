@@ -1,30 +1,28 @@
 {
-  "date_local": "2026-05-23T23:44:12-04:00",
-  "session": "SuperEzio_Portuguese_Search_Parse_Ticker_First_Kill",
-  "status": "implemented_restarted_and_verified",
+  "date_local": "2026-05-23T23:58:00-04:00",
+  "session": "SuperEzio_Busca_Fix_Verification_And_Test_Repair",
+  "status": "verified_and_committed",
   "what_was_done": [
-    "Stopped Portuguese discovery/search words from being detected as tickers.",
-    "Added BUSCA/BUSCAR/BUSQUE/PESQUISA/PESQUISE/PROCURA/PROCURE/ENCONTRA/ENCONTRE/SUGIRA/SUGERE/SUGESTAO/SUGESTOES and related context words to COMMON_WORDS.",
-    "Added busca/pesquisa/procura/encontra/sugestao/sugestoes to SCAN_COMMAND_HINTS so Portuguese discovery prompts route to market_scan.",
-    "Added regression tests for the exact user failure: 'FACA UMA BUSCA...' must produce ticker='' and route=market_scan with Canada filter.",
-    "Added regression tests proving Portuguese search commands do not become tickers while explicit Canadian tickers like RY.TO/ENB.TO still route to ticker_analysis.",
-    "Restarted the API server on port 8002 so the live app loads the parser patch."
+    "Verified the Portuguese BUSCA routing fix (commit 43bb7b5) works end-to-end via API test.",
+    "API confirmed: 'FACA UMA BUSCA...' → route=market_scan, ticker='', universe=explicit:Canada, 5 Canadian candidates returned.",
+    "Fixed 6 tests whose OpenBBScanner mocks were silently ineffective — patching scanner_module.OpenBBScanner does NOT reach _run_scan's relative import from ...scanner.openbb_scanner.",
+    "All 6 tests now correctly patch _OPENBB_AVAILABLE on src.core.scanner.openbb_scanner module.",
+    "Full suite: 862/862 passed, ruff lint/formatted clean."
   ],
   "evidence": [
-    "python -m pytest tests/test_market_scan_candidate_gate.py::test_portuguese_search_word_busca_is_not_ticker -q: failed before patch with detect_ticker(prompt) == 'BUSCA'.",
-    "python -m pytest tests/test_market_scan_candidate_gate.py::test_portuguese_search_word_busca_is_not_ticker tests/test_market_scan_candidate_gate.py::test_portuguese_research_commands_do_not_become_tickers tests/test_market_scan_candidate_gate.py::test_real_canadian_tickers_still_route_to_ticker_analysis tests/test_market_scan_candidate_gate.py::test_market_scan_not_hijacked_by_chart_ticker -q: 4 passed.",
-    "python -m pytest tests/test_market_scan_candidate_gate.py tests/contracts/test_contract_orchestrator.py tests/test_market_scanner.py -q: 42 passed.",
-    "python -m ruff check src/core/pipeline/intents.py tests/test_market_scan_candidate_gate.py: passed.",
-    "python -m ruff format --check src/core/pipeline/intents.py tests/test_market_scan_candidate_gate.py: 2 files already formatted.",
-    "Restarted API: old 8002 PID 28192 stopped; new API PID 23940 listening on 127.0.0.1:8002.",
-    "CEO remained healthy on 127.0.0.1:8082.",
-    "Live /task/submit route smoke for exact Portuguese prompt: INTENT_CLASSIFIED route=market_scan intent=market_scan ticker='' source=deterministic_final confidence=0.82.",
-    "python -m json.tool .f51/checkpoints/latest.json: passed"
+    "curl API test: Portuguese market scan request → INTENT_CLASSIFIED route=market_scan, ticker='', confidence=0.75",
+    "curl API test: scan completed with 5 Canada candidates (WPM, TMC, PBA, HUT, IAG) and 3 rejections",
+    "python -m pytest tests/ -q: 862 passed in 133.83s",
+    "python -m ruff check src tests: clean",
+    "python -m ruff format --check src tests: 224 files already formatted"
   ],
-  "risks": [
-    "This patch kills ticker-first false positives for Portuguese search commands; it does not remove legitimate explicit ticker analysis.",
-    "The live route smoke intentionally stopped after INTENT_CLASSIFIED to avoid waiting for a full scanner run.",
-    "Scanner data quality still depends on external provider coverage; parser now sends the prompt to the right tool path."
+  "files_changed": [
+    "tests/test_market_scan_candidate_gate.py — replaced SimpleNamespace(available=False) patches with _OPENBB_AVAILABLE=False on openbb_scanner module (5 tests)",
+    "tests/test_market_scanner.py — same fix for test_run_scan_uses_restored_market_scanner"
   ],
-  "next_step": "Run the full user prompt through the UI and verify Bob produces Canadian-market discovery output instead of ticker BUSCA fallback."
+  "commits": [
+    "43bb7b5 fix(parser): stop Portuguese search commands from becoming tickers (previous session)",
+    "37c04fa fix(tests): correct OpenBBScanner mock target for _OPENBB_AVAILABLE flag (this session)"
+  ],
+  "next_safest_patch": "Install playwright in .venv so browser_smoke.py can validate the fix in a real browser session with Bob."
 }
