@@ -175,7 +175,12 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             # or we run node_expert for all roles in a loop to populate expert_results.
             # For simplicity, we just run the fundamental and technical experts directly, then run node_collect_experts logic.
             # But graph.py used Send() for experts. We will just run them sequentially here for the agent.
-            roles = ["macro_risk", "fundamental_value", "momentum_technical", "contrarian_opportunity"]
+            roles = [
+                "macro_risk",
+                "fundamental_value",
+                "momentum_technical",
+                "contrarian_opportunity",
+            ]
             results = []
             for role in roles:
                 res = await node_expert({**state, "role": role}, gateway=gateway)
