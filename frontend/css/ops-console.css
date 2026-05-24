@@ -1,0 +1,196 @@
+/* System Operations Console Drawer */
+
+.ops-console {
+  position: fixed;
+  top: 54px;
+  right: 0;
+  bottom: 0;
+  width: min(600px, 100vw);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  background: linear-gradient(135deg, rgba(8, 12, 9, 0.92) 0%, rgba(3, 5, 4, 0.98) 100%);
+  backdrop-filter: var(--glass-blur);
+  border-left: 1px solid rgba(0, 229, 255, 0.2);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.8), -2px 0 8px rgba(0, 229, 255, 0.08);
+  z-index: 30;
+  transform: translateX(100%);
+  pointer-events: none;
+  transition: transform 0.4s var(--ease);
+}
+
+.ops-console.open {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.ops-console-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.35);
+  position: relative;
+}
+
+.ops-console-hdr::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(0, 229, 255, 0.3), transparent);
+}
+
+.ops-console-hdr span {
+  display: block;
+  color: var(--muted);
+  font: 900 9px var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.ops-console-hdr strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--ink);
+  text-shadow: var(--border-glow);
+}
+
+.ops-console-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+  display: grid;
+  gap: 16px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(0, 229, 255, 0.04), transparent 50%),
+    linear-gradient(rgba(0, 230, 118, 0.005) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 230, 118, 0.005) 1px, transparent 1px);
+  background-size: 100% 100%, 24px 24px, 24px 24px;
+}
+
+.ops-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .ops-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ops-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(8, 12, 9, 0.7);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ops-card-wide {
+  grid-column: 1 / -1;
+}
+
+.ops-card h3 {
+  color: var(--muted);
+  font: 700 9.5px var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+  margin: 0;
+}
+
+.ops-metrics-list {
+  display: grid;
+  gap: 8px;
+}
+
+.ops-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.ops-row span {
+  color: var(--ink-secondary);
+}
+
+.ops-row strong {
+  font-family: var(--font-mono);
+  color: var(--ink);
+}
+
+.ops-bullet-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.ops-bullet-list li {
+  font-size: 12px;
+  color: var(--ink-secondary);
+  position: relative;
+  padding-left: 16px;
+  line-height: 1.45;
+}
+
+.ops-bullet-list li::before {
+  content: "▪";
+  position: absolute;
+  left: 0;
+  top: -1px;
+  color: var(--blue);
+  font-size: 10px;
+}
+
+.ops-manifest-desc {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink);
+  font-style: italic;
+  background: rgba(0, 229, 255, 0.04);
+  border-left: 3px solid var(--blue);
+  padding: 8px 12px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.ops-principles-title {
+  font: 700 9px var(--font-mono);
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  margin-top: 8px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 4px;
+}
+
+/* Status styles */
+.ops-status-ok {
+  color: var(--green) !important;
+  text-shadow: 0 0 6px rgba(0, 230, 118, 0.3);
+}
+
+.ops-status-warn {
+  color: var(--amber) !important;
+  text-shadow: 0 0 6px rgba(255, 145, 0, 0.2);
+}
+
+.ops-status-err {
+  color: var(--red) !important;
+  text-shadow: 0 0 6px rgba(255, 23, 68, 0.3);
+}

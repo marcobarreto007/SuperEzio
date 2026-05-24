@@ -432,6 +432,23 @@
         if (panel) panel.classList.remove("open");
       });
     }
+    /* Ops Console toggle */
+    var opsBtn = document.getElementById("ops-console-btn");
+    if (opsBtn) {
+      opsBtn.addEventListener("click", function () {
+        if (SZ.opsConsole && typeof SZ.opsConsole.toggle === "function") {
+          SZ.opsConsole.toggle();
+        }
+      });
+    }
+    var opsClose = document.getElementById("ops-console-close");
+    if (opsClose) {
+      opsClose.addEventListener("click", function () {
+        if (SZ.opsConsole && typeof SZ.opsConsole.toggle === "function") {
+          SZ.opsConsole.toggle(false);
+        }
+      });
+    }
     /* Portfolio toggle */
     var pfBtn = document.getElementById("pf-btn");
     if (pfBtn) {

@@ -443,3 +443,27 @@ def test_task_submit_what_happened_intercept(client_with_mock_pipeline):
     trace = stream_end_events[0]["trace"]
     assert trace["detected_intent"] == "WHAT_HAPPENED_INTERCEPT"
     assert trace["scanner_invoked"] is False
+
+
+def test_frontend_ops_console_integration():
+    """14. Verifies the new Operations Console UI integration files exist and contain appropriate wiring."""
+    from pathlib import Path
+
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    init_js = Path("frontend/js/init.js").read_text(encoding="utf-8")
+    ops_js = Path("frontend/js/ops-console.js").read_text(encoding="utf-8")
+    ops_css = Path("frontend/css/ops-console.css").read_text(encoding="utf-8")
+
+    assert len(ops_css) > 0
+    assert 'href="css/ops-console.css"' in html
+    assert 'id="ops-console-btn"' in html
+    assert 'id="ops-console"' in html
+    assert 'src="js/ops-console.js"' in html
+
+    assert "window.SZ.opsConsole =" in ops_js
+    assert "loadDiagnostics" in ops_js
+
+    assert "ops-console-btn" in init_js
+    assert "ops-console-close" in init_js
+    assert "SZ.opsConsole.toggle" in init_js
+

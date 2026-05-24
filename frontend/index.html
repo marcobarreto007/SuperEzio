@@ -24,6 +24,7 @@
   <link rel="stylesheet" href="css/data-quality.css">
   <link rel="stylesheet" href="css/experts.css">
   <link rel="stylesheet" href="css/charts.css">
+  <link rel="stylesheet" href="css/ops-console.css">
 </head>
 <body>
 
@@ -49,6 +50,7 @@
       </select>
       <button class="btn--icon" id="chart-btn" title="Reload chart" type="button"><i data-lucide="refresh-cw"></i></button>
       <button class="btn--icon" id="sdca-lab-btn" title="Cognitive Risk Firewall Lab" type="button"><i data-lucide="shield-alert"></i></button>
+      <button class="btn--icon" id="ops-console-btn" title="System Ops Console" type="button"><i data-lucide="activity"></i></button>
     </div>
   </header>
 
@@ -138,6 +140,55 @@
     </div>
   </section>
 
+  <!-- ── System Ops Console ── -->
+  <section class="ops-console" id="ops-console" aria-hidden="true">
+    <div class="ops-console-hdr">
+      <div><span>F51 Labs</span><strong>System Operations Control</strong></div>
+      <button class="btn--icon" id="ops-console-close" type="button"><i data-lucide="x"></i></button>
+    </div>
+    <div class="ops-console-body">
+      <div class="ops-grid">
+        <!-- 1. Health Status Card -->
+        <div class="ops-card" id="ops-card-health">
+          <h3>System Health</h3>
+          <div class="ops-metrics-list">
+            <div class="ops-row"><span>Status</span><strong id="ops-health-status">Checking...</strong></div>
+            <div class="ops-row"><span>GPU Acceleration</span><strong id="ops-health-gpu">Checking...</strong></div>
+            <div class="ops-row"><span>Redis Database</span><strong id="ops-health-redis">Checking...</strong></div>
+            <div class="ops-row"><span>Local Model (CEO)</span><strong id="ops-health-ceo">Checking...</strong></div>
+          </div>
+        </div>
+
+        <!-- 2. Performance Metrics Card -->
+        <div class="ops-card" id="ops-card-metrics">
+          <h3>Performance</h3>
+          <div class="ops-metrics-list">
+            <div class="ops-row"><span>Average Latency</span><strong id="ops-metric-latency">--</strong></div>
+            <div class="ops-row"><span>Error Count</span><strong id="ops-metric-errors">--</strong></div>
+          </div>
+        </div>
+
+        <!-- 3. System Capabilities Card -->
+        <div class="ops-card" id="ops-card-capabilities">
+          <h3>Agent Capabilities</h3>
+          <ul class="ops-bullet-list" id="ops-capabilities-list">
+            <li>Loading...</li>
+          </ul>
+        </div>
+
+        <!-- 4. Product Manifest Card -->
+        <div class="ops-card ops-card-wide" id="ops-card-manifest">
+          <h3>Product Manifest & Principles</h3>
+          <div class="ops-manifest-desc" id="ops-manifest-desc">Loading...</div>
+          <div class="ops-principles-title">Operating Principles:</div>
+          <ul class="ops-bullet-list" id="ops-manifest-principles">
+            <li>Loading...</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- JS (dependency order) -->
   <script src="js/state.js"></script>
   <script src="js/api.js"></script>
@@ -157,6 +208,7 @@
   <script src="js/render-profile.js"></script>
   <script src="js/live.js"></script>
   <script src="js/sdca-lab.js"></script>
+  <script src="js/ops-console.js"></script>
   <script src="js/events.js"></script>
   <script src="js/health.js"></script>
   <script src="js/init.js"></script>
