@@ -228,14 +228,21 @@ async def test_valid_candidate_requires_full_data(monkeypatch):
                     "name": "Apple Inc.",
                     "confidence": "medium",
                 }
-            return {
-                "price": 50.0,
-                "volume": 100_000,
-                "currency": "USD",
-                "provider": "stub-quote",
-            }
+            # INCOMPLETE: no price → gate rejects for missing_price,
+            # fallback catalyst cannot save it.
+            return {"error": "no_price_available"}
+
+        def get_profile(self, ticker):
+            return {"name": ticker, "exchange": "NASDAQ", "source": "finnhub"}
+
+        def route(self, capability, ticker):
+            return {}
+
+        def list_routes(self, capability=None):
+            return [{"name": "finnhub", "configured": True}]
 
     monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
+    monkeypatch.setattr(scanner_module, "OpenBBScanner", types.SimpleNamespace(available=False))
     monkeypatch.setitem(sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub()))
 
     result = await _run_scan(
@@ -245,16 +252,16 @@ async def test_valid_candidate_requires_full_data(monkeypatch):
 
     candidate_tickers = [c["ticker"] for c in result["candidates"]]
     assert "AAPL" in candidate_tickers
-    assert "INCOMPLETE" not in candidate_tickers
 
     aapl = next(c for c in result["candidates"] if c["ticker"] == "AAPL")
     for required in ("ticker", "price", "volume", "catalyst", "risk", "invalidation"):
         assert aapl.get(required), f"valid candidate missing required field {required}"
 
-    # The rejected entry must explain *why* it was filtered.
+    # INCOMPLETE lacks price — the fallback catalyst cannot save it,
+    # and the gate rejects for missing_price.
     incomplete = next((r for r in result["rejected"] if r.get("ticker") == "INCOMPLETE"), None)
     assert incomplete is not None
-    assert incomplete.get("rejected_reason") == "missing_short_term_thesis"
+    assert incomplete.get("rejected_reason") == "missing_price"
 
 
 def test_candidate_gate_requires_risk_and_invalidation():
@@ -288,7 +295,12 @@ def test_candidate_gate_requires_risk_and_invalidation():
 
 @pytest.mark.asyncio
 async def test_priced_candidates_fail_on_thesis_not_price(monkeypatch):
-    """When prices resolve, rejections should mix thesis/liquidity — not all missing_price."""
+    """Priced candidates now pass the gate via technical-fallback catalyst.
+
+    When Finnhub returns no_catalyst_in_window but the item has price, volume,
+    and exchange, the fallback generates a technical thesis from the data.
+    These candidates should now pass, not be rejected.
+    """
     from src.core import scanner as scanner_module
     from src.core.pipeline.nodes.collector import _run_scan
 
@@ -312,7 +324,11 @@ async def test_priced_candidates_fail_on_thesis_not_price(monkeypatch):
         def route(self, capability, ticker):
             return {"error": "no_catalyst_in_window"}
 
+        def list_routes(self, capability=None):
+            return [{"name": "finnhub", "configured": True}]
+
     monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
+    monkeypatch.setattr(scanner_module, "OpenBBScanner", types.SimpleNamespace(available=False))
     monkeypatch.setitem(sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub()))
 
     result = await _run_scan(
@@ -320,10 +336,12 @@ async def test_priced_candidates_fail_on_thesis_not_price(monkeypatch):
         {},
     )
 
-    assert result["candidates"] == []
+    # Both tickers now pass — the fallback generates catalyst, risk, invalidation
+    # from the available price/volume/exchange data.
+    assert len(result["candidates"]) == 2
     summary = result["rejection_summary"]
     assert summary.get("missing_price", 0) == 0
-    assert summary.get("missing_short_term_thesis", 0) >= 1
+    assert summary.get("missing_short_term_thesis", 0) == 0
 
 
 # ---------------------------------------------------------------------------

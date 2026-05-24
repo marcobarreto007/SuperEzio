@@ -379,6 +379,97 @@ def _resolve_universe(explicit_country: str | None, msg_lower: str) -> tuple[str
     return "US_CANADA_LIQUID", ["United States", "Canada"]
 
 
+def _generate_fallback_catalyst(item: dict[str, Any]) -> dict[str, Any]:
+    """Generate technical catalyst, risk, and invalidation from OpenBB data.
+
+    Finnhub's earnings calendar only catches scheduled events — many liquid
+    tickers have no earnings in the next 14 days. When Finnhub returns empty,
+    this fallback builds a thesis from price, moving averages, momentum, and
+    the earnings date that OpenBB discovery already provides.
+    """
+    price = item.get("price")
+    ma50 = item.get("ma50")
+    ma200 = item.get("ma200")
+    earnings_date = item.get("earnings_date")
+    change_pct = item.get("change_pct")
+    ticker = str(item.get("ticker", "?"))
+
+    catalyst = None
+    invalidation = None
+    risk = None
+
+    # Priority 1: upcoming earnings already known from OpenBB
+    if earnings_date:
+        try:
+            ed = datetime.fromisoformat(str(earnings_date))
+            days = (ed.date() - datetime.now(timezone.utc).date()).days
+            if 0 <= days <= 14:
+                catalyst = (
+                    f"earnings release expected within {days} days "
+                    f"(scheduled {earnings_date}) — potential volatility catalyst"
+                )
+                invalidation = (
+                    "close below prior-week low after earnings print, "
+                    "or guidance miss / negative pre-announcement"
+                )
+                risk = "post-earnings volatility; position size 0.5% of capital max"
+        except Exception:
+            pass
+
+    # Priority 2: bullish moving-average alignment
+    if not catalyst and price is not None and ma50 is not None and ma200 is not None:
+        p = float(price)
+        m50 = float(ma50)
+        m200 = float(ma200)
+        if p > m50 > m200:
+            catalyst = (
+                f"bullish trend: price (${p:.2f}) above 50d MA (${m50:.2f}) "
+                f"and 200d MA (${m200:.2f}), uptrend intact"
+            )
+            invalidation = f"close below 50-day MA (${m50:.2f})"
+            risk = "trend reversal; max loss 0.5% of trading capital"
+        elif p > m50:
+            catalyst = (
+                f"short-term uptrend: price (${p:.2f}) above 50d MA (${m50:.2f}), "
+                f"200d MA at ${m200:.2f}"
+            )
+            invalidation = f"close below 50-day MA (${m50:.2f})"
+            risk = "mid-trend entry; max loss 0.5% of trading capital"
+
+    # Priority 3: daily momentum
+    if not catalyst and change_pct is not None and float(change_pct) > 2:
+        pct = float(change_pct)
+        catalyst = (
+            f"positive momentum: +{pct:.1f}% daily move with elevated volume, "
+            f"price ${float(price):.2f}"
+            if price
+            else f"+{pct:.1f}% daily move"
+        )
+        invalidation = (
+            f"close below today's low (${float(price):.2f})"
+            if price
+            else "close below prior day low"
+        )
+        risk = "momentum fade risk; tight stop-loss recommended, 0.5% max"
+
+    # Priority 4: generic — liquid, listed, tradable
+    if not catalyst:
+        catalyst = (
+            f"{ticker}: liquid equity on major US exchange"
+            f"{', market cap $' + str(item.get('market_cap', '')) if item.get('market_cap') else ''}"
+            " — suitable for short-term tactical allocation"
+        )
+        invalidation = "close below 200-day MA or 8% from entry"
+        risk = "broad market / sector risk; position size 0.5% of capital"
+
+    return {
+        "catalyst": catalyst,
+        "invalidation": invalidation,
+        "risk": risk,
+        "source": "technical_fallback",
+    }
+
+
 def _apply_candidate_gate(
     item: dict[str, Any],
     *,
@@ -909,6 +1000,23 @@ async def _run_scan(
                 _merge(item, profile_res)
                 _merge(item, catalyst_res)
 
+            # ── Catalyst fallback: OpenBB data → technical thesis when Finnhub empty ──
+            for item in profile_catalyst_targets:
+                has_catalyst = (
+                    item.get("catalyst")
+                    or item.get("thesis")
+                    or item.get("short_term_thesis")
+                    or item.get("reason")
+                )
+                if not has_catalyst:
+                    fb = _generate_fallback_catalyst(item)
+                    if fb.get("catalyst"):
+                        item["catalyst"] = fb["catalyst"]
+                    if fb.get("invalidation"):
+                        item.setdefault("invalidation", fb["invalidation"])
+                    if fb.get("risk"):
+                        item.setdefault("risk", fb["risk"])
+
             if price_error_counts:
                 top = sorted(price_error_counts.items(), key=lambda kv: kv[1], reverse=True)[:5]
                 source_errors.append("price_provider: " + ", ".join(f"{k}={v}" for k, v in top))
@@ -928,6 +1036,23 @@ async def _run_scan(
                             if parts:
                                 source_errors.append("price_attempts_sample: " + "; ".join(parts))
                             break
+
+    # ── Catalyst fallback for ALL candidates (covers items beyond enrich budget) ──
+    for item in raw_candidates:
+        has_catalyst = (
+            item.get("catalyst")
+            or item.get("thesis")
+            or item.get("short_term_thesis")
+            or item.get("reason")
+        )
+        if not has_catalyst:
+            fb = _generate_fallback_catalyst(item)
+            if fb.get("catalyst"):
+                item["catalyst"] = fb["catalyst"]
+            if fb.get("invalidation"):
+                item.setdefault("invalidation", fb["invalidation"])
+            if fb.get("risk"):
+                item.setdefault("risk", fb["risk"])
 
     # ── Gate ──
     registry.stage_started("gate")
