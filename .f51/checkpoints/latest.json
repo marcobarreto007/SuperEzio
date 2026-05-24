@@ -1,31 +1,28 @@
 {
-  "date_local": "2026-05-23T18:20:00-04:00",
-  "session": "SuperEzio_Scan_Cache_TTL_Expiry_Plus_Wait_Contract_Fix",
-  "status": "implemented_and_verified",
+  "date_local": "2026-05-23T22:08:25-04:00",
+  "session": "SuperEzio_Runtime_Clean_Restart_8002_8082",
+  "status": "runtime_restarted_and_verified",
   "what_was_done": [
-    "Added scan cache TTL (300s / 5 min) — _SCAN_CACHE_TTL_SECONDS + _cache_is_fresh() in collector.py",
-    "Collector gate: another_trade_recommendation only reuses ranked_candidates if cache is fresh; otherwise runs fresh scan with warning log",
-    "Fixed _scan_from_cached_ranked to preserve original collected_at/scanned_at instead of faking datetime.now()",
-    "Added scanned_at field to _build_trade_order_context — carries collected_at timestamp from scan into trade session context",
-    "Removed redundant local datetime imports in collector.py (now module-level)",
-    "Changed DECISIVE_TRADE_ORDER rendering so only BUY_CANDIDATE uses Primary Order Candidate / Suggested Order Plan; WAIT/blocked renders as Study Candidate with Watchlist / No-Trade plan",
-    "Hardened market_scan candidate gate: short-term trade candidates require risk and invalidation before entering candidates",
-    "Preserved rejected_count, rejection_summary, source_errors in trade_order_context and cached follow-up scans"
+    "Killed stale SuperEzio API process on port 8002: PID 21420.",
+    "Verified ports 8002 and 8082 were free after cleanup.",
+    "Started CEO local model server through scripts/serve_ceo_llamacpp.ps1 on port 8082.",
+    "Started FastAPI agent_server through python -m agent_server.main on port 8002.",
+    "Verified API health, CEO health, CEO model listing, and a real /task/submit stream."
   ],
   "evidence": [
-    "python -m ruff check src/core/pipeline/nodes/collector.py: passed",
-    "python -m ruff check src/core/pipeline src/agent_server scripts tests: passed",
-    "python -m ruff format --check src/core/pipeline src/agent_server scripts tests: 93 files already formatted",
-    "python -m pytest tests/test_decisive_trade_order.py tests/test_market_scan_candidate_gate.py tests/test_agent_market_scan_loop.py -q: 48 passed",
-    "python -m pytest tests/ -q: 859 passed in 152.11s",
-    "git diff --check: passed",
-    "python -m json.tool .f51/checkpoints/latest.json: passed"
+    "Get-NetTCPConnection before cleanup: 127.0.0.1:8002 LISTEN PID 21420; 8082 not listening.",
+    "After cleanup: ports 8002 and 8082 had no listeners.",
+    "Started CEO wrapper PID 26352; llama-server listener PID 27252 on 127.0.0.1:8082.",
+    "Started API PID 29420 on 127.0.0.1:8002.",
+    "GET http://127.0.0.1:8002/health: 200 OK.",
+    "GET http://127.0.0.1:8082/health: 200 OK.",
+    "GET http://127.0.0.1:8082/v1/models: 200 OK; model superezio-ceo-intent-merged.Q4_K_M.gguf listed.",
+    "POST http://127.0.0.1:8002/task/submit with 'Say READY only.': 200 OK, CHUNK READY, STREAM_END, fallback_used=false, scanner_invoked=false."
   ],
   "risks": [
-    "GitHub remains hard-blocked by .f51/GITHUB_POLICY.json",
-    "Cache TTL is 5 min — short enough to keep prices fresh, long enough for follow-up questions without re-scanning",
-    "Server must be restarted for changes to take effect in live UI",
-    "If providers cannot produce risk and invalidation, scanner correctly returns REJECT_ALL instead of showing weak ticker as candidate"
+    "CEO log includes normal llama.cpp warnings about context capacity, GPU fit, and fused Gated Delta Net support; no fatal boot error observed.",
+    "Smoke prompt emitted a CHART_DATA event for READY before final answer; trace still showed selected_ui_ticker empty and chart_context_attached=false.",
+    "No live 14-day scanner prompt was run in this restart step to avoid spending time/API without explicit test instruction."
   ],
-  "next_step": "Restart API server, verify fresh scan on 14-day recommendation prompt, verify cache expiry warning when followup comes after 5+ min"
+  "next_step": "Run the exact 14-day recommendation prompt in the UI/API after this clean restart to verify the new WAIT/Study Candidate contract live."
 }
