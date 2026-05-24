@@ -9,7 +9,6 @@ from src.core.pipeline.nodes.orchestrator import (
     _extract_time_horizon,
     _render_plan,
     node_orchestrator,
-    route_after_orchestrator,
 )
 
 
@@ -33,18 +32,6 @@ def test_allowed_intents_cover_all_routes():
     assert len(ALLOWED_INTENTS) >= 5
     assert "general_question" in ALLOWED_INTENTS
     assert "market_scan" in ALLOWED_INTENTS
-
-
-# ---------------------------------------------------------------------------
-# Routing
-# ---------------------------------------------------------------------------
-
-
-def test_route_after_orchestrator_always_returns_data():
-    assert route_after_orchestrator({}) == "data"
-    assert route_after_orchestrator({"route": "ticker_analysis"}) == "data"
-    assert route_after_orchestrator({"route": "market_scan"}) == "data"
-    assert route_after_orchestrator({"route": "general"}) == "data"
 
 
 # ---------------------------------------------------------------------------

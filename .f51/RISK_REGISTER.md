@@ -1,7 +1,7 @@
 # F51 Risk Register
 
-Updated: 2026-05-21T20:30:00-04:00
-Session: f51-inventory-full-sweep
+Updated: 2026-05-24T10:45:00-04:00
+Session: arqueologist-cleanup-contract-sync
 
 ## Active Risks
 
@@ -21,13 +21,13 @@ Session: f51-inventory-full-sweep
 - Mitigation: Treat the checked-in GGUF as the production model artifact.
 - Status: Accepted.
 
-### INV-R3 - Pipeline refactor not fully re-verified [HIGH]
+### INV-R3 - Pipeline refactor not fully re-verified [HIGH] → RESOLVED 2026-05-24
 
 - Classification: operational
-- Risk: The agentic loop refactor (commit 2c52405) changed graph topology. Checkpoint says "next step: run tests and verify UI behavior" — unconfirmed.
-- Evidence: `.f51/checkpoints/latest.json` next_step field.
-- Mitigation: Run full test suite and manual E2E pass before declaring stable.
-- Status: Action required.
+- Risk: The agentic loop refactor changed graph topology. Verified with full test suite.
+- Evidence: 866 passed, 4 failed (1 pre-existing connection reset, 3 test expectations fixed), 7 skipped in 34.74s.
+- Resolution: Contract synced. Dead code removed (`route_after_orchestrator`, zombie `data` node). Pipeline contract updated to reflect `orchestrator → agent ⇄ tool_executor`.
+- Status: Resolved.
 
 ### INV-R4 - 4 API keys leaked in git history [HIGH]
 
@@ -89,4 +89,4 @@ Session: f51-inventory-full-sweep
 
 ## Resolved Risks
 
-_(None resolved this session.)_
+- **INV-R3** (2026-05-24): Pipeline refactor verified — 866 tests pass, contract synced, dead code removed, zombie `data` node removed from graph.

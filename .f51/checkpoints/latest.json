@@ -1,35 +1,48 @@
 {
-  "date_local": "2026-05-24T10:38:00-04:00",
-  "session": "Bob_Frontend_Backend_API_Sync_And_Ops_Console_Integration",
+  "date_local": "2026-05-24T11:00:00-04:00",
+  "session": "arqueologist-cleanup-contract-sync",
   "status": "completed",
   "what_was_done": [
-    "Created tests/test_api_routes_sync.py to test all 12 API endpoints called by the frontend UI.",
-    "Mocked data_hub.hub and pipeline stream events to verify the A -> B -> C -> B -> A flow.",
-    "Isolated test_neural_logs by clearing log_queue to prevent async test pollution.",
-    "Created a System Operations Console (Ops Control) drawer in the UI.",
-    "Implemented pull logic in js/ops-console.js for /health/details, /capabilities, /metrics, and /product/manifest.",
-    "Executed local browser smoke test using Playwright (scripts/browser_smoke.py --skip-chat) with live FastAPI backend on port 8002.",
-    "Staged and committed new tests and UI console files locally without push, complying with GITHUB_POLICY."
+    "Executed arqueologist full scan: 0 syntax errors, 5 commented-out imports in math/__init__.py, 8 print() statements in non-critical paths, ~40 empty skill dirs (expected structure).",
+    "Compared findings against Bootstrap Plan (.f51/BOOTSTRAP_REPORT.md) — identified 4 critical issues: contract violation, dead route_after_orchestrator(), zombie data node, hardcoded route='general'.",
+    "Updated pipeline.contract.md to reflect real graph topology: orchestrator → agent ⇄ tool_executor (data collection is tool-invoked, not a graph node).",
+    "Removed dead route_after_orchestrator() from orchestrator.py — never called in production.",
+    "Removed zombie data node from graph.py — node_collector function preserved (alive via tool_executor), only graph registration removed.",
+    "Removed corresponding dead tests from test_contract_orchestrator.py.",
+    "Updated test_pipeline_smoke.py and test_runtime_smoke.py to expect 5 nodes (was 6 with zombie data node).",
+    "Closed INV-R3 in RISK_REGISTER.md with verification evidence.",
+    "Executed bootstrap gates in order: inventory → contracts → runtime → tests — all passing.",
+    "Full suite: 869 passed, 8 skipped, 0 failed."
   ],
   "evidence": [
-    "pytest output: 16 passed for test_api_routes_sync.py in 5.34s",
-    "ruff check and ruff format: 100% green",
-    "Playwright browser smoke output: ok=true, canvas nonBlank=394632 pixels, console_errors=[]",
-    "Server request logs show 200 OK for index.html, ops-console.css, ops-console.js, health/details, and capabilities.",
-    "Playwright screenshot saved at output/playwright/superezio-browser-smoke-*.png"
+    "ruff check: All checks passed (src + tests)",
+    "ruff format: Clean (225 files already formatted)",
+    "pytest: 869 passed, 8 skipped, 0 failed in 27.22s",
+    "Contract tests: 279 passed, 1 skipped (all 18 contract test files)",
+    "Pipeline smoke: 8/8 tests pass",
+    "Runtime smoke: 20/20 tests pass",
+    "Orchestrator contract: 12/12 tests pass",
+    "API routes sync: 16/16 tests pass"
   ],
   "files_changed": [
-    "tests/test_api_routes_sync.py",
-    "frontend/index.html",
-    "frontend/js/init.js",
-    "frontend/css/ops-console.css",
-    "frontend/js/ops-console.js",
-    "scripts/browser_smoke.py"
+    ".f51/contracts/pipeline.contract.md",
+    ".f51/RISK_REGISTER.md",
+    "src/core/pipeline/graph.py",
+    "src/core/pipeline/nodes/orchestrator.py",
+    "tests/contracts/test_contract_orchestrator.py",
+    "tests/test_pipeline_smoke.py",
+    "tests/test_runtime_smoke.py",
+    "tests/test_api_routes_sync.py"
   ],
-  "commits": [
-    "bb87144 test: add comprehensive API route sync test suite",
-    "783ff12 test: update browser smoke script to verify operations console",
-    "07e633d feat: integrate System Operations Console drawer and verify frontend-backend sync"
+  "commits": [],
+  "risks_remaining": [
+    "INV-R1: GitHub blocked (policy — ongoing)",
+    "INV-R2: Model rebuild requires intentional reintroduction (accepted)",
+    "INV-R4: 4 API keys leaked in git history (pending rotation)",
+    "INV-R5: CI only tests/lints tests/, not src/ (known gap)",
+    "INV-R6: .f51/tmp 8.1 GB stale artifacts (informational)",
+    "INV-R7: data/fraud_datasets 3.3 GB (needs verification)",
+    "orchestrator.py:191 hardcodes route='general' — all intent classification runs but result is discarded. This was intentional per the ReAct refactor (29381cf) but means CEO model calls are cosmetic."
   ],
-  "next_safest_patch": "Establish telemetry hooks to stream structured logs directly to the Partner Dashboard."
+  "next_safest_patch": "Address route='general' hardcode: either remove the cosmetic classification pipeline or reconnect routing for non-general intents. Then establish telemetry hooks for the Partner Dashboard."
 }

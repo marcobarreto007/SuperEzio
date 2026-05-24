@@ -12,7 +12,6 @@ from langgraph.graph import END, START, StateGraph
 from .contracts import PipelineState
 from .nodes import (
     node_agent,
-    node_collector,
     node_tool_executor,
     route_after_agent,
     node_explanation,
@@ -46,9 +45,6 @@ def build_graph(
     async def _tool_executor(state: dict) -> dict:
         return await node_tool_executor(state, gateway=gateway, config=config)
 
-    async def _collector(state: dict) -> dict:
-        return await node_collector(state, config=config)
-
     async def _explanation(state: dict) -> dict:
         return await node_explanation(state)
 
@@ -58,7 +54,6 @@ def build_graph(
     builder = StateGraph(PipelineState)
 
     builder.add_node("orchestrator_primary", _orchestrator)
-    builder.add_node("data", _collector)
     builder.add_node("agent", _agent)
     builder.add_node("tool_executor", _tool_executor)
     builder.add_node("explanation", _explanation)
@@ -233,7 +228,6 @@ class PipelineApp:
             "mode": "pipeline_v4_stategraph",
             "nodes": [
                 "orchestrator_primary",
-                "data",
                 "agent",
                 "tool_executor",
                 "explanation",

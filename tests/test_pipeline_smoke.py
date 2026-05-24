@@ -48,7 +48,7 @@ def test_pipeline_get_status():
     assert "nodes" in status
     assert "gateway_available" in status
     assert isinstance(status["nodes"], list)
-    assert len(status["nodes"]) == 6
+    assert len(status["nodes"]) == 5
 
 
 def test_pipeline_graph_has_expected_nodes():
@@ -59,7 +59,6 @@ def test_pipeline_graph_has_expected_nodes():
     expected = {
         "__start__",
         "orchestrator_primary",
-        "data",
         "agent",
         "tool_executor",
         "explanation",

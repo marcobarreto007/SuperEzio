@@ -466,4 +466,3 @@ def test_frontend_ops_console_integration():
     assert "ops-console-btn" in init_js
     assert "ops-console-close" in init_js
     assert "SZ.opsConsole.toggle" in init_js
-

@@ -86,7 +86,6 @@ def test_graph_builds_and_has_nodes():
     expected = {
         "__start__",
         "orchestrator_primary",
-        "data",
         "agent",
         "tool_executor",
     }

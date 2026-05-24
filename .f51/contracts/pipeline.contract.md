@@ -10,10 +10,14 @@ Estado unificado que flui por todos os nós do LangGraph no runtime v4.
 ### Grafo v4 Ativo (ReAct Loop)
 
 ```
-START → orchestrator_primary → data (collector) → agent ⇄ tool_executor
-                                               ↘ explanation (condicional) → END
-                                               ↘ respond_blocked (condicional) → END
+START → orchestrator_primary → agent ⇄ tool_executor
+                               ↘ explanation (condicional) → END
+                               ↘ respond_blocked (condicional) → END
 ```
+
+O nó `orchestrator_primary` roteia diretamente para `agent`. A coleta de dados
+(`node_collector`) é invocada como ferramenta pelo agente via `tool_executor`,
+não como nó fixo do grafo.
 
 ### Nós do Grafo e Invocação de Tools
 
@@ -22,7 +26,6 @@ Os nós do grafo LangGraph e seus fluxos de estado no runtime v4 são:
 | Nó | Campos que produz | Campos que consome |
 |----|-------------------|--------------------|
 | orchestrator_primary | route, intent, action, ticker, intent_confidence, intent_reasons, entities, time_horizon | message |
-| data | data, data_context | route, ticker, message |
 | agent | agent_tool_call, agent_iterations | message, ticker, data_context, expert_summary, neural_decision, sdca_firewall, pennylab_result, scan |
 | tool_executor | (Conforme a ferramenta chamada - ver abaixo) | agent_tool_call |
 | explanation | final (ou chunk via stream) | final, f51_verdict |

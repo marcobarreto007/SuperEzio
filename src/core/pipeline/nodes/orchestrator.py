@@ -37,11 +37,6 @@ ALLOWED_INTENTS = {
 # ---------------------------------------------------------------------------
 
 
-def route_after_orchestrator(state: dict) -> str:
-    """All routes go through the full pipeline — CEO gets complete context."""
-    return "data"
-
-
 # ---------------------------------------------------------------------------
 # Plan rendering
 # ---------------------------------------------------------------------------
