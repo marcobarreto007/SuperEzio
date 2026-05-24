@@ -1,48 +1,37 @@
 {
-  "date_local": "2026-05-24T11:00:00-04:00",
-  "session": "arqueologist-cleanup-contract-sync",
+  "date_local": "2026-05-24T10:46:00-04:00",
+  "session": "ui-modernization-2026",
   "status": "completed",
   "what_was_done": [
-    "Executed arqueologist full scan: 0 syntax errors, 5 commented-out imports in math/__init__.py, 8 print() statements in non-critical paths, ~40 empty skill dirs (expected structure).",
-    "Compared findings against Bootstrap Plan (.f51/BOOTSTRAP_REPORT.md) — identified 4 critical issues: contract violation, dead route_after_orchestrator(), zombie data node, hardcoded route='general'.",
-    "Updated pipeline.contract.md to reflect real graph topology: orchestrator → agent ⇄ tool_executor (data collection is tool-invoked, not a graph node).",
-    "Removed dead route_after_orchestrator() from orchestrator.py — never called in production.",
-    "Removed zombie data node from graph.py — node_collector function preserved (alive via tool_executor), only graph registration removed.",
-    "Removed corresponding dead tests from test_contract_orchestrator.py.",
-    "Updated test_pipeline_smoke.py and test_runtime_smoke.py to expect 5 nodes (was 6 with zombie data node).",
-    "Closed INV-R3 in RISK_REGISTER.md with verification evidence.",
-    "Executed bootstrap gates in order: inventory → contracts → runtime → tests — all passing.",
-    "Full suite: 869 passed, 8 skipped, 0 failed."
+    "Upgraded HTML drawers (#sdca-lab and #ops-console) to native Popover elements.",
+    "Replaced junior manual scroll height sizing in JS with CSS field-sizing: content for the textarea (#user-inp), adding feature-detection fallbacks in js to avoid layout thrashing on modern browsers.",
+    "Updated CSS drawer styles with :popover-open pseudo-selectors, @starting-style entry/exit transforms, and transition discrete behavior (allow-discrete).",
+    "Modernized sdca-lab.js and ops-console.js drawer toggle states to trigger native Popover show/hide APIs wrapped inside document.startViewTransition().",
+    "Kept the .open class list synchronized with popover states in JS to preserve compatibility with existing end-to-end browser smoke test selectors.",
+    "Integrated window.scheduler.yield() inside the telemetry event parsing loop in init.js to maintain thread responsiveness and minimize INP (Interaction to Next Paint) latency."
   ],
   "evidence": [
-    "ruff check: All checks passed (src + tests)",
-    "ruff format: Clean (225 files already formatted)",
-    "pytest: 869 passed, 8 skipped, 0 failed in 27.22s",
-    "Contract tests: 279 passed, 1 skipped (all 18 contract test files)",
-    "Pipeline smoke: 8/8 tests pass",
-    "Runtime smoke: 20/20 tests pass",
-    "Orchestrator contract: 12/12 tests pass",
-    "API routes sync: 16/16 tests pass"
+    "pytest: All 869 unit, integration, and contract tests passed.",
+    "browser smoke test: Playwright test passed successfully with no console errors and verified non-blank canvas render.",
+    "git commit: Changes committed locally under commit 7d15be7."
   ],
   "files_changed": [
-    ".f51/contracts/pipeline.contract.md",
-    ".f51/RISK_REGISTER.md",
-    "src/core/pipeline/graph.py",
-    "src/core/pipeline/nodes/orchestrator.py",
-    "tests/contracts/test_contract_orchestrator.py",
-    "tests/test_pipeline_smoke.py",
-    "tests/test_runtime_smoke.py",
-    "tests/test_api_routes_sync.py"
+    "frontend/index.html",
+    "frontend/css/sdca.css",
+    "frontend/css/ops-console.css",
+    "frontend/css/chat.css",
+    "frontend/js/sdca-lab.js",
+    "frontend/js/ops-console.js",
+    "frontend/js/init.js"
   ],
-  "commits": [],
+  "commits": ["7d15be7"],
   "risks_remaining": [
     "INV-R1: GitHub blocked (policy — ongoing)",
     "INV-R2: Model rebuild requires intentional reintroduction (accepted)",
     "INV-R4: 4 API keys leaked in git history (pending rotation)",
     "INV-R5: CI only tests/lints tests/, not src/ (known gap)",
     "INV-R6: .f51/tmp 8.1 GB stale artifacts (informational)",
-    "INV-R7: data/fraud_datasets 3.3 GB (needs verification)",
-    "orchestrator.py:191 hardcodes route='general' — all intent classification runs but result is discarded. This was intentional per the ReAct refactor (29381cf) but means CEO model calls are cosmetic."
+    "INV-R7: data/fraud_datasets 3.3 GB (needs verification)"
   ],
-  "next_safest_patch": "Address route='general' hardcode: either remove the cosmetic classification pipeline or reconnect routing for non-general intents. Then establish telemetry hooks for the Partner Dashboard."
+  "next_safest_patch": "Examine orchestrator.py:191 hardcoded route='general' intent bypass to enable CEO routing, or establish telemetry metrics dashboard reporting."
 }
