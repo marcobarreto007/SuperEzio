@@ -23,19 +23,6 @@ EXPERT_PROVIDERS: dict[str, str] = {
     "fundamental_value": "deepseek",
     "momentum_technical": "deepseek",
     "contrarian_opportunity": "deepseek",
-    # Compatibility mapping for old roles
-    "fundamental": "deepseek",
-    "technical": "deepseek",
-    "risk": "deepseek",
-    "macro": "deepseek",
-    "quant": "deepseek",
-    "sentiment": "deepseek",
-    "reddit": "deepseek",
-    "crypto": "deepseek",
-    "options": "deepseek",
-    "esg": "deepseek",
-    "fixed_income": "deepseek",
-    "forex": "deepseek",
 }
 
 EXPERT_PROMPTS: dict[str, tuple[str, str]] = {

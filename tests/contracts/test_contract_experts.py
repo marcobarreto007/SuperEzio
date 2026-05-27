@@ -13,7 +13,7 @@ def _noop_writer(_event: dict) -> None:
 
 
 def test_expert_providers_has_required_roles():
-    required = {"fundamental", "technical", "risk", "macro", "quant", "sentiment"}
+    required = {"macro_risk", "fundamental_value", "momentum_technical", "contrarian_opportunity"}
     assert required.issubset(set(EXPERT_PROVIDERS))
     for role in required:
         assert EXPERT_PROVIDERS[role] == "deepseek"

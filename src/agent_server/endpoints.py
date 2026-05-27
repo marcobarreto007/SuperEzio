@@ -495,20 +495,12 @@ PRODUCT_MANIFEST = {
         },
         "full_mode": {
             "label": "Institutional Committee",
-            "agent_count": 12,
+            "agent_count": 4,
             "roles": [
-                "Fundamental Analyst",
-                "Technical Analyst",
-                "Risk Manager",
-                "Sentiment Analyst",
-                "Macroeconomist",
-                "Portfolio Optimizer",
-                "Fixed Income Analyst",
-                "Quant Strategist",
-                "ESG Analyst",
-                "Derivatives Analyst",
-                "Compliance Officer",
-                "Sector Analyst",
+                "Macro & Risk Analyst",
+                "Fundamental & Value Analyst",
+                "Momentum & Technical Analyst",
+                "Contrarian & Opportunity Analyst",
             ],
         },
     },
@@ -518,7 +510,7 @@ PRODUCT_MANIFEST = {
         "mode": "optional",
         "description": (
             "Optional forensic layer for penny-stock workflows. It does not "
-            "replace the 12-expert institutional committee."
+            "replace the 4-expert institutional committee."
         ),
         "roles": [
             "Fraud Hunter",
@@ -540,8 +532,8 @@ PRODUCT_MANIFEST = {
             "description": "Collects price, fundamentals, technicals, news, risk, and memory when available.",
         },
         {
-            "id": "experts_12",
-            "label": "12 Experts",
+            "id": "experts_4",
+            "label": "4 Experts",
             "description": "Experts analyze the same data under an anti-guessing contract.",
         },
         {

@@ -52,20 +52,18 @@ ASSISTANT_ANALYSIS_PREFIX = (
 )
 
 AGENT_ROLE_PREFIXES: dict[str, str] = {
-    "fundamental": (
-        "### Fundamental Analysis\n\nVerified metrics (P/E, ROE, EV/EBITDA, dividends):\n"
+    "macro_risk": (
+        "### Macro & Risk Analysis\n\nVerified macro indicators, rates, VIX, spreads:\n"
     ),
-    "technical": ("### Technical Analysis\n\nVerified indicators (RSI, MACD, EMA, Bollinger):\n"),
-    "risk": ("### Risk Assessment\n\nVerified VaR/CVaR, Sharpe, Sortino, drawdown:\n"),
-    "sentiment": "### Market Sentiment\n\nVerified news and social signals:\n",
-    "macro": "### Macroeconomic Analysis\n\nVerified BCB/BoC/Fed data:\n",
-    "portfolio": ("### Portfolio Optimization\n\nVerified diversification and concentration:\n"),
-    "fixed_income": "### Fixed Income\n\nVerified yield, duration, and yield curve:\n",
-    "quant": ("### Quantitative Strategy\n\nVerified Monte Carlo and statistical models:\n"),
-    "esg": ("### ESG Analysis\n\nEnvironmental, social, and governance criteria:\n"),
-    "derivatives": ("### Derivatives Analysis\n\nOptions, puts/calls, and implied volatility:\n"),
-    "compliance": ("### Compliance and Regulatory\n\nVerified regulatory and compliance status:\n"),
-    "sector": ("### Sector Analysis\n\nVerified competitors and sector positioning:\n"),
+    "fundamental_value": (
+        "### Fundamental & Value Analysis\n\nVerified metrics (P/E, ROE, FCF, debt):\n"
+    ),
+    "momentum_technical": (
+        "### Momentum & Technical Analysis\n\nVerified indicators (RSI, MA, volume):\n"
+    ),
+    "contrarian_opportunity": (
+        "### Contrarian & Opportunity Analysis\n\nVerified sentiment, insider, short interest:\n"
+    ),
 }
 
 PENNY_STOCK_VERIFICATION_SYSTEM_PROMPT = f"""You are SuperEzio Penny Stock Guardrail, a forensic analysis engine for microcap and penny-stock risk.
@@ -128,7 +126,7 @@ DEEPSEEK_BRAIN_SYSTEM_PROMPT = f"""You are SuperEzio Brain, a 2026 institutional
 Core rules:
 1. This is advanced quantitative analysis. Do not hallucinate metrics.
 2. You must cite the evidence_id for every number or state it is unavailable.
-3. Synthesize the inputs from the 12 expert agents, weighing the Risk Manager and Quant Strategist heavily.
+3. Synthesize the inputs from the 4 expert agents (Macro/Risk, Fundamental/Value, Momentum/Technical, Contrarian/Opportunity).
 4. Provide actionable, risk-adjusted position sizing using: {SAFE_ACTIONS}.
 5. Always propose a volatility-adjusted stop-loss, such as 1.5x ATR or VaR 95%.
 6. Clearly distinguish AI probabilistic models from human consensus.
@@ -163,12 +161,12 @@ Valid next steps: {SAFE_ACTIONS}. If data is missing, reject the trade with AVOI
 
 CEO_STRATEGIST = f"""You are the CIO (Chief Investment Officer) of the SuperEzio quantitative engine.
 
-ROLE: Synthesize inputs from the 12 expert agents into structured risk output.
+ROLE: Synthesize inputs from the 4 expert agents into structured risk output.
 Your job is not to give casual advice. Your job is to process data and classify quantitative asymmetry.
 
 Required inputs:
 1. Verified DataCollector evidence_ids for fundamentals, quant, and risk.
-2. The 12-agent AI committee view.
+2. The 4-agent AI committee view.
 
 Required output:
 - Data Integrity: validate whether critical sources are present.
