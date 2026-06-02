@@ -1,4 +1,4 @@
-“””CEO prompt builder — Qwen3-Next-80B Abliterated, section-based, no model branching.”””
+"""CEO prompt builder -- Qwen3-Next-80B Abliterated, section-based, no model branching."""
 
 from __future__ import annotations
 
@@ -264,24 +264,24 @@ def _build_complex_finance_prompt(raw_message: str) -> str:
                 "- legal/tax filing instructions as a substitute for a professional\n"
                 "- deception, evasion, or fraud\n\n"
                 "Otherwise, you MUST answer. Your answer MUST follow this exact 12-section structure:\n\n"
-                '1. **Scope disclaimer** — one short sentence: "This is an educational framework, not personalized financial advice."\n'
-                "2. **Question Classification** — identify the type: CAPITAL_ALLOCATION, MACRO_THESIS, REAL_ESTATE_VS_MARKETS, PERSONAL_FINANCE, ASSET_ALLOCATION, BUSINESS_CAPITAL, FRAUD_RISK, EDUCATION_INVESTMENT, or UNKNOWN\n"
-                "3. **Assumptions** — state all assumptions being made (Key Assumptions). Always label scenario numbers, returns, and probabilities as illustrative assumptions.\n"
-                "4. **Missing Data** — what data would be needed for a definitive answer\n"
-                "5. **Decision Variables** — the factors that drive the decision\n"
-                '6. **Quantitative Thresholds** — specific numbers, ranges, formulas, or decision gates. Avoid vague thresholds like "risk capacity > $50K". Instead, you MUST use actionable gates:\n'
+                '1. **Scope disclaimer** -- one short sentence: "This is an educational framework, not personalized financial advice."\n'
+                "2. **Question Classification** -- identify the type: CAPITAL_ALLOCATION, MACRO_THESIS, REAL_ESTATE_VS_MARKETS, PERSONAL_FINANCE, ASSET_ALLOCATION, BUSINESS_CAPITAL, FRAUD_RISK, EDUCATION_INVESTMENT, or UNKNOWN\n"
+                "3. **Assumptions** -- state all assumptions being made (Key Assumptions). Always label scenario numbers, returns, and probabilities as illustrative assumptions.\n"
+                "4. **Missing Data** -- what data would be needed for a definitive answer\n"
+                "5. **Decision Variables** -- the factors that drive the decision\n"
+                '6. **Quantitative Thresholds** -- specific numbers, ranges, formulas, or decision gates. Avoid vague thresholds like "risk capacity > $50K". Instead, you MUST use actionable gates:\n'
                 "   - emergency fund months (e.g., 3-6 months based on income stability)\n"
                 "   - debt interest rate (e.g., pay off debt with interest > 6-8% first)\n"
                 "   - income stability (e.g., stable salary vs unstable freelance)\n"
                 "   - liquidity need\n"
                 "   - time-to-cashflow for business equipment\n"
                 "   - tax-advantaged account availability\n"
-                '7. **Scenario Analysis** — base case, downside case, upside case with numbers. You must explicitly label all scenario numbers, returns, and probabilities as illustrative assumptions (e.g., "illustrative scenario assumptions"). Do NOT invent exact expected returns or probabilities unless they are explicitly sourced.\n'
-                "8. **Ranked Allocation / Framework** — ordered ranking of options with rationale (Ranked Decision). Every allocation must include the exact percentage, and you must explain why each bucket gets that percentage. Allocations must sum to exactly 100%.\n"
-                '9. **Decision Gates** — triggers that would flip the recommendation (What Would Change the Decision), main risks (Main Risks), and conditional logic. State clearly "what changes the allocation" in this section.\n'
-                "10. **Final Recommendation Under Assumptions** — clear, actionable next step (Final Recommendation)\n"
-                "11. **Confidence Level** — honest assessment with stated uncertainty\n"
-                "12. **Professional Caveat** — suggestion to consult a CFP as a final caveat, not as the whole answer\n\n"
+                '7. **Scenario Analysis** -- base case, downside case, upside case with numbers. You must explicitly label all scenario numbers, returns, and probabilities as illustrative assumptions (e.g., "illustrative scenario assumptions"). Do NOT invent exact expected returns or probabilities unless they are explicitly sourced.\n'
+                "8. **Ranked Allocation / Framework** -- ordered ranking of options with rationale (Ranked Decision). Every allocation must include the exact percentage, and you must explain why each bucket gets that percentage. Allocations must sum to exactly 100%.\n"
+                '9. **Decision Gates** -- triggers that would flip the recommendation (What Would Change the Decision), main risks (Main Risks), and conditional logic. State clearly "what changes the allocation" in this section.\n'
+                "10. **Final Recommendation Under Assumptions** -- clear, actionable next step (Final Recommendation)\n"
+                "11. **Confidence Level** -- honest assessment with stated uncertainty\n"
+                "12. **Professional Caveat** -- suggestion to consult a CFP as a final caveat, not as the whole answer\n\n"
                 "Mandatory Disclaimer Style:\n"
                 "Allowed:\n"
                 '"This is an educational framework, not personalized financial advice."\n'
@@ -294,16 +294,16 @@ def _build_complex_finance_prompt(raw_message: str) -> str:
                 '- NEVER output exact probability values like "50% chance", "70% probability", "30% likelihood", or similar precise percentages. Instead, use qualitative ranges: "roughly even odds", "more likely than not", "illustrative risk range, not forecast".\n'
                 "- Label all scenario numbers, returns, and probabilities as illustrative assumptions.\n"
                 "- Ensure proposed portfolio allocations sum to exactly 100%. Every allocation must include why each bucket gets that percentage.\n"
-                '- For Canadian personal finance: include CAD, liquidity, emergency reserve. When mentioning Canadian registered accounts, spell them out individually with proper separators: write "TFSA, RRSP, RESP, or FHSA" — NEVER concatenate them into malformed strings like "TFSABRRSP" or "TFSARRSP". State that tax rules depend on the individual\'s situation.\n'
+                '- For Canadian personal finance: include CAD, liquidity, emergency reserve. When mentioning Canadian registered accounts, spell them out individually with proper separators: write "TFSA, RRSP, RESP, or FHSA" -- NEVER concatenate them into malformed strings like "TFSABRRSP" or "TFSARRSP". State that tax rules depend on the individual\'s situation.\n'
                 '- NEVER recommend specific ETF tickers (e.g., VGRO, XEQT, VFV, ZAG) unless the user provided verified price/fundamental data for that ticker. Instead, describe the asset class: "broad diversified Canadian-listed ETF", "low-cost S&P 500 index ETF", "aggregate bond ETF".\n'
                 "  * TICKER DENYLIST: The following are NOT real tickers and must NEVER appear: VOOE, SPYY, VTII, VXUSS, BNDD, SLVV, QQQE, SPYD. If you are unsure a ticker exists, describe the asset class instead.\n"
-                "- ETF OVERLAP RULE: Do NOT recommend two or more ETFs that track the same or highly correlated index in the same allocation. Known overlapping pairs to avoid together: SPY/VTI/VOO/IVV (all track US total/large-cap market, correlation >0.95), QQQ/QQQM (identical index), VXUS/VEU (both total international). If SPY is already in the allocation, do NOT add VTI or VOO — pick ONE US equity ETF and justify it. Same rule applies for any ETF pairs where the underlying index overlap exceeds 80%.\n"
+                "- ETF OVERLAP RULE: Do NOT recommend two or more ETFs that track the same or highly correlated index in the same allocation. Known overlapping pairs to avoid together: SPY/VTI/VOO/IVV (all track US total/large-cap market, correlation >0.95), QQQ/QQQM (identical index), VXUS/VEU (both total international). If SPY is already in the allocation, do NOT add VTI or VOO -- pick ONE US equity ETF and justify it. Same rule applies for any ETF pairs where the underlying index overlap exceeds 80%.\n"
                 "- ETF CATEGORY SANITY: VOO/SPY/IVV are S&P 500/US large-cap examples; VTI is total US market; VXUS/VEU are international ex-US; BND is bonds/fixed income; VNQ is REITs; SCHD is dividend quality; VTV is large-cap value and must NEVER be called small-cap; VBR/VB are the small-cap/small-cap-value examples; VWENX is not an ETF and must NEVER be called a bond ETF. If category certainty is low, use the asset-class label instead of a ticker.\n"
                 "- For real estate vs markets: include cap rate, cash-on-cash return, mortgage rate sensitivity, vacancy stress, maintenance reserve, insurance, taxes, liquidity, concentration risk, and opportunity cost vs diversified equity.\n"
                 "- For macro thesis: first build the thematic exposure logic before giving stock-screening criteria. Separate secular trend, valuation risk, concentration risk, picks-and-shovels infrastructure, hype zones, position sizing logic, and rebalancing discipline.\n"
                 "- For AI investment thesis, explicitly separate: 1. infrastructure winners, 2. monetization-risk companies, 3. hype/pivot companies, 4. valuation traps, 5. portfolio sizing, 6. rebalancing rules, and 7. maximum total AI-theme exposure inside the full portfolio.\n"
                 "- For capital allocation: include high-interest debt threshold, emergency reserve, reversibility, time-to-cashflow, and family stability.\n\n"
-                "FINAL OUTPUT FORMAT — MANDATORY:\n"
+                "FINAL OUTPUT FORMAT -- MANDATORY:\n"
                 "Your answer MUST end with exactly these two lines, on their own, after the Professional Caveat section:\n"
                 "Final verdict: <PAY_DEBT / CASH / ETF / STOCK_TRADE / WAIT>\n"
                 "Confidence: <0-100>\n\n"
@@ -337,7 +337,7 @@ def build_agent_prompt(
     route = state.get("route", "general")
     ticker = state.get("ticker", "")
 
-    # â”€â”€ Casual / greeting â”€â”€
+    # â"€â"€ Casual / greeting â"€â"€
     has_financial = bool(
         ticker
         or state.get("data_context")
@@ -371,7 +371,7 @@ def build_agent_prompt(
             ]
         )
 
-    # â”€â”€ Structured analysis â”€â”€
+    # â"€â"€ Structured analysis â"€â"€
     # Extract time horizon from the user message
     _horizon_match = re.search(
         r"(\d+)\s*(day|days|week|weeks|month|months)",
@@ -512,7 +512,7 @@ def build_agent_prompt(
         "## RAG_FORENSICS\n"
         "## PENNYLAB\n\n"
         "For each section write 1-3 sentences in plain language. "
-        "If a module has no data, write 'MISSING — confidence reduced'.\n"
+        "If a module has no data, write 'MISSING -- confidence reduced'.\n"
         "Then write '## BOB_VERDICT' with your final plain-language verdict.\n"
         "Do NOT skip any section header. This is mandatory."
     )
