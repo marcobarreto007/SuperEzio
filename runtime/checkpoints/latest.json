@@ -1,16 +1,14 @@
 {
-  "date_local": "2026-06-02T01:05:00-04:00",
-  "session": "f51-80b-nitro-upgrade-2026-06-02",
-  "status": "model_downloaded_and_verified",
+  "date_local": "2026-06-02T13:01:50-04:00",
+  "session": "runtime-archaeology-2026-06-02",
+  "status": "archaeology_report_saved",
   "what_was_done": [
-    "Upgraded CEO model from Qwen3.6-35B Q4_K_M to Qwen3-Next-80B-A3B Abliterated IQ4_XS",
-    "Applied F51 Nitro Layers 1-4 configuration (Persistence Cache, Async PCIe, Router Lookahead, KV Cache Tiering)",
-    "Context window expanded from 8K to 256K tokens",
-    "GPU layers set to 999 (max offload) with --cpu-moe for expert computation on CPU/RAM",
-    "VRAM budget: ~6.3 GB (shared layers + KV cache), RAM budget: ~39 GB (expert pool)",
-    "All config files, tests, scripts, and documentation aligned to new 80B model identity",
-    "Downloaded 80B GGUF from HuggingFace: 40.15 GB in 43.8 min @ 16.4 MB/s — VERIFIED size match",
-    "Full test suite: 65/65 PASSED (100%) including model file existence check"
+    "Confirmed previous Bob sovereign commit is saved locally",
+    "Ran codebase archaeology for duplicate, legacy, artifact, and math-core issues",
+    "Identified duplicated technical indicators in professional collector and core math engine",
+    "Identified duplicated CircuitBreaker implementation",
+    "Identified PennyLab ReAct tool still using a stub instead of the real mathcore-backed module",
+    "Saved report at docs/internal/audits/runtime_archaeology_2026-06-02.md"
   ],
   "runtime_parameters": {
     "api_port": 8002,
@@ -28,7 +26,17 @@
     "total_experts": 512,
     "active_experts_per_token": 10
   },
-  "risks": [],
-  "next_step": "Live smoke test: powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082",
+  "evidence": [
+    "docs/internal/audits/runtime_archaeology_2026-06-02.md",
+    "Largest hot files: intents.py 2124 lines, agent.py 1395 lines, endpoints.py 1103 lines, collector.py 1076 lines, professional.py 877 lines",
+    "git ls-files data/traces returned 0 tracked files while local trace files are present",
+    "git ls-files output/playwright runtime/logs scripts/_archive returned 24 tracked artifact/archive files"
+  ],
+  "risks": [
+    "Do not delete broad artifact folders before explicit approval; some logs/screenshots may be release evidence",
+    "Math core is underexposed in the hot runtime path while professional collector duplicates indicator formulas",
+    "PennyLab tool path still uses a stub in tool_executor.py"
+  ],
+  "next_step": "Implement cleanup P0-1/P0-2/P0-3: canonical math indicators, canonical circuit breaker, real PennyLab tool",
   "owner": "Marco"
 }

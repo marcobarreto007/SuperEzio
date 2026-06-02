@@ -1,31 +1,26 @@
 {
-  "date_local": "2026-06-02T11:43:00-04:00",
-  "session": "sovereign-bob-market-scan-upgrade",
-  "status": "completed",
+  "date_local": "2026-06-02T13:01:50-04:00",
+  "session": "runtime-archaeology-2026-06-02",
+  "status": "archaeology_report_saved",
   "what_was_done": [
-    "Relaxed the scanner gate in src/core/pipeline/nodes/collector.py to not filter candidates for missing catalyst, risk, invalidation at scanner stage.",
-    "Removed the deterministic market_scan bypass check from src/core/pipeline/nodes/agent.py, enabling Bob (the LLM) to reason over scan results sovereignly.",
-    "Adapted test_market_scan_result_finalizes_without_reentering_tool_loop in tests/test_agent_market_scan_loop.py to mock LLM gateway completion and assert output propagation.",
-    "Adapted test_candidate_gate_allows_missing_risk_and_invalidation in tests/test_market_scan_candidate_gate.py to verify relaxed gate criteria.",
-    "Ran the entire test suite of 986 tests, achieving 100% pass rate (986/986 passed).",
-    "Performed manual verification of the API stream endpoint using Invoke-RestMethod and confirmed that agent_called=true and candidate gate allows raw scanner candidates to pass to Bob."
+    "Confirmed previous Bob sovereign commit is saved locally",
+    "Ran codebase archaeology for duplicate, legacy, artifact, and math-core issues",
+    "Identified duplicated technical indicators in professional collector and core math engine",
+    "Identified duplicated CircuitBreaker implementation",
+    "Identified PennyLab ReAct tool still using a stub instead of the real mathcore-backed module",
+    "Saved report at docs/internal/audits/runtime_archaeology_2026-06-02.md"
   ],
-  "evidence": {
-    "tests": {
-      "command": "python -m pytest",
-      "result": "986/986 PASSED (100%)"
-    },
-    "manual_verification": {
-      "endpoint": "http://127.0.0.1:8002/task/submit",
-      "result": "Success: agent_called=true, candidate_count=5, top candidate EXEL generated a decisive study order with Bob's reasoning."
-    }
-  },
+  "evidence": [
+    "docs/internal/audits/runtime_archaeology_2026-06-02.md",
+    "Largest hot files: intents.py 2124 lines, agent.py 1395 lines, endpoints.py 1103 lines, collector.py 1076 lines, professional.py 877 lines",
+    "git ls-files data/traces returned 0 tracked files while local trace files are present",
+    "git ls-files output/playwright runtime/logs scripts/_archive returned 24 tracked artifact/archive files"
+  ],
   "risks": [
-    {
-      "severity": "low",
-      "description": "Output layout format changed from deterministic python formatting to LLM-generated natural reasoning response."
-    }
+    "Do not delete broad artifact folders before explicit approval; some logs/screenshots may be release evidence",
+    "Math core is underexposed in the hot runtime path while professional collector duplicates indicator formulas",
+    "PennyLab tool path still uses a stub in tool_executor.py"
   ],
-  "next_step": "Ready for production release.",
+  "next_step": "Implement cleanup P0-1/P0-2/P0-3: canonical math indicators, canonical circuit breaker, real PennyLab tool",
   "owner": "Marco"
 }
