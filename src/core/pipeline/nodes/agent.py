@@ -1322,16 +1322,15 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         messages.append({
             "role": "user",
             "content": (
-                f"CURRENT DATETIME: {now_str}\n"
-                f"RISK TOLERANCE (detected): {risk}\n\n"
-                f"USER SAYS: {state.get('message', '')}\n\n"
-                f"THINK ALOUD before acting. What does this person REALLY want? "
-                f"Be honest: do they want a stock pick, a prediction, an explanation, or life advice? "
-                f"If they want a stock pick — form a thesis about what kind of stock, then call market_scan to find candidates. "
-                f"If they want a framework — give one, but in YOUR OWN WORDS, not a template. "
-                f"If they want a prediction — say what you think and why. "
-                f"DO NOT use any pre-written template. Speak as Bob, a smart friend. "
-                f"Use tools when you need data to back up what you're saying."
+                f"CURRENT DATE: {now_str}\n"
+                f"DETECTED RISK LEVEL: {risk}\n\n"
+                f"USER: {state.get('message', '')}\n\n"
+                f"BANNED: Do NOT output the 12-section framework template. "
+                f"BANNED: Do NOT start with 'Scope disclaimer'. "
+                f"BANNED: Do NOT use numbered sections like '1. **Scope disclaimer** —'. "
+                f"Instead, talk like a smart friend giving advice. "
+                f"If the user wants a stock pick, give them tickers with reasons. "
+                f"If you need market data, call tools. If you can answer from knowledge, do so."
             ),
         })
         state["current_datetime"] = now_str
@@ -1413,10 +1412,10 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
         raw = await gateway.chat_completion(
             messages=messages,
-            temperature=0.4 if bob_sovereign else 0.1,
+            temperature=0.7 if bob_sovereign else 0.1,
             max_tokens=4096 if bob_sovereign else 2048,
             preferred_provider=AGENT_PROVIDER_NAME,
-            json_mode=True,
+            json_mode=False if bob_sovereign else True,
         )
 
         # Clean thinking blocks
