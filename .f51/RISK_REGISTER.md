@@ -118,21 +118,20 @@ Session: f51-contracts-phase1-2026-06-01
 
 ## New Risks (2026-06-01 — Phase 2+3 Runtime + Full Suite)
 
-### INV-R13 - CEO GGUF model file missing from disk [HIGH]
+### INV-R15 - Qwen3-Next-80B Abliterated IQ4_XS GGUF missing from disk [HIGH]
 
 - Classification: operational
-- Risk: `models/superezio-ceo-intent-merged.Q4_K_M.gguf` (80 GB) not found at expected path.
-- Evidence: Test `test_ceo_runtime_config_matches_manifest_and_script` fails.
-- Mitigation: Locate GGUF and update config/runtime.yml path or create symlink.
+- Risk: `models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf` (~40 GB) not found at expected path.
+- Evidence: Test `test_agent_runtime_config_matches_manifest_and_script` fails on file existence check.
+- Mitigation: Download from HuggingFace `mradermacher/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated-GGUF`.
 - Status: **Active — blocks live pipeline.**
 
-### INV-R14 - Desktop launcher cannot resolve project path [LOW]
+### INV-R14 - Desktop launcher cannot resolve project path [RESOLVED]
 
 - Classification: operational
-- Risk: `desktop/SuperEzio.bat` path resolution broken.
-- Evidence: Test `test_launcher_check_mode_validates_without_starting_servers` returns exit code 1.
-- Mitigation: Fix path in batch file. Non-blocking: `python -m agent_server.main` works.
-- Status: Needs fix.
+- Risk: `desktop/SuperEzio.bat` path resolution broken. **BAT file deleted by operator request.**
+- Mitigation: Use direct commands: `serve_agent_llamacpp.ps1` + `python -m agent_server.main`.
+- Status: **Resolved — BAT retired, launcher test removed from contract suite.**
 
 ### INV-R15 - Full suite baseline: 977 pass, 2 fail, 8 skip [INFO]
 

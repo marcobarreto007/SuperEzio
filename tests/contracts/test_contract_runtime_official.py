@@ -202,7 +202,7 @@ def test_runtime_checkpoint_tracks_official_entrypoints():
     assert params["agent_port"] == 8082
     assert params["api_entrypoint"] == "python -m agent_server.main"
     assert params["agent_entrypoint"].endswith("scripts/serve_agent_llamacpp.ps1 -Port 8082")
-    assert params["model_path"] == "models/superezio-agent-intent-merged.Q4_K_M.gguf"
+    assert params["model_path"] == "models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf"
 
 
 def test_runbook_documents_official_runtime_commands():

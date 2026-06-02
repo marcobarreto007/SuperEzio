@@ -31,16 +31,16 @@
         },
         {
             "name": "CEO llama.cpp Server",
-            "command": "powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082",
+            "command": "powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082",
             "port": 8082,
-            "file": "scripts/serve_ceo_llamacpp.ps1",
+            "file": "scripts/serve_agent_llamacpp.ps1",
             "classification": "app"
         },
         {
-            "name": "Desktop Launcher",
-            "command": "desktop/SuperEzio.bat",
+            "name": "Desktop Launcher (RETIRED)",
+            "command": "RETIRED — use serve_agent_llamacpp.ps1 + agent_server.main directly",
             "port": "8082+8002",
-            "file": "desktop/SuperEzio.bat",
+            "file": "desktop/SuperEzio.bat (DELETED)",
             "classification": "app"
         },
         {
@@ -79,7 +79,7 @@
         "src/core/model_serving/providers.py",
         "src/data/data_hub.py",
         "config/runtime.yml",
-        "models/superezio-ceo-intent-merged.Q4_K_M.gguf"
+        "models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf"
     ],
     "modules": [
         {"name": "agent_server", "path": "src/agent_server/", "files": 3, "classification": "app", "risk": "high", "notes": "FastAPI app, endpoints, A2A protocol facade"},

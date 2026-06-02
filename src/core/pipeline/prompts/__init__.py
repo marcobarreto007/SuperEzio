@@ -1,4 +1,4 @@
-"""Pipeline v4 prompt system — Qwen3.6-35B CEO prompts."""
+"""Pipeline v4 prompt system — Qwen3-Next-80B Abliterated CEO prompts."""
 
 from ._prompts import QWEN_SYSTEM_PROMPT, QWEN_PERSONA, MODEL_PROMPTS
 from .builder import build_agent_prompt, agent_system_prompt

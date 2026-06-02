@@ -30,7 +30,7 @@ function Kill-Port([int]$port) {
 
 foreach ($p in 8082, 8002, 5173, 3000) { Kill-Port $p }
 
-$patterns = @('SuperEzio', 'agent_server', 'serve_ceo_llamacpp', 'llama-server', 'llama.cpp')
+$patterns = @('SuperEzio', 'agent_server', 'serve_agent_llamacpp', 'llama-server', 'llama.cpp')
 Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | ForEach-Object {
     $cmd = $_.CommandLine
     if (-not $cmd) { return }
@@ -71,18 +71,11 @@ $env:PYTHONPATH = Join-Path $root 'src'
 $env:SUPEREZIO_NO_BROWSER = '1'
 $env:SUPEREZIO_PROFESSIONAL_COLLECTOR = 'true'
 
-try {
-    $bat = Join-Path $root 'desktop\SuperEzio.bat'
-    $p = Start-Process cmd.exe -ArgumentList '/c', "`"$bat`"" -WorkingDirectory $root -PassThru -WindowStyle Normal
-    Log "Started desktop\SuperEzio.bat launcher PID $($p.Id)"
-}
-catch {
-    Log "BAT failed: $($_.Exception.Message) — starting CEO + API manually"
-    Start-Process powershell -ArgumentList '-ExecutionPolicy', 'Bypass', '-File', 'scripts\serve_ceo_llamacpp.ps1', '-Port', '8082' -WorkingDirectory $root -WindowStyle Normal
-    $py = Join-Path $root '.venv\Scripts\python.exe'
-    if (-not (Test-Path $py)) { $py = 'python' }
-    Start-Process -FilePath $py -ArgumentList '-m', 'agent_server.main' -WorkingDirectory $root -WindowStyle Normal
-}
+Log "Starting CEO + API directly (BAT launcher retired)..."
+Start-Process powershell -ArgumentList '-ExecutionPolicy', 'Bypass', '-File', 'scripts\serve_agent_llamacpp.ps1', '-Port', '8082' -WorkingDirectory $root -WindowStyle Normal
+$py = Join-Path $root '.venv\Scripts\python.exe'
+if (-not (Test-Path $py)) { $py = 'python' }
+Start-Process -FilePath $py -ArgumentList '-m', 'agent_server.main' -WorkingDirectory $root -WindowStyle Normal
 
 $h8082 = 'NOT OK'
 $h8002 = 'NOT OK'

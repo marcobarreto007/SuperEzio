@@ -102,7 +102,7 @@ The full audit was run as a **static analysis pass** under sandbox constraints. 
 | `src/data/stooq_provider.py` | **NEW** — keyless delayed quotes (`aapl.us`, `ry.to`) as last-resort price source. |
 | `src/data/data_hub.py` | `load_local_env()` on hub init; Stooq route (priority 50); `_kwargs_for_method()` so only compatible kwargs reach each provider. |
 | `src/core/pipeline/nodes/collector.py` | `load_local_env()` before hub import; price enrich for all scan rows (configurable); bounded concurrency; `price_provider:` / `price_routes_active` / `price_attempts_sample` in `source_errors`. |
-| `desktop/SuperEzio.bat` | Loads `.env.local` after `.env`. |
+| `desktop/SuperEzio.bat` | RETIRED — use `serve_agent_llamacpp.ps1` + `python -m agent_server.main` directly. |
 | `scripts/smoke_datahub_price.py` | Live smoke: `hub.get_price("AAPL")` + `list_active()` / `price_routes` (no secrets printed). |
 
 **Verify locally:**
@@ -143,7 +143,7 @@ Live integration check after `verify_zero_garbage_runtime.ps1` exits clean:
 
 ```powershell
 # In one terminal — start the runtime
-cmd /c desktop\SuperEzio.bat
+powershell -ExecutionPolicy Bypass -File scripts\serve_agent_llamacpp.ps1 -Port 8082
 
 # In another — confirm endpoints respond healthy
 curl.exe -fsS http://127.0.0.1:8082/health
@@ -171,7 +171,7 @@ This package is **not referenced by any production entrypoint**. It is the LangC
 `broker.AlpacaBroker.get_account_equity()` returns `0.0` when the Alpaca SDK raises. This is now logged. Any caller that sizes positions from equity **must check** for upstream provider error before using the value. The sentinel is preserved (instead of raising) so the dashboard does not crash when Alpaca is offline; sizing logic must treat `0.0` as "no equity known" and refuse to size.
 
 ### 4.5 CEO is local-only
-The CEO (`models/superezio-ceo-intent-merged.Q4_K_M.gguf`) runs against the local `llama.cpp` server on `127.0.0.1:8082`. Cloud experts (DeepSeek, Finnhub) are optional and degrade gracefully. **The CEO never calls a cloud LLM.** This is intentional and is the product's privacy guarantee.
+The CEO (`models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf`) runs against the local `llama.cpp` server on `127.0.0.1:8082` with F51 Nitro MoE acceleration. Cloud experts (DeepSeek, Finnhub) are optional and degrade gracefully. **The CEO never calls a cloud LLM.** This is intentional and is the product's privacy guarantee.
 
 ### 4.6 `.env` never ships
 `.env` is gitignored. The operator must create it from `.env.example` on the target machine. The verify script asserts the template is complete; it does not (and must not) inspect `.env`.
@@ -185,7 +185,7 @@ The CEO (`models/superezio-ceo-intent-merged.Q4_K_M.gguf`) runs against the loca
 pwsh -File scripts/verify_zero_garbage_runtime.ps1
 
 # 2. Bring up local runtime (CEO + API + browser)
-cmd /c desktop\SuperEzio.bat
+powershell -ExecutionPolicy Bypass -File scripts\serve_agent_llamacpp.ps1 -Port 8082
 
 # 3. Smoke the four health endpoints (see §3)
 ```

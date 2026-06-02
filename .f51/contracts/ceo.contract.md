@@ -32,8 +32,8 @@ CEO deve referenciar explicitamente cada módulo disponível:
 ## Invariants
 
 1. CEO sempre responde em inglês (enforced via prompt + _strip_thinking).
-2. Modelo usado: Qwen3.6-35B F51 Q4_K_M GGUF, servidor em `http://127.0.0.1:8082/v1`.
-3. Temperatura: 0.3, max_tokens: 16384, timeout: 180s.
+2. Modelo usado: Qwen3-Next-80B-A3B Abliterated IQ4_XS GGUF (F51 Nitro MoE), servidor em `http://127.0.0.1:8082/v1`.
+3. MoE: 512 experts, 10 ativos + 1 compartilhado por token. Temperatura: 0.3, max_tokens: 16384, timeout: 300s. Contexto: 256K tokens.
 4. `_strip_thinking` remove blocos `<think>...</think>` do output.
 5. Se rota = "general" sem dados financeiros, usa persona casual (não formato de análise).
 6. Horizon constraint: TIMEFRAME deve corresponder ao time_horizon do state.

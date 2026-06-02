@@ -1,6 +1,6 @@
 # SuperEzio v4.0.0
 
-**AI Financial Analysis Platform** — Plataforma de analise financeira com experts deterministicos, motor de veredito F51, CEO local Qwen3.6-35B CEO+Intent Merged e gateway FastAPI.
+**AI Financial Analysis Platform** — Plataforma de analise financeira com experts deterministicos, motor de veredito F51, CEO local Qwen3-Next-80B Abliterated (F51 Nitro MoE) e gateway FastAPI.
 
 ---
 
@@ -16,7 +16,7 @@ cp .env.example .env
 # Para modo local-only, deixe chaves cloud vazias.
 
 # 3. CEO Server (modelo local)
-powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082
+powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082
 # → http://127.0.0.1:8082/v1 (OpenAI-compatible)
 
 # 4. API Server
@@ -56,7 +56,7 @@ superezio/
 │   ├── data/                 # Providers: yfinance, Reddit, Alpha Vantage, BOC...
 │   └── tools/                # Registry de tools para LangGraph
 ├── tests/                    # smoke, contract, integration
-├── scripts/                  # serve_ceo_llamacpp.ps1, eval, dataset/runtime tools
+├── scripts/                  # serve_agent_llamacpp.ps1, eval, dataset/runtime tools
 ├── frontend/                 # UI ChatGPT-style (HTML+CSS+JS inline)
 └── pyproject.toml
 ```
@@ -78,16 +78,19 @@ Preço de mercado no scan: **DataHub** (Finnhub → Twelve Data → yfinance →
 
 ## Modelo CEO
 
-**SuperEzio CEO+Intent Merged Qwen3.6-35B-A3B Q4_K_M GGUF** via llama.cpp `llama-server`.
+**Qwen3-Next-80B-A3B Abliterated IQ4_XS GGUF** via llama.cpp `llama-server` + F51 Nitro MoE.
 
-- 100% local, sem custo de API, sem censura
+- 100% local, sem custo de API, sem censura (Abliterated — Arbitrary-Rank Ablation)
+- MoE: 512 experts, 10 ativos + 1 compartilhado por token, ~59 MB por expert
 - OpenAI-compatible em `http://127.0.0.1:8082/v1`
-- Modelo esperado: `models/superezio-ceo-intent-merged.Q4_K_M.gguf`
-- n_ctx=8192, GPU layers configuraveis no script PowerShell
+- Modelo esperado: `models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf`
+- n_ctx=262144 (256K), GPU layers=999 (max offload), --cpu-moe
+- VRAM budget: ~6.3 GB, RAM budget: ~39 GB
+- F51 Nitro Layers 1-4: Persistence Cache, Async PCIe Streams, Router Lookahead, KV Cache Tiering
 
 Para subir o CEO server:
 ```bash
-powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082
+powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082
 ```
 
 ---
@@ -96,7 +99,7 @@ powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 80
 
 ```bash
 # CEO Server (modelo local)
-powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082
+powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082
 
 # API Server
 python -m agent_server.main
@@ -146,7 +149,7 @@ Todas documentadas em [`.env.example`](.env.example). Minimo para modo local-onl
 | API Server | FastAPI + uvicorn + SSE |
 | Pipeline | LangGraph 1.0.5 |
 | Validacao | Pydantic v2 |
-| CEO Model | SuperEzio CEO+Intent Merged Qwen3.6-35B-A3B GGUF via llama.cpp |
+| CEO Model | Qwen3-Next-80B-A3B Abliterated IQ4_XS GGUF via llama.cpp + F51 Nitro MoE |
 | Fine-tuning | PyTorch + PEFT/LoRA + transformers |
 | Dados | yfinance, Reddit PRAW, httpx |
 | Testes | pytest + pytest-asyncio + pytest-cov |

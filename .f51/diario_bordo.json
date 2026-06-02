@@ -3,9 +3,12 @@
   "date_local": "2026-05-21T00:00:00-04:00",
   "status": "active_runtime_only",
   "model": {
-    "name": "superezio-ceo-intent-merged.Q4_K_M.gguf",
-    "path": "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
-    "runtime": "llama.cpp server on port 8082",
+    "name": "Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf",
+    "path": "models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf",
+    "architecture": "MoE (512 experts, 10 active + 1 shared per token)",
+    "quantization": "IQ4_XS",
+    "context": "262144 tokens (256K)",
+    "runtime": "llama.cpp server on port 8082 + F51 Nitro MoE",
     "api": "OpenAI-compatible /v1"
   },
   "tree_policy": {

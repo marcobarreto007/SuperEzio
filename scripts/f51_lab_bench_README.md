@@ -15,7 +15,7 @@ Ou manualmente os comandos que já tens — resultado em `C:\F51_LAB\inventory.t
 
 Pré-requisito: CEO GGUF + `llama-server.exe` (SuperEzio Financeiro).
 
-Modelo: `models\superezio-ceo-intent-merged.Q4_K_M.gguf`  
+Modelo: `models\Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf`  
 Binário: `llama.cpp\bin\llama-server.exe`
 
 Regista em `C:\F51_LAB\bench_notes.txt`: tokens/s, RAM usada, VRAM (nvidia-smi), qualquer OOM.
@@ -23,7 +23,7 @@ Regista em `C:\F51_LAB\bench_notes.txt`: tokens/s, RAM usada, VRAM (nvidia-smi),
 ### Teste 1 — CPU-only
 
 ```cmd
-llama.cpp\bin\llama-server.exe -m models\superezio-ceo-intent-merged.Q4_K_M.gguf -ngl 0 -c 4096 --port 8091 --reasoning off
+llama.cpp\bin\llama-server.exe -m models\Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf -ngl 0 -c 4096 --port 8091 --reasoning off
 ```
 
 Numa segunda janela:
@@ -37,7 +37,7 @@ Gera 1 resposta curta via UI do llama ou `curl` chat — anota latência.
 ### Teste 2 — GPU normal (teu perfil atual)
 
 ```cmd
-scripts\serve_ceo_llamacpp.ps1 -Port 8092 -GpuLayers 28 -ContextLength 8192
+scripts\serve_agent_llamacpp.ps1 -Port 8092 -GpuLayers 28 -ContextLength 8192
 ```
 
 (Ajusta `-GpuLayers` se OOM: 20, 24, 28.)
@@ -49,7 +49,7 @@ Anota tokens/s no log do servidor.
 Exemplo: poucas layers na GPU, resto CPU — mede trade-off PCIe/RAM:
 
 ```cmd
-llama.cpp\bin\llama-server.exe -m models\superezio-ceo-intent-merged.Q4_K_M.gguf -ngl 12 -c 8192 --port 8093 -fa on -ctk q8_0 -ctv q8_0 --reasoning off --mlock
+llama.cpp\bin\llama-server.exe -m models\Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf -ngl 12 -c 8192 --port 8093 -fa on -ctk q8_0 -ctv q8_0 --reasoning off --mlock
 ```
 
 Depois repete com `-ngl 28` e compara.
@@ -62,7 +62,7 @@ Depois repete com `-ngl 28` e compara.
 | RAM | **64 GB** DDR5-6000 (persona Bob) |
 | OS | Windows 11 build 26200 |
 | Motor inferência local | **llama.cpp** `llama-server` (CUDA) |
-| CEO | Qwen3.6-35B merged **Q4_K_M** @ `:8082` |
+| CEO | Qwen3-Next-80B Abliterated **IQ4_XS** @ `:8082` (F51 Nitro MoE) |
 | Arbitro | Qwen menor @ `:8084` (quando GGUF baixado) |
 | PyTorch | no venv SuperEzio — `torch.cuda` no `/health/details` |
 | Cloud experts | DeepSeek, Grok, Gemini (opcional) |

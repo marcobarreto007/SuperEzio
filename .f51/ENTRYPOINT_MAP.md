@@ -17,25 +17,25 @@ Session: f51-inventory-full-sweep
 | Dependencies | CEO model on :8082, `.env` with provider keys |
 | Boot sequence | Load env -> load config -> create gateway -> build pipeline -> serve |
 
-### 2. CEO llama.cpp Server — `scripts/serve_ceo_llamacpp.ps1 -Port 8082`
+### 2. CEO llama.cpp Server — `scripts/serve_agent_llamacpp.ps1 -Port 8082`
 
 | Property | Value |
 |----------|-------|
 | Classification | app |
-| File | `scripts/serve_ceo_llamacpp.ps1` |
+| File | `scripts/serve_agent_llamacpp.ps1` |
 | Host | `127.0.0.1:8082` |
-| Model | `models/superezio-ceo-intent-merged.Q4_K_M.gguf` (80 GB) |
+| Model | `models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf` (~40 GB) |
+| Architecture | MoE (512 experts, 10 active + 1 shared per token) |
 | Interface | OpenAI-compatible `/v1/chat/completions` |
+| Context | 262144 tokens (256K) |
+| Nitro | Layers 1-4 active (Persistence Cache, Async Streams, Lookahead, KV Tiering) |
 | Dependency | llama.cpp binary in `llama.cpp/` |
 
-### 3. Desktop Launcher — `desktop/SuperEzio.bat`
+### 3. Desktop Launcher — RETIRED
 
-| Property | Value |
-|----------|-------|
-| Classification | app |
-| File | `desktop/SuperEzio.bat` |
-| Ports | 8082 (CEO) + 8002 (API) |
-| Behavior | Two-step: starts CEO, then API |
+The `desktop/SuperEzio.bat` launcher has been retired. Start services directly:
+- CEO: `powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082`
+- API: `python -m agent_server.main`
 
 ### 4. Eval Pipeline — `python scripts/eval_pipeline.py`
 

@@ -25,7 +25,7 @@ incorporates the detailed module contracts but does not duplicate them.
 
 | Component | Command | Port | Health URL |
 | --- | --- | --- | --- |
-| CEO (llama.cpp) | `scripts/serve_ceo_llamacpp.ps1 -Port 8082` | 8082 | `http://127.0.0.1:8082/health` |
+| CEO (llama.cpp) | `scripts/serve_agent_llamacpp.ps1 -Port 8082` | 8082 | `http://127.0.0.1:8082/health` |
 | API (FastAPI) | `python -m agent_server.main` | 8002 | `http://127.0.0.1:8002/health` |
 
 ## Configuration

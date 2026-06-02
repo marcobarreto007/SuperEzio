@@ -16,7 +16,7 @@ def test_model_manifest_agent():
     manifest_path = ROOT / "config" / "model_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert "agent" in manifest
-    assert manifest["agent"]["model"] == "superezio-agent-intent-merged"
+    assert manifest["agent"]["model"] == "qwen3-next-80b-abliterated"
     assert manifest["agent"]["backend"] == "openai_compatible"
 
 
@@ -78,7 +78,7 @@ def test_provider_constants():
     )
 
     assert AGENT_PROVIDER_NAME == "agent"
-    assert AGENT_MODEL_ID == "superezio-agent-intent-merged"
+    assert AGENT_MODEL_ID == "qwen3-next-80b-abliterated"
     assert PRIMARY_PROVIDER_NAME == "local_orchestrator"
     assert DEEPSEEK_PROVIDER_NAME == "deepseek"
 

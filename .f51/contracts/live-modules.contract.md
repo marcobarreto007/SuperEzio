@@ -44,7 +44,7 @@ defined inline.
 - **Canonical:** `.f51/contracts/ceo.contract.md`
 - **Path:** `src/core/pipeline/prompts/_prompts.py`, `src/core/pipeline/prompts/builder.py`
 - **Public surface:** `ceo_system_prompt()`, `build_ceo_prompt(state)`, `QWEN_SYSTEM_PROMPT`
-- **Model:** `models/superezio-ceo-intent-merged.Q4_K_M.gguf` (llama.cpp, :8082)
+- **Model:** `models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf` (llama.cpp + F51 Nitro MoE, :8082)
 - **Invariants:** always returns non-empty string ≥ 100 chars; includes `Bob's read` for ticker analysis
 
 ## 4. F51 Engine

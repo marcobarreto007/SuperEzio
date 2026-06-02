@@ -15,9 +15,9 @@ if TYPE_CHECKING:
     from ..config import UniversalConfig
 
 AGENT_PROVIDER_NAME = "agent"
-AGENT_MODEL_ID = "superezio-agent-intent-merged"
+AGENT_MODEL_ID = "qwen3-next-80b-abliterated"
 PRIMARY_PROVIDER_NAME = "local_orchestrator"
-PRIMARY_MODEL_ID = "superezio-agent-intent-merged"
+PRIMARY_MODEL_ID = "qwen3-next-80b-abliterated"
 DEEPSEEK_PROVIDER_NAME = "deepseek"
 DEEPSEEK_MODEL_ID = "deepseek-v4-pro"
 
@@ -109,7 +109,7 @@ def build_default_providers(
         )
     )
 
-    # Agent — Qwen3.6-35B (Bob) F51 Q4_K_M GGUF via llama-server, local.
+    # Agent — Qwen3-Next-80B Abliterated (Bob) F51 IQ4_XS GGUF via llama-server, local.
     agent_base_url = os.getenv(
         "SUPEREZIO_AGENT_BASE_URL",
         "http://127.0.0.1:8082/v1",

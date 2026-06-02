@@ -1,4 +1,4 @@
-"""CEO prompt builder â€” Qwen3.6-35B, section-based, no model branching."""
+“””CEO prompt builder — Qwen3-Next-80B Abliterated, section-based, no model branching.”””
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from ._prompts import MODEL_PROMPTS
 
 
 def agent_system_prompt() -> str:
-    """Return the CEO system prompt for local Qwen3.6-35B."""
+    """Return the CEO system prompt for local Qwen3-Next-80B Abliterated."""
     return MODEL_PROMPTS["local"]["system"]
 
 
@@ -330,7 +330,7 @@ def build_agent_prompt(
     state: PipelineState,
     mandamentos: list[Any] | None = None,
 ) -> str:
-    """Build the full CEO prompt from pipeline state for Qwen3.6-35B."""
+    """Build the full CEO prompt from pipeline state for Qwen3-Next-80B Abliterated."""
     mandamentos = mandamentos or []
     raw_message = state.get("message", "")
     intent = state.get("intent", "general_question")
@@ -528,12 +528,12 @@ def missing_agent_text(
     """Error text when local CEO is unavailable."""
     if not local_ready:
         return (
-            "MODEL_MISSING: local Qwen3.6-35B CEO is offline.\n\n"
+            "MODEL_MISSING: local Qwen3-Next-80B CEO is offline.\n\n"
             f"Prepared route: {route} | ticker: {ticker or 'no ticker'}.\n"
             "Action: verify CEO model server is running on port 8082"
         )
     return (
-        "MODEL_MISSING: local Qwen3.6-35B CEO did not respond.\n\n"
+        "MODEL_MISSING: local Qwen3-Next-80B CEO did not respond.\n\n"
         f"Prepared route: {route} | ticker: {ticker or 'no ticker'}.\n"
         "Action: verify http://127.0.0.1:8082/health and http://127.0.0.1:8082/v1/models."
     )

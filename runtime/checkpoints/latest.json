@@ -1,35 +1,37 @@
 {
-  "date_local": "2026-06-01T12:45:00-04:00",
-  "session": "f51-cleanup-2026-06-01",
-  "status": "cleanup_complete",
+  "date_local": "2026-06-02T00:10:00-04:00",
+  "session": "f51-80b-nitro-upgrade-2026-06-02",
+  "status": "upgraded_to_80b_nitro",
   "what_was_done": [
-    "Deleted C:\\F51_LAB\\ (140 GB): Mixtral 24.6GB, GLM 56.3GB, 30+ probe logs",
-    "Deleted all __pycache__ directories (231 MB)",
-    "Deleted runtime/logs/*.log (51 files, 2 MB)",
-    "Deleted .f51/cache/collector/*.json (46 stale cache files)",
-    "C: drive: 37 GB -> 174 GB free",
-    "Smoke tests verified: 28/28 pass after cleanup"
+    "Upgraded CEO model from Qwen3.6-35B Q4_K_M to Qwen3-Next-80B-A3B Abliterated IQ4_XS",
+    "Applied F51 Nitro Layers 1-4 configuration (Persistence Cache, Async PCIe, Router Lookahead, KV Cache Tiering)",
+    "Context window expanded from 8K to 256K tokens",
+    "GPU layers set to 999 (max offload) with --cpu-moe for expert computation on CPU/RAM",
+    "VRAM budget: ~6.3 GB (shared layers + KV cache), RAM budget: ~39 GB (expert pool)",
+    "All config files, tests, scripts, and documentation aligned to new 80B model identity"
   ],
   "runtime_parameters": {
     "api_port": 8002,
     "agent_port": 8082,
     "api_entrypoint": "python -m agent_server.main",
     "agent_entrypoint": "scripts/serve_agent_llamacpp.ps1 -Port 8082",
-    "model_path": "models/superezio-agent-intent-merged.Q4_K_M.gguf"
+    "model_path": "models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf",
+    "quantization": "IQ4_XS",
+    "context_length": 262144,
+    "gpu_layers": 999,
+    "cpu_moe": true,
+    "model_type": "MoE",
+    "total_experts": 512,
+    "active_experts_per_token": 10
   },
   "risks": [
     {
-      "id": "INV-R13",
+      "id": "INV-R15",
       "severity": "high",
-      "description": "CEO GGUF missing. C: now has 174 GB free — enough space. Model needs to be downloaded/copied.",
-      "mitigation": "Download superezio-agent-intent-merged.Q4_K_M.gguf to models/"
-    },
-    {
-      "id": "INV-R14",
-      "severity": "low",
-      "description": "Desktop launcher path broken."
+      "description": "Qwen3-Next-80B Abliterated IQ4_XS GGUF (~40 GB) needs to be downloaded from HuggingFace (mradermacher/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated-GGUF).",
+      "mitigation": "Download Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf to models/"
     }
   ],
-  "next_step": "Marco: baixar/copiar o CEO GGUF (~20-25 GB) para models/. Depois live smoke test.",
+  "next_step": "Marco: baixar o 80B Abliterated IQ4_XS GGUF (~40 GB) para models/. Depois live smoke test com Nitro.",
   "owner": "Marco"
 }

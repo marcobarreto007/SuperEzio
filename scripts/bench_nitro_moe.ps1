@@ -4,7 +4,7 @@ param(
     [int]$MaxTokens = 64
 )
 
-$model = "C:\Users\marco\F51\models\Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-Q4_K_P.gguf"
+$model = "$PSScriptRoot\..\models\Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf"
 $llama = "C:\Users\marco\F51\tools\llama.cpp\llama-server.exe"
 $outDir = "C:\F51_LAB"
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
@@ -21,7 +21,7 @@ $tests = @(
 )
 
 "# F51 Nitro-MoE Benchmark - $now" | Out-File $results
-"# Model: Qwen3.6-35B-A3B MoE (256 experts, 8 active, 21.82 GB Q4_K_P)" | Out-File $results -Append
+"# Model: Qwen3-Next-80B-A3B MoE (512 experts, 10 active, ~40 GB IQ4_XS Abliterated)" | Out-File $results -Append
 "# Context: $ContextLength | MaxTokens: $MaxTokens" | Out-File $results -Append
 "" | Out-File $results -Append
 

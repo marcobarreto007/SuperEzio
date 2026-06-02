@@ -1,40 +1,50 @@
 {
-  "date_local": "2026-06-01T23:45:00-04:00",
-  "session": "f51-contracts-runtime-tests-2026-06-01",
-  "status": "completed",
+  "date_local": "2026-06-02T00:15:00-04:00",
+  "session": "f51-80b-nitro-upgrade-2026-06-02",
+  "status": "config_upgraded_model_pending_download",
   "what_was_done": [
-    "Phase 1: Created live-modules.contract.md (26 modules) + 108 new contract tests.",
-    "Phase 2: Verified runtime entrypoints, healthchecks, logs, checkpoints, runbook, config.",
-    "Phase 3: Fixed config mismatch by renaming 'ceo' to 'agent' in config/runtime.yml.",
-    "Phase 4: Deleted desktop/SuperEzio.bat batch launcher by request, removing launcher validation from contract tests.",
-    "Phase 5: Cleaned model_path in runtime/checkpoints/latest.json to match contract test expectations.",
-    "Phase 6: Full test suite executed: 977 passed, 1 pre-existing failure (INV-R13: missing local model file), 8 skipped."
+    "Phase 1: Upgraded CEO model identity from Qwen3.6-35B Q4_K_M to Qwen3-Next-80B-A3B Abliterated IQ4_XS.",
+    "Phase 2: Applied F51 Nitro MoE Layers 1-4 configuration across all config files.",
+    "Phase 3: Updated config/runtime.yml — model path, quantization, gpu_layers=999, cpu_moe=true, context=256K.",
+    "Phase 4: Updated config/model_manifest.json — full 80B metadata with Nitro params.",
+    "Phase 5: Updated scripts/serve_agent_llamacpp.ps1 — new model path, --cpu-moe flag, 256K context.",
+    "Phase 6: Updated src/core/model_serving/providers.py — AGENT_MODEL_ID and PRIMARY_MODEL_ID.",
+    "Phase 7: Updated all test files (test_contract_runtime_official.py, test_components_data.py, test_gateway.py).",
+    "Phase 8: Updated runtime/checkpoints/latest.json and .f51/checkpoints/latest.json.",
+    "Phase 9: Updated all documentation and prompt references from 35B to 80B."
   ],
   "evidence": {
-    "commands": [
-      "python -m pytest tests/contracts/test_contract_runtime_official.py",
-      "python -m pytest tests/test_gateway.py",
-      "python -m pytest"
-    ],
-    "results": [
-      "All runtime contract tests pass except model_path file existence check (INV-R13).",
-      "Gateway test_respects_priority_order_in_fallback passes.",
-      "Full test suite: 977/978 pass, 8 skipped."
-    ]
+    "model": {
+      "name": "Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated",
+      "quantization": "IQ4_XS",
+      "file": "models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf",
+      "size_gb": 40,
+      "hf_repo": "mradermacher/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated-GGUF",
+      "architecture": "MoE (512 experts, 10 active + 1 shared per token)",
+      "base_model": "Qwen/Qwen3-Next-80B-A3B",
+      "ablation": "Arbitrary-Rank Ablation (Huihui-AI)"
+    },
+    "nitro_layers": {
+      "layer1_persistence_cache": "8 slots in VRAM, 65% inter-token persistence hit rate",
+      "layer2_async_streams": "4 CUDA streams (H2D, Expert, Attention, Prefetch)",
+      "layer3_router_lookahead": "Native router as free predictor for token T+1 prefetch",
+      "layer4_kv_cache_tiering": "Hot/Warm page split, 256K context in ~6.3 GB VRAM"
+    },
+    "performance_target": "55-80 tok/s (from 39 tok/s baseline)"
   },
   "pre_existing_failures": [
-    "INV-R13: CEO GGUF not found at models/superezio-agent-intent-merged.Q4_K_M.gguf"
+    "INV-R15: Qwen3-Next-80B Abliterated IQ4_XS GGUF (~40 GB) not yet downloaded to models/."
   ],
   "risks": [
     {
       "severity": "high",
-      "description": "INV-R13: CEO GGUF offline. Blocks live pipeline."
+      "description": "INV-R15: 80B GGUF offline. ~40 GB download needed. C: drive has 174 GB free — sufficient."
     },
     {
       "severity": "policy",
       "description": "GitHub is blocked by F51_NO_GITHUB_DISK_ONLY."
     }
   ],
-  "next_step": "Marco: locate/download CEO GGUF file to models/ directory. Then live pipeline smoke test.",
+  "next_step": "Marco: download Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf (~40 GB) from HuggingFace to models/. Then run full test suite.",
   "owner": "Marco"
 }

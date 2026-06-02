@@ -17,8 +17,16 @@ Official config file: `config/runtime.yml`.
 Official CEO model:
 
 ```text
-models/superezio-ceo-intent-merged.Q4_K_M.gguf
+models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf
 ```
+
+Architecture: MoE (512 experts, 10 active + 1 shared per token, ~59 MB each)
+Quantization: IQ4_XS (~40 GB file)
+Context: 262144 tokens (256K)
+GPU: 999 layers (max offload) + --cpu-moe (experts on CPU)
+VRAM: ~6.3 GB (shared layers + KV cache)
+RAM: ~39 GB (expert pool)
+Nitro: Layers 1-4 active (Persistence Cache, Async PCIe, Router Lookahead, KV Cache Tiering)
 
 Current official model routing:
 
@@ -26,17 +34,11 @@ Current official model routing:
 - `local_orchestrator`: local orchestrator route using the same CEO endpoint.
 - `deepseek`: cloud expert provider at `https://api.deepseek.com`.
 
-Official launcher:
-
-```cmd
-C:\Users\marco\Desktop\SuperEzio\desktop\SuperEzio.bat
-```
-
-The launcher loads `.env`, validates Python/curl/basic files, cleans ports `8082` and `8002`, starts the CEO, waits for CEO health, starts the API, waits for API health, then opens the browser unless `SUPEREZIO_NO_BROWSER=1`.
+Official launcher: **RETIRED.** The `desktop/SuperEzio.bat` has been deleted. Start services directly.
 
 ## Manual Start
 
-From `C:\Users\marco\Desktop\SuperEzio`:
+From the project root:
 
 ```powershell
 # Terminal 1 - CEO
@@ -47,15 +49,16 @@ $env:PYTHONPATH = "src;$env:PYTHONPATH"
 python -m agent_server.main
 ```
 
-For launcher validation without starting servers:
+For launcher validation without starting servers (BAT retired, use direct validation):
 
 ```powershell
-$env:SUPEREZIO_LAUNCHER_CHECK = "1"
-$env:SUPEREZIO_NO_BROWSER = "1"
-cmd /c desktop\SuperEzio.bat
+# Validate config integrity
+python -c "import yaml; cfg=yaml.safe_load(open('config/runtime.yml')); print('[OK] Config valid')"
+# Validate model script exists
+Test-Path scripts\serve_agent_llamacpp.ps1
 ```
 
-Expected result: `[OK] Launcher checks passed.`
+Expected result: `[OK] Config valid` + `True`.
 
 ## Healthchecks
 
@@ -170,7 +173,7 @@ Stop-Process -Id <PID> -Force
 Check:
 
 ```powershell
-Test-Path models\superezio-ceo-intent-merged.Q4_K_M.gguf
+Test-Path models\Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf
 Test-Path llama.cpp\bin\llama-server.exe
 powershell -ExecutionPolicy Bypass -File scripts\serve_agent_llamacpp.ps1 -Port 8082
 ```

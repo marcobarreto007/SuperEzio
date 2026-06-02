@@ -538,8 +538,8 @@ PRODUCT_MANIFEST = {
         },
         {
             "id": "agent_primary",
-            "label": "Bob Agent (Qwen3.6-35B Q4_K_M)",
-            "description": "Local Qwen3.6-35B CEO via llama.cpp — consolidates conflicts and chooses one permitted next step.",
+            "label": "Bob Agent (Qwen3-Next-80B IQ4_XS)",
+            "description": "Local Qwen3-Next-80B Abliterated CEO via llama.cpp + F51 Nitro MoE — consolidates conflicts and chooses one permitted next step.",
         },
     ],
     "decision_modes": [

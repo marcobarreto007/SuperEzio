@@ -10,7 +10,7 @@ The active tree is runtime-only. The production model artifact is the merged GGU
 
 - Agent server: `scripts/serve_agent_llamacpp.ps1 -Port 8082`
 - API server: `python -m agent_server.main`
-- Model: `models/superezio-ceo-intent-merged.Q4_K_M.gguf`
+- Model: `models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf`
 - API health: `/health`, `/health/details`
 - CEO health: `/health`, `/v1/models`
 - Stream route: `POST /task/submit`
