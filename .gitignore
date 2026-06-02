@@ -137,3 +137,4 @@ llama.cpp/
 
 # Scratch scripts (testes avulsos)
 scratch/
+.playwright-mcp/
