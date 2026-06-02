@@ -73,6 +73,8 @@ You have tools available. Use them to CONFIRM or CHALLENGE your thesis:
 - sdca_firewall: cognitive risk firewall check
 - neural_decision: get regime and expected return prediction
 - pennylab: forensic penny stock manipulation check
+- bob_search: search the web and archived documents for current information
+- social_forensics: analyze Reddit/social media for pump & dump detection
 
 Call tools ONLY when your thesis needs grounding. Don't call tools blindly.
 Every tool call must have a PURPOSE tied to your thesis.
@@ -1322,9 +1324,13 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             "content": (
                 f"CURRENT DATETIME: {now_str}\n"
                 f"RISK TOLERANCE: {risk}\n"
-                f"INTENT: {bob_intent}\n"
-                f"USER MESSAGE: {state.get('message', '')}\n\n"
-                f"Think step by step. Form a thesis. Then decide if you need tools."
+                f"CONTEXT HINT (may be wrong — trust the raw message): intent={bob_intent}\n\n"
+                f"RAW USER MESSAGE: {state.get('message', '')}\n\n"
+                f"IMPORTANT: Read the RAW USER MESSAGE above. Ignore any classification if it contradicts "
+                f"what the user is actually asking. The user speaks naturally — they may want a stock pick, "
+                f"a prediction, an explanation, or a framework. YOU decide what they really need.\n\n"
+                f"THINK ALOUD: What does this person actually want? What do I know about this? "
+                f"What would help them most? Form your thesis. Then call tools ONLY if needed to ground it."
             ),
         })
         state["current_datetime"] = now_str
