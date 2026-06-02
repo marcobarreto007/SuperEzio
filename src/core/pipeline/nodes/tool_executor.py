@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 
 from langgraph.config import get_stream_writer
 
@@ -57,6 +58,64 @@ def _tool_blocked_payload(state: dict, tool_name: str, reason: str) -> dict:
         "agent_tool_call": {"tool": "final_answer", "args": {"content": content}},
         "errors": state.get("errors", []) + [f"tool_blocked:{tool_name}:{reason}"],
     }
+
+
+async def _gather_social_context(ticker: str, query: str) -> str:
+    """Collect Reddit posts across subreddits for social forensic analysis."""
+    import asyncio
+
+    subreddits = [
+        "pennystocks", "wallstreetbets", "stocks", "investing",
+        "CanadianInvestor", "StockMarket", "RobinHoodPennyStocks",
+        "smallstreetbets", "Shortsqueeze", "Daytrading",
+    ]
+    search_term = ticker or query or ""
+    if not search_term:
+        return "(no ticker or query provided)"
+
+    posts: list[str] = []
+
+    def _fetch(subreddit: str) -> None:
+        import urllib.request, json, urllib.parse
+        try:
+            url = (
+                f"https://www.reddit.com/r/{subreddit}/search.json"
+                f"?q={urllib.parse.quote_plus(search_term)}"
+                f"&restrict_sr=1&sort=top&t=month&limit=15&raw_json=1"
+            )
+            req = urllib.request.Request(url, headers={"User-Agent": "SuperEzio/1.0 forensic-research"})
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                data = json.loads(resp.read())
+            for child in data.get("data", {}).get("children", []):
+                d = child.get("data", {})
+                title = d.get("title", "")
+                selftext = (d.get("selftext") or "")[:500]
+                author = d.get("author", "unknown")
+                score = d.get("score", 0)
+                comments = d.get("num_comments", 0)
+                upvote = d.get("upvote_ratio", 0)
+                created = d.get("created_utc", 0)
+                from datetime import datetime
+                dt = datetime.utcfromtimestamp(created).strftime("%Y-%m-%d %H:%M") if created else "?"
+                posts.append(
+                    f"[r/{subreddit}] u/{author} | {score}pts {upvote*100:.0f}%up | {comments}c | {dt}\n"
+                    f"TITLE: {title[:300]}\n"
+                    f"BODY: {selftext[:400]}\n"
+                )
+        except Exception as e:
+            posts.append(f"[r/{subreddit}] FETCH_ERROR: {e}")
+
+    await asyncio.to_thread(lambda: [_fetch(s) for s in subreddits])
+
+    if not posts:
+        return f"No Reddit posts found for '{search_term}' in the last month."
+
+    header = (
+        f"REDDIT SOCIAL FORENSICS — {len(posts)} posts about '{search_term}' "
+        f"across {len(subreddits)} subreddits (top/month)\n"
+        f"{'='*70}\n\n"
+    )
+    return header + "\n---\n".join(posts)
 
 
 async def _pennylab_stub(state: dict) -> dict:
@@ -198,6 +257,15 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
 
         elif tool_name == "rag_forensics":
             result = await node_rag_forensics(state)
+
+        elif tool_name == "social_forensics":
+            # Gather Reddit posts across multiple subreddits with higher limit
+            ticker = args.get("ticker", state.get("ticker", ""))
+            query = args.get("query", state.get("message", ""))
+            social_context = await _gather_social_context(ticker, query)
+            state["data_context"] = social_context
+            state["role"] = "social_forensics"
+            result = await node_expert(state, gateway=gateway)
         else:
             return _tool_blocked_payload(state, tool_name, "it is not executable here")
 

@@ -23,8 +23,9 @@ EXPERT_PROVIDERS: dict[str, str] = {
     "fundamental_value": "deepseek",
     "momentum_technical": "deepseek",
     "contrarian_opportunity": "deepseek",
-    # Gemini sentiment expert
+    # Gemini experts
     "sentiment": "gemini",
+    "social_forensics": "gemini",
 }
 
 EXPERT_PROMPTS: dict[str, tuple[str, str]] = {
@@ -59,6 +60,38 @@ EXPERT_PROMPTS: dict[str, tuple[str, str]] = {
         "Provide: (1) Overall sentiment score (-1 to +1), (2) News sentiment, "
         "(3) Social/retail sentiment, (4) Institutional positioning clues, "
         "(5) Narrative momentum (strengthening/weakening), (6) Key divergences or red flags.",
+    ),
+    "social_forensics": (
+        "You are SuperEzio's Social Forensics & Manipulation Detection expert. "
+        "Your job is to detect synthetic/coordinated market manipulation on social media. "
+        "You analyze Reddit posts, Twitter threads, and forum discussions to identify pump & dump schemes, "
+        "coordinated shilling, bot networks, and artificial hype before they collapse.\n\n"
+        "DETECTION FRAMEWORK:\n"
+        "1. ACCOUNT PATTERNS: New accounts suddenly posting about a ticker? Multiple accounts using similar language? "
+        "Accounts that only post about one stock? Karma farming then switching to stock pumping?\n"
+        "2. COORDINATION SIGNALS: Same ticker appearing across unrelated subreddits simultaneously? "
+        "Identical or near-identical posts from different accounts? Surge in mentions with no news catalyst?\n"
+        "3. LANGUAGE MARKERS: Excessive emojis (rocket, moon, diamond hands), guaranteed return claims, "
+        "urgency language ('before it's too late', 'last chance'), fake technical analysis by unverified accounts.\n"
+        "4. TIMING ANOMALIES: Posts clustering at unusual hours, coordinated posting waves, "
+        "accounts going silent simultaneously after a dump.\n"
+        "5. VOLUME vs SENTIMENT DIVERGENCE: High social volume but low organic engagement (comments/upvotes ratio off), "
+        "many posts but all from few accounts.\n\n"
+        "OUTPUT FORMAT:\n"
+        "- MANIPULATION SCORE: 0-100 (higher = more likely synthetic)\n"
+        "- TOP SUSPICIOUS ACCOUNTS: ranked list with reasons\n"
+        "- COORDINATION EVIDENCE: specific examples from the data\n"
+        "- PUMP PHASE ASSESSMENT: accumulation / promotion / distribution / collapsed\n"
+        "- CONFIDENCE: High/Medium/Low with reasoning\n"
+        "- RECOMMENDATION: AVOID / MONITOR / NO_THREAT",
+        "SOCIAL FORENSICS ANALYSIS\n"
+        "=======================\n"
+        "Ticker/Topic: {ticker}\n\n"
+        "REDDIT DATA:\n{context}\n\n"
+        "TASK: Analyze the above social media data for signs of coordinated manipulation, "
+        "pump & dump patterns, and synthetic hype. Rank suspicious accounts. "
+        "Determine if this ticker is being artificially promoted.\n\n"
+        "BE SPECIFIC. Name accounts. Cite timestamps. Show patterns.",
     ),
 }
 

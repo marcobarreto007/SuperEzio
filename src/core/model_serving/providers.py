@@ -21,7 +21,7 @@ PRIMARY_MODEL_ID = "qwen3-next-80b-abliterated"
 DEEPSEEK_PROVIDER_NAME = "deepseek"
 DEEPSEEK_MODEL_ID = "deepseek-v4-pro"
 GEMINI_PROVIDER_NAME = "gemini"
-GEMINI_MODEL_ID = "gemini-3.1-pro"
+GEMINI_MODEL_ID = "gemini-2.5-flash"
 
 
 @dataclass
