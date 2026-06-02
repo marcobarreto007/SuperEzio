@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from typing import Any
 
 from langgraph.config import get_stream_writer
 
@@ -14,6 +14,19 @@ from .experts import node_collect_experts, node_expert
 from .neural_decision import node_neural_decision
 from .sdca_firewall import node_sdca_firewall
 from .rag import node_rag_forensics
+from core.math.penny_momentum import PennyMomentumConfig, simulate_penny_momentum_backtest
+
+# PennyLab: imported at module level — no lazy import on hot tool path
+try:
+    from experts.pennylab.pipeline_hook import analyze_ticker_sync as _pennylab_analyze
+
+    _PENNYLAB_AVAILABLE = True
+except ImportError:
+    _PENNYLAB_AVAILABLE = False
+
+    def _pennylab_analyze(ticker: str):  # type: ignore[misc]
+        return {"ticker": ticker, "decision": None, "error": "pennylab_module_not_found"}
+
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +92,10 @@ async def _gather_social_context(ticker: str, query: str) -> str:
     posts: list[str] = []
 
     def _fetch(subreddit: str) -> None:
-        import urllib.request, json, urllib.parse
+        import json
+        import urllib.parse
+        import urllib.request
+
         try:
             url = (
                 f"https://www.reddit.com/r/{subreddit}/search.json"
@@ -121,17 +137,172 @@ async def _gather_social_context(ticker: str, query: str) -> str:
     return header + "\n---\n".join(posts)
 
 
-async def _pennylab_stub(state: dict) -> dict:
+async def _run_pennylab(state: dict) -> dict:
+    """Execute PennyLab forensic analysis and surface mathcore_verdict to Bob.
+
+    Uses the real experts.pennylab.pipeline_hook (not a stub).
+    The mathcore_verdict is injected into data_context so Bob can cite it
+    as authoritative math evidence in his final answer.
+    """
+    import asyncio
+
     ticker = state.get("ticker", "")
     if not ticker:
-        return {"pennylab": {}}
-    try:
-        from experts.pennylab.pipeline_hook import analyze_ticker_sync
+        logger.warning("pennylab called without ticker in state")
+        return {"pennylab": {}, "data_context": ""}
 
-        result = await __import__("asyncio").to_thread(analyze_ticker_sync, ticker)
-        return {"pennylab": result}
+    if not _PENNYLAB_AVAILABLE:
+        logger.warning("pennylab module not available — skipping forensic analysis")
+        return {"pennylab": {"ticker": ticker, "decision": None, "error": "pennylab_module_not_found"}}
+
+    try:
+        result: dict = await asyncio.to_thread(_pennylab_analyze, ticker)
+
+        # Surface the mathcore_verdict into Bob's observation context
+        verdict = result.get("mathcore_verdict", "")
+        context_parts = []
+        if verdict:
+            context_parts.append(f"[MATH CORE VERDICT — {ticker}]\n{verdict}")
+
+        scores = result.get("scores", {})
+        if scores:
+            context_parts.append(
+                f"[PENNYLAB SCORES — {ticker}]\n"
+                + "\n".join(f"  {k}: {v}" for k, v in scores.items())
+            )
+
+        data_context = "\n\n".join(context_parts) if context_parts else ""
+
+        return {
+            "pennylab": result,
+            "data_context": data_context,
+        }
     except Exception as exc:
-        return {"pennylab": {"ticker": ticker, "decision": None, "error": str(exc)[:200]}}
+        logger.error("pennylab analysis failed for %s: %s", ticker, exc)
+        return {
+            "pennylab": {"ticker": ticker, "decision": None, "error": str(exc)[:200]},
+        }
+
+
+async def _run_penny_momentum_backtest(state: dict, args: dict[str, Any]) -> dict:
+    """Run the math-core penny momentum backtest for injected or fetched OHLCV."""
+    import asyncio
+
+    ohlcv_by_symbol = args.get("ohlcv_by_symbol") or state.get("ohlcv_by_symbol") or {}
+    tickers = _extract_backtest_tickers(state, args)
+
+    if not ohlcv_by_symbol and tickers:
+        ohlcv_by_symbol = await asyncio.to_thread(
+            _fetch_backtest_ohlcv,
+            tickers,
+            str(args.get("timeframe") or "5Y"),
+        )
+
+    if not ohlcv_by_symbol:
+        content = (
+            "[MATHCORE BACKTEST ERROR]\n"
+            "strategy=penny_momentum_breakout\n"
+            "status=missing_ohlcv\n"
+            "reason=Provide ohlcv_by_symbol, explicit tickers, or run market_scan first."
+        )
+        return {
+            "penny_momentum_backtest": {
+                "error": "missing_ohlcv",
+                "strategy": "penny_momentum_breakout",
+            },
+            "data_context": _append_context(state.get("data_context", ""), content),
+            "errors": state.get("errors", []) + ["penny_momentum_backtest:missing_ohlcv"],
+        }
+
+    result = simulate_penny_momentum_backtest(
+        ohlcv_by_symbol,
+        config=_penny_config_from_args(args),
+    )
+    context = _format_penny_backtest_context(result)
+    return {
+        "penny_momentum_backtest": result,
+        "data_context": _append_context(state.get("data_context", ""), context),
+    }
+
+
+def _extract_backtest_tickers(state: dict, args: dict[str, Any]) -> list[str]:
+    raw = args.get("tickers") or args.get("symbols") or []
+    if isinstance(raw, str):
+        tickers = [part.strip().upper() for part in raw.split(",") if part.strip()]
+    else:
+        tickers = [str(item).strip().upper() for item in raw if str(item).strip()]
+
+    if tickers:
+        return tickers[:25]
+
+    scan = state.get("scan") or {}
+    candidates = scan.get("candidates") or []
+    for item in candidates:
+        ticker = item.get("ticker") or item.get("symbol")
+        if ticker:
+            tickers.append(str(ticker).strip().upper())
+    return tickers[:25]
+
+
+def _fetch_backtest_ohlcv(tickers: list[str], timeframe: str) -> dict[str, list[dict[str, Any]]]:
+    try:
+        from data.data_hub import hub
+    except Exception:
+        return {}
+
+    out: dict[str, list[dict[str, Any]]] = {}
+    for ticker in tickers:
+        try:
+            result = hub.get_candles(ticker, timeframe=timeframe)
+            candles = result.get("candles") or result.get("ohlcv") or []
+            if candles:
+                out[ticker] = candles
+        except Exception as exc:
+            logger.warning("penny momentum candle fetch failed for %s: %s", ticker, exc)
+    return out
+
+
+def _penny_config_from_args(args: dict[str, Any]) -> PennyMomentumConfig:
+    config_values = dict(PennyMomentumConfig().__dict__)
+    casts = {
+        "starting_capital": float,
+        "min_price": float,
+        "max_price": float,
+        "min_avg_dollar_volume": float,
+        "volume_spike_ratio": float,
+        "max_positions": int,
+        "target_weight": float,
+        "hold_days": int,
+        "stop_loss_pct": float,
+    }
+    for key, caster in casts.items():
+        if key not in args:
+            continue
+        try:
+            config_values[key] = caster(args[key])
+        except (TypeError, ValueError):
+            logger.warning("invalid penny momentum arg %s=%r", key, args[key])
+    return PennyMomentumConfig(**config_values)
+
+
+def _format_penny_backtest_context(result: dict[str, Any]) -> str:
+    return (
+        "[MATHCORE BACKTEST]\n"
+        f"strategy={result.get('strategy')}\n"
+        f"verdict={result.get('verdict')}\n"
+        f"total_return={result.get('total_return_pct')}%\n"
+        f"sharpe={result.get('sharpe')}\n"
+        f"max_drawdown={result.get('max_drawdown_pct')}%\n"
+        f"win_rate={result.get('win_rate_pct')}%\n"
+        f"trade_count={result.get('trade_count')}\n"
+        f"mathcore_verdict={result.get('mathcore_verdict')}"
+    )
+
+
+def _append_context(existing: str, addition: str) -> str:
+    if existing and addition:
+        return existing + "\n\n" + addition
+    return existing or addition
 
 
 async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
@@ -226,11 +397,14 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                 config=config,
             )
 
+        elif tool_name == "penny_momentum_backtest":
+            result = await _run_penny_momentum_backtest(state, args)
+
         elif tool_name == "f51_firewall":
             result = await node_f51_verdict(state)
 
         elif tool_name == "pennylab":
-            result = await _pennylab_stub(state)
+            result = await _run_pennylab(state)
 
         elif tool_name == "run_experts":
             # Usually experts runs fan-out. We can just run a single expert stub that does the summary,

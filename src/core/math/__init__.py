@@ -15,6 +15,7 @@ Organizado por domínio:
 from .utils import sigmoid, clamp, t_norm, t_conorm, percentile_rank, zscore
 from .indicators import sma, ema, rsi, macd, bollinger, vwap, vwap_deviation
 from .financial_engine import FinancialEngine
+from .penny_momentum import PennyMomentumConfig, simulate_penny_momentum_backtest
 from .risk import (
     volatility,
     sharpe_ratio,
@@ -86,6 +87,8 @@ __all__ = [
     "simple_return",
     "annualized_return",
     "FinancialEngine",
+    "PennyMomentumConfig",
+    "simulate_penny_momentum_backtest",
     # trading losses
     "directional_loss",
     "sharpe_loss",

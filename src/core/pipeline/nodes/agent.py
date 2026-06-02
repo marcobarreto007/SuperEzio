@@ -73,6 +73,7 @@ You have tools available. Use them to CONFIRM or CHALLENGE your thesis:
 - sdca_firewall: cognitive risk firewall check
 - neural_decision: get regime and expected return prediction
 - pennylab: forensic penny stock manipulation check
+- penny_momentum_backtest: run the math-core penny momentum breakout backtest from OHLCV data or scan tickers
 - bob_search: search the web and archived documents for current information
 - social_forensics: analyze Reddit/social media for pump & dump detection
 
@@ -144,8 +145,12 @@ You have access to the following tools:
 8. market_scan
    Description: Scans the market for opportunities based on criteria.
    Input schema: {"query": "natural language query describing scan"}
-   
-9. final_answer
+
+9. penny_momentum_backtest
+   Description: Runs the math-core penny-stock momentum breakout backtest.
+   Input schema: {"tickers": ["ABCD"], "ohlcv_by_symbol": {"ABCD": [{"date": "YYYY-MM-DD", "close": 1.25, "volume": 1000000}]}}
+
+10. final_answer
    Description: Provides the final natural language answer to the user.
    Input schema: {"content": "Your final verdict and analysis in the user's language."}
 
@@ -1335,6 +1340,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             "content": (
                 f"CURRENT DATE: {now_str}\n"
                 f"DETECTED RISK LEVEL: {risk}\n\n"
+                f"DETECTED BOB INTENT: {bob_intent}\n\n"
                 f"USER: {state.get('message', '')}\n\n"
                 f"BANNED: Do NOT output the 12-section framework template. "
                 f"BANNED: Do NOT start with 'Scope disclaimer'. "

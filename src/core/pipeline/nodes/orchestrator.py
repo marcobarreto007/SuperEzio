@@ -134,6 +134,7 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
                 "sdca_firewall",
                 "rag_forensics",
                 "market_scan",
+                "penny_momentum_backtest",
                 "final_answer",
             ],
             "scanner_allowed": True,

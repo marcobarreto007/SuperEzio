@@ -184,6 +184,7 @@ class AgentToolCall(BaseModel):
         "sdca_firewall",
         "rag_forensics",
         "market_scan",
+        "penny_momentum_backtest",
         "final_answer",
         "bob_search",
         "social_forensics",

@@ -109,34 +109,49 @@ def _is_penny(ticker: str, price: float | None = None) -> bool:
 
 
 # ── Circuit Breaker ──────────────────────────────────────────────────────────
+# Canonical: src/core/pipeline/circuit_breaker.py
+# Thin adapter preserves the collector's simple {is_open, record_success, record_failure, failures} API.
 
 
-@dataclass
-class CircuitBreaker:
-    """Tracks provider health, disables after consecutive failures."""
+class _CollectorCircuitBreakerAdapter:
+    """Compatibility wrapper around canonical CircuitBreaker.
 
-    failures: int = 0
-    last_failure_time: float = 0.0
-    disabled_until: float = 0.0
+    The professional collector expects a dict[str, CircuitBreaker] keyed by
+    provider name where each breaker exposes:
+      - is_open  (property, bool)
+      - record_success()  → resets
+      - record_failure()  → increments, may open
+      - failures  (int, read-only)
 
-    def record_success(self) -> None:
-        self.failures = 0
-        self.disabled_until = 0.0
+    The canonical CircuitBreaker uses allow()/success()/failure() with a full
+    CLOSED→OPEN→HALF_OPEN state machine.  This adapter maps the simple
+    interface onto the canonical implementation so there is only one source of
+    circuit-breaking truth in the codebase.
+    """
 
-    def record_failure(self) -> None:
-        self.failures += 1
-        self.last_failure_time = time.monotonic()
-        if self.failures >= _CB_FAILURE_THRESHOLD:
-            self.disabled_until = time.monotonic() + _CB_COOLDOWN_SEC
+    def __init__(self) -> None:
+        # Lazy import to avoid circular deps at module level
+        from core.pipeline.circuit_breaker import CircuitBreaker as _CanonicalCB
+
+        self._cb = _CanonicalCB(provider="collector")
 
     @property
     def is_open(self) -> bool:
-        if self.disabled_until and time.monotonic() < self.disabled_until:
-            return True
-        if self.disabled_until and time.monotonic() >= self.disabled_until:
-            self.disabled_until = 0.0
-            self.failures = 0
-        return False
+        return not self._cb.allow()
+
+    @property
+    def failures(self) -> int:
+        return self._cb._consecutive_failures  # noqa: SLF001 — adapter boundary
+
+    def record_success(self) -> None:
+        self._cb.success()
+
+    def record_failure(self) -> None:
+        self._cb.failure()
+
+
+# Public alias so the rest of the module sees it as "CircuitBreaker"
+CircuitBreaker = _CollectorCircuitBreakerAdapter
 
 
 # ── Cache Layer ──────────────────────────────────────────────────────────────
@@ -959,57 +974,41 @@ class ProfessionalCollector:
 
 
 # ── Technical indicator helpers ──────────────────────────────────────────────
+# Canonical: src/core/math/financial_engine.py
+# Thin wrappers preserve the None-on-insufficient-data contract that the
+# collector callers expect (financial_engine returns safe defaults instead).
+
+from core.math.financial_engine import (  # noqa: E402
+    _compute_bollinger as _math_bollinger,
+    _compute_ema as _math_ema,
+    _compute_macd as _math_macd,
+    _compute_rsi as _math_rsi,
+)
 
 
 def _compute_rsi(closes: list, period: int = 14) -> float | None:
-    n = len(closes)
-    if n < period + 1:
+    if len(closes) < period + 1:
         return None
-    gains = []
-    losses = []
-    for i in range(1, n):
-        delta = closes[i] - closes[i - 1]
-        gains.append(max(delta, 0))
-        losses.append(max(-delta, 0))
-    avg_gain = sum(gains[-period:]) / period
-    avg_loss = sum(losses[-period:]) / period
-    if avg_loss == 0:
-        return 100.0
-    rs = avg_gain / avg_loss
-    return float(100.0 - 100.0 / (1.0 + rs))
+    return _math_rsi(closes, period)
 
 
 def _compute_ema(values: list, span: int) -> float:
-    if not values:
-        return 0.0
-    alpha = 2.0 / (span + 1.0)
-    ema = values[0]
-    for v in values[1:]:
-        ema = alpha * v + (1.0 - alpha) * ema
-    return ema
+    return _math_ema(values, span)
 
 
-def _compute_macd(closes: list, fast: int = 12, slow: int = 26, signal: int = 9):
-    n = len(closes)
-    if n < slow + signal:
+def _compute_macd(closes: list, fast: int = 12, slow: int = 26, signal: int = 9) -> tuple[float | None, float | None]:
+    # financial_engine only has hardcoded 12/26 MACD — use it directly
+    _ = fast, slow, signal  # kept in signature for caller compatibility
+    if len(closes) < 26 + 9:
         return None, None
-    ema_fast = _compute_ema(closes, fast)
-    ema_slow = _compute_ema(closes, slow)
-    macd_line = ema_fast - ema_slow
-    # Signal: approximate as 90% of MACD for simplicity
-    signal_line = macd_line * 0.85
-    return macd_line, signal_line
+    return _math_macd(closes)
 
 
-def _compute_bollinger(closes: list, period: int = 20, stddev: float = 2.0):
-    n = len(closes)
-    if n < period:
+def _compute_bollinger(closes: list, period: int = 20, stddev: float = 2.0) -> tuple[float | None, float | None]:
+    _ = stddev  # financial_engine hardcodes 2.0 stddev
+    if len(closes) < period:
         return None, None
-    window = closes[-period:]
-    mean = sum(window) / period
-    variance = sum((x - mean) ** 2 for x in window) / period
-    std = variance**0.5
-    return float(mean + stddev * std), float(mean - stddev * std)
+    return _math_bollinger(closes, period)
 
 
 # ── Module-level singleton ───────────────────────────────────────────────────

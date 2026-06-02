@@ -1,26 +1,27 @@
 {
-  "date_local": "2026-06-02T13:01:50-04:00",
-  "session": "runtime-archaeology-2026-06-02",
-  "status": "archaeology_report_saved",
+  "date_local": "2026-06-02T13:25:05-04:00",
+  "session": "penny-momentum-runtime-apply-2026-06-02",
+  "status": "penny_momentum_backtest_tool_applied",
   "what_was_done": [
-    "Confirmed previous Bob sovereign commit is saved locally",
-    "Ran codebase archaeology for duplicate, legacy, artifact, and math-core issues",
-    "Identified duplicated technical indicators in professional collector and core math engine",
-    "Identified duplicated CircuitBreaker implementation",
-    "Identified PennyLab ReAct tool still using a stub instead of the real mathcore-backed module",
-    "Saved report at docs/internal/audits/runtime_archaeology_2026-06-02.md"
+    "Added the math-core penny momentum breakout backtest module",
+    "Exposed penny_momentum_backtest as a Bob/agent tool in contracts, prompts, tool executor, and Bob sovereign allowed tools",
+    "Connected the tool to injected OHLCV data, explicit tickers, or market_scan candidates with honest missing-data failure handling",
+    "Kept the runtime cleanup direction applied: canonical math indicators, canonical circuit breaker adapter, and real PennyLab pipeline hook",
+    "Added 10 scenario-style test coverage plus missing-data tool-executor coverage"
   ],
   "evidence": [
-    "docs/internal/audits/runtime_archaeology_2026-06-02.md",
-    "Largest hot files: intents.py 2124 lines, agent.py 1395 lines, endpoints.py 1103 lines, collector.py 1076 lines, professional.py 877 lines",
-    "git ls-files data/traces returned 0 tracked files while local trace files are present",
-    "git ls-files output/playwright runtime/logs scripts/_archive returned 24 tracked artifact/archive files"
+    "python -m ruff check src/core/math/penny_momentum.py src/core/math/__init__.py src/core/pipeline/contracts.py src/core/pipeline/nodes/agent.py src/core/pipeline/nodes/orchestrator.py src/core/pipeline/nodes/tool_executor.py src/core/data_collector/professional.py tests/test_penny_momentum_backtest.py -> All checks passed",
+    "python -m ruff format --check src/core/math/penny_momentum.py tests/test_penny_momentum_backtest.py -> 2 files already formatted",
+    "git diff --check -> clean",
+    "python -m pytest tests/test_penny_momentum_backtest.py -q -p no:cacheprovider -> 11 passed",
+    "python -m pytest tests/test_bob_sovereign.py tests/test_agent_market_scan_loop.py tests/test_components_pennylab.py tests/test_math.py tests/contracts/test_contract_pipeline.py tests/test_pipeline_smoke.py -q -p no:cacheprovider -> 86 passed",
+    "python scripts/browser_smoke.py -> ok true, health ok, chart_fetch ok, canvas nonBlank 394632, chat fallbackUsed false"
   ],
   "risks": [
-    "Do not delete broad artifact folders before explicit approval; some logs/screenshots may be release evidence",
-    "Math core is underexposed in the hot runtime path while professional collector duplicates indicator formulas",
-    "PennyLab tool path still uses a stub in tool_executor.py"
+    "Live broad-universe performance still depends on DataHub candle coverage and market_scan candidate quality",
+    "The new backtest is an experimental math signal, not a production trading recommendation by itself",
+    "No GitHub operation was performed because this repository is DISK ONLY"
   ],
-  "next_step": "Implement cleanup P0-1/P0-2/P0-3: canonical math indicators, canonical circuit breaker, real PennyLab tool",
+  "next_step": "Run a live SUPEREZIO_BOB_SOVEREIGN=1 prompt that asks Bob to scan penny stocks, invoke penny_momentum_backtest, and explain the mathcore verdict.",
   "owner": "Marco"
 }
