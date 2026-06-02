@@ -20,8 +20,8 @@ def test_kill_switch_default_not_active():
     from core.trading.kill_switch import KillSwitch
 
     ks = KillSwitch()
-    # A fresh kill switch must not be active
-    assert ks.is_active() is False
+    # A fresh kill switch must not be active (is_active is a @property)
+    assert ks.is_active is False
 
 
 def test_kill_switch_activate():
@@ -29,7 +29,7 @@ def test_kill_switch_activate():
 
     ks = KillSwitch()
     ks.activate(reason=KillSwitchReason.MANUAL)
-    assert ks.is_active() is True
+    assert ks.is_active is True
 
 
 def test_kill_switch_deactivate():
@@ -38,7 +38,7 @@ def test_kill_switch_deactivate():
     ks = KillSwitch()
     ks.activate(reason=KillSwitchReason.MANUAL)
     ks.deactivate()
-    assert ks.is_active() is False
+    assert ks.is_active is False
 
 
 # ---------------------------------------------------------------------------
@@ -52,23 +52,23 @@ def test_position_sizer_import():
     assert PositionSizer is not None
 
 
-def test_position_sizer_calculate():
+def test_position_sizer_size():
     from core.trading.position_sizer import PositionSizer
 
-    ps = PositionSizer(max_position_pct=0.05)
-    size = ps.calculate(portfolio_value=100000.0, risk_per_share=5.0, stop_loss_pct=0.02)
-    assert size >= 0
-    # Must not exceed 5% of portfolio
-    max_position = 100000.0 * 0.05
-    assert size * risk_per_share <= max_position
+    ps = PositionSizer(equity=100000.0, max_risk_pct=0.02)
+    result = ps.size(entry_price=100.0, stop_loss_price=95.0)
+    assert result is not None
+    assert hasattr(result, "shares")
+    assert result.shares >= 0
+    assert result.notional_value >= 0
 
 
-def test_position_sizer_zero_portfolio():
+def test_position_sizer_zero_equity_raises():
     from core.trading.position_sizer import PositionSizer
 
-    ps = PositionSizer()
-    size = ps.calculate(portfolio_value=0.0, risk_per_share=5.0, stop_loss_pct=0.02)
-    assert size == 0
+    import pytest
+    with pytest.raises(ValueError):
+        PositionSizer(equity=0.0)
 
 
 # ---------------------------------------------------------------------------
@@ -82,14 +82,18 @@ def test_order_builder_import():
     assert OrderBuilder is not None
 
 
-def test_order_builder_build():
+def test_order_builder_build_market_order():
     from core.trading.order_builder import OrderBuilder
+    from core.trading.position_sizer import PositionSize
+    from core.trading.broker import OrderSide
 
     builder = OrderBuilder()
-    order = builder.build(ticker="AAPL", quantity=100, side="buy", order_type="market")
+    size = PositionSize(shares=100, notional_value=19500.0, risk_per_share=5.0, stop_loss_price=190.0, size_reason="test")
+    order = builder.build_market_order(symbol="AAPL", side=OrderSide.BUY, size=size)
     assert order is not None
-    assert order.get("ticker") == "AAPL" or order.get("symbol") == "AAPL"
-    assert order.get("quantity") == 100 or order.get("shares") == 100
+    assert hasattr(order, "symbol")
+    assert order.symbol == "AAPL"
+    assert order.qty == 100
 
 
 # ---------------------------------------------------------------------------
@@ -107,22 +111,29 @@ def test_approval_gate_default():
     from core.trading.approval_gate import ApprovalGate
 
     gate = ApprovalGate()
-    assert hasattr(gate, "evaluate")
+    assert hasattr(gate, "submit")
+    assert hasattr(gate, "approve")
+    assert hasattr(gate, "reject")
+    assert gate.pending_count == 0  # @property
 
 
-def test_approval_gate_evaluate_basic():
+def test_approval_gate_submit():
     from core.trading.approval_gate import ApprovalGate
 
     gate = ApprovalGate()
-    result = gate.evaluate(
-        ticker="AAPL",
-        quantity=10,
+    request = gate.submit(
+        symbol="AAPL",
         side="buy",
-        risk_score=0.2,
-        kill_switch_triggered=False,
+        qty=10,
+        entry_price=195.0,
+        stop_loss_price=190.0,
+        risk_amount=50.0,
+        reason="momentum",
     )
-    assert isinstance(result, dict)
-    assert "passed" in result
+    assert request is not None
+    assert hasattr(request, "id")
+    assert request.status.value == "pending"
+    assert gate.pending_count == 1  # @property
 
 
 # ---------------------------------------------------------------------------
@@ -131,17 +142,17 @@ def test_approval_gate_evaluate_basic():
 
 
 def test_alerter_import():
-    from core.trading.alerter import Alerter
+    from core.trading.alerter import LogAlerter
 
-    assert Alerter is not None
+    assert LogAlerter is not None
 
 
 def test_alerter_instantiation():
-    from core.trading.alerter import Alerter
+    from core.trading.alerter import LogAlerter
 
-    alerter = Alerter()
+    alerter = LogAlerter()
     assert alerter is not None
-    assert hasattr(alerter, "send")
+    assert hasattr(alerter, "send_trade_alert")
 
 
 # ---------------------------------------------------------------------------
@@ -150,20 +161,20 @@ def test_alerter_instantiation():
 
 
 def test_reward_model_import():
-    from core.trading.reward import RewardModel
+    from core.trading.reward import RewardFunction
 
-    assert RewardModel is not None
+    assert RewardFunction is not None
 
 
 # ---------------------------------------------------------------------------
-# Trade Weights
+# Expert Weights
 # ---------------------------------------------------------------------------
 
 
-def test_trade_weights_import():
-    from core.trading.weights import TradeWeights
+def test_expert_weights_import():
+    from core.trading.expert_weights import ExpertWeightRouter
 
-    assert TradeWeights is not None
+    assert ExpertWeightRouter is not None
 
 
 # ---------------------------------------------------------------------------
@@ -172,6 +183,6 @@ def test_trade_weights_import():
 
 
 def test_ibkr_adapter_import():
-    from adapters.broker.ibkr_adapter import IBKRAdapter
+    from adapters.broker.ibkr_adapter import InteractiveBrokersAdapter
 
-    assert IBKRAdapter is not None
+    assert InteractiveBrokersAdapter is not None

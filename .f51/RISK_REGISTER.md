@@ -1,7 +1,7 @@
 # F51 Risk Register
 
-Updated: 2026-05-24T11:15:00-04:00
-Session: arqueologist-cleanup-risk-resolution
+Updated: 2026-06-01T12:00:00-04:00
+Session: f51-contracts-phase1-2026-06-01
 
 ## Active Risks
 
@@ -93,3 +93,23 @@ Session: arqueologist-cleanup-risk-resolution
 - **INV-R5** (2026-05-24): Reclassified. No CI exists because GitHub is blocked by policy. `make verify` covers src + tests via ruff + pytest.
 - **INV-R8** (2026-05-24): Closed. Makefile only uses ruff (not black). No format inconsistency.
 - **Hardcoded route="general"** (2026-05-24): Removed in commit ce2bf32. Orchestrator classification now flows to agent, experts, and SDCA firewall.
+
+---
+
+## New Risks (2026-06-01 — Phase 1 Contracts)
+
+### INV-R11 - 108 new contract tests not yet integrated into full suite [LOW]
+
+- Classification: quality
+- Risk: New tests in `tests/contracts/` but full `python -m pytest tests/ -q` not re-run. May surface pre-existing failures.
+- Evidence: Phase 1 created 6 test files for 108 tests (all passing in isolation). Full suite had 866+ tests as of 2026-05-24.
+- Mitigation: Run full test suite during Phase 3 (f51-tests).
+- Status: Accepted — deferred to Phase 3.
+
+### INV-R12 - Contract coverage gap: pennylab, rag, expert committee only partially covered [LOW]
+
+- Classification: quality
+- Risk: `test_contract_pennylab.py` and deeper expert committee tests not created. Covered tangentially by existing `test_contract_experts.py` and `test_contract_rag.py`.
+- Evidence: 108 tests cover all 26 inventory modules at import/instantiation level, but deeper integration tests missing for PennyLab experts.
+- Mitigation: PennyLab integration already tested in existing `test_pennylab.py` and `test_components_pennylab.py`.
+- Status: Informational.

@@ -1,7 +1,30 @@
 {
-  "date_local": "2026-05-24T13:17:00-04:00",
-  "session": "browser-smoke-chart-contract-fix-2026-05-24",
-  "status": "completed",
+  "date_local": "2026-06-01T12:00:00-04:00",
+  "session": "f51-contracts-phase1-2026-06-01",
+  "status": "phase1_complete",
+  "phases_executed": [
+    {
+      "phase": 1,
+      "name": "f51-contracts",
+      "status": "complete",
+      "evidence": {
+        "contract_file": ".f51/contracts/live-modules.contract.md",
+        "modules_covered": 26,
+        "new_test_files": 6,
+        "new_tests": 108,
+        "tests_passed": 108,
+        "tests_failed": 0,
+        "test_files": [
+          "tests/contracts/test_contract_model_serving.py (13 tests)",
+          "tests/contracts/test_contract_config.py (15 tests)",
+          "tests/contracts/test_contract_crisis.py (24 tests)",
+          "tests/contracts/test_contract_trading.py (16 tests)",
+          "tests/contracts/test_contract_investor.py (8 tests)",
+          "tests/contracts/test_contract_aux_modules.py (32 tests)"
+        ]
+      }
+    }
+  ],
   "runtime_parameters": {
     "api_port": 8002,
     "ceo_port": 8082,
@@ -9,34 +32,25 @@
     "ceo_entrypoint": "scripts/serve_ceo_llamacpp.ps1 -Port 8082",
     "model_path": "models/superezio-ceo-intent-merged.Q4_K_M.gguf"
   },
-  "what_was_done": [
-    "Aligned Playwright browser smoke with current chart API contract.",
-    "Validated live chart endpoint returns ohlcv rows for AAPL 6M.",
-    "Validated runtime smoke tests and full browser smoke against live CEO/API."
-  ],
-  "evidence": {
-    "commands": [
-      "python -m py_compile scripts\\browser_smoke.py",
-      "curl.exe -fsS http://127.0.0.1:8002/api/chart-data/AAPL?timeframe=6M",
-      "python -m pytest tests\\test_runtime_smoke.py -q",
-      "python scripts\\browser_smoke.py --base-url http://127.0.0.1:8002 --timeout-ms 180000"
-    ],
-    "results": [
-      "chart endpoint: OhlcvCount 130, HasPrice true",
-      "pytest runtime smoke: 20 passed",
-      "browser smoke: ok true, candleCount 130, nonBlank 394632, finalContentLength 2537, detectedIntent CAPITAL_ALLOCATION, scannerInvoked false, console_errors []"
-    ],
-    "live_artifacts": [
-      "output/playwright/superezio-browser-smoke-20260524-131641.png"
-    ]
-  },
   "risks": [
     {
       "severity": "policy",
       "description": "GitHub is blocked by F51_NO_GITHUB_DISK_ONLY.",
       "mitigation": "Keep delivery local unless Marco explicitly replaces policy in checkpoint."
+    },
+    {
+      "severity": "medium",
+      "description": "108 new tests pass but remaining full suite (existing ~350 tests) not verified — may contain pre-existing failures.",
+      "mitigation": "Run full test suite (`python -m pytest tests/ -q`) as part of Phase 3."
     }
   ],
-  "next_step": "Ready for local demo/use. Next operator action can be local commit if Marco says to save.",
-  "owner": "Marco"
+  "next_step": "Phase 2 (f51-runtime): Define official runtime with entrypoint config, healthchecks, logs, checkpoints, and runbook.",
+  "owner": "Marco",
+  "blood_pact_gate": {
+    "delivery_7d": true,
+    "revenue_30d": false,
+    "reduces_chaos": true,
+    "protects_family_stability": true,
+    "has_checkpoint": true
+  }
 }
