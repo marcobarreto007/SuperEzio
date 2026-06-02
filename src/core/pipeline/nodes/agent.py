@@ -1505,8 +1505,11 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
         # ── Bob Sovereign: if no JSON tool call found, treat entire response as final_answer ──
         if bob_sovereign and (not tool_call or "tool" not in tool_call):
-            if len(raw.strip()) > 20:
-                tool_call = {"tool": "final_answer", "args": {"content": raw.strip()}}
+            # If the model put everything inside <think> tags, raw is now empty.
+            # Use the extracted reasoning as the final answer instead of falling back.
+            content_source = raw.strip() or reasoning
+            if len(content_source) > 20:
+                tool_call = {"tool": "final_answer", "args": {"content": content_source}}
 
         if tool_call and "tool" in tool_call:
             if tool_call["tool"] == "final_answer":

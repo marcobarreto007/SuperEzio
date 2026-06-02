@@ -95,13 +95,14 @@ def _build_no_empty_fallback_chunk(
     """Build a useful answer when the pipeline emitted no final content."""
     lower = (message or "").lower()
     ticker = selected_ui_ticker or detect_ticker(message) or "the requested ticker"
+
+    # Build a clean, user-facing message — no debug internals
     header = (
-        "Bob: deterministic fallback answer.\n"
-        "This is an educational framework, not personalized financial advice.\n"
-        f"route: {route_used}\n"
-        f"detected_intent: {detected_intent}\n"
-        f"scanner_invoked: {scanner_invoked}\n"
-        f"agent_called: {agent_called}\n"
+        "Analisei o teu pedido mas a pipeline não gerou output final. "
+        "Isto acontece quando o Bob soberano decide que precisa de mais contexto "
+        "antes de dar uma resposta conclusiva.\n\n"
+        "Tenta reformular a pergunta com mais detalhe: objetivo, horizonte temporal, "
+        "montante, e se queres análise de ticker, scan de mercado, ou framework educativo.\n"
     )
     is_etf_comparison = (
         any(word in lower for word in ("compare", "comparison", " vs ", "versus"))
