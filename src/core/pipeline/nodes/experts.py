@@ -18,11 +18,13 @@ _COLLECT_SEEN: deque[str] = deque(maxlen=64)
 
 # Expert roles mapped to provider names
 EXPERT_PROVIDERS: dict[str, str] = {
-    # 4 New experts
+    # Cloud experts
     "macro_risk": "deepseek",
     "fundamental_value": "deepseek",
     "momentum_technical": "deepseek",
     "contrarian_opportunity": "deepseek",
+    # Gemini sentiment expert
+    "sentiment": "gemini",
 }
 
 EXPERT_PROMPTS: dict[str, tuple[str, str]] = {
@@ -46,6 +48,17 @@ EXPERT_PROMPTS: dict[str, tuple[str, str]] = {
         "You are SuperEzio's Contrarian & Opportunity expert. Identify oversold opportunities, extreme market fear, "
         "insider buying, high short interest, market asymmetries, and potential recovery plays.",
         "Analyze contrarian setups and market sentiment for {ticker}.\n\nContext:\n{context}\n",
+    ),
+    "sentiment": (
+        "You are SuperEzio's Market Sentiment & Narrative expert. Analyze news sentiment, social media buzz, "
+        "retail vs institutional positioning, narrative momentum, fear/greed indicators, and market psychology. "
+        "Identify whether the crowd is bullish, bearish, fearful, euphoric, or indifferent. "
+        "Flag sentiment divergences (e.g., bullish news but bearish social media). "
+        "Be specific, cite evidence from the context, and assign a sentiment score (-1 to +1).",
+        "Analyze market sentiment and narrative for {ticker}.\n\nContext:\n{context}\n\n"
+        "Provide: (1) Overall sentiment score (-1 to +1), (2) News sentiment, "
+        "(3) Social/retail sentiment, (4) Institutional positioning clues, "
+        "(5) Narrative momentum (strengthening/weakening), (6) Key divergences or red flags.",
     ),
 }
 

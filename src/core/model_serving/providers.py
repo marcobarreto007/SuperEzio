@@ -20,6 +20,8 @@ PRIMARY_PROVIDER_NAME = "local_orchestrator"
 PRIMARY_MODEL_ID = "qwen3-next-80b-abliterated"
 DEEPSEEK_PROVIDER_NAME = "deepseek"
 DEEPSEEK_MODEL_ID = "deepseek-v4-pro"
+GEMINI_PROVIDER_NAME = "gemini"
+GEMINI_MODEL_ID = "gemini-3.1-pro"
 
 
 @dataclass
@@ -108,6 +110,26 @@ def build_default_providers(
             temperature=float(os.getenv("SUPEREZIO_DEEPSEEK_TEMPERATURE", "0.2")),
         )
     )
+
+    # Gemini 3.1 Pro — sentiment and market narrative expert (cloud).
+    gemini_key = os.getenv("GEMINI_API_KEY", "")
+    gemini_base_url = os.getenv(
+        "GEMINI_BASE_URL",
+        "https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
+    if gemini_key:
+        providers.append(
+            ModelProvider(
+                name=GEMINI_PROVIDER_NAME,
+                base_url=gemini_base_url,
+                api_key=gemini_key,
+                priority=-290,
+                model=GEMINI_MODEL_ID,
+                timeout_s=int(os.getenv("GEMINI_TIMEOUT_SEC", "90")),
+                max_tokens=int(os.getenv("GEMINI_MAX_TOKENS", "1024")),
+                temperature=float(os.getenv("GEMINI_TEMPERATURE", "0.3")),
+            )
+        )
 
     # Agent — Qwen3-Next-80B Abliterated (Bob) F51 IQ4_XS GGUF via llama-server, local.
     agent_base_url = os.getenv(
