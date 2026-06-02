@@ -244,13 +244,21 @@ def _classify_risk_tolerance(message: str, plan: dict) -> str:
 
 
 def _classify_bob_intent(message: str, plan: dict) -> str:
-    """Classify what the user wants in plain language, for Bob to reason about."""
+    """Classify what the user wants in plain language, for Bob to reason about.
+
+    Priority order matters: busca_oportunidade beats alocar_capital when the
+    user is asking to FIND something specific.
+    """
     msg_lower = message.lower()
 
+    # Buscar/achar/encontrar algo específico beats all else
+    if any(w in msg_lower for w in ["acha", "achar", "encontra", "encontrar",
+                                      "recomenda", "recomendar", "sugestão",
+                                      "indicação", "oportunidade", "me mostra",
+                                      "me fala", "qual", "quais"]):
+        return "buscar_oportunidade"
     if any(w in msg_lower for w in ["comprar", "investir", "alocar", "aplicar", "por em"]):
         return "alocar_capital"
-    if any(w in msg_lower for w in ["achar", "encontrar", "recomendar", "sugestão", "indicação", "oportunidade"]):
-        return "buscar_oportunidade"
     if any(w in msg_lower for w in ["analisar", "análise", "o que acha", "vale a pena"]):
         return "analisar_ativo"
     if any(w in msg_lower for w in ["explicar", "o que é", "como funciona", "diferença"]):
