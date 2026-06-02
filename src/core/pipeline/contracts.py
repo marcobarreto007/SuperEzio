@@ -68,6 +68,13 @@ class PipelineState(TypedDict, total=False):
     orchestrator_plan: str
     orchestrator_model_status: str
 
+    # ── Bob Sovereign Mode (SUPEREZIO_BOB_SOVEREIGN=1) ──
+    bob_intent: str               # intenção classificada (não é rota!)
+    risk_tolerance: str           # "conservadora" | "moderada" | "alta" | "especulativa"
+    bob_thesis: str               # tese que Bob formou ANTES de chamar tools
+    bob_reasoning_trace: list[str]  # passos de raciocínio do Bob
+    current_datetime: str         # injetado a cada execução (datetime.now())
+
     # Data collection
     data: dict[str, Any]
     data_context: str

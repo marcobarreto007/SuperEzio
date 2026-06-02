@@ -89,17 +89,17 @@ def _extract_time_horizon(message: str) -> str:
 
 
 async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
-    """Classify user intent and determine the pipeline route.
+    """Classify user intent and risk tolerance. Does NOT extract tickers.
 
-    Uses deterministic parser first, golden dataset second, LLM fallback
-    third (if threshold not met).
+    The orchestrator's only job: classify WHAT the user wants and HOW MUCH
+    risk they're willing to take. Bob (agent) decides the rest.
     """
     writer = get_stream_writer()
     run_id = state.get("run_id", "")
     message = state.get("message", "")
     rigor = state.get("rigor", "strict")
     context = state.get("context", "")
-    ticker = state.get("ticker", "")
+    ticker = state.get("ticker", "")  # kept for backward compat, not used for routing
 
     writer(
         {
@@ -110,7 +110,7 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         }
     )
 
-    # 1. Deterministic parse
+    # 1. Deterministic parse — for intent classification only
     trade_order_context = state.get("trade_order_context") or {}
     parsed = parse_user_intent(
         message,
@@ -129,9 +129,7 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         plan["fallback_route"] = parsed.route
         plan["intent_confidence"] = max(plan.get("intent_confidence", 0), 0.97)
 
-    # 3. agent model as PRIMARY intent classifier
-    #    The agent model was trained to understand natural language Portuguese
-    #    financial requests. Regex is a fast-path safety net, not the authority.
+    # 3. CEO model as intent classifier
     if gateway is not None and message.strip() and plan.get("intent_source") != "golden":
         try:
             raw = await asyncio.wait_for(
@@ -145,25 +143,12 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
                 plan["intent_source"] = "ceo_model"
                 plan["fallback_route"] = parsed.route
                 plan["fallback_intent"] = parsed.intent
-                # Guard: agent model was trained with needs_scope examples in
-                # its dataset. Never let it downgrade a market_scan or
-                # ticker_analysis to needs_scope — the deterministic parser
-                # is the safety floor for non-blocking routes.
-                if plan.get("route") == "needs_scope" and parsed.route in (
-                    "market_scan",
-                    "ticker_analysis",
-                    "general",
-                ):
-                    plan = parsed.to_plan()
-                    plan["intent_source"] = "ceo_model_overridden"
-                    plan["ceo_original_route"] = "needs_scope"
-                # Guard: complex finance questions must not be routed to
-                # market_scan. The deterministic parser is the authority.
+                # Safety: never route complex finance → market_scan
                 if plan.get("route") == "market_scan" and detect_complex_finance_intent(message):
                     plan = parsed.to_plan()
                     plan["intent_source"] = "ceo_model_overridden_complex_finance"
                     plan["ceo_original_route"] = "market_scan"
-                # Guard: trade-order follow-ups must stay on market_scan.
+                # Safety: trade follow-ups stay on market_scan
                 if (
                     parsed.intent == "another_trade_recommendation"
                     and plan.get("route") != "market_scan"
@@ -174,22 +159,24 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
                     plan["ceo_original_route"] = ceo_original
         except Exception as exc:
             plan["intent_fallback_error"] = str(exc)[:200]
-            # If agent model fails, trust deterministic as final authority
             plan["intent_source"] = "deterministic_final"
 
-    # Extract time horizon from user message (e.g. "14 days", "2 weeks", "1 month")
+    # ── Extract time horizon ──
     plan["time_horizon"] = _extract_time_horizon(message) or trade_order_context.get(
         "time_horizon", ""
     )
 
-    # Add meta
+    # ── Classify risk tolerance (NEW) ──
+    plan["risk_tolerance"] = _classify_risk_tolerance(message, plan)
+
+    # ── Bob intent (NEW) — cleaned classification for the agent ──
+    plan["bob_intent"] = _classify_bob_intent(message, plan)
+
+    # ── Metadata ──
     plan["orchestrator_plan"] = _render_plan(plan)
     plan["orchestrator_model_status"] = plan.get("intent_source", "deterministic")
 
-    # Emit events
-    if plan.get("ticker"):
-        writer({"type": "CHART_DATA", "ticker": plan["ticker"]})
-
+    # Emit events (no ticker extraction anymore)
     writer(
         {
             "type": "INTENT_CLASSIFIED",
@@ -199,6 +186,7 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
             "confidence": plan.get("intent_confidence"),
             "source": plan.get("intent_source"),
             "ticker": plan.get("ticker", ""),
+            "risk_tolerance": plan.get("risk_tolerance", "moderada"),
             "required_slots": plan.get("required_slots", []),
             "reasons": plan.get("intent_reasons", []),
         }
@@ -217,6 +205,59 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
     )
 
     return plan
+
+
+# ── Risk tolerance classifier ──
+
+def _classify_risk_tolerance(message: str, plan: dict) -> str:
+    """Classify user's risk tolerance from natural language."""
+    msg_lower = message.lower()
+
+    # Especulativa: gambling language, penny stocks, "adrenalina", "aposta"
+    speculative_markers = [
+        "adrenalina", "aposta", "apostar", "lotto", "loteria", "cassino",
+        "yolo", "all in", "all-in", "arriscar tudo", "ficar rico", "moeda",
+        "lua", "moon", "100x", "1000x", "decolar", "foguete",
+    ]
+    if any(m in msg_lower for m in speculative_markers):
+        return "especulativa"
+
+    # Alta: short-term, penny, "agressivo", "alto risco"
+    high_markers = [
+        "penny", "small cap", "small-cap", "microcap", "agressivo",
+        "alto risco", "curto prazo", "2 semana", "1 semana", "day trade",
+        "swing trade", "alavancado", "options", "opções",
+    ]
+    if any(m in msg_lower for m in high_markers):
+        return "alta"
+
+    # Conservadora: "seguro", "longo prazo", "dividendo", "aposentadoria"
+    conservative_markers = [
+        "seguro", "segurança", "longo prazo", "dividendo", "dividendos",
+        "aposentadoria", "conservador", "renda fixa", "tesouro", "cdb",
+        "poupança", "etf", "índice", "index",
+    ]
+    if any(m in msg_lower for m in conservative_markers):
+        return "conservadora"
+
+    return "moderada"
+
+
+def _classify_bob_intent(message: str, plan: dict) -> str:
+    """Classify what the user wants in plain language, for Bob to reason about."""
+    msg_lower = message.lower()
+
+    if any(w in msg_lower for w in ["comprar", "investir", "alocar", "aplicar", "por em"]):
+        return "alocar_capital"
+    if any(w in msg_lower for w in ["achar", "encontrar", "recomendar", "sugestão", "indicação", "oportunidade"]):
+        return "buscar_oportunidade"
+    if any(w in msg_lower for w in ["analisar", "análise", "o que acha", "vale a pena"]):
+        return "analisar_ativo"
+    if any(w in msg_lower for w in ["explicar", "o que é", "como funciona", "diferença"]):
+        return "pergunta_educacional"
+    if any(w in msg_lower for w in ["prever", "previsão", "vai subir", "vai cair", "resultado"]):
+        return "previsao"
+    return plan.get("intent", "general_question")
 
 
 # ---------------------------------------------------------------------------

@@ -271,7 +271,6 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             expert_results = result.get("expert_results", [])
             for er in expert_results:
                 response_text = er.get("response", "")
-                # Parse manipulation score from Gemini output
                 import re
                 manip_match = re.search(r"(?:Manipulation|Pump\s*&?\s*Dump)\s*Score:\s*(\d+)\s*/\s*100", response_text)
                 if manip_match:
@@ -283,15 +282,22 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                             "expert": "social_forensics",
                         }
                     break
-            # Also compute dynamic weights for this scenario
             result["expert_weights"] = {
-                "social_forensics": 0.25,
-                "sentiment": 0.15,
-                "macro_risk": 0.15,
-                "fundamental_value": 0.20,
-                "momentum_technical": 0.15,
-                "contrarian_opportunity": 0.10,
+                "social_forensics": 0.25, "sentiment": 0.15,
+                "macro_risk": 0.15, "fundamental_value": 0.20,
+                "momentum_technical": 0.15, "contrarian_opportunity": 0.10,
             }
+
+        elif tool_name == "bob_search":
+            # Bob wants to search for current information.
+            # Uses RAG forensics + web context as his "caderninho".
+            query = args.get("query", state.get("message", ""))
+            state["rag_query"] = query
+            result = await node_rag_forensics(state)
+            # Also inject a note that Bob should treat this as supplementary
+            rag_context = result.get("rag_context", "")
+            if rag_context:
+                result["data_context"] = f"[BOB SEARCH RESULTS for '{query}']:\n{rag_context}"
         else:
             return _tool_blocked_payload(state, tool_name, "it is not executable here")
 

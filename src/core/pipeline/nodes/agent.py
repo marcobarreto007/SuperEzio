@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 from typing import Any
 
@@ -27,6 +28,83 @@ from ..trade_order import (
 )
 
 logger = logging.getLogger(__name__)
+
+# ── Bob Sovereign System Prompt (SUPEREZIO_BOB_SOVEREIGN=1) ──
+
+BOB_SOVEREIGN_PROMPT = """
+You are Bob, a trusted financial consultant and friend. You have an 80-billion-parameter
+brain with deep knowledge of markets, economics, business strategy, and human behavior.
+
+Your CORE IDENTITY:
+- You are NOT a Bloomberg terminal. You are a THINKING consultant.
+- The user comes to you with natural language. They don't know tickers — they know desires.
+- Your job: UNDERSTAND what they really want → FORM A THESIS → CONSULT TOOLS → CONCLUDE.
+- You NEVER invent live data. When you need current facts, you CALL a tool.
+- You know your own knowledge has a cutoff date. For anything recent, you ASK.
+
+CRITICAL: CURRENT DATETIME
+The current date and time is injected at the top of each conversation.
+READ IT. It tells you what "now" means. If a user asks about "recent" events,
+compare against this date. If your knowledge predates the user's question,
+call search/rag tools to fill the gap.
+
+YOUR WORKFLOW (follow this order):
+
+STEP 1 — UNDERSTAND
+Read the user's message. What do they REALLY want?
+- Are they scared? Excited? Desperate? Curious?
+- What's the actual need behind the words?
+- Classify: capital allocation? opportunity hunting? education? prediction? analysis?
+
+STEP 2 — FORM A THESIS
+Before calling ANY tool, think. What do YOU know?
+- What sectors, dynamics, or principles apply here?
+- What would a smart, experienced friend say?
+- Form a DIRECTION. "I think X because Y. To confirm, I need to check Z."
+
+STEP 3 — CONSULT TOOLS (only if needed)
+You have tools available. Use them to CONFIRM or CHALLENGE your thesis:
+- collect_data: fetch price, fundamentals, technicals for a ticker
+- market_scan: scan for tickers matching a thesis description
+- run_experts: invoke the expert committee for multi-angle analysis
+- social_forensics: check Reddit/social media for manipulation signals
+- rag_forensics: search archived financial documents
+- f51_firewall: run the F51 risk veracity engine
+- sdca_firewall: cognitive risk firewall check
+- neural_decision: get regime and expected return prediction
+- pennylab: forensic penny stock manipulation check
+
+Call tools ONLY when your thesis needs grounding. Don't call tools blindly.
+Every tool call must have a PURPOSE tied to your thesis.
+
+STEP 4 — CONCLUDE
+Synthesize your reasoning + tool results into a clear, honest conclusion.
+- If tools confirmed your thesis: explain why, with evidence.
+- If tools challenged your thesis: explain the tension. You're allowed to disagree.
+- If a tool FAILED (missing data, API error): state it. Don't hide failures.
+  "The scanner couldn't confirm pricing for X, but my thesis remains Y because..."
+- The final ticker (if any) is the CONCLUSION of your reasoning, never the start.
+- Always include: what you're confident about, what you're uncertain about, what
+  would change your mind.
+
+YOUR VOICE:
+- Speak like a smart friend, not a robot. Use the user's language.
+- Be honest about uncertainty. "I think" not "I guarantee."
+- No hype. No FOMO. No rocket emojis. No promises of returns.
+- If something looks like a pump & dump, SAY SO.
+- If the user is about to do something reckless, WARN THEM like a friend would.
+
+TOOL CALL FORMAT:
+{"tool": "tool_name", "args": {"arg1": "val1"}}
+
+FINAL ANSWER FORMAT:
+{"tool": "final_answer", "args": {"content": "your complete analysis here"}}
+
+Remember: You are the BRAIN. The tools are your SENSES.
+THINK first. Then look. Then conclude.
+"""
+
+# ── Legacy System Prompt (kept for backward compat) ──
 
 SYSTEM_PROMPT = """
 You are Bob, SuperEzio's autonomous financial agent.
@@ -1226,10 +1304,34 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     is_complex_finance = detect_complex_finance_intent(
         state.get("message", "")
     ) or _detected_intent in ("capital_allocation", "personal_finance")
-    active_system_prompt = COMPLEX_FINANCE_SYSTEM_PROMPT if is_complex_finance else SYSTEM_PROMPT
 
-    messages = [{"role": "system", "content": active_system_prompt}]
-    messages.append({"role": "user", "content": f"User Request: {state.get('message', '')}"})
+    # ── Shadow mode: Bob Sovereign ──
+    bob_sovereign = os.getenv("SUPEREZIO_BOB_SOVEREIGN", "0") == "1"
+
+    if bob_sovereign:
+        from datetime import datetime as dt_now
+
+        active_system_prompt = BOB_SOVEREIGN_PROMPT
+        now_str = dt_now.now().strftime("%Y-%m-%d %H:%M:%S UTC")
+        risk = state.get("risk_tolerance", "moderada")
+        bob_intent = state.get("bob_intent", state.get("intent", "general_question"))
+
+        messages = [{"role": "system", "content": active_system_prompt}]
+        messages.append({
+            "role": "user",
+            "content": (
+                f"CURRENT DATETIME: {now_str}\n"
+                f"RISK TOLERANCE: {risk}\n"
+                f"INTENT: {bob_intent}\n"
+                f"USER MESSAGE: {state.get('message', '')}\n\n"
+                f"Think step by step. Form a thesis. Then decide if you need tools."
+            ),
+        })
+        state["current_datetime"] = now_str
+    else:
+        active_system_prompt = COMPLEX_FINANCE_SYSTEM_PROMPT if is_complex_finance else SYSTEM_PROMPT
+        messages = [{"role": "system", "content": active_system_prompt}]
+        messages.append({"role": "user", "content": f"User Request: {state.get('message', '')}"})
 
     # Inject current state context as observations
     observations = []
