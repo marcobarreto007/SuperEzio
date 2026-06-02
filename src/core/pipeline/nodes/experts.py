@@ -30,68 +30,47 @@ EXPERT_PROVIDERS: dict[str, str] = {
 
 EXPERT_PROMPTS: dict[str, tuple[str, str]] = {
     "macro_risk": (
-        "You are SuperEzio's Macro/Risk expert. Analyze macro indicators, rates, volatility (VIX), "
-        "currency, market regime (risk-on/risk-off), yield curves, and credit spreads. "
-        "Provide a structured, quantitative assessment.",
-        "Analyze macro factors and systemic risks for {ticker}.\n\nContext:\n{context}\n",
+        "You are SuperEzio's Macro/Risk expert. Output ONLY raw JSON, no markdown, no backticks.\n"
+        'Format: {"expert":"macro_risk","ticker":"...","verdict":"RISK_ON|RISK_OFF|CAUTIOUS|NEUTRAL",'
+        '"confidence":0-100,"top_signals":["signal1","signal2"],"top_risks":["risk1","risk2"],'
+        '"bob_readable":"1 sentence Bob can quote"}',
+        "Macro factors for {ticker}.\nContext:\n{context}\n",
     ),
     "fundamental_value": (
-        "You are SuperEzio's Fundamental & Value expert. Focus on financial statements, valuation metrics (P/E, EV/EBITDA, FCF yield), "
-        "debt coverage, revenue/earnings growth, and competitive advantages.",
-        "Analyze fundamentals and valuation for {ticker}.\n\nContext:\n{context}\n",
+        "You are SuperEzio's Fundamental & Value expert. Output ONLY raw JSON, no markdown, no backticks.\n"
+        'Format: {"expert":"fundamental_value","ticker":"...","verdict":"UNDERVALUED|FAIR|OVERVALUED|NO_DATA",'
+        '"confidence":0-100,"top_signals":["signal1","signal2"],"top_risks":["risk1","risk2"],'
+        '"bob_readable":"1 sentence Bob can quote"}',
+        "Fundamentals for {ticker}.\nContext:\n{context}\n",
     ),
     "momentum_technical": (
-        "You are SuperEzio's Momentum & Technical expert. Focus on trend indicators, moving averages, support/resistance levels, "
-        "RSI, ATR, volume patterns, and short-term price momentum.",
-        "Analyze price action and technical setup for {ticker}.\n\nContext:\n{context}\n",
+        "You are SuperEzio's Momentum & Technical expert. Output ONLY raw JSON, no markdown, no backticks.\n"
+        'Format: {"expert":"momentum_technical","ticker":"...","verdict":"BULLISH|BEARISH|NEUTRAL|OVERSOLD|OVERBOUGHT",'
+        '"confidence":0-100,"top_signals":["signal1","signal2"],"top_risks":["risk1","risk2"],'
+        '"bob_readable":"1 sentence Bob can quote"}',
+        "Technicals for {ticker}.\nContext:\n{context}\n",
     ),
     "contrarian_opportunity": (
-        "You are SuperEzio's Contrarian & Opportunity expert. Identify oversold opportunities, extreme market fear, "
-        "insider buying, high short interest, market asymmetries, and potential recovery plays.",
-        "Analyze contrarian setups and market sentiment for {ticker}.\n\nContext:\n{context}\n",
+        "You are SuperEzio's Contrarian & Opportunity expert. Output ONLY raw JSON, no markdown, no backticks.\n"
+        'Format: {"expert":"contrarian","ticker":"...","verdict":"OPPORTUNITY|TRAP|NEUTRAL|NO_EDGE",'
+        '"confidence":0-100,"top_signals":["signal1","signal2"],"top_risks":["risk1","risk2"],'
+        '"bob_readable":"1 sentence Bob can quote"}',
+        "Contrarian view for {ticker}.\nContext:\n{context}\n",
     ),
     "sentiment": (
-        "You are SuperEzio's Market Sentiment & Narrative expert. Analyze news sentiment, social media buzz, "
-        "retail vs institutional positioning, narrative momentum, fear/greed indicators, and market psychology. "
-        "Identify whether the crowd is bullish, bearish, fearful, euphoric, or indifferent. "
-        "Flag sentiment divergences (e.g., bullish news but bearish social media). "
-        "Be specific, cite evidence from the context, and assign a sentiment score (-1 to +1).",
-        "Analyze market sentiment and narrative for {ticker}.\n\nContext:\n{context}\n\n"
-        "Provide: (1) Overall sentiment score (-1 to +1), (2) News sentiment, "
-        "(3) Social/retail sentiment, (4) Institutional positioning clues, "
-        "(5) Narrative momentum (strengthening/weakening), (6) Key divergences or red flags.",
+        "You are SuperEzio's Sentiment expert. Output ONLY raw JSON, no markdown, no backticks.\n"
+        'Format: {"expert":"sentiment","ticker":"...","verdict":"BULLISH|BEARISH|NEUTRAL|FEARFUL|EUPHORIC",'
+        '"confidence":0-100,"sentiment_score":-1.0-1.0,"top_signals":["signal1","signal2"],'
+        '"bob_readable":"1 sentence Bob can quote"}',
+        "Sentiment for {ticker}.\nContext:\n{context}\n",
     ),
     "social_forensics": (
-        "You are SuperEzio's Social Forensics & Manipulation Detection expert. "
-        "Your job is to detect synthetic/coordinated market manipulation on social media. "
-        "You analyze Reddit posts, Twitter threads, and forum discussions to identify pump & dump schemes, "
-        "coordinated shilling, bot networks, and artificial hype before they collapse.\n\n"
-        "DETECTION FRAMEWORK:\n"
-        "1. ACCOUNT PATTERNS: New accounts suddenly posting about a ticker? Multiple accounts using similar language? "
-        "Accounts that only post about one stock? Karma farming then switching to stock pumping?\n"
-        "2. COORDINATION SIGNALS: Same ticker appearing across unrelated subreddits simultaneously? "
-        "Identical or near-identical posts from different accounts? Surge in mentions with no news catalyst?\n"
-        "3. LANGUAGE MARKERS: Excessive emojis (rocket, moon, diamond hands), guaranteed return claims, "
-        "urgency language ('before it's too late', 'last chance'), fake technical analysis by unverified accounts.\n"
-        "4. TIMING ANOMALIES: Posts clustering at unusual hours, coordinated posting waves, "
-        "accounts going silent simultaneously after a dump.\n"
-        "5. VOLUME vs SENTIMENT DIVERGENCE: High social volume but low organic engagement (comments/upvotes ratio off), "
-        "many posts but all from few accounts.\n\n"
-        "OUTPUT FORMAT:\n"
-        "- MANIPULATION SCORE: 0-100 (higher = more likely synthetic)\n"
-        "- TOP SUSPICIOUS ACCOUNTS: ranked list with reasons\n"
-        "- COORDINATION EVIDENCE: specific examples from the data\n"
-        "- PUMP PHASE ASSESSMENT: accumulation / promotion / distribution / collapsed\n"
-        "- CONFIDENCE: High/Medium/Low with reasoning\n"
-        "- RECOMMENDATION: AVOID / MONITOR / NO_THREAT",
-        "SOCIAL FORENSICS ANALYSIS\n"
-        "=======================\n"
-        "Ticker/Topic: {ticker}\n\n"
-        "REDDIT DATA:\n{context}\n\n"
-        "TASK: Analyze the above social media data for signs of coordinated manipulation, "
-        "pump & dump patterns, and synthetic hype. Rank suspicious accounts. "
-        "Determine if this ticker is being artificially promoted.\n\n"
-        "BE SPECIFIC. Name accounts. Cite timestamps. Show patterns.",
+        "You are SuperEzio's Social Forensics expert. Output ONLY raw JSON, no markdown, no backticks.\n"
+        'Format: {"expert":"social_forensics","ticker":"...","verdict":"MANIPULATED|SUSPICIOUS|CLEAN|INCONCLUSIVE",'
+        '"confidence":0-100,"manipulation_score":0-100,'
+        '"suspicious_accounts":["name1","name2"],"recommendation":"AVOID|MONITOR|NO_THREAT",'
+        '"bob_readable":"1 sentence Bob can quote"}',
+        "Social forensics for {ticker}.\nData:\n{context}\n",
     ),
 }
 
@@ -156,7 +135,7 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
                 ],
                 preferred_provider=provider_name,
                 temperature=0.2,
-                max_tokens=600,
+                max_tokens=1000,
             ),
             timeout=timeout,
         )
@@ -269,20 +248,99 @@ async def node_collect_experts(state: dict) -> dict:
     ok_count = sum(1 for r in results.values() if r.get("ok"))
     fail_count = len(results) - ok_count
 
-    # Build summary
-    lines = ["=== EXPERTS ==="]
+    # Parse expert JSON responses and build structured summary for Bob
+    import json as _json
+
+    parsed: dict[str, dict] = {}
+    bob_lines: list[str] = []
+    raw_lines: list[str] = []
+
     for role, r in results.items():
-        ok = "ok" if r.get("ok") else "fail"
-        resp = str(r.get("response", "")).replace("\n", " ")
-        lines.append(f"[{role}][{ok}] {resp[:900]}")
+        ok = r.get("ok", False)
+        raw = str(r.get("response", ""))
+        if not ok or not raw.strip():
+            bob_lines.append(f"[{role}] [FAIL] {r.get('error', 'no response')}")
+            raw_lines.append(f"[{role}][fail] {raw[:200]}")
+            continue
+
+        # Try to parse JSON from expert
+        try:
+            # Strip markdown code fences and leading/trailing whitespace
+            clean = raw.strip()
+            # Remove ```json ... ``` blocks
+            if clean.startswith("```"):
+                lines = clean.split("\n")
+                # Remove opening ```json or ```
+                if lines and lines[0].startswith("```"):
+                    lines = lines[1:]
+                # Remove closing ```
+                if lines and lines[-1].strip() == "```":
+                    lines = lines[:-1]
+                clean = "\n".join(lines).strip()
+            # Remove any "json" prefix some models add
+            if clean.lower().startswith("json"):
+                clean = clean[4:].strip()
+            try:
+                json_match = _json.loads(clean)
+            except _json.JSONDecodeError:
+                start = clean.find("{")
+                end = clean.rfind("}")
+                if start == -1 or end == -1 or end <= start:
+                    raise
+                json_match = _json.loads(clean[start : end + 1])
+            parsed[role] = json_match
+
+            verdict = json_match.get("verdict", "?")
+            confidence = json_match.get("confidence", "?")
+            bob_readable = json_match.get("bob_readable", "")
+            score = ""
+            for score_key in ("sentiment_score", "manipulation_score", "score"):
+                if score_key in json_match and json_match[score_key] is not None:
+                    score = json_match[score_key]
+                    break
+
+            # Build Bob-readable summary line
+            score_str = f" score={score}" if score != "" else ""
+            bob_lines.append(
+                f"[{role}] -> {verdict} (confidence={confidence}{score_str})"
+            )
+            if bob_readable:
+                bob_lines.append(f"  Bob: {bob_readable}")
+
+            # Extract signals for Bob (new simplified format: top_signals is list of strings)
+            signals = json_match.get("top_signals", [])
+            for sig in signals[:3]:
+                bob_lines.append(f"  - {sig}")
+
+            # Extract risks for Bob
+            risks = json_match.get("top_risks", [])
+            for risk in risks[:3]:
+                bob_lines.append(f"  [RISK] {risk}")
+
+            # Social forensics: suspicious accounts
+            accounts = json_match.get("suspicious_accounts", [])
+            for acct in accounts[:3]:
+                bob_lines.append(f"  [FLAG] {acct}")
+
+            # Recommendation
+            rec = json_match.get("recommendation", "")
+            if rec:
+                bob_lines.append(f"  -> {rec}")
+
+            raw_lines.append(f"[{role}][ok] {bob_readable[:200]}")
+
+        except (_json.JSONDecodeError, ValueError, TypeError):
+            # Not valid JSON: use raw text truncated.
+            bob_lines.append(f"[{role}] [RAW] not JSON:")
+            bob_lines.append(f"  {raw[:300]}")
+            raw_lines.append(f"[{role}][ok] {raw[:900]}")
 
     failed = [role for role, r in results.items() if not r.get("ok")]
     if failed:
-        lines.append("=== FAILED EXPERTS ===")
-        for role in failed:
-            lines.append(f"[{role}] {results[role].get('error', 'unknown')}")
+        bob_lines.append(f"--- FAILED: {', '.join(failed)}")
 
-    summary = "\n".join(lines)
+    expert_summary = "\n".join(bob_lines)
+    raw_summary = "\n".join(raw_lines)  # kept for backward compat in traces
 
     writer(
         {
@@ -294,4 +352,8 @@ async def node_collect_experts(state: dict) -> dict:
             "failed": fail_count,
         }
     )
-    return {"expert_summary": summary}
+    return {
+        "expert_summary": expert_summary,
+        "expert_raw": raw_summary,
+        "expert_structured": parsed,
+    }

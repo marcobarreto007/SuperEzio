@@ -25,6 +25,7 @@ from .providers import (  # noqa: F401 — re-exports
     PRIMARY_PROVIDER_NAME,
     PRIMARY_MODEL_ID,
     DEEPSEEK_PROVIDER_NAME,
+    GEMINI_PROVIDER_NAME,
     AGENT_PROVIDER_NAME,
     build_default_providers,
 )
@@ -135,6 +136,15 @@ class ModelGateway:
             kwargs["reasoning_effort"] = os.getenv("SUPEREZIO_DEEPSEEK_REASONING_EFFORT", "high")
             kwargs.pop("temperature", None)
 
+    @staticmethod
+    def _apply_gemini_options(provider: ModelProvider, kwargs: Dict[str, Any]) -> None:
+        """Disable Gemini 2.5 thinking for fast structured expert output."""
+        if provider.name != GEMINI_PROVIDER_NAME:
+            return
+        if "generativelanguage.googleapis.com" not in (provider.base_url or ""):
+            return
+        kwargs["reasoning_effort"] = "none"
+
     async def stream_generate_api(
         self,
         provider: ModelProvider,
@@ -179,6 +189,7 @@ class ModelGateway:
             kwargs["tools"] = tools
 
         self._apply_deepseek_options(provider, kwargs)
+        self._apply_gemini_options(provider, kwargs)
         if json_mode:
             kwargs["response_format"] = {"type": "json_object"}
 
@@ -247,6 +258,7 @@ class ModelGateway:
             "temperature": temp,
         }
         self._apply_deepseek_options(provider, kwargs)
+        self._apply_gemini_options(provider, kwargs)
         if json_mode:
             kwargs["response_format"] = {"type": "json_object"}
 

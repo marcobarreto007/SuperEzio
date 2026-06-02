@@ -111,7 +111,7 @@ def build_default_providers(
         )
     )
 
-    # Gemini 3.1 Pro — sentiment and market narrative expert (cloud).
+    # Gemini 2.5 Flash — sentiment and market narrative expert (cloud).
     gemini_key = os.getenv("GEMINI_API_KEY", "")
     gemini_base_url = os.getenv(
         "GEMINI_BASE_URL",

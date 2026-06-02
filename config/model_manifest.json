@@ -59,7 +59,7 @@
                       "gemini_pro":  {
                                          "provider_name":  "gemini_pro",
                                          "base_url":  "https://generativelanguage.googleapis.com/v1beta/openai/",
-                                         "model":  "gemini-2.0-flash",
+                                         "model":  "gemini-2.5-flash",
                                          "priority":  50,
                                          "role":  "optional fallback when GEMINI_API_KEY is configured"
                                      }

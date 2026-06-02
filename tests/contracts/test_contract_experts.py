@@ -97,12 +97,45 @@ def test_node_collect_experts_with_results():
     result = asyncio.run(_run())
     assert "expert_summary" in result
     summary = result["expert_summary"]
-    assert "EXPERTS" in summary
+    # New JSON-aware format — experts output structured summaries
     assert "fundamental" in summary
     assert "technical" in summary
     assert "risk" in summary
     assert "FAILED" in summary
     assert "timeout" in summary
+
+
+def test_node_collect_experts_parses_json_and_preserves_zero_score():
+    """Structured expert JSON should become Bob-readable without losing 0.0 scores."""
+    import asyncio
+
+    experts_node.get_stream_writer = lambda: _noop_writer
+
+    async def _run():
+        return await node_collect_experts(
+            {
+                "run_id": "test-collect-json-score-zero",
+                "route": "ticker_analysis",
+                "expert_results": [
+                    {
+                        "role": "sentiment",
+                        "ok": True,
+                        "response": (
+                            'Here is the JSON: {"expert":"sentiment","ticker":"XYZ",'
+                            '"verdict":"NEUTRAL","confidence":72,"sentiment_score":0.0,'
+                            '"top_signals":["low message volume"],'
+                            '"bob_readable":"Sentiment is balanced, with no strong crowd edge."}'
+                        ),
+                    }
+                ],
+            }
+        )
+
+    result = asyncio.run(_run())
+    assert result["expert_structured"]["sentiment"]["verdict"] == "NEUTRAL"
+    assert result["expert_structured"]["sentiment"]["sentiment_score"] == 0.0
+    assert "score=0.0" in result["expert_summary"]
+    assert "Sentiment is balanced" in result["expert_summary"]
 
 
 def test_node_collect_experts_partial_data_without_results():
