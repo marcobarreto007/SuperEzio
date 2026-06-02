@@ -1212,7 +1212,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     if gateway is None:
         return {"errors": state.get("errors", []) + ["no_gateway"]}
 
-    # Match legacy behavior where scan is rendered deterministically without entering tool loop
+    # Scan routing: render deterministically without entering the ReAct tool loop
     if state.get("route") == "market_scan" and state.get("scan"):
         if _should_use_decisive_mode(state):
             content, trade_ctx = _render_decisive_trade_order(state)

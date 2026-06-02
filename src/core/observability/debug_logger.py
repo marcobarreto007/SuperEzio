@@ -47,7 +47,6 @@ MODULE_VERACITY = "veracity_gate"
 MODULE_MEMORY = "memory"
 MODULE_TRACING = "tracing"
 MODULE_INTENTS = "intents"
-MODULE_TOKEN_METRICS = "token_metrics"
 MODULE_DEBUGGER = "debugger"
 
 # ── Level constants ───────────────────────────────────────────────────────

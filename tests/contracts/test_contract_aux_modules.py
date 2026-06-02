@@ -252,7 +252,9 @@ def test_f51_adapter_import():
 
 
 def test_storage_module_import():
+    """core.storage package should exist as a placeholder for future storage adapters."""
     import core.storage
+
     assert core.storage is not None
 
 
@@ -290,7 +292,8 @@ def test_subprocess_collector_import():
 # ============================================================================
 
 
-def test_http_probe_module_importable():
-    import adapters.health
+def test_health_port_protocol_importable():
+    """Health probe port protocol must be importable even without concrete adapters."""
+    from core.ports.health_probe import HealthProbePort
 
-    assert adapters.health is not None
+    assert HealthProbePort is not None

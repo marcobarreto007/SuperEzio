@@ -30,7 +30,7 @@ from ..observability.debug_logger import MODULE_DATA_COLLECTOR, debug_logger
 
 class QuantEngine:
     def analyze_asset(self, ticker: str) -> Dict[str, Any]:
-        # Return a neutral statistical baseline directly since the legacy MLP expert was deleted
+        # Return a neutral statistical baseline — quant analysis is delegated to f51 gates
         return {
             "rsi": 50.0,
             "monte_carlo_prob_up": 50.0,

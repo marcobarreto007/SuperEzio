@@ -179,5 +179,5 @@
         "Is src/experts/technical_neural/ distinct from src/experts/neural_decision/ or a legacy split?",
         "Does src/tools/custom_tools.py contain tools registered in the agent or is it unused?"
     ],
-    "next_step": "Run /f51-auditor to validate classification and identify dead code."
+    "next_step": "Run /arqueologist to validate classification and identify dead code."
 }

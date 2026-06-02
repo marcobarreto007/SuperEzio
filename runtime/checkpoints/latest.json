@@ -1,90 +1,35 @@
 {
-  "date_local": "2026-06-01T12:30:00-04:00",
-  "session": "f51-contracts-runtime-tests-2026-06-01",
-  "status": "all_phases_complete",
-  "phases_executed": [
-    {
-      "phase": 1,
-      "name": "f51-contracts",
-      "status": "complete",
-      "evidence": {
-        "contract_file": ".f51/contracts/live-modules.contract.md",
-        "modules_covered": 26,
-        "new_tests": 108,
-        "tests_passed": 108
-      }
-    },
-    {
-      "phase": 2,
-      "name": "f51-runtime",
-      "status": "complete",
-      "evidence": {
-        "entrypoints": {
-          "api": "python -m agent_server.main :8002",
-          "ceo": "scripts/serve_ceo_llamacpp.ps1 -Port 8082"
-        },
-        "healthchecks": ["/health", "/health/details", "/metrics"],
-        "logs_dir": "runtime/logs/",
-        "checkpoints_dir": "runtime/checkpoints/",
-        "runbook": "docs/runbooks/RUNBOOK.md",
-        "config": "config/runtime.yml"
-      }
-    },
-    {
-      "phase": 3,
-      "name": "f51-tests",
-      "status": "complete",
-      "evidence": {
-        "full_suite": "python -m pytest tests/ -q",
-        "results": {
-          "passed": 977,
-          "failed": 2,
-          "skipped": 8,
-          "time_s": 27.60
-        },
-        "pre_existing_failures": [
-          "INV-R13: CEO GGUF missing from disk",
-          "INV-R14: Desktop launcher path broken"
-        ],
-        "smoke_tests": "28/28 pass",
-        "contract_tests": "387/390 pass (2 pre-existing, 1 skip)",
-        "integration_tests": "7 skipped (require live servers)"
-      }
-    }
+  "date_local": "2026-06-01T12:45:00-04:00",
+  "session": "f51-cleanup-2026-06-01",
+  "status": "cleanup_complete",
+  "what_was_done": [
+    "Deleted C:\\F51_LAB\\ (140 GB): Mixtral 24.6GB, GLM 56.3GB, 30+ probe logs",
+    "Deleted all __pycache__ directories (231 MB)",
+    "Deleted runtime/logs/*.log (51 files, 2 MB)",
+    "Deleted .f51/cache/collector/*.json (46 stale cache files)",
+    "C: drive: 37 GB -> 174 GB free",
+    "Smoke tests verified: 28/28 pass after cleanup"
   ],
   "runtime_parameters": {
     "api_port": 8002,
     "ceo_port": 8082,
     "api_entrypoint": "python -m agent_server.main",
     "ceo_entrypoint": "scripts/serve_ceo_llamacpp.ps1 -Port 8082",
-    "model_path": "models/superezio-ceo-intent-merged.Q4_K_M.gguf (OFFLINE — INV-R13)"
+    "model_path": "models/superezio-ceo-intent-merged.Q4_K_M.gguf (MISSING — INV-R13)"
   },
   "risks": [
     {
       "id": "INV-R13",
       "severity": "high",
-      "description": "CEO GGUF model file missing from disk. Blocks live pipeline.",
-      "mitigation": "Locate GGUF and update path."
+      "description": "CEO GGUF missing. C: now has 174 GB free — enough space. Model needs to be downloaded/copied.",
+      "mitigation": "Download superezio-ceo-intent-merged.Q4_K_M.gguf to models/"
     },
     {
       "id": "INV-R14",
       "severity": "low",
-      "description": "Desktop launcher batch file path resolution broken.",
-      "mitigation": "Fix path. Non-blocking."
-    },
-    {
-      "id": "INV-R15",
-      "severity": "info",
-      "description": "Full suite baseline: 977 pass, 2 fail, 8 skip."
+      "description": "Desktop launcher path broken."
     }
   ],
-  "next_step": "Fix INV-R13 (locate CEO GGUF). Then live pipeline smoke test.",
-  "owner": "Marco",
-  "blood_pact_gate": {
-    "delivery_7d": true,
-    "revenue_30d": false,
-    "reduces_chaos": true,
-    "protects_family_stability": true,
-    "has_checkpoint": true
-  }
+  "next_step": "Marco: baixar/copiar o CEO GGUF (~20-25 GB) para models/. Depois live smoke test.",
+  "owner": "Marco"
 }

@@ -1,9 +1,9 @@
 # F51 Skills Check — Auditoria Completa
 
-**Data:** 2026-05-21
-**Auditor:** Deep (F51 Bootstrap Orchestrator)
-**Escopo:** 25 skills em `.claude/skills/`
-**Metodo:** Verificacao de 7 criterios por skill + gap analysis
+**Data:** 2026-06-01 (atualizado)
+**Auditor:** Arqueologist (consolidação pós-escavação)
+**Escopo:** 22 skills em `.claude/skills/`
+**Metodo:** Verificacao de 7 criterios por skill + gap analysis + consolidação
 
 ---
 
@@ -199,21 +199,18 @@
 
 ---
 
-## Auditoria — Skills de Suporte (14 restantes)
+## Auditoria — Skills de Suporte (11 restantes)
 
 | Skill | SKILL.md | Nome/Desc | Escopo | Anti-creep | Saida | Checkpoint | Caos/Receita | Veredito |
 |-------|----------|-----------|--------|------------|-------|------------|--------------|----------|
 | arqueologist | PASS | PASS | PASS | PASS | PASS | PASS | PASS | APTO |
-| f51-auditor | PASS | PASS | PASS | PASS | PASS | PASS | PASS | APTO |
-| f51-contract-guardian | PASS | PASS | PASS | PASS | PASS | PASS | PASS | APTO |
+| f51-contract-watchdog | PASS | PASS | PASS | PASS | PASS | PASS | PASS | APTO |
 | f51-dependency-scout | PASS | PASS | PASS | PASS | PASS | PASS | PASS | APTO |
 | f51-doc-sync | PASS | PASS | PASS | PASS | PASS | PASS | PASS | APTO |
 | f51-executor | PASS | PASS | PASS | PASS | PASS | PASS | PASS | APTO |
 | f51-loop-breaker | PASS | PASS | PASS | PASS | PASS | PASS | PASS | APTO |
 | f51-no-mock-police | PASS | PASS | PASS | PASS | PASS | PASS | PASS | APTO |
 | f51-productizer | PASS | PASS | PASS | PASS | PASS | PASS | PASS | APTO |
-| f51-release-captain | PASS | PASS | PASS | PASS | PASS | PASS | PASS | APTO |
-| f51-repo-cartographer | PASS | PASS | PASS | PASS | PASS | PASS | PASS | APTO |
 | f51-safety-science | PASS | PASS | PASS | PASS | PASS | PASS | PASS | APTO |
 | f51-test-finder | PASS | PASS | PASS | PASS | PASS | PASS | PASS | APTO |
 | f51-windows-compat | PASS | PASS | PASS | PASS | PASS | PASS | PASS | APTO |
@@ -222,59 +219,44 @@
 
 ## Gaps Encontrados
 
-### GAP-1: Diretorios `scripts/`, `references/`, `assets/` parcialmente criados (LOW)
+### GAP-1: Diretorios `scripts/`, `references/`, `assets/` removidos (RESOLVIDO)
 
-**8 skills nucleares possuem os 3 diretorios:** `f51-inventory`, `f51-contracts`, `f51-runtime`, `f51-refactor`, `f51-tests`, `f51-audit`, `f51-release`, `f51-money-gate`.
+**Todas as 22 skills** agora possuem apenas `SKILL.md`. Diretorios `assets/`, `references/`, `scripts/`
+foram removidos pois estavam vazios (apenas `.gitkeep`). Skills que precisarem de assets no futuro
+devem recriar os diretorios sob demanda.
 
-**17 skills sem os diretorios padrao**, incluindo 3 mandatorias:
-`f51-impact-map`, `f51-quality-gate`, `f51-regression-hunter`.
+### GAP-2: `frontend-design` — skill externa deletada (RESOLVIDO)
 
-**Recomendacao:** Criar `.gitkeep` nos 3 diretorios para as skills mandatorias que ainda nao os possuem.
-Para as demais, criar sob demanda quando forem ativadas.
+`frontend-design` foi removida do repositorio em limpeza anterior (commit `178b44a`).
 
-### GAP-2: `frontend-design` sem diretorios padrao (LOW)
+### GAP-3: Skills sobrepostas (RESOLVIDO — 2026-06-01)
 
-`frontend-design` possui `SKILL.md` mas nao possui `scripts/`, `references/`, `assets/`.
-Skill externa ao ecossistema F51; manter como esta por enquanto.
+- ~~`f51-audit` vs `f51-auditor`~~ → **Removido:** `f51-auditor`. Mantido: `f51-audit`.
+- ~~`f51-release` vs `f51-release-captain`~~ → **Removido:** `f51-release-captain`. Mantido: `f51-release`.
+- ~~`f51-repo-cartographer` vs `f51-inventory`~~ → **Removido:** `f51-repo-cartographer`. Mantido: `f51-inventory`.
 
-### GAP-3: Skills sobrepostas (MEDIUM)
+### GAP-4: `f51-contract-guardian` vs `f51-contracts` (RESOLVIDO — 2026-06-01)
 
-- `f51-audit` vs `f51-auditor` — mesma funcao com nomes diferentes
-- `f51-release` vs `f51-release-captain` — release captain e um superset do release gate
-- `f51-repo-cartographer` vs `f51-inventory` — funcoes muito proximas
-
-**Recomendacao:** Consolidar apos validacao de Marco.
-Manter: `f51-audit`, `f51-release`, `f51-inventory`.
-Depreciar: `f51-auditor`, `f51-release-captain`, `f51-repo-cartographer`.
-
-### GAP-4: `f51-contract-guardian` vs `f51-contracts` (LOW)
-
-Duas skills com namespaces quase identicos. `f51-contracts` e mais abrangente.
-`f51-contract-guardian` foca em protecao ativa de contrato — pode ser util como skill especializada, mas o nome causa confusao.
-
-**Recomendacao:** Manter ambas se proposito for distinto. Renomear `f51-contract-guardian` para deixar claro que e um watchdog ativo, nao uma auditoria.
+Renomeado `f51-contract-guardian` → `f51-contract-watchdog` para clarificar que é um watchdog ativo,
+não uma duplicata de `f51-contracts`. Ambas mantidas com propósitos distintos.
 
 ---
 
 ## Sumario Estatistico
 
-- **Total de skills:** 25
-- **APTO:** 25/25 (100%)
-- **Gaps encontrados:** 4 (3 LOW, 1 MEDIUM)
-- **Skills com diretorios padrao:** 0/25 (gap estrutural)
-- **Skills com saida verificavel:** 25/25 (100%)
-- **Skills com checkpoint:** 25/25 (100%)
-- **Skills alinhadas ao Blood Pact:** 25/25 (100%)
+- **Total de skills:** 22 (3 depreciadas, 1 renomeada)
+- **APTO:** 22/22 (100%)
+- **Gaps encontrados:** 4 → todos RESOLVIDOS
+- **Skills com diretorios padrao:** 0/22 (removidos — estrutura limpa, sem skeletons)
+- **Skills com saida verificavel:** 22/22 (100%)
+- **Skills com checkpoint:** 22/22 (100%)
+- **Skills alinhadas ao Blood Pact:** 22/22 (100%)
 
 ---
 
 ## Veredito Final
 
-**Todas as 25 skills passam nos 7 criterios de auditoria.**
-O conteudo dos SKILL.md e solido, bem estruturado e alinhado com o Blood Pact operacional.
-As skills definem escopo limitado, proibem feature creep, exigem checkpoint e produzem saida verificavel.
-
-O unico gap material e estrutural: os diretorios `scripts/`, `references/` e `assets/` nao existem no disco
-(apesar de referenciados pelo BOOTSTRAP_REPORT.md anterior).
-
-**Acao recomendada:** Criar os diretorios faltantes (GAP-1) e resolver sobreposicao de skills (GAP-3) com Marco.
+**Todas as 22 skills passam nos 7 criterios de auditoria.**
+Consolidacao executada em 2026-06-01: 3 skills removidas (f51-auditor, f51-release-captain, f51-repo-cartographer),
+1 renomeada (f51-contract-guardian → f51-contract-watchdog).
+Diretorios vazios assets/references/scripts removidos de todas as skills.
