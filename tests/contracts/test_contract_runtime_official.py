@@ -156,9 +156,18 @@ def test_agent_runtime_config_matches_manifest_and_script():
     assert agent_cfg["server_url"] == agent_manifest["server_url"]
     assert agent_cfg["backend"] == "openai_compatible"
     assert agent_cfg["is_local"] is True
+    assert agent_cfg["preferred_llama_server"] == r"C:\llama.cpp\build-cuda\bin\llama-server.exe"
+    assert agent_cfg["fallback_llama_server"] == "llama.cpp\\bin\\llama-server.exe"
+    assert agent_cfg["f51_moe_cache"] is True
+    assert agent_cfg["f51_moe_sched_skip"] is True
+    assert agent_cfg["f51_moe_cache_capacity"] == 16
     assert model_path.exists(), f"Official agent GGUF is missing: {model_path}"
     assert model_path.name in script
     assert "llama-server.exe" in script
+    assert "SUPEREZIO_LLAMA_SERVER_EXE" in script
+    assert r"C:\llama.cpp\build-cuda\bin\llama-server.exe" in script
+    assert "F51_MOE_CACHE" in script
+    assert "F51_MOE_SCHED_SKIP" in script
     assert "--port $Port" in script
 
 

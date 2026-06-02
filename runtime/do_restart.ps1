@@ -1,8 +1,9 @@
-# SuperEzio hard restart: kill stale servers, start CEO+API, verify health.
+# SuperEzio hard restart: kill only official runtime ports/processes, start CEO+API, verify health.
 $ErrorActionPreference = 'Continue'
 $root = 'C:\Users\marco\Desktop\SuperEzio Financeiro'
 $logPath = Join-Path $root 'runtime\restart_log.txt'
 New-Item -ItemType Directory -Force -Path (Join-Path $root 'runtime') | Out-Null
+New-Item -ItemType Directory -Force -Path (Join-Path $root 'runtime\logs') | Out-Null
 
 $lines = [System.Collections.Generic.List[string]]::new()
 function Log([string]$m) {
@@ -15,22 +16,27 @@ $errors = [System.Collections.Generic.List[string]]::new()
 
 function Kill-Port([int]$port) {
     Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue | ForEach-Object {
-        $pid = [int]$_.OwningProcess
-        if ($pid -le 0) { return }
+        $ownerPid = [int]$_.OwningProcess
+        if ($ownerPid -le 0) { return }
         try {
-            $name = (Get-Process -Id $pid -ErrorAction SilentlyContinue).ProcessName
-            Stop-Process -Id $pid -Force -ErrorAction Stop
-            $killed.Add("Port $port PID $pid ($name)")
+            $name = (Get-Process -Id $ownerPid -ErrorAction SilentlyContinue).ProcessName
+            Stop-Process -Id $ownerPid -Force -ErrorAction Stop
+            $killed.Add("Port $port PID $ownerPid ($name)")
         }
         catch {
-            $errors.Add("Port $port PID $pid : $($_.Exception.Message)")
+            $errors.Add("Port $port PID $ownerPid : $($_.Exception.Message)")
         }
     }
 }
 
-foreach ($p in 8082, 8002, 5173, 3000) { Kill-Port $p }
+foreach ($p in 8082, 8002) { Kill-Port $p }
 
-$patterns = @('SuperEzio', 'agent_server', 'serve_agent_llamacpp', 'llama-server', 'llama.cpp')
+$patterns = @(
+    'agent_server.main',
+    'scripts\serve_agent_llamacpp.ps1',
+    'scripts/serve_agent_llamacpp.ps1',
+    'llama-server.exe'
+)
 Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | ForEach-Object {
     $cmd = $_.CommandLine
     if (-not $cmd) { return }
@@ -68,14 +74,30 @@ Log "Port 8002: $(Get-PortStatus 8002)"
 
 Set-Location $root
 $env:PYTHONPATH = Join-Path $root 'src'
+$env:SUPEREZIO_BOB_SOVEREIGN = '1'
 $env:SUPEREZIO_NO_BROWSER = '1'
 $env:SUPEREZIO_PROFESSIONAL_COLLECTOR = 'true'
 
 Log "Starting CEO + API directly (BAT launcher retired)..."
-Start-Process powershell -ArgumentList '-ExecutionPolicy', 'Bypass', '-File', 'scripts\serve_agent_llamacpp.ps1', '-Port', '8082' -WorkingDirectory $root -WindowStyle Normal
+$bobLog = Join-Path $root 'runtime\logs\bob-8082-latest.log'
+$bobErrLog = Join-Path $root 'runtime\logs\bob-8082-latest.err.log'
+$apiLog = Join-Path $root 'runtime\logs\api-8002-latest.log'
+Remove-Item -LiteralPath $bobLog, $bobErrLog, $apiLog -Force -ErrorAction SilentlyContinue
+
+Start-Process powershell `
+    -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'scripts\serve_agent_llamacpp.ps1', '-Port', '8082' `
+    -WorkingDirectory $root `
+    -WindowStyle Hidden `
+    -RedirectStandardOutput $bobLog `
+    -RedirectStandardError $bobErrLog
 $py = Join-Path $root '.venv\Scripts\python.exe'
 if (-not (Test-Path $py)) { $py = 'python' }
-Start-Process -FilePath $py -ArgumentList '-m', 'agent_server.main' -WorkingDirectory $root -WindowStyle Normal
+Start-Process -FilePath $py `
+    -ArgumentList '-m', 'agent_server.main' `
+    -WorkingDirectory $root `
+    -WindowStyle Hidden `
+    -RedirectStandardOutput $apiLog `
+    -RedirectStandardError (Join-Path $root 'runtime\logs\api-8002-latest.err.log')
 
 $h8082 = 'NOT OK'
 $h8002 = 'NOT OK'

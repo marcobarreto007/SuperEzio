@@ -1,41 +1,56 @@
-# SuperEzio CEO Local Server (Qwen3-Next-80B-A3B Abliterated IQ4_XS GGUF via llama-server)
-# Serves OpenAI-compatible API on port 8082 for FastAPI pipeline integration.
-# RTX 5060 Ti 16GB + 64GB RAM.
-# MoE: 512 experts, 10 active + 1 shared per token, ~544 KB per expert tensor (IQ4_XS).
-# Strategy: --n-cpu-moe 31 = 17 MoE layers on GPU (~13.9 GB) + 31 layers on CPU/RAM.
-# GPU: attention + dense + 17 expert layers = ~15.2 GB VRAM (nearly full).
-# RAM: ~26 GB (31 layers of experts, IQ4_XS quantized).
-# Measured: 31.9 tok/s decode (2x CPU-only) at ctx=4096.
-# F51 Nitro cache (dança das cadeiras) not needed for Qwen 80B IQ4_XS — experts too small.
-# Reasoning is disabled so short API calls return message.content reliably.
+# SuperEzio Bob CEO local server.
+# Canonical runtime prefers the patched F51 llama.cpp build in C:\llama.cpp.
+# The repo-local llama.cpp\bin binary is only a fallback and is reported loudly.
 
 param(
     [int]$Port = 8082,
     [int]$GpuLayers = 999,
     [int]$ContextLength = 131072,
     [int]$Slots = 2,
-    [int]$NCpuMoe = 31
+    [int]$NCpuMoe = 31,
+    [int]$CacheRamMiB = 8192,
+    [int]$F51CacheCapacity = 16,
+    [string]$LlamaServerPath = $env:SUPEREZIO_LLAMA_SERVER_EXE
 )
 
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Resolve-Path "$ScriptDir\.."
-$BinDir = "$ProjectRoot\llama.cpp\bin"
-$ModelDir = "$ProjectRoot\models"
+$Model = Join-Path $ProjectRoot "models\Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf"
 
-$Model = "$ModelDir\Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf"
+$candidateServers = @()
+if ($LlamaServerPath) {
+    $candidateServers += $LlamaServerPath
+}
+$candidateServers += "C:\llama.cpp\build-cuda\bin\llama-server.exe"
+$candidateServers += (Join-Path $ProjectRoot "llama.cpp\bin\llama-server.exe")
 
-$env:PATH = "$BinDir;$env:PATH"
+$Server = $null
+foreach ($candidate in $candidateServers) {
+    if ($candidate -and (Test-Path $candidate)) {
+        $Server = (Resolve-Path $candidate).Path
+        break
+    }
+}
 
 if (-not (Test-Path $Model)) {
     Write-Host "ERROR: Model not found: $Model" -ForegroundColor Red
     exit 1
 }
 
-if (-not (Test-Path "$BinDir\llama-server.exe")) {
-    Write-Host "ERROR: llama-server.exe not found in: $BinDir" -ForegroundColor Red
+if (-not $Server) {
+    Write-Host "ERROR: llama-server.exe not found. Set SUPEREZIO_LLAMA_SERVER_EXE or restore C:\llama.cpp\build-cuda\bin." -ForegroundColor Red
     exit 1
 }
+
+$BinDir = Split-Path -Parent $Server
+$env:PATH = "$BinDir;$env:PATH"
+
+# F51 runtime knobs. These are harmless on non-F51 binaries and active on the patched build.
+$env:F51_MOE_CACHE = "1"
+$env:F51_MOE_CACHE_ENABLED = "1"
+$env:F51_MOE_SCHED_SKIP = "1"
+$env:F51_MOE_CACHE_CAPACITY = [string]$F51CacheCapacity
 
 $gpuMoeLayers = 48 - $NCpuMoe
 $expertLayerMB = 816
@@ -44,27 +59,51 @@ $denseMB = 1300
 $kvMB = 400
 $totalGpuMB = $denseMB + $kvMB + $gpuExpertMB
 
+$version = ""
+$oldErrorActionPreference = $ErrorActionPreference
+try {
+    $ErrorActionPreference = "Continue"
+    $version = (& $Server --version 2>&1 | ForEach-Object { "$_" } | Select-Object -First 5) -join " | "
+}
+catch {
+    $version = "version probe failed: $($_.Exception.Message)"
+}
+finally {
+    $ErrorActionPreference = $oldErrorActionPreference
+}
+
+$usingPatchedF51 = $Server -like "C:\llama.cpp\build-cuda\bin\llama-server.exe"
+
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host " SuperEzio CEO Server (Qwen3-Next-80B Nitro)" -ForegroundColor Cyan
+Write-Host " SuperEzio Bob CEO Server" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host "Model      : Qwen3-Next-80B-A3B Abliterated IQ4_XS"
-Write-Host "Arch       : MoE (512 experts, 10 active/token)"
+Write-Host "Server     : $Server"
+Write-Host "Version    : $version"
+Write-Host "F51 build  : $usingPatchedF51"
 Write-Host "Port       : $Port"
 Write-Host "Context    : $ContextLength tokens"
 Write-Host "Slots      : $Slots parallel"
 Write-Host "Flash Attn : on"
 Write-Host "Cache type : q8_0"
+Write-Host "Cache RAM  : $CacheRamMiB MiB"
 Write-Host "Reasoning  : disabled"
 Write-Host ""
 Write-Host "MoE split  : $gpuMoeLayers layers GPU + $NCpuMoe layers CPU"
 Write-Host "GPU budget : ~$totalGpuMB MB ($denseMB dense + $kvMB KV + $gpuExpertMB experts)"
 Write-Host "RAM budget : ~$($NCpuMoe * $expertLayerMB) MB ($NCpuMoe expert layers)"
+Write-Host "F51 cache  : enabled capacity=$F51CacheCapacity"
 Write-Host "API        : http://127.0.0.1:$Port/v1"
 Write-Host "============================================"
 Write-Host ""
+
+if (-not $usingPatchedF51) {
+    Write-Host "WARNING: running fallback llama-server, not C:\llama.cpp\build-cuda\bin\llama-server.exe" -ForegroundColor Yellow
+}
+
 Write-Host "Starting llama-server..." -ForegroundColor Green
 
-& "$BinDir\llama-server.exe" `
+& $Server `
     -m $Model `
     -ngl $GpuLayers `
     -c $ContextLength `
@@ -74,5 +113,6 @@ Write-Host "Starting llama-server..." -ForegroundColor Green
     -ctk q8_0 `
     -ctv q8_0 `
     --n-cpu-moe $NCpuMoe `
+    -cram $CacheRamMiB `
     --reasoning off `
     --mlock

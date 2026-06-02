@@ -113,6 +113,7 @@ F51_Datasets/raw_downloads/
 # Runtime output
 output/
 !output/.gitkeep
+runtime/restart_log.txt
 
 # Partner temp files
 .f51/tmp/

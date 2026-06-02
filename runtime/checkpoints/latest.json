@@ -1,43 +1,54 @@
 {
-  "date_local": "2026-06-02T13:25:05-04:00",
-  "session": "penny-momentum-runtime-apply-2026-06-02",
-  "status": "penny_momentum_backtest_tool_applied",
+  "date_local": "2026-06-02T14:37:27-04:00",
+  "session": "runtime-single-authority-cleanup-2026-06-02",
+  "status": "runtime_authority_fixed_f51_binary_active",
   "what_was_done": [
-    "Added the math-core penny momentum breakout backtest module",
-    "Exposed penny_momentum_backtest as a Bob/agent tool in contracts, prompts, tool executor, and Bob sovereign allowed tools",
-    "Connected the tool to injected OHLCV data, explicit tickers, or market_scan candidates with honest missing-data failure handling",
-    "Kept the runtime cleanup direction applied: canonical math indicators, canonical circuit breaker adapter, and real PennyLab pipeline hook",
-    "Added 10 scenario-style test coverage plus missing-data tool-executor coverage"
+    "Audited runtime duplication between repo-local llama.cpp binary, patched C:\\llama.cpp F51 binary, restart script, runtime config, and docs",
+    "Changed scripts/serve_agent_llamacpp.ps1 to prefer C:\\llama.cpp\\build-cuda\\bin\\llama-server.exe and loudly report fallback",
+    "Enabled F51 runtime env knobs in the Bob launcher and recorded the selected binary/version/F51 status in logs",
+    "Reduced runtime/do_restart.ps1 cleanup scope from broad substring killing to official ports and exact runtime process patterns",
+    "Fixed runtime/do_restart.ps1 PowerShell reserved-variable bug and switched process logging to direct stdout/stderr files",
+    "Added runtime single-authority audit documentation and contract assertions"
   ],
   "runtime_parameters": {
     "api_port": 8002,
     "agent_port": 8082,
     "api_entrypoint": "python -m agent_server.main",
     "agent_entrypoint": "scripts/serve_agent_llamacpp.ps1 -Port 8082",
+    "preferred_llama_server": "C:\\llama.cpp\\build-cuda\\bin\\llama-server.exe",
+    "fallback_llama_server": "llama.cpp\\bin\\llama-server.exe",
+    "active_llama_server": "C:\\llama.cpp\\build-cuda\\bin\\llama-server.exe",
     "model_path": "models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf",
     "model_size_bytes": 43108774560,
     "model_size_gb": 40.15,
     "quantization": "IQ4_XS",
     "context_length": 131072,
     "gpu_layers": 999,
-    "cpu_moe": true,
+    "n_cpu_moe": 31,
+    "cache_ram_mib": 8192,
+    "f51_moe_cache": true,
+    "f51_moe_sched_skip": true,
+    "f51_moe_cache_capacity": 16,
     "model_type": "MoE",
     "total_experts": 512,
     "active_experts_per_token": 10
   },
   "evidence": [
-    "python -m ruff check src/core/math/penny_momentum.py src/core/math/__init__.py src/core/pipeline/contracts.py src/core/pipeline/nodes/agent.py src/core/pipeline/nodes/orchestrator.py src/core/pipeline/nodes/tool_executor.py src/core/data_collector/professional.py tests/test_penny_momentum_backtest.py -> All checks passed",
-    "python -m ruff format --check src/core/math/penny_momentum.py tests/test_penny_momentum_backtest.py -> 2 files already formatted",
-    "git diff --check -> clean",
-    "python -m pytest tests/test_penny_momentum_backtest.py -q -p no:cacheprovider -> 11 passed",
-    "python -m pytest tests/test_bob_sovereign.py tests/test_agent_market_scan_loop.py tests/test_components_pennylab.py tests/test_math.py tests/contracts/test_contract_pipeline.py tests/test_pipeline_smoke.py -q -p no:cacheprovider -> 86 passed",
-    "python scripts/browser_smoke.py -> ok true, health ok, chart_fetch ok, canvas nonBlank 394632, chat fallbackUsed false"
+    "runtime/do_restart.ps1 -> Health 8082: 200 {\"status\":\"ok\"}; Health 8002: 200 {\"status\":\"ok\",\"agent\":\"generic_agent\",\"version\":\"3.0.0\"}",
+    "runtime/logs/bob-8082-latest.log -> Server: C:\\llama.cpp\\build-cuda\\bin\\llama-server.exe; F51 build: True",
+    "runtime/logs/bob-8082-latest.err.log -> F51 DIAG cache_en=1 entries and server listening on http://127.0.0.1:8082",
+    "Process owner proof -> port 8082 PID executable C:\\llama.cpp\\build-cuda\\bin\\llama-server.exe; port 8002 API healthy",
+    "Direct /v1/chat/completions probe -> prompt eval 42.34 tok/s, decode eval 16.14 tok/s for this short test",
+    "PowerShell parser checks passed for scripts/serve_agent_llamacpp.ps1 and runtime/do_restart.ps1",
+    "python -m pytest tests/contracts/test_contract_runtime_official.py -q -p no:cacheprovider -> 9 passed",
+    "python scripts/browser_smoke.py -> ok true, health ok, chart_fetch ok, canvas nonBlank 394632, fallbackUsed true"
   ],
   "risks": [
-    "Live broad-universe performance still depends on DataHub candle coverage and market_scan candidate quality",
-    "The new backtest is an experimental math signal, not a production trading recommendation by itself",
+    "Historical Qwen 38-42 tok/s decode claims are not revalidated by this short probe; current measured decode was 16.14 tok/s with the fixed F51 binary and current flags",
+    "Browser smoke passed but reported fallbackUsed=true for the smoke prompt, so answer-path quality still needs a separate fix",
+    "Other unrelated local modifications remain outside this checkpoint and were not committed by this step",
     "No GitHub operation was performed because this repository is DISK ONLY"
   ],
-  "next_step": "Run a live SUPEREZIO_BOB_SOVEREIGN=1 prompt that asks Bob to scan penny stocks, invoke penny_momentum_backtest, and explain the mathcore verdict.",
+  "next_step": "Run a controlled F51 profile sweep for --n-cpu-moe/--cpu-moe/cache capacity and then fix the market_scan price ceiling bug exposed by the small-cap under-5 prompt.",
   "owner": "Marco"
 }
