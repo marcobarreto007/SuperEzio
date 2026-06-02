@@ -36,7 +36,7 @@ models:
     timeout_s: 300
     script: scripts/serve_agent_llamacpp.ps1
     speculative_decoding: disabled
-    context_length: 262144
+    context_length: 131072
     gpu_layers: 999
     cpu_moe: true
     slots: 2

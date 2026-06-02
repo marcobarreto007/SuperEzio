@@ -1282,12 +1282,22 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     if iterations > 7:
         content = _loop_failsafe_answer(state)
         writer({"type": "CHUNK", "content": content})
-        return _final_payload(content, iterations)
+        return {
+            **_final_payload(content, iterations),
+            "bob_thesis": state.get("bob_thesis", ""),
+            "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
+            "current_datetime": state.get("current_datetime", ""),
+        }
 
     if state.get("tool_blocked"):
         content = _tool_blocked_answer(state)
         writer({"type": "CHUNK", "content": content})
-        return _final_payload(content, iterations)
+        return {
+            **_final_payload(content, iterations),
+            "bob_thesis": state.get("bob_thesis", ""),
+            "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
+            "current_datetime": state.get("current_datetime", ""),
+        }
 
     if gateway is None:
         return {"errors": state.get("errors", []) + ["no_gateway"]}
@@ -1381,6 +1391,11 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             + ", ".join(str(tool) for tool in state.get("executed_tools", []))
             + ". Do NOT call these tools again with the same parameters. Use existing results or call final_answer."
         )
+    if state.get("errors"):
+        observations.append(
+            "Errors/Warnings encountered during tool execution:\n"
+            + "\n".join(f"- {err}" for err in state.get("errors", []))
+        )
 
     # ── F51 Dynamic Expert Veto Gate ──
     # If social_forensics detected manipulation (score >= 70),
@@ -1419,6 +1434,26 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             json_mode=False if bob_sovereign else True,
         )
 
+        # Extract sovereign reasoning before cleaning thinking blocks
+        reasoning = ""
+        if bob_sovereign:
+            think_match = re.search(r"<think>(.*?)</think>", raw, re.DOTALL)
+            if think_match:
+                reasoning = think_match.group(1).strip()
+            else:
+                json_start = raw.find("{")
+                if json_start > 0:
+                    reasoning = raw[:json_start].strip()
+                elif json_start == -1:
+                    reasoning = raw.strip()
+
+            if reasoning:
+                if iterations == 0:
+                    state["bob_thesis"] = reasoning
+                trace = list(state.get("bob_reasoning_trace") or [])
+                trace.append(reasoning)
+                state["bob_reasoning_trace"] = trace
+
         # Clean thinking blocks
         if "<think>" in raw:
             raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
@@ -1455,9 +1490,18 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     "final": content,
                     "agent_tool_call": tool_call,
                     "agent_iterations": iterations + 1,
+                    "bob_thesis": state.get("bob_thesis", ""),
+                    "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
+                    "current_datetime": state.get("current_datetime", ""),
                 }
             else:
-                return {"agent_tool_call": tool_call, "agent_iterations": iterations + 1}
+                return {
+                    "agent_tool_call": tool_call,
+                    "agent_iterations": iterations + 1,
+                    "bob_thesis": state.get("bob_thesis", ""),
+                    "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
+                    "current_datetime": state.get("current_datetime", ""),
+                }
         else:
             # Fallback
             content = (
@@ -1466,7 +1510,14 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 else _contract_fallback_answer(state)
             )
             writer({"type": "CHUNK", "content": content})
-            return _final_payload(content, iterations)
+            return {
+                "final": content,
+                "agent_tool_call": {"tool": "final_answer", "args": {"content": content}},
+                "agent_iterations": iterations + 1,
+                "bob_thesis": state.get("bob_thesis", ""),
+                "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
+                "current_datetime": state.get("current_datetime", ""),
+            }
 
     except Exception as exc:
         logger.error(f"Agent error: {exc}")
@@ -1474,5 +1525,8 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             "agent_tool_call": {
                 "tool": "final_answer",
                 "args": {"content": f"Internal agent error: {exc}"},
-            }
+            },
+            "bob_thesis": state.get("bob_thesis", ""),
+            "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
+            "current_datetime": state.get("current_datetime", ""),
         }

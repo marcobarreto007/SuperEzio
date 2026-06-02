@@ -185,5 +185,7 @@ class AgentToolCall(BaseModel):
         "rag_forensics",
         "market_scan",
         "final_answer",
+        "bob_search",
+        "social_forensics",
     ]
     args: dict[str, Any] = Field(default_factory=dict)

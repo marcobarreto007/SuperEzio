@@ -32,14 +32,16 @@ async def node_rag_forensics(state: dict) -> dict:
     message = state.get("message", "")
     intent = state.get("intent", "")
 
-    query_parts = []
-    if ticker:
-        query_parts.append(f"Ticker: {ticker}")
-    if intent:
-        query_parts.append(f"Intent: {intent}")
-    if message and not ticker:
-        query_parts.append(message[:200])
-    query = " ".join(query_parts)
+    query = state.get("rag_query", "")
+    if not query:
+        query_parts = []
+        if ticker:
+            query_parts.append(f"Ticker: {ticker}")
+        if intent:
+            query_parts.append(f"Intent: {intent}")
+        if message and not ticker:
+            query_parts.append(message[:200])
+        query = " ".join(query_parts)
 
     try:
         from ...rag.engine import forensic_rag

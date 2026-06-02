@@ -20,7 +20,7 @@
                 "block_count":  80,
                 "nextn_predict_layers":  0,
                 "reasoning":  "disabled",
-                "context_length":  262144,
+                "context_length":  131072,
                 "gpu_layers":  999,
                 "cpu_moe":  true,
                 "model_type":  "MoE",

@@ -12,7 +12,7 @@
 param(
     [int]$Port = 8082,
     [int]$GpuLayers = 999,
-    [int]$ContextLength = 262144,
+    [int]$ContextLength = 131072,
     [int]$Slots = 2,
     [int]$NCpuMoe = 31
 )

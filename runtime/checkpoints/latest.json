@@ -21,7 +21,7 @@
     "model_size_bytes": 43108774560,
     "model_size_gb": 40.15,
     "quantization": "IQ4_XS",
-    "context_length": 262144,
+    "context_length": 131072,
     "gpu_layers": 999,
     "cpu_moe": true,
     "model_type": "MoE",

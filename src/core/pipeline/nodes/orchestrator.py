@@ -110,67 +110,100 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         }
     )
 
-    # 1. Deterministic parse — for intent classification only
-    trade_order_context = state.get("trade_order_context") or {}
-    parsed = parse_user_intent(
-        message,
-        rigor=rigor,
-        ticker=ticker,
-        trade_order_context=trade_order_context,
-    )
-    plan = parsed.to_plan()
-    plan["intent_source"] = "deterministic"
+    is_sovereign = os.getenv("SUPEREZIO_BOB_SOVEREIGN") in ("1", "true", "True")
 
-    # 2. Golden dataset match
-    golden = match_golden_intent(message, rigor=rigor)
-    if golden:
-        plan = golden.to_plan()
-        plan["intent_source"] = "golden"
-        plan["fallback_route"] = parsed.route
-        plan["intent_confidence"] = max(plan.get("intent_confidence", 0), 0.97)
+    if is_sovereign:
+        trade_order_context = state.get("trade_order_context") or {}
+        plan = {
+            "route": "general",
+            "intent": "general_question",
+            "action": "answer",
+            "ticker": "",
+            "risk_tolerance": _classify_risk_tolerance(message, {}),
+            "bob_intent": _classify_bob_intent(message, {}),
+            "time_horizon": _extract_time_horizon(message) or trade_order_context.get("time_horizon", ""),
+            "intent_source": "sovereign_orchestrator",
+            "intent_confidence": 1.0,
+            "intent_reasons": ["Sovereign Bob mode active"],
+            "allowed_tools": [
+                "collect_data",
+                "f51_firewall",
+                "pennylab",
+                "run_experts",
+                "neural_decision",
+                "sdca_firewall",
+                "rag_forensics",
+                "market_scan",
+                "final_answer",
+            ],
+            "scanner_allowed": True,
+            "ticker_allowed": True,
+            "market_context_allowed": True,
+            "cognitive_mode": "SOVEREIGN",
+        }
+        plan["intent"] = plan["bob_intent"]  # sync intent with bob_intent
+    else:
+        # 1. Deterministic parse — for intent classification only
+        trade_order_context = state.get("trade_order_context") or {}
+        parsed = parse_user_intent(
+            message,
+            rigor=rigor,
+            ticker=ticker,
+            trade_order_context=trade_order_context,
+        )
+        plan = parsed.to_plan()
+        plan["intent_source"] = "deterministic"
 
-    # 3. CEO model as intent classifier
-    if gateway is not None and message.strip() and plan.get("intent_source") != "golden":
-        try:
-            raw = await asyncio.wait_for(
-                _ask_intent_classifier(message, plan, context, gateway),
-                timeout=float(os.getenv("SUPEREZIO_INTENT_LLM_TIMEOUT", "6")),
-            )
-            candidate = extract_json_object(raw)
-            validated = validate_intent_candidate(message, candidate or {}, fallback=parsed)
-            if validated:
-                plan = validated.to_plan()
-                plan["intent_source"] = "ceo_model"
-                plan["fallback_route"] = parsed.route
-                plan["fallback_intent"] = parsed.intent
-                # Safety: never route complex finance → market_scan
-                if plan.get("route") == "market_scan" and detect_complex_finance_intent(message):
-                    plan = parsed.to_plan()
-                    plan["intent_source"] = "ceo_model_overridden_complex_finance"
-                    plan["ceo_original_route"] = "market_scan"
-                # Safety: trade follow-ups stay on market_scan
-                if (
-                    parsed.intent == "another_trade_recommendation"
-                    and plan.get("route") != "market_scan"
-                ):
-                    ceo_original = plan.get("route")
-                    plan = parsed.to_plan()
-                    plan["intent_source"] = "ceo_model_overridden_trade_followup"
-                    plan["ceo_original_route"] = ceo_original
-        except Exception as exc:
-            plan["intent_fallback_error"] = str(exc)[:200]
-            plan["intent_source"] = "deterministic_final"
+        # 2. Golden dataset match
+        golden = match_golden_intent(message, rigor=rigor)
+        if golden:
+            plan = golden.to_plan()
+            plan["intent_source"] = "golden"
+            plan["fallback_route"] = parsed.route
+            plan["intent_confidence"] = max(plan.get("intent_confidence", 0), 0.97)
 
-    # ── Extract time horizon ──
-    plan["time_horizon"] = _extract_time_horizon(message) or trade_order_context.get(
-        "time_horizon", ""
-    )
+        # 3. CEO model as intent classifier
+        if gateway is not None and message.strip() and plan.get("intent_source") != "golden":
+            try:
+                raw = await asyncio.wait_for(
+                    _ask_intent_classifier(message, plan, context, gateway),
+                    timeout=float(os.getenv("SUPEREZIO_INTENT_LLM_TIMEOUT", "6")),
+                )
+                candidate = extract_json_object(raw)
+                validated = validate_intent_candidate(message, candidate or {}, fallback=parsed)
+                if validated:
+                    plan = validated.to_plan()
+                    plan["intent_source"] = "ceo_model"
+                    plan["fallback_route"] = parsed.route
+                    plan["fallback_intent"] = parsed.intent
+                    # Safety: never route complex finance → market_scan
+                    if plan.get("route") == "market_scan" and detect_complex_finance_intent(message):
+                        plan = parsed.to_plan()
+                        plan["intent_source"] = "ceo_model_overridden_complex_finance"
+                        plan["ceo_original_route"] = "market_scan"
+                    # Safety: trade follow-ups stay on market_scan
+                    if (
+                        parsed.intent == "another_trade_recommendation"
+                        and plan.get("route") != "market_scan"
+                    ):
+                        ceo_original = plan.get("route")
+                        plan = parsed.to_plan()
+                        plan["intent_source"] = "ceo_model_overridden_trade_followup"
+                        plan["ceo_original_route"] = ceo_original
+            except Exception as exc:
+                plan["intent_fallback_error"] = str(exc)[:200]
+                plan["intent_source"] = "deterministic_final"
 
-    # ── Classify risk tolerance (NEW) ──
-    plan["risk_tolerance"] = _classify_risk_tolerance(message, plan)
+        # ── Extract time horizon ──
+        plan["time_horizon"] = _extract_time_horizon(message) or trade_order_context.get(
+            "time_horizon", ""
+        )
 
-    # ── Bob intent (NEW) — cleaned classification for the agent ──
-    plan["bob_intent"] = _classify_bob_intent(message, plan)
+        # ── Classify risk tolerance (NEW) ──
+        plan["risk_tolerance"] = _classify_risk_tolerance(message, plan)
+
+        # ── Bob intent (NEW) — cleaned classification for the agent ──
+        plan["bob_intent"] = _classify_bob_intent(message, plan)
 
     # ── Metadata ──
     plan["orchestrator_plan"] = _render_plan(plan)

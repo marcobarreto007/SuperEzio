@@ -1,6 +1,6 @@
 # SuperEzio hard restart: kill stale servers, start CEO+API, verify health.
 $ErrorActionPreference = 'Continue'
-$root = 'C:\Users\marco\Desktop\SuperEzio'
+$root = 'C:\Users\marco\Desktop\SuperEzio Financeiro'
 $logPath = Join-Path $root 'runtime\restart_log.txt'
 New-Item -ItemType Directory -Force -Path (Join-Path $root 'runtime') | Out-Null
 
