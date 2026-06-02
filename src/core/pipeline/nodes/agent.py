@@ -1309,6 +1309,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
     # ── Shadow mode: Bob Sovereign ──
     bob_sovereign = os.getenv("SUPEREZIO_BOB_SOVEREIGN", "0") == "1"
+    logger.info("BOB_SOVEREIGN=%s iterations=%d", bob_sovereign, iterations)
 
     if bob_sovereign:
         from datetime import datetime as dt_now
@@ -1423,6 +1424,11 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
 
         tool_call = _parse_tool_call(raw)
+
+        # ── Bob Sovereign: if no JSON tool call found, treat entire response as final_answer ──
+        if bob_sovereign and (not tool_call or "tool" not in tool_call):
+            if len(raw.strip()) > 20:
+                tool_call = {"tool": "final_answer", "args": {"content": raw.strip()}}
 
         if tool_call and "tool" in tool_call:
             if tool_call["tool"] == "final_answer":
