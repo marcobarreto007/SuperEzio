@@ -113,3 +113,31 @@ Session: f51-contracts-phase1-2026-06-01
 - Evidence: 108 tests cover all 26 inventory modules at import/instantiation level, but deeper integration tests missing for PennyLab experts.
 - Mitigation: PennyLab integration already tested in existing `test_pennylab.py` and `test_components_pennylab.py`.
 - Status: Informational.
+
+---
+
+## New Risks (2026-06-01 — Phase 2+3 Runtime + Full Suite)
+
+### INV-R13 - CEO GGUF model file missing from disk [HIGH]
+
+- Classification: operational
+- Risk: `models/superezio-ceo-intent-merged.Q4_K_M.gguf` (80 GB) not found at expected path.
+- Evidence: Test `test_ceo_runtime_config_matches_manifest_and_script` fails.
+- Mitigation: Locate GGUF and update config/runtime.yml path or create symlink.
+- Status: **Active — blocks live pipeline.**
+
+### INV-R14 - Desktop launcher cannot resolve project path [LOW]
+
+- Classification: operational
+- Risk: `desktop/SuperEzio.bat` path resolution broken.
+- Evidence: Test `test_launcher_check_mode_validates_without_starting_servers` returns exit code 1.
+- Mitigation: Fix path in batch file. Non-blocking: `python -m agent_server.main` works.
+- Status: Needs fix.
+
+### INV-R15 - Full suite baseline: 977 pass, 2 fail, 8 skip [INFO]
+
+- Classification: quality
+- Risk: None. Baseline recorded for future comparison.
+- Evidence: `python -m pytest tests/ -q` → 977 passed, 2 failed, 8 skipped in 27.60s.
+- Mitigation: INV-R13 must be resolved before live pipeline verification.
+- Status: **Baseline recorded.**

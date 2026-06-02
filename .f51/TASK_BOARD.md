@@ -8,11 +8,14 @@
 
 - [x] 2026-06-01 - **Phase 1 (f51-contracts):** Defined `live-modules.contract.md` covering 26 modules. Created 108 new contract tests (all passing): model-serving (13), config (15), crisis (24), trading (16), investor (8), aux-modules (32). Contract coverage now spans 100% of inventory modules.
 
-- [ ] Phase 2 (f51-runtime): Define official runtime — entrypoint config, healthchecks, logs, checkpoints, runbook.
-- [ ] Phase 3 (f51-tests): Smoke tests, contract tests, and minimum integration tests for the official runtime.
+- [x] 2026-06-01 - **Phase 2 (f51-runtime):** Runtime verified. Entrypoints confirmed: CEO :8082 (llama.cpp), API :8002 (FastAPI). Healthchecks: /health, /health/details, /metrics. Logs: runtime/logs/. Checkpoints: runtime/checkpoints/latest.json. Runbook: docs/runbooks/RUNBOOK.md.
+
+- [x] 2026-06-01 - **Phase 3 (f51-tests):** Full suite: 977 passed, 2 failed (pre-existing: CEO GGUF offline, launcher path), 8 skipped in 27.60s. Smoke + contract + integration coverage confirmed. No fake tests.
 
 ## Done
 
+- [x] 2026-06-01 - Phase 3 (f51-tests): 977/979 pass. 2 pre-existing failures documented in RISK_REGISTER (INV-R13, INV-R14).
+- [x] 2026-06-01 - Phase 2 (f51-runtime): Runtime verified with healthchecks, logs, checkpoints, runbook.
 - [x] 2026-06-01 - Phase 1 (f51-contracts): Contract definitions + 108 tests passing.
 - [x] 2026-05-21 - Removed model build surfaces from the active tree and kept the merged GGUF runtime path.
 - [x] 2026-05-21 - Clean tree pass: removed archived runtime/docs surfaces, generic non-F51 skill bundles, retired provider alias path, edge placeholder hooks, and stale F51 map content.

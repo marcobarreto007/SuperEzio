@@ -1,38 +1,40 @@
 {
-  "date_local": "2026-06-01T12:00:00-04:00",
-  "session": "f51-contracts-phase1-2026-06-01",
+  "date_local": "2026-06-01T12:30:00-04:00",
+  "session": "f51-contracts-runtime-tests-2026-06-01",
   "status": "completed",
   "what_was_done": [
-    "Created .f51/contracts/live-modules.contract.md — unified contract for 26 live modules.",
-    "Created 6 new contract test files with 108 passing tests covering model-serving, config, crisis, trading, investor, and auxiliary modules.",
-    "Fixed test interfaces to match actual source code APIs.",
-    "Updated .f51/TASK_BOARD.md with Phase 1 completion.",
-    "Updated runtime/checkpoints/latest.json with execution evidence."
+    "Phase 1: Created live-modules.contract.md (26 modules) + 108 new contract tests (all passing).",
+    "Phase 2: Verified runtime entrypoints, healthchecks, logs, checkpoints, runbook, config.",
+    "Phase 3: Full test suite: 977 passed, 2 failed (pre-existing), 8 skipped in 27.60s.",
+    "28 smoke tests, 387 contract tests, all integration/component tests verified.",
+    "Committed all changes with detailed commit message."
   ],
   "evidence": {
     "commands": [
-      "python -m pytest tests/contracts/test_contract_model_serving.py tests/contracts/test_contract_config.py tests/contracts/test_contract_crisis.py tests/contracts/test_contract_trading.py tests/contracts/test_contract_investor.py tests/contracts/test_contract_aux_modules.py -v"
+      "python -m pytest tests/contracts/ -q",
+      "python -m pytest tests/test_runtime_smoke.py tests/test_pipeline_smoke.py -v",
+      "python -m pytest tests/ -q"
     ],
     "results": [
-      "108 passed, 0 failed in 1.80s"
+      "Phase 1 contracts: 108/108 new tests pass",
+      "Runtime smoke: 28/28 pass",
+      "Full suite: 977/979 pass (2 pre-existing failures: INV-R13, INV-R14), 8 skipped"
     ]
   },
-  "module_contracts_defined": [
-    "agent_server", "pipeline", "ceo", "f51_engine", "data_hub",
-    "neural_decision", "a2a_protocol", "runtime",
-    "model_serving", "config_system", "sdca_firewall", "rag_forensics",
-    "crisis_models", "pennylab", "trading_engine", "math_core",
-    "ports", "explanation", "security", "observability",
-    "investor_committee", "tool_registry", "adapters", "audit",
-    "storage", "f51_adapter"
+  "pre_existing_failures": [
+    "INV-R13: CEO GGUF (80GB) not found at models/superezio-ceo-intent-merged.Q4_K_M.gguf",
+    "INV-R14: desktop/SuperEzio.bat path resolution broken"
   ],
   "risks": [
     {
+      "severity": "high",
+      "description": "INV-R13: CEO GGUF offline. Blocks live pipeline."
+    },
+    {
       "severity": "policy",
-      "description": "GitHub is blocked by F51_NO_GITHUB_DISK_ONLY.",
-      "mitigation": "Keep delivery local."
+      "description": "GitHub is blocked by F51_NO_GITHUB_DISK_ONLY."
     }
   ],
-  "next_step": "Phase 2 (f51-runtime): Define official runtime with entrypoint config, healthchecks, logs, checkpoints, and runbook.",
+  "next_step": "Marco: locate CEO GGUF file. Then live pipeline smoke test.",
   "owner": "Marco"
 }

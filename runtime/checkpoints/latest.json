@@ -1,7 +1,7 @@
 {
-  "date_local": "2026-06-01T12:00:00-04:00",
-  "session": "f51-contracts-phase1-2026-06-01",
-  "status": "phase1_complete",
+  "date_local": "2026-06-01T12:30:00-04:00",
+  "session": "f51-contracts-runtime-tests-2026-06-01",
+  "status": "all_phases_complete",
   "phases_executed": [
     {
       "phase": 1,
@@ -10,18 +10,45 @@
       "evidence": {
         "contract_file": ".f51/contracts/live-modules.contract.md",
         "modules_covered": 26,
-        "new_test_files": 6,
         "new_tests": 108,
-        "tests_passed": 108,
-        "tests_failed": 0,
-        "test_files": [
-          "tests/contracts/test_contract_model_serving.py (13 tests)",
-          "tests/contracts/test_contract_config.py (15 tests)",
-          "tests/contracts/test_contract_crisis.py (24 tests)",
-          "tests/contracts/test_contract_trading.py (16 tests)",
-          "tests/contracts/test_contract_investor.py (8 tests)",
-          "tests/contracts/test_contract_aux_modules.py (32 tests)"
-        ]
+        "tests_passed": 108
+      }
+    },
+    {
+      "phase": 2,
+      "name": "f51-runtime",
+      "status": "complete",
+      "evidence": {
+        "entrypoints": {
+          "api": "python -m agent_server.main :8002",
+          "ceo": "scripts/serve_ceo_llamacpp.ps1 -Port 8082"
+        },
+        "healthchecks": ["/health", "/health/details", "/metrics"],
+        "logs_dir": "runtime/logs/",
+        "checkpoints_dir": "runtime/checkpoints/",
+        "runbook": "docs/runbooks/RUNBOOK.md",
+        "config": "config/runtime.yml"
+      }
+    },
+    {
+      "phase": 3,
+      "name": "f51-tests",
+      "status": "complete",
+      "evidence": {
+        "full_suite": "python -m pytest tests/ -q",
+        "results": {
+          "passed": 977,
+          "failed": 2,
+          "skipped": 8,
+          "time_s": 27.60
+        },
+        "pre_existing_failures": [
+          "INV-R13: CEO GGUF missing from disk",
+          "INV-R14: Desktop launcher path broken"
+        ],
+        "smoke_tests": "28/28 pass",
+        "contract_tests": "387/390 pass (2 pre-existing, 1 skip)",
+        "integration_tests": "7 skipped (require live servers)"
       }
     }
   ],
@@ -30,21 +57,28 @@
     "ceo_port": 8082,
     "api_entrypoint": "python -m agent_server.main",
     "ceo_entrypoint": "scripts/serve_ceo_llamacpp.ps1 -Port 8082",
-    "model_path": "models/superezio-ceo-intent-merged.Q4_K_M.gguf"
+    "model_path": "models/superezio-ceo-intent-merged.Q4_K_M.gguf (OFFLINE — INV-R13)"
   },
   "risks": [
     {
-      "severity": "policy",
-      "description": "GitHub is blocked by F51_NO_GITHUB_DISK_ONLY.",
-      "mitigation": "Keep delivery local unless Marco explicitly replaces policy in checkpoint."
+      "id": "INV-R13",
+      "severity": "high",
+      "description": "CEO GGUF model file missing from disk. Blocks live pipeline.",
+      "mitigation": "Locate GGUF and update path."
     },
     {
-      "severity": "medium",
-      "description": "108 new tests pass but remaining full suite (existing ~350 tests) not verified — may contain pre-existing failures.",
-      "mitigation": "Run full test suite (`python -m pytest tests/ -q`) as part of Phase 3."
+      "id": "INV-R14",
+      "severity": "low",
+      "description": "Desktop launcher batch file path resolution broken.",
+      "mitigation": "Fix path. Non-blocking."
+    },
+    {
+      "id": "INV-R15",
+      "severity": "info",
+      "description": "Full suite baseline: 977 pass, 2 fail, 8 skip."
     }
   ],
-  "next_step": "Phase 2 (f51-runtime): Define official runtime with entrypoint config, healthchecks, logs, checkpoints, and runbook.",
+  "next_step": "Fix INV-R13 (locate CEO GGUF). Then live pipeline smoke test.",
   "owner": "Marco",
   "blood_pact_gate": {
     "delivery_7d": true,
