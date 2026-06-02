@@ -1323,14 +1323,15 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             "role": "user",
             "content": (
                 f"CURRENT DATETIME: {now_str}\n"
-                f"RISK TOLERANCE: {risk}\n"
-                f"CONTEXT HINT (may be wrong — trust the raw message): intent={bob_intent}\n\n"
-                f"RAW USER MESSAGE: {state.get('message', '')}\n\n"
-                f"IMPORTANT: Read the RAW USER MESSAGE above. Ignore any classification if it contradicts "
-                f"what the user is actually asking. The user speaks naturally — they may want a stock pick, "
-                f"a prediction, an explanation, or a framework. YOU decide what they really need.\n\n"
-                f"THINK ALOUD: What does this person actually want? What do I know about this? "
-                f"What would help them most? Form your thesis. Then call tools ONLY if needed to ground it."
+                f"RISK TOLERANCE (detected): {risk}\n\n"
+                f"USER SAYS: {state.get('message', '')}\n\n"
+                f"THINK ALOUD before acting. What does this person REALLY want? "
+                f"Be honest: do they want a stock pick, a prediction, an explanation, or life advice? "
+                f"If they want a stock pick — form a thesis about what kind of stock, then call market_scan to find candidates. "
+                f"If they want a framework — give one, but in YOUR OWN WORDS, not a template. "
+                f"If they want a prediction — say what you think and why. "
+                f"DO NOT use any pre-written template. Speak as Bob, a smart friend. "
+                f"Use tools when you need data to back up what you're saying."
             ),
         })
         state["current_datetime"] = now_str
@@ -1412,8 +1413,8 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
         raw = await gateway.chat_completion(
             messages=messages,
-            temperature=0.1,
-            max_tokens=2048,
+            temperature=0.4 if bob_sovereign else 0.1,
+            max_tokens=4096 if bob_sovereign else 2048,
             preferred_provider=AGENT_PROVIDER_NAME,
             json_mode=True,
         )
