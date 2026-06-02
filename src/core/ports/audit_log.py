@@ -23,7 +23,7 @@ class AuditLogPort(Protocol):
 
         Args:
             run_id: identificador da execução do pipeline.
-            step: nome do step (ex: "ceo_primary", "gateway_fallback",
+            step: nome do step (ex: "agent_primary", "gateway_fallback",
                   "agent_selector", "data_source").
             decision: o que foi decidido (ex: "local_orchestrator",
                       "technical+ risk", "ticker_analysis").

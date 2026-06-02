@@ -876,11 +876,11 @@ class ProfessionalCollector:
             payload.setdefault("evidence_id", f"{source}_{ticker}_{date_part}")
             payload.setdefault("data_quality", "unavailable" if "error" in payload else "collected")
 
-    # ── Context formatting for CEO prompt ────────────────────────────────
+    # ── Context formatting for agent prompt ────────────────────────────────
 
     @staticmethod
     def format_context(data: dict) -> str:
-        """Format collected data into CEO-readable text block."""
+        """Format collected data into agent-readable text block."""
         ticker = data.get("ticker", "?")
         exchange = data.get("exchange", "?")
         quality = data.get("data_quality", "unknown")

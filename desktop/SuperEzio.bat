@@ -2,7 +2,9 @@
 chcp 65001 >nul 2>nul
 setlocal EnableDelayedExpansion
 
-set "ROOT=C:\Users\marco\Desktop\SuperEzio"
+pushd "%~dp0.."
+set "ROOT=%cd%"
+popd
 if not exist "%ROOT%" goto root_error
 cd /d "%ROOT%"
 if %errorlevel% neq 0 goto root_error
@@ -34,7 +36,7 @@ if %errorlevel% neq 0 goto python_error
 curl --version >nul 2>nul
 if %errorlevel% neq 0 goto curl_error
 
-if not exist "%ROOT%\scripts\serve_ceo_llamacpp.ps1" goto ceo_script_error
+if not exist "%ROOT%\scripts\serve_agent_llamacpp.ps1" goto ceo_script_error
 if not exist "%ROOT%\src\agent_server\main.py" goto api_script_error
 
 echo.
@@ -74,7 +76,7 @@ REM -----------------------------------------------------------------------
 REM [1/2] CEO na porta 8082
 REM -----------------------------------------------------------------------
 echo   [1/2] Iniciando CEO na porta 8082...
-start "SuperEzio CEO" /D "%ROOT%" cmd /k "powershell -ExecutionPolicy Bypass -File scripts\serve_ceo_llamacpp.ps1 -Port 8082"
+start "SuperEzio CEO" /D "%ROOT%" cmd /k "powershell -ExecutionPolicy Bypass -File scripts\serve_agent_llamacpp.ps1 -Port 8082"
 
 echo   Aguardando CEO carregar modelo...
 set /a CEO_ATTEMPTS=0
@@ -141,7 +143,7 @@ exit /b 1
 echo.
 echo   [ERRO] O CEO nao respondeu em http://127.0.0.1:8082/health.
 echo   Veja a janela "SuperEzio CEO" para o erro real.
-echo   Comando manual: powershell -ExecutionPolicy Bypass -File scripts\serve_ceo_llamacpp.ps1 -Port 8082
+echo   Comando manual: powershell -ExecutionPolicy Bypass -File scripts\serve_agent_llamacpp.ps1 -Port 8082
 pause
 exit /b 1
 
@@ -161,7 +163,7 @@ pause
 exit /b 1
 
 :ceo_script_error
-echo [ERRO] Script do CEO nao encontrado: %ROOT%\scripts\serve_ceo_llamacpp.ps1
+echo [ERRO] Script do CEO nao encontrado: %ROOT%\scripts\serve_agent_llamacpp.ps1
 pause
 exit /b 1
 

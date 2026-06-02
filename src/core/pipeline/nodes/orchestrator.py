@@ -129,8 +129,8 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         plan["fallback_route"] = parsed.route
         plan["intent_confidence"] = max(plan.get("intent_confidence", 0), 0.97)
 
-    # 3. CEO model as PRIMARY intent classifier
-    #    The CEO model was trained to understand natural language Portuguese
+    # 3. agent model as PRIMARY intent classifier
+    #    The agent model was trained to understand natural language Portuguese
     #    financial requests. Regex is a fast-path safety net, not the authority.
     if gateway is not None and message.strip() and plan.get("intent_source") != "golden":
         try:
@@ -145,7 +145,7 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
                 plan["intent_source"] = "ceo_model"
                 plan["fallback_route"] = parsed.route
                 plan["fallback_intent"] = parsed.intent
-                # Guard: CEO model was trained with needs_scope examples in
+                # Guard: agent model was trained with needs_scope examples in
                 # its dataset. Never let it downgrade a market_scan or
                 # ticker_analysis to needs_scope — the deterministic parser
                 # is the safety floor for non-blocking routes.
@@ -174,7 +174,7 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
                     plan["ceo_original_route"] = ceo_original
         except Exception as exc:
             plan["intent_fallback_error"] = str(exc)[:200]
-            # If CEO model fails, trust deterministic as final authority
+            # If agent model fails, trust deterministic as final authority
             plan["intent_source"] = "deterministic_final"
 
     # Extract time horizon from user message (e.g. "14 days", "2 weeks", "1 month")

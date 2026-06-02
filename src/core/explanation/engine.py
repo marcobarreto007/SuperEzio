@@ -8,7 +8,7 @@ Lazy-loaded so it does not slow down pipeline boot.
 Usage:
     from core.explanation import ExplainEngine
     explainer = ExplainEngine()
-    async for chunk in explainer.stream(f51_result, ceo_text="..."):
+    async for chunk in explainer.stream(f51_result, agent_text="..."):
         yield chunk
 """
 
@@ -120,7 +120,7 @@ def _format_score(value: Any) -> str:
         return "unknown"
 
 
-def _deterministic_explanation(f51_result: dict[str, Any], ceo_text: str = "") -> str:
+def _deterministic_explanation(f51_result: dict[str, Any], agent_text: str = "") -> str:
     """Explain F51 gate output without asking a generative model for new text."""
     confidence = f51_result.get("confidence")
     passed = bool(f51_result.get("passed", False))
@@ -147,7 +147,7 @@ def _deterministic_explanation(f51_result: dict[str, Any], ceo_text: str = "") -
     else:
         sentences.append("No F51 triggered rule was reported.")
 
-    if ceo_text:
+    if agent_text:
         sentences.append(
             "The Decision Room brief above remains the controlling answer; "
             "this note adds no new financial claims."
@@ -156,7 +156,7 @@ def _deterministic_explanation(f51_result: dict[str, Any], ceo_text: str = "") -
     return " ".join(sentences)
 
 
-def _format_prompt(f51_result: dict[str, Any], ceo_text: str = "") -> str:
+def _format_prompt(f51_result: dict[str, Any], agent_text: str = "") -> str:
     """Builds the structured prompt from motor output."""
     passed = f51_result.get("passed", False)
     factors = f51_result.get("factors", {})
@@ -186,8 +186,8 @@ def _format_prompt(f51_result: dict[str, Any], ceo_text: str = "") -> str:
     factors_desc = ", ".join(parts) if parts else "factors mixed"
     lines = [f"Engine factors: {factors_desc}. Explain to the user."]
 
-    if ceo_text:
-        lines.append(f"CEO summary: {ceo_text[:400]}")
+    if agent_text:
+        lines.append(f"Agent summary: {agent_text[:400]}")
 
     return " ".join(lines)
 
@@ -208,17 +208,17 @@ class ExplainEngine:
             _load_model()
             self._loaded = True
 
-    def explain(self, f51_result: dict[str, Any], ceo_text: str = "") -> str:
+    def explain(self, f51_result: dict[str, Any], agent_text: str = "") -> str:
         """Synchronous single-shot explanation."""
         if not _env_enabled("SUPEREZIO_EXPLANATION_USE_LLM", False):
-            return _deterministic_explanation(f51_result, ceo_text=ceo_text)
+            return _deterministic_explanation(f51_result, agent_text=agent_text)
 
         self._ensure_loaded()
         model, tokenizer = _model, _tokenizer
         if model is None or tokenizer is None:
             return "[Nurse model not loaded]"
 
-        prompt = _format_prompt(f51_result, ceo_text)
+        prompt = _format_prompt(f51_result, agent_text)
         messages = [
             {"role": "system", "content": _SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
@@ -241,13 +241,13 @@ class ExplainEngine:
         return tokenizer.decode(outputs[0][input_len:], skip_special_tokens=True).strip()
 
     async def stream(
-        self, f51_result: dict[str, Any], ceo_text: str = ""
+        self, f51_result: dict[str, Any], agent_text: str = ""
     ) -> AsyncGenerator[str, None]:
         """Streaming explanation, yielding word-by-word or sentence chunks."""
         import asyncio
 
         if not _env_enabled("SUPEREZIO_EXPLANATION_USE_LLM", False):
-            text = _deterministic_explanation(f51_result, ceo_text=ceo_text)
+            text = _deterministic_explanation(f51_result, agent_text=agent_text)
             for sentence in text.split(". "):
                 if not sentence:
                     continue
@@ -261,7 +261,7 @@ class ExplainEngine:
             yield "[Nurse model not loaded]"
             return
 
-        prompt = _format_prompt(f51_result, ceo_text)
+        prompt = _format_prompt(f51_result, agent_text)
         messages = [
             {"role": "system", "content": _SYSTEM_PROMPT},
             {"role": "user", "content": prompt},

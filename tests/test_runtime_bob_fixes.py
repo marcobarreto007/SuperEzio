@@ -44,9 +44,9 @@ def test_macro_thesis_does_not_attach_aapl(client_with_mock_pipeline):
     mock_p.events_to_yield = [
         {"type": "STREAM_START", "msg_id": "test-msg-id"},
         {"type": "INTENT_CLASSIFIED", "intent": "general_question", "route": "general"},
-        {"type": "PIPELINE_STEP", "step": "ceo_primary", "status": "started"},
+        {"type": "PIPELINE_STEP", "step": "agent_primary", "status": "started"},
         {"type": "CHUNK", "content": "Question Classification — MACRO_THESIS\n" + "A" * 600},
-        {"type": "PIPELINE_STEP", "step": "ceo_primary", "status": "completed"},
+        {"type": "PIPELINE_STEP", "step": "agent_primary", "status": "completed"},
     ]
 
     payload = {

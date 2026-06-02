@@ -4,7 +4,7 @@ from src.core.pipeline.contracts import (
     PipelineState,
     AgentToolCall,
     IntentResult,
-    CEORequest,
+    AgentRequest,
     ExpertCall,
     _expert_results_reducer,
 )
@@ -79,19 +79,19 @@ def test_intent_result_ticker_analysis():
 
 
 # ---------------------------------------------------------------------------
-# CEORequest
+# AgentRequest
 # ---------------------------------------------------------------------------
 
 
-def test_ceo_request_defaults():
-    r = CEORequest(task="analyze AAPL")
+def test_agent_request_defaults():
+    r = AgentRequest(task="analyze AAPL")
     assert r.task == "analyze AAPL"
     assert r.ticker == ""
     assert r.model_family == "local"
 
 
-def test_ceo_request_full():
-    r = CEORequest(
+def test_agent_request_full():
+    r = AgentRequest(
         task="analyze AAPL 14 days",
         ticker="AAPL",
         intent="ticker_analysis",

@@ -325,7 +325,7 @@ def test_task_submit_casual_flow(client_with_mock_pipeline):
         {"type": "STREAM_START", "msg_id": "test-msg-001"},
         {"type": "INTENT_CLASSIFIED", "intent": "general_question", "route": "general"},
         {"type": "CHUNK", "content": "Hello! I am Bob, your financial orchestrator."},
-        {"type": "PIPELINE_STEP", "step": "ceo_primary", "status": "completed"},
+        {"type": "PIPELINE_STEP", "step": "agent_primary", "status": "completed"},
     ]
 
     payload = {
@@ -395,7 +395,7 @@ def test_task_submit_empty_fallback(client_with_mock_pipeline):
     # Find the fallback chunk
     chunks = [ev for ev in events if ev["type"] == "CHUNK"]
     assert len(chunks) == 1
-    assert "Bob CEO: deterministic fallback answer." in chunks[0]["content"]
+    assert "Bob: deterministic fallback answer." in chunks[0]["content"]
 
     stream_end = events[-1]
     assert stream_end["trace"]["fallback_used"] is True

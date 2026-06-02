@@ -21,7 +21,7 @@ from src.core.pipeline.nodes.agent import (
     SYSTEM_PROMPT,
     _repair_complex_finance_answer,
 )
-from src.core.pipeline.prompts.builder import build_ceo_prompt
+from src.core.pipeline.prompts.builder import build_agent_prompt
 
 
 # ---------------------------------------------------------------------------
@@ -324,8 +324,8 @@ class TestAgentPromptSelection:
 # ===========================================================================
 
 
-class TestCEOPromptBuilderComplexFinance:
-    """Verify CEO prompt builder uses the complex finance contract."""
+class TestAgentPromptBuilderComplexFinance:
+    """Verify agent prompt builder uses the complex finance contract."""
 
     def test_macro_thesis_gets_complex_prompt(self):
         state = {
@@ -333,7 +333,7 @@ class TestCEOPromptBuilderComplexFinance:
             "intent": "general_question",
             "route": "general",
         }
-        prompt = build_ceo_prompt(state)
+        prompt = build_agent_prompt(state)
         assert "COMPLEX FINANCE ADVISORY CONTRACT" in prompt
         assert "Question Classification" in prompt
         assert "Scenario Analysis" in prompt
@@ -344,7 +344,7 @@ class TestCEOPromptBuilderComplexFinance:
             "intent": "general_question",
             "route": "general",
         }
-        prompt = build_ceo_prompt(state)
+        prompt = build_agent_prompt(state)
         assert "COMPLEX FINANCE ADVISORY CONTRACT" in prompt
         assert "emergency reserve" in prompt
 
@@ -354,7 +354,7 @@ class TestCEOPromptBuilderComplexFinance:
             "intent": "general_question",
             "route": "general",
         }
-        prompt = build_ceo_prompt(state)
+        prompt = build_agent_prompt(state)
         assert "COMPLEX FINANCE ADVISORY CONTRACT" in prompt
         assert "cap rate" in prompt
 
@@ -364,7 +364,7 @@ class TestCEOPromptBuilderComplexFinance:
             "intent": "general_question",
             "route": "general",
         }
-        prompt = build_ceo_prompt(state)
+        prompt = build_agent_prompt(state)
         assert "COMPLEX FINANCE ADVISORY CONTRACT" not in prompt
 
     def test_ticker_analysis_gets_normal_prompt(self):
@@ -375,7 +375,7 @@ class TestCEOPromptBuilderComplexFinance:
             "route": "ticker_analysis",
             "data_context": "price=300.22",
         }
-        prompt = build_ceo_prompt(state)
+        prompt = build_agent_prompt(state)
         assert "COMPLEX FINANCE ADVISORY CONTRACT" not in prompt
 
 
@@ -443,7 +443,7 @@ class TestPrecisionAndMathRules:
             "intent": "general_question",
             "route": "general",
         }
-        prompt = build_ceo_prompt(state)
+        prompt = build_agent_prompt(state)
         assert "fake precision" in prompt
         assert "annualized return" in prompt
         assert "illustrative" in prompt
@@ -461,7 +461,7 @@ class TestPrecisionAndMathRules:
         assert "maximum total AI-theme exposure" in prompt
 
 
-class TestCEOP2CapitalAllocationQuality:
+class TestAgentP2CapitalAllocationQuality:
     """Verify that Bob's prompt builder enforces P2 capital allocation rules."""
 
     def test_prompt_has_actionable_gates(self):
@@ -518,7 +518,7 @@ class TestCEOP2CapitalAllocationQuality:
         import urllib.request
         import json
 
-        # 1. Check if both API and CEO servers are running
+        # 1. Check if both API and agent servers are running
         try:
             req = urllib.request.Request("http://127.0.0.1:8002/health")
             urllib.request.urlopen(req, timeout=3)
@@ -657,7 +657,7 @@ class TestCEOP2CapitalAllocationQuality:
 
 @pytest.mark.asyncio
 async def test_complex_finance_invalid_model_json_gets_deterministic_fallback(monkeypatch):
-    """If CEO JSON mode fails, complex finance must still emit a useful answer."""
+    """If agent JSON mode fails, complex finance must still emit a useful answer."""
     from src.core.pipeline.nodes import agent as agent_module
 
     events = []

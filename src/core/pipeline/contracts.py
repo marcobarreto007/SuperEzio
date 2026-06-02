@@ -91,7 +91,7 @@ class PipelineState(TypedDict, total=False):
     sdca_blocked: bool
     sdca_review_required: bool
 
-    # CEO
+    # Agent node
     final: str
 
     # Explanation
@@ -138,8 +138,8 @@ class IntentResult(BaseModel):
     source: str = "deterministic"
 
 
-class CEORequest(BaseModel):
-    """What the CEO node needs to generate a response."""
+class AgentRequest(BaseModel):
+    """What the agent node needs to generate a response."""
 
     task: str
     ticker: str = ""

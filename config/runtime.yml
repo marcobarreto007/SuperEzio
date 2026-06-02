@@ -21,20 +21,20 @@ server:
 # Modelos (runtime real validado 2026-05-21)
 # ---------------------------------------------------------------------------
 models:
-  ceo:
+  agent:
     name: SuperEzio CEO Merged GGUF (Qwen3.6-35B-A3B base)
-    provider_name: ceo
-    model_id: superezio-ceo-intent-merged
-    path: models/superezio-ceo-intent-merged.Q4_K_M.gguf
+    provider_name: agent
+    model_id: superezio-agent-intent-merged
+    path: models/superezio-agent-intent-merged.Q4_K_M.gguf
     quantization: Q4_K_M (4.88 BPW)
     server_url: http://127.0.0.1:8082/v1
     backend: openai_compatible
-    role: ceo
+    role: agent
     is_local: true
     temperature: 0.3
     max_tokens: 8192
     timeout_s: 180
-    script: scripts/serve_ceo_llamacpp.ps1
+    script: scripts/serve_agent_llamacpp.ps1
     speculative_decoding: disabled
     context_length: 8192
     gpu_layers: 28
@@ -45,7 +45,7 @@ models:
     name: SuperEzio CEO Merged GGUF (same local model)
     provider_name: local_orchestrator
     path: http://127.0.0.1:8082/v1
-    model_id: superezio-ceo-intent-merged
+    model_id: superezio-agent-intent-merged
     backend: openai_compatible
     role: orchestrator
     is_local: true
@@ -116,7 +116,7 @@ storage:
 launch:
   step_1:
     description: CEO llama-server
-    command: powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082
+    command: powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082
     wait_for: http://127.0.0.1:8082/health
     timeout_attempts: 50
     window_title: SuperEzio CEO

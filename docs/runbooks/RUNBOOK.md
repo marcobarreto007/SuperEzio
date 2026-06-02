@@ -9,7 +9,7 @@ SuperEzio has two official local runtime processes:
 
 | Component | Entrypoint | Bind | Purpose |
 | --- | --- | --- | --- |
-| CEO llama.cpp server | `powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082` | `127.0.0.1:8082` | Local OpenAI-compatible CEO model endpoint. |
+| Agent llama.cpp server | `powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082` | `127.0.0.1:8082` | Local OpenAI-compatible Agent model endpoint. |
 | FastAPI agent server | `python -m agent_server.main` | `127.0.0.1:8002` | Browser UI, A2A envelope, pipeline, health, product routes. |
 
 Official config file: `config/runtime.yml`.
@@ -40,7 +40,7 @@ From `C:\Users\marco\Desktop\SuperEzio`:
 
 ```powershell
 # Terminal 1 - CEO
-powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082
+powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082
 
 # Terminal 2 - API
 $env:PYTHONPATH = "src;$env:PYTHONPATH"
@@ -172,7 +172,7 @@ Check:
 ```powershell
 Test-Path models\superezio-ceo-intent-merged.Q4_K_M.gguf
 Test-Path llama.cpp\bin\llama-server.exe
-powershell -ExecutionPolicy Bypass -File scripts\serve_ceo_llamacpp.ps1 -Port 8082
+powershell -ExecutionPolicy Bypass -File scripts\serve_agent_llamacpp.ps1 -Port 8082
 ```
 
 Then validate:

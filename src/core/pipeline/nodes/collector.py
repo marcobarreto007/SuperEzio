@@ -193,7 +193,7 @@ async def node_collector(state: dict, *, config=None) -> dict:
         )
 
         # Collect full data for the top candidate so experts, neural_decision,
-        # and CEO have per-ticker technicals/risk/sentiment to work with.
+        # and agent have per-ticker technicals/risk/sentiment to work with.
         full_data: dict[str, Any] = {}
         full_ctx = ""
         if top_ticker:

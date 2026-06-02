@@ -8,7 +8,7 @@ The active tree is runtime-only. The production model artifact is the merged GGU
 
 ## Runtime Contract
 
-- CEO server: `scripts/serve_ceo_llamacpp.ps1 -Port 8082`
+- Agent server: `scripts/serve_agent_llamacpp.ps1 -Port 8082`
 - API server: `python -m agent_server.main`
 - Model: `models/superezio-ceo-intent-merged.Q4_K_M.gguf`
 - API health: `/health`, `/health/details`

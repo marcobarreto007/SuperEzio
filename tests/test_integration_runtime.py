@@ -1,8 +1,8 @@
-"""Integration tests for the official runtime — requires CEO + API servers running.
+"""Integration tests for the official runtime — requires agent + API servers running.
 
 Run with: python -m pytest tests/test_integration_runtime.py -q -v
 Prerequisites:
-  - CEO llama-server on :8082 (scripts/serve_ceo_llamacpp.ps1)
+  - agent llama-server on :8082 (scripts/serve_agent_llamacpp.ps1)
   - API agent_server on :8002 (python -m agent_server.main)
 """
 
@@ -15,7 +15,7 @@ import pytest
 pytestmark = pytest.mark.integration
 
 
-CEO_HEALTH = "http://127.0.0.1:8082/health"
+AGENT_HEALTH = "http://127.0.0.1:8082/health"
 API_HEALTH = "http://127.0.0.1:8002/health"
 API_DETAILS = "http://127.0.0.1:8002/health/details"
 TASK_SUBMIT = "http://127.0.0.1:8002/task/submit"
@@ -37,11 +37,11 @@ def _check_server(url: str, timeout: int = 5) -> bool:
 
 @pytest.fixture(scope="module")
 def servers_running():
-    ceo_ok = _check_server(CEO_HEALTH)
+    agent_ok = _check_server(AGENT_HEALTH)
     api_ok = _check_server(API_HEALTH)
-    if not ceo_ok or not api_ok:
+    if not agent_ok or not api_ok:
         pytest.skip(
-            f"Servers not running: CEO={'OK' if ceo_ok else 'OFFLINE'}, "
+            f"Servers not running: CEO={'OK' if agent_ok else 'OFFLINE'}, "
             f"API={'OK' if api_ok else 'OFFLINE'}"
         )
     return True
@@ -53,7 +53,7 @@ def servers_running():
 
 
 def test_ceo_health_endpoint(servers_running):
-    req = urllib.request.Request(CEO_HEALTH)
+    req = urllib.request.Request(AGENT_HEALTH)
     resp = urllib.request.urlopen(req, timeout=5)
     assert resp.status == 200
     body = json.loads(resp.read())
@@ -153,7 +153,7 @@ def test_task_submit_ticker_analysis(servers_running):
     assert "STREAM_END" in types
 
     # Check for key pipeline steps
-    expected_steps = {"orchestrator_primary", "data", "ceo_primary"}
+    expected_steps = {"orchestrator_primary", "data", "agent_primary"}
     found = expected_steps & steps
     assert len(found) >= 2, f"Missing steps: {expected_steps - found}"
 

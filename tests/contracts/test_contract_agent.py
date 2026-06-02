@@ -1,16 +1,16 @@
 """Contract tests for CEO prompt builder invariants."""
 
 from src.core.pipeline.prompts.builder import (
-    build_ceo_prompt,
-    ceo_system_prompt,
-    _ceo_assistant_prefix,
+    build_agent_prompt,
+    agent_system_prompt,
+    _agent_assistant_prefix,
     _required_module_presence,
     _render_module_contract,
     _evaluate_module_coverage,
     _format_pennylab,
     _format_neural_decision,
     _format_mandamentos,
-    missing_ceo_text,
+    missing_agent_text,
 )
 from src.core.pipeline.prompts._prompts import (
     QWEN_SYSTEM_PROMPT,
@@ -24,15 +24,15 @@ from src.core.pipeline.prompts._prompts import (
 # ---------------------------------------------------------------------------
 
 
-def test_ceo_system_prompt_is_natural_language_advisor():
-    prompt = ceo_system_prompt()
+def test_agent_system_prompt_is_natural_language_advisor():
+    prompt = agent_system_prompt()
     assert "natural-language financial analysis" in prompt
     assert "user's language" in prompt
     assert "not broker execution" in prompt
 
 
-def test_ceo_system_prompt_non_empty():
-    assert len(ceo_system_prompt()) > 100
+def test_agent_system_prompt_non_empty():
+    assert len(agent_system_prompt()) > 100
 
 
 def test_model_prompts_has_local():
@@ -46,25 +46,25 @@ def test_model_prompts_has_local():
 # ---------------------------------------------------------------------------
 
 
-def test_build_ceo_prompt_casual():
+def test_build_agent_prompt_casual():
     state = {
         "message": "Hello, who are you?",
         "intent": "general_question",
         "route": "general",
     }
-    prompt = build_ceo_prompt(state)
+    prompt = build_agent_prompt(state)
     assert "USER:" in prompt
     assert "Hello" in prompt
 
 
-def test_build_ceo_prompt_general_financial_question_is_natural():
+def test_build_agent_prompt_general_financial_question_is_natural():
     state = {
         "message": "Quais cuidados devo tomar antes de comprar uma acao?",
         "intent": "general_question",
         "route": "general",
         "sdca_firewall": {"decision": "ALLOW", "confidence": 0.88},
     }
-    prompt = build_ceo_prompt(state)
+    prompt = build_agent_prompt(state)
     assert "USER:" in prompt
     assert "pretending market data was collected" in prompt
     assert "MANDATORY FORMAT" not in prompt
@@ -82,7 +82,7 @@ def test_module_coverage_skips_general_without_market_context():
     assert missing == []
 
 
-def test_build_ceo_prompt_ticker_analysis():
+def test_build_agent_prompt_ticker_analysis():
     state = {
         "message": "AAPL 14 dias",
         "ticker": "AAPL",
@@ -93,20 +93,20 @@ def test_build_ceo_prompt_ticker_analysis():
         "expert_summary": "Experts: neutral outlook",
         "f51_verdict": {"confidence": 0.965, "passed": True},
     }
-    prompt = build_ceo_prompt(state)
+    prompt = build_agent_prompt(state)
     assert "Bob's read" in prompt
     assert "AAPL" in prompt
     assert "answer in the user's language" in prompt
     assert "direct trade order" in prompt
 
 
-def test_build_ceo_prompt_explain_capabilities():
+def test_build_agent_prompt_explain_capabilities():
     state = {
         "message": "What can you do?",
         "intent": "explain_capabilities",
         "route": "general",
     }
-    prompt = build_ceo_prompt(state)
+    prompt = build_agent_prompt(state)
     assert (
         "explain" in prompt.lower()
         or "capabilities" in prompt.lower()
@@ -114,14 +114,14 @@ def test_build_ceo_prompt_explain_capabilities():
     )
 
 
-def test_build_ceo_prompt_missing_ceo():
-    text = missing_ceo_text(ticker="AAPL", route="ticker_analysis", local_ready=False)
+def test_build_agent_prompt_missing_agent():
+    text = missing_agent_text(ticker="AAPL", route="ticker_analysis", local_ready=False)
     assert "MODEL_MISSING" in text
     assert "AAPL" in text
 
 
-def test_build_ceo_prompt_missing_ceo_offline():
-    text = missing_ceo_text(local_ready=True)
+def test_build_agent_prompt_missing_agent_offline():
+    text = missing_agent_text(local_ready=True)
     assert "MODEL_MISSING" in text
     assert "did not respond" in text
 
@@ -133,17 +133,17 @@ def test_build_ceo_prompt_missing_ceo_offline():
 
 def test_assistant_prefix_explain_returns_empty():
     state = {"intent": "explain_capabilities"}
-    assert _ceo_assistant_prefix(state) == ""
+    assert _agent_assistant_prefix(state) == ""
 
 
 def test_assistant_prefix_with_ticker():
     state = {"ticker": "AAPL", "intent": "ticker_analysis", "route": "ticker_analysis"}
-    assert "Bob CEO guidance" in _ceo_assistant_prefix(state)
+    assert "Bob guidance" in _agent_assistant_prefix(state)
 
 
 def test_assistant_prefix_market_scan():
     state = {"route": "market_scan", "intent": "market_scan"}
-    prefix = _ceo_assistant_prefix(state)
+    prefix = _agent_assistant_prefix(state)
     assert "Market Scan" in prefix or "market" in prefix.lower()
 
 

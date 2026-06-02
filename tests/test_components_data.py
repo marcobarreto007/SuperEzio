@@ -12,12 +12,12 @@ def test_model_manifest_exists():
     assert manifest_path.exists(), f"model_manifest.json not found at {manifest_path}"
 
 
-def test_model_manifest_ceo():
+def test_model_manifest_agent():
     manifest_path = ROOT / "config" / "model_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert "ceo" in manifest
-    assert manifest["ceo"]["model"] == "superezio-ceo-intent-merged"
-    assert manifest["ceo"]["backend"] == "openai_compatible"
+    assert "agent" in manifest
+    assert manifest["agent"]["model"] == "superezio-agent-intent-merged"
+    assert manifest["agent"]["backend"] == "openai_compatible"
 
 
 def test_model_manifest_providers():
@@ -71,14 +71,14 @@ def test_gateway_config_defaults():
 
 def test_provider_constants():
     from core.model_serving.providers import (
-        CEO_PROVIDER_NAME,
-        CEO_MODEL_ID,
+        AGENT_PROVIDER_NAME,
+        AGENT_MODEL_ID,
         PRIMARY_PROVIDER_NAME,
         DEEPSEEK_PROVIDER_NAME,
     )
 
-    assert CEO_PROVIDER_NAME == "ceo"
-    assert CEO_MODEL_ID == "superezio-ceo-intent-merged"
+    assert AGENT_PROVIDER_NAME == "agent"
+    assert AGENT_MODEL_ID == "superezio-agent-intent-merged"
     assert PRIMARY_PROVIDER_NAME == "local_orchestrator"
     assert DEEPSEEK_PROVIDER_NAME == "deepseek"
 

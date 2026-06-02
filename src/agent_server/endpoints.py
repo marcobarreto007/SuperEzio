@@ -85,7 +85,7 @@ def _build_no_empty_fallback_chunk(
     route_used: str,
     detected_intent: str,
     scanner_invoked: bool,
-    ceo_called: bool,
+    agent_called: bool,
     candidate_count: int,
     rejected_count: int,
     rejection_line: str,
@@ -96,12 +96,12 @@ def _build_no_empty_fallback_chunk(
     lower = (message or "").lower()
     ticker = selected_ui_ticker or detect_ticker(message) or "the requested ticker"
     header = (
-        "Bob CEO: deterministic fallback answer.\n"
+        "Bob: deterministic fallback answer.\n"
         "This is an educational framework, not personalized financial advice.\n"
         f"route: {route_used}\n"
         f"detected_intent: {detected_intent}\n"
         f"scanner_invoked: {scanner_invoked}\n"
-        f"ceo_called: {ceo_called}\n"
+        f"agent_called: {agent_called}\n"
     )
     is_etf_comparison = (
         any(word in lower for word in ("compare", "comparison", " vs ", "versus"))
@@ -537,8 +537,8 @@ PRODUCT_MANIFEST = {
             "description": "Experts analyze the same data under an anti-guessing contract.",
         },
         {
-            "id": "ceo_primary",
-            "label": "Local CEO (Qwen3.6-35B Q4_K_M)",
+            "id": "agent_primary",
+            "label": "Bob Agent (Qwen3.6-35B Q4_K_M)",
             "description": "Local Qwen3.6-35B CEO via llama.cpp — consolidates conflicts and chooses one permitted next step.",
         },
     ],
@@ -732,7 +732,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                         "chart_context_attached": False,
                         "route_used": "general",
                         "scanner_invoked": False,
-                        "ceo_called": False,
+                        "agent_called": False,
                         "fallback_used": False,
                         "final_content_length": len(explanation),
                     }
@@ -798,7 +798,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
         detected_intent = "unknown"
         route_used = "unknown"
         scanner_invoked = False
-        ceo_called = False
+        agent_called = False
         fallback_used = False
         final_content_length = 0
         full_content: list[str] = []
@@ -814,7 +814,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                 detected_intent, \
                 route_used, \
                 scanner_invoked, \
-                ceo_called, \
+                agent_called, \
                 fallback_used, \
                 final_content_length
             nonlocal candidate_count, rejected_count, rejection_summary, provider_error
@@ -844,8 +844,8 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                             elif event_type == "PIPELINE_STEP":
                                 step = event.get("step")
                                 status = event.get("status")
-                                if step == "ceo_primary" and status == "started":
-                                    ceo_called = True
+                                if step == "agent_primary" and status == "started":
+                                    agent_called = True
                                 elif (
                                     step == "data"
                                     and status == "started"
@@ -920,8 +920,8 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                             elif event_type == "PIPELINE_STEP":
                                 step = chunk.get("step")
                                 status = chunk.get("status")
-                                if step == "ceo_primary" and status == "started":
-                                    ceo_called = True
+                                if step == "agent_primary" and status == "started":
+                                    agent_called = True
                                 elif (
                                     step == "data"
                                     and status == "started"
@@ -1005,7 +1005,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                         route_used=route_used,
                         detected_intent=detected_intent,
                         scanner_invoked=scanner_invoked,
-                        ceo_called=ceo_called,
+                        agent_called=agent_called,
                         candidate_count=candidate_count,
                         rejected_count=rejected_count,
                         rejection_line=rejection_line,
@@ -1049,7 +1049,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     "candidate_count": candidate_count,
                     "rejected_count": rejected_count,
                     "top_rejection_reasons": top_rejection_reasons,
-                    "ceo_called": ceo_called,
+                    "agent_called": agent_called,
                     "fallback_used": fallback_used,
                     "final_content_length": final_content_length,
                     "provider_sources_used": sorted(provider_sources_used),
@@ -1083,7 +1083,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                         f"- route: {route_used}\n"
                         f"- detected_intent: {detected_intent}\n"
                         f"- scanner_invoked: {scanner_invoked}\n"
-                        f"- ceo_called: {ceo_called}\n"
+                        f"- agent_called: {agent_called}\n"
                         f"- error: {provider_error or err_detail}\n"
                         "\n"
                         "Suggestion: retry with a narrower question (specific "
@@ -1117,7 +1117,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     "candidate_count": candidate_count,
                     "rejected_count": rejected_count,
                     "top_rejection_reasons": top_rejection_reasons,
-                    "ceo_called": ceo_called,
+                    "agent_called": agent_called,
                     "fallback_used": True,
                     "final_content_length": final_content_length,
                     "provider_sources_used": sorted(provider_sources_used),

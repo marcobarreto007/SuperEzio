@@ -233,8 +233,8 @@ async def health_check():
     # â”€â”€ Local models â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     local_models: dict = {}
     for name, url_env, port in [
-        ("ceo", "SUPEREZIO_CEO_BASE_URL", 8082),
-        ("ceo_lora", "SUPEREZIO_CEO_LORA_BASE_URL", 8082),
+        ("agent", "SUPEREZIO_AGENT_BASE_URL", 8082),
+        ("agent_lora", "SUPEREZIO_AGENT_LORA_BASE_URL", 8082),
     ]:
         url = os.getenv(url_env, "")
         reachable = False

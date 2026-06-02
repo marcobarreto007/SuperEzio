@@ -84,7 +84,7 @@ def ask_question(page, question: str, timeout_ms: int = 120_000) -> dict[str, An
     page.fill("#user-inp", question)
     page.click("#send-btn")
 
-    # Wait for response: chat has new content (BOB CEO marker) after our question
+    # Wait for response: chat has new content (BOB agent marker) after our question
     # and input is re-enabled (streaming finished)
     page.wait_for_function(
         """

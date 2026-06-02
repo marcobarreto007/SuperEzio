@@ -29,7 +29,7 @@ from ..trade_order import (
 logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """
-You are Bob, the SuperEzio CEO and autonomous financial agent.
+You are Bob, SuperEzio's autonomous financial agent.
 You must fulfill the user's request by deciding which tools to call.
 You have access to the following tools:
 
@@ -79,7 +79,7 @@ You have access to the following tools:
 """
 
 COMPLEX_FINANCE_SYSTEM_PROMPT = """
-You are Bob, the SuperEzio CEO and autonomous financial agent.
+You are Bob, SuperEzio's autonomous financial agent.
 The user is asking a complex financial advisory/strategy question.
 You must provide a SERIOUS, QUANTITATIVE decision framework answer, NOT a market scan.
 Your answer should feel like a family CFO framework, not a generic financial blog.
@@ -785,7 +785,7 @@ def _market_scan_answer(state: dict) -> str:
     if portuguese:
         sections: list[str] = []
         sections.append(
-            "Bob CEO: este e um relatorio de pesquisa de mercado, nao uma ordem de compra. Lucro nao e garantido."
+            "Bob: este e um relatorio de pesquisa de mercado, nao uma ordem de compra. Lucro nao e garantido."
         )
         sections.append("")
         sections.append("1) Classificacao: pesquisa de oportunidade de curto prazo.")
@@ -836,7 +836,7 @@ def _market_scan_answer(state: dict) -> str:
 
     sections = []
     sections.append(
-        "Bob CEO: this is a market research report, not a buy order. Profit is not guaranteed."
+        "Bob: this is a market research report, not a buy order. Profit is not guaranteed."
     )
     sections.append("")
     sections.append("1) Classification: short-term opportunity research.")
@@ -893,11 +893,11 @@ def _loop_failsafe_answer(state: dict) -> str:
         return _contract_fallback_answer(state)
     if _is_portuguese_request(state.get("message", "")):
         return (
-            "Bob CEO: Encerrei o ciclo de ferramentas após atingir o limite. "
+            "Bob: Encerrei o ciclo de ferramentas após atingir o limite. "
             "Aqui está o que analisei até agora. Mande um ticker ou ajuste a busca para continuar."
         )
     return (
-        "Bob CEO: I stopped the tool cycle after reaching the limit. "
+        "Bob: I stopped the tool cycle after reaching the limit. "
         "Narrow down your request or ask a specific question to continue."
     )
 
@@ -910,9 +910,9 @@ def _tool_blocked_answer(state: dict) -> str:
         return _contract_fallback_answer(state)
     if _is_portuguese_request(state.get("message", "")):
         return (
-            f"Bob CEO: A ferramenta '{tool}' foi bloqueada ({reason}). Produzindo resposta final."
+            f"Bob: A ferramenta '{tool}' foi bloqueada ({reason}). Produzindo resposta final."
         )
-    return f"Bob CEO: Tool '{tool}' was blocked ({reason}). Producing final answer."
+    return f"Bob: Tool '{tool}' was blocked ({reason}). Producing final answer."
 
 
 def _complex_finance_fallback_answer(message: str) -> str:
@@ -1062,7 +1062,7 @@ def _industry_research_fallback_answer(state: dict) -> str:
     if "fax" in lower:
         if is_pt:
             return (
-                "Bob CEO: minha leitura direta: fax e uma industria legada, em declinio estrutural, "
+                "Bob: minha leitura direta: fax e uma industria legada, em declinio estrutural, "
                 "e eu nao comecaria por ticker. A oportunidade real nao e 'empresa de fax'; e o fluxo "
                 "adjacente que substitui fax: document workflow seguro, e-signature, healthcare records, "
                 "compliance, automacao de back office e cybersecurity para troca de documentos.\n\n"
@@ -1076,7 +1076,7 @@ def _industry_research_fallback_answer(state: dict) -> str:
                 "Confidence: 84/100"
             )
         return (
-            "Bob CEO: direct read: fax is a legacy industry in structural decline, so I would not start with a ticker. "
+            "Bob: direct read: fax is a legacy industry in structural decline, so I would not start with a ticker. "
             "The real opportunity is the workflow replacing fax: secure document workflow, e-signature, healthcare records, "
             "compliance automation, back-office automation, and cybersecurity around document exchange.\n\n"
             "Thesis: fax survives where regulation and old systems create friction, but growth should accrue to platforms "
@@ -1087,7 +1087,7 @@ def _industry_research_fallback_answer(state: dict) -> str:
             "Confidence: 84/100"
         )
     return (
-        "Bob CEO: this is industry research, not a ticker-first request. I would first build the thesis, identify whether the industry is expanding or decaying, "
+        "Bob: this is industry research, not a ticker-first request. I would first build the thesis, identify whether the industry is expanding or decaying, "
         "then look for adjacent markets where the economics are improving. Only after that should we screen tickers.\n\n"
         "Final verdict: thesis first, ticker scan second.\n"
         "Confidence: 78/100"
@@ -1098,7 +1098,7 @@ def _risk_lab_fallback_answer(state: dict) -> str:
     is_pt = _is_portuguese_request(state.get("message", ""))
     if is_pt:
         return (
-            "Bob CEO: para CAD 50 por semana, eu trataria isso como laboratorio de risco, nao como investimento principal. "
+            "Bob: para CAD 50 por semana, eu trataria isso como laboratorio de risco, nao como investimento principal. "
             "A regra e simples: o prejuizo maximo da semana e CAD 50, sem dobrar aposta, sem alavancagem, sem recuperar perda.\n\n"
             "Contrato do laboratorio:\n"
             "- Capital semanal: CAD 50.\n"
@@ -1110,7 +1110,7 @@ def _risk_lab_fallback_answer(state: dict) -> str:
             "Confidence: 86/100"
         )
     return (
-        "Bob CEO: for CAD 50 per week, treat this as a risk lab, not core investing. "
+        "Bob: for CAD 50 per week, treat this as a risk lab, not core investing. "
         "The weekly max loss is CAD 50. No doubling down, no leverage, no revenge trade.\n\n"
         "Risk lab contract:\n"
         "- Weekly capital: CAD 50.\n"
@@ -1128,7 +1128,7 @@ def _advisory_knowledge_fallback_answer(state: dict) -> str:
     lower = (message or "").lower()
     if "dividend" in lower or "passive income" in lower:
         return (
-            "Bob CEO: for a Canadian passive-income portfolio, I would not chase yield first. "
+            "Bob: for a Canadian passive-income portfolio, I would not chase yield first. "
             "Start with dividend durability, tax placement, and concentration limits.\n\n"
             "Framework: use Canadian-listed broad dividend ETFs or high-quality Canadian dividend names as the core, keep any single stock small, "
             "and use RRSP/TFSA rules deliberately. US dividend ETFs can be useful, but withholding tax and account type matter.\n\n"
@@ -1139,7 +1139,7 @@ def _advisory_knowledge_fallback_answer(state: dict) -> str:
         )
     if "dollar-cost" in lower or "dca" in lower or "wait for a correction" in lower:
         return (
-            "Bob CEO: default recommendation is DCA, not waiting for the perfect correction. "
+            "Bob: default recommendation is DCA, not waiting for the perfect correction. "
             "Without verified live macro data in this run, I would not pretend to time rates or volatility precisely.\n\n"
             "Practical plan: split the capital into 4-8 scheduled tranches, keep emergency cash separate, and accelerate only if valuation and personal cash stability both improve. "
             "Waiting only wins if you have a specific trigger and the discipline to buy when the market is ugly.\n\n"
@@ -1147,7 +1147,7 @@ def _advisory_knowledge_fallback_answer(state: dict) -> str:
             "Confidence: 78/100"
         )
     return (
-        "Bob CEO: this is a natural-language financial question, not a ticker-first request. "
+        "Bob: this is a natural-language financial question, not a ticker-first request. "
         "I can answer from framework knowledge, then use data tools only when current market evidence or a named ticker is required.\n\n"
         "Final verdict: answer the thesis first; use tools only when the question needs verified market data.\n"
         "Confidence: 76/100"
@@ -1170,7 +1170,7 @@ def _contract_fallback_answer(state: dict) -> str:
     if mode == "TICKER_ANALYSIS":
         ticker = state.get("ticker", "the ticker")
         return (
-            f"Bob CEO: I have a ticker-specific request for {ticker}. "
+            f"Bob: I have a ticker-specific request for {ticker}. "
             "If fresh DataCollector evidence is unavailable, I will not invent prices or fundamentals. "
             "Use the collected evidence when present, then judge thesis, risk, invalidation, and position discipline.\n\n"
             "Final verdict: WAIT until the ticker data path returns verified evidence.\n"
@@ -1178,7 +1178,7 @@ def _contract_fallback_answer(state: dict) -> str:
         )
     if mode == "DISCOVERY_SCAN":
         return (
-            "Bob CEO: this is a discovery request, so the scanner is the right tool. "
+            "Bob: this is a discovery request, so the scanner is the right tool. "
             "If scanner evidence is unavailable or incomplete, the correct answer is not to invent a candidate.\n\n"
             "Final verdict: REJECT_ALL\n"
             "Confidence: 70/100"
@@ -1240,7 +1240,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         {
             "type": "PIPELINE_STEP",
             "run_id": run_id,
-            "step": "ceo_primary",
+            "step": "agent_primary",
             "status": "started",
         }
     )
@@ -1300,13 +1300,13 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     )
 
     try:
-        from ...model_serving.providers import CEO_PROVIDER_NAME
+        from ...model_serving.providers import AGENT_PROVIDER_NAME
 
         raw = await gateway.chat_completion(
             messages=messages,
             temperature=0.1,
             max_tokens=2048,
-            preferred_provider=CEO_PROVIDER_NAME,
+            preferred_provider=AGENT_PROVIDER_NAME,
             json_mode=True,
         )
 
@@ -1333,7 +1333,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     {
                         "type": "PIPELINE_STEP",
                         "run_id": run_id,
-                        "step": "ceo_primary",
+                        "step": "agent_primary",
                         "status": "completed",
                     }
                 )

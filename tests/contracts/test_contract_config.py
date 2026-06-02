@@ -48,8 +48,8 @@ def test_universal_config_from_dict_models():
 
     cfg = UniversalConfig.from_dict({
         "models": {
-            "ceo": {
-                "name": "ceo",
+            "agent": {
+                "name": "agent",
                 "path": "models/test.gguf",
                 "is_local": True,
                 "n_gpu_layers": 28,
@@ -58,10 +58,10 @@ def test_universal_config_from_dict_models():
             }
         }
     })
-    assert "ceo" in cfg.models
-    assert cfg.models["ceo"].path == "models/test.gguf"
-    assert cfg.models["ceo"].is_local is True
-    assert cfg.models["ceo"].n_gpu_layers == 28
+    assert "agent" in cfg.models
+    assert cfg.models["agent"].path == "models/test.gguf"
+    assert cfg.models["agent"].is_local is True
+    assert cfg.models["agent"].n_gpu_layers == 28
 
 
 def test_universal_config_from_dict_gateway():

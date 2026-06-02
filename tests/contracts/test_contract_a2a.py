@@ -48,7 +48,7 @@ def test_a2a_message_defaults():
 def test_a2a_message_with_payload():
     msg = A2AMessage(
         from_agent="ui",
-        to_agent="ceo",
+        to_agent="agent",
         type=MessageType.TASK_SUBMIT,
         payload={"ticker": "AAPL", "time_horizon": "14 days", "message": "analyze"},
     )
@@ -90,16 +90,16 @@ def test_a2a_message_priority_range():
 
 
 def test_create_response_preserves_correlation():
-    original = A2AMessage(from_agent="ui", to_agent="ceo", type=MessageType.TASK_SUBMIT)
+    original = A2AMessage(from_agent="ui", to_agent="agent", type=MessageType.TASK_SUBMIT)
     response = A2AMessage.create_response(
         original_msg=original,
         type=MessageType.TASK_RESULT,
         payload={"result": "HOLD"},
-        from_agent="ceo",
+        from_agent="agent",
     )
     assert response.correlation_id == original.correlation_id
     assert response.trace_id == original.trace_id
-    assert response.from_agent == "ceo"
+    assert response.from_agent == "agent"
     assert response.to_agent == original.from_agent
     assert response.type == MessageType.TASK_RESULT
     assert response.payload == {"result": "HOLD"}

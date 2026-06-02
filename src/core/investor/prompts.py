@@ -1,7 +1,7 @@
 """
 Family Investor Mode prompts.
 
-All model-facing prompts are English because the local CEO path is tuned for
+All model-facing prompts are English because the local agent path is tuned for
 English financial reasoning and the product standardizes on English output.
 """
 

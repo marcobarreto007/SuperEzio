@@ -23,7 +23,7 @@ The active tree no longer carries archived runtime modules, retired architecture
 ## Current Runtime Truth
 
 - API entrypoint: `python -m agent_server.main`
-- CEO entrypoint: `powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082`
+- Agent entrypoint: `powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082`
 - Canonical orchestrator provider: `local_orchestrator`
 - Runtime checkpoints: `.f51/checkpoints/latest.json` and `runtime/checkpoints/latest.json`
 

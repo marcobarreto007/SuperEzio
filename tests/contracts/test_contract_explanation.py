@@ -34,7 +34,7 @@ def test_deterministic_explanation_basic():
                 "proxy_reward": 0.6,
             },
         },
-        ceo_text="The stock shows bullish momentum with high volume.",
+        agent_text="The stock shows bullish momentum with high volume.",
     )
     assert isinstance(result, str)
     assert len(result) > 0
@@ -56,7 +56,7 @@ def test_deterministic_explanation_low_confidence():
                 "proxy_reward": 0.1,
             },
         },
-        ceo_text="Insufficient data for reliable analysis.",
+        agent_text="Insufficient data for reliable analysis.",
     )
     assert isinstance(result, str)
     assert len(result) > 0
@@ -67,7 +67,7 @@ def test_deterministic_explanation_empty_factors():
 
     result = _deterministic_explanation(
         {"confidence": 0.5, "passed": True, "threshold": 0.60, "factors": {}},
-        ceo_text="",
+        agent_text="",
     )
     assert isinstance(result, str)
 

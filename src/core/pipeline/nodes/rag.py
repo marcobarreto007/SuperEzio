@@ -1,4 +1,4 @@
-"""RAG forensics node — enriches CEO context with historical fraud intelligence."""
+"""RAG forensics node — enriches agent context with historical fraud intelligence."""
 
 from langgraph.config import get_stream_writer
 

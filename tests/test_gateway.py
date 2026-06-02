@@ -6,7 +6,7 @@ from core.model_serving.providers import (
     ModelProvider,
     GatewayConfig,
     PRIMARY_PROVIDER_NAME,
-    CEO_PROVIDER_NAME,
+    AGENT_PROVIDER_NAME,
     DEEPSEEK_PROVIDER_NAME,
 )
 
@@ -38,7 +38,7 @@ class TestIsA2A:
         assert ModelGateway._is_a2a_provider(p) is False
 
     def test_local_provider(self):
-        p = _provider("ceo", backend="openai_compatible", base_url="http://127.0.0.1:8082/v1")
+        p = _provider("agent", backend="openai_compatible", base_url="http://127.0.0.1:8082/v1")
         assert ModelGateway._is_a2a_provider(p) is False
 
 
@@ -66,12 +66,12 @@ class TestMaxAttempts:
 class TestProvidersForRequest:
     def test_preferred_found(self):
         gw = _gateway(
-            _provider(CEO_PROVIDER_NAME, priority=-670),
+            _provider(AGENT_PROVIDER_NAME, priority=-670),
             _provider("deepseek", priority=-300),
         )
-        result = gw._providers_for_request(CEO_PROVIDER_NAME)
-        assert result[0].name == CEO_PROVIDER_NAME
-        # CEO is local-only — no fallback chain for CEO-routed requests
+        result = gw._providers_for_request(AGENT_PROVIDER_NAME)
+        assert result[0].name == AGENT_PROVIDER_NAME
+        # Agent is local-only — no fallback chain for agent-routed requests
         assert len(result) == 1
 
     def test_preferred_not_found(self):
@@ -82,12 +82,12 @@ class TestProvidersForRequest:
 
     def test_no_fallback(self):
         gw = _gateway(
-            _provider("ceo", priority=-670),
+            _provider("agent", priority=-670),
             _provider("deepseek", priority=-300),
         )
-        result = gw._providers_for_request("ceo", allow_fallback=False)
+        result = gw._providers_for_request("agent", allow_fallback=False)
         assert len(result) == 1
-        assert result[0].name == "ceo"
+        assert result[0].name == "agent"
 
     def test_no_preference_returns_all(self):
         gw = _gateway(_provider("a"), _provider("b"), _provider("c"))
@@ -96,7 +96,7 @@ class TestProvidersForRequest:
 
     def test_openai_alias(self):
         gw = _gateway(
-            _provider("ceo", priority=-670),
+            _provider("agent", priority=-670),
             _provider(DEEPSEEK_PROVIDER_NAME, priority=-300),
         )
         result = gw._providers_for_request("openai")
@@ -104,23 +104,23 @@ class TestProvidersForRequest:
 
     def test_bob_alias(self):
         gw = _gateway(
-            _provider(CEO_PROVIDER_NAME, priority=-670),
+            _provider(AGENT_PROVIDER_NAME, priority=-670),
             _provider("deepseek", priority=-300),
         )
         result = gw._providers_for_request("bob")
-        assert result[0].name == CEO_PROVIDER_NAME
+        assert result[0].name == AGENT_PROVIDER_NAME
 
     def test_respects_priority_order_in_fallback(self):
         gw = _gateway(
             _provider("deepseek", priority=-300),
-            _provider("ceo", priority=-670),
+            _provider("agent", priority=-670),
             _provider("grok", priority=-500),
         )
         result = gw._providers_for_request("deepseek")
         assert result[0].name == "deepseek"
         # After pref, rest follow priority order (CEO excluded from fallback — local-only)
         names_after = [p.name for p in result[1:]]
-        assert "ceo" not in names_after, "CEO is local-only, should never be a fallback"
+        assert "agent" not in names_after, "Agent is local-only, should never be a fallback"
         assert names_after == ["grok"]
 
 
@@ -166,8 +166,8 @@ class TestAddProvider:
 
 class TestApplyDeepseekOptions:
     def test_non_deepseek_skipped(self):
-        p = _provider("ceo", base_url="http://127.0.0.1:8082/v1")
-        p.model = "superezio-ceo-intent-merged"
+        p = _provider("agent", base_url="http://127.0.0.1:8082/v1")
+        p.model = "superezio-agent-intent-merged"
         kwargs = {"temperature": 0.5}
         ModelGateway._apply_deepseek_options(p, kwargs)
         assert "extra_body" not in kwargs
@@ -210,7 +210,7 @@ class TestApplyDeepseekOptions:
 
     def test_non_deepseek_model_skipped(self):
         p = _provider(DEEPSEEK_PROVIDER_NAME, base_url="https://api.deepseek.com")
-        p.model = "superezio-ceo-intent-merged"  # not deepseek-v4-*
+        p.model = "superezio-agent-intent-merged"  # not deepseek-v4-*
         kwargs = {}
         ModelGateway._apply_deepseek_options(p, kwargs)
         assert "extra_body" not in kwargs

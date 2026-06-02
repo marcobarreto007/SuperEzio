@@ -37,7 +37,7 @@ def test_provider_is_local_flag():
     from core.model_serving.providers import ModelProvider
 
     local = ModelProvider(
-        name="local-ceo", base_url="http://127.0.0.1:8082/v1", api_key="no-key", model="ceo-model", is_local=True
+        name="local-agent", base_url="http://127.0.0.1:8082/v1", api_key="no-key", model="agent-model", is_local=True
     )
     assert local.is_local is True
 
@@ -58,28 +58,28 @@ def test_gateway_config_defaults():
 # ---------------------------------------------------------------------------
 
 
-def test_build_default_providers_ceo_present(monkeypatch):
-    """CEO provider must appear in the default list."""
+def test_build_default_providers_agent_present(monkeypatch):
+    """Agent provider must appear in the default list."""
     monkeypatch.delenv("SUPEREZIO_PRIMARY_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
-    monkeypatch.delenv("SUPEREZIO_CEO_BASE_URL", raising=False)
+    monkeypatch.delenv("SUPEREZIO_AGENT_BASE_URL", raising=False)
 
     from core.config.schema import UniversalConfig
     from core.model_serving.providers import (
         build_default_providers,
-        CEO_PROVIDER_NAME,
-        CEO_MODEL_ID,
+        AGENT_PROVIDER_NAME,
+        AGENT_MODEL_ID,
     )
 
     cfg = UniversalConfig()
     providers, gateway_config = build_default_providers(cfg)
     by_name = {p.name: p for p in providers}
 
-    assert CEO_PROVIDER_NAME in by_name
-    ceo = by_name[CEO_PROVIDER_NAME]
-    assert ceo.is_local is True
-    assert ceo.model == CEO_MODEL_ID
-    assert "8082" in ceo.base_url
+    assert AGENT_PROVIDER_NAME in by_name
+    agent = by_name[AGENT_PROVIDER_NAME]
+    assert agent.is_local is True
+    assert agent.model == AGENT_MODEL_ID
+    assert "8082" in agent.base_url
 
 
 def test_build_default_providers_primary_is_present(monkeypatch):
@@ -137,20 +137,20 @@ def test_gateway_instantiation():
     assert gw.providers[0].name == "p2"
 
 
-def test_gateway_providers_for_request_ceo_no_fallback(monkeypatch):
-    """CEO provider must not return fallbacks when requested explicitly."""
+def test_gateway_providers_for_request_agent_no_fallback(monkeypatch):
+    """Agent provider must not return fallbacks when requested explicitly."""
     monkeypatch.delenv("SUPEREZIO_PRIMARY_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
 
     from core.config.schema import UniversalConfig
     from core.model_serving.gateway import create_gateway_from_config
-    from core.model_serving.providers import CEO_PROVIDER_NAME
+    from core.model_serving.providers import AGENT_PROVIDER_NAME
 
     cfg = UniversalConfig()
     gw = create_gateway_from_config(cfg)
-    providers = gw._providers_for_request(CEO_PROVIDER_NAME)
+    providers = gw._providers_for_request(AGENT_PROVIDER_NAME)
     assert len(providers) == 1
-    assert providers[0].name == CEO_PROVIDER_NAME
+    assert providers[0].name == AGENT_PROVIDER_NAME
 
 
 def test_gateway_max_attempts():

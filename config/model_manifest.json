@@ -3,12 +3,12 @@
     "version":  "4.0.0",
     "updated":  "2026-05-21",
     "note":  "CEO Bob: Qwen3.6-35B merged Q4_K_M GGUF local-only via llama.cpp. Cloud providers are for orchestration/experts, not final CEO verdicts.",
-    "ceo":  {
-                "provider_name":  "ceo",
+    "agent":  {
+                "provider_name":  "agent",
                 "persona":  "Bob",
                 "base_model":  "Qwen/Qwen3.6-35B-A3B",
-                "model":  "superezio-ceo-intent-merged",
-                "path":  "models/superezio-ceo-intent-merged.Q4_K_M.gguf",
+                "model":  "superezio-agent-intent-merged",
+                "path":  "models/superezio-agent-intent-merged.Q4_K_M.gguf",
                 "quantization":  "Q4_K_M",
                 "server_url":  "http://127.0.0.1:8082/v1",
                 "priority":  -670,
@@ -25,7 +25,7 @@
                       "local_orchestrator":  {
                                                  "provider_name":  "local_orchestrator",
                                                  "base_url":  "http://127.0.0.1:8082/v1",
-                                                 "model":  "superezio-ceo-intent-merged",
+                                                 "model":  "superezio-agent-intent-merged",
                                                  "priority":  -400,
                                                  "role":  "orchestrator"
                                              },

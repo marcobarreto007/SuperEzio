@@ -25,7 +25,7 @@ from .providers import (  # noqa: F401 — re-exports
     PRIMARY_PROVIDER_NAME,
     PRIMARY_MODEL_ID,
     DEEPSEEK_PROVIDER_NAME,
-    CEO_PROVIDER_NAME,
+    AGENT_PROVIDER_NAME,
     build_default_providers,
 )
 
@@ -87,25 +87,25 @@ class ModelGateway:
         if preferred_provider == "openai":
             preferred_provider = DEEPSEEK_PROVIDER_NAME
         if preferred_provider == "bob":
-            preferred_provider = CEO_PROVIDER_NAME
+            preferred_provider = AGENT_PROVIDER_NAME
         if preferred_provider:
             for p in self.providers:
                 if p.name == preferred_provider:
-                    # CEO is local-only and should not be used as generic
+                    # agent model is local-only and should not be used as generic
                     # fallback for unrelated pipeline stages.
-                    if p.name == CEO_PROVIDER_NAME:
+                    if p.name == AGENT_PROVIDER_NAME:
                         return [p]
                     if not allow_fallback:
                         return [p]
                     return [p] + [
                         other
                         for other in self.providers
-                        if other != p and other.name != CEO_PROVIDER_NAME
+                        if other != p and other.name != AGENT_PROVIDER_NAME
                     ]
         # No preferred provider: keep external-provider order and avoid routing
-        # generic tasks to local CEO runtime.
-        non_ceo = [p for p in self.providers if p.name != CEO_PROVIDER_NAME]
-        return non_ceo or self.providers
+        # generic tasks to local agent runtime.
+        non_local = [p for p in self.providers if p.name != AGENT_PROVIDER_NAME]
+        return non_local or self.providers
 
     def _max_attempts(self, providers_to_try: list[ModelProvider]) -> int:
         if not providers_to_try:

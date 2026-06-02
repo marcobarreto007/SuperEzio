@@ -14,10 +14,10 @@ from ..config.schema import GatewayConfig
 if TYPE_CHECKING:
     from ..config import UniversalConfig
 
-CEO_PROVIDER_NAME = "ceo"
-CEO_MODEL_ID = "superezio-ceo-intent-merged"
+AGENT_PROVIDER_NAME = "agent"
+AGENT_MODEL_ID = "superezio-agent-intent-merged"
 PRIMARY_PROVIDER_NAME = "local_orchestrator"
-PRIMARY_MODEL_ID = CEO_MODEL_ID
+PRIMARY_MODEL_ID = "superezio-agent-intent-merged"
 DEEPSEEK_PROVIDER_NAME = "deepseek"
 DEEPSEEK_MODEL_ID = "deepseek-v4-pro"
 
@@ -88,7 +88,7 @@ def build_default_providers(
 
     # DeepSeek provider for expert roles.
     # Keep it decoupled from orchestrator/primary URL to avoid accidentally
-    # routing expert traffic to the local CEO endpoint.
+    # routing expert traffic to the local agent endpoint.
     deepseek_key = os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", primary_api_key)
     deepseek_base_url = os.getenv("SUPEREZIO_DEEPSEEK_BASE_URL", "https://api.deepseek.com")
     experts_config = config.models.get("experts")
@@ -109,18 +109,18 @@ def build_default_providers(
         )
     )
 
-    # CEO — Qwen3.6-35B F51 Q4_K_M GGUF via llama-server, local.
-    ceo_base_url = os.getenv(
-        "SUPEREZIO_CEO_BASE_URL",
+    # Agent — Qwen3.6-35B (Bob) F51 Q4_K_M GGUF via llama-server, local.
+    agent_base_url = os.getenv(
+        "SUPEREZIO_AGENT_BASE_URL",
         "http://127.0.0.1:8082/v1",
     )
     providers.append(
         ModelProvider(
-            name=CEO_PROVIDER_NAME,
-            base_url=ceo_base_url,
+            name=AGENT_PROVIDER_NAME,
+            base_url=agent_base_url,
             api_key="",
             priority=-670,
-            model=CEO_MODEL_ID,
+            model=AGENT_MODEL_ID,
             timeout_s=180,
             max_tokens=8192,
             temperature=0.4,

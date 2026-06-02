@@ -40,13 +40,13 @@ async def node_explanation(state: dict) -> dict:
         )
         return {"explanation": ""}
 
-    ceo_text = state.get("final", "")
+    agent_text = state.get("final", "")
 
     try:
         from ...explanation import ExplainEngine
 
         explainer = ExplainEngine()
-        async for chunk in explainer.stream(verdict, ceo_text=ceo_text):
+        async for chunk in explainer.stream(verdict, agent_text=agent_text):
             writer({"type": "EXPLANATION_CHUNK", "content": chunk})
 
         writer(

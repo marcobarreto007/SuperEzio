@@ -151,16 +151,16 @@ def test_f51_combined_risk_smoke():
 # ---------------------------------------------------------------------------
 
 
-def test_ceo_system_prompt():
-    from core.pipeline.prompts.builder import ceo_system_prompt
+def test_agent_system_prompt():
+    from core.pipeline.prompts.builder import agent_system_prompt
 
-    prompt = ceo_system_prompt()
+    prompt = agent_system_prompt()
     assert len(prompt) > 100
     assert "user's language" in prompt
 
 
-def test_build_ceo_prompt_ticker():
-    from core.pipeline.prompts.builder import build_ceo_prompt
+def test_build_agent_prompt_ticker():
+    from core.pipeline.prompts.builder import build_agent_prompt
 
     state = {
         "message": "AAPL 14 dias analise",
@@ -169,20 +169,20 @@ def test_build_ceo_prompt_ticker():
         "route": "ticker_analysis",
         "time_horizon": "14 days",
     }
-    prompt = build_ceo_prompt(state)
+    prompt = build_agent_prompt(state)
     assert "Bob's read" in prompt
     assert "AAPL" in prompt
 
 
-def test_build_ceo_prompt_casual():
-    from core.pipeline.prompts.builder import build_ceo_prompt
+def test_build_agent_prompt_casual():
+    from core.pipeline.prompts.builder import build_agent_prompt
 
     state = {
         "message": "Hello who are you",
         "intent": "general_question",
         "route": "general",
     }
-    prompt = build_ceo_prompt(state)
+    prompt = build_agent_prompt(state)
     assert "USER:" in prompt
 
 

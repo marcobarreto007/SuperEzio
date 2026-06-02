@@ -100,7 +100,7 @@ LOCAL_GUIDANCE_SYSTEM = """VocÃª Ã© um arquiteto sÃªnior de sistemas AI fi
 
 O SuperEzio Ã© um assistente financeiro multiagente com:
 - 12 experts financeiros (DeepSeek Chat V3 cloud)
-- CEO local Qwen 3.6 merged GGUF, porta 8082
+- Agent local Qwen 3.6 merged GGUF, porta 8082
 - Sem fallback cloud para veredito CEO final
 - Pipeline: intent router â†’ data collection â†’ experts â†’ committee â†’ CEO â†’ resposta
 - Componentes: Fraud RAG, Veracity Gate, Cost Guard, Memory, Crisis Math, PennyLab

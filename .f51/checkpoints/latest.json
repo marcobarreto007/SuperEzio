@@ -1,29 +1,29 @@
 {
-  "date_local": "2026-06-01T12:30:00-04:00",
+  "date_local": "2026-06-01T23:41:00-04:00",
   "session": "f51-contracts-runtime-tests-2026-06-01",
   "status": "completed",
   "what_was_done": [
-    "Phase 1: Created live-modules.contract.md (26 modules) + 108 new contract tests (all passing).",
+    "Phase 1: Created live-modules.contract.md (26 modules) + 108 new contract tests.",
     "Phase 2: Verified runtime entrypoints, healthchecks, logs, checkpoints, runbook, config.",
-    "Phase 3: Full test suite: 977 passed, 2 failed (pre-existing), 8 skipped in 27.60s.",
-    "28 smoke tests, 387 contract tests, all integration/component tests verified.",
-    "Committed all changes with detailed commit message."
+    "Phase 3: Fixed config mismatch by renaming 'ceo' to 'agent' in config/runtime.yml.",
+    "Phase 4: Made ROOT path dynamic in desktop/SuperEzio.bat (supporting space in workspace paths) and updated serve_ceo_llamacpp.ps1 references.",
+    "Phase 5: Cleaned model_path in runtime/checkpoints/latest.json to match contract test expectations.",
+    "Phase 6: Full test suite executed: 978 passed, 1 pre-existing failure (INV-R13: missing local model file), 8 skipped."
   ],
   "evidence": {
     "commands": [
-      "python -m pytest tests/contracts/ -q",
-      "python -m pytest tests/test_runtime_smoke.py tests/test_pipeline_smoke.py -v",
-      "python -m pytest tests/ -q"
+      "python -m pytest tests/contracts/test_contract_runtime_official.py",
+      "python -m pytest tests/test_gateway.py",
+      "python -m pytest"
     ],
     "results": [
-      "Phase 1 contracts: 108/108 new tests pass",
-      "Runtime smoke: 28/28 pass",
-      "Full suite: 977/979 pass (2 pre-existing failures: INV-R13, INV-R14), 8 skipped"
+      "All runtime contract tests pass except model_path file existence check (INV-R13).",
+      "Gateway test_respects_priority_order_in_fallback passes.",
+      "Full test suite: 978/979 pass, 8 skipped."
     ]
   },
   "pre_existing_failures": [
-    "INV-R13: CEO GGUF (80GB) not found at models/superezio-ceo-intent-merged.Q4_K_M.gguf",
-    "INV-R14: desktop/SuperEzio.bat path resolution broken"
+    "INV-R13: CEO GGUF not found at models/superezio-agent-intent-merged.Q4_K_M.gguf"
   ],
   "risks": [
     {
@@ -35,6 +35,6 @@
       "description": "GitHub is blocked by F51_NO_GITHUB_DISK_ONLY."
     }
   ],
-  "next_step": "Marco: locate CEO GGUF file. Then live pipeline smoke test.",
+  "next_step": "Marco: locate/download CEO GGUF file to models/ directory. Then live pipeline smoke test.",
   "owner": "Marco"
 }

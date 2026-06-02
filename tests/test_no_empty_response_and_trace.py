@@ -71,7 +71,7 @@ def test_no_empty_fallback_handles_etf_comparison_without_ticker_wait():
         route_used="ticker_analysis",
         detected_intent="ticker_analysis",
         scanner_invoked=False,
-        ceo_called=True,
+        agent_called=True,
         candidate_count=0,
         rejected_count=0,
         rejection_line="n/a",

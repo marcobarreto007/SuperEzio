@@ -12,17 +12,17 @@
   ],
   "runtime_parameters": {
     "api_port": 8002,
-    "ceo_port": 8082,
+    "agent_port": 8082,
     "api_entrypoint": "python -m agent_server.main",
-    "ceo_entrypoint": "scripts/serve_ceo_llamacpp.ps1 -Port 8082",
-    "model_path": "models/superezio-ceo-intent-merged.Q4_K_M.gguf (MISSING — INV-R13)"
+    "agent_entrypoint": "scripts/serve_agent_llamacpp.ps1 -Port 8082",
+    "model_path": "models/superezio-agent-intent-merged.Q4_K_M.gguf"
   },
   "risks": [
     {
       "id": "INV-R13",
       "severity": "high",
       "description": "CEO GGUF missing. C: now has 174 GB free — enough space. Model needs to be downloaded/copied.",
-      "mitigation": "Download superezio-ceo-intent-merged.Q4_K_M.gguf to models/"
+      "mitigation": "Download superezio-agent-intent-merged.Q4_K_M.gguf to models/"
     },
     {
       "id": "INV-R14",

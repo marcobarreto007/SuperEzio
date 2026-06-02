@@ -17,7 +17,7 @@ from ._prompts import MODEL_PROMPTS
 # ---------------------------------------------------------------------------
 
 
-def ceo_system_prompt() -> str:
+def agent_system_prompt() -> str:
     """Return the CEO system prompt for local Qwen3.6-35B."""
     return MODEL_PROMPTS["local"]["system"]
 
@@ -27,7 +27,7 @@ def ceo_system_prompt() -> str:
 # ---------------------------------------------------------------------------
 
 
-def _ceo_assistant_prefix(state: PipelineState) -> str:
+def _agent_assistant_prefix(state: PipelineState) -> str:
     """Prefixo role=assistant para impedir recusa do modelo."""
     ticker = state.get("ticker", "")
     route = state.get("route", "general")
@@ -42,7 +42,7 @@ def _ceo_assistant_prefix(state: PipelineState) -> str:
             "Based on collected data:\n"
         )
     if ticker:
-        return "Bob CEO guidance:\n"
+        return "Bob guidance:\n"
     has_data = bool(ticker or state.get("data_context") or state.get("expert_summary"))
     if intent == "general_question" and not has_data:
         return ""
@@ -326,7 +326,7 @@ def _build_complex_finance_prompt(raw_message: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def build_ceo_prompt(
+def build_agent_prompt(
     state: PipelineState,
     mandamentos: list[Any] | None = None,
 ) -> str:
@@ -399,7 +399,7 @@ def build_ceo_prompt(
         "Risk Firewall score every answer. Skipping a module with data is invalid.\n\n"
         "LANGUAGE: answer in the user's language when it is clear. If the user wrote "
         "in Portuguese, answer in Portuguese. If the user wrote in English, answer in English.\n\n"
-        "You are the CEO of SuperEzio (Bob). You provide financial decision support "
+        "You are Bob, SuperEzio's autonomous financial agent. You provide financial decision support "
         "in natural language. You are NOT a broker execution engine and you must not "
         "turn the answer into a direct trade order.\n\n"
         "MANDATORY FORMAT:\n"
@@ -520,7 +520,7 @@ def build_ceo_prompt(
     return "\n\n".join(parts)
 
 
-def missing_ceo_text(
+def missing_agent_text(
     ticker: str = "",
     route: str = "general",
     local_ready: bool = False,

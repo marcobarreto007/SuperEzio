@@ -14,7 +14,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_YML = ROOT / "config" / "runtime.yml"
 MODEL_MANIFEST = ROOT / "config" / "model_manifest.json"
-CEO_SCRIPT = ROOT / "scripts" / "serve_ceo_llamacpp.ps1"
+AGENT_SCRIPT = ROOT / "scripts" / "serve_agent_llamacpp.ps1"
 LAUNCHER = ROOT / "desktop" / "SuperEzio.bat"
 AGENT_CONTRACT = ROOT / ".f51" / "contracts" / "agent-server.contract.md"
 RUNTIME_CHECKPOINT = ROOT / "runtime" / "checkpoints" / "latest.json"
@@ -33,7 +33,7 @@ def _manifest() -> dict:
 
 
 def test_official_runtime_files_exist():
-    for path in [RUNTIME_YML, MODEL_MANIFEST, CEO_SCRIPT, LAUNCHER, AGENT_CONTRACT, RUNBOOK]:
+    for path in [RUNTIME_YML, MODEL_MANIFEST, AGENT_SCRIPT, LAUNCHER, AGENT_CONTRACT, RUNBOOK]:
         assert path.exists(), f"Missing official runtime artifact: {path}"
 
 
@@ -91,7 +91,7 @@ def test_frontend_contract_uses_bob_unified_workspace_without_retired_panels():
     chat_js = FRONTEND_CHAT.read_text(encoding="utf-8")
     init_js = FRONTEND_INIT.read_text(encoding="utf-8")
 
-    assert "Bob CEO" in html
+    assert "Bob" in html
     assert "bob-welcome" in html
     assert "ops-board" not in html
     assert "mode-tabs" not in html
@@ -142,38 +142,38 @@ def test_frontend_contract_uses_bob_unified_workspace_without_retired_panels():
     assert "window.SZ.esc = esc" in chat_js
 
 
-def test_ceo_runtime_config_matches_manifest_and_script():
+def test_agent_runtime_config_matches_manifest_and_script():
     cfg = _runtime_config()
     manifest = _manifest()
-    script = CEO_SCRIPT.read_text(encoding="utf-8")
+    script = AGENT_SCRIPT.read_text(encoding="utf-8")
 
-    ceo_cfg = cfg["models"]["ceo"]
-    ceo_manifest = manifest["ceo"]
-    model_path = ROOT / ceo_cfg["path"]
+    agent_cfg = cfg["models"]["agent"]
+    agent_manifest = manifest["agent"]
+    model_path = ROOT / agent_cfg["path"]
 
-    assert ceo_cfg["provider_name"] == "ceo"
-    assert ceo_cfg["model_id"] == ceo_manifest["model"]
-    assert ceo_cfg["path"] == ceo_manifest["path"]
-    assert ceo_cfg["server_url"] == ceo_manifest["server_url"]
-    assert ceo_cfg["backend"] == "openai_compatible"
-    assert ceo_cfg["is_local"] is True
-    assert model_path.exists(), f"Official CEO GGUF is missing: {model_path}"
+    assert agent_cfg["provider_name"] == "agent"
+    assert agent_cfg["model_id"] == agent_manifest["model"]
+    assert agent_cfg["path"] == agent_manifest["path"]
+    assert agent_cfg["server_url"] == agent_manifest["server_url"]
+    assert agent_cfg["backend"] == "openai_compatible"
+    assert agent_cfg["is_local"] is True
+    assert model_path.exists(), f"Official agent GGUF is missing: {model_path}"
     assert model_path.name in script
     assert "llama-server.exe" in script
     assert "--port $Port" in script
 
 
-def test_provider_factory_keeps_ceo_local_only(monkeypatch):
+def test_provider_factory_keeps_agent_local_only(monkeypatch):
     monkeypatch.delenv("SUPEREZIO_PRIMARY_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_PRIMARY_MODEL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_MODEL", raising=False)
-    monkeypatch.delenv("SUPEREZIO_CEO_BASE_URL", raising=False)
+    monkeypatch.delenv("SUPEREZIO_AGENT_BASE_URL", raising=False)
 
     from core.config.schema import UniversalConfig
     from core.model_serving.providers import (
-        CEO_MODEL_ID,
-        CEO_PROVIDER_NAME,
+        AGENT_MODEL_ID,
+        AGENT_PROVIDER_NAME,
         PRIMARY_PROVIDER_NAME,
         build_default_providers,
     )
@@ -183,15 +183,15 @@ def test_provider_factory_keeps_ceo_local_only(monkeypatch):
     by_name = {provider.name: provider for provider in providers}
 
     assert gateway_config.timeout_s == cfg.gateway.timeout_s
-    assert by_name[CEO_PROVIDER_NAME].is_local is True
-    assert by_name[CEO_PROVIDER_NAME].backend == "openai_compatible"
-    assert by_name[CEO_PROVIDER_NAME].base_url == "http://127.0.0.1:8082/v1"
-    assert by_name[CEO_PROVIDER_NAME].model == CEO_MODEL_ID
+    assert by_name[AGENT_PROVIDER_NAME].is_local is True
+    assert by_name[AGENT_PROVIDER_NAME].backend == "openai_compatible"
+    assert by_name[AGENT_PROVIDER_NAME].base_url == "http://127.0.0.1:8082/v1"
+    assert by_name[AGENT_PROVIDER_NAME].model == AGENT_MODEL_ID
     assert PRIMARY_PROVIDER_NAME == "local_orchestrator"
     assert by_name[PRIMARY_PROVIDER_NAME].is_local is True
     assert by_name[PRIMARY_PROVIDER_NAME].backend == "openai_compatible"
     assert by_name[PRIMARY_PROVIDER_NAME].base_url == "http://127.0.0.1:8082/v1"
-    assert by_name[PRIMARY_PROVIDER_NAME].model == CEO_MODEL_ID
+    assert by_name[PRIMARY_PROVIDER_NAME].model == AGENT_MODEL_ID
 
 
 def test_launcher_check_mode_validates_without_starting_servers():
@@ -221,17 +221,17 @@ def test_runtime_checkpoint_tracks_official_entrypoints():
     params = checkpoint["runtime_parameters"]
 
     assert params["api_port"] == 8002
-    assert params["ceo_port"] == 8082
+    assert params["agent_port"] == 8082
     assert params["api_entrypoint"] == "python -m agent_server.main"
-    assert params["ceo_entrypoint"].endswith("scripts/serve_ceo_llamacpp.ps1 -Port 8082")
-    assert params["model_path"] == "models/superezio-ceo-intent-merged.Q4_K_M.gguf"
+    assert params["agent_entrypoint"].endswith("scripts/serve_agent_llamacpp.ps1 -Port 8082")
+    assert params["model_path"] == "models/superezio-agent-intent-merged.Q4_K_M.gguf"
 
 
 def test_runbook_documents_official_runtime_commands():
     text = RUNBOOK.read_text(encoding="utf-8")
 
     assert (
-        "powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082" in text
+        "powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082" in text
     )
     assert "python -m agent_server.main" in text
     assert "local_orchestrator" in text
