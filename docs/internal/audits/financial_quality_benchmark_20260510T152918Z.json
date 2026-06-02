@@ -47,11 +47,6 @@
               "id": 0,
               "name": "NVIDIA GeForce RTX 5060 Ti",
               "vram_mb": 16310
-            },
-            {
-              "id": 1,
-              "name": "NVIDIA GeForce RTX 3060",
-              "vram_mb": 12287
             }
           ],
           "status": "ok"
