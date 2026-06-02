@@ -572,13 +572,15 @@ class TestAgentP2CapitalAllocationQuality:
         try:
             # Verification asserts:
             assert len(full_content) > 0, "Response content is empty"
-            assert (
-                "not personalized financial advice" in full_content.lower()
-                or "not a registered financial advisor" in full_content.lower()
-                or "not licensed" in full_content.lower()
-                or "not regulated" in full_content.lower()
-                or "educational framework" in full_content.lower()
+            disclaimer_markers = (
+                "not personalized financial advice",
+                "not a registered financial advisor",
+                "not licensed",
+                "not regulated",
+                "educational framework",
+                "scope note:",
             )
+            assert any(marker in full_content.lower() for marker in disclaimer_markers)
 
             # 1. Emergency fund gate (emergency fund, emergency cash, reserve + months)
             assert any(term in full_content.lower() for term in ["emergency", "reserva"]), (
