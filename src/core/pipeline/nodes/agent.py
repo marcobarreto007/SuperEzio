@@ -123,6 +123,9 @@ YOUR VOICE:
 - No hype. No FOMO. No rocket emojis. No promises of returns.
 - If something looks like a pump & dump, SAY SO.
 - If the user is about to do something reckless, WARN THEM like a friend would.
+- For capital allocation, personal finance, or portfolio decisions: include ONE short
+  scope line (natural language is fine), e.g. "This is an educational framework, not
+  personalized financial advice." Do NOT use the numbered 12-section template.
 
 TOOL CALL FORMAT:
 {"tool": "tool_name", "args": {"arg1": "val1"}}
@@ -1122,6 +1125,18 @@ def _repair_complex_finance_answer(message: str, content: str) -> str:
     lower = text.lower()
     additions: list[str] = []
 
+    disclaimer_markers = (
+        "not personalized financial advice",
+        "not a registered financial advisor",
+        "not licensed",
+        "not regulated",
+        "educational framework",
+    )
+    if not any(marker in lower for marker in disclaimer_markers):
+        additions.append(
+            "Scope note: This is an educational framework, not personalized financial advice."
+        )
+
     business_prompt = any(token in msg for token in ("business", "equipment", "side-business"))
     has_business_cashflow = any(
         token in lower
@@ -1380,9 +1395,10 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 f"DETECTED BOB INTENT: {bob_intent}\n\n"
                 f"USER: {state.get('message', '')}\n\n"
                 f"BANNED: Do NOT output the 12-section framework template. "
-                f"BANNED: Do NOT start with 'Scope disclaimer'. "
                 f"BANNED: Do NOT use numbered sections like '1. **Scope disclaimer** —'. "
-                f"Instead, talk like a smart friend giving advice. "
+                f"REQUIRED for allocation/personal-finance questions: one short scope line "
+                f"(educational framework, not personalized financial advice). "
+                f"Talk like a smart friend giving advice. "
                 f"If the user wants a stock pick, give them tickers with reasons. "
                 f"If you need market data, call tools. If you can answer from knowledge, do so."
             ),

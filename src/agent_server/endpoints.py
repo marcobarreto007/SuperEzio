@@ -229,7 +229,11 @@ def _build_no_empty_fallback_chunk(
         suggestion = "Suggestion: state the goal, horizon, amount, and whether you want framework, ticker analysis, or a scan."
 
     error_line = f"\nprovider_error: {provider_error}" if provider_error else ""
-    return f"{header}{body}\n{verdict}\n{suggestion}{error_line}"
+    trace_line = (
+        f"\nroute: {route_used or 'unknown'}\n"
+        f"detected_intent: {detected_intent or 'unknown'}\n"
+    )
+    return f"{header}{body}\n{verdict}\n{suggestion}{trace_line}{error_line}"
 
 
 # ---------------------------------------------------------------------------

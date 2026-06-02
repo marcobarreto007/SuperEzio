@@ -395,7 +395,10 @@ def test_task_submit_empty_fallback(client_with_mock_pipeline):
     # Find the fallback chunk
     chunks = [ev for ev in events if ev["type"] == "CHUNK"]
     assert len(chunks) == 1
-    assert "Bob: deterministic fallback answer." in chunks[0]["content"]
+    content = chunks[0]["content"]
+    assert isinstance(content, str) and content.strip()
+    assert "route:" in content
+    assert "Final verdict:" in content
 
     stream_end = events[-1]
     assert stream_end["trace"]["fallback_used"] is True

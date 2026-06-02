@@ -744,7 +744,8 @@ def test_explicit_smallcap_discovery_keeps_scanner_allowed():
     assert "market_scan" in plan["allowed_tools"]
 
 
-def test_cognitive_contract_blocks_tool_misuse():
+def test_cognitive_contract_blocks_tool_misuse(monkeypatch):
+    monkeypatch.setenv("SUPEREZIO_BOB_SOVEREIGN", "0")
     from src.core.pipeline.nodes.tool_executor import _tool_permission_error
 
     advisory_state = {
