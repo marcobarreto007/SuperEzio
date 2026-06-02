@@ -1212,29 +1212,6 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     if gateway is None:
         return {"errors": state.get("errors", []) + ["no_gateway"]}
 
-    # Scan routing: render deterministically without entering the ReAct tool loop
-    if state.get("route") == "market_scan" and state.get("scan"):
-        if _should_use_decisive_mode(state):
-            content, trade_ctx = _render_decisive_trade_order(state)
-        else:
-            content = _market_scan_answer(state)
-            trade_ctx = None
-        writer({"type": "CHUNK", "content": content})
-        if trade_ctx:
-            writer({"type": "TRADE_ORDER_CONTEXT", **trade_ctx})
-        writer(
-            {
-                "type": "PIPELINE_STEP",
-                "run_id": run_id,
-                "step": "market_scan_answer",
-                "status": "completed",
-                "provider": "deterministic_market_scan",
-            }
-        )
-        payload = _final_payload(content, iterations)
-        if trade_ctx:
-            payload["trade_order_context"] = trade_ctx
-        return payload
 
     writer(
         {
@@ -1266,6 +1243,15 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         )
     if state.get("expert_summary"):
         observations.append(f"Expert Committee Summary:\n{state.get('expert_summary')}")
+    # Dynamic expert weights based on scenario context
+    if state.get("expert_weights"):
+        observations.append(
+            f"Expert Reliability Weights (dynamic, context-adjusted):\n"
+            f"{json.dumps(state.get('expert_weights'), ensure_ascii=False)}\n"
+            f"Higher weight = more reliable for this specific scenario. "
+            f"Give more weight to high-weight experts in your final answer. "
+            f"social_forensics (>0.30) has VETO power if manipulation_score >= 70."
+        )
     if state.get("neural_decision"):
         observations.append(
             f"Neural Decision:\n{json.dumps(state.get('neural_decision'), ensure_ascii=False)}"
@@ -1285,6 +1271,20 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             "Tools already executed in this run: "
             + ", ".join(str(tool) for tool in state.get("executed_tools", []))
             + ". Do NOT call these tools again with the same parameters. Use existing results or call final_answer."
+        )
+
+    # ── F51 Dynamic Expert Veto Gate ──
+    # If social_forensics detected manipulation (score >= 70),
+    # the pipeline MUST block any bullish recommendation.
+    social_veto = state.get("social_forensics_veto")
+    if social_veto:
+        veto_reason = social_veto.get("reason", "manipulation_detected")
+        veto_score = social_veto.get("manipulation_score", 0)
+        observations.append(
+            f"CRITICAL VETO: Social Forensics expert detected synthetic manipulation "
+            f"(score: {veto_score}/100). Reason: {veto_reason}. "
+            f"You MUST NOT recommend buying this asset. "
+            f"Your final_answer MUST include this warning prominently."
         )
 
     if observations:

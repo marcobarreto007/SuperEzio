@@ -515,23 +515,6 @@ def _apply_candidate_gate(
     if isinstance(volume, (int, float)) and volume <= 0:
         return False, "missing_liquidity"
 
-    catalyst = (
-        item.get("catalyst")
-        or item.get("thesis")
-        or item.get("short_term_thesis")
-        or item.get("reason")
-    )
-    if not catalyst:
-        return False, "missing_short_term_thesis"
-
-    risk = item.get("risk") or item.get("downside_risk")
-    if not risk or str(risk).strip() in {"—", "-", "n/a", "N/A"}:
-        return False, "missing_risk"
-
-    invalidation = item.get("invalidation") or item.get("invalidation_condition")
-    if not invalidation or str(invalidation).strip() in {"—", "-", "n/a", "N/A"}:
-        return False, "missing_invalidation"
-
     return True, None
 
 

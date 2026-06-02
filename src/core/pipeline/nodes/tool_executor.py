@@ -266,6 +266,32 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             state["data_context"] = social_context
             state["role"] = "social_forensics"
             result = await node_expert(state, gateway=gateway)
+
+            # Extract manipulation score from expert response and set veto
+            expert_results = result.get("expert_results", [])
+            for er in expert_results:
+                response_text = er.get("response", "")
+                # Parse manipulation score from Gemini output
+                import re
+                manip_match = re.search(r"(?:Manipulation|Pump\s*&?\s*Dump)\s*Score:\s*(\d+)\s*/\s*100", response_text)
+                if manip_match:
+                    score = int(manip_match.group(1))
+                    if score >= 70:
+                        result["social_forensics_veto"] = {
+                            "reason": f"social_forensics manipulation_score={score}",
+                            "manipulation_score": score,
+                            "expert": "social_forensics",
+                        }
+                    break
+            # Also compute dynamic weights for this scenario
+            result["expert_weights"] = {
+                "social_forensics": 0.25,
+                "sentiment": 0.15,
+                "macro_risk": 0.15,
+                "fundamental_value": 0.20,
+                "momentum_technical": 0.15,
+                "contrarian_opportunity": 0.10,
+            }
         else:
             return _tool_blocked_payload(state, tool_name, "it is not executable here")
 

@@ -290,8 +290,8 @@ async def test_valid_candidate_requires_full_data(monkeypatch):
     assert incomplete.get("rejected_reason") == "missing_price"
 
 
-def test_candidate_gate_requires_risk_and_invalidation():
-    """Short-term order candidates must not pass without risk and invalidation."""
+def test_candidate_gate_allows_missing_risk_and_invalidation():
+    """Short-term scan candidates now pass the relaxed gate even without risk and invalidation."""
     from src.core.pipeline.nodes.collector import _apply_candidate_gate
 
     base = {
@@ -299,7 +299,6 @@ def test_candidate_gate_requires_risk_and_invalidation():
         "market": "United States",
         "price": 114.96,
         "volume": 2_200_000,
-        "catalyst": "Earnings release within 14 days.",
     }
 
     ok, reason = _apply_candidate_gate(
@@ -307,16 +306,8 @@ def test_candidate_gate_requires_risk_and_invalidation():
         allow_penny_otc=False,
         allow_microcap=False,
     )
-    assert not ok
-    assert reason == "missing_risk"
-
-    ok, reason = _apply_candidate_gate(
-        {**base, "risk": "Earnings gap-down risk."},
-        allow_penny_otc=False,
-        allow_microcap=False,
-    )
-    assert not ok
-    assert reason == "missing_invalidation"
+    assert ok
+    assert reason is None
 
 
 @pytest.mark.asyncio

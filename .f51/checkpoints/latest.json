@@ -1,56 +1,31 @@
 {
-  "date_local": "2026-06-02T01:05:00-04:00",
-  "session": "f51-80b-nitro-upgrade-2026-06-02",
-  "status": "model_downloaded_and_verified",
+  "date_local": "2026-06-02T11:43:00-04:00",
+  "session": "sovereign-bob-market-scan-upgrade",
+  "status": "completed",
   "what_was_done": [
-    "Phase 1: Upgraded CEO model identity from Qwen3.6-35B Q4_K_M to Qwen3-Next-80B-A3B Abliterated IQ4_XS.",
-    "Phase 2: Applied F51 Nitro MoE Layers 1-4 configuration across all config files.",
-    "Phase 3: Updated config/runtime.yml — model path, quantization, gpu_layers=999, cpu_moe=true, context=256K.",
-    "Phase 4: Updated config/model_manifest.json — full 80B metadata with Nitro params.",
-    "Phase 5: Updated scripts/serve_agent_llamacpp.ps1 — new model path, --cpu-moe flag, 256K context.",
-    "Phase 6: Updated src/core/model_serving/providers.py — AGENT_MODEL_ID and PRIMARY_MODEL_ID.",
-    "Phase 7: Updated all test files (test_contract_runtime_official.py, test_components_data.py, test_gateway.py).",
-    "Phase 8: Updated runtime/checkpoints/latest.json and .f51/checkpoints/latest.json.",
-    "Phase 9: Updated all documentation and prompt references from 35B to 80B.",
-    "Phase 10: Downloaded 80B GGUF from HuggingFace — 40.15 GB in 43.8 min @ 16.4 MB/s.",
-    "Phase 11: Verified size match (43,108,774,560 bytes) against Content-Length header.",
-    "Phase 12: Full test suite executed: 65/65 PASSED (100%, zero failures)."
+    "Relaxed the scanner gate in src/core/pipeline/nodes/collector.py to not filter candidates for missing catalyst, risk, invalidation at scanner stage.",
+    "Removed the deterministic market_scan bypass check from src/core/pipeline/nodes/agent.py, enabling Bob (the LLM) to reason over scan results sovereignly.",
+    "Adapted test_market_scan_result_finalizes_without_reentering_tool_loop in tests/test_agent_market_scan_loop.py to mock LLM gateway completion and assert output propagation.",
+    "Adapted test_candidate_gate_allows_missing_risk_and_invalidation in tests/test_market_scan_candidate_gate.py to verify relaxed gate criteria.",
+    "Ran the entire test suite of 986 tests, achieving 100% pass rate (986/986 passed).",
+    "Performed manual verification of the API stream endpoint using Invoke-RestMethod and confirmed that agent_called=true and candidate gate allows raw scanner candidates to pass to Bob."
   ],
   "evidence": {
-    "model": {
-      "name": "Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated",
-      "quantization": "IQ4_XS",
-      "file": "models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf",
-      "size_bytes": 43108774560,
-      "size_gb": 40.15,
-      "hf_repo": "mradermacher/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated-GGUF",
-      "hf_token_used": true,
-      "download_time_min": 43.8,
-      "download_speed_mbps": 16.4,
-      "architecture": "MoE (512 experts, 10 active + 1 shared per token)",
-      "base_model": "Qwen/Qwen3-Next-80B-A3B",
-      "ablation": "Arbitrary-Rank Ablation (Huihui-AI)"
-    },
-    "nitro_layers": {
-      "layer1_persistence_cache": "8 slots in VRAM, 65% inter-token persistence hit rate",
-      "layer2_async_streams": "4 CUDA streams (H2D, Expert, Attention, Prefetch)",
-      "layer3_router_lookahead": "Native router as free predictor for token T+1 prefetch",
-      "layer4_kv_cache_tiering": "Hot/Warm page split, 256K context in ~6.3 GB VRAM"
-    },
     "tests": {
-      "command": "python -m pytest tests/contracts/test_contract_runtime_official.py tests/test_components_data.py tests/test_gateway.py",
-      "result": "65/65 PASSED (100%)",
-      "key_test": "test_agent_runtime_config_matches_manifest_and_script — NOW PASSES (GGUF on disk)"
+      "command": "python -m pytest",
+      "result": "986/986 PASSED (100%)"
     },
-    "performance_target": "55-80 tok/s (from 39 tok/s baseline)"
+    "manual_verification": {
+      "endpoint": "http://127.0.0.1:8002/task/submit",
+      "result": "Success: agent_called=true, candidate_count=5, top candidate EXEL generated a decisive study order with Bob's reasoning."
+    }
   },
-  "pre_existing_failures": [],
   "risks": [
     {
-      "severity": "policy",
-      "description": "GitHub is blocked by F51_NO_GITHUB_DISK_ONLY."
+      "severity": "low",
+      "description": "Output layout format changed from deterministic python formatting to LLM-generated natural reasoning response."
     }
   ],
-  "next_step": "Live smoke test: powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082",
+  "next_step": "Ready for production release.",
   "owner": "Marco"
 }

@@ -55,15 +55,15 @@ async def test_collect_experts_compat_shim_imports():
 
 @pytest.mark.asyncio
 async def test_market_scan_result_finalizes_without_reentering_tool_loop(monkeypatch):
-    """Scan results must finalize deterministically and respect the gate."""
+    """Scan results must finalise through the LLM gateway and respect the output format."""
     from src.core.pipeline.nodes import agent as agent_module
 
     events = []
     monkeypatch.setattr(agent_module, "get_stream_writer", lambda: events.append)
 
-    class GatewayMustNotRun:
+    class MockGateway:
         async def chat_completion(self, **kwargs):
-            raise AssertionError("market_scan with scan results should finalize deterministically")
+            return '{"tool": "final_answer", "args": {"content": "Bob: Nenhum candidato passou no scan."}}'
 
     # ABCD has no price → the new gate rejects it. Under the updated answer
     # contract, the structured no-candidate response must be rendered and
@@ -93,7 +93,7 @@ async def test_market_scan_result_finalizes_without_reentering_tool_loop(monkeyp
                 "rejection_summary": {"missing_price": 2},
             },
         },
-        gateway=GatewayMustNotRun(),
+        gateway=MockGateway(),
     )
 
     assert result["agent_tool_call"]["tool"] == "final_answer"
