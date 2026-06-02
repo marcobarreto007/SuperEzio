@@ -1,14 +1,14 @@
 {
-  "date_local": "2026-06-01T23:41:00-04:00",
+  "date_local": "2026-06-01T23:45:00-04:00",
   "session": "f51-contracts-runtime-tests-2026-06-01",
   "status": "completed",
   "what_was_done": [
     "Phase 1: Created live-modules.contract.md (26 modules) + 108 new contract tests.",
     "Phase 2: Verified runtime entrypoints, healthchecks, logs, checkpoints, runbook, config.",
     "Phase 3: Fixed config mismatch by renaming 'ceo' to 'agent' in config/runtime.yml.",
-    "Phase 4: Made ROOT path dynamic in desktop/SuperEzio.bat (supporting space in workspace paths) and updated serve_ceo_llamacpp.ps1 references.",
+    "Phase 4: Deleted desktop/SuperEzio.bat batch launcher by request, removing launcher validation from contract tests.",
     "Phase 5: Cleaned model_path in runtime/checkpoints/latest.json to match contract test expectations.",
-    "Phase 6: Full test suite executed: 978 passed, 1 pre-existing failure (INV-R13: missing local model file), 8 skipped."
+    "Phase 6: Full test suite executed: 977 passed, 1 pre-existing failure (INV-R13: missing local model file), 8 skipped."
   ],
   "evidence": {
     "commands": [
@@ -19,7 +19,7 @@
     "results": [
       "All runtime contract tests pass except model_path file existence check (INV-R13).",
       "Gateway test_respects_priority_order_in_fallback passes.",
-      "Full test suite: 978/979 pass, 8 skipped."
+      "Full test suite: 977/978 pass, 8 skipped."
     ]
   },
   "pre_existing_failures": [

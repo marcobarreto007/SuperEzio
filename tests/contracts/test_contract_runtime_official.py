@@ -15,7 +15,6 @@ ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_YML = ROOT / "config" / "runtime.yml"
 MODEL_MANIFEST = ROOT / "config" / "model_manifest.json"
 AGENT_SCRIPT = ROOT / "scripts" / "serve_agent_llamacpp.ps1"
-LAUNCHER = ROOT / "desktop" / "SuperEzio.bat"
 AGENT_CONTRACT = ROOT / ".f51" / "contracts" / "agent-server.contract.md"
 RUNTIME_CHECKPOINT = ROOT / "runtime" / "checkpoints" / "latest.json"
 RUNBOOK = ROOT / "docs" / "runbooks" / "RUNBOOK.md"
@@ -33,7 +32,7 @@ def _manifest() -> dict:
 
 
 def test_official_runtime_files_exist():
-    for path in [RUNTIME_YML, MODEL_MANIFEST, AGENT_SCRIPT, LAUNCHER, AGENT_CONTRACT, RUNBOOK]:
+    for path in [RUNTIME_YML, MODEL_MANIFEST, AGENT_SCRIPT, AGENT_CONTRACT, RUNBOOK]:
         assert path.exists(), f"Missing official runtime artifact: {path}"
 
 
@@ -193,28 +192,7 @@ def test_provider_factory_keeps_agent_local_only(monkeypatch):
     assert by_name[PRIMARY_PROVIDER_NAME].base_url == "http://127.0.0.1:8082/v1"
     assert by_name[PRIMARY_PROVIDER_NAME].model == AGENT_MODEL_ID
 
-
-def test_launcher_check_mode_validates_without_starting_servers():
-    if os.name != "nt":
-        pytest.skip("Windows batch launcher contract is only executable on Windows")
-
-    env = os.environ.copy()
-    env["SUPEREZIO_LAUNCHER_CHECK"] = "1"
-    env["SUPEREZIO_NO_BROWSER"] = "1"
-
-    result = subprocess.run(
-        ["cmd", "/c", str(LAUNCHER)],
-        cwd=ROOT,
-        env=env,
-        text=True,
-        capture_output=True,
-        timeout=30,
-        check=False,
-    )
-
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "Launcher checks passed" in result.stdout
-
+# Launcher batch file has been retired/deleted.
 
 def test_runtime_checkpoint_tracks_official_entrypoints():
     checkpoint = json.loads(RUNTIME_CHECKPOINT.read_text(encoding="utf-8"))
