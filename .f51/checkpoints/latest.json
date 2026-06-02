@@ -1,7 +1,7 @@
 {
-  "date_local": "2026-06-02T00:15:00-04:00",
+  "date_local": "2026-06-02T01:05:00-04:00",
   "session": "f51-80b-nitro-upgrade-2026-06-02",
-  "status": "config_upgraded_model_pending_download",
+  "status": "model_downloaded_and_verified",
   "what_was_done": [
     "Phase 1: Upgraded CEO model identity from Qwen3.6-35B Q4_K_M to Qwen3-Next-80B-A3B Abliterated IQ4_XS.",
     "Phase 2: Applied F51 Nitro MoE Layers 1-4 configuration across all config files.",
@@ -11,15 +11,22 @@
     "Phase 6: Updated src/core/model_serving/providers.py — AGENT_MODEL_ID and PRIMARY_MODEL_ID.",
     "Phase 7: Updated all test files (test_contract_runtime_official.py, test_components_data.py, test_gateway.py).",
     "Phase 8: Updated runtime/checkpoints/latest.json and .f51/checkpoints/latest.json.",
-    "Phase 9: Updated all documentation and prompt references from 35B to 80B."
+    "Phase 9: Updated all documentation and prompt references from 35B to 80B.",
+    "Phase 10: Downloaded 80B GGUF from HuggingFace — 40.15 GB in 43.8 min @ 16.4 MB/s.",
+    "Phase 11: Verified size match (43,108,774,560 bytes) against Content-Length header.",
+    "Phase 12: Full test suite executed: 65/65 PASSED (100%, zero failures)."
   ],
   "evidence": {
     "model": {
       "name": "Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated",
       "quantization": "IQ4_XS",
       "file": "models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf",
-      "size_gb": 40,
+      "size_bytes": 43108774560,
+      "size_gb": 40.15,
       "hf_repo": "mradermacher/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated-GGUF",
+      "hf_token_used": true,
+      "download_time_min": 43.8,
+      "download_speed_mbps": 16.4,
       "architecture": "MoE (512 experts, 10 active + 1 shared per token)",
       "base_model": "Qwen/Qwen3-Next-80B-A3B",
       "ablation": "Arbitrary-Rank Ablation (Huihui-AI)"
@@ -30,21 +37,20 @@
       "layer3_router_lookahead": "Native router as free predictor for token T+1 prefetch",
       "layer4_kv_cache_tiering": "Hot/Warm page split, 256K context in ~6.3 GB VRAM"
     },
+    "tests": {
+      "command": "python -m pytest tests/contracts/test_contract_runtime_official.py tests/test_components_data.py tests/test_gateway.py",
+      "result": "65/65 PASSED (100%)",
+      "key_test": "test_agent_runtime_config_matches_manifest_and_script — NOW PASSES (GGUF on disk)"
+    },
     "performance_target": "55-80 tok/s (from 39 tok/s baseline)"
   },
-  "pre_existing_failures": [
-    "INV-R15: Qwen3-Next-80B Abliterated IQ4_XS GGUF (~40 GB) not yet downloaded to models/."
-  ],
+  "pre_existing_failures": [],
   "risks": [
-    {
-      "severity": "high",
-      "description": "INV-R15: 80B GGUF offline. ~40 GB download needed. C: drive has 174 GB free — sufficient."
-    },
     {
       "severity": "policy",
       "description": "GitHub is blocked by F51_NO_GITHUB_DISK_ONLY."
     }
   ],
-  "next_step": "Marco: download Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf (~40 GB) from HuggingFace to models/. Then run full test suite.",
+  "next_step": "Live smoke test: powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082",
   "owner": "Marco"
 }

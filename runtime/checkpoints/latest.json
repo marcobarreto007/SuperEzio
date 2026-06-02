@@ -1,14 +1,16 @@
 {
-  "date_local": "2026-06-02T00:10:00-04:00",
+  "date_local": "2026-06-02T01:05:00-04:00",
   "session": "f51-80b-nitro-upgrade-2026-06-02",
-  "status": "upgraded_to_80b_nitro",
+  "status": "model_downloaded_and_verified",
   "what_was_done": [
     "Upgraded CEO model from Qwen3.6-35B Q4_K_M to Qwen3-Next-80B-A3B Abliterated IQ4_XS",
     "Applied F51 Nitro Layers 1-4 configuration (Persistence Cache, Async PCIe, Router Lookahead, KV Cache Tiering)",
     "Context window expanded from 8K to 256K tokens",
     "GPU layers set to 999 (max offload) with --cpu-moe for expert computation on CPU/RAM",
     "VRAM budget: ~6.3 GB (shared layers + KV cache), RAM budget: ~39 GB (expert pool)",
-    "All config files, tests, scripts, and documentation aligned to new 80B model identity"
+    "All config files, tests, scripts, and documentation aligned to new 80B model identity",
+    "Downloaded 80B GGUF from HuggingFace: 40.15 GB in 43.8 min @ 16.4 MB/s — VERIFIED size match",
+    "Full test suite: 65/65 PASSED (100%) including model file existence check"
   ],
   "runtime_parameters": {
     "api_port": 8002,
@@ -16,6 +18,8 @@
     "api_entrypoint": "python -m agent_server.main",
     "agent_entrypoint": "scripts/serve_agent_llamacpp.ps1 -Port 8082",
     "model_path": "models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf",
+    "model_size_bytes": 43108774560,
+    "model_size_gb": 40.15,
     "quantization": "IQ4_XS",
     "context_length": 262144,
     "gpu_layers": 999,
@@ -24,14 +28,7 @@
     "total_experts": 512,
     "active_experts_per_token": 10
   },
-  "risks": [
-    {
-      "id": "INV-R15",
-      "severity": "high",
-      "description": "Qwen3-Next-80B Abliterated IQ4_XS GGUF (~40 GB) needs to be downloaded from HuggingFace (mradermacher/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated-GGUF).",
-      "mitigation": "Download Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf to models/"
-    }
-  ],
-  "next_step": "Marco: baixar o 80B Abliterated IQ4_XS GGUF (~40 GB) para models/. Depois live smoke test com Nitro.",
+  "risks": [],
+  "next_step": "Live smoke test: powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082",
   "owner": "Marco"
 }
