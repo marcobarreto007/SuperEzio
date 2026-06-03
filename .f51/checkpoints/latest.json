@@ -1,7 +1,7 @@
 {
-  "date_local": "2026-06-03T09:28:28-04:00",
-  "session": "portable-packaging-decision-2026-06-03",
-  "status": "portable_packaging_strategy_selected_no_product_code_changes",
+  "date_local": "2026-06-03T09:51:49-04:00",
+  "session": "attached-packaging-roadmap-review-2026-06-03",
+  "status": "attached_packaging_roadmap_reviewed_no_product_code_changes",
   "what_was_done": [
     "Performed read-only investor-style due diligence of the SuperEzio Financeiro system",
     "Confirmed local DISK ONLY posture and clean git state before analysis",
@@ -17,7 +17,8 @@
     "Fixed trust-breaking frontend mismatches: profile/meta mapping, MACD chart context, debug cards default, snapshot status, Ops Console status labels, buyer-facing labels, and first-message welcome overlap",
     "Created docs/internal/audits/frontpage_correspondence_audit_2026-06-03.md",
     "Created docs/runbooks/FINAL_PACKAGING_PLAN.md",
-    "Selected packaging direction: portable browser-based demo/transfer kit first, Electron wrapper only as a later phase after the local package proves transferable"
+    "Selected packaging direction: portable browser-based demo/transfer kit first, Electron wrapper only as a later phase after the local package proves transferable",
+    "Reviewed attached packaging roadmap from pasted-text.txt and checked it against current repo scripts/runtime state"
   ],
   "evidence": [
     "git status --porcelain=v1 -uall -> clean before checkpoint update",
@@ -39,13 +40,16 @@
     "DOM audit -> logoSub Financial Copilot; chatHeader Bob Copilot; assetLabel Market snapshot; debugCardsFlag false; profile bar visible",
     "Ops audit -> status OK; Redis Not required; CEO Configured (superezio-ceo-intent-merged); errors 0",
     "SDCA audit -> decision REVIEW; audit rows include no broker execution true and no external API calls true",
-    "Packaging recommendation -> keep official runtime on ports 8082 and 8002, add launcher/check scripts and buyer docs before considering Electron"
+    "Packaging recommendation -> keep official runtime on ports 8082 and 8002, add launcher/check scripts and buyer docs before considering Electron",
+    "Attachment review -> roadmap direction is valid, but current serve_agent_llamacpp.ps1 already resolves project root and accepts SUPEREZIO_LLAMA_SERVER_EXE; runtime/do_restart.ps1 still has the main hardcoded project root",
+    "Attachment review -> model present at models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf with length 43108774560 bytes; .env and .env.example both exist"
   ],
   "risks": [
     "The earlier 180s browser smoke timeout should not be treated as proof that chat is broken; direct API chat completed successfully",
     "The latest full UI smoke passed with live chat, so the previous 180s headless timeout is not current evidence of broken UI chat",
     "Advanced labels such as SDCA and System Operations Control remain inside drawers and should stay out of the primary small-investor flow unless renamed for buyer packaging",
     "Electron packaging would add installer/process-management complexity before proving clean transfer on a normal Windows machine or USB kit",
+    "Do not blindly rename/replace runtime/do_restart.ps1 until the buyer-kit scripts are created and validated against the existing official runtime contract",
     "Latency remains a commercial packaging consideration because direct API chat previously took 270.2s on a heavier allocation prompt",
     "No broad pytest suite was run in this analysis pass because this was read-only investor diligence, not a code-change gate",
     "No audited live trading track record, paid customer evidence, or one-click commercial packaging was found",
@@ -53,6 +57,6 @@
     "Packaging must avoid implying registered financial advice, guaranteed profit, or broker execution",
     "No GitHub operation was performed because this repository is DISK ONLY"
   ],
-  "next_step": "Build the portable package skeleton first: START_SUPEREZIO_DEMO.ps1, CHECK_SUPEREZIO_DEMO.ps1, OPEN_UI shortcut, README_FIRST.md, .env.example, evidence folder, and transfer checklist.",
+  "next_step": "Start with a buyer-kit skeleton that reuses the existing runtime contracts: CHECK_SUPEREZIO_DEMO.ps1, START_SUPEREZIO_DEMO.ps1, STOP_SUPEREZIO.ps1, OPEN_UI shortcut, README_FIRST.md, evidence folder, and transfer checklist.",
   "owner": "Marco"
 }
