@@ -203,7 +203,7 @@
     _retryTimer = null;
     var el = document.getElementById("live-status");
     if (el) {
-      el.textContent = "OFF";
+      el.textContent = "SNAPSHOT";
       el.style.color = "#5a6e62";
     }
   }

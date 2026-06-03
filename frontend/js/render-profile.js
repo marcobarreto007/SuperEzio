@@ -23,13 +23,13 @@
     if (!el) return;
 
     var cd = SZ.state && SZ.state.chartData;
-    if (!cd || !cd.meta) {
+    var m = cd && (cd.meta || cd.profile);
+    if (!m) {
       el.innerHTML = "";
       el.style.display = "none";
       return;
     }
 
-    var m = cd.meta;
     var parts = [];
 
     if (m.name)       parts.push(m.name);

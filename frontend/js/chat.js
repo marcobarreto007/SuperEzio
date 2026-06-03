@@ -26,7 +26,7 @@
     const msg = el("div", "msg msg-" + role);
     const bubble = el("div", "msg-bubble");
     const meta = el("div", "msg-meta");
-    meta.innerHTML = `<span>${role === "user" ? "You" : "Bob CEO"}</span><span>${new Date().toLocaleTimeString()}</span>`;
+    meta.innerHTML = `<span>${role === "user" ? "You" : "Bob Copilot"}</span><span>${new Date().toLocaleTimeString()}</span>`;
     msg.append(bubble, meta);
     CHAT.appendChild(msg);
     return { msg, bubble, meta, cards: new Map() };

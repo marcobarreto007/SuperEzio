@@ -26,15 +26,32 @@
         const redis = hd.checks?.redis || {};
         const redisEl = $("ops-health-redis");
         if (redisEl) {
-          redisEl.textContent = redis.status === "ok" ? `Connected (${esc(redis.url || "")})` : `Offline (${esc(redis.status || "")})`;
-          redisEl.className = redis.status === "ok" ? "ops-status-ok" : "ops-status-err";
+          if (redis.status === "ok") {
+            redisEl.textContent = `Connected (${esc(redis.url || "")})`;
+            redisEl.className = "ops-status-ok";
+          } else if (redis.status === "skipped") {
+            redisEl.textContent = "Not required";
+            redisEl.className = "ops-status-warn";
+          } else {
+            redisEl.textContent = `Unavailable (${esc(redis.status || "")})`;
+            redisEl.className = "ops-status-err";
+          }
         }
 
         const ceo = hd.checks?.local_models?.ceo || {};
+        const orchestrator = hd.checks?.provider_local_orchestrator || hd.checks?.providers_summary?.primary || {};
         const ceoEl = $("ops-health-ceo");
         if (ceoEl) {
-          ceoEl.textContent = ceo.reachable ? "Reachable (:8082)" : "Offline (Qwen)";
-          ceoEl.className = ceo.reachable ? "ops-status-ok" : "ops-status-err";
+          if (ceo.reachable) {
+            ceoEl.textContent = "Reachable (:8082)";
+            ceoEl.className = "ops-status-ok";
+          } else if (orchestrator.configured) {
+            ceoEl.textContent = `Configured (${esc(orchestrator.model || "local orchestrator")})`;
+            ceoEl.className = "ops-status-ok";
+          } else {
+            ceoEl.textContent = "Unavailable";
+            ceoEl.className = "ops-status-err";
+          }
         }
       }
     } catch (err) {
@@ -85,7 +102,7 @@
           totalLatency += metrics[k] || 0;
           latencyCount++;
         });
-        const avgLatency = latencyCount > 0 ? (totalLatency / latencyCount * 1000).toFixed(1) + " ms" : "n/a";
+        const avgLatency = latencyCount > 0 ? (totalLatency / latencyCount * 1000).toFixed(1) + " ms" : "No samples yet";
 
         let totalErrors = 0;
         errorKeys.forEach(k => {

@@ -29,7 +29,9 @@
   function lastVal(s) {
     if (!s || !s.length) return null;
     for (var i = s.length - 1; i >= 0; i--) {
-      if (s[i] != null && isFinite(s[i])) return s[i];
+      var item = s[i];
+      var value = (item && typeof item === "object" && "value" in item) ? item.value : item;
+      if (value != null && isFinite(value)) return value;
     }
     return null;
   }
@@ -57,10 +59,11 @@
     if (!cd) return "";
     var lines = [];
     lines.push("=== CHART CONTEXT ===");
-    if (cd.meta) {
-      if (cd.meta.name)     lines.push("Asset: " + cd.meta.name);
-      if (cd.meta.sector)   lines.push("Sector: " + cd.meta.sector);
-      if (cd.meta.exchange) lines.push("Exchange: " + cd.meta.exchange);
+    var meta = cd.meta || cd.profile || {};
+    if (meta) {
+      if (meta.name)     lines.push("Asset: " + meta.name);
+      if (meta.sector)   lines.push("Sector: " + meta.sector);
+      if (meta.exchange) lines.push("Exchange: " + meta.exchange);
     }
     var ohlcv = cd.ohlcv || [];
     if (ohlcv.length) {
@@ -69,16 +72,16 @@
       lines.push("Data points: " + ohlcv.length);
     }
     var ind = cd.indicators || {};
-    if (ind.sma_20)  lines.push("SMA20: "  + fmt(lastVal(ind.sma_20)));
-    if (ind.sma_50)  lines.push("SMA50: "  + fmt(lastVal(ind.sma_50)));
-    if (ind.ema_20)  lines.push("EMA20: "  + fmt(lastVal(ind.ema_20)));
-    if (ind.rsi)     lines.push("RSI: "     + fmt(lastVal(ind.rsi)));
-    if (ind.macd) {
-      var m = ind.macd;
-      if (m.macd)       lines.push("MACD: "     + fmt(lastVal(m.macd)));
-      if (m.signal)     lines.push("MACD Sig: " + fmt(lastVal(m.signal)));
-      if (m.histogram)  lines.push("MACD Hist: " + fmt(lastVal(m.histogram)));
-    }
+    var sma20 = ind.sma_20 || ind.sma20;
+    var sma50 = ind.sma_50 || ind.sma50;
+    var ema20 = ind.ema_20 || ind.ema20;
+    if (sma20)  lines.push("SMA20: "  + fmt(lastVal(sma20)));
+    if (sma50)  lines.push("SMA50: "  + fmt(lastVal(sma50)));
+    if (ema20)  lines.push("EMA20: "  + fmt(lastVal(ema20)));
+    if (ind.rsi) lines.push("RSI: " + fmt(lastVal(ind.rsi)));
+    if (ind.macd) lines.push("MACD: " + fmt(lastVal(ind.macd)));
+    if (ind.macd_signal) lines.push("MACD Sig: " + fmt(lastVal(ind.macd_signal)));
+    if (ind.macd_histogram) lines.push("MACD Hist: " + fmt(lastVal(ind.macd_histogram)));
     lines.push("=== END CHART CONTEXT ===");
     return lines.join("\n");
   }
@@ -255,6 +258,9 @@
     var btn = document.getElementById("send-btn");
     if (inp) inp.disabled = true;
     if (btn) btn.disabled = true;
+
+    var welcome = document.querySelector("#chat .bob-welcome");
+    if (welcome) welcome.remove();
 
     /* show user message */
     SZ.chat.addMessage("user");

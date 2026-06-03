@@ -1,7 +1,7 @@
 {
-  "date_local": "2026-06-03T08:50:07-04:00",
-  "session": "full-ui-smoke-2026-06-03",
-  "status": "full_ui_smoke_with_chat_passed",
+  "date_local": "2026-06-03T09:12:34-04:00",
+  "session": "frontpage-correspondence-and-packaging-2026-06-03",
+  "status": "frontpage_correspondence_fixed_full_ui_smoke_passed_packaging_plan_created",
   "what_was_done": [
     "Performed read-only investor-style due diligence of the SuperEzio Financeiro system",
     "Confirmed local DISK ONLY posture and clean git state before analysis",
@@ -12,7 +12,11 @@
     "Rechecked a real /task/submit capital-allocation prompt after Marco reported successful live chat usage",
     "Evaluated Flippa as an exit path for the SuperEzio Financeiro code/IP versus revenue-generating SaaS positioning",
     "Defined packaging direction as a layered buyer-ready asset: demo kit, evidence room, transfer bundle, and commercial listing narrative",
-    "Ran the full Playwright UI smoke with live chat enabled after Marco asked whether the UI had been tested"
+    "Ran the full Playwright UI smoke with live chat enabled after Marco asked whether the UI had been tested",
+    "Audited frontpage correspondence between visible UI, payload routing, chart context, Ops Console, and SDCA Lab",
+    "Fixed trust-breaking frontend mismatches: profile/meta mapping, MACD chart context, debug cards default, snapshot status, Ops Console status labels, buyer-facing labels, and first-message welcome overlap",
+    "Created docs/internal/audits/frontpage_correspondence_audit_2026-06-03.md",
+    "Created docs/runbooks/FINAL_PACKAGING_PLAN.md"
   ],
   "evidence": [
     "git status --porcelain=v1 -uall -> clean before checkpoint update",
@@ -27,12 +31,18 @@
     "External market checks -> robo advisory and wealth management software markets are large and growing, but regulated and crowded",
     "Flippa official pricing guidance checked -> non-revenue assets face tight asking-price limits; projects/concepts can be open-to-offers but require buyer trust and verification",
     "Recommended packaging path -> keep core runtime intact, create a buyer-facing demo and due-diligence bundle before listing",
-    "python -u scripts/browser_smoke.py --timeout-ms 360000 -> ok true; health ok; chart_fetch AAPL 130 candles; canvas nonBlank 394632; chat finalContentLength 2836; intent CAPITAL_ALLOCATION; route general; scannerInvoked false; fallbackUsed false; containsFinalVerdict true; console_errors []",
-    "UI screenshot captured at output/playwright/superezio-browser-smoke-20260603-084847.png"
+    "python -u scripts/browser_smoke.py --timeout-ms 360000 -> ok true; health ok; chart_fetch AAPL 130 candles; canvas nonBlank 378108; chat finalContentLength 2298; intent CAPITAL_ALLOCATION; route general; scannerInvoked false; fallbackUsed false; containsFinalVerdict true; console_errors []",
+    "UI screenshot captured at output/playwright/superezio-browser-smoke-20260603-091024.png",
+    "Payload audit -> generic allocation prompt sends ticker='' and chart_context length 0",
+    "Payload audit -> chart prompt sends ticker='AAPL', chart_context length 232, RSI present, MACD present",
+    "DOM audit -> logoSub Financial Copilot; chatHeader Bob Copilot; assetLabel Market snapshot; debugCardsFlag false; profile bar visible",
+    "Ops audit -> status OK; Redis Not required; CEO Configured (superezio-ceo-intent-merged); errors 0",
+    "SDCA audit -> decision REVIEW; audit rows include no broker execution true and no external API calls true"
   ],
   "risks": [
     "The earlier 180s browser smoke timeout should not be treated as proof that chat is broken; direct API chat completed successfully",
     "The latest full UI smoke passed with live chat, so the previous 180s headless timeout is not current evidence of broken UI chat",
+    "Advanced labels such as SDCA and System Operations Control remain inside drawers and should stay out of the primary small-investor flow unless renamed for buyer packaging",
     "Latency remains a commercial packaging consideration because direct API chat previously took 270.2s on a heavier allocation prompt",
     "No broad pytest suite was run in this analysis pass because this was read-only investor diligence, not a code-change gate",
     "No audited live trading track record, paid customer evidence, or one-click commercial packaging was found",
@@ -40,6 +50,6 @@
     "Packaging must avoid implying registered financial advice, guaranteed profit, or broker execution",
     "No GitHub operation was performed because this repository is DISK ONLY"
   ],
-  "next_step": "Use the successful full UI smoke as buyer-facing demo evidence, then create a sale package with demo script, setup guide, evidence index, transfer checklist, architecture one-pager, and sanitized listing copy.",
+  "next_step": "Fill the buyer sale package artifacts from docs/runbooks/FINAL_PACKAGING_PLAN.md: one-pager, demo script, setup guide, transfer checklist, evidence index, risk disclosure, and architecture one-pager.",
   "owner": "Marco"
 }

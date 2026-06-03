@@ -5,13 +5,13 @@
   window.SZ.config = Object.assign({
     defaultTicker: "AAPL",
     defaultTimeframe: "6M",
-    showDebugCards: true,
+    showDebugCards: false,
   }, window.SZ.config || {});
 
   window.SZ.content = Object.assign({
-    logoSub: "Market Command",
+    logoSub: "Financial Copilot",
     statusChecking: "Checking...",
-    assetLabel: "Live market",
+    assetLabel: "Market snapshot",
     bobWelcomeTitle: "Bob is online.",
     bobWelcomeBody: "Ask directly. Market context is attached when your question needs the chart.",
     sdcaReady: "Ready for local firewall evaluation.",
