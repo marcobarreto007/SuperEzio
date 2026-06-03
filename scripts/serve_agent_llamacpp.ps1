@@ -1,6 +1,5 @@
 # SuperEzio Bob CEO local server.
-# Canonical runtime prefers the patched F51 llama.cpp build in C:\llama.cpp.
-# The repo-local llama.cpp\bin binary is only a fallback and is reported loudly.
+# Sources config.ps1 for path detection and keeps command-line overrides.
 
 param(
     [int]$Port = 8082,
@@ -14,39 +13,48 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$RequestedLlamaServerPath = $LlamaServerPath
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ProjectRoot = Resolve-Path "$ScriptDir\.."
-$Model = Join-Path $ProjectRoot "models\Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf"
+$ProjectRoot = (Resolve-Path (Join-Path $ScriptDir "..")).Path
 
-$candidateServers = @()
-if ($LlamaServerPath) {
-    $candidateServers += $LlamaServerPath
+$configPath = Join-Path $ProjectRoot "config.ps1"
+if (Test-Path $configPath) {
+    . $configPath
+} else {
+    Write-Host "ERROR: config.ps1 not found at $configPath" -ForegroundColor Red
+    exit 1
 }
-$candidateServers += "C:\llama.cpp\build-cuda\bin\llama-server.exe"
-$candidateServers += (Join-Path $ProjectRoot "llama.cpp\bin\llama-server.exe")
 
-$Server = $null
-foreach ($candidate in $candidateServers) {
-    if ($candidate -and (Test-Path $candidate)) {
-        $Server = (Resolve-Path $candidate).Path
-        break
+if ($RequestedLlamaServerPath) {
+    if (Test-Path $RequestedLlamaServerPath) {
+        $LlamaServerPath = (Resolve-Path $RequestedLlamaServerPath).Path
+    } else {
+        Write-Host "ERROR: Requested llama-server.exe not found: $RequestedLlamaServerPath" -ForegroundColor Red
+        exit 1
     }
 }
 
-if (-not (Test-Path $Model)) {
-    Write-Host "ERROR: Model not found: $Model" -ForegroundColor Red
+if (-not (Test-Path $ModelPath)) {
+    Write-Host "ERROR: Model not found: $ModelPath" -ForegroundColor Red
+    Write-Host "Download the model to $ModelsDir and try again." -ForegroundColor Yellow
     exit 1
 }
 
-if (-not $Server) {
-    Write-Host "ERROR: llama-server.exe not found. Set SUPEREZIO_LLAMA_SERVER_EXE or restore C:\llama.cpp\build-cuda\bin." -ForegroundColor Red
+if (-not $LlamaServerPath) {
+    Write-Host "ERROR: llama-server.exe not found." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Options to fix:" -ForegroundColor Yellow
+    Write-Host "  1. Set env var: `$env:SUPEREZIO_LLAMA_SERVER_EXE = 'C:\path\to\llama-server.exe'"
+    Write-Host "  2. Add llama.cpp\build-cuda\bin to your PATH"
+    Write-Host "  3. Put llama-server.exe under a local llama.cpp\bin folder"
+    Write-Host ""
     exit 1
 }
 
-$BinDir = Split-Path -Parent $Server
+$BinDir = Split-Path -Parent $LlamaServerPath
 $env:PATH = "$BinDir;$env:PATH"
 
-# F51 runtime knobs. These are harmless on non-F51 binaries and active on the patched build.
+# F51 Nitro MoE runtime knobs.
 $env:F51_MOE_CACHE = "1"
 $env:F51_MOE_CACHE_ENABLED = "1"
 $env:F51_MOE_SCHED_SKIP = "1"
@@ -60,29 +68,29 @@ $kvMB = 400
 $totalGpuMB = $denseMB + $kvMB + $gpuExpertMB
 
 $version = ""
-$oldErrorActionPreference = $ErrorActionPreference
+$oldEAP = $ErrorActionPreference
 try {
     $ErrorActionPreference = "Continue"
-    $version = (& $Server --version 2>&1 | ForEach-Object { "$_" } | Select-Object -First 5) -join " | "
-}
-catch {
+    $version = (& $LlamaServerPath --version 2>&1 | ForEach-Object { "$_" } | Select-Object -First 5) -join " | "
+} catch {
     $version = "version probe failed: $($_.Exception.Message)"
-}
-finally {
-    $ErrorActionPreference = $oldErrorActionPreference
+} finally {
+    $ErrorActionPreference = $oldEAP
 }
 
-$usingPatchedF51 = $Server -like "C:\llama.cpp\build-cuda\bin\llama-server.exe"
+$hasCuda = ($version -match "cuda") -or ($LlamaServerPath -match "cuda|build-cuda")
+$hasF51 = $version -match "f51|nitro"
 
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host " SuperEzio Bob CEO Server" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host "Model      : Qwen3-Next-80B-A3B Abliterated IQ4_XS"
-Write-Host "Server     : $Server"
+Write-Host "Server     : $LlamaServerPath"
 Write-Host "Version    : $version"
-Write-Host "F51 build  : $usingPatchedF51"
+Write-Host "CUDA       : $(if ($hasCuda) { 'YES' } else { 'NO (CPU-only, will be slow)' })"
+Write-Host "F51 marker : $(if ($hasF51) { 'reported by binary' } else { 'not reported by binary' })"
 Write-Host "Port       : $Port"
-Write-Host "Context    : $ContextLength tokens"
+Write-Host "Context    : $($ContextLength.ToString('N0')) tokens"
 Write-Host "Slots      : $Slots parallel"
 Write-Host "Flash Attn : on"
 Write-Host "Cache type : q8_0"
@@ -97,14 +105,17 @@ Write-Host "API        : http://127.0.0.1:$Port/v1"
 Write-Host "============================================"
 Write-Host ""
 
-if (-not $usingPatchedF51) {
-    Write-Host "WARNING: running fallback llama-server, not C:\llama.cpp\build-cuda\bin\llama-server.exe" -ForegroundColor Yellow
+if (-not $hasCuda) {
+    Write-Host "WARNING: Non-CUDA llama-server. Model will run on CPU only. Expect slower responses." -ForegroundColor Yellow
+}
+if (-not $hasF51) {
+    Write-Host "NOTE: Binary did not report F51/Nitro markers. Runtime knobs are enabled; confirm acceleration from logs." -ForegroundColor Yellow
 }
 
 Write-Host "Starting llama-server..." -ForegroundColor Green
 
-& $Server `
-    -m $Model `
+& $LlamaServerPath `
+    -m $ModelPath `
     -ngl $GpuLayers `
     -c $ContextLength `
     --port $Port `
