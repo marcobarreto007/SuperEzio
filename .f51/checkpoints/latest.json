@@ -1,34 +1,38 @@
 {
-  "date_local": "2026-06-03T10:15:40-04:00",
-  "session": "portable-buyer-kit-hardening-2026-06-03",
-  "status": "packaging_scripts_hardened_validated_committed",
+  "date_local": "2026-06-03T12:20:59-04:00",
+  "session": "buyer-packaging-evidence-cleanup-2026-06-03",
+  "status": "buyer_packaging_docs_and_cleanup_fixed_validated_committed",
   "what_was_done": [
-    "Hardened the portable buyer-kit scripts created for SuperEzio Financeiro",
-    "Added centralized config.ps1 with real Python executable resolution, llama-server detection, model paths, ports, env vars, and health helpers",
-    "Updated start.ps1 so it refuses to start when official ports are already occupied instead of passing against stale services",
-    "Updated stop.ps1 so it only stops processes bound to the official SuperEzio ports and no longer kills every llama-server process by name",
-    "Updated scripts/serve_agent_llamacpp.ps1 to preserve explicit llama-server overrides and avoid falsely reporting F51 just because the binary path contains build-cuda",
-    "Reworked check.ps1 as an ASCII preflight with clearer machine, dependency, model, provider, and port diagnostics",
-    "Rewrote README_FIRST.md, docs/ARCHITECTURE_ONEPAGER.md, and docs/RISK_DISCLOSURE.md to be buyer-facing but legally safer around local-first versus optional external providers",
-    "Kept the browser-based portable package direction; no Electron wrapper was added in this step"
+    "Reviewed the additional buyer-packaging files created after the previous portable buyer-kit commit",
+    "Rewrote clean.ps1 so default execution is preview-only and destructive cleanup requires explicit -Apply",
+    "Added explicit cleanup switches for git history, F51 checkpoints, and generated evidence output instead of deleting them by default",
+    "Rewrote docs/BUYER_SETUP_GUIDE.md as an ASCII buyer setup guide with safer local-first and provider language",
+    "Rewrote docs/EVIDENCE_INDEX.md so it points to real checkpoint/browser-smoke evidence and separates pending buyer-listing proof from verified evidence",
+    "Rewrote docs/TRANSFER_CHECKLIST.md to require dry-run cleanup, stopped-system checks, browser smoke, and clean-machine transfer rehearsal",
+    "Aligned requirements.txt with the dependency list in pyproject.toml",
+    "Updated .gitignore so models/README_MODEL.md can be tracked while large model binaries remain ignored",
+    "Rewrote models/README_MODEL.md as a tracked model setup note without including the GGUF file"
   ],
   "evidence": [
+    "PowerShell parser checks -> config.ps1, check.ps1, start.ps1, stop.ps1, clean.ps1, and scripts/serve_agent_llamacpp.ps1 parse ok",
+    "powershell -NoProfile -ExecutionPolicy Bypass -File .\\clean.ps1 -DryRun -> preview completed, no files removed, no parser/runtime errors",
     "git diff --check -> passed",
-    "PowerShell parser checks -> config.ps1, check.ps1, start.ps1, and scripts/serve_agent_llamacpp.ps1 parse ok",
-    "config.ps1 live probe -> Python C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\.venv\\Scripts\\python.exe; llama-server C:\\llama.cpp\\build-cuda\\bin\\llama-server.exe; model present; ports free",
+    "requirements mirror check -> prior missing deps present: llama-cpp-python, alpaca-py, ib-insync, statsmodels, joblib, playwright",
     "powershell -NoProfile -ExecutionPolicy Bypass -File .\\check.ps1 -> 16 passed, 0 warnings, 0 failed",
     "powershell -NoProfile -ExecutionPolicy Bypass -File .\\start.ps1 -SkipBrowser -> CEO healthy on 8082; API healthy on 8002",
     ".\\.venv\\Scripts\\python.exe -u scripts\\browser_smoke.py --skip-chat --timeout-ms 180000 -> ok true; health ok; AAPL chart 130 candles; canvas nonBlank 378108; console_errors []",
-    "powershell -NoProfile -ExecutionPolicy Bypass -File .\\stop.ps1 -> stopped python PID 11644 and llama-server PID 22228; ports 8002 and 8082 free",
-    "local git commit -> chore(packaging): harden portable buyer kit"
+    "browser smoke screenshot -> output\\playwright\\superezio-browser-smoke-20260603-122026.png",
+    "powershell -NoProfile -ExecutionPolicy Bypass -File .\\stop.ps1 -> stopped python PID 12624 and llama-server PID 25804; ports 8002 and 8082 free",
+    "local git commit -> chore(packaging): fix buyer evidence kit"
   ],
   "risks": [
-    "This is still a local browser-based package, not a one-click signed installer",
-    "The 80B model requires a capable Windows machine and can still have high startup/chat latency",
-    "Optional external data or model providers may send request data to third-party APIs when configured in .env",
-    "Financial-product positioning still requires legal review before public sale or paid customer onboarding",
+    "clean.ps1 should be run with -Apply only on a copied package folder, not on the active source tree",
+    "Full pytest and ruff suites were not rerun in this packaging-doc correction pass; docs now mark them as refresh commands rather than current proof",
+    "Clean-machine transfer rehearsal is still pending before public listing",
+    "Optional external data/model providers may send data to third-party APIs when enabled in .env",
+    "Financial-product positioning still requires legal review before paid customer onboarding",
     "No GitHub operation was performed because this repository is DISK ONLY"
   ],
-  "next_step": "Create a final packaging bundle checklist: files to include, files to exclude, evidence screenshots/logs, buyer onboarding script, and transfer rehearsal on a clean Windows user profile or external drive.",
+  "next_step": "Create the final ZIP on a copied package folder, run the transfer checklist end to end on a clean Windows profile or VM, then record the ZIP SHA256 and demo proof.",
   "owner": "Marco"
 }

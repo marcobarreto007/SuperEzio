@@ -37,7 +37,9 @@ node_modules/
 .playwright-cli/
 
 # Models (massive GGUF / safetensors files)
-/models/
+/models/*
+!/models/
+!/models/README_MODEL.md
 
 # IA caches (pip downloads, HuggingFace cache)
 ia/pip_cache/
