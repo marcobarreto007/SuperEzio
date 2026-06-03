@@ -1,7 +1,7 @@
 {
-  "date_local": "2026-06-03T08:43:09-04:00",
-  "session": "packaging-strategy-2026-06-03",
-  "status": "packaging_strategy_defined_no_product_code_changes",
+  "date_local": "2026-06-03T08:50:07-04:00",
+  "session": "full-ui-smoke-2026-06-03",
+  "status": "full_ui_smoke_with_chat_passed",
   "what_was_done": [
     "Performed read-only investor-style due diligence of the SuperEzio Financeiro system",
     "Confirmed local DISK ONLY posture and clean git state before analysis",
@@ -11,7 +11,8 @@
     "Checked current external market signals for robo-advisory, wealth management software, and AI regulatory risk",
     "Rechecked a real /task/submit capital-allocation prompt after Marco reported successful live chat usage",
     "Evaluated Flippa as an exit path for the SuperEzio Financeiro code/IP versus revenue-generating SaaS positioning",
-    "Defined packaging direction as a layered buyer-ready asset: demo kit, evidence room, transfer bundle, and commercial listing narrative"
+    "Defined packaging direction as a layered buyer-ready asset: demo kit, evidence room, transfer bundle, and commercial listing narrative",
+    "Ran the full Playwright UI smoke with live chat enabled after Marco asked whether the UI had been tested"
   ],
   "evidence": [
     "git status --porcelain=v1 -uall -> clean before checkpoint update",
@@ -25,17 +26,20 @@
     "Source inventory -> 172 Python files in src, 64 Python test files, 38 frontend files",
     "External market checks -> robo advisory and wealth management software markets are large and growing, but regulated and crowded",
     "Flippa official pricing guidance checked -> non-revenue assets face tight asking-price limits; projects/concepts can be open-to-offers but require buyer trust and verification",
-    "Recommended packaging path -> keep core runtime intact, create a buyer-facing demo and due-diligence bundle before listing"
+    "Recommended packaging path -> keep core runtime intact, create a buyer-facing demo and due-diligence bundle before listing",
+    "python -u scripts/browser_smoke.py --timeout-ms 360000 -> ok true; health ok; chart_fetch AAPL 130 candles; canvas nonBlank 394632; chat finalContentLength 2836; intent CAPITAL_ALLOCATION; route general; scannerInvoked false; fallbackUsed false; containsFinalVerdict true; console_errors []",
+    "UI screenshot captured at output/playwright/superezio-browser-smoke-20260603-084847.png"
   ],
   "risks": [
     "The earlier 180s browser smoke timeout should not be treated as proof that chat is broken; direct API chat completed successfully",
-    "Commercial demo risk remains because at least one real capital-allocation prompt took 270.2s and invoked scanner despite being an allocation task",
+    "The latest full UI smoke passed with live chat, so the previous 180s headless timeout is not current evidence of broken UI chat",
+    "Latency remains a commercial packaging consideration because direct API chat previously took 270.2s on a heavier allocation prompt",
     "No broad pytest suite was run in this analysis pass because this was read-only investor diligence, not a code-change gate",
     "No audited live trading track record, paid customer evidence, or one-click commercial packaging was found",
     "Flippa may underprice deep technical IP because buyers heavily discount assets without verified revenue, transferable operations, and clean onboarding",
     "Packaging must avoid implying registered financial advice, guaranteed profit, or broker execution",
     "No GitHub operation was performed because this repository is DISK ONLY"
   ],
-  "next_step": "Create a sale package with demo script, setup guide, evidence index, transfer checklist, architecture one-pager, and sanitized listing copy before any marketplace listing.",
+  "next_step": "Use the successful full UI smoke as buyer-facing demo evidence, then create a sale package with demo script, setup guide, evidence index, transfer checklist, architecture one-pager, and sanitized listing copy.",
   "owner": "Marco"
 }
