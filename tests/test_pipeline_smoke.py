@@ -67,6 +67,14 @@ def test_pipeline_graph_has_expected_nodes():
     assert expected.issubset(set(nodes.keys())), f"Missing: {expected - set(nodes.keys())}"
 
 
+def test_route_after_orchestrator_blocks_missing_scope():
+    from core.pipeline.graph import route_after_orchestrator
+
+    assert route_after_orchestrator({"route": "needs_scope"}) == "respond_blocked"
+    assert route_after_orchestrator({"action": "ask_for_ticker"}) == "respond_blocked"
+    assert route_after_orchestrator({"route": "general"}) == "agent"
+
+
 @pytest.mark.asyncio
 async def test_pipeline_stream_events_general():
     from core.pipeline import build_graph
@@ -98,6 +106,27 @@ async def test_pipeline_stream_events_completes():
     statuses = [s.get("status") for s in steps]
     assert "started" in statuses
     assert "completed" in statuses
+
+    p.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_pipeline_stream_events_blocks_unscoped_ticket_reference(monkeypatch):
+    from core.pipeline import build_graph
+
+    monkeypatch.setenv("SUPEREZIO_BOB_SOVEREIGN", "1")
+
+    p = build_graph()
+    events = []
+    async for ev in p.stream_events("cara vc esta travado neste ticket ?"):
+        events.append(ev)
+
+    chunks = [e.get("content", "") for e in events if e.get("type") == "CHUNK"]
+    step_names = [e.get("step") for e in events if e.get("type") == "PIPELINE_STEP"]
+
+    assert "respond_blocked" in step_names
+    assert "agent" not in step_names
+    assert any("ticker" in chunk.lower() for chunk in chunks)
 
     p.shutdown()
 

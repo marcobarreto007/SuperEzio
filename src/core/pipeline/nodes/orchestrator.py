@@ -114,35 +114,59 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
 
     if is_sovereign:
         trade_order_context = state.get("trade_order_context") or {}
-        plan = {
-            "route": "general",
-            "intent": "general_question",
-            "action": "answer",
-            "ticker": "",
-            "risk_tolerance": _classify_risk_tolerance(message, {}),
-            "bob_intent": _classify_bob_intent(message, {}),
-            "time_horizon": _extract_time_horizon(message) or trade_order_context.get("time_horizon", ""),
-            "intent_source": "sovereign_orchestrator",
-            "intent_confidence": 1.0,
-            "intent_reasons": ["Sovereign Bob mode active"],
-            "allowed_tools": [
-                "collect_data",
-                "f51_firewall",
-                "pennylab",
-                "run_experts",
-                "neural_decision",
-                "sdca_firewall",
-                "rag_forensics",
-                "market_scan",
-                "penny_momentum_backtest",
-                "final_answer",
-            ],
-            "scanner_allowed": True,
-            "ticker_allowed": True,
-            "market_context_allowed": True,
-            "cognitive_mode": "SOVEREIGN",
-        }
-        plan["intent"] = plan["bob_intent"]  # sync intent with bob_intent
+        parsed = parse_user_intent(
+            message,
+            rigor=rigor,
+            ticker=ticker,
+            trade_order_context=trade_order_context,
+        )
+        if parsed.route == "needs_scope":
+            plan = parsed.to_plan()
+            plan.update(
+                {
+                    "intent_source": "sovereign_scope_guard",
+                    "risk_tolerance": _classify_risk_tolerance(message, {}),
+                    "bob_intent": "missing_scope",
+                    "time_horizon": _extract_time_horizon(message)
+                    or trade_order_context.get("time_horizon", ""),
+                    "allowed_tools": ["final_answer"],
+                    "scanner_allowed": False,
+                    "ticker_allowed": False,
+                    "market_context_allowed": False,
+                    "cognitive_mode": "SOVEREIGN",
+                }
+            )
+        else:
+            plan = {
+                "route": "general",
+                "intent": "general_question",
+                "action": "answer",
+                "ticker": "",
+                "risk_tolerance": _classify_risk_tolerance(message, {}),
+                "bob_intent": _classify_bob_intent(message, {}),
+                "time_horizon": _extract_time_horizon(message)
+                or trade_order_context.get("time_horizon", ""),
+                "intent_source": "sovereign_orchestrator",
+                "intent_confidence": 1.0,
+                "intent_reasons": ["Sovereign Bob mode active"],
+                "allowed_tools": [
+                    "collect_data",
+                    "f51_firewall",
+                    "pennylab",
+                    "run_experts",
+                    "neural_decision",
+                    "sdca_firewall",
+                    "rag_forensics",
+                    "market_scan",
+                    "penny_momentum_backtest",
+                    "final_answer",
+                ],
+                "scanner_allowed": True,
+                "ticker_allowed": True,
+                "market_context_allowed": True,
+                "cognitive_mode": "SOVEREIGN",
+            }
+            plan["intent"] = plan["bob_intent"]  # sync intent with bob_intent
     else:
         # 1. Deterministic parse — for intent classification only
         trade_order_context = state.get("trade_order_context") or {}
@@ -178,7 +202,9 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
                     plan["fallback_route"] = parsed.route
                     plan["fallback_intent"] = parsed.intent
                     # Safety: never route complex finance → market_scan
-                    if plan.get("route") == "market_scan" and detect_complex_finance_intent(message):
+                    if plan.get("route") == "market_scan" and detect_complex_finance_intent(
+                        message
+                    ):
                         plan = parsed.to_plan()
                         plan["intent_source"] = "ceo_model_overridden_complex_finance"
                         plan["ceo_original_route"] = "market_scan"
@@ -243,33 +269,71 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
 
 # ── Risk tolerance classifier ──
 
+
 def _classify_risk_tolerance(message: str, plan: dict) -> str:
     """Classify user's risk tolerance from natural language."""
     msg_lower = message.lower()
 
     # Especulativa: gambling language, penny stocks, "adrenalina", "aposta"
     speculative_markers = [
-        "adrenalina", "aposta", "apostar", "lotto", "loteria", "cassino",
-        "yolo", "all in", "all-in", "arriscar tudo", "ficar rico", "moeda",
-        "lua", "moon", "100x", "1000x", "decolar", "foguete",
+        "adrenalina",
+        "aposta",
+        "apostar",
+        "lotto",
+        "loteria",
+        "cassino",
+        "yolo",
+        "all in",
+        "all-in",
+        "arriscar tudo",
+        "ficar rico",
+        "moeda",
+        "lua",
+        "moon",
+        "100x",
+        "1000x",
+        "decolar",
+        "foguete",
     ]
     if any(m in msg_lower for m in speculative_markers):
         return "especulativa"
 
     # Alta: short-term, penny, "agressivo", "alto risco"
     high_markers = [
-        "penny", "small cap", "small-cap", "microcap", "agressivo",
-        "alto risco", "curto prazo", "2 semana", "1 semana", "day trade",
-        "swing trade", "alavancado", "options", "opções",
+        "penny",
+        "small cap",
+        "small-cap",
+        "microcap",
+        "agressivo",
+        "alto risco",
+        "curto prazo",
+        "2 semana",
+        "1 semana",
+        "day trade",
+        "swing trade",
+        "alavancado",
+        "options",
+        "opções",
     ]
     if any(m in msg_lower for m in high_markers):
         return "alta"
 
     # Conservadora: "seguro", "longo prazo", "dividendo", "aposentadoria"
     conservative_markers = [
-        "seguro", "segurança", "longo prazo", "dividendo", "dividendos",
-        "aposentadoria", "conservador", "renda fixa", "tesouro", "cdb",
-        "poupança", "etf", "índice", "index",
+        "seguro",
+        "segurança",
+        "longo prazo",
+        "dividendo",
+        "dividendos",
+        "aposentadoria",
+        "conservador",
+        "renda fixa",
+        "tesouro",
+        "cdb",
+        "poupança",
+        "etf",
+        "índice",
+        "index",
     ]
     if any(m in msg_lower for m in conservative_markers):
         return "conservadora"
@@ -286,10 +350,24 @@ def _classify_bob_intent(message: str, plan: dict) -> str:
     msg_lower = message.lower()
 
     # Buscar/achar/encontrar algo específico beats all else
-    if any(w in msg_lower for w in ["acha", "achar", "encontra", "encontrar",
-                                      "recomenda", "recomendar", "sugestão",
-                                      "indicação", "oportunidade", "me mostra",
-                                      "me fala", "qual", "quais"]):
+    if any(
+        w in msg_lower
+        for w in [
+            "acha",
+            "achar",
+            "encontra",
+            "encontrar",
+            "recomenda",
+            "recomendar",
+            "sugestão",
+            "indicação",
+            "oportunidade",
+            "me mostra",
+            "me fala",
+            "qual",
+            "quais",
+        ]
+    ):
         return "buscar_oportunidade"
     if any(w in msg_lower for w in ["comprar", "investir", "alocar", "aplicar", "por em"]):
         return "alocar_capital"

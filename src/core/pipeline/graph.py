@@ -23,7 +23,17 @@ from .nodes import (
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["PipelineApp", "build_graph"]
+__all__ = ["PipelineApp", "build_graph", "route_after_orchestrator"]
+
+
+def route_after_orchestrator(state: dict) -> str:
+    """Route scope-blocked plans before the agent can call tools or the model."""
+    if state.get("route") == "needs_scope" or state.get("action") in {
+        "ask_for_ticker",
+        "ask_for_scope",
+    }:
+        return "respond_blocked"
+    return "agent"
 
 
 def build_graph(
@@ -62,7 +72,14 @@ def build_graph(
     builder.add_node("respond_blocked", _blocked)
 
     builder.add_edge(START, "orchestrator_primary")
-    builder.add_edge("orchestrator_primary", "agent")
+    builder.add_conditional_edges(
+        "orchestrator_primary",
+        route_after_orchestrator,
+        {
+            "respond_blocked": "respond_blocked",
+            "agent": "agent",
+        },
+    )
 
     # Agent decides whether to call a tool or output the final answer
     builder.add_conditional_edges(

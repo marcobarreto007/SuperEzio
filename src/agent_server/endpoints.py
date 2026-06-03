@@ -36,6 +36,9 @@ router = APIRouter()
 
 _session_history: dict[str, dict[str, Any]] = {}
 
+# Regex para extrair ticker mencionado na resposta (ex: "NOK (Nokia)", "NU (Nu Holdings)")
+_RECOMMENDED_TICKER_RE = re.compile(r"\b([A-Z]{1,5})\s*\([A-Za-z]")
+
 
 def _is_what_happened_query(message: str) -> bool:
     clean = message.strip().lower().rstrip("?").strip()
@@ -703,7 +706,17 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
             chart_context = chart_context[:_MAX_CHART_CONTEXT_CHARS]
 
         session_meta = _session_history.get(session_id) or {}
-        trade_order_context = session_meta.get("trade_order_context") or {}
+        trade_order_context = dict(session_meta.get("trade_order_context") or {})
+
+        # Inject previously recommended tickers as excluded for follow-up requests
+        prev_recs = list(session_meta.get("recommended_tickers") or [])
+        if prev_recs:
+            excluded = list(trade_order_context.get("excluded_tickers") or [])
+            for t in prev_recs:
+                if t.upper() not in excluded:
+                    excluded.append(t.upper())
+            if excluded:
+                trade_order_context["excluded_tickers"] = excluded
 
         # Intercept "o que houve" query if the previous request failed
         if _is_what_happened_query(raw_message):
@@ -860,10 +873,12 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                                 ):
                                     scanner_invoked = True
                             elif event_type == "DATA_COLLECTED":
-                                if (
-                                    route_used == "market_scan"
-                                    or event.get("rejected_count") is not None
-                                ):
+                                # Only mark scanner as invoked when the route is
+                                # explicitly market_scan.  The presence of
+                                # rejected_count alone does not mean a scanner
+                                # ran — single-ticker collection may also reject
+                                # candidates for data-quality reasons.
+                                if route_used == "market_scan":
                                     scanner_invoked = True
                                 if isinstance(event.get("candidates"), int):
                                     candidate_count = event["candidates"]
@@ -936,10 +951,9 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                                 ):
                                     scanner_invoked = True
                             elif event_type == "DATA_COLLECTED":
-                                if (
-                                    route_used == "market_scan"
-                                    or chunk.get("rejected_count") is not None
-                                ):
+                                # Same rationale as the stream_events branch above:
+                                # only route=market_scan implies scanner invocation.
+                                if route_used == "market_scan":
                                     scanner_invoked = True
                                 if isinstance(chunk.get("candidates"), int):
                                     candidate_count = chunk["candidates"]
@@ -1068,9 +1082,29 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                 }
                 if trade_order_context:
                     session_record["trade_order_context"] = trade_order_context
+
+                # Track recommended tickers for exclusion on follow-up requests
+                if scanner_invoked and candidate_count > 0 and accumulated_answer:
+                    prev_recs = list(session_meta.get("recommended_tickers") or [])
+                    match = _RECOMMENDED_TICKER_RE.search(accumulated_answer)
+                    if match:
+                        rec_ticker = match.group(1).upper()
+                        if rec_ticker not in prev_recs:
+                            prev_recs.append(rec_ticker)
+                    session_record["recommended_tickers"] = prev_recs
+
                 _session_history[session_id] = session_record
 
                 yield json.dumps({"type": "STREAM_END", "trace": trace}) + "\n"
+            except asyncio.CancelledError:
+                # Client disconnected. Let the pipeline tear down naturally
+                # without propagating cancellation to the LLM backend — this
+                # prevents spurious »cancel task« entries in the llama-server log.
+                logger.info(
+                    "Client disconnected for session=%s msg=%s", session_id, envelope.msg_id
+                )
+                # Don't re-raise; let the stream end silently.
+                return
             except Exception as exc:
                 fallback_used = True
                 err_detail = _safe_error_detail(exc)

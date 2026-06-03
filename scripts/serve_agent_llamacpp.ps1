@@ -3,7 +3,7 @@
 
 param(
     [int]$Port = 8082,
-    [int]$GpuLayers = 999,
+    [int]$GpuLayers = 14,
     [int]$ContextLength = 131072,
     [int]$Slots = 2,
     [int]$NCpuMoe = 31,
@@ -60,9 +60,9 @@ $env:F51_MOE_CACHE_ENABLED = "1"
 $env:F51_MOE_SCHED_SKIP = "1"
 $env:F51_MOE_CACHE_CAPACITY = [string]$F51CacheCapacity
 
-$gpuMoeLayers = 48 - $NCpuMoe
+$actualGpuLayers = [Math]::Min($GpuLayers, 48 - $NCpuMoe)
 $expertLayerMB = 816
-$gpuExpertMB = $gpuMoeLayers * $expertLayerMB
+$gpuExpertMB = $actualGpuLayers * $expertLayerMB
 $denseMB = 1300
 $kvMB = 400
 $totalGpuMB = $denseMB + $kvMB + $gpuExpertMB
@@ -97,9 +97,9 @@ Write-Host "Cache type : q8_0"
 Write-Host "Cache RAM  : $CacheRamMiB MiB"
 Write-Host "Reasoning  : disabled"
 Write-Host ""
-Write-Host "MoE split  : $gpuMoeLayers layers GPU + $NCpuMoe layers CPU"
+Write-Host "MoE split  : $actualGpuLayers layers GPU + $NCpuMoe layers CPU (ngl=$GpuLayers)"
 Write-Host "GPU budget : ~$totalGpuMB MB ($denseMB dense + $kvMB KV + $gpuExpertMB experts)"
-Write-Host "RAM budget : ~$($NCpuMoe * $expertLayerMB) MB ($NCpuMoe expert layers)"
+Write-Host "RAM budget : ~$((48 - $actualGpuLayers) * $expertLayerMB) MB ($(48 - $actualGpuLayers) expert layers)"
 Write-Host "F51 cache  : enabled capacity=$F51CacheCapacity"
 Write-Host "API        : http://127.0.0.1:$Port/v1"
 Write-Host "============================================"

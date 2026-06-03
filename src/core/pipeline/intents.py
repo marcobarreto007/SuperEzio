@@ -1462,6 +1462,67 @@ TICKER_REQUIRED_ANALYSIS_HINTS = (
     "run pennylab",
 )
 
+REFERENTIAL_TICKER_HINTS = (
+    "este ticker",
+    "esse ticker",
+    "neste ticker",
+    "nesse ticker",
+    "this ticker",
+    "current ticker",
+    "este ticket",
+    "esse ticket",
+    "neste ticket",
+    "nesse ticket",
+    "this ticket",
+    "current ticket",
+    "este ativo",
+    "esse ativo",
+    "neste ativo",
+    "nesse ativo",
+    "ativo atual",
+    "esta acao",
+    "essa acao",
+    "nesta acao",
+    "nessa acao",
+    "esta ação",
+    "essa ação",
+    "nesta ação",
+    "nessa ação",
+    "this stock",
+    "current stock",
+    "this asset",
+    "current asset",
+)
+
+REFERENTIAL_ASSET_STATUS_HINTS = (
+    "travado",
+    "travada",
+    "stuck",
+    "halted",
+    "parado",
+    "parada",
+    "congelado",
+    "congelada",
+    "subindo",
+    "caindo",
+    "despencando",
+    "pump",
+    "dump",
+    "fraude",
+    "fraud",
+    "risco",
+)
+
+REFERENTIAL_ASSET_NOUNS = (
+    "ticker",
+    "ticket",
+    "ativo",
+    "acao",
+    "ação",
+    "stock",
+    "asset",
+)
+
 
 CACHE_TTL = 30.0  # segundos
 
@@ -1740,12 +1801,26 @@ def _is_market_scan_request(message: str) -> bool:
     return False
 
 
-def _needs_ticker_for_requested_analysis(message: str) -> bool:
-    if detect_ticker(message):
+def _needs_ticker_for_requested_analysis(message: str, ticker: str = "") -> bool:
+    if ticker or detect_ticker(message):
         return False
     if _is_capability_question(message) or _is_penny_definition_question(message):
         return False
+    if _references_unspecified_ticker_or_asset(message):
+        return True
     return _has_penny_asset_hint(message) and has_hint(message, TICKER_REQUIRED_ANALYSIS_HINTS)
+
+
+def _references_unspecified_ticker_or_asset(message: str) -> bool:
+    """Detect follow-up language that points at an asset without naming it."""
+    if detect_ticker(message):
+        return False
+    if has_hint(message, REFERENTIAL_TICKER_HINTS):
+        return True
+    return has_hint(message, REFERENTIAL_ASSET_NOUNS) and has_hint(
+        message,
+        REFERENTIAL_ASSET_STATUS_HINTS,
+    )
 
 
 def detect_market_scan_intent(message: str) -> bool:
@@ -2041,7 +2116,7 @@ def parse_user_intent(
         )
 
     strict = (rigor or "strict").lower() == "strict"
-    if strict and _needs_ticker_for_requested_analysis(raw):
+    if strict and _needs_ticker_for_requested_analysis(raw, ticker):
         return done(
             IntentParse(
                 route="needs_scope",

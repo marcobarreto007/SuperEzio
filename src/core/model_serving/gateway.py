@@ -52,6 +52,10 @@ class ModelGateway:
         self.config = config or GatewayConfig()
         self._deepseek_provider = None
         self._audit = audit
+        self._provider_errors: dict[str, int] = {}  # consecutive error counter
+        self._provider_cooldown_until: dict[str, float] = {}  # timestamp until provider is skipped
+        self._provider_cooldown_max_errors = 3  # consecutive errors before cooldown
+        self._provider_cooldown_seconds = 120  # cooldown duration
 
         log_event(
             "MODEL_GATEWAY",
@@ -84,11 +88,29 @@ class ModelGateway:
     def _providers_for_request(
         self, preferred_provider: str = None, allow_fallback: bool = True
     ) -> list[ModelProvider]:
-        """Policy: prioritizes the requested provider, falls back to list order."""
+        """Policy: prioritizes the requested provider, falls back to list order.
+
+        Providers in cooldown (after consecutive failures) are skipped so that
+        a broken external API (e.g. Gemini) does not waste time on every request.
+        """
         if preferred_provider == "openai":
             preferred_provider = DEEPSEEK_PROVIDER_NAME
         if preferred_provider == "bob":
             preferred_provider = AGENT_PROVIDER_NAME
+
+        import time as _time
+
+        now = _time.monotonic()
+
+        def _skip_cooldown(name: str) -> bool:
+            until = self._provider_cooldown_until.get(name)
+            if until is not None and now < until:
+                return True
+            if until is not None:
+                del self._provider_cooldown_until[name]
+                self._provider_errors.pop(name, None)
+            return False
+
         if preferred_provider:
             for p in self.providers:
                 if p.name == preferred_provider:
@@ -101,11 +123,17 @@ class ModelGateway:
                     return [p] + [
                         other
                         for other in self.providers
-                        if other != p and other.name != AGENT_PROVIDER_NAME
+                        if other != p
+                        and other.name != AGENT_PROVIDER_NAME
+                        and not _skip_cooldown(other.name)
                     ]
         # No preferred provider: keep external-provider order and avoid routing
         # generic tasks to local agent runtime.
-        non_local = [p for p in self.providers if p.name != AGENT_PROVIDER_NAME]
+        non_local = [
+            p
+            for p in self.providers
+            if p.name != AGENT_PROVIDER_NAME and not _skip_cooldown(p.name)
+        ]
         return non_local or self.providers
 
     def _max_attempts(self, providers_to_try: list[ModelProvider]) -> int:
@@ -343,15 +371,36 @@ class ModelGateway:
                             )
 
                         metrics.increment(f"model.{provider.name}.success")
+                        # Reset error counter on success
+                        self._provider_errors.pop(provider.name, None)
+                        self._provider_cooldown_until.pop(provider.name, None)
                         return result
 
                 except Exception as e:
                     last_error = e
-                    log_event(
-                        "MODEL_GATEWAY",
-                        "PROVIDER_ERROR",
-                        {"provider": provider.name, "error": str(e)},
-                    )
+                    err_count = self._provider_errors.get(provider.name, 0) + 1
+                    self._provider_errors[provider.name] = err_count
+                    if err_count >= self._provider_cooldown_max_errors:
+                        import time as _time
+
+                        self._provider_cooldown_until[provider.name] = (
+                            _time.monotonic() + self._provider_cooldown_seconds
+                        )
+                        log_event(
+                            "MODEL_GATEWAY",
+                            "PROVIDER_COOLDOWN",
+                            {
+                                "provider": provider.name,
+                                "consecutive_errors": err_count,
+                                "cooldown_s": self._provider_cooldown_seconds,
+                            },
+                        )
+                    else:
+                        log_event(
+                            "MODEL_GATEWAY",
+                            "PROVIDER_ERROR",
+                            {"provider": provider.name, "error": str(e)[:200]},
+                        )
                     metrics.increment(f"model.{provider.name}.error")
 
                     if retry < self.config.retry_attempts - 1:

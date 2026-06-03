@@ -176,7 +176,9 @@ class TestCapitalAllocation:
         assert repaired.rstrip().endswith("Confidence: 72")
 
     def test_repair_adds_scope_disclaimer_when_missing(self):
-        content = "Short allocation sketch without legal framing.\nFinal verdict: WAIT\nConfidence: 70"
+        content = (
+            "Short allocation sketch without legal framing.\nFinal verdict: WAIT\nConfidence: 70"
+        )
 
         repaired = _repair_complex_finance_answer(CAPITAL_ALLOCATION_PROMPT, content)
 
@@ -259,6 +261,24 @@ class TestExplicitTickerNoRegression:
 # ===========================================================================
 # Test 5 — Complex finance detection accuracy
 # ===========================================================================
+
+
+class TestReferentialTickerNeedsScope:
+    """A prompt pointing at "this ticket" needs a real ticker or UI context."""
+
+    def test_unscoped_ticket_status_prompt_asks_for_ticker(self):
+        parsed = parse_user_intent("cara vc esta travado neste ticket ?", rigor="strict", ticker="")
+
+        assert parsed.route == "needs_scope"
+        assert parsed.intent == "missing_required_slot"
+        assert parsed.action == "ask_for_ticker"
+        assert parsed.required_slots == ("ticker",)
+        assert parsed.ticker == ""
+
+    def test_context_ticker_allows_referential_prompt(self):
+        parsed = parse_user_intent("cara vc esta travado neste ticket ?", ticker="NOK")
+
+        assert parsed.route != "needs_scope"
 
 
 class TestComplexFinanceDetection:
