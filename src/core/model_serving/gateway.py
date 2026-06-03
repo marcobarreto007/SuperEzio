@@ -138,12 +138,11 @@ class ModelGateway:
 
     @staticmethod
     def _apply_gemini_options(provider: ModelProvider, kwargs: Dict[str, Any]) -> None:
-        """Disable Gemini 2.5 thinking for fast structured expert output."""
-        if provider.name != GEMINI_PROVIDER_NAME:
-            return
-        if "generativelanguage.googleapis.com" not in (provider.base_url or ""):
-            return
-        kwargs["reasoning_effort"] = "none"
+        """Gemini 2.5 Flash on the /v1beta/openai path runs without thinking by
+        default — no special parameters needed. The provider's max_tokens
+        is already set from GEMINI_MAX_TOKENS env (default 4096), which is
+        sufficient for structured JSON expert output."""
+        pass
 
     async def stream_generate_api(
         self,

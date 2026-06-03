@@ -124,9 +124,9 @@ def build_default_providers(
                 base_url=gemini_base_url,
                 api_key=gemini_key,
                 priority=-290,
-                model=GEMINI_MODEL_ID,
+                model=os.getenv("GEMINI_MODEL", GEMINI_MODEL_ID),
                 timeout_s=int(os.getenv("GEMINI_TIMEOUT_SEC", "90")),
-                max_tokens=int(os.getenv("GEMINI_MAX_TOKENS", "1024")),
+                max_tokens=int(os.getenv("GEMINI_MAX_TOKENS", "4096")),
                 temperature=float(os.getenv("GEMINI_TEMPERATURE", "0.3")),
             )
         )
