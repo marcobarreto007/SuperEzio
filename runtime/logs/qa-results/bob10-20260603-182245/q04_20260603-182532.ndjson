@@ -1,0 +1,11 @@
+﻿{"type": "STREAM_START", "msg_id": "61e0f0d1-f032-40bb-a26c-d49f86163a53"}
+{"type": "PIPELINE_STEP", "run_id": "43bf14f72072", "step": "graph", "status": "started"}
+{"type": "PIPELINE_STEP", "run_id": "43bf14f72072", "step": "orchestrator_primary", "status": "started"}
+{"type": "INTENT_CLASSIFIED", "route": "needs_scope", "intent": "missing_required_slot", "action": "ask_for_ticker", "confidence": 0.88, "source": "sovereign_scope_guard", "ticker": "", "risk_tolerance": "moderada", "required_slots": ["ticker"], "reasons": ["analysis_requested_without_required_ticker"], "run_id": "43bf14f72072"}
+{"type": "PIPELINE_STEP", "run_id": "43bf14f72072", "step": "orchestrator_primary", "status": "completed", "route": "needs_scope", "intent": "missing_required_slot", "ticker": "", "model_status": "sovereign_scope_guard"}
+{"type": "PIPELINE_STEP", "run_id": "43bf14f72072", "step": "respond_blocked", "status": "started"}
+{"type": "CHUNK", "content": "[SuperEzio Trust OS] I cannot provide investment recommendations without a specific ticker and a clear research question.\n\nPlease ask again with:\n- A ticker (e.g., AAPL, ENB.TO, HIVE.V)\n- A research goal (e.g., analyze risk, detect fraud, check volume spike)\n- Optional: country, sector, or time horizon", "run_id": "43bf14f72072"}
+{"type": "PIPELINE_STEP", "run_id": "43bf14f72072", "step": "respond_blocked", "status": "completed"}
+{"type": "PIPELINE_STEP", "run_id": "43bf14f72072", "step": "graph", "status": "completed", "evidence_run_id": "20260603-222532_1a022c"}
+{"type": "STREAM_END", "trace": {"user_query": "cara vc esta travado neste ticket ?", "detected_intent": "missing_required_slot", "selected_ui_ticker": "", "chart_context_attached": false, "route_used": "needs_scope", "scanner_invoked": false, "candidate_count": 0, "rejected_count": 0, "top_rejection_reasons": [], "agent_called": false, "fallback_used": false, "final_content_length": 303, "provider_sources_used": [], "provider_error": null}}
+

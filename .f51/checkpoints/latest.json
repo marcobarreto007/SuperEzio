@@ -1,36 +1,33 @@
 {
-  "date_local": "2026-06-03T17:38:18-04:00",
-  "session": "log-audit-qa-results-save-2026-06-03",
-  "status": "logs_reviewed_runtime_telemetry_hardened_validated_ready_to_commit",
+  "date_local": "2026-06-03T18:32:46-04:00",
+  "session": "bob-10-investment-prompts-qa-2026-06-03",
+  "status": "bob_10_prompt_runtime_qa_completed",
   "what_was_done": [
-    "Inspected the attached pasted transcript and current runtime logs after Marco asked to look at logs and save changes.",
-    "Confirmed the live stack was up: API on 127.0.0.1:8002 and llama-server on 127.0.0.1:8082.",
-    "Reviewed runtime/logs/qa-results with 10 QA scenarios; 6 ran without scanner and 4 intentionally used scanner for opportunity-search prompts.",
-    "Identified noisy false-positive warnings in api-8002-latest.err.log: route=general but scanner_invoked=True for sovereign opportunity-search prompts.",
-    "Changed the invariant guard in src/agent_server/endpoints.py to warn only when a true advisory route or advisory intent invokes the scanner.",
-    "Reviewed pending src/core/pipeline/nodes/agent.py changes for multiple sovereign tool-call parsing.",
-    "Hardened the agent tool-call queue by adding _pending_tool_calls to PipelineState and returning/clearing it explicitly from node_agent.",
-    "Added tests for multiple tool-call parsing and pending tool-call queue persistence.",
-    "Saved the QA result artifacts under runtime/logs/qa-results as local evidence."
+    "Ran a live Bob QA battery with 10 different investment prompts through POST /task/submit.",
+    "Used the live local stack: API on 127.0.0.1:8002 and llama-server on 127.0.0.1:8082.",
+    "Captured each NDJSON stream and a structured summary under runtime/logs/qa-results/bob10-20260603-182245/.",
+    "Checked API health after each prompt to detect crashes or hangs.",
+    "Inspected the short HIVE.V fraud-risk answer and flagged it as a quality issue, not a runtime hang.",
+    "Ran browser smoke after the API QA run to validate the UI/runtime path."
   ],
   "evidence": [
-    "git status before work -> untracked runtime/logs/qa-results plus later pending code changes in endpoints.py, agent.py, and tests.",
-    "runtime/logs/watchdog.log -> API/CEO recovered after transient 8002 downtime; watchdog restarted after 3 consecutive failures and services recovered.",
-    "runtime/logs/qa-results/summary.json -> 10 scenarios, 4 scanner=true, 0 fallback=true.",
-    "Live invariant proof request -> HTTP 200, route general, intent buscar_oportunidade, agent_called True, scanner_invoked True, candidate_count 5, fallback False, and no new INVARIANT VIOLATION in api-8002-latest.err.log.",
-    ".\\.venv\\Scripts\\python.exe -m py_compile src\\core\\pipeline\\contracts.py src\\core\\pipeline\\nodes\\agent.py src\\agent_server\\endpoints.py tests\\test_bob_sovereign.py tests\\test_market_scan_candidate_gate.py -> passed.",
-    ".\\.venv\\Scripts\\python.exe -m ruff check src\\core\\pipeline\\contracts.py src\\core\\pipeline\\nodes\\agent.py src\\agent_server\\endpoints.py tests\\test_bob_sovereign.py tests\\test_market_scan_candidate_gate.py -> all checks passed.",
-    ".\\.venv\\Scripts\\python.exe -m ruff format --check src\\core\\pipeline\\contracts.py src\\core\\pipeline\\nodes\\agent.py src\\agent_server\\endpoints.py tests\\test_bob_sovereign.py tests\\test_market_scan_candidate_gate.py -> 5 files already formatted.",
-    ".\\.venv\\Scripts\\python.exe -m pytest tests\\test_bob_sovereign.py tests\\test_market_scan_candidate_gate.py::test_advisory_routes_never_invoke_scanner tests\\test_api_routes_sync.py tests\\test_runtime_bob_fixes.py -q -> 27 passed.",
-    "API-only reload after code changes -> 8002 healthy while 8082 stayed alive.",
-    ".\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --timeout-ms 180000 -> ok true, health ok, AAPL chart 130 candles, canvas nonBlank 378108, chat finalContentLength 2352, scannerInvoked false, console_errors empty."
+    "Initial state -> git status clean; ports 8002 and 8082 listening.",
+    "Bob10 QA summary -> 10/10 prompts returned HTTP 200, STREAM_END true, ERROR events 0, fallback false.",
+    "Prompt timings -> min 0.1s, max 98.1s; long scanner/advisory prompts completed within 240s timeout.",
+    "q04 unscoped current ticket -> route needs_scope, intent missing_required_slot, scanner false, final_len 303.",
+    "q02 and q07 scanner prompts -> scanner true, fallback false, final_len 2955 and 3019.",
+    "q05 and q06 macro/advisory prompts -> MACRO_THESIS, scanner false, fallback false.",
+    "q09 HIVE.V fraud/microcap risk -> no hang, HTTP 200, STREAM_END true, but final_len 324 and generic fallback-style content; needs follow-up quality fix.",
+    "API log scan after QA -> no Traceback, forrtl, or INVARIANT VIOLATION; only provider/profile warnings were observed.",
+    ".\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --timeout-ms 180000 -> ok true, health ok, AAPL chart 130 candles, canvas nonBlank 378108, chat finalContentLength 2416, scannerInvoked false, console_errors empty."
   ],
   "risks": [
-    "Gemini provider still reports intermittent PROVIDER_ERROR/PROVIDER_COOLDOWN; fallback behavior is working but external key/quota should be reviewed before demos.",
-    "The QA artifacts include model-generated prompts/responses and should remain local evidence, not public marketing copy without review.",
-    "Watchdog recovered transient API downtime; long demo sessions should keep the hidden launcher/watchdog path instead of manually closing console windows.",
+    "Bob did not hang in the 10-prompt investment QA run.",
+    "HIVE.V explicit ticker fraud-risk prompt produced a too-generic answer; this is a product-quality issue to fix before demoing ticker-specific forensic analysis.",
+    "Scanner/advisory prompts can take around 80-100 seconds on the local 80B stack; demo scripts should avoid presenting that as a crash.",
+    "Provider/profile warnings can still appear when external providers or data sources are flaky, but they did not break this run.",
     "No GitHub operation was performed because this repository is DISK ONLY."
   ],
-  "next_step": "Commit the validated telemetry/agent changes and QA evidence locally, then continue with packaging rehearsal.",
+  "next_step": "Fix the explicit ticker forensic path so prompts like HIVE.V fraud risk trigger ticker/data analysis instead of a generic framework fallback.",
   "owner": "Marco"
 }
