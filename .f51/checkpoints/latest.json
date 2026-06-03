@@ -1,28 +1,40 @@
 {
-  "date_local": "2026-06-02T21:54:27-04:00",
-  "session": "save-current-tree-2026-06-02",
-  "status": "local_save_committed",
+  "date_local": "2026-06-02T22:25:27-04:00",
+  "session": "finnhub-fundamentals-hardening-2026-06-02",
+  "status": "local_changes_committed_with_ui_smoke_green_and_chat_timeout_risk",
   "what_was_done": [
-    "Audited the current repository state before saving",
-    "Confirmed F51_NO_GITHUB_DISK_ONLY policy is active",
-    "Identified two pending untracked UI evidence screenshots",
-    "Visually inspected both screenshots before staging and found no visible credentials",
-    "Prepared checkpoint metadata for the local save operation",
-    "Created local git commit 59948b9 for the checkpoint and UI screenshots"
+    "Hardened Finnhub fundamentals enrichment for market_scan",
+    "Added DataHub fundamentals routing through the Finnhub provider",
+    "Normalized Finnhub metric market_cap from millions into absolute units",
+    "Changed Finnhub metric cache to cache successful metric payloads briefly and avoid persisting transient failures",
+    "Separated the fundamentals circuit breaker from the main Finnhub price/profile/catalyst breaker",
+    "Added regression tests for fundamentals market_cap units, metric cache reuse, transient metric failure recovery, DataHub capability exposure, and catalyst isolation",
+    "Detected concurrent Gemini fallback default changes, validated them with lint/compile/gateway tests, and saved them separately",
+    "Created local commits b2fe827 and c6e2928"
   ],
   "evidence": [
-    "git status --porcelain=v1 -uall -> ?? superezio-final-state.png; ?? superezio-test-1.png",
-    "git diff --stat -> no tracked file diff before checkpoint update",
-    "git log --oneline -5 -> latest commit 70e8627 chore: save all pending changes -- frontend, checkpoints, agent, tests",
-    ".f51/GITHUB_POLICY.json -> current_mode disk_only; local commits allowed when Marco asks to save work",
-    "superezio-final-state.png -> 133610 bytes; UI screenshot inspected",
-    "superezio-test-1.png -> 143239 bytes; UI screenshot inspected",
-    "git commit -> 59948b9 chore: save UI screenshot checkpoint"
+    ".f51/GITHUB_POLICY.json -> current_mode disk_only; GitHub operations forbidden",
+    "python -m ruff check src/core/pipeline/nodes/collector.py src/data/data_hub.py src/data/finnhub_provider.py tests/test_finnhub_provider.py tests/test_market_scan_candidate_gate.py tests/test_data_hub_routing.py -> All checks passed",
+    "python -m ruff check src/core/model_serving/gateway.py src/core/model_serving/providers.py -> All checks passed",
+    "python -m compileall -q src/core/pipeline/nodes/collector.py src/data/data_hub.py src/data/finnhub_provider.py tests/test_finnhub_provider.py tests/test_market_scan_candidate_gate.py tests/test_data_hub_routing.py -> compile ok",
+    "python -m compileall -q src/core/model_serving/gateway.py src/core/model_serving/providers.py -> compile model_serving ok",
+    "python -m pytest tests/test_finnhub_provider.py tests/test_data_hub_routing.py tests/test_market_scan_candidate_gate.py -q -p no:cacheprovider -> 43 passed",
+    "python -m pytest tests/test_gateway.py tests/test_finnhub_provider.py tests/test_data_hub_routing.py tests/test_market_scan_candidate_gate.py -q -p no:cacheprovider -> 72 passed",
+    "GET http://127.0.0.1:8002/health -> status ok",
+    "GET http://127.0.0.1:8002/health/details -> status ok; GPU available; local_orchestrator configured",
+    "GET http://127.0.0.1:8082/v1/models -> Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf listed",
+    "python -u scripts/browser_smoke.py --timeout-ms 180000 -> failed: Page.wait_for_function timeout 180000ms waiting for chat final_content_length",
+    "python -u scripts/browser_smoke.py --skip-chat --timeout-ms 180000 -> ok true; chart_fetch AAPL 130 candles; canvas nonBlank 394632; console_errors []",
+    "git diff --check -> no whitespace errors",
+    "git commit -> b2fe827 fix(data): harden Finnhub fundamentals enrichment",
+    "git commit -> c6e2928 chore(model): tune Gemini fallback defaults"
   ],
   "risks": [
-    "No runtime tests were run because this request was a save/checkpoint operation and the only product artifacts pending were screenshots",
+    "Full browser smoke with chat still timed out after 180 seconds waiting for final_content_length; API, CEO, UI, chart, canvas, and ops console were reachable",
+    "The Gemini fallback default changes were detected after the initial data diff and saved as a separate local commit after focused validation",
+    "No broad full-suite pytest was run; validation was focused on gateway, Finnhub, DataHub routing, and market_scan regression coverage",
     "No GitHub operation was performed because this repository is DISK ONLY"
   ],
-  "next_step": "Tree is saved locally; run runtime and browser validation only if Marco wants a fresh demo proof beyond the screenshot evidence.",
+  "next_step": "If demo readiness requires chat proof, investigate the full browser chat timeout against API stream logs and the local 80B llama-server runtime.",
   "owner": "Marco"
 }
