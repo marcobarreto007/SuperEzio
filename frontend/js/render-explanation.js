@@ -7,13 +7,14 @@
   var _finalized = false;
 
   function ensureCard(ceo) {
-    if (_card) return _card;
+    if (_card && _card.card && _card.card.isConnected) return _card;
+    _card = null;
     ceo = ceo || (SZ.chat && SZ.chat.currentCEO);
     if (!ceo || !ceo.bubble) return null;
 
     var info = SZ.cards.makeCard("Explanation", "LIVE", "neutral", "file-text");
     info.card.classList.add("card--explanation");
-    info.card.classList.add("open"); // Start expanded
+    info.setOpen(true);
 
     var content = SZ.dom.el("div", "explanation-content");
     content.style.whiteSpace = "pre-wrap";

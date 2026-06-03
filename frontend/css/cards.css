@@ -28,6 +28,13 @@
   transition: all var(--duration) var(--ease);
 }
 
+.card-title {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .card-hdr:hover {
   background: rgba(255, 255, 255, 0.02);
   color: var(--ink);
@@ -48,6 +55,35 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.card-close {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: background var(--duration) var(--ease), color var(--duration) var(--ease), border-color var(--duration) var(--ease);
+}
+
+.card-close:hover,
+.card-close:focus-visible {
+  background: var(--surface-3);
+  border-color: var(--line-light);
+  color: var(--ink);
+  outline: none;
+}
+
+.card-close svg,
+.card-close i {
+  width: 15px;
+  height: 15px;
 }
 
 .card-badge--pass {

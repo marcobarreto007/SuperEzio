@@ -195,7 +195,7 @@ def main() -> int:
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL)
     parser.add_argument("--headed", action="store_true")
     parser.add_argument("--skip-chat", action="store_true")
-    parser.add_argument("--timeout-ms", type=int, default=90000)
+    parser.add_argument("--timeout-ms", type=int, default=180000)
     parser.add_argument(
         "--slow-mo",
         type=int,

@@ -175,6 +175,38 @@ class TestCapitalAllocation:
         assert "TFSA, RRSP, RESP, or FHSA" in repaired
         assert repaired.rstrip().endswith("Confidence: 72")
 
+    def test_repair_adds_scope_disclaimer_when_missing(self):
+        content = "Short allocation sketch without legal framing.\nFinal verdict: WAIT\nConfidence: 70"
+
+        repaired = _repair_complex_finance_answer(CAPITAL_ALLOCATION_PROMPT, content)
+
+        assert "scope note:" in repaired.lower()
+        assert "not personalized financial advice" in repaired.lower()
+
+    def test_repair_adds_assumptions_note_when_missing(self):
+        content = "Short allocation sketch.\nFinal verdict: WAIT\nConfidence: 70"
+
+        repaired = _repair_complex_finance_answer(CAPITAL_ALLOCATION_PROMPT, content)
+
+        assert "assumptions note:" in repaired.lower()
+        assert "illustrative assumptions" in repaired.lower()
+
+    def test_repair_replaces_unsourced_canadian_etf_tickers(self):
+        content = (
+            "This is an educational framework, not personalized financial advice.\n"
+            "Buy VCN and VCE for Canadian ETF exposure, then add ZAG.\n"
+            "Final verdict: ETF\n"
+            "Confidence: 70"
+        )
+
+        repaired = _repair_complex_finance_answer(CAPITAL_ALLOCATION_PROMPT, content)
+
+        assert "VCN" not in repaired
+        assert "VCE" not in repaired
+        assert "ZAG" not in repaired
+        assert "broad Canadian equity index ETF" in repaired
+        assert "aggregate bond ETF" in repaired
+
 
 # ===========================================================================
 # Test 3 — Rental property vs ETF must include quantitative framework

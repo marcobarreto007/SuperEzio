@@ -33,12 +33,12 @@
     <div class="logo">
       <span class="logo-mark">SE</span>
       <span class="logo-text">SuperEzio</span>
-      <span class="logo-sub">Market Command</span>
+      <span class="logo-sub" id="logo-sub">Market Command</span>
       <span class="status-dot status-dot--off" id="sys-dot" title="Checking..."></span>
     </div>
     <div class="spacer"></div>
     <div class="ticker-wrap">
-      <input id="ticker-inp" type="text" placeholder="Ticker" value="AAPL" autocomplete="off" spellcheck="false" maxlength="10">
+      <input id="ticker-inp" type="text" placeholder="Ticker" autocomplete="off" spellcheck="false" maxlength="10">
       <select id="tf-inp" aria-label="Timeframe">
         <option value="1D">1D</option>
         <option value="1W">1W</option>
@@ -61,13 +61,13 @@
         <div class="terminal-card-hdr">
           <i data-lucide="brain-circuit"></i>
           <strong>Bob CEO</strong>
-          <span id="live-ticker">AAPL</span>
+          <span id="live-ticker">--</span>
         </div>
         <main class="chat" id="chat" aria-label="Conversation">
           <section class="bob-welcome">
             <div class="bob-copy">
-              <strong>Bob is online.</strong>
-              <p>Ask directly. Market context is attached when your question needs the chart.</p>
+              <strong id="bob-welcome-title">Bob is online.</strong>
+              <p id="bob-welcome-body">Ask directly. Market context is attached when your question needs the chart.</p>
             </div>
           </section>
         </main>
@@ -81,8 +81,8 @@
     <main class="chart-workspace" aria-label="Trading workspace">
       <div class="market-header">
         <div class="asset-block">
-          <span class="asset-label">Live market</span>
-          <h1><span id="workspace-ticker">AAPL</span><small id="workspace-tf">6M</small></h1>
+          <span class="asset-label" id="asset-label">Live market</span>
+          <h1><span id="workspace-ticker">--</span><small id="workspace-tf">--</small></h1>
           <div class="live-profile" id="live-profile"></div>
         </div>
         <div class="price-strip">
@@ -135,7 +135,7 @@
         </div>
       </form>
       <div class="sdca-lab-result" id="sdca-result">
-        <div class="sdca-lab-empty">Ready for local firewall evaluation.</div>
+        <div class="sdca-lab-empty" id="sdca-ready">Ready for local firewall evaluation.</div>
       </div>
     </div>
   </section>
@@ -152,10 +152,10 @@
         <div class="ops-card" id="ops-card-health">
           <h3>System Health</h3>
           <div class="ops-metrics-list">
-            <div class="ops-row"><span>Status</span><strong id="ops-health-status">Checking...</strong></div>
-            <div class="ops-row"><span>GPU Acceleration</span><strong id="ops-health-gpu">Checking...</strong></div>
-            <div class="ops-row"><span>Redis Database</span><strong id="ops-health-redis">Checking...</strong></div>
-            <div class="ops-row"><span>Local Model (CEO)</span><strong id="ops-health-ceo">Checking...</strong></div>
+            <div class="ops-row"><span id="ops-label-status">Status</span><strong id="ops-health-status">Checking...</strong></div>
+            <div class="ops-row"><span id="ops-label-gpu">GPU Acceleration</span><strong id="ops-health-gpu">Checking...</strong></div>
+            <div class="ops-row"><span id="ops-label-redis">Redis Database</span><strong id="ops-health-redis">Checking...</strong></div>
+            <div class="ops-row"><span id="ops-label-ceo">Local Model (CEO)</span><strong id="ops-health-ceo">Checking...</strong></div>
           </div>
         </div>
 
@@ -170,19 +170,19 @@
 
         <!-- 3. System Capabilities Card -->
         <div class="ops-card" id="ops-card-capabilities">
-          <h3>Agent Capabilities</h3>
+          <h3 id="ops-title-capabilities">Agent Capabilities</h3>
           <ul class="ops-bullet-list" id="ops-capabilities-list">
-            <li>Loading...</li>
+            <li id="ops-capabilities-loading">Loading...</li>
           </ul>
         </div>
 
         <!-- 4. Product Manifest Card -->
         <div class="ops-card ops-card-wide" id="ops-card-manifest">
-          <h3>Product Manifest & Principles</h3>
+          <h3 id="ops-title-manifest">Product Manifest & Principles</h3>
           <div class="ops-manifest-desc" id="ops-manifest-desc">Loading...</div>
-          <div class="ops-principles-title">Operating Principles:</div>
+          <div class="ops-principles-title" id="ops-title-principles">Operating Principles:</div>
           <ul class="ops-bullet-list" id="ops-manifest-principles">
-            <li>Loading...</li>
+            <li id="ops-manifest-loading">Loading...</li>
           </ul>
         </div>
       </div>
@@ -190,6 +190,7 @@
   </section>
 
   <!-- JS (dependency order) -->
+  <script src="js/content.js"></script>
   <script src="js/state.js"></script>
   <script src="js/api.js"></script>
   <script src="js/cards.js"></script>

@@ -1,28 +1,34 @@
 {
-  "date_local": "2026-06-02T14:43:51-04:00",
-  "session": "experts-claude-review-2026-06-02",
-  "status": "claude_experts_changes_reviewed_fixed_and_saved",
+  "date_local": "2026-06-02T20:27:00-04:00",
+  "session": "frontend-content-and-finance-contract-2026-06-02",
+  "status": "saved_release_gate_green_for_touched_scope",
   "what_was_done": [
-    "Reviewed Claude's pending expert-runtime changes before saving",
-    "Kept the structured JSON expert-output direction and added Bob-readable structured aggregation",
-    "Fixed Gemini gateway wiring by importing GEMINI_PROVIDER_NAME and using OpenAI-compatible reasoning_effort=none for Gemini 2.5 Flash",
-    "Aligned config/model_manifest.json optional Gemini fallback to gemini-2.5-flash",
-    "Hardened expert JSON parsing for fenced or prefixed responses and preserved valid zero scores like sentiment_score=0.0",
-    "Replaced runtime summary glyph markers with ASCII markers for cleaner logs and traces",
-    "Adjusted Bob's anti-overblocking prompt so it still answers finance questions, but keeps explicit safety boundaries"
+    "Fixed the complex-finance repair layer so capital-allocation answers always get a scope disclaimer and an illustrative assumptions note before the final verdict",
+    "Repaired unsourced ETF ticker leakage in generic Canadian allocation answers by replacing common ETF tickers with asset-class descriptions",
+    "Added contract coverage for missing disclaimer, missing assumptions note, and unsourced ETF ticker replacement",
+    "Created frontend/js/content.js as the centralized frontend defaults/content module",
+    "Moved SDCA presets into the centralized frontend content module and made sdca-lab consume them from window.SZ.sdcaPresets",
+    "Moved primary frontpage defaults and visible labels into SZ.config/SZ.content boot population",
+    "Kept the previous frontpage close fix: hidden drawers no longer intercept clicks and pipeline cards can be closed with X",
+    "Raised scripts/browser_smoke.py default timeout to 180000 ms to match the current local Bob runtime instead of producing false 90s failures"
   ],
   "evidence": [
-    "python -m ruff check src/core/model_serving/gateway.py src/core/model_serving/providers.py src/core/pipeline/nodes/agent.py src/core/pipeline/nodes/experts.py tests/contracts/test_contract_experts.py -> All checks passed",
-    "python -m pytest tests/contracts/test_contract_experts.py tests/test_gateway.py tests/contracts/test_contract_model_serving.py -q -p no:cacheprovider -> 49 passed",
-    "python scripts/browser_smoke.py -> ok true, health ok, chart_fetch ok, canvas nonBlank 394632, fallbackUsed true",
-    "git diff --check -> no whitespace errors",
-    "Official Gemini OpenAI compatibility docs verified gemini-2.5-flash usage and reasoning_effort=none for disabling Gemini 2.5 thinking"
+    "runtime/do_restart.ps1 -> Health 8082: 200; Health 8002: 200; Servers up: True",
+    "python -m ruff check src/core/pipeline/nodes/agent.py tests/contracts/test_contract_complex_finance.py scripts/browser_smoke.py -> All checks passed",
+    "python -m pytest tests/contracts/test_contract_complex_finance.py::TestCapitalAllocation -q -p no:cacheprovider -> 13 passed",
+    "python -m pytest tests/contracts/test_contract_complex_finance.py::TestAgentP2CapitalAllocationQuality::test_cad_25k_allocation_answer_contract -q -p no:cacheprovider -> 1 passed",
+    "python -m pytest tests/test_runtime_smoke.py -q -p no:cacheprovider -> 20 passed",
+    "python -m pytest tests/contracts -q -p no:cacheprovider -> 393 passed",
+    "Playwright frontend probe -> content module loaded, default AAPL/6M applied, card X removed card, SDCA preset populated BTC-CAD, Ops drawer opened and closed",
+    "python scripts/browser_smoke.py --timeout-ms 180000 -> ok true, chart_fetch ok, canvas nonBlank 394632, fallbackUsed false, containsFinalVerdict true, no console_errors",
+    "git diff --check -> no whitespace errors"
   ],
   "risks": [
-    "Browser smoke still reports fallbackUsed=true for its chat path; this was pre-existing and outside the expert-change fix",
-    "Live API was not restarted as part of this review, so running service may need restart to load the saved Python prompt/runtime changes",
+    "Bob local generation for the browser smoke can exceed 90 seconds on this hardware; the smoke default now allows 180 seconds",
+    "Some static HTML fallback text remains as graceful no-JS content, but runtime source of truth for main defaults, welcome copy, Ops labels, and SDCA presets is now frontend/js/content.js",
+    "Broad repo lint over all tests still has historical unused-import debt outside this touched scope",
     "No GitHub operation was performed because this repository is DISK ONLY"
   ],
-  "next_step": "Restart the local API when Marco wants these expert prompt/runtime edits loaded into the live service, then run one real expert-enabled financial prompt with GEMINI_API_KEY/DeepSeek keys configured.",
+  "next_step": "If Marco wants another cleanup pass, move the remaining static fallback HTML strings into content.js data attributes and address broad test-suite lint debt.",
   "owner": "Marco"
 }

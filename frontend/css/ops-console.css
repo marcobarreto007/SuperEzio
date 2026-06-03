@@ -18,6 +18,8 @@
 
   /* Starting state: hidden offscreen */
   transform: translateX(100%);
+  visibility: hidden;
+  pointer-events: none;
 
   /* Native Top-layer discrete property transitions */
   transition:
@@ -29,6 +31,13 @@
 /* Selector for popover-open state */
 .ops-console:popover-open {
   transform: translateX(0);
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.ops-console.open {
+  visibility: visible;
+  pointer-events: auto;
 }
 
 /* Top-layer entry animation rules */

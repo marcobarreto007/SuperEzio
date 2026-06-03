@@ -1106,6 +1106,23 @@ def _repair_known_etf_category_errors(text: str) -> str:
     return repaired
 
 
+def _repair_unsourced_etf_tickers(text: str) -> str:
+    replacements = {
+        "VCN": "a broad Canadian equity index ETF",
+        "VCE": "a broad Canadian equity index ETF",
+        "XIC": "a broad diversified Canadian-listed ETF",
+        "VUN": "a broad US total-market ETF",
+        "ZAG": "an aggregate bond ETF",
+        "VGRO": "a balanced growth ETF",
+        "XEQT": "an all-equity diversified ETF",
+        "VFV": "an S&P 500 index ETF",
+    }
+    repaired = text or ""
+    for ticker, asset_class in replacements.items():
+        repaired = re.sub(rf"\b{ticker}(?:\.TO)?\b", asset_class, repaired)
+    return repaired
+
+
 def _repair_unsupported_exact_returns(text: str) -> str:
     return re.sub(
         r"guaranteed\s+\d+(?:\s*[–-]\s*\d+)?%\s+return",
@@ -1116,7 +1133,9 @@ def _repair_unsupported_exact_returns(text: str) -> str:
 
 
 def _repair_answer_quality(text: str) -> str:
-    return _repair_unsupported_exact_returns(_repair_known_etf_category_errors(text or ""))
+    return _repair_unsupported_exact_returns(
+        _repair_unsourced_etf_tickers(_repair_known_etf_category_errors(text or ""))
+    )
 
 
 def _repair_complex_finance_answer(message: str, content: str) -> str:
@@ -1135,6 +1154,20 @@ def _repair_complex_finance_answer(message: str, content: str) -> str:
     if not any(marker in lower for marker in disclaimer_markers):
         additions.append(
             "Scope note: This is an educational framework, not personalized financial advice."
+        )
+
+    assumption_markers = (
+        "illustrative",
+        "assumption",
+        "assumptions",
+        "assum",
+        "ilustrativ",
+        "supos",
+    )
+    if not any(marker in lower for marker in assumption_markers):
+        additions.append(
+            "Assumptions note: Scenario numbers, allocations, returns, and thresholds above "
+            "are illustrative assumptions for decision framing, not forecasts."
         )
 
     business_prompt = any(token in msg for token in ("business", "equipment", "side-business"))

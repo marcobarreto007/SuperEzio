@@ -15,7 +15,7 @@
 
     // Existing endpoints
     fetchHealth() { return fetchJson("/health"); },
-    fetchChartData(ticker, tf = "6M") {
+    fetchChartData(ticker, tf = (window.SZ.config || {}).defaultTimeframe || "6M") {
       return fetchJson(`/api/chart-data/${encodeURIComponent(ticker)}?timeframe=${encodeURIComponent(tf)}`);
     },
     async submitTask(envelope) {

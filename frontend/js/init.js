@@ -143,8 +143,9 @@
     }
 
     try {
-      var ticker = sanitTicker((document.getElementById("ticker-inp") || {}).value || "AAPL") || "AAPL";
-      var tf = (document.getElementById("tf-inp") || {}).value || "6M";
+      var cfg = SZ.config || {};
+      var ticker = sanitTicker((document.getElementById("ticker-inp") || {}).value || cfg.defaultTicker) || cfg.defaultTicker;
+      var tf = (document.getElementById("tf-inp") || {}).value || cfg.defaultTimeframe;
       var data = await SZ.api.fetchChartData(ticker, tf);
       var count = data && data.ohlcv ? data.ohlcv.length : 0;
       setOpsCard("ops-market", count > 0 ? "ok" : "warn", count > 0 ? count + " points" : "No candles");
@@ -159,6 +160,48 @@
   SZ.buildChartContext     = buildChartContext;
   SZ.buildPortfolioContext = buildPortfolioContext;
 
+  function setText(id, value) {
+    var el = document.getElementById(id);
+    if (el && value != null) el.textContent = value;
+  }
+
+  function applyFrontendContent() {
+    var cfg = SZ.config || {};
+    var content = SZ.content || {};
+    var ticker = sanitTicker(cfg.defaultTicker || "AAPL") || "AAPL";
+    var timeframe = cfg.defaultTimeframe || "6M";
+    var tickerInput = document.getElementById("ticker-inp");
+    if (tickerInput && !tickerInput.value) tickerInput.value = ticker;
+    var tfInput = document.getElementById("tf-inp");
+    if (tfInput) tfInput.value = timeframe;
+    setText("logo-sub", content.logoSub);
+    setText("live-ticker", ticker);
+    setText("workspace-ticker", ticker);
+    setText("workspace-tf", timeframe);
+    setText("asset-label", content.assetLabel);
+    setText("bob-welcome-title", content.bobWelcomeTitle);
+    setText("bob-welcome-body", content.bobWelcomeBody);
+    setText("sdca-ready", content.sdcaReady);
+    setText("sdca-preset-fomo", content.sdcaPresetFomo);
+    setText("sdca-preset-safe", content.sdcaPresetSafe);
+    setText("ops-label-status", content.ops && content.ops.status);
+    setText("ops-label-gpu", content.ops && content.ops.gpu);
+    setText("ops-label-redis", content.ops && content.ops.redis);
+    setText("ops-label-ceo", content.ops && content.ops.ceo);
+    setText("ops-title-capabilities", content.ops && content.ops.capabilities);
+    setText("ops-title-manifest", content.ops && content.ops.manifest);
+    setText("ops-title-principles", content.ops && content.ops.principles);
+    setText("ops-capabilities-loading", content.loading);
+    setText("ops-manifest-loading", content.loading);
+    setText("ops-health-status", content.statusChecking);
+    setText("ops-health-gpu", content.statusChecking);
+    setText("ops-health-redis", content.statusChecking);
+    setText("ops-health-ceo", content.statusChecking);
+    setText("ops-manifest-desc", content.loading);
+    var dot = document.getElementById("sys-dot");
+    if (dot && content.statusChecking) dot.title = content.statusChecking;
+  }
+
   /* ═══════════════════════════════════════════════════════════════
    * TASK SUBMISSION
    * ═══════════════════════════════════════════════════════════════ */
@@ -167,7 +210,7 @@
     var ticker = sanitTicker(
       (document.getElementById("ticker-inp") || {}).value || ""
     );
-    var tf = (document.getElementById("tf-inp") || {}).value || "6M";
+    var tf = (document.getElementById("tf-inp") || {}).value || (SZ.config || {}).defaultTimeframe || "6M";
     var attachMarket = shouldAttachMarketContext(msg, ticker);
 
     return {
@@ -294,7 +337,7 @@
     var ticker = sanitTicker(
       (document.getElementById("ticker-inp") || {}).value || ""
     );
-    var tf = (document.getElementById("tf-inp") || {}).value || "6M";
+    var tf = (document.getElementById("tf-inp") || {}).value || (SZ.config || {}).defaultTimeframe || "6M";
     if (!ticker) return;
 
     var t0 = performance.now();
@@ -509,6 +552,8 @@
    * ═══════════════════════════════════════════════════════════════ */
 
   function boot() {
+    applyFrontendContent();
+
     /* load portfolio from localStorage */
     try {
       var stored = localStorage.getItem("sz_portfolio");
