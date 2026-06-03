@@ -369,6 +369,78 @@ async def test_priced_candidates_fail_on_thesis_not_price(monkeypatch):
     assert summary.get("missing_short_term_thesis", 0) == 0
 
 
+@pytest.mark.asyncio
+async def test_fundamentals_failures_do_not_skip_catalyst_enrichment(monkeypatch):
+    """Fundamentals is optional enrichment; its failures must not trip catalyst."""
+    from src.core import scanner as scanner_module
+    from src.core.pipeline.nodes.collector import _run_scan
+
+    tickers = [f"TEST{i}" for i in range(6)]
+    monkeypatch.setenv("SUPEREZIO_SCAN_MAX_CANDIDATES_AFTER_GATE", "5")
+
+    class StubScanner:
+        def scan_equities(self, country=None, sector=None, industry=None, limit=10):
+            if country == "United States":
+                return tickers
+            return []
+
+    class StubHub:
+        def __init__(self):
+            self.catalyst_calls: list[str] = []
+
+        def get_price(self, ticker, **kwargs):
+            return {
+                "price": 150.0,
+                "volume": 25_000_000,
+                "source": "finnhub",
+            }
+
+        def get_profile(self, ticker):
+            return {"name": ticker, "exchange": "NASDAQ", "source": "finnhub"}
+
+        def get_fundamentals(self, ticker):
+            return {"error": "no_metrics"}
+
+        def route(self, capability, ticker):
+            if capability == "short_term_catalyst":
+                self.catalyst_calls.append(ticker)
+                return {
+                    "catalyst": f"{ticker} has a scheduled event catalyst.",
+                    "risk": "Event can disappoint or broader market can sell off.",
+                    "invalidation": "Close below the 20-day moving average.",
+                    "source": "finnhub",
+                }
+            return {}
+
+        def list_routes(self, capability=None):
+            return [{"name": "finnhub", "configured": True}]
+
+    hub = StubHub()
+    monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
+    monkeypatch.setitem(sys.modules, "data.data_hub", types.SimpleNamespace(hub=hub))
+
+    try:
+        import src.core.scanner.openbb_scanner as _obb_mod
+
+        monkeypatch.setattr(_obb_mod, "_OPENBB_AVAILABLE", False)
+    except ImportError:
+        pass
+
+    result = await _run_scan(
+        "Scan US technology equities for 2-week opportunities.",
+        {"country": "United States"},
+    )
+
+    assert hub.catalyst_calls == tickers
+    assert result["scan_trace"]["gated_candidate_count"] == len(tickers)
+    assert result["rejected_count"] == 0
+    assert len(result["candidates"]) == 5
+    breakers = result["scan_trace"]["circuit_breakers"]
+    assert breakers["finnhub"]["state"] == "closed"
+    assert "finnhub_fundamentals" in breakers
+    assert all("scheduled event catalyst" in c.get("catalyst", "") for c in result["candidates"])
+
+
 # ---------------------------------------------------------------------------
 # Regression: "share recommendation" must never route to CHINA_A_SHARES
 # ---------------------------------------------------------------------------

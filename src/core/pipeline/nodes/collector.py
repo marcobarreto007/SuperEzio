@@ -544,6 +544,18 @@ def _safe_get_profile(hub_obj: Any, ticker: str) -> dict[str, Any]:
     return result if isinstance(result, dict) else {}
 
 
+def _safe_get_fundamentals(hub_obj: Any, ticker: str) -> dict[str, Any]:
+    """Call hub.get_fundamentals defensively. Test doubles may not implement it."""
+    fn = getattr(hub_obj, "get_fundamentals", None)
+    if not callable(fn):
+        return {}
+    try:
+        result = fn(ticker)
+    except Exception as exc:  # noqa: BLE001
+        return {"error": str(exc)}
+    return result if isinstance(result, dict) else {}
+
+
 def _safe_get_short_term_catalyst(hub_obj: Any, ticker: str) -> dict[str, Any]:
     """Pull a 2-week catalyst via the hub's `short_term_catalyst` capability.
 
@@ -735,10 +747,12 @@ async def _run_scan(
 
             # ── Circuit breakers per provider ──
             breaker_finnhub = CircuitBreaker("finnhub")
+            breaker_finnhub_fundamentals = CircuitBreaker("finnhub_fundamentals")
             breaker_yfinance = CircuitBreaker("yfinance")
             breaker_twelve = CircuitBreaker("twelve_data")
             _BREAKERS_BY_PROVIDER = {
                 "finnhub": breaker_finnhub,
+                "finnhub_fundamentals": breaker_finnhub_fundamentals,
                 "yfinance": breaker_yfinance,
                 "twelve_data": breaker_twelve,
             }
@@ -873,6 +887,26 @@ async def _run_scan(
                     breaker.success()
                 return result
 
+            async def _call_fundamentals(item: dict[str, Any]) -> Any:
+                breaker = breaker_finnhub_fundamentals
+                if not breaker.allow():
+                    return CircuitBreakerOpenError(f"circuit_open:{breaker.provider}")
+                try:
+                    result = await asyncio.wait_for(
+                        asyncio.to_thread(
+                            _safe_get_fundamentals, hub, item.get("ticker", "")
+                        ),
+                        timeout=per_item_timeout,
+                    )
+                except Exception:
+                    breaker.failure()
+                    raise
+                if isinstance(result, dict) and "error" in result:
+                    breaker.failure()
+                else:
+                    breaker.success()
+                return result
+
             async def _call_catalyst(item: dict[str, Any]) -> Any:
                 breaker = _resolve_breaker(item)
                 if not breaker.allow():
@@ -905,6 +939,11 @@ async def _run_scan(
                 profile_catalyst_targets,
                 _call_profile,
             )
+            fundamentals_pairs = await _run_enrich_stage(
+                "enrich_fundamentals",
+                profile_catalyst_targets,
+                _call_fundamentals,
+            )
             catalyst_pairs = await _run_enrich_stage(
                 "enrich_catalyst",
                 profile_catalyst_targets,
@@ -916,6 +955,7 @@ async def _run_scan(
 
             price_results = [res for _, res in price_pairs]
             profile_results = [res for _, res in profile_pairs]
+            fundamentals_results = [res for _, res in fundamentals_pairs]
             catalyst_results = [res for _, res in catalyst_pairs]
             # Fields a data provider may legitimately surface today or in the
             # future. Anything outside this allow-list is ignored on purpose.
@@ -941,6 +981,24 @@ async def _run_scan(
                 "confidence",
                 "event_date",
                 "country",
+                # ── Fundamentals (Finnhub /stock/metric) ──
+                "pe_ratio",
+                "beta",
+                "eps",
+                "dividend_yield",
+                "price_to_book",
+                "price_to_sales",
+                "roe",
+                "roa",
+                "profit_margin",
+                "operating_margin",
+                "gross_margin",
+                "revenue_growth_yoy",
+                "eps_growth_yoy",
+                "debt_to_equity",
+                "current_ratio",
+                "sector",
+                "industry",
             )
 
             def _merge(item: dict[str, Any], result: Any) -> None:
@@ -977,10 +1035,11 @@ async def _run_scan(
                         item["price_attempts"] = attempts
                 _merge(item, price_res)
 
-            for item, profile_res, catalyst_res in zip(
-                profile_catalyst_targets, profile_results, catalyst_results
+            for item, profile_res, fundamentals_res, catalyst_res in zip(
+                profile_catalyst_targets, profile_results, fundamentals_results, catalyst_results
             ):
                 _merge(item, profile_res)
+                _merge(item, fundamentals_res)
                 _merge(item, catalyst_res)
 
             # ── Catalyst fallback: OpenBB data → technical thesis when Finnhub empty ──

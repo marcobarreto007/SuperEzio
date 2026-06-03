@@ -19,5 +19,6 @@ def test_finnhub_has_candles_and_news_capabilities() -> None:
     hub = DataHub(register_defaults=True)
     finn = next(r for r in hub.list_routes() if r["name"] == "finnhub")
     assert "candles" in finn["capabilities"]
+    assert "fundamentals" in finn["capabilities"]
     assert "news" in finn["capabilities"]
     assert finn["priority"] == 1

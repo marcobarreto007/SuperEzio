@@ -171,6 +171,7 @@ class DataHub:
                     "market_price",
                     "quote",
                     "profile",
+                    "fundamentals",
                     "short_term_catalyst",
                     "candles",
                     "news",
@@ -181,6 +182,7 @@ class DataHub:
                     "market_price": "get_price",
                     "quote": "get_quote",
                     "profile": "get_profile",
+                    "fundamentals": "get_fundamentals",
                     "short_term_catalyst": "get_short_term_catalyst",
                     "candles": "get_candles",
                     "news": "get_news",
@@ -508,6 +510,10 @@ class DataHub:
     def get_profile(self, symbol: str) -> Dict[str, Any]:
         """Route company profile across configured providers."""
         return self.route("profile", symbol)
+
+    def get_fundamentals(self, symbol: str) -> Dict[str, Any]:
+        """Route fundamentals (P/E, Beta, EPS, margins, ROE) across configured providers."""
+        return self.route("fundamentals", symbol)
 
     def get_treasury_yield(self, maturity: str = "10year") -> Dict[str, Any]:
         """Route treasury yield lookup."""

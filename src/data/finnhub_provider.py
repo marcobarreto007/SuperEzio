@@ -30,6 +30,12 @@ _RATE_LOCK = threading.Lock()
 _LAST_REQUEST_MONO = 0.0
 
 
+def _set_if(d: dict, key: str, value: Any) -> None:
+    """Set key in dict only if value is not None."""
+    if value is not None:
+        d[key] = value
+
+
 def _log_event(phase: str, event: str, data: dict | None = None) -> None:
     try:
         from core.observability.neural_log import log_event
@@ -45,6 +51,14 @@ def _finnhub_min_interval_sec() -> float:
         return max(0.0, float(raw))
     except ValueError:
         return 1.05
+
+
+def _finnhub_metric_cache_ttl_sec() -> float:
+    raw = os.getenv("FINNHUB_METRIC_CACHE_TTL_SEC", "60")
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        return 60.0
 
 
 def _rate_limit_before_request() -> None:
@@ -150,11 +164,26 @@ class FinnhubProvider:
         """Alias for hub `quote` capability — same payload as get_price."""
         return self.get_price(symbol)
 
-    def _fetch_avg_volume(self, symbol: str) -> float | None:
+    def _fetch_metrics_raw(self, symbol: str) -> dict | None:
         """
-        Pull 10-day average volume from /stock/metric. Returns None when the
-        endpoint is unavailable on the current tier or the field is missing.
+        Fetch raw /stock/metric response for a symbol.
+        Returns the full 'metric' dict or None on any failure.
+        Successful responses are cached briefly per provider instance so
+        get_price + get_fundamentals share the same API call within a scan
+        cycle. Failures are not cached, because provider 429/5xx/no_payload
+        states are transient in the local runtime.
         """
+        if not hasattr(self, "_metrics_cache"):
+            self._metrics_cache: dict[str, tuple[float, dict]] = {}
+        key = symbol.upper()
+        ttl = _finnhub_metric_cache_ttl_sec()
+        cached = self._metrics_cache.get(key)
+        if cached is not None:
+            cached_at, metric = cached
+            if ttl > 0 and time.monotonic() - cached_at <= ttl:
+                return metric
+            self._metrics_cache.pop(key, None)
+
         try:
             _rate_limit_before_request()
             response = requests.get(
@@ -165,16 +194,30 @@ class FinnhubProvider:
             if response.status_code != 200:
                 return None
             metric = (response.json() or {}).get("metric") or {}
-            vol = metric.get("10DayAverageTradingVolume")
-            if vol is None:
-                vol = metric.get("3MonthAverageTradingVolume")
-            if vol is None:
+            if not isinstance(metric, dict) or not metric:
                 return None
-            # Finnhub /stock/metric reports 10DayAverageTradingVolume in
-            # millions of shares (e.g. 2.20265 => ~2.20M shares/day).
-            return float(vol) * 1_000_000.0
+            if ttl > 0:
+                self._metrics_cache[key] = (time.monotonic(), metric)
+            return metric
         except Exception:
             return None
+
+    def _fetch_avg_volume(self, symbol: str) -> float | None:
+        """
+        Pull 10-day average volume from /stock/metric. Returns None when the
+        endpoint is unavailable on the current tier or the field is missing.
+        """
+        metric = self._fetch_metrics_raw(symbol)
+        if not metric:
+            return None
+        vol = metric.get("10DayAverageTradingVolume")
+        if vol is None:
+            vol = metric.get("3MonthAverageTradingVolume")
+        if vol is None:
+            return None
+        # Finnhub /stock/metric reports 10DayAverageTradingVolume in
+        # millions of shares (e.g. 2.20265 => ~2.20M shares/day).
+        return float(vol) * 1_000_000.0
 
     # ─────────────────────────────────────────────────────────────────
     # Company profile
@@ -231,6 +274,97 @@ class FinnhubProvider:
                 "share_outstanding": data.get("shareOutstanding"),
                 "source": "finnhub",
             }
+
+        return {"error": last_error, "symbol": symbol, "tried": variants}
+
+    # ─────────────────────────────────────────────────────────────────
+    # Fundamentals (P/E, Beta, EPS, margins, ROE, sector)
+    # ─────────────────────────────────────────────────────────────────
+    def get_fundamentals(self, symbol: str) -> Dict[str, Any]:
+        """
+        Extract key fundamental metrics from Finnhub /stock/metric.
+
+        Returns a dict with pe_ratio, beta, eps, dividend_yield, roe, roa,
+        profit_margin, operating_margin, sector, industry, and more.
+        Returns {"error": ...} on failure.
+        """
+        variants = finnhub_symbol_variants(symbol)
+        last_error = "no_metrics"
+        for variant in variants:
+            metric = self._fetch_metrics_raw(variant)
+            if not metric:
+                last_error = "no_metrics"
+                continue
+
+            # ── Valuation ──
+            pe = metric.get("peBasicExclExtraTTM") or metric.get("peTTM") or metric.get("peNormalizedAnnual")
+            beta = metric.get("beta")
+            eps = metric.get("epsBasicExclExtraItemsTTM") or metric.get("epsInclExtraItemsTTM")
+            dividend_yield = metric.get("dividendYieldIndicatedAnnual")
+            pb = metric.get("pbAnnual") or metric.get("pbQuarterly")
+            ps = metric.get("psTTM")
+
+            # ── Profitability ──
+            roe = metric.get("roeTTM") or metric.get("roeAnnual")
+            roa = metric.get("roaTTM") or metric.get("roaAnnual")
+            profit_margin = metric.get("netProfitMarginTTM") or metric.get("netProfitMarginAnnual")
+            operating_margin = metric.get("operatingMarginTTM") or metric.get("operatingMarginAnnual")
+            gross_margin = metric.get("grossMarginTTM") or metric.get("grossMarginAnnual")
+
+            # ── Growth ──
+            revenue_growth = metric.get("revenueGrowthTTMYoy") or metric.get("revenueGrowth3Y")
+            eps_growth = metric.get("epsGrowthTTMYoy") or metric.get("epsGrowth3Y")
+
+            # ── Financial health ──
+            debt_to_equity = metric.get("totalDebt/totalEquityAnnual") or metric.get("totalDebt/totalEquityQuarterly")
+            current_ratio = metric.get("currentRatioAnnual") or metric.get("currentRatioQuarterly")
+
+            # ── Classification ──
+            sector = metric.get("sector")
+            industry = metric.get("industry")
+
+            # ── Volume (already in get_price, but include for completeness) ──
+            avg_volume = metric.get("10DayAverageTradingVolume") or metric.get("3MonthAverageTradingVolume")
+            if avg_volume is not None:
+                avg_volume = float(avg_volume) * 1_000_000.0
+
+            # Finnhub reports market capitalization in millions, matching
+            # /stock/profile2. Keep DataHub's contract in absolute units.
+            market_cap_raw = metric.get("marketCapitalization")
+            market_cap = (
+                int(float(market_cap_raw) * 1_000_000)
+                if market_cap_raw is not None
+                else None
+            )
+
+            payload: Dict[str, Any] = {
+                "symbol": variant,
+                "requested_symbol": symbol,
+                "source": "finnhub",
+            }
+
+            # Only include non-None values
+            _set_if(payload, "pe_ratio", pe)
+            _set_if(payload, "beta", beta)
+            _set_if(payload, "eps", eps)
+            _set_if(payload, "dividend_yield", dividend_yield)
+            _set_if(payload, "price_to_book", pb)
+            _set_if(payload, "price_to_sales", ps)
+            _set_if(payload, "roe", roe)
+            _set_if(payload, "roa", roa)
+            _set_if(payload, "profit_margin", profit_margin)
+            _set_if(payload, "operating_margin", operating_margin)
+            _set_if(payload, "gross_margin", gross_margin)
+            _set_if(payload, "revenue_growth_yoy", revenue_growth)
+            _set_if(payload, "eps_growth_yoy", eps_growth)
+            _set_if(payload, "debt_to_equity", debt_to_equity)
+            _set_if(payload, "current_ratio", current_ratio)
+            _set_if(payload, "sector", sector)
+            _set_if(payload, "industry", industry)
+            _set_if(payload, "avg_daily_volume_shares", avg_volume)
+            _set_if(payload, "market_cap", market_cap)
+
+            return payload
 
         return {"error": last_error, "symbol": symbol, "tried": variants}
 

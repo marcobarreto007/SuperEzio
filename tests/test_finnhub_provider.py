@@ -149,6 +149,84 @@ def test_get_profile_returns_normalized_market_cap_in_units() -> None:
     assert "error" not in result
 
 
+def test_get_fundamentals_normalizes_metric_market_cap_in_units() -> None:
+    """Finnhub metric market cap follows the profile endpoint's million-unit contract."""
+    provider = _make_provider()
+
+    metric_payload = {
+        "metric": {
+            "marketCapitalization": 3_000_000.0,
+            "peBasicExclExtraTTM": 31.2,
+            "beta": 1.18,
+            "10DayAverageTradingVolume": 50.0,
+        }
+    }
+
+    with patch(
+        "data.finnhub_provider.requests.get",
+        return_value=_FakeResponse(status_code=200, payload=metric_payload),
+    ):
+        result = provider.get_fundamentals("AAPL")
+
+    assert result.get("source") == "finnhub"
+    assert result.get("symbol") == "AAPL"
+    assert result.get("market_cap") == 3_000_000 * 1_000_000
+    assert result.get("pe_ratio") == 31.2
+    assert result.get("beta") == 1.18
+    assert result.get("avg_daily_volume_shares") == 50_000_000.0
+    assert "error" not in result
+
+
+def test_metric_cache_reuses_success_between_price_and_fundamentals() -> None:
+    """One provider instance should not spend two metric calls for one scan cycle."""
+    provider = _make_provider()
+    quote_payload = {"c": 195.50, "d": 1.25, "dp": 0.64, "pc": 194.25}
+    metric_payload = {
+        "metric": {
+            "10DayAverageTradingVolume": 50.0,
+            "peBasicExclExtraTTM": 31.2,
+        }
+    }
+    urls: list[str] = []
+
+    def fake_get(url: str, *_, **__):
+        urls.append(url)
+        if "/quote" in url:
+            return _FakeResponse(status_code=200, payload=quote_payload)
+        if "/stock/metric" in url:
+            return _FakeResponse(status_code=200, payload=metric_payload)
+        return _FakeResponse(status_code=404, payload={})
+
+    with patch("data.finnhub_provider.requests.get", side_effect=fake_get):
+        price = provider.get_price("AAPL")
+        fundamentals = provider.get_fundamentals("AAPL")
+
+    metric_calls = [url for url in urls if "/stock/metric" in url]
+    assert price.get("avg_daily_volume_shares") == 50_000_000.0
+    assert fundamentals.get("pe_ratio") == 31.2
+    assert len(metric_calls) == 1
+
+
+def test_metric_cache_does_not_persist_transient_failure() -> None:
+    """A 5xx/429/no-payload metric response must not poison the provider process."""
+    provider = _make_provider()
+    metric_payload = {"metric": {"peBasicExclExtraTTM": 31.2}}
+
+    with patch(
+        "data.finnhub_provider.requests.get",
+        side_effect=[
+            _FakeResponse(status_code=500, payload={}),
+            _FakeResponse(status_code=200, payload=metric_payload),
+        ],
+    ) as mock_get:
+        first = provider.get_fundamentals("AAPL")
+        second = provider.get_fundamentals("AAPL")
+
+    assert first.get("error") == "no_metrics"
+    assert second.get("pe_ratio") == 31.2
+    assert mock_get.call_count == 2
+
+
 def test_short_term_catalyst_returns_event_when_earnings_in_window() -> None:
     provider = _make_provider()
 
