@@ -316,16 +316,54 @@ _REJECTION_LABELS_PT = {
 
 
 def _parse_tool_call(text: str) -> dict[str, Any] | None:
+    """Extract the first valid JSON tool-call object from *text*."""
+    calls = _parse_tool_calls(text)
+    return calls[0] if calls else None
+
+
+def _parse_tool_calls(text: str) -> list[dict[str, Any]]:
+    """Extract every valid JSON tool-call object from *text*.
+
+    The sovereign model sometimes emits multiple tool calls in a single
+    response (e.g. f51_firewall + sdca_firewall + collect_data).  This
+    function returns them all so the agent can batch-execute them instead
+    of silently dropping the second and subsequent calls.
+    """
+    calls: list[dict[str, Any]] = []
+    # First try parsing the whole text as one JSON array
+    stripped = text.strip()
     try:
-        # Extract JSON if there's markdown
-        match = re.search(r"\{.*\}", text.strip(), re.DOTALL)
-        if match:
-            raw = json.loads(match.group(0))
-        else:
-            raw = json.loads(text.strip())
-        return AgentToolCall.model_validate(raw).model_dump()
-    except Exception:
-        return None
+        parsed = json.loads(stripped)
+        if isinstance(parsed, list):
+            for item in parsed:
+                if isinstance(item, dict) and "tool" in item:
+                    try:
+                        calls.append(AgentToolCall.model_validate(item).model_dump())
+                    except Exception:
+                        pass
+            if calls:
+                return calls
+        elif isinstance(parsed, dict) and "tool" in parsed:
+            try:
+                return [AgentToolCall.model_validate(parsed).model_dump()]
+            except Exception:
+                pass
+    except (json.JSONDecodeError, TypeError, ValueError):
+        pass
+
+    # Try to find every {...} JSON block in the text (greedy, overlapping-safe)
+    for match in re.finditer(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", stripped):
+        candidate = match.group(0)
+        try:
+            obj = json.loads(candidate)
+            if isinstance(obj, dict) and "tool" in obj:
+                try:
+                    calls.append(AgentToolCall.model_validate(obj).model_dump())
+                except Exception:
+                    pass
+        except (json.JSONDecodeError, TypeError, ValueError):
+            continue
+    return calls
 
 
 def _is_portuguese_request(message: str) -> bool:
@@ -1034,9 +1072,7 @@ def _tool_blocked_answer(state: dict) -> str:
     if state.get("cognitive_mode") or "cognitive_contract" in str(reason):
         return _contract_fallback_answer(state)
     if _is_portuguese_request(state.get("message", "")):
-        return (
-            f"Bob: A ferramenta '{tool}' foi bloqueada ({reason}). Produzindo resposta final."
-        )
+        return f"Bob: A ferramenta '{tool}' foi bloqueada ({reason}). Produzindo resposta final."
     return f"Bob: Tool '{tool}' was blocked ({reason}). Producing final answer."
 
 
@@ -1361,6 +1397,7 @@ def _final_payload(content: str, iterations: int) -> dict[str, Any]:
         "final": content,
         "agent_tool_call": {"tool": "final_answer", "args": {"content": content}},
         "agent_iterations": iterations + 1,
+        "_pending_tool_calls": [],
     }
 
 
@@ -1377,6 +1414,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             "bob_thesis": state.get("bob_thesis", ""),
             "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
             "current_datetime": state.get("current_datetime", ""),
+            "_pending_tool_calls": [],
         }
 
     if state.get("tool_blocked"):
@@ -1391,7 +1429,6 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
     if gateway is None:
         return {"errors": state.get("errors", []) + ["no_gateway"]}
-
 
     writer(
         {
@@ -1420,25 +1457,29 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         bob_intent = state.get("bob_intent", state.get("intent", "general_question"))
 
         messages = [{"role": "system", "content": active_system_prompt}]
-        messages.append({
-            "role": "user",
-            "content": (
-                f"CURRENT DATE: {now_str}\n"
-                f"DETECTED RISK LEVEL: {risk}\n\n"
-                f"DETECTED BOB INTENT: {bob_intent}\n\n"
-                f"USER: {state.get('message', '')}\n\n"
-                f"BANNED: Do NOT output the 12-section framework template. "
-                f"BANNED: Do NOT use numbered sections like '1. **Scope disclaimer** —'. "
-                f"REQUIRED for allocation/personal-finance questions: one short scope line "
-                f"(educational framework, not personalized financial advice). "
-                f"Talk like a smart friend giving advice. "
-                f"If the user wants a stock pick, give them tickers with reasons. "
-                f"If you need market data, call tools. If you can answer from knowledge, do so."
-            ),
-        })
+        messages.append(
+            {
+                "role": "user",
+                "content": (
+                    f"CURRENT DATE: {now_str}\n"
+                    f"DETECTED RISK LEVEL: {risk}\n\n"
+                    f"DETECTED BOB INTENT: {bob_intent}\n\n"
+                    f"USER: {state.get('message', '')}\n\n"
+                    f"BANNED: Do NOT output the 12-section framework template. "
+                    f"BANNED: Do NOT use numbered sections like '1. **Scope disclaimer** —'. "
+                    f"REQUIRED for allocation/personal-finance questions: one short scope line "
+                    f"(educational framework, not personalized financial advice). "
+                    f"Talk like a smart friend giving advice. "
+                    f"If the user wants a stock pick, give them tickers with reasons. "
+                    f"If you need market data, call tools. If you can answer from knowledge, do so."
+                ),
+            }
+        )
         state["current_datetime"] = now_str
     else:
-        active_system_prompt = COMPLEX_FINANCE_SYSTEM_PROMPT if is_complex_finance else SYSTEM_PROMPT
+        active_system_prompt = (
+            COMPLEX_FINANCE_SYSTEM_PROMPT if is_complex_finance else SYSTEM_PROMPT
+        )
         messages = [{"role": "system", "content": active_system_prompt}]
         messages.append({"role": "user", "content": f"User Request: {state.get('message', '')}"})
 
@@ -1550,15 +1591,55 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         if "<think>" in raw:
             raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
 
-        tool_call = _parse_tool_call(raw)
+        tool_calls = _parse_tool_calls(raw)
 
         # ── Bob Sovereign: if no JSON tool call found, treat entire response as final_answer ──
-        if bob_sovereign and (not tool_call or "tool" not in tool_call):
+        if bob_sovereign and not tool_calls:
             # If the model put everything inside <think> tags, raw is now empty.
             # Use the extracted reasoning as the final answer instead of falling back.
             content_source = raw.strip() or reasoning
             if len(content_source) > 20:
-                tool_call = {"tool": "final_answer", "args": {"content": content_source}}
+                tool_calls = [{"tool": "final_answer", "args": {"content": content_source}}]
+
+        # ── Sovereign batch guard: when the model emits ONLY tool-call JSON
+        #     with zero natural-language text between them, it is planning its
+        #     workflow rather than answering.  Execute the first tool and store
+        #     the rest so they are not silently dropped. ──
+        pending_tools = list(state.get("_pending_tool_calls") or [])
+        if bob_sovereign and tool_calls:
+            # Check whether the raw output is pure JSON (no substantial NL text)
+            json_only = not reasoning or len(reasoning) < 30 or reasoning.strip().startswith("{")
+            if json_only and len(tool_calls) > 1:
+                # Keep only the first tool for this iteration; queue the rest
+                pending_tools = tool_calls[1:] + pending_tools
+                tool_calls = tool_calls[:1]
+                state["_pending_tool_calls"] = pending_tools
+            elif json_only and len(tool_calls) == 1 and tool_calls[0].get("tool") != "final_answer":
+                # Single tool call with no NL – it's a planning step, not an answer
+                pass
+            elif not json_only and tool_calls:
+                # NL present: clear pending queue since model is now reasoning
+                state["_pending_tool_calls"] = []
+
+        # If we have pending tools from a previous iteration, process them first
+        if not tool_calls and pending_tools:
+            tool_calls = [pending_tools[0]]
+            state["_pending_tool_calls"] = pending_tools[1:]
+
+        # ── Force final_answer when only tool-call JSON and no NL after max planning ──
+        if (
+            bob_sovereign
+            and tool_calls
+            and all(tc.get("tool") != "final_answer" for tc in tool_calls)
+            and iterations >= 2
+            and not pending_tools
+        ):
+            # Model keeps planning without answering — force synthesis
+            tool_calls = [
+                {"tool": "final_answer", "args": {"content": _contract_fallback_answer(state)}}
+            ]
+
+        tool_call = tool_calls[0] if tool_calls else None
 
         if tool_call and "tool" in tool_call:
             if tool_call["tool"] == "final_answer":
@@ -1585,6 +1666,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     "final": content,
                     "agent_tool_call": tool_call,
                     "agent_iterations": iterations + 1,
+                    "_pending_tool_calls": [],
                     "bob_thesis": state.get("bob_thesis", ""),
                     "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
                     "current_datetime": state.get("current_datetime", ""),
@@ -1593,6 +1675,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 return {
                     "agent_tool_call": tool_call,
                     "agent_iterations": iterations + 1,
+                    "_pending_tool_calls": list(state.get("_pending_tool_calls") or []),
                     "bob_thesis": state.get("bob_thesis", ""),
                     "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
                     "current_datetime": state.get("current_datetime", ""),
@@ -1609,6 +1692,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 "final": content,
                 "agent_tool_call": {"tool": "final_answer", "args": {"content": content}},
                 "agent_iterations": iterations + 1,
+                "_pending_tool_calls": [],
                 "bob_thesis": state.get("bob_thesis", ""),
                 "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
                 "current_datetime": state.get("current_datetime", ""),

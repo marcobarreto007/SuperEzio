@@ -69,11 +69,11 @@ class PipelineState(TypedDict, total=False):
     orchestrator_model_status: str
 
     # ── Bob Sovereign Mode (SUPEREZIO_BOB_SOVEREIGN=1) ──
-    bob_intent: str               # intenção classificada (não é rota!)
-    risk_tolerance: str           # "conservadora" | "moderada" | "alta" | "especulativa"
-    bob_thesis: str               # tese que Bob formou ANTES de chamar tools
+    bob_intent: str  # intenção classificada (não é rota!)
+    risk_tolerance: str  # "conservadora" | "moderada" | "alta" | "especulativa"
+    bob_thesis: str  # tese que Bob formou ANTES de chamar tools
     bob_reasoning_trace: list[str]  # passos de raciocínio do Bob
-    current_datetime: str         # injetado a cada execução (datetime.now())
+    current_datetime: str  # injetado a cada execução (datetime.now())
 
     # Data collection
     data: dict[str, Any]
@@ -107,6 +107,7 @@ class PipelineState(TypedDict, total=False):
     # Agent Loop
     agent_tool_call: dict[str, Any]
     agent_iterations: int
+    _pending_tool_calls: list[dict[str, Any]]
     executed_tools: list[str]
     executed_tool_counts: dict[str, int]
     tool_blocked: dict[str, Any]

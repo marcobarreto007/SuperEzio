@@ -657,28 +657,43 @@ def test_negative_scan_instruction_blocks_market_scan():
 
 def test_advisory_routes_never_invoke_scanner():
     """Runtime invariant: advisory routes must never set scanner_invoked=True."""
-    # This tests the invariant logic that lives in endpoints.py
-    _ADVISORY_ROUTES = {"general", "capital_allocation", "personal_finance"}
+    from src.agent_server.endpoints import _is_advisory_scanner_violation
 
     # Valid: advisory route + no scanner
-    for route in _ADVISORY_ROUTES:
-        scanner_invoked = False
-        invariant_broken = route in _ADVISORY_ROUTES and scanner_invoked
-        assert not invariant_broken, (
-            f"route={route} + scanner_invoked=False must not violate invariant"
+    for route in ("general", "capital_allocation", "personal_finance"):
+        assert not _is_advisory_scanner_violation(
+            route_used=route,
+            detected_intent="CAPITAL_ALLOCATION",
+            scanner_invoked=False,
         )
 
     # Invalid: advisory route + scanner invoked
-    for route in _ADVISORY_ROUTES:
-        scanner_invoked = True
-        invariant_broken = route in _ADVISORY_ROUTES and scanner_invoked
-        assert invariant_broken, (
-            f"route={route} + scanner_invoked=True MUST violate invariant (routing bug)"
+    for route in ("capital_allocation", "personal_finance"):
+        assert _is_advisory_scanner_violation(
+            route_used=route,
+            detected_intent="general_question",
+            scanner_invoked=True,
         )
 
-    # Valid: market_scan + scanner = OK
-    invariant_broken = "market_scan" in _ADVISORY_ROUTES and True
-    assert not invariant_broken, "market_scan + scanner_invoked=True must be valid"
+    # Invalid: advisory intent + scanner invoked, even if route is generic
+    for intent in ("MACRO_THESIS", "CAPITAL_ALLOCATION", "PERSONAL_FINANCE"):
+        assert _is_advisory_scanner_violation(
+            route_used="general",
+            detected_intent=intent,
+            scanner_invoked=True,
+        )
+
+    # Valid: sovereign opportunity search can keep route=general while scanning
+    assert not _is_advisory_scanner_violation(
+        route_used="general",
+        detected_intent="buscar_oportunidade",
+        scanner_invoked=True,
+    )
+    assert not _is_advisory_scanner_violation(
+        route_used="market_scan",
+        detected_intent="market_scan",
+        scanner_invoked=True,
+    )
 
 
 # ---------------------------------------------------------------------------

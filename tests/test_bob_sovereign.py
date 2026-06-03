@@ -1,7 +1,7 @@
 import pytest
 
 from src.core.pipeline.nodes.orchestrator import node_orchestrator
-from src.core.pipeline.nodes.agent import node_agent
+from src.core.pipeline.nodes.agent import _parse_tool_calls, node_agent
 from src.core.pipeline.nodes.tool_executor import node_tool_executor
 
 
@@ -77,6 +77,42 @@ async def test_agent_sovereign_mode_captures_thesis_and_trace(monkeypatch):
     assert "Vou analisar penny stocks de alta adrenalina." in result["bob_reasoning_trace"]
     assert result["current_datetime"] != ""
     assert result["agent_tool_call"]["tool"] == "market_scan"
+
+
+def test_parse_tool_calls_returns_multiple_valid_calls():
+    calls = _parse_tool_calls(
+        '[{"tool":"collect_data","args":{"ticker":"AAPL"}},'
+        '{"tool":"sdca_firewall","args":{"decision":"review"}}]'
+    )
+
+    assert [call["tool"] for call in calls] == ["collect_data", "sdca_firewall"]
+    assert calls[0]["args"]["ticker"] == "AAPL"
+
+
+@pytest.mark.asyncio
+async def test_agent_sovereign_mode_queues_extra_tool_calls(monkeypatch):
+    monkeypatch.setenv("SUPEREZIO_BOB_SOVEREIGN", "1")
+    monkeypatch.setattr("src.core.pipeline.nodes.agent.get_stream_writer", lambda: lambda x: None)
+
+    class MockGateway:
+        async def chat_completion(self, **kwargs):
+            return (
+                '[{"tool":"collect_data","args":{"ticker":"AAPL"}},'
+                '{"tool":"sdca_firewall","args":{"decision":"review"}}]'
+            )
+
+    result = await node_agent(
+        {
+            "message": "run the full checks",
+            "agent_iterations": 0,
+            "bob_reasoning_trace": [],
+        },
+        gateway=MockGateway(),
+        config=None,
+    )
+
+    assert result["agent_tool_call"]["tool"] == "collect_data"
+    assert [call["tool"] for call in result["_pending_tool_calls"]] == ["sdca_firewall"]
 
 
 @pytest.mark.asyncio

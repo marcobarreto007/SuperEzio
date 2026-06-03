@@ -1,37 +1,36 @@
 {
-  "date_local": "2026-06-03T14:42:50-04:00",
-  "session": "crash-log-scope-guard-save-2026-06-03",
-  "status": "api_recovered_scope_guard_validated_ready_to_commit",
+  "date_local": "2026-06-03T17:38:18-04:00",
+  "session": "log-audit-qa-results-save-2026-06-03",
+  "status": "logs_reviewed_runtime_telemetry_hardened_validated_ready_to_commit",
   "what_was_done": [
-    "Inspected live state after Marco reported the crash: port 8002 was down, port 8082 llama-server was still listening.",
-    "Read runtime logs and identified the crash signature in runtime/api_stderr.log: forrtl error (200), program aborting due to window-CLOSE event.",
-    "Recovered the API without reloading the 80B model by restarting only agent_server.main on port 8002.",
-    "Fixed the trust bug shown by the pasted Evidence Report: unscoped referential prompts such as 'cara vc esta travado neste ticket ?' now route to needs_scope instead of reaching Bob or the scanner.",
-    "Made sovereign mode respect deterministic needs_scope parsing before enabling tools.",
-    "Added route_after_orchestrator so needs_scope and ask_for_ticker plans go directly to respond_blocked.",
-    "Added parser, sovereign orchestrator, and pipeline smoke tests for the exact unscoped ticket prompt.",
-    "Reviewed and validated pending operational changes from the worktree: watchdog cooldown/log rotation, provider cooldown, recommended ticker follow-up tracking, and llama GPU layer budget adjustment.",
-    "Fixed a pending endpoints.py bug where recommended ticker tracking referenced undefined final_content; it now uses accumulated_answer."
+    "Inspected the attached pasted transcript and current runtime logs after Marco asked to look at logs and save changes.",
+    "Confirmed the live stack was up: API on 127.0.0.1:8002 and llama-server on 127.0.0.1:8082.",
+    "Reviewed runtime/logs/qa-results with 10 QA scenarios; 6 ran without scanner and 4 intentionally used scanner for opportunity-search prompts.",
+    "Identified noisy false-positive warnings in api-8002-latest.err.log: route=general but scanner_invoked=True for sovereign opportunity-search prompts.",
+    "Changed the invariant guard in src/agent_server/endpoints.py to warn only when a true advisory route or advisory intent invokes the scanner.",
+    "Reviewed pending src/core/pipeline/nodes/agent.py changes for multiple sovereign tool-call parsing.",
+    "Hardened the agent tool-call queue by adding _pending_tool_calls to PipelineState and returning/clearing it explicitly from node_agent.",
+    "Added tests for multiple tool-call parsing and pending tool-call queue persistence.",
+    "Saved the QA result artifacts under runtime/logs/qa-results as local evidence."
   ],
   "evidence": [
-    "Initial port audit -> 8002 not listening; 8082 listening as llama-server PID 11212.",
-    "runtime/api_stderr.log -> forrtl error (200): program aborting due to window-CLOSE event.",
-    "API recovery -> 8002 healthy after restarting only agent_server.main; 8082 stayed alive.",
-    ".\\.venv\\Scripts\\python.exe -m ruff check targeted touched files -> all checks passed.",
-    ".\\.venv\\Scripts\\python.exe -m ruff format --check targeted touched files -> passed after formatting endpoints.py and gateway.py.",
-    "PowerShell parser check -> runtime/watchdog.ps1 and scripts/serve_agent_llamacpp.ps1 parse OK.",
-    ".\\.venv\\Scripts\\python.exe -m pytest tests\\test_bob_sovereign.py tests\\test_pipeline_smoke.py tests\\contracts\\test_contract_complex_finance.py -q -> 78 passed.",
-    ".\\.venv\\Scripts\\python.exe -m pytest tests\\test_api_routes_sync.py tests\\test_no_empty_response_and_trace.py tests\\test_gateway.py tests\\test_runtime_bob_fixes.py -q -> 52 passed.",
-    "Live /task/submit proof for 'cara vc esta travado neste ticket ?' -> HTTP 200, route needs_scope, source sovereign_scope_guard, agent_called False, scanner_invoked False, evidence_run_id 20260603-184102_69e084.",
-    "runs/evidence/20260603-184102_69e084/report.html -> No sources recorded plus SuperEzio Trust OS scope request, no microcap or pump-and-dump hallucination.",
-    ".\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --timeout-ms 180000 -> ok true, health ok, AAPL chart 130 candles, canvas nonBlank 378108, chat finalContentLength 3082, scannerInvoked false, console_errors empty."
+    "git status before work -> untracked runtime/logs/qa-results plus later pending code changes in endpoints.py, agent.py, and tests.",
+    "runtime/logs/watchdog.log -> API/CEO recovered after transient 8002 downtime; watchdog restarted after 3 consecutive failures and services recovered.",
+    "runtime/logs/qa-results/summary.json -> 10 scenarios, 4 scanner=true, 0 fallback=true.",
+    "Live invariant proof request -> HTTP 200, route general, intent buscar_oportunidade, agent_called True, scanner_invoked True, candidate_count 5, fallback False, and no new INVARIANT VIOLATION in api-8002-latest.err.log.",
+    ".\\.venv\\Scripts\\python.exe -m py_compile src\\core\\pipeline\\contracts.py src\\core\\pipeline\\nodes\\agent.py src\\agent_server\\endpoints.py tests\\test_bob_sovereign.py tests\\test_market_scan_candidate_gate.py -> passed.",
+    ".\\.venv\\Scripts\\python.exe -m ruff check src\\core\\pipeline\\contracts.py src\\core\\pipeline\\nodes\\agent.py src\\agent_server\\endpoints.py tests\\test_bob_sovereign.py tests\\test_market_scan_candidate_gate.py -> all checks passed.",
+    ".\\.venv\\Scripts\\python.exe -m ruff format --check src\\core\\pipeline\\contracts.py src\\core\\pipeline\\nodes\\agent.py src\\agent_server\\endpoints.py tests\\test_bob_sovereign.py tests\\test_market_scan_candidate_gate.py -> 5 files already formatted.",
+    ".\\.venv\\Scripts\\python.exe -m pytest tests\\test_bob_sovereign.py tests\\test_market_scan_candidate_gate.py::test_advisory_routes_never_invoke_scanner tests\\test_api_routes_sync.py tests\\test_runtime_bob_fixes.py -q -> 27 passed.",
+    "API-only reload after code changes -> 8002 healthy while 8082 stayed alive.",
+    ".\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --timeout-ms 180000 -> ok true, health ok, AAPL chart 130 candles, canvas nonBlank 378108, chat finalContentLength 2352, scannerInvoked false, console_errors empty."
   ],
   "risks": [
-    "The original forrtl window-CLOSE crash indicates the API process was terminated by a native/console close event, not by a Python traceback; keep using the hidden launcher scripts and avoid closing host windows mid-call.",
-    "Provider cooldown and watchdog changes were pending local work; they passed syntax/lint and endpoint/gateway tests but should be observed during longer demos.",
-    "The stack is currently left running for Marco on 127.0.0.1:8002 and 127.0.0.1:8082.",
+    "Gemini provider still reports intermittent PROVIDER_ERROR/PROVIDER_COOLDOWN; fallback behavior is working but external key/quota should be reviewed before demos.",
+    "The QA artifacts include model-generated prompts/responses and should remain local evidence, not public marketing copy without review.",
+    "Watchdog recovered transient API downtime; long demo sessions should keep the hidden launcher/watchdog path instead of manually closing console windows.",
     "No GitHub operation was performed because this repository is DISK ONLY."
   ],
-  "next_step": "Save the validated work in a local commit, then continue packaging only after a clean-machine rehearsal or buyer-demo script review.",
+  "next_step": "Commit the validated telemetry/agent changes and QA evidence locally, then continue with packaging rehearsal.",
   "owner": "Marco"
 }

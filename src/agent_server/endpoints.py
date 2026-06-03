@@ -38,6 +38,17 @@ _session_history: dict[str, dict[str, Any]] = {}
 
 # Regex para extrair ticker mencionado na resposta (ex: "NOK (Nokia)", "NU (Nu Holdings)")
 _RECOMMENDED_TICKER_RE = re.compile(r"\b([A-Z]{1,5})\s*\([A-Za-z]")
+_ADVISORY_TRACE_ROUTES = {"capital_allocation", "personal_finance"}
+_ADVISORY_TRACE_INTENTS = {
+    "asset_allocation",
+    "business_capital",
+    "capital_allocation",
+    "education_investment",
+    "fraud_risk",
+    "macro_thesis",
+    "personal_finance",
+    "real_estate_vs_markets",
+}
 
 
 def _is_what_happened_query(message: str) -> bool:
@@ -74,6 +85,20 @@ def _extract_complex_intent(content: str) -> str | None:
         if re.search(rf"\b{intent}\b", content[:1000], re.IGNORECASE):
             return intent
     return None
+
+
+def _is_advisory_scanner_violation(
+    *,
+    route_used: str,
+    detected_intent: str,
+    scanner_invoked: bool,
+) -> bool:
+    """Return true only when a true advisory path used the market scanner."""
+    if not scanner_invoked:
+        return False
+    route = (route_used or "").strip().lower()
+    intent = (detected_intent or "").strip().lower()
+    return route in _ADVISORY_TRACE_ROUTES or intent in _ADVISORY_TRACE_INTENTS
 
 
 VAGUE_FINANCIAL_RESPONSE = (
@@ -1047,13 +1072,19 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                         reverse=True,
                     )[:3]
                 ]
-                # Hard runtime invariant: advisory routes must never invoke the
-                # market scanner. If this fires, the routing hierarchy is broken.
-                _ADVISORY_ROUTES = {"general", "capital_allocation", "personal_finance"}
-                if route_used in _ADVISORY_ROUTES and scanner_invoked:
+                # Hard runtime invariant: advisory intents must never invoke
+                # the market scanner. Sovereign opportunity searches can keep
+                # route=general while intentionally using the scanner, so the
+                # guard is based on advisory intent/route, not route=general.
+                if _is_advisory_scanner_violation(
+                    route_used=route_used,
+                    detected_intent=detected_intent,
+                    scanner_invoked=scanner_invoked,
+                ):
                     logger.warning(
-                        "INVARIANT VIOLATION: route=%s but scanner_invoked=True. User query: %s",
+                        "INVARIANT VIOLATION: route=%s intent=%s but scanner_invoked=True. User query: %s",
                         route_used,
+                        detected_intent,
                         user_query[:200],
                     )
 
