@@ -1,38 +1,39 @@
 {
-  "date_local": "2026-06-03T12:20:59-04:00",
-  "session": "buyer-packaging-evidence-cleanup-2026-06-03",
-  "status": "buyer_packaging_docs_and_cleanup_fixed_validated_committed",
+  "date_local": "2026-06-03T13:49:25-04:00",
+  "session": "evidence-mode-save-checkpoint-2026-06-03",
+  "status": "evidence_mode_and_launcher_hardened_validated_committed",
   "what_was_done": [
-    "Reviewed the additional buyer-packaging files created after the previous portable buyer-kit commit",
-    "Rewrote clean.ps1 so default execution is preview-only and destructive cleanup requires explicit -Apply",
-    "Added explicit cleanup switches for git history, F51 checkpoints, and generated evidence output instead of deleting them by default",
-    "Rewrote docs/BUYER_SETUP_GUIDE.md as an ASCII buyer setup guide with safer local-first and provider language",
-    "Rewrote docs/EVIDENCE_INDEX.md so it points to real checkpoint/browser-smoke evidence and separates pending buyer-listing proof from verified evidence",
-    "Rewrote docs/TRANSFER_CHECKLIST.md to require dry-run cleanup, stopped-system checks, browser smoke, and clean-machine transfer rehearsal",
-    "Aligned requirements.txt with the dependency list in pyproject.toml",
-    "Updated .gitignore so models/README_MODEL.md can be tracked while large model binaries remain ignored",
-    "Rewrote models/README_MODEL.md as a tracked model setup note without including the GGUF file"
+    "Reviewed new uncommitted changes before saving: frontend Evidence Report button, /evidence endpoints, pipeline evidence capture, one-click launcher scripts, and src/core/evidence modules",
+    "Hardened Evidence Mode storage/report modules with ASCII source, safe run-id suffix handling, HTML escaping, and generated evidence ignored under runs/evidence/",
+    "Removed the non-serializable _evidence object from LangGraph state and kept EvidenceRun local to PipelineApp.stream_events",
+    "Changed evidence finalization so the HTML report is generated before the frontend receives the completed graph event with evidence_run_id",
+    "Hardened /evidence endpoints to validate run ids and resolve requested files under the evidence run directory only",
+    "Rewrote launcher.ps1 to delegate to validated stop.ps1/start.ps1 instead of killing broad python or llama-server processes",
+    "Rewrote create_shortcut.ps1 to use the current project path instead of hardcoding Marco's local checkout path",
+    "Added tests/test_evidence_mode.py for HTML escaping and path traversal blocking"
   ],
   "evidence": [
-    "PowerShell parser checks -> config.ps1, check.ps1, start.ps1, stop.ps1, clean.ps1, and scripts/serve_agent_llamacpp.ps1 parse ok",
-    "powershell -NoProfile -ExecutionPolicy Bypass -File .\\clean.ps1 -DryRun -> preview completed, no files removed, no parser/runtime errors",
+    "PowerShell parser checks -> launcher.ps1, create_shortcut.ps1, clean.ps1, config.ps1, check.ps1, start.ps1, stop.ps1, and scripts/serve_agent_llamacpp.ps1 parse ok",
+    ".\\.venv\\Scripts\\python.exe -m compileall -q src\\core\\evidence tests\\test_evidence_mode.py -> passed",
+    ".\\.venv\\Scripts\\python.exe -m pytest tests\\test_evidence_mode.py -q -> 2 passed",
+    ".\\.venv\\Scripts\\python.exe -m ruff check src\\core\\evidence src\\core\\pipeline\\graph.py src\\agent_server\\endpoints.py tests\\test_evidence_mode.py -> all checks passed",
+    ".\\.venv\\Scripts\\python.exe -m ruff format --check src\\core\\evidence src\\core\\pipeline\\graph.py src\\agent_server\\endpoints.py tests\\test_evidence_mode.py -> 7 files already formatted",
     "git diff --check -> passed",
-    "requirements mirror check -> prior missing deps present: llama-cpp-python, alpaca-py, ib-insync, statsmodels, joblib, playwright",
-    "powershell -NoProfile -ExecutionPolicy Bypass -File .\\check.ps1 -> 16 passed, 0 warnings, 0 failed",
+    "powershell -NoProfile -ExecutionPolicy Bypass -File .\\check.ps1 -> 16 passed, 0 warnings, 0 failed after stopping stale services",
     "powershell -NoProfile -ExecutionPolicy Bypass -File .\\start.ps1 -SkipBrowser -> CEO healthy on 8082; API healthy on 8002",
     ".\\.venv\\Scripts\\python.exe -u scripts\\browser_smoke.py --skip-chat --timeout-ms 180000 -> ok true; health ok; AAPL chart 130 candles; canvas nonBlank 378108; console_errors []",
-    "browser smoke screenshot -> output\\playwright\\superezio-browser-smoke-20260603-122026.png",
-    "powershell -NoProfile -ExecutionPolicy Bypass -File .\\stop.ps1 -> stopped python PID 12624 and llama-server PID 25804; ports 8002 and 8082 free",
-    "local git commit -> chore(packaging): fix buyer evidence kit"
+    "GET http://127.0.0.1:8002/evidence -> 200 with evidence runs listed",
+    "GET http://127.0.0.1:8002/evidence/..%2Fbad/report.html -> 404, traversal not served",
+    "powershell -NoProfile -ExecutionPolicy Bypass -File .\\stop.ps1 -> stopped python PID 26304 and llama-server PID 3724; ports 8002 and 8082 free",
+    "local git commit -> feat(packaging): add auditable evidence mode"
   ],
   "risks": [
-    "clean.ps1 should be run with -Apply only on a copied package folder, not on the active source tree",
-    "Full pytest and ruff suites were not rerun in this packaging-doc correction pass; docs now mark them as refresh commands rather than current proof",
+    "Evidence Mode captures prompts and responses to local disk under runs/evidence; buyer packaging must explain privacy implications",
+    "Full chat smoke was not run in this save checkpoint; browser smoke used --skip-chat to keep validation fast",
     "Clean-machine transfer rehearsal is still pending before public listing",
-    "Optional external data/model providers may send data to third-party APIs when enabled in .env",
     "Financial-product positioning still requires legal review before paid customer onboarding",
     "No GitHub operation was performed because this repository is DISK ONLY"
   ],
-  "next_step": "Create the final ZIP on a copied package folder, run the transfer checklist end to end on a clean Windows profile or VM, then record the ZIP SHA256 and demo proof.",
+  "next_step": "Continue packaging in small commits whenever new changes appear; next commercial gate is a clean-machine transfer rehearsal.",
   "owner": "Marco"
 }

@@ -230,8 +230,7 @@ def _build_no_empty_fallback_chunk(
 
     error_line = f"\nprovider_error: {provider_error}" if provider_error else ""
     trace_line = (
-        f"\nroute: {route_used or 'unknown'}\n"
-        f"detected_intent: {detected_intent or 'unknown'}\n"
+        f"\nroute: {route_used or 'unknown'}\ndetected_intent: {detected_intent or 'unknown'}\n"
     )
     return f"{header}{body}\n{verdict}\n{suggestion}{trace_line}{error_line}"
 
@@ -1210,3 +1209,88 @@ async def predict_neural_decision(payload: dict) -> dict:
         )
 
     return result
+
+
+# -----------------------------------------------------------------
+# Evidence Mode - audit trail endpoints
+# -----------------------------------------------------------------
+
+
+@router.get("/evidence/{run_id}")
+async def get_evidence(run_id: str) -> dict:
+    """List all evidence files for a run."""
+    run_dir = _resolve_evidence_run_dir(run_id)
+
+    files = {}
+    for f in sorted(run_dir.iterdir()):
+        if f.is_file():
+            files[f.name] = {
+                "size": f.stat().st_size,
+                "url": f"/evidence/{run_id}/{f.name}",
+            }
+
+    return {"run_id": run_id, "files": files}
+
+
+@router.get("/evidence/{run_id}/{filename:path}")
+async def serve_evidence_file(run_id: str, filename: str):
+    """Serve a specific evidence file (HTML, JSON, etc.)."""
+    from fastapi.responses import FileResponse, HTMLResponse
+
+    file_path = _resolve_evidence_file(run_id, filename)
+
+    if file_path.suffix.lower() == ".html":
+        return HTMLResponse(content=file_path.read_text(encoding="utf-8"))
+
+    return FileResponse(str(file_path))
+
+
+@router.get("/evidence")
+async def list_evidence_runs() -> dict:
+    """List all evidence runs."""
+    from core.evidence.run import EVIDENCE_DIR
+
+    if not EVIDENCE_DIR.exists():
+        return {"runs": []}
+
+    runs = []
+    for d in sorted(EVIDENCE_DIR.iterdir(), reverse=True):
+        if d.is_dir():
+            report = d / "report.html"
+            analysis = d / "analysis.json"
+            runs.append(
+                {
+                    "run_id": d.name,
+                    "has_report": report.exists(),
+                    "has_analysis": analysis.exists(),
+                    "url": f"/evidence/{d.name}",
+                }
+            )
+
+    return {"runs": runs[:50]}  # limit to last 50
+
+
+def _resolve_evidence_run_dir(run_id: str):
+    """Resolve an evidence run directory without allowing traversal."""
+    from core.evidence.run import EVIDENCE_DIR
+
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,96}", run_id or ""):
+        raise HTTPException(status_code=400, detail="Invalid evidence run id")
+
+    root = EVIDENCE_DIR.resolve()
+    run_dir = (root / run_id).resolve()
+    if not run_dir.is_relative_to(root) or not run_dir.is_dir():
+        raise HTTPException(status_code=404, detail=f"Evidence run not found: {run_id}")
+    return run_dir
+
+
+def _resolve_evidence_file(run_id: str, filename: str):
+    """Resolve an evidence file without allowing traversal outside the run."""
+    if not filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Invalid evidence filename")
+
+    run_dir = _resolve_evidence_run_dir(run_id)
+    file_path = (run_dir / filename).resolve()
+    if not file_path.is_relative_to(run_dir) or not file_path.is_file():
+        raise HTTPException(status_code=404, detail=f"File not found: {filename}")
+    return file_path

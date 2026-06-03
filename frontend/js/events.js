@@ -112,6 +112,24 @@
             SZ.renderPipeline.updateStep(ev.step, ev.status, ceoObj);
           }
         }
+        // Evidence Mode: show report button when graph completes
+        if (ev.step === "graph" && ev.status === "completed" && ev.evidence_run_id) {
+          (function () {
+            var ceo = SZ.chat && SZ.chat.currentCEO;
+            if (!ceo || !ceo.bubble) return;
+            var existing = ceo.bubble.querySelector(".evidence-btn");
+            if (existing) return;
+            var btn = document.createElement("a");
+            btn.className = "evidence-btn";
+            btn.href = "/evidence/" + ev.evidence_run_id + "/report.html";
+            btn.target = "_blank";
+            btn.rel = "noopener";
+            btn.textContent = "Evidence Report";
+            btn.title = "Open auditable evidence report for this analysis";
+            btn.style.cssText = "display:inline-block;margin:8px 0;padding:6px 14px;background:#14532d;color:#4ade80;border-radius:6px;text-decoration:none;font-size:0.85em;font-weight:600;";
+            ceo.bubble.appendChild(btn);
+          })();
+        }
         break;
 
       /* ── F51_VERDICT ── */

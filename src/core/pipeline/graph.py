@@ -1,4 +1,4 @@
-"""Pipeline v4 graph builder — thin, readable, no business logic."""
+"""Pipeline v4 graph builder - thin, readable, no business logic."""
 
 from __future__ import annotations
 
@@ -8,6 +8,8 @@ import uuid
 from typing import Any, AsyncGenerator, Generator
 
 from langgraph.graph import END, START, StateGraph
+
+from core.evidence import EvidenceRun, generate_html_report, save_evidence
 
 from .contracts import PipelineState
 from .nodes import (
@@ -91,10 +93,10 @@ class PipelineApp:
     """Production wrapper around CompiledStateGraph.
 
     Provides the public API expected by agent_server:
-    - shutdown() — graceful teardown
-    - stream_events() — async event stream
-    - chat() / chat_sync() — convenience methods
-    - get_status() — health/status dict
+    - shutdown(): graceful teardown
+    - stream_events(): async event stream
+    - chat() / chat_sync(): convenience methods
+    - get_status(): health/status dict
     """
 
     def __init__(
@@ -130,6 +132,35 @@ class PipelineApp:
         trade_order_context: dict[str, Any] | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
         run_id = uuid.uuid4().hex[:12]
+
+        evidence: EvidenceRun | None = None
+        evidence_saved = False
+        response_chunks: list[str] = []
+        try:
+            evidence = EvidenceRun(prompt=message, ticker=ticker)
+            evidence.start()
+        except Exception:
+            pass
+
+        def _finalize_evidence() -> None:
+            nonlocal evidence_saved
+            if evidence is None or evidence_saved:
+                return
+            try:
+                if response_chunks and not evidence.response:
+                    response_text = "".join(response_chunks)
+                    evidence.record_response(
+                        response_text=response_text,
+                        tokens=len(response_text.split()),
+                    )
+                evidence.finish()
+                run_dir = save_evidence(evidence)
+                generate_html_report(evidence, run_dir)
+                evidence_saved = True
+                logger.info("[evidence] Saved: %s", run_dir)
+            except Exception as exc:
+                logger.warning("[evidence] Save failed: %s", exc)
+
         initial: dict[str, Any] = {
             "run_id": run_id,
             "message": message,
@@ -167,6 +198,43 @@ class PipelineApp:
                 if mode == "custom":
                     if isinstance(payload, dict):
                         payload.setdefault("run_id", run_id)
+
+                        # Evidence: capture pipeline events.
+                        if evidence is not None:
+                            evt_type = payload.get("type", "")
+                            try:
+                                if evt_type in {"CHUNK", "EXPLANATION_CHUNK"} and payload.get(
+                                    "content"
+                                ):
+                                    response_chunks.append(str(payload.get("content", "")))
+                                if evt_type == "DATA_COLLECTED":
+                                    evidence.record_source(
+                                        provider=payload.get("provider", "unknown"),
+                                        capability=payload.get("capability", "unknown"),
+                                        status=payload.get("status", "collected"),
+                                        data=payload,
+                                    )
+                                elif evt_type == "SCAN_COMPLETE":
+                                    evidence.record_scan(
+                                        candidates=payload.get("candidates", []),
+                                        rejected=payload.get("rejected", 0),
+                                        sources_used=payload.get("sources", []),
+                                    )
+                                elif evt_type == "EXPERT_COMPLETE":
+                                    evidence.record_expert(
+                                        expert_name=payload.get("expert", "unknown"),
+                                        verdict=payload.get("verdict", "?"),
+                                        confidence=float(payload.get("confidence", 0)),
+                                        provider=payload.get("provider", "unknown"),
+                                        bob_readable=payload.get("bob_readable", ""),
+                                    )
+                                elif evt_type == "SDCA_COMPLETE":
+                                    evidence.record_risk(payload)
+                                elif evt_type == "F51_VERDICT":
+                                    evidence.record_verdict(payload)
+                            except Exception:
+                                pass
+
                         yield payload
                     elif payload is not None:
                         yield {
@@ -175,17 +243,47 @@ class PipelineApp:
                             "content": str(payload),
                         }
                 elif mode == "updates":
+                    # Evidence: capture node outputs from updates.
+                    if evidence is not None and isinstance(payload, dict):
+                        try:
+                            for node_name, node_output in payload.items():
+                                if isinstance(node_output, dict):
+                                    if node_name == "explanation" and node_output.get(
+                                        "explanation"
+                                    ):
+                                        evidence.record_response(
+                                            response_text=str(node_output["explanation"]),
+                                            tokens=len(str(node_output["explanation"]).split()),
+                                        )
+                                    if node_name == "data" and node_output.get("candidates"):
+                                        evidence.record_scan(
+                                            candidates=node_output.get("candidates", []),
+                                            rejected=node_output.get("rejected", 0),
+                                            sources_used=node_output.get("sources_used", []),
+                                        )
+                        except Exception:
+                            pass
                     continue
 
+            _finalize_evidence()
             yield {
                 "type": "PIPELINE_STEP",
                 "run_id": run_id,
                 "step": "graph",
                 "status": "completed",
+                "evidence_run_id": evidence.run_id if evidence else None,
             }
         except Exception as exc:
             detail = str(exc) or exc.__class__.__name__
+            if evidence is not None:
+                try:
+                    evidence.record_error("pipeline", detail)
+                except Exception:
+                    pass
             yield {"type": "ERROR", "run_id": run_id, "detail": detail[:500]}
+
+        finally:
+            _finalize_evidence()
 
     async def chat_async(
         self,
