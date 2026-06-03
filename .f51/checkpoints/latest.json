@@ -1,40 +1,32 @@
 {
-  "date_local": "2026-06-02T22:25:27-04:00",
-  "session": "finnhub-fundamentals-hardening-2026-06-02",
-  "status": "local_changes_committed_with_ui_smoke_green_and_chat_timeout_risk",
+  "date_local": "2026-06-03T08:19:00-04:00",
+  "session": "investor-analysis-2026-06-03",
+  "status": "investor_analysis_completed_runtime_ui_smoke_green_chat_timeout_risk",
   "what_was_done": [
-    "Hardened Finnhub fundamentals enrichment for market_scan",
-    "Added DataHub fundamentals routing through the Finnhub provider",
-    "Normalized Finnhub metric market_cap from millions into absolute units",
-    "Changed Finnhub metric cache to cache successful metric payloads briefly and avoid persisting transient failures",
-    "Separated the fundamentals circuit breaker from the main Finnhub price/profile/catalyst breaker",
-    "Added regression tests for fundamentals market_cap units, metric cache reuse, transient metric failure recovery, DataHub capability exposure, and catalyst isolation",
-    "Detected concurrent Gemini fallback default changes, validated them with lint/compile/gateway tests, and saved them separately",
-    "Created local commits b2fe827 and c6e2928"
+    "Performed read-only investor-style due diligence of the SuperEzio Financeiro system",
+    "Confirmed local DISK ONLY posture and clean git state before analysis",
+    "Reviewed README, DELIVERY, RUNBOOK, product manifest, capabilities, checkpoints, commercial valuation docs, and financial-quality audit artifacts",
+    "Validated live runtime health for API port 8002 and CEO port 8082",
+    "Validated browser/UI smoke without chat against the live server",
+    "Checked current external market signals for robo-advisory, wealth management software, and AI regulatory risk"
   ],
   "evidence": [
-    ".f51/GITHUB_POLICY.json -> current_mode disk_only; GitHub operations forbidden",
-    "python -m ruff check src/core/pipeline/nodes/collector.py src/data/data_hub.py src/data/finnhub_provider.py tests/test_finnhub_provider.py tests/test_market_scan_candidate_gate.py tests/test_data_hub_routing.py -> All checks passed",
-    "python -m ruff check src/core/model_serving/gateway.py src/core/model_serving/providers.py -> All checks passed",
-    "python -m compileall -q src/core/pipeline/nodes/collector.py src/data/data_hub.py src/data/finnhub_provider.py tests/test_finnhub_provider.py tests/test_market_scan_candidate_gate.py tests/test_data_hub_routing.py -> compile ok",
-    "python -m compileall -q src/core/model_serving/gateway.py src/core/model_serving/providers.py -> compile model_serving ok",
-    "python -m pytest tests/test_finnhub_provider.py tests/test_data_hub_routing.py tests/test_market_scan_candidate_gate.py -q -p no:cacheprovider -> 43 passed",
-    "python -m pytest tests/test_gateway.py tests/test_finnhub_provider.py tests/test_data_hub_routing.py tests/test_market_scan_candidate_gate.py -q -p no:cacheprovider -> 72 passed",
+    "git status --porcelain=v1 -uall -> clean before checkpoint update",
     "GET http://127.0.0.1:8002/health -> status ok",
     "GET http://127.0.0.1:8002/health/details -> status ok; GPU available; local_orchestrator configured",
-    "GET http://127.0.0.1:8082/v1/models -> Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf listed",
-    "python -u scripts/browser_smoke.py --timeout-ms 180000 -> failed: Page.wait_for_function timeout 180000ms waiting for chat final_content_length",
+    "GET http://127.0.0.1:8082/health -> status ok",
+    "GET http://127.0.0.1:8002/product/manifest -> product positioning and safe_actions available",
+    "GET http://127.0.0.1:8002/capabilities -> task/submit, sdca, neural, data/providers supported",
     "python -u scripts/browser_smoke.py --skip-chat --timeout-ms 180000 -> ok true; chart_fetch AAPL 130 candles; canvas nonBlank 394632; console_errors []",
-    "git diff --check -> no whitespace errors",
-    "git commit -> b2fe827 fix(data): harden Finnhub fundamentals enrichment",
-    "git commit -> c6e2928 chore(model): tune Gemini fallback defaults"
+    "Source inventory -> 172 Python files in src, 64 Python test files, 38 frontend files",
+    "External market checks -> robo advisory and wealth management software markets are large and growing, but regulated and crowded"
   ],
   "risks": [
-    "Full browser smoke with chat still timed out after 180 seconds waiting for final_content_length; API, CEO, UI, chart, canvas, and ops console were reachable",
-    "The Gemini fallback default changes were detected after the initial data diff and saved as a separate local commit after focused validation",
-    "No broad full-suite pytest was run; validation was focused on gateway, Finnhub, DataHub routing, and market_scan regression coverage",
+    "Full chat/browser smoke was not rerun in this analysis pass; the prior checkpoint still records a 180s final_content_length timeout risk",
+    "No broad pytest suite was run in this analysis pass because this was read-only investor diligence, not a code-change gate",
+    "No audited live trading track record, paid customer evidence, or one-click commercial packaging was found",
     "No GitHub operation was performed because this repository is DISK ONLY"
   ],
-  "next_step": "If demo readiness requires chat proof, investigate the full browser chat timeout against API stream logs and the local 80B llama-server runtime.",
+  "next_step": "If Marco wants investability rather than technical asset value, fix chat latency, create a demo-grade installer, and capture paid/pilot customer evidence or a paper/live track record.",
   "owner": "Marco"
 }
