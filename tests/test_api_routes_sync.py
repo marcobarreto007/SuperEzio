@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import json
 import unittest.mock
+from types import SimpleNamespace
+
 import pytest
 from fastapi import Request
 from fastapi.testclient import TestClient
@@ -38,10 +40,18 @@ class MockPipeline:
 
 
 @pytest.fixture
-def client_with_mock_pipeline():
+def client_with_mock_pipeline(monkeypatch):
     mock_p = MockPipeline()
     original_pipeline = getattr(app.state, "pipeline", None)
     app.state.pipeline = mock_p
+    import agent_server.endpoints as endpoints
+
+    monkeypatch.setattr(endpoints.reward_gate, "score", lambda _text: 0.50)
+    monkeypatch.setattr(
+        endpoints.sanity_check,
+        "verify",
+        lambda *_args, **_kwargs: SimpleNamespace(passed=True, warnings=[], blocks=[]),
+    )
     yield mock_p, TestClient(app)
     # restore
     if original_pipeline:
@@ -363,6 +373,46 @@ def test_task_submit_casual_flow(client_with_mock_pipeline):
     assert trace["user_query"] == "Hi Bob!"
     assert trace["detected_intent"] == "general_question"
     assert trace["route_used"] == "general"
+    assert trace["fallback_used"] is False
+
+
+def test_task_submit_quality_gate_flags_low_score(client_with_mock_pipeline, monkeypatch):
+    """13a.1 POST /task/submit - Quality gate adds trace metadata without fallback."""
+    mock_p, client = client_with_mock_pipeline
+
+    import agent_server.endpoints as endpoints
+
+    monkeypatch.setattr(endpoints.reward_gate, "score", lambda _text: 0.12)
+    mock_p.events_to_yield = [
+        {"type": "STREAM_START", "msg_id": "test-msg-quality"},
+        {"type": "INTENT_CLASSIFIED", "intent": "general_question", "route": "general"},
+        {"type": "PIPELINE_STEP", "step": "agent_primary", "status": "started"},
+        {
+            "type": "CHUNK",
+            "content": "This answer is long enough to be scored by the quality gate.",
+        },
+        {"type": "PIPELINE_STEP", "step": "agent_primary", "status": "completed"},
+    ]
+
+    payload = {
+        "version": "a2a/1.0",
+        "from": "user",
+        "to": "superezio",
+        "type": "TASK.SUBMIT",
+        "payload": {
+            "message": "Hi Bob!",
+            "session_id": "session-test-quality",
+        },
+    }
+
+    response = client.post("/task/submit", json=payload)
+    assert response.status_code == 200
+    events = [json.loads(line) for line in response.text.strip().split("\n") if line.strip()]
+    trace = events[-1]["trace"]
+
+    assert trace["quality_score"] == 0.12
+    assert trace["quality_flagged"] is True
+    assert trace["quality_warnings"] == ["reward_score=0.120 < 0.3"]
     assert trace["fallback_used"] is False
 
 

@@ -11,6 +11,10 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from sse_starlette.sse import EventSourceResponse
 
+# ML guards: lazy CPU-only quality telemetry.
+from core.ml.reward_gate import reward_gate
+from core.ml.sanity import sanity_check
+
 from core.math.indicators import (
     calc_bollinger,
     calc_ema,
@@ -1064,6 +1068,40 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                         + "\n"
                     )
 
+                quality_score: float | None = None
+                quality_warnings: list[str] = []
+                quality_flagged = False
+                if accumulated_answer.strip() and agent_called and not fallback_used:
+                    try:
+                        quality_score = reward_gate.score(accumulated_answer)
+                        sanity = sanity_check.verify(raw_message, accumulated_answer)
+                        if not sanity.passed:
+                            quality_flagged = True
+                            quality_warnings = list(sanity.blocks)
+                            logger.warning(
+                                "Sanity check flagged response: %s",
+                                "; ".join(sanity.blocks),
+                            )
+                        elif quality_score < reward_gate.threshold:
+                            quality_flagged = True
+                            quality_warnings = [
+                                f"reward_score={quality_score:.3f} < {reward_gate.threshold}"
+                            ]
+                            logger.warning(
+                                "Reward gate low score: %.3f < %.2f",
+                                quality_score,
+                                reward_gate.threshold,
+                            )
+                        else:
+                            quality_warnings = list(sanity.warnings)
+                            if quality_warnings:
+                                logger.info(
+                                    "Sanity warnings: %s",
+                                    "; ".join(quality_warnings),
+                                )
+                    except Exception:
+                        logger.exception("ML quality gate error; passing through")
+
                 top_rejection_reasons = [
                     f"{r}:{c}"
                     for r, c in sorted(
@@ -1104,6 +1142,12 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     "provider_sources_used": sorted(provider_sources_used),
                     "provider_error": provider_error,
                 }
+                if quality_score is not None:
+                    trace["quality_score"] = round(quality_score, 4)
+                if quality_warnings:
+                    trace["quality_warnings"] = quality_warnings
+                if quality_flagged:
+                    trace["quality_flagged"] = True
                 logger.info("Bob Response Trace: %s", json.dumps(trace))
 
                 # Update session history

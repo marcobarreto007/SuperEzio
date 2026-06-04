@@ -1,33 +1,29 @@
 {
-  "date_local": "2026-06-03T18:32:46-04:00",
-  "session": "bob-10-investment-prompts-qa-2026-06-03",
-  "status": "bob_10_prompt_runtime_qa_completed",
+  "date_local": "2026-06-03T20:19:12-04:00",
+  "session": "phase1-quality-gate-clean-tree-2026-06-03",
+  "status": "quality_gate_and_risk_classifier_saved",
   "what_was_done": [
-    "Ran a live Bob QA battery with 10 different investment prompts through POST /task/submit.",
-    "Used the live local stack: API on 127.0.0.1:8002 and llama-server on 127.0.0.1:8082.",
-    "Captured each NDJSON stream and a structured summary under runtime/logs/qa-results/bob10-20260603-182245/.",
-    "Checked API health after each prompt to detect crashes or hangs.",
-    "Inspected the short HIVE.V fraud-risk answer and flagged it as a quality issue, not a runtime hang.",
-    "Ran browser smoke after the API QA run to validate the UI/runtime path."
+    "Inspected the dirty tree after Marco reported it was not clean.",
+    "Kept the Phase 1 reward/sanity quality gate, but made it non-blocking trace metadata instead of mutating fallback state after the answer stream.",
+    "Added src/core/ml reward and sanity guard modules with lazy CPU loading and best-effort failure handling.",
+    "Fixed CEO-classified risk_tolerance so validated.to_plan() no longer drops it.",
+    "Added endpoint, ML guard, and orchestrator contract tests.",
+    "Captured phase1-test NDJSON evidence logs for the runtime quality-gate run."
   ],
   "evidence": [
-    "Initial state -> git status clean; ports 8002 and 8082 listening.",
-    "Bob10 QA summary -> 10/10 prompts returned HTTP 200, STREAM_END true, ERROR events 0, fallback false.",
-    "Prompt timings -> min 0.1s, max 98.1s; long scanner/advisory prompts completed within 240s timeout.",
-    "q04 unscoped current ticket -> route needs_scope, intent missing_required_slot, scanner false, final_len 303.",
-    "q02 and q07 scanner prompts -> scanner true, fallback false, final_len 2955 and 3019.",
-    "q05 and q06 macro/advisory prompts -> MACRO_THESIS, scanner false, fallback false.",
-    "q09 HIVE.V fraud/microcap risk -> no hang, HTTP 200, STREAM_END true, but final_len 324 and generic fallback-style content; needs follow-up quality fix.",
-    "API log scan after QA -> no Traceback, forrtl, or INVARIANT VIOLATION; only provider/profile warnings were observed.",
-    ".\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --timeout-ms 180000 -> ok true, health ok, AAPL chart 130 candles, canvas nonBlank 378108, chat finalContentLength 2416, scannerInvoked false, console_errors empty."
+    ".\\.venv\\Scripts\\python.exe -m py_compile src\\agent_server\\endpoints.py src\\core\\ml\\reward_gate.py src\\core\\ml\\sanity.py src\\core\\pipeline\\nodes\\orchestrator.py tests\\test_api_routes_sync.py tests\\test_ml_quality_guards.py tests\\contracts\\test_contract_orchestrator.py -> exit 0.",
+    ".\\.venv\\Scripts\\python.exe -m ruff check src\\agent_server\\endpoints.py src\\core\\ml src\\core\\pipeline\\nodes\\orchestrator.py tests\\test_api_routes_sync.py tests\\test_ml_quality_guards.py tests\\contracts\\test_contract_orchestrator.py -> All checks passed.",
+    ".\\.venv\\Scripts\\python.exe -m ruff format --check same target set -> 8 files already formatted.",
+    "PYTHONPATH=src pytest tests\\test_api_routes_sync.py tests\\test_ml_quality_guards.py tests\\contracts\\test_contract_orchestrator.py -> 32 passed in 5.18s.",
+    ".\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --base-url http://127.0.0.1:8002 --timeout-ms 180000 -> ok true; health ok; AAPL chart 130 candles; canvas nonBlank 378108; chat finalContentLength 2059; fallbackUsed false; console_errors empty.",
+    "runtime/logs/phase1-test/test_A_200441.ndjson through test_H_201529.ndjson include live STREAM_END traces with quality_score metadata."
   ],
   "risks": [
-    "Bob did not hang in the 10-prompt investment QA run.",
-    "HIVE.V explicit ticker fraud-risk prompt produced a too-generic answer; this is a product-quality issue to fix before demoing ticker-specific forensic analysis.",
-    "Scanner/advisory prompts can take around 80-100 seconds on the local 80B stack; demo scripts should avoid presenting that as a crash.",
-    "Provider/profile warnings can still appear when external providers or data sources are flaky, but they did not break this run.",
+    "RewardGate uses OpenAssistant/reward-model-deberta-v3-base and may add first-call latency when the model is not already loaded.",
+    "RewardGate failures are now non-fatal and return score 0.0, so quality telemetry can flag low score without crashing the API.",
+    "Quality gate is metadata-only in Phase 1; true blocking or retry must happen before streaming in a later buffered/retry design.",
     "No GitHub operation was performed because this repository is DISK ONLY."
   ],
-  "next_step": "Fix the explicit ticker forensic path so prompts like HIVE.V fraud risk trigger ticker/data analysis instead of a generic framework fallback.",
+  "next_step": "Restart the API process when Marco wants live runtime to load the committed code, then run a short Bob prompt to confirm quality_score appears on the current server process.",
   "owner": "Marco"
 }

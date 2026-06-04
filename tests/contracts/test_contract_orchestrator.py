@@ -154,3 +154,34 @@ def test_node_orchestrator_extracts_time_horizon():
     result = asyncio.run(_run())
     assert "time_horizon" in result
     assert "14 days" in result.get("time_horizon", "")
+
+
+def test_node_orchestrator_preserves_ceo_risk_tolerance(monkeypatch):
+    """CEO-classified risk tolerance must survive validated.to_plan()."""
+    import asyncio
+
+    monkeypatch.delenv("SUPEREZIO_BOB_SOVEREIGN", raising=False)
+    orchestrator_node.get_stream_writer = lambda: _noop_writer
+
+    class MockGateway:
+        async def chat_completion(self, **kwargs):
+            return (
+                '{"route":"general","intent":"capital_allocation","action":"answer",'
+                '"ticker":"","risk_tolerance":"alta","filters":{},'
+                '"required_slots":[],"confidence":0.91,"reasons":["ceo_risk"]}'
+            )
+
+    async def _run():
+        return await node_orchestrator(
+            {
+                "message": "quero alocar em small caps agressivas por 2 anos",
+                "rigor": "strict",
+                "run_id": "test-orch-risk",
+            },
+            gateway=MockGateway(),
+            config=None,
+        )
+
+    result = asyncio.run(_run())
+    assert result["intent_source"] == "ceo_model"
+    assert result["risk_tolerance"] == "alta"

@@ -195,10 +195,16 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
                     timeout=float(os.getenv("SUPEREZIO_INTENT_LLM_TIMEOUT", "6")),
                 )
                 candidate = extract_json_object(raw)
+                ceo_risk_tolerance = ""
+                ceo_risk = (candidate or {}).get("risk_tolerance", "").strip().lower()
+                if ceo_risk in {"conservadora", "moderada", "alta", "especulativa"}:
+                    ceo_risk_tolerance = ceo_risk
                 validated = validate_intent_candidate(message, candidate or {}, fallback=parsed)
                 if validated:
                     plan = validated.to_plan()
                     plan["intent_source"] = "ceo_model"
+                    if ceo_risk_tolerance:
+                        plan["ceo_risk_tolerance"] = ceo_risk_tolerance
                     plan["fallback_route"] = parsed.route
                     plan["fallback_intent"] = parsed.intent
                     # Safety: never route complex finance → market_scan
@@ -226,8 +232,11 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
             "time_horizon", ""
         )
 
-        # ── Classify risk tolerance (NEW) ──
-        plan["risk_tolerance"] = _classify_risk_tolerance(message, plan)
+        # ── Classify risk tolerance (CEO model when available, keyword fallback otherwise) ──
+        if plan.get("intent_source") == "ceo_model" and "ceo_risk_tolerance" in plan:
+            plan["risk_tolerance"] = plan.pop("ceo_risk_tolerance")
+        else:
+            plan["risk_tolerance"] = _classify_risk_tolerance(message, plan)
 
         # ── Bob intent (NEW) — cleaned classification for the agent ──
         plan["bob_intent"] = _classify_bob_intent(message, plan)
@@ -406,19 +415,29 @@ async def _ask_intent_classifier(message: str, plan: dict, context: str, gateway
         "Allowed intents: general_question, explain_capabilities, "
         "ticker_analysis, market_scan, missing_required_slot, "
         "unsafe_unspecified_recommendation, capital_allocation, personal_finance. "
-        "CRITICAL ROUTING RULES: "
+        "Allowed risk_tolerance: conservadora, moderada, alta, especulativa.\n"
+        "CRITICAL ROUTING RULES:\n"
         "0. If the user is comparing multiple uses of capital (cash vs debt repayment "
         "vs ETF vs stock trade vs business/education), route to general with "
-        "intent=capital_allocation or personal_finance. This is NEVER a market_scan. "
+        "intent=capital_allocation or personal_finance. This is NEVER a market_scan.\n"
         "1. If the user asks for a decision framework, thesis, scenario analysis, "
         "comparison (rental property vs equities), capital allocation strategy, "
         "macro economic thesis, or investment evaluation WITHOUT requesting "
-        "specific tickers to scan or list, route to general with intent=general_question. "
+        "specific tickers to scan or list, route to general with intent=general_question.\n"
         "2. Only use market_scan when the user explicitly asks you to find, scan, "
-        "search, list, or shortlist specific tickers or securities. "
+        "search, list, or shortlist specific tickers or securities.\n"
         "3. Complex advisory questions about investment strategy, risk frameworks, "
-        "asset allocation, or financial planning are general_question, NOT market_scan. "
-        "4. Only use needs_scope for truly unanswerable requests (empty, nonsense). "
+        "asset allocation, or financial planning are general_question, NOT market_scan.\n"
+        "4. Only use needs_scope for truly unanswerable requests (empty, nonsense).\n"
+        "RISK TOLERANCE RULES:\n"
+        "- conservadora: user mentions safety, preservation, retirement, dividends, "
+        "low risk, fixed income, treasuries, long term, security.\n"
+        "- moderada: user mentions balance, diversification, medium risk, mix of "
+        "fixed and variable income, 2-5 year horizon. DEFAULT when unspecified.\n"
+        "- alta: user mentions high risk, short term, swing trade, day trade, "
+        "small caps, options, leverage, aggressive growth.\n"
+        "- especulativa: user mentions gambling language (aposta, loteria, adrenalina), "
+        "penny stocks, 10x/100x, crypto all-in, yolo, moon shots.\n"
         "Never invent a ticker. "
         "If no ticker appears in the user message, ticker must be empty and "
         "route cannot be ticker_analysis. "
@@ -436,6 +455,7 @@ async def _ask_intent_classifier(message: str, plan: dict, context: str, gateway
             "intent": "general_question|explain_capabilities|ticker_analysis|market_scan|missing_required_slot|unsafe_unspecified_recommendation|capital_allocation|personal_finance",
             "action": "answer|answer_directly|collect_data|scan_market|ask_for_ticker|ask_for_scope",
             "ticker": "exact ticker or empty string",
+            "risk_tolerance": "conservadora|moderada|alta|especulativa",
             "filters": {"country": "optional", "sector": "optional"},
             "required_slots": ["ticker if needed"],
             "confidence": "0.0-0.99",
