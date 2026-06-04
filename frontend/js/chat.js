@@ -45,9 +45,30 @@
   }
 
   function finishCEOMessage() {
-    if (!currentCEO) return;
+    if (!currentCEO || currentCEO.msg.dataset.done === "1") return;
     currentCEO.msg.dataset.done = "1";
     if (currentCEO._think) { currentCEO._think.remove(); currentCEO._think = null; }
+
+    // Phase 2 - Feedback buttons
+    const fb = el("div", "feedback-bar");
+    const up = el("button", "fb-btn fb-up", { text: "+1", title: "Helpful" });
+    const down = el("button", "fb-btn fb-down", { text: "-1", title: "Not helpful" });
+    const msgId = SZ.state.stream?.msgId || "";
+
+    function sendFeedback(rating) {
+      up.disabled = down.disabled = true;
+      up.style.opacity = down.style.opacity = "0.5";
+      fetch("/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ msg_id: msgId, rating })
+      }).catch(() => {});
+    }
+
+    up.onclick = () => sendFeedback(1);
+    down.onclick = () => sendFeedback(0);
+    fb.append(up, down);
+    currentCEO.bubble.appendChild(fb);
   }
 
   function appendChunk(text) {

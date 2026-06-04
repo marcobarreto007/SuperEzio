@@ -1254,6 +1254,50 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
         raise HTTPException(status_code=500, detail=_safe_error_detail(exc)) from exc
 
 
+@router.post("/feedback")
+async def submit_feedback(payload: dict[str, Any]) -> dict[str, Any]:
+    """Save user feedback for a completed response."""
+    msg_id = str(payload.get("msg_id", "")).strip()
+    comment = str(payload.get("comment", "")).strip()
+    try:
+        rating = int(payload.get("rating", 0))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="rating must be 0-5") from None
+
+    if not msg_id:
+        raise HTTPException(status_code=400, detail="msg_id is required")
+    if len(msg_id) > 120:
+        raise HTTPException(status_code=400, detail="msg_id is too long")
+    if rating not in (0, 1, 2, 3, 4, 5):
+        raise HTTPException(status_code=400, detail="rating must be 0-5")
+    if len(comment) > 1000:
+        raise HTTPException(status_code=400, detail="comment is too long")
+
+    from core.ml.feedback import save_feedback
+
+    path = save_feedback(msg_id, rating, comment=comment)
+    logger.info("Feedback saved: msg_id=%s rating=%s file=%s", msg_id, rating, path.name)
+    return {"ok": True}
+
+
+@router.get("/feedback/stats")
+async def get_feedback_stats(days: int = 30) -> dict[str, Any]:
+    """Return aggregate feedback statistics."""
+    if days < 1 or days > 365:
+        raise HTTPException(status_code=400, detail="days must be between 1 and 365")
+
+    from core.ml.feedback import load_recent_feedback
+
+    records = load_recent_feedback(days)
+    ratings = [r["rating"] for r in records if 1 <= r.get("rating", 0) <= 5]
+    return {
+        "total": len(records),
+        "avg_rating": round(sum(ratings) / len(ratings), 2) if ratings else 0,
+        "distribution": {str(k): sum(1 for r in ratings if r == k) for k in range(1, 6)},
+        "days": days,
+    }
+
+
 @router.get("/capabilities")
 async def get_capabilities(request: Request) -> dict:
     return {

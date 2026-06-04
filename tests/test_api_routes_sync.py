@@ -498,6 +498,36 @@ def test_task_submit_what_happened_intercept(client_with_mock_pipeline):
     assert trace["scanner_invoked"] is False
 
 
+def test_feedback_endpoint_round_trip(client_with_mock_pipeline, monkeypatch, tmp_path):
+    """13d. POST /feedback and GET /feedback/stats - Local feedback capture."""
+    _, client = client_with_mock_pipeline
+
+    import core.ml.feedback as feedback
+
+    monkeypatch.setattr(feedback, "_FEEDBACK_DIR", tmp_path)
+
+    response = client.post(
+        "/feedback",
+        json={"msg_id": "test-msg-feedback", "rating": 1, "comment": "useful"},
+    )
+    assert response.status_code == 200
+    assert response.json() == {"ok": True}
+
+    stats = client.get("/feedback/stats?days=1")
+    assert stats.status_code == 200
+    assert stats.json()["total"] == 1
+
+
+def test_feedback_endpoint_rejects_bad_rating(client_with_mock_pipeline):
+    """13e. POST /feedback - Invalid ratings are bounded and return HTTP 400."""
+    _, client = client_with_mock_pipeline
+
+    response = client.post("/feedback", json={"msg_id": "test-msg-feedback", "rating": "bad"})
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "rating must be 0-5"
+
+
 def test_frontend_ops_console_integration():
     """14. Verifies the new Operations Console UI integration files exist and contain appropriate wiring."""
     from pathlib import Path

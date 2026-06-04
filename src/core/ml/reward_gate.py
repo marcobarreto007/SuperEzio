@@ -72,5 +72,28 @@ class RewardGate:
     def passes(self, text: str) -> bool:
         return self.score(text) >= self.threshold
 
+    def best_of(
+        self, candidates: list[str], *, min_score: float | None = None
+    ) -> tuple[str, float, int]:
+        """Pick the best candidate by reward score.
+
+        Returns (best_text, best_score, index).
+        """
+        if not candidates:
+            return "", 0.0, -1
+        stop_score = min_score if min_score is not None else 0.85
+        best_idx = 0
+        best_text = candidates[0]
+        best_score = self.score(best_text)
+        for i, text in enumerate(candidates[1:], start=1):
+            s = self.score(text)
+            if s > best_score:
+                best_score = s
+                best_text = text
+                best_idx = i
+            if best_score >= stop_score:
+                break
+        return best_text, best_score, best_idx
+
 
 reward_gate = RewardGate()

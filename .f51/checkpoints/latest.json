@@ -1,28 +1,30 @@
 {
-  "date_local": "2026-06-04T13:36:06-04:00",
-  "session": "market-context-prompt-save-2026-06-04",
-  "status": "market_context_prompt_saved",
+  "date_local": "2026-06-04T13:44:05-04:00",
+  "session": "feedback-ui-endpoint-save-2026-06-04",
+  "status": "feedback_ui_endpoint_saved",
   "what_was_done": [
-    "Inspected the dirty tree before saving.",
-    "Corrected Bob market-context prompt language for Canada/USA expertise.",
-    "Changed the ETF wording from the incorrect VFV/XUU hedged claim to unhedged VFV/XUU and hedged VSP/XUH.",
-    "Added a guard that Bob must verify current Canadian registered-account contribution limits before quoting exact numbers.",
-    "Accepted the Gemini default model update to gemini-3.5-flash after checking current public model availability.",
-    "Formatted the touched prompt file and prepared the tree for a local DISK ONLY commit."
+    "Inspected newly dirty feedback-related changes before saving.",
+    "Added append-only local feedback storage under src/core/ml/feedback.py.",
+    "Exported save_feedback and load_recent_feedback from core.ml.",
+    "Added bounded POST /feedback and GET /feedback/stats endpoints.",
+    "Hardened feedback input validation so invalid ratings return HTTP 400 instead of runtime errors.",
+    "Added frontend feedback buttons after completed Bob responses and prevented duplicate feedback bars on later stream starts.",
+    "Ignored runtime/feedback/ so local generated feedback data is not committed.",
+    "Added tests for feedback storage, reward best_of min_score behavior, and feedback endpoint validation."
   ],
   "evidence": [
-    ".\\.venv\\Scripts\\python.exe -m py_compile src\\core\\model_serving\\providers.py src\\core\\pipeline\\nodes\\agent.py src\\core\\pipeline\\prompts\\builder.py -> exit 0.",
-    ".\\.venv\\Scripts\\python.exe -m ruff check src\\core\\model_serving\\providers.py src\\core\\pipeline\\nodes\\agent.py src\\core\\pipeline\\prompts\\builder.py -> All checks passed.",
-    ".\\.venv\\Scripts\\python.exe -m ruff format --check src\\core\\model_serving\\providers.py src\\core\\pipeline\\nodes\\agent.py src\\core\\pipeline\\prompts\\builder.py -> 3 files already formatted.",
-    "PYTHONPATH=src pytest tests\\test_gateway.py tests\\contracts\\test_contract_model_serving.py tests\\test_bob_sovereign.py tests\\contracts\\test_contract_agent.py tests\\test_runtime_smoke.py::test_build_agent_prompt_ticker tests\\test_runtime_smoke.py::test_build_agent_prompt_casual -> 82 passed in 0.90s.",
-    ".\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --base-url http://127.0.0.1:8002 --timeout-ms 180000 -> ok true; health ok; AAPL chart 130 candles; canvas nonBlank 378108; chat finalContentLength 2851; fallbackUsed false; console_errors empty."
+    ".\\.venv\\Scripts\\python.exe -m py_compile src\\agent_server\\endpoints.py src\\core\\ml\\feedback.py src\\core\\ml\\reward_gate.py src\\core\\ml\\__init__.py tests\\test_ml_quality_guards.py tests\\test_api_routes_sync.py -> exit 0.",
+    ".\\.venv\\Scripts\\python.exe -m ruff check src\\agent_server\\endpoints.py src\\core\\ml tests\\test_ml_quality_guards.py tests\\test_api_routes_sync.py -> All checks passed.",
+    ".\\.venv\\Scripts\\python.exe -m ruff format --check src\\agent_server\\endpoints.py src\\core\\ml tests\\test_ml_quality_guards.py tests\\test_api_routes_sync.py -> 7 files already formatted.",
+    "PYTHONPATH=src pytest tests\\test_api_routes_sync.py tests\\test_ml_quality_guards.py -> 23 passed in 4.47s.",
+    ".\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --base-url http://127.0.0.1:8002 --timeout-ms 180000 -> ok true; health ok; AAPL chart 130 candles; canvas nonBlank 378108; chat finalContentLength 2364; fallbackUsed false; console_errors empty."
   ],
   "risks": [
-    "Prompt guidance can improve framing but does not replace live market-data verification for recommendations.",
-    "Registered-account limits and tax details can change; Bob is now instructed to verify current limits before quoting numbers.",
-    "Gemini model availability is external-provider dependent and can still be overridden with GEMINI_MODEL.",
+    "Feedback JSONL is local append-only storage; it is intentionally ignored under runtime/feedback/.",
+    "The current feedback UI only sends msg_id and binary rating; it does not yet attach STREAM_END trace or free-text comment from the browser.",
+    "Feedback stats are local runtime stats, not an audited analytics dashboard.",
     "No GitHub operation was performed because this repository is DISK ONLY."
   ],
-  "next_step": "If Marco wants a runtime proof using the newly committed prompt text, restart the API process and run one Canadian investor prompt through Bob.",
+  "next_step": "If Marco wants richer buyer evidence, attach trace quality_score and route metadata to feedback submissions and surface aggregate stats in the ops console.",
   "owner": "Marco"
 }

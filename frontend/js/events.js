@@ -64,6 +64,7 @@
         SZ.chat.ensureCEOMessage();
         SZ.state.stream = {
           started: Date.now(),
+          msgId: ev.msg_id || "",
           steps: {},
           ticker: ev.ticker || "",
           answer: ""
