@@ -1,29 +1,28 @@
 {
-  "date_local": "2026-06-03T20:19:12-04:00",
-  "session": "phase1-quality-gate-clean-tree-2026-06-03",
-  "status": "quality_gate_and_risk_classifier_saved",
+  "date_local": "2026-06-04T13:36:06-04:00",
+  "session": "market-context-prompt-save-2026-06-04",
+  "status": "market_context_prompt_saved",
   "what_was_done": [
-    "Inspected the dirty tree after Marco reported it was not clean.",
-    "Kept the Phase 1 reward/sanity quality gate, but made it non-blocking trace metadata instead of mutating fallback state after the answer stream.",
-    "Added src/core/ml reward and sanity guard modules with lazy CPU loading and best-effort failure handling.",
-    "Fixed CEO-classified risk_tolerance so validated.to_plan() no longer drops it.",
-    "Added endpoint, ML guard, and orchestrator contract tests.",
-    "Captured phase1-test NDJSON evidence logs for the runtime quality-gate run."
+    "Inspected the dirty tree before saving.",
+    "Corrected Bob market-context prompt language for Canada/USA expertise.",
+    "Changed the ETF wording from the incorrect VFV/XUU hedged claim to unhedged VFV/XUU and hedged VSP/XUH.",
+    "Added a guard that Bob must verify current Canadian registered-account contribution limits before quoting exact numbers.",
+    "Accepted the Gemini default model update to gemini-3.5-flash after checking current public model availability.",
+    "Formatted the touched prompt file and prepared the tree for a local DISK ONLY commit."
   ],
   "evidence": [
-    ".\\.venv\\Scripts\\python.exe -m py_compile src\\agent_server\\endpoints.py src\\core\\ml\\reward_gate.py src\\core\\ml\\sanity.py src\\core\\pipeline\\nodes\\orchestrator.py tests\\test_api_routes_sync.py tests\\test_ml_quality_guards.py tests\\contracts\\test_contract_orchestrator.py -> exit 0.",
-    ".\\.venv\\Scripts\\python.exe -m ruff check src\\agent_server\\endpoints.py src\\core\\ml src\\core\\pipeline\\nodes\\orchestrator.py tests\\test_api_routes_sync.py tests\\test_ml_quality_guards.py tests\\contracts\\test_contract_orchestrator.py -> All checks passed.",
-    ".\\.venv\\Scripts\\python.exe -m ruff format --check same target set -> 8 files already formatted.",
-    "PYTHONPATH=src pytest tests\\test_api_routes_sync.py tests\\test_ml_quality_guards.py tests\\contracts\\test_contract_orchestrator.py -> 32 passed in 5.18s.",
-    ".\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --base-url http://127.0.0.1:8002 --timeout-ms 180000 -> ok true; health ok; AAPL chart 130 candles; canvas nonBlank 378108; chat finalContentLength 2059; fallbackUsed false; console_errors empty.",
-    "runtime/logs/phase1-test/test_A_200441.ndjson through test_H_201529.ndjson include live STREAM_END traces with quality_score metadata."
+    ".\\.venv\\Scripts\\python.exe -m py_compile src\\core\\model_serving\\providers.py src\\core\\pipeline\\nodes\\agent.py src\\core\\pipeline\\prompts\\builder.py -> exit 0.",
+    ".\\.venv\\Scripts\\python.exe -m ruff check src\\core\\model_serving\\providers.py src\\core\\pipeline\\nodes\\agent.py src\\core\\pipeline\\prompts\\builder.py -> All checks passed.",
+    ".\\.venv\\Scripts\\python.exe -m ruff format --check src\\core\\model_serving\\providers.py src\\core\\pipeline\\nodes\\agent.py src\\core\\pipeline\\prompts\\builder.py -> 3 files already formatted.",
+    "PYTHONPATH=src pytest tests\\test_gateway.py tests\\contracts\\test_contract_model_serving.py tests\\test_bob_sovereign.py tests\\contracts\\test_contract_agent.py tests\\test_runtime_smoke.py::test_build_agent_prompt_ticker tests\\test_runtime_smoke.py::test_build_agent_prompt_casual -> 82 passed in 0.90s.",
+    ".\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --base-url http://127.0.0.1:8002 --timeout-ms 180000 -> ok true; health ok; AAPL chart 130 candles; canvas nonBlank 378108; chat finalContentLength 2851; fallbackUsed false; console_errors empty."
   ],
   "risks": [
-    "RewardGate uses OpenAssistant/reward-model-deberta-v3-base and may add first-call latency when the model is not already loaded.",
-    "RewardGate failures are now non-fatal and return score 0.0, so quality telemetry can flag low score without crashing the API.",
-    "Quality gate is metadata-only in Phase 1; true blocking or retry must happen before streaming in a later buffered/retry design.",
+    "Prompt guidance can improve framing but does not replace live market-data verification for recommendations.",
+    "Registered-account limits and tax details can change; Bob is now instructed to verify current limits before quoting numbers.",
+    "Gemini model availability is external-provider dependent and can still be overridden with GEMINI_MODEL.",
     "No GitHub operation was performed because this repository is DISK ONLY."
   ],
-  "next_step": "Restart the API process when Marco wants live runtime to load the committed code, then run a short Bob prompt to confirm quality_score appears on the current server process.",
+  "next_step": "If Marco wants a runtime proof using the newly committed prompt text, restart the API process and run one Canadian investor prompt through Bob.",
   "owner": "Marco"
 }
