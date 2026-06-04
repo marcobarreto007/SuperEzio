@@ -1238,6 +1238,46 @@ _COMPLEX_FINANCE_STRUCTURAL_PATTERNS = (
 )
 
 
+def detect_etf_comparison_intent(message: str) -> bool:
+    normalized = normalize_message(message)
+    if not re.search(r"\b(compare|comparison|versus|vs|which one|which would)\b", normalized):
+        return False
+    upper_symbols = set(re.findall(r"\b([A-Z]{2,5})\b", message or ""))
+    etf_symbols = {
+        "SPY",
+        "VOO",
+        "VTI",
+        "IVV",
+        "SCHD",
+        "QQQ",
+        "QQQM",
+        "VXUS",
+        "VEU",
+        "XIU",
+        "XIC",
+        "VCN",
+        "VFV",
+        "XUU",
+        "VSP",
+        "XUH",
+        "ZAG",
+        "XBB",
+    }
+    return len(upper_symbols & etf_symbols) >= 2
+
+
+def detect_portfolio_concentration_intent(message: str) -> bool:
+    normalized = normalize_message(message)
+    has_concentration = bool(
+        re.search(
+            r"\b(concentrated(?:\s+position)?|40\s*%|40 percent|single[-\s]?stock)\b",
+            normalized,
+        )
+    )
+    has_portfolio = bool(re.search(r"\b(portfolio|tax bill|diversify|triggering)\b", normalized))
+    return has_concentration and has_portfolio
+
+
 # Patterns to detect when a user explicitly tells us NOT to scan.
 # "scan" appearing inside a negative construction must not trigger market_scan.
 _NEGATIVE_SCAN_PATTERNS = (
@@ -2057,6 +2097,36 @@ def parse_user_intent(
                 filters={},
                 confidence=0.92,
                 reasons=("capital_allocation_decision_detected",),
+                entities=entities,
+                diary=diary,
+                pennylab=False,
+            )
+        )
+
+    if detect_etf_comparison_intent(raw):
+        return done(
+            IntentParse(
+                route="general",
+                intent="general_question",
+                action="answer",
+                filters={},
+                confidence=0.9,
+                reasons=("etf_comparison_advisory_detected",),
+                entities=entities,
+                diary=diary,
+                pennylab=False,
+            )
+        )
+
+    if detect_portfolio_concentration_intent(raw):
+        return done(
+            IntentParse(
+                route="general",
+                intent="personal_finance",
+                action="answer",
+                filters={},
+                confidence=0.9,
+                reasons=("portfolio_concentration_advisory_detected",),
                 entities=entities,
                 diary=diary,
                 pennylab=False,

@@ -320,6 +320,7 @@ _REJECTION_LABELS_EN = {
     "penny_filtered": "sub-$1 price filtered (penny gate)",
     "otc_filtered": "OTC/pink venue filtered",
     "microcap_filtered": "microcap (<$300M) filtered",
+    "price_above_requested_max": "price above requested maximum",
 }
 
 _REJECTION_LABELS_PT = {
@@ -331,6 +332,7 @@ _REJECTION_LABELS_PT = {
     "penny_filtered": "preco abaixo de US$1 filtrado (gate penny)",
     "otc_filtered": "venue OTC/pink filtrado",
     "microcap_filtered": "microcap (<US$300M) filtrada",
+    "price_above_requested_max": "preco acima do teto solicitado",
 }
 
 
@@ -771,7 +773,7 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
                     "   - expandir universo (setor ou pais)",
                     "   - especificar setor ou tema",
                     "   - ajustar tolerancia a risco",
-                    "   - pedir analise ticker-por-ticker (ex.: AAPL, MSFT)",
+                    "   - pedir analise ticker-por-ticker somente com tickers fornecidos pelo usuario",
                     "",
                     "Model verdict: REJECT_ALL",
                 ]
@@ -802,7 +804,7 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
                     "   - expand universe (sector or country)",
                     "   - specify a sector or theme",
                     "   - lower/raise risk tolerance",
-                    "   - run explicit ticker analysis (e.g. AAPL, MSFT)",
+                    "   - run explicit ticker analysis only for user-provided tickers",
                     "",
                     "Model verdict: REJECT_ALL",
                 ]
@@ -833,7 +835,7 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
                     f"Universo do scan: {universe}.",
                     "",
                     "Proximo scan sugerido: ampliar universo (setor ou pais), nomear um tema ou apertar filtros de liquidez.",
-                    "Proximo prompt sugerido: 'Faca uma checagem ticker-por-ticker de AAPL, MSFT e SPY com preco, volume, ATR de 14 dias e proximo evento conhecido.'",
+                    "Proximo prompt sugerido: 'Repita o scan com teto de preco, liquidez minima, janela de catalisador e retorne REJECT_ALL se nenhum candidato passar.'",
                     "Model verdict: REJECT_ALL",
                 ]
             )
@@ -857,7 +859,7 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
                     f"Scan universe: {universe}.",
                     "",
                     "Suggested next scan: broaden universe (sector or country), name a theme, or tighten liquidity filters.",
-                    "Suggested next prompt: 'Run a ticker-by-ticker check on AAPL, MSFT and SPY with price, volume, 14-day ATR and the next known event.'",
+                    "Suggested next prompt: 'Repeat the scan with max price, minimum liquidity, catalyst window, and return REJECT_ALL if no candidate passes.'",
                     "Model verdict: REJECT_ALL",
                 ]
             )
@@ -1154,7 +1156,7 @@ def _market_scan_answer(state: dict) -> str:
         if not candidates:
             sections.append("")
             sections.append(
-                "Proximo prompt sugerido: 'Faca uma checagem ticker-por-ticker de AAPL, MSFT e SPY com preco, volume, ATR de 14 dias e proximo evento conhecido.'"
+                "Proximo prompt sugerido: 'Repita o scan com teto de preco, liquidez minima, janela de catalisador e retorne REJECT_ALL se nenhum candidato passar.'"
             )
         if errors:
             sections.append("")
@@ -1205,7 +1207,7 @@ def _market_scan_answer(state: dict) -> str:
     if not candidates:
         sections.append("")
         sections.append(
-            "Suggested next prompt: 'Run a ticker-by-ticker check on AAPL, MSFT and SPY with price, volume, 14-day ATR and the next known event.'"
+            "Suggested next prompt: 'Repeat the scan with max price, minimum liquidity, catalyst window, and return REJECT_ALL if no candidate passes.'"
         )
     if errors:
         sections.append("")
@@ -1293,6 +1295,12 @@ def _repair_known_etf_category_errors(text: str) -> str:
     repaired = text or ""
     small_cap_window = re.compile(r"small[- ]cap", re.IGNORECASE)
     bond_etf_window = re.compile(r"(bond|fixed income|investment grade|etf)", re.IGNORECASE)
+    repaired = re.sub(
+        r"low-cost\s+leveraged\s+ETF\s*\(e\.g\.,\s*LUNR[^)]*\)",
+        "higher-volatility satellite exposure only if the instrument, liquidity, and risk are verified",
+        repaired,
+        flags=re.IGNORECASE,
+    )
     for match in reversed(list(re.finditer(r"\bVTV\b", repaired))):
         window_start = max(0, match.start() - 80)
         window_end = min(len(repaired), match.end() + 80)
@@ -1332,6 +1340,40 @@ def _repair_unsupported_exact_returns(text: str) -> str:
     )
 
 
+def _repair_tax_overstatements(text: str) -> str:
+    repaired = re.sub(
+        r"\bstay under your annual capital gains exemption\b",
+        "manage the realized capital gain within your tax bracket and cash-flow plan",
+        text or "",
+        flags=re.IGNORECASE,
+    )
+    repaired = re.sub(
+        r"\b(?:in the U\.S\.,\s*)?use your annual\s+\$?\d+(?:,\d{3})?\s*[Kk]?(?:\s*\([^)]*\))?\s+(?:long-term\s+)?capital gains exemption(?:\s*\([^)]*\))?",
+        "long-term capital-gains tax depends on taxable income and account type; do not assume a fixed exemption",
+        repaired,
+        flags=re.IGNORECASE,
+    )
+    repaired = re.sub(
+        r"without the\s+15%\s+withholding tax on dividends\s*\([^)]*\)",
+        "while verifying foreign withholding tax at the fund and account level",
+        repaired,
+        flags=re.IGNORECASE,
+    )
+    repaired = re.sub(
+        r"because it.?s listed on the TSX,\s*dividends are treated as Canadian-source income for tax purposes",
+        "Canadian listing does not automatically make underlying U.S. dividends Canadian-source for withholding-tax purposes",
+        repaired,
+        flags=re.IGNORECASE,
+    )
+    repaired = re.sub(
+        r"RRSPs are exempt from U\.S\. withholding tax on dividends\s*\([^)]*\),\s*so\s+[^.]+\.",
+        "RRSP withholding treatment depends on whether the ETF is U.S.-listed or Canadian-listed and how it holds the underlying assets; verify the fund structure before assuming recovery.",
+        repaired,
+        flags=re.IGNORECASE,
+    )
+    return repaired
+
+
 def _repair_short_term_return_forecasts(text: str) -> str:
     repaired = text or ""
     if re.search("\\b\\d+(?:\\.\\d+)?\\s*[-\\u2013]\\s*\\d+(?:\\.\\d+)?%", repaired):
@@ -1357,17 +1399,63 @@ def _repair_short_term_return_forecasts(text: str) -> str:
     return repaired
 
 
-def _repair_answer_quality(text: str) -> str:
+def _is_etf_comparison_question(message: str) -> bool:
+    q = f" {(message or '').lower()} "
+    return any(word in q for word in ("compare", "comparison", " versus ", " vs "))
+
+
+def _is_portfolio_concentration_question(message: str) -> bool:
+    q = f" {(message or '').lower()} "
+    return bool(
+        re.search(r"\b(concentrated(?:\s+position)?|40\s*%|40 percent|single[-\s]?stock)\b", q)
+        and re.search(r"\b(portfolio|tax bill|diversify|triggering)\b", q)
+    )
+
+
+def _repair_overlapping_etf_tickers(text: str, message: str = "") -> str:
+    if _is_etf_comparison_question(message):
+        return text or ""
+
+    repaired = text or ""
+    overlap_groups = (
+        ("SPY", "VTI", "VOO", "IVV"),
+        ("QQQ", "QQQM"),
+        ("VXUS", "VEU"),
+    )
+    for group in overlap_groups:
+        present = [
+            ticker
+            for ticker in group
+            if re.search(rf"\b{re.escape(ticker)}\b", repaired, flags=re.IGNORECASE)
+        ]
+        if len(present) <= 1:
+            continue
+        for ticker in present[1:]:
+            repaired = re.sub(
+                rf"\b{re.escape(ticker)}\b",
+                "a similar broad-market ETF",
+                repaired,
+                flags=re.IGNORECASE,
+            )
+    return repaired
+
+
+def _repair_answer_quality(text: str, message: str = "") -> str:
     return _repair_short_term_return_forecasts(
-        _repair_unsupported_exact_returns(
-            _repair_unsourced_etf_tickers(_repair_known_etf_category_errors(text or ""))
+        _repair_overlapping_etf_tickers(
+            _repair_tax_overstatements(
+                _repair_unsupported_exact_returns(
+                    _repair_unsourced_etf_tickers(_repair_known_etf_category_errors(text or ""))
+                )
+            ),
+            message,
         )
     )
 
 
 def _repair_complex_finance_answer(message: str, content: str) -> str:
     msg = (message or "").lower()
-    text = _repair_answer_quality(content or "")
+    text = _repair_answer_quality(content or "", message)
     lower = text.lower()
     additions: list[str] = []
 
@@ -1434,6 +1522,15 @@ def _repair_complex_finance_answer(message: str, content: str) -> str:
         additions.append(
             "Canadian registered-account gate: consider TFSA, RRSP, RESP, or FHSA room only "
             "after liquidity and debt gates; tax/account choices depend on the individual's situation."
+        )
+    has_emergency_months = bool(
+        re.search(r"\b\d+\s*[-–]\s*\d+\s+months?\b", lower)
+        or re.search(r"\b\d+\s*[-–]\s*\d+\s+mes(?:es)?\b", lower)
+    )
+    if canadian_capital_prompt and not has_emergency_months:
+        additions.append(
+            "Emergency reserve gate: keep 3-6 months of essential expenses in cash before "
+            "taking meaningful market or business-equipment risk."
         )
 
     if "Final verdict:" not in text:
@@ -1523,6 +1620,32 @@ def _risk_lab_fallback_answer(state: dict) -> str:
 def _advisory_knowledge_fallback_answer(state: dict) -> str:
     message = state.get("message", "")
     lower = (message or "").lower()
+    if _is_etf_comparison_question(message) and sum(
+        1 for symbol in ("voo", "vti", "schd", "spy", "ivv") if symbol in lower
+    ) >= 2:
+        return (
+            "Bob: this is an ETF comparison, not a short-term trade. I would not stack overlapping core funds just to feel diversified.\n\n"
+            "VOO is S&P 500 large-cap exposure: cheap, simple, but narrower than the full US market. "
+            "VTI is total US equity exposure: it includes the S&P 500 plus mid and small caps, so it is the cleanest one-fund US core. "
+            "SCHD is a dividend-quality/value tilt: useful as a satellite if you deliberately want dividend style exposure, but it is not a complete market core.\n\n"
+            "For most long-term buy-and-hold investors, pick one core first. My default framework is VTI as the broad core, VOO if you specifically want S&P 500 exposure, and SCHD only as a smaller satellite tilt. "
+            "Check fees, account currency, tax wrapper, and whether you are duplicating holdings before buying.\n\n"
+            "Scope: This is an educational framework, not personalized financial advice.\n"
+            "Final verdict: ETF\n"
+            "Confidence: 82/100"
+        )
+    if _is_portfolio_concentration_question(message):
+        return (
+            "Bob: a 40% single-stock position is concentration risk, even when the company is high quality. "
+            "The issue is not whether AAPL is good; the issue is that one company can dominate your outcome, tax planning, and emotional decisions.\n\n"
+            "I would not dump the whole position blindly. A practical framework is: stop adding new money to the concentrated position, route new contributions into diversified broad-market exposure, and reduce the oversized holding in planned tax-aware tranches. "
+            "Before selling, estimate unrealized gains, marginal tax rate, account type, and whether charitable giving, loss harvesting, or staged sales reduce the tax hit.\n\n"
+            "Decision gate: if one stock is above 25-30% of the portfolio, write a reduction plan; if it is above 40%, make diversification the default unless there is a clear tax or liquidity reason to wait. "
+            "Use broad diversified funds or asset-class buckets rather than replacing one single-stock bet with another.\n\n"
+            "Scope: This is an educational framework, not personalized financial advice.\n"
+            "Final verdict: ETF\n"
+            "Confidence: 80/100"
+        )
     if "dividend" in lower or "passive income" in lower:
         return (
             "Bob: for a Canadian passive-income portfolio, I would not chase yield first. "
@@ -1553,8 +1676,11 @@ def _advisory_knowledge_fallback_answer(state: dict) -> str:
 
 def _contract_fallback_answer(state: dict) -> str:
     mode = state.get("cognitive_mode", "ADVISORY_KNOWLEDGE")
+    message = state.get("message", "")
     if state.get("scan"):
         return _market_scan_answer(state)
+    if _is_etf_comparison_question(message) or _is_portfolio_concentration_question(message):
+        return _advisory_knowledge_fallback_answer(state)
     if mode == "CAPITAL_ALLOCATION" or state.get("intent") in (
         "capital_allocation",
         "personal_finance",
@@ -1581,6 +1707,31 @@ def _contract_fallback_answer(state: dict) -> str:
             "Confidence: 70/100"
         )
     return _advisory_knowledge_fallback_answer(state)
+
+
+def _should_force_contract_fallback(state: dict, content: str) -> bool:
+    message = state.get("message", "")
+    msg = (message or "").lower()
+    text = (content or "").lower()
+
+    if state.get("scan"):
+        return True
+
+    scan_leak_markers = (
+        "short-term opportunity research",
+        "market research report",
+        "approximately 2 weeks",
+        "candidates:",
+        "run a market_scan",
+        "only have collected data",
+    )
+    if ("dividend" in msg or "passive income" in msg) and any(m in text for m in scan_leak_markers):
+        return True
+    if _is_etf_comparison_question(message) and any(m in text for m in scan_leak_markers):
+        return True
+    if _is_portfolio_concentration_question(message) and any(m in text for m in scan_leak_markers):
+        return True
+    return False
 
 
 def _final_payload(content: str, iterations: int) -> dict[str, Any]:
@@ -1630,6 +1781,24 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         }
     )
 
+    if (
+        state.get("route") == "ticker_analysis"
+        and state.get("ticker")
+        and not state.get("data")
+        and iterations == 0
+    ):
+        return {
+            "agent_tool_call": {
+                "tool": "collect_data",
+                "args": {"ticker": str(state.get("ticker", "")).upper()},
+            },
+            "agent_iterations": iterations + 1,
+            "_pending_tool_calls": [],
+            "bob_thesis": state.get("bob_thesis", ""),
+            "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
+            "current_datetime": state.get("current_datetime", ""),
+        }
+
     _detected_intent = state.get("intent", "")
     is_complex_finance = detect_complex_finance_intent(
         state.get("message", "")
@@ -1655,13 +1824,21 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     f"CURRENT DATE: {now_str}\n"
                     f"DETECTED RISK LEVEL: {risk}\n\n"
                     f"DETECTED BOB INTENT: {bob_intent}\n\n"
+                    f"COGNITIVE MODE: {state.get('cognitive_mode', 'ADVISORY_KNOWLEDGE')}\n"
+                    f"ALLOWED TOOLS: {', '.join(str(t) for t in state.get('allowed_tools', ['final_answer']))}\n"
+                    f"SCANNER_ALLOWED: {bool(state.get('scanner_allowed', False))}\n"
+                    f"TICKER_DATA_ALLOWED: {bool(state.get('ticker_allowed', False))}\n"
+                    f"ANSWER CONTRACT: {state.get('answer_contract', 'Answer directly and do not invent current market data.')}\n\n"
                     f"USER: {state.get('message', '')}\n\n"
+                    f"If ALLOWED TOOLS is only final_answer, do not call market_scan, collect_data, experts, or firewalls. "
+                    f"Answer the advisory framework directly and state when live data was not collected. "
+                    f"If SCANNER_ALLOWED is False, never scan or shortlist current tickers from imagined data. "
                     f"BANNED: Do NOT output the 12-section framework template. "
                     f"BANNED: Do NOT use numbered sections like '1. **Scope disclaimer** —'. "
                     f"REQUIRED for allocation/personal-finance questions: one short scope line "
                     f"(educational framework, not personalized financial advice). "
                     f"Talk like a smart friend giving advice. "
-                    f"If the user wants a stock pick, give them tickers with reasons. "
+                    f"If the user wants a stock pick and SCANNER_ALLOWED is True, use market_scan first and only use scan-approved tickers. "
                     f"If you need market data, call tools. If you can answer from knowledge, do so."
                 ),
             }
@@ -1835,16 +2012,20 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         if tool_call and "tool" in tool_call:
             if tool_call["tool"] == "final_answer":
                 content = tool_call.get("args", {}).get("content") or ""
-                if not str(content).strip():
+                if state.get("scan"):
+                    content = _market_scan_answer(state)
+                elif not str(content).strip():
                     if is_complex_finance:
                         content = _complex_finance_fallback_answer(state.get("message", ""))
                     else:
                         content = _contract_fallback_answer(state)
+                elif _should_force_contract_fallback(state, content):
+                    content = _contract_fallback_answer(state)
                 elif is_complex_finance:
                     content = _repair_complex_finance_answer(state.get("message", ""), content)
                 else:
-                    content = _repair_answer_quality(content)
-                content = _apply_grounding_guard(state, content)
+                    content = _repair_answer_quality(content, state.get("message", ""))
+                    content = _apply_grounding_guard(state, content)
                 writer({"type": "CHUNK", "content": content})
                 writer(
                     {

@@ -1,33 +1,32 @@
 {
-  "date_local": "2026-06-04T16:47:43-04:00",
-  "session": "evidence-grounding-guard-2026-06-04",
-  "status": "grounding_guard_verified_live",
+  "date_local": "2026-06-04T19:21:17-04:00",
+  "session": "full-system-trust-gate-2026-06-04",
+  "status": "full_validation_passed_and_runtime_live",
   "what_was_done": [
-    "Investigated evidence run 20260604-175500_2884dc where Bob collected NVDA but recommended uncollected MRVL and RDW with invented company identity.",
-    "Added final-answer grounding guard so ticker recommendations with collected data cannot cite tickers outside the current collected/scan-approved evidence.",
-    "Hardened market scan context with grounded company identity and UNKNOWN_DO_NOT_INVENT fallback when provider name is missing.",
-    "Added explicit DATA_COLLECTED provider/capability metadata for ticker analysis and market scan events.",
-    "Fixed evidence capture so nested scan output records candidates, rejected count, and provider sources into evidence artifacts.",
-    "Added answer-quality repair for exact short-term percentage ranges so they are framed as illustrative scenarios, not forecasts.",
-    "Restarted the local API/model stack after code changes and validated the UI with browser smoke."
+    "Ran the full system test gate after the user requested 'testa agora tudo'.",
+    "Fixed Bob Sovereign routing so it respects deterministic cognitive contracts instead of allowing every tool on advisory prompts.",
+    "Removed the sovereign tool-permission bypass; final-only advisory contracts now block market_scan/collect_data misuse.",
+    "Added deterministic intent handling for dividend/passive-income advisory, ETF comparison, and portfolio concentration prompts.",
+    "Forced ticker_analysis to collect ticker data before model finalization, restoring live DATA_COLLECTED/F51 evidence behavior.",
+    "Forced market_scan final answers to render from scan state, preventing hallucinated hidden-gem candidates after a scan.",
+    "Added max-price parsing/gating so requests like 'under CAD 5' reject candidates above the requested ceiling.",
+    "Hardened answer-quality repairs for ETF overlap, mislabeled ETF/ticker examples, tax overstatements, and unsupported short-term return ranges.",
+    "Strengthened scripts/investment_answer_quality.py so the QA script fails on advisory scan leakage, ETF-comparison overblocking, and under-CAD-5 price leaks."
   ],
   "evidence": [
-    "Original bad run: runs/evidence/20260604-175500_2884dc showed sources unknown:unknown, ticker NVDA collected, and final response citing MRVL/RDW without evidence.",
-    "Targeted tests: PYTHONPATH=src .\\.venv\\Scripts\\python.exe -m pytest tests/contracts/test_contract_agent.py tests/contracts/test_contract_collector.py tests/test_evidence_mode.py -q -> 45 passed.",
-    "Scanner/trace tests: PYTHONPATH=src .\\.venv\\Scripts\\python.exe -m pytest tests/test_market_scan_candidate_gate.py tests/test_no_empty_response_and_trace.py -q -> 29 passed, warnings only from OpenBB/Pydantic dependencies.",
-    "Compile check: PYTHONPATH=src .\\.venv\\Scripts\\python.exe -m py_compile src/core/pipeline/nodes/agent.py src/core/pipeline/nodes/collector.py src/core/pipeline/graph.py -> pass.",
     "Runtime restart: powershell -ExecutionPolicy Bypass -File .\\runtime\\do_restart.ps1 -> health 8082 200 and health 8002 200.",
-    "Final runtime restart: powershell -ExecutionPolicy Bypass -File .\\runtime\\do_restart.ps1 -> health 8082 200 and health 8002 200; one stale PID kill warning only.",
-    "Browser smoke after final restart: scripts\\browser_smoke.py --timeout-ms 180000 -> ok true; health ok; AAPL chart 130 candles; canvas nonBlank 378108; chat fallback false; console_errors empty; screenshot output\\playwright\\superezio-browser-smoke-20260604-164938.png.",
-    "Live repro prompt after first restart produced evidence run 20260604-204108_a50509 with source finnhub:market_scan and 5 recorded candidates; response did not cite RDW.",
-    "runs/evidence/20260604-204108_a50509/sources.json now records finnhub:market_scan and candidates including NVDA, NOK, BB, MRVL, and AVGO."
+    "Full pytest final: PYTHONPATH=src;scripts .\\.venv\\Scripts\\python.exe -m pytest -q -> 1045 passed, 29 warnings in 159.55s.",
+    "Browser smoke final: PYTHONPATH=src .\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --timeout-ms 180000 -> ok true; health ok; AAPL chart 130 candles; canvas nonBlank 378108; chat fallback false; console_errors empty; screenshot output\\playwright\\superezio-browser-smoke-20260604-191513.png.",
+    "Investment QA final: PYTHONPATH=src;scripts .\\.venv\\Scripts\\python.exe -u scripts\\invest_api_qa.py -> exit code 0; report output/playwright/invest-api-qa-20260604-192100.json.",
+    "Investment QA Q8 result: under CAD 5 small-cap scan returned no candidate passed; rejected 24 candidates, top reason price above requested maximum; no AAPL/MSFT/SPY suggestion leak.",
+    "Regression coverage added for sovereign contract enforcement, final-only dividend advisory, ETF comparison not becoming single-ticker analysis, portfolio concentration not becoming isolated ticker analysis, scan-state rendering, ticker_analysis collect_data forcing, price ceiling filter, and tax/ETF wording repairs."
   ],
   "risks": [
-    "The model can still choose among scan-approved candidates with natural-language reasoning; grounding guard blocks uncollected tickers but does not rank for business suitability by itself.",
-    "OpenBB/Finnhub data may still expose split/currency/provider oddities; candidate facts are now evidenced, but provider accuracy remains an external data-quality risk.",
-    "Exact short-term return ranges are softened, but a deeper financial-copy policy pass may still be needed before commercial packaging.",
+    "Bob can still produce plausible macro/tax language without live data on broad advisory prompts; new repairs catch known bad phrases, but a deeper commercial policy layer is still recommended before packaging.",
+    "Provider data quality remains external; scan gating now rejects price-ceiling violations but does not guarantee provider currency normalization is perfect.",
+    "OpenBB/Pydantic dependency deprecation warnings remain; they did not fail tests.",
     "No GitHub operation was performed because this repository is DISK ONLY."
   ],
-  "next_step": "Run a focused 10-prompt Bob investment QA after this commit to verify no ungrounded ticker/company/price appears across market_scan, ticker_analysis, and general recommendation flows.",
+  "next_step": "Use the passing gate as the local save point, then continue packaging with a buyer/demo script and a stricter commercial-answer policy pass for tax/macro wording.",
   "owner": "Marco"
 }

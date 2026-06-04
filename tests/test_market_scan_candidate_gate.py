@@ -370,6 +370,65 @@ async def test_priced_candidates_fail_on_thesis_not_price(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_under_cad_price_request_filters_expensive_candidates(monkeypatch):
+    from src.core import scanner as scanner_module
+    from src.core.pipeline.nodes.collector import _run_scan
+
+    class StubScanner:
+        def scan_equities(self, country=None, sector=None, industry=None, limit=10):
+            return ["CHEAP", "EXPENSIVE"]
+
+    class StubHub:
+        def get_price(self, ticker, **kwargs):
+            price = 4.25 if ticker == "CHEAP" else 12.50
+            return {
+                "ticker": ticker,
+                "price": price,
+                "volume": 1_000_000,
+                "currency": "CAD",
+                "provider": "stub",
+                "market": "Canada",
+                "exchange": "TSX",
+            }
+
+        def get_profile(self, ticker):
+            return {"name": f"{ticker} Corp", "sector": "Technology", "provider": "stub"}
+
+        def route(self, capability, ticker):
+            return {
+                "catalyst": "scheduled event catalyst",
+                "risk": "event risk",
+                "invalidation": "close below support",
+                "provider": "stub",
+            }
+
+        def get_fundamentals(self, ticker):
+            return {"market_cap": 1_000_000_000, "provider": "stub"}
+
+        def list_routes(self, capability=None):
+            return [{"name": "stub", "configured": True}]
+
+    monkeypatch.setattr(scanner_module, "MarketScanner", StubScanner)
+    monkeypatch.setitem(sys.modules, "data.data_hub", types.SimpleNamespace(hub=StubHub()))
+    try:
+        import src.core.scanner.openbb_scanner as _obb_mod
+
+        monkeypatch.setattr(_obb_mod, "_OPENBB_AVAILABLE", False)
+    except ImportError:
+        pass
+
+    result = await _run_scan(
+        "Find one US or Canadian small-cap stock under CAD 5 with liquidity and a real catalyst.",
+        {"country": "Canada"},
+    )
+
+    assert result["filters"]["max_price"] == 5.0
+    assert [c["ticker"] for c in result["candidates"]] == ["CHEAP"]
+    assert any(r.get("ticker") == "EXPENSIVE" for r in result["rejected"])
+    assert result["rejection_summary"]["price_above_requested_max"] == 1
+
+
+@pytest.mark.asyncio
 async def test_fundamentals_failures_do_not_skip_catalyst_enrichment(monkeypatch):
     """Fundamentals is optional enrichment; its failures must not trip catalyst."""
     from src.core import scanner as scanner_module
@@ -812,6 +871,60 @@ def test_cad50_weekly_risk_lab_is_not_scanner_by_default():
     assert plan["cognitive_mode"] == "RISK_LAB"
     assert plan["scanner_allowed"] is False
     assert plan["ticket_allowed"] is False
+    assert plan["allowed_tools"] == ["final_answer"]
+
+
+def test_dividend_passive_income_is_final_only_advisory():
+    from src.core.pipeline.intents import parse_user_intent
+
+    result = parse_user_intent(
+        "I want to build a passive income portfolio with dividend stocks. "
+        "What are 5 solid dividend stocks or ETFs for a Canadian investor? "
+        "Consider tax efficiency and withholding taxes.",
+        rigor="strict",
+        ticker="",
+    )
+    plan = result.to_plan()
+
+    assert result.route == "general"
+    assert plan["scanner_allowed"] is False
+    assert plan["ticker_allowed"] is False
+    assert plan["allowed_tools"] == ["final_answer"]
+
+
+def test_etf_comparison_is_not_single_ticker_analysis():
+    from src.core.pipeline.intents import parse_user_intent
+
+    result = parse_user_intent(
+        "Compare VOO, VTI, and SCHD for a long-term buy-and-hold investor. "
+        "Which one would you recommend and why? Consider fees, diversification, and historical performance.",
+        rigor="strict",
+        ticker="",
+    )
+    plan = result.to_plan()
+
+    assert result.route == "general"
+    assert result.ticker == ""
+    assert plan["scanner_allowed"] is False
+    assert plan["ticker_allowed"] is False
+    assert plan["allowed_tools"] == ["final_answer"]
+
+
+def test_concentrated_position_is_personal_finance_not_single_ticker_analysis():
+    from src.core.pipeline.intents import parse_user_intent
+
+    result = parse_user_intent(
+        "I hold a concentrated position in AAPL (40% of my portfolio). "
+        "Is this too risky? How should I diversify without triggering a huge tax bill?",
+        rigor="strict",
+        ticker="",
+    )
+    plan = result.to_plan()
+
+    assert result.route == "general"
+    assert result.intent == "personal_finance"
+    assert result.ticker == ""
+    assert plan["scanner_allowed"] is False
     assert plan["allowed_tools"] == ["final_answer"]
 
 

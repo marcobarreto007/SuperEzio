@@ -66,6 +66,16 @@ def _is_comparison_question(question: str) -> bool:
     return any(word in q for word in COMPARISON_WORDS)
 
 
+def _asks_dividend_advisory(question: str) -> bool:
+    q = (question or "").lower()
+    return "dividend" in q or "passive income" in q
+
+
+def _asks_under_cad_5(question: str) -> bool:
+    q = (question or "").lower()
+    return "under cad 5" in q or "under $5" in q or "below cad 5" in q
+
+
 def _contains_allocation_percentages(answer: str) -> bool:
     return bool(re.search(r"\b\d{1,3}\s*%", answer or ""))
 
@@ -122,6 +132,41 @@ def evaluate_answer_quality(
             present = [ticker for ticker in group if _mentions_ticker(clean_answer, ticker)]
             if len(present) > 1:
                 reasons.append(f"etf_overlap:{'/'.join(present)}")
+
+    scan_leak_markers = (
+        "short-term opportunity research",
+        "market research report",
+        "approximately 2 weeks",
+        "run a market_scan",
+        "only have collected data",
+    )
+    if _asks_dividend_advisory(question) and any(marker in lower for marker in scan_leak_markers):
+        reasons.append("advisory_scan_leak:dividend")
+
+    if _is_comparison_question(question):
+        if any(marker in lower for marker in ("only have collected data", "run a market_scan")):
+            reasons.append("comparison_grounding_overblock")
+        mentioned = [ticker for ticker in ("VOO", "VTI", "SCHD") if ticker in (question or "")]
+        missing = [ticker for ticker in mentioned if not _mentions_ticker(clean_answer, ticker)]
+        if missing:
+            reasons.append(f"comparison_missing_tickers:{'/'.join(missing)}")
+
+    if _asks_under_cad_5(question):
+        for ticker in ("TSLA", "NVDA", "AVGO", "MRVL", "MSFT", "AAPL"):
+            if _mentions_ticker(clean_answer, ticker):
+                reasons.append(f"price_constraint_leak:{ticker}")
+        for match in re.finditer(
+            r"\b(?:latest\s+price|trading\s+at|price)\s*[:=]?\s*(?:cad|usd|eur|\$)?\s*(\d+(?:\.\d+)?)\b",
+            clean_answer,
+            re.IGNORECASE,
+        ):
+            try:
+                price = float(match.group(1))
+            except ValueError:
+                continue
+            if price > 5:
+                reasons.append("price_constraint_leak:above_5")
+                break
 
     reasons.extend(_semantic_mismatch_reasons(question, clean_answer))
 

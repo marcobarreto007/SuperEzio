@@ -110,6 +110,79 @@ async def test_market_scan_result_finalizes_without_reentering_tool_loop(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_market_scan_final_answer_uses_scan_state_not_model_hallucination(monkeypatch):
+    from src.core.pipeline.nodes import agent as agent_module
+
+    events = []
+    monkeypatch.setattr(agent_module, "get_stream_writer", lambda: events.append)
+
+    class MockGateway:
+        async def chat_completion(self, **kwargs):
+            return (
+                '{"tool": "final_answer", "args": {"content": '
+                '"Actually the scan returned TBR.TO at CAD 4.82 with a spin-off catalyst."}}'
+            )
+
+    result = await agent_module.node_agent(
+        {
+            "run_id": "scan-hallucination-test",
+            "route": "market_scan",
+            "message": "Find one US or Canadian small-cap stock under CAD 5 with liquidity and a real catalyst.",
+            "scan": {
+                "data_quality": "provider_or_computed",
+                "source_errors": [],
+                "universe": "US_CANADA_LIQUID",
+                "filters": {
+                    "resolved_countries": ["United States", "Canada"],
+                    "allow_penny_otc": False,
+                    "allow_microcap": False,
+                    "max_price": 5.0,
+                },
+                "candidates": [],
+                "rejected": [{"ticker": "EXPENSIVE", "rejected_reason": "price_above_requested_max"}],
+                "rejected_count": 1,
+                "rejection_summary": {"price_above_requested_max": 1},
+            },
+        },
+        gateway=MockGateway(),
+    )
+
+    final = result["final"]
+    assert "TBR.TO" not in final
+    assert "spin-off catalyst" not in final
+    assert "AAPL" not in final
+    assert "MSFT" not in final
+    assert "SPY" not in final
+    assert "No candidate passed" in final
+    assert "price above requested maximum" in final
+    assert any(event.get("type") == "CHUNK" for event in events)
+
+
+@pytest.mark.asyncio
+async def test_ticker_analysis_forces_collect_data_before_model_final(monkeypatch):
+    from src.core.pipeline.nodes import agent as agent_module
+
+    monkeypatch.setattr(agent_module, "get_stream_writer", lambda: lambda _event: None)
+
+    class GatewayMustNotRun:
+        async def chat_completion(self, **kwargs):
+            raise AssertionError("ticker_analysis must collect data before asking the model")
+
+    result = await agent_module.node_agent(
+        {
+            "run_id": "ticker-force-collect-test",
+            "route": "ticker_analysis",
+            "message": "AAPL 14 dias analise",
+            "ticker": "AAPL",
+            "agent_iterations": 0,
+        },
+        gateway=GatewayMustNotRun(),
+    )
+
+    assert result["agent_tool_call"] == {"tool": "collect_data", "args": {"ticker": "AAPL"}}
+
+
+@pytest.mark.asyncio
 async def test_agent_loop_failsafe_is_user_safe(monkeypatch):
     from src.core.pipeline.nodes import agent as agent_module
 

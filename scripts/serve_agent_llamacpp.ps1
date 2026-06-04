@@ -1,5 +1,7 @@
 # SuperEzio Bob CEO local server.
 # Sources config.ps1 for path detection and keeps command-line overrides.
+# Official agent GGUF: Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf
+# Preferred llama-server: C:\llama.cpp\build-cuda\bin\llama-server.exe
 
 param(
     [int]$Port = 8082,

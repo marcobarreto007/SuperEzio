@@ -20,14 +20,15 @@ async def test_orchestrator_sovereign_mode(monkeypatch):
 
     plan = await node_orchestrator(state, gateway=None, config=None)
 
-    assert plan["route"] == "general"
+    assert plan["route"] == "market_scan"
     assert plan["ticker"] == ""
     assert plan["risk_tolerance"] == "especulativa"
     assert plan["bob_intent"] == "buscar_oportunidade"
     assert "market_scan" in plan["allowed_tools"]
     assert plan["scanner_allowed"] is True
     assert plan["ticker_allowed"] is True
-    assert plan["cognitive_mode"] == "SOVEREIGN"
+    assert plan["cognitive_mode"] == "DISCOVERY_SCAN"
+    assert plan["sovereign_mode"] is True
 
 
 @pytest.mark.asyncio
@@ -50,7 +51,7 @@ async def test_orchestrator_sovereign_mode_blocks_unscoped_ticket_reference(monk
     assert plan["scanner_allowed"] is False
     assert plan["ticker_allowed"] is False
     assert plan["allowed_tools"] == ["final_answer"]
-    assert plan["cognitive_mode"] == "SOVEREIGN"
+    assert plan["sovereign_mode"] is True
 
 
 @pytest.mark.asyncio
@@ -116,13 +117,15 @@ async def test_agent_sovereign_mode_queues_extra_tool_calls(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_tool_executor_sovereign_mode_bypasses_permissions(monkeypatch):
+async def test_tool_executor_sovereign_mode_respects_permissions(monkeypatch):
     monkeypatch.setenv("SUPEREZIO_BOB_SOVEREIGN", "1")
+    monkeypatch.setattr(
+        "src.core.pipeline.nodes.tool_executor.get_stream_writer", lambda: lambda x: None
+    )
 
-    # Even if allowed_tools is restricted, sovereign mode bypasses it
     state = {
         "agent_tool_call": {"tool": "market_scan", "args": {"query": "penny stocks"}},
-        "allowed_tools": ["final_answer"],  # Normally blocks market_scan
+        "allowed_tools": ["final_answer"],
         "scanner_allowed": False,
         "executed_tools": [],
         "executed_tool_counts": {},
@@ -138,5 +141,6 @@ async def test_tool_executor_sovereign_mode_bypasses_permissions(monkeypatch):
 
     result = await node_tool_executor(state, gateway=None, config=None)
 
-    assert "tool_blocked" not in result
-    assert result["executed_tools"] == ["market_scan"]
+    assert result["tool_blocked"]["tool"] == "market_scan"
+    assert "cognitive_contract" in result["tool_blocked"]["reason"]
+    assert result["executed_tools"] == []

@@ -120,53 +120,28 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
             ticker=ticker,
             trade_order_context=trade_order_context,
         )
+        plan = parsed.to_plan()
+        plan.update(
+            {
+                "risk_tolerance": _classify_risk_tolerance(message, plan),
+                "bob_intent": _classify_bob_intent(message, plan),
+                "time_horizon": _extract_time_horizon(message)
+                or trade_order_context.get("time_horizon", ""),
+                "intent_source": "sovereign_orchestrator",
+                "sovereign_mode": True,
+            }
+        )
         if parsed.route == "needs_scope":
-            plan = parsed.to_plan()
             plan.update(
                 {
                     "intent_source": "sovereign_scope_guard",
-                    "risk_tolerance": _classify_risk_tolerance(message, {}),
                     "bob_intent": "missing_scope",
-                    "time_horizon": _extract_time_horizon(message)
-                    or trade_order_context.get("time_horizon", ""),
                     "allowed_tools": ["final_answer"],
                     "scanner_allowed": False,
                     "ticker_allowed": False,
                     "market_context_allowed": False,
-                    "cognitive_mode": "SOVEREIGN",
                 }
             )
-        else:
-            plan = {
-                "route": "general",
-                "intent": "general_question",
-                "action": "answer",
-                "ticker": "",
-                "risk_tolerance": _classify_risk_tolerance(message, {}),
-                "bob_intent": _classify_bob_intent(message, {}),
-                "time_horizon": _extract_time_horizon(message)
-                or trade_order_context.get("time_horizon", ""),
-                "intent_source": "sovereign_orchestrator",
-                "intent_confidence": 1.0,
-                "intent_reasons": ["Sovereign Bob mode active"],
-                "allowed_tools": [
-                    "collect_data",
-                    "f51_firewall",
-                    "pennylab",
-                    "run_experts",
-                    "neural_decision",
-                    "sdca_firewall",
-                    "rag_forensics",
-                    "market_scan",
-                    "penny_momentum_backtest",
-                    "final_answer",
-                ],
-                "scanner_allowed": True,
-                "ticker_allowed": True,
-                "market_context_allowed": True,
-                "cognitive_mode": "SOVEREIGN",
-            }
-            plan["intent"] = plan["bob_intent"]  # sync intent with bob_intent
     else:
         # 1. Deterministic parse — for intent classification only
         trade_order_context = state.get("trade_order_context") or {}

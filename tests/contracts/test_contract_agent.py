@@ -17,7 +17,11 @@ from src.core.pipeline.prompts._prompts import (
     QWEN_PERSONA,
     MODEL_PROMPTS,
 )
-from src.core.pipeline.nodes.agent import _apply_grounding_guard, _repair_answer_quality
+from src.core.pipeline.nodes.agent import (
+    _apply_grounding_guard,
+    _contract_fallback_answer,
+    _repair_answer_quality,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -200,6 +204,93 @@ def test_answer_quality_softens_exact_short_term_return_ranges():
     assert "very doable" not in repaired
     assert "not a forecast" in repaired
     assert "Return-range caveat" in repaired
+
+
+def test_answer_quality_removes_non_comparison_etf_overlap():
+    draft = "Use 50% SPY and 50% VOO for a simple allocation."
+
+    repaired = _repair_answer_quality(draft, "Should I DCA or wait?")
+
+    assert "SPY" in repaired
+    assert "VOO" not in repaired
+    assert "similar broad-market ETF" in repaired
+
+
+def test_answer_quality_allows_explicit_etf_comparison():
+    draft = "VOO and VTI are different; SCHD is dividend-focused."
+
+    repaired = _repair_answer_quality(draft, "Compare VOO, VTI, and SCHD.")
+
+    assert repaired == draft
+
+
+def test_answer_quality_repairs_leveraged_etf_mislabeled_ticker():
+    draft = "Use a low-cost leveraged ETF (e.g., LUNR, if available and liquid)."
+
+    repaired = _repair_answer_quality(draft, "I have $25,000 to invest.")
+
+    assert "LUNR" not in repaired
+    assert "higher-volatility satellite exposure" in repaired
+
+
+def test_answer_quality_repairs_capital_gains_exemption_overstatement():
+    draft = "Trim gradually to stay under your annual capital gains exemption."
+
+    repaired = _repair_answer_quality(draft, "I hold a concentrated position in AAPL.")
+
+    assert "annual capital gains exemption" not in repaired
+    assert "tax bracket" in repaired
+
+
+def test_answer_quality_repairs_fixed_us_capital_gains_exemption_claim():
+    draft = "In the U.S., use your annual $25K (single) long-term capital gains exemption (2026 rates)."
+
+    repaired = _repair_answer_quality(draft, "I hold a concentrated position in AAPL.")
+
+    assert "$25K" not in repaired
+    assert "fixed exemption" in repaired
+
+
+def test_answer_quality_repairs_us_dividend_withholding_overstatement():
+    draft = (
+        "Use VSP for U.S. dividend exposure without the 15% withholding tax on dividends "
+        "(thanks to the CAD-hedging structure and Canadian listing). Because it's listed on the TSX, "
+        "dividends are treated as Canadian-source income for tax purposes."
+    )
+
+    repaired = _repair_answer_quality(draft, "Build a dividend portfolio for a Canadian investor.")
+
+    assert "without the 15% withholding tax" not in repaired
+    assert "Canadian-source income" not in repaired
+    assert "withholding-tax purposes" in repaired
+
+
+def test_contract_fallback_handles_etf_comparison():
+    answer = _contract_fallback_answer(
+        {
+            "message": "Compare VOO, VTI, and SCHD for a long-term buy-and-hold investor.",
+            "cognitive_mode": "ADVISORY_KNOWLEDGE",
+        }
+    )
+
+    assert "VOO is" in answer
+    assert "VTI is" in answer
+    assert "SCHD is" in answer
+    assert "Final verdict: ETF" in answer
+
+
+def test_contract_fallback_handles_concentrated_position():
+    answer = _contract_fallback_answer(
+        {
+            "message": "I hold a concentrated position in AAPL (40% of my portfolio). How should I diversify without triggering a huge tax bill?",
+            "intent": "personal_finance",
+            "cognitive_mode": "ADVISORY_KNOWLEDGE",
+        }
+    )
+
+    assert "40% single-stock position" in answer
+    assert "tax-aware tranches" in answer
+    assert "Final verdict: ETF" in answer
 
 
 # ---------------------------------------------------------------------------

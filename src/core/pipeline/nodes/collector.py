@@ -367,6 +367,24 @@ def _wants_microcap(msg_lower: str) -> bool:
     return _has_any(msg_lower, _MICROCAP_PATTERNS)
 
 
+def _requested_max_price(msg_lower: str) -> float | None:
+    patterns = (
+        r"\b(?:under|below|less than|sub)\s*(?:cad|usd|\$)?\s*(\d+(?:\.\d+)?)\b",
+        r"\b(?:cad|usd|\$)\s*(\d+(?:\.\d+)?)\s*(?:or less|and under|or under|max|maximum)\b",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, msg_lower)
+        if not match:
+            continue
+        try:
+            value = float(match.group(1))
+        except (TypeError, ValueError):
+            continue
+        if value > 0:
+            return value
+    return None
+
+
 def _resolve_universe(explicit_country: str | None, msg_lower: str) -> tuple[str, list[str]]:
     """Decide which scanner countries to query.
 
@@ -479,6 +497,7 @@ def _apply_candidate_gate(
     *,
     allow_penny_otc: bool,
     allow_microcap: bool,
+    max_price: float | None = None,
 ) -> tuple[bool, str | None]:
     """Apply the market-scan data-quality gate.
 
@@ -500,6 +519,8 @@ def _apply_candidate_gate(
         return False, "missing_price"
     if isinstance(price, (int, float)) and price <= 0:
         return False, "missing_price"
+    if max_price is not None and isinstance(price, (int, float)) and price > max_price:
+        return False, "price_above_requested_max"
 
     if not allow_penny_otc:
         if isinstance(price, (int, float)) and price < 1.0:
@@ -604,6 +625,7 @@ async def _run_scan(
 
     allow_penny_otc = _wants_penny_or_otc(msg_lower)
     allow_microcap = _wants_microcap(msg_lower) or allow_penny_otc
+    requested_max_price = _requested_max_price(msg_lower)
 
     universe_label, countries = _resolve_universe(explicit_country, msg_lower)
 
@@ -1120,6 +1142,7 @@ async def _run_scan(
             item,
             allow_penny_otc=allow_penny_otc,
             allow_microcap=allow_microcap,
+            max_price=requested_max_price,
         )
         if ok:
             normalize_liquidity_fields(item)
@@ -1193,6 +1216,7 @@ async def _run_scan(
         "resolved_countries": countries,
         "allow_penny_otc": allow_penny_otc,
         "allow_microcap": allow_microcap,
+        "max_price": requested_max_price,
     }
 
     return {

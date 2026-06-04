@@ -36,9 +36,6 @@ _SEMI_REPEATABLE_LIMITS: dict[str, int] = {"collect_data": 2}
 
 
 def _tool_permission_error(state: dict, tool_name: str, args: dict) -> str:
-    import os
-    if os.getenv("SUPEREZIO_BOB_SOVEREIGN", "0") == "1":
-        return ""
     allowed_tools = set(state.get("allowed_tools") or [])
     if not allowed_tools or tool_name == "final_answer":
         return ""
