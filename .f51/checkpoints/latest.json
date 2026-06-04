@@ -1,34 +1,33 @@
 {
-  "date_local": "2026-06-04T13:56:57-04:00",
-  "session": "feedback-save-verification-2026-06-04",
-  "status": "feedback_save_verified_live",
+  "date_local": "2026-06-04T16:47:43-04:00",
+  "session": "evidence-grounding-guard-2026-06-04",
+  "status": "grounding_guard_verified_live",
   "what_was_done": [
-    "Verified the latest local commits are present and the git tree was clean before live save testing.",
-    "Tested POST /feedback against the running API and discovered the old process was still serving the pre-hardened endpoint contract.",
-    "Restarted the local stack with runtime/do_restart.ps1 to load the committed code.",
-    "Retested POST /feedback and GET /feedback/stats on the restarted API.",
-    "Verified invalid feedback rating returns HTTP 400.",
-    "Verified runtime/feedback/ remains ignored by git.",
-    "Ran browser smoke against the restarted API to confirm health, chart, canvas, chat, and console behavior."
+    "Investigated evidence run 20260604-175500_2884dc where Bob collected NVDA but recommended uncollected MRVL and RDW with invented company identity.",
+    "Added final-answer grounding guard so ticker recommendations with collected data cannot cite tickers outside the current collected/scan-approved evidence.",
+    "Hardened market scan context with grounded company identity and UNKNOWN_DO_NOT_INVENT fallback when provider name is missing.",
+    "Added explicit DATA_COLLECTED provider/capability metadata for ticker analysis and market scan events.",
+    "Fixed evidence capture so nested scan output records candidates, rejected count, and provider sources into evidence artifacts.",
+    "Added answer-quality repair for exact short-term percentage ranges so they are framed as illustrative scenarios, not forecasts.",
+    "Restarted the local API/model stack after code changes and validated the UI with browser smoke."
   ],
   "evidence": [
-    "git status --short before checkpoint -> clean.",
-    "git log --oneline -5 -> e9a4771 feat(feedback): add local response ratings; ab10a4d fix(prompt): clarify North America market context; 7d849f4 feat(runtime): add quality gate telemetry.",
-    "Initial POST /feedback returned old contract with path, proving the API process needed restart.",
-    "powershell -NoProfile -ExecutionPolicy Bypass -File runtime\\do_restart.ps1 -> health 8082 200 and health 8002 200; servers up true.",
-    "POST /feedback after restart -> HTTP 200 {\"ok\":true}.",
-    "GET /feedback/stats?days=1 after restart -> HTTP 200 total 3, avg_rating 1.0, distribution 1:3.",
-    "POST /feedback with rating='bad' -> HTTP 400.",
-    "runtime/feedback/feedback-2026-06-04.jsonl -> 3 JSONL records including save-test-current-20260604-135433.",
-    "git status --short --ignored runtime/feedback -> !! runtime/feedback/.",
-    ".\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --base-url http://127.0.0.1:8002 --timeout-ms 180000 -> ok true; health ok; AAPL chart 130 candles; canvas nonBlank 378108; chat finalContentLength 2889; fallbackUsed false; console_errors empty."
+    "Original bad run: runs/evidence/20260604-175500_2884dc showed sources unknown:unknown, ticker NVDA collected, and final response citing MRVL/RDW without evidence.",
+    "Targeted tests: PYTHONPATH=src .\\.venv\\Scripts\\python.exe -m pytest tests/contracts/test_contract_agent.py tests/contracts/test_contract_collector.py tests/test_evidence_mode.py -q -> 45 passed.",
+    "Scanner/trace tests: PYTHONPATH=src .\\.venv\\Scripts\\python.exe -m pytest tests/test_market_scan_candidate_gate.py tests/test_no_empty_response_and_trace.py -q -> 29 passed, warnings only from OpenBB/Pydantic dependencies.",
+    "Compile check: PYTHONPATH=src .\\.venv\\Scripts\\python.exe -m py_compile src/core/pipeline/nodes/agent.py src/core/pipeline/nodes/collector.py src/core/pipeline/graph.py -> pass.",
+    "Runtime restart: powershell -ExecutionPolicy Bypass -File .\\runtime\\do_restart.ps1 -> health 8082 200 and health 8002 200.",
+    "Final runtime restart: powershell -ExecutionPolicy Bypass -File .\\runtime\\do_restart.ps1 -> health 8082 200 and health 8002 200; one stale PID kill warning only.",
+    "Browser smoke after final restart: scripts\\browser_smoke.py --timeout-ms 180000 -> ok true; health ok; AAPL chart 130 candles; canvas nonBlank 378108; chat fallback false; console_errors empty; screenshot output\\playwright\\superezio-browser-smoke-20260604-164938.png.",
+    "Live repro prompt after first restart produced evidence run 20260604-204108_a50509 with source finnhub:market_scan and 5 recorded candidates; response did not cite RDW.",
+    "runs/evidence/20260604-204108_a50509/sources.json now records finnhub:market_scan and candidates including NVDA, NOK, BB, MRVL, and AVGO."
   ],
   "risks": [
-    "After code commits, the running API may still serve stale code until restarted.",
-    "runtime/feedback/ is intentionally ignored local data, not committed product evidence.",
-    "Feedback UI currently sends binary rating and msg_id only; trace metadata is not yet attached from the browser.",
+    "The model can still choose among scan-approved candidates with natural-language reasoning; grounding guard blocks uncollected tickers but does not rank for business suitability by itself.",
+    "OpenBB/Finnhub data may still expose split/currency/provider oddities; candidate facts are now evidenced, but provider accuracy remains an external data-quality risk.",
+    "Exact short-term return ranges are softened, but a deeper financial-copy policy pass may still be needed before commercial packaging.",
     "No GitHub operation was performed because this repository is DISK ONLY."
   ],
-  "next_step": "For richer feedback analytics, include STREAM_END trace metadata in the browser feedback payload and expose aggregate stats in the ops console.",
+  "next_step": "Run a focused 10-prompt Bob investment QA after this commit to verify no ungrounded ticker/company/price appears across market_scan, ticker_analysis, and general recommendation flows.",
   "owner": "Marco"
 }

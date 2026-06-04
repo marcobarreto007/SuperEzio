@@ -17,6 +17,7 @@ from src.core.pipeline.prompts._prompts import (
     QWEN_PERSONA,
     MODEL_PROMPTS,
 )
+from src.core.pipeline.nodes.agent import _apply_grounding_guard, _repair_answer_quality
 
 
 # ---------------------------------------------------------------------------
@@ -145,6 +146,60 @@ def test_assistant_prefix_market_scan():
     state = {"route": "market_scan", "intent": "market_scan"}
     prefix = _agent_assistant_prefix(state)
     assert "Market Scan" in prefix or "market" in prefix.lower()
+
+
+def test_grounding_guard_blocks_uncollected_ticker_recommendations():
+    state = {
+        "message": "What stock would you recommend for the next 14 days?",
+        "ticker": "NVDA",
+        "data": {"ticker": "NVDA", "data_quality": "partial", "source_errors": []},
+        "data_context": "Collected ticker: NVDA",
+    }
+    draft = (
+        "Go for MRVL at $315. I would also keep an eye on RDW "
+        "(Redwood Materials) at $21.92."
+    )
+
+    guarded = _apply_grounding_guard(state, draft)
+
+    assert "only have collected data" in guarded
+    assert "NVDA" in guarded
+    assert "MRVL" in guarded
+    assert "RDW" in guarded
+    assert "Redwood Materials" not in guarded
+    assert "$315" not in guarded
+    assert "$21.92" not in guarded
+    assert "Final verdict: WAIT" in guarded
+
+
+def test_grounding_guard_allows_scan_candidates():
+    state = {
+        "message": "Find a short-term stock idea",
+        "scan": {
+            "candidates": [
+                {
+                    "ticker": "MRVL",
+                    "name": "Marvell Technology",
+                    "price": 315,
+                    "provider": "finnhub",
+                }
+            ]
+        },
+        "data_context": "MRVL scan candidate",
+    }
+    draft = "MRVL is the only scan-approved candidate."
+
+    assert _apply_grounding_guard(state, draft) == draft
+
+
+def test_answer_quality_softens_exact_short_term_return_ranges():
+    draft = "A 5-8% pop in two weeks is plausible. But 5-8%? That's very doable."
+
+    repaired = _repair_answer_quality(draft)
+
+    assert "very doable" not in repaired
+    assert "not a forecast" in repaired
+    assert "Return-range caveat" in repaired
 
 
 # ---------------------------------------------------------------------------

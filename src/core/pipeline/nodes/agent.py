@@ -40,6 +40,9 @@ Your CORE IDENTITY:
 - The user comes to you with natural language. They don't know tickers — they know desires.
 - Your job: UNDERSTAND what they really want → FORM A THESIS → CONSULT TOOLS → CONCLUDE.
 - You NEVER invent live data. When you need current facts, you CALL a tool.
+- You NEVER invent company names. If the scan shows name=UNKNOWN_DO_NOT_INVENT,
+  refer to the company by ticker ONLY. Do not guess names like "Redwood Materials"
+  or "Roadside Technologies" — those are hallucinations. Ticker-only is SAFE.
 - You know your own knowledge has a cutoff date. For anything recent, you ASK.
 
 YOUR MARKET EXPERTISE (Canada + USA):
@@ -475,6 +478,151 @@ def _format_candidate_block_pt(item: dict[str, Any]) -> list[str]:
         f"  Invalidacao: {invalid}",
         f"  Confianca: {confidence}",
     ]
+
+
+_NON_TICKER_SYMBOLS = {
+    "AI",
+    "API",
+    "ATR",
+    "B3",
+    "BAND",
+    "BUY",
+    "CAD",
+    "CEO",
+    "CFO",
+    "CPI",
+    "DCA",
+    "ETF",
+    "ETFS",
+    "EV",
+    "EPS",
+    "FED",
+    "FOMO",
+    "F51",
+    "FHSA",
+    "GDP",
+    "IPO",
+    "IRR",
+    "MACD",
+    "NASDAQ",
+    "NYSE",
+    "OTC",
+    "PCT",
+    "PE",
+    "QA",
+    "RAG",
+    "RESP",
+    "REVIEW",
+    "RSI",
+    "RRSP",
+    "SDCA",
+    "SEC",
+    "STUDY",
+    "TFSA",
+    "TSX",
+    "USD",
+    "US",
+    "USA",
+    "WAIT",
+}
+
+
+def _normalize_ticker_symbol(value: Any) -> str:
+    raw = str(value or "").strip().upper()
+    return raw.rstrip(".,:;!?)")
+
+
+def _grounded_tickers(state: dict) -> set[str]:
+    tickers: set[str] = set()
+    ticker = _normalize_ticker_symbol(state.get("ticker"))
+    if ticker:
+        tickers.add(ticker)
+
+    data = state.get("data") or {}
+    if isinstance(data, dict):
+        for key in ("ticker", "symbol"):
+            value = _normalize_ticker_symbol(data.get(key))
+            if value:
+                tickers.add(value)
+
+    scan = state.get("scan") or {}
+    if isinstance(scan, dict):
+        for item in scan.get("candidates") or []:
+            if isinstance(item, dict):
+                value = _normalize_ticker_symbol(item.get("ticker") or item.get("symbol"))
+                if value:
+                    tickers.add(value)
+        for entry in scan.get("ranked_candidates") or []:
+            if not isinstance(entry, dict):
+                continue
+            candidate = entry.get("candidate") or {}
+            if isinstance(candidate, dict):
+                value = _normalize_ticker_symbol(candidate.get("ticker") or candidate.get("symbol"))
+                if value:
+                    tickers.add(value)
+
+    return tickers
+
+
+def _mentioned_tickers(text: str) -> set[str]:
+    symbols = {
+        _normalize_ticker_symbol(match.group(0))
+        for match in re.finditer(r"\b[A-Z][A-Z0-9]{1,4}(?:\.[A-Z]{1,2})?\b", text or "")
+    }
+    return {symbol for symbol in symbols if symbol and symbol not in _NON_TICKER_SYMBOLS}
+
+
+def _grounding_guard_answer(state: dict, content: str) -> str:
+    grounded = _grounded_tickers(state)
+    if not grounded:
+        return content
+
+    ungrounded = sorted(_mentioned_tickers(content) - grounded)
+    if not ungrounded:
+        return content
+
+    if state.get("scan"):
+        return _market_scan_answer(state)
+
+    message = state.get("message", "")
+    is_pt = _is_portuguese_request(message)
+    grounded_list = ", ".join(sorted(grounded))
+    ungrounded_list = ", ".join(ungrounded)
+    data = state.get("data") or {}
+    quality = data.get("data_quality") if isinstance(data, dict) else None
+    source_errors = data.get("source_errors") if isinstance(data, dict) else None
+    error_line = ""
+    if source_errors:
+        error_line = "; data limits: " + "; ".join(str(err) for err in source_errors[:3])
+
+    if is_pt:
+        return (
+            f"Bob: eu so tenho dados coletados neste run para {grounded_list}. "
+            f"A resposta tentou citar {ungrounded_list}, mas esses tickers nao foram coletados nem passaram por scan, "
+            "entao eu nao vou apresentar preco, empresa ou recomendacao para eles.\n\n"
+            f"Com a evidencia atual ({grounded_list}, qualidade={quality or 'unknown'}{error_line}), "
+            "a decisao correta e WAIT ou rodar um market_scan antes de escolher outro ativo para 14 dias.\n\n"
+            "Scope: estrutura educacional, nao conselho financeiro personalizado.\n"
+            "Final verdict: WAIT\n"
+            "Confidence: 62"
+        )
+
+    return (
+        f"Bob: I only have collected data in this run for {grounded_list}. "
+        f"The draft tried to cite {ungrounded_list}, but those tickers were not collected or scan-approved, "
+        "so I will not present prices, company identity, or a recommendation for them.\n\n"
+        f"With the current evidence ({grounded_list}, quality={quality or 'unknown'}{error_line}), "
+        "the correct decision is WAIT or run a market_scan before naming an alternate 14-day stock idea.\n\n"
+        "Scope: This is an educational framework, not personalized financial advice.\n"
+        "Final verdict: WAIT\n"
+        "Confidence: 62"
+    )
+
+
+def _apply_grounding_guard(state: dict, content: str) -> str:
+    if not state.get("data") and not state.get("scan") and not state.get("data_context"):
+        return content
+    return _grounding_guard_answer(state, content)
 
 
 def _compute_model_confidence(
@@ -1184,9 +1332,36 @@ def _repair_unsupported_exact_returns(text: str) -> str:
     )
 
 
+def _repair_short_term_return_forecasts(text: str) -> str:
+    repaired = text or ""
+    if re.search("\\b\\d+(?:\\.\\d+)?\\s*[-\\u2013]\\s*\\d+(?:\\.\\d+)?%", repaired):
+        repaired = re.sub(
+            r"\bvery doable\b",
+            "possible, but not something I can treat as a forecast",
+            repaired,
+            flags=re.IGNORECASE,
+        )
+        repaired = re.sub(
+            r"\bachievable\b",
+            "possible, but not forecastable with precision",
+            repaired,
+            flags=re.IGNORECASE,
+        )
+        if "short-term percentage target" not in repaired.lower():
+            repaired = (
+                repaired.rstrip()
+                + "\n\nReturn-range caveat: any exact short-term percentage target above "
+                "is an illustrative scenario, not a forecast. It needs a verified catalyst, "
+                "liquidity check, and invalidation level before acting."
+            )
+    return repaired
+
+
 def _repair_answer_quality(text: str) -> str:
-    return _repair_unsupported_exact_returns(
-        _repair_unsourced_etf_tickers(_repair_known_etf_category_errors(text or ""))
+    return _repair_short_term_return_forecasts(
+        _repair_unsupported_exact_returns(
+            _repair_unsourced_etf_tickers(_repair_known_etf_category_errors(text or ""))
+        )
     )
 
 
@@ -1669,6 +1844,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     content = _repair_complex_finance_answer(state.get("message", ""), content)
                 else:
                     content = _repair_answer_quality(content)
+                content = _apply_grounding_guard(state, content)
                 writer({"type": "CHUNK", "content": content})
                 writer(
                     {

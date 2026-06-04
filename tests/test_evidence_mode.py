@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from agent_server import endpoints
 from core.evidence.report import generate_html_report
 from core.evidence.run import EvidenceRun
+from core.pipeline.graph import _scan_evidence_payload
 import core.evidence.run as evidence_run_mod
 
 
@@ -43,3 +44,17 @@ def test_evidence_file_resolution_blocks_traversal(
 
     with pytest.raises(HTTPException):
         endpoints._resolve_evidence_file("../bad", "report.html")
+
+
+def test_scan_evidence_payload_reads_nested_scan_output() -> None:
+    payload = _scan_evidence_payload(
+        {
+            "scan": {
+                "candidates": [{"ticker": "MRVL"}],
+                "rejected_count": 2,
+                "scan_trace": {"provider_sources_used": ["finnhub"]},
+            }
+        }
+    )
+
+    assert payload == ([{"ticker": "MRVL"}], 2, ["finnhub"])

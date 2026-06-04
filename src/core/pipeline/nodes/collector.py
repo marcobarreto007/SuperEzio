@@ -114,6 +114,8 @@ async def node_collector(state: dict, *, config=None) -> dict:
             {
                 "type": "DATA_COLLECTED",
                 "ticker": ticker,
+                "provider": "data_collector",
+                "capability": "ticker_analysis",
                 "quality": data.get("data_quality", "unknown"),
                 "source_errors": data.get("source_errors", []),
                 "analysis_id": data.get("analysis_id"),
@@ -175,6 +177,8 @@ async def node_collector(state: dict, *, config=None) -> dict:
             {
                 "type": "DATA_COLLECTED",
                 "ticker": top_ticker,
+                "provider": ", ".join(providers_used) if providers_used else "scanner",
+                "capability": "market_scan",
                 "quality": scan.get("data_quality", "partial"),
                 "source_errors": scan.get("source_errors", []),
                 "candidates": len(candidates),
@@ -1279,9 +1283,17 @@ def _format_scan_context(scan: dict[str, Any]) -> str:
         price_txt = f" price={price}" if price is not None else ""
         volume = item.get("volume")
         vol_txt = f" volume={volume}" if volume is not None else ""
+        name = item.get("name", "")
+        if name:
+            name_txt = f" name={name}"
+        else:
+            name_txt = " name=UNKNOWN_DO_NOT_INVENT"
+        sector = item.get("sector", "")
+        sector_txt = f" sector={sector}" if sector else ""
+        provider = item.get("provider") or item.get("source") or "scanner"
         lines.append(
-            f"- {item.get('ticker')}{price_txt}{vol_txt} "
-            f"provider={item.get('provider', item.get('source', 'unknown'))}"
+            f"- {item.get('ticker')}{name_txt}{sector_txt}{price_txt}{vol_txt} "
+            f"provider={provider}"
         )
     if scan.get("source_errors"):
         lines.append("Source errors: " + ", ".join(scan["source_errors"]))

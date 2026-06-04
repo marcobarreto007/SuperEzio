@@ -26,6 +26,25 @@ logger = logging.getLogger(__name__)
 __all__ = ["PipelineApp", "build_graph", "route_after_orchestrator"]
 
 
+def _scan_evidence_payload(node_output: dict[str, Any]) -> tuple[list[dict[str, Any]], int, list[str]] | None:
+    scan_output = node_output.get("scan")
+    if isinstance(scan_output, dict):
+        scan_trace = scan_output.get("scan_trace") or {}
+        sources = scan_trace.get("provider_sources_used") or []
+        return (
+            scan_output.get("candidates", []),
+            int(scan_output.get("rejected_count", 0) or 0),
+            list(sources),
+        )
+    if node_output.get("candidates"):
+        return (
+            node_output.get("candidates", []),
+            int(node_output.get("rejected", 0) or 0),
+            list(node_output.get("sources_used", [])),
+        )
+    return None
+
+
 def route_after_orchestrator(state: dict) -> str:
     """Route scope-blocked plans before the agent can call tools or the model."""
     if state.get("route") == "needs_scope" or state.get("action") in {
@@ -225,9 +244,13 @@ class PipelineApp:
                                 ):
                                     response_chunks.append(str(payload.get("content", "")))
                                 if evt_type == "DATA_COLLECTED":
+                                    provider = payload.get("provider") or (
+                                        ", ".join(payload.get("providers") or []) or "scanner"
+                                    )
+                                    capability = payload.get("capability") or payload.get("quality", "market_data")
                                     evidence.record_source(
-                                        provider=payload.get("provider", "unknown"),
-                                        capability=payload.get("capability", "unknown"),
+                                        provider=provider,
+                                        capability=capability,
                                         status=payload.get("status", "collected"),
                                         data=payload,
                                     )
@@ -272,11 +295,13 @@ class PipelineApp:
                                             response_text=str(node_output["explanation"]),
                                             tokens=len(str(node_output["explanation"]).split()),
                                         )
-                                    if node_name == "data" and node_output.get("candidates"):
+                                    scan_payload = _scan_evidence_payload(node_output)
+                                    if scan_payload is not None:
+                                        candidates, rejected, sources_used = scan_payload
                                         evidence.record_scan(
-                                            candidates=node_output.get("candidates", []),
-                                            rejected=node_output.get("rejected", 0),
-                                            sources_used=node_output.get("sources_used", []),
+                                            candidates=candidates,
+                                            rejected=rejected,
+                                            sources_used=sources_used,
                                         )
                         except Exception:
                             pass
