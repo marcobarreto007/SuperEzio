@@ -1,27 +1,28 @@
 {
-  "date_local": "2026-06-05T11:20:12-04:00",
-  "session": "ibkr-tws-readonly-connected-2026-06-05",
-  "status": "ibkr_readonly_probe_connected",
+  "date_local": "2026-06-05T11:25:09-04:00",
+  "session": "bob-playwright-capability-audit-2026-06-05",
+  "status": "audited_no_internal_playwright_tool_for_bob",
   "what_was_done": [
-    "Confirmed Trader Workstation is running from C:\\Jts\\tws.exe.",
-    "Confirmed TWS API socket is now listening on port 7497.",
-    "Ran the SuperEzio IBKR broker_readiness_probe in read-only/no-orders mode.",
-    "Confirmed SuperEzio can connect through ib_insync to the local TWS demo/paper API socket.",
-    "Confirmed the proof reads account state only and does not submit, cancel, modify, or transmit orders."
+    "Audited whether Bob has Playwright as an internal callable tool.",
+    "Confirmed Playwright is installed as a project dependency and used by QA scripts.",
+    "Confirmed browser_smoke.py, invest_qa.py, and archived deep tests use Playwright to validate the UI and Bob flows.",
+    "Confirmed current source search did not show Playwright exposed as a Bob runtime tool in src.",
+    "Preserved the prior IBKR read-only connection proof as the latest commercial evidence context."
   ],
   "evidence": [
-    "Get-Process -> Id 22848; ProcessName tws; MainWindowTitle DU009 Interactive Brokers (Demo System); Path C:\\Jts\\tws.exe.",
-    "Get-NetTCPConnection -> LocalAddress ::; LocalPort 7497; State Listen; OwningProcess 22848.",
-    "Closed live/gateway ports: 4002 no-listener; 7496 no-listener; 4001 no-listener.",
-    "CLI proof: .venv\\Scripts\\python.exe scripts\\broker_readiness_probe.py --provider ibkr --json -> safe_mode read_only_no_orders; connected_count 1; provider ibkr connected true; paper_port true; live_port_warning false; account_equity 100000.00; positions_count 0.",
-    "git status before checkpoint update was clean."
+    "pyproject.toml includes playwright>=1.45.",
+    "scripts/browser_smoke.py imports sync_playwright and drives Chromium against the local UI.",
+    "scripts/invest_qa.py imports sync_playwright and runs browser-based investment QA.",
+    "tests/conftest.py exposes a browser_smoke fixture for live server UI validation.",
+    "Memory notes confirm browser_smoke.py is the expected Playwright validation path for this repo.",
+    "Previous checkpoint evidence remains valid: IBKR read-only probe connected through TWS port 7497 with account_equity 100000.00 and positions_count 0."
   ],
   "risks": [
-    "Current TWS window title is DU009 Interactive Brokers (Demo System). This validates local API connectivity; real paper-account validation should use the intended IBKR paper credentials/session.",
-    "Read-Only API is the correct setting for this proof. Do not disable it unless explicitly testing a separate paper-only execution adapter.",
+    "Bob currently cannot autonomously browse or operate websites with Playwright from inside the product runtime.",
+    "Giving Bob direct browser automation would require a sandbox, explicit user approval gates, URL allowlists, action logging, and no-order/no-payment guardrails.",
     "No broker order was submitted, cancelled, modified, or transmitted.",
     "GitHub remains blocked by .f51/GITHUB_POLICY.json; this checkpoint is local disk only."
   ],
-  "next_step": "Use this as the broker-readiness proof in the packaging evidence. Any later execution proof must remain paper-only and require a separate approval gate.",
+  "next_step": "If Bob should know how to use Playwright, implement it as a controlled Browser Observer tool first: read-only navigation, screenshots, extraction, audit log, no form submission or broker actions.",
   "owner": "Marco"
 }
