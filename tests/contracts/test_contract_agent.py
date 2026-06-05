@@ -64,6 +64,10 @@ def test_mission_context_tells_bob_ibkr_is_paper_readonly_connected():
     assert "Do not claim broker transaction history" in context
     assert "PaperJournal is an offline/manual thesis tracker" in context
     assert "does not prove broker execution" in context
+    assert "TWO-WEEK IBKR APPRENTICESHIP" in context
+    assert "14-day IBKR paper brokerage apprenticeship" in context
+    assert "supervised IBKR paper brokerage apprentice" in context
+    assert "not a registered broker" in context
 
 
 def test_agent_loader_injects_current_mission_context():
@@ -73,6 +77,8 @@ def test_agent_loader_injects_current_mission_context():
     assert "demo/paper-style read-only mode" in context
     assert "Always explain paper/read-only broker state" in context
     assert "not IBKR order history" in context
+    assert "duration_days: 14" in context
+    assert "Ask Marco for explicit approval" in context
 
 
 def test_mission_health_summary_exposes_broker_paper_state():
@@ -84,6 +90,9 @@ def test_mission_health_summary_exposes_broker_paper_state():
     assert summary["broker"]["ibkr"]["mode"] == "read_only_no_orders"
     assert summary["broker"]["ibkr"]["account_equity"] == "100000.00"
     assert summary["broker"]["ibkr"]["can_submit_orders"] is False
+    assert summary["apprenticeship"]["duration_days"] == 14
+    assert summary["apprenticeship"]["status"] == "active_training_window"
+    assert "not a registered broker" in summary["apprenticeship"]["role_language"]
 
 
 # ---------------------------------------------------------------------------

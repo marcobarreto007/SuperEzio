@@ -1,31 +1,31 @@
 {
-  "date_local": "2026-06-05T13:25:34-04:00",
-  "session": "full-validation-suite-2026-06-05",
-  "status": "full_validation_passed_saved_pending_commit",
+  "date_local": "2026-06-05T13:51:10-04:00",
+  "session": "ibkr-14-day-paper-brokerage-apprenticeship-2026-06-05",
+  "status": "mission_context_updated_and_validated",
   "what_was_done": [
-    "Ran the full repository validation requested by Marco.",
-    "Confirmed API server http://127.0.0.1:8002 and CEO server http://127.0.0.1:8082 were reachable before the test run.",
-    "Ran lint across src, tests, and scripts/paper_journal_cli.py.",
-    "Ran full pytest suite across tests/.",
-    "Ran live IBKR broker readiness probe in read-only/no-orders mode.",
-    "Ran real browser smoke against the live UI with Playwright-backed script.",
-    "Kept the Market Debut Protocol posture unchanged: C1-C5 and C8 proven; C6-C7 instrumented until real paper-market evidence exists."
+    "Added a 14-day IBKR paper brokerage apprenticeship to Bob's mission context.",
+    "Defined the training window as 2026-06-05 through 2026-06-19, duration_days=14.",
+    "Clarified role language: Bob behaves like a supervised IBKR paper brokerage apprentice, not a registered broker, financial advisor, IBKR employee, or autonomous execution engine.",
+    "Added apprenticeship responsibilities: read IBKR paper account state, use broker-sourced prices where available, propose order tickets with thesis/risk/invalidation/size/review horizon, require Marco approval, journal all decisions, and explain current execution mode.",
+    "Added prohibited claims: no registered-broker claim, no execution claim while read_only_no_orders, no broker fill claim without IBKR order status/execution proof, and no treating paper fills as live edge proof.",
+    "Rendered the apprenticeship block into Bob's system prompt and exposed it in /health/details.",
+    "Documented the two-week apprenticeship in docs/runbooks/DEBUT_PROTOCOL.md."
   ],
   "evidence": [
-    "Initial git status before validation was clean.",
-    "npx available at C:/Program Files/nodejs/npx.ps1.",
-    "Health check before validation: /health on 8002 returned status=ok, agent=generic_agent, version=3.0.0; /health on 8082 returned status=ok.",
+    "json validation: .venv/Scripts/python.exe -m json.tool config/mission_context.json -> ok.",
     "ruff: .venv/Scripts/python.exe -m ruff check src tests scripts/paper_journal_cli.py -> All checks passed.",
-    "full pytest: .venv/Scripts/python.exe -m pytest tests -q -> 1086 passed in 185.67s.",
-    "IBKR probe: scripts/broker_readiness_probe.py --provider ibkr --json -> connected_count=1, account_equity=100000.00, positions_count=0, port=7497, safe_mode=read_only_no_orders.",
-    "browser smoke: scripts/browser_smoke.py --timeout-ms 180000 -> ok=true, health ok, AAPL chart candleCount=130, canvas nonBlank=378108, chat routeUsed=general, detectedIntent=CAPITAL_ALLOCATION, fallbackUsed=false, containsFailureBubble=false, console_errors=[], screenshot=output/playwright/superezio-browser-smoke-20260605-132426.png."
+    "pytest targeted: .venv/Scripts/python.exe -m pytest tests/contracts/test_contract_agent.py tests/test_api_routes_sync.py -q -> 72 passed in 4.43s.",
+    "runtime restart: runtime/do_restart.ps1 -> health 8082=200, health 8002=200, UI=http://127.0.0.1:8002.",
+    "/health/details live proof: mission.apprenticeship.name=14-day IBKR paper brokerage apprenticeship, status=active_training_window, duration_days=14, start_date=2026-06-05, end_date=2026-06-19.",
+    "/health/details live proof: role_language says Bob is a supervised IBKR paper brokerage apprentice, not a registered broker.",
+    "browser smoke: scripts/browser_smoke.py --timeout-ms 180000 -> ok=true, AAPL chart candleCount=130, canvas nonBlank=378108, chat fallbackUsed=false, containsFailureBubble=false, console_errors=[], screenshot=output/playwright/superezio-browser-smoke-20260605-134953.png."
   ],
   "risks": [
-    "C6 and C7 remain instrumented, not proven; they require real paper-market theses aged to review horizon and post-mortem evidence.",
-    "IBKR visibility depends on TWS remaining open on paper port 7497.",
-    "Current broker integration is read-only/no-orders; no buy, sell, stop, limit, cancel, or modify order capability was enabled or tested.",
-    "GitHub remains blocked by project policy; this validation is disk-only."
+    "The word broker/corretor is role-language only for paper training behavior; Bob must not claim regulated broker status.",
+    "IBKR remains read_only_no_orders until a separate order-panel proof mode is implemented and explicitly enabled.",
+    "C6/C7 still require real aged paper-market evidence before becoming proven.",
+    "GitHub remains blocked by project policy; this is disk-only."
   ],
-  "next_step": "Record the first real paper thesis with broker-sourced price, let it age to the review horizon, close it manually, add post-mortem reflection, and then use the journal/performance reports to advance C6.",
+  "next_step": "Implement or run a dedicated IBKR order-panel proof mode only after explicit approval: paper port 7497, quantity max 1, LMT-only, far-from-market price, auto-cancel, evidence capture, and PaperJournal record.",
   "owner": "Marco"
 }

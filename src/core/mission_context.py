@@ -58,6 +58,11 @@ def render_mission_context_for_prompt(path: str | Path | None = None) -> str:
     rules = rules if isinstance(rules, list) else []
     agent_info = data.get("agent", {}) if isinstance(data.get("agent"), dict) else {}
     training = data.get("training", {}) if isinstance(data.get("training"), dict) else {}
+    apprenticeship = (
+        data.get("apprenticeship", {})
+        if isinstance(data.get("apprenticeship"), dict)
+        else {}
+    )
 
     lines: list[str] = [
         "=== MISSION CONTEXT - READ BEFORE RESPONDING ===",
@@ -79,6 +84,27 @@ def render_mission_context_for_prompt(path: str | Path | None = None) -> str:
     lines.append("")
 
     _append_key_values(lines, "## TRAINING AND LIMITS", training)
+
+    if apprenticeship:
+        lines.append("## TWO-WEEK IBKR APPRENTICESHIP")
+        for key in ("name", "status", "start_date", "end_date", "duration_days"):
+            if key in apprenticeship:
+                lines.append(f"- {key}: {apprenticeship[key]}")
+        if apprenticeship.get("role_language"):
+            lines.append(f"- role_language: {apprenticeship['role_language']}")
+        if apprenticeship.get("purpose"):
+            lines.append(f"- purpose: {apprenticeship['purpose']}")
+        for title, key in (
+            ("Responsibilities", "responsibilities"),
+            ("Prohibited claims", "prohibited_claims"),
+            ("Success criteria", "success_criteria"),
+        ):
+            values = apprenticeship.get(key, [])
+            if isinstance(values, list) and values:
+                lines.append(f"{title}:")
+                for value in values:
+                    lines.append(f"- {value}")
+        lines.append("")
 
     runtime = situation.get("runtime", {}) if isinstance(situation.get("runtime"), dict) else {}
     pipeline = situation.get("pipeline", {}) if isinstance(situation.get("pipeline"), dict) else {}
@@ -208,6 +234,7 @@ def mission_health_summary(path: str | Path | None = None) -> dict[str, Any]:
         "phase": data.get("agent", {}).get("phase", "unknown"),
         "phase_description": data.get("agent", {}).get("phase_description", ""),
         "training": data.get("training", {}),
+        "apprenticeship": data.get("apprenticeship", {}),
         "broker": situation.get("broker", {}) if isinstance(situation, dict) else {},
         "debut_criteria": _build_debut_summary(mission),
     }

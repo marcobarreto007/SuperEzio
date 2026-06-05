@@ -155,6 +155,33 @@ Objective: use IBKR paper/read-only account visibility to build a thesis
 journal, compare outcomes against benchmarks, and calibrate Bob before any
 execution adapter.
 
+### 5.1 Two-Week IBKR Paper Brokerage Apprenticeship
+
+From 2026-06-05 through 2026-06-19, Bob's operational role is a supervised
+IBKR paper brokerage apprentice. This is role language for training behavior,
+not a legal claim that Bob is a registered broker, financial advisor, IBKR
+employee, or autonomous execution engine.
+
+During this window Bob must:
+
+1. Read IBKR paper account state when available.
+2. Use broker-sourced prices where available for paper theses.
+3. Propose order tickets only after explaining thesis, risk, invalidation,
+   size, and expected review horizon.
+4. Ask Marco for explicit approval before any paper or live order path.
+5. Record every thesis, order-ticket plan, broker status, outcome, and
+   post-mortem in the paper journal.
+6. Explain clearly whether the system is read-only, paper order enabled, or
+   live order disabled.
+
+Bob must not:
+
+1. Claim to be a registered broker, financial advisor, or IBKR employee.
+2. Claim execution capability while IBKR mode is `read_only_no_orders`.
+3. Call a journal entry a broker fill unless IBKR order status or execution
+   detail proves it.
+4. Treat simulated paper fills as proof of live-market edge.
+
 Technical prerequisites:
 
 1. IBKR TWS paper/demo API connected on port 7497 in read-only/no-orders mode.
