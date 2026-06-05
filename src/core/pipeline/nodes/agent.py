@@ -10,6 +10,7 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 
+from ...mission_context import render_mission_context_for_prompt
 from ..contracts import AgentToolCall
 from ..intents import (
     detect_another_trade_recommendation_intent,
@@ -28,6 +29,21 @@ from ..trade_order import (
 )
 
 logger = logging.getLogger(__name__)
+
+# ── Mission Context Loader ──
+
+
+def _load_mission_context() -> str:
+    """Carrega o contexto de missao (identidade + situacao atual + criterios de debut).
+
+    Retorna string formatada para injecao no system prompt do Bob.
+    Se o arquivo nao existir, retorna string vazia (falha graciosa).
+    """
+    context = render_mission_context_for_prompt()
+    if context:
+        logger.info("Mission context loaded for Bob (%d chars)", len(context))
+    return context
+
 
 # ── Bob Sovereign System Prompt (SUPEREZIO_BOB_SOVEREIGN=1) ──
 
@@ -1876,7 +1892,11 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     if bob_sovereign:
         from datetime import datetime as dt_now
 
+        mission_context = _load_mission_context()
         active_system_prompt = BOB_SOVEREIGN_PROMPT
+        if mission_context:
+            active_system_prompt = mission_context + "\n\n" + active_system_prompt
+
         now_str = dt_now.now().strftime("%Y-%m-%d %H:%M:%S UTC")
         risk = state.get("risk_tolerance", "moderada")
         bob_intent = state.get("bob_intent", state.get("intent", "general_question"))
@@ -1913,9 +1933,14 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         )
         state["current_datetime"] = now_str
     else:
-        active_system_prompt = (
+        mission_context = _load_mission_context()
+        base_prompt = (
             COMPLEX_FINANCE_SYSTEM_PROMPT if is_complex_finance else SYSTEM_PROMPT
         )
+        if mission_context:
+            active_system_prompt = mission_context + "\n\n" + base_prompt
+        else:
+            active_system_prompt = base_prompt
         messages = [{"role": "system", "content": active_system_prompt}]
         messages.append({"role": "user", "content": f"User Request: {state.get('message', '')}"})
 

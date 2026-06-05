@@ -20,9 +20,11 @@ from src.core.pipeline.prompts._prompts import (
 from src.core.pipeline.nodes.agent import (
     _apply_grounding_guard,
     _contract_fallback_answer,
+    _load_mission_context,
     _repair_answer_quality,
     _should_force_contract_fallback,
 )
+from src.core.mission_context import mission_health_summary, render_mission_context_for_prompt
 
 
 # ---------------------------------------------------------------------------
@@ -45,6 +47,43 @@ def test_model_prompts_has_local():
     assert "local" in MODEL_PROMPTS
     assert "system" in MODEL_PROMPTS["local"]
     assert "persona" in MODEL_PROMPTS["local"]
+
+
+def test_mission_context_tells_bob_ibkr_is_paper_readonly_connected():
+    context = render_mission_context_for_prompt()
+
+    assert "MISSION CONTEXT" in context
+    assert "trained_financial_advisory_copilot" in context
+    assert "IBKR" in context
+    assert "connected_read_only" in context
+    assert "read_only_no_orders" in context
+    assert "100000.00" in context
+    assert "positions_count=0" in context
+    assert "can_submit_orders=False" in context
+    assert "cannot submit or cancel orders" in context
+    assert "Do not claim broker transaction history" in context
+    assert "PaperJournal is an offline/manual thesis tracker" in context
+    assert "does not prove broker execution" in context
+
+
+def test_agent_loader_injects_current_mission_context():
+    context = _load_mission_context()
+
+    assert "PRE_DEBUT_VALIDATION" in context
+    assert "demo/paper-style read-only mode" in context
+    assert "Always explain paper/read-only broker state" in context
+    assert "not IBKR order history" in context
+
+
+def test_mission_health_summary_exposes_broker_paper_state():
+    summary = mission_health_summary()
+
+    assert summary["status"] == "loaded"
+    assert summary["phase"] == "pre_debut_validation"
+    assert summary["broker"]["ibkr"]["connection"] == "connected_read_only"
+    assert summary["broker"]["ibkr"]["mode"] == "read_only_no_orders"
+    assert summary["broker"]["ibkr"]["account_equity"] == "100000.00"
+    assert summary["broker"]["ibkr"]["can_submit_orders"] is False
 
 
 # ---------------------------------------------------------------------------

@@ -20,6 +20,7 @@ if str(_SRC) not in sys.path:
 
 from core.config import get_config  # noqa: E402
 from core.config.secrets import load_local_env  # noqa: E402
+from core.mission_context import mission_health_summary  # noqa: E402
 from core.observability import log_queue, metrics  # noqa: E402
 from core.paths import PROJECT_ROOT  # noqa: E402
 
@@ -330,6 +331,8 @@ async def health_check():
         }
 
     # â”€â”€ Aggregated status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    health["mission"] = mission_health_summary()
+
     all_ok = primary_info["configured"] or any(m["reachable"] for m in local_models.values())
     health["status"] = "ok" if all_ok else "degraded_no_backend"
     return health

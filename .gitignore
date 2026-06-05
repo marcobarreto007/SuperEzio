@@ -95,6 +95,7 @@ data/cache/
 data/runs/
 data/vectors/
 data/.fuse_hidden*
+data/paper_journal.jsonl
 
 # Large binary/dataset files (excedem limite GitHub 100MB)
 *.parquet

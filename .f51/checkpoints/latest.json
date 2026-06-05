@@ -1,28 +1,36 @@
 {
-  "date_local": "2026-06-05T11:25:09-04:00",
-  "session": "bob-playwright-capability-audit-2026-06-05",
-  "status": "audited_no_internal_playwright_tool_for_bob",
+  "date_local": "2026-06-05T12:05:20-04:00",
+  "session": "paper-readonly-mission-context-and-broker-status-routing-2026-06-05",
+  "status": "saved_local_commit_created",
   "what_was_done": [
-    "Audited whether Bob has Playwright as an internal callable tool.",
-    "Confirmed Playwright is installed as a project dependency and used by QA scripts.",
-    "Confirmed browser_smoke.py, invest_qa.py, and archived deep tests use Playwright to validate the UI and Bob flows.",
-    "Confirmed current source search did not show Playwright exposed as a Bob runtime tool in src.",
-    "Preserved the prior IBKR read-only connection proof as the latest commercial evidence context."
+    "Added Bob mission context loader and config so Bob knows he is in pre-debut validation, trained as an educational financial copilot, and operating with IBKR paper/read-only visibility.",
+    "Exposed mission context in /health/details, including IBKR connection, read_only_no_orders mode, account equity, positions count, and can_submit_orders=false.",
+    "Fixed broker-status intent handling so questions about IBKR paper/read-only state do not become ticker analysis for IBKR stock.",
+    "Added PaperJournal and PerformanceEngine for offline/manual paper thesis tracking, PnL, post-mortem reflection, and performance/bias metrics.",
+    "Added paper_journal_cli.py for open, close, reflect, list, show, stats, and performance commands.",
+    "Documented the Market Debut Protocol and the broker/journal boundary: PaperJournal is a manual offline thesis tracker, not IBKR order history and not proof of execution.",
+    "Kept C6 and C7 as instrumented rather than proven: tooling exists, but real market evidence still requires aged paper theses and post-mortem review.",
+    "Ignored data/paper_journal.jsonl so local runtime journal data stays on disk and does not become a Git artifact."
   ],
   "evidence": [
-    "pyproject.toml includes playwright>=1.45.",
-    "scripts/browser_smoke.py imports sync_playwright and drives Chromium against the local UI.",
-    "scripts/invest_qa.py imports sync_playwright and runs browser-based investment QA.",
-    "tests/conftest.py exposes a browser_smoke fixture for live server UI validation.",
-    "Memory notes confirm browser_smoke.py is the expected Playwright validation path for this repo.",
-    "Previous checkpoint evidence remains valid: IBKR read-only probe connected through TWS port 7497 with account_equity 100000.00 and positions_count 0."
+    "ruff: .venv/Scripts/python.exe -m ruff check src tests scripts/paper_journal_cli.py -> All checks passed.",
+    "pytest targeted matrix: 106 passed in 4.75s for orchestrator contracts, agent contracts, API route sync, broker readiness probe tests, and paper journal tests.",
+    "IBKR probe: scripts/broker_readiness_probe.py --provider ibkr --json -> connected_count=1, account_equity=100000.00, positions_count=0, port=7497, safe_mode=read_only_no_orders.",
+    "/health/details after restart: mission.status=loaded, phase=pre_debut_validation, broker.ibkr.connection=connected_read_only, broker.ibkr.mode=read_only_no_orders, can_submit_orders=false, debut criteria computed from statuses.",
+    "Runtime restart: runtime/do_restart.ps1 -> health 8082=200, health 8002=200, UI=http://127.0.0.1:8002.",
+    "Browser smoke final after pytest/restart: ok=true, chart AAPL candleCount=130, canvas nonBlank=378108, chat routeUsed=general, fallbackUsed=true, containsFailureBubble=false, console_errors=[], screenshot=output/playwright/superezio-browser-smoke-20260605-120826.png.",
+    "Live Bob broker-status prompt with ticker=IBKR: HTTP 200 in 29.2s, route_used=general, detected_intent=general_question, fallback_used=false, scanner_invoked=false.",
+    "Live Bob answer confirmed read-only/no-orders, equity visibility, positions visibility, no transaction history, no live broker market data, no order execution, and PaperJournal as a manual offline journal that does not prove execution.",
+    "Local Git commit created with message: feat(agent): add paper-mode mission context."
   ],
   "risks": [
-    "Bob currently cannot autonomously browse or operate websites with Playwright from inside the product runtime.",
-    "Giving Bob direct browser automation would require a sandbox, explicit user approval gates, URL allowlists, action logging, and no-order/no-payment guardrails.",
-    "No broker order was submitted, cancelled, modified, or transmitted.",
-    "GitHub remains blocked by .f51/GITHUB_POLICY.json; this checkpoint is local disk only."
+    "Market Debut Protocol is not 8/8 proven yet: C6 and C7 are instrumented and require real paper-market evidence over time.",
+    "Latest browser smoke used the deterministic fallback for the default capital-allocation prompt. The UI did not crash, but answer-quality fallback should be monitored in the next Bob QA run.",
+    "IBKR TWS must remain running on paper port 7497 for live broker visibility; without it, Bob must fall back to offline/manual paper journal only.",
+    "Current broker mode is intentionally read-only/no-orders. No buy, sell, stop, limit, cancel, or modify order capability was enabled or tested.",
+    "PaperJournal is manual/offline and is not broker order history, automatic execution logging, or proof that an order was sent.",
+    "GitHub remains blocked by project policy; this checkpoint is disk-only with a local Git commit created."
   ],
-  "next_step": "If Bob should know how to use Playwright, implement it as a controlled Browser Observer tool first: read-only navigation, screenshots, extraction, audit log, no form submission or broker actions.",
+  "next_step": "Run the first auditable paper-trading session: ask Bob for one thesis, record it in PaperJournal, monitor outcome, close it manually, add reflection, and review performance.",
   "owner": "Marco"
 }

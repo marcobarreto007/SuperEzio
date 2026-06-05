@@ -29,6 +29,7 @@ from core.pipeline.intents import (
     detect_complex_finance_intent,
     detect_capital_allocation_intent,
     detect_market_scan_intent,
+    detect_broker_status_intent,
 )
 from core.risk_firewall import DecisionCandidate, evaluate_decision_with_sdca
 from data.data_hub import hub
@@ -788,8 +789,9 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                 return StreamingResponse(stream_intercepted(), media_type="application/x-ndjson")
 
         # Ticker from UI field takes priority; fall back to message text detection
-        explicit_ticker = str(payload.get("ticker") or "").strip()
-        detected_ticker = explicit_ticker or detect_ticker(raw_message)
+        is_broker_status = detect_broker_status_intent(raw_message)
+        explicit_ticker = "" if is_broker_status else str(payload.get("ticker") or "").strip()
+        detected_ticker = "" if is_broker_status else explicit_ticker or detect_ticker(raw_message)
 
         # Hard block context leak for advisory / scan intents.
         # - Complex finance / capital allocation: chart context must never leak.
@@ -798,7 +800,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
         is_complex = detect_complex_finance_intent(raw_message)
         is_capital_alloc = detect_capital_allocation_intent(raw_message)
         is_market_scan = detect_market_scan_intent(raw_message)
-        if is_complex or is_capital_alloc:
+        if is_broker_status or is_complex or is_capital_alloc:
             explicit_ticker = ""
             detected_ticker = ""
             chart_context = ""

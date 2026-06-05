@@ -135,6 +135,50 @@ FORENSIC_RAG_HINTS = (
     "penny stocks",
 )
 
+BROKER_STATUS_SUBJECT_HINTS = (
+    "ibkr",
+    "interactive brokers",
+    "tws",
+    "trader workstation",
+    "ib gateway",
+    "gateway",
+)
+
+BROKER_STATUS_CONTEXT_HINTS = (
+    "broker",
+    "corretora",
+    "api",
+    "socket",
+    "7497",
+    "paper",
+    "demo",
+    "read-only",
+    "read only",
+    "readonly",
+    "modo paper",
+    "estado atual",
+    "situacao atual",
+    "situacao",
+    "consegue ler",
+    "pode ler",
+    "posicoes",
+    "positions",
+    "equity",
+    "conta",
+    "market debut",
+    "debut",
+)
+
+
+def detect_broker_status_intent(message: str) -> bool:
+    """Detect broker/API operating-state questions, not ticker analysis."""
+    if not message or not message.strip():
+        return False
+    lower = _strip_accents(message).lower()
+    has_subject = any(hint in lower for hint in BROKER_STATUS_SUBJECT_HINTS)
+    has_context = any(hint in lower for hint in BROKER_STATUS_CONTEXT_HINTS)
+    return has_subject and has_context
+
 
 def detect_risk_lab_intent(message: str) -> bool:
     """Detect a small weekly risk-budget experiment, not capital deployment."""
@@ -1631,6 +1675,9 @@ def detect_ticker(message: str) -> str:
         return ""
 
     raw = message.strip()
+    if detect_broker_status_intent(raw):
+        return ""
+
     cache_key = f"ticker:{raw}"
     cached = _get_cached(cache_key)
     if cached is not None:
@@ -2033,7 +2080,10 @@ def parse_user_intent(
     over text-based detection and must pass basic validation.
     """
     raw = message or ""
-    if ticker and not _is_valid_ticker(ticker):
+    broker_status_question = detect_broker_status_intent(raw)
+    if broker_status_question:
+        ticker = ""
+    elif ticker and not _is_valid_ticker(ticker):
         ticker = ""
     if not ticker:
         ticker = detect_ticker(raw)
@@ -2076,6 +2126,23 @@ def parse_user_intent(
                 filters={},
                 confidence=0.9,
                 reasons=("capability_or_method_question",),
+                entities=entities,
+                diary=diary,
+                pennylab=False,
+            )
+        )
+
+    if broker_status_question:
+        entities["ticker"] = ""
+        return done(
+            IntentParse(
+                route="general",
+                intent="general_question",
+                action="answer",
+                ticker="",
+                filters={},
+                confidence=0.96,
+                reasons=("broker_status_question",),
                 entities=entities,
                 diary=diary,
                 pennylab=False,

@@ -34,6 +34,28 @@ def test_allowed_intents_cover_all_routes():
     assert "market_scan" in ALLOWED_INTENTS
 
 
+def test_ibkr_broker_status_question_is_not_ticker_analysis():
+    from src.core.pipeline.intents import (
+        detect_broker_status_intent,
+        detect_ticker,
+        parse_user_intent,
+    )
+
+    prompt = (
+        "Bob, qual e seu estado atual? Voce esta em modo paper/read-only no IBKR? "
+        "Explique o que consegue ler e o que nao pode fazer."
+    )
+
+    assert detect_broker_status_intent(prompt)
+    assert detect_ticker(prompt) == ""
+
+    parsed = parse_user_intent(prompt, rigor="strict", ticker="")
+    assert parsed.route == "general"
+    assert parsed.intent == "general_question"
+    assert parsed.ticker == ""
+    assert "broker_status_question" in parsed.reasons
+
+
 # ---------------------------------------------------------------------------
 # Time horizon extraction
 # ---------------------------------------------------------------------------

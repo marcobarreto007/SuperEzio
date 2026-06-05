@@ -109,6 +109,10 @@ def test_health_details(client_with_mock_pipeline):
     assert "redis" in data["checks"]
     assert "providers_summary" in data["checks"]
     assert "cost_guard" in data["checks"]
+    assert data["mission"]["status"] == "loaded"
+    assert data["mission"]["broker"]["ibkr"]["connection"] == "connected_read_only"
+    assert data["mission"]["broker"]["ibkr"]["mode"] == "read_only_no_orders"
+    assert data["mission"]["broker"]["ibkr"]["can_submit_orders"] is False
 
 
 def test_metrics(client_with_mock_pipeline):
@@ -374,6 +378,37 @@ def test_task_submit_casual_flow(client_with_mock_pipeline):
     assert trace["detected_intent"] == "general_question"
     assert trace["route_used"] == "general"
     assert trace["fallback_used"] is False
+
+
+def test_task_submit_broker_status_ignores_ibkr_ui_ticker(client_with_mock_pipeline):
+    """Broker status questions about IBKR must not become ticker analysis."""
+    mock_p, client = client_with_mock_pipeline
+
+    mock_p.events_to_yield = [
+        {"type": "STREAM_START", "msg_id": "test-msg-broker-status"},
+        {"type": "INTENT_CLASSIFIED", "intent": "general_question", "route": "general"},
+        {
+            "type": "CHUNK",
+            "content": "IBKR is connected in read-only paper mode; I cannot submit orders.",
+        },
+    ]
+
+    payload = {
+        "version": "a2a/1.0",
+        "from": "user",
+        "to": "superezio",
+        "type": "TASK.SUBMIT",
+        "payload": {
+            "message": "Bob, voce esta em modo paper/read-only no IBKR?",
+            "ticker": "IBKR",
+            "session_id": "session-test-broker-status",
+        },
+    }
+
+    response = client.post("/task/submit", json=payload)
+    assert response.status_code == 200
+    assert mock_p.last_stream_kwargs["ticker"] == ""
+    assert mock_p.last_stream_kwargs["context"] == ""
 
 
 def test_task_submit_quality_gate_flags_low_score(client_with_mock_pipeline, monkeypatch):
