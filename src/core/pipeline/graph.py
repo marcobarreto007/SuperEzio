@@ -14,12 +14,18 @@ from core.evidence import EvidenceRun, generate_html_report, save_evidence
 from .contracts import PipelineState
 from .nodes import (
     node_agent,
+    node_collector,
     node_tool_executor,
     route_after_agent,
     node_explanation,
     node_blocked,
     node_orchestrator,
 )
+from .nodes.experts import node_collect_experts, node_expert, EXPERT_PROVIDERS
+from .nodes.f51 import node_f51_verdict
+from .nodes.neural_decision import node_neural_decision
+from .nodes.sdca_firewall import node_sdca_firewall
+from .nodes.rag import node_rag_forensics
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +63,85 @@ def route_after_orchestrator(state: dict) -> str:
     return "agent"
 
 
+async def _auto_full_analysis(state: dict) -> dict:
+    """Run ALL experts, verdicts, and calculators automatically.
+
+    This node fires on every request BEFORE Bob sees the data.
+    Bob gets complete evidence — no more parrot mode.
+    """
+    ticker = state.get("ticker", "")
+    message = state.get("message", "")
+    data_context = state.get("data_context", "")
+
+    results: dict[str, Any] = {}
+
+    # ── 1. Data collection (if not already done) ──
+    if not data_context and ticker:
+        try:
+            collector_result = await node_collector({**state, "route": "ticker_analysis"})
+            data_context = collector_result.get("data_context", "")
+            results["data_collected"] = True
+        except Exception as e:
+            results["data_error"] = str(e)[:100]
+
+    # ── 2. Expert committee (6 experts fan-out) ──
+    expert_results = []
+    roles = ["macro_risk", "fundamental_value", "momentum_technical",
+             "contrarian_opportunity", "sentiment", "social_forensics"]
+    for role in roles:
+        try:
+            expert_state = {
+                **state, "role": role, "ticker": ticker,
+                "data_context": data_context or message,
+            }
+            res = await node_expert(expert_state)
+            for er in res.get("expert_results", []):
+                er["role"] = role
+                er["provider"] = EXPERT_PROVIDERS.get(role, "unknown")
+                expert_results.append(er)
+        except Exception as e:
+            expert_results.append({"role": role, "error": str(e)[:100], "provider": EXPERT_PROVIDERS.get(role, "?")})
+
+    state["expert_results"] = expert_results
+
+    # ── 3. Collect expert summary ──
+    try:
+        collect_res = await node_collect_experts({**state, "expert_results": expert_results})
+        results["expert_summary"] = collect_res.get("expert_summary", "")
+    except Exception as e:
+        results["expert_summary"] = f"Expert collection error: {e}"
+
+    # ── 4. F51 Verdict engine ──
+    try:
+        f51_res = await node_f51_verdict(state)
+        results["f51_verdict"] = f51_res.get("f51_verdict", {})
+    except Exception as e:
+        results["f51_error"] = str(e)[:100]
+
+    # ── 5. Neural Decision ──
+    try:
+        neural_res = await node_neural_decision(state)
+        results["neural_decision"] = neural_res.get("neural_decision", {})
+    except Exception as e:
+        results["neural_error"] = str(e)[:100]
+
+    # ── 6. SDCA Firewall ──
+    try:
+        sdca_res = await node_sdca_firewall(state)
+        results["sdca_firewall"] = sdca_res.get("sdca_firewall", {})
+    except Exception as e:
+        results["sdca_error"] = str(e)[:100]
+
+    # ── 7. RAG Forensics ──
+    try:
+        rag_res = await node_rag_forensics(state)
+        results["rag_forensics"] = rag_res.get("rag_context", "")
+    except Exception as e:
+        results["rag_error"] = str(e)[:100]
+
+    return results
+
+
 def build_graph(
     gateway=None,
     config=None,
@@ -87,6 +172,7 @@ def build_graph(
     builder = StateGraph(PipelineState)
 
     builder.add_node("orchestrator_primary", _orchestrator)
+    builder.add_node("auto_full_analysis", _auto_full_analysis)
     builder.add_node("agent", _agent)
     builder.add_node("tool_executor", _tool_executor)
     builder.add_node("explanation", _explanation)
@@ -98,9 +184,11 @@ def build_graph(
         route_after_orchestrator,
         {
             "respond_blocked": "respond_blocked",
-            "agent": "agent",
+            "agent": "auto_full_analysis",
         },
     )
+    # After full analysis (experts + F51 + neural + SDCA + RAG), go to agent
+    builder.add_edge("auto_full_analysis", "agent")
 
     # Agent decides whether to call a tool or output the final answer
     builder.add_conditional_edges(
