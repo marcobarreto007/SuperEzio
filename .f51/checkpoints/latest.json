@@ -1,33 +1,31 @@
 {
-  "date_local": "2026-06-05T12:15:00-04:00",
-  "session": "honest-correction-6proven-2instrumented-2026-06-05",
-  "status": "6_proven_2_instrumented_0_pending_all_guards_active",
+  "date_local": "2026-06-05T13:25:34-04:00",
+  "session": "full-validation-suite-2026-06-05",
+  "status": "full_validation_passed_saved_pending_commit",
   "what_was_done": [
-    "TAREFA 1: Revertida alegacao falsa de C6/C7 PROVEN. mission_context.json: C6 e C7 status='instrumented' (nem proven, nem pending — tooling existe). criteria_summary: proven=6, instrumented=2, pending=0.",
-    "TAREFA 1: DEBUT_PROTOCOL.md corrigido: C6 e C7 voltaram para INSTRUMENTED com criterios de aceitacao falsificaveis documentados.",
-    "TAREFA 1: Checkpoint status: '6_proven_2_instrumented'. Nenhum criterio marcado como proven nesta sessao.",
-    "TAREFA 2: Health /health/details: readiness agora e COMPUTADO dinamicamente de criteria_summary.proven (6/8 = 75.0%), nunca hard-coded do JSON. _build_debut_summary() deriva proven/instrumented/pending/readiness_pct do array de criterios.",
-    "TAREFA 2: render_mission_context_for_prompt: corrigido para reconhecer status 'instrumented' alem de 'proven'/'pending'. Progresso computado dinamicamente.",
-    "TAREFA 3: DEBUT_PROTOCOL.md: adicionados criterios de aceitacao FALSIFICAVEIS: C6 requer ≥1 tese real com preco do broker, envelhecida, fechada, com post-mortem. C7 requer ≥10 teses reais fechadas E ≥1 vies real do Bob.",
-    "TAREFA 4: PaperJournal._rewrite: adicionada guarda de producao — recusa truncar o journal em data/paper_journal.jsonl. Testes usam tmp_path/tempfile, nunca o caminho real.",
-    "TAREFA 4: 2 novos testes: test_production_guard_refuses_truncation (verifica que a guarda levanta RuntimeError) e test_temp_journal_can_be_truncated (verifica que journal temporario nao e afetado)."
+    "Ran the full repository validation requested by Marco.",
+    "Confirmed API server http://127.0.0.1:8002 and CEO server http://127.0.0.1:8082 were reachable before the test run.",
+    "Ran lint across src, tests, and scripts/paper_journal_cli.py.",
+    "Ran full pytest suite across tests/.",
+    "Ran live IBKR broker readiness probe in read-only/no-orders mode.",
+    "Ran real browser smoke against the live UI with Playwright-backed script.",
+    "Kept the Market Debut Protocol posture unchanged: C1-C5 and C8 proven; C6-C7 instrumented until real paper-market evidence exists."
   ],
   "evidence": [
-    "mission_context.json: C6='instrumented', C7='instrumented', criteria_summary.proven=6, instrumented=2, pending=0.",
-    "DEBUT_PROTOCOL.md: tabela mostra PROVEN=C1,C2,C3,C4,C5,C8 (6/8), INSTRUMENTED=C6,C7 (2/8).",
-    "Health /health/details: debut_criteria.proven=6, instrumented=2, pending=0, readiness_pct=75.0 (computado). Nao ha mais contradicao phase=pre_debut vs readiness=100%.",
-    "PaperJournal._rewrite: guarda ativa para _PRODUCTION_JOURNAL com entries vazias.",
-    "tests/test_paper_journal.py: 18 passed in 0.40s (inclui 2 novos testes de guarda).",
-    "Full suite: 1086 passed, 0 failures, 0 warnings em 226.89s.",
-    "Browser smoke: ok=true, chart AAPL 130 candles, chat functional, fallbackUsed=true (deterministic fallback acionado — dentro do esperado).",
-    "IBKR: port 7497, account_equity=100000.00, positions_count=0, read_only_no_orders."
+    "Initial git status before validation was clean.",
+    "npx available at C:/Program Files/nodejs/npx.ps1.",
+    "Health check before validation: /health on 8002 returned status=ok, agent=generic_agent, version=3.0.0; /health on 8082 returned status=ok.",
+    "ruff: .venv/Scripts/python.exe -m ruff check src tests scripts/paper_journal_cli.py -> All checks passed.",
+    "full pytest: .venv/Scripts/python.exe -m pytest tests -q -> 1086 passed in 185.67s.",
+    "IBKR probe: scripts/broker_readiness_probe.py --provider ibkr --json -> connected_count=1, account_equity=100000.00, positions_count=0, port=7497, safe_mode=read_only_no_orders.",
+    "browser smoke: scripts/browser_smoke.py --timeout-ms 180000 -> ok=true, health ok, AAPL chart candleCount=130, canvas nonBlank=378108, chat routeUsed=general, detectedIntent=CAPITAL_ALLOCATION, fallbackUsed=false, containsFailureBubble=false, console_errors=[], screenshot=output/playwright/superezio-browser-smoke-20260605-132426.png."
   ],
   "risks": [
-    "INV-R4 [HIGH]: 4 API keys leaked in git history.",
-    "C6 e C7 so viram PROVEN com evidencias reais de mercado — teses envelhecidas, precos do broker, post-mortem preenchido, e vieses detectados em ≥10 trades.",
-    "Browser smoke teve fallbackUsed=true — o deterministic fallback foi acionado no prompt padrao de capital allocation. Nao e regressao, mas merece atencao no proximo Bob QA.",
-    "GitHub BLOQUEADO — DISK ONLY."
+    "C6 and C7 remain instrumented, not proven; they require real paper-market theses aged to review horizon and post-mortem evidence.",
+    "IBKR visibility depends on TWS remaining open on paper port 7497.",
+    "Current broker integration is read-only/no-orders; no buy, sell, stop, limit, cancel, or modify order capability was enabled or tested.",
+    "GitHub remains blocked by project policy; this validation is disk-only."
   ],
-  "next_step": "Primeira sessao de paper trading real: Bob gera 1 tese, registra no journal com preco do broker, envelhece ate o horizonte de review, fecha, preenche post-mortem. Isso move C6 para PROVEN.",
+  "next_step": "Record the first real paper thesis with broker-sourced price, let it age to the review horizon, close it manually, add post-mortem reflection, and then use the journal/performance reports to advance C6.",
   "owner": "Marco"
 }
