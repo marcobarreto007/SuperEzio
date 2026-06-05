@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SuperEzio â€” AI Financial Copilot</title>
+  <title>SuperEzio - AI Financial Copilot</title>
   <meta name="description" content="SuperEzio AI copilot: F51 verdict engine, evidence-based financial analysis.">
   <meta name="theme-color" content="#0a0e0b">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -38,7 +38,7 @@
     </div>
     <div class="spacer"></div>
     <div class="ticker-wrap">
-      <input id="ticker-inp" type="text" placeholder="Ticker" autocomplete="off" spellcheck="false" maxlength="10">
+      <input id="ticker-inp" type="text" placeholder="Chart" autocomplete="off" spellcheck="false" maxlength="10" aria-label="Optional chart symbol" title="Optional chart context. Bob can choose candidates from the chat.">
       <select id="tf-inp" aria-label="Timeframe">
         <option value="1D">1D</option>
         <option value="1W">1W</option>
@@ -49,6 +49,7 @@
         <option value="5Y">5Y</option>
       </select>
       <button class="btn--icon" id="chart-btn" title="Reload chart" type="button"><i data-lucide="refresh-cw"></i></button>
+      <button class="broker-chip broker-chip--unknown" id="broker-status-btn" title="IBKR paper link status" type="button" aria-label="IBKR paper link status"><i data-lucide="landmark"></i><span id="broker-status-label">IBKR</span></button>
       <button class="btn--icon" id="sdca-lab-btn" title="Cognitive Risk Firewall Lab" type="button"><i data-lucide="shield-alert"></i></button>
       <button class="btn--icon" id="ops-console-btn" title="System Ops Console" type="button"><i data-lucide="activity"></i></button>
     </div>
@@ -156,6 +157,17 @@
             <div class="ops-row"><span id="ops-label-gpu">GPU Acceleration</span><strong id="ops-health-gpu">Checking...</strong></div>
             <div class="ops-row"><span id="ops-label-redis">Redis Database</span><strong id="ops-health-redis">Checking...</strong></div>
             <div class="ops-row"><span id="ops-label-ceo">Local Model (CEO)</span><strong id="ops-health-ceo">Checking...</strong></div>
+          </div>
+        </div>
+
+        <div class="ops-card" id="ops-card-broker">
+          <h3>Broker Link</h3>
+          <div class="ops-metrics-list">
+            <div class="ops-row"><span>Provider</span><strong id="ops-broker-provider">IBKR</strong></div>
+            <div class="ops-row"><span>Status</span><strong id="ops-broker-status">Checking...</strong></div>
+            <div class="ops-row"><span>Mode</span><strong id="ops-broker-mode">--</strong></div>
+            <div class="ops-row"><span>Equity</span><strong id="ops-broker-equity">--</strong></div>
+            <div class="ops-row"><span>Positions</span><strong id="ops-broker-positions">--</strong></div>
           </div>
         </div>
 

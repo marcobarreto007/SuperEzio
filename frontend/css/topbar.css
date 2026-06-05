@@ -187,6 +187,52 @@
   transform: scale(1.05);
 }
 
+.broker-chip {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--ink-secondary);
+  cursor: pointer;
+  font: 800 10px var(--font-mono);
+  letter-spacing: 0;
+  transition: all var(--duration) var(--ease);
+}
+
+.broker-chip svg {
+  width: 17px;
+  height: 17px;
+}
+
+.broker-chip:hover {
+  background: var(--surface-3);
+  border-color: var(--line-light);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.broker-chip--read {
+  border-color: rgba(0, 230, 118, 0.35);
+  color: var(--green);
+  box-shadow: 0 0 12px rgba(0, 230, 118, 0.12);
+}
+
+.broker-chip--trade {
+  border-color: rgba(255, 145, 0, 0.45);
+  color: var(--amber);
+  box-shadow: 0 0 12px rgba(255, 145, 0, 0.16);
+}
+
+.broker-chip--off,
+.broker-chip--unknown {
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+}
+
 .btn--sm {
   min-height: 28px;
   padding: 4px 12px;
@@ -204,4 +250,72 @@
   background: var(--surface-3);
   border-color: var(--line-light);
   color: var(--ink);
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .topbar .spacer {
+    display: none;
+  }
+
+  .logo {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .logo-sub {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ticker-wrap {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(76px, 1fr) 58px 34px minmax(74px, 88px) 34px 34px;
+    gap: 6px;
+  }
+
+  .ticker-wrap input,
+  .ticker-wrap select,
+  .btn--icon,
+  .broker-chip {
+    min-height: 34px;
+  }
+
+  .ticker-wrap input,
+  .ticker-wrap select {
+    width: 100%;
+    min-width: 0;
+    padding: 6px 8px;
+  }
+
+  .btn--icon {
+    width: 34px;
+  }
+
+  .broker-chip {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+    padding: 0 6px;
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 420px) {
+  .logo-sub {
+    display: none;
+  }
+
+  .ticker-wrap {
+    grid-template-columns: minmax(74px, 1fr) 54px 34px minmax(68px, 78px) 34px 34px;
+    gap: 5px;
+  }
 }

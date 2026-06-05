@@ -1,31 +1,30 @@
 {
-  "date_local": "2026-06-05T13:51:10-04:00",
-  "session": "ibkr-14-day-paper-brokerage-apprenticeship-2026-06-05",
-  "status": "mission_context_updated_and_validated",
+  "date_local": "2026-06-05T14:06:50-04:00",
+  "session": "frontend-ibkr-bob-first-topbar-2026-06-05",
+  "status": "validated_and_saved_pending_commit",
   "what_was_done": [
-    "Added a 14-day IBKR paper brokerage apprenticeship to Bob's mission context.",
-    "Defined the training window as 2026-06-05 through 2026-06-19, duration_days=14.",
-    "Clarified role language: Bob behaves like a supervised IBKR paper brokerage apprentice, not a registered broker, financial advisor, IBKR employee, or autonomous execution engine.",
-    "Added apprenticeship responsibilities: read IBKR paper account state, use broker-sourced prices where available, propose order tickets with thesis/risk/invalidation/size/review horizon, require Marco approval, journal all decisions, and explain current execution mode.",
-    "Added prohibited claims: no registered-broker claim, no execution claim while read_only_no_orders, no broker fill claim without IBKR order status/execution proof, and no treating paper fills as live edge proof.",
-    "Rendered the apprenticeship block into Bob's system prompt and exposed it in /health/details.",
-    "Documented the two-week apprenticeship in docs/runbooks/DEBUT_PROTOCOL.md."
+    "Audited the topbar controls: chart reload, timeframe, SDCA lab, and ops console are real controls; the missing product surface was Bob's IBKR paper/read-only state.",
+    "Reframed the ticker field as optional chart context instead of the primary decision driver; Bob still chooses candidates from open investment questions.",
+    "Added a real IBKR broker status chip to the topbar. It reads /health/details and renders IBKR READ, IBKR OFF, or IBKR TRADE based on broker state.",
+    "Wired the IBKR chip to open the System Operations Console and refresh broker diagnostics, so it is not decorative.",
+    "Added a Broker Link card to the Ops Console with provider, status, mode, equity, and positions from the live mission broker summary.",
+    "Updated browser_smoke.py so the UI smoke clicks the IBKR chip and verifies broker status leaves the Checking state.",
+    "Fixed Ops Console row wrapping so long GPU/model strings do not overlap neighboring cards.",
+    "Added responsive breakpoints for topbar/body/app-main so the new controls remain visible on a 390px mobile viewport without horizontal overflow."
   ],
   "evidence": [
-    "json validation: .venv/Scripts/python.exe -m json.tool config/mission_context.json -> ok.",
-    "ruff: .venv/Scripts/python.exe -m ruff check src tests scripts/paper_journal_cli.py -> All checks passed.",
-    "pytest targeted: .venv/Scripts/python.exe -m pytest tests/contracts/test_contract_agent.py tests/test_api_routes_sync.py -q -> 72 passed in 4.43s.",
-    "runtime restart: runtime/do_restart.ps1 -> health 8082=200, health 8002=200, UI=http://127.0.0.1:8002.",
-    "/health/details live proof: mission.apprenticeship.name=14-day IBKR paper brokerage apprenticeship, status=active_training_window, duration_days=14, start_date=2026-06-05, end_date=2026-06-19.",
-    "/health/details live proof: role_language says Bob is a supervised IBKR paper brokerage apprentice, not a registered broker.",
-    "browser smoke: scripts/browser_smoke.py --timeout-ms 180000 -> ok=true, AAPL chart candleCount=130, canvas nonBlank=378108, chat fallbackUsed=false, containsFailureBubble=false, console_errors=[], screenshot=output/playwright/superezio-browser-smoke-20260605-134953.png."
+    "pytest targeted: .venv/Scripts/python.exe -m pytest tests/test_api_routes_sync.py::test_frontend_ops_console_integration tests/test_api_routes_sync.py::test_health_details -q -> 2 passed in 2.05s.",
+    "browser smoke: .venv/Scripts/python.exe scripts/browser_smoke.py --base-url http://127.0.0.1:8002 --skip-chat --timeout-ms 180000 -> ok=true, chart ticker=AAPL, candleCount=130, canvas nonBlank=378108, console_errors=[].",
+    "IBKR UI proof: broker chip text=IBKR READ, ops broker status=CONNECTED READ-ONLY, mode=read_only_no_orders, equity=100000.00, positions=0, screenshot=output/playwright/superezio-ibkr-console-proof-fixed.png.",
+    "Mobile proof: viewport 390x844, horizontalOverflow=false, scrollWidth=390, clientWidth=390, broker=IBKR READ, screenshot=output/playwright/superezio-mobile-topbar-proof-fixed2.png.",
+    "/health/details live proof remains: mission.broker.ibkr.connection=connected_read_only, mode=read_only_no_orders, can_submit_orders=false."
   ],
   "risks": [
-    "The word broker/corretor is role-language only for paper training behavior; Bob must not claim regulated broker status.",
-    "IBKR remains read_only_no_orders until a separate order-panel proof mode is implemented and explicitly enabled.",
-    "C6/C7 still require real aged paper-market evidence before becoming proven.",
+    "IBKR is still read_only_no_orders; the UI must not imply order execution.",
+    "The chart still defaults to AAPL as a visual workspace snapshot, but generic investment questions do not attach chart context unless the message asks about the chart/current asset.",
+    "Live/paper order-panel proof remains a separate gated feature with explicit approval and safeguards.",
     "GitHub remains blocked by project policy; this is disk-only."
   ],
-  "next_step": "Implement or run a dedicated IBKR order-panel proof mode only after explicit approval: paper port 7497, quantity max 1, LMT-only, far-from-market price, auto-cancel, evidence capture, and PaperJournal record.",
+  "next_step": "Keep Bob-first UX: implement a dedicated paper order-ticket review panel only after explicit approval, with max size, LMT-only, far-from-market/auto-cancel safeguards, and PaperJournal evidence.",
   "owner": "Marco"
 }

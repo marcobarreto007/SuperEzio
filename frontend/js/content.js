@@ -11,6 +11,7 @@
   window.SZ.content = Object.assign({
     logoSub: "Financial Copilot",
     statusChecking: "Checking...",
+    chartContextPlaceholder: "Chart",
     assetLabel: "Market snapshot",
     bobWelcomeTitle: "Bob is online.",
     bobWelcomeBody: "Ask directly. Market context is attached when your question needs the chart.",

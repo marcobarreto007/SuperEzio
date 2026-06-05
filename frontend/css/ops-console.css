@@ -141,20 +141,28 @@
 }
 
 .ops-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(92px, 0.8fr) minmax(0, 1.2fr);
   gap: 10px;
-  align-items: center;
+  align-items: start;
   font-size: 12px;
+  min-width: 0;
 }
 
 .ops-row span {
   color: var(--ink-secondary);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .ops-row strong {
   font-family: var(--font-mono);
   color: var(--ink);
+  min-width: 0;
+  max-width: 100%;
+  text-align: right;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
 }
 
 .ops-bullet-list {

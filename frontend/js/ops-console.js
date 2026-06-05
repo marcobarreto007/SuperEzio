@@ -5,6 +5,35 @@
   function $(id) { return document.getElementById(id); }
   function esc(v) { return String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
+  function setStatusText(id, text, className) {
+    const el = $(id);
+    if (!el) return;
+    el.textContent = text;
+    el.className = className || "";
+  }
+
+  function renderBrokerDiagnostics(details) {
+    const ibkr = details?.mission?.broker?.ibkr || {};
+    const connection = String(ibkr.connection || "");
+    const canRead = ibkr.can_read_account === true || connection.includes("connected");
+    const canSubmit = ibkr.can_submit_orders === true;
+    const className = canSubmit ? "ops-status-warn" : canRead ? "ops-status-ok" : "ops-status-err";
+    const status = canSubmit ? "ORDER ENABLED" : canRead ? "CONNECTED READ-ONLY" : "NOT CONNECTED";
+    const mode = ibkr.mode || "read_only_no_orders";
+    const equity = ibkr.account_equity != null ? String(ibkr.account_equity) : "--";
+    const positions = ibkr.positions_count != null ? String(ibkr.positions_count) : "--";
+
+    setStatusText("ops-broker-provider", ibkr.provider || "IBKR", className);
+    setStatusText("ops-broker-status", status, className);
+    setStatusText("ops-broker-mode", mode, canSubmit ? "ops-status-warn" : "ops-status-ok");
+    setStatusText("ops-broker-equity", equity, equity === "--" ? "ops-status-warn" : "ops-status-ok");
+    setStatusText("ops-broker-positions", positions, "ops-status-ok");
+
+    if (typeof SZ.updateBrokerStatus === "function") {
+      SZ.updateBrokerStatus(details);
+    }
+  }
+
   async function loadDiagnostics() {
     // 1. Health Status
     try {
@@ -53,6 +82,8 @@
             ceoEl.className = "ops-status-err";
           }
         }
+
+        renderBrokerDiagnostics(hd);
       }
     } catch (err) {
       console.warn("[SZ] Ops Console Health Details fetch failed:", err);
@@ -61,6 +92,7 @@
         statusEl.textContent = "FETCH FAILED";
         statusEl.className = "ops-status-err";
       }
+      renderBrokerDiagnostics(null);
     }
 
     // 2. Capabilities

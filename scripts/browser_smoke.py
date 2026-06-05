@@ -162,6 +162,18 @@ def run_smoke(
         page.click("#ops-console-close")
         page.wait_for_timeout(500)
 
+        # Smoke check for IBKR/Bob broker status chip
+        page.wait_for_selector("#broker-status-btn", timeout=timeout_ms)
+        page.click("#broker-status-btn")
+        page.wait_for_selector("#ops-console.open", timeout=timeout_ms)
+        page.wait_for_selector("#ops-broker-status", timeout=timeout_ms)
+        page.wait_for_function(
+            "document.querySelector('#ops-broker-status')?.textContent.trim() !== 'Checking...'",
+            timeout=timeout_ms,
+        )
+        page.click("#ops-console-close")
+        page.wait_for_timeout(500)
+
         chart_fetch = _browser_chart_fetch(page)
         canvas = _assert_canvas_nonblank(page)
 

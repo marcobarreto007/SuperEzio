@@ -174,7 +174,9 @@
     var ticker = sanitTicker(cfg.defaultTicker || "AAPL") || "AAPL";
     var timeframe = cfg.defaultTimeframe || "6M";
     var tickerInput = document.getElementById("ticker-inp");
-    if (tickerInput && !tickerInput.value) tickerInput.value = ticker;
+    if (tickerInput) {
+      tickerInput.placeholder = content.chartContextPlaceholder || "Chart";
+    }
     var tfInput = document.getElementById("tf-inp");
     if (tfInput) tfInput.value = timeframe;
     setText("logo-sub", content.logoSub);
@@ -205,14 +207,71 @@
     if (dot && content.statusChecking) dot.title = content.statusChecking;
   }
 
+  function getSelectedChartTicker() {
+    var typed = sanitTicker(
+      (document.getElementById("ticker-inp") || {}).value || ""
+    );
+    if (typed) return typed;
+    var cd = SZ.state && SZ.state.chartData;
+    return sanitTicker((cd && cd.ticker) || (SZ.config || {}).defaultTicker || "AAPL");
+  }
+
+  function getIbkrFromHealthDetails(details) {
+    return (((details || {}).mission || {}).broker || {}).ibkr || {};
+  }
+
+  function updateBrokerStatus(details) {
+    var btn = document.getElementById("broker-status-btn");
+    var label = document.getElementById("broker-status-label");
+    if (!btn || !label) return;
+
+    var ibkr = getIbkrFromHealthDetails(details);
+    var connection = String(ibkr.connection || "");
+    var canRead = ibkr.can_read_account === true || connection.indexOf("connected") >= 0;
+    var canSubmit = ibkr.can_submit_orders === true;
+    var state = "unknown";
+    var text = "IBKR";
+    var title = "IBKR broker link not verified";
+
+    if (canSubmit) {
+      state = "trade";
+      text = "IBKR TRADE";
+      title = "IBKR order submission appears enabled. Verify safeguards before use.";
+    } else if (canRead) {
+      state = "read";
+      text = "IBKR READ";
+      title = "IBKR paper link is connected in read-only/no-orders mode";
+    } else if (ibkr.package_present || connection) {
+      state = "off";
+      text = "IBKR OFF";
+      title = "IBKR package is present, but the paper API is not connected";
+    }
+
+    btn.classList.remove("broker-chip--unknown", "broker-chip--read", "broker-chip--trade", "broker-chip--off");
+    btn.classList.add("broker-chip--" + state);
+    btn.title = title;
+    btn.setAttribute("aria-label", title);
+    label.textContent = text;
+  }
+
+  async function refreshBrokerStatus() {
+    if (!SZ.api || typeof SZ.api.fetchHealthDetails !== "function") return null;
+    try {
+      var details = await SZ.api.fetchHealthDetails();
+      updateBrokerStatus(details);
+      return details;
+    } catch (err) {
+      updateBrokerStatus({ mission: { broker: { ibkr: { package_present: true, connection: "offline" } } } });
+      return null;
+    }
+  }
+
   /* ═══════════════════════════════════════════════════════════════
    * TASK SUBMISSION
    * ═══════════════════════════════════════════════════════════════ */
 
   function buildEnvelope(msg) {
-    var ticker = sanitTicker(
-      (document.getElementById("ticker-inp") || {}).value || ""
-    );
+    var ticker = getSelectedChartTicker();
     var tf = (document.getElementById("tf-inp") || {}).value || (SZ.config || {}).defaultTimeframe || "6M";
     var attachMarket = shouldAttachMarketContext(msg, ticker);
 
@@ -340,9 +399,7 @@
    * ═══════════════════════════════════════════════════════════════ */
 
   async function loadChart() {
-    var ticker = sanitTicker(
-      (document.getElementById("ticker-inp") || {}).value || ""
-    );
+    var ticker = getSelectedChartTicker();
     var tf = (document.getElementById("tf-inp") || {}).value || (SZ.config || {}).defaultTimeframe || "6M";
     if (!ticker) return;
 
@@ -383,9 +440,7 @@
   }
 
   function toggleLive() {
-    var ticker = sanitTicker(
-      (document.getElementById("ticker-inp") || {}).value || ""
-    );
+    var ticker = getSelectedChartTicker();
     var tf = (document.getElementById("tf-inp") || {}).value || "1D";
     if (!SZ.live) return;
 
@@ -467,6 +522,16 @@
     var chartBtn = document.getElementById("chart-btn");
     if (chartBtn) {
       chartBtn.addEventListener("click", loadChart);
+    }
+
+    var brokerBtn = document.getElementById("broker-status-btn");
+    if (brokerBtn) {
+      brokerBtn.addEventListener("click", function () {
+        refreshBrokerStatus();
+        if (SZ.opsConsole && typeof SZ.opsConsole.toggle === "function") {
+          SZ.opsConsole.toggle(true);
+        }
+      });
     }
 
     /* SDCA Lab toggle */
@@ -601,6 +666,7 @@
     if (window.lucide) lucide.createIcons();
 
     loadChart();
+    refreshBrokerStatus();
     probeOps();
 
     console.log("[SZ] Boot complete.");
@@ -608,6 +674,8 @@
 
   SZ.init    = boot;
   SZ.submit  = submit;
+  SZ.refreshBrokerStatus = refreshBrokerStatus;
+  SZ.updateBrokerStatus = updateBrokerStatus;
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", boot);

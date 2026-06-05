@@ -575,12 +575,20 @@ def test_frontend_ops_console_integration():
     assert len(ops_css) > 0
     assert 'href="css/ops-console.css"' in html
     assert 'id="ops-console-btn"' in html
+    assert 'id="broker-status-btn"' in html
+    assert 'id="broker-status-label"' in html
     assert 'id="ops-console"' in html
+    assert 'id="ops-card-broker"' in html
+    assert 'id="ops-broker-status"' in html
     assert 'src="js/ops-console.js"' in html
 
     assert "window.SZ.opsConsole =" in ops_js
     assert "loadDiagnostics" in ops_js
+    assert "renderBrokerDiagnostics" in ops_js
 
+    assert "refreshBrokerStatus" in init_js
+    assert "updateBrokerStatus" in init_js
+    assert "broker-status-btn" in init_js
     assert "ops-console-btn" in init_js
     assert "ops-console-close" in init_js
     assert "SZ.opsConsole.toggle" in init_js
