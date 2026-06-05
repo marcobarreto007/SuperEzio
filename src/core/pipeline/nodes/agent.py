@@ -44,6 +44,11 @@ Your CORE IDENTITY:
   refer to the company by ticker ONLY. Do not guess names like "Redwood Materials"
   or "Roadside Technologies" — those are hallucinations. Ticker-only is SAFE.
 - You know your own knowledge has a cutoff date. For anything recent, you ASK.
+- When live data was not collected, do not quote exact current rates, VIX,
+  yields, recent return percentages, quarter-specific performance, tax
+  thresholds, withholding exemptions, contribution limits, or treaty treatment.
+  Give the decision framework and tell the user what to verify with current
+  market/tax/account/fund documents.
 
 YOUR MARKET EXPERTISE (Canada + USA):
 - You are a North American financial expert. Primary markets:
@@ -1412,6 +1417,59 @@ def _is_portfolio_concentration_question(message: str) -> bool:
     )
 
 
+def _is_dca_macro_question(message: str) -> bool:
+    q = f" {(message or '').lower()} "
+    return any(
+        marker in q
+        for marker in (
+            "dollar-cost",
+            " dollar cost ",
+            " dca ",
+            "wait for a correction",
+            "interest rates",
+            "market volatility",
+        )
+    )
+
+
+def _has_unsupported_macro_precision(text: str) -> bool:
+    lower = (text or "").lower()
+    patterns = (
+        r"\bvix\b",
+        r"\bbasis[-\s]?point\b",
+        r"\btreasury\b.*\b\d+(?:\.\d+)?%",
+        r"\brates?\b.{0,40}\b\d+(?:\.\d+)?%",
+        r"\byields?\b.{0,40}\b\d+(?:\.\d+)?%",
+        r"\boutperformed\b.{0,80}\b\d+(?:\.\d+)?%",
+        r"\brecover(?:ed|ing)?\b.{0,80}\b\d+\s*[-–]\s*\d+\s+days\b",
+        r"\bq[1-4]\s+20\d{2}\b|\b20\d{2}\s+q[1-4]\b",
+        r"\b(?:s&p\s*500|tsx\s+composite)\b.{0,120}\b\d+(?:\.\d+)?%",
+        r"\bpullbacks?\b.{0,80}\b\d+(?:\.\d+)?\s*[-–]\s*\d+(?:\.\d+)?%",
+    )
+    return any(re.search(pattern, lower, flags=re.IGNORECASE) for pattern in patterns)
+
+
+def _has_tax_overstatement(text: str) -> bool:
+    lower = (text or "").lower()
+    patterns = (
+        r"\bcapital gains exemption\b",
+        r"\bannual\s+\$?\d+(?:,\d{3})?\s*k?\b.{0,80}\bcapital gains\b",
+        r"\bwithout the\s+15%\s+withholding tax\b",
+        r"\bavoid(?:s|ed|ing)?\b.{0,80}\b15%\s+(?:u\.?s\.?\s+)?withholding tax\b",
+        r"\bdividends are treated as canadian-source income\b",
+        r"\brrsps?\s+are\s+exempt\s+from\s+u\.?s\.?\s+withholding tax\b",
+        r"\bcanada[-\s]?u\.?s\.?\s+tax treaty\b",
+        r"\btreaty benefit\b",
+        r"\bcanadian[-\s]?listed\b.{0,80}\b(?:avoid|waive|exempt|no)\b.{0,80}\bwithholding\b",
+        r"\bcurrency hedg(?:e|ed|ing)\b.{0,80}\bwithholding\b",
+        r"\bwithout currency hedg(?:e|ed|ing)\b.{0,80}\bwithholding\b",
+        r"\bcad[-\s]?hedg(?:ed|ing)\b.{0,80}\bwithholding\b",
+        r"\btransfer[-\s]?in[-\s]?kind\b",
+        r"\b(?:doesn.?t|does not|won.?t|will not)\s+trigger\b.{0,80}\btaxable event\b",
+    )
+    return any(re.search(pattern, lower, flags=re.IGNORECASE) for pattern in patterns)
+
+
 def _repair_overlapping_etf_tickers(text: str, message: str = "") -> str:
     if _is_etf_comparison_question(message):
         return text or ""
@@ -1727,9 +1785,15 @@ def _should_force_contract_fallback(state: dict, content: str) -> bool:
     )
     if ("dividend" in msg or "passive income" in msg) and any(m in text for m in scan_leak_markers):
         return True
+    if ("dividend" in msg or "passive income" in msg) and _has_tax_overstatement(content):
+        return True
     if _is_etf_comparison_question(message) and any(m in text for m in scan_leak_markers):
         return True
     if _is_portfolio_concentration_question(message) and any(m in text for m in scan_leak_markers):
+        return True
+    if _is_portfolio_concentration_question(message) and _has_tax_overstatement(content):
+        return True
+    if _is_dca_macro_question(message) and _has_unsupported_macro_precision(content):
         return True
     return False
 
@@ -1833,6 +1897,9 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     f"If ALLOWED TOOLS is only final_answer, do not call market_scan, collect_data, experts, or firewalls. "
                     f"Answer the advisory framework directly and state when live data was not collected. "
                     f"If SCANNER_ALLOWED is False, never scan or shortlist current tickers from imagined data. "
+                    f"If live data was not collected, do not quote exact current rates, VIX, yields, recent return stats, "
+                    f"tax thresholds, withholding exemptions, contribution limits, or treaty treatment as facts. "
+                    f"Use a decision framework and tell the user what must be verified in current market, tax, account, or fund documents. "
                     f"BANNED: Do NOT output the 12-section framework template. "
                     f"BANNED: Do NOT use numbered sections like '1. **Scope disclaimer** —'. "
                     f"REQUIRED for allocation/personal-finance questions: one short scope line "

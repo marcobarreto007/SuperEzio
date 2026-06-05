@@ -1,32 +1,31 @@
 {
-  "date_local": "2026-06-04T19:21:17-04:00",
-  "session": "full-system-trust-gate-2026-06-04",
-  "status": "full_validation_passed_and_runtime_live",
+  "date_local": "2026-06-04T20:09:49-04:00",
+  "session": "commercial-advisory-policy-gate-2026-06-04",
+  "status": "full_validation_passed_runtime_live_ready_for_packaging",
   "what_was_done": [
-    "Ran the full system test gate after the user requested 'testa agora tudo'.",
-    "Fixed Bob Sovereign routing so it respects deterministic cognitive contracts instead of allowing every tool on advisory prompts.",
-    "Removed the sovereign tool-permission bypass; final-only advisory contracts now block market_scan/collect_data misuse.",
-    "Added deterministic intent handling for dividend/passive-income advisory, ETF comparison, and portfolio concentration prompts.",
-    "Forced ticker_analysis to collect ticker data before model finalization, restoring live DATA_COLLECTED/F51 evidence behavior.",
-    "Forced market_scan final answers to render from scan state, preventing hallucinated hidden-gem candidates after a scan.",
-    "Added max-price parsing/gating so requests like 'under CAD 5' reject candidates above the requested ceiling.",
-    "Hardened answer-quality repairs for ETF overlap, mislabeled ETF/ticker examples, tax overstatements, and unsupported short-term return ranges.",
-    "Strengthened scripts/investment_answer_quality.py so the QA script fails on advisory scan leakage, ETF-comparison overblocking, and under-CAD-5 price leaks."
+    "Hardened Bob Sovereign prompt and runtime instructions so advisory-only answers do not quote exact current macro, return, tax, withholding, contribution-limit, treaty, or fund-structure facts without live evidence.",
+    "Added deterministic fallback detection for unsupported macro precision in DCA/rates/volatility questions.",
+    "Added deterministic fallback detection for tax overstatements in dividend/passive-income and concentrated-position advisory prompts.",
+    "Strengthened the investment QA gate so saved QA reports fail on unsupported macro precision, withholding-tax overstatements, treaty-benefit claims, currency-hedge/withholding confusion, and transfer-in-kind taxable-event claims.",
+    "Added regression tests for the exact bad commercial phrases found during live QA: RRSP/treaty withholding, currency hedge withholding, and transfer-in-kind taxable-event language."
   ],
   "evidence": [
-    "Runtime restart: powershell -ExecutionPolicy Bypass -File .\\runtime\\do_restart.ps1 -> health 8082 200 and health 8002 200.",
-    "Full pytest final: PYTHONPATH=src;scripts .\\.venv\\Scripts\\python.exe -m pytest -q -> 1045 passed, 29 warnings in 159.55s.",
-    "Browser smoke final: PYTHONPATH=src .\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --timeout-ms 180000 -> ok true; health ok; AAPL chart 130 candles; canvas nonBlank 378108; chat fallback false; console_errors empty; screenshot output\\playwright\\superezio-browser-smoke-20260604-191513.png.",
-    "Investment QA final: PYTHONPATH=src;scripts .\\.venv\\Scripts\\python.exe -u scripts\\invest_api_qa.py -> exit code 0; report output/playwright/invest-api-qa-20260604-192100.json.",
-    "Investment QA Q8 result: under CAD 5 small-cap scan returned no candidate passed; rejected 24 candidates, top reason price above requested maximum; no AAPL/MSFT/SPY suggestion leak.",
-    "Regression coverage added for sovereign contract enforcement, final-only dividend advisory, ETF comparison not becoming single-ticker analysis, portfolio concentration not becoming isolated ticker analysis, scan-state rendering, ticker_analysis collect_data forcing, price ceiling filter, and tax/ETF wording repairs."
+    "Runtime restart final: powershell -ExecutionPolicy Bypass -File .\\runtime\\do_restart.ps1 -> health 8082 200 and health 8002 200; UI http://127.0.0.1:8002.",
+    "Targeted tax/macro tests: PYTHONPATH=src;scripts .\\.venv\\Scripts\\python.exe -m pytest tests/contracts/test_contract_agent.py tests/test_investment_answer_quality.py -q -> 62 passed in 0.78s.",
+    "Full pytest final: PYTHONPATH=src;scripts .\\.venv\\Scripts\\python.exe -m pytest -q -> 1057 passed, 29 warnings in 137.59s.",
+    "Browser smoke final: PYTHONPATH=src .\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --timeout-ms 180000 -> ok true; health ok; AAPL chart 130 candles; canvas nonBlank 378108; chat route general; fallback false; console_errors empty; screenshot output\\playwright\\superezio-browser-smoke-20260604-200158.png.",
+    "Investment QA final: PYTHONPATH=src;scripts .\\.venv\\Scripts\\python.exe -u scripts\\invest_api_qa.py -> 8/8 questions ok; no quality_reasons; report output/playwright/invest-api-qa-20260604-200922.json.",
+    "Investment QA Q4 dividend/passive-income answer used the safe contract: withholding tax and account type matter; verify yield, payout ratio, debt, dividend growth, valuation.",
+    "Investment QA Q5 DCA/macro answer avoided exact VIX, yields, rates, basis points, and return statistics.",
+    "Investment QA Q8 under-CAD-5 small-cap scan invoked market_scan and rejected all 24 candidates that failed the price-quality gate."
   ],
   "risks": [
-    "Bob can still produce plausible macro/tax language without live data on broad advisory prompts; new repairs catch known bad phrases, but a deeper commercial policy layer is still recommended before packaging.",
-    "Provider data quality remains external; scan gating now rejects price-ceiling violations but does not guarantee provider currency normalization is perfect.",
+    "This is a deterministic commercial wording gate, not legal or tax advice validation; final packaging should still include lawyer-reviewed disclaimers and account/tax jurisdiction language.",
+    "Broad advisory answers can still use approximate educational examples; the gate blocks known high-risk precision and overstatement patterns, not every possible bad sentence.",
+    "Provider data quality remains external; scan gating rejects bad candidates but cannot guarantee upstream market data correctness.",
     "OpenBB/Pydantic dependency deprecation warnings remain; they did not fail tests.",
     "No GitHub operation was performed because this repository is DISK ONLY."
   ],
-  "next_step": "Use the passing gate as the local save point, then continue packaging with a buyer/demo script and a stricter commercial-answer policy pass for tax/macro wording.",
+  "next_step": "Use this local commit as the packaging baseline, then prepare the buyer/demo package around the tested runtime command, browser proof, evidence index, and investment QA report.",
   "owner": "Marco"
 }

@@ -83,3 +83,78 @@ def test_rejects_mutual_fund_mislabeled_as_bond_etf():
 
     assert not result["ok"]
     assert "fund_semantic_mismatch:VWENX:not_etf" in result["reasons"]
+
+
+def test_rejects_unsourced_macro_precision_for_dca_advice():
+    result = evaluate_answer_quality(
+        "With current interest rates and market volatility, should I dollar-cost average or wait?",
+        "Rates are near 4.8%, VIX is 18-22, and markets outperformed cash by 2.3% annually.",
+        min_chars=20,
+    )
+
+    assert not result["ok"]
+    assert "unsupported_macro_precision" in result["reasons"]
+
+
+def test_rejects_tax_overstatement_for_dividend_advice():
+    result = evaluate_answer_quality(
+        "Build a passive income portfolio with dividend stocks. Consider tax efficiency and withholding taxes.",
+        "Use a Canadian-listed U.S. ETF to avoid the 15% withholding tax.",
+        min_chars=20,
+    )
+
+    assert not result["ok"]
+    assert "tax_overstatement" in result["reasons"]
+
+
+def test_rejects_rrsp_treaty_tax_overstatement_for_dividend_advice():
+    result = evaluate_answer_quality(
+        "Build a passive income portfolio with dividend stocks. Consider tax efficiency and withholding taxes.",
+        (
+            "US dividend stocks or ETFs held in an RRSP avoid the 15% US withholding tax "
+            "thanks to the Canada-US tax treaty."
+        ),
+        min_chars=20,
+    )
+
+    assert not result["ok"]
+    assert "tax_overstatement" in result["reasons"]
+
+
+def test_rejects_tax_overstatement_for_concentrated_position():
+    result = evaluate_answer_quality(
+        "I hold a concentrated position in AAPL. How should I diversify without triggering a huge tax bill?",
+        "Use your annual $25K long-term capital gains exemption.",
+        min_chars=20,
+    )
+
+    assert not result["ok"]
+    assert "tax_overstatement" in result["reasons"]
+
+
+def test_rejects_currency_hedge_tax_overstatement_for_concentrated_position():
+    result = evaluate_answer_quality(
+        "I hold a concentrated position in AAPL. How should I diversify without triggering a huge tax bill?",
+        (
+            "Use an S&P 500 index ETF for U.S. exposure without currency hedging "
+            "to avoid dividend withholding tax drag."
+        ),
+        min_chars=20,
+    )
+
+    assert not result["ok"]
+    assert "tax_overstatement" in result["reasons"]
+
+
+def test_rejects_transfer_in_kind_tax_overstatement_for_concentrated_position():
+    result = evaluate_answer_quality(
+        "I hold a concentrated position in AAPL. How should I diversify without triggering a huge tax bill?",
+        (
+            "Shift existing AAPL shares via a transfer-in-kind into a TFSA or RRSP; "
+            "diversifying there doesn't trigger a taxable event."
+        ),
+        min_chars=20,
+    )
+
+    assert not result["ok"]
+    assert "tax_overstatement" in result["reasons"]

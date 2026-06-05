@@ -21,6 +21,7 @@ from src.core.pipeline.nodes.agent import (
     _apply_grounding_guard,
     _contract_fallback_answer,
     _repair_answer_quality,
+    _should_force_contract_fallback,
 )
 
 
@@ -263,6 +264,77 @@ def test_answer_quality_repairs_us_dividend_withholding_overstatement():
     assert "without the 15% withholding tax" not in repaired
     assert "Canadian-source income" not in repaired
     assert "withholding-tax purposes" in repaired
+
+
+def test_contract_fallback_forces_on_unsourced_macro_precision():
+    state = {
+        "message": "With current interest rates and market volatility, should I DCA or wait?",
+        "cognitive_mode": "ADVISORY_KNOWLEDGE",
+    }
+    content = (
+        "Rates are near 4.8%, VIX is 18-22, and markets outperformed cash by 2.3% annually."
+    )
+
+    assert _should_force_contract_fallback(state, content)
+
+
+def test_contract_fallback_forces_on_dividend_tax_overstatement():
+    state = {
+        "message": "Build a passive income portfolio with dividend stocks for a Canadian investor.",
+        "cognitive_mode": "ADVISORY_KNOWLEDGE",
+    }
+    content = "Use a Canadian-listed U.S. ETF to avoid the 15% withholding tax."
+
+    assert _should_force_contract_fallback(state, content)
+
+
+def test_contract_fallback_forces_on_rrsp_treaty_overstatement():
+    state = {
+        "message": "Build a passive income portfolio with dividend stocks for a Canadian investor.",
+        "cognitive_mode": "ADVISORY_KNOWLEDGE",
+    }
+    content = (
+        "US dividend stocks or ETFs held in an RRSP avoid the 15% US withholding tax "
+        "thanks to the Canada-US tax treaty."
+    )
+
+    assert _should_force_contract_fallback(state, content)
+
+
+def test_contract_fallback_forces_on_concentration_tax_overstatement():
+    state = {
+        "message": "I hold a concentrated position in AAPL (40% of my portfolio). How should I diversify without triggering a huge tax bill?",
+        "cognitive_mode": "ADVISORY_KNOWLEDGE",
+    }
+    content = "Use your annual $25K long-term capital gains exemption."
+
+    assert _should_force_contract_fallback(state, content)
+
+
+def test_contract_fallback_forces_on_currency_hedge_withholding_overstatement():
+    state = {
+        "message": "I hold a concentrated position in AAPL (40% of my portfolio). How should I diversify without triggering a huge tax bill?",
+        "cognitive_mode": "ADVISORY_KNOWLEDGE",
+    }
+    content = (
+        "Use an S&P 500 index ETF for U.S. exposure without currency hedging "
+        "to avoid dividend withholding tax drag."
+    )
+
+    assert _should_force_contract_fallback(state, content)
+
+
+def test_contract_fallback_forces_on_transfer_in_kind_tax_overstatement():
+    state = {
+        "message": "I hold a concentrated position in AAPL (40% of my portfolio). How should I diversify without triggering a huge tax bill?",
+        "cognitive_mode": "ADVISORY_KNOWLEDGE",
+    }
+    content = (
+        "Shift existing AAPL shares via a transfer-in-kind into a TFSA or RRSP; "
+        "diversifying there doesn't trigger a taxable event."
+    )
+
+    assert _should_force_contract_fallback(state, content)
 
 
 def test_contract_fallback_handles_etf_comparison():

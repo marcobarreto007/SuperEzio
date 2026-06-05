@@ -76,6 +76,69 @@ def _asks_under_cad_5(question: str) -> bool:
     return "under cad 5" in q or "under $5" in q or "below cad 5" in q
 
 
+def _asks_dca_macro_advisory(question: str) -> bool:
+    q = f" {(question or '').lower()} "
+    return any(
+        marker in q
+        for marker in (
+            "dollar-cost",
+            " dollar cost ",
+            " dca ",
+            "wait for a correction",
+            "interest rates",
+            "market volatility",
+        )
+    )
+
+
+def _asks_tax_sensitive_advisory(question: str) -> bool:
+    q = (question or "").lower()
+    return (
+        _asks_dividend_advisory(question)
+        or "tax bill" in q
+        or "tax efficiency" in q
+        or "withholding" in q
+    )
+
+
+def _has_unsupported_macro_precision(answer: str) -> bool:
+    lower = (answer or "").lower()
+    patterns = (
+        r"\bvix\b",
+        r"\bbasis[-\s]?point\b",
+        r"\btreasury\b.*\b\d+(?:\.\d+)?%",
+        r"\brates?\b.{0,40}\b\d+(?:\.\d+)?%",
+        r"\byields?\b.{0,40}\b\d+(?:\.\d+)?%",
+        r"\boutperformed\b.{0,80}\b\d+(?:\.\d+)?%",
+        r"\brecover(?:ed|ing)?\b.{0,80}\b\d+\s*[-–]\s*\d+\s+days\b",
+        r"\bq[1-4]\s+20\d{2}\b|\b20\d{2}\s+q[1-4]\b",
+        r"\b(?:s&p\s*500|tsx\s+composite)\b.{0,120}\b\d+(?:\.\d+)?%",
+        r"\bpullbacks?\b.{0,80}\b\d+(?:\.\d+)?\s*[-–]\s*\d+(?:\.\d+)?%",
+    )
+    return any(re.search(pattern, lower, flags=re.IGNORECASE) for pattern in patterns)
+
+
+def _has_tax_overstatement(answer: str) -> bool:
+    lower = (answer or "").lower()
+    patterns = (
+        r"\bcapital gains exemption\b",
+        r"\bannual\s+\$?\d+(?:,\d{3})?\s*k?\b.{0,80}\bcapital gains\b",
+        r"\bwithout the\s+15%\s+withholding tax\b",
+        r"\bavoid(?:s|ed|ing)?\b.{0,80}\b15%\s+(?:u\.?s\.?\s+)?withholding tax\b",
+        r"\bdividends are treated as canadian-source income\b",
+        r"\brrsps?\s+are\s+exempt\s+from\s+u\.?s\.?\s+withholding tax\b",
+        r"\bcanada[-\s]?u\.?s\.?\s+tax treaty\b",
+        r"\btreaty benefit\b",
+        r"\bcanadian[-\s]?listed\b.{0,80}\b(?:avoid|waive|exempt|no)\b.{0,80}\bwithholding\b",
+        r"\bcurrency hedg(?:e|ed|ing)\b.{0,80}\bwithholding\b",
+        r"\bwithout currency hedg(?:e|ed|ing)\b.{0,80}\bwithholding\b",
+        r"\bcad[-\s]?hedg(?:ed|ing)\b.{0,80}\bwithholding\b",
+        r"\btransfer[-\s]?in[-\s]?kind\b",
+        r"\b(?:doesn.?t|does not|won.?t|will not)\s+trigger\b.{0,80}\btaxable event\b",
+    )
+    return any(re.search(pattern, lower, flags=re.IGNORECASE) for pattern in patterns)
+
+
 def _contains_allocation_percentages(answer: str) -> bool:
     return bool(re.search(r"\b\d{1,3}\s*%", answer or ""))
 
@@ -167,6 +230,12 @@ def evaluate_answer_quality(
             if price > 5:
                 reasons.append("price_constraint_leak:above_5")
                 break
+
+    if _asks_dca_macro_advisory(question) and _has_unsupported_macro_precision(clean_answer):
+        reasons.append("unsupported_macro_precision")
+
+    if _asks_tax_sensitive_advisory(question) and _has_tax_overstatement(clean_answer):
+        reasons.append("tax_overstatement")
 
     reasons.extend(_semantic_mismatch_reasons(question, clean_answer))
 
