@@ -297,7 +297,11 @@ class FinnhubProvider:
                 continue
 
             # ── Valuation ──
-            pe = metric.get("peBasicExclExtraTTM") or metric.get("peTTM") or metric.get("peNormalizedAnnual")
+            pe = (
+                metric.get("peBasicExclExtraTTM")
+                or metric.get("peTTM")
+                or metric.get("peNormalizedAnnual")
+            )
             beta = metric.get("beta")
             eps = metric.get("epsBasicExclExtraItemsTTM") or metric.get("epsInclExtraItemsTTM")
             dividend_yield = metric.get("dividendYieldIndicatedAnnual")
@@ -308,7 +312,9 @@ class FinnhubProvider:
             roe = metric.get("roeTTM") or metric.get("roeAnnual")
             roa = metric.get("roaTTM") or metric.get("roaAnnual")
             profit_margin = metric.get("netProfitMarginTTM") or metric.get("netProfitMarginAnnual")
-            operating_margin = metric.get("operatingMarginTTM") or metric.get("operatingMarginAnnual")
+            operating_margin = metric.get("operatingMarginTTM") or metric.get(
+                "operatingMarginAnnual"
+            )
             gross_margin = metric.get("grossMarginTTM") or metric.get("grossMarginAnnual")
 
             # ── Growth ──
@@ -316,7 +322,9 @@ class FinnhubProvider:
             eps_growth = metric.get("epsGrowthTTMYoy") or metric.get("epsGrowth3Y")
 
             # ── Financial health ──
-            debt_to_equity = metric.get("totalDebt/totalEquityAnnual") or metric.get("totalDebt/totalEquityQuarterly")
+            debt_to_equity = metric.get("totalDebt/totalEquityAnnual") or metric.get(
+                "totalDebt/totalEquityQuarterly"
+            )
             current_ratio = metric.get("currentRatioAnnual") or metric.get("currentRatioQuarterly")
 
             # ── Classification ──
@@ -324,7 +332,9 @@ class FinnhubProvider:
             industry = metric.get("industry")
 
             # ── Volume (already in get_price, but include for completeness) ──
-            avg_volume = metric.get("10DayAverageTradingVolume") or metric.get("3MonthAverageTradingVolume")
+            avg_volume = metric.get("10DayAverageTradingVolume") or metric.get(
+                "3MonthAverageTradingVolume"
+            )
             if avg_volume is not None:
                 avg_volume = float(avg_volume) * 1_000_000.0
 
@@ -332,9 +342,7 @@ class FinnhubProvider:
             # /stock/profile2. Keep DataHub's contract in absolute units.
             market_cap_raw = metric.get("marketCapitalization")
             market_cap = (
-                int(float(market_cap_raw) * 1_000_000)
-                if market_cap_raw is not None
-                else None
+                int(float(market_cap_raw) * 1_000_000) if market_cap_raw is not None else None
             )
 
             payload: Dict[str, Any] = {

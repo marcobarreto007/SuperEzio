@@ -996,7 +996,9 @@ def _compute_ema(values: list, span: int) -> float:
     return _math_ema(values, span)
 
 
-def _compute_macd(closes: list, fast: int = 12, slow: int = 26, signal: int = 9) -> tuple[float | None, float | None]:
+def _compute_macd(
+    closes: list, fast: int = 12, slow: int = 26, signal: int = 9
+) -> tuple[float | None, float | None]:
     # financial_engine only has hardcoded 12/26 MACD — use it directly
     _ = fast, slow, signal  # kept in signature for caller compatibility
     if len(closes) < 26 + 9:
@@ -1004,7 +1006,9 @@ def _compute_macd(closes: list, fast: int = 12, slow: int = 26, signal: int = 9)
     return _math_macd(closes)
 
 
-def _compute_bollinger(closes: list, period: int = 20, stddev: float = 2.0) -> tuple[float | None, float | None]:
+def _compute_bollinger(
+    closes: list, period: int = 20, stddev: float = 2.0
+) -> tuple[float | None, float | None]:
     _ = stddev  # financial_engine hardcodes 2.0 stddev
     if len(closes) < period:
         return None, None

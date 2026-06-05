@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 
 # ---------------------------------------------------------------------------
 # Investor Committee (Family Investor Committee)

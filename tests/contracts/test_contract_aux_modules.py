@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 
 # ============================================================================
 # Observability
@@ -38,7 +36,7 @@ def test_span_context_callable():
 
 
 def test_observability_module_exports():
-    from core.observability.neural_log import log_event, trace_span, metrics, SpanContext
+    from core.observability.neural_log import log_event, trace_span, metrics
 
     # All must be callable or usable
     assert callable(log_event)
@@ -69,7 +67,7 @@ def test_strip_private_model_channels_noop():
         mod = importlib.import_module("core.model_serving.sanitizer")
         strip = mod.strip_private_model_channels
     except (ImportError, AttributeError):
-        from core.security.sanitizer import strip_private_model_channels
+        pass
 
     text = "AAPL is trading at $195.32 with strong momentum."
     result = strip(text)
@@ -202,6 +200,7 @@ def test_math_sharpe():
 def test_math_financial_engine_import():
     """Financial engine is importable as a module."""
     import core.math.financial_engine
+
     assert hasattr(core.math.financial_engine, "_compute_rsi")
 
 

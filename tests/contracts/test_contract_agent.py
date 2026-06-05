@@ -160,10 +160,7 @@ def test_grounding_guard_blocks_uncollected_ticker_recommendations():
         "data": {"ticker": "NVDA", "data_quality": "partial", "source_errors": []},
         "data_context": "Collected ticker: NVDA",
     }
-    draft = (
-        "Go for MRVL at $315. I would also keep an eye on RDW "
-        "(Redwood Materials) at $21.92."
-    )
+    draft = "Go for MRVL at $315. I would also keep an eye on RDW (Redwood Materials) at $21.92."
 
     guarded = _apply_grounding_guard(state, draft)
 
@@ -244,7 +241,9 @@ def test_answer_quality_repairs_capital_gains_exemption_overstatement():
 
 
 def test_answer_quality_repairs_fixed_us_capital_gains_exemption_claim():
-    draft = "In the U.S., use your annual $25K (single) long-term capital gains exemption (2026 rates)."
+    draft = (
+        "In the U.S., use your annual $25K (single) long-term capital gains exemption (2026 rates)."
+    )
 
     repaired = _repair_answer_quality(draft, "I hold a concentrated position in AAPL.")
 
@@ -271,9 +270,7 @@ def test_contract_fallback_forces_on_unsourced_macro_precision():
         "message": "With current interest rates and market volatility, should I DCA or wait?",
         "cognitive_mode": "ADVISORY_KNOWLEDGE",
     }
-    content = (
-        "Rates are near 4.8%, VIX is 18-22, and markets outperformed cash by 2.3% annually."
-    )
+    content = "Rates are near 4.8%, VIX is 18-22, and markets outperformed cash by 2.3% annually."
 
     assert _should_force_contract_fallback(state, content)
 

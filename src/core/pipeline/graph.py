@@ -26,7 +26,9 @@ logger = logging.getLogger(__name__)
 __all__ = ["PipelineApp", "build_graph", "route_after_orchestrator"]
 
 
-def _scan_evidence_payload(node_output: dict[str, Any]) -> tuple[list[dict[str, Any]], int, list[str]] | None:
+def _scan_evidence_payload(
+    node_output: dict[str, Any],
+) -> tuple[list[dict[str, Any]], int, list[str]] | None:
     scan_output = node_output.get("scan")
     if isinstance(scan_output, dict):
         scan_trace = scan_output.get("scan_trace") or {}
@@ -247,7 +249,9 @@ class PipelineApp:
                                     provider = payload.get("provider") or (
                                         ", ".join(payload.get("providers") or []) or "scanner"
                                     )
-                                    capability = payload.get("capability") or payload.get("quality", "market_data")
+                                    capability = payload.get("capability") or payload.get(
+                                        "quality", "market_data"
+                                    )
                                     evidence.record_source(
                                         provider=provider,
                                         capability=capability,

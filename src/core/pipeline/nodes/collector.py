@@ -919,9 +919,7 @@ async def _run_scan(
                     return CircuitBreakerOpenError(f"circuit_open:{breaker.provider}")
                 try:
                     result = await asyncio.wait_for(
-                        asyncio.to_thread(
-                            _safe_get_fundamentals, hub, item.get("ticker", "")
-                        ),
+                        asyncio.to_thread(_safe_get_fundamentals, hub, item.get("ticker", "")),
                         timeout=per_item_timeout,
                     )
                 except Exception:
@@ -1316,8 +1314,7 @@ def _format_scan_context(scan: dict[str, Any]) -> str:
         sector_txt = f" sector={sector}" if sector else ""
         provider = item.get("provider") or item.get("source") or "scanner"
         lines.append(
-            f"- {item.get('ticker')}{name_txt}{sector_txt}{price_txt}{vol_txt} "
-            f"provider={provider}"
+            f"- {item.get('ticker')}{name_txt}{sector_txt}{price_txt}{vol_txt} provider={provider}"
         )
     if scan.get("source_errors"):
         lines.append("Source errors: " + ", ".join(scan["source_errors"]))

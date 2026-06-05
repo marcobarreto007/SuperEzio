@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import os
-
-import pytest
 
 # Import validation helpers — no deep imports at module level
 ROOT = __import__("pathlib").Path(__file__).resolve().parents[2]
@@ -37,7 +34,11 @@ def test_provider_is_local_flag():
     from core.model_serving.providers import ModelProvider
 
     local = ModelProvider(
-        name="local-agent", base_url="http://127.0.0.1:8082/v1", api_key="no-key", model="agent-model", is_local=True
+        name="local-agent",
+        base_url="http://127.0.0.1:8082/v1",
+        api_key="no-key",
+        model="agent-model",
+        is_local=True,
     )
     assert local.is_local is True
 

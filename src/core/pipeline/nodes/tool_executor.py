@@ -78,9 +78,16 @@ async def _gather_social_context(ticker: str, query: str) -> str:
     import asyncio
 
     subreddits = [
-        "pennystocks", "wallstreetbets", "stocks", "investing",
-        "CanadianInvestor", "StockMarket", "RobinHoodPennyStocks",
-        "smallstreetbets", "Shortsqueeze", "Daytrading",
+        "pennystocks",
+        "wallstreetbets",
+        "stocks",
+        "investing",
+        "CanadianInvestor",
+        "StockMarket",
+        "RobinHoodPennyStocks",
+        "smallstreetbets",
+        "Shortsqueeze",
+        "Daytrading",
     ]
     search_term = ticker or query or ""
     if not search_term:
@@ -99,7 +106,9 @@ async def _gather_social_context(ticker: str, query: str) -> str:
                 f"?q={urllib.parse.quote_plus(search_term)}"
                 f"&restrict_sr=1&sort=top&t=month&limit=15&raw_json=1"
             )
-            req = urllib.request.Request(url, headers={"User-Agent": "SuperEzio/1.0 forensic-research"})
+            req = urllib.request.Request(
+                url, headers={"User-Agent": "SuperEzio/1.0 forensic-research"}
+            )
             with urllib.request.urlopen(req, timeout=8) as resp:
                 data = json.loads(resp.read())
             for child in data.get("data", {}).get("children", []):
@@ -112,9 +121,14 @@ async def _gather_social_context(ticker: str, query: str) -> str:
                 upvote = d.get("upvote_ratio", 0)
                 created = d.get("created_utc", 0)
                 from datetime import datetime
-                dt = datetime.utcfromtimestamp(created).strftime("%Y-%m-%d %H:%M") if created else "?"
+
+                dt = (
+                    datetime.utcfromtimestamp(created).strftime("%Y-%m-%d %H:%M")
+                    if created
+                    else "?"
+                )
                 posts.append(
-                    f"[r/{subreddit}] u/{author} | {score}pts {upvote*100:.0f}%up | {comments}c | {dt}\n"
+                    f"[r/{subreddit}] u/{author} | {score}pts {upvote * 100:.0f}%up | {comments}c | {dt}\n"
                     f"TITLE: {title[:300]}\n"
                     f"BODY: {selftext[:400]}\n"
                 )
@@ -129,7 +143,7 @@ async def _gather_social_context(ticker: str, query: str) -> str:
     header = (
         f"REDDIT SOCIAL FORENSICS — {len(posts)} posts about '{search_term}' "
         f"across {len(subreddits)} subreddits (top/month)\n"
-        f"{'='*70}\n\n"
+        f"{'=' * 70}\n\n"
     )
     return header + "\n---\n".join(posts)
 
@@ -150,7 +164,9 @@ async def _run_pennylab(state: dict) -> dict:
 
     if not _PENNYLAB_AVAILABLE:
         logger.warning("pennylab module not available — skipping forensic analysis")
-        return {"pennylab": {"ticker": ticker, "decision": None, "error": "pennylab_module_not_found"}}
+        return {
+            "pennylab": {"ticker": ticker, "decision": None, "error": "pennylab_module_not_found"}
+        }
 
     try:
         result: dict = await asyncio.to_thread(_pennylab_analyze, ticker)
@@ -446,7 +462,10 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             for er in expert_results:
                 response_text = er.get("response", "")
                 import re
-                manip_match = re.search(r"(?:Manipulation|Pump\s*&?\s*Dump)\s*Score:\s*(\d+)\s*/\s*100", response_text)
+
+                manip_match = re.search(
+                    r"(?:Manipulation|Pump\s*&?\s*Dump)\s*Score:\s*(\d+)\s*/\s*100", response_text
+                )
                 if manip_match:
                     score = int(manip_match.group(1))
                     if score >= 70:
@@ -457,9 +476,12 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                         }
                     break
             result["expert_weights"] = {
-                "social_forensics": 0.25, "sentiment": 0.15,
-                "macro_risk": 0.15, "fundamental_value": 0.20,
-                "momentum_technical": 0.15, "contrarian_opportunity": 0.10,
+                "social_forensics": 0.25,
+                "sentiment": 0.15,
+                "macro_risk": 0.15,
+                "fundamental_value": 0.20,
+                "momentum_technical": 0.15,
+                "contrarian_opportunity": 0.10,
             }
 
         elif tool_name == "bob_search":

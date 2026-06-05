@@ -2,10 +2,6 @@
 
 from __future__ import annotations
 
-import os
-
-import pytest
-
 
 # ---------------------------------------------------------------------------
 # UniversalConfig defaults
@@ -35,9 +31,9 @@ def test_universal_config_from_dict_minimal():
 def test_universal_config_from_dict_server():
     from core.config.schema import UniversalConfig
 
-    cfg = UniversalConfig.from_dict({
-        "server": {"host": "0.0.0.0", "port": 9999, "cors_origins": ["http://example.com"]}
-    })
+    cfg = UniversalConfig.from_dict(
+        {"server": {"host": "0.0.0.0", "port": 9999, "cors_origins": ["http://example.com"]}}
+    )
     assert cfg.server.host == "0.0.0.0"
     assert cfg.server.port == 9999
     assert "http://example.com" in cfg.server.cors_origins
@@ -46,18 +42,20 @@ def test_universal_config_from_dict_server():
 def test_universal_config_from_dict_models():
     from core.config.schema import UniversalConfig
 
-    cfg = UniversalConfig.from_dict({
-        "models": {
-            "agent": {
-                "name": "agent",
-                "path": "models/test.gguf",
-                "is_local": True,
-                "n_gpu_layers": 28,
-                "n_ctx": 8192,
-                "max_tokens": 512,
+    cfg = UniversalConfig.from_dict(
+        {
+            "models": {
+                "agent": {
+                    "name": "agent",
+                    "path": "models/test.gguf",
+                    "is_local": True,
+                    "n_gpu_layers": 28,
+                    "n_ctx": 8192,
+                    "max_tokens": 512,
+                }
             }
         }
-    })
+    )
     assert "agent" in cfg.models
     assert cfg.models["agent"].path == "models/test.gguf"
     assert cfg.models["agent"].is_local is True
@@ -67,9 +65,9 @@ def test_universal_config_from_dict_models():
 def test_universal_config_from_dict_gateway():
     from core.config.schema import UniversalConfig
 
-    cfg = UniversalConfig.from_dict({
-        "gateway": {"max_fallbacks": 3, "timeout_s": 60, "retry_attempts": 4}
-    })
+    cfg = UniversalConfig.from_dict(
+        {"gateway": {"max_fallbacks": 3, "timeout_s": 60, "retry_attempts": 4}}
+    )
     assert cfg.gateway.max_fallbacks == 3
     assert cfg.gateway.timeout_s == 60
     assert cfg.gateway.retry_attempts == 4
@@ -79,16 +77,18 @@ def test_universal_config_from_dict_none_sections():
     """All config sections must handle None gracefully."""
     from core.config.schema import UniversalConfig
 
-    cfg = UniversalConfig.from_dict({
-        "server": None,
-        "models": None,
-        "gateway": None,
-        "event_hub": None,
-        "storage": None,
-        "memory": None,
-        "observability": None,
-        "triade": None,
-    })
+    cfg = UniversalConfig.from_dict(
+        {
+            "server": None,
+            "models": None,
+            "gateway": None,
+            "event_hub": None,
+            "storage": None,
+            "memory": None,
+            "observability": None,
+            "triade": None,
+        }
+    )
     assert cfg.server.host == "127.0.0.1"
     assert cfg.gateway.max_fallbacks == 2
     assert cfg.triade.use_committee is True
@@ -137,7 +137,6 @@ def test_get_config_returns_universal_config():
 
 def test_reload_config():
     from core.config.schema import reload_config
-    from pathlib import Path
 
     cfg = reload_config()
     from core.config.schema import UniversalConfig
@@ -152,7 +151,6 @@ def test_reload_config():
 
 def test_universal_config_load_file():
     from core.config.schema import UniversalConfig
-    from pathlib import Path
 
     cfg = UniversalConfig.load("config/runtime.yml")
     assert cfg is not None

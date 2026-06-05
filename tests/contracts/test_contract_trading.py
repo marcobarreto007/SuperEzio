@@ -66,7 +66,6 @@ def test_position_sizer_size():
 def test_position_sizer_zero_equity_raises():
     from core.trading.position_sizer import PositionSizer
 
-    import pytest
     with pytest.raises(ValueError):
         PositionSizer(equity=0.0)
 
@@ -88,7 +87,13 @@ def test_order_builder_build_market_order():
     from core.trading.broker import OrderSide
 
     builder = OrderBuilder()
-    size = PositionSize(shares=100, notional_value=19500.0, risk_per_share=5.0, stop_loss_price=190.0, size_reason="test")
+    size = PositionSize(
+        shares=100,
+        notional_value=19500.0,
+        risk_per_share=5.0,
+        stop_loss_price=190.0,
+        size_reason="test",
+    )
     order = builder.build_market_order(symbol="AAPL", side=OrderSide.BUY, size=size)
     assert order is not None
     assert hasattr(order, "symbol")

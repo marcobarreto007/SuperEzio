@@ -1678,9 +1678,10 @@ def _risk_lab_fallback_answer(state: dict) -> str:
 def _advisory_knowledge_fallback_answer(state: dict) -> str:
     message = state.get("message", "")
     lower = (message or "").lower()
-    if _is_etf_comparison_question(message) and sum(
-        1 for symbol in ("voo", "vti", "schd", "spy", "ivv") if symbol in lower
-    ) >= 2:
+    if (
+        _is_etf_comparison_question(message)
+        and sum(1 for symbol in ("voo", "vti", "schd", "spy", "ivv") if symbol in lower) >= 2
+    ):
         return (
             "Bob: this is an ETF comparison, not a short-term trade. I would not stack overlapping core funds just to feel diversified.\n\n"
             "VOO is S&P 500 large-cap exposure: cheap, simple, but narrower than the full US market. "

@@ -301,9 +301,7 @@ async def node_collect_experts(state: dict) -> dict:
 
             # Build Bob-readable summary line
             score_str = f" score={score}" if score != "" else ""
-            bob_lines.append(
-                f"[{role}] -> {verdict} (confidence={confidence}{score_str})"
-            )
+            bob_lines.append(f"[{role}] -> {verdict} (confidence={confidence}{score_str})")
             if bob_readable:
                 bob_lines.append(f"  Bob: {bob_readable}")
 

@@ -139,7 +139,9 @@ async def test_market_scan_final_answer_uses_scan_state_not_model_hallucination(
                     "max_price": 5.0,
                 },
                 "candidates": [],
-                "rejected": [{"ticker": "EXPENSIVE", "rejected_reason": "price_above_requested_max"}],
+                "rejected": [
+                    {"ticker": "EXPENSIVE", "rejected_reason": "price_above_requested_max"}
+                ],
                 "rejected_count": 1,
                 "rejection_summary": {"price_above_requested_max": 1},
             },

@@ -1,29 +1,29 @@
 {
-  "date_local": "2026-06-05T09:19:20-04:00",
-  "session": "broker-cli-readonly-proof-2026-06-05",
-  "status": "validated_saved_broker_cli_probe_no_external_connection",
+  "date_local": "2026-06-05T10:20:19-04:00",
+  "session": "f51-openbb-warnings-resolved-2026-06-05",
+  "status": "all_green_zero_warnings_saved_locally",
   "what_was_done": [
-    "Installed the declared broker proof dependencies into the local venv: alpaca-py and ib-insync.",
-    "Added scripts/broker_readiness_probe.py as a repeatable CLI for read-only broker connectivity checks.",
-    "The CLI probes IBKR paper/read-only via local TWS or IB Gateway ports and Alpaca paper via account/positions calls only.",
-    "The probe does not submit, cancel, modify, or transmit broker orders.",
-    "Added tests that verify the probe masks credential presence, handles closed IBKR ports, skips Alpaca network calls when credentials are missing, and reports read_only_no_orders safe mode.",
-    "Documented the optional broker connectivity proof in docs/BUYER_SETUP_GUIDE.md."
+    "Resolved the 29 OpenBB/Pydantic deprecation warnings that were polluting pytest output.",
+    "Root cause recorded: openbb_core/openbb_intrinio/openbb_congress_gov emit deprecated Pydantic 2.11+ patterns.",
+    "Added filterwarnings to pytest.ini, which is the active pytest config file in this checkout.",
+    "Kept the warning filter scope limited to external dependency warnings; product tests still fail on real regressions.",
+    "Preserved the source/test formatting cleanup present in the working tree.",
+    "Saved the 17-file tree state in a local commit only; GitHub remains blocked by policy."
   ],
   "evidence": [
-    "Dependency import proof: .venv\\Scripts\\python.exe -c \"import importlib.util; ...\" -> ib_insync True; alpaca.trading True.",
-    "Port proof: 127.0.0.1:7497 closed; 127.0.0.1:4002 closed; 127.0.0.1:7496 closed; 127.0.0.1:4001 closed.",
-    "CLI proof: .venv\\Scripts\\python.exe scripts\\broker_readiness_probe.py --provider all --json -> connected_count 0; IBKR package_present true but port_open false; Alpaca package_present true but credentials_present false; safe_mode read_only_no_orders.",
-    "Targeted pytest: PYTHONPATH=src .venv\\Scripts\\python.exe -m pytest tests/test_broker_readiness_probe.py -q -> 4 passed in 0.25s.",
-    "Browser smoke after pytest: PYTHONPATH=src .venv\\Scripts\\python.exe scripts\\browser_smoke.py --timeout-ms 180000 -> ok true; chart AAPL 130 candles; chat route general; fallback false; console_errors empty; screenshot output\\playwright\\superezio-browser-smoke-20260605-091743.png.",
-    "git diff --check -> clean."
+    "Status before save: 17 modified tracked files in git status --short.",
+    "Ruff: PYTHONPATH=src .venv\\Scripts\\python.exe -m ruff check src tests -> All checks passed.",
+    "Targeted tests for touched contracts/runtime files: PYTHONPATH=src .venv\\Scripts\\python.exe -m pytest tests/contracts/test_contract_agent.py tests/contracts/test_contract_aux_modules.py tests/contracts/test_contract_config.py tests/contracts/test_contract_investor.py tests/contracts/test_contract_model_serving.py tests/contracts/test_contract_runtime_official.py tests/contracts/test_contract_trading.py tests/test_agent_market_scan_loop.py -q -> 150 passed in 2.29s.",
+    "Full pytest: PYTHONPATH=src .venv\\Scripts\\python.exe -m pytest -q -> 1063 passed in 149.99s, with no warnings summary.",
+    "Health before browser smoke: http://127.0.0.1:8002/health -> 200; http://127.0.0.1:8082/health -> 200.",
+    "Browser smoke: PYTHONPATH=src .venv\\Scripts\\python.exe scripts\\browser_smoke.py --timeout-ms 180000 -> ok true; AAPL chart 130 candles; canvas nonBlank 378108; chat route general; detectedIntent CAPITAL_ALLOCATION; fallback false; console_errors empty; screenshot output\\playwright\\superezio-browser-smoke-20260605-101917.png."
   ],
   "risks": [
-    "No broker connection could be established because IBKR paper/TWS/Gateway is not listening locally and Alpaca paper credentials are not set in the current environment.",
-    "This is intentionally a proof/readiness CLI, not a production broker execution bridge.",
-    "Live-money ports 7496 and 4001 are detected and warned about, but the recommended proof path remains paper/read-only.",
-    "No GitHub operation was performed because this repository is DISK ONLY."
+    "INV-R4 [HIGH]: 4 API keys leaked in git history - pending key rotation.",
+    "INV-R13 [HIGH]: Qwen3 GGUF depends on external model availability; current local model remains present and functional.",
+    "filterwarnings covers known external OpenBB/Pydantic warnings. New dependency warnings should be evaluated before adding any new filter.",
+    "GitHub remains blocked by .f51/GITHUB_POLICY.json; this save is local disk only."
   ],
-  "next_step": "For a real broker proof, start IBKR TWS or IB Gateway in paper mode with API socket clients enabled on 7497 or set ALPACA_API_KEY and ALPACA_SECRET_KEY for a paper account, then rerun scripts/broker_readiness_probe.py --provider all --json.",
+  "next_step": "Continue packaging from the clean local commit: buyer guide, evidence index, transfer checklist, and demo script.",
   "owner": "Marco"
 }

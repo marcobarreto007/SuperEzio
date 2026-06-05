@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 import json
-import os
-import subprocess
 from pathlib import Path
 
-import pytest
 import yaml
 
 
@@ -201,7 +198,9 @@ def test_provider_factory_keeps_agent_local_only(monkeypatch):
     assert by_name[PRIMARY_PROVIDER_NAME].base_url == "http://127.0.0.1:8082/v1"
     assert by_name[PRIMARY_PROVIDER_NAME].model == AGENT_MODEL_ID
 
+
 # Launcher batch file has been retired/deleted.
+
 
 def test_runtime_checkpoint_tracks_official_entrypoints():
     checkpoint = json.loads(RUNTIME_CHECKPOINT.read_text(encoding="utf-8"))
@@ -211,14 +210,17 @@ def test_runtime_checkpoint_tracks_official_entrypoints():
     assert params["agent_port"] == 8082
     assert params["api_entrypoint"] == "python -m agent_server.main"
     assert params["agent_entrypoint"].endswith("scripts/serve_agent_llamacpp.ps1 -Port 8082")
-    assert params["model_path"] == "models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf"
+    assert (
+        params["model_path"] == "models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf"
+    )
 
 
 def test_runbook_documents_official_runtime_commands():
     text = RUNBOOK.read_text(encoding="utf-8")
 
     assert (
-        "powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082" in text
+        "powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082"
+        in text
     )
     assert "python -m agent_server.main" in text
     assert "local_orchestrator" in text
