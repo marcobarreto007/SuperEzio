@@ -12,10 +12,11 @@ Marco's analogy: instead of the motoboy going back to the depot for
 each package, he picks up 10 packages in one trip.
 """
 
-import json, math, os, sys, struct
+import json
+import os
 from collections import defaultdict, Counter
 from dataclasses import dataclass, field
-from typing import List, Dict, Set, Tuple, Optional
+from typing import List, Dict, Tuple, Optional
 from itertools import combinations
 
 
@@ -362,7 +363,7 @@ def main():
     result = optimizer.optimize()
 
     print(f"\n{'='*64}")
-    print(f"RESULTS")
+    print("RESULTS")
     print(f"{'='*64}")
     print(f"  Total experts mapped:    {result['total_experts']}")
     print(f"  Total clusters:          {result['total_clusters']}")
@@ -372,7 +373,7 @@ def main():
     print(f"  Estimated I/O speedup:   {result['nvme_benefit']['estimated_speedup']}")
 
     # Show first 3 layers' clusters
-    print(f"\n  Sample clusters (first 3 layers):")
+    print("\n  Sample clusters (first 3 layers):")
     for layer_str in sorted(result['clusters_per_layer'].keys())[:3]:
         clusters = result['clusters_per_layer'][layer_str]
         print(f"  Layer {layer_str}: {len(clusters)} clusters")

@@ -138,21 +138,29 @@ def render_mission_context_for_prompt(path: str | Path | None = None) -> str:
                 lines.append(f"  Note: {broker_info['note']}")
             if broker_name.lower() == "ibkr" and connection == "connected_read_only":
                 lines.append(
-                    "  User explanation: IBKR TWS is connected through localhost in "
-                    "demo/paper-style read-only mode. You may explain account/position "
-                    "visibility, but you must state you cannot submit or cancel orders."
+                    "  THIS IS A PAPER ACCOUNT. Real broker order submission is disabled, "
+                    "but you CAN and MUST simulate paper trades via PaperJournal CLI "
+                    "(scripts/paper_journal_cli.py). The journal IS your execution platform "
+                    "for paper training. You are allowed to lose paper money — this is training."
                 )
                 lines.append(
-                    "  Verified broker reads only: account equity and positions. Do not "
-                    "claim broker transaction history, order history, live market data, "
-                    "or execution capability unless a separate tool explicitly provides it."
-                )
-                lines.append(
-                    "  Paper journal boundary: PaperJournal is an offline/manual thesis "
-                    "tracker. It is not IBKR order history and it does not prove broker "
-                    "execution or automatic execution logging."
+                    "  Broker visibility: account equity and positions only. Do not claim "
+                    "broker transaction history, order history, or live market data unless "
+                    "a separate tool explicitly provides it."
                 )
         lines.append("")
+
+    # ── Paper trading mode ──
+    paper_trading = situation.get("paper_trading", {}) if isinstance(situation, dict) else {}
+    if isinstance(paper_trading, dict) and paper_trading.get("active"):
+        lines.append("## PAPER TRADING MODE — ACTIVE")
+        lines.append(f"- Mode: {paper_trading.get('mode', 'paper_simulation')}")
+        lines.append(f"- Paper equity: {paper_trading.get('equity', 'unknown')}")
+        lines.append(f"- Max position: {paper_trading.get('max_position_pct', 10)}% of equity")
+        lines.append(f"- Max risk per trade: {paper_trading.get('max_risk_per_trade_pct', 2)}%")
+        for rule in paper_trading.get("rules", []):
+            lines.append(f"- RULE: {rule}")
+    lines.append("")
 
     _append_key_values(lines, "## DATA SOURCES YOU MAY EXPLAIN", data_sources)
 
@@ -236,5 +244,6 @@ def mission_health_summary(path: str | Path | None = None) -> dict[str, Any]:
         "training": data.get("training", {}),
         "apprenticeship": data.get("apprenticeship", {}),
         "broker": situation.get("broker", {}) if isinstance(situation, dict) else {},
+        "paper_trading": situation.get("paper_trading", {}) if isinstance(situation, dict) else {},
         "debut_criteria": _build_debut_summary(mission),
     }

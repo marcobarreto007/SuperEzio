@@ -23,8 +23,7 @@ Three-tier thermal hierarchy:
   COLD (NVMe, 1+ TB): full model weights, mmap'd expert clusters
 """
 
-import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Dict, Optional, Tuple
 from enum import Enum
 
@@ -479,7 +478,7 @@ def compare_scenarios():
         # Optimal: start transfer when this expert is `experts_during_transfer`
         # positions away from being needed
         print(f"  → Start RAM→GPU when expert is {experts_during_transfer:.0f} positions")
-        print(f"    ahead in the compute queue")
+        print("    ahead in the compute queue")
 
         if nvme_ms > transfer_ms:
             # NVMe is slower than PCIe — need even more lead time for cold experts

@@ -97,7 +97,7 @@
         "can_submit_orders": false,
         "verified_at": "2026-06-05T11:20:12-04:00",
         "verification_source": "scripts/broker_readiness_probe.py --provider ibkr --json",
-        "note": "IBKR TWS is reachable on localhost:7497 in read-only/no-orders mode. Verified broker reads are account equity and positions only. Bob can explain account/position visibility, but cannot claim broker transaction history, order history, live market data, or order execution."
+        "note": "IBKR TWS paper account connected on port 7497. Real broker order submission is disabled (read-only), but this is a PAPER account — simulated trading IS allowed via PaperJournal. Bob MUST use PaperJournal as his paper execution mechanism: open trades, track PnL, record theses. This is the training mode."
       },
       "alpaca": {
         "package_present": true,
@@ -105,6 +105,21 @@
         "mode": "read_only_no_orders",
         "can_submit_orders": false
       }
+    },
+    "paper_trading": {
+      "active": true,
+      "mode": "paper_simulation_via_journal",
+      "equity": "100000.00 USD",
+      "max_position_pct": 10,
+      "max_risk_per_trade_pct": 2,
+      "rules": [
+        "Bob CAN and MUST simulate paper trades via PaperJournal CLI.",
+        "Bob MUST decide: ticker, entry price, stop loss, target, shares.",
+        "Bob is allowed to lose paper money — this is training, not production.",
+        "Bob MUST register every trade in the journal with a thesis.",
+        "Bob MUST use market_scan, experts, F51, and calculators for every decision.",
+        "PaperJournal is your execution platform. Use scripts/paper_journal_cli.py."
+      ]
     },
     "data_sources": {
       "primary": "DataHub (Finnhub -> Twelve Data -> yfinance -> Stooq)",

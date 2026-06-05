@@ -162,8 +162,23 @@ def run_probe(args: argparse.Namespace) -> dict[str, Any]:
     if args.provider in ("all", "alpaca"):
         providers.append(probe_alpaca_paper(timeout=args.timeout))
 
+    # Determine safe mode: paper trading is NOT the same as live read-only.
+    # Paper accounts CAN simulate orders — this is the training environment.
+    any_paper = any(p.get("paper_port") and p.get("connected") for p in providers)
+    any_live = any(p.get("live_port_warning") for p in providers)
+    if any_paper and not any_live:
+        safe_mode = "paper_trading_allowed"
+        for p in providers:
+            if p.get("paper_port") and p.get("connected"):
+                p["mode"] = "paper_trading"
+                p["can_simulate_orders"] = True
+    elif any_live:
+        safe_mode = "live_read_only_no_orders"
+    else:
+        safe_mode = "offline"
+
     return {
-        "safe_mode": "read_only_no_orders",
+        "safe_mode": safe_mode,
         "providers": providers,
         "connected_count": sum(1 for item in providers if item.get("connected")),
     }

@@ -220,15 +220,22 @@
     return (((details || {}).mission || {}).broker || {}).ibkr || {};
   }
 
+  function isPaperTradingActive(details) {
+    return (((details || {}).mission || {}).paper_trading || {}).active === true;
+  }
+
   function updateBrokerStatus(details) {
     var btn = document.getElementById("broker-status-btn");
     var label = document.getElementById("broker-status-label");
     if (!btn || !label) return;
 
     var ibkr = getIbkrFromHealthDetails(details);
+    var paperTrading = isPaperTradingActive(details);
     var connection = String(ibkr.connection || "");
     var canRead = ibkr.can_read_account === true || connection.indexOf("connected") >= 0;
+    var isPaperPort = ibkr.paper_port === true;
     var canSubmit = ibkr.can_submit_orders === true;
+    var paperTrade = paperTrading || (canRead && isPaperPort);
     var state = "unknown";
     var text = "IBKR";
     var title = "IBKR broker link not verified";
@@ -236,7 +243,11 @@
     if (canSubmit) {
       state = "trade";
       text = "IBKR TRADE";
-      title = "IBKR order submission appears enabled. Verify safeguards before use.";
+      title = "IBKR live order submission enabled. Verify safeguards before use.";
+    } else if (paperTrade) {
+      state = "trade";
+      text = "IBKR PAPER";
+      title = "IBKR paper trading active — simulated orders allowed. Training mode.";
     } else if (canRead) {
       state = "read";
       text = "IBKR READ";

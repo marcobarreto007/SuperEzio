@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+from pathlib import Path
 from typing import Any, Optional
 
 import numpy as np
@@ -34,28 +35,39 @@ _index_data_dir: str | None = None  # which data_dir the cache was built for
 
 
 class ForensicRAG:
-    """Semantic forensic RAG for fraud, scams, insider trading, and manipulation patterns."""
+    """Semantic forensic RAG for fraud, scams, insider trading, and manipulation patterns.
+
+    Also ingests paper trading journal entries from data/paper_trades_rag/
+    so Bob can query real paper trading history.
+    """
 
     def __init__(self, data_dir: str = "data/fraud_patterns"):
         self.data_dir = str(resolve_project_path(data_dir))
+        # Additional data sources scanned alongside the main directory
+        self._extra_dirs: list[str] = []
+        paper_trades_dir = str(resolve_project_path("data/paper_trades_rag"))
+        if Path(paper_trades_dir).exists():
+            self._extra_dirs.append(paper_trades_dir)
         self._loaded = False
 
     # ── Document ingestion ─────────────────────────────────────────────
 
     def _load_documents(self) -> list[dict[str, Any]]:
         docs: list[dict[str, Any]] = []
-        if not os.path.exists(self.data_dir):
-            return docs
+        dirs_to_scan = [self.data_dir] + self._extra_dirs
 
-        for fname in sorted(os.listdir(self.data_dir)):
-            fpath = os.path.join(self.data_dir, fname)
-            try:
-                if fname.endswith(".json"):
-                    docs.extend(self._ingest_json(fpath))
-                elif fname.endswith(".jsonl"):
-                    docs.extend(self._ingest_jsonl(fpath))
-            except (json.JSONDecodeError, OSError, ValueError):
-                pass
+        for directory in dirs_to_scan:
+            if not os.path.exists(directory):
+                continue
+            for fname in sorted(os.listdir(directory)):
+                fpath = os.path.join(directory, fname)
+                try:
+                    if fname.endswith(".json"):
+                        docs.extend(self._ingest_json(fpath))
+                    elif fname.endswith(".jsonl"):
+                        docs.extend(self._ingest_jsonl(fpath))
+                except (json.JSONDecodeError, OSError, ValueError):
+                    pass
         return docs
 
     def _ingest_json(self, path: str) -> list[dict[str, Any]]:

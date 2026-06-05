@@ -14,12 +14,27 @@
 
   function renderBrokerDiagnostics(details) {
     const ibkr = details?.mission?.broker?.ibkr || {};
+    const paperTrading = details?.mission?.paper_trading?.active === true;
     const connection = String(ibkr.connection || "");
     const canRead = ibkr.can_read_account === true || connection.includes("connected");
+    const isPaperPort = ibkr.paper_port === true;
     const canSubmit = ibkr.can_submit_orders === true;
-    const className = canSubmit ? "ops-status-warn" : canRead ? "ops-status-ok" : "ops-status-err";
-    const status = canSubmit ? "ORDER ENABLED" : canRead ? "CONNECTED READ-ONLY" : "NOT CONNECTED";
-    const mode = ibkr.mode || "read_only_no_orders";
+    const paperTrade = paperTrading || (canRead && isPaperPort);
+
+    const className = canSubmit ? "ops-status-warn"
+      : paperTrade ? "ops-status-ok"
+      : canRead ? "ops-status-ok"
+      : "ops-status-err";
+
+    const status = canSubmit ? "ORDER ENABLED"
+      : paperTrade ? "PAPER TRADING"
+      : canRead ? "CONNECTED READ-ONLY"
+      : "NOT CONNECTED";
+
+    const mode = canSubmit ? "live_trading"
+      : paperTrade ? "paper_trading"
+      : (ibkr.mode || "read_only_no_orders");
+
     const equity = ibkr.account_equity != null ? String(ibkr.account_equity) : "--";
     const positions = ibkr.positions_count != null ? String(ibkr.positions_count) : "--";
 

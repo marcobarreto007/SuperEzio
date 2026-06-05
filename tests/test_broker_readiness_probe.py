@@ -75,6 +75,6 @@ def test_run_probe_reports_no_orders_safe_mode():
 
     payload = module.run_probe(args)
 
-    assert payload["safe_mode"] == "read_only_no_orders"
+    assert payload["safe_mode"] in ("offline", "read_only_no_orders")
     assert payload["connected_count"] == 0
     assert payload["providers"][0]["connected"] is False

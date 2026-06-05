@@ -200,6 +200,20 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
                         plan = parsed.to_plan()
                         plan["intent_source"] = "ceo_model_overridden_trade_followup"
                         plan["ceo_original_route"] = ceo_original
+                    # Safety: deterministic parser says market_scan → CEO cannot
+                    # downgrade to ticker_analysis or general. Discovery prompts
+                    # ("find stocks under $5", "oportunidades explosivas") must
+                    # route to market_scan so Bob gets scanner, experts, and F51.
+                    # CEO LLM misclassifies these as general_question or ticker_analysis.
+                    if (
+                        parsed.route == "market_scan"
+                        and plan.get("route") not in ("market_scan", "needs_scope")
+                        and not ticker
+                    ):
+                        ceo_original = plan.get("route")
+                        plan = parsed.to_plan()
+                        plan["intent_source"] = "ceo_model_overridden_scan_downgrade"
+                        plan["ceo_original_route"] = ceo_original
             except Exception as exc:
                 plan["intent_fallback_error"] = str(exc)[:200]
                 plan["intent_source"] = "deterministic_final"
