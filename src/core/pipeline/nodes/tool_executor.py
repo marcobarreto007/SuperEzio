@@ -318,6 +318,54 @@ def _append_context(existing: str, addition: str) -> str:
     return existing or addition
 
 
+async def _submit_paper_order(state: dict, args: dict) -> dict:
+    """Submit a paper trade order to IBKR via the InteractiveBrokersAdapter.
+
+    Only works when IBKR paper TWS is connected on port 7497.
+    Orders are MARKET by default for paper training speed.
+    """
+    import asyncio as _asyncio
+
+    symbol = str(args.get("ticker", args.get("symbol", ""))).upper()
+    action = str(args.get("action", args.get("side", "buy"))).lower()
+    qty = float(args.get("qty", args.get("quantity", args.get("shares", 10))))
+
+    if not symbol:
+        return {"submit_paper_order_error": "missing_ticker"}
+
+    def _do_order():
+        from ib_insync import IB, Stock, MarketOrder
+
+        ib = IB()
+        ib.connect("127.0.0.1", 7497, clientId=99)
+        contract = Stock(symbol, "SMART", "USD")
+        ib.qualifyContracts(contract)
+        trade = ib.placeOrder(contract, MarketOrder(
+            "BUY" if action in ("buy", "long") else "SELL", qty
+        ))
+        ib.sleep(3)
+        result = {
+            "order_id": trade.order.orderId,
+            "symbol": symbol,
+            "action": "BUY" if action in ("buy", "long") else "SELL",
+            "qty": qty,
+            "status": trade.orderStatus.status,
+            "filled": trade.orderStatus.filled,
+            "avg_price": trade.orderStatus.avgFillPrice,
+        }
+        for p in ib.positions():
+            if p.contract.symbol == symbol:
+                result["position"] = f"{p.position} shares @ avg {p.avgCost}"
+        ib.disconnect()
+        return result
+
+    try:
+        result = await _asyncio.to_thread(_do_order)
+        return {"submit_paper_order_result": result}
+    except Exception as exc:
+        return {"submit_paper_order_error": str(exc)[:200]}
+
+
 async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
     tool_call = state.get("agent_tool_call")
     if not tool_call:
@@ -447,6 +495,9 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
 
         elif tool_name == "rag_forensics":
             result = await node_rag_forensics(state)
+
+        elif tool_name == "submit_paper_order":
+            result = await _submit_paper_order(state, args)
 
         elif tool_name == "social_forensics":
             # Gather Reddit posts across multiple subreddits with higher limit

@@ -75,6 +75,7 @@ FULL_TICKER_TOOLS = (
     "neural_decision",
     "sdca_firewall",
     "rag_forensics",
+    "submit_paper_order",
     "final_answer",
 )
 DISCOVERY_TOOLS = (
@@ -84,6 +85,7 @@ DISCOVERY_TOOLS = (
     "neural_decision",
     "sdca_firewall",
     "rag_forensics",
+    "submit_paper_order",
     "final_answer",
 )
 FORENSIC_ONLY_TOOLS = ("rag_forensics", "final_answer")

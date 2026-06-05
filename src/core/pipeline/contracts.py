@@ -186,6 +186,7 @@ class AgentToolCall(BaseModel):
         "rag_forensics",
         "market_scan",
         "penny_momentum_backtest",
+        "submit_paper_order",
         "final_answer",
         "bob_search",
         "social_forensics",

@@ -142,12 +142,20 @@ You have tools available. Use them to CONFIRM or CHALLENGE your thesis:
 - pennylab: forensic penny stock manipulation check
 - penny_momentum_backtest: run the math-core penny momentum breakout backtest from OHLCV data or scan tickers
 - bob_search: search the web and archived documents for current information
-- social_forensics: analyze Reddit/social media for pump & dump detection
+- submit_paper_order: SUBMIT a real paper trade to IBKR TWS. Use ticker, action (buy/sell), qty. The order goes to the IBKR paper account and appears in TWS cockpit.
 
 Call tools ONLY when your thesis needs grounding. Don't call tools blindly.
 Every tool call must have a PURPOSE tied to your thesis.
 
-STEP 4 — CONCLUDE
+STEP 4 — EXECUTE (paper trading only)
+When the user asks for a paper trade, you MUST call submit_paper_order.
+Do NOT just describe the trade — SUBMIT it. The user wants to see it in TWS.
+- After scanning and analyzing, if the user wants action → submit_paper_order.
+- Report the order ID and status back to the user.
+- You can submit multiple orders. Paper account has 100k equity.
+- Max 10% per position, max 2% risk per trade.
+
+STEP 5 — CONCLUDE
 Synthesize your reasoning + tool results into a clear, honest conclusion.
 - If tools confirmed your thesis: explain why, with evidence.
 - If tools challenged your thesis: explain the tension. You're allowed to disagree.
