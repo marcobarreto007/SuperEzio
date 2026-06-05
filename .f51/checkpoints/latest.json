@@ -1,26 +1,27 @@
 {
-  "date_local": "2026-06-05T11:16:13-04:00",
-  "session": "ibkr-tws-open-api-disabled-2026-06-05",
-  "status": "blocked_waiting_for_tws_api_socket_enablement",
+  "date_local": "2026-06-05T11:20:12-04:00",
+  "session": "ibkr-tws-readonly-connected-2026-06-05",
+  "status": "ibkr_readonly_probe_connected",
   "what_was_done": [
-    "Confirmed Trader Workstation is now installed and running.",
-    "Confirmed the running TWS process is C:\\Jts\\tws.exe with window title DU009 Interactive Brokers (Demo System).",
-    "Retested IBKR API ports 7497, 4002, 7496, and 4001.",
-    "Reran the SuperEzio broker_readiness_probe in read-only/no-orders mode.",
-    "Confirmed the blocker moved from missing TWS runtime to TWS API socket not enabled."
+    "Confirmed Trader Workstation is running from C:\\Jts\\tws.exe.",
+    "Confirmed TWS API socket is now listening on port 7497.",
+    "Ran the SuperEzio IBKR broker_readiness_probe in read-only/no-orders mode.",
+    "Confirmed SuperEzio can connect through ib_insync to the local TWS demo/paper API socket.",
+    "Confirmed the proof reads account state only and does not submit, cancel, modify, or transmit orders."
   ],
   "evidence": [
     "Get-Process -> Id 22848; ProcessName tws; MainWindowTitle DU009 Interactive Brokers (Demo System); Path C:\\Jts\\tws.exe.",
-    "Get-NetTCPConnection proof: port 7497 no-listener; port 4002 no-listener; port 7496 no-listener; port 4001 no-listener.",
-    "CLI proof: .venv\\Scripts\\python.exe scripts\\broker_readiness_probe.py --provider ibkr --json -> safe_mode read_only_no_orders; connected_count 0; IBKR package_present true; paper_port true; port_open false.",
+    "Get-NetTCPConnection -> LocalAddress ::; LocalPort 7497; State Listen; OwningProcess 22848.",
+    "Closed live/gateway ports: 4002 no-listener; 7496 no-listener; 4001 no-listener.",
+    "CLI proof: .venv\\Scripts\\python.exe scripts\\broker_readiness_probe.py --provider ibkr --json -> safe_mode read_only_no_orders; connected_count 1; provider ibkr connected true; paper_port true; live_port_warning false; account_equity 100000.00; positions_count 0.",
     "git status before checkpoint update was clean."
   ],
   "risks": [
-    "TWS is running in Demo System. This is fine for socket-readiness proof, but a real paper account proof should use Paper Trading login.",
-    "API socket is still disabled or not listening; SuperEzio cannot connect until TWS opens port 7497.",
+    "Current TWS window title is DU009 Interactive Brokers (Demo System). This validates local API connectivity; real paper-account validation should use the intended IBKR paper credentials/session.",
+    "Read-Only API is the correct setting for this proof. Do not disable it unless explicitly testing a separate paper-only execution adapter.",
     "No broker order was submitted, cancelled, modified, or transmitted.",
     "GitHub remains blocked by .f51/GITHUB_POLICY.json; this checkpoint is local disk only."
   ],
-  "next_step": "Inside TWS, open File -> Global Configuration -> API -> Settings, enable ActiveX and Socket Clients, set Socket port to 7497, keep localhost access enabled, click Apply/OK, then rerun scripts/broker_readiness_probe.py --provider ibkr --json.",
+  "next_step": "Use this as the broker-readiness proof in the packaging evidence. Any later execution proof must remain paper-only and require a separate approval gate.",
   "owner": "Marco"
 }
