@@ -686,15 +686,16 @@ def test_direct_stock_recommendation_delegates_scan_decision_to_bob():
         "Direct stock recommendation must trigger decisive trade intent"
     )
 
-    # With no ticker detected from text, Bob gets the scanner permission,
-    # but the regex parser does not pre-run the scanner.
+    # With no ticker detected from text, "What stock to buy" now routes
+    # directly to market_scan — the user expects scanner evidence, not a
+    # DISCOVERY_DECISION framework. Expanded SCAN_COMMAND_HINTS + English
+    # financial hints ensure English prompts get the full pipeline.
     result = parse_user_intent(DIRECT_STOCK_PROMPT, rigor="strict", ticker="")
     plan = result.to_plan()
 
-    assert result.route == "general"
+    assert result.route == "market_scan"
     assert result.intent == "market_scan"
-    assert result.action == "answer"
-    assert plan["cognitive_mode"] == "DISCOVERY_DECISION"
+    assert result.action == "scan_market"
     assert plan["scanner_allowed"] is True
     assert "market_scan" in plan["allowed_tools"]
 

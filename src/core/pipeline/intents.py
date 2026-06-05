@@ -853,33 +853,26 @@ SCAN_KEYWORDS = (
 )
 
 SCOPE_KEYWORDS = (
-    "canadense",
-    "canada",
-    "brasil",
-    "brasileir",
-    "americano",
-    "usa",
-    "estados unidos",
-    "tecnologia",
-    "energia",
-    "bancos",
-    "bank",
-    "saude",
-    "healthcare",
-    "tech",
-    "technology",
-    "setor",
-    "sector",
-    "equity",
-    "equities",
-    "financeiro",
-    "financial",
-    "industrial",
-    "tsx",
-    "tsx venture",
-    "venture exchange",
-    "canadian",
-    "mercado",
+    # Countries / exchanges
+    "canadense", "canada", "canadian",
+    "americano", "usa", "estados unidos",
+    "tsx", "tsx venture", "venture exchange",
+    "nasdaq", "nyse", "s&p", "sp500",
+    # Sectors — Portuguese
+    "tecnologia", "energia", "bancos", "saude", "setor",
+    "financeiro", "industrial", "mercado",
+    # Sectors — English (stress test: missing caused market_scan miss)
+    "tech", "technology", "energy", "bank", "banks", "healthcare",
+    "financial", "sector", "equity", "equities",
+    "biotech", "cannabis", "marijuana",
+    "uranium", "lithium", "gold", "silver", "copper",
+    "miner", "mining", "oil", "gas",
+    "crypto", "bitcoin", "blockchain",
+    "ai", "artificial intelligence", "software",
+    "fintech", "real estate", "reit",
+    "defense", "aerospace", "semiconductor", "chips",
+    "consumer", "retail", "auto", "ev", "electric vehicle",
+    "dividend", "high yield",
 )
 
 VAGUE_FINANCIAL_HINTS = (
@@ -970,6 +963,13 @@ VAGUE_FINANCIAL_HINTS = (
     "dividends",
     "alavancagem",
     "leverage",
+    # English trading/scan triggers (stress test: 25/50 prompts were English)
+    "volatile", "oversold", "overbought", "squeeze",
+    "meme stock", "yolo", "all in", "day trade", "swing trade",
+    "momentum", "breakout", "dip", "rip", "moon",
+    "short squeeze", "insider buying", "options activity",
+    "penny stock", "small cap", "small-cap", "microcap",
+    "double", "cheap", "explode", "crash",
 )
 
 DIRECT_UNSCOPED_RECOMMENDATION_PATTERNS = (
@@ -1495,7 +1495,18 @@ def detect_complex_finance_intent(message: str) -> bool:
         return False
     # If the user explicitly requests a scan, honor it — unless the
     # "scan" is part of a negative instruction ("do not scan").
-    if has_hint(message, SCAN_COMMAND_HINTS) and not detect_negative_scan_instruction(message):
+    # Exception: "give me" and "recommend" are too generic — they match
+    # complex finance prompts like "Give me a framework". Only treat them
+    # as scan commands when paired with financial trading hints.
+    _generic_hints = {"give me", "recommend", "suggest"}
+    _scan_hint = has_hint(message, SCAN_COMMAND_HINTS)
+    _is_generic_only = _scan_hint and all(
+        h not in SCAN_COMMAND_HINTS or h in _generic_hints
+        for h in [h for h in SCAN_COMMAND_HINTS if h in message.lower()]
+    )
+    if _is_generic_only:
+        _scan_hint = has_hint(message, ("scan", "screen", "find", "search", "look for", "shortlist"))
+    if _scan_hint and not detect_negative_scan_instruction(message):
         return False
 
     normalized = normalize_message(message)
@@ -1517,41 +1528,24 @@ def detect_complex_finance_intent(message: str) -> bool:
 
 
 SCAN_COMMAND_HINTS = (
-    "me indica",
-    "me indique",
-    "indica",
-    "indique",
-    "me sugere",
-    "me sugira",
-    "sugere",
-    "sugira",
-    "me da uma dica",
-    "me de uma dica",
-    "me da dica",
-    "me de dica",
-    "da uma dica",
-    "de uma dica",
-    "da dica",
-    "de dica",
-    "busque",
-    "busca",
-    "buscar",
-    "pesquise",
-    "pesquisa",
-    "procure",
-    "procura",
-    "encontre",
-    "encontra",
-    "sugestao",
-    "sugestoes",
-    "scan",
-    "screen",
-    "shortlist",
-    "lista",
-    "liste",
-    "me lista",
-    "oportunidades",
-    "opurtunidades",
+    # Portuguese
+    "me indica", "me indique", "indica", "indique",
+    "me sugere", "me sugira", "sugere", "sugira",
+    "me da uma dica", "me de uma dica", "me da dica", "me de dica",
+    "da uma dica", "de uma dica", "da dica", "de dica",
+    "busque", "busca", "buscar",
+    "pesquise", "pesquisa",
+    "procure", "procura",
+    "encontre", "encontra",
+    "sugestao", "sugestoes",
+    "scan", "screen", "shortlist",
+    "lista", "liste", "me lista",
+    "oportunidades", "opurtunidades",
+    # English — stress test revealed 50% of prompts were English and missed
+    "find me", "find a", "find the", "look for",
+    "search for", "recommend", "suggest",
+    "show me", "give me", "pick", "choose",
+    "scan for", "screen for",
 )
 
 TICKER_REQUIRED_ANALYSIS_HINTS = (
