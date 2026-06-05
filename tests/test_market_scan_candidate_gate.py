@@ -824,6 +824,28 @@ def test_portuguese_research_commands_do_not_become_tickers():
         assert detect_ticker(prompt) == "", f"False ticker detected for: {prompt}"
 
 
+def test_money_amount_suffixes_are_not_tickers():
+    """Amounts such as 5K and 10M must not hijack advisory routing."""
+    from src.core.pipeline.intents import detect_ticker
+
+    amount_prompts = [
+        "I have 5K to invest in my TFSA",
+        "Tenho 10k CAD para investir",
+        "Allocate 2M for a moderate risk portfolio",
+        "Should I keep 25K in cash or buy ETFs?",
+    ]
+
+    for prompt in amount_prompts:
+        assert detect_ticker(prompt) == "", f"Money amount detected as ticker: {prompt}"
+
+
+def test_numeric_letter_tickers_still_work_when_not_money_suffixes():
+    """Rare alphanumeric tickers stay detectable when not K/M/B amounts."""
+    from src.core.pipeline.intents import detect_ticker
+
+    assert detect_ticker("Analyze 88E for a speculative setup") == "88E"
+
+
 def test_real_canadian_tickers_still_route_to_ticker_analysis():
     """Killing ticker-first must not break explicit ticker analysis."""
     from src.core.pipeline.intents import detect_ticker, parse_user_intent

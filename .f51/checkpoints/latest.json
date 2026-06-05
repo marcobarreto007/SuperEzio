@@ -1,31 +1,31 @@
 {
-  "date_local": "2026-06-04T20:09:49-04:00",
-  "session": "commercial-advisory-policy-gate-2026-06-04",
-  "status": "full_validation_passed_runtime_live_ready_for_packaging",
+  "date_local": "2026-06-05T08:25:05-04:00",
+  "session": "partner-decision-clean-training-experiment-2026-06-05",
+  "status": "validated_saved_ready_for_packaging_baseline",
   "what_was_done": [
-    "Hardened Bob Sovereign prompt and runtime instructions so advisory-only answers do not quote exact current macro, return, tax, withholding, contribution-limit, treaty, or fund-structure facts without live evidence.",
-    "Added deterministic fallback detection for unsupported macro precision in DCA/rates/volatility questions.",
-    "Added deterministic fallback detection for tax overstatements in dividend/passive-income and concentrated-position advisory prompts.",
-    "Strengthened the investment QA gate so saved QA reports fail on unsupported macro precision, withholding-tax overstatements, treaty-benefit claims, currency-hedge/withholding confusion, and transfer-in-kind taxable-event claims.",
-    "Added regression tests for the exact bad commercial phrases found during live QA: RRSP/treaty withholding, currency hedge withholding, and transfer-in-kind taxable-event language."
+    "Reviewed the pasted Vast.ai/LoRA training log and treated it as an unsafe experiment, not buyer-package material.",
+    "Removed the broken endpoint hard-block change from the active diff because it changed the reward-gate contract and made test_task_submit_quality_gate_flags_low_score fail.",
+    "Preserved the useful intent-parser fix: K/M/B money amounts such as 5K, 10k, 10M, 2M, and 25K are not treated as tickers.",
+    "Added Canadian and US account acronyms (TFSA, RRSP, RESP, FHSA, IRA, ROTH, 401K) to COMMON_WORDS so registered-account questions do not become ticker analysis.",
+    "Added regression tests for money-amount suffixes and rare alphanumeric tickers such as 88E.",
+    "Moved generated training artifacts out of the product tree to C:\\Users\\marco\\Desktop\\SuperEzio_Training_Quarantine_20260605\\training so they remain available but do not contaminate the buyer/demo package.",
+    "Killed stale local vastai/ssh processes that were left from the external training attempt; no GitHub operation was performed."
   ],
   "evidence": [
-    "Runtime restart final: powershell -ExecutionPolicy Bypass -File .\\runtime\\do_restart.ps1 -> health 8082 200 and health 8002 200; UI http://127.0.0.1:8002.",
-    "Targeted tax/macro tests: PYTHONPATH=src;scripts .\\.venv\\Scripts\\python.exe -m pytest tests/contracts/test_contract_agent.py tests/test_investment_answer_quality.py -q -> 62 passed in 0.78s.",
-    "Full pytest final: PYTHONPATH=src;scripts .\\.venv\\Scripts\\python.exe -m pytest -q -> 1057 passed, 29 warnings in 137.59s.",
-    "Browser smoke final: PYTHONPATH=src .\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --timeout-ms 180000 -> ok true; health ok; AAPL chart 130 candles; canvas nonBlank 378108; chat route general; fallback false; console_errors empty; screenshot output\\playwright\\superezio-browser-smoke-20260604-200158.png.",
-    "Investment QA final: PYTHONPATH=src;scripts .\\.venv\\Scripts\\python.exe -u scripts\\invest_api_qa.py -> 8/8 questions ok; no quality_reasons; report output/playwright/invest-api-qa-20260604-200922.json.",
-    "Investment QA Q4 dividend/passive-income answer used the safe contract: withholding tax and account type matter; verify yield, payout ratio, debt, dividend growth, valuation.",
-    "Investment QA Q5 DCA/macro answer avoided exact VIX, yields, rates, basis points, and return statistics.",
-    "Investment QA Q8 under-CAD-5 small-cap scan invoked market_scan and rejected all 24 candidates that failed the price-quality gate."
+    "Targeted regression: PYTHONPATH=src;scripts .\\.venv\\Scripts\\python.exe -m pytest tests/test_api_routes_sync.py::test_task_submit_quality_gate_flags_low_score tests/test_market_scan_candidate_gate.py::test_money_amount_suffixes_are_not_tickers tests/test_market_scan_candidate_gate.py::test_numeric_letter_tickers_still_work_when_not_money_suffixes tests/test_market_scan_candidate_gate.py::test_usd_25k_allocation_with_tickers_routes_to_capital_allocation -q -> 4 passed in 0.90s.",
+    "Affected files suite: PYTHONPATH=src;scripts .\\.venv\\Scripts\\python.exe -m pytest tests/test_api_routes_sync.py tests/test_market_scan_candidate_gate.py -q -> 51 passed, 29 warnings in 14.29s.",
+    "Full pytest final: PYTHONPATH=src;scripts .\\.venv\\Scripts\\python.exe -m pytest -q -> 1059 passed, 29 warnings in 175.95s.",
+    "Runtime restart: powershell -ExecutionPolicy Bypass -File .\\runtime\\do_restart.ps1 -> health 8082 200 and health 8002 200; UI http://127.0.0.1:8002.",
+    "Browser smoke final: PYTHONPATH=src .\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --timeout-ms 180000 -> ok true; health ok; AAPL chart 130 candles; canvas nonBlank 378108; chat route general; fallback false; console_errors empty; screenshot output\\playwright\\superezio-browser-smoke-20260605-082338.png.",
+    "git diff --check -> clean."
   ],
   "risks": [
-    "This is a deterministic commercial wording gate, not legal or tax advice validation; final packaging should still include lawyer-reviewed disclaimers and account/tax jurisdiction language.",
-    "Broad advisory answers can still use approximate educational examples; the gate blocks known high-risk precision and overstatement patterns, not every possible bad sentence.",
-    "Provider data quality remains external; scan gating rejects bad candidates but cannot guarantee upstream market data correctness.",
+    "Any Vast.ai keys shown in pasted logs should be revoked or rotated outside this repo; secrets were not committed.",
+    "The quarantined training datasets include stale/exact tax examples and should not be used for production fine-tuning without a separate cleaning pass.",
+    "The empty data\\training directory may remain locked by Windows temporarily, but it contains no files and is not tracked by Git.",
     "OpenBB/Pydantic dependency deprecation warnings remain; they did not fail tests.",
     "No GitHub operation was performed because this repository is DISK ONLY."
   ],
-  "next_step": "Use this local commit as the packaging baseline, then prepare the buyer/demo package around the tested runtime command, browser proof, evidence index, and investment QA report.",
+  "next_step": "Continue packaging from this clean local baseline: buyer setup guide, evidence index, transfer checklist, and demo script.",
   "owner": "Marco"
 }

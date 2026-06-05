@@ -584,6 +584,13 @@ COMMON_WORDS = {
     "ETFS",
     "GIC",
     "REIT",
+    "TFSA",
+    "RRSP",
+    "RESP",
+    "FHSA",
+    "IRA",
+    "ROTH",
+    "401K",
     "IPO",
     "STOCK",
     "STOCKS",
@@ -1657,11 +1664,14 @@ def detect_ticker(message: str) -> str:
                 candidates.append((upper, 90, len(upper)))
 
     # 3.5 Ticker numérico curto (ex: 6M, 88E, 3M) — comum em microcaps/OTC
+    # BUT: reject monetary amounts.  "5K", "10k", "2M", "500B" are NOT tickers.
+    _AMOUNT_SUFFIXES = re.compile(r"^\d{1,4}[KkMmBb]$")
     num_prefix_matches = re.findall(r"\b(\d{1,2}[A-Za-z]{1,5})\b", raw)
     for match in num_prefix_matches:
         upper = match.upper()
         if upper not in COMMON_WORDS and not any(c[0] == upper for c in candidates):
-            candidates.append((upper, 80, len(upper)))
+            if not _AMOUNT_SUFFIXES.match(upper):
+                candidates.append((upper, 80, len(upper)))
 
     # 4. Índices (^BVSP, ^GSPC)
     idx_matches = re.findall(r"(\^[A-Za-z]+)\b", raw)
