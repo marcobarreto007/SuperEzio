@@ -1,29 +1,29 @@
 {
-  "date_local": "2026-06-05T08:45:00-04:00",
-  "session": "ceo-first-discovery-decision-2026-06-05",
-  "status": "validated_saved_ready_for_packaging_baseline",
+  "date_local": "2026-06-05T09:19:20-04:00",
+  "session": "broker-cli-readonly-proof-2026-06-05",
+  "status": "validated_saved_broker_cli_probe_no_external_connection",
   "what_was_done": [
-    "Changed vague opportunity requests so regex no longer pre-routes them to market_scan before Bob can decide.",
-    "Added DISCOVERY_DECISION cognitive mode: route remains general, Bob gets market_scan permission, and scanner execution happens only if Bob calls the tool.",
-    "Kept explicit scan commands on DISCOVERY_SCAN/market_scan, so prompts like 'Find one US or Canadian small-cap stock under CAD 5' still run the scanner directly.",
-    "Kept explicit ticker analysis behavior intact for strong ticker context.",
-    "Updated regression coverage so direct stock recommendation routes to general + market_scan intent + DISCOVERY_DECISION instead of automatic market_scan."
+    "Installed the declared broker proof dependencies into the local venv: alpaca-py and ib-insync.",
+    "Added scripts/broker_readiness_probe.py as a repeatable CLI for read-only broker connectivity checks.",
+    "The CLI probes IBKR paper/read-only via local TWS or IB Gateway ports and Alpaca paper via account/positions calls only.",
+    "The probe does not submit, cancel, modify, or transmit broker orders.",
+    "Added tests that verify the probe masks credential presence, handles closed IBKR ports, skips Alpaca network calls when credentials are missing, and reports read_only_no_orders safe mode.",
+    "Documented the optional broker connectivity proof in docs/BUYER_SETUP_GUIDE.md."
   ],
   "evidence": [
-    "Targeted intent/orchestrator tests: PYTHONPATH=src;scripts .\\.venv\\Scripts\\python.exe -m pytest tests/test_market_scan_candidate_gate.py::test_direct_stock_recommendation_delegates_scan_decision_to_bob tests/test_market_scan_candidate_gate.py::test_explicit_smallcap_discovery_keeps_scanner_allowed tests/test_market_scan_candidate_gate.py::test_ticker_analysis_still_works_with_chart_ticker tests/contracts/test_contract_orchestrator.py -q -> 16 passed in 0.85s.",
-    "Affected routing/API suite: PYTHONPATH=src;scripts .\\.venv\\Scripts\\python.exe -m pytest tests/test_market_scan_candidate_gate.py tests/contracts/test_contract_complex_finance.py tests/test_api_routes_sync.py -q -> 115 passed, 29 warnings in 74.91s.",
-    "Full pytest final: PYTHONPATH=src;scripts .\\.venv\\Scripts\\python.exe -m pytest -q -> 1059 passed, 29 warnings in 183.58s.",
-    "Runtime restart: powershell -ExecutionPolicy Bypass -File .\\runtime\\do_restart.ps1 -> health 8082 200 and health 8002 200; UI http://127.0.0.1:8002.",
-    "Browser smoke final: PYTHONPATH=src .\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --timeout-ms 180000 -> ok true; health ok; AAPL chart 130 candles; canvas nonBlank 378108; chat route general; fallback false; console_errors empty; screenshot output\\playwright\\superezio-browser-smoke-20260605-083816.png.",
-    "Live stock-recommendation proof: POST /task/submit with 'What stock would you recommend me for investing? I am looking to profit in the next 14 days.' -> route_used general; detected_intent market_scan; scanner_invoked true; candidate_count 5; fallback_used false; final_content_length 1244. This proves regex did not pre-route, while Bob still chose scanner evidence.",
+    "Dependency import proof: .venv\\Scripts\\python.exe -c \"import importlib.util; ...\" -> ib_insync True; alpaca.trading True.",
+    "Port proof: 127.0.0.1:7497 closed; 127.0.0.1:4002 closed; 127.0.0.1:7496 closed; 127.0.0.1:4001 closed.",
+    "CLI proof: .venv\\Scripts\\python.exe scripts\\broker_readiness_probe.py --provider all --json -> connected_count 0; IBKR package_present true but port_open false; Alpaca package_present true but credentials_present false; safe_mode read_only_no_orders.",
+    "Targeted pytest: PYTHONPATH=src .venv\\Scripts\\python.exe -m pytest tests/test_broker_readiness_probe.py -q -> 4 passed in 0.25s.",
+    "Browser smoke after pytest: PYTHONPATH=src .venv\\Scripts\\python.exe scripts\\browser_smoke.py --timeout-ms 180000 -> ok true; chart AAPL 130 candles; chat route general; fallback false; console_errors empty; screenshot output\\playwright\\superezio-browser-smoke-20260605-091743.png.",
     "git diff --check -> clean."
   ],
   "risks": [
-    "DISCOVERY_DECISION still grants market_scan permission; Bob can use it for stock recommendation prompts, but the deterministic parser no longer forces it.",
-    "Explicit scan prompts still pre-route to market_scan by design because the user directly asked for discovery.",
-    "OpenBB/Pydantic dependency deprecation warnings remain; they did not fail tests.",
+    "No broker connection could be established because IBKR paper/TWS/Gateway is not listening locally and Alpaca paper credentials are not set in the current environment.",
+    "This is intentionally a proof/readiness CLI, not a production broker execution bridge.",
+    "Live-money ports 7496 and 4001 are detected and warned about, but the recommended proof path remains paper/read-only.",
     "No GitHub operation was performed because this repository is DISK ONLY."
   ],
-  "next_step": "Continue packaging from this CEO-first routing baseline: buyer setup guide, evidence index, transfer checklist, and demo script.",
+  "next_step": "For a real broker proof, start IBKR TWS or IB Gateway in paper mode with API socket clients enabled on 7497 or set ALPACA_API_KEY and ALPACA_SECRET_KEY for a paper account, then rerun scripts/broker_readiness_probe.py --provider all --json.",
   "owner": "Marco"
 }

@@ -86,6 +86,8 @@ Common optional keys:
 - `FINNHUB_API_KEY`: market data.
 - `SUPEREZIO_DEEPSEEK_API_KEY`: optional expert sub-analysis.
 - `GEMINI_API_KEY`: optional sentiment or fallback analysis.
+- `ALPACA_API_KEY` and `ALPACA_SECRET_KEY`: optional Alpaca paper account proof.
+- `IBKR_HOST`, `IBKR_PORT`, and `IBKR_CLIENT_ID`: optional Interactive Brokers paper API proof.
 
 Do not ship a real `.env` file to a buyer. Ship `.env.example` and let the buyer add their own keys.
 
@@ -133,6 +135,14 @@ I have CAD 25,000 to allocate. Build a serious framework with risk limits.
 ```
 
 Expected: a structured educational analysis with risk framing and a bounded next step. This is not financial advice and does not execute trades.
+
+Optional broker connectivity proof:
+
+```powershell
+.\.venv\Scripts\python.exe .\scripts\broker_readiness_probe.py --provider all --json
+```
+
+Expected without broker setup: both providers report `connected: false` with explicit setup errors. Expected with paper credentials or a local paper TWS/Gateway API: read-only account and position counts are reported. This probe never submits, cancels, or modifies orders.
 
 ## 10. Stop
 
