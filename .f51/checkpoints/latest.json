@@ -1,29 +1,29 @@
 {
-  "date_local": "2026-06-05T10:20:19-04:00",
-  "session": "f51-openbb-warnings-resolved-2026-06-05",
-  "status": "all_green_zero_warnings_saved_locally",
+  "date_local": "2026-06-05T10:23:34-04:00",
+  "session": "ibkr-cli-setup-check-2026-06-05",
+  "status": "blocked_waiting_for_tws_or_gateway_runtime",
   "what_was_done": [
-    "Resolved the 29 OpenBB/Pydantic deprecation warnings that were polluting pytest output.",
-    "Root cause recorded: openbb_core/openbb_intrinio/openbb_congress_gov emit deprecated Pydantic 2.11+ patterns.",
-    "Added filterwarnings to pytest.ini, which is the active pytest config file in this checkout.",
-    "Kept the warning filter scope limited to external dependency warnings; product tests still fail on real regressions.",
-    "Preserved the source/test formatting cleanup present in the working tree.",
-    "Saved the 17-file tree state in a local commit only; GitHub remains blocked by policy."
+    "Checked the local machine after Marco reported downloading the requested IBKR component.",
+    "Confirmed TWS API 10.45.01 is installed under C:\\TWS API.",
+    "Confirmed no Trader Workstation or IB Gateway runtime process is active.",
+    "Checked IBKR API ports 7497, 4002, 7496, and 4001; all are closed.",
+    "Ran the SuperEzio broker_readiness_probe in read-only/no-orders mode.",
+    "Confirmed Alpaca paper credentials are still not present in the current environment."
   ],
   "evidence": [
-    "Status before save: 17 modified tracked files in git status --short.",
-    "Ruff: PYTHONPATH=src .venv\\Scripts\\python.exe -m ruff check src tests -> All checks passed.",
-    "Targeted tests for touched contracts/runtime files: PYTHONPATH=src .venv\\Scripts\\python.exe -m pytest tests/contracts/test_contract_agent.py tests/contracts/test_contract_aux_modules.py tests/contracts/test_contract_config.py tests/contracts/test_contract_investor.py tests/contracts/test_contract_model_serving.py tests/contracts/test_contract_runtime_official.py tests/contracts/test_contract_trading.py tests/test_agent_market_scan_loop.py -q -> 150 passed in 2.29s.",
-    "Full pytest: PYTHONPATH=src .venv\\Scripts\\python.exe -m pytest -q -> 1063 passed in 149.99s, with no warnings summary.",
-    "Health before browser smoke: http://127.0.0.1:8002/health -> 200; http://127.0.0.1:8082/health -> 200.",
-    "Browser smoke: PYTHONPATH=src .venv\\Scripts\\python.exe scripts\\browser_smoke.py --timeout-ms 180000 -> ok true; AAPL chart 130 candles; canvas nonBlank 378108; chat route general; detectedIntent CAPITAL_ALLOCATION; fallback false; console_errors empty; screenshot output\\playwright\\superezio-browser-smoke-20260605-101917.png."
+    "Get-CimInstance Win32_Product -> TWS API 10.45.01 installed.",
+    "C:\\TWS API exists and contains API samples/source files.",
+    "C:\\Jts and C:\\Users\\marco\\Jts are missing, which means the TWS runtime install path was not found.",
+    "Get-Process found Chrome on the IBKR API Software page, but no tws/ibgateway Java runtime.",
+    "Port proof: 127.0.0.1:7497 closed; 127.0.0.1:4002 closed; 127.0.0.1:7496 closed; 127.0.0.1:4001 closed.",
+    "CLI proof: .venv\\Scripts\\python.exe scripts\\broker_readiness_probe.py --provider all --json -> safe_mode read_only_no_orders; connected_count 0; IBKR package_present true but port_open false; Alpaca credentials_present false."
   ],
   "risks": [
-    "INV-R4 [HIGH]: 4 API keys leaked in git history - pending key rotation.",
-    "INV-R13 [HIGH]: Qwen3 GGUF depends on external model availability; current local model remains present and functional.",
-    "filterwarnings covers known external OpenBB/Pydantic warnings. New dependency warnings should be evaluated before adding any new filter.",
-    "GitHub remains blocked by .f51/GITHUB_POLICY.json; this save is local disk only."
+    "The installed TWS API package is not enough to accept broker API connections; SuperEzio still needs a running TWS or IB Gateway session.",
+    "The next proof should use paper mode only. Do not connect SuperEzio to live-money ports for this validation.",
+    "No broker order was submitted, cancelled, modified, or transmitted.",
+    "GitHub remains blocked by .f51/GITHUB_POLICY.json; this checkpoint is local disk only."
   ],
-  "next_step": "Continue packaging from the clean local commit: buyer guide, evidence index, transfer checklist, and demo script.",
+  "next_step": "Install and launch Trader Workstation or IB Gateway, log into a paper session, enable ActiveX and Socket Clients, confirm port 7497 for TWS paper or 4002 for IB Gateway paper, then rerun scripts/broker_readiness_probe.py --provider ibkr --json.",
   "owner": "Marco"
 }
