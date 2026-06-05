@@ -1944,7 +1944,74 @@ def detect_decisive_trade_intent(message: str) -> bool:
     """
     if not message or not message.strip():
         return False
-    return has_hint(message, DECISIVE_TRADE_HINTS)
+    if has_hint(message, DECISIVE_TRADE_HINTS):
+        return True
+
+    normalized = normalize_message(message)
+    training_hints = (
+        "treino",
+        "treinamento",
+        "paper",
+        "simulado",
+        "aprendizagem",
+        "training",
+    )
+    fast_trade_hints = (
+        "ordem",
+        "ordens",
+        "oredem",
+        "oredens",
+        "trade",
+        "trades",
+        "entrada",
+        "entara",
+        "saida",
+        "stop loss",
+        "stop",
+        "1 hora",
+        "uma hora",
+        "intraday",
+        "scalp",
+        "rapida",
+        "rapidas",
+        "rapido",
+        "rapidos",
+    )
+    allocation_hints = (
+        "aplique",
+        "aplike",
+        "aplicar",
+        "alocar",
+        "aloque",
+        "invista",
+        "investir",
+        "use",
+        "usar",
+        "10k",
+        "10 k",
+        "10 mil",
+        "10000",
+    )
+    explosive_hints = (
+        "explosiva",
+        "explosivas",
+        "explosisva",
+        "explosisvas",
+        "momentum",
+    )
+
+    has_training = any(hint in normalized for hint in training_hints)
+    has_fast_trade = any(hint in normalized for hint in fast_trade_hints)
+    has_allocation = any(hint in normalized for hint in allocation_hints)
+    has_explosive = any(hint in normalized for hint in explosive_hints)
+
+    if has_training and has_fast_trade:
+        return True
+    if has_allocation and (has_fast_trade or has_explosive):
+        return True
+    if has_explosive and has_fast_trade:
+        return True
+    return False
 
 
 def detect_another_trade_recommendation_intent(message: str) -> bool:

@@ -62,7 +62,7 @@ def _extract_time_horizon(message: str) -> str:
     if not message:
         return ""
     match = re.search(
-        r"(\d+)\s*(day|days|week|weeks|month|months|ano|anos|semana|semanas|mes|meses|dia|dias)",
+        r"(\d+)\s*(hour|hours|hora|horas|day|days|week|weeks|month|months|ano|anos|semana|semanas|mes|meses|dia|dias)",
         message,
         re.IGNORECASE,
     )
@@ -72,6 +72,8 @@ def _extract_time_horizon(message: str) -> str:
     unit = match.group(2).lower()
 
     # Normalize to English
+    if unit in ("hour", "hours", "hora", "horas"):
+        return f"{num} hours"
     if unit in ("day", "days", "dia", "dias"):
         return f"{num} days"
     if unit in ("week", "weeks", "semana", "semanas"):

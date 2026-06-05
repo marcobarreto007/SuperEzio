@@ -66,6 +66,11 @@ def test_extract_time_horizon_english_days():
     assert _extract_time_horizon("analyze 3 day forecast") == "3 days"
 
 
+def test_extract_time_horizon_hours():
+    assert _extract_time_horizon("treino de 1 hora") == "1 hours"
+    assert _extract_time_horizon("paper trade for 2 hours") == "2 hours"
+
+
 def test_extract_time_horizon_english_weeks():
     assert _extract_time_horizon("2 weeks outlook") == "2 weeks"
 

@@ -93,3 +93,18 @@ def test_normalize_liquidity_computes_dollar_volume():
     normalize_liquidity_fields(candidate)
     assert candidate["avg_daily_volume_shares"] == 1_000_000
     assert candidate["avg_daily_dollar_volume"] == 100_000_000.0
+
+
+def test_currency_market_mismatch_blocks_fast_trade_candidate():
+    candidate = _strong_candidate(
+        ticker="NOK",
+        name="Nokia Corporation Sponsored",
+        market="United States",
+        currency="EUR",
+    )
+    ok, failures = evaluate_quality_gates(candidate)
+    assert not ok
+    assert "currency_market_mismatch" in failures
+    confidence = compute_model_confidence(candidate, gate_failures=failures)
+    assert confidence <= MAX_CONFIDENCE_WITH_GATE_FAILURE
+    assert decide_final_action(confidence, failures) != "BUY_CANDIDATE"

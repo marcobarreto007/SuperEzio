@@ -1,30 +1,34 @@
 {
-  "date_local": "2026-06-05T14:06:50-04:00",
-  "session": "frontend-ibkr-bob-first-topbar-2026-06-05",
+  "date_local": "2026-06-05T14:28:15-04:00",
+  "session": "bob-paper-training-ticket-contract-2026-06-05",
   "status": "validated_and_saved_pending_commit",
   "what_was_done": [
-    "Audited the topbar controls: chart reload, timeframe, SDCA lab, and ops console are real controls; the missing product surface was Bob's IBKR paper/read-only state.",
-    "Reframed the ticker field as optional chart context instead of the primary decision driver; Bob still chooses candidates from open investment questions.",
-    "Added a real IBKR broker status chip to the topbar. It reads /health/details and renders IBKR READ, IBKR OFF, or IBKR TRADE based on broker state.",
-    "Wired the IBKR chip to open the System Operations Console and refresh broker diagnostics, so it is not decorative.",
-    "Added a Broker Link card to the Ops Console with provider, status, mode, equity, and positions from the live mission broker summary.",
-    "Updated browser_smoke.py so the UI smoke clicks the IBKR chip and verifies broker status leaves the Checking state.",
-    "Fixed Ops Console row wrapping so long GPU/model strings do not overlap neighboring cards.",
-    "Added responsive breakpoints for topbar/body/app-main so the new controls remain visible on a 390px mobile viewport without horizontal overflow."
+    "Investigated why Bob answered a one-hour 10k paper-training request as a passive market research report.",
+    "Root cause 1: the decisive-trade detector did not recognize paper-training language with typos such as oredens, entara, aplike, and explosisvas.",
+    "Root cause 2: the market_scan finalizer won over Bob's paper apprenticeship contract and rendered pesquisa-apenas instead of a ticket proposal.",
+    "Root cause 3: NOK-like candidates could pass decisive ranking despite a suspicious data mismatch: United States market with EUR currency.",
+    "Added detection for paper/training, fast entry-exit, stop-loss, one-hour, allocation, and explosive/momentum prompts.",
+    "Added 1-hour/2-hour horizon extraction in the orchestrator.",
+    "Added a paper-training renderer state: PAPER_TICKET_PENDING_APPROVAL. It proposes a paper ticket with requested capital, theoretical account size, estimated quantity, entry, stop/invalidation, and risk, while explicitly blocking broker transmission in read_only_no_orders.",
+    "Added a quality gate for currency_market_mismatch so a US-market/EUR candidate such as the observed NOK data cannot become a BUY_CANDIDATE.",
+    "Added regression tests for the exact training prompt class, hour horizon parsing, and NOK-style currency/market mismatch."
   ],
   "evidence": [
-    "pytest targeted: .venv/Scripts/python.exe -m pytest tests/test_api_routes_sync.py::test_frontend_ops_console_integration tests/test_api_routes_sync.py::test_health_details -q -> 2 passed in 2.05s.",
+    "root-cause evidence: runtime logs showed NOK selected in prior speculative runs while experts reported NO_DATA/TRAP and the candidate used Market=United States with currency=EUR.",
+    "inline intent proof: user-style prompt -> decisive=True, horizon=1 hours, route=market_scan, action=scan_market.",
+    "pytest focused: .venv/Scripts/python.exe -m pytest tests/test_decisive_trade_order.py::test_decisive_trade_intent_detection tests/test_decisive_trade_order.py::test_paper_training_prompt_returns_pending_ticket_not_research_report tests/test_trade_order.py::test_currency_market_mismatch_blocks_fast_trade_candidate tests/contracts/test_contract_orchestrator.py::test_extract_time_horizon_hours -q -> 4 passed.",
+    "pytest relevant suite: .venv/Scripts/python.exe -m pytest tests/test_decisive_trade_order.py tests/test_trade_order.py tests/contracts/test_contract_orchestrator.py tests/contracts/test_contract_agent.py tests/test_api_routes_sync.py -q -> 115 passed in 4.44s.",
+    "ruff: .venv/Scripts/python.exe -m ruff check modified source/test files -> All checks passed.",
+    "runtime restart: runtime/do_restart.ps1 -> health 8082=200, health 8002=200, UI=http://127.0.0.1:8002.",
     "browser smoke: .venv/Scripts/python.exe scripts/browser_smoke.py --base-url http://127.0.0.1:8002 --skip-chat --timeout-ms 180000 -> ok=true, chart ticker=AAPL, candleCount=130, canvas nonBlank=378108, console_errors=[].",
-    "IBKR UI proof: broker chip text=IBKR READ, ops broker status=CONNECTED READ-ONLY, mode=read_only_no_orders, equity=100000.00, positions=0, screenshot=output/playwright/superezio-ibkr-console-proof-fixed.png.",
-    "Mobile proof: viewport 390x844, horizontalOverflow=false, scrollWidth=390, clientWidth=390, broker=IBKR READ, screenshot=output/playwright/superezio-mobile-topbar-proof-fixed2.png.",
-    "/health/details live proof remains: mission.broker.ibkr.connection=connected_read_only, mode=read_only_no_orders, can_submit_orders=false."
+    "live /task/submit proof for Marco's prompt: elapsed_s=136.3, contains_research_report=false, contains_paper_ticket=true, contains_nok=false, answer starts with Decisao Final: PAPER_TICKET_PENDING_APPROVAL and includes 10,000 capital, 100,000 theoretical capital, estimated quantity 48, stop/invalidation, and IBKR read_only_no_orders."
   ],
   "risks": [
-    "IBKR is still read_only_no_orders; the UI must not imply order execution.",
-    "The chart still defaults to AAPL as a visual workspace snapshot, but generic investment questions do not attach chart context unless the message asks about the chart/current asset.",
-    "Live/paper order-panel proof remains a separate gated feature with explicit approval and safeguards.",
+    "IBKR remains read_only_no_orders. Bob may propose a paper ticket, but must not claim order placement, execution, broker fill, or live trade capability.",
+    "The live proof still reported missing_f51_verdict and missing_sdca_firewall, so the next architecture step is to run those gates before approving any future order-ticket transmission.",
+    "PAPER_TICKET_PENDING_APPROVAL is a product contract for supervised training, not investment advice or autonomous execution.",
     "GitHub remains blocked by project policy; this is disk-only."
   ],
-  "next_step": "Keep Bob-first UX: implement a dedicated paper order-ticket review panel only after explicit approval, with max size, LMT-only, far-from-market/auto-cancel safeguards, and PaperJournal evidence.",
+  "next_step": "Build the explicit paper order review panel: Bob proposes ticket, Marco approves, adapter stays read-only until a separately gated paper execution mode is implemented.",
   "owner": "Marco"
 }

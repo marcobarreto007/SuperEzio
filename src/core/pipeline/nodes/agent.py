@@ -16,6 +16,7 @@ from ..intents import (
     detect_another_trade_recommendation_intent,
     detect_complex_finance_intent,
     detect_decisive_trade_intent,
+    normalize_message,
 )
 from ..trade_order import (
     BUY_CONFIDENCE_THRESHOLD,
@@ -676,6 +677,111 @@ def _should_use_decisive_mode(state: dict) -> bool:
     return bool(detect_decisive_trade_intent(message))
 
 
+def _is_paper_training_request(message: str) -> bool:
+    normalized = normalize_message(str(message or ""))
+    training = any(
+        hint in normalized
+        for hint in (
+            "treino",
+            "treinamento",
+            "paper",
+            "simulado",
+            "aprendizagem",
+            "training",
+        )
+    )
+    fast_trade = any(
+        hint in normalized
+        for hint in (
+            "ordem",
+            "ordens",
+            "oredem",
+            "oredens",
+            "entrada",
+            "entara",
+            "saida",
+            "stop loss",
+            "1 hora",
+            "uma hora",
+            "intraday",
+            "scalp",
+            "rapida",
+            "rapidas",
+        )
+    )
+    allocation = any(
+        hint in normalized
+        for hint in ("aplique", "aplike", "alocar", "aloque", "invista", "10k", "10 k", "10000")
+    )
+    return bool(training and (fast_trade or allocation))
+
+
+def _extract_requested_allocation(message: str) -> int | None:
+    normalized = normalize_message(str(message or "")).replace(",", ".")
+    match = re.search(
+        r"(?:aplique|aplike|aplicar|alocar|aloque|invista|investir|use|usar).{0,40}?"
+        r"(?:cad|\$)?\s*(\d+(?:\.\d+)?)\s*(k|mil)?\b",
+        normalized,
+    )
+    if match is None:
+        match = re.search(r"\b(\d+(?:\.\d+)?)\s*(k|mil)\b", normalized)
+    if match is None:
+        return None
+    value = float(match.group(1))
+    suffix = match.group(2)
+    if suffix in {"k", "mil"}:
+        value *= 1000
+    amount = int(round(value))
+    if amount <= 0:
+        return None
+    return min(amount, 1_000_000)
+
+
+def _extract_account_reference(message: str) -> int | None:
+    normalized = normalize_message(str(message or "")).replace(",", ".")
+    match = re.search(
+        r"(?:teoricamente|temos|conta|capital).{0,40}?"
+        r"(?:cad|\$)?\s*(\d+(?:\.\d+)?)\s*(k|mil)?\b",
+        normalized,
+    )
+    if match is None:
+        match = re.search(
+            r"(?:cad|\$)?\s*(\d+(?:\.\d+)?)\s*(k|mil)\b.{0,30}?(?:investir|capital|conta)",
+            normalized,
+        )
+    if match is None:
+        match = re.search(
+            r"(?:dos?|de|from).{0,12}(?:cad|\$)?\s*(\d+(?:\.\d+)?)\s*(k|mil)?\b",
+            normalized,
+        )
+    if match is None:
+        return None
+    value = float(match.group(1))
+    if match.group(2) in {"k", "mil"}:
+        value *= 1000
+    amount = int(round(value))
+    return amount if amount > 0 else None
+
+
+def _format_money_amount(amount: int | None) -> str:
+    if amount is None:
+        return "pending operator-defined size"
+    return f"{amount:,.0f}"
+
+
+def _estimate_share_quantity(amount: int | None, price: Any) -> str:
+    if amount is None:
+        return "pending"
+    try:
+        numeric_price = float(price)
+    except (TypeError, ValueError):
+        return "pending"
+    if numeric_price <= 0:
+        return "pending"
+    qty = int(amount // numeric_price)
+    return str(max(qty, 1))
+
+
 def _build_trade_order_context(
     state: dict,
     *,
@@ -750,6 +856,9 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
     errors = scan.get("source_errors") or []
     time_horizon = state.get("time_horizon") or trade_ctx.get("time_horizon") or "14 days"
     excluded = {str(t).upper() for t in trade_ctx.get("excluded_tickers") or [] if t}
+    paper_training = _is_paper_training_request(message)
+    requested_amount = _extract_requested_allocation(message)
+    account_reference = _extract_account_reference(message)
 
     portuguese = _is_portuguese_request(message)
     labels = _REJECTION_LABELS_PT if portuguese else _REJECTION_LABELS_EN
@@ -923,6 +1032,17 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
             decision = "REJECT_ALL"
         else:
             decision = "WAIT"
+    data_gate_failures = [g for g in gate_failures if g not in safety_gate_failures]
+    paper_ticket_pending = (
+        paper_training
+        and not data_gate_failures
+        and decision in {"BUY_CANDIDATE", "WAIT"}
+        and not any(
+            item in safety_gate_failures
+            for item in ("f51_not_passed", "sdca_blocked", "f51_error", "sdca_error")
+        )
+    )
+    display_decision = "PAPER_TICKET_PENDING_APPROVAL" if paper_ticket_pending else decision
 
     ticker = primary.get("ticker") or "?"
     name = primary.get("name") or primary.get("company") or "—"
@@ -941,41 +1061,60 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
     provider = primary.get("provider") or primary.get("source") or "data hub"
     collected_at = scan.get("collected_at") or "—"
     liquidity_text = _format_liquidity(None, primary)
+    amount_text = _format_money_amount(requested_amount)
+    account_text = _format_money_amount(account_reference)
+    estimated_qty = _estimate_share_quantity(requested_amount, price)
     prev_excluded = ""
     if is_followup:
         prev_excluded = trade_ctx.get("primary_ticker") or (list(excluded)[0] if excluded else "—")
 
-    is_buy_candidate = decision == "BUY_CANDIDATE"
-    candidate_heading_pt = (
-        "Candidato Primario da Ordem:"
-        if is_buy_candidate
-        else "Candidato de Estudo (Nao e recomendacao):"
-    )
-    candidate_heading_en = (
-        "Primary Order Candidate:"
-        if is_buy_candidate
-        else "Study Candidate (Not a Recommendation):"
-    )
-    plan_heading_pt = (
-        "Plano de Ordem Sugerido:" if is_buy_candidate else "Plano de Watchlist / Sem Ordem:"
-    )
-    plan_heading_en = "Suggested Order Plan:" if is_buy_candidate else "Watchlist / No-Trade Plan:"
-    entry_line_pt = (
-        "ordem limitada proximo ao preco atual"
-        if is_buy_candidate
-        else "Sem entrada ate risco, invalidacao e confianca passarem nos gates"
-    )
-    entry_line_en = (
-        "limit order near current price"
-        if is_buy_candidate
-        else "No entry until risk, invalidation, and confidence gates pass"
-    )
-    max_risk_line_pt = (
-        "0.5%-1.0% do capital de trading" if is_buy_candidate else "0 ate virar BUY_CANDIDATE"
-    )
-    max_risk_line_en = (
-        "0.5%-1.0% of trading capital" if is_buy_candidate else "0 until upgraded to BUY_CANDIDATE"
-    )
+    is_buy_candidate = decision == "BUY_CANDIDATE" or paper_ticket_pending
+    if paper_training:
+        candidate_heading_pt = "Candidato do Ticket Paper (aguardando aprovacao):"
+        candidate_heading_en = "Paper Ticket Candidate (pending approval):"
+        plan_heading_pt = "Plano de Treino Paper:"
+        plan_heading_en = "Paper Training Plan:"
+        entry_line_pt = (
+            "ticket LIMIT perto do preco atual; nao transmitir enquanto IBKR=read_only_no_orders"
+        )
+        entry_line_en = (
+            "LIMIT ticket near current price; do not transmit while IBKR=read_only_no_orders"
+        )
+        max_risk_line_pt = "usar stop duro; perda maxima 0.5%-1.0% do capital de treino"
+        max_risk_line_en = "use a hard stop; max loss 0.5%-1.0% of training capital"
+    else:
+        candidate_heading_pt = (
+            "Candidato Primario da Ordem:"
+            if is_buy_candidate
+            else "Candidato de Estudo (Nao e recomendacao):"
+        )
+        candidate_heading_en = (
+            "Primary Order Candidate:"
+            if is_buy_candidate
+            else "Study Candidate (Not a Recommendation):"
+        )
+        plan_heading_pt = (
+            "Plano de Ordem Sugerido:" if is_buy_candidate else "Plano de Watchlist / Sem Ordem:"
+        )
+        plan_heading_en = (
+            "Suggested Order Plan:" if is_buy_candidate else "Watchlist / No-Trade Plan:"
+        )
+        entry_line_pt = (
+            "ordem limitada proximo ao preco atual"
+            if is_buy_candidate
+            else "Sem entrada ate risco, invalidacao e confianca passarem nos gates"
+        )
+        entry_line_en = (
+            "limit order near current price"
+            if is_buy_candidate
+            else "No entry until risk, invalidation, and confidence gates pass"
+        )
+        max_risk_line_pt = (
+            "0.5%-1.0% do capital de trading" if is_buy_candidate else "0 ate virar BUY_CANDIDATE"
+        )
+        max_risk_line_en = (
+            "0.5%-1.0% of trading capital" if is_buy_candidate else "0 until upgraded to BUY_CANDIDATE"
+        )
 
     if portuguese:
         sections.extend(
@@ -983,7 +1122,7 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
                 "# Bob Model Order",
                 "",
                 f"1. Modo: {mode_label}",
-                f"2. Decisao Final: {decision}",
+                f"2. Decisao Final: {display_decision}",
                 "",
             ]
         )
@@ -1001,6 +1140,9 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
                 f"   - Preco Atual: {price} {currency}",
                 f"   - Dados: {collected_at} (fonte: {provider})",
                 f"   - Liquidez: {liquidity_text}",
+                f"   - Capital do treino solicitado: {amount_text}",
+                f"   - Capital teorico citado: {account_text}",
+                f"   - Quantidade estimada: {estimated_qty}",
                 f"   - Catalisador: {catalyst}",
                 f"   - Horizonte: {time_horizon}",
                 f"   - Confianca do Modelo: {confidence}/100",
@@ -1023,7 +1165,7 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
                 f"   - Risco Maximo: {max_risk_line_pt}",
                 "",
                 "Ordem do modelo, nao e lucro garantido. Confirmacao humana obrigatoria.",
-                f"Model verdict: {decision}",
+                f"Model verdict: {display_decision}",
             ]
         )
     else:
@@ -1032,7 +1174,7 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
                 "# Bob Model Order",
                 "",
                 f"1. Mode: {mode_label}",
-                f"2. Final Decision: {decision}",
+                f"2. Final Decision: {display_decision}",
                 "",
             ]
         )
@@ -1050,6 +1192,9 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
                 f"   - Latest Price: {price} {currency}",
                 f"   - Data Timestamp: {collected_at} (source: {provider})",
                 f"   - Liquidity: {liquidity_text}",
+                f"   - Requested training capital: {amount_text}",
+                f"   - Referenced theoretical capital: {account_text}",
+                f"   - Estimated quantity: {estimated_qty}",
                 f"   - Catalyst: {catalyst}",
                 f"   - Time Horizon: {time_horizon}",
                 f"   - Model Confidence: {confidence}/100",
@@ -1072,11 +1217,11 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
                 f"   - Max Risk: {max_risk_line_en}",
                 "",
                 "Model order, not guaranteed profit. Human confirmation required.",
-                f"Model verdict: {decision}",
+                f"Model verdict: {display_decision}",
             ]
         )
 
-    if decision == "WAIT":
+    if display_decision == "WAIT":
         sections.append("")
         if portuguese:
             sections.append(
@@ -1105,7 +1250,7 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
         )
 
     ctx = _build_trade_order_context(
-        state, mode=mode_label, primary_ticker=str(ticker), ranked=ranked, decision=decision
+        state, mode=mode_label, primary_ticker=str(ticker), ranked=ranked, decision=display_decision
     )
     return "\n".join(sections), ctx
 

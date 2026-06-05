@@ -327,6 +327,10 @@ def test_decisive_trade_intent_detection():
     assert detect_decisive_trade_intent("I want to make a profit in 14 days")
     assert detect_decisive_trade_intent("qual comprar para lucrar em 2 semanas?")
     assert detect_decisive_trade_intent("me da uma ordem de compra")
+    assert detect_decisive_trade_intent(
+        "Bob estamos em treinamento com 100k, objetivo e oredens rapidas entara e saida "
+        "com stop loss por 1 hora; pesuise e aplike 10 k em oportunidades explosisvas"
+    )
 
     # Should NOT detect
     assert not detect_decisive_trade_intent("scan US technology equities")
@@ -334,6 +338,33 @@ def test_decisive_trade_intent_detection():
     assert not detect_decisive_trade_intent("what is a penny stock?")
     assert not detect_decisive_trade_intent("")
     assert not detect_decisive_trade_intent("hello Bob")
+
+
+def test_paper_training_prompt_returns_pending_ticket_not_research_report():
+    from src.core.pipeline.nodes.agent import _market_scan_answer
+
+    state = _make_scan_state(
+        message=(
+            "Bob estamos em treinamento com 100k para investir; objetivo e oredens rapidas "
+            "entara e saida com stop loss; vamos ver em 1 hora de treino; "
+            "pesuise e aplike 10 k dos nossos 100 em oportunidades explosisvas"
+        ),
+        candidates=[_STRONG_CANDIDATE],
+        time_horizon="1 hours",
+    )
+
+    answer = _market_scan_answer(state)
+
+    assert "PAPER_TICKET_PENDING_APPROVAL" in answer
+    assert "Ticket Paper" in answer or "Paper Ticket" in answer
+    assert "10,000" in answer
+    assert "100,000" in answer
+    assert "Quantidade estimada" in answer or "Estimated quantity" in answer
+    assert "read_only_no_orders" in answer
+    assert "Model verdict: PAPER_TICKET_PENDING_APPROVAL" in answer
+    assert "relatorio de pesquisa" not in answer.lower()
+    assert "order placed" not in answer.lower()
+    assert "order executed" not in answer.lower()
 
 
 # ---------------------------------------------------------------------------

@@ -137,6 +137,15 @@ def evaluate_quality_gates(candidate: dict[str, Any]) -> tuple[bool, list[str]]:
     if candidate.get("price_error") or candidate.get("provider_error"):
         failures.append("provider_error")
 
+    market = str(candidate.get("market") or candidate.get("exchange") or "").lower()
+    currency = str(candidate.get("currency") or "").upper()
+    if (
+        currency
+        and currency != "USD"
+        and any(token in market for token in ("united states", "nasdaq", "nyse", "usa", "us"))
+    ):
+        failures.append("currency_market_mismatch")
+
     return (len(failures) == 0, failures)
 
 
@@ -204,7 +213,7 @@ def compute_model_confidence(
                 score -= 8
             elif failure == "missing_catalyst":
                 score -= 10
-            elif failure == "provider_error":
+            elif failure in {"provider_error", "currency_market_mismatch"}:
                 score -= 10
 
     if source_errors:
@@ -230,7 +239,12 @@ def compute_model_confidence(
 def decide_final_action(confidence: int, gate_failures: list[str]) -> str:
     """Map confidence + gates to BUY_CANDIDATE / WAIT / REJECT_ALL."""
     if gate_failures:
-        severe = {"missing_catalyst", "missing_liquidity", "provider_error"}
+        severe = {
+            "missing_catalyst",
+            "missing_liquidity",
+            "provider_error",
+            "currency_market_mismatch",
+        }
         if confidence <= 40 and any(f in gate_failures for f in severe):
             return "REJECT_ALL"
         return "WAIT"
