@@ -668,8 +668,8 @@ def test_usd_25k_allocation_with_tickers_routes_to_capital_allocation():
     assert result.intent == "capital_allocation"
 
 
-def test_direct_stock_recommendation_still_scans():
-    """Direct stock recommendation must still trigger market_scan."""
+def test_direct_stock_recommendation_delegates_scan_decision_to_bob():
+    """Direct stock recommendation lets Bob decide whether a scan is needed."""
     from src.core.pipeline.intents import (
         parse_user_intent,
         detect_capital_allocation_intent,
@@ -686,11 +686,17 @@ def test_direct_stock_recommendation_still_scans():
         "Direct stock recommendation must trigger decisive trade intent"
     )
 
-    # With no ticker detected from text, it should route via vague financial → market_scan
+    # With no ticker detected from text, Bob gets the scanner permission,
+    # but the regex parser does not pre-run the scanner.
     result = parse_user_intent(DIRECT_STOCK_PROMPT, rigor="strict", ticker="")
-    assert result.route in ("market_scan",), (
-        f"Expected market_scan, got route={result.route}, intent={result.intent}"
-    )
+    plan = result.to_plan()
+
+    assert result.route == "general"
+    assert result.intent == "market_scan"
+    assert result.action == "answer"
+    assert plan["cognitive_mode"] == "DISCOVERY_DECISION"
+    assert plan["scanner_allowed"] is True
+    assert "market_scan" in plan["allowed_tools"]
 
 
 def test_negative_scan_instruction_blocks_market_scan():

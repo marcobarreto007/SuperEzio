@@ -195,6 +195,18 @@ def infer_cognitive_contract(
             "answer_contract": "Use scanner evidence to produce BUY_CANDIDATE, WAIT, REJECT_ALL, WATCHLIST_ONLY, or NO_BET_THIS_WEEK with risk controls.",
         }
 
+    if route == "general" and intent == "market_scan":
+        return {
+            "cognitive_mode": "DISCOVERY_DECISION",
+            "information_need": "bob_decides_whether_market_discovery_is_needed",
+            "allowed_tools": list(DISCOVERY_TOOLS),
+            "market_context_allowed": True,
+            "scanner_allowed": True,
+            "ticker_allowed": True,
+            "ticket_allowed": True,
+            "answer_contract": "Decide whether a market_scan is necessary. If recommending a current stock, use scanner evidence first; otherwise explain the framework and state that live data was not collected.",
+        }
+
     if intent == "capital_allocation":
         return {
             "cognitive_mode": "CAPITAL_ALLOCATION",
@@ -2214,23 +2226,22 @@ def parse_user_intent(
 
     vague = should_block_vague_financial_prompt(raw, ticker, rigor)
     if strict and vague:
-        # CEO model was trained to handle vague financial requests without
-        # hard-blocking. Route to market_scan so the full pipeline runs
-        # (scan -> data -> experts -> CEO verdict). The CEO model can
-        # still reclassify via the orchestrator's LLM fallback.
+        # A vague opportunity request should not let regex pre-decide the
+        # investment universe. Keep the route general and give Bob permission
+        # to call market_scan only if the answer needs current candidates.
         filters = infer_scan_filters(raw)
         has_scope = _has_scan_scope(raw) or bool(filters.get("country"))
         return done(
             IntentParse(
-                route="market_scan",
+                route="general",
                 intent="market_scan",
-                action="scan_market",
+                action="answer",
                 filters=filters,
                 confidence=0.62 if not has_scope else 0.78,
                 reasons=(
-                    ("vague_financial_delegated_to_pipeline",)
+                    ("vague_opportunity_delegated_to_bob_decision",)
                     if not has_scope
-                    else ("vague_with_scope_rerouted_to_scan",)
+                    else ("vague_with_scope_delegated_to_bob_decision",)
                 ),
                 entities=entities,
                 diary=diary,
