@@ -1,22 +1,22 @@
 {
-  "date_local": "2026-06-05T10:23:34-04:00",
+  "date_local": "2026-06-05T11:06:36-04:00",
   "session": "ibkr-cli-setup-check-2026-06-05",
   "status": "blocked_waiting_for_tws_or_gateway_runtime",
   "what_was_done": [
-    "Checked the local machine after Marco reported downloading the requested IBKR component.",
-    "Confirmed TWS API 10.45.01 is installed under C:\\TWS API.",
+    "Rechecked the local machine after Marco reran the broker_readiness_probe manually.",
+    "Confirmed the probe output is correct: IBKR port 7497 is closed.",
+    "Confirmed TWS API 10.45.01 is installed, but it is only the API package.",
     "Confirmed no Trader Workstation or IB Gateway runtime process is active.",
-    "Checked IBKR API ports 7497, 4002, 7496, and 4001; all are closed.",
-    "Ran the SuperEzio broker_readiness_probe in read-only/no-orders mode.",
-    "Confirmed Alpaca paper credentials are still not present in the current environment."
+    "Checked expected runtime paths and did not find tws.exe or ibgateway.exe.",
+    "Checked IBKR API ports 7497, 4002, 7496, and 4001; all are still closed."
   ],
   "evidence": [
+    "Marco manual CLI: .\\.venv\\Scripts\\python.exe .\\scripts\\broker_readiness_probe.py --provider ibkr --json -> connected_count 0; error port_closed; safe_mode read_only_no_orders.",
     "Get-CimInstance Win32_Product -> TWS API 10.45.01 installed.",
-    "C:\\TWS API exists and contains API samples/source files.",
-    "C:\\Jts and C:\\Users\\marco\\Jts are missing, which means the TWS runtime install path was not found.",
+    "Candidate executable search -> no tws.exe or ibgateway.exe found in standard C:\\Jts, user Jts, LocalAppData, Program Files, or Program Files (x86) paths.",
     "Get-Process found Chrome on the IBKR API Software page, but no tws/ibgateway Java runtime.",
-    "Port proof: 127.0.0.1:7497 closed; 127.0.0.1:4002 closed; 127.0.0.1:7496 closed; 127.0.0.1:4001 closed.",
-    "CLI proof: .venv\\Scripts\\python.exe scripts\\broker_readiness_probe.py --provider all --json -> safe_mode read_only_no_orders; connected_count 0; IBKR package_present true but port_open false; Alpaca credentials_present false."
+    "Get-NetTCPConnection proof: port 7497 no-listener; port 4002 no-listener; port 7496 no-listener; port 4001 no-listener.",
+    "git status before checkpoint update was clean."
   ],
   "risks": [
     "The installed TWS API package is not enough to accept broker API connections; SuperEzio still needs a running TWS or IB Gateway session.",
@@ -24,6 +24,6 @@
     "No broker order was submitted, cancelled, modified, or transmitted.",
     "GitHub remains blocked by .f51/GITHUB_POLICY.json; this checkpoint is local disk only."
   ],
-  "next_step": "Install and launch Trader Workstation or IB Gateway, log into a paper session, enable ActiveX and Socket Clients, confirm port 7497 for TWS paper or 4002 for IB Gateway paper, then rerun scripts/broker_readiness_probe.py --provider ibkr --json.",
+  "next_step": "Download/install Trader Workstation or IB Gateway, not just TWS API. Then launch it, log into a paper session, enable ActiveX and Socket Clients, confirm port 7497 for TWS paper or 4002 for IB Gateway paper, and rerun scripts/broker_readiness_probe.py --provider ibkr --json.",
   "owner": "Marco"
 }
