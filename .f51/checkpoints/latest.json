@@ -1,36 +1,33 @@
 {
-  "date_local": "2026-06-05T12:05:20-04:00",
-  "session": "paper-readonly-mission-context-and-broker-status-routing-2026-06-05",
-  "status": "saved_local_commit_created",
+  "date_local": "2026-06-05T12:15:00-04:00",
+  "session": "honest-correction-6proven-2instrumented-2026-06-05",
+  "status": "6_proven_2_instrumented_0_pending_all_guards_active",
   "what_was_done": [
-    "Added Bob mission context loader and config so Bob knows he is in pre-debut validation, trained as an educational financial copilot, and operating with IBKR paper/read-only visibility.",
-    "Exposed mission context in /health/details, including IBKR connection, read_only_no_orders mode, account equity, positions count, and can_submit_orders=false.",
-    "Fixed broker-status intent handling so questions about IBKR paper/read-only state do not become ticker analysis for IBKR stock.",
-    "Added PaperJournal and PerformanceEngine for offline/manual paper thesis tracking, PnL, post-mortem reflection, and performance/bias metrics.",
-    "Added paper_journal_cli.py for open, close, reflect, list, show, stats, and performance commands.",
-    "Documented the Market Debut Protocol and the broker/journal boundary: PaperJournal is a manual offline thesis tracker, not IBKR order history and not proof of execution.",
-    "Kept C6 and C7 as instrumented rather than proven: tooling exists, but real market evidence still requires aged paper theses and post-mortem review.",
-    "Ignored data/paper_journal.jsonl so local runtime journal data stays on disk and does not become a Git artifact."
+    "TAREFA 1: Revertida alegacao falsa de C6/C7 PROVEN. mission_context.json: C6 e C7 status='instrumented' (nem proven, nem pending — tooling existe). criteria_summary: proven=6, instrumented=2, pending=0.",
+    "TAREFA 1: DEBUT_PROTOCOL.md corrigido: C6 e C7 voltaram para INSTRUMENTED com criterios de aceitacao falsificaveis documentados.",
+    "TAREFA 1: Checkpoint status: '6_proven_2_instrumented'. Nenhum criterio marcado como proven nesta sessao.",
+    "TAREFA 2: Health /health/details: readiness agora e COMPUTADO dinamicamente de criteria_summary.proven (6/8 = 75.0%), nunca hard-coded do JSON. _build_debut_summary() deriva proven/instrumented/pending/readiness_pct do array de criterios.",
+    "TAREFA 2: render_mission_context_for_prompt: corrigido para reconhecer status 'instrumented' alem de 'proven'/'pending'. Progresso computado dinamicamente.",
+    "TAREFA 3: DEBUT_PROTOCOL.md: adicionados criterios de aceitacao FALSIFICAVEIS: C6 requer ≥1 tese real com preco do broker, envelhecida, fechada, com post-mortem. C7 requer ≥10 teses reais fechadas E ≥1 vies real do Bob.",
+    "TAREFA 4: PaperJournal._rewrite: adicionada guarda de producao — recusa truncar o journal em data/paper_journal.jsonl. Testes usam tmp_path/tempfile, nunca o caminho real.",
+    "TAREFA 4: 2 novos testes: test_production_guard_refuses_truncation (verifica que a guarda levanta RuntimeError) e test_temp_journal_can_be_truncated (verifica que journal temporario nao e afetado)."
   ],
   "evidence": [
-    "ruff: .venv/Scripts/python.exe -m ruff check src tests scripts/paper_journal_cli.py -> All checks passed.",
-    "pytest targeted matrix: 106 passed in 4.75s for orchestrator contracts, agent contracts, API route sync, broker readiness probe tests, and paper journal tests.",
-    "IBKR probe: scripts/broker_readiness_probe.py --provider ibkr --json -> connected_count=1, account_equity=100000.00, positions_count=0, port=7497, safe_mode=read_only_no_orders.",
-    "/health/details after restart: mission.status=loaded, phase=pre_debut_validation, broker.ibkr.connection=connected_read_only, broker.ibkr.mode=read_only_no_orders, can_submit_orders=false, debut criteria computed from statuses.",
-    "Runtime restart: runtime/do_restart.ps1 -> health 8082=200, health 8002=200, UI=http://127.0.0.1:8002.",
-    "Browser smoke final after pytest/restart: ok=true, chart AAPL candleCount=130, canvas nonBlank=378108, chat routeUsed=general, fallbackUsed=true, containsFailureBubble=false, console_errors=[], screenshot=output/playwright/superezio-browser-smoke-20260605-120826.png.",
-    "Live Bob broker-status prompt with ticker=IBKR: HTTP 200 in 29.2s, route_used=general, detected_intent=general_question, fallback_used=false, scanner_invoked=false.",
-    "Live Bob answer confirmed read-only/no-orders, equity visibility, positions visibility, no transaction history, no live broker market data, no order execution, and PaperJournal as a manual offline journal that does not prove execution.",
-    "Local Git commit created with message: feat(agent): add paper-mode mission context."
+    "mission_context.json: C6='instrumented', C7='instrumented', criteria_summary.proven=6, instrumented=2, pending=0.",
+    "DEBUT_PROTOCOL.md: tabela mostra PROVEN=C1,C2,C3,C4,C5,C8 (6/8), INSTRUMENTED=C6,C7 (2/8).",
+    "Health /health/details: debut_criteria.proven=6, instrumented=2, pending=0, readiness_pct=75.0 (computado). Nao ha mais contradicao phase=pre_debut vs readiness=100%.",
+    "PaperJournal._rewrite: guarda ativa para _PRODUCTION_JOURNAL com entries vazias.",
+    "tests/test_paper_journal.py: 18 passed in 0.40s (inclui 2 novos testes de guarda).",
+    "Full suite: 1086 passed, 0 failures, 0 warnings em 226.89s.",
+    "Browser smoke: ok=true, chart AAPL 130 candles, chat functional, fallbackUsed=true (deterministic fallback acionado — dentro do esperado).",
+    "IBKR: port 7497, account_equity=100000.00, positions_count=0, read_only_no_orders."
   ],
   "risks": [
-    "Market Debut Protocol is not 8/8 proven yet: C6 and C7 are instrumented and require real paper-market evidence over time.",
-    "Latest browser smoke used the deterministic fallback for the default capital-allocation prompt. The UI did not crash, but answer-quality fallback should be monitored in the next Bob QA run.",
-    "IBKR TWS must remain running on paper port 7497 for live broker visibility; without it, Bob must fall back to offline/manual paper journal only.",
-    "Current broker mode is intentionally read-only/no-orders. No buy, sell, stop, limit, cancel, or modify order capability was enabled or tested.",
-    "PaperJournal is manual/offline and is not broker order history, automatic execution logging, or proof that an order was sent.",
-    "GitHub remains blocked by project policy; this checkpoint is disk-only with a local Git commit created."
+    "INV-R4 [HIGH]: 4 API keys leaked in git history.",
+    "C6 e C7 so viram PROVEN com evidencias reais de mercado — teses envelhecidas, precos do broker, post-mortem preenchido, e vieses detectados em ≥10 trades.",
+    "Browser smoke teve fallbackUsed=true — o deterministic fallback foi acionado no prompt padrao de capital allocation. Nao e regressao, mas merece atencao no proximo Bob QA.",
+    "GitHub BLOQUEADO — DISK ONLY."
   ],
-  "next_step": "Run the first auditable paper-trading session: ask Bob for one thesis, record it in PaperJournal, monitor outcome, close it manually, add reflection, and review performance.",
+  "next_step": "Primeira sessao de paper trading real: Bob gera 1 tese, registra no journal com preco do broker, envelhece ate o horizonte de review, fecha, preenche post-mortem. Isso move C6 para PROVEN.",
   "owner": "Marco"
 }
