@@ -75,7 +75,6 @@ FULL_TICKER_TOOLS = (
     "neural_decision",
     "sdca_firewall",
     "rag_forensics",
-    "submit_paper_order",
     "final_answer",
 )
 DISCOVERY_TOOLS = (
@@ -85,7 +84,6 @@ DISCOVERY_TOOLS = (
     "neural_decision",
     "sdca_firewall",
     "rag_forensics",
-    "submit_paper_order",
     "final_answer",
 )
 FORENSIC_ONLY_TOOLS = ("rag_forensics", "final_answer")
@@ -1895,6 +1893,8 @@ def _is_market_scan_request(message: str) -> bool:
     if detect_negative_scan_instruction(message) and not (positive_discovery and has_scope):
         return False
 
+    if detect_decisive_trade_intent(message) and not wants_specific_analysis:
+        return True
     if has_scan and has_scope:
         return True
     if has_penny_asset and is_scan_command and not wants_specific_analysis:

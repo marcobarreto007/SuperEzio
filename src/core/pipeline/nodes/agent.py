@@ -142,17 +142,19 @@ You have tools available. Use them to CONFIRM or CHALLENGE your thesis:
 - pennylab: forensic penny stock manipulation check
 - penny_momentum_backtest: run the math-core penny momentum breakout backtest from OHLCV data or scan tickers
 - bob_search: search the web and archived documents for current information
-- submit_paper_order: SUBMIT a real paper trade to IBKR TWS. Use ticker, action (buy/sell), qty. The order goes to the IBKR paper account and appears in TWS cockpit.
+- submit_paper_order: broker transmission tool. It is disabled unless ALLOWED TOOLS includes it,
+  an explicit operator approval flag is present, and the environment enables paper order submission.
+  In read_only_no_orders mode, propose PAPER_TICKET_PENDING_APPROVAL instead of claiming execution.
 
 Call tools ONLY when your thesis needs grounding. Don't call tools blindly.
 Every tool call must have a PURPOSE tied to your thesis.
 
-STEP 4 — EXECUTE (paper trading only)
-When the user asks for a paper trade, you MUST call submit_paper_order.
-Do NOT just describe the trade — SUBMIT it. The user wants to see it in TWS.
-- After scanning and analyzing, if the user wants action → submit_paper_order.
-- Report the order ID and status back to the user.
-- You can submit multiple orders. Paper account has 100k equity.
+STEP 4 - PAPER TICKET / EXECUTION GATE
+When the user asks for a paper trade, first build a ticket from collected evidence:
+candidate, thesis, entry type, limit area, stop/invalidation, max risk, and uncertainty.
+Do NOT claim a broker order was placed unless a tool result explicitly proves it.
+- If broker mode is read_only_no_orders: return PAPER_TICKET_PENDING_APPROVAL.
+- Only call submit_paper_order when ALLOWED TOOLS includes it AND the user/operator has approved transmission.
 - Max 10% per position, max 2% risk per trade.
 
 STEP 5 — CONCLUDE
@@ -726,10 +728,16 @@ def _is_paper_training_request(message: str) -> bool:
 def _extract_requested_allocation(message: str) -> int | None:
     normalized = normalize_message(str(message or "")).replace(",", ".")
     match = re.search(
-        r"(?:aplique|aplike|aplicar|alocar|aloque|invista|investir|use|usar).{0,40}?"
-        r"(?:cad|\$)?\s*(\d+(?:\.\d+)?)\s*(k|mil)?\b",
+        r"(?:ticket|ordem|posicao|posicao|position|trade).{0,40}?"
+        r"(?:para|de|for)?\s*(?:cad|\$)?\s*(\d+(?:\.\d+)?)\s*(k|mil)?\b",
         normalized,
     )
+    if match is None:
+        match = re.search(
+            r"(?:aplique|aplike|aplicar|alocar|aloque|invista|investir|use|usar).{0,40}?"
+            r"(?:cad|\$)?\s*(\d+(?:\.\d+)?)\s*(k|mil)?\b",
+            normalized,
+        )
     if match is None:
         match = re.search(r"\b(\d+(?:\.\d+)?)\s*(k|mil)\b", normalized)
     if match is None:
@@ -747,10 +755,16 @@ def _extract_requested_allocation(message: str) -> int | None:
 def _extract_account_reference(message: str) -> int | None:
     normalized = normalize_message(str(message or "")).replace(",", ".")
     match = re.search(
-        r"(?:teoricamente|temos|conta|capital).{0,40}?"
-        r"(?:cad|\$)?\s*(\d+(?:\.\d+)?)\s*(k|mil)?\b",
+        r"(?:teoricamente|temos|conta|capital|paper\s+com|treinamento\s+paper\s+com|com).{0,40}?"
+        r"(?:cad|\$)?\s*(\d+(?:\.\d+)?)\s*(k|mil)\b",
         normalized,
     )
+    if match is None:
+        match = re.search(
+            r"(?:teoricamente|temos|conta|capital).{0,40}?"
+            r"(?:cad|\$)?\s*(\d+(?:\.\d+)?)\s*(k|mil)?\b",
+            normalized,
+        )
     if match is None:
         match = re.search(
             r"(?:cad|\$)?\s*(\d+(?:\.\d+)?)\s*(k|mil)\b.{0,30}?(?:investir|capital|conta)",
@@ -758,7 +772,7 @@ def _extract_account_reference(message: str) -> int | None:
         )
     if match is None:
         match = re.search(
-            r"(?:dos?|de|from).{0,12}(?:cad|\$)?\s*(\d+(?:\.\d+)?)\s*(k|mil)?\b",
+            r"(?:dos?|de|from).{0,12}(?:cad|\$)?\s*(\d+(?:\.\d+)?)\s*(k|mil)\b",
             normalized,
         )
     if match is None:

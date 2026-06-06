@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 from langgraph.config import get_stream_writer
@@ -35,6 +36,35 @@ _REPEATABLE_TOOLS = {"final_answer"}
 _SEMI_REPEATABLE_LIMITS: dict[str, int] = {"collect_data": 2}
 
 
+def _truthy(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value or "").strip().lower() in {"1", "true", "yes", "y", "on", "approved"}
+
+
+def _paper_order_submission_error(state: dict, args: dict) -> str:
+    if os.getenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "0").strip().lower() not in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }:
+        return "paper_order_submission_disabled_by_env"
+    if not state.get("ticket_allowed", False):
+        return "paper_order_not_allowed_by_cognitive_contract"
+    if not _truthy(args.get("approved_by_operator")):
+        return "missing_operator_approval"
+    order_type = str(args.get("order_type") or args.get("type") or "").strip().upper()
+    if order_type != "LMT":
+        return "limit_order_required"
+    try:
+        if float(args.get("limit_price") or 0) <= 0:
+            return "missing_limit_price"
+    except (TypeError, ValueError):
+        return "invalid_limit_price"
+    return ""
+
+
 def _tool_permission_error(state: dict, tool_name: str, args: dict) -> str:
     allowed_tools = set(state.get("allowed_tools") or [])
     if not allowed_tools or tool_name == "final_answer":
@@ -50,6 +80,8 @@ def _tool_permission_error(state: dict, tool_name: str, args: dict) -> str:
         if not state.get("ticker_allowed", False) or not ticker:
             mode = state.get("cognitive_mode", "unknown")
             return f"ticker_data_not_allowed_by_cognitive_contract:{mode}"
+    if tool_name == "submit_paper_order":
+        return _paper_order_submission_error(state, args)
     return ""
 
 
@@ -322,33 +354,41 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
     """Submit a paper trade order to IBKR via the InteractiveBrokersAdapter.
 
     Only works when IBKR paper TWS is connected on port 7497.
-    Orders are MARKET by default for paper training speed.
+    Disabled by default; enabled only by explicit env + operator approval.
     """
     import asyncio as _asyncio
+
+    permission_error = _paper_order_submission_error(state, args)
+    if permission_error:
+        return {"submit_paper_order_error": permission_error}
 
     symbol = str(args.get("ticker", args.get("symbol", ""))).upper()
     action = str(args.get("action", args.get("side", "buy"))).lower()
     qty = float(args.get("qty", args.get("quantity", args.get("shares", 10))))
+    limit_price = float(args.get("limit_price"))
 
     if not symbol:
         return {"submit_paper_order_error": "missing_ticker"}
 
     def _do_order():
-        from ib_insync import IB, Stock, MarketOrder
+        from ib_insync import IB, LimitOrder, Stock
 
         ib = IB()
         ib.connect("127.0.0.1", 7497, clientId=99)
         contract = Stock(symbol, "SMART", "USD")
         ib.qualifyContracts(contract)
-        trade = ib.placeOrder(contract, MarketOrder(
-            "BUY" if action in ("buy", "long") else "SELL", qty
-        ))
+        trade = ib.placeOrder(
+            contract,
+            LimitOrder("BUY" if action in ("buy", "long") else "SELL", qty, limit_price),
+        )
         ib.sleep(3)
         result = {
             "order_id": trade.order.orderId,
             "symbol": symbol,
             "action": "BUY" if action in ("buy", "long") else "SELL",
             "qty": qty,
+            "order_type": "LMT",
+            "limit_price": limit_price,
             "status": trade.orderStatus.status,
             "filled": trade.orderStatus.filled,
             "avg_price": trade.orderStatus.avgFillPrice,

@@ -7,6 +7,7 @@ import logging
 import uuid
 from typing import Any, AsyncGenerator, Generator
 
+from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 
 from core.evidence import EvidenceRun, generate_html_report, save_evidence
@@ -63,7 +64,7 @@ def route_after_orchestrator(state: dict) -> str:
     return "agent"
 
 
-async def _auto_full_analysis(state: dict) -> dict:
+async def _auto_full_analysis_legacy(state: dict) -> dict:
     """Run ALL experts, verdicts, and calculators automatically.
 
     This node fires on every request BEFORE Bob sees the data.
@@ -142,6 +143,190 @@ async def _auto_full_analysis(state: dict) -> dict:
     return results
 
 
+def _merge_node_update(
+    working_state: dict[str, Any],
+    output: dict[str, Any],
+    update: dict[str, Any],
+) -> None:
+    """Merge node output into the working state and the graph update."""
+
+    for key, value in (update or {}).items():
+        if key == "errors":
+            combined = list(working_state.get("errors") or []) + [
+                str(item) for item in (value or [])
+            ]
+            working_state["errors"] = combined
+            output["errors"] = combined
+            continue
+        working_state[key] = value
+        output[key] = value
+
+
+async def _auto_full_analysis(
+    state: dict,
+    *,
+    gateway=None,
+    config=None,
+) -> dict:
+    """Collect evidence and run the decision stack before Bob answers.
+
+    The critical contract is state propagation: collector output must feed the
+    experts, F51, neural decision, SDCA, RAG, and then Bob's prompt.
+    """
+
+    writer = get_stream_writer()
+    run_id = state.get("run_id", "")
+    route = state.get("route", "general")
+    working_state: dict[str, Any] = {**state}
+    output: dict[str, Any] = {}
+
+    writer(
+        {
+            "type": "PIPELINE_STEP",
+            "run_id": run_id,
+            "step": "auto_full_analysis",
+            "status": "started",
+            "route": route,
+        }
+    )
+
+    try:
+        collector_result: dict[str, Any] = {}
+        if route == "market_scan" and not working_state.get("scan"):
+            collector_result = await node_collector(
+                {**working_state, "route": "market_scan"},
+                config=config,
+            )
+        elif (
+            working_state.get("ticker")
+            and not working_state.get("data")
+            and route in {"ticker_analysis", "market_scan"}
+        ):
+            collector_result = await node_collector(
+                {**working_state, "route": "ticker_analysis"},
+                config=config,
+            )
+        if collector_result:
+            _merge_node_update(working_state, output, collector_result)
+    except Exception as exc:
+        _merge_node_update(
+            working_state,
+            output,
+            {"errors": [f"auto_full_analysis.collect_data:{exc}"]},
+        )
+
+    ticker = str(
+        working_state.get("ticker")
+        or (working_state.get("data") or {}).get("ticker")
+        or ""
+    ).upper()
+    data_context = str(
+        working_state.get("data_context") or working_state.get("message") or ""
+    )
+
+    if ticker:
+        expert_results: list[dict[str, Any]] = []
+        roles = [
+            "macro_risk",
+            "fundamental_value",
+            "momentum_technical",
+            "contrarian_opportunity",
+            "sentiment",
+            "social_forensics",
+        ]
+        for role in roles:
+            try:
+                res = await node_expert(
+                    {
+                        **working_state,
+                        "role": role,
+                        "ticker": ticker,
+                        "data_context": data_context,
+                    },
+                    gateway=gateway,
+                )
+                for expert_result in res.get("expert_results", []):
+                    expert_result.setdefault("role", role)
+                    expert_result.setdefault(
+                        "provider", EXPERT_PROVIDERS.get(role, "unknown")
+                    )
+                    expert_results.append(expert_result)
+            except Exception as exc:
+                expert_results.append(
+                    {
+                        "role": role,
+                        "ok": False,
+                        "error": str(exc)[:200],
+                        "provider": EXPERT_PROVIDERS.get(role, "?"),
+                    }
+                )
+
+        _merge_node_update(working_state, output, {"expert_results": expert_results})
+        try:
+            collect_res = await node_collect_experts(
+                {**working_state, "expert_results": expert_results}
+            )
+            _merge_node_update(working_state, output, collect_res)
+        except Exception as exc:
+            _merge_node_update(
+                working_state,
+                output,
+                {
+                    "expert_summary": f"Expert collection error: {exc}",
+                    "errors": [f"auto_full_analysis.experts:{exc}"],
+                },
+            )
+    else:
+        _merge_node_update(
+            working_state,
+            output,
+            {"expert_summary": "Experts skipped: no ticker selected by scanner or user."},
+        )
+
+    if ticker:
+        for label, node in (
+            ("f51", node_f51_verdict),
+            ("neural_decision", node_neural_decision),
+            ("sdca_firewall", node_sdca_firewall),
+            ("rag_forensics", node_rag_forensics),
+        ):
+            try:
+                result = await node(working_state)
+                _merge_node_update(working_state, output, result)
+            except Exception as exc:
+                _merge_node_update(
+                    working_state,
+                    output,
+                    {"errors": [f"auto_full_analysis.{label}:{exc}"]},
+                )
+    else:
+        try:
+            result = await node_sdca_firewall(working_state)
+            _merge_node_update(working_state, output, result)
+        except Exception as exc:
+            _merge_node_update(
+                working_state,
+                output,
+                {"errors": [f"auto_full_analysis.sdca_firewall:{exc}"]},
+            )
+
+    writer(
+        {
+            "type": "PIPELINE_STEP",
+            "run_id": run_id,
+            "step": "auto_full_analysis",
+            "status": "completed",
+            "ticker": ticker,
+            "has_data": bool(working_state.get("data")),
+            "has_scan": bool(working_state.get("scan")),
+            "has_f51": bool(working_state.get("f51_verdict")),
+            "has_sdca": bool(working_state.get("sdca_firewall")),
+            "has_experts": bool(working_state.get("expert_summary")),
+        }
+    )
+    return output
+
+
 def build_graph(
     gateway=None,
     config=None,
@@ -156,6 +341,9 @@ def build_graph(
 
     async def _orchestrator(state: dict) -> dict:
         return await node_orchestrator(state, gateway=gateway, config=config)
+
+    async def _auto(state: dict) -> dict:
+        return await _auto_full_analysis(state, gateway=gateway, config=config)
 
     async def _agent(state: dict) -> dict:
         return await node_agent(state, gateway=gateway, config=config, mandamentos=mandamentos)
@@ -172,7 +360,7 @@ def build_graph(
     builder = StateGraph(PipelineState)
 
     builder.add_node("orchestrator_primary", _orchestrator)
-    builder.add_node("auto_full_analysis", _auto_full_analysis)
+    builder.add_node("auto_full_analysis", _auto)
     builder.add_node("agent", _agent)
     builder.add_node("tool_executor", _tool_executor)
     builder.add_node("explanation", _explanation)
@@ -460,6 +648,7 @@ class PipelineApp:
             "mode": "pipeline_v4_stategraph",
             "nodes": [
                 "orchestrator_primary",
+                "auto_full_analysis",
                 "agent",
                 "tool_executor",
                 "explanation",

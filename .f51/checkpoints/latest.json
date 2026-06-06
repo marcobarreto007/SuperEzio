@@ -1,34 +1,35 @@
 {
-  "date_local": "2026-06-05T14:54:00-04:00",
-  "session": "ibkr-paper-live-execution-verified-2026-06-05",
-  "status": "ibkr_paper_fully_operational_buy_sell_confirmed",
+  "date_local": "2026-06-05T22:35:00-04:00",
+  "session": "ceo-full-system-evidence-path-fix-2026-06-05",
+  "status": "fixed_and_runtime_restarted",
   "what_was_done": [
-    "Investigated why Bob answered a one-hour 10k paper-training request as a passive market research report.",
-    "Root cause 1: the decisive-trade detector did not recognize paper-training language with typos such as oredens, entara, aplike, and explosisvas.",
-    "Root cause 2: the market_scan finalizer won over Bob's paper apprenticeship contract and rendered pesquisa-apenas instead of a ticket proposal.",
-    "Root cause 3: NOK-like candidates could pass decisive ranking despite a suspicious data mismatch: United States market with EUR currency.",
-    "Added detection for paper/training, fast entry-exit, stop-loss, one-hour, allocation, and explosive/momentum prompts.",
-    "Added 1-hour/2-hour horizon extraction in the orchestrator.",
-    "Added a paper-training renderer state: PAPER_TICKET_PENDING_APPROVAL. It proposes a paper ticket with requested capital, theoretical account size, estimated quantity, entry, stop/invalidation, and risk, while explicitly blocking broker transmission in read_only_no_orders.",
-    "Added a quality gate for currency_market_mismatch so a US-market/EUR candidate such as the observed NOK data cannot become a BUY_CANDIDATE.",
-    "Added regression tests for the exact training prompt class, hour horizon parsing, and NOK-style currency/market mismatch."
+    "Investigated Marco's complaint that the CEO was not using the full SuperEzio system.",
+    "Confirmed the recent auto_full_analysis node was incomplete: it did not propagate collector data_context/data into F51, neural, SDCA, RAG, or Bob's prompt, and it called expert nodes without passing the ModelGateway.",
+    "Rebuilt auto_full_analysis so market_scan runs before Bob for discovery/paper-ticket prompts, then the selected candidate/data_context feed expert committee, F51 verdict, NeuralDecision, SDCA firewall, RAG, and finally Bob.",
+    "Added auto_full_analysis pipeline events so live traces show whether data, scan, experts, F51, and SDCA were present.",
+    "Removed submit_paper_order from default ticker/discovery allowed tools and changed Bob's prompt from forced paper execution to PAPER_TICKET_PENDING_APPROVAL while IBKR is read_only_no_orders.",
+    "Added executor-side paper order gate: SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT must be enabled, ticket_allowed must be true, approved_by_operator must be truthy, and order_type must be LMT with limit_price.",
+    "Changed paper broker submission implementation from MARKET order to LIMIT order for any future explicitly gated paper submission path.",
+    "Fixed parser regression where a paper training prompt with 'pesquise e monte um ticket' routed to general_question instead of market_scan.",
+    "Fixed money parsing so 'ticket para 10k' is rendered as requested ticket size and 'paper com 100k' is rendered as theoretical account size."
   ],
   "evidence": [
-    "root-cause evidence: runtime logs showed NOK selected in prior speculative runs while experts reported NO_DATA/TRAP and the candidate used Market=United States with currency=EUR.",
-    "inline intent proof: user-style prompt -> decisive=True, horizon=1 hours, route=market_scan, action=scan_market.",
-    "pytest focused: .venv/Scripts/python.exe -m pytest tests/test_decisive_trade_order.py::test_decisive_trade_intent_detection tests/test_decisive_trade_order.py::test_paper_training_prompt_returns_pending_ticket_not_research_report tests/test_trade_order.py::test_currency_market_mismatch_blocks_fast_trade_candidate tests/contracts/test_contract_orchestrator.py::test_extract_time_horizon_hours -q -> 4 passed.",
-    "pytest relevant suite: .venv/Scripts/python.exe -m pytest tests/test_decisive_trade_order.py tests/test_trade_order.py tests/contracts/test_contract_orchestrator.py tests/contracts/test_contract_agent.py tests/test_api_routes_sync.py -q -> 115 passed in 4.44s.",
+    "pytest focused: .venv/Scripts/python.exe -m pytest tests/test_decisive_trade_order.py::test_paper_training_money_parser_separates_ticket_size_from_account tests/test_decisive_trade_order.py::test_paper_training_ticket_prompt_routes_to_market_scan tests/test_auto_full_analysis.py -q -> 5 passed.",
+    "pytest relevant suite: .venv/Scripts/python.exe -m pytest tests/test_auto_full_analysis.py tests/test_decisive_trade_order.py tests/test_trade_order.py tests/contracts/test_contract_orchestrator.py tests/contracts/test_contract_agent.py tests/test_bob_sovereign.py tests/test_agent_market_scan_loop.py tests/test_api_routes_sync.py -q -> 135 passed in 4.62s.",
     "ruff: .venv/Scripts/python.exe -m ruff check modified source/test files -> All checks passed.",
     "runtime restart: runtime/do_restart.ps1 -> health 8082=200, health 8002=200, UI=http://127.0.0.1:8002.",
-    "browser smoke: .venv/Scripts/python.exe scripts/browser_smoke.py --base-url http://127.0.0.1:8002 --skip-chat --timeout-ms 180000 -> ok=true, chart ticker=AAPL, candleCount=130, canvas nonBlank=378108, console_errors=[].",
-    "live /task/submit proof for Marco's prompt: elapsed_s=136.3, contains_research_report=false, contains_paper_ticket=true, contains_nok=false, answer starts with Decisao Final: PAPER_TICKET_PENDING_APPROVAL and includes 10,000 capital, 100,000 theoretical capital, estimated quantity 48, stop/invalidation, and IBKR read_only_no_orders."
+    "browser smoke: .venv/Scripts/python.exe scripts/browser_smoke.py --base-url http://127.0.0.1:8002 --skip-chat --timeout-ms 180000 -> ok=true, AAPL chart 130 candles, canvas nonBlank=378108, console_errors=[].",
+    "live /task/submit proof before money-parser fix but after route/full-stack fix: elapsed_s=230.7, route_used=market_scan, scanner_invoked=true, candidate_count=5, event types included SCAN_EVENT, DATA_COLLECTED, EXPERT_STARTED, EXPERT_DONE, F51_VERDICT, NEURAL_DECISION, SDCA_FIREWALL, CHUNK, STREAM_END.",
+    "live /task/submit proof showed contains_paper_ticket=true, contains_research_report=false, contains_missing_f51=false, contains_missing_sdca=false, contains_submit_order=false.",
+    "money parser unit proof after live finding: requested allocation prompt -> 10,000; account reference -> 100,000; answer no longer renders capital_teorico as 1."
   ],
   "risks": [
-    "IBKR remains read_only_no_orders. Bob may propose a paper ticket, but must not claim order placement, execution, broker fill, or live trade capability.",
-    "The live proof still reported missing_f51_verdict and missing_sdca_firewall, so the next architecture step is to run those gates before approving any future order-ticket transmission.",
-    "PAPER_TICKET_PENDING_APPROVAL is a product contract for supervised training, not investment advice or autonomous execution.",
+    "Full evidence path is now real but slow: the live market_scan proof took 230.7s. This is acceptable for proof, not acceptable as a polished demo default.",
+    "Market-scan final answer still uses the deterministic grounded renderer for safety. Bob now receives the full system evidence, but the renderer still prevents ungrounded ticker hallucinations.",
+    "IBKR remains read_only_no_orders. Bob may propose a paper ticket, but must not claim broker placement, fill, or execution unless a separately gated tool result proves it.",
+    "Paper order submission is intentionally disabled by default and requires a future UI/operator approval gate before use.",
     "GitHub remains blocked by project policy; this is disk-only."
   ],
-  "next_step": "Build the explicit paper order review panel: Bob proposes ticket, Marco approves, adapter stays read-only until a separately gated paper execution mode is implemented.",
+  "next_step": "Optimize demo latency for auto_full_analysis: run experts concurrently with per-provider timeouts and render module evidence visibly in the UI ticket panel.",
   "owner": "Marco"
 }

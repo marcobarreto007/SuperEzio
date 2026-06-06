@@ -340,6 +340,31 @@ def test_decisive_trade_intent_detection():
     assert not detect_decisive_trade_intent("hello Bob")
 
 
+def test_paper_training_ticket_prompt_routes_to_market_scan():
+    from src.core.pipeline.intents import (
+        detect_decisive_trade_intent,
+        parse_user_intent,
+    )
+
+    prompt = (
+        "Bob, estamos em treinamento paper com 100k. Sem enviar ordem ao broker. "
+        "Pesquise e monte um ticket para 10k em oportunidade rapida de 1 hora, "
+        "com stop loss. Mostre quais modulos decidiram."
+    )
+
+    assert detect_decisive_trade_intent(prompt)
+
+    parsed = parse_user_intent(prompt, rigor="strict", ticker="")
+    plan = parsed.to_plan()
+
+    assert parsed.route == "market_scan"
+    assert parsed.intent == "market_scan"
+    assert parsed.action == "scan_market"
+    assert plan["scanner_allowed"] is True
+    assert "market_scan" in plan["allowed_tools"]
+    assert "submit_paper_order" not in plan["allowed_tools"]
+
+
 def test_paper_training_prompt_returns_pending_ticket_not_research_report():
     from src.core.pipeline.nodes.agent import _market_scan_answer
 
@@ -370,6 +395,34 @@ def test_paper_training_prompt_returns_pending_ticket_not_research_report():
 # ---------------------------------------------------------------------------
 # Test 7 — Non-decisive prompt still gets old format
 # ---------------------------------------------------------------------------
+
+
+def test_paper_training_money_parser_separates_ticket_size_from_account():
+    from src.core.pipeline.nodes.agent import (
+        _extract_account_reference,
+        _extract_requested_allocation,
+        _market_scan_answer,
+    )
+
+    prompt = (
+        "Bob, estamos em treinamento paper com 100k. Sem enviar ordem ao broker. "
+        "Pesquise e monte um ticket para 10k em oportunidade rapida de 1 hora, "
+        "com stop loss. Mostre quais modulos decidiram."
+    )
+
+    assert _extract_requested_allocation(prompt) == 10_000
+    assert _extract_account_reference(prompt) == 100_000
+
+    state = _make_scan_state(
+        message=prompt,
+        candidates=[_STRONG_CANDIDATE],
+        time_horizon="1 hours",
+    )
+    answer = _market_scan_answer(state)
+
+    assert "Capital do treino solicitado: 10,000" in answer
+    assert "Capital teorico citado: 100,000" in answer
+    assert "Capital teorico citado: 1\n" not in answer
 
 
 def test_non_decisive_prompt_keeps_research_format():
