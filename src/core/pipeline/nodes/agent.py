@@ -693,6 +693,7 @@ def _is_paper_training_request(message: str) -> bool:
         hint in normalized
         for hint in (
             "treino",
+            "treinar",
             "treinamento",
             "paper",
             "simulado",
@@ -707,12 +708,15 @@ def _is_paper_training_request(message: str) -> bool:
             "ordens",
             "oredem",
             "oredens",
+            "transacao",
+            "transacoes",
             "entrada",
             "entara",
             "saida",
             "stop loss",
             "1 hora",
             "uma hora",
+            "4 horas",
             "intraday",
             "scalp",
             "rapida",

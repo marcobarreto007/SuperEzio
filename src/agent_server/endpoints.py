@@ -28,6 +28,7 @@ from core.pipeline.intents import (
     has_hint,
     detect_complex_finance_intent,
     detect_capital_allocation_intent,
+    detect_decisive_trade_intent,
     detect_market_scan_intent,
     detect_broker_status_intent,
 )
@@ -800,13 +801,16 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
         is_complex = detect_complex_finance_intent(raw_message)
         is_capital_alloc = detect_capital_allocation_intent(raw_message)
         is_market_scan = detect_market_scan_intent(raw_message)
+        is_paper_training = detect_decisive_trade_intent(raw_message)
         if is_broker_status or is_complex or is_capital_alloc:
             explicit_ticker = ""
             detected_ticker = ""
             chart_context = ""
             context_block = ""
             block_vague_financial = False
-        elif is_market_scan and explicit_ticker and not detect_ticker(raw_message):
+        elif (is_market_scan or is_paper_training) and explicit_ticker and not detect_ticker(
+            raw_message
+        ):
             # Market scan request with a chart ticker but no inline ticker:
             # the chart ticker is stale context, not the scan target.
             # Zero it so parse_user_intent routes to market_scan, not ticker_analysis.

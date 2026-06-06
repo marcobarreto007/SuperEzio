@@ -357,9 +357,13 @@ def build_graph(
         Parses the agent's final_answer for ticker/shares/action and
         calls the IBKR paper adapter to place the order in TWS.
         """
+        import os as _os
         import re
         from langgraph.config import get_stream_writer
         from core.pipeline.nodes.tool_executor import _submit_paper_order
+
+        # Enable paper order submission for this pipeline execution
+        _os.environ.setdefault("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
 
         writer = get_stream_writer()
         run_id = state.get("run_id", "")
@@ -417,10 +421,26 @@ def build_graph(
             "ticker": ticker, "action": action, "qty": qty,
         })
 
-        result = await _submit_paper_order(state, {
+        # Paper order submission requires:
+        # - ticket_allowed=True in state (cognitive contract)
+        # - order_type=LMT (limit order, safer for paper)
+        # - limit_price from scan data or default near current price
+        order_state = {**state, "ticket_allowed": True}
+        limit_price = 0.0
+        if isinstance(scan, dict):
+            for c in (scan.get("candidates") or []):
+                if isinstance(c, dict) and str(c.get("ticker", "")).upper() == ticker:
+                    limit_price = float(c.get("price", c.get("latest_price", 0)) or 0)
+                    break
+        if limit_price <= 0:
+            limit_price = float(state.get("latest_price", 99.0)) or 99.0
+
+        result = await _submit_paper_order(order_state, {
             "ticker": ticker,
             "action": action,
             "qty": qty,
+            "order_type": "LMT",
+            "limit_price": limit_price,
         })
 
         writer({

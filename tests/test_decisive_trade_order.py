@@ -331,6 +331,10 @@ def test_decisive_trade_intent_detection():
         "Bob estamos em treinamento com 100k, objetivo e oredens rapidas entara e saida "
         "com stop loss por 1 hora; pesuise e aplike 10 k em oportunidades explosisvas"
     )
+    assert detect_decisive_trade_intent(
+        "Oi Bob , vamos treinar , sua missao , fazer o maior numero de transacoes possiveis "
+        "com 10k , tentando alcancar 54% de vitoria em 4 horas"
+    )
 
     # Should NOT detect
     assert not detect_decisive_trade_intent("scan US technology equities")
@@ -362,6 +366,26 @@ def test_paper_training_ticket_prompt_routes_to_market_scan():
     assert parsed.action == "scan_market"
     assert plan["scanner_allowed"] is True
     assert "market_scan" in plan["allowed_tools"]
+    assert "submit_paper_order" in plan["allowed_tools"]
+
+
+def test_vamos_treinar_prompt_routes_to_market_scan_even_with_chart_ticker():
+    """'vamos treinar' + transacoes + 10k must not be hijacked by stale AAPL chart."""
+    from src.core.pipeline.intents import detect_decisive_trade_intent, parse_user_intent
+
+    prompt = (
+        "Oi Bob , vamos treinar , sua missao , fazer o maior numero de transacoes possiveis "
+        "com 10k , tentando alcancar 54% de vitoria em 4 horas"
+    )
+    assert detect_decisive_trade_intent(prompt)
+
+    parsed = parse_user_intent(prompt, rigor="strict", ticker="AAPL")
+    plan = parsed.to_plan()
+
+    assert parsed.route == "market_scan"
+    assert parsed.intent == "market_scan"
+    assert plan["scanner_allowed"] is True
+    assert plan["ticket_allowed"] is True
     assert "submit_paper_order" in plan["allowed_tools"]
 
 

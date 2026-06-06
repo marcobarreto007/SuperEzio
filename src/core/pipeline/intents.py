@@ -1984,6 +1984,7 @@ def detect_decisive_trade_intent(message: str) -> bool:
     normalized = normalize_message(message)
     training_hints = (
         "treino",
+        "treinar",
         "treinamento",
         "paper",
         "simulado",
@@ -1997,6 +1998,8 @@ def detect_decisive_trade_intent(message: str) -> bool:
         "oredens",
         "trade",
         "trades",
+        "transacao",
+        "transacoes",
         "entrada",
         "entara",
         "saida",
@@ -2004,6 +2007,8 @@ def detect_decisive_trade_intent(message: str) -> bool:
         "stop",
         "1 hora",
         "uma hora",
+        "4 horas",
+        "quatro horas",
         "intraday",
         "scalp",
         "rapida",
@@ -2040,6 +2045,8 @@ def detect_decisive_trade_intent(message: str) -> bool:
     has_explosive = any(hint in normalized for hint in explosive_hints)
 
     if has_training and has_fast_trade:
+        return True
+    if has_training and has_allocation:
         return True
     if has_allocation and (has_fast_trade or has_explosive):
         return True
