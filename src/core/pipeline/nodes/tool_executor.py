@@ -348,7 +348,6 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
     Only works when IBKR paper TWS is connected on port 7497.
     Disabled by default; enabled only by explicit paper-submit env.
     """
-    import asyncio as _asyncio
 
     permission_error = _paper_order_submission_error(state, args)
     if permission_error:
@@ -362,43 +361,48 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
     if not symbol:
         return {"submit_paper_order_error": "missing_ticker"}
 
+    import concurrent.futures as _futures
+
     def _do_order():
         import asyncio as _aio
         from ib_insync import IB, LimitOrder, Stock
 
-        # ib_insync needs an event loop; create one in this thread
         loop = _aio.new_event_loop()
         _aio.set_event_loop(loop)
-
-        ib = IB()
-        ib.connect("127.0.0.1", 7497, clientId=99)
-        contract = Stock(symbol, "SMART", "USD")
-        ib.qualifyContracts(contract)
-        trade = ib.placeOrder(
-            contract,
-            LimitOrder("BUY" if action in ("buy", "long") else "SELL", qty, limit_price),
-        )
-        ib.sleep(3)
-        result = {
-            "order_id": trade.order.orderId,
-            "symbol": symbol,
-            "action": "BUY" if action in ("buy", "long") else "SELL",
-            "qty": qty,
-            "order_type": "LMT",
-            "limit_price": limit_price,
-            "status": trade.orderStatus.status,
-            "filled": trade.orderStatus.filled,
-            "avg_price": trade.orderStatus.avgFillPrice,
-        }
-        for p in ib.positions():
-            if p.contract.symbol == symbol:
-                result["position"] = f"{p.position} shares @ avg {p.avgCost}"
-        ib.disconnect()
-        loop.close()
-        return result
+        try:
+            ib = IB()
+            ib.connect("127.0.0.1", 7497, clientId=99, timeout=10)
+            contract = Stock(symbol, "SMART", "USD")
+            ib.qualifyContracts(contract)
+            trade = ib.placeOrder(
+                contract,
+                LimitOrder("BUY" if action in ("buy", "long") else "SELL", qty, limit_price),
+            )
+            # Use loop.run_until_complete instead of ib.sleep (which needs running loop)
+            loop.run_until_complete(_aio.sleep(3))
+            result = {
+                "order_id": trade.order.orderId,
+                "symbol": symbol,
+                "action": "BUY" if action in ("buy", "long") else "SELL",
+                "qty": qty,
+                "order_type": "LMT",
+                "limit_price": limit_price,
+                "status": trade.orderStatus.status,
+                "filled": trade.orderStatus.filled,
+                "avg_price": trade.orderStatus.avgFillPrice,
+            }
+            for p in ib.positions():
+                if p.contract.symbol == symbol:
+                    result["position"] = f"{p.position} shares @ avg {p.avgCost}"
+            ib.disconnect()
+            return result
+        finally:
+            loop.close()
 
     try:
-        result = await _asyncio.to_thread(_do_order)
+        with _futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_do_order)
+            result = future.result(timeout=15)
         return {"submit_paper_order_result": result}
     except Exception as exc:
         return {"submit_paper_order_error": str(exc)[:200]}
