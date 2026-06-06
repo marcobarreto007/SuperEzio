@@ -370,24 +370,39 @@ def build_graph(
         })
 
         final = state.get("final_answer", "")
-        if not final or "PAPER_TICKET" not in final:
+        scan = state.get("scan") or {}
+        candidates = scan.get("candidates", []) if isinstance(scan, dict) else []
+
+        # ── Strategy 1: PAPER_TICKET in Bob's response ──
+        if final and "PAPER_TICKET" in final:
+            ticker_match = re.search(r"(?:Ticker|ticker):\s*([A-Z]{1,5}(?:\.[A-Z]{2})?)", final)
+            ticker = ticker_match.group(1) if ticker_match else state.get("ticker", "")
+            qty_match = re.search(r"(?:quantity|qty|shares|Estimated quantity):\s*([\d,.]+)", final)
+            qty = float(qty_match.group(1).replace(",", "")) if qty_match else 10
+            action = "sell" if "SELL" in final or "short" in final.lower() else "buy"
+
+        # ── Strategy 2: Fallback — pick top scan candidate ──
+        elif candidates and state.get("route") in ("market_scan",):
+            top = candidates[0] if isinstance(candidates[0], dict) else {}
+            ticker = str(top.get("ticker", top.get("symbol", ""))).upper()
+            if not ticker:
+                writer({
+                    "type": "PIPELINE_STEP", "run_id": run_id,
+                    "step": "auto_execute_paper", "status": "skipped",
+                    "reason": "no_ticker_in_scan_candidates",
+                })
+                return {}
+            price = float(top.get("price", top.get("latest_price", 0)) or 0)
+            qty = max(1, int(1000 / price)) if price > 0 else 10
+            action = "buy"
+
+        else:
             writer({
                 "type": "PIPELINE_STEP", "run_id": run_id,
                 "step": "auto_execute_paper", "status": "skipped",
-                "reason": "no_paper_ticket_in_response",
+                "reason": "no_paper_ticket_or_scan_candidates",
             })
             return {}
-
-        # Parse ticker: "Ticker: NVDA" or "- Ticker: NVDA"
-        ticker_match = re.search(r"(?:Ticker|ticker):\s*([A-Z]{1,5}(?:\.[A-Z]{2})?)", final)
-        ticker = ticker_match.group(1) if ticker_match else state.get("ticker", "")
-
-        # Parse shares: "quantity: 51" or "shares: 100"
-        qty_match = re.search(r"(?:quantity|qty|shares|Estimated quantity):\s*([\d,.]+)", final)
-        qty = float(qty_match.group(1).replace(",", "")) if qty_match else 10
-
-        # Parse action: BUY is default for paper training
-        action = "sell" if "SELL" in final or "short" in final.lower() else "buy"
 
         if not ticker:
             writer({
@@ -395,7 +410,7 @@ def build_graph(
                 "step": "auto_execute_paper", "status": "skipped",
                 "reason": "no_ticker_parsed",
             })
-            return {"paper_exec_note": "no ticker parsed from paper ticket"}
+            return {"paper_exec_note": "no ticker parsed"}
 
         writer({
             "type": "PAPER_EXEC", "run_id": run_id,
