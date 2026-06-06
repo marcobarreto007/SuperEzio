@@ -351,6 +351,41 @@ def build_graph(
     async def _tool_executor(state: dict) -> dict:
         return await node_tool_executor(state, gateway=gateway, config=config)
 
+    async def _auto_execute_paper(state: dict) -> dict:
+        """Auto-submit paper orders when Bob produces a PAPER_TICKET.
+
+        Parses the agent's final_answer for ticker/shares/action and
+        calls the IBKR paper adapter to place the order in TWS.
+        """
+        import re
+        from core.pipeline.nodes.tool_executor import _submit_paper_order
+
+        final = state.get("final_answer", "")
+        if not final or "PAPER_TICKET" not in final:
+            return {}
+
+        # Parse ticker: "Ticker: NVDA" or "- Ticker: NVDA"
+        ticker_match = re.search(r"(?:Ticker|ticker):\s*([A-Z]{1,5}(?:\.[A-Z]{2})?)", final)
+        ticker = ticker_match.group(1) if ticker_match else state.get("ticker", "")
+
+        # Parse shares: "quantity: 51" or "shares: 100"
+        qty_match = re.search(r"(?:quantity|qty|shares|Estimated quantity):\s*([\d,.]+)", final)
+        qty = float(qty_match.group(1).replace(",", "")) if qty_match else 10
+
+        # Parse action: BUY is default for paper training
+        action = "sell" if "SELL" in final or "short" in final.lower() else "buy"
+
+        if not ticker:
+            return {"paper_exec_note": "no ticker parsed from paper ticket"}
+
+        result = await _submit_paper_order(state, {
+            "ticker": ticker,
+            "action": action,
+            "qty": qty,
+        })
+
+        return {"paper_exec_result": result, "paper_exec_ticker": ticker, "paper_exec_qty": qty}
+
     async def _explanation(state: dict) -> dict:
         return await node_explanation(state)
 
@@ -362,6 +397,7 @@ def build_graph(
     builder.add_node("orchestrator_primary", _orchestrator)
     builder.add_node("auto_full_analysis", _auto)
     builder.add_node("agent", _agent)
+    builder.add_node("auto_execute_paper", _auto_execute_paper)
     builder.add_node("tool_executor", _tool_executor)
     builder.add_node("explanation", _explanation)
     builder.add_node("respond_blocked", _blocked)
@@ -378,18 +414,23 @@ def build_graph(
     # After full analysis (experts + F51 + neural + SDCA + RAG), go to agent
     builder.add_edge("auto_full_analysis", "agent")
 
-    # Agent decides whether to call a tool or output the final answer
+    # Agent decides whether to call a tool or output the final answer.
+    # Route through auto_execute_paper before explanation so paper orders
+    # are auto-submitted to IBKR when Bob produces a PAPER_TICKET.
     builder.add_conditional_edges(
         "agent",
         route_after_agent,
         {
             "tool_executor": "tool_executor",
-            "explanation": "explanation",
+            "explanation": "auto_execute_paper",
         },
     )
 
     # After a tool executes, return control to the agent
     builder.add_edge("tool_executor", "agent")
+
+    # Auto-execute paper orders, then go to explanation
+    builder.add_edge("auto_execute_paper", "explanation")
 
     builder.add_edge("explanation", END)
     builder.add_edge("respond_blocked", END)
