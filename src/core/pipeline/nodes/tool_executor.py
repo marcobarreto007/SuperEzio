@@ -363,7 +363,12 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
         return {"submit_paper_order_error": "missing_ticker"}
 
     def _do_order():
+        import asyncio as _aio
         from ib_insync import IB, LimitOrder, Stock
+
+        # ib_insync needs an event loop; create one in this thread
+        loop = _aio.new_event_loop()
+        _aio.set_event_loop(loop)
 
         ib = IB()
         ib.connect("127.0.0.1", 7497, clientId=99)
@@ -389,6 +394,7 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
             if p.contract.symbol == symbol:
                 result["position"] = f"{p.position} shares @ avg {p.avgCost}"
         ib.disconnect()
+        loop.close()
         return result
 
     try:
