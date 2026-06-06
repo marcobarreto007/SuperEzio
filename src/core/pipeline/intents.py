@@ -974,6 +974,9 @@ VAGUE_FINANCIAL_HINTS = (
     "short squeeze", "insider buying", "options activity",
     "penny stock", "small cap", "small-cap", "microcap",
     "double", "cheap", "explode", "crash",
+    "paper training", "paper account", "paper trade", "paper trading",
+    "quick trade", "quick trades", "fast trade", "fast trades",
+    "training", "train", "treino", "treinamento",
 )
 
 DIRECT_UNSCOPED_RECOMMENDATION_PATTERNS = (
@@ -1550,6 +1553,11 @@ SCAN_COMMAND_HINTS = (
     "search for", "recommend", "suggest",
     "show me", "give me", "pick", "choose",
     "scan for", "screen for",
+    "find and", "pick a", "select a",
+    "paper trade", "paper trading",
+    "apply", "execute",
+    "training", "train", "treino", "treinamento",
+    "trade", "trades", "trading",
 )
 
 TICKER_REQUIRED_ANALYSIS_HINTS = (
@@ -1756,7 +1764,7 @@ def detect_ticker(message: str) -> str:
 
     # 3.5 Ticker numérico curto (ex: 6M, 88E, 3M) — comum em microcaps/OTC
     # BUT: reject monetary amounts.  "5K", "10k", "2M", "500B" are NOT tickers.
-    _AMOUNT_SUFFIXES = re.compile(r"^\d{1,4}[KkMmBb]$")
+    _AMOUNT_SUFFIXES = re.compile(r"^\d{1,4}[KkMmBbHhDdWwSs]$")  # 4H=4hours, 2W=2weeks etc.
     num_prefix_matches = re.findall(r"\b(\d{1,2}[A-Za-z]{1,5})\b", raw)
     for match in num_prefix_matches:
         upper = match.upper()
