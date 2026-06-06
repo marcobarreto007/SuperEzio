@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+from pathlib import Path
 from typing import Any
 
 from langgraph.config import get_stream_writer
@@ -361,49 +362,30 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
     if not symbol:
         return {"submit_paper_order_error": "missing_ticker"}
 
-    import concurrent.futures as _futures
+    import subprocess as _sp
+    import json as _json
+    import sys as _sys
 
-    def _do_order():
-        import asyncio as _aio
-        from ib_insync import IB, LimitOrder, Stock
-
-        loop = _aio.new_event_loop()
-        _aio.set_event_loop(loop)
-        try:
-            ib = IB()
-            ib.connect("127.0.0.1", 7497, clientId=99, timeout=10)
-            contract = Stock(symbol, "SMART", "USD")
-            ib.qualifyContracts(contract)
-            trade = ib.placeOrder(
-                contract,
-                LimitOrder("BUY" if action in ("buy", "long") else "SELL", qty, limit_price),
-            )
-            # Use loop.run_until_complete instead of ib.sleep (which needs running loop)
-            loop.run_until_complete(_aio.sleep(3))
-            result = {
-                "order_id": trade.order.orderId,
-                "symbol": symbol,
-                "action": "BUY" if action in ("buy", "long") else "SELL",
-                "qty": qty,
-                "order_type": "LMT",
-                "limit_price": limit_price,
-                "status": trade.orderStatus.status,
-                "filled": trade.orderStatus.filled,
-                "avg_price": trade.orderStatus.avgFillPrice,
-            }
-            for p in ib.positions():
-                if p.contract.symbol == symbol:
-                    result["position"] = f"{p.position} shares @ avg {p.avgCost}"
-            ib.disconnect()
-            return result
-        finally:
-            loop.close()
+    script = str(
+        Path(__file__).resolve().parent.parent.parent.parent.parent
+        / "scripts" / "_ibkr_order.py"
+    )
+    cmd = [
+        _sys.executable, script,
+        "BUY" if action in ("buy", "long") else "SELL",
+        symbol,
+        str(int(qty)),
+        str(limit_price),
+    ]
 
     try:
-        with _futures.ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(_do_order)
-            result = future.result(timeout=15)
-        return {"submit_paper_order_result": result}
+        proc = _sp.run(cmd, capture_output=True, text=True, timeout=20)
+        if proc.returncode == 0:
+            result = _json.loads(proc.stdout.strip())
+            return {"submit_paper_order_result": result}
+        else:
+            error = _json.loads(proc.stderr.strip() or proc.stdout.strip() or "{}")
+            return {"submit_paper_order_error": error.get("error", proc.stderr[:200])}
     except Exception as exc:
         return {"submit_paper_order_error": str(exc)[:200]}
 
