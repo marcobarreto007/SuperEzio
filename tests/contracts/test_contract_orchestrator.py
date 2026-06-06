@@ -56,6 +56,35 @@ def test_ibkr_broker_status_question_is_not_ticker_analysis():
     assert "broker_status_question" in parsed.reasons
 
 
+def test_ibkr_paper_order_prompt_routes_to_market_scan_not_status():
+    from src.core.pipeline.intents import (
+        detect_broker_status_intent,
+        detect_decisive_trade_intent,
+        detect_ticker,
+        parse_user_intent,
+    )
+
+    prompt = (
+        "Bob, estamos em treinamento paper na IBKR com capital teorico de 100k. "
+        "Use 10k para buscar uma oportunidade de investimento com retorno esperado "
+        "em uma semana. Envie a ordem paper LMT pelo IBKR paper se os gates aprovarem. "
+        "Nao use dinheiro real."
+    )
+
+    assert detect_decisive_trade_intent(prompt)
+    assert not detect_broker_status_intent(prompt)
+    assert detect_ticker(prompt) == ""
+    assert detect_ticker("analyze IBKR stock") == "IBKR"
+
+    parsed = parse_user_intent(prompt, rigor="strict", ticker="")
+    plan = parsed.to_plan()
+    assert parsed.route == "market_scan"
+    assert parsed.intent == "market_scan"
+    assert plan["scanner_allowed"] is True
+    assert plan["ticket_allowed"] is True
+    assert "submit_paper_order" in plan["allowed_tools"]
+
+
 # ---------------------------------------------------------------------------
 # Time horizon extraction
 # ---------------------------------------------------------------------------

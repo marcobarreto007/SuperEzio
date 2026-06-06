@@ -146,6 +146,19 @@ class TestCapitalAllocation:
         assert "8-15% return" not in repaired
         assert "avoided interest rate" in repaired
 
+    def test_repair_removes_tax_free_exact_debt_return_phrase(self):
+        content = (
+            "Why here? Because paying off 7% debt is like earning a guaranteed, "
+            "tax-free 7% return -- with zero volatility.\n"
+            "Final verdict: ETF\n"
+            "Confidence: 76"
+        )
+
+        repaired = _repair_complex_finance_answer(CAPITAL_ALLOCATION_PROMPT, content)
+
+        assert "7% return" not in repaired
+        assert "avoided interest rate" in repaired
+
     def test_repair_corrects_mutual_fund_used_as_bond_etf(self):
         content = (
             "8. Ranked Allocation / Framework — 50% US Large Cap ETF (VOO), "

@@ -36,12 +36,6 @@ _REPEATABLE_TOOLS = {"final_answer"}
 _SEMI_REPEATABLE_LIMITS: dict[str, int] = {"collect_data": 2}
 
 
-def _truthy(value: Any) -> bool:
-    if isinstance(value, bool):
-        return value
-    return str(value or "").strip().lower() in {"1", "true", "yes", "y", "on", "approved"}
-
-
 def _paper_order_submission_error(state: dict, args: dict) -> str:
     if os.getenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "0").strip().lower() not in {
         "1",
@@ -52,8 +46,6 @@ def _paper_order_submission_error(state: dict, args: dict) -> str:
         return "paper_order_submission_disabled_by_env"
     if not state.get("ticket_allowed", False):
         return "paper_order_not_allowed_by_cognitive_contract"
-    if not _truthy(args.get("approved_by_operator")):
-        return "missing_operator_approval"
     order_type = str(args.get("order_type") or args.get("type") or "").strip().upper()
     if order_type != "LMT":
         return "limit_order_required"
@@ -354,7 +346,7 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
     """Submit a paper trade order to IBKR via the InteractiveBrokersAdapter.
 
     Only works when IBKR paper TWS is connected on port 7497.
-    Disabled by default; enabled only by explicit env + operator approval.
+    Disabled by default; enabled only by explicit paper-submit env.
     """
     import asyncio as _asyncio
 
@@ -453,6 +445,16 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
     repeatable = tool_name in _REPEATABLE_TOOLS
     semi_limit = _SEMI_REPEATABLE_LIMITS.get(tool_name)
     semi_count = executed_tool_counts.get(tool_name, 0)
+    paper_order_has_broker_result = bool(
+        state.get("submit_paper_order_result") or state.get("submit_paper_order_error")
+    )
+    if tool_name == "submit_paper_order" and tool_name in executed_tools:
+        if not paper_order_has_broker_result:
+            executed_tools = [tool for tool in executed_tools if tool != tool_name]
+            executed_tool_counts = {
+                key: value for key, value in executed_tool_counts.items() if key != tool_name
+            }
+            semi_count = 0
     if tool_name in executed_tools and not repeatable:
         if semi_limit is None or semi_count >= semi_limit:
             writer = get_stream_writer()

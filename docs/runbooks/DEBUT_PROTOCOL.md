@@ -1,6 +1,6 @@
 # Market Debut Protocol - Bob SuperEzio CEO
 
-**Version:** 1.1.0
+**Version:** 1.2.0
 **Date:** 2026-06-05
 **Status:** Pre-Debut Validation (6/8 criteria proven)
 
@@ -8,7 +8,7 @@
 
 Bob is not a generic chatbot. Bob is an educational financial copilot with an
 80B-class local model, deterministic analysis pipeline, risk firewall, F51
-verdict engine, and read-only broker visibility.
+verdict engine, broker visibility, and gated IBKR paper order submission.
 
 The market debut is not placing an order. The debut is proving that Bob can:
 
@@ -19,7 +19,7 @@ The market debut is not placing an order. The debut is proving that Bob can:
 5. Register a thesis.
 6. Track the result.
 7. Learn from correct and wrong calls.
-8. Never execute without approval.
+8. Never execute live money; submit paper orders only through the gated tool.
 
 ## 2. Current State (2026-06-05)
 
@@ -46,7 +46,7 @@ The market debut is not placing an order. The debut is proving that Bob can:
 
 | Provider | State |
 |----------|-------|
-| IBKR | TWS Demo/Paper-style API connected on localhost:7497, read_only_no_orders |
+| IBKR | TWS Demo/Paper-style API connected on localhost:7497, paper_order_enabled |
 | Alpaca | Package present, credentials not configured, read_only_no_orders |
 
 IBKR proof:
@@ -57,14 +57,15 @@ connected_count: 1
 provider: ibkr
 connected: true
 paper_port: true
-mode: read_only
+mode: paper_order_enabled
 account_equity: 100000.00
 positions_count: 0
-safe_mode: read_only_no_orders
+can_submit_orders: true
 ```
 
-Bob may explain this state to users. Bob must not claim he can submit, cancel,
-or modify orders.
+Bob may explain this state to users. Bob may submit IBKR paper LMT orders only
+through `submit_paper_order` when the execution gate is enabled. Bob must not
+claim a broker fill unless the IBKR/tool status proves it.
 
 ## 3. Debut Criteria
 
@@ -126,10 +127,12 @@ CLI: `scripts/paper_journal_cli.py performance`.
   (not an artifact of synthetic fixtures or small sample size)
 - Bias must be traceable to a specific pattern in real closed trades
 
-### C8 - Never execute without approval: PROVEN
+### C8 - Never execute live money: PROVEN
 
-Any order requires explicit operator approval. Default mode is read-only/no
-orders. The current IBKR proof confirms account/position visibility only.
+Live-money execution remains prohibited. Paper orders do not require an extra
+Marco approval prompt once `SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT=1`,
+`ticket_allowed=true`, and the `submit_paper_order` tool are active. Every paper
+order must be LMT and every broker result must be reported from the tool output.
 
 ## 4. Summary
 
@@ -151,9 +154,9 @@ unimplemented. Progress from here requires time in market, not more code.
 
 ## 5. Next Phase - Real Paper Trading
 
-Objective: use IBKR paper/read-only account visibility to build a thesis
-journal, compare outcomes against benchmarks, and calibrate Bob before any
-execution adapter.
+Objective: use IBKR paper account visibility and gated paper LMT orders to build
+a thesis journal, compare outcomes against benchmarks, and calibrate Bob before
+any live-money path.
 
 ### 5.1 Two-Week IBKR Paper Brokerage Apprenticeship
 
@@ -166,9 +169,11 @@ During this window Bob must:
 
 1. Read IBKR paper account state when available.
 2. Use broker-sourced prices where available for paper theses.
-3. Propose order tickets only after explaining thesis, risk, invalidation,
+3. Submit paper LMT orders only after explaining thesis, risk, invalidation,
    size, and expected review horizon.
-4. Ask Marco for explicit approval before any paper or live order path.
+4. Never ask for extra Marco approval for paper submit when the execution gate
+   is already enabled; always require separate explicit approval before any
+   future live-money path.
 5. Record every thesis, order-ticket plan, broker status, outcome, and
    post-mortem in the paper journal.
 6. Explain clearly whether the system is read-only, paper order enabled, or
@@ -177,14 +182,14 @@ During this window Bob must:
 Bob must not:
 
 1. Claim to be a registered broker, financial advisor, or IBKR employee.
-2. Claim execution capability while IBKR mode is `read_only_no_orders`.
+2. Claim live-money execution capability.
 3. Call a journal entry a broker fill unless IBKR order status or execution
    detail proves it.
 4. Treat simulated paper fills as proof of live-market edge.
 
 Technical prerequisites:
 
-1. IBKR TWS paper/demo API connected on port 7497 in read-only/no-orders mode.
+1. IBKR TWS paper/demo API connected on port 7497 with socket clients enabled.
 2. Paper thesis journal implemented.
 3. Performance metrics defined: Sharpe, max drawdown, win rate, thesis vs result.
 4. Periodic thesis review implemented.

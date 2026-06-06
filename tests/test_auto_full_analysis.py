@@ -108,7 +108,6 @@ async def test_submit_paper_order_is_disabled_without_execution_gate(monkeypatch
                     "qty": 5,
                     "order_type": "LMT",
                     "limit_price": 3.2,
-                    "approved_by_operator": True,
                 },
             },
             "allowed_tools": ["submit_paper_order", "final_answer"],
@@ -127,7 +126,75 @@ async def test_submit_paper_order_is_disabled_without_execution_gate(monkeypatch
     assert any(event.get("status") == "blocked_by_cognitive_contract" for event in events)
 
 
-def test_default_market_scan_contract_does_not_expose_broker_submission():
+@pytest.mark.asyncio
+async def test_submit_paper_order_history_without_broker_result_is_not_duplicate(monkeypatch):
+    from src.core.pipeline.nodes import tool_executor as tool_executor_module
+
+    events = []
+    monkeypatch.setenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
+    monkeypatch.setattr(tool_executor_module, "get_stream_writer", lambda: events.append)
+
+    async def fake_submit(state, args):
+        return {
+            "submit_paper_order_result": {
+                "order_id": "paper-1",
+                "symbol": args["ticker"],
+                "action": args["action"],
+                "qty": args["qty"],
+                "order_type": args["order_type"],
+                "limit_price": args["limit_price"],
+                "status": "Submitted",
+                "filled": 0,
+                "avg_price": 0,
+            }
+        }
+
+    monkeypatch.setattr(tool_executor_module, "_submit_paper_order", fake_submit)
+
+    result = await tool_executor_module.node_tool_executor(
+        {
+            "run_id": "paper-order-history-repair-test",
+            "agent_tool_call": {
+                "tool": "submit_paper_order",
+                "args": {
+                    "ticker": "PLUG",
+                    "action": "buy",
+                    "qty": 5,
+                    "order_type": "LMT",
+                    "limit_price": 3.2,
+                },
+            },
+            "allowed_tools": ["submit_paper_order", "final_answer"],
+            "ticket_allowed": True,
+            "executed_tools": ["submit_paper_order"],
+            "executed_tool_counts": {"submit_paper_order": 1},
+            "errors": [],
+        },
+        gateway=None,
+        config=None,
+    )
+
+    assert result["submit_paper_order_result"]["order_id"] == "paper-1"
+    assert result["executed_tools"] == ["submit_paper_order"]
+    assert result["executed_tool_counts"]["submit_paper_order"] == 1
+    assert not any(event.get("status") == "blocked_duplicate" for event in events)
+
+
+def test_paper_order_gate_does_not_require_operator_approval(monkeypatch):
+    from src.core.pipeline.nodes.tool_executor import _paper_order_submission_error
+
+    monkeypatch.setenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
+
+    assert (
+        _paper_order_submission_error(
+            {"ticket_allowed": True},
+            {"order_type": "LMT", "limit_price": 3.2},
+        )
+        == ""
+    )
+
+
+def test_default_market_scan_contract_exposes_paper_submission_tool():
     from src.core.pipeline.intents import infer_cognitive_contract
 
     contract = infer_cognitive_contract(
@@ -139,4 +206,154 @@ def test_default_market_scan_contract_does_not_expose_broker_submission():
 
     assert contract["ticket_allowed"] is True
     assert "market_scan" in contract["allowed_tools"]
-    assert "submit_paper_order" not in contract["allowed_tools"]
+    assert "submit_paper_order" in contract["allowed_tools"]
+
+
+@pytest.mark.asyncio
+async def test_agent_forces_paper_submit_when_model_finalizes(monkeypatch):
+    from src.core.pipeline.nodes import agent as agent_module
+
+    monkeypatch.setenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
+    monkeypatch.setattr(agent_module, "get_stream_writer", lambda: lambda _event: None)
+
+    class MockGateway:
+        async def chat_completion(self, **kwargs):
+            return '{"tool":"final_answer","args":{"content":"ticket ready"}}'
+
+    state = {
+        "run_id": "force-paper-submit-test",
+        "route": "market_scan",
+        "message": "treinamento paper com 100k; use 10k para ordem rapida com stop loss",
+        "allowed_tools": ["market_scan", "submit_paper_order", "final_answer"],
+        "ticket_allowed": True,
+        "scanner_allowed": True,
+        "ticker_allowed": True,
+        "agent_iterations": 0,
+        "scan": {
+            "candidates": [
+                {
+                    "ticker": "PLUG",
+                    "name": "Plug Power",
+                    "market": "United States",
+                    "price": 3.2,
+                    "currency": "USD",
+                    "volume": 4_000_000,
+                    "catalyst": "short-term momentum",
+                    "risk": "trend reversal",
+                    "invalidation": "close below support",
+                    "provider": "test",
+                }
+            ],
+            "source_errors": [],
+        },
+        "f51_verdict": {"passed": True, "confidence": 0.91},
+        "sdca_firewall": {"decision": "ALLOW", "confidence": 0.88},
+    }
+
+    result = await agent_module.node_agent(state, gateway=MockGateway())
+
+    assert result["agent_tool_call"]["tool"] == "submit_paper_order"
+    assert result["agent_tool_call"]["args"] == {
+        "ticker": "PLUG",
+        "action": "buy",
+        "qty": 3125,
+        "order_type": "LMT",
+        "limit_price": 3.2,
+    }
+
+
+@pytest.mark.asyncio
+async def test_agent_respects_explicit_no_order_instruction(monkeypatch):
+    from src.core.pipeline.nodes import agent as agent_module
+
+    monkeypatch.setenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
+    monkeypatch.setattr(agent_module, "get_stream_writer", lambda: lambda _event: None)
+
+    class MockGateway:
+        async def chat_completion(self, **kwargs):
+            return '{"tool":"final_answer","args":{"content":"ticket ready, no broker order"}}'
+
+    state = {
+        "run_id": "no-paper-submit-test",
+        "route": "market_scan",
+        "message": "treinamento paper com 100k; use 10k, mas sem enviar ordem ao broker",
+        "allowed_tools": ["market_scan", "submit_paper_order", "final_answer"],
+        "ticket_allowed": True,
+        "scanner_allowed": True,
+        "ticker_allowed": True,
+        "agent_iterations": 0,
+        "scan": {
+            "candidates": [
+                {
+                    "ticker": "PLUG",
+                    "name": "Plug Power",
+                    "market": "United States",
+                    "price": 3.2,
+                    "currency": "USD",
+                    "volume": 4_000_000,
+                    "catalyst": "short-term momentum",
+                    "risk": "trend reversal",
+                    "invalidation": "close below support",
+                    "provider": "test",
+                }
+            ],
+            "source_errors": [],
+        },
+        "f51_verdict": {"passed": True, "confidence": 0.91},
+        "sdca_firewall": {"decision": "ALLOW", "confidence": 0.88},
+    }
+
+    result = await agent_module.node_agent(state, gateway=MockGateway())
+
+    assert result["agent_tool_call"]["tool"] == "final_answer"
+    assert "submit_paper_order" not in result["final"]
+    assert "paper transmission blocked by the user's instruction" in result["final"]
+
+
+@pytest.mark.asyncio
+async def test_agent_finalizes_directly_after_paper_order_error(monkeypatch):
+    from src.core.pipeline.nodes import agent as agent_module
+
+    monkeypatch.setattr(agent_module, "get_stream_writer", lambda: lambda _event: None)
+
+    class GatewayMustNotBeCalled:
+        async def chat_completion(self, **kwargs):
+            raise AssertionError("agent should not call model after paper order result/error")
+
+    state = {
+        "run_id": "paper-order-error-final-test",
+        "route": "market_scan",
+        "message": "treinamento paper com 100k; use 10k para ordem rapida com stop loss",
+        "allowed_tools": ["market_scan", "submit_paper_order", "final_answer"],
+        "ticket_allowed": True,
+        "scanner_allowed": True,
+        "ticker_allowed": True,
+        "agent_iterations": 1,
+        "scan": {
+            "candidates": [
+                {
+                    "ticker": "PLUG",
+                    "name": "Plug Power",
+                    "market": "United States",
+                    "price": 3.2,
+                    "currency": "USD",
+                    "volume": 4_000_000,
+                    "catalyst": "short-term momentum",
+                    "risk": "trend reversal",
+                    "invalidation": "close below support",
+                    "provider": "test",
+                }
+            ],
+            "source_errors": [],
+        },
+        "f51_verdict": {"passed": True, "confidence": 0.91},
+        "sdca_firewall": {"decision": "ALLOW", "confidence": 0.88},
+        "submit_paper_order_error": "port_closed",
+    }
+
+    result = await agent_module.node_agent(state, gateway=GatewayMustNotBeCalled())
+
+    assert result["agent_tool_call"]["tool"] == "final_answer"
+    assert "Paper Broker Transmission" in result["final"]
+    assert "paper order transmission failed" in result["final"]
+    assert "port_closed" in result["final"]

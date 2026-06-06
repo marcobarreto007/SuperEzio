@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import re
+from decimal import Decimal, InvalidOperation, ROUND_FLOOR
 from typing import Any
 
 from langgraph.config import get_stream_writer
@@ -142,9 +143,9 @@ You have tools available. Use them to CONFIRM or CHALLENGE your thesis:
 - pennylab: forensic penny stock manipulation check
 - penny_momentum_backtest: run the math-core penny momentum breakout backtest from OHLCV data or scan tickers
 - bob_search: search the web and archived documents for current information
-- submit_paper_order: broker transmission tool. It is disabled unless ALLOWED TOOLS includes it,
-  an explicit operator approval flag is present, and the environment enables paper order submission.
-  In read_only_no_orders mode, propose PAPER_TICKET_PENDING_APPROVAL instead of claiming execution.
+- submit_paper_order: broker paper transmission tool. It is disabled unless ALLOWED TOOLS includes it
+  and the environment enables paper order submission. Paper mode does NOT require extra operator approval.
+  Use only LMT orders with limit_price. Never use it for live-money execution.
 
 Call tools ONLY when your thesis needs grounding. Don't call tools blindly.
 Every tool call must have a PURPOSE tied to your thesis.
@@ -153,8 +154,8 @@ STEP 4 - PAPER TICKET / EXECUTION GATE
 When the user asks for a paper trade, first build a ticket from collected evidence:
 candidate, thesis, entry type, limit area, stop/invalidation, max risk, and uncertainty.
 Do NOT claim a broker order was placed unless a tool result explicitly proves it.
-- If broker mode is read_only_no_orders: return PAPER_TICKET_PENDING_APPROVAL.
-- Only call submit_paper_order when ALLOWED TOOLS includes it AND the user/operator has approved transmission.
+- If ALLOWED TOOLS includes submit_paper_order and paper submission is enabled, call submit_paper_order with LMT, limit_price, ticker, action, and qty.
+- If submit_paper_order is unavailable or fails, return PAPER_TICKET_PENDING_APPROVAL or report the tool error.
 - Max 10% per position, max 2% risk per trade.
 
 STEP 5 — CONCLUDE
@@ -794,13 +795,151 @@ def _estimate_share_quantity(amount: int | None, price: Any) -> str:
     if amount is None:
         return "pending"
     try:
-        numeric_price = float(price)
-    except (TypeError, ValueError):
+        numeric_price = Decimal(str(price))
+    except (InvalidOperation, TypeError, ValueError):
         return "pending"
     if numeric_price <= 0:
         return "pending"
-    qty = int(amount // numeric_price)
+    qty = int((Decimal(amount) / numeric_price).to_integral_value(rounding=ROUND_FLOOR))
     return str(max(qty, 1))
+
+
+def _paper_order_submit_enabled() -> bool:
+    return os.getenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "0").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def _paper_order_explicitly_blocked(message: Any) -> bool:
+    normalized = normalize_message(str(message or ""))
+    block_patterns = (
+        r"\bsem\s+enviar\s+ordem\b",
+        r"\bnao\s+enviar\s+ordem\b",
+        r"\bnao\s+envie\s+ordem\b",
+        r"\bnao\s+transmitir\s+ordem\b",
+        r"\bnao\s+transmita\s+ordem\b",
+        r"\bdo\s+not\s+send\s+(?:an?\s+)?order\b",
+        r"\bdon'?t\s+send\s+(?:an?\s+)?order\b",
+        r"\bwithout\s+sending\s+(?:an?\s+)?order\b",
+        r"\bno\s+broker\s+order\b",
+    )
+    return any(re.search(pattern, normalized) for pattern in block_patterns)
+
+
+def _build_submit_paper_order_call(state: dict) -> dict[str, Any] | None:
+    """Build a gated paper order tool call from the selected scan candidate."""
+
+    if not _paper_order_submit_enabled():
+        return None
+    if "submit_paper_order" not in set(state.get("allowed_tools") or []):
+        return None
+    if not state.get("ticket_allowed", False):
+        return None
+    if state.get("submit_paper_order_result") or state.get("submit_paper_order_error"):
+        return None
+    message = state.get("message", "")
+    if _paper_order_explicitly_blocked(message):
+        return None
+    if not _is_paper_training_request(message):
+        return None
+
+    scan = state.get("scan") or {}
+    candidates = [c for c in scan.get("candidates", []) if isinstance(c, dict)]
+    if not candidates:
+        return None
+
+    safety_gate_failures = _trade_safety_gate_failures(state)
+    if safety_gate_failures:
+        return None
+
+    ranked = scan.get("ranked_candidates")
+    if not isinstance(ranked, list) or not ranked:
+        ranked = rank_candidates(
+            candidates,
+            source_errors=scan.get("source_errors") or [],
+            weak_universe=len(candidates) <= 1,
+        )
+    entry, _ = pick_candidate(ranked)
+    if not entry:
+        return None
+
+    candidate = entry.get("candidate") or {}
+    normalize_liquidity_fields(candidate)
+    _, gate_failures = evaluate_quality_gates(candidate)
+    if gate_failures:
+        return None
+
+    confidence = int(
+        entry.get("confidence")
+        or compute_model_confidence(
+            candidate,
+            gate_failures=gate_failures,
+            source_errors=scan.get("source_errors") or [],
+            weak_universe=len(candidates) <= 1,
+        )
+    )
+    if decide_final_action(confidence, gate_failures) != "BUY_CANDIDATE":
+        return None
+
+    ticker = _normalize_ticker_symbol(candidate.get("ticker") or candidate.get("symbol"))
+    if not ticker:
+        return None
+    try:
+        price = float(candidate.get("price"))
+    except (TypeError, ValueError):
+        return None
+    if price <= 0:
+        return None
+
+    amount = _extract_requested_allocation(state.get("message", ""))
+    if amount is None:
+        return None
+    try:
+        qty = int((Decimal(amount) / Decimal(str(price))).to_integral_value(rounding=ROUND_FLOOR))
+    except (InvalidOperation, ValueError):
+        return None
+    if qty <= 0:
+        return None
+
+    return {
+        "tool": "submit_paper_order",
+        "args": {
+            "ticker": ticker,
+            "action": "buy",
+            "qty": qty,
+            "order_type": "LMT",
+            "limit_price": round(price, 2),
+        },
+    }
+
+
+def _paper_order_execution_answer(state: dict) -> str:
+    base = _market_scan_answer(state) if state.get("scan") else ""
+    result = state.get("submit_paper_order_result")
+    error = state.get("submit_paper_order_error")
+    lines = [base.rstrip()] if base else []
+    lines.append("")
+    lines.append("5. Paper Broker Transmission:")
+    if isinstance(result, dict) and result:
+        lines.append("   - Status: submitted to IBKR paper API")
+        lines.append(f"   - Order ID: {result.get('order_id', 'unknown')}")
+        lines.append(f"   - Symbol: {result.get('symbol', 'unknown')}")
+        lines.append(f"   - Action: {result.get('action', 'unknown')}")
+        lines.append(f"   - Quantity: {result.get('qty', 'unknown')}")
+        lines.append(f"   - Order type: {result.get('order_type', 'LMT')}")
+        lines.append(f"   - Limit price: {result.get('limit_price', 'unknown')}")
+        lines.append(f"   - Broker status: {result.get('status', 'unknown')}")
+        lines.append(f"   - Filled: {result.get('filled', 'unknown')}")
+        lines.append(f"   - Avg fill price: {result.get('avg_price', 'unknown')}")
+        if result.get("position"):
+            lines.append(f"   - Position: {result.get('position')}")
+    else:
+        lines.append("   - Status: paper order transmission failed")
+        lines.append(f"   - Error: {error or 'unknown_error'}")
+    return "\n".join(lines).strip()
 
 
 def _build_trade_order_context(
@@ -1063,7 +1202,24 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
             for item in ("f51_not_passed", "sdca_blocked", "f51_error", "sdca_error")
         )
     )
-    display_decision = "PAPER_TICKET_PENDING_APPROVAL" if paper_ticket_pending else decision
+    paper_order_user_blocked = _paper_order_explicitly_blocked(message)
+    paper_auto_submit = (
+        paper_ticket_pending
+        and _paper_order_submit_enabled()
+        and "submit_paper_order" in set(state.get("allowed_tools") or [])
+        and bool(state.get("ticket_allowed", False))
+        and not paper_order_user_blocked
+    )
+    if paper_ticket_pending and state.get("submit_paper_order_result"):
+        display_decision = "PAPER_ORDER_SUBMITTED"
+    elif paper_ticket_pending and state.get("submit_paper_order_error"):
+        display_decision = "PAPER_ORDER_SUBMIT_FAILED"
+    elif paper_ticket_pending and paper_auto_submit:
+        display_decision = "PAPER_ORDER_SUBMIT_READY"
+    elif paper_ticket_pending:
+        display_decision = "PAPER_TICKET_PENDING_APPROVAL"
+    else:
+        display_decision = decision
 
     ticker = primary.get("ticker") or "?"
     name = primary.get("name") or primary.get("company") or "—"
@@ -1091,16 +1247,39 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
 
     is_buy_candidate = decision == "BUY_CANDIDATE" or paper_ticket_pending
     if paper_training:
-        candidate_heading_pt = "Candidato do Ticket Paper (aguardando aprovacao):"
-        candidate_heading_en = "Paper Ticket Candidate (pending approval):"
+        candidate_heading_pt = (
+            "Candidato da Ordem Paper:"
+            if paper_auto_submit
+            else "Candidato do Ticket Paper (transmissao desabilitada):"
+        )
+        candidate_heading_en = (
+            "Paper Order Candidate:"
+            if paper_auto_submit
+            else "Paper Ticket Candidate (transmission disabled):"
+        )
         plan_heading_pt = "Plano de Treino Paper:"
         plan_heading_en = "Paper Training Plan:"
-        entry_line_pt = (
-            "ticket LIMIT perto do preco atual; nao transmitir enquanto IBKR=read_only_no_orders"
-        )
-        entry_line_en = (
-            "LIMIT ticket near current price; do not transmit while IBKR=read_only_no_orders"
-        )
+        if paper_auto_submit:
+            entry_line_pt = (
+                "submit_paper_order LMT perto do preco atual via IBKR paper; registrar status do broker/journal"
+            )
+            entry_line_en = (
+                "submit_paper_order LMT near current price through IBKR paper; record broker/journal status"
+            )
+        elif paper_order_user_blocked:
+            entry_line_pt = (
+                "ticket LIMIT perto do preco atual; transmissao paper bloqueada pela instrucao do usuario"
+            )
+            entry_line_en = (
+                "LIMIT ticket near current price; paper transmission blocked by the user's instruction"
+            )
+        else:
+            entry_line_pt = (
+                "ticket LIMIT perto do preco atual; transmissao paper desabilitada ate o gate SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT=1"
+            )
+            entry_line_en = (
+                "LIMIT ticket near current price; paper transmission disabled until SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT=1"
+            )
         max_risk_line_pt = "usar stop duro; perda maxima 0.5%-1.0% do capital de treino"
         max_risk_line_en = "use a hard stop; max loss 0.5%-1.0% of training capital"
     else:
@@ -1185,7 +1364,11 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
                 f"   - Risco: {risk}",
                 f"   - Risco Maximo: {max_risk_line_pt}",
                 "",
-                "Ordem do modelo, nao e lucro garantido. Confirmacao humana obrigatoria.",
+                (
+                    "Ordem paper pode ser transmitida pelo tool gate. Nao e lucro garantido; live-money continua bloqueado."
+                    if paper_auto_submit
+                    else "Ordem do modelo, nao e lucro garantido. Transmissao broker nao executada neste modo."
+                ),
                 f"Model verdict: {display_decision}",
             ]
         )
@@ -1237,7 +1420,11 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
                 f"   - Risk: {risk}",
                 f"   - Max Risk: {max_risk_line_en}",
                 "",
-                "Model order, not guaranteed profit. Human confirmation required.",
+                (
+                    "Paper order may be transmitted through the tool gate. Profit is not guaranteed; live-money remains blocked."
+                    if paper_auto_submit
+                    else "Model order, not guaranteed profit. Broker transmission is not executed in this mode."
+                ),
                 f"Model verdict: {display_decision}",
             ]
         )
@@ -1519,12 +1706,19 @@ def _repair_unsourced_etf_tickers(text: str) -> str:
 
 
 def _repair_unsupported_exact_returns(text: str) -> str:
-    return re.sub(
+    repaired = re.sub(
         r"guaranteed\s+\d+(?:\s*[–-]\s*\d+)?%\s+return",
         "guaranteed return equal to the avoided interest rate",
         text or "",
         flags=re.IGNORECASE,
     )
+    repaired = re.sub(
+        r"paying\s+off\s+\d+(?:\.\d+)?%\s+debt\s+is\s+like\s+earning\s+a\s+guaranteed(?:,\s*tax-free)?\s+\d+(?:\.\d+)?%\s+return",
+        "paying off high-interest debt is like earning a guaranteed return equal to the avoided interest rate",
+        repaired,
+        flags=re.IGNORECASE,
+    )
+    return repaired
 
 
 def _repair_tax_overstatements(text: str) -> str:
@@ -2016,6 +2210,32 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             "current_datetime": state.get("current_datetime", ""),
         }
 
+    if state.get("submit_paper_order_result") or state.get("submit_paper_order_error"):
+        content = _paper_order_execution_answer(state)
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "agent_primary",
+                "status": "started",
+            }
+        )
+        writer({"type": "CHUNK", "content": content})
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "agent_primary",
+                "status": "completed",
+            }
+        )
+        return {
+            **_final_payload(content, iterations),
+            "bob_thesis": state.get("bob_thesis", ""),
+            "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
+            "current_datetime": state.get("current_datetime", ""),
+        }
+
     if gateway is None:
         return {"errors": state.get("errors", []) + ["no_gateway"]}
 
@@ -2270,8 +2490,23 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
         if tool_call and "tool" in tool_call:
             if tool_call["tool"] == "final_answer":
+                paper_order_call = _build_submit_paper_order_call(state)
+                if paper_order_call:
+                    return {
+                        "agent_tool_call": paper_order_call,
+                        "agent_iterations": iterations + 1,
+                        "_pending_tool_calls": list(state.get("_pending_tool_calls") or []),
+                        "bob_thesis": state.get("bob_thesis", ""),
+                        "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
+                        "current_datetime": state.get("current_datetime", ""),
+                    }
+            if tool_call["tool"] == "final_answer":
                 content = tool_call.get("args", {}).get("content") or ""
-                if state.get("scan"):
+                if state.get("submit_paper_order_result") or state.get(
+                    "submit_paper_order_error"
+                ):
+                    content = _paper_order_execution_answer(state)
+                elif state.get("scan"):
                     content = _market_scan_answer(state)
                 elif not str(content).strip():
                     if is_complex_finance:

@@ -77,6 +77,7 @@ $env:PYTHONPATH = Join-Path $root 'src'
 $env:SUPEREZIO_BOB_SOVEREIGN = '1'
 $env:SUPEREZIO_NO_BROWSER = '1'
 $env:SUPEREZIO_PROFESSIONAL_COLLECTOR = 'true'
+$env:SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT = '1'
 
 Log "Starting CEO + API directly (BAT launcher retired)..."
 $bobLog = Join-Path $root 'runtime\logs\bob-8082-latest.log'

@@ -110,9 +110,9 @@ def test_health_details(client_with_mock_pipeline):
     assert "providers_summary" in data["checks"]
     assert "cost_guard" in data["checks"]
     assert data["mission"]["status"] == "loaded"
-    assert data["mission"]["broker"]["ibkr"]["connection"] == "connected_read_only"
-    assert data["mission"]["broker"]["ibkr"]["mode"] == "read_only_no_orders"
-    assert data["mission"]["broker"]["ibkr"]["can_submit_orders"] is False
+    assert data["mission"]["broker"]["ibkr"]["connection"] == "connected_paper"
+    assert data["mission"]["broker"]["ibkr"]["mode"] == "paper_order_enabled"
+    assert data["mission"]["broker"]["ibkr"]["can_submit_orders"] is True
 
 
 def test_metrics(client_with_mock_pipeline):

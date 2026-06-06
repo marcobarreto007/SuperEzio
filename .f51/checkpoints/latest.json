@@ -1,35 +1,39 @@
 {
-  "date_local": "2026-06-05T22:35:00-04:00",
-  "session": "ceo-full-system-evidence-path-fix-2026-06-05",
-  "status": "fixed_and_runtime_restarted",
+  "date_local": "2026-06-06T00:04:56-04:00",
+  "session": "paper-order-submit-no-extra-approval-2026-06-05",
+  "status": "fixed_tested_runtime_ready_broker_offline",
   "what_was_done": [
-    "Investigated Marco's complaint that the CEO was not using the full SuperEzio system.",
-    "Confirmed the recent auto_full_analysis node was incomplete: it did not propagate collector data_context/data into F51, neural, SDCA, RAG, or Bob's prompt, and it called expert nodes without passing the ModelGateway.",
-    "Rebuilt auto_full_analysis so market_scan runs before Bob for discovery/paper-ticket prompts, then the selected candidate/data_context feed expert committee, F51 verdict, NeuralDecision, SDCA firewall, RAG, and finally Bob.",
-    "Added auto_full_analysis pipeline events so live traces show whether data, scan, experts, F51, and SDCA were present.",
-    "Removed submit_paper_order from default ticker/discovery allowed tools and changed Bob's prompt from forced paper execution to PAPER_TICKET_PENDING_APPROVAL while IBKR is read_only_no_orders.",
-    "Added executor-side paper order gate: SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT must be enabled, ticket_allowed must be true, approved_by_operator must be truthy, and order_type must be LMT with limit_price.",
-    "Changed paper broker submission implementation from MARKET order to LIMIT order for any future explicitly gated paper submission path.",
-    "Fixed parser regression where a paper training prompt with 'pesquise e monte um ticket' routed to general_question instead of market_scan.",
-    "Fixed money parsing so 'ticket para 10k' is rendered as requested ticket size and 'paper com 100k' is rendered as theoretical account size."
+    "Removed the extra approved_by_operator requirement from submit_paper_order for paper mode while keeping SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT, ticket_allowed, LMT, and limit_price gates.",
+    "Enabled SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT=1 in runtime/do_restart.ps1 so the local stack boots in gated IBKR paper-submit mode.",
+    "Restored submit_paper_order to discovery/ticker cognitive contracts and updated Bob's mission context to say paper submission is allowed through the gated tool, while live-money execution remains prohibited.",
+    "Fixed the deterministic Bob renderer so paper mode says PAPER_ORDER_SUBMIT_READY/PAPER_ORDER_SUBMITTED/PAPER_ORDER_SUBMIT_FAILED instead of always saying pending human approval.",
+    "Added explicit no-order protection: if the user says not to send an order, Bob must not call submit_paper_order even when the paper gate is enabled.",
+    "Fixed decimal share sizing so CAD/USD 10,000 at price 3.20 calculates 3125 shares instead of 3124 from float precision.",
+    "Fixed paper-order routing bugs where IBKR paper prompts were misclassified as broker-status or ticker_analysis for ticker IBKR instead of market_scan.",
+    "Fixed submit_paper_order duplicate handling so a stale executed_tools entry without broker result/error does not block the first real broker attempt.",
+    "Added direct post-tool synthesis so Bob finalizes immediately from submit_paper_order_result or submit_paper_order_error instead of looping through the local model again.",
+    "Updated DEBUT_PROTOCOL to distinguish gated paper order submission from prohibited live-money execution.",
+    "Fixed two unrelated full-suite regressions found during validation: unsupported exact debt-return phrasing and stale pipeline node-count expectation."
   ],
   "evidence": [
-    "pytest focused: .venv/Scripts/python.exe -m pytest tests/test_decisive_trade_order.py::test_paper_training_money_parser_separates_ticket_size_from_account tests/test_decisive_trade_order.py::test_paper_training_ticket_prompt_routes_to_market_scan tests/test_auto_full_analysis.py -q -> 5 passed.",
-    "pytest relevant suite: .venv/Scripts/python.exe -m pytest tests/test_auto_full_analysis.py tests/test_decisive_trade_order.py tests/test_trade_order.py tests/contracts/test_contract_orchestrator.py tests/contracts/test_contract_agent.py tests/test_bob_sovereign.py tests/test_agent_market_scan_loop.py tests/test_api_routes_sync.py -q -> 135 passed in 4.62s.",
-    "ruff: .venv/Scripts/python.exe -m ruff check modified source/test files -> All checks passed.",
+    "parser proof: IBKR paper order prompt now routes to market_scan with scanner_allowed=true, ticket_allowed=true, and submit_paper_order in allowed_tools.",
+    "pytest focused: tests/test_auto_full_analysis.py -> 8 passed.",
+    "pytest focused: tests/contracts/test_contract_orchestrator.py::test_ibkr_paper_order_prompt_routes_to_market_scan_not_status and related decisive routing tests -> passed.",
+    "pytest full suite after commit/final patches: 1102 passed in 299.25s.",
+    "ruff: modified agent/tool_executor/intents/tests -> All checks passed.",
     "runtime restart: runtime/do_restart.ps1 -> health 8082=200, health 8002=200, UI=http://127.0.0.1:8002.",
-    "browser smoke: .venv/Scripts/python.exe scripts/browser_smoke.py --base-url http://127.0.0.1:8002 --skip-chat --timeout-ms 180000 -> ok=true, AAPL chart 130 candles, canvas nonBlank=378108, console_errors=[].",
-    "live /task/submit proof before money-parser fix but after route/full-stack fix: elapsed_s=230.7, route_used=market_scan, scanner_invoked=true, candidate_count=5, event types included SCAN_EVENT, DATA_COLLECTED, EXPERT_STARTED, EXPERT_DONE, F51_VERDICT, NEURAL_DECISION, SDCA_FIREWALL, CHUNK, STREAM_END.",
-    "live /task/submit proof showed contains_paper_ticket=true, contains_research_report=false, contains_missing_f51=false, contains_missing_sdca=false, contains_submit_order=false.",
-    "money parser unit proof after live finding: requested allocation prompt -> 10,000; account reference -> 100,000; answer no longer renders capital_teorico as 1."
+    "browser smoke final: scripts/browser_smoke.py --base-url http://127.0.0.1:8002 --skip-chat --timeout-ms 180000 -> ok=true, AAPL chart 130 candles, canvas nonBlank=378108, console_errors=[], screenshot=output/playwright/superezio-browser-smoke-20260606-000456.png.",
+    "live endpoint proof after routing fix: elapsed_s=350.6, event_count=88, event types included SCAN_EVENT, DATA_COLLECTED, EXPERT_DONE, F51_VERDICT, NEURAL_DECISION, SDCA_FIREWALL, chose NVDA, rendered PAPER_ORDER_SUBMIT_READY.",
+    "broker probe before final submit attempt: connected_count=1, safe_mode=paper_trading_allowed, port_open=true, equity=99999.12, positions_count=1.",
+    "final broker probe after timeout: connected_count=0, safe_mode=offline, error=port_closed; no TWS/Java/IB Gateway process visible, port 7497 closed."
   ],
   "risks": [
-    "Full evidence path is now real but slow: the live market_scan proof took 230.7s. This is acceptable for proof, not acceptable as a polished demo default.",
-    "Market-scan final answer still uses the deterministic grounded renderer for safety. Bob now receives the full system evidence, but the renderer still prevents ungrounded ticker hallucinations.",
-    "IBKR remains read_only_no_orders. Bob may propose a paper ticket, but must not claim broker placement, fill, or execution unless a separately gated tool result proves it.",
-    "Paper order submission is intentionally disabled by default and requires a future UI/operator approval gate before use.",
-    "GitHub remains blocked by project policy; this is disk-only."
+    "The code path is ready for gated paper submission, but no new final live paper order proof was captured because TWS/IB Gateway is currently not running/listening on port 7497.",
+    "The full auto_full_analysis path is still slow: the latest market_scan proof took 350.6s before the paper-submit stage.",
+    "Gemini had provider errors/cooldowns in runtime logs and fell back to local_orchestrator in parts of the proof; this is operational latency/reliability risk, not a routing failure.",
+    "Live-money execution remains intentionally disabled and must not be added without a separate explicit gate and legal/product decision.",
+    "GitHub remains blocked by project policy; this checkpoint is disk-only."
   ],
-  "next_step": "Optimize demo latency for auto_full_analysis: run experts concurrently with per-provider timeouts and render module evidence visibly in the UI ticket panel.",
+  "next_step": "Reopen/login TWS paper or IB Gateway with socket clients on port 7497, then rerun the same paper-submit endpoint proof. Expected behavior after the final patch: if IBKR accepts/rejects, Bob finalizes directly with Paper Broker Transmission and broker status/error without another long LLM loop.",
   "owner": "Marco"
 }

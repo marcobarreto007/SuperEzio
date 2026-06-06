@@ -49,20 +49,20 @@ def test_model_prompts_has_local():
     assert "persona" in MODEL_PROMPTS["local"]
 
 
-def test_mission_context_tells_bob_ibkr_is_paper_readonly_connected():
+def test_mission_context_tells_bob_ibkr_paper_submission_is_enabled():
     context = render_mission_context_for_prompt()
 
     assert "MISSION CONTEXT" in context
     assert "trained_financial_advisory_copilot" in context
     assert "IBKR" in context
-    assert "connected_read_only" in context
+    assert "connected_paper" in context
     assert "100000.00" in context
     assert "positions_count=0" in context
-    assert "can_submit_orders=False" in context
-    # Paper trading mode: Bob is told he CAN simulate trades, not just read
-    assert ("CAN and MUST simulate paper trades" in context
+    assert "can_submit_orders=True" in context
+    # Paper trading mode: Bob is told he CAN submit paper orders, not live money.
+    assert ("CAN submit paper orders" in context
             or "PAPER TRADING MODE" in context)
-    assert "Do not claim broker transaction history" in context
+    assert "Do not claim live-money execution capability" in context
 
 
 def test_agent_loader_injects_current_mission_context():
@@ -70,7 +70,7 @@ def test_agent_loader_injects_current_mission_context():
 
     assert "PRE_DEBUT_VALIDATION" in context
     assert "PAPER TRADING MODE" in context or "PAPER ACCOUNT" in context
-    assert "paper_simulation_via_journal" in context or "CAN and MUST simulate" in context
+    assert "paper_order_submit_via_ibkr_tool" in context or "CAN submit paper orders" in context
 
 
 def test_mission_health_summary_exposes_broker_paper_state():
@@ -78,9 +78,9 @@ def test_mission_health_summary_exposes_broker_paper_state():
 
     assert summary["status"] == "loaded"
     assert summary["phase"] == "pre_debut_validation"
-    assert summary["broker"]["ibkr"]["connection"] == "connected_read_only"
+    assert summary["broker"]["ibkr"]["connection"] == "connected_paper"
     assert summary["broker"]["ibkr"]["account_equity"] == "100000.00"
-    assert summary["broker"]["ibkr"]["can_submit_orders"] is False
+    assert summary["broker"]["ibkr"]["can_submit_orders"] is True
     # Paper trading should be exposed in health
     pt = summary.get("paper_trading", {})
     assert pt.get("active") is True

@@ -136,7 +136,17 @@ def render_mission_context_for_prompt(path: str | Path | None = None) -> str:
             )
             if broker_info.get("note"):
                 lines.append(f"  Note: {broker_info['note']}")
-            if broker_name.lower() == "ibkr" and connection == "connected_read_only":
+            if broker_name.lower() == "ibkr" and connection == "connected_paper":
+                lines.append(
+                    "  THIS IS A PAPER ACCOUNT. Live-money execution is disabled, "
+                    "but paper order submission is enabled through submit_paper_order "
+                    "when the paper execution gate is active. Use LMT orders only."
+                )
+                lines.append(
+                    "  Broker proof rule: report order_id, broker status, filled quantity, "
+                    "and avg fill price only from the submit_paper_order tool result."
+                )
+            elif broker_name.lower() == "ibkr" and connection == "connected_read_only":
                 lines.append(
                     "  THIS IS A PAPER ACCOUNT. Real broker order submission is disabled, "
                     "but you CAN and MUST simulate paper trades via PaperJournal CLI "

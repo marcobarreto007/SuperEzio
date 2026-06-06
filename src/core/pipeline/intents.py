@@ -75,6 +75,7 @@ FULL_TICKER_TOOLS = (
     "neural_decision",
     "sdca_firewall",
     "rag_forensics",
+    "submit_paper_order",
     "final_answer",
 )
 DISCOVERY_TOOLS = (
@@ -84,6 +85,7 @@ DISCOVERY_TOOLS = (
     "neural_decision",
     "sdca_firewall",
     "rag_forensics",
+    "submit_paper_order",
     "final_answer",
 )
 FORENSIC_ONLY_TOOLS = ("rag_forensics", "final_answer")
@@ -173,6 +175,8 @@ BROKER_STATUS_CONTEXT_HINTS = (
 def detect_broker_status_intent(message: str) -> bool:
     """Detect broker/API operating-state questions, not ticker analysis."""
     if not message or not message.strip():
+        return False
+    if detect_decisive_trade_intent(message):
         return False
     lower = _strip_accents(message).lower()
     has_subject = any(hint in lower for hint in BROKER_STATUS_SUBJECT_HINTS)
@@ -1679,6 +1683,32 @@ def detect_ticker(message: str) -> str:
         return cached
 
     normalized = _strip_accents(raw)
+    lower = normalized.lower()
+    if "ibkr" in lower:
+        broker_platform_context = any(
+            hint in lower
+            for hint in (
+                "ibkr paper",
+                "paper na ibkr",
+                "paper ibkr",
+                "broker",
+                "corretora",
+                "tws",
+                "trader workstation",
+                "ib gateway",
+                "7497",
+                "ordem paper",
+            )
+        )
+        explicit_ibkr_stock_context = bool(
+            re.search(
+                r"\b(?:ibkr\s+(?:stock|shares|equity|ticker)|ticker\s+ibkr|"
+                r"(?:acao|acoes|analise|analyze)\s+(?:da\s+)?ibkr)\b",
+                lower,
+            )
+        )
+        if broker_platform_context and not explicit_ibkr_stock_context:
+            return ""
     debug_logger.trace(MODULE_INTENT, "detect_ticker start", message_preview=message[:80])
     candidates: list[tuple[str, int, int]] = []
 

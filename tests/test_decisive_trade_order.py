@@ -362,12 +362,13 @@ def test_paper_training_ticket_prompt_routes_to_market_scan():
     assert parsed.action == "scan_market"
     assert plan["scanner_allowed"] is True
     assert "market_scan" in plan["allowed_tools"]
-    assert "submit_paper_order" not in plan["allowed_tools"]
+    assert "submit_paper_order" in plan["allowed_tools"]
 
 
-def test_paper_training_prompt_returns_pending_ticket_not_research_report():
+def test_paper_training_prompt_returns_pending_ticket_not_research_report(monkeypatch):
     from src.core.pipeline.nodes.agent import _market_scan_answer
 
+    monkeypatch.delenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", raising=False)
     state = _make_scan_state(
         message=(
             "Bob estamos em treinamento com 100k para investir; objetivo e oredens rapidas "
@@ -385,11 +386,34 @@ def test_paper_training_prompt_returns_pending_ticket_not_research_report():
     assert "10,000" in answer
     assert "100,000" in answer
     assert "Quantidade estimada" in answer or "Estimated quantity" in answer
-    assert "read_only_no_orders" in answer
+    assert "transmissao paper desabilitada" in answer
     assert "Model verdict: PAPER_TICKET_PENDING_APPROVAL" in answer
     assert "relatorio de pesquisa" not in answer.lower()
     assert "order placed" not in answer.lower()
     assert "order executed" not in answer.lower()
+
+
+def test_paper_training_prompt_can_render_submit_ready_when_gate_enabled(monkeypatch):
+    from src.core.pipeline.nodes.agent import _market_scan_answer
+
+    monkeypatch.setenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
+    state = _make_scan_state(
+        message=(
+            "Bob estamos em treinamento paper com 100k. Pesquise e aplique 10k "
+            "em oportunidade rapida com stop loss."
+        ),
+        candidates=[_STRONG_CANDIDATE],
+        time_horizon="1 hours",
+    )
+    state["allowed_tools"] = ["market_scan", "submit_paper_order", "final_answer"]
+    state["ticket_allowed"] = True
+
+    answer = _market_scan_answer(state)
+
+    assert "PAPER_ORDER_SUBMIT_READY" in answer
+    assert "submit_paper_order LMT" in answer
+    assert "Confirmacao humana obrigatoria" not in answer
+    assert "live-money continua bloqueado" in answer
 
 
 # ---------------------------------------------------------------------------
