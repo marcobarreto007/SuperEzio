@@ -1698,6 +1698,14 @@ def detect_ticker(message: str) -> str:
                 "ib gateway",
                 "7497",
                 "ordem paper",
+                "dados do ibkr",
+                "dados da ibkr",
+                "conta ibkr",
+                "ibkr conectado",
+                "conectado no ibkr",
+                "paper trading",
+                "treinamento paper",
+                "treino paper",
             )
         )
         explicit_ibkr_stock_context = bool(
