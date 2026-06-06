@@ -358,10 +358,24 @@ def build_graph(
         calls the IBKR paper adapter to place the order in TWS.
         """
         import re
+        from langgraph.config import get_stream_writer
         from core.pipeline.nodes.tool_executor import _submit_paper_order
+
+        writer = get_stream_writer()
+        run_id = state.get("run_id", "")
+
+        writer({
+            "type": "PIPELINE_STEP", "run_id": run_id,
+            "step": "auto_execute_paper", "status": "started",
+        })
 
         final = state.get("final_answer", "")
         if not final or "PAPER_TICKET" not in final:
+            writer({
+                "type": "PIPELINE_STEP", "run_id": run_id,
+                "step": "auto_execute_paper", "status": "skipped",
+                "reason": "no_paper_ticket_in_response",
+            })
             return {}
 
         # Parse ticker: "Ticker: NVDA" or "- Ticker: NVDA"
@@ -376,12 +390,28 @@ def build_graph(
         action = "sell" if "SELL" in final or "short" in final.lower() else "buy"
 
         if not ticker:
+            writer({
+                "type": "PIPELINE_STEP", "run_id": run_id,
+                "step": "auto_execute_paper", "status": "skipped",
+                "reason": "no_ticker_parsed",
+            })
             return {"paper_exec_note": "no ticker parsed from paper ticket"}
+
+        writer({
+            "type": "PAPER_EXEC", "run_id": run_id,
+            "ticker": ticker, "action": action, "qty": qty,
+        })
 
         result = await _submit_paper_order(state, {
             "ticker": ticker,
             "action": action,
             "qty": qty,
+        })
+
+        writer({
+            "type": "PIPELINE_STEP", "run_id": run_id,
+            "step": "auto_execute_paper", "status": "completed",
+            "result": result,
         })
 
         return {"paper_exec_result": result, "paper_exec_ticker": ticker, "paper_exec_qty": qty}
