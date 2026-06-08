@@ -423,14 +423,21 @@ def build_graph(
         scan = state.get("scan") or {}
         candidates = scan.get("candidates", []) if isinstance(scan, dict) else []
 
-        # ── Gate: respect Bob's decision ──
+        # ── Gate: respect Bob's verdict ──
+        # Check trade_order_context first (authoritative), then final_answer text
         trade_ctx = state.get("trade_order_context") or {}
         bob_decision = str(trade_ctx.get("decision", "")).upper()
-        if bob_decision in ("WAIT", "REJECT_ALL"):
+        final_text = (state.get("final_answer") or "").lower()
+        bob_says_wait_or_reject = (
+            bob_decision in ("WAIT", "REJECT_ALL")
+            or re.search(r"(?:final|model)\s*verdict\s*:\s*(?:wait|reject)", final_text)
+            or re.search(r"decisao\s*(?:final|correta)\s*[:\w]*\s*(?:wait|reject)", final_text)
+        )
+        if bob_says_wait_or_reject:
             writer({
                 "type": "PIPELINE_STEP", "run_id": run_id,
                 "step": "auto_execute_paper", "status": "skipped",
-                "reason": f"bob_verdict_{bob_decision.lower()}",
+                "reason": "bob_verdict_blocks_execution",
             })
             return {}
 
@@ -459,21 +466,6 @@ def build_graph(
 
         # ── Strategy 3: Direct ticker order (compre SNDL, buy PLUG, etc.) ──
         elif state.get("ticker") and state.get("route") in ("ticker_analysis",):
-            # RESPECT BOB'S VERDICT: do not execute if Bob said WAIT or REJECT
-            verdict_blocked = False
-            if final:
-                verdict_lower = final.lower()
-                if re.search(r"(?:model|final)\s*verdict\s*:\s*(?:wait|reject)", verdict_lower):
-                    verdict_blocked = True
-                elif re.search(r"decisao\s*final\s*:\s*(?:wait|reject)", verdict_lower):
-                    verdict_blocked = True
-            if verdict_blocked:
-                writer({
-                    "type": "PIPELINE_STEP", "run_id": run_id,
-                    "step": "auto_execute_paper", "status": "skipped",
-                    "reason": "bob_verdict_blocks_execution",
-                })
-                return {}
             ticker = str(state.get("ticker", "")).upper()
             # Parse quantity from message or final answer
             qty_match = re.search(r"(\d+)\s*(?:share|acao|acoes|shares)", final or state.get("message", ""), re.IGNORECASE)
