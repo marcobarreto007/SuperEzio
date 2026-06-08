@@ -2377,6 +2377,8 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             f"Give more weight to high-weight experts in your final answer. "
             f"social_forensics (>0.30) has VETO power if manipulation_score >= 70."
         )
+    if state.get("portfolio_snapshot"):
+        observations.append(state.get("portfolio_snapshot"))
     if state.get("neural_decision"):
         observations.append(
             f"Neural Decision:\n{json.dumps(state.get('neural_decision'), ensure_ascii=False)}"

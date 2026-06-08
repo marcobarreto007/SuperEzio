@@ -283,6 +283,35 @@ async def _auto_full_analysis(
             {"expert_summary": "Experts skipped: no ticker selected by scanner or user."},
         )
 
+    # ── IBKR portfolio snapshot: always inject current positions ──
+    try:
+        from ib_insync import IB as _IB
+        _ib = _IB()
+        _ib.connect("127.0.0.1", 7497, clientId=98, timeout=5)
+        positions = []
+        total_value = 0.0
+        for p in _ib.positions():
+            pos_val = float(p.position) * float(p.avgCost)
+            positions.append(f"{p.contract.symbol}: {p.position} shares @ avg ${float(p.avgCost):.2f} = ${pos_val:,.2f}")
+            total_value += pos_val
+        equity = 0.0
+        for v in _ib.accountSummary():
+            if v.tag == "NetLiquidation":
+                equity = float(v.value)
+        _ib.disconnect()
+
+        portfolio_context = (
+            f"CURRENT PORTFOLIO (IBKR paper):\n"
+            f"  Equity: ${equity:,.2f}\n"
+            f"  Positions: {len(positions)}\n"
+            + "".join(f"    {p}\n" for p in positions)
+            + (f"  Total invested: ${total_value:,.2f}\n" if positions else "  (empty — no positions)\n")
+            + f"  Cash: ${equity - total_value:,.2f}\n"
+        )
+        _merge_node_update(working_state, output, {"portfolio_snapshot": portfolio_context})
+    except Exception:
+        _merge_node_update(working_state, output, {"portfolio_snapshot": "IBKR offline — portfolio data unavailable"})
+
     if ticker:
         for label, node in (
             ("f51", node_f51_verdict),
