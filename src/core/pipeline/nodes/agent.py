@@ -2262,6 +2262,32 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             "current_datetime": state.get("current_datetime", ""),
         }
 
+    # ── Portfolio status shortcut ──
+    msg = (state.get("message") or "").lower().strip()
+    is_status_check = any(hint in msg for hint in (
+        "como estamos", "how are we", "status", "portfolio",
+        "como esta", "how is", "resumo", "summary", "posicao", "posição", "posicoes",
+    ))
+    portfolio = state.get("portfolio_snapshot", "")
+    if is_status_check and portfolio and "offline" not in portfolio.lower():
+        from datetime import datetime as _dt
+        now = _dt.now().strftime("%H:%M")
+        content = (
+            f"#{' ' * 20}PORTFOLIO STATUS — {now}\n\n"
+            f"{portfolio}\n"
+            f"---\n"
+            f"Paper trading ativo. IBKR conectado. Posições acima são reais (conta paper TWS).\n"
+            f"Nenhuma recomendação financeira — apenas o estado atual da conta de treino."
+        )
+        writer({"type": "CHUNK", "content": content})
+        writer({"type": "PIPELINE_STEP", "run_id": run_id, "step": "agent_primary", "status": "completed"})
+        return {
+            **_final_payload(content, iterations),
+            "bob_thesis": state.get("bob_thesis", ""),
+            "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
+            "current_datetime": state.get("current_datetime", ""),
+        }
+
     if gateway is None:
         return {"errors": state.get("errors", []) + ["no_gateway"]}
 
