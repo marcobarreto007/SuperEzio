@@ -190,10 +190,10 @@
       }
     ],
     "criteria_summary": {
-      "proven": 6,
-      "instrumented": 2,
+      "proven": 5,
+      "instrumented": 3,
       "pending": 0,
-      "readiness_note": "6/8 proven, 2/8 instrumented. C6 e C7 tem tooling pronto mas aguardam evidencias reais de mercado. Nao ha criterios pendentes de implementacao."
+      "readiness_note": "5/8 proven, 3/8 instrumented. C5 rebaixado de proven para instrumented — journal nao tinha trilha real de trades do Bob (portfolio 1268 INTC contaminado pelo bug do executor surdo). C6 e C7 tooling pronto. Nao ha criterios pendentes de implementacao."
     }
   },
   "operating_rules": [
