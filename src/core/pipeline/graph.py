@@ -529,13 +529,44 @@ def build_graph(
             "limit_price": limit_price,
         })
 
+        # ── Record in paper journal (audit trail) ──
+        journal_entry = None
+        try:
+            from core.trading.paper_journal import PaperJournal, PaperTrade
+            from datetime import datetime, timezone
+
+            journal = PaperJournal()
+            trade = PaperTrade(
+                trade_id=f"bob-{run_id[:12]}" if run_id else f"bob-{int(time.time())}",
+                ticker=ticker,
+                thesis=state.get("message", "Auto-executed paper trade")[:200],
+                direction=action,
+                entry_date=datetime.now(timezone.utc).isoformat(),
+                entry_price=limit_price,
+                shares=qty,
+                entry_reasoning=f"auto_execute_paper | route={state.get('route','?')} | run_id={run_id}",
+                verdict_at_entry=bob_decision or "auto",
+                risk_assessment=state.get("risk_tolerance", "moderada"),
+                expected_holding_period="swing",
+            )
+            journal.open_trade(trade)
+            journal_entry = trade.trade_id
+        except Exception as exc:
+            journal_entry = f"journal_error:{exc}"
+
         writer({
             "type": "PIPELINE_STEP", "run_id": run_id,
             "step": "auto_execute_paper", "status": "completed",
             "result": result,
+            "journal_entry": journal_entry,
         })
 
-        return {"paper_exec_result": result, "paper_exec_ticker": ticker, "paper_exec_qty": qty}
+        return {
+            "paper_exec_result": result,
+            "paper_exec_ticker": ticker,
+            "paper_exec_qty": qty,
+            "paper_journal_entry": journal_entry,
+        }
 
     async def _explanation(state: dict) -> dict:
         return await node_explanation(state)
