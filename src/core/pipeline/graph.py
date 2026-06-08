@@ -400,11 +400,19 @@ def build_graph(
             qty = max(1, int(1000 / price)) if price > 0 else 10
             action = "buy"
 
+        # ── Strategy 3: Direct ticker order (compre SNDL, buy PLUG, etc.) ──
+        elif state.get("ticker") and state.get("route") in ("ticker_analysis",):
+            ticker = str(state.get("ticker", "")).upper()
+            # Parse quantity from message or final answer
+            qty_match = re.search(r"(\d+)\s*(?:share|acao|acoes|shares)", final or state.get("message", ""), re.IGNORECASE)
+            qty = int(qty_match.group(1)) if qty_match else 5
+            action = "sell" if any(w in (final or "").lower() for w in ("venda", "vender", "sell", "short")) else "buy"
+
         else:
             writer({
                 "type": "PIPELINE_STEP", "run_id": run_id,
                 "step": "auto_execute_paper", "status": "skipped",
-                "reason": "no_paper_ticket_or_scan_candidates",
+                "reason": "no_paper_ticket_or_scan_or_direct_order",
             })
             return {}
 
