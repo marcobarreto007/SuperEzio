@@ -287,7 +287,7 @@ async def _auto_full_analysis(
     try:
         from ib_insync import IB as _IB
         _ib = _IB()
-        _ib.connect("127.0.0.1", 7497, clientId=98, timeout=5)
+        _ib.connect("127.0.0.1", 7497, clientId=hash(state.get("run_id", "")) % 1000 + 50, timeout=5)
         positions = []
         total_value = 0.0
         for p in _ib.positions():
