@@ -359,8 +359,13 @@ def build_graph(
         """
         import os as _os
         import re
+        from collections import deque
         from langgraph.config import get_stream_writer
         from core.pipeline.nodes.tool_executor import _submit_paper_order
+
+        # Dedup: only execute once per run_id (agent loop can trigger this node multiple times)
+        _EXECUTED: deque[str] = deque(maxlen=32)
+        _dedup_key = f"paper_{state.get('run_id', '')}"
 
         # Enable paper order submission for this pipeline execution
         _os.environ.setdefault("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
@@ -372,6 +377,16 @@ def build_graph(
             "type": "PIPELINE_STEP", "run_id": run_id,
             "step": "auto_execute_paper", "status": "started",
         })
+
+        # ── Dedup guard: agent loop can trigger this node multiple times ──
+        if _dedup_key in _EXECUTED:
+            writer({
+                "type": "PIPELINE_STEP", "run_id": run_id,
+                "step": "auto_execute_paper", "status": "skipped",
+                "reason": "already_executed_for_this_run",
+            })
+            return {}
+        _EXECUTED.append(_dedup_key)
 
         final = state.get("final_answer", "")
         scan = state.get("scan") or {}
@@ -424,16 +439,8 @@ def build_graph(
             })
             return {"paper_exec_note": "no ticker parsed"}
 
-        writer({
-            "type": "PAPER_EXEC", "run_id": run_id,
-            "ticker": ticker, "action": action, "qty": qty,
-        })
-
-        # Paper order submission requires:
-        # - ticket_allowed=True in state (cognitive contract)
-        # - order_type=LMT (limit order, safer for paper)
-        # - limit_price from scan data or default near current price
-        order_state = {**state, "ticket_allowed": True}
+        # ── Position sizing: max 10% of paper equity per trade ──
+        paper_equity = 100_000.0  # default paper account
         limit_price = 0.0
         if isinstance(scan, dict):
             for c in (scan.get("candidates") or []):
@@ -441,7 +448,29 @@ def build_graph(
                     limit_price = float(c.get("price", c.get("latest_price", 0)) or 0)
                     break
         if limit_price <= 0:
-            limit_price = float(state.get("latest_price", 99.0)) or 99.0
+            limit_price = float(state.get("latest_price", 0)) or 0
+
+        max_position_value = paper_equity * 0.10  # 10% max
+        position_value = qty * (limit_price if limit_price > 0 else 100)
+        if position_value > max_position_value and limit_price > 0:
+            qty = max(1, int(max_position_value / limit_price))
+            position_value = qty * limit_price
+
+        writer({
+            "type": "PAPER_EXEC", "run_id": run_id,
+            "ticker": ticker, "action": action, "qty": qty,
+            "limit_price": limit_price,
+            "position_value": round(position_value, 2),
+            "max_position_pct": 10,
+        })
+
+        # Paper order submission requires:
+        # - ticket_allowed=True in state (cognitive contract)
+        # - order_type=LMT (limit order, safer for paper)
+        # - limit_price from scan data or default near current price
+        order_state = {**state, "ticket_allowed": True}
+        if limit_price <= 0:
+            limit_price = 99.0  # fallback — will likely not fill, which is safer than bad fill
 
         result = await _submit_paper_order(order_state, {
             "ticker": ticker,

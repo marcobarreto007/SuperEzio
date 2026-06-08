@@ -1352,6 +1352,28 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
                 f"   - Confianca do Modelo: {confidence}/100",
             ]
         )
+
+        # ── Expert Committee Verdicts ──
+        expert_summary = state.get("expert_summary", "")
+        expert_results = state.get("expert_results") or []
+        if expert_results and not expert_summary:
+            # Build summary from individual expert results
+            expert_lines = []
+            for er in expert_results:
+                if isinstance(er, dict):
+                    role = er.get("role", "?")
+                    verdict = er.get("verdict", er.get("response", ""))
+                    provider = er.get("provider", "?")
+                    if verdict:
+                        short = str(verdict)[:120].replace("\n", " ")
+                        expert_lines.append(f"     [{provider}] {role}: {short}")
+            if expert_lines:
+                sections.append("   - Comite de Experts:")
+                sections.extend(expert_lines)
+        elif expert_summary:
+            short_summary = str(expert_summary)[:300].replace("\n", " ")
+            sections.append(f"   - Resumo do Comite: {short_summary}")
+
         if gate_failures:
             sections.append(f"   - Gates falhados: {', '.join(gate_failures)}")
         if safety_gate_failures:
