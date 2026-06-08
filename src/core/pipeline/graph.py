@@ -427,7 +427,7 @@ def build_graph(
         # Check trade_order_context first (authoritative), then final_answer text
         trade_ctx = state.get("trade_order_context") or {}
         bob_decision = str(trade_ctx.get("decision", "")).upper()
-        final_text = (state.get("final_answer") or "").lower()
+        final_text = (state.get("final") or state.get("final_answer") or "").lower()
         bob_says_wait_or_reject = (
             bob_decision in ("WAIT", "REJECT_ALL")
             or re.search(r"(?:final|model)\s*verdict\s*:\s*(?:wait|reject)", final_text)
