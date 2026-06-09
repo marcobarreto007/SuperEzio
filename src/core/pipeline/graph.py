@@ -518,6 +518,39 @@ def build_graph(
             qty = max(1, int(max_position_value / limit_price))
             position_value = qty * limit_price
 
+        # ── Concentration gate: block if ticker already >50% of equity ──
+        concentration_blocked = False
+        try:
+            from ib_insync import IB as _IB
+            import time as _time
+            _ib = _IB()
+            _ib.connect("127.0.0.1", 7497, clientId=int(_time.time() * 1000) % 9000 + 800, timeout=5)
+            current_eq = 100_000.0
+            for v in _ib.accountSummary():
+                if v.tag == "NetLiquidation":
+                    current_eq = float(v.value)
+            for p in _ib.positions():
+                if p.contract.symbol == ticker:
+                    existing_val = float(p.position) * float(p.avgCost)
+                    existing_pct = (existing_val / current_eq * 100) if current_eq > 0 else 0
+                    new_total_pct = ((existing_val + position_value) / current_eq * 100) if current_eq > 0 else 0
+                    if new_total_pct > 50:
+                        concentration_blocked = True
+                        writer({
+                            "type": "PIPELINE_STEP", "run_id": run_id,
+                            "step": "auto_execute_paper", "status": "skipped",
+                            "reason": f"concentration_gate:{ticker}_would_be_{new_total_pct:.0f}pct_of_equity",
+                            "existing_pct": round(existing_pct, 1),
+                            "new_total_pct": round(new_total_pct, 1),
+                        })
+                    break
+            _ib.disconnect()
+        except Exception:
+            pass
+
+        if concentration_blocked:
+            return {"paper_exec_blocked": f"concentration:{ticker}"}
+
         writer({
             "type": "PAPER_EXEC", "run_id": run_id,
             "ticker": ticker, "action": action, "qty": qty,
