@@ -637,11 +637,18 @@ def _grounding_guard_answer(state: dict, content: str) -> str:
     if source_errors:
         error_line = "; data limits: " + "; ".join(str(err) for err in source_errors[:3])
 
+    # Include portfolio snapshot in the guard message so Bob still reports real positions
+    portfolio = state.get("portfolio_snapshot", "")
+    portfolio_block = ""
+    if portfolio and "offline" not in portfolio.lower() and grounded_list:
+        portfolio_block = f"\n\nCARTEIRA ATUAL (IBKR paper):\n{portfolio}"
+
     if is_pt:
         return (
             f"Bob: eu so tenho dados coletados neste run para {grounded_list}. "
             f"A resposta tentou citar {ungrounded_list}, mas esses tickers nao foram coletados nem passaram por scan, "
-            "entao eu nao vou apresentar preco, empresa ou recomendacao para eles.\n\n"
+            "entao eu nao vou apresentar preco, empresa ou recomendacao para eles."
+            f"{portfolio_block}\n\n"
             f"Com a evidencia atual ({grounded_list}, qualidade={quality or 'unknown'}{error_line}), "
             "a decisao correta e WAIT ou rodar um market_scan antes de escolher outro ativo para 14 dias.\n\n"
             "Scope: estrutura educacional, nao conselho financeiro personalizado.\n"
@@ -649,10 +656,15 @@ def _grounding_guard_answer(state: dict, content: str) -> str:
             "Confidence: 62"
         )
 
+    en_portfolio = ""
+    if portfolio and "offline" not in portfolio.lower() and grounded_list:
+        en_portfolio = f"\n\nCURRENT PORTFOLIO (IBKR paper):\n{portfolio}"
+
     return (
         f"Bob: I only have collected data in this run for {grounded_list}. "
         f"The draft tried to cite {ungrounded_list}, but those tickers were not collected or scan-approved, "
-        "so I will not present prices, company identity, or a recommendation for them.\n\n"
+        "so I will not present prices, company identity, or a recommendation for them."
+        f"{en_portfolio}\n\n"
         f"With the current evidence ({grounded_list}, quality={quality or 'unknown'}{error_line}), "
         "the correct decision is WAIT or run a market_scan before naming an alternate 14-day stock idea.\n\n"
         "Scope: This is an educational framework, not personalized financial advice.\n"
