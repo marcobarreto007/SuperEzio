@@ -490,32 +490,24 @@ def build_graph(
 
         # ── Position sizing: max 10% of paper equity per trade ──
         paper_equity = 100_000.0  # default paper account
-        # PRIMARY price source: IBKR real-time market data (sub-second delay)
-        # Fallback: scan candidates → state latest_price → safe default
+        # Price source: scan candidates → state latest_price → IBKR execution fill
+        # IBKR paper accounts lack real-time market data subscriptions (Error 10089).
+        # The actual fill price comes from IBKR at execution via _ibkr_order.py.
+        # DataHub (Finnhub) latency: ~1-2s at best, ~15min at worst.
         limit_price = 0.0
-        try:
-            from ib_insync import IB as _IB, Stock as _Stock
-            import time as _time
-            _ib = _IB()
-            _ib.connect("127.0.0.1", 7497, clientId=int(_time.time() * 1000) % 9000 + 700, timeout=5)
-            contract = _Stock(ticker, "SMART", "USD")
-            _ib.qualifyContracts(contract)
-            # Request market data snapshot
-            ticker_data = _ib.reqMktData(contract, "", False, False)
-            _ib.sleep(2)  # Wait for data to arrive
-            if ticker_data and hasattr(ticker_data, 'last') and ticker_data.last > 0:
-                limit_price = float(ticker_data.last)
-            elif ticker_data and hasattr(ticker_data, 'close') and ticker_data.close > 0:
-                limit_price = float(ticker_data.close)
-            _ib.cancelMktData(contract)
-            _ib.disconnect()
-        except Exception:
-            pass
-        # Fallback chain
-        if limit_price <= 0 and isinstance(scan, dict):
+        data_age_s = 0
+        if isinstance(scan, dict):
             for c in (scan.get("candidates") or []):
                 if isinstance(c, dict) and str(c.get("ticker", "")).upper() == ticker:
                     limit_price = float(c.get("price", c.get("latest_price", 0)) or 0)
+                    collected = c.get("collected_at") or scan.get("collected_at") or ""
+                    if collected:
+                        try:
+                            from datetime import datetime, timezone
+                            collected_dt = datetime.fromisoformat(str(collected).replace("Z", "+00:00"))
+                            data_age_s = (datetime.now(timezone.utc) - collected_dt).total_seconds()
+                        except Exception:
+                            pass
                     break
         if limit_price <= 0:
             limit_price = float(state.get("latest_price", 0)) or 0
@@ -532,6 +524,8 @@ def build_graph(
             "limit_price": limit_price,
             "position_value": round(position_value, 2),
             "max_position_pct": 10,
+            "data_age_s": round(data_age_s, 1),
+            "data_source": "datahub_scan" if limit_price > 0 else "fallback",
         })
 
         # Paper order submission requires:
