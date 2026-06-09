@@ -551,21 +551,52 @@ def build_graph(
             from datetime import datetime, timezone
 
             journal = PaperJournal()
-            trade = PaperTrade(
-                trade_id=f"bob-{run_id[:12]}" if run_id else f"bob-{int(time.time())}",
-                ticker=ticker,
-                thesis=state.get("message", "Auto-executed paper trade")[:200],
-                direction=action,
-                entry_date=datetime.now(timezone.utc).isoformat(),
-                entry_price=limit_price,
-                shares=qty,
-                entry_reasoning=f"auto_execute_paper | route={state.get('route','?')} | run_id={run_id}",
-                verdict_at_entry=bob_decision or "auto",
-                risk_assessment=state.get("risk_tolerance", "moderada"),
-                expected_holding_period="swing",
-            )
-            journal.open_trade(trade)
-            journal_entry = trade.trade_id
+
+            if action in ("sell", "SELL"):
+                # Auto-close: find open trade for this ticker and close it
+                open_trades = journal.list_open()
+                closed = None
+                for ot in open_trades:
+                    if ot.get("ticker") == ticker:
+                        # Use fill price from IBKR result if available
+                        fill_price = limit_price
+                        so = result.get("submit_paper_order_result", {})
+                        if so.get("avg_price") and so["avg_price"] > 0:
+                            fill_price = float(so["avg_price"])
+                        closed = journal.close_trade(
+                            ot["trade_id"],
+                            exit_price=fill_price,
+                            exit_reason="auto_sell",
+                            exit_date=datetime.now(timezone.utc).isoformat(),
+                        )
+                        if closed:
+                            journal.add_reflection(
+                                ot["trade_id"],
+                                thesis_correct=(closed.outcome == "win"),
+                                what_went_right="Auto-closed by sell order" if closed.outcome == "win" else "",
+                                what_went_wrong="Auto-closed — loss" if closed.outcome == "loss" else "",
+                                lesson_learned=f"Auto trade: {ticker} {'won' if closed.outcome == 'win' else 'lost'} ${abs(closed.pnl_amount or 0):.2f}",
+                            )
+                        journal_entry = f"closed:{ot['trade_id']}"
+                        break
+                if not closed:
+                    journal_entry = f"no_open_trade_for:{ticker}"
+            else:
+                trade = PaperTrade(
+                    trade_id=f"bob-{run_id[:12]}" if run_id else f"bob-{int(time.time())}",
+                    ticker=ticker,
+                    thesis=state.get("message", "Auto-executed paper trade")[:200],
+                    direction=action,
+                    entry_date=datetime.now(timezone.utc).isoformat(),
+                    entry_price=limit_price,
+                    shares=qty,
+                    entry_reasoning=f"auto_execute_paper | route={state.get('route','?')} | run_id={run_id}",
+                    verdict_at_entry=bob_decision or "auto",
+                    risk_assessment=state.get("risk_tolerance", "moderada"),
+                    expected_holding_period="swing",
+                )
+                journal.open_trade(trade)
+                journal_entry = trade.trade_id
         except Exception as exc:
             journal_entry = f"journal_error:{exc}"
 

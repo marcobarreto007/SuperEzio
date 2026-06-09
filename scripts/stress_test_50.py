@@ -134,7 +134,7 @@ def send_prompt(msg_text: str, idx: int) -> dict:
 
 
 def main():
-    print(f"=== STRESS TEST: 50 trades ===\n")
+    print("=== STRESS TEST: 50 trades ===\n")
     results = []
     start_total = time.time()
 
@@ -160,7 +160,7 @@ def main():
     with_tools = [r for r in ok if r["chunks"] > 0]
 
     print(f"\n{'='*60}")
-    print(f"STRESS TEST RESULTS")
+    print("STRESS TEST RESULTS")
     print(f"{'='*60}")
     print(f"Total:        {len(results)}")
     print(f"Passed:       {len(ok)}")
@@ -168,18 +168,18 @@ def main():
     print(f"Success rate: {len(ok)/len(results)*100:.0f}%")
     print(f"Total time:   {total_s}s")
     print(f"Avg latency:  {sum(r['latency_s'] for r in ok)/len(ok):.1f}s" if ok else "N/A")
-    print(f"")
-    print(f"Routing:")
+    print("")
+    print("Routing:")
     print(f"  market_scan:     {len(market_scans)} ({len(market_scans)/len(ok)*100:.0f}%)" if ok else "  N/A")
     print(f"  ticker_analysis: {len(ticker_analysis)} ({len(ticker_analysis)/len(ok)*100:.0f}%)" if ok else "  N/A")
     print(f"  general:         {len(general)} ({len(general)/len(ok)*100:.0f}%)" if ok else "  N/A")
-    print(f"")
-    print(f"Tool usage:")
+    print("")
+    print("Tool usage:")
     print(f"  With response:   {len(with_tools)} ({len(with_tools)/len(ok)*100:.0f}%)" if ok else "  N/A")
-    print(f"")
+    print("")
 
     if fails:
-        print(f"FAILURES:")
+        print("FAILURES:")
         for r in fails:
             print(f"  [{r['route']}] {r.get('error','?')} — {r['msg']}")
 
