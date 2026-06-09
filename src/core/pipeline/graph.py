@@ -490,8 +490,29 @@ def build_graph(
 
         # ── Position sizing: max 10% of paper equity per trade ──
         paper_equity = 100_000.0  # default paper account
+        # PRIMARY price source: IBKR real-time market data (sub-second delay)
+        # Fallback: scan candidates → state latest_price → safe default
         limit_price = 0.0
-        if isinstance(scan, dict):
+        try:
+            from ib_insync import IB as _IB, Stock as _Stock
+            import time as _time
+            _ib = _IB()
+            _ib.connect("127.0.0.1", 7497, clientId=int(_time.time() * 1000) % 9000 + 700, timeout=5)
+            contract = _Stock(ticker, "SMART", "USD")
+            _ib.qualifyContracts(contract)
+            # Request market data snapshot
+            ticker_data = _ib.reqMktData(contract, "", False, False)
+            _ib.sleep(2)  # Wait for data to arrive
+            if ticker_data and hasattr(ticker_data, 'last') and ticker_data.last > 0:
+                limit_price = float(ticker_data.last)
+            elif ticker_data and hasattr(ticker_data, 'close') and ticker_data.close > 0:
+                limit_price = float(ticker_data.close)
+            _ib.cancelMktData(contract)
+            _ib.disconnect()
+        except Exception:
+            pass
+        # Fallback chain
+        if limit_price <= 0 and isinstance(scan, dict):
             for c in (scan.get("candidates") or []):
                 if isinstance(c, dict) and str(c.get("ticker", "")).upper() == ticker:
                     limit_price = float(c.get("price", c.get("latest_price", 0)) or 0)
