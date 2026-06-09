@@ -37,13 +37,17 @@ def main():
 
         pct = (position_value / equity * 100) if equity > 0 else 0
 
-        print(json.dumps({
-            "ticker": ticker,
-            "shares": position_shares,
-            "value": round(position_value, 2),
-            "equity": round(equity, 2),
-            "pct_of_equity": round(pct, 1),
-        }))
+        print(
+            json.dumps(
+                {
+                    "ticker": ticker,
+                    "shares": position_shares,
+                    "value": round(position_value, 2),
+                    "equity": round(equity, 2),
+                    "pct_of_equity": round(pct, 1),
+                }
+            )
+        )
         sys.exit(0)
 
     except Exception as e:

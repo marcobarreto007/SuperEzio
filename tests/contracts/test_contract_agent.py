@@ -60,8 +60,7 @@ def test_mission_context_tells_bob_ibkr_paper_submission_is_enabled():
     assert "positions_count=0" in context
     assert "can_submit_orders=True" in context
     # Paper trading mode: Bob is told he CAN submit paper orders, not live money.
-    assert ("CAN submit paper orders" in context
-            or "PAPER TRADING MODE" in context)
+    assert "CAN submit paper orders" in context or "PAPER TRADING MODE" in context
     assert "Do not claim live-money execution capability" in context
 
 

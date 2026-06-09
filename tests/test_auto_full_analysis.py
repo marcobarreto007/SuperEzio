@@ -31,8 +31,7 @@ async def test_auto_full_analysis_uses_collector_state_for_decision_stack(monkey
                     "role": state["role"],
                     "ok": True,
                     "response": (
-                        '{"verdict":"BULLISH","confidence":80,'
-                        '"bob_readable":"PLUG was checked."}'
+                        '{"verdict":"BULLISH","confidence":80,"bob_readable":"PLUG was checked."}'
                     ),
                 }
             ]

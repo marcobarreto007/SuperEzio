@@ -12,6 +12,7 @@ from core.trading.performance_metrics import PerformanceEngine
 
 # Fixtures
 
+
 @pytest.fixture
 def journal():
     """Journal temporario limpo para cada teste."""
@@ -45,6 +46,7 @@ def sample_trade():
 
 
 # C6: PaperJournal
+
 
 class TestPaperJournal:
     def test_open_trade(self, journal, sample_trade):
@@ -99,10 +101,17 @@ class TestPaperJournal:
         journal.open_trade(sample_trade)
         # Trade 2: aberto e fechado
         t2 = PaperTrade(
-            trade_id="test-002", ticker="MSFT", thesis="test", direction="long",
-            entry_date="2026-06-02T10:00:00Z", entry_price=400.00, shares=10,
-            entry_reasoning="test", verdict_at_entry="WAIT",
-            risk_assessment="test", expected_holding_period="position",
+            trade_id="test-002",
+            ticker="MSFT",
+            thesis="test",
+            direction="long",
+            entry_date="2026-06-02T10:00:00Z",
+            entry_price=400.00,
+            shares=10,
+            entry_reasoning="test",
+            verdict_at_entry="WAIT",
+            risk_assessment="test",
+            expected_holding_period="position",
         )
         journal.open_trade(t2)
         journal.close_trade("test-002", exit_price=410.00, exit_reason="take_profit")
@@ -141,20 +150,34 @@ class TestPaperJournal:
         """Stats agregadas com trades."""
         # Win
         t1 = PaperTrade(
-            trade_id="w1", ticker="AAPL", thesis="test", direction="long",
-            entry_date="2026-06-01T10:00:00Z", entry_price=100, shares=10,
-            entry_reasoning="test", verdict_at_entry="test",
-            risk_assessment="test", expected_holding_period="swing",
+            trade_id="w1",
+            ticker="AAPL",
+            thesis="test",
+            direction="long",
+            entry_date="2026-06-01T10:00:00Z",
+            entry_price=100,
+            shares=10,
+            entry_reasoning="test",
+            verdict_at_entry="test",
+            risk_assessment="test",
+            expected_holding_period="swing",
         )
         journal.open_trade(t1)
         journal.close_trade("w1", exit_price=110, exit_reason="take_profit")
 
         # Loss
         t2 = PaperTrade(
-            trade_id="l1", ticker="TSLA", thesis="test", direction="long",
-            entry_date="2026-06-02T10:00:00Z", entry_price=200, shares=5,
-            entry_reasoning="test", verdict_at_entry="test",
-            risk_assessment="test", expected_holding_period="swing",
+            trade_id="l1",
+            ticker="TSLA",
+            thesis="test",
+            direction="long",
+            entry_date="2026-06-02T10:00:00Z",
+            entry_price=200,
+            shares=5,
+            entry_reasoning="test",
+            verdict_at_entry="test",
+            risk_assessment="test",
+            expected_holding_period="swing",
         )
         journal.open_trade(t2)
         journal.close_trade("l1", exit_price=190, exit_reason="stop_loss")
@@ -173,7 +196,6 @@ class TestPaperJournal:
         journal2 = PaperJournal(journal.path)
         assert journal2.count() == 1
         assert journal2.list_open()[0]["trade_id"] == "test-001"
-
 
     def test_production_guard_refuses_truncation(self, tmp_path):
         """Journal no caminho de producao NAO pode ser truncado via _rewrite vazio."""
@@ -194,6 +216,7 @@ class TestPaperJournal:
 
 # C7: PerformanceEngine
 
+
 class TestPerformanceEngine:
     def test_empty_journal(self, journal):
         """Relatorio de performance com journal vazio."""
@@ -213,17 +236,28 @@ class TestPerformanceEngine:
         assert report.win_rate_pct == 100.0
         # Sem reflexao ainda
         assert report.reflection_rate_pct == 0.0
-        assert "insufficient_sample" in str(report.detected_biases) if report.detected_biases else False
+        assert (
+            "insufficient_sample" in str(report.detected_biases)
+            if report.detected_biases
+            else False
+        )
 
     def test_multiple_trades_detects_biases(self, journal):
         """Multiplos trades ativam deteccao de vieses."""
         for i in range(6):
             tid = f"t{i}"
             trade = PaperTrade(
-                trade_id=tid, ticker=f"TICK{i}", thesis=f"thesis {i}", direction="long",
-                entry_date=f"2026-06-0{i+1}T10:00:00Z", entry_price=100, shares=10,
-                entry_reasoning="test", verdict_at_entry="test",
-                risk_assessment="test", expected_holding_period="swing",
+                trade_id=tid,
+                ticker=f"TICK{i}",
+                thesis=f"thesis {i}",
+                direction="long",
+                entry_date=f"2026-06-0{i + 1}T10:00:00Z",
+                entry_price=100,
+                shares=10,
+                entry_reasoning="test",
+                verdict_at_entry="test",
+                risk_assessment="test",
+                expected_holding_period="swing",
             )
             journal.open_trade(trade)
             # 4 wins, 2 losses
@@ -251,10 +285,17 @@ class TestPerformanceEngine:
         for i in range(10):
             tid = f"s{i}"
             trade = PaperTrade(
-                trade_id=tid, ticker="SPY", thesis="momentum", direction="long",
-                entry_date=f"2026-06-{i+1:02d}T10:00:00Z", entry_price=500, shares=10,
-                entry_reasoning="test", verdict_at_entry="test",
-                risk_assessment="test", expected_holding_period="swing",
+                trade_id=tid,
+                ticker="SPY",
+                thesis="momentum",
+                direction="long",
+                entry_date=f"2026-06-{i + 1:02d}T10:00:00Z",
+                entry_price=500,
+                shares=10,
+                entry_reasoning="test",
+                verdict_at_entry="test",
+                risk_assessment="test",
+                expected_holding_period="swing",
             )
             journal.open_trade(trade)
             # Pequenos ganhos consistentes
@@ -271,10 +312,17 @@ class TestPerformanceEngine:
         for i, px in enumerate(prices):
             tid = f"dd{i}"
             trade = PaperTrade(
-                trade_id=tid, ticker="XYZ", thesis="test", direction="long",
-                entry_date=f"2026-06-{i+1:02d}T10:00:00Z", entry_price=100, shares=10,
-                entry_reasoning="test", verdict_at_entry="test",
-                risk_assessment="test", expected_holding_period="day_trade",
+                trade_id=tid,
+                ticker="XYZ",
+                thesis="test",
+                direction="long",
+                entry_date=f"2026-06-{i + 1:02d}T10:00:00Z",
+                entry_price=100,
+                shares=10,
+                entry_reasoning="test",
+                verdict_at_entry="test",
+                risk_assessment="test",
+                expected_holding_period="day_trade",
             )
             journal.open_trade(trade)
             journal.close_trade(tid, exit_price=px, exit_reason="manual")

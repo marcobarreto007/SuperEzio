@@ -639,16 +639,13 @@ def _grounding_guard_answer(state: dict, content: str) -> str:
 
     # Include portfolio snapshot in the guard message so Bob still reports real positions
     # Try multiple possible keys — LangGraph state propagation varies
-    portfolio = (
-        state.get("portfolio_snapshot")
-        or state.get("portfolio_context")
-        or ""
-    )
+    portfolio = state.get("portfolio_snapshot") or state.get("portfolio_context") or ""
     # Also check if portfolio data is embedded in final text already
     if not portfolio:
         final = state.get("final") or state.get("final_answer") or ""
         if "CURRENT PORTFOLIO" in final:
             import re
+
             m = re.search(r"CURRENT PORTFOLIO.*?(?=\n\n|\Z)", final, re.DOTALL)
             if m:
                 portfolio = m.group(0)
@@ -657,20 +654,29 @@ def _grounding_guard_answer(state: dict, content: str) -> str:
         try:
             from ib_insync import IB as _IB
             import time as _time
+
             _ib = _IB()
-            _ib.connect("127.0.0.1", 7497, clientId=int(_time.time() * 1000) % 9000 + 500, timeout=3)
+            _ib.connect(
+                "127.0.0.1", 7497, clientId=int(_time.time() * 1000) % 9000 + 500, timeout=3
+            )
             pos = list(_ib.positions())
             eq = 0.0
             for v in _ib.accountSummary():
                 if v.tag == "NetLiquidation":
                     eq = float(v.value)
             if pos:
-                lines = ["CURRENT PORTFOLIO (IBKR paper):", f"  Equity: ${eq:,.2f}", f"  Positions: {len(pos)}"]
+                lines = [
+                    "CURRENT PORTFOLIO (IBKR paper):",
+                    f"  Equity: ${eq:,.2f}",
+                    f"  Positions: {len(pos)}",
+                ]
                 total = 0.0
                 for p in pos:
                     val = float(p.position) * float(p.avgCost)
                     total += val
-                    lines.append(f"    {p.contract.symbol}: {p.position} shares @ avg ${float(p.avgCost):.2f} = ${val:,.2f}")
+                    lines.append(
+                        f"    {p.contract.symbol}: {p.position} shares @ avg ${float(p.avgCost):.2f} = ${val:,.2f}"
+                    )
                 lines.append(f"  Total invested: ${total:,.2f}")
                 lines.append(f"  Cash: ${eq - total:,.2f}")
                 portfolio = "\n".join(lines)
@@ -721,6 +727,7 @@ def _get_portfolio_snapshot(state: dict) -> str:
     try:
         from ib_insync import IB as _IB
         import time as _time
+
         _ib = _IB()
         _ib.connect("127.0.0.1", 7497, clientId=int(_time.time() * 1000) % 9000 + 600, timeout=3)
         pos = list(_ib.positions())
@@ -733,9 +740,13 @@ def _get_portfolio_snapshot(state: dict) -> str:
             for p in pos:
                 val = float(p.position) * float(p.avgCost)
                 total += val
-                lines.append(f"  {p.contract.symbol}: {p.position} shares @ avg ${float(p.avgCost):.2f} = ${val:,.2f}")
+                lines.append(
+                    f"  {p.contract.symbol}: {p.position} shares @ avg ${float(p.avgCost):.2f} = ${val:,.2f}"
+                )
             lines.append(f"  Total investido: ${total:,.2f}  |  Cash: ${eq - total:,.2f}")
-            lines.append(f"  Concentração: {'⚠️ ALTA' if total/eq > 0.5 else 'OK'} ({total/eq*100:.0f}% do equity)")
+            lines.append(
+                f"  Concentração: {'⚠️ ALTA' if total / eq > 0.5 else 'OK'} ({total / eq * 100:.0f}% do equity)"
+            )
             return "\n".join(lines) + "\n"
     except Exception:
         pass
@@ -1353,26 +1364,14 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
         plan_heading_pt = "Plano de Treino Paper:"
         plan_heading_en = "Paper Training Plan:"
         if paper_auto_submit:
-            entry_line_pt = (
-                "submit_paper_order LMT perto do preco atual via IBKR paper; registrar status do broker/journal"
-            )
-            entry_line_en = (
-                "submit_paper_order LMT near current price through IBKR paper; record broker/journal status"
-            )
+            entry_line_pt = "submit_paper_order LMT perto do preco atual via IBKR paper; registrar status do broker/journal"
+            entry_line_en = "submit_paper_order LMT near current price through IBKR paper; record broker/journal status"
         elif paper_order_user_blocked:
-            entry_line_pt = (
-                "ticket LIMIT perto do preco atual; transmissao paper bloqueada pela instrucao do usuario"
-            )
-            entry_line_en = (
-                "LIMIT ticket near current price; paper transmission blocked by the user's instruction"
-            )
+            entry_line_pt = "ticket LIMIT perto do preco atual; transmissao paper bloqueada pela instrucao do usuario"
+            entry_line_en = "LIMIT ticket near current price; paper transmission blocked by the user's instruction"
         else:
-            entry_line_pt = (
-                "ticket LIMIT perto do preco atual; transmissao paper desabilitada ate o gate SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT=1"
-            )
-            entry_line_en = (
-                "LIMIT ticket near current price; paper transmission disabled until SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT=1"
-            )
+            entry_line_pt = "ticket LIMIT perto do preco atual; transmissao paper desabilitada ate o gate SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT=1"
+            entry_line_en = "LIMIT ticket near current price; paper transmission disabled until SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT=1"
         max_risk_line_pt = "usar stop duro; perda maxima 0.5%-1.0% do capital de treino"
         max_risk_line_en = "use a hard stop; max loss 0.5%-1.0% of training capital"
     else:
@@ -1406,7 +1405,9 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
             "0.5%-1.0% do capital de trading" if is_buy_candidate else "0 ate virar BUY_CANDIDATE"
         )
         max_risk_line_en = (
-            "0.5%-1.0% of trading capital" if is_buy_candidate else "0 until upgraded to BUY_CANDIDATE"
+            "0.5%-1.0% of trading capital"
+            if is_buy_candidate
+            else "0 until upgraded to BUY_CANDIDATE"
         )
 
     if portuguese:
@@ -2353,13 +2354,26 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
     # ── Portfolio status shortcut ──
     msg = (state.get("message") or "").lower().strip()
-    is_status_check = any(hint in msg for hint in (
-        "como estamos", "how are we", "status", "portfolio",
-        "como esta", "how is", "resumo", "summary", "posicao", "posição", "posicoes",
-    ))
+    is_status_check = any(
+        hint in msg
+        for hint in (
+            "como estamos",
+            "how are we",
+            "status",
+            "portfolio",
+            "como esta",
+            "how is",
+            "resumo",
+            "summary",
+            "posicao",
+            "posição",
+            "posicoes",
+        )
+    )
     portfolio = state.get("portfolio_snapshot", "")
     if is_status_check and portfolio and "offline" not in portfolio.lower():
         from datetime import datetime as _dt
+
         now = _dt.now().strftime("%H:%M")
         content = (
             f"#{' ' * 20}PORTFOLIO STATUS — {now}\n\n"
@@ -2369,7 +2383,14 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             f"Nenhuma recomendação financeira — apenas o estado atual da conta de treino."
         )
         writer({"type": "CHUNK", "content": content})
-        writer({"type": "PIPELINE_STEP", "run_id": run_id, "step": "agent_primary", "status": "completed"})
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "agent_primary",
+                "status": "completed",
+            }
+        )
         return {
             **_final_payload(content, iterations),
             "bob_thesis": state.get("bob_thesis", ""),
@@ -2461,9 +2482,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         state["current_datetime"] = now_str
     else:
         mission_context = _load_mission_context()
-        base_prompt = (
-            COMPLEX_FINANCE_SYSTEM_PROMPT if is_complex_finance else SYSTEM_PROMPT
-        )
+        base_prompt = COMPLEX_FINANCE_SYSTEM_PROMPT if is_complex_finance else SYSTEM_PROMPT
         if mission_context:
             active_system_prompt = mission_context + "\n\n" + base_prompt
         else:
@@ -2645,9 +2664,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     }
             if tool_call["tool"] == "final_answer":
                 content = tool_call.get("args", {}).get("content") or ""
-                if state.get("submit_paper_order_result") or state.get(
-                    "submit_paper_order_error"
-                ):
+                if state.get("submit_paper_order_result") or state.get("submit_paper_order_error"):
                     content = _paper_order_execution_answer(state)
                 elif state.get("scan"):
                     content = _market_scan_answer(state)

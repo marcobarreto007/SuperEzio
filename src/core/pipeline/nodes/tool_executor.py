@@ -367,11 +367,11 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
     import sys as _sys
 
     script = str(
-        Path(__file__).resolve().parent.parent.parent.parent.parent
-        / "scripts" / "_ibkr_order.py"
+        Path(__file__).resolve().parent.parent.parent.parent.parent / "scripts" / "_ibkr_order.py"
     )
     cmd = [
-        _sys.executable, script,
+        _sys.executable,
+        script,
         "BUY" if action in ("buy", "long") else "SELL",
         symbol,
         str(int(qty)),

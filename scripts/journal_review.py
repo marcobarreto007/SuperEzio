@@ -12,8 +12,8 @@ from pathlib import Path
 PROJECT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT / "src"))
 
-from core.trading.paper_journal import PaperJournal
-from core.trading.performance_metrics import PerformanceEngine
+from core.trading.paper_journal import PaperJournal  # noqa: E402
+from core.trading.performance_metrics import PerformanceEngine  # noqa: E402
 
 
 def main():
@@ -34,15 +34,20 @@ def main():
     # ── C6: Track result ──
     print("── C6: Track result ──")
     print("Requires: ≥1 real thesis aged + closed + post-mortem")
-    valid_c6 = [t for t in closed_trades
-                if t.get("lesson_learned")
-                and t.get("entry_date")
-                and t.get("exit_date")
-                and t.get("ticker") != "__CHECKPOINT__"]
+    valid_c6 = [
+        t
+        for t in closed_trades
+        if t.get("lesson_learned")
+        and t.get("entry_date")
+        and t.get("exit_date")
+        and t.get("ticker") != "__CHECKPOINT__"
+    ]
     if valid_c6:
         print(f"✅ {len(valid_c6)} closed trades with reflection — C6 READY for proof")
         for t in valid_c6:
-            print(f"   {t['trade_id'][:30]} {t['ticker']} {t.get('outcome','?')} pnl=${t.get('pnl_amount',0):.2f}")
+            print(
+                f"   {t['trade_id'][:30]} {t['ticker']} {t.get('outcome', '?')} pnl=${t.get('pnl_amount', 0):.2f}"
+            )
     else:
         print("❌ 0 valid — need real trades (not checkpoint, not manual PLUG test)")
     print()
@@ -72,9 +77,11 @@ def main():
     print("── ALL ENTRIES ──")
     for t in all_trades:
         status = "CLOSED" if t.get("exit_date") else "OPEN"
-        pnl = f"${t.get('pnl_amount',0):.2f}" if t.get('pnl_amount') is not None else "-"
+        pnl = f"${t.get('pnl_amount', 0):.2f}" if t.get("pnl_amount") is not None else "-"
         ref = "📝" if t.get("lesson_learned") else ""
-        print(f"  [{status}] {t['trade_id'][:30]:32s} {t['ticker']:16s} {t.get('direction','?'):6s} x{t.get('shares',0):5.0f} @ ${t.get('entry_price',0):8.2f} pnl={pnl:>10s} {ref}")
+        print(
+            f"  [{status}] {t['trade_id'][:30]:32s} {t['ticker']:16s} {t.get('direction', '?'):6s} x{t.get('shares', 0):5.0f} @ ${t.get('entry_price', 0):8.2f} pnl={pnl:>10s} {ref}"
+        )
 
 
 if __name__ == "__main__":

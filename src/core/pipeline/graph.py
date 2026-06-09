@@ -88,12 +88,20 @@ async def _auto_full_analysis_legacy(state: dict) -> dict:
 
     # ── 2. Expert committee (6 experts fan-out) ──
     expert_results = []
-    roles = ["macro_risk", "fundamental_value", "momentum_technical",
-             "contrarian_opportunity", "sentiment", "social_forensics"]
+    roles = [
+        "macro_risk",
+        "fundamental_value",
+        "momentum_technical",
+        "contrarian_opportunity",
+        "sentiment",
+        "social_forensics",
+    ]
     for role in roles:
         try:
             expert_state = {
-                **state, "role": role, "ticker": ticker,
+                **state,
+                "role": role,
+                "ticker": ticker,
                 "data_context": data_context or message,
             }
             res = await node_expert(expert_state)
@@ -102,7 +110,9 @@ async def _auto_full_analysis_legacy(state: dict) -> dict:
                 er["provider"] = EXPERT_PROVIDERS.get(role, "unknown")
                 expert_results.append(er)
         except Exception as e:
-            expert_results.append({"role": role, "error": str(e)[:100], "provider": EXPERT_PROVIDERS.get(role, "?")})
+            expert_results.append(
+                {"role": role, "error": str(e)[:100], "provider": EXPERT_PROVIDERS.get(role, "?")}
+            )
 
     state["expert_results"] = expert_results
 
@@ -217,13 +227,9 @@ async def _auto_full_analysis(
         )
 
     ticker = str(
-        working_state.get("ticker")
-        or (working_state.get("data") or {}).get("ticker")
-        or ""
+        working_state.get("ticker") or (working_state.get("data") or {}).get("ticker") or ""
     ).upper()
-    data_context = str(
-        working_state.get("data_context") or working_state.get("message") or ""
-    )
+    data_context = str(working_state.get("data_context") or working_state.get("message") or "")
 
     if ticker:
         expert_results: list[dict[str, Any]] = []
@@ -248,9 +254,7 @@ async def _auto_full_analysis(
                 )
                 for expert_result in res.get("expert_results", []):
                     expert_result.setdefault("role", role)
-                    expert_result.setdefault(
-                        "provider", EXPERT_PROVIDERS.get(role, "unknown")
-                    )
+                    expert_result.setdefault("provider", EXPERT_PROVIDERS.get(role, "unknown"))
                     expert_results.append(expert_result)
             except Exception as exc:
                 expert_results.append(
@@ -287,13 +291,16 @@ async def _auto_full_analysis(
     # ── IBKR portfolio snapshot: always inject current positions ──
     try:
         from ib_insync import IB as _IB
+
         _ib = _IB()
         _ib.connect("127.0.0.1", 7497, clientId=int(time.time() * 1000) % 9000 + 100, timeout=5)
         positions = []
         total_value = 0.0
         for p in _ib.positions():
             pos_val = float(p.position) * float(p.avgCost)
-            positions.append(f"{p.contract.symbol}: {p.position} shares @ avg ${float(p.avgCost):.2f} = ${pos_val:,.2f}")
+            positions.append(
+                f"{p.contract.symbol}: {p.position} shares @ avg ${float(p.avgCost):.2f} = ${pos_val:,.2f}"
+            )
             total_value += pos_val
         equity = 0.0
         for v in _ib.accountSummary():
@@ -306,12 +313,20 @@ async def _auto_full_analysis(
             f"  Equity: ${equity:,.2f}\n"
             f"  Positions: {len(positions)}\n"
             + "".join(f"    {p}\n" for p in positions)
-            + (f"  Total invested: ${total_value:,.2f}\n" if positions else "  (empty — no positions)\n")
+            + (
+                f"  Total invested: ${total_value:,.2f}\n"
+                if positions
+                else "  (empty — no positions)\n"
+            )
             + f"  Cash: ${equity - total_value:,.2f}\n"
         )
         _merge_node_update(working_state, output, {"portfolio_snapshot": portfolio_context})
     except Exception:
-        _merge_node_update(working_state, output, {"portfolio_snapshot": "IBKR offline — portfolio data unavailable"})
+        _merge_node_update(
+            working_state,
+            output,
+            {"portfolio_snapshot": "IBKR offline — portfolio data unavailable"},
+        )
 
     if ticker:
         for label, node in (
@@ -391,6 +406,7 @@ def build_graph(
         import os as _os
         import re
         from collections import deque
+        from pathlib import Path
         from langgraph.config import get_stream_writer
         from core.pipeline.nodes.tool_executor import _submit_paper_order
 
@@ -404,18 +420,26 @@ def build_graph(
         writer = get_stream_writer()
         run_id = state.get("run_id", "")
 
-        writer({
-            "type": "PIPELINE_STEP", "run_id": run_id,
-            "step": "auto_execute_paper", "status": "started",
-        })
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "auto_execute_paper",
+                "status": "started",
+            }
+        )
 
         # ── Dedup guard: agent loop can trigger this node multiple times ──
         if _dedup_key in _EXECUTED:
-            writer({
-                "type": "PIPELINE_STEP", "run_id": run_id,
-                "step": "auto_execute_paper", "status": "skipped",
-                "reason": "already_executed_for_this_run",
-            })
+            writer(
+                {
+                    "type": "PIPELINE_STEP",
+                    "run_id": run_id,
+                    "step": "auto_execute_paper",
+                    "status": "skipped",
+                    "reason": "already_executed_for_this_run",
+                }
+            )
             return {}
         _EXECUTED.append(_dedup_key)
 
@@ -434,11 +458,15 @@ def build_graph(
             or re.search(r"decisao\s*(?:final|correta)\s*[:\w]*\s*(?:wait|reject)", final_text)
         )
         if bob_says_wait_or_reject:
-            writer({
-                "type": "PIPELINE_STEP", "run_id": run_id,
-                "step": "auto_execute_paper", "status": "skipped",
-                "reason": "bob_verdict_blocks_execution",
-            })
+            writer(
+                {
+                    "type": "PIPELINE_STEP",
+                    "run_id": run_id,
+                    "step": "auto_execute_paper",
+                    "status": "skipped",
+                    "reason": "bob_verdict_blocks_execution",
+                }
+            )
             return {}
 
         # ── Strategy 1: PAPER_TICKET in Bob's response ──
@@ -454,11 +482,15 @@ def build_graph(
             top = candidates[0] if isinstance(candidates[0], dict) else {}
             ticker = str(top.get("ticker", top.get("symbol", ""))).upper()
             if not ticker:
-                writer({
-                    "type": "PIPELINE_STEP", "run_id": run_id,
-                    "step": "auto_execute_paper", "status": "skipped",
-                    "reason": "no_ticker_in_scan_candidates",
-                })
+                writer(
+                    {
+                        "type": "PIPELINE_STEP",
+                        "run_id": run_id,
+                        "step": "auto_execute_paper",
+                        "status": "skipped",
+                        "reason": "no_ticker_in_scan_candidates",
+                    }
+                )
                 return {}
             price = float(top.get("price", top.get("latest_price", 0)) or 0)
             qty = max(1, int(1000 / price)) if price > 0 else 10
@@ -468,24 +500,40 @@ def build_graph(
         elif state.get("ticker") and state.get("route") in ("ticker_analysis",):
             ticker = str(state.get("ticker", "")).upper()
             # Parse quantity from message or final answer
-            qty_match = re.search(r"(\d+)\s*(?:share|acao|acoes|shares)", final or state.get("message", ""), re.IGNORECASE)
+            qty_match = re.search(
+                r"(\d+)\s*(?:share|acao|acoes|shares)",
+                final or state.get("message", ""),
+                re.IGNORECASE,
+            )
             qty = int(qty_match.group(1)) if qty_match else 5
-            action = "sell" if any(w in (final or "").lower() for w in ("venda", "vender", "sell", "short")) else "buy"
+            action = (
+                "sell"
+                if any(w in (final or "").lower() for w in ("venda", "vender", "sell", "short"))
+                else "buy"
+            )
 
         else:
-            writer({
-                "type": "PIPELINE_STEP", "run_id": run_id,
-                "step": "auto_execute_paper", "status": "skipped",
-                "reason": "no_paper_ticket_or_scan_or_direct_order",
-            })
+            writer(
+                {
+                    "type": "PIPELINE_STEP",
+                    "run_id": run_id,
+                    "step": "auto_execute_paper",
+                    "status": "skipped",
+                    "reason": "no_paper_ticket_or_scan_or_direct_order",
+                }
+            )
             return {}
 
         if not ticker:
-            writer({
-                "type": "PIPELINE_STEP", "run_id": run_id,
-                "step": "auto_execute_paper", "status": "skipped",
-                "reason": "no_ticker_parsed",
-            })
+            writer(
+                {
+                    "type": "PIPELINE_STEP",
+                    "run_id": run_id,
+                    "step": "auto_execute_paper",
+                    "status": "skipped",
+                    "reason": "no_ticker_parsed",
+                }
+            )
             return {"paper_exec_note": "no ticker parsed"}
 
         # ── Position sizing: max 10% of paper equity per trade ──
@@ -497,14 +545,17 @@ def build_graph(
         limit_price = 0.0
         data_age_s = 0
         if isinstance(scan, dict):
-            for c in (scan.get("candidates") or []):
+            for c in scan.get("candidates") or []:
                 if isinstance(c, dict) and str(c.get("ticker", "")).upper() == ticker:
                     limit_price = float(c.get("price", c.get("latest_price", 0)) or 0)
                     collected = c.get("collected_at") or scan.get("collected_at") or ""
                     if collected:
                         try:
                             from datetime import datetime, timezone
-                            collected_dt = datetime.fromisoformat(str(collected).replace("Z", "+00:00"))
+
+                            collected_dt = datetime.fromisoformat(
+                                str(collected).replace("Z", "+00:00")
+                            )
                             data_age_s = (datetime.now(timezone.utc) - collected_dt).total_seconds()
                         except Exception:
                             pass
@@ -525,13 +576,17 @@ def build_graph(
             import subprocess as _sp
             import sys as _sys
             import json as _json
+
             check_script = str(
                 Path(__file__).resolve().parent.parent.parent.parent.parent
-                / "scripts" / "_ibkr_position_check.py"
+                / "scripts"
+                / "_ibkr_position_check.py"
             )
             proc = _sp.run(
                 [_sys.executable, check_script, ticker],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             if proc.returncode == 0:
                 data = _json.loads(proc.stdout.strip())
@@ -539,28 +594,37 @@ def build_graph(
                 new_total_pct = existing_pct + (position_value / data.get("equity", 100_000) * 100)
                 if new_total_pct > 50:
                     concentration_blocked = True
-                    writer({
-                        "type": "PIPELINE_STEP", "run_id": run_id,
-                        "step": "auto_execute_paper", "status": "skipped",
-                        "reason": f"concentration_gate:{ticker}_at_{existing_pct:.0f}pct_would_be_{new_total_pct:.0f}pct",
-                        "existing_pct": round(existing_pct, 1),
-                        "new_total_pct": round(new_total_pct, 1),
-                    })
+                    writer(
+                        {
+                            "type": "PIPELINE_STEP",
+                            "run_id": run_id,
+                            "step": "auto_execute_paper",
+                            "status": "skipped",
+                            "reason": f"concentration_gate:{ticker}_at_{existing_pct:.0f}pct_would_be_{new_total_pct:.0f}pct",
+                            "existing_pct": round(existing_pct, 1),
+                            "new_total_pct": round(new_total_pct, 1),
+                        }
+                    )
         except Exception:
             pass
 
         if concentration_blocked:
             return {"paper_exec_blocked": f"concentration:{ticker}"}
 
-        writer({
-            "type": "PAPER_EXEC", "run_id": run_id,
-            "ticker": ticker, "action": action, "qty": qty,
-            "limit_price": limit_price,
-            "position_value": round(position_value, 2),
-            "max_position_pct": 10,
-            "data_age_s": round(data_age_s, 1),
-            "data_source": "datahub_scan" if limit_price > 0 else "fallback",
-        })
+        writer(
+            {
+                "type": "PAPER_EXEC",
+                "run_id": run_id,
+                "ticker": ticker,
+                "action": action,
+                "qty": qty,
+                "limit_price": limit_price,
+                "position_value": round(position_value, 2),
+                "max_position_pct": 10,
+                "data_age_s": round(data_age_s, 1),
+                "data_source": "datahub_scan" if limit_price > 0 else "fallback",
+            }
+        )
 
         # Paper order submission requires:
         # - ticket_allowed=True in state (cognitive contract)
@@ -570,13 +634,16 @@ def build_graph(
         if limit_price <= 0:
             limit_price = 99.0  # fallback — will likely not fill, which is safer than bad fill
 
-        result = await _submit_paper_order(order_state, {
-            "ticker": ticker,
-            "action": action,
-            "qty": qty,
-            "order_type": "LMT",
-            "limit_price": limit_price,
-        })
+        result = await _submit_paper_order(
+            order_state,
+            {
+                "ticker": ticker,
+                "action": action,
+                "qty": qty,
+                "order_type": "LMT",
+                "limit_price": limit_price,
+            },
+        )
 
         # ── Record in paper journal (audit trail) ──
         journal_entry = None
@@ -607,8 +674,12 @@ def build_graph(
                             journal.add_reflection(
                                 ot["trade_id"],
                                 thesis_correct=(closed.outcome == "win"),
-                                what_went_right="Auto-closed by sell order" if closed.outcome == "win" else "",
-                                what_went_wrong="Auto-closed — loss" if closed.outcome == "loss" else "",
+                                what_went_right="Auto-closed by sell order"
+                                if closed.outcome == "win"
+                                else "",
+                                what_went_wrong="Auto-closed — loss"
+                                if closed.outcome == "loss"
+                                else "",
                                 lesson_learned=f"Auto trade: {ticker} {'won' if closed.outcome == 'win' else 'lost'} ${abs(closed.pnl_amount or 0):.2f}",
                             )
                         journal_entry = f"closed:{ot['trade_id']}"
@@ -624,7 +695,7 @@ def build_graph(
                     entry_date=datetime.now(timezone.utc).isoformat(),
                     entry_price=limit_price,
                     shares=qty,
-                    entry_reasoning=f"auto_execute_paper | route={state.get('route','?')} | run_id={run_id}",
+                    entry_reasoning=f"auto_execute_paper | route={state.get('route', '?')} | run_id={run_id}",
                     verdict_at_entry=bob_decision or "auto",
                     risk_assessment=state.get("risk_tolerance", "moderada"),
                     expected_holding_period="swing",
@@ -634,12 +705,16 @@ def build_graph(
         except Exception as exc:
             journal_entry = f"journal_error:{exc}"
 
-        writer({
-            "type": "PIPELINE_STEP", "run_id": run_id,
-            "step": "auto_execute_paper", "status": "completed",
-            "result": result,
-            "journal_entry": journal_entry,
-        })
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "auto_execute_paper",
+                "status": "completed",
+                "result": result,
+                "journal_entry": journal_entry,
+            }
+        )
 
         return {
             "paper_exec_result": result,

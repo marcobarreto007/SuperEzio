@@ -49,9 +49,7 @@ def render_mission_context_for_prompt(path: str | Path | None = None) -> str:
 
     identity = data.get("identity", {}) if isinstance(data.get("identity"), dict) else {}
     situation = (
-        data.get("current_situation", {})
-        if isinstance(data.get("current_situation"), dict)
-        else {}
+        data.get("current_situation", {}) if isinstance(data.get("current_situation"), dict) else {}
     )
     mission = data.get("grand_mission", {}) if isinstance(data.get("grand_mission"), dict) else {}
     rules = data.get("operating_rules", [])
@@ -59,9 +57,7 @@ def render_mission_context_for_prompt(path: str | Path | None = None) -> str:
     agent_info = data.get("agent", {}) if isinstance(data.get("agent"), dict) else {}
     training = data.get("training", {}) if isinstance(data.get("training"), dict) else {}
     apprenticeship = (
-        data.get("apprenticeship", {})
-        if isinstance(data.get("apprenticeship"), dict)
-        else {}
+        data.get("apprenticeship", {}) if isinstance(data.get("apprenticeship"), dict) else {}
     )
 
     lines: list[str] = [
@@ -110,9 +106,7 @@ def render_mission_context_for_prompt(path: str | Path | None = None) -> str:
     pipeline = situation.get("pipeline", {}) if isinstance(situation.get("pipeline"), dict) else {}
     broker = situation.get("broker", {}) if isinstance(situation.get("broker"), dict) else {}
     data_sources = (
-        situation.get("data_sources", {})
-        if isinstance(situation.get("data_sources"), dict)
-        else {}
+        situation.get("data_sources", {}) if isinstance(situation.get("data_sources"), dict) else {}
     )
 
     _append_key_values(lines, "## CURRENT RUNTIME", runtime)
@@ -221,7 +215,9 @@ def _build_debut_summary(mission: dict) -> dict[str, Any]:
     criteria = mission.get("eight_criteria", [])
     criteria = criteria if isinstance(criteria, list) else []
     proven = sum(1 for c in criteria if isinstance(c, dict) and c.get("status") == "proven")
-    instrumented = sum(1 for c in criteria if isinstance(c, dict) and c.get("status") == "instrumented")
+    instrumented = sum(
+        1 for c in criteria if isinstance(c, dict) and c.get("status") == "instrumented"
+    )
     pending = sum(1 for c in criteria if isinstance(c, dict) and c.get("status") == "pending")
     total = len(criteria)
     readiness_pct = round((proven / total * 100), 1) if total > 0 else 0.0

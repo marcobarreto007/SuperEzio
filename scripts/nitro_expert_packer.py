@@ -22,30 +22,36 @@ from itertools import combinations
 
 # ── DATA STRUCTURES ────────────────────────────────────────────
 
+
 @dataclass
 class ExpertActivation:
     """A single activation record: which experts fired for a token."""
+
     token_id: int
     layer: int
     expert_ids: List[int]
     routing_weights: List[float]  # softmax weights from router
 
+
 @dataclass
 class ProfileRun:
     """Collection of activation records from one inference run."""
+
     activations: List[ExpertActivation] = field(default_factory=list)
     total_tokens: int = 0
     model_name: str = ""
 
-    def add(self, token_id: int, layer: int,
-            expert_ids: List[int], weights: List[float]):
-        self.activations.append(ExpertActivation(
-            token_id=token_id, layer=layer,
-            expert_ids=expert_ids, routing_weights=weights))
+    def add(self, token_id: int, layer: int, expert_ids: List[int], weights: List[float]):
+        self.activations.append(
+            ExpertActivation(
+                token_id=token_id, layer=layer, expert_ids=expert_ids, routing_weights=weights
+            )
+        )
         self.total_tokens = max(self.total_tokens, token_id + 1)
 
 
 # ── MOCK PROFILER (real data later) ────────────────────────────
+
 
 class MockProfiler:
     """
@@ -56,11 +62,14 @@ class MockProfiler:
     - Zipf distribution: few experts dominate
     """
 
-    def __init__(self, num_experts: int = 512,
-                 num_layers: int = 48,
-                 experts_per_token: int = 10,
-                 persistence: float = 0.65,
-                 seed: int = 42):
+    def __init__(
+        self,
+        num_experts: int = 512,
+        num_layers: int = 48,
+        experts_per_token: int = 10,
+        persistence: float = 0.65,
+        seed: int = 42,
+    ):
         self.num_experts = num_experts
         self.num_layers = num_layers
         self.experts_per_token = experts_per_token
@@ -69,6 +78,7 @@ class MockProfiler:
 
     def profile(self, num_tokens: int = 500) -> ProfileRun:
         import random
+
         rng = random.Random(self.seed)
 
         run = ProfileRun()
@@ -78,9 +88,9 @@ class MockProfiler:
         layer_popularity = {}
         for layer in range(self.num_layers):
             # Top 10% of experts get 40% of activations
-            weights = [1.0 / (i + 1)**0.8 for i in range(self.num_experts)]
+            weights = [1.0 / (i + 1) ** 0.8 for i in range(self.num_experts)]
             total = sum(weights)
-            probs = [w/total for w in weights]
+            probs = [w / total for w in weights]
             layer_popularity[layer] = probs
 
         for t in range(num_tokens):
@@ -91,7 +101,7 @@ class MockProfiler:
                     layer_experts = rng.choices(
                         range(self.num_experts),
                         weights=layer_popularity[layer],
-                        k=self.experts_per_token
+                        k=self.experts_per_token,
                     )
                     current_experts.append(layer_experts)
             else:
@@ -103,15 +113,11 @@ class MockProfiler:
                     layer_experts = prev_layer_experts[:keep]
                     new_needed = self.experts_per_token - keep
                     # Preferentially pick experts adjacent to kept ones
-                    available = [e for e in range(self.num_experts)
-                                 if e not in layer_experts]
+                    available = [e for e in range(self.num_experts) if e not in layer_experts]
                     if new_needed > 0 and available:
-                        avail_weights = [layer_popularity[layer][e]
-                                         for e in available]
+                        avail_weights = [layer_popularity[layer][e] for e in available]
                         new_experts_layer = rng.choices(
-                            available,
-                            weights=avail_weights,
-                            k=new_needed
+                            available, weights=avail_weights, k=new_needed
                         )
                         layer_experts.extend(new_experts_layer)
                     new_experts.append(layer_experts)
@@ -122,14 +128,14 @@ class MockProfiler:
                 exp_ids = current_experts[layer]
                 weights = [rng.random() for _ in exp_ids]
                 total_w = sum(weights)
-                weights = [w/total_w for w in weights]
-                run.add(token_id=t, layer=layer,
-                        expert_ids=exp_ids, weights=weights)
+                weights = [w / total_w for w in weights]
+                run.add(token_id=t, layer=layer, expert_ids=exp_ids, weights=weights)
 
         return run
 
 
 # ── CO-ACTIVATION ANALYZER ────────────────────────────────────
+
 
 class CoActivationAnalyzer:
     """
@@ -139,8 +145,7 @@ class CoActivationAnalyzer:
 
     def __init__(self):
         # coact[layer][expert_A][expert_B] = count
-        self.coact: Dict[int, Dict[int, Counter]] = defaultdict(
-            lambda: defaultdict(Counter))
+        self.coact: Dict[int, Dict[int, Counter]] = defaultdict(lambda: defaultdict(Counter))
         # solo frequency
         self.freq: Dict[int, Counter] = defaultdict(Counter)
 
@@ -182,6 +187,7 @@ class CoActivationAnalyzer:
 
 # ── CLUSTERING ─────────────────────────────────────────────────
 
+
 class ExpertClusterer:
     """
     Groups experts by co-activation into clusters.
@@ -193,14 +199,12 @@ class ExpertClusterer:
     3. Stop when cluster size reaches target or scores drop below threshold
     """
 
-    def __init__(self, target_cluster_size_mb: float = 256.0,
-                 expert_size_mb: float = 59.0):
+    def __init__(self, target_cluster_size_mb: float = 256.0, expert_size_mb: float = 59.0):
         self.target_cluster_size = target_cluster_size_mb
         self.expert_size_mb = expert_size_mb
         self.max_experts_per_cluster = int(target_cluster_size_mb / expert_size_mb)
 
-    def cluster(self, analyzer: CoActivationAnalyzer,
-                layer: int) -> List[List[int]]:
+    def cluster(self, analyzer: CoActivationAnalyzer, layer: int) -> List[List[int]]:
         """
         Fast greedy clustering: O(n²) instead of O(n³).
         1. Start with most frequent expert as seed
@@ -228,8 +232,7 @@ class ExpertClusterer:
                 for candidate in remaining:
                     # Average co-activation with all cluster members
                     score = sum(
-                        analyzer.get_coact_score(layer, candidate, member)
-                        for member in cluster
+                        analyzer.get_coact_score(layer, candidate, member) for member in cluster
                     ) / len(cluster)
                     if score > best_score:
                         best_score = score
@@ -248,6 +251,7 @@ class ExpertClusterer:
 
 # ── GGUF LAYOUT OPTIMIZER ─────────────────────────────────────
 
+
 class GGUFLayoutOptimizer:
     """
     Reads GGUF tensor info, maps expert tensors to clusters,
@@ -261,8 +265,7 @@ class GGUFLayoutOptimizer:
     Future: can rewrite GGUF with clustered tensor ordering.
     """
 
-    def __init__(self, analyzer: CoActivationAnalyzer,
-                 clusterer: ExpertClusterer):
+    def __init__(self, analyzer: CoActivationAnalyzer, clusterer: ExpertClusterer):
         self.analyzer = analyzer
         self.clusterer = clusterer
 
@@ -293,10 +296,12 @@ class GGUFLayoutOptimizer:
             "total_clusters": total_clusters,
             "avg_experts_per_cluster": round(avg_experts_per_cluster, 1),
             "avg_cluster_size_mb": round(
-                avg_experts_per_cluster * self.clusterer.expert_size_mb, 1),
+                avg_experts_per_cluster * self.clusterer.expert_size_mb, 1
+            ),
             "nvme_benefit": {
-                "random_reads_saved_pct": round(
-                    (1 - 1/avg_experts_per_cluster) * 100, 1) if avg_experts_per_cluster > 0 else 0,
+                "random_reads_saved_pct": round((1 - 1 / avg_experts_per_cluster) * 100, 1)
+                if avg_experts_per_cluster > 0
+                else 0,
                 "estimated_speedup": f"{min(avg_experts_per_cluster, 8):.1f}x",
             },
             "clusters_per_layer": {
@@ -309,11 +314,12 @@ class GGUFLayoutOptimizer:
                     for i, cluster in enumerate(clusters)
                 ]
                 for layer, clusters in sorted(clusters_per_layer.items())
-            }
+            },
         }
 
 
 # ── MAIN ───────────────────────────────────────────────────────
+
 
 def main():
     print("=" * 64)
@@ -323,11 +329,7 @@ def main():
     # Profile
     print("\n[1/3] Profiling expert co-activation patterns...")
     profiler = MockProfiler(
-        num_experts=512,
-        num_layers=48,
-        experts_per_token=10,
-        persistence=0.65,
-        seed=42
+        num_experts=512, num_layers=48, experts_per_token=10, persistence=0.65, seed=42
     )
     run = profiler.profile(num_tokens=500)
     print(f"  Generated {run.total_tokens} tokens × {profiler.num_layers} layers")
@@ -341,30 +343,31 @@ def main():
     # Top co-activations in layer 0
     print("\n  Top co-activations (Layer 0):")
     top = sorted(
-        [(analyzer.get_coact_score(0, a, b), a, b)
-         for a in range(min(20, profiler.num_experts))
-         for b in range(a+1, min(20, profiler.num_experts))],
-        reverse=True
+        [
+            (analyzer.get_coact_score(0, a, b), a, b)
+            for a in range(min(20, profiler.num_experts))
+            for b in range(a + 1, min(20, profiler.num_experts))
+        ],
+        reverse=True,
     )[:5]
     for score, a, b in top:
         freq_a = analyzer.freq[0].get(a, 0)
         freq_b = analyzer.freq[0].get(b, 0)
-        print(f"    Expert {a:3d} <-> {b:3d}: score={score:.3f} "
-              f"(freq: {freq_a}, {freq_b})")
+        print(f"    Expert {a:3d} <-> {b:3d}: score={score:.3f} (freq: {freq_a}, {freq_b})")
 
     # Cluster
     print("\n[3/3] Clustering experts...")
     clusterer = ExpertClusterer(
         target_cluster_size_mb=256.0,  # target ~256 MB per cluster
-        expert_size_mb=59.0           # ~59 MB per expert at IQ4_XS
+        expert_size_mb=59.0,  # ~59 MB per expert at IQ4_XS
     )
 
     optimizer = GGUFLayoutOptimizer(analyzer, clusterer)
     result = optimizer.optimize()
 
-    print(f"\n{'='*64}")
+    print(f"\n{'=' * 64}")
     print("RESULTS")
-    print(f"{'='*64}")
+    print(f"{'=' * 64}")
     print(f"  Total experts mapped:    {result['total_experts']}")
     print(f"  Total clusters:          {result['total_clusters']}")
     print(f"  Avg experts per cluster: {result['avg_experts_per_cluster']}")
@@ -374,21 +377,24 @@ def main():
 
     # Show first 3 layers' clusters
     print("\n  Sample clusters (first 3 layers):")
-    for layer_str in sorted(result['clusters_per_layer'].keys())[:3]:
-        clusters = result['clusters_per_layer'][layer_str]
+    for layer_str in sorted(result["clusters_per_layer"].keys())[:3]:
+        clusters = result["clusters_per_layer"][layer_str]
         print(f"  Layer {layer_str}: {len(clusters)} clusters")
         for c in clusters[:2]:
-            print(f"    {c['cluster_id']}: {len(c['expert_ids'])} experts, "
-                  f"{c['size_mb']} MB, IDs: {c['expert_ids'][:5]}...")
+            print(
+                f"    {c['cluster_id']}: {len(c['expert_ids'])} experts, "
+                f"{c['size_mb']} MB, IDs: {c['expert_ids'][:5]}..."
+            )
 
     # Save
     out_path = r"C:\F51_LAB\expert_cluster_layout.json"
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    with open(out_path, 'w') as f:
+    with open(out_path, "w") as f:
         json.dump(result, f, indent=2)
     print(f"\nLayout saved to: {out_path}")
 
     return result
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

@@ -44,9 +44,7 @@ def _trade_to_rag_doc(trade: dict) -> dict:
             f"Outcome: {outcome}. PnL: ${round(pnl, 2) if pnl else '?'}."
         )
     if trade.get("thesis_correct") is not None:
-        text_parts.append(
-            f"Thesis was {'CORRECT' if trade.get('thesis_correct') else 'WRONG'}."
-        )
+        text_parts.append(f"Thesis was {'CORRECT' if trade.get('thesis_correct') else 'WRONG'}.")
     if trade.get("lesson_learned"):
         text_parts.append(f"Lesson: {trade.get('lesson_learned')}")
 

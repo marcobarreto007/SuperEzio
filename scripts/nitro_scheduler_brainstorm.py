@@ -30,32 +30,38 @@ from enum import Enum
 
 # ── HARDWARE PHYSICS ───────────────────────────────────────────
 
+
 @dataclass
 class Hardware:
     """Measured constraints of Marco's machine."""
-    nvme_read_mbps:    float = 3400.0   # measured
-    pcie_to_gpu_mbps:  float = 16000.0  # PCIe 4.0 x8 theoretical
-    ddr5_mbps:         float = 60000.0  # not the bottleneck
-    gpu_vram_gb:       float = 16.0
-    ram_total_gb:      float = 64.0
-    gpu_compute_ms_per_expert: float = 0.5   # observed
-    gpu_compute_ms_attention:  float = 0.3   # per attention layer
+
+    nvme_read_mbps: float = 3400.0  # measured
+    pcie_to_gpu_mbps: float = 16000.0  # PCIe 4.0 x8 theoretical
+    ddr5_mbps: float = 60000.0  # not the bottleneck
+    gpu_vram_gb: float = 16.0
+    ram_total_gb: float = 64.0
+    gpu_compute_ms_per_expert: float = 0.5  # observed
+    gpu_compute_ms_attention: float = 0.3  # per attention layer
     router_latency_ms: float = 0.1
+
 
 HW = Hardware()
 
 
 # ── MODEL ──────────────────────────────────────────────────────
 
+
 @dataclass
 class Expert:
     """A single MoE expert."""
+
     id: int
     layer: int
-    size_mb: float          # size on disk (quantized)
+    size_mb: float  # size on disk (quantized)
     last_used_token: int = -1
     hot_in_vram: bool = False
     hot_in_ram: bool = False
+
 
 @dataclass
 class ModelConfig:
@@ -65,8 +71,9 @@ class ModelConfig:
     num_layers: int
     num_experts: int
     experts_per_token: int
-    expert_size_mb: float     # per expert at IQ4_XS
-    shared_size_mb: float     # attention + norms + shared experts
+    expert_size_mb: float  # per expert at IQ4_XS
+    shared_size_mb: float  # attention + norms + shared experts
+
 
 # Qwen3-Coder-Next 80B (already proven with Nitro)
 QWEN_80B = ModelConfig(
@@ -76,8 +83,8 @@ QWEN_80B = ModelConfig(
     num_layers=48,
     num_experts=512,
     experts_per_token=10,
-    expert_size_mb=59.0,       # 80B * 0.45 / 512 ≈ 70MB, rounding to 59
-    shared_size_mb=15000.0,    # ~15 GB shared
+    expert_size_mb=59.0,  # 80B * 0.45 / 512 ≈ 70MB, rounding to 59
+    shared_size_mb=15000.0,  # ~15 GB shared
 )
 
 # DeepSeek-Coder-V2 236B (target for cold tier)
@@ -88,21 +95,24 @@ DEEPSEEK_236B = ModelConfig(
     num_layers=60,
     num_experts=160,
     experts_per_token=6,
-    expert_size_mb=644.0,      # 236B * 0.5625 / 160 ≈ 830MB at IQ4_XS
-    shared_size_mb=30000.0,    # ~30 GB shared
+    expert_size_mb=644.0,  # 236B * 0.5625 / 160 ≈ 830MB at IQ4_XS
+    shared_size_mb=30000.0,  # ~30 GB shared
 )
 
 
 # ── THE SCHEDULER ──────────────────────────────────────────────
 
+
 class Tier(Enum):
-    COLD = 0    # NVMe — needs 2 hops to reach GPU
-    WARM = 1    # RAM  — needs 1 hop (PCIe)
-    HOT  = 2    # VRAM — ready for compute
+    COLD = 0  # NVMe — needs 2 hops to reach GPU
+    WARM = 1  # RAM  — needs 1 hop (PCIe)
+    HOT = 2  # VRAM — ready for compute
+
 
 @dataclass
 class Transfer:
     """A single data movement operation."""
+
     expert_id: int
     source: Tier
     dest: Tier
@@ -111,9 +121,11 @@ class Transfer:
     duration_ms: float
     priority: int = 0  # lower = more urgent
 
+
 @dataclass
 class TokenTimeline:
     """What happens during processing of one token."""
+
     token_id: int
     # The router says which experts we need
     required_experts: List[int]
@@ -146,10 +158,13 @@ class ExpertScheduler:
         # Expert inventory with tier tracking
         self.experts: Dict[int, Expert] = {}
         for i in range(model.num_experts):
-            self.experts[i] = Expert(id=i, layer=i % model.num_layers,
-                                     size_mb=model.expert_size_mb,
-                                     hot_in_ram=True,  # start in RAM for 80B
-                                     hot_in_vram=False)
+            self.experts[i] = Expert(
+                id=i,
+                layer=i % model.num_layers,
+                size_mb=model.expert_size_mb,
+                hot_in_ram=True,  # start in RAM for 80B
+                hot_in_vram=False,
+            )
 
         # VRAM expert cache (fixed-size, managed by eviction policy)
         self.vram_cache: List[int] = []  # expert IDs currently in VRAM
@@ -162,8 +177,9 @@ class ExpertScheduler:
         self.misses = 0
         self.stall_total_ms = 0.0
 
-    def predict_next_experts(self, current_experts: List[int],
-                             confidence: float = 0.7) -> List[int]:
+    def predict_next_experts(
+        self, current_experts: List[int], confidence: float = 0.7
+    ) -> List[int]:
         """
         Predict which experts token T+1 will need, given token T's router output.
 
@@ -244,13 +260,12 @@ class ExpertScheduler:
             return None  # no eviction needed
 
         # Find LRU expert in VRAM
-        victim = min(self.vram_cache,
-                     key=lambda eid: self.experts[eid].last_used_token)
+        victim = min(self.vram_cache, key=lambda eid: self.experts[eid].last_used_token)
         return victim
 
-    def schedule(self, required_experts: List[int],
-                 current_token: int,
-                 time_budget_ms: float) -> TokenTimeline:
+    def schedule(
+        self, required_experts: List[int], current_token: int, time_budget_ms: float
+    ) -> TokenTimeline:
         """
         The main scheduling algorithm.
 
@@ -284,8 +299,10 @@ class ExpertScheduler:
                     max_transfer_ms = max(max_transfer_ms, transfer.duration_ms * 2)
 
         # Phase 2: compute time (can overlap with transfers IF async)
-        compute_ms = (len(required_experts) * HW.gpu_compute_ms_per_expert +
-                     12 * HW.gpu_compute_ms_attention * 0.3)  # only 12 attn layers
+        compute_ms = (
+            len(required_experts) * HW.gpu_compute_ms_per_expert
+            + 12 * HW.gpu_compute_ms_attention * 0.3
+        )  # only 12 attn layers
 
         # Phase 3: stall = time GPU waited for data
         # Perfect pipeline: stall = max(0, transfer_time - compute_time_of_previous)
@@ -334,8 +351,8 @@ class ExpertScheduler:
 
 # ── SIMULATION ─────────────────────────────────────────────────
 
-def simulate(model: ModelConfig, num_tokens: int = 1000,
-             expert_persistence: float = 0.65):
+
+def simulate(model: ModelConfig, num_tokens: int = 1000, expert_persistence: float = 0.65):
     """
     Simulate token-by-token inference with the predictive scheduler.
 
@@ -349,10 +366,10 @@ def simulate(model: ModelConfig, num_tokens: int = 1000,
     # Subsequent tokens keep `persistence` fraction + new random ones
 
     import random
+
     random.seed(42)
 
-    current_experts = random.sample(range(model.num_experts),
-                                    model.experts_per_token)
+    current_experts = random.sample(range(model.num_experts), model.experts_per_token)
 
     total_time_ms = 0.0
     timelines = []
@@ -367,26 +384,29 @@ def simulate(model: ModelConfig, num_tokens: int = 1000,
         next_experts = current_experts[:kept]
         new_count = model.experts_per_token - kept
         if new_count > 0:
-            pool = [e for e in range(model.num_experts)
-                    if e not in next_experts]
+            pool = [e for e in range(model.num_experts) if e not in next_experts]
             next_experts.extend(random.sample(pool, new_count))
         current_experts = next_experts
 
     avg_ms_per_token = total_time_ms / num_tokens
-    tok_per_sec = 1000.0 / avg_ms_per_token if avg_ms_per_token > 0 else float('inf')
+    tok_per_sec = 1000.0 / avg_ms_per_token if avg_ms_per_token > 0 else float("inf")
 
-    hit_rate = scheduler.hits / (scheduler.hits + scheduler.misses) * 100 if (scheduler.hits + scheduler.misses) > 0 else 0
+    hit_rate = (
+        scheduler.hits / (scheduler.hits + scheduler.misses) * 100
+        if (scheduler.hits + scheduler.misses) > 0
+        else 0
+    )
 
     return {
-        'model': model.name,
-        'num_tokens': num_tokens,
-        'total_time_s': total_time_ms / 1000,
-        'tok_per_sec': tok_per_sec,
-        'avg_ms_per_token': avg_ms_per_token,
-        'hit_rate_pct': hit_rate,
-        'stall_total_s': scheduler.stall_total_ms / 1000,
-        'vram_cache_size': scheduler.vram_slots,
-        'expert_persistence': expert_persistence,
+        "model": model.name,
+        "num_tokens": num_tokens,
+        "total_time_s": total_time_ms / 1000,
+        "tok_per_sec": tok_per_sec,
+        "avg_ms_per_token": avg_ms_per_token,
+        "hit_rate_pct": hit_rate,
+        "stall_total_s": scheduler.stall_total_ms / 1000,
+        "vram_cache_size": scheduler.vram_slots,
+        "expert_persistence": expert_persistence,
     }
 
 
@@ -413,8 +433,10 @@ def compare_scenarios():
 
     for model, slots, persistence, label in scenarios:
         r = simulate(model, num_tokens=500, expert_persistence=persistence)
-        print(f"{label:<25} {slots:>5}  {persistence:.0%}     {r['tok_per_sec']:>7.1f}  "
-              f"{r['hit_rate_pct']:>5.1f}% {r['stall_total_s']:>8.1f}")
+        print(
+            f"{label:<25} {slots:>5}  {persistence:.0%}     {r['tok_per_sec']:>7.1f}  "
+            f"{r['hit_rate_pct']:>5.1f}% {r['stall_total_s']:>8.1f}"
+        )
 
     print()
     print("INTERPRETACAO:")
@@ -432,17 +454,17 @@ def compare_scenarios():
     print("A PERGUNTA DO MARCO: 'saber exatamente o momento exato'")
     print("=" * 72)
     print(f"""
-    Cada token leva ~{1000/QWEN_80B.experts_per_token*HW.gpu_compute_ms_per_expert:.1f}ms de compute.
-    Cada transferência RAM→GPU leva ~{QWEN_80B.expert_size_mb/HW.pcie_to_gpu_mbps*1000:.1f}ms (80B) /
-                                           ~{DEEPSEEK_236B.expert_size_mb/HW.pcie_to_gpu_mbps*1000:.1f}ms (236B).
-    Cada transferência NVMe→RAM leva ~{QWEN_80B.expert_size_mb/HW.nvme_read_mbps*1000:.1f}ms (80B) /
-                                        ~{DEEPSEEK_236B.expert_size_mb/HW.nvme_read_mbps*1000:.1f}ms (236B).
+    Cada token leva ~{1000 / QWEN_80B.experts_per_token * HW.gpu_compute_ms_per_expert:.1f}ms de compute.
+    Cada transferência RAM→GPU leva ~{QWEN_80B.expert_size_mb / HW.pcie_to_gpu_mbps * 1000:.1f}ms (80B) /
+                                           ~{DEEPSEEK_236B.expert_size_mb / HW.pcie_to_gpu_mbps * 1000:.1f}ms (236B).
+    Cada transferência NVMe→RAM leva ~{QWEN_80B.expert_size_mb / HW.nvme_read_mbps * 1000:.1f}ms (80B) /
+                                        ~{DEEPSEEK_236B.expert_size_mb / HW.nvme_read_mbps * 1000:.1f}ms (236B).
 
     Se eu inicio a transferência RAM→GPU do expert E agora,
-    ele chega em {QWEN_80B.expert_size_mb/HW.pcie_to_gpu_mbps*1000:.1f}ms.
-    Nesse tempo, a GPU terminou de computar {QWEN_80B.expert_size_mb/HW.pcie_to_gpu_mbps*1000/HW.gpu_compute_ms_per_expert:.0f} experts.
+    ele chega em {QWEN_80B.expert_size_mb / HW.pcie_to_gpu_mbps * 1000:.1f}ms.
+    Nesse tempo, a GPU terminou de computar {QWEN_80B.expert_size_mb / HW.pcie_to_gpu_mbps * 1000 / HW.gpu_compute_ms_per_expert:.0f} experts.
 
-    Se E é o {QWEN_80B.expert_size_mb/HW.pcie_to_gpu_mbps*1000/HW.gpu_compute_ms_per_expert:.0f}º expert da fila, chegou no momento exato.
+    Se E é o {QWEN_80B.expert_size_mb / HW.pcie_to_gpu_mbps * 1000 / HW.gpu_compute_ms_per_expert:.0f}º expert da fila, chegou no momento exato.
     Se E é o 1º, chegou cedo demais — ocupou VRAM à toa.
     Se E é o último, a GPU ficou ociosa esperando.
 
@@ -484,8 +506,8 @@ def compare_scenarios():
             # NVMe is slower than PCIe — need even more lead time for cold experts
             nvme_lead = nvme_ms / compute_per_expert_ms
             print(f"  → Start NVMe→RAM when expert is {nvme_lead:.0f} positions ahead")
-            print(f"    (NVMe is {nvme_ms/transfer_ms:.1f}x slower than PCIe)")
+            print(f"    (NVMe is {nvme_ms / transfer_ms:.1f}x slower than PCIe)")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     compare_scenarios()

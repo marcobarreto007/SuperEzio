@@ -19,7 +19,9 @@ sys.path.insert(0, str(_PROJECT / "src"))
 
 def main():
     if len(sys.argv) < 4:
-        print(json.dumps({"error": "usage: _ibkr_order.py <BUY|SELL> <TICKER> <QTY> [LIMIT_PRICE]"}))
+        print(
+            json.dumps({"error": "usage: _ibkr_order.py <BUY|SELL> <TICKER> <QTY> [LIMIT_PRICE]"})
+        )
         sys.exit(1)
 
     action = sys.argv[1].upper()

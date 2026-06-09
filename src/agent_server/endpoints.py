@@ -808,8 +808,10 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
             chart_context = ""
             context_block = ""
             block_vague_financial = False
-        elif (is_market_scan or is_paper_training) and explicit_ticker and not detect_ticker(
-            raw_message
+        elif (
+            (is_market_scan or is_paper_training)
+            and explicit_ticker
+            and not detect_ticker(raw_message)
         ):
             # Market scan request with a chart ticker but no inline ticker:
             # the chart ticker is stale context, not the scan target.

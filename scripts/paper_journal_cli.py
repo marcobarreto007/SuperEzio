@@ -55,7 +55,11 @@ def cmd_open(args: argparse.Namespace) -> None:
         entry_date=datetime.now(timezone.utc).isoformat(),
     )
     journal.open_trade(trade)
-    print(json.dumps({"status": "opened", "trade_id": trade.trade_id, "ticker": trade.ticker}, indent=2))
+    print(
+        json.dumps(
+            {"status": "opened", "trade_id": trade.trade_id, "ticker": trade.ticker}, indent=2
+        )
+    )
 
 
 def cmd_close(args: argparse.Namespace) -> None:
@@ -66,13 +70,18 @@ def cmd_close(args: argparse.Namespace) -> None:
         exit_reason=args.reason,
     )
     if trade:
-        print(json.dumps({
-            "status": "closed",
-            "trade_id": trade.trade_id,
-            "outcome": trade.outcome,
-            "pnl_amount": round(trade.pnl_amount or 0, 2),
-            "pnl_percent": round(trade.pnl_percent or 0, 4),
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "status": "closed",
+                    "trade_id": trade.trade_id,
+                    "outcome": trade.outcome,
+                    "pnl_amount": round(trade.pnl_amount or 0, 2),
+                    "pnl_percent": round(trade.pnl_percent or 0, 4),
+                },
+                indent=2,
+            )
+        )
     else:
         print(json.dumps({"status": "not_found", "trade_id": args.trade_id}))
         sys.exit(1)
@@ -88,12 +97,17 @@ def cmd_reflect(args: argparse.Namespace) -> None:
         lesson_learned=args.lesson or "",
     )
     if trade:
-        print(json.dumps({
-            "status": "reflected",
-            "trade_id": trade.trade_id,
-            "thesis_correct": trade.thesis_correct,
-            "lesson_learned": trade.lesson_learned,
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "status": "reflected",
+                    "trade_id": trade.trade_id,
+                    "thesis_correct": trade.thesis_correct,
+                    "lesson_learned": trade.lesson_learned,
+                },
+                indent=2,
+            )
+        )
     else:
         print(json.dumps({"status": "not_found", "trade_id": args.trade_id}))
         sys.exit(1)
@@ -110,16 +124,20 @@ def cmd_list(args: argparse.Namespace) -> None:
 
     output = []
     for t in trades:
-        output.append({
-            "trade_id": t.get("trade_id"),
-            "ticker": t.get("ticker"),
-            "direction": t.get("direction"),
-            "entry_price": t.get("entry_price"),
-            "exit_price": t.get("exit_price"),
-            "pnl_amount": round(t.get("pnl_amount", 0) or 0, 2) if t.get("exit_price") else None,
-            "outcome": t.get("outcome"),
-            "has_reflection": bool(t.get("lesson_learned")),
-        })
+        output.append(
+            {
+                "trade_id": t.get("trade_id"),
+                "ticker": t.get("ticker"),
+                "direction": t.get("direction"),
+                "entry_price": t.get("entry_price"),
+                "exit_price": t.get("exit_price"),
+                "pnl_amount": round(t.get("pnl_amount", 0) or 0, 2)
+                if t.get("exit_price")
+                else None,
+                "outcome": t.get("outcome"),
+                "has_reflection": bool(t.get("lesson_learned")),
+            }
+        )
     print(json.dumps({"count": len(output), "trades": output}, indent=2))
 
 
@@ -151,7 +169,9 @@ def cmd_performance(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Paper Journal CLI - Bob's trade journal and performance metrics")
+    parser = argparse.ArgumentParser(
+        description="Paper Journal CLI - Bob's trade journal and performance metrics"
+    )
     sub = parser.add_subparsers(dest="command")
 
     # open
@@ -162,13 +182,19 @@ def main() -> None:
     p_open.add_argument("shares", type=float, help="Quantidade")
     p_open.add_argument("thesis", help="Tese do trade")
     p_open.add_argument("--id", default=None, help="Trade ID customizado (default: auto-gerado)")
-    p_open.add_argument("--holding", default="swing", choices=["day_trade", "swing", "position", "long_term"])
+    p_open.add_argument(
+        "--holding", default="swing", choices=["day_trade", "swing", "position", "long_term"]
+    )
 
     # close
     p_close = sub.add_parser("close", help="Fechar um trade paper")
     p_close.add_argument("trade_id", help="ID do trade")
     p_close.add_argument("exit_price", type=float, help="Preco de saida")
-    p_close.add_argument("--reason", default="manual", choices=["take_profit", "stop_loss", "thesis_broken", "time_exit", "manual"])
+    p_close.add_argument(
+        "--reason",
+        default="manual",
+        choices=["take_profit", "stop_loss", "thesis_broken", "time_exit", "manual"],
+    )
 
     # reflect
     p_reflect = sub.add_parser("reflect", help="Adicionar reflexao post-mortem")
@@ -194,7 +220,9 @@ def main() -> None:
 
     # performance
     p_perf = sub.add_parser("performance", help="Relatorio completo de performance (C7)")
-    p_perf.add_argument("--equity", type=float, default=100_000.0, help="Equity inicial (default: 100000)")
+    p_perf.add_argument(
+        "--equity", type=float, default=100_000.0, help="Equity inicial (default: 100000)"
+    )
 
     args = parser.parse_args()
 

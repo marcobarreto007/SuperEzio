@@ -11,12 +11,14 @@ Uso:
 
 import json
 import os
-import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
-QWEN_KEY = os.getenv("QWEN_API_KEY", "sk-ws-H.ILDXPI.doi4.MEQCIE2D1sAPg7dRKZUuobk-Qe4xPx8hT1ZlW8Xbgaisigl_AiA74bWE5IwnhreBj4MqZU_st56E4V2ds_e7_t28n7AbVg")
+QWEN_KEY = os.getenv(
+    "QWEN_API_KEY",
+    "sk-ws-H.ILDXPI.doi4.MEQCIE2D1sAPg7dRKZUuobk-Qe4xPx8hT1ZlW8Xbgaisigl_AiA74bWE5IwnhreBj4MqZU_st56E4V2ds_e7_t28n7AbVg",
+)
 QWEN_BASE = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
 QWEN_MODEL = os.getenv("QWEN_MODEL", "qwen3.7-plus")
 PORT = int(os.getenv("QWEN_PROXY_PORT", "8787"))

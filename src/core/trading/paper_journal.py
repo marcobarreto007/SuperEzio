@@ -17,7 +17,9 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_JOURNAL_PATH = Path(__file__).resolve().parent.parent.parent.parent / "data" / "paper_journal.jsonl"
+DEFAULT_JOURNAL_PATH = (
+    Path(__file__).resolve().parent.parent.parent.parent / "data" / "paper_journal.jsonl"
+)
 
 # Production guard: the real journal must never be silently truncated.
 # Tests use tempfile.NamedTemporaryFile, never this path.
@@ -43,7 +45,9 @@ class PaperTrade:
     # Saida (preenchida no fechamento)
     exit_date: str | None = None
     exit_price: float | None = None
-    exit_reason: str | None = None  # "take_profit" | "stop_loss" | "thesis_broken" | "time_exit" | "manual"
+    exit_reason: str | None = (
+        None  # "take_profit" | "stop_loss" | "thesis_broken" | "time_exit" | "manual"
+    )
 
     # Resultado
     pnl_amount: float | None = None
@@ -159,7 +163,13 @@ class PaperJournal:
     def open_trade(self, trade: PaperTrade) -> str:
         """Abre um novo trade paper. Retorna o trade_id."""
         self._append(trade.to_dict())
-        logger.info("Paper trade opened: %s %s %s @ %.2f", trade.trade_id, trade.ticker, trade.direction, trade.entry_price)
+        logger.info(
+            "Paper trade opened: %s %s %s @ %.2f",
+            trade.trade_id,
+            trade.ticker,
+            trade.direction,
+            trade.entry_price,
+        )
         return trade.trade_id
 
     def close_trade(
@@ -173,13 +183,22 @@ class PaperJournal:
         entries = self._read_all()
         for i, entry in enumerate(entries):
             if entry.get("trade_id") == trade_id:
-                trade = PaperTrade(**{k: v for k, v in entry.items() if k != "created_at" and k != "updated_at"})
+                trade = PaperTrade(
+                    **{k: v for k, v in entry.items() if k != "created_at" and k != "updated_at"}
+                )
                 trade.created_at = entry.get("created_at", "")
                 trade.updated_at = entry.get("updated_at", "")
-                trade.close_trade(exit_price=exit_price, exit_date=exit_date, exit_reason=exit_reason)
+                trade.close_trade(
+                    exit_price=exit_price, exit_date=exit_date, exit_reason=exit_reason
+                )
                 entries[i] = trade.to_dict()
                 self._rewrite(entries)
-                logger.info("Paper trade closed: %s outcome=%s pnl=%.2f", trade_id, trade.outcome, trade.pnl_amount or 0)
+                logger.info(
+                    "Paper trade closed: %s outcome=%s pnl=%.2f",
+                    trade_id,
+                    trade.outcome,
+                    trade.pnl_amount or 0,
+                )
                 return trade
         logger.warning("Trade not found: %s", trade_id)
         return None
@@ -196,7 +215,9 @@ class PaperJournal:
         entries = self._read_all()
         for i, entry in enumerate(entries):
             if entry.get("trade_id") == trade_id:
-                trade = PaperTrade(**{k: v for k, v in entry.items() if k not in ("created_at", "updated_at")})
+                trade = PaperTrade(
+                    **{k: v for k, v in entry.items() if k not in ("created_at", "updated_at")}
+                )
                 trade.created_at = entry.get("created_at", "")
                 trade.updated_at = entry.get("updated_at", "")
                 trade.add_reflection(
@@ -207,7 +228,9 @@ class PaperJournal:
                 )
                 entries[i] = trade.to_dict()
                 self._rewrite(entries)
-                logger.info("Reflection added to trade: %s thesis_correct=%s", trade_id, thesis_correct)
+                logger.info(
+                    "Reflection added to trade: %s thesis_correct=%s", trade_id, thesis_correct
+                )
                 return trade
         logger.warning("Trade not found for reflection: %s", trade_id)
         return None
@@ -240,9 +263,7 @@ class PaperJournal:
         breakeven = sum(1 for t in closed if t.get("outcome") == "breakeven")
 
         total_pnl = sum(t.get("pnl_amount", 0) or 0 for t in closed)
-        avg_pnl_pct = (
-            sum(t.get("pnl_percent", 0) or 0 for t in closed) / total if total > 0 else 0
-        )
+        avg_pnl_pct = sum(t.get("pnl_percent", 0) or 0 for t in closed) / total if total > 0 else 0
         win_rate = (wins / total * 100) if total > 0 else 0
 
         thesis_correct_count = sum(1 for t in closed if t.get("thesis_correct") is True)

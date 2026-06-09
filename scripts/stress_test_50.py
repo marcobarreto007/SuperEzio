@@ -70,6 +70,7 @@ PROMPTS = [
     "I'm bored, find me something fun and risky to trade right now",
 ]
 
+
 def send_prompt(msg_text: str, idx: int) -> dict:
     msg = {
         "version": "a2a/1.0",
@@ -102,7 +103,11 @@ def send_prompt(msg_text: str, idx: int) -> dict:
             try:
                 d = json.loads(line)
                 t = d.get("type", "")
-                if t == "PIPELINE_STEP" and d.get("step") == "orchestrator_primary" and d.get("status") == "completed":
+                if (
+                    t == "PIPELINE_STEP"
+                    and d.get("step") == "orchestrator_primary"
+                    and d.get("status") == "completed"
+                ):
                     route = d.get("route", "?")
                     intent = d.get("intent", "?")
                 elif t == "CHUNK":
@@ -139,11 +144,13 @@ def main():
     start_total = time.time()
 
     for i, prompt in enumerate(PROMPTS):
-        sys.stdout.write(f"[{i+1:02d}/50] ")
+        sys.stdout.write(f"[{i + 1:02d}/50] ")
         sys.stdout.flush()
         r = send_prompt(prompt, i)
         status = "OK" if r["ok"] else "FAIL"
-        print(f"{status} route={r['route']} intent={r['intent']} chunks={r['chunks']} len={r['response_len']} {r['latency_s']}s")
+        print(
+            f"{status} route={r['route']} intent={r['intent']} chunks={r['chunks']} len={r['response_len']} {r['latency_s']}s"
+        )
         results.append(r)
 
         if i < len(PROMPTS) - 1:
@@ -159,46 +166,77 @@ def main():
     ticker_analysis = [r for r in ok if r["route"] == "ticker_analysis"]
     with_tools = [r for r in ok if r["chunks"] > 0]
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("STRESS TEST RESULTS")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Total:        {len(results)}")
     print(f"Passed:       {len(ok)}")
     print(f"Failed:       {len(fails)}")
-    print(f"Success rate: {len(ok)/len(results)*100:.0f}%")
+    print(f"Success rate: {len(ok) / len(results) * 100:.0f}%")
     print(f"Total time:   {total_s}s")
-    print(f"Avg latency:  {sum(r['latency_s'] for r in ok)/len(ok):.1f}s" if ok else "N/A")
+    print(f"Avg latency:  {sum(r['latency_s'] for r in ok) / len(ok):.1f}s" if ok else "N/A")
     print("")
     print("Routing:")
-    print(f"  market_scan:     {len(market_scans)} ({len(market_scans)/len(ok)*100:.0f}%)" if ok else "  N/A")
-    print(f"  ticker_analysis: {len(ticker_analysis)} ({len(ticker_analysis)/len(ok)*100:.0f}%)" if ok else "  N/A")
-    print(f"  general:         {len(general)} ({len(general)/len(ok)*100:.0f}%)" if ok else "  N/A")
+    print(
+        f"  market_scan:     {len(market_scans)} ({len(market_scans) / len(ok) * 100:.0f}%)"
+        if ok
+        else "  N/A"
+    )
+    print(
+        f"  ticker_analysis: {len(ticker_analysis)} ({len(ticker_analysis) / len(ok) * 100:.0f}%)"
+        if ok
+        else "  N/A"
+    )
+    print(
+        f"  general:         {len(general)} ({len(general) / len(ok) * 100:.0f}%)"
+        if ok
+        else "  N/A"
+    )
     print("")
     print("Tool usage:")
-    print(f"  With response:   {len(with_tools)} ({len(with_tools)/len(ok)*100:.0f}%)" if ok else "  N/A")
+    print(
+        f"  With response:   {len(with_tools)} ({len(with_tools) / len(ok) * 100:.0f}%)"
+        if ok
+        else "  N/A"
+    )
     print("")
 
     if fails:
         print("FAILURES:")
         for r in fails:
-            print(f"  [{r['route']}] {r.get('error','?')} — {r['msg']}")
+            print(f"  [{r['route']}] {r.get('error', '?')} — {r['msg']}")
 
     # Save report
-    report_path = PROJECT / "output" / f"stress_test_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
+    report_path = (
+        PROJECT
+        / "output"
+        / f"stress_test_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
+    )
     report_path.parent.mkdir(parents=True, exist_ok=True)
     with open(report_path, "w", encoding="utf-8") as f:
-        json.dump({
-            "summary": {
-                "total": len(results), "passed": len(ok), "failed": len(fails),
-                "success_rate_pct": round(len(ok)/len(results)*100, 1),
-                "total_time_s": total_s,
-                "avg_latency_s": round(sum(r['latency_s'] for r in ok)/len(ok), 1) if ok else 0,
-                "market_scan_pct": round(len(market_scans)/len(ok)*100, 1) if ok else 0,
-                "ticker_analysis_pct": round(len(ticker_analysis)/len(ok)*100, 1) if ok else 0,
-                "general_pct": round(len(general)/len(ok)*100, 1) if ok else 0,
+        json.dump(
+            {
+                "summary": {
+                    "total": len(results),
+                    "passed": len(ok),
+                    "failed": len(fails),
+                    "success_rate_pct": round(len(ok) / len(results) * 100, 1),
+                    "total_time_s": total_s,
+                    "avg_latency_s": round(sum(r["latency_s"] for r in ok) / len(ok), 1)
+                    if ok
+                    else 0,
+                    "market_scan_pct": round(len(market_scans) / len(ok) * 100, 1) if ok else 0,
+                    "ticker_analysis_pct": round(len(ticker_analysis) / len(ok) * 100, 1)
+                    if ok
+                    else 0,
+                    "general_pct": round(len(general) / len(ok) * 100, 1) if ok else 0,
+                },
+                "results": results,
             },
-            "results": results,
-        }, f, indent=2, ensure_ascii=False)
+            f,
+            indent=2,
+            ensure_ascii=False,
+        )
 
     print(f"Report saved: {report_path}")
 

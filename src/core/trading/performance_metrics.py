@@ -90,8 +90,12 @@ class PerformanceEngine:
         report.open_trades = len(self._journal.list_open())
 
         if not closed:
-            report.detected_biases.append("insufficient_data: fewer than 1 closed trade - cannot compute metrics")
-            report.improvement_suggestions.append("Execute at least 10 paper trades before drawing conclusions.")
+            report.detected_biases.append(
+                "insufficient_data: fewer than 1 closed trade - cannot compute metrics"
+            )
+            report.improvement_suggestions.append(
+                "Execute at least 10 paper trades before drawing conclusions."
+            )
             return report
 
         # Returns
@@ -99,12 +103,18 @@ class PerformanceEngine:
         pnl_pcts = [t.get("pnl_percent", 0) or 0 for t in closed]
 
         report.total_pnl = sum(pnls)
-        report.total_pnl_percent = (report.total_pnl / self._initial_equity * 100) if self._initial_equity > 0 else 0
+        report.total_pnl_percent = (
+            (report.total_pnl / self._initial_equity * 100) if self._initial_equity > 0 else 0
+        )
 
         wins = [p for p in pnls if p > 0]
         losses = [p for p in pnls if p < 0]
-        win_pcts = [t.get("pnl_percent", 0) or 0 for t in closed if (t.get("pnl_amount", 0) or 0) > 0]
-        loss_pcts = [t.get("pnl_percent", 0) or 0 for t in closed if (t.get("pnl_amount", 0) or 0) < 0]
+        win_pcts = [
+            t.get("pnl_percent", 0) or 0 for t in closed if (t.get("pnl_amount", 0) or 0) > 0
+        ]
+        loss_pcts = [
+            t.get("pnl_percent", 0) or 0 for t in closed if (t.get("pnl_amount", 0) or 0) < 0
+        ]
 
         report.avg_win = sum(wins) / len(wins) if wins else 0
         report.avg_loss = sum(losses) / len(losses) if losses else 0
@@ -119,10 +129,16 @@ class PerformanceEngine:
 
         gross_profit = sum(wins) if wins else 0
         gross_loss = abs(sum(losses)) if losses else 0
-        report.profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else (999.0 if gross_profit > 0 else 0)
+        report.profit_factor = (
+            (gross_profit / gross_loss) if gross_loss > 0 else (999.0 if gross_profit > 0 else 0)
+        )
 
-        report.expectancy = (report.win_rate_pct / 100 * report.avg_win) + (report.loss_rate_pct / 100 * report.avg_loss)
-        report.expectancy_percent = (report.win_rate_pct / 100 * report.avg_win_percent) + (report.loss_rate_pct / 100 * report.avg_loss_percent)
+        report.expectancy = (report.win_rate_pct / 100 * report.avg_win) + (
+            report.loss_rate_pct / 100 * report.avg_loss
+        )
+        report.expectancy_percent = (report.win_rate_pct / 100 * report.avg_win_percent) + (
+            report.loss_rate_pct / 100 * report.avg_loss_percent
+        )
 
         # Drawdown
         report.max_drawdown_percent = self._calc_max_drawdown(closed)
@@ -184,7 +200,11 @@ class PerformanceEngine:
         if len(returns_pct) < 2:
             return 0.0
         mean_ret = sum(returns_pct) / len(returns_pct)
-        variance = sum((r - mean_ret) ** 2 for r in returns_pct) / (len(returns_pct) - 1) if len(returns_pct) > 1 else 0
+        variance = (
+            sum((r - mean_ret) ** 2 for r in returns_pct) / (len(returns_pct) - 1)
+            if len(returns_pct) > 1
+            else 0
+        )
         std_ret = math.sqrt(variance) if variance > 0 else 0
         if std_ret == 0:
             return 0.0
@@ -199,7 +219,7 @@ class PerformanceEngine:
             return 0.0
         mean_ret = sum(returns_pct) / len(returns_pct)
         downside = [min(0, r - (risk_free_annual / 252)) for r in returns_pct]
-        downside_sq = [d ** 2 for d in downside]
+        downside_sq = [d**2 for d in downside]
         downside_var = sum(downside_sq) / (len(downside_sq) - 1) if len(downside_sq) > 1 else 0
         downside_std = math.sqrt(downside_var) if downside_var > 0 else 0
         if downside_std == 0:
@@ -230,7 +250,9 @@ class PerformanceEngine:
         biases: list[str] = []
 
         if report.closed_trades < 5:
-            biases.append("insufficient_sample: menos de 5 trades fechados - metricas nao sao estatisticamente significativas")
+            biases.append(
+                "insufficient_sample: menos de 5 trades fechados - metricas nao sao estatisticamente significativas"
+            )
             return biases
 
         # Vies 1: Cut winners short, let losers run
@@ -274,7 +296,9 @@ class PerformanceEngine:
 
         return biases
 
-    def _suggest_improvements(self, closed: list[dict[str, Any]], report: PerformanceReport) -> list[str]:
+    def _suggest_improvements(
+        self, closed: list[dict[str, Any]], report: PerformanceReport
+    ) -> list[str]:
         """Sugere melhorias baseadas nos vieses detectados."""
         suggestions: list[str] = []
 
