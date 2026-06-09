@@ -638,7 +638,46 @@ def _grounding_guard_answer(state: dict, content: str) -> str:
         error_line = "; data limits: " + "; ".join(str(err) for err in source_errors[:3])
 
     # Include portfolio snapshot in the guard message so Bob still reports real positions
-    portfolio = state.get("portfolio_snapshot", "")
+    # Try multiple possible keys — LangGraph state propagation varies
+    portfolio = (
+        state.get("portfolio_snapshot")
+        or state.get("portfolio_context")
+        or ""
+    )
+    # Also check if portfolio data is embedded in final text already
+    if not portfolio:
+        final = state.get("final") or state.get("final_answer") or ""
+        if "CURRENT PORTFOLIO" in final:
+            import re
+            m = re.search(r"CURRENT PORTFOLIO.*?(?=\n\n|\Z)", final, re.DOTALL)
+            if m:
+                portfolio = m.group(0)
+    # Last resort: fetch directly from IBKR if nothing in state
+    if not portfolio or "offline" in portfolio.lower():
+        try:
+            from ib_insync import IB as _IB
+            import time as _time
+            _ib = _IB()
+            _ib.connect("127.0.0.1", 7497, clientId=int(_time.time() * 1000) % 9000 + 500, timeout=3)
+            pos = list(_ib.positions())
+            eq = 0.0
+            for v in _ib.accountSummary():
+                if v.tag == "NetLiquidation":
+                    eq = float(v.value)
+            if pos:
+                lines = ["CURRENT PORTFOLIO (IBKR paper):", f"  Equity: ${eq:,.2f}", f"  Positions: {len(pos)}"]
+                total = 0.0
+                for p in pos:
+                    val = float(p.position) * float(p.avgCost)
+                    total += val
+                    lines.append(f"    {p.contract.symbol}: {p.position} shares @ avg ${float(p.avgCost):.2f} = ${val:,.2f}")
+                lines.append(f"  Total invested: ${total:,.2f}")
+                lines.append(f"  Cash: ${eq - total:,.2f}")
+                portfolio = "\n".join(lines)
+            _ib.disconnect()
+        except Exception:
+            pass
+
     portfolio_block = ""
     if portfolio and "offline" not in portfolio.lower() and grounded_list:
         portfolio_block = f"\n\nCARTEIRA ATUAL (IBKR paper):\n{portfolio}"
