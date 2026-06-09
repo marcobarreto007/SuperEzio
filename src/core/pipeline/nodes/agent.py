@@ -712,6 +712,36 @@ def _grounding_guard_answer(state: dict, content: str) -> str:
     )
 
 
+def _get_portfolio_snapshot(state: dict) -> str:
+    """Get portfolio snapshot from state or direct IBKR query. Returns formatted string or empty."""
+    pf = state.get("portfolio_snapshot") or state.get("portfolio_context") or ""
+    if pf and "offline" not in pf.lower():
+        return f"\n{pf}\n"
+    # Direct IBKR fallback
+    try:
+        from ib_insync import IB as _IB
+        import time as _time
+        _ib = _IB()
+        _ib.connect("127.0.0.1", 7497, clientId=int(_time.time() * 1000) % 9000 + 600, timeout=3)
+        pos = list(_ib.positions())
+        eq = sum(float(v.value) for v in _ib.accountSummary() if v.tag == "NetLiquidation")
+        _ib.disconnect()
+        if pos:
+            lines = ["CARTEIRA ATUAL (IBKR paper):"]
+            lines.append(f"  Equity: ${eq:,.2f}  |  Posições: {len(pos)}")
+            total = 0.0
+            for p in pos:
+                val = float(p.position) * float(p.avgCost)
+                total += val
+                lines.append(f"  {p.contract.symbol}: {p.position} shares @ avg ${float(p.avgCost):.2f} = ${val:,.2f}")
+            lines.append(f"  Total investido: ${total:,.2f}  |  Cash: ${eq - total:,.2f}")
+            lines.append(f"  Concentração: {'⚠️ ALTA' if total/eq > 0.5 else 'OK'} ({total/eq*100:.0f}% do equity)")
+            return "\n".join(lines) + "\n"
+    except Exception:
+        pass
+    return ""
+
+
 def _apply_grounding_guard(state: dict, content: str) -> str:
     if not state.get("data") and not state.get("scan") and not state.get("data_context"):
         return content
@@ -2633,6 +2663,11 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 else:
                     content = _repair_answer_quality(content, state.get("message", ""))
                     content = _apply_grounding_guard(state, content)
+
+                # ── Inject portfolio snapshot BEFORE the CHUNK ──
+                pf = _get_portfolio_snapshot(state)
+                if pf:
+                    writer({"type": "CHUNK", "content": pf})
                 writer({"type": "CHUNK", "content": content})
                 writer(
                     {
