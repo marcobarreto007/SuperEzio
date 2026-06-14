@@ -8,13 +8,15 @@ Arquitetura:
     PaperJournal ─────────add_document──> ForensicRAG
     UnifiedRetriever ──────────────┬────> search across all
                                       │
-                                      └──> context fusion
+                                      └──> context fusion + user profile
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import re
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -58,15 +60,7 @@ class ConversationMemoryAdapter:
         self._memory = ConversationMemory(memory_path)
 
     def ingest_to_rag(self, rag_instance, session_id: str | None = None) -> int:
-        """Ingerir conversas no ForensicRAG.
-
-        Args:
-            rag_instance: Instância de ForensicRAG
-            session_id: Se especificado, ingere apenas desta sessão
-
-        Returns:
-            Número de documentos ingeridos
-        """
+        """Ingerir conversas no ForensicRAG."""
         self._memory._ensure_loaded()
 
         turns = (
@@ -77,7 +71,6 @@ class ConversationMemoryAdapter:
 
         ingested = 0
         for turn in turns:
-            # Formata como documento RAG
             doc_text = self._format_turn_as_doc(turn)
             doc_id = f"conv_{turn.session_id}_{turn.timestamp}"
 
@@ -148,11 +141,7 @@ class PaperJournalAdapter:
         self._journal = PaperJournal(journal_path)
 
     def ingest_to_rag(self, rag_instance) -> int:
-        """Ingerir trades paper no ForensicRAG.
-
-        Returns:
-            Número de documentos ingeridos
-        """
+        """Ingerir trades paper no ForensicRAG."""
         trades = self._journal.list_all()
         ingested = 0
 
@@ -182,7 +171,6 @@ class PaperJournalAdapter:
             f"Thesis: {trade.get('thesis', 'No thesis')[:200]}",
         ]
 
-        # Adiciona resultado se fechado
         if trade.get("exit_date"):
             parts.append(
                 f"Outcome: {trade.get('outcome', 'unknown')} "
@@ -194,7 +182,7 @@ class PaperJournalAdapter:
         return " | ".join(parts)
 
     def search(self, query: str, top_k: int = 5) -> list[RetrievalResult]:
-        """Busca trades por similaridade de texto (simples por enquanto)."""
+        """Busca trades por similaridade de texto."""
         from core.memory.conversation_memory import _tokenize, _cosine_sim, _hashed_embedding
 
         trades = self._journal.list_all()
@@ -202,7 +190,6 @@ class PaperJournalAdapter:
 
         scored = []
         for trade in trades:
-            # Texto para embedding
             trade_text = self._format_trade_as_doc(trade)
             trade_emb = _hashed_embedding(trade_text)
             score = _cosine_sim(query_emb, trade_emb)
@@ -233,13 +220,22 @@ class PaperJournalAdapter:
 
 
 class UnifiedRetriever:
-    """Retriever unificado que consulta todas as fontes de memória."""
+    """Retriever unificado com perfil, busca e renderização de contexto.
+
+    Conecta:
+    - ConversationMemory
+    - PaperJournal
+    - ForensicRAG (optional)
+    - User profile (8 chaves)
+    """
 
     def __init__(self):
         self._conv_adapter = ConversationMemoryAdapter()
         self._journal_adapter = PaperJournalAdapter()
         self._forensic_rag = None
         self._rag_loaded = False
+        # User profile (8 chaves)
+        self._profile: dict[str, tuple[str, float]] = {}  # key -> (value, confidence)
 
     def _ensure_rag(self) -> None:
         """Carrega ForensicRAG lazy."""
@@ -254,26 +250,195 @@ class UnifiedRetriever:
             logger.warning("ForensicRAG not available")
             self._rag_loaded = True
 
-    def ingest_all_to_rag(self, session_id: str | None = None) -> dict[str, int]:
-        """Ingerir todas as fontes no ForensicRAG.
+    # === PROFILE METHODS ===
 
-        Args:
-            session_id: Se especificado, ingere apenas esta sessão da memória conversacional
+    def get_profile(self) -> dict[str, tuple[str, float]]:
+        """Get current user profile.
 
         Returns:
-            Dict com contagem por fonte
+            Dict mapping key -> (value, confidence)
         """
+        return self._profile.copy()
+
+    def upsert_profile(self, key: str, value: str, confidence: float = 0.5) -> None:
+        """Update or insert profile key.
+
+        Args:
+            key: Profile key (risk_tolerance, capital_cad, etc.)
+            value: Profile value
+            confidence: Confidence score 0-1
+        """
+        existing_conf = self._profile.get(key, (None, 0.0))[1]
+        if confidence > existing_conf:
+            self._profile[key] = (value, confidence)
+            logger.debug("Profile updated: %s = %s (conf=%.2f)", key, value, confidence)
+
+    def extract_profile_from_message(
+        self, message: str
+    ) -> list[tuple[str, str, float]]:
+        """Extract profile updates from user message.
+
+        Returns:
+            List of (key, value, confidence) tuples
+        """
+        updates: list[tuple[str, str, float]] = []
+        msg_lower = message.lower()
+
+        # 1. risk_tolerance
+        if any(w in msg_lower for w in ["conservador", "conservativa", "seguro", "segura"]):
+            updates.append(("risk_tolerance", "conservative", 0.8))
+        elif any(w in msg_lower for w in ["adrenalina", "especulativo", "agressivo", "arriscado"]):
+            updates.append(("risk_tolerance", "speculative", 0.8))
+        elif any(w in msg_lower for w in ["moderado", "equilibrado", "balanceado"]):
+            updates.append(("risk_tolerance", "moderate", 0.8))
+
+        # 2. capital_cad - regex
+        capital_match = re.search(r"(\d+)\s*(k|mil|cad)\s*(reais|r\$|c\$)?", msg_lower)
+        if capital_match:
+            amount = capital_match.group(1)
+            updates.append(("capital_cad", f"{amount}k", 0.9))
+
+        # 3. income_stability
+        if any(w in msg_lower for w in ["freelance", "autônomo", "instável", "variável"]):
+            updates.append(("income_stability", "unstable", 0.7))
+        elif any(w in msg_lower for w in ["salário", "fixo", "estável", "clt"]):
+            updates.append(("income_stability", "stable", 0.7))
+
+        # 4. investment_goal
+        if any(w in msg_lower for w in ["independência", "aposentar", "liberdade", "fire"]):
+            updates.append(("investment_goal", "financial_independence", 0.8))
+        elif any(w in msg_lower for w in ["aprender", "estudar", "conhecimento"]):
+            updates.append(("investment_goal", "education", 0.7))
+
+        # 5. time_horizon_years
+        horizon_match = re.search(r"(\d+)\s*(anos?|years?)", msg_lower)
+        if horizon_match:
+            updates.append(("time_horizon_years", horizon_match.group(1), 0.8))
+
+        # 6. has_emergency_fund
+        if any(w in msg_lower for w in ["tenho reserva", "emergência já", "reserva já tenho"]):
+            updates.append(("has_emergency_fund", "True", 0.9))
+        elif any(w in msg_lower for w in ["não tenho", "sem reserva", "preciso fazer"]):
+            updates.append(("has_emergency_fund", "False", 0.9))
+
+        # 7. preferred_markets
+        if any(w in msg_lower for w in ["tsx", "canada", "toronto"]):
+            updates.append(("preferred_markets", "TSX", 0.7))
+        elif any(w in msg_lower for w in ["nasdaq"]):
+            updates.append(("preferred_markets", "NASDAQ", 0.7))
+
+        # 8. avoid_sectors
+        avoid_keywords = ["crypto", "cripto", "bitcoin", "otc", "maconha", "cannabis", "alavancado", "etf alavancado"]
+        for keyword in avoid_keywords:
+            if keyword in msg_lower:
+                updates.append(("avoid_sectors", keyword, 0.6))
+                break
+
+        return updates
+
+    # === CONTEXT RENDERING ===
+
+    def render_memory_context(
+        self,
+        session_id: str,
+        message: str = "",
+        ticker: str = "",
+    ) -> str:
+        """Render memory context in EXACT format for Bob prompt.
+
+        Format:
+        === BOB'S MEMORY ===
+
+        ## Perfil do Marco
+        - Risco: {risk_tolerance}
+        - Capital: CAD {capital}
+        - Renda: {income_stability}
+        - Meta: {investment_goal}
+        - Reserva emergência: {has_emergency_fund}
+
+        ## Conversas recentes (últimas 24h)
+        - {timestamp}: "{user_message[:100]}" → {verdict}
+
+        ## Teses abertas
+        - {ticker}: "{thesis}" @ ${entry_price}, conv: {conviction}/100
+
+        ## Tickers já analisados
+        - {ticker} ({count}x) — último veredito: {verdict}
+
+        === END MEMORY ===
+        """
+        lines = ["=== BOB'S MEMORY ===", ""]
+
+        # ## Perfil do Marco
+        lines.append("## Perfil do Marco")
+        profile = self.get_profile()
+        labels = {
+            "risk_tolerance": "Risco",
+            "capital_cad": "Capital",
+            "income_stability": "Renda",
+            "investment_goal": "Meta",
+            "has_emergency_fund": "Reserva emergência",
+        }
+        for key, label in labels.items():
+            if key in profile:
+                value, _ = profile[key]
+                lines.append(f"- {label}: {value}")
+        if not any(key in profile for key in labels):
+            lines.append("- (Perfil não definido ainda)")
+        lines.append("")
+
+        # ## Conversas recentes
+        lines.append("## Conversas recentes (últimas 24h)")
+        recent_turns = self._conv_adapter._memory.get_recent_context(session_id, hours=24, limit=5)
+        if recent_turns:
+            for turn in recent_turns[:3]:
+                msg_preview = turn.user_message[:80].replace("\n", " ")
+                lines.append(f"- {turn.timestamp[:10]}: \"{msg_preview}\" → {turn.verdict or 'Sem veredito'}")
+        else:
+            lines.append("- (Nenhuma conversa recente)")
+        lines.append("")
+
+        # ## Teses abertas
+        lines.append("## Teses abertas")
+        if recent_turns:
+            theses = [t for t in recent_turns if t.thesis_formed and t.verdict in {"BUY", "SELL"}]
+            if theses:
+                for t in theses[:3]:
+                    lines.append(f"- {t.ticker_discussed or 'N/A'}: \"{t.thesis_formed[:60]}...\" conv: {int(t.confidence)}/100")
+            else:
+                lines.append("- (Nenhuma tese aberta)")
+        else:
+            lines.append("- (Nenhuma tese aberta)")
+        lines.append("")
+
+        # ## Tickers já analisados
+        lines.append("## Tickers já analisados")
+        if recent_turns:
+            ticker_counts = Counter(t.ticker_discussed for t in recent_turns if t.ticker_discussed)
+            if ticker_counts:
+                for ticker, count in ticker_counts.most_common(5):
+                    latest = max((t for t in recent_turns if t.ticker_discussed == ticker), key=lambda x: x.timestamp, default=None)
+                    verdict = latest.verdict if latest else "N/A"
+                    lines.append(f"- {ticker} ({count}x) — último veredito: {verdict}")
+            else:
+                lines.append("- (Nenhum ticker analisado)")
+        else:
+            lines.append("- (Nenhum ticker analisado)")
+        lines.append("")
+
+        lines.append("=== END MEMORY ===")
+        return "\n".join(lines)
+
+    # === SEARCH METHODS ===
+
+    def ingest_all_to_rag(self, session_id: str | None = None) -> dict[str, int]:
+        """Ingerir todas as fontes no ForensicRAG."""
         self._ensure_rag()
         if not self._forensic_rag:
             return {"error": "ForensicRAG not available"}
 
-        counts = {
-            "conversation": 0,
-            "paper_trades": 0,
-            "total": 0,
-        }
+        counts = {"conversation": 0, "paper_trades": 0, "total": 0}
 
-        # Ingerir conversas
         try:
             counts["conversation"] = self._conv_adapter.ingest_to_rag(
                 self._forensic_rag, session_id=session_id
@@ -281,11 +446,8 @@ class UnifiedRetriever:
         except Exception as e:
             logger.warning("Failed to ingest conversations: %s", e)
 
-        # Ingerir trades
         try:
-            counts["paper_trades"] = self._journal_adapter.ingest_to_rag(
-                self._forensic_rag
-            )
+            counts["paper_trades"] = self._journal_adapter.ingest_to_rag(self._forensic_rag)
         except Exception as e:
             logger.warning("Failed to ingest paper trades: %s", e)
 
@@ -298,37 +460,24 @@ class UnifiedRetriever:
         top_k: int = 5,
         sources: list[str] | None = None,
     ) -> list[RetrievalResult]:
-        """Busca unificada em todas as fontes.
-
-        Args:
-            query: Query de busca
-            top_k: Número de resultados por fonte
-            sources: Lista de fontes ("conversation", "paper_trade", "fraud_pattern").
-                     None busca em todas.
-
-        Returns:
-            Lista de RetrievalResult, ordenada por score
-        """
+        """Busca unificada em todas as fontes."""
         if sources is None:
             sources = ["conversation", "paper_trade", "fraud_pattern"]
 
         all_results = []
 
-        # Conversa
         if "conversation" in sources:
             try:
                 all_results.extend(self._conv_adapter.search(query, top_k=top_k))
             except Exception as e:
                 logger.warning("Conversation search failed: %s", e)
 
-        # Paper trades
         if "paper_trade" in sources:
             try:
                 all_results.extend(self._journal_adapter.search(query, top_k=top_k))
             except Exception as e:
                 logger.warning("Paper trade search failed: %s", e)
 
-        # Fraud patterns (via ForensicRAG)
         if "fraud_pattern" in sources:
             self._ensure_rag()
             if self._forensic_rag:
@@ -346,7 +495,6 @@ class UnifiedRetriever:
                 except Exception as e:
                     logger.warning("ForensicRAG search failed: %s", e)
 
-        # Ordenar por score global
         all_results.sort(key=lambda r: r.score, reverse=True)
         return all_results[:top_k]
 

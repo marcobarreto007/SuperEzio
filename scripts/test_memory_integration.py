@@ -26,9 +26,10 @@ async def stream_task_submit(message: str, ticker: str = "", session_id: str = "
     """Send task to /task/submit and collect response chunks."""
 
     payload = {
-        "type": "TASK_SUBMIT",
+        "type": "TASK.SUBMIT",
+        "from": session_id,
+        "to": "bob",
         "msg_id": f"test_{session_id}",
-        "from_agent": session_id,
         "payload": {
             "message": message,
             "ticker": ticker,

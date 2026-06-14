@@ -834,75 +834,27 @@ class PipelineApp:
         except Exception:
             pass
 
-        # ── Bob Memory: carrega contexto da sessão (Unified Memory Layer) ──
-        memory_context_parts: list[str] = []
+        # ── Bob Memory: UnifiedRetriever com perfil + contexto formatado ──
         try:
-            from core.memory import (
-                get_conversation_memory,
-                get_rerank_pipeline,
-                get_graph_bridge,
+            from core.memory import get_unified_retriever
+
+            retriever = get_unified_retriever()
+
+            # 1. Extrai/atualiza perfil da mensagem
+            profile_updates = retriever.extract_profile_from_message(message)
+            for key, value, confidence in profile_updates:
+                retriever.upsert_profile(key, value, confidence)
+
+            # 2. Renderiza contexto completo no formato EXATO
+            memory_context = retriever.render_memory_context(
+                session_id=session_id,
+                message=message,
+                ticker=ticker,
             )
 
-            # 1. Contexto conversacional recente (ConversationMemory)
-            mem = get_conversation_memory()
-            recent_turns = mem.get_recent_context(session_id, hours=24, limit=10)
-
-            if recent_turns:
-                memory_context_parts.append("CONTEXTO RECENTE (últimas 24h):")
-                for turn in recent_turns[-3:]:
-                    memory_context_parts.append(f"- Usuário: {turn.user_message[:100]}...")
-                    if turn.thesis_formed:
-                        memory_context_parts.append(f"  Tese: {turn.thesis_formed[:80]}...")
-                    if turn.verdict:
-                        memory_context_parts.append(f"  Veredito: {turn.verdict}")
-
-            # 2. Busca híbrida + reranking (Fases 2-3)
-            try:
-                reranker = get_rerank_pipeline()
-                # Query combina message + ticker
-                query = f"{ticker} {message}" if ticker else message
-                reranked_results = reranker.search(query, top_k=5)
-
-                if reranked_results:
-                    memory_context_parts.append("\n[MEMÓRIA RELEVANTE - busca híbrida + reranking]:")
-                    for r in reranked_results[:3]:
-                        source_label = {
-                            "conversation": "💬 Conversa",
-                            "paper_trade": "📈 Trade",
-                            "fraud_pattern": "⚠️ Pattern",
-                            "hybrid": "🔍 Híbrido",
-                        }.get(r.source, r.source)
-                        memory_context_parts.append(
-                            f"- [{source_label}] {r.text[:150]}... "
-                            f"(rerank={r.rerank_score:.2f})"
-                        )
-            except Exception as e:
-                logger.debug("[memory] RerankPipeline search skipped: %s", e)
-
-            # 3. Knowledge Graph - ticker context (Fase 4)
-            if ticker:
-                try:
-                    graph_bridge = get_graph_bridge()
-                    graph_context = graph_bridge.query_ticker_context(ticker)
-                    if graph_context.get("entities"):
-                        entities_by_type: dict[str, list[str]] = {}
-                        for eid, ent in graph_context["entities"].items():
-                            etype = ent["type"]
-                            if etype not in entities_by_type:
-                                entities_by_type[etype] = []
-                            entities_by_type[etype].append(ent["name"])
-
-                        memory_context_parts.append(f"\n[GRAFO DE CONHECIMENTO - {ticker.upper()}]:")
-                        for etype, names in entities_by_type.items():
-                            if names:
-                                memory_context_parts.append(f"- {etype.upper()}: {', '.join(set(names))}")
-                except Exception as e:
-                    logger.debug("[memory] Graph query skipped: %s", e)
-
-            # Compila contexto final
-            if memory_context_parts:
-                unified_context = "\n".join(memory_context_parts)
-                context = f"{context}\n\n{unified_context}" if context else unified_context
+            # 3. Injeta no context (antes do prompt do Bob)
+            if memory_context:
+                context = f"{memory_context}\n\n{context}" if context else memory_context
 
         except Exception as exc:
             logger.warning("[memory] Failed to load unified context: %s", exc)
