@@ -1,0 +1,150 @@
+{
+  "project": "SuperEzio",
+  "roadmap_version": "1.0",
+  "created": "2026-06-14T17:11:23.707947+00:00",
+  "created_by": "Deep_and_Marco",
+  "total_guardrails": 30,
+  "total_experts": 18,
+  "total_math_modules": 12,
+  "total_crisis_models": 12,
+  "stages": {
+    "1_unificar_matematica_e_guardrails": {
+      "goal": "Conectar todos os modulos matematicos e guardrails ao pipeline. Zero isolamento.",
+      "key_deliverables": [
+        "MathHub.calculate_all(ticker_data) -> MathReport (DCF, VaR, Kelly, Sharpe, crisis)",
+        "MathHub.to_deepseek_prompt(MathReport) -> texto com NUMEROS estruturados",
+        "GuardrailHub.run_all(state) -> 30 guardrails em 8 camadas sequenciais",
+        "DecisionTraceLogger: start_node/end_node em cada guardrail",
+        "Blame report: /health/trace/{run_id} mostra quem bloqueou, quando, porque"
+      ],
+      "new_files": [
+        "src/core/math/math_hub.py",
+        "src/core/pipeline/nodes/guardrail_hub.py",
+        "src/core/audit/decision_trace.py"
+      ],
+      "tests": 26,
+      "success": "0 modulos isolados. 30 guardrails auditaveis. MathReport injetado no prompt do DeepSeek."
+    },
+    "2_trindade_dialogo_bidirecional": {
+      "goal": "Bob dialoga com Genie (Gemini) e Deep (DeepSeek) como conselho de administracao.",
+      "key_deliverables": [
+        "Expert dialogue multi-turn: Bob pode fazer ate 3 rounds de follow-up por expert",
+        "Deep recebe MathReport como INPUT NUMERICO, nao texto vago",
+        "Genie recebe 4 camadas de sentimento ESTRUTURADAS (NewsAPI, NewsScout, RedditPulse, Finnhub)",
+        "Trinity deliberation: Genie disse X, Deep disse Y, Bob decide Z (com override tracking)"
+      ],
+      "new_files": [
+        "src/core/pipeline/nodes/trinity.py",
+        "src/core/pipeline/nodes/experts.py (refactor)"
+      ],
+      "tests": 16,
+      "success": "Bob faz follow-up. Deep recebe calculos. Genie recebe sentimento. Deliberacao auditavel."
+    },
+    "3_sentimento_vivo_e_curadoria": {
+      "goal": "Sentiment pipeline completo: dados vivos, curadoria automatica, alertas proativos.",
+      "key_deliverables": [
+        "LiveMonitor: background thread poll 15min, detecta swings (+/-0.3) e spikes (3x normal)",
+        "Curator: dedup, fact-check contra fundamentos, prioriza institucional, expira >48h",
+        "WatchlistPulse: TLRY BEARISH(-0.4) Reddit:340(SPIKE) PUMP_RISK",
+        "Alertas proativos: swing, spike, coordenacao suspeita -> push pra Bob"
+      ],
+      "new_files": [
+        "src/core/sentiment/live_monitor.py",
+        "src/core/sentiment/curator.py",
+        "src/core/sentiment/watchlist_pulse.py"
+      ],
+      "tests": 11,
+      "success": "Sentimento vivo a cada 15min. Bob ve swings antes do preco. Pump detection < 1h."
+    },
+    "4_frontpage_dashboard_operacional": {
+      "goal": "Cockpit mostrando a trindade ao vivo. Centro de comando, nao chat.",
+      "key_deliverables": [
+        "LEFT Genie: live sentiment, Reddit trending, news timeline, pump alerts",
+        "CENTER Bob: chat, decision trace, portfolio IBKR, open theses, guardrail status",
+        "RIGHT Deep: 6 expert verdicts, consensus matrix, DCF vs price, crisis score",
+        "BOTTOM BAR: CEO/Genie/Deep/IBKR status, memory stats, guardrails, kill switch",
+        "Blame Report UI: timeline visual clickavel (orchestrator->experts->F51->SDCA->Bob)",
+        "Memory Browser: search conversations, view profile, knowledge graph visual"
+      ],
+      "new_files": [],
+      "tests": 8,
+      "success": "Cockpit 3 paineis + status bar. Decisao rastreavel ate o no de origem."
+    },
+    "5_debut_8_criterios_paper_trading": {
+      "goal": "Fechar C6 e C7. 14 dias de paper trading com track record auditavel.",
+      "key_deliverables": [
+        "Ciclo diario: Bob acorda 09:00 -> checa Genie -> checa IBKR -> opera -> post-mortem 23:00",
+        "KillSwitch ativo: daily loss -00, drawdown -10%, 5 losses consecutivas = bloqueia",
+        "ApprovalGate: risco > 00 requer aprovacao humana",
+        "PositionSizer: max 10% equity por posicao, max 2% risco por trade",
+        "C6: >= 1 tese envelhecida 14 dias com post-mortem",
+        "C7: >= 10 trades fechados com post-mortem, >= 1 vies sistemico detectado",
+        "Calibracao: comparar confianca do Bob vs resultado real",
+        "Debut Report: 8/8 provados, track record, vieses corrigidos"
+      ],
+      "new_files": [],
+      "tests": 10,
+      "success": "8/8 criterios. 10+ trades paper. Bob calibrado. KillSwitch zero triggers. DecisionTrace completo."
+    }
+  },
+  "dependencies": {
+    "1_unificar": {
+      "blocks": [
+        "2_trindade",
+        "3_sentimento",
+        "4_frontpage"
+      ]
+    },
+    "2_trindade": {
+      "needs": [
+        "1_unificar"
+      ],
+      "blocks": [
+        "5_debut"
+      ]
+    },
+    "3_sentimento": {
+      "needs": [
+        "1_unificar"
+      ],
+      "blocks": [
+        "5_debut"
+      ]
+    },
+    "4_frontpage": {
+      "needs": [
+        "1_unificar",
+        "2_trindade"
+      ],
+      "blocks": []
+    },
+    "5_debut": {
+      "needs": [
+        "1_unificar",
+        "2_trindade",
+        "3_sentimento"
+      ],
+      "blocks": []
+    }
+  },
+  "new_files_summary": [
+    "src/core/math/math_hub.py",
+    "src/core/pipeline/nodes/guardrail_hub.py",
+    "src/core/audit/decision_trace.py",
+    "src/core/pipeline/nodes/trinity.py",
+    "src/core/sentiment/live_monitor.py",
+    "src/core/sentiment/curator.py",
+    "src/core/sentiment/watchlist_pulse.py"
+  ],
+  "global_success": [
+    "0 modulos matematicos isolados",
+    "30/30 guardrails conectados e auditaveis",
+    "Bob dialoga bidirecionalmente com Genie e Deep",
+    "DeepSeek recebe NUMEROS calculados, nao texto vago",
+    "Genie recebe 4 camadas de sentimento estruturadas",
+    "Frontpage mostra cockpit com 3 paineis + status bar",
+    "8/8 criterios de debut fechados",
+    "10+ trades paper com post-mortem e DecisionTrace completo",
+    "Arvore git sempre limpa"
+  ]
+}
