@@ -834,6 +834,45 @@ class PipelineApp:
         except Exception:
             pass
 
+        # ── Bob Memory: carrega contexto da sessão ──
+        memory_context: list[str] = []
+        try:
+            from core.memory import get_conversation_memory
+
+            mem = get_conversation_memory()
+
+            # Busca contexto recente (últimas 24h)
+            recent_turns = mem.get_recent_context(session_id, hours=24, limit=10)
+
+            # Se há ticker, busca histórico específico
+            ticker_history = []
+            if ticker:
+                ticker_history = mem.get_ticker_history(ticker, session_id=session_id, limit=5)
+
+            # Compila contexto para o Bob
+            if recent_turns:
+                memory_context.append("CONTEXTO RECENTE (últimas 24h):")
+                for turn in recent_turns[-3:]:  # Últimas 3 conversas
+                    memory_context.append(f"- Usuário: {turn.user_message[:100]}...")
+                    if turn.thesis_formed:
+                        memory_context.append(f"  Tese formada: {turn.thesis_formed[:80]}...")
+                    if turn.verdict:
+                        memory_context.append(f"  Veredito: {turn.verdict}")
+
+            if ticker_history:
+                memory_context.append(f"\nHISTÓRICO DE {ticker.upper()}:")
+                for turn in ticker_history[:3]:
+                    memory_context.append(f"- {turn.timestamp[:10]}: {turn.thesis_formed[:80] if turn.thesis_formed else 'Sem tese'}...")
+                    if turn.verdict:
+                        memory_context.append(f"  Veredito: {turn.verdict}")
+
+            # Adiciona ao context existente
+            if memory_context:
+                context = f"{context}\n\n{' '.join(memory_context)}" if context else "\n".join(memory_context)
+
+        except Exception as exc:
+            logger.warning("[memory] Failed to load conversation context: %s", exc)
+
         def _finalize_evidence() -> None:
             nonlocal evidence_saved
             if evidence is None or evidence_saved:
@@ -984,6 +1023,55 @@ class PipelineApp:
 
         finally:
             _finalize_evidence()
+
+            # ── Bob Memory: salva turno da conversa ──
+            if response_chunks:
+                try:
+                    from core.memory import get_conversation_memory
+
+                    mem = get_conversation_memory()
+                    response_text = "".join(response_chunks)
+
+                    # Extrai metadados da resposta
+                    category = "general"
+                    verdict = ""
+                    confidence = 0.0
+                    thesis = ""
+
+                    # Tenta extrair veredito do final_answer
+                    if "Model verdict:" in response_text or "Final verdict:" in response_text:
+                        for line in response_text.split("\n"):
+                            if "Model verdict:" in line or "Final verdict:" in line:
+                                verdict = line.split(":")[-1].strip().upper()
+                                break
+
+                    # Tenta extrair confiança
+                    import re
+                    conf_match = re.search(r"Confidence:\s*(\d+)", response_text)
+                    if conf_match:
+                        confidence = float(conf_match.group(1))
+
+                    # Detecta categoria baseada no state
+                    # (simplificado - em produção viria do state final)
+                    if ticker:
+                        category = "ticker_analysis"
+                    elif "scan" in context.lower() or "candidates" in response_text.lower():
+                        category = "market_scan"
+
+                    mem.add_turn(
+                        session_id=session_id,
+                        user_message=message,
+                        bob_response=response_text[:5000],  # Limita tamanho
+                        context_summary=context[:500] if context else "",
+                        ticker_discussed=ticker,
+                        thesis_formed=thesis,
+                        verdict=verdict,
+                        confidence=confidence,
+                        category=category,
+                    )
+                    logger.debug("[memory] Saved turn for session %s", session_id)
+                except Exception as exc:
+                    logger.warning("[memory] Failed to save conversation turn: %s", exc)
 
     async def chat_async(
         self,

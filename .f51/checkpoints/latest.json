@@ -1,24 +1,52 @@
 {
-  "date_local": "2026-06-14T10:35:00-04:00",
-  "session": "f51-career-portfolio-bootstrapping-2026-06-14",
+  "date_local": "2026-06-14T14:20:00-04:00",
+  "session": "bob-memory-system-v1-2026-06-14",
   "status": "completed",
   "what_was_done": [
-    "Updated the top-level README.md to feature a bilingual structure: English primary documentation at the top, followed by a complete Portuguese translation.",
-    "Ensured the F51 Nitro, LangGraph DAG routing, and IBKR integration context remained identical in both language versions."
+    "Implemented Bob's persistent conversation memory system (solving #5 from the risk table)",
+    "Created src/core/memory/conversation_memory.py with ConversationTurn dataclass and ConversationMemory manager",
+    "Append-only JSONL storage following PaperJournal pattern (data/conversation_memory.jsonl)",
+    "Local hashed embeddings (128 dims, blake2b) for semantic search without external dependencies",
+    "Integrated memory into PipelineApp.stream_events: loads session context (last 24h) + ticker history before execution",
+    "Auto-saves conversation turns after response with extracted verdict/confidence metadata",
+    "Added tests/test_conversation_memory.py with 8 tests covering all core functionality",
+    "Memory persists across sessions: Bob now remembers theses, verdicts, and context per session_id"
   ],
   "evidence": {
     "commands": [
-      "git commit -am 'docs: add bilingual README.md (EN/PT)'"
+      "python -c 'from src.core.memory import get_conversation_memory; print(get_conversation_memory().path)'",
+      "python -m pytest tests/test_conversation_memory.py -q",
+      "python -m pytest tests/test_paper_journal.py -q"
     ],
     "files_changed": [
-      "README.md",
-      ".f51/checkpoints/latest.json"
+      "src/core/memory/__init__.py",
+      "src/core/memory/conversation_memory.py",
+      "src/core/pipeline/graph.py",
+      "tests/test_conversation_memory.py",
+      "data/conversation_memory.jsonl (created on first run)"
     ],
     "tests": [
-      "Skipped test run as the change was strictly markdown documentation"
+      "8/8 conversation memory tests passed",
+      "18/18 paper journal tests passed (no regression)",
+      "Graph import verified with memory integration"
     ]
   },
   "risks": [],
-  "next_step": "Waiting for Marco to initiate the Wan 2.2 + Kokoro TTS Video Factory setup.",
-  "owner": "Antigravity"
+  "next_step": "Bob agora tem memória persistente. Próximo passo sugerido: #2 (track record) ou #3 (eval competitivo)",
+  "owner": "Bob",
+  "updated": "2026-06-14T15:52:32.140006+00:00",
+  "completed": [
+    {
+      "task": "bob_memory_system",
+      "verdict": "APPROVED_WITH_RESERVATIONS",
+      "auditor": "Deep",
+      "tests": "8/8 passed",
+      "files": [
+        "src/core/memory/__init__.py",
+        "src/core/memory/conversation_memory.py",
+        "tests/test_conversation_memory.py",
+        "src/core/pipeline/graph.py (integrated)"
+      ]
+    }
+  ]
 }

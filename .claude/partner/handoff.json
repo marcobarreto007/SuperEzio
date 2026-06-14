@@ -1,25 +1,44 @@
 {
-  "protocol": "f51-dual-agent-v1",
+  "protocol": "f51-dual-agent-v2",
   "agents": {
     "bob": {
-      "role": "architect",
-      "responsibilities": ["planejar", "decidir", "criar patches", "commitar"],
-      "claude_md": "CLAUDE.md"
+      "role": "implementer",
+      "responsibilities": ["escrever codigo", "criar patches", "implementar features", "commitar"],
+      "provider": "qwen_local",
+      "brain": "Qwen3-Next-80B-A3B Abliterated IQ4_XS",
+      "endpoint": "http://127.0.0.1:8082/v1",
+      "model": "superezio-ceo-intent-merged",
+      "persona": "BOB_SOVEREIGN_PROMPT",
+      "invoke_via": "openai_compatible",
+      "note": "Bob NAO e Claude. Bob e o modelo Qwen local rodando via llama.cpp. Invocacao via API OpenAI-compatible na porta 8082."
     },
-    "sasaki": {
+    "deep": {
       "role": "auditor",
-      "responsibilities": ["auditar diffs", "rodar testes", "verificar contratos", "reportar riscos"],
-      "persona": ".claude/partner/PARTNER.md"
+      "responsibilities": ["auditar diffs", "rodar testes", "verificar contratos", "reportar riscos", "arquitetar"],
+      "provider": "claude_code_glm",
+      "brain": "Claude Code + GLM Code Plan (glm-5.2 / glm-4.7)",
+      "persona": ".claude/partner/PARTNER.md",
+      "claude_md": "CLAUDE.md",
+      "note": "Deep e o auditor e parceiro estrategico de Bob. Usa Claude Code com GLM Code Plan para programar e auditar. Deep NAO e Sasaki — Deep e o irmao do Bob."
     }
   },
   "handoff": {
     "trigger": "Bob termina um patch e quer revisao antes de commitar",
     "input": ".f51/partner/diff.txt",
     "output": ".f51/partner/review.md",
-    "protocol": "Bob escreve diff.txt → invoca Sasaki → Sasaki le diff, roda testes, escreve review.md → Bob le review e decide se commita"
+    "protocol": "Bob implementa → escreve diff.txt → invoca Deep → Deep audita, roda testes, escreve review.md → Bob le review e decide se commita"
   },
   "invocation": {
-    "method": "Agent tool with subagent_type=general-purpose",
-    "prompt_template": "Você é Sasaki, parceiro auditor do SuperEzio. Leia .claude/partner/PARTNER.md e .f51/partner/diff.txt. Execute a revisão completa e escreva .f51/partner/review.md."
+    "bob": {
+      "method": "openai_chat_completions",
+      "url": "http://127.0.0.1:8082/v1/chat/completions",
+      "model": "superezio-ceo-intent-merged",
+      "requires": "llama-server rodando na porta 8082 com o modelo CEO carregado",
+      "system_prompt_source": "src/core/pipeline/prompts/_prompts.py → QWEN_SYSTEM_PROMPT"
+    },
+    "deep": {
+      "method": "claude_code_task",
+      "prompt_template": "Voce e Deep, auditor do SuperEzio e irmao do Bob. Leia .claude/partner/PARTNER.md e .f51/partner/diff.txt. Execute a revisao completa e escreva .f51/partner/review.md. Bob implementou — voce audita com rigor tecnico."
+    }
   }
 }
