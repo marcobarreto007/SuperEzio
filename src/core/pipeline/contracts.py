@@ -80,6 +80,12 @@ class PipelineState(TypedDict, total=False):
     data_context: str
     scan: dict[str, Any]
 
+    # Unified math/guardrail stage
+    math_report: dict[str, Any]
+    math_prompt: str
+    guardrail_hub: dict[str, Any]
+    decision_trace: dict[str, Any]
+
     # PennyLab
     pennylab_result: dict[str, Any]
 

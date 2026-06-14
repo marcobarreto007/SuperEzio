@@ -9,6 +9,8 @@ from src.core.pipeline.prompts.builder import (
     _evaluate_module_coverage,
     _format_pennylab,
     _format_neural_decision,
+    _format_math_report,
+    _format_guardrail_hub,
     _format_mandamentos,
     missing_agent_text,
 )
@@ -435,6 +437,18 @@ def test_required_module_presence_neural():
     assert presence["neural"] is True
 
 
+def test_required_module_presence_math_and_guardrails():
+    state = {
+        "math_report": {"summary": {"sharpe": 1.1}},
+        "guardrail_hub": {"total_guardrails": 30},
+        "decision_trace": {"summary": {"total_events": 4}},
+    }
+    presence = _required_module_presence(state)
+    assert presence["math_report"] is True
+    assert presence["guardrail_hub"] is True
+    assert presence["decision_trace"] is True
+
+
 # ---------------------------------------------------------------------------
 # Module contract rendering
 # ---------------------------------------------------------------------------
@@ -524,6 +538,31 @@ def test_format_neural_decision_full():
     assert "[NEURAL_DECISION]" in result
     assert "trend_real" in result
     assert "0.62" in result
+
+
+def test_format_math_report():
+    result = _format_math_report(
+        {
+            "coverage": {"ok_modules": 9, "total_modules": 12},
+            "summary": {"sharpe": 1.2, "var_95": -0.03},
+        }
+    )
+
+    assert "[MATH_REPORT]" in result
+    assert "coverage=9/12" in result
+    assert "sharpe=1.2" in result
+
+
+def test_format_guardrail_hub():
+    result = _format_guardrail_hub(
+        {
+            "total_guardrails": 30,
+            "summary": {"ready": True, "decision_counts": {"ALLOW": 20}},
+        }
+    )
+
+    assert "[GUARDRAIL_HUB]" in result
+    assert "total_guardrails=30" in result
 
 
 # ---------------------------------------------------------------------------

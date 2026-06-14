@@ -12,6 +12,7 @@ from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 
 from core.evidence import EvidenceRun, generate_html_report, save_evidence
+from core.math.math_hub import MathHub
 
 from .contracts import PipelineState
 from .nodes import (
@@ -28,6 +29,7 @@ from .nodes.f51 import node_f51_verdict
 from .nodes.neural_decision import node_neural_decision
 from .nodes.sdca_firewall import node_sdca_firewall
 from .nodes.rag import node_rag_forensics
+from .nodes.guardrail_hub import node_guardrail_hub
 
 logger = logging.getLogger(__name__)
 
@@ -231,6 +233,34 @@ async def _auto_full_analysis(
     ).upper()
     data_context = str(working_state.get("data_context") or working_state.get("message") or "")
 
+    try:
+        math_hub = MathHub()
+        math_report = math_hub.calculate_all(working_state)
+        math_prompt = math_hub.to_deepseek_prompt(math_report)
+        math_update: dict[str, Any] = {"math_report": math_report, "math_prompt": math_prompt}
+        if math_prompt:
+            existing_context = str(working_state.get("data_context") or data_context or "")
+            math_update["data_context"] = (
+                f"{existing_context}\n\n{math_prompt}" if existing_context else math_prompt
+            )
+        _merge_node_update(working_state, output, math_update)
+        data_context = str(working_state.get("data_context") or data_context)
+        writer(
+            {
+                "type": "MATH_REPORT",
+                "run_id": run_id,
+                "ticker": math_report.get("ticker"),
+                "coverage": math_report.get("coverage"),
+                "summary": math_report.get("summary"),
+            }
+        )
+    except Exception as exc:
+        _merge_node_update(
+            working_state,
+            output,
+            {"errors": [f"auto_full_analysis.math_hub:{exc}"]},
+        )
+
     if ticker:
         expert_results: list[dict[str, Any]] = []
         roles = [
@@ -355,6 +385,16 @@ async def _auto_full_analysis(
                 {"errors": [f"auto_full_analysis.sdca_firewall:{exc}"]},
             )
 
+    try:
+        result = await node_guardrail_hub(working_state)
+        _merge_node_update(working_state, output, result)
+    except Exception as exc:
+        _merge_node_update(
+            working_state,
+            output,
+            {"errors": [f"auto_full_analysis.guardrail_hub:{exc}"]},
+        )
+
     writer(
         {
             "type": "PIPELINE_STEP",
@@ -368,6 +408,8 @@ async def _auto_full_analysis(
             "has_sdca": bool(working_state.get("sdca_firewall")),
             "has_experts": bool(working_state.get("expert_summary")),
             "has_portfolio": bool(working_state.get("portfolio_snapshot")),
+            "has_math_report": bool(working_state.get("math_report")),
+            "has_guardrail_hub": bool(working_state.get("guardrail_hub")),
         }
     )
     return output
@@ -1017,7 +1059,6 @@ class PipelineApp:
                         get_conversation_memory,
                         get_graph_bridge,
                     )
-                    from dataclasses import dataclass
 
                     mem = get_conversation_memory()
                     response_text = "".join(response_chunks)
@@ -1114,6 +1155,8 @@ class PipelineApp:
             "nodes": [
                 "orchestrator_primary",
                 "auto_full_analysis",
+                "math_hub",
+                "guardrail_hub",
                 "agent",
                 "tool_executor",
                 "explanation",

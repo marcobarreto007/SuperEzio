@@ -196,6 +196,7 @@ def _build_no_empty_fallback_chunk(
         "allocate" in lower and any(term in lower for term in ("cash", "debt", "etf", "portfolio"))
     ):
         body = (
+            "Scope note: this is an educational framework, not personalized financial advice. "
             "Capital allocation fallback: use illustrative assumptions, not forecasts. "
             "First keep 3-6 months of emergency cash reserve. Then pay debt above a 6-8 percent interest gate. "
             "Only fund side-business equipment when there is documented demand, clear payback, and time-to-cashflow evidence. "
@@ -1429,6 +1430,20 @@ async def list_evidence_runs() -> dict:
             )
 
     return {"runs": runs[:50]}  # limit to last 50
+
+
+@router.get("/health/trace/{run_id}")
+async def get_decision_trace(run_id: str) -> dict[str, Any]:
+    """Return the DecisionTrace blame report for one pipeline run."""
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,96}", run_id or ""):
+        raise HTTPException(status_code=400, detail="Invalid trace run id")
+
+    from core.audit.decision_trace import DecisionTraceLogger
+
+    report = DecisionTraceLogger().blame_report(run_id)
+    if not report.get("entries"):
+        raise HTTPException(status_code=404, detail=f"Decision trace not found: {run_id}")
+    return report
 
 
 def _resolve_evidence_run_dir(run_id: str):

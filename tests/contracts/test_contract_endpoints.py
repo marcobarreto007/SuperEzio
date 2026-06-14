@@ -17,6 +17,7 @@ def test_router_has_critical_routes():
     assert "/task/submit" in paths
     assert "/capabilities" in paths
     assert "/api/chart-data/{ticker}" in paths
+    assert "/health/trace/{run_id}" in paths
 
 
 def test_sanitize_ticker_valid():
@@ -102,3 +103,13 @@ def test_product_manifest_contract():
     sig = inspect.signature(product_manifest)
     params = list(sig.parameters)
     assert "request" in params
+
+
+@pytest.mark.asyncio
+async def test_decision_trace_endpoint_rejects_invalid_run_id():
+    from agent_server.endpoints import get_decision_trace
+
+    with pytest.raises(HTTPException) as exc:
+        await get_decision_trace("../bad")
+
+    assert exc.value.status_code == 400

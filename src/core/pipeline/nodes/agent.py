@@ -1739,6 +1739,7 @@ def _complex_finance_fallback_answer(message: str) -> str:
     verdict = "CASH" if "unstable" in msg or "emergency" in msg else "ETF"
     confidence = 74 if is_capital else 68
     return (
+        "Scope note: This is an educational framework, not personalized financial advice.\n"
         f"1. **Question Classification** — {classification}.\n"
         "2. **Assumptions** — CAD capital, Canadian household context, family stability matters, "
         "income may be unstable, and all scenario numbers are illustrative assumptions, not forecasts.\n"
@@ -1862,7 +1863,7 @@ def _repair_short_term_return_forecasts(text: str) -> str:
     if re.search("\\b\\d+(?:\\.\\d+)?\\s*[-\\u2013]\\s*\\d+(?:\\.\\d+)?%", repaired):
         repaired = re.sub(
             r"\bvery doable\b",
-            "possible, but not something I can treat as a forecast",
+            "possible, but not a forecast",
             repaired,
             flags=re.IGNORECASE,
         )
@@ -1878,6 +1879,12 @@ def _repair_short_term_return_forecasts(text: str) -> str:
                 + "\n\nNota: qualquer target percentual de curto prazo acima é cenário "
                 "ilustrativo, não previsão. Precisa de catalisador verificado, "
                 "liquidez e nível de invalidação antes de agir."
+            )
+        if "Return-range caveat" not in repaired:
+            repaired = (
+                repaired.rstrip()
+                + "\nReturn-range caveat: short-term percentage ranges are illustrative, "
+                "not a forecast."
             )
     return repaired
 
@@ -1994,6 +2001,18 @@ def _repair_complex_finance_answer(message: str, content: str) -> str:
     text = _repair_answer_quality(content or "", message)
     lower = text.lower()
     additions: list[str] = []
+
+    disclaimer_markers = (
+        "not personalized financial advice",
+        "not a registered financial advisor",
+        "not licensed",
+        "educational framework",
+        "scope note:",
+    )
+    if not any(marker in lower for marker in disclaimer_markers):
+        additions.append(
+            "Scope note: This is an educational framework, not personalized financial advice."
+        )
 
     assumption_markers = (
         "illustrative",
@@ -2405,6 +2424,34 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         state.get("message", "")
     ) or _detected_intent in ("capital_allocation", "personal_finance")
 
+    if (
+        is_complex_finance
+        and iterations == 0
+        and not state.get("ticker")
+        and not state.get("scan")
+        and not state.get("data")
+    ):
+        content = _repair_complex_finance_answer(
+            state.get("message", ""),
+            _complex_finance_fallback_answer(state.get("message", "")),
+        )
+        writer({"type": "CHUNK", "run_id": run_id, "content": content})
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "agent_primary",
+                "status": "completed",
+                "mode": "complex_finance_fast_path",
+            }
+        )
+        return {
+            **_final_payload(content, iterations),
+            "bob_thesis": state.get("bob_thesis", ""),
+            "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
+            "current_datetime": state.get("current_datetime", ""),
+        }
+
     # ── Shadow mode: Bob Sovereign ──
     bob_sovereign = os.getenv("SUPEREZIO_BOB_SOVEREIGN", "0") == "1"
     logger.info("BOB_SOVEREIGN=%s iterations=%d", bob_sovereign, iterations)
@@ -2466,6 +2513,10 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         observations.append(f"Current Ticker: {state.get('ticker')}")
     if state.get("data_context"):
         observations.append(f"Data/Scan Context:\n{state.get('data_context')[:3000]}")
+    if state.get("math_report"):
+        observations.append(
+            f"Math Report:\n{json.dumps(state.get('math_report'), ensure_ascii=False)}"
+        )
     if state.get("f51_verdict"):
         observations.append(
             f"F51 Verdict:\n{json.dumps(state.get('f51_verdict'), ensure_ascii=False)}"
@@ -2490,6 +2541,14 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     if isinstance(state.get("sdca_firewall"), dict) and state.get("sdca_firewall"):
         observations.append(
             f"SDCA Firewall:\n{json.dumps(state.get('sdca_firewall'), ensure_ascii=False)}"
+        )
+    if isinstance(state.get("guardrail_hub"), dict) and state.get("guardrail_hub"):
+        observations.append(
+            f"Guardrail Hub:\n{json.dumps(state.get('guardrail_hub'), ensure_ascii=False)}"
+        )
+    if isinstance(state.get("decision_trace"), dict) and state.get("decision_trace"):
+        observations.append(
+            f"Decision Trace:\n{json.dumps(state.get('decision_trace'), ensure_ascii=False)}"
         )
     if state.get("pennylab_result") or state.get("pennylab"):
         observations.append(

@@ -1,56 +1,68 @@
 {
-  "date_local": "2026-06-14T17:15:00-04:00",
-  "session": "unified-memory-layer-tested-2026-06-14",
-  "status": "completed",
+  "date_local": "2026-06-14T13:55:00-04:00",
+  "session": "stage1-unify-math-guardrails-decision-trace-2026-06-14",
+  "status": "completed_with_known_external_lint_debt",
+  "final_objective": {
+    "what_system_does": "SuperEzio Financeiro runs a local financial-analysis assistant with chart data, capital-allocation answers, expert pipeline, guardrails, and audit traces.",
+    "who_it_is_for": "Marco/F51 demo and local operator use for finance research, risk review, and educational capital-allocation workflows.",
+    "main_user_flow": "Start local CEO/API/UI stack, ask Bob a finance question or ticker analysis, receive a guarded answer backed by math, context, trace, and browser-visible UI output.",
+    "start_command": "powershell -ExecutionPolicy Bypass -File runtime\\do_restart.ps1",
+    "proof_output": "pytest suite passes, live health endpoints respond, browser smoke renders chart/canvas/chat, and /health/trace/{run_id} returns DecisionTrace events.",
+    "ready_blocker": "Heavy live task-submit integration tests can still exceed local llama runtime timeout; global ruff also has pre-existing memory-layer lint debt outside this Stage 1 change."
+  },
   "what_was_done": [
-    "UNIFIED MEMORY LAYER COMPLETO + INTEGRADO + TESTADO",
-    "",
-    "4 Fases implementadas e testadas:",
-    "  FASE 1: Adapter Pattern (unified.py) - 9/9 tests ✓",
-    "  FASE 2: Hybrid Search (hybrid.py) - 16/16 tests ✓",
-    "  FASE 3: Re-ranking (reranker.py) - 15/15 tests ✓",
-    "  FASE 4: Knowledge Graph (graph.py) - 22/22 tests ✓",
-    "",
-    "INTEGRAÇÃO:",
-    "  - stream_events() usa todas as 4 camadas",
-    "  - Contexto: ConversationMemory → RerankPipeline → GraphMemoryBridge",
-    "  - Salvamento: ConversationTurn → ingest no Knowledge Graph",
-    "",
-    "TESTE E2E:",
-    "  - ConversationMemory: turnos salvos e recuperados ✓",
-    "  - KnowledgeGraph: entidades criadas (ticker, verdict) ✓",
-    "  - HybridRetriever: busca híbrida funcionando ✓",
-    "  - RerankPipeline: reranking operacional ✓",
-    "  - UnifiedRetriever: cross-source search ✓",
-    "",
-    "TOTAL: 62/62 testes unitários + 5/5 testes de integração",
-    "Bob agora tem memória unificada completa e funcional"
+    "Implemented MathHub with 12 finance math modules and MathReport prompt injection into the automatic pipeline.",
+    "Implemented GuardrailHub with 30 auditable guardrail checks across input, provider, data, risk, fraud, trading, crisis, and final committee layers.",
+    "Implemented DecisionTraceLogger JSONL audit trail and live /health/trace/{run_id} blame-report endpoint.",
+    "Integrated math_report, math_prompt, guardrail_hub, and decision_trace into pipeline contracts, graph state, CEO prompt builder, and Bob observations.",
+    "Hardened complex capital-allocation fallback/repair text with educational scope note and short-term forecast caveat.",
+    "Added focused tests for MathHub, GuardrailHub, auto full analysis, prompt contracts, pipeline smoke, endpoint route registration, and invalid trace IDs.",
+    "Restarted the local stack and validated API/UI behavior with pytest, live endpoint checks, trace endpoint check, and browser smoke."
   ],
   "evidence": {
     "commands": [
-      "python scripts/test_memory_simple.py",
-      "python -m pytest tests/test_unified_memory_fase1.py tests/test_hybrid_memory_fase2.py tests/test_reranker_fase3.py tests/test_graph_memory_fase4.py -q"
+      "powershell -ExecutionPolicy Bypass -File runtime\\do_restart.ps1",
+      "python -m pytest -q --ignore=tests/test_integration_runtime.py",
+      "python -m pytest tests/test_integration_runtime.py::test_ceo_health_endpoint tests/test_integration_runtime.py::test_api_health_endpoint tests/test_integration_runtime.py::test_api_health_details_endpoint tests/test_integration_runtime.py::test_capabilities_endpoint tests/test_integration_runtime.py::test_product_manifest_endpoint -q",
+      "python scripts\\browser_smoke.py --timeout-ms 180000",
+      "Invoke-RestMethod -Uri http://127.0.0.1:8002/health/trace/81b4aa72a6cc -Method Get",
+      "python -m ruff check src/core/audit/decision_trace.py src/core/math/math_hub.py src/core/pipeline/nodes/guardrail_hub.py src/core/pipeline/graph.py src/core/pipeline/prompts/builder.py src/core/pipeline/prompts/_prompts.py src/core/pipeline/nodes/agent.py src/agent_server/endpoints.py tests/test_math_hub.py tests/test_guardrail_hub.py tests/test_auto_full_analysis.py tests/test_pipeline_smoke.py tests/contracts/test_contract_agent.py tests/contracts/test_contract_complex_finance.py tests/contracts/test_contract_endpoints.py"
+    ],
+    "results": [
+      "1174 passed, 1 warning in 33.01s for pytest suite excluding heavy live integration runtime tests.",
+      "5 passed in 0.18s for selected live integration health/product endpoints.",
+      "Browser smoke ok: health ok, AAPL chart status 200, 130 candles, canvas nonblank 378108 pixels, chat finalContentLength 2446, no console errors.",
+      "Decision trace endpoint positive path ok for run_id 81b4aa72a6cc: 60 events, 15 completed nodes, 15 skipped nodes, 0 errors, 1 review blocker.",
+      "Focused ruff over touched Stage 1 files passed."
     ],
     "files_changed": [
-      "src/core/memory/unified.py",
-      "src/core/memory/hybrid.py",
-      "src/core/memory/reranker.py",
-      "src/core/memory/graph.py",
-      "src/core/memory/__init__.py",
+      "src/core/audit/decision_trace.py",
+      "src/core/math/math_hub.py",
+      "src/core/pipeline/nodes/guardrail_hub.py",
+      "src/core/pipeline/contracts.py",
       "src/core/pipeline/graph.py",
-      "scripts/test_memory_simple.py"
+      "src/core/pipeline/nodes/agent.py",
+      "src/core/pipeline/prompts/builder.py",
+      "src/core/pipeline/prompts/_prompts.py",
+      "src/agent_server/endpoints.py",
+      "tests/test_math_hub.py",
+      "tests/test_guardrail_hub.py",
+      "tests/test_auto_full_analysis.py",
+      "tests/test_pipeline_smoke.py",
+      "tests/contracts/test_contract_agent.py",
+      "tests/contracts/test_contract_endpoints.py"
     ],
-    "tests": [
-      "62/62 unit tests passed",
-      "5/5 integration tests passed",
-      "ConversationMemory: working",
-      "KnowledgeGraph: working",
-      "HybridRetriever: working",
-      "RerankPipeline: working",
-      "UnifiedRetriever: working"
+    "runtime_artifacts": [
+      "runtime/traces/decision_trace_20260614.jsonl",
+      "output/playwright/superezio-browser-smoke-20260614-135008.png"
     ]
   },
-  "risks": [],
-  "next_step": "Bob está ready para produção com memória unificada",
-  "owner": "Bob"
+  "risks": [
+    "python -m ruff check src tests still fails with 41 pre-existing lint findings in src/core/memory and memory fase tests; focused Stage 1 lint passes.",
+    "Full tests including tests/test_integration_runtime.py can timeout because live task-submit ticker/general tests send long prompts to local llama; light live integration endpoints passed.",
+    "Live validation appended runtime conversation entries to data/conversation_memory.jsonl; this is test/runtime state, not source code logic."
+  ],
+  "next_step": "Stage 2 should focus on Trinity dialogue quality only after deciding whether to fix pre-existing memory-layer lint debt and whether to isolate heavy live task-submit tests behind an explicit slow marker.",
+  "owner": "Codex",
+  "github_policy": "DISK_ONLY_GITHUB_BLOCKED"
 }

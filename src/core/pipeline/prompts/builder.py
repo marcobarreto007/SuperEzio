@@ -68,6 +68,9 @@ _MODULE_KEYWORDS: dict[str, list[str]] = {
     "sdca_firewall": ["sdca", "firewall", "block", "review", "ghost"],
     "f51": ["f51", "verdict", "confidence", "threshold"],
     "rag_forensics": ["rag", "forensics", "historical", "past case"],
+    "math_report": ["math", "var", "sharpe", "kelly", "crisis"],
+    "guardrail_hub": ["guardrail", "firewall", "blocked", "review"],
+    "decision_trace": ["trace", "audit", "blame", "latency"],
 }
 
 
@@ -103,6 +106,9 @@ def _required_module_presence(state: PipelineState) -> dict[str, bool]:
         ),
         "f51": bool(state.get("f51_verdict")),
         "rag_forensics": bool(state.get("rag_context")),
+        "math_report": bool(state.get("math_report")),
+        "guardrail_hub": bool(state.get("guardrail_hub")),
+        "decision_trace": bool(state.get("decision_trace")),
     }
 
 
@@ -224,6 +230,47 @@ def _format_sdca_firewall(sdca: dict[str, Any]) -> str:
     if isinstance(score, dict) and score:
         lines.append(f"consequence_score={score}")
     return "\n".join(lines)
+
+
+def _format_math_report(report: dict[str, Any]) -> str:
+    if not report:
+        return ""
+    summary = report.get("summary") or {}
+    coverage = report.get("coverage") or {}
+    lines = ["[MATH_REPORT]"]
+    lines.append(
+        f"coverage={coverage.get('ok_modules', 0)}/{coverage.get('total_modules', 0)}"
+    )
+    for key in (
+        "latest_price",
+        "return_annualized",
+        "volatility_annualized",
+        "sharpe",
+        "max_drawdown",
+        "var_95",
+        "kelly_fraction",
+        "crisis_score",
+        "f51_confidence",
+    ):
+        value = summary.get(key)
+        if value not in (None, "", [], {}):
+            lines.append(f"{key}={value}")
+    return "\n".join(lines)
+
+
+def _format_guardrail_hub(guardrail_hub: dict[str, Any]) -> str:
+    if not guardrail_hub:
+        return ""
+    summary = guardrail_hub.get("summary") or {}
+    return "\n".join(
+        [
+            "[GUARDRAIL_HUB]",
+            f"total_guardrails={guardrail_hub.get('total_guardrails')}",
+            f"decision_counts={summary.get('decision_counts')}",
+            f"blocking_guardrails={summary.get('blocking_guardrails')}",
+            f"ready={summary.get('ready')}",
+        ]
+    )
 
 
 def _format_mandamentos(mandamentos: list[Any]) -> str:
@@ -426,7 +473,10 @@ def build_agent_prompt(
         "- NEURAL_DECISION: directional probability, expected return signal, regime, drawdown risk\n"
         "- SDCA_FIREWALL: defensive ALLOW, BLOCK, or REVIEW gate before final action\n"
         "- RAG_FORENSICS: what historical patterns match\n"
-        "- F51_VERDICT: what the unified scoring says\n\n"
+        "- F51_VERDICT: what the unified scoring says\n"
+        "- MATH_REPORT: consolidated numerical report (risk, Sharpe, VaR, Kelly, crisis)\n"
+        "- GUARDRAIL_HUB: 30-layer audit status and blockers\n"
+        "- DECISION_TRACE: blame report and latency/skip/error source\n\n"
         "If a module has no data, say '[MODULE] MISSING - confidence reduced'.\n"
         "If a module has data, interpret it into risk and evidence, not a broker instruction.\n\n"
         "RULES:\n"
@@ -460,6 +510,10 @@ def build_agent_prompt(
     rag_ctx = state.get("rag_context", "")
     if rag_ctx:
         parts.append(f"RAG_FORENSICS:\n{rag_ctx[:1200]}")
+
+    math_block = _format_math_report(state.get("math_report") or {})
+    if math_block:
+        parts.append(f"MATH_REPORT:\n{math_block[:1600]}")
 
     pennylab_raw = state.get("pennylab") or state.get("pennylab_result") or {}
     pennylab_block = _format_pennylab(pennylab_raw)
@@ -503,6 +557,15 @@ def build_agent_prompt(
         )
         parts.append(f51_block)
 
+    guardrail_block = _format_guardrail_hub(state.get("guardrail_hub") or {})
+    if guardrail_block:
+        parts.append(f"GUARDRAIL_HUB:\n{guardrail_block[:1600]}")
+
+    trace = state.get("decision_trace") or {}
+    if trace:
+        trace_summary = trace.get("summary") or {}
+        parts.append(f"DECISION_TRACE:\n{trace_summary}")
+
     contract = _render_module_contract(state)
     if contract:
         parts.append(contract)
@@ -520,7 +583,10 @@ def build_agent_prompt(
         "## NEURAL_DECISION\n"
         "## SDCA_FIREWALL\n"
         "## RAG_FORENSICS\n"
-        "## PENNYLAB\n\n"
+        "## PENNYLAB\n"
+        "## MATH_REPORT\n"
+        "## GUARDRAIL_HUB\n"
+        "## DECISION_TRACE\n\n"
         "For each section write 1-3 sentences in plain language. "
         "If a module has no data, write 'MISSING -- confidence reduced'.\n"
         "Then write '## BOB_VERDICT' with your final plain-language verdict.\n"

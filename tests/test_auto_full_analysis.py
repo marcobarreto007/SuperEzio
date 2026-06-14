@@ -85,6 +85,9 @@ async def test_auto_full_analysis_uses_collector_state_for_decision_stack(monkey
     assert result["neural_decision"]["recommendation"] == "WATCH"
     assert result["sdca_firewall"]["decision"] == "ALLOW"
     assert result["rag_context"] == "fraud-pattern context"
+    assert result["math_report"]["ticker"] == "PLUG"
+    assert result["guardrail_hub"]["total_guardrails"] == 30
+    assert result["decision_trace"]["summary"]["total_events"] >= 1
     assert any(event.get("step") == "auto_full_analysis" for event in events)
 
 
