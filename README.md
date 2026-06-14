@@ -1,5 +1,6 @@
 # SuperEzio Core
 ### Local-First Autonomous Algorithmic Investment Platform
+*(🇧🇷 Para a versão em português, role para baixo / Scroll down for the Portuguese version)*
 
 **SuperEzio Core** is a production-grade, offline-first multi-agent decision and execution platform for quantitative portfolio management. It orchestrates deterministic financial experts, an adversarial decision stack, and real-time Interactive Brokers (IBKR) paper execution. The platform is designed to run entirely locally using the **F51 Nitro-MoE** runtime, enabling massive 80B parameter MoE models to execute at high throughput on consumer-grade hardware.
 
@@ -180,3 +181,190 @@ Key variables inside your `.env` file:
 ## 📜 License
 MIT License with Attribution — Copyright (c) 2025-2026 Marco Barreto. See [LICENSE](LICENSE) for details.
 
+<br><br><br>
+
+---
+---
+
+# 🇧🇷 SuperEzio Core (Versão em Português)
+### Plataforma Autônoma de Investimentos Algorítmicos Local-First
+
+**SuperEzio Core** é uma plataforma multi-agente offline-first de nível de produção, focada em decisão e execução para gestão quantitativa de portfólios. Ela orquestra especialistas financeiros determinísticos, uma stack de decisão adversária e execução de ordens em tempo real via Interactive Brokers (IBKR) em modo paper. A plataforma foi projetada para rodar de forma totalmente local usando o runtime **F51 Nitro-MoE**, permitindo que modelos massivos MoE de 80B de parâmetros executem com alto throughput em hardwares de consumidor.
+
+---
+
+## 📐 Arquitetura da Plataforma
+
+```text
+                     ┌────────────────────────────────────────┐
+                     │    Browser UI (http://127.0.0.1:8002)  │
+                     └───────────────────┬────────────────────┘
+                                         │
+                                         ▼
+                     ┌────────────────────────────────────────┐
+                     │    Motor Servidor FastAPI (:8002)      │
+                     └───────────────────┬────────────────────┘
+                                         │
+                                         ▼
+                     ┌────────────────────────────────────────┐
+                     │   Máquina de Estado LangGraph v4       │
+                     └───────────────────┬────────────────────┘
+                                         │
+       ┌─────────────────────────────────┴────────────────────────────────┐
+       ▼                                                                  ▼
+ ┌───────────────┐                                                  ┌───────────────┐
+ │ Orquestrador  │ Classificação de Intenção & Roteamento           │  Nó Bloqueado │
+ └───────┬───────┘ Condicional                                      └───────────────┘
+         │
+         ▼
+ ┌───────────────┐
+ │ Análise Total │ Coleta Paralela de Evidências & Avaliação
+ │ Automática    │
+ └───────┬───────┘
+         ├─► [1] DataHub: Preço, fundamentos, técnicos, contexto macro
+         ├─► [2] Comitê de Especialistas: Fan-out de 6 especialistas quantitativos
+         ├─► [3] Snapshot de Portfólio: Injeção em tempo real das posições paper IBKR
+         └─► [4] Stack de Decisão: F51 Verdict, Decisão Neural, Firewall SDCA, ForensicRAG
+                 │
+                 ▼
+ ┌───────────────┐
+ │    Nó do      │ Bob CEO (Ciclo de raciocínio ReAct) via Local Qwen3 80B
+ │   Agente      │
+ └───────┬───────┘
+         │
+         ▼
+ ┌───────────────┐
+ │ Auto-Executar │ Analisa o PAPER_TICKET, aplica limites de risco (ticket máx 10%,
+ │     Paper     │ limite concentração 50%), e envia ordens ao IBKR TWS.
+ └───────┬───────┘
+         │
+         ▼
+ ┌───────────────┐
+ │  Explicação   │ Faz stream de NDJSON de análise e dados de execução para a UI
+ └───────────────┘
+```
+
+---
+
+## 🛠️ Principais Componentes do Motor
+
+### 1. LangGraph Decision & Execution DAG
+O pipeline de roteamento central usa um Grafo Acíclico Direcionado (DAG) determinístico construído no **LangGraph**. O LLM é restrito a nós de raciocínio puro, garantindo que a classificação de intenção, coleta de dados e ordens de negociação ocorram sob restrições de software determinísticas e verificáveis.
+
+### 2. Comitê de Especialistas Multi-Perspectiva
+Cada análise de ativo dispara um fan-out paralelo através de 6 especialistas quantitativos distintos:
+- **Risco Macro:** Examina indicadores de mercado de alto nível e tendências de crédito.
+- **Valor Fundamental:** Pontua métricas de valuation (P/E, EV/EBITDA, Free Cash Flow).
+- **Momento Técnico:** Calcula indicadores técnicos chave (RSI, MACD, cruzamentos de médias móveis).
+- **Oportunidade Contrariante:** Identifica desvios oversold e retornos estruturais.
+- **Sentimento:** Analisa sentimento de notícias e mudanças nas expectativas de mercado.
+- **Forense Social:** Monitora atividade de volume de varejo, short interest e sinais de catalisadores da comunidade.
+
+### 3. F51 Verdict Engine & Stack de Decisão
+Antes de o agente formular sua tese final, os dados passam por um firewall de verificação multi-camadas:
+- **F51 Verdict:** Um motor de pontuação determinístico que mapeia confiança, anomalias de dados e métricas de incerteza.
+- **Decisão Neural:** Um motor de correspondência de padrões localizado que detecta configurações estruturais.
+- **Firewall SDCA:** Uma guarda de risco cognitiva que protege contra FOMO, armadilhas de alavancagem e sinais obsoletos do mercado.
+- **ForensicRAG:** Extrai trechos paginados de documentação, prevenindo cálculos alucinados.
+
+### 4. Motor de Trading Interactive Brokers (IBKR)
+Quando o agente CEO decide executar uma posição, ele emite um `PAPER_TICKET` formatado. A plataforma intercepta este ticket, roda portões de verificação de segurança e executa os trades automaticamente:
+- **Portão de Concentração:** Rejeita ordens se um ativo exceder 50% do valor total de liquidação líquida do portfólio.
+- **Portão de Dimensionamento (Sizing):** Limita o valor de ordens individuais a um máximo de 10% do patrimônio total.
+- **Execução:** Conecta ao IBKR Trader Workstation (TWS) ou IB Gateway para enviar ordens Limit (LMT) ou Market (MKT).
+- **Log de Auditoria:** Salva resultados das transações, preços de preenchimento de execução, rastreamento de PnL e parâmetros de reflexão pós-trade em um banco SQLite local auditado via `PaperJournal`.
+
+---
+
+## 🚀 Motor de Modelo Local (F51 Nitro-MoE)
+
+O SuperEzio roda suas decisões cognitivas centrais em um modelo local **Qwen3-Next-80B-A3B Instruct Abliterated** no formato GGUF usando `llama-server`.
+
+Para rodar um modelo dessa magnitude em hardware de consumidor (ex: RTX 5060 Ti 16GB, 64GB RAM DDR5), a plataforma utiliza a alocação de especialistas em camadas do **F51 Nitro**:
+- **Memória em Camadas (Tiered):** As camadas de atenção e caches KV ficam fixadas na VRAM da GPU (~6.3 GB).
+- **Paginação Ativa:** Todos os 512 especialistas ficam na memória RAM do sistema (DDR5) e são processados na CPU ou enviados à GPU sob demanda.
+- **Performance:** Alcança **38.7 tok/s com contexto de 256K**—evitando a sobrecarga de VRAM que retarda as execuções puramente em GPU para 8.4 tok/s devido a loops de page-fault de swap do driver.
+
+---
+
+## ⚡ Quickstart
+
+### 1. Configuração de Ambiente
+Clone o repositório e instale o projeto em modo editável utilizando `uv` (recomendado) ou `pip` padrão:
+```bash
+# Utilizando Ambiente Virtual Python
+python -m venv .venv
+.venv\Scripts\activate
+
+# Instalar dependências e projeto em modo editável
+pip install -e .
+```
+
+### 2. Configuração
+Copie o template de ambiente e configure suas portas e chaves. Se quiser rodar completamente offline, deixe as chaves de API externas em branco:
+```bash
+cp .env.example .env
+```
+
+### 3. Executar o Servidor de Modelo Local (Motor CEO)
+Inicie o servidor de modelo local para hospedar o modelo de 80B na porta `8082`:
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082
+```
+
+### 4. Iniciar o Servidor de Aplicação FastAPI
+Rode o backend web FastAPI. Por padrão, o servidor responde na porta `8002`:
+```bash
+python -m agent_server.main
+```
+
+### 5. Acessar a UI da Plataforma
+Abra seu navegador e vá para:
+```text
+http://127.0.0.1:8002
+```
+*(Ou dê duplo clique no atalho `OPEN_UI.url` na raiz do projeto).*
+
+---
+
+## 🧪 Testes e Verificação
+
+O SuperEzio impõe rigorosos portões de qualidade para garantir um comportamento determinístico e prevenir vazamentos de memória.
+
+```bash
+# 1. Rodar toda a suíte pytest (mais de 1.100 testes de contrato, unitários e de integração)
+python -m pytest tests/ -q
+
+# 2. Rodar verificação de lint e formatação automática
+python -m ruff check src tests
+python -m ruff format --check src tests
+
+# 3. Executar End-to-End browser UI smoke tests (Playwright)
+python scripts/browser_smoke.py --headed
+
+# 4. Acionar o script compreensivo de validação Pre-Delivery Gate
+powershell -ExecutionPolicy Bypass -File scripts/verify_zero_garbage_runtime.ps1
+```
+
+> [!IMPORTANT]
+> O script `verify_zero_garbage_runtime.ps1` roda 12 portões de validação incluindo smoke tests de inicialização, verificações de contrato, cobertura de integração, proteções contra vazamento de secrets e validação de footprint de memória.
+
+---
+
+## 📈 Referência de Ambiente
+
+Variáveis chave dentro do seu arquivo `.env`:
+
+| Variável | Descrição | Padrão |
+|----------|-------------|---------|
+| `SUPEREZIO_CEO_BASE_URL` | URL Base do gateway modelo CEO local/cloud | `http://127.0.0.1:8082/v1` |
+| `SUPEREZIO_HOST` | Endereço de bind do FastAPI | `127.0.0.1` |
+| `SUPEREZIO_PORT` | Porta do servidor FastAPI | `8002` |
+| `SUPEREZIO_DEEPSEEK_API_KEY` | Chave opcional para cloud experts (fallback) | *(Opcional)* |
+| `FINNHUB_API_KEY` | Finnhub API Key para catalisadores de mercado | *(Opcional)* |
+| `TWELVE_DATA_API_KEY` | Twelve Data API Key para velas (candles) de ativos | *(Opcional)* |
+
+---
+
+## 📜 Licença
+MIT License with Attribution — Copyright (c) 2025-2026 Marco Barreto. Veja [LICENSE](LICENSE) para mais detalhes.
