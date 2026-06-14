@@ -182,9 +182,9 @@ YOUR VOICE:
 - No hype. No FOMO. No rocket emojis. No promises of returns.
 - If something looks like a pump & dump, SAY SO.
 - If the user is about to do something reckless, WARN THEM like a friend would.
-- For capital allocation, personal finance, or portfolio decisions: include ONE short
-  scope line (natural language is fine), e.g. "This is an educational framework, not
-  personalized financial advice." Do NOT use the numbered 12-section template.
+- For capital allocation, personal finance, or portfolio decisions: be direct and
+  actionable. Use the 10-section structure from COMPLEX_FINANCE_SYSTEM_PROMPT.
+  No disclaimers. No corporate language. Speak like a trusted CFO.
 
 TOOL CALL FORMAT:
 {"tool": "tool_name", "args": {"arg1": "val1"}}
@@ -256,15 +256,12 @@ COMPLEX_FINANCE_SYSTEM_PROMPT = """
 You are Bob, SuperEzio's autonomous financial agent.
 The user is asking a complex financial advisory/strategy question.
 You must provide a SERIOUS, QUANTITATIVE decision framework answer, NOT a market scan.
-Your answer should feel like a family CFO framework, not a generic financial blog.
+Your answer should feel like a family CFO talking straight — no filler, no legalese.
 
 Do NOT call market_scan. Do NOT call collect_data. Do NOT look up tickers.
 Call final_answer directly with your comprehensive analysis.
 
-You must NOT provide regulated personalized financial advice as a licensed advisor.
-But you MUST provide educational frameworks, hypothetical capital allocations under explicit assumptions, scenario analysis, decision gates, missing data checklists, conditional recommendations, and risk warnings.
-
-BANNED OVERBLOCKING PHRASES — For ordinary educational finance, allocation,
+BANNED OVERBLOCKING PHRASES — For ordinary finance, allocation,
 analysis, or thesis questions, do not output any of these as your answer:
 - "I cannot provide"
 - "I cannot help"
@@ -278,38 +275,30 @@ analysis, or thesis questions, do not output any of these as your answer:
 - any sentence that starts with "I cannot" or "I can't"
 - refusing to answer
 
-Instead, give a substantive, educational, quantitative answer with assumptions,
+Instead, give a substantive, quantitative answer with assumptions,
 decision gates, scenario analysis, and risk warnings.
 
 Safety boundary: do not give guaranteed returns, fraud/deception/evasion help,
-legal/tax filing instructions as a substitute for a professional, or exact
-personalized trade orders presented as certainty. If the request pushes into
-that zone, transform it into an educational framework with conditional logic,
-missing data, position-sizing limits, and what would change the decision.
+or exact personalized trade orders presented as certainty.
 
-Your answer MUST follow this exact 12-section structure:
+Your answer MUST follow this exact 10-section structure:
 
-1. **Scope disclaimer** — one short sentence: "This is an educational framework, not personalized financial advice."
-2. **Question Classification** — identify the type (CAPITAL_ALLOCATION, MACRO_THESIS, REAL_ESTATE_VS_MARKETS, PERSONAL_FINANCE, ASSET_ALLOCATION, BUSINESS_CAPITAL, FRAUD_RISK, EDUCATION_INVESTMENT)
-3. **Assumptions** — state all assumptions being made (Key Assumptions). Always label scenario numbers, returns, and probabilities as illustrative assumptions.
-4. **Missing Data** — what data would be needed for a definitive answer
-5. **Decision Variables** — the factors that drive the decision
-6. **Quantitative Thresholds** — specific numbers, ranges, formulas, or decision gates. Avoid vague thresholds like "risk capacity > $50K". Instead, you MUST use actionable gates:
+1. **Question Classification** — identify the type (CAPITAL_ALLOCATION, MACRO_THESIS, REAL_ESTATE_VS_MARKETS, PERSONAL_FINANCE, ASSET_ALLOCATION, BUSINESS_CAPITAL, FRAUD_RISK, EDUCATION_INVESTMENT)
+2. **Assumptions** — state all assumptions being made (Key Assumptions). Always label scenario numbers, returns, and probabilities as illustrative assumptions.
+3. **Missing Data** — what data would be needed for a definitive answer
+4. **Decision Variables** — the factors that drive the decision
+5. **Quantitative Thresholds** — specific numbers, ranges, formulas, or decision gates. Avoid vague thresholds like "risk capacity > $50K". Instead, you MUST use actionable gates:
    - emergency fund months (e.g., 3-6 months based on income stability)
    - debt interest rate (e.g., pay off debt with interest > 6-8% first)
    - income stability (e.g., stable salary vs unstable freelance)
    - liquidity need
    - time-to-cashflow for business equipment
    - tax-advantaged account availability
-7. **Scenario Analysis** — base case, downside case, upside case with numbers. You must explicitly label all scenario numbers, returns, and probabilities as illustrative assumptions (e.g., "illustrative scenario assumptions"). Do NOT invent exact expected returns or probabilities unless they are explicitly sourced.
-8. **Ranked Allocation / Framework** — ordered ranking of options with rationale (Ranked Decision). Every allocation must include the exact percentage, and you must explain why each bucket gets that percentage. Allocations must sum to exactly 100%.
-9. **Decision Gates** — triggers that would flip the recommendation (What Would Change the Decision), main risks (Main Risks), and conditional logic. State clearly "what changes the allocation" in this section.
-10. **Final Recommendation Under Assumptions** — clear, actionable next step (Final Recommendation)
-11. **Confidence Level** — honest assessment with stated uncertainty
-12. **Professional Caveat** — suggestion to consult a CFP as a final caveat, not as the whole answer
-
-Mandatory Disclaimer Style:
-"This is an educational framework, not personalized financial advice." — Always include this as your scope disclaimer in Section 1.
+6. **Scenario Analysis** — base case, downside case, upside case with numbers. You must explicitly label all scenario numbers, returns, and probabilities as illustrative assumptions (e.g., "illustrative scenario assumptions"). Do NOT invent exact expected returns or probabilities unless they are explicitly sourced.
+7. **Ranked Allocation / Framework** — ordered ranking of options with rationale (Ranked Decision). Every allocation must include the exact percentage, and you must explain why each bucket gets that percentage. Allocations must sum to exactly 100%.
+8. **Decision Gates** — triggers that would flip the recommendation (What Would Change the Decision), main risks (Main Risks), and conditional logic. State clearly "what changes the allocation" in this section.
+9. **Final Recommendation** — clear, actionable next step
+10. **Confidence Level** — honest assessment with stated uncertainty
 
 Rules:
 - Use numbers, thresholds, ranges, formulas, or decision gates whenever possible.
@@ -334,7 +323,7 @@ Rules:
 - Answer in the user's language.
 
 FINAL OUTPUT FORMAT — MANDATORY:
-Your answer MUST end with exactly these two lines, on their own, after the Professional Caveat section:
+Your answer MUST end with exactly these two lines, on their own:
 Final verdict: <PAY_DEBT / CASH / ETF / STOCK_TRADE / WAIT>
 Confidence: <0-100>
 
@@ -696,7 +685,6 @@ def _grounding_guard_answer(state: dict, content: str) -> str:
             f"{portfolio_block}\n\n"
             f"Com a evidencia atual ({grounded_list}, qualidade={quality or 'unknown'}{error_line}), "
             "a decisao correta e WAIT ou rodar um market_scan antes de escolher outro ativo para 14 dias.\n\n"
-            "Scope: estrutura educacional, nao conselho financeiro personalizado.\n"
             "Final verdict: WAIT\n"
             "Confidence: 62"
         )
@@ -712,7 +700,6 @@ def _grounding_guard_answer(state: dict, content: str) -> str:
         f"{en_portfolio}\n\n"
         f"With the current evidence ({grounded_list}, quality={quality or 'unknown'}{error_line}), "
         "the correct decision is WAIT or run a market_scan before naming an alternate 14-day stock idea.\n\n"
-        "Scope: This is an educational framework, not personalized financial advice.\n"
         "Final verdict: WAIT\n"
         "Confidence: 62"
     )
@@ -1752,31 +1739,29 @@ def _complex_finance_fallback_answer(message: str) -> str:
     verdict = "CASH" if "unstable" in msg or "emergency" in msg else "ETF"
     confidence = 74 if is_capital else 68
     return (
-        "1. **Scope disclaimer** — This is an educational framework, not personalized financial advice.\n"
-        f"2. **Question Classification** — {classification}.\n"
-        "3. **Assumptions** — CAD capital, Canadian household context, family stability matters, "
+        f"1. **Question Classification** — {classification}.\n"
+        "2. **Assumptions** — CAD capital, Canadian household context, family stability matters, "
         "income may be unstable, and all scenario numbers are illustrative assumptions, not forecasts.\n"
-        "4. **Missing Data** — debt balances and interest rates, current emergency reserve, monthly expenses, "
+        "3. **Missing Data** — debt balances and interest rates, current emergency reserve, monthly expenses, "
         "TFSA, RRSP, RESP, or FHSA room, tax bracket, business revenue history, and education timeline.\n"
-        "5. **Decision Variables** — liquidity need, emergency fund months, debt interest rate, downside risk, "
+        "4. **Decision Variables** — liquidity need, emergency fund months, debt interest rate, downside risk, "
         "reversibility, time-to-cashflow, health/energy constraints, and family stability.\n"
-        "6. **Quantitative Thresholds** — keep 3-6 months of emergency cash reserve first; pay debt above "
+        "5. **Quantitative Thresholds** — keep 3-6 months of emergency cash reserve first; pay debt above "
         "6-8% interest before market risk; fund business equipment only when expected payback/time-to-cashflow "
         "is clear; keep education spending staged and reversible.\n"
-        "7. **Scenario Analysis** — Illustrative downside: unstable income plus no reserve forces asset sales. "
+        "6. **Scenario Analysis** — Illustrative downside: unstable income plus no reserve forces asset sales. "
         "Illustrative base case: reserve plus high-interest debt payoff reduces fragility. Illustrative upside: "
         "surplus after safety gates can compound through a broad diversified Canadian-listed ETF or productive "
         "business equipment.\n"
-        "8. **Ranked Allocation / Framework** — 40% emergency cash reserve, 30% high-interest debt payoff, "
+        "7. **Ranked Allocation / Framework** — 40% emergency cash reserve, 30% high-interest debt payoff, "
         "15% broad diversified Canadian-listed ETF, 10% side-business equipment only with payback evidence, "
         "5% education. These illustrative buckets sum to 100% and prioritize survival before upside.\n"
-        "9. **Decision Gates** — If emergency reserve is below 3 months, CASH dominates. If debt interest is "
+        "8. **Decision Gates** — If emergency reserve is below 3 months, CASH dominates. If debt interest is "
         "above 6-8%, PAY_DEBT dominates. If business equipment has fast payback and low execution burden, shift "
         "some ETF/education budget to equipment. Tax account choices depend on the individual's situation.\n"
-        "10. **Final Recommendation Under Assumptions** — Build the emergency reserve first, then pay expensive "
+        "9. **Final Recommendation** — Build the emergency reserve first, then pay expensive "
         "debt, then deploy remaining surplus gradually into ETF/business/education only after liquidity is safe.\n"
-        f"11. **Confidence Level** — {confidence}/100, limited by missing debt rate, monthly expenses, and tax room.\n"
-        "12. **Professional Caveat** — Confirm tax/account details with a CFP or qualified Canadian professional.\n"
+        f"10. **Confidence Level** — {confidence}/100, limited by missing debt rate, monthly expenses, and tax room.\n"
         f"Final verdict: {verdict}\n"
         f"Confidence: {confidence}"
     )
@@ -1890,9 +1875,9 @@ def _repair_short_term_return_forecasts(text: str) -> str:
         if "short-term percentage target" not in repaired.lower():
             repaired = (
                 repaired.rstrip()
-                + "\n\nReturn-range caveat: any exact short-term percentage target above "
-                "is an illustrative scenario, not a forecast. It needs a verified catalyst, "
-                "liquidity check, and invalidation level before acting."
+                + "\n\nNota: qualquer target percentual de curto prazo acima é cenário "
+                "ilustrativo, não previsão. Precisa de catalisador verificado, "
+                "liquidez e nível de invalidação antes de agir."
             )
     return repaired
 
@@ -2009,18 +1994,6 @@ def _repair_complex_finance_answer(message: str, content: str) -> str:
     text = _repair_answer_quality(content or "", message)
     lower = text.lower()
     additions: list[str] = []
-
-    disclaimer_markers = (
-        "not personalized financial advice",
-        "not a registered financial advisor",
-        "not licensed",
-        "not regulated",
-        "educational framework",
-    )
-    if not any(marker in lower for marker in disclaimer_markers):
-        additions.append(
-            "Scope note: This is an educational framework, not personalized financial advice."
-        )
 
     assumption_markers = (
         "illustrative",
@@ -2182,7 +2155,6 @@ def _advisory_knowledge_fallback_answer(state: dict) -> str:
             "SCHD is a dividend-quality/value tilt: useful as a satellite if you deliberately want dividend style exposure, but it is not a complete market core.\n\n"
             "For most long-term buy-and-hold investors, pick one core first. My default framework is VTI as the broad core, VOO if you specifically want S&P 500 exposure, and SCHD only as a smaller satellite tilt. "
             "Check fees, account currency, tax wrapper, and whether you are duplicating holdings before buying.\n\n"
-            "Scope: This is an educational framework, not personalized financial advice.\n"
             "Final verdict: ETF\n"
             "Confidence: 82/100"
         )
@@ -2194,7 +2166,6 @@ def _advisory_knowledge_fallback_answer(state: dict) -> str:
             "Before selling, estimate unrealized gains, marginal tax rate, account type, and whether charitable giving, loss harvesting, or staged sales reduce the tax hit.\n\n"
             "Decision gate: if one stock is above 25-30% of the portfolio, write a reduction plan; if it is above 40%, make diversification the default unless there is a clear tax or liquidity reason to wait. "
             "Use broad diversified funds or asset-class buckets rather than replacing one single-stock bet with another.\n\n"
-            "Scope: This is an educational framework, not personalized financial advice.\n"
             "Final verdict: ETF\n"
             "Confidence: 80/100"
         )
@@ -2471,10 +2442,8 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     f"tax thresholds, withholding exemptions, contribution limits, or treaty treatment as facts. "
                     f"Use a decision framework and tell the user what must be verified in current market, tax, account, or fund documents. "
                     f"BANNED: Do NOT output the 12-section framework template. "
-                    f"BANNED: Do NOT use numbered sections like '1. **Scope disclaimer** —'. "
-                    f"REQUIRED for allocation/personal-finance questions: one short scope line "
-                    f"(educational framework, not personalized financial advice). "
-                    f"Talk like a smart friend giving advice. "
+                    f"Use the 10-section structure from COMPLEX_FINANCE_SYSTEM_PROMPT. "
+                    f"Talk like a trusted CFO — direto, sem firula. "
                     f"If the user wants a stock pick and SCANNER_ALLOWED is True, use market_scan first and only use scan-approved tickers. "
                     f"If you need market data, call tools. If you can answer from knowledge, do so."
                 ),
