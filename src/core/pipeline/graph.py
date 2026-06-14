@@ -834,44 +834,78 @@ class PipelineApp:
         except Exception:
             pass
 
-        # ── Bob Memory: carrega contexto da sessão ──
-        memory_context: list[str] = []
+        # ── Bob Memory: carrega contexto da sessão (Unified Memory Layer) ──
+        memory_context_parts: list[str] = []
         try:
-            from core.memory import get_conversation_memory
+            from core.memory import (
+                get_conversation_memory,
+                get_rerank_pipeline,
+                get_graph_bridge,
+            )
 
+            # 1. Contexto conversacional recente (ConversationMemory)
             mem = get_conversation_memory()
-
-            # Busca contexto recente (últimas 24h)
             recent_turns = mem.get_recent_context(session_id, hours=24, limit=10)
 
-            # Se há ticker, busca histórico específico
-            ticker_history = []
-            if ticker:
-                ticker_history = mem.get_ticker_history(ticker, session_id=session_id, limit=5)
-
-            # Compila contexto para o Bob
             if recent_turns:
-                memory_context.append("CONTEXTO RECENTE (últimas 24h):")
-                for turn in recent_turns[-3:]:  # Últimas 3 conversas
-                    memory_context.append(f"- Usuário: {turn.user_message[:100]}...")
+                memory_context_parts.append("CONTEXTO RECENTE (últimas 24h):")
+                for turn in recent_turns[-3:]:
+                    memory_context_parts.append(f"- Usuário: {turn.user_message[:100]}...")
                     if turn.thesis_formed:
-                        memory_context.append(f"  Tese formada: {turn.thesis_formed[:80]}...")
+                        memory_context_parts.append(f"  Tese: {turn.thesis_formed[:80]}...")
                     if turn.verdict:
-                        memory_context.append(f"  Veredito: {turn.verdict}")
+                        memory_context_parts.append(f"  Veredito: {turn.verdict}")
 
-            if ticker_history:
-                memory_context.append(f"\nHISTÓRICO DE {ticker.upper()}:")
-                for turn in ticker_history[:3]:
-                    memory_context.append(f"- {turn.timestamp[:10]}: {turn.thesis_formed[:80] if turn.thesis_formed else 'Sem tese'}...")
-                    if turn.verdict:
-                        memory_context.append(f"  Veredito: {turn.verdict}")
+            # 2. Busca híbrida + reranking (Fases 2-3)
+            try:
+                reranker = get_rerank_pipeline()
+                # Query combina message + ticker
+                query = f"{ticker} {message}" if ticker else message
+                reranked_results = reranker.search(query, top_k=5)
 
-            # Adiciona ao context existente
-            if memory_context:
-                context = f"{context}\n\n{' '.join(memory_context)}" if context else "\n".join(memory_context)
+                if reranked_results:
+                    memory_context_parts.append("\n[MEMÓRIA RELEVANTE - busca híbrida + reranking]:")
+                    for r in reranked_results[:3]:
+                        source_label = {
+                            "conversation": "💬 Conversa",
+                            "paper_trade": "📈 Trade",
+                            "fraud_pattern": "⚠️ Pattern",
+                            "hybrid": "🔍 Híbrido",
+                        }.get(r.source, r.source)
+                        memory_context_parts.append(
+                            f"- [{source_label}] {r.text[:150]}... "
+                            f"(rerank={r.rerank_score:.2f})"
+                        )
+            except Exception as e:
+                logger.debug("[memory] RerankPipeline search skipped: %s", e)
+
+            # 3. Knowledge Graph - ticker context (Fase 4)
+            if ticker:
+                try:
+                    graph_bridge = get_graph_bridge()
+                    graph_context = graph_bridge.query_ticker_context(ticker)
+                    if graph_context.get("entities"):
+                        entities_by_type: dict[str, list[str]] = {}
+                        for eid, ent in graph_context["entities"].items():
+                            etype = ent["type"]
+                            if etype not in entities_by_type:
+                                entities_by_type[etype] = []
+                            entities_by_type[etype].append(ent["name"])
+
+                        memory_context_parts.append(f"\n[GRAFO DE CONHECIMENTO - {ticker.upper()}]:")
+                        for etype, names in entities_by_type.items():
+                            if names:
+                                memory_context_parts.append(f"- {etype.upper()}: {', '.join(set(names))}")
+                except Exception as e:
+                    logger.debug("[memory] Graph query skipped: %s", e)
+
+            # Compila contexto final
+            if memory_context_parts:
+                unified_context = "\n".join(memory_context_parts)
+                context = f"{context}\n\n{unified_context}" if context else unified_context
 
         except Exception as exc:
-            logger.warning("[memory] Failed to load conversation context: %s", exc)
+            logger.warning("[memory] Failed to load unified context: %s", exc)
 
         def _finalize_evidence() -> None:
             nonlocal evidence_saved
@@ -1024,10 +1058,14 @@ class PipelineApp:
         finally:
             _finalize_evidence()
 
-            # ── Bob Memory: salva turno da conversa ──
+            # ── Bob Memory: salva turno + inger no Knowledge Graph ──
             if response_chunks:
                 try:
-                    from core.memory import get_conversation_memory
+                    from core.memory import (
+                        get_conversation_memory,
+                        get_graph_bridge,
+                    )
+                    from dataclasses import dataclass
 
                     mem = get_conversation_memory()
                     response_text = "".join(response_chunks)
@@ -1052,16 +1090,16 @@ class PipelineApp:
                         confidence = float(conf_match.group(1))
 
                     # Detecta categoria baseada no state
-                    # (simplificado - em produção viria do state final)
                     if ticker:
                         category = "ticker_analysis"
                     elif "scan" in context.lower() or "candidates" in response_text.lower():
                         category = "market_scan"
 
-                    mem.add_turn(
+                    # Cria turno
+                    turn = mem.add_turn(
                         session_id=session_id,
                         user_message=message,
-                        bob_response=response_text[:5000],  # Limita tamanho
+                        bob_response=response_text[:5000],
                         context_summary=context[:500] if context else "",
                         ticker_discussed=ticker,
                         thesis_formed=thesis,
@@ -1070,6 +1108,15 @@ class PipelineApp:
                         category=category,
                     )
                     logger.debug("[memory] Saved turn for session %s", session_id)
+
+                    # ── Knowledge Graph: ingere turno (Fase 4) ──
+                    try:
+                        graph_bridge = get_graph_bridge()
+                        graph_bridge.ingest_conversation_turn(turn)
+                        logger.debug("[memory] Ingested turn into knowledge graph")
+                    except Exception as e:
+                        logger.debug("[memory] Graph ingestion skipped: %s", e)
+
                 except Exception as exc:
                     logger.warning("[memory] Failed to save conversation turn: %s", exc)
 

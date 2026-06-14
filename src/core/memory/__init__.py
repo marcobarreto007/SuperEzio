@@ -1,4 +1,13 @@
-"""Memory module for Bob's persistent conversation memory."""
+"""Memory module for Bob's persistent conversation memory.
+
+Includes:
+- ConversationMemory: basic conversational memory
+- Unified Memory Layer (4 phases):
+  1. UnifiedRetriever: adapter pattern for cross-source search
+  2. HybridRetriever: dense+sparse fusion search
+  3. RerankPipeline: cross-encoder reranking
+  4. GraphMemoryBridge: knowledge graph with entities
+"""
 
 from .conversation_memory import (
     ConversationMemory,
@@ -14,11 +23,25 @@ __all__ = [
     "reset_memory_for_test",
 ]
 
-# Import unified module explicitly when needed
-# from .unified import (
-#     UnifiedRetriever,
-#     get_unified_retriever,
-#     ConversationMemoryAdapter,
-#     PaperJournalAdapter,
-#     RetrievalResult,
-# )
+# Unified Memory Layer - available for import
+from .unified import (
+    UnifiedRetriever,
+    get_unified_retriever,
+    RetrievalResult,
+)
+from .hybrid import (
+    HybridRetriever,
+    get_hybrid_retriever,
+    reset_hybrid_retriever,
+)
+from .reranker import (
+    RerankPipeline,
+    get_rerank_pipeline,
+    reset_rerank_pipeline,
+)
+from .graph import (
+    KnowledgeGraph,
+    GraphMemoryBridge,
+    get_graph_bridge,
+    reset_graph_bridge,
+)
