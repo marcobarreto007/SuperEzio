@@ -189,14 +189,16 @@ class TestCapitalAllocation:
         assert repaired.rstrip().endswith("Confidence: 72")
 
     def test_repair_adds_scope_disclaimer_when_missing(self):
+        # Disclaimers removidos — o Bob nao injeta mais scope note
         content = (
             "Short allocation sketch without legal framing.\nFinal verdict: WAIT\nConfidence: 70"
         )
 
         repaired = _repair_complex_finance_answer(CAPITAL_ALLOCATION_PROMPT, content)
 
-        assert "scope note:" in repaired.lower()
-        assert "not personalized financial advice" in repaired.lower()
+        assert "scope note:" not in repaired.lower()
+        assert "not personalized financial advice" not in repaired.lower()
+        assert "Final verdict: WAIT" in repaired
 
     def test_repair_adds_assumptions_note_when_missing(self):
         content = "Short allocation sketch.\nFinal verdict: WAIT\nConfidence: 70"
@@ -748,7 +750,6 @@ async def test_complex_finance_invalid_model_json_gets_deterministic_fallback(mo
     )
 
     content = result["final"]
-    assert "educational framework" in content.lower()
     assert "emergency cash reserve" in content.lower()
     assert "3-6 months" in content
     assert "debt" in content.lower()

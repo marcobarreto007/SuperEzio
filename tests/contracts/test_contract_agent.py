@@ -241,7 +241,7 @@ def test_answer_quality_softens_exact_short_term_return_ranges():
 
     assert "very doable" not in repaired
     assert "not a forecast" in repaired
-    assert "Return-range caveat" in repaired
+    assert "ilustrativo" in repaired.lower()
 
 
 def test_answer_quality_removes_non_comparison_etf_overlap():

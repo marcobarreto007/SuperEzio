@@ -1739,7 +1739,6 @@ def _complex_finance_fallback_answer(message: str) -> str:
     verdict = "CASH" if "unstable" in msg or "emergency" in msg else "ETF"
     confidence = 74 if is_capital else 68
     return (
-        "Scope note: This is an educational framework, not personalized financial advice.\n"
         f"1. **Question Classification** — {classification}.\n"
         "2. **Assumptions** — CAD capital, Canadian household context, family stability matters, "
         "income may be unstable, and all scenario numbers are illustrative assumptions, not forecasts.\n"
@@ -1880,12 +1879,6 @@ def _repair_short_term_return_forecasts(text: str) -> str:
                 "ilustrativo, não previsão. Precisa de catalisador verificado, "
                 "liquidez e nível de invalidação antes de agir."
             )
-        if "Return-range caveat" not in repaired:
-            repaired = (
-                repaired.rstrip()
-                + "\nReturn-range caveat: short-term percentage ranges are illustrative, "
-                "not a forecast."
-            )
     return repaired
 
 
@@ -2001,18 +1994,6 @@ def _repair_complex_finance_answer(message: str, content: str) -> str:
     text = _repair_answer_quality(content or "", message)
     lower = text.lower()
     additions: list[str] = []
-
-    disclaimer_markers = (
-        "not personalized financial advice",
-        "not a registered financial advisor",
-        "not licensed",
-        "educational framework",
-        "scope note:",
-    )
-    if not any(marker in lower for marker in disclaimer_markers):
-        additions.append(
-            "Scope note: This is an educational framework, not personalized financial advice."
-        )
 
     assumption_markers = (
         "illustrative",
