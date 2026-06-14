@@ -14,6 +14,7 @@
 
 ## Done
 
+- [x] 2026-06-13 - Career bootstrapping: created professional Portuguese & English resumes, LinkedIn strategy, and GitHub portfolio optimization guide under docs/career/.
 - [x] 2026-06-01 - Phase 3 (f51-tests): 977/979 pass. 2 pre-existing failures documented in RISK_REGISTER (INV-R13, INV-R14).
 - [x] 2026-06-01 - Phase 2 (f51-runtime): Runtime verified with healthchecks, logs, checkpoints, runbook.
 - [x] 2026-06-01 - Phase 1 (f51-contracts): Contract definitions + 108 tests passing.

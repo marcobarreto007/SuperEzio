@@ -97,7 +97,9 @@ def _required_module_presence(state: PipelineState) -> dict[str, bool]:
             state.get("neural_decision") and "error" not in state.get("neural_decision", {})
         ),
         "sdca_firewall": bool(
-            state.get("sdca_firewall") and "error" not in state.get("sdca_firewall", {})
+            isinstance(state.get("sdca_firewall"), dict)
+            and state.get("sdca_firewall")
+            and "error" not in state["sdca_firewall"]
         ),
         "f51": bool(state.get("f51_verdict")),
         "rag_forensics": bool(state.get("rag_context")),
@@ -480,7 +482,8 @@ def build_agent_prompt(
     else:
         parts.append("NEURAL_DECISION:\nNeuralDecisionExpert not available for this ticker.")
 
-    sdca = state.get("sdca_firewall") or {}
+    _sdca_raw = state.get("sdca_firewall")
+    sdca = _sdca_raw if isinstance(_sdca_raw, dict) else {}
     sdca_block = _format_sdca_firewall(sdca)
     if sdca_block:
         parts.append(

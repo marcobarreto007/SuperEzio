@@ -13,7 +13,8 @@ VAGUE_FINANCIAL_RESPONSE = (
 
 
 def _sdca_blocked_response(state: dict) -> str:
-    sdca = state.get("sdca_firewall") or {}
+    _sdca_raw = state.get("sdca_firewall")
+    sdca = _sdca_raw if isinstance(_sdca_raw, dict) else {}
     summary = sdca.get("human_summary") or "SDCA-Lite blocked this candidate decision."
     tokens = sdca.get("ghost_tokens") or []
     token_text = ", ".join(str(token) for token in tokens[:6]) if tokens else "none"

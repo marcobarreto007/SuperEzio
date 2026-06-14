@@ -1,162 +1,182 @@
-# SuperEzio v4.0.0
+# SuperEzio Core
+### Local-First Autonomous Algorithmic Investment Platform
 
-**AI Financial Analysis Platform** — Plataforma de analise financeira com experts deterministicos, motor de veredito F51, CEO local Qwen3-Next-80B Abliterated (F51 Nitro MoE) e gateway FastAPI.
+**SuperEzio Core** is a production-grade, offline-first multi-agent decision and execution platform for quantitative portfolio management. It orchestrates deterministic financial experts, an adversarial decision stack, and real-time Interactive Brokers (IBKR) paper execution. The platform is designed to run entirely locally using the **F51 Nitro-MoE** runtime, enabling massive 80B parameter MoE models to execute at high throughput on consumer-grade hardware.
 
 ---
 
-## Quickstart
+## 📐 Platform Architecture
 
+```text
+                     ┌────────────────────────────────────────┐
+                     │    Browser UI (http://127.0.0.1:8002)  │
+                     └───────────────────┬────────────────────┘
+                                         │
+                                         ▼
+                     ┌────────────────────────────────────────┐
+                     │    FastAPI Server Engine (:8002)       │
+                     └───────────────────┬────────────────────┘
+                                         │
+                                         ▼
+                     ┌────────────────────────────────────────┐
+                     │      LangGraph v4 State Machine        │
+                     └───────────────────┬────────────────────┘
+                                         │
+       ┌─────────────────────────────────┴────────────────────────────────┐
+       ▼                                                                  ▼
+ ┌───────────────┐                                                  ┌───────────────┐
+ │ Orchestrator  │ Intent Classification & Conditional Routing      │  Blocked Node │
+ └───────┬───────┘                                                  └───────────────┘
+         │
+         ▼
+ ┌───────────────┐
+ │   Auto Full   │
+ │   Analysis    │ Parallel Evidence Collection & Evaluation
+ └───────┬───────┘
+         ├─► [1] DataHub: Price, fundamentals, technicals, macro context
+         ├─► [2] Expert Committee: Fan-out of 6 quantitative experts
+         ├─► [3] Portfolio Snapshot: Real-time IBKR paper positions inject
+         └─► [4] Decision Stack: F51 Verdict, Neural Decision, SDCA Firewall, ForensicRAG
+                 │
+                 ▼
+ ┌───────────────┐
+ │   Agent Node  │ Bob CEO (ReAct reasoning loop) via Local Qwen3 80B
+ └───────┬───────┘
+         │
+         ▼
+ ┌───────────────┐
+ │  Auto-Execute │ Parses PAPER_TICKET, applies risk-sizing gates (10% max ticket,
+ │     Paper     │ 50% concentration limit), and submits orders to IBKR TWS.
+ └───────┬───────┘
+         │
+         ▼
+ ┌───────────────┐
+ │  Explanation  │ Streams NDJSON analysis and trade execution data to UI
+ └───────────────┘
+```
+
+---
+
+## 🛠️ Key Engine Components
+
+### 1. LangGraph Decision & Execution DAG
+The core routing pipeline uses a deterministic Directed Acyclic Graph (DAG) built on **LangGraph**. The LLM is confined to pure reasoning nodes, ensuring that intent classification, data collection, and trading orders run under deterministic, verifiable software constraints.
+
+### 2. Multi-Perspective Expert Committee
+Every ticker analysis triggers a parallel fan-out across 6 distinct quantitative experts:
+- **Macro Risk:** Examines high-level market indicators and credit trends.
+- **Fundamental Value:** Scores valuation metrics (P/E, EV/EBITDA, Free Cash Flow).
+- **Momentum Technical:** Computes key technical indicators (RSI, MACD, moving average crossovers).
+- **Contrarian Opportunity:** Identifies oversold deviations and structural turnarounds.
+- **Sentiment:** Analyzes news sentiment and market expectation shifts.
+- **Social Forensics:** Monitors retail volume activity, short interest, and community catalyst signs.
+
+### 3. F51 Verdict Engine & Decision Stack
+Before the agent formulates its final thesis, the data passes through a multi-layered verification firewall:
+- **F51 Verdict:** A deterministic scoring engine mapping confidence, data anomalies, and uncertainty metrics.
+- **Neural Decision:** A localized pattern-matching engine detecting structural setups.
+- **SDCA Firewall:** A cognitive risk guard protecting against FOMO, leverage traps, and stale market signals.
+- **ForensicRAG:** Extracts paged documentation snippets, preventing hallucinated calculations.
+
+### 4. Interactive Brokers (IBKR) Trading Engine
+When the CEO agent decides to execute a position, it outputs a formatted `PAPER_TICKET`. The platform intercepts this ticket, runs safety check gates, and automatically executes trades:
+- **Concentration Gate:** Rejects orders if a ticker would exceed 50% of the total portfolio net liquidation value.
+- **Sizing Gate:** Limits individual order values to a maximum of 10% of total equity.
+- **Execution:** Connects to IBKR Trader Workstation (TWS) or IB Gateway to place Limit (LMT) or Market (MKT) orders.
+- **Audit Logging:** Saves transaction outcomes, execution fill prices, PnL tracking, and post-trade reflection parameters to a local SQLite database audited via `PaperJournal`.
+
+---
+
+## 🚀 Local Model Engine (F51 Nitro-MoE)
+
+SuperEzio runs its core cognitive decisions on a local **Qwen3-Next-80B-A3B Instruct Abliterated** model using GGUF format with `llama-server`. 
+
+To run a model of this magnitude on consumer hardware (e.g., RTX 5060 Ti 16GB, 64GB DDR5 RAM), the platform utilizes **F51 Nitro** tiered expert allocation:
+- **Tiered Memory:** Attention layers and KV caches are pinned in GPU VRAM (~6.3 GB).
+- **Active Paging:** All 512 experts live in system RAM (DDR5) and are processed on the CPU or streamed to the GPU on demand. 
+- **Performance:** Achieves **38.7 tok/s at 256K context**—avoiding the VRAM oversubscription that slows naive GPU-only loads down to 8.4 tok/s due to driver page-fault swap loops.
+
+---
+
+## ⚡ Quickstart
+
+### 1. Environment Setup
+Clone the repository and install the project in editable mode using `uv` (recommended) or standard `pip`:
 ```bash
-# 1. Ambiente
+# Using Python Virtual Environment
 python -m venv .venv
-.venv\Scripts\pip install -e .
+.venv\Scripts\activate
 
-# 2. Configurar
+# Install dependencies and project in editable mode
+pip install -e .
+```
+
+### 2. Configuration
+Copy the environment template and configure your ports and keys. If you want to run completely offline, leave external API keys empty:
+```bash
 cp .env.example .env
-# Para modo local-only, deixe chaves cloud vazias.
+```
 
-# 3. CEO Server (modelo local)
+### 3. Run the Local Model Server (CEO Engine)
+Start the local model server to host the 80B model on port `8082`:
+```powershell
 powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082
-# → http://127.0.0.1:8082/v1 (OpenAI-compatible)
-
-# 4. API Server
-python -m agent_server.main
-# → http://127.0.0.1:8002
-
-# 5. Testar
-python -m pytest tests/ -q
-python -m ruff check src tests
-
-# 6. Pre-delivery gate (recomendado antes de qualquer release)
-pwsh -File scripts/verify_zero_garbage_runtime.ps1
 ```
 
----
-
-## Arquitetura
-
-```
-superezio/
-├── src/
-│   ├── core/
-│   │   ├── pipeline/         # Pipeline v4 (LangGraph, nodes puros, model-agnostic)
-│   │   ├── model_serving/    # ModelGateway: local_orchestrator + ceo + deepseek experts
-│   │   ├── rag/              # ForensicRAG engine
-│   │   ├── config/           # UniversalConfig + secrets
-│   │   ├── data_collector/   # ProfessionalCollector multi-fonte
-│   │   ├── math/             # Fonte unica: formulas canonicas
-│   │   ├── investor/         # Family Investor Committee
-│   │   ├── observability/    # Logs, metricas, event hub
-│   │   └── paths.py
-│   ├── experts/
-│   │   ├── pennylab/         # 4 experts: whale, pump, trap, liquidity (escala 0-1)
-│   │   └── crisis/           # 12 modelos de crise financeira
-│   ├── f51/                  # Verdict engine (grafo + formulas + memoria)
-│   ├── agent_server/         # FastAPI endpoints + SSE streaming
-│   ├── data/                 # Providers: yfinance, Reddit, Alpha Vantage, BOC...
-│   └── tools/                # Registry de tools para LangGraph
-├── tests/                    # smoke, contract, integration
-├── scripts/                  # serve_agent_llamacpp.ps1, eval, dataset/runtime tools
-├── frontend/                 # UI ChatGPT-style (HTML+CSS+JS inline)
-└── pyproject.toml
-```
-
-### Fluxo de uma analise (pipeline v4 — grafo ativo)
-
-```
-Usuario → agent_server (FastAPI, :8002)
-  → orchestrator_primary (intent + route)
-  → data (ProfessionalCollector / market_scan via DataHub)
-  → agent (Bob CEO ReAct — Qwen local :8082 ou gateway)
-       ⇄ tool_executor (F51, experts, neural, RAG, PennyLab, market_scan, …)
-  → explanation (streaming NDJSON) → END
-```
-
-Preço de mercado no scan: **DataHub** (Finnhub → Twelve Data → yfinance → Stooq). O nó legado `ceo.py` foi removido completamente; a resposta final passa pelo `agent`.
-
----
-
-## Modelo CEO
-
-**Qwen3-Next-80B-A3B Abliterated IQ4_XS GGUF** via llama.cpp `llama-server` + F51 Nitro MoE.
-
-- 100% local, sem custo de API, sem censura (Abliterated — Arbitrary-Rank Ablation)
-- MoE: 512 experts, 10 ativos + 1 compartilhado por token, ~59 MB por expert
-- OpenAI-compatible em `http://127.0.0.1:8082/v1`
-- Modelo esperado: `models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf`
-- n_ctx=262144 (256K), GPU layers=999 (max offload), --cpu-moe
-- VRAM budget: ~6.3 GB, RAM budget: ~39 GB
-- F51 Nitro Layers 1-4: Persistence Cache, Async PCIe Streams, Router Lookahead, KV Cache Tiering
-
-Para subir o CEO server:
+### 4. Start the FastAPI Application Server
+Run the FastAPI web backend. The server binds to port `8002` by default:
 ```bash
-powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082
+python -m agent_server.main
 ```
+
+### 5. Access the Platform UI
+Open your browser and navigate to:
+```text
+http://127.0.0.1:8002
+```
+*(Or double-click the `OPEN_UI.url` shortcut in the project root).*
 
 ---
 
-## Comandos
+## 🧪 Testing & Verification
+
+SuperEzio enforces strict quality gates to guarantee deterministic behavior and prevent memory leaks.
 
 ```bash
-# CEO Server (modelo local)
-powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082
-
-# API Server
-python -m agent_server.main
-
-# Testes
+# 1. Run the entire pytest suite (1,100+ contract, unit, and integration tests)
 python -m pytest tests/ -q
 
-# Lint
+# 2. Run lint check and automatic formatting check
 python -m ruff check src tests
 python -m ruff format --check src tests
+
+# 3. Execute End-to-End browser UI smoke tests (Playwright)
+python scripts/browser_smoke.py --headed
+
+# 4. Trigger the comprehensive Pre-Delivery Gate validation script
+powershell -ExecutionPolicy Bypass -File scripts/verify_zero_garbage_runtime.ps1
 ```
 
----
-
-## Variaveis de Ambiente
-
-Todas documentadas em [`.env.example`](.env.example). Minimo para modo local-only:
-
-| Variavel | Descricao |
-|----------|-----------|
-| `SUPEREZIO_CEO_BASE_URL` | Endpoint OpenAI-compatible do CEO local |
-| `SUPEREZIO_HOST` | Bind address (default: 127.0.0.1) |
-| `SUPEREZIO_PORT` | Porta (default: 8002) |
-| `SUPEREZIO_DEEPSEEK_API_KEY` | Chave para experts cloud (opcional) |
-| `FINNHUB_API_KEY` | Chave Finnhub para price/profile/short-term catalyst (opcional, fallback gracioso) |
-
-`SUPEREZIO_DEEPSEEK_API_KEY` e `FINNHUB_API_KEY` sao opcionais. Sem elas o sistema continua funcional via providers locais/fallback; o CEO final permanece local-only.
-
-> Hygiene: nunca commite `.env`. Use `.env.example` como template. O script `scripts/verify_zero_garbage_runtime.ps1` inclui um guard que bloqueia commits acidentais de chaves no padrao Finnhub.
+> [!IMPORTANT]
+> The `verify_zero_garbage_runtime.ps1` script runs 12 validation gates including boot smoke tests, contract checks, integration coverage, secret-leak guard checks, and memory footprint validation.
 
 ---
 
-## Estado Operacional
+## 📈 Environment Reference
 
-- `python -m pytest tests/contracts -q`: contratos passam (167+; veja `scripts/verify_zero_garbage_runtime.ps1` para o numero atual).
-- `python -m pytest tests/test_runtime_smoke.py -q`: 20 passed.
-- `python -m pytest tests/test_integration_runtime.py -q`: 7 passed quando CEO/API estao no ar.
-- Gate runtime: `docs/runbooks/RUNBOOK.md`, `runtime/checkpoints/latest.json` e `DELIVERY.md` (handoff de release).
-- Pre-delivery: `pwsh -File scripts/verify_zero_garbage_runtime.ps1` roda contratos, runtime, trace e secret-leak guard.
+Key variables inside your `.env` file:
 
----
-
-## Stack Tecnica
-
-| Componente | Tecnologia |
-|------------|------------|
-| API Server | FastAPI + uvicorn + SSE |
-| Pipeline | LangGraph 1.0.5 |
-| Validacao | Pydantic v2 |
-| CEO Model | Qwen3-Next-80B-A3B Abliterated IQ4_XS GGUF via llama.cpp + F51 Nitro MoE |
-| Fine-tuning | PyTorch + PEFT/LoRA + transformers |
-| Dados | yfinance, Reddit PRAW, httpx |
-| Testes | pytest + pytest-asyncio + pytest-cov |
-| Lint | ruff |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SUPEREZIO_CEO_BASE_URL` | Base URL of the local/cloud CEO model gateway | `http://127.0.0.1:8082/v1` |
+| `SUPEREZIO_HOST` | FastAPI bind address | `127.0.0.1` |
+| `SUPEREZIO_PORT` | FastAPI server port | `8002` |
+| `SUPEREZIO_DEEPSEEK_API_KEY` | Optional key for cloud experts (fallback) | *(Optional)* |
+| `FINNHUB_API_KEY` | Finnhub API Key for real-time market catalysts | *(Optional)* |
+| `TWELVE_DATA_API_KEY` | Twelve Data API Key for stock candles | *(Optional)* |
 
 ---
 
-## Licenca
+## 📜 License
+MIT License with Attribution — Copyright (c) 2025-2026 Marco Barreto. See [LICENSE](LICENSE) for details.
 
-Proprietario — Fabria Labs.

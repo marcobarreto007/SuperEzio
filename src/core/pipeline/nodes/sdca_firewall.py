@@ -32,10 +32,14 @@ def _amount_from_state(state: dict[str, Any]) -> float | None:
 
 
 def _build_candidate(state: dict[str, Any]) -> DecisionCandidate:
-    data = state.get("data") or {}
-    neural = state.get("neural_decision") or {}
-    pennylab = state.get("pennylab") or state.get("pennylab_result") or {}
-    f51 = state.get("f51_verdict") or {}
+    _data_raw = state.get("data")
+    data = _data_raw if isinstance(_data_raw, dict) else {}
+    _neural_raw = state.get("neural_decision")
+    neural = _neural_raw if isinstance(_neural_raw, dict) else {}
+    _pl_raw = state.get("pennylab") or state.get("pennylab_result")
+    pennylab = _pl_raw if isinstance(_pl_raw, dict) else {}
+    _f51_raw = state.get("f51_verdict")
+    f51 = _f51_raw if isinstance(_f51_raw, dict) else {}
 
     risk_context = {
         "route": state.get("route"),

@@ -1081,7 +1081,8 @@ def _build_trade_order_context(
 def _trade_safety_gate_failures(state: dict) -> list[str]:
     failures: list[str] = []
     f51 = state.get("f51_verdict") or {}
-    sdca = state.get("sdca_firewall") or {}
+    _sdca_raw = state.get("sdca_firewall")
+    sdca = _sdca_raw if isinstance(_sdca_raw, dict) else {}
 
     if not isinstance(f51, dict) or not f51:
         failures.append("missing_f51_verdict")
@@ -2517,7 +2518,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         observations.append(
             f"Neural Decision:\n{json.dumps(state.get('neural_decision'), ensure_ascii=False)}"
         )
-    if state.get("sdca_firewall"):
+    if isinstance(state.get("sdca_firewall"), dict) and state.get("sdca_firewall"):
         observations.append(
             f"SDCA Firewall:\n{json.dumps(state.get('sdca_firewall'), ensure_ascii=False)}"
         )

@@ -1,7 +1,7 @@
 {
   "project": "SuperEzio",
-  "date_local": "2026-05-21T00:00:00-04:00",
-  "status": "active_runtime_only",
+  "date_local": "2026-06-14T00:05:00-04:00",
+  "status": "ready_for_video_factory_integration",
   "model": {
     "name": "Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf",
     "path": "models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf",
@@ -16,5 +16,24 @@
     "model_build_pipeline": "removed from active tree",
     "runtime_source": "config/runtime.yml"
   },
-  "latest_action": "Removed model build data roots, rebuild launchers, merge helpers, and trading build helpers from the active repo."
+  "active_campaign": {
+    "career_artifacts_created": [
+      "docs/career/CV_Marco_Barreto_PT.md",
+      "docs/career/CV_Marco_Barreto_EN.md",
+      "docs/career/LinkedIn_Strategy.md",
+      "docs/career/GitHub_Portfolio_Guide.md"
+    ],
+    "readme_state": "Completed. Full English rewrite highlighting DAG routing, Multi-agent LangGraph, and F51 Nitro execution parameters under MIT Attribution License."
+  },
+  "next_project_setup": {
+    "name": "Wan 2.2 + Kokoro TTS Video Factory",
+    "hardware_allocation": "RTX 3060 + RTX 2070 (Multi-GPU execution)",
+    "status": "Waiting for code import and joint verification test run",
+    "expected_components": [
+      "Wan 2.2 video generation (14B parameter model)",
+      "Kokoro TTS speech synthesis (high-fidelity audio)",
+      "VastAI or local multi-gpu orchestration framework",
+      "FFmpeg audio-video merging and formatting"
+    ]
+  }
 }
