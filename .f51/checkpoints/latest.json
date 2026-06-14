@@ -1,52 +1,44 @@
 {
-  "date_local": "2026-06-14T14:20:00-04:00",
-  "session": "bob-memory-system-v1-2026-06-14",
+  "date_local": "2026-06-14T16:15:00-04:00",
+  "session": "unified-memory-layer-fase3-2026-06-14",
   "status": "completed",
   "what_was_done": [
-    "Implemented Bob's persistent conversation memory system (solving #5 from the risk table)",
-    "Created src/core/memory/conversation_memory.py with ConversationTurn dataclass and ConversationMemory manager",
-    "Append-only JSONL storage following PaperJournal pattern (data/conversation_memory.jsonl)",
-    "Local hashed embeddings (128 dims, blake2b) for semantic search without external dependencies",
-    "Integrated memory into PipelineApp.stream_events: loads session context (last 24h) + ticker history before execution",
-    "Auto-saves conversation turns after response with extracted verdict/confidence metadata",
-    "Added tests/test_conversation_memory.py with 8 tests covering all core functionality",
-    "Memory persists across sessions: Bob now remembers theses, verdicts, and context per session_id"
+    "FASE 3 COMPLETA: Re-ranking com Cross-encoder",
+    "Criado src/core/memory/reranker.py com CrossEncoderReranker e RerankPipeline",
+    "CrossEncoderReranker: late interaction query-document pair scoring",
+    "Modelo: ms-marco-MiniLM-L-6-v2 (CPU-friendly, fallback sem modelo)",
+    "RerankPipeline: busca híbrida + reranking em pipeline único",
+    "Teste: tests/test_reranker_fase3.py com 15 testes (15/15 passaram)",
+    "Bob agora tem reranking para refinar top-k results da busca híbrida"
   ],
   "evidence": {
     "commands": [
-      "python -c 'from src.core.memory import get_conversation_memory; print(get_conversation_memory().path)'",
-      "python -m pytest tests/test_conversation_memory.py -q",
-      "python -m pytest tests/test_paper_journal.py -q"
+      "python -m pytest tests/test_reranker_fase3.py -q"
     ],
     "files_changed": [
-      "src/core/memory/__init__.py",
-      "src/core/memory/conversation_memory.py",
-      "src/core/pipeline/graph.py",
-      "tests/test_conversation_memory.py",
-      "data/conversation_memory.jsonl (created on first run)"
+      "src/core/memory/reranker.py",
+      "tests/test_reranker_fase3.py"
     ],
     "tests": [
-      "8/8 conversation memory tests passed",
-      "18/18 paper journal tests passed (no regression)",
-      "Graph import verified with memory integration"
+      "15/15 Fase 3 tests passed",
+      "test_reranker_init",
+      "test_reranker_empty_candidates",
+      "test_reranker_fallback_no_model",
+      "test_reranker_result_fields",
+      "test_reranker_truncates_text",
+      "test_reranker_respects_top_k",
+      "test_pipeline_init",
+      "test_pipeline_search_empty",
+      "test_pipeline_search_with_docs",
+      "test_pipeline_format_context",
+      "test_pipeline_format_context_empty",
+      "test_pipeline_format_context_truncates",
+      "test_rerank_pipeline_singleton",
+      "test_rerank_pipeline_reset",
+      "test_reranker_with_hybrid_results"
     ]
   },
   "risks": [],
-  "next_step": "Bob agora tem memória persistente. Próximo passo sugerido: #2 (track record) ou #3 (eval competitivo)",
-  "owner": "Bob",
-  "updated": "2026-06-14T15:52:32.140006+00:00",
-  "completed": [
-    {
-      "task": "bob_memory_system",
-      "verdict": "APPROVED_WITH_RESERVATIONS",
-      "auditor": "Deep",
-      "tests": "8/8 passed",
-      "files": [
-        "src/core/memory/__init__.py",
-        "src/core/memory/conversation_memory.py",
-        "tests/test_conversation_memory.py",
-        "src/core/pipeline/graph.py (integrated)"
-      ]
-    }
-  ]
+  "next_step": "FASE 4: Knowledge Graph - Entidades e relações GraphRAG",
+  "owner": "Bob"
 }

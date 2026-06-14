@@ -13,3 +13,12 @@ __all__ = [
     "get_conversation_memory",
     "reset_memory_for_test",
 ]
+
+# Import unified module explicitly when needed
+# from .unified import (
+#     UnifiedRetriever,
+#     get_unified_retriever,
+#     ConversationMemoryAdapter,
+#     PaperJournalAdapter,
+#     RetrievalResult,
+# )
