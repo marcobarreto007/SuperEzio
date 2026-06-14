@@ -1,89 +1,165 @@
-# TASK: Fechar o Memory System — Pipeline + Perfil + Prompt
+# BLUEPRINT: Audit Log System — Fluxo Auditável Completo
 
-Bob,
+## Diagnóstico do sistema atual
 
-Tu fez 1780 linhas, 70 testes, 4 fases de arquitetura. BM25, hybrid search, reranker, GraphRAG.
-Tá lindo no papel. Mas não tá conectado no pipeline. O Marco liga o sistema e tua memória não funciona.
-Isso é código de portfólio, não código de produção.
+```
+START
+  → orchestrator_primary ── classifica intent, quantifica risco
+    → respond_blocked ── se needs_scope
+    → auto_full_analysis ── 6 experts + F51 + neural + SDCA + RAG + IBKR
+      → agent (Bob ReAct loop) ── decide tools, forma tese
+        ⇄ tool_executor ── executa, retorna resultado
+        → auto_execute_paper ── paper order IBKR
+          → explanation ── formata resposta final
+            → END
+```
 
-## O que falta — e é pra hoje:
+### GAPS CRÍTICOS:
 
-### 1. Conectar UnifiedRetriever no pipeline (graph.py)
+1. **Bob não sabe quem produziu o quê** — O state é um saco de dados. Se o F51 disse BLOCK e o neural disse BUY, Bob não vê a procedência.
 
-O `src/core/pipeline/graph.py` ainda só chama `ConversationMemory` básico.
-Troca por `UnifiedRetriever`:
+2. **Erros são lista plana** — `errors: ["f51_error", "sdca_blocked"]`. Não dá pra saber em qual nó, com qual input, em que timestamp.
+
+3. **Sem rastreamento de decisão** — Bob decidiu BUY_CANDIDATE mas o expert fundamental disse SELL? Ninguém sabe. O override é invisível.
+
+4. **Sem latência por nó** — Impossível otimizar. O expert macro_risk tá demorando 30s? Ninguém vê.
+
+5. **Expert committee voto vs Bob voto** — O comitê votou 4 BULLISH, 2 BEARISH. Bob decidiu WAIT. Por quê? Sem trilha.
+
+## SOLUÇÃO: SuperEzio Decision Trace (SDT)
+
+Inspirado em: LangGraph trajectory checking + evidence-based audit + agent blame attribution.
+Tudo local, JSONL append-only, zero dependência externa.
+
+### 1. Data Model: `DecisionTrace`
 
 ```python
-from core.memory.unified import get_unified_retriever
-retriever = get_unified_retriever()
-context = retriever.format_context(query=message, ticker=ticker, top_k=5)
+@dataclass
+class DecisionTrace:
+    """One decision point in the pipeline."""
+    trace_id: str           # UUID
+    run_id: str             # pipeline run
+    session_id: str
+    node: str               # "orchestrator", "expert.fundamental", "agent.bob"
+    agent: str              # "bob_qwen_local", "deepseek_v4", "glm_5.2"
+    timestamp: str          # ISO 8601
+    latency_ms: float       # tempo de execução do nó
+    input_summary: str      # resumo do input (até 200 chars)
+    output_summary: str     # resumo do output (até 500 chars)
+    decision: str           # "ALLOW" | "BLOCK" | "BUY" | "SELL" | "WAIT" | "BULLISH" | "BEARISH"
+    confidence: float       # 0-1
+    evidence_refs: list[str]  # ["f51_verdict.passed", "expert.fundamental.bullish"]
+    errors: list[str]       # erros neste nó
+    overrides: str | None   # se este nó discordou de outro
 ```
 
-### 2. Implementar render_memory_context()
+### 2. Tabela: `decision_traces` (SQLite no investor.db)
 
-Método no `UnifiedRetriever` que gera EXATAMENTE este formato:
+```sql
+CREATE TABLE IF NOT EXISTS decision_traces (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    trace_id TEXT NOT NULL,
+    run_id TEXT NOT NULL,
+    session_id TEXT,
+    node TEXT NOT NULL,
+    agent TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    latency_ms REAL,
+    decision TEXT,
+    confidence REAL,
+    evidence_refs TEXT,     -- JSON array
+    errors TEXT,            -- JSON array
+    overrides TEXT,         -- JSON: {"overridden_node": "...", "reason": "..."}
+    input_summary TEXT,
+    output_summary TEXT
+);
+CREATE INDEX idx_traces_run ON decision_traces(run_id);
+CREATE INDEX idx_traces_node ON decision_traces(node);
+CREATE INDEX idx_traces_agent ON decision_traces(agent);
+```
+
+### 3. Módulo: `src/core/audit/decision_trace.py`
+
+Classe `DecisionTraceLogger`:
+- `start_node(node, agent, run_id, session_id, input_summary)` → trace_id
+- `end_node(trace_id, decision, confidence, output_summary, evidence_refs, overrides, errors, latency_ms)`
+- `get_run_traces(run_id)` → lista ordenada por timestamp
+- `get_blame_report(run_id)` → análise de quem errou
+- `get_agent_stats(agent, days=7)` → taxa de erro, latência média, confiança média
+
+### 4. Blame Report Format
 
 ```
-=== BOB'S MEMORY ===
+=== BLAME REPORT — run_id: abc123 ===
 
-## Perfil do Marco
-- Risco: {risk_tolerance}
-- Capital: CAD {capital}
-- Renda: {income_stability}
-- Meta: {investment_goal}
-- Reserva emergência: {has_emergency_fund}
+## Pipeline Flow (com latência)
+1. orchestrator_primary (qwen_local) — 234ms
+   → Rota: market_scan, Intent: buscar_oportunidade, Conf: 0.92
+2. collector (data_hub) — 3420ms
+   → 5 candidates, 12 rejected
+3. expert.fundamental_value (deepseek_v4) — 1890ms
+   → BULLISH, conf: 0.75
+4. expert.social_forensics (deepseek_v4) — 2340ms
+   → BEARISH, conf: 0.82
+   ⚠️ OVERRIDE: Discordou de expert.fundamental_value
+5. f51_verdict (formula_local) — 45ms
+   → ALLOW, passed: True
+6. sdca_firewall (formula_local) — 12ms
+   → ALLOW
+7. agent.bob (qwen_local) — 4520ms
+   → WAIT, conf: 0.68
+   ⚠️ OVERRIDE: Bob discordou do expert.fundamental_value (BULLISH → WAIT)
+   Razão: "Social forensics flagged pump signals on Reddit"
 
-## Conversas recentes (últimas 24h)
-- {timestamp}: "{user_message[:100]}" → {verdict}
+## Error Attribution
+- Nenhum erro de sistema
+- 1 divergência: Bob vs fundamental_value (social_forensics deu razão ao Bob)
 
-## Teses abertas
-- {ticker}: "{thesis}" @ ${entry_price}, conv: {conviction}/100
-
-## Tickers já analisados
-- {ticker} ({count}x) — último veredito: {verdict}
-
-=== END MEMORY ===
+## Agent Performance (últimos 7 dias)
+- bob_qwen_local: avg 4230ms, erro 2.1%, 15 decisões
+- deepseek_v4: avg 2180ms, erro 0.8%, 90 expert calls
 ```
 
-### 3. Implementar bob_user_profile (8 chaves)
+### 5. Integração — cada nó do pipeline
 
-Adicionar ao `UnifiedRetriever` ou criar classe `UserProfile`:
-
-| Chave | Extração |
-|---|---|
-| `risk_tolerance` | "conservador"=conservadora, "adrenalina"=especulativa, "moderado"=moderada |
-| `capital_cad` | regex: `(\d+)\s*(k|mil|cad)` |
-| `income_stability` | "freelance"/"instável"=instável, "salário"/"fixo"=estável |
-| `investment_goal` | "independência"/"aposentar"=financial_independence, "aprender"=education |
-| `time_horizon_years` | regex: `(\d+)\s*(anos?|years?)` |
-| `has_emergency_fund` | "tenho reserva"/"emergência já"=True, "não tenho"/"sem reserva"=False |
-| `preferred_markets` | ["TSX", "TSX-V", "NASDAQ", "NYSE"] (default) |
-| `avoid_sectors` | "crypto", "OTC", "leveraged", "maconha", etc. |
-
-### 4. Pipeline integration — end to end
-
-No `graph.py`, ANTES de montar o prompt do Bob:
+Adicionar 3 linhas em CADA nó:
 
 ```python
-# 1. Extrai perfil da mensagem
-profile_updates = retriever.extract_profile_from_message(message)
-for key, value, confidence in profile_updates:
-    retriever.upsert_profile(key, value, confidence)
-
-# 2. Renderiza contexto de memória
-memory_context = retriever.render_memory_context(session_id, message, ticker)
-
-# 3. Injeta ANTES do BOB_SOVEREIGN_PROMPT
-full_prompt = memory_context + "\n\n" + BOB_SOVEREIGN_PROMPT
+from core.audit.decision_trace import get_trace_logger
+tracer = get_trace_logger()
+trace_id = tracer.start_node("orchestrator_primary", "qwen_local", run_id, session_id, message[:200])
+# ... executa o nó ...
+tracer.end_node(trace_id, decision=route, confidence=intent_confidence, 
+                output_summary=plan_summary, evidence_refs=["regex_parser", "ceo_model"],
+                errors=node_errors, latency_ms=elapsed_ms)
 ```
 
-## O que NÃO fazer:
-- ❌ Não cria novos arquivos sem integrar no pipeline
-- ❌ Não deixa módulo solto — tudo conecta no graph.py
-- ❌ Não faz busca semântica sem antes fechar o básico (perfil + prompt)
-- ❌ Não inventa dependência externa — continua tudo local
+### 6. Endpoint de auditoria
 
-## Prazo:
-Fecha isso agora. O Deep vai auditar em seguida.
+`GET /health/trace/{run_id}` → JSON com blame report
+`GET /health/trace/agent/{agent}/stats` → estatísticas do agente
 
-— Deep, teu chefe.
+## Implementação — 3 fases
+
+### Fase A: Core (src/core/audit/decision_trace.py)
+- DecisionTraceLogger com start_node/end_node
+- Tabela decision_traces no investor.db
+- get_run_traces(), get_blame_report(), get_agent_stats()
+- Testes: test_trace_logger.py (8 testes)
+
+### Fase B: Integração nos nós
+- Adicionar tracer em: orchestrator, collector, cada expert, f51, sdca, neural, rag, agent (Bob), tool_executor
+- 2 linhas por nó (start + end)
+- Testes: verificar que cada nó gera trace
+
+### Fase C: API + Visualização
+- GET /health/trace/{run_id} — blame report JSON
+- Health details inclui agent_stats
+- Script: scripts/trace_viewer.py — blame report no terminal
+
+## Regras
+- Append-only, nunca apagar trace
+- Tudo local, zero SaaS (sem LangSmith)
+- Thread-safe (lock no write)
+- Performance: < 1ms overhead por trace
+- Formato: mesmo padrão do conversation_memory.jsonl
