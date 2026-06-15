@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from pathlib import Path
@@ -444,6 +445,7 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
     import subprocess as _sp
     import json as _json
     import sys as _sys
+    from pathlib import Path
 
     script = str(
         Path(__file__).resolve().parent.parent.parent.parent.parent / "scripts" / "_ibkr_order.py"
@@ -458,19 +460,21 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
     ]
 
     try:
-        proc = _sp.run(cmd, capture_output=True, text=True, timeout=20)
+        proc = await asyncio.to_thread(
+            _sp.run, cmd, capture_output=True, text=True, timeout=20
+        )
         if proc.returncode == 0:
             result = _json.loads(proc.stdout.strip())
-            return {
-                "submit_paper_order_result": result,
-                "paper_approval_request": approval_payload,
-                "position_sizing": position_sizing,
-            }
+            return {"submit_paper_order_result": result}
         else:
-            error = _json.loads(proc.stderr.strip() or proc.stdout.strip() or "{}")
-            return {"submit_paper_order_error": error.get("error", proc.stderr[:200])}
+            error_text = proc.stderr.strip() or proc.stdout.strip() or "{}"
+            try:
+                error = _json.loads(error_text)
+            except Exception:
+                error = {"error": error_text[:200]}
+            return {"submit_paper_order_error": error.get("error", f"subprocess_failed:{proc.returncode}")}
     except Exception as exc:
-        return {"submit_paper_order_error": str(exc)[:200]}
+        return {"submit_paper_order_error": f"bridge_error:{str(exc)[:200]}"}
 
 
 async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
