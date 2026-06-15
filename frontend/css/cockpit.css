@@ -82,7 +82,7 @@ body::after {
 
 .right-stack {
   display: grid;
-  grid-template-rows: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
 .chart-workspace {
@@ -317,6 +317,63 @@ body::after {
 .bottombar {
   background: #0d1117;
   border-top-color: var(--cockpit-line);
+}
+
+.bob-runtime {
+  display: grid;
+  grid-template-columns: 1.05fr 0.9fr 1fr;
+  gap: 10px;
+  max-height: 230px;
+  overflow: auto;
+  padding: 10px;
+  border-top: 1px solid var(--cockpit-line);
+  background: rgba(13, 17, 23, 0.68);
+}
+
+.bob-decision-line {
+  color: var(--cockpit-muted);
+  font: 700 12px var(--font-body);
+}
+
+.bob-decision-line strong {
+  color: var(--cockpit-text);
+  font-family: var(--font-mono);
+}
+
+.bob-pipeline-line {
+  margin-top: 8px;
+  color: var(--cockpit-muted);
+  font: 700 11px var(--font-mono);
+  line-height: 1.45;
+}
+
+.bob-node-row,
+.bob-portfolio-line,
+.bob-position-row,
+.bob-guardrail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.48);
+  color: var(--cockpit-muted);
+  font: 700 11px var(--font-body);
+}
+
+.bob-node-row:last-child,
+.bob-portfolio-line:last-child,
+.bob-position-row:last-child,
+.bob-guardrail-row:last-child {
+  border-bottom: 0;
+}
+
+.bob-node-row strong,
+.bob-portfolio-line strong,
+.bob-position-row strong,
+.bob-guardrail-row strong {
+  color: var(--cockpit-text);
+  font-family: var(--font-mono);
 }
 
 .chart-workspace .market-header {
