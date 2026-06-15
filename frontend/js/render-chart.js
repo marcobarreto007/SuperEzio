@@ -8,7 +8,7 @@
   "use strict";
 
   /* ── colour palette ─────────────────────────────────────────── */
-  var BG       = "#0d1210";
+  var BG       = "#040605";
   var GRID     = "#1a2a1e";
   var MUTED    = "#5a6e62";
   var WHITE    = "#e8efe8";
@@ -19,6 +19,8 @@
   var BB_LINE  = "rgba(100,160,130,0.35)";
   var MACD_UP  = "#00c853";
   var MACD_DN  = "#ff1744";
+  var GREEN    = "#00c853";
+  var RED      = "#ff1744";
 
   var STEPS = [
     "orchestrator","data","f51","pennylab","experts",
@@ -98,8 +100,19 @@
     /* helper: index → x */
     function xOf(i) { return PAD_L + (i / (N - 1)) * PW; }
 
-    /* ── price range ── */
-    var pRange = minMax(closes);
+    /* ── price range from high/low ── */
+    var hi = -Infinity, lo = Infinity;
+    for (var i = 0; i < N; i++) {
+      var bar = ohlcv[i];
+      if (bar.high != null && bar.high > hi) hi = bar.high;
+      if (bar.low != null && bar.low < lo) lo = bar.low;
+      if (bar.close != null && bar.close > hi) hi = bar.close;
+      if (bar.close != null && bar.close < lo) lo = bar.close;
+    }
+    if (!isFinite(hi)) hi = 100;
+    if (!isFinite(lo)) lo = 0;
+    var pRange = { lo: lo, hi: hi };
+
     /* expand for Bollinger if present */
     var bbUp = ind.bollinger_upper || [];
     var bbLo = ind.bollinger_lower || [];
@@ -203,11 +216,67 @@
     drawSeries(ind.sma_50,  CYAN,  [6, 3]);    // SMA50 — cyan dashed
     drawSeries(ind.ema_20,  PURPLE,[2, 3]);    // EMA20 — purple dotted
 
-    /* ── price line (white, on top) with neon glow ── */
-    ctx.shadowColor = WHITE;
-    ctx.shadowBlur = 5;
-    drawSeries(closes, WHITE, []);
-    ctx.shadowBlur = 0;
+    /* ── price candlesticks ── */
+    var gap = PW / N;
+    var cw = Math.max(3, gap * 0.7);
+    for (var c = 0; c < N; c++) {
+      var bar = ohlcv[c];
+      if (!bar || bar.open == null || bar.close == null) continue;
+      var up  = bar.close >= bar.open;
+      var clr = up ? GREEN : RED;
+      var cx  = xOf(c);
+
+      /* glow */
+      ctx.shadowColor = clr;
+      ctx.shadowBlur = 4;
+
+      /* wick */
+      ctx.strokeStyle = clr;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(cx, yOfPrice(bar.high != null ? bar.high : bar.close));
+      ctx.lineTo(cx, yOfPrice(bar.low != null ? bar.low : bar.close));
+      ctx.stroke();
+
+      /* body */
+      var yOpen  = yOfPrice(bar.open);
+      var yClose = yOfPrice(bar.close);
+      var bodyTop    = Math.min(yOpen, yClose);
+      var bodyHeight = Math.max(Math.abs(yClose - yOpen), 1.5);
+      ctx.fillStyle = clr;
+      ctx.fillRect(cx - cw / 2, bodyTop, cw, bodyHeight);
+
+      /* reset glow */
+      ctx.shadowBlur = 0;
+    }
+
+    /* ── last price horizontal tracking and badge ── */
+    var last = ohlcv[N - 1];
+    if (last && last.close != null) {
+      var lastY = yOfPrice(last.close);
+      var lastClr = last.close >= last.open ? GREEN : RED;
+
+      /* dashed horizontal line */
+      ctx.strokeStyle = lastClr;
+      ctx.lineWidth = 0.8;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(PAD_L, lastY);
+      ctx.lineTo(W - PAD_R, lastY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      /* badge on right axis */
+      ctx.fillStyle = "rgba(10, 14, 11, 0.9)";
+      ctx.fillRect(W - PAD_R - 58, lastY - 8, 56, 16);
+      ctx.strokeStyle = lastClr;
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(W - PAD_R - 58, lastY - 8, 56, 16);
+      ctx.fillStyle = lastClr;
+      ctx.font = "bold 9px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(last.close.toFixed(2), W - PAD_R - 30, lastY + 3);
+    }
 
     /* ── MACD histogram (bottom 20%) ── */
     var hist = (ind.macd && ind.macd.histogram) || [];

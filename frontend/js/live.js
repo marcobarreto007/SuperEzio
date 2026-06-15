@@ -117,7 +117,8 @@
   /* ── single candle handler ── */
   function handleCandle(data) {
     mergeLiveCandle(data);
-    if (SZ.drawLiveCandles) SZ.drawLiveCandles();
+    if (SZ.renderChart)     SZ.renderChart();
+    else if (SZ.drawLiveCandles) SZ.drawLiveCandles();
     updateLiveMetrics();
   }
 
