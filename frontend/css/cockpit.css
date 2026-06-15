@@ -87,7 +87,7 @@ body::after {
 
 .chart-workspace {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto minmax(0, 1fr);
   padding: 0;
 }
 
@@ -332,10 +332,95 @@ body::after {
 
 .chart-workspace .live-canvas-wrap {
   height: 100%;
-  min-height: 360px;
+  min-height: 260px;
   border: 1px solid rgba(48, 54, 61, 0.9);
   border-radius: 8px;
   overflow: hidden;
+}
+
+.deep-runtime {
+  display: grid;
+  gap: 10px;
+  max-height: 420px;
+  overflow: auto;
+  padding: 12px;
+  border-bottom: 1px solid var(--cockpit-line);
+}
+
+.deep-math-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.deep-math-grid div {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(48, 54, 61, 0.72);
+  border-radius: 7px;
+  padding: 8px;
+  background: rgba(17, 24, 32, 0.72);
+}
+
+.deep-math-grid span,
+.deep-expert-card span {
+  color: var(--cockpit-muted);
+  font: 800 10px var(--font-mono);
+  text-transform: uppercase;
+}
+
+.deep-math-grid strong {
+  color: var(--cockpit-text);
+  font: 900 13px var(--font-mono);
+}
+
+.deep-expert-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.deep-expert-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 7px;
+  align-items: center;
+  border: 1px solid rgba(48, 54, 61, 0.72);
+  border-radius: 7px;
+  padding: 8px;
+  background: rgba(17, 24, 32, 0.72);
+}
+
+.deep-expert-card strong {
+  color: inherit;
+  font: 900 12px var(--font-mono);
+}
+
+.deep-expert-card em {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  color: var(--cockpit-text);
+  font-style: normal;
+}
+
+.deep-consensus {
+  display: grid;
+  gap: 6px;
+  color: var(--cockpit-muted);
+  font: 700 12px var(--font-body);
+}
+
+.deep-consensus strong {
+  color: var(--cockpit-text);
+}
+
+.deep-trinity-text {
+  max-height: 120px;
+  overflow: auto;
+  margin: 0;
+  color: var(--cockpit-text);
+  font: 700 11px var(--font-mono);
+  white-space: pre-wrap;
 }
 
 .cockpit-statusbar {

@@ -181,17 +181,6 @@ async def node_trinity(state: dict[str, Any], *, gateway=None) -> dict[str, Any]
 
     writer(
         {
-            "type": "TRINITY_DELIBERATION",
-            "run_id": run_id,
-            "ticker": ticker,
-            "report": report,
-            "structured": structured,
-            "blocked": blocked,
-            "consensus": consensus,
-        }
-    )
-    writer(
-        {
             "type": "PIPELINE_STEP",
             "run_id": run_id,
             "step": "trinity",
@@ -213,6 +202,18 @@ async def node_trinity(state: dict[str, Any], *, gateway=None) -> dict[str, Any]
             bob_decision="CONTINUE_WITH_BOB",
             override="None",
         )
+        structured = {"skipped": True, "reason": reason}
+        writer(
+            {
+                "type": "TRINITY_DELIBERATION",
+                "run_id": run_id,
+                "ticker": ticker,
+                "report": report,
+                "structured": structured,
+                "blocked": False,
+                "consensus": f"Trinity skipped: {reason}.",
+            }
+        )
         writer(
             {
                 "type": "PIPELINE_STEP",
@@ -226,7 +227,7 @@ async def node_trinity(state: dict[str, Any], *, gateway=None) -> dict[str, Any]
             "math_prompt": math_context,
             "sentiment_prompt": sentiment_context,
             "trinity_report": report,
-            "trinity_structured": {"skipped": True, "reason": reason},
+            "trinity_structured": structured,
             "trinity_blocked": False,
         }
 
@@ -289,6 +290,17 @@ async def node_trinity(state: dict[str, Any], *, gateway=None) -> dict[str, Any]
         "blocked": blocked,
     }
 
+    writer(
+        {
+            "type": "TRINITY_DELIBERATION",
+            "run_id": run_id,
+            "ticker": ticker,
+            "report": report,
+            "structured": structured,
+            "blocked": blocked,
+            "consensus": consensus,
+        }
+    )
     writer(
         {
             "type": "PIPELINE_STEP",
