@@ -371,6 +371,33 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
     if not symbol:
         return {"submit_paper_order_error": "missing_ticker"}
 
+    try:
+        from core.trading.approval_gate import (
+            ApprovalStatus,
+            approval_request_to_dict,
+            get_approval_gate,
+        )
+
+        stop_loss_price = float(args.get("stop_loss_price") or limit_price * 0.95)
+        risk_amount = abs(limit_price - stop_loss_price) * qty
+        approval = get_approval_gate().submit(
+            symbol=symbol,
+            side=action,
+            qty=qty,
+            entry_price=limit_price,
+            stop_loss_price=stop_loss_price,
+            risk_amount=risk_amount,
+            reason=f"submit_paper_order run_id={state.get('run_id', '')}",
+        )
+        approval_payload = approval_request_to_dict(approval)
+        if approval.status == ApprovalStatus.PENDING:
+            return {
+                "submit_paper_order_error": f"approval_pending:{approval.id}",
+                "paper_approval_request": approval_payload,
+            }
+    except Exception as exc:
+        return {"submit_paper_order_error": f"approval_gate_error:{str(exc)[:160]}"}
+
     import subprocess as _sp
     import json as _json
     import sys as _sys
@@ -391,7 +418,10 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
         proc = _sp.run(cmd, capture_output=True, text=True, timeout=20)
         if proc.returncode == 0:
             result = _json.loads(proc.stdout.strip())
-            return {"submit_paper_order_result": result}
+            return {
+                "submit_paper_order_result": result,
+                "paper_approval_request": approval_payload,
+            }
         else:
             error = _json.loads(proc.stderr.strip() or proc.stdout.strip() or "{}")
             return {"submit_paper_order_error": error.get("error", proc.stderr[:200])}

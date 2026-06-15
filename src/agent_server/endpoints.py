@@ -136,6 +136,17 @@ def _cockpit_guardrail_summary() -> dict[str, Any]:
     }
 
 
+def _cockpit_approval_summary() -> dict[str, Any]:
+    from core.trading.approval_gate import approval_request_to_dict, get_approval_gate
+
+    gate = get_approval_gate()
+    pending = [approval_request_to_dict(req) for req in gate.get_pending()]
+    return {
+        "pending_count": len(pending),
+        "pending": pending,
+    }
+
+
 def _cockpit_status_snapshot(
     *,
     pipeline_status: dict[str, Any],
@@ -1607,6 +1618,7 @@ async def get_cockpit_summary(request: Request) -> dict[str, Any]:
         "last_decision": getattr(request.app.state, "last_decision_trace", {}),
         "portfolio": portfolio,
         "guardrails": guardrails,
+        "approvals": _cockpit_approval_summary(),
     }
 
     return {
@@ -1622,6 +1634,30 @@ async def get_cockpit_summary(request: Request) -> dict[str, Any]:
         "bob": bob,
         "status": status,
     }
+
+
+@router.post("/paper/approve/{request_id}")
+async def approve_paper_order(request_id: str) -> dict[str, Any]:
+    """Approve a pending paper trading request."""
+
+    from core.trading.approval_gate import approval_request_to_dict, get_approval_gate
+
+    approved = get_approval_gate().approve(request_id, approver="operator")
+    if approved is None:
+        raise HTTPException(status_code=404, detail=f"approval request not found: {request_id}")
+    return {"ok": True, "request": approval_request_to_dict(approved)}
+
+
+@router.post("/paper/reject/{request_id}")
+async def reject_paper_order(request_id: str) -> dict[str, Any]:
+    """Reject a pending paper trading request."""
+
+    from core.trading.approval_gate import approval_request_to_dict, get_approval_gate
+
+    rejected = get_approval_gate().reject(request_id, approver="operator")
+    if rejected is None:
+        raise HTTPException(status_code=404, detail=f"approval request not found: {request_id}")
+    return {"ok": True, "request": approval_request_to_dict(rejected)}
 
 
 @router.get("/sentiment/pulse")

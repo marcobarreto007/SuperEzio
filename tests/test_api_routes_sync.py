@@ -175,9 +175,31 @@ def test_cockpit_summary(client_with_mock_pipeline):
     assert set(["pulses", "alerts"]).issubset(data["genie"])
     assert set(["last_math", "last_experts", "last_trinity"]).issubset(data["deep"])
     assert set(["last_decision", "portfolio", "guardrails"]).issubset(data["bob"])
+    assert "approvals" in data["bob"]
     assert data["bob"]["portfolio"]["provider"] == "IBKR"
     assert data["status"]["ibkr"]["status"] == "online"
     assert data["status"]["guardrails"]["total"] == 30
+
+
+def test_paper_approval_endpoints(client_with_mock_pipeline):
+    """POST /paper/approve and /paper/reject resolve pending requests."""
+    from core.trading.approval_gate import get_approval_gate, reset_approval_gate_for_test
+
+    _, client = client_with_mock_pipeline
+    gate = reset_approval_gate_for_test()
+    req = gate.submit("PLUG", "buy", 100, 100.0, 95.0, 500.0, "pytest")
+
+    response = client.post(f"/paper/approve/{req.id}")
+    assert response.status_code == 200
+    assert response.json()["request"]["status"] == "approved"
+
+    req2 = get_approval_gate().submit("TSLA", "buy", 100, 100.0, 95.0, 500.0, "pytest")
+    response = client.post(f"/paper/reject/{req2.id}")
+    assert response.status_code == 200
+    assert response.json()["request"]["status"] == "rejected"
+
+    response = client.post("/paper/approve/no-such-id")
+    assert response.status_code == 404
 
 
 # ---------------------------------------------------------------------------

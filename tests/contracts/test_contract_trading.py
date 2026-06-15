@@ -137,8 +137,8 @@ def test_approval_gate_submit():
     )
     assert request is not None
     assert hasattr(request, "id")
-    assert request.status.value == "pending"
-    assert gate.pending_count == 1  # @property
+    assert request.status.value == "approved"
+    assert gate.pending_count == 0  # @property
 
 
 # ---------------------------------------------------------------------------

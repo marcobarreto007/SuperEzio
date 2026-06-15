@@ -215,6 +215,33 @@ def test_paper_order_gate_blocks_when_kill_switch_active(monkeypatch):
     kill.deactivate()
 
 
+@pytest.mark.asyncio
+async def test_submit_paper_order_pending_when_risk_exceeds_approval(monkeypatch):
+    from core.trading.approval_gate import reset_approval_gate_for_test
+    from core.trading.kill_switch import reset_kill_switch_for_test
+    from src.core.pipeline.nodes import tool_executor as tool_executor_module
+
+    monkeypatch.setenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
+    reset_kill_switch_for_test()
+    reset_approval_gate_for_test()
+
+    result = await tool_executor_module._submit_paper_order(
+        {"run_id": "approval-pending-test", "ticket_allowed": True},
+        {
+            "ticker": "PLUG",
+            "action": "buy",
+            "qty": 100,
+            "order_type": "LMT",
+            "limit_price": 100.0,
+            "stop_loss_price": 95.0,
+        },
+    )
+
+    assert result["submit_paper_order_error"].startswith("approval_pending:apr-")
+    assert result["paper_approval_request"]["status"] == "pending"
+    assert result["paper_approval_request"]["risk_amount"] == 500.0
+
+
 def test_default_market_scan_contract_exposes_paper_submission_tool():
     from src.core.pipeline.intents import infer_cognitive_contract
 

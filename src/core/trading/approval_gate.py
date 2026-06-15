@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import Enum
 
 
@@ -75,10 +75,12 @@ class ApprovalGate:
         )
         self._next_id += 1
 
-        if (
-            self.config.max_auto_approve_amount > 0
-            and risk_amount <= self.config.max_auto_approve_amount
-        ):
+        auto_threshold = (
+            self.config.max_auto_approve_amount
+            if self.config.max_auto_approve_amount > 0
+            else self.config.require_approval_above_risk
+        )
+        if risk_amount <= auto_threshold:
             req.status = ApprovalStatus.APPROVED
             req.resolved_at = time.time()
             req.resolved_by = "auto"
@@ -127,3 +129,30 @@ class ApprovalGate:
     @property
     def pending_count(self) -> int:
         return len(self._pending)
+
+
+def approval_request_to_dict(req: ApprovalRequest) -> dict:
+    data = asdict(req)
+    data["status"] = req.status.value
+    return data
+
+
+_GLOBAL_APPROVAL_GATE: ApprovalGate | None = None
+
+
+def get_approval_gate() -> ApprovalGate:
+    """Return the process-wide paper trading approval gate."""
+
+    global _GLOBAL_APPROVAL_GATE
+    if _GLOBAL_APPROVAL_GATE is None:
+        _GLOBAL_APPROVAL_GATE = ApprovalGate()
+    _GLOBAL_APPROVAL_GATE.expire_old()
+    return _GLOBAL_APPROVAL_GATE
+
+
+def reset_approval_gate_for_test() -> ApprovalGate:
+    """Reset the singleton in tests."""
+
+    global _GLOBAL_APPROVAL_GATE
+    _GLOBAL_APPROVAL_GATE = ApprovalGate()
+    return _GLOBAL_APPROVAL_GATE

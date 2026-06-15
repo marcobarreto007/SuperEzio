@@ -5,7 +5,14 @@ broker requires an explicit Money Gate decision.
 """
 
 from .alerter import EmailAlerter, EmailConfig, LogAlerter
-from .approval_gate import ApprovalGate, ApprovalRequest, ApprovalStatus, GateConfig
+from .approval_gate import (
+    ApprovalGate,
+    ApprovalRequest,
+    ApprovalStatus,
+    GateConfig,
+    approval_request_to_dict,
+    get_approval_gate,
+)
 from .broker import (
     AlpacaPaperAdapter,
     BrokerAdapter,
@@ -27,6 +34,7 @@ __all__ = [
     "ApprovalGate",
     "ApprovalRequest",
     "ApprovalStatus",
+    "approval_request_to_dict",
     "BracketOrder",
     "BrokerAdapter",
     "EmailAlerter",
@@ -34,6 +42,7 @@ __all__ = [
     "ExpertRecord",
     "ExpertWeightRouter",
     "GateConfig",
+    "get_approval_gate",
     "KillSwitch",
     "KillSwitchReason",
     "KillSwitchState",

@@ -16,12 +16,12 @@ class TestApprovalGateSubmit:
         from core.trading.approval_gate import ApprovalGate, ApprovalStatus
 
         gate = ApprovalGate()
-        req = gate.submit("AAPL", "buy", 10, 100.0, 95.0, 200.0)
+        req = gate.submit("AAPL", "buy", 100, 100.0, 95.0, 500.0)
         assert req.status == ApprovalStatus.PENDING
         assert req.symbol == "AAPL"
         assert req.side == "buy"
-        assert req.qty == 10
-        assert req.risk_amount == 200.0
+        assert req.qty == 100
+        assert req.risk_amount == 500.0
 
     def test_auto_approve_below_threshold(self):
         from core.trading.approval_gate import ApprovalGate, ApprovalStatus, GateConfig
@@ -32,18 +32,27 @@ class TestApprovalGateSubmit:
         assert req.status == ApprovalStatus.APPROVED
         assert req.resolved_by == "auto"
 
-    def test_no_auto_approve_by_default(self):
+    def test_default_auto_approve_below_threshold(self):
         from core.trading.approval_gate import ApprovalGate, ApprovalStatus
 
         gate = ApprovalGate()
         req = gate.submit("AAPL", "buy", 10, 100.0, 95.0, 5.0)
+        assert req.status == ApprovalStatus.APPROVED
+        assert req.resolved_by == "auto"
+
+    def test_default_pending_above_threshold(self):
+        from core.trading.approval_gate import ApprovalGate, ApprovalStatus
+
+        gate = ApprovalGate()
+        req = gate.submit("AAPL", "buy", 100, 100.0, 95.0, 500.0)
         assert req.status == ApprovalStatus.PENDING
+        assert gate.pending_count == 1
 
     def test_unique_request_ids(self):
         from core.trading.approval_gate import ApprovalGate
 
         gate = ApprovalGate()
-        r1 = gate.submit("AAPL", "buy", 10, 100.0, 95.0, 200.0)
+        r1 = gate.submit("AAPL", "buy", 100, 100.0, 95.0, 500.0)
         r2 = gate.submit("TSLA", "buy", 5, 200.0, 190.0, 500.0)
         assert r1.id != r2.id
 
@@ -53,7 +62,7 @@ class TestApprovalGateApproveReject:
         from core.trading.approval_gate import ApprovalGate, ApprovalStatus
 
         gate = ApprovalGate()
-        req = gate.submit("AAPL", "buy", 10, 100.0, 95.0, 200.0)
+        req = gate.submit("AAPL", "buy", 100, 100.0, 95.0, 500.0)
         result = gate.approve(req.id)
         assert result is not None
         assert result.status == ApprovalStatus.APPROVED
@@ -63,7 +72,7 @@ class TestApprovalGateApproveReject:
         from core.trading.approval_gate import ApprovalGate
 
         gate = ApprovalGate()
-        req = gate.submit("AAPL", "buy", 10, 100.0, 95.0, 200.0)
+        req = gate.submit("AAPL", "buy", 100, 100.0, 95.0, 500.0)
         result = gate.approve(req.id, approver="marco")
         assert result is not None
         assert result.resolved_by == "marco"
@@ -72,7 +81,7 @@ class TestApprovalGateApproveReject:
         from core.trading.approval_gate import ApprovalGate, ApprovalStatus
 
         gate = ApprovalGate()
-        req = gate.submit("AAPL", "buy", 10, 100.0, 95.0, 200.0)
+        req = gate.submit("AAPL", "buy", 100, 100.0, 95.0, 500.0)
         result = gate.reject(req.id)
         assert result is not None
         assert result.status == ApprovalStatus.REJECTED
@@ -87,7 +96,7 @@ class TestApprovalGateApproveReject:
         from core.trading.approval_gate import ApprovalGate
 
         gate = ApprovalGate()
-        req = gate.submit("AAPL", "buy", 10, 100.0, 95.0, 200.0)
+        req = gate.submit("AAPL", "buy", 100, 100.0, 95.0, 500.0)
         gate.approve(req.id)
         assert gate.approve(req.id) is None
 
@@ -98,7 +107,7 @@ class TestApprovalGateExpire:
 
         config = GateConfig(ttl_seconds=0.01)
         gate = ApprovalGate(config=config)
-        req = gate.submit("AAPL", "buy", 10, 100.0, 95.0, 200.0)
+        req = gate.submit("AAPL", "buy", 100, 100.0, 95.0, 500.0)
         time.sleep(0.02)
         expired = gate.expire_old()
         assert len(expired) == 1
@@ -110,7 +119,7 @@ class TestApprovalGateExpire:
 
         config = GateConfig(ttl_seconds=3600)
         gate = ApprovalGate(config=config)
-        gate.submit("AAPL", "buy", 10, 100.0, 95.0, 200.0)
+        gate.submit("AAPL", "buy", 100, 100.0, 95.0, 500.0)
         expired = gate.expire_old()
         assert len(expired) == 0
 
@@ -120,7 +129,7 @@ class TestApprovalGateState:
         from core.trading.approval_gate import ApprovalGate
 
         gate = ApprovalGate()
-        gate.submit("AAPL", "buy", 10, 100.0, 95.0, 200.0)
+        gate.submit("AAPL", "buy", 100, 100.0, 95.0, 500.0)
         gate.submit("TSLA", "buy", 5, 200.0, 190.0, 500.0)
         assert gate.pending_count == 2
 
@@ -128,7 +137,7 @@ class TestApprovalGateState:
         from core.trading.approval_gate import ApprovalGate
 
         gate = ApprovalGate()
-        r1 = gate.submit("AAPL", "buy", 10, 100.0, 95.0, 200.0)
+        r1 = gate.submit("AAPL", "buy", 100, 100.0, 95.0, 500.0)
         pending = gate.get_pending()
         assert len(pending) == 1
         assert pending[0].id == r1.id
@@ -137,7 +146,7 @@ class TestApprovalGateState:
         from core.trading.approval_gate import ApprovalGate
 
         gate = ApprovalGate()
-        gate.submit("AAPL", "buy", 10, 100.0, 95.0, 200.0)
+        gate.submit("AAPL", "buy", 100, 100.0, 95.0, 500.0)
         gate.submit("TSLA", "buy", 5, 200.0, 190.0, 500.0)
         assert len(gate.get_history()) == 2
 
@@ -237,7 +246,7 @@ class TestApprovalGateAlerterIntegration:
         gate = ApprovalGate()
         alerter = LogAlerter()
 
-        req = gate.submit("AAPL", "buy", 10, 100.0, 95.0, 200.0)
+        req = gate.submit("AAPL", "buy", 100, 100.0, 95.0, 500.0)
         assert req.status == ApprovalStatus.PENDING
         assert alerter.send_approval_request(
             req.id,
