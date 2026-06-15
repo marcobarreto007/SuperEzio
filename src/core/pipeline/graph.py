@@ -624,11 +624,47 @@ def build_graph(
         if limit_price <= 0:
             limit_price = float(state.get("latest_price", 0)) or 0
 
-        max_position_value = paper_equity * 0.10  # 10% max
+        if limit_price > 0:
+            try:
+                from core.trading.position_sizer import PositionSizer
+
+                requested_qty = int(qty)
+                size = PositionSizer(equity=paper_equity).size(entry_price=limit_price)
+                if size.shares <= 0:
+                    writer(
+                        {
+                            "type": "PIPELINE_STEP",
+                            "run_id": run_id,
+                            "step": "auto_execute_paper",
+                            "status": "skipped",
+                            "reason": f"position_sizer_blocked:{size.size_reason}",
+                        }
+                    )
+                    return {"paper_exec_blocked": f"position_sizer:{size.size_reason}"}
+                if requested_qty > size.shares:
+                    qty = max(1, size.shares)
+                    writer(
+                        {
+                            "type": "POSITION_SIZE_ADJUSTED",
+                            "run_id": run_id,
+                            "ticker": ticker,
+                            "requested_qty": requested_qty,
+                            "approved_qty": qty,
+                            "reason": size.size_reason,
+                        }
+                    )
+            except Exception as exc:
+                writer(
+                    {
+                        "type": "PIPELINE_STEP",
+                        "run_id": run_id,
+                        "step": "auto_execute_paper",
+                        "status": "skipped",
+                        "reason": f"position_sizer_error:{str(exc)[:120]}",
+                    }
+                )
+                return {"paper_exec_blocked": f"position_sizer_error:{exc}"}
         position_value = qty * (limit_price if limit_price > 0 else 100)
-        if position_value > max_position_value and limit_price > 0:
-            qty = max(1, int(max_position_value / limit_price))
-            position_value = qty * limit_price
 
         # ── Concentration gate: block if ticker already >50% of equity ──
         # Uses subprocess to avoid ib_insync event loop conflicts

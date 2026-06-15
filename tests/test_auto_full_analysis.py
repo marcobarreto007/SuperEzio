@@ -242,6 +242,35 @@ async def test_submit_paper_order_pending_when_risk_exceeds_approval(monkeypatch
     assert result["paper_approval_request"]["risk_amount"] == 500.0
 
 
+@pytest.mark.asyncio
+async def test_submit_paper_order_caps_qty_before_approval(monkeypatch):
+    from core.trading.approval_gate import reset_approval_gate_for_test
+    from core.trading.kill_switch import reset_kill_switch_for_test
+    from src.core.pipeline.nodes import tool_executor as tool_executor_module
+
+    monkeypatch.setenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
+    reset_kill_switch_for_test()
+    reset_approval_gate_for_test()
+
+    result = await tool_executor_module._submit_paper_order(
+        {"run_id": "position-cap-test", "ticket_allowed": True, "paper_equity": 100_000.0},
+        {
+            "ticker": "PLUG",
+            "action": "buy",
+            "qty": 1000,
+            "order_type": "LMT",
+            "limit_price": 100.0,
+            "stop_loss_price": 95.0,
+        },
+    )
+
+    assert result["submit_paper_order_error"].startswith("approval_pending:apr-")
+    assert result["position_sizing"]["requested_qty"] == 1000
+    assert result["position_sizing"]["approved_qty"] == 100
+    assert result["position_sizing"]["capped"] is True
+    assert result["paper_approval_request"]["risk_amount"] == 500.0
+
+
 def test_default_market_scan_contract_exposes_paper_submission_tool():
     from src.core.pipeline.intents import infer_cognitive_contract
 

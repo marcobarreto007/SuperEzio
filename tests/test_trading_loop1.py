@@ -18,6 +18,7 @@ class TestPositionSizerInit:
         s = PositionSizer(equity=10000)
         assert s.equity == 10000
         assert s.max_risk_pct == 0.02
+        assert s.max_position_pct == 0.10
         assert s.max_open_positions == 3
         assert s.min_notional == 50.0
 
@@ -52,10 +53,19 @@ class TestPositionSizerSize:
 
         s = PositionSizer(equity=10000, max_risk_pct=0.02)
         result = s.size(entry_price=100.0, stop_loss_price=95.0)
-        assert result.shares == 40  # R$200 risk / R$5 risk per share
-        assert result.notional_value == 4000.0
+        assert result.shares == 10  # 10% max position caps before risk limit
+        assert result.notional_value == 1000.0
         assert result.stop_loss_price == 95.0
+        assert result.capped is True
         assert result.shares > 0
+
+    def test_can_relax_position_cap_explicitly(self):
+        from core.trading.position_sizer import PositionSizer
+
+        s = PositionSizer(equity=10000, max_risk_pct=0.02, max_position_pct=1.0)
+        result = s.size(entry_price=100.0, stop_loss_price=95.0)
+        assert result.shares == 40
+        assert result.notional_value == 4000.0
 
     def test_default_stop_loss(self):
         from core.trading.position_sizer import PositionSizer

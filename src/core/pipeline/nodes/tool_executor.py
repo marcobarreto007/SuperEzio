@@ -372,13 +372,55 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
         return {"submit_paper_order_error": "missing_ticker"}
 
     try:
+        from core.trading.position_sizer import PositionSizer
+
+        stop_loss_price = float(args.get("stop_loss_price") or limit_price * 0.95)
+        requested_qty = int(qty)
+        paper_equity = float(state.get("paper_equity") or state.get("equity") or 100_000.0)
+        open_positions = int(state.get("open_positions") or state.get("positions_count") or 0)
+        size = PositionSizer(equity=paper_equity).size(
+            entry_price=limit_price,
+            stop_loss_price=stop_loss_price,
+            open_positions=open_positions,
+        )
+        if size.shares <= 0:
+            return {
+                "submit_paper_order_error": f"position_sizer_blocked:{size.size_reason}",
+                "position_sizing": {
+                    "requested_qty": requested_qty,
+                    "approved_qty": 0,
+                    "reason": size.size_reason,
+                },
+            }
+        if requested_qty > size.shares:
+            logger.warning(
+                "paper order qty capped by PositionSizer: %s requested=%s approved=%s",
+                symbol,
+                requested_qty,
+                size.shares,
+            )
+            qty = float(size.shares)
+        position_sizing = {
+            "requested_qty": requested_qty,
+            "approved_qty": int(qty),
+            "max_shares": size.shares,
+            "notional_value": round(float(qty) * limit_price, 2),
+            "risk_per_share": size.risk_per_share,
+            "stop_loss_price": stop_loss_price,
+            "max_notional_value": size.max_notional_value,
+            "capped": requested_qty > size.shares or size.capped,
+            "reason": size.size_reason,
+        }
+    except Exception as exc:
+        return {"submit_paper_order_error": f"position_sizer_error:{str(exc)[:160]}"}
+
+    try:
         from core.trading.approval_gate import (
             ApprovalStatus,
             approval_request_to_dict,
             get_approval_gate,
         )
 
-        stop_loss_price = float(args.get("stop_loss_price") or limit_price * 0.95)
         risk_amount = abs(limit_price - stop_loss_price) * qty
         approval = get_approval_gate().submit(
             symbol=symbol,
@@ -394,6 +436,7 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
             return {
                 "submit_paper_order_error": f"approval_pending:{approval.id}",
                 "paper_approval_request": approval_payload,
+                "position_sizing": position_sizing,
             }
     except Exception as exc:
         return {"submit_paper_order_error": f"approval_gate_error:{str(exc)[:160]}"}
@@ -421,6 +464,7 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
             return {
                 "submit_paper_order_result": result,
                 "paper_approval_request": approval_payload,
+                "position_sizing": position_sizing,
             }
         else:
             error = _json.loads(proc.stderr.strip() or proc.stdout.strip() or "{}")

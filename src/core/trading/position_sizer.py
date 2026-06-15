@@ -12,6 +12,9 @@ class PositionSize:
     risk_per_share: float
     stop_loss_price: float
     size_reason: str
+    requested_shares: int = 0
+    capped: bool = False
+    max_notional_value: float = 0.0
 
 
 class PositionSizer:
@@ -28,6 +31,7 @@ class PositionSizer:
         self,
         equity: float,
         max_risk_pct: float = 0.02,
+        max_position_pct: float = 0.10,
         max_open_positions: int = 3,
         min_notional: float = 50.0,
         default_stop_pct: float = 0.05,
@@ -36,11 +40,16 @@ class PositionSizer:
             raise ValueError(f"Equity must be positive, got {equity}")
         if not 0 < max_risk_pct <= 0.1:
             raise ValueError(f"max_risk_pct must be in (0, 0.1], got {max_risk_pct}")
+        if not 0 < max_position_pct <= 1.0:
+            raise ValueError(
+                f"max_position_pct must be in (0, 1.0], got {max_position_pct}"
+            )
         if max_open_positions < 1:
             raise ValueError(f"max_open_positions must be >= 1, got {max_open_positions}")
 
         self.equity = equity
         self.max_risk_pct = max_risk_pct
+        self.max_position_pct = max_position_pct
         self.max_open_positions = max_open_positions
         self.min_notional = min_notional
         self.default_stop_pct = default_stop_pct
@@ -48,6 +57,10 @@ class PositionSizer:
     @property
     def max_risk_amount(self) -> float:
         return self.equity * self.max_risk_pct
+
+    @property
+    def max_position_value(self) -> float:
+        return self.equity * self.max_position_pct
 
     def can_open(self, open_positions: int) -> bool:
         return open_positions < self.max_open_positions
@@ -68,6 +81,7 @@ class PositionSizer:
                 risk_per_share=0.0,
                 stop_loss_price=0.0,
                 size_reason=f"max_open_positions={self.max_open_positions} reached",
+                max_notional_value=self.max_position_value,
             )
 
         if stop_loss_price is None:
@@ -80,7 +94,8 @@ class PositionSizer:
 
         risk_per_share = entry_price - stop_loss_price
         max_shares_by_risk = int(self.max_risk_amount / risk_per_share)
-        shares = max(0, max_shares_by_risk)
+        max_shares_by_position = int(self.max_position_value / entry_price)
+        shares = max(0, min(max_shares_by_risk, max_shares_by_position))
 
         notional = shares * entry_price
 
@@ -91,12 +106,25 @@ class PositionSizer:
                 risk_per_share=risk_per_share,
                 stop_loss_price=stop_loss_price,
                 size_reason=f"notional {notional:.2f} below min {self.min_notional}",
+                capped=max_shares_by_position < max_shares_by_risk,
+                max_notional_value=self.max_position_value,
             )
 
+        capped = max_shares_by_position < max_shares_by_risk
+        cap_reason = (
+            f"; capped by {self.max_position_pct * 100:.1f}% max position"
+            if capped
+            else ""
+        )
         return PositionSize(
             shares=shares,
             notional_value=notional,
             risk_per_share=risk_per_share,
             stop_loss_price=stop_loss_price,
-            size_reason=f"{self.max_risk_pct * 100:.1f}% risk = R${self.max_risk_amount:.2f} / R${risk_per_share:.2f} risk/share",
+            size_reason=(
+                f"{self.max_risk_pct * 100:.1f}% risk = R${self.max_risk_amount:.2f} "
+                f"/ R${risk_per_share:.2f} risk/share{cap_reason}"
+            ),
+            capped=capped,
+            max_notional_value=self.max_position_value,
         )
