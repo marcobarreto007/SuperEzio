@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +24,19 @@ DEFAULT_JOURNAL_PATH = (
 # Production guard: the real journal must never be silently truncated.
 # Tests use tempfile.NamedTemporaryFile, never this path.
 _PRODUCTION_JOURNAL = DEFAULT_JOURNAL_PATH.resolve()
+
+
+def _parse_utc_datetime(value: Any) -> datetime | None:
+    """Parse ISO timestamps used by the journal, accepting both Z and offsets."""
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 @dataclass
@@ -288,6 +301,138 @@ class PaperJournal:
             "has_reflections": sum(1 for t in closed if t.get("lesson_learned")),
             "path": str(self._path),
         }
+
+    def review_aged_closed_theses(
+        self,
+        min_age_days: int = 14,
+        now: datetime | None = None,
+        *,
+        record_memory: bool = True,
+        memory: Any | None = None,
+        session_id: str = "paper_journal",
+    ) -> list[dict[str, Any]]:
+        """Close C6 for trades old enough: thesis vs reality, post-mortem, memory.
+
+        The operation is idempotent. A trade tagged with ``thesis_closed`` is not
+        reviewed again, which avoids duplicate conversation-memory entries.
+        """
+        if min_age_days < 0:
+            raise ValueError("min_age_days must be >= 0")
+
+        reference = now or datetime.now(timezone.utc)
+        if reference.tzinfo is None:
+            reference = reference.replace(tzinfo=timezone.utc)
+        reference = reference.astimezone(timezone.utc)
+        cutoff = reference - timedelta(days=min_age_days)
+
+        entries = self._read_all()
+        reviewed: list[dict[str, Any]] = []
+        updated_at = datetime.now(timezone.utc).isoformat()
+
+        for entry in entries:
+            if not entry.get("exit_date") or not entry.get("outcome"):
+                continue
+
+            tags = list(entry.get("tags") or [])
+            if "thesis_closed" in tags:
+                continue
+
+            entry_dt = _parse_utc_datetime(entry.get("entry_date"))
+            if entry_dt is None or entry_dt > cutoff:
+                continue
+
+            outcome = str(entry.get("outcome") or "")
+            inferred_thesis_correct = outcome == "win"
+            thesis_correct = entry.get("thesis_correct")
+            if thesis_correct is None:
+                thesis_correct = inferred_thesis_correct
+                entry["thesis_correct"] = thesis_correct
+
+            if thesis_correct:
+                entry["what_went_right"] = entry.get("what_went_right") or (
+                    "Outcome confirmed the original paper thesis after the review window."
+                )
+                entry["what_went_wrong"] = entry.get("what_went_wrong") or None
+            else:
+                entry["what_went_wrong"] = entry.get("what_went_wrong") or (
+                    "Outcome did not confirm the original paper thesis after the review window."
+                )
+                entry["what_went_right"] = entry.get("what_went_right") or None
+
+            if not entry.get("lesson_learned"):
+                entry["lesson_learned"] = (
+                    f"C6 post-mortem: {entry.get('ticker', 'UNKNOWN')} thesis "
+                    f"{'confirmed' if thesis_correct else 'failed'}; "
+                    f"outcome={outcome}; pnl=${float(entry.get('pnl_amount') or 0):.2f}."
+                )
+
+            tags.append("thesis_closed")
+            entry["tags"] = tags
+            entry["updated_at"] = updated_at
+
+            entry_age = reference - entry_dt
+            reviewed.append(
+                {
+                    "trade_id": entry.get("trade_id"),
+                    "ticker": entry.get("ticker"),
+                    "age_days": int(entry_age.total_seconds() // 86400),
+                    "outcome": outcome,
+                    "pnl_amount": entry.get("pnl_amount"),
+                    "thesis_correct": bool(thesis_correct),
+                    "memory_recorded": False,
+                }
+            )
+
+        if not reviewed:
+            return []
+
+        self._rewrite(entries)
+
+        if record_memory:
+            memory_client = memory
+            if memory_client is None:
+                try:
+                    from core.memory.conversation_memory import get_conversation_memory
+
+                    memory_client = get_conversation_memory()
+                except Exception as exc:
+                    logger.warning("Could not load conversation memory for thesis close: %s", exc)
+                    memory_client = None
+
+            if memory_client is not None and hasattr(memory_client, "add_turn"):
+                reviewed_by_id = {item["trade_id"]: item for item in reviewed}
+                for entry in entries:
+                    trade_id = entry.get("trade_id")
+                    review = reviewed_by_id.get(trade_id)
+                    if review is None:
+                        continue
+                    try:
+                        memory_client.add_turn(
+                            session_id=session_id,
+                            user_message=f"C6 thesis close: {entry.get('ticker', '')} {trade_id}",
+                            bob_response=(
+                                f"Thesis closed for {entry.get('ticker', '')}: "
+                                f"outcome={entry.get('outcome')}, "
+                                f"thesis_correct={entry.get('thesis_correct')}, "
+                                f"pnl={entry.get('pnl_amount')}"
+                            ),
+                            context_summary="Automated 14-day paper trade post-mortem.",
+                            ticker_discussed=str(entry.get("ticker") or ""),
+                            thesis_formed=str(entry.get("thesis") or ""),
+                            verdict=str(entry.get("outcome") or ""),
+                            confidence=1.0,
+                            tags=["thesis_closed", "paper_trade", "c6"],
+                            category="thesis_closed",
+                        )
+                        review["memory_recorded"] = True
+                    except Exception as exc:
+                        logger.warning(
+                            "Could not record thesis close for %s in memory: %s",
+                            trade_id,
+                            exc,
+                        )
+
+        return reviewed
 
     def count(self) -> int:
         """Numero total de trades no journal."""

@@ -2,6 +2,7 @@
 
 import json
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -212,6 +213,62 @@ class TestPaperJournal:
         # journal fixture usa tempfile - nao e o path de producao
         journal._rewrite([])  # nao deve levantar
         assert journal.count() == 0
+
+    def test_review_aged_closed_thesis_records_post_mortem_once(self, journal):
+        """Fecha C6 em trades fechados com 14+ dias e registra memoria uma vez."""
+
+        class FakeMemory:
+            def __init__(self):
+                self.turns = []
+
+            def add_turn(self, **kwargs):
+                self.turns.append(kwargs)
+
+        trade = PaperTrade(
+            trade_id="aged-001",
+            ticker="NVDA",
+            thesis="breakout momentum should continue",
+            direction="long",
+            entry_date="2026-05-20T10:00:00Z",
+            entry_price=100,
+            shares=10,
+            entry_reasoning="volume breakout",
+            verdict_at_entry="BUY_CANDIDATE confidence 72",
+            risk_assessment="moderate",
+            expected_holding_period="swing",
+        )
+        journal.open_trade(trade)
+        journal.close_trade(
+            "aged-001",
+            exit_price=94,
+            exit_reason="stop_loss",
+            exit_date="2026-06-03T10:00:00Z",
+        )
+
+        memory = FakeMemory()
+        reviewed = journal.review_aged_closed_theses(
+            now=datetime(2026, 6, 15, tzinfo=timezone.utc),
+            memory=memory,
+        )
+
+        assert len(reviewed) == 1
+        assert reviewed[0]["trade_id"] == "aged-001"
+        assert reviewed[0]["thesis_correct"] is False
+        assert reviewed[0]["memory_recorded"] is True
+
+        stored = journal.get_trade("aged-001")
+        assert stored is not None
+        assert "thesis_closed" in stored["tags"]
+        assert stored["lesson_learned"].startswith("C6 post-mortem")
+        assert memory.turns[0]["category"] == "thesis_closed"
+        assert "thesis_closed" in memory.turns[0]["tags"]
+
+        second_review = journal.review_aged_closed_theses(
+            now=datetime(2026, 6, 15, tzinfo=timezone.utc),
+            memory=memory,
+        )
+        assert second_review == []
+        assert len(memory.turns) == 1
 
 
 # C7: PerformanceEngine
