@@ -1,0 +1,269 @@
+/* Stage 4 Cockpit shell */
+
+:root {
+  --cockpit-bg: #0d1117;
+  --cockpit-panel: #111820;
+  --cockpit-panel-2: #0f151d;
+  --cockpit-line: #30363d;
+  --cockpit-text: #c9d1d9;
+  --cockpit-muted: #8b949e;
+  --cockpit-green: #3fb950;
+  --cockpit-red: #f85149;
+  --cockpit-yellow: #d29922;
+}
+
+body {
+  background: var(--cockpit-bg);
+  color: var(--cockpit-text);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+body::before,
+body::after {
+  display: none;
+}
+
+.topbar {
+  background: #0d1117;
+  border-bottom-color: var(--cockpit-line);
+  box-shadow: none;
+}
+
+.topbar::after {
+  background: linear-gradient(90deg, transparent, rgba(63, 185, 80, 0.35), transparent);
+}
+
+.logo-text {
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+}
+
+.logo-sub,
+.cockpit-connection {
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+}
+
+.cockpit-connection {
+  color: var(--cockpit-red);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.cockpit-connection.is-online {
+  color: var(--cockpit-green);
+}
+
+.app-main {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.82fr) minmax(520px, 1.35fr) minmax(340px, 1fr);
+  gap: 12px;
+  min-height: 0;
+  padding: 12px 12px 10px;
+  background: var(--cockpit-bg);
+}
+
+.cockpit-panel,
+.right-stack,
+.chart-workspace {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--cockpit-line);
+  border-radius: 8px;
+  background: var(--cockpit-panel);
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.cockpit-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.right-stack {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.chart-workspace {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: 0;
+}
+
+.right-stack::before,
+.chart-workspace::before {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--cockpit-line);
+  background: var(--cockpit-panel-2);
+  color: var(--cockpit-text);
+  font: 800 13px var(--font-mono);
+  letter-spacing: 0;
+}
+
+.right-stack::before {
+  content: "BOB  Decisao e Pipeline";
+}
+
+.chart-workspace::before {
+  content: "DEEP  Matematica e Experts";
+}
+
+.cockpit-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--cockpit-line);
+  background: var(--cockpit-panel-2);
+}
+
+.cockpit-panel__eyebrow {
+  display: block;
+  color: var(--cockpit-muted);
+  font: 800 10px var(--font-mono);
+  letter-spacing: 0;
+}
+
+.cockpit-panel__header h2 {
+  margin: 0;
+  color: var(--cockpit-text);
+  font: 800 15px var(--font-body);
+  letter-spacing: 0;
+}
+
+.cockpit-panel__status {
+  border: 1px solid rgba(63, 185, 80, 0.45);
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: var(--cockpit-green);
+  font: 800 10px var(--font-mono);
+}
+
+.cockpit-panel__status--idle {
+  border-color: rgba(210, 153, 34, 0.45);
+  color: var(--cockpit-yellow);
+}
+
+.cockpit-panel__body {
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+}
+
+.cockpit-section {
+  border: 1px solid rgba(48, 54, 61, 0.9);
+  border-radius: 8px;
+  background: rgba(13, 17, 23, 0.62);
+  padding: 12px;
+}
+
+.cockpit-section + .cockpit-section {
+  margin-top: 10px;
+}
+
+.cockpit-section__title {
+  margin-bottom: 9px;
+  color: var(--cockpit-muted);
+  font: 800 11px var(--font-mono);
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.cockpit-empty {
+  color: var(--cockpit-muted);
+  font: 600 12px var(--font-body);
+}
+
+.terminal-card--chat {
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.terminal-card-hdr {
+  background: rgba(13, 17, 23, 0.74);
+  border-bottom-color: var(--cockpit-line);
+}
+
+.chat {
+  padding: 14px;
+}
+
+.bottombar {
+  background: #0d1117;
+  border-top-color: var(--cockpit-line);
+}
+
+.chart-workspace .market-header {
+  padding: 12px;
+  border-bottom: 1px solid var(--cockpit-line);
+  background: rgba(13, 17, 23, 0.72);
+}
+
+.chart-workspace .chart-stage {
+  min-height: 0;
+  padding: 12px;
+}
+
+.chart-workspace .live-canvas-wrap {
+  height: 100%;
+  min-height: 360px;
+  border: 1px solid rgba(48, 54, 61, 0.9);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cockpit-statusbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 38px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--cockpit-line);
+  background: #0d1117;
+  color: var(--cockpit-muted);
+  font: 800 11px var(--font-mono);
+  overflow-x: hidden;
+  white-space: nowrap;
+}
+
+.cockpit-statusbar__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cockpit-statusbar__item::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cockpit-yellow);
+}
+
+.cockpit-statusbar__item.is-ok::before {
+  background: var(--cockpit-green);
+}
+
+.cockpit-statusbar__item.is-error::before {
+  background: var(--cockpit-red);
+}
+
+@media (max-width: 1180px) {
+  .app-main {
+    grid-template-columns: 300px minmax(460px, 1fr) 340px;
+  }
+}

@@ -59,6 +59,21 @@
 
   <!-- â”€â”€ MAIN â”€â”€ -->
   <section class="app-main">
+    <aside class="cockpit-panel cockpit-panel--genie" id="genie-panel" aria-label="Genie live sentiment panel">
+      <div class="cockpit-panel__header">
+        <div>
+          <span class="cockpit-panel__eyebrow">GENIE</span>
+          <h2>Sentimento Vivo</h2>
+        </div>
+        <span class="cockpit-panel__status cockpit-panel__status--idle" id="genie-panel-status">STANDBY</span>
+      </div>
+      <div class="cockpit-panel__body" id="genie-panel-body">
+        <section class="cockpit-section">
+          <div class="cockpit-section__title">Watchlist Pulse</div>
+          <div class="cockpit-empty" id="genie-watchlist-empty">Aguardando pulse.</div>
+        </section>
+      </div>
+    </aside>
     <aside class="right-stack" id="live-panel" aria-label="Bob conversation">
       <section class="terminal-card terminal-card--chat">
         <div class="terminal-card-hdr">
@@ -103,6 +118,15 @@
   </section>
 
   <!-- ── SDCA LAB ── -->
+  <footer class="cockpit-statusbar" id="cockpit-statusbar" aria-label="Cockpit status bar">
+    <span class="cockpit-statusbar__item" id="statusbar-ceo">CEO: CHECKING</span>
+    <span class="cockpit-statusbar__item" id="statusbar-genie">Genie: CHECKING</span>
+    <span class="cockpit-statusbar__item" id="statusbar-deep">Deep: CHECKING</span>
+    <span class="cockpit-statusbar__item" id="statusbar-ibkr">IBKR: CHECKING</span>
+    <span class="cockpit-statusbar__item" id="statusbar-guardrails">Guardrails: --</span>
+    <span class="cockpit-statusbar__item" id="statusbar-latency">Last run: --</span>
+  </footer>
+
   <section popover="manual" class="sdca-lab" id="sdca-lab">
     <div class="sdca-lab-hdr">
       <div><span>F51 Labs</span><strong>Cognitive Risk Firewall</strong></div>
@@ -226,6 +250,7 @@
   <script src="js/ops-console.js"></script>
   <script src="js/events.js"></script>
   <script src="js/health.js"></script>
+  <script src="js/cockpit-shell.js"></script>
   <script src="js/init.js"></script>
 </body>
 </html>
