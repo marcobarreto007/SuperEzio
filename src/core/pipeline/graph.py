@@ -807,7 +807,6 @@ def build_graph(
 
                             # Trigger learning cycle after trade close (async, non-blocking)
                             try:
-                                import concurrent.futures
                                 import threading
 
                                 def _run_learning_cycle():

@@ -769,15 +769,34 @@ class FeedbackLoop:
             sections.extend(patterns)
             sections.append("\n=== FIM DOS PADRÕES ===\n")
 
+        bias_report = self.analyze_confidence_bias()
+        if bias_report.get("status") == "analyzed":
+            sections.append("\n=== CALIBRACAO BOB VS OUTCOME ===\n")
+            sections.append(
+                f"* Bias: {bias_report['bias']} | "
+                f"conf_media={bias_report['avg_confidence'] * 100:.1f}% | "
+                f"win_rate={bias_report['win_rate'] * 100:.1f}%"
+            )
+            sections.append(f"* Acao: {bias_report['recommendation']}")
+            sections.append("\n=== FIM DA CALIBRACAO ===\n")
+
         return "\n".join(sections)
 
     def get_stats(self) -> dict[str, Any]:
         """Retorna estatísticas do sistema de aprendizado."""
         trades = self._journal.list_all()
-        closed = [t for t in trades if t.get("exit_date")]
+        closed = [trade for trade in trades if trade.get("exit_date")]
 
-        wins = sum(1 for t in closed if t.get("outcome") == "win")
-        losses = sum(1 for t in closed if t.get("outcome") == "loss")
+        wins = sum(1 for trade in closed if trade.get("outcome") == "win")
+        losses = sum(1 for trade in closed if trade.get("outcome") == "loss")
+        if self._learning_log._lessons:
+            latest_lesson = max(
+                self._learning_log._lessons.values(),
+                key=lambda lesson: lesson.created_at,
+            )
+            last_learning_cycle = latest_lesson.created_at
+        else:
+            last_learning_cycle = None
 
         return {
             "total_trades": len(trades),
@@ -786,7 +805,8 @@ class FeedbackLoop:
             "losses": losses,
             "win_rate": wins / len(closed) if closed else 0,
             "lessons_logged": len(self._learning_log._lessons),
-            "last_learning_cycle": self._learning_log._lessons[max(self._learning_log._lessons.keys(), key=lambda k: self._learning_log._lessons[k].created_at)].created_at if self._learning_log._lessons else None,
+            "last_learning_cycle": last_learning_cycle,
+            "bias_report": self.analyze_confidence_bias(),
         }
 
 

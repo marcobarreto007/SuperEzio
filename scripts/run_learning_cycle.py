@@ -13,6 +13,8 @@ from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).resolve().parent.parent
+src_root = project_root / "src"
+sys.path.insert(0, str(src_root))
 sys.path.insert(0, str(project_root))
 
 try:
@@ -32,6 +34,9 @@ try:
         print(f"Wins: {stats['wins']}")
         print(f"Losses: {stats['losses']}")
         print(f"Win rate: {stats['win_rate']*100:.1f}%")
+        bias = stats.get("bias_report", {})
+        if bias:
+            print(f"Bias: {bias.get('bias')} ({bias.get('status')})")
         print(f"Lições registradas: {stats['lessons_logged']}")
         if stats.get('last_learning_cycle'):
             print(f"Último ciclo: {stats['last_learning_cycle']}")
@@ -41,8 +46,13 @@ try:
         results = fb_loop.run_learning_cycle()
 
         print(f"\nTimestamp: {results['timestamp']}")
+        print(f"Teses fechadas C6: {results['theses_closed']}")
         print(f"Padrões encontrados: {results['patterns_found']}")
         print(f"Lições extraídas: {results['lessons_extracted']}")
+
+        bias = results.get("bias_report", {})
+        if bias:
+            print(f"Bias detectado: {bias.get('bias')} ({bias.get('status')})")
 
         if results.get("bob_context"):
             print("\n=== CONTEXTO PARA BOB ===")

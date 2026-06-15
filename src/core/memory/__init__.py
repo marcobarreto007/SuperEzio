@@ -20,9 +20,22 @@ from .conversation_memory import (
 __all__ = [
     "ConversationMemory",
     "ConversationTurn",
-    "get_conversation_memory",
-    "reset_memory_for_test",
+    "GraphMemoryBridge",
+    "HybridRetriever",
+    "KnowledgeGraph",
+    "RerankPipeline",
+    "RetrievalResult",
+    "UnifiedRetriever",
     "get_feedback_loop",
+    "get_conversation_memory",
+    "get_graph_bridge",
+    "get_hybrid_retriever",
+    "get_rerank_pipeline",
+    "get_unified_retriever",
+    "reset_graph_bridge",
+    "reset_hybrid_retriever",
+    "reset_memory_for_test",
+    "reset_rerank_pipeline",
 ]
 
 # Unified Memory Layer - available for import

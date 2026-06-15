@@ -13,9 +13,11 @@ from datetime import datetime, timezone, timedelta
 
 # Add project root to path
 project_root = Path(__file__).resolve().parent.parent
+src_root = project_root / "src"
+sys.path.insert(0, str(src_root))
 sys.path.insert(0, str(project_root))
 
-from core.trading.paper_journal import PaperJournal, PaperTrade
+from core.trading.paper_journal import PaperJournal, PaperTrade  # noqa: E402
 
 
 def create_test_trades():
@@ -118,11 +120,11 @@ def create_test_trades():
     )
     journal.open_trade(trade4)
 
-    print(f"✓ Criados 4 trades de teste:")
-    print(f"  - AEHR (win): momentum breakout")
-    print(f"  - SNDL (loss): rumor não verificado")
-    print(f"  - PLUG (win): earnings catalyst")
-    print(f"  - GNUS (loss): risk management falha")
+    print("✓ Criados 4 trades de teste:")
+    print("  - AEHR (win): momentum breakout")
+    print("  - SNDL (loss): rumor não verificado")
+    print("  - PLUG (win): earnings catalyst")
+    print("  - GNUS (loss): risk management falha")
 
 
 def main():
@@ -139,31 +141,31 @@ def main():
         fb_loop = get_feedback_loop()
         results = fb_loop.run_learning_cycle()
 
-        print(f"\nResultados:")
+        print("\nResultados:")
         print(f"  Timestamp: {results['timestamp']}")
         print(f"  Padrões encontrados: {results['patterns_found']}")
         print(f"  Lições extraídas: {results['lessons_extracted']}")
 
         if results.get("patterns"):
-            print(f"\n  Padrões identificados:")
+            print("\n  Padrões identificados:")
             for p in results["patterns"][:3]:
                 print(f"    - {p['description']} (win rate: {p['win_rate']*100:.0f}%)")
 
         if results.get("lessons"):
-            print(f"\n  Lições extraídas:")
-            for l in results["lessons"][:3]:
-                print(f"    - {l['title']}")
+            print("\n  Lições extraídas:")
+            for lesson in results["lessons"][:3]:
+                print(f"    - {lesson['title']}")
 
         # 3. Verificar stats
         stats = fb_loop.get_stats()
-        print(f"\n3. Estatísticas do sistema:")
+        print("\n3. Estatísticas do sistema:")
         print(f"  Total de trades: {stats['total_trades']}")
         print(f"  Trades fechados: {stats['closed_trades']}")
         print(f"  Win rate: {stats['win_rate']*100:.1f}%")
         print(f"  Lições registradas: {stats['lessons_logged']}")
 
         # 4. Renderizar contexto para Bob
-        print(f"\n4. Contexto para Bob:")
+        print("\n4. Contexto para Bob:")
         bob_context = fb_loop.render_for_bob()
         print(bob_context)
 
