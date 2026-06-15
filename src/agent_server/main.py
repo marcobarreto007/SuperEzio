@@ -20,9 +20,11 @@ if str(_SRC) not in sys.path:
 
 from core.config import get_config  # noqa: E402
 from core.config.secrets import load_local_env  # noqa: E402
+from core.investor.storage import get_investor_storage  # noqa: E402
 from core.mission_context import mission_health_summary  # noqa: E402
 from core.observability import log_queue, metrics  # noqa: E402
 from core.paths import PROJECT_ROOT  # noqa: E402
+from core.sentiment import LiveMonitor, SentimentCurator, WatchlistPulse  # noqa: E402
 
 from .endpoints import router as a2a_router  # noqa: E402
 
@@ -54,6 +56,60 @@ def _env_bool(name: str, default: bool = False) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _clean_watchlist_ticker(value: object) -> str:
+    return "".join(ch for ch in str(value or "").strip().upper() if ch.isalnum() or ch in ".-")
+
+
+def _load_sentiment_watchlist(storage=None) -> list[str]:
+    raw = os.getenv("SUPEREZIO_SENTIMENT_WATCHLIST", "").strip()
+    if raw:
+        parsed = [_clean_watchlist_ticker(item) for item in raw.split(",")]
+        return list(dict.fromkeys(ticker for ticker in parsed if ticker))
+
+    try:
+        store = storage or get_investor_storage()
+        rows = store.get_watchlist()
+    except Exception as exc:
+        logger.warning("[%s] sentiment watchlist unavailable: %s", AGENT_NAME, exc)
+        return []
+
+    tickers: list[str] = []
+    for row in rows:
+        ticker = row.get("ticker") if isinstance(row, dict) else None
+        clean = _clean_watchlist_ticker(ticker)
+        if clean:
+            tickers.append(clean)
+    return list(dict.fromkeys(tickers))
+
+
+def _sentiment_interval_minutes() -> int:
+    raw = os.getenv("SUPEREZIO_SENTIMENT_INTERVAL_MINUTES", "15")
+    try:
+        return max(1, int(raw))
+    except (TypeError, ValueError):
+        logger.warning("[%s] invalid SUPEREZIO_SENTIMENT_INTERVAL_MINUTES=%r; using 15", AGENT_NAME, raw)
+        return 15
+
+
+def _start_sentiment_services(app: FastAPI) -> None:
+    watchlist = _load_sentiment_watchlist()
+    monitor = LiveMonitor(watchlist, interval_minutes=_sentiment_interval_minutes())
+    curator = SentimentCurator()
+    pulse = WatchlistPulse(monitor, curator)
+
+    app.state.sentiment_monitor = monitor
+    app.state.sentiment_curator = curator
+    app.state.sentiment_pulse = pulse
+    monitor.start()
+    logger.info("[%s] Sentiment monitor started for %d tickers.", AGENT_NAME, len(watchlist))
+
+
+def _stop_sentiment_services(app: FastAPI) -> None:
+    monitor = getattr(app.state, "sentiment_monitor", None)
+    if monitor is not None:
+        monitor.stop()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     import sys
@@ -70,6 +126,7 @@ async def lifespan(app: FastAPI):
     gateway = create_gateway()
     app.state.pipeline = build_graph(gateway=gateway)
     logger.info("[%s] Pipeline graph ready.", AGENT_NAME)
+    _start_sentiment_services(app)
 
     logger.info(
         "[%s] === SERVER READY ON http://localhost:%s ===",
@@ -81,6 +138,7 @@ async def lifespan(app: FastAPI):
     yield
 
     logger.info("[%s] Agent Server shutting down...", AGENT_NAME)
+    _stop_sentiment_services(app)
     if hasattr(app.state, "pipeline") and app.state.pipeline is not None:
         app.state.pipeline.shutdown()
 
