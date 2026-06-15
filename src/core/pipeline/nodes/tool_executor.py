@@ -568,6 +568,12 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                 config=config,
             )
 
+        elif tool_name == "collect_data":
+            ticker = args.get("ticker", state.get("ticker", ""))
+            if ticker:
+                result = await node_collector({**state, "ticker": ticker, "route": "ticker_analysis"}, config=config)
+            else:
+                result = {"error": "collect_data requires ticker"}
         elif tool_name == "market_scan":
             # Set route to market_scan
             result = await node_collector(
