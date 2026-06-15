@@ -43,7 +43,7 @@ _DISCOVERY_METHOD = {
     "microcap": "aggressive_small_caps",
     "micro_cap": "aggressive_small_caps",
 }
-_DEFAULT_DISCOVERY = "active"
+_DEFAULT_DISCOVERY = "aggressive_small_caps"  # SuperEzio: caça oportunidade, não large cap
 
 
 def _pick_discovery(sector: str | None, industry: str | None) -> str:
