@@ -76,10 +76,9 @@
 
   function portfolioSection(state) {
     var pf = state.portfolio || {};
-    var ibkr = pf.ibkr || {};
-    var connected = String(ibkr.connection || "").indexOf("connected") >= 0 || ibkr.can_read_account === true;
-    var equity = ibkr.account_equity || "100000.00";
-    var positions = ibkr.positions || [];
+    var connected = pf.connected === true || String(pf.connection || "").indexOf("connected") >= 0;
+    var equity = pf.equity || "100000.00";
+    var positions = pf.positions || [];
     var rows = "";
     if (Array.isArray(positions) && positions.length) {
       rows = positions.slice(0, 5).map(function (pos) {
@@ -147,10 +146,19 @@
   async function refreshPortfolio() {
     var state = (window.SZ.state.bobPanel = window.SZ.state.bobPanel || { steps: {} });
     try {
-      var details = await window.SZ.api.fetchHealthDetails();
-      state.portfolio = {
-        ibkr: (((details || {}).mission || {}).broker || {}).ibkr || {},
-      };
+      if (window.SZ.api.fetchCockpitPortfolio) {
+        state.portfolio = await window.SZ.api.fetchCockpitPortfolio();
+      } else {
+        var details = await window.SZ.api.fetchHealthDetails();
+        var ibkr = (((details || {}).mission || {}).broker || {}).ibkr || {};
+        state.portfolio = {
+          connected: String(ibkr.connection || "").indexOf("connected") >= 0 || ibkr.can_read_account === true,
+          connection: ibkr.connection || "unknown",
+          equity: ibkr.account_equity || "100000.00",
+          positions_count: ibkr.positions_count || 0,
+          positions: ibkr.positions || [],
+        };
+      }
       render();
     } catch (e) {
       state.portfolio = { ibkr: { connection: "offline" } };

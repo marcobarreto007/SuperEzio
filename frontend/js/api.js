@@ -53,6 +53,8 @@
     fetchMetrics() { return fetchJson("/metrics"); },
     fetchManifest() { return fetchJson("/product/manifest"); },
     fetchCapabilities() { return fetchJson("/capabilities"); },
+    fetchCockpitSummary() { return fetchJson("/cockpit/summary"); },
+    fetchCockpitPortfolio() { return fetchJson("/cockpit/portfolio"); },
     fetchSentimentPulse() { return fetchJson("/sentiment/pulse"); },
     fetchSentimentAlerts(limit = 20) {
       return fetchJson(`/sentiment/alerts?limit=${encodeURIComponent(limit)}`);

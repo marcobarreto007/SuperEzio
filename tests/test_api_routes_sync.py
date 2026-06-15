@@ -147,6 +147,32 @@ def test_product_manifest(client_with_mock_pipeline):
     assert "runtime" in data
 
 
+def test_cockpit_portfolio(client_with_mock_pipeline):
+    """GET /cockpit/portfolio - cockpit portfolio contract."""
+    _, client = client_with_mock_pipeline
+    response = client.get("/cockpit/portfolio")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["provider"] == "IBKR"
+    assert "connected" in data
+    assert "equity" in data
+    assert "positions_count" in data
+    assert isinstance(data["positions"], list)
+
+
+def test_cockpit_summary(client_with_mock_pipeline):
+    """GET /cockpit/summary - aggregate frontpage contract."""
+    _, client = client_with_mock_pipeline
+    response = client.get("/cockpit/summary")
+    assert response.status_code == 200
+    data = response.json()
+    assert "generated_at" in data
+    assert data["pipeline"]["status"] == "ok"
+    assert "sentiment" in data
+    assert "portfolio" in data
+    assert data["portfolio"]["provider"] == "IBKR"
+
+
 # ---------------------------------------------------------------------------
 # Endpoints: Market Data & Real-Time SSE
 # ---------------------------------------------------------------------------

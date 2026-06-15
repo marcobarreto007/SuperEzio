@@ -93,6 +93,30 @@ def _as_jsonable(value: Any) -> Any:
     return value
 
 
+def _cockpit_portfolio_snapshot() -> dict[str, Any]:
+    from core.mission_context import mission_health_summary
+
+    mission = mission_health_summary()
+    broker = ((mission.get("broker") or {}).get("ibkr") or {}) if isinstance(mission, dict) else {}
+    connection = str(broker.get("connection") or "")
+    connected = broker.get("can_read_account") is True or "connected" in connection
+    positions_count = int(broker.get("positions_count") or 0)
+    equity = broker.get("account_equity") or "100000.00"
+    return {
+        "provider": "IBKR",
+        "connected": connected,
+        "connection": connection or "unknown",
+        "mode": broker.get("mode") or "unknown",
+        "paper": broker.get("paper_port") is True,
+        "can_submit_orders": broker.get("can_submit_orders") is True,
+        "equity": equity,
+        "cash": broker.get("cash") or equity,
+        "positions_count": positions_count,
+        "positions": broker.get("positions") if isinstance(broker.get("positions"), list) else [],
+        "verified_at": broker.get("verified_at"),
+    }
+
+
 def _is_what_happened_query(message: str) -> bool:
     clean = message.strip().lower().rstrip("?").strip()
     return clean in {
@@ -1466,6 +1490,41 @@ async def list_evidence_runs() -> dict:
             )
 
     return {"runs": runs[:50]}  # limit to last 50
+
+
+@router.get("/cockpit/portfolio")
+async def get_cockpit_portfolio() -> dict[str, Any]:
+    """Return the portfolio snapshot consumed by the cockpit frontpage."""
+
+    return _cockpit_portfolio_snapshot()
+
+
+@router.get("/cockpit/summary")
+async def get_cockpit_summary(request: Request) -> dict[str, Any]:
+    """Return aggregated cockpit data for the frontpage panels."""
+
+    pipeline = getattr(request.app.state, "pipeline", None)
+    pipeline_status = pipeline.get_status() if pipeline else {"status": "unavailable"}
+    sentiment: dict[str, Any] = {"available": False, "pulses": [], "alerts": []}
+    pulse = getattr(request.app.state, "sentiment_pulse", None)
+    monitor = getattr(request.app.state, "sentiment_monitor", None)
+    if pulse is not None and monitor is not None:
+        pulses = [_as_jsonable(item) for item in pulse.get_all_pulses()]
+        alerts = monitor.get_alerts(limit=20)
+        sentiment = {
+            "available": True,
+            "pulses": pulses,
+            "pulse_count": len(pulses),
+            "alerts": alerts,
+            "alert_count": len(alerts),
+        }
+
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "pipeline": pipeline_status,
+        "sentiment": sentiment,
+        "portfolio": _cockpit_portfolio_snapshot(),
+    }
 
 
 @router.get("/sentiment/pulse")
