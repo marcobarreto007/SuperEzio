@@ -442,11 +442,13 @@ def test_required_module_presence_math_and_guardrails():
         "math_report": {"summary": {"sharpe": 1.1}},
         "guardrail_hub": {"total_guardrails": 30},
         "decision_trace": {"summary": {"total_events": 4}},
+        "trinity_report": "=== TRINITY DELIBERATION ===",
     }
     presence = _required_module_presence(state)
     assert presence["math_report"] is True
     assert presence["guardrail_hub"] is True
     assert presence["decision_trace"] is True
+    assert presence["trinity"] is True
 
 
 # ---------------------------------------------------------------------------

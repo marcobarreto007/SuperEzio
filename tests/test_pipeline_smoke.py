@@ -49,6 +49,7 @@ def test_pipeline_get_status():
     assert "gateway_available" in status
     assert isinstance(status["nodes"], list)
     assert len(status["nodes"]) >= 6
+    assert "trinity" in status["nodes"]
     assert "math_hub" in status["nodes"]
     assert "guardrail_hub" in status["nodes"]
 
@@ -62,6 +63,7 @@ def test_pipeline_graph_has_expected_nodes():
         "__start__",
         "orchestrator_primary",
         "auto_full_analysis",
+        "trinity",
         "agent",
         "tool_executor",
         "explanation",
@@ -76,6 +78,17 @@ def test_route_after_orchestrator_blocks_missing_scope():
     assert route_after_orchestrator({"route": "needs_scope"}) == "respond_blocked"
     assert route_after_orchestrator({"action": "ask_for_ticker"}) == "respond_blocked"
     assert route_after_orchestrator({"route": "general"}) == "agent"
+
+
+def test_route_after_trinity_blocks_unanimous_block():
+    from core.pipeline.graph import route_after_trinity
+
+    assert route_after_trinity({"trinity_blocked": True}) == "respond_blocked"
+    assert (
+        route_after_trinity({"trinity_report": "CONSENSUS: BLOCK unanimous"})
+        == "respond_blocked"
+    )
+    assert route_after_trinity({"trinity_report": "CONSENSUS: Both negative."}) == "agent"
 
 
 @pytest.mark.asyncio

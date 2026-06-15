@@ -71,6 +71,7 @@ _MODULE_KEYWORDS: dict[str, list[str]] = {
     "math_report": ["math", "var", "sharpe", "kelly", "crisis"],
     "guardrail_hub": ["guardrail", "firewall", "blocked", "review"],
     "decision_trace": ["trace", "audit", "blame", "latency"],
+    "trinity": ["trinity", "genie", "deep", "consensus", "deliberation"],
 }
 
 
@@ -109,6 +110,7 @@ def _required_module_presence(state: PipelineState) -> dict[str, bool]:
         "math_report": bool(state.get("math_report")),
         "guardrail_hub": bool(state.get("guardrail_hub")),
         "decision_trace": bool(state.get("decision_trace")),
+        "trinity": bool(state.get("trinity_report")),
     }
 
 
@@ -528,6 +530,10 @@ def build_agent_prompt(
     else:
         parts.append("EXPERTS:\nNo expert committee output.")
 
+    trinity_report = state.get("trinity_report", "")
+    if trinity_report:
+        parts.append(f"TRINITY:\n{trinity_report[:3000]}")
+
     neural = state.get("neural_decision") or {}
     if neural and "error" not in neural:
         neural_block = _format_neural_decision(neural)
@@ -586,7 +592,8 @@ def build_agent_prompt(
         "## PENNYLAB\n"
         "## MATH_REPORT\n"
         "## GUARDRAIL_HUB\n"
-        "## DECISION_TRACE\n\n"
+        "## DECISION_TRACE\n"
+        "## TRINITY\n\n"
         "For each section write 1-3 sentences in plain language. "
         "If a module has no data, write 'MISSING -- confidence reduced'.\n"
         "Then write '## BOB_VERDICT' with your final plain-language verdict.\n"

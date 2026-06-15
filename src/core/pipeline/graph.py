@@ -30,10 +30,11 @@ from .nodes.neural_decision import node_neural_decision
 from .nodes.sdca_firewall import node_sdca_firewall
 from .nodes.rag import node_rag_forensics
 from .nodes.guardrail_hub import node_guardrail_hub
+from .nodes.trinity import node_trinity
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["PipelineApp", "build_graph", "route_after_orchestrator"]
+__all__ = ["PipelineApp", "build_graph", "route_after_orchestrator", "route_after_trinity"]
 
 
 def _scan_evidence_payload(
@@ -63,6 +64,19 @@ def route_after_orchestrator(state: dict) -> str:
         "ask_for_ticker",
         "ask_for_scope",
     }:
+        return "respond_blocked"
+    return "agent"
+
+
+def route_after_trinity(state: dict) -> str:
+    """Bypass Bob when Trinity has an explicit unanimous BLOCK."""
+    report = str(state.get("trinity_report") or "")
+    structured = state.get("trinity_structured") if isinstance(state.get("trinity_structured"), dict) else {}
+    if (
+        state.get("trinity_blocked")
+        or structured.get("blocked") is True
+        or "BLOCK unanimous" in report
+    ):
         return "respond_blocked"
     return "agent"
 
@@ -433,6 +447,9 @@ def build_graph(
     async def _auto(state: dict) -> dict:
         return await _auto_full_analysis(state, gateway=gateway, config=config)
 
+    async def _trinity(state: dict) -> dict:
+        return await node_trinity(state, gateway=gateway)
+
     async def _agent(state: dict) -> dict:
         return await node_agent(state, gateway=gateway, config=config, mandamentos=mandamentos)
 
@@ -775,6 +792,7 @@ def build_graph(
 
     builder.add_node("orchestrator_primary", _orchestrator)
     builder.add_node("auto_full_analysis", _auto)
+    builder.add_node("trinity", _trinity)
     builder.add_node("agent", _agent)
     builder.add_node("auto_execute_paper", _auto_execute_paper)
     builder.add_node("tool_executor", _tool_executor)
@@ -790,8 +808,16 @@ def build_graph(
             "agent": "auto_full_analysis",
         },
     )
-    # After full analysis (experts + F51 + neural + SDCA + RAG), go to agent
-    builder.add_edge("auto_full_analysis", "agent")
+    # After full analysis, run Trinity deliberation before Bob sees the state.
+    builder.add_edge("auto_full_analysis", "trinity")
+    builder.add_conditional_edges(
+        "trinity",
+        route_after_trinity,
+        {
+            "agent": "agent",
+            "respond_blocked": "respond_blocked",
+        },
+    )
 
     # Agent decides whether to call a tool or output the final answer.
     # Route through auto_execute_paper before explanation so paper orders
@@ -1155,6 +1181,7 @@ class PipelineApp:
             "nodes": [
                 "orchestrator_primary",
                 "auto_full_analysis",
+                "trinity",
                 "math_hub",
                 "guardrail_hub",
                 "agent",

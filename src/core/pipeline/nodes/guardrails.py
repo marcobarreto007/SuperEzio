@@ -26,12 +26,24 @@ def _sdca_blocked_response(state: dict) -> str:
     )
 
 
+def _trinity_blocked_response(state: dict) -> str:
+    report = state.get("trinity_report") or "Trinity deliberation blocked this candidate."
+    return (
+        "[F51 Trinity Council] BLOCKED\n\n"
+        f"{report}\n\n"
+        "Action: no execution. Bob is bypassed because Genie and Deep reached a unanimous block."
+    )
+
+
 async def node_blocked(state: dict) -> dict:
     """Respond to blocked requests with a polite scope-request message."""
     writer = get_stream_writer()
-    content = (
-        _sdca_blocked_response(state) if state.get("sdca_blocked") else VAGUE_FINANCIAL_RESPONSE
-    )
+    if state.get("trinity_blocked"):
+        content = _trinity_blocked_response(state)
+    elif state.get("sdca_blocked"):
+        content = _sdca_blocked_response(state)
+    else:
+        content = VAGUE_FINANCIAL_RESPONSE
     writer(
         {
             "type": "PIPELINE_STEP",

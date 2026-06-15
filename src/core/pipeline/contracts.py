@@ -83,8 +83,14 @@ class PipelineState(TypedDict, total=False):
     # Unified math/guardrail stage
     math_report: dict[str, Any]
     math_prompt: str
+    sentiment_prompt: str
     guardrail_hub: dict[str, Any]
     decision_trace: dict[str, Any]
+
+    # Trinity deliberation
+    trinity_report: str
+    trinity_structured: dict[str, Any]
+    trinity_blocked: bool
 
     # PennyLab
     pennylab_result: dict[str, Any]

@@ -4,6 +4,7 @@ import src.core.pipeline.nodes.guardrails as guard_node
 from src.core.pipeline.nodes.guardrails import (
     VAGUE_FINANCIAL_RESPONSE,
     _sdca_blocked_response,
+    _trinity_blocked_response,
     node_blocked,
 )
 from src.core.pipeline.security import sanitize_output, validate_input
@@ -49,6 +50,18 @@ def test_sdca_blocked_response_empty():
     assert len(result) > 50
 
 
+def test_trinity_blocked_response_uses_report():
+    result = _trinity_blocked_response(
+        {
+            "trinity_report": "CONSENSUS: BLOCK unanimous",
+        }
+    )
+
+    assert "F51 Trinity Council" in result
+    assert "BLOCK unanimous" in result
+    assert "no execution" in result.lower()
+
+
 # ---------------------------------------------------------------------------
 # node_blocked
 # ---------------------------------------------------------------------------
@@ -89,6 +102,27 @@ def test_node_blocked_sdca():
     result = asyncio.run(_run())
     assert "final" in result
     assert "BLOCKED" in result["final"]
+
+
+def test_node_blocked_trinity():
+    """node_blocked with Trinity blocked flag returns council response."""
+    import asyncio
+
+    guard_node.get_stream_writer = lambda: _noop_writer
+
+    async def _run():
+        return await node_blocked(
+            {
+                "trinity_blocked": True,
+                "trinity_report": "CONSENSUS: BLOCK unanimous",
+                "run_id": "test-blocked-trinity",
+            }
+        )
+
+    result = asyncio.run(_run())
+    assert "final" in result
+    assert "F51 Trinity Council" in result["final"]
+    assert "BLOCK unanimous" in result["final"]
 
 
 # ---------------------------------------------------------------------------

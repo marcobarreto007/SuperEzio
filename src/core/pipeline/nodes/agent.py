@@ -2504,6 +2504,8 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         )
     if state.get("expert_summary"):
         observations.append(f"Expert Committee Summary:\n{state.get('expert_summary')}")
+    if state.get("trinity_report"):
+        observations.append(f"Trinity Deliberation:\n{state.get('trinity_report')}")
     # Dynamic expert weights based on scenario context
     if state.get("expert_weights"):
         observations.append(
