@@ -220,3 +220,10 @@ class TestKillSwitchControl:
         ks.record_trade(-120)
         assert len(ks.history) == 1
         assert ks.history[0]["event"] == "activated"
+
+    def test_singleton_exists_for_pipeline_preflight(self):
+        from core.trading.kill_switch import get_kill_switch, reset_kill_switch_for_test
+
+        reset_kill_switch_for_test()
+        assert get_kill_switch() is get_kill_switch()
+        assert get_kill_switch().state.last_reset_utc

@@ -672,6 +672,31 @@ def build_graph(
         if concentration_blocked:
             return {"paper_exec_blocked": f"concentration:{ticker}"}
 
+        try:
+            from core.trading.kill_switch import get_kill_switch
+
+            kill_state = get_kill_switch().check()
+            if kill_state.is_active:
+                reason = kill_state.reason.value if kill_state.reason else "unknown"
+                writer(
+                    {
+                        "type": "PAPER_ORDER_BLOCKED",
+                        "run_id": run_id,
+                        "ticker": ticker,
+                        "step": "auto_execute_paper",
+                        "status": "blocked",
+                        "reason": f"kill_switch_active:{reason}",
+                        "daily_pnl": kill_state.daily_pnl,
+                        "trade_count": kill_state.trade_count,
+                    }
+                )
+                return {
+                    "paper_exec_blocked": f"kill_switch:{reason}",
+                    "submit_paper_order_error": f"kill_switch_active:{reason}",
+                }
+        except Exception as exc:
+            logger.warning("kill switch preflight unavailable: %s", exc)
+
         writer(
             {
                 "type": "PAPER_EXEC",

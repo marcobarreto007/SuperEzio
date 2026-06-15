@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
@@ -25,6 +26,7 @@ class KillSwitchState:
     trade_count: int = 0
     consecutive_losses: int = 0
     peak_equity: float = 0.0
+    last_reset_utc: str = ""
 
 
 class KillSwitch:
@@ -47,11 +49,15 @@ class KillSwitch:
         self.daily_loss_limit = abs(daily_loss_limit)
         self.max_drawdown_pct = max_drawdown_pct
         self.max_consecutive_losses = max_consecutive_losses
-        self.state = KillSwitchState(peak_equity=initial_equity)
+        self.state = KillSwitchState(
+            peak_equity=initial_equity,
+            last_reset_utc=datetime.now(timezone.utc).date().isoformat(),
+        )
         self._history: list[dict[str, Any]] = []
 
     @property
     def is_active(self) -> bool:
+        self._reset_if_new_utc_day()
         return self.state.is_active
 
     def activate(self, reason: KillSwitchReason) -> None:
@@ -82,6 +88,7 @@ class KillSwitch:
 
     def record_trade(self, pnl: float) -> bool:
         """Record a trade result. Returns True if kill switch triggered."""
+        self._reset_if_new_utc_day()
         self.state.daily_pnl += pnl
         self.state.trade_count += 1
         current_equity = self.state.peak_equity + self.state.daily_pnl
@@ -113,14 +120,43 @@ class KillSwitch:
         return False
 
     def check(self) -> KillSwitchState:
+        self._reset_if_new_utc_day()
         return self.state
 
     def reset_day(self) -> None:
         self.state.daily_pnl = 0.0
         self.state.trade_count = 0
+        self.state.consecutive_losses = 0
+        self.state.last_reset_utc = datetime.now(timezone.utc).date().isoformat()
         if not self.state.is_active or self.state.reason == KillSwitchReason.DAILY_LOSS_LIMIT:
             self.deactivate()
+
+    def _reset_if_new_utc_day(self) -> None:
+        today = datetime.now(timezone.utc).date().isoformat()
+        if self.state.last_reset_utc != today:
+            self.reset_day()
 
     @property
     def history(self) -> list[dict[str, Any]]:
         return list(self._history)
+
+
+_GLOBAL_KILL_SWITCH: KillSwitch | None = None
+
+
+def get_kill_switch() -> KillSwitch:
+    """Return the process-wide paper-trading kill switch."""
+
+    global _GLOBAL_KILL_SWITCH
+    if _GLOBAL_KILL_SWITCH is None:
+        _GLOBAL_KILL_SWITCH = KillSwitch(initial_equity=100_000.0)
+    _GLOBAL_KILL_SWITCH.check()
+    return _GLOBAL_KILL_SWITCH
+
+
+def reset_kill_switch_for_test() -> KillSwitch:
+    """Reset the singleton in tests without touching production journal state."""
+
+    global _GLOBAL_KILL_SWITCH
+    _GLOBAL_KILL_SWITCH = KillSwitch(initial_equity=100_000.0)
+    return _GLOBAL_KILL_SWITCH

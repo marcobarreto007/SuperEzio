@@ -196,6 +196,25 @@ def test_paper_order_gate_does_not_require_operator_approval(monkeypatch):
     )
 
 
+def test_paper_order_gate_blocks_when_kill_switch_active(monkeypatch):
+    from core.trading.kill_switch import KillSwitchReason, reset_kill_switch_for_test
+    from src.core.pipeline.nodes.tool_executor import _paper_order_submission_error
+
+    monkeypatch.setenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
+    kill = reset_kill_switch_for_test()
+    kill.activate(KillSwitchReason.MANUAL)
+
+    assert (
+        _paper_order_submission_error(
+            {"ticket_allowed": True},
+            {"order_type": "LMT", "limit_price": 3.2},
+        )
+        == "kill_switch_active:manual"
+    )
+
+    kill.deactivate()
+
+
 def test_default_market_scan_contract_exposes_paper_submission_tool():
     from src.core.pipeline.intents import infer_cognitive_contract
 

@@ -55,6 +55,15 @@ def _paper_order_submission_error(state: dict, args: dict) -> str:
             return "missing_limit_price"
     except (TypeError, ValueError):
         return "invalid_limit_price"
+    try:
+        from core.trading.kill_switch import get_kill_switch
+
+        kill_state = get_kill_switch().check()
+        if kill_state.is_active:
+            reason = kill_state.reason.value if kill_state.reason else "unknown"
+            return f"kill_switch_active:{reason}"
+    except Exception as exc:
+        logger.warning("kill switch preflight unavailable: %s", exc)
     return ""
 
 
