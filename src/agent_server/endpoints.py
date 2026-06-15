@@ -183,7 +183,7 @@ def _cockpit_ibkr_open_orders() -> list[dict[str, Any]]:
     port = int(os.getenv("IBKR_PORT", "7497"))
     base_client_id = int(os.getenv("IBKR_CLIENT_ID", "1"))
     client_id = int(os.getenv("IBKR_COCKPIT_CLIENT_ID", str(base_client_id + 50)))
-    timeout = float(os.getenv("IBKR_COCKPIT_TIMEOUT", "0.8"))
+    timeout = float(os.getenv("IBKR_COCKPIT_TIMEOUT", "3.0"))
     ib = IB()
     try:
         ib.connect(host, port, clientId=client_id, timeout=timeout)
@@ -197,10 +197,10 @@ def _cockpit_ibkr_open_orders() -> list[dict[str, Any]]:
                 trades.extend(requested)
             except Exception:
                 continue
-        try:
-            ib.waitOnUpdate(timeout=0.2)
-        except Exception:
-            pass
+        # Give IBKR time to return order data
+        import time as _time
+        _time.sleep(0.5)
+        # Collect from all trade sources
         for accessor in ("openTrades", "trades"):
             try:
                 trades.extend(getattr(ib, accessor)() or [])
