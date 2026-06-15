@@ -222,27 +222,19 @@ class OpenBBScanner:
             logger.warning("OpenBB: all discovery methods exhausted, no results")
             return []
 
-            result = discover_fn(provider="yfinance")
-            if result is None or not hasattr(result, "results"):
-                return []
+        items: list[dict[str, Any]] = []
+        source_label = f"openbb:{method}"
+        for r in result.results:
+            item = _map_item(r, source_label)
+            ticker = item.get("ticker")
+            if not ticker:
+                continue
+            items.append(item)
+            if len(items) >= limit:
+                break
 
-            items: list[dict[str, Any]] = []
-            source_label = f"openbb:{method}"
-            for r in result.results:
-                item = _map_item(r, source_label)
-                ticker = item.get("ticker")
-                if not ticker:
-                    continue
-                items.append(item)
-                if len(items) >= limit:
-                    break
-
-            self._cache_set(cache_key, items)
-            return items
-
-        except Exception as exc:
-            logger.warning("OpenBB discovery %s failed: %s", method, exc)
-            return []
+        self._cache_set(cache_key, items)
+        return items
 
     def scan_etfs(self, category: str | None = None, limit: int = 10) -> list[str]:
         """ETF scan — not implemented via OpenBB discovery (use MarketScanner)."""
