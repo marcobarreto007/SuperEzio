@@ -127,7 +127,7 @@ def main() -> None:
         print("Start the API first: powershell -ExecutionPolicy Bypass -File runtime\\do_restart.ps1")
         return
 
-    print(f"\nTraining Plan:")
+    print("\nTraining Plan:")
     print(f"  - {len(TRAINING_PROMPTS)} ticker-specific prompts")
     print(f"  - {len(CONCEPTUAL_PROMPTS)} conceptual prompts")
     print(f"  - Total: {len(TRAINING_PROMPTS) + len(CONCEPTUAL_PROMPTS)} prompts\n")

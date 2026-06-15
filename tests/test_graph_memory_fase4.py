@@ -8,14 +8,12 @@ src_path = str(Path(__file__).parent.parent / "src")
 if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
-import pytest
 from dataclasses import dataclass
 
 from core.memory.graph import (
     Entity,
     EntityExtractor,
     GraphMemoryBridge,
-    GraphNode,
     KnowledgeGraph,
     Relation,
     get_graph_bridge,

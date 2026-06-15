@@ -18,8 +18,6 @@ import math
 import logging
 from collections import Counter
 from dataclasses import dataclass
-from functools import lru_cache
-from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -186,7 +184,6 @@ class HybridRetriever:
             return [_hashed_embedding(t) for t in texts]
 
         # SentenceTransformer
-        import numpy as np
 
         vecs = embedder.encode(
             texts,
@@ -213,7 +210,6 @@ class HybridRetriever:
         if not self._dense_docs:
             return []
 
-        import numpy as np
         from core.memory.conversation_memory import _cosine_sim, _hashed_embedding
 
         # Encode query

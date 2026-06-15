@@ -10,7 +10,6 @@ if src_path not in sys.path:
 
 import tempfile
 
-import pytest
 
 from core.memory.unified import (
     UnifiedRetriever,

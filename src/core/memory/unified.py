@@ -13,12 +13,10 @@ Arquitetura:
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -183,7 +181,7 @@ class PaperJournalAdapter:
 
     def search(self, query: str, top_k: int = 5) -> list[RetrievalResult]:
         """Busca trades por similaridade de texto."""
-        from core.memory.conversation_memory import _tokenize, _cosine_sim, _hashed_embedding
+        from core.memory.conversation_memory import _cosine_sim, _hashed_embedding
 
         trades = self._journal.list_all()
         query_emb = _hashed_embedding(query)

@@ -3,9 +3,8 @@
 import tempfile
 from pathlib import Path
 
-import pytest
 
-from core.memory import ConversationMemory, ConversationTurn, reset_memory_for_test
+from core.memory import reset_memory_for_test
 
 
 def test_memory_init():

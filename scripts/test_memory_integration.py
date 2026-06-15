@@ -86,7 +86,7 @@ async def test_memory_e2e():
             ticker="AAPL",
             session_id=session_id,
         )
-        print(f"  Status: OK")
+        print("  Status: OK")
         print(f"  Response preview: {response1[:150]}...")
         print("  ✓ Test 1 PASSED")
     except Exception as e:
@@ -143,7 +143,7 @@ async def test_memory_e2e():
             ticker="AAPL",
             session_id=session_id,
         )
-        print(f"  Status: OK")
+        print("  Status: OK")
         print(f"  Response preview: {response2[:150]}...")
         print("  ✓ Test 4 PASSED")
     except Exception as e:
