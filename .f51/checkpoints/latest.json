@@ -1,55 +1,89 @@
 {
-  "date_local": "2026-06-15T10:32:00-04:00",
-  "session": "small-caps-research-2026-06-15",
+  "date_local": "2026-06-15T10:50:00-04:00",
+  "session": "stage4-cockpit-trindade-2026-06-15",
   "status": "completed",
   "final_objective": {
-    "what_system_does": "SuperEzio Financeiro runs a local financial-analysis assistant with chart data, math reports, sentiment context, expert deliberation, guardrails, audit traces, and a live sentiment pulse surface collecting data from 24 tickers (9 blue chips + 15 small/nano caps).",
-    "who_it_is_for": "Marco/F51 demo and local operator use for finance research, risk review, educational capital-allocation workflows, monitored watchlist review, and Bob training on small caps.",
-    "main_user_flow": "Start the local stack, ask Bob a finance question or ticker analysis (including small caps), review the guarded response, and query /sentiment endpoints for live watchlist pulse.",
+    "what_system_does": "SuperEzio Financeiro runs a local financial cockpit with Bob chat, chart data, live sentiment pulse, math/expert/trinity pipeline telemetry, guardrails, decision trace, and IBKR paper portfolio status.",
+    "who_it_is_for": "Marco/F51 as local operator for demo, finance research, guarded capital-allocation workflows, and product checkpoint validation.",
+    "main_user_flow": "Start the local stack, open the cockpit at http://127.0.0.1:8002, review Genie sentiment on the left, ask Bob in the center, inspect Deep math/expert/trinity telemetry on the right, and confirm runtime health in the sticky status bar.",
     "start_command": "powershell -ExecutionPolicy Bypass -File runtime\\do_restart.ps1",
-    "proof_output": "pytest suite passes, live health endpoints respond, /sentiment/pulse returns 24 tickers (3 with data: USIO, DIBS, INOD), browser smoke renders without errors.",
-    "blocking_readiness": "Global ruff still has pre-existing memory-layer lint debt. Most small caps return NO_DATA from sentiment sources (limited coverage on nano caps)."
+    "proof_output": "Live health endpoints respond, /cockpit/summary returns pipeline/sentiment/portfolio, /cockpit/portfolio returns IBKR paper connected, browser smoke renders chart and chat without console errors, and local pytest passes.",
+    "blocking_readiness": "The Stage 4 cockpit path is ready for demo. Full-repo ruff still reports unrelated lint debt in scripts, tests, and src/core/memory; it is outside the cockpit changes and should be handled as a separate cleanup gate."
   },
   "what_was_done": [
-    "Performed deep research on 15 small/nano caps with market cap under $200M.",
-    "Created scripts/populate_small_caps.py with 15 tickers across 5 sectors (AI/Tech, Biotech, Finance, Energy, Marketplace).",
-    "Populated watchlist: 24 tickers total (9 existing + 15 new small caps).",
-    "Restarted API server. LiveMonitor collecting sentiment for 24 tickers.",
-    "Verified /sentiment/pulse returns 24 tickers. Only 3 have data (USIO, DIBS, INOD) — most nano caps lack news coverage.",
-    "Created docs/research/small_caps_research_2026-06-15.md with thesis, sources, and market caps."
+    "Implemented CockpitShell on the existing vanilla HTML/CSS/JS stack with three columns and sticky bottom status bar.",
+    "Added GeniePanel polling /sentiment/pulse and /sentiment/alerts every 30 seconds with watchlist pulse, alerts, timeline, and confidence UI.",
+    "Added DeepPanel for math summary, expert verdicts, consensus matrix, and trinity deliberation events.",
+    "Refactored Bob center panel to keep chat while adding decision trace, portfolio IBKR, and guardrail status cards.",
+    "Added StatusBar polling /health/details every 10 seconds for CEO, Genie, Deep, IBKR, guardrails, KillSwitch, and latency.",
+    "Added backend GET /cockpit/summary and GET /cockpit/portfolio contracts with frontend API helpers and route tests.",
+    "Restarted the live local stack and validated API, cockpit contracts, chart canvas, chat response, and browser screenshot."
   ],
   "commits_local": [
-    "329c257 feat: add small caps watchlist populate script (15 tickers)"
+    "b1789b7 feat: add cockpit shell layout",
+    "9a36f31 feat: add cockpit genie sentiment panel",
+    "9b88c7a feat: wire cockpit deep panel",
+    "878b7a4 feat: add cockpit bob decision panel",
+    "27eed0a feat: add cockpit status bar polling",
+    "e5eb1c1 feat: add cockpit summary endpoints"
   ],
   "evidence": {
     "commands": [
-      "python scripts/populate_small_caps.py",
+      "python -m ruff check src/agent_server/endpoints.py src/core/pipeline/graph.py src/core/pipeline/nodes/trinity.py tests/test_api_routes_sync.py",
+      "node --check frontend\\js\\cockpit-shell.js",
+      "node --check frontend\\js\\genie-panel.js",
+      "node --check frontend\\js\\deep-panel.js",
+      "node --check frontend\\js\\bob-panel.js",
+      "node --check frontend\\js\\status-bar.js",
+      "node --check frontend\\js\\api.js",
+      "node --check frontend\\js\\events.js",
+      "python -m pytest tests/test_api_routes_sync.py tests/test_sentiment_endpoints.py tests/test_trinity.py tests/test_pipeline_smoke.py -q",
+      "python -m pytest -q --ignore=tests/test_integration_runtime.py",
       "powershell -ExecutionPolicy Bypass -File runtime\\do_restart.ps1",
-      "Invoke-RestMethod http://127.0.0.1:8002/sentiment/pulse | ConvertTo-Json -Depth 3"
+      "python -m pytest tests/test_integration_runtime.py::test_ceo_health_endpoint tests/test_integration_runtime.py::test_api_health_endpoint tests/test_integration_runtime.py::test_api_health_details_endpoint tests/test_integration_runtime.py::test_capabilities_endpoint tests/test_integration_runtime.py::test_product_manifest_endpoint -q",
+      "Invoke-RestMethod http://127.0.0.1:8002/cockpit/summary | ConvertTo-Json -Depth 8",
+      "Invoke-RestMethod http://127.0.0.1:8002/cockpit/portfolio | ConvertTo-Json -Depth 8",
+      "python scripts\\browser_smoke.py --timeout-ms 180000"
     ],
     "results": [
-      "Watchlist populated: 15 small caps added (AEHR, PLAB, SKYT, SIGA, NEPH, PDSB, IMRX, NUVB, FINV, III, LX, BNRG, INOD, DIBS, USIO).",
-      "Server restarted: health 8082 OK, health 8002 OK.",
-      "/sentiment/pulse returns 24 tickers. 3 with data (USIO, DIBS, INOD), 21 with NO_DATA.",
-      "Most nano caps lack news coverage — sentiment sources don't cover ultra-small caps well."
+      "Focused ruff passed on cockpit backend, pipeline, trinity, and route tests.",
+      "All cockpit JavaScript modules passed node --check.",
+      "Focused pytest passed: 39 passed.",
+      "Full local pytest excluding live integration passed: 1206 passed, 1 warning.",
+      "Live integration subset passed: 5 passed.",
+      "/cockpit/summary returned pipeline_v4_stategraph, 24 sentiment pulses, and IBKR portfolio.",
+      "/cockpit/portfolio returned provider IBKR, connected true, connection connected_paper, paper true, can_submit_orders true, equity 100000.00.",
+      "Browser smoke passed with chart_fetch ok, canvas nonblank 106038 pixels, final chat content length 2281, no console errors.",
+      "Visual screenshot confirmed coherent three-column cockpit and sticky status bar."
     ],
     "files_changed": [
-      "scripts/populate_small_caps.py",
-      "docs/research/small_caps_research_2026-06-15.md",
-      "data/investor.db"
+      "frontend/index.html",
+      "frontend/css/cockpit.css",
+      "frontend/js/api.js",
+      "frontend/js/cockpit-shell.js",
+      "frontend/js/genie-panel.js",
+      "frontend/js/deep-panel.js",
+      "frontend/js/bob-panel.js",
+      "frontend/js/status-bar.js",
+      "frontend/js/events.js",
+      "src/agent_server/endpoints.py",
+      "src/core/pipeline/graph.py",
+      "src/core/pipeline/nodes/trinity.py",
+      "tests/test_api_routes_sync.py"
     ],
     "runtime_artifacts": [
-      "runtime/restart_log.txt",
+      "output/playwright/superezio-browser-smoke-20260615-104824.png",
+      "data/conversation_memory.jsonl",
+      "runtime/traces/decision_trace_20260615.jsonl",
       "runtime/logs/api-8002-latest.log"
     ]
   },
   "risks": [
-    "Most small caps (21/24) return NO_DATA — sentiment sources don't cover nano caps well.",
-    "Nano caps like BNRG (~$3M) are extremely risky — reverse splits, delisting risk, illiquidity.",
-    "Biotech small caps (PDSB, IMRX, NUVB) have binary risk from FDA trials.",
-    "Small caps can be subject to pump-and-dump schemes — Bob must be trained to detect these patterns."
+    "python -m ruff check . still fails with 49 unrelated lint findings in scripts, tests, and src/core/memory.",
+    "Sentiment source coverage remains sparse for many small/nano-cap tickers; cockpit handles NO_DATA but data quality depends on providers.",
+    "Runtime validation modified data/conversation_memory.jsonl and runtime/traces/decision_trace_20260615.jsonl as live artifacts."
   ],
-  "next_step": "Wait for sentiment collection to accumulate data on small caps, or manually query specific tickers for analysis.",
+  "next_step": "Use http://127.0.0.1:8002 for the Stage 4 demo, then run a separate cleanup task for the full-repo ruff debt if a completely green lint gate is required.",
   "owner": "Codex",
   "github_policy": "DISK_ONLY_GITHUB_BLOCKED"
 }
