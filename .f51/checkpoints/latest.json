@@ -27,8 +27,10 @@
     "022644f feat: add paper trading daily cycle",
     "6d83229 feat: Implement real learning loop from trade outcomes",
     "1adc1be feat: close aged paper theses",
+    "34379f8 feat: FeedbackLoop — learning system from closed trades",
     "0db8864 feat: analyze paper trading confidence bias",
-    "fb36456 feat: add paper trading debut report"
+    "fb36456 feat: add paper trading debut report",
+    "a8cf8de audit: sistema completo — 5/5 stages, 498 testes, feedback loop ativo"
   ],
   "evidence": {
     "commands": [
