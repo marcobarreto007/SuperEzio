@@ -134,7 +134,7 @@ body::after {
 
 .chart-workspace {
   display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   padding: 0;
 }
 
@@ -449,10 +449,11 @@ body::after {
 .deep-runtime {
   display: grid;
   gap: 10px;
-  max-height: 420px;
+  max-height: 230px;
   overflow: auto;
   padding: 12px;
-  border-bottom: 1px solid var(--cockpit-line);
+  border-top: 1px solid var(--cockpit-line);
+  background: var(--cockpit-panel-2);
 }
 
 .deep-math-grid {

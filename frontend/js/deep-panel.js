@@ -84,8 +84,7 @@
     var runtime = document.createElement("div");
     runtime.id = "deep-runtime";
     runtime.className = "deep-runtime";
-    var marketHeader = host.querySelector(".market-header");
-    host.insertBefore(runtime, marketHeader || host.firstChild);
+    host.appendChild(runtime);
     return runtime;
   }
 
