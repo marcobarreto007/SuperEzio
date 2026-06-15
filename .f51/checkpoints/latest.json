@@ -1,5 +1,5 @@
 {
-  "date_local": "2026-06-15T10:50:00-04:00",
+  "date_local": "2026-06-15T11:00:00-04:00",
   "session": "stage4-cockpit-trindade-2026-06-15",
   "status": "completed",
   "final_objective": {
@@ -7,8 +7,8 @@
     "who_it_is_for": "Marco/F51 as local operator for demo, finance research, guarded capital-allocation workflows, and product checkpoint validation.",
     "main_user_flow": "Start the local stack, open the cockpit at http://127.0.0.1:8002, review Genie sentiment on the left, ask Bob in the center, inspect Deep math/expert/trinity telemetry on the right, and confirm runtime health in the sticky status bar.",
     "start_command": "powershell -ExecutionPolicy Bypass -File runtime\\do_restart.ps1",
-    "proof_output": "Live health endpoints respond, /cockpit/summary returns pipeline/sentiment/portfolio, /cockpit/portfolio returns IBKR paper connected, browser smoke renders chart and chat without console errors, and local pytest passes.",
-    "blocking_readiness": "The Stage 4 cockpit path is ready for demo. Full-repo ruff still reports unrelated lint debt in scripts, tests, and src/core/memory; it is outside the cockpit changes and should be handled as a separate cleanup gate."
+    "proof_output": "Live health endpoints respond, /cockpit/summary returns the prompt contract with genie/deep/bob/status plus backward-compatible pipeline/sentiment/portfolio, /cockpit/portfolio returns IBKR paper connected, browser smoke renders chart and chat without console errors, and local pytest passes.",
+    "blocking_readiness": "The Stage 4 cockpit path is ready for demo. Full-repo lint debt was partially reduced by a separate commit, but any remaining repo-wide ruff issues outside the cockpit should be handled as a separate cleanup gate."
   },
   "what_was_done": [
     "Implemented CockpitShell on the existing vanilla HTML/CSS/JS stack with three columns and sticky bottom status bar.",
@@ -17,6 +17,7 @@
     "Refactored Bob center panel to keep chat while adding decision trace, portfolio IBKR, and guardrail status cards.",
     "Added StatusBar polling /health/details every 10 seconds for CEO, Genie, Deep, IBKR, guardrails, KillSwitch, and latency.",
     "Added backend GET /cockpit/summary and GET /cockpit/portfolio contracts with frontend API helpers and route tests.",
+    "Aligned the final prompt extras: renamed CockpitShell to frontend/js/cockpit.js, added fetchDecisionTrace(id), and expanded /cockpit/summary to genie/deep/bob/status.",
     "Restarted the live local stack and validated API, cockpit contracts, chart canvas, chat response, and browser screenshot."
   ],
   "commits_local": [
@@ -25,12 +26,14 @@
     "9b88c7a feat: wire cockpit deep panel",
     "878b7a4 feat: add cockpit bob decision panel",
     "27eed0a feat: add cockpit status bar polling",
-    "e5eb1c1 feat: add cockpit summary endpoints"
+    "e5eb1c1 feat: add cockpit summary endpoints",
+    "bf593af fix: align cockpit summary contract with stage 4 prompt",
+    "459c078 fix: expand cockpit summary prompt contract"
   ],
   "evidence": {
     "commands": [
       "python -m ruff check src/agent_server/endpoints.py src/core/pipeline/graph.py src/core/pipeline/nodes/trinity.py tests/test_api_routes_sync.py",
-      "node --check frontend\\js\\cockpit-shell.js",
+      "node --check frontend\\js\\cockpit.js",
       "node --check frontend\\js\\genie-panel.js",
       "node --check frontend\\js\\deep-panel.js",
       "node --check frontend\\js\\bob-panel.js",
@@ -43,6 +46,8 @@
       "python -m pytest tests/test_integration_runtime.py::test_ceo_health_endpoint tests/test_integration_runtime.py::test_api_health_endpoint tests/test_integration_runtime.py::test_api_health_details_endpoint tests/test_integration_runtime.py::test_capabilities_endpoint tests/test_integration_runtime.py::test_product_manifest_endpoint -q",
       "Invoke-RestMethod http://127.0.0.1:8002/cockpit/summary | ConvertTo-Json -Depth 8",
       "Invoke-RestMethod http://127.0.0.1:8002/cockpit/portfolio | ConvertTo-Json -Depth 8",
+      "python scripts\\browser_smoke.py --timeout-ms 180000",
+      "Invoke-RestMethod http://127.0.0.1:8002/cockpit/summary | Select genie,deep,bob,status",
       "python scripts\\browser_smoke.py --timeout-ms 180000"
     ],
     "results": [
@@ -51,16 +56,17 @@
       "Focused pytest passed: 39 passed.",
       "Full local pytest excluding live integration passed: 1206 passed, 1 warning.",
       "Live integration subset passed: 5 passed.",
-      "/cockpit/summary returned pipeline_v4_stategraph, 24 sentiment pulses, and IBKR portfolio.",
+      "/cockpit/summary returned pipeline_v4_stategraph, 24 sentiment pulses, IBKR portfolio, and the prompt tree genie/deep/bob/status.",
       "/cockpit/portfolio returned provider IBKR, connected true, connection connected_paper, paper true, can_submit_orders true, equity 100000.00.",
       "Browser smoke passed with chart_fetch ok, canvas nonblank 106038 pixels, final chat content length 2281, no console errors.",
-      "Visual screenshot confirmed coherent three-column cockpit and sticky status bar."
+      "Prompt extra live proof returned hasGenie true, hasDeep true, hasBob true, hasStatus true, pulseCount 24, ibkr online, guardrails 30/30.",
+      "Final browser smoke after js/cockpit.js rename passed with screenshot output/playwright/superezio-browser-smoke-20260615-105703.png."
     ],
     "files_changed": [
       "frontend/index.html",
       "frontend/css/cockpit.css",
       "frontend/js/api.js",
-      "frontend/js/cockpit-shell.js",
+      "frontend/js/cockpit.js",
       "frontend/js/genie-panel.js",
       "frontend/js/deep-panel.js",
       "frontend/js/bob-panel.js",
@@ -73,13 +79,14 @@
     ],
     "runtime_artifacts": [
       "output/playwright/superezio-browser-smoke-20260615-104824.png",
+      "output/playwright/superezio-browser-smoke-20260615-105703.png",
       "data/conversation_memory.jsonl",
       "runtime/traces/decision_trace_20260615.jsonl",
       "runtime/logs/api-8002-latest.log"
     ]
   },
   "risks": [
-    "python -m ruff check . still fails with 49 unrelated lint findings in scripts, tests, and src/core/memory.",
+    "Repo-wide ruff state should be checked in a separate cleanup pass; Stage 4 focused ruff checks passed.",
     "Sentiment source coverage remains sparse for many small/nano-cap tickers; cockpit handles NO_DATA but data quality depends on providers.",
     "Runtime validation modified data/conversation_memory.jsonl and runtime/traces/decision_trace_20260615.jsonl as live artifacts."
   ],
