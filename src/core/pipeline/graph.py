@@ -229,18 +229,10 @@ async def _auto_full_analysis(
 
     try:
         collector_result: dict[str, Any] = {}
-        if route == "market_scan" and not working_state.get("scan"):
+        # Sovereign mode: ALWAYS collect data — Bob needs evidence, not a chat
+        if not working_state.get("scan") and not working_state.get("data"):
             collector_result = await node_collector(
                 {**working_state, "route": "market_scan"},
-                config=config,
-            )
-        elif (
-            working_state.get("ticker")
-            and not working_state.get("data")
-            and route in {"ticker_analysis", "market_scan"}
-        ):
-            collector_result = await node_collector(
-                {**working_state, "route": "ticker_analysis"},
                 config=config,
             )
         if collector_result:
@@ -287,32 +279,39 @@ async def _auto_full_analysis(
             {"errors": [f"auto_full_analysis.math_hub:{exc}"]},
         )
 
-    if ticker:
-        expert_results: list[dict[str, Any]] = []
-        roles = [
-            "macro_risk",
-            "fundamental_value",
-            "momentum_technical",
-            "contrarian_opportunity",
-            "sentiment",
-            "social_forensics",
-        ]
-        for role in roles:
-            try:
-                res = await node_expert(
-                    {
-                        **working_state,
-                        "role": role,
-                        "ticker": ticker,
-                        "data_context": data_context,
-                    },
-                    gateway=gateway,
-                )
-                for expert_result in res.get("expert_results", []):
-                    expert_result.setdefault("role", role)
-                    expert_result.setdefault("provider", EXPERT_PROVIDERS.get(role, "unknown"))
-                    expert_results.append(expert_result)
-            except Exception as exc:
+    # Sovereign mode: ALWAYS run experts. If no ticker, analyze market context.
+    expert_context_ticker = ticker or working_state.get("ticker") or ""
+    if not expert_context_ticker:
+        # Try to extract from scan results
+        scan_candidates = (working_state.get("scan") or {}).get("candidates", [])
+        if scan_candidates:
+            expert_context_ticker = scan_candidates[0].get("ticker", "")
+    # Always run — even with empty ticker, experts analyze macro/sentiment context
+    expert_results: list[dict[str, Any]] = []
+    roles = [
+        "macro_risk",
+        "fundamental_value",
+        "momentum_technical",
+        "contrarian_opportunity",
+        "sentiment",
+        "social_forensics",
+    ]
+    for role in roles:
+        try:
+            res = await node_expert(
+                {
+                    **working_state,
+                    "role": role,
+                    "ticker": ticker,
+                    "data_context": data_context,
+                },
+                gateway=gateway,
+            )
+            for expert_result in res.get("expert_results", []):
+                expert_result.setdefault("role", role)
+                expert_result.setdefault("provider", EXPERT_PROVIDERS.get(role, "unknown"))
+                expert_results.append(expert_result)
+        except Exception as exc:
                 expert_results.append(
                     {
                         "role": role,
@@ -337,13 +336,6 @@ async def _auto_full_analysis(
                     "errors": [f"auto_full_analysis.experts:{exc}"],
                 },
             )
-    else:
-        _merge_node_update(
-            working_state,
-            output,
-            {"expert_summary": "Experts skipped: no ticker selected by scanner or user."},
-        )
-
     # ── IBKR portfolio snapshot: always inject current positions ──
     try:
         from ib_insync import IB as _IB
