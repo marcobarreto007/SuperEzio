@@ -5,6 +5,7 @@ import os
 import re
 import time
 from collections.abc import AsyncGenerator
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -55,6 +56,41 @@ _ADVISORY_TRACE_INTENTS = {
     "personal_finance",
     "real_estate_vs_markets",
 }
+
+
+def _get_sentiment_pulse(request: Request):
+    pulse = getattr(request.app.state, "sentiment_pulse", None)
+    if pulse is None:
+        raise HTTPException(status_code=503, detail="sentiment pulse unavailable")
+    return pulse
+
+
+def _get_sentiment_monitor(request: Request):
+    monitor = getattr(request.app.state, "sentiment_monitor", None)
+    if monitor is None:
+        raise HTTPException(status_code=503, detail="sentiment monitor unavailable")
+    return monitor
+
+
+def _parse_iso_datetime(value: Any) -> datetime | None:
+    if not value:
+        return None
+    try:
+        text = str(value)
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        parsed = datetime.fromisoformat(text)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed
+    except (TypeError, ValueError):
+        return None
+
+
+def _as_jsonable(value: Any) -> Any:
+    if hasattr(value, "to_dict"):
+        return value.to_dict()
+    return value
 
 
 def _is_what_happened_query(message: str) -> bool:
@@ -1430,6 +1466,56 @@ async def list_evidence_runs() -> dict:
             )
 
     return {"runs": runs[:50]}  # limit to last 50
+
+
+@router.get("/sentiment/pulse")
+async def get_sentiment_pulses(request: Request) -> dict[str, Any]:
+    """Return the latest sentiment pulse for the full watchlist."""
+
+    pulse = _get_sentiment_pulse(request)
+    reports = [_as_jsonable(item) for item in pulse.get_all_pulses()]
+    return {"pulses": reports, "count": len(reports)}
+
+
+@router.get("/sentiment/pulse/{ticker}")
+async def get_sentiment_pulse(ticker: str, request: Request) -> dict[str, Any]:
+    """Return the latest sentiment pulse for one ticker."""
+
+    clean = _sanitize_ticker(ticker)
+    pulse = _get_sentiment_pulse(request)
+    return {"pulse": _as_jsonable(pulse.get_pulse(clean))}
+
+
+@router.get("/sentiment/alerts")
+async def get_sentiment_alerts(
+    request: Request,
+    limit: int = Query(20, ge=1, le=100),
+) -> dict[str, Any]:
+    """Return newest live sentiment alerts."""
+
+    monitor = _get_sentiment_monitor(request)
+    alerts = monitor.get_alerts(limit=limit)
+    return {"alerts": alerts, "count": len(alerts)}
+
+
+@router.get("/sentiment/history/{ticker}")
+async def get_sentiment_history(
+    ticker: str,
+    request: Request,
+    hours: int = Query(24, ge=1, le=168),
+) -> dict[str, Any]:
+    """Return sentiment history for one ticker."""
+
+    clean = _sanitize_ticker(ticker)
+    monitor = _get_sentiment_monitor(request)
+    snapshot = monitor.get_sentiment_snapshot(clean)
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    history = []
+    for item in snapshot.get("history_24h") or []:
+        ts = _parse_iso_datetime(item.get("collected_at"))
+        if ts is None or ts >= cutoff:
+            history.append(item)
+    return {"ticker": clean, "hours": hours, "history": history, "count": len(history)}
 
 
 @router.get("/health/trace/{run_id}")
