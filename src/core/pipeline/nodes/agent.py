@@ -2559,6 +2559,20 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     except Exception:
         pass
 
+    # ── RAG: Busca semântica no conhecimento acumulado ──
+    try:
+        from core.rag.engine import forensic_rag
+        message = state.get("message", "")
+        ticker = state.get("ticker", "")
+        query = f"{ticker} {message}" if ticker else message
+        if len(query) > 20:
+            rag_results = forensic_rag.search(query, top_k=3)
+            if rag_results:
+                rag_ctx = forensic_rag.format_context(rag_results, max_chars=800)
+                observations.append("RAG KNOWLEDGE:\n" + rag_ctx)
+    except Exception:
+        pass
+
     if state.get("ticker"):
         observations.append(f"Current Ticker: {state.get('ticker')}")
     if state.get("data_context"):
