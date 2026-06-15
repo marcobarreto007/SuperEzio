@@ -56,7 +56,7 @@ body::after {
 
 .app-main {
   display: grid;
-  grid-template-columns: minmax(280px, 0.82fr) minmax(520px, 1.35fr) minmax(340px, 1fr);
+  grid-template-columns: minmax(280px, 0.82fr) minmax(520px, 2.35fr);
   gap: 12px;
   min-height: 0;
   padding: 12px 12px 10px;
@@ -64,7 +64,6 @@ body::after {
 }
 
 .cockpit-panel,
-.right-stack,
 .chart-workspace {
   min-width: 0;
   min-height: 0;
@@ -75,14 +74,36 @@ body::after {
   overflow: hidden;
 }
 
+.right-stack {
+  position: fixed;
+  bottom: 58px;
+  right: 24px;
+  width: 420px;
+  height: 600px;
+  max-height: calc(100vh - 160px);
+  z-index: 999;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 230, 118, 0.25);
+  background: rgba(10, 14, 11, 0.82);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85), 0 0 25px rgba(0, 230, 118, 0.12);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.right-stack.is-collapsed {
+  height: 44px;
+  max-height: 44px;
+  border-color: rgba(0, 230, 118, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
 .cockpit-panel {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-}
-
-.right-stack {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
 .chart-workspace {
@@ -93,23 +114,7 @@ body::after {
 
 .right-stack::before,
 .chart-workspace::before {
-  display: flex;
-  align-items: center;
-  min-height: 48px;
-  padding: 0 14px;
-  border-bottom: 1px solid var(--cockpit-line);
-  background: var(--cockpit-panel-2);
-  color: var(--cockpit-text);
-  font: 800 13px var(--font-mono);
-  letter-spacing: 0;
-}
-
-.right-stack::before {
-  content: "BOB  Decisao e Pipeline";
-}
-
-.chart-workspace::before {
-  content: "DEEP  Matematica e Experts";
+  display: none !important;
 }
 
 .cockpit-panel__header {
@@ -308,6 +313,26 @@ body::after {
 .terminal-card-hdr {
   background: rgba(13, 17, 23, 0.74);
   border-bottom-color: var(--cockpit-line);
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.terminal-card-hdr::after {
+  content: "▼";
+  font-size: 8px;
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--cockpit-green);
+  text-shadow: 0 0 4px var(--cockpit-green);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0.85;
+}
+
+.right-stack.is-collapsed .terminal-card-hdr::after {
+  transform: translateY(-50%) rotate(-90deg);
 }
 
 .chat {
@@ -315,7 +340,7 @@ body::after {
 }
 
 .bottombar {
-  background: #0d1117;
+  background: rgba(13, 17, 23, 0.85);
   border-top-color: var(--cockpit-line);
 }
 
