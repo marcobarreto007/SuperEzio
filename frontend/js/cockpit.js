@@ -119,9 +119,55 @@
     }
   }
 
+  // ── Bob Panel Draggable ──
+  function initDrag() {
+    var panel = document.getElementById("live-panel");
+    if (!panel) return;
+    var header = panel.querySelector(".terminal-card-hdr");
+    if (!header) return;
+
+    var dragging = false;
+    var startX, startY, origLeft, origTop;
+    var panelStyle = panel.style;
+
+    // Ensure position:fixed with pixel coords (not bottom/right)
+    function lockPosition() {
+      var rect = panel.getBoundingClientRect();
+      panelStyle.left = rect.left + "px";
+      panelStyle.top = rect.top + "px";
+      panelStyle.right = "auto";
+      panelStyle.bottom = "auto";
+    }
+
+    header.addEventListener("mousedown", function (e) {
+      if (e.target.tagName === "BUTTON" || e.target.tagName === "I" || e.target.closest("button")) return;
+      dragging = true;
+      lockPosition();
+      startX = e.clientX;
+      startY = e.clientY;
+      origLeft = parseInt(panelStyle.left) || panel.getBoundingClientRect().left;
+      origTop = parseInt(panelStyle.top) || panel.getBoundingClientRect().top;
+      panelStyle.transition = "none";
+      e.preventDefault();
+    });
+
+    document.addEventListener("mousemove", function (e) {
+      if (!dragging) return;
+      panelStyle.left = (origLeft + e.clientX - startX) + "px";
+      panelStyle.top = (origTop + e.clientY - startY) + "px";
+    });
+
+    document.addEventListener("mouseup", function () {
+      if (!dragging) return;
+      dragging = false;
+      panelStyle.transition = "box-shadow 0.4s ease, border-color 0.4s ease";
+    });
+  }
+
   function init() {
     refreshAll();
     window.setInterval(refreshAll, 10000);
+    initDrag();
   }
 
   window.SZ = window.SZ || {};
