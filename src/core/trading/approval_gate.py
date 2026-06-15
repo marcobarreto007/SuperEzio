@@ -33,7 +33,7 @@ class ApprovalRequest:
 
 @dataclass
 class GateConfig:
-    max_auto_approve_amount: float = 0.0
+    max_auto_approve_amount: float = 500.0  # Paper mode: auto-approve up to \$500 risk
     require_approval_above_risk: float = 200.0
     ttl_seconds: float = 3600.0
     enable_email: bool = True

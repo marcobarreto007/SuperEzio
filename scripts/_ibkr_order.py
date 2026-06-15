@@ -39,8 +39,10 @@ def main():
 
         if limit_price > 0:
             order = LimitOrder(action, qty, limit_price)
+            order.tif = 'DAY'  # Explicit TIF — prevents TWS preset cancellation
         else:
             order = MarketOrder(action, qty)
+            order.tif = 'DAY'
 
         trade = ib.placeOrder(contract, order)
         ib.sleep(3)
