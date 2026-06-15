@@ -1,69 +1,70 @@
 {
-  "date_local": "2026-06-15T13:18:00-04:00",
-  "session": "stage5-ui-facelift-2026-06-15",
+  "date_local": "2026-06-15T15:52:45-04:00",
+  "session": "ibkr-order-mirror-learning-flow-2026-06-15",
   "status": "completed",
   "final_objective": {
-    "what_system_does": "SuperEzio Financeiro runs a local financial cockpit and Bob pipeline that can analyze finance requests, submit guarded IBKR paper orders, journal paper trades, learn from closed outcomes, and generate a debut report.",
-    "who_it_is_for": "Marco/F51 as local operator for paper-trading demo, guarded capital-allocation workflows, and future monetizable finance cockpit validation.",
-    "main_user_flow": "Start the local stack, open the cockpit at http://127.0.0.1:8002, ask Bob for an analysis, allow only paper-order flow through KillSwitch, ApprovalGate, and PositionSizer, then review PaperJournal, learning loop, and debut report.",
-    "start_command": "powershell -ExecutionPolicy Bypass -File runtime\\do_restart.ps1",
-    "proof_output": "Ruff passed on Stage 5 files, 1226/1229 pytest tests passed, /health and /cockpit/summary responded live, browser smoke rendered chart and chat without console errors, and scripts/debut_report.py generated the Stage 5 C1-C8 report.",
-    "blocking_readiness": "Implementation is ready for paper operation. The real journal is not yet ready for live-money consideration: C6/C7 report remains PENDING because current live data has 0 aged thesis_closed trades and older trades lack Bob confidence strings."
+    "what_system_does": "SuperEzio Financeiro runs a local financial cockpit and Bob pipeline for chart analysis, IBKR paper visibility, guarded paper-order flow, learning feedback, RAG context, and expert committee decisions.",
+    "who_it_is_for": "Marco/F51 as local operator for demo, paper trading training, guarded broker workflows, and future monetizable finance cockpit validation.",
+    "main_user_flow": "Start the API, open http://127.0.0.1:8002, see IBKR status/orders/positions on the frontpage, click an active order or position to drive the chart/panel ticker, then use Bob/pipeline for guarded analysis or paper submission.",
+    "start_command": "python -m agent_server.main",
+    "proof_output": "/health ok, /cockpit/portfolio includes orders/orders_count/active_orders/selected_ticker, Playwright smoke renders chart, and a mirror-click test changes chartData/workspace/input to the clicked order ticker.",
+    "blocking_readiness": "Runtime is usable for the order-mirror flow. Current live IBKR read returned orders_count=0; if TWS visibly has active orders while this endpoint stays 0, inspect TWS API permissions/clientId/open-order visibility next."
   },
   "what_was_done": [
-    "Transformed Bob Copilot panel into a glassmorphic floating widget overlaying the main screen.",
-    "Added header-click event listener to toggle collapse/expand state for the Bob chat widget.",
-    "Resolved mouse event collision: dragging Bob's panel no longer collapses it when mouseup occurs.",
-    "Spaced out cockpit layout columns to give the main candlestick chart full screen real estate.",
-    "Overhauled render-chart.js to render glowing green/red candlesticks and wicks, inline indicators, last price dashed tracker, and floating last price axis badge.",
-    "Synchronized live candle SSE stream to trigger renderChart on every tick.",
-    "Docked Deep math/expert summary panel at the bottom of the workspace column to maximize vertical chart space.",
-    "Implemented a ResizeObserver on the chart canvas parent to automatically resize and redraw the chart whenever dimensions change, preventing any empty black spaces.",
-    "Visual facelift of logos (metallic gradient text, neon outline F51 badge, cyan subheader) and more vivid, electric glow parameters on the canvas.",
-    "Replaced jellyfish-like Lucide icon with a custom premium SVG AI core icon.",
-    "Redesigned the BOB COPILOT header title with neon-gradient and cyan-glowing typography, wide letter-spacing, and display font weight overrides.",
-    "Verified UI renders without console errors and draws a tall (1013x511) chart correctly using browser smoke Playwright script."
-  ],
-  "commits_local": [
-    "5c5b102 feat: gate paper orders with kill switch",
-    "75cf13c feat: require approval for high-risk paper orders",
-    "271eef7 feat: cap paper orders with position sizing",
-    "022644f feat: add paper trading daily cycle",
-    "6d83229 feat: Implement real learning loop from trade outcomes",
-    "1adc1be feat: close aged paper theses",
-    "34379f8 feat: FeedbackLoop — learning system from closed trades",
-    "0db8864 feat: analyze paper trading confidence bias",
-    "fb36456 feat: add paper trading debut report",
-    "a8cf8de audit: sistema completo — 5/5 stages, 498 testes, feedback loop ativo"
+    "Added read-only IBKR open-order mirroring to /cockpit/portfolio, including orders, active_orders, orders_count, orders_source, and selected_ticker.",
+    "Expanded IBKR order reads to request all open orders, not only orders owned by the same API client.",
+    "Added a visible frontpage IBKR Mirror panel under the chart for active orders and positions.",
+    "Made order and position rows clickable; clicking a row updates ticker input, workspace labels, selected state, chart fetch, and Bob market context.",
+    "Changed boot priority so AAPL is only a fallback after typed ticker, selected ticker, active orders, positions, backend selected_ticker, and current chart state.",
+    "Updated Bob panel and cockpit summary feed so portfolio/order data refreshes the visible mirror.",
+    "Converted /trade/execute from immediate broker submission into a pending-validation ticket so it cannot bypass guardrails, RAG, feedback, or the expert committee.",
+    "Fixed node_tool_executor writer initialization in the forced expert-committee path before submit_paper_order.",
+    "Updated tests for the current ApprovalGate threshold where risk <= 500 auto-approves and risk > 500 requires manual approval.",
+    "Restarted the live API on port 8002 so the running cockpit uses the new code."
   ],
   "evidence": {
     "commands": [
-      ".venv\\Scripts\\python.exe scripts/browser_smoke.py --skip-chat",
-      ".venv\\Scripts\\python.exe -m pytest"
+      "node --check frontend/js/init.js; node --check frontend/js/cockpit.js; node --check frontend/js/bob-panel.js",
+      "python -m py_compile src/agent_server/endpoints.py",
+      "python -m ruff check src/agent_server/endpoints.py src/core/pipeline/nodes/tool_executor.py tests/test_api_routes_sync.py tests/test_auto_full_analysis.py",
+      "$env:PYTHONPATH='src'; python -m pytest tests/test_api_routes_sync.py tests/test_auto_full_analysis.py tests/test_decisive_trade_order.py tests/contracts/test_contract_trading.py -q",
+      "python scripts/browser_smoke.py --timeout-ms 180000 --skip-chat",
+      "Playwright injected IBKR order QA row, clicked MSFT, and verified workspaceTicker/inputTicker/chartTicker=MSFT with 130 candles"
     ],
     "results": [
-      "Browser smoke test passed: health ok, AAPL chart status 200, 130 candles, canvas width 1013, height 511, nonBlank 517643 pixels (up from 106038 baseline), zero console errors.",
-      "Browser smoke screenshot: output/playwright/superezio-browser-smoke-20260615-131735.png.",
-      "Pytest completed: 1226 passed, 3 failed (contract assertions due to Stage 5 phase and fallback provider updates, pre-existing and unrelated to UI changes)."
-    ],
-    "files_changed": [
-      "frontend/index.html",
-      "frontend/css/cockpit.css",
-      "frontend/css/topbar.css",
-      "frontend/js/bob-panel.js",
-      "frontend/js/render-chart.js",
-      "frontend/js/live.js",
-      "frontend/js/deep-panel.js",
-      "frontend/js/cockpit.js"
+      "JS syntax passed for init.js, cockpit.js, bob-panel.js.",
+      "Python compile passed for endpoints.py.",
+      "Ruff passed on changed Python files.",
+      "Targeted pytest matrix passed: 77 passed in 11.11s.",
+      "Focused cockpit API tests passed after reqAllOpenOrders change: 2 passed.",
+      "Browser smoke passed: health ok, AAPL chart 130 candles, canvas nonBlank 434577, zero console errors.",
+      "Order click proof passed: ordersCount=1, selectedRows=1, workspaceTicker=MSFT, inputTicker=MSFT, chartTicker=MSFT, candleCount=130, selectedSource=ibkr_mirror_click, zero console errors.",
+      "Live /cockpit/portfolio after restart has new schema and IBKR connected_paper; current live orders_count=0."
     ],
     "runtime_artifacts": [
-      "output/playwright/superezio-browser-smoke-20260615-131735.png"
+      "output/playwright/superezio-browser-smoke-20260615-154615.png",
+      "output/playwright/superezio-orders-click-msft.png",
+      "runtime/logs/api_8002.log"
+    ],
+    "files_changed": [
+      "src/agent_server/endpoints.py",
+      "src/core/pipeline/nodes/tool_executor.py",
+      "frontend/index.html",
+      "frontend/css/charts.css",
+      "frontend/js/init.js",
+      "frontend/js/cockpit.js",
+      "frontend/js/bob-panel.js",
+      "tests/test_api_routes_sync.py",
+      "tests/test_auto_full_analysis.py",
+      ".f51/checkpoints/latest.json"
     ]
   },
   "risks": [
-    "Verify layout spacing on other viewport sizes; the layout works best at widescreen >= 1180px."
+    "Full python -m pytest exceeded the 5 minute command timeout and did not return a complete result; the focused 77-test matrix plus browser smoke passed.",
+    "Browser plugin/chrome-devtools MCP was not available in this session, so validation used repository Playwright smoke and a direct Playwright script.",
+    "Runtime traces and conversation memory changed during live validation."
   ],
-  "next_step": "Conclude visual facelift handoff and gather feedback.",
+  "next_step": "If Marco has an active order visible in TWS but /cockpit/portfolio still returns orders_count=0, run an IBKR API open-order diagnostic against the same TWS session/client permissions.",
   "owner": "Codex",
   "github_policy": "DISK_ONLY_GITHUB_BLOCKED"
 }

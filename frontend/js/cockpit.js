@@ -86,6 +86,9 @@
     if (data.last_decision) state.lastCockpitDecision = data.last_decision;
     if (data.guardrails) state.guardrailCockpit = data.guardrails;
     if (data.portfolio) state.portfolio = data.portfolio;
+    if (data.portfolio && window.SZ.renderPortfolioMirror) {
+      window.SZ.renderPortfolioMirror(data.portfolio);
+    }
     if (window.SZ.bobPanel && window.SZ.bobPanel.render) window.SZ.bobPanel.render();
   }
 

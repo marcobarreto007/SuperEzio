@@ -125,6 +125,19 @@
       <section class="chart-stage">
         <div class="live-canvas-wrap"><canvas id="live-canvas"></canvas></div>
       </section>
+
+      <section class="orders-mirror" id="orders-mirror" aria-label="IBKR active orders">
+        <div class="orders-mirror__header">
+          <div>
+            <span>IBKR Mirror</span>
+            <strong>Active orders and positions</strong>
+          </div>
+          <span class="orders-mirror__count" id="orders-count">--</span>
+        </div>
+        <div class="orders-list" id="orders-list">
+          <div class="cockpit-empty">Loading IBKR orders.</div>
+        </div>
+      </section>
     </main>
 
   </section>

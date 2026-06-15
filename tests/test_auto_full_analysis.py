@@ -233,13 +233,13 @@ async def test_submit_paper_order_pending_when_risk_exceeds_approval(monkeypatch
             "qty": 100,
             "order_type": "LMT",
             "limit_price": 100.0,
-            "stop_loss_price": 95.0,
+            "stop_loss_price": 94.99,
         },
     )
 
     assert result["submit_paper_order_error"].startswith("approval_pending:apr-")
     assert result["paper_approval_request"]["status"] == "pending"
-    assert result["paper_approval_request"]["risk_amount"] == 500.0
+    assert result["paper_approval_request"]["risk_amount"] == pytest.approx(501.0)
 
 
 @pytest.mark.asyncio
@@ -260,7 +260,7 @@ async def test_submit_paper_order_caps_qty_before_approval(monkeypatch):
             "qty": 1000,
             "order_type": "LMT",
             "limit_price": 100.0,
-            "stop_loss_price": 95.0,
+            "stop_loss_price": 94.99,
         },
     )
 
@@ -268,7 +268,7 @@ async def test_submit_paper_order_caps_qty_before_approval(monkeypatch):
     assert result["position_sizing"]["requested_qty"] == 1000
     assert result["position_sizing"]["approved_qty"] == 100
     assert result["position_sizing"]["capped"] is True
-    assert result["paper_approval_request"]["risk_amount"] == 500.0
+    assert result["paper_approval_request"]["risk_amount"] == pytest.approx(501.0)
 
 
 def test_default_market_scan_contract_exposes_paper_submission_tool():

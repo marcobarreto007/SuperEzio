@@ -89,13 +89,38 @@
   function buildPortfolioContext() {
     var pf = SZ.state && SZ.state.portfolio;
     if (!pf) return "";
-    var keys = Object.keys(pf);
-    if (!keys.length) return "";
     var lines = ["=== PORTFOLIO ==="];
-    keys.forEach(function (k) {
-      var p = pf[k];
-      if (p && p.shares) lines.push(k + ": " + p.shares + " shares");
-    });
+    var orders = Array.isArray(pf.orders) ? pf.orders : (Array.isArray(pf.active_orders) ? pf.active_orders : []);
+    var positions = Array.isArray(pf.positions) ? pf.positions : [];
+    if (orders.length) {
+      lines.push("Active IBKR orders:");
+      orders.slice(0, 8).forEach(function (order) {
+        var ticker = sanitTicker(order.ticker || order.symbol);
+        if (!ticker) return;
+        lines.push(
+          "- " + ticker + " " + String(order.action || order.side || "").toUpperCase() +
+          " qty=" + (order.qty || order.quantity || "--") +
+          " status=" + (order.status || "--")
+        );
+      });
+    }
+    if (positions.length) {
+      lines.push("IBKR positions:");
+      positions.slice(0, 8).forEach(function (pos) {
+        var ticker = sanitTicker(pos.symbol || pos.ticker);
+        if (!ticker) return;
+        lines.push("- " + ticker + " qty=" + (pos.quantity || pos.qty || pos.shares || "--"));
+      });
+    }
+    if (!orders.length && !positions.length) {
+      Object.keys(pf).forEach(function (k) {
+        var p = pf[k];
+        if (p && p.shares) lines.push(k + ": " + p.shares + " shares");
+      });
+    }
+    if (lines.length === 1) {
+      lines.push("No active IBKR orders or positions visible.");
+    }
     lines.push("=== END PORTFOLIO ===");
     return lines.join("\n");
   }
@@ -168,10 +193,35 @@
     if (el && value != null) el.textContent = value;
   }
 
+  function esc(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch];
+    });
+  }
+
+  function orderTicker(order) {
+    return sanitTicker(order && (order.ticker || order.symbol || order.contract_symbol));
+  }
+
+  function positionTicker(pos) {
+    return sanitTicker(pos && (pos.symbol || pos.ticker));
+  }
+
+  function orderList(pf) {
+    if (!pf) return [];
+    if (Array.isArray(pf.orders)) return pf.orders;
+    if (Array.isArray(pf.active_orders)) return pf.active_orders;
+    return [];
+  }
+
+  function positionList(pf) {
+    return pf && Array.isArray(pf.positions) ? pf.positions : [];
+  }
+
   function applyFrontendContent() {
     var cfg = SZ.config || {};
     var content = SZ.content || {};
-    var ticker = sanitTicker(cfg.defaultTicker || "AAPL") || "AAPL";
+    var ticker = sanitTicker((SZ.state && SZ.state.ticker) || "");
     var timeframe = cfg.defaultTimeframe || "6M";
     var tickerInput = document.getElementById("ticker-inp");
     if (tickerInput) {
@@ -180,8 +230,8 @@
     var tfInput = document.getElementById("tf-inp");
     if (tfInput) tfInput.value = timeframe;
     setText("logo-sub", content.logoSub);
-    setText("live-ticker", ticker);
-    setText("workspace-ticker", ticker);
+    setText("live-ticker", ticker || "--");
+    setText("workspace-ticker", ticker || "--");
     setText("workspace-tf", timeframe);
     setText("asset-label", content.assetLabel);
     setText("bob-welcome-title", content.bobWelcomeTitle);
@@ -212,8 +262,21 @@
       (document.getElementById("ticker-inp") || {}).value || ""
     );
     if (typed) return typed;
+    if (SZ.state && SZ.state.ticker) return sanitTicker(SZ.state.ticker);
     var cd = SZ.state && SZ.state.chartData;
-    return sanitTicker((cd && cd.ticker) || (SZ.config || {}).defaultTicker || "AAPL");
+    if (cd && cd.ticker) return sanitTicker(cd.ticker);
+    var pf = SZ.state && SZ.state.portfolio;
+    var orders = orderList(pf);
+    for (var i = 0; i < orders.length; i++) {
+      var ot = orderTicker(orders[i]);
+      if (ot) return ot;
+    }
+    var positions = positionList(pf);
+    for (var j = 0; j < positions.length; j++) {
+      var pt = positionTicker(positions[j]);
+      if (pt) return pt;
+    }
+    return sanitTicker((pf && pf.selected_ticker) || (SZ.config || {}).defaultTicker || "AAPL");
   }
 
   function getIbkrFromHealthDetails(details) {
@@ -409,10 +472,129 @@
    * CHART & LIVE
    * ═══════════════════════════════════════════════════════════════ */
 
-  async function loadChart() {
-    var ticker = getSelectedChartTicker();
+  function markSelectedMirrorTicker(ticker) {
+    var rows = document.querySelectorAll(".order-row[data-order-ticker]");
+    var selected = sanitTicker(ticker);
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].classList.toggle(
+        "is-selected",
+        sanitTicker(rows[i].getAttribute("data-order-ticker")) === selected
+      );
+    }
+  }
+
+  function renderOrderButton(item, kind, selected) {
+    var ticker = kind === "position" ? positionTicker(item) : orderTicker(item);
+    if (!ticker) return "";
+    var action = String(item.action || item.side || (kind === "position" ? "POS" : "ORDER")).toUpperCase();
+    var qty = item.qty || item.quantity || item.shares || "--";
+    var status = item.status || (kind === "position" ? "OPEN" : "PENDING");
+    var price = item.limit_price || item.lmtPrice || item.entry_price || item.avgCost;
+    var meta = kind === "position"
+      ? "position qty " + qty + (price ? " avg " + fmt(Number(price), 2) : "")
+      : (item.order_type || item.orderType || "LMT") + " qty " + qty + (price ? " @ " + fmt(Number(price), 2) : "");
+    return [
+      '<button class="order-row ' + (selected === ticker ? "is-selected" : "") + '" type="button"',
+        ' data-order-kind="' + esc(kind) + '"',
+        ' data-order-id="' + esc(item.order_id || item.id || "") + '"',
+        ' data-order-ticker="' + esc(ticker) + '">',
+        '<span class="order-row__ticker">' + esc(ticker) + '</span>',
+        '<span class="order-row__side">' + esc(action) + '</span>',
+        '<span class="order-row__status">' + esc(status) + '</span>',
+        '<span class="order-row__meta">' + esc(meta) + '</span>',
+      '</button>',
+    ].join("");
+  }
+
+  function renderPortfolioMirror(portfolio) {
+    if (!window.SZ.state) window.SZ.state = {};
+    SZ.state.portfolio = portfolio || {};
+    var host = document.getElementById("orders-list");
+    var countEl = document.getElementById("orders-count");
+    if (!host) return false;
+
+    var pf = SZ.state.portfolio;
+    var orders = orderList(pf);
+    var positions = positionList(pf);
+    var current = sanitTicker(SZ.state.ticker || (document.getElementById("ticker-inp") || {}).value || "");
+    var firstTicker = "";
+    var rows = [];
+
+    orders.forEach(function (order) {
+      var ticker = orderTicker(order);
+      if (!firstTicker && ticker) firstTicker = ticker;
+      rows.push(renderOrderButton(order, "order", current));
+    });
+
+    if (!orders.length) {
+      positions.forEach(function (pos) {
+        var ticker = positionTicker(pos);
+        if (!firstTicker && ticker) firstTicker = ticker;
+        rows.push(renderOrderButton(pos, "position", current));
+      });
+    }
+
+    var visibleRows = rows.filter(Boolean);
+    var count = orders.length || positions.length || 0;
+    if (countEl) countEl.textContent = String(count);
+    if (visibleRows.length) {
+      host.innerHTML = visibleRows.join("");
+    } else {
+      host.innerHTML = '<div class="cockpit-empty">No active IBKR orders. Manual chart remains available.</div>';
+    }
+
+    var buttons = host.querySelectorAll(".order-row[data-order-ticker]");
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].addEventListener("click", function () {
+        selectTicker(this.getAttribute("data-order-ticker"), "ibkr_mirror_click", {
+          order_id: this.getAttribute("data-order-id") || "",
+          kind: this.getAttribute("data-order-kind") || "order"
+        });
+      });
+    }
+
+    if (!current && (firstTicker || pf.selected_ticker)) {
+      selectTicker(firstTicker || pf.selected_ticker, "ibkr_mirror_boot", null);
+      return true;
+    }
+    markSelectedMirrorTicker(current);
+    return Boolean(current);
+  }
+
+  async function refreshCockpitPortfolio() {
+    if (!SZ.api || typeof SZ.api.fetchCockpitPortfolio !== "function") return false;
+    try {
+      var portfolio = await SZ.api.fetchCockpitPortfolio();
+      return renderPortfolioMirror(portfolio);
+    } catch (err) {
+      renderPortfolioMirror({ orders: [], positions: [] });
+      return false;
+    }
+  }
+
+  function selectTicker(ticker, reason, meta) {
+    ticker = sanitTicker(ticker);
+    if (!ticker) return false;
+    if (!window.SZ.state) window.SZ.state = {};
+    SZ.state.ticker = ticker;
+    SZ.state.selectedTickerSource = reason || "manual";
+    SZ.state.selectedOrder = meta || null;
+    var tickerInput = document.getElementById("ticker-inp");
+    if (tickerInput) tickerInput.value = ticker;
+    setText("workspace-ticker", ticker);
+    setText("live-ticker", ticker);
+    markSelectedMirrorTicker(ticker);
+    loadChart(ticker);
+    return true;
+  }
+
+  async function loadChart(tickerOverride) {
+    if (tickerOverride && typeof tickerOverride === "object") tickerOverride = "";
+    var ticker = sanitTicker(tickerOverride || getSelectedChartTicker());
     var tf = (document.getElementById("tf-inp") || {}).value || (SZ.config || {}).defaultTimeframe || "6M";
     if (!ticker) return;
+    if (!window.SZ.state) window.SZ.state = {};
+    SZ.state.ticker = ticker;
 
     var t0 = performance.now();
     try {
@@ -422,6 +604,7 @@
       if (latEl) latEl.textContent = lat;
       SZ.state.chartData = data;
       updateWorkspaceLabels(data, ticker, tf);
+      markSelectedMirrorTicker(ticker);
       if (SZ.renderProfile)   SZ.renderProfile();
       if (SZ.renderChart)     SZ.renderChart();
       if (SZ.drawLiveCandles) SZ.drawLiveCandles();
@@ -516,7 +699,9 @@
     /* TICKER / TF change */
     var tickerInp = document.getElementById("ticker-inp");
     if (tickerInp) {
-      tickerInp.addEventListener("change", loadChart);
+      tickerInp.addEventListener("change", function () {
+        selectTicker(tickerInp.value, "manual", null);
+      });
     }
     var tfInp = document.getElementById("tf-inp");
     if (tfInp) {
@@ -676,7 +861,9 @@
     /* init Lucide icons */
     if (window.lucide) lucide.createIcons();
 
-    loadChart();
+    refreshCockpitPortfolio().then(function (selected) {
+      if (!selected && !(SZ.state && SZ.state.chartData)) loadChart();
+    });
     refreshBrokerStatus();
     probeOps();
 
@@ -685,6 +872,10 @@
 
   SZ.init    = boot;
   SZ.submit  = submit;
+  SZ.loadChart = loadChart;
+  SZ.selectTicker = selectTicker;
+  SZ.renderPortfolioMirror = renderPortfolioMirror;
+  SZ.refreshCockpitPortfolio = refreshCockpitPortfolio;
   SZ.refreshBrokerStatus = refreshBrokerStatus;
   SZ.updateBrokerStatus = updateBrokerStatus;
 

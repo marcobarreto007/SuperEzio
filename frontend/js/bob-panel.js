@@ -78,20 +78,29 @@
     var pf = state.portfolio || {};
     var connected = pf.connected === true || String(pf.connection || "").indexOf("connected") >= 0;
     var equity = pf.equity || "100000.00";
+    var orders = Array.isArray(pf.orders) ? pf.orders : (Array.isArray(pf.active_orders) ? pf.active_orders : []);
     var positions = pf.positions || [];
     var rows = "";
-    if (Array.isArray(positions) && positions.length) {
+    if (orders.length) {
+      rows = orders.slice(0, 5).map(function (order) {
+        var ticker = order.symbol || order.ticker || "--";
+        var side = String(order.action || order.side || "").toUpperCase();
+        var qty = order.qty || order.quantity || "--";
+        return '<div class="bob-position-row"><span>' + esc(ticker) + ' ' + esc(side) + '</span><strong>' + esc(qty) + '</strong></div>';
+      }).join("");
+    } else if (Array.isArray(positions) && positions.length) {
       rows = positions.slice(0, 5).map(function (pos) {
         return '<div class="bob-position-row"><span>' + esc(pos.symbol || pos.ticker || "--") + '</span><strong>' + esc(pos.quantity || pos.shares || 0) + '</strong></div>';
       }).join("");
     } else {
-      rows = '<div class="cockpit-empty">Sem posicoes abertas.</div>';
+      rows = '<div class="cockpit-empty">Sem ordens ativas ou posicoes abertas.</div>';
     }
     return [
       '<section class="cockpit-section">',
         '<div class="cockpit-section__title">Portfolio IBKR</div>',
         '<div class="bob-portfolio-line"><span>Equity</span><strong>$' + esc(equity) + '</strong></div>',
         '<div class="bob-portfolio-line"><span>Status</span><strong>' + esc(connected ? "PAPER CONNECTED" : "OFFLINE") + '</strong></div>',
+        '<div class="bob-portfolio-line"><span>Active orders</span><strong>' + esc(orders.length) + '</strong></div>',
         rows,
       '</section>',
     ].join("");
@@ -148,6 +157,7 @@
     try {
       if (window.SZ.api.fetchCockpitPortfolio) {
         state.portfolio = await window.SZ.api.fetchCockpitPortfolio();
+        if (window.SZ.renderPortfolioMirror) window.SZ.renderPortfolioMirror(state.portfolio);
       } else {
         var details = await window.SZ.api.fetchHealthDetails();
         var ibkr = (((details || {}).mission || {}).broker || {}).ibkr || {};

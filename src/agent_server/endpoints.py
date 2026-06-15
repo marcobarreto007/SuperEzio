@@ -93,6 +93,189 @@ def _as_jsonable(value: Any) -> Any:
     return value
 
 
+def _clean_float(value: Any) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not (-1e100 < number < 1e100):
+        return None
+    return number
+
+
+def _clean_int(value: Any) -> int | None:
+    number = _clean_float(value)
+    if number is None:
+        return None
+    return int(number)
+
+
+def _is_active_order_status(status: Any) -> bool:
+    text = str(status or "").strip().lower().replace(" ", "")
+    if not text:
+        return True
+    return text not in {
+        "filled",
+        "cancelled",
+        "canceled",
+        "apicancelled",
+        "inactive",
+        "completed",
+        "done",
+        "failed",
+        "rejected",
+    }
+
+
+def _normalize_order_row(row: dict[str, Any], *, source: str) -> dict[str, Any] | None:
+    ticker = str(row.get("ticker") or row.get("symbol") or "").strip().upper()
+    if not ticker:
+        return None
+    status = str(row.get("status") or row.get("phase") or "pending").strip() or "pending"
+    if not _is_active_order_status(status):
+        return None
+    action = str(row.get("action") or row.get("side") or "").strip().upper()
+    order_id = str(row.get("order_id") or row.get("id") or f"{source}-{ticker}").strip()
+    return {
+        "order_id": order_id,
+        "ticker": ticker,
+        "symbol": ticker,
+        "action": action,
+        "side": action.lower() if action else "",
+        "qty": _clean_float(row.get("qty") or row.get("quantity") or row.get("totalQuantity")),
+        "order_type": str(row.get("order_type") or row.get("orderType") or "").strip().upper(),
+        "limit_price": _clean_float(row.get("limit_price") or row.get("lmtPrice")),
+        "stop_price": _clean_float(row.get("stop_price") or row.get("auxPrice")),
+        "status": status,
+        "source": source,
+    }
+
+
+def _cockpit_local_order_tickets() -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for order_id, status in dict(globals().get("_trade_status") or {}).items():
+        if not isinstance(status, dict):
+            continue
+        row = {
+            "order_id": order_id,
+            "ticker": status.get("ticker"),
+            "action": status.get("action"),
+            "qty": status.get("qty"),
+            "status": status.get("status") or status.get("phase"),
+            "source": "local_pending",
+        }
+        normalized = _normalize_order_row(row, source="local_pending")
+        if normalized:
+            rows.append(normalized)
+    return rows
+
+
+def _cockpit_ibkr_open_orders() -> list[dict[str, Any]]:
+    enabled = str(os.getenv("SUPEREZIO_COCKPIT_READ_IBKR_ORDERS", "1")).lower()
+    if enabled in {"0", "false", "no", "off"}:
+        return []
+    try:
+        from ib_insync import IB  # type: ignore[import]
+    except Exception:
+        return []
+
+    host = os.getenv("IBKR_HOST", "127.0.0.1")
+    port = int(os.getenv("IBKR_PORT", "7497"))
+    base_client_id = int(os.getenv("IBKR_CLIENT_ID", "1"))
+    client_id = int(os.getenv("IBKR_COCKPIT_CLIENT_ID", str(base_client_id + 50)))
+    timeout = float(os.getenv("IBKR_COCKPIT_TIMEOUT", "0.8"))
+    ib = IB()
+    try:
+        ib.connect(host, port, clientId=client_id, timeout=timeout)
+
+        rows: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        trades = []
+        for request_name in ("reqAllOpenOrders", "reqOpenOrders"):
+            try:
+                requested = getattr(ib, request_name)() or []
+                trades.extend(requested)
+            except Exception:
+                continue
+        try:
+            ib.waitOnUpdate(timeout=0.2)
+        except Exception:
+            pass
+        for accessor in ("openTrades", "trades"):
+            try:
+                trades.extend(getattr(ib, accessor)() or [])
+            except Exception:
+                continue
+
+        for trade in trades:
+            order = getattr(trade, "order", None)
+            contract = getattr(trade, "contract", None)
+            order_status = getattr(trade, "orderStatus", None)
+            if order is None:
+                continue
+            order_id = str(getattr(order, "orderId", "") or getattr(order, "permId", "") or "")
+            symbol = str(
+                getattr(contract, "symbol", "")
+                or getattr(contract, "localSymbol", "")
+                or ""
+            ).upper()
+            status = str(getattr(order_status, "status", "") or "submitted")
+            if not order_id or order_id in seen or not symbol or not _is_active_order_status(status):
+                continue
+            seen.add(order_id)
+            normalized = _normalize_order_row(
+                {
+                    "order_id": order_id,
+                    "ticker": symbol,
+                    "action": getattr(order, "action", ""),
+                    "qty": getattr(order, "totalQuantity", None),
+                    "order_type": getattr(order, "orderType", ""),
+                    "limit_price": getattr(order, "lmtPrice", None),
+                    "stop_price": getattr(order, "auxPrice", None),
+                    "status": status,
+                },
+                source="ibkr",
+            )
+            if normalized:
+                rows.append(normalized)
+        return rows
+    except Exception as exc:
+        logger.debug("IBKR open-order read failed for cockpit: %s", exc)
+        return []
+    finally:
+        try:
+            if ib.isConnected():
+                ib.disconnect()
+        except Exception:
+            pass
+
+
+def _dedupe_orders(*groups: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for group in groups:
+        for row in group:
+            key = str(row.get("order_id") or "") or (
+                str(row.get("source") or "") + ":" + str(row.get("ticker") or "")
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(row)
+    return out
+
+
+def _first_position_ticker(positions: list[Any]) -> str:
+    for pos in positions:
+        if isinstance(pos, dict):
+            ticker = str(pos.get("symbol") or pos.get("ticker") or "").strip().upper()
+        else:
+            ticker = str(getattr(pos, "symbol", "") or getattr(pos, "ticker", "")).strip().upper()
+        if ticker:
+            return ticker
+    return ""
+
+
 def _cockpit_portfolio_snapshot() -> dict[str, Any]:
     from core.mission_context import mission_health_summary
 
@@ -102,6 +285,13 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
     connected = broker.get("can_read_account") is True or "connected" in connection
     positions_count = int(broker.get("positions_count") or 0)
     equity = broker.get("account_equity") or "100000.00"
+    positions = broker.get("positions") if isinstance(broker.get("positions"), list) else []
+    orders = _dedupe_orders(_cockpit_ibkr_open_orders(), _cockpit_local_order_tickets())
+    selected_ticker = ""
+    if orders:
+        selected_ticker = str(orders[0].get("ticker") or orders[0].get("symbol") or "").upper()
+    if not selected_ticker:
+        selected_ticker = _first_position_ticker(positions)
     return {
         "provider": "IBKR",
         "connected": connected,
@@ -112,7 +302,12 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
         "equity": equity,
         "cash": broker.get("cash") or equity,
         "positions_count": positions_count,
-        "positions": broker.get("positions") if isinstance(broker.get("positions"), list) else [],
+        "positions": positions,
+        "orders_count": len(orders),
+        "orders": orders,
+        "active_orders": orders,
+        "orders_source": orders[0]["source"] if orders else "none",
+        "selected_ticker": selected_ticker,
         "verified_at": broker.get("verified_at"),
     }
 
@@ -176,6 +371,7 @@ def _cockpit_status_snapshot(
             "paper": portfolio.get("paper"),
             "equity": portfolio.get("equity"),
             "positions_count": portfolio.get("positions_count", 0),
+            "orders_count": portfolio.get("orders_count", 0),
         },
         "guardrails": guardrails,
         "kill_switch": {"state": "ARMED", "armed": True},
@@ -1756,66 +1952,49 @@ _trade_status: dict[str, dict] = {}  # order_id → {status, pipeline_result, ..
 
 @router.post("/trade/execute")
 async def execute_trade_fast(payload: dict[str, Any]) -> dict[str, Any]:
-    """Fase 1: Executar ordem paper IMEDIATAMENTE. Pipeline roda em background.
-
-    Retorna em <2s com o resultado da ordem no IBKR.
-    A validação (guardrails, experts) roda async depois.
-    """
+    """Create a pending paper-trade ticket without bypassing validation."""
     ticker = str(payload.get("ticker", "")).upper()
     action = str(payload.get("action", "buy")).lower()
     qty = int(payload.get("qty", 1))
-    limit_price = float(payload.get("limit_price", 0))
+    limit_price = _clean_float(payload.get("limit_price")) or 0.0
     message = str(payload.get("message", ""))
     session_id = str(payload.get("session_id", "fast-trade"))
 
     if not ticker:
         raise HTTPException(status_code=400, detail="missing ticker")
+    if action not in {"buy", "sell"}:
+        raise HTTPException(status_code=400, detail="action must be buy or sell")
+    if qty <= 0:
+        raise HTTPException(status_code=400, detail="qty must be positive")
 
-    # ── Submit AGORA ──
-    from core.pipeline.nodes.tool_executor import _submit_paper_order
-
-    state = {
-        "ticket_allowed": True,
-        "run_id": f"fast-{ticker}-{int(asyncio.get_event_loop().time() * 1000)}",
-        "paper_equity": 100000.0,
-        "positions_count": 0,
-    }
-    args = {
-        "ticker": ticker, "action": action, "qty": qty,
-        "limit_price": limit_price, "order_type": "LMT",
-        "stop_loss_price": limit_price * 0.95,
-    }
-
-    result = await _submit_paper_order(state, args)
-    order_id = (result.get("submit_paper_order_result") or {}).get("order_id", "unknown")
-
-    _trade_status[str(order_id)] = {
-        "phase": "submitted",
+    order_id = f"ticket-{ticker}-{int(asyncio.get_event_loop().time() * 1000)}"
+    ticket = {
+        "phase": "pending_validation",
+        "status": "PENDING_VALIDATION",
         "ticker": ticker,
         "action": action,
         "qty": qty,
-        "result": result,
-        "pipeline": "pending",
+        "limit_price": limit_price,
+        "message": message,
+        "session_id": session_id,
+        "pipeline": "required_before_submit",
+        "submitted_to_broker": False,
+        "reason": "committee_required_before_submit",
+        "next_step": (
+            "Submit through Bob/pipeline so guardrails, feedback, RAG "
+            "and expert committee run before broker transmission."
+        ),
     }
+    _trade_status[str(order_id)] = ticket
 
-    # ── Pipeline em background ──
-    async def _validate_later():
-        try:
-            pipeline = _get_pipeline( None)  # hmm, need request
-            # For now, just mark as validated
-            _trade_status[str(order_id)]["phase"] = "validated"
-            _trade_status[str(order_id)]["pipeline"] = "completed"
-        except Exception:
-            _trade_status[str(order_id)]["pipeline"] = "failed"
-
-    asyncio.create_task(_validate_later())
-
-    return result
-
+    return {
+        "ok": False,
+        "order_id": order_id,
+        **ticket,
+    }
 
 @router.get("/trade/status/{order_id}")
 async def get_trade_status(order_id: str) -> dict[str, Any]:
     """Fase 2: Verificar status da validação (pipeline background)."""
     status = _trade_status.get(order_id, {"phase": "unknown"})
     return {"order_id": order_id, **status}
-    return file_path

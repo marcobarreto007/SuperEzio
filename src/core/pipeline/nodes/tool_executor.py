@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from pathlib import Path
 from typing import Any
 
 from langgraph.config import get_stream_writer
@@ -628,6 +627,7 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             # Bob cannot shoot without consulting his advisors.
             ticker = args.get("ticker", "").upper()
             if ticker and not state.get("_experts_ran_for", "") == ticker:
+                writer = get_stream_writer()
                 writer({"type": "PIPELINE_STEP", "step": "tool_executor",
                          "status": "running", "mode": "forcing_expert_committee"})
                 expert_results = []

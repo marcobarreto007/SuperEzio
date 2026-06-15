@@ -46,6 +46,7 @@ def client_with_mock_pipeline(monkeypatch):
     app.state.pipeline = mock_p
     import agent_server.endpoints as endpoints
 
+    monkeypatch.setenv("SUPEREZIO_COCKPIT_READ_IBKR_ORDERS", "0")
     monkeypatch.setattr(endpoints.reward_gate, "score", lambda _text: 0.50)
     monkeypatch.setattr(
         endpoints.sanity_check,
@@ -158,6 +159,10 @@ def test_cockpit_portfolio(client_with_mock_pipeline):
     assert "equity" in data
     assert "positions_count" in data
     assert isinstance(data["positions"], list)
+    assert "orders_count" in data
+    assert isinstance(data["orders"], list)
+    assert data["active_orders"] == data["orders"]
+    assert "selected_ticker" in data
 
 
 def test_cockpit_summary(client_with_mock_pipeline):
@@ -178,7 +183,44 @@ def test_cockpit_summary(client_with_mock_pipeline):
     assert "approvals" in data["bob"]
     assert data["bob"]["portfolio"]["provider"] == "IBKR"
     assert data["status"]["ibkr"]["status"] == "online"
+    assert "orders_count" in data["status"]["ibkr"]
     assert data["status"]["guardrails"]["total"] == 30
+
+
+def test_trade_execute_creates_pending_ticket_without_broker_submit(
+    client_with_mock_pipeline, monkeypatch
+):
+    """POST /trade/execute must not bypass Bob/committee validation."""
+    import core.pipeline.nodes.tool_executor as tool_executor
+
+    async def fail_if_called(*_args, **_kwargs):
+        raise AssertionError("_submit_paper_order must not run from /trade/execute")
+
+    monkeypatch.setattr(tool_executor, "_submit_paper_order", fail_if_called)
+    _, client = client_with_mock_pipeline
+
+    response = client.post(
+        "/trade/execute",
+        json={
+            "ticker": "AAPL",
+            "action": "buy",
+            "qty": 1,
+            "limit_price": 100,
+            "message": "test guarded ticket",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ok"] is False
+    assert data["submitted_to_broker"] is False
+    assert data["phase"] == "pending_validation"
+    assert data["reason"] == "committee_required_before_submit"
+    assert "committee" in data["next_step"]
+
+    status = client.get(f"/trade/status/{data['order_id']}")
+    assert status.status_code == 200
+    assert status.json()["phase"] == "pending_validation"
 
 
 def test_paper_approval_endpoints(client_with_mock_pipeline):
@@ -187,13 +229,13 @@ def test_paper_approval_endpoints(client_with_mock_pipeline):
 
     _, client = client_with_mock_pipeline
     gate = reset_approval_gate_for_test()
-    req = gate.submit("PLUG", "buy", 100, 100.0, 95.0, 500.0, "pytest")
+    req = gate.submit("PLUG", "buy", 100, 100.0, 95.0, 501.0, "pytest")
 
     response = client.post(f"/paper/approve/{req.id}")
     assert response.status_code == 200
     assert response.json()["request"]["status"] == "approved"
 
-    req2 = get_approval_gate().submit("TSLA", "buy", 100, 100.0, 95.0, 500.0, "pytest")
+    req2 = get_approval_gate().submit("TSLA", "buy", 100, 100.0, 95.0, 501.0, "pytest")
     response = client.post(f"/paper/reject/{req2.id}")
     assert response.status_code == 200
     assert response.json()["request"]["status"] == "rejected"
@@ -647,3 +689,23 @@ def test_frontend_ops_console_integration():
     assert "ops-console-btn" in init_js
     assert "ops-console-close" in init_js
     assert "SZ.opsConsole.toggle" in init_js
+
+
+def test_frontend_ibkr_order_mirror_integration():
+    """15. Frontpage exposes active IBKR orders and clicking one drives the chart ticker."""
+    from pathlib import Path
+
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    init_js = Path("frontend/js/init.js").read_text(encoding="utf-8")
+    cockpit_js = Path("frontend/js/cockpit.js").read_text(encoding="utf-8")
+    charts_css = Path("frontend/css/charts.css").read_text(encoding="utf-8")
+
+    assert 'id="orders-mirror"' in html
+    assert 'id="orders-list"' in html
+    assert 'id="orders-count"' in html
+    assert "function renderPortfolioMirror" in init_js
+    assert "function selectTicker" in init_js
+    assert "ibkr_mirror_click" in init_js
+    assert "refreshCockpitPortfolio().then" in init_js
+    assert "window.SZ.renderPortfolioMirror" in cockpit_js
+    assert ".order-row.is-selected" in charts_css
