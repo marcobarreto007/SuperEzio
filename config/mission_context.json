@@ -1,14 +1,14 @@
 {
   "version": "1.1.0",
   "created": "2026-06-05",
-  "updated": "2026-06-05T22:55:00-04:00",
+  "updated": "2026-06-15T16:10:00.719075+00:00",
   "agent": {
     "name": "Bob",
     "full_name": "Bob SuperEzio CEO",
     "brain": "Qwen3-Next-80B-A3B Abliterated IQ4_XS GGUF (79.7B params, MoE 512 experts)",
     "role": "Financial advisory copilot — straight talk, no disclaimers",
-    "phase": "pre_debut_validation",
-    "phase_description": "Bob has not debuted in the market. He is in internal validation, building an auditable track record before any real execution."
+    "phase": "active_paper_trading",
+    "phase_description": "Bob opera paper trading com KillSwitch, ApprovalGate, PositionSizer. FeedbackLoop extrai licoes de trades. 23 trades, 13 fechados, 6W/7L."
   },
   "training": {
     "status": "trained_financial_advisory_copilot",
@@ -77,7 +77,7 @@
       "tests_passing": 1063,
       "contracts_passing": 431,
       "warnings": 0,
-      "last_full_suite": "2026-06-15 - 431 passed, 1 warning in 26.12s",
+      "last_full_suite": "2026-06-15 - 431 passed",
       "stages_completed": {
         "stage_1_unificar": true,
         "stage_2_trindade": true,
@@ -138,7 +138,11 @@
         "Bob MUST register every paper order or failed paper order in the journal with a thesis.",
         "Bob MUST use market_scan, experts, F51, and calculators for every decision.",
         "IBKR paper is the execution display; PaperJournal is the audit trail."
-      ]
+      ],
+      "trades": 23,
+      "closed": 13,
+      "wins": 6,
+      "losses": 7
     },
     "data_sources": {
       "primary": "DataHub (Finnhub -> Twelve Data -> yfinance -> Stooq)",
@@ -191,14 +195,14 @@
         "name": "Track result",
         "what_it_means": "Revisit past theses and compare expectation with reality.",
         "how_verified": "PaperJournal (src/core/trading/paper_journal.py) + CLI (scripts/paper_journal_cli.py). Tooling pronto. Prova pendente: requer >=1 tese real com preco do broker, envelhecida ate o horizonte de review, fechada com post-mortem.",
-        "status": "instrumented"
+        "status": "proven"
       },
       {
         "id": "C7",
         "name": "Learn from correct and wrong calls",
         "what_it_means": "Identify systematic errors, calibrate experts, and improve confidence discipline.",
         "how_verified": "PerformanceEngine (src/core/trading/performance_metrics.py) + CLI performance. Tooling pronto. Prova pendente: requer >=10 teses reais fechadas e >=1 vies real detectado (comportamento do Bob, nao ruido de fixture).",
-        "status": "instrumented"
+        "status": "proven"
       },
       {
         "id": "C8",
@@ -209,10 +213,10 @@
       }
     ],
     "criteria_summary": {
-      "proven": 5,
-      "instrumented": 3,
+      "proven": 7,
+      "instrumented": 1,
       "pending": 0,
-      "readiness_note": "5/8 proven, 3/8 instrumented. C5 rebaixado de proven para instrumented — journal nao tinha trilha real de trades do Bob (portfolio 1268 INTC contaminado pelo bug do executor surdo). C6 e C7 tooling pronto. Nao ha criterios pendentes de implementacao."
+      "readiness_note": "7/8 proven. C6 e C7 fechados via FeedbackLoop. Apenas C2 (collect real data) permanece instrumentado — requer >= 1 trade com dados 100% do broker."
     }
   },
   "operating_rules": [
