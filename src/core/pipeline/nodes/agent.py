@@ -749,28 +749,41 @@ def _get_portfolio_snapshot(state: dict) -> str:
     # Direct IBKR fallback
     try:
         from ib_insync import IB as _IB
+        from ib_insync import Stock as _Stock
         import time as _time
 
         _ib = _IB()
         _ib.connect("127.0.0.1", 7497, clientId=int(_time.time() * 1000) % 9000 + 600, timeout=3)
+        _ib.reqMarketDataType(3)
         pos = list(_ib.positions())
         eq = sum(float(v.value) for v in _ib.accountSummary() if v.tag == "NetLiquidation")
-        _ib.disconnect()
+        
         if pos:
+            contracts = [_Stock(p.contract.symbol, "SMART", "USD") for p in pos]
+            _ib.qualifyContracts(*contracts)
+            tickers = [_ib.reqMktData(c) for c in contracts]
+            _ib.sleep(1.0)
+            
             lines = ["CARTEIRA ATUAL (IBKR paper):"]
             lines.append(f"  Equity: ${eq:,.2f}  |  Posições: {len(pos)}")
             total = 0.0
-            for p in pos:
-                val = float(p.position) * float(p.avgCost)
+            for p, ticker in zip(pos, tickers):
+                _ib.cancelMktData(p.contract)
+                price = ticker.last or ticker.close or ticker.marketPrice() or float(p.avgCost)
+                val = float(p.position) * price
                 total += val
+                pnl = (price - float(p.avgCost)) * float(p.position)
                 lines.append(
-                    f"  {p.contract.symbol}: {p.position} shares @ avg ${float(p.avgCost):.2f} = ${val:,.2f}"
+                    f"  {p.contract.symbol}: {p.position} shares @ avg ${float(p.avgCost):.2f} (current ${price:.2f}) = ${val:,.2f} [PnL: ${pnl:+,.2f}]"
                 )
+            _ib.disconnect()
             lines.append(f"  Total investido: ${total:,.2f}  |  Cash: ${eq - total:,.2f}")
             lines.append(
                 f"  Concentração: {'⚠️ ALTA' if total / eq > 0.5 else 'OK'} ({total / eq * 100:.0f}% do equity)"
             )
             return "\n".join(lines) + "\n"
+        else:
+            _ib.disconnect()
     except Exception:
         pass
     return ""

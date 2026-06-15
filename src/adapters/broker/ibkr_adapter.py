@@ -167,24 +167,105 @@ class InteractiveBrokersAdapter:
         except Exception:
             return None
 
+    def get_market_price(self, symbol: str) -> float:
+        if not self._connect():
+            return 0.0
+        try:
+            from ib_insync import Stock  # type: ignore[import]
+
+            contract = Stock(symbol, "SMART", "USD")
+            self._ib.qualifyContracts(contract)
+
+            # Tenta obter dados em tempo real primeiro (1)
+            self._ib.reqMarketDataType(1)
+            ticker = self._ib.reqMktData(contract)
+            self._ib.sleep(1.0)
+            price = ticker.last or ticker.close or ticker.marketPrice()
+
+            # Se não retornar preço válido, tenta dados atrasados (3)
+            if price is None or price <= 0 or price != price:
+                self._ib.reqMarketDataType(3)
+                ticker = self._ib.reqMktData(contract)
+                self._ib.sleep(1.0)
+                price = ticker.last or ticker.close or ticker.marketPrice()
+
+            self._ib.cancelMktData(contract)
+            return float(price) if (price and price > 0) else 0.0
+        except Exception as exc:
+            logger.warning("IBKR get_market_price failed for %s: %s", symbol, exc)
+            return 0.0
+
     def get_positions(self) -> list[Any]:
         if not self._connect():
             return []
         from core.trading.broker import Position
+        from ib_insync import Stock  # type: ignore[import]
 
         try:
             positions = self._ib.positions()
-            result = []
+            if not positions:
+                return []
+
+            # 1. Qualifica todos os contratos
+            contracts = []
             for p in positions:
+                contract = Stock(p.contract.symbol, "SMART", "USD")
+                contracts.append(contract)
+            self._ib.qualifyContracts(*contracts)
+
+            # 2. Tenta dados em tempo real primeiro (1)
+            self._ib.reqMarketDataType(1)
+            tickers = [self._ib.reqMktData(c) for c in contracts]
+            self._ib.sleep(1.2)
+
+            # 3. Identifica quais tickers nao retornaram preco valido e tenta dados atrasados (3)
+            delayed_contracts = []
+            delayed_indices = []
+            for idx, ticker in enumerate(tickers):
+                price = ticker.last or ticker.close or ticker.marketPrice()
+                if price is None or price <= 0 or price != price:
+                    delayed_contracts.append(contracts[idx])
+                    delayed_indices.append(idx)
+
+            if delayed_contracts:
+                self._ib.reqMarketDataType(3)
+                delayed_tickers = [self._ib.reqMktData(c) for c in delayed_contracts]
+                self._ib.sleep(1.2)
+                for idx, d_ticker in zip(delayed_indices, delayed_tickers):
+                    tickers[idx] = d_ticker
+
+            # 4. Cancela as assinaturas de cotacao e monta o resultado
+            for c in contracts:
+                self._ib.cancelMktData(c)
+
+            result = []
+            for p, ticker in zip(positions, tickers):
+                symbol = p.contract.symbol
+                qty = float(p.position)
+                entry_price = float(p.avgCost) if p.avgCost else 0.0
+                price = ticker.last or ticker.close or ticker.marketPrice()
+                current_price = float(price) if (price and price > 0) else 0.0
+
+                if current_price > 0:
+                    market_value = qty * current_price
+                    if p.position > 0:
+                        unrealized_pnl = (current_price - entry_price) * qty
+                    else:
+                        unrealized_pnl = (entry_price - current_price) * qty
+                else:
+                    current_price = entry_price
+                    market_value = qty * entry_price
+                    unrealized_pnl = 0.0
+
                 result.append(
                     Position(
-                        symbol=p.contract.symbol,
-                        qty=float(p.position),
+                        symbol=symbol,
+                        qty=qty,
                         side="LONG" if p.position > 0 else "SHORT",
-                        entry_price=float(p.avgCost) if p.avgCost else 0.0,
-                        current_price=0.0,
-                        unrealized_pnl=0.0,
-                        market_value=float(p.position) * (float(p.avgCost) if p.avgCost else 0.0),
+                        entry_price=entry_price,
+                        current_price=current_price,
+                        unrealized_pnl=unrealized_pnl,
+                        market_value=market_value,
                     )
                 )
             return result

@@ -1,70 +1,48 @@
 {
-  "date_local": "2026-06-15T15:52:45-04:00",
-  "session": "ibkr-order-mirror-learning-flow-2026-06-15",
+  "date_local": "2026-06-15T17:07:00-04:00",
+  "session": "ibkr-realtime-data-penny-scan-2026-06-15",
   "status": "completed",
   "final_objective": {
-    "what_system_does": "SuperEzio Financeiro runs a local financial cockpit and Bob pipeline for chart analysis, IBKR paper visibility, guarded paper-order flow, learning feedback, RAG context, and expert committee decisions.",
-    "who_it_is_for": "Marco/F51 as local operator for demo, paper trading training, guarded broker workflows, and future monetizable finance cockpit validation.",
-    "main_user_flow": "Start the API, open http://127.0.0.1:8002, see IBKR status/orders/positions on the frontpage, click an active order or position to drive the chart/panel ticker, then use Bob/pipeline for guarded analysis or paper submission.",
-    "start_command": "python -m agent_server.main",
-    "proof_output": "/health ok, /cockpit/portfolio includes orders/orders_count/active_orders/selected_ticker, Playwright smoke renders chart, and a mirror-click test changes chartData/workspace/input to the clicked order ticker.",
-    "blocking_readiness": "Runtime is usable for the order-mirror flow. Current live IBKR read returned orders_count=0; if TWS visibly has active orders while this endpoint stays 0, inspect TWS API permissions/clientId/open-order visibility next."
+    "what_system_does": "SuperEzio Financeiro runs a local financial cockpit and Bob pipeline for chart analysis, IBKR paper visibility with real-time/delayed prices and unrealized P&L calculations, penny stock watchlist scanning, and pump & dump forensic detection.",
+    "who_it_is_for": "Marco/F51 as local operator for paper trading, penny stock scanning, and quantitative cockpit validation.",
+    "main_user_flow": "Start the API server, open the UI, view portfolio positions with active market values and unrealized P&L, click positions to update charts, or prompt Bob to scan for cheap stocks (penny stocks) and pump-and-dump anomalies.",
+    "start_command": "powershell -ExecutionPolicy Bypass -File runtime/do_restart.ps1",
+    "proof_output": "API /health returns ok, /cockpit/portfolio includes real-time prices & P&L, and Playwright smoke tests successfully load the cockpit and render the candlestick charts."
   },
   "what_was_done": [
-    "Added read-only IBKR open-order mirroring to /cockpit/portfolio, including orders, active_orders, orders_count, orders_source, and selected_ticker.",
-    "Expanded IBKR order reads to request all open orders, not only orders owned by the same API client.",
-    "Added a visible frontpage IBKR Mirror panel under the chart for active orders and positions.",
-    "Made order and position rows clickable; clicking a row updates ticker input, workspace labels, selected state, chart fetch, and Bob market context.",
-    "Changed boot priority so AAPL is only a fallback after typed ticker, selected ticker, active orders, positions, backend selected_ticker, and current chart state.",
-    "Updated Bob panel and cockpit summary feed so portfolio/order data refreshes the visible mirror.",
-    "Converted /trade/execute from immediate broker submission into a pending-validation ticket so it cannot bypass guardrails, RAG, feedback, or the expert committee.",
-    "Fixed node_tool_executor writer initialization in the forced expert-committee path before submit_paper_order.",
-    "Updated tests for the current ApprovalGate threshold where risk <= 500 auto-approves and risk > 500 requires manual approval.",
-    "Restarted the live API on port 8002 so the running cockpit uses the new code."
+    "Implemented real-time and delayed market data retrieval (reqMarketDataType(3)) within the IBKR adapter to fetch prices and compute unrealized P&L for all portfolio positions.",
+    "Updated graph.py and agent.py portfolio nodes to stream current prices and calculate unrealized P&L for active cockpit rows.",
+    "Added penny stocks and pump-and-dump detection support in the market scan node, seeding raw candidates with the pre-vetted PennyLab watchlist.",
+    "Expanded _PENNY_OTC_HINTS with Portuguese keywords (e.g. acoes de pouco valor, pump and dump) to route scans correctly.",
+    "Restarted the API and CEO servers on port 8002 and 8082, and ran the browser smoke test successfully."
   ],
   "evidence": {
     "commands": [
-      "node --check frontend/js/init.js; node --check frontend/js/cockpit.js; node --check frontend/js/bob-panel.js",
-      "python -m py_compile src/agent_server/endpoints.py",
-      "python -m ruff check src/agent_server/endpoints.py src/core/pipeline/nodes/tool_executor.py tests/test_api_routes_sync.py tests/test_auto_full_analysis.py",
-      "$env:PYTHONPATH='src'; python -m pytest tests/test_api_routes_sync.py tests/test_auto_full_analysis.py tests/test_decisive_trade_order.py tests/contracts/test_contract_trading.py -q",
-      "python scripts/browser_smoke.py --timeout-ms 180000 --skip-chat",
-      "Playwright injected IBKR order QA row, clicked MSFT, and verified workspaceTicker/inputTicker/chartTicker=MSFT with 130 candles"
+      "powershell -ExecutionPolicy Bypass -File runtime/do_restart.ps1",
+      ".venv\\Scripts\\python.exe -m pytest tests/test_api_routes_sync.py -q",
+      ".venv\\Scripts\\python.exe scripts/browser_smoke.py --skip-chat"
     ],
     "results": [
-      "JS syntax passed for init.js, cockpit.js, bob-panel.js.",
-      "Python compile passed for endpoints.py.",
-      "Ruff passed on changed Python files.",
-      "Targeted pytest matrix passed: 77 passed in 11.11s.",
-      "Focused cockpit API tests passed after reqAllOpenOrders change: 2 passed.",
-      "Browser smoke passed: health ok, AAPL chart 130 candles, canvas nonBlank 434577, zero console errors.",
-      "Order click proof passed: ordersCount=1, selectedRows=1, workspaceTicker=MSFT, inputTicker=MSFT, chartTicker=MSFT, candleCount=130, selectedSource=ibkr_mirror_click, zero console errors.",
-      "Live /cockpit/portfolio after restart has new schema and IBKR connected_paper; current live orders_count=0."
+      "Hard restart completed successfully, API and CEO healthy on ports 8002 and 8082.",
+      "API route tests successfully passed (25 passed in 6.00s).",
+      "Browser smoke test passed with AAPL chart displaying 130 candles and zero console errors."
     ],
     "runtime_artifacts": [
-      "output/playwright/superezio-browser-smoke-20260615-154615.png",
-      "output/playwright/superezio-orders-click-msft.png",
-      "runtime/logs/api_8002.log"
+      "output/playwright/superezio-browser-smoke-20260615-170603.png",
+      "runtime/logs/api-8002-latest.log",
+      "runtime/restart_log.txt"
     ],
     "files_changed": [
-      "src/agent_server/endpoints.py",
-      "src/core/pipeline/nodes/tool_executor.py",
-      "frontend/index.html",
-      "frontend/css/charts.css",
-      "frontend/js/init.js",
-      "frontend/js/cockpit.js",
-      "frontend/js/bob-panel.js",
-      "tests/test_api_routes_sync.py",
-      "tests/test_auto_full_analysis.py",
+      "src/adapters/broker/ibkr_adapter.py",
+      "src/core/pipeline/graph.py",
+      "src/core/pipeline/nodes/agent.py",
+      "src/core/pipeline/nodes/collector.py",
       ".f51/checkpoints/latest.json"
     ]
   },
   "risks": [
-    "Full python -m pytest exceeded the 5 minute command timeout and did not return a complete result; the focused 77-test matrix plus browser smoke passed.",
-    "Browser plugin/chrome-devtools MCP was not available in this session, so validation used repository Playwright smoke and a direct Playwright script.",
-    "Runtime traces and conversation memory changed during live validation."
+    "External market data depends on TWS connection state on port 7497; if TWS is offline, portfolio prices fallback gracefully to average cost."
   ],
-  "next_step": "If Marco has an active order visible in TWS but /cockpit/portfolio still returns orders_count=0, run an IBKR API open-order diagnostic against the same TWS session/client permissions.",
-  "owner": "Codex",
+  "owner": "Antigravity",
   "github_policy": "DISK_ONLY_GITHUB_BLOCKED"
 }

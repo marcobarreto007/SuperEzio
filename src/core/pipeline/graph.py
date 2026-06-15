@@ -337,17 +337,34 @@ async def _auto_full_analysis(
     # ── IBKR portfolio snapshot: always inject current positions ──
     try:
         from ib_insync import IB as _IB
+        from ib_insync import Stock as _Stock
 
         _ib = _IB()
         _ib.connect("127.0.0.1", 7497, clientId=int(time.time() * 1000) % 9000 + 100, timeout=5)
+        
+        # Configure market data types (delayed 3 is free, no subscription required)
+        _ib.reqMarketDataType(3)
+        
+        pos_list = _ib.positions()
         positions = []
         total_value = 0.0
-        for p in _ib.positions():
-            pos_val = float(p.position) * float(p.avgCost)
-            positions.append(
-                f"{p.contract.symbol}: {p.position} shares @ avg ${float(p.avgCost):.2f} = ${pos_val:,.2f}"
-            )
-            total_value += pos_val
+        
+        if pos_list:
+            contracts = [_Stock(p.contract.symbol, "SMART", "USD") for p in pos_list]
+            _ib.qualifyContracts(*contracts)
+            tickers = [_ib.reqMktData(c) for c in contracts]
+            _ib.sleep(1.0)
+            
+            for p, ticker in zip(pos_list, tickers):
+                _ib.cancelMktData(p.contract)
+                price = ticker.last or ticker.close or ticker.marketPrice() or float(p.avgCost)
+                pos_val = float(p.position) * price
+                pnl = (price - float(p.avgCost)) * float(p.position)
+                positions.append(
+                    f"{p.contract.symbol}: {p.position} shares @ avg ${float(p.avgCost):.2f} (current ${price:.2f}) = ${pos_val:,.2f} [PnL: ${pnl:+,.2f}]"
+                )
+                total_value += pos_val
+                
         equity = 0.0
         for v in _ib.accountSummary():
             if v.tag == "NetLiquidation":

@@ -318,6 +318,12 @@ _PENNY_OTC_HINTS = (
     "over the counter",
     "acao de centavo",
     "centavo",
+    "acoes de pouco valor",
+    "ações de pouco valor",
+    "pouco valor",
+    "pump and dump",
+    "pump",
+    "dump",
 )
 
 _MICROCAP_HINTS = (
@@ -738,6 +744,21 @@ async def _run_scan(
     except Exception as exc:  # noqa: BLE001
         source_errors.append(f"scanner: {exc}")
         registry.stage_failed("fetch_tickers", str(exc)[:200], provider="scanner")
+
+    # Merge pre-vetted penny stocks from the watchlist if penny scanning is requested
+    if allow_penny_otc:
+        try:
+            from experts.pennylab.data_provider import _PENNY_WATCHLIST
+            existing_tickers = {c["ticker"].upper() for c in raw_candidates}
+            for sym in _PENNY_WATCHLIST:
+                if sym.upper() not in existing_tickers:
+                    raw_candidates.append({
+                        "ticker": sym,
+                        "source": "pennylab_watchlist",
+                        "market": "Canada" if (sym.endswith(".TO") or sym.endswith(".V")) else ("Brazil" if sym.endswith(".SA") else "United States")
+                    })
+        except Exception as exc:
+            logger.warning("Failed to merge pennylab watchlist: %s", exc)
 
     if len(raw_candidates) > scan_max_total:
         raw_candidates = raw_candidates[:scan_max_total]
