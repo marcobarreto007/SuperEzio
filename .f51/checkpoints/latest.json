@@ -1,82 +1,81 @@
 {
-  "date_local": "2026-06-14T20:26:29-04:00",
-  "session": "stage2-trinity-bidirectional-dialogue-2026-06-14",
+  "date_local": "2026-06-14T21:52:23-04:00",
+  "session": "stage3-live-sentiment-monitor-curator-watchlist-pulse-2026-06-14",
   "status": "completed_with_known_external_lint_debt",
   "final_objective": {
-    "what_system_does": "SuperEzio Financeiro runs a local financial-analysis assistant with chart data, math reports, sentiment context, expert deliberation, guardrails, and audit traces.",
-    "who_it_is_for": "Marco/F51 demo and local operator use for finance research, risk review, and educational capital-allocation workflows.",
-    "main_user_flow": "Start the local stack, ask Bob a finance question or ticker analysis, let the pipeline collect data, run MathHub, run Genie/Deep Trinity deliberation, then receive Bob's final guarded answer.",
+    "what_system_does": "SuperEzio Financeiro runs a local financial-analysis assistant with chart data, math reports, sentiment context, expert deliberation, guardrails, audit traces, and a live sentiment pulse surface.",
+    "who_it_is_for": "Marco/F51 demo and local operator use for finance research, risk review, educational capital-allocation workflows, and monitored watchlist review.",
+    "main_user_flow": "Start the local stack, ask Bob a finance question or ticker analysis, review the guarded response, and query /sentiment endpoints for live watchlist pulse, alerts, and recent sentiment history.",
     "start_command": "powershell -ExecutionPolicy Bypass -File runtime\\do_restart.ps1",
-    "proof_output": "pytest suite passes, live health endpoints respond, browser smoke renders chart/canvas/chat, and graph status includes trinity.",
-    "blocking_readiness": "Heavy live task-submit integration tests can still exceed local llama runtime timeout; global ruff has pre-existing memory-layer lint debt outside Stage 2."
+    "proof_output": "pytest suite passes, live health endpoints respond, sentiment endpoints return 200 from the running API, and browser smoke renders chart/canvas/chat without console errors.",
+    "blocking_readiness": "The current investor_watchlist table is empty, so /sentiment/pulse is healthy but returns count=0 until tickers are added or SUPEREZIO_SENTIMENT_WATCHLIST is set. Global ruff still has pre-existing memory-layer lint debt outside Stage 3."
   },
   "what_was_done": [
-    "Task 1: created compact MathPrompt in src/core/pipeline/prompts/math_prompt.py and routed MathHub.to_deepseek_prompt() to [MATH_CONTEXT].",
-    "Task 2: created SentimentPrompt in src/core/pipeline/prompts/sentiment_prompt.py for structured Genie/Gemini context from data.sentiment, data.reddit, data.news, and data.finnhub_news.",
-    "Task 3: created ExpertDialogue in src/core/pipeline/nodes/expert_dialogue.py and refactored node_expert() to use the first ask round while preserving expert_results contracts.",
-    "Task 4: created TrinityNode in src/core/pipeline/nodes/trinity.py with Deep and Genie dialogue, deterministic follow-ups, consensus, blocked flag, and TrinityReport formatting.",
-    "Task 5: integrated trinity into graph.py after auto_full_analysis and before agent, with route_after_trinity bypassing Bob on unanimous block.",
-    "Bob prompt builder and agent observations now include TRINITY context, and respond_blocked now returns a Trinity council block response when trinity_blocked is true.",
-    "Created local commits after each Stage 2 task as requested by .f51/partner/stage2_codex.md."
+    "Task 1: created src/core/sentiment/live_monitor.py with daemon LiveMonitor, thread-safe snapshots/history, FIFO last-100 alerts, DataHub failure warnings, and SWING/SPIKE/COORD/DIVERGENCE detection.",
+    "Task 2: created src/core/sentiment/curator.py with SentimentCurator and CuratedSentiment, headline dedupe over 80 percent similarity, source weights, 48h expiry penalty, contradiction/pump flags, confidence, and institutional priority.",
+    "Task 3: created src/core/sentiment/watchlist_pulse.py with WatchlistPulse and PulseReport for per-ticker and full-watchlist pulse JSON.",
+    "Task 4: added /sentiment/pulse, /sentiment/pulse/{ticker}, /sentiment/alerts, and /sentiment/history/{ticker}?hours=24 endpoints in src/agent_server/endpoints.py.",
+    "Task 5: integrated LiveMonitor, SentimentCurator, and WatchlistPulse into agent_server.main startup/shutdown; watchlist loads from SUPEREZIO_SENTIMENT_WATCHLIST first, then InvestorStorage.",
+    "Created local commits after each Stage 3 task as requested by .f51/partner/stage3_codex.md."
   ],
   "commits_local": [
-    "a752c95 feat: add compact math prompt context",
-    "59930e7 feat: add structured sentiment prompt context",
-    "5bf5176 feat: add multi-turn expert dialogue",
-    "965b970 feat: add trinity deliberation node",
-    "8c8e03d feat: integrate trinity into pipeline graph"
+    "8d36b3b feat: add live sentiment monitor",
+    "2bdde02 feat: add sentiment curator",
+    "91be530 feat: add watchlist sentiment pulse",
+    "75d584b feat: add sentiment pulse endpoints",
+    "bf3e1a4 feat: start sentiment monitor on api startup"
   ],
   "evidence": {
     "commands": [
-      "python -m ruff check <Stage 2 touched files>",
-      "python -m pytest tests/test_math_hub.py tests/test_sentiment_prompt.py tests/test_expert_dialogue.py tests/test_trinity.py tests/test_auto_full_analysis.py tests/test_pipeline_smoke.py tests/contracts/test_contract_agent.py tests/contracts/test_contract_experts.py tests/contracts/test_contract_guardrails.py tests/contracts/test_contract_pipeline.py -q",
+      "python -m ruff check src/core/sentiment src/agent_server/main.py src/agent_server/endpoints.py tests/test_sentiment_live_monitor.py tests/test_sentiment_curator.py tests/test_watchlist_pulse.py tests/test_sentiment_endpoints.py tests/contracts/test_contract_main.py",
       "python -m pytest -q --ignore=tests/test_integration_runtime.py",
+      "python -m ruff check src tests",
       "powershell -ExecutionPolicy Bypass -File runtime\\do_restart.ps1",
       "python -m pytest tests/test_integration_runtime.py::test_ceo_health_endpoint tests/test_integration_runtime.py::test_api_health_endpoint tests/test_integration_runtime.py::test_api_health_details_endpoint tests/test_integration_runtime.py::test_capabilities_endpoint tests/test_integration_runtime.py::test_product_manifest_endpoint -q",
-      "python scripts\\browser_smoke.py --timeout-ms 180000",
-      "python -m ruff check src tests"
+      "Invoke-RestMethod http://127.0.0.1:8002/sentiment/pulse | ConvertTo-Json -Depth 8",
+      "Invoke-RestMethod http://127.0.0.1:8002/sentiment/alerts | ConvertTo-Json -Depth 8",
+      "Invoke-RestMethod http://127.0.0.1:8002/sentiment/pulse/TLRY | ConvertTo-Json -Depth 8",
+      "Invoke-RestMethod \"http://127.0.0.1:8002/sentiment/history/TLRY?hours=24\" | ConvertTo-Json -Depth 8",
+      "python scripts\\browser_smoke.py --timeout-ms 180000"
     ],
     "results": [
-      "Focused Stage 2 ruff passed.",
-      "Focused Stage 2 pytest: 122 passed in 3.31s.",
-      "Main pytest excluding heavy live integration runtime: 1187 passed, 1 warning in 33.48s.",
-      "Selected live integration endpoints: 5 passed in 2.61s.",
-      "Live API health http://127.0.0.1:8002/health returned ok.",
-      "Live CEO health http://127.0.0.1:8082/health returned ok.",
-      "Browser smoke ok: AAPL chart status 200, 130 candles, canvas nonblank 378108 pixels, chat finalContentLength 2281, no console errors.",
-      "Global ruff still reports 41 pre-existing memory-layer findings in src/core/memory and memory fase tests."
+      "Focused Stage 3 ruff passed.",
+      "Main pytest excluding live integration runtime: 1204 passed, 1 warning in 33.53s.",
+      "Global ruff still reports 41 pre-existing memory-layer findings in src/core/memory and memory fase tests.",
+      "Restart script succeeded: CEO /health 200, API /health 200, UI http://127.0.0.1:8002.",
+      "Selected live integration endpoints: 5 passed in 2.55s.",
+      "/sentiment/pulse returned 200 with count=0 because investor_watchlist has 0 rows.",
+      "/sentiment/alerts returned 200 with count=0.",
+      "/sentiment/pulse/TLRY returned 200 with PulseReport sentiment=NO_DATA rather than 503, proving startup state is installed.",
+      "/sentiment/history/TLRY?hours=24 returned 200 with count=0.",
+      "Browser smoke ok: AAPL chart status 200, 130 candles, canvas nonblank 378108 pixels, chat finalContentLength 2281, no console errors."
     ],
     "files_changed": [
-      "src/core/pipeline/prompts/math_prompt.py",
-      "src/core/pipeline/prompts/sentiment_prompt.py",
-      "src/core/pipeline/nodes/expert_dialogue.py",
-      "src/core/pipeline/nodes/trinity.py",
-      "src/core/pipeline/nodes/experts.py",
-      "src/core/pipeline/contracts.py",
-      "src/core/pipeline/graph.py",
-      "src/core/pipeline/prompts/builder.py",
-      "src/core/pipeline/nodes/agent.py",
-      "src/core/pipeline/nodes/guardrails.py",
-      "tests/test_math_hub.py",
-      "tests/test_sentiment_prompt.py",
-      "tests/test_expert_dialogue.py",
-      "tests/test_trinity.py",
-      "tests/test_pipeline_smoke.py",
-      "tests/contracts/test_contract_agent.py",
-      "tests/contracts/test_contract_experts.py",
-      "tests/contracts/test_contract_guardrails.py"
+      "src/core/sentiment/__init__.py",
+      "src/core/sentiment/live_monitor.py",
+      "src/core/sentiment/curator.py",
+      "src/core/sentiment/watchlist_pulse.py",
+      "src/agent_server/endpoints.py",
+      "src/agent_server/main.py",
+      "tests/test_sentiment_live_monitor.py",
+      "tests/test_sentiment_curator.py",
+      "tests/test_watchlist_pulse.py",
+      "tests/test_sentiment_endpoints.py",
+      "tests/contracts/test_contract_main.py"
     ],
     "runtime_artifacts": [
-      "output/playwright/superezio-browser-smoke-20260614-202550.png",
-      "runtime/traces/decision_trace_20260615.jsonl"
+      "runtime/restart_log.txt",
+      "runtime/logs/api-8002-latest.log",
+      "runtime/logs/api-8002-latest.err.log",
+      "output/playwright/superezio-browser-smoke-20260614-215051.png"
     ]
   },
   "risks": [
-    "python -m ruff check src tests still fails with 41 pre-existing findings in src/core/memory and memory fase tests; Stage 2 touched-file ruff passes.",
-    "Full pytest including tests/test_integration_runtime.py can timeout because live task-submit tests send long prompts to the local llama runtime; selected health/product live tests passed.",
-    "Validation generated runtime state in data/conversation_memory.jsonl and runtime/traces/decision_trace_20260615.jsonl; these are execution artifacts, not Stage 2 source changes."
+    "investor_watchlist has 0 rows in the current local database; live monitoring is running, but the full-watchlist endpoint has no tickers to collect until the watchlist is populated or SUPEREZIO_SENTIMENT_WATCHLIST is set before startup.",
+    "python -m ruff check src tests still fails with 41 pre-existing findings in src/core/memory and memory fase tests; Stage 3 touched-file ruff passes.",
+    "runtime/logs/api-8002-latest.err.log contains a pre-existing IBKR/TWS connection refused task exception during health/browser validation; API health and browser smoke still passed."
   ],
-  "next_step": "Stage 3 should improve sentiment/data quality inputs only after deciding whether to clean the pre-existing memory-layer lint debt and whether to mark heavy live task-submit tests as explicit slow tests.",
+  "next_step": "Populate the local watchlist or set SUPEREZIO_SENTIMENT_WATCHLIST before restart to collect live sentiment for real tickers, then separately clean the memory-layer ruff debt.",
   "owner": "Codex",
   "github_policy": "DISK_ONLY_GITHUB_BLOCKED"
 }
