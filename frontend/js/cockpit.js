@@ -127,6 +127,7 @@
     if (!header) return;
 
     var dragging = false;
+    var wasDragged = false;
     var startX, startY, origLeft, origTop;
     var panelStyle = panel.style;
 
@@ -142,6 +143,7 @@
     header.addEventListener("mousedown", function (e) {
       if (e.target.tagName === "BUTTON" || e.target.tagName === "I" || e.target.closest("button")) return;
       dragging = true;
+      wasDragged = false;
       lockPosition();
       startX = e.clientX;
       startY = e.clientY;
@@ -153,14 +155,29 @@
 
     document.addEventListener("mousemove", function (e) {
       if (!dragging) return;
-      panelStyle.left = (origLeft + e.clientX - startX) + "px";
-      panelStyle.top = (origTop + e.clientY - startY) + "px";
+      var dx = e.clientX - startX;
+      var dy = e.clientY - startY;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+        wasDragged = true;
+      }
+      panelStyle.left = (origLeft + dx) + "px";
+      panelStyle.top = (origTop + dy) + "px";
     });
 
     document.addEventListener("mouseup", function () {
       if (!dragging) return;
       dragging = false;
       panelStyle.transition = "box-shadow 0.4s ease, border-color 0.4s ease";
+    });
+
+    // Handle collapse click, ignoring if it was a drag operation
+    header.addEventListener("click", function (e) {
+      if (e.target.tagName === "BUTTON" || e.target.tagName === "I" || e.target.closest("button")) return;
+      if (wasDragged) {
+        wasDragged = false;
+        return;
+      }
+      panel.classList.toggle("is-collapsed");
     });
   }
 

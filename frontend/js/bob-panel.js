@@ -172,17 +172,6 @@
     refreshPortfolio();
     window.setInterval(refreshPortfolio, 30000);
     if (window.SZ.subscribe) window.SZ.subscribe("pipeline-event", handle);
-
-    // Toggle collapse on header click
-    var livePanel = document.getElementById("live-panel");
-    if (livePanel) {
-      var hdr = livePanel.querySelector(".terminal-card-hdr");
-      if (hdr) {
-        hdr.addEventListener("click", function () {
-          livePanel.classList.toggle("is-collapsed");
-        });
-      }
-    }
   }
 
   window.SZ = window.SZ || {};

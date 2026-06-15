@@ -7,19 +7,22 @@
 (function () {
   "use strict";
 
+  var lastW = 0;
+  var lastH = 0;
+
   /* ── colour palette ─────────────────────────────────────────── */
   var BG       = "#040605";
-  var GRID     = "#1a2a1e";
-  var MUTED    = "#5a6e62";
-  var WHITE    = "#e8efe8";
-  var BLUE     = "#448aff";
-  var CYAN     = "#00e5ff";
-  var PURPLE   = "#b388ff";
-  var BB_FILL  = "rgba(100,160,130,0.08)";
-  var BB_LINE  = "rgba(100,160,130,0.35)";
-  var MACD_UP  = "#00c853";
+  var GRID     = "#122017";
+  var MUTED    = "#5c7868";
+  var WHITE    = "#f0fdf4";
+  var BLUE     = "#00e5ff";
+  var CYAN     = "#00b0ff";
+  var PURPLE   = "#d500f9";
+  var BB_FILL  = "rgba(0, 230, 118, 0.05)";
+  var BB_LINE  = "rgba(0, 230, 118, 0.25)";
+  var MACD_UP  = "#00e676";
   var MACD_DN  = "#ff1744";
-  var GREEN    = "#00c853";
+  var GREEN    = "#00e676";
   var RED      = "#ff1744";
 
   var STEPS = [
@@ -73,6 +76,8 @@
     /* ── figure out dimensions ── */
     var W = (parent ? parent.clientWidth : container.clientWidth)  || 800;
     var H = (parent ? parent.clientHeight : container.clientHeight) || 420;
+    lastW = W;
+    lastH = H;
     var dpr = window.devicePixelRatio || 1;
 
     /* reserve bottom 20 % for MACD */
@@ -228,7 +233,7 @@
 
       /* glow */
       ctx.shadowColor = clr;
-      ctx.shadowBlur = 4;
+      ctx.shadowBlur = 8;
 
       /* wick */
       ctx.strokeStyle = clr;
@@ -313,6 +318,30 @@
     ctx.fillStyle = PURPLE; ctx.fillText("EMA20", lx, ly); lx += 50;
     ctx.fillStyle = BB_LINE; ctx.fillText("BB", lx, ly);
   }
+
+  /* ── Resize Observer for parent container ── */
+  document.addEventListener("DOMContentLoaded", function () {
+    var container = document.getElementById("live-canvas");
+    if (!container) return;
+    var parent = container.parentElement;
+    if (!parent) return;
+
+    var ro = new ResizeObserver(function (entries) {
+      for (var i = 0; i < entries.length; i++) {
+        var entry = entries[i];
+        var rect = entry.contentRect;
+        // Check if dimension actually changed to avoid infinite loop
+        if (Math.abs(rect.width - lastW) > 2 || Math.abs(rect.height - lastH) > 2) {
+          lastW = rect.width;
+          lastH = rect.height;
+          if (window.SZ && window.SZ.renderChart) {
+            window.SZ.renderChart();
+          }
+        }
+      }
+    });
+    ro.observe(parent);
+  });
 
   /* ── export ──────────────────────────────────────────────────── */
   if (!window.SZ) window.SZ = {};

@@ -1,5 +1,5 @@
 {
-  "date_local": "2026-06-15T13:00:00-04:00",
+  "date_local": "2026-06-15T13:14:00-04:00",
   "session": "stage5-ui-facelift-2026-06-15",
   "status": "completed",
   "final_objective": {
@@ -13,10 +13,13 @@
   "what_was_done": [
     "Transformed Bob Copilot panel into a glassmorphic floating widget overlaying the main screen.",
     "Added header-click event listener to toggle collapse/expand state for the Bob chat widget.",
+    "Resolved mouse event collision: dragging Bob's panel no longer collapses it when mouseup occurs.",
     "Spaced out cockpit layout columns to give the main candlestick chart full screen real estate.",
     "Overhauled render-chart.js to render glowing green/red candlesticks and wicks, inline indicators, last price dashed tracker, and floating last price axis badge.",
     "Synchronized live candle SSE stream to trigger renderChart on every tick.",
     "Docked Deep math/expert summary panel at the bottom of the workspace column to maximize vertical chart space.",
+    "Implemented a ResizeObserver on the chart canvas parent to automatically resize and redraw the chart whenever dimensions change, preventing any empty black spaces.",
+    "Visual facelift of logos (metallic gradient text, neon outline F51 badge, cyan subheader) and more vivid, electric glow parameters on the canvas.",
     "Verified UI renders without console errors and draws a tall (1013x511) chart correctly using browser smoke Playwright script."
   ],
   "commits_local": [
@@ -38,18 +41,20 @@
     ],
     "results": [
       "Browser smoke test passed: health ok, AAPL chart status 200, 130 candles, canvas width 1013, height 511, nonBlank 517643 pixels (up from 106038 baseline), zero console errors.",
-      "Browser smoke screenshot: output/playwright/superezio-browser-smoke-20260615-130000.png.",
+      "Browser smoke screenshot: output/playwright/superezio-browser-smoke-20260615-131352.png.",
       "Pytest completed: 1226 passed, 3 failed (contract assertions due to Stage 5 phase and fallback provider updates, pre-existing and unrelated to UI changes)."
     ],
     "files_changed": [
       "frontend/css/cockpit.css",
+      "frontend/css/topbar.css",
       "frontend/js/bob-panel.js",
       "frontend/js/render-chart.js",
       "frontend/js/live.js",
-      "frontend/js/deep-panel.js"
+      "frontend/js/deep-panel.js",
+      "frontend/js/cockpit.js"
     ],
     "runtime_artifacts": [
-      "output/playwright/superezio-browser-smoke-20260615-130000.png"
+      "output/playwright/superezio-browser-smoke-20260615-131352.png"
     ]
   },
   "risks": [
