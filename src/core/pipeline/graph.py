@@ -207,6 +207,16 @@ async def _auto_full_analysis(
     working_state: dict[str, Any] = {**state}
     output: dict[str, Any] = {}
 
+    # ── Clean ticker-specific state between requests ──
+    # Prevents ticker leakage: "analise AAPL" → "invista em outros" still sees AAPL
+    if route == "general" and not working_state.get("ticker"):
+        for key in ("ticker", "data", "data_context", "expert_results",
+                     "expert_summary", "expert_verdicts", "trinity_report",
+                     "f51_verdict", "math_report", "math_prompt",
+                     "neural_decision", "rag_context"):
+            working_state.pop(key, None)
+        logger.debug("[auto_full_analysis] Cleaned ticker-specific state for route=general")
+
     writer(
         {
             "type": "PIPELINE_STEP",

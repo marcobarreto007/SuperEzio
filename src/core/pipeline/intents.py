@@ -821,6 +821,29 @@ DIARY_KEYWORDS = (
     "posso investir",
 )
 
+INVESTMENT_ACTION_HINTS = (
+    "invista",
+    "investir",
+    "comprar",
+    "compre",
+    "compra",
+    "aplicar",
+    "aplique",
+    "alocar",
+    "aloque",
+    "diversificar",
+    "diversifica",
+    "quero acoes",
+    "quero investir",
+    "me de opcoes",
+    "outros ativos",
+    "outras acoes",
+    "quero comprar",
+    "sugira",
+    "recomende",
+    "indique",
+)
+
 SCAN_KEYWORDS = (
     "pesquise",
     "pesquisar",
@@ -2075,6 +2098,9 @@ def _is_market_scan_request(message: str) -> bool:
     # "me indique investimento", "sugira acao", "oportunidades" — scan command
     # com hint financeiro, mesmo sem escopo explicito de pais/setor.
     if is_scan_command and has_financial_hint and not wants_specific_analysis:
+        return True
+    # Investment verbs without ticker → the user wants opportunities, not a chat
+    if has_hint(message, INVESTMENT_ACTION_HINTS) and not detect_ticker(message):
         return True
     return False
 

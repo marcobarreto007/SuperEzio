@@ -115,35 +115,26 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
     is_sovereign = os.getenv("SUPEREZIO_BOB_SOVEREIGN") in ("1", "true", "True")
 
     if is_sovereign:
-        trade_order_context = state.get("trade_order_context") or {}
-        parsed = parse_user_intent(
-            message,
-            rigor=rigor,
-            ticker=ticker,
-            trade_order_context=trade_order_context,
-        )
-        plan = parsed.to_plan()
-        plan.update(
-            {
-                "risk_tolerance": _classify_risk_tolerance(message, plan),
-                "bob_intent": _classify_bob_intent(message, plan),
-                "time_horizon": _extract_time_horizon(message)
-                or trade_order_context.get("time_horizon", ""),
-                "intent_source": "sovereign_orchestrator",
-                "sovereign_mode": True,
-            }
-        )
-        if parsed.route == "needs_scope":
-            plan.update(
-                {
-                    "intent_source": "sovereign_scope_guard",
-                    "bob_intent": "missing_scope",
-                    "allowed_tools": ["final_answer"],
-                    "scanner_allowed": False,
-                    "ticker_allowed": False,
-                    "market_context_allowed": False,
-                }
-            )
+        # Sovereign mode: Bob is the CEO. He decides. No regex gatekeeping.
+        # Give him ALL tools and let him figure out what the user wants.
+        plan = {
+            "route": "general",
+            "intent": "sovereign_delegated",
+            "risk_tolerance": "moderate",
+            "bob_intent": "bob_decides",
+            "allowed_tools": [
+                "market_scan", "collect_data", "run_experts",
+                "neural_decision", "sdca_firewall", "f51_firewall",
+                "pennylab", "rag_forensics", "social_forensics",
+                "submit_paper_order", "final_answer"
+            ],
+            "scanner_allowed": True,
+            "ticker_allowed": True,
+            "market_context_allowed": True,
+            "intent_source": "sovereign_bob_decides",
+            "sovereign_mode": True,
+            "time_horizon": _extract_time_horizon(message) or "14 days",
+        }
     else:
         # 1. Deterministic parse — for intent classification only
         trade_order_context = state.get("trade_order_context") or {}
