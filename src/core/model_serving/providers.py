@@ -150,6 +150,25 @@ def build_default_providers(
             backend="openai_compatible",
         )
     )
+
+    # CEO Fallback — GLM Code Plan (glm-5.2) via api.z.ai
+    # Assume se o Qwen local :8082 cair. Mesmo provedor do Bob implementador.
+    glm_fallback_key = os.getenv("SUPEREZIO_GLM_CODE_PLAN_API_KEY", "")
+    if glm_fallback_key:
+        providers.append(
+            ModelProvider(
+                name="ceo_fallback_glm",
+                base_url="https://api.z.ai/api/coding/paas/v4",
+                api_key=glm_fallback_key,
+                priority=-680,  # abaixo do agente local (-670), mas disponível
+                model="glm-5.2",
+                timeout_s=120,
+                max_tokens=8192,
+                temperature=0.3,
+                is_local=False,
+                backend="openai_compatible",
+            )
+        )
     gw_config = GatewayConfig(
         max_fallbacks=config.gateway.max_fallbacks,
         timeout_s=config.gateway.timeout_s,

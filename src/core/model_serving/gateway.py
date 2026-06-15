@@ -114,10 +114,13 @@ class ModelGateway:
         if preferred_provider:
             for p in self.providers:
                 if p.name == preferred_provider:
-                    # agent model is local-only and should not be used as generic
-                    # fallback for unrelated pipeline stages.
+                    # agent model is local-only but has cloud fallback (GLM Code Plan)
                     if p.name == AGENT_PROVIDER_NAME:
-                        return [p]
+                        fallback = [
+                            fb for fb in self.providers
+                            if fb.name == "ceo_fallback_glm"
+                        ]
+                        return [p] + fallback
                     if not allow_fallback:
                         return [p]
                     return [p] + [
