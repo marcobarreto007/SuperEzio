@@ -171,6 +171,13 @@ def test_cockpit_summary(client_with_mock_pipeline):
     assert "sentiment" in data
     assert "portfolio" in data
     assert data["portfolio"]["provider"] == "IBKR"
+    assert set(["genie", "deep", "bob", "status"]).issubset(data)
+    assert set(["pulses", "alerts"]).issubset(data["genie"])
+    assert set(["last_math", "last_experts", "last_trinity"]).issubset(data["deep"])
+    assert set(["last_decision", "portfolio", "guardrails"]).issubset(data["bob"])
+    assert data["bob"]["portfolio"]["provider"] == "IBKR"
+    assert data["status"]["ibkr"]["status"] == "online"
+    assert data["status"]["guardrails"]["total"] == 30
 
 
 # ---------------------------------------------------------------------------

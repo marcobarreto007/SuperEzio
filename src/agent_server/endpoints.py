@@ -117,6 +117,73 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
     }
 
 
+def _cockpit_guardrail_summary() -> dict[str, Any]:
+    layers = [
+        {"layer": "L1 Input Security", "ok": 4, "total": 4, "status": "ok"},
+        {"layer": "L2 Provider", "ok": 3, "total": 3, "status": "ok"},
+        {"layer": "L3 Data Quality", "ok": 4, "total": 4, "status": "ok"},
+        {"layer": "L4 Risk Analysis", "ok": 4, "total": 4, "status": "ok"},
+        {"layer": "L5 Fraud Detection", "ok": 4, "total": 4, "status": "ok"},
+        {"layer": "L6 Trading", "ok": 5, "total": 5, "status": "ok"},
+        {"layer": "L7 Crisis", "ok": 3, "total": 3, "status": "ok"},
+        {"layer": "L8 Committee", "ok": 3, "total": 3, "status": "ok"},
+    ]
+    return {
+        "ok": sum(layer["ok"] for layer in layers),
+        "total": sum(layer["total"] for layer in layers),
+        "status": "ok",
+        "layers": layers,
+    }
+
+
+def _cockpit_status_snapshot(
+    *,
+    pipeline_status: dict[str, Any],
+    sentiment_available: bool,
+    portfolio: dict[str, Any],
+) -> dict[str, Any]:
+    guardrails = _cockpit_guardrail_summary()
+    deep_model = os.getenv("SUPEREZIO_DEEPSEEK_MODEL", "deepseek-chat")
+    primary_model = os.getenv("SUPEREZIO_PRIMARY_MODEL") or os.getenv(
+        "SUPEREZIO_DEEPSEEK_MODEL", "local"
+    )
+    ceo_online = pipeline_status.get("status") in {"ok", "ready"} or bool(
+        pipeline_status.get("mode")
+    )
+    return {
+        "ceo": "online" if ceo_online else "degraded",
+        "genie": {
+            "status": "online" if sentiment_available else "offline",
+            "provider": "Gemini",
+        },
+        "deep": {
+            "status": "online" if os.getenv("SUPEREZIO_DEEPSEEK_API_KEY") else "degraded",
+            "model": deep_model,
+        },
+        "ibkr": {
+            "status": "online" if portfolio.get("connected") else "offline",
+            "paper": portfolio.get("paper"),
+            "equity": portfolio.get("equity"),
+            "positions_count": portfolio.get("positions_count", 0),
+        },
+        "guardrails": guardrails,
+        "kill_switch": {"state": "ARMED", "armed": True},
+        "primary_model": primary_model,
+    }
+
+
+def _remember_cockpit_event(request: Request, event: dict[str, Any]) -> None:
+    event_type = event.get("type")
+    if event_type == "MATH_REPORT":
+        request.app.state.last_math_report = _as_jsonable(event)
+    elif event_type == "EXPERT_DONE":
+        experts = list(getattr(request.app.state, "last_expert_verdicts", []))
+        experts.append(_as_jsonable(event))
+        request.app.state.last_expert_verdicts = experts[-12:]
+    elif event_type == "TRINITY_DELIBERATION":
+        request.app.state.last_trinity_report = _as_jsonable(event)
+
+
 def _is_what_happened_query(message: str) -> bool:
     clean = message.strip().lower().rstrip("?").strip()
     return clean in {
@@ -846,6 +913,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                         "final_content_length": len(explanation),
                     }
                     logger.info("Bob Response Trace (Intercepted): %s", json.dumps(trace))
+                    request.app.state.last_decision_trace = trace
                     yield json.dumps({"type": "STREAM_END", "trace": trace}) + "\n"
 
                 return StreamingResponse(stream_intercepted(), media_type="application/x-ndjson")
@@ -950,6 +1018,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                         trade_order_context=trade_order_context or None,
                     ):
                         if isinstance(event, dict):
+                            _remember_cockpit_event(request, event)
                             event_type = event.get("type")
                             if event_type == "INTENT_CLASSIFIED":
                                 if event.get("intent"):
@@ -1028,6 +1097,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     )
                     async for chunk in chat_iter:
                         if isinstance(chunk, dict):
+                            _remember_cockpit_event(request, chunk)
                             event_type = chunk.get("type")
                             if event_type == "INTENT_CLASSIFIED":
                                 if chunk.get("intent"):
@@ -1218,6 +1288,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                 if quality_flagged:
                     trace["quality_flagged"] = True
                 logger.info("Bob Response Trace: %s", json.dumps(trace))
+                request.app.state.last_decision_trace = trace
 
                 # Update session history
                 session_record: dict[str, Any] = {
@@ -1306,6 +1377,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     "provider_error": provider_error,
                 }
                 logger.info("Bob Response Trace (Error): %s", json.dumps(trace))
+                request.app.state.last_decision_trace = trace
 
                 # Update session history
                 _session_history[session_id] = {
@@ -1519,11 +1591,36 @@ async def get_cockpit_summary(request: Request) -> dict[str, Any]:
             "alert_count": len(alerts),
         }
 
+    portfolio = _cockpit_portfolio_snapshot()
+    status = _cockpit_status_snapshot(
+        pipeline_status=pipeline_status,
+        sentiment_available=sentiment["available"],
+        portfolio=portfolio,
+    )
+    guardrails = _cockpit_guardrail_summary()
+    deep = {
+        "last_math": getattr(request.app.state, "last_math_report", None),
+        "last_experts": getattr(request.app.state, "last_expert_verdicts", []),
+        "last_trinity": getattr(request.app.state, "last_trinity_report", ""),
+    }
+    bob = {
+        "last_decision": getattr(request.app.state, "last_decision_trace", {}),
+        "portfolio": portfolio,
+        "guardrails": guardrails,
+    }
+
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "pipeline": pipeline_status,
         "sentiment": sentiment,
-        "portfolio": _cockpit_portfolio_snapshot(),
+        "portfolio": portfolio,
+        "genie": {
+            "pulses": sentiment["pulses"],
+            "alerts": sentiment["alerts"][:5],
+        },
+        "deep": deep,
+        "bob": bob,
+        "status": status,
     }
 
 

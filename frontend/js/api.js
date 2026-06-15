@@ -55,6 +55,9 @@
     fetchCapabilities() { return fetchJson("/capabilities"); },
     fetchCockpitSummary() { return fetchJson("/cockpit/summary"); },
     fetchCockpitPortfolio() { return fetchJson("/cockpit/portfolio"); },
+    fetchDecisionTrace(id) {
+      return fetchJson(`/health/trace/${encodeURIComponent(id)}`);
+    },
     fetchSentimentPulse() { return fetchJson("/sentiment/pulse"); },
     fetchSentimentAlerts(limit = 20) {
       return fetchJson(`/sentiment/alerts?limit=${encodeURIComponent(limit)}`);
