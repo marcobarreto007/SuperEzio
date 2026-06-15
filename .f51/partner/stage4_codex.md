@@ -204,3 +204,76 @@ Formato JSON. Sem HTML. O frontend faz o poll.
 Commite depois de cada. Sem disclaimer. Tema escuro.
 
 — Deep
+
+---
+
+## Tarefa 7 (EXTRA): Endpoints faltantes pro cockpit
+
+**Arquivo:** `src/agent_server/endpoints.py`
+
+Adiciona:
+
+```python
+@router.get("/cockpit/summary")
+async def get_cockpit_summary(request: Request) -> dict:
+    """Dados agregados para todos os paineis do cockpit."""
+    return {
+        "genie": {
+            "pulses": await _get_sentiment_pulses_for_cockpit(request),
+            "alerts": await _get_recent_alerts(limit=5),
+        },
+        "deep": {
+            "last_math": _get_last_math_report(),
+            "last_experts": _get_last_expert_verdicts(),
+            "last_trinity": _get_last_trinity_report(),
+        },
+        "bob": {
+            "last_decision": _get_last_decision_trace(),
+            "portfolio": await _get_ibkr_snapshot(),
+            "guardrails": _get_guardrail_summary(),
+        },
+        "status": {
+            "ceo": _check_ceo_health(),
+            "genie": _check_genie_health(),
+            "deep": _check_deepseek_health(),
+            "ibkr": _check_ibkr_health(),
+            "guardrails": _get_guardrail_counts(),
+            "kill_switch": _get_kill_switch_state(),
+        }
+    }
+
+@router.get("/cockpit/portfolio")
+async def get_cockpit_portfolio() -> dict:
+    """Snapshot IBKR portfolio."""
+    ...
+```
+
+## Tarefa 8 (EXTRA): Contrato dos endpoints NOVOS
+
+Frontend espera:
+
+```
+GET /cockpit/summary → {
+  genie: { pulses: [...], alerts: [...] },
+  deep: { last_math: {...}, last_experts: [...], last_trinity: "..." },
+  bob: { last_decision: {...}, portfolio: {...}, guardrails: {...} },
+  status: { ceo: "online", genie: {...}, deep: {...}, ibkr: {...}, ... }
+}
+```
+
+Frontend faz poll a cada 10s (status), 30s (sentiment), sob demanda (decision trace).
+
+## Tarefa 9 (EXTRA): Frontend integra endpoints EXISTENTES
+
+Antes de criar componentes novos, o frontend precisa consumir o que já existe:
+
+```javascript
+// api.js — adicionar:
+fetchSentimentPulse()    { return fetchJson("/sentiment/pulse"); },
+fetchSentimentAlerts()   { return fetchJson("/sentiment/alerts"); },
+fetchDecisionTrace(id)   { return fetchJson("/health/trace/" + id); },
+fetchCockpitSummary()    { return fetchJson("/cockpit/summary"); },
+fetchCockpitPortfolio()  { return fetchJson("/cockpit/portfolio"); },
+```
+
+Isso resolve 8 dos 11 gaps do sweep.
