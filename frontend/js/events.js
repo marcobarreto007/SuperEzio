@@ -336,6 +336,10 @@
         break;
     }
 
+    if (SZ.publish) {
+      try { SZ.publish("pipeline-event", ev); } catch (e) { console.warn("pipeline publish error:", e); }
+    }
+
     /* scroll chat */
     var chat = document.getElementById("chat");
     if (chat) chat.scrollTop = chat.scrollHeight;

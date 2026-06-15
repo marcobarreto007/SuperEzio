@@ -266,6 +266,8 @@ async def _auto_full_analysis(
                 "ticker": math_report.get("ticker"),
                 "coverage": math_report.get("coverage"),
                 "summary": math_report.get("summary"),
+                "modules": math_report.get("modules"),
+                "numbers": math_report.get("numbers"),
             }
         )
     except Exception as exc:

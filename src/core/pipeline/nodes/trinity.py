@@ -181,6 +181,17 @@ async def node_trinity(state: dict[str, Any], *, gateway=None) -> dict[str, Any]
 
     writer(
         {
+            "type": "TRINITY_DELIBERATION",
+            "run_id": run_id,
+            "ticker": ticker,
+            "report": report,
+            "structured": structured,
+            "blocked": blocked,
+            "consensus": consensus,
+        }
+    )
+    writer(
+        {
             "type": "PIPELINE_STEP",
             "run_id": run_id,
             "step": "trinity",
