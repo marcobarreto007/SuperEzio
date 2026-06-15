@@ -804,6 +804,26 @@ def build_graph(
                                 else "",
                                 lesson_learned=f"Auto trade: {ticker} {'won' if closed.outcome == 'win' else 'lost'} ${abs(closed.pnl_amount or 0):.2f}",
                             )
+
+                            # Trigger learning cycle after trade close (async, non-blocking)
+                            try:
+                                import concurrent.futures
+                                import threading
+
+                                def _run_learning_cycle():
+                                    try:
+                                        from core.trading.feedback_loop import get_feedback_loop
+                                        fb = get_feedback_loop()
+                                        fb.run_learning_cycle()
+                                        logger.info("[learning] Cycle completed after closing %s", ot["trade_id"])
+                                    except Exception as e:
+                                        logger.warning("[learning] Cycle failed after trade close: %s", e)
+
+                                # Run in background thread to not block the pipeline
+                                threading.Thread(target=_run_learning_cycle, daemon=True).start()
+                            except Exception as exc:
+                                logger.debug("[learning] Failed to trigger learning cycle: %s", exc)
+
                         journal_entry = f"closed:{ot['trade_id']}"
                         break
                 if not closed:
@@ -986,6 +1006,18 @@ class PipelineApp:
             # 3. Injeta no context (antes do prompt do Bob)
             if memory_context:
                 context = f"{memory_context}\n\n{context}" if context else memory_context
+
+            # 4. Injeta lições aprendidas do FeedbackLoop
+            try:
+                from core.trading.feedback_loop import get_feedback_loop
+                fb_loop = get_feedback_loop()
+                if fb_loop:
+                    learning_context = fb_loop.render_for_bob(max_chars=1000)
+                    if learning_context:
+                        context = f"{context}\n\n{learning_context}" if context else learning_context
+                        logger.debug("[memory] Injected learning context (%d chars)", len(learning_context))
+            except Exception as exc:
+                logger.debug("[memory] Failed to load learning context: %s", exc)
 
         except Exception as exc:
             logger.warning("[memory] Failed to load unified context: %s", exc)

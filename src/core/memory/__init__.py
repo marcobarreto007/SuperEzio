@@ -7,6 +7,7 @@ Includes:
   2. HybridRetriever: dense+sparse fusion search
   3. RerankPipeline: cross-encoder reranking
   4. GraphMemoryBridge: knowledge graph with entities
+- FeedbackLoop: learning system from trade outcomes
 """
 
 from .conversation_memory import (
@@ -21,6 +22,7 @@ __all__ = [
     "ConversationTurn",
     "get_conversation_memory",
     "reset_memory_for_test",
+    "get_feedback_loop",
 ]
 
 # Unified Memory Layer - available for import
@@ -45,3 +47,12 @@ from .graph import (
     get_graph_bridge,
     reset_graph_bridge,
 )
+
+
+def get_feedback_loop():
+    """Get FeedbackLoop singleton for trade learning."""
+    try:
+        from core.trading.feedback_loop import get_feedback_loop as _get
+        return _get()
+    except ImportError:
+        return None

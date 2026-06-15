@@ -424,6 +424,23 @@ class UnifiedRetriever:
             lines.append("- (Nenhum ticker analisado)")
         lines.append("")
 
+        # ## Aprendizado de trades
+        lines.append("## Aprendizado de trades")
+        try:
+            from core.trading.feedback_loop import get_feedback_loop
+            fb_loop = get_feedback_loop()
+            if fb_loop:
+                stats = fb_loop.get_stats()
+                if stats.get("closed_trades", 0) > 0:
+                    lines.append(f"- Trades fechados: {stats['closed_trades']}")
+                    lines.append(f"- Win rate: {stats.get('win_rate', 0)*100:.0f}%")
+                    lines.append(f"- Lições registradas: {stats.get('lessons_logged', 0)}")
+                else:
+                    lines.append("- (Nenhum trade fechado ainda)")
+        except Exception:
+            lines.append("- (Aprendizado indisponível)")
+        lines.append("")
+
         lines.append("=== END MEMORY ===")
         return "\n".join(lines)
 
