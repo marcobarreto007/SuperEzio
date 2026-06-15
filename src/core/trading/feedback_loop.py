@@ -14,9 +14,10 @@ from __future__ import annotations
 
 import json
 import logging
-from collections import Counter, defaultdict
+import re
+from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +27,39 @@ DEFAULT_LEARNING_LOG_PATH = (
     Path(__file__).resolve().parent.parent.parent.parent
     / "data" / "learning_log.jsonl"
 )
+
+
+def _parse_utc_datetime(value: Any) -> datetime | None:
+    """Parse ISO timestamps emitted by the local JSONL journals."""
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _extract_confidence(value: Any) -> float | None:
+    """Extract a Bob confidence value from verdict text and normalize to 0..1."""
+    if value is None:
+        return None
+    text = str(value)
+    patterns = (
+        r"(?:confidence|confianca|confian.a|conf)\D{0,16}(\d{1,3}(?:\.\d+)?)",
+        r"(\d{1,3}(?:\.\d+)?)\s*/\s*100",
+        r"(\d{1,3}(?:\.\d+)?)\s*%",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if not match:
+            continue
+        raw = float(match.group(1))
+        normalized = raw / 100 if raw > 1 else raw
+        return max(0.0, min(normalized, 1.0))
+    return None
 
 
 @dataclass
@@ -130,11 +164,13 @@ class PatternAnalyzer:
         periods = defaultdict(lambda: {"wins": 0, "losses": 0, "pnl": 0.0, "count": 0})
 
         for trade in trades:
-            entry = datetime.fromisoformat(trade.get("entry_date", ""))
+            entry = _parse_utc_datetime(trade.get("entry_date"))
             exit_str = trade.get("exit_date")
             if not exit_str:
                 continue
-            exit_date = datetime.fromisoformat(exit_str)
+            exit_date = _parse_utc_datetime(exit_str)
+            if entry is None or exit_date is None:
+                continue
 
             duration_hours = (exit_date - entry).total_seconds() / 3600
 
@@ -336,11 +372,11 @@ class LessonExtractor:
         for t in trades:
             exit_date = t.get("exit_date")
             if exit_date:
-                try:
-                    if datetime.fromisoformat(exit_date) > cutoff:
-                        recent.append(t)
-                except (ValueError, TypeError):
+                parsed_exit = _parse_utc_datetime(exit_date)
+                if parsed_exit is None:
                     continue
+                if parsed_exit > cutoff:
+                    recent.append(t)
 
         lessons = []
 
@@ -507,12 +543,13 @@ class LearningLog:
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
         recent = [
-            l for l in self._lessons.values()
-            if datetime.fromisoformat(l.created_at) > cutoff
-            and (not category or l.category == category)
+            lesson for lesson in self._lessons.values()
+            if (_parse_utc_datetime(lesson.created_at) or datetime.min.replace(tzinfo=timezone.utc))
+            > cutoff
+            and (not category or lesson.category == category)
         ]
 
-        return sorted(recent, key=lambda l: l.created_at, reverse=True)
+        return sorted(recent, key=lambda lesson: lesson.created_at, reverse=True)
 
     def render_for_bob(self, max_chars: int = 1500) -> str:
         """Renderiza lições para o prompt do Bob."""
@@ -538,25 +575,46 @@ class LearningLog:
 class FeedbackLoop:
     """Orquestra o fluxo de aprendizado."""
 
-    def __init__(self, journal_path: Path | None = None, learning_log_path: Path | None = None):
+    def __init__(
+        self,
+        journal_path: Path | None = None,
+        learning_log_path: Path | None = None,
+        conversation_memory: Any | None = None,
+    ):
         from core.trading.paper_journal import PaperJournal
 
         self._journal = PaperJournal(journal_path)
         self._learning_log = LearningLog(learning_log_path)
         self._pattern_analyzer = PatternAnalyzer(self._journal)
         self._lesson_extractor = LessonExtractor(self._journal)
+        self._conversation_memory = conversation_memory
 
-    def run_learning_cycle(self) -> dict[str, Any]:
+    def run_learning_cycle(self, *, record_memory: bool = True) -> dict[str, Any]:
         """Executa um ciclo completo de aprendizado."""
         logger.info("Starting learning cycle...")
 
         results = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
+            "theses_closed": 0,
+            "theses_closed_items": [],
             "patterns_found": 0,
             "lessons_extracted": 0,
             "patterns": [],
-            "lessons": []
+            "lessons": [],
+            "bias_report": {},
         }
+
+        try:
+            closed_theses = self._journal.review_aged_closed_theses(
+                record_memory=record_memory,
+                memory=self._conversation_memory,
+            )
+            results["theses_closed_items"] = closed_theses
+            results["theses_closed"] = len(closed_theses)
+            if closed_theses:
+                logger.info("Closed %d aged theses", len(closed_theses))
+        except Exception as e:
+            logger.warning("Aged thesis review failed: %s", e)
 
         # 1. Analisa padrões
         try:
@@ -566,7 +624,7 @@ class FeedbackLoop:
             risk_patterns = self._pattern_analyzer.analyze_risk_reward_performance()
 
             all_patterns = sector_patterns + period_patterns + thesis_patterns + risk_patterns
-            results["patterns"] = [p.__dict__ for p in all_patterns]
+            results["patterns"] = [pattern.__dict__ for pattern in all_patterns]
             results["patterns_found"] = len(all_patterns)
 
             logger.info("Found %d patterns", len(all_patterns))
@@ -579,12 +637,17 @@ class FeedbackLoop:
             for lesson in lessons:
                 self._learning_log.add_lesson(lesson)
 
-            results["lessons"] = [l.__dict__ for l in lessons]
+            results["lessons"] = [lesson.__dict__ for lesson in lessons]
             results["lessons_extracted"] = len(lessons)
 
             logger.info("Extracted %d lessons", len(lessons))
         except Exception as e:
             logger.warning("Lesson extraction failed: %s", e)
+
+        try:
+            results["bias_report"] = self.analyze_confidence_bias()
+        except Exception as e:
+            logger.warning("Bias analysis failed: %s", e)
 
         # 3. Gera relatório para Bob
         try:
@@ -598,6 +661,79 @@ class FeedbackLoop:
                     results["patterns_found"], results["lessons_extracted"])
 
         return results
+
+    def analyze_confidence_bias(self, min_closed: int = 10) -> dict[str, Any]:
+        """Compare Bob confidence at entry with real closed-trade outcomes."""
+        closed = [
+            trade
+            for trade in self._journal.list_closed()
+            if trade.get("outcome") in {"win", "loss", "breakeven"}
+        ]
+
+        base_report: dict[str, Any] = {
+            "status": "insufficient_sample",
+            "bias": "insufficient_sample",
+            "sample_size": len(closed),
+            "confidence_sample_size": 0,
+            "min_sample": min_closed,
+        }
+        if len(closed) < min_closed:
+            return base_report
+
+        samples = []
+        for trade in closed:
+            confidence = _extract_confidence(trade.get("verdict_at_entry"))
+            if confidence is None:
+                continue
+            samples.append((trade, confidence))
+
+        if not samples:
+            return {
+                **base_report,
+                "status": "missing_confidence_data",
+                "bias": "confidence_not_recorded",
+                "confidence_sample_size": 0,
+            }
+
+        wins = sum(1 for trade, _confidence in samples if trade.get("outcome") == "win")
+        win_rate = wins / len(samples)
+        avg_confidence = sum(confidence for _trade, confidence in samples) / len(samples)
+        calibration_gap = avg_confidence - win_rate
+
+        if calibration_gap >= 0.20:
+            bias = "overconfidence"
+            recommendation = "Raise entry threshold or demand stronger confirmation."
+        elif calibration_gap <= -0.20:
+            bias = "underconfidence"
+            recommendation = "Allow higher-quality setups to size up within paper limits."
+        else:
+            bias = "calibrated"
+            recommendation = "Keep current confidence threshold and continue collecting trades."
+
+        high_conf_losses = [
+            trade.get("trade_id")
+            for trade, confidence in samples
+            if confidence >= 0.70 and trade.get("outcome") == "loss"
+        ]
+        low_conf_wins = [
+            trade.get("trade_id")
+            for trade, confidence in samples
+            if confidence <= 0.50 and trade.get("outcome") == "win"
+        ]
+
+        return {
+            "status": "analyzed",
+            "bias": bias,
+            "sample_size": len(closed),
+            "confidence_sample_size": len(samples),
+            "min_sample": min_closed,
+            "win_rate": round(win_rate, 4),
+            "avg_confidence": round(avg_confidence, 4),
+            "calibration_gap": round(calibration_gap, 4),
+            "high_confidence_losses": high_conf_losses,
+            "low_confidence_wins": low_conf_wins,
+            "recommendation": recommendation,
+        }
 
     def render_for_bob(self, max_chars: int = 2000) -> str:
         """Renderiza insights completos para o Bob."""
