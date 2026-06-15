@@ -77,8 +77,20 @@
     <aside class="right-stack right-stack--floatable" id="live-panel" aria-label="Bob conversation">
       <section class="terminal-card terminal-card--chat">
         <div class="terminal-card-hdr">
-          <i data-lucide="bot"></i>
-          <strong>Bob Copilot</strong>
+          <i class="bob-logo-icon">
+            <svg class="bob-logo-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="bob-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#00e676" />
+                  <stop offset="100%" stop-color="#00e5ff" />
+                </linearGradient>
+              </defs>
+              <polygon points="12,2 22,7.5 22,16.5 12,22 2,16.5 2,7.5" stroke="url(#bob-logo-grad)" stroke-width="2" stroke-linejoin="round" />
+              <path d="M6 12C6 12 8.5 9.5 12 9.5C15.5 9.5 18 12 18 12C18 12 15.5 14.5 12 14.5C8.5 14.5 6 12 6 12Z" stroke="url(#bob-logo-grad)" stroke-width="1.5" />
+              <circle cx="12" cy="12" r="2.5" fill="url(#bob-logo-grad)" />
+            </svg>
+          </i>
+          <strong class="bob-logo-text"><b class="bob-brand-accent">BOB</b><em class="bob-brand-sub">COPILOT</em></strong>
           <span id="live-ticker">--</span>
         </div>
         <main class="chat" id="chat" aria-label="Conversation">

@@ -576,3 +576,49 @@ body::after {
     grid-template-columns: 300px minmax(460px, 1fr) 340px;
   }
 }
+
+/* ── Bob Copilot Custom Branding & Premium Typography ── */
+.bob-logo-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+
+.bob-logo-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 6px rgba(0, 230, 118, 0.45));
+}
+
+.bob-logo-text {
+  font-family: var(--font-display) !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.12em !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  user-select: none !important;
+}
+
+.bob-brand-accent {
+  background: linear-gradient(90deg, #ffffff 10%, var(--green) 100%);
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  text-shadow: 0 0 10px rgba(0, 230, 118, 0.25);
+  font-style: normal !important;
+}
+
+.bob-brand-sub {
+  color: var(--blue) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.15em !important;
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.3);
+  font-style: normal !important;
+  opacity: 0.95;
+}
+
