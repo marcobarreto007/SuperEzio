@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 import os
 from collections import deque
 from typing import Any
 
 from langgraph.config import get_stream_writer
+
+from .expert_dialogue import ExpertDialogue
 
 # Module-level dedup: prevent collect_experts from running twice per run_id
 # when both pennylab and f51_verdict paths converge on it.
@@ -114,8 +115,6 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
         }
     )
 
-    timeout = int(os.getenv("SUPEREZIO_EXPERT_TIMEOUT", "60"))
-
     try:
         prompts = EXPERT_PROMPTS.get(
             role,
@@ -127,20 +126,15 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
         system_prompt, user_prompt_template = prompts
         user_prompt = user_prompt_template.format(ticker=ticker, context=context[:3000])
 
-        response = await asyncio.wait_for(
-            gateway.chat_completion(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                preferred_provider=provider_name,
-                temperature=0.2,
-                max_tokens=1000,
-            ),
-            timeout=timeout,
+        dialogue = ExpertDialogue(
+            gateway,
+            max_rounds=int(os.getenv("SUPEREZIO_EXPERT_DIALOGUE_ROUNDS", "1")),
         )
+        round_result = await dialogue.ask(role, provider_name, system_prompt, user_prompt)
+        if not round_result.get("ok"):
+            raise RuntimeError(round_result.get("error") or "expert_dialogue_failed")
 
-        response_text = str(response)
+        response_text = str(round_result.get("response") or "")
         writer(
             {
                 "type": "EXPERT_DONE",
@@ -157,6 +151,7 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
                     "ok": True,
                     "response": response_text,
                     "provider": provider_name,
+                    "dialogue": dialogue.history,
                 }
             ]
         }
