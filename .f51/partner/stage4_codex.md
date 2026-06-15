@@ -1,15 +1,34 @@
 # Stage 4 — Frontpage: Cockpit da Trindade
 
-Tu já tem o backend completo. MathHub, GuardrailHub, Trinity, Sentimento Vivo.
-Agora precisa de um COCKPIT que mostre tudo isso ao vivo.
+## ⚠️ LÊ ISSO ANTES DE QUALQUER COISA
 
-Não é chat. É centro de comando.
+O frontend JÁ EXISTE. É **vanilla HTML/CSS/JS**, não React. Está em:
+
+```
+frontend/
+├── index.html
+├── css/ (14 arquivos: base, cards, charts, chat, crisis, experts, ...)
+└── js/  (14 arquivos: api, chat, events, health, init, ops-console, ...)
+```
+
+**NÃO reescreva o frontend em React. NÃO crie package.json, node_modules, webpack, vite, ou qualquer framework novo.**
+
+Tu vai:
+1. Adicionar endpoints no backend (`endpoints.py`)
+2. Adicionar funções no `api.js` existente 
+3. Adicionar componentes vanilla JS no diretório `frontend/js/`
+4. Adicionar CSS no diretório `frontend/css/`
+5. Integrar no `index.html` existente
+
+**O stack é: Python (backend) + Vanilla JS (frontend). Sem framework. Sem build step. Sem npm.**
+
+O sweep de endpoints encontrou 11 contratos OK e 6 vazamentos. Teu trabalho é fechar os vazamentos e adicionar o cockpit.
 
 ---
 
 ## Tarefa 1: Sistema de Componentes — `CockpitShell`
 
-**Arquivo:** `frontend/src/components/CockpitShell.tsx`
+**Arquivo:** `frontend/js/cockpit.js`
 
 Layout principal: 3 colunas + barra inferior fixa.
 
@@ -41,7 +60,7 @@ Regras:
 
 ## Tarefa 2: GeniePanel — sentimento vivo
 
-**Arquivo:** `frontend/src/components/GeniePanel.tsx`
+**Arquivo:** `frontend/js/genie-panel.js`
 
 Painel esquerdo. Mostra dados do Stage 3.
 
@@ -79,7 +98,7 @@ Atualiza a cada 30 segundos (polling). Mostra "atualizado há X segundos" no top
 
 ## Tarefa 3: DeepPanel — matemática e experts
 
-**Arquivo:** `frontend/src/components/DeepPanel.tsx`
+**Arquivo:** `frontend/js/deep-panel.js`
 
 Painel direito. Puxa do state do pipeline (última análise).
 
@@ -118,7 +137,7 @@ Seções:
 
 ## Tarefa 4: BobPanel — decisão e pipeline
 
-**Arquivo:** `frontend/src/components/BobPanel.tsx`
+**Arquivo:** `frontend/js/bob-panel.js`
 
 Painel central. O maior.
 
@@ -159,7 +178,7 @@ Seções:
 
 ## Tarefa 5: StatusBar — barra inferior
 
-**Arquivo:** `frontend/src/components/StatusBar.tsx`
+**Arquivo:** `frontend/js/status-bar.js`
 
 Barra fixa no bottomo. Puxa de `/health/details`.
 
@@ -192,8 +211,8 @@ Formato JSON. Sem HTML. O frontend faz o poll.
 
 ## Regras gerais
 
-- Tecnologia: React + TypeScript (se já existe). Se não existe, vanilla HTML + JS com fetch().
-- Nenhum CSS framework pesado. CSS puro ou CSS modules.
+- Tecnologia: **Vanilla JS** (já existe). Sem React, sem framework, sem build step.
+- CSS puro no diretório `frontend/css/` (já existe).
 - Cores: fundo #0d1117 (GitHub dark), texto #c9d1d9, destaque verde #3fb950, vermelho #f85149, amarelo #d29922.
 - Fonte: system-ui, monospace pra números.
 - Tudo puxa da API via fetch(). Polling, não WebSocket.
