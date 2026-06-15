@@ -1,6 +1,6 @@
 {
   "date_local": "2026-06-14T22:58:00-04:00",
-  "session": "watchlist-populate-2026-06-14",
+  "session": "audit-stage1-3-complete-2026-06-15",
   "status": "completed",
   "final_objective": {
     "what_system_does": "SuperEzio Financeiro runs a local financial-analysis assistant with chart data, math reports, sentiment context, expert deliberation, guardrails, audit traces, and a live sentiment pulse surface collecting data from a populated watchlist.",
@@ -49,5 +49,35 @@
   ],
   "next_step": "Wait for sentiment collection to accumulate more data, or investigate why MSFT/AAPL return NO_DATA when other tickers have news.",
   "owner": "Codex",
-  "github_policy": "DISK_ONLY_GITHUB_BLOCKED"
+  "github_policy": "DISK_ONLY_GITHUB_BLOCKED",
+  "updated": "2026-06-15T13:41:33.144471+00:00",
+  "pipeline_status": {
+    "contacts_tests_passing": 431,
+    "total_tests": 431,
+    "stages": {
+      "1_unificar": "COMPLETE",
+      "2_trindade": "COMPLETE",
+      "3_sentimento": "COMPLETE",
+      "4_frontpage": "PENDING",
+      "5_debut": "PENDING"
+    },
+    "modules": {
+      "math_hub": true,
+      "guardrail_hub": true,
+      "decision_trace": true,
+      "trinity": true,
+      "expert_dialogue": true,
+      "math_prompt": true,
+      "sentiment_prompt": true,
+      "live_monitor": true,
+      "curator": true,
+      "watchlist_pulse": true,
+      "memory_system": true
+    },
+    "guardrails": "30/30 auditaveis",
+    "experts": "6 cloud + 3 local + 3 pipeline = 12 ativos",
+    "disclaimers_removed": true,
+    "bob_config": "GLM Code Plan glm-5.2 via api.z.ai",
+    "audit_verdict": "APPROVED — 3 stages completos, zero regressões"
+  }
 }

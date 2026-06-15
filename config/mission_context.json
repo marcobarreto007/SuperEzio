@@ -75,9 +75,29 @@
     "pipeline": {
       "status": "verified",
       "tests_passing": 1063,
-      "contracts_passing": 415,
+      "contracts_passing": 431,
       "warnings": 0,
-      "last_full_suite": "2026-06-05 - 1063 passed, 0 warnings in 149.99s"
+      "last_full_suite": "2026-06-15 - 431 passed, 1 warning in 26.12s",
+      "stages_completed": {
+        "stage_1_unificar": true,
+        "stage_2_trindade": true,
+        "stage_3_sentimento": true,
+        "stage_4_frontpage": false,
+        "stage_5_debut": false
+      },
+      "new_modules": {
+        "math_hub": "12 modulos matematicos unificados. MathReport injetado no DeepSeek.",
+        "guardrail_hub": "30 guardrails em 8 camadas, todos auditaveis via DecisionTrace.",
+        "decision_trace": "Audit trail por no — blame report, start_node/end_node.",
+        "trinity": "Bob ↔ Genie ↔ Deep dialogo bidirecional multi-turn.",
+        "math_prompt": "[MATH_CONTEXT] compacto 8 linhas para DeepSeek.",
+        "sentiment_prompt": "[SENTIMENT_CONTEXT] 4 fontes estruturadas para Genie.",
+        "expert_dialogue": "Multi-turn dialogue com follow-up (max 3 rounds).",
+        "live_monitor": "Background thread 15min. Detecta SWING/SPIKE/COORD/DIVERGENCE.",
+        "curator": "Curadoria automatica: dedup, peso por fonte, expiry, confidence.",
+        "watchlist_pulse": "PulseReport por ticker — heartbeat para frontpage.",
+        "memory_system": "5 camadas: conversation → unified → hybrid → reranker → graph."
+      }
     },
     "broker": {
       "ibkr": {

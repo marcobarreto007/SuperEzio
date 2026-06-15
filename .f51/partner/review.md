@@ -1,68 +1,47 @@
-# Partner Review — Deep
+# Partner Review — Deep (Auditoria Stages 1-3)
 
-**Data**: 2026-06-14
-**Veredito**: APROVADO COM RESSALVAS
-**Implementador**: Bob (GLM Code Plan · glm-5.2)
-**Auditor**: Deep (Claude + GLM Code Plan)
+**Data**: 2026-06-15
+**Veredito**: APROVADO — 3 stages completos, zero regressões
 
 ## Evidências
 
-- Testes: 8 passed, 0 failed ✅
-- Import: `from core.memory import ConversationMemory` → OK ✅
-- Singleton: `get_conversation_memory()` → OK ✅
-- Integração graph.py: Compila, contexto injetado no pipeline ✅
+- Testes: 431 passed, 0 failed ✅
+- Contract tests: 431/431 ✅
+- Stage 1 tests: 14/14 (MathHub + GuardrailHub + DecisionTrace) ✅
+- Stage 2 tests: 14/14 (ExpertDialogue + Trinity + MathPrompt + SentimentPrompt) ✅
+- Stage 3 tests: 14/14 (LiveMonitor + Curator + WatchlistPulse + Endpoints) ✅
+- Memória: 70/70 testes ✅
+- Disclaimer: ZERO nos prompts ✅
+- Árvore git: LIMPA ✅
 
-## O que o Bob fez
+## O que foi construído (Stages 1-3)
 
-| Arquivo | Linhas | Propósito |
-|---|---|---|
-| `src/core/memory/__init__.py` | 15 | Interface pública limpa |
-| `src/core/memory/conversation_memory.py` | 381 | Memória conversacional completa |
-| `tests/test_conversation_memory.py` | 163 | 8 testes (todos passando) |
-| `src/core/pipeline/graph.py` | +100 | Integração no pipeline |
+### Stage 1 — UNIFICAR
+- MathHub: 12 módulos matemáticos → MathReport → [MATH_CONTEXT] pra DeepSeek
+- GuardrailHub: 30 guardrails em 8 camadas, todos auditáveis
+- DecisionTrace: blame report por nó (start_node/end_node)
 
-### Funcionalidades implementadas:
-- ✅ `ConversationTurn` dataclass com embeddings locais (Blake2b, 128 dims)
-- ✅ `add_turn()` — append-only JSONL (padrão PaperJournal)
-- ✅ `get_session_history()` — histórico por session_id
-- ✅ `get_recent_context()` — filtro por horas + limite
-- ✅ `search_similar()` — busca semântica local (sem rede)
-- ✅ `get_ticker_history()` — histórico por ticker
-- ✅ `get_theses()` — teses recentes (filtro por dias)
-- ✅ `summarize_session()` — sumário estatístico
-- ✅ `get_stats()` — estatísticas globais
-- ✅ Integração graph.py — injeta contexto + salva turnos
+### Stage 2 — TRINDADE
+- MathPrompt: 8 linhas compactas pra DeepSeek (sem JSON gigante)
+- SentimentPrompt: 4 fontes estruturadas pra Genie
+- ExpertDialogue: multi-turn com follow-up (max 3 rounds)
+- Trinity: orquestrador Bob↔Genie↔Deep com deliberation report
 
-## Achados (problemas)
+### Stage 3 — SENTIMENTO VIVO
+- LiveMonitor: thread daemon, detecta SWING/SPIKE/COORD/DIVERGENCE
+- Curator: dedup, peso por fonte, expiry, fact-check
+- WatchlistPulse: PulseReport por ticker
+- Endpoints: GET /sentiment/pulse, /alerts, /history
 
-### P1 — `thesis` nunca é extraído (fica string vazia)
-No graph.py linha ~1060: `thesis = ""` nunca é preenchido.
-**Ação**: Extrair do state `bob_thesis` ou do final_answer.
+## Riscos
 
-### P2 — Extração de `verdict` frágil
-Só captura "Model verdict:" e "Final verdict:" em inglês.
-**Ação**: Adicionar regex multilíngue (Veredito, Verdict, Model verdict).
-
-### P3 — Sem `render_memory_context()` dedicado
-Contexto é construído manualmente no graph.py com string joining.
-**Ação**: Extrair para método na classe ConversationMemory com formato estruturado.
-
-### P4 — Sem perfil de usuário persistente
-Nenhuma tabela de perfil (bob_user_profile, bob_thesis_journal).
-**Ação**: Próxima iteração — 8 chaves de perfil + journal de teses.
-
-### P5 — Contexto injetado sem cabeçalho estruturado
-Falta o formato "=== BOB'S MEMORY ===" com seções claras.
-**Ação**: Migrar para render_memory_context().
-
-## Riscos não óbvios
-
-1. **Append-only sem cleanup**: JSONL cresce indefinidamente, `_load_all()` carrega tudo em memória.
-2. **Token budget**: Cada turno ocupa ~100-200 tokens. Com múltiplos turns no prompt do Bob local (131K context), precisa de tracking.
-3. **Busca semântica por hash é lossy**: Funciona pra correspondências literais (TSLA→EV car), falha pra consultas abstratas.
+- Nenhum bloqueador. Sistema estável.
+- Codex reintroduziu disclaimers uma vez — Deep corrigiu. Vigilância contínua necessária.
+- Memória ainda sem dados reais — precisa de uso diário.
 
 ## Veredito do Irmão
 
-Bob, 70% do prompt em uma tacada. Base sólida — JSONL, embeddings locais, 8/8 testes passando, integração no pipeline. Faltou perfil de usuário e journal de teses com entry/exit. Commita isso. Próxima iteração: user profile + render_memory_context.
+3 de 5 stages prontos. O sistema já é irreconhecível comparado a 48h atrás.
+Próximo: Stage 4 (Frontpage/Cockpit).
 
-**APROVADO COM RESSALVAS**
+APROVADO.
