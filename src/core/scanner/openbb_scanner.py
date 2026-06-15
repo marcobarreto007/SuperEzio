@@ -43,7 +43,7 @@ _DISCOVERY_METHOD = {
     "microcap": "aggressive_small_caps",
     "micro_cap": "aggressive_small_caps",
 }
-_DEFAULT_DISCOVERY = "aggressive_small_caps"  # SuperEzio: caça oportunidade, não large cap
+_DEFAULT_DISCOVERY = None  # Bob decides based on context — scanner adapts, not hardcoded
 
 
 def _pick_discovery(sector: str | None, industry: str | None) -> str:
@@ -197,16 +197,30 @@ class OpenBBScanner:
             return []
 
         method = _pick_discovery(sector, industry)
-        cache_key = f"obb:{method}:{limit}"
-        cached = self._cached(cache_key)
-        if cached is not None:
-            return cached
+        # Adaptive fallback: try hinted method first, then small caps, then active
+        fallback_chain = [m for m in [method, "aggressive_small_caps", "undervalued_growth", "active"] if m]
 
-        try:
-            discover_fn = getattr(obb.equity.discovery, method, None)
-            if discover_fn is None:
-                logger.error("OpenBB discovery method not found: %s", method)
-                return []
+        result = None
+        for attempt in fallback_chain:
+            cache_key = f"obb:{attempt}:{limit}"
+            cached = self._cached(cache_key)
+            if cached is not None:
+                return cached
+
+            try:
+                discover_fn = getattr(obb.equity.discovery, attempt, None)
+                if discover_fn is None:
+                    continue
+                result = discover_fn(provider="yfinance")
+                if result is not None and hasattr(result, "results") and result.results:
+                    method = attempt  # use the one that worked
+                    break
+            except Exception:
+                continue
+
+        if result is None or not hasattr(result, "results"):
+            logger.warning("OpenBB: all discovery methods exhausted, no results")
+            return []
 
             result = discover_fn(provider="yfinance")
             if result is None or not hasattr(result, "results"):

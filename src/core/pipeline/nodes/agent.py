@@ -2542,6 +2542,23 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         sys_lines.append(f"Guardrails: {gr_summary.get('decision_counts', {}).get('ALLOW', '?')} allow, {len(blockers)} blocking")
     observations.append("SYSTEM STATUS:\n" + "\n".join(sys_lines))
 
+    # ── FEEDBACK LOOP: Lições aprendidas de trades passados ──
+    try:
+        from core.trading.feedback_loop import get_feedback_loop
+        feedback = get_feedback_loop()
+        lessons_ctx = feedback.render_for_bob(max_chars=1500)
+        if lessons_ctx:
+            observations.append(lessons_ctx)
+        stats = feedback.get_stats()
+        if stats.get("lessons_logged", 0) > 0:
+            observations.append(
+                f"FEEDBACK: {stats['closed_trades']} trades fechados, "
+                f"{stats['wins']}W/{stats['losses']}L (win rate: {stats.get('win_rate', 0):.0%}), "
+                f"{stats['lessons_logged']} lições aprendidas."
+            )
+    except Exception:
+        pass
+
     if state.get("ticker"):
         observations.append(f"Current Ticker: {state.get('ticker')}")
     if state.get("data_context"):
