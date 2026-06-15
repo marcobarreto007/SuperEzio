@@ -180,6 +180,121 @@ body::after {
   font: 600 12px var(--font-body);
 }
 
+.cockpit-updated {
+  margin-bottom: 10px;
+  color: var(--cockpit-muted);
+  font: 800 10px var(--font-mono);
+  text-transform: uppercase;
+}
+
+.cockpit-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  border: 1px solid var(--cockpit-line);
+  border-radius: 999px;
+  padding: 2px 7px;
+  color: var(--cockpit-muted);
+  font: 800 10px var(--font-mono);
+}
+
+.is-good,
+.cockpit-chip.is-good {
+  color: var(--cockpit-green);
+}
+
+.is-bad,
+.cockpit-chip.is-bad {
+  color: var(--cockpit-red);
+}
+
+.is-warn,
+.cockpit-chip.is-warn {
+  color: var(--cockpit-yellow);
+}
+
+.genie-pulse-card {
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgba(48, 54, 61, 0.9);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(17, 24, 32, 0.78);
+}
+
+.genie-pulse-card + .genie-pulse-card {
+  margin-top: 8px;
+}
+
+.genie-pulse-card__top,
+.genie-pulse-card__meta,
+.genie-pulse-card__flags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.genie-pulse-card__top strong {
+  color: var(--cockpit-text);
+  font: 900 14px var(--font-mono);
+}
+
+.genie-pulse-card__meta {
+  justify-content: space-between;
+  color: var(--cockpit-muted);
+  font: 700 11px var(--font-body);
+}
+
+.genie-pulse-card__flags {
+  flex-wrap: wrap;
+}
+
+.genie-alert-row,
+.genie-news-row {
+  display: grid;
+  grid-template-columns: 44px 68px minmax(42px, 0.5fr) minmax(0, 1fr);
+  gap: 7px;
+  align-items: center;
+  min-height: 28px;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+  color: var(--cockpit-muted);
+  font: 700 11px var(--font-body);
+}
+
+.genie-news-row {
+  grid-template-columns: 46px 86px minmax(0, 1fr);
+}
+
+.genie-alert-row:last-child,
+.genie-news-row:last-child {
+  border-bottom: 0;
+}
+
+.genie-confidence-row {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr) 32px;
+  gap: 8px;
+  align-items: center;
+  min-height: 26px;
+  color: var(--cockpit-muted);
+  font: 800 11px var(--font-mono);
+}
+
+.genie-confidence-bar {
+  height: 7px;
+  border-radius: 999px;
+  background: #21262d;
+  overflow: hidden;
+}
+
+.genie-confidence-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--cockpit-green);
+}
+
 .terminal-card--chat {
   height: 100%;
   min-height: 0;

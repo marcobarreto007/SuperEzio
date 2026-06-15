@@ -53,6 +53,10 @@
     fetchMetrics() { return fetchJson("/metrics"); },
     fetchManifest() { return fetchJson("/product/manifest"); },
     fetchCapabilities() { return fetchJson("/capabilities"); },
+    fetchSentimentPulse() { return fetchJson("/sentiment/pulse"); },
+    fetchSentimentAlerts(limit = 20) {
+      return fetchJson(`/sentiment/alerts?limit=${encodeURIComponent(limit)}`);
+    },
     predictNeural(body) {
       return fetch(API + "/experts/neural-decision/predict", {
         method: "POST",
