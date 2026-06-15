@@ -614,7 +614,41 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             result = await node_rag_forensics(state)
 
         elif tool_name == "submit_paper_order":
-            result = await _submit_paper_order(state, args)
+            # FORCE expert committee before ANY paper order.
+            # Bob cannot shoot without consulting his advisors.
+            ticker = args.get("ticker", "").upper()
+            if ticker and not state.get("_experts_ran_for", "") == ticker:
+                writer({"type": "PIPELINE_STEP", "step": "tool_executor",
+                         "status": "running", "mode": "forcing_expert_committee"})
+                expert_results = []
+                for role in ["macro_risk", "fundamental_value", "momentum_technical",
+                             "contrarian_opportunity", "sentiment", "social_forensics"]:
+                    try:
+                        res = await node_expert(
+                            {**state, "role": role, "ticker": ticker,
+                             "data_context": state.get("data_context", "")},
+                            gateway=gateway,
+                        )
+                        for er in res.get("expert_results", []):
+                            er.setdefault("role", role)
+                            expert_results.append(er)
+                    except Exception as exc:
+                        expert_results.append({"role": role, "ok": False, "error": str(exc)[:100]})
+                state["expert_results"] = expert_results
+                state["_experts_ran_for"] = ticker
+                # Build summary for Bob
+                verdicts = [er.get("verdict", "?") for er in expert_results if er.get("ok")]
+                all_block = all(v in ("BEARISH", "OVERBOUGHT", "TRAP", "MANIPULATED", "SUSPICIOUS",
+                                      "OVERVALUED", "RISK_OFF", "SELL")
+                                for v in verdicts) if verdicts else False
+                if all_block:
+                    result = {"blocked": True, "reason": "expert_committee_unanimous_block",
+                              "verdicts": verdicts,
+                              "message": "Comite de experts unanime contra esta ordem. Ordem bloqueada."}
+                else:
+                    result = await _submit_paper_order(state, args)
+            else:
+                result = await _submit_paper_order(state, args)
 
         elif tool_name == "social_forensics":
             # Gather Reddit posts across multiple subreddits with higher limit
