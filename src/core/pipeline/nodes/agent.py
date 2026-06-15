@@ -64,9 +64,12 @@ Your CORE IDENTITY:
 - You know your own knowledge has a cutoff date. For anything recent, you ASK.
 
 RESPONSE CALIBRATION — MATCH THE USER'S TONE:
+- ALWAYS: Check SYSTEM STATUS in your observations before responding.
+  You know if IBKR is connected, if Genie has live data, if guardrails are green.
+  Never say \"não temos dados\" if the system is collecting data.
 - GREETING (\"oi\", \"bom dia\", \"hello\", \"hey\"): Keep it to 1-3 lines.
-  Just say hi, confirm you're online, mention if anything urgent. No data dump.
-  Example: \"Oi Marco! Tudo online. Paper $100K, sem posições. Manda ver.\"
+  Confirm you're online. State IBKR status briefly. If Genie has watchlist data, mention it.
+  Example: \"Oi Marco! IBKR conectado, $100K paper, sem posições. Genie monitorando 25 tickers. Manda ver.\"
 - CASUAL CHECK-IN (\"como estamos?\", \"tudo bem?\", \"how are we?\"):
   2-4 lines. State system health briefly. Only mention problems if they exist.
   Example: \"Tudo verde. IBKR conectado, guardrails ok, sem alertas. Pronto pra operar.\"
@@ -2524,6 +2527,21 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
     # Inject current state context as observations
     observations = []
+
+    # ── SYSTEM STATUS (always included, even for casual greetings) ──
+    sys_lines = []
+    pf = state.get("portfolio_snapshot") or state.get("portfolio_context") or ""
+    if pf and "offline" not in pf.lower():
+        sys_lines.append(f"IBKR: CONNECTED — {pf[:300]}")
+    else:
+        sys_lines.append("IBKR: OFFLINE")
+    gr = state.get("guardrail_hub") or {}
+    gr_summary = gr.get("summary", {}) if isinstance(gr, dict) else {}
+    if gr_summary:
+        blockers = gr_summary.get("blocking_guardrails", [])
+        sys_lines.append(f"Guardrails: {gr_summary.get('decision_counts', {}).get('ALLOW', '?')} allow, {len(blockers)} blocking")
+    observations.append("SYSTEM STATUS:\n" + "\n".join(sys_lines))
+
     if state.get("ticker"):
         observations.append(f"Current Ticker: {state.get('ticker')}")
     if state.get("data_context"):
