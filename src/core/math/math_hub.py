@@ -169,47 +169,9 @@ class MathHub:
 
     @staticmethod
     def to_deepseek_prompt(report: Mapping[str, Any]) -> str:
-        if not report:
-            return ""
-        ticker = report.get("ticker") or "UNKNOWN"
-        summary = report.get("summary") or {}
-        coverage = report.get("coverage") or {}
-        modules = report.get("modules") or {}
+        from core.pipeline.prompts.math_prompt import format_math_context
 
-        lines = [
-            "[MATH_REPORT]",
-            f"ticker={ticker}",
-            (
-                "coverage="
-                f"{coverage.get('ok_modules', 0)}/{coverage.get('total_modules', 0)} "
-                f"ok; skipped={coverage.get('skipped_modules', 0)} "
-                f"errors={coverage.get('error_modules', 0)}"
-            ),
-        ]
-        for key in (
-            "latest_price",
-            "return_annualized",
-            "volatility_annualized",
-            "sharpe",
-            "max_drawdown",
-            "var_95",
-            "kelly_fraction",
-            "crisis_score",
-            "f51_confidence",
-        ):
-            val = summary.get(key)
-            if val not in (None, "", [], {}):
-                lines.append(f"{key}={val}")
-
-        for module_name in ("technical_indicators", "var_cvar", "kelly", "crisis_aggregate"):
-            module = modules.get(module_name) or {}
-            values = module.get("values") or {}
-            if values:
-                lines.append(f"{module_name}={values}")
-            elif module.get("reason"):
-                lines.append(f"{module_name}=SKIPPED reason={module.get('reason')}")
-        lines.append("[/MATH_REPORT]")
-        return "\n".join(lines)
+        return format_math_context(report)
 
     def _extract_data(self, state: Mapping[str, Any]) -> dict[str, Any]:
         data = state.get("data")
