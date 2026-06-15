@@ -167,6 +167,20 @@
     }
   }
 
+  function renderFromCockpit(data) {
+    // Called by cockpit.js central hub with data from /cockpit/summary.genie
+    var pulses = data.pulses || [];
+    var alerts = data.alerts || [];
+    var updatedAt = Date.now();
+    window.SZ.state.genie = Object.assign(window.SZ.state.genie || {}, { pulses: pulses, alerts: alerts, updatedAt: updatedAt });
+    render({ pulses: pulses, alerts: alerts }, updatedAt);
+    var status = document.getElementById("genie-panel-status");
+    if (status) {
+      status.textContent = "LIVE";
+      status.classList.remove("cockpit-panel__status--idle");
+    }
+  }
+
   function init() {
     refresh();
     window.setInterval(function () {
@@ -178,6 +192,6 @@
   }
 
   window.SZ = window.SZ || {};
-  window.SZ.geniePanel = { refresh: refresh, render: render };
+  window.SZ.geniePanel = { refresh: refresh, render: render, renderFromCockpit: renderFromCockpit };
   document.addEventListener("DOMContentLoaded", init);
 })();
