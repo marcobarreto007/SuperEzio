@@ -44,6 +44,100 @@
     return Math.max(0, Math.round((Date.now() - stamp) / 1000)) + "s";
   }
 
+  function cleanTicker(value) {
+    if (window.SZ && typeof window.SZ.sanitTicker === "function") {
+      return window.SZ.sanitTicker(value);
+    }
+    return String(value || "").replace(/[^A-Za-z0-9.\-]/g, "").toUpperCase().substring(0, 12);
+  }
+
+  function pulseCommand(pulse) {
+    var ticker = cleanTicker(pulse && pulse.ticker);
+    var sentiment = (pulse && (pulse.sentiment_display || pulse.sentiment)) || "NO_DATA";
+    var score = num(pulse && pulse.score, 2);
+    var reddit = (pulse && pulse.reddit) || {};
+    var flags = Array.isArray(pulse && pulse.flags) ? pulse.flags : [];
+    var parts = [
+      "TICKER " + ticker + ": sincronize grafico + Sentimento Vivo.",
+      "Bob, analise tese, risco, invalidacao e alvo/stop.",
+      "Sentimento=" + sentiment + ", score=" + score + ", Reddit=" + (reddit.mentions || 0) + (flags.length ? ", flags=" + flags.join(", ") : "") + ".",
+      "Se virar trade, rode ferramentas antes de PAPER_TICKET."
+    ];
+    return parts.join(" ");
+  }
+
+  function markSelectedTicker(ticker) {
+    ticker = cleanTicker(ticker);
+    var rows = document.querySelectorAll(".genie-pulse-card[data-genie-ticker]");
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].classList.toggle(
+        "is-selected",
+        cleanTicker(rows[i].getAttribute("data-genie-ticker")) === ticker
+      );
+    }
+  }
+
+  function notifyBob(pulse) {
+    var ticker = cleanTicker(pulse && pulse.ticker);
+    if (!ticker) return;
+    var command = pulseCommand(pulse);
+    var input = $("user-inp");
+    if (input) {
+      input.value = command;
+      input.focus();
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    var panel = $("live-panel");
+    if (panel) panel.classList.remove("is-collapsed");
+    var chat = $("chat");
+    if (chat) {
+      var cue = chat.querySelector(".bob-ticker-cue");
+      if (!cue) {
+        cue = document.createElement("div");
+        cue.className = "bob-ticker-cue";
+        chat.insertBefore(cue, chat.firstChild);
+      }
+      cue.innerHTML = [
+        '<strong>Bob recebeu ' + esc(ticker) + '</strong>',
+        '<span>Comando TICKER pronto na caixa de envio.</span>',
+      ].join("");
+      chat.scrollTop = 0;
+    }
+    window.SZ.state.pendingGenieTickerCommand = {
+      ticker: ticker,
+      command: command,
+      pulse: pulse,
+      createdAt: Date.now(),
+    };
+  }
+
+  function selectPulse(pulse) {
+    var ticker = cleanTicker(pulse && pulse.ticker);
+    if (!ticker) return false;
+    if (window.SZ && typeof window.SZ.selectTicker === "function") {
+      window.SZ.selectTicker(ticker, "genie_pulse_click", {
+        source: "genie",
+        sentiment: pulse.sentiment || "",
+        score: pulse.score,
+      });
+    } else {
+      var tickerInput = $("ticker-inp");
+      if (tickerInput) tickerInput.value = ticker;
+    }
+    markSelectedTicker(ticker);
+    notifyBob(pulse);
+    return true;
+  }
+
+  function pulseByTicker(ticker) {
+    ticker = cleanTicker(ticker);
+    var pulses = (window.SZ.state.genie && window.SZ.state.genie.pulses) || [];
+    for (var i = 0; i < pulses.length; i++) {
+      if (cleanTicker(pulses[i].ticker) === ticker) return pulses[i];
+    }
+    return null;
+  }
+
   function renderPulse(pulses) {
     if (!Array.isArray(pulses) || pulses.length === 0) {
       return '<div class="cockpit-empty">Watchlist vazia.</div>';
@@ -53,12 +147,15 @@
       var flags = Array.isArray(pulse.flags) ? pulse.flags : [];
       var score = num(pulse.score, 2);
       var sentiment = pulse.sentiment || "NO_DATA";
+      var ticker = cleanTicker(pulse.ticker || "");
+      var selected = cleanTicker(window.SZ.state && window.SZ.state.ticker) === ticker;
       return [
-        '<article class="genie-pulse-card">',
+        '<button class="genie-pulse-card ' + (selected ? "is-selected" : "") + '" type="button" data-genie-ticker="' + esc(ticker) + '" aria-label="Selecionar ' + esc(ticker) + ' no cockpit">',
           '<div class="genie-pulse-card__top">',
-            '<strong>' + esc(pulse.ticker || "--") + '</strong>',
+            '<strong>' + esc(ticker || pulse.ticker || "--") + '</strong>',
             '<span class="cockpit-chip ' + labelTone(sentiment) + '">' + esc(sentiment) + '</span>',
             '<span class="mono">' + score + '</span>',
+            '<span class="genie-pulse-card__route">TICKER</span>',
           '</div>',
           '<div class="genie-pulse-card__meta">',
             '<span>' + esc(reddit.mentions || 0) + ' mencoes</span>',
@@ -69,7 +166,7 @@
               return '<span class="cockpit-chip ' + labelTone(flag) + '">' + esc(flag) + '</span>';
             }).join("") : '<span class="cockpit-chip">NO FLAGS</span>'),
           '</div>',
-        '</article>',
+        '</button>',
       ].join("");
     }).join("");
   }
@@ -183,6 +280,14 @@
 
   function init() {
     refresh();
+    var body = $("genie-panel-body");
+    if (body) {
+      body.addEventListener("click", function (event) {
+        var card = event.target.closest(".genie-pulse-card[data-genie-ticker]");
+        if (!card) return;
+        selectPulse(pulseByTicker(card.getAttribute("data-genie-ticker")) || { ticker: card.getAttribute("data-genie-ticker") });
+      });
+    }
     window.setInterval(function () {
       var updated = window.SZ.state.genie && window.SZ.state.genie.updatedAt;
       var el = $("genie-updated-ago");
@@ -192,6 +297,6 @@
   }
 
   window.SZ = window.SZ || {};
-  window.SZ.geniePanel = { refresh: refresh, render: render, renderFromCockpit: renderFromCockpit };
+  window.SZ.geniePanel = { refresh: refresh, render: render, renderFromCockpit: renderFromCockpit, selectPulse: selectPulse };
   document.addEventListener("DOMContentLoaded", init);
 })();

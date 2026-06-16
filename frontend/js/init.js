@@ -57,18 +57,26 @@
   function buildChartContext() {
     var cd = SZ.state && SZ.state.chartData;
     if (!cd) return "";
+    var expectedTicker = sanitTicker(getSelectedChartTicker());
+    var meta = cd.meta || cd.profile || {};
+    var contextTicker = sanitTicker(cd.ticker || meta.ticker || meta.symbol || expectedTicker);
+    if (expectedTicker && contextTicker && expectedTicker !== contextTicker) return "";
     var lines = [];
     lines.push("=== CHART CONTEXT ===");
-    var meta = cd.meta || cd.profile || {};
+    if (contextTicker) lines.push("Ticker: " + contextTicker);
     if (meta) {
       if (meta.name)     lines.push("Asset: " + meta.name);
       if (meta.sector)   lines.push("Sector: " + meta.sector);
       if (meta.exchange) lines.push("Exchange: " + meta.exchange);
     }
+    var price = cd.price || {};
+    if (price.current != null) lines.push("Current price: " + fmt(price.current));
+    if (price.change_pct != null) lines.push("Change %: " + fmt(price.change_pct) + "%");
     var ohlcv = cd.ohlcv || [];
     if (ohlcv.length) {
       var last = ohlcv[ohlcv.length - 1];
       lines.push("Last close: " + fmt(last && last.close));
+      if (last && last.volume != null) lines.push("Last volume: " + last.volume);
       lines.push("Data points: " + ohlcv.length);
     }
     var ind = cd.indicators || {};
@@ -320,6 +328,25 @@
     return sanitTicker((pf && pf.selected_ticker) || (SZ.config || {}).defaultTicker || "AAPL");
   }
 
+  function chartDataReadyFor(ticker) {
+    ticker = sanitTicker(ticker);
+    var cd = SZ.state && SZ.state.chartData;
+    if (!ticker || !cd) return false;
+    var meta = cd.meta || cd.profile || {};
+    var contextTicker = sanitTicker(cd.ticker || meta.ticker || meta.symbol || "");
+    var ohlcv = Array.isArray(cd.ohlcv) ? cd.ohlcv : [];
+    if (contextTicker && contextTicker !== ticker) return false;
+    return ohlcv.length > 0;
+  }
+
+  async function ensureChartContext(ticker) {
+    ticker = sanitTicker(ticker || getSelectedChartTicker());
+    if (!ticker) return false;
+    if (chartDataReadyFor(ticker)) return true;
+    await loadChart(ticker);
+    return chartDataReadyFor(ticker);
+  }
+
   function getIbkrFromHealthDetails(details) {
     return (((details || {}).mission || {}).broker || {}).ibkr || {};
   }
@@ -389,6 +416,7 @@
     var ticker = getSelectedChartTicker();
     var tf = (document.getElementById("tf-inp") || {}).value || (SZ.config || {}).defaultTimeframe || "6M";
     var attachMarket = shouldAttachMarketContext(msg, ticker);
+    var chartReady = attachMarket ? chartDataReadyFor(ticker) : false;
 
     return {
       version: "a2a/1.0",
@@ -401,6 +429,8 @@
         timeframe: tf,
         session_id: getBrowserSessionId(),
         chart_context: attachMarket ? buildChartContext() : "",
+        chart_context_ready: chartReady,
+        chart_context_source: chartReady ? "frontend_chart_state" : "",
         portfolio_context: buildPortfolioContext(),
         rigor: "strict",
         memory_mode: "relevant_all"
@@ -435,6 +465,11 @@
 
     var welcome = document.querySelector("#chat .bob-welcome");
     if (welcome) welcome.remove();
+
+    var contextTicker = getSelectedChartTicker();
+    if (shouldAttachMarketContext(msg, contextTicker)) {
+      await ensureChartContext(contextTicker);
+    }
 
     /* show user message */
     SZ.chat.addMessage("user");
@@ -701,8 +736,10 @@
       if (SZ.renderProfile)   SZ.renderProfile();
       if (SZ.renderChart)     SZ.renderChart();
       if (SZ.drawLiveCandles) SZ.drawLiveCandles();
+      return data;
     } catch (err) {
       console.error("[SZ] loadChart:", err);
+      return null;
     }
   }
 
@@ -966,6 +1003,7 @@
   SZ.init    = boot;
   SZ.submit  = submit;
   SZ.loadChart = loadChart;
+  SZ.ensureChartContext = ensureChartContext;
   SZ.selectTicker = selectTicker;
   SZ.renderPortfolioMirror = renderPortfolioMirror;
   SZ.refreshCockpitPortfolio = refreshCockpitPortfolio;

@@ -1155,6 +1155,82 @@ def _safe_error_detail(exc: Exception) -> str:
     return detail[:500]
 
 
+_FALSE_NO_CHART_DATA_PATTERNS = (
+    r"\bnao\s+(?:ha|tenho|tem)\s+(?:preco|grafico|dados|metricas)\b",
+    r"\bsem\s+(?:preco|grafico|dados\s+de\s+preco|dados\s+do\s+grafico|metricas)\b",
+    r"\bno\s+(?:price|chart|market\s+data|ohlcv|candles|metrics)\b",
+    r"\bwithout\s+(?:price|chart|market\s+data|ohlcv|candles|metrics)\b",
+)
+
+
+def _ascii_lower(text: str) -> str:
+    import unicodedata
+
+    normalized = unicodedata.normalize("NFKD", text or "")
+    return "".join(ch for ch in normalized if not unicodedata.combining(ch)).lower()
+
+
+def _answer_denies_attached_chart_data(answer: str) -> bool:
+    normalized = _ascii_lower(answer)
+    return any(re.search(pattern, normalized) for pattern in _FALSE_NO_CHART_DATA_PATTERNS)
+
+
+def _extract_chart_fact(chart_context: str, label: str) -> str:
+    pattern = re.compile(rf"^\s*{re.escape(label)}\s*:\s*(.+?)\s*$", re.IGNORECASE | re.MULTILINE)
+    match = pattern.search(chart_context or "")
+    return match.group(1).strip() if match else ""
+
+
+def _build_chart_context_repair_answer(
+    *,
+    ticker: str,
+    chart_context: str,
+    raw_message: str,
+) -> str:
+    ticker = (ticker or _extract_chart_fact(chart_context, "Ticker") or "ticker").upper()
+    current_price = _extract_chart_fact(chart_context, "Current price")
+    last_close = _extract_chart_fact(chart_context, "Last close")
+    change_pct = _extract_chart_fact(chart_context, "Change %")
+    data_points = _extract_chart_fact(chart_context, "Data points")
+    last_volume = _extract_chart_fact(chart_context, "Last volume")
+    rsi = _extract_chart_fact(chart_context, "RSI")
+    sma20 = _extract_chart_fact(chart_context, "SMA20")
+    sma50 = _extract_chart_fact(chart_context, "SMA50")
+
+    sentiment_match = re.search(
+        r"Sentimento\s*=\s*([^,.;\n]+)", raw_message or "", re.IGNORECASE
+    )
+    sentiment = sentiment_match.group(1).strip() if sentiment_match else "nao informado"
+    reddit_match = re.search(r"Reddit\s*=\s*([^,.;\n]+)", raw_message or "", re.IGNORECASE)
+    reddit = reddit_match.group(1).strip() if reddit_match else "nao informado"
+
+    facts = [
+        f"preco atual {current_price}" if current_price else "",
+        f"ultimo close {last_close}" if last_close else "",
+        f"variacao {change_pct}" if change_pct else "",
+        f"{data_points} candles" if data_points else "",
+        f"volume ultimo candle {last_volume}" if last_volume else "",
+        f"RSI {rsi}" if rsi else "",
+        f"SMA20 {sma20}" if sma20 else "",
+        f"SMA50 {sma50}" if sma50 else "",
+    ]
+    fact_line = "; ".join(item for item in facts if item) or "chart_context anexado"
+
+    return (
+        f"Correcao operacional: {ticker} tem chart_context anexado, entao nao vou tratar "
+        f"como falta de dados. Dados usados: {fact_line}. Sentimento Vivo: {sentiment}; "
+        f"Reddit: {reddit}.\n\n"
+        "Tese: leitura de espera. Sem impulso social relevante, a decisao depende do grafico "
+        "e de confirmacao por volume, nao de narrativa.\n\n"
+        "Risco: liquidez e falso rompimento. Se o volume continuar fraco ou o candle perder "
+        "suporte recente, nao ha setup limpo.\n\n"
+        "Invalidacao: perda do ultimo close/suporte relevante com volume crescente, ou noticia "
+        "fraca acompanhada de spike promocional.\n\n"
+        "Acao: WAIT. Para virar trade, primeiro executar coleta/experts/guardrails e somente "
+        "depois emitir PAPER_TICKET com entrada, alvo e stop numericos."
+    )
+
+
 def _should_include_chart_context(raw_message: str, detected_ticker: str) -> bool:
     """Decide se o chart_context deve influenciar a resposta.
 
@@ -1318,7 +1394,9 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     f"{chart_context}\n"
                     "The user is viewing this chart now. Use these OHLCV data to "
                     "discuss candle patterns, support, resistance, trends, and any "
-                    "relevant technical observation. Be specific about what the candles show.\n"
+                    "relevant technical observation. Be specific about what the candles show. "
+                    "Hard contract: because CHART_CONTEXT is attached, do not say there is "
+                    "no price, no chart, no candles, no metrics, or no data for this ticker.\n"
                     "[/CHART_VISUAL_CONTEXT]"
                 )
 
@@ -1350,6 +1428,8 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                 final_content_length
             nonlocal candidate_count, rejected_count, rejection_summary, provider_error
             nonlocal trade_order_context
+            buffer_answer_until_validation = chart_context_attached
+            answer_repaired = False
             if detected_ticker:
                 yield (json.dumps({"type": "CHART_DATA", "ticker": detected_ticker}) + "\n")
             yield json.dumps({"type": "STREAM_START", "msg_id": envelope.msg_id}) + "\n"
@@ -1417,6 +1497,8 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                                 content = event.get("content", "")
                                 final_content_length += len(content)
                                 full_content.append(content)
+                                if buffer_answer_until_validation:
+                                    continue
                             elif event_type == "TRADE_ORDER_CONTEXT":
                                 trade_order_context = {
                                     k: v for k, v in event.items() if k != "type" and v is not None
@@ -1426,6 +1508,8 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                             content_str = str(event)
                             final_content_length += len(content_str)
                             full_content.append(content_str)
+                            if buffer_answer_until_validation:
+                                continue
                             yield (
                                 json.dumps(
                                     {"type": "CHUNK", "content": content_str},
@@ -1488,6 +1572,12 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                                 detail = chunk.get("detail")
                                 if isinstance(detail, str) and provider_error is None:
                                     provider_error = detail[:200]
+                            elif event_type == "CHUNK":
+                                content = chunk.get("content", "")
+                                final_content_length += len(content)
+                                full_content.append(content)
+                                if buffer_answer_until_validation:
+                                    continue
                             yield json.dumps(chunk, ensure_ascii=False) + "\n"
                             continue
                         if isinstance(chunk, str):
@@ -1502,6 +1592,8 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                                     pass
                             final_content_length += len(chunk)
                             full_content.append(chunk)
+                            if buffer_answer_until_validation:
+                                continue
                             yield (
                                 json.dumps({"type": "CHUNK", "content": chunk}, ensure_ascii=False)
                                 + "\n"
@@ -1550,6 +1642,23 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     yield (
                         json.dumps(
                             {"type": "CHUNK", "content": fallback_chunk},
+                            ensure_ascii=False,
+                        )
+                        + "\n"
+                    )
+                elif buffer_answer_until_validation:
+                    if _answer_denies_attached_chart_data(accumulated_answer):
+                        answer_repaired = True
+                        accumulated_answer = _build_chart_context_repair_answer(
+                            ticker=detected_ticker,
+                            chart_context=chart_context,
+                            raw_message=raw_message,
+                        )
+                        full_content[:] = [accumulated_answer]
+                        final_content_length = len(accumulated_answer)
+                    yield (
+                        json.dumps(
+                            {"type": "CHUNK", "content": accumulated_answer},
                             ensure_ascii=False,
                         )
                         + "\n"
@@ -1635,6 +1744,9 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     trace["quality_warnings"] = quality_warnings
                 if quality_flagged:
                     trace["quality_flagged"] = True
+                if answer_repaired:
+                    trace["answer_repaired"] = True
+                    trace["repair_reason"] = "model_denied_attached_chart_context"
                 logger.info("Bob Response Trace: %s", json.dumps(trace))
                 request.app.state.last_decision_trace = trace
 

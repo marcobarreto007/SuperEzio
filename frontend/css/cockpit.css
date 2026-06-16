@@ -264,10 +264,30 @@ body::after {
 .genie-pulse-card {
   display: grid;
   gap: 7px;
+  width: 100%;
   border: 1px solid rgba(48, 54, 61, 0.9);
   border-radius: 8px;
   padding: 10px;
+  color: inherit;
   background: rgba(17, 24, 32, 0.78);
+  cursor: pointer;
+  text-align: left;
+  appearance: none;
+  font: inherit;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.genie-pulse-card:hover,
+.genie-pulse-card:focus-visible {
+  border-color: rgba(0, 229, 255, 0.44);
+  background: rgba(17, 28, 34, 0.88);
+  outline: none;
+}
+
+.genie-pulse-card.is-selected {
+  border-color: rgba(0, 230, 118, 0.66);
+  background: rgba(0, 230, 118, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(0, 230, 118, 0.15);
 }
 
 .genie-pulse-card + .genie-pulse-card {
@@ -288,6 +308,13 @@ body::after {
   font: 900 14px var(--font-mono);
 }
 
+.genie-pulse-card__route {
+  margin-left: auto;
+  color: var(--cockpit-green);
+  font: 900 9px var(--font-mono);
+  text-transform: uppercase;
+}
+
 .genie-pulse-card__meta {
   justify-content: space-between;
   color: var(--cockpit-muted);
@@ -296,6 +323,22 @@ body::after {
 
 .genie-pulse-card__flags {
   flex-wrap: wrap;
+}
+
+.bob-ticker-cue {
+  display: grid;
+  gap: 3px;
+  border: 1px solid rgba(0, 230, 118, 0.32);
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: rgba(0, 230, 118, 0.07);
+  color: var(--cockpit-muted);
+  font: 700 12px var(--font-body);
+}
+
+.bob-ticker-cue strong {
+  color: var(--cockpit-text);
+  font: 900 12px var(--font-mono);
 }
 
 .genie-alert-row,

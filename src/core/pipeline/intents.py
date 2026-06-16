@@ -1790,6 +1790,10 @@ REFERENTIAL_ASSET_NOUNS = (
 CACHE_TTL = 30.0  # segundos
 
 _ticker_cache: dict[str, tuple[float, str]] = {}
+_EXPLICIT_TICKER_COMMAND_RE = re.compile(
+    r"^\s*TICKER\s+([A-Z0-9][A-Z0-9.\-]{0,11})\s*:",
+    re.IGNORECASE,
+)
 
 
 def _get_cached(key: str) -> str | None:
@@ -1811,6 +1815,15 @@ def _set_cache(key: str, value: str) -> None:
         stale = [k for k, v in _ticker_cache.items() if (time.time() - v[0]) > CACHE_TTL]
         for k in stale:
             _ticker_cache.pop(k, None)
+
+
+def _extract_explicit_ticker_command(message: str) -> str:
+    """Return ticker from cockpit-generated commands like ``TICKER DIBS: ...``."""
+    match = _EXPLICIT_TICKER_COMMAND_RE.match(message or "")
+    if not match:
+        return ""
+    ticker = match.group(1).upper()
+    return ticker if _is_valid_ticker(ticker) else ""
 
 
 def _is_valid_ticker(ticker: str) -> bool:
@@ -2358,8 +2371,11 @@ def parse_user_intent(
     """
     raw = message or ""
     broker_status_question = detect_broker_status_intent(raw)
+    explicit_ticker_command = _extract_explicit_ticker_command(raw)
     if broker_status_question:
         ticker = ""
+    elif explicit_ticker_command:
+        ticker = explicit_ticker_command
     elif ticker and not _is_valid_ticker(ticker):
         ticker = ""
     if not ticker:
@@ -2447,7 +2463,7 @@ def parse_user_intent(
                 )
             )
 
-    if ticker and detect_industry_research_intent(raw):
+    if ticker and detect_industry_research_intent(raw) and not explicit_ticker_command:
         ticker = ""
         entities["ticker"] = ""
 

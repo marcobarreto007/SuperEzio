@@ -1,62 +1,62 @@
 {
-  "date_local": "2026-06-15T21:45:57-04:00",
-  "session": "cockpit-fixes-deep-ibkr-blame-history-2026-06-15",
+  "date_local": "2026-06-16T10:47:38-04:00",
+  "session": "dibs-chart-context-no-data-contract-fix-2026-06-16",
   "status": "completed",
   "final_objective": {
-    "what_system_does": "SuperEzio Financeiro runs a local financial cockpit and Bob pipeline for chart analysis, Deep math/expert review, IBKR paper visibility, paper-trade history, decision tracing, and audited financial answers.",
-    "who_it_is_for": "Marco/F51 as the local operator validating Bob before demo, paper-trading use, and monetization.",
-    "main_user_flow": "Start CEO on 8082 and API/UI on 8002, open the browser cockpit, inspect Genie/Chart/Deep/IBKR/Trade History, ask Bob, and review Blame Report for the run_id.",
-    "start_command": "python -m agent_server.main with CEO llama.cpp already listening on 8082",
-    "proof_output": "http://127.0.0.1:8002 renders nonblank chart, Deep column, IBKR Mirror, Paper history rows, and interactive Blame Report."
+    "what_system_does": "SuperEzio Financeiro runs a local financial cockpit where Sentimento Vivo, chart context, Bob, Deep analysis, guardrails, IBKR mirror, trade history, and decision traces operate as one supervised trading surface.",
+    "who_it_is_for": "Marco/F51 as the local operator validating Bob before demo, supervised paper-trading use, and monetization.",
+    "main_user_flow": "Open the cockpit on port 8002, click a Sentimento Vivo ticker such as DIBS, sync ticker/chart, send the prepared TICKER command to Bob, and receive a chart-aware operational reading.",
+    "start_command": "start.ps1 or $env:PYTHONPATH='src'; python -m agent_server.main with CEO llama.cpp already listening on 8082",
+    "proof_output": "DIBS click produces ticker=DIBS, chart_context_ready=true, chart_context containing price 4.09 and 130 candles, and /task/submit routes as ticker_analysis/collect_data."
   },
   "what_was_done": [
-    "Gave Deep a proper cockpit column instead of relying on chart-workspace injection.",
-    "Exposed and validated broker_orders, local_tickets, trade_history, trade_stats, and /trades/history in the cockpit API contract.",
-    "Updated IBKR Mirror UI semantics so real IBKR broker orders are distinct from local pending tickets and PaperJournal history.",
-    "Added interactive Blame Report panel that loads /health/trace/{run_id}, shows summary, blockers, slowest nodes, agent stats, and expandable trace events.",
-    "Rendered PaperJournal trade history in the cockpit with clickable ticker rows.",
-    "Moved the Bob floating panel on desktop so it no longer hides the Deep column or the Mirror/history footer.",
-    "Restarted the live FastAPI backend on port 8002 while leaving the CEO llama-server on 8082 running."
+    "Fixed the deterministic parser so cockpit-generated commands like 'TICKER DIBS:' cannot be downgraded to industry/general research because of generic words such as 'tese'.",
+    "Changed the frontend Bob submit path to wait for the selected ticker chart to load before building the task envelope.",
+    "Expanded frontend chart_context with ticker, current price, change percent, last close, last volume, and candle count.",
+    "Added stale-context protection so chart_context is not attached if the loaded chart ticker does not match the selected ticker.",
+    "Added backend chart-context hard contract text telling Bob not to claim missing price/chart/candles/metrics when chart_context is attached.",
+    "Buffered backend CHUNK output for chart-context requests until final validation, then repaired false 'no data/no price/no chart' answers before sending them to the frontend.",
+    "Restarted the live backend on port 8002 so the new endpoint code is active."
   ],
   "evidence": {
     "tests": [
-      "python -m py_compile src/agent_server/endpoints.py",
-      "node --check frontend/js/blame-panel.js",
-      "node --check frontend/js/deep-panel.js",
+      "$env:PYTHONPATH='src'; python -m pytest tests/test_market_scan_candidate_gate.py::test_cockpit_ticker_command_routes_to_ticker_analysis_even_with_tese_wording -q",
+      "$env:PYTHONPATH='src'; python -m pytest tests/test_runtime_bob_fixes.py::test_attached_chart_context_blocks_false_no_data_answer -q",
       "node --check frontend/js/init.js",
-      "$env:PYTHONPATH='src'; python -m pytest tests/test_api_routes_sync.py::test_cockpit_portfolio tests/test_api_routes_sync.py::test_cockpit_portfolio_separates_broker_local_and_history tests/test_api_routes_sync.py::test_trade_history_endpoint tests/test_api_routes_sync.py::test_cockpit_summary -q"
+      "$env:PYTHONPATH='src'; python -m pytest tests/test_api_routes_sync.py::test_frontend_genie_pulse_click_drives_bob_and_chart -q",
+      "$env:PYTHONPATH='src'; python -m py_compile src/agent_server/endpoints.py src/core/pipeline/intents.py",
+      "$env:PYTHONPATH='src'; python -m pytest tests/test_runtime_bob_fixes.py tests/test_market_scan_candidate_gate.py::test_cockpit_ticker_command_routes_to_ticker_analysis_even_with_tese_wording tests/test_api_routes_sync.py::test_frontend_genie_pulse_click_drives_bob_and_chart -q",
+      "python scripts/browser_smoke.py --skip-chat --timeout-ms 180000"
     ],
     "test_results": [
-      "4 passed in 0.96s",
-      "All py_compile/node --check commands passed"
+      "Focused parser test passed.",
+      "Focused backend repair test passed.",
+      "node --check frontend/js/init.js passed.",
+      "Frontend Genie sync contract test passed.",
+      "py_compile passed.",
+      "Combined touched suite: 7 passed in 7.62s.",
+      "Browser smoke ok=true, AAPL chart candles=130, canvas nonBlank=438400, console_errors=[]."
     ],
-    "live_validation": [
-      "Restarted FastAPI: python PID 2212 listening on 8002; CEO llama-server remained PID 22768 on 8082.",
-      "GET /cockpit/portfolio returned broker_orders_count=0, local_tickets_count=0, trade_history_count=27, selected_ticker=AAPL.",
-      "GET /trades/history?limit=5 returned source=paper_journal, total_trades=27, open_trades=14, closed_trades=13.",
-      "GET /health/trace/6a8ee704a736 returned total_events=63, completed_nodes=15, skipped_nodes=16, error_nodes=0, blockers=2.",
-      "Browser selector check: #deep-panel visible, #blame-panel visible, #trade-history-list rendered 10 .trade-row entries, orders text showed no active IBKR broker orders.",
-      "Browser Blame interaction loaded run_id 6a8ee704a736 with 2 blockers and 24 expandable trace events."
+    "live_runtime_proofs": [
+      "Restarted python -m agent_server.main on port 8002 with PID 26228; llama-server on 8082 left untouched.",
+      "/api/chart-data/DIBS?timeframe=6M returned ticker=DIBS, price=4.09, candles=130, lastClose=4.09, lastVolume=684.",
+      "/sentiment/pulse includes DIBS with NEUTRAL sentiment and score 0.0294.",
+      "Playwright captured DIBS envelope after real click/send: ticker=DIBS, chart_context_ready=true, source=frontend_chart_state, selectedTicker=DIBS, workspaceTicker=DIBS, chartTicker=DIBS, candleCount=130.",
+      "Captured envelope chart_context includes 'Ticker: DIBS', 'Current price: 4.09', and 'Data points: 130'.",
+      "Live /task/submit stream for TICKER DIBS emitted INTENT_CLASSIFIED route=ticker_analysis, intent=ticker_analysis, action=collect_data, ticker=DIBS, source=sovereign_contract."
     ],
-    "browser_smoke": [
-      "python scripts/browser_smoke.py --timeout-ms 180000",
-      "Final result ok=true, chart AAPL candles=130, canvas nonBlank=438400, finalContentLength=2281, console_errors=[].",
-      "Screenshot: output/playwright/superezio-browser-smoke-20260615-214337.png"
+    "screenshots": [
+      "output/playwright/superezio-browser-smoke-20260616-104547.png",
+      "output/playwright/dibs-envelope-context-20260616.png"
     ],
     "files_changed": [
-      "frontend/css/charts.css",
-      "frontend/css/cockpit.css",
-      "tests/test_api_routes_sync.py",
-      ".f51/checkpoints/latest.json"
-    ],
-    "files_already_present_in_head_and_validated": [
+      "frontend/js/init.js",
+      "src/core/pipeline/intents.py",
       "src/agent_server/endpoints.py",
-      "frontend/index.html",
-      "frontend/js/api.js",
-      "frontend/js/blame-panel.js",
-      "frontend/js/deep-panel.js",
-      "frontend/js/events.js",
-      "frontend/js/init.js"
+      "tests/test_api_routes_sync.py",
+      "tests/test_market_scan_candidate_gate.py",
+      "tests/test_runtime_bob_fixes.py",
+      ".f51/checkpoints/latest.json"
     ],
     "generated_evidence_files_changed": [
       "runtime/traces/decision_trace_20260616.jsonl",
@@ -64,13 +64,13 @@
     ]
   },
   "risks": [
-    "IBKR currently reports zero active broker orders in the live paper account; the UI now makes that explicit instead of implying local journal rows are broker orders.",
-    "PaperJournal contains duplicated test-style rows; the cockpit shows them as audit history but the journal data should be cleaned separately if Marco wants demo data polished.",
-    "Live browser smoke writes conversation memory and decision trace evidence files during validation.",
-    "No GitHub actions were used because this repo is DISK_ONLY_GITHUB_BLOCKED."
+    "For chart-context requests, Bob response chunks are buffered until validation, so the user sees the answer at once instead of token streaming. This is deliberate to prevent false 'no data' text from flashing in the UI.",
+    "The repair answer is deterministic and conservative if Bob still denies attached chart data. The proper path is still ticker_analysis with collect_data, experts, guardrails, and Bob.",
+    "NewsAPI is rate-limited with HTTP 429 in the live logs, so news sentiment may be partial until quota resets or provider strategy changes.",
+    "IBKR/TWS remains externally dependent and was not changed in this fix."
   ],
-  "next_step": "Clean or label old test rows in data/paper_journal.jsonl before a public demo, then run one real paper-order lifecycle with TWS open to prove broker_orders_count becomes nonzero while PaperJournal records the outcome.",
+  "next_step": "Run a full live Bob DIBS answer when Marco wants to spend the model time; the stream route already proves ticker_analysis/collect_data and the browser envelope proves chart_context with DIBS price/candles is attached before Bob sees it.",
   "owner": "Codex",
   "github_policy": "DISK_ONLY_GITHUB_BLOCKED",
-  "updated": "2026-06-16T01:45:57Z"
+  "updated": "2026-06-16T14:47:38Z"
 }

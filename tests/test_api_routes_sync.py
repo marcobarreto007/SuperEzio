@@ -808,3 +808,25 @@ def test_frontend_ibkr_order_mirror_integration():
     assert "refreshCockpitPortfolio().then" in init_js
     assert "window.SZ.renderPortfolioMirror" in cockpit_js
     assert ".order-row.is-selected" in charts_css
+
+
+def test_frontend_genie_pulse_click_drives_bob_and_chart():
+    """Genie pulse rows are actionable: ticker -> chart selection -> Bob draft."""
+    from pathlib import Path
+
+    genie_js = Path("frontend/js/genie-panel.js").read_text(encoding="utf-8")
+    cockpit_css = Path("frontend/css/cockpit.css").read_text(encoding="utf-8")
+    init_js = Path("frontend/js/init.js").read_text(encoding="utf-8")
+
+    assert "data-genie-ticker" in genie_js
+    assert "function selectPulse" in genie_js
+    assert 'window.SZ.selectTicker(ticker, "genie_pulse_click"' in genie_js
+    assert '"user-inp"' in genie_js
+    assert "TICKER " in genie_js
+    assert "pendingGenieTickerCommand" in genie_js
+    assert "bob-ticker-cue" in genie_js
+    assert ".genie-pulse-card.is-selected" in cockpit_css
+    assert "function chartDataReadyFor" in init_js
+    assert "await ensureChartContext(contextTicker)" in init_js
+    assert "chart_context_ready" in init_js
+    assert "SZ.selectTicker = selectTicker" in init_js

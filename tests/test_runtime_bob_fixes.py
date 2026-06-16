@@ -211,3 +211,66 @@ def test_explicit_aapl_chart_question_works(client_with_mock_pipeline):
     # Check that context block was actually passed down
     assert "AAPL chart context data" in mock_p.last_stream_kwargs.get("context", "")
     assert mock_p.last_stream_kwargs.get("ticker") == "AAPL"
+
+
+def test_attached_chart_context_blocks_false_no_data_answer(client_with_mock_pipeline):
+    mock_p, client = client_with_mock_pipeline
+
+    mock_p.events_to_yield = [
+        {"type": "STREAM_START", "msg_id": "test-msg-id"},
+        {"type": "INTENT_CLASSIFIED", "intent": "ticker_analysis", "route": "ticker_analysis"},
+        {"type": "PIPELINE_STEP", "step": "agent_primary", "status": "started"},
+        {
+            "type": "CHUNK",
+            "content": (
+                "Nao ha preco, nem grafico, nem metricas para sustentar "
+                "uma tese operacional."
+            ),
+        },
+    ]
+
+    prompt = (
+        "TICKER DIBS: sincronize grafico + Sentimento Vivo. "
+        "Bob, analise tese, risco, invalidacao e alvo/stop. "
+        "Sentimento=NEUTRAL flat, score=0.03, Reddit=0 mencoes."
+    )
+    chart_context = (
+        "=== CHART CONTEXT ===\n"
+        "Ticker: DIBS\n"
+        "Current price: 4.09\n"
+        "Last close: 4.09\n"
+        "Last volume: 484\n"
+        "Data points: 130\n"
+        "RSI: 42.10\n"
+        "=== END CHART CONTEXT ==="
+    )
+    payload = {
+        "from": "test-runner",
+        "to": "bob",
+        "type": "TASK.SUBMIT",
+        "payload": {
+            "message": prompt,
+            "ticker": "DIBS",
+            "chart_context": chart_context,
+            "session_id": "session-dibs-chart-repair",
+        },
+    }
+
+    response = client.post("/task/submit", json=payload)
+    assert response.status_code == 200
+
+    lines = [line.strip() for line in response.text.strip().split("\n") if line.strip()]
+    events = [json.loads(line) for line in lines]
+    content = "".join(ev.get("content", "") for ev in events if ev.get("type") == "CHUNK")
+    stream_end = [ev for ev in events if ev.get("type") == "STREAM_END"][0]
+    trace = stream_end["trace"]
+
+    assert "Nao ha preco" not in content
+    assert "nao vou tratar como falta de dados" in content
+    assert "preco atual 4.09" in content
+    assert "130 candles" in content
+    assert trace["chart_context_attached"] is True
+    assert trace["answer_repaired"] is True
+    assert trace["repair_reason"] == "model_denied_attached_chart_context"
+    assert mock_p.last_stream_kwargs.get("ticker") == "DIBS"
+    assert "DIBS" in mock_p.last_stream_kwargs.get("context", "")

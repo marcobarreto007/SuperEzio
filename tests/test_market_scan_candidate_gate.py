@@ -1008,3 +1008,23 @@ def test_ticker_analysis_still_works_with_chart_ticker():
         ticker="AAPL",
     )
     assert result.route == "ticker_analysis", f"Expected ticker_analysis, got {result.route}"
+
+
+def test_cockpit_ticker_command_routes_to_ticker_analysis_even_with_tese_wording():
+    """Cockpit-generated TICKER commands must not be downgraded to industry research."""
+    from src.core.pipeline.intents import detect_ticker, parse_user_intent
+
+    prompt = (
+        "TICKER DIBS: sincronize grafico + Sentimento Vivo. "
+        "Bob, analise tese, risco, invalidacao e alvo/stop. "
+        "Sentimento=NEUTRAL flat, score=0.03, Reddit=0 mencoes. "
+        "Se virar trade, rode ferramentas antes de PAPER_TICKET."
+    )
+
+    assert detect_ticker(prompt) == "DIBS"
+    result = parse_user_intent(prompt, rigor="strict", ticker="DIBS")
+
+    assert result.route == "ticker_analysis"
+    assert result.intent == "ticker_analysis"
+    assert result.action == "collect_data"
+    assert result.ticker == "DIBS"
