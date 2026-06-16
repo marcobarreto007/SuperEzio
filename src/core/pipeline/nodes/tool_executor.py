@@ -640,6 +640,7 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                 "momentum_technical",
                 "contrarian_opportunity",
                 "sentiment",
+                "social_forensics",
             ]
             results = []
             for role in roles:

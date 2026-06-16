@@ -95,7 +95,7 @@ class ExpertDialogue:
         self.max_rounds = max(1, int(max_rounds or 1))
         self.history: list[dict[str, Any]] = []
         self._system_prompts: dict[str, str] = {}
-        self._timeout = int(os.getenv("SUPEREZIO_EXPERT_TIMEOUT", "60"))
+        self._timeout = int(os.getenv("SUPEREZIO_EXPERT_TIMEOUT", "240"))
 
     async def ask(
         self,
@@ -206,7 +206,7 @@ class ExpertDialogue:
                     ],
                     preferred_provider=provider,
                     temperature=0.2,
-                    max_tokens=1000,
+                    max_tokens=int(os.getenv("SUPEREZIO_EXPERT_MAX_TOKENS", "2000")),
                 ),
                 timeout=self._timeout,
             )

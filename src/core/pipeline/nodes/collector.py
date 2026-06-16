@@ -35,11 +35,11 @@ def _scan_max_llm_candidates():
 
 
 def _scan_max_llm_calls():
-    return int(os.getenv("SUPEREZIO_SCAN_MAX_LLM_CALLS", "1"))
+    return int(os.getenv("SUPEREZIO_SCAN_MAX_LLM_CALLS", "6"))
 
 
 def _scan_llm_timeout():
-    return float(os.getenv("SUPEREZIO_SCAN_LLM_TIMEOUT_SECONDS", "30"))
+    return float(os.getenv("SUPEREZIO_SCAN_LLM_TIMEOUT_SECONDS", "600"))
 
 
 def _cache_is_fresh(trade_ctx: dict[str, Any]) -> bool:
@@ -234,14 +234,14 @@ async def _collect_professional(ticker: str, writer, run_id: str) -> tuple[dict[
     """Use ProfessionalCollector mesh for comprehensive data gathering."""
     from ...data_collector.professional import ProfessionalCollector
 
-    timeout_s = int(os.getenv("SUPEREZIO_DATA_TIMEOUT", "30"))  # Reduced from 60 to 30s
+    timeout_s = int(os.getenv("SUPEREZIO_DATA_TIMEOUT", "180"))
     t0 = time.time()
 
     collector = ProfessionalCollector()
     try:
         data = await asyncio.wait_for(
             collector.collect(ticker, overall_timeout=timeout_s),
-            timeout=timeout_s + 5,  # Hard limit
+            timeout=timeout_s + 15,  # Hard limit with cleanup margin
         )
     except asyncio.TimeoutError:
         data = {
@@ -292,7 +292,7 @@ async def _collect_subprocess_fallback(
     from adapters.data_collector.subprocess_collector import SubprocessDataCollector
     from ...paths import PROJECT_ROOT
 
-    timeout_s = int(os.getenv("SUPEREZIO_DATA_TIMEOUT", "60"))
+    timeout_s = int(os.getenv("SUPEREZIO_DATA_TIMEOUT", "180"))
     collector = SubprocessDataCollector(project_root=PROJECT_ROOT)
     data = await asyncio.to_thread(collector.collect_all, ticker, timeout_s)
     data_context = DataCollector.format_context(data)
@@ -856,8 +856,8 @@ async def _run_scan(
             if not os.getenv("FINNHUB_API_KEY"):
                 source_errors.append("finnhub: FINNHUB_API_KEY not configured")
 
-            per_item_timeout = float(os.getenv("SUPEREZIO_SCAN_ENRICH_TIMEOUT_MS", "12000")) / 1000
-            stage_deadline_ms = int(os.getenv("SUPEREZIO_SCAN_STAGE_DEADLINE_MS", "30000"))
+            per_item_timeout = float(os.getenv("SUPEREZIO_SCAN_ENRICH_TIMEOUT_MS", "60000")) / 1000
+            stage_deadline_ms = int(os.getenv("SUPEREZIO_SCAN_STAGE_DEADLINE_MS", "180000"))
             num_workers = max(1, int(os.getenv("SUPEREZIO_SCAN_ENRICH_CONCURRENCY", "2")))
 
             # ── Circuit breakers per provider ──

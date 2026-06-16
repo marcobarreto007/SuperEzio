@@ -105,7 +105,7 @@ def build_default_providers(
             api_key=deepseek_key,
             priority=-300,
             model=deepseek_model,
-            timeout_s=int(os.getenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", "120")),
+            timeout_s=int(os.getenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", "240")),
             max_tokens=int(os.getenv("SUPEREZIO_DEEPSEEK_MAX_TOKENS", "4096")),
             temperature=float(os.getenv("SUPEREZIO_DEEPSEEK_TEMPERATURE", "0.2")),
         )
@@ -125,7 +125,7 @@ def build_default_providers(
                 api_key=gemini_key,
                 priority=-290,
                 model=os.getenv("GEMINI_MODEL", GEMINI_MODEL_ID),
-                timeout_s=int(os.getenv("GEMINI_TIMEOUT_SEC", "90")),
+                timeout_s=int(os.getenv("GEMINI_TIMEOUT_SEC", "240")),
                 max_tokens=int(os.getenv("GEMINI_MAX_TOKENS", "4096")),
                 temperature=float(os.getenv("GEMINI_TEMPERATURE", "0.3")),
             )
@@ -143,7 +143,7 @@ def build_default_providers(
             api_key="",
             priority=-670,
             model=AGENT_MODEL_ID,
-            timeout_s=180,
+            timeout_s=int(os.getenv("SUPEREZIO_AGENT_TIMEOUT_SEC", "600")),
             max_tokens=8192,
             temperature=0.4,
             is_local=True,
@@ -162,7 +162,7 @@ def build_default_providers(
                 api_key=glm_fallback_key,
                 priority=-680,  # abaixo do agente local (-670), mas disponível
                 model="glm-5.2",
-                timeout_s=120,
+                timeout_s=int(os.getenv("SUPEREZIO_GLM_FALLBACK_TIMEOUT_SEC", "300")),
                 max_tokens=8192,
                 temperature=0.3,
                 is_local=False,

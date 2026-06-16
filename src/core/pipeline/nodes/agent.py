@@ -2676,8 +2676,10 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     f"If the user wants a stock pick and SCANNER_ALLOWED is True, use market_scan first and only use scan-approved tickers. "
                     f"If the user provides or selects a ticker, preserve that ticker as the current asset and use collect_data or attached chart/sentiment context before concluding. "
                     f"If CHART_VISUAL_CONTEXT, Sentimento Vivo, OHLCV, Data/Scan Context, or ticker-specific observations are attached, do not claim missing data for that ticker. "
-                    f"Tool access is permission, not an automatic instruction: call a tool only when it advances the user's current objective. "
-                    f"If you need market data, call tools. If you can answer from knowledge, do so."
+                    f"Tool access is permission, not an automatic instruction for greetings, status checks, or general education. "
+                    f"For any financial mandate, ticker case, investment comparison, buy/sell/order request, Sentimento Vivo signal, or portfolio decision, tools are mandatory: "
+                    f"collect_data or market_scan first, then math/expert/guardrail evidence before the final verdict. "
+                    f"If you can answer from knowledge only, the request is not a financial decision."
                 ),
             }
         )
