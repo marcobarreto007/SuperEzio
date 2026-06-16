@@ -59,25 +59,12 @@ def _scan_evidence_payload(
 
 
 def route_after_orchestrator(state: dict) -> str:
-    """Route scope-blocked plans before the agent can call tools or the model."""
-    if state.get("route") == "needs_scope" or state.get("action") in {
-        "ask_for_ticker",
-        "ask_for_scope",
-    }:
-        return "respond_blocked"
+    """Esteira linear — sem desvios. Tudo vai pro agente."""
     return "agent"
 
 
 def route_after_trinity(state: dict) -> str:
-    """Bypass Bob when Trinity has an explicit unanimous BLOCK."""
-    report = str(state.get("trinity_report") or "")
-    structured = state.get("trinity_structured") if isinstance(state.get("trinity_structured"), dict) else {}
-    if (
-        state.get("trinity_blocked")
-        or structured.get("blocked") is True
-        or "BLOCK unanimous" in report
-    ):
-        return "respond_blocked"
+    """Esteira linear — sem desvios. Tudo vai pro agente."""
     return "agent"
 
 
@@ -228,9 +215,9 @@ async def _auto_full_analysis(
     )
 
     should_collect_market = bool(
-        route in {"market_scan", "ticker_analysis"}
+        route in {"market_scan", "ticker_analysis", "agent"}
         or working_state.get("scanner_allowed")
-        or (working_state.get("ticker") and working_state.get("ticker_allowed", True))
+        or working_state.get("ticker_allowed")
     )
 
     try:
@@ -298,7 +285,7 @@ async def _auto_full_analysis(
     expert_results: list[dict[str, Any]] = []
     should_run_market_stack = bool(working_state.get("scan") or working_state.get("data")) and (
         should_collect_market
-        or route in {"market_scan", "ticker_analysis"}
+        or route in {"market_scan", "ticker_analysis", "agent"}
         or working_state.get("scanner_allowed")
         or working_state.get("ticker_allowed")
     )
