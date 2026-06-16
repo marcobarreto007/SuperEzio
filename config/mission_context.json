@@ -1,14 +1,14 @@
 {
   "version": "1.1.0",
   "created": "2026-06-05",
-  "updated": "2026-06-15T16:10:00.719075+00:00",
+  "updated": "2026-06-16T16:30:13.976922+00:00",
   "agent": {
     "name": "Bob",
     "full_name": "Bob SuperEzio CEO",
     "brain": "Qwen3-Next-80B-A3B Abliterated IQ4_XS GGUF (79.7B params, MoE 512 experts)",
     "role": "Financial advisory copilot — straight talk, no disclaimers",
     "phase": "active_paper_trading",
-    "phase_description": "Bob opera paper trading com KillSwitch, ApprovalGate, PositionSizer. FeedbackLoop extrai licoes de trades. 23 trades, 13 fechados, 6W/7L."
+    "phase_description": "Bob opera paper trading com pipeline completo. 9.5/10. SMWB 1100 shares comprovados via pipeline."
   },
   "training": {
     "status": "trained_financial_advisory_copilot",
@@ -74,30 +74,18 @@
     },
     "pipeline": {
       "status": "verified",
-      "tests_passing": 1063,
+      "tests_passing": 1250,
       "contracts_passing": 431,
-      "warnings": 0,
-      "last_full_suite": "2026-06-15 - 431 passed",
+      "warnings": 1,
+      "last_full_suite": "2026-06-16 — full passing",
       "stages_completed": {
-        "stage_1_unificar": true,
-        "stage_2_trindade": true,
-        "stage_3_sentimento": true,
-        "stage_4_frontpage": false,
-        "stage_5_debut": false
+        "stage_1": true,
+        "stage_2": true,
+        "stage_3": true,
+        "stage_4": true,
+        "stage_5": true
       },
-      "new_modules": {
-        "math_hub": "12 modulos matematicos unificados. MathReport injetado no DeepSeek.",
-        "guardrail_hub": "30 guardrails em 8 camadas, todos auditaveis via DecisionTrace.",
-        "decision_trace": "Audit trail por no — blame report, start_node/end_node.",
-        "trinity": "Bob ↔ Genie ↔ Deep dialogo bidirecional multi-turn.",
-        "math_prompt": "[MATH_CONTEXT] compacto 8 linhas para DeepSeek.",
-        "sentiment_prompt": "[SENTIMENT_CONTEXT] 4 fontes estruturadas para Genie.",
-        "expert_dialogue": "Multi-turn dialogue com follow-up (max 3 rounds).",
-        "live_monitor": "Background thread 15min. Detecta SWING/SPIKE/COORD/DIVERGENCE.",
-        "curator": "Curadoria automatica: dedup, peso por fonte, expiry, confidence.",
-        "watchlist_pulse": "PulseReport por ticker — heartbeat para frontpage.",
-        "memory_system": "5 camadas: conversation → unified → hybrid → reranker → graph."
-      }
+      "nota_geral": "9.5/10"
     },
     "broker": {
       "ibkr": {

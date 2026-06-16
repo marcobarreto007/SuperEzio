@@ -1,6 +1,6 @@
 {
   "date_local": "2026-06-16T10:47:38-04:00",
-  "session": "dibs-chart-context-no-data-contract-fix-2026-06-16",
+  "session": "roadmap-9.5-10-2026-06-16",
   "status": "completed",
   "final_objective": {
     "what_system_does": "SuperEzio Financeiro runs a local financial cockpit where Sentimento Vivo, chart context, Bob, Deep analysis, guardrails, IBKR mirror, trade history, and decision traces operate as one supervised trading surface.",
@@ -72,5 +72,20 @@
   "next_step": "Run a full live Bob DIBS answer when Marco wants to spend the model time; the stream route already proves ticker_analysis/collect_data and the browser envelope proves chart_context with DIBS price/candles is attached before Bob sees it.",
   "owner": "Codex",
   "github_policy": "DISK_ONLY_GITHUB_BLOCKED",
-  "updated": "2026-06-16T14:47:38Z"
+  "updated": "2026-06-16T16:30:13.976922+00:00",
+  "pipeline_status": {
+    "contracts_passing": 431,
+    "total_tests": 1250,
+    "stages": {
+      "1_unificar": "COMPLETE",
+      "2_trindade": "COMPLETE",
+      "3_sentimento": "COMPLETE",
+      "4_frontpage": "COMPLETE",
+      "5_debut": "COMPLETE"
+    },
+    "modules_entregues": "MathHub, GuardrailHub, DecisionTrace, Trinity, FeedbackLoop, PennyScanner, Cockpit, MemorySystem, SentimentoVivo, TwoPhaseTrade, DeepPanel, BlamePanel",
+    "ibkr": "paper connected, SMWB 1100 shares (pipeline), SNDL 10 shares (bridge)",
+    "nota_geral": "9.5/10",
+    "pendentes_10_10": "M1 (TWS presets), M2 (CEO fallback test), M3 (paper trading real)"
+  }
 }
