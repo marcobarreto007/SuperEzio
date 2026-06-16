@@ -1920,6 +1920,22 @@ async def get_decision_trace(run_id: str) -> dict[str, Any]:
     return report
 
 
+@router.get("/health/trace/agent/{agent}/stats")
+async def get_agent_trace_stats(agent: str, days: int = 7) -> dict[str, Any]:
+    """Return agent performance stats from decision traces."""
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", agent or ""):
+        raise HTTPException(status_code=400, detail="Invalid agent name")
+
+    from core.audit.decision_trace import get_agent_stats
+
+    try:
+        days = min(max(int(days), 1), 90)  # Clamp between 1-90 days
+    except (ValueError, TypeError):
+        days = 7
+
+    return get_agent_stats(agent, days)
+
+
 def _resolve_evidence_run_dir(run_id: str):
     """Resolve an evidence run directory without allowing traversal."""
     from core.evidence.run import EVIDENCE_DIR

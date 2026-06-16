@@ -227,6 +227,12 @@ async def _auto_full_analysis(
         }
     )
 
+    should_collect_market = bool(
+        route in {"market_scan", "ticker_analysis"}
+        or working_state.get("scanner_allowed")
+        or (working_state.get("ticker") and working_state.get("ticker_allowed", True))
+    )
+
     try:
         collector_result: dict[str, Any] = {}
         # Sovereign mode: ALWAYS collect data — Bob needs evidence, not a chat
