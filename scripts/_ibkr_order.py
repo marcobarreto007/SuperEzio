@@ -40,9 +40,13 @@ def main():
         if limit_price > 0:
             order = LimitOrder(action, qty, limit_price)
             order.tif = 'DAY'  # Explicit TIF — prevents TWS preset cancellation
+            # Prevent TWS preset from auto-canceling LMT orders
+            order.displaySize = qty  # Show full size, not incremental
+            order.outsideRth = False  # Regular hours only (prevents aftermarket cancel)
         else:
             order = MarketOrder(action, qty)
             order.tif = 'DAY'
+            order.outsideRth = False
 
         trade = ib.placeOrder(contract, order)
         ib.sleep(3)

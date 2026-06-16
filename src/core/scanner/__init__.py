@@ -91,12 +91,11 @@ class MarketScanner:
     ) -> List[str]:
         """Retorna lista de tickers de acoes baseados nos criterios.
 
-        Args:
-            max_price: Filter by max price (e.g., 5.0 for penny stocks).
-        """
-
         Filters out OTC/Pink Sheets, Nano Caps, and non-major exchanges before
         shuffling, so every scan returns a different, tradeable sample.
+
+        Args:
+            max_price: Filter by max price (e.g., 5.0 for penny stocks).
         """
         cache_key = f"eq:{country}:{sector}:{industry}:{limit}"
         cached = self._get_cached(cache_key)
