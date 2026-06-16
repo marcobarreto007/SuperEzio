@@ -70,6 +70,7 @@ FINAL_ONLY_TOOLS = (
     "final_answer",
 )
 FULL_TICKER_TOOLS = (
+    "market_scan",
     "collect_data",
     "f51_firewall",
     "pennylab",
@@ -78,6 +79,7 @@ FULL_TICKER_TOOLS = (
     "sdca_firewall",
     "rag_forensics",
     "submit_paper_order",
+    "bob_search",
     "final_answer",
 )
 DISCOVERY_TOOLS = (
@@ -212,130 +214,53 @@ def infer_cognitive_contract(
     action: str,
     ticker: str = "",
 ) -> dict[str, Any]:
-    """Infer the product-level contract above the graph route.
+    """Bob 80B decide sozinho — sem restrição de ferramentas.
 
-    This keeps the graph routes stable while making tool permission explicit:
-    natural-language consulting first, ticker and scanner only when justified.
+    O modelo de 80B é inteligente o bastante para decidir quais ferramentas
+    usar. Restrições pré-classificatórias só atrapalham: 'ORDEM' vira ticker,
+    'comprar' é bloqueado, scanner fica off. Chega disso.
+
+    Contrato único: TODAS as ferramentas liberadas. Bob decide.
     """
     raw = message or ""
-    if route == "ticker_analysis" or ticker:
-        mode = "TICKER_ANALYSIS"
-        # Se o usuário explicitamente pede COMPRA/VENDA/ORDEM, habilita paper ticket
-        is_explicit_trade = detect_decisive_trade_intent(raw)
-        ticket_allowed = is_explicit_trade
-        answer_contract = (
-            "Analyze the explicit ticker with collected evidence, risks, invalidation. "
-            "PAPER ORDER IS ENABLED: if analysis supports it, issue a PAPER_TICKET with ticker, qty, limit price, stop loss."
-            if ticket_allowed
-            else "Analyze the explicit ticker with collected evidence, risks, invalidation, and a clear non-execution stance."
-        )
-        return {
-            "cognitive_mode": mode,
-            "information_need": "ticker_data_analysis",
-            "allowed_tools": list(FULL_TICKER_TOOLS),
-            "market_context_allowed": True,
-            "scanner_allowed": False,
-            "ticker_allowed": True,
-            "ticket_allowed": ticket_allowed,
-            "answer_contract": answer_contract,
-        }
 
-    if route == "needs_scope":
+    # Única exceção: mensagem vazia ou puramente "oi"
+    if not raw.strip() or (len(raw.strip().split()) <= 2 and raw.strip().lower() in (
+        "oi", "ola", "olá", "hey", "hi", "hello", "bom dia", "boa tarde", "boa noite",
+    )):
         return {
-            "cognitive_mode": "MISSING_SCOPE",
-            "information_need": "missing_required_scope",
+            "cognitive_mode": "CASUAL",
+            "information_need": "greeting",
             "allowed_tools": ["final_answer"],
             "market_context_allowed": False,
-            "scanner_allowed": False,
-            "ticker_allowed": False,
-            "ticket_allowed": False,
-            "answer_contract": "Ask for the missing ticker or scope before using market data, scanner, or broker tools.",
-        }
-
-    is_risk_lab = detect_risk_lab_intent(raw)
-    if route == "market_scan":
-        mode = "RISK_LAB" if is_risk_lab else "DISCOVERY_SCAN"
-        return {
-            "cognitive_mode": mode,
-            "information_need": "candidate_discovery",
-            "allowed_tools": list(DISCOVERY_TOOLS),
-            "market_context_allowed": True,
             "scanner_allowed": True,
             "ticker_allowed": True,
             "ticket_allowed": True,
-            "answer_contract": "Use scanner evidence to produce BUY_CANDIDATE, WAIT, REJECT_ALL, WATCHLIST_ONLY, or NO_BET_THIS_WEEK with risk controls.",
+            "answer_contract": "Responda com 1-3 linhas. Confirme que está online. Mencione status IBKR brevemente. Nada de tools.",
         }
 
-    if route == "general" and intent == "market_scan":
-        return {
-            "cognitive_mode": "DISCOVERY_DECISION",
-            "information_need": "bob_decides_whether_market_discovery_is_needed",
-            "allowed_tools": list(DISCOVERY_TOOLS),
-            "market_context_allowed": True,
-            "scanner_allowed": True,
-            "ticker_allowed": True,
-            "ticket_allowed": True,
-            "answer_contract": "Decide whether a market_scan is necessary. If recommending a current stock, use scanner evidence first; otherwise explain the framework and state that live data was not collected.",
-        }
-
-    if intent == "capital_allocation":
-        return {
-            "cognitive_mode": "CAPITAL_ALLOCATION",
-            "information_need": "capital_decision_framework",
-            "allowed_tools": list(FINAL_ONLY_TOOLS),
-            "market_context_allowed": False,
-            "scanner_allowed": False,
-            "ticker_allowed": False,
-            "ticket_allowed": False,
-            "answer_contract": "Rank cash, debt, ETF, education, business, and risk options with gates, percentages, and one final verdict.",
-        }
-
-    if is_risk_lab:
-        return {
-            "cognitive_mode": "RISK_LAB",
-            "information_need": "weekly_risk_budget_framework",
-            "allowed_tools": list(FINAL_ONLY_TOOLS),
-            "market_context_allowed": False,
-            "scanner_allowed": False,
-            "ticker_allowed": False,
-            "ticket_allowed": False,
-            "answer_contract": "Treat CAD 50 as a capped experiment. Default to NO_BET_THIS_WEEK unless an edge is verified.",
-        }
-
-    if detect_industry_research_intent(raw):
-        tools = FORENSIC_ONLY_TOOLS if _needs_forensic_rag(raw) else FINAL_ONLY_TOOLS
-        return {
-            "cognitive_mode": "INDUSTRY_RESEARCH",
-            "information_need": "industry_thesis_and_adjacent_opportunities",
-            "allowed_tools": list(tools),
-            "market_context_allowed": False,
-            "scanner_allowed": False,
-            "ticker_allowed": False,
-            "ticket_allowed": False,
-            "answer_contract": "Build an industry thesis, challenge stale premises, suggest adjacent opportunities, and do not force tickers.",
-        }
-
-    if _needs_forensic_rag(raw):
-        return {
-            "cognitive_mode": "ADVISORY_KNOWLEDGE",
-            "information_need": "forensic_risk_context",
-            "allowed_tools": list(FORENSIC_ONLY_TOOLS),
-            "market_context_allowed": False,
-            "scanner_allowed": False,
-            "ticker_allowed": False,
-            "ticket_allowed": False,
-            "answer_contract": "Answer the advisory question with forensic context if available; do not invent current market data.",
-        }
-
+    # ── Contrato padrão: TUDO LIBERADO ──
+    # O Bob de 80B tem acesso a todas as ferramentas e decide o que usar.
+    # Ele sabe quando fazer scan, coletar dados, consultar experts, ou emitir ordem.
     return {
-        "cognitive_mode": "ADVISORY_KNOWLEDGE",
-        "information_need": "natural_language_financial_guidance",
-        "allowed_tools": list(FINAL_ONLY_TOOLS),
-        "market_context_allowed": False,
-        "scanner_allowed": False,
-        "ticker_allowed": False,
-        "ticket_allowed": False,
-        "answer_contract": "Answer directly in natural language. Use model knowledge carefully and state when live data was not collected.",
+        "cognitive_mode": "FULL_ACCESS",
+        "information_need": "bob_decides",
+        "allowed_tools": list(FULL_TICKER_TOOLS),  # collect_data, f51, pennylab, experts, neural, sdca, rag, submit_paper_order, final_answer
+        "market_context_allowed": True,
+        "scanner_allowed": True,
+        "ticker_allowed": True,
+        "ticket_allowed": True,
+        "answer_contract": (
+            "Você tem acesso TOTAL a todas as ferramentas. "
+            "Use market_scan para descobrir oportunidades. "
+            "Use collect_data para dados de um ticker específico. "
+            "Use run_experts, f51_firewall, neural_decision para análise. "
+            "Use submit_paper_order para executar ordens paper na IBKR. "
+            "Se o usuário pede compra/venda de um ticker com preço e quantidade, "
+            "analise com as ferramentas e emita PAPER_TICKET com: ticker, quantity, limit_price, stop_loss. "
+            "Não espere permissão — você TEM permissão total. "
+            "Seja direto, sem disclaimer. Fale na língua do usuário."
+        ),
     }
 
 
@@ -765,6 +690,38 @@ COMMON_WORDS = {
     "CASE",
     "PLAN",
     "PART",
+    # ── Portuguese trade/finance words (NOT tickers) ──
+    "ORDEM",
+    "ORDENS",
+    "COMPRA",
+    "VENDA",
+    "DIRETA",
+    "DIRETO",
+    "COMPRAR",
+    "VENDER",
+    "ATIVO",
+    "ATIVOS",
+    "PAPEL",
+    "PAPEIS",
+    "PRECO",
+    "PREÇO",
+    "LIMITE",
+    "ACAO",
+    "ACOES",
+    "VALOR",
+    "VALORES",
+    "CARTEIRA",
+    "COTACAO",
+    "COTAÇAO",
+    "COTACAO",
+    "RISCO",
+    "ALVO",
+    "META",
+    "TESE",
+    "GAIN",
+    "LOSS",
+    "LUCRO",
+    "PREJUIZO",
 }
 
 FINANCIAL_KEYWORDS = (
