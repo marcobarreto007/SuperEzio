@@ -235,6 +235,18 @@ def infer_cognitive_contract(
             "answer_contract": "Analyze the explicit ticker with collected evidence, risks, invalidation, and a clear non-execution stance.",
         }
 
+    if route == "needs_scope":
+        return {
+            "cognitive_mode": "MISSING_SCOPE",
+            "information_need": "missing_required_scope",
+            "allowed_tools": ["final_answer"],
+            "market_context_allowed": False,
+            "scanner_allowed": False,
+            "ticker_allowed": False,
+            "ticket_allowed": False,
+            "answer_contract": "Ask for the missing ticker or scope before using market data, scanner, or broker tools.",
+        }
+
     is_risk_lab = detect_risk_lab_intent(raw)
     if route == "market_scan":
         mode = "RISK_LAB" if is_risk_lab else "DISCOVERY_SCAN"

@@ -69,7 +69,7 @@ def test_mission_context_tells_bob_ibkr_paper_submission_is_enabled():
 def test_agent_loader_injects_current_mission_context():
     context = _load_mission_context()
 
-    assert "PRE_DEBUT_VALIDATION" in context
+    assert "ACTIVE_PAPER_TRADING" in context
     assert "PAPER TRADING MODE" in context or "PAPER ACCOUNT" in context
     assert "paper_order_submit_via_ibkr_tool" in context or "CAN submit paper orders" in context
 
@@ -78,7 +78,7 @@ def test_mission_health_summary_exposes_broker_paper_state():
     summary = mission_health_summary()
 
     assert summary["status"] == "loaded"
-    assert summary["phase"] == "pre_debut_validation"
+    assert summary["phase"] == "active_paper_trading"
     assert summary["broker"]["ibkr"]["connection"] == "connected_paper"
     assert summary["broker"]["ibkr"]["account_equity"] == "100000.00"
     assert summary["broker"]["ibkr"]["can_submit_orders"] is True

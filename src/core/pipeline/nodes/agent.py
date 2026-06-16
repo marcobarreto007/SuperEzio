@@ -2335,6 +2335,86 @@ def _final_payload(content: str, iterations: int) -> dict[str, Any]:
     }
 
 
+def _has_actionable_market_request(state: dict) -> bool:
+    message = state.get("message", "")
+    route = state.get("route", "")
+    intent = state.get("intent", "")
+    if route in {"market_scan", "ticker_analysis"}:
+        return True
+    if intent in {"market_scan", "another_trade_recommendation", "ticker_analysis"}:
+        return True
+    if _should_use_decisive_mode(state):
+        return True
+    if _is_paper_training_request(message):
+        return True
+    return False
+
+
+def _has_market_evidence(state: dict) -> bool:
+    return bool(state.get("scan") or state.get("data") or state.get("data_context"))
+
+
+def _has_expert_evidence(state: dict) -> bool:
+    return bool(state.get("expert_summary") or state.get("expert_results"))
+
+
+def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
+    """Return the next mandatory tool for actionable market/trade requests.
+
+    This is the product gate that keeps Bob from answering out of prompt memory
+    when the user is asking for a scan, ticker analysis, or paper trade.
+    """
+
+    if not _has_actionable_market_request(state):
+        return None
+    if state.get("submit_paper_order_result") or state.get("submit_paper_order_error"):
+        return None
+
+    allowed_tools = set(state.get("allowed_tools") or [])
+    executed_tools = set(state.get("executed_tools") or [])
+    ticker = _normalize_ticker_symbol(
+        state.get("ticker") or (state.get("data") or {}).get("ticker")
+    )
+
+    if (
+        ticker
+        and not state.get("data")
+        and "collect_data" in allowed_tools
+        and "collect_data" not in executed_tools
+        and state.get("ticker_allowed", True)
+    ):
+        return {"tool": "collect_data", "args": {"ticker": ticker}}
+
+    if not _has_market_evidence(state):
+        if "market_scan" in allowed_tools and state.get("scanner_allowed", False):
+            return {"tool": "market_scan", "args": {"query": state.get("message", "")}}
+        if (
+            ticker
+            and "collect_data" in allowed_tools
+            and "collect_data" not in executed_tools
+            and state.get("ticker_allowed", True)
+        ):
+            return {"tool": "collect_data", "args": {"ticker": ticker}}
+
+    if (
+        _has_market_evidence(state)
+        and "run_experts" in allowed_tools
+        and "run_experts" not in executed_tools
+        and not _has_expert_evidence(state)
+    ):
+        return {"tool": "run_experts", "args": {}}
+
+    if (
+        _has_market_evidence(state)
+        and "sdca_firewall" in allowed_tools
+        and "sdca_firewall" not in executed_tools
+        and not state.get("sdca_firewall")
+    ):
+        return {"tool": "sdca_firewall", "args": {}}
+
+    return None
+
+
 async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None) -> dict:
     writer = get_stream_writer()
     run_id = state.get("run_id", "")
@@ -2723,21 +2803,6 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
         tool_calls = _parse_tool_calls(raw)
 
-        # ── FORCE TOOL USAGE: on first iteration, if user wants trade/invest,
-        #     Bob CANNOT final_answer without calling at least one tool ──
-        if iterations == 0 and tool_calls:
-            first_call = tool_calls[0]
-            if first_call.get("tool") == "final_answer":
-                msg = state.get("message", "").lower()
-                wants_action = any(w in msg for w in (
-                    "compr", "venda", "invest", "trade", "paper", "ordem",
-                    "scan", "mercado", "acao", "ações", "stock", "ativos",
-                    "diversific", "carteira", "posic", "entrar", "alocar"
-                ))
-                if wants_action:
-                    # BLOCK final_answer — force Bob to call a tool
-                    tool_calls = [{"tool": "market_scan", "args": {"query": state.get("message", "")}}]
-
         # ── Bob Sovereign: if no JSON tool call found, treat entire response as final_answer ──
         if bob_sovereign and not tool_calls:
             # If the model put everything inside <think> tags, raw is now empty.
@@ -2745,6 +2810,11 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             content_source = raw.strip() or reasoning
             if len(content_source) > 20:
                 tool_calls = [{"tool": "final_answer", "args": {"content": content_source}}]
+
+        if tool_calls and tool_calls[0].get("tool") == "final_answer":
+            forced_call = _forced_tool_call_before_final(state)
+            if forced_call:
+                tool_calls = [forced_call]
 
         # ── Sovereign batch guard: when the model emits ONLY tool-call JSON
         #     with zero natural-language text between them, it is planning its
@@ -2788,6 +2858,16 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
         if tool_call and "tool" in tool_call:
             if tool_call["tool"] == "final_answer":
+                forced_call = _forced_tool_call_before_final(state)
+                if forced_call:
+                    return {
+                        "agent_tool_call": forced_call,
+                        "agent_iterations": iterations + 1,
+                        "_pending_tool_calls": list(state.get("_pending_tool_calls") or []),
+                        "bob_thesis": state.get("bob_thesis", ""),
+                        "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
+                        "current_datetime": state.get("current_datetime", ""),
+                    }
                 paper_order_call = _build_submit_paper_order_call(state)
                 if paper_order_call:
                     return {
@@ -2849,6 +2929,16 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     "current_datetime": state.get("current_datetime", ""),
                 }
         else:
+            forced_call = _forced_tool_call_before_final(state)
+            if forced_call:
+                return {
+                    "agent_tool_call": forced_call,
+                    "agent_iterations": iterations + 1,
+                    "_pending_tool_calls": list(state.get("_pending_tool_calls") or []),
+                    "bob_thesis": state.get("bob_thesis", ""),
+                    "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
+                    "current_datetime": state.get("current_datetime", ""),
+                }
             # Fallback
             content = (
                 _complex_finance_fallback_answer(state.get("message", ""))

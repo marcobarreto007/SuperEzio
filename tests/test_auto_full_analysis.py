@@ -287,6 +287,52 @@ def test_default_market_scan_contract_exposes_paper_submission_tool():
 
 
 @pytest.mark.asyncio
+async def test_agent_forces_experts_before_finalizing_scanned_trade(monkeypatch):
+    from src.core.pipeline.nodes import agent as agent_module
+
+    monkeypatch.setenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
+    monkeypatch.setattr(agent_module, "get_stream_writer", lambda: lambda _event: None)
+
+    class MockGateway:
+        async def chat_completion(self, **kwargs):
+            return '{"tool":"final_answer","args":{"content":"ticket ready"}}'
+
+    state = {
+        "run_id": "force-experts-before-paper-submit-test",
+        "route": "market_scan",
+        "message": "treinamento paper com 100k; use 10k para ordem rapida com stop loss",
+        "allowed_tools": ["market_scan", "run_experts", "submit_paper_order", "final_answer"],
+        "ticket_allowed": True,
+        "scanner_allowed": True,
+        "ticker_allowed": True,
+        "agent_iterations": 0,
+        "scan": {
+            "candidates": [
+                {
+                    "ticker": "PLUG",
+                    "name": "Plug Power",
+                    "market": "United States",
+                    "price": 3.2,
+                    "currency": "USD",
+                    "volume": 4_000_000,
+                    "catalyst": "short-term momentum",
+                    "risk": "trend reversal",
+                    "invalidation": "close below support",
+                    "provider": "test",
+                }
+            ],
+            "source_errors": [],
+        },
+        "f51_verdict": {"passed": True, "confidence": 0.91},
+        "sdca_firewall": {"decision": "ALLOW", "confidence": 0.88},
+    }
+
+    result = await agent_module.node_agent(state, gateway=MockGateway())
+
+    assert result["agent_tool_call"] == {"tool": "run_experts", "args": {}}
+
+
+@pytest.mark.asyncio
 async def test_agent_forces_paper_submit_when_model_finalizes(monkeypatch):
     from src.core.pipeline.nodes import agent as agent_module
 
@@ -325,6 +371,7 @@ async def test_agent_forces_paper_submit_when_model_finalizes(monkeypatch):
         },
         "f51_verdict": {"passed": True, "confidence": 0.91},
         "sdca_firewall": {"decision": "ALLOW", "confidence": 0.88},
+        "expert_summary": "Experts approve the PLUG paper training setup.",
     }
 
     result = await agent_module.node_agent(state, gateway=MockGateway())
@@ -378,6 +425,7 @@ async def test_agent_respects_explicit_no_order_instruction(monkeypatch):
         },
         "f51_verdict": {"passed": True, "confidence": 0.91},
         "sdca_firewall": {"decision": "ALLOW", "confidence": 0.88},
+        "expert_summary": "Experts approve the PLUG paper training setup.",
     }
 
     result = await agent_module.node_agent(state, gateway=MockGateway())

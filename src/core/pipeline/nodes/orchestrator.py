@@ -115,8 +115,8 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
     is_sovereign = os.getenv("SUPEREZIO_BOB_SOVEREIGN") in ("1", "true", "True")
 
     if is_sovereign:
-        # Sovereign mode: Bob is the CEO. He decides. No regex gatekeeping.
-        # Give him ALL tools and let him figure out what the user wants.
+        # Sovereign mode: Bob decides. No regex gatekeeping.
+        # Give him ALL tools and full paper execution permission.
         plan = {
             "route": "general",
             "intent": "sovereign_delegated",
@@ -130,6 +130,7 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
             ],
             "scanner_allowed": True,
             "ticker_allowed": True,
+            "ticket_allowed": True,
             "market_context_allowed": True,
             "intent_source": "sovereign_bob_decides",
             "sovereign_mode": True,
