@@ -234,12 +234,24 @@ async def _collect_professional(ticker: str, writer, run_id: str) -> tuple[dict[
     """Use ProfessionalCollector mesh for comprehensive data gathering."""
     from ...data_collector.professional import ProfessionalCollector
 
-    timeout_s = int(os.getenv("SUPEREZIO_DATA_TIMEOUT", "60"))
+    timeout_s = int(os.getenv("SUPEREZIO_DATA_TIMEOUT", "30"))  # Reduced from 60 to 30s
     t0 = time.time()
 
     collector = ProfessionalCollector()
     try:
-        data = await collector.collect(ticker, overall_timeout=timeout_s)
+        data = await asyncio.wait_for(
+            collector.collect(ticker, overall_timeout=timeout_s),
+            timeout=timeout_s + 5,  # Hard limit
+        )
+    except asyncio.TimeoutError:
+        data = {
+            "analysis_id": f"{ticker}-timeout",
+            "ticker": ticker,
+            "collected_at": "",
+            "data_quality": "partial",
+            "source_errors": ["professional_collector_timeout"],
+            "price": {"error": "timeout"},
+        }
     except Exception as exc:
         data = {
             "analysis_id": f"{ticker}-err",
