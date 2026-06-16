@@ -2723,6 +2723,21 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
         tool_calls = _parse_tool_calls(raw)
 
+        # ── FORCE TOOL USAGE: on first iteration, if user wants trade/invest,
+        #     Bob CANNOT final_answer without calling at least one tool ──
+        if iterations == 0 and tool_calls:
+            first_call = tool_calls[0]
+            if first_call.get("tool") == "final_answer":
+                msg = state.get("message", "").lower()
+                wants_action = any(w in msg for w in (
+                    "compr", "venda", "invest", "trade", "paper", "ordem",
+                    "scan", "mercado", "acao", "ações", "stock", "ativos",
+                    "diversific", "carteira", "posic", "entrar", "alocar"
+                ))
+                if wants_action:
+                    # BLOCK final_answer — force Bob to call a tool
+                    tool_calls = [{"tool": "market_scan", "args": {"query": state.get("message", "")}}]
+
         # ── Bob Sovereign: if no JSON tool call found, treat entire response as final_answer ──
         if bob_sovereign and not tool_calls:
             # If the model put everything inside <think> tags, raw is now empty.
