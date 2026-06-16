@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import math
+import sqlite3
 import threading
 from collections import Counter, deque
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Mapping
 
 logger = logging.getLogger(__name__)
@@ -101,6 +104,7 @@ class LiveMonitor:
         interval_minutes: int = 15,
         *,
         data_hub: Any | None = None,
+        db_path: str | Path | None = None,
     ):
         self.watchlist = [str(ticker).strip().upper() for ticker in watchlist if str(ticker).strip()]
         self.interval = max(1, int(interval_minutes or 15))
@@ -114,6 +118,7 @@ class LiveMonitor:
             ticker: deque(maxlen=288) for ticker in self.watchlist
         }
         self._data_hub = data_hub
+        self._db_path: Path | None = Path(db_path) if db_path else None
 
     def start(self) -> None:
         """Start the daemon monitor thread once."""
@@ -187,11 +192,11 @@ class LiveMonitor:
     def _persist_to_db(self, ticker: str, snapshot: dict[str, Any]) -> None:
         """Persist sentiment snapshot to SQLite for historical trending."""
         try:
-            import sqlite3
-            db_path = self._db_path or (
-                Path(__file__).resolve().parent.parent.parent.parent / "data" / "investor.db"
+            db_path = str(
+                self._db_path
+                or Path(__file__).resolve().parent.parent.parent.parent / "runtime" / "investor.db"
             )
-            conn = sqlite3.connect(str(db_path))
+            conn = sqlite3.connect(db_path)
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS sentiment_history (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,

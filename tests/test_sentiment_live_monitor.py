@@ -109,3 +109,63 @@ def test_live_monitor_start_stop_uses_daemon_thread():
     assert thread is not None
     assert thread.daemon is True
     assert monitor.running is False
+
+
+def test_persist_to_db_creates_table_and_inserts_row(tmp_path):
+    """D3: Verifica que o snapshot é persistido em SQLite com todas as colunas."""
+    import sqlite3
+
+    db_path = tmp_path / "test_sentiment.db"
+    monitor = LiveMonitor(watchlist=["AAPL"], interval_minutes=15, db_path=str(db_path))
+
+    snapshot = {
+        "ticker": "AAPL",
+        "sentiment_score": 0.75,
+        "sentiment_label": "BULLISH",
+        "reddit": {"mentions": 42},
+        "news_count": 5,
+        "flags": ["SWING", "SPIKE"],
+        "collected_at": "2026-06-16T12:00:00+00:00",
+        "sources": {"newsapi": {"sentiment_score": 0.8}},
+    }
+    monitor._persist_to_db("AAPL", snapshot)
+
+    conn = sqlite3.connect(str(db_path))
+    tables = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table'"
+    ).fetchall()
+    assert ("sentiment_history",) in tables
+
+    rows = conn.execute(
+        "SELECT ticker, score, label, reddit_mentions, news_count, flags "
+        "FROM sentiment_history"
+    ).fetchall()
+    assert len(rows) == 1
+    ticker, score, label, mentions, news, flags = rows[0]
+    assert ticker == "AAPL"
+    assert score == 0.75
+    assert label == "BULLISH"
+    assert mentions == 42
+    assert news == 5
+    assert "SWING" in flags
+
+    # snapshot_json must be present and contain the original data
+    blob = conn.execute(
+        "SELECT snapshot_json FROM sentiment_history WHERE ticker='AAPL'"
+    ).fetchone()
+    assert blob is not None
+    assert "newsapi" in blob[0]
+
+    conn.close()
+
+
+def test_persist_to_db_non_critical_failure_does_not_raise(tmp_path):
+    """D3: Erro no DB não crasha a thread — comportamento non-blocking."""
+    monitor = LiveMonitor(
+        watchlist=["TSLA"],
+        interval_minutes=15,
+        db_path=str(tmp_path / "readonly" / "nope.db"),
+    )
+    # Directory doesn't exist — should fail silently
+    monitor._persist_to_db("TSLA", {"ticker": "TSLA"})
+    # If we got here without exception, the non-critical contract holds
