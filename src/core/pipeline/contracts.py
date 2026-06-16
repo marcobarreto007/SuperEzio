@@ -68,6 +68,10 @@ class PipelineState(TypedDict, total=False):
     orchestrator_plan: str
     orchestrator_model_status: str
 
+    # ── IBKR Portfolio Snapshot ──
+    portfolio_snapshot: str  # injected by auto_full_analysis → agent SYSTEM STATUS
+    portfolio_context: str  # legacy alias, populated by graph.py IBKR probe
+
     # ── Bob Sovereign Mode (SUPEREZIO_BOB_SOVEREIGN=1) ──
     bob_intent: str  # intenção classificada (não é rota!)
     risk_tolerance: str  # "conservadora" | "moderada" | "alta" | "especulativa"

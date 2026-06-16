@@ -359,56 +359,76 @@ async def _auto_full_analysis(
                 },
             )
     # ── IBKR portfolio snapshot: always inject current positions ──
-    try:
-        from ib_insync import IB as _IB
-        from ib_insync import Stock as _Stock
+    # Run IBKR connection in a thread to avoid asyncio event-loop
+    # conflicts on Windows (ib_insync uses its own loop).
 
-        _ib = _IB()
-        _ib.connect("127.0.0.1", 7497, clientId=int(time.time() * 1000) % 9000 + 100, timeout=5)
-        
-        # Configure market data types (delayed 3 is free, no subscription required)
-        _ib.reqMarketDataType(3)
-        
-        pos_list = _ib.positions()
-        positions = []
-        total_value = 0.0
-        
-        if pos_list:
-            contracts = [_Stock(p.contract.symbol, "SMART", "USD") for p in pos_list]
-            _ib.qualifyContracts(*contracts)
-            tickers = [_ib.reqMktData(c) for c in contracts]
-            _ib.sleep(1.0)
-            
-            for p, ticker in zip(pos_list, tickers):
-                _ib.cancelMktData(p.contract)
-                price = ticker.last or ticker.close or ticker.marketPrice() or float(p.avgCost)
-                pos_val = float(p.position) * price
-                pnl = (price - float(p.avgCost)) * float(p.position)
-                positions.append(
-                    f"{p.contract.symbol}: {p.position} shares @ avg ${float(p.avgCost):.2f} (current ${price:.2f}) = ${pos_val:,.2f} [PnL: ${pnl:+,.2f}]"
+    def _fetch_ibkr_snapshot() -> str:
+        import asyncio as _asyncio
+        _loop = _asyncio.new_event_loop()
+        _asyncio.set_event_loop(_loop)
+        try:
+            from ib_insync import IB as _IB
+            from ib_insync import Stock as _Stock
+
+            _ib = _IB()
+            _ib.connect("127.0.0.1", 7497, clientId=int(time.time() * 1000) % 9000 + 100, timeout=5)
+
+            # Configure market data types (delayed 3 is free, no subscription required)
+            _ib.reqMarketDataType(3)
+
+            pos_list = _ib.positions()
+            positions = []
+            total_value = 0.0
+
+            if pos_list:
+                contracts = [_Stock(p.contract.symbol, "SMART", "USD") for p in pos_list]
+                _ib.qualifyContracts(*contracts)
+                tickers = [_ib.reqMktData(c) for c in contracts]
+                _ib.sleep(1.0)
+
+                for p, ticker in zip(pos_list, tickers):
+                    _ib.cancelMktData(p.contract)
+                    price = ticker.last or ticker.close or ticker.marketPrice() or float(p.avgCost)
+                    pos_val = float(p.position) * price
+                    pnl = (price - float(p.avgCost)) * float(p.position)
+                    positions.append(
+                        f"{p.contract.symbol}: {p.position} shares @ avg ${float(p.avgCost):.2f} (current ${price:.2f}) = ${pos_val:,.2f} [PnL: ${pnl:+,.2f}]"
+                    )
+                    total_value += pos_val
+
+            equity = 0.0
+            for v in _ib.accountSummary():
+                if v.tag == "NetLiquidation":
+                    equity = float(v.value)
+            _ib.disconnect()
+
+            return (
+                f"CURRENT PORTFOLIO (IBKR paper):\n"
+                f"  Equity: ${equity:,.2f}\n"
+                f"  Positions: {len(positions)}\n"
+                + "".join(f"    {p}\n" for p in positions)
+                + (
+                    f"  Total invested: ${total_value:,.2f}\n"
+                    if positions
+                    else "  (empty — no positions)\n"
                 )
-                total_value += pos_val
-                
-        equity = 0.0
-        for v in _ib.accountSummary():
-            if v.tag == "NetLiquidation":
-                equity = float(v.value)
-        _ib.disconnect()
-
-        portfolio_context = (
-            f"CURRENT PORTFOLIO (IBKR paper):\n"
-            f"  Equity: ${equity:,.2f}\n"
-            f"  Positions: {len(positions)}\n"
-            + "".join(f"    {p}\n" for p in positions)
-            + (
-                f"  Total invested: ${total_value:,.2f}\n"
-                if positions
-                else "  (empty — no positions)\n"
+                + f"  Cash: ${equity - total_value:,.2f}\n"
             )
-            + f"  Cash: ${equity - total_value:,.2f}\n"
+        except Exception as exc:
+            logger.warning("IBKR portfolio snapshot failed: %s", exc)
+            return "IBKR offline — portfolio data unavailable"
+        finally:
+            _loop.close()
+
+    try:
+        loop = asyncio.get_running_loop()
+        portfolio_context = await asyncio.wait_for(
+            loop.run_in_executor(None, _fetch_ibkr_snapshot),
+            timeout=8.0,
         )
         _merge_node_update(working_state, output, {"portfolio_snapshot": portfolio_context})
-    except Exception:
+    except Exception as exc:
+        logger.warning("IBKR snapshot failed (%s: %s) — falling back to offline", type(exc).__name__, exc)
         _merge_node_update(
             working_state,
             output,
