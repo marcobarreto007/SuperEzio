@@ -2705,6 +2705,15 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 f"{stats['wins']}W/{stats['losses']}L (win rate: {stats.get('win_rate', 0):.0%}), "
                 f"{stats['lessons_logged']} lições aprendidas."
             )
+        # Calibrate: tell Bob if he's over/under confident
+        try:
+            cal = feedback.calibrate_confidence()
+            if cal.get("status") == "calibrated":
+                observations.append(
+                    f"CALIBRAGEM: {cal.get('interpretation','')}"
+                )
+        except Exception:
+            pass
     except Exception:
         pass
 

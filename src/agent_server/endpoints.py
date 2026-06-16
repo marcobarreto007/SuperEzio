@@ -374,6 +374,32 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
     positions_count = int(broker.get("positions_count") or 0)
     equity = broker.get("account_equity") or "100000.00"
     positions = broker.get("positions") if isinstance(broker.get("positions"), list) else []
+
+    # ── Query IBKR LIVE for real-time positions ──
+    try:
+        from ib_insync import IB as _IB
+        _ib = _IB()
+        _ib.connect("127.0.0.1", 7497, clientId=int(time.time() * 1000) % 9000 + 300, timeout=2)
+        _eq = sum(float(v.value) for v in _ib.accountSummary() if v.tag == "NetLiquidation") if _ib.isConnected() else 0
+        if _eq > 0:
+            equity = f"{_eq:,.2f}"
+        _live_positions = []
+        for _p in _ib.positions():
+            _live_positions.append({
+                "symbol": _p.contract.symbol,
+                "ticker": _p.contract.symbol,
+                "quantity": int(_p.position),
+                "shares": int(_p.position),
+                "avg_cost": round(float(_p.avgCost), 2),
+                "market_value": round(float(_p.position) * float(_p.avgCost), 2),
+            })
+        if _live_positions:
+            positions = _live_positions
+            positions_count = len(_live_positions)
+        _ib.disconnect()
+    except Exception:
+        pass  # Fall back to cached mission_context data
+
     broker_orders = _cockpit_ibkr_open_orders()
     local_tickets = _cockpit_local_order_tickets()
     orders = _dedupe_orders(broker_orders, local_tickets)
