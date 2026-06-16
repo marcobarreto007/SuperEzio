@@ -199,6 +199,7 @@ def _cockpit_ibkr_open_orders() -> list[dict[str, Any]]:
                 continue
         # Give IBKR time to return order data
         import time as _time
+
         _time.sleep(0.5)
         # Collect from all trade sources
         for accessor in ("openTrades", "trades"):
@@ -215,12 +216,15 @@ def _cockpit_ibkr_open_orders() -> list[dict[str, Any]]:
                 continue
             order_id = str(getattr(order, "orderId", "") or getattr(order, "permId", "") or "")
             symbol = str(
-                getattr(contract, "symbol", "")
-                or getattr(contract, "localSymbol", "")
-                or ""
+                getattr(contract, "symbol", "") or getattr(contract, "localSymbol", "") or ""
             ).upper()
             status = str(getattr(order_status, "status", "") or "submitted")
-            if not order_id or order_id in seen or not symbol or not _is_active_order_status(status):
+            if (
+                not order_id
+                or order_id in seen
+                or not symbol
+                or not _is_active_order_status(status)
+            ):
                 continue
             seen.add(order_id)
             normalized = _normalize_order_row(
@@ -328,9 +332,7 @@ def _cockpit_trade_history(limit: int = 50) -> dict[str, Any]:
         journal = PaperJournal()
         trades = [
             normalized
-            for normalized in (
-                _normalize_trade_history_row(row) for row in journal.list_all()
-            )
+            for normalized in (_normalize_trade_history_row(row) for row in journal.list_all())
             if normalized is not None
         ]
         trades.sort(key=_trade_history_sort_key, reverse=True)
@@ -378,21 +380,28 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
     # ── Query IBKR LIVE for real-time positions ──
     try:
         from ib_insync import IB as _IB
+
         _ib = _IB()
         _ib.connect("127.0.0.1", 7497, clientId=int(time.time() * 1000) % 9000 + 300, timeout=2)
-        _eq = sum(float(v.value) for v in _ib.accountSummary() if v.tag == "NetLiquidation") if _ib.isConnected() else 0
+        _eq = (
+            sum(float(v.value) for v in _ib.accountSummary() if v.tag == "NetLiquidation")
+            if _ib.isConnected()
+            else 0
+        )
         if _eq > 0:
             equity = f"{_eq:,.2f}"
         _live_positions = []
         for _p in _ib.positions():
-            _live_positions.append({
-                "symbol": _p.contract.symbol,
-                "ticker": _p.contract.symbol,
-                "quantity": int(_p.position),
-                "shares": int(_p.position),
-                "avg_cost": round(float(_p.avgCost), 2),
-                "market_value": round(float(_p.position) * float(_p.avgCost), 2),
-            })
+            _live_positions.append(
+                {
+                    "symbol": _p.contract.symbol,
+                    "ticker": _p.contract.symbol,
+                    "quantity": int(_p.position),
+                    "shares": int(_p.position),
+                    "avg_cost": round(float(_p.avgCost), 2),
+                    "market_value": round(float(_p.position) * float(_p.avgCost), 2),
+                }
+            )
         if _live_positions:
             positions = _live_positions
             positions_count = len(_live_positions)
@@ -2148,6 +2157,7 @@ async def execute_trade_fast(payload: dict[str, Any]) -> dict[str, Any]:
         "order_id": order_id,
         **ticket,
     }
+
 
 @router.get("/trade/status/{order_id}")
 async def get_trade_status(order_id: str) -> dict[str, Any]:
