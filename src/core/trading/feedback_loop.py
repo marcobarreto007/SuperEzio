@@ -810,6 +810,85 @@ class FeedbackLoop:
         }
 
 
+    def check_before_trade(self, ticker: str, thesis: str = "") -> str | None:
+        """Verifica se este trade é similar a um que falhou. Retorna motivo ou None."""
+        ticker = ticker.upper()
+        closed = [t for t in self._journal.list_all()
+                  if str(t.get("ticker","")).upper() == ticker and t.get("outcome") == "loss"]
+        if not closed:
+            return None
+
+        last_loss = closed[-1]
+        loss_thesis = str(last_loss.get("thesis","") or last_loss.get("entry_reasoning",""))
+        loss_trade_id = str(last_loss.get("trade_id","?"))
+
+        # Similarity check: same ticker + overlapping keywords = block
+        thesis_words = set(thesis.lower().split()) if thesis else set()
+        loss_words = set(loss_thesis.lower().split())
+        overlap = len(thesis_words & loss_words) if thesis_words else 0
+
+        if ticker in [str(t.get("ticker","")).upper() for t in closed]:
+            return f"FeedbackLoop: {ticker} already has {len(closed)} loss(es). Last: {loss_trade_id}. Review thesis before retrying."
+
+        if overlap >= 3:
+            return f"FeedbackLoop: thesis similar to failed trade {loss_trade_id} ({loss_thesis[:80]}...)"
+
+        return None
+
+    def calibrate_confidence(self) -> dict:
+        """Compara confidence declarada vs outcome real. Retorna fator de calibragem."""
+        closed = [t for t in self._journal.list_all() if t.get("outcome") in ("win","loss")]
+        samples = []
+        for t in closed:
+            conf = t.get("confidence")
+            if conf is not None and isinstance(conf, (int,float)) and 0 <= conf <= 100:
+                samples.append((conf, t.get("outcome")))
+
+        if len(samples) < 5:
+            return {"status": "insufficient_data", "sample_size": len(samples), "min_sample": 5, "factor": 1.0}
+
+        # For each sample: if confidence > 50 and outcome=loss → overconfident
+        overconfident = sum(1 for c,o in samples if c > 60 and o == "loss")
+        underconfident = sum(1 for c,o in samples if c < 40 and o == "win")
+        total = len(samples)
+
+        # Calibration factor: actual_win_rate / avg_confidence
+        wins = sum(1 for _,o in samples if o == "win")
+        actual_wr = wins / total if total > 0 else 0
+        avg_conf = sum(c for c,_ in samples) / total / 100 if total > 0 else 0.5
+
+        factor = actual_wr / avg_conf if avg_conf > 0 else 1.0
+        factor = max(0.3, min(3.0, factor))  # clamp
+
+        return {
+            "status": "calibrated",
+            "sample_size": total,
+            "wins": wins,
+            "actual_win_rate": round(actual_wr, 3),
+            "avg_confidence": round(avg_conf, 3),
+            "calibration_factor": round(factor, 3),
+            "overconfident_losses": overconfident,
+            "underconfident_wins": underconfident,
+            "interpretation": (
+                f"Bob is {'overconfident' if factor < 0.8 else 'underconfident' if factor > 1.2 else 'calibrated'}. "
+                f"Actual win rate {actual_wr:.0%} vs declared confidence {avg_conf:.0%}. "
+                f"Suggested confidence multiplier: {factor:.2f}"
+            )
+        }
+
+    def record_trade_confidence(self, trade_id: str, confidence: float) -> bool:
+        """Atualiza o confidence de um trade no journal."""
+        trades = self._journal.list_all()
+        for t in trades:
+            if str(t.get("trade_id","")) == str(trade_id):
+                t["confidence"] = round(float(confidence), 1)
+                # Re-write journal with updated confidence
+                self._journal._rewrite(trades)
+                logger.info("FeedbackLoop: recorded confidence %.1f for trade %s", confidence, trade_id)
+                return True
+        return False
+
+
 # Singleton
 _feedback_loop: FeedbackLoop | None = None
 

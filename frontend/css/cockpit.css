@@ -56,7 +56,7 @@ body::after {
 
 .app-main {
   display: grid;
-  grid-template-columns: minmax(280px, 0.82fr) minmax(520px, 2.35fr);
+  grid-template-columns: minmax(260px, 0.72fr) minmax(520px, 1.72fr) minmax(320px, 0.92fr);
   gap: 12px;
   min-height: 0;
   padding: 12px 12px 10px;
@@ -130,6 +130,10 @@ body::after {
 .cockpit-panel {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
+}
+
+.cockpit-panel--deep {
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
 .chart-workspace {
@@ -621,4 +625,3 @@ body::after {
   font-style: normal !important;
   opacity: 0.95;
 }
-

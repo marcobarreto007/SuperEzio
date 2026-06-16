@@ -77,7 +77,9 @@
   }
 
   function ensureHost() {
-    var host = document.querySelector(".chart-workspace");
+    var host = document.getElementById("deep-panel-body");
+    if (host) return host;
+    host = document.getElementById("deep-panel") || document.querySelector(".app-main");
     if (!host) return null;
     var existing = document.getElementById("deep-runtime");
     if (existing) return existing;
@@ -86,6 +88,15 @@
     runtime.className = "deep-runtime";
     host.appendChild(runtime);
     return runtime;
+  }
+
+  function setStatus(state) {
+    var status = document.getElementById("deep-panel-status");
+    if (!status) return;
+    var experts = Object.keys((state && state.experts) || {}).length;
+    var active = Boolean((state && state.math) || experts || (state && state.trinity));
+    status.textContent = active ? (experts ? experts + "/6 EXPERTS" : "MATH LIVE") : "WAITING";
+    status.classList.toggle("cockpit-panel__status--idle", !active);
   }
 
   function mathLine(state) {
@@ -163,6 +174,7 @@
     var host = ensureHost();
     if (!host) return;
     var state = (window.SZ.state.deep = window.SZ.state.deep || { experts: {} });
+    setStatus(state);
     host.innerHTML = [
       '<section class="cockpit-section"><div class="cockpit-section__title">Math Summary</div>' + mathLine(state) + '</section>',
       '<section class="cockpit-section"><div class="cockpit-section__title">Expert Verdicts</div>' + expertCards(state.experts || {}) + '</section>',

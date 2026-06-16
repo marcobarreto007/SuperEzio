@@ -55,6 +55,12 @@
    * ═══════════════════════════════════════════════════════════════ */
   function handleEvent(ev) {
     if (!ev || !ev.type) return;
+    if (ev.run_id) {
+      SZ.state.lastRunId = ev.run_id;
+      if (SZ.blamePanel && SZ.blamePanel.setRunId) {
+        try { SZ.blamePanel.setRunId(ev.run_id); } catch (_) { /* ignore */ }
+      }
+    }
 
     switch (ev.type) {
 
@@ -65,6 +71,7 @@
         SZ.state.stream = {
           started: Date.now(),
           msgId: ev.msg_id || "",
+          runId: ev.run_id || "",
           steps: {},
           ticker: ev.ticker || "",
           answer: ""

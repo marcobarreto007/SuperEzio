@@ -90,16 +90,29 @@
     var pf = SZ.state && SZ.state.portfolio;
     if (!pf) return "";
     var lines = ["=== PORTFOLIO ==="];
-    var orders = Array.isArray(pf.orders) ? pf.orders : (Array.isArray(pf.active_orders) ? pf.active_orders : []);
+    var brokerOrders = brokerOrderList(pf);
+    var localTickets = localTicketList(pf);
     var positions = Array.isArray(pf.positions) ? pf.positions : [];
-    if (orders.length) {
+    var trades = tradeHistoryList(pf);
+    if (brokerOrders.length) {
       lines.push("Active IBKR orders:");
-      orders.slice(0, 8).forEach(function (order) {
+      brokerOrders.slice(0, 8).forEach(function (order) {
         var ticker = sanitTicker(order.ticker || order.symbol);
         if (!ticker) return;
         lines.push(
           "- " + ticker + " " + String(order.action || order.side || "").toUpperCase() +
           " qty=" + (order.qty || order.quantity || "--") +
+          " status=" + (order.status || "--")
+        );
+      });
+    }
+    if (localTickets.length) {
+      lines.push("Local pending tickets:");
+      localTickets.slice(0, 5).forEach(function (order) {
+        var ticker = sanitTicker(order.ticker || order.symbol);
+        if (!ticker) return;
+        lines.push(
+          "- " + ticker + " " + String(order.action || order.side || "").toUpperCase() +
           " status=" + (order.status || "--")
         );
       });
@@ -112,14 +125,22 @@
         lines.push("- " + ticker + " qty=" + (pos.quantity || pos.qty || pos.shares || "--"));
       });
     }
-    if (!orders.length && !positions.length) {
+    if (trades.length) {
+      lines.push("Recent paper trade history:");
+      trades.slice(0, 5).forEach(function (trade) {
+        var ticker = sanitTicker(trade.ticker || trade.symbol);
+        if (!ticker) return;
+        lines.push("- " + ticker + " " + (trade.status || "--") + " outcome=" + (trade.outcome || "--"));
+      });
+    }
+    if (!brokerOrders.length && !localTickets.length && !positions.length) {
       Object.keys(pf).forEach(function (k) {
         var p = pf[k];
         if (p && p.shares) lines.push(k + ": " + p.shares + " shares");
       });
     }
     if (lines.length === 1) {
-      lines.push("No active IBKR orders or positions visible.");
+      lines.push("No active IBKR orders, local tickets, or positions visible.");
     }
     lines.push("=== END PORTFOLIO ===");
     return lines.join("\n");
@@ -214,8 +235,28 @@
     return [];
   }
 
+  function brokerOrderList(pf) {
+    if (!pf) return [];
+    if (Array.isArray(pf.broker_orders)) return pf.broker_orders;
+    return orderList(pf).filter(function (order) {
+      return String((order && order.source) || "").toLowerCase() === "ibkr";
+    });
+  }
+
+  function localTicketList(pf) {
+    if (!pf) return [];
+    if (Array.isArray(pf.local_tickets)) return pf.local_tickets;
+    return orderList(pf).filter(function (order) {
+      return String((order && order.source) || "").toLowerCase() !== "ibkr";
+    });
+  }
+
   function positionList(pf) {
     return pf && Array.isArray(pf.positions) ? pf.positions : [];
+  }
+
+  function tradeHistoryList(pf) {
+    return pf && Array.isArray(pf.trade_history) ? pf.trade_history : [];
   }
 
   function applyFrontendContent() {
@@ -473,7 +514,7 @@
    * ═══════════════════════════════════════════════════════════════ */
 
   function markSelectedMirrorTicker(ticker) {
-    var rows = document.querySelectorAll(".order-row[data-order-ticker]");
+    var rows = document.querySelectorAll(".order-row[data-order-ticker], .trade-row[data-order-ticker]");
     var selected = sanitTicker(ticker);
     for (var i = 0; i < rows.length; i++) {
       rows[i].classList.toggle(
@@ -490,6 +531,7 @@
     var qty = item.qty || item.quantity || item.shares || "--";
     var status = item.status || (kind === "position" ? "OPEN" : "PENDING");
     var price = item.limit_price || item.lmtPrice || item.entry_price || item.avgCost;
+    var source = String(item.source || (kind === "position" ? "ibkr_position" : "ibkr")).toUpperCase().replace("_", " ");
     var meta = kind === "position"
       ? "position qty " + qty + (price ? " avg " + fmt(Number(price), 2) : "")
       : (item.order_type || item.orderType || "LMT") + " qty " + qty + (price ? " @ " + fmt(Number(price), 2) : "");
@@ -501,7 +543,31 @@
         '<span class="order-row__ticker">' + esc(ticker) + '</span>',
         '<span class="order-row__side">' + esc(action) + '</span>',
         '<span class="order-row__status">' + esc(status) + '</span>',
+        '<span class="order-row__source">' + esc(source) + '</span>',
         '<span class="order-row__meta">' + esc(meta) + '</span>',
+      '</button>',
+    ].join("");
+  }
+
+  function renderTradeHistoryRow(trade, selected) {
+    var ticker = orderTicker(trade);
+    if (!ticker) return "";
+    var status = String(trade.status || trade.outcome || "history").toUpperCase();
+    var pnl = trade.pnl_amount == null || !isFinite(Number(trade.pnl_amount))
+      ? "--"
+      : (Number(trade.pnl_amount) >= 0 ? "+" : "") + "$" + Number(trade.pnl_amount).toFixed(2);
+    var price = trade.entry_price == null || !isFinite(Number(trade.entry_price))
+      ? ""
+      : " @ " + fmt(Number(trade.entry_price), 2);
+    return [
+      '<button class="trade-row ' + (selected === ticker ? "is-selected" : "") + '" type="button"',
+        ' data-order-kind="history"',
+        ' data-order-id="' + esc(trade.trade_id || trade.order_id || "") + '"',
+        ' data-order-ticker="' + esc(ticker) + '">',
+        '<span class="trade-row__ticker">' + esc(ticker) + '</span>',
+        '<span class="trade-row__status">' + esc(status) + '</span>',
+        '<span class="trade-row__pnl">' + esc(pnl) + '</span>',
+        '<span class="trade-row__meta">' + esc((trade.direction || trade.action || "trade") + price) + '</span>',
       '</button>',
     ].join("");
   }
@@ -510,17 +576,27 @@
     if (!window.SZ.state) window.SZ.state = {};
     SZ.state.portfolio = portfolio || {};
     var host = document.getElementById("orders-list");
+    var historyHost = document.getElementById("trade-history-list");
     var countEl = document.getElementById("orders-count");
     if (!host) return false;
 
     var pf = SZ.state.portfolio;
-    var orders = orderList(pf);
+    var brokerOrders = brokerOrderList(pf);
+    var localTickets = localTicketList(pf);
+    var orders = brokerOrders.concat(localTickets);
     var positions = positionList(pf);
+    var history = tradeHistoryList(pf);
     var current = sanitTicker(SZ.state.ticker || (document.getElementById("ticker-inp") || {}).value || "");
     var firstTicker = "";
     var rows = [];
 
-    orders.forEach(function (order) {
+    brokerOrders.forEach(function (order) {
+      var ticker = orderTicker(order);
+      if (!firstTicker && ticker) firstTicker = ticker;
+      rows.push(renderOrderButton(order, "order", current));
+    });
+
+    localTickets.forEach(function (order) {
       var ticker = orderTicker(order);
       if (!firstTicker && ticker) firstTicker = ticker;
       rows.push(renderOrderButton(order, "order", current));
@@ -535,15 +611,32 @@
     }
 
     var visibleRows = rows.filter(Boolean);
-    var count = orders.length || positions.length || 0;
-    if (countEl) countEl.textContent = String(count);
+    if (countEl) {
+      countEl.textContent = String(brokerOrders.length) + " IBKR" + (localTickets.length ? " / " + localTickets.length + " local" : "");
+    }
     if (visibleRows.length) {
       host.innerHTML = visibleRows.join("");
     } else {
-      host.innerHTML = '<div class="cockpit-empty">No active IBKR orders. Manual chart remains available.</div>';
+      host.innerHTML = '<div class="cockpit-empty">No active IBKR broker orders. Manual chart remains available.</div>';
     }
 
-    var buttons = host.querySelectorAll(".order-row[data-order-ticker]");
+    if (historyHost) {
+      var historyRows = history.slice(0, 10).map(function (trade) {
+        var ticker = orderTicker(trade);
+        if (!firstTicker && ticker) firstTicker = ticker;
+        return renderTradeHistoryRow(trade, current);
+      }).filter(Boolean);
+      if (historyRows.length) {
+        historyHost.innerHTML = [
+          '<div class="trade-history-title"><span>Paper history</span><strong>' + esc(String(pf.trade_history_count || history.length)) + '</strong></div>',
+          '<div class="trade-history-scroll">' + historyRows.join("") + '</div>',
+        ].join("");
+      } else {
+        historyHost.innerHTML = '<div class="cockpit-empty">No paper trade history recorded.</div>';
+      }
+    }
+
+    var buttons = document.querySelectorAll("#orders-list .order-row[data-order-ticker], #trade-history-list .trade-row[data-order-ticker]");
     for (var i = 0; i < buttons.length; i++) {
       buttons[i].addEventListener("click", function () {
         selectTicker(this.getAttribute("data-order-ticker"), "ibkr_mirror_click", {
