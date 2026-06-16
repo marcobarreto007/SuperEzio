@@ -178,10 +178,52 @@ class LiveMonitor:
                 alerts = self._detect_alerts(snapshot, previous)
                 self._snapshots[ticker] = snapshot
                 self._history[ticker].append(snapshot)
+                self._persist_to_db(ticker, snapshot)
                 for alert in alerts:
                     self._append_alert_locked(alert)
                 generated.extend(alerts)
         return generated
+
+    def _persist_to_db(self, ticker: str, snapshot: dict[str, Any]) -> None:
+        """Persist sentiment snapshot to SQLite for historical trending."""
+        try:
+            import sqlite3
+            db_path = self._db_path or (
+                Path(__file__).resolve().parent.parent.parent.parent / "data" / "investor.db"
+            )
+            conn = sqlite3.connect(str(db_path))
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS sentiment_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ticker TEXT NOT NULL,
+                    collected_at TEXT NOT NULL,
+                    score REAL,
+                    label TEXT,
+                    reddit_mentions INTEGER,
+                    news_count INTEGER,
+                    flags TEXT,
+                    snapshot_json TEXT
+                )
+            """)
+            conn.execute(
+                """INSERT INTO sentiment_history
+                   (ticker, collected_at, score, label, reddit_mentions, news_count, flags, snapshot_json)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    ticker,
+                    _now_iso(),
+                    _number(snapshot.get("sentiment_score")),
+                    str(snapshot.get("sentiment_label", "")),
+                    _reddit_count(snapshot.get("reddit", {})),
+                    int(snapshot.get("news_count") or 0),
+                    ",".join(snapshot.get("flags", [])),
+                    json.dumps(snapshot, default=str)[:4000],
+                ),
+            )
+            conn.commit()
+            conn.close()
+        except Exception:
+            pass  # Non-critical — don't crash the monitor thread
 
     def _run_loop(self) -> None:
         while not self._stop_event.is_set():
