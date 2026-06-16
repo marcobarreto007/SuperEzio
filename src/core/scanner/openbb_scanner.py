@@ -185,12 +185,16 @@ class OpenBBScanner:
         sector: str | None = None,
         industry: str | None = None,
         limit: int = 12,
+        max_price: float | None = None,
     ) -> list[dict[str, Any]]:
         """Return enriched candidate items from OpenBB discovery.
 
         Each item includes ticker, price, volume, exchange, market_cap,
         and fundamentals — ready for the candidate gate without requiring
         immediate DataHub enrichment.
+
+        Args:
+            max_price: Filter by max price (e.g., 5.0 for penny stocks).
         """
         if not _OPENBB_AVAILABLE:
             logger.warning("OpenBB not installed — scanner unavailable")
@@ -202,7 +206,7 @@ class OpenBBScanner:
 
         result = None
         for attempt in fallback_chain:
-            cache_key = f"obb:{attempt}:{limit}"
+            cache_key = f"obb:{attempt}:{limit}:{max_price or 'all'}"
             cached = self._cached(cache_key)
             if cached is not None:
                 return cached
@@ -229,6 +233,13 @@ class OpenBBScanner:
             ticker = item.get("ticker")
             if not ticker:
                 continue
+
+            # Price filter (penny stocks)
+            if max_price is not None:
+                price = item.get("price")
+                if price is None or price > max_price:
+                    continue
+
             items.append(item)
             if len(items) >= limit:
                 break

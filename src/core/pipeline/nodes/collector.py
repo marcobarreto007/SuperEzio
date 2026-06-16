@@ -374,6 +374,7 @@ def _wants_microcap(msg_lower: str) -> bool:
 
 
 def _requested_max_price(msg_lower: str) -> float | None:
+    # First check for explicit price patterns (e.g., "under $5", "below $10")
     patterns = (
         r"\b(?:under|below|less than|sub)\s*(?:cad|usd|\$)?\s*(\d+(?:\.\d+)?)\b",
         r"\b(?:cad|usd|\$)\s*(\d+(?:\.\d+)?)\s*(?:or less|and under|or under|max|maximum)\b",
@@ -388,6 +389,20 @@ def _requested_max_price(msg_lower: str) -> float | None:
             continue
         if value > 0:
             return value
+
+    # Penny stock keywords: default to $5 max
+    penny_keywords = (
+        "penny stock", "penny stocks", "pennystock", "pennystocks",
+        "under $5", "under $5.00", "below $5", "below $5.00",
+        "cheap stock", "cheap stocks", "dollar stock", "dollar stocks",
+    )
+    if any(kw in msg_lower for kw in penny_keywords):
+        return 5.0
+
+    # Microcap keywords: default to $10 max
+    if _wants_microcap(msg_lower):
+        return 10.0
+
     return None
 
 
@@ -672,6 +687,7 @@ async def _run_scan(
                     sector=explicit_sector,
                     industry=explicit_sector,
                     limit=scan_max_total,
+                    max_price=requested_max_price,
                 )
             except Exception as exc:  # noqa: BLE001
                 source_errors.append(f"openbb_discovery: {exc}")

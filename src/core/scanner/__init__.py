@@ -87,8 +87,13 @@ class MarketScanner:
         sector: str = None,
         industry: str = None,
         limit: int = 10,
+        max_price: float | None = None,
     ) -> List[str]:
         """Retorna lista de tickers de acoes baseados nos criterios.
+
+        Args:
+            max_price: Filter by max price (e.g., 5.0 for penny stocks).
+        """
 
         Filters out OTC/Pink Sheets, Nano Caps, and non-major exchanges before
         shuffling, so every scan returns a different, tradeable sample.

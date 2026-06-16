@@ -92,6 +92,54 @@ async def test_auto_full_analysis_uses_collector_state_for_decision_stack(monkey
 
 
 @pytest.mark.asyncio
+async def test_auto_full_analysis_skips_market_stack_for_finance_answer(monkeypatch):
+    from src.core.pipeline import graph as graph_module
+
+    events = []
+    monkeypatch.setattr(graph_module, "get_stream_writer", lambda: events.append)
+
+    async def forbidden_collector(state, config=None):
+        raise AssertionError("collector must not run for finance-only answers")
+
+    async def forbidden_expert(state, gateway=None):
+        raise AssertionError("experts must not run for finance-only answers")
+
+    async def forbidden_collect_experts(state):
+        raise AssertionError("expert collector must not run for finance-only answers")
+
+    async def fake_sdca(state):
+        return {"sdca_firewall": {"decision": "ALLOW", "confidence": 0.9}}
+
+    monkeypatch.setattr(graph_module, "node_collector", forbidden_collector)
+    monkeypatch.setattr(graph_module, "node_expert", forbidden_expert)
+    monkeypatch.setattr(graph_module, "node_collect_experts", forbidden_collect_experts)
+    monkeypatch.setattr(graph_module, "node_sdca_firewall", fake_sdca)
+
+    result = await graph_module._auto_full_analysis(
+        {
+            "run_id": "auto-skip-market-stack-test",
+            "route": "general",
+            "intent": "capital_allocation",
+            "message": "I live in Canada and have CAD 25,000 to allocate.",
+            "scanner_allowed": False,
+            "ticker_allowed": False,
+            "allowed_tools": ["final_answer"],
+            "errors": [],
+        },
+        gateway="gateway-ok",
+    )
+
+    assert "scan" not in result
+    assert "data" not in result
+    assert "expert_results" not in result
+    assert "expert_summary" not in result
+    assert result["math_report"]
+    assert result["sdca_firewall"]["decision"] == "ALLOW"
+    assert result["guardrail_hub"]["total_guardrails"] == 30
+    assert any(event.get("step") == "auto_full_analysis" for event in events)
+
+
+@pytest.mark.asyncio
 async def test_submit_paper_order_is_disabled_without_execution_gate(monkeypatch):
     from src.core.pipeline.nodes import tool_executor as tool_executor_module
 

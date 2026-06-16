@@ -236,9 +236,18 @@ async def _auto_full_analysis(
     try:
         collector_result: dict[str, Any] = {}
         # Sovereign mode: ALWAYS collect data — Bob needs evidence, not a chat
-        if not working_state.get("scan") and not working_state.get("data"):
+        if (
+            should_collect_market
+            and not working_state.get("scan")
+            and not working_state.get("data")
+        ):
+            collector_route = (
+                "ticker_analysis"
+                if working_state.get("ticker") and route != "market_scan"
+                else "market_scan"
+            )
             collector_result = await node_collector(
-                {**working_state, "route": "market_scan"},
+                {**working_state, "route": collector_route},
                 config=config,
             )
         if collector_result:
@@ -285,39 +294,46 @@ async def _auto_full_analysis(
             {"errors": [f"auto_full_analysis.math_hub:{exc}"]},
         )
 
-    # Sovereign mode: ALWAYS run experts. If no ticker, analyze market context.
-    expert_context_ticker = ticker or working_state.get("ticker") or ""
-    if not expert_context_ticker:
-        # Try to extract from scan results
-        scan_candidates = (working_state.get("scan") or {}).get("candidates", [])
-        if scan_candidates:
-            expert_context_ticker = scan_candidates[0].get("ticker", "")
-    # Always run — even with empty ticker, experts analyze macro/sentiment context
+    # Market experts only run after market/ticker evidence is actually present.
     expert_results: list[dict[str, Any]] = []
-    roles = [
-        "macro_risk",
-        "fundamental_value",
-        "momentum_technical",
-        "contrarian_opportunity",
-        "sentiment",
-        "social_forensics",
-    ]
-    for role in roles:
-        try:
-            res = await node_expert(
-                {
-                    **working_state,
-                    "role": role,
-                    "ticker": ticker,
-                    "data_context": data_context,
-                },
-                gateway=gateway,
-            )
-            for expert_result in res.get("expert_results", []):
-                expert_result.setdefault("role", role)
-                expert_result.setdefault("provider", EXPERT_PROVIDERS.get(role, "unknown"))
-                expert_results.append(expert_result)
-        except Exception as exc:
+    should_run_market_stack = bool(working_state.get("scan") or working_state.get("data")) and (
+        should_collect_market
+        or route in {"market_scan", "ticker_analysis"}
+        or working_state.get("scanner_allowed")
+        or working_state.get("ticker_allowed")
+    )
+    if should_run_market_stack:
+        if not ticker:
+            scan_candidates = (working_state.get("scan") or {}).get("candidates", [])
+            if scan_candidates:
+                ticker = str(scan_candidates[0].get("ticker") or "").upper()
+                if ticker:
+                    working_state["ticker"] = ticker
+
+        roles = [
+            "macro_risk",
+            "fundamental_value",
+            "momentum_technical",
+            "contrarian_opportunity",
+            "sentiment",
+            "social_forensics",
+        ]
+        for role in roles:
+            try:
+                res = await node_expert(
+                    {
+                        **working_state,
+                        "role": role,
+                        "ticker": ticker,
+                        "data_context": data_context,
+                    },
+                    gateway=gateway,
+                )
+                for expert_result in res.get("expert_results", []):
+                    expert_result.setdefault("role", role)
+                    expert_result.setdefault("provider", EXPERT_PROVIDERS.get(role, "unknown"))
+                    expert_results.append(expert_result)
+            except Exception as exc:
                 expert_results.append(
                     {
                         "role": role,
