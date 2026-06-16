@@ -8,6 +8,7 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 
+from core.audit.decision_trace import DecisionTraceLogger
 from .expert_dialogue import ExpertDialogue
 
 # Module-level dedup: prevent collect_experts from running twice per run_id
@@ -15,6 +16,9 @@ from .expert_dialogue import ExpertDialogue
 # Without this, the entire downstream chain (neural → rag → ceo → explanation)
 # executes twice, doubling latency.
 _COLLECT_SEEN: deque[str] = deque(maxlen=64)
+
+# Trace logger singleton
+_tracer = DecisionTraceLogger()
 
 
 # Expert roles mapped to provider names
@@ -82,10 +86,19 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
     This is the fan-out target (Send). Each instance runs one role.
     """
     writer = get_stream_writer()
+    run_id = state.get("run_id", "")
     role: str = state["role"]
     ticker: str = state["ticker"]
     context: str = state.get("data_context", "")
     provider_name: str = EXPERT_PROVIDERS.get(role, "deepseek")
+
+    # Start trace
+    trace_token = _tracer.start_node(
+        run_id=run_id,
+        node=f"expert.{role}",
+        agent=provider_name,
+        payload={"ticker": ticker, "role": role},
+    )
 
     if gateway is None:
         writer(
@@ -95,6 +108,13 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
                 "provider": provider_name,
                 "reason": "gateway_unavailable",
             }
+        )
+        _tracer.end_node(
+            trace_token,
+            status="skipped",
+            decision="SKIP",
+            reason="Gateway unavailable",
+            agent=provider_name,
         )
         return {
             "expert_results": [
@@ -144,6 +164,16 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
                 "response": response_text,
             }
         )
+
+        # End trace
+        _tracer.end_node(
+            trace_token,
+            status="completed",
+            decision="COMPLETE",
+            reason=response_text[:100],
+            agent=provider_name,
+        )
+
         return {
             "expert_results": [
                 {
@@ -166,6 +196,10 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
                 "error": str(exc)[:200],
             }
         )
+
+        # End trace with error
+        _tracer.error_node(trace_token, exc, payload={"role": role, "provider": provider_name})
+
         return {
             "expert_results": [
                 {
