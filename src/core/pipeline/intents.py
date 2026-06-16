@@ -220,6 +220,15 @@ def infer_cognitive_contract(
     raw = message or ""
     if route == "ticker_analysis" or ticker:
         mode = "TICKER_ANALYSIS"
+        # Se o usuário explicitamente pede COMPRA/VENDA/ORDEM, habilita paper ticket
+        is_explicit_trade = detect_decisive_trade_intent(raw)
+        ticket_allowed = is_explicit_trade
+        answer_contract = (
+            "Analyze the explicit ticker with collected evidence, risks, invalidation. "
+            "PAPER ORDER IS ENABLED: if analysis supports it, issue a PAPER_TICKET with ticker, qty, limit price, stop loss."
+            if ticket_allowed
+            else "Analyze the explicit ticker with collected evidence, risks, invalidation, and a clear non-execution stance."
+        )
         return {
             "cognitive_mode": mode,
             "information_need": "ticker_data_analysis",
@@ -227,8 +236,8 @@ def infer_cognitive_contract(
             "market_context_allowed": True,
             "scanner_allowed": False,
             "ticker_allowed": True,
-            "ticket_allowed": False,
-            "answer_contract": "Analyze the explicit ticker with collected evidence, risks, invalidation, and a clear non-execution stance.",
+            "ticket_allowed": ticket_allowed,
+            "answer_contract": answer_contract,
         }
 
     if route == "needs_scope":
