@@ -183,15 +183,17 @@ class DecisionTraceLogger:
         node: str,
         *,
         layer: str = "",
+        agent: str = "",
         payload: dict[str, Any] | None = None,
     ) -> TraceToken:
-        token = TraceToken(run_id=str(run_id or "unknown"), node=node, layer=layer)
+        token = TraceToken(run_id=str(run_id or "unknown"), node=node, layer=layer, agent=agent)
         self._record(
             {
                 "trace_id": token.trace_id,
                 "run_id": token.run_id,
                 "node": node,
                 "layer": layer,
+                "agent": agent,
                 "phase": "start",
                 "status": "started",
                 "timestamp": token.started_at,
@@ -303,6 +305,28 @@ class DecisionTraceLogger:
             key=lambda entry: int(entry.get("elapsed_ms") or 0),
             reverse=True,
         )[:5]
+
+        # Collect overrides
+        overrides = [
+            entry for entry in end_entries
+            if entry.get("overrides")
+        ]
+
+        # Agent performance (from this run)
+        agent_times: dict[str, list[int]] = {}
+        for entry in end_entries:
+            agent = entry.get("agent", "unknown")
+            agent_times.setdefault(agent, []).append(entry.get("elapsed_ms", 0))
+
+        agent_stats = [
+            {
+                "agent": agent,
+                "avg_latency_ms": sum(times) / len(times) if times else 0,
+                "calls": len(times),
+            }
+            for agent, times in sorted(agent_times.items())
+        ]
+
         return {
             "run_id": run_id,
             "entries": entries,
@@ -315,6 +339,8 @@ class DecisionTraceLogger:
             },
             "blockers": blockers,
             "slowest_nodes": slowest,
+            "overrides": overrides,
+            "agent_stats": agent_stats,
         }
 
     def load_entries(self, run_id: str) -> list[dict[str, Any]]:
