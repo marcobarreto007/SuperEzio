@@ -1,6 +1,6 @@
 {
   "date_local": "2026-06-15T21:07:03-04:00",
-  "session": "motor-tool-gate-fallback-validation-2026-06-15",
+  "session": "status-update-2026-06-16",
   "status": "completed_with_residual_live_trade_latency_risk",
   "final_objective": {
     "what_system_does": "SuperEzio Financeiro runs a local financial cockpit and Bob pipeline for financial advisory, chart data, market scanning, paper-trading decisions, IBKR paper visibility, expert/guardrail analysis, and learning-loop enforcement.",
@@ -67,5 +67,32 @@
   ],
   "next_step": "Add a bounded live market-scan SLA path: cap expert/model time, emit partial final verdict when evidence is sufficient, and add a non-broker live smoke that asserts scanner->data->experts starts and finishes within the target demo budget.",
   "owner": "Codex",
-  "github_policy": "DISK_ONLY_GITHUB_BLOCKED"
+  "github_policy": "DISK_ONLY_GITHUB_BLOCKED",
+  "updated": "2026-06-16T01:22:12.081670+00:00",
+  "pipeline_status": {
+    "contracts_passing": 431,
+    "motor": "6/10 — Bob usa tools, pipeline ponta-a-ponta funciona",
+    "infra": "8/10 — CEO local + IBKR + Genie + Deep online",
+    "cockpit": "7/10 — funcional, Deep Panel pendente",
+    "dados": "8/10 — sentimento vivo, scanner 300+ small caps",
+    "aprendizado": "6/10 — FeedbackLoop existe, ciclo nao fecha",
+    "decision_trace": "10/10 — COMPLETO (Fases A+B+C, 10/10 testes)",
+    "nota_geral": "7.2/10",
+    "items_pendentes_10_10": 14,
+    "fixes_hoje": [
+      "force_tool_usage",
+      "pipeline_sempre_coleta",
+      "sovereign_orchestrator",
+      "token_limits_8192",
+      "approval_gate_500",
+      "openbb_scanner_instalado",
+      "collect_data_executor",
+      "ticket_allowed_true",
+      "estado_limpo_requests",
+      "scanner_syntax_fix",
+      "10_scripts_lixo_removidos",
+      "sistema_reiniciado_limpo",
+      "decision_trace_3_fases_completo"
+    ]
+  }
 }
