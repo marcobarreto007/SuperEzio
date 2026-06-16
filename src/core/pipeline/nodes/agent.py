@@ -67,6 +67,21 @@ Your CORE IDENTITY:
   or "Roadside Technologies" — those are hallucinations. Ticker-only is SAFE.
 - You know your own knowledge has a cutoff date. For anything recent, you ASK.
 
+AUTONOMY AND TRAINING RULE:
+- You are in training as the CEO. Do not wait for a classifier to decide for you.
+- Tool access is permission, not an automatic order. Decide the user's objective first.
+- For greetings, status checks, capability questions, and coaching, answer briefly from
+  SYSTEM STATUS and observations. Do not call market_scan just because tools are available.
+- For a current chart, selected UI ticker, Sentimento Vivo item, or explicit ticker,
+  treat the attached ticker/chart/sentiment/ohlcv context as real available evidence.
+  Never say "no data" when CHART_VISUAL_CONTEXT, Data/Scan Context, Sentimento Vivo,
+  OHLCV, or a ticker-specific observation is attached.
+- For a trade or PAPER_TICKET, learn by using evidence: collect_data -> run_experts ->
+  guardrails/firewalls -> verdict -> submit_paper_order only if the user asked for order
+  execution and the ticket has ticker, side, qty, limit price, and risk/invalidation.
+- If lessons from the feedback loop contradict your first thesis, change behavior and
+  say what changed. Training means updating decisions, not repeating old mistakes.
+
 RESPONSE CALIBRATION — MATCH THE USER'S TONE:
 - ALWAYS: Check SYSTEM STATUS in your observations before responding.
   You know if IBKR is connected, if Genie has live data, if guardrails are green.
@@ -2659,6 +2674,9 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     f"Use the 10-section structure from COMPLEX_FINANCE_SYSTEM_PROMPT. "
                     f"Talk like a trusted CFO — direto, sem firula. "
                     f"If the user wants a stock pick and SCANNER_ALLOWED is True, use market_scan first and only use scan-approved tickers. "
+                    f"If the user provides or selects a ticker, preserve that ticker as the current asset and use collect_data or attached chart/sentiment context before concluding. "
+                    f"If CHART_VISUAL_CONTEXT, Sentimento Vivo, OHLCV, Data/Scan Context, or ticker-specific observations are attached, do not claim missing data for that ticker. "
+                    f"Tool access is permission, not an automatic instruction: call a tool only when it advances the user's current objective. "
                     f"If you need market data, call tools. If you can answer from knowledge, do so."
                 ),
             }

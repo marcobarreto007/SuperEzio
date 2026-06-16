@@ -1,91 +1,70 @@
 {
-  "date_local": "2026-06-16T10:47:38-04:00",
-  "session": "roadmap-9.5-10-2026-06-16",
-  "status": "completed",
+  "date_local": "2026-06-16T17:25:34-04:00",
+  "session": "audit-passthrough-orchestrator-full-access-2026-06-16",
+  "status": "completed_with_blockers",
   "final_objective": {
-    "what_system_does": "SuperEzio Financeiro runs a local financial cockpit where Sentimento Vivo, chart context, Bob, Deep analysis, guardrails, IBKR mirror, trade history, and decision traces operate as one supervised trading surface.",
+    "what_system_does": "SuperEzio Financeiro runs a local financial cockpit where Bob, Sentimento Vivo, chart context, Deep experts, guardrails, IBKR paper mirror, trade history, and decision traces operate as one supervised trading surface.",
     "who_it_is_for": "Marco/F51 as the local operator validating Bob before demo, supervised paper-trading use, and monetization.",
-    "main_user_flow": "Open the cockpit on port 8002, click a Sentimento Vivo ticker such as DIBS, sync ticker/chart, send the prepared TICKER command to Bob, and receive a chart-aware operational reading.",
-    "start_command": "start.ps1 or $env:PYTHONPATH='src'; python -m agent_server.main with CEO llama.cpp already listening on 8082",
-    "proof_output": "DIBS click produces ticker=DIBS, chart_context_ready=true, chart_context containing price 4.09 and 130 candles, and /task/submit routes as ticker_analysis/collect_data."
+    "main_user_flow": "Open http://127.0.0.1:8002, talk to Bob, let the pipeline collect evidence/tools/guardrails, and only submit paper orders through the gated paper path.",
+    "start_command": "start.ps1 or $env:PYTHONPATH='src'; python -m agent_server.main with llama-server on 8082 and TWS paper on 7497",
+    "proof_output": "A safe audit request showed live stream events and exposed whether the passthrough orchestrator preserved routing, scan, guardrail, and order contracts."
   },
   "what_was_done": [
-    "Fixed the deterministic parser so cockpit-generated commands like 'TICKER DIBS:' cannot be downgraded to industry/general research because of generic words such as 'tese'.",
-    "Changed the frontend Bob submit path to wait for the selected ticker chart to load before building the task envelope.",
-    "Expanded frontend chart_context with ticker, current price, change percent, last close, last volume, and candle count.",
-    "Added stale-context protection so chart_context is not attached if the loaded chart ticker does not match the selected ticker.",
-    "Added backend chart-context hard contract text telling Bob not to claim missing price/chart/candles/metrics when chart_context is attached.",
-    "Buffered backend CHUNK output for chart-context requests until final validation, then repaired false 'no data/no price/no chart' answers before sending them to the frontend.",
-    "Restarted the live backend on port 8002 so the new endpoint code is active."
+    "Audited the claimed 0813e56/a9fa028 passthrough/FULL_ACCESS changes against the live repo and runtime.",
+    "Verified the Git commits exist locally and the repo is ahead of origin/main by 174 commits; GitHub remains blocked by policy.",
+    "Verified listeners for API 8002, CEO 8082, and TWS paper 7497.",
+    "Reviewed src/core/pipeline/nodes/orchestrator.py and src/core/pipeline/graph.py after the passthrough change.",
+    "Ran a safe /task/submit stream probe with 'oi bob, status rapido sem operar' and stopped after early events; no order was requested.",
+    "Ran focused contract tests for the orchestrator and route blocking.",
+    "Checked /cockpit/portfolio and /cockpit/summary without placing any new order.",
+    "Checked existing NOK journal/trace evidence for the claimed order path."
   ],
   "evidence": {
+    "repo": [
+      "HEAD=0813e56 refactor: classificador REMOVIDO — passthrough puro, esteira linear",
+      "git status --short --branch showed ## main...origin/main [ahead 174]",
+      "orchestrator.py is 111 lines locally, not literally 90 lines."
+    ],
+    "runtime": [
+      "API listener: port 8002 PID 15464 python",
+      "CEO listener: port 8082 PID 25692 llama-server",
+      "TWS listener: port 7497 PID 532 tws",
+      "/health/details status ok; IBKR connection connected_paper; can_submit_orders true; paper mode true."
+    ],
+    "stream_probe": [
+      "Prompt: oi bob, status rapido sem operar",
+      "Observed route=agent then auto_full_analysis route=agent.",
+      "Observed data step route=market_scan and SCAN_EVENT providers before Bob response.",
+      "Elapsed 47.44s before stopping after early events."
+    ],
     "tests": [
-      "$env:PYTHONPATH='src'; python -m pytest tests/test_market_scan_candidate_gate.py::test_cockpit_ticker_command_routes_to_ticker_analysis_even_with_tese_wording -q",
-      "$env:PYTHONPATH='src'; python -m pytest tests/test_runtime_bob_fixes.py::test_attached_chart_context_blocks_false_no_data_answer -q",
-      "node --check frontend/js/init.js",
-      "$env:PYTHONPATH='src'; python -m pytest tests/test_api_routes_sync.py::test_frontend_genie_pulse_click_drives_bob_and_chart -q",
-      "$env:PYTHONPATH='src'; python -m py_compile src/agent_server/endpoints.py src/core/pipeline/intents.py",
-      "$env:PYTHONPATH='src'; python -m pytest tests/test_runtime_bob_fixes.py tests/test_market_scan_candidate_gate.py::test_cockpit_ticker_command_routes_to_ticker_analysis_even_with_tese_wording tests/test_api_routes_sync.py::test_frontend_genie_pulse_click_drives_bob_and_chart -q",
-      "python scripts/browser_smoke.py --skip-chat --timeout-ms 180000"
+      "$env:PYTHONPATH='src'; python -m pytest tests/contracts/test_contract_orchestrator.py -q",
+      "$env:PYTHONPATH='src'; python -m pytest tests/test_pipeline_smoke.py::test_route_after_orchestrator_blocks_missing_scope tests/test_runtime_bob_fixes.py::test_macro_thesis_does_not_attach_aapl -q"
     ],
     "test_results": [
-      "Focused parser test passed.",
-      "Focused backend repair test passed.",
-      "node --check frontend/js/init.js passed.",
-      "Frontend Genie sync contract test passed.",
-      "py_compile passed.",
-      "Combined touched suite: 7 passed in 7.62s.",
-      "Browser smoke ok=true, AAPL chart candles=130, canvas nonBlank=438400, console_errors=[]."
+      "test_contract_orchestrator.py: 14 passed, 2 failed.",
+      "Failures: route='agent' is outside ALLOWED_ROUTES; passthrough no longer preserves CEO risk-tolerance contract.",
+      "route_after_orchestrator missing-scope block test failed: returned agent instead of respond_blocked.",
+      "macro_thesis_does_not_attach_aapl still passed."
     ],
-    "live_runtime_proofs": [
-      "Restarted python -m agent_server.main on port 8002 with PID 26228; llama-server on 8082 left untouched.",
-      "/api/chart-data/DIBS?timeframe=6M returned ticker=DIBS, price=4.09, candles=130, lastClose=4.09, lastVolume=684.",
-      "/sentiment/pulse includes DIBS with NEUTRAL sentiment and score 0.0294.",
-      "Playwright captured DIBS envelope after real click/send: ticker=DIBS, chart_context_ready=true, source=frontend_chart_state, selectedTicker=DIBS, workspaceTicker=DIBS, chartTicker=DIBS, candleCount=130.",
-      "Captured envelope chart_context includes 'Ticker: DIBS', 'Current price: 4.09', and 'Data points: 130'.",
-      "Live /task/submit stream for TICKER DIBS emitted INTENT_CLASSIFIED route=ticker_analysis, intent=ticker_analysis, action=collect_data, ticker=DIBS, source=sovereign_contract."
-    ],
-    "screenshots": [
-      "output/playwright/superezio-browser-smoke-20260616-104547.png",
-      "output/playwright/dibs-envelope-context-20260616.png"
-    ],
-    "files_changed": [
-      "frontend/js/init.js",
-      "src/core/pipeline/intents.py",
-      "src/agent_server/endpoints.py",
-      "tests/test_api_routes_sync.py",
-      "tests/test_market_scan_candidate_gate.py",
-      "tests/test_runtime_bob_fixes.py",
-      ".f51/checkpoints/latest.json"
-    ],
-    "generated_evidence_files_changed": [
-      "runtime/traces/decision_trace_20260616.jsonl",
-      "data/conversation_memory.jsonl"
+    "nok_order_evidence": [
+      "/cockpit/portfolio currently connected to IBKR paper but orders_count=0, broker_orders_count=0, positions_count=0.",
+      "paper_journal line 29 has bob-1237507ac930 NOK BUY 10 entry_price=99.0 from prompt 'comprar 10 acoes NOK limite $5.00 stop $4.50 PAPER_TICKET'.",
+      "runtime trace run_id=1237507ac930 shows quality_gates=REVIEW due to missing_liquidity, missing_risk, missing_invalidation.",
+      "runtime trace run_id=1237507ac930 shows approval_gate=SKIP reason=no_trade_order_context.",
+      "runtime trace run_id=1237507ac930 shows agent attempted SUBMIT_PAPER_ORDER, then final answer, but current broker mirror has no active NOK order."
     ]
   },
   "risks": [
-    "For chart-context requests, Bob response chunks are buffered until validation, so the user sees the answer at once instead of token streaming. This is deliberate to prevent false 'no data' text from flashing in the UI.",
-    "The repair answer is deterministic and conservative if Bob still denies attached chart data. The proper path is still ticker_analysis with collect_data, experts, guardrails, and Bob.",
-    "NewsAPI is rate-limited with HTTP 429 in the live logs, so news sentiment may be partial until quota resets or provider strategy changes.",
-    "IBKR/TWS remains externally dependent and was not changed in this fix."
+    "The new passthrough does not literally make only Bob decide; graph.py now forces market collection for route=agent when scanner_allowed/ticker_allowed are always true.",
+    "Small talk and status prompts can trigger market_scan, adding latency and provider cost.",
+    "Legacy route contracts are broken because route='agent' is outside ALLOWED_ROUTES.",
+    "needs_scope and Trinity unanimous block no longer stop before the agent; route_after_orchestrator and route_after_trinity always return agent.",
+    "The NOK evidence proves a journal/order attempt path, but current cockpit shows no active broker orders or positions, and the trace shows data-quality REVIEW plus ApprovalGate SKIP.",
+    "FULL_ACCESS with ticket_allowed=true always increases accidental paper-order risk unless the tool executor remains strict about explicit order intent and order context."
   ],
-  "next_step": "Run a full live Bob DIBS answer when Marco wants to spend the model time; the stream route already proves ticker_analysis/collect_data and the browser envelope proves chart_context with DIBS price/candles is attached before Bob sees it.",
+  "next_step": "Decide whether to keep passthrough but restore hard safety gates: no market_scan for small talk/status, route='agent' added to contracts or reverted, needs_scope/trinity BLOCK preserved, and paper order execution requiring explicit trade_order_context with price/qty/stop/limit parsed from the prompt.",
   "owner": "Codex",
   "github_policy": "DISK_ONLY_GITHUB_BLOCKED",
-  "updated": "2026-06-16T16:30:13.976922+00:00",
-  "pipeline_status": {
-    "contracts_passing": 431,
-    "total_tests": 1250,
-    "stages": {
-      "1_unificar": "COMPLETE",
-      "2_trindade": "COMPLETE",
-      "3_sentimento": "COMPLETE",
-      "4_frontpage": "COMPLETE",
-      "5_debut": "COMPLETE"
-    },
-    "modules_entregues": "MathHub, GuardrailHub, DecisionTrace, Trinity, FeedbackLoop, PennyScanner, Cockpit, MemorySystem, SentimentoVivo, TwoPhaseTrade, DeepPanel, BlamePanel",
-    "ibkr": "paper connected, SMWB 1100 shares (pipeline), SNDL 10 shares (bridge)",
-    "nota_geral": "9.5/10",
-    "pendentes_10_10": "M1 (TWS presets), M2 (CEO fallback test), M3 (paper trading real)"
-  }
+  "updated": "2026-06-16T21:25:34Z"
 }

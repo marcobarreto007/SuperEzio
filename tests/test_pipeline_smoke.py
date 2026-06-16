@@ -72,21 +72,21 @@ def test_pipeline_graph_has_expected_nodes():
     assert expected.issubset(set(nodes.keys())), f"Missing: {expected - set(nodes.keys())}"
 
 
-def test_route_after_orchestrator_blocks_missing_scope():
+def test_route_after_orchestrator_always_reaches_agent():
     from core.pipeline.graph import route_after_orchestrator
 
-    assert route_after_orchestrator({"route": "needs_scope"}) == "respond_blocked"
-    assert route_after_orchestrator({"action": "ask_for_ticker"}) == "respond_blocked"
+    assert route_after_orchestrator({"route": "needs_scope"}) == "agent"
+    assert route_after_orchestrator({"action": "ask_for_ticker"}) == "agent"
     assert route_after_orchestrator({"route": "general"}) == "agent"
 
 
-def test_route_after_trinity_blocks_unanimous_block():
+def test_route_after_trinity_always_reaches_agent():
     from core.pipeline.graph import route_after_trinity
 
-    assert route_after_trinity({"trinity_blocked": True}) == "respond_blocked"
+    assert route_after_trinity({"trinity_blocked": True}) == "agent"
     assert (
         route_after_trinity({"trinity_report": "CONSENSUS: BLOCK unanimous"})
-        == "respond_blocked"
+        == "agent"
     )
     assert route_after_trinity({"trinity_report": "CONSENSUS: Both negative."}) == "agent"
 

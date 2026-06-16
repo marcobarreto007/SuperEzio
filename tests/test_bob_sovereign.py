@@ -14,21 +14,42 @@ async def test_orchestrator_sovereign_mode(monkeypatch):
 
     state = {
         "message": "cara, em vez de gastar 40 CAD na Lotto Quebec, acha uma penny stock que me dê adrenalina sem perder tudo",
-        "ticker": "AAPL",  # should be ignored
         "trade_order_context": {"time_horizon": "14 days"},
     }
 
     plan = await node_orchestrator(state, gateway=None, config=None)
 
-    assert plan["route"] == "market_scan"
+    assert plan["route"] == "agent"
+    assert plan["intent"] == "bob_decides"
     assert plan["ticker"] == ""
-    assert plan["risk_tolerance"] == "especulativa"
-    assert plan["bob_intent"] == "buscar_oportunidade"
+    assert plan["risk_tolerance"] == "moderada"
+    assert plan["bob_intent"] == "full_access"
     assert "market_scan" in plan["allowed_tools"]
+    assert "collect_data" in plan["allowed_tools"]
     assert plan["scanner_allowed"] is True
     assert plan["ticker_allowed"] is True
-    assert plan["cognitive_mode"] == "DISCOVERY_SCAN"
-    assert plan["sovereign_mode"] is True
+    assert plan["ticket_allowed"] is True
+    assert plan["cognitive_mode"] == "FULL_ACCESS"
+    assert "Permissao nao e ordem" in plan["answer_contract"]
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_preserves_selected_ui_ticker(monkeypatch):
+    monkeypatch.setenv("SUPEREZIO_BOB_SOVEREIGN", "1")
+    monkeypatch.setattr(
+        "src.core.pipeline.nodes.orchestrator.get_stream_writer", lambda: lambda x: None
+    )
+
+    plan = await node_orchestrator(
+        {"message": "TICKER DIBS: sincronize com o grafico atual", "ticker": "dibs"},
+        gateway=None,
+        config=None,
+    )
+
+    assert plan["route"] == "agent"
+    assert plan["intent"] == "bob_decides"
+    assert plan["ticker"] == "DIBS"
+    assert "sem dados" in plan["answer_contract"]
 
 
 @pytest.mark.asyncio
@@ -44,14 +65,13 @@ async def test_orchestrator_sovereign_mode_blocks_unscoped_ticket_reference(monk
         config=None,
     )
 
-    assert plan["route"] == "needs_scope"
-    assert plan["action"] == "ask_for_ticker"
-    assert plan["required_slots"] == ["ticker"]
-    assert plan["bob_intent"] == "missing_scope"
-    assert plan["scanner_allowed"] is False
-    assert plan["ticker_allowed"] is False
-    assert plan["allowed_tools"] == ["final_answer"]
-    assert plan["sovereign_mode"] is True
+    assert plan["route"] == "agent"
+    assert plan["action"] == "analyze_and_execute"
+    assert plan["required_slots"] == []
+    assert plan["bob_intent"] == "full_access"
+    assert plan["scanner_allowed"] is True
+    assert plan["ticker_allowed"] is True
+    assert "final_answer" in plan["allowed_tools"]
 
 
 @pytest.mark.asyncio

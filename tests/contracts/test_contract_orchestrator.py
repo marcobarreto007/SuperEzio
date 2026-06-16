@@ -212,8 +212,8 @@ def test_node_orchestrator_extracts_time_horizon():
     assert "14 days" in result.get("time_horizon", "")
 
 
-def test_node_orchestrator_preserves_ceo_risk_tolerance(monkeypatch):
-    """CEO-classified risk tolerance must survive validated.to_plan()."""
+def test_node_orchestrator_ignores_classifier_gateway_in_passthrough(monkeypatch):
+    """Passthrough mode must not call or trust a classifier gateway."""
     import asyncio
 
     monkeypatch.delenv("SUPEREZIO_BOB_SOVEREIGN", raising=False)
@@ -239,8 +239,6 @@ def test_node_orchestrator_preserves_ceo_risk_tolerance(monkeypatch):
         )
 
     result = asyncio.run(_run())
-    assert result["intent_source"] in {
-        "ceo_model",
-        "ceo_model_overridden_scan_downgrade",
-    }
-    assert result["risk_tolerance"] == "alta"
+    assert result["intent_source"] == "passthrough"
+    assert result["intent"] == "bob_decides"
+    assert result["risk_tolerance"] == "moderada"

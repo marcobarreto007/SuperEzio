@@ -34,8 +34,9 @@ from ..observability.debug_logger import debug_logger, MODULE_INTENTS as MODULE_
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_GOLDEN_INTENT_PATH = PROJECT_ROOT / "data" / "intent_golden.jsonl"
 
-ALLOWED_ROUTES = {"general", "ticker_analysis", "market_scan", "needs_scope"}
+ALLOWED_ROUTES = {"agent", "general", "ticker_analysis", "market_scan", "needs_scope"}
 ALLOWED_INTENTS = {
+    "bob_decides",
     "general_question",
     "explain_capabilities",
     "ticker_analysis",

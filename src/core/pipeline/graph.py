@@ -214,10 +214,11 @@ async def _auto_full_analysis(
         }
     )
 
+    # FULL_ACCESS means Bob may use tools; it is not an instruction to run
+    # market collection before Bob has decided what the user is asking.
     should_collect_market = bool(
-        route in {"market_scan", "ticker_analysis", "agent"}
-        or working_state.get("scanner_allowed")
-        or working_state.get("ticker_allowed")
+        route in {"market_scan", "ticker_analysis"}
+        or working_state.get("force_auto_collect")
     )
 
     try:
@@ -285,9 +286,8 @@ async def _auto_full_analysis(
     expert_results: list[dict[str, Any]] = []
     should_run_market_stack = bool(working_state.get("scan") or working_state.get("data")) and (
         should_collect_market
-        or route in {"market_scan", "ticker_analysis", "agent"}
-        or working_state.get("scanner_allowed")
-        or working_state.get("ticker_allowed")
+        or route in {"market_scan", "ticker_analysis"}
+        or working_state.get("force_auto_market_stack")
     )
     if should_run_market_stack:
         if not ticker:

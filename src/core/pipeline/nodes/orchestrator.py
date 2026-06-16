@@ -6,9 +6,9 @@ from __future__ import annotations
 from langgraph.config import get_stream_writer
 
 # Legacy constants — referenced by contract tests
-ALLOWED_ROUTES = {"general", "ticker_analysis", "market_scan", "needs_scope"}
+ALLOWED_ROUTES = {"agent", "general", "ticker_analysis", "market_scan", "needs_scope"}
 ALLOWED_INTENTS = {
-    "general_question", "explain_capabilities", "ticker_analysis",
+    "bob_decides", "general_question", "explain_capabilities", "ticker_analysis",
     "market_scan", "missing_required_slot", "unsafe_unspecified_recommendation",
     "capital_allocation", "personal_finance",
 }
@@ -25,6 +25,7 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
     writer = get_stream_writer()
     run_id = state.get("run_id", "")
     message = state.get("message", "")
+    incoming_ticker = str(state.get("ticker") or "").strip().upper()
 
     writer({
         "type": "PIPELINE_STEP",
@@ -45,7 +46,7 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         "route": "agent",
         "intent": "bob_decides",
         "action": "analyze_and_execute",
-        "ticker": "",
+        "ticker": incoming_ticker,
         "filters": {},
 
         # Contrato FULL_ACCESS
@@ -60,13 +61,20 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         "ticket_allowed": True,
         "market_context_allowed": True,
         "answer_contract": (
-            "Voce e Bob, CEO da SuperEzio. Acesso TOTAL a todas as ferramentas. "
-            "Recebe mensagem crua do usuario. Voce decide o que fazer. "
-            "Se o usuario pede compra/venda: analise com tools e emita PAPER_TICKET. "
-            "Se pede scan: chame market_scan. Se pede analise: chame collect_data. "
-            "Se perguntar sobre IBKR/carteira: responda com dados do sistema. "
-            "Fale na lingua do usuario. Seja direto, sem disclaimer. "
-            "Voce TEM permissao total para executar ordens paper na IBKR."
+            "Voce e Bob, CEO em treino da SuperEzio. Acesso TOTAL a todas as "
+            "ferramentas, sem classificador e sem freio previo. Permissao nao e "
+            "ordem: antes de chamar ferramenta, decida o objetivo da mensagem. "
+            "Small talk/status/capacidades: responda curto usando SYSTEM STATUS; "
+            "nao chame market_scan. Ticker explicito ou ticker vindo da UI/chart: "
+            "trate como ativo atual e use collect_data/chart_context/sentimento "
+            "antes de concluir. Se CHART_VISUAL_CONTEXT, Sentimento Vivo, OHLCV "
+            "ou data_context estiverem anexados, isso e dado valido; nunca diga "
+            "sem dados para esse ticker. Pedido de scan/descoberta/penny: chame "
+            "market_scan. Pedido de compra/venda/ordem/PAPER_TICKET: primeiro "
+            "colete dados, rode experts, guardrails/firewalls e so depois "
+            "submit_paper_order com LMT, qty, limit_price e risco/invalidacao. "
+            "Se uma licao aprendida contradiz sua tese, mude o comportamento e "
+            "explique a mudanca. Fale na lingua do usuario, direto, sem disclaimer."
         ),
         "information_need": "bob_decides_everything",
         "time_horizon": "14 days",
