@@ -1932,7 +1932,7 @@ async def get_cockpit_summary(request: Request) -> dict[str, Any]:
 
     pipeline = getattr(request.app.state, "pipeline", None)
     pipeline_status = pipeline.get_status() if pipeline else {"status": "unavailable"}
-    sentiment: dict[str, Any] = {"available": False, "pulses": [], "alerts": []}
+    sentiment: dict[str, Any] = {"available": False, "pulses": [], "alerts": [], "db_rows": 0}
     pulse = getattr(request.app.state, "sentiment_pulse", None)
     monitor = getattr(request.app.state, "sentiment_monitor", None)
     if pulse is not None and monitor is not None:
@@ -1945,6 +1945,19 @@ async def get_cockpit_summary(request: Request) -> dict[str, Any]:
             "alerts": alerts,
             "alert_count": len(alerts),
         }
+    # ── Sentiment DB stats (SQLite long-term history) ──
+    try:
+        import sqlite3
+        from pathlib import Path as _Path
+
+        _db = _Path(__file__).resolve().parent.parent.parent / "runtime" / "investor.db"
+        if _db.exists():
+            _conn = sqlite3.connect(str(_db))
+            _cnt = _conn.execute("SELECT COUNT(*) FROM sentiment_history").fetchone()
+            sentiment["db_rows"] = int(_cnt[0]) if _cnt else 0
+            _conn.close()
+    except Exception:
+        sentiment["db_rows"] = -1  # unavailable
 
     portfolio = _cockpit_portfolio_snapshot()
     status = _cockpit_status_snapshot(
@@ -2052,6 +2065,46 @@ async def get_sentiment_history(
         if ts is None or ts >= cutoff:
             history.append(item)
     return {"ticker": clean, "hours": hours, "history": history, "count": len(history)}
+
+
+@router.get("/sentiment/history/{ticker}/db")
+async def get_sentiment_history_db(
+    ticker: str,
+    days: int = Query(30, ge=1, le=365),
+) -> dict[str, Any]:
+    """Return long-term sentiment history from SQLite."""
+    import sqlite3
+    from pathlib import Path
+
+    clean = _sanitize_ticker(ticker)
+    db_path = Path(__file__).resolve().parent.parent.parent / "runtime" / "investor.db"
+    if not db_path.exists():
+        return {"ticker": clean, "days": days, "history": [], "count": 0}
+
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    try:
+        conn = sqlite3.connect(str(db_path))
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """SELECT collected_at, score, label, reddit_mentions, news_count, flags
+               FROM sentiment_history
+               WHERE ticker = ? AND collected_at >= ?
+               ORDER BY collected_at DESC
+               LIMIT 500""",
+            (clean, cutoff),
+        ).fetchall()
+        conn.close()
+    except Exception:
+        return {
+            "ticker": clean,
+            "days": days,
+            "history": [],
+            "count": 0,
+            "error": "db_query_failed",
+        }
+
+    history = [dict(r) for r in rows]
+    return {"ticker": clean, "days": days, "history": history, "count": len(history)}
 
 
 @router.get("/health/trace/{run_id}")
