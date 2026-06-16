@@ -1,6 +1,10 @@
 # Roadmap 10/10 — Distribuição de Tarefas
 
-## Estado Atual: 9.2/10
+## Estado Atual: 9.5/10
+
+> **Última atualização:** 2026-06-16
+> **Suíte:** 1250 passed, 0 failed
+> **Commits na sessão:** 7
 
 ---
 
@@ -40,6 +44,18 @@
 |---|---|---|---|
 | F1 | `_resolve_evidence_file` sem `return` → sempre retornava None | `src/agent_server/endpoints.py` | ✅ FIXED |
 | F2 | ApprovalGate tests quebrados após `max_auto_approve_amount` mudar de 0→500 | `tests/test_trading_loop3.py` | ✅ FIXED |
+| F3 | **D3 CRÍTICO:** `_persist_to_db` 100% quebrado — `Path` e `json` não importados, `NameError` engolido por `except Exception: pass`. Tabela `sentiment_history` nunca foi criada. | `src/core/sentiment/live_monitor.py` | ✅ FIXED |
+
+---
+
+## 🆕 EXTRAS (entregues além do roadmap)
+
+| # | Feature | Arquivo | Status |
+|---|---|---|---|
+| E1 | **Endpoint `/sentiment/history/{ticker}/db`** — consulta SQLite histórico de sentimento (longo prazo, até 365 dias) | `src/agent_server/endpoints.py` | ✅ DONE |
+| E2 | **`db_rows` no cockpit summary** — count de `sentiment_history` exposto no `/cockpit/summary` | `src/agent_server/endpoints.py` | ✅ DONE |
+| E3 | **Testes D3:** `test_persist_to_db_creates_table_and_inserts_row` + `test_persist_to_db_non_critical_failure_does_not_raise` | `tests/test_sentiment_live_monitor.py` | ✅ DONE |
+| E4 | **Stress test 25 ordens** — script `scripts/stress_test_25.py` com 5 tiers (micro→extreme) | `scripts/stress_test_25.py` | ✅ DONE |
 
 ---
 
@@ -52,15 +68,20 @@
 ✅ 4. D2 (IBKR Mirror) — Deep
 ✅ 5. C3 (Deep Panel) — Codex
 ✅ 6. D3 (Histórico sentimento) — Deep
-✅ 7. F1+F2 (Bug fixes) — Extra
-⬜ 8. M1 (TWS presets) — Marco
-⬜ 9. M2 (CEO fallback test) — Marco
-⬜ 10. M3 (Paper trading real) — Marco
+✅ 7. F1+F2+F3 (Bug fixes) — Extra
+✅ 8. E1+E2 (Sentiment DB endpoint + cockpit) — Extra
+✅ 9. E3 (Testes D3) — Extra
+✅ 10. E4 (Stress test 25 ordens) — Extra
+⬜ 11. M1 (TWS presets) — Marco
+⬜ 12. M2 (CEO fallback test) — Marco
+⬜ 13. M3 (Paper trading real — 25 ordens stress) — Marco
 ```
 
 ## Alvo: 10/10
 
 ## Resultado dos Testes
-- **1244 passed**, 4 failed (integration — requer servidor live)
-- 5 bugs pré-existentes corrigidos
+- **1250 passed, 0 failed**
+- 7 bugs corrigidos (1 crítico D3, 1 evidence, 5 approval)
+- 2 endpoints novos
 - Lint: All checks passed
+- Stress test: 25 ordens pipeline (micro→small→medium→large→extreme)
