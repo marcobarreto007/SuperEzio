@@ -1,48 +1,71 @@
 {
-  "date_local": "2026-06-15T17:25:00-04:00",
-  "session": "ibkr-realtime-data-penny-scan-2026-06-15",
-  "status": "completed",
+  "date_local": "2026-06-15T21:07:03-04:00",
+  "session": "motor-tool-gate-fallback-validation-2026-06-15",
+  "status": "completed_with_residual_live_trade_latency_risk",
   "final_objective": {
-    "what_system_does": "SuperEzio Financeiro runs a local financial cockpit and Bob pipeline for chart analysis, IBKR paper visibility with real-time/delayed prices and unrealized P&L calculations, penny stock watchlist scanning, and pump & dump forensic detection.",
-    "who_it_is_for": "Marco/F51 as local operator for paper trading, penny stock scanning, and quantitative cockpit validation.",
-    "main_user_flow": "Start the API server, open the UI, view portfolio positions with active market values and unrealized P&L, click positions to update charts, or prompt Bob to scan for cheap stocks (penny stocks) and pump-and-dump anomalies.",
+    "what_system_does": "SuperEzio Financeiro runs a local financial cockpit and Bob pipeline for financial advisory, chart data, market scanning, paper-trading decisions, IBKR paper visibility, expert/guardrail analysis, and learning-loop enforcement.",
+    "who_it_is_for": "Marco/F51 as the local operator validating Bob before demo, paper-trading use, and eventual monetization.",
+    "main_user_flow": "Start the local CEO and API stack, open the UI on port 8002, inspect chart/cockpit data, ask Bob either for advisory guidance or for a trade/scan, and let the cognitive contract decide whether tools are mandatory before the final answer.",
     "start_command": "powershell -ExecutionPolicy Bypass -File runtime/do_restart.ps1",
-    "proof_output": "API /health returns ok, /cockpit/portfolio includes real-time prices & P&L, and Playwright smoke tests successfully load the cockpit and render the candlestick charts."
+    "proof_output": "Health endpoints return ok, pytest gate passes, browser smoke renders a nonblank chart with no console errors, advisory chat completes without scanner, and live market-scan routing starts scanner/data collection before any final answer."
   },
   "what_was_done": [
-    "Implemented real-time and delayed market data retrieval (reqMarketDataType(3)) within the IBKR adapter to fetch prices and compute unrealized P&L for all portfolio positions.",
-    "Updated graph.py and agent.py portfolio nodes to stream current prices and calculate unrealized P&L for active cockpit rows.",
-    "Added penny stocks and pump-and-dump detection support in the market scan node, seeding raw candidates with the pre-vetted PennyLab watchlist.",
-    "Expanded _PENNY_OTC_HINTS with Portuguese keywords (e.g. acoes de pouco valor, pump and dump) to route scans correctly.",
-    "Restarted the API and CEO servers on port 8002 and 8082, and ran the browser smoke test successfully."
+    "Validated that Bob's actionable market/trade path is gated by tools before final answers through the sovereign tests and agent market-scan loop tests.",
+    "Kept advisory/capital-allocation flows final-only by ensuring FINAL_ONLY tool contracts do not expose market_scan, collect_data, run_experts, or submit_paper_order.",
+    "Confirmed auto_full_analysis only runs collector and experts after a market/ticker contract exists; finance-only advisory no longer pays the market-stack latency cost.",
+    "Validated penny-stock scan filters for under-5-dollar discovery and fixed the scanner module docstring/import break revealed by the focused tests.",
+    "Added a backward-compatible build_providers() wrapper so CEO/GLM fallback tests and older scripts use the current provider factory.",
+    "Restarted the official local stack and validated API/CEO health on ports 8002 and 8082."
   ],
   "evidence": {
     "commands": [
-      "powershell -ExecutionPolicy Bypass -File runtime/do_restart.ps1",
-      ".venv\\Scripts\\python.exe -m pytest tests/test_api_routes_sync.py -q",
-      ".venv\\Scripts\\python.exe scripts/browser_smoke.py --skip-chat"
+      "$env:PYTHONPATH='src'; $env:SUPEREZIO_BOB_SOVEREIGN='1'; $env:SUPEREZIO_EDGE_AUTH='0'; .\\.venv\\Scripts\\python.exe -m pytest tests\\contracts tests\\test_runtime_smoke.py tests\\test_bob_sovereign.py tests\\test_auto_full_analysis.py tests\\test_market_scan_candidate_gate.py tests\\test_agent_market_scan_loop.py tests\\test_ceo_fallback.py -q -k \"not cad_25k_allocation_answer_contract\" --tb=short",
+      "$env:PYTHONPATH='src'; $env:SUPEREZIO_BOB_SOVEREIGN='1'; $env:SUPEREZIO_EDGE_AUTH='0'; .\\.venv\\Scripts\\python.exe -m pytest tests\\test_feedback_loop.py -q --tb=short",
+      "powershell -ExecutionPolicy Bypass -File runtime\\do_restart.ps1",
+      ".\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --timeout-ms 180000",
+      ".\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --skip-chat --timeout-ms 180000",
+      "POST http://127.0.0.1:8002/task/submit with small-cap-under-$5 prompt and explicit no-paper-order instruction"
     ],
     "results": [
-      "Hard restart completed successfully, API and CEO healthy on ports 8002 and 8082.",
-      "API route tests successfully passed (25 passed in 6.00s).",
-      "Browser smoke test passed with AAPL chart displaying 130 candles and zero console errors."
+      "513 passed, 1 deselected, 1 warning in 23.56s. Deselected test: live cad_25k_allocation_answer_contract.",
+      "Feedback loop tests passed: 3 passed in 0.36s.",
+      "Restart log: Health 8082: 200 {\"status\":\"ok\"}; Health 8002: 200 {\"status\":\"ok\",\"agent\":\"generic_agent\",\"version\":\"3.0.0\"}; UI http://127.0.0.1:8002.",
+      "Full browser smoke passed: chat finalContentLength=2281, routeUsed=general, detectedIntent=CAPITAL_ALLOCATION, scannerInvoked=false, fallbackUsed=false, console_errors=[]. Screenshot output/playwright/superezio-browser-smoke-20260615-210048.png.",
+      "Post-pytest browser smoke passed with skip-chat: AAPL chart returned 130 candles, canvas nonBlank=434577, console_errors=[]. Latest screenshot output/playwright/superezio-browser-smoke-20260615-210916.png.",
+      "Live market-scan proof returned INTENT_CLASSIFIED route=market_scan, intent=market_scan, source=sovereign_contract, then collected professional data for DML.TO with quality=partial. Stream did not finish within 120s, and no submit_paper_order event was observed before timeout."
     ],
     "runtime_artifacts": [
-      "output/playwright/superezio-browser-smoke-20260615-170603.png",
-      "runtime/logs/api-8002-latest.log",
-      "runtime/restart_log.txt"
+      "runtime/restart_log.txt",
+      "runtime/logs/api-8002-latest.err.log",
+      "runtime/traces/decision_trace_20260616.jsonl",
+      "output/playwright/superezio-browser-smoke-20260615-210048.png",
+      "output/playwright/superezio-browser-smoke-20260615-210647.png",
+      "output/playwright/superezio-browser-smoke-20260615-210916.png"
     ],
-    "files_changed": [
-      "src/adapters/broker/ibkr_adapter.py",
+    "files_changed_or_validated": [
       "src/core/pipeline/graph.py",
+      "src/core/pipeline/intents.py",
       "src/core/pipeline/nodes/agent.py",
       "src/core/pipeline/nodes/collector.py",
+      "src/core/scanner/__init__.py",
+      "src/core/scanner/openbb_scanner.py",
+      "src/core/model_serving/providers.py",
+      "src/core/model_serving/__init__.py",
+      "tests/test_auto_full_analysis.py",
+      "tests/test_market_scan_candidate_gate.py",
+      "tests/test_agent_market_scan_loop.py",
+      "tests/test_ceo_fallback.py",
       ".f51/checkpoints/latest.json"
     ]
   },
   "risks": [
-    "External market data depends on TWS connection state on port 7497; if TWS is offline, portfolio prices fallback gracefully to average cost."
+    "The full live market-scan/trade stream can still exceed 120s because the stack runs collector, experts, gateway calls, and Bob generation. The route/tool gate is working, but latency still needs product-level budget controls.",
+    "The live cad_25k_allocation_answer_contract remains excluded from the broad gate because it is a live endpoint test with a long timeout profile.",
+    "IBKR/TWS remains operationally fragile: logs still show occasional API connection timeout/client-id style issues when multiple probes hit TWS. Restarting TWS is still manual.",
+    "Backup scheduling and disaster recovery were not implemented in this session; only provider fallback contract tests were validated.",
+    "Runtime trace file changed during live validation and should be treated as generated evidence, not source code."
   ],
-  "owner": "Antigravity",
+  "next_step": "Add a bounded live market-scan SLA path: cap expert/model time, emit partial final verdict when evidence is sufficient, and add a non-broker live smoke that asserts scanner->data->experts starts and finishes within the target demo budget.",
+  "owner": "Codex",
   "github_policy": "DISK_ONLY_GITHUB_BLOCKED"
 }

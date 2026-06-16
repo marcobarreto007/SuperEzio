@@ -14,6 +14,7 @@ from .gateway import (
 from .providers import (
     ModelProvider,
     GatewayConfig,
+    build_providers,
     build_default_providers,
 )
 
@@ -23,5 +24,6 @@ __all__ = [
     "GatewayConfig",
     "create_gateway",
     "create_gateway_from_config",
+    "build_providers",
     "build_default_providers",
 ]

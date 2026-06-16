@@ -177,3 +177,10 @@ def build_default_providers(
     )
 
     return providers, gw_config
+
+
+def build_providers() -> tuple[list[ModelProvider], GatewayConfig]:
+    """Backward-compatible provider factory using the default runtime config."""
+    from ..config import get_config
+
+    return build_default_providers(get_config())
