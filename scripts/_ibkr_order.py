@@ -11,6 +11,7 @@ Exit 0 = success, exit 1 = error.
 
 import json
 import sys
+import time
 from pathlib import Path
 
 _PROJECT = Path(__file__).resolve().parent.parent
@@ -33,23 +34,20 @@ def main():
         from ib_insync import IB, Stock, LimitOrder, MarketOrder
 
         ib = IB()
-        ib.connect("127.0.0.1", 7497, clientId=99, timeout=10)
+        client_id = int(time.time() * 1000) % 9000 + 100
+        ib.connect("127.0.0.1", 7497, clientId=client_id, timeout=10)
         contract = Stock(ticker, "SMART", "USD")
         ib.qualifyContracts(contract)
 
         if limit_price > 0:
             order = LimitOrder(action, qty, limit_price)
-            order.tif = 'DAY'  # Explicit TIF — prevents TWS preset cancellation
-            # Prevent TWS preset from auto-canceling LMT orders
-            order.displaySize = qty  # Show full size, not incremental
-            order.outsideRth = False  # Regular hours only (prevents aftermarket cancel)
+            order.tif = 'GTC'  # Good-Til-Canceled — sobrevive ao preset DAY
         else:
             order = MarketOrder(action, qty)
-            order.tif = 'DAY'
-            order.outsideRth = False
+            order.tif = 'GTC'
 
         trade = ib.placeOrder(contract, order)
-        ib.sleep(3)
+        ib.sleep(5)  # Wait longer for order acknowledgment
 
         result = {
             "order_id": trade.order.orderId,
