@@ -14,6 +14,35 @@ from .paths import project_path
 
 
 MISSION_CONTEXT_PATH = project_path("config", "mission_context.json")
+LEARNING_LOG_PATH = project_path("data", "learning_log.jsonl")
+
+
+def _load_learning_lessons(max_lessons: int = 10) -> list[dict[str, Any]]:
+    """Load lessons from learning_log.jsonl."""
+    lessons_path = Path(LEARNING_LOG_PATH)
+    if not lessons_path.exists():
+        return []
+
+    lessons: list[dict[str, Any]] = []
+    try:
+        for line in lessons_path.read_text(encoding="utf-8").strip().splitlines():
+            if not line:
+                continue
+            try:
+                lesson = json.loads(line)
+                if isinstance(lesson, dict) and lesson.get("lesson_id"):
+                    lessons.append(lesson)
+            except (json.JSONDecodeError, TypeError):
+                continue
+
+        # Sort by recency and confidence
+        lessons.sort(key=lambda l: (
+            float(l.get("confidence", 0)),
+            -(l.get("created_at", "")),
+        ), reverse=True)
+        return lessons[:max_lessons]
+    except Exception:
+        return []
 
 
 def load_mission_context(path: str | Path | None = None) -> dict[str, Any]:
@@ -200,6 +229,32 @@ def render_mission_context_for_prompt(path: str | Path | None = None) -> str:
     for i, rule in enumerate(rules, 1):
         lines.append(f"{i}. {rule}")
     lines.append("")
+
+    # ── Learning: lessons from feedback loop ──
+    lessons = _load_learning_lessons()
+    if lessons:
+        lines.append("## LESSONS LEARNED - CRITICAL FOR DECISIONS")
+        lines.append("These lessons were extracted from YOUR past trades. DO NOT repeat mistakes.")
+        lines.append("")
+
+        # Group by category
+        by_category: dict[str, list[dict]] = {}
+        for lesson in lessons:
+            category = lesson.get("category", "general")
+            by_category.setdefault(category, []).append(lesson)
+
+        for category, cat_lessons in by_category.items():
+            lines.append(f"### {category.upper()}")
+            for lesson in cat_lessons[:5]:  # Max 5 per category
+                lines.append(f"- {lesson.get('title', 'Unknown')}")
+                content = lesson.get("content", "")[:200]
+                if content:
+                    lines.append(f"  {content}")
+                tickers = lesson.get("applicable_tickers", [])
+                if tickers:
+                    lines.append(f"  Applies to: {', '.join(tickers)}")
+                lines.append("")
+
     lines.append("=== END MISSION CONTEXT ===")
     return "\n".join(lines)
 

@@ -68,10 +68,6 @@ ROUTE_INTENT_ACTIONS = {
 
 FINAL_ONLY_TOOLS = (
     "final_answer",
-    "market_scan",
-    "collect_data",
-    "run_experts",
-    "submit_paper_order",
 )
 FULL_TICKER_TOOLS = (
     "collect_data",

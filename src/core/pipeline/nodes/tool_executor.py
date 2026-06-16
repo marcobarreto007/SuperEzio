@@ -33,6 +33,42 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+def _check_lesson_block(ticker: str) -> dict[str, Any] | None:
+    """Check if ticker has a blocking lesson from learning_log.jsonl.
+
+    Returns the lesson dict if blocking, None otherwise.
+    """
+    from pathlib import Path
+
+    learning_log_path = Path("data/learning_log.jsonl")
+    if not learning_log_path.exists():
+        return None
+
+    ticker = ticker.upper()
+    try:
+        for line in learning_log_path.read_text(encoding="utf-8").strip().splitlines():
+            if not line:
+                continue
+            try:
+                lesson = __import__("json").loads(line)
+                if not isinstance(lesson, dict):
+                    continue
+                # Check if lesson applies to this ticker
+                applicable_tickers = lesson.get("applicable_tickers", [])
+                if not isinstance(applicable_tickers, list):
+                    continue
+                if ticker in [t.upper() for t in applicable_tickers]:
+                    # Block if lesson is about broken thesis or loss
+                    title = lesson.get("title", "").lower()
+                    if any(kw in title for kw in ("incorreta", "broken", "loss", "preju", "erro")):
+                        return lesson
+            except (TypeError, ValueError, __import__("json").JSONDecodeError):
+                continue
+    except Exception:
+        pass
+    return None
+
+
 _REPEATABLE_TOOLS = {"final_answer"}
 _SEMI_REPEATABLE_LIMITS: dict[str, int] = {"collect_data": 2}
 
@@ -626,6 +662,26 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             # FORCE expert committee before ANY paper order.
             # Bob cannot shoot without consulting his advisors.
             ticker = args.get("ticker", "").upper()
+
+            # ── Lesson-based block: if this ticker already lost money, BLOCK ──
+            blocked_lesson = _check_lesson_block(ticker)
+            if blocked_lesson:
+                writer = get_stream_writer()
+                writer({
+                    "type": "PIPELINE_STEP",
+                    "step": "tool_executor",
+                    "status": "blocked",
+                    "reason": f"lesson_based_block: {blocked_lesson['title']}",
+                })
+                result = {
+                    "blocked": True,
+                    "reason": "lesson_based_block",
+                    "lesson": blocked_lesson,
+                    "message": f"Ordem bloqueada por lição aprendida: {blocked_lesson['title']}. "
+                               f"Este ticker já causou prejuízo por: {blocked_lesson['content'][:100]}..."
+                }
+                return result
+
             if ticker and not state.get("_experts_ran_for", "") == ticker:
                 writer = get_stream_writer()
                 writer({"type": "PIPELINE_STEP", "step": "tool_executor",
