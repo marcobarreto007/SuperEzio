@@ -766,6 +766,46 @@ async def _run_scan(
                 total=fetch_total,
                 errors=fetch_errors,
             )
+
+        # ── Penny scanner fallback: yfinance direct for sub-$5 stocks ──
+        if allow_penny_otc and (not raw_candidates or len(raw_candidates) < 5):
+            registry.stage_started("fetch_tickers", provider="penny_scanner")
+            try:
+                from ....core.scanner.penny_scanner import scan_penny_stocks
+
+                penny_results = await asyncio.to_thread(
+                    scan_penny_stocks,
+                    max_price=requested_max_price or 5.0,
+                    min_volume=50_000,
+                )
+                existing_tickers = {str(c["ticker"]).upper() for c in raw_candidates}
+                added = 0
+                for p in penny_results:
+                    sym = str(p["ticker"]).upper()
+                    if sym not in existing_tickers:
+                        raw_candidates.append({
+                            "ticker": sym,
+                            "source": "penny_scanner_yfinance",
+                            "market": p.get("exchange", "United States"),
+                            "price": p.get("price"),
+                            "volume": p.get("volume"),
+                            "name": p.get("name", ""),
+                            "sector": p.get("sector", ""),
+                            "market_cap": p.get("market_cap"),
+                        })
+                        existing_tickers.add(sym)
+                        added += 1
+                registry.stage_completed(
+                    "fetch_tickers",
+                    provider="penny_scanner",
+                    done=added,
+                    total=len(penny_results),
+                )
+                if added:
+                    provider_sources_used.add("penny_scanner_yfinance")
+            except Exception as exc:  # noqa: BLE001
+                source_errors.append(f"penny_scanner: {exc}")
+                registry.stage_failed("fetch_tickers", str(exc)[:200], provider="penny_scanner")
     except ImportError:
         source_errors.append("scanner: module_archived")
         registry.stage_failed("fetch_tickers", "module_archived", provider="scanner")

@@ -682,6 +682,30 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                 }
                 return result
 
+            # ── FeedbackLoop: check_before_trade — bloqueia se tese repete erro ──
+            thesis = args.get("thesis", args.get("reason", ""))
+            if thesis:
+                try:
+                    from core.trading.feedback_loop import get_feedback_loop
+                    fb = get_feedback_loop()
+                    block_reason = fb.check_before_trade(ticker, thesis)
+                    if block_reason:
+                        writer = get_stream_writer()
+                        writer({
+                            "type": "PIPELINE_STEP",
+                            "step": "tool_executor",
+                            "status": "blocked",
+                            "reason": f"feedback_loop_block: {block_reason}",
+                        })
+                        result = {
+                            "blocked": True,
+                            "reason": "feedback_loop_block",
+                            "message": f"Ordem bloqueada pelo FeedbackLoop: {block_reason}",
+                        }
+                        return result
+                except Exception:
+                    pass  # FeedbackLoop indisponível não bloqueia o trade
+
             if ticker and not state.get("_experts_ran_for", "") == ticker:
                 writer = get_stream_writer()
                 writer({"type": "PIPELINE_STEP", "step": "tool_executor",

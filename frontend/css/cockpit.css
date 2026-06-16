@@ -134,6 +134,19 @@ body::after {
 
 .cockpit-panel--deep {
   grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-column: 3;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cockpit-panel--deep .cockpit-panel__body {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.cockpit-panel--deep .blame-panel {
+  border-top: 1px solid var(--cockpit-line);
+  padding: 10px 12px;
 }
 
 .chart-workspace {
