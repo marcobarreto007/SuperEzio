@@ -139,7 +139,24 @@ def test_gateway_instantiation():
 
 
 def test_gateway_providers_for_request_agent_no_fallback(monkeypatch):
-    """Agent provider must not return fallbacks when requested explicitly."""
+    """Agent provider must not return fallbacks when fallback is disabled."""
+    monkeypatch.delenv("SUPEREZIO_PRIMARY_BASE_URL", raising=False)
+    monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
+
+    from core.config.schema import UniversalConfig
+    from core.model_serving.gateway import create_gateway_from_config
+    from core.model_serving.providers import AGENT_PROVIDER_NAME
+
+    cfg = UniversalConfig()
+    gw = create_gateway_from_config(cfg)
+    providers = gw._providers_for_request(AGENT_PROVIDER_NAME, allow_fallback=False)
+    assert len(providers) == 1
+    assert providers[0].name == AGENT_PROVIDER_NAME
+
+
+def test_gateway_providers_for_request_agent_uses_glm_fallback_when_configured(monkeypatch):
+    """Agent provider should expose GLM fallback in normal fallback mode."""
+    monkeypatch.setenv("SUPEREZIO_GLM_CODE_PLAN_API_KEY", "test-key")
     monkeypatch.delenv("SUPEREZIO_PRIMARY_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
 
@@ -150,8 +167,7 @@ def test_gateway_providers_for_request_agent_no_fallback(monkeypatch):
     cfg = UniversalConfig()
     gw = create_gateway_from_config(cfg)
     providers = gw._providers_for_request(AGENT_PROVIDER_NAME)
-    assert len(providers) == 1
-    assert providers[0].name == AGENT_PROVIDER_NAME
+    assert [p.name for p in providers] == [AGENT_PROVIDER_NAME, "ceo_fallback_glm"]
 
 
 def test_gateway_max_attempts():

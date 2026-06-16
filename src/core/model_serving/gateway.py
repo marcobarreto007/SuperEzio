@@ -116,6 +116,8 @@ class ModelGateway:
                 if p.name == preferred_provider:
                     # agent model is local-only but has cloud fallback (GLM Code Plan)
                     if p.name == AGENT_PROVIDER_NAME:
+                        if not allow_fallback:
+                            return [p]
                         fallback = [
                             fb for fb in self.providers
                             if fb.name == "ceo_fallback_glm"

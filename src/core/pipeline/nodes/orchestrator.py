@@ -115,27 +115,29 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
     is_sovereign = os.getenv("SUPEREZIO_BOB_SOVEREIGN") in ("1", "true", "True")
 
     if is_sovereign:
-        # Sovereign mode: Bob decides. No regex gatekeeping.
-        # Give him ALL tools and full paper execution permission.
-        plan = {
-            "route": "general",
-            "intent": "sovereign_delegated",
-            "risk_tolerance": "moderate",
-            "bob_intent": "bob_decides",
-            "allowed_tools": [
-                "market_scan", "collect_data", "run_experts",
-                "neural_decision", "sdca_firewall", "f51_firewall",
-                "pennylab", "rag_forensics", "social_forensics",
-                "submit_paper_order", "final_answer"
-            ],
-            "scanner_allowed": True,
-            "ticker_allowed": True,
-            "ticket_allowed": True,
-            "market_context_allowed": True,
-            "intent_source": "sovereign_bob_decides",
-            "sovereign_mode": True,
-            "time_horizon": _extract_time_horizon(message) or "14 days",
-        }
+        # Sovereign mode means Bob owns the thesis and final judgement, not that
+        # he can bypass the product contract. The deterministic parser sets
+        # scope and tool permissions so actionable requests cannot become
+        # prompt-only answers.
+        trade_order_context = state.get("trade_order_context") or {}
+        parsed = parse_user_intent(
+            message,
+            rigor=rigor,
+            ticker=ticker,
+            trade_order_context=trade_order_context,
+        )
+        plan = parsed.to_plan()
+        plan["intent_source"] = "sovereign_contract"
+        plan["risk_tolerance"] = _classify_risk_tolerance(message, plan)
+        plan["bob_intent"] = (
+            "missing_scope"
+            if plan.get("route") == "needs_scope"
+            else _classify_bob_intent(message, plan)
+        )
+        plan["sovereign_mode"] = True
+        plan["time_horizon"] = _extract_time_horizon(message) or trade_order_context.get(
+            "time_horizon", "14 days"
+        )
     else:
         # 1. Deterministic parse — for intent classification only
         trade_order_context = state.get("trade_order_context") or {}
