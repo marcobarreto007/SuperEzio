@@ -137,8 +137,37 @@
         <div class="orders-list" id="orders-list">
           <div class="cockpit-empty">Loading IBKR orders.</div>
         </div>
+        <div class="trade-history-list" id="trade-history-list" aria-label="Paper trade history">
+          <div class="cockpit-empty">Loading trade history.</div>
+        </div>
       </section>
     </main>
+
+    <aside class="cockpit-panel cockpit-panel--deep" id="deep-panel" aria-label="Deep math and audit panel">
+      <div class="cockpit-panel__header">
+        <div>
+          <span class="cockpit-panel__eyebrow">DEEP</span>
+          <h2>Math & Experts</h2>
+        </div>
+        <span class="cockpit-panel__status cockpit-panel__status--idle" id="deep-panel-status">WAITING</span>
+      </div>
+      <div class="cockpit-panel__body deep-panel__body" id="deep-panel-body">
+        <section class="cockpit-section">
+          <div class="cockpit-section__title">Math Summary</div>
+          <div class="cockpit-empty">Aguardando MathHub.</div>
+        </section>
+      </div>
+      <section class="blame-panel" id="blame-panel" aria-label="Decision blame report">
+        <div class="cockpit-section__title">Blame Report</div>
+        <div class="blame-controls">
+          <input id="blame-run-id" type="text" autocomplete="off" placeholder="run_id">
+          <button class="btn btn--primary btn--sm" id="blame-load-btn" type="button"><i data-lucide="search"></i><span>Trace</span></button>
+        </div>
+        <div class="blame-report-body" id="blame-report-body">
+          <div class="cockpit-empty">Aguardando um run_id do pipeline.</div>
+        </div>
+      </section>
+    </aside>
 
   </section>
 
@@ -278,6 +307,7 @@
   <script src="js/cockpit.js"></script>
   <script src="js/genie-panel.js"></script>
   <script src="js/deep-panel.js"></script>
+  <script src="js/blame-panel.js"></script>
   <script src="js/bob-panel.js"></script>
   <script src="js/status-bar.js"></script>
   <script src="js/init.js"></script>

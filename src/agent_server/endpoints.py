@@ -265,6 +265,94 @@ def _dedupe_orders(*groups: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+def _trade_history_sort_key(row: dict[str, Any]) -> str:
+    return str(
+        row.get("updated_at")
+        or row.get("exit_date")
+        or row.get("entry_date")
+        or row.get("created_at")
+        or ""
+    )
+
+
+def _normalize_trade_history_row(
+    row: dict[str, Any],
+    *,
+    source: str = "paper_journal",
+) -> dict[str, Any] | None:
+    ticker = str(row.get("ticker") or row.get("symbol") or "").strip().upper()
+    trade_id = str(row.get("trade_id") or row.get("order_id") or row.get("id") or "").strip()
+    if not ticker or not trade_id:
+        return None
+
+    direction = str(row.get("direction") or row.get("action") or "").strip().lower()
+    action = str(row.get("action") or "").strip().upper()
+    if not action:
+        if direction == "long":
+            action = "BUY"
+        elif direction == "short":
+            action = "SELL"
+        else:
+            action = direction.upper()
+
+    exit_date = row.get("exit_date") or None
+    status = "closed" if exit_date else "open"
+    return {
+        "trade_id": trade_id,
+        "order_id": trade_id,
+        "ticker": ticker,
+        "symbol": ticker,
+        "action": action,
+        "side": action.lower() if action else direction,
+        "direction": direction,
+        "qty": _clean_float(row.get("shares") or row.get("qty") or row.get("quantity")),
+        "entry_price": _clean_float(row.get("entry_price")),
+        "exit_price": _clean_float(row.get("exit_price")),
+        "pnl_amount": _clean_float(row.get("pnl_amount")),
+        "pnl_percent": _clean_float(row.get("pnl_percent")),
+        "status": status,
+        "outcome": row.get("outcome") or status,
+        "thesis": str(row.get("thesis") or "")[:240],
+        "entry_date": row.get("entry_date"),
+        "exit_date": exit_date,
+        "updated_at": row.get("updated_at") or row.get("created_at"),
+        "source": source,
+    }
+
+
+def _cockpit_trade_history(limit: int = 50) -> dict[str, Any]:
+    try:
+        from core.trading.paper_journal import PaperJournal
+
+        max_rows = max(1, min(int(limit), 250))
+        journal = PaperJournal()
+        trades = [
+            normalized
+            for normalized in (
+                _normalize_trade_history_row(row) for row in journal.list_all()
+            )
+            if normalized is not None
+        ]
+        trades.sort(key=_trade_history_sort_key, reverse=True)
+        stats = journal.get_stats()
+        return {
+            "source": "paper_journal",
+            "path": str(journal.path),
+            "count": len(trades),
+            "stats": stats,
+            "trades": trades[:max_rows],
+        }
+    except Exception as exc:
+        logger.debug("Paper journal read failed for cockpit: %s", exc)
+        return {
+            "source": "paper_journal",
+            "count": 0,
+            "stats": {},
+            "trades": [],
+            "error": str(exc)[:160],
+        }
+
+
 def _first_position_ticker(positions: list[Any]) -> str:
     for pos in positions:
         if isinstance(pos, dict):
@@ -286,12 +374,22 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
     positions_count = int(broker.get("positions_count") or 0)
     equity = broker.get("account_equity") or "100000.00"
     positions = broker.get("positions") if isinstance(broker.get("positions"), list) else []
-    orders = _dedupe_orders(_cockpit_ibkr_open_orders(), _cockpit_local_order_tickets())
+    broker_orders = _cockpit_ibkr_open_orders()
+    local_tickets = _cockpit_local_order_tickets()
+    orders = _dedupe_orders(broker_orders, local_tickets)
+    trade_history = _cockpit_trade_history(limit=12)
     selected_ticker = ""
     if orders:
         selected_ticker = str(orders[0].get("ticker") or orders[0].get("symbol") or "").upper()
     if not selected_ticker:
         selected_ticker = _first_position_ticker(positions)
+    if not selected_ticker and trade_history["trades"]:
+        selected_ticker = str(
+            trade_history["trades"][0].get("ticker")
+            or trade_history["trades"][0].get("symbol")
+            or ""
+        ).upper()
+    orders_source = "ibkr" if broker_orders else ("local_pending" if local_tickets else "none")
     return {
         "provider": "IBKR",
         "connected": connected,
@@ -306,7 +404,15 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
         "orders_count": len(orders),
         "orders": orders,
         "active_orders": orders,
-        "orders_source": orders[0]["source"] if orders else "none",
+        "broker_orders_count": len(broker_orders),
+        "broker_orders": broker_orders,
+        "local_tickets_count": len(local_tickets),
+        "local_tickets": local_tickets,
+        "orders_source": orders_source,
+        "trade_history_count": trade_history.get("count", 0),
+        "trade_history": trade_history.get("trades", []),
+        "trade_stats": trade_history.get("stats", {}),
+        "journal_path": trade_history.get("path"),
         "selected_ticker": selected_ticker,
         "verified_at": broker.get("verified_at"),
     }
@@ -1776,6 +1882,13 @@ async def get_cockpit_portfolio() -> dict[str, Any]:
     """Return the portfolio snapshot consumed by the cockpit frontpage."""
 
     return _cockpit_portfolio_snapshot()
+
+
+@router.get("/trades/history")
+async def get_trade_history(limit: int = Query(50, ge=1, le=250)) -> dict[str, Any]:
+    """Return PaperJournal trade history for cockpit audit panels."""
+
+    return _cockpit_trade_history(limit=limit)
 
 
 @router.get("/cockpit/summary")

@@ -55,6 +55,9 @@
     fetchCapabilities() { return fetchJson("/capabilities"); },
     fetchCockpitSummary() { return fetchJson("/cockpit/summary"); },
     fetchCockpitPortfolio() { return fetchJson("/cockpit/portfolio"); },
+    fetchTradeHistory(limit = 50) {
+      return fetchJson(`/trades/history?limit=${encodeURIComponent(limit)}`);
+    },
     fetchDecisionTrace(id) {
       return fetchJson(`/health/trace/${encodeURIComponent(id)}`);
     },
