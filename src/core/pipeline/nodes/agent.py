@@ -2697,6 +2697,19 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     # Inject current state context as observations
     observations = []
 
+    # ── CASE CONTEXT: contrato obrigatorio — Bob so decide depois da mesa ──
+    case_context = state.get("case_context") or ""
+    case_pending = state.get("case_pending") or []
+
+    if case_context and case_pending:
+        observations.append(
+            case_context
+            + "\n\nREGRA: Voce PRECISA completar as etapas pendentes antes de dar veredito. "
+            + "Nao responda sem dados. Use as ferramentas para preencher cada etapa."
+        )
+    elif case_context:
+        observations.append(case_context)
+
     # ── SYSTEM STATUS (always included, even for casual greetings) ──
     sys_lines = []
     pf = state.get("portfolio_snapshot") or state.get("portfolio_context") or ""

@@ -194,6 +194,18 @@ async def _auto_full_analysis(
     working_state: dict[str, Any] = {**state}
     output: dict[str, Any] = {}
 
+    # ── CASE tracking ──
+    financial_case = working_state.get("financial_case")
+    def _mark_step(step_name: str, evidence: dict | None = None):
+        if financial_case:
+            financial_case.mark_complete(step_name, evidence)
+            output["case_steps"] = {
+                name: {"completed": s.completed, "error": s.error}
+                for name, s in financial_case.steps.items()
+            }
+            output["case_is_complete"] = financial_case.is_complete
+            output["case_pending"] = financial_case.pending_steps
+
     # ── Clean ticker-specific state between requests ──
     # Prevents ticker leakage: "analise AAPL" → "invista em outros" still sees AAPL
     if route == "general" and not working_state.get("ticker"):
@@ -240,6 +252,7 @@ async def _auto_full_analysis(
             )
         if collector_result:
             _merge_node_update(working_state, output, collector_result)
+            _mark_step("data_collection")
     except Exception as exc:
         _merge_node_update(
             working_state,
@@ -263,6 +276,7 @@ async def _auto_full_analysis(
                 f"{existing_context}\n\n{math_prompt}" if existing_context else math_prompt
             )
         _merge_node_update(working_state, output, math_update)
+        _mark_step("math_hub")
         data_context = str(working_state.get("data_context") or data_context)
         writer(
             {
@@ -331,6 +345,7 @@ async def _auto_full_analysis(
                 )
 
         _merge_node_update(working_state, output, {"expert_results": expert_results})
+        _mark_step("expert_committee", {"roles_ran": len(expert_results)})
         try:
             collect_res = await node_collect_experts(
                 {**working_state, "expert_results": expert_results}
@@ -414,6 +429,8 @@ async def _auto_full_analysis(
             timeout=8.0,
         )
         _merge_node_update(working_state, output, {"portfolio_snapshot": portfolio_context})
+        _mark_step("system_status")
+        _mark_step("portfolio_snapshot")
     except Exception as exc:
         logger.warning("IBKR snapshot failed (%s: %s) — falling back to offline", type(exc).__name__, exc)
         _merge_node_update(
@@ -421,6 +438,7 @@ async def _auto_full_analysis(
             output,
             {"portfolio_snapshot": "IBKR offline — portfolio data unavailable"},
         )
+        _mark_step("system_status", {"ibkr": "offline"})
 
     if ticker:
         for label, node in (
@@ -452,6 +470,7 @@ async def _auto_full_analysis(
     try:
         result = await node_guardrail_hub(working_state)
         _merge_node_update(working_state, output, result)
+        _mark_step("guardrails")
     except Exception as exc:
         _merge_node_update(
             working_state,

@@ -34,6 +34,22 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         "status": "started",
     })
 
+    # ── CASE: contrato financeiro obrigatorio ──
+    from core.pipeline.case import create_case
+
+    financial_case = create_case(message, ticker=incoming_ticker, run_id=run_id)
+    case_state = financial_case.to_state()
+    case_context = financial_case.to_context()
+
+    writer({
+        "type": "CASE_OPENED",
+        "run_id": run_id,
+        "case_type": financial_case.case_type.value,
+        "ticker": financial_case.ticker,
+        "mandate": financial_case.mandate[:120],
+        "required_steps": financial_case.required_steps(),
+    })
+
     # ── Plano unico: FULL_ACCESS, Bob decide tudo ──
     plan = {
         "run_id": run_id,
@@ -90,6 +106,11 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
 
         "orchestrator_plan": "Bob decides everything. Full tool access. No restrictions.",
         "orchestrator_model_status": "passthrough_no_classifier",
+
+        # CASE: contrato obrigatorio — Bob so decide depois da mesa
+        "financial_case": financial_case,
+        "case_context": case_context,
+        **case_state,
     }
 
     writer({
