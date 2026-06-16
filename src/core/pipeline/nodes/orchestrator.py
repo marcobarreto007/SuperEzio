@@ -208,6 +208,8 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
                         plan = parsed.to_plan()
                         plan["intent_source"] = "ceo_model_overridden_scan_downgrade"
                         plan["ceo_original_route"] = ceo_original
+                    if ceo_risk_tolerance:
+                        plan["ceo_risk_tolerance"] = ceo_risk_tolerance
             except Exception as exc:
                 plan["intent_fallback_error"] = str(exc)[:200]
                 plan["intent_source"] = "deterministic_final"
@@ -218,7 +220,7 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         )
 
         # ── Classify risk tolerance (CEO model when available, keyword fallback otherwise) ──
-        if plan.get("intent_source") == "ceo_model" and "ceo_risk_tolerance" in plan:
+        if "ceo_risk_tolerance" in plan:
             plan["risk_tolerance"] = plan.pop("ceo_risk_tolerance")
         else:
             plan["risk_tolerance"] = _classify_risk_tolerance(message, plan)

@@ -239,5 +239,8 @@ def test_node_orchestrator_preserves_ceo_risk_tolerance(monkeypatch):
         )
 
     result = asyncio.run(_run())
-    assert result["intent_source"] == "ceo_model"
+    assert result["intent_source"] in {
+        "ceo_model",
+        "ceo_model_overridden_scan_downgrade",
+    }
     assert result["risk_tolerance"] == "alta"

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import sqlite3
+import threading
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -11,6 +13,13 @@ from pathlib import Path
 from typing import Any
 
 from core.paths import resolve_project_path
+
+
+# Thread lock for SQLite writes
+_WRITE_LOCK = threading.Lock()
+
+# Database path
+DB_PATH = resolve_project_path("runtime/investor.db")
 
 
 def _utc_now() -> str:
@@ -31,11 +40,126 @@ def _json_safe(value: Any) -> Any:
     return str(value)
 
 
+def _ensure_db_table(db_path: Path) -> None:
+    """Create decision_traces table if not exists."""
+    with _WRITE_LOCK:
+        conn = sqlite3.connect(db_path)
+        try:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS decision_traces (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    trace_id TEXT NOT NULL,
+                    run_id TEXT NOT NULL,
+                    session_id TEXT,
+                    node TEXT NOT NULL,
+                    agent TEXT NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    latency_ms REAL,
+                    decision TEXT,
+                    confidence REAL,
+                    evidence_refs TEXT,
+                    errors TEXT,
+                    overrides TEXT,
+                    input_summary TEXT,
+                    output_summary TEXT
+                )
+            """)
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_traces_run ON decision_traces(run_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_traces_node ON decision_traces(node)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_traces_agent ON decision_traces(agent)")
+            conn.commit()
+        finally:
+            conn.close()
+
+
+def _write_trace_to_db(
+    db_path: Path,
+    trace_id: str,
+    run_id: str,
+    node: str,
+    agent: str,
+    latency_ms: float,
+    decision: str | None,
+    confidence: float | None,
+    evidence_refs: list[str],
+    errors: list[str],
+    overrides: dict | None,
+    input_summary: str,
+    output_summary: str,
+) -> None:
+    """Write trace entry to SQLite database (thread-safe)."""
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    _ensure_db_table(db_path)
+
+    with _WRITE_LOCK:
+        conn = sqlite3.connect(db_path)
+        try:
+            conn.execute("""
+                INSERT INTO decision_traces (
+                    trace_id, run_id, session_id, node, agent,
+                    timestamp, latency_ms, decision, confidence,
+                    evidence_refs, errors, overrides,
+                    input_summary, output_summary
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                trace_id, run_id, "", node, agent,
+                _utc_now(), latency_ms, decision, confidence,
+                json.dumps(evidence_refs),
+                json.dumps(errors),
+                json.dumps(overrides) if overrides else None,
+                input_summary[:200],
+                output_summary[:500],
+            ))
+            conn.commit()
+        finally:
+            conn.close()
+
+
+def get_agent_stats(agent: str, days: int = 7, db_path: Path = DB_PATH) -> dict[str, Any]:
+    """Get agent performance stats from database."""
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    _ensure_db_table(db_path)
+
+    conn = sqlite3.connect(db_path)
+    try:
+        cursor = conn.execute("""
+            SELECT
+                COUNT(*) as calls,
+                AVG(latency_ms) as avg_latency,
+                SUM(CASE WHEN errors IS NOT NULL AND errors != '[]' THEN 1 ELSE 0 END) as errors,
+                AVG(confidence) as avg_confidence
+            FROM decision_traces
+            WHERE agent = ?
+            AND datetime(timestamp) >= datetime('now', '-' || ? || ' days')
+        """, (agent, days))
+        row = cursor.fetchone()
+
+        if not row or row[0] == 0:
+            return {
+                "agent": agent,
+                "calls": 0,
+                "avg_latency_ms": 0,
+                "error_rate": 0,
+                "avg_confidence": 0,
+            }
+
+        return {
+            "agent": agent,
+            "calls": row[0],
+            "avg_latency_ms": row[1] or 0,
+            "error_rate": row[2] / row[0] if row[0] > 0 else 0,
+            "avg_confidence": row[3] or 0,
+        }
+    finally:
+        conn.close()
+
+
 @dataclass
 class TraceToken:
     run_id: str
     node: str
     layer: str = ""
+    agent: str = ""
     trace_id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
     started_at: str = field(default_factory=_utc_now)
     perf_start: float = field(default_factory=time.perf_counter)
@@ -84,6 +208,11 @@ class DecisionTraceLogger:
         decision: str = "",
         reason: str = "",
         payload: dict[str, Any] | None = None,
+        agent: str = "",
+        confidence: float | None = None,
+        evidence_refs: list[str] | None = None,
+        overrides: dict | None = None,
+        errors: list[str] | None = None,
     ) -> dict[str, Any]:
         elapsed_ms = int((time.perf_counter() - token.perf_start) * 1000)
         entry = {
@@ -98,8 +227,33 @@ class DecisionTraceLogger:
             "elapsed_ms": elapsed_ms,
             "timestamp": _utc_now(),
             "payload": payload or {},
+            "confidence": confidence,
+            "evidence_refs": evidence_refs or [],
+            "overrides": overrides,
+            "errors": errors or [],
         }
         self._record(entry)
+
+        # Also write to SQLite for blame attribution
+        try:
+            _write_trace_to_db(
+                db_path=DB_PATH,
+                trace_id=token.trace_id,
+                run_id=token.run_id,
+                node=token.node,
+                agent=agent or token.agent,
+                latency_ms=elapsed_ms,
+                decision=decision or None,
+                confidence=confidence,
+                evidence_refs=evidence_refs or [],
+                errors=errors or [],
+                overrides=overrides,
+                input_summary=json.dumps(payload)[:200] if payload else "",
+                output_summary=reason[:500],
+            )
+        except Exception:
+            pass  # SQLite is optional backup
+
         return entry
 
     def skip_node(
