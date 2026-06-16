@@ -2098,6 +2098,7 @@ def _resolve_evidence_file(run_id: str, filename: str):
     file_path = (run_dir / filename).resolve()
     if not file_path.is_relative_to(run_dir) or not file_path.is_file():
         raise HTTPException(status_code=404, detail=f"File not found: {filename}")
+    return file_path
 
 
 # ── Two-Phase Paper Trade ──────────────────────────────────────────────
