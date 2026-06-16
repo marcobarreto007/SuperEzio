@@ -11,6 +11,7 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 
+from core.audit.decision_trace import DecisionTraceLogger
 from ...mission_context import render_mission_context_for_prompt
 from ..contracts import AgentToolCall
 from ..intents import (
@@ -31,6 +32,9 @@ from ..trade_order import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Trace logger singleton
+_tracer = DecisionTraceLogger()
 
 # ── Mission Context Loader ──
 
@@ -2419,10 +2423,35 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     writer = get_stream_writer()
     run_id = state.get("run_id", "")
     iterations = state.get("agent_iterations", 0)
+    message = state.get("message", "")
+
+    # Start trace
+    trace_token = _tracer.start_node(
+        run_id=run_id,
+        node="agent_primary",
+        agent="bob",
+        payload={"message": message[:100], "iterations": iterations},
+    )
+
+    writer(
+        {
+            "type": "PIPELINE_STEP",
+            "run_id": run_id,
+            "step": "agent_primary",
+            "status": "started",
+        }
+    )
 
     if iterations > 7:
         content = _loop_failsafe_answer(state)
         writer({"type": "CHUNK", "content": content})
+        _tracer.end_node(
+            trace_token,
+            status="completed",
+            decision="LOOP_FAILSAFE",
+            reason="Too many iterations",
+            agent="bob",
+        )
         return {
             **_final_payload(content, iterations),
             "bob_thesis": state.get("bob_thesis", ""),
@@ -2434,6 +2463,13 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     if state.get("tool_blocked"):
         content = _tool_blocked_answer(state)
         writer({"type": "CHUNK", "content": content})
+        _tracer.end_node(
+            trace_token,
+            status="blocked",
+            decision="BLOCKED",
+            reason="Tool blocked",
+            agent="bob",
+        )
         return {
             **_final_payload(content, iterations),
             "bob_thesis": state.get("bob_thesis", ""),
@@ -2459,6 +2495,13 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 "step": "agent_primary",
                 "status": "completed",
             }
+        )
+        _tracer.end_node(
+            trace_token,
+            status="completed",
+            decision="PAPER_EXECUTED",
+            reason="Paper order executed",
+            agent="bob",
         )
         return {
             **_final_payload(content, iterations),
@@ -2910,6 +2953,16 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                         "status": "completed",
                     }
                 )
+
+                # Trace: final answer decision
+                _tracer.end_node(
+                    trace_token,
+                    status="completed",
+                    decision="FINAL_ANSWER",
+                    reason=content[:100],
+                    agent="bob",
+                )
+
                 return {
                     "final": content,
                     "agent_tool_call": tool_call,
@@ -2920,6 +2973,15 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     "current_datetime": state.get("current_datetime", ""),
                 }
             else:
+                # Trace: tool call decision
+                _tracer.end_node(
+                    trace_token,
+                    status="in_progress",
+                    decision=tool_call.get("tool", "UNKNOWN").upper(),
+                    reason=f"Calling tool: {tool_call.get('tool')}",
+                    agent="bob",
+                )
+
                 return {
                     "agent_tool_call": tool_call,
                     "agent_iterations": iterations + 1,

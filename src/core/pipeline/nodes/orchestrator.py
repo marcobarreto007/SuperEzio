@@ -10,6 +10,7 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 
+from core.audit.decision_trace import DecisionTraceLogger
 from ..intents import (
     detect_complex_finance_intent,
     extract_json_object,
@@ -18,6 +19,9 @@ from ..intents import (
     parse_user_intent,
     validate_intent_candidate,
 )
+
+# Trace logger singleton
+_tracer = DecisionTraceLogger()
 
 ALLOWED_ROUTES = {"general", "ticker_analysis", "market_scan", "needs_scope"}
 ALLOWED_INTENTS = {
@@ -102,6 +106,14 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
     rigor = state.get("rigor", "strict")
     context = state.get("context", "")
     ticker = state.get("ticker", "")  # kept for backward compat, not used for routing
+
+    # Start trace
+    trace_token = _tracer.start_node(
+        run_id=run_id,
+        node="orchestrator_primary",
+        agent="orchestrator",
+        payload={"message": message[:100]},
+    )
 
     writer(
         {
@@ -258,6 +270,17 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
             "ticker": plan.get("ticker", ""),
             "model_status": plan.get("intent_source", "deterministic"),
         }
+    )
+
+    # End trace
+    _tracer.end_node(
+        trace_token,
+        status="completed",
+        decision=plan.get("route", "unknown"),
+        reason=f"intent={plan.get('intent')}, risk={plan.get('risk_tolerance')}",
+        agent="orchestrator",
+        confidence=plan.get("intent_confidence"),
+        evidence_refs=[plan.get("intent_source", "deterministic")],
     )
 
     return plan
