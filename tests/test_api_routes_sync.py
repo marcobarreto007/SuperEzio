@@ -162,7 +162,106 @@ def test_cockpit_portfolio(client_with_mock_pipeline):
     assert "orders_count" in data
     assert isinstance(data["orders"], list)
     assert data["active_orders"] == data["orders"]
+    assert "broker_orders_count" in data
+    assert isinstance(data["broker_orders"], list)
+    assert "local_tickets_count" in data
+    assert isinstance(data["local_tickets"], list)
+    assert "trade_history_count" in data
+    assert isinstance(data["trade_history"], list)
+    assert "trade_stats" in data
     assert "selected_ticker" in data
+
+
+def test_cockpit_portfolio_separates_broker_local_and_history(
+    client_with_mock_pipeline, monkeypatch
+):
+    """GET /cockpit/portfolio separates real broker orders from local audit rows."""
+    import agent_server.endpoints as endpoints
+
+    monkeypatch.setattr(
+        endpoints,
+        "_cockpit_ibkr_open_orders",
+        lambda: [
+            {
+                "order_id": "ibkr-1",
+                "ticker": "AAPL",
+                "symbol": "AAPL",
+                "action": "BUY",
+                "qty": 3,
+                "status": "Submitted",
+                "source": "ibkr",
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        endpoints,
+        "_cockpit_local_order_tickets",
+        lambda: [
+            {
+                "order_id": "local-1",
+                "ticker": "SNDL",
+                "symbol": "SNDL",
+                "action": "BUY",
+                "qty": 10,
+                "status": "pending_validation",
+                "source": "local_pending",
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        endpoints,
+        "_cockpit_trade_history",
+        lambda limit=50: {
+            "source": "paper_journal",
+            "count": 1,
+            "stats": {"total_trades": 1},
+            "trades": [
+                {
+                    "trade_id": "paper-1",
+                    "ticker": "PLUG",
+                    "status": "open",
+                    "source": "paper_journal",
+                }
+            ],
+        },
+    )
+    _, client = client_with_mock_pipeline
+
+    response = client.get("/cockpit/portfolio")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["orders_source"] == "ibkr"
+    assert data["broker_orders_count"] == 1
+    assert data["local_tickets_count"] == 1
+    assert data["orders_count"] == 2
+    assert data["orders"][0]["source"] == "ibkr"
+    assert data["orders"][1]["source"] == "local_pending"
+    assert data["trade_history_count"] == 1
+    assert data["trade_history"][0]["trade_id"] == "paper-1"
+
+
+def test_trade_history_endpoint(client_with_mock_pipeline, monkeypatch):
+    """GET /trades/history exposes PaperJournal history to the cockpit."""
+    import agent_server.endpoints as endpoints
+
+    monkeypatch.setattr(
+        endpoints,
+        "_cockpit_trade_history",
+        lambda limit=50: {
+            "source": "paper_journal",
+            "count": 1,
+            "stats": {"total_trades": 1, "open_trades": 1},
+            "trades": [{"trade_id": "paper-1", "ticker": "PLUG", "status": "open"}],
+        },
+    )
+    _, client = client_with_mock_pipeline
+
+    response = client.get("/trades/history?limit=7")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["source"] == "paper_journal"
+    assert data["stats"]["total_trades"] == 1
+    assert data["trades"][0]["ticker"] == "PLUG"
 
 
 def test_cockpit_summary(client_with_mock_pipeline):

@@ -1,98 +1,76 @@
 {
-  "date_local": "2026-06-15T21:07:03-04:00",
-  "session": "status-update-2026-06-16",
-  "status": "completed_with_residual_live_trade_latency_risk",
+  "date_local": "2026-06-15T21:45:57-04:00",
+  "session": "cockpit-fixes-deep-ibkr-blame-history-2026-06-15",
+  "status": "completed",
   "final_objective": {
-    "what_system_does": "SuperEzio Financeiro runs a local financial cockpit and Bob pipeline for financial advisory, chart data, market scanning, paper-trading decisions, IBKR paper visibility, expert/guardrail analysis, and learning-loop enforcement.",
-    "who_it_is_for": "Marco/F51 as the local operator validating Bob before demo, paper-trading use, and eventual monetization.",
-    "main_user_flow": "Start the local CEO and API stack, open the UI on port 8002, inspect chart/cockpit data, ask Bob either for advisory guidance or for a trade/scan, and let the cognitive contract decide whether tools are mandatory before the final answer.",
-    "start_command": "powershell -ExecutionPolicy Bypass -File runtime/do_restart.ps1",
-    "proof_output": "Health endpoints return ok, pytest gate passes, browser smoke renders a nonblank chart with no console errors, advisory chat completes without scanner, and live market-scan routing starts scanner/data collection before any final answer."
+    "what_system_does": "SuperEzio Financeiro runs a local financial cockpit and Bob pipeline for chart analysis, Deep math/expert review, IBKR paper visibility, paper-trade history, decision tracing, and audited financial answers.",
+    "who_it_is_for": "Marco/F51 as the local operator validating Bob before demo, paper-trading use, and monetization.",
+    "main_user_flow": "Start CEO on 8082 and API/UI on 8002, open the browser cockpit, inspect Genie/Chart/Deep/IBKR/Trade History, ask Bob, and review Blame Report for the run_id.",
+    "start_command": "python -m agent_server.main with CEO llama.cpp already listening on 8082",
+    "proof_output": "http://127.0.0.1:8002 renders nonblank chart, Deep column, IBKR Mirror, Paper history rows, and interactive Blame Report."
   },
   "what_was_done": [
-    "Validated that Bob's actionable market/trade path is gated by tools before final answers through the sovereign tests and agent market-scan loop tests.",
-    "Kept advisory/capital-allocation flows final-only by ensuring FINAL_ONLY tool contracts do not expose market_scan, collect_data, run_experts, or submit_paper_order.",
-    "Confirmed auto_full_analysis only runs collector and experts after a market/ticker contract exists; finance-only advisory no longer pays the market-stack latency cost.",
-    "Validated penny-stock scan filters for under-5-dollar discovery and fixed the scanner module docstring/import break revealed by the focused tests.",
-    "Added a backward-compatible build_providers() wrapper so CEO/GLM fallback tests and older scripts use the current provider factory.",
-    "Restarted the official local stack and validated API/CEO health on ports 8002 and 8082."
+    "Gave Deep a proper cockpit column instead of relying on chart-workspace injection.",
+    "Exposed and validated broker_orders, local_tickets, trade_history, trade_stats, and /trades/history in the cockpit API contract.",
+    "Updated IBKR Mirror UI semantics so real IBKR broker orders are distinct from local pending tickets and PaperJournal history.",
+    "Added interactive Blame Report panel that loads /health/trace/{run_id}, shows summary, blockers, slowest nodes, agent stats, and expandable trace events.",
+    "Rendered PaperJournal trade history in the cockpit with clickable ticker rows.",
+    "Moved the Bob floating panel on desktop so it no longer hides the Deep column or the Mirror/history footer.",
+    "Restarted the live FastAPI backend on port 8002 while leaving the CEO llama-server on 8082 running."
   ],
   "evidence": {
-    "commands": [
-      "$env:PYTHONPATH='src'; $env:SUPEREZIO_BOB_SOVEREIGN='1'; $env:SUPEREZIO_EDGE_AUTH='0'; .\\.venv\\Scripts\\python.exe -m pytest tests\\contracts tests\\test_runtime_smoke.py tests\\test_bob_sovereign.py tests\\test_auto_full_analysis.py tests\\test_market_scan_candidate_gate.py tests\\test_agent_market_scan_loop.py tests\\test_ceo_fallback.py -q -k \"not cad_25k_allocation_answer_contract\" --tb=short",
-      "$env:PYTHONPATH='src'; $env:SUPEREZIO_BOB_SOVEREIGN='1'; $env:SUPEREZIO_EDGE_AUTH='0'; .\\.venv\\Scripts\\python.exe -m pytest tests\\test_feedback_loop.py -q --tb=short",
-      "powershell -ExecutionPolicy Bypass -File runtime\\do_restart.ps1",
-      ".\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --timeout-ms 180000",
-      ".\\.venv\\Scripts\\python.exe scripts\\browser_smoke.py --skip-chat --timeout-ms 180000",
-      "POST http://127.0.0.1:8002/task/submit with small-cap-under-$5 prompt and explicit no-paper-order instruction"
+    "tests": [
+      "python -m py_compile src/agent_server/endpoints.py",
+      "node --check frontend/js/blame-panel.js",
+      "node --check frontend/js/deep-panel.js",
+      "node --check frontend/js/init.js",
+      "$env:PYTHONPATH='src'; python -m pytest tests/test_api_routes_sync.py::test_cockpit_portfolio tests/test_api_routes_sync.py::test_cockpit_portfolio_separates_broker_local_and_history tests/test_api_routes_sync.py::test_trade_history_endpoint tests/test_api_routes_sync.py::test_cockpit_summary -q"
     ],
-    "results": [
-      "513 passed, 1 deselected, 1 warning in 23.56s. Deselected test: live cad_25k_allocation_answer_contract.",
-      "Feedback loop tests passed: 3 passed in 0.36s.",
-      "Restart log: Health 8082: 200 {\"status\":\"ok\"}; Health 8002: 200 {\"status\":\"ok\",\"agent\":\"generic_agent\",\"version\":\"3.0.0\"}; UI http://127.0.0.1:8002.",
-      "Full browser smoke passed: chat finalContentLength=2281, routeUsed=general, detectedIntent=CAPITAL_ALLOCATION, scannerInvoked=false, fallbackUsed=false, console_errors=[]. Screenshot output/playwright/superezio-browser-smoke-20260615-210048.png.",
-      "Post-pytest browser smoke passed with skip-chat: AAPL chart returned 130 candles, canvas nonBlank=434577, console_errors=[]. Latest screenshot output/playwright/superezio-browser-smoke-20260615-210916.png.",
-      "Live market-scan proof returned INTENT_CLASSIFIED route=market_scan, intent=market_scan, source=sovereign_contract, then collected professional data for DML.TO with quality=partial. Stream did not finish within 120s, and no submit_paper_order event was observed before timeout."
+    "test_results": [
+      "4 passed in 0.96s",
+      "All py_compile/node --check commands passed"
     ],
-    "runtime_artifacts": [
-      "runtime/restart_log.txt",
-      "runtime/logs/api-8002-latest.err.log",
-      "runtime/traces/decision_trace_20260616.jsonl",
-      "output/playwright/superezio-browser-smoke-20260615-210048.png",
-      "output/playwright/superezio-browser-smoke-20260615-210647.png",
-      "output/playwright/superezio-browser-smoke-20260615-210916.png"
+    "live_validation": [
+      "Restarted FastAPI: python PID 2212 listening on 8002; CEO llama-server remained PID 22768 on 8082.",
+      "GET /cockpit/portfolio returned broker_orders_count=0, local_tickets_count=0, trade_history_count=27, selected_ticker=AAPL.",
+      "GET /trades/history?limit=5 returned source=paper_journal, total_trades=27, open_trades=14, closed_trades=13.",
+      "GET /health/trace/6a8ee704a736 returned total_events=63, completed_nodes=15, skipped_nodes=16, error_nodes=0, blockers=2.",
+      "Browser selector check: #deep-panel visible, #blame-panel visible, #trade-history-list rendered 10 .trade-row entries, orders text showed no active IBKR broker orders.",
+      "Browser Blame interaction loaded run_id 6a8ee704a736 with 2 blockers and 24 expandable trace events."
     ],
-    "files_changed_or_validated": [
-      "src/core/pipeline/graph.py",
-      "src/core/pipeline/intents.py",
-      "src/core/pipeline/nodes/agent.py",
-      "src/core/pipeline/nodes/collector.py",
-      "src/core/scanner/__init__.py",
-      "src/core/scanner/openbb_scanner.py",
-      "src/core/model_serving/providers.py",
-      "src/core/model_serving/__init__.py",
-      "tests/test_auto_full_analysis.py",
-      "tests/test_market_scan_candidate_gate.py",
-      "tests/test_agent_market_scan_loop.py",
-      "tests/test_ceo_fallback.py",
+    "browser_smoke": [
+      "python scripts/browser_smoke.py --timeout-ms 180000",
+      "Final result ok=true, chart AAPL candles=130, canvas nonBlank=438400, finalContentLength=2281, console_errors=[].",
+      "Screenshot: output/playwright/superezio-browser-smoke-20260615-214337.png"
+    ],
+    "files_changed": [
+      "frontend/css/charts.css",
+      "frontend/css/cockpit.css",
+      "tests/test_api_routes_sync.py",
       ".f51/checkpoints/latest.json"
+    ],
+    "files_already_present_in_head_and_validated": [
+      "src/agent_server/endpoints.py",
+      "frontend/index.html",
+      "frontend/js/api.js",
+      "frontend/js/blame-panel.js",
+      "frontend/js/deep-panel.js",
+      "frontend/js/events.js",
+      "frontend/js/init.js"
+    ],
+    "generated_evidence_files_changed": [
+      "runtime/traces/decision_trace_20260616.jsonl",
+      "data/conversation_memory.jsonl"
     ]
   },
   "risks": [
-    "The full live market-scan/trade stream can still exceed 120s because the stack runs collector, experts, gateway calls, and Bob generation. The route/tool gate is working, but latency still needs product-level budget controls.",
-    "The live cad_25k_allocation_answer_contract remains excluded from the broad gate because it is a live endpoint test with a long timeout profile.",
-    "IBKR/TWS remains operationally fragile: logs still show occasional API connection timeout/client-id style issues when multiple probes hit TWS. Restarting TWS is still manual.",
-    "Backup scheduling and disaster recovery were not implemented in this session; only provider fallback contract tests were validated.",
-    "Runtime trace file changed during live validation and should be treated as generated evidence, not source code."
+    "IBKR currently reports zero active broker orders in the live paper account; the UI now makes that explicit instead of implying local journal rows are broker orders.",
+    "PaperJournal contains duplicated test-style rows; the cockpit shows them as audit history but the journal data should be cleaned separately if Marco wants demo data polished.",
+    "Live browser smoke writes conversation memory and decision trace evidence files during validation.",
+    "No GitHub actions were used because this repo is DISK_ONLY_GITHUB_BLOCKED."
   ],
-  "next_step": "Add a bounded live market-scan SLA path: cap expert/model time, emit partial final verdict when evidence is sufficient, and add a non-broker live smoke that asserts scanner->data->experts starts and finishes within the target demo budget.",
+  "next_step": "Clean or label old test rows in data/paper_journal.jsonl before a public demo, then run one real paper-order lifecycle with TWS open to prove broker_orders_count becomes nonzero while PaperJournal records the outcome.",
   "owner": "Codex",
   "github_policy": "DISK_ONLY_GITHUB_BLOCKED",
-  "updated": "2026-06-16T01:22:12.081670+00:00",
-  "pipeline_status": {
-    "contracts_passing": 431,
-    "motor": "6/10 — Bob usa tools, pipeline ponta-a-ponta funciona",
-    "infra": "8/10 — CEO local + IBKR + Genie + Deep online",
-    "cockpit": "7/10 — funcional, Deep Panel pendente",
-    "dados": "8/10 — sentimento vivo, scanner 300+ small caps",
-    "aprendizado": "6/10 — FeedbackLoop existe, ciclo nao fecha",
-    "decision_trace": "10/10 — COMPLETO (Fases A+B+C, 10/10 testes)",
-    "nota_geral": "7.2/10",
-    "items_pendentes_10_10": 14,
-    "fixes_hoje": [
-      "force_tool_usage",
-      "pipeline_sempre_coleta",
-      "sovereign_orchestrator",
-      "token_limits_8192",
-      "approval_gate_500",
-      "openbb_scanner_instalado",
-      "collect_data_executor",
-      "ticket_allowed_true",
-      "estado_limpo_requests",
-      "scanner_syntax_fix",
-      "10_scripts_lixo_removidos",
-      "sistema_reiniciado_limpo",
-      "decision_trace_3_fases_completo"
-    ]
-  }
+  "updated": "2026-06-16T01:45:57Z"
 }

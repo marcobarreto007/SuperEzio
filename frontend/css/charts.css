@@ -204,11 +204,11 @@
 
 .orders-mirror {
   display: grid;
-  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  grid-template-columns: minmax(170px, 220px) minmax(0, 1fr) minmax(240px, 0.75fr);
   align-items: stretch;
   gap: 10px;
-  min-height: 82px;
-  max-height: 112px;
+  min-height: 94px;
+  max-height: 138px;
   padding: 10px 16px 12px;
   border-top: 1px solid var(--line);
   background: rgba(13, 17, 23, 0.86);
@@ -241,7 +241,7 @@
 }
 
 .orders-mirror__count {
-  min-width: 34px;
+  min-width: 52px;
   border: 1px solid rgba(0, 230, 118, 0.34);
   border-radius: 999px;
   padding: 4px 8px;
@@ -250,7 +250,8 @@
   background: rgba(0, 230, 118, 0.08);
 }
 
-.orders-list {
+.orders-list,
+.trade-history-scroll {
   display: flex;
   align-items: stretch;
   gap: 8px;
@@ -260,7 +261,29 @@
   padding-bottom: 2px;
 }
 
-.order-row {
+.trade-history-list {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 6px;
+  min-width: 0;
+}
+
+.trade-history-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font: 800 9px var(--font-mono);
+  text-transform: uppercase;
+}
+
+.trade-history-title strong {
+  color: var(--green);
+}
+
+.order-row,
+.trade-row {
   display: grid;
   grid-template-columns: auto auto auto;
   grid-template-rows: auto auto;
@@ -278,25 +301,32 @@
   text-align: left;
 }
 
-.order-row:hover {
+.order-row:hover,
+.trade-row:hover {
   border-color: rgba(0, 229, 255, 0.44);
   color: var(--ink);
 }
 
-.order-row.is-selected {
+.order-row.is-selected,
+.trade-row.is-selected {
   border-color: rgba(0, 230, 118, 0.66);
   background: rgba(0, 230, 118, 0.09);
   box-shadow: inset 0 0 0 1px rgba(0, 230, 118, 0.16);
 }
 
-.order-row__ticker {
+.order-row__ticker,
+.trade-row__ticker {
   color: var(--ink);
   font: 900 13px var(--font-mono);
 }
 
 .order-row__side,
 .order-row__status,
-.order-row__meta {
+.order-row__source,
+.order-row__meta,
+.trade-row__status,
+.trade-row__pnl,
+.trade-row__meta {
   font: 800 10px var(--font-mono);
   text-transform: uppercase;
 }
@@ -310,7 +340,21 @@
   color: var(--amber);
 }
 
-.order-row__meta {
+.order-row__source {
+  color: var(--blue);
+}
+
+.trade-row__status {
+  color: var(--amber);
+}
+
+.trade-row__pnl {
+  justify-self: end;
+  color: var(--green);
+}
+
+.order-row__meta,
+.trade-row__meta {
   grid-column: 1 / -1;
   color: var(--muted);
   overflow: hidden;
@@ -494,7 +538,8 @@
     padding: 10px 12px 12px;
   }
 
-  .orders-list {
+  .orders-list,
+  .trade-history-scroll {
     padding-bottom: 4px;
   }
 }

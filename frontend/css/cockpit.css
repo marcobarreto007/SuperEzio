@@ -76,11 +76,11 @@ body::after {
 
 .right-stack {
   position: fixed;
-  bottom: 58px;
-  right: 24px;
+  bottom: 178px;
+  right: clamp(340px, calc(24px + 28vw), 460px);
   width: 420px;
   height: 600px;
-  max-height: calc(100vh - 160px);
+  max-height: calc(100vh - 260px);
   z-index: 999;
   border-radius: 16px;
   border: 1px solid rgba(0, 230, 118, 0.25);
@@ -450,13 +450,17 @@ body::after {
   overflow: hidden;
 }
 
+.deep-panel__body {
+  display: block;
+  border-bottom: 1px solid var(--cockpit-line);
+}
+
 .deep-runtime {
   display: grid;
   gap: 10px;
-  max-height: 230px;
+  max-height: none;
   overflow: auto;
   padding: 12px;
-  border-top: 1px solid var(--cockpit-line);
   background: var(--cockpit-panel-2);
 }
 
@@ -536,6 +540,117 @@ body::after {
   white-space: pre-wrap;
 }
 
+.blame-panel {
+  display: grid;
+  gap: 9px;
+  max-height: 310px;
+  overflow: auto;
+  padding: 12px;
+  background: rgba(13, 17, 23, 0.76);
+}
+
+.blame-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.blame-controls input {
+  min-width: 0;
+  height: 34px;
+  border: 1px solid var(--cockpit-line);
+  border-radius: 7px;
+  padding: 0 10px;
+  color: var(--cockpit-text);
+  background: rgba(17, 24, 32, 0.9);
+  font: 800 11px var(--font-mono);
+}
+
+.blame-report-body,
+.blame-section,
+.blame-list {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.blame-run-line,
+.blame-row,
+.blame-entry summary {
+  display: grid;
+  grid-template-columns: minmax(82px, 0.75fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  color: var(--cockpit-muted);
+  font: 700 11px var(--font-body);
+}
+
+.blame-run-line strong,
+.blame-row strong,
+.blame-entry summary strong {
+  color: var(--cockpit-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+
+.blame-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.blame-summary-grid div {
+  display: grid;
+  gap: 3px;
+  border: 1px solid rgba(48, 54, 61, 0.72);
+  border-radius: 7px;
+  padding: 7px;
+  background: rgba(17, 24, 32, 0.72);
+}
+
+.blame-summary-grid span {
+  color: var(--cockpit-muted);
+  font: 800 9px var(--font-mono);
+  text-transform: uppercase;
+}
+
+.blame-summary-grid strong {
+  color: var(--cockpit-text);
+  font: 900 13px var(--font-mono);
+}
+
+.blame-row,
+.blame-entry {
+  border: 1px solid rgba(48, 54, 61, 0.72);
+  border-radius: 7px;
+  padding: 8px;
+  background: rgba(17, 24, 32, 0.72);
+}
+
+.blame-row span,
+.blame-entry__time {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.blame-entry summary {
+  cursor: pointer;
+}
+
+.blame-entry pre {
+  max-height: 150px;
+  overflow: auto;
+  margin: 8px 0 0;
+  color: var(--cockpit-muted);
+  font: 700 10px var(--font-mono);
+  white-space: pre-wrap;
+}
+
 .cockpit-statusbar {
   position: sticky;
   bottom: 0;
@@ -577,7 +692,28 @@ body::after {
 
 @media (max-width: 1180px) {
   .app-main {
-    grid-template-columns: 300px minmax(460px, 1fr) 340px;
+    grid-template-columns: minmax(260px, 0.9fr) minmax(460px, 1.4fr);
+  }
+
+  .right-stack {
+    bottom: 58px;
+    right: 24px;
+    max-height: calc(100vh - 160px);
+  }
+
+  .cockpit-panel--deep {
+    grid-column: 1 / -1;
+    max-height: 360px;
+  }
+}
+
+@media (max-width: 860px) {
+  .app-main {
+    grid-template-columns: 1fr;
+  }
+
+  .cockpit-panel--deep {
+    max-height: none;
   }
 }
 
