@@ -600,6 +600,25 @@ def build_graph(
             )
             return {}
 
+        # ── Strategy 0: Tool already executed the order ──
+        if state.get("submit_paper_order_result"):
+            result = state["submit_paper_order_result"]
+            ticker = str(result.get("symbol", result.get("ticker", ""))).upper()
+            qty = int(result.get("qty", result.get("quantity", 10)) or 10)
+            action = str(result.get("action", "buy")).lower()
+            if ticker and qty > 0:
+                # Order already placed by tool_executor — just log and pass through
+                writer({
+                    "type": "PIPELINE_STEP", "run_id": run_id,
+                    "step": "auto_execute_paper", "status": "completed",
+                    "ticker": ticker, "action": action, "qty": qty,
+                    "mode": "tool_already_executed",
+                })
+                return {
+                    "submit_paper_order_result": result,
+                    "paper_order_executed": True,
+                }
+
         # ── Strategy 1: PAPER_TICKET in Bob's response ──
         if final and "PAPER_TICKET" in final:
             ticker_match = re.search(r"(?:Ticker|ticker):\s*([A-Z]{1,5}(?:\.[A-Z]{2})?)", final)

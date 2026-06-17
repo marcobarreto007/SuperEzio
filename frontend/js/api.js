@@ -26,16 +26,35 @@
       });
       if (!r.ok) {
         let detail = "";
+        let rawDetail = null;
         try {
           const data = await r.clone().json();
-          detail = data.detail || data.error || JSON.stringify(data);
+          rawDetail = data.detail || data.error || data;
+          if (rawDetail && typeof rawDetail === "object") {
+            detail = rawDetail.message || rawDetail.detail || JSON.stringify(rawDetail);
+          } else {
+            detail = rawDetail || "";
+          }
         } catch (_) {
           try { detail = await r.text(); } catch (_) { detail = ""; }
         }
-        throw new Error(detail ? `/task/submit ${r.status}: ${detail}` : `/task/submit ${r.status}`);
+        const err = new Error(detail ? `/task/submit ${r.status}: ${detail}` : `/task/submit ${r.status}`);
+        err.status = r.status;
+        if (rawDetail && typeof rawDetail === "object") {
+          err.code = rawDetail.code || "";
+          err.runId = rawDetail.run_id || "";
+          err.sessionId = rawDetail.session_id || "";
+          err.elapsed = rawDetail.elapsed || 0;
+          err.detail = rawDetail;
+        }
+        throw err;
       }
       if (!r.body) throw new Error("/task/submit returned no stream body");
       return r;
+    },
+    fetchActiveTasks() { return fetchJson("/task/active"); },
+    cancelTask(runId) {
+      return fetchJson(`/task/cancel/${encodeURIComponent(runId)}`, { method: "POST" });
     },
     evaluateSDCA(body) {
       return fetch(API + "/api/sdca/evaluate", {

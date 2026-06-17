@@ -1,44 +1,60 @@
 {
-  "date_local": "2026-06-17T12:57:36-04:00",
-  "session": "genie-no-data-label-fix-2026-06-17",
+  "date_local": "2026-06-17T16:05:42-04:00",
+  "session": "bob-task-queue-429-fix-2026-06-17",
   "status": "completed_live_verified",
   "final_objective": {
-    "what_system_does": "SuperEzio Financeiro is a local AI trading desk with cockpit UI, live sentiment telemetry, market data, Bob, committee, guardrails, broker paper integration, and learning loop.",
-    "who_it_is_for": "Marco/F51 and supervised operators validating Bob before real-money escalation.",
-    "main_user_flow": "Open cockpit on http://127.0.0.1:8002, inspect Genie/Deep/chart/broker, click or submit a ticker mandate, let Bob/CASE run evidence before verdict/execution, then record journal/feedback.",
-    "start_command": "powershell -ExecutionPolicy Bypass -File .\\start.ps1 -SkipBrowser",
-    "proof_output": "API /health returns 200, /sentiment/pulse returns news-backed pulses, and the served Genie JS no longer renders Reddit NO_DATA as the ticker-level data state."
+    "what_system_does": "SuperEzio Financeiro is a local AI trading desk with cockpit UI, live sentiment telemetry, market data, Bob, committee, guardrails, broker demo/paper integration, and learning loop.",
+    "who_it_is_for": "Marco/F51 and supervised operators validating Bob inside IBKR Demo/Paper before any live-money escalation.",
+    "main_user_flow": "Open cockpit on http://127.0.0.1:8002, inspect Genie/Deep/chart/IBKR demo portfolio, ask or order through Bob, let the full pipeline/committee/guardrails run, then review stream, portfolio mirror, trace, and journal.",
+    "start_command": "$env:PYTHONPATH='src'; .\\.venv\\Scripts\\python.exe -m agent_server.main",
+    "proof_output": "/task/submit streams a Bob answer, /task/active returns count=0 after stream completion, and the cockpit does not render active-session 429 as a Bob failure."
   },
   "what_was_done": [
-    "Diagnosed the screenshot: NO_DATA was the Reddit/social signal field, not the ticker-level sentiment data state.",
-    "Verified live /sentiment/pulse examples where tickers had news articles, multiple sources, score, confidence, and analyst_score while reddit.signal was NO_DATA.",
-    "Updated frontend/js/genie-panel.js with pulseSignalLabel so cards show NEWS <count> when news exists and SOCIAL -- only when social is empty.",
-    "Updated the Bob TICKER command to include Noticias=<count> and NewsLabel=<label> so Bob does not interpret Reddit=0 as no data.",
-    "Added frontend contract assertions preventing the old ambiguous reddit.signal || NO_DATA rendering from coming back.",
-    "Left IBKR/broker files untouched because another agent is working there."
+    "Investigated the cockpit error shown by Marco: /task/submit 429 with 'Session already has an active task'.",
+    "Confirmed the live API had active Bob tasks stuck in /task/active and cancelled them to unblock the cockpit.",
+    "Found the root cause: submit_task registered tasks in TaskQueue but the normal stream path did not call tq.complete() after STREAM_END.",
+    "Fixed TaskQueue to clean expired session tasks and expose active_for_session() for structured busy-state reporting.",
+    "Fixed /task/submit to return structured 429 detail with code=active_task, run_id, session_id, and elapsed time.",
+    "Fixed the normal stream, error stream, disconnect path, and 'o que houve' intercept path to release the TaskQueue entry in finally.",
+    "Added run_id to STREAM_START and STREAM_END so frontend/runtime panels can tie the visible stream to the queue task.",
+    "Updated frontend API error parsing to preserve status, code, runId, sessionId, elapsed, and detail.",
+    "Added cockpit-side bobBusy locking so button/Enter cannot submit parallel Bob requests from the same tab.",
+    "Changed the active-task UI path to show a local operational notice instead of 'Bob failed to produce a valid answer'.",
+    "Restarted the API on port 8002 with PYTHONPATH=src and verified the live stack."
   ],
   "evidence": {
-    "live_runtime": [
-      "http://127.0.0.1:8002/health returned 200.",
-      "/sentiment/pulse showed USIO/DIBS/INOD etc with scores, confidence, sources, news.articles, and reddit.signal=NO_DATA.",
-      "Served /js/genie-panel.js contains function pulseSignalLabel and Noticias=, and no longer contains esc(reddit.signal || \"NO_DATA\")."
+    "root_cause": [
+      "Before fix, regression test left /task/active count=1 after a completed stream.",
+      "Before fix, active-session 429 returned a string detail, so the UI could not identify run_id or active_task.",
+      "Live /task/active initially showed stuck running tasks; after cancellation and restart it returned count=0."
     ],
     "tests": [
-      "$env:PYTHONPATH='src'; python -m pytest tests\\test_api_routes_sync.py::test_frontend_genie_pulse_click_drives_bob_and_chart tests\\test_sentiment_live_monitor.py tests\\test_watchlist_pulse.py tests\\test_sentiment_curator.py tests\\test_sentiment_endpoints.py -q => 20 passed",
-      "python scripts\\browser_smoke.py --skip-chat --timeout-ms 180000 => ok true, chart_fetch ok, canvas nonblank, console_errors []"
+      "$env:PYTHONPATH='src'; python -m pytest tests\\test_api_routes_sync.py::test_task_submit_releases_session_after_stream tests\\test_api_routes_sync.py::test_task_submit_active_session_returns_structured_429 tests\\test_api_routes_sync.py::test_frontend_bob_submit_blocks_parallel_requests -q => 3 passed",
+      "$env:PYTHONPATH='src'; python -m pytest tests\\test_api_routes_sync.py::test_task_submit_casual_flow tests\\test_api_routes_sync.py::test_task_submit_broker_status_ignores_ibkr_ui_ticker tests\\test_api_routes_sync.py::test_task_submit_quality_gate_flags_low_score tests\\test_api_routes_sync.py::test_task_submit_empty_fallback tests\\test_api_routes_sync.py::test_task_submit_what_happened_intercept tests\\test_runtime_bob_fixes.py tests\\test_no_empty_response_and_trace.py -q => 13 passed",
+      "python scripts\\browser_smoke.py --skip-chat --timeout-ms 180000 => ok true, chart_fetch ok, canvas nonblank, console_errors [], screenshot output\\playwright\\superezio-browser-smoke-20260617-160526.png"
+    ],
+    "live_api": [
+      "http://127.0.0.1:8002/health returned status=ok.",
+      "http://127.0.0.1:8002/task/active returned count=0.",
+      "/cockpit/portfolio returned connected=true, mode=paper_order_enabled, equity=99,971.80, positions_count=9, orders_count=1."
     ],
     "changed_files": [
-      "frontend/js/genie-panel.js",
+      "src/core/pipeline/task_queue.py",
+      "src/agent_server/endpoints.py",
+      "frontend/js/api.js",
+      "frontend/js/init.js",
+      "frontend/css/chat.css",
       "tests/test_api_routes_sync.py",
       ".f51/checkpoints/latest.json"
     ]
   },
   "risks": [
-    "Some backend source labels can still be NO_DATA even when article counts exist; the UI now avoids presenting that as total absence of data.",
-    "NewsAPI quota can still be exhausted during per-ticker collection, but this issue was not the cause of the screenshot label."
+    "NewsAPI is still returning HTTP 429 quota errors; this is separate from Bob task locking and affects sentiment/news richness.",
+    "Runtime-generated files changed during live validation: data/conversation_memory.jsonl and runtime/traces/decision_trace_20260617.jsonl.",
+    "The cockpit now prevents same-tab double sends; cross-tab/server busy sessions return structured 429 and visible notice, but a dedicated cancel button can still be added later."
   ],
-  "next_step": "Add explicit per-source health chips in the Genie card if Marco wants to see NewsAPI/Finnhub/NewsScout/Reddit status separately instead of one compact signal label.",
+  "next_step": "Run one real cockpit chat request after Ctrl+Shift+R and confirm Bob streams normally; then send a second request while Bob is still thinking to verify the UI shows the busy notice instead of the old red failure.",
   "owner": "Codex",
   "github_policy": "DISK_ONLY_GITHUB_BLOCKED",
-  "updated": "2026-06-17T16:57:36Z"
+  "updated": "2026-06-17T20:05:42Z"
 }

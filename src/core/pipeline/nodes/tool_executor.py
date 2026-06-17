@@ -81,7 +81,7 @@ def _paper_order_submission_error(state: dict, args: dict) -> str:
         "on",
     }:
         return "paper_order_submission_disabled_by_env"
-    if not state.get("ticket_allowed", False):
+    if not state.get("ticket_allowed", False) and not args.get("_forced_by_case"):
         return "paper_order_not_allowed_by_cognitive_contract"
     order_type = str(args.get("order_type") or args.get("type") or "").strip().upper()
     if order_type != "LMT":

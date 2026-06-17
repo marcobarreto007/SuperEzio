@@ -89,9 +89,18 @@ class TaskQueue:
         if session_id and session_id in self._by_session:
             existing_run_id = self._by_session[session_id]
             existing = self._active.get(existing_run_id)
-            if existing and not existing.expired:
+            if existing and existing.expired:
+                existing.status = "timeout"
+                self._archive(existing)
+                self._active.pop(existing_run_id, None)
+                self._by_session.pop(session_id, None)
+                logger.warning(
+                    "[task_queue] Expired task %s removed before new submit",
+                    existing_run_id,
+                )
+            elif existing:
                 logger.warning("[task_queue] Session %s already has active task %s", session_id, existing_run_id)
-                return None  # Rejeita — sessão ocupada
+                return None
 
         task = Task(
             run_id=str(uuid.uuid4())[:12],
@@ -127,6 +136,22 @@ class TaskQueue:
 
     def get(self, run_id: str) -> Task | None:
         return self._active.get(run_id)
+
+    def active_for_session(self, session_id: str) -> Task | None:
+        """Return the active task for a browser/session id, if it is still live."""
+        if not session_id:
+            return None
+        run_id = self._by_session.get(session_id)
+        if not run_id:
+            return None
+        task = self._active.get(run_id)
+        if task and task.expired:
+            task.status = "timeout"
+            self._archive(task)
+            self._active.pop(run_id, None)
+            self._by_session.pop(session_id, None)
+            return None
+        return task
 
     def status(self, run_id: str) -> dict[str, Any]:
         task = self._active.get(run_id)

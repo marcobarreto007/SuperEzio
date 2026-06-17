@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
+import asyncio
 import threading
 import time
 from datetime import datetime, timezone
@@ -89,6 +90,7 @@ class IBKRService:
 
         # Daemon thread for background refresh
         self._thread: threading.Thread | None = None
+        self._cache_ready_event = threading.Event()
 
         # Status tracking
         self._started_at: float = time.monotonic()
@@ -125,6 +127,7 @@ class IBKRService:
             return True
 
         try:
+            self._ensure_thread_event_loop()
             from ib_insync import IB
 
             self._ib = IB()
@@ -148,6 +151,15 @@ class IBKRService:
             logger.warning("[IBKRService] Connection failed: %s", self._last_error)
             self._connected = False
             return False
+
+    @staticmethod
+    def _ensure_thread_event_loop() -> None:
+        """Ensure ib_insync has an asyncio loop in daemon worker threads."""
+
+        try:
+            asyncio.get_event_loop()
+        except RuntimeError:
+            asyncio.set_event_loop(asyncio.new_event_loop())
 
     def _disconnect(self) -> None:
         """Disconnect from IBKR."""
@@ -235,6 +247,7 @@ class IBKRService:
             with self._lock:
                 self._positions_cache = positions
                 self._cache_time = time.monotonic()
+                self._cache_ready_event.set()
 
             logger.debug("[IBKRService] Refreshed positions: %d items", len(positions))
 
@@ -253,6 +266,7 @@ class IBKRService:
 
             with self._lock:
                 self._equity_cache = equity
+                self._cache_ready_event.set()
 
             logger.debug("[IBKRService] Refreshed equity: $%s", equity)
 
@@ -283,6 +297,11 @@ class IBKRService:
         # Force refresh
         if self._stop_event.is_set():
             return []
+
+        if not force_refresh and threading.current_thread() is not self._thread:
+            self._cache_ready_event.wait(timeout=max(0.0, wait_timeout))
+            with self._lock:
+                return list(self._positions_cache)
 
         # Trigger refresh and wait
         self._refresh()
@@ -317,6 +336,11 @@ class IBKRService:
         # Force refresh
         if self._stop_event.is_set():
             return 0.0
+
+        if not force_refresh and threading.current_thread() is not self._thread:
+            self._cache_ready_event.wait(timeout=max(0.0, wait_timeout))
+            with self._lock:
+                return self._equity_cache
 
         self._refresh()
         deadline = time.monotonic() + wait_timeout

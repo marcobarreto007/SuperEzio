@@ -438,11 +438,46 @@
     };
   }
 
+  function setBobBusy(isBusy, runId) {
+    if (!window.SZ.state) window.SZ.state = {};
+    window.SZ.state.bobBusy = !!isBusy;
+    window.SZ.state.activeBobRunId = isBusy ? (runId || window.SZ.state.activeBobRunId || "") : "";
+    var inp = document.getElementById("user-inp");
+    var btn = document.getElementById("send-btn");
+    if (inp) inp.disabled = !!isBusy;
+    if (btn) {
+      btn.disabled = !!isBusy;
+      btn.classList.toggle("is-busy", !!isBusy);
+      btn.setAttribute("aria-busy", isBusy ? "true" : "false");
+    }
+  }
+
+  function showBobNotice(message) {
+    var chat = document.getElementById("chat");
+    if (!chat) return;
+    var div = document.createElement("div");
+    div.className = "bob-local-notice";
+    div.textContent = message;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function isActiveTaskError(err) {
+    return !!err && (err.status === 429 || err.code === "active_task");
+  }
+
   async function submit(msg) {
     if (!msg || !msg.trim()) return;
     msg = msg.trim();
 
     if (!window.SZ.state) window.SZ.state = {};
+    if (window.SZ.state.bobBusy) {
+      var activeId = window.SZ.state.activeBobRunId || "active";
+      showBobNotice("Bob ainda esta processando a tarefa " + activeId + ". Aguarde terminar antes de enviar outra pergunta.");
+      return false;
+    }
+    setBobBusy(true);
+
     window.SZ.state.trace = {
       user_query: msg,
       detected_intent: "unknown",
@@ -460,8 +495,6 @@
 
     var inp = document.getElementById("user-inp");
     var btn = document.getElementById("send-btn");
-    if (inp) inp.disabled = true;
-    if (btn) btn.disabled = true;
 
     var welcome = document.querySelector("#chat .bob-welcome");
     if (welcome) welcome.remove();
@@ -473,7 +506,8 @@
 
     /* show user message */
     SZ.chat.addMessage("user");
-    var lastMsg = document.getElementById("chat").lastElementChild;
+    var userMsgNode = document.getElementById("chat").lastElementChild;
+    var lastMsg = userMsgNode;
     if (lastMsg) {
       var bubble = lastMsg.querySelector(".msg-bubble");
       if (bubble) bubble.textContent = msg;
@@ -532,16 +566,21 @@
 
     } catch (err) {
       console.error("[SZ] submit error:", err);
+      if (isActiveTaskError(err)) {
+        if (userMsgNode && userMsgNode.parentNode) userMsgNode.parentNode.removeChild(userMsgNode);
+        var runId = err.runId || (err.detail && err.detail.run_id) || "active";
+        showBobNotice("Bob ainda esta trabalhando na tarefa " + runId + ". Espere o stream terminar antes de mandar outra pergunta.");
+        return false;
+      }
       if (SZ.handleEvent) {
         SZ.handleEvent({ type: "ERROR", message: "Connection error: " + err.message });
         SZ.handleEvent({ type: "STREAM_END" });
       }
-      if (inp) inp.disabled = false;
-      if (btn) btn.disabled = false;
+      return false;
     } finally {
-      if (inp) inp.disabled = false;
-      if (btn) btn.disabled = false;
+      setBobBusy(false);
     }
+    return true;
   }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -791,13 +830,20 @@
     /* SEND button */
     var sendBtn = document.getElementById("send-btn");
     if (sendBtn) {
-      sendBtn.addEventListener("click", function () {
+      sendBtn.addEventListener("click", async function () {
         var inp = document.getElementById("user-inp");
         if (inp && inp.value.trim()) {
-          submit(inp.value);
+          var text = inp.value;
           inp.value = "";
           if (!hasFieldSizing) {
             inp.style.height = "auto";
+          }
+          var accepted = await submit(text);
+          if (accepted === false) {
+            inp.value = text;
+            if (!hasFieldSizing) {
+              inp.dispatchEvent(new Event("input"));
+            }
           }
         }
       });
@@ -806,14 +852,21 @@
     /* USER_INP keydown Enter */
     var userInp = document.getElementById("user-inp");
     if (userInp) {
-      userInp.addEventListener("keydown", function (e) {
+      userInp.addEventListener("keydown", async function (e) {
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
           if (userInp.value.trim()) {
-            submit(userInp.value);
+            var text = userInp.value;
             userInp.value = "";
             if (!hasFieldSizing) {
               userInp.style.height = "auto";
+            }
+            var accepted = await submit(text);
+            if (accepted === false) {
+              userInp.value = text;
+              if (!hasFieldSizing) {
+                userInp.dispatchEvent(new Event("input"));
+              }
             }
           }
         }

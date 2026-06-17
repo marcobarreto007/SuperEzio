@@ -319,10 +319,12 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
     service = get_ibkr_service()
     service_status = service.get_status()
 
-    # Use service status if available, fallback to mission_context
-    connected = service_status.get("connected", False) and service_status.get("can_read", False)
     positions = service.get_positions()
     equity_float = service.get_account_equity()
+    service_status = service.get_status()
+
+    # Use service status after cache reads; first request may wait for the worker refresh.
+    connected = service_status.get("connected", False) and service_status.get("can_read", False)
     equity = f"{equity_float:,.2f}" if equity_float > 0 else broker.get("account_equity") or "100000.00"
     positions_count = len(positions)
 
@@ -1189,7 +1191,17 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
     session_id_raw = (envelope.payload or {}).get("session_id") if isinstance(envelope.payload, dict) else ""
     task = tq.submit(message=str(envelope.payload), session_id=str(session_id_raw))
     if task is None:
-        raise HTTPException(status_code=429, detail="Session already has an active task. Cancel it first or wait.")
+        active = tq.active_for_session(str(session_id_raw))
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "code": "active_task",
+                "message": "Bob is already processing another request for this session. Wait for it to finish or cancel it.",
+                "run_id": active.run_id if active else "",
+                "session_id": str(session_id_raw),
+                "elapsed": round(active.elapsed, 3) if active else 0,
+            },
+        )
 
     pipeline = _get_pipeline(request)
 
@@ -1245,25 +1257,37 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                 }
 
                 async def stream_intercepted() -> AsyncGenerator[str, None]:
-                    yield json.dumps({"type": "STREAM_START", "msg_id": envelope.msg_id}) + "\n"
-                    yield (
-                        json.dumps({"type": "CHUNK", "content": explanation}, ensure_ascii=False)
-                        + "\n"
-                    )
-                    trace = {
-                        "user_query": raw_message,
-                        "detected_intent": "WHAT_HAPPENED_INTERCEPT",
-                        "selected_ui_ticker": "",
-                        "chart_context_attached": False,
-                        "route_used": "general",
-                        "scanner_invoked": False,
-                        "agent_called": False,
-                        "fallback_used": False,
-                        "final_content_length": len(explanation),
-                    }
-                    logger.info("Bob Response Trace (Intercepted): %s", json.dumps(trace))
-                    request.app.state.last_decision_trace = trace
-                    yield json.dumps({"type": "STREAM_END", "trace": trace}) + "\n"
+                    try:
+                        yield (
+                            json.dumps(
+                                {
+                                    "type": "STREAM_START",
+                                    "msg_id": envelope.msg_id,
+                                    "run_id": task.run_id,
+                                }
+                            )
+                            + "\n"
+                        )
+                        yield (
+                            json.dumps({"type": "CHUNK", "content": explanation}, ensure_ascii=False)
+                            + "\n"
+                        )
+                        trace = {
+                            "user_query": raw_message,
+                            "detected_intent": "WHAT_HAPPENED_INTERCEPT",
+                            "selected_ui_ticker": "",
+                            "chart_context_attached": False,
+                            "route_used": "general",
+                            "scanner_invoked": False,
+                            "agent_called": False,
+                            "fallback_used": False,
+                            "final_content_length": len(explanation),
+                        }
+                        logger.info("Bob Response Trace (Intercepted): %s", json.dumps(trace))
+                        request.app.state.last_decision_trace = trace
+                        yield json.dumps({"type": "STREAM_END", "trace": trace, "run_id": task.run_id}) + "\n"
+                    finally:
+                        tq.complete(task.run_id)
 
                 return StreamingResponse(stream_intercepted(), media_type="application/x-ndjson")
 
@@ -1357,7 +1381,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
             answer_repaired = False
             if detected_ticker:
                 yield (json.dumps({"type": "CHART_DATA", "ticker": detected_ticker}) + "\n")
-            yield json.dumps({"type": "STREAM_START", "msg_id": envelope.msg_id}) + "\n"
+            yield json.dumps({"type": "STREAM_START", "msg_id": envelope.msg_id, "run_id": task.run_id}) + "\n"
 
             try:
                 if hasattr(pipeline, "stream_events"):
@@ -1695,7 +1719,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
 
                 _session_history[session_id] = session_record
 
-                yield json.dumps({"type": "STREAM_END", "trace": trace}) + "\n"
+                yield json.dumps({"type": "STREAM_END", "trace": trace, "run_id": task.run_id}) + "\n"
             except asyncio.CancelledError:
                 # Client disconnected. Let the pipeline tear down naturally
                 # without propagating cancellation to the LLM backend — this
@@ -1770,13 +1794,17 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     "failed": True,
                 }
 
-                yield json.dumps({"type": "STREAM_END", "trace": trace}) + "\n"
+                yield json.dumps({"type": "STREAM_END", "trace": trace, "run_id": task.run_id}) + "\n"
+            finally:
+                tq.complete(task.run_id)
 
         return StreamingResponse(stream_result(), media_type="application/x-ndjson")
 
     except HTTPException:
+        tq.complete(task.run_id)
         raise
     except Exception as exc:
+        tq.complete(task.run_id)
         raise HTTPException(status_code=500, detail=_safe_error_detail(exc)) from exc
 
 

@@ -17,6 +17,7 @@ from fastapi.testclient import TestClient
 from agent_server.main import app
 from agent_server.endpoints import _session_history
 from core.observability import log_queue
+from core.pipeline.task_queue import get_task_queue
 
 
 # ---------------------------------------------------------------------------
@@ -170,6 +171,45 @@ def test_cockpit_portfolio(client_with_mock_pipeline):
     assert isinstance(data["trade_history"], list)
     assert "trade_stats" in data
     assert "selected_ticker" in data
+
+
+def test_cockpit_portfolio_marks_connected_after_service_cache_refresh(
+    client_with_mock_pipeline, monkeypatch
+):
+    """GET /cockpit/portfolio recomputes connection after IBKRService fills cache."""
+    import adapters.broker as broker_module
+
+    class FakeService:
+        def __init__(self):
+            self.status_calls = 0
+
+        def get_status(self):
+            self.status_calls += 1
+            return {
+                "connected": self.status_calls > 1,
+                "can_read": self.status_calls > 1,
+            }
+
+        def get_positions(self):
+            return [{"symbol": "PLUG", "ticker": "PLUG", "quantity": 10}]
+
+        def get_account_equity(self):
+            return 99995.59
+
+        def get_open_orders(self):
+            return []
+
+    service = FakeService()
+    monkeypatch.setattr(broker_module, "get_ibkr_service", lambda: service)
+    _, client = client_with_mock_pipeline
+
+    response = client.get("/cockpit/portfolio")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["connected"] is True
+    assert data["positions_count"] == 1
+    assert data["selected_ticker"] == "PLUG"
 
 
 def test_cockpit_portfolio_separates_broker_local_and_history(
@@ -576,6 +616,68 @@ def test_task_submit_casual_flow(client_with_mock_pipeline):
     assert trace["fallback_used"] is False
 
 
+def test_task_submit_releases_session_after_stream(client_with_mock_pipeline):
+    """Completed Bob streams must not leave the browser session locked."""
+    mock_p, client = client_with_mock_pipeline
+    tq = get_task_queue()
+    tq._active.clear()
+    tq._by_session.clear()
+
+    mock_p.events_to_yield = [
+        {"type": "STREAM_START", "msg_id": "test-msg-release"},
+        {"type": "INTENT_CLASSIFIED", "intent": "general_question", "route": "general"},
+        {"type": "CHUNK", "content": "Positions are visible."},
+    ]
+    payload = {
+        "version": "a2a/1.0",
+        "from": "user",
+        "to": "superezio",
+        "type": "TASK.SUBMIT",
+        "payload": {
+            "message": "Bob, quais sao nossas posicoes?",
+            "session_id": "session-release-test",
+        },
+    }
+
+    response = client.post("/task/submit", json=payload)
+
+    assert response.status_code == 200
+    assert client.get("/task/active").json() == {"count": 0, "tasks": []}
+
+    second = client.post("/task/submit", json=payload)
+    assert second.status_code == 200
+    assert client.get("/task/active").json() == {"count": 0, "tasks": []}
+
+
+def test_task_submit_active_session_returns_structured_429(client_with_mock_pipeline):
+    """The UI needs the active run id to explain and unblock a busy Bob session."""
+    _mock_p, client = client_with_mock_pipeline
+    tq = get_task_queue()
+    tq._active.clear()
+    tq._by_session.clear()
+    active = tq.submit("still running", session_id="session-busy-test")
+
+    payload = {
+        "version": "a2a/1.0",
+        "from": "user",
+        "to": "superezio",
+        "type": "TASK.SUBMIT",
+        "payload": {
+            "message": "Bob, segunda pergunta",
+            "session_id": "session-busy-test",
+        },
+    }
+
+    response = client.post("/task/submit", json=payload)
+
+    assert response.status_code == 429
+    detail = response.json()["detail"]
+    assert detail["code"] == "active_task"
+    assert detail["run_id"] == active.run_id
+    assert detail["session_id"] == "session-busy-test"
+    assert "already processing" in detail["message"]
+
+
 def test_task_submit_broker_status_ignores_ibkr_ui_ticker(client_with_mock_pipeline):
     """Broker status questions about IBKR must not become ticker analysis."""
     mock_p, client = client_with_mock_pipeline
@@ -788,6 +890,25 @@ def test_frontend_ops_console_integration():
     assert "ops-console-btn" in init_js
     assert "ops-console-close" in init_js
     assert "SZ.opsConsole.toggle" in init_js
+
+
+def test_frontend_bob_submit_blocks_parallel_requests():
+    """The cockpit must not turn active Bob sessions into generic failure bubbles."""
+    from pathlib import Path
+
+    api_js = Path("frontend/js/api.js").read_text(encoding="utf-8")
+    init_js = Path("frontend/js/init.js").read_text(encoding="utf-8")
+    chat_css = Path("frontend/css/chat.css").read_text(encoding="utf-8")
+
+    assert "fetchActiveTasks()" in api_js
+    assert "cancelTask(runId)" in api_js
+    assert 'err.code = rawDetail.code || ""' in api_js
+    assert "setBobBusy(true)" in init_js
+    assert "window.SZ.state.bobBusy" in init_js
+    assert "isActiveTaskError(err)" in init_js
+    assert "Bob ainda esta trabalhando" in init_js
+    assert "accepted === false" in init_js
+    assert ".bob-local-notice" in chat_css
 
 
 def test_frontend_ibkr_order_mirror_integration():

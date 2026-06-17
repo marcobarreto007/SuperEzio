@@ -81,6 +81,18 @@
   box-shadow: 0 4px 16px rgba(0, 230, 118, 0.04);
 }
 
+.bob-local-notice {
+  align-self: stretch;
+  color: #ffb300;
+  background: rgba(255, 179, 0, 0.08);
+  border: 1px solid rgba(255, 179, 0, 0.20);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 4px 0;
+  padding: 8px 10px;
+}
+
 .msg-meta {
   display: flex;
   gap: 8px;
