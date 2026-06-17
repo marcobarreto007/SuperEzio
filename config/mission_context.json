@@ -97,7 +97,7 @@
         "paper_port": true,
         "live_port_warning": false,
         "mode": "paper_order_enabled",
-        "account_equity": "100000.00",
+        "account_equity": "10000.00",
         "positions_count": 0,
         "can_read_account": true,
         "can_read_positions": true,
@@ -116,7 +116,7 @@
     "paper_trading": {
       "active": true,
       "mode": "paper_order_submit_via_ibkr_tool",
-      "equity": "100000.00 USD",
+      "equity": "10000.00 USD",
       "max_position_pct": 10,
       "max_risk_per_trade_pct": 2,
       "rules": [
