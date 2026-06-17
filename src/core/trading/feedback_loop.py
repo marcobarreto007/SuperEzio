@@ -85,6 +85,8 @@ class Lesson:
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     category: str = "general"  # "entry" | "exit" | "thesis" | "risk" | "sector"
     applicable_tickers: list[str] = field(default_factory=list)
+    pain_score: float = 0.0  # 0-1, quão dolorosa foi a lição (para XP system)
+    xp_impact: int = 0  # Impacto em XP (negativo = lição de erro, positivo = lição de sucesso)
 
 
 class PatternAnalyzer:
@@ -580,6 +582,7 @@ class FeedbackLoop:
         journal_path: Path | None = None,
         learning_log_path: Path | None = None,
         conversation_memory: Any | None = None,
+        xp_system: Any | None = None,
     ):
         from core.trading.paper_journal import PaperJournal
 
@@ -588,6 +591,7 @@ class FeedbackLoop:
         self._pattern_analyzer = PatternAnalyzer(self._journal)
         self._lesson_extractor = LessonExtractor(self._journal)
         self._conversation_memory = conversation_memory
+        self._xp_system = xp_system  # XPSystem opcional (singleton se None)
 
     def run_learning_cycle(self, *, record_memory: bool = True) -> dict[str, Any]:
         """Executa um ciclo completo de aprendizado."""
@@ -649,7 +653,15 @@ class FeedbackLoop:
         except Exception as e:
             logger.warning("Bias analysis failed: %s", e)
 
-        # 3. Gera relatório para Bob
+        # 3. Atualiza XP baseado em trades fechados
+        try:
+            xp_results = self._update_xp_from_closed_trades()
+            results["xp_updates"] = xp_results
+            logger.info("XP updated: %d events", len(xp_results.get("events", [])))
+        except Exception as e:
+            logger.warning("XP update failed: %s", e)
+
+        # 4. Gera relatório para Bob
         try:
             bob_context = self.render_for_bob()
             results["bob_context"] = bob_context
@@ -780,6 +792,19 @@ class FeedbackLoop:
             sections.append(f"* Acao: {bias_report['recommendation']}")
             sections.append("\n=== FIM DA CALIBRACAO ===\n")
 
+        # 4. XP & Level (se disponível)
+        if self._xp_system is None:
+            try:
+                from .xp_system import get_xp_system
+                self._xp_system = get_xp_system()
+            except ImportError:
+                pass
+
+        if self._xp_system:
+            xp_text = self._xp_system.render_for_bob(max_chars=800)
+            if xp_text:
+                sections.append(xp_text)
+
         return "\n".join(sections)
 
     def get_stats(self) -> dict[str, Any]:
@@ -874,6 +899,95 @@ class FeedbackLoop:
                 f"Actual win rate {actual_wr:.0%} vs declared confidence {avg_conf:.0%}. "
                 f"Suggested confidence multiplier: {factor:.2f}"
             )
+        }
+
+    def _update_xp_from_closed_trades(self) -> dict[str, Any]:
+        """Atualiza XP baseado em trades fechados recentemente.
+
+        Returns:
+            Dict com eventos de XP criados
+        """
+        if self._xp_system is None:
+            try:
+                from .xp_system import get_xp_system
+                self._xp_system = get_xp_system()
+            except ImportError:
+                return {"status": "xp_system_unavailable", "events": []}
+
+        # Buscar trades fechados nas últimas 24h que não foram processados para XP
+        closed_trades = self._journal.list_closed()
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+
+        events = []
+        win_count = 0
+        loss_count = 0
+
+        for trade in closed_trades:
+            trade_id = trade.get("trade_id", "")
+            exit_date_str = trade.get("exit_date", "")
+
+            # Pular trades sem data de saída ou muito antigos
+            if not exit_date_str:
+                continue
+
+            try:
+                exit_date = _parse_utc_datetime(exit_date_str)
+                if exit_date is None or exit_date < cutoff:
+                    continue
+            except Exception:
+                continue
+
+            outcome = trade.get("outcome", "")
+            pnl = trade.get("pnl_amount") or 0
+            thesis_correct = trade.get("thesis_correct")
+            context = {
+                "trade_id": trade_id,
+                "ticker": trade.get("ticker", ""),
+                "pnl_amount": pnl,
+                "thesis_correct": thesis_correct,
+                "exit_reason": trade.get("exit_reason", ""),
+            }
+
+            # Registrar outcome no XP system
+            try:
+                event = self._xp_system.record_trade_outcome(
+                    outcome=outcome,
+                    pnl_amount=pnl,
+                    thesis_correct=thesis_correct,
+                    trade_id=trade_id,
+                    context=context,
+                )
+                if event:
+                    events.append(event.to_dict())
+
+                    if outcome == "win":
+                        win_count += 1
+                    elif outcome == "loss":
+                        loss_count += 1
+            except Exception as e:
+                logger.warning("Failed to record XP for trade %s: %s", trade_id, e)
+
+        # Registrar streaks
+        if win_count >= 3:
+            try:
+                streak_event = self._xp_system.record_streak("win", win_count)
+                events.append(streak_event.to_dict())
+            except Exception as e:
+                logger.warning("Failed to record win streak: %s", e)
+
+        elif loss_count >= 3:
+            try:
+                streak_event = self._xp_system.record_streak("loss", loss_count)
+                events.append(streak_event.to_dict())
+            except Exception as e:
+                logger.warning("Failed to record loss streak: %s", e)
+
+        return {
+            "status": "updated",
+            "events_count": len(events),
+            "events": events,
+            "win_count": win_count,
+            "loss_count": loss_count,
         }
 
     def record_trade_confidence(self, trade_id: str, confidence: float) -> bool:

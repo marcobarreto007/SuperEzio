@@ -932,6 +932,7 @@ def test_frontend_ops_console_integration():
 
     html = Path("frontend/index.html").read_text(encoding="utf-8")
     init_js = Path("frontend/js/init.js").read_text(encoding="utf-8")
+    cockpit_js = Path("frontend/js/cockpit.js").read_text(encoding="utf-8")
     ops_js = Path("frontend/js/ops-console.js").read_text(encoding="utf-8")
     ops_css = Path("frontend/css/ops-console.css").read_text(encoding="utf-8")
 
@@ -957,6 +958,10 @@ def test_frontend_ops_console_integration():
     assert "broker-status-btn" in init_js
     assert "ops-console-btn" in init_js
     assert "IBKR TRADE" not in init_js
+    assert "modeLabel" in cockpit_js
+    assert "PAPER" in cockpit_js
+    assert "positions_count" in cockpit_js
+    assert "orders_count" in cockpit_js
     assert "ops-console-close" in init_js
     assert "SZ.opsConsole.toggle" in init_js
 

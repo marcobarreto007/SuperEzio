@@ -46,7 +46,16 @@
     setText("statusbar-deep", "Deep: " + (deepStatus || "OFFLINE"));
 
     mark($("statusbar-ibkr"), ibkrOk ? "is-ok" : "is-warn");
-    setText("statusbar-ibkr", "IBKR: " + (ibkrOk ? (typeof data.ibkr === "object" ? (data.ibkr.equity || "Paper") : "Paper") : "OFFLINE"));
+    if (ibkrOk && typeof data.ibkr === "object") {
+      var ibkr = data.ibkr;
+      var modeLabel = ibkr.paper === true ? "PAPER" : "LIVE BLOCKED";
+      var equity = ibkr.equity || "--";
+      var positions = ibkr.positions_count == null ? "--" : ibkr.positions_count;
+      var orders = ibkr.orders_count == null ? "--" : ibkr.orders_count;
+      setText("statusbar-ibkr", "IBKR " + modeLabel + ": $" + equity + " (" + positions + " pos, " + orders + " ord)");
+    } else {
+      setText("statusbar-ibkr", "IBKR: " + (ibkrOk ? "PAPER" : "OFFLINE"));
+    }
 
     var guards = data.guardrails || {};
     var guardsOk = guards.ok || data.guards_ok || 30;

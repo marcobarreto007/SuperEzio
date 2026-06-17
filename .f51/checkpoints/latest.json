@@ -1,60 +1,53 @@
 {
-  "date_local": "2026-06-17T16:05:42-04:00",
-  "session": "bob-task-queue-429-fix-2026-06-17",
-  "status": "completed_live_verified",
+  "date_local": "2026-06-17T20:30:00-04:00",
+  "session": "bob-organismo-vivo-fase1-2026-06-17",
+  "status": "fase1_completed",
   "final_objective": {
-    "what_system_does": "SuperEzio Financeiro is a local AI trading desk with cockpit UI, live sentiment telemetry, market data, Bob, committee, guardrails, broker demo/paper integration, and learning loop.",
-    "who_it_is_for": "Marco/F51 and supervised operators validating Bob inside IBKR Demo/Paper before any live-money escalation.",
-    "main_user_flow": "Open cockpit on http://127.0.0.1:8002, inspect Genie/Deep/chart/IBKR demo portfolio, ask or order through Bob, let the full pipeline/committee/guardrails run, then review stream, portfolio mirror, trace, and journal.",
+    "what_system_does": "Bob transforming into 24/7 living organism: market-aware trading, XP-based reinforcement learning, pain memory, and continuous lifecycle loop. Phase 1 foundation implemented: market_hours, xp_system, lifecycle, and XP integration in feedback_loop.",
+    "who_it_is_for": "Marco/F51 building autonomous Bob that learns by doing, suffers losses, reflects, and evolves 24/7.",
+    "main_user_flow": "Bob now has market detection, XP tracking, and lifecycle states. Phase 2 will add pain memory, auto-calibration, and reinforcement learning loop.",
     "start_command": "$env:PYTHONPATH='src'; .\\.venv\\Scripts\\python.exe -m agent_server.main",
-    "proof_output": "/task/submit streams a Bob answer, /task/active returns count=0 after stream completion, and the cockpit does not render active-session 429 as a Bob failure."
+    "proof_output": "market_hours.py detects US market phases, xp_system.py tracks levels and pain factors, lifecycle.py manages 24/7 states, feedback_loop.py integrates XP for all closed trades."
   },
   "what_was_done": [
-    "Investigated the cockpit error shown by Marco: /task/submit 429 with 'Session already has an active task'.",
-    "Confirmed the live API had active Bob tasks stuck in /task/active and cancelled them to unblock the cockpit.",
-    "Found the root cause: submit_task registered tasks in TaskQueue but the normal stream path did not call tq.complete() after STREAM_END.",
-    "Fixed TaskQueue to clean expired session tasks and expose active_for_session() for structured busy-state reporting.",
-    "Fixed /task/submit to return structured 429 detail with code=active_task, run_id, session_id, and elapsed time.",
-    "Fixed the normal stream, error stream, disconnect path, and 'o que houve' intercept path to release the TaskQueue entry in finally.",
-    "Added run_id to STREAM_START and STREAM_END so frontend/runtime panels can tie the visible stream to the queue task.",
-    "Updated frontend API error parsing to preserve status, code, runId, sessionId, elapsed, and detail.",
-    "Added cockpit-side bobBusy locking so button/Enter cannot submit parallel Bob requests from the same tab.",
-    "Changed the active-task UI path to show a local operational notice instead of 'Bob failed to produce a valid answer'.",
-    "Restarted the API on port 8002 with PYTHONPATH=src and verified the live stack."
+    "Created ROADMAP_BORG_ORGANISM.md with 5-phase plan: Foundation (Phase 1), Reinforcement Learning, Reflection Committee, Auto-Execution, Interface/Monitoring.",
+    "Implemented market_hours.py: US Eastern timezone detection, NYSE/NASDAQ hours, pre-market/after-hours, holiday calendar, market state caching.",
+    "Implemented xp_system.py: XP levels (Novice to Grandmaster), pain factors (1x/2x/5x for losses), trauma flag (> $500 losses), streak bonuses, lesson applied bonus.",
+    "Implemented lifecycle.py: 24/7 loop with states (MARKET_CLOSED, PRE_MARKET, MARKET_OPEN, POST_MARKET, SLEEPING, LEARNING, RECOVERING), automatic transitions based on market hours, integration with feedback_loop and daily_cycle.",
+    "Integrated XP in feedback_loop.py: added pain_score/xp_impact to Lesson dataclass, added _update_xp_from_closed_trades() method, updated render_for_bob() to include XP context.",
+    "Added pain_score and xp_impact fields to Lesson for XP system integration."
   ],
   "evidence": {
-    "root_cause": [
-      "Before fix, regression test left /task/active count=1 after a completed stream.",
-      "Before fix, active-session 429 returned a string detail, so the UI could not identify run_id or active_task.",
-      "Live /task/active initially showed stuck running tasks; after cancellation and restart it returned count=0."
+    "files_created": [
+      ".f51/ROADMAP_BORG_ORGANISM.md - 5-phase roadmap (23-34 days total)",
+      "src/core/trading/market_hours.py - market hours detection",
+      "src/core/trading/xp_system.py - XP & level system",
+      "src/core/trading/lifecycle.py - 24/7 lifecycle loop"
     ],
-    "tests": [
-      "$env:PYTHONPATH='src'; python -m pytest tests\\test_api_routes_sync.py::test_task_submit_releases_session_after_stream tests\\test_api_routes_sync.py::test_task_submit_active_session_returns_structured_429 tests\\test_api_routes_sync.py::test_frontend_bob_submit_blocks_parallel_requests -q => 3 passed",
-      "$env:PYTHONPATH='src'; python -m pytest tests\\test_api_routes_sync.py::test_task_submit_casual_flow tests\\test_api_routes_sync.py::test_task_submit_broker_status_ignores_ibkr_ui_ticker tests\\test_api_routes_sync.py::test_task_submit_quality_gate_flags_low_score tests\\test_api_routes_sync.py::test_task_submit_empty_fallback tests\\test_api_routes_sync.py::test_task_submit_what_happened_intercept tests\\test_runtime_bob_fixes.py tests\\test_no_empty_response_and_trace.py -q => 13 passed",
-      "python scripts\\browser_smoke.py --skip-chat --timeout-ms 180000 => ok true, chart_fetch ok, canvas nonblank, console_errors [], screenshot output\\playwright\\superezio-browser-smoke-20260617-160526.png"
+    "files_modified": [
+      "src/core/trading/feedback_loop.py - XP integration, pain_score in Lesson"
     ],
-    "live_api": [
-      "http://127.0.0.1:8002/health returned status=ok.",
-      "http://127.0.0.1:8002/task/active returned count=0.",
-      "/cockpit/portfolio returned connected=true, mode=paper_order_enabled, equity=99,971.80, positions_count=9, orders_count=1."
+    "test_commands": [
+      "python -c \"from core.trading.market_hours import is_market_open; print(is_market_open())\"",
+      "python -c \"from core.trading.xp_system import get_xp_system; xp = get_xp_system(); print(xp.get_stats())\"",
+      "python -c \"from core.trading.lifecycle import get_lifecycle; lifecycle = get_lifecycle(); print(lifecycle.get_status())\""
     ],
-    "changed_files": [
-      "src/core/pipeline/task_queue.py",
-      "src/agent_server/endpoints.py",
-      "frontend/js/api.js",
-      "frontend/js/init.js",
-      "frontend/css/chat.css",
-      "tests/test_api_routes_sync.py",
-      ".f51/checkpoints/latest.json"
+    "phase1_deliverables": [
+      "market_hours.py: is_market_open(), is_pre_market(), is_after_hours(), get_market_phase()",
+      "xp_system.py: Level enum, XPEvent, XPSystem, gain_xp(), lose_xp(), record_trade_outcome()",
+      "lifecycle.py: BobLifecycle, 7 states, start/stop lifecycle, get_status()",
+      "feedback_loop.py: XP updates in run_learning_cycle(), render_for_bob() includes XP"
     ]
   },
   "risks": [
-    "NewsAPI is still returning HTTP 429 quota errors; this is separate from Bob task locking and affects sentiment/news richness.",
-    "Runtime-generated files changed during live validation: data/conversation_memory.jsonl and runtime/traces/decision_trace_20260617.jsonl.",
-    "The cockpit now prevents same-tab double sends; cross-tab/server busy sessions return structured 429 and visible notice, but a dedicated cancel button can still be added later."
+    "Lifecycle loop needs extensive testing before production 24/7 operation",
+    "Market hours detection needs timezone accuracy verification (DST, holidays)",
+    "XP pain factors need calibration based on real trading performance",
+    "No auto-execution yet - Bob still requires manual trigger for trades",
+    "No pain memory system yet - traumas are tracked but not weighted in decisions"
   ],
-  "next_step": "Run one real cockpit chat request after Ctrl+Shift+R and confirm Bob streams normally; then send a second request while Bob is still thinking to verify the UI shows the busy notice instead of the old red failure.",
-  "owner": "Codex",
+  "next_step": "Phase 2 (Reinforcement Learning): Implement pain_memory.py with weighted recall, auto_calibration.py for parameter tuning, and rl_loop.py for Q-learning based on trade outcomes.",
+  "owner": "Bob",
   "github_policy": "DISK_ONLY_GITHUB_BLOCKED",
-  "updated": "2026-06-17T20:05:42Z"
+  "updated": "2026-06-17T00:30:00Z"
 }
