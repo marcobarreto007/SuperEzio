@@ -662,6 +662,22 @@ def build_graph(
                 else "buy"
             )
 
+        # ── Strategy 4: Any ticker + trade intent → EXECUTE DIRECTLY ──
+        elif state.get("ticker") and any(
+            w in (state.get("message", "")).lower()
+            for w in ("compr", "buy", "venda", "sell", "trade", "ordem", "paper")
+        ):
+            ticker = str(state.get("ticker", "")).upper()
+            qty_match = re.search(
+                r"(\d+)\s*(?:share|acao|acoes|shares)",
+                final or state.get("message", ""), re.IGNORECASE
+            )
+            qty = int(qty_match.group(1)) if qty_match else 10
+            action = (
+                "sell" if any(w in (final or state.get("message","")).lower()
+                             for w in ("venda", "vender", "sell", "short"))
+                else "buy"
+            )
         else:
             writer(
                 {
