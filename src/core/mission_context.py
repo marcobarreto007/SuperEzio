@@ -149,14 +149,29 @@ def render_mission_context_for_prompt(path: str | Path | None = None) -> str:
             connection = broker_info.get("connection", "unknown")
             mode = broker_info.get("mode", "read_only_no_orders")
             port = broker_info.get("port", "unknown")
-            account_equity = broker_info.get("account_equity", "unknown")
-            positions_count = broker_info.get("positions_count", "unknown")
+            source = broker_info.get("verification_source", "static_mission_context")
+            static_source = source != "cockpit_portfolio_live"
+            account_equity = (
+                "runtime_snapshot_required"
+                if static_source
+                else broker_info.get("account_equity", "unknown")
+            )
+            positions_count = (
+                "runtime_snapshot_required"
+                if static_source
+                else broker_info.get("positions_count", "unknown")
+            )
             can_submit = broker_info.get("can_submit_orders", False)
             lines.append(
                 f"- {broker_name.upper()}: connection={connection}; mode={mode}; "
                 f"port={port}; account_equity={account_equity}; "
                 f"positions_count={positions_count}; can_submit_orders={can_submit}"
             )
+            if static_source:
+                lines.append(
+                    "  Runtime broker numbers must come from the IBKR portfolio snapshot/tool, "
+                    "not from this static mission file."
+                )
             if broker_info.get("note"):
                 lines.append(f"  Note: {broker_info['note']}")
             if broker_name.lower() == "ibkr" and connection == "connected_paper":

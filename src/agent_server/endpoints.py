@@ -328,6 +328,18 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
     equity = f"{equity_float:,.2f}" if equity_float > 0 else broker.get("account_equity") or "100000.00"
     positions_count = len(positions)
 
+    raw_mode = str(broker.get("mode") or "").lower()
+    paper = broker.get("paper_port") is True or "paper" in raw_mode or connection == "connected_paper"
+    can_submit = broker.get("can_submit_orders") is True and paper
+    if connected and paper:
+        mode = "paper_order_enabled" if can_submit else "paper_read_only"
+        connection = "connected_paper"
+    elif connected:
+        mode = "live_blocked"
+        can_submit = False
+    else:
+        mode = broker.get("mode") or "offline"
+
     broker_orders = _cockpit_ibkr_open_orders()
     local_tickets = _cockpit_local_order_tickets()
     orders = _dedupe_orders(broker_orders, local_tickets)
@@ -348,11 +360,11 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
         "provider": "IBKR",
         "connected": connected,
         "connection": connection or "unknown",
-        "mode": broker.get("mode") or "unknown",
-        "paper": broker.get("paper_port") is True,
-        "can_submit_orders": broker.get("can_submit_orders") is True,
+        "mode": mode,
+        "paper": paper,
+        "can_submit_orders": can_submit,
         "equity": equity,
-        "cash": broker.get("cash") or equity,
+        "cash": broker.get("cash") or None,
         "positions_count": positions_count,
         "positions": positions,
         "orders_count": len(orders),
@@ -368,7 +380,8 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
         "trade_stats": trade_history.get("stats", {}),
         "journal_path": trade_history.get("path"),
         "selected_ticker": selected_ticker,
-        "verified_at": broker.get("verified_at"),
+        "live_port_warning": bool(connected and not paper),
+        "verified_at": datetime.now(timezone.utc).isoformat(),
     }
 
 

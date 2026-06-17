@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import time
+from copy import deepcopy
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -58,6 +59,82 @@ def _env_bool(name: str, default: bool = False) -> bool:
 
 def _clean_watchlist_ticker(value: object) -> str:
     return "".join(ch for ch in str(value or "").strip().upper() if ch.isalnum() or ch in ".-")
+
+
+def _overlay_runtime_broker_snapshot(
+    mission: dict,
+    portfolio: dict | None,
+) -> dict:
+    """Overlay static mission broker data with the live cockpit broker snapshot.
+
+    The mission JSON is product posture. It must not be the source of truth for
+    account equity, positions, or open orders once the broker service is live.
+    """
+
+    if not isinstance(mission, dict) or not isinstance(portfolio, dict):
+        return mission
+
+    merged = deepcopy(mission)
+    broker = merged.setdefault("broker", {})
+    if not isinstance(broker, dict):
+        broker = {}
+        merged["broker"] = broker
+    ibkr = dict(broker.get("ibkr") or {})
+
+    raw_mode = str(portfolio.get("mode") or ibkr.get("mode") or "").lower()
+    raw_connection = str(portfolio.get("connection") or ibkr.get("connection") or "")
+    connected = portfolio.get("connected") is True or "connected" in raw_connection
+    paper = portfolio.get("paper") is True or "paper" in raw_mode or raw_connection == "connected_paper"
+    can_submit = portfolio.get("can_submit_orders") is True and paper
+
+    if connected and paper:
+        connection = "connected_paper"
+        mode = "paper_order_enabled" if can_submit else "paper_read_only"
+    elif connected:
+        connection = "connected_live_blocked"
+        mode = "live_blocked"
+        can_submit = False
+    else:
+        connection = raw_connection or "offline"
+        mode = "offline"
+        can_submit = False
+
+    equity = portfolio.get("equity")
+    positions_count = portfolio.get("positions_count")
+    positions = portfolio.get("positions")
+    orders_count = portfolio.get("orders_count")
+    broker_orders_count = portfolio.get("broker_orders_count")
+
+    ibkr.update(
+        {
+            "provider": portfolio.get("provider") or ibkr.get("provider") or "IBKR",
+            "connection": connection,
+            "mode": mode,
+            "paper_port": paper,
+            "live_port_warning": bool(connected and not paper),
+            "account_equity": str(equity) if equity is not None else ibkr.get("account_equity", "unknown"),
+            "positions_count": positions_count if positions_count is not None else ibkr.get("positions_count", 0),
+            "positions": positions if isinstance(positions, list) else ibkr.get("positions", []),
+            "orders_count": orders_count if orders_count is not None else ibkr.get("orders_count", 0),
+            "broker_orders_count": (
+                broker_orders_count if broker_orders_count is not None else ibkr.get("broker_orders_count", 0)
+            ),
+            "can_read_account": bool(connected),
+            "can_read_positions": bool(connected),
+            "can_submit_orders": bool(can_submit),
+            "verified_at": portfolio.get("verified_at") or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "verification_source": "cockpit_portfolio_live",
+            "runtime_source": "cockpit_portfolio",
+            "orders_source": portfolio.get("orders_source") or ibkr.get("orders_source", "unknown"),
+        }
+    )
+    broker["ibkr"] = ibkr
+
+    paper_trading = merged.get("paper_trading")
+    if isinstance(paper_trading, dict) and equity is not None:
+        paper_trading["equity"] = f"{equity} USD"
+
+    return merged
 
 
 def _load_sentiment_watchlist(storage=None) -> list[str]:
@@ -389,7 +466,29 @@ async def health_check():
         }
 
     # â”€â”€ Aggregated status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    health["mission"] = mission_health_summary()
+    mission = mission_health_summary()
+    try:
+        from .endpoints import _cockpit_portfolio_snapshot
+
+        portfolio = _cockpit_portfolio_snapshot()
+        health["mission"] = _overlay_runtime_broker_snapshot(mission, portfolio)
+        health["checks"]["runtime_broker"] = {
+            "source": "cockpit_portfolio",
+            "status": "ok" if portfolio.get("connected") else "offline",
+            "mode": portfolio.get("mode"),
+            "paper": portfolio.get("paper"),
+            "equity": portfolio.get("equity"),
+            "positions_count": portfolio.get("positions_count", 0),
+            "orders_count": portfolio.get("orders_count", 0),
+        }
+    except Exception as exc:
+        logger.warning("[%s] runtime broker overlay unavailable: %s", AGENT_NAME, exc)
+        health["mission"] = mission
+        health["checks"]["runtime_broker"] = {
+            "source": "cockpit_portfolio",
+            "status": "unavailable",
+            "error": str(exc)[:200],
+        }
 
     all_ok = primary_info["configured"] or any(m["reachable"] for m in local_models.values())
     health["status"] = "ok" if all_ok else "degraded_no_backend"

@@ -117,6 +117,43 @@ def test_health_details(client_with_mock_pipeline):
     assert data["mission"]["broker"]["ibkr"]["can_submit_orders"] is True
 
 
+def test_health_details_uses_live_cockpit_broker_snapshot(client_with_mock_pipeline, monkeypatch):
+    """health/details must not expose stale mission broker account numbers."""
+    import agent_server.endpoints as endpoints
+
+    monkeypatch.setattr(
+        endpoints,
+        "_cockpit_portfolio_snapshot",
+        lambda: {
+            "provider": "IBKR",
+            "connected": True,
+            "connection": "connected_paper",
+            "mode": "paper_order_enabled",
+            "paper": True,
+            "can_submit_orders": True,
+            "equity": "99,978.94",
+            "positions_count": 9,
+            "positions": [{"symbol": "NVDA", "quantity": 5}],
+            "orders_count": 11,
+            "broker_orders_count": 11,
+            "orders_source": "ibkr",
+            "verified_at": "2026-06-17T16:12:17Z",
+        },
+    )
+
+    _, client = client_with_mock_pipeline
+    response = client.get("/health/details")
+
+    assert response.status_code == 200
+    ibkr = response.json()["mission"]["broker"]["ibkr"]
+    assert ibkr["mode"] == "paper_order_enabled"
+    assert ibkr["account_equity"] == "99,978.94"
+    assert ibkr["positions_count"] == 9
+    assert ibkr["orders_count"] == 11
+    assert ibkr["verification_source"] == "cockpit_portfolio_live"
+    assert ibkr["live_port_warning"] is False
+
+
 def test_metrics(client_with_mock_pipeline):
     """5. GET /metrics - Telemetry indicators"""
     _, client = client_with_mock_pipeline
@@ -304,8 +341,36 @@ def test_trade_history_endpoint(client_with_mock_pipeline, monkeypatch):
     assert data["trades"][0]["ticker"] == "PLUG"
 
 
-def test_cockpit_summary(client_with_mock_pipeline):
+def test_cockpit_summary(client_with_mock_pipeline, monkeypatch):
     """GET /cockpit/summary - aggregate frontpage contract."""
+    import agent_server.endpoints as endpoints
+
+    monkeypatch.setattr(
+        endpoints,
+        "_cockpit_portfolio_snapshot",
+        lambda: {
+            "provider": "IBKR",
+            "connected": True,
+            "connection": "connected_paper",
+            "mode": "paper_order_enabled",
+            "paper": True,
+            "can_submit_orders": True,
+            "equity": "99,978.94",
+            "positions_count": 9,
+            "positions": [],
+            "orders_count": 11,
+            "orders": [],
+            "active_orders": [],
+            "broker_orders_count": 11,
+            "broker_orders": [],
+            "local_tickets_count": 0,
+            "local_tickets": [],
+            "trade_history_count": 0,
+            "trade_history": [],
+            "trade_stats": {},
+            "selected_ticker": "NVDA",
+        },
+    )
     _, client = client_with_mock_pipeline
     response = client.get("/cockpit/summary")
     assert response.status_code == 200
@@ -883,11 +948,15 @@ def test_frontend_ops_console_integration():
     assert "window.SZ.opsConsole =" in ops_js
     assert "loadDiagnostics" in ops_js
     assert "renderBrokerDiagnostics" in ops_js
+    assert "fetchCockpitPortfolio" in ops_js
+    assert "PAPER ORDER ENABLED" in ops_js
+    assert "live_trading" not in ops_js
 
     assert "refreshBrokerStatus" in init_js
     assert "updateBrokerStatus" in init_js
     assert "broker-status-btn" in init_js
     assert "ops-console-btn" in init_js
+    assert "IBKR TRADE" not in init_js
     assert "ops-console-close" in init_js
     assert "SZ.opsConsole.toggle" in init_js
 

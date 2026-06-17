@@ -58,8 +58,9 @@ def test_mission_context_tells_bob_ibkr_paper_submission_is_enabled():
     assert "trained_financial_advisory_copilot" in context
     assert "IBKR" in context
     assert "connected_paper" in context
-    assert "100000.00" in context
-    assert "positions_count=0" in context
+    assert "account_equity=runtime_snapshot_required" in context
+    assert "positions_count=runtime_snapshot_required" in context
+    assert "Runtime broker numbers must come from the IBKR portfolio snapshot/tool" in context
     assert "can_submit_orders=True" in context
     # Paper trading mode: Bob is told he CAN submit paper orders, not live money.
     assert "CAN submit paper orders" in context or "PAPER TRADING MODE" in context
@@ -80,7 +81,8 @@ def test_mission_health_summary_exposes_broker_paper_state():
     assert summary["status"] == "loaded"
     assert summary["phase"] == "active_paper_trading"
     assert summary["broker"]["ibkr"]["connection"] == "connected_paper"
-    assert summary["broker"]["ibkr"]["account_equity"] == "100000.00"
+    assert "account_equity" in summary["broker"]["ibkr"]
+    assert summary["broker"]["ibkr"]["verification_source"] != "cockpit_portfolio_live"
     assert summary["broker"]["ibkr"]["can_submit_orders"] is True
     # Paper trading should be exposed in health
     pt = summary.get("paper_trading", {})

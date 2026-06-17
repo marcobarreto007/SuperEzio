@@ -12,48 +12,81 @@
     el.className = className || "";
   }
 
-  function renderBrokerDiagnostics(details) {
-    const ibkr = details?.mission?.broker?.ibkr || {};
+  function normalizeBroker(details, portfolio) {
+    const missionIbkr = details?.mission?.broker?.ibkr || {};
+    if (portfolio && typeof portfolio === "object") {
+      return {
+        provider: portfolio.provider || missionIbkr.provider || "IBKR",
+        connection: portfolio.connection || missionIbkr.connection || "unknown",
+        mode: portfolio.mode || missionIbkr.mode || "unknown",
+        paper_port: portfolio.paper === true,
+        can_read_account: portfolio.connected === true,
+        can_submit_orders: portfolio.can_submit_orders === true,
+        account_equity: portfolio.equity ?? missionIbkr.account_equity,
+        positions_count: portfolio.positions_count ?? missionIbkr.positions_count,
+        orders_count: portfolio.orders_count ?? missionIbkr.orders_count,
+        broker_orders_count: portfolio.broker_orders_count ?? missionIbkr.broker_orders_count,
+        verification_source: "cockpit_portfolio_live",
+      };
+    }
+    return missionIbkr;
+  }
+
+  function brokerDetailsForChip(details, ibkr) {
+    const merged = details && typeof details === "object" ? JSON.parse(JSON.stringify(details)) : {};
+    merged.mission = merged.mission || {};
+    merged.mission.broker = merged.mission.broker || {};
+    merged.mission.broker.ibkr = ibkr || {};
+    return merged;
+  }
+
+  function renderBrokerDiagnostics(details, portfolio) {
+    const ibkr = normalizeBroker(details, portfolio);
     const paperTrading = details?.mission?.paper_trading?.active === true;
     const connection = String(ibkr.connection || "");
+    const modeRaw = String(ibkr.mode || "");
     const canRead = ibkr.can_read_account === true || connection.includes("connected");
-    const isPaperPort = ibkr.paper_port === true;
-    const canSubmit = ibkr.can_submit_orders === true;
-    const paperTrade = paperTrading || (canRead && isPaperPort);
+    const paperTrade = paperTrading || ibkr.paper_port === true || modeRaw.toLowerCase().includes("paper");
+    const canSubmit = ibkr.can_submit_orders === true && paperTrade;
+    const liveBlocked = canRead && !paperTrade;
 
-    const className = canSubmit ? "ops-status-warn"
+    const className = liveBlocked ? "ops-status-warn"
+      : canSubmit ? "ops-status-ok"
       : paperTrade ? "ops-status-ok"
       : canRead ? "ops-status-ok"
       : "ops-status-err";
 
-    const status = canSubmit ? "ORDER ENABLED"
-      : paperTrade ? "PAPER TRADING"
+    const status = liveBlocked ? "LIVE BLOCKED"
+      : canSubmit ? "PAPER ORDER ENABLED"
+      : paperTrade ? "PAPER CONNECTED"
       : canRead ? "CONNECTED READ-ONLY"
       : "NOT CONNECTED";
 
-    const mode = canSubmit ? "live_trading"
-      : paperTrade ? "paper_trading"
-      : (ibkr.mode || "read_only_no_orders");
+    const mode = liveBlocked ? "live_blocked"
+      : modeRaw || (paperTrade ? "paper_read_only" : "read_only_no_orders");
 
     const equity = ibkr.account_equity != null ? String(ibkr.account_equity) : "--";
     const positions = ibkr.positions_count != null ? String(ibkr.positions_count) : "--";
 
     setStatusText("ops-broker-provider", ibkr.provider || "IBKR", className);
     setStatusText("ops-broker-status", status, className);
-    setStatusText("ops-broker-mode", mode, canSubmit ? "ops-status-warn" : "ops-status-ok");
+    setStatusText("ops-broker-mode", mode, liveBlocked ? "ops-status-warn" : className);
     setStatusText("ops-broker-equity", equity, equity === "--" ? "ops-status-warn" : "ops-status-ok");
     setStatusText("ops-broker-positions", positions, "ops-status-ok");
 
     if (typeof SZ.updateBrokerStatus === "function") {
-      SZ.updateBrokerStatus(details);
+      SZ.updateBrokerStatus(brokerDetailsForChip(details, ibkr));
     }
   }
 
   async function loadDiagnostics() {
+    let hd = null;
+    let portfolio = null;
+
     // 1. Health Status
     try {
       if (typeof SZ.api.fetchHealthDetails === "function") {
-        const hd = await SZ.api.fetchHealthDetails();
+        hd = await SZ.api.fetchHealthDetails();
         const statusEl = $("ops-health-status");
         if (statusEl) {
           statusEl.textContent = esc(hd.status || "UNKNOWN").toUpperCase();
@@ -97,8 +130,6 @@
             ceoEl.className = "ops-status-err";
           }
         }
-
-        renderBrokerDiagnostics(hd);
       }
     } catch (err) {
       console.warn("[SZ] Ops Console Health Details fetch failed:", err);
@@ -107,8 +138,16 @@
         statusEl.textContent = "FETCH FAILED";
         statusEl.className = "ops-status-err";
       }
-      renderBrokerDiagnostics(null);
     }
+
+    try {
+      if (typeof SZ.api.fetchCockpitPortfolio === "function") {
+        portfolio = await SZ.api.fetchCockpitPortfolio();
+      }
+    } catch (err) {
+      console.warn("[SZ] Ops Console Cockpit Portfolio fetch failed:", err);
+    }
+    renderBrokerDiagnostics(hd, portfolio);
 
     // 2. Capabilities
     try {

@@ -371,10 +371,14 @@
     var text = "IBKR";
     var title = "IBKR broker link not verified";
 
-    if (canSubmit) {
+    if (canSubmit && paperTrade) {
       state = "trade";
-      text = "IBKR TRADE";
-      title = "IBKR live order submission enabled. Verify safeguards before use.";
+      text = "IBKR PAPER";
+      title = "IBKR paper order submission enabled. Simulated orders only.";
+    } else if (canSubmit && !paperTrade) {
+      state = "off";
+      text = "IBKR BLOCKED";
+      title = "IBKR is not in paper mode. Live-money execution is blocked by policy.";
     } else if (paperTrade) {
       state = "trade";
       text = "IBKR PAPER";
