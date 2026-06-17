@@ -1,74 +1,35 @@
 {
-  "date_local": "2026-06-16T19:09:40-04:00",
-  "session": "case-architecture-review-autopilot-gap-2026-06-16",
-  "status": "review_completed_changes_required",
+  "date_local": "2026-06-16T22:47:00-04:00",
+  "session": "sentimento-vivo-explanation-2026-06-16",
+  "status": "read_only_explained",
   "final_objective": {
-    "what_system_does": "SuperEzio Financeiro should behave as a local investment desk: the user gives Bob a mandate, CASE opens, data/math/Genie/Deep/committee/Trinity/guardrails/history run, Bob decides, paper/live gates execute, and the journal/feedback loop calibrates future decisions.",
-    "who_it_is_for": "Marco/F51 and future operators who need a disciplined, auditable AI trading desk capable of multi-day supervised paper operation before real-money escalation.",
-    "main_user_flow": "Open the cockpit, submit a mandate or click a signal, watch the CASE progress through required evidence stages, review Bob's verdict/order, then let paper trades feed the journal and learning cycle.",
-    "start_command": "$env:PYTHONPATH='src'; python -m agent_server.main with llama-server on 8082 and TWS paper on 7497",
-    "proof_output": "A ready CASE system is proven by live traces where trade_order/investment_analysis cases automatically collect data or scan, run MathHub, six experts, Trinity, guardrails, final verdict, one broker path, journal entry, and later learning-cycle update."
+    "what_system_does": "SuperEzio Financeiro is a local AI trading desk with cockpit UI, live sentiment telemetry, market data, Bob, committee, guardrails, broker paper integration, and learning loop.",
+    "who_it_is_for": "Marco/F51 and supervised operators validating Bob before real-money escalation.",
+    "main_user_flow": "Open the cockpit, inspect watchlist sentiment, click a ticker, sync the chart and Bob command, then run a full CASE decision before any trade.",
+    "start_command": "powershell -ExecutionPolicy Bypass -File .\\start.ps1 -SkipBrowser",
+    "proof_output": "/sentiment/pulse returns 24 pulse rows and the Genie panel renders the watchlist cards."
   },
   "what_was_done": [
-    "Reviewed commit d05fa2d: feat CASE contrato financeiro obrigatorio.",
-    "Read src/core/pipeline/case.py and integrations in orchestrator, graph, and agent.",
-    "Compared the implementation against the intended desk/case architecture and prior Bob/tool-routing failures.",
-    "Ran focused tests and browser smoke.",
-    "Ran a local CASE probe showing trade_order opens but auto_full_analysis does not call collector or experts while route remains agent.",
-    "Checked learning-cycle statistics and confirmed the feedback loop exists but confidence calibration data is missing."
+    "Read frontend/js/genie-panel.js to explain how the left Sentimento Vivo panel works.",
+    "Read src/core/sentiment/watchlist_pulse.py and src/core/sentiment/live_monitor.py to explain backend aggregation.",
+    "Checked src/agent_server/main.py startup wiring for LiveMonitor, SentimentCurator, and WatchlistPulse.",
+    "Checked live /sentiment/pulse, /sentiment/alerts, and /cockpit/summary responses."
   ],
   "evidence": {
-    "commit_reviewed": "d05fa2d feat: CASE — contrato financeiro obrigatorio, mesa estuda antes do Bob decidir",
-    "tests": [
-      "$env:PYTHONPATH='src'; python -m pytest tests/test_auto_full_analysis.py tests/test_agent_market_scan_loop.py tests/contracts/test_contract_orchestrator.py -q -> 39 passed",
-      "$env:PYTHONPATH='src'; python -m pytest tests/test_pipeline_smoke.py -q -> 10 passed, 1 failed",
-      "Failure: test_pipeline_stream_events_blocks_unscoped_ticket_reference expected respond_blocked before agent; passthrough still routes to agent."
-    ],
-    "browser_smoke": [
-      "$env:PYTHONPATH='src'; python scripts/browser_smoke.py --skip-chat --timeout-ms 180000 -> ok true",
-      "Latest screenshot: output/playwright/superezio-browser-smoke-20260616-190838.png"
-    ],
-    "case_probe": {
-      "input": "comprar 10 NOK limite $5 with ticker=NOK",
-      "observed_case_type": "trade_order",
-      "observed_route": "agent",
-      "collector_calls": 0,
-      "expert_calls": 0,
-      "case_pending_after_auto": [
-        "data_collection",
-        "genie_sentiment",
-        "deep_analysis",
-        "expert_committee",
-        "trinity_deliberation",
-        "verdict",
-        "paper_order"
-      ],
-      "case_is_complete_after_auto": false
-    },
-    "case_classifier_probe": [
-      "create_case('comprar 10 NOK limite $5', ticker='') returned casual because the message is lowercased before uppercase ticker detection.",
-      "create_case('comprar 10 NOK limite $5', ticker='NOK') returned trade_order."
-    ],
-    "learning_stats": [
-      "Total trades: 29",
-      "Closed trades: 13",
-      "Wins/Losses: 6/7",
-      "Win rate: 46.2%",
-      "Lessons logged: 3",
-      "Bias status: confidence_not_recorded / missing_confidence_data",
-      "Last learning cycle: 2026-06-15T15:53:38.079597+00:00"
-    ]
+    "live_pulse": "/sentiment/pulse returned 24 tickers.",
+    "sources_seen": ["newsapi", "news_scout", "reddit_pulse", "finnhub"],
+    "current_state": "Most rows are NEUTRAL flat with reddit mentions 0 and reddit signal NO_DATA.",
+    "alerts": "/sentiment/alerts returned count 0.",
+    "frontend_behavior": "Clicking a pulse card calls selectTicker and writes a TICKER command into Bob's input box."
   },
   "risks": [
-    "CASE is currently a context/checklist layer, not an executable gate. It does not yet drive collection, expert execution, Trinity completion, verdict marking, or paper-order completion.",
-    "Trade-order CASE required_steps includes paper_order before verdict completion, which can make the case impossible to complete for WAIT/REJECT decisions.",
-    "mark_error currently completes a step, so a failed data provider could make a CASE appear complete instead of blocked/degraded.",
-    "Ticker detection inside create_case is broken for ticker-less payloads because uppercase detection runs after lowercasing the message.",
-    "The old auto_execute_paper parser path still exists beside submit_paper_order, so broker execution is not yet a single CASE-owned path.",
-    "Autopilot for days is not implemented: there is no resilient scheduler/daemon that monitors TWS, open positions, stop/exit logic, periodic case review, post-mortem, and learning-cycle execution."
+    "The panel label LIVE can be misleading because it means the UI endpoint is refreshing, not that every provider has strong fresh data.",
+    "RedditPulse currently returns zero mentions for the displayed tickers, so the social side is weak.",
+    "NO_DATA is displayed for the Reddit signal even when institutional/news sources exist.",
+    "The command is prepared in Bob's input box but the current architecture still needs CASE enforcement so Bob cannot ignore tools."
   ],
-  "next_step": "Convert CASE from checklist to controller: typed case classifier, force_auto_collect/market stack from case type, explicit step semantics (ok/degraded/blocked/skipped), CASE-owned broker path, scheduler loop, position monitor, and learning-cycle automation.",
+  "next_step": "If fixing next, improve Sentimento Vivo semantics: separate provider health from signal quality, show news article counts clearly, and make clicks open a CASE ticker analysis automatically instead of only drafting text.",
   "owner": "Codex",
   "github_policy": "DISK_ONLY_GITHUB_BLOCKED",
-  "updated": "2026-06-16T23:09:40Z"
+  "updated": "2026-06-17T02:47:00Z"
 }
