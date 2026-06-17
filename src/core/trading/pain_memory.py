@@ -173,7 +173,7 @@ class PainMemorySystem:
 
     def _save(self, memory: PainMemory) -> None:
         """Salva memória no disco (append-only)."""
-        with open(self._path", "a", encoding="utf-8") as f:
+        with open(self._path, "a", encoding="utf-8") as f:
             f.write(json.dumps(memory.to_dict(), ensure_ascii=False) + "\n")
 
     def _generate_memory_id(self) -> str:
