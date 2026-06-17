@@ -2627,6 +2627,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         and not state.get("ticker")
         and not state.get("scan")
         and not state.get("data")
+        and not state.get("case_pending")  # CASE enforcement: nao pula se ha etapas pendentes
     ):
         content = _repair_complex_finance_answer(
             state.get("message", ""),
@@ -2715,14 +2716,18 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     # ── CASE CONTEXT: contrato obrigatorio — Bob so decide depois da mesa ──
     case_context = state.get("case_context") or ""
     case_pending = state.get("case_pending") or []
+    # Fallback: se o CASE nao propagou, calcula direto baseado na mensagem
+    if not case_pending and _has_actionable_market_request(state):
+        case_pending = ["scanner", "price_enrichment", "sentiment_check"]
 
-    if case_context and case_pending:
+    if case_pending:
+        pending_list = ", ".join(case_pending)
         observations.append(
-            case_context
-            + "\n\nREGRA: Voce PRECISA completar as etapas pendentes antes de dar veredito. "
-            + "Nao responda sem dados. Use as ferramentas para preencher cada etapa."
+            f"REGRAS DO CASE — Etapas pendentes: {pending_list}. "
+            + "Voce NAO pode dar veredito final sem completar cada etapa. "
+            + "Use as ferramentas: market_scan, collect_data, social_forensics, run_experts."
         )
-    elif case_context:
+    if case_context:
         observations.append(case_context)
 
     # ── SYSTEM STATUS (always included, even for casual greetings) ──

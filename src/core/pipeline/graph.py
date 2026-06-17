@@ -196,6 +196,9 @@ async def _auto_full_analysis(
 
     # ── CASE tracking ──
     financial_case = working_state.get("financial_case")
+    # Preserve case_pending from orchestrator (survives state propagation)
+    output["case_pending"] = list(working_state.get("case_pending") or [])
+    output["case_context"] = working_state.get("case_context") or ""
     def _mark_step(step_name: str, evidence: dict | None = None):
         if financial_case:
             financial_case.mark_complete(step_name, evidence)
