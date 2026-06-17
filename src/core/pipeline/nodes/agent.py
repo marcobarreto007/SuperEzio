@@ -2384,6 +2384,21 @@ def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
     when the user is asking for a scan, ticker analysis, or paper trade.
     """
 
+    # ── CASE ENFORCEMENT: se ha etapas pendentes, Bob NAO pode final_answer ──
+    case_pending = state.get("case_pending") or []
+    if case_pending:
+        first_pending = case_pending[0]
+        step_to_tool = {
+            "scanner": "market_scan",
+            "price_enrichment": "collect_data",
+            "sentiment_check": "social_forensics",
+            "expert_committee": "run_experts",
+            "guardrails": "sdca_firewall",
+        }
+        tool = step_to_tool.get(first_pending, "market_scan")
+        return {"tool": tool, "args": {"query": state.get("message", ""),
+                                         "ticker": state.get("ticker", "")}}
+
     if not _has_actionable_market_request(state):
         return None
     if state.get("submit_paper_order_result") or state.get("submit_paper_order_error"):
