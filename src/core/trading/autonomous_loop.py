@@ -167,9 +167,10 @@ class AutonomousLoop:
         summary = self._engine_run_one_cycle()
 
         # Log resultado
-        if summary["trades_executed"] > 0:
+        if summary["trades_executed"] > 0 or summary.get("orders_submitted", 0) > 0:
             logger.info(
-                "✅ Trades executados: %d | Posições fechadas: %d | PnL acumulado: $%.2f",
+                "✅ Ordens submetidas: %d | Trades confirmados: %d | Posições fechadas: %d | PnL acumulado: $%.2f",
+                summary.get("orders_submitted", 0),
                 summary["trades_executed"],
                 summary["positions_closed"],
                 summary["total_pnl"],
@@ -210,6 +211,14 @@ class AutonomousLoop:
     async def _rest_cycle(self) -> None:
         """Ciclo de descanso (mercado fechado)."""
         logger.debug("😴 Rest cycle (market closed)")
+
+        study = self._engine_study_closed_market()
+        if study and not study.get("skipped"):
+            logger.info(
+                "Closed-market study: reviewed=%d blocking=%s",
+                len(study.get("aged_theses_reviewed") or []),
+                (study.get("reconciliation") or {}).get("blocking"),
+            )
 
         # Calcular tempo até próxima abertura
         market_state = get_market_state(cached=False)
@@ -329,6 +338,11 @@ class AutonomousLoop:
         if hasattr(self._engine, "check_positions_real"):
             return self._engine.check_positions_real()
         return []
+
+    def _engine_study_closed_market(self) -> dict[str, Any] | None:
+        if hasattr(self._engine, "study_closed_market"):
+            return self._engine.study_closed_market()
+        return None
 
     def _session_value(self, session: Any, key: str, default: Any) -> Any:
         if isinstance(session, dict):

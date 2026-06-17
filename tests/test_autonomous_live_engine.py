@@ -114,13 +114,16 @@ def test_live_trading_engine_submits_limit_order(monkeypatch, tmp_path):
         def submit_order(self, order: Order) -> Order:
             captured["order"] = order
             return Order(
-                id="ibkr-submitted",
+                id="933426820",
                 symbol=order.symbol,
                 side=order.side,
                 order_type=order.order_type,
                 qty=order.qty,
                 status=OrderStatus.SUBMITTED,
                 limit_price=order.limit_price,
+                perm_id="933426820",
+                tws_order_id="4",
+                client_id="123",
             )
 
     monkeypatch.setattr(ibkr_module, "InteractiveBrokersAdapter", FakeAdapter)
@@ -135,10 +138,9 @@ def test_live_trading_engine_submits_limit_order(monkeypatch, tmp_path):
         status=ExecutionStatus.APPROVED,
         rejection_reason="",
     )
-    engine._position_manager.open_position = lambda **_kwargs: SimpleNamespace(
-        position_id="pos-1",
+    engine._position_manager.open_position = lambda **_kwargs: (_ for _ in ()).throw(
+        AssertionError("IBKR submitted order must not create a local position")
     )
-    engine._journal.add_trade = lambda _trade: None
 
     result = engine.execute_trade_real(
         TradingOpportunity(
@@ -156,7 +158,59 @@ def test_live_trading_engine_submits_limit_order(monkeypatch, tmp_path):
         quantity=5,
     )
 
-    assert result["position_id"] == "pos-1"
+    assert result["order_id"] == "933426820"
+    assert result["submitted"] is True
+    assert result["position_confirmed"] is False
     assert captured["order"].order_type == OrderType.LIMIT
     assert captured["order"].limit_price == 132.64
     assert captured["order"].status == OrderStatus.PENDING
+
+    journal_rows = engine._journal.list_all()
+    assert len(journal_rows) == 1
+    assert journal_rows[0]["source"] == "ibkr_order_ticket"
+    assert journal_rows[0]["broker_fill_confirmed"] is False
+    assert journal_rows[0]["broker_perm_id"] == "933426820"
+
+
+def test_live_cycle_blocks_when_reconciliation_blocks(monkeypatch, tmp_path):
+    import core.trading.trading_engine_live as live_module
+
+    from core.trading.broker_reconciler import BrokerReconciliationReport, ReconciliationIssue
+    from core.trading.trading_engine_live import LiveTradingEngine
+
+    engine = LiveTradingEngine(
+        use_ibkr=True,
+        equity=100000,
+        journal_path=tmp_path / "paper_journal.jsonl",
+        persistence_path=tmp_path / "live_engine_state.json",
+    )
+    monkeypatch.setattr(
+        live_module,
+        "get_market_state",
+        lambda cached=False: {"is_open": True, "phase": "MARKET_OPEN"},
+    )
+    engine.update_equity_from_broker = lambda: engine.equity
+    engine.scan_market_real = lambda: (_ for _ in ()).throw(
+        AssertionError("blocked cycle must not scan")
+    )
+    engine._reconciler.reconcile = lambda: BrokerReconciliationReport(
+        timestamp="pytest",
+        positions_count=0,
+        open_orders_count=0,
+        journal_rows_count=1,
+        blocking=True,
+        issues=[
+            ReconciliationIssue(
+                severity="BLOCK",
+                code="journal_broker_ticket_unverified",
+                message="pytest",
+            )
+        ],
+    )
+
+    summary = engine.run_one_cycle_real()
+
+    assert summary["blocked"] is True
+    assert summary["opportunities"] == 0
+    assert summary["orders_submitted"] == 0
+    assert summary["reconciliation"]["issues"][0]["code"] == "journal_broker_ticket_unverified"

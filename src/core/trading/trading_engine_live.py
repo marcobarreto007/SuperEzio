@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -30,6 +31,7 @@ from .risk_guard import get_risk_guard, RiskGuardResult
 from .committee import get_reflection_committee
 from .pain_memory import get_pain_memory
 from .paper_journal import PaperJournal
+from .broker_reconciler import BrokerReconciler
 
 
 class MarketSentiment(Enum):
@@ -85,7 +87,9 @@ class LiveTradingEngine:
         self._risk_guard = get_risk_guard(equity=equity)
         self._committee = get_reflection_committee()
         self._pain_memory = get_pain_memory()
-        self._journal = PaperJournal()
+        self._journal = PaperJournal(self._journal_path)
+        self._reconciler = BrokerReconciler(self._journal)
+        self._last_study_date: str | None = None
 
         # Market data provider
         self._market_data_provider = None
@@ -388,11 +392,47 @@ class LiveTradingEngine:
 
                 result = adapter.submit_order(order)
 
-                if result.status.value == "rejected":
+                if result.status == OrderStatus.REJECTED:
                     logger.error("IBKR rejected order: %s", opp.symbol)
                     return None
 
-                logger.info("IBKR Order submitted: %s -> %s", opp.symbol, result.id)
+                journal_trade_id = self._journal.record_broker_order(
+                    broker_order_id=str(result.id),
+                    ticker=opp.symbol,
+                    action=side,
+                    qty=quantity,
+                    limit_price=limit_price,
+                    status=result.status.value,
+                    thesis=opp.thesis,
+                    verdict_at_entry=f"Confidence {opp.confidence*100:.0f}%",
+                    risk_assessment=(
+                        f"stop={opp.stop_loss:.4f}; take_profit={opp.take_profit:.4f}; "
+                        f"liquidity={opp.liquidity_score:.3f}"
+                    ),
+                    expected_holding_period="unknown",
+                    broker_perm_id=getattr(result, "perm_id", None) or str(result.id),
+                    broker_tws_order_id=getattr(result, "tws_order_id", None),
+                    broker_client_id=getattr(result, "client_id", None),
+                    market_data=opp.market_data,
+                )
+
+                logger.info(
+                    "IBKR order submitted, awaiting broker fill: %s -> %s",
+                    opp.symbol,
+                    result.id,
+                )
+                return {
+                    "order_id": str(result.id),
+                    "journal_trade_id": journal_trade_id,
+                    "symbol": opp.symbol,
+                    "side": side,
+                    "quantity": quantity,
+                    "entry_price": opp.entry_price,
+                    "limit_price": limit_price,
+                    "status": result.status.value,
+                    "submitted": True,
+                    "position_confirmed": False,
+                }
 
             except Exception as e:
                 logger.error("IBKR execution failed: %s", e)
@@ -443,6 +483,8 @@ class LiveTradingEngine:
             "side": side,
             "quantity": quantity,
             "entry_price": opp.entry_price,
+            "submitted": True,
+            "position_confirmed": True,
         }
 
     def check_positions_real(self) -> list[dict[str, Any]]:
@@ -523,23 +565,116 @@ class LiveTradingEngine:
         self._position_manager.equity = self.equity
         self._total_pnl += position.realized_pnl
 
-        if position.realized_pnl > 0:
+        pnl = float(position.realized_pnl or 0)
+        outcome = "win" if pnl > 0.01 else "loss" if pnl < -0.01 else "breakeven"
+        thesis_correct = outcome == "win"
+
+        self._xp_system.record_trade_outcome(
+            outcome=outcome,
+            pnl_amount=pnl,
+            thesis_correct=thesis_correct,
+            trade_id=position.position_id,
+            context={
+                "ticker": position.symbol,
+                "entry_price": position.entry_price,
+                "exit_reason": getattr(position.exit_reason, "value", position.exit_reason),
+                "thesis": position.thesis,
+                "source": "broker_confirmed_position_close" if self._use_ibkr else "local_position_close",
+            },
+        )
+
+        if pnl > 0:
             self._total_wins += 1
-            xp = int(abs(position.realized_pnl) * 0.1)
-            self._xp_system.add_xp(xp)
-            logger.info("WIN: %s +$%.2f | XP +%d", position.symbol, position.realized_pnl, xp)
-        else:
+            logger.info("WIN: %s +$%.2f", position.symbol, pnl)
+        elif pnl < 0:
             self._total_losses += 1
             self._pain_memory.remember_pain(
-                symbol=position.symbol,
-                setup={"entry_price": position.entry_price, "stop_loss": position.stop_loss},
-                outcome="loss",
-                loss_amount=abs(position.realized_pnl),
-                context=position.thesis,
+                ticker=position.symbol,
+                loss_amount=abs(pnl),
+                thesis=position.thesis,
+                what_went_wrong=f"Exit reason: {getattr(position.exit_reason, 'value', position.exit_reason)}",
+                trade_id=position.position_id,
+                tags=["live_position_result"],
             )
-            logger.warning("LOSS: %s -$%.2f | Pain registered", position.symbol, abs(position.realized_pnl))
+            logger.warning("LOSS: %s -$%.2f | Pain registered", position.symbol, abs(pnl))
 
         self._save_state()
+
+    def reconcile_broker_state(self) -> dict[str, Any]:
+        """Compare IBKR broker state with the local journal and fail closed."""
+        if not self._use_ibkr:
+            return {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "positions_count": len(self._position_manager.open_positions),
+                "open_orders_count": 0,
+                "journal_rows_count": self._journal.count(),
+                "blocking": False,
+                "issues": [],
+                "source": "local_simulation",
+            }
+
+        try:
+            return self._reconciler.reconcile().to_dict()
+        except Exception as exc:
+            logger.exception("Broker reconciliation failed; blocking live trading: %s", exc)
+            return {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "positions_count": 0,
+                "open_orders_count": 0,
+                "journal_rows_count": self._journal.count(),
+                "blocking": True,
+                "issues": [
+                    {
+                        "severity": "BLOCK",
+                        "code": "broker_reconciliation_error",
+                        "message": str(exc),
+                        "ticker": "",
+                        "broker_ref": "",
+                        "journal_ref": "",
+                    }
+                ],
+            }
+
+    def study_closed_market(self, *, force: bool = False) -> dict[str, Any]:
+        """Study while the market is closed without submitting trades."""
+        today = datetime.now(timezone.utc).date().isoformat()
+        if not force and self._last_study_date == today:
+            return {"skipped": True, "reason": "already_studied_today", "date": today}
+
+        reconciliation = self.reconcile_broker_state()
+        min_age_days = int(os.getenv("SUPEREZIO_STUDY_MIN_AGE_DAYS", "14"))
+        reviewed = self._journal.review_aged_closed_theses(min_age_days=min_age_days)
+
+        try:
+            from .daily_standup import get_daily_standup
+
+            standup = get_daily_standup().generate()
+            standup_summary = {
+                "date": standup.date,
+                "health_status": standup.health_status,
+                "health_score": standup.health_score,
+                "trades_today": standup.trades_today,
+                "pnl_total": standup.pnl_total,
+                "top_lessons": standup.top_lessons[:3],
+            }
+        except Exception as exc:
+            logger.warning("Closed-market standup generation failed: %s", exc)
+            standup_summary = {"error": str(exc)}
+
+        self._last_study_date = today
+        study = {
+            "skipped": False,
+            "date": today,
+            "reconciliation": reconciliation,
+            "aged_theses_reviewed": reviewed,
+            "standup": standup_summary,
+        }
+        logger.info(
+            "Closed-market study complete: reviewed=%d blocking=%s",
+            len(reviewed),
+            reconciliation.get("blocking"),
+        )
+        return study
 
     def run_one_cycle_real(self) -> dict[str, Any]:
         """Executa um ciclo real."""
@@ -549,6 +684,8 @@ class LiveTradingEngine:
             "opportunities": 0,
             "trades": 0,
             "closed": 0,
+            "orders_submitted": 0,
+            "blocked": False,
             "equity": round(self.equity, 2),
         }
 
@@ -561,6 +698,14 @@ class LiveTradingEngine:
 
         # Atualizar equity do broker
         self.update_equity_from_broker()
+        summary["equity"] = round(self.equity, 2)
+
+        reconciliation = self.reconcile_broker_state()
+        summary["reconciliation"] = reconciliation
+        if reconciliation.get("blocking"):
+            summary["blocked"] = True
+            logger.error("Live trading cycle blocked by broker reconciliation")
+            return summary
 
         # Scanear
         opportunities = self.scan_market_real()
@@ -574,7 +719,10 @@ class LiveTradingEngine:
                 if qty > 0:
                     result = self.execute_trade_real(opp, qty)
                     if result:
-                        summary["trades"] += 1
+                        if result.get("position_confirmed"):
+                            summary["trades"] += 1
+                        else:
+                            summary["orders_submitted"] += 1
 
         # Gerenciar posições
         closed = self.check_positions_real()
@@ -586,7 +734,9 @@ class LiveTradingEngine:
         """Compatibility wrapper for AutonomousLoop."""
         summary = self.run_one_cycle_real()
         summary["trades_executed"] = summary.get("trades", 0)
+        summary["orders_submitted"] = summary.get("orders_submitted", 0)
         summary["positions_closed"] = summary.get("closed", 0)
+        summary["opportunities_found"] = summary.get("opportunities", 0)
         summary["total_pnl"] = round(self._total_pnl, 2)
         return summary
 

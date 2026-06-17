@@ -47,6 +47,9 @@ class Order:
     take_profit_price: float | None = None
     filled_price: float | None = None
     submitted_at: str = ""
+    perm_id: str | None = None
+    tws_order_id: str | None = None
+    client_id: str | None = None
 
 
 @dataclass(frozen=True)

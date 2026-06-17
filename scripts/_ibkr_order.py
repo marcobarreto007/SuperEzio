@@ -49,8 +49,13 @@ def main():
         trade = ib.placeOrder(contract, order)
         ib.sleep(5)  # Wait longer for order acknowledgment
 
+        perm_id = getattr(trade.order, "permId", 0) or 0
+        tws_order_id = getattr(trade.order, "orderId", 0) or 0
         result = {
-            "order_id": trade.order.orderId,
+            "order_id": perm_id or tws_order_id,
+            "perm_id": perm_id or None,
+            "tws_order_id": tws_order_id or None,
+            "client_id": getattr(trade.order, "clientId", client_id),
             "symbol": ticker,
             "action": action,
             "qty": qty,

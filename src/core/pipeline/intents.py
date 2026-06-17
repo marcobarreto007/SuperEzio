@@ -1815,6 +1815,13 @@ def detect_ticker(message: str) -> str:
         return ""
 
     raw = message.strip()
+
+    # ── Genie click: "TICKER USIO:" or "TICKER DIBS:" → extract immediately ──
+    import re as _re
+    ticker_prefix = _re.match(r"^TICKER\s+([A-Z]{1,5}(?:\.[A-Z]{2})?)\s*:", raw)
+    if ticker_prefix:
+        return ticker_prefix.group(1).upper()
+
     if detect_broker_status_intent(raw):
         return ""
 

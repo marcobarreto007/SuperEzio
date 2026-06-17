@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import math
 import os
 import sys
 import time
@@ -34,6 +35,19 @@ from .endpoints import router as a2a_router  # noqa: E402
 load_local_env()
 
 logger = logging.getLogger(__name__)
+
+
+def _json_safe(value):
+    """Return a JSON-compliant copy by replacing NaN/Infinity with None."""
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, tuple):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    return value
 
 AGENT_NAME = os.getenv("A2A_AGENT_NAME", "generic_agent")
 ROOT_DIR = PROJECT_ROOT
@@ -492,7 +506,7 @@ async def health_check():
 
     all_ok = primary_info["configured"] or any(m["reachable"] for m in local_models.values())
     health["status"] = "ok" if all_ok else "degraded_no_backend"
-    return health
+    return _json_safe(health)
 
 
 def run():
@@ -502,11 +516,11 @@ def run():
 @app.get("/metrics")
 async def get_metrics():
     """MÃ©tricas de negÃ³cio: latÃªncia, erro rate, tokens, cache."""
-    return {
+    return _json_safe({
         "service": "superezio",
         "version": "3.0.0",
         **metrics.get_all(),
-    }
+    })
 
 
 # === Observability ===

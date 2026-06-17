@@ -125,16 +125,33 @@ class InteractiveBrokersAdapter:
                         qty=order.qty,
                         status=OrderStatus.REJECTED,
                     )
-                # Success
+                status_map = {
+                    "submitted": OrderStatus.SUBMITTED,
+                    "presubmitted": OrderStatus.SUBMITTED,
+                    "pendingsubmit": OrderStatus.SUBMITTED,
+                    "filled": OrderStatus.FILLED,
+                    "partiallyfilled": OrderStatus.PARTIALLY_FILLED,
+                    "cancelled": OrderStatus.CANCELLED,
+                    "canceled": OrderStatus.CANCELLED,
+                    "rejected": OrderStatus.REJECTED,
+                }
+                status_key = str(data.get("status") or "").replace(" ", "").lower()
+                broker_order_id = str(
+                    data.get("perm_id") or data.get("order_id") or "ibkr-submitted"
+                )
                 return Order(
-                    id=data.get("order_id", "ibkr-submitted"),
+                    id=broker_order_id,
                     symbol=order.symbol,
                     side=order.side,
                     order_type=order.order_type,
                     qty=order.qty,
-                    status=OrderStatus.SUBMITTED,
+                    status=status_map.get(status_key, OrderStatus.SUBMITTED),
                     limit_price=order.limit_price,
                     stop_price=order.stop_price,
+                    filled_price=data.get("avg_price") or None,
+                    perm_id=str(data.get("perm_id")) if data.get("perm_id") else None,
+                    tws_order_id=str(data.get("tws_order_id")) if data.get("tws_order_id") else None,
+                    client_id=str(data.get("client_id")) if data.get("client_id") else None,
                 )
         except Exception as exc:
             logger.warning("IBKR submit_order failed: %s", exc)

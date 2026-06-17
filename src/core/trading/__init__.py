@@ -32,6 +32,7 @@ from .broker import (
     Position,
     SimulatedBroker,
 )
+from .broker_reconciler import BrokerReconciler, BrokerReconciliationReport, ReconciliationIssue
 from .daily_cycle import DailyCycle
 from .expert_weights import ExpertRecord, ExpertWeightRouter
 from .kill_switch import KillSwitch, KillSwitchReason, KillSwitchState
@@ -93,6 +94,8 @@ __all__ = [
     "approval_request_to_dict",
     "BracketOrder",
     "BrokerAdapter",
+    "BrokerReconciler",
+    "BrokerReconciliationReport",
     "DailyCycle",
     "EmailAlerter",
     "EmailConfig",
@@ -114,6 +117,7 @@ __all__ = [
     "PositionSizer",
     "RewardComponents",
     "RewardFunction",
+    "ReconciliationIssue",
     "SimulatedBroker",
     "TradeOutcome",
 ]

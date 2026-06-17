@@ -316,15 +316,22 @@ class PaperJournal:
         entries = self._read_all()
         for i, entry in enumerate(entries):
             if entry.get("trade_id") == trade_id:
+                paper_fields = set(PaperTrade.__dataclass_fields__)
                 trade = PaperTrade(
-                    **{k: v for k, v in entry.items() if k != "created_at" and k != "updated_at"}
+                    **{
+                        k: v
+                        for k, v in entry.items()
+                        if k in paper_fields and k not in ("created_at", "updated_at")
+                    }
                 )
                 trade.created_at = entry.get("created_at", "")
                 trade.updated_at = entry.get("updated_at", "")
                 trade.close_trade(
                     exit_price=exit_price, exit_date=exit_date, exit_reason=exit_reason
                 )
-                entries[i] = trade.to_dict()
+                updated = entry.copy()
+                updated.update(trade.to_dict())
+                entries[i] = updated
                 self._rewrite(entries)
                 logger.info(
                     "Paper trade closed: %s outcome=%s pnl=%.2f",
@@ -348,8 +355,13 @@ class PaperJournal:
         entries = self._read_all()
         for i, entry in enumerate(entries):
             if entry.get("trade_id") == trade_id:
+                paper_fields = set(PaperTrade.__dataclass_fields__)
                 trade = PaperTrade(
-                    **{k: v for k, v in entry.items() if k not in ("created_at", "updated_at")}
+                    **{
+                        k: v
+                        for k, v in entry.items()
+                        if k in paper_fields and k not in ("created_at", "updated_at")
+                    }
                 )
                 trade.created_at = entry.get("created_at", "")
                 trade.updated_at = entry.get("updated_at", "")
@@ -359,7 +371,9 @@ class PaperJournal:
                     what_went_wrong=what_went_wrong,
                     lesson_learned=lesson_learned,
                 )
-                entries[i] = trade.to_dict()
+                updated = entry.copy()
+                updated.update(trade.to_dict())
+                entries[i] = updated
                 self._rewrite(entries)
                 logger.info(
                     "Reflection added to trade: %s thesis_correct=%s", trade_id, thesis_correct
