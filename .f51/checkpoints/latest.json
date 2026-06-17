@@ -1,67 +1,74 @@
 {
-  "date_local": "2026-06-16T18:23:29-04:00",
-  "session": "committee-timeout-math-audit-2026-06-16",
-  "status": "completed_with_followup_required",
+  "date_local": "2026-06-16T19:09:40-04:00",
+  "session": "case-architecture-review-autopilot-gap-2026-06-16",
+  "status": "review_completed_changes_required",
   "final_objective": {
-    "what_system_does": "SuperEzio Financeiro should behave as a local investment desk: the user gives Bob a mandate, Bob opens a case, consults data, MathHub, Genie, Deep, experts, guardrails, portfolio, history, and only then produces an operational verdict or gated paper order.",
-    "who_it_is_for": "Marco/F51 and future operators who need a disciplined AI trading desk, not a fast chatbot.",
-    "main_user_flow": "Open http://127.0.0.1:8002, select or request an asset/opportunity/order, let the case run through scan/data/math/committee/guardrails, then review Bob's verdict and paper/live gate result.",
+    "what_system_does": "SuperEzio Financeiro should behave as a local investment desk: the user gives Bob a mandate, CASE opens, data/math/Genie/Deep/committee/Trinity/guardrails/history run, Bob decides, paper/live gates execute, and the journal/feedback loop calibrates future decisions.",
+    "who_it_is_for": "Marco/F51 and future operators who need a disciplined, auditable AI trading desk capable of multi-day supervised paper operation before real-money escalation.",
+    "main_user_flow": "Open the cockpit, submit a mandate or click a signal, watch the CASE progress through required evidence stages, review Bob's verdict/order, then let paper trades feed the journal and learning cycle.",
     "start_command": "$env:PYTHONPATH='src'; python -m agent_server.main with llama-server on 8082 and TWS paper on 7497",
-    "proof_output": "Readiness is proven by live traces where actionable financial mandates show data collection or scan, MathHub coverage, six-expert committee, Trinity deliberation, guardrails, portfolio context, Bob verdict, and a single gated paper/live order path."
+    "proof_output": "A ready CASE system is proven by live traces where trade_order/investment_analysis cases automatically collect data or scan, run MathHub, six experts, Trinity, guardrails, final verdict, one broker path, journal entry, and later learning-cycle update."
   },
   "what_was_done": [
-    "Audited the math stack: MathHub, risk metrics, technical indicators, DCF proxy, CrisisMath, penny momentum backtest, and trading loss functions.",
-    "Confirmed the orchestration gap: auto_full_analysis only pre-collects for market_scan/ticker_analysis, while the current passthrough route is agent.",
-    "Raised slow-study defaults so financial cases are not cut short by 30-90 second assumptions.",
-    "Set Bob local provider timeout to 600 seconds and gateway timeout to 600 seconds.",
-    "Raised DeepSeek/Gemini expert timeouts to 240 seconds and expert dialogue budget to 240 seconds / 2000 tokens.",
-    "Raised data collection defaults to 180 seconds, scanner LLM timeout to 600 seconds, scanner enrichment timeout to 60 seconds per item, and scan stage deadline to 180 seconds.",
-    "Aligned run_experts tool with the full six-member committee by including social_forensics.",
-    "Adjusted Bob's dynamic prompt contract: general chat can avoid tools, but financial mandates/ticker cases/trade/order/Sentimento Vivo/portfolio decisions require tools and evidence before verdict.",
-    "Updated the local .env runtime timeouts without exposing secrets and restarted the API."
+    "Reviewed commit d05fa2d: feat CASE contrato financeiro obrigatorio.",
+    "Read src/core/pipeline/case.py and integrations in orchestrator, graph, and agent.",
+    "Compared the implementation against the intended desk/case architecture and prior Bob/tool-routing failures.",
+    "Ran focused tests and browser smoke.",
+    "Ran a local CASE probe showing trade_order opens but auto_full_analysis does not call collector or experts while route remains agent.",
+    "Checked learning-cycle statistics and confirmed the feedback loop exists but confidence calibration data is missing."
   ],
   "evidence": {
-    "files_changed_or_confirmed": [
-      "src/core/pipeline/nodes/collector.py",
-      "src/core/pipeline/nodes/expert_dialogue.py",
-      "src/core/model_serving/providers.py",
-      "src/core/pipeline/nodes/tool_executor.py",
-      "src/core/pipeline/nodes/agent.py",
-      "config/runtime.yml",
-      ".env.example",
-      ".env (ignored local runtime settings)"
-    ],
-    "compile": [
-      "python -m py_compile collector.py expert_dialogue.py providers.py tool_executor.py agent.py and core math modules: passed"
-    ],
+    "commit_reviewed": "d05fa2d feat: CASE — contrato financeiro obrigatorio, mesa estuda antes do Bob decidir",
     "tests": [
-      "$env:PYTHONPATH='src'; python -m pytest tests/test_auto_full_analysis.py tests/test_agent_market_scan_loop.py -q",
-      "23 passed in 27.95s"
+      "$env:PYTHONPATH='src'; python -m pytest tests/test_auto_full_analysis.py tests/test_agent_market_scan_loop.py tests/contracts/test_contract_orchestrator.py -q -> 39 passed",
+      "$env:PYTHONPATH='src'; python -m pytest tests/test_pipeline_smoke.py -q -> 10 passed, 1 failed",
+      "Failure: test_pipeline_stream_events_blocks_unscoped_ticket_reference expected respond_blocked before agent; passthrough still routes to agent."
     ],
     "browser_smoke": [
-      "$env:PYTHONPATH='src'; python scripts/browser_smoke.py --skip-chat --timeout-ms 180000",
-      "ok true after restart; /health ok; AAPL chart 130 candles; canvas nonblank 438400; console_errors empty",
-      "Screenshot: output/playwright/superezio-browser-smoke-20260616-182227.png"
+      "$env:PYTHONPATH='src'; python scripts/browser_smoke.py --skip-chat --timeout-ms 180000 -> ok true",
+      "Latest screenshot: output/playwright/superezio-browser-smoke-20260616-190838.png"
     ],
-    "runtime": [
-      "API restarted on port 8002 with listener PID 26932.",
-      "/health returned ok.",
-      "/health/details returned status ok.",
-      "Provider timeout probe: deepseek=240s, gemini=240s, agent=600s, ceo_fallback_glm=300s, gateway=600s."
+    "case_probe": {
+      "input": "comprar 10 NOK limite $5 with ticker=NOK",
+      "observed_case_type": "trade_order",
+      "observed_route": "agent",
+      "collector_calls": 0,
+      "expert_calls": 0,
+      "case_pending_after_auto": [
+        "data_collection",
+        "genie_sentiment",
+        "deep_analysis",
+        "expert_committee",
+        "trinity_deliberation",
+        "verdict",
+        "paper_order"
+      ],
+      "case_is_complete_after_auto": false
+    },
+    "case_classifier_probe": [
+      "create_case('comprar 10 NOK limite $5', ticker='') returned casual because the message is lowercased before uppercase ticker detection.",
+      "create_case('comprar 10 NOK limite $5', ticker='NOK') returned trade_order."
     ],
-    "known_unresolved_design_gap": [
-      "Financial case routing still needs a stronger typed-intent/case contract so passthrough route=agent cannot make the full desk optional.",
-      "Order execution still needs a single authoritative path instead of split parser/tool behavior.",
-      "Sentimento Vivo click still needs to become a real case submission if the intended behavior is 'Bob received this signal'."
+    "learning_stats": [
+      "Total trades: 29",
+      "Closed trades: 13",
+      "Wins/Losses: 6/7",
+      "Win rate: 46.2%",
+      "Lessons logged: 3",
+      "Bias status: confidence_not_recorded / missing_confidence_data",
+      "Last learning cycle: 2026-06-15T15:53:38.079597+00:00"
     ]
   },
   "risks": [
-    "Longer timeouts are correct for money decisions but increase latency and can tie up local/cloud providers longer.",
-    "Prompt contract improvement is not the same as hard routing; the next step must enforce case semantics in code.",
-    "NewsAPI is currently returning HTTP 429 in server logs, so news enrichment may be degraded independently of timeout changes."
+    "CASE is currently a context/checklist layer, not an executable gate. It does not yet drive collection, expert execution, Trinity completion, verdict marking, or paper-order completion.",
+    "Trade-order CASE required_steps includes paper_order before verdict completion, which can make the case impossible to complete for WAIT/REJECT decisions.",
+    "mark_error currently completes a step, so a failed data provider could make a CASE appear complete instead of blocked/degraded.",
+    "Ticker detection inside create_case is broken for ticker-less payloads because uppercase detection runs after lowercasing the message.",
+    "The old auto_execute_paper parser path still exists beside submit_paper_order, so broker execution is not yet a single CASE-owned path.",
+    "Autopilot for days is not implemented: there is no resilient scheduler/daemon that monitors TWS, open positions, stop/exit logic, periodic case review, post-mortem, and learning-cycle execution."
   ],
-  "next_step": "Implement the case/mandate architecture: typed envelopes for user mandates and Genie signals, mandatory full desk pipeline for actionable financial cases, and one broker execution path.",
+  "next_step": "Convert CASE from checklist to controller: typed case classifier, force_auto_collect/market stack from case type, explicit step semantics (ok/degraded/blocked/skipped), CASE-owned broker path, scheduler loop, position monitor, and learning-cycle automation.",
   "owner": "Codex",
   "github_policy": "DISK_ONLY_GITHUB_BLOCKED",
-  "updated": "2026-06-16T22:23:29Z"
+  "updated": "2026-06-16T23:09:40Z"
 }
