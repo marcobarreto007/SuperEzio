@@ -357,7 +357,6 @@ class HistorianMember(CommitteeMember):
         # Performance passada
         past_trades = ticker_history.get("trades", 0)
         past_wins = ticker_history.get("wins", 0)
-        past_losses = ticker_history.get("losses", 0)
 
         factors = []
 

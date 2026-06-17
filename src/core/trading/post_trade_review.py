@@ -121,9 +121,6 @@ class PostTradeReviewer:
         pnl = trade.get("pnl_amount")
         pnl_pct = trade.get("pnl_percent")
         thesis_correct = trade.get("thesis_correct")
-        thesis = trade.get("thesis", "")
-        entry_price = trade.get("entry_price", 0)
-        exit_price = trade.get("exit_price", 0)
         exit_reason = trade.get("exit_reason", "")
 
         # Extrair confiança

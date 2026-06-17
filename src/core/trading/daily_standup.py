@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -170,14 +170,13 @@ class DailyStandupGenerator:
     def _load_learning_metrics(self, date_str: str) -> tuple[int, int, list[str]]:
         """Carrega métricas de aprendizado."""
         try:
-            from .feedback_loop import get_feedback_loop
             from .learning_log import LearningLog
 
             # Buscar lições da data
             learning_log = LearningLog()
             lessons = learning_log.get_recent_lessons(days=1)
 
-            top_lessons = [f"{l.get('title', '?')}" for l in lessons[:3]]
+            top_lessons = [f"{lesson.get('title', '?')}" for lesson in lessons[:3]]
 
             # Padrões (placeholder)
             patterns = 0
