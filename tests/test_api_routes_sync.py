@@ -266,6 +266,9 @@ def test_cockpit_portfolio_separates_broker_local_and_history(
                 "action": "BUY",
                 "qty": 3,
                 "status": "Submitted",
+                "perm_id": "ibkr-perm-1",
+                "tws_order_id": "4",
+                "client_id": "777",
                 "source": "ibkr",
             }
         ],
@@ -312,6 +315,9 @@ def test_cockpit_portfolio_separates_broker_local_and_history(
     assert data["local_tickets_count"] == 1
     assert data["orders_count"] == 2
     assert data["orders"][0]["source"] == "ibkr"
+    assert data["orders"][0]["perm_id"] == "ibkr-perm-1"
+    assert data["orders"][0]["tws_order_id"] == "4"
+    assert data["orders"][0]["client_id"] == "777"
     assert data["orders"][1]["source"] == "local_pending"
     assert data["trade_history_count"] == 1
     assert data["trade_history"][0]["trade_id"] == "paper-1"
@@ -1004,6 +1010,10 @@ def test_frontend_ibkr_order_mirror_integration():
     assert "function renderPortfolioMirror" in init_js
     assert "function selectTicker" in init_js
     assert "ibkr_mirror_click" in init_js
+    assert "positions.forEach(function (pos)" in init_js
+    assert "if (!orders.length) {" not in init_js
+    assert "ord / " in init_js
+    assert "Local audit history" in init_js
     assert "refreshCockpitPortfolio().then" in init_js
     assert "window.SZ.renderPortfolioMirror" in cockpit_js
     assert ".order-row.is-selected" in charts_css

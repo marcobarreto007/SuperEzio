@@ -680,22 +680,20 @@
       rows.push(renderOrderButton(order, "order", current));
     });
 
-    if (!orders.length) {
-      positions.forEach(function (pos) {
-        var ticker = positionTicker(pos);
-        if (!firstTicker && ticker) firstTicker = ticker;
-        rows.push(renderOrderButton(pos, "position", current));
-      });
-    }
+    positions.forEach(function (pos) {
+      var ticker = positionTicker(pos);
+      if (!firstTicker && ticker) firstTicker = ticker;
+      rows.push(renderOrderButton(pos, "position", current));
+    });
 
     var visibleRows = rows.filter(Boolean);
     if (countEl) {
-      countEl.textContent = String(brokerOrders.length) + " IBKR" + (localTickets.length ? " / " + localTickets.length + " local" : "");
+      countEl.textContent = String(brokerOrders.length) + " ord / " + String(positions.length) + " pos" + (localTickets.length ? " / " + localTickets.length + " local" : "");
     }
     if (visibleRows.length) {
       host.innerHTML = visibleRows.join("");
     } else {
-      host.innerHTML = '<div class="cockpit-empty">No open IBKR broker orders. Manual chart remains available.</div>';
+      host.innerHTML = '<div class="cockpit-empty">No open IBKR broker orders or positions. Manual chart remains available.</div>';
     }
 
     if (historyHost) {
@@ -706,11 +704,11 @@
       }).filter(Boolean);
       if (historyRows.length) {
         historyHost.innerHTML = [
-          '<div class="trade-history-title"><span>Paper history</span><strong>' + esc(String(pf.trade_history_count || history.length)) + '</strong></div>',
+          '<div class="trade-history-title"><span>Local audit history</span><strong>' + esc(String(pf.trade_history_count || history.length)) + '</strong></div>',
           '<div class="trade-history-scroll">' + historyRows.join("") + '</div>',
         ].join("");
       } else {
-        historyHost.innerHTML = '<div class="cockpit-empty">No paper trade history recorded.</div>';
+        historyHost.innerHTML = '<div class="cockpit-empty">No local audit history recorded.</div>';
       }
     }
 

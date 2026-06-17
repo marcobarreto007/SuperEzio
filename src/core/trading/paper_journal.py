@@ -185,6 +185,126 @@ class PaperJournal:
         )
         return trade.trade_id
 
+    def add_trade(self, trade: dict[str, Any]) -> str:
+        """Append a trade/ticket dict using the journal's canonical schema.
+
+        Engines historically passed lightweight dicts here. Keep the method
+        strict enough for audit while preserving extra broker metadata.
+        """
+        now = datetime.now(timezone.utc).isoformat()
+        ticker = str(trade.get("ticker") or trade.get("symbol") or "").strip().upper()
+        if not ticker:
+            raise ValueError("trade ticker/symbol is required")
+
+        direction = str(
+            trade.get("direction") or trade.get("side") or trade.get("action") or "long"
+        ).strip().lower()
+        if direction == "buy":
+            direction = "long"
+        elif direction == "sell":
+            direction = "short"
+        if direction not in {"long", "short"}:
+            direction = "long"
+
+        trade_id = str(
+            trade.get("trade_id")
+            or trade.get("order_id")
+            or f"paper-{ticker}-{int(datetime.now(timezone.utc).timestamp() * 1000)}"
+        )
+        entry_price = float(
+            trade.get("entry_price")
+            or trade.get("limit_price")
+            or trade.get("price")
+            or 0.0
+        )
+        shares = float(
+            trade.get("shares")
+            or trade.get("qty")
+            or trade.get("quantity")
+            or 0.0
+        )
+
+        canonical = PaperTrade(
+            trade_id=trade_id,
+            ticker=ticker,
+            thesis=str(trade.get("thesis") or trade.get("message") or ""),
+            direction=direction,
+            entry_date=str(trade.get("entry_date") or trade.get("timestamp") or now),
+            entry_price=entry_price,
+            shares=shares,
+            entry_reasoning=str(
+                trade.get("entry_reasoning")
+                or trade.get("reasoning")
+                or trade.get("thesis")
+                or ""
+            ),
+            verdict_at_entry=str(trade.get("verdict_at_entry") or trade.get("verdict") or ""),
+            risk_assessment=str(trade.get("risk_assessment") or trade.get("risk") or ""),
+            expected_holding_period=str(
+                trade.get("expected_holding_period") or trade.get("horizon") or "unknown"
+            ),
+            tags=list(trade.get("tags") or []),
+        ).to_dict()
+
+        for key, value in trade.items():
+            if key not in canonical:
+                canonical[key] = value
+        canonical["updated_at"] = now
+        self._append(canonical)
+        logger.info("Paper journal row added: %s %s", trade_id, ticker)
+        return trade_id
+
+    def record_broker_order(
+        self,
+        *,
+        broker_order_id: str,
+        ticker: str,
+        action: str,
+        qty: float,
+        limit_price: float | None,
+        status: str,
+        thesis: str,
+        verdict_at_entry: str,
+        risk_assessment: str,
+        expected_holding_period: str = "unknown",
+        broker_perm_id: str | None = None,
+        broker_tws_order_id: str | None = None,
+        broker_client_id: str | None = None,
+        market_data: dict[str, Any] | None = None,
+    ) -> str:
+        """Record an IBKR submitted order without claiming a fill."""
+        clean_ticker = str(ticker).strip().upper()
+        trade_id = f"broker-{broker_order_id or broker_perm_id or clean_ticker}"
+        tags = ["broker_submitted", "awaiting_fill", "ibkr"]
+        return self.add_trade(
+            {
+                "trade_id": trade_id,
+                "ticker": clean_ticker,
+                "action": action.upper(),
+                "direction": "long" if action.lower() == "buy" else "short",
+                "qty": qty,
+                "shares": qty,
+                "entry_price": limit_price or 0.0,
+                "limit_price": limit_price,
+                "thesis": thesis,
+                "entry_reasoning": thesis,
+                "verdict_at_entry": verdict_at_entry,
+                "risk_assessment": risk_assessment,
+                "expected_holding_period": expected_holding_period,
+                "status": "submitted",
+                "broker": "IBKR",
+                "broker_order_id": broker_order_id,
+                "broker_perm_id": broker_perm_id,
+                "broker_tws_order_id": broker_tws_order_id,
+                "broker_client_id": broker_client_id,
+                "broker_order_status": status,
+                "broker_fill_confirmed": False,
+                "source": "ibkr_order_ticket",
+                "market_data": market_data or {},
+                "tags": tags,
+            }
+        )
+
     def close_trade(
         self,
         trade_id: str,

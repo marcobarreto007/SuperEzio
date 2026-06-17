@@ -138,6 +138,9 @@ def _normalize_order_row(row: dict[str, Any], *, source: str) -> dict[str, Any] 
     order_id = str(row.get("order_id") or row.get("id") or f"{source}-{ticker}").strip()
     return {
         "order_id": order_id,
+        "tws_order_id": str(row.get("tws_order_id") or row.get("orderId") or "").strip() or None,
+        "perm_id": str(row.get("perm_id") or row.get("permId") or "").strip() or None,
+        "client_id": str(row.get("client_id") or row.get("clientId") or "").strip() or None,
         "ticker": ticker,
         "symbol": ticker,
         "action": action,

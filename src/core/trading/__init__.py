@@ -55,11 +55,14 @@ from .risk_guard import (
     get_risk_guard,
 )
 from .trading_engine import MarketSentiment, TradingEngine, TradingOpportunity, TradingSession, get_trading_engine
+from .trading_engine_live import LiveTradingEngine, get_live_trading_engine
 
 __all__ = [
     # Autonomous trading (Phase 5)
     "TradingEngine",
     "get_trading_engine",
+    "LiveTradingEngine",
+    "get_live_trading_engine",
     "AutonomousLoop",
     "run_autonomous_loop",
     "MarketSentiment",

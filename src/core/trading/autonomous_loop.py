@@ -15,13 +15,16 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import signal
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from .market_hours import get_market_state
 from .trading_engine import get_trading_engine
+from .trading_engine_live import get_live_trading_engine
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +45,9 @@ class AutonomousLoop:
         equity: float = 10000.0,
         scan_interval_seconds: int = 30,
         persistence_path: Path | None = None,
+        use_live_engine: bool | None = None,
+        use_ibkr: bool = True,
+        engine: Any | None = None,
     ):
         self.equity = equity
         self._scan_interval = scan_interval_seconds
@@ -49,7 +55,18 @@ class AutonomousLoop:
         self._persistence_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Motor de trading
-        self._engine = get_trading_engine(equity=equity)
+        if engine is not None:
+            self._engine = engine
+            self._engine_mode = "injected"
+        else:
+            if use_live_engine is None:
+                use_live_engine = os.getenv("SUPEREZIO_AUTONOMOUS_ENGINE", "live").lower() != "simulated"
+            if use_live_engine:
+                self._engine = get_live_trading_engine(use_ibkr=use_ibkr, equity=equity)
+                self._engine_mode = "live_ibkr" if use_ibkr else "live_market_data"
+            else:
+                self._engine = get_trading_engine(equity=equity)
+                self._engine_mode = "simulated"
 
         # Estado
         self._running = False
@@ -84,7 +101,12 @@ class AutonomousLoop:
         self._start_time = time.time()
         logger.info("=" * 60)
         logger.info("BOB AUTONOMOUS LOOP STARTED")
-        logger.info("Equity: $%.2f | Scan interval: %ds", self.equity, self._scan_interval)
+        logger.info(
+            "Equity: $%.2f | Scan interval: %ds | Engine: %s",
+            self.equity,
+            self._scan_interval,
+            self._engine_mode,
+        )
         logger.info("=" * 60)
 
         try:
@@ -137,12 +159,12 @@ class AutonomousLoop:
         logger.info("🎯 TRADING CYCLE %d", self._cycle_count)
 
         # Iniciar sessão se não houver
-        status = self._engine.get_status()
+        status = self._engine_status()
         if not status.get("session"):
-            self._engine.start_session()
+            self._engine_start_session()
 
         # Executar ciclo completo
-        summary = self._engine.run_one_cycle()
+        summary = self._engine_run_one_cycle()
 
         # Log resultado
         if summary["trades_executed"] > 0:
@@ -166,7 +188,7 @@ class AutonomousLoop:
         logger.debug("📊 Preparation cycle")
 
         # Atualizar posições (checar stops)
-        closed = self._engine.check_and_update_positions()
+        closed = self._engine_check_positions()
 
         if closed:
             logger.info("🔒 Posições fechadas fora de mercado: %d", len(closed))
@@ -174,13 +196,13 @@ class AutonomousLoop:
         # Finalizar sessão se pós-market
         market_state = get_market_state(cached=False)
         if market_state["phase"] == "POST_MARKET":
-            session = self._engine.end_session()
+            session = self._engine_end_session()
             if session:
                 logger.info(
                     "📋 Session summary: %d trades, $%.2f PnL, %.1f%% win rate",
-                    session.trades_executed,
-                    session.total_pnl,
-                    session.trades_won / max(1, session.trades_executed) * 100,
+                    self._session_value(session, "trades_executed", 0),
+                    self._session_value(session, "total_pnl", 0.0),
+                    self._session_value(session, "win_rate", 0.0) * 100,
                 )
 
         await asyncio.sleep(self._scan_interval * 2)
@@ -208,7 +230,7 @@ class AutonomousLoop:
         self._stats["cycles_completed"] = self._cycle_count
         self._stats["hours_running"] = (time.time() - self._start_time) / 3600
 
-        status = self._engine.get_status()
+        status = self._engine_status()
         engine = status.get("engine", {})
 
         self._stats["trades_executed"] = engine.get("total_trades", 0)
@@ -216,7 +238,7 @@ class AutonomousLoop:
 
     def _log_status(self) -> None:
         """Log status atual."""
-        status = self._engine.get_status()
+        status = self._engine_status()
         engine = status.get("engine", {})
         positions = status.get("positions", {})
 
@@ -237,12 +259,12 @@ class AutonomousLoop:
         self._running = False
 
         # Finalizar sessão
-        session = self._engine.end_session()
+        session = self._engine_end_session()
         if session:
             logger.info(
                 "Final session: %d trades, $%.2f PnL",
-                session.trades_executed,
-                session.total_pnl,
+                self._session_value(session, "trades_executed", 0),
+                self._session_value(session, "total_pnl", 0.0),
             )
 
         # Salvar estado final
@@ -253,10 +275,11 @@ class AutonomousLoop:
     def _save_final_state(self) -> None:
         """Salva estado final."""
         try:
-            status = self._engine.get_status()
+            status = self._engine_status()
             final_state = {
                 "shutdown_time": datetime.now(timezone.utc).isoformat(),
                 "stats": self._stats,
+                "engine_mode": self._engine_mode,
                 "engine": {
                     "equity": status.get("engine", {}).get("equity", self.equity),
                     "total_trades": status.get("engine", {}).get("total_trades", 0),
@@ -272,15 +295,59 @@ class AutonomousLoop:
         except Exception as e:
             logger.warning("Failed to save final state: %s", e)
 
+    def _engine_status(self) -> dict[str, Any]:
+        if hasattr(self._engine, "get_status"):
+            return self._engine.get_status()
+        if hasattr(self._engine, "get_status_real"):
+            return self._engine.get_status_real()
+        return {}
+
+    def _engine_start_session(self) -> Any:
+        if hasattr(self._engine, "start_session"):
+            return self._engine.start_session()
+        return None
+
+    def _engine_end_session(self) -> Any:
+        if hasattr(self._engine, "end_session"):
+            return self._engine.end_session()
+        return None
+
+    def _engine_run_one_cycle(self) -> dict[str, Any]:
+        if hasattr(self._engine, "run_one_cycle"):
+            return self._engine.run_one_cycle()
+        if hasattr(self._engine, "run_one_cycle_real"):
+            summary = self._engine.run_one_cycle_real()
+            summary["trades_executed"] = summary.get("trades", 0)
+            summary["positions_closed"] = summary.get("closed", 0)
+            summary["total_pnl"] = summary.get("total_pnl", 0.0)
+            return summary
+        return {"trades_executed": 0, "positions_closed": 0, "total_pnl": 0.0, "opportunities_found": 0}
+
+    def _engine_check_positions(self) -> list[dict[str, Any]]:
+        if hasattr(self._engine, "check_and_update_positions"):
+            return self._engine.check_and_update_positions()
+        if hasattr(self._engine, "check_positions_real"):
+            return self._engine.check_positions_real()
+        return []
+
+    def _session_value(self, session: Any, key: str, default: Any) -> Any:
+        if isinstance(session, dict):
+            return session.get(key, default)
+        return getattr(session, key, default)
+
 
 async def run_autonomous_loop(
     equity: float = 10000.0,
     scan_interval_seconds: int = 30,
+    use_live_engine: bool | None = None,
+    use_ibkr: bool = True,
 ) -> None:
     """Função conveniente para rodar o loop autônomo."""
     loop = AutonomousLoop(
         equity=equity,
         scan_interval_seconds=scan_interval_seconds,
+        use_live_engine=use_live_engine,
+        use_ibkr=use_ibkr,
     )
     await loop.start()
 

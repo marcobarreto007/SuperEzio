@@ -75,17 +75,39 @@ class InteractiveBrokersAdapter:
         # Order submission uses subprocess for isolation (existing pattern)
         order_script = Path(__file__).resolve().parent.parent.parent.parent / "scripts" / "_ibkr_order.py"
 
+        if order.order_type == OrderType.MARKET and os.getenv(
+            "SUPEREZIO_IBKR_ALLOW_MARKET_ORDER", "0"
+        ).strip().lower() not in {"1", "true", "yes", "on"}:
+            logger.warning("IBKR market order blocked by policy: %s", order.symbol)
+            return Order(
+                id="ibkr-blocked-market-order",
+                symbol=order.symbol,
+                side=order.side,
+                order_type=order.order_type,
+                qty=order.qty,
+                status=OrderStatus.REJECTED,
+            )
+
+        if order.order_type == OrderType.LIMIT and not order.limit_price:
+            logger.warning("IBKR limit order rejected without limit_price: %s", order.symbol)
+            return Order(
+                id="ibkr-missing-limit-price",
+                symbol=order.symbol,
+                side=order.side,
+                order_type=order.order_type,
+                qty=order.qty,
+                status=OrderStatus.REJECTED,
+            )
+
         try:
             result = subprocess.run(
                 [
                     sys.executable,
                     str(order_script),
-                    order.symbol.upper(),
                     "BUY" if order.side == OrderSide.BUY else "SELL",
+                    order.symbol.upper(),
                     str(int(order.qty)),
-                    order.order_type.value.lower(),
                     str(order.limit_price or 0),
-                    str(order.stop_price or 0),
                 ],
                 capture_output=True,
                 text=True,

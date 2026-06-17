@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import json
 import logging
-import random
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -148,6 +147,35 @@ class LiveTradingEngine:
                 json.dump(state, f, indent=2)
         except Exception as e:
             logger.warning("Failed to save state: %s", e)
+
+    def start_session(self) -> dict[str, Any]:
+        """Start or resume a live autonomous session."""
+        if self._session_start is None:
+            self._session_start = datetime.now(timezone.utc).isoformat()
+            logger.info("Live trading session started")
+        return {
+            "started_at": self._session_start,
+            "trades_executed": self._total_trades,
+            "total_pnl": round(self._total_pnl, 2),
+        }
+
+    def end_session(self) -> dict[str, Any] | None:
+        """End the current live autonomous session."""
+        if self._session_start is None:
+            return None
+        summary = {
+            "started_at": self._session_start,
+            "ended_at": datetime.now(timezone.utc).isoformat(),
+            "trades_executed": self._total_trades,
+            "trades_won": self._total_wins,
+            "trades_lost": self._total_losses,
+            "total_pnl": round(self._total_pnl, 2),
+            "win_rate": round(self._total_wins / max(1, self._total_trades), 3),
+        }
+        self._session_start = None
+        self._save_state()
+        logger.info("Live trading session ended: %s", summary)
+        return summary
 
     def update_equity_from_broker(self) -> float:
         """Atualiza equity do broker IBKR."""
@@ -343,16 +371,19 @@ class LiveTradingEngine:
         # Executar via IBKR
         if self._use_ibkr:
             try:
-                from core.trading.broker import Order, OrderSide, OrderType
+                from core.trading.broker import Order, OrderSide, OrderStatus, OrderType
                 from adapters.broker.ibkr_adapter import InteractiveBrokersAdapter
 
                 adapter = InteractiveBrokersAdapter()
+                limit_price = round(float(opp.entry_price), 4)
                 order = Order(
                     id=f"live-{int(time.time())}",
                     symbol=opp.symbol,
                     side=OrderSide.BUY if side == "buy" else OrderSide.SELL,
-                    order_type=OrderType.MARKET,
+                    order_type=OrderType.LIMIT,
                     qty=quantity,
+                    status=OrderStatus.PENDING,
+                    limit_price=limit_price,
                 )
 
                 result = adapter.submit_order(order)
@@ -462,17 +493,20 @@ class LiveTradingEngine:
         """Fecha posição no IBKR."""
         try:
             from adapters.broker.ibkr_adapter import InteractiveBrokersAdapter
-            from core.trading.broker import Order, OrderSide, OrderType
+            from core.trading.broker import Order, OrderSide, OrderStatus, OrderType
 
             adapter = InteractiveBrokersAdapter()
             side = "sell" if position.side.value == "long" else "buy"
+            limit_price = round(float(exit_price), 4)
 
             order = Order(
                 id=f"close-{position.position_id}",
                 symbol=position.symbol,
                 side=OrderSide.SELL if side == "sell" else OrderSide.BUY,
-                order_type=OrderType.MARKET,
+                order_type=OrderType.LIMIT,
                 qty=position.quantity,
+                status=OrderStatus.PENDING,
+                limit_price=limit_price,
             )
 
             result = adapter.submit_order(order)
@@ -548,6 +582,18 @@ class LiveTradingEngine:
 
         return summary
 
+    def run_one_cycle(self) -> dict[str, Any]:
+        """Compatibility wrapper for AutonomousLoop."""
+        summary = self.run_one_cycle_real()
+        summary["trades_executed"] = summary.get("trades", 0)
+        summary["positions_closed"] = summary.get("closed", 0)
+        summary["total_pnl"] = round(self._total_pnl, 2)
+        return summary
+
+    def check_and_update_positions(self) -> list[dict[str, Any]]:
+        """Compatibility wrapper for AutonomousLoop."""
+        return self.check_positions_real()
+
     def get_status_real(self) -> dict[str, Any]:
         """Status completo."""
         open_positions = self._position_manager.open_positions
@@ -571,6 +617,14 @@ class LiveTradingEngine:
             "live": self._use_ibkr,
             "market_data": "IBKR" if self._use_ibkr else "Yahoo",
         }
+
+    def get_status(self) -> dict[str, Any]:
+        """Compatibility wrapper for AutonomousLoop and cockpit probes."""
+        status = self.get_status_real()
+        status["session"] = self._session_start is not None
+        status["engine"]["mode"] = "live_ibkr" if self._use_ibkr else "live_market_data"
+        status["engine"]["session_started_at"] = self._session_start
+        return status
 
 
 def get_live_trading_engine(use_ibkr: bool = True, equity: float = 10000.0) -> LiveTradingEngine:

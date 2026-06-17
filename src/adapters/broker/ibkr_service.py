@@ -366,64 +366,76 @@ class IBKRService:
             return []
 
         try:
-            from ib_insync import Stock
+            orders: list[dict] = []
+            seen: set[str] = set()
 
-            orders = []
-            seen = set()
+            def add_trade(trade: Any) -> None:
+                order = getattr(trade, "order", None)
+                contract = getattr(trade, "contract", None)
+                order_status = getattr(trade, "orderStatus", None)
 
-            # Try both methods
+                if order is None:
+                    return
+
+                raw_order_id = str(getattr(order, "orderId", "") or "")
+                perm_id = str(getattr(order, "permId", "") or "")
+                client_id = str(getattr(order, "clientId", "") or "")
+                symbol = str(
+                    getattr(contract, "symbol", "")
+                    or getattr(contract, "localSymbol", "")
+                    or ""
+                ).upper()
+                status = str(getattr(order_status, "status", "") or "submitted")
+                order_id = perm_id if perm_id not in {"", "0"} else raw_order_id
+                dedupe_key = (
+                    perm_id
+                    if perm_id not in {"", "0"}
+                    else f"{client_id}:{raw_order_id}:{symbol}"
+                )
+
+                if not order_id or not symbol or dedupe_key in seen:
+                    return
+
+                seen.add(dedupe_key)
+                orders.append(
+                    {
+                        "order_id": order_id,
+                        "tws_order_id": raw_order_id,
+                        "perm_id": perm_id or None,
+                        "client_id": client_id or None,
+                        "ticker": symbol,
+                        "action": str(getattr(order, "action", "")).upper(),
+                        "qty": float(getattr(order, "totalQuantity", 0)),
+                        "order_type": str(getattr(order, "orderType", "")).upper(),
+                        "limit_price": float(getattr(order, "lmtPrice", 0)) or None,
+                        "stop_price": float(getattr(order, "auxPrice", 0)) or None,
+                        "status": status,
+                    }
+                )
+
+            # reqAllOpenOrders is the authoritative paper/demo path for orders
+            # visible in TWS, including orders not created by this clientId.
             for method_name in ("reqAllOpenOrders", "reqOpenOrders"):
                 try:
                     method = getattr(self._ib, method_name)
-                    result = method() or []
-                    # Give IBKR time to return order data
-                    time.sleep(0.5)
+                    for trade in method() or []:
+                        add_trade(trade)
+                    self._ib.sleep(min(max(timeout, 0.1), 1.0))
                 except Exception:
                     continue
 
-            # Collect from all trade sources
+            # Then collect any trades that arrived asynchronously while ib_insync
+            # processed the socket loop above.
             for accessor in ("openTrades", "trades"):
                 try:
-                    trades = getattr(self._ib, accessor)() or []
+                    for trade in getattr(self._ib, accessor)() or []:
+                        add_trade(trade)
                 except Exception:
                     continue
 
-                for trade in trades:
-                    order = getattr(trade, "order", None)
-                    contract = getattr(trade, "contract", None)
-                    order_status = getattr(trade, "orderStatus", None)
-
-                    if order is None:
-                        continue
-
-                    order_id = str(
-                        getattr(order, "orderId", "")
-                        or getattr(order, "permId", "")
-                        or ""
-                    )
-                    symbol = str(
-                        getattr(contract, "symbol", "")
-                        or getattr(contract, "localSymbol", "")
-                        or ""
-                    ).upper()
-                    status = str(getattr(order_status, "status", "") or "submitted")
-
-                    if not order_id or not symbol or order_id in seen:
-                        continue
-
-                    seen.add(order_id)
-                    orders.append(
-                        {
-                            "order_id": order_id,
-                            "ticker": symbol,
-                            "action": str(getattr(order, "action", "")).upper(),
-                            "qty": float(getattr(order, "totalQuantity", 0)),
-                            "order_type": str(getattr(order, "orderType", "")).upper(),
-                            "limit_price": float(getattr(order, "lmtPrice", 0)) or None,
-                            "stop_price": float(getattr(order, "auxPrice", 0)) or None,
-                            "status": status,
-                        }
-                    )
+            with self._lock:
+                self._open_orders_cache = list(orders)
+                self._open_orders_cache_time = time.monotonic()
 
             return orders
 
