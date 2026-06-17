@@ -2386,9 +2386,10 @@ def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
 
     # ── CASE ENFORCEMENT: por iteracao, sem depender de state propagation ──
     # Iteration 0 → market_scan, 1 → collect_data, 2 → run_experts, 3 → pode final_answer
+    it = state.get("agent_iterations", 0)
     forced_sequence = ["market_scan", "collect_data", "run_experts"]
-    if iterations < len(forced_sequence):
-        return {"tool": forced_sequence[iterations],
+    if it < len(forced_sequence):
+        return {"tool": forced_sequence[it],
                 "args": {"query": state.get("message", ""),
                          "ticker": state.get("ticker", "")}}
 
