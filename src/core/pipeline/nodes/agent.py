@@ -2384,14 +2384,24 @@ def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
     when the user is asking for a scan, ticker analysis, or paper trade.
     """
 
-    # ── CASE ENFORCEMENT: por iteracao, sem depender de state propagation ──
-    # Iteration 0 → market_scan, 1 → collect_data, 2 → run_experts, 3 → pode final_answer
+    # ── CASE ENFORCEMENT: por iteracao ──
+    # 0→scan, 1→collect, 2→experts, 3→paper_order, 4→liberado
     it = state.get("agent_iterations", 0)
-    forced_sequence = ["market_scan", "collect_data", "run_experts"]
+    forced_sequence = ["market_scan", "collect_data", "run_experts", "submit_paper_order"]
     if it < len(forced_sequence):
-        return {"tool": forced_sequence[it],
-                "args": {"query": state.get("message", ""),
-                         "ticker": state.get("ticker", "")}}
+        tool = forced_sequence[it]
+        args = {"query": state.get("message", ""), "ticker": state.get("ticker", "")}
+        if tool == "submit_paper_order":
+            # Use the ticker from state or data
+            ticker = state.get("ticker") or (state.get("data") or {}).get("ticker", "")
+            if ticker:
+                price = (state.get("data") or {}).get("price") or (
+                    (state.get("data") or {}).get("technicals") or {}
+                ).get("price") or 1.0
+                args = {"ticker": ticker, "action": "buy", "qty": 10,
+                        "limit_price": float(price) if price else 1.0,
+                        "order_type": "LMT"}
+        return {"tool": tool, "args": args}
 
     if not _has_actionable_market_request(state):
         return None
