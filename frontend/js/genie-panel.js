@@ -51,11 +51,22 @@
     return String(value || "").replace(/[^A-Za-z0-9.\-]/g, "").toUpperCase().substring(0, 12);
   }
 
+  function pulseSignalLabel(pulse) {
+    var reddit = (pulse && pulse.reddit) || {};
+    var news = (pulse && pulse.news) || {};
+    var signal = String(reddit.signal || "").toUpperCase();
+    if (signal && signal !== "NO_DATA") return reddit.signal;
+    var articles = Number(news.articles || 0);
+    if (articles > 0) return "NEWS " + articles;
+    return "SOCIAL --";
+  }
+
   function pulseCommand(pulse) {
     var ticker = cleanTicker(pulse && pulse.ticker);
     var sentiment = (pulse && (pulse.sentiment_display || pulse.sentiment)) || "NO_DATA";
     var score = num(pulse && pulse.score, 2);
     var reddit = (pulse && pulse.reddit) || {};
+    var news = (pulse && pulse.news) || {};
     var flags = Array.isArray(pulse && pulse.flags) ? pulse.flags : [];
     var discovery = (pulse && pulse.discovery) || {};
     var discovered = !!(pulse && pulse.discovered);
@@ -66,7 +77,7 @@
       "TICKER " + ticker + ": sincronize grafico + Sentimento Vivo.",
       "Bob, analise tese, risco, invalidacao e alvo/stop.",
       discoveryText,
-      "Sentimento=" + sentiment + ", score=" + score + ", Reddit=" + (reddit.mentions || 0) + (flags.length ? ", flags=" + flags.join(", ") : "") + ".",
+      "Sentimento=" + sentiment + ", score=" + score + ", Reddit=" + (reddit.mentions || 0) + ", Noticias=" + (news.articles || 0) + ", NewsLabel=" + (news.label || "NO_DATA") + (flags.length ? ", flags=" + flags.join(", ") : "") + ".",
       "Se virar trade, rode ferramentas antes de PAPER_TICKET."
     ];
     return parts.join(" ");
@@ -157,6 +168,7 @@
       var score = num(pulse.score, 2);
       var analystScore = num(pulse.analyst_score, 2);
       var sentiment = pulse.sentiment || "NO_DATA";
+      var signal = pulseSignalLabel(pulse);
       var ticker = cleanTicker(pulse.ticker || "");
       var discovered = !!pulse.discovered;
       var route = discovered ? "DISCOVER" : "TICKER";
@@ -172,7 +184,7 @@
           '</div>',
           '<div class="genie-pulse-card__meta">',
             '<span>' + esc(reddit.mentions || 0) + ' mencoes</span>',
-            '<span>' + esc(reddit.signal || "NO_DATA") + '</span>',
+            '<span>' + esc(signal) + '</span>',
             '<span>rank ' + analystScore + '</span>',
           '</div>',
           (discovered && discovery.headline ? '<div class="genie-pulse-card__meta"><span>' + esc(discovery.source || "DISCOVER") + '</span><span>' + esc(discovery.headline).substring(0, 58) + '</span></div>' : ''),

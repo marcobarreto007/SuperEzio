@@ -826,6 +826,9 @@ def test_frontend_genie_pulse_click_drives_bob_and_chart():
     assert "DISCOVER" in genie_js
     assert "pulse.discovery" in genie_js
     assert "pulse.discovered" in genie_js
+    assert "function pulseSignalLabel" in genie_js
+    assert 'esc(reddit.signal || "NO_DATA")' not in genie_js
+    assert "Noticias=" in genie_js
     assert "pendingGenieTickerCommand" in genie_js
     assert "bob-ticker-cue" in genie_js
     assert ".genie-pulse-card.is-selected" in cockpit_css

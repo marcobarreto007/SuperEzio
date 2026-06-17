@@ -1,51 +1,44 @@
 {
-  "date_local": "2026-06-17T00:05:55-04:00",
-  "session": "genie-dynamic-discovery-2026-06-17",
+  "date_local": "2026-06-17T12:57:36-04:00",
+  "session": "genie-no-data-label-fix-2026-06-17",
   "status": "completed_live_verified",
   "final_objective": {
     "what_system_does": "SuperEzio Financeiro is a local AI trading desk with cockpit UI, live sentiment telemetry, market data, Bob, committee, guardrails, broker paper integration, and learning loop.",
     "who_it_is_for": "Marco/F51 and supervised operators validating Bob before real-money escalation.",
     "main_user_flow": "Open cockpit on http://127.0.0.1:8002, inspect Genie/Deep/chart/broker, click or submit a ticker mandate, let Bob/CASE run evidence before verdict/execution, then record journal/feedback.",
     "start_command": "powershell -ExecutionPolicy Bypass -File .\\start.ps1 -SkipBrowser",
-    "proof_output": "API /health returns 200, /sentiment/pulse returns watchlist plus discovered tickers with origin/discovery metadata, and browser_smoke.py renders chart/UI without console errors."
+    "proof_output": "API /health returns 200, /sentiment/pulse returns news-backed pulses, and the served Genie JS no longer renders Reddit NO_DATA as the ticker-level data state."
   },
   "what_was_done": [
-    "Changed Genie LiveMonitor from fixed watchlist-only collection to dynamic discovery before each sentiment cycle.",
-    "Added broad headline scanning through NewsScout first, with DataHub news route fallback only when no broad discovery provider exists.",
-    "Added ticker extraction from structured article fields, exchange/$ prefixes, and uppercase headline tokens with a denylist for common market/source noise.",
-    "Added discovery metadata to snapshots and pulse reports: origin, discovered, discovery headline/query/source/url, and analyst_score.",
-    "Updated the Genie cockpit panel so discovered rows show DISCOVER, rank, discovery headline, and pass discovery context into Bob's TICKER command and chart selection context.",
-    "Restarted only the API process on port 8002 and left the CEO/llama server on 8082 running."
+    "Diagnosed the screenshot: NO_DATA was the Reddit/social signal field, not the ticker-level sentiment data state.",
+    "Verified live /sentiment/pulse examples where tickers had news articles, multiple sources, score, confidence, and analyst_score while reddit.signal was NO_DATA.",
+    "Updated frontend/js/genie-panel.js with pulseSignalLabel so cards show NEWS <count> when news exists and SOCIAL -- only when social is empty.",
+    "Updated the Bob TICKER command to include Noticias=<count> and NewsLabel=<label> so Bob does not interpret Reddit=0 as no data.",
+    "Added frontend contract assertions preventing the old ambiguous reddit.signal || NO_DATA rendering from coming back.",
+    "Left IBKR/broker files untouched because another agent is working there."
   ],
   "evidence": {
+    "live_runtime": [
+      "http://127.0.0.1:8002/health returned 200.",
+      "/sentiment/pulse showed USIO/DIBS/INOD etc with scores, confidence, sources, news.articles, and reddit.signal=NO_DATA.",
+      "Served /js/genie-panel.js contains function pulseSignalLabel and Noticias=, and no longer contains esc(reddit.signal || \"NO_DATA\")."
+    ],
     "tests": [
-      "$env:PYTHONPATH='src'; python -m pytest tests\\test_sentiment_live_monitor.py tests\\test_watchlist_pulse.py tests\\test_sentiment_curator.py tests\\test_sentiment_endpoints.py tests\\contracts\\test_contract_main.py tests\\test_api_routes_sync.py::test_frontend_genie_pulse_click_drives_bob_and_chart -q => 29 passed",
-      "python -m py_compile src\\core\\sentiment\\live_monitor.py src\\core\\sentiment\\watchlist_pulse.py => passed",
+      "$env:PYTHONPATH='src'; python -m pytest tests\\test_api_routes_sync.py::test_frontend_genie_pulse_click_drives_bob_and_chart tests\\test_sentiment_live_monitor.py tests\\test_watchlist_pulse.py tests\\test_sentiment_curator.py tests\\test_sentiment_endpoints.py -q => 20 passed",
       "python scripts\\browser_smoke.py --skip-chat --timeout-ms 180000 => ok true, chart_fetch ok, canvas nonblank, console_errors []"
     ],
-    "live_runtime": [
-      "Port 8002 is listening and /health returns 200.",
-      "Port 8082 remains listening for the CEO/llama server.",
-      "/sentiment/pulse returned count=28 after restart.",
-      "Live discovered tickers included HWH, RDDT, CORT, and NRIX with origin=discovered and discovery headlines.",
-      "Noise check for Q1, EPS, EBITDA, SMALL, CAP, MOVERS, OTM, and WSJ returned empty."
-    ],
     "changed_files": [
-      "src/core/sentiment/live_monitor.py",
-      "src/core/sentiment/watchlist_pulse.py",
       "frontend/js/genie-panel.js",
-      "tests/test_sentiment_live_monitor.py",
       "tests/test_api_routes_sync.py",
       ".f51/checkpoints/latest.json"
     ]
   },
   "risks": [
-    "NewsAPI still logs HTTP 429 during per-ticker sentiment collection when quota is exhausted; broad discovery now prefers NewsScout and does not need NewsAPI by default.",
-    "Ticker extraction is heuristic and should continue to evolve as real false positives appear.",
-    "Dynamic discoveries are in-memory monitor state; historical sentiment snapshots are persisted, but the discovery universe itself is not yet durable across restarts."
+    "Some backend source labels can still be NO_DATA even when article counts exist; the UI now avoids presenting that as total absence of data.",
+    "NewsAPI quota can still be exhausted during per-ticker collection, but this issue was not the cause of the screenshot label."
   ],
-  "next_step": "Add provider circuit breaker/backoff for exhausted NewsAPI and persist Genie discovery candidates with TTL/rank so the analyst universe survives API restarts.",
+  "next_step": "Add explicit per-source health chips in the Genie card if Marco wants to see NewsAPI/Finnhub/NewsScout/Reddit status separately instead of one compact signal label.",
   "owner": "Codex",
   "github_policy": "DISK_ONLY_GITHUB_BLOCKED",
-  "updated": "2026-06-17T04:05:55Z"
+  "updated": "2026-06-17T16:57:36Z"
 }
