@@ -420,7 +420,7 @@ class IBKRService:
                     method = getattr(self._ib, method_name)
                     for trade in method() or []:
                         add_trade(trade)
-                    self._ib.sleep(min(max(timeout, 0.1), 1.0))
+                    self._ib.sleep(min(max(timeout, 0.1), 3.0))
                 except Exception:
                     continue
 
@@ -434,6 +434,10 @@ class IBKRService:
                     continue
 
             with self._lock:
+                if not orders and self._open_orders_cache:
+                    cache_age = time.monotonic() - self._open_orders_cache_time
+                    if cache_age < 10.0:
+                        return list(self._open_orders_cache)
                 self._open_orders_cache = list(orders)
                 self._open_orders_cache_time = time.monotonic()
 

@@ -2197,8 +2197,6 @@ async def get_decision_trace(run_id: str) -> dict[str, Any]:
     from core.audit.decision_trace import DecisionTraceLogger
 
     report = DecisionTraceLogger().blame_report(run_id)
-    if not report.get("entries"):
-        raise HTTPException(status_code=404, detail=f"Decision trace not found: {run_id}")
     return report
 
 
