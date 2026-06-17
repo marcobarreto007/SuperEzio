@@ -695,7 +695,7 @@
     if (visibleRows.length) {
       host.innerHTML = visibleRows.join("");
     } else {
-      host.innerHTML = '<div class="cockpit-empty">No active IBKR broker orders. Manual chart remains available.</div>';
+      host.innerHTML = '<div class="cockpit-empty">No open IBKR broker orders. Manual chart remains available.</div>';
     }
 
     if (historyHost) {

@@ -100,7 +100,7 @@
         '<div class="cockpit-section__title">Portfolio IBKR</div>',
         '<div class="bob-portfolio-line"><span>Equity</span><strong>$' + esc(equity) + '</strong></div>',
         '<div class="bob-portfolio-line"><span>Status</span><strong>' + esc(connected ? "PAPER CONNECTED" : "OFFLINE") + '</strong></div>',
-        '<div class="bob-portfolio-line"><span>Active orders</span><strong>' + esc(orders.length) + '</strong></div>',
+        '<div class="bob-portfolio-line"><span>Open orders</span><strong>' + esc(orders.length) + '</strong></div>',
         rows,
       '</section>',
     ].join("");
