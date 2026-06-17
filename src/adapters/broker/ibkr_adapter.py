@@ -1,8 +1,11 @@
-"""Interactive Brokers adapter — implements BrokerAdapter protocol via ib_insync.
+"""Interactive Brokers adapter — implements BrokerAdapter protocol via IBKRService.
 
 Requires: pip install ib-insync
 Env vars: IBKR_HOST (default 127.0.0.1), IBKR_PORT (default 7497),
-          IBKR_CLIENT_ID (default 1)
+          IBKR_SERVICE_CLIENT_ID (default 100, managed by IBKRService)
+
+This adapter now delegates to the IBKRService singleton, which runs ib_insync
+in its own daemon thread to avoid event-loop conflicts on Windows.
 """
 
 from __future__ import annotations
@@ -15,13 +18,16 @@ logger = logging.getLogger(__name__)
 
 
 class InteractiveBrokersAdapter:
-    """IBKR broker adapter using ib_insync.
+    """IBKR broker adapter using IBKRService.
 
     Implements the BrokerAdapter protocol: submit_order, cancel_order,
     get_order, get_positions, get_account_equity.
 
-    Lazy-connects on first API call. Handles connection errors gracefully
-    (returns zero/empty instead of crashing).
+    Delegates to IBKRService singleton for positions/equity (cached).
+    Uses subprocess for orders (via scripts/_ibkr_order.py) to maintain
+    isolation.
+
+    Handles connection errors gracefully (returns zero/empty instead of crashing).
     """
 
     def __init__(
@@ -30,258 +36,200 @@ class InteractiveBrokersAdapter:
         port: int | None = None,
         client_id: int | None = None,
     ):
+        # Config is now managed by IBKRService, but we keep params for compatibility
         self._host = host or os.getenv("IBKR_HOST", "127.0.0.1")
         self._port = port or int(os.getenv("IBKR_PORT", "7497"))
+        # client_id is ignored — IBKRService manages its own stable clientId
         self._client_id = client_id or int(os.getenv("IBKR_CLIENT_ID", "1"))
-        self._ib: Any = None
-        self._connected = False
+
+    def _get_service(self):
+        """Get the IBKRService singleton."""
+        try:
+            from .ibkr_service import get_ibkr_service
+
+            return get_ibkr_service()
+        except ImportError:
+            logger.warning("IBKRService not available")
+            return None
 
     def _connect(self) -> bool:
-        if self._connected and self._ib is not None:
-            return True
-        try:
-            from ib_insync import IB  # type: ignore[import]
-
-            self._ib = IB()
-            self._ib.connect(self._host, self._port, clientId=self._client_id)
-            self._connected = True
-            logger.info(
-                "IBKR connected: %s:%s (client %s)",
-                self._host,
-                self._port,
-                self._client_id,
-            )
-            return True
-        except ImportError:
-            logger.warning("ib_insync not installed — IBKR adapter disabled")
+        """Compatibility method — checks if service is available and connected."""
+        service = self._get_service()
+        if service is None:
             return False
-        except Exception as exc:
-            logger.warning("IBKR connection failed: %s", exc)
-            self._connected = False
-            return False
+        status = service.get_status()
+        return status.get("connected", False) and status.get("can_read", False)
 
     def submit_order(self, order: Any) -> Any:
-        from core.trading.broker import Order, OrderSide, OrderType, OrderStatus
+        """Submit order via subprocess (scripts/_ibkr_order.py) for isolation.
 
-        if not self._connect():
-            return Order(
-                id="ibkr-error",
-                symbol=order.symbol,
-                side=order.side,
-                order_type=order.order_type,
-                qty=order.qty,
-                status=OrderStatus.REJECTED,
-            )
+        This maintains the existing behavior — orders go through a subprocess
+        to avoid event-loop conflicts. The adapter does not use in-process IB().
+        """
+        from core.trading.broker import Order, OrderSide, OrderType, OrderStatus
+        import subprocess
+        import sys
+        import json
+        from pathlib import Path
+
+        # Order submission uses subprocess for isolation (existing pattern)
+        order_script = Path(__file__).resolve().parent.parent.parent.parent / "scripts" / "_ibkr_order.py"
 
         try:
-            from ib_insync import Stock, MarketOrder, LimitOrder, StopOrder as IbStop  # type: ignore[import]
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(order_script),
+                    order.symbol.upper(),
+                    "BUY" if order.side == OrderSide.BUY else "SELL",
+                    str(int(order.qty)),
+                    order.order_type.value.lower(),
+                    str(order.limit_price or 0),
+                    str(order.stop_price or 0),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
 
-            contract = Stock(order.symbol, "SMART", "USD")
-
-            if order.order_type == OrderType.MARKET:
-                ib_order = MarketOrder(
-                    "BUY" if order.side == OrderSide.BUY else "SELL",
-                    order.qty,
-                )
-            elif order.order_type == OrderType.LIMIT and order.limit_price:
-                ib_order = LimitOrder(
-                    "BUY" if order.side == OrderSide.BUY else "SELL",
-                    order.qty,
-                    order.limit_price,
-                )
-            elif order.order_type == OrderType.STOP and order.stop_price:
-                ib_order = IbStop(
-                    "BUY" if order.side == OrderSide.BUY else "SELL",
-                    order.qty,
-                    order.stop_price,
-                )
-            else:
+            if result.returncode == 0 and result.stdout:
+                data = json.loads(result.stdout.strip())
+                if "error" in data:
+                    return Order(
+                        id=f"ibkr-error-{data.get('error', '')[:20]}",
+                        symbol=order.symbol,
+                        side=order.side,
+                        order_type=order.order_type,
+                        qty=order.qty,
+                        status=OrderStatus.REJECTED,
+                    )
+                # Success
                 return Order(
-                    id="ibkr-unsupported",
+                    id=data.get("order_id", "ibkr-submitted"),
                     symbol=order.symbol,
                     side=order.side,
                     order_type=order.order_type,
                     qty=order.qty,
-                    status=OrderStatus.REJECTED,
+                    status=OrderStatus.SUBMITTED,
+                    limit_price=order.limit_price,
+                    stop_price=order.stop_price,
                 )
-
-            trade = self._ib.placeOrder(contract, ib_order)
-            trade_id = str(trade.order.orderId)
-
-            return Order(
-                id=trade_id,
-                symbol=order.symbol,
-                side=order.side,
-                order_type=order.order_type,
-                qty=order.qty,
-                status=OrderStatus.SUBMITTED,
-                limit_price=order.limit_price,
-                stop_price=order.stop_price,
-            )
         except Exception as exc:
             logger.warning("IBKR submit_order failed: %s", exc)
-            return Order(
-                id="ibkr-error",
-                symbol=order.symbol,
-                side=order.side,
-                order_type=order.order_type,
-                qty=order.qty,
-                status=OrderStatus.REJECTED,
-            )
+
+        return Order(
+            id="ibkr-error",
+            symbol=order.symbol,
+            side=order.side,
+            order_type=order.order_type,
+            qty=order.qty,
+            status=OrderStatus.REJECTED,
+        )
 
     def cancel_order(self, order_id: str) -> bool:
-        if not self._connect():
-            return False
+        """Cancel order via subprocess (existing pattern)."""
+        import subprocess
+        import sys
+        from pathlib import Path
+
+        order_script = Path(__file__).resolve().parent.parent.parent.parent / "scripts" / "_ibkr_order.py"
         try:
-            for trade in self._ib.trades():
-                if str(trade.order.orderId) == order_id:
-                    self._ib.cancelOrder(trade.order)
-                    return True
-            return False
+            result = subprocess.run(
+                [sys.executable, str(order_script), "cancel", order_id],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            return result.returncode == 0
         except Exception as exc:
             logger.warning("IBKR cancel_order failed: %s", exc)
             return False
 
     def get_order(self, order_id: str) -> Any | None:
-        if not self._connect():
+        """Get order status from IBKRService (cached open orders)."""
+        service = self._get_service()
+        if service is None:
             return None
+
         from core.trading.broker import Order, OrderSide, OrderType, OrderStatus
 
         try:
-            for trade in self._ib.trades():
-                if str(trade.order.orderId) == order_id:
+            for order_dict in service.get_open_orders():
+                if order_dict.get("order_id") == order_id:
+                    action_str = order_dict.get("action", "BUY").upper()
                     return Order(
-                        id=str(trade.order.orderId),
-                        symbol=trade.contract.symbol,
-                        side=(OrderSide.BUY if trade.order.action == "BUY" else OrderSide.SELL),
-                        order_type=OrderType.MARKET,
-                        qty=trade.order.totalQuantity,
+                        id=order_id,
+                        symbol=order_dict.get("ticker", ""),
+                        side=OrderSide.BUY if action_str == "BUY" else OrderSide.SELL,
+                        order_type=OrderType.MARKET,  # Simplified
+                        qty=int(order_dict.get("qty", 0)),
                         status=OrderStatus.SUBMITTED,
-                        filled_price=(
-                            float(trade.orderStatus.avgFillPrice)
-                            if trade.orderStatus.avgFillPrice
-                            else None
-                        ),
+                        filled_price=None,
                     )
-            return None
-        except Exception:
-            return None
+        except Exception as exc:
+            logger.warning("IBKR get_order failed: %s", exc)
+        return None
 
     def get_market_price(self, symbol: str) -> float:
-        if not self._connect():
+        """Get market price from IBKRService cached positions."""
+        service = self._get_service()
+        if service is None:
             return 0.0
+
         try:
-            from ib_insync import Stock  # type: ignore[import]
-
-            contract = Stock(symbol, "SMART", "USD")
-            self._ib.qualifyContracts(contract)
-
-            # Tenta obter dados em tempo real primeiro (1)
-            self._ib.reqMarketDataType(1)
-            ticker = self._ib.reqMktData(contract)
-            self._ib.sleep(1.0)
-            price = ticker.last or ticker.close or ticker.marketPrice()
-
-            # Se não retornar preço válido, tenta dados atrasados (3)
-            if price is None or price <= 0 or price != price:
-                self._ib.reqMarketDataType(3)
-                ticker = self._ib.reqMktData(contract)
-                self._ib.sleep(1.0)
-                price = ticker.last or ticker.close or ticker.marketPrice()
-
-            self._ib.cancelMktData(contract)
-            return float(price) if (price and price > 0) else 0.0
+            for pos in service.get_positions():
+                if pos.get("symbol") == symbol.upper():
+                    return float(pos.get("current_price", 0))
         except Exception as exc:
             logger.warning("IBKR get_market_price failed for %s: %s", symbol, exc)
-            return 0.0
+        return 0.0
 
     def get_positions(self) -> list[Any]:
-        if not self._connect():
+        """Get positions from IBKRService (cached)."""
+        service = self._get_service()
+        if service is None:
             return []
+
         from core.trading.broker import Position
-        from ib_insync import Stock  # type: ignore[import]
 
         try:
-            positions = self._ib.positions()
-            if not positions:
-                return []
+            positions = []
+            for pos_dict in service.get_positions():
+                symbol = pos_dict.get("symbol", "")
+                qty = float(pos_dict.get("quantity", 0))
+                entry_price = float(pos_dict.get("avg_cost", 0))
+                current_price = float(pos_dict.get("current_price", entry_price))
+                market_value = float(pos_dict.get("market_value", 0))
 
-            # 1. Qualifica todos os contratos
-            contracts = []
-            for p in positions:
-                contract = Stock(p.contract.symbol, "SMART", "USD")
-                contracts.append(contract)
-            self._ib.qualifyContracts(*contracts)
-
-            # 2. Tenta dados em tempo real primeiro (1)
-            self._ib.reqMarketDataType(1)
-            tickers = [self._ib.reqMktData(c) for c in contracts]
-            self._ib.sleep(1.2)
-
-            # 3. Identifica quais tickers nao retornaram preco valido e tenta dados atrasados (3)
-            delayed_contracts = []
-            delayed_indices = []
-            for idx, ticker in enumerate(tickers):
-                price = ticker.last or ticker.close or ticker.marketPrice()
-                if price is None or price <= 0 or price != price:
-                    delayed_contracts.append(contracts[idx])
-                    delayed_indices.append(idx)
-
-            if delayed_contracts:
-                self._ib.reqMarketDataType(3)
-                delayed_tickers = [self._ib.reqMktData(c) for c in delayed_contracts]
-                self._ib.sleep(1.2)
-                for idx, d_ticker in zip(delayed_indices, delayed_tickers):
-                    tickers[idx] = d_ticker
-
-            # 4. Cancela as assinaturas de cotacao e monta o resultado
-            for c in contracts:
-                self._ib.cancelMktData(c)
-
-            result = []
-            for p, ticker in zip(positions, tickers):
-                symbol = p.contract.symbol
-                qty = float(p.position)
-                entry_price = float(p.avgCost) if p.avgCost else 0.0
-                price = ticker.last or ticker.close or ticker.marketPrice()
-                current_price = float(price) if (price and price > 0) else 0.0
-
-                if current_price > 0:
-                    market_value = qty * current_price
-                    if p.position > 0:
-                        unrealized_pnl = (current_price - entry_price) * qty
-                    else:
-                        unrealized_pnl = (entry_price - current_price) * qty
+                if qty > 0:
+                    unrealized_pnl = (current_price - entry_price) * qty
                 else:
-                    current_price = entry_price
-                    market_value = qty * entry_price
-                    unrealized_pnl = 0.0
+                    unrealized_pnl = (entry_price - current_price) * qty
 
-                result.append(
+                positions.append(
                     Position(
                         symbol=symbol,
                         qty=qty,
-                        side="LONG" if p.position > 0 else "SHORT",
+                        side="LONG" if qty > 0 else "SHORT",
                         entry_price=entry_price,
                         current_price=current_price,
                         unrealized_pnl=unrealized_pnl,
                         market_value=market_value,
                     )
                 )
-            return result
+            return positions
         except Exception as exc:
             logger.warning("IBKR get_positions failed: %s", exc)
             return []
 
     def get_account_equity(self) -> float:
-        if not self._connect():
+        """Get account equity from IBKRService (cached)."""
+        service = self._get_service()
+        if service is None:
             return 0.0
+
         try:
-            summary = self._ib.accountSummary()
-            for item in summary:
-                if item.tag == "NetLiquidation":
-                    return float(item.value)
-            return 0.0
+            return service.get_account_equity()
         except Exception as exc:
             logger.warning("IBKR get_account_equity failed: %s", exc)
             return 0.0

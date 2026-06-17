@@ -57,9 +57,15 @@
     var score = num(pulse && pulse.score, 2);
     var reddit = (pulse && pulse.reddit) || {};
     var flags = Array.isArray(pulse && pulse.flags) ? pulse.flags : [];
+    var discovery = (pulse && pulse.discovery) || {};
+    var discovered = !!(pulse && pulse.discovered);
+    var discoveryText = discovered
+      ? "Origem=DISCOVER, fonte=" + (discovery.source || "agregador") + ", query=" + (discovery.query || "--") + ", headline=" + (discovery.headline || "--") + "."
+      : "Origem=watchlist fixa.";
     var parts = [
       "TICKER " + ticker + ": sincronize grafico + Sentimento Vivo.",
       "Bob, analise tese, risco, invalidacao e alvo/stop.",
+      discoveryText,
       "Sentimento=" + sentiment + ", score=" + score + ", Reddit=" + (reddit.mentions || 0) + (flags.length ? ", flags=" + flags.join(", ") : "") + ".",
       "Se virar trade, rode ferramentas antes de PAPER_TICKET."
     ];
@@ -119,6 +125,9 @@
         source: "genie",
         sentiment: pulse.sentiment || "",
         score: pulse.score,
+        origin: pulse.origin || "",
+        discovered: !!pulse.discovered,
+        discovery: pulse.discovery || {},
       });
     } else {
       var tickerInput = $("ticker-inp");
@@ -146,8 +155,12 @@
       var reddit = pulse.reddit || {};
       var flags = Array.isArray(pulse.flags) ? pulse.flags : [];
       var score = num(pulse.score, 2);
+      var analystScore = num(pulse.analyst_score, 2);
       var sentiment = pulse.sentiment || "NO_DATA";
       var ticker = cleanTicker(pulse.ticker || "");
+      var discovered = !!pulse.discovered;
+      var route = discovered ? "DISCOVER" : "TICKER";
+      var discovery = pulse.discovery || {};
       var selected = cleanTicker(window.SZ.state && window.SZ.state.ticker) === ticker;
       return [
         '<button class="genie-pulse-card ' + (selected ? "is-selected" : "") + '" type="button" data-genie-ticker="' + esc(ticker) + '" aria-label="Selecionar ' + esc(ticker) + ' no cockpit">',
@@ -155,12 +168,14 @@
             '<strong>' + esc(ticker || pulse.ticker || "--") + '</strong>',
             '<span class="cockpit-chip ' + labelTone(sentiment) + '">' + esc(sentiment) + '</span>',
             '<span class="mono">' + score + '</span>',
-            '<span class="genie-pulse-card__route">TICKER</span>',
+            '<span class="genie-pulse-card__route">' + esc(route) + '</span>',
           '</div>',
           '<div class="genie-pulse-card__meta">',
             '<span>' + esc(reddit.mentions || 0) + ' mencoes</span>',
             '<span>' + esc(reddit.signal || "NO_DATA") + '</span>',
+            '<span>rank ' + analystScore + '</span>',
           '</div>',
+          (discovered && discovery.headline ? '<div class="genie-pulse-card__meta"><span>' + esc(discovery.source || "DISCOVER") + '</span><span>' + esc(discovery.headline).substring(0, 58) + '</span></div>' : ''),
           '<div class="genie-pulse-card__flags">',
             (flags.length ? flags.slice(0, 3).map(function (flag) {
               return '<span class="cockpit-chip ' + labelTone(flag) + '">' + esc(flag) + '</span>';

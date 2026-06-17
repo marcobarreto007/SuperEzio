@@ -23,6 +23,10 @@ class PulseReport:
     curator: str = ""
     alerts_24h: list[dict[str, Any]] = field(default_factory=list)
     sources: list[str] = field(default_factory=list)
+    origin: str = "watchlist"
+    discovered: bool = False
+    discovery: dict[str, Any] = field(default_factory=dict)
+    analyst_score: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -89,6 +93,7 @@ class WatchlistPulse:
         previous = self._previous_label(snapshot, curated)
         display = self._display(curated, previous)
         alerts = self._alerts_24h(symbol)
+        meta = self._ticker_meta(symbol, snapshot)
 
         return PulseReport(
             ticker=symbol,
@@ -102,6 +107,10 @@ class WatchlistPulse:
             curator=curated.summary,
             alerts_24h=alerts,
             sources=curated.sources_used,
+            origin=str(meta.get("origin") or "watchlist"),
+            discovered=bool(meta.get("discovered")),
+            discovery=dict(meta) if meta.get("discovered") else {},
+            analyst_score=self._analyst_score(curated, raw_sources, alerts, meta),
         )
 
     def get_all_pulses(self) -> list[PulseReport]:
@@ -120,6 +129,49 @@ class WatchlistPulse:
             else:
                 normalized[name] = value
         return normalized
+
+    def _ticker_meta(self, symbol: str, snapshot: Mapping[str, Any]) -> dict[str, Any]:
+        getter = getattr(self.monitor, "get_ticker_meta", None)
+        if callable(getter):
+            try:
+                meta = getter(symbol)
+                if isinstance(meta, Mapping):
+                    return dict(meta)
+            except Exception:
+                pass
+        discovery = snapshot.get("discovery")
+        if isinstance(discovery, Mapping) and discovery:
+            meta = dict(discovery)
+            meta.setdefault("origin", snapshot.get("origin") or "discovered")
+            meta.setdefault("discovered", True)
+            return meta
+        return {
+            "ticker": symbol,
+            "origin": snapshot.get("origin") or "watchlist",
+            "discovered": bool(snapshot.get("discovered")),
+        }
+
+    @staticmethod
+    def _analyst_score(
+        curated: CuratedSentiment,
+        sources: Mapping[str, Any],
+        alerts: list[dict[str, Any]],
+        meta: Mapping[str, Any],
+    ) -> float:
+        reddit = sources.get("reddit_pulse") or sources.get("reddit")
+        mentions = _source_count(reddit) if isinstance(reddit, Mapping) else 0
+        news_articles = WatchlistPulse._news_summary(sources)["articles"]
+        value = (
+            abs(curated.composite_score) * 0.35
+            + curated.confidence * 0.30
+            + min(news_articles / 10, 1.0) * 0.15
+            + min(mentions / 50, 1.0) * 0.10
+            + min(len(curated.flags) * 0.08, 0.16)
+            + min(len(alerts) * 0.06, 0.12)
+        )
+        if meta.get("discovered"):
+            value += 0.12
+        return round(max(0.0, min(1.0, value)), 4)
 
     @staticmethod
     def _previous_label(snapshot: Mapping[str, Any], curated: CuratedSentiment) -> str:

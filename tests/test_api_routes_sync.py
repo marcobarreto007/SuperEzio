@@ -823,6 +823,9 @@ def test_frontend_genie_pulse_click_drives_bob_and_chart():
     assert 'window.SZ.selectTicker(ticker, "genie_pulse_click"' in genie_js
     assert '"user-inp"' in genie_js
     assert "TICKER " in genie_js
+    assert "DISCOVER" in genie_js
+    assert "pulse.discovery" in genie_js
+    assert "pulse.discovered" in genie_js
     assert "pendingGenieTickerCommand" in genie_js
     assert "bob-ticker-cue" in genie_js
     assert ".genie-pulse-card.is-selected" in cockpit_css

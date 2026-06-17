@@ -1,4 +1,6 @@
-from core.sentiment.live_monitor import LiveMonitor
+from core.sentiment.live_monitor import LiveMonitor, _extract_tickers_from_article
+from core.sentiment.curator import SentimentCurator
+from core.sentiment.watchlist_pulse import WatchlistPulse
 
 
 class FakeProvider:
@@ -47,6 +49,170 @@ def test_live_monitor_collects_snapshot_and_history():
     assert snapshot["sources"]["newsapi"]["sentiment_label"] == "BULLISH"
     assert snapshot["sources"]["finnhub"]["news_count"] == 1
     assert len(snapshot["history_24h"]) == 1
+
+
+class FakeDiscoveryHub:
+    def __init__(self):
+        self.news_queries = []
+        self.providers = {
+            "newsapi": FakeProvider(
+                {
+                    "AAPL": {
+                        "source": "newsapi",
+                        "sentiment_label": "NEUTRAL",
+                        "sentiment_score": 0.01,
+                    },
+                    "SNDL": {
+                        "source": "newsapi",
+                        "sentiment_label": "BULLISH",
+                        "sentiment_score": 0.35,
+                        "news_count": 2,
+                    },
+                }
+            ),
+            "news_scout": FakeProvider(
+                {
+                    "AAPL": {
+                        "source": "news_scout",
+                        "sentiment_label": "NEUTRAL",
+                        "sentiment_score": 0.01,
+                    },
+                    "SNDL": {
+                        "source": "news_scout",
+                        "sentiment_label": "BULLISH",
+                        "sentiment_score": 0.4,
+                        "news_count": 2,
+                    },
+                }
+            ),
+            "reddit_pulse": FakeProvider(
+                {
+                    "AAPL": {"signal_label": "NO_DATA", "total_posts": 0},
+                    "SNDL": {
+                        "signal_label": "BULLISH",
+                        "sentiment_score": 0.25,
+                        "total_posts": 18,
+                        "qualified_count": 4,
+                    },
+                }
+            ),
+            "finnhub": FakeProvider(
+                {
+                    "AAPL": [{"title": "AAPL market recap"}],
+                    "SNDL": [{"title": "SNDL cannabis penny stock volume jumps"}],
+                }
+            ),
+        }
+
+    def get_provider(self, name):
+        return self.providers.get(name)
+
+    def get_news(self, query, limit=10):
+        self.news_queries.append((query, limit))
+        return [
+            {
+                "title": "SNDL rips higher as cannabis penny stock chatter spikes",
+                "source": "Benzinga",
+                "url": "https://example.test/sndl",
+            }
+        ]
+
+    def get_sentiment_summary(self, ticker):
+        return self.providers["news_scout"].get_sentiment_summary(ticker)
+
+    def get_reddit_signal(self, ticker):
+        return self.providers["reddit_pulse"].get_signal(ticker)
+
+
+class FakeNewsScoutDiscoveryProvider(FakeProvider):
+    def __init__(self, payloads):
+        super().__init__(payloads)
+        self.news_queries = []
+
+    def get_news(self, query, limit=10):
+        self.news_queries.append((query, limit))
+        return [
+            {
+                "title": "SNDL gains on renewed retail cannabis chatter",
+                "source": "NewsScout",
+            }
+        ]
+
+
+class FakeProviderDiscoveryHub(FakeDiscoveryHub):
+    def __init__(self):
+        super().__init__()
+        self.news_scout = FakeNewsScoutDiscoveryProvider(self.providers["news_scout"].payloads)
+        self.providers["news_scout"] = self.news_scout
+        self.route_news_called = False
+
+    def get_news(self, query, limit=10):
+        self.route_news_called = True
+        raise AssertionError("broad discovery must not use paid DataHub news route first")
+
+
+def test_live_monitor_discovers_market_tickers_and_exposes_origin(tmp_path):
+    hub = FakeDiscoveryHub()
+    monitor = LiveMonitor(
+        ["AAPL"],
+        data_hub=hub,
+        db_path=tmp_path / "sentiment.db",
+        discovery_enabled=True,
+        discovery_queries=["penny stock chatter"],
+        max_discovered=3,
+    )
+
+    monitor.collect_once()
+    report = WatchlistPulse(monitor, SentimentCurator()).get_pulse("SNDL").to_dict()
+
+    assert hub.news_queries == [("penny stock chatter", 10)]
+    assert "SNDL" in monitor.watchlist
+    assert report["origin"] == "discovered"
+    assert report["discovered"] is True
+    assert report["discovery"]["headline"] == "SNDL rips higher as cannabis penny stock chatter spikes"
+    assert report["reddit"]["mentions"] == 18
+    assert report["analyst_score"] > 0
+
+
+def test_live_monitor_prefers_news_scout_for_broad_discovery(tmp_path):
+    hub = FakeProviderDiscoveryHub()
+    monitor = LiveMonitor(
+        ["AAPL"],
+        data_hub=hub,
+        db_path=tmp_path / "sentiment.db",
+        discovery_enabled=True,
+        discovery_queries=["retail cannabis chatter"],
+        max_discovered=3,
+    )
+
+    monitor.collect_once()
+
+    assert hub.news_scout.news_queries == [("retail cannabis chatter", 10)]
+    assert hub.route_news_called is False
+    assert "SNDL" in monitor.watchlist
+
+
+def test_discovery_ticker_extractor_filters_market_headline_noise():
+    noisy = _extract_tickers_from_article(
+        {
+            "title": (
+                "NRIX Q1 2026 Earnings: EPS Misses Estimates as Pre-Revenue "
+                "Biotech Stock Declines After 3,568% EBITDA Jump"
+            )
+        }
+    )
+    small_cap = _extract_tickers_from_article(
+        {"title": "SMALL-CAP MOVERS: AIM ends bruising quarter on the up"}
+    )
+    source_noise = _extract_tickers_from_article(
+        {"title": "Investors Love Lam Research Stock - Shorting OTM Puts - WSJ"}
+    )
+    explicit_short = _extract_tickers_from_article({"title": "$SA surges after gold update"})
+
+    assert noisy == ["NRIX"]
+    assert small_cap == []
+    assert source_noise == []
+    assert explicit_short == ["SA"]
 
 
 def test_live_monitor_detects_swing_spike_and_coord_alerts():

@@ -171,87 +171,26 @@ def _cockpit_local_order_tickets() -> list[dict[str, Any]]:
 
 
 def _cockpit_ibkr_open_orders() -> list[dict[str, Any]]:
+    """Get open orders from IBKRService (cached, no inline IB())."""
     enabled = str(os.getenv("SUPEREZIO_COCKPIT_READ_IBKR_ORDERS", "1")).lower()
     if enabled in {"0", "false", "no", "off"}:
         return []
+
     try:
-        from ib_insync import IB  # type: ignore[import]
-    except Exception:
-        return []
+        from adapters.broker import get_ibkr_service
 
-    host = os.getenv("IBKR_HOST", "127.0.0.1")
-    port = int(os.getenv("IBKR_PORT", "7497"))
-    base_client_id = int(os.getenv("IBKR_CLIENT_ID", "1"))
-    client_id = int(os.getenv("IBKR_COCKPIT_CLIENT_ID", str(base_client_id + 50)))
-    timeout = float(os.getenv("IBKR_COCKPIT_TIMEOUT", "3.0"))
-    ib = IB()
-    try:
-        ib.connect(host, port, clientId=client_id, timeout=timeout)
+        service = get_ibkr_service()
+        orders = service.get_open_orders()
 
-        rows: list[dict[str, Any]] = []
-        seen: set[str] = set()
-        trades = []
-        for request_name in ("reqAllOpenOrders", "reqOpenOrders"):
-            try:
-                requested = getattr(ib, request_name)() or []
-                trades.extend(requested)
-            except Exception:
-                continue
-        # Give IBKR time to return order data
-        import time as _time
-
-        _time.sleep(0.5)
-        # Collect from all trade sources
-        for accessor in ("openTrades", "trades"):
-            try:
-                trades.extend(getattr(ib, accessor)() or [])
-            except Exception:
-                continue
-
-        for trade in trades:
-            order = getattr(trade, "order", None)
-            contract = getattr(trade, "contract", None)
-            order_status = getattr(trade, "orderStatus", None)
-            if order is None:
-                continue
-            order_id = str(getattr(order, "orderId", "") or getattr(order, "permId", "") or "")
-            symbol = str(
-                getattr(contract, "symbol", "") or getattr(contract, "localSymbol", "") or ""
-            ).upper()
-            status = str(getattr(order_status, "status", "") or "submitted")
-            if (
-                not order_id
-                or order_id in seen
-                or not symbol
-                or not _is_active_order_status(status)
-            ):
-                continue
-            seen.add(order_id)
-            normalized = _normalize_order_row(
-                {
-                    "order_id": order_id,
-                    "ticker": symbol,
-                    "action": getattr(order, "action", ""),
-                    "qty": getattr(order, "totalQuantity", None),
-                    "order_type": getattr(order, "orderType", ""),
-                    "limit_price": getattr(order, "lmtPrice", None),
-                    "stop_price": getattr(order, "auxPrice", None),
-                    "status": status,
-                },
-                source="ibkr",
-            )
-            if normalized:
+        rows = []
+        for order_dict in orders:
+            normalized = _normalize_order_row(order_dict, source="ibkr")
+            if normalized and _is_active_order_status(normalized.get("status", "")):
                 rows.append(normalized)
         return rows
     except Exception as exc:
         logger.debug("IBKR open-order read failed for cockpit: %s", exc)
         return []
-    finally:
-        try:
-            if ib.isConnected():
-                ib.disconnect()
-        except Exception:
-            pass
 
 
 def _dedupe_orders(*groups: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -367,47 +306,25 @@ def _first_position_ticker(positions: list[Any]) -> str:
 
 
 def _cockpit_portfolio_snapshot() -> dict[str, Any]:
+    """Get portfolio snapshot from IBKRService (cached, no inline IB())."""
     from core.mission_context import mission_health_summary
+    from adapters.broker import get_ibkr_service
 
     mission = mission_health_summary()
     broker = ((mission.get("broker") or {}).get("ibkr") or {}) if isinstance(mission, dict) else {}
     connection = str(broker.get("connection") or "")
     connected = broker.get("can_read_account") is True or "connected" in connection
-    positions_count = int(broker.get("positions_count") or 0)
-    equity = broker.get("account_equity") or "100000.00"
-    positions = broker.get("positions") if isinstance(broker.get("positions"), list) else []
 
-    # ── Query IBKR LIVE for real-time positions ──
-    try:
-        from ib_insync import IB as _IB
+    # ── Get live data from IBKRService (cached, isolated) ──
+    service = get_ibkr_service()
+    service_status = service.get_status()
 
-        _ib = _IB()
-        _ib.connect("127.0.0.1", 7497, clientId=int(time.time() * 1000) % 9000 + 300, timeout=2)
-        _eq = (
-            sum(float(v.value) for v in _ib.accountSummary() if v.tag == "NetLiquidation")
-            if _ib.isConnected()
-            else 0
-        )
-        if _eq > 0:
-            equity = f"{_eq:,.2f}"
-        _live_positions = []
-        for _p in _ib.positions():
-            _live_positions.append(
-                {
-                    "symbol": _p.contract.symbol,
-                    "ticker": _p.contract.symbol,
-                    "quantity": int(_p.position),
-                    "shares": int(_p.position),
-                    "avg_cost": round(float(_p.avgCost), 2),
-                    "market_value": round(float(_p.position) * float(_p.avgCost), 2),
-                }
-            )
-        if _live_positions:
-            positions = _live_positions
-            positions_count = len(_live_positions)
-        _ib.disconnect()
-    except Exception:
-        pass  # Fall back to cached mission_context data
+    # Use service status if available, fallback to mission_context
+    connected = service_status.get("connected", False) and service_status.get("can_read", False)
+    positions = service.get_positions()
+    equity_float = service.get_account_equity()
+    equity = f"{equity_float:,.2f}" if equity_float > 0 else broker.get("account_equity") or "100000.00"
+    positions_count = len(positions)
 
     broker_orders = _cockpit_ibkr_open_orders()
     local_tickets = _cockpit_local_order_tickets()

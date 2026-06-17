@@ -1,35 +1,51 @@
 {
-  "date_local": "2026-06-16T22:47:00-04:00",
-  "session": "sentimento-vivo-explanation-2026-06-16",
-  "status": "read_only_explained",
+  "date_local": "2026-06-17T00:05:55-04:00",
+  "session": "genie-dynamic-discovery-2026-06-17",
+  "status": "completed_live_verified",
   "final_objective": {
     "what_system_does": "SuperEzio Financeiro is a local AI trading desk with cockpit UI, live sentiment telemetry, market data, Bob, committee, guardrails, broker paper integration, and learning loop.",
     "who_it_is_for": "Marco/F51 and supervised operators validating Bob before real-money escalation.",
-    "main_user_flow": "Open the cockpit, inspect watchlist sentiment, click a ticker, sync the chart and Bob command, then run a full CASE decision before any trade.",
+    "main_user_flow": "Open cockpit on http://127.0.0.1:8002, inspect Genie/Deep/chart/broker, click or submit a ticker mandate, let Bob/CASE run evidence before verdict/execution, then record journal/feedback.",
     "start_command": "powershell -ExecutionPolicy Bypass -File .\\start.ps1 -SkipBrowser",
-    "proof_output": "/sentiment/pulse returns 24 pulse rows and the Genie panel renders the watchlist cards."
+    "proof_output": "API /health returns 200, /sentiment/pulse returns watchlist plus discovered tickers with origin/discovery metadata, and browser_smoke.py renders chart/UI without console errors."
   },
   "what_was_done": [
-    "Read frontend/js/genie-panel.js to explain how the left Sentimento Vivo panel works.",
-    "Read src/core/sentiment/watchlist_pulse.py and src/core/sentiment/live_monitor.py to explain backend aggregation.",
-    "Checked src/agent_server/main.py startup wiring for LiveMonitor, SentimentCurator, and WatchlistPulse.",
-    "Checked live /sentiment/pulse, /sentiment/alerts, and /cockpit/summary responses."
+    "Changed Genie LiveMonitor from fixed watchlist-only collection to dynamic discovery before each sentiment cycle.",
+    "Added broad headline scanning through NewsScout first, with DataHub news route fallback only when no broad discovery provider exists.",
+    "Added ticker extraction from structured article fields, exchange/$ prefixes, and uppercase headline tokens with a denylist for common market/source noise.",
+    "Added discovery metadata to snapshots and pulse reports: origin, discovered, discovery headline/query/source/url, and analyst_score.",
+    "Updated the Genie cockpit panel so discovered rows show DISCOVER, rank, discovery headline, and pass discovery context into Bob's TICKER command and chart selection context.",
+    "Restarted only the API process on port 8002 and left the CEO/llama server on 8082 running."
   ],
   "evidence": {
-    "live_pulse": "/sentiment/pulse returned 24 tickers.",
-    "sources_seen": ["newsapi", "news_scout", "reddit_pulse", "finnhub"],
-    "current_state": "Most rows are NEUTRAL flat with reddit mentions 0 and reddit signal NO_DATA.",
-    "alerts": "/sentiment/alerts returned count 0.",
-    "frontend_behavior": "Clicking a pulse card calls selectTicker and writes a TICKER command into Bob's input box."
+    "tests": [
+      "$env:PYTHONPATH='src'; python -m pytest tests\\test_sentiment_live_monitor.py tests\\test_watchlist_pulse.py tests\\test_sentiment_curator.py tests\\test_sentiment_endpoints.py tests\\contracts\\test_contract_main.py tests\\test_api_routes_sync.py::test_frontend_genie_pulse_click_drives_bob_and_chart -q => 29 passed",
+      "python -m py_compile src\\core\\sentiment\\live_monitor.py src\\core\\sentiment\\watchlist_pulse.py => passed",
+      "python scripts\\browser_smoke.py --skip-chat --timeout-ms 180000 => ok true, chart_fetch ok, canvas nonblank, console_errors []"
+    ],
+    "live_runtime": [
+      "Port 8002 is listening and /health returns 200.",
+      "Port 8082 remains listening for the CEO/llama server.",
+      "/sentiment/pulse returned count=28 after restart.",
+      "Live discovered tickers included HWH, RDDT, CORT, and NRIX with origin=discovered and discovery headlines.",
+      "Noise check for Q1, EPS, EBITDA, SMALL, CAP, MOVERS, OTM, and WSJ returned empty."
+    ],
+    "changed_files": [
+      "src/core/sentiment/live_monitor.py",
+      "src/core/sentiment/watchlist_pulse.py",
+      "frontend/js/genie-panel.js",
+      "tests/test_sentiment_live_monitor.py",
+      "tests/test_api_routes_sync.py",
+      ".f51/checkpoints/latest.json"
+    ]
   },
   "risks": [
-    "The panel label LIVE can be misleading because it means the UI endpoint is refreshing, not that every provider has strong fresh data.",
-    "RedditPulse currently returns zero mentions for the displayed tickers, so the social side is weak.",
-    "NO_DATA is displayed for the Reddit signal even when institutional/news sources exist.",
-    "The command is prepared in Bob's input box but the current architecture still needs CASE enforcement so Bob cannot ignore tools."
+    "NewsAPI still logs HTTP 429 during per-ticker sentiment collection when quota is exhausted; broad discovery now prefers NewsScout and does not need NewsAPI by default.",
+    "Ticker extraction is heuristic and should continue to evolve as real false positives appear.",
+    "Dynamic discoveries are in-memory monitor state; historical sentiment snapshots are persisted, but the discovery universe itself is not yet durable across restarts."
   ],
-  "next_step": "If fixing next, improve Sentimento Vivo semantics: separate provider health from signal quality, show news article counts clearly, and make clicks open a CASE ticker analysis automatically instead of only drafting text.",
+  "next_step": "Add provider circuit breaker/backoff for exhausted NewsAPI and persist Genie discovery candidates with TTL/rank so the analyst universe survives API restarts.",
   "owner": "Codex",
   "github_policy": "DISK_ONLY_GITHUB_BLOCKED",
-  "updated": "2026-06-17T02:47:00Z"
+  "updated": "2026-06-17T04:05:55Z"
 }

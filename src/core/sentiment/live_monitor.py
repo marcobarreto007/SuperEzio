@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+import inspect
 import logging
 import math
+import os
+import re
 import sqlite3
 import threading
 from collections import Counter, deque
@@ -13,6 +16,64 @@ from pathlib import Path
 from typing import Any, Mapping
 
 logger = logging.getLogger(__name__)
+
+_DEFAULT_DISCOVERY_QUERIES = (
+    "penny stock unusual volume",
+    "small cap stock movers",
+    "reddit stocks trending",
+    "short squeeze stock news",
+    "biotech catalyst stock",
+)
+
+_EXPLICIT_TICKER_RE = re.compile(
+    r"(?:\$|\b(?:NASDAQ|NYSE|NYSEAMERICAN|AMEX|TSX|TSXV|CSE|OTC)[:\s-])"
+    r"([A-Z][A-Z0-9.]{0,5})\b"
+)
+_UPPER_TICKER_RE = re.compile(r"\b[A-Z][A-Z0-9.]{2,5}\b")
+_TICKER_DENYLIST = {
+    "AIM",
+    "AI",
+    "API",
+    "BEAR",
+    "BULL",
+    "BUY",
+    "CAD",
+    "CAP",
+    "CEO",
+    "CFO",
+    "DATA",
+    "EBITDA",
+    "EPS",
+    "ETF",
+    "FDA",
+    "FOMC",
+    "GDP",
+    "IPO",
+    "IR",
+    "LLC",
+    "LTD",
+    "M&A",
+    "MOVERS",
+    "NASDAQ",
+    "NYSE",
+    "OTC",
+    "OTM",
+    "PR",
+    "SEC",
+    "SELL",
+    "SMALL",
+    "SPAC",
+    "Q1",
+    "Q2",
+    "Q3",
+    "Q4",
+    "TSX",
+    "TSXV",
+    "USA",
+    "USD",
+    "US",
+    "WSJ",
+}
 
 
 def _now_iso() -> str:
@@ -91,6 +152,101 @@ def _article_summary_from_list(items: Any) -> dict[str, Any]:
     }
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_int(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw in (None, ""):
+        return default
+    try:
+        return int(float(str(raw)))
+    except (TypeError, ValueError):
+        return default
+
+
+def _split_queries(raw: str | None) -> list[str]:
+    if not raw:
+        return list(_DEFAULT_DISCOVERY_QUERIES)
+    pieces = re.split(r"[,;\n]+", raw)
+    queries = [piece.strip() for piece in pieces if piece.strip()]
+    return queries or list(_DEFAULT_DISCOVERY_QUERIES)
+
+
+def _headline_from_article(article: Mapping[str, Any]) -> str:
+    for key in ("title", "headline", "summary", "description", "content"):
+        if article.get(key):
+            return str(article[key])
+    return ""
+
+
+def _candidate_from_token(token: str) -> str:
+    symbol = str(token or "").strip().upper().strip(".,:;()[]{}")
+    symbol = re.sub(r"[^A-Z0-9.]", "", symbol)
+    if not symbol or symbol in _TICKER_DENYLIST:
+        return ""
+    if len(symbol.replace(".", "")) > 6:
+        return ""
+    return symbol
+
+
+def _extract_tickers_from_article(article: Mapping[str, Any]) -> list[str]:
+    candidates: list[str] = []
+    for key in ("ticker", "symbol"):
+        symbol = _candidate_from_token(str(article.get(key) or ""))
+        if symbol:
+            candidates.append(symbol)
+
+    for key in ("tickers", "symbols", "related"):
+        raw = article.get(key)
+        if isinstance(raw, str):
+            values = re.split(r"[,;\s]+", raw)
+        elif isinstance(raw, list):
+            values = [str(item) for item in raw]
+        else:
+            values = []
+        for value in values:
+            symbol = _candidate_from_token(value)
+            if symbol:
+                candidates.append(symbol)
+
+    text = " ".join(
+        str(article.get(key) or "")
+        for key in ("title", "headline", "summary", "description", "content")
+    )
+    for token in _EXPLICIT_TICKER_RE.findall(text):
+        symbol = _candidate_from_token(token)
+        if symbol:
+            candidates.append(symbol)
+    for token in _UPPER_TICKER_RE.findall(text):
+        symbol = _candidate_from_token(token)
+        if symbol:
+            candidates.append(symbol)
+
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for symbol in candidates:
+        if symbol not in seen:
+            ordered.append(symbol)
+            seen.add(symbol)
+    return ordered
+
+
+def _supports_broad_news_query(method: Any) -> bool:
+    try:
+        sig = inspect.signature(method)
+    except (TypeError, ValueError):
+        return True
+    params = sig.parameters.values()
+    if any(param.kind == inspect.Parameter.VAR_KEYWORD for param in params):
+        return True
+    return "limit" in sig.parameters
+
+
 class LiveMonitor:
     """Daemon sentiment monitor for a watchlist.
 
@@ -105,15 +261,40 @@ class LiveMonitor:
         *,
         data_hub: Any | None = None,
         db_path: str | Path | None = None,
+        discovery_enabled: bool | None = None,
+        discovery_queries: list[str] | None = None,
+        max_discovered: int | None = None,
     ):
-        self.watchlist = [str(ticker).strip().upper() for ticker in watchlist if str(ticker).strip()]
+        self._base_watchlist = [
+            str(ticker).strip().upper() for ticker in watchlist if str(ticker).strip()
+        ]
+        self.watchlist = list(self._base_watchlist)
         self.interval = max(1, int(interval_minutes or 15))
+        self.discovery_enabled = (
+            _env_bool("SUPEREZIO_GENIE_DISCOVERY_ENABLED", True)
+            if discovery_enabled is None
+            else bool(discovery_enabled)
+        )
+        self.discovery_queries = (
+            list(discovery_queries)
+            if discovery_queries is not None
+            else _split_queries(os.getenv("SUPEREZIO_GENIE_DISCOVERY_QUERIES"))
+        )
+        self.max_discovered = max(
+            0,
+            int(
+                max_discovered
+                if max_discovered is not None
+                else _env_int("SUPEREZIO_GENIE_MAX_DISCOVERED", 12)
+            ),
+        )
         self.running = False
         self.alerts: list[dict[str, Any]] = []
         self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
         self._lock = threading.RLock()
         self._snapshots: dict[str, dict[str, Any]] = {}
+        self._discovered: dict[str, dict[str, Any]] = {}
         self._history: dict[str, deque[dict[str, Any]]] = {
             ticker: deque(maxlen=288) for ticker in self.watchlist
         }
@@ -155,6 +336,7 @@ class LiveMonitor:
         """Return latest snapshot plus 24h in-memory history for one ticker."""
 
         symbol = str(ticker or "").strip().upper()
+        meta = self.get_ticker_meta(symbol)
         cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
         with self._lock:
             snapshot = dict(self._snapshots.get(symbol) or {})
@@ -165,13 +347,42 @@ class LiveMonitor:
             ]
         if not snapshot:
             snapshot = {"ticker": symbol, "status": "NO_DATA"}
+        snapshot.setdefault("origin", meta.get("origin", "watchlist"))
+        snapshot.setdefault("discovered", bool(meta.get("discovered")))
+        snapshot.setdefault("discovery", meta if meta.get("discovered") else {})
         snapshot["history_24h"] = history
         return snapshot
+
+    def get_ticker_meta(self, ticker: str) -> dict[str, Any]:
+        """Return watchlist/discovery metadata for a ticker."""
+
+        symbol = str(ticker or "").strip().upper()
+        with self._lock:
+            if symbol in self._discovered:
+                return dict(self._discovered[symbol])
+            if symbol in self._base_watchlist:
+                return {"ticker": symbol, "origin": "watchlist", "discovered": False}
+        return {"ticker": symbol, "origin": "unknown", "discovered": False}
+
+    def get_discovered_tickers(self) -> list[dict[str, Any]]:
+        """Return current dynamic discoveries newest first."""
+
+        with self._lock:
+            return sorted(
+                [dict(item) for item in self._discovered.values()],
+                key=lambda item: str(item.get("discovered_at") or ""),
+                reverse=True,
+            )
 
     def collect_once(self) -> list[dict[str, Any]]:
         """Run one full watchlist collection cycle."""
 
         generated: list[dict[str, Any]] = []
+        if self.discovery_enabled:
+            try:
+                self.discover_once()
+            except Exception as exc:
+                logger.warning("[sentiment.monitor] discovery failed: %s", exc)
         for ticker in list(self.watchlist):
             try:
                 snapshot = self._collect_ticker(ticker)
@@ -188,6 +399,110 @@ class LiveMonitor:
                     self._append_alert_locked(alert)
                 generated.extend(alerts)
         return generated
+
+    def discover_once(self) -> list[dict[str, Any]]:
+        """Scan broad market headlines and add ticker candidates to the live universe."""
+
+        if not self.max_discovered or not self.discovery_queries:
+            return []
+        data_hub = self._datahub()
+        discovery_methods = self._discovery_news_methods(data_hub)
+        route_news = getattr(data_hub, "get_news", None)
+        if not discovery_methods and not callable(route_news):
+            return []
+
+        found: list[dict[str, Any]] = []
+        for query in self.discovery_queries:
+            batches: list[Any] = []
+            if discovery_methods:
+                for provider_name, method in discovery_methods:
+                    try:
+                        batches.append(method(query, limit=10))
+                    except Exception as exc:
+                        logger.warning(
+                            "[sentiment.monitor] discovery provider %s failed for %r: %s",
+                            provider_name,
+                            query,
+                            exc,
+                        )
+            else:
+                try:
+                    batches.append(route_news(query, limit=10))
+                except Exception as exc:
+                    logger.warning("[sentiment.monitor] discovery query failed for %r: %s", query, exc)
+                    continue
+
+            articles: list[Any] = []
+            for batch in batches:
+                if isinstance(batch, Mapping):
+                    articles.append(batch)
+                elif isinstance(batch, list):
+                    articles.extend(batch)
+            for article in articles:
+                if not isinstance(article, Mapping) or article.get("error"):
+                    continue
+                headline = _headline_from_article(article)
+                source = str(article.get("source") or article.get("provider") or "news")
+                for symbol in _extract_tickers_from_article(article):
+                    meta = {
+                        "ticker": symbol,
+                        "origin": "discovered",
+                        "discovered": True,
+                        "discovered_at": _now_iso(),
+                        "source": source,
+                        "query": query,
+                        "headline": headline,
+                        "url": article.get("url") or article.get("link"),
+                    }
+                    found.append(meta)
+
+        if not found:
+            return []
+
+        with self._lock:
+            base = set(self._base_watchlist)
+            for meta in found:
+                symbol = str(meta["ticker"]).upper()
+                if symbol in base:
+                    continue
+                previous = self._discovered.get(symbol, {})
+                self._discovered[symbol] = {**previous, **meta}
+            self._prune_discoveries_locked()
+            self.watchlist = list(self._base_watchlist) + [
+                symbol for symbol in self._discovered if symbol not in base
+            ]
+            for symbol in self.watchlist:
+                self._history.setdefault(symbol, deque(maxlen=288))
+
+        return [dict(item) for item in found]
+
+    @staticmethod
+    def _discovery_news_methods(data_hub: Any) -> list[tuple[str, Any]]:
+        methods: list[tuple[str, Any]] = []
+        get_provider = getattr(data_hub, "get_provider", None)
+        if not callable(get_provider):
+            return methods
+
+        provider_names = ["news_scout"]
+        if _env_bool("SUPEREZIO_GENIE_DISCOVERY_USE_NEWSAPI", False):
+            provider_names.append("newsapi")
+
+        for provider_name in provider_names:
+            provider = get_provider(provider_name)
+            method = getattr(provider, "get_news", None) if provider is not None else None
+            if callable(method) and _supports_broad_news_query(method):
+                methods.append((provider_name, method))
+        return methods
+
+    def _prune_discoveries_locked(self) -> None:
+        if len(self._discovered) <= self.max_discovered:
+            return
+        ranked = sorted(
+            self._discovered.values(),
+            key=lambda item: str(item.get("discovered_at") or ""),
+            reverse=True,
+        )[: self.max_discovered]
+        self._discovered = {str(item["ticker"]).upper(): dict(item) for item in ranked}
 
     def _persist_to_db(self, ticker: str, snapshot: dict[str, Any]) -> None:
         """Persist sentiment snapshot to SQLite for historical trending."""
@@ -247,6 +562,7 @@ class LiveMonitor:
     def _collect_ticker(self, ticker: str) -> dict[str, Any]:
         data_hub = self._datahub()
         sources: dict[str, Any] = {}
+        meta = self.get_ticker_meta(ticker)
 
         for provider_name, method_name, target_name in (
             ("newsapi", "get_sentiment_summary", "newsapi"),
@@ -302,6 +618,9 @@ class LiveMonitor:
             "sources": sources,
             "sentiment_score": round(sum(scores) / len(scores), 4) if scores else None,
             "reddit_count": _reddit_count(reddit),
+            "origin": meta.get("origin", "watchlist"),
+            "discovered": bool(meta.get("discovered")),
+            "discovery": meta if meta.get("discovered") else {},
         }
         return snapshot
 
