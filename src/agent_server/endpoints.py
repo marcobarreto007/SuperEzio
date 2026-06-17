@@ -1183,6 +1183,14 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
     if envelope.type != MessageType.TASK_SUBMIT:
         raise HTTPException(status_code=400, detail="Invalid message type for this endpoint")
 
+    # ── Task Queue: evita probe preso, 1 task ativa por sessão ──
+    from core.pipeline.task_queue import get_task_queue
+    tq = get_task_queue()
+    session_id_raw = (envelope.payload or {}).get("session_id") if isinstance(envelope.payload, dict) else ""
+    task = tq.submit(message=str(envelope.payload), session_id=str(session_id_raw))
+    if task is None:
+        raise HTTPException(status_code=429, detail="Session already has an active task. Cancel it first or wait.")
+
     pipeline = _get_pipeline(request)
 
     try:
@@ -2246,3 +2254,28 @@ async def get_trade_status(order_id: str) -> dict[str, Any]:
     """Fase 2: Verificar status da validação (pipeline background)."""
     status = _trade_status.get(order_id, {"phase": "unknown"})
     return {"order_id": order_id, **status}
+
+
+# ── Task Queue endpoints ────────────────────────────────────────────
+
+@router.get("/task/status/{run_id}")
+async def get_task_status(run_id: str) -> dict[str, Any]:
+    """Status de uma task pelo run_id."""
+    from core.pipeline.task_queue import get_task_queue
+    return get_task_queue().status(run_id)
+
+
+@router.post("/task/cancel/{run_id}")
+async def cancel_task(run_id: str) -> dict[str, Any]:
+    """Cancela uma task ativa."""
+    from core.pipeline.task_queue import get_task_queue
+    ok = get_task_queue().cancel(run_id)
+    return {"cancelled": ok, "run_id": run_id}
+
+
+@router.get("/task/active")
+async def list_active_tasks() -> dict[str, Any]:
+    """Lista todas as tasks ativas."""
+    from core.pipeline.task_queue import get_task_queue
+    tq = get_task_queue()
+    return {"count": tq.active_count, "tasks": tq.active_tasks}
