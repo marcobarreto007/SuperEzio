@@ -2298,6 +2298,48 @@ async def get_trade_status(order_id: str) -> dict[str, Any]:
     return {"order_id": order_id, **status}
 
 
+@router.get("/training/orders")
+async def get_training_orders() -> dict[str, Any]:
+    """Retorna ordens de treinamento para o Bob aparecerem no UI."""
+    from pathlib import Path
+
+    training_file = Path(__file__).resolve().parent.parent.parent / "runtime" / "training" / "bob_chart_orders.jsonl"
+    orders = []
+
+    if training_file.exists():
+        try:
+            for line in training_file.read_text(encoding="utf-8").strip().splitlines():
+                if not line:
+                    continue
+                try:
+                    order = json.loads(line)
+                    # Convert training order to UI-compatible format
+                    orders.append({
+                        "order_id": order.get("order_id"),
+                        "ticker": order.get("ticker"),
+                        "action": order.get("action", "BUY").upper(),
+                        "side": order.get("action", "buy").lower(),
+                        "qty": 100,  # Default training qty
+                        "limit_price": None,
+                        "order_type": "MARKET",
+                        "status": "TRAINING",
+                        "source": "training",
+                        "training_type": order.get("type"),
+                        "training_message": order.get("message"),
+                        "timeframe": order.get("timeframe"),
+                    })
+                except json.JSONDecodeError:
+                    continue
+        except Exception as exc:
+            logger.warning("Failed to load training orders: %s", exc)
+
+    return {
+        "source": "training",
+        "count": len(orders),
+        "orders": orders,
+    }
+
+
 # ── Task Queue endpoints ────────────────────────────────────────────
 
 @router.get("/task/status/{run_id}")

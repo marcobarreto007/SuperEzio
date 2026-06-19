@@ -610,11 +610,16 @@
     var status = item.status || (kind === "position" ? "OPEN" : "PENDING");
     var price = item.limit_price || item.lmtPrice || item.entry_price || item.avgCost;
     var source = String(item.source || (kind === "position" ? "ibkr_position" : "ibkr")).toUpperCase().replace("_", " ");
+    // Add TRAIN badge for training orders
+    if (kind === "training") {
+      source = "TRAIN";
+      status = "PAPER";
+    }
     var meta = kind === "position"
       ? "position qty " + qty + (price ? " avg " + fmt(Number(price), 2) : "")
       : (item.order_type || item.orderType || "LMT") + " qty " + qty + (price ? " @ " + fmt(Number(price), 2) : "");
     return [
-      '<button class="order-row ' + (selected === ticker ? "is-selected" : "") + '" type="button"',
+      '<button class="order-row ' + (selected === ticker ? "is-selected" : "") + (kind === "training" ? " order-row--training" : "") + '" type="button"',
         ' data-order-kind="' + esc(kind) + '"',
         ' data-order-id="' + esc(item.order_id || item.id || "") + '"',
         ' data-order-ticker="' + esc(ticker) + '">',
@@ -664,6 +669,10 @@
     var orders = brokerOrders.concat(localTickets);
     var positions = positionList(pf);
     var history = tradeHistoryList(pf);
+    // Training orders
+    var trainingOrders = (pf.training_orders || []).map(function (order) {
+      return normalizeOrder(order);
+    });
     var current = sanitTicker(SZ.state.ticker || (document.getElementById("ticker-inp") || {}).value || "");
     var firstTicker = "";
     var rows = [];
@@ -680,6 +689,13 @@
       rows.push(renderOrderButton(order, "order", current));
     });
 
+    // Adicionar ordens de treinamento com badge TRAIN
+    trainingOrders.forEach(function (order) {
+      var ticker = orderTicker(order);
+      if (!firstTicker && ticker) firstTicker = ticker;
+      rows.push(renderOrderButton(order, "training", current));
+    });
+
     positions.forEach(function (pos) {
       var ticker = positionTicker(pos);
       if (!firstTicker && ticker) firstTicker = ticker;
@@ -688,7 +704,10 @@
 
     var visibleRows = rows.filter(Boolean);
     if (countEl) {
-      countEl.textContent = String(brokerOrders.length) + " ord / " + String(positions.length) + " pos" + (localTickets.length ? " / " + localTickets.length + " local" : "");
+      var baseCount = String(brokerOrders.length) + " ord / " + String(positions.length) + " pos";
+      var localPart = localTickets.length ? " / " + localTickets.length + " local" : "";
+      var trainingPart = trainingOrders.length ? " / " + trainingOrders.length + " train" : "";
+      countEl.textContent = baseCount + localPart + trainingPart;
     }
     if (visibleRows.length) {
       host.innerHTML = visibleRows.join("");
@@ -734,6 +753,20 @@
     if (!SZ.api || typeof SZ.api.fetchCockpitPortfolio !== "function") return false;
     try {
       var portfolio = await SZ.api.fetchCockpitPortfolio();
+      // Buscar ordens de treinamento e incluir no portfolio
+      if (SZ.api.fetchTrainingOrders) {
+        try {
+          var training = await SZ.api.fetchTrainingOrders();
+          if (training && training.orders) {
+            portfolio.training_orders = training.orders;
+            portfolio.training_count = training.count;
+          }
+        } catch (trainErr) {
+          // Training orders unavailable - continue without them
+          portfolio.training_orders = [];
+          portfolio.training_count = 0;
+        }
+      }
       return renderPortfolioMirror(portfolio);
     } catch (err) {
       renderPortfolioMirror({ orders: [], positions: [] });
