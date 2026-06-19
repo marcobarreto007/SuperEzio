@@ -754,6 +754,41 @@
     setText("live-ticker", ticker);
     markSelectedMirrorTicker(ticker);
     loadChart(ticker);
+
+    if (reason === "ibkr_mirror_click") {
+      var kind = (meta && meta.kind) || "order/position";
+      var command = "TICKER " + ticker + ": sincronize grafico + " + kind + " IBKR. Bob, analise tese, risco, invalidacao e alvo/stop. Se virar trade, rode ferramentas antes de PAPER_TICKET.";
+      var input = document.getElementById("user-inp");
+      if (input) {
+        input.value = command;
+        input.focus();
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      var panel = document.getElementById("live-panel");
+      if (panel) panel.classList.remove("is-collapsed");
+      var chat = document.getElementById("chat");
+      if (chat) {
+        var cue = chat.querySelector(".bob-ticker-cue");
+        if (!cue) {
+          cue = document.createElement("div");
+          cue.className = "bob-ticker-cue";
+          chat.insertBefore(cue, chat.firstChild);
+        }
+        cue.innerHTML = [
+          '<strong>Bob recebeu ' + esc(ticker) + '</strong>',
+          '<span>Comando IBKR ' + esc(kind.toUpperCase()) + ' enviado automaticamente.</span>',
+        ].join("");
+        chat.scrollTop = 0;
+      }
+      setTimeout(function() {
+        if (input) {
+          input.value = "";
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        submit(command);
+      }, 50);
+    }
+
     return true;
   }
 

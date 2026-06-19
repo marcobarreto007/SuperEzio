@@ -1,63 +1,17 @@
 {
-  "date_local": "2026-06-17T19:13:00-04:00",
-  "session": "broker-accounting-boundary-2026-06-17",
-  "status": "live_cockpit_broker_accounting_boundary_verified",
-  "final_objective": {
-    "what_system_does": "SuperEzio is a local financial copilot where Bob analyzes market data with experts/guardrails and can submit gated IBKR paper orders.",
-    "who_it_is_for": "Marco/F51 validating Bob before live-money discussion.",
-    "main_user_flow": "Open http://127.0.0.1:8002, inspect live IBKR paper state, ask Bob for analysis/order, and verify submitted/open/filled state through IBKR-backed cockpit surfaces.",
-    "start_command": "python -m uvicorn agent_server.main:app --host 127.0.0.1 --port 8002",
-    "proof_output": "/cockpit/portfolio and /health/details agree on IBKR paper positions/orders; browser smoke passes with no console errors.",
-    "blocking_ready": "Live-money readiness still requires longer supervised soak, confirmed fill import, and explicit live-money kill gates."
-  },
-  "what_was_done": [
-    "Separated IBKR submitted orders from confirmed local positions in LiveTradingEngine. A broker order now creates an audit ticket only; it no longer opens a local position or increments confirmed trades before fill.",
-    "Added BrokerReconciler to compare IBKR broker state with PaperJournal and block live trading cycles when local broker tickets or claimed positions are not broker-confirmed.",
-    "Recorded IBKR perm_id/tws_order_id/client_id end to end through scripts/_ibkr_order.py, InteractiveBrokersAdapter, Order, PaperJournal, and cockpit order rows.",
-    "Fixed XP/Pain Memory result registration to use current APIs and learn only from closed position results.",
-    "Added closed-market study hook so the autonomous loop can review aged theses and generate standup while the market is closed.",
-    "Hardened IBKR open-order refresh against transient empty reads by waiting longer and preserving recent non-empty order cache.",
-    "Sanitized /health/details and /metrics JSON output so NaN/Infinity cannot produce 500 responses.",
-    "Changed /health/trace/{run_id} to return an empty blame report for valid missing traces instead of causing a browser-visible 404."
-  ],
+  "date_local": "2026-06-19T13:20:00-04:00",
+  "session": "brainstorm-prep-antigravity",
+  "status": "completed",
+  "what_was_done": "Auto-submit Genie watchlist cards and IBKR Mirror rows to Bob Copilot on click, clearing the textarea afterwards and sending the correct context.",
   "evidence": {
-    "tests": [
-      "python -m pytest tests/test_broker_reconciler.py tests/test_autonomous_live_engine.py -q -> 9 passed",
-      "python -m pytest tests/test_ibkr_service.py tests/test_api_routes_sync.py tests/test_autonomous_live_engine.py tests/test_broker_reconciler.py -q -> 46 passed",
-      "python -m pytest tests/contracts/test_contract_endpoints.py tests/test_api_routes_sync.py tests/test_autonomous_live_engine.py tests/test_broker_reconciler.py -q -> 53 passed",
-      "python scripts/browser_smoke.py -> ok true, chart AAPL 130 candles, nonblank canvas, chat finalContentLength 2281, console_errors []"
-    ],
-    "live_runtime": [
-      "API restarted on port 8002, current uvicorn PID 18936.",
-      "/cockpit/portfolio after IBKR warmup -> connected true, equity 100,020.58, positions_count 16, orders_count 9, broker_orders_count 9, orders_source ibkr.",
-      "/health/details after IBKR warmup -> runtime_broker status ok, equity 100,020.58, positions_count 16, orders_count 9.",
-      "/health/trace/not-yet-recorded -> 200 with empty report, no browser 404.",
-      "Final Playwright screenshot: output/playwright/superezio-browser-smoke-20260617-191227.png."
-    ],
-    "files_changed": [
-      "src/core/trading/broker.py",
-      "scripts/_ibkr_order.py",
-      "src/adapters/broker/ibkr_adapter.py",
-      "src/adapters/broker/ibkr_service.py",
-      "src/core/trading/paper_journal.py",
-      "src/core/trading/broker_reconciler.py",
-      "src/core/trading/trading_engine_live.py",
-      "src/core/trading/autonomous_loop.py",
-      "src/core/trading/__init__.py",
-      "src/agent_server/main.py",
-      "src/agent_server/endpoints.py",
-      "tests/test_broker_reconciler.py",
-      "tests/test_autonomous_live_engine.py"
+    "files_modified": [
+      "frontend/js/genie-panel.js",
+      "frontend/js/init.js"
     ]
   },
   "risks": [
-    "IBKR cache is cold for a few seconds immediately after API restart; after warmup, cockpit and health align.",
-    "Current implementation blocks false local claims, but importing confirmed executions/fills into PaperJournal is still the next required accounting step.",
-    "NewsAPI is rate-limited with HTTP 429 during validation; this is external provider quota, not cockpit/IBKR accounting.",
-    "Runtime files changed during validation: data/conversation_memory.jsonl, runtime/traces/decision_trace_20260617.jsonl, and output/playwright screenshots."
+    "Docs are outdated per Marco — all understanding from direct code read",
+    "Apprenticeship window end_date=2026-06-19 (today) — needs Marco decision"
   ],
-  "next_step": "Implement broker fill import: read IBKR executions/fills, mark matching journal tickets as broker_fill_confirmed, then allow XP/Pain learning from confirmed results only.",
-  "owner": "Codex",
-  "github_policy": "DISK_ONLY_GITHUB_BLOCKED",
-  "updated": "2026-06-17T23:13:00Z"
+  "next_step": "Verify the UI change live by clicking watchlist cards and verifying Bob receives them automatically."
 }
