@@ -329,7 +329,9 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
 
     # Use service status after cache reads; first request may wait for the worker refresh.
     connected = service_status.get("connected", False) and service_status.get("can_read", False)
-    equity = f"{equity_float:,.2f}" if equity_float > 0 else broker.get("account_equity") or "100000.00"
+    from core.mission_context import get_mission_equity
+    equity_default = f"{get_mission_equity():.2f}"
+    equity = f"{equity_float:,.2f}" if equity_float > 0 else broker.get("account_equity") or equity_default
     positions_count = len(positions)
 
     raw_mode = str(broker.get("mode") or "").lower()

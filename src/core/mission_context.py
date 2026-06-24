@@ -323,3 +323,41 @@ def mission_health_summary(path: str | Path | None = None) -> dict[str, Any]:
         "paper_trading": situation.get("paper_trading", {}) if isinstance(situation, dict) else {},
         "debut_criteria": _build_debut_summary(mission),
     }
+
+
+def get_mission_equity(path: str | Path | None = None) -> float:
+    """Retorna o equity do broker ou paper trading configurado no mission_context.json.
+
+    Default para 10000.0 se nao encontrado ou se houver erro.
+    """
+    data = load_mission_context(path)
+    if not data:
+        return 10000.0
+
+    situation = data.get("current_situation", {})
+    if not isinstance(situation, dict):
+        return 10000.0
+
+    # 1. Tentar ler do paper_trading
+    try:
+        pt = situation.get("paper_trading", {})
+        if isinstance(pt, dict):
+            eq_str = pt.get("equity")
+            if eq_str:
+                # Ex: "10000.00 USD"
+                return float(str(eq_str).split()[0])
+    except Exception:
+        pass
+
+    # 2. Tentar ler do broker.ibkr.account_equity
+    try:
+        ibkr = situation.get("broker", {}).get("ibkr", {})
+        if isinstance(ibkr, dict):
+            eq_str = ibkr.get("account_equity")
+            if eq_str:
+                return float(eq_str)
+    except Exception:
+        pass
+
+    return 10000.0
+

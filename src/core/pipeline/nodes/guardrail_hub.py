@@ -379,7 +379,8 @@ class GuardrailHub:
     def _kill_switch(self, state: dict[str, Any]) -> dict[str, Any]:
         from core.trading.kill_switch import KillSwitch
 
-        equity = float(state.get("paper_equity") or 100000.0)
+        from core.mission_context import get_mission_equity
+        equity = float(state.get("paper_equity") or get_mission_equity())
         switch = KillSwitch(initial_equity=equity)
         switch_state = switch.check()
         return self._result(
@@ -406,7 +407,8 @@ class GuardrailHub:
         price = self._latest_price(state)
         if price is None:
             return self._result(status="skipped", reason="missing_entry_price")
-        equity = float(state.get("paper_equity") or 100000.0)
+        from core.mission_context import get_mission_equity
+        equity = float(state.get("paper_equity") or get_mission_equity())
         size = PositionSizer(equity=equity).size(entry_price=price)
         return self._result(
             decision="ALLOW" if size.shares > 0 else "REVIEW",

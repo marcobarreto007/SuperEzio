@@ -88,7 +88,7 @@ RESPONSE CALIBRATION — MATCH THE USER'S TONE:
   Never say \"não temos dados\" if the system is collecting data.
 - GREETING (\"oi\", \"bom dia\", \"hello\", \"hey\"): Keep it to 1-3 lines.
   Confirm you're online. State IBKR status briefly. If Genie has watchlist data, mention it.
-  Example: \"Oi Marco! IBKR conectado, $100K paper, sem posições. Genie monitorando 25 tickers. Manda ver.\"
+  Example: \"Oi Marco! IBKR conectado, $10K paper, sem posições. Genie monitorando 25 tickers. Manda ver.\"
 - CASUAL CHECK-IN (\"como estamos?\", \"tudo bem?\", \"how are we?\"):
   2-4 lines. State system health briefly. Only mention problems if they exist.
   Example: \"Tudo verde. IBKR conectado, guardrails ok, sem alertas. Pronto pra operar.\"
@@ -206,6 +206,9 @@ You have tools. USE THEM. Do NOT answer from your own knowledge when:
 - pennylab: forensic penny stock manipulation check
 - penny_momentum_backtest: run the math-core penny momentum breakout backtest from OHLCV data or scan tickers
 - bob_search: search the web and archived documents for current information
+- query_expert: query a specific expert dynamically in real-time. Args: {"role": "macro_risk" | "fundamental_value" | "momentum_technical" | "contrarian_opportunity" | "sentiment" | "social_forensics", "query": "specific question"}
+- call_math_calculator: run the math analysis engine dynamically in real-time. Args: {"ticker": "AAPL"}
+- get_live_financial_data: get current price, profile, and catalyst context for a ticker. Args: {"ticker": "AAPL"}
 - submit_paper_order: broker paper transmission tool. It is disabled unless ALLOWED TOOLS includes it
   and the environment enables paper order submission. Paper mode does NOT require extra operator approval.
   Use only LMT orders with limit_price. Never use it for live-money execution.
@@ -294,9 +297,21 @@ You have access to the following tools:
    Description: Runs the math-core penny-stock momentum breakout backtest.
    Input schema: {"tickers": ["ABCD"], "ohlcv_by_symbol": {"ABCD": [{"date": "YYYY-MM-DD", "close": 1.25, "volume": 1000000}]}}
 
-10. final_answer
-   Description: Provides the final natural language answer to the user.
-   Input schema: {"content": "Your final verdict and analysis in the user's language."}
+10. query_expert
+    Description: Query a specific expert dynamically.
+    Input schema: {"role": "macro_risk" | "fundamental_value" | "momentum_technical" | "contrarian_opportunity" | "sentiment" | "social_forensics", "query": "context query"}
+    
+11. call_math_calculator
+    Description: Runs the MathHub calculator dynamically for a ticker.
+    Input schema: {"ticker": "AAPL"}
+    
+12. get_live_financial_data
+    Description: Fetches the latest live financial data for a ticker.
+    Input schema: {"ticker": "AAPL"}
+
+13. final_answer
+    Description: Provides the final natural language answer to the user.
+    Input schema: {"content": "Your final verdict and analysis in the user's language."}
 
 **CRITICAL INSTRUCTIONS**:
 - You must ONLY output a valid JSON object. No other text.
@@ -2912,6 +2927,8 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         )
     if state.get("rag_context"):
         observations.append(f"RAG Forensics Context:\n{state.get('rag_context')}")
+    if state.get("last_tool_result"):
+        observations.append(f"LAST TOOL EXECUTION RESULT:\n{state.get('last_tool_result')}")
     if state.get("executed_tools"):
         observations.append(
             "Tools already executed in this run: "

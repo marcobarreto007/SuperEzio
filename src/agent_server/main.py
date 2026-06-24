@@ -340,7 +340,7 @@ async def health_check_public(request: Request):
     """
     if request.method == "HEAD":
         return Response(status_code=200)
-    return {"status": "ok", "agent": AGENT_NAME, "version": "3.0.0"}
+    return {"status": "ok", "agent": AGENT_NAME, "version": "4.0.0"}
 
 
 @app.get("/health/details")
@@ -353,7 +353,7 @@ async def health_check():
     health = {
         "status": "ok",
         "agent": AGENT_NAME,
-        "version": "3.0.0",
+        "version": "4.0.0",
         "checks": {},
     }
 
@@ -518,7 +518,7 @@ async def get_metrics():
     """MÃ©tricas de negÃ³cio: latÃªncia, erro rate, tokens, cache."""
     return _json_safe({
         "service": "superezio",
-        "version": "3.0.0",
+        "version": "4.0.0",
         **metrics.get_all(),
     })
 

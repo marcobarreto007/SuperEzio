@@ -412,7 +412,8 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
 
         stop_loss_price = float(args.get("stop_loss_price") or limit_price * 0.95)
         requested_qty = int(qty)
-        paper_equity = float(state.get("paper_equity") or state.get("equity") or 100_000.0)
+        from core.mission_context import get_mission_equity
+        paper_equity = float(state.get("paper_equity") or state.get("equity") or get_mission_equity())
         open_positions = int(state.get("open_positions") or state.get("positions_count") or 0)
         size = PositionSizer(equity=paper_equity).size(
             entry_price=limit_price,
@@ -787,6 +788,70 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             rag_context = result.get("rag_context", "")
             if rag_context:
                 result["data_context"] = f"[BOB SEARCH RESULTS for '{query}']:\n{rag_context}"
+        elif tool_name == "query_expert":
+            role = args.get("role")
+            query = args.get("query", state.get("message", ""))
+            if not role:
+                result = {"error": "query_expert requires role"}
+            else:
+                expert_state = {**state, "role": role, "message": query, "data_context": state.get("data_context", query)}
+                res = await node_expert(expert_state, gateway=gateway)
+                expert_results = res.get("expert_results", [])
+                expert_response = ""
+                for er in expert_results:
+                    if er.get("role") == role:
+                        expert_response = er.get("response", "")
+                        break
+                result = {
+                    "role": role,
+                    "query": query,
+                    "response": expert_response or "Expert returned no response",
+                    "expert_results": expert_results,
+                    "last_tool_result": f"Expert '{role}' response to query '{query}':\n{expert_response}"
+                }
+
+        elif tool_name == "call_math_calculator":
+            ticker = args.get("ticker", state.get("ticker", "")).upper()
+            if not ticker:
+                result = {"error": "call_math_calculator requires ticker"}
+            else:
+                from core.math.math_hub import MathHub
+                math_hub = MathHub()
+                calc_state = {**state, "ticker": ticker}
+                math_report = math_hub.calculate_all(calc_state)
+                math_prompt = math_hub.to_deepseek_prompt(math_report)
+                result = {
+                    "ticker": ticker,
+                    "math_report": math_report,
+                    "math_prompt": math_prompt,
+                    "last_tool_result": f"Math Calculator results for ticker {ticker}:\n{math_prompt}"
+                }
+
+        elif tool_name == "get_live_financial_data":
+            ticker = args.get("ticker", state.get("ticker", "")).upper()
+            if not ticker:
+                result = {"error": "get_live_financial_data requires ticker"}
+            else:
+                from core.data_collector.collector import tool_get_market_price, tool_calculate_risk_metrics
+                try:
+                    price_data = await tool_get_market_price(ticker)
+                except Exception as e:
+                    price_data = {"error": f"price_fetch_failed: {e}"}
+                try:
+                    risk_data = await tool_calculate_risk_metrics(ticker)
+                except Exception as e:
+                    risk_data = {"error": f"risk_calc_failed: {e}"}
+
+                collector_res = await node_collector({**state, "ticker": ticker, "route": "ticker_analysis"}, config=config)
+
+                result = {
+                    "ticker": ticker,
+                    "live_price": price_data,
+                    "risk_metrics": risk_data,
+                    "data_context": collector_res.get("data_context", ""),
+                    "last_tool_result": f"Live Financial Data for {ticker}:\n- Price Data: {price_data}\n- Risk Metrics: {risk_data}\n- Context details: {collector_res.get('data_context', '')[:1000]}..."
+                }
+
         else:
             return _tool_blocked_payload(state, tool_name, "it is not executable here")
 

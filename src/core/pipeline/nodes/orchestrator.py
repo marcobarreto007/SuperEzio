@@ -71,6 +71,7 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
             "market_scan", "collect_data", "f51_firewall", "pennylab",
             "run_experts", "neural_decision", "sdca_firewall",
             "rag_forensics", "bob_search", "submit_paper_order", "final_answer",
+            "query_expert", "call_math_calculator", "get_live_financial_data",
         ],
         "scanner_allowed": True,
         "ticker_allowed": True,
@@ -106,6 +107,8 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
 
         "orchestrator_plan": "Bob decides everything. Full tool access. No restrictions.",
         "orchestrator_model_status": "passthrough_no_classifier",
+
+        "last_tool_result": "",
 
         # CASE: contrato obrigatorio — Bob so decide depois da mesa
         "financial_case": financial_case,

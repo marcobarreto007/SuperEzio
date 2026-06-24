@@ -75,8 +75,11 @@ class PerformanceReport:
 class PerformanceEngine:
     """Calcula metricas de performance a partir do PaperJournal."""
 
-    def __init__(self, journal: PaperJournal, initial_equity: float = 100_000.0):
+    def __init__(self, journal: PaperJournal, initial_equity: float | None = None):
         self._journal = journal
+        if initial_equity is None:
+            from core.mission_context import get_mission_equity
+            initial_equity = get_mission_equity()
         self._initial_equity = initial_equity
 
     def evaluate(self) -> PerformanceReport:

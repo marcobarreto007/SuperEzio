@@ -1,6 +1,6 @@
 """SuperEzio core package."""
 
-__version__ = "3.0.0"
+__version__ = "4.0.0"
 __author__ = "Fabria Labs"
 
 from .config import UniversalConfig, get_config, reload_config

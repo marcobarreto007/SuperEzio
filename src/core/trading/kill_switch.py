@@ -149,7 +149,8 @@ def get_kill_switch() -> KillSwitch:
 
     global _GLOBAL_KILL_SWITCH
     if _GLOBAL_KILL_SWITCH is None:
-        _GLOBAL_KILL_SWITCH = KillSwitch(initial_equity=100_000.0)
+        from core.mission_context import get_mission_equity
+        _GLOBAL_KILL_SWITCH = KillSwitch(initial_equity=get_mission_equity())
     _GLOBAL_KILL_SWITCH.check()
     return _GLOBAL_KILL_SWITCH
 
@@ -158,5 +159,6 @@ def reset_kill_switch_for_test() -> KillSwitch:
     """Reset the singleton in tests without touching production journal state."""
 
     global _GLOBAL_KILL_SWITCH
-    _GLOBAL_KILL_SWITCH = KillSwitch(initial_equity=100_000.0)
+    from core.mission_context import get_mission_equity
+    _GLOBAL_KILL_SWITCH = KillSwitch(initial_equity=get_mission_equity())
     return _GLOBAL_KILL_SWITCH

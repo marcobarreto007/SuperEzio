@@ -127,6 +127,7 @@ class PipelineState(TypedDict, total=False):
     executed_tools: list[str]
     executed_tool_counts: dict[str, int]
     tool_blocked: dict[str, Any]
+    last_tool_result: str
 
     # Errors
     errors: list[str]
@@ -206,5 +207,8 @@ class AgentToolCall(BaseModel):
         "final_answer",
         "bob_search",
         "social_forensics",
+        "query_expert",
+        "call_math_calculator",
+        "get_live_financial_data",
     ]
     args: dict[str, Any] = Field(default_factory=dict)

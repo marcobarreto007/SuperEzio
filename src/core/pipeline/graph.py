@@ -703,7 +703,8 @@ def build_graph(
             return {"paper_exec_note": "no ticker parsed"}
 
         # ── Position sizing: max 10% of paper equity per trade ──
-        paper_equity = 100_000.0  # default paper account
+        from core.mission_context import get_mission_equity
+        paper_equity = get_mission_equity()
         # Price source: scan candidates → state latest_price → IBKR execution fill
         # IBKR paper accounts lack real-time market data subscriptions (Error 10089).
         # The actual fill price comes from IBKR at execution via _ibkr_order.py.
@@ -793,7 +794,8 @@ def build_graph(
             if proc.returncode == 0:
                 data = _json.loads(proc.stdout.strip())
                 existing_pct = data.get("pct_of_equity", 0)
-                new_total_pct = existing_pct + (position_value / data.get("equity", 100_000) * 100)
+                from core.mission_context import get_mission_equity
+                new_total_pct = existing_pct + (position_value / data.get("equity", get_mission_equity()) * 100)
                 if new_total_pct > 50:
                     concentration_blocked = True
                     writer(
