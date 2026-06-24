@@ -474,4 +474,12 @@ class MathHub:
             "kelly_fraction": _dig(modules, "kelly", "values", "kelly_fraction"),
             "crisis_score": _dig(modules, "crisis_aggregate", "values", "aggregate_score"),
             "f51_confidence": _dig(modules, "f51_unified", "values", "confidence"),
+            # Technical indicators
+            "rsi": _dig(modules, "technical_indicators", "values", "rsi14"),
+            "macd": _dig(modules, "technical_indicators", "values", "macd"),
+            "sma20": _dig(modules, "technical_indicators", "values", "sma20"),
+            "sma50": _dig(modules, "technical_indicators", "values", "sma50"),
+            "ema20": _dig(modules, "technical_indicators", "values", "ema20"),
+            "bollinger": _dig(modules, "technical_indicators", "values", "bollinger"),
+            "vwap": _dig(modules, "technical_indicators", "values", "vwap"),
         }

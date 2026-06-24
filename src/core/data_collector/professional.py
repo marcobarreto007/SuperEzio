@@ -793,6 +793,16 @@ class ProfessionalCollector:
             for cap in ("price", "fundamentals", "sentiment", "social")
         }
 
+        # Collect OHLCV for MathHub technical calculations
+        ohlcv = []
+        try:
+            from data.data_hub import hub
+            candles_result = await asyncio.to_thread(hub.get_candles, ticker, timeframe="6M")
+            if "error" not in candles_result:
+                ohlcv = candles_result.get("candles", [])
+        except Exception:
+            pass  # OHLCV is optional, don't fail the whole collection
+
         data = {
             "analysis_id": analysis_id,
             "ticker": ticker,
@@ -804,6 +814,7 @@ class ProfessionalCollector:
             "social": results.get("social", {}),
             "macro": results.get("macro", {}),
             "technicals": results.get("technicals", {}),
+            "ohlcv": ohlcv,  # For MathHub calculations
             "quality_report": quality_report,
             "mesh_health": self.mesh.health_report(),
             "data_quality": self._overall_quality(quality_report),
