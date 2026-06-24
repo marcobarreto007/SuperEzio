@@ -973,6 +973,23 @@ def test_explicit_smallcap_discovery_keeps_scanner_allowed():
     assert "market_scan" in plan["allowed_tools"]
 
 
+def test_exact_cad100_mini_cap_prompt_is_decisive_microcap_scan():
+    from src.core.pipeline.intents import (
+        detect_decisive_trade_intent,
+        parse_user_intent,
+    )
+    from src.core.pipeline.nodes.collector import _wants_microcap
+
+    prompt = "vamos investir 100 cad segunda , escolhe mini cap"
+    result = parse_user_intent(prompt, rigor="strict", ticker="")
+
+    assert result.route == "market_scan"
+    assert result.intent == "market_scan"
+    assert result.filters.get("country") == "Canada"
+    assert detect_decisive_trade_intent(prompt) is True
+    assert _wants_microcap(prompt) is True
+
+
 def test_cognitive_contract_blocks_tool_misuse(monkeypatch):
     monkeypatch.setenv("SUPEREZIO_BOB_SOVEREIGN", "0")
     from src.core.pipeline.nodes.tool_executor import _tool_permission_error

@@ -1098,6 +1098,10 @@ DECISIVE_TRADE_HINTS = (
     "quero lucrar",
     "quero ganhar",
     "recomendar para comprar",
+    "escolhe",
+    "escolha",
+    "escolhe pra mim",
+    "escolhe para mim",
 )
 
 ANOTHER_TRADE_HINTS = (
@@ -1250,6 +1254,8 @@ RESEARCH_DOMAIN_HINTS = (
     "penny-stock",
     "microcap",
     "micro cap",
+    "mini cap",
+    "mini-cap",
     "small cap",
     "small caps",
 )
@@ -1263,6 +1269,10 @@ PENNY_ASSET_HINTS = (
     "micro cap",
     "microcaps",
     "micro caps",
+    "mini cap",
+    "mini-cap",
+    "mini caps",
+    "mini-caps",
     "acao de centavo",
     "acoes de centavo",
 )

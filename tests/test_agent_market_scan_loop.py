@@ -267,6 +267,97 @@ async def test_agent_finalizes_when_tool_was_blocked(monkeypatch):
     assert any(event.get("type") == "CHUNK" for event in events)
 
 
+@pytest.mark.asyncio
+async def test_completed_decisive_scan_finalizes_from_evidence_without_model_or_order(monkeypatch):
+    from src.core.pipeline.nodes import agent as agent_module
+
+    events = []
+    monkeypatch.setattr(agent_module, "get_stream_writer", lambda: events.append)
+
+    class GatewayMustNotRun:
+        def __init__(self):
+            self.calls = 0
+
+        async def chat_completion(self, **kwargs):
+            self.calls += 1
+            raise AssertionError("completed market evidence must finalize without another model call")
+
+    candidate = {
+        "ticker": "TEST.V",
+        "name": "Test Ventures",
+        "market": "Canada",
+        "exchange": "TSXV",
+        "price": 2.0,
+        "currency": "CAD",
+        "volume": 750_000,
+        "market_cap": 120_000_000,
+        "catalyst": "Verified earnings release inside the requested horizon.",
+        "risk": "Microcap volatility and liquidity risk.",
+        "invalidation": "Close below the prior-week low.",
+        "provider": "test-provider",
+    }
+    gateway = GatewayMustNotRun()
+    result = await agent_module.node_agent(
+        {
+            "run_id": "cad100-mini-cap-complete",
+            "route": "market_scan",
+            "intent": "market_scan",
+            "message": "vamos investir 100 cad segunda , escolhe mini cap",
+            "allowed_tools": [
+                "market_scan",
+                "collect_data",
+                "run_experts",
+                "f51_firewall",
+                "neural_decision",
+                "sdca_firewall",
+                "submit_paper_order",
+                "final_answer",
+            ],
+            "scanner_allowed": True,
+            "ticker_allowed": True,
+            "ticket_allowed": True,
+            "agent_iterations": 6,
+            "executed_tools": [
+                "market_scan",
+                "collect_data",
+                "run_experts",
+                "f51_firewall",
+                "neural_decision",
+                "sdca_firewall",
+            ],
+            "ticker": "TEST.V",
+            "scan": {
+                "universe": "CANADA_MICROCAP",
+                "filters": {"country": "Canada", "allow_microcap": True},
+                "candidates": [candidate],
+                "ranked_candidates": [],
+                "rejected": [],
+                "rejected_count": 0,
+                "rejection_summary": {},
+                "source_errors": [],
+            },
+            "data": {
+                "ticker": "TEST.V",
+                "price": {"price": 2.0, "currency": "CAD"},
+                "technicals": {"price": 2.0, "volume": 750_000},
+            },
+            "expert_summary": "Committee reviewed TEST.V; risks and invalidation are explicit.",
+            "f51_verdict": {"passed": True, "confidence": 0.91},
+            "neural_decision": {"recommendation": "BUY_CANDIDATE", "veto": False},
+            "sdca_firewall": {"decision": "ALLOW", "confidence": 0.88},
+        },
+        gateway=gateway,
+    )
+
+    assert gateway.calls == 0
+    assert result["agent_tool_call"]["tool"] == "final_answer"
+    assert "TEST.V" in result["final"]
+    assert "DECISIVE_TRADE_ORDER" in result["final"]
+    assert "REJECT_ALL" not in result["final"]
+    assert "PAPER_ORDER_SUBMITTED" not in result["final"]
+    assert any(event.get("type") == "CHUNK" for event in events)
+
+
 def test_parse_tool_call_rejects_legacy_unknown_tool():
     from src.core.pipeline.nodes.agent import _parse_tool_call
 

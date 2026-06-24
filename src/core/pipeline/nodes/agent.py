@@ -2384,28 +2384,6 @@ def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
     when the user is asking for a scan, ticker analysis, or paper trade.
     """
 
-    # ── CASE ENFORCEMENT: por iteracao ──
-    # 0→scan, 1→collect, 2→experts, 3→paper_order, 4→liberado
-    it = state.get("agent_iterations", 0)
-    forced_sequence = ["market_scan", "collect_data", "run_experts", "submit_paper_order"]
-    if it < len(forced_sequence):
-        tool = forced_sequence[it]
-        args = {"query": state.get("message", ""), "ticker": state.get("ticker", "")}
-        if tool == "submit_paper_order":
-            # Use the ticker from state or data
-            ticker = state.get("ticker") or (state.get("data") or {}).get("ticker", "")
-            if ticker:
-                price = (state.get("data") or {}).get("price") or (
-                    (state.get("data") or {}).get("technicals") or {}
-                ).get("price") or 1.0
-                args = {"ticker": ticker, "action": "buy", "qty": 10,
-                        "limit_price": float(price) if price else 1.0,
-                        "order_type": "LMT",
-                        "_forced_by_case": True}  # Bypass ticket_allowed check
-        # Ensure ticket_allowed for forced orders
-        state["ticket_allowed"] = True
-        return {"tool": tool, "args": args}
-
     if not _has_actionable_market_request(state):
         return None
     if state.get("submit_paper_order_result") or state.get("submit_paper_order_error"):
@@ -2416,6 +2394,19 @@ def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
     ticker = _normalize_ticker_symbol(
         state.get("ticker") or (state.get("data") or {}).get("ticker")
     )
+
+    if not ticker and isinstance(state.get("scan"), dict):
+        scan = state["scan"]
+        candidates = [item for item in scan.get("candidates", []) if isinstance(item, dict)]
+        ranked = scan.get("ranked_candidates")
+        if not isinstance(ranked, list) or not ranked:
+            ranked = rank_candidates(
+                candidates,
+                source_errors=scan.get("source_errors") or [],
+                weak_universe=len(candidates) <= 1,
+            )
+        selected, _ = pick_candidate(ranked)
+        ticker = _normalize_ticker_symbol((selected or {}).get("candidate", {}).get("ticker"))
 
     if (
         ticker
@@ -2444,6 +2435,22 @@ def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
         and not _has_expert_evidence(state)
     ):
         return {"tool": "run_experts", "args": {}}
+
+    if (
+        _has_market_evidence(state)
+        and "f51_firewall" in allowed_tools
+        and "f51_firewall" not in executed_tools
+        and not state.get("f51_verdict")
+    ):
+        return {"tool": "f51_firewall", "args": {}}
+
+    if (
+        _has_market_evidence(state)
+        and "neural_decision" in allowed_tools
+        and "neural_decision" not in executed_tools
+        and not state.get("neural_decision")
+    ):
+        return {"tool": "neural_decision", "args": {}}
 
     if (
         _has_market_evidence(state)
@@ -2604,6 +2611,69 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             "status": "started",
         }
     )
+
+    scan_state = state.get("scan")
+    scan_candidates = (
+        [item for item in scan_state.get("candidates", []) if isinstance(item, dict)]
+        if isinstance(scan_state, dict)
+        else []
+    )
+    mandatory_call = None
+    if not isinstance(scan_state, dict) or scan_candidates:
+        mandatory_call = _forced_tool_call_before_final(state)
+    if mandatory_call:
+        _tracer.end_node(
+            trace_token,
+            status="in_progress",
+            decision=mandatory_call["tool"].upper(),
+            reason=f"Required evidence tool: {mandatory_call['tool']}",
+            agent="bob",
+        )
+        return {
+            "agent_tool_call": mandatory_call,
+            "agent_iterations": iterations + 1,
+            "_pending_tool_calls": [],
+            "bob_thesis": state.get("bob_thesis", ""),
+            "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
+            "current_datetime": state.get("current_datetime", ""),
+        }
+
+    if isinstance(scan_state, dict):
+        paper_order_call = _build_submit_paper_order_call(state)
+        if paper_order_call:
+            return {
+                "agent_tool_call": paper_order_call,
+                "agent_iterations": iterations + 1,
+                "_pending_tool_calls": [],
+                "bob_thesis": state.get("bob_thesis", ""),
+                "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
+                "current_datetime": state.get("current_datetime", ""),
+            }
+
+        content = _market_scan_answer(state)
+        writer({"type": "CHUNK", "run_id": run_id, "content": content})
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "agent_primary",
+                "status": "completed",
+                "mode": "deterministic_market_synthesis",
+            }
+        )
+        _tracer.end_node(
+            trace_token,
+            status="completed",
+            decision="FINAL_ANSWER",
+            reason=content[:100],
+            agent="bob",
+        )
+        return {
+            **_final_payload(content, iterations),
+            "bob_thesis": state.get("bob_thesis", ""),
+            "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
+            "current_datetime": state.get("current_datetime", ""),
+        }
 
     if (
         state.get("route") == "ticker_analysis"

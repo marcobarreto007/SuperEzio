@@ -32,6 +32,7 @@ from core.pipeline.intents import (
     detect_decisive_trade_intent,
     detect_market_scan_intent,
     detect_broker_status_intent,
+    parse_user_intent,
 )
 from core.risk_firewall import DecisionCandidate, evaluate_decision_with_sdca
 from data.data_hub import hub
@@ -540,20 +541,28 @@ def _build_no_empty_fallback_chunk(
     lower = (message or "").lower()
     ticker = selected_ui_ticker or detect_ticker(message) or "the requested ticker"
 
-    # Build a clean, user-facing message — no debug internals
+    # A missing final chunk is a pipeline failure, not a request-quality verdict.
     header = (
-        "Analisei o teu pedido mas a pipeline não gerou output final. "
-        "Isto acontece quando o Bob soberano decide que precisa de mais contexto "
-        "antes de dar uma resposta conclusiva.\n\n"
-        "Tenta reformular a pergunta com mais detalhe: objetivo, horizonte temporal, "
-        "montante, e se queres análise de ticker, scan de mercado, ou framework educativo.\n"
+        "A pipeline terminou sem publicar uma resposta final. "
+        "Isto é uma falha interna de síntese, não falta de detalhe no teu pedido.\n\n"
     )
     is_etf_comparison = (
         any(word in lower for word in ("compare", "comparison", " vs ", "versus"))
         and sum(1 for symbol in ("voo", "vti", "schd") if symbol in lower) >= 2
     )
 
-    if route_used == "market_scan" or scanner_invoked:
+    if (route_used == "market_scan" or scanner_invoked) and candidate_count > 0:
+        body = (
+            f"O scan aprovou {candidate_count} candidato(s) e rejeitou {rejected_count}, "
+            "mas o agente falhou antes de publicar a escolha validada. "
+            "Isto não é uma rejeição de mercado e nenhuma ordem foi enviada."
+        )
+        verdict = "Final verdict: WAIT_SYSTEM_ERROR"
+        suggestion = (
+            "Suggestion: retry the same request after the pipeline is healthy; "
+            "do not loosen the scan gates."
+        )
+    elif route_used == "market_scan" or scanner_invoked:
         body = (
             "The scan path did not return a validated final candidate. I will not invent a trade. "
             f"Candidates passed: {candidate_count}; rejected: {rejected_count}; top reasons: {rejection_line}. "
@@ -1369,8 +1378,18 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
         user_query = raw_message
         selected_ui_ticker = payload.get("ticker") or ""
         chart_context_attached = bool(context_block)
-        detected_intent = "unknown"
-        route_used = "unknown"
+        try:
+            initial_intent = parse_user_intent(
+                raw_message,
+                rigor=rigor,
+                ticker=detected_ticker,
+                trade_order_context=trade_order_context or None,
+            )
+            detected_intent = initial_intent.intent or "unknown"
+            route_used = initial_intent.route or "unknown"
+        except Exception:
+            detected_intent = "unknown"
+            route_used = "unknown"
         scanner_invoked = False
         agent_called = False
         fallback_used = False

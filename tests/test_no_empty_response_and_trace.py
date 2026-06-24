@@ -143,6 +143,44 @@ def test_empty_pipeline_emits_structured_fallback_chunk(client_with_mock_pipelin
     )
 
 
+def test_scan_with_passing_candidates_never_becomes_reject_all_or_unknown(client_with_mock_pipeline):
+    mock_p, client = client_with_mock_pipeline
+    mock_p.events_to_yield = [
+        {"type": "STREAM_START", "msg_id": "cad100-mini-cap"},
+        {
+            "type": "DATA_COLLECTED",
+            "candidates": 12,
+            "rejected_count": 3,
+            "rejection_summary": {"microcap_filtered": 3},
+            "providers": ["finnhub"],
+            "source_errors": [],
+        },
+        {"type": "PIPELINE_STEP", "step": "agent_primary", "status": "started"},
+    ]
+    payload = {
+        "from": "test-runner",
+        "to": "bob",
+        "type": "TASK.SUBMIT",
+        "payload": {
+            "message": "vamos investir 100 cad segunda , escolhe mini cap",
+            "session_id": "session-cad100-mini-cap",
+        },
+    }
+
+    response = client.post("/task/submit", json=payload)
+    assert response.status_code == 200
+    events = _ndjson_events(response)
+    content = "".join(ev.get("content", "") for ev in events if ev.get("type") == "CHUNK")
+    trace = next(ev["trace"] for ev in events if ev.get("type") == "STREAM_END")
+
+    assert "REJECT_ALL" not in content
+    assert "reformular" not in content.lower()
+    assert "pipeline" in content.lower()
+    assert "12" in content
+    assert trace["route_used"] == "market_scan"
+    assert trace["detected_intent"] == "market_scan"
+
+
 # ---------------------------------------------------------------------------
 # Test §8 — Trace must surface scan telemetry from DATA_COLLECTED
 # ---------------------------------------------------------------------------
