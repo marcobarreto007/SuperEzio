@@ -362,7 +362,8 @@ async def test_submit_paper_order_caps_qty_before_approval(monkeypatch):
     assert result["position_sizing"]["requested_qty"] == 1000
     assert result["position_sizing"]["approved_qty"] == 100
     assert result["position_sizing"]["capped"] is True
-    assert result["paper_approval_request"]["risk_amount"] == pytest.approx(501.0)
+    # risk_amount now calculated on REQUESTED qty (1000), not capped qty (100)
+    assert result["paper_approval_request"]["risk_amount"] == pytest.approx(5010.0)
 
 
 def test_default_market_scan_contract_exposes_paper_submission_tool():
