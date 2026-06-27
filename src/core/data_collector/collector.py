@@ -1,7 +1,13 @@
 """
-Data Collector - Agregador de TODAS as fontes de dados.
+Data Collector — SINGLE-TICKER deep data aggregation.
 
-Pipeline:
+Responsibility: Given ONE ticker, fetch everything — price, fundamentals,
+technicals, risk metrics, news, social sentiment, macro context.
+
+NOT a market scanner. For multi-ticker discovery/scanning, see
+core.pipeline.nodes.collector (node_collector / _run_scan).
+
+Pipeline per ticker:
     1. DataHub → preço, histórico, perfil, indicadores técnicos
     2. QuantEngine → Monte Carlo, ML prediction, RSI, SMA
     3. RiskCalculator → VaR, CVaR, Sharpe, Sortino, drawdown

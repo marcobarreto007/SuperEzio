@@ -1,4 +1,13 @@
-"""Trinity deliberation node: Bob orchestrates Genie and Deep before final answer."""
+"""Trinity deliberation node — GENIE + DEEP bilateral LLM dialogue.
+
+Responsibility: Two LLMs deliberate on a trading decision during the pipeline.
+Genie provides quick tactical reads; Deep provides rigorous quantitative
+analysis. Consensus/dissent drives the final verdict for Bob.
+
+NOT the same as core.investor.committee.InvestorCommittee — that module
+formats pre-computed expert verdicts for human display. This module runs
+real-time LLM-to-LLM dialogue inside the pipeline execution.
+"""
 
 from __future__ import annotations
 

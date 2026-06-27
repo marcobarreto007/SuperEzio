@@ -87,6 +87,28 @@ def _merge_node_update(
         output[key] = value
 
 
+async def _do_collect(working_state, output, should_collect_market, route, config, _merge, _mark):
+    """Extracted collector body for try_run_async wrapping."""
+    collector_result: dict[str, Any] = {}
+    if (
+        should_collect_market
+        and not working_state.get("scan")
+        and not working_state.get("data")
+    ):
+        collector_route = (
+            "ticker_analysis"
+            if working_state.get("ticker") and route != "market_scan"
+            else "market_scan"
+        )
+        collector_result = await node_collector(
+            {**working_state, "route": collector_route},
+            config=config,
+        )
+    if collector_result:
+        _merge(working_state, output, collector_result)
+        _mark("data_collection")
+
+
 async def _auto_full_analysis(
     state: dict,
     *,
@@ -147,31 +169,20 @@ async def _auto_full_analysis(
         or working_state.get("force_auto_collect")
     )
 
-    try:
-        collector_result: dict[str, Any] = {}
-        # Sovereign mode: ALWAYS collect data — Bob needs evidence, not a chat
-        if (
-            should_collect_market
-            and not working_state.get("scan")
-            and not working_state.get("data")
-        ):
-            collector_route = (
-                "ticker_analysis"
-                if working_state.get("ticker") and route != "market_scan"
-                else "market_scan"
-            )
-            collector_result = await node_collector(
-                {**working_state, "route": collector_route},
-                config=config,
-            )
-        if collector_result:
-            _merge_node_update(working_state, output, collector_result)
-            _mark_step("data_collection")
-    except Exception as exc:
+    from core.pipeline.resilience import try_run_async
+
+    _, collect_err = await try_run_async(
+        "auto_full_analysis.collect_data",
+        _do_collect,
+        working_state, output, should_collect_market, route, config,
+        _merge_node_update, _mark_step,
+        fallback=None,
+        log_level="warning",
+    )
+    if collect_err:
         _merge_node_update(
-            working_state,
-            output,
-            {"errors": [f"auto_full_analysis.collect_data:{exc}"]},
+            working_state, output,
+            {"errors": [f"auto_full_analysis.collect_data:{collect_err}"]},
         )
 
     ticker = str(

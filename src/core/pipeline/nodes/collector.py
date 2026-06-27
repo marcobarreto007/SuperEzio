@@ -1,4 +1,13 @@
-"""Data collection node — delegates to ProfessionalCollector or SubprocessCollector."""
+"""Collector node — MARKET SCAN + TICKER DATA collection.
+
+Responsibility: Multi-ticker scanning, candidate ranking, data quality gates,
+and single-ticker data collection (delegates to DataCollector for deep fetch).
+
+NOT the same as core.data_collector.collector.DataCollector — that module
+does single-ticker deep aggregation (price, fundamentals, risk, news, macro).
+This module orchestrates the SCAN pipeline (FinGPT → Finnhub → Yahoo →
+candidate gate → ranking) for multi-ticker discovery.
+"""
 
 from __future__ import annotations
 
