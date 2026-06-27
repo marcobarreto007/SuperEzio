@@ -6,6 +6,8 @@ from .explanation import node_explanation
 from .guardrails import node_blocked
 from .agent import node_agent
 from .tool_executor import node_tool_executor, route_after_agent
+from .auto_execute_paper import auto_execute_paper
+from .observation_builder import build_observations
 
 __all__ = [
     "node_orchestrator",
@@ -15,4 +17,6 @@ __all__ = [
     "node_agent",
     "node_tool_executor",
     "route_after_agent",
+    "auto_execute_paper",
+    "build_observations",
 ]

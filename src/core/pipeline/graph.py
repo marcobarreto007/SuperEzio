@@ -379,7 +379,7 @@ def build_graph(
     async def _tool_executor(state: dict) -> dict:
         return await node_tool_executor(state, gateway=gateway, config=config)
 
-    from .nodes.auto_execute_paper import auto_execute_paper as _auto_execute_paper
+    from .nodes.auto_execute_paper import auto_execute_paper as _auto_execute_paper  # extracted from inline (Phase 3)
 
     async def _explanation(state: dict) -> dict:
         return await node_explanation(state)
