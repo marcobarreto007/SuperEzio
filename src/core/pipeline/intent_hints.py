@@ -1,4 +1,4 @@
-﻿"""Hint constants for intent detection — extracted from intents.py."""
+"""Hint constants for intent detection — extracted from intents.py."""
 
 RISK_LAB_HINTS = (
     "risk lab", "risk-lab", "risklab", "laboratorio de risco",

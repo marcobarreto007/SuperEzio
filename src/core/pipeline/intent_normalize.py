@@ -1,4 +1,4 @@
-﻿"""Normalization utilities — extracted from intents.py."""
+"""Normalization utilities — extracted from intents.py."""
 
 import re
 import unicodedata
