@@ -1,6 +1,6 @@
 """SuperEzio configuration system."""
 
-from .env import load_env_once
+from .secrets import load_local_env as load_env_once  # re-exported for compat
 from .schema import (
     ModelConfig,
     GatewayConfig,

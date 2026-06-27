@@ -128,7 +128,8 @@ def test_sanitizer_no_crash_on_none():
 
 # ── Agent Server: Protocol ──
 def test_a2a_protocol_import():
-    from agent_server.protocol import A2AMessage, MessageType
+    """Facade removido — importa direto do canon."""
+    from core.ports.protocol import A2AMessage, MessageType
 
     assert MessageType is not None
     assert A2AMessage is not None
