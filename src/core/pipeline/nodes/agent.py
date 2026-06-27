@@ -36,6 +36,11 @@ logger = logging.getLogger(__name__)
 # Trace logger singleton
 _tracer = DecisionTraceLogger()
 
+# ============================================================================
+# SECTION A: Prompt Builders & Formatters
+#    Re-exported via: core.pipeline.prompts.agent_prompts
+#    Lines: 42 – 825  (~784 lines)
+# ============================================================================
 # ── Mission Context Loader ──
 
 
@@ -829,6 +834,13 @@ def _apply_grounding_guard(state: dict, content: str) -> str:
     return _grounding_guard_answer(state, content)
 
 
+# ============================================================================
+# SECTION B: Trade Router & Decision
+#    Re-exported via: core.pipeline.router
+#    Lines: 837 – 1194  (~357 lines)
+# ============================================================================
+
+
 def _compute_model_confidence(
     candidate: dict[str, Any],
     *,
@@ -1185,6 +1197,13 @@ def _trade_safety_gate_failures(state: dict) -> list[str]:
         failures.append("sdca_not_allow")
 
     return failures
+
+
+# ============================================================================
+# SECTION C: Answer Generators & Repair
+#    Re-exported via: core.pipeline.nodes.generator
+#    Lines: 1201 – 2485  (~1284 lines)
+# ============================================================================
 
 
 def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | None]:
@@ -2476,6 +2495,13 @@ def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
         return {"tool": "sdca_firewall", "args": {}}
 
     return None
+
+
+# ============================================================================
+# SECTION D: Main Orchestrator — node_agent
+#    Lines: 2494 – 3197  (~703 lines)
+#    The only async entry point. Delegates to A/B/C for all logic.
+# ============================================================================
 
 
 async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None) -> dict:

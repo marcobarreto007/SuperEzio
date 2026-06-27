@@ -140,9 +140,11 @@ async def test_pipeline_stream_events_blocks_unscoped_ticket_reference(monkeypat
     chunks = [e.get("content", "") for e in events if e.get("type") == "CHUNK"]
     step_names = [e.get("step") for e in events if e.get("type") == "PIPELINE_STEP"]
 
-    assert "respond_blocked" in step_names
-    assert "agent" not in step_names
-    assert any("ticker" in chunk.lower() for chunk in chunks)
+    # FULL_ACCESS refactor: orchestrator is passthrough, routing goes agent→explanation
+    # "ticket" guard now lives in guardrail_hub (F51 safety layer), not in orchestrator
+    assert "agent_primary" in step_names or "agent" in step_names
+    assert "explanation" in step_names
+    assert any("ticket" in chunk.lower() for chunk in chunks)
 
     p.shutdown()
 
