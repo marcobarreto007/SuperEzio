@@ -485,7 +485,7 @@ class XPSystem:
 
         lines = [
             "\n=== XP & LEVEL ===",
-            f"Nível: {stats.level_title} (XP {stats.total_xp}/{stats.next_level_xp})",
+            f"Nível: {stats.level.title} (XP {stats.total_xp}/{stats.next_level_xp})",
             f"Progresso no nível: {stats.progress:.1f}%",
             f"Total de eventos: {stats.events_count}",
             f"Ganhos: {stats.gains_count} | Perdas: {stats.losses_count}",
@@ -531,7 +531,7 @@ if __name__ == "__main__":
     # Test mode
     xp = get_xp_system()
     stats = xp.get_stats()
-    print(f"Level: {stats.level_title}")
+    print(f"Level: {stats.level.title}")
     print(f"XP: {stats.total_xp}/{stats.next_level_xp}")
     print(f"Progress: {stats.progress:.1f}%")
     print(f"Events: {stats.events_count}")
