@@ -1,0 +1,345 @@
+{
+  "timestamp": "2026-06-27T00:58:59.120935+00:00",
+  "root": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro",
+  "tests": {
+    "filesystem": {
+      "status": "CONNECTED",
+      "path": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\runtime\\nervous_audit\\filesystem_probe.txt",
+      "readback": "SYSTEM_NERVOUS_AUDIT 2026-06-27T00:58:59.120935+00:00"
+    },
+    "sqlite": {
+      "status": "CONNECTED",
+      "db": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\runtime\\nervous_audit\\nervous_audit.sqlite",
+      "row": [
+        "audit-2026-06-27T005859.120935Z0000",
+        "2026-06-27T00:58:59.120935+00:00",
+        "sqlite write/read probe"
+      ]
+    },
+    "paper_journal": {
+      "status": "CONNECTED",
+      "path": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\runtime\\nervous_audit\\paper_journal_probe.jsonl",
+      "trade_id": "audit-paperjournal-2026-06-27T005859.120935Z0000",
+      "bytes": 839,
+      "tail": "{\"trade_id\": \"audit-paperjournal-2026-06-27T005859.120935Z0000\", \"ticker\": \"RY.TO\", \"thesis\": \"SYSTEM_NERVOUS_AUDIT probe, not a trade recommendation\", \"direction\": \"long\", \"entry_date\": \"2026-06-27T00:59:00.511990+00:00\", \"entry_price\": 1.0, \"shares\": 1.0, \"entry_reasoning\": \"SYSTEM_NERVOUS_AUDIT probe, not a trade recommendation\", \"verdict_at_entry\": \"\", \"risk_assessment\": \"test only\", \"expected_holding_period\": \"test\", \"exit_date\": null, \"exit_price\": null, \"exit_reason\": null, \"pnl_amount\": null, \"pnl_percent\": null, \"outcome\": null, \"thesis_correct\": null, \"what_went_right\": null, \"what_went_wrong\": null, \"lesson_learned\": null, \"created_at\": \"2026-06-27T00:59:00.511990+00:00\", \"updated_at\": \"2026-06-27T00:59:00.511990+00:00\", \"tags\": [], \"side\": \"buy\", \"qty\": 1, \"limit_price\": 1.0, \"risk\": \"test only\", \"horizon\": \"test\"}"
+    },
+    "module_imports": {
+      "status": "PARTIAL",
+      "imports": {
+        "DataHub": {
+          "status": "IMPORT_OK",
+          "module": "data.data_hub",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\data\\data_hub.py"
+        },
+        "YFinance": {
+          "status": "IMPORT_OK",
+          "module": "data.yfinance_provider",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\data\\yfinance_provider.py"
+        },
+        "Stooq": {
+          "status": "IMPORT_OK",
+          "module": "data.stooq_provider",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\data\\stooq_provider.py"
+        },
+        "Finnhub": {
+          "status": "IMPORT_OK",
+          "module": "data.finnhub_provider",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\data\\finnhub_provider.py"
+        },
+        "TwelveData": {
+          "status": "IMPORT_OK",
+          "module": "data.twelve_data",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\data\\twelve_data.py"
+        },
+        "PaperJournal": {
+          "status": "IMPORT_OK",
+          "module": "core.trading.paper_journal",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\core\\trading\\paper_journal.py"
+        },
+        "Broker": {
+          "status": "IMPORT_OK",
+          "module": "core.trading.broker",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\core\\trading\\broker.py"
+        },
+        "RiskGuard": {
+          "status": "IMPORT_OK",
+          "module": "core.trading.risk_guard",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\core\\trading\\risk_guard.py"
+        },
+        "SDCA": {
+          "status": "IMPORT_OK",
+          "module": "core.risk_firewall.sdca_lite",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\core\\risk_firewall\\sdca_lite.py"
+        },
+        "CrisisMath": {
+          "status": "IMPORT_OK",
+          "module": "core.math.crisis",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\core\\math\\crisis.py"
+        },
+        "PennyLab": {
+          "status": "IMPORT_OK",
+          "module": "experts.pennylab.scoring",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\experts\\pennylab\\scoring.py"
+        },
+        "F51Engine": {
+          "status": "IMPORT_OK",
+          "module": "f51.scoring",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\f51\\scoring.py"
+        },
+        "Scanner": {
+          "status": "IMPORT_OK",
+          "module": "core.scanner.penny_scanner",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\core\\scanner\\penny_scanner.py"
+        },
+        "Portfolio": {
+          "status": "IMPORT_OK",
+          "module": "core.trading.position_manager",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\core\\trading\\position_manager.py"
+        },
+        "OrderBuilder": {
+          "status": "IMPORT_OK",
+          "module": "core.trading.order_builder",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\core\\trading\\order_builder.py"
+        },
+        "News": {
+          "status": "IMPORT_OK",
+          "module": "data.news_feed",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\data\\news_feed.py"
+        },
+        "RAG": {
+          "status": "IMPORT_OK",
+          "module": "core.rag.engine",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\core\\rag\\engine.py"
+        },
+        "FraudRAG": {
+          "status": "IMPORT_OK",
+          "module": "core.rag.fraud_rag",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\core\\rag\\fraud_rag.py"
+        },
+        "Memory": {
+          "status": "IMPORT_OK",
+          "module": "core.memory.unified",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\core\\memory\\unified.py"
+        },
+        "Audit": {
+          "status": "IMPORT_OK",
+          "module": "core.audit",
+          "file": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\core\\audit\\__init__.py"
+        }
+      }
+    },
+    "price_providers_local": {
+      "status": "PARTIAL",
+      "results": {
+        "yfinance": {
+          "symbol": "RY.TO",
+          "yahoo_symbol": "RY.TO",
+          "price": 288.010009765625,
+          "volume": 2336129,
+          "source": "yfinance",
+          "provider": "yfinance"
+        },
+        "stooq": {
+          "error": "stooq_http: 404 Client Error: Not Found for url: https://stooq.com/q/l/?s=ry.to&f=sd2t2ohlcv&h=&e=csv"
+        },
+        "datahub_get_price": {
+          "symbol": "RY",
+          "requested_symbol": "RY.TO",
+          "price": 202.85,
+          "change": -0.88,
+          "change_pct": -0.4319,
+          "prev_close": 203.73,
+          "source": "finnhub",
+          "volume": 2847980.0,
+          "avg_daily_volume_shares": 2847980.0,
+          "volume_unit": "shares",
+          "provider": "finnhub"
+        }
+      }
+    },
+    "ticker_identity_local": {
+      "status": "PARTIAL",
+      "results": {
+        "BYD.TO": {
+          "price": {
+            "symbol": "BYD.TO",
+            "yahoo_symbol": "BYD.TO",
+            "price": 138.25,
+            "volume": 104899,
+            "source": "yfinance",
+            "provider": "yfinance"
+          },
+          "profile": {
+            "symbol": "BYD.TO",
+            "yahoo_symbol": "BYD.TO",
+            "name": "Boyd Group Services Inc.",
+            "exchange": "TOR",
+            "currency": "CAD",
+            "market_cap": 3847506432,
+            "country": "Canada",
+            "source": "yfinance",
+            "provider": "yfinance"
+          }
+        },
+        "BAM": {
+          "price": {
+            "symbol": "BAM",
+            "yahoo_symbol": "BAM",
+            "price": 44.619998931884766,
+            "volume": 5670885,
+            "source": "yfinance",
+            "provider": "yfinance"
+          },
+          "profile": {
+            "symbol": "BAM",
+            "yahoo_symbol": "BAM",
+            "name": "Brookfield Asset Management Ltd.",
+            "exchange": "NYQ",
+            "currency": "USD",
+            "market_cap": 71248609280,
+            "country": "United States",
+            "source": "yfinance",
+            "provider": "yfinance"
+          }
+        },
+        "BAM.TO": {
+          "price": {
+            "symbol": "BAM.TO",
+            "yahoo_symbol": "BAM.TO",
+            "price": 63.209999084472656,
+            "volume": 1676816,
+            "source": "yfinance",
+            "provider": "yfinance"
+          },
+          "profile": {
+            "symbol": "BAM.TO",
+            "yahoo_symbol": "BAM.TO",
+            "name": "Brookfield Asset Management Ltd.",
+            "exchange": "TOR",
+            "currency": "CAD",
+            "market_cap": 100932870144,
+            "country": "United States",
+            "source": "yfinance",
+            "provider": "yfinance"
+          }
+        }
+      }
+    },
+    "ibkr_probe": {
+      "status": "PARTIAL",
+      "result": {
+        "IBKR_HOST": "MISSING",
+        "IBKR_PORT": "MISSING",
+        "IBKR_CLIENT_ID": "MISSING",
+        "SUPEREZIO_PAPER_ORDER_ENABLED": "MISSING",
+        "SUPEREZIO_LIVE_TRADING_ENABLED": "MISSING",
+        "ib_insync": "IMPORT_OK",
+        "socket": "DISCONNECTED ConnectionRefusedError(10061, 'No connection could be made because the target machine actively refused it', None, 10061, None)"
+      }
+    },
+    "rag_pump_dump_local_doc": {
+      "status": "CONNECTED",
+      "matches": [
+        {
+          "path": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\data\\fraud_patterns\\fraud_patterns.json",
+          "snippet": "ado. Uso educacional — não constitui acusação contra empresas específicas.\",   \"patterns\": [     {       \"pattern_id\": \"pump_and_dump\",       \"name\": \"Pump and Dump\",       \"description\": \"Esforço coordenado para inflar artificialmente o preço de um ativo através de promoções enganosas ou compras orquestradas, seguido de venda massiva no "
+        },
+        {
+          "path": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\data\\fraud_patterns\\red_flag_rules.json",
+          "snippet": "ce_volume_history\",       \"condition\": \"2.0 <= volume_z_score < 3.5\",       \"weight\": 0.25,       \"matched_patterns\": [\"pump_and_dump\", \"wash_trading\", \"momentum_ignition\", \"misleading_promotion\"],       \"evidence_id_template\": \"volume_zscore_{ticker}_{date}_{value}\",       \"limitation_when_absent\": null,       \"note\": \"Não é possível ver"
+        },
+        {
+          "path": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\docs\\architecture\\GUARDRAILS_MAP.md",
+          "snippet": " patterns de fraude no RAG forense | Nao conectado | | pennylab/scoring.py | compute_scores() | Scoring de manipulação: pump_score, dump_risk, whale_print | pennylab tool |  ## LAYER 6: Trading Guardrails  | Modulo | Classe | O que faz | Conectado? | |---|---|---|---| | trading/kill_switch.py | KillSwitch | Daily loss 00, max drawdown 10%"
+        },
+        {
+          "path": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\docs\\architecture\\INVESTOR_EVALUATION.md",
+          "snippet": "uquíssimos sistemas de mercado conseguem monitorar perigos de curtíssimo prazo em microcaps (*PennyLab*: Volume Spikes, Pump & Dump, Whale Prints) simultaneamente com vulnerabilidades estruturais e bolhas macroeconômicas (*CrisisMath*: LPPLS para fim de regime de bolhas, contágio Hawkes Stress, BIS Credit Gap). Isso cria um motor versátil"
+        },
+        {
+          "path": "C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\docs\\internal\\audits\\financial_quality_benchmark_20260510T152918Z.json",
+          "snippet": "\"act today\\\") is a psychological trigger designed to bypass rational risk assessment. There is no institutional dumping/pumping; there is only a one-way outflow to a criminal wallet.\\n\\n### Directional Thesis\\n\\nThe directional thesis is a guaranteed loss of principal. The counterparty risk is absolute. There is no underlying asset to app"
+        }
+      ]
+    },
+    "guardrail_risk_guard": {
+      "status": "CONNECTED",
+      "output": {
+        "approved": false,
+        "risk_level": "blocked",
+        "violations": [
+          {
+            "violation_type": "position_size_exceeded",
+            "risk_level": "danger",
+            "message": "Position size 2500.0% exceeds limit 10.0%",
+            "current_value": 25.0,
+            "limit_value": 0.1,
+            "timestamp": "2026-06-27T00:59:18.621493+00:00",
+            "can_override": false
+          },
+          {
+            "violation_type": "position_size_exceeded",
+            "risk_level": "danger",
+            "message": "Notional $250000.00 exceeds limit $5000.00",
+            "current_value": 250000.0,
+            "limit_value": 5000,
+            "timestamp": "2026-06-27T00:59:18.621493+00:00",
+            "can_override": false
+          },
+          {
+            "violation_type": "exposure_limit_exceeded",
+            "risk_level": "danger",
+            "message": "Total exposure 2500.0% exceeds limit 30.0%",
+            "current_value": 25.0,
+            "limit_value": 0.3,
+            "timestamp": "2026-06-27T00:59:18.621493+00:00",
+            "can_override": false
+          },
+          {
+            "violation_type": "concentration_risk",
+            "risk_level": "danger",
+            "message": "Same asset exposure 2500.0% for BYD.TO exceeds limit 15.0%",
+            "current_value": 25.0,
+            "limit_value": 0.15,
+            "timestamp": "2026-06-27T00:59:18.621493+00:00",
+            "can_override": false
+          },
+          {
+            "violation_type": "liquidity_too_low",
+            "risk_level": "blocked",
+            "message": "Liquidity too low: avg daily volume $1,000 < $1,000,000",
+            "current_value": 1000,
+            "limit_value": 1000000,
+            "timestamp": "2026-06-27T00:59:18.621493+00:00",
+            "can_override": false
+          }
+        ],
+        "warnings": []
+      }
+    },
+    "guardrail_sdca": {
+      "status": "CANNOT_PROVE",
+      "error": "ImportError(\"cannot import name 'assess_decision' from 'core.risk_firewall.sdca_lite' (C:\\\\Users\\\\marco\\\\Desktop\\\\SuperEzio Financeiro\\\\src\\\\core\\\\risk_firewall\\\\sdca_lite.py)\")",
+      "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 162, in <module>\nImportError: cannot import name 'assess_decision' from 'core.risk_firewall.sdca_lite' (C:\\Users\\marco\\Desktop\\SuperEzio Financeiro\\src\\core\\risk_firewall\\sdca_lite.py)\n"
+    },
+    "order_manager_simulated_validation": {
+      "status": "CONNECTED_SIMULATION_ONLY",
+      "order": {
+        "id": "audit-dry-run",
+        "symbol": "RY.TO",
+        "side": "OrderSide.BUY",
+        "order_type": "OrderType.LIMIT",
+        "qty": 1,
+        "status": "OrderStatus.PENDING",
+        "limit_price": 1.0,
+        "stop_price": null,
+        "take_profit_price": null,
+        "filled_price": null,
+        "submitted_at": "",
+        "perm_id": null,
+        "tws_order_id": null,
+        "client_id": null
+      }
+    }
+  }
+}

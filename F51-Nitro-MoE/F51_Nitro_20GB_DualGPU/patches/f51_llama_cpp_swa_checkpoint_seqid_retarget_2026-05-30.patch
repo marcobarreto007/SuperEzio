@@ -1,0 +1,51 @@
+diff --git a/tools/server/server-task.cpp b/tools/server/server-task.cpp
+index 45e5168fa..acf2df88d 100644
+--- a/tools/server/server-task.cpp
++++ b/tools/server/server-task.cpp
+@@ -1,5 +1,7 @@
+ #include "server-task.h"
+ 
++#include <cstring>
++
+ #include "build-info.h"
+ #include "server-chat.h"
+ #include "chat.h"
+@@ -2032,6 +2034,22 @@ server_prompt * server_prompt_cache::alloc(const server_prompt & prompt, size_t
+     return &cur;
+ }
+ 
++// F51 fix: checkpoint seq_id retargeting
++// When a prompt cache entry is restored to a different slot,
++// the checkpoints still reference the old slot's seq_id.
++// The main state gets remapped by llama_state_seq_set_data_ext(),
++// but checkpoints saved with LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY
++// have the seq_id burned into their header at offset sizeof(uint32_t).
++// Without this rebase, llama-context.cpp:2663 throws "wrong sequence id".
++static bool retarget_checkpoint_seq_id(server_prompt_checkpoint & ckpt, llama_seq_id dst) {
++    constexpr size_t off = sizeof(uint32_t); // skip io_magic
++    if (ckpt.data.size() < off + sizeof(llama_seq_id)) {
++        return false;
++    }
++    std::memcpy(ckpt.data.data() + off, &dst, sizeof(dst));
++    return true;
++}
++
+ bool server_prompt_cache::load(server_prompt & prompt, const server_tokens & tokens_new, llama_context * ctx, int32_t id_slot) {
+     const int lcp_best = prompt.tokens.get_common_prefix(tokens_new);
+ 
+@@ -2078,6 +2096,15 @@ bool server_prompt_cache::load(server_prompt & prompt, const server_tokens & tok
+ 
+         prompt = std::move(*it_best);
+ 
++        // F51 fix: rebase checkpoint seq_ids to the new slot
++        for (auto & ckpt : prompt.checkpoints) {
++            if (!retarget_checkpoint_seq_id(ckpt, id_slot)) {
++                SRV_WRN("%s", " - clearing cached checkpoints due to seq_id retarget failure\n");
++                prompt.checkpoints.clear();
++                break;
++            }
++        }
++
+         states.erase(it_best);
+     }
+ 

@@ -52,6 +52,7 @@ data/traces/
 
 # Database files
 *.db
+*.sqlite
 
 # Environment
 .env
@@ -139,6 +140,12 @@ unsloth_compiled_cache/
 
 # llama.cpp local binaries (DLLs, EXEs, CUDA — ~300MB)
 llama.cpp/
+
+# F51-Nitro-MoE local binaries and models
+F51-Nitro-MoE/**/bin/
+F51-Nitro-MoE/**/bin_mixtral_legacy/
+F51-Nitro-MoE/**/models/*.gguf
+F51-Nitro-MoE/build_worktrees/
 
 # Scratch scripts (testes avulsos)
 scratch/

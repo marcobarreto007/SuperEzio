@@ -1,0 +1,52 @@
+﻿{
+    "generated_at":  "2026-05-31T22:31:32.4959235-04:00",
+    "objective":  "F51 Nitro 20GB kit safe5 validation on local RTX 5060 Ti 16GB",
+    "dirty_diff_archive":  "C:\\Users\\marco\\Desktop\\F51-Nitro-MoE\\evidencias\\patches\\llamacpp_dirty_diff_20260531_220558.patch",
+    "source_worktree":  "C:\\Users\\marco\\Desktop\\F51-Nitro-MoE\\build_worktrees\\llama_clean_20260531_220628",
+    "source_head":  "579fe01",
+    "applied_patch":  "F51_Nitro_20GB_DualGPU\\patches\\f51_llama_cpp_swa_checkpoint_seqid_retarget_2026-05-30.patch",
+    "rejected_patch":  "F51_Nitro_20GB_DualGPU\\patches\\f51_arch_aware_moe_pool_2026-05-31.patch failed git apply --check: corrupt patch at line 62",
+    "clean_build":  {
+                        "path":  "C:\\Users\\marco\\Desktop\\F51-Nitro-MoE\\build_worktrees\\llama_clean_20260531_220628\\build-f51-swa\\bin\\llama-server.exe",
+                        "version":  "version: 3 (579fe01), MSVC 19.50.35721.0, CUDA 12.8, CMAKE_CUDA_ARCHITECTURES=120a",
+                        "sha256":  "66ADA34304FB7AF62A9A666005B4D7CC7E9F136A586AA4C1046A4FD76CB5CB21"
+                    },
+    "packaged_runtime":  {
+                             "path":  "C:\\Users\\marco\\Desktop\\F51-Nitro-MoE\\F51_Nitro_20GB_DualGPU\\bin\\llama-server.exe",
+                             "version":  "version: 9049 (8f18e1350), MSVC 19.50.35721.0",
+                             "sha256":  "7E1A64FF492E12DCCCBA8904CDECF933EEF55C9F0F121639D7F3472361FB4256"
+                         },
+    "safe5":  {
+                  "command":  "profiles\\Start-F51-20GB.ps1 -Profile safe5 -Port 8080",
+                  "model":  "gpt-oss-120b-mxfp4-00001-of-00003.gguf",
+                  "args":  "--n-cpu-moe 31 --no-mmap -ngl 99 -c 4096 -b 2048 -ub 512 -t 16 --host 127.0.0.1 --port 8080 -fa on --swa-full -fit on -fitc 4096 -sm none",
+                  "health":  "200 {\"status\":\"ok\"}",
+                  "load_time_to_health_seconds_approx":  150,
+                  "completion":  {
+                                     "prompt":  "Explain MoE in one sentence.",
+                                     "n_predict":  64,
+                                     "wall_seconds":  35.82,
+                                     "tokens_predicted":  64,
+                                     "tokens_evaluated":  7,
+                                     "prompt_per_second":  1.8820174043592361,
+                                     "predicted_per_second":  2.0019705646514185,
+                                     "stop_type":  "limit"
+                                 },
+                  "gpu_during_completion":  {
+                                                "memory_used_mib":  16025,
+                                                "memory_free_mib":  26,
+                                                "utilization_percent":  0,
+                                                "note":  "sample after completion/health; nvidia-smi under WDDM reports some process memory as N/A"
+                                            },
+                  "f51_evidence":  {
+                                       "cache_log":  "f51_moe_cache.log showed CPU expert tensors, capacity=16, expert_size=4406400, hits/misses active",
+                                       "scheduler_log":  "f51_scheduler.log showed skip backend=CUDA0 for MoE MUL_MAT_ID tensors",
+                                       "stderr_log":  "server_stderr.log showed model loaded, server listening, prompt/eval timings, F51 L3 lookahead accuracy=70.0% preds=40"
+                                   }
+              },
+    "post_stop":  {
+                      "gpu_memory_used_mib":  208,
+                      "gpu_memory_free_mib":  15843,
+                      "server_process":  "stopped"
+                  }
+}
