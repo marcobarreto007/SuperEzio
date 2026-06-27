@@ -37,7 +37,7 @@ from core.pipeline.intents import (
 from core.risk_firewall import DecisionCandidate, evaluate_decision_with_sdca
 from data.data_hub import hub
 
-from .protocol import A2AMessage, MessageType
+from core.ports.protocol import A2AMessage, MessageType  # .protocol facade removido (49f6d01)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
