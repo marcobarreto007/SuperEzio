@@ -1,0 +1,398 @@
+"""F51 Trade Gate — Central safety validator for ALL paper/real orders.
+
+CRITICAL: This module is the SINGLE gate that every order MUST pass through.
+It fails CLOSED. If in doubt, BLOCK.
+
+Design contract:
+- Called BEFORE auto_execute_paper and BEFORE _submit_paper_order
+- Returns TradeGateDecision with status: ALLOW, BLOCK, or REVIEW
+- BLOCK is the default — explicit conditions must be met to ALLOW
+- Every BLOCK decision carries a specific reason code
+- Journal records ALL decisions (ALLOW, BLOCK, REVIEW)
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+import re
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Any
+
+logger = logging.getLogger(__name__)
+
+# ═══════════════════════════════════════════════════════════════
+# EXECUTION FREEZE — Global safety switch
+# ═══════════════════════════════════════════════════════════════
+
+
+def is_execution_frozen() -> bool:
+    if os.getenv("F51_TRADING_EXECUTION_FREEZE", "true").strip().lower() in {
+        "1", "true", "yes", "on",
+    }:
+        return True
+    return False
+
+
+# ═══════════════════════════════════════════════════════════════
+# PORTUGUESE / ENGLISH BLACKLIST
+# ═══════════════════════════════════════════════════════════════
+
+_TICKER_BLACKLIST: set[str] = {
+    "TODAS", "TODOS", "TUDO", "HOJE", "AGORA", "ISSO", "AQUILO",
+    "COMPRAR", "VENDER", "VENDA", "SENTIMENTO", "VIVO", "MELHOR",
+    "PIOR", "NENHUM", "ALGUM", "CERTO", "ERRADO", "FORTE", "FRACO",
+    "ALTA", "BAIXA", "FECHAR", "ABRIR", "ENTRAR", "SAIR", "FICAR",
+    "MOMENTO", "MERCADO", "DINHEIRO", "CARTEIRA", "RISCO",
+    "CUSTO", "LUCRO", "PREJU", "GANHO", "PERDA", "VALOR",
+    "PAPEL", "ORDEM", "EXECUCAO", "ANALISE", "ESTRATEGIA",
+    "ALL", "BUY", "SELL", "NOW", "TODAY", "HERE", "THERE", "THIS",
+    "THAT", "WHAT", "WHEN", "WHY", "HOW", "JUST", "ONLY", "ALSO",
+    "SENTIMENT", "MARKET", "PRICE", "VALUE", "COST", "PROFIT",
+    "LOSS", "GAIN", "RISK", "TRADE", "ORDER", "EXECUTION",
+}
+
+
+def is_ticker_blacklisted(symbol: str) -> bool:
+    return symbol.upper().strip() in _TICKER_BLACKLIST
+
+
+def is_valid_ticker_format(symbol: str) -> bool:
+    if not symbol or len(symbol.strip()) < 2:
+        return False
+    cleaned = symbol.upper().strip()
+    pattern = r'^[A-Z]{1,5}(\.[A-Z]{1,3})?$'
+    return bool(re.match(pattern, cleaned))
+
+
+# ═══════════════════════════════════════════════════════════════
+# EXPLICIT TRADE INTENT DETECTION
+# ═══════════════════════════════════════════════════════════════
+
+_TRADE_INTENT_PATTERNS: list[str] = [
+    r'\bcompr[ae]\w*\b', r'\bvend[ae]\w*\b',
+    r'\bexecut[ae]\w*\s+(ordem|trade|papel|paper)\b',
+    r'\bsubmit\w*\s+(ordem|order|papel|paper)\b',
+    r'\babr[ei]\w*\s+(posicao|position)\b',
+    r'\bfech[ae]\w*\s+(posicao|position|trade)\b',
+    r'\b(PAPER_TICKET|paper.ticket|paper order)\b',
+    r'\bordem\s+(de\s+)?(compra|venda|paper)\b',
+    r'\bacion[ae]\w*\s+(ordem|compra|venda)\b',
+    r'\bbuy\b', r'\bsell\b', r'\bshort\b',
+    r'\bexecute\s+(order|trade)\b',
+    r'\bsubmit\s+(order|paper)\b',
+    r'\bopen\s+(position|trade)\b',
+    r'\bclose\s+(position|trade)\b',
+    r'\bplace\s+(order|trade)\b',
+]
+
+_NON_TRADE_PATTERNS: list[str] = [
+    r'\bexplica\b', r'\bexplique\b', r'\bexplain\b',
+    r'\bo que (e|significa|quer dizer)\b',
+    r'\bwhat (is|does|are)\b',
+    r'\bcomo (funciona|se calcula|se usa)\b',
+    r'\bhow (does|to|do|can|should)\b',
+    r'\bme (ensina|mostra|explica|ajuda|tira duvida)\b',
+    r'\b(duvida|pergunta|quest|question)\b',
+    r'\banalisa\b', r'\banalyze?\b',
+    r'\bverifica\b', r'\bcheck\b',
+    r'\bmostra\b', r'\bshow\b',
+    r'\bdescrev[ae]\b', r'\bdescrib\w*\b',
+    # Hypothetical / conditional — NEVER trade intent
+    r'\b(e se|what if|simula|hypothetical|hipotetico)\b',
+    r'\bcompra\s*\?\s*$',          # "compra?" with question mark
+    r'\bvende\s*\?\s*$',            # "vende?" with question mark
+    r'\bcompras+\w*\s*\?\s*$',     # "comprasse?"
+    r'\bsimula\w*\s+(comprar|vender|trade|ordem)\b',
+]
+
+
+def is_explicit_trade_intent(text: str) -> bool:
+    if not text or not text.strip():
+        return False
+    text_lower = text.lower().strip()
+    for pattern in _NON_TRADE_PATTERNS:
+        if re.search(pattern, text_lower):
+            logger.info("[F51_TRADE_GATE] Non-trade pattern matched: %s", pattern)
+            return False
+    for pattern in _TRADE_INTENT_PATTERNS:
+        if re.search(pattern, text_lower):
+            logger.info("[F51_TRADE_GATE] Trade intent pattern matched: %s", pattern)
+            return True
+    return False
+
+
+# ═══════════════════════════════════════════════════════════════
+# IBKR CONNECTIVITY PROBE
+# ═══════════════════════════════════════════════════════════════
+
+
+def is_ibkr_connectable() -> bool:
+    ibkr_host = os.getenv("IBKR_HOST", "127.0.0.1")
+    ibkr_port = int(os.getenv("IBKR_PORT", "7497"))
+    try:
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(2.0)
+        s.connect((ibkr_host, ibkr_port))
+        s.close()
+        return True
+    except Exception as exc:
+        logger.warning("[F51_TRADE_GATE] IBKR unreachable: %s:%s - %s", ibkr_host, ibkr_port, exc)
+        return False
+
+
+# ═══════════════════════════════════════════════════════════════
+# JOURNAL HEALTH CHECK
+# ═══════════════════════════════════════════════════════════════
+
+
+def is_journal_healthy(journal_path: str | None = None) -> bool:
+    from pathlib import Path
+    try:
+        if journal_path:
+            path = Path(journal_path)
+        else:
+            from core.trading.paper_journal import DEFAULT_JOURNAL_PATH
+            path = DEFAULT_JOURNAL_PATH
+        path.parent.mkdir(parents=True, exist_ok=True)
+        import json as _json
+        heartbeat = {
+            "trade_id": f"hb-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}",
+            "ticker": "__HEARTBEAT__",
+            "thesis": "journal_health_check",
+            "direction": "none",
+            "entry_date": datetime.now(timezone.utc).isoformat(),
+            "entry_price": 0.0,
+            "shares": 0,
+            "entry_reasoning": "F51_TRADE_GATE journal health probe",
+            "verdict_at_entry": "HEARTBEAT",
+            "risk_assessment": "none",
+            "expected_holding_period": "none",
+            "outcome": "heartbeat",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "tags": ["heartbeat"],
+        }
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(_json.dumps(heartbeat, ensure_ascii=False) + "\n")
+            fh.flush()
+        logger.info("[F51_TRADE_GATE] Journal healthy: %s", path)
+        return True
+    except Exception as exc:
+        logger.error("[F51_TRADE_GATE] Journal unhealthy: %s", exc)
+        return False
+
+
+# ═══════════════════════════════════════════════════════════════
+# TICKER VALIDATION via DataHub
+# ═══════════════════════════════════════════════════════════════
+
+
+def resolve_and_validate_ticker(symbol: str) -> "tuple[str | None, float | None, str | None]":
+    if not symbol:
+        return None, None, "missing_ticker"
+    symbol = symbol.upper().strip()
+    if is_ticker_blacklisted(symbol):
+        return None, None, f"blacklisted_word:{symbol}"
+    if not is_valid_ticker_format(symbol):
+        return None, None, f"invalid_ticker_format:{symbol}"
+    try:
+        from data.data_hub import DataHub
+        hub = DataHub()
+        price_result = hub.get_price(symbol)
+        if price_result and price_result.get("price"):
+            price = float(price_result["price"])
+            resolved_symbol = str(price_result.get("symbol", symbol)).upper()
+            return resolved_symbol, price, None
+        else:
+            return None, None, f"no_price_data:{symbol}"
+    except ImportError:
+        logger.warning("[F51_TRADE_GATE] DataHub unavailable")
+        return symbol, None, None
+    except Exception as exc:
+        return None, None, f"datahub_error:{str(exc)[:80]}"
+
+
+# ═══════════════════════════════════════════════════════════════
+# TradeGateDecision
+# ═══════════════════════════════════════════════════════════════
+
+
+@dataclass
+class TradeGateDecision:
+    status: str = "BLOCK"
+    reason: str = ""
+    reason_code: str = "UNKNOWN"
+    evidence: dict[str, Any] = field(default_factory=dict)
+    checked_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    gates_passed: list[str] = field(default_factory=list)
+    gates_failed: list[str] = field(default_factory=list)
+
+
+# ═══════════════════════════════════════════════════════════════
+# THE MAIN GATE
+# ═══════════════════════════════════════════════════════════════
+
+
+def evaluate_trade_gate(
+    message: str,
+    ticker: str,
+    thesis_ticker: str = "",
+    qty: int = 0,
+    limit_price: float = 0.0,
+    run_id: str = "",
+) -> TradeGateDecision:
+    decision = TradeGateDecision()
+    gates_checked: list[tuple[str, bool, str]] = []
+
+    # GATE 1: Execution Freeze
+    if is_execution_frozen():
+        gates_checked.append(("freeze", False, "execution_frozen_by_env"))
+        return _build(decision, "BLOCK", "EXECUTION_FREEZE",
+                      "Trading execution frozen by F51_TRADING_EXECUTION_FREEZE=true", gates_checked)
+    gates_checked.append(("freeze", True, "ok"))
+
+    # GATE 2: Non-Trade Intent
+    if not is_explicit_trade_intent(message):
+        gates_checked.append(("intent", False, "non_trade_intent"))
+        return _build(decision, "BLOCK", "NON_TRADE_INTENT",
+                      f"Message does not contain explicit trade request: '{message[:100]}'",
+                      gates_checked, evidence={"message_snippet": message[:200]})
+    gates_checked.append(("intent", True, "ok"))
+
+    ticker = ticker.upper().strip()
+
+    # GATE 3: Ticker Blacklist
+    if is_ticker_blacklisted(ticker):
+        gates_checked.append(("ticker_blacklist", False, f"blacklisted:{ticker}"))
+        return _build(decision, "BLOCK", "BLACKLISTED_TICKER",
+                      f"Ticker '{ticker}' is a blacklisted common word", gates_checked,
+                      evidence={"ticker": ticker})
+    gates_checked.append(("ticker_blacklist", True, "ok"))
+
+    # GATE 4: Ticker Format
+    if not is_valid_ticker_format(ticker):
+        gates_checked.append(("ticker_format", False, f"invalid_format:{ticker}"))
+        return _build(decision, "BLOCK", "INVALID_TICKER_FORMAT",
+                      f"Ticker '{ticker}' does not match valid ticker format", gates_checked,
+                      evidence={"ticker": ticker})
+    gates_checked.append(("ticker_format", True, "ok"))
+
+    # GATE 5: Ticker Validation via DataHub
+    validated_ticker, resolved_price, validation_error = resolve_and_validate_ticker(ticker)
+    if validation_error:
+        gates_checked.append(("ticker_validation", False, validation_error))
+        return _build(decision, "BLOCK", "TICKER_VALIDATION_FAILED",
+                      f"Ticker '{ticker}' failed DataHub validation: {validation_error}",
+                      gates_checked, evidence={"ticker": ticker, "error": validation_error})
+    gates_checked.append(("ticker_validation", True, f"ok:{validated_ticker}"))
+
+    # GATE 6: Quantity Placeholder
+    if qty in (5, 10, 100) and limit_price == 99.0:
+        gates_checked.append(("quantity", False, "placeholder_quantity_price"))
+        return _build(decision, "BLOCK", "PLACEHOLDER_QUANTITY",
+                      f"Quantity={qty} with limit_price=$99.00 appears to be defaults. Blocked.",
+                      gates_checked, evidence={"qty": qty, "limit_price": limit_price})
+    if qty <= 0:
+        gates_checked.append(("quantity", False, "zero_or_negative_qty"))
+        return _build(decision, "BLOCK", "INVALID_QUANTITY",
+                      f"Quantity must be > 0, got {qty}", gates_checked, evidence={"qty": qty})
+    gates_checked.append(("quantity", True, "ok"))
+
+    # GATE 7: Price Placeholder ($99.00)
+    if limit_price == 99.0 and resolved_price is not None and abs(resolved_price - 99.0) > 0.01:
+        gates_checked.append(("price", False, f"placeholder_99_vs_real_{resolved_price:.2f}"))
+        return _build(decision, "BLOCK", "PLACEHOLDER_PRICE",
+                      f"Placeholder price $99.00 vs DataHub ${resolved_price:.2f} for {ticker}",
+                      gates_checked, evidence={"placeholder": 99.0, "resolved": resolved_price})
+    if limit_price == 99.0 and resolved_price is None:
+        gates_checked.append(("price", False, "placeholder_99_no_resolution"))
+        return _build(decision, "BLOCK", "PLACEHOLDER_PRICE",
+                      f"Placeholder price $99.00 and DataHub could not resolve {ticker}",
+                      gates_checked, evidence={"ticker": ticker})
+    gates_checked.append(("price", True, "ok"))
+
+    # GATE 8: Ticker Mismatch (thesis vs order)
+    if thesis_ticker and thesis_ticker.upper() != ticker:
+        gates_checked.append(("ticker_mismatch", False, f"{thesis_ticker}_vs_{ticker}"))
+        return _build(decision, "BLOCK", "TICKER_MISMATCH",
+                      f"Thesis ticker {thesis_ticker} != order ticker {ticker}",
+                      gates_checked, evidence={"thesis_ticker": thesis_ticker, "order_ticker": ticker})
+    gates_checked.append(("ticker_mismatch", True, "ok"))
+
+    # GATE 9: IBKR Health
+    ibkr_online = is_ibkr_connectable()
+    if not ibkr_online:
+        gates_checked.append(("ibkr", False, "ibkr_offline"))
+        return _build(decision, "BLOCK", "IBKR_OFFLINE",
+                      "IBKR TWS/Gateway not reachable. Order blocked.",
+                      gates_checked, evidence={"ibkr_host": os.getenv("IBKR_HOST", "127.0.0.1"),
+                                                "ibkr_port": os.getenv("IBKR_PORT", "7497")})
+    gates_checked.append(("ibkr", True, "ok"))
+
+    # GATE 10: Journal Health
+    journal_ok = is_journal_healthy()
+    if not journal_ok:
+        gates_checked.append(("journal", False, "journal_unhealthy"))
+        return _build(decision, "BLOCK", "JOURNAL_UNAVAILABLE",
+                      "Paper journal not writable. Order blocked.", gates_checked)
+    gates_checked.append(("journal", True, "ok"))
+
+    # ALL GATES PASSED
+    return _build(decision, "ALLOW", "ALL_GATES_PASSED",
+                  f"All 10 safety gates passed for {ticker}", gates_checked,
+                  evidence={"ticker": ticker, "validated_ticker": validated_ticker,
+                            "resolved_price": resolved_price, "qty": qty, "run_id": run_id})
+
+
+def _build(
+    decision: TradeGateDecision,
+    status: str,
+    reason_code: str,
+    reason: str,
+    gates: list[tuple[str, bool, str]],
+    evidence: dict[str, Any] | None = None,
+) -> TradeGateDecision:
+    decision.status = status
+    decision.reason_code = reason_code
+    decision.reason = reason
+    decision.evidence = evidence or {}
+    decision.gates_passed = [g[0] for g in gates if g[1]]
+    decision.gates_failed = [g[0] for g in gates if not g[1]]
+    return decision
+
+
+def record_blocked_order(
+    decision: TradeGateDecision,
+    message: str = "",
+    ticker: str = "",
+    run_id: str = "",
+) -> None:
+    try:
+        from core.trading.paper_journal import PaperJournal, PaperTrade
+        journal = PaperJournal()
+        trade = PaperTrade(
+            trade_id=f"blocked-{run_id[:12]}" if run_id else f"blocked-{int(__import__('time').time())}",
+            ticker=ticker or "UNKNOWN",
+            thesis=f"BLOCKED: {decision.reason_code} - {decision.reason[:100]}",
+            direction="blocked",
+            entry_date=datetime.now(timezone.utc).isoformat(),
+            entry_price=0.0,
+            shares=0,
+            entry_reasoning=f"f51_trade_gate | reason_code={decision.reason_code} | run_id={run_id}",
+            verdict_at_entry="BLOCKED",
+            risk_assessment="blocked_by_safety_gate",
+            expected_holding_period="none",
+        )
+        trade_id = journal.open_trade(trade)
+        journal.close_trade(
+            trade_id,
+            exit_price=0.0,
+            exit_reason=f"BLOCKED:{decision.reason_code}",
+            exit_date=datetime.now(timezone.utc).isoformat(),
+        )
+        logger.info("[F51_TRADE_GATE] Blocked order recorded: %s", decision.reason_code)
+    except Exception as exc:
+        logger.error("[F51_TRADE_GATE] Failed to record blocked order: %s", exc)
