@@ -248,18 +248,19 @@ async def _auto_full_analysis(
     # Market experts only run after market/ticker evidence is actually present.
     # SKIP if data came from learner cache (already pre-computed)
     expert_results: list[dict[str, Any]] = []
-    data_from_cache = isinstance(working_state.get("data"), dict) and (
-        working_state["data"].get("price", {}).get("source") == "learner_24_7_cache"
-        or working_state["data"].get("source") == "learner_24_7_cache"
+    data_from_cache = (
+        working_state.get("_data_from_cache")
+        or (isinstance(working_state.get("data"), dict)
+            and working_state["data"].get("price", {}).get("source") == "learner_24_7_cache")
     )
     should_run_market_stack = (
-        not data_from_cache  # Skip experts if cache hit
+        not data_from_cache
         and bool(working_state.get("scan") or working_state.get("data"))
         and (should_collect_market or route in {"market_scan", "ticker_analysis"}
              or working_state.get("force_auto_market_stack"))
     )
     if data_from_cache:
-        _mark_step("experts", {"status": "skipped_cache_hit"})
+        _mark_step("experts", {"status": "skipped", "reason": "cache_hit"})
     if should_run_market_stack:
         if not ticker:
             scan_candidates = (working_state.get("scan") or {}).get("candidates", [])

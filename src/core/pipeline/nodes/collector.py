@@ -116,7 +116,7 @@ def _try_fast_cache(ticker: str, writer) -> dict | None:
             "latency_ms": 0,
         })
 
-        return {"data": data, "data_context": data_context}
+        return {"data": data, "data_context": data_context, "_data_from_cache": True}
     except Exception:
         return None  # Any error → fall through to live collection
 
