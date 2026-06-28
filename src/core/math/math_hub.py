@@ -92,6 +92,7 @@ class MathHub:
         "dcf_proxy",
         "crisis_aggregate",
         "quantum_bias",
+        "portfolio_hrp",
         "f51_unified",
         "penny_momentum",
         "trading_losses",
@@ -131,6 +132,7 @@ class MathHub:
         report.modules["dcf_proxy"] = self._dcf_module(data)
         report.modules["crisis_aggregate"] = self._crisis_module(data, ticker, closes)
         report.modules["quantum_bias"] = self._quantum_module()
+        report.modules["portfolio_hrp"] = self._portfolio_module(closes, ticker)
         report.modules["f51_unified"] = self._f51_module(report.modules, data, state)
         report.modules["penny_momentum"] = self._penny_momentum_module(ticker, candles)
         report.modules["trading_losses"] = self._trading_losses_module(state)
@@ -414,6 +416,24 @@ class MathHub:
             return {"status": "ok", "values": {"bias": 0.0, "qubits": 4}}
         except Exception as exc:
             return {"status": "skipped", "reason": str(exc)[:100]}
+
+    def _portfolio_module(self, closes: list[float], ticker: str) -> dict[str, Any]:
+        """HRP portfolio allocation for the current ticker."""
+        if not closes or len(closes) < 10 or not ticker:
+            return {"status": "skipped", "reason": "insufficient_data"}
+        try:
+            daily_returns = [
+                (closes[i] - closes[i - 1]) / closes[i - 1]
+                for i in range(1, len(closes))
+                if closes[i - 1] > 0
+            ]
+            if len(daily_returns) < 5:
+                return {"status": "skipped", "reason": "insufficient_returns"}
+            from core.math.portfolio import hrp_allocate
+            result = hrp_allocate({ticker: daily_returns}, capital=10000.0)
+            return {"status": "ok", "values": result}
+        except Exception as exc:
+            return {"status": "error", "reason": str(exc)[:100]}
 
     def _f51_module(
         self,

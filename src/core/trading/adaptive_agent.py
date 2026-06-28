@@ -12,6 +12,7 @@ in real-time before he answers each request.
 
 from __future__ import annotations
 
+import numpy as np
 from typing import Any
 
 
@@ -90,17 +91,22 @@ def get_adaptive_config() -> dict[str, Any]:
         except Exception:
             pass
     
-    # ── RL Loop ──
+    # ── Neural RL (policy gradient, replaces tabular Q-learning) ──
     try:
-        from core.trading.rl_loop import RLLoop
-        rl = RLLoop()
-        state = {
+        from core.trading.neural_rl import get_neural_policy
+        policy = get_neural_policy()
+        rl_state = {
             "confidence": "confidence_high" if config["buy_confidence_threshold"] < 80 else "confidence_medium",
             "market": "market_sideways",
-            "time": "morning",
+            "pain_level": config["pain_level"],
+            "xp_level": min(100, config["xp_total"] // 10),
             "streak": "win_streak",
+            "time": "morning",
         }
-        config["rl_best_action"] = rl.choose_action(state)
+        best_action, prob = policy.get_best_action(rl_state)
+        config["rl_best_action"] = best_action
+        config["rl_confidence"] = round(prob, 3)
+        config["rl_stats"] = policy.get_stats()
     except Exception:
         pass
     
@@ -115,7 +121,7 @@ def get_adaptive_config() -> dict[str, Any]:
 def render_adaptive_context(config: dict[str, Any]) -> str:
     """Render calibrated parameters as text for Bob's system prompt."""
     lines = [
-        "=== ADAPTIVE TRADING PARAMETERS (XP + Pain calibrated) ===",
+        "=== ADAPTIVE TRADING PARAMETERS (XP + Pain + Neural RL calibrated) ===",
         f"XP Level: {config.get('xp_level', '?')} ({config.get('xp_total', 0)} pts)",
         f"Pain: {config.get('pain_level', 0)}/100 [{config.get('pain_mode', 'normal')}]",
         f"Buy Confidence Threshold: {config.get('buy_confidence_threshold', 75)}%",
@@ -123,8 +129,54 @@ def render_adaptive_context(config: dict[str, Any]) -> str:
         f"Stop Loss: {config.get('stop_loss_pct', 0.15):.0%}",
     ]
     if config.get("rl_best_action"):
-        lines.append(f"RL Suggestion: {config['rl_best_action']}")
+        rl_stats = config.get("rl_stats", {})
+        lines.append(
+            f"Neural RL: {config['rl_best_action']} "
+            f"(p={config.get('rl_confidence', 0):.2f}, "
+            f"{rl_stats.get('episodes', 0)} eps, "
+            f"avg_r={rl_stats.get('avg_reward', 0):.3f})"
+        )
     return "\n".join(lines)
+
+
+def inject_portfolio_context(state: dict[str, Any], capital: float = 10000.0) -> str:
+    """Build portfolio allocation + structured numbers for Bob's prompt."""
+    math_report = state.get("math_report", {})
+    numbers = math_report.get("numbers", {}) or math_report.get("summary", {})
+
+    # Try to get ticker returns from historical cache
+    ticker_returns = {}
+    try:
+        ticker = state.get("ticker", "")
+        if ticker:
+            from data.data_hub import hub
+            candles_resp = hub.get_candles(ticker, timeframe="6M")
+            candles = candles_resp.get("candles", [])
+            if len(candles) >= 10:
+                closes = [c["close"] for c in candles if c.get("close")]
+                returns_list = [
+                    (closes[i] - closes[i - 1]) / closes[i - 1]
+                    for i in range(1, len(closes))
+                    if closes[i - 1] > 0
+                ]
+                if returns_list:
+                    ticker_returns[ticker] = returns_list
+    except Exception:
+        pass
+
+    if ticker_returns:
+        try:
+            from core.math.portfolio import portfolio_snapshot_for_bob
+            return portfolio_snapshot_for_bob(ticker_returns, capital, numbers)
+        except Exception:
+            pass
+
+    # Fallback: just structured numbers
+    try:
+        from core.math.portfolio import structured_numbers_context
+        return structured_numbers_context(numbers)
+    except Exception:
+        return ""
 
 
 def record_trade_outcome(
@@ -159,16 +211,22 @@ def record_trade_outcome(
     except Exception:
         pass
     
-    # RL Loop
+    # Neural RL (policy gradient update)
     try:
-        from core.trading.rl_loop import RLLoop
-        rl = RLLoop()
-        state = {
+        from core.trading.neural_rl import get_neural_policy
+        policy = get_neural_policy()
+        rl_state = {
             "confidence": "confidence_high" if verdict_confidence > 75 else "confidence_medium",
             "market": "market_sideways",
+            "pain_level": 50,
+            "xp_level": 10,
+            "streak": "win_streak" if pnl > 0 else "lose_streak",
             "time": "morning",
-            "streak": "win_streak" if pnl > 0 else "win_streak",
         }
-        rl.record_episode(action, state, pnl / max(abs(entry * qty), 1))
+        # Reward = PnL as fraction of position value, clipped
+        position_value = max(abs(entry * qty), 1.0)
+        reward = np.clip(pnl / position_value, -1.0, 1.0)
+        policy.update(rl_state, action, float(reward))
+        policy.save()
     except Exception:
         pass

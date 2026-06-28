@@ -2770,9 +2770,19 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         except Exception:
             pass
 
+        # ── Portfolio context (HRP allocation + structured numbers) ──
+        portfolio_context = ""
+        try:
+            from core.trading.adaptive_agent import inject_portfolio_context
+            portfolio_context = inject_portfolio_context(state)
+        except Exception:
+            pass
+
         active_system_prompt = BOB_SOVEREIGN_PROMPT
         if adaptive_context:
             active_system_prompt = adaptive_context + "\n\n" + active_system_prompt
+        if portfolio_context:
+            active_system_prompt = portfolio_context + "\n\n" + active_system_prompt
         if mission_context:
             active_system_prompt = mission_context + "\n\n" + active_system_prompt
 
