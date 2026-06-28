@@ -28,15 +28,9 @@ $action = New-ScheduledTaskAction `
     -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`"" `
     -WorkingDirectory $root
 
-# Create trigger - start at boot and retry every 5 minutes if failed
+# Create trigger - start at boot
 $triggerBoot = New-ScheduledTaskTrigger -AtStartup
-$triggerBoot.RepetitionInterval = New-TimeSpan -Minutes 5
-$triggerBoot.RepetitionDuration = [TimeSpan]::MaxValue
-
-# Additional trigger - start on logon (if boot trigger fails)
 $triggerLogon = New-ScheduledTaskTrigger -AtLogOn
-$triggerLogon.RepetitionInterval = New-TimeSpan -Minutes 5
-$triggerLogon.RepetitionDuration = [TimeSpan]::MaxValue
 
 # Create principal - run with highest privileges
 $principal = New-ScheduledTaskPrincipal `
