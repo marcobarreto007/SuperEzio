@@ -49,6 +49,10 @@ class AutonomicNervousSystem:
             self._thread.join(timeout=5)
         logger.info("bob_ans_stopped: %d cycles", self._cycles)
 
+    def _count_open_circuits(self) -> int:
+        """Count organs with open circuit breakers."""
+        return sum(1 for o in self._body.organs.values() if o.circuit_open_until > time.time())
+
     def _loop(self) -> None:
         """Main loop — scan, heal, sleep, repeat."""
         while self._running:
@@ -56,8 +60,14 @@ class AutonomicNervousSystem:
                 self._cycles += 1
                 now = time.time()
 
-                # Quick scan every cycle
+                # Quick scan every cycle (circuit breakers handled inside Organ.check())
                 report = self._body.full_body_scan()
+
+                # Graceful degradation: if critical organs down, extend sleep
+                if report["critical_count"] > 0:
+                    logger.warning("bob_critical_degraded: entering slow mode (120s sleep)")
+                    time.sleep(120)  # Slow down when critical organs are down
+                    continue
 
                 # Auto-heal if anything is sick
                 if report["sick_count"] > 0:
@@ -81,9 +91,9 @@ class AutonomicNervousSystem:
                 # Log health every 10 cycles
                 if self._cycles % 10 == 0:
                     logger.info(
-                        "bob_vitals: healthy=%d sick=%d pain=%d cycles=%d",
+                        "bob_vitals: healthy=%d sick=%d pain=%d cycles=%d circuits_open=%d",
                         report["healthy_count"], report["sick_count"],
-                        report["overall_pain"], self._cycles,
+                        report["overall_pain"], self._cycles, self._count_open_circuits(),
                     )
 
             except Exception as e:

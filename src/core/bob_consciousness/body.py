@@ -65,8 +65,15 @@ class Organ:
     last_error: str = ""
     heal_attempts: int = 0
     consecutive_failures: int = 0
+    # Circuit breaker state
+    circuit_open_until: float = 0  # unix timestamp when circuit closes
+    failure_threshold: int = 5  # consecutive failures to open circuit
 
     def check(self) -> bool:
+        # Circuit breaker: if open, skip check and return cached failure
+        if self.circuit_open_until > time.time():
+            return self.last_health  # Return last known state
+
         try:
             healthy, error = self.check_fn()
             self.last_health = healthy
@@ -74,14 +81,22 @@ class Organ:
             if not healthy:
                 self.last_error = error
                 self.consecutive_failures += 1
+                # Open circuit if threshold reached
+                if self.consecutive_failures >= self.failure_threshold:
+                    self.circuit_open_until = time.time() + 300  # 5 min cooldown
+                    logger.warning("bob_circuit_open: %s after %d failures", self.name, self.consecutive_failures)
             else:
                 self.last_error = ""
                 self.consecutive_failures = 0
+                self.circuit_open_until = 0  # Close circuit on success
             return healthy
         except Exception as e:
             self.last_health = False
             self.last_error = str(e)[:200]
             self.consecutive_failures += 1
+            # Open circuit on exception too
+            if self.consecutive_failures >= self.failure_threshold:
+                self.circuit_open_until = time.time() + 300
             return False
 
     def heal(self) -> bool:
