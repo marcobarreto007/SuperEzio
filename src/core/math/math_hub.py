@@ -91,6 +91,7 @@ class MathHub:
         "kelly",
         "dcf_proxy",
         "crisis_aggregate",
+        "quantum_bias",
         "f51_unified",
         "penny_momentum",
         "trading_losses",
@@ -129,6 +130,7 @@ class MathHub:
         report.modules["kelly"] = self._kelly_module(returns)
         report.modules["dcf_proxy"] = self._dcf_module(data)
         report.modules["crisis_aggregate"] = self._crisis_module(data, ticker, closes)
+        report.modules["quantum_bias"] = self._quantum_module()
         report.modules["f51_unified"] = self._f51_module(report.modules, data, state)
         report.modules["penny_momentum"] = self._penny_momentum_module(ticker, candles)
         report.modules["trading_losses"] = self._trading_losses_module(state)
@@ -154,6 +156,7 @@ class MathHub:
             "var_95": report.numbers.get("var_95"),
             "kelly_fraction": report.numbers.get("kelly_fraction"),
             "crisis_score": report.numbers.get("crisis_score"),
+            "quantum_bias": report.numbers.get("quantum_bias"),
             "f51_confidence": report.numbers.get("f51_confidence"),
         }
         report.coverage = {
@@ -395,6 +398,23 @@ class MathHub:
         except Exception as exc:
             return {"status": "error", "reason": str(exc)[:200]}
 
+    def _quantum_module(self) -> dict[str, Any]:
+        """QuantumWalkBias — small stochastic perturbation for pricing models."""
+        try:
+            from experts.crisis.quantum_expert import QuantumWalkBias
+            qw = QuantumWalkBias(n_qubits=4)
+            result = qw.run_simulation()
+            # Extract bias as normalized deviation from uniform distribution
+            counts = result.get("counts", {})
+            if counts:
+                total = sum(counts.values())
+                probs = [v / total for v in counts.values()]
+                bias = (max(probs) - 1.0 / len(probs)) if probs else 0.0
+                return {"status": "ok", "values": {"bias": round(bias, 6), "qubits": 4}}
+            return {"status": "ok", "values": {"bias": 0.0, "qubits": 4}}
+        except Exception as exc:
+            return {"status": "skipped", "reason": str(exc)[:100]}
+
     def _f51_module(
         self,
         modules: Mapping[str, Mapping[str, Any]],
@@ -473,6 +493,7 @@ class MathHub:
             "cvar_95": _dig(modules, "var_cvar", "values", "cvar_95"),
             "kelly_fraction": _dig(modules, "kelly", "values", "kelly_fraction"),
             "crisis_score": _dig(modules, "crisis_aggregate", "values", "aggregate_score"),
+            "quantum_bias": _dig(modules, "quantum_bias", "values", "bias"),
             "f51_confidence": _dig(modules, "f51_unified", "values", "confidence"),
             # Technical indicators
             "rsi": _dig(modules, "technical_indicators", "values", "rsi14"),
