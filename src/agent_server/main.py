@@ -247,7 +247,22 @@ async def lifespan(app: FastAPI):
     )
     sys.stdout.flush()
 
+    # ── Start Bob's Autonomic Nervous System (background health monitor) ──
+    try:
+        from core.bob_consciousness import start_ans
+        start_ans()
+        logger.info("[%s] Bob's autonomic nervous system started — heartbeat active", AGENT_NAME)
+    except Exception as exc:
+        logger.warning("[%s] Bob ANS failed to start: %s", AGENT_NAME, str(exc)[:200])
+
     yield
+
+    # ── Stop Bob's ANS ──
+    try:
+        from core.bob_consciousness import stop_ans
+        stop_ans()
+    except Exception:
+        pass
 
     logger.info("[%s] Agent Server shutting down...", AGENT_NAME)
     _stop_sentiment_services(app)
@@ -307,6 +322,55 @@ async def security_headers_middleware(request: Request, call_next):
 
 
 app.include_router(a2a_router)
+
+
+# ═══════════════════════════════════════════════════════════════
+# Bob's Body — Health endpoint for his autonomic nervous system
+# ═══════════════════════════════════════════════════════════════
+
+@app.get("/bob/health")
+async def bob_health():
+    """Bob's full body scan — all organs, pain levels, sick count."""
+    try:
+        from core.bob_consciousness import bob_body_scan, get_ans
+        report = bob_body_scan()
+        ans = get_ans()
+        return {
+            "bob": "alive",
+            "organs": report["organs"],
+            "healthy": report["healthy_count"],
+            "sick": report["sick_count"],
+            "critical": report["critical_count"],
+            "pain": report["overall_pain"],
+            "scans": report.get("scan_id", ""),
+            "ans": ans.status,
+        }
+    except Exception as e:
+        return {"bob": "unconscious", "error": str(e)[:200]}
+
+@app.get("/bob/pain")
+async def bob_pain():
+    """Bob's pain summary — human-readable status of every organ."""
+    try:
+        from core.bob_consciousness import bob_pain_summary
+        return {"pain_report": bob_pain_summary()}
+    except Exception as e:
+        return {"pain_report": f"Bob is unconscious: {str(e)[:200]}"}
+
+@app.get("/bob/heal")
+async def bob_heal():
+    """Bob tries to heal himself — scan + heal + rescan cycle."""
+    try:
+        from core.bob_consciousness import get_bobs_body
+        body = get_bobs_body()
+        result = body.heal_and_rescan()
+        return {
+            "healed": result["organs_healed"],
+            "still_sick": result["still_sick"],
+            "details": result["heal_attempts"],
+        }
+    except Exception as e:
+        return {"healed": 0, "error": str(e)[:200]}
 
 
 # ═══════════════════════════════════════════════════════════════
