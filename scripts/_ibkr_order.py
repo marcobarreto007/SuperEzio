@@ -10,12 +10,81 @@ Exit 0 = success, exit 1 = error.
 """
 
 import json
+import os
 import sys
 import time
 from pathlib import Path
 
 _PROJECT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_PROJECT / "src"))
+
+
+def _gate_check(action: str, ticker: str, qty: float, limit_price: float) -> dict:
+    """F51 Trade Gate — mandatório para qualquer ordem via CLI.
+
+    Retorna {"allowed": True} ou {"blocked": True, "reason": "..."}.
+    """
+    # ── GATE 0: Raw CLI must be explicitly enabled ──
+    raw_cli_allowed = os.getenv("F51_ALLOW_RAW_IBKR_CLI", "false").strip().lower()
+    if raw_cli_allowed not in ("1", "true", "yes", "on"):
+        return {
+            "blocked": True,
+            "reason": "BLOCKED_RAW_CLI_DISABLED",
+            "message": "Raw IBKR CLI is disabled by default. Set F51_ALLOW_RAW_IBKR_CLI=true to enable.",
+        }
+
+    # ── GATE 1: Execution freeze ──
+    freeze = os.getenv("F51_TRADING_EXECUTION_FREEZE", "true").strip().lower()
+    if freeze not in ("0", "false", "no", "off"):
+        return {
+            "blocked": True,
+            "reason": "BLOCKED_BY_FREEZE",
+            "message": "Trading execution is frozen. Set F51_TRADING_EXECUTION_FREEZE=false to trade.",
+        }
+
+    # ── GATE 2: Paper mode must be explicitly confirmed ──
+    paper_confirmed = os.getenv("F51_PAPER_MODE_CONFIRMED", "false").strip().lower()
+    if paper_confirmed not in ("1", "true", "yes", "on"):
+        return {
+            "blocked": True,
+            "reason": "BLOCKED_PAPER_NOT_CONFIRMED",
+            "message": "Paper trading mode not confirmed. Set F51_PAPER_MODE_CONFIRMED=true.",
+        }
+
+    # ── GATE 3: Full F51 Trade Gate validation ──
+    try:
+        from core.pipeline.f51_trade_gate import evaluate_trade_gate
+
+        gate_decision = evaluate_trade_gate(
+            message=f"CLI order: {action} {qty} {ticker} @ {limit_price}",
+            ticker=ticker,
+            thesis_ticker="",
+            qty=int(qty),
+            limit_price=limit_price,
+            run_id=f"raw-cli-{int(time.time())}",
+        )
+
+        if gate_decision.status != "ALLOW":
+            return {
+                "blocked": True,
+                "reason": f"f51_trade_gate:{gate_decision.reason_code}",
+                "message": gate_decision.reason,
+                "gates_failed": gate_decision.gates_failed,
+            }
+    except ImportError:
+        return {
+            "blocked": True,
+            "reason": "f51_trade_gate_unavailable",
+            "message": "F51 Trade Gate module not found — blocking all orders.",
+        }
+    except Exception as exc:
+        return {
+            "blocked": True,
+            "reason": f"f51_trade_gate_error:{str(exc)[:80]}",
+            "message": f"F51 Trade Gate error — blocking: {str(exc)[:120]}",
+        }
+
+    return {"allowed": True}
 
 
 def main():
@@ -29,6 +98,14 @@ def main():
     ticker = sys.argv[2].upper()
     qty = float(sys.argv[3])
     limit_price = float(sys.argv[4]) if len(sys.argv) > 4 else 0.0
+
+    # ═══════════════════════════════════════════════════════════
+    # F51 TRADE GATE — Mandatory before any IBKR call
+    # ═══════════════════════════════════════════════════════════
+    gate_result = _gate_check(action, ticker, qty, limit_price)
+    if gate_result.get("blocked"):
+        print(json.dumps(gate_result))
+        sys.exit(1)
 
     try:
         from ib_insync import IB, Stock, LimitOrder, MarketOrder
@@ -63,6 +140,7 @@ def main():
             "status": trade.orderStatus.status,
             "filled": trade.orderStatus.filled,
             "avg_price": trade.orderStatus.avgFillPrice,
+            "gate_checked": True,
         }
 
         for p in ib.positions():
@@ -74,7 +152,7 @@ def main():
         sys.exit(0)
 
     except Exception as e:
-        print(json.dumps({"error": str(e)[:200]}))
+        print(json.dumps({"error": str(e)[:200], "gate_checked": True}))
         sys.exit(1)
 
 

@@ -11,7 +11,6 @@ Bob agora vive de verdade.
 from __future__ import annotations
 
 import json
-import logging
 import os
 import time
 from dataclasses import dataclass, field
@@ -20,7 +19,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from core.config.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 # Importar componentes existentes
 from .market_hours import get_market_state
@@ -352,7 +353,52 @@ class LiveTradingEngine:
         return decision
 
     def execute_trade_real(self, opp: TradingOpportunity, quantity: int) -> dict[str, Any] | None:
-        """Executa trade real via IBKR."""
+        """Executa trade real via IBKR.
+
+        ATENÇÃO: Este método está DORMENTE — não é chamado pelo pipeline
+        principal. Se for ativado, o F51 Trade Gate é obrigatório.
+        """
+        # ═══════════════════════════════════════════════════════
+        # F51 TRADE GATE — Mandatory before ANY broker call
+        # ═══════════════════════════════════════════════════════
+        try:
+            from core.pipeline.f51_trade_gate import evaluate_trade_gate
+
+            gate_decision = evaluate_trade_gate(
+                message=opp.thesis or f"live trade: {opp.symbol}",
+                ticker=opp.symbol,
+                thesis_ticker=opp.symbol,
+                qty=quantity,
+                limit_price=opp.entry_price,
+                run_id=f"live-engine-{int(time.time())}",
+            )
+            if gate_decision.status != "ALLOW":
+                logger.error(
+                    "live_trade_blocked_by_gate",
+                    ticker=opp.symbol,
+                    reason_code=gate_decision.reason_code,
+                    gates_failed=gate_decision.gates_failed,
+                )
+                return {
+                    "blocked": True,
+                    "reason": f"f51_trade_gate:{gate_decision.reason_code}",
+                    "message": gate_decision.reason,
+                }
+        except ImportError:
+            logger.critical("f51_trade_gate_unavailable_live_engine_blocked")
+            return {
+                "blocked": True,
+                "reason": "f51_trade_gate_unavailable",
+                "message": "F51 Trade Gate indisponível — todas as ordens bloqueadas.",
+            }
+        except Exception as exc:
+            logger.critical("f51_trade_gate_error_live_engine", error=str(exc)[:200])
+            return {
+                "blocked": True,
+                "reason": f"f51_trade_gate_error:{str(exc)[:80]}",
+                "message": f"F51 Trade Gate erro — ordem bloqueada.",
+            }
+
         side = "buy" if opp.sentiment == MarketSentiment.BULLISH else "sell"
         position_side = PositionSide.LONG if side == "buy" else PositionSide.SHORT
 

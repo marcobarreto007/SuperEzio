@@ -10,11 +10,130 @@ in its own daemon thread to avoid event-loop conflicts on Windows.
 
 from __future__ import annotations
 
-import logging
 import os
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from core.config.logging_config import get_logger
+
+logger = get_logger(__name__)
+
+
+def _low_level_gate_check(order: Any) -> bool:
+    """F51 LOW-LEVEL INVARIANT — Last line of defense before IBKR.
+
+    EVERY order reaching this adapter MUST carry proof of gate passage.
+    If ANY field is missing, the order is REJECTED with BLOCKED_LOW_LEVEL_UNGATED_ORDER.
+
+    Required fields on the order object or its metadata:
+      - gate_status == "ALLOW"
+      - gate_trace_id (non-empty string)
+      - validated_ticker (non-empty, matches order.symbol)
+      - journal_ready == True
+      - execution_freeze == False
+    """
+    import socket
+
+    # ── Check order metadata for gate passage proof ──
+    order_meta = getattr(order, "gate_metadata", None) or {}
+    gate_status = order_meta.get("gate_status", "")
+    gate_trace_id = order_meta.get("gate_trace_id", "")
+    validated_ticker = order_meta.get("validated_ticker", "")
+    journal_ready = order_meta.get("journal_ready", False)
+    execution_freeze = order_meta.get("execution_freeze", True)  # default SAFE
+
+    # 1. gate_status MUST be ALLOW
+    if gate_status != "ALLOW":
+        logger.error(
+            "BLOCKED_LOW_LEVEL_UNGATED_ORDER:missing_gate_status symbol=%s gate_status=%s",
+            getattr(order, "symbol", "?"), gate_status or "MISSING",
+        )
+        return False
+
+    # 2. gate_trace_id MUST be present
+    if not gate_trace_id:
+        logger.error(
+            "BLOCKED_LOW_LEVEL_UNGATED_ORDER:missing_gate_trace_id symbol=%s",
+            getattr(order, "symbol", "?"),
+        )
+        return False
+
+    # 3. validated_ticker MUST match order symbol
+    order_symbol = str(getattr(order, "symbol", "")).upper()
+    if not validated_ticker or validated_ticker.upper() != order_symbol:
+        logger.error(
+            "BLOCKED_LOW_LEVEL_UNGATED_ORDER:ticker_mismatch symbol=%s validated=%s",
+            order_symbol, validated_ticker or "MISSING",
+        )
+        return False
+
+    # 4. journal_ready MUST be True
+    if not journal_ready:
+        logger.error(
+            "BLOCKED_LOW_LEVEL_UNGATED_ORDER:journal_not_ready symbol=%s",
+            getattr(order, "symbol", "?"),
+        )
+        return False
+
+    # 5. execution_freeze MUST be False
+    if execution_freeze:
+        logger.error(
+            "BLOCKED_LOW_LEVEL_UNGATED_ORDER:execution_frozen symbol=%s",
+            getattr(order, "symbol", "?"),
+        )
+        return False
+
+    # ── Environmental checks (defense in depth) ──
+
+    # 6. Env-level freeze (catches cases where metadata is forged)
+    env_freeze = os.getenv("F51_TRADING_EXECUTION_FREEZE", "true").strip().lower()
+    if env_freeze not in ("0", "false", "no", "off"):
+        logger.error("low_level_gate_blocked_env_freeze")
+        return False
+
+    # 7. IBKR connectivity
+    ibkr_host = os.getenv("IBKR_HOST", "127.0.0.1")
+    ibkr_port = int(os.getenv("IBKR_PORT", "7497"))
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(2.0)
+        s.connect((ibkr_host, ibkr_port))
+        s.close()
+    except Exception as exc:
+        logger.error("low_level_gate_blocked_ibkr_offline: %s:%s — %s", ibkr_host, ibkr_port, exc)
+        return False
+
+    # 8. Journal health
+    try:
+        from pathlib import Path
+        from core.trading.paper_journal import DEFAULT_JOURNAL_PATH
+        journal_path = DEFAULT_JOURNAL_PATH
+        journal_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(journal_path, "a", encoding="utf-8") as fh:
+            import json as _json
+            from datetime import datetime, timezone
+            fh.write(_json.dumps({
+                "trade_id": f"llg-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}",
+                "ticker": "__LOW_LEVEL_GATE__",
+                "thesis": "low_level_gate_probe",
+                "direction": "none",
+                "entry_date": datetime.now(timezone.utc).isoformat(),
+                "entry_price": 0.0,
+                "shares": 0,
+                "entry_reasoning": "Low-level gate journal probe",
+                "verdict_at_entry": "PROBE",
+                "risk_assessment": "none",
+                "expected_holding_period": "none",
+                "outcome": "probe",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "tags": ["low_level_gate_probe"],
+            }, ensure_ascii=False) + "\n")
+            fh.flush()
+    except Exception:
+        logger.error("low_level_gate_blocked_journal_unhealthy")
+        return False
+
+    return True
 
 
 class InteractiveBrokersAdapter:
@@ -65,12 +184,29 @@ class InteractiveBrokersAdapter:
 
         This maintains the existing behavior — orders go through a subprocess
         to avoid event-loop conflicts. The adapter does not use in-process IB().
+
+        F51 INVARIANT: All orders MUST pass through f51_trade_gate BEFORE
+        reaching this adapter. The subprocess (_ibkr_order.py) also enforces
+        the gate independently (defense in depth).
         """
         from core.trading.broker import Order, OrderSide, OrderType, OrderStatus
         import subprocess
         import sys
         import json
         from pathlib import Path
+
+        # ═══════════════════════════════════════════════════════
+        # F51 LOW-LEVEL GATE — Last line of defense
+        # ═══════════════════════════════════════════════════════
+        if not _low_level_gate_check(order):
+            return Order(
+                id="ibkr-blocked-ungated-order",
+                symbol=order.symbol,
+                side=order.side,
+                order_type=order.order_type,
+                qty=order.qty,
+                status=OrderStatus.REJECTED,
+            )
 
         # Order submission uses subprocess for isolation (existing pattern)
         order_script = Path(__file__).resolve().parent.parent.parent.parent / "scripts" / "_ibkr_order.py"

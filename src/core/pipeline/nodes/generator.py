@@ -624,13 +624,21 @@ def _build_candidate_sections(
     entry_en = "limit order near current price" if is_buy_candidate else "No entry until risk, invalidation, and confidence gates pass"
     risk_pt = "0.5%-1.0% do capital de trading" if is_buy_candidate else "0 ate virar BUY_CANDIDATE"
     risk_en = "0.5%-1.0% of trading capital" if is_buy_candidate else "0 until upgraded to BUY_CANDIDATE"
+    # Previously undefined — computed from available context
+    invalidation_pct = 0.05  # 5% below entry is default invalidation
+    invalidation_price = round(float(price) * (1 - invalidation_pct), 2) if price else 0.0
+    invalidation_pt = f"R$ {invalidation_price:.2f} (-{invalidation_pct:.0%})" if is_buy_candidate else "N/A ate virar BUY_CANDIDATE"
+    invalidation_en = f"${invalidation_price:.2f} (-{invalidation_pct:.0%})" if is_buy_candidate else "N/A until upgraded to BUY_CANDIDATE"
+    risk_amount = round(float(estimated_qty or 0) * float(price) * invalidation_pct, 2) if price and estimated_qty else 0.0
+    risk_display_pt = f"R$ {risk_amount:.2f} ({risk_pt})" if is_buy_candidate else risk_pt
+    risk_display_en = f"${risk_amount:.2f} ({risk_en})" if is_buy_candidate else risk_en
 
     if portuguese:
         sections.extend([
             "", f"{plan_num}. {plan_heading_pt}",
             f"   - Entrada: {entry_pt}",
-            f"   - Stop/Invalidacao: {invalidation}",
-            f"   - Risco: {risk}",
+            f"   - Stop/Invalidacao: {invalidation_pt}",
+            f"   - Risco: {risk_display_pt}",
             f"   - Risco Maximo: {risk_pt}",
             "",
             "Ordem paper pode ser transmitida pelo tool gate. Nao e lucro garantido; live-money continua bloqueado."
@@ -642,8 +650,8 @@ def _build_candidate_sections(
         sections.extend([
             "", f"{plan_num}. {plan_heading_en}",
             f"   - Entry: {entry_en}",
-            f"   - Stop/Invalidation: {invalidation}",
-            f"   - Risk: {risk}",
+            f"   - Stop/Invalidation: {invalidation_en}",
+            f"   - Risk: {risk_display_en}",
             f"   - Max Risk: {risk_en}",
             "",
             "Paper order may be transmitted through the tool gate. Profit is not guaranteed; live-money remains blocked."

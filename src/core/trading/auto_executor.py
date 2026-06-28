@@ -13,7 +13,6 @@ Só executa se TODOS os gates aprovarem.
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -26,7 +25,9 @@ from .position_sizer import PositionSizer, PositionSize
 from .risk_guard import RiskGuard, RiskGuardResult
 from .committee import get_reflection_committee, CommitteeDecision
 
-logger = logging.getLogger(__name__)
+from core.config.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class ExecutionStatus(Enum):
@@ -223,6 +224,53 @@ class AutoExecutor:
             confidence=confidence,
         )
 
+        # ═══════════════════════════════════════════════════════
+        # F51 TRADE GATE — Mandatory BEFORE any other check.
+        # No order proceeds without gate_status=ALLOW.
+        # ═══════════════════════════════════════════════════════
+        try:
+            from core.pipeline.f51_trade_gate import evaluate_trade_gate
+
+            gate_decision = evaluate_trade_gate(
+                message=thesis or f"auto_executor: {symbol}",
+                ticker=symbol,
+                thesis_ticker=symbol,
+                qty=quantity,
+                limit_price=entry_price,
+                run_id=request_id,
+            )
+            if gate_decision.status != "ALLOW":
+                request.status = ExecutionStatus.BLOCKED
+                request.rejection_reason = RejectionReason.KILL_SWITCH_ACTIVE
+                request.rejection_message = f"F51 Trade Gate: {gate_decision.reason_code} — {gate_decision.reason}"
+                self._history.append(request)
+                logger.error(
+                    "auto_executor_prepare_order_blocked_by_gate",
+                    ticker=symbol,
+                    reason_code=gate_decision.reason_code,
+                )
+                return request
+            # Stamp gate metadata onto request for downstream low-level check
+            request.metadata["gate_status"] = "ALLOW"
+            request.metadata["gate_trace_id"] = run_id or request_id
+            request.metadata["validated_ticker"] = symbol.upper()
+            request.metadata["journal_ready"] = True
+            request.metadata["execution_freeze"] = False
+        except ImportError:
+            logger.critical("f51_trade_gate_unavailable_prepare_order")
+            request.status = ExecutionStatus.BLOCKED
+            request.rejection_reason = RejectionReason.KILL_SWITCH_ACTIVE
+            request.rejection_message = "F51 Trade Gate unavailable — blocking all orders."
+            self._history.append(request)
+            return request
+        except Exception as exc:
+            logger.critical("f51_trade_gate_error_prepare_order", error=str(exc)[:200])
+            request.status = ExecutionStatus.BLOCKED
+            request.rejection_reason = RejectionReason.KILL_SWITCH_ACTIVE
+            request.rejection_message = f"F51 Trade Gate error: {str(exc)[:120]}"
+            self._history.append(request)
+            return request
+
         # 1. Checar kill switch
         if self._kill_switch.is_active:
             request.status = ExecutionStatus.KILLED
@@ -345,6 +393,46 @@ class AutoExecutor:
         if request.status != ExecutionStatus.APPROVED:
             logger.error("Cannot execute non-approved request: %s", request.request_id)
             request.status = ExecutionStatus.FAILED
+            return request
+
+        # ═══════════════════════════════════════════════════════
+        # F51 TRADE GATE — Mandatory even for auto_executor
+        # ═══════════════════════════════════════════════════════
+        try:
+            from core.pipeline.f51_trade_gate import evaluate_trade_gate
+
+            gate_decision = evaluate_trade_gate(
+                message=request.thesis or f"auto_executor: {request.symbol}",
+                ticker=request.symbol,
+                thesis_ticker=request.symbol,
+                qty=request.position_size.shares if request.position_size else request.quantity,
+                limit_price=request.entry_price,
+                run_id=request.request_id,
+            )
+            if gate_decision.status != "ALLOW":
+                logger.error(
+                    "auto_executor_blocked_by_gate",
+                    ticker=request.symbol,
+                    reason_code=gate_decision.reason_code,
+                )
+                request.status = ExecutionStatus.BLOCKED
+                request.rejection_reason = RejectionReason.KILL_SWITCH_ACTIVE  # closest semantic match
+                request.rejection_message = f"F51 Trade Gate: {gate_decision.reason_code} — {gate_decision.reason}"
+                self._history.append(request)
+                return request
+        except ImportError:
+            logger.critical("f51_trade_gate_unavailable_auto_executor")
+            request.status = ExecutionStatus.BLOCKED
+            request.rejection_reason = RejectionReason.KILL_SWITCH_ACTIVE
+            request.rejection_message = "F51 Trade Gate unavailable — blocking all orders."
+            self._history.append(request)
+            return request
+        except Exception as exc:
+            logger.critical("f51_trade_gate_error_auto_executor", error=str(exc)[:200])
+            request.status = ExecutionStatus.BLOCKED
+            request.rejection_reason = RejectionReason.KILL_SWITCH_ACTIVE
+            request.rejection_message = f"F51 Trade Gate error: {str(exc)[:120]}"
+            self._history.append(request)
             return request
 
         if not self._broker:

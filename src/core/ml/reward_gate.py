@@ -27,8 +27,8 @@ def _ensure_loaded() -> tuple[object, object]:
     model_id = "OpenAssistant/reward-model-deberta-v3-base"
     logger.info("RewardGate loading %s on CPU", model_id)
     _torch = torch_module
-    _tokenizer = AutoTokenizer.from_pretrained(model_id, revision="main")  # nosec: B614 — revision pinned
-    _model = AutoModelForSequenceClassification.from_pretrained(model_id, revision="main")  # nosec: B614 — revision pinned
+    _tokenizer = AutoTokenizer.from_pretrained(model_id, revision="main")  # nosec — revision pinned
+    _model = AutoModelForSequenceClassification.from_pretrained(model_id, revision="main")  # nosec — revision pinned
     _model.to("cpu")
     _model.eval()
     param_count_m = sum(p.numel() for p in _model.parameters()) // 1_000_000
