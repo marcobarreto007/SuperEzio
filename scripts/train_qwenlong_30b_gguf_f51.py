@@ -95,11 +95,11 @@ def main():
     cmd = (
         f"\"{finetune_exe}\" "
         f"--model \"{model_to_use}\" "
-        f"--lora-out \"{lora_output}\" "
+        f"--output-file \"{lora_output}\" "
         f"--train-data \"{train_jsonl}\" "
         f"--threads 16 "
         f"--rank 8 "
-        f"--epoch 3 "
+        f"--epochs 3 "
         f"--batch-size 1 "
         f"--learning-rate 0.0002 "
         f"--warmup 0 "

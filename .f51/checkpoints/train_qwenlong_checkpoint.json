@@ -1,0 +1,24 @@
+{
+  "timestamp": "2025-06-28T18:57:00",
+  "task": "train_qwenlong_30b_gguf_f51",
+  "status": "blocked",
+  "blocker": "llama.cpp MSVC build broken - missing C headers",
+  "progress": {
+    "step": "2_of_3",
+    "completed": ["data_prepared", "gguf_converted"],
+    "blocked": ["lora_training"]
+  },
+  "artifacts": {
+    "gguf_model": "C:\\llama.cpp\\models\\qwenlong-30b-a3b-q4_k.gguf",
+    "train_data": "./temp_gguf_workspace/train_finance.jsonl",
+    "output_dir": "./models/bob_lora_qwenlong_30b_f51"
+  },
+  "next_steps": [
+    "Option A: Compile llama-finetune-qlora via WSL",
+    "Option B: Use Axolotl/Unsloth for training",
+    "Option C: Fix MSVC build environment"
+  ],
+  "scripts_created": [
+    "scripts/train_qwenlong_30b_gguf_f51_v6.py"
+  ]
+}
