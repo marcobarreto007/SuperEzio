@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import os
 from typing import Any
 
@@ -17,6 +16,8 @@ from .neural_decision import node_neural_decision
 from .sdca_firewall import node_sdca_firewall
 from .rag import node_rag_forensics
 from core.math.penny_momentum import PennyMomentumConfig, simulate_penny_momentum_backtest
+from core.config.logging_config import get_logger, bind_trace
+from core.config.settings import get_settings
 
 # PennyLab: imported at module level — no lazy import on hot tool path
 try:
@@ -30,7 +31,7 @@ except ImportError:
         return {"ticker": ticker, "decision": None, "error": "pennylab_module_not_found"}
 
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def _check_lesson_block(ticker: str) -> dict[str, Any] | None:
@@ -74,12 +75,8 @@ _SEMI_REPEATABLE_LIMITS: dict[str, int] = {"collect_data": 2}
 
 
 def _paper_order_submission_error(state: dict, args: dict) -> str:
-    if os.getenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "0").strip().lower() not in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }:
+    settings = get_settings()
+    if not settings.superezio_enable_paper_order_submit:
         return "paper_order_submission_disabled_by_env"
     if not state.get("ticket_allowed", False) and not args.get("_forced_by_case"):
         return "paper_order_not_allowed_by_cognitive_contract"
@@ -99,7 +96,7 @@ def _paper_order_submission_error(state: dict, args: dict) -> str:
             reason = kill_state.reason.value if kill_state.reason else "unknown"
             return f"kill_switch_active:{reason}"
     except Exception as exc:
-        logger.warning("kill switch preflight unavailable: %s", exc)
+        logger.warning("kill_switch_preflight_unavailable", error=str(exc)[:200])
     return ""
 
 
@@ -697,11 +694,32 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             # ═══════════════════════════════════════════════════════
             try:
                 from core.pipeline.f51_trade_gate import evaluate_trade_gate, record_blocked_order
+                from core.idempotency import (
+                    make_idempotency_key,
+                    is_duplicate,
+                    mark_processed,
+                    enqueue_dead_letter,
+                )
                 ticker_raw = args.get("ticker", "").upper()
                 qty_raw = int(float(args.get("qty", args.get("quantity", args.get("shares", 0)) or 0)))
                 price_raw = float(args.get("limit_price", 0) or 0)
                 msg = str(state.get("message", "") or "")
                 thesis_ticker = str(state.get("ticker", "") or "").upper()
+                run_id = state.get("run_id", "")
+
+                # Idempotency check
+                idem_key = make_idempotency_key(ticker_raw, qty_raw, price_raw)
+                if is_duplicate(idem_key):
+                    logger.warning(
+                        "tool_executor_duplicate_blocked",
+                        ticker=ticker_raw,
+                        idempotency_key=idem_key,
+                    )
+                    return {
+                        "blocked": True,
+                        "reason": f"f51_trade_gate:DUPLICATE_ORDER",
+                        "message": f"Ordem duplicada detectada: {idem_key}",
+                    }
 
                 gate_decision = evaluate_trade_gate(
                     message=msg,
@@ -709,13 +727,13 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                     thesis_ticker=thesis_ticker,
                     qty=qty_raw,
                     limit_price=price_raw,
-                    run_id=state.get("run_id", ""),
+                    run_id=run_id,
                 )
                 if gate_decision.status != "ALLOW":
                     writer = get_stream_writer()
                     writer({
                         "type": "PAPER_ORDER_BLOCKED",
-                        "run_id": state.get("run_id", ""),
+                        "run_id": run_id,
                         "ticker": ticker_raw,
                         "step": "f51_trade_gate",
                         "status": "blocked",
@@ -724,7 +742,14 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                         "gates_failed": gate_decision.gates_failed,
                     })
                     record_blocked_order(gate_decision, message=msg, ticker=ticker_raw,
-                                         run_id=state.get("run_id", ""))
+                                         run_id=run_id)
+                    mark_processed(idem_key, {"status": "blocked", "reason": gate_decision.reason_code})
+                    logger.info(
+                        "tool_executor_gate_blocked",
+                        ticker=ticker_raw,
+                        reason_code=gate_decision.reason_code,
+                        gates_failed=gate_decision.gates_failed,
+                    )
                     result = {
                         "blocked": True,
                         "reason": f"f51_trade_gate:{gate_decision.reason_code}",
@@ -733,11 +758,11 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                     }
                     return result
             except ImportError:
-                logger.warning("[tool_executor] F51 Trade Gate not available — blocking order")
+                logger.warning("tool_executor_gate_unavailable")
                 return {"blocked": True, "reason": "f51_trade_gate_unavailable",
                         "message": "Ordem bloqueada: F51 Trade Gate indisponível."}
             except Exception as exc:
-                logger.error("[tool_executor] F51 Trade Gate error: %s", exc)
+                logger.error("tool_executor_gate_error", error=str(exc)[:200])
                 return {"blocked": True, "reason": f"f51_trade_gate_error:{str(exc)[:80]}",
                         "message": f"Ordem bloqueada por erro no F51 Trade Gate."}
 
@@ -942,14 +967,12 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
         }
 
     except Exception as exc:
-        logger.error(f"Tool execution failed: {exc}")
+        logger.error("tool_execution_failed", tool=tool_name, error=str(exc)[:200])
         return {
             "executed_tools": next_executed_tools,
             "executed_tool_counts": next_executed_tool_counts,
             "errors": state.get("errors", []) + [f"tool_{tool_name}:{exc}"],
         }
-
-    return {}
 
 
 _MAX_AGENT_ITERATIONS = 8

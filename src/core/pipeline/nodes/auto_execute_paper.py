@@ -7,7 +7,6 @@ kill switch, IBKR submission, paper journal, and learning cycle trigger.
 from __future__ import annotations
 
 import asyncio
-import logging
 import os
 import re
 import subprocess
@@ -20,10 +19,21 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 
-logger = logging.getLogger(__name__)
+from core.config.logging_config import get_logger, bind_trace
+from core.config.settings import get_settings
+from core.idempotency import (
+    make_idempotency_key,
+    is_duplicate,
+    mark_processed,
+    enqueue_dead_letter,
+)
 
-# Dedup guard: only execute once per run_id
-_EXECUTED: deque[str] = deque(maxlen=32)
+logger = get_logger(__name__)
+
+# Dedup guard: memory cache for fast-reject within same process
+_EXECUTED: deque[str] = deque(maxlen=64)
+# Persistent dedup via idempotency keys in journal/dedup/
+_IDEMPOTENCY_WINDOW_MINUTES = 5
 
 
 async def auto_execute_paper(state: dict) -> dict:
@@ -35,11 +45,16 @@ async def auto_execute_paper(state: dict) -> dict:
     import json as _json
     from core.pipeline.nodes.tool_executor import _submit_paper_order
 
+    settings = get_settings()
+
     # Enable paper order submission for this pipeline execution
     os.environ.setdefault("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
 
     writer = get_stream_writer()
     run_id = state.get("run_id", "")
+
+    # Bind trace context for all logs in this pipeline run
+    bind_trace(run_id=run_id)
 
     writer({
         "type": "PIPELINE_STEP",
@@ -48,9 +63,10 @@ async def auto_execute_paper(state: dict) -> dict:
         "status": "started",
     })
 
-    # Dedup guard
+    # Dedup guard — memory cache (fast path)
     dedup_key = f"paper_{run_id}"
     if dedup_key in _EXECUTED:
+        logger.info("auto_execute_skipped_dedup_memory", run_id=run_id)
         writer({
             "type": "PIPELINE_STEP", "run_id": run_id,
             "step": "auto_execute_paper", "status": "skipped",
@@ -83,6 +99,36 @@ async def auto_execute_paper(state: dict) -> dict:
     # ═══════════════════════════════════════════════════════════
     limit_price, data_age_s = _resolve_limit_price(state, scan, ticker)
 
+    # ═══════════════════════════════════════════════════════════
+    # IDEMPOTENCY CHECK — Persistent dedup across restarts
+    # ═══════════════════════════════════════════════════════════
+    idem_key = make_idempotency_key(
+        ticker=ticker,
+        qty=qty,
+        limit_price=limit_price,
+        window_minutes=_IDEMPOTENCY_WINDOW_MINUTES,
+    )
+    if is_duplicate(idem_key):
+        logger.warning(
+            "auto_execute_duplicate_blocked",
+            ticker=ticker,
+            qty=qty,
+            limit_price=limit_price,
+            idempotency_key=idem_key,
+        )
+        writer({
+            "type": "PAPER_ORDER_BLOCKED",
+            "run_id": run_id,
+            "ticker": ticker,
+            "step": "idempotency",
+            "status": "blocked",
+            "reason": f"Duplicate order detected: {idem_key}",
+        })
+        return {
+            "paper_exec_blocked": "DUPLICATE_ORDER",
+            "paper_exec_block_reason": f"Idempotency key already processed: {idem_key}",
+        }
+
     try:
         from core.pipeline.f51_trade_gate import evaluate_trade_gate, record_blocked_order
 
@@ -99,6 +145,12 @@ async def auto_execute_paper(state: dict) -> dict:
         )
 
         if gate_decision.status != "ALLOW":
+            logger.info(
+                "trade_gate_blocked",
+                ticker=ticker,
+                reason_code=gate_decision.reason_code,
+                gates_failed=gate_decision.gates_failed,
+            )
             writer({
                 "type": "PAPER_ORDER_BLOCKED",
                 "run_id": run_id,
@@ -110,16 +162,18 @@ async def auto_execute_paper(state: dict) -> dict:
                 "gates_failed": gate_decision.gates_failed,
             })
             record_blocked_order(gate_decision, message=message, ticker=ticker, run_id=run_id)
+            # Record idempotency key even for blocked orders (prevents retry spam)
+            mark_processed(idem_key, {"status": "blocked", "reason": gate_decision.reason_code})
             return {
                 "paper_exec_blocked": gate_decision.reason_code,
                 "paper_exec_block_reason": gate_decision.reason,
                 "paper_exec_gates_failed": gate_decision.gates_failed,
             }
     except ImportError:
-        logger.warning("[auto_execute_paper] F51 Trade Gate module not found — blocking all orders")
+        logger.warning("trade_gate_unavailable_blocking_all")
         return {"paper_exec_blocked": "F51_TRADE_GATE_UNAVAILABLE"}
     except Exception as exc:
-        logger.error("[auto_execute_paper] F51 Trade Gate error — blocking: %s", exc)
+        logger.error("trade_gate_error", error=str(exc)[:200])
         return {"paper_exec_blocked": f"f51_trade_gate_error:{str(exc)[:120]}"}
 
     # Position sizing (only reached if gate ALLOWED)
@@ -400,7 +454,10 @@ def _journal_trade(
     limit_price: float,
     run_id: str,
 ) -> str | None:
-    """Record trade in paper journal. Triggers learning cycle on close."""
+    """Record trade in paper journal. Triggers learning cycle on close.
+
+    On journal write failure, enqueues to dead letter queue for manual replay.
+    """
     try:
         from core.trading.paper_journal import PaperJournal, PaperTrade
 
@@ -434,9 +491,9 @@ def _journal_trade(
                                 from core.trading.feedback_loop import get_feedback_loop
                                 fb = get_feedback_loop()
                                 fb.run_learning_cycle()
-                                logger.info("[learning] Cycle completed after closing %s", ot["trade_id"])
+                                logger.info("learning_cycle_completed", trade_id=ot["trade_id"])
                             except Exception as e:
-                                logger.warning("[learning] Cycle failed: %s", e)
+                                logger.warning("learning_cycle_failed", error=str(e)[:200])
                         threading.Thread(target=_run_learning_cycle, daemon=True).start()
                         return f"closed:{ot['trade_id']}"
             return f"no_open_trade_for:{ticker}"
@@ -454,7 +511,28 @@ def _journal_trade(
                 risk_assessment=state.get("risk_tolerance", "moderada"),
                 expected_holding_period="swing",
             )
-            journal.open_trade(trade)
-            return trade.trade_id
+            trade_id = journal.open_trade(trade)
+            logger.info(
+                "paper_trade_opened",
+                trade_id=trade_id,
+                ticker=ticker,
+                action=action,
+                qty=qty,
+                limit_price=limit_price,
+            )
+            return trade_id
     except Exception as exc:
-        return f"journal_error:{exc}"
+        # Journal write failed → dead letter queue
+        logger.error("journal_write_failed_dead_letter", ticker=ticker, error=str(exc)[:200])
+        enqueue_dead_letter(
+            ticker=ticker,
+            qty=qty,
+            limit_price=limit_price,
+            action=action,
+            reason=f"journal_write_error:{str(exc)[:120]}",
+            state_snapshot={
+                "run_id": run_id,
+                "route": state.get("route", "?"),
+            },
+        )
+        return f"journal_error_dead_letter:{exc}"

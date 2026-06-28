@@ -13,14 +13,10 @@ Design contract:
 
 from __future__ import annotations
 
-import logging
-import os
-import re
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any
+from core.config.logging_config import get_logger
+from core.config.settings import get_settings
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ═══════════════════════════════════════════════════════════════
 # EXECUTION FREEZE — Global safety switch
@@ -28,11 +24,22 @@ logger = logging.getLogger(__name__)
 
 
 def is_execution_frozen() -> bool:
-    if os.getenv("F51_TRADING_EXECUTION_FREEZE", "true").strip().lower() in {
-        "1", "true", "yes", "on",
-    }:
+    """Check global kill switch (fail-safe: defaults to True).
+
+    Priority: env var F51_TRADING_EXECUTION_FREEZE > Pydantic Settings > default True.
+    Direct env var check preserves testability via monkeypatch.
+    """
+    # Check raw env var first (allows test overrides via monkeypatch.setenv)
+    raw = os.getenv("F51_TRADING_EXECUTION_FREEZE", "").strip().lower()
+    if raw in {"0", "false", "no", "off"}:
+        return False
+    if raw in {"1", "true", "yes", "on"}:
         return True
-    return False
+    # Fall back to validated Settings
+    try:
+        return get_settings().f51_trading_execution_freeze
+    except RuntimeError:
+        return True  # Settings invalid → SAFE
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -129,8 +136,9 @@ def is_explicit_trade_intent(text: str) -> bool:
 
 
 def is_ibkr_connectable() -> bool:
-    ibkr_host = os.getenv("IBKR_HOST", "127.0.0.1")
-    ibkr_port = int(os.getenv("IBKR_PORT", "7497"))
+    settings = get_settings()
+    ibkr_host = settings.ibkr_host
+    ibkr_port = settings.ibkr_port
     try:
         import socket
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
