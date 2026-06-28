@@ -125,6 +125,7 @@ class TradingEngine:
         equity: float = 10000.0,
         journal_path: Path | None = None,
         persistence_path: Path | None = None,
+        watchlist: list[str] | None = None,
     ):
         self.equity = equity
         self._journal_path = journal_path or Path("data/paper_journal.jsonl")
@@ -140,11 +141,17 @@ class TradingEngine:
         self._pain_memory = get_pain_memory()
         self._journal = PaperJournal()
 
+        # Dynamic watchlist — pulls from investor DB + market context
+        if watchlist is None:
+            from .dynamic_watchlist import get_dynamic_watchlist as _get_dynamic_watchlist
+            watchlist = _get_dynamic_watchlist()
+        self._watchlist: list[str] = watchlist
+        logger.info("trading_engine_watchlist_loaded", count=len(self._watchlist))
+
         # Estado
         self._session: TradingSession | None = None
         self._last_scan_time: float = 0
         self._scan_interval_seconds: int = 30  # Scan a cada 30s durante mercado
-        self._watchlist: list[str] = ["AAPL", "SPY", "TLT", "GLD", "QQQ", "IWM"]  # Ativos líquidos
         self._opportunities_found: list[TradingOpportunity] = []
 
         # Métricas

@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from core.config.logging_config import get_logger
+from .dynamic_watchlist import get_dynamic_watchlist as _get_dynamic_watchlist
 
 logger = get_logger(__name__)
 
@@ -74,12 +75,17 @@ class LiveTradingEngine:
         equity: float = 10000.0,
         journal_path: Path | None = None,
         persistence_path: Path | None = None,
+        watchlist: list[str] | None = None,
     ):
         self.equity = equity
         self._use_ibkr = use_ibkr
         self._journal_path = journal_path or Path("data/paper_journal.jsonl")
         self._persistence_path = persistence_path or Path("data/live_trading_engine_state.json")
         self._persistence_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Dynamic watchlist — pulls from investor DB + market scanners
+        self._watchlist: list[str] = watchlist or _get_dynamic_watchlist()
+        logger.info("live_engine_watchlist_loaded", count=len(self._watchlist))
 
         # Inicializar componentes
         self._xp_system = get_xp_system()
@@ -99,7 +105,7 @@ class LiveTradingEngine:
         self._session_start: str | None = None
         self._last_scan_time: float = 0
         self._scan_interval_seconds: int = 60  # Scan a cada 60s (dados reais)
-        self._watchlist: list[str] = ["AAPL", "SPY", "QQQ", "IWM", "TLT", "GLD"]
+        self._watchlist: list[str] = watchlist or _get_dynamic_watchlist()
 
         # Métricas
         self._total_trades = 0
