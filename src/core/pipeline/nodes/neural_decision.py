@@ -71,8 +71,35 @@ async def node_neural_decision(state: dict) -> dict:
         context = _build_context(data, pennylab)
         timeframe = state.get("time_horizon") or "14 days"
 
+        # ── Primeiro tenta MLP real (TechnicalNeuralExpert) ──
+        mlp_result = None
+        try:
+            candles = data.get("candles") or data.get("ohlcv") or []
+            if isinstance(data.get("price"), dict):
+                price_candles = data["price"].get("candles") or data["price"].get("ohlcv") or []
+                if price_candles:
+                    candles = price_candles
+            if candles and len(candles) >= 50:
+                from experts.technical_neural.expert import TechnicalNeuralExpert
+                mlp = TechnicalNeuralExpert()
+                mlp_result = mlp.evaluate(ticker, list(candles))
+        except Exception:
+            pass  # fallback to rule-based NeuralDecisionExpert
+
         expert = NeuralDecisionExpert()
         result = expert.predict(ticker, timeframe, features, context)
+
+        # ── Se o MLP real produziu probabilidade, substitui as hardcoded ──
+        if mlp_result and mlp_result.get("confidence", 0) > 0.3:
+            mlp_prob_up = mlp_result.get("neural_score", 0.5)
+            result["direction_prob"] = {
+                "up": round(mlp_prob_up, 2),
+                "down": round(1.0 - mlp_prob_up - 0.10, 2),
+                "sideways": 0.10,
+            }
+            result["mlp_source"] = "technical_neural_on_the_fly"
+            result["mlp_verdict"] = mlp_result.get("verdict", "WAIT")
+            result["mlp_confidence"] = mlp_result.get("confidence", 0.0)
 
         writer(
             {
