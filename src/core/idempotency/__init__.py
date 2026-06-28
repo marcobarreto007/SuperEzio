@@ -1,0 +1,163 @@
+"""Idempotency and deduplication for trade orders.
+
+Prevents duplicate order submission across:
+- Process restarts (persistent dedup via journal)
+- Network retries (deterministic idempotency key)
+- Concurrent submissions (dead letter queue for failed writes)
+
+Design contract:
+- Idempotency key = sha256(ticker|qty|limit_price|window_5min)
+- Same intent → same key → detected as duplicate
+- Dead letter queue at journal/dead_letter/ for orders that failed to persist
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+from core.config.logging_config import get_logger
+
+logger = get_logger(__name__)
+
+# ═══════════════════════════════════════════════════════════════
+# Idempotency Key
+# ═══════════════════════════════════════════════════════════════
+
+
+def make_idempotency_key(
+    ticker: str,
+    qty: int,
+    limit_price: float,
+    window_minutes: int = 5,
+) -> str:
+    """Generate a deterministic idempotency key for a trade order.
+
+    Same ticker+qty+price within the same time window → same key.
+    This prevents duplicate submission across retries and restarts.
+
+    The 5-minute window means if you genuinely want to submit the same
+    order again after 5 minutes, it gets a NEW key (it's a new intent).
+    """
+    # Truncate timestamp to window boundary
+    now = datetime.now(timezone.utc)
+    window_epoch = int(now.timestamp() / (window_minutes * 60)) * (window_minutes * 60)
+
+    payload = f"{ticker.upper()}|{int(qty)}|{limit_price:.2f}|{window_epoch}"
+    key = hashlib.sha256(payload.encode()).hexdigest()[:16]
+    return f"idem-{key}"
+
+
+# ═══════════════════════════════════════════════════════════════
+# Persistent Dedup
+# ═══════════════════════════════════════════════════════════════
+
+_DEDUP_DIR = Path("journal/dedup")
+
+
+def _ensure_dedup_dir() -> Path:
+    _DEDUP_DIR.mkdir(parents=True, exist_ok=True)
+    return _DEDUP_DIR
+
+
+def is_duplicate(idempotency_key: str) -> bool:
+    """Check if this idempotency key has already been processed.
+
+    Returns True if the key was seen before (duplicate), False if new.
+    """
+    dedup_file = _ensure_dedup_dir() / f"{idempotency_key}.json"
+    return dedup_file.exists()
+
+
+def mark_processed(idempotency_key: str, metadata: dict[str, Any] | None = None) -> None:
+    """Record that this idempotency key has been processed.
+
+    Writes a marker file to journal/dedup/ for cross-process dedup.
+    """
+    dedup_file = _ensure_dedup_dir() / f"{idempotency_key}.json"
+    record = {
+        "idempotency_key": idempotency_key,
+        "processed_at": datetime.now(timezone.utc).isoformat(),
+        "metadata": metadata or {},
+    }
+    dedup_file.write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
+    logger.info("idempotency_key_recorded", key=idempotency_key)
+
+
+# ═══════════════════════════════════════════════════════════════
+# Dead Letter Queue
+# ═══════════════════════════════════════════════════════════════
+
+_DEAD_LETTER_DIR = Path("journal/dead_letter")
+
+
+def _ensure_dead_letter_dir() -> Path:
+    _DEAD_LETTER_DIR.mkdir(parents=True, exist_ok=True)
+    return _DEAD_LETTER_DIR
+
+
+def enqueue_dead_letter(
+    ticker: str,
+    qty: int,
+    limit_price: float,
+    action: str,
+    reason: str,
+    state_snapshot: dict[str, Any] | None = None,
+) -> str:
+    """Save a failed/cancelled order to the dead letter queue for manual replay.
+
+    Called when:
+    - Journal write fails
+    - IBKR submission times out after retries
+    - Any order that was ALLOWED by gate but failed execution
+
+    Returns the dead letter file path.
+    """
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    filename = f"{timestamp}_{ticker}_{action}.json"
+    dead_file = _ensure_dead_letter_dir() / filename
+
+    record = {
+        "dead_letter_id": f"dl-{timestamp}-{ticker}",
+        "ticker": ticker.upper(),
+        "qty": qty,
+        "limit_price": limit_price,
+        "action": action,
+        "failure_reason": reason,
+        "failed_at": datetime.now(timezone.utc).isoformat(),
+        "state_snapshot": state_snapshot or {},
+        "replay_status": "pending",
+    }
+
+    dead_file.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+    logger.warning(
+        "dead_letter_enqueued",
+        ticker=ticker,
+        action=action,
+        reason=reason,
+        path=str(dead_file),
+    )
+    return str(dead_file)
+
+
+def list_dead_letters() -> list[dict[str, Any]]:
+    """List all pending dead letter entries."""
+    entries: list[dict[str, Any]] = []
+    dead_dir = _ensure_dead_letter_dir()
+    for f in sorted(dead_dir.glob("*.json")):
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+            if data.get("replay_status") == "pending":
+                entries.append(data)
+        except Exception:
+            logger.warning("dead_letter_corrupted", file=str(f))
+    return entries
+
+
+def count_dead_letters() -> int:
+    """Count pending dead letter entries."""
+    return len(list_dead_letters())
