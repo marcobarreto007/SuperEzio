@@ -6,3 +6,7 @@
 {"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-06-28T03:37:17.990490+00:00", "healed": false}
 {"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-28T03:37:21.397802+00:00", "healed": false}
 {"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Cache DB does not exist", "timestamp": "2026-06-28T03:37:22.331565+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-28T03:49:53.370037+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 3 tickers cached (need >10)", "timestamp": "2026-06-28T03:49:58.723899+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-28T03:51:03.653163+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 3 tickers cached (need >10)", "timestamp": "2026-06-28T03:51:04.489068+00:00", "healed": false}
