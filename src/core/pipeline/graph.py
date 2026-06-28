@@ -163,8 +163,6 @@ async def _auto_full_analysis(
     )
 
     # Collector must run BEFORE Bob for any data-dependent request.
-    # Detects market scan/trade intent from message content OR case_pending.
-    # (case_type is NOT in PipelineState schema so we detect from message)
     _msg = str(working_state.get("message") or "").lower()
     _has_ticker = bool(working_state.get("ticker") or working_state.get("case_ticker"))
     _needs_scan = any(w in _msg for w in (
@@ -173,28 +171,43 @@ async def _auto_full_analysis(
         "recomend", "recomendacao", "sugira", "sugestao",
         "papel", "ticket", "ordem", "comprar", "vender",
         "trade", "investir", "investimento", "acao", "stock",
+        "analise", "analyze", "analisa",  # single-ticker analysis
     ))
     should_collect_market = bool(
         route in {"market_scan", "ticker_analysis"}
         or working_state.get("force_auto_collect")
-        or (_needs_scan and not _has_ticker and route == "agent")
+        or _needs_scan  # ANY data-related request, with or without ticker
     )
 
     from core.pipeline.resilience import try_run_async
 
-    _, collect_err = await try_run_async(
-        "auto_full_analysis.collect_data",
-        _do_collect,
-        working_state, output, should_collect_market, route, config,
-        _merge_node_update, _mark_step,
-        fallback=None,
-        log_level="warning",
-    )
-    if collect_err:
-        _merge_node_update(
-            working_state, output,
-            {"errors": [f"auto_full_analysis.collect_data:{collect_err}"]},
+    # Run collector SYNCHRONOUSLY when data is needed.
+    # Previously ran via try_run_async which fire-and-forgets — collector
+    # finished AFTER agent already built its prompt without data_context.
+    if should_collect_market:
+        try:
+            await _do_collect(working_state, output, should_collect_market, route, config,
+                              _merge_node_update, _mark_step)
+        except Exception as collect_err:
+            _merge_node_update(
+                working_state, output,
+                {"errors": [f"auto_full_analysis.collect_data:{collect_err}"]},
+            )
+    else:
+        # Non-critical collection can run async
+        _, collect_err = await try_run_async(
+            "auto_full_analysis.collect_data",
+            _do_collect,
+            working_state, output, should_collect_market, route, config,
+            _merge_node_update, _mark_step,
+            fallback=None,
+            log_level="warning",
         )
+        if collect_err:
+            _merge_node_update(
+                working_state, output,
+                {"errors": [f"auto_full_analysis.collect_data:{collect_err}"]},
+            )
 
     ticker = str(
         working_state.get("ticker") or (working_state.get("data") or {}).get("ticker") or ""
