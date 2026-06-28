@@ -25,40 +25,100 @@ def register_custom_tools(registry):
     )
 
     def calculate(expression: str) -> str:
-        """Calcula uma expressão matemática segura via AST."""
+        """Calcula expressão matemática ou financeira com segurança via AST.
+
+        Suporta operações aritméticas básicas e funções financeiras:
+          sharpe(ret, vol)     -> ret/vol (anualizado)
+          kelly(win_p, wl_r)   -> fração de Kelly
+          position(capital, risk_pct, stop_pct) -> tamanho da posição
+          var_95(returns_csv)  -> VaR 95% de uma lista de retornos
+          max_dd(equity_csv)   -> máximo drawdown de uma curva
+          vol(returns_csv)     -> volatilidade anualizada
+        """
+        import math
+        import ast
+        import operator
+
+        allowed_ops = {
+            ast.Add: operator.add, ast.Sub: operator.sub,
+            ast.Mult: operator.mul, ast.Div: operator.truediv,
+            ast.FloorDiv: operator.floordiv, ast.Mod: operator.mod,
+            ast.Pow: operator.pow, ast.USub: operator.neg, ast.UAdd: operator.pos,
+        }
+        safe_funcs = {
+            "abs": abs, "round": round, "min": min, "max": max,
+            "sqrt": math.sqrt, "log": math.log, "exp": math.exp,
+        }
+
+        def _parse_csv(s: str) -> list[float]:
+            return [float(x.strip()) for x in s.split(",") if x.strip()]
+
+        def _sharpe(ret: float, vol: float) -> float:
+            return ret / vol if vol != 0 else 0.0
+
+        def _kelly(win_p: float, wl_r: float) -> float:
+            if wl_r <= 0: return 0.0
+            f = (win_p * wl_r - (1 - win_p)) / wl_r
+            return max(0.0, min(1.0, f))
+
+        def _position(capital: float, risk_pct: float, stop_pct: float) -> float:
+            risk_amount = capital * (risk_pct / 100)
+            return risk_amount / (stop_pct / 100) if stop_pct > 0 else 0.0
+
+        def _var95(returns_csv: str) -> float:
+            r = sorted(_parse_csv(returns_csv))
+            idx = int(0.05 * len(r))
+            return r[max(0, idx)]
+
+        def _maxdd(equity_csv: str) -> float:
+            eq = _parse_csv(equity_csv)
+            peak = eq[0]; max_dd = 0.0
+            for v in eq:
+                if v > peak: peak = v
+                dd = (v - peak) / peak if peak != 0 else 0
+                if dd < max_dd: max_dd = dd
+            return max_dd
+
+        def _vol(returns_csv: str) -> float:
+            r = _parse_csv(returns_csv)
+            if len(r) < 2: return 0.0
+            mean = sum(r) / len(r)
+            var = sum((x - mean)**2 for x in r) / (len(r) - 1)
+            return math.sqrt(var) * math.sqrt(252)
+
+        finance_funcs = {
+            "sharpe": _sharpe, "kelly": _kelly, "position": _position,
+            "var_95": _var95, "max_dd": _maxdd, "vol": _vol,
+        }
+
+        def eval_node(node):
+            if isinstance(node, ast.Expression):
+                return eval_node(node.body)
+            if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+                return node.value
+            if isinstance(node, ast.BinOp) and type(node.op) in allowed_ops:
+                left = eval_node(node.left)
+                right = eval_node(node.right)
+                if isinstance(node.op, ast.Pow) and abs(right) > 12:
+                    raise ValueError("expoente muito alto")
+                return allowed_ops[type(node.op)](left, right)
+            if isinstance(node, ast.UnaryOp) and type(node.op) in allowed_ops:
+                return allowed_ops[type(node.op)](eval_node(node.operand))
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                name = node.func.id
+                args = [eval_node(a) for a in node.args]
+                if name in safe_funcs:
+                    return safe_funcs[name](*args)
+                if name in finance_funcs:
+                    return finance_funcs[name](*args)
+                raise ValueError(f"funcao nao permitida: {name}")
+            raise ValueError("expressao nao permitida")
+
         try:
-            import ast
-            import operator
-
-            allowed_ops = {
-                ast.Add: operator.add,
-                ast.Sub: operator.sub,
-                ast.Mult: operator.mul,
-                ast.Div: operator.truediv,
-                ast.FloorDiv: operator.floordiv,
-                ast.Mod: operator.mod,
-                ast.Pow: operator.pow,
-                ast.USub: operator.neg,
-                ast.UAdd: operator.pos,
-            }
-
-            def eval_node(node):
-                if isinstance(node, ast.Expression):
-                    return eval_node(node.body)
-                if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
-                    return node.value
-                if isinstance(node, ast.BinOp) and type(node.op) in allowed_ops:
-                    left = eval_node(node.left)
-                    right = eval_node(node.right)
-                    if isinstance(node.op, ast.Pow) and abs(right) > 12:
-                        raise ValueError("expoente muito alto")
-                    return allowed_ops[type(node.op)](left, right)
-                if isinstance(node, ast.UnaryOp) and type(node.op) in allowed_ops:
-                    return allowed_ops[type(node.op)](eval_node(node.operand))
-                raise ValueError("expressao nao permitida")
-
             tree = ast.parse(expression, mode="eval")
             result = eval_node(tree)
+            if isinstance(result, float):
+                result = round(result, 6)
             return f"Resultado: {result}"
         except Exception as e:
             return f"Erro: {e}"
@@ -66,8 +126,8 @@ def register_custom_tools(registry):
     registry.register(
         name="calculate",
         func=calculate,
-        desc="Calcula expressão matemática simples",
-        schema={"expression": "string, expressão como '2+2' ou '10*5'"},
+        desc="Calcula expressão matemática/financeira. Suporta: + - * / ** sqrt log exp abs round min max, e funções financeiras: sharpe(ret,vol) kelly(win_p,wl_r) position(capital,risk%,stop%) var_95('r1,r2,...') max_dd('e1,e2,...') vol('r1,r2,...')",
+        schema={"expression": "string, expressão como 'kelly(0.6, 2.0)' ou 'position(10000, 2, 15)' ou 'sharpe(0.12, 0.25)'"},
     )
 
 

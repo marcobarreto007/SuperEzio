@@ -58,8 +58,9 @@ def _hrp_weights(cov: np.ndarray) -> np.ndarray:
             if std[i] > 0 and std[j] > 0:
                 corr[i][j] = cov[i][j] / (std[i] * std[j])
 
-    # Distance matrix
-    dist = np.sqrt(0.5 * (1.0 - corr))
+    # Distance matrix (clamp correlation for numerical stability)
+    corr_clipped = np.clip(corr, -1.0, 1.0)
+    dist = np.sqrt(0.5 * (1.0 - corr_clipped))
     dist[np.isnan(dist)] = 1.0
 
     # Hierarchical clustering

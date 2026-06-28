@@ -401,37 +401,149 @@ class MathHub:
             return {"status": "error", "reason": str(exc)[:200]}
 
     def _quantum_module(self) -> dict[str, Any]:
-        """QuantumWalkBias — small stochastic perturbation for pricing models."""
+        """Monte Carlo scenario generator — quantum walk distribution weights simulations.
+
+        Replaces cosmetic QuantumWalkBias with actual utility:
+        Uses the quantum walk probability distribution as scenario weights
+        for a mini Monte Carlo simulation over price paths.
+        """
         try:
             from experts.crisis.quantum_expert import QuantumWalkBias
+            import numpy as np
+
             qw = QuantumWalkBias(n_qubits=4)
             result = qw.run_simulation()
-            # Extract bias as normalized deviation from uniform distribution
             counts = result.get("counts", {})
-            if counts:
-                total = sum(counts.values())
-                probs = [v / total for v in counts.values()]
-                bias = (max(probs) - 1.0 / len(probs)) if probs else 0.0
-                return {"status": "ok", "values": {"bias": round(bias, 6), "qubits": 4}}
-            return {"status": "ok", "values": {"bias": 0.0, "qubits": 4}}
+            if not counts:
+                return {"status": "skipped", "reason": "no_quantum_counts"}
+
+            # Normalize to probabilities
+            total = sum(counts.values())
+            probs = {k: v / total for k, v in counts.items()}
+
+            # Use as scenario weights for mini Monte Carlo (100 scenarios)
+            n_scenarios = 100
+            states = list(probs.keys())
+            weights = [probs[s] for s in states]
+            rng = np.random.RandomState(42)
+
+            # Generate scenario returns: sample from quantum distribution
+            # Each scenario gets a return multiplier weighted by quantum probs
+            scenarios = []
+            for _ in range(n_scenarios):
+                # Weighted random choice of quantum state
+                state_idx = rng.choice(len(states), p=weights)
+                # Map state to return multiplier: 0=0.95, 1=0.98, 2=1.0, 3=1.02, 4=1.05, etc
+                state_val = int(states[state_idx], 2)  # binary to int
+                multiplier = 0.90 + (state_val / max(1, 2**4 - 1)) * 0.20  # 0.90 to 1.10
+                # Add noise
+                multiplier += rng.normal(0, 0.01)
+                scenarios.append(round(multiplier, 4))
+
+            scenarios.sort()
+            var_95_mc = float(np.percentile(scenarios, 5))
+            var_99_mc = float(np.percentile(scenarios, 1))
+            expected_mult = float(np.mean(scenarios))
+            worst_case = float(min(scenarios))
+            best_case = float(max(scenarios))
+
+            return {
+                "status": "ok",
+                "values": {
+                    "method": "quantum_weighted_monte_carlo",
+                    "n_scenarios": n_scenarios,
+                    "expected_multiplier": round(expected_mult, 4),
+                    "var_95_multiplier": round(var_95_mc, 4),
+                    "var_99_multiplier": round(var_99_mc, 4),
+                    "worst_case": round(worst_case, 4),
+                    "best_case": round(best_case, 4),
+                    "qubits": 4,
+                },
+            }
         except Exception as exc:
             return {"status": "skipped", "reason": str(exc)[:100]}
 
     def _portfolio_module(self, closes: list[float], ticker: str) -> dict[str, Any]:
-        """HRP portfolio allocation for the current ticker."""
-        if not closes or len(closes) < 10 or not ticker:
-            return {"status": "skipped", "reason": "insufficient_data"}
+        """HRP portfolio allocation — multi-asset from historical cache."""
+        if not ticker:
+            return {"status": "skipped", "reason": "no_ticker"}
         try:
-            daily_returns = [
-                (closes[i] - closes[i - 1]) / closes[i - 1]
-                for i in range(1, len(closes))
-                if closes[i - 1] > 0
-            ]
-            if len(daily_returns) < 5:
-                return {"status": "skipped", "reason": "insufficient_returns"}
-            from core.math.portfolio import hrp_allocate
-            result = hrp_allocate({ticker: daily_returns}, capital=10000.0)
-            return {"status": "ok", "values": result}
+            import sqlite3
+            from core.math.portfolio import hrp_allocate, covariance_matrix
+
+            # Fetch returns for up to 20 tickers from historical cache
+            ticker_returns: dict[str, list[float]] = {}
+            db_path = "data/historical_cache.db"
+            try:
+                conn = sqlite3.connect(db_path)
+                # Get tickers with most data points
+                rows = conn.execute(
+                    "SELECT ticker, COUNT(*) as cnt FROM ohlcv_cache GROUP BY ticker ORDER BY cnt DESC LIMIT 20"
+                ).fetchall()
+                for t, _ in rows:
+                    candles = conn.execute(
+                        "SELECT close FROM ohlcv_cache WHERE ticker=? ORDER BY date DESC LIMIT 60",
+                        (t,),
+                    ).fetchall()
+                    closes_t = [c[0] for c in reversed(candles) if c[0]]
+                    if len(closes_t) >= 20:
+                        rets = [
+                            (closes_t[i] - closes_t[i - 1]) / closes_t[i - 1]
+                            for i in range(1, len(closes_t))
+                            if closes_t[i - 1] > 0
+                        ]
+                        if len(rets) >= 10:
+                            ticker_returns[t] = rets
+                conn.close()
+            except Exception:
+                pass
+
+            # Fallback: at least include current ticker
+            if ticker not in ticker_returns and closes and len(closes) >= 10:
+                rets = [
+                    (closes[i] - closes[i - 1]) / closes[i - 1]
+                    for i in range(1, len(closes))
+                    if closes[i - 1] > 0
+                ]
+                if len(rets) >= 5:
+                    ticker_returns[ticker] = rets
+
+            if len(ticker_returns) < 1:
+                return {"status": "skipped", "reason": "no_tickers_with_returns"}
+
+            result = hrp_allocate(ticker_returns, capital=10000.0)
+
+            # Add covariance summary for top pairs
+            cov_summary = {}
+            if len(ticker_returns) >= 2:
+                cov = covariance_matrix(ticker_returns)
+                # Find highest correlation pair
+                max_corr = 0.0
+                max_pair = ("", "")
+                tickers_list = list(ticker_returns.keys())
+                for i in range(len(tickers_list)):
+                    for j in range(i + 1, len(tickers_list)):
+                        ti, tj = tickers_list[i], tickers_list[j]
+                        std_i = cov[ti][ti] ** 0.5
+                        std_j = cov[tj][tj] ** 0.5
+                        if std_i > 0 and std_j > 0:
+                            corr = cov[ti][tj] / (std_i * std_j)
+                            if abs(corr) > abs(max_corr):
+                                max_corr = corr
+                                max_pair = (ti, tj)
+                cov_summary = {
+                    "highest_correlation": round(max_corr, 3),
+                    "pair": f"{max_pair[0]}/{max_pair[1]}",
+                }
+
+            return {
+                "status": "ok",
+                "values": {
+                    **result,
+                    "covariance_summary": cov_summary,
+                    "tickers_used": len(ticker_returns),
+                },
+            }
         except Exception as exc:
             return {"status": "error", "reason": str(exc)[:100]}
 
