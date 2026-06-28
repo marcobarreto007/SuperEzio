@@ -2758,7 +2758,21 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         from datetime import datetime as dt_now
 
         mission_context = _load_mission_context()
+
+        # ── Adaptive Agent: XP + Pain + Auto-Calibration + RL ──
+        adaptive_context = ""
+        try:
+            from core.trading.adaptive_agent import get_adaptive_config, render_adaptive_context
+            adaptive_cfg = get_adaptive_config()
+            adaptive_context = render_adaptive_context(adaptive_cfg)
+            # Inject calibrated params into state for downstream nodes
+            state["adaptive_config"] = adaptive_cfg
+        except Exception:
+            pass
+
         active_system_prompt = BOB_SOVEREIGN_PROMPT
+        if adaptive_context:
+            active_system_prompt = adaptive_context + "\n\n" + active_system_prompt
         if mission_context:
             active_system_prompt = mission_context + "\n\n" + active_system_prompt
 
