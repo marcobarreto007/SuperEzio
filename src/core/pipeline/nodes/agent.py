@@ -2630,8 +2630,16 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         else []
     )
     mandatory_call = None
+    # ALWAYS check for mandatory tool calls (collect_data, market_scan, experts)
     if not isinstance(scan_state, dict) or scan_candidates:
         mandatory_call = _forced_tool_call_before_final(state)
+    # FALLBACK: If ticker present but no data and no scan, force collect_data
+    if mandatory_call is None and state.get("ticker") and not state.get("data") and not state.get("scan"):
+        allowed_tools = set(state.get("allowed_tools") or [])
+        executed_tools = set(state.get("executed_tools") or [])
+        if "collect_data" in allowed_tools and "collect_data" not in executed_tools:
+            mandatory_call = {"tool": "collect_data", "args": {"ticker": state["ticker"]}}
+            logger.info("FORCED_COLLECT_DATA: ticker=%s has no data, auto-calling collect_data", state["ticker"])
     if mandatory_call:
         _tracer.end_node(
             trace_token,
