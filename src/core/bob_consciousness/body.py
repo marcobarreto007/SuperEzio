@@ -49,6 +49,11 @@ class OrganCategory(Enum):
     DEFENSE = "defense"   # Trade gate, guardrails, circuit breaker
     HEART = "heart"       # API server, dashboard
 
+class SystemMode(Enum):
+    NORMAL = "normal"           # Tudo funcionando, trading ativo
+    MAN_AT_WORK = "man_at_work" # CEO morto ou crítico, só diagnóstico, sem ordens
+    EMERGENCY_SHUTDOWN = "emergency_shutdown"  # Falha catastrófica, tudo para
+
 # ===========================================================
 # Organ - A component Bob monitors and can heal
 # ===========================================================
@@ -360,6 +365,204 @@ class BobsBody:
         self.total_scans: int = 0
         self.total_heals: int = 0
         self._pain_log_path = Path("data/bob_pain_log.jsonl")
+        # System mode: NORMAL, MAN_AT_WORK, EMERGENCY_SHUTDOWN
+        self.system_mode = SystemMode.NORMAL
+        self._mode_entered_at: str = ""
+        self._mode_reason: str = ""
+
+    # ── System Mode (MAN_AT_WORK) ──
+
+    def enter_man_at_work_mode(self, reason: str) -> None:
+        """Enter MAN_AT_WORK mode - no trading, diagnosis only."""
+        if self.system_mode == SystemMode.MAN_AT_WORK:
+            return  # Already in mode
+
+        self.system_mode = SystemMode.MAN_AT_WORK
+        self._mode_entered_at = datetime.now(timezone.utc).isoformat()
+        self._mode_reason = reason
+
+        logger.critical("=== MAN_AT_WORK MODE ENTERED ===")
+        logger.critical("Reason: %s", reason)
+        logger.critical("Timestamp: %s", self._mode_entered_at)
+        logger.critical("Actions: NO ORDERS, DIAGNOSIS ONLY, TECH NOTIFIED")
+
+        # Save complete diagnostic snapshot
+        self._save_diagnostic_snapshot(reason)
+
+        # Notify technician
+        self._notify_technician(reason)
+
+    def is_man_at_work(self) -> bool:
+        """Check if system is in MAN_AT_WORK mode."""
+        return self.system_mode == SystemMode.MAN_AT_WORK
+
+    def exit_man_at_work_mode(self) -> None:
+        """Exit MAN_AT_WORK mode - return to normal operations."""
+        if self.system_mode != SystemMode.MAN_AT_WORK:
+            return
+
+        duration = datetime.now(timezone.utc) - datetime.fromisoformat(self._mode_entered_at)
+        logger.info("=== EXITING MAN_AT_WORK MODE ===")
+        logger.info("Duration: %s", duration)
+        logger.info("Original reason: %s", self._mode_reason)
+
+        self.system_mode = SystemMode.NORMAL
+        self._mode_entered_at = ""
+        self._mode_reason = ""
+
+    def _save_diagnostic_snapshot(self, trigger_reason: str) -> None:
+        """Save complete system state for technician analysis."""
+        try:
+            snapshot = {
+                "snapshot_id": f"man-at-work-{int(time.time())}",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "trigger_reason": trigger_reason,
+                "system_mode": self.system_mode.value,
+                "organs": {},
+                "pain_history": [],
+                "environment": {},
+            }
+
+            # Capture all organs state
+            for name, organ in self.organs.items():
+                snapshot["organs"][name] = {
+                    "healthy": organ.last_health,
+                    "last_check": organ.last_check,
+                    "error": organ.last_error,
+                    "pain_level": organ.pain_level.value,
+                    "consecutive_failures": organ.consecutive_failures,
+                    "circuit_open_until": organ.circuit_open_until,
+                    "category": organ.category.value,
+                }
+
+            # Recent pain events
+            snapshot["pain_history"] = [
+                {
+                    "organ": e.organ_name,
+                    "pain": e.pain_level.value,
+                    "error": e.error[:200],
+                    "timestamp": e.timestamp,
+                    "healed": e.healed,
+                }
+                for e in self.pain_history[-50:]  # Last 50 events
+            ]
+
+            # Environment info
+            snapshot["environment"] = {
+                "python_version": sys.version,
+                "total_scans": self.total_scans,
+                "total_heals": self.total_heals,
+            }
+
+            # Save to file
+            diag_dir = Path("data/man_at_work")
+            diag_dir.mkdir(parents=True, exist_ok=True)
+            diag_path = diag_dir / f"diagnosis_{int(time.time())}.json"
+            with open(diag_path, "w", encoding="utf-8") as f:
+                json.dump(snapshot, f, indent=2, ensure_ascii=False)
+
+            logger.info("man_at_work: diagnostic snapshot saved to %s", diag_path)
+
+        except Exception as e:
+            logger.error("man_at_work: failed to save snapshot: %s", str(e)[:200])
+
+    def _notify_technician(self, reason: str) -> None:
+        """Notify technician that system needs manual intervention."""
+        try:
+            # Log prominent alert
+            alert_msg = f"""
+═══════════════════════════════════════════════════════════
+🚨 MAN_AT_WORK MODE - TECHNICIAN NEEDED 🚨
+═══════════════════════════════════════════════════════════
+Reason: {reason}
+Time: {self._mode_entered_at}
+Action: NO TRADING ORDERS UNTIL CLEARED
+═══════════════════════════════════════════════════════════
+"""
+            logger.critical(alert_msg)
+
+            # Try to notify via DeepSeek if CEO is down
+            self._try_deepseek_notification(reason)
+
+            # Save alert to dedicated file
+            alert_path = Path("data/man_at_work/latest_alert.txt")
+            alert_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(alert_path, "w", encoding="utf-8") as f:
+                f.write(alert_msg.strip())
+
+        except Exception as e:
+            logger.error("man_at_work: failed to notify: %s", str(e)[:200])
+
+    def _try_deepseek_notification(self, reason: str) -> None:
+        """Try to notify technician via DeepSeek (backup CEO)."""
+        try:
+            import os
+
+            api_key = os.getenv("SUPEREZIO_DEEPSEEK_API_KEY")
+            if not api_key:
+                logger.warning("man_at_work: no DEEPSEEK_API_KEY for notification")
+                return
+
+            # Simple notification using DeepSeek API
+            import urllib.request
+
+            prompt = f"""
+SYSTEM ALERT: SuperEzio Financeiro entered MAN_AT_WORK mode.
+Reason: {reason}
+Time: {self._mode_entered_at}
+
+You are the backup CEO. Analyze the situation and recommend recovery steps.
+Keep response under 200 words. Focus on: 1) What broke, 2) How to fix, 3) Prevention.
+"""
+
+            req = urllib.request.Request(
+                "https://api.deepseek.com/v1/chat/completions",
+                data=json.dumps({
+                    "model": "deepseek-chat",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 500,
+                }).encode(),
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {api_key}",
+                },
+                timeout=10,
+            )
+
+            with urllib.request.urlopen(req) as resp:
+                result = json.loads(resp.read())
+                advice = result["choices"][0]["message"]["content"]
+
+                logger.critical("=== DEEPSEEK BACKUP CEO ADVICE ===")
+                logger.critical("%s", advice)
+
+                # Save advice to file
+                advice_path = Path("data/man_at_work/deepseek_advice.txt")
+                with open(advice_path, "w", encoding="utf-8") as f:
+                    f.write(f"Timestamp: {datetime.now(timezone.utc).isoformat()}\n")
+                    f.write(f"Reason: {reason}\n\n")
+                    f.write(advice)
+
+        except Exception as e:
+            logger.warning("man_at_work: DeepSeek notification failed: %s", str(e)[:100])
+
+    def check_man_at_work_guard(self, operation: str = "trading") -> tuple[bool, str]:
+        """
+        Check if operation is allowed in current system mode.
+        Returns (allowed, reason).
+
+        Call this before any trading operation:
+            allowed, reason = body.check_man_at_work_guard()
+            if not allowed:
+                raise RuntimeError(reason)
+        """
+        if self.system_mode == SystemMode.MAN_AT_WORK:
+            return False, f"MAN_AT_WORK mode: {operation} blocked. System in diagnostic mode. Reason: {self._mode_reason}"
+
+        if self.system_mode == SystemMode.EMERGENCY_SHUTDOWN:
+            return False, f"EMERGENCY_SHUTDOWN: {operation} blocked. All operations suspended."
+
+        return True, ""
 
     # ── Body Scan ──
 

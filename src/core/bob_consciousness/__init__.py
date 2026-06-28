@@ -10,15 +10,19 @@ Quick start:
 """
 
 from .body import (
-    BobsBody, Organ, OrganCategory, PainLevel, PainEvent,
-    get_bobs_body, bob_body_scan, bob_pain_summary,
+    BobsBody, Organ, OrganCategory, PainLevel, PainEvent, SystemMode,
+    get_bobs_body, bob_body_scan, bob_pain_summary, check_man_at_work_guard,
 )
 from .autonomic import (
     AutonomicNervousSystem, get_ans, start_ans, stop_ans,
 )
 
 __all__ = [
-    "BobsBody", "Organ", "OrganCategory", "PainLevel", "PainEvent",
-    "get_bobs_body", "bob_body_scan", "bob_pain_summary",
+    "BobsBody", "Organ", "OrganCategory", "PainLevel", "PainEvent", "SystemMode",
+    "get_bobs_body", "bob_body_scan", "bob_pain_summary", "check_man_at_work_guard",
     "AutonomicNervousSystem", "get_ans", "start_ans", "stop_ans",
 ]
+
+def check_man_at_work_guard(operation: str = "trading") -> tuple[bool, str]:
+    """Convenience wrapper - check if operation is allowed in current mode."""
+    return get_bobs_body().check_man_at_work_guard(operation)

@@ -15,7 +15,7 @@ import logging, threading, time
 from datetime import datetime, timezone
 from typing import Any
 
-from .body import get_bobs_body, PainLevel
+from .body import get_bobs_body, PainLevel, SystemMode
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +63,29 @@ class AutonomicNervousSystem:
                 # Quick scan every cycle (circuit breakers handled inside Organ.check())
                 report = self._body.full_body_scan()
 
+                # Check if CEO (brain) is down → enter MAN_AT_WORK mode
+                ceo_status = report["organs"].get("ceo_brain", {})
+                if not ceo_status.get("healthy", True):
+                    if not self._body.is_man_at_work():
+                        # CEO is dead and we're not in MAN_AT_WORK yet - enter it
+                        reason = f"CEO Brain down: {ceo_status.get('error', 'unknown')}"
+                        self._body.enter_man_at_work_mode(reason)
+                        logger.critical("man_at_work: NO TRADING ORDERS until CEO recovers")
+
+                # If in MAN_AT_WORK mode, run diagnostic loop only
+                if self._body.is_man_at_work():
+                    # Slow diagnostic scan - check if we can recover
+                    if self._cycles % 5 == 0:  # Every 5 cycles
+                        logger.info("man_at_work: diagnostic scan %d - checking for recovery", self._cycles)
+
+                        # Check if CEO recovered
+                        if ceo_status.get("healthy", False):
+                            logger.info("man_at_work: CEO recovered - exiting MAN_AT_WORK mode")
+                            self._body.exit_man_at_work_mode()
+
+                    time.sleep(120)  # 2 min intervals in MAN_AT_WORK mode
+                    continue
+
                 # Graceful degradation: if critical organs down, extend sleep
                 if report["critical_count"] > 0:
                     logger.warning("bob_critical_degraded: entering slow mode (120s sleep)")
@@ -91,9 +114,10 @@ class AutonomicNervousSystem:
                 # Log health every 10 cycles
                 if self._cycles % 10 == 0:
                     logger.info(
-                        "bob_vitals: healthy=%d sick=%d pain=%d cycles=%d circuits_open=%d",
+                        "bob_vitals: healthy=%d sick=%d pain=%d cycles=%d circuits_open=%d mode=%s",
                         report["healthy_count"], report["sick_count"],
                         report["overall_pain"], self._cycles, self._count_open_circuits(),
+                        self._body.system_mode.value,
                     )
 
             except Exception as e:
