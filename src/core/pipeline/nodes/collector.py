@@ -138,11 +138,10 @@ async def node_collector(state: dict, *, config=None) -> dict:
         }
     )
 
-    # ── Ticker analysis ──
-    if route == "ticker_analysis" and ticker:
-        # ═══════════════════════════════════════════════════
-        # FAST PATH: Check pre-computed cache first (<10ms)
-        # ═══════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════
+    # FAST PATH: Check pre-computed cache for ANY route with a ticker
+    # ═══════════════════════════════════════════════════════
+    if ticker:
         cached = _try_fast_cache(ticker, writer)
         if cached:
             writer({
@@ -151,6 +150,9 @@ async def node_collector(state: dict, *, config=None) -> dict:
                 "provider": "cache", "route": route, "ticker": ticker,
             })
             return cached
+
+    # ── Ticker analysis ──
+    if route == "ticker_analysis" and ticker:
 
         use_pro = os.getenv("SUPEREZIO_PROFESSIONAL_COLLECTOR", "true").lower() in {
             "1",
