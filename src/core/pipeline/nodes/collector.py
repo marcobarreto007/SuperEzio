@@ -73,10 +73,10 @@ def _try_fast_cache(ticker: str, writer) -> dict | None:
         from core.trading.historical_cache import get_cached_ohlcv
         from core.trading.batch_expert_runner import get_expert_analysis
 
-        ohlcv = get_cached_ohlcv(ticker, days=1)  # Just need latest price
+        ohlcv = get_cached_ohlcv(ticker, days=5)  # Need at least 1 candle
         experts = get_expert_analysis(ticker)
 
-        if not ohlcv or not experts:
+        if not ohlcv:
             return None  # Cache miss — fall through to live collection
 
         latest = ohlcv[-1]
