@@ -125,9 +125,40 @@ def _inject_evidence(state: dict, observations: list[str]):
 
     # Simple key-value evidence (no wrapping needed)
     if state.get("ticker"):
+        ticker = state.get("ticker")
         has_data = bool(state.get("data") or state.get("data_context"))
         status = "DATA AVAILABLE" if has_data else "NO MARKET DATA — CALL collect_data"
-        observations.append(f"Current Ticker: {state.get('ticker')} ({status})")
+        observations.append(f"Current Ticker: {ticker} ({status})")
+
+        # Inject pre-computed expert analyses from learner 24/7
+        try:
+            from core.trading.batch_expert_runner import get_expert_analysis, get_expert_summary
+            precomputed = get_expert_analysis(ticker)
+            if precomputed:
+                summary = get_expert_summary(ticker)
+                observations.append(f"PRE-COMPUTED EXPERT ANALYSIS (24/7 learner):\n{summary}")
+        except Exception:
+            pass
+
+        # Inject cached OHLCV summary
+        try:
+            from core.trading.historical_cache import get_cached_ohlcv
+            ohlcv = get_cached_ohlcv(ticker, days=30)
+            if ohlcv:
+                closes = [c["close"] for c in ohlcv[-30:]]
+                volumes = [c["volume"] for c in ohlcv[-30:]]
+                high30 = max(c["high"] for c in ohlcv[-30:])
+                low30 = min(c["low"] for c in ohlcv[-30:])
+                latest = ohlcv[-1]
+                observations.append(
+                    f"OHLCV CACHE (30 days, pre-computed):\n"
+                    f"  Latest: ${latest['close']:.2f} (vol: {latest['volume']:,.0f})\n"
+                    f"  30d range: ${low30:.2f} - ${high30:.2f}\n"
+                    f"  30d avg close: ${sum(closes)/len(closes):.2f}\n"
+                    f"  30d avg volume: {sum(volumes)/len(volumes):,.0f}"
+                )
+        except Exception:
+            pass
     if state.get("data_context"):
         ctx = str(state.get("data_context"))
         # Never truncate mid-number or mid-word

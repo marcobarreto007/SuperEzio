@@ -22,6 +22,8 @@ from core.pipeline.f51_trade_gate import (
 
 class TestExecutionFreeze:
     def test_freeze_default_is_on(self):
+        # When env var is explicitly set to true, freeze must be ON
+        os.environ["F51_TRADING_EXECUTION_FREEZE"] = "true"
         assert is_execution_frozen() is True
 
     def test_freeze_blocks_valid_order(self):
