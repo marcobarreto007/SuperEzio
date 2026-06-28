@@ -162,11 +162,22 @@ async def _auto_full_analysis(
         }
     )
 
-    # FULL_ACCESS means Bob may use tools; it is not an instruction to run
-    # market collection before Bob has decided what the user is asking.
+    # Collector must run BEFORE Bob for any data-dependent request.
+    # Detects market scan/trade intent from message content OR case_pending.
+    # (case_type is NOT in PipelineState schema so we detect from message)
+    _msg = str(working_state.get("message") or "").lower()
+    _has_ticker = bool(working_state.get("ticker") or working_state.get("case_ticker"))
+    _needs_scan = any(w in _msg for w in (
+        "scan", "ache", "encontre", "find", "busque", "procure",
+        "penny", "momentum", "catalyst", "catalisador",
+        "recomend", "recomendacao", "sugira", "sugestao",
+        "papel", "ticket", "ordem", "comprar", "vender",
+        "trade", "investir", "investimento", "acao", "stock",
+    ))
     should_collect_market = bool(
         route in {"market_scan", "ticker_analysis"}
         or working_state.get("force_auto_collect")
+        or (_needs_scan and not _has_ticker and route == "agent")
     )
 
     from core.pipeline.resilience import try_run_async
