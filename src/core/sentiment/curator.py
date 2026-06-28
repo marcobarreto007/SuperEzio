@@ -36,19 +36,7 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _parse_time(value: Any) -> datetime | None:
-    if not value:
-        return None
-    try:
-        text = str(value)
-        if text.endswith("Z"):
-            text = text[:-1] + "+00:00"
-        parsed = datetime.fromisoformat(text)
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=timezone.utc)
-        return parsed
-    except (TypeError, ValueError):
-        return None
+from core.utils.datetime import parse_iso_datetime as _parse_time
 
 
 def _number(value: Any) -> float | None:
