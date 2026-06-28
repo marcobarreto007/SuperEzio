@@ -75,7 +75,7 @@ def is_valid_ticker_format(symbol: str) -> bool:
     if not symbol or len(symbol.strip()) < 2:
         return False
     cleaned = symbol.upper().strip()
-    pattern = r'^[A-Z]{1,5}(\.[A-Z]{1,3})?$'
+    pattern = r'^[A-Z]{2,5}(\.[A-Z]{1,3})?$'
     return bool(re.match(pattern, cleaned))
 
 
