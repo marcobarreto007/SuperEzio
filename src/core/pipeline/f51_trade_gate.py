@@ -13,6 +13,12 @@ Design contract:
 
 from __future__ import annotations
 
+import os
+import re
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Any
+
 from core.config.logging_config import get_logger
 from core.config.settings import get_settings
 
@@ -206,21 +212,56 @@ def resolve_and_validate_ticker(symbol: str) -> "tuple[str | None, float | None,
         return None, None, f"blacklisted_word:{symbol}"
     if not is_valid_ticker_format(symbol):
         return None, None, f"invalid_ticker_format:{symbol}"
+
+    # Try DataHub with circuit breaker + price cache fallback
     try:
-        from data.data_hub import DataHub
-        hub = DataHub()
-        price_result = hub.get_price(symbol)
-        if price_result and price_result.get("price"):
-            price = float(price_result["price"])
-            resolved_symbol = str(price_result.get("symbol", symbol)).upper()
-            return resolved_symbol, price, None
-        else:
-            return None, None, f"no_price_data:{symbol}"
+        from core.resilience import CircuitBreaker, CircuitOpenError, get_circuit, get_cached_price, cache_price
+
+        datahub_cb = get_circuit("datahub", failure_threshold=3, recovery_timeout=30)
+
+        try:
+            result = datahub_cb.call(_fetch_price_from_datahub, symbol)
+            if result:
+                return result
+        except CircuitOpenError:
+            logger.warning("datahub_circuit_open_fallback_to_cache", ticker=symbol)
+        except Exception as exc:
+            logger.warning("datahub_call_failed_fallback", ticker=symbol, error=str(exc)[:120])
+
+        # Graceful degradation: use cached price
+        cached_price, is_stale = get_cached_price(symbol)
+        if cached_price > 0:
+            logger.info(
+                "using_cached_price",
+                ticker=symbol,
+                price=cached_price,
+                stale=is_stale,
+            )
+            return symbol, cached_price, None if not is_stale else "stale_cache"
+
+        return None, None, f"no_price_data:{symbol}"
+
     except ImportError:
-        logger.warning("[F51_TRADE_GATE] DataHub unavailable")
+        logger.warning("datahub_unavailable_no_fallback", ticker=symbol)
         return symbol, None, None
-    except Exception as exc:
-        return None, None, f"datahub_error:{str(exc)[:80]}"
+
+
+def _fetch_price_from_datahub(symbol: str) -> "tuple[str, float, None] | None":
+    """Fetch price from DataHub. Separated for circuit breaker wrapping."""
+    from data.data_hub import DataHub
+    hub = DataHub()
+    price_result = hub.get_price(symbol)
+    if price_result and price_result.get("price"):
+        price = float(price_result["price"])
+        resolved_symbol = str(price_result.get("symbol", symbol)).upper()
+        # Cache successful result for future fallback
+        try:
+            from core.resilience import cache_price
+            cache_price(symbol, price)
+        except ImportError:
+            pass
+        return resolved_symbol, price, None
+    return None
 
 
 # ═══════════════════════════════════════════════════════════════
