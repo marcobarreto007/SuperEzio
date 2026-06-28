@@ -205,8 +205,29 @@ def _stop_sentiment_services(app: FastAPI) -> None:
 async def lifespan(app: FastAPI):
     import sys
 
+    # Configure structured logging FIRST (before any logger is used)
+    try:
+        from core.config.logging_config import configure_logging
+        configure_logging()
+        logger.info("structlog_configured", status="ok")
+    except Exception as exc:
+        logger.warning("structlog_configuration_failed", error=str(exc)[:200])
+
     logger.info("[%s] Agent Server starting on %s:%s...", AGENT_NAME, HOST, PORT)
     sys.stdout.flush()
+
+    # Validate settings at boot — crash early if env vars are misconfigured
+    try:
+        from core.config.settings import get_settings
+        _settings = get_settings()
+        logger.info(
+            "settings_validated",
+            freeze=_settings.f51_trading_execution_freeze,
+            paper_submit=_settings.superezio_enable_paper_order_submit,
+        )
+    except Exception as exc:
+        logger.critical("settings_validation_failed", error=str(exc)[:200])
+        raise
 
     # === BRAIN INITIALIZATION ===
     from core.pipeline import build_graph
@@ -286,6 +307,94 @@ async def security_headers_middleware(request: Request, call_next):
 
 
 app.include_router(a2a_router)
+
+
+# ═══════════════════════════════════════════════════════════════
+# Prometheus /metrics endpoint — Quality Engineering 2026
+# ═══════════════════════════════════════════════════════════════
+_PROMETHEUS_AVAILABLE = False
+try:
+    from prometheus_client import (
+        Counter,
+        Gauge,
+        Histogram,
+        generate_latest,
+        REGISTRY,
+    )
+
+    _PROMETHEUS_AVAILABLE = True
+
+    # Business metrics
+    superezio_orders_total = Counter(
+        "superezio_orders_total",
+        "Total de ordens processadas pelo F51 Trade Gate",
+        ["status", "ticker"],
+    )
+    superezio_gate_failures_total = Counter(
+        "superezio_gate_failures_total",
+        "Falhas por gate de segurança",
+        ["gate", "reason_code"],
+    )
+    superezio_execution_freeze = Gauge(
+        "superezio_execution_freeze",
+        "1 se FREEZE está ativo, 0 caso contrário",
+    )
+    superezio_ibkr_connectivity = Gauge(
+        "superezio_ibkr_connectivity",
+        "1 se IBKR está reachable, 0 caso contrário",
+    )
+    superezio_journal_health = Gauge(
+        "superezio_journal_health",
+        "1 se journal está writable, 0 caso contrário",
+    )
+    superezio_dead_letters_pending = Gauge(
+        "superezio_dead_letters_pending",
+        "Número de ordens na dead letter queue",
+    )
+    superezio_pipeline_duration_seconds = Histogram(
+        "superezio_pipeline_duration_seconds",
+        "Latência do pipeline completo",
+        buckets=[0.1, 0.5, 1, 2, 5, 10, 30, 60],
+    )
+except ImportError:
+    pass
+
+
+@app.get("/metrics/prometheus", include_in_schema=False)
+async def prometheus_metrics_endpoint():
+    """Prometheus metrics endpoint — business + infrastructure health."""
+    if not _PROMETHEUS_AVAILABLE:
+        return Response(
+            content="# Prometheus metrics unavailable (prometheus_client not installed)\n",
+            media_type="text/plain",
+            status_code=503,
+        )
+
+    # Update live gauges
+    try:
+        from core.config.settings import is_frozen
+        superezio_execution_freeze.set(1 if is_frozen() else 0)
+    except Exception:
+        superezio_execution_freeze.set(1)  # SAFE: assume frozen
+
+    try:
+        from core.pipeline.f51_trade_gate import is_ibkr_connectable, is_journal_healthy
+        superezio_ibkr_connectivity.set(1 if is_ibkr_connectable() else 0)
+        superezio_journal_health.set(1 if is_journal_healthy() else 0)
+    except Exception:
+        superezio_ibkr_connectivity.set(0)
+        superezio_journal_health.set(0)
+
+    try:
+        from core.idempotency import count_dead_letters
+        superezio_dead_letters_pending.set(count_dead_letters())
+    except Exception:
+        superezio_dead_letters_pending.set(-1)
+
+    return Response(
+        content=generate_latest(REGISTRY),
+        media_type="text/plain; version=0.0.4; charset=utf-8",
+    )
 
 if FRONTEND_DIR.exists():
     app.mount(
@@ -515,12 +624,20 @@ def run():
 
 @app.get("/metrics")
 async def get_metrics():
-    """MÃ©tricas de negÃ³cio: latÃªncia, erro rate, tokens, cache."""
-    return _json_safe({
+    """Métricas de negócio: latência, erro rate, tokens, cache, Prometheus."""
+    base = _json_safe({
         "service": "superezio",
         "version": "4.0.0",
         **metrics.get_all(),
     })
+    # Add Prometheus discoverability
+    try:
+        from core.config.settings import is_frozen
+        base["trading_frozen"] = is_frozen()
+    except Exception:
+        base["trading_frozen"] = True
+    base["prometheus_endpoint"] = "/metrics/prometheus"
+    return base
 
 
 # === Observability ===
