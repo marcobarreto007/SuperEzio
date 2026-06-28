@@ -35,6 +35,14 @@ node_modules/
 .cache/
 .autosave/
 .playwright-cli/
+.hypothesis/
+
+# Runtime artifacts (regenerated on each run)
+runs/evidence/
+data/traces/
+data/signals/
+output/
+reports/
 
 # Models (massive GGUF / safetensors files)
 /models/*

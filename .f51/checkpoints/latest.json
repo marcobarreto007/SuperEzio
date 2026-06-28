@@ -1,8 +1,8 @@
 {
   "session": "2026-06-27_FASE1_COMPLETA",
-  "phase": "F1_HARDENING",
+  "phase": "F2_COMPLETA",
   "status": "COMPLETED",
-  "completed_at": "2026-06-28T02:30:12.207037+00:00",
+  "completed_at": "2026-06-28T02:36:21.152184+00:00",
   "subagents_executed": 3,
   "modules_created": [
     "src/core/config/settings.py — Pydantic Settings validated",
@@ -16,11 +16,15 @@
     "src/core/pipeline/nodes/tool_executor.py — structlog + Settings + idempotency",
     "src/agent_server/main.py — structlog boot config + /metrics/prometheus endpoint",
     "pyproject.toml — +13 deps + pytest addopts",
-    ".pre-commit-config.yaml — +bandit +security hooks"
+    ".pre-commit-config.yaml — +bandit +security hooks",
+    "src/core/resilience/__init__.py — circuit breaker + retry + cache",
+    "tests/test_property_f51.py — 14 hypothesis property tests",
+    "pytest.ini — property + security markers"
   ],
   "test_results": {
-    "targeted_suite": "157 passed, 0 failed",
-    "previous_baseline": "1328 passed, 1 failed, 8 skipped"
+    "f2_targeted_suite": "120 passed, 0 failed",
+    "property_tests": "14 passed",
+    "regression": "0 regressions"
   },
   "features_delivered": {
     "structured_logging": "structlog JSON format with trace_id propagation",
@@ -57,5 +61,49 @@
     "f51-metrics-dash",
     "f51-secure-scan"
   ],
-  "next_action": "FASE2 — f51-circuit-breaker (tenacity) + f51-prop-test (hypothesis) + f51-dead-code (vulture cleanup)"
+  "next_action": "FASE3 — f51-metrics-dash (dashboard), f51-secure-scan (bandit findings), f51-dead-code (remaining 5)",
+  "f2_results": {
+    "circuit_breaker": {
+      "module": "src/core/resilience/__init__.py",
+      "features": [
+        "CircuitBreaker (CLOSED/OPEN/HALF_OPEN)",
+        "with_retry decorator",
+        "price_cache fallback",
+        "classify_error"
+      ],
+      "integration": "DataHub resolve_and_validate_ticker with circuit breaker + cache fallback"
+    },
+    "property_tests": {
+      "file": "tests/test_property_f51.py",
+      "tests": 14,
+      "strategies": [
+        "valid_ticker",
+        "invalid_ticker_length",
+        "invalid_ticker_numeric",
+        "any_string"
+      ],
+      "edge_cases_found": [
+        "single-char ticker (A) accepted → regex fixed to {2,5}",
+        "comprar? ambiguous → gate errs safe (by design)",
+        "BUY valid format → blacklist catches it"
+      ]
+    },
+    "dead_code_cleanup": {
+      "before": 9,
+      "after": 5,
+      "fixed": [
+        "_stdlib_logging import",
+        "_settings_is_frozen import",
+        "CollectorRegistry import",
+        "unreachable return after try/except"
+      ],
+      "remaining": [
+        "f51_adapter:tmpl",
+        "memory:max_hops",
+        "neural_log:exc_tb",
+        "autonomous_loop:frame",
+        "pennylab:max_parallel"
+      ]
+    }
+  }
 }

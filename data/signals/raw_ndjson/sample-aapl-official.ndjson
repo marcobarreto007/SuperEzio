@@ -1,8 +1,0 @@
-{"type": "STREAM_START", "msg_id": "ledger-sample-001", "run_id": "sample-run-aapl"}
-{"type": "CHART_DATA", "ticker": "AAPL"}
-{"type": "INTENT_CLASSIFIED", "route": "ticker_analysis", "intent": "analyze_ticker", "ticker": "AAPL", "time_horizon": "14 days"}
-{"type": "DATA_COLLECTED", "ticker": "AAPL", "quality": "provider_or_computed", "analysis_id": "AAPL-1c57b8775d89"}
-{"type": "F51_VERDICT", "passed": true, "confidence": 0.72, "hub_risk_score": 0.31, "factors": ["liquidity_ok", "sentiment_bullish"]}
-{"type": "NEURAL_DECISION", "symbol": "AAPL", "direction_prob": 0.61, "expected_return": 0.04, "drawdown_risk": 0.12, "uncertainty": 0.18, "regime": "risk_on", "recommendation": "lean_long", "veto": false}
-{"type": "SDCA_FIREWALL", "decision": "ALLOW", "confidence": 0.78, "uncertainty": 0.15}
-{"type": "CHUNK", "content": "Sample CEO narrative for hash only — not used for action."}
