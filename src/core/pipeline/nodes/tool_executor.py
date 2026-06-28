@@ -71,7 +71,7 @@ def _check_lesson_block(ticker: str) -> dict[str, Any] | None:
 
 
 _REPEATABLE_TOOLS = {"final_answer"}
-_SEMI_REPEATABLE_LIMITS: dict[str, int] = {"collect_data": 2}
+_SEMI_REPEATABLE_LIMITS: dict[str, int] = {"collect_data": 2, "calculate": 5}
 
 
 def _paper_order_submission_error(state: dict, args: dict) -> str:
@@ -957,6 +957,30 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                     "data_context": collector_res.get("data_context", ""),
                     "last_tool_result": f"Live Financial Data for {ticker}:\n- Price Data: {price_data}\n- Risk Metrics: {risk_data}\n- Context details: {collector_res.get('data_context', '')[:1000]}..."
                 }
+
+        elif tool_name == "calculate":
+            expression = str(args.get("expression", "")).strip()
+            if not expression:
+                result = {"error": "calculate requires 'expression' argument"}
+            else:
+                try:
+                    from tools.custom_tools import register_custom_tools
+
+                    class _ToolReg:
+                        def register(self, **kw):
+                            if kw.get("name") == "calculate":
+                                self.calc_fn = kw["func"]
+
+                    reg = _ToolReg()
+                    register_custom_tools(reg)
+                    calc_result = reg.calc_fn(expression)
+                    result = {
+                        "expression": expression,
+                        "result": calc_result,
+                        "last_tool_result": f"calculate('{expression}') = {calc_result}",
+                    }
+                except Exception as e:
+                    result = {"error": f"calculate_failed: {e}"}
 
         else:
             return _tool_blocked_payload(state, tool_name, "it is not executable here")

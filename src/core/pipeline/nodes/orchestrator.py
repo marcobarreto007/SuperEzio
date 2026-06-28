@@ -72,6 +72,7 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
             "run_experts", "neural_decision", "sdca_firewall",
             "rag_forensics", "bob_search", "submit_paper_order", "final_answer",
             "query_expert", "call_math_calculator", "get_live_financial_data",
+            "calculate",
         ],
         "scanner_allowed": True,
         "ticker_allowed": True,
