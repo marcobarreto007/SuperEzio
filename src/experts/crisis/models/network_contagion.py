@@ -17,6 +17,7 @@ from __future__ import annotations
 import numpy as np
 
 from ..contracts.schemas import CrisisInput, SensorResult
+from . import BaseCrisisModel
 
 
 def _covar_simple(asset_var: float, correlation: float, market_vol: float) -> float:
@@ -172,19 +173,10 @@ class NetworkContagionModel:
         # Confiança
         confidence = max(0.3, min(0.95, 0.4 + 0.01 * n / 20))
 
-        status = "ok"
-        if score > 0.75:
-            status = "crisis"
-        elif score > 0.50:
-            status = "stress"
-        elif score > 0.25:
-            status = "warning"
-
-        return SensorResult(
+        return BaseCrisisModel._result(
             sensor_name=self.__class__.__name__,
-            score=round(score, 3),
-            confidence=round(confidence, 3),
-            status=status,
+            score=score,
+            confidence=confidence,
             explanation=(
                 f"Contágion: CoVaR={covar:.2%}, DebtRank-lite={debt_rank:.2%}, "
                 f"network_density={network_density:.2f}. Score={score:.2f}."

@@ -18,6 +18,7 @@ import math
 import numpy as np
 
 from ..contracts.schemas import CrisisInput, SensorResult
+from . import BaseCrisisModel
 
 
 def _lrmes_simple(beta: float, market_es: float) -> float:
@@ -152,19 +153,10 @@ class SystemicBankRiskModel:
         # Confiança baseada em quantidade de dados
         confidence = max(0.3, min(0.95, 0.4 + 0.01 * len(returns) / 10))
 
-        status = "ok"
-        if score > 0.75:
-            status = "crisis"
-        elif score > 0.50:
-            status = "stress"
-        elif score > 0.25:
-            status = "warning"
-
-        return SensorResult(
+        return BaseCrisisModel._result(
             sensor_name=self.__class__.__name__,
-            score=round(score, 3),
-            confidence=round(confidence, 3),
-            status=status,
+            score=score,
+            confidence=confidence,
             explanation=(
                 f"SRISK proxy: β={beta_proxy:.2f}, LRMES={lrmes:.2%}, "
                 f"market_ES={market_es:.2%}, SRISK/equity={srisk_capital_ratio:.2%}. "

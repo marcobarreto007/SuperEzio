@@ -3,6 +3,7 @@ BIS Credit-to-GDP Gap Sensor.
 """
 
 from ..contracts.schemas import CrisisInput, SensorResult
+from . import BaseCrisisModel
 
 
 class BISCreditGapModel:
@@ -11,13 +12,7 @@ class BISCreditGapModel:
 
         # Require minimum history (e.g. 12 periods)
         if len(obs) < 12:
-            return SensorResult(
-                sensor_name=self.__class__.__name__,
-                score=0.0,
-                confidence=0.0,
-                status="insufficient_data",
-                explanation="Não há dados suficientes de credit_to_gdp (mínimo 12).",
-            )
+            return BaseCrisisModel._insufficient_data(self.__class__.__name__, "Não há dados suficientes de credit_to_gdp (mínimo 12).")
 
         # BIS uses HP filter (lambda=400000 for quarterly). When statsmodels is
         # unavailable we fall back to a 12-period moving average — much weaker

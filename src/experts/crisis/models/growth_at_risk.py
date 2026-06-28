@@ -10,6 +10,7 @@ from __future__ import annotations
 import numpy as np
 
 from ..contracts.schemas import CrisisInput, SensorResult
+from . import BaseCrisisModel
 
 
 def _quantile_regression(
@@ -36,12 +37,9 @@ class GrowthAtRiskModel:
     def evaluate(self, input_data: CrisisInput) -> SensorResult:
         obs = input_data.observations
         if len(obs) < 12:
-            return SensorResult(
-                sensor_name=self.__class__.__name__,
-                score=0.0,
-                confidence=0.0,
-                status="insufficient_data",
-                explanation=f"Growth-at-Risk requer ≥12 observações mensais; temos {len(obs)}.",
+            return BaseCrisisModel._insufficient_data(
+                self.__class__.__name__,
+                f"Growth-at-Risk requer ≥12 observações mensais; temos {len(obs)}.",
             )
 
         # Monta matriz de features
@@ -62,12 +60,9 @@ class GrowthAtRiskModel:
             targets.append(gdp_next)
 
         if len(features) < 8:
-            return SensorResult(
-                sensor_name=self.__class__.__name__,
-                score=0.0,
-                confidence=0.0,
-                status="insufficient_data",
-                explanation="Dados macro insuficientes após filtragem de missings.",
+            return BaseCrisisModel._insufficient_data(
+                self.__class__.__name__,
+                "Dados macro insuficientes após filtragem de missings.",
             )
 
         X = np.array(features)
@@ -99,19 +94,10 @@ class GrowthAtRiskModel:
         r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else 0.0
         confidence = max(0.3, min(0.95, r2))
 
-        status = "ok"
-        if score > 0.75:
-            status = "crisis"
-        elif score > 0.50:
-            status = "stress"
-        elif score > 0.25:
-            status = "warning"
-
-        return SensorResult(
+        return BaseCrisisModel._result(
             sensor_name=self.__class__.__name__,
-            score=round(score, 3),
-            confidence=round(confidence, 3),
-            status=status,
+            score=score,
+            confidence=confidence,
             explanation=(
                 f"Growth-at-Risk (5% quantil): GDP previsto = {pred_gdp_q05:.2%}. "
                 f"Risco de crescimento negativo em {score:.0%}."

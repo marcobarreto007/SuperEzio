@@ -3,6 +3,7 @@ Minsky-Keen Private Debt Fragility Sensor.
 """
 
 from ..contracts.schemas import CrisisInput, SensorResult
+from . import BaseCrisisModel
 from ..logic.normalization import clamp, percentile_rank
 
 
@@ -15,13 +16,7 @@ class MinskyKeenModel:
         ]
 
         if len(valid_obs) < 4:
-            return SensorResult(
-                sensor_name=self.__class__.__name__,
-                score=0.0,
-                confidence=0.0,
-                status="insufficient_data",
-                explanation="Minsky fragility requer credit_to_gdp, gdp_growth_yoy e policy_rate.",
-            )
+            return BaseCrisisModel._insufficient_data(self.__class__.__name__, "Minsky fragility requer credit_to_gdp, gdp_growth_yoy e policy_rate.")
 
         last = valid_obs[-1]
 

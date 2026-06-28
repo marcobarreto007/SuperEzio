@@ -12,6 +12,7 @@ import math
 
 
 from ..contracts.schemas import CrisisInput, SensorResult
+from . import BaseCrisisModel
 
 
 def _hawkes_intensity(events: list[float], t: float, mu: float, alpha: float, beta: float) -> float:
@@ -85,19 +86,10 @@ class HawkesStressModel:
         # Confiança baseada no número de eventos
         confidence = min(0.95, 0.5 + 0.05 * n_events)
 
-        status = "ok"
-        if score > 0.75:
-            status = "crisis"
-        elif score > 0.50:
-            status = "stress"
-        elif score > 0.25:
-            status = "warning"
-
-        return SensorResult(
+        return BaseCrisisModel._result(
             sensor_name=self.__class__.__name__,
-            score=round(score, 3),
-            confidence=round(confidence, 3),
-            status=status,
+            score=score,
+            confidence=confidence,
             explanation=(
                 f"Hawkes clustering: {n_events} eventos em {n_days} dias. "
                 f"Intensidade atual = {lam_current:.3f} (baseline={lam_baseline:.3f}). "

@@ -9,6 +9,7 @@ stability. The honest implementation label is exposed in
 """
 
 from ..contracts.schemas import CrisisInput, SensorResult
+from . import BaseCrisisModel
 
 
 class MarkovRegimeModel:
@@ -16,12 +17,9 @@ class MarkovRegimeModel:
 
     def evaluate(self, input_data: CrisisInput) -> SensorResult:
         if not input_data.market_series or len(input_data.market_series) < 5:
-            return SensorResult(
-                sensor_name=self.__class__.__name__,
-                score=0.0,
-                confidence=0.0,
-                status="insufficient_data",
-                explanation="Necessário market_series com volatilidade e spreads para classificar regime.",
+            return BaseCrisisModel._insufficient_data(
+                self.__class__.__name__,
+                "Necessário market_series com volatilidade e spreads para classificar regime.",
             )
 
         recent = input_data.market_series[-1]

@@ -3,6 +3,7 @@ Debt Service Ratio Sensor.
 """
 
 from ..contracts.schemas import CrisisInput, SensorResult
+from . import BaseCrisisModel
 from ..logic.normalization import percentile_rank
 
 
@@ -15,13 +16,7 @@ class DebtServiceRatioModel:
         ]
 
         if len(obs) < 12:
-            return SensorResult(
-                sensor_name=self.__class__.__name__,
-                score=0.0,
-                confidence=0.0,
-                status="insufficient_data",
-                explanation="Não há histórico suficiente de debt_service_ratio.",
-            )
+            return BaseCrisisModel._insufficient_data(self.__class__.__name__, "Não há histórico suficiente de debt_service_ratio.")
 
         current = obs[-1]
         pct = percentile_rank(obs, current)

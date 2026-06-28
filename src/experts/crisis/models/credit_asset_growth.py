@@ -3,6 +3,7 @@ Credit x Asset Growth Sensor.
 """
 
 from ..contracts.schemas import CrisisInput, SensorResult
+from . import BaseCrisisModel
 from ..logic.normalization import clamp, percentile_rank
 
 
@@ -17,13 +18,7 @@ class CreditAssetGrowthModel:
         equities = [o.equity_index for o in input_data.observations if o.equity_index is not None]
 
         if len(credits) < 12 or len(houses) < 12:
-            return SensorResult(
-                sensor_name=self.__class__.__name__,
-                score=0.0,
-                confidence=0.0,
-                status="insufficient_data",
-                explanation="Faltam dados de crédito ou imóveis para avaliar o ciclo cruzado.",
-            )
+            return BaseCrisisModel._insufficient_data(self.__class__.__name__, "Faltam dados de crédito ou imóveis para avaliar o ciclo cruzado.")
 
         cred_pct = percentile_rank(credits, credits[-1])
 

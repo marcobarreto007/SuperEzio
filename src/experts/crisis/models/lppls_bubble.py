@@ -16,6 +16,7 @@ import math
 import numpy as np
 
 from ..contracts.schemas import CrisisInput, SensorResult
+from . import BaseCrisisModel
 
 
 def _second_derivative(y: np.ndarray) -> np.ndarray:
@@ -86,23 +87,17 @@ class LPPLSBubbleModel:
     def evaluate(self, input_data: CrisisInput) -> SensorResult:
         market = input_data.market_series
         if not market or len(market) < self.MIN_DAYS:
-            return SensorResult(
-                sensor_name=self.__class__.__name__,
-                score=0.0,
-                confidence=0.0,
-                status="insufficient_data",
-                explanation=f"LPPLS requer ≥{self.MIN_DAYS} dias de série de preços.",
+            return BaseCrisisModel._insufficient_data(
+                self.__class__.__name__,
+                f"LPPLS requer ≥{self.MIN_DAYS} dias de série de preços.",
             )
 
         closes = np.array([m.close for m in market if m.close > 0])
         n = len(closes)
         if n < self.MIN_DAYS:
-            return SensorResult(
-                sensor_name=self.__class__.__name__,
-                score=0.0,
-                confidence=0.0,
-                status="insufficient_data",
-                explanation=f"Preços válidos insuficientes ({n} < {self.MIN_DAYS}).",
+            return BaseCrisisModel._insufficient_data(
+                self.__class__.__name__,
+                f"Preços válidos insuficientes ({n} < {self.MIN_DAYS}).",
             )
 
         log_prices = np.log(closes)
@@ -182,25 +177,16 @@ class LPPLSBubbleModel:
         # Confiança: quanto mais dados e melhor o fit, maior a confiança
         confidence = max(0.3, min(0.95, 0.4 + 0.4 * best_r2 + 0.01 * n / 30))
 
-        status = "ok"
-        if score > 0.75:
-            status = "crisis"
-        elif score > 0.50:
-            status = "stress"
-        elif score > 0.25:
-            status = "warning"
-
         explanation = (
             f"LPPLS bubble: aceleração={accel:.2e}, oscilações={oscillations}, "
             f"freq={freq:.2f}, best_R²={best_r2:.3f}, vol_trend={vol_trend:.2e}. "
             f"Score={score:.2f}."
         )
 
-        return SensorResult(
+        return BaseCrisisModel._result(
             sensor_name=self.__class__.__name__,
-            score=round(score, 3),
-            confidence=round(confidence, 3),
-            status=status,
+            score=score,
+            confidence=confidence,
             explanation=explanation,
             details={
                 "n_days": n,
