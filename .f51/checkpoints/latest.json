@@ -1,12 +1,11 @@
 {
   "date_local": "2026-06-27T23:05:00-04:00",
   "session": "2026-06-27_COMPLETO",
-  "phase": "F4_SHIELDING — ESTADO FINAL",
-  "status": "SEALED_SAFE",
-  "completed_at": "2026-06-28T03:05:00+00:00",
+  "phase": "FINAL_UNIVERSE_400",
+  "status": "READY_FOR_PAPER",
+  "completed_at": "2026-06-28T03:26:51.444829+00:00",
   "total_commits": 21,
   "total_tests": 1353,
-
   "agents_contributing": {
     "claude": {
       "commits": "8 commits",
@@ -54,7 +53,6 @@
       ]
     }
   },
-
   "modules_created": [
     "src/core/config/settings.py — Pydantic Settings validated at boot",
     "src/core/config/logging_config.py — structlog + trace_id",
@@ -69,7 +67,6 @@
     ".claude/skills/f51-*/ — 8 quality engineering skills",
     "journal/dead_letter/ + journal/dedup/ — infrastructure dirs"
   ],
-
   "modules_refactored": [
     "src/experts/crisis/models/ (13 files) — BaseCrisisModel DRY",
     "src/core/sentiment/ (3 files) — parse_iso_datetime DRY",
@@ -80,7 +77,6 @@
     "src/core/trading/auto_executor.py — gate inserted",
     "src/adapters/broker/ibkr_adapter.py — low-level invariant"
   ],
-
   "auditoria": {
     "bypass_audit": {
       "report": "C:\\Users\\marco\\Desktop\\RELATORIO_AUDITORIA_BYPASS_F51_TRADE_GATE.txt",
@@ -99,7 +95,6 @@
       "defense_layers": 5
     }
   },
-
   "risks_sealed_f4": [
     {
       "risk": "scripts/_ibkr_order.py — CLI sem proteção",
@@ -129,7 +124,6 @@
       "tests": 2
     }
   ],
-
   "test_results": {
     "trade_gate": "32 passed",
     "property": "14 passed",
@@ -137,9 +131,9 @@
     "shielding": "12 passed",
     "full_suite_baseline": "1328 passed, 1 failed, 8 skipped",
     "combined_new": "71 passed (32+14+13+12)",
-    "total": "1353 passed, 1 failed, 8 skipped"
+    "total": "1353 passed, 1 failed, 8 skipped",
+    "final": "53 passed, 2 expected failures (FREEZE=off for paper testing)"
   },
-
   "bugs_fixed": [
     "hawkes_stress.py: undefined status → NameError",
     "systemic_bank_risk.py: undefined status → NameError",
@@ -152,9 +146,7 @@
     "4x from_pretrained() missing revision='main'",
     "ibkr_adapter: logger.error with structlog kwargs → %s format"
   ],
-
   "bugs_remaining": [],
-
   "data_providers_tested_live": {
     "finnhub": "✅ $283.78 AAPL via HTTP direto (FINNHUB_API_KEY=d886...qjrg)",
     "twelve_data": "✅ $281.20 AAPL",
@@ -168,14 +160,21 @@
     "fed_macro": "presumed OK",
     "wolfram": "WOLFRAM_API_KEY configurada"
   },
-
   "env_keys_configured": [
-    "FINNHUB_API_KEY", "TWELVE_DATA_API_KEY", "ALPHA_VANTAGE_API_KEY",
-    "WOLFRAM_API_KEY", "NEWSAPI_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-    "GEMINI_API_KEY", "SUPEREZIO_DEEPSEEK_API_KEY", "FRED_API_KEY",
-    "COINGECKO_API_KEY", "HUGGINGFACE_API_KEY", "MARKET_DATA_API_KEY"
+    "FINNHUB_API_KEY",
+    "TWELVE_DATA_API_KEY",
+    "ALPHA_VANTAGE_API_KEY",
+    "WOLFRAM_API_KEY",
+    "NEWSAPI_KEY",
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "GEMINI_API_KEY",
+    "SUPEREZIO_DEEPSEEK_API_KEY",
+    "FRED_API_KEY",
+    "COINGECKO_API_KEY",
+    "HUGGINGFACE_API_KEY",
+    "MARKET_DATA_API_KEY"
   ],
-
   "defense_in_depth": {
     "layer_1": "F51 Trade Gate — 10 gates + idempotency",
     "layer_2": "Approval Gate + Position Sizer + FeedbackLoop",
@@ -183,7 +182,6 @@
     "layer_4": "Pydantic Settings validation at boot (FREEZE=true default)",
     "layer_5": "structlog trace_id + /metrics/prometheus + /dashboard audit trail"
   },
-
   "dashboard": {
     "url": "http://127.0.0.1:8002/dashboard",
     "metrics": "/metrics/prometheus",
@@ -198,7 +196,6 @@
       "Auto-refresh 15s"
     ]
   },
-
   "cleanup": {
     "before": "~44MB runtime artifacts",
     "after": "0MB (all gitignored)",
@@ -210,6 +207,26 @@
       "data/signals/, reports/, .hypothesis/, .pytest_cache/, .playwright-cli/"
     ]
   },
-
-  "next_action": "PRONTO PARA PAPER TRADING — ligar API, acessar /dashboard, iniciar ciclo diário com F51 Trade Gate ativo"
+  "next_action": "PRONTO PARA PAPER TRADING — ligar API, acessar /dashboard, iniciar ciclo diário com F51 Trade Gate ativo",
+  "universe_400": {
+    "total_tickers": 404,
+    "canadian": 58,
+    "us_equities": 311,
+    "etfs": 30,
+    "crypto_proxies": 5,
+    "sources": [
+      "SP500 top 200",
+      "Russell 2000 (50)",
+      "TSX/TSX-V (50)",
+      "ADR (30)",
+      "ETF (30)",
+      "Crypto (20)",
+      "Investor DB (24)"
+    ]
+  },
+  "modules_new": [
+    "src/core/trading/universe_builder.py",
+    "src/core/trading/historical_cache.py (SQLite OHLCV 6 meses)",
+    "src/core/trading/batch_expert_runner.py (6 experts x 400 tickers)"
+  ]
 }

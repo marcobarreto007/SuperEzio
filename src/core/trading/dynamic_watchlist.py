@@ -129,6 +129,7 @@ def get_dynamic_watchlist(
     include_canadian: bool = True,
     include_scanners: bool = False,
     min_tickers: int = 25,
+    use_universe_400: bool = True,
 ) -> list[str]:
     """Build a dynamic watchlist from all available sources.
 

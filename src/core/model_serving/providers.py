@@ -61,30 +61,29 @@ def build_default_providers(
         else PRIMARY_MODEL_ID
     )
 
+    # ── PRIMARY: Local Qwen 80B on :8082 (highest priority) ──
+    # Falls back to DeepSeek cloud ONLY if local is unreachable.
     primary_base_url = os.getenv(
         "SUPEREZIO_PRIMARY_BASE_URL",
-        os.getenv("SUPEREZIO_DEEPSEEK_BASE_URL", default_base_url),
+        "http://127.0.0.1:8082/v1",  # LOCAL FIRST
     )
     primary_model = os.getenv(
         "SUPEREZIO_PRIMARY_MODEL",
-        os.getenv("SUPEREZIO_DEEPSEEK_MODEL", default_model),
+        "qwen3-next-80b-abliterated",  # LOCAL MODEL
     )
-    primary_api_key = os.getenv(
-        "SUPEREZIO_PRIMARY_API_KEY",
-        os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", ""),
-    )
+    primary_api_key = os.getenv("SUPEREZIO_PRIMARY_API_KEY", "")
 
     providers.append(
         ModelProvider(
             name=PRIMARY_PROVIDER_NAME,
             base_url=primary_base_url,
             api_key=primary_api_key,
-            priority=-400,
+            priority=0,  # HIGHEST priority — local model
             model=primary_model,
-            max_tokens=orchestrator_config.max_tokens if orchestrator_config else 2048,
-            temperature=orchestrator_config.temperature if orchestrator_config else 0.7,
-            is_local=orchestrator_config.is_local if orchestrator_config else False,
-            backend=orchestrator_config.backend if orchestrator_config else "cloud",
+            max_tokens=orchestrator_config.max_tokens if orchestrator_config else 8192,
+            temperature=orchestrator_config.temperature if orchestrator_config else 0.4,
+            is_local=True,
+            backend="openai_compatible",
         )
     )
 
@@ -141,7 +140,7 @@ def build_default_providers(
             name=AGENT_PROVIDER_NAME,
             base_url=agent_base_url,
             api_key="",
-            priority=-670,
+            priority=-10,  # HIGH priority — local Bob CEO
             model=AGENT_MODEL_ID,
             timeout_s=int(os.getenv("SUPEREZIO_AGENT_TIMEOUT_SEC", "600")),
             max_tokens=8192,
