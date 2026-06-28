@@ -1,315 +1,152 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="pt">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SuperEzio - AI Financial Copilot</title>
-  <meta name="description" content="SuperEzio AI copilot: F51 verdict engine, evidence-based financial analysis.">
-  <meta name="theme-color" content="#0a0e0b">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-  <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-  <!-- CSS -->
-  <link rel="stylesheet" href="css/variables.css">
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/topbar.css">
-  <link rel="stylesheet" href="css/chat.css">
-  <link rel="stylesheet" href="css/cards.css">
-  <link rel="stylesheet" href="css/pipeline.css">
-  <link rel="stylesheet" href="css/indicators.css">
-  <link rel="stylesheet" href="css/sdca.css">
-  <link rel="stylesheet" href="css/pennylab.css">
-  <link rel="stylesheet" href="css/crisis.css">
-  <link rel="stylesheet" href="css/data-quality.css">
-  <link rel="stylesheet" href="css/experts.css">
-  <link rel="stylesheet" href="css/charts.css">
-  <link rel="stylesheet" href="css/ops-console.css">
-  <link rel="stylesheet" href="css/cockpit.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SuperÉzio — Bob CEO Terminal</title>
+<style>
+:root{--bg:#0a0a12;--card:#12121f;--border:#1e1e35;--green:#00d4aa;--red:#ff4466;--yellow:#ffaa22;--text:#c8c8d0;--muted:#666}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;display:flex;height:100vh}
+.sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:8px}
+.sidebar h1{color:var(--green);font-size:18px;margin-bottom:8px}
+.sidebar .status{font-size:11px;padding:6px 10px;border-radius:6px;display:flex;align-items:center;gap:6px}
+.sidebar .status .dot{width:8px;height:8px;border-radius:50%}
+.sidebar .status.online{background:#0a2a1a}.sidebar .status.online .dot{background:var(--green)}
+.sidebar .status.offline{background:#2a0a0a}.sidebar .status.offline .dot{background:var(--red)}
+.sidebar button{background:var(--border);border:none;color:var(--text);padding:8px 12px;border-radius:6px;cursor:pointer;text-align:left;font-size:13px}
+.sidebar button:hover{background:#2a2a45}
+.main{flex:1;display:flex;flex-direction:column}
+.chat{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px}
+.msg{padding:12px 16px;border-radius:8px;max-width:80%;font-size:14px;line-height:1.5}
+.msg.user{background:var(--border);align-self:flex-end}
+.msg.bob{background:#0a1a2a;border:1px solid #1a3a5a;align-self:flex-start}
+.msg.bob .ticker{color:var(--green);font-weight:700}
+.msg.bob .price{color:var(--yellow)}
+.msg.bob .stop{color:var(--red)}
+.input-area{display:flex;padding:12px 20px;gap:8px;border-top:1px solid var(--border);background:var(--card)}
+.input-area input{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:8px;font-size:14px;outline:none}
+.input-area input:focus{border-color:var(--green)}
+.input-area button{background:var(--green);color:#000;border:none;padding:10px 20px;border-radius:8px;font-weight:700;cursor:pointer}
+.input-area button:hover{opacity:.9}
+.metrics{display:flex;gap:12px;padding:8px 20px;font-size:11px;color:var(--muted)}
+.metrics span{color:var(--green)}
+.typing{color:var(--yellow);font-size:12px;padding:0 20px}
+</style>
 </head>
 <body>
+<div class="sidebar">
+  <h1>🧠 SuperÉzio</h1>
+  <div class="status" id="bob-status"><span class="dot"></span> Bob CEO</div>
+  <div class="status" id="api-status"><span class="dot"></span> API Server</div>
+  <div class="status" id="freeze-status"><span class="dot"></span> FREEZE</div>
+  <button onclick="quickAsk('NVDA — entry e stop?')">📊 NVDA trade</button>
+  <button onclick="quickAsk('USIO — analise rapida')">🔬 USIO microcap</button>
+  <button onclick="quickAsk('Top 3 small caps momentum hoje')">🔍 Market scan</button>
+  <button onclick="quickAsk('AAPL — decide BUY/WAIT')">🍎 AAPL</button>
+  <button onclick="quickAsk('Portfolio status')">💼 Portfolio</button>
+  <div style="margin-top:auto;font-size:11px;color:var(--muted)">
+    v4.0.0 · Qwen 80B<br>
+    <span id="uptime">--</span>
+  </div>
+</div>
+<div class="main">
+  <div class="metrics">
+    <span id="metric-freeze">FREEZE: --</span> |
+    <span id="metric-tickers">389 tickers</span> |
+    <span id="metric-cache">50K candles</span> |
+    <span id="metric-latency">lat: --</span>
+  </div>
+  <div class="chat" id="chat">
+    <div class="msg bob">👋 Bob CEO online. Qwen 80B local. 389 tickers. 50K candles. Manda o trade.</div>
+  </div>
+  <div class="typing" id="typing" style="display:none">Bob está pensando...</div>
+  <div class="input-area">
+    <input id="user-input" placeholder="Pergunte ao Bob..." onkeydown="if(event.key==='Enter')send()">
+    <button onclick="send()">Enviar</button>
+  </div>
+</div>
+<script>
+const API = "http://127.0.0.1:8002";
 
-  <!-- â”€â”€ TOP BAR â”€â”€ -->
-  <header class="topbar">
-    <div class="logo">
-      <span class="logo-mark">F51</span>
-      <span class="logo-text">SUPEREZIO</span>
-      <span class="logo-sub" id="logo-sub">Financial Copilot</span>
-      <span class="status-dot status-dot--off" id="sys-dot" title="Checking..."></span>
-      <span class="cockpit-connection" id="cockpit-connection">DESCONECTADO</span>
-    </div>
-    <div class="spacer"></div>
-    <div class="ticker-wrap">
-      <input id="ticker-inp" type="text" placeholder="Chart" autocomplete="off" spellcheck="false" maxlength="10" aria-label="Optional chart symbol" title="Optional chart context. Bob can choose candidates from the chat.">
-      <select id="tf-inp" aria-label="Timeframe">
-        <option value="1D">1D</option>
-        <option value="1W">1W</option>
-        <option value="1M">1M</option>
-        <option value="3M">3M</option>
-        <option value="6M" selected>6M</option>
-        <option value="1Y">1Y</option>
-        <option value="5Y">5Y</option>
-      </select>
-      <button class="btn--icon" id="chart-btn" title="Reload chart" type="button"><i data-lucide="refresh-cw"></i></button>
-      <button class="broker-chip broker-chip--unknown" id="broker-status-btn" title="IBKR paper link status" type="button" aria-label="IBKR paper link status"><i data-lucide="landmark"></i><span id="broker-status-label">IBKR</span></button>
-      <button class="btn--icon" id="sdca-lab-btn" title="Cognitive Risk Firewall Lab" type="button"><i data-lucide="shield-alert"></i></button>
-      <button class="btn--icon" id="ops-console-btn" title="System Ops Console" type="button"><i data-lucide="activity"></i></button>
-    </div>
-  </header>
+async function checkStatus() {
+  try {
+    const m = await (await fetch(API + "/metrics")).json();
+    const freeze = m.trading_frozen;
+    document.getElementById("freeze-status").className = "status " + (freeze ? "online" : "offline");
+    document.getElementById("freeze-status").innerHTML = '<span class="dot"></span> FREEZE: ' + (freeze ? "ON" : "OFF");
+    document.getElementById("metric-freeze").textContent = "FREEZE: " + (freeze ? "ON" : "OFF");
+    
+    const h = await (await fetch(API + "/health")).json();
+    if (h.status === "ok") {
+      document.getElementById("api-status").className = "status online";
+      document.getElementById("api-status").innerHTML = '<span class="dot"></span> API: ONLINE';
+    }
+    document.getElementById("uptime").textContent = "up " + Math.round((m.uptime_seconds||0)/3600) + "h";
+  } catch(e) {
+    document.getElementById("api-status").className = "status offline";
+    document.getElementById("api-status").innerHTML = '<span class="dot"></span> API: OFFLINE';
+  }
+}
 
-  <!-- â”€â”€ MAIN â”€â”€ -->
-  <section class="app-main">
-    <aside class="cockpit-panel cockpit-panel--genie" id="genie-panel" aria-label="Genie live sentiment panel">
-      <div class="cockpit-panel__header">
-        <div>
-          <span class="cockpit-panel__eyebrow">GENIE</span>
-          <h2>Sentimento Vivo</h2>
-        </div>
-        <span class="cockpit-panel__status cockpit-panel__status--idle" id="genie-panel-status">STANDBY</span>
-      </div>
-      <div class="cockpit-panel__body" id="genie-panel-body">
-        <section class="cockpit-section">
-          <div class="cockpit-section__title">Watchlist Pulse</div>
-          <div class="cockpit-empty" id="genie-watchlist-empty">Aguardando pulse.</div>
-        </section>
-      </div>
-    </aside>
-    <aside class="right-stack right-stack--floatable" id="live-panel" aria-label="Bob conversation">
-      <section class="terminal-card terminal-card--chat">
-        <div class="terminal-card-hdr">
-          <i class="bob-logo-icon">
-            <svg class="bob-logo-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="bob-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#00e676" />
-                  <stop offset="100%" stop-color="#00e5ff" />
-                </linearGradient>
-              </defs>
-              <polygon points="12,2 22,7.5 22,16.5 12,22 2,16.5 2,7.5" stroke="url(#bob-logo-grad)" stroke-width="2" stroke-linejoin="round" />
-              <path d="M6 12C6 12 8.5 9.5 12 9.5C15.5 9.5 18 12 18 12C18 12 15.5 14.5 12 14.5C8.5 14.5 6 12 6 12Z" stroke="url(#bob-logo-grad)" stroke-width="1.5" />
-              <circle cx="12" cy="12" r="2.5" fill="url(#bob-logo-grad)" />
-            </svg>
-          </i>
-          <strong class="bob-logo-text"><b class="bob-brand-accent">BOB</b><em class="bob-brand-sub">COPILOT</em></strong>
-          <span id="live-ticker">--</span>
-        </div>
-        <main class="chat" id="chat" aria-label="Conversation">
-          <section class="bob-welcome">
-            <div class="bob-copy">
-              <strong id="bob-welcome-title">Bob is online.</strong>
-              <p id="bob-welcome-body">Ask directly. Market context is attached when your question needs the chart.</p>
-            </div>
-          </section>
-        </main>
-        <div class="bottombar" id="bottombar">
-          <textarea id="user-inp" rows="1" placeholder="Ask Bob..." autocomplete="off" spellcheck="true"></textarea>
-          <button class="btn btn--primary" id="send-btn" type="button"><i data-lucide="send"></i><span>Send</span></button>
-        </div>
-      </section>
-    </aside>
+async function send() {
+  const input = document.getElementById("user-input");
+  const msg = input.value.trim();
+  if (!msg) return;
+  
+  const chat = document.getElementById("chat");
+  chat.innerHTML += '<div class="msg user">' + msg + '</div>';
+  input.value = "";
+  document.getElementById("typing").style.display = "block";
+  
+  const t0 = Date.now();
+  try {
+    const resp = await fetch(API + "/task/submit", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        version: "a2a/1.0", msg_id: crypto.randomUUID(),
+        from: "web", to: "bob-ceo", type: "TASK.SUBMIT",
+        timestamp: Date.now()/1000,
+        payload: {message: msg, session_id: "web"}
+      })
+    });
+    const raw = await resp.text();
+    const lines = raw.split("\n").filter(l => l.trim());
+    
+    let bobText = "";
+    for (const l of lines) {
+      try {
+        const e = JSON.parse(l);
+        if (e.type === "CHUNK") bobText += e.content || "";
+      } catch {}
+    }
+    
+    const elapsed = ((Date.now() - t0)/1000).toFixed(0);
+    document.getElementById("metric-latency").textContent = "lat: " + elapsed + "s";
+    
+    const formatted = bobText
+      .replace(/\$(\d+\.\d+)/g, '<span class="price">$$$1</span>')
+      .replace(/\b(BUY|SELL|WAIT|AVOID)\b/gi, '<span class="ticker">$1</span>')
+      .replace(/\b(stop|entry|target)\b/gi, '<span class="stop">$1</span>');
+    
+    chat.innerHTML += '<div class="msg bob">' + (formatted || bobText || "Bob não respondeu.") + '</div>';
+  } catch(e) {
+    chat.innerHTML += '<div class="msg bob">Erro: ' + e.message + '</div>';
+  }
+  
+  document.getElementById("typing").style.display = "none";
+  chat.scrollTop = chat.scrollHeight;
+  checkStatus();
+}
 
-    <main class="chart-workspace" aria-label="Trading workspace">
-      <div class="market-header">
-        <div class="asset-block">
-          <span class="asset-label" id="asset-label">Market snapshot</span>
-          <h1><span id="workspace-ticker">--</span><small id="workspace-tf">--</small></h1>
-          <div class="live-profile" id="live-profile"></div>
-        </div>
-        <div class="price-strip">
-          <div><span>Last</span><strong id="live-price">--</strong></div>
-          <div><span>Change</span><strong id="live-change">--</strong></div>
-          <div><span>Mode</span><strong class="live-status live-status--off" id="live-status">SNAPSHOT</strong></div>
-        </div>
-      </div>
+function quickAsk(msg) {
+  document.getElementById("user-input").value = msg;
+  send();
+}
 
-      <section class="chart-stage">
-        <div class="live-canvas-wrap"><canvas id="live-canvas"></canvas></div>
-      </section>
-
-      <section class="orders-mirror" id="orders-mirror" aria-label="IBKR open orders">
-        <div class="orders-mirror__header">
-          <div>
-            <span>IBKR Mirror</span>
-            <strong>Open orders and positions</strong>
-          </div>
-          <span class="orders-mirror__count" id="orders-count">--</span>
-        </div>
-        <div class="orders-list" id="orders-list">
-          <div class="cockpit-empty">Loading IBKR orders.</div>
-        </div>
-        <div class="trade-history-list" id="trade-history-list" aria-label="Paper trade history">
-          <div class="cockpit-empty">Loading trade history.</div>
-        </div>
-      </section>
-    </main>
-
-    <aside class="cockpit-panel cockpit-panel--deep" id="deep-panel" aria-label="Deep math and audit panel">
-      <div class="cockpit-panel__header">
-        <div>
-          <span class="cockpit-panel__eyebrow">DEEP</span>
-          <h2>Math & Experts</h2>
-        </div>
-        <span class="cockpit-panel__status cockpit-panel__status--idle" id="deep-panel-status">WAITING</span>
-      </div>
-      <div class="cockpit-panel__body deep-panel__body" id="deep-panel-body">
-        <section class="cockpit-section">
-          <div class="cockpit-section__title">Math Summary</div>
-          <div class="cockpit-empty">Aguardando MathHub.</div>
-        </section>
-      </div>
-      <section class="blame-panel" id="blame-panel" aria-label="Decision blame report">
-        <div class="cockpit-section__title">Blame Report</div>
-        <div class="blame-controls">
-          <input id="blame-run-id" type="text" autocomplete="off" placeholder="run_id">
-          <button class="btn btn--primary btn--sm" id="blame-load-btn" type="button"><i data-lucide="search"></i><span>Trace</span></button>
-        </div>
-        <div class="blame-report-body" id="blame-report-body">
-          <div class="cockpit-empty">Aguardando um run_id do pipeline.</div>
-        </div>
-      </section>
-    </aside>
-
-  </section>
-
-  <!-- ── SDCA LAB ── -->
-  <footer class="cockpit-statusbar" id="cockpit-statusbar" aria-label="Cockpit status bar">
-    <span class="cockpit-statusbar__item" id="statusbar-ceo">CEO: CHECKING</span>
-    <span class="cockpit-statusbar__item" id="statusbar-genie">Genie: CHECKING</span>
-    <span class="cockpit-statusbar__item" id="statusbar-deep">Deep: CHECKING</span>
-    <span class="cockpit-statusbar__item" id="statusbar-ibkr">IBKR: CHECKING</span>
-    <span class="cockpit-statusbar__item" id="statusbar-guardrails">Guardrails: --</span>
-    <span class="cockpit-statusbar__item" id="statusbar-latency">Last run: --</span>
-  </footer>
-
-  <section popover="manual" class="sdca-lab" id="sdca-lab">
-    <div class="sdca-lab-hdr">
-      <div><span>F51 Labs</span><strong>Cognitive Risk Firewall</strong></div>
-      <button class="btn--icon" id="sdca-lab-close" type="button"><i data-lucide="x"></i></button>
-    </div>
-    <div class="sdca-lab-body">
-      <form class="sdca-lab-form" id="sdca-form">
-        <div class="sdca-lab-grid">
-          <label>Decision ID<input id="sdca-id" type="text" autocomplete="off"></label>
-          <label>Source<select id="sdca-source"><option value="manual">manual</option><option value="agent">agent</option><option value="operator">operator</option></select></label>
-          <label>Asset<input id="sdca-asset" type="text" autocomplete="off"></label>
-          <label>Action<input id="sdca-action" type="text" autocomplete="off"></label>
-          <label>Amount CAD<input id="sdca-amount" type="number" min="0" step="1"></label>
-          <label>2h Change %<input id="sdca-price-change" type="number" step="0.1"></label>
-        </div>
-        <label class="sdca-lab-wide">Thesis<textarea id="sdca-thesis" rows="3"></textarea></label>
-        <div class="sdca-lab-grid">
-          <label>Latency<select id="sdca-latency"><option value="low">low</option><option value="normal">normal</option><option value="high">high</option></select></label>
-          <label>Spread<select id="sdca-spread"><option value="tight">tight</option><option value="normal">normal</option><option value="wide">wide</option></select></label>
-          <label>Social Hype<select id="sdca-hype"><option value="low">low</option><option value="normal">normal</option><option value="high">high</option></select></label>
-          <label>Data Quality<select id="sdca-data-quality"><option value="high">high</option><option value="normal">normal</option><option value="low">low</option></select></label>
-        </div>
-        <div class="sdca-lab-checks">
-          <label><input id="sdca-fomo" type="checkbox"> FOMO</label>
-          <label><input id="sdca-leverage" type="checkbox"> Leverage</label>
-          <label><input id="sdca-slippage" type="checkbox"> Slippage risk</label>
-          <label><input id="sdca-stale" type="checkbox"> Stale signal</label>
-        </div>
-        <div class="sdca-lab-actions">
-          <button class="btn--sm" id="sdca-preset-fomo" type="button">FOMO preset</button>
-          <button class="btn--sm" id="sdca-preset-safe" type="button">Conservative preset</button>
-          <button class="btn btn--primary" id="sdca-run-btn" type="button"><i data-lucide="shield-check"></i><span>Evaluate</span></button>
-        </div>
-      </form>
-      <div class="sdca-lab-result" id="sdca-result">
-        <div class="sdca-lab-empty" id="sdca-ready">Ready for local firewall evaluation.</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── System Ops Console ── -->
-  <section popover="manual" class="ops-console" id="ops-console">
-    <div class="ops-console-hdr">
-      <div><span>F51 Labs</span><strong>System Operations Control</strong></div>
-      <button class="btn--icon" id="ops-console-close" type="button"><i data-lucide="x"></i></button>
-    </div>
-    <div class="ops-console-body">
-      <div class="ops-grid">
-        <!-- 1. Health Status Card -->
-        <div class="ops-card" id="ops-card-health">
-          <h3>System Health</h3>
-          <div class="ops-metrics-list">
-            <div class="ops-row"><span id="ops-label-status">Status</span><strong id="ops-health-status">Checking...</strong></div>
-            <div class="ops-row"><span id="ops-label-gpu">GPU Acceleration</span><strong id="ops-health-gpu">Checking...</strong></div>
-            <div class="ops-row"><span id="ops-label-redis">Redis Database</span><strong id="ops-health-redis">Checking...</strong></div>
-            <div class="ops-row"><span id="ops-label-ceo">Local Model (CEO)</span><strong id="ops-health-ceo">Checking...</strong></div>
-          </div>
-        </div>
-
-        <div class="ops-card" id="ops-card-broker">
-          <h3>Broker Link</h3>
-          <div class="ops-metrics-list">
-            <div class="ops-row"><span>Provider</span><strong id="ops-broker-provider">IBKR</strong></div>
-            <div class="ops-row"><span>Status</span><strong id="ops-broker-status">Checking...</strong></div>
-            <div class="ops-row"><span>Mode</span><strong id="ops-broker-mode">--</strong></div>
-            <div class="ops-row"><span>Equity</span><strong id="ops-broker-equity">--</strong></div>
-            <div class="ops-row"><span>Positions</span><strong id="ops-broker-positions">--</strong></div>
-          </div>
-        </div>
-
-        <!-- 2. Performance Metrics Card -->
-        <div class="ops-card" id="ops-card-metrics">
-          <h3>Performance</h3>
-          <div class="ops-metrics-list">
-            <div class="ops-row"><span>Average Latency</span><strong id="ops-metric-latency">--</strong></div>
-            <div class="ops-row"><span>Error Count</span><strong id="ops-metric-errors">--</strong></div>
-          </div>
-        </div>
-
-        <!-- 3. System Capabilities Card -->
-        <div class="ops-card" id="ops-card-capabilities">
-          <h3 id="ops-title-capabilities">Agent Capabilities</h3>
-          <ul class="ops-bullet-list" id="ops-capabilities-list">
-            <li id="ops-capabilities-loading">Loading...</li>
-          </ul>
-        </div>
-
-        <!-- 4. Product Manifest Card -->
-        <div class="ops-card ops-card-wide" id="ops-card-manifest">
-          <h3 id="ops-title-manifest">Product Manifest & Principles</h3>
-          <div class="ops-manifest-desc" id="ops-manifest-desc">Loading...</div>
-          <div class="ops-principles-title" id="ops-title-principles">Operating Principles:</div>
-          <ul class="ops-bullet-list" id="ops-manifest-principles">
-            <li id="ops-manifest-loading">Loading...</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- JS (dependency order) -->
-  <script src="js/content.js"></script>
-  <script src="js/state.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/cards.js"></script>
-  <script src="js/chat.js"></script>
-  <script src="js/render-pipeline.js"></script>
-  <script src="js/render-f51.js"></script>
-  <script src="js/render-sdca.js"></script>
-  <script src="js/render-pennylab.js"></script>
-  <script src="js/render-crisis.js"></script>
-  <script src="js/render-data-quality.js"></script>
-  <script src="js/render-experts.js"></script>
-  <script src="js/render-neural.js"></script>
-  <script src="js/render-explanation.js"></script>
-  <script src="js/render-chart.js"></script>
-  <script src="js/render-candles.js"></script>
-  <script src="js/render-profile.js"></script>
-  <script src="js/live.js"></script>
-  <script src="js/sdca-lab.js"></script>
-  <script src="js/ops-console.js"></script>
-  <script src="js/events.js"></script>
-  <script src="js/health.js"></script>
-  <script src="js/cockpit.js"></script>
-  <script src="js/genie-panel.js"></script>
-  <script src="js/deep-panel.js"></script>
-  <script src="js/blame-panel.js"></script>
-  <script src="js/bob-panel.js"></script>
-  <script src="js/status-bar.js"></script>
-  <script src="js/init.js"></script>
+setInterval(checkStatus, 30000);
+checkStatus();
+</script>
 </body>
 </html>
