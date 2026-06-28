@@ -209,9 +209,9 @@ async def lifespan(app: FastAPI):
     try:
         from core.config.logging_config import configure_logging
         configure_logging()
-        logger.info("structlog_configured", status="ok")
+        logger.info("structlog_configured: ok")
     except Exception as exc:
-        logger.warning("structlog_configuration_failed", error=str(exc)[:200])
+        logger.warning("structlog_configuration_failed: %s", str(exc)[:200])
 
     logger.info("[%s] Agent Server starting on %s:%s...", AGENT_NAME, HOST, PORT)
     sys.stdout.flush()
@@ -221,12 +221,12 @@ async def lifespan(app: FastAPI):
         from core.config.settings import get_settings
         _settings = get_settings()
         logger.info(
-            "settings_validated",
-            freeze=_settings.f51_trading_execution_freeze,
-            paper_submit=_settings.superezio_enable_paper_order_submit,
+            "settings_validated: freeze=%s paper_submit=%s",
+            _settings.f51_trading_execution_freeze,
+            _settings.superezio_enable_paper_order_submit,
         )
     except Exception as exc:
-        logger.critical("settings_validation_failed", error=str(exc)[:200])
+        logger.critical("settings_validation_failed: %s", str(exc)[:200])
         raise
 
     # === BRAIN INITIALIZATION ===
