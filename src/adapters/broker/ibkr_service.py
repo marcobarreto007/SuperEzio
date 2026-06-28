@@ -190,10 +190,22 @@ class IBKRService:
         """Refresh cache from IBKR."""
         self._last_refresh_attempt = time.monotonic()
 
+        # Auto-recovery: after 100+ failures, reset counter and try fresh
+        if self._consecutive_failures >= 100:
+            logger.warning(
+                "[IBKRService] Auto-recovery: %d consecutive failures, resetting counter",
+                self._consecutive_failures,
+            )
+            self._consecutive_failures = 0
+            self._cooldown_until = 0  # Clear cooldown
+            self._disconnect()  # Force reconnect
+
         # Check cooldown
         if time.monotonic() < self._cooldown_until:
             logger.debug(
-                "[IBKRService] In cooldown (until %.0f)", self._cooldown_until
+                "[IBKRService] In cooldown (until %.0f, failures=%d)",
+                self._cooldown_until,
+                self._consecutive_failures,
             )
             return
 
@@ -203,7 +215,7 @@ class IBKRService:
             if self._consecutive_failures >= _IBKR_COOLDOWN_MAX_ERRORS:
                 self._cooldown_until = time.monotonic() + _IBKR_COOLDOWN_SEC
                 logger.warning(
-                    "[IBKRService] Entering cooldown for %ds (%d consecutive failures)",
+                    "[IBKRService] Entering cooldown for %ds (%d consecutive failures) - TWS/Gateway may be down",
                     _IBKR_COOLDOWN_SEC,
                     self._consecutive_failures,
                 )
@@ -480,6 +492,46 @@ class IBKRService:
                 "client_id": self._client_id,
                 "host": self._host,
                 "port": self._port,
+                "auto_recovery": self._consecutive_failures >= 100,  # Flag for UI
+            }
+
+    def force_recovery_attempt(self) -> dict[str, Any]:
+        """Force an immediate recovery attempt - call when IBKR is suspected to be back online.
+
+        Returns:
+            Dict with: success, error, consecutive_failures (before reset)
+        """
+        logger.info("[IBKRService] Force recovery attempt triggered")
+
+        # Reset cooldown to allow immediate retry
+        self._cooldown_until = 0
+
+        # Force disconnect to ensure clean reconnect
+        self._disconnect()
+        time.sleep(1.0)
+
+        # Attempt connection
+        success = self._connect()
+
+        if success:
+            failures_before = self._consecutive_failures
+            self._consecutive_failures = 0  # Reset on successful recovery
+            logger.info(
+                "[IBKRService] Recovery successful - reset %d consecutive failures",
+                failures_before,
+            )
+            return {
+                "success": True,
+                "error": None,
+                "failures_reset": failures_before,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        else:
+            return {
+                "success": False,
+                "error": self._last_error,
+                "failures_reset": 0,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
     def is_degraded(self) -> bool:

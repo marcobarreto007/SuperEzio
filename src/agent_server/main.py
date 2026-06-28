@@ -372,6 +372,17 @@ async def bob_heal():
     except Exception as e:
         return {"healed": 0, "error": str(e)[:200]}
 
+@app.post("/bob/ibkr/recover")
+async def bob_ibkr_recover():
+    """Force IBKR recovery attempt - call when TWS/Gateway is back online."""
+    try:
+        from adapters.broker.ibkr_service import get_ibkr_service
+        service = get_ibkr_service()
+        result = service.force_recovery_attempt()
+        return result
+    except Exception as e:
+        return {"success": False, "error": str(e)[:200]}
+
 
 # ═══════════════════════════════════════════════════════════════
 # Prometheus /metrics endpoint — Quality Engineering 2026
