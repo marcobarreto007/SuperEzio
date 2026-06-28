@@ -99,3 +99,9 @@
 {"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 3 tickers cached (need >10)", "timestamp": "2026-06-28T04:23:37.868876+00:00", "healed": false}
 {"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-28T04:24:41.204405+00:00", "healed": false}
 {"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 3 tickers cached (need >10)", "timestamp": "2026-06-28T04:24:41.938832+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-28T04:25:13.933885+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 3 tickers cached (need >10)", "timestamp": "2026-06-28T04:25:18.416555+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-28T04:26:22.841268+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 3 tickers cached (need >10)", "timestamp": "2026-06-28T04:26:23.656983+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-28T04:27:27.072757+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 3 tickers cached (need >10)", "timestamp": "2026-06-28T04:27:27.864819+00:00", "healed": false}
