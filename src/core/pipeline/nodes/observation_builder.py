@@ -1,4 +1,4 @@
-﻿"""Build observations for Bob's context window — extracted from agent.py.
+"""Build observations for Bob's context window — extracted from agent.py.
 
 Injects all pipeline state (portfolio, experts, guardrails, tools, F51, etc.)
 as structured observations for the LLM conversation.

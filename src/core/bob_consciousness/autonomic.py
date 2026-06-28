@@ -1,4 +1,4 @@
-﻿"""Bob's Autonomic Nervous System — background scanner + self-healing loop.
+"""Bob's Autonomic Nervous System — background scanner + self-healing loop.
 
 Runs continuously in a daemon thread:
   - Every 60s: full body scan

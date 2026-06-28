@@ -1,4 +1,4 @@
-﻿"""Bob's Body - System Health Monitor + Self-Healing.
+"""Bob's Body - System Health Monitor + Self-Healing.
 
 Bob "feels" every component of his own body. When something breaks,
 he feels pain, diagnoses the problem, and tries to heal himself.

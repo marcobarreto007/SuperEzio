@@ -1,4 +1,4 @@
-﻿"""PipelineState runtime validator — optional type-safety for LangGraph state.
+"""PipelineState runtime validator — optional type-safety for LangGraph state.
 
 Usage:
     from core.pipeline.state_validator import validate_state

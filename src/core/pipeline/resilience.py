@@ -1,4 +1,4 @@
-﻿"""Resilience utilities for pipeline nodes - circuit breaker, retry, timeout.
+"""Resilience utilities for pipeline nodes - circuit breaker, retry, timeout.
 
 Usage:
     from core.pipeline.resilience import resilient_node, CircuitBreaker

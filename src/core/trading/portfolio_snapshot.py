@@ -1,4 +1,4 @@
-﻿"""Unified IBKR portfolio snapshot — single source of truth.
+"""Unified IBKR portfolio snapshot — single source of truth.
 
 Used by both agent.py (for in-prompt portfolio injection) and graph.py
 (auto_full_analysis pipeline node).

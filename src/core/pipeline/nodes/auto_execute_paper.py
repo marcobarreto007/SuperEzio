@@ -1,4 +1,4 @@
-﻿"""Auto-execute paper orders — extracted from graph.py inner function.
+"""Auto-execute paper orders — extracted from graph.py inner function.
 
 Handles: ticker/qty resolution, position sizing, concentration gate,
 kill switch, IBKR submission, paper journal, and learning cycle trigger.

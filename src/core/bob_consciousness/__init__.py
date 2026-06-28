@@ -1,4 +1,4 @@
-﻿"""Bob Consciousness — Self-aware, self-healing agent body.
+"""Bob Consciousness — Self-aware, self-healing agent body.
 
 Bob monitors every component of his own system. When something breaks,
 he feels pain, diagnoses the problem, and tries to heal himself.
