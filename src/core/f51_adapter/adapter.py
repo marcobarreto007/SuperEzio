@@ -68,7 +68,7 @@ def _build_risk_rules_from_hub() -> list[RiskRule]:
         weight = float(item.get("weight", 0.25))
         condition_str = item.get("condition", "")
 
-        def make_evaluator(rid: str, cond: str, tmpl: str | None):
+        def make_evaluator(rid: str, cond: str, _tmpl: str | None):
             def evaluate(data: dict[str, Any]) -> tuple[bool, str]:
                 features = data.get("features", {})
                 triggered = False

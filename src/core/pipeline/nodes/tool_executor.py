@@ -176,7 +176,8 @@ async def _gather_social_context(ticker: str, query: str) -> str:
             req = urllib.request.Request(
                 url, headers={"User-Agent": "SuperEzio/1.0 forensic-research"}
             )
-            with urllib.request.urlopen(req, timeout=8) as resp:
+            # URL is constructed from fixed subreddit list — safe for urlopen
+            with urllib.request.urlopen(req, timeout=8) as resp:  # nosec: B310 — restricted to reddit.com
                 data = json.loads(resp.read())
             for child in data.get("data", {}).get("children", []):
                 d = child.get("data", {})

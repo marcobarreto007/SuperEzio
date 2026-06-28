@@ -56,7 +56,7 @@ def _fetch_boc_series(
 
     try:
         req = urllib.request.Request(url, headers={"Accept": "application/json"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec: B310 — URL from Bank of Canada API
             raw = json.loads(resp.read().decode("utf-8"))
             observations = raw.get("observations", [])
 

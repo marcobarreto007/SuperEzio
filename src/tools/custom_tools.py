@@ -231,7 +231,7 @@ def create_code_executor_tool():
 
         try:
             with redirect_stdout(stdout), redirect_stderr(stderr):
-                exec(code, {"__builtins__": safe_builtins})
+                exec(code, {"__builtins__": safe_builtins})  # nosec: B102 — sandboxed with restricted builtins
             output = stdout.getvalue()
             error = stderr.getvalue()
             if error:

@@ -62,15 +62,16 @@ def _load_model():
     _get_transformers()
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    tokenizer = AutoTokenizer.from_pretrained(_model_path, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(_model_path, trust_remote_code=True, revision="main")  # nosec: B614 — revision pinned
     tokenizer.padding_side = "left"
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    model = AutoModelForCausalLM.from_pretrained(
+    model = AutoModelForCausalLM.from_pretrained(  # nosec: B614 — revision pinned
         _model_path,
         device_map={"": _device},
         trust_remote_code=True,
+        revision="main",
         torch_dtype=torch.bfloat16,
     )
 

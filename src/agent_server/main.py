@@ -640,6 +640,154 @@ async def get_metrics():
     return base
 
 
+# ═══════════════════════════════════════════════════════════════
+# Dashboard HTML — Quality Engineering 2026
+# ═══════════════════════════════════════════════════════════════
+
+
+@app.get("/dashboard", include_in_schema=False)
+async def dashboard():
+    """HTML dashboard with live business metrics."""
+    html = """<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SuperEzio — Quality Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#0a0a0f;color:#e0e0e0;padding:24px}
+h1{font-size:28px;margin-bottom:8px;color:#00d4aa}
+.sub{color:#888;margin-bottom:24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.card{background:#14141f;border:1px solid #2a2a3f;border-radius:12px;padding:20px}
+.card h3{font-size:14px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.card .value{font-size:36px;font-weight:700;color:#00d4aa}
+.card .value.red{color:#ff4466}
+.card .value.yellow{color:#ffaa22}
+.card .meta{font-size:13px;color:#666;margin-top:8px}
+.card .label{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1a1a2f;font-size:14px}
+.card .label span:first-child{color:#999}
+.card .label span:last-child{color:#00d4aa;font-weight:600}
+.footer{margin-top:24px;color:#555;font-size:12px;text-align:center}
+.refresh{cursor:pointer;background:#00d4aa;color:#000;border:none;padding:8px 20px;border-radius:8px;font-weight:600;margin-top:16px}
+.stale{color:#ffaa22 !important}
+.gates{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.gate{padding:4px 12px;border-radius:6px;font-size:12px;font-weight:600}
+.gate-pass{background:#0a3a2a;color:#00d4aa}
+.gate-fail{background:#3a0a0a;color:#ff4466}
+</style>
+</head>
+<body>
+<h1>📊 SuperEzio Quality Dashboard</h1>
+<p class="sub">Métricas em tempo real — F51 Trade Gate + Pipeline + Dead Letter</p>
+<div class="grid">
+  <div class="card" id="freeze-card">
+    <h3>🔒 Execution Freeze</h3>
+    <div class="value" id="freeze-value">—</div>
+    <div class="meta">Kill switch global</div>
+  </div>
+  <div class="card" id="ibkr-card">
+    <h3>📡 IBKR Connectivity</h3>
+    <div class="value" id="ibkr-value">—</div>
+    <div class="meta">TWS/Gateway status</div>
+  </div>
+  <div class="card" id="journal-card">
+    <h3>📝 Journal Health</h3>
+    <div class="value" id="journal-value">—</div>
+    <div class="meta">Paper journal writable</div>
+  </div>
+  <div class="card" id="dead-letter-card">
+    <h3>💀 Dead Letters</h3>
+    <div class="value" id="dead-letter-value">—</div>
+    <div class="meta">Ordens na fila de replay</div>
+  </div>
+  <div class="card" id="orders-card">
+    <h3>📋 Ordens (24h)</h3>
+    <div class="label"><span>Permitidas</span><span id="orders-allowed">—</span></div>
+    <div class="label"><span>Bloqueadas</span><span id="orders-blocked">—</span></div>
+    <div class="meta">Via F51 Trade Gate</div>
+  </div>
+  <div class="card" id="gates-card">
+    <h3>🚦 Última Decisão</h3>
+    <div id="gates-container"><span class="meta">Nenhuma ordem recente</span></div>
+    <div class="meta" id="last-decision"></div>
+  </div>
+</div>
+<button class="refresh" onclick="fetchMetrics()">🔄 Atualizar</button>
+<div class="footer">SuperEzio v4.0.0 · Quality Engineering 2026 · <span id="updated"></span></div>
+<script>
+async function fetchMetrics() {
+  try {
+    // Fetch Prometheus metrics as text
+    const resp = await fetch('/metrics/prometheus');
+    const text = await resp.text();
+    const lines = text.split('\\n');
+
+    const get = (name) => {
+      const line = lines.find(l => l.startsWith(name + ' ')) || '';
+      return line.split(' ').pop() || '0';
+    };
+
+    // Gauges
+    const freeze = get('superezio_execution_freeze');
+    const ibkr = get('superezio_ibkr_connectivity');
+    const journal = get('superezio_journal_health');
+    const deadLetters = get('superezio_dead_letters_pending');
+
+    // Counters
+    const ordersAllowed = get('superezio_orders_total{status="allowed"') || '0';
+    const ordersBlocked = get('superezio_orders_total{status="blocked"') || '0';
+
+    // Render
+    document.getElementById('freeze-value').textContent = freeze === '1' ? 'FROZEN' : 'LIVE';
+    document.getElementById('freeze-value').className = freeze === '1' ? 'value red' : 'value';
+    document.getElementById('freeze-card').style.borderColor = freeze === '1' ? '#ff4466' : '#00d4aa';
+
+    document.getElementById('ibkr-value').textContent = ibkr === '1' ? 'ONLINE' : 'OFFLINE';
+    document.getElementById('ibkr-value').className = ibkr === '1' ? 'value' : 'value red';
+
+    document.getElementById('journal-value').textContent = journal === '1' ? 'HEALTHY' : 'UNHEALTHY';
+    document.getElementById('journal-value').className = journal === '1' ? 'value' : 'value red';
+
+    const dl = parseInt(deadLetters) || 0;
+    document.getElementById('dead-letter-value').textContent = dl === 0 ? '0 ✓' : dl;
+    document.getElementById('dead-letter-value').className = dl > 0 ? 'value yellow' : 'value';
+
+    document.getElementById('orders-allowed').textContent = ordersAllowed;
+    document.getElementById('orders-blocked').textContent = ordersBlocked;
+
+    // Gate failures
+    const gateFailures = lines
+      .filter(l => l.startsWith('superezio_gate_failures_total{'))
+      .map(l => {
+        const gate = (l.match(/gate="([^"]+)"/) || [,'unknown'])[1];
+        const code = (l.match(/reason_code="([^"]+)"/) || [,'?'])[1];
+        const val = l.split(' ').pop();
+        return {gate, code, val};
+      });
+    const gatesContainer = document.getElementById('gates-container');
+    if (gateFailures.length) {
+      gatesContainer.innerHTML = gateFailures.map(g =>
+        `<span class="gate gate-fail">${g.gate}: ${g.code} (${g.val})</span>`
+      ).join('');
+    } else {
+      gatesContainer.innerHTML = '<span class="gate gate-pass">Todos os gates OK</span>';
+    }
+
+    document.getElementById('updated').textContent = new Date().toISOString();
+  } catch(e) {
+    console.error('Dashboard fetch error:', e);
+  }
+}
+fetchMetrics();
+setInterval(fetchMetrics, 15000);
+</script>
+</body>
+</html>"""
+    return Response(content=html, media_type="text/html; charset=utf-8")
+
+
 # === Observability ===
 @app.get("/neural/logs")
 async def stream_logs(request: Request):

@@ -275,7 +275,7 @@ _PENNY_WATCHLIST: List[str] = [
 def scan_penny_stocks(
     filters: ScanFilter,
     watchlist: Optional[List[str]] = None,
-    max_parallel: int = 10,
+    max_parallel: int = 10,  # noqa: ARG001 — reserved for async batch scanning
 ) -> ScanResult:
     """
     Escaneia tickers da watchlist filtrando por preço e volume.
