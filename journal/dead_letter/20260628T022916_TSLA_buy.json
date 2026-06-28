@@ -1,0 +1,11 @@
+{
+  "dead_letter_id": "dl-20260628T022916-TSLA",
+  "ticker": "TSLA",
+  "qty": 50,
+  "limit_price": 250.0,
+  "action": "buy",
+  "failure_reason": "test_failure",
+  "failed_at": "2026-06-28T02:29:16.753021+00:00",
+  "state_snapshot": {},
+  "replay_status": "pending"
+}
