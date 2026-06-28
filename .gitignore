@@ -60,6 +60,8 @@ data/traces/
 
 # Database files
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 
 # Environment
