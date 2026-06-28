@@ -125,9 +125,15 @@ def _inject_evidence(state: dict, observations: list[str]):
 
     # Simple key-value evidence (no wrapping needed)
     if state.get("ticker"):
-        observations.append(f"Current Ticker: {state.get('ticker')}")
+        has_data = bool(state.get("data") or state.get("data_context"))
+        status = "DATA AVAILABLE" if has_data else "NO MARKET DATA — CALL collect_data"
+        observations.append(f"Current Ticker: {state.get('ticker')} ({status})")
     if state.get("data_context"):
-        observations.append(f"Data/Scan Context:\n{str(state.get('data_context'))[:3000]}")
+        ctx = str(state.get("data_context"))
+        # Never truncate mid-number or mid-word
+        if len(ctx) > 4000:
+            ctx = ctx[:4000].rsplit(" ", 1)[0] + "\n... (truncated)"
+        observations.append(f"Data/Scan Context (REAL MARKET DATA — use these exact values):\n{ctx}")
     if state.get("expert_summary"):
         observations.append(f"Expert Committee Summary:\n{state.get('expert_summary')}")
     if state.get("trinity_report"):

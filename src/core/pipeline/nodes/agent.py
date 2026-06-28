@@ -2362,6 +2362,7 @@ def _has_actionable_market_request(state: dict) -> bool:
     message = state.get("message", "")
     route = state.get("route", "")
     intent = state.get("intent", "")
+    # Route-based check (most reliable)
     if route in {"market_scan", "ticker_analysis"}:
         return True
     if intent in {"market_scan", "another_trade_recommendation", "ticker_analysis"}:
@@ -2369,6 +2370,9 @@ def _has_actionable_market_request(state: dict) -> bool:
     if _should_use_decisive_mode(state):
         return True
     if _is_paper_training_request(message):
+        return True
+    # FALLBACK: if ticker is present and this is a market question, it's actionable
+    if state.get("ticker") and not state.get("data"):
         return True
     return False
 

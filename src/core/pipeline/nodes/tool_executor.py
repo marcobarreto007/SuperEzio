@@ -965,6 +965,8 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             **result,
             "executed_tools": next_executed_tools,
             "executed_tool_counts": next_executed_tool_counts,
+            "route": state.get("route", ""),  # Preserve route for forced tool checks
+            "ticker": state.get("ticker", ""),  # Preserve ticker
         }
 
     except Exception as exc:
