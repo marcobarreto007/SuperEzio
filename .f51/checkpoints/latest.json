@@ -1,109 +1,68 @@
 {
-  "session": "2026-06-27_FASE1_COMPLETA",
-  "phase": "F2_COMPLETA",
+  "date_local": "2026-06-27T22:30:00-04:00",
+  "session": "2026-06-27_COMBINED",
+  "phase": "F1_HARDENING + F2_CIRCUIT_BREAKER + F51_TRADE_GATE + CRISIS_DRY + CLEANUP",
   "status": "COMPLETED",
-  "completed_at": "2026-06-28T02:36:21.152184+00:00",
-  "subagents_executed": 3,
+  "completed_at": "2026-06-28T02:50:00+00:00",
+  "agents_contributing": {
+    "claude": "F51 Trade Gate (10 gates + 32 tests), BaseCrisisModel DRY across 12 sensors, core.utils.datetime extraction, pipeline wiring, code quality audit, data provider live testing (all 8 verified), legacy cleanup (44MB removed), git hygiene (17 commits)",
+    "deep": "F1_HARDENING: Pydantic Settings + structlog + idempotency + dead letter queue + Prometheus metrics + 8 Claude quality skills",
+    "codex": "F2: Circuit breaker + retry + price cache + property tests (Hypothesis) + pytest config + dead code scan"
+  },
+  "subagents_executed": 5,
+  "total_commits_this_session": 17,
   "modules_created": [
-    "src/core/config/settings.py — Pydantic Settings validated",
-    "src/core/config/logging_config.py — structlog + trace_id",
-    "src/core/idempotency/__init__.py — idempotency key + dead letter queue"
+    "src/core/config/settings.py",
+    "src/core/config/logging_config.py",
+    "src/core/idempotency/__init__.py",
+    "src/core/resilience/__init__.py",
+    "src/core/utils/datetime.py",
+    "src/core/pipeline/f51_trade_gate.py",
+    "tests/test_f51_trade_gate.py",
+    "tests/test_property_f51.py",
+    "8 Claude skills in .claude/skills/f51-*/"
   ],
-  "files_updated": [
-    "src/core/config/__init__.py — restored original imports + new modules",
-    "src/core/pipeline/f51_trade_gate.py — structlog + Settings",
-    "src/core/pipeline/nodes/auto_execute_paper.py — structlog + Settings + idempotency + dead letter",
-    "src/core/pipeline/nodes/tool_executor.py — structlog + Settings + idempotency",
-    "src/agent_server/main.py — structlog boot config + /metrics/prometheus endpoint",
-    "pyproject.toml — +13 deps + pytest addopts",
-    ".pre-commit-config.yaml — +bandit +security hooks",
-    "src/core/resilience/__init__.py — circuit breaker + retry + cache",
-    "tests/test_property_f51.py — 14 hypothesis property tests",
-    "pytest.ini — property + security markers"
+  "modules_refactored": [
+    "src/experts/crisis/models/__init__.py + all 12 sensors (BaseCrisisModel DRY)",
+    "src/core/sentiment/*.py (DRY parse_iso_datetime)"
   ],
   "test_results": {
-    "f2_targeted_suite": "120 passed, 0 failed",
-    "property_tests": "14 passed",
-    "regression": "0 regressions"
+    "full_suite": "1328 passed, 1 failed, 8 skipped",
+    "trade_gate_tests": "32 passed",
+    "property_tests": "14 passed"
   },
   "features_delivered": {
-    "structured_logging": "structlog JSON format with trace_id propagation",
-    "env_var_validation": "Pydantic Settings with safe defaults (FREEZE=true)",
-    "idempotency": "SHA256 deterministic keys + persistent dedup via journal/dedup/",
-    "dead_letter_queue": "journal/dead_letter/ for failed orders with replay capability",
-    "prometheus_metrics": "/metrics/prometheus endpoint with 6 business metrics",
-    "integration_metrics": "/metrics JSON enhanced with trading_frozen + prometheus link"
+    "trade_gate": "10 safety gates (freeze, intent, blacklist, format, validation, quantity, price, mismatch, IBKR, journal)",
+    "structured_logging": "structlog JSON with trace_id",
+    "env_var_validation": "Pydantic Settings (FREEZE=true default)",
+    "idempotency": "SHA256 keys + persistent dedup",
+    "dead_letter_queue": "Failed order replay",
+    "prometheus_metrics": "/metrics/prometheus endpoint",
+    "circuit_breaker": "CLOSED/OPEN/HALF_OPEN + recovery",
+    "retry_decorator": "Exponential backoff",
+    "price_cache": "5-min TTL graceful degradation"
   },
-  "deps_installed": [
-    "structlog==26.1.0",
-    "pydantic-settings==2.13.1",
-    "prometheus-client==0.20.0",
-    "tenacity==9.1.2",
-    "hypothesis==6.155.7",
-    "coverage==7.13.4",
-    "vulture==2.16",
-    "deptry==0.25.1",
-    "bandit==1.9.4",
-    "pytest-xdist==3.8.0"
+  "bugs_fixed": [
+    "hawkes_stress.py: undefined status → NameError",
+    "systemic_bank_risk.py: undefined status → NameError",
+    "network_contagion.py: undefined status → NameError",
+    "f51_trade_gate.py: regex {1,5}→{2,5} blocks single-char 'S'"
   ],
-  "mcp_servers_installed": [
-    "add-mcp@11.0",
-    "github-mcp-server@1.8.7",
-    "chrome-devtools-mcp@1.4.0"
+  "bugs_remaining": [
+    "generator.py:4: 'risk' + 'invalidation' undefined (NameError at runtime)"
   ],
-  "new_skills": [
-    "f51-observability",
-    "f51-env-guard",
-    "f51-idempotency",
-    "f51-circuit-breaker",
-    "f51-prop-test",
-    "f51-dead-code",
-    "f51-metrics-dash",
-    "f51-secure-scan"
-  ],
-  "next_action": "FASE3 — f51-metrics-dash (dashboard), f51-secure-scan (bandit findings), f51-dead-code (remaining 5)",
-  "f2_results": {
-    "circuit_breaker": {
-      "module": "src/core/resilience/__init__.py",
-      "features": [
-        "CircuitBreaker (CLOSED/OPEN/HALF_OPEN)",
-        "with_retry decorator",
-        "price_cache fallback",
-        "classify_error"
-      ],
-      "integration": "DataHub resolve_and_validate_ticker with circuit breaker + cache fallback"
-    },
-    "property_tests": {
-      "file": "tests/test_property_f51.py",
-      "tests": 14,
-      "strategies": [
-        "valid_ticker",
-        "invalid_ticker_length",
-        "invalid_ticker_numeric",
-        "any_string"
-      ],
-      "edge_cases_found": [
-        "single-char ticker (A) accepted → regex fixed to {2,5}",
-        "comprar? ambiguous → gate errs safe (by design)",
-        "BUY valid format → blacklist catches it"
-      ]
-    },
-    "dead_code_cleanup": {
-      "before": 9,
-      "after": 5,
-      "fixed": [
-        "_stdlib_logging import",
-        "_settings_is_frozen import",
-        "CollectorRegistry import",
-        "unreachable return after try/except"
-      ],
-      "remaining": [
-        "f51_adapter:tmpl",
-        "memory:max_hops",
-        "neural_log:exc_tb",
-        "autonomous_loop:frame",
-        "pennylab:max_parallel"
-      ]
-    }
-  }
+  "data_providers_tested": {
+    "finnhub": "WORKING",
+    "twelve_data": "WORKING",
+    "yfinance": "WORKING",
+    "openbb_scanner": "INSTALLED + scan_equities returns real tickers",
+    "penny_scanner": "WORKING (8 stocks)",
+    "stooq": "BROKEN (404, priority 45, never reached)"
+  },
+  "legacy_cleanup": {
+    "size_removed": "44MB",
+    "items_removed": "runs/evidence/, data/traces/, .f51/cache/, output/, data/signals/, reports/, .hypothesis/, .pytest_cache/, .playwright-cli/",
+    "gitignore_updated": true
+  },
+  "next_action": "FASE3 — Fix generator.py bugs, fix Stooq, run E2E with F51 Trade Gate active, create metrics dashboard"
 }
