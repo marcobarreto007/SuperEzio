@@ -691,6 +691,56 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             result = await node_rag_forensics(state)
 
         elif tool_name == "submit_paper_order":
+            # ═══════════════════════════════════════════════════════
+            # F51 TRADE GATE — Central safety validator
+            # Must pass BEFORE any paper order can proceed.
+            # ═══════════════════════════════════════════════════════
+            try:
+                from core.pipeline.f51_trade_gate import evaluate_trade_gate, record_blocked_order
+                ticker_raw = args.get("ticker", "").upper()
+                qty_raw = int(float(args.get("qty", args.get("quantity", args.get("shares", 0)) or 0)))
+                price_raw = float(args.get("limit_price", 0) or 0)
+                msg = str(state.get("message", "") or "")
+                thesis_ticker = str(state.get("ticker", "") or "").upper()
+
+                gate_decision = evaluate_trade_gate(
+                    message=msg,
+                    ticker=ticker_raw,
+                    thesis_ticker=thesis_ticker,
+                    qty=qty_raw,
+                    limit_price=price_raw,
+                    run_id=state.get("run_id", ""),
+                )
+                if gate_decision.status != "ALLOW":
+                    writer = get_stream_writer()
+                    writer({
+                        "type": "PAPER_ORDER_BLOCKED",
+                        "run_id": state.get("run_id", ""),
+                        "ticker": ticker_raw,
+                        "step": "f51_trade_gate",
+                        "status": "blocked",
+                        "reason": gate_decision.reason,
+                        "reason_code": gate_decision.reason_code,
+                        "gates_failed": gate_decision.gates_failed,
+                    })
+                    record_blocked_order(gate_decision, message=msg, ticker=ticker_raw,
+                                         run_id=state.get("run_id", ""))
+                    result = {
+                        "blocked": True,
+                        "reason": f"f51_trade_gate:{gate_decision.reason_code}",
+                        "reason_code": gate_decision.reason_code,
+                        "message": f"Ordem bloqueada pelo F51 Trade Gate: {gate_decision.reason}",
+                    }
+                    return result
+            except ImportError:
+                logger.warning("[tool_executor] F51 Trade Gate not available — blocking order")
+                return {"blocked": True, "reason": "f51_trade_gate_unavailable",
+                        "message": "Ordem bloqueada: F51 Trade Gate indisponível."}
+            except Exception as exc:
+                logger.error("[tool_executor] F51 Trade Gate error: %s", exc)
+                return {"blocked": True, "reason": f"f51_trade_gate_error:{str(exc)[:80]}",
+                        "message": f"Ordem bloqueada por erro no F51 Trade Gate."}
+
             # FORCE expert committee before ANY paper order.
             # Bob cannot shoot without consulting his advisors.
             ticker = args.get("ticker", "").upper()

@@ -77,8 +77,52 @@ async def auto_execute_paper(state: dict) -> dict:
         })
         return {"paper_exec_note": "no ticker parsed"}
 
-    # Position sizing
+    # ═══════════════════════════════════════════════════════════
+    # F51 TRADE GATE — Central safety validator (ALL 10 gates)
+    # Must pass BEFORE any order proceeds. Fails CLOSED.
+    # ═══════════════════════════════════════════════════════════
     limit_price, data_age_s = _resolve_limit_price(state, scan, ticker)
+
+    try:
+        from core.pipeline.f51_trade_gate import evaluate_trade_gate, record_blocked_order
+
+        message = str(state.get("message", "") or "")
+        thesis_ticker = _extract_thesis_ticker(final, state, ticker)
+
+        gate_decision = evaluate_trade_gate(
+            message=message,
+            ticker=ticker,
+            thesis_ticker=thesis_ticker,
+            qty=qty,
+            limit_price=limit_price,
+            run_id=run_id,
+        )
+
+        if gate_decision.status != "ALLOW":
+            writer({
+                "type": "PAPER_ORDER_BLOCKED",
+                "run_id": run_id,
+                "ticker": ticker,
+                "step": "f51_trade_gate",
+                "status": "blocked",
+                "reason": gate_decision.reason,
+                "reason_code": gate_decision.reason_code,
+                "gates_failed": gate_decision.gates_failed,
+            })
+            record_blocked_order(gate_decision, message=message, ticker=ticker, run_id=run_id)
+            return {
+                "paper_exec_blocked": gate_decision.reason_code,
+                "paper_exec_block_reason": gate_decision.reason,
+                "paper_exec_gates_failed": gate_decision.gates_failed,
+            }
+    except ImportError:
+        logger.warning("[auto_execute_paper] F51 Trade Gate module not found — blocking all orders")
+        return {"paper_exec_blocked": "F51_TRADE_GATE_UNAVAILABLE"}
+    except Exception as exc:
+        logger.error("[auto_execute_paper] F51 Trade Gate error — blocking: %s", exc)
+        return {"paper_exec_blocked": f"f51_trade_gate_error:{str(exc)[:120]}"}
+
+    # Position sizing (only reached if gate ALLOWED)
     from core.mission_context import get_mission_equity
     paper_equity = get_mission_equity()
 
@@ -142,8 +186,9 @@ async def auto_execute_paper(state: dict) -> dict:
 
     # Submit paper order
     order_state = {**state, "ticket_allowed": True}
-    if limit_price <= 0:
-        limit_price = 99.0
+    # CRITICAL: No fallback to placeholder price. If limit_price <= 0, the
+    # F51 Trade Gate (GATE 7) will BLOCK this order as PLACEHOLDER_PRICE.
+    # The DataHub price from _resolve_limit_price is the single source of truth.
 
     result = await _submit_paper_order(
         order_state,
@@ -168,6 +213,34 @@ async def auto_execute_paper(state: dict) -> dict:
         "paper_exec_qty": qty,
         "paper_journal_entry": journal_entry,
     }
+
+
+def _extract_thesis_ticker(final: str, state: dict, order_ticker: str) -> str:
+    """Extract the ticker referenced in the thesis/context to compare with order ticker.
+
+    Looks for patterns like 'TICKER XXXX:' in the message or final_answer,
+    and returns the FIRST ticker mentioned. This is used to detect mismatches
+    where the thesis discusses one ticker but the order is for another.
+    """
+    import re as _re
+
+    thesis_text = str(state.get("message", "") or "")
+    if final:
+        thesis_text = f"{thesis_text} {final}"
+
+    # Pattern: 'TICKER SYMB:' or 'TICKER SYMBOL:' at the beginning
+    ticker_match = _re.search(r'TICKER\s+([A-Z]{1,5}(?:\.[A-Z]{2})?)', thesis_text, _re.IGNORECASE)
+    if ticker_match:
+        thesis_ticker = ticker_match.group(1).upper()
+        if thesis_ticker != order_ticker.upper():
+            return thesis_ticker
+
+    # Also check the state ticker if different from order
+    state_ticker = str(state.get("ticker", "")).upper()
+    if state_ticker and state_ticker != order_ticker.upper():
+        return state_ticker
+
+    return ""
 
 
 def _resolve_trade_params(
@@ -204,41 +277,57 @@ def _resolve_trade_params(
         action = "sell" if "SELL" in final or "short" in final.lower() else "buy"
         return str(ticker).upper(), int(qty), action
 
-    # Strategy 2: Top scan candidate
+    # Strategy 2: Top scan candidate (requires explicit trade intent)
     if candidates and state.get("route") in ("market_scan",):
         top = candidates[0] if isinstance(candidates[0], dict) else {}
         ticker = str(top.get("ticker", top.get("symbol", ""))).upper()
         if not ticker:
             return None, 0, ""
         price = float(top.get("price", top.get("latest_price", 0)) or 0)
-        qty = max(1, int(1000 / price)) if price > 0 else 10
+        if price <= 0:
+            return None, 0, ""  # No price, no quantity — will be blocked by gate
+        qty = max(1, int(1000 / price)) if price > 0 else 0
+        if qty <= 0:
+            return None, 0, ""
         return ticker, qty, "buy"
 
-    # Strategy 3: Direct ticker order
+    # Strategy 3: Direct ticker order (requires explicit trade intent)
     if state.get("ticker") and state.get("route") in ("ticker_analysis",):
+        # Only proceed if message contains EXPLICIT trade request
+        msg = (final or state.get("message", "")).lower()
+        has_explicit_trade = any(
+            w in msg for w in ("comprar", "compre", "vender", "venda", "paper_ticket",
+                               "buy", "sell", "execute order", "submit order", "place trade")
+        )
+        if not has_explicit_trade:
+            return None, 0, ""
         ticker = str(state.get("ticker", "")).upper()
         qty_match = re.search(
             r"(\d+)\s*(?:share|acao|acoes|shares)",
             final or state.get("message", ""), re.IGNORECASE,
         )
-        qty = int(qty_match.group(1)) if qty_match else 5
+        qty = int(qty_match.group(1)) if qty_match else 0
+        if qty <= 0:
+            return None, 0, ""  # No valid quantity — gate will block
         action = (
             "sell" if any(w in (final or "").lower() for w in ("venda", "vender", "sell", "short"))
             else "buy"
         )
         return ticker, qty, action
 
-    # Strategy 4: Any ticker + trade intent
+    # Strategy 4: Any ticker + explicit trade intent keywords
     if state.get("ticker") and any(
         w in (state.get("message", "")).lower()
-        for w in ("compr", "buy", "venda", "sell", "trade", "ordem", "paper")
+        for w in ("comprar", "compre", "buy", "venda", "vender", "sell", "trade", "ordem", "paper_ticket")
     ):
         ticker = str(state.get("ticker", "")).upper()
         qty_match = re.search(
             r"(\d+)\s*(?:share|acao|acoes|shares)",
             final or state.get("message", ""), re.IGNORECASE,
         )
-        qty = int(qty_match.group(1)) if qty_match else 10
+        qty = int(qty_match.group(1)) if qty_match else 0
+        if qty <= 0:
+            return None, 0, ""  # No valid quantity — gate will block
         action = (
             "sell" if any(w in (final or state.get("message","")).lower()
                          for w in ("venda", "vender", "sell", "short"))
