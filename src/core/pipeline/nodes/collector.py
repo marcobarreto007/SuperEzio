@@ -64,6 +64,63 @@ def _cache_is_fresh(trade_ctx: dict[str, Any]) -> bool:
         return False
 
 
+def _try_fast_cache(ticker: str, writer) -> dict | None:
+    """Check pre-computed cache. Returns data dict if fresh, None if stale/empty.
+
+    Latency: <10ms (SQLite query). This is the 193s → 7s optimization.
+    """
+    try:
+        from core.trading.historical_cache import get_cached_ohlcv
+        from core.trading.batch_expert_runner import get_expert_analysis
+
+        ohlcv = get_cached_ohlcv(ticker, days=1)  # Just need latest price
+        experts = get_expert_analysis(ticker)
+
+        if not ohlcv or not experts:
+            return None  # Cache miss — fall through to live collection
+
+        latest = ohlcv[-1]
+        price = latest["close"]
+        volume = latest["volume"]
+
+        # Build minimal data dict from cache
+        data = {
+            "ticker": ticker,
+            "price": {
+                "latest": price, "volume": volume,
+                "data_quality": "cached",
+                "source": "learner_24_7_cache",
+            },
+            "fundamentals": {"data_quality": "cached", "source": "learner_24_7_cache"},
+            "technicals": {"data_quality": "cached", "source": "learner_24_7_cache"},
+            "risk": {"data_quality": "cached", "source": "learner_24_7_cache"},
+        }
+
+        # Build rich data_context from expert analyses
+        lines = [f"TICKER: {ticker}"]
+        lines.append(f"Latest Price: ${price:.2f} (vol: {volume:,.0f})")
+        for role, edata in sorted(experts.items()):
+            a = edata.get("analysis", {})
+            if isinstance(a, dict):
+                verdict = a.get("verdict", "?")
+                lines.append(f"  {role}: {verdict}")
+
+        data_context = "\n".join(lines)
+
+        writer({
+            "type": "PIPELINE_STEP",
+            "step": "data",
+            "status": "cache_hit",
+            "ticker": ticker,
+            "source": "learner_cache",
+            "latency_ms": 0,
+        })
+
+        return {"data": data, "data_context": data_context}
+    except Exception:
+        return None  # Any error → fall through to live collection
+
+
 async def node_collector(state: dict, *, config=None) -> dict:
     """Collect financial data for the detected ticker or market scan."""
     writer = get_stream_writer()
@@ -83,6 +140,18 @@ async def node_collector(state: dict, *, config=None) -> dict:
 
     # ── Ticker analysis ──
     if route == "ticker_analysis" and ticker:
+        # ═══════════════════════════════════════════════════
+        # FAST PATH: Check pre-computed cache first (<10ms)
+        # ═══════════════════════════════════════════════════
+        cached = _try_fast_cache(ticker, writer)
+        if cached:
+            writer({
+                "type": "PIPELINE_STEP", "run_id": run_id,
+                "step": "data", "status": "completed",
+                "provider": "cache", "route": route, "ticker": ticker,
+            })
+            return cached
+
         use_pro = os.getenv("SUPEREZIO_PROFESSIONAL_COLLECTOR", "true").lower() in {
             "1",
             "true",

@@ -329,43 +329,46 @@ async def _auto_full_analysis(
         )
         _mark_step("system_status", {"ibkr": "offline"})
 
+    # ═══════════════════════════════════════════════════════
+    # PARALLEL: f51, neural, sdca, rag, guardrails — todos independentes
+    # ═══════════════════════════════════════════════════════
     if ticker:
-        for label, node in (
+        async def _run_node(label, node, ws):
+            try:
+                return label, await node(ws), None
+            except Exception as exc:
+                return label, None, exc
+
+        parallel_nodes = [
             ("f51", node_f51_verdict),
             ("neural_decision", node_neural_decision),
             ("sdca_firewall", node_sdca_firewall),
             ("rag_forensics", node_rag_forensics),
-        ):
-            try:
-                result = await node(working_state)
+            ("guardrail_hub", node_guardrail_hub),
+        ]
+        tasks = [_run_node(label, node, dict(working_state)) for label, node in parallel_nodes]
+        results = await asyncio.gather(*tasks)
+
+        for label, result, error in results:
+            if error:
+                _merge_node_update(working_state, output,
+                    {"errors": [f"auto_full_analysis.{label}:{error}"]})
+            elif result:
                 _merge_node_update(working_state, output, result)
-            except Exception as exc:
-                _merge_node_update(
-                    working_state,
-                    output,
-                    {"errors": [f"auto_full_analysis.{label}:{exc}"]},
-                )
     else:
         try:
             result = await node_sdca_firewall(working_state)
             _merge_node_update(working_state, output, result)
         except Exception as exc:
-            _merge_node_update(
-                working_state,
-                output,
-                {"errors": [f"auto_full_analysis.sdca_firewall:{exc}"]},
-            )
-
-    try:
-        result = await node_guardrail_hub(working_state)
-        _merge_node_update(working_state, output, result)
-        _mark_step("guardrails")
-    except Exception as exc:
-        _merge_node_update(
-            working_state,
-            output,
-            {"errors": [f"auto_full_analysis.guardrail_hub:{exc}"]},
-        )
+            _merge_node_update(working_state, output,
+                {"errors": [f"auto_full_analysis.sdca_firewall:{exc}"]})
+        try:
+            result = await node_guardrail_hub(working_state)
+            _merge_node_update(working_state, output, result)
+            _mark_step("guardrails")
+        except Exception as exc:
+            _merge_node_update(working_state, output,
+                {"errors": [f"auto_full_analysis.guardrail_hub:{exc}"]})
 
     writer(
         {
