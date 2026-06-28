@@ -44,14 +44,6 @@ from .trading_losses import (
     directional_accuracy,
 )
 
-# F51-dependent modules live in src/f51/ to avoid circular imports.
-# Import directly from the f51 package:
-#   from f51.formulas import FormulaWeights
-#   from f51.gates import VeracityGate
-#   from f51.scoring import PlatinumScorer
-#   from f51.detectors import SpiderSense
-#   from experts.crisis import crisis_evaluate
-
 __all__ = [
     # utils
     "sigmoid",
