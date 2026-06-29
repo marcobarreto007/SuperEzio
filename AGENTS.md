@@ -9,20 +9,36 @@ Fonte: `.f51/GITHUB_POLICY.json`. Modo **DISK ONLY**.
 - NUNCA `git push`, `git pull`, `git fetch`, `gh`
 - Commits locais OBRIGATÓRIOS após cada mudança mínima
 
-## Exército Ativo (10 agentes)
+## Exército Ativo (13 agentes)
 
+### Verifiers (7)
 | Agente | Classe | Missão |
 |--------|--------|--------|
-| `recon-researcher` | Researcher | Mapeia arquitetura, órfãos, código morto |
 | `security-reviewer` | Verifier | Audita segredos, env vars, superfície de ataque |
-| `code-quality-reviewer` | Verifier | Lint, imports quebrados, código comentado |
-| `runtime-verifier` | Verifier | Portas, GPU, modelo, health checks |
-| `training-verifier` | Verifier | Scripts, datasets, checkpoints, modelos |
-| `api-contract-verifier` | Verifier | Endpoints, schemas, breaking changes |
-| `frontend-ux-reviewer` | Verifier | Smoke test, UI funcional |
-| `model-gateway-verifier` | Verifier | Provider cascade, latência, fallback |
-| `agent-explorer` | Explorer | Avalia qualidade dos agentes, propõe substituições |
-| `savekeeper` | Savekeeper | Salva docs, checkpoint, changelog |
+| `code-quality-reviewer` | Verifier | Lint, dead code, complexidade, tipagem |
+| `runtime-verifier` | Verifier | Portas, GPU, processos, logs, health checks |
+| `training-verifier` | Verifier | Classifica scripts, valida datasets e checkpoints |
+| `api-contract-verifier` | Verifier | Contratos públicos, breaking changes, schema drift |
+| `frontend-ux-reviewer` | Verifier | Smoke test, acessibilidade, chat flow |
+| `model-gateway-verifier` | Verifier | Provider cascade, latência, fallback, GGUF |
+
+### Researchers (2)
+| Agente | Classe | Missão |
+|--------|--------|--------|
+| `recon-researcher` | Researcher | Mapeia arquitetura real, entrypoints, órfãos |
+| `kb-domain-reviewer` | Researcher | Precisão conceitual, docs, signal ledger |
+
+### Meta / Evolution (3)
+| Agente | Classe | Missão |
+|--------|--------|--------|
+| `agent-explorer` | Explorer | Avalia qualidade dos agentes, detecta duplicação |
+| `agent-benchmarker` | Explorer | Testa agentes com mesma tarefa, compara scores |
+| `agent-replacer` | Explorer | Substitui agentes ruins, promove candidatos |
+
+### Savekeeper (1)
+| Agente | Classe | Missão |
+|--------|--------|--------|
+| `savekeeper` | Savekeeper | Salva verdade durável, checkpoints, changelog |
 
 ## Comandos
 
@@ -32,9 +48,10 @@ Fonte: `.f51/GITHUB_POLICY.json`. Modo **DISK ONLY**.
 | `/save` | Salva estado + commit local |
 | `/agent-lab` | Testa e evolui agentes |
 
-## F51 Skills (22 skills)
+## F51 Skills (27 skills)
 
 Mantidas em `.claude/skills/`. Skills nucleares: inventory, contracts, runtime, refactor, tests, audit, release, money-gate.
+Agentes referenciam skills como capacidade atômica. Skills não são agentes — são ferramentas conceituais.
 
 ## Regras de Ouro
 

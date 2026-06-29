@@ -1,37 +1,32 @@
-# Save — Persiste o estado atual do SuperEzio
+﻿# Save — Persist Verified Truth
 
-Goal: Salvar documentação, checkpoint e changelog com o estado real do projeto.
+Goal: Save current project state to durable documentation.
 
-## O que salvar
-1. `.f51/checkpoints/latest.json` — estado atual dos gates
-2. `CLAUDE.md` e `AGENTS.md` — se houve mudança de regra
-3. `docs/` — documentação atualizada
-4. `ROADMAP.md` — se milestones mudaram
-5. Git commit local — OBRIGATÓRIO após cada mudança mínima
+## What Gets Saved
+- `CLAUDE.md` / `AGENTS.md` — if rules changed
+- `.f51/checkpoints/latest.json` — always
+- `.f51/TASK_BOARD.md` — if tasks progressed
+- `.f51/RISK_REGISTER.md` — if risks changed
+- `docs/` — consolidated findings from agent reports
 
-## O que NUNCA salvar
-- Segredos, tokens, API keys
-- Fotos privadas, dados pessoais
-- Modelos (.gguf, .bin)
-- Datasets crus (>1MB)
-- Logs temporários
-- `.agent_bus/runtime/` (volátil)
+## Pre-Save Gates
+1. [ ] Changes validated by at least one verifier agent
+2. [ ] No secrets in content (scan: api_key, token, password, cert)
+3. [ ] Tests passing or blockers documented
+4. [ ] Risk register current
+5. [ ] Checkpoint template filled
 
-## Gates antes de salvar
-```powershell
-git status --short
-git diff --stat
-python -m ruff check src/ tests/
-```
+## Save Procedure
+1. Run `git status --short` to see all changes
+2. Review each change against gates
+3. Update `.f51/checkpoints/latest.json`
+4. Update affected docs
+5. Report what was saved and why
 
-## Commit message format
-```
-<type>(<scope>): <description>
-```
-Types: feat, fix, docs, refactor, test, chore, save
-Scope: f51, pipeline, experts, model, agents, docs, runtime
-
-## Exemplo
-```
-save(agents): deploy 10-agent swarm + commands v1
-```
+## Never Save
+- Secrets, keys, tokens, .env values
+- Raw photos, private images
+- Model files, GGUF, safetensors
+- Raw datasets (.jsonl, .parquet)
+- Runtime logs with tokens
+- Temporary agent memory

@@ -1,46 +1,42 @@
-# Swarm — SuperEzio Agent Army
+﻿# Swarm — Full Army Audit
 
 Goal: $ARGUMENTS
 
-## Agent Roster (run in order)
+## Execution Plan
 
-### Wave 1 — Recon & Audit (parallel)
-1. **recon-researcher** — mapeia arquitetura, entrypoints, órfãos
-2. **security-reviewer** — audita segredos, env vars, MCPs
-3. **code-quality-reviewer** — lint, imports quebrados, código morto
+### Phase 1: Reconnaissance (parallel)
+Run these agents simultaneously:
+1. **recon-researcher** — map architecture, entrypoints, orphans
+2. **runtime-verifier** — health checks, ports, GPU, processes
+3. **api-contract-verifier** — validate all public contracts
 
-### Wave 2 — Runtime & Contracts (parallel, depends on Wave 1 awareness)
-4. **runtime-verifier** — portas, GPU, modelo, health checks
-5. **api-contract-verifier** — endpoints, schemas, breaking changes
-6. **training-verifier** — scripts, datasets, checkpoints, modelos
+### Phase 2: Deep Audit (parallel)
+4. **security-reviewer** — secrets, vulns, attack vectors
+5. **code-quality-reviewer** — lint, dead code, complexity
+6. **training-verifier** — classify scripts, validate checkpoints
+7. **frontend-ux-reviewer** — browser smoke, accessibility
+8. **kb-domain-reviewer** — domain accuracy, doc consistency
 
-### Wave 3 — Integration (parallel)
-7. **frontend-ux-reviewer** — smoke test, UI funcional
-8. **model-gateway-verifier** — provider cascade, latência
-
-### Wave 4 — Meta & Save
-9. **agent-explorer** — avalia qualidade dos agentes
-10. **savekeeper** — salva docs, checkpoint, changelog
+### Phase 3: Meta-Evaluation (sequential)
+9. **agent-explorer** — evaluate agent quality, detect duplication
+10. **savekeeper** — integrate findings, update truth docs
 
 ## Rules
-- Todo agente devolve: `role, scope, files_read, claims, evidence, risks, next_gate`
-- Toda afirmação precisa de evidência (arquivo:linha ou comando executado)
-- Nenhum agente edita arquivo de produto sem ticket explícito
-- Nenhum segredo, foto, modelo ou dataset cru entra no git
-- Resultado final deve passar gates ou declarar bloqueios
+- Every claim needs evidence (file:line or command output)
+- No shared write ownership — only savekeeper writes to docs
+- No secrets/raw photos/models in git
+- Final result must pass gates or state blockers
+- Checkpoint mandatory: `.f51/checkpoints/latest.json` updated
 
-## Gates (obrigatórios no final)
-```powershell
-git status --short
-git diff --check
-python -m ruff check src/ tests/
-python -m pytest tests/ -q
-```
+## Stop Conditions
+- Server unreachable → report blocker, do not proceed
+- GitHub policy violation detected → halt, report
+- Critical security finding → halt, report immediately
+- 3+ agents report same issue → escalate to orchestrator
 
-## Output esperado
-Relatório integrado com:
-- Sumário de cada agente
-- Bloqueios encontrados
-- Riscos por severidade
-- Recomendação: GO / NO-GO / HOLD
-- Checkpoint atualizado em `.f51/checkpoints/latest.json`
+## Output
+Consolidated report with:
+- Executive summary (3-5 bullets)
+- Findings by category (security, quality, runtime, contracts, frontend, KB)
+- Risk register update
+- Recommended next action

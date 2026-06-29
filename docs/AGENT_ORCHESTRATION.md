@@ -1,70 +1,88 @@
-# SuperEzio Agent Orchestration
+﻿# AGENT_ORCHESTRATION.md — SuperEzio Agent Army Operating Manual
 
-## Arquitetura do Exército
+Status: **active**
+Version: 1.0
+Based on: Playbook 2026 — Exércitos de Claude Code + F51 Operational Layer
 
-```text
-Usuario
-  └─ Orquestrador (Claude Code)
-       ├─ Wave 1: Recon + Audit
-       │   ├─ recon-researcher
-       │   ├─ security-reviewer
-       │   └─ code-quality-reviewer
-       ├─ Wave 2: Runtime + Contracts
-       │   ├─ runtime-verifier
-       │   ├─ api-contract-verifier
-       │   └─ training-verifier
-       ├─ Wave 3: Integration
-       │   ├─ frontend-ux-reviewer
-       │   └─ model-gateway-verifier
-       └─ Wave 4: Meta + Save
-           ├─ agent-explorer
-           └─ savekeeper
+## Filosofia
+
+O exército de agentes do SuperEzio não é um bando de agentes falando ao mesmo tempo.
+É um sistema com:
+
+- **objetivo claro** por missão;
+- **papéis separados** sem sobreposição de escrita;
+- **contexto limpo** por agente;
+- **evidência obrigatória** em toda afirmação;
+- **gates determinísticos** antes de aceitar qualquer saída;
+- **seleção natural** — agentes ruins são substituídos por melhores.
+
+## Estrutura de Agentes
+
+```
+.claude/agents/
+├── recon-researcher.md          # Arqueólogo — mapeia arquitetura real
+├── security-reviewer.md         # Auditor de segurança — secrets, vulns, vetores
+├── code-quality-reviewer.md     # Qualidade de código — lint, dead code, complexidade
+├── runtime-verifier.md          # Runtime — health checks, GPU, processos, logs
+├── training-verifier.md         # Treino — classifica scripts, valida datasets
+├── api-contract-verifier.md     # Contratos — breaking changes, schema drift
+├── frontend-ux-reviewer.md      # Frontend — smoke test, acessibilidade, chat
+├── kb-domain-reviewer.md        # Conhecimento — precisão conceitual, docs
+├── savekeeper.md                # Verdade durável — docs, checkpoints, changelog
+├── agent-explorer.md            # Meta — avalia qualidade dos agentes
+├── agent-benchmarker.md         # Meta — testa agentes com mesma tarefa
+├── agent-replacer.md            # Meta — substitui agentes ruins
+└── deprecated/                  # Cemitério de agentes
 ```
 
-## Como disparar
+## Ciclo de Vida do Agente
 
-```text
-/swarm Auditar o estado atual do SuperEzio antes do release
+```
+candidate → (benchmark win) → active → (3 elite scores) → elite
+                                              ↓
+                                        (3 failures)
+                                              ↓
+                                        deprecated → (30 dias) → killed
 ```
 
-O comando `/swarm` está definido em `.claude/commands/swarm.md`.
+## Agentes vs Skills
 
-## Fluxo de execução
+Agentes F51 são **papéis operacionais** com escopo e ferramentas.
+Skills F51 (`.claude/skills/`) são **capacidades atômicas** que agentes podem referenciar.
 
-1. **Orquestrador** recebe o objetivo do usuário
-2. **Wave 1** (3 agentes em paralelo): mapeia arquitetura, segurança, qualidade
-3. **Wave 2** (3 agentes em paralelo): verifica runtime, API, treinos
-4. **Wave 3** (2 agentes em paralelo): testa frontend, model gateway
-5. **Wave 4** (2 agentes): avalia agentes e salva estado
+Exemplo: `security-reviewer` referencia `f51-secure-scan` e `f51-safety-science`.
 
-## Regras de ouro
+## Orquestrador
 
-- Um agente = uma missão
-- Builder escreve pouco
-- Verifier não é o mesmo que escreveu
-- Savekeeper não salva segredo
-- Explorer mata agente ruim
-- Orquestrador integra tudo
-- Git limpo no final
+O orquestrador (Claude Code na sessão principal) é responsável por:
+1. Entender o objetivo real
+2. Criar plano com papéis definidos
+3. Montar contexto limpo para cada agente
+4. Escolher subagentes (nunca todos ao mesmo tempo sem necessidade)
+5. Integrar relatórios
+6. Cortar duplicação
+7. Rodar gates
+8. Responder ao usuário
 
-## Gates obrigatórios
+## Tamanho do Exército
 
-```powershell
-git status --short
-git diff --check
-python -m ruff check src/ tests/
-python -m pytest tests/ -q
+| Tamanho | Quando Usar |
+|---|---|
+| 1 agente | Pergunta simples, editar 1 arquivo, rodar 1 teste |
+| 4 agentes | Feature ou bug médio (recon + builder + verifier + savekeeper) |
+| 8 agentes | Auditoria grande (todos os reviewers) |
+| 10 agentes | Release (8 reviewers + benchmarker + savekeeper) |
+| 12+ agentes | Só se cada agente tiver pergunta DIFERENTE |
+
+## Regra de Ouro
+
+Token infinito não resolve agente ruim.
+
+O que resolve é:
 ```
-
-## Pontuação de agente
-
-| Critério | Peso | Pergunta |
-|----------|------|----------|
-| Evidência | 0-5 | Citou arquivos/comandos/fontes? |
-| Utilidade | 0-5 | Reduziu incerteza? |
-| Precisão | 0-5 | Evitou chute? |
-| Escopo | 0-5 | Respeitou limites? |
-| Verificação | 0-5 | Rodou gate? |
-| Concisão | 0-5 | Relatório usável? |
-
-**Total: 30** | Elite: 26+ | Bom: 21-25 | Fraco: 10-15 | Substituir: <10
+missão clara
++ contexto certo
++ evidência obrigatória
++ verificação
++ seleção natural de agentes
+```

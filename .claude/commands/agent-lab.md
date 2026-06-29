@@ -1,42 +1,45 @@
-# Agent Lab — Melhora o exército de agentes
+﻿# Agent Lab — Evolve the Agent Army
 
-Goal: Testar, comparar e evoluir os agentes do SuperEzio.
+Goal: Improve agent quality through systematic testing and replacement.
 
-## Ciclo de evolução
-1. Identificar agente fraco (via agent-explorer)
-2. Criar agente candidato em `.claude/agents/`
-3. Rodar mesma tarefa com agente atual E candidato
-4. Comparar evidências (não opiniões)
-5. Se candidato vencer → promover para active
-6. Mover perdedor para `.claude/agents/deprecated/`
-7. Savekeeper registra a troca
+## Procedure
 
-## Tarefa de benchmark sugerida
-"Auditar o estado atual do projeto e reportar 3 riscos com evidência"
+### Step 1: Evaluate Current Agents
+Deploy **agent-explorer** to review all agent reports.
+Output: strong agents, weak agents, duplicates, gaps.
 
-## Métrica de vitória
-Agente vence se tiver MAIS:
-- Evidências citadas (arquivo:linha)
-- Riscos reais encontrados
-- Ações verificáveis sugeridas
+### Step 2: Benchmark Weak Agents
+Deploy **agent-benchmarker** to test weak agents against candidates.
+Output: score table, winner, loser, why.
 
-E MENOS:
-- Afirmações sem evidência
-- Alucinações
-- Repetição de outros agentes
+### Step 3: Replace Failing Agents
+Deploy **agent-replacer** for each agent that scored < 16.
+Output: deprecated agent, new candidate, test task, promotion criteria.
 
-## Estados de agente
-- `candidate` — novo, experimental, roda em paralelo
-- `active` — confiável, chamado em swarm normal
-- `elite` — excepcional, usado em releases
-- `deprecated` — movido para `deprecated/`, não deletado
+### Step 4: Validate Replacements
+Run the same task with old and new agent in parallel.
+Compare evidence ratio, bugs found, scope compliance.
 
-## Template de substituição
-```text
-Problema: [agente] falhou em [critério]
-Candidato: [novo agente]
-Tarefa teste: [descrição]
-Resultado atual: [score]
-Resultado candidato: [score]
-Decisão: [promote/retry/reject]
+### Step 5: Promote or Rollback
+- Winner (score > 20, 0 scope violations) → promote to active
+- Loser → keep in deprecated/
+- Tie → keep both, re-benchmark with harder task
+
+## Agent Lifecycle States
 ```
+candidate → (benchmark win) → active → (3 elite scores) → elite
+                                                  ↓ (3 failures)
+                                            deprecated → (30 days) → killed
+```
+
+## Scoring (per agent, per task)
+| Critério | 0 | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|---|
+| Evidência | 0 claims | 1-2 c/ src | 3-5 c/ src | maioria | quase todas | todas |
+| Utilidade | irrelevante | marginal | alguma ação | reduziu incerteza | ação clara | múltiplas ações |
+| Precisão | tudo errado | maioria errada | misto | maioria certa | quase tudo certo | perfeito |
+| Escopo | violou tudo | violou proibidos | vago | ok | bom | preciso |
+| Verificação | sem gate | gate vago | gate ok | gate testável | gate rodado | gate passou |
+| Concisão | ilegível | >1000 palavras | 500-1000 | <500 ok | denso | cirúrgico |
+
+Target: 26-30 for elite, 0-9 for immediate replacement.
