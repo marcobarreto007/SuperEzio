@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-06-28T21:30:00",
-  "session": "f51-swarm-audit-post-training",
+  "timestamp": "2026-06-28T21:10:00-04:00",
+  "session": "f51-playbook-2026-bootstrap-swarm-save",
   "orchestrator": "claude-code",
   "status": "completed",
-  "what_was_done": "Auditoria completa pós-treino LoRA + deploy Playbook 2026",
+  "what_was_done": "Playbook 2026 completo: exército de 13 agentes + swarm 4 agentes em paralelo + bug fix + smoke test passou",
   "progress": {
     "build_msvc": "completed — 3 binarios compilados com CUDA",
     "model_quantized": "completed — Q8_0→Q4_K_M (17.3 GB, 13.8 min)",
@@ -23,18 +23,27 @@
   "evidence": {
     "build": "bin/llama-finetune-qlora.exe, llama-finetune.exe, llama-quantize.exe",
     "lora": "models/bob_lora_qwenlong_30b_f51/lora_f51_v7.gguf (42.4 MB, 2026-06-28 20:09)",
-    "git_commits": "04212f2, 7ec99a1 — agent army deployed",
+    "git_commits": "7ec99a1, dd115e1, 44176dd (sessao 2026-06-28)",
+    "swarm": "4 agentes em paralelo — recon, security, code-quality, runtime — todos ELITE (26-28/30)",
+    "bug_fixed": "F821 'run_id' undefined em auto_executor.py:265",
+    "ruff_format": "110 arquivos formatados, 340 total OK",
+    "ruff_fix": "49 F401 imports removidos",
+    "smoke_test": "PASS — health OK, UI OK, chat Bob 2280 chars, 0 console errors",
+    "server": "Porta 8002 LIVE (PID 26260), GPU RTX 5060 Ti 15.5GB free",
     "security": "No hardcoded API keys, .gitignore updated for model files"
   },
   "risks": [
     "LoRA treinada com apenas 8 exemplos — overfitted, precisa mais dados",
     "Modelo 30B MoE lento para inferencia em GPU de 16GB com VRAM cheia",
-    "Checkpoint antigo (.f51/checkpoints/train_qwenlong_checkpoint.json) estava desatualizado — corrigido"
+    "Novos agentes nao tem benchmark ainda — rodar /agent-lab",
+    "59 ruff issues restantes (E402, F841, alguns F401 em try/except)",
+    "Servidor instavel — caiu 2x durante a sessao (precisa investigar)"
   ],
   "next_steps": [
+    "Rodar /agent-lab para benchmark dos agentes novos",
     "Testar inferencia: llama-cli.exe --model q4_k.gguf --lora lora_f51_v7.gguf",
     "Adicionar mais exemplos ao dataset de treino (20-50 exemplos)",
-    "Rodar /swarm completo antes do proximo release",
-    "Integrar Bob 30B+LoRA como expert no pipeline (node experts.py)"
+    "Limpar 59 ruff issues restantes",
+    "Investigar crash do servidor (morreu 2x em ~1h)"
   ]
 }
