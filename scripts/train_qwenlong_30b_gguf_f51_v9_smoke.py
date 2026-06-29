@@ -1,14 +1,15 @@
-"""Fail-fast QLoRA smoke for the Bob 30B GGUF adapter.
+"""Fail-fast QLoRA gate for the Bob 30B GGUF adapter.
 
-This is intentionally small. Its job is not to produce the production adapter;
-its job is to prove that llama-finetune-qlora is actually changing LoRA weights
-before we spend hours on the 10k/116k datasets.
+Default mode is a tiny smoke. Calibration mode samples real training rows and
+keeps the same hash/loss/step gates before we spend hours on the 10k/116k jobs.
 """
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
+import random
 import re
 import subprocess
 import sys
@@ -30,6 +31,12 @@ BASELINE_ADAPTERS = [
     OUT_DIR / "lora_f51_v8.gguf.ckpt11.gguf",
     OUT_DIR / "lora_f51_v8.gguf.ckpt10.gguf",
 ]
+
+# First invalid v9 smoke had zero training steps and produced this init-only
+# adapter hash. Keep it as a hard fail signal for this rank/alpha/target seed.
+KNOWN_BAD_HASHES = {
+    "v9_zero_step_init_seed42": "b8fe9418b03dc6f662d9d3be103c9e3e200e89be5f7f2af3bc00fd0e3fa0d18a",
+}
 
 SMOKE_DATASET = [
     {
@@ -102,6 +109,29 @@ SMOKE_DATASET = [
 ]
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run gated Bob 30B GGUF QLoRA training.")
+    parser.add_argument("--mode", choices=("smoke", "calibration"), default="smoke")
+    parser.add_argument("--sample-size", type=int, default=500)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--source",
+        type=Path,
+        default=DATA_DIR / "train_finance_10k.jsonl",
+        help="Source JSONL used by calibration mode.",
+    )
+    parser.add_argument("--ctx-size", type=int, default=512)
+    parser.add_argument("--ubatch-size", type=int, default=128)
+    parser.add_argument("--epochs", type=int, default=1)
+    parser.add_argument("--val-split", type=float, default=None)
+    parser.add_argument("--freeze-layers", type=int, default=24)
+    parser.add_argument("--gpu-layers", default=None, help="Optional -ngl/--gpu-layers value for partial offload.")
+    parser.add_argument("--learning-rate", default="1e-4")
+    parser.add_argument("--rank", type=int, default=16)
+    parser.add_argument("--alpha", type=int, default=32)
+    return parser.parse_args()
+
+
 def sha256(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as f:
@@ -110,11 +140,42 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def write_jsonl(path: Path) -> None:
+def write_jsonl(path: Path, rows: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="\n") as f:
-        for row in SMOKE_DATASET:
+        for row in rows:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def read_jsonl(path: Path) -> list[dict]:
+    rows: list[dict] = []
+    with path.open("r", encoding="utf-8") as f:
+        for lineno, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rows.append(json.loads(line))
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"Invalid JSONL at {path}:{lineno}: {exc}") from exc
+    return rows
+
+
+def build_rows(args: argparse.Namespace) -> tuple[list[dict], Path, str, float]:
+    if args.mode == "smoke":
+        train_file = DATA_DIR / "train_finance_v9_smoke.jsonl"
+        return SMOKE_DATASET, train_file, "smoke", 0.0 if args.val_split is None else args.val_split
+
+    require(args.source, "calibration source dataset")
+    source_rows = read_jsonl(args.source)
+    if len(source_rows) < args.sample_size:
+        raise ValueError(f"Requested {args.sample_size} rows, only found {len(source_rows)} in {args.source}")
+
+    rng = random.Random(args.seed)
+    indexes = sorted(rng.sample(range(len(source_rows)), args.sample_size))
+    rows = [source_rows[i] for i in indexes]
+    train_file = DATA_DIR / f"train_finance_v9_calibration_{args.sample_size}.jsonl"
+    return rows, train_file, f"calibration_{args.sample_size}", 0.05 if args.val_split is None else args.val_split
 
 
 def require(path: Path, label: str) -> None:
@@ -123,18 +184,20 @@ def require(path: Path, label: str) -> None:
 
 
 def main() -> int:
+    args = parse_args()
     require(FINETUNE_EXE, "finetune binary")
     require(GGUF_MODEL, "GGUF model")
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
 
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    train_file = DATA_DIR / "train_finance_v9_smoke.jsonl"
-    lora_out = OUT_DIR / f"lora_f51_v9_smoke_{stamp}.gguf"
-    log_file = LOG_DIR / f"train_v9_smoke_{stamp}.log"
-    write_jsonl(train_file)
+    rows, train_file, run_label, val_split = build_rows(args)
+    lora_out = OUT_DIR / f"lora_f51_v9_{run_label}_{stamp}.gguf"
+    log_file = LOG_DIR / f"train_v9_{run_label}_{stamp}.log"
+    write_jsonl(train_file, rows)
 
     baselines = {p.name: sha256(p) for p in BASELINE_ADAPTERS if p.exists()}
+    baselines.update(KNOWN_BAD_HASHES)
     if not baselines:
         raise RuntimeError("No baseline adapter found; refusing to run without a hash gate.")
 
@@ -147,39 +210,47 @@ def main() -> int:
         "--lora-out",
         str(lora_out),
         "--lora-rank",
-        "16",
+        str(args.rank),
         "--lora-alpha",
-        "32",
+        str(args.alpha),
         "--lora-targets",
         "attn_q,attn_output,ffn_gate,ffn_up,ffn_down",
         "--learning-rate",
-        "1e-4",
+        args.learning_rate,
         "--epochs",
-        "1",
+        str(args.epochs),
         "--ctx-size",
-        "512",
+        str(args.ctx_size),
         "--batch-size",
-        "512",
+        str(args.ctx_size),
         "--ubatch-size",
-        "128",
+        str(args.ubatch_size),
         "--val-split",
-        "0.0",
+        str(val_split),
         "--grad-checkpoint",
         "48",
         "--shuffle-dataset",
         "--save-every",
         "0",
         "--seed",
-        "42",
+        str(args.seed),
     ]
+    if args.mode == "calibration" and args.freeze_layers > 0:
+        cmd.extend(["--freeze-layers", str(args.freeze_layers)])
+    if args.gpu_layers:
+        cmd.extend(["--gpu-layers", str(args.gpu_layers)])
 
-    print("F51 v9 smoke starting")
+    print(f"F51 v9 {args.mode} starting")
     print(f"dataset={train_file}")
+    print(f"rows={len(rows)}")
     print(f"output={lora_out}")
     print(f"log={log_file}")
     print("cmd=" + " ".join(cmd))
 
     with log_file.open("w", encoding="utf-8", newline="\n") as log:
+        log.write(f"mode={args.mode}\n")
+        log.write(f"rows={len(rows)}\n")
+        log.write(f"source={args.source if args.mode == 'calibration' else 'built-in smoke'}\n")
         log.write("cmd=" + " ".join(cmd) + "\n\n")
         proc = subprocess.run(
             cmd,

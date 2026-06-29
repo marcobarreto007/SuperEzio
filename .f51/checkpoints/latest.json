@@ -1,45 +1,53 @@
 {
-  "timestamp": "2026-06-28T23:41:00-04:00",
-  "session": "f51-lora-v9-smoke-gate",
+  "timestamp": "2026-06-29T00:05:00-04:00",
+  "session": "f51-lora-v9-calibration-500",
   "orchestrator": "codex",
-  "status": "smoke_gate_green_production_training_pending",
-  "objective": "Make Bob's LoRA training prove real weight updates before running long 10k or 116k dataset jobs.",
+  "status": "calibration_gate_green_production_training_pending",
+  "objective": "Make Bob's LoRA training prove real weight updates on real dataset samples before running long 10k or 116k jobs.",
   "what_was_done": [
     "Stopped the bad v8 llama-finetune-qlora run after checkpoints stayed byte-identical to v7.",
-    "Added a fail-fast v9 smoke trainer that generates a small messages JSONL dataset, runs native GGUF QLoRA, and fails if hash/loss/step evidence is missing.",
-    "Fixed the smoke gate after detecting the first attempt had zero train steps due to validation split consuming the only dataset window.",
-    "Validated a real smoke run with train_steps=4, train_loss=1.0062, and a final adapter hash different from v7 and v8."
+    "Parametrized the v9 training gate so it supports both smoke and real calibration runs.",
+    "Validated the refactored smoke path with 4 rows, train_steps=4, train_loss=1.0062, and a hash different from v7/v8.",
+    "Attempted 500-row calibration with rank=16, alpha=32, freeze_layers=24; it failed fast with CUDA device-not-ready before training completed.",
+    "Reran 500-row calibration with a conservative config: rank=8, alpha=16, freeze_layers=36, gpu_layers=36, ctx=512, ubatch=128, val_split=0.05.",
+    "Removed competing smoke finetune processes that were consuming VRAM during calibration.",
+    "Validated the 500-row calibration with train_steps=2304, train_loss=1.8429, val_loss=1.8610, and a final adapter hash different from v7/v8/zero-step init."
   ],
   "artifacts": {
     "gguf_model": "C:\\llama.cpp\\models\\qwenlong-30b-a3b-q4_k.gguf",
     "baseline_lora_v7": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v7.gguf",
     "bad_lora_v8_checkpoint": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v8.gguf.ckpt12.gguf",
-    "smoke_script": "scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py",
+    "gate_script": "scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py",
     "smoke_dataset": "temp_gguf_workspace\\train_finance_v9_smoke.jsonl",
-    "smoke_lora": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_smoke_20260628_234015.gguf",
-    "smoke_log": "runtime\\logs\\train_v9_smoke_20260628_234015.log"
+    "calibration_dataset": "temp_gguf_workspace\\train_finance_v9_calibration_500.jsonl",
+    "calibration_lora": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_calibration_500_20260628_234635.gguf",
+    "calibration_log": "runtime\\logs\\train_v9_calibration_500_20260628_234635.log"
   },
   "evidence": {
     "v7_hash": "259603235792C5687CD129363C3D8750BC9A3A96F572C628E543CD8936E6D841",
     "v8_ckpt12_hash": "259603235792C5687CD129363C3D8750BC9A3A96F572C628E543CD8936E6D841",
-    "v9_smoke_hash": "EE7E0270A2532784AFD6ACD80CF7FAC7AD698170EE154ECE4AEB6E7008B84289",
-    "v9_smoke_result": "PASS: adapter hash changed, train_steps=4, train_loss=1.0062",
-    "gpu_after_run": "RTX 5060 Ti idle after smoke, about 253 MiB VRAM used",
+    "v9_zero_step_init_hash": "B8FE9418B03DC6F662D9D3BE103C9E3E200E89BE5F7F2AF3BC00FD0E3FA0D18A",
+    "v9_calibration_hash": "FD201C9F0ECBDEF3B8061C5AB4B2DBB1BBE4FEA1BBFAE51BA1F6D1DE7B3A9B32",
+    "v9_calibration_result": "PASS: adapter hash changed, train_steps=2304, train_loss=1.8429, val_loss=1.8610",
+    "v9_calibration_config": "sample_size=500, rank=8, alpha=16, freeze_layers=36, gpu_layers=36, ctx_size=512, ubatch_size=128, val_split=0.05, lr=1e-4, epochs=1",
+    "gpu_after_run": "RTX 5060 Ti idle after calibration, about 160 MiB VRAM used",
     "validation_commands": [
       "python -m py_compile scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py",
-      "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py",
-      "Get-FileHash models\\bob_lora_qwenlong_30b_f51\\lora_f51_v7.gguf, models\\bob_lora_qwenlong_30b_f51\\lora_f51_v8.gguf.ckpt12.gguf, models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_smoke_20260628_234015.gguf -Algorithm SHA256"
+      "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode smoke",
+      "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode calibration --sample-size 500 --rank 8 --alpha 16 --freeze-layers 36 --gpu-layers 36 --val-split 0.05",
+      "Get-FileHash models\\bob_lora_qwenlong_30b_f51\\lora_f51_v7.gguf, models\\bob_lora_qwenlong_30b_f51\\lora_f51_v8.gguf.ckpt12.gguf, models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_calibration_500_20260628_234635.gguf -Algorithm SHA256"
     ]
   },
   "risks": [
-    "v9 smoke proves the training path updates LoRA weights but is not a production adapter.",
+    "The 500-row calibration proves real training but is not yet the production adapter.",
+    "Rank 16/top-24 failed on this 16 GB GPU with CUDA device-not-ready; production should start from the conservative rank 8/top-12 profile unless another benchmark proves otherwise.",
     "The 30B MoE QLoRA path still logs unsupported CLAMP backward skips; quality must be judged with output tests before promoting.",
-    "Long training must use the smoke gate pattern and should not use --save-every 1 because it creates noisy checkpoint artifacts.",
+    "External shell processes attempted additional smoke runs during calibration and had to be killed to avoid VRAM contention.",
     "No GitHub operation is allowed; repository remains disk-only."
   ],
   "next_steps": [
-    "Run a 500-example v9 calibration job with the same hash/loss gate.",
-    "Only after calibration passes, run 10k or 116k production training.",
+    "Run an output-quality eval using the v9 calibration adapter before promoting it.",
+    "If quality is acceptable, run a 10k production job with the same conservative profile and the same gate.",
     "Evaluate generated tool-calling behavior before replacing the active Bob LoRA."
   ]
 }
