@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-06-29T10:14:28-04:00",
-  "session": "f51-lora-v9-10k-stopped-by-operator",
+  "timestamp": "2026-06-29T11:03:20-04:00",
+  "session": "f51-lora-v9-rank16-freeze-limit-tests",
   "orchestrator": "codex",
-  "status": "10k_training_stopped_by_operator_checkpoint_saved",
+  "status": "rank16_freeze12_limit_test_passed_checkpoint_saved",
   "objective": "Make Bob's LoRA training prove real weight updates on real dataset samples before running long 10k or 116k jobs.",
   "what_was_done": [
     "Stopped the bad v8 llama-finetune-qlora run after checkpoints stayed byte-identical to v7.",
@@ -18,7 +18,11 @@
     "Started the real 10k training run with the conservative profile: rank=8, alpha=16, freeze_layers=36, gpu_layers=36, ctx=512, ubatch=128, val_split=0.05.",
     "Stopped the 10k training run on operator request at data=17610/46964, elapsed=01:40:53, loss=1.81640, acc=66.19%.",
     "Confirmed the 10k run did not produce a partial LoRA adapter because it was launched with save-every=0 and stopped before final save.",
-    "Confirmed no llama-finetune-qlora or v9 training process remains active and GPU memory returned to idle."
+    "Confirmed no llama-finetune-qlora or v9 training process remains active and GPU memory returned to idle.",
+    "Exposed save-every as a script argument so long runs can write LoRA checkpoints.",
+    "Validated rank=16, alpha=32, freeze_layers=24, gpu_layers=24, save_every=50 on 500 real rows with checkpoints and final adapter.",
+    "Validated the more aggressive rank=16, alpha=32, freeze_layers=12, gpu_layers=24, save_every=50 on 500 real rows with checkpoints and final adapter.",
+    "Killed external .claude-deep smoke/slice benchmark processes that spawned during the freeze=12 run and competed for VRAM."
   ],
   "artifacts": {
     "gguf_model": "C:\\llama.cpp\\models\\qwenlong-30b-a3b-q4_k.gguf",
@@ -36,7 +40,15 @@
     "training_10k_log": "runtime\\logs\\train_v9_calibration_10000_20260629_083245.log",
     "training_10k_outer_log": "runtime\\logs\\train_v9_calibration_10000_outer_20260629_083245.log",
     "training_10k_expected_lora": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_calibration_10000_20260629_083245.gguf",
-    "training_10k_partial_lora": null
+    "training_10k_partial_lora": null,
+    "rank16_freeze24_lora": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_calibration_500_20260629_101614.gguf",
+    "rank16_freeze24_log": "runtime\\logs\\train_v9_calibration_500_20260629_101614.log",
+    "rank16_freeze24_outer_log": "runtime\\logs\\train_v9_rank16_freeze24_ckpt50_outer_20260629_101613.log",
+    "rank16_freeze24_checkpoints": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_calibration_500_20260629_101614.gguf.ckpt*.gguf",
+    "rank16_freeze12_lora": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_calibration_500_20260629_103804.gguf",
+    "rank16_freeze12_log": "runtime\\logs\\train_v9_calibration_500_20260629_103804.log",
+    "rank16_freeze12_outer_log": "runtime\\logs\\train_v9_rank16_freeze12_gpu24_ckpt50_outer_20260629_103804.log",
+    "rank16_freeze12_checkpoints": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_calibration_500_20260629_103804.gguf.ckpt*.gguf"
   },
   "evidence": {
     "v7_hash": "259603235792C5687CD129363C3D8750BC9A3A96F572C628E543CD8936E6D841",
@@ -52,7 +64,13 @@
     "v9_training_10k_config": "sample_size=10000, rank=8, alpha=16, freeze_layers=36, gpu_layers=36, ctx_size=512, ubatch_size=128, val_split=0.05, lr=1e-4, epochs=1, save_every=0",
     "v9_training_10k_exit": "wrapper reported process exit 4294967295 after manual stop",
     "v9_training_10k_partial_lora": "missing; no adapter hash available because stop happened before final save",
-    "gpu_after_run": "RTX 5060 Ti idle after stop, about 338 MiB VRAM used",
+    "v9_rank16_freeze24_hash": "8F7BD364410007F66AD0F13E08225E182950EE796BE32398424D8104C8C4F1CD",
+    "v9_rank16_freeze24_result": "PASS: train_steps=2304, train_loss=1.8771, val_loss=1.8904, adapter_size=22227136 bytes, checkpoints=ckpt50..ckpt550",
+    "v9_rank16_freeze24_config": "sample_size=500, rank=16, alpha=32, freeze_layers=24, gpu_layers=24, ctx_size=512, ubatch_size=128, val_split=0.05, lr=1e-4, epochs=1, save_every=50",
+    "v9_rank16_freeze12_hash": "C4655B55E14273B511976361BFB4EE1BA8A8BC2DCFC2AD4365769A41C4A85A64",
+    "v9_rank16_freeze12_result": "PASS: train_steps=2304, train_loss=1.8673, val_loss=1.8782, adapter_size=33340576 bytes, checkpoints=ckpt50..ckpt550",
+    "v9_rank16_freeze12_config": "sample_size=500, rank=16, alpha=32, freeze_layers=12, gpu_layers=24, ctx_size=512, ubatch_size=128, val_split=0.05, lr=1e-4, epochs=1, save_every=50",
+    "gpu_after_run": "RTX 5060 Ti idle after freeze limit tests, about 336 MiB VRAM used",
     "validation_commands": [
       "python -m py_compile scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py",
       "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode smoke  # preflight only, not a training-quality gate",
@@ -60,6 +78,8 @@
       "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode calibration --sample-size 10 --rank 8 --alpha 16 --freeze-layers 36 --gpu-layers 36 --val-split 0.10 --min-train-steps 1",
       "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode calibration --sample-size 10000 --rank 8 --alpha 16 --freeze-layers 36 --gpu-layers 36 --val-split 0.05",
       "Stop-Process -Id 9412 -Force; Stop-Process -Id 25344 -Force",
+      "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode calibration --sample-size 500 --rank 16 --alpha 32 --freeze-layers 24 --gpu-layers 24 --val-split 0.05 --save-every 50",
+      "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode calibration --sample-size 500 --rank 16 --alpha 32 --freeze-layers 12 --gpu-layers 24 --val-split 0.05 --save-every 50",
       "Get-FileHash models\\bob_lora_qwenlong_30b_f51\\lora_f51_v7.gguf, models\\bob_lora_qwenlong_30b_f51\\lora_f51_v8.gguf.ckpt12.gguf, models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_calibration_500_20260628_234635.gguf -Algorithm SHA256"
     ]
   },
@@ -72,11 +92,14 @@
     "The 10-example microtrain proves real update mechanics on real data but is too small to promote as a production adapter.",
     "The stopped 10k run has no resumable LoRA checkpoint because save-every was 0.",
     "Future long runs should set periodic checkpoint saving before launch if the operator may pause mid-run.",
+    "save-every 50 is interpreted by llama-finetune as 50 windows, not 50 ubatch progress lines; with ubatch fanout this produced checkpoints near every 200 data steps.",
+    "freeze_layers=12 with rank=16 passed the 500-row stability test but uses larger adapters/checkpoints than freeze_layers=24 and should be quality-evaluated before promotion.",
+    "External .claude-deep processes can still spawn competing finetune jobs and should be blocked or watched during long production runs.",
     "No GitHub operation is allowed; repository remains disk-only."
   ],
   "next_steps": [
-    "Keep the 500-row calibration adapter as the latest valid non-production LoRA evidence.",
-    "If restarting 10k, add periodic save support before launch so a manual stop leaves a real adapter checkpoint.",
+    "Quality-evaluate the rank16 freeze12 adapter against tool-calling prompts before using it for a long 10k run.",
+    "If restarting 10k, use save_every=50 and decide between freeze_layers=12 and freeze_layers=24 based on quality and runtime tolerance.",
     "Evaluate generated tool-calling behavior before replacing the active Bob LoRA."
   ]
 }
