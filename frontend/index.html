@@ -63,7 +63,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
   <div class="typing" id="typing" style="display:none">Bob está pensando...</div>
   <div class="input-area">
     <input id="user-input" placeholder="Pergunte ao Bob..." onkeydown="if(event.key==='Enter')send()">
-    <button onclick="send()">Enviar</button>
+    <button id="send-btn" onclick="send()">Enviar</button>
   </div>
 </div>
 <script>
