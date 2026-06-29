@@ -1,51 +1,45 @@
 {
-  "timestamp": "2026-06-28T23:45:00-04:00",
-  "session": "f51-lora-dataset-v9-tool-first",
-  "orchestrator": "claude-code",
-  "status": "completed",
-  "what_was_done": "Playbook 2026 + LoRA dataset 2020 exemplos 100% tool-first. Swarm 4 agentes, bug fix F821, smoke test passou, dataset regerado com regra: Bob sempre chama tool antes de responder.",
-  "progress": {
-    "build_msvc": "completed — 3 binarios compilados com CUDA",
-    "model_quantized": "completed — Q8_0→Q4_K_M (17.3 GB, 13.8 min)",
-    "lora_trained": "completed — 5 epochs, loss=1.97, acc=65%, 42.4 MB",
-    "agent_army_deployed": "completed — 13 agentes, 3 comandos, 2 docs",
-    "security_audit": "completed — .gitignore corrigido, .bin untracked",
-    "checkpoint_updated": "completed"
-  },
+  "timestamp": "2026-06-28T23:41:00-04:00",
+  "session": "f51-lora-v9-smoke-gate",
+  "orchestrator": "codex",
+  "status": "smoke_gate_green_production_training_pending",
+  "objective": "Make Bob's LoRA training prove real weight updates before running long 10k or 116k dataset jobs.",
+  "what_was_done": [
+    "Stopped the bad v8 llama-finetune-qlora run after checkpoints stayed byte-identical to v7.",
+    "Added a fail-fast v9 smoke trainer that generates a small messages JSONL dataset, runs native GGUF QLoRA, and fails if hash/loss/step evidence is missing.",
+    "Fixed the smoke gate after detecting the first attempt had zero train steps due to validation split consuming the only dataset window.",
+    "Validated a real smoke run with train_steps=4, train_loss=1.0062, and a final adapter hash different from v7 and v8."
+  ],
   "artifacts": {
     "gguf_model": "C:\\llama.cpp\\models\\qwenlong-30b-a3b-q4_k.gguf",
-    "lora_adapter": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v7.gguf",
-    "training_script": "scripts\\train_qwenlong_30b_gguf_f51_v7.py",
-    "agent_definitions": ".claude\\agents\\ (13 arquivos)",
-    "agent_commands": ".claude\\commands\\ (3 arquivos)",
-    "orchestration_docs": "docs\\AGENT_ORCHESTRATION.md, docs\\AGENT_OPERATING_SYSTEM.md"
+    "baseline_lora_v7": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v7.gguf",
+    "bad_lora_v8_checkpoint": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v8.gguf.ckpt12.gguf",
+    "smoke_script": "scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py",
+    "smoke_dataset": "temp_gguf_workspace\\train_finance_v9_smoke.jsonl",
+    "smoke_lora": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_smoke_20260628_234015.gguf",
+    "smoke_log": "runtime\\logs\\train_v9_smoke_20260628_234015.log"
   },
   "evidence": {
-    "build": "bin/llama-finetune-qlora.exe, llama-finetune.exe, llama-quantize.exe",
-    "lora": "models/bob_lora_qwenlong_30b_f51/lora_f51_v7.gguf (42.4 MB, 2026-06-28 20:09)",
-    "git_commits": "7ec99a1, dd115e1, 44176dd, d8aa108, a9568ba (sessao 2026-06-28)",
-    "swarm": "4 agentes em paralelo — recon, security, code-quality, runtime — todos ELITE (26-28/30)",
-    "bug_fixed": "F821 'run_id' undefined em auto_executor.py:265",
-    "ruff_format": "110 arquivos formatados, 340 total OK",
-    "ruff_fix": "49 F401 imports removidos",
-    "smoke_test": "PASS — health OK, UI OK, chat Bob 2280 chars, 0 console errors",
-    "server": "Porta 8002 LIVE, GPU RTX 5060 Ti 15.5GB free",
-    "security": "No hardcoded API keys, .gitignore updated for model files",
-    "lora_dataset": "2020 exemplos, 18 categorias, 100% tool-first, 1.7 MB ChatML JSONL",
-    "lora_config": "rank=32, alpha=64, lr=5e-5, epochs=4, batch=2, ctx=3072, val=5%"
+    "v7_hash": "259603235792C5687CD129363C3D8750BC9A3A96F572C628E543CD8936E6D841",
+    "v8_ckpt12_hash": "259603235792C5687CD129363C3D8750BC9A3A96F572C628E543CD8936E6D841",
+    "v9_smoke_hash": "EE7E0270A2532784AFD6ACD80CF7FAC7AD698170EE154ECE4AEB6E7008B84289",
+    "v9_smoke_result": "PASS: adapter hash changed, train_steps=4, train_loss=1.0062",
+    "gpu_after_run": "RTX 5060 Ti idle after smoke, about 253 MiB VRAM used",
+    "validation_commands": [
+      "python -m py_compile scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py",
+      "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py",
+      "Get-FileHash models\\bob_lora_qwenlong_30b_f51\\lora_f51_v7.gguf, models\\bob_lora_qwenlong_30b_f51\\lora_f51_v8.gguf.ckpt12.gguf, models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_smoke_20260628_234015.gguf -Algorithm SHA256"
+    ]
   },
   "risks": [
-    "LoRA treinada com apenas 8 exemplos — overfitted, precisa mais dados",
-    "Modelo 30B MoE lento para inferencia em GPU de 16GB com VRAM cheia",
-    "Novos agentes nao tem benchmark ainda — rodar /agent-lab",
-    "59 ruff issues restantes (E402, F841, alguns F401 em try/except)",
-    "Servidor instavel — caiu 2x durante a sessao (precisa investigar)"
+    "v9 smoke proves the training path updates LoRA weights but is not a production adapter.",
+    "The 30B MoE QLoRA path still logs unsupported CLAMP backward skips; quality must be judged with output tests before promoting.",
+    "Long training must use the smoke gate pattern and should not use --save-every 1 because it creates noisy checkpoint artifacts.",
+    "No GitHub operation is allowed; repository remains disk-only."
   ],
   "next_steps": [
-    "Treinar LoRA v9: python scripts/train_qwenlong_30b_gguf_f51_v7.py",
-    "Testar inferencia: llama-cli.exe --model q4_k.gguf --lora lora_f51_v9.gguf",
-    "Rodar /agent-lab para benchmark dos agentes",
-    "Limpar 59 ruff issues restantes",
-    "Investigar crash do servidor"
+    "Run a 500-example v9 calibration job with the same hash/loss gate.",
+    "Only after calibration passes, run 10k or 116k production training.",
+    "Evaluate generated tool-calling behavior before replacing the active Bob LoRA."
   ]
 }
