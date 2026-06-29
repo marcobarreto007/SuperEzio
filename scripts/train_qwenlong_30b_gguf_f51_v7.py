@@ -25,14 +25,14 @@ LORA_OUT = OUTPUT_DIR / "lora_f51_v7.gguf"
 
 # === Training Hyperparams (F51 Nitro) ===
 TRAINING_CONFIG = {
-    "lora_rank": 32,           # dataset 2020 exige rank maior
-    "lora_alpha": 64,          # alpha = 2x rank
-    "learning_rate": 5e-5,     # LR conservadora com mais dados
-    "epochs": 4,               # 2020 ex — 4 epochs bastam
-    "batch_size": 2,           # batch maior com dataset grande
+    "lora_rank": 64,           # 10k ex — rank alto para capturar diversidade
+    "lora_alpha": 128,         # alpha = 2x rank
+    "learning_rate": 3e-5,     # LR baixa com dataset grande (evita overfit)
+    "epochs": 3,               # 10k ex — 3 epochs bastam
+    "batch_size": 4,           # batch maior com mais dados
     "ctx_size": 3072,          # exemplos longos com multi-tool chains
     "threads": 8,              # CPU threads
-    "val_split": 0.05,         # 5% validacao (101 ex)
+    "val_split": 0.05,         # 5% validacao (500 ex)
     "freeze_layers": 0,        # train all layers
     "save_every": 1,           # checkpoint a cada epoch
 }
