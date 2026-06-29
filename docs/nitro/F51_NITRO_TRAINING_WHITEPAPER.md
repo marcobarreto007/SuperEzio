@@ -342,7 +342,7 @@ class LayerChunk:
         # Multi-hop: NVMe → RAM → GPU
         if from_tier.name == "NVMe" and to_tier.name == "GPU":
             nvme_ram = (self.size_mb * 8) / from_tier.bandwidth_mb_s * 1000
-            ram_gpu = (self.size_mb * 8) / .config.gpu.bandwidth_mb_s * 1000
+            ram_gpu = (self.size_mb * 8) / self.config.gpu.bandwidth_mb_s * 1000
             return nvme_ram + ram_gpu
         
         raise ValueError(f"Unsupported transfer: {from_tier.name} → {to_tier.name}")
