@@ -123,3 +123,50 @@ Proibido:
 ### MCPs Registrados e Autorizados
 - `chrome-devtools-plugin` / `chrome_devtools`: Avaliação e execução de scripts em sessões locais do Chrome para testes de UI e depuração do frontend do SuperEzio.
 
+## Playbook 2026 — Exército de Agentes
+
+Fonte: Playbook 2026 — Exercitos de Claude Code.
+
+### Estrutura
+
+```
+.claude/agents/     # 10 agentes versionados
+.claude/commands/   # /swarm, /save, /agent-lab
+.agent_bus/runtime/ # Memória volátil (gitignored)
+docs/AGENT_ORCHESTRATION.md
+docs/AGENT_OPERATING_SYSTEM.md
+```
+
+### Comandos do exército
+
+| Comando | Ação |
+|---------|------|
+| `/swarm <objetivo>` | Dispara 10 agentes em 4 waves |
+| `/save` | Salva docs + checkpoint + commit local |
+| `/agent-lab` | Testa, compara e evolui agentes |
+
+### Regra de ouro
+
+Token infinito não resolve agente ruim. O que resolve é:
+```
+missão clara
++ contexto certo
++ evidência obrigatória
++ verificação
++ seleção natural de agentes
+```
+
+### Gates obrigatórios (antes de declarar pronto)
+
+```powershell
+git status --short
+git diff --check
+python -m ruff check src/ tests/
+python -m pytest tests/ -q
+```
+
+### Pontuação de agente (0-30)
+
+Evidência + Utilidade + Precisão + Escopo + Verificação + Concisão.
+Elite: 26+ | Bom: 21-25 | Fraco: 10-15 | Substituir: <10.
+

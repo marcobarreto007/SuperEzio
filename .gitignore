@@ -157,6 +157,10 @@ F51-Nitro-MoE/**/bin_mixtral_legacy/
 F51-Nitro-MoE/**/models/
 F51-Nitro-MoE/build_worktrees/
 
+# Agent bus runtime (temporary execution artifacts)
+.agent_bus/runtime/*
+!.agent_bus/runtime/.gitkeep
+
 # Scratch scripts (testes avulsos)
 scratch/
 .playwright-mcp/
