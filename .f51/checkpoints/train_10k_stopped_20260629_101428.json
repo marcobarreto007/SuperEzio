@@ -1,0 +1,53 @@
+{
+  "timestamp": "2026-06-29T10:14:28-04:00",
+  "session": "f51-lora-v9-10k-stopped-by-operator",
+  "orchestrator": "codex",
+  "status": "stopped_by_operator_checkpoint_saved",
+  "command": "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode calibration --sample-size 10000 --rank 8 --alpha 16 --freeze-layers 36 --gpu-layers 36 --val-split 0.05",
+  "processes_stopped": {
+    "python_wrapper_pid": 25344,
+    "llama_finetune_pid": 9412
+  },
+  "progress_at_stop": {
+    "data_step": 17610,
+    "total_steps": 46964,
+    "percent": 37.5,
+    "loss": 1.81640,
+    "accuracy_percent": 66.19,
+    "elapsed": "01:40:53",
+    "eta_before_stop": "02:48:10"
+  },
+  "config": {
+    "sample_size": 10000,
+    "rank": 8,
+    "alpha": 16,
+    "freeze_layers": 36,
+    "gpu_layers": 36,
+    "ctx_size": 512,
+    "batch_size": 512,
+    "ubatch_size": 128,
+    "val_split": 0.05,
+    "learning_rate": "1e-4",
+    "epochs": 1,
+    "save_every": 0,
+    "seed": 42
+  },
+  "artifacts": {
+    "dataset": "temp_gguf_workspace\\train_finance_v9_calibration_10000.jsonl",
+    "log": "runtime\\logs\\train_v9_calibration_10000_20260629_083245.log",
+    "outer_log": "runtime\\logs\\train_v9_calibration_10000_outer_20260629_083245.log",
+    "expected_lora": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_calibration_10000_20260629_083245.gguf",
+    "partial_lora": null
+  },
+  "evidence": {
+    "outer_exit": "FAIL: training process exited 4294967295 after manual stop",
+    "partial_lora_status": "missing because save-every=0 and run stopped before final save",
+    "gpu_after_stop": "RTX 5060 Ti, 338 MiB used, 0% utilization",
+    "remaining_training_processes": "none"
+  },
+  "notes": [
+    "This checkpoint is operational state only; it is not a trained adapter checkpoint.",
+    "The latest valid adapter evidence remains the 500-row calibration LoRA and the 10-example microtrain LoRA.",
+    "Future long runs should enable periodic saves before launch if manual pauses are expected."
+  ]
+}

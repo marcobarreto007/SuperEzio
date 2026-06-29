@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-06-29T08:30:25-04:00",
-  "session": "f51-lora-v9-microtrain-10",
+  "timestamp": "2026-06-29T10:14:28-04:00",
+  "session": "f51-lora-v9-10k-stopped-by-operator",
   "orchestrator": "codex",
-  "status": "calibration_gate_green_production_training_pending",
+  "status": "10k_training_stopped_by_operator_checkpoint_saved",
   "objective": "Make Bob's LoRA training prove real weight updates on real dataset samples before running long 10k or 116k jobs.",
   "what_was_done": [
     "Stopped the bad v8 llama-finetune-qlora run after checkpoints stayed byte-identical to v7.",
@@ -14,7 +14,11 @@
     "Removed competing smoke finetune processes that were consuming VRAM during calibration.",
     "Validated the 500-row calibration with train_steps=2304, train_loss=1.8429, val_loss=1.8610, and a final adapter hash different from v7/v8/zero-step init.",
     "Ran a real 10-example microtrain from train_finance_10k.jsonl using the same conservative profile and an explicit microtrain threshold.",
-    "Validated the 10-example microtrain with train_steps=32, train_loss=1.7748, val_loss=2.0213, and a final adapter hash different from v7/v8/zero-step init."
+    "Validated the 10-example microtrain with train_steps=32, train_loss=1.7748, val_loss=2.0213, and a final adapter hash different from v7/v8/zero-step init.",
+    "Started the real 10k training run with the conservative profile: rank=8, alpha=16, freeze_layers=36, gpu_layers=36, ctx=512, ubatch=128, val_split=0.05.",
+    "Stopped the 10k training run on operator request at data=17610/46964, elapsed=01:40:53, loss=1.81640, acc=66.19%.",
+    "Confirmed the 10k run did not produce a partial LoRA adapter because it was launched with save-every=0 and stopped before final save.",
+    "Confirmed no llama-finetune-qlora or v9 training process remains active and GPU memory returned to idle."
   ],
   "artifacts": {
     "gguf_model": "C:\\llama.cpp\\models\\qwenlong-30b-a3b-q4_k.gguf",
@@ -27,7 +31,12 @@
     "calibration_log": "runtime\\logs\\train_v9_calibration_500_20260628_234635.log",
     "microtrain_10_dataset": "temp_gguf_workspace\\train_finance_v9_calibration_10.jsonl",
     "microtrain_10_lora": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_calibration_10_20260629_083004.gguf",
-    "microtrain_10_log": "runtime\\logs\\train_v9_calibration_10_20260629_083004.log"
+    "microtrain_10_log": "runtime\\logs\\train_v9_calibration_10_20260629_083004.log",
+    "training_10k_dataset": "temp_gguf_workspace\\train_finance_v9_calibration_10000.jsonl",
+    "training_10k_log": "runtime\\logs\\train_v9_calibration_10000_20260629_083245.log",
+    "training_10k_outer_log": "runtime\\logs\\train_v9_calibration_10000_outer_20260629_083245.log",
+    "training_10k_expected_lora": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_calibration_10000_20260629_083245.gguf",
+    "training_10k_partial_lora": null
   },
   "evidence": {
     "v7_hash": "259603235792C5687CD129363C3D8750BC9A3A96F572C628E543CD8936E6D841",
@@ -39,12 +48,18 @@
     "v9_microtrain_10_hash": "E93A50D538F8CCDB27611C655E90758DCD54049AF70069281D01FD96554F1D1D",
     "v9_microtrain_10_result": "PASS: adapter hash changed, train_steps=32, train_loss=1.7748, val_loss=2.0213",
     "v9_microtrain_10_config": "sample_size=10, rank=8, alpha=16, freeze_layers=36, gpu_layers=36, ctx_size=512, ubatch_size=128, val_split=0.10, min_train_steps=1, lr=1e-4, epochs=1",
-    "gpu_after_run": "RTX 5060 Ti idle after microtrain, about 233 MiB VRAM used",
+    "v9_training_10k_result": "STOPPED_BY_OPERATOR: data=17610/46964, loss=1.81640, acc=66.19%, elapsed=01:40:53, ETA=02:48:10",
+    "v9_training_10k_config": "sample_size=10000, rank=8, alpha=16, freeze_layers=36, gpu_layers=36, ctx_size=512, ubatch_size=128, val_split=0.05, lr=1e-4, epochs=1, save_every=0",
+    "v9_training_10k_exit": "wrapper reported process exit 4294967295 after manual stop",
+    "v9_training_10k_partial_lora": "missing; no adapter hash available because stop happened before final save",
+    "gpu_after_run": "RTX 5060 Ti idle after stop, about 338 MiB VRAM used",
     "validation_commands": [
       "python -m py_compile scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py",
       "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode smoke  # preflight only, not a training-quality gate",
       "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode calibration --sample-size 500 --rank 8 --alpha 16 --freeze-layers 36 --gpu-layers 36 --val-split 0.05  # actual training gate",
       "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode calibration --sample-size 10 --rank 8 --alpha 16 --freeze-layers 36 --gpu-layers 36 --val-split 0.10 --min-train-steps 1",
+      "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode calibration --sample-size 10000 --rank 8 --alpha 16 --freeze-layers 36 --gpu-layers 36 --val-split 0.05",
+      "Stop-Process -Id 9412 -Force; Stop-Process -Id 25344 -Force",
       "Get-FileHash models\\bob_lora_qwenlong_30b_f51\\lora_f51_v7.gguf, models\\bob_lora_qwenlong_30b_f51\\lora_f51_v8.gguf.ckpt12.gguf, models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_calibration_500_20260628_234635.gguf -Algorithm SHA256"
     ]
   },
@@ -55,11 +70,13 @@
     "External shell processes attempted additional smoke runs during calibration and had to be killed to avoid VRAM contention.",
     "The 4-row smoke is not a quality or learning proof; it only checks that the finetune binary can execute.",
     "The 10-example microtrain proves real update mechanics on real data but is too small to promote as a production adapter.",
+    "The stopped 10k run has no resumable LoRA checkpoint because save-every was 0.",
+    "Future long runs should set periodic checkpoint saving before launch if the operator may pause mid-run.",
     "No GitHub operation is allowed; repository remains disk-only."
   ],
   "next_steps": [
-    "Run an output-quality eval using the v9 calibration adapter before promoting it.",
-    "If quality is acceptable, run a 10k production job with the same conservative profile and the same gate.",
+    "Keep the 500-row calibration adapter as the latest valid non-production LoRA evidence.",
+    "If restarting 10k, add periodic save support before launch so a manual stop leaves a real adapter checkpoint.",
     "Evaluate generated tool-calling behavior before replacing the active Bob LoRA."
   ]
 }
