@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 import json
 import logging
 import os
@@ -319,7 +319,7 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
     connection = str(broker.get("connection") or "")
     connected = broker.get("can_read_account") is True or "connected" in connection
 
-    # ── Get live data from IBKRService (cached, isolated) ──
+    # â”€â”€ Get live data from IBKRService (cached, isolated) â”€â”€
     service = get_ibkr_service()
     service_status = service.get_status()
 
@@ -340,10 +340,11 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
     positions_count = len(positions)
 
     raw_mode = str(broker.get("mode") or "").lower()
-    paper = (
+    paper_configured = (
         broker.get("paper_port") is True or "paper" in raw_mode or connection == "connected_paper"
     )
-    can_submit = broker.get("can_submit_orders") is True and paper
+    paper = bool(connected and paper_configured)
+    can_submit = bool(connected and broker.get("can_submit_orders") is True and paper)
     if connected and paper:
         mode = "paper_order_enabled" if can_submit else "paper_read_only"
         connection = "connected_paper"
@@ -351,7 +352,9 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
         mode = "live_blocked"
         can_submit = False
     else:
-        mode = broker.get("mode") or "offline"
+        connection = "offline"
+        mode = "offline"
+        can_submit = False
 
     broker_orders = _cockpit_ibkr_open_orders()
     local_tickets = _cockpit_local_order_tickets()
@@ -528,8 +531,8 @@ def _is_advisory_scanner_violation(
 
 
 VAGUE_FINANCIAL_RESPONSE = (
-    "Para análise financeira, informe pelo menos um ativo/ticker, o prazo desejado "
-    "(ex.: AAPL 14 dias, tendência, risco, valuation, notícias)."
+    "Para anÃ¡lise financeira, informe pelo menos um ativo/ticker, o prazo desejado "
+    "(ex.: AAPL 14 dias, tendÃªncia, risco, valuation, notÃ­cias)."
 )
 
 
@@ -553,7 +556,7 @@ def _build_no_empty_fallback_chunk(
     # A missing final chunk is a pipeline failure, not a request-quality verdict.
     header = (
         "A pipeline terminou sem publicar uma resposta final. "
-        "Isto é uma falha interna de síntese, não falta de detalhe no teu pedido.\n\n"
+        "Isto Ã© uma falha interna de sÃ­ntese, nÃ£o falta de detalhe no teu pedido.\n\n"
     )
     is_etf_comparison = (
         any(word in lower for word in ("compare", "comparison", " vs ", "versus"))
@@ -564,7 +567,7 @@ def _build_no_empty_fallback_chunk(
         body = (
             f"O scan aprovou {candidate_count} candidato(s) e rejeitou {rejected_count}, "
             "mas o agente falhou antes de publicar a escolha validada. "
-            "Isto não é uma rejeição de mercado e nenhuma ordem foi enviada."
+            "Isto nÃ£o Ã© uma rejeiÃ§Ã£o de mercado e nenhuma ordem foi enviada."
         )
         verdict = "Final verdict: WAIT_SYSTEM_ERROR"
         suggestion = (
@@ -759,7 +762,7 @@ async def get_chart_data(
     ticker: str,
     timeframe: str = Query("6M", pattern="^(1D|1W|1M|3M|6M|1Y|5Y)$"),
 ) -> dict:
-    """Retorna OHLCV + indicadores tecnicos para renderizar charts — via DataHub."""
+    """Retorna OHLCV + indicadores tecnicos para renderizar charts â€” via DataHub."""
     clean_ticker = _sanitize_ticker(ticker)
 
     result = hub.get_candles(clean_ticker, timeframe=timeframe)
@@ -841,7 +844,7 @@ async def stream_chart_data(
     refresh_s: int = Query(3, ge=1, le=30),
     max_points: int = Query(180, ge=30, le=500),
 ):
-    """SSE de velas em tempo real (polling) para painel live — via DataHub."""
+    """SSE de velas em tempo real (polling) para painel live â€” via DataHub."""
 
     clean_ticker = _sanitize_ticker(ticker)
     default_refresh = SSE_REFRESH_INTERVAL.get(timeframe, 3)
@@ -1005,8 +1008,8 @@ PRODUCT_MANIFEST = {
         },
         {
             "id": "agent_primary",
-            "label": "Bob Agent (Qwen3-Next-80B IQ4_XS)",
-            "description": "Local Qwen3-Next-80B Abliterated CEO via llama.cpp + F51 Nitro MoE — consolidates conflicts and chooses one permitted next step.",
+            "label": "Bob Core Agent",
+            "description": "Local Bob core via llama.cpp + F51 LoRA consolidates conflicts and chooses one permitted next step.",
         },
     ],
     "decision_modes": [
@@ -1018,7 +1021,7 @@ PRODUCT_MANIFEST = {
     ],
 }
 
-# Regex para detectar tickers em mensagens do usuário
+# Regex para detectar tickers em mensagens do usuÃ¡rio
 _TICKER_RE = re.compile(
     r"\b([A-Z]{1,5}(?:34|4|3|11)?\.(?:SA|TO|V))\b"  # BR/CA: PETR4.SA, RY.TO
     r"|\b([A-Z]{1,5})\b"  # US: AAPL, MSFT
@@ -1027,16 +1030,16 @@ _TICKER_RE = re.compile(
 _SMALLTALK_RE = re.compile(
     r"^\s*(?:"
     r"hi|hello|hey|yo|sup|"
-    r"oi|ola|olá|e ai|e aí|"
+    r"oi|ola|olÃ¡|e ai|e aÃ­|"
     r"bom dia|boa tarde|boa noite|"
-    r"tudo bem|como vai|who are you|quem e voce|quem é você"
+    r"tudo bem|como vai|who are you|quem e voce|quem Ã© vocÃª"
     r")(?:[!.?\s]+)?$",
     re.IGNORECASE,
 )
 
 _CHART_CONTEXT_HINTS = (
     "grafico",
-    "gráfico",
+    "grÃ¡fico",
     "chart",
     "candle",
     "candles",
@@ -1045,10 +1048,10 @@ _CHART_CONTEXT_HINTS = (
     "ohlcv",
     "suporte",
     "resistencia",
-    "resistência",
+    "resistÃªncia",
     "trend",
     "tendencia",
-    "tendência",
+    "tendÃªncia",
     "price action",
     "rsi",
     "macd",
@@ -1066,9 +1069,9 @@ _CHART_CONTEXT_HINTS = (
     "indicador",
     "indicator",
     "esta acao",
-    "esta ação",
+    "esta aÃ§Ã£o",
     "essa acao",
-    "essa ação",
+    "essa aÃ§Ã£o",
     "esse ativo",
     "este ativo",
     "this stock",
@@ -1082,12 +1085,12 @@ _CHART_CONTEXT_HINTS = (
     "ativo na tela",
     "na tela",
     "no grafico",
-    "no gráfico",
+    "no grÃ¡fico",
     "que voce ve",
-    "que você vê",
+    "que vocÃª vÃª",
     "olhando isso",
     "olhando o grafico",
-    "olhando o gráfico",
+    "olhando o grÃ¡fico",
 )
 
 
@@ -1217,7 +1220,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
     if envelope.type != MessageType.TASK_SUBMIT:
         raise HTTPException(status_code=400, detail="Invalid message type for this endpoint")
 
-    # ── Task Queue: evita probe preso, 1 task ativa por sessão ──
+    # â”€â”€ Task Queue: evita probe preso, 1 task ativa por sessÃ£o â”€â”€
     from core.pipeline.task_queue import get_task_queue
 
     tq = get_task_queue()
@@ -1477,7 +1480,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                                 # Only mark scanner as invoked when the route is
                                 # explicitly market_scan.  The presence of
                                 # rejected_count alone does not mean a scanner
-                                # ran — single-ticker collection may also reject
+                                # ran â€” single-ticker collection may also reject
                                 # candidates for data-quality reasons.
                                 if route_used == "market_scan":
                                     scanner_invoked = True
@@ -1618,7 +1621,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     elif detected_intent == "unknown" or detected_intent == "general_question":
                         detected_intent = "MACRO_THESIS"  # default complex fallback
 
-                # No Empty Response Rule (OPUS §7): backend must never let the
+                # No Empty Response Rule (OPUS Â§7): backend must never let the
                 # frontend render a blank assistant bubble. If the pipeline
                 # produced zero content, emit a structured fallback CHUNK with
                 # enough trace info for the user to retry usefully.
@@ -1781,8 +1784,8 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                 )
             except asyncio.CancelledError:
                 # Client disconnected. Let the pipeline tear down naturally
-                # without propagating cancellation to the LLM backend — this
-                # prevents spurious »cancel task« entries in the llama-server log.
+                # without propagating cancellation to the LLM backend â€” this
+                # prevents spurious Â»cancel taskÂ« entries in the llama-server log.
                 logger.info(
                     "Client disconnected for session=%s msg=%s", session_id, envelope.msg_id
                 )
@@ -1795,7 +1798,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     provider_error = err_detail[:200]
                 yield (json.dumps({"type": "ERROR", "detail": err_detail}) + "\n")
 
-                # No Empty Response Rule (OPUS §7) also applies on exception
+                # No Empty Response Rule (OPUS Â§7) also applies on exception
                 # paths: if nothing reached the user, surface a structured
                 # fallback CHUNK so the frontend has something to render.
                 if final_content_length == 0:
@@ -2071,7 +2074,7 @@ async def get_cockpit_summary(request: Request) -> dict[str, Any]:
             "alerts": alerts,
             "alert_count": len(alerts),
         }
-    # ── Sentiment DB stats (SQLite long-term history) ──
+    # â”€â”€ Sentiment DB stats (SQLite long-term history) â”€â”€
     try:
         import sqlite3
         from pathlib import Path as _Path
@@ -2287,9 +2290,9 @@ def _resolve_evidence_file(run_id: str, filename: str):
     return file_path
 
 
-# ── Two-Phase Paper Trade ──────────────────────────────────────────────
+# â”€â”€ Two-Phase Paper Trade â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-_trade_status: dict[str, dict] = {}  # order_id → {status, pipeline_result, ...}
+_trade_status: dict[str, dict] = {}  # order_id â†’ {status, pipeline_result, ...}
 
 
 @router.post("/trade/execute")
@@ -2338,7 +2341,7 @@ async def execute_trade_fast(payload: dict[str, Any]) -> dict[str, Any]:
 
 @router.get("/trade/status/{order_id}")
 async def get_trade_status(order_id: str) -> dict[str, Any]:
-    """Fase 2: Verificar status da validação (pipeline background)."""
+    """Fase 2: Verificar status da validaÃ§Ã£o (pipeline background)."""
     status = _trade_status.get(order_id, {"phase": "unknown"})
     return {"order_id": order_id, **status}
 
@@ -2392,7 +2395,7 @@ async def get_training_orders() -> dict[str, Any]:
     }
 
 
-# ── Task Queue endpoints ────────────────────────────────────────────
+# â”€â”€ Task Queue endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @router.get("/task/status/{run_id}")
@@ -2419,3 +2422,4 @@ async def list_active_tasks() -> dict[str, Any]:
 
     tq = get_task_queue()
     return {"count": tq.active_count, "tasks": tq.active_tasks}
+

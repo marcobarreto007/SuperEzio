@@ -88,17 +88,16 @@ def _browser_chart_fetch(page: Page) -> dict[str, Any]:
 
 def _submit_chat(page: Page, prompt: str, timeout_ms: int) -> dict[str, Any]:
     """Preenche o input, clica enviar, e espera a resposta do Bob aparecer no chat."""
-    page.fill("#user-input", prompt)
+    page.fill("#user-inp", prompt)
     page.click("#send-btn")
-    # Wait for Bob's response: a .msg.bob element that is not the initial greeting
+    # Wait for Bob's response in the current CEO message UI.
     page.wait_for_function(
         """
         () => {
-          const bobMsgs = document.querySelectorAll('#chat .msg.bob');
-          if (bobMsgs.length < 2) return false;
+          const bobMsgs = document.querySelectorAll('#chat .msg-ceo');
+          if (bobMsgs.length < 1) return false;
           const lastBob = bobMsgs[bobMsgs.length - 1];
           const text = lastBob.innerText || '';
-          // Must have actual content beyond the initial greeting
           return text.length > 80 && !text.includes('Erro:');
         }
         """,
@@ -107,10 +106,10 @@ def _submit_chat(page: Page, prompt: str, timeout_ms: int) -> dict[str, Any]:
     return page.evaluate(
         """
         () => {
-          const bobMsgs = document.querySelectorAll('#chat .msg.bob');
+          const bobMsgs = document.querySelectorAll('#chat .msg-ceo');
           const lastBob = bobMsgs[bobMsgs.length - 1];
           const text = lastBob ? lastBob.innerText : '';
-          const userMsgs = document.querySelectorAll('#chat .msg.user');
+          const userMsgs = document.querySelectorAll('#chat .msg-user');
           const typing = document.getElementById('typing');
           return {
             responseLength: text.length,
@@ -153,8 +152,9 @@ def run_smoke(
 
         page.goto(base_url, wait_until="domcontentloaded", timeout=timeout_ms)
         page.wait_for_selector("#chat", timeout=timeout_ms)
-        page.wait_for_selector("#user-input", timeout=timeout_ms)
+        page.wait_for_selector("#user-inp", timeout=timeout_ms)
         page.wait_for_selector("#send-btn", timeout=timeout_ms)
+        page.wait_for_function("window.SZ && typeof window.SZ.loadChart === 'function'", timeout=timeout_ms)
         page.wait_for_timeout(1500)
 
         # Canvas + chart (skip gracefully if not on page)
@@ -163,6 +163,15 @@ def run_smoke(
         try:
             page.wait_for_selector("#live-canvas", timeout=3000)
             chart_fetch = _browser_chart_fetch(page)
+            page.evaluate(
+                """
+                async () => {
+                  if (window.SZ && typeof window.SZ.loadChart === 'function') {
+                    await window.SZ.loadChart('AAPL');
+                  }
+                }
+                """
+            )
             canvas = _assert_canvas_nonblank(page)
         except PlaywrightTimeoutError:
             pass  # UI may not have chart loaded — not a blocker

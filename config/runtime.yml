@@ -18,15 +18,16 @@ server:
   venv: .venv
 
 # ---------------------------------------------------------------------------
-# Modelos (runtime real validado 2026-05-21)
+# Modelos (runtime real validado 2026-06-29)
 # ---------------------------------------------------------------------------
 models:
   agent:
-    name: Qwen3-Next-80B Abliterated (Nitro MoE CEO)
+    name: Bob Core Local
     provider_name: agent
-    model_id: qwen3-next-80b-abliterated
-    path: models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf
-    quantization: IQ4_XS (4.25 BPW)
+    model_id: bob-core-local
+    path: "C:\\llama.cpp\\models\\bob-core-local.gguf"
+    lora_path: "C:\\llama.cpp\\models\\bob-lora-best.gguf"
+    quantization: Q4_K_M
     server_url: http://127.0.0.1:8082/v1
     backend: openai_compatible
     role: agent
@@ -35,35 +36,21 @@ models:
     max_tokens: 8192
     timeout_s: 300
     script: scripts/serve_agent_llamacpp.ps1
-    preferred_llama_server: C:\llama.cpp\build-cuda\bin\llama-server.exe
+    preferred_llama_server: "C:\\llama.cpp\\build\\bin\\llama-server.exe"
     fallback_llama_server: llama.cpp\bin\llama-server.exe
     speculative_decoding: disabled
-    context_length: 131072
-    gpu_layers: 999
-    cpu_moe: true
-    n_cpu_moe: 31
-    cache_ram_mib: 8192
-    slots: 2
+    context_length: 4096
+    gpu_layers: 35
+    slots: 1
     thinking: disabled
-    f51_moe_cache: true
-    f51_moe_sched_skip: true
-    f51_moe_cache_capacity: 16
-    nitro_layer1_persistence_cache: 16
-    nitro_layer2_async_streams: true
-    nitro_layer3_router_lookahead: true
-    nitro_layer4_kv_cache_tiering: true
-    model_type: MoE
-    total_experts: 512
-    active_experts_per_token: 10
-    expert_size_mb: 59
-    base_model: Qwen/Qwen3-Next-80B-A3B
-    ablation: Arbitrary-Rank Ablation (Huihui-AI)
+    model_type: local_gguf_lora
+    base_model: Bob Core
 
   orchestrator:
-    name: Qwen3-Next-80B Abliterated (same local model)
+    name: Bob Core Local
     provider_name: local_orchestrator
     path: http://127.0.0.1:8082/v1
-    model_id: qwen3-next-80b-abliterated
+    model_id: bob-core-local
     backend: openai_compatible
     role: orchestrator
     is_local: true

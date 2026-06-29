@@ -98,11 +98,15 @@ def _overlay_runtime_broker_snapshot(
 
     raw_mode = str(portfolio.get("mode") or ibkr.get("mode") or "").lower()
     raw_connection = str(portfolio.get("connection") or ibkr.get("connection") or "")
-    connected = portfolio.get("connected") is True or "connected" in raw_connection
-    paper = (
+    if "connected" in portfolio:
+        connected = portfolio.get("connected") is True
+    else:
+        connected = "connected" in raw_connection
+    paper_configured = (
         portfolio.get("paper") is True or "paper" in raw_mode or raw_connection == "connected_paper"
     )
-    can_submit = portfolio.get("can_submit_orders") is True and paper
+    paper = bool(connected and paper_configured)
+    can_submit = bool(portfolio.get("can_submit_orders") is True and paper)
 
     if connected and paper:
         connection = "connected_paper"

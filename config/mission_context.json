@@ -5,10 +5,10 @@
   "agent": {
     "name": "Bob",
     "full_name": "Bob SuperEzio CEO",
-    "brain": "Qwen3-Next-80B-A3B Abliterated IQ4_XS GGUF (79.7B params, MoE 512 experts)",
+    "brain": "Bob Core local GGUF + F51 LoRA best",
     "role": "Financial advisory copilot — straight talk, no disclaimers",
-    "phase": "active_paper_trading",
-    "phase_description": "Bob opera paper trading com pipeline completo. 9.5/10. SMWB 1100 shares comprovados via pipeline."
+    "phase": "research_paper_validation_only",
+    "phase_description": "Bob opera em modo de pesquisa e validação paper. Broker só fica ativo quando a probe real do IBKR/TWS confirma conexão."
   },
   "training": {
     "status": "trained_financial_advisory_copilot",
@@ -52,7 +52,7 @@
       "I am not a broker. I may submit paper orders only in explicit paper execution mode.",
       "My role is to analyze, explain risk, propose theses, document decisions, and help build an auditable track record.",
       "I operate with live-money disabled. Paper broker interaction may submit simulated paper orders when the paper execution gate is enabled.",
-      "My local brain is an 80B-class model running on this machine. For current data I use DataHub, scanner, experts, and RAG.",
+      "My local brain is Bob Core running on this machine. For current data I use DataHub, scanner, experts, and RAG.",
       "I answer in the user's language. If the user writes in Portuguese, I answer in Portuguese with Canada/USA context."
     ],
     "what_i_am_not": [
@@ -66,7 +66,7 @@
   "current_situation": {
     "runtime": {
       "status": "operational",
-      "ceo_server": "http://127.0.0.1:8082 - llama.cpp with F51 Nitro MoE",
+      "ceo_server": "http://127.0.0.1:8082 - llama.cpp with Bob Core + F51 LoRA",
       "api_server": "http://127.0.0.1:8002 - FastAPI + LangGraph pipeline v4",
       "frontend": "http://127.0.0.1:8002 - SuperEzio UI",
       "gpu": "NVIDIA GeForce RTX 5060 Ti - 16 GB VRAM",
@@ -90,21 +90,21 @@
     "broker": {
       "ibkr": {
         "package_present": true,
-        "connection": "connected_paper",
-        "session": "TWS Demo System / paper-style validation",
+        "connection": "offline",
+        "session": "TWS/IB Gateway paper API not reachable on this machine",
         "host": "127.0.0.1",
         "port": 7497,
         "paper_port": true,
         "live_port_warning": false,
-        "mode": "paper_order_enabled",
+        "mode": "offline",
         "account_equity": "10000.00",
         "positions_count": 0,
-        "can_read_account": true,
-        "can_read_positions": true,
-        "can_submit_orders": true,
-        "verified_at": "2026-06-05T11:20:12-04:00",
+        "can_read_account": false,
+        "can_read_positions": false,
+        "can_submit_orders": false,
+        "verified_at": "2026-06-29T00:00:00-04:00",
         "verification_source": "scripts/broker_readiness_probe.py --provider ibkr --json",
-        "note": "IBKR TWS paper account connected on port 7497. Live-money execution is disabled. Paper order submission is enabled only through the gated submit_paper_order tool using LMT orders. If TWS rejects the order, Bob must report the broker/tool error and must not claim a fill."
+        "note": "IBKR paper execution is disabled until the local broker readiness probe confirms that TWS/IB Gateway paper API is reachable. Bob must not claim broker fills or paper order submission capability while offline."
       },
       "alpaca": {
         "package_present": true,
@@ -114,8 +114,8 @@
       }
     },
     "paper_trading": {
-      "active": true,
-      "mode": "paper_order_submit_via_ibkr_tool",
+      "active": false,
+      "mode": "research_paper_validation_only",
       "equity": "10000.00 USD",
       "max_position_pct": 10,
       "max_risk_per_trade_pct": 2,

@@ -1,13 +1,12 @@
 {
   "date_local": "2026-06-29T11:08:45-04:00",
-  "session": "bob-30b-migration-2026-06-29",
-  "status": "migrated_to_qwenlong_30b_lora_v9",
+  "session": "bob-core-runtime-2026-06-29",
+  "status": "bob_core_lora_best_runtime",
   "what_was_done": [
-    "Migrated CEO Bob from Qwen3-Next-80B-A3B (40GB IQ4_XS MoE) to QwenLong-30B-A3B (17GB Q4_K_M dense + LoRA)",
-    "Updated config/model_manifest.json to reflect QwenLong 30B parameters (48 layers, 262K context, no MoE)",
-    "Updated models/README_MODEL.md with new 30B architecture and LoRA adapter documentation",
-    "Config.ps1 and serve_agent_llamacpp.ps1 were already configured for 30B migration",
-    "LoRA v9 calibration adapter validated: rank 16, freeze 12, 24 GPU layers, train_loss=1.8673"
+    "Promoted Bob Core local runtime aliases for the active GGUF and LoRA files",
+    "Updated config/model_manifest.json to expose Bob Core instead of model-size branding",
+    "Updated config.ps1 and serve_agent_llamacpp.ps1 to use the Bob Core aliases",
+    "LoRA best adapter validated: rank 16, freeze 12, train_loss=1.8673"
   ],
   "runtime_parameters": {
     "api_port": 8002,
@@ -15,13 +14,12 @@
     "api_entrypoint": "python -m agent_server.main",
     "agent_entrypoint": "scripts/serve_agent_llamacpp.ps1 -Port 8082",
     "llama_server": "C:\\llama.cpp\\build\\bin\\llama-server.exe",
-    "model_path": "C:\\llama.cpp\\models\\qwenlong-30b-a3b-q4_k.gguf",
-    "lora_path": "C:\\llama.cpp\\models\\lora_f51_v7.gguf",
-    "lora_calibration": "models/bob_lora_qwenlong_30b_f51/lora_f51_v9_calibration_500_20260629_103804.gguf",
-    "model_size_gb": 17.28,
+    "model_path": "C:\\llama.cpp\\models\\bob-core-local.gguf",
+    "lora_path": "C:\\llama.cpp\\models\\bob-lora-best.gguf",
+    "lora_calibration": "C:\\llama.cpp\\models\\bob-lora-best.gguf",
     "quantization": "Q4_K_M",
-    "context_length": 262144,
-    "gpu_layers": 24,
+    "context_length": 4096,
+    "gpu_layers": 35,
     "freeze_layers": 12,
     "lora_rank": 16,
     "lora_alpha": 32,
@@ -31,17 +29,17 @@
     "val_loss": 1.8782
   },
   "evidence": [
-    "config.ps1 verified: ModelPath points to qwenlong-30b-a3b-q4_k.gguf",
-    "serve_agent_llamacpp.ps1 verified: all 30B parameters in place",
+    "config.ps1 verified: ModelPath points to bob-core-local.gguf",
+    "serve_agent_llamacpp.ps1 verified: Bob Core runtime parameters in place",
     "LoRA training log exists: runtime/logs/train_v9_calibration_500_20260629_103804.log",
-    "LoRA output exists: models/bob_lora_qwenlong_30b_f51/lora_f51_v9_calibration_500_20260629_103804.gguf",
-    "model_manifest.json updated to version 4.1.0 with 30B specs"
+    "LoRA output alias exists: C:\\llama.cpp\\models\\bob-lora-best.gguf",
+    "model_manifest.json updated to version 4.1.0 with Bob Core runtime specs"
   ],
   "risks": [
-    "Old 80B model file still present in models/ if exists - should be removed to reclaim ~40GB",
-    "Servers NOT started as requested - validation pending next manual start",
-    "LoRA adapter path in config.ps1 points to v7, but v9 calibration exists - may want to promote v9"
+    "The physical upstream GGUF filename may still exist on disk; runtime uses neutral aliases.",
+    "Broker requires a live IBKR/TWS paper API before it can be marked connected.",
+    "Longer LoRA quality evaluation is still required before claiming production model quality."
   ],
-  "next_step": "Remove old 80B model file (models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf) to reclaim 40GB disk space.",
+  "next_step": "Validate Bob Core output quality and keep broker disabled until IBKR/TWS paper API is reachable.",
   "owner": "Marco"
 }

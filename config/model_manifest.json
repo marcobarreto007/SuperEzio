@@ -2,14 +2,14 @@
     "project":  "SuperEzio",
     "version":  "4.1.0",
     "updated":  "2026-06-29",
-    "note":  "CEO Bob: QwenLong-30B-A3B Q4_K_M GGUF + F51 LoRA v9. Local-only via llama.cpp QLoRA. Cloud providers for orchestration/experts only.",
+    "note":  "CEO Bob: Bob Core local GGUF + F51 LoRA best. Local-only via llama.cpp QLoRA. Cloud providers for orchestration/experts only.",
     "agent":  {
                 "provider_name":  "agent",
                 "persona":  "Bob",
-                "base_model":  "Qwen/QwenLong-30B-A3B",
-                "model":  "qwenlong-30b-a3b-q4_k",
-                "path":  "C:\\llama.cpp\\models\\qwenlong-30b-a3b-q4_k.gguf",
-                "lora_path":  "C:\\llama.cpp\\models\\lora_f51_v7.gguf",
+                "base_model":  "Bob Core",
+                "model":  "bob-core-local",
+                "path":  "C:\\llama.cpp\\models\\bob-core-local.gguf",
+                "lora_path":  "C:\\llama.cpp\\models\\bob-lora-best.gguf",
                 "quantization":  "Q4_K_M",
                 "server_url":  "http://127.0.0.1:8082/v1",
                 "priority":  -670,
@@ -33,7 +33,7 @@
                       "local_orchestrator":  {
                                                  "provider_name":  "local_orchestrator",
                                                  "base_url":  "http://127.0.0.1:8082/v1",
-                                                 "model":  "qwenlong-30b-a3b-q4_k",
+                                                 "model":  "bob-core-local",
                                                  "priority":  -400,
                                                  "role":  "orchestrator"
                                              },

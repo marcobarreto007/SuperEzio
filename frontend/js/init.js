@@ -904,7 +904,10 @@
     /* CHART button */
     var chartBtn = document.getElementById("chart-btn");
     if (chartBtn) {
-      chartBtn.addEventListener("click", loadChart);
+      chartBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        loadChart();
+      });
     }
 
     var brokerBtn = document.getElementById("broker-status-btn");

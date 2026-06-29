@@ -15,9 +15,9 @@ if TYPE_CHECKING:
     from ..config import UniversalConfig
 
 AGENT_PROVIDER_NAME = "agent"
-AGENT_MODEL_ID = "qwen3-next-80b-abliterated"
+AGENT_MODEL_ID = "bob-core-local"
 PRIMARY_PROVIDER_NAME = "local_orchestrator"
-PRIMARY_MODEL_ID = "qwen3-next-80b-abliterated"
+PRIMARY_MODEL_ID = AGENT_MODEL_ID
 DEEPSEEK_PROVIDER_NAME = "deepseek"
 DEEPSEEK_MODEL_ID = "deepseek-v4-pro"
 GEMINI_PROVIDER_NAME = "gemini"
@@ -50,18 +50,7 @@ def build_default_providers(
     providers: list[ModelProvider] = []
 
     orchestrator_config = config.models.get("orchestrator") or config.models.get("ceo")
-    default_base_url = (
-        orchestrator_config.path
-        if orchestrator_config and orchestrator_config.path
-        else "https://api.deepseek.com"
-    )
-    default_model = (
-        orchestrator_config.model_id
-        if orchestrator_config and getattr(orchestrator_config, "model_id", "")
-        else PRIMARY_MODEL_ID
-    )
-
-    # ── PRIMARY: Local Qwen 80B on :8082 (highest priority) ──
+    # Primary local Bob core on :8082.
     # Falls back to DeepSeek cloud ONLY if local is unreachable.
     primary_base_url = os.getenv(
         "SUPEREZIO_PRIMARY_BASE_URL",
@@ -69,7 +58,7 @@ def build_default_providers(
     )
     primary_model = os.getenv(
         "SUPEREZIO_PRIMARY_MODEL",
-        "qwen3-next-80b-abliterated",  # LOCAL MODEL
+        PRIMARY_MODEL_ID,
     )
     primary_api_key = os.getenv("SUPEREZIO_PRIMARY_API_KEY", "")
 
@@ -130,7 +119,7 @@ def build_default_providers(
             )
         )
 
-    # Agent — Qwen3-Next-80B Abliterated (Bob) F51 IQ4_XS GGUF via llama-server, local.
+    # Agent — local Bob core via llama-server.
     agent_base_url = os.getenv(
         "SUPEREZIO_AGENT_BASE_URL",
         "http://127.0.0.1:8082/v1",

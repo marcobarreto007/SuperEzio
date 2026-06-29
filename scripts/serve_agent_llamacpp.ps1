@@ -1,13 +1,13 @@
 # SuperEzio Bob CEO local server.
-# CEO: QwenLong 30B A3B Q4_K + LoRA F51 Nitro v7 (49/49 layers GPU, 17.3 GB)
+# CEO: Bob Core local + F51 LoRA best.
 # Sources config.ps1 for path detection and keeps command-line overrides.
 # llama-server: C:\llama.cpp\build\bin\llama-server.exe
 
 param(
     [int]$Port = 8082,
-    [int]$GpuLayers = 99,
-    [int]$ContextLength = 65536,
-    [int]$Slots = 2,
+    [int]$GpuLayers = 35,
+    [int]$ContextLength = 4096,
+    [int]$Slots = 1,
     [int]$CacheRamMiB = 4096,
     [string]$LlamaServerPath = $env:SUPEREZIO_LLAMA_SERVER_EXE
 )
@@ -36,7 +36,7 @@ if ($RequestedLlamaServerPath) {
 
 if (-not (Test-Path $ModelPath)) {
     Write-Host "ERROR: Model not found: $ModelPath" -ForegroundColor Red
-    Write-Host "Run: python scripts/train_qwenlong_30b_gguf_f51_v7.py" -ForegroundColor Yellow
+    Write-Host "Expected Bob Core GGUF alias at the configured model path." -ForegroundColor Yellow
     exit 1
 }
 
@@ -69,17 +69,16 @@ $hasCuda = ($version -match "cuda") -or ($LlamaServerPath -match "cuda|build-cud
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host " SuperEzio Bob CEO Server" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "Model      : QwenLong 30B A3B Q4_K"
+Write-Host "Model      : Bob Core local"
 Write-Host "LoRA       : $(if ($LoraPath) { $LoraPath } else { 'NONE' })"
 Write-Host "Server     : $LlamaServerPath"
 Write-Host "Version    : $version"
-Write-Host "CUDA       : $(if ($hasCuda) { 'YES (all layers GPU)' } else { 'NO (CPU-only)' })"
+Write-Host "CUDA       : $(if ($hasCuda) { 'YES' } else { 'NO (CPU-only)' })"
 Write-Host "Port       : $Port"
 Write-Host "Context    : $($ContextLength.ToString('N0')) tokens"
 Write-Host "Slots      : $Slots parallel"
 Write-Host "Flash Attn : on"
-Write-Host "Cache type : q8_0"
-Write-Host "Cache RAM  : $CacheRamMiB MiB"
+Write-Host "Cache type : q4_0"
 Write-Host "API        : http://127.0.0.1:$Port/v1"
 Write-Host "============================================"
 Write-Host ""
@@ -97,10 +96,9 @@ $args = @(
     "--port", $Port,
     "-np", $Slots,
     "-fa", "on",
-    "-ctk", "q8_0",
-    "-ctv", "q8_0",
-    "-cram", $CacheRamMiB,
-    "--mlock"
+    "-ctk", "q4_0",
+    "-ctv", "q4_0",
+    "--no-kv-offload"
 )
 
 if ($LoraPath) {
