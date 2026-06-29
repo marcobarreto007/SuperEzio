@@ -173,3 +173,4 @@ F51-Nitro-MoE/build_worktrees/
 # Scratch scripts (testes avulsos)
 scratch/
 .playwright-mcp/
+llama.cpp-source/
