@@ -1,0 +1,119 @@
+{
+  "snapshot_id": "man-at-work-1782695074",
+  "timestamp": "2026-06-29T01:04:34.934953+00:00",
+  "trigger_reason": "CEO Brain down: CEO unreachable: HTTP Error 503: Service Unavailable",
+  "system_mode": "man_at_work",
+  "organs": {
+    "ceo_brain": {
+      "healthy": false,
+      "last_check": "2026-06-29T01:04:21.970329+00:00",
+      "error": "CEO unreachable: HTTP Error 503: Service Unavailable",
+      "pain_level": 100,
+      "consecutive_failures": 1,
+      "circuit_open_until": 0,
+      "category": "brain"
+    },
+    "api_heart": {
+      "healthy": true,
+      "last_check": "2026-06-29T01:04:21.978328+00:00",
+      "error": "",
+      "pain_level": 75,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "heart"
+    },
+    "datahub_senses": {
+      "healthy": true,
+      "last_check": "2026-06-29T01:04:23.405784+00:00",
+      "error": "",
+      "pain_level": 50,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "senses"
+    },
+    "ibkr_muscles": {
+      "healthy": false,
+      "last_check": "2026-06-29T01:04:25.407130+00:00",
+      "error": "IBKR offline: timed out",
+      "pain_level": 75,
+      "consecutive_failures": 1,
+      "circuit_open_until": 0,
+      "category": "muscles"
+    },
+    "journal_memory": {
+      "healthy": true,
+      "last_check": "2026-06-29T01:04:25.456133+00:00",
+      "error": "",
+      "pain_level": 75,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "memory"
+    },
+    "scanner_eyes": {
+      "healthy": true,
+      "last_check": "2026-06-29T01:04:34.922947+00:00",
+      "error": "",
+      "pain_level": 25,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "senses"
+    },
+    "settings_spine": {
+      "healthy": true,
+      "last_check": "2026-06-29T01:04:34.922947+00:00",
+      "error": "",
+      "pain_level": 100,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "defense"
+    },
+    "dead_letter_kidneys": {
+      "healthy": true,
+      "last_check": "2026-06-29T01:04:34.923952+00:00",
+      "error": "",
+      "pain_level": 25,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "memory"
+    },
+    "cache_liver": {
+      "healthy": true,
+      "last_check": "2026-06-29T01:04:34.931950+00:00",
+      "error": "",
+      "pain_level": 25,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "memory"
+    },
+    "circuit_breakers_immune": {
+      "healthy": true,
+      "last_check": "2026-06-29T01:04:34.932940+00:00",
+      "error": "",
+      "pain_level": 50,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "defense"
+    }
+  },
+  "pain_history": [
+    {
+      "organ": "ceo_brain",
+      "pain": 100,
+      "error": "CEO unreachable: HTTP Error 503: Service Unavailable",
+      "timestamp": "2026-06-29T01:04:21.970329+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T01:04:25.407130+00:00",
+      "healed": false
+    }
+  ],
+  "environment": {
+    "python_version": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "total_scans": 1,
+    "total_heals": 0
+  }
+}

@@ -843,3 +843,20 @@
 {"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-06-28T18:40:10.147535+00:00", "healed": false}
 {"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-06-28T18:40:12.199365+00:00", "healed": false}
 {"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-28T18:40:15.865767+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-06-29T00:57:39.421296+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-29T00:57:42.881086+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-06-29T00:59:51.485192+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-29T00:59:54.887613+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-06-29T01:01:57.720635+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-29T01:02:01.297001+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: HTTP Error 503: Service Unavailable", "timestamp": "2026-06-29T01:04:21.970329+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-29T01:04:25.407130+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-29T01:04:37.178126+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-29T01:06:38.399956+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-06-29T01:08:42.298594+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-29T01:08:45.691204+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-06-29T01:10:49.535452+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-06-29T01:10:49.820384+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-29T01:10:53.986043+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-29T01:10:56.095708+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-29T01:12:58.924006+00:00", "healed": false}
