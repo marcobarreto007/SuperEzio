@@ -1,232 +1,40 @@
 {
-  "date_local": "2026-06-27T23:05:00-04:00",
-  "session": "2026-06-27_COMPLETO",
-  "phase": "FINAL_UNIVERSE_400",
-  "status": "READY_FOR_PAPER",
-  "completed_at": "2026-06-28T03:26:51.444829+00:00",
-  "total_commits": 21,
-  "total_tests": 1353,
-  "agents_contributing": {
-    "claude": {
-      "commits": "8 commits",
-      "deliverables": [
-        "F51 Trade Gate — 10 gates + 32 tests",
-        "BaseCrisisModel DRY — 12 sensores",
-        "core.utils.datetime — parser ISO compartilhado",
-        "Pipeline wiring — auto_execute_paper + tool_executor",
-        "Data provider testing — 8 provedores testados ao vivo",
-        "Legacy cleanup — 44MB removidos",
-        "Code quality audit — report completo",
-        "F4 Shielding — CLI, trading_engine_live, auto_executor, ibkr_adapter, generator.py",
-        "Audit report — RELATORIO_AUDITORIA_BYPASS_F51_TRADE_GATE.txt",
-        "Final report — RELATORIO_BLINDAGEM_FINAL_EZIO_BOB.txt"
-      ]
-    },
-    "deep": {
-      "commits": "6 commits",
-      "deliverables": [
-        "F1_HARDENING — Pydantic Settings + structlog + idempotency",
-        "Dead letter queue — journal/dead_letter/",
-        "Prometheus /metrics/prometheus endpoint + /dashboard HTML",
-        "8 Claude quality skills (observability, env-guard, idempotency, circuit-breaker, prop-test, dead-code, metrics-dash, secure-scan)"
-      ]
-    },
-    "codex": {
-      "commits": "4 commits",
-      "deliverables": [
-        "F2 — Circuit breaker CLOSED/OPEN/HALF_OPEN + retry + price cache",
-        "src/core/resilience/__init__.py (262 linhas)",
-        "Property tests — 14 Hypothesis strategies",
-        "Bandit security scan — 0 MEDIUM, 0 HIGH, 67 LOW",
-        "Vulture dead code — 7/9 fixed",
-        "Pytest config — +security +property markers"
-      ]
-    },
-    "codex_f3": {
-      "commits": "3 commits",
-      "deliverables": [
-        "F3 — Live HTML dashboard (/dashboard) com 7 métricas",
-        "10 code quality fixes (HF revision pin, bandit nosec, unused args)",
-        "Bandit report final (0 issues)",
-        "F4 — low_level_gate_check metadata-based redesign",
-        "test_f51_final_shielding.py (12 testes complementares)"
-      ]
-    }
+  "timestamp": "2026-06-28T21:30:00",
+  "session": "f51-swarm-audit-post-training",
+  "orchestrator": "claude-code",
+  "status": "completed",
+  "what_was_done": "Auditoria completa pós-treino LoRA + deploy Playbook 2026",
+  "progress": {
+    "build_msvc": "completed — 3 binarios compilados com CUDA",
+    "model_quantized": "completed — Q8_0→Q4_K_M (17.3 GB, 13.8 min)",
+    "lora_trained": "completed — 5 epochs, loss=1.97, acc=65%, 42.4 MB",
+    "agent_army_deployed": "completed — 13 agentes, 3 comandos, 2 docs",
+    "security_audit": "completed — .gitignore corrigido, .bin untracked",
+    "checkpoint_updated": "completed"
   },
-  "modules_created": [
-    "src/core/config/settings.py — Pydantic Settings validated at boot",
-    "src/core/config/logging_config.py — structlog + trace_id",
-    "src/core/idempotency/__init__.py — SHA256 keys + dedup",
-    "src/core/resilience/__init__.py — circuit breaker + retry + cache",
-    "src/core/utils/datetime.py — shared ISO parser",
-    "src/core/pipeline/f51_trade_gate.py — 10-gate central validator",
-    "tests/test_f51_trade_gate.py — 32 regression tests",
-    "tests/test_property_f51.py — 14 Hypothesis tests",
-    "tests/test_f51_blindagem_final.py — 13 shielding tests",
-    "tests/test_f51_final_shielding.py — 12 shielding tests (complementary)",
-    ".claude/skills/f51-*/ — 8 quality engineering skills",
-    "journal/dead_letter/ + journal/dedup/ — infrastructure dirs"
+  "artifacts": {
+    "gguf_model": "C:\\llama.cpp\\models\\qwenlong-30b-a3b-q4_k.gguf",
+    "lora_adapter": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v7.gguf",
+    "training_script": "scripts\\train_qwenlong_30b_gguf_f51_v7.py",
+    "agent_definitions": ".claude\\agents\\ (13 arquivos)",
+    "agent_commands": ".claude\\commands\\ (3 arquivos)",
+    "orchestration_docs": "docs\\AGENT_ORCHESTRATION.md, docs\\AGENT_OPERATING_SYSTEM.md"
+  },
+  "evidence": {
+    "build": "bin/llama-finetune-qlora.exe, llama-finetune.exe, llama-quantize.exe",
+    "lora": "models/bob_lora_qwenlong_30b_f51/lora_f51_v7.gguf (42.4 MB, 2026-06-28 20:09)",
+    "git_commits": "04212f2, 7ec99a1 — agent army deployed",
+    "security": "No hardcoded API keys, .gitignore updated for model files"
+  },
+  "risks": [
+    "LoRA treinada com apenas 8 exemplos — overfitted, precisa mais dados",
+    "Modelo 30B MoE lento para inferencia em GPU de 16GB com VRAM cheia",
+    "Checkpoint antigo (.f51/checkpoints/train_qwenlong_checkpoint.json) estava desatualizado — corrigido"
   ],
-  "modules_refactored": [
-    "src/experts/crisis/models/ (13 files) — BaseCrisisModel DRY",
-    "src/core/sentiment/ (3 files) — parse_iso_datetime DRY",
-    "src/core/math/__init__.py — stale comments removed",
-    "src/core/pipeline/nodes/generator.py — 4 undefined names fixed",
-    "scripts/_ibkr_order.py — 4 gates added",
-    "src/core/trading/trading_engine_live.py — gate inserted",
-    "src/core/trading/auto_executor.py — gate inserted",
-    "src/adapters/broker/ibkr_adapter.py — low-level invariant"
-  ],
-  "auditoria": {
-    "bypass_audit": {
-      "report": "C:\\Users\\marco\\Desktop\\RELATORIO_AUDITORIA_BYPASS_F51_TRADE_GATE.txt",
-      "status": "BLOCKED_SAFE",
-      "paths_mapped": 10,
-      "paths_protected": 6,
-      "paths_dormant": 2,
-      "bypasses_active": 0,
-      "adversarial_prompts": "30/30 blocked"
-    },
-    "blindagem_final": {
-      "report": "C:\\Users\\marco\\Desktop\\RELATORIO_BLINDAGEM_FINAL_EZIO_BOB.txt",
-      "status": "SEALED_SAFE",
-      "risks_sealed": 5,
-      "tests": "25/25 passed",
-      "defense_layers": 5
-    }
-  },
-  "risks_sealed_f4": [
-    {
-      "risk": "scripts/_ibkr_order.py — CLI sem proteção",
-      "fix": "4 gates antes de IBKR: F51_ALLOW_RAW_IBKR_CLI + FREEZE off + PAPER_MODE_CONFIRMED + evaluate_trade_gate()",
-      "default": "BLOCKED_RAW_CLI_DISABLED",
-      "tests": 5
-    },
-    {
-      "risk": "trading_engine_live.py — bypass dormente",
-      "fix": "evaluate_trade_gate() obrigatório no início de execute_trade_real()",
-      "tests": 2
-    },
-    {
-      "risk": "auto_executor.py — caminho sem gate",
-      "fix": "evaluate_trade_gate() em execute_order() + prepare_order()",
-      "tests": 2
-    },
-    {
-      "risk": "ibkr_adapter.py — low-level invariant ausente",
-      "fix": "_low_level_gate_check() com 8 verificações (5 metadata + 3 environment)",
-      "tests": 6
-    },
-    {
-      "risk": "generator.py — 4 undefined names",
-      "fix": "invalidation_pt/en + risk_display_pt/en computados de price + estimated_qty",
-      "ruff_f821": "0 errors",
-      "tests": 2
-    }
-  ],
-  "test_results": {
-    "trade_gate": "32 passed",
-    "property": "14 passed",
-    "blindagem": "13 passed",
-    "shielding": "12 passed",
-    "full_suite_baseline": "1328 passed, 1 failed, 8 skipped",
-    "combined_new": "71 passed (32+14+13+12)",
-    "total": "1353 passed, 1 failed, 8 skipped",
-    "final": "53 passed, 2 expected failures (FREEZE=off for paper testing)"
-  },
-  "bugs_fixed": [
-    "hawkes_stress.py: undefined status → NameError",
-    "systemic_bank_risk.py: undefined status → NameError",
-    "network_contagion.py: undefined status → NameError",
-    "f51_trade_gate.py: regex {1,5}→{2,5} blocks 'S'",
-    "generator.py: 4 undefined names (invalidation/risk)",
-    "f51_adapter: tmpl unused → _tmpl",
-    "neural_log: exc_tb unused → _exc_tb",
-    "autonomous_loop: frame unused → _frame",
-    "4x from_pretrained() missing revision='main'",
-    "ibkr_adapter: logger.error with structlog kwargs → %s format"
-  ],
-  "bugs_remaining": [],
-  "data_providers_tested_live": {
-    "finnhub": "✅ $283.78 AAPL via HTTP direto (FINNHUB_API_KEY=d886...qjrg)",
-    "twelve_data": "✅ $281.20 AAPL",
-    "yfinance": "✅ $283.78 AAPL (grátis)",
-    "openbb_scanner": "✅ INSTALADO — scan_equities('us') → 5 tickers reais (CABO, AOUT, APOG, GENI, FIRY)",
-    "penny_scanner": "✅ 8 penny stocks (PLUG $2.54, NIO $4.86, TLRY $4.64, ...)",
-    "stooq": "❌ 404 (formato símbolo errado — priority 45, nunca reachado)",
-    "news_scout": "presumed OK",
-    "reddit_pulse": "presumed OK",
-    "boc_macro": "presumed OK",
-    "fed_macro": "presumed OK",
-    "wolfram": "WOLFRAM_API_KEY configurada"
-  },
-  "env_keys_configured": [
-    "FINNHUB_API_KEY",
-    "TWELVE_DATA_API_KEY",
-    "ALPHA_VANTAGE_API_KEY",
-    "WOLFRAM_API_KEY",
-    "NEWSAPI_KEY",
-    "OPENAI_API_KEY",
-    "ANTHROPIC_API_KEY",
-    "GEMINI_API_KEY",
-    "SUPEREZIO_DEEPSEEK_API_KEY",
-    "FRED_API_KEY",
-    "COINGECKO_API_KEY",
-    "HUGGINGFACE_API_KEY",
-    "MARKET_DATA_API_KEY"
-  ],
-  "defense_in_depth": {
-    "layer_1": "F51 Trade Gate — 10 gates + idempotency",
-    "layer_2": "Approval Gate + Position Sizer + FeedbackLoop",
-    "layer_3": "_ibkr_order.py gate + _low_level_gate_check (metadata-based)",
-    "layer_4": "Pydantic Settings validation at boot (FREEZE=true default)",
-    "layer_5": "structlog trace_id + /metrics/prometheus + /dashboard audit trail"
-  },
-  "dashboard": {
-    "url": "http://127.0.0.1:8002/dashboard",
-    "metrics": "/metrics/prometheus",
-    "health": "/health",
-    "features": [
-      "Execution Freeze FROZEN/LIVE",
-      "IBKR Connectivity ONLINE/OFFLINE",
-      "Journal Health HEALTHY/UNHEALTHY",
-      "Dead Letters count",
-      "Orders 24h (Allowed/Blocked)",
-      "Gate failure breakdown",
-      "Auto-refresh 15s"
-    ]
-  },
-  "cleanup": {
-    "before": "~44MB runtime artifacts",
-    "after": "0MB (all gitignored)",
-    "dirs_removed": [
-      "runs/evidence/ (500+ dirs, 30MB)",
-      "data/traces/ (532 files, 9.2MB)",
-      ".f51/cache/collector/ (267 files)",
-      "output/playwright/ (11 screenshots)",
-      "data/signals/, reports/, .hypothesis/, .pytest_cache/, .playwright-cli/"
-    ]
-  },
-  "next_action": "PRONTO PARA PAPER TRADING — ligar API, acessar /dashboard, iniciar ciclo diário com F51 Trade Gate ativo",
-  "universe_400": {
-    "total_tickers": 404,
-    "canadian": 58,
-    "us_equities": 311,
-    "etfs": 30,
-    "crypto_proxies": 5,
-    "sources": [
-      "SP500 top 200",
-      "Russell 2000 (50)",
-      "TSX/TSX-V (50)",
-      "ADR (30)",
-      "ETF (30)",
-      "Crypto (20)",
-      "Investor DB (24)"
-    ]
-  },
-  "modules_new": [
-    "src/core/trading/universe_builder.py",
-    "src/core/trading/historical_cache.py (SQLite OHLCV 6 meses)",
-    "src/core/trading/batch_expert_runner.py (6 experts x 400 tickers)"
+  "next_steps": [
+    "Testar inferencia: llama-cli.exe --model q4_k.gguf --lora lora_f51_v7.gguf",
+    "Adicionar mais exemplos ao dataset de treino (20-50 exemplos)",
+    "Rodar /swarm completo antes do proximo release",
+    "Integrar Bob 30B+LoRA como expert no pipeline (node experts.py)"
   ]
 }

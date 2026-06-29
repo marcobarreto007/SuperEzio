@@ -161,6 +161,15 @@ F51-Nitro-MoE/build_worktrees/
 .agent_bus/runtime/*
 !.agent_bus/runtime/.gitkeep
 
+# Model files (binary weights — never in git)
+*.gguf
+*.bin
+*.safetensors
+*.pth
+*.pt
+!.agent_bus/runtime/.gitkeep
+!.f51/**/*.json
+
 # Scratch scripts (testes avulsos)
 scratch/
 .playwright-mcp/
