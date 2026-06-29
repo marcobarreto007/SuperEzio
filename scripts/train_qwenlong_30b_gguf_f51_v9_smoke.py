@@ -137,6 +137,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--rank", type=int, default=16)
     parser.add_argument("--alpha", type=int, default=32)
     parser.add_argument(
+        "--save-every",
+        type=int,
+        default=0,
+        help="Write LoRA checkpoints every N training steps. Use 0 to save only final output.",
+    )
+    parser.add_argument(
         "--min-train-steps",
         type=int,
         default=100,
@@ -244,7 +250,7 @@ def main() -> int:
         "48",
         "--shuffle-dataset",
         "--save-every",
-        "0",
+        str(args.save_every),
         "--seed",
         str(args.seed),
     ]
