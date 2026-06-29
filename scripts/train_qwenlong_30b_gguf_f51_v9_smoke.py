@@ -136,6 +136,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--learning-rate", default="1e-4")
     parser.add_argument("--rank", type=int, default=16)
     parser.add_argument("--alpha", type=int, default=32)
+    parser.add_argument(
+        "--min-train-steps",
+        type=int,
+        default=100,
+        help="Minimum train steps required for calibration mode. Keep 100 for gates; lower only for explicit microtrains.",
+    )
     return parser.parse_args()
 
 
@@ -312,8 +318,9 @@ def main() -> int:
         print(f"log={log_file}")
         return 0
 
-    if train_steps < 100:
+    if train_steps < args.min_train_steps:
         print(f"FAIL: calibration produced too few training steps ({train_steps}); refusing training proof.")
+        print(f"min_train_steps={args.min_train_steps}")
         print(f"log={log_file}")
         return 7
 
