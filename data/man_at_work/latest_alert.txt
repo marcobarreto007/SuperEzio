@@ -1,7 +1,7 @@
 ═══════════════════════════════════════════════════════════
 🚨 MAN_AT_WORK MODE - TECHNICIAN NEEDED 🚨
 ═══════════════════════════════════════════════════════════
-Reason: CEO Brain down: CEO unreachable: HTTP Error 503: Service Unavailable
-Time: 2026-06-29T01:04:34.933942+00:00
+Reason: CEO Brain down: CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu
+Time: 2026-06-29T02:40:52.385069+00:00
 Action: NO TRADING ORDERS UNTIL CLEARED
 ═══════════════════════════════════════════════════════════

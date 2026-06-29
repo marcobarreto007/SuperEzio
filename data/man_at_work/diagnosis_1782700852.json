@@ -1,0 +1,455 @@
+{
+  "snapshot_id": "man-at-work-1782700852",
+  "timestamp": "2026-06-29T02:40:52.386070+00:00",
+  "trigger_reason": "CEO Brain down: CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu",
+  "system_mode": "man_at_work",
+  "organs": {
+    "ceo_brain": {
+      "healthy": false,
+      "last_check": "2026-06-29T02:40:47.193268+00:00",
+      "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu",
+      "pain_level": 100,
+      "consecutive_failures": 1,
+      "circuit_open_until": 0,
+      "category": "brain"
+    },
+    "api_heart": {
+      "healthy": false,
+      "last_check": "2026-06-29T02:40:50.202973+00:00",
+      "error": "API unreachable: timed out",
+      "pain_level": 75,
+      "consecutive_failures": 1,
+      "circuit_open_until": 0,
+      "category": "heart"
+    },
+    "datahub_senses": {
+      "healthy": true,
+      "last_check": "2026-06-29T02:40:51.601652+00:00",
+      "error": "",
+      "pain_level": 50,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "senses"
+    },
+    "ibkr_muscles": {
+      "healthy": false,
+      "last_check": "2026-06-29T02:38:41.990891+00:00",
+      "error": "IBKR offline: timed out",
+      "pain_level": 75,
+      "consecutive_failures": 21,
+      "circuit_open_until": 1782701021.990891,
+      "category": "muscles"
+    },
+    "journal_memory": {
+      "healthy": true,
+      "last_check": "2026-06-29T02:40:51.601652+00:00",
+      "error": "",
+      "pain_level": 75,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "memory"
+    },
+    "scanner_eyes": {
+      "healthy": true,
+      "last_check": "2026-06-29T02:40:52.380530+00:00",
+      "error": "",
+      "pain_level": 25,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "senses"
+    },
+    "settings_spine": {
+      "healthy": true,
+      "last_check": "2026-06-29T02:40:52.380530+00:00",
+      "error": "",
+      "pain_level": 100,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "defense"
+    },
+    "dead_letter_kidneys": {
+      "healthy": true,
+      "last_check": "2026-06-29T02:40:52.381530+00:00",
+      "error": "",
+      "pain_level": 25,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "memory"
+    },
+    "cache_liver": {
+      "healthy": true,
+      "last_check": "2026-06-29T02:40:52.385069+00:00",
+      "error": "",
+      "pain_level": 25,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "memory"
+    },
+    "circuit_breakers_immune": {
+      "healthy": true,
+      "last_check": "2026-06-29T02:40:52.385069+00:00",
+      "error": "",
+      "pain_level": 50,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "defense"
+    }
+  },
+  "pain_history": [
+    {
+      "organ": "api_heart",
+      "pain": 75,
+      "error": "API unreachable: timed out",
+      "timestamp": "2026-06-29T02:01:06.753625+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:01:08.214129+00:00",
+      "healed": false
+    },
+    {
+      "organ": "api_heart",
+      "pain": 75,
+      "error": "API unreachable: timed out",
+      "timestamp": "2026-06-29T02:02:08.993721+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:02:10.399572+00:00",
+      "healed": false
+    },
+    {
+      "organ": "api_heart",
+      "pain": 75,
+      "error": "API unreachable: timed out",
+      "timestamp": "2026-06-29T02:03:11.136547+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:03:12.569148+00:00",
+      "healed": false
+    },
+    {
+      "organ": "api_heart",
+      "pain": 75,
+      "error": "API unreachable: timed out",
+      "timestamp": "2026-06-29T02:04:13.390034+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:04:16.793043+00:00",
+      "healed": false
+    },
+    {
+      "organ": "api_heart",
+      "pain": 75,
+      "error": "API unreachable: timed out",
+      "timestamp": "2026-06-29T02:05:17.614575+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:05:19.054488+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:06:21.327158+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:07:23.624989+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:08:26.001682+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:09:30.226203+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:10:32.412803+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:11:34.633069+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ceo_brain",
+      "pain": 100,
+      "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu",
+      "timestamp": "2026-06-29T02:12:37.526710+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:12:38.940459+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ceo_brain",
+      "pain": 100,
+      "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu",
+      "timestamp": "2026-06-29T02:14:41.762092+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:14:45.192654+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ceo_brain",
+      "pain": 100,
+      "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu",
+      "timestamp": "2026-06-29T02:16:48.073840+00:00",
+      "healed": false
+    },
+    {
+      "organ": "api_heart",
+      "pain": 75,
+      "error": "API unreachable: timed out",
+      "timestamp": "2026-06-29T02:16:51.081602+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:16:52.492638+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ceo_brain",
+      "pain": 100,
+      "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu",
+      "timestamp": "2026-06-29T02:18:55.296604+00:00",
+      "healed": false
+    },
+    {
+      "organ": "api_heart",
+      "pain": 75,
+      "error": "API unreachable: timed out",
+      "timestamp": "2026-06-29T02:18:58.309670+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:19:00.754674+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ceo_brain",
+      "pain": 100,
+      "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu",
+      "timestamp": "2026-06-29T02:21:03.574041+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:21:07.005390+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ceo_brain",
+      "pain": 100,
+      "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu",
+      "timestamp": "2026-06-29T02:23:08.114153+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:23:09.533751+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ceo_brain",
+      "pain": 100,
+      "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu",
+      "timestamp": "2026-06-29T02:25:10.337783+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:25:15.141632+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ceo_brain",
+      "pain": 100,
+      "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu",
+      "timestamp": "2026-06-29T02:27:17.977821+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:27:21.384554+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ceo_brain",
+      "pain": 100,
+      "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu",
+      "timestamp": "2026-06-29T02:29:11.762625+00:00",
+      "healed": false
+    },
+    {
+      "organ": "api_heart",
+      "pain": 75,
+      "error": "API unreachable: timed out",
+      "timestamp": "2026-06-29T02:29:14.773466+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:29:16.338039+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ceo_brain",
+      "pain": 100,
+      "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu",
+      "timestamp": "2026-06-29T02:29:22.336832+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:29:23.935633+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ceo_brain",
+      "pain": 100,
+      "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu",
+      "timestamp": "2026-06-29T02:31:24.782404+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:31:26.207420+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:33:30.492061+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:35:32.721938+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:36:35.375114+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:37:37.674655+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:38:41.990891+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:39:44.348082+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ceo_brain",
+      "pain": 100,
+      "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu",
+      "timestamp": "2026-06-29T02:40:47.193268+00:00",
+      "healed": false
+    },
+    {
+      "organ": "api_heart",
+      "pain": 75,
+      "error": "API unreachable: timed out",
+      "timestamp": "2026-06-29T02:40:50.202973+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-29T02:40:51.601652+00:00",
+      "healed": false
+    }
+  ],
+  "environment": {
+    "python_version": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "total_scans": 92,
+    "total_heals": 0
+  }
+}
