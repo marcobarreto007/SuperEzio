@@ -1,7 +1,9 @@
 """Fail-fast QLoRA gate for the Bob 30B GGUF adapter.
 
-Default mode is a tiny smoke. Calibration mode samples real training rows and
-keeps the same hash/loss/step gates before we spend hours on the 10k/116k jobs.
+Default mode is calibration, because a tiny smoke only proves the finetune
+binary can run. It must not be treated as proof that Bob learned useful
+behavior. Calibration samples real training rows and keeps hash/loss/step gates
+before we spend hours on the 10k/116k jobs.
 """
 
 from __future__ import annotations
@@ -111,8 +113,13 @@ SMOKE_DATASET = [
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run gated Bob 30B GGUF QLoRA training.")
-    parser.add_argument("--mode", choices=("smoke", "calibration"), default="smoke")
-    parser.add_argument("--sample-size", type=int, default=500)
+    parser.add_argument(
+        "--mode",
+        choices=("smoke", "calibration"),
+        default="calibration",
+        help="Use smoke only as a binary preflight. Calibration is the training gate.",
+    )
+    parser.add_argument("--sample-size", type=int, default=500, help="Rows sampled from --source in calibration mode.")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
         "--source",
@@ -241,6 +248,7 @@ def main() -> int:
         cmd.extend(["--gpu-layers", str(args.gpu_layers)])
 
     print(f"F51 v9 {args.mode} starting")
+    print(f"gate={'preflight_only' if args.mode == 'smoke' else 'training_calibration'}")
     print(f"dataset={train_file}")
     print(f"rows={len(rows)}")
     print(f"output={lora_out}")
@@ -249,6 +257,7 @@ def main() -> int:
 
     with log_file.open("w", encoding="utf-8", newline="\n") as log:
         log.write(f"mode={args.mode}\n")
+        log.write(f"gate={'preflight_only' if args.mode == 'smoke' else 'training_calibration'}\n")
         log.write(f"rows={len(rows)}\n")
         log.write(f"source={args.source if args.mode == 'calibration' else 'built-in smoke'}\n")
         log.write("cmd=" + " ".join(cmd) + "\n\n")
@@ -292,11 +301,33 @@ def main() -> int:
         print(f"FAIL: no positive train_loss evidence found in {log_file}")
         return 6
 
-    print("PASS: adapter hash changed and loss/progress evidence exists")
+    val_losses = [float(v) for v in re.findall(r"val_loss=([0-9.]+)", log_text)]
+    if args.mode == "smoke":
+        print("PREFLIGHT_OK: smoke completed, but this is not a training-quality gate")
+        print(f"output={lora_out}")
+        print(f"hash={out_hash}")
+        print(f"train_steps={train_steps}")
+        print(f"train_loss={train_losses[-1]:.4f}")
+        print("next=run calibration mode before promoting any adapter")
+        print(f"log={log_file}")
+        return 0
+
+    if train_steps < 100:
+        print(f"FAIL: calibration produced too few training steps ({train_steps}); refusing training proof.")
+        print(f"log={log_file}")
+        return 7
+
+    if val_split > 0.0 and (not val_losses or max(val_losses) <= 0.0):
+        print(f"FAIL: calibration has no positive val_loss evidence in {log_file}")
+        return 8
+
+    print("PASS: calibration adapter hash changed and loss/progress evidence exists")
     print(f"output={lora_out}")
     print(f"hash={out_hash}")
     print(f"train_steps={train_steps}")
     print(f"train_loss={train_losses[-1]:.4f}")
+    if val_losses:
+        print(f"val_loss={val_losses[-1]:.4f}")
     print(f"log={log_file}")
     return 0
 

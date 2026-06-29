@@ -1,13 +1,14 @@
 {
-  "timestamp": "2026-06-29T00:05:00-04:00",
+  "timestamp": "2026-06-29T08:27:55-04:00",
   "session": "f51-lora-v9-calibration-500",
   "orchestrator": "codex",
   "status": "calibration_gate_green_production_training_pending",
   "objective": "Make Bob's LoRA training prove real weight updates on real dataset samples before running long 10k or 116k jobs.",
   "what_was_done": [
     "Stopped the bad v8 llama-finetune-qlora run after checkpoints stayed byte-identical to v7.",
-    "Parametrized the v9 training gate so it supports both smoke and real calibration runs.",
-    "Validated the refactored smoke path with 4 rows, train_steps=4, train_loss=1.0062, and a hash different from v7/v8.",
+    "Parametrized the v9 training gate so it supports both preflight smoke and real calibration runs.",
+    "Downgraded smoke status: 4-row smoke is now preflight-only and must not be treated as proof of useful training.",
+    "Changed the v9 gate default to calibration mode, requiring real dataset rows, enough train steps, train_loss, val_loss, and a changed adapter hash.",
     "Attempted 500-row calibration with rank=16, alpha=32, freeze_layers=24; it failed fast with CUDA device-not-ready before training completed.",
     "Reran 500-row calibration with a conservative config: rank=8, alpha=16, freeze_layers=36, gpu_layers=36, ctx=512, ubatch=128, val_split=0.05.",
     "Removed competing smoke finetune processes that were consuming VRAM during calibration.",
@@ -33,8 +34,8 @@
     "gpu_after_run": "RTX 5060 Ti idle after calibration, about 160 MiB VRAM used",
     "validation_commands": [
       "python -m py_compile scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py",
-      "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode smoke",
-      "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode calibration --sample-size 500 --rank 8 --alpha 16 --freeze-layers 36 --gpu-layers 36 --val-split 0.05",
+      "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode smoke  # preflight only, not a training-quality gate",
+      "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode calibration --sample-size 500 --rank 8 --alpha 16 --freeze-layers 36 --gpu-layers 36 --val-split 0.05  # actual training gate",
       "Get-FileHash models\\bob_lora_qwenlong_30b_f51\\lora_f51_v7.gguf, models\\bob_lora_qwenlong_30b_f51\\lora_f51_v8.gguf.ckpt12.gguf, models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_calibration_500_20260628_234635.gguf -Algorithm SHA256"
     ]
   },
@@ -43,6 +44,7 @@
     "Rank 16/top-24 failed on this 16 GB GPU with CUDA device-not-ready; production should start from the conservative rank 8/top-12 profile unless another benchmark proves otherwise.",
     "The 30B MoE QLoRA path still logs unsupported CLAMP backward skips; quality must be judged with output tests before promoting.",
     "External shell processes attempted additional smoke runs during calibration and had to be killed to avoid VRAM contention.",
+    "The 4-row smoke is not a quality or learning proof; it only checks that the finetune binary can execute.",
     "No GitHub operation is allowed; repository remains disk-only."
   ],
   "next_steps": [
