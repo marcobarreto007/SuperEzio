@@ -1,14 +1,14 @@
 {
   "version": "1.1.0",
   "created": "2026-06-05",
-  "updated": "2026-06-16T16:30:13.976922+00:00",
+  "updated": "2026-06-29T00:00:00-04:00",
   "agent": {
     "name": "Bob",
     "full_name": "Bob SuperEzio CEO",
     "brain": "Bob Core local GGUF + F51 LoRA best",
-    "role": "Financial advisory copilot — straight talk, no disclaimers",
+    "role": "Financial advisory copilot â€” straight talk, no disclaimers",
     "phase": "research_paper_validation_only",
-    "phase_description": "Bob opera em modo de pesquisa e validação paper. Broker só fica ativo quando a probe real do IBKR/TWS confirma conexão."
+    "phase_description": "Bob opera em modo de pesquisa e validaÃ§Ã£o paper. Broker sÃ³ fica ativo quando a probe real do IBKR/TWS confirma conexÃ£o."
   },
   "training": {
     "status": "trained_financial_advisory_copilot",
@@ -77,7 +77,7 @@
       "tests_passing": 1250,
       "contracts_passing": 431,
       "warnings": 1,
-      "last_full_suite": "2026-06-16 — full passing",
+      "last_full_suite": "2026-06-16 â€” full passing",
       "stages_completed": {
         "stage_1": true,
         "stage_2": true,
@@ -120,12 +120,12 @@
       "max_position_pct": 10,
       "max_risk_per_trade_pct": 2,
       "rules": [
-        "Bob CAN submit paper orders through submit_paper_order when the paper execution gate is enabled.",
-        "Bob MUST decide: ticker, entry price, stop loss, target, shares.",
-        "Bob is allowed to lose paper money — this is training, not production.",
-        "Bob MUST register every paper order or failed paper order in the journal with a thesis.",
+        "Bob MUST NOT submit paper orders while broker readiness is offline.",
+        "Bob may draft ticker, entry, stop, target, and size only as research artifacts.",
+        "Bob may evaluate hypothetical losses in paper validation, not create broker orders while offline.",
+        "Bob MUST register every paper hypothesis or failed broker attempt in the journal with a thesis.",
         "Bob MUST use market_scan, experts, F51, and calculators for every decision.",
-        "IBKR paper is the execution display; PaperJournal is the audit trail."
+        "IBKR paper is unavailable until the local broker probe is connected; PaperJournal remains the audit trail."
       ],
       "trades": 23,
       "closed": 13,
@@ -204,7 +204,7 @@
       "proven": 7,
       "instrumented": 1,
       "pending": 0,
-      "readiness_note": "7/8 proven. C6 e C7 fechados via FeedbackLoop. Apenas C2 (collect real data) permanece instrumentado — requer >= 1 trade com dados 100% do broker."
+      "readiness_note": "7/8 proven. C6 e C7 fechados via FeedbackLoop. Apenas C2 (collect real data) permanece instrumentado â€” requer >= 1 trade com dados 100% do broker."
     }
   },
   "operating_rules": [
@@ -230,3 +230,4 @@
     ]
   }
 }
+

@@ -411,8 +411,6 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
         or primary.get("reason")
         or "—"
     )
-    risk = primary.get("risk") or primary.get("downside_risk") or "—"
-    invalidation = primary.get("invalidation") or primary.get("invalidation_condition") or "—"
     provider = primary.get("provider") or primary.get("source") or "data hub"
     collected_at = scan.get("collected_at") or "—"
     liquidity_text = format_liq(None, primary) if format_liq else str(primary.get("volume", "—"))

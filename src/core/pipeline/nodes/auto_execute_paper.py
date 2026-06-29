@@ -16,7 +16,6 @@ from pathlib import Path
 from langgraph.config import get_stream_writer
 
 from core.config.logging_config import get_logger, bind_trace
-from core.config.settings import get_settings
 from core.idempotency import (
     make_idempotency_key,
     is_duplicate,
@@ -39,8 +38,6 @@ async def auto_execute_paper(state: dict) -> dict:
     calls the IBKR paper adapter to place the order in TWS.
     """
     from core.pipeline.nodes.tool_executor import _submit_paper_order
-
-    settings = get_settings()
 
     # Enable paper order submission for this pipeline execution
     os.environ.setdefault("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")

@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_YML = ROOT / "config" / "runtime.yml"
 MODEL_MANIFEST = ROOT / "config" / "model_manifest.json"
 AGENT_SCRIPT = ROOT / "scripts" / "serve_agent_llamacpp.ps1"
+MODEL_CONFIG = ROOT / "config.ps1"
 AGENT_CONTRACT = ROOT / ".f51" / "contracts" / "agent-server.contract.md"
 RUNTIME_CHECKPOINT = ROOT / "runtime" / "checkpoints" / "latest.json"
 RUNBOOK = ROOT / "docs" / "runbooks" / "RUNBOOK.md"
@@ -142,6 +143,7 @@ def test_agent_runtime_config_matches_manifest_and_script():
     cfg = _runtime_config()
     manifest = _manifest()
     script = AGENT_SCRIPT.read_text(encoding="utf-8")
+    model_config = MODEL_CONFIG.read_text(encoding="utf-8")
 
     agent_cfg = cfg["models"]["agent"]
     agent_manifest = manifest["agent"]
@@ -153,19 +155,14 @@ def test_agent_runtime_config_matches_manifest_and_script():
     assert agent_cfg["server_url"] == agent_manifest["server_url"]
     assert agent_cfg["backend"] == "openai_compatible"
     assert agent_cfg["is_local"] is True
-    assert agent_cfg["preferred_llama_server"] == r"C:\llama.cpp\build-cuda\bin\llama-server.exe"
+    assert agent_cfg["preferred_llama_server"] == r"C:\llama.cpp\build\bin\llama-server.exe"
     assert agent_cfg["fallback_llama_server"] == "llama.cpp\\bin\\llama-server.exe"
-    assert agent_cfg["f51_moe_cache"] is True
-    assert agent_cfg["f51_moe_sched_skip"] is True
-    assert agent_cfg["f51_moe_cache_capacity"] == 16
     assert model_path.exists(), f"Official agent GGUF is missing: {model_path}"
-    assert model_path.name in script
+    assert model_path.name in model_config
     assert "llama-server.exe" in script
     assert "SUPEREZIO_LLAMA_SERVER_EXE" in script
-    assert r"C:\llama.cpp\build-cuda\bin\llama-server.exe" in script
-    assert "F51_MOE_CACHE" in script
-    assert "F51_MOE_SCHED_SKIP" in script
-    assert "--port $Port" in script
+    assert r"C:\llama.cpp\build\bin\llama-server.exe" in model_config
+    assert '"--port", $Port' in script
 
 
 def test_provider_factory_keeps_agent_local_only(monkeypatch):
@@ -210,9 +207,8 @@ def test_runtime_checkpoint_tracks_official_entrypoints():
     assert params["agent_port"] == 8082
     assert params["api_entrypoint"] == "python -m agent_server.main"
     assert params["agent_entrypoint"].endswith("scripts/serve_agent_llamacpp.ps1 -Port 8082")
-    assert (
-        params["model_path"] == "models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf"
-    )
+    assert params["model_path"] == r"C:\llama.cpp\models\bob-core-local.gguf"
+    assert params["lora_path"] == r"C:\llama.cpp\models\bob-lora-best.gguf"
 
 
 def test_runbook_documents_official_runtime_commands():

@@ -502,17 +502,6 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
                 size.shares,
             )
             qty = float(size.shares)
-        position_sizing = {
-            "requested_qty": requested_qty,
-            "approved_qty": int(qty),
-            "max_shares": size.shares,
-            "notional_value": round(float(qty) * limit_price, 2),
-            "risk_per_share": size.risk_per_share,
-            "stop_loss_price": stop_loss_price,
-            "max_notional_value": size.max_notional_value,
-            "capped": requested_qty > size.shares or size.capped,
-            "reason": size.size_reason,
-        }
     except Exception as exc:
         return {"submit_paper_order_error": f"position_sizer_error:{str(exc)[:160]}"}
 
@@ -713,7 +702,6 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                     make_idempotency_key,
                     is_duplicate,
                     mark_processed,
-                    enqueue_dead_letter,
                 )
 
                 ticker_raw = args.get("ticker", "").upper()
@@ -735,7 +723,7 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                     )
                     return {
                         "blocked": True,
-                        "reason": f"f51_trade_gate:DUPLICATE_ORDER",
+                        "reason": "f51_trade_gate:DUPLICATE_ORDER",
                         "message": f"Ordem duplicada detectada: {idem_key}",
                     }
 
@@ -792,7 +780,7 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                 return {
                     "blocked": True,
                     "reason": f"f51_trade_gate_error:{str(exc)[:80]}",
-                    "message": f"Ordem bloqueada por erro no F51 Trade Gate.",
+                    "message": "Ordem bloqueada por erro no F51 Trade Gate.",
                 }
 
             # FORCE expert committee before ANY paper order.

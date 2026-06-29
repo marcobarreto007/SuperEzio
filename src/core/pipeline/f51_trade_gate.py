@@ -289,11 +289,9 @@ def resolve_and_validate_ticker(symbol: str) -> "tuple[str | None, float | None,
     # Try DataHub with circuit breaker + price cache fallback
     try:
         from core.resilience import (
-            CircuitBreaker,
             CircuitOpenError,
             get_circuit,
             get_cached_price,
-            cache_price,
         )
 
         datahub_cb = get_circuit("datahub", failure_threshold=3, recovery_timeout=30)

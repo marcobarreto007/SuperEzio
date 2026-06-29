@@ -64,23 +64,8 @@ def run_experts_on_ticker(ticker: str) -> dict[str, Any]:
     closes = [c["close"] for c in ohlcv]
     volumes = [c["volume"] for c in ohlcv]
     latest_price = closes[-1] if closes else 0
-    price_change_30d = (
-        ((closes[-1] / closes[-min(21, len(closes))] - 1) * 100) if len(closes) >= 21 else 0
-    )
-    avg_volume = sum(volumes[-20:]) / min(20, len(volumes)) if volumes else 0
     high_6m = max(c["high"] for c in ohlcv)
     low_6m = min(c["low"] for c in ohlcv)
-
-    context = {
-        "ticker": ticker,
-        "latest_price": round(latest_price, 2),
-        "change_30d_pct": round(price_change_30d, 2),
-        "avg_volume_20d": int(avg_volume),
-        "high_6m": round(high_6m, 2),
-        "low_6m": round(low_6m, 2),
-        "range_6m_pct": round((high_6m - low_6m) / low_6m * 100, 1) if low_6m > 0 else 0,
-        "candles_available": len(ohlcv),
-    }
 
     # Run experts (lightweight compute — no LLM needed for basic metrics)
     analyses = {}

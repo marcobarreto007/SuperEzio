@@ -27,7 +27,7 @@ FastAPI Server (:8002)
     |    +-- Stooq                    emergency keyless price
     |
     +--> Model Gateway
-         +-- Local CEO (:8082)        Qwen3-Next-80B IQ4_XS
+         +-- Local CEO (:8082)        Bob Core
          +-- Optional cloud experts   configured provider fallback
 ```
 
@@ -38,7 +38,7 @@ FastAPI Server (:8002)
 | API | FastAPI + uvicorn + SSE streaming |
 | Pipeline | LangGraph DAG with conditional routing |
 | Validation | Pydantic v2 |
-| CEO Model | Qwen3-Next-80B-A3B Abliterated IQ4_XS GGUF |
+| CEO Model | Bob Core GGUF |
 | Model Serving | llama.cpp + F51 Nitro MoE runtime knobs |
 | Data | yfinance, Finnhub, Twelve Data, Alpha Vantage, Stooq |
 | AI/ML | PyTorch, transformers, sentence-transformers, FAISS |
@@ -66,3 +66,4 @@ FastAPI Server (:8002)
 - Missing data blocks conclusions: the system prefers STUDY_MORE over guessing.
 - Single pipeline: one graph keeps routing predictable instead of splitting behavior across hidden modes.
 - Circuit breakers: provider failures are isolated so one bad data source does not collapse the request.
+

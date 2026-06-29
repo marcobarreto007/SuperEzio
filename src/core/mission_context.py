@@ -37,9 +37,9 @@ def _load_learning_lessons(max_lessons: int = 10) -> list[dict[str, Any]]:
 
         # Sort by recency and confidence
         lessons.sort(
-            key=lambda l: (
-                float(l.get("confidence", 0)),
-                -(l.get("created_at", "")),
+            key=lambda lesson: (
+                float(lesson.get("confidence", 0)),
+                -(lesson.get("created_at", "")),
             ),
             reverse=True,
         )

@@ -1,4 +1,4 @@
-# Live Modules Contract — SuperEzio v4.0.0
+# Live Modules Contract â€” SuperEzio v4.0.0
 
 **Session:** f51-contracts-phase1-2026-06-01
 **Status:** CANONICAL
@@ -30,11 +30,11 @@ defined inline.
 - **Canonical:** `.f51/contracts/pipeline.contract.md`
 - **Path:** `src/core/pipeline/` (18 files)
 - **Public surface:** `PipelineState` (TypedDict), `IntentResult`, `CEORequest`, `ExpertCall`, `AgentToolCall`, `PipelineApp`, `build_graph`
-- **Graph:** `orchestrator → agent ⇄ tool_executor → explanation/respond_blocked → END`
+- **Graph:** `orchestrator â†’ agent â‡„ tool_executor â†’ explanation/respond_blocked â†’ END`
 - **Nodes:** `orchestrator_primary`, `agent`, `tool_executor`, `explanation`, `respond_blocked`
 - **Tools:** `collect_data`, `f51_firewall`, `pennylab`, `run_experts`, `neural_decision`, `sdca_firewall`, `rag_forensics`, `market_scan`, `final_answer`
 - **Invariants:**
-  1. `PipelineState.route` ∈ {`general`, `ticker_analysis`, `market_scan`, `needs_scope`}
+  1. `PipelineState.route` âˆˆ {`general`, `ticker_analysis`, `market_scan`, `needs_scope`}
   2. If `route = ticker_analysis`, `ticker` must be non-empty.
   3. `expert_results` is always a list (never None).
   4. `f51_verdict` contains keys: `confidence`, `passed`, `factors`, `hub_risk_score`.
@@ -44,8 +44,8 @@ defined inline.
 - **Canonical:** `.f51/contracts/ceo.contract.md`
 - **Path:** `src/core/pipeline/prompts/_prompts.py`, `src/core/pipeline/prompts/builder.py`
 - **Public surface:** `ceo_system_prompt()`, `build_ceo_prompt(state)`, `QWEN_SYSTEM_PROMPT`
-- **Model:** `models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf` (llama.cpp + F51 Nitro MoE, :8082)
-- **Invariants:** always returns non-empty string ≥ 100 chars; includes `Bob's read` for ticker analysis
+- **Model:** `models/Huihui-Bob Core-A3B-Instruct-abliterated.IQ4_XS.gguf` (llama.cpp + F51 Nitro MoE, :8082)
+- **Invariants:** always returns non-empty string â‰¥ 100 chars; includes `Bob's read` for ticker analysis
 
 ## 4. F51 Engine
 
@@ -55,8 +55,8 @@ defined inline.
   - `formulas.py`: `FormulaWeights`, `DecisionFactors`, `unified_decision(factors, weights=None) -> float`, `combined_risk(*risks) -> float`, `proxy_reward(...) -> float`, `heuristic_uncertainty(...) -> float`, `decision_threshold(domain) -> float`, `expand_budget(...) -> bool`
   - `gates.py`: `VeracityGate`, `VeracityResult`, `AdversarialCritic`, `CriticResult`, `ProxyReward`
 - **Invariants:**
-  1. `unified_decision()` ∈ [0, 1] for all valid inputs
-  2. `combined_risk(r1, ..., rn)` ≥ max(r1, ..., rn)
+  1. `unified_decision()` âˆˆ [0, 1] for all valid inputs
+  2. `combined_risk(r1, ..., rn)` â‰¥ max(r1, ..., rn)
   3. `VeracityGate.verify()` returns `VeracityResult` with `passed: bool`, `confidence: float`
   4. `DecisionFactors.validate()` raises `AssertionError` on values outside [0, 1]
 
@@ -99,7 +99,7 @@ defined inline.
 - **Canonical:** this document
 - **Path:** `src/core/model_serving/` (3 files: `gateway.py`, `providers.py`, `sanitizer.py`)
 - **Public surface:**
-  - `ModelGateway(providers, config, audit)` — `.generate()`, `.stream_generate()`, `.stream_generate_async()`, `.chat_completion()`, `.unload_all()`, `.warmup()`
+  - `ModelGateway(providers, config, audit)` â€” `.generate()`, `.stream_generate()`, `.stream_generate_async()`, `.chat_completion()`, `.unload_all()`, `.warmup()`
   - `ModelProvider(name, base_url, api_key, model, backend, is_local, priority, ...)`
   - `GatewayConfig(max_fallbacks, timeout_s, retry_attempts, retry_delay_s, quality_threshold)`
   - `build_default_providers(config) -> (list[ModelProvider], GatewayConfig)`
@@ -110,7 +110,7 @@ defined inline.
   1. CEO provider is `is_local=True`, never used as generic fallback
   2. DeepSeek is decoupled from primary URL (uses `SUPEREZIO_DEEPSEEK_BASE_URL`)
   3. `_providers_for_request("ceo")` returns only `[ceo_provider]` (no fallback)
-  4. `_max_attempts(providers)` ≤ `len(providers)` and ≤ `max_fallbacks + 1`
+  4. `_max_attempts(providers)` â‰¤ `len(providers)` and â‰¤ `max_fallbacks + 1`
   5. Stream generate yields non-None chunks
   6. `generate()` returns non-empty string or raises `RuntimeError`
 
@@ -119,7 +119,7 @@ defined inline.
 - **Canonical:** this document
 - **Path:** `src/core/config/` (3 files: `schema.py`, `__init__.py`, `secrets.py`)
 - **Public surface:**
-  - `UniversalConfig` — `load(path)`, `from_dict(data)`, `apply_env_overrides()`, `ensure_directories()`
+  - `UniversalConfig` â€” `load(path)`, `from_dict(data)`, `apply_env_overrides()`, `ensure_directories()`
   - `get_config() -> UniversalConfig`
   - `reload_config(path) -> UniversalConfig`
   - Env overrides: `SUPEREZIO_HOST`, `SUPEREZIO_PORT`, `CORS_ORIGINS`
@@ -143,18 +143,18 @@ defined inline.
   - `run_rumination(initial_uncertainty, context, ...) -> list[RuminationState]`
   - `score_consequence(candidate, ghost_tokens, experiences) -> ConsequenceScore`
 - **Invariants:**
-  1. No broker execution — purely cognitive
+  1. No broker execution â€” purely cognitive
   2. No external API calls
-  3. `decision` ∈ {`ALLOW`, `BLOCK`, `REVIEW`}
-  4. `uncertainty` ∈ [0, 1], `confidence` ∈ [0, 1], `utility` ∈ [0, 1]
-  5. Deterministic: same inputs → same outputs
+  3. `decision` âˆˆ {`ALLOW`, `BLOCK`, `REVIEW`}
+  4. `uncertainty` âˆˆ [0, 1], `confidence` âˆˆ [0, 1], `utility` âˆˆ [0, 1]
+  5. Deterministic: same inputs â†’ same outputs
 
 ## 12. RAG Forensics
 
 - **Canonical:** this document
 - **Path:** `src/core/rag/` (3 files: `fraud_rag.py`, `rag_engine.py`, `macro_dataset.py`)
 - **Public surface:**
-  - `FraudPatternMatcher(data_dir)` — `.search_patterns(query, limit) -> list[str]`, `.search_semantic(query, limit) -> list[str]`
+  - `FraudPatternMatcher(data_dir)` â€” `.search_patterns(query, limit) -> list[str]`, `.search_semantic(query, limit) -> list[str]`
   - `fraud_patterns` (singleton instance)
 - **Invariants:**
   1. `search_patterns()` returns at most `limit` results
@@ -173,7 +173,7 @@ defined inline.
   - `CrisisSignals` schema in `contracts/schemas.py`
   - `CrisisToolAdapter` in `adapters/tool_adapter.py`
 - **Invariants:**
-  1. Each model returns a score ∈ [0, 1]
+  1. Each model returns a score âˆˆ [0, 1]
   2. `CrisisEnsemble` aggregates 12 models into a single risk signal
   3. `CrisisExpert` exposes a `.predict(data) -> CrisisReport` interface
 
@@ -185,13 +185,13 @@ defined inline.
   - 4 experts in `experts/`: `liquidity_risk_expert`, `pump_dump_expert`, `veracity_gate`, `volume_spike_expert`, `whale_print_expert`
   - `PennyLabScoring` in `scoring.py`
   - `PennyLabSchemas` in `schemas.py`
-  - `pipeline_hook.py` — pipeline integration
-  - `rag_hooks.py` — fraud RAG integration
-  - `cli.py` — manual CLI for penny stock analysis
+  - `pipeline_hook.py` â€” pipeline integration
+  - `rag_hooks.py` â€” fraud RAG integration
+  - `cli.py` â€” manual CLI for penny stock analysis
 - **Invariants:**
-  1. Each expert returns a `PennyLabSignal` with risk level ∈ {LOW, MEDIUM, HIGH, CRITICAL}
-  2. `PennyLabScoring.composite_score(expert_signals) -> float` ∈ [0, 1]
-  3. Volume spike detection uses z-score ≥ 2.0 as threshold
+  1. Each expert returns a `PennyLabSignal` with risk level âˆˆ {LOW, MEDIUM, HIGH, CRITICAL}
+  2. `PennyLabScoring.composite_score(expert_signals) -> float` âˆˆ [0, 1]
+  3. Volume spike detection uses z-score â‰¥ 2.0 as threshold
 
 ## 15. Trading Engine
 
@@ -199,16 +199,16 @@ defined inline.
 - **Path:** `src/core/trading/` (8 files)
 - **Public surface:**
   - `BrokerAdapter` interface
-  - `KillSwitch` — emergency stop
-  - `PositionSizer` — risk-based position calculation
-  - `OrderBuilder` — order construction
-  - `Alerter` — notification system
-  - `ApprovalGate` — trade approval logic
-  - `RewardModel` — trade outcome scoring
-  - `TradeWeights` — risk weights
+  - `KillSwitch` â€” emergency stop
+  - `PositionSizer` â€” risk-based position calculation
+  - `OrderBuilder` â€” order construction
+  - `Alerter` â€” notification system
+  - `ApprovalGate` â€” trade approval logic
+  - `RewardModel` â€” trade outcome scoring
+  - `TradeWeights` â€” risk weights
 - **Invariants:**
   1. `KillSwitch` must return `blocked=True` when triggered
-  2. `PositionSizer` respects max position ≤ 5% of portfolio
+  2. `PositionSizer` respects max position â‰¤ 5% of portfolio
   3. No trade executes without `ApprovalGate.passed=True`
 
 ## 16. Math Core
@@ -223,10 +223,10 @@ defined inline.
   - `financial_engine.py`: DCF, multiples, growth models
   - `trading_losses.py`: loss analysis and recovery planning
 - **Invariants:**
-  1. `sigmoid(x)` ∈ (0, 1) for all finite x
-  2. `clamp(x, 0, 1)` ∈ [0, 1]
-  3. `t_norm(a, b)` ≤ min(a, b)
-  4. `t_conorm(a, b)` ≥ max(a, b)
+  1. `sigmoid(x)` âˆˆ (0, 1) for all finite x
+  2. `clamp(x, 0, 1)` âˆˆ [0, 1]
+  3. `t_norm(a, b)` â‰¤ min(a, b)
+  4. `t_conorm(a, b)` â‰¥ max(a, b)
 
 ## 17. Ports (Abstract Interfaces)
 
@@ -261,9 +261,9 @@ defined inline.
 - **Canonical:** this document
 - **Path:** `src/core/observability/` (3 files)
 - **Public surface:**
-  - `log_event(domain, action, data)` — structured logging
-  - `trace_span(name)` — context manager / decorator
-  - `metrics` — counter/increment interface
+  - `log_event(domain, action, data)` â€” structured logging
+  - `trace_span(name)` â€” context manager / decorator
+  - `metrics` â€” counter/increment interface
 - **Invariants:** `log_event` never raises; `metrics.increment(key)` is idempotent
 
 ## 21. Investor Committee
@@ -272,10 +272,10 @@ defined inline.
 - **Path:** `src/core/investor/` (6 files)
 - **Public surface:**
   - 7-agent Family Investor Committee
-  - `FraudAnalyst` — fraud detection
-  - `CostGuard` — cost monitoring
-  - `Storage` — investor data persistence
-- **Invariants:** committee decisions require ≥ 4/7 majority
+  - `FraudAnalyst` â€” fraud detection
+  - `CostGuard` â€” cost monitoring
+  - `Storage` â€” investor data persistence
+- **Invariants:** committee decisions require â‰¥ 4/7 majority
 
 ## 22. Tool Registry
 
@@ -291,7 +291,7 @@ defined inline.
 - **Public surface:**
   - `ibkr_adapter.py`: Interactive Brokers broker adapter
   - `subprocess_collector.py`: external process data collector
-  - `health/http_probe.py`: `HttpProbe` — TCP/HTTP availability check
+  - `health/http_probe.py`: `HttpProbe` â€” TCP/HTTP availability check
   - `quantum_adapter`: quantum computing integration
 - **Invariants:** All adapters implement corresponding abstract ports
 
@@ -299,7 +299,7 @@ defined inline.
 
 - **Canonical:** this document
 - **Path:** `src/core/audit/` (1 file)
-- **Public surface:** `record_decision(run_id, step, decision, rationale)` — decision audit trail
+- **Public surface:** `record_decision(run_id, step, decision, rationale)` â€” decision audit trail
 
 ## 25. Storage
 
@@ -319,9 +319,9 @@ defined inline.
 
 | Module | Path | Notes |
 |--------|------|-------|
-| scanner | `src/core/scanner/` | MarketScanner — verified as lazily imported in `core.pipeline.nodes` |
-| paths | `src/core/paths/` | `PROJECT_ROOT` resolution — used across the codebase |
-| prompts | `src/core/prompts/` | Single financial prompts file — referenced in pipeline |
+| scanner | `src/core/scanner/` | MarketScanner â€” verified as lazily imported in `core.pipeline.nodes` |
+| paths | `src/core/paths/` | `PROJECT_ROOT` resolution â€” used across the codebase |
+| prompts | `src/core/prompts/` | Single financial prompts file â€” referenced in pipeline |
 | data_collector | `src/core/data_collector/` | Has `ProfessionalCollector`, `SubprocessCollector`, scraper (3 files per INVENTORY) |
 
 ---
@@ -330,26 +330,27 @@ defined inline.
 
 | Module | Dedicated Test | Status |
 |--------|---------------|--------|
-| agent-server | `test_contract_runtime_official.py` | ✅ Covered |
-| pipeline | `test_contract_pipeline.py`, `test_contract_orchestrator.py` | ✅ Covered |
-| ceo | `test_contract_ceo.py` | ✅ Covered |
-| f51-engine | `test_contract_f51_engine.py` | ✅ Covered |
-| data-hub | `test_contract_collector.py` | ✅ Covered |
-| neural-decision | `test_contract_neural.py` | ✅ Covered |
-| a2a-protocol | `test_contract_a2a.py` | ✅ Covered |
-| sdca-firewall | `test_contract_sdca.py` | ✅ Covered |
-| rag-forensics | `test_contract_rag.py` | ✅ Covered |
-| endpoints | `test_contract_endpoints.py` | ✅ Covered |
-| experts | `test_contract_experts.py` | ✅ Covered |
-| explanation | `test_contract_explanation.py` | ✅ Covered |
-| guardrails | `test_contract_guardrails.py` | ✅ Covered |
-| main | `test_contract_main.py` | ✅ Covered |
-| **model-serving** | `test_contract_model_serving.py` | 🔴 Missing |
-| **config-system** | `test_contract_config.py` | 🔴 Missing |
-| **crisis-models** | `test_contract_crisis.py` | 🔴 Missing |
-| **pennylab** | via `test_contract_experts.py` | 🟡 Partial |
-| **trading** | `test_contract_trading.py` | 🔴 Missing |
-| **investor** | `test_contract_investor.py` | 🔴 Missing |
-| **observability** | via smoke tests | 🟡 Partial |
-| **math-core** | via `test_contract_f51_engine.py` | 🟡 Partial |
-| **security** | via `test_contract_guardrails.py` | 🟡 Partial |
+| agent-server | `test_contract_runtime_official.py` | âœ… Covered |
+| pipeline | `test_contract_pipeline.py`, `test_contract_orchestrator.py` | âœ… Covered |
+| ceo | `test_contract_ceo.py` | âœ… Covered |
+| f51-engine | `test_contract_f51_engine.py` | âœ… Covered |
+| data-hub | `test_contract_collector.py` | âœ… Covered |
+| neural-decision | `test_contract_neural.py` | âœ… Covered |
+| a2a-protocol | `test_contract_a2a.py` | âœ… Covered |
+| sdca-firewall | `test_contract_sdca.py` | âœ… Covered |
+| rag-forensics | `test_contract_rag.py` | âœ… Covered |
+| endpoints | `test_contract_endpoints.py` | âœ… Covered |
+| experts | `test_contract_experts.py` | âœ… Covered |
+| explanation | `test_contract_explanation.py` | âœ… Covered |
+| guardrails | `test_contract_guardrails.py` | âœ… Covered |
+| main | `test_contract_main.py` | âœ… Covered |
+| **model-serving** | `test_contract_model_serving.py` | ðŸ”´ Missing |
+| **config-system** | `test_contract_config.py` | ðŸ”´ Missing |
+| **crisis-models** | `test_contract_crisis.py` | ðŸ”´ Missing |
+| **pennylab** | via `test_contract_experts.py` | ðŸŸ¡ Partial |
+| **trading** | `test_contract_trading.py` | ðŸ”´ Missing |
+| **investor** | `test_contract_investor.py` | ðŸ”´ Missing |
+| **observability** | via smoke tests | ðŸŸ¡ Partial |
+| **math-core** | via `test_contract_f51_engine.py` | ðŸŸ¡ Partial |
+| **security** | via `test_contract_guardrails.py` | ðŸŸ¡ Partial |
+

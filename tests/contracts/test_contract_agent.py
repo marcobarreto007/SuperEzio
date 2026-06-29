@@ -51,42 +51,39 @@ def test_model_prompts_has_local():
     assert "persona" in MODEL_PROMPTS["local"]
 
 
-def test_mission_context_tells_bob_ibkr_paper_submission_is_enabled():
+def test_mission_context_tells_bob_ibkr_paper_submission_is_disabled_when_offline():
     context = render_mission_context_for_prompt()
 
     assert "MISSION CONTEXT" in context
     assert "trained_financial_advisory_copilot" in context
     assert "IBKR" in context
-    assert "connected_paper" in context
+    assert "offline" in context
     assert "account_equity=runtime_snapshot_required" in context
     assert "positions_count=runtime_snapshot_required" in context
     assert "Runtime broker numbers must come from the IBKR portfolio snapshot/tool" in context
-    assert "can_submit_orders=True" in context
-    # Paper trading mode: Bob is told he CAN submit paper orders, not live money.
-    assert "CAN submit paper orders" in context or "PAPER TRADING MODE" in context
+    assert "can_submit_orders=False" in context
+    assert "disabled until the local broker readiness probe confirms" in context
     assert "Do not claim live-money execution capability" in context
 
 
 def test_agent_loader_injects_current_mission_context():
     context = _load_mission_context()
 
-    assert "ACTIVE_PAPER_TRADING" in context
-    assert "PAPER TRADING MODE" in context or "PAPER ACCOUNT" in context
-    assert "paper_order_submit_via_ibkr_tool" in context or "CAN submit paper orders" in context
+    assert "RESEARCH_PAPER_VALIDATION_ONLY" in context
+    assert "can_submit_orders=False" in context
 
 
-def test_mission_health_summary_exposes_broker_paper_state():
+def test_mission_health_summary_exposes_broker_offline_state():
     summary = mission_health_summary()
 
     assert summary["status"] == "loaded"
-    assert summary["phase"] == "active_paper_trading"
-    assert summary["broker"]["ibkr"]["connection"] == "connected_paper"
+    assert summary["phase"] == "research_paper_validation_only"
+    assert summary["broker"]["ibkr"]["connection"] == "offline"
     assert "account_equity" in summary["broker"]["ibkr"]
     assert summary["broker"]["ibkr"]["verification_source"] != "cockpit_portfolio_live"
-    assert summary["broker"]["ibkr"]["can_submit_orders"] is True
-    # Paper trading should be exposed in health
+    assert summary["broker"]["ibkr"]["can_submit_orders"] is False
     pt = summary.get("paper_trading", {})
-    assert pt.get("active") is True
+    assert pt.get("active") is False
 
 
 # ---------------------------------------------------------------------------

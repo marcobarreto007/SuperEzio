@@ -75,7 +75,7 @@ def test_e2e():
             raw = resp.read().decode()
             elapsed = time.time() - t0
 
-        lines = [json.loads(l) for l in raw.strip().split("\n") if l.strip()]
+        lines = [json.loads(line) for line in raw.strip().split("\n") if line.strip()]
         steps = set()
         bob_content = ""
         cache_hit = False
@@ -149,7 +149,7 @@ def _api_alive():
         s.connect(("127.0.0.1", 8002))
         s.close()
         return True
-    except:
+    except Exception:
         return False
 
 
@@ -162,7 +162,7 @@ def _bob_alive():
         s.connect(("127.0.0.1", 8082))
         s.close()
         return True
-    except:
+    except Exception:
         return False
 
 

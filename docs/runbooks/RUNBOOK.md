@@ -17,7 +17,7 @@ Official config file: `config/runtime.yml`.
 Official CEO model:
 
 ```text
-models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf
+models/Huihui-Bob Core-A3B-Instruct-abliterated.IQ4_XS.gguf
 ```
 
 Architecture: MoE (512 experts, 10 active + 1 shared per token, ~59 MB each)
@@ -173,7 +173,7 @@ Stop-Process -Id <PID> -Force
 Check:
 
 ```powershell
-Test-Path models\Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf
+Test-Path models\Huihui-Bob Core-A3B-Instruct-abliterated.IQ4_XS.gguf
 Test-Path llama.cpp\bin\llama-server.exe
 powershell -ExecutionPolicy Bypass -File scripts\serve_agent_llamacpp.ps1 -Port 8082
 ```
@@ -205,3 +205,4 @@ curl.exe -fsS http://127.0.0.1:8002/health/details
 ## Regression Rule
 
 Do not change product behavior while updating runtime docs/contracts. If a runtime inconsistency requires product code, stop, record the risk, and patch in a separate task.
+

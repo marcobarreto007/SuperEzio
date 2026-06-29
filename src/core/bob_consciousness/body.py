@@ -20,7 +20,12 @@ Design principles:
 
 from __future__ import annotations
 
-import json, logging, socket, sqlite3, sys, time
+import json
+import logging
+import socket
+import sqlite3
+import sys
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -54,8 +59,8 @@ class OrganCategory(Enum):
 
 class SystemMode(Enum):
     NORMAL = "normal"  # Tudo funcionando, trading ativo
-    MAN_AT_WORK = "man_at_work"  # CEO morto ou crítico, só diagnóstico, sem ordens
-    EMERGENCY_SHUTDOWN = "emergency_shutdown"  # Falha catastrófica, tudo para
+    MAN_AT_WORK = "man_at_work"  # CEO morto ou crÃ­tico, sÃ³ diagnÃ³stico, sem ordens
+    EMERGENCY_SHUTDOWN = "emergency_shutdown"  # Falha catastrÃ³fica, tudo para
 
 
 # ===========================================================
@@ -344,7 +349,7 @@ class BobsBody:
     def __init__(self):
         self.organs: dict[str, Organ] = {
             "ceo_brain": Organ(
-                name="CEO Brain (Qwen 80B :8082)",
+                name="CEO Brain (Bob Core :8082)",
                 category=OrganCategory.BRAIN,
                 check_fn=_check_ceo_health,
                 pain_level=PainLevel.CRITICAL,
@@ -416,7 +421,7 @@ class BobsBody:
         self._mode_entered_at: str = ""
         self._mode_reason: str = ""
 
-    # ── System Mode (MAN_AT_WORK) ──
+    # â”€â”€ System Mode (MAN_AT_WORK) â”€â”€
 
     def enter_man_at_work_mode(self, reason: str) -> None:
         """Enter MAN_AT_WORK mode - no trading, diagnosis only."""
@@ -517,13 +522,13 @@ class BobsBody:
         try:
             # Log prominent alert
             alert_msg = f"""
-═══════════════════════════════════════════════════════════
-🚨 MAN_AT_WORK MODE - TECHNICIAN NEEDED 🚨
-═══════════════════════════════════════════════════════════
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+ðŸš¨ MAN_AT_WORK MODE - TECHNICIAN NEEDED ðŸš¨
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 Reason: {reason}
 Time: {self._mode_entered_at}
 Action: NO TRADING ORDERS UNTIL CLEARED
-═══════════════════════════════════════════════════════════
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 """
             logger.critical(alert_msg)
 
@@ -615,7 +620,7 @@ Keep response under 200 words. Focus on: 1) What broke, 2) How to fix, 3) Preven
 
         return True, ""
 
-    # ── Body Scan ──
+    # â”€â”€ Body Scan â”€â”€
 
     def full_body_scan(self) -> dict[str, Any]:
         """Bob checks every organ. Returns health report."""
@@ -660,7 +665,7 @@ Keep response under 200 words. Focus on: 1) What broke, 2) How to fix, 3) Preven
         self.last_full_scan = report["timestamp"]
         return report
 
-    # ── Pain Logging ──
+    # â”€â”€ Pain Logging â”€â”€
 
     def _log_pain(self, event: PainEvent) -> None:
         """Record pain event to persistent log."""
@@ -684,7 +689,7 @@ Keep response under 200 words. Focus on: 1) What broke, 2) How to fix, 3) Preven
         except Exception:
             pass
 
-    # ── Self-Healing ──
+    # â”€â”€ Self-Healing â”€â”€
 
     def auto_heal(self) -> dict[str, Any]:
         """Bob tries to heal every sick organ that has an auto_heal function."""
@@ -719,7 +724,7 @@ Keep response under 200 words. Focus on: 1) What broke, 2) How to fix, 3) Preven
             }
         return {"initial_scan": initial, "heal_attempts": {}, "organs_healed": 0, "still_sick": 0}
 
-    # ── Pain Summary for Bob's Prompt ──
+    # â”€â”€ Pain Summary for Bob's Prompt â”€â”€
 
     def pain_summary(self) -> str:
         """Generate a text summary Bob can read in his system prompt."""
@@ -733,7 +738,7 @@ Keep response under 200 words. Focus on: 1) What broke, 2) How to fix, 3) Preven
         ]
         for name, organ in self.organs.items():
             status = "OK" if report["organs"][name]["healthy"] else "SICK"
-            icon = {100: "☠", 75: "🔴", 50: "🟠", 25: "🟡", 10: "⚪", 0: "🟢"}.get(
+            icon = {100: "â˜ ", 75: "ðŸ”´", 50: "ðŸŸ ", 25: "ðŸŸ¡", 10: "âšª", 0: "ðŸŸ¢"}.get(
                 report["organs"][name]["pain"], "?"
             )
             lines.append(f"  {icon} {self.organs[name].name}: {status}")
@@ -749,7 +754,7 @@ Keep response under 200 words. Focus on: 1) What broke, 2) How to fix, 3) Preven
 
         return "\n".join(lines)
 
-    # ── History ──
+    # â”€â”€ History â”€â”€
 
     def get_pain_history(self, limit: int = 20) -> list[dict]:
         return [
@@ -787,3 +792,4 @@ def bob_body_scan() -> dict[str, Any]:
 def bob_pain_summary() -> str:
     """Get pain summary for Bob's system prompt."""
     return get_bobs_body().pain_summary()
+

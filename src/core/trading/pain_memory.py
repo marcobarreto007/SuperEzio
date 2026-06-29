@@ -426,7 +426,7 @@ class PainMemorySystem:
             "traumas": traumas,
             "avg_weight": round(avg_weight, 3),
             "total_loss": round(total_loss, 2),
-            "top_painful_tickers": [(t, round(l, 2)) for t, l in top_tickers],
+            "top_painful_tickers": [(ticker, round(loss, 2)) for ticker, loss in top_tickers],
             "decay_rate": self._decay_rate,
         }
 

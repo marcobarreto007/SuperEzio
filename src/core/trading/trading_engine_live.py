@@ -410,7 +410,7 @@ class LiveTradingEngine:
             return {
                 "blocked": True,
                 "reason": f"f51_trade_gate_error:{str(exc)[:80]}",
-                "message": f"F51 Trade Gate erro — ordem bloqueada.",
+                "message": "F51 Trade Gate erro — ordem bloqueada.",
             }
 
         side = "buy" if opp.sentiment == MarketSentiment.BULLISH else "sell"

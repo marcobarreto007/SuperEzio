@@ -134,7 +134,6 @@ async def test_pipeline_stream_events_blocks_unscoped_ticket_reference(monkeypat
     async for ev in p.stream_events("cara vc esta travado neste ticket ?"):
         events.append(ev)
 
-    chunks = [e.get("content", "") for e in events if e.get("type") == "CHUNK"]
     step_names = [e.get("step") for e in events if e.get("type") == "PIPELINE_STEP"]
 
     # FULL_ACCESS refactor: orchestrator is passthrough, routing goes agent->explanation

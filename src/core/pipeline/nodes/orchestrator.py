@@ -1,11 +1,11 @@
-"""Orchestrator node — passthrough puro, sem classificacao."""
+"""Orchestrator node â€” passthrough puro, sem classificacao."""
 
 from __future__ import annotations
 
 
 from langgraph.config import get_stream_writer
 
-# Legacy constants — referenced by contract tests
+# Legacy constants â€” referenced by contract tests
 ALLOWED_ROUTES = {"agent", "general", "ticker_analysis", "market_scan", "needs_scope"}
 ALLOWED_INTENTS = {
     "bob_decides",
@@ -21,9 +21,9 @@ ALLOWED_INTENTS = {
 
 
 async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
-    """Passthrough puro — sem classificacao, sem regex, sem rotas.
+    """Passthrough puro â€” sem classificacao, sem regex, sem rotas.
 
-    O Bob de 80B recebe a mensagem crua e decide TUDO:
+    O Bob Core recebe a mensagem crua e decide TUDO:
     qual ticker, quais tools, qual acao.
 
     A esteira e: usuario -> Bob -> tools -> Bob -> tools -> ... -> resposta.
@@ -42,7 +42,7 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         }
     )
 
-    # ── CASE: contrato financeiro obrigatorio ──
+    # â”€â”€ CASE: contrato financeiro obrigatorio â”€â”€
     from core.pipeline.case import create_case
 
     financial_case = create_case(message, ticker=incoming_ticker, run_id=run_id)
@@ -60,14 +60,14 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         }
     )
 
-    # ── Plano unico: FULL_ACCESS, Bob decide tudo ──
+    # â”€â”€ Plano unico: FULL_ACCESS, Bob decide tudo â”€â”€
     plan = {
         "run_id": run_id,
         "session_id": state.get("session_id", ""),
         "message": message,
         "context": state.get("context", ""),
         "rigor": state.get("rigor", "strict"),
-        # Rota unica — sem desvios
+        # Rota unica â€” sem desvios
         "route": "agent",
         "intent": "bob_decides",
         "action": "analyze_and_execute",
@@ -125,7 +125,7 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         "orchestrator_plan": "Bob decides everything. Full tool access. No restrictions.",
         "orchestrator_model_status": "passthrough_no_classifier",
         "last_tool_result": "",
-        # CASE: contrato obrigatorio — Bob so decide depois da mesa
+        # CASE: contrato obrigatorio â€” Bob so decide depois da mesa
         "financial_case": financial_case,
         "case_context": case_context,
         **case_state,
@@ -146,7 +146,7 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
     return plan
 
 
-# ── Legacy stubs (contract tests reference these) ──
+# â”€â”€ Legacy stubs (contract tests reference these) â”€â”€
 
 
 def _render_plan(plan: dict) -> str:
@@ -182,3 +182,4 @@ def _extract_time_horizon(message: str) -> str:
     if unit in ("ano", "anos"):
         return f"{num * 12} months"
     return match.group(0)
+

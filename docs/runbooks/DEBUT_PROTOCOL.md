@@ -7,7 +7,7 @@
 ## 1. Overview
 
 Bob is not a generic chatbot. Bob is an educational financial copilot with an
-80B-class local model, deterministic analysis pipeline, risk firewall, F51
+Bob Core local model, deterministic analysis pipeline, risk firewall, F51
 verdict engine, broker visibility, and gated IBKR paper order submission.
 
 The market debut is not placing an order. The debut is proving that Bob can:
@@ -27,7 +27,7 @@ The market debut is not placing an order. The debut is proving that Bob can:
 
 | Component | State |
 |-----------|-------|
-| CEO Server (:8082) | Operational - Qwen3-Next-80B, 79.7B params, MoE 512 experts |
+| CEO Server (:8082) | Operational - Bob Core, 79.7B params, MoE 512 experts |
 | API Server (:8002) | Operational - FastAPI + LangGraph pipeline v4 |
 | Frontend | Operational - SuperEzio UI |
 | GPU | RTX 5060 Ti 16 GB VRAM |
@@ -210,3 +210,4 @@ Operational prerequisites:
 - `tests/test_broker_readiness_probe.py` - broker probe tests.
 
 Update this runbook after every major validation checkpoint.
+

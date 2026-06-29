@@ -11,7 +11,9 @@ This is Bob's "heartbeat" — if this stops, Bob is clinically dead.
 
 from __future__ import annotations
 
-import logging, threading, time
+import logging
+import threading
+import time
 from typing import Any
 
 from .body import get_bobs_body

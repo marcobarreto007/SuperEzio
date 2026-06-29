@@ -1,6 +1,6 @@
 """Intent and ticker detection for the chat pipeline.
 
-Funções públicas exportadas:
+FunÃ§Ãµes pÃºblicas exportadas:
   - parse_user_intent(message, rigor) -> IntentParse
   - detect_ticker(message) -> str
   - detect_diary_intent(message) -> bool
@@ -103,7 +103,7 @@ RISK_LAB_HINTS = (
     "weekly risk",
     "risk lab",
     "laboratorio",
-    "laboratório",
+    "laboratÃ³rio",
     "loteria",
     "lottery",
     "aposto",
@@ -115,7 +115,7 @@ RISK_LAB_HINTS = (
 INDUSTRY_RESEARCH_HINTS = (
     "industry",
     "industria",
-    "indústria",
+    "indÃºstria",
     "sector",
     "setor",
     "theme",
@@ -134,7 +134,7 @@ FORENSIC_RAG_HINTS = (
     "hype",
     "manipulation",
     "manipulacao",
-    "manipulação",
+    "manipulaÃ§Ã£o",
     "insider",
     "penny stock",
     "penny stocks",
@@ -213,24 +213,24 @@ def infer_cognitive_contract(
     action: str,
     ticker: str = "",
 ) -> dict[str, Any]:
-    """Bob 80B decide sozinho — sem restrição de ferramentas.
+    """Bob Core decide sozinho â€” sem restriÃ§Ã£o de ferramentas.
 
-    O modelo de 80B é inteligente o bastante para decidir quais ferramentas
-    usar. Restrições pré-classificatórias só atrapalham: 'ORDEM' vira ticker,
-    'comprar' é bloqueado, scanner fica off. Chega disso.
+    O modelo local Ã© inteligente o bastante para decidir quais ferramentas
+    usar. RestriÃ§Ãµes prÃ©-classificatÃ³rias sÃ³ atrapalham: 'ORDEM' vira ticker,
+    'comprar' Ã© bloqueado, scanner fica off. Chega disso.
 
-    Contrato único: TODAS as ferramentas liberadas. Bob decide.
+    Contrato Ãºnico: TODAS as ferramentas liberadas. Bob decide.
     """
     raw = message or ""
 
-    # Única exceção: mensagem vazia ou puramente "oi"
+    # Ãšnica exceÃ§Ã£o: mensagem vazia ou puramente "oi"
     if not raw.strip() or (
         len(raw.strip().split()) <= 2
         and raw.strip().lower()
         in (
             "oi",
             "ola",
-            "olá",
+            "olÃ¡",
             "hey",
             "hi",
             "hello",
@@ -247,11 +247,11 @@ def infer_cognitive_contract(
             "scanner_allowed": True,
             "ticker_allowed": True,
             "ticket_allowed": True,
-            "answer_contract": "Responda com 1-3 linhas. Confirme que está online. Mencione status IBKR brevemente. Nada de tools.",
+            "answer_contract": "Responda com 1-3 linhas. Confirme que estÃ¡ online. Mencione status IBKR brevemente. Nada de tools.",
         }
 
-    # ── Contrato padrão: TUDO LIBERADO ──
-    # O Bob de 80B tem acesso a todas as ferramentas e decide o que usar.
+    # â”€â”€ Contrato padrÃ£o: TUDO LIBERADO â”€â”€
+    # O Bob Core tem acesso a todas as ferramentas e decide o que usar.
     # Ele sabe quando fazer scan, coletar dados, consultar experts, ou emitir ordem.
     return {
         "cognitive_mode": "FULL_ACCESS",
@@ -264,15 +264,15 @@ def infer_cognitive_contract(
         "ticker_allowed": True,
         "ticket_allowed": True,
         "answer_contract": (
-            "Você tem acesso TOTAL a todas as ferramentas. "
+            "VocÃª tem acesso TOTAL a todas as ferramentas. "
             "Use market_scan para descobrir oportunidades. "
-            "Use collect_data para dados de um ticker específico. "
-            "Use run_experts, f51_firewall, neural_decision para análise. "
+            "Use collect_data para dados de um ticker especÃ­fico. "
+            "Use run_experts, f51_firewall, neural_decision para anÃ¡lise. "
             "Use submit_paper_order para executar ordens paper na IBKR. "
-            "Se o usuário pede compra/venda de um ticker com preço e quantidade, "
+            "Se o usuÃ¡rio pede compra/venda de um ticker com preÃ§o e quantidade, "
             "analise com as ferramentas e emita PAPER_TICKET com: ticker, quantity, limit_price, stop_loss. "
-            "Não espere permissão — você TEM permissão total. "
-            "Seja direto, sem disclaimer. Fale na língua do usuário."
+            "NÃ£o espere permissÃ£o â€” vocÃª TEM permissÃ£o total. "
+            "Seja direto, sem disclaimer. Fale na lÃ­ngua do usuÃ¡rio."
         ),
     }
 
@@ -349,7 +349,7 @@ def normalize_message(text: str) -> str:
 
 
 def has_hint(message: str, hints: tuple[str, ...]) -> bool:
-    """Verifica se mensagem contém algum hint.
+    """Verifica se mensagem contÃ©m algum hint.
 
     Hints multi-palavra ou >3 chars usam substring match.
     Hints <=3 chars usam word-boundary regex para evitar falsos positivos.
@@ -644,7 +644,7 @@ COMMON_WORDS = {
     "YOY",
     "MOM",
     "BPS",
-    # Financial verdict / action words — not tickers
+    # Financial verdict / action words â€” not tickers
     "WAIT",
     "CASH",
     "DEBT",
@@ -703,7 +703,7 @@ COMMON_WORDS = {
     "CASE",
     "PLAN",
     "PART",
-    # ── Portuguese trade/finance words (NOT tickers) ──
+    # â”€â”€ Portuguese trade/finance words (NOT tickers) â”€â”€
     "ORDEM",
     "ORDENS",
     "COMPRA",
@@ -717,7 +717,7 @@ COMMON_WORDS = {
     "PAPEL",
     "PAPEIS",
     "PRECO",
-    "PREÇO",
+    "PREÃ‡O",
     "LIMITE",
     "ACAO",
     "ACOES",
@@ -725,7 +725,7 @@ COMMON_WORDS = {
     "VALORES",
     "CARTEIRA",
     "COTACAO",
-    "COTAÇAO",
+    "COTAÃ‡AO",
     "COTACAO",
     "RISCO",
     "ALVO",
@@ -887,7 +887,7 @@ SCOPE_KEYWORDS = (
     "nyse",
     "s&p",
     "sp500",
-    # Sectors — Portuguese
+    # Sectors â€” Portuguese
     "tecnologia",
     "energia",
     "bancos",
@@ -896,7 +896,7 @@ SCOPE_KEYWORDS = (
     "financeiro",
     "industrial",
     "mercado",
-    # Sectors — English (stress test: missing caused market_scan miss)
+    # Sectors â€” English (stress test: missing caused market_scan miss)
     "tech",
     "technology",
     "energy",
@@ -1130,24 +1130,24 @@ ANOTHER_TRADE_HINTS = (
     "another stock",
     "another trade",
     "outra recomendacao",
-    "outra recomendação",
+    "outra recomendaÃ§Ã£o",
     "outro",
     "outra",
     "mais uma",
     "mais um",
     "proxima recomendacao",
-    "próxima recomendação",
+    "prÃ³xima recomendaÃ§Ã£o",
     "proximo",
-    "próximo",
+    "prÃ³ximo",
     "segunda opcao",
-    "segunda opção",
+    "segunda opÃ§Ã£o",
     "me da outra",
-    "me dê outra",
+    "me dÃª outra",
     "me de outro",
     "me da outro",
     "me arruma outro",
     "qual o proximo",
-    "qual o próximo",
+    "qual o prÃ³ximo",
     "tem mais",
     "quero outro",
 )
@@ -1198,14 +1198,14 @@ EDUCATIONAL_OR_RISK_CONTEXT_HINTS = (
     "opcoes",
     "options",
     "portfolio",
-    "portfólio",
+    "portfÃ³lio",
     "hedge",
     "hedging",
     "fluxo de caixa",
     "accounting",
     "contabil",
     "contabilidade",
-    "correlação",
+    "correlaÃ§Ã£o",
     "correlacao",
 )
 
@@ -1290,7 +1290,7 @@ PENNY_ASSET_HINTS = (
 )
 
 # ---------------------------------------------------------------------------
-# Complex Finance Detection — prevents scanner misroute for advisory questions
+# Complex Finance Detection â€” prevents scanner misroute for advisory questions
 # ---------------------------------------------------------------------------
 
 COMPLEX_FINANCE_HINTS = (
@@ -1526,7 +1526,7 @@ def detect_capital_allocation_intent(message: str) -> bool:
     allocation_with_amount = bool(
         re.search(r"\b(?:allocate|allocation|portfolio allocation)\b", normalized, re.IGNORECASE)
         and re.search(
-            r"(?:[$€£]\s*\d|cad\s*\d|usd\s*\d|\b\d[\d,]*(?:\.\d+)?\s*(?:cad|usd)\b)",
+            r"(?:[$â‚¬Â£]\s*\d|cad\s*\d|usd\s*\d|\b\d[\d,]*(?:\.\d+)?\s*(?:cad|usd)\b)",
             normalized,
             re.IGNORECASE,
         )
@@ -1559,12 +1559,12 @@ def detect_complex_finance_intent(message: str) -> bool:
     # If there's an explicit ticker WITH a market suffix (.TO, .SA, .V) or a
     # ticker-with-digit pattern (PETR4), this is ticker analysis, not complex finance.
     # We do NOT use the full detect_ticker() because its crypto-pair regex
-    # false-positives on finance vocabulary (e.g., "time-to-cashflow" → TIME-TO).
+    # false-positives on finance vocabulary (e.g., "time-to-cashflow" â†’ TIME-TO).
     if re.search(r"\b[A-Za-z]{1,6}\d{0,2}\.(?:SA|TO|V)\b", message, re.IGNORECASE):
         return False
     if re.search(r"\b[A-Z]{1,5}\d{1,2}\b", message):
         return False
-    # Standalone uppercase words (2-5 chars) that look like tickers — but exclude
+    # Standalone uppercase words (2-5 chars) that look like tickers â€” but exclude
     # common finance/domain acronyms that appear in complex finance discussions.
     _COMPLEX_FINANCE_ACRONYMS = {
         "AI",
@@ -1600,9 +1600,9 @@ def detect_complex_finance_intent(message: str) -> bool:
     _potential_tickers = _upper_words - COMMON_WORDS - _COMPLEX_FINANCE_ACRONYMS
     if _potential_tickers:
         return False
-    # If the user explicitly requests a scan, honor it — unless the
+    # If the user explicitly requests a scan, honor it â€” unless the
     # "scan" is part of a negative instruction ("do not scan").
-    # Exception: "give me" and "recommend" are too generic — they match
+    # Exception: "give me" and "recommend" are too generic â€” they match
     # complex finance prompts like "Give me a framework". Only treat them
     # as scan commands when paired with financial trading hints.
     _generic_hints = {"give me", "recommend", "suggest"}
@@ -1673,7 +1673,7 @@ SCAN_COMMAND_HINTS = (
     "me lista",
     "oportunidades",
     "opurtunidades",
-    # English — stress test revealed 50% of prompts were English and missed
+    # English â€” stress test revealed 50% of prompts were English and missed
     "find me",
     "find a",
     "find the",
@@ -1736,10 +1736,10 @@ REFERENTIAL_TICKER_HINTS = (
     "essa acao",
     "nesta acao",
     "nessa acao",
-    "esta ação",
-    "essa ação",
-    "nesta ação",
-    "nessa ação",
+    "esta aÃ§Ã£o",
+    "essa aÃ§Ã£o",
+    "nesta aÃ§Ã£o",
+    "nessa aÃ§Ã£o",
     "this stock",
     "current stock",
     "this asset",
@@ -1770,7 +1770,7 @@ REFERENTIAL_ASSET_NOUNS = (
     "ticket",
     "ativo",
     "acao",
-    "ação",
+    "aÃ§Ã£o",
     "stock",
     "asset",
 )
@@ -1828,17 +1828,17 @@ def detect_ticker(message: str) -> str:
     Return the most likely ticker in a message, or an empty string.
 
     Regras de sufixo:
-      - .TO  → TSX (Canadá) → preservado
-      - .SA  → B3 (Brasil)  → preservado
-      - .V   → TSX Venture (Canadá) → preservado
-      - sem sufixo → NYSE/NASDAQ (EUA)
+      - .TO  â†’ TSX (CanadÃ¡) â†’ preservado
+      - .SA  â†’ B3 (Brasil)  â†’ preservado
+      - .V   â†’ TSX Venture (CanadÃ¡) â†’ preservado
+      - sem sufixo â†’ NYSE/NASDAQ (EUA)
     """
     if not message:
         return ""
 
     raw = message.strip()
 
-    # ── Genie click: "TICKER USIO:" or "TICKER DIBS:" → extract immediately ──
+    # â”€â”€ Genie click: "TICKER USIO:" or "TICKER DIBS:" â†’ extract immediately â”€â”€
     import re as _re
 
     ticker_prefix = _re.match(r"^TICKER\s+([A-Z]{1,5}(?:\.[A-Z]{2})?)\s*:", raw)
@@ -1892,8 +1892,8 @@ def detect_ticker(message: str) -> str:
     debug_logger.trace(MODULE_INTENT, "detect_ticker start", message_preview=message[:80])
     candidates: list[tuple[str, int, int]] = []
 
-    # 1. Sufixos de mercado EXPLÍCITOS (.SA, .TO, .V) — prioridade MÁXIMA
-    #    Captura padrões como: ENB.TO, PETR4.SA, HIVE.V, XYZ.V
+    # 1. Sufixos de mercado EXPLÃCITOS (.SA, .TO, .V) â€” prioridade MÃXIMA
+    #    Captura padrÃµes como: ENB.TO, PETR4.SA, HIVE.V, XYZ.V
     suffix_matches = re.findall(
         r"\b([A-Za-z]{1,6}\d{0,2}\.(?:SA|TO|V))\b",
         raw,
@@ -1901,11 +1901,11 @@ def detect_ticker(message: str) -> str:
     )
     for match in suffix_matches:
         upper = match.upper()
-        # Preserva o sufixo! Não limpa.
+        # Preserva o sufixo! NÃ£o limpa.
         candidates.append((upper, 100, len(upper)))
 
     # 2. Sufixos de mercado com formato alternativo (ex: "ENB.TO" escrito como "ENB.TO")
-    #    Regex adicional para capturar .SA e .TO mesmo após caracteres especiais
+    #    Regex adicional para capturar .SA e .TO mesmo apÃ³s caracteres especiais
     alt_suffix_matches = re.findall(
         r"\b([A-Za-z]{1,6}\d{0,2})\.(SA|TO|V)\b",
         raw,
@@ -1917,16 +1917,16 @@ def detect_ticker(message: str) -> str:
         if not any(c[0] == full for c in candidates):
             candidates.append((full, 100, len(full)))
 
-    # 3. Ticker com dígitos (ex: PETR4, VALE3) — sem sufixo, prioridade alta
+    # 3. Ticker com dÃ­gitos (ex: PETR4, VALE3) â€” sem sufixo, prioridade alta
     digit_matches = re.findall(r"\b([A-Za-z]{1,5}\d{1,2})\b", raw)
     for match in digit_matches:
         upper = match.upper()
         if upper not in COMMON_WORDS:
-            # Não sobrescrever se já tem sufixo explícito
+            # NÃ£o sobrescrever se jÃ¡ tem sufixo explÃ­cito
             if not any(c[0] == upper or c[0].startswith(upper + ".") for c in candidates):
                 candidates.append((upper, 90, len(upper)))
 
-    # 3.5 Ticker numérico curto (ex: 6M, 88E, 3M) — comum em microcaps/OTC
+    # 3.5 Ticker numÃ©rico curto (ex: 6M, 88E, 3M) â€” comum em microcaps/OTC
     # BUT: reject monetary amounts.  "5K", "10k", "2M", "500B" are NOT tickers.
     _AMOUNT_SUFFIXES = re.compile(r"^\d{1,4}[KkMmBbHhDdWwSs]$")  # 4H=4hours, 2W=2weeks etc.
     num_prefix_matches = re.findall(r"\b(\d{1,2}[A-Za-z]{1,5})\b", raw)
@@ -1936,7 +1936,7 @@ def detect_ticker(message: str) -> str:
             if not _AMOUNT_SUFFIXES.match(upper):
                 candidates.append((upper, 80, len(upper)))
 
-    # 4. Índices (^BVSP, ^GSPC)
+    # 4. Ãndices (^BVSP, ^GSPC)
     idx_matches = re.findall(r"(\^[A-Za-z]+)\b", raw)
     for match in idx_matches:
         upper = match.upper()
@@ -1975,7 +1975,7 @@ def detect_ticker(message: str) -> str:
             "BY",
             "WITH",
             "CASH",
-            # Financial compound terms — not tickers
+            # Financial compound terms â€” not tickers
             "SMALL",
             "LARGE",
             "MID",
@@ -1993,7 +1993,7 @@ def detect_ticker(message: str) -> str:
         if upper not in COMMON_WORDS and not any(c[0] == upper for c in candidates):
             candidates.append((upper, 80, len(upper)))
 
-    # 6. Ticker explícito (ex: "ticker: AAPL", "papel: PETR4")
+    # 6. Ticker explÃ­cito (ex: "ticker: AAPL", "papel: PETR4")
     explicit_symbol_matches = re.findall(
         r"\b(?:ticker|symbol|papel|ativo|acao)\s*[:=-]?\s*([A-Za-z]{1,5}\d{0,2})\b",
         normalized,
@@ -2004,9 +2004,9 @@ def detect_ticker(message: str) -> str:
         if upper not in COMMON_WORDS and not any(c[0] == upper for c in candidates):
             candidates.append((upper, 65, len(upper)))
 
-    # 7. Palavras em maiúsculas (ex: AAPL, MSFT, NVDA) — sem sufixo, prioridade média
-    #    Capturado no texto original 'raw' para respeitar a capitalização do usuário,
-    #    evitando falsos positivos de palavras comuns e preposições.
+    # 7. Palavras em maiÃºsculas (ex: AAPL, MSFT, NVDA) â€” sem sufixo, prioridade mÃ©dia
+    #    Capturado no texto original 'raw' para respeitar a capitalizaÃ§Ã£o do usuÃ¡rio,
+    #    evitando falsos positivos de palavras comuns e preposiÃ§Ãµes.
     upper_matches = re.findall(r"\b([A-Z]{2,5})\b", raw)
     for match in upper_matches:
         if match not in COMMON_WORDS and not any(
@@ -2019,7 +2019,7 @@ def detect_ticker(message: str) -> str:
         debug_logger.trace(MODULE_INTENT, "detect_ticker no candidates found")
         return ""
 
-    # Sort: maior score primeiro, desempate pelo mais longo (mais específico)
+    # Sort: maior score primeiro, desempate pelo mais longo (mais especÃ­fico)
     candidates.sort(key=lambda item: (item[1], item[2]), reverse=True)
     result = candidates[0][0]
     _set_cache(cache_key, result)
@@ -2113,11 +2113,11 @@ def _is_market_scan_request(message: str) -> bool:
         return True
     if has_penny_asset and is_scan_command and not wants_specific_analysis:
         return True
-    # "me indique investimento", "sugira acao", "oportunidades" — scan command
+    # "me indique investimento", "sugira acao", "oportunidades" â€” scan command
     # com hint financeiro, mesmo sem escopo explicito de pais/setor.
     if is_scan_command and has_financial_hint and not wants_specific_analysis:
         return True
-    # Investment verbs without ticker → the user wants opportunities, not a chat
+    # Investment verbs without ticker â†’ the user wants opportunities, not a chat
     if has_hint(message, INVESTMENT_ACTION_HINTS) and not detect_ticker(message):
         return True
     return False
@@ -2246,10 +2246,10 @@ def should_block_vague_financial_prompt(
     detected_ticker: str,
     rigor: str,
 ) -> bool:
-    """Bloqueia prompts genéricos de investimento sem ticker.
+    """Bloqueia prompts genÃ©ricos de investimento sem ticker.
 
     Centralizado aqui para que endpoints.py e pipeline runtime
-    usem a mesma lógica, sem duplicação de constantes.
+    usem a mesma lÃ³gica, sem duplicaÃ§Ã£o de constantes.
     """
     if (rigor or "strict").lower() != "strict":
         return False
@@ -2343,7 +2343,7 @@ PENNYLAB_KEYWORDS = (
 
 
 def detect_pennylab_intent(message: str) -> bool:
-    """Detecta se a mensagem quer análise específica de penny stock."""
+    """Detecta se a mensagem quer anÃ¡lise especÃ­fica de penny stock."""
     if not message:
         return False
     has_keyword = has_hint(message, PENNYLAB_KEYWORDS)
@@ -2532,7 +2532,7 @@ def parse_user_intent(
             )
         )
 
-    # Complex finance gate — must come BEFORE market_scan and vague-financial
+    # Complex finance gate â€” must come BEFORE market_scan and vague-financial
     # fallthrough to prevent advisory questions from triggering the scanner.
     if detect_complex_finance_intent(raw):
         return done(
@@ -2665,7 +2665,7 @@ def validate_intent_candidate(
         return None
     if action not in ALLOWED_ACTIONS:
         return None
-    # CEO model cross-classification allowed — the model was trained to
+    # CEO model cross-classification allowed â€” the model was trained to
     # decide route+intent jointly. ROUTE_INTENT_ACTIONS is a deterministic
     # guard, not a hard invariant for model output.
 
@@ -2833,3 +2833,4 @@ def extract_json_object(text: str) -> dict[str, Any] | None:
     except json.JSONDecodeError:
         return None
     return parsed if isinstance(parsed, dict) else None
+

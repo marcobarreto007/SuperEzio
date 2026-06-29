@@ -1,11 +1,11 @@
 # F51 Entrypoint Map
 
 Updated: 2026-06-28T23:59:00-04:00
-Session: ceo-swap-30b-lora
+Session: bob-core-lora
 
 ## Primary Entrypoints
 
-### 1. API Server — `python -m agent_server.main`
+### 1. API Server â€” `python -m agent_server.main`
 
 | Property | Value |
 |----------|-------|
@@ -17,7 +17,7 @@ Session: ceo-swap-30b-lora
 | Dependencies | CEO model on :8082, `.env` with provider keys |
 | Boot sequence | Load env -> load config -> create gateway -> build pipeline -> serve |
 
-### 2. CEO llama.cpp Server — `powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082`
+### 2. CEO llama.cpp Server â€” `powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082`
 
 | Property | Value |
 |----------|-------|
@@ -25,21 +25,21 @@ Session: ceo-swap-30b-lora
 | File | `scripts/serve_agent_llamacpp.ps1` |
 | Config | `config.ps1` |
 | Host | `127.0.0.1:8082` |
-| Model | `C:\llama.cpp\models\qwenlong-30b-a3b-q4_k.gguf` (17.3 GB) |
-| LoRA | `models/bob_lora_qwenlong_30b_f51/lora_f51_v7.gguf` (42 MB) |
+| Model | `C:\llama.cpp\models\Bob Core-q4_k.gguf` (17.3 GB) |
+| LoRA | `C:\\llama.cpp\\models\\bob-lora-best.gguf` (42 MB) |
 | Architecture | qwen3moe (128 experts, 8 active, 48 layers) |
 | GPU | 49/49 layers on VRAM (RTX 5060 Ti 16GB) |
 | Interface | OpenAI-compatible `/v1/chat/completions` |
 | Context | 65536 tokens (64K) |
 | Dependency | llama.cpp binary in `C:\llama.cpp\build\bin\` |
 
-### 3. Desktop Launcher — RETIRED
+### 3. Desktop Launcher â€” RETIRED
 
 The `desktop/SuperEzio.bat` launcher has been retired. Start services directly:
 - CEO: `powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082`
 - API: `python -m agent_server.main`
 
-### 4. Eval Pipeline — `python scripts/eval_pipeline.py`
+### 4. Eval Pipeline â€” `python scripts/eval_pipeline.py`
 
 | Property | Value |
 |----------|-------|
@@ -85,3 +85,5 @@ START
 |--------|------|-----|----------------|
 | `cpu` | python:3.12-slim | `python -m agent_server.main` | config |
 | `gpu` | nvidia/cuda:12.4-runtime-ubuntu22.04 | `python -m agent_server.main` | config |
+
+

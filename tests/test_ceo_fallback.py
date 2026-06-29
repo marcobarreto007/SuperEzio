@@ -1,5 +1,6 @@
 """Test CEO fallback when GPU/local provider fails."""
 
+import os
 import asyncio
 import pytest
 

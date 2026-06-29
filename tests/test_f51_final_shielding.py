@@ -301,6 +301,15 @@ class TestGeneratorHasNoUndefinedNames:
                 _market_scan_answer,
                 _loop_failsafe_answer,
             )
+            assert all(
+                callable(fn)
+                for fn in (
+                    _render_decisive_trade_order,
+                    _decisive_trade_order_answer,
+                    _market_scan_answer,
+                    _loop_failsafe_answer,
+                )
+            )
         except ImportError as e:
             pytest.fail(f"generator.py import error: {e}")
         except Exception as e:

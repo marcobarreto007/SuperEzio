@@ -174,7 +174,7 @@ async def _cycle_learn():
                         import json
 
                         trades.append(json.loads(line))
-                    except:
+                    except Exception:
                         pass
 
             closed = [t for t in trades if t.get("outcome") in ("win", "loss")]
@@ -266,7 +266,7 @@ def main():
     print(f"  Expert analysis: every {EXPERT_INTERVAL}s")
     print(f"  OHLCV rebuild:  every {OHLCV_REBUILD_INTERVAL}s")
     print(f"  Learning cycle: every {LEARNING_INTERVAL}s")
-    print(f"  Ctrl+C to stop")
+    print("  Ctrl+C to stop")
     print("=" * 60)
     print()
 

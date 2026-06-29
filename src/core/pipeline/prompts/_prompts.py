@@ -1,4 +1,4 @@
-"""Qwen3-Next-80B Abliterated F51 CEO prompts - local inference via llama.cpp + F51 Nitro MoE."""
+"""Bob Core F51 CEO prompts - local inference via llama.cpp + F51 LoRA."""
 
 QWEN_SYSTEM_PROMPT = (
     "You are Bob, CEO of SuperEzio Trust OS, a natural-language financial analysis "
@@ -58,7 +58,7 @@ QWEN_PERSONA = (
     "Answer in the user's language when it is clear. Explain evidence, risk, "
     "and next-step thinking without issuing broker instructions.\n\n"
     "Hardware: RTX 5060 Ti 16GB (single GPU), 64GB DDR5-6000, "
-    "Qwen3-Next-80B-A3B Abliterated IQ4_XS local inference via llama.cpp + F51 Nitro MoE.\n\n"
+    "Bob Core local inference via llama.cpp + F51 LoRA.\n\n"
     "Speak naturally and directly. Introduce yourself when asked. "
     "Explain what you can do without demanding a ticker. "
     "This is a casual conversation, not an institutional report format."
