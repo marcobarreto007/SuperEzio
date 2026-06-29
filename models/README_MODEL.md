@@ -1,33 +1,40 @@
 # SuperEzio - Model Setup
 
-The local CEO model is not included in source-only packages because it is about 40 GB.
+The local CEO model (Bob) is **QwenLong-30B-A3B Q4_K_M GGUF** (~17 GB) with F51 LoRA adapter.
 
-## Expected File
+## Expected Files
 
 ```text
-models\Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf
+C:\llama.cpp\models\qwenlong-30b-a3b-q4_k.gguf           (base model, ~17 GB)
+C:\llama.cpp\models\lora_f51_v7.gguf                     (LoRA adapter, ~150 MB)
 ```
 
-## How To Provide It
+## Bob 30B Architecture
+
+- **Base**: QwenLong 30B A3B (dense, 48 layers, 262K context)
+- **Quantization**: Q4_K_M (17.28 GB)
+- **LoRA**: F51 v9 calibration adapter (rank 16, alpha 32)
+- **Hardware**: RTX 5060 Ti 16GB (24 layers GPU, 12 frozen)
+- **Training**: QLoRA via llama.cpp, calibrated with 500 samples
+
+## How To Provide
 
 Option 1: copy from an existing verified SuperEzio installation.
 
-Option 2: download the same GGUF model from the provider or model host used by the seller.
+Option 2: download QwenLong 30B A3B Q4_K_M from the official source.
 
-Option 3: use a compatible GGUF model and update `config.ps1` so `$ModelName` matches the filename.
-
-Smaller models may start more easily but can reduce analysis quality. Validate output quality before calling a substituted model buyer-ready.
+Option 3: use a compatible GGUF model and update `config.ps1` accordingly.
 
 ## Verify
 
-After placing the model file under `models\`, run:
+After placing the model file, run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\check.ps1
 ```
 
-Expected: the model check reports a present GGUF file and an approximate size.
+Expected: model check reports present GGUF and LoRA files.
 
 ## Packaging Rule
 
-Do not include `models\*.gguf` in a source-only package unless the sale explicitly includes the model file and the buyer has storage capacity for it.
+Do not include `*.gguf` files in source-only packages unless explicitly agreed.

@@ -2,7 +2,7 @@
 ### Local-First Autonomous Algorithmic Investment Platform
 *(🇧🇷 Para a versão em português, role para baixo / Scroll down for the Portuguese version)*
 
-**SuperEzio Core** is a production-grade, offline-first multi-agent decision and execution platform for quantitative portfolio management. It orchestrates deterministic financial experts, an adversarial decision stack, and real-time Interactive Brokers (IBKR) paper execution. The platform is designed to run entirely locally using the **F51 Nitro-MoE** runtime, enabling massive 80B parameter MoE models to execute at high throughput on consumer-grade hardware.
+**SuperEzio Core** is a production-grade, offline-first multi-agent decision and execution platform for quantitative portfolio management. It orchestrates deterministic financial experts, an adversarial decision stack, and real-time Interactive Brokers (IBKR) paper execution. The platform runs entirely locally using **QwenLong 30B** with QLoRA adapters.
 
 ---
 
@@ -41,7 +41,7 @@
                  │
                  ▼
  ┌───────────────┐
- │   Agent Node  │ Bob CEO (ReAct reasoning loop) via Local Qwen3 80B
+ │   Agent Node  │ Bob CEO (ReAct reasoning loop) via Local QwenLong 30B + LoRA
  └───────┬───────┘
          │
          ▼
@@ -88,14 +88,17 @@ When the CEO agent decides to execute a position, it outputs a formatted `PAPER_
 
 ---
 
-## 🚀 Local Model Engine (F51 Nitro-MoE)
+## 🚀 Local Model Engine (QwenLong 30B + LoRA)
 
-SuperEzio runs its core cognitive decisions on a local **Qwen3-Next-80B-A3B Instruct Abliterated** model using GGUF format with `llama-server`. 
+SuperEzio runs its core cognitive decisions on a local **QwenLong-30B-A3B** model (Q4_K_M, ~17GB) with **F51 LoRA v9** adapter via `llama-server`.
 
-To run a model of this magnitude on consumer hardware (e.g., RTX 5060 Ti 16GB, 64GB DDR5 RAM), the platform utilizes **F51 Nitro** tiered expert allocation:
-- **Tiered Memory:** Attention layers and KV caches are pinned in GPU VRAM (~6.3 GB).
-- **Active Paging:** All 512 experts live in system RAM (DDR5) and are processed on the CPU or streamed to the GPU on demand. 
-- **Performance:** Achieves **38.7 tok/s at 256K context**—avoiding the VRAM oversubscription that slows naive GPU-only loads down to 8.4 tok/s due to driver page-fault swap loops.
+**Architecture:**
+- **Base Model:** QwenLong 30B A3B (48 layers, dense, 262K context)
+- **Quantization:** Q4_K_M (17.28 GB)
+- **LoRA Adapter:** F51 v9 calibration (rank 16, alpha 32, freeze 12 layers)
+- **Hardware Target:** RTX 5060 Ti 16GB (24 layers GPU, 12 frozen CPU)
+
+**Training:** QLoRA via llama.cpp, calibrated with 500 samples (train_loss=1.8673, val_loss=1.8782, 2304 steps).
 
 ---
 
