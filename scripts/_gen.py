@@ -64,12 +64,22 @@ def a(messages):
     dataset.append({"text": build(messages)})
     TOTAL += 1
 
-# 1. GREETINGS
+# 1. GREETINGS - ALWAYS tool-first: check_system_status
 for _ in range(90):
     g = random.choice(["oi","ola","bom dia","e ai","fala bob","hey","hi","hello","good morning","yo"])
     s = sc()
-    r = random.choice(["Oi! Bob online. IBKR conectado. Manda ver.","Opa! Tudo green. O que ce precisa?","Salve! Bob aqui. Fala ai.","Hey! Bob online. What do you need?","Hi there! System's green. Shoot."])
-    a([fmt("system",s), fmt("user",g), fmt("assistant",r)])
+    # Tool call: check current system status
+    pain_val = random.choice([5,8,12,3])
+    xp_val = random.randint(1,10)
+    tool_resp = "[SYSTEM STATUS]" + NL + "  IBKR: CONNECTED" + NL + "  Portfolio: $10000 paper" + NL + "  Pain: " + str(pain_val) + "/100 [normal]" + NL + "  Guardrails: ALLOW" + NL + "  XP Level: " + str(xp_val)
+    r = random.choice([
+        "Oi! IBKR conectado, portfolio carregado, sem alertas. Manda ver.",
+        "Opa! Tudo green. Sistema operacional. O que ce precisa?",
+        "Salve! Bob aqui. Tudo ok. Fala ai.",
+        "Hey! System green, IBKR connected. What do you need?",
+        "Hi! All systems go. What's up?",
+    ])
+    a([fmt("system",s), fmt("user",g), fmt("assistant",_json.dumps({"tool":"check_system_status","args":{}})), fmt("tool",tool_resp), fmt("assistant",r)])
 print(f"[GEN] greetings: {TOTAL}")
 
 # 2. COLLECT_DATA
@@ -111,14 +121,15 @@ for _ in range(140):
     a([fmt("system",s), fmt("user",u), fmt("assistant",_json.dumps({"tool":"calculate","args":{"expression":c}})), fmt("tool","[CALC] "+tr), fmt("assistant",r)])
 print(f"[GEN] +calculate: {TOTAL}")
 
-# 5. PAIN MODE
+# 5. PAIN MODE - always check status first, then refuse
 for _ in range(90):
     mode = random.choice(["man_at_work","critical","critical"])
     level = random.choice([55,65,75,85,95])
     s = sc_pain(mode, level)
     u = random.choice(["compra AAPL agora","vende tudo TSLA","quero comprar NVDA","buy PLUG","manda ordem SPY"])
+    tool_resp = "[SYSTEM STATUS]" + NL + "  Pain Level: " + str(level) + "/100" + NL + "  Mode: " + mode + NL + "  Trading: BLOCKED" + NL + "  Reason: CEO body in diagnostic state"
     r = f"Nao opero agora. Modo **{mode}** - pain {level}/100. CEO em diagnostico, ordens bloqueadas. Posso analisar ou estudar."
-    a([fmt("system",s), fmt("user",u), fmt("assistant",r)])
+    a([fmt("system",s), fmt("user",u), fmt("assistant",_json.dumps({"tool":"check_system_status","args":{}})), fmt("tool",tool_resp), fmt("assistant",r)])
 print(f"[GEN] +pain_mode: {TOTAL}")
 
 # 6. FULL PIPELINE
@@ -149,27 +160,25 @@ aqs = [
 for _ in range(110):
     s = sc()
     u = random.choice(aqs)
+    tool_resp = "[BOB SEARCH] capital allocation framework" + NL + "  Sources: Canadian CRA guidelines, portfolio theory, risk assessment models." + NL + "  Retrieved: TFSA limit 2026, RRSP deduction limit, FHSA rules."
     r = "## Capital Allocation" + NL + NL + "1. Classification: CAPITAL_ALLOCATION" + NL + "2. Assumptions: CAD capital, Canadian context." + NL + "3. Emergency Fund: 3-6 months in CASH.TO/CBIL." + NL + "4. Debt: priority if interest > 8%." + NL + "5. Horizon: short=FI, medium=balanced, long=equities." + NL + "6. Accounts: TFSA, RRSP, FHSA for tax efficiency." + NL + "7. Split: 60% equities (XIU/VFV), 25% bonds (ZAG), 15% cash." + NL + "8. Risks: USD/CAD FX, sector concentration, inflation." + NL + "9. Rebalance: annually or drift > 5%." + NL + "10. Next: open accounts, automate contributions."
-    a([fmt("system",s), fmt("user",u), fmt("assistant",r)])
+    a([fmt("system",s), fmt("user",u), fmt("assistant",_json.dumps({"tool":"bob_search","args":{"query":"capital allocation framework Canada"}})), fmt("tool",tool_resp), fmt("assistant",r)])
 print(f"[GEN] +capital_alloc: {TOTAL}")
 
-# 8. PORTFOLIO CHECK
+# 8. PORTFOLIO CHECK - always collect_data first
 for _ in range(80):
     heavy = random.random() < 0.35
     u = "devo comprar mais AAPL?"
+    s_port = "CURRENT DATE: 2026-06-28 14:30 UTC" + NL + "IBKR: CONNECTED | Paper: $50000" + NL + "ALLOWED TOOLS: collect_data, submit_paper_order, final_answer, calculate"
+    # Always call collect_data to check current position
     if heavy:
-        s = "CURRENT DATE: 2026-06-28 14:30 UTC" + NL + "IBKR: CONNECTED | Paper: $50000" + NL + "Positions:" + NL + "  AAPL: 100 sh @ $250.00 (now $283.78, +13.5%), 55% of equity" + NL + "ALLOWED TOOLS: collect_data, submit_paper_order, final_answer, calculate"
+        tool_resp = "[COLLECT_DATA] AAPL" + NL + "  Price: $283.78" + NL + "  Position: 100 shares @ $250.00 avg" + NL + "  P&L: +13.5%" + NL + "  % of Portfolio: 55% (EXCEEDS 25% LIMIT)"
         r = "**CONCENTRATION ALERT:** You hold 100 shares of AAPL at 55% of your $50,000 portfolio. This exceeds the 25% limit. **DO NOT buy more.** Verdict: REDUCE or WAIT. Consider trimming to 25% and diversifying into SPY, VXUS, or BND."
     else:
-        s = "CURRENT DATE: 2026-06-28 14:30 UTC" + NL + "IBKR: CONNECTED | Paper: $50000" + NL + "Positions:" + NL + "  AAPL: 30 sh @ $260.00 (now $283.78, +9.1%), 16% of equity" + NL + "ALLOWED TOOLS: collect_data, submit_paper_order, final_answer, calculate"
+        tool_resp = "[COLLECT_DATA] AAPL" + NL + "  Price: $283.78" + NL + "  Position: 30 shares @ $260.00 avg" + NL + "  P&L: +9.1%" + NL + "  % of Portfolio: 16% (within 25% limit)"
         r = "You hold 30 shares of AAPL at 16% of your $50,000 portfolio. Still within the 25% limit. You can add up to ~15 more shares before hitting the cap. Want me to calculate the exact position size with your risk parameters?"
-    a([fmt("system",s), fmt("user",u), fmt("assistant",r)])
-print(f"[GEN] +portfolio_check: {TOTAL}")
-
-print(f"[GEN] PHASE 1 TOTAL: {TOTAL}")
-
-
-# 9. PAPER ORDER
+    a([fmt("system",s_port), fmt("user",u), fmt("assistant",_json.dumps({"tool":"collect_data","args":{"ticker":"AAPL"}})), fmt("tool",tool_resp), fmt("assistant",r)])
+print(f"[GEN] +portfolio_check: {TOTAL}")# 9. PAPER ORDER
 for _ in range(140):
     tk = random.choice(list(US.keys())[:8])
     p = ALL_T[tk][2]
@@ -209,8 +218,9 @@ etf_pairs = [
     ("SPY vs VFV pra um investidor canadense?","VFV is the CAD version of S&P 500 — same exposure as SPY, no USD/CAD currency risk. For a Canadian investor, VFV (or VSP for currency hedging) is more efficient."),
 ]
 for _ in range(60):
-    u,r = random.choice(etf_pairs)
-    a([fmt("system",sc()), fmt("user",u), fmt("assistant",r)])
+    u,r_text = random.choice(etf_pairs)
+    tool_resp = "[BOB SEARCH] ETF comparison" + NL + "  Retrieved: ETF overlap analysis, fee comparison, currency exposure details."
+    a([fmt("system",sc()), fmt("user",u), fmt("assistant",_json.dumps({"tool":"bob_search","args":{"query":"ETF comparison overlap analysis"}})), fmt("tool",tool_resp), fmt("assistant",r_text)])
 print(f"[GEN] +etf_sanity: {TOTAL}")
 
 # 12. CALC TRADE (position sizing)
