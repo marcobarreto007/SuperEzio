@@ -33,6 +33,7 @@ DEFAULT_CALIBRATION_LOG_PATH = (
 
 class CalibrationAction(Enum):
     """Tipos de ação de calibração."""
+
     INCREASE = "increase"
     DECREASE = "decrease"
     HOLD = "hold"
@@ -42,6 +43,7 @@ class CalibrationAction(Enum):
 @dataclass
 class ParameterRange:
     """Range permitido para um parâmetro."""
+
     param_name: str
     min_value: float
     max_value: float
@@ -63,6 +65,7 @@ class ParameterRange:
 @dataclass
 class CalibrationEvent:
     """Um evento de calibração."""
+
     event_id: str
     timestamp: str
     param_name: str
@@ -90,6 +93,7 @@ class CalibrationEvent:
 @dataclass
 class CalibrationReport:
     """Relatório de calibração."""
+
     timestamp: str
     parameters: dict[str, ParameterRange]
     recommended_changes: list[CalibrationEvent]
@@ -456,10 +460,7 @@ class AutoCalibrator:
 
     def get_current_config(self) -> dict[str, float]:
         """Retorna configuração atual dos parâmetros."""
-        return {
-            name: param.current_value
-            for name, param in self._parameters.items()
-        }
+        return {name: param.current_value for name, param in self._parameters.items()}
 
     def render_for_bob(self, max_chars: int = 800) -> str:
         """Renderiza configuração atual para o prompt do Bob."""
@@ -478,7 +479,9 @@ class AutoCalibrator:
         if self._history:
             lines.append("\nÚltimas calibrações:")
             for event in list(reversed(self._history))[:3]:
-                lines.append(f"- {event.param_name}: {event.action.value} {event.old_value:.1f} → {event.new_value:.1f}")
+                lines.append(
+                    f"- {event.param_name}: {event.action.value} {event.old_value:.1f} → {event.new_value:.1f}"
+                )
 
         lines.append("=== FIM DA CALIBRAÇÃO ===\n")
 

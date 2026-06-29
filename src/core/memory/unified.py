@@ -61,11 +61,7 @@ class ConversationMemoryAdapter:
         """Ingerir conversas no ForensicRAG."""
         self._memory._ensure_loaded()
 
-        turns = (
-            self._memory._cache.get(session_id, [])
-            if session_id
-            else self._memory._all_turns
-        )
+        turns = self._memory._cache.get(session_id, []) if session_id else self._memory._all_turns
 
         ingested = 0
         for turn in turns:
@@ -271,9 +267,7 @@ class UnifiedRetriever:
             self._profile[key] = (value, confidence)
             logger.debug("Profile updated: %s = %s (conf=%.2f)", key, value, confidence)
 
-    def extract_profile_from_message(
-        self, message: str
-    ) -> list[tuple[str, str, float]]:
+    def extract_profile_from_message(self, message: str) -> list[tuple[str, str, float]]:
         """Extract profile updates from user message.
 
         Returns:
@@ -326,7 +320,16 @@ class UnifiedRetriever:
             updates.append(("preferred_markets", "NASDAQ", 0.7))
 
         # 8. avoid_sectors
-        avoid_keywords = ["crypto", "cripto", "bitcoin", "otc", "maconha", "cannabis", "alavancado", "etf alavancado"]
+        avoid_keywords = [
+            "crypto",
+            "cripto",
+            "bitcoin",
+            "otc",
+            "maconha",
+            "cannabis",
+            "alavancado",
+            "etf alavancado",
+        ]
         for keyword in avoid_keywords:
             if keyword in msg_lower:
                 updates.append(("avoid_sectors", keyword, 0.6))
@@ -391,7 +394,9 @@ class UnifiedRetriever:
         if recent_turns:
             for turn in recent_turns[:3]:
                 msg_preview = turn.user_message[:80].replace("\n", " ")
-                lines.append(f"- {turn.timestamp[:10]}: \"{msg_preview}\" → {turn.verdict or 'Sem veredito'}")
+                lines.append(
+                    f'- {turn.timestamp[:10]}: "{msg_preview}" → {turn.verdict or "Sem veredito"}'
+                )
         else:
             lines.append("- (Nenhuma conversa recente)")
         lines.append("")
@@ -402,7 +407,9 @@ class UnifiedRetriever:
             theses = [t for t in recent_turns if t.thesis_formed and t.verdict in {"BUY", "SELL"}]
             if theses:
                 for t in theses[:3]:
-                    lines.append(f"- {t.ticker_discussed or 'N/A'}: \"{t.thesis_formed[:60]}...\" conv: {int(t.confidence)}/100")
+                    lines.append(
+                        f'- {t.ticker_discussed or "N/A"}: "{t.thesis_formed[:60]}..." conv: {int(t.confidence)}/100'
+                    )
             else:
                 lines.append("- (Nenhuma tese aberta)")
         else:
@@ -415,7 +422,11 @@ class UnifiedRetriever:
             ticker_counts = Counter(t.ticker_discussed for t in recent_turns if t.ticker_discussed)
             if ticker_counts:
                 for ticker, count in ticker_counts.most_common(5):
-                    latest = max((t for t in recent_turns if t.ticker_discussed == ticker), key=lambda x: x.timestamp, default=None)
+                    latest = max(
+                        (t for t in recent_turns if t.ticker_discussed == ticker),
+                        key=lambda x: x.timestamp,
+                        default=None,
+                    )
                     verdict = latest.verdict if latest else "N/A"
                     lines.append(f"- {ticker} ({count}x) — último veredito: {verdict}")
             else:
@@ -428,12 +439,13 @@ class UnifiedRetriever:
         lines.append("## Aprendizado de trades")
         try:
             from core.trading.feedback_loop import get_feedback_loop
+
             fb_loop = get_feedback_loop()
             if fb_loop:
                 stats = fb_loop.get_stats()
                 if stats.get("closed_trades", 0) > 0:
                     lines.append(f"- Trades fechados: {stats['closed_trades']}")
-                    lines.append(f"- Win rate: {stats.get('win_rate', 0)*100:.0f}%")
+                    lines.append(f"- Win rate: {stats.get('win_rate', 0) * 100:.0f}%")
                     lines.append(f"- Lições registradas: {stats.get('lessons_logged', 0)}")
                 else:
                     lines.append("- (Nenhum trade fechado ainda)")
@@ -513,9 +525,7 @@ class UnifiedRetriever:
         all_results.sort(key=lambda r: r.score, reverse=True)
         return all_results[:top_k]
 
-    def format_context(
-        self, results: list[RetrievalResult], max_chars: int = 2000
-    ) -> str:
+    def format_context(self, results: list[RetrievalResult], max_chars: int = 2000) -> str:
         """Formata resultados como contexto para o Bob."""
         if not results:
             return "[UNIFIED_MEMORY] No relevant memories found."

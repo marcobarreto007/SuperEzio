@@ -6,23 +6,19 @@ All answer/fallback/repair logic lives here. No dependency injection needed.
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 from typing import Any
 
 from ..intents import (
     detect_another_trade_recommendation_intent,
-    detect_complex_finance_intent,
     detect_decisive_trade_intent,
-    normalize_message,
 )
 from ..trade_order import (
     BUY_CONFIDENCE_THRESHOLD,
     compute_model_confidence,
     decide_final_action,
     evaluate_quality_gates,
-    format_liquidity_display,
     normalize_liquidity_fields,
     pick_candidate,
     rank_candidates,
@@ -72,12 +68,15 @@ __all__ = [
 # Late-binding: resolve agent.py symbols at call time (avoids circular import)
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 def _get_agent_attr(name: str):
     """Resolve a symbol from the agent module at call time."""
     import sys
+
     mod = sys.modules.get("core.pipeline.nodes.agent")
     if mod is None:
         from . import agent as _agent
+
         mod = _agent
     return getattr(mod, name, None)
 
@@ -85,6 +84,7 @@ def _get_agent_attr(name: str):
 # ═══════════════════════════════════════════════════════════════════════════
 # Answer generators
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def _final_payload(content: str, iterations: int) -> dict[str, Any]:
     return {
@@ -127,6 +127,7 @@ def _tool_blocked_answer(state: dict) -> str:
 # ═══════════════════════════════════════════════════════════════════════════
 # Market scan answer
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def _market_scan_answer(state: dict) -> str:
     message = state.get("message", "")
@@ -186,7 +187,9 @@ def _market_scan_answer(state: dict) -> str:
         sections.append("7) Controles de risco:")
         sections.append("   - Defina perda maxima por posicao antes de qualquer ordem.")
         sections.append("   - Exija liquidez suficiente para entrar e sair sem spread absurdo.")
-        sections.append("   - Confirme catalisador verificavel (filing, earnings, evento) e nao hype social.")
+        sections.append(
+            "   - Confirme catalisador verificavel (filing, earnings, evento) e nao hype social."
+        )
         sections.append("   - Estabeleca condicao de invalidacao tecnica/fundamentalista clara.")
         sections.append("")
         sections.append(
@@ -235,7 +238,9 @@ def _market_scan_answer(state: dict) -> str:
     sections.append("7) Risk controls:")
     sections.append("   - Define maximum loss per position before placing any order.")
     sections.append("   - Require liquidity sufficient to enter and exit without extreme spreads.")
-    sections.append("   - Confirm a verifiable catalyst (filing, earnings, event) rather than social hype.")
+    sections.append(
+        "   - Confirm a verifiable catalyst (filing, earnings, event) rather than social hype."
+    )
     sections.append("   - Set a clear technical/fundamental invalidation condition.")
     sections.append("")
     sections.append(
@@ -255,6 +260,7 @@ def _market_scan_answer(state: dict) -> str:
 # ═══════════════════════════════════════════════════════════════════════════
 # Decisive trade order
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | None]:
     message = state.get("message", "")
@@ -331,7 +337,13 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
     if entry is None:
         entry = ranked[0] if ranked else None
     if entry is None:
-        ctx = build_ctx(state, mode=mode_label, primary_ticker="", ranked=ranked, decision="REJECT_ALL") if build_ctx else None
+        ctx = (
+            build_ctx(
+                state, mode=mode_label, primary_ticker="", ranked=ranked, decision="REJECT_ALL"
+            )
+            if build_ctx
+            else None
+        )
         return "Model verdict: REJECT_ALL", ctx
 
     primary = entry.get("candidate") or {}
@@ -405,7 +417,9 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
     collected_at = scan.get("collected_at") or "—"
     liquidity_text = format_liq(None, primary) if format_liq else str(primary.get("volume", "—"))
     amount_text = format_money(requested_amount) if format_money else str(requested_amount or "—")
-    account_text = format_money(account_reference) if format_money else str(account_reference or "—")
+    account_text = (
+        format_money(account_reference) if format_money else str(account_reference or "—")
+    )
     estimated_qty = estimate_qty(requested_amount, price) if estimate_qty else "—"
     prev_excluded = ""
     if is_followup:
@@ -441,9 +455,17 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
         state=state,
     )
 
-    ctx = build_ctx(
-        state, mode=mode_label, primary_ticker=str(ticker), ranked=ranked, decision=display_decision
-    ) if build_ctx else None
+    ctx = (
+        build_ctx(
+            state,
+            mode=mode_label,
+            primary_ticker=str(ticker),
+            ranked=ranked,
+            decision=display_decision,
+        )
+        if build_ctx
+        else None
+    )
     return "\n".join(sections), ctx
 
 
@@ -468,21 +490,27 @@ def _build_reject_all_sections(
         prev = trade_ctx.get("primary_ticker") or (list(excluded)[0] if excluded else "?")
         if portuguese:
             sections = [
-                "# Bob Model Order", "",
+                "# Bob Model Order",
+                "",
                 f"1. Modo: {mode_label}",
                 "2. Decisao Final: REJECT_ALL",
-                f"3. Candidato Anterior Excluido: {prev}", "",
-                f"Nenhum segundo candidato passou o gate de qualidade apos excluir {prev}.", "",
+                f"3. Candidato Anterior Excluido: {prev}",
+                "",
+                f"Nenhum segundo candidato passou o gate de qualidade apos excluir {prev}.",
+                "",
                 "Resumo de Rejeicoes:",
                 f"   - rejected_count: {rejected_count}",
             ]
         else:
             sections = [
-                "# Bob Model Order", "",
+                "# Bob Model Order",
+                "",
                 f"1. Mode: {mode_label}",
                 "2. Final Decision: REJECT_ALL",
-                f"3. Previous Candidate Excluded: {prev}", "",
-                f"No second candidate passed the quality gate after excluding {prev}.", "",
+                f"3. Previous Candidate Excluded: {prev}",
+                "",
+                f"No second candidate passed the quality gate after excluding {prev}.",
+                "",
                 "Rejected Summary:",
                 f"   - rejected_count: {rejected_count}",
             ]
@@ -493,16 +521,20 @@ def _build_reject_all_sections(
     else:
         if portuguese:
             sections = [
-                "# Bob Model Order", "",
+                "# Bob Model Order",
+                "",
                 f"1. Modo: {mode_label}",
-                "2. Decisao Final: REJECT_ALL", "",
+                "2. Decisao Final: REJECT_ALL",
+                "",
                 f"Nenhuma ordem de modelo gerada. {rejected_count} ticker(s) rejeitado(s) nos gates de qualidade de dados.",
             ]
         else:
             sections = [
-                "# Bob Model Order", "",
+                "# Bob Model Order",
+                "",
                 f"1. Mode: {mode_label}",
-                "2. Final Decision: REJECT_ALL", "",
+                "2. Final Decision: REJECT_ALL",
+                "",
                 f"No valid model order generated. {rejected_count} ticker(s) rejected at data-quality gates.",
             ]
         if top_reasons:
@@ -513,8 +545,15 @@ def _build_reject_all_sections(
         sections.append(f"{'Universo do scan' if portuguese else 'Scan universe'}: {universe}.")
 
     if errors:
-        sections.append(("Limite de dados: " if portuguese else "Data limit: ") + "; ".join(str(e) for e in errors[:3]))
-    ctx = build_ctx(state, mode=mode_label, primary_ticker="", ranked=ranked, decision="REJECT_ALL") if build_ctx else None
+        sections.append(
+            ("Limite de dados: " if portuguese else "Data limit: ")
+            + "; ".join(str(e) for e in errors[:3])
+        )
+    ctx = (
+        build_ctx(state, mode=mode_label, primary_ticker="", ranked=ranked, decision="REJECT_ALL")
+        if build_ctx
+        else None
+    )
     return "\n".join(sections), ctx
 
 
@@ -549,19 +588,33 @@ def _build_candidate_sections(
     state,
 ) -> list[str]:
     sections: list[str] = []
-    is_buy_candidate = display_decision_raw in ("BUY_CANDIDATE", "PAPER_TICKET_PENDING_APPROVAL",
-                                                 "PAPER_ORDER_SUBMIT_READY", "PAPER_ORDER_SUBMITTED")
+    is_buy_candidate = display_decision_raw in (
+        "BUY_CANDIDATE",
+        "PAPER_TICKET_PENDING_APPROVAL",
+        "PAPER_ORDER_SUBMIT_READY",
+        "PAPER_ORDER_SUBMITTED",
+    )
     if is_buy_candidate is False:
         is_buy_candidate = display_decision_raw.startswith("PAPER")
 
-    heading_en = "3. Primary Order Candidate:" if is_buy_candidate else "3. Study Candidate (Not a Recommendation):"
-    heading_pt = "3. Candidato Primario da Ordem:" if is_buy_candidate else "3. Candidato de Estudo (Nao e recomendacao):"
+    heading_en = (
+        "3. Primary Order Candidate:"
+        if is_buy_candidate
+        else "3. Study Candidate (Not a Recommendation):"
+    )
+    heading_pt = (
+        "3. Candidato Primario da Ordem:"
+        if is_buy_candidate
+        else "3. Candidato de Estudo (Nao e recomendacao):"
+    )
 
     if portuguese:
         sections = [
-            "# Bob Model Order", "",
+            "# Bob Model Order",
+            "",
             f"1. Modo: {mode_label}",
-            f"2. Decisao Final: {display_decision}", "",
+            f"2. Decisao Final: {display_decision}",
+            "",
         ]
         if is_followup:
             sections.append(f"3. Candidato Anterior Excluido: {prev_excluded}")
@@ -569,25 +622,29 @@ def _build_candidate_sections(
             sections.append(f"4. {heading_pt}")
         else:
             sections.append(heading_pt)
-        sections.extend([
-            f"   - Ticker: {ticker}",
-            f"   - Empresa: {name}",
-            f"   - Mercado: {market}",
-            f"   - Preco Atual: {price} {currency}",
-            f"   - Dados: {collected_at} (fonte: {provider})",
-            f"   - Liquidez: {liquidity_text}",
-            f"   - Capital do treino solicitado: {amount_text}",
-            f"   - Capital teorico citado: {account_text}",
-            f"   - Quantidade estimada: {estimated_qty}",
-            f"   - Catalisador: {catalyst}",
-            f"   - Horizonte: {time_horizon}",
-            f"   - Confianca do Modelo: {confidence}/100",
-        ])
+        sections.extend(
+            [
+                f"   - Ticker: {ticker}",
+                f"   - Empresa: {name}",
+                f"   - Mercado: {market}",
+                f"   - Preco Atual: {price} {currency}",
+                f"   - Dados: {collected_at} (fonte: {provider})",
+                f"   - Liquidez: {liquidity_text}",
+                f"   - Capital do treino solicitado: {amount_text}",
+                f"   - Capital teorico citado: {account_text}",
+                f"   - Quantidade estimada: {estimated_qty}",
+                f"   - Catalisador: {catalyst}",
+                f"   - Horizonte: {time_horizon}",
+                f"   - Confianca do Modelo: {confidence}/100",
+            ]
+        )
     else:
         sections = [
-            "# Bob Model Order", "",
+            "# Bob Model Order",
+            "",
             f"1. Mode: {mode_label}",
-            f"2. Final Decision: {display_decision}", "",
+            f"2. Final Decision: {display_decision}",
+            "",
         ]
         if is_followup:
             sections.append(f"3. Previous Candidate Excluded: {prev_excluded}")
@@ -595,87 +652,132 @@ def _build_candidate_sections(
             sections.append(f"4. {heading_en}")
         else:
             sections.append(heading_en)
-        sections.extend([
-            f"   - Ticker: {ticker}",
-            f"   - Company: {name}",
-            f"   - Market: {market}",
-            f"   - Latest Price: {price} {currency}",
-            f"   - Data Timestamp: {collected_at} (source: {provider})",
-            f"   - Liquidity: {liquidity_text}",
-            f"   - Requested training capital: {amount_text}",
-            f"   - Referenced theoretical capital: {account_text}",
-            f"   - Estimated quantity: {estimated_qty}",
-            f"   - Catalyst: {catalyst}",
-            f"   - Time Horizon: {time_horizon}",
-            f"   - Model Confidence: {confidence}/100",
-        ])
+        sections.extend(
+            [
+                f"   - Ticker: {ticker}",
+                f"   - Company: {name}",
+                f"   - Market: {market}",
+                f"   - Latest Price: {price} {currency}",
+                f"   - Data Timestamp: {collected_at} (source: {provider})",
+                f"   - Liquidity: {liquidity_text}",
+                f"   - Requested training capital: {amount_text}",
+                f"   - Referenced theoretical capital: {account_text}",
+                f"   - Estimated quantity: {estimated_qty}",
+                f"   - Catalyst: {catalyst}",
+                f"   - Time Horizon: {time_horizon}",
+                f"   - Model Confidence: {confidence}/100",
+            ]
+        )
 
     if gate_failures:
         tag = "Gates falhados" if portuguese else "Gate failures"
         sections.append(f"   - {tag}: {', '.join(gate_failures)}")
     if safety_gate_failures:
         tag = "Gates obrigatorios de seguranca" if portuguese else "Required safety gates"
-        sections.append(f"   - {tag}: F51 + SDCA precisam estar executados e aprovados antes de BUY_CANDIDATE.")
+        sections.append(
+            f"   - {tag}: F51 + SDCA precisam estar executados e aprovados antes de BUY_CANDIDATE."
+        )
 
     plan_num = "5" if is_followup else "4"
-    plan_heading_pt = "Plano de Ordem Sugerido:" if is_buy_candidate else "Plano de Watchlist / Sem Ordem:"
+    plan_heading_pt = (
+        "Plano de Ordem Sugerido:" if is_buy_candidate else "Plano de Watchlist / Sem Ordem:"
+    )
     plan_heading_en = "Suggested Order Plan:" if is_buy_candidate else "Watchlist / No-Trade Plan:"
-    entry_pt = "ordem limitada proximo ao preco atual" if is_buy_candidate else "Sem entrada ate risco, invalidacao e confianca passarem nos gates"
-    entry_en = "limit order near current price" if is_buy_candidate else "No entry until risk, invalidation, and confidence gates pass"
+    entry_pt = (
+        "ordem limitada proximo ao preco atual"
+        if is_buy_candidate
+        else "Sem entrada ate risco, invalidacao e confianca passarem nos gates"
+    )
+    entry_en = (
+        "limit order near current price"
+        if is_buy_candidate
+        else "No entry until risk, invalidation, and confidence gates pass"
+    )
     risk_pt = "0.5%-1.0% do capital de trading" if is_buy_candidate else "0 ate virar BUY_CANDIDATE"
-    risk_en = "0.5%-1.0% of trading capital" if is_buy_candidate else "0 until upgraded to BUY_CANDIDATE"
+    risk_en = (
+        "0.5%-1.0% of trading capital" if is_buy_candidate else "0 until upgraded to BUY_CANDIDATE"
+    )
     # Previously undefined — computed from available context
     invalidation_pct = 0.05  # 5% below entry is default invalidation
     invalidation_price = round(float(price) * (1 - invalidation_pct), 2) if price else 0.0
-    invalidation_pt = f"R$ {invalidation_price:.2f} (-{invalidation_pct:.0%})" if is_buy_candidate else "N/A ate virar BUY_CANDIDATE"
-    invalidation_en = f"${invalidation_price:.2f} (-{invalidation_pct:.0%})" if is_buy_candidate else "N/A until upgraded to BUY_CANDIDATE"
-    risk_amount = round(float(estimated_qty or 0) * float(price) * invalidation_pct, 2) if price and estimated_qty else 0.0
+    invalidation_pt = (
+        f"R$ {invalidation_price:.2f} (-{invalidation_pct:.0%})"
+        if is_buy_candidate
+        else "N/A ate virar BUY_CANDIDATE"
+    )
+    invalidation_en = (
+        f"${invalidation_price:.2f} (-{invalidation_pct:.0%})"
+        if is_buy_candidate
+        else "N/A until upgraded to BUY_CANDIDATE"
+    )
+    risk_amount = (
+        round(float(estimated_qty or 0) * float(price) * invalidation_pct, 2)
+        if price and estimated_qty
+        else 0.0
+    )
     risk_display_pt = f"R$ {risk_amount:.2f} ({risk_pt})" if is_buy_candidate else risk_pt
     risk_display_en = f"${risk_amount:.2f} ({risk_en})" if is_buy_candidate else risk_en
 
     if portuguese:
-        sections.extend([
-            "", f"{plan_num}. {plan_heading_pt}",
-            f"   - Entrada: {entry_pt}",
-            f"   - Stop/Invalidacao: {invalidation_pt}",
-            f"   - Risco: {risk_display_pt}",
-            f"   - Risco Maximo: {risk_pt}",
-            "",
-            "Ordem paper pode ser transmitida pelo tool gate. Nao e lucro garantido; live-money continua bloqueado."
-            if paper_auto_submit
-            else "Ordem do modelo, nao e lucro garantido. Transmissao broker nao executada neste modo.",
-            f"Model verdict: {display_decision}",
-        ])
+        sections.extend(
+            [
+                "",
+                f"{plan_num}. {plan_heading_pt}",
+                f"   - Entrada: {entry_pt}",
+                f"   - Stop/Invalidacao: {invalidation_pt}",
+                f"   - Risco: {risk_display_pt}",
+                f"   - Risco Maximo: {risk_pt}",
+                "",
+                "Ordem paper pode ser transmitida pelo tool gate. Nao e lucro garantido; live-money continua bloqueado."
+                if paper_auto_submit
+                else "Ordem do modelo, nao e lucro garantido. Transmissao broker nao executada neste modo.",
+                f"Model verdict: {display_decision}",
+            ]
+        )
     else:
-        sections.extend([
-            "", f"{plan_num}. {plan_heading_en}",
-            f"   - Entry: {entry_en}",
-            f"   - Stop/Invalidation: {invalidation_en}",
-            f"   - Risk: {risk_display_en}",
-            f"   - Max Risk: {risk_en}",
-            "",
-            "Paper order may be transmitted through the tool gate. Profit is not guaranteed; live-money remains blocked."
-            if paper_auto_submit
-            else "Model order, not guaranteed profit. Broker transmission is not executed in this mode.",
-            f"Model verdict: {display_decision}",
-        ])
+        sections.extend(
+            [
+                "",
+                f"{plan_num}. {plan_heading_en}",
+                f"   - Entry: {entry_en}",
+                f"   - Stop/Invalidation: {invalidation_en}",
+                f"   - Risk: {risk_display_en}",
+                f"   - Max Risk: {risk_en}",
+                "",
+                "Paper order may be transmitted through the tool gate. Profit is not guaranteed; live-money remains blocked."
+                if paper_auto_submit
+                else "Model order, not guaranteed profit. Broker transmission is not executed in this mode.",
+                f"Model verdict: {display_decision}",
+            ]
+        )
 
     if display_decision == "WAIT":
         sections.append("")
         if portuguese:
-            sections.append(f"Nota: confianca abaixo do limiar de compra ({BUY_CONFIDENCE_THRESHOLD}/100) ou gates de liquidez/risco incompletos.")
+            sections.append(
+                f"Nota: confianca abaixo do limiar de compra ({BUY_CONFIDENCE_THRESHOLD}/100) ou gates de liquidez/risco incompletos."
+            )
             if gate_failures:
                 sections.append(f"Motivos: {', '.join(gate_failures)}")
-            sections.append("Permanece na watchlist de estudo ate liquidez, risco e invalidacao elevarem ao limiar de compra do modelo.")
+            sections.append(
+                "Permanece na watchlist de estudo ate liquidez, risco e invalidacao elevarem ao limiar de compra do modelo."
+            )
         else:
-            sections.append(f"Note: confidence below buy threshold ({BUY_CONFIDENCE_THRESHOLD}/100) or liquidity/risk gates not satisfied.")
+            sections.append(
+                f"Note: confidence below buy threshold ({BUY_CONFIDENCE_THRESHOLD}/100) or liquidity/risk gates not satisfied."
+            )
             if gate_failures:
                 sections.append(f"Reasons: {', '.join(gate_failures)}")
-            sections.append("Keep on a study watchlist until liquidity, risk, and invalidation upgrade to model-buy thresholds.")
+            sections.append(
+                "Keep on a study watchlist until liquidity, risk, and invalidation upgrade to model-buy thresholds."
+            )
 
     if errors:
         sections.append("")
-        sections.append(("Limite de dados: " if portuguese else "Data limit: ") + "; ".join(str(e) for e in errors[:3]))
+        sections.append(
+            ("Limite de dados: " if portuguese else "Data limit: ")
+            + "; ".join(str(e) for e in errors[:3])
+        )
 
     return sections
 
@@ -689,13 +791,20 @@ def _decisive_trade_order_answer(state: dict) -> str:
 # Fallback answers (advisory / complex finance / risk lab)
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 def _complex_finance_fallback_answer(message: str) -> str:
     msg = (message or "").lower()
     is_capital = any(
         token in msg
         for token in (
-            "allocate", "allocation", "emergency", "debt",
-            "equipment", "education", "cash reserve", "cad",
+            "allocate",
+            "allocation",
+            "emergency",
+            "debt",
+            "equipment",
+            "education",
+            "cash reserve",
+            "cad",
         )
     )
     classification = "CAPITAL_ALLOCATION" if is_capital else "MACRO_THESIS"
@@ -863,7 +972,10 @@ def _contract_fallback_answer(state: dict) -> str:
         return _market_scan_answer(state)
     if _is_etf_comparison_question(message) or _is_portfolio_concentration_question(message):
         return _advisory_knowledge_fallback_answer(state)
-    if mode == "CAPITAL_ALLOCATION" or state.get("intent") in ("capital_allocation", "personal_finance"):
+    if mode == "CAPITAL_ALLOCATION" or state.get("intent") in (
+        "capital_allocation",
+        "personal_finance",
+    ):
         return _complex_finance_fallback_answer(state.get("message", ""))
     if mode == "INDUSTRY_RESEARCH":
         return _industry_research_fallback_answer(state)
@@ -891,6 +1003,7 @@ def _contract_fallback_answer(state: dict) -> str:
 # ═══════════════════════════════════════════════════════════════════════════
 # Repair functions
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def _repair_known_etf_category_errors(text: str) -> str:
     repaired = text or ""
@@ -985,8 +1098,15 @@ def _repair_tax_overstatements(text: str) -> str:
 def _repair_short_term_return_forecasts(text: str) -> str:
     repaired = text or ""
     if re.search(r"\b\d+(?:\.\d+)?\s*[–-]\s*\d+(?:\.\d+)?%", repaired):
-        repaired = re.sub(r"\bvery doable\b", "possible, but not a forecast", repaired, flags=re.IGNORECASE)
-        repaired = re.sub(r"\bachievable\b", "possible, but not forecastable with precision", repaired, flags=re.IGNORECASE)
+        repaired = re.sub(
+            r"\bvery doable\b", "possible, but not a forecast", repaired, flags=re.IGNORECASE
+        )
+        repaired = re.sub(
+            r"\bachievable\b",
+            "possible, but not forecastable with precision",
+            repaired,
+            flags=re.IGNORECASE,
+        )
         if "short-term percentage target" not in repaired.lower():
             repaired = (
                 repaired.rstrip()
@@ -1015,8 +1135,12 @@ def _is_dca_macro_question(message: str) -> bool:
     return any(
         marker in q
         for marker in (
-            "dollar-cost", " dollar cost ", " dca ",
-            "wait for a correction", "interest rates", "market volatility",
+            "dollar-cost",
+            " dollar cost ",
+            " dca ",
+            "wait for a correction",
+            "interest rates",
+            "market volatility",
         )
     )
 
@@ -1024,9 +1148,12 @@ def _is_dca_macro_question(message: str) -> bool:
 def _has_unsupported_macro_precision(text: str) -> bool:
     lower = (text or "").lower()
     patterns = (
-        r"\bvix\b", r"\bbasis[-\s]?point\b",
-        r"\btreasury\b.*\b\d+(?:\.\d+)?%", r"\brates?\b.{0,40}\b\d+(?:\.\d+)?%",
-        r"\byields?\b.{0,40}\b\d+(?:\.\d+)?%", r"\boutperformed\b.{0,80}\b\d+(?:\.\d+)?%",
+        r"\bvix\b",
+        r"\bbasis[-\s]?point\b",
+        r"\btreasury\b.*\b\d+(?:\.\d+)?%",
+        r"\brates?\b.{0,40}\b\d+(?:\.\d+)?%",
+        r"\byields?\b.{0,40}\b\d+(?:\.\d+)?%",
+        r"\boutperformed\b.{0,80}\b\d+(?:\.\d+)?%",
         r"\brecover(?:ed|ing)?\b.{0,80}\b\d+\s*[-–]\s*\d+\s+days\b",
         r"\bq[1-4]\s+20\d{2}\b|\b20\d{2}\s+q[1-4]\b",
         r"\b(?:s&p\s*500|tsx\s+composite)\b.{0,120}\b\d+(?:\.\d+)?%",
@@ -1066,11 +1193,20 @@ def _repair_overlapping_etf_tickers(text: str, message: str = "") -> str:
         ("VXUS", "VEU"),
     )
     for group in overlap_groups:
-        present = [ticker for ticker in group if re.search(rf"\b{re.escape(ticker)}\b", repaired, flags=re.IGNORECASE)]
+        present = [
+            ticker
+            for ticker in group
+            if re.search(rf"\b{re.escape(ticker)}\b", repaired, flags=re.IGNORECASE)
+        ]
         if len(present) <= 1:
             continue
         for ticker in present[1:]:
-            repaired = re.sub(rf"\b{re.escape(ticker)}\b", "a similar broad-market ETF", repaired, flags=re.IGNORECASE)
+            repaired = re.sub(
+                rf"\b{re.escape(ticker)}\b",
+                "a similar broad-market ETF",
+                repaired,
+                flags=re.IGNORECASE,
+            )
     return repaired
 
 
@@ -1093,7 +1229,14 @@ def _repair_complex_finance_answer(message: str, content: str) -> str:
     lower = text.lower()
     additions: list[str] = []
 
-    assumption_markers = ("illustrative", "assumption", "assumptions", "assum", "ilustrativ", "supos")
+    assumption_markers = (
+        "illustrative",
+        "assumption",
+        "assumptions",
+        "assum",
+        "ilustrativ",
+        "supos",
+    )
     if not any(marker in lower for marker in assumption_markers):
         additions.append(
             "Assumptions note: Scenario numbers, allocations, returns, and thresholds above "
@@ -1103,7 +1246,16 @@ def _repair_complex_finance_answer(message: str, content: str) -> str:
     business_prompt = any(token in msg for token in ("business", "equipment", "side-business"))
     has_business_cashflow = any(
         token in lower
-        for token in ("cashflow", "cash flow", "time-to-cashflow", "time to cashflow", "payback", "fluxo", "caixa", "receita")
+        for token in (
+            "cashflow",
+            "cash flow",
+            "time-to-cashflow",
+            "time to cashflow",
+            "payback",
+            "fluxo",
+            "caixa",
+            "receita",
+        )
     )
     if business_prompt and not has_business_cashflow:
         additions.append(
@@ -1112,7 +1264,8 @@ def _repair_complex_finance_answer(message: str, content: str) -> str:
         )
 
     canadian_capital_prompt = any(
-        token in msg for token in ("canada", "canadian", "cad", "family", "debt", "education", "tax")
+        token in msg
+        for token in ("canada", "canadian", "cad", "family", "debt", "education", "tax")
     )
     has_registered_account = any(term in text for term in ("TFSA", "RRSP", "RESP", "FHSA"))
     if canadian_capital_prompt and not has_registered_account:
@@ -1150,6 +1303,7 @@ def _repair_complex_finance_answer(message: str, content: str) -> str:
 # Tool orchestration
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 def _should_force_contract_fallback(state: dict, content: str) -> bool:
     message = state.get("message", "")
     msg = (message or "").lower()
@@ -1159,8 +1313,11 @@ def _should_force_contract_fallback(state: dict, content: str) -> bool:
         return True
 
     scan_leak_markers = (
-        "short-term opportunity research", "market research report",
-        "approximately 2 weeks", "candidates:", "run a market_scan",
+        "short-term opportunity research",
+        "market research report",
+        "approximately 2 weeks",
+        "candidates:",
+        "run a market_scan",
         "only have collected data",
     )
     if ("dividend" in msg or "passive income" in msg) and any(m in text for m in scan_leak_markers):
@@ -1213,7 +1370,11 @@ def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
     allowed_tools = set(state.get("allowed_tools") or [])
     executed_tools = set(state.get("executed_tools") or [])
     normalize_fn = _get_agent_attr("_normalize_ticker_symbol")
-    ticker = normalize_fn(state.get("ticker") or (state.get("data") or {}).get("ticker")) if normalize_fn else ""
+    ticker = (
+        normalize_fn(state.get("ticker") or (state.get("data") or {}).get("ticker"))
+        if normalize_fn
+        else ""
+    )
 
     if not ticker and isinstance(state.get("scan"), dict):
         scan = state["scan"]
@@ -1226,7 +1387,11 @@ def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
                 weak_universe=len(candidates) <= 1,
             )
         selected, _ = pick_candidate(ranked)
-        ticker = normalize_fn((selected or {}).get("candidate", {}).get("ticker")) if normalize_fn else ""
+        ticker = (
+            normalize_fn((selected or {}).get("candidate", {}).get("ticker"))
+            if normalize_fn
+            else ""
+        )
 
     if (
         ticker
@@ -1240,16 +1405,41 @@ def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
     if not _has_market_evidence(state):
         if "market_scan" in allowed_tools and state.get("scanner_allowed", False):
             return {"tool": "market_scan", "args": {"query": state.get("message", "")}}
-        if ticker and "collect_data" in allowed_tools and "collect_data" not in executed_tools and state.get("ticker_allowed", True):
+        if (
+            ticker
+            and "collect_data" in allowed_tools
+            and "collect_data" not in executed_tools
+            and state.get("ticker_allowed", True)
+        ):
             return {"tool": "collect_data", "args": {"ticker": ticker}}
 
-    if _has_market_evidence(state) and "run_experts" in allowed_tools and "run_experts" not in executed_tools and not _has_expert_evidence(state):
+    if (
+        _has_market_evidence(state)
+        and "run_experts" in allowed_tools
+        and "run_experts" not in executed_tools
+        and not _has_expert_evidence(state)
+    ):
         return {"tool": "run_experts", "args": {}}
-    if _has_market_evidence(state) and "f51_firewall" in allowed_tools and "f51_firewall" not in executed_tools and not state.get("f51_verdict"):
+    if (
+        _has_market_evidence(state)
+        and "f51_firewall" in allowed_tools
+        and "f51_firewall" not in executed_tools
+        and not state.get("f51_verdict")
+    ):
         return {"tool": "f51_firewall", "args": {}}
-    if _has_market_evidence(state) and "neural_decision" in allowed_tools and "neural_decision" not in executed_tools and not state.get("neural_decision"):
+    if (
+        _has_market_evidence(state)
+        and "neural_decision" in allowed_tools
+        and "neural_decision" not in executed_tools
+        and not state.get("neural_decision")
+    ):
         return {"tool": "neural_decision", "args": {}}
-    if _has_market_evidence(state) and "sdca_firewall" in allowed_tools and "sdca_firewall" not in executed_tools and not state.get("sdca_firewall"):
+    if (
+        _has_market_evidence(state)
+        and "sdca_firewall" in allowed_tools
+        and "sdca_firewall" not in executed_tools
+        and not state.get("sdca_firewall")
+    ):
         return {"tool": "sdca_firewall", "args": {}}
 
     return None

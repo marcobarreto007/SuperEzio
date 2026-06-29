@@ -222,7 +222,9 @@ async def test_submit_paper_order_is_disabled_without_execution_gate(monkeypatch
     if "tool_blocked" in result:
         assert result["tool_blocked"]["tool"] == "submit_paper_order"
     assert "submit_paper_order_result" not in result
-    assert any(event.get("status") == "blocked_by_cognitive_contract" for event in events) or result.get("blocked")
+    assert any(
+        event.get("status") == "blocked_by_cognitive_contract" for event in events
+    ) or result.get("blocked")
 
 
 @pytest.mark.asyncio

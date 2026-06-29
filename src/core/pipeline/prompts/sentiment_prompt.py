@@ -197,7 +197,9 @@ def format_sentiment_context(state: Mapping[str, Any]) -> str:
     """Return structured sentiment context extracted from pipeline state."""
 
     data = _as_mapping(state.get("data") if isinstance(state, Mapping) else {})
-    ticker = str(state.get("ticker") or data.get("ticker") or data.get("symbol") or "UNKNOWN").upper()
+    ticker = str(
+        state.get("ticker") or data.get("ticker") or data.get("symbol") or "UNKNOWN"
+    ).upper()
 
     sentiment = _as_mapping(data.get("sentiment"))
     reddit = _as_mapping(data.get("reddit"))

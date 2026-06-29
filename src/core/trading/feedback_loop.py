@@ -24,8 +24,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 DEFAULT_LEARNING_LOG_PATH = (
-    Path(__file__).resolve().parent.parent.parent.parent
-    / "data" / "learning_log.jsonl"
+    Path(__file__).resolve().parent.parent.parent.parent / "data" / "learning_log.jsonl"
 )
 
 
@@ -65,6 +64,7 @@ def _extract_confidence(value: Any) -> float | None:
 @dataclass
 class Pattern:
     """Padrão identificado em trades."""
+
     pattern_id: str
     description: str
     win_rate: float  # 0-1
@@ -77,6 +77,7 @@ class Pattern:
 @dataclass
 class Lesson:
     """Lição aprendida de um trade ou conjunto de trades."""
+
     lesson_id: str
     title: str
     content: str
@@ -106,9 +107,9 @@ class PatternAnalyzer:
         trades = self._journal.list_all()
         # Apenas trades fechados com outcome
         closed = [
-            t for t in trades
-            if t.get("outcome") in {"win", "loss", "breakeven"}
-            and t.get("exit_date")
+            t
+            for t in trades
+            if t.get("outcome") in {"win", "loss", "breakeven"} and t.get("exit_date")
         ]
         self._cache = closed
         self._cache_time = now
@@ -145,15 +146,17 @@ class PatternAnalyzer:
             win_rate = stats["wins"] / stats["count"] if stats["count"] > 0 else 0
             avg_pnl = stats["pnl"] / stats["count"]
 
-            patterns.append(Pattern(
-                pattern_id=f"sector_{sector}",
-                description=f"Performance em {sector}",
-                win_rate=win_rate,
-                avg_pnl=avg_pnl,
-                sample_size=stats["count"],
-                last_seen=datetime.now(timezone.utc).isoformat(),
-                tags=["sector", "performance"]
-            ))
+            patterns.append(
+                Pattern(
+                    pattern_id=f"sector_{sector}",
+                    description=f"Performance em {sector}",
+                    win_rate=win_rate,
+                    avg_pnl=avg_pnl,
+                    sample_size=stats["count"],
+                    last_seen=datetime.now(timezone.utc).isoformat(),
+                    tags=["sector", "performance"],
+                )
+            )
 
         return sorted(patterns, key=lambda p: p.win_rate, reverse=True)
 
@@ -201,15 +204,17 @@ class PatternAnalyzer:
             win_rate = stats["wins"] / stats["count"] if stats["count"] > 0 else 0
             avg_pnl = stats["pnl"] / stats["count"]
 
-            patterns.append(Pattern(
-                pattern_id=f"period_{period}",
-                description=f"Performance em trades {period}",
-                win_rate=win_rate,
-                avg_pnl=avg_pnl,
-                sample_size=stats["count"],
-                last_seen=datetime.now(timezone.utc).isoformat(),
-                tags=["holding_period", "performance"]
-            ))
+            patterns.append(
+                Pattern(
+                    pattern_id=f"period_{period}",
+                    description=f"Performance em trades {period}",
+                    win_rate=win_rate,
+                    avg_pnl=avg_pnl,
+                    sample_size=stats["count"],
+                    last_seen=datetime.now(timezone.utc).isoformat(),
+                    tags=["holding_period", "performance"],
+                )
+            )
 
         return sorted(patterns, key=lambda p: p.win_rate, reverse=True)
 
@@ -241,15 +246,17 @@ class PatternAnalyzer:
                 continue
             accuracy = stats["correct"] / stats["total"] if stats["total"] > 0 else 0
 
-            patterns.append(Pattern(
-                pattern_id=f"thesis_{keyword}",
-                description=f"Precisão de tese: {keyword}",
-                win_rate=accuracy,
-                avg_pnl=0.0,  # N/A para thesis accuracy
-                sample_size=stats["total"],
-                last_seen=datetime.now(timezone.utc).isoformat(),
-                tags=["thesis", "accuracy"]
-            ))
+            patterns.append(
+                Pattern(
+                    pattern_id=f"thesis_{keyword}",
+                    description=f"Precisão de tese: {keyword}",
+                    win_rate=accuracy,
+                    avg_pnl=0.0,  # N/A para thesis accuracy
+                    sample_size=stats["total"],
+                    last_seen=datetime.now(timezone.utc).isoformat(),
+                    tags=["thesis", "accuracy"],
+                )
+            )
 
         return sorted(patterns, key=lambda p: p.win_rate, reverse=True)
 
@@ -266,17 +273,14 @@ class PatternAnalyzer:
             "MSFT": "software",
             "GOOGL": "software",
             "TSLA": "ev_tech",
-
             # Energy
             "XOM": "oil_gas",
             "CVX": "oil_gas",
             "COP": "oil_gas",
-
             # Finance
             "JPM": "banking",
             "BAC": "banking",
             "WFC": "banking",
-
             # Healthcare
             "JNJ": "healthcare",
             "PFE": "pharma",
@@ -346,15 +350,17 @@ class PatternAnalyzer:
             win_rate = stats["wins"] / stats["count"] if stats["count"] > 0 else 0
             avg_pnl = stats["pnl"] / stats["count"]
 
-            patterns.append(Pattern(
-                pattern_id=f"risk_{level}",
-                description=f"Performance com risco {level}",
-                win_rate=win_rate,
-                avg_pnl=avg_pnl,
-                sample_size=stats["count"],
-                last_seen=datetime.now(timezone.utc).isoformat(),
-                tags=["risk", "performance"]
-            ))
+            patterns.append(
+                Pattern(
+                    pattern_id=f"risk_{level}",
+                    description=f"Performance com risco {level}",
+                    win_rate=win_rate,
+                    avg_pnl=avg_pnl,
+                    sample_size=stats["count"],
+                    last_seen=datetime.now(timezone.utc).isoformat(),
+                    tags=["risk", "performance"],
+                )
+            )
 
         return sorted(patterns, key=lambda p: p.win_rate, reverse=True)
 
@@ -411,14 +417,14 @@ class LessonExtractor:
         title = f"Perda em {ticker}: ${abs(pnl):.2f}"
 
         content = f"""
-Trade: {ticker} ({trade.get('direction', 'unknown')})
-Entrada: ${trade.get('entry_price', 0):.2f}
-Saída: ${trade.get('exit_price', 0):.2f}
+Trade: {ticker} ({trade.get("direction", "unknown")})
+Entrada: ${trade.get("entry_price", 0):.2f}
+Saída: ${trade.get("exit_price", 0):.2f}
 PnL: ${pnl:.2f}
 Tese original: {thesis[:200]}
 Razão da saída: {exit_reason}
 
-Lição aprendida: {lesson or 'Análise pendente - revisar trade'}
+Lição aprendida: {lesson or "Análise pendente - revisar trade"}
 """.strip()
 
         return Lesson(
@@ -428,7 +434,7 @@ Lição aprendida: {lesson or 'Análise pendente - revisar trade'}
             source_trade_ids=[trade.get("trade_id", "")],
             confidence=0.7,
             category="risk",
-            applicable_tickers=[ticker]
+            applicable_tickers=[ticker],
         )
 
     def _lesson_from_win_streak(self, wins: list[dict]) -> Lesson:
@@ -451,7 +457,7 @@ Lição aprendida: {lesson or 'Análise pendente - revisar trade'}
 
         title = f"Padrão de {len(wins)} wins consecutivos"
         content = f"""
-Tickers: {', '.join(tickers)}
+Tickers: {", ".join(tickers)}
 PnL total: ${total_pnl:.2f}
 Tema comum: {theme}
 
@@ -469,7 +475,7 @@ Replicar: Buscar setups similares com {theme} confirmado.
             content=content,
             source_trade_ids=[w.get("trade_id", "") for w in wins],
             confidence=0.8,
-            category="thesis"
+            category="thesis",
         )
 
     def _lesson_from_broken_thesis(self, trade: dict) -> Lesson:
@@ -482,7 +488,7 @@ Replicar: Buscar setups similares com {theme} confirmado.
         content = f"""
 Tese original: {thesis[:200]}
 
-O que deu errado: {what_went_wrong or 'Análise pendente'}
+O que deu errado: {what_went_wrong or "Análise pendente"}
 
 Ação corretiva:
 - Revisar premissas da tese
@@ -497,7 +503,7 @@ Ação corretiva:
             source_trade_ids=[trade.get("trade_id", "")],
             confidence=0.6,
             category="thesis",
-            applicable_tickers=[ticker]
+            applicable_tickers=[ticker],
         )
 
 
@@ -545,7 +551,8 @@ class LearningLog:
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
         recent = [
-            lesson for lesson in self._lessons.values()
+            lesson
+            for lesson in self._lessons.values()
             if (_parse_utc_datetime(lesson.created_at) or datetime.min.replace(tzinfo=timezone.utc))
             > cutoff
             and (not category or lesson.category == category)
@@ -669,8 +676,11 @@ class FeedbackLoop:
         except Exception as e:
             logger.warning("Bob context generation failed: %s", e)
 
-        logger.info("Learning cycle complete: %d patterns, %d lessons",
-                    results["patterns_found"], results["lessons_extracted"])
+        logger.info(
+            "Learning cycle complete: %d patterns, %d lessons",
+            results["patterns_found"],
+            results["lessons_extracted"],
+        )
 
         return results
 
@@ -762,17 +772,23 @@ class FeedbackLoop:
             sector_patterns = self._pattern_analyzer.analyze_sector_performance()
             if sector_patterns:
                 top_sector = sector_patterns[0]
-                patterns.append(f"• Melhor setor: {top_sector.description} (win rate: {top_sector.win_rate*100:.0f}%)")
+                patterns.append(
+                    f"• Melhor setor: {top_sector.description} (win rate: {top_sector.win_rate * 100:.0f}%)"
+                )
 
             period_patterns = self._pattern_analyzer.analyze_holding_period_performance()
             if period_patterns:
                 top_period = period_patterns[0]
-                patterns.append(f"• Melhor período: {top_period.description} (win rate: {top_period.win_rate*100:.0f}%)")
+                patterns.append(
+                    f"• Melhor período: {top_period.description} (win rate: {top_period.win_rate * 100:.0f}%)"
+                )
 
             risk_patterns = self._pattern_analyzer.analyze_risk_reward_performance()
             if risk_patterns:
                 top_risk = risk_patterns[0]
-                patterns.append(f"• Melhor risco: {top_risk.description} (win rate: {top_risk.win_rate*100:.0f}%)")
+                patterns.append(
+                    f"• Melhor risco: {top_risk.description} (win rate: {top_risk.win_rate * 100:.0f}%)"
+                )
         except Exception as e:
             logger.warning("Pattern rendering failed: %s", e)
 
@@ -796,6 +812,7 @@ class FeedbackLoop:
         if self._xp_system is None:
             try:
                 from .xp_system import get_xp_system
+
                 self._xp_system = get_xp_system()
             except ImportError:
                 pass
@@ -834,25 +851,27 @@ class FeedbackLoop:
             "bias_report": self.analyze_confidence_bias(),
         }
 
-
     def check_before_trade(self, ticker: str, thesis: str = "") -> str | None:
         """Verifica se este trade é similar a um que falhou. Retorna motivo ou None."""
         ticker = ticker.upper()
-        closed = [t for t in self._journal.list_all()
-                  if str(t.get("ticker","")).upper() == ticker and t.get("outcome") == "loss"]
+        closed = [
+            t
+            for t in self._journal.list_all()
+            if str(t.get("ticker", "")).upper() == ticker and t.get("outcome") == "loss"
+        ]
         if not closed:
             return None
 
         last_loss = closed[-1]
-        loss_thesis = str(last_loss.get("thesis","") or last_loss.get("entry_reasoning",""))
-        loss_trade_id = str(last_loss.get("trade_id","?"))
+        loss_thesis = str(last_loss.get("thesis", "") or last_loss.get("entry_reasoning", ""))
+        loss_trade_id = str(last_loss.get("trade_id", "?"))
 
         # Similarity check: same ticker + overlapping keywords = block
         thesis_words = set(thesis.lower().split()) if thesis else set()
         loss_words = set(loss_thesis.lower().split())
         overlap = len(thesis_words & loss_words) if thesis_words else 0
 
-        if ticker in [str(t.get("ticker","")).upper() for t in closed]:
+        if ticker in [str(t.get("ticker", "")).upper() for t in closed]:
             return f"FeedbackLoop: {ticker} already has {len(closed)} loss(es). Last: {loss_trade_id}. Review thesis before retrying."
 
         if overlap >= 3:
@@ -862,25 +881,30 @@ class FeedbackLoop:
 
     def calibrate_confidence(self) -> dict:
         """Compara confidence declarada vs outcome real. Retorna fator de calibragem."""
-        closed = [t for t in self._journal.list_all() if t.get("outcome") in ("win","loss")]
+        closed = [t for t in self._journal.list_all() if t.get("outcome") in ("win", "loss")]
         samples = []
         for t in closed:
             conf = t.get("confidence")
-            if conf is not None and isinstance(conf, (int,float)) and 0 <= conf <= 100:
+            if conf is not None and isinstance(conf, (int, float)) and 0 <= conf <= 100:
                 samples.append((conf, t.get("outcome")))
 
         if len(samples) < 5:
-            return {"status": "insufficient_data", "sample_size": len(samples), "min_sample": 5, "factor": 1.0}
+            return {
+                "status": "insufficient_data",
+                "sample_size": len(samples),
+                "min_sample": 5,
+                "factor": 1.0,
+            }
 
         # For each sample: if confidence > 50 and outcome=loss → overconfident
-        overconfident = sum(1 for c,o in samples if c > 60 and o == "loss")
-        underconfident = sum(1 for c,o in samples if c < 40 and o == "win")
+        overconfident = sum(1 for c, o in samples if c > 60 and o == "loss")
+        underconfident = sum(1 for c, o in samples if c < 40 and o == "win")
         total = len(samples)
 
         # Calibration factor: actual_win_rate / avg_confidence
-        wins = sum(1 for _,o in samples if o == "win")
+        wins = sum(1 for _, o in samples if o == "win")
         actual_wr = wins / total if total > 0 else 0
-        avg_conf = sum(c for c,_ in samples) / total / 100 if total > 0 else 0.5
+        avg_conf = sum(c for c, _ in samples) / total / 100 if total > 0 else 0.5
 
         factor = actual_wr / avg_conf if avg_conf > 0 else 1.0
         factor = max(0.3, min(3.0, factor))  # clamp
@@ -898,7 +922,7 @@ class FeedbackLoop:
                 f"Bob is {'overconfident' if factor < 0.8 else 'underconfident' if factor > 1.2 else 'calibrated'}. "
                 f"Actual win rate {actual_wr:.0%} vs declared confidence {avg_conf:.0%}. "
                 f"Suggested confidence multiplier: {factor:.2f}"
-            )
+            ),
         }
 
     def _update_xp_from_closed_trades(self) -> dict[str, Any]:
@@ -910,6 +934,7 @@ class FeedbackLoop:
         if self._xp_system is None:
             try:
                 from .xp_system import get_xp_system
+
                 self._xp_system = get_xp_system()
             except ImportError:
                 return {"status": "xp_system_unavailable", "events": []}
@@ -994,11 +1019,13 @@ class FeedbackLoop:
         """Atualiza o confidence de um trade no journal."""
         trades = self._journal.list_all()
         for t in trades:
-            if str(t.get("trade_id","")) == str(trade_id):
+            if str(t.get("trade_id", "")) == str(trade_id):
                 t["confidence"] = round(float(confidence), 1)
                 # Re-write journal with updated confidence
                 self._journal._rewrite(trades)
-                logger.info("FeedbackLoop: recorded confidence %.1f for trade %s", confidence, trade_id)
+                logger.info(
+                    "FeedbackLoop: recorded confidence %.1f for trade %s", confidence, trade_id
+                )
                 return True
         return False
 

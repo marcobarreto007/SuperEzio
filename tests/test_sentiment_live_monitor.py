@@ -20,8 +20,24 @@ class FakeProvider:
 class FakeHub:
     def __init__(self):
         self.providers = {
-            "newsapi": FakeProvider({"TLRY": {"source": "newsapi", "sentiment_label": "BULLISH", "sentiment_score": 0.2}}),
-            "news_scout": FakeProvider({"TLRY": {"source": "news_scout", "sentiment_label": "BULLISH", "sentiment_score": 0.2}}),
+            "newsapi": FakeProvider(
+                {
+                    "TLRY": {
+                        "source": "newsapi",
+                        "sentiment_label": "BULLISH",
+                        "sentiment_score": 0.2,
+                    }
+                }
+            ),
+            "news_scout": FakeProvider(
+                {
+                    "TLRY": {
+                        "source": "news_scout",
+                        "sentiment_label": "BULLISH",
+                        "sentiment_score": 0.2,
+                    }
+                }
+            ),
             "reddit_pulse": FakeProvider({"TLRY": {"signal_label": "BULLISH", "total_posts": 20}}),
             "finnhub": FakeProvider({"TLRY": [{"title": "TLRY announces update"}]}),
         }
@@ -169,7 +185,9 @@ def test_live_monitor_discovers_market_tickers_and_exposes_origin(tmp_path):
     assert "SNDL" in monitor.watchlist
     assert report["origin"] == "discovered"
     assert report["discovered"] is True
-    assert report["discovery"]["headline"] == "SNDL rips higher as cannabis penny stock chatter spikes"
+    assert (
+        report["discovery"]["headline"] == "SNDL rips higher as cannabis penny stock chatter spikes"
+    )
     assert report["reddit"]["mentions"] == 18
     assert report["analyst_score"] > 0
 
@@ -297,14 +315,11 @@ def test_persist_to_db_creates_table_and_inserts_row(tmp_path):
     monitor._persist_to_db("AAPL", snapshot)
 
     conn = sqlite3.connect(str(db_path))
-    tables = conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table'"
-    ).fetchall()
+    tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
     assert ("sentiment_history",) in tables
 
     rows = conn.execute(
-        "SELECT ticker, score, label, reddit_mentions, news_count, flags "
-        "FROM sentiment_history"
+        "SELECT ticker, score, label, reddit_mentions, news_count, flags FROM sentiment_history"
     ).fetchall()
     assert len(rows) == 1
     ticker, score, label, mentions, news, flags = rows[0]

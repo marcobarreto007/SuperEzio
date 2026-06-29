@@ -118,10 +118,7 @@ class ModelGateway:
                     if p.name == AGENT_PROVIDER_NAME:
                         if not allow_fallback:
                             return [p]
-                        fallback = [
-                            fb for fb in self.providers
-                            if fb.name == "ceo_fallback_glm"
-                        ]
+                        fallback = [fb for fb in self.providers if fb.name == "ceo_fallback_glm"]
                         return [p] + fallback
                     if not allow_fallback:
                         return [p]

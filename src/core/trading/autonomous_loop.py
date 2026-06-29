@@ -60,7 +60,9 @@ class AutonomousLoop:
             self._engine_mode = "injected"
         else:
             if use_live_engine is None:
-                use_live_engine = os.getenv("SUPEREZIO_AUTONOMOUS_ENGINE", "live").lower() != "simulated"
+                use_live_engine = (
+                    os.getenv("SUPEREZIO_AUTONOMOUS_ENGINE", "live").lower() != "simulated"
+                )
             if use_live_engine:
                 self._engine = get_live_trading_engine(use_ibkr=use_ibkr, equity=equity)
                 self._engine_mode = "live_ibkr" if use_ibkr else "live_market_data"
@@ -228,7 +230,9 @@ class AutonomousLoop:
         logger.info("🌙 Market closed. Next open in %.1fh", hours_to_open)
 
         # Dormir até 1h antes da abertura
-        sleep_seconds = min(seconds_to_open - 3600, self._scan_interval * 4) if seconds_to_open > 3600 else 300
+        sleep_seconds = (
+            min(seconds_to_open - 3600, self._scan_interval * 4) if seconds_to_open > 3600 else 300
+        )
 
         if sleep_seconds > 0:
             logger.info("💤 Sleeping for %.1f minutes", sleep_seconds / 60)
@@ -330,7 +334,12 @@ class AutonomousLoop:
             summary["positions_closed"] = summary.get("closed", 0)
             summary["total_pnl"] = summary.get("total_pnl", 0.0)
             return summary
-        return {"trades_executed": 0, "positions_closed": 0, "total_pnl": 0.0, "opportunities_found": 0}
+        return {
+            "trades_executed": 0,
+            "positions_closed": 0,
+            "total_pnl": 0.0,
+            "opportunities_found": 0,
+        }
 
     def _engine_check_positions(self) -> list[dict[str, Any]]:
         if hasattr(self._engine, "check_and_update_positions"):

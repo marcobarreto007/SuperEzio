@@ -64,4 +64,3 @@ class BaseCrisisModel:
             explanation=explanation,
             details=details or {},
         )
-

@@ -5,7 +5,7 @@ No timeouts. No rush. Bob works while you sleep.
 
 Architecture:
 - Cycle 1 (every 5 min): Update prices for watchlist tickers
-- Cycle 2 (every 15 min): Run market scans for opportunities  
+- Cycle 2 (every 15 min): Run market scans for opportunities
 - Cycle 3 (every 60 min): Run full expert analysis on top movers
 - Cycle 4 (every 6 hours): Rebuild OHLCV cache for all 391 tickers
 - Cycle 5 (every 24 hours): Learning cycle — review closed trades, update pain memory
@@ -24,11 +24,8 @@ import asyncio
 import logging
 import os
 import signal
-import sys
 import time
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -36,11 +33,11 @@ logger = logging.getLogger(__name__)
 # Configuration — NO TIMEOUTS, NO RUSH
 # ═══════════════════════════════════════════════════════════
 
-PRICE_UPDATE_INTERVAL = int(os.getenv("LEARNER_PRICE_INTERVAL_SEC", "300"))     # 5 min
-SCAN_INTERVAL = int(os.getenv("LEARNER_SCAN_INTERVAL_SEC", "900"))              # 15 min  
-EXPERT_INTERVAL = int(os.getenv("LEARNER_EXPERT_INTERVAL_SEC", "3600"))         # 60 min
+PRICE_UPDATE_INTERVAL = int(os.getenv("LEARNER_PRICE_INTERVAL_SEC", "300"))  # 5 min
+SCAN_INTERVAL = int(os.getenv("LEARNER_SCAN_INTERVAL_SEC", "900"))  # 15 min
+EXPERT_INTERVAL = int(os.getenv("LEARNER_EXPERT_INTERVAL_SEC", "3600"))  # 60 min
 OHLCV_REBUILD_INTERVAL = int(os.getenv("LEARNER_OHLCV_INTERVAL_SEC", "21600"))  # 6 hours
-LEARNING_INTERVAL = int(os.getenv("LEARNER_LEARNING_INTERVAL_SEC", "86400"))    # 24 hours
+LEARNING_INTERVAL = int(os.getenv("LEARNER_LEARNING_INTERVAL_SEC", "86400"))  # 24 hours
 
 _shutdown_flag = False
 
@@ -64,7 +61,7 @@ async def _cycle_update_prices(watchlist: list[str]):
     """Fetch current prices for all watchlist tickers."""
     logger.info("cycle_price_update_start", tickers=len(watchlist))
     from core.trading.historical_cache import fetch_and_cache_ticker
-    
+
     updated = 0
     for ticker in watchlist:
         if _shutdown_flag:
@@ -76,19 +73,19 @@ async def _cycle_update_prices(watchlist: list[str]):
         except Exception as e:
             logger.debug("price_update_error", ticker=ticker, error=str(e)[:80])
         await asyncio.sleep(0.5)  # Be nice to APIs
-    
+
     logger.info("cycle_price_update_done", updated=updated, total=len(watchlist))
 
 
 async def _cycle_scan_market(watchlist: list[str]):
     """Run market scans on top movers from the watchlist."""
     logger.info("cycle_scan_start")
-    from core.trading.universe_builder import build_universe_400
-    
+
     # Find top volume movers from cached data
     from core.trading.historical_cache import _get_db
+
     conn = _get_db()
-    
+
     try:
         # Top 20 by recent volume
         rows = conn.execute("""
@@ -96,10 +93,11 @@ async def _cycle_scan_market(watchlist: list[str]):
             WHERE date >= date('now', '-5 days')
             ORDER BY volume DESC LIMIT 50
         """).fetchall()
-        
+
         if rows:
             # Run experts on top movers
             from core.trading.batch_expert_runner import run_experts_on_ticker
+
             seen = set()
             for row in rows:
                 ticker = row[0]
@@ -110,7 +108,7 @@ async def _cycle_scan_market(watchlist: list[str]):
                     run_experts_on_ticker(ticker)
                 except Exception as e:
                     logger.debug("scan_expert_error", ticker=ticker, error=str(e)[:80])
-            
+
             logger.info("cycle_scan_done", tickers_analyzed=len(seen))
         else:
             logger.info("cycle_scan_no_data")
@@ -122,7 +120,7 @@ async def _cycle_full_experts(watchlist: list[str]):
     """Run full 6-expert analysis on all watchlist tickers."""
     logger.info("cycle_experts_start", tickers=len(watchlist))
     from core.trading.batch_expert_runner import run_experts_on_ticker
-    
+
     completed = 0
     for ticker in watchlist:
         if _shutdown_flag:
@@ -134,7 +132,7 @@ async def _cycle_full_experts(watchlist: list[str]):
         except Exception as e:
             logger.debug("expert_error", ticker=ticker, error=str(e)[:80])
         await asyncio.sleep(0.1)
-    
+
     logger.info("cycle_experts_done", completed=completed, total=len(watchlist))
 
 
@@ -142,7 +140,7 @@ async def _cycle_rebuild_ohlcv(watchlist: list[str]):
     """Rebuild full 6-month OHLCV for all tickers."""
     logger.info("cycle_ohlcv_rebuild_start", tickers=len(watchlist))
     from core.trading.historical_cache import fetch_and_cache_ticker
-    
+
     rebuilt = 0
     for ticker in watchlist:
         if _shutdown_flag:
@@ -154,7 +152,7 @@ async def _cycle_rebuild_ohlcv(watchlist: list[str]):
         except Exception as e:
             logger.debug("ohlcv_error", ticker=ticker, error=str(e)[:80])
         await asyncio.sleep(1)  # Slower — full rebuild is heavy
-    
+
     logger.info("cycle_ohlcv_rebuild_done", rebuilt=rebuilt, total=len(watchlist))
 
 
@@ -163,8 +161,9 @@ async def _cycle_learn():
     logger.info("cycle_learning_start")
     try:
         from core.trading.feedback_loop import get_feedback_loop
+
         fb = get_feedback_loop()
-        
+
         # Review aged theses
         journal_path = Path("data/paper_journal.jsonl")
         if journal_path.exists():
@@ -173,13 +172,14 @@ async def _cycle_learn():
                 if line.strip():
                     try:
                         import json
+
                         trades.append(json.loads(line))
                     except:
                         pass
-            
+
             closed = [t for t in trades if t.get("outcome") in ("win", "loss")]
             logger.info("learning_review", closed_trades=len(closed))
-        
+
         fb.run_learning_cycle()
         stats = fb.get_stats()
         logger.info("cycle_learning_done", stats=stats)
@@ -194,54 +194,53 @@ async def _cycle_learn():
 
 async def run_forever():
     """Run the autonomous learner forever. Never stops. Never times out."""
-    from core.trading.universe_builder import build_universe_400
     from core.trading.dynamic_watchlist import get_dynamic_watchlist
-    
+
     watchlist = get_dynamic_watchlist(use_universe_400=True)
     logger.info("learner_boot", tickers=len(watchlist), mode="24/7")
-    
+
     last_price = 0.0
     last_scan = 0.0
     last_expert = 0.0
     last_ohlcv = 0.0
     last_learn = 0.0
-    
+
     cycle = 0
-    
+
     while not _shutdown_flag:
         cycle += 1
         now = time.time()
         logger.info("learner_cycle", cycle=cycle, tickers=len(watchlist))
-        
+
         try:
             # Price updates (every 5 min)
             if now - last_price >= PRICE_UPDATE_INTERVAL:
                 await _cycle_update_prices(watchlist)
                 last_price = now
-            
+
             # Market scans (every 15 min)
             if now - last_scan >= SCAN_INTERVAL:
                 await _cycle_scan_market(watchlist)
                 last_scan = now
-            
+
             # Full experts (every 60 min)
             if now - last_expert >= EXPERT_INTERVAL:
                 await _cycle_full_experts(watchlist)
                 last_expert = now
-            
+
             # OHLCV rebuild (every 6 hours)
             if now - last_ohlcv >= OHLCV_REBUILD_INTERVAL:
                 await _cycle_rebuild_ohlcv(watchlist)
                 last_ohlcv = now
-            
+
             # Learning cycle (every 24 hours)
             if now - last_learn >= LEARNING_INTERVAL:
                 await _cycle_learn()
                 last_learn = now
-            
+
         except Exception as e:
             logger.error("learner_cycle_error", cycle=cycle, error=str(e)[:200])
-        
+
         # Sleep between cycles — no rush
         next_check = min(
             last_price + PRICE_UPDATE_INTERVAL,
@@ -253,7 +252,7 @@ async def run_forever():
         wait = max(30, next_check - time.time())
         logger.debug("learner_sleep", seconds=int(wait))
         await asyncio.sleep(min(wait, 300))  # Max 5 min sleep chunks (check shutdown)
-    
+
     logger.info("learner_shutdown_complete", total_cycles=cycle)
 
 
@@ -270,7 +269,7 @@ def main():
     print(f"  Ctrl+C to stop")
     print("=" * 60)
     print()
-    
+
     asyncio.run(run_forever())
 
 

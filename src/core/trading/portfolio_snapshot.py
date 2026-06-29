@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -39,9 +38,7 @@ def fetch_portfolio_snapshot(language: str = "en") -> str:
         ib.reqMarketDataType(3)  # delayed data, free
 
         pos_list = ib.positions()
-        equity = sum(
-            float(v.value) for v in ib.accountSummary() if v.tag == "NetLiquidation"
-        )
+        equity = sum(float(v.value) for v in ib.accountSummary() if v.tag == "NetLiquidation")
 
         if not pos_list:
             ib.disconnect()
@@ -67,12 +64,7 @@ def fetch_portfolio_snapshot(language: str = "en") -> str:
 
         for p, ticker in zip(pos_list, tickers):
             ib.cancelMktData(p.contract)
-            price = (
-                ticker.last
-                or ticker.close
-                or ticker.marketPrice()
-                or float(p.avgCost)
-            )
+            price = ticker.last or ticker.close or ticker.marketPrice() or float(p.avgCost)
             pos_val = float(p.position) * price
             pnl = (price - float(p.avgCost)) * float(p.position)
             total_value += pos_val
@@ -92,15 +84,14 @@ def fetch_portfolio_snapshot(language: str = "en") -> str:
 
         cash = equity - total_value
         concentration_pct = (total_value / equity * 100) if equity > 0 else 0
-        concentration_warning = (
-            "⚠️ ALTA" if concentration_pct > 50 else "OK"
-        )
+        concentration_warning = "⚠️ ALTA" if concentration_pct > 50 else "OK"
 
         if language == "pt":
             return (
                 f"CARTEIRA ATUAL (IBKR paper):\n"
                 f"  Equity: ${equity:,.2f}  |  Posições: {len(pos_list)}\n"
-                + "\n".join(position_lines) + "\n"
+                + "\n".join(position_lines)
+                + "\n"
                 + f"  Total investido: ${total_value:,.2f}  |  Cash: ${cash:,.2f}\n"
                 + f"  Concentração: {concentration_warning} ({concentration_pct:.0f}% do equity)\n"
             )

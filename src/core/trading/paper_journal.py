@@ -196,9 +196,11 @@ class PaperJournal:
         if not ticker:
             raise ValueError("trade ticker/symbol is required")
 
-        direction = str(
-            trade.get("direction") or trade.get("side") or trade.get("action") or "long"
-        ).strip().lower()
+        direction = (
+            str(trade.get("direction") or trade.get("side") or trade.get("action") or "long")
+            .strip()
+            .lower()
+        )
         if direction == "buy":
             direction = "long"
         elif direction == "sell":
@@ -212,17 +214,9 @@ class PaperJournal:
             or f"paper-{ticker}-{int(datetime.now(timezone.utc).timestamp() * 1000)}"
         )
         entry_price = float(
-            trade.get("entry_price")
-            or trade.get("limit_price")
-            or trade.get("price")
-            or 0.0
+            trade.get("entry_price") or trade.get("limit_price") or trade.get("price") or 0.0
         )
-        shares = float(
-            trade.get("shares")
-            or trade.get("qty")
-            or trade.get("quantity")
-            or 0.0
-        )
+        shares = float(trade.get("shares") or trade.get("qty") or trade.get("quantity") or 0.0)
 
         canonical = PaperTrade(
             trade_id=trade_id,
@@ -233,10 +227,7 @@ class PaperJournal:
             entry_price=entry_price,
             shares=shares,
             entry_reasoning=str(
-                trade.get("entry_reasoning")
-                or trade.get("reasoning")
-                or trade.get("thesis")
-                or ""
+                trade.get("entry_reasoning") or trade.get("reasoning") or trade.get("thesis") or ""
             ),
             verdict_at_entry=str(trade.get("verdict_at_entry") or trade.get("verdict") or ""),
             risk_assessment=str(trade.get("risk_assessment") or trade.get("risk") or ""),

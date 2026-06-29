@@ -217,7 +217,9 @@ class MathHub:
             for price in prices:
                 close = _safe_float(price)
                 if close is not None:
-                    candles.append({"open": close, "high": close, "low": close, "close": close, "volume": 0.0})
+                    candles.append(
+                        {"open": close, "high": close, "low": close, "close": close, "volume": 0.0}
+                    )
         return candles
 
     def _latest_price(self, data: Mapping[str, Any], closes: list[float]) -> float | None:
@@ -321,7 +323,10 @@ class MathHub:
             return {"status": "insufficient_data", "reason": "need_return_series"}
         return {
             "status": "ok",
-            "values": {"var_95": var_historic(returns, 0.95), "cvar_95": cvar_historic(returns, 0.95)},
+            "values": {
+                "var_95": var_historic(returns, 0.95),
+                "cvar_95": cvar_historic(returns, 0.95),
+            },
         }
 
     def _kelly_module(self, returns: list[float]) -> dict[str, Any]:
@@ -343,9 +348,7 @@ class MathHub:
     def _dcf_module(self, data: Mapping[str, Any]) -> dict[str, Any]:
         profile = data.get("profile") if isinstance(data.get("profile"), Mapping) else data
         fcf = _safe_float(
-            profile.get("free_cash_flow")
-            or profile.get("fcf")
-            or profile.get("freeCashflow")
+            profile.get("free_cash_flow") or profile.get("fcf") or profile.get("freeCashflow")
             if isinstance(profile, Mapping)
             else None
         )
@@ -579,7 +582,9 @@ class MathHub:
         except Exception as exc:
             return {"status": "error", "reason": str(exc)[:200]}
 
-    def _penny_momentum_module(self, ticker: str, candles: list[dict[str, float]]) -> dict[str, Any]:
+    def _penny_momentum_module(
+        self, ticker: str, candles: list[dict[str, float]]
+    ) -> dict[str, Any]:
         if not ticker or len(candles) < 20:
             return {"status": "skipped", "reason": "need_ticker_and_20_candles"}
         try:

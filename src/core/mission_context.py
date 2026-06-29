@@ -36,10 +36,13 @@ def _load_learning_lessons(max_lessons: int = 10) -> list[dict[str, Any]]:
                 continue
 
         # Sort by recency and confidence
-        lessons.sort(key=lambda l: (
-            float(l.get("confidence", 0)),
-            -(l.get("created_at", "")),
-        ), reverse=True)
+        lessons.sort(
+            key=lambda l: (
+                float(l.get("confidence", 0)),
+                -(l.get("created_at", "")),
+            ),
+            reverse=True,
+        )
         return lessons[:max_lessons]
     except Exception:
         return []
@@ -360,4 +363,3 @@ def get_mission_equity(path: str | Path | None = None) -> float:
         pass
 
     return 10000.0
-

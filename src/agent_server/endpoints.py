@@ -330,12 +330,19 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
     # Use service status after cache reads; first request may wait for the worker refresh.
     connected = service_status.get("connected", False) and service_status.get("can_read", False)
     from core.mission_context import get_mission_equity
+
     equity_default = f"{get_mission_equity():.2f}"
-    equity = f"{equity_float:,.2f}" if equity_float > 0 else broker.get("account_equity") or equity_default
+    equity = (
+        f"{equity_float:,.2f}"
+        if equity_float > 0
+        else broker.get("account_equity") or equity_default
+    )
     positions_count = len(positions)
 
     raw_mode = str(broker.get("mode") or "").lower()
-    paper = broker.get("paper_port") is True or "paper" in raw_mode or connection == "connected_paper"
+    paper = (
+        broker.get("paper_port") is True or "paper" in raw_mode or connection == "connected_paper"
+    )
     can_submit = broker.get("can_submit_orders") is True and paper
     if connected and paper:
         mode = "paper_order_enabled" if can_submit else "paper_read_only"
@@ -1143,9 +1150,7 @@ def _build_chart_context_repair_answer(
     sma20 = _extract_chart_fact(chart_context, "SMA20")
     sma50 = _extract_chart_fact(chart_context, "SMA50")
 
-    sentiment_match = re.search(
-        r"Sentimento\s*=\s*([^,.;\n]+)", raw_message or "", re.IGNORECASE
-    )
+    sentiment_match = re.search(r"Sentimento\s*=\s*([^,.;\n]+)", raw_message or "", re.IGNORECASE)
     sentiment = sentiment_match.group(1).strip() if sentiment_match else "nao informado"
     reddit_match = re.search(r"Reddit\s*=\s*([^,.;\n]+)", raw_message or "", re.IGNORECASE)
     reddit = reddit_match.group(1).strip() if reddit_match else "nao informado"
@@ -1214,8 +1219,11 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
 
     # ── Task Queue: evita probe preso, 1 task ativa por sessão ──
     from core.pipeline.task_queue import get_task_queue
+
     tq = get_task_queue()
-    session_id_raw = (envelope.payload or {}).get("session_id") if isinstance(envelope.payload, dict) else ""
+    session_id_raw = (
+        (envelope.payload or {}).get("session_id") if isinstance(envelope.payload, dict) else ""
+    )
     task = tq.submit(message=str(envelope.payload), session_id=str(session_id_raw))
     if task is None:
         active = tq.active_for_session(str(session_id_raw))
@@ -1296,7 +1304,9 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                             + "\n"
                         )
                         yield (
-                            json.dumps({"type": "CHUNK", "content": explanation}, ensure_ascii=False)
+                            json.dumps(
+                                {"type": "CHUNK", "content": explanation}, ensure_ascii=False
+                            )
                             + "\n"
                         )
                         trace = {
@@ -1312,7 +1322,12 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                         }
                         logger.info("Bob Response Trace (Intercepted): %s", json.dumps(trace))
                         request.app.state.last_decision_trace = trace
-                        yield json.dumps({"type": "STREAM_END", "trace": trace, "run_id": task.run_id}) + "\n"
+                        yield (
+                            json.dumps(
+                                {"type": "STREAM_END", "trace": trace, "run_id": task.run_id}
+                            )
+                            + "\n"
+                        )
                     finally:
                         tq.complete(task.run_id)
 
@@ -1418,7 +1433,12 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
             answer_repaired = False
             if detected_ticker:
                 yield (json.dumps({"type": "CHART_DATA", "ticker": detected_ticker}) + "\n")
-            yield json.dumps({"type": "STREAM_START", "msg_id": envelope.msg_id, "run_id": task.run_id}) + "\n"
+            yield (
+                json.dumps(
+                    {"type": "STREAM_START", "msg_id": envelope.msg_id, "run_id": task.run_id}
+                )
+                + "\n"
+            )
 
             try:
                 if hasattr(pipeline, "stream_events"):
@@ -1756,7 +1776,9 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
 
                 _session_history[session_id] = session_record
 
-                yield json.dumps({"type": "STREAM_END", "trace": trace, "run_id": task.run_id}) + "\n"
+                yield (
+                    json.dumps({"type": "STREAM_END", "trace": trace, "run_id": task.run_id}) + "\n"
+                )
             except asyncio.CancelledError:
                 # Client disconnected. Let the pipeline tear down naturally
                 # without propagating cancellation to the LLM backend — this
@@ -1831,7 +1853,9 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     "failed": True,
                 }
 
-                yield json.dumps({"type": "STREAM_END", "trace": trace, "run_id": task.run_id}) + "\n"
+                yield (
+                    json.dumps({"type": "STREAM_END", "trace": trace, "run_id": task.run_id}) + "\n"
+                )
             finally:
                 tq.complete(task.run_id)
 
@@ -2324,7 +2348,12 @@ async def get_training_orders() -> dict[str, Any]:
     """Retorna ordens de treinamento para o Bob aparecerem no UI."""
     from pathlib import Path
 
-    training_file = Path(__file__).resolve().parent.parent.parent / "runtime" / "training" / "bob_chart_orders.jsonl"
+    training_file = (
+        Path(__file__).resolve().parent.parent.parent
+        / "runtime"
+        / "training"
+        / "bob_chart_orders.jsonl"
+    )
     orders = []
 
     if training_file.exists():
@@ -2335,20 +2364,22 @@ async def get_training_orders() -> dict[str, Any]:
                 try:
                     order = json.loads(line)
                     # Convert training order to UI-compatible format
-                    orders.append({
-                        "order_id": order.get("order_id"),
-                        "ticker": order.get("ticker"),
-                        "action": order.get("action", "BUY").upper(),
-                        "side": order.get("action", "buy").lower(),
-                        "qty": 100,  # Default training qty
-                        "limit_price": None,
-                        "order_type": "MARKET",
-                        "status": "TRAINING",
-                        "source": "training",
-                        "training_type": order.get("type"),
-                        "training_message": order.get("message"),
-                        "timeframe": order.get("timeframe"),
-                    })
+                    orders.append(
+                        {
+                            "order_id": order.get("order_id"),
+                            "ticker": order.get("ticker"),
+                            "action": order.get("action", "BUY").upper(),
+                            "side": order.get("action", "buy").lower(),
+                            "qty": 100,  # Default training qty
+                            "limit_price": None,
+                            "order_type": "MARKET",
+                            "status": "TRAINING",
+                            "source": "training",
+                            "training_type": order.get("type"),
+                            "training_message": order.get("message"),
+                            "timeframe": order.get("timeframe"),
+                        }
+                    )
                 except json.JSONDecodeError:
                     continue
         except Exception as exc:
@@ -2363,10 +2394,12 @@ async def get_training_orders() -> dict[str, Any]:
 
 # ── Task Queue endpoints ────────────────────────────────────────────
 
+
 @router.get("/task/status/{run_id}")
 async def get_task_status(run_id: str) -> dict[str, Any]:
     """Status de uma task pelo run_id."""
     from core.pipeline.task_queue import get_task_queue
+
     return get_task_queue().status(run_id)
 
 
@@ -2374,6 +2407,7 @@ async def get_task_status(run_id: str) -> dict[str, Any]:
 async def cancel_task(run_id: str) -> dict[str, Any]:
     """Cancela uma task ativa."""
     from core.pipeline.task_queue import get_task_queue
+
     ok = get_task_queue().cancel(run_id)
     return {"cancelled": ok, "run_id": run_id}
 
@@ -2382,5 +2416,6 @@ async def cancel_task(run_id: str) -> dict[str, Any]:
 async def list_active_tasks() -> dict[str, Any]:
     """Lista todas as tasks ativas."""
     from core.pipeline.task_queue import get_task_queue
+
     tq = get_task_queue()
     return {"count": tq.active_count, "tasks": tq.active_tasks}

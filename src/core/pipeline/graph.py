@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
 import uuid
 from typing import Any, AsyncGenerator, Generator
 
@@ -90,11 +89,7 @@ def _merge_node_update(
 async def _do_collect(working_state, output, should_collect_market, route, config, _merge, _mark):
     """Extracted collector body for try_run_async wrapping."""
     collector_result: dict[str, Any] = {}
-    if (
-        should_collect_market
-        and not working_state.get("scan")
-        and not working_state.get("data")
-    ):
+    if should_collect_market and not working_state.get("scan") and not working_state.get("data"):
         collector_route = (
             "ticker_analysis"
             if working_state.get("ticker") and route != "market_scan"
@@ -132,6 +127,7 @@ async def _auto_full_analysis(
     # Preserve case_pending from orchestrator (survives state propagation)
     output["case_pending"] = list(working_state.get("case_pending") or [])
     output["case_context"] = working_state.get("case_context") or ""
+
     def _mark_step(step_name: str, evidence: dict | None = None):
         if financial_case:
             financial_case.mark_complete(step_name, evidence)
@@ -145,10 +141,20 @@ async def _auto_full_analysis(
     # ── Clean ticker-specific state between requests ──
     # Prevents ticker leakage: "analise AAPL" → "invista em outros" still sees AAPL
     if route == "general" and not working_state.get("ticker"):
-        for key in ("ticker", "data", "data_context", "expert_results",
-                     "expert_summary", "expert_verdicts", "trinity_report",
-                     "f51_verdict", "math_report", "math_prompt",
-                     "neural_decision", "rag_context"):
+        for key in (
+            "ticker",
+            "data",
+            "data_context",
+            "expert_results",
+            "expert_summary",
+            "expert_verdicts",
+            "trinity_report",
+            "f51_verdict",
+            "math_report",
+            "math_prompt",
+            "neural_decision",
+            "rag_context",
+        ):
             working_state.pop(key, None)
         logger.debug("[auto_full_analysis] Cleaned ticker-specific state for route=general")
 
@@ -165,14 +171,38 @@ async def _auto_full_analysis(
     # Collector must run BEFORE Bob for any data-dependent request.
     _msg = str(working_state.get("message") or "").lower()
     _has_ticker = bool(working_state.get("ticker") or working_state.get("case_ticker"))
-    _needs_scan = any(w in _msg for w in (
-        "scan", "ache", "encontre", "find", "busque", "procure",
-        "penny", "momentum", "catalyst", "catalisador",
-        "recomend", "recomendacao", "sugira", "sugestao",
-        "papel", "ticket", "ordem", "comprar", "vender",
-        "trade", "investir", "investimento", "acao", "stock",
-        "analise", "analyze", "analisa",  # single-ticker analysis
-    ))
+    _needs_scan = any(
+        w in _msg
+        for w in (
+            "scan",
+            "ache",
+            "encontre",
+            "find",
+            "busque",
+            "procure",
+            "penny",
+            "momentum",
+            "catalyst",
+            "catalisador",
+            "recomend",
+            "recomendacao",
+            "sugira",
+            "sugestao",
+            "papel",
+            "ticket",
+            "ordem",
+            "comprar",
+            "vender",
+            "trade",
+            "investir",
+            "investimento",
+            "acao",
+            "stock",
+            "analise",
+            "analyze",
+            "analisa",  # single-ticker analysis
+        )
+    )
     should_collect_market = bool(
         route in {"market_scan", "ticker_analysis"}
         or working_state.get("force_auto_collect")
@@ -186,11 +216,19 @@ async def _auto_full_analysis(
     # finished AFTER agent already built its prompt without data_context.
     if should_collect_market:
         try:
-            await _do_collect(working_state, output, should_collect_market, route, config,
-                              _merge_node_update, _mark_step)
+            await _do_collect(
+                working_state,
+                output,
+                should_collect_market,
+                route,
+                config,
+                _merge_node_update,
+                _mark_step,
+            )
         except Exception as collect_err:
             _merge_node_update(
-                working_state, output,
+                working_state,
+                output,
                 {"errors": [f"auto_full_analysis.collect_data:{collect_err}"]},
             )
     else:
@@ -198,14 +236,20 @@ async def _auto_full_analysis(
         _, collect_err = await try_run_async(
             "auto_full_analysis.collect_data",
             _do_collect,
-            working_state, output, should_collect_market, route, config,
-            _merge_node_update, _mark_step,
+            working_state,
+            output,
+            should_collect_market,
+            route,
+            config,
+            _merge_node_update,
+            _mark_step,
             fallback=None,
             log_level="warning",
         )
         if collect_err:
             _merge_node_update(
-                working_state, output,
+                working_state,
+                output,
                 {"errors": [f"auto_full_analysis.collect_data:{collect_err}"]},
             )
 
@@ -248,16 +292,18 @@ async def _auto_full_analysis(
     # Market experts only run after market/ticker evidence is actually present.
     # SKIP if data came from learner cache (already pre-computed)
     expert_results: list[dict[str, Any]] = []
-    data_from_cache = (
-        working_state.get("_data_from_cache")
-        or (isinstance(working_state.get("data"), dict)
-            and working_state["data"].get("price", {}).get("source") == "learner_24_7_cache")
+    data_from_cache = working_state.get("_data_from_cache") or (
+        isinstance(working_state.get("data"), dict)
+        and working_state["data"].get("price", {}).get("source") == "learner_24_7_cache"
     )
     should_run_market_stack = (
         not data_from_cache
         and bool(working_state.get("scan") or working_state.get("data"))
-        and (should_collect_market or route in {"market_scan", "ticker_analysis"}
-             or working_state.get("force_auto_market_stack"))
+        and (
+            should_collect_market
+            or route in {"market_scan", "ticker_analysis"}
+            or working_state.get("force_auto_market_stack")
+        )
     )
     if data_from_cache:
         _mark_step("experts", {"status": "skipped", "reason": "cache_hit"})
@@ -321,6 +367,7 @@ async def _auto_full_analysis(
     # ── IBKR portfolio snapshot: always inject current positions ──
     try:
         from core.trading.portfolio_snapshot import fetch_portfolio_snapshot
+
         loop = asyncio.get_running_loop()
         portfolio_context = await asyncio.wait_for(
             loop.run_in_executor(None, fetch_portfolio_snapshot, "en"),
@@ -330,7 +377,9 @@ async def _auto_full_analysis(
         _mark_step("system_status")
         _mark_step("portfolio_snapshot")
     except Exception as exc:
-        logger.warning("IBKR snapshot failed (%s: %s) — falling back to offline", type(exc).__name__, exc)
+        logger.warning(
+            "IBKR snapshot failed (%s: %s) — falling back to offline", type(exc).__name__, exc
+        )
         _merge_node_update(
             working_state,
             output,
@@ -342,6 +391,7 @@ async def _auto_full_analysis(
     # PARALLEL: f51, neural, sdca, rag, guardrails — todos independentes
     # ═══════════════════════════════════════════════════════
     if ticker:
+
         async def _run_node(label, node, ws):
             try:
                 return label, await node(ws), None
@@ -360,8 +410,9 @@ async def _auto_full_analysis(
 
         for label, result, error in results:
             if error:
-                _merge_node_update(working_state, output,
-                    {"errors": [f"auto_full_analysis.{label}:{error}"]})
+                _merge_node_update(
+                    working_state, output, {"errors": [f"auto_full_analysis.{label}:{error}"]}
+                )
             elif result:
                 _merge_node_update(working_state, output, result)
     else:
@@ -369,15 +420,17 @@ async def _auto_full_analysis(
             result = await node_sdca_firewall(working_state)
             _merge_node_update(working_state, output, result)
         except Exception as exc:
-            _merge_node_update(working_state, output,
-                {"errors": [f"auto_full_analysis.sdca_firewall:{exc}"]})
+            _merge_node_update(
+                working_state, output, {"errors": [f"auto_full_analysis.sdca_firewall:{exc}"]}
+            )
         try:
             result = await node_guardrail_hub(working_state)
             _merge_node_update(working_state, output, result)
             _mark_step("guardrails")
         except Exception as exc:
-            _merge_node_update(working_state, output,
-                {"errors": [f"auto_full_analysis.guardrail_hub:{exc}"]})
+            _merge_node_update(
+                working_state, output, {"errors": [f"auto_full_analysis.guardrail_hub:{exc}"]}
+            )
 
     writer(
         {
@@ -426,7 +479,9 @@ def build_graph(
     async def _tool_executor(state: dict) -> dict:
         return await node_tool_executor(state, gateway=gateway, config=config)
 
-    from .nodes.auto_execute_paper import auto_execute_paper as _auto_execute_paper  # extracted from inline (Phase 3)
+    from .nodes.auto_execute_paper import (
+        auto_execute_paper as _auto_execute_paper,
+    )  # extracted from inline (Phase 3)
 
     async def _explanation(state: dict) -> dict:
         return await node_explanation(state)
@@ -573,12 +628,17 @@ class PipelineApp:
             # 4. Injeta lições aprendidas do FeedbackLoop
             try:
                 from core.trading.feedback_loop import get_feedback_loop
+
                 fb_loop = get_feedback_loop()
                 if fb_loop:
                     learning_context = fb_loop.render_for_bob(max_chars=1000)
                     if learning_context:
-                        context = f"{context}\n\n{learning_context}" if context else learning_context
-                        logger.debug("[memory] Injected learning context (%d chars)", len(learning_context))
+                        context = (
+                            f"{context}\n\n{learning_context}" if context else learning_context
+                        )
+                        logger.debug(
+                            "[memory] Injected learning context (%d chars)", len(learning_context)
+                        )
             except Exception as exc:
                 logger.debug("[memory] Failed to load learning context: %s", exc)
 
@@ -762,6 +822,7 @@ class PipelineApp:
 
                     # Tenta extrair confiança
                     import re
+
                     conf_match = re.search(r"Confidence:\s*(\d+)", response_text)
                     if conf_match:
                         confidence = float(conf_match.group(1))

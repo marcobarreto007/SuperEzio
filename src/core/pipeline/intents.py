@@ -67,9 +67,7 @@ ROUTE_INTENT_ACTIONS = {
     "needs_scope": {"missing_required_slot", "unsafe_unspecified_recommendation"},
 }
 
-FINAL_ONLY_TOOLS = (
-    "final_answer",
-)
+FINAL_ONLY_TOOLS = ("final_answer",)
 FULL_TICKER_TOOLS = (
     "market_scan",
     "collect_data",
@@ -226,9 +224,21 @@ def infer_cognitive_contract(
     raw = message or ""
 
     # Única exceção: mensagem vazia ou puramente "oi"
-    if not raw.strip() or (len(raw.strip().split()) <= 2 and raw.strip().lower() in (
-        "oi", "ola", "olá", "hey", "hi", "hello", "bom dia", "boa tarde", "boa noite",
-    )):
+    if not raw.strip() or (
+        len(raw.strip().split()) <= 2
+        and raw.strip().lower()
+        in (
+            "oi",
+            "ola",
+            "olá",
+            "hey",
+            "hi",
+            "hello",
+            "bom dia",
+            "boa tarde",
+            "boa noite",
+        )
+    ):
         return {
             "cognitive_mode": "CASUAL",
             "information_need": "greeting",
@@ -246,7 +256,9 @@ def infer_cognitive_contract(
     return {
         "cognitive_mode": "FULL_ACCESS",
         "information_need": "bob_decides",
-        "allowed_tools": list(FULL_TICKER_TOOLS),  # collect_data, f51, pennylab, experts, neural, sdca, rag, submit_paper_order, final_answer
+        "allowed_tools": list(
+            FULL_TICKER_TOOLS
+        ),  # collect_data, f51, pennylab, experts, neural, sdca, rag, submit_paper_order, final_answer
         "market_context_allowed": True,
         "scanner_allowed": True,
         "ticker_allowed": True,
@@ -1828,6 +1840,7 @@ def detect_ticker(message: str) -> str:
 
     # ── Genie click: "TICKER USIO:" or "TICKER DIBS:" → extract immediately ──
     import re as _re
+
     ticker_prefix = _re.match(r"^TICKER\s+([A-Z]{1,5}(?:\.[A-Z]{2})?)\s*:", raw)
     if ticker_prefix:
         return ticker_prefix.group(1).upper()

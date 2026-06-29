@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class RerankResult:
     """Resultado de re-ranking."""
+
     id: str
     text: str
     original_score: float
@@ -238,9 +239,7 @@ class RerankPipeline:
         if not results:
             return "[RERANKED_MEMORY] No relevant memories found."
 
-        lines = [
-            "[RERANKED_MEMORY] — Relevant context (hybrid search + cross-encoder rerank):"
-        ]
+        lines = ["[RERANKED_MEMORY] — Relevant context (hybrid search + cross-encoder rerank):"]
 
         used = len(lines[0])
         for i, r in enumerate(results, 1):

@@ -18,7 +18,7 @@ from typing import Any
 
 def get_adaptive_config() -> dict[str, Any]:
     """Returns calibrated trading parameters adjusted by XP + Pain.
-    
+
     Called by the agent node before Bob's prompt is built.
     Injects calibrated thresholds into the agent's decision context.
     """
@@ -33,23 +33,25 @@ def get_adaptive_config() -> dict[str, Any]:
         "pain_mode": "normal",
         "rl_best_action": None,
     }
-    
+
     # ── XP System ──
     try:
         from core.trading.xp_system import get_xp_system
+
         xp = get_xp_system()
         config["xp_total"] = getattr(xp, "total_xp", 0)
         config["xp_level"] = getattr(xp, "level_name", "Novice")
-        
+
         # Higher XP → slightly lower confidence threshold (expertise = confidence)
         xp_bonus = min(0.10, config["xp_total"] / 5000)
         config["buy_confidence_threshold"] -= int(xp_bonus * 100)
     except Exception:
         pass
-    
+
     # ── Pain System (DOMINATES — pain overrides everything) ──
     try:
         from core.bob_consciousness.body import get_bobs_body
+
         body = get_bobs_body()
         scan = body.full_body_scan()
         config["pain_level"] = scan.get("overall_pain", 0)
@@ -79,24 +81,30 @@ def get_adaptive_config() -> dict[str, Any]:
     if config["pain_mode"] not in ("critical", "man_at_work"):
         try:
             from core.trading.auto_calibration import AutoCalibrator
+
             cal = AutoCalibrator()
             cal_config = cal.get_current_config()
             if cal_config:
                 cal_threshold = cal_config.get("BUY_CONFIDENCE_THRESHOLD", 75)
                 cal_position = cal_config.get("MAX_POSITION_PCT", 0.25)
                 cal_stop = cal_config.get("STOP_LOSS_PCT", 0.15)
-                config["buy_confidence_threshold"] = max(config["buy_confidence_threshold"], cal_threshold)
+                config["buy_confidence_threshold"] = max(
+                    config["buy_confidence_threshold"], cal_threshold
+                )
                 config["max_position_pct"] = min(config["max_position_pct"], cal_position)
                 config["stop_loss_pct"] = max(config["stop_loss_pct"], cal_stop)
         except Exception:
             pass
-    
+
     # ── Neural RL (policy gradient, replaces tabular Q-learning) ──
     try:
         from core.trading.neural_rl import get_neural_policy
+
         policy = get_neural_policy()
         rl_state = {
-            "confidence": "confidence_high" if config["buy_confidence_threshold"] < 80 else "confidence_medium",
+            "confidence": "confidence_high"
+            if config["buy_confidence_threshold"] < 80
+            else "confidence_medium",
             "market": "market_sideways",
             "pain_level": config["pain_level"],
             "xp_level": min(100, config["xp_total"] // 10),
@@ -109,12 +117,12 @@ def get_adaptive_config() -> dict[str, Any]:
         config["rl_stats"] = policy.get_stats()
     except Exception:
         pass
-    
+
     # Clamp safety bounds
     config["buy_confidence_threshold"] = max(50, min(100, config["buy_confidence_threshold"]))
     config["max_position_pct"] = max(0.0, min(0.50, config["max_position_pct"]))
     config["stop_loss_pct"] = max(0.05, min(0.50, config["stop_loss_pct"]))
-    
+
     return config
 
 
@@ -150,6 +158,7 @@ def inject_portfolio_context(state: dict[str, Any], capital: float = 10000.0) ->
         ticker = state.get("ticker", "")
         if ticker:
             from data.data_hub import hub
+
             candles_resp = hub.get_candles(ticker, timeframe="6M")
             candles = candles_resp.get("candles", [])
             if len(candles) >= 10:
@@ -167,6 +176,7 @@ def inject_portfolio_context(state: dict[str, Any], capital: float = 10000.0) ->
     if ticker_returns:
         try:
             from core.math.portfolio import portfolio_snapshot_for_bob
+
             return portfolio_snapshot_for_bob(ticker_returns, capital, numbers)
         except Exception:
             pass
@@ -174,22 +184,29 @@ def inject_portfolio_context(state: dict[str, Any], capital: float = 10000.0) ->
     # Fallback: just structured numbers
     try:
         from core.math.portfolio import structured_numbers_context
+
         return structured_numbers_context(numbers)
     except Exception:
         return ""
 
 
 def record_trade_outcome(
-    ticker: str, action: str, entry: float, exit_price: float,
-    qty: int, pnl: float, verdict_confidence: float = 0.0,
+    ticker: str,
+    action: str,
+    entry: float,
+    exit_price: float,
+    qty: int,
+    pnl: float,
+    verdict_confidence: float = 0.0,
 ) -> None:
     """Record a completed trade for XP, Auto-Calibration, and RL learning.
-    
+
     Called after a paper trade closes (post_trade_review or paper_journal).
     """
     # XP
     try:
         from core.trading.xp_system import get_xp_system
+
         xp = get_xp_system()
         xp_gain = 10 if pnl > 0 else -5
         # Pain scaling: bigger losses hurt more
@@ -200,20 +217,22 @@ def record_trade_outcome(
         getattr(xp, "add_xp", lambda x: None)(xp_gain)
     except Exception:
         pass
-    
+
     # Auto-Calibration
     try:
         from core.trading.auto_calibration import AutoCalibrator
+
         cal = AutoCalibrator()
         # Update win_rate signal
         cal.update_parameter("last_trade_pnl", pnl)
         cal.update_parameter("last_trade_result", "win" if pnl > 0 else "loss")
     except Exception:
         pass
-    
+
     # Neural RL (policy gradient update)
     try:
         from core.trading.neural_rl import get_neural_policy
+
         policy = get_neural_policy()
         rl_state = {
             "confidence": "confidence_high" if verdict_confidence > 75 else "confidence_medium",

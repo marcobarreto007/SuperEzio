@@ -8,9 +8,15 @@ from langgraph.config import get_stream_writer
 # Legacy constants — referenced by contract tests
 ALLOWED_ROUTES = {"agent", "general", "ticker_analysis", "market_scan", "needs_scope"}
 ALLOWED_INTENTS = {
-    "bob_decides", "general_question", "explain_capabilities", "ticker_analysis",
-    "market_scan", "missing_required_slot", "unsafe_unspecified_recommendation",
-    "capital_allocation", "personal_finance",
+    "bob_decides",
+    "general_question",
+    "explain_capabilities",
+    "ticker_analysis",
+    "market_scan",
+    "missing_required_slot",
+    "unsafe_unspecified_recommendation",
+    "capital_allocation",
+    "personal_finance",
 }
 
 
@@ -27,12 +33,14 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
     message = state.get("message", "")
     incoming_ticker = str(state.get("ticker") or "").strip().upper()
 
-    writer({
-        "type": "PIPELINE_STEP",
-        "run_id": run_id,
-        "step": "orchestrator_primary",
-        "status": "started",
-    })
+    writer(
+        {
+            "type": "PIPELINE_STEP",
+            "run_id": run_id,
+            "step": "orchestrator_primary",
+            "status": "started",
+        }
+    )
 
     # ── CASE: contrato financeiro obrigatorio ──
     from core.pipeline.case import create_case
@@ -41,14 +49,16 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
     case_state = financial_case.to_state()
     case_context = financial_case.to_context()
 
-    writer({
-        "type": "CASE_OPENED",
-        "run_id": run_id,
-        "case_type": financial_case.case_type.value,
-        "ticker": financial_case.ticker,
-        "mandate": financial_case.mandate[:120],
-        "required_steps": financial_case.required_steps(),
-    })
+    writer(
+        {
+            "type": "CASE_OPENED",
+            "run_id": run_id,
+            "case_type": financial_case.case_type.value,
+            "ticker": financial_case.ticker,
+            "mandate": financial_case.mandate[:120],
+            "required_steps": financial_case.required_steps(),
+        }
+    )
 
     # ── Plano unico: FULL_ACCESS, Bob decide tudo ──
     plan = {
@@ -57,21 +67,29 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         "message": message,
         "context": state.get("context", ""),
         "rigor": state.get("rigor", "strict"),
-
         # Rota unica — sem desvios
         "route": "agent",
         "intent": "bob_decides",
         "action": "analyze_and_execute",
         "ticker": incoming_ticker,
         "filters": {},
-
         # Contrato FULL_ACCESS
         "cognitive_mode": "FULL_ACCESS",
         "allowed_tools": [
-            "market_scan", "collect_data", "f51_firewall", "pennylab",
-            "run_experts", "neural_decision", "sdca_firewall",
-            "rag_forensics", "bob_search", "submit_paper_order", "final_answer",
-            "query_expert", "call_math_calculator", "get_live_financial_data",
+            "market_scan",
+            "collect_data",
+            "f51_firewall",
+            "pennylab",
+            "run_experts",
+            "neural_decision",
+            "sdca_firewall",
+            "rag_forensics",
+            "bob_search",
+            "submit_paper_order",
+            "final_answer",
+            "query_expert",
+            "call_math_calculator",
+            "get_live_financial_data",
             "calculate",
         ],
         "scanner_allowed": True,
@@ -96,7 +114,6 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         ),
         "information_need": "bob_decides_everything",
         "time_horizon": "14 days",
-
         "risk_tolerance": "moderada",
         "bob_intent": "full_access",
         "intent_source": "passthrough",
@@ -105,32 +122,32 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         "required_slots": [],
         "entities": {},
         "errors": [],
-
         "orchestrator_plan": "Bob decides everything. Full tool access. No restrictions.",
         "orchestrator_model_status": "passthrough_no_classifier",
-
         "last_tool_result": "",
-
         # CASE: contrato obrigatorio — Bob so decide depois da mesa
         "financial_case": financial_case,
         "case_context": case_context,
         **case_state,
     }
 
-    writer({
-        "type": "PIPELINE_STEP",
-        "run_id": run_id,
-        "step": "orchestrator_primary",
-        "status": "completed",
-        "route": "agent",
-        "intent": "bob_decides",
-        "model_status": "passthrough",
-    })
+    writer(
+        {
+            "type": "PIPELINE_STEP",
+            "run_id": run_id,
+            "step": "orchestrator_primary",
+            "status": "completed",
+            "route": "agent",
+            "intent": "bob_decides",
+            "model_status": "passthrough",
+        }
+    )
 
     return plan
 
 
 # ── Legacy stubs (contract tests reference these) ──
+
 
 def _render_plan(plan: dict) -> str:
     route = plan.get("route", "agent")
@@ -142,11 +159,13 @@ def _render_plan(plan: dict) -> str:
 
 def _extract_time_horizon(message: str) -> str:
     import re
+
     if not message:
         return ""
     match = re.search(
         r"(\d+)\s*(hour|hours|hora|horas|day|days|week|weeks|month|months|ano|anos|semana|semanas|mes|meses|dia|dias)",
-        message, re.IGNORECASE,
+        message,
+        re.IGNORECASE,
     )
     if not match:
         return ""

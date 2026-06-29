@@ -2,8 +2,6 @@
 Tests for DecisionTraceLogger.
 """
 
-import json
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -119,6 +117,7 @@ def test_db_table_creation(temp_db: Path) -> None:
 
     # Check table exists
     import sqlite3
+
     conn = sqlite3.connect(temp_db)
     cursor = conn.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='decision_traces'"
@@ -146,11 +145,14 @@ def test_write_trace_to_db(temp_db: Path) -> None:
     )
 
     import sqlite3
+
     conn = sqlite3.connect(temp_db)
     cursor = conn.execute("SELECT * FROM decision_traces WHERE trace_id=?", ("test123",))
     row = cursor.fetchone()
     assert row is not None
-    assert row[2] == "run456"  # run_id (0=id, 1=trace_id, 2=run_id, 3=session_id, 4=node, 5=agent, 6=timestamp, 7=latency_ms, 8=decision, 9=confidence)
+    assert (
+        row[2] == "run456"
+    )  # run_id (0=id, 1=trace_id, 2=run_id, 3=session_id, 4=node, 5=agent, 6=timestamp, 7=latency_ms, 8=decision, 9=confidence)
     assert row[5] == "test_agent"  # agent
     assert row[8] == "BUY"  # decision
     conn.close()

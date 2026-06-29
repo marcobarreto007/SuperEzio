@@ -37,6 +37,7 @@ from .paper_journal import PaperJournal
 
 class MarketSentiment(Enum):
     """Sentimento de mercado."""
+
     BULLISH = "bullish"
     BEARISH = "bearish"
     NEUTRAL = "neutral"
@@ -46,6 +47,7 @@ class MarketSentiment(Enum):
 @dataclass
 class TradingOpportunity:
     """Uma oportunidade de trading identificada."""
+
     symbol: str
     sentiment: MarketSentiment
     confidence: float  # 0-1
@@ -75,6 +77,7 @@ class TradingOpportunity:
 @dataclass
 class TradingSession:
     """Sessão de trading."""
+
     session_id: str
     start_time: str
     end_time: str | None = None
@@ -144,6 +147,7 @@ class TradingEngine:
         # Dynamic watchlist — pulls from investor DB + market context
         if watchlist is None:
             from .dynamic_watchlist import get_dynamic_watchlist as _get_dynamic_watchlist
+
             watchlist = _get_dynamic_watchlist()
         self._watchlist: list[str] = watchlist
         logger.info("trading_engine_watchlist_loaded", count=len(self._watchlist))
@@ -173,7 +177,9 @@ class TradingEngine:
                     self._total_wins = state.get("total_wins", 0)
                     self._total_losses = state.get("total_losses", 0)
                     self._total_pnl = state.get("total_pnl", 0.0)
-                    logger.info("State loaded: %d trades, PnL: $%.2f", self._total_trades, self._total_pnl)
+                    logger.info(
+                        "State loaded: %d trades, PnL: $%.2f", self._total_trades, self._total_pnl
+                    )
             except Exception as e:
                 logger.warning("Failed to load state: %s", e)
 
@@ -239,7 +245,9 @@ class TradingEngine:
                 entry_price = base_price
                 stop_loss = base_price * (1 - 0.02)  # 2% stop
                 take_profit = base_price * (1 + random.uniform(0.03, 0.06))  # 3-6% alvo
-                thesis = f"Tendência de alta confirmada, rompimento de resistencia em ${entry_price:.2f}"
+                thesis = (
+                    f"Tendência de alta confirmada, rompimento de resistencia em ${entry_price:.2f}"
+                )
             elif sentiment_roll < 0.5:
                 sentiment = MarketSentiment.BEARISH
                 confidence = random.uniform(0.6, 0.85)
@@ -251,11 +259,13 @@ class TradingEngine:
                 continue  # Neutral, skip
 
             # Checar pain memory
-            pain_risk = self._pain_memory.check_setup_risk({
-                "symbol": symbol,
-                "entry_price": entry_price,
-                "stop_loss": stop_loss,
-            })
+            pain_risk = self._pain_memory.check_setup_risk(
+                {
+                    "symbol": symbol,
+                    "entry_price": entry_price,
+                    "stop_loss": stop_loss,
+                }
+            )
 
             # Se dor for muito alta, pular
             if pain_risk.get("level") == "SEVERE":
@@ -430,18 +440,20 @@ class TradingEngine:
             self._session.trades_executed += 1
 
         # Registrar no journal
-        self._journal.add_trade({
-            "trade_id": position.position_id,
-            "symbol": opp.symbol,
-            "side": side,
-            "quantity": quantity,
-            "entry_price": opp.entry_price,
-            "stop_loss": opp.stop_loss,
-            "take_profit": opp.take_profit,
-            "thesis": opp.thesis,
-            "verdict_at_entry": f"Confidence {opp.confidence*100:.0f}%",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        self._journal.add_trade(
+            {
+                "trade_id": position.position_id,
+                "symbol": opp.symbol,
+                "side": side,
+                "quantity": quantity,
+                "entry_price": opp.entry_price,
+                "stop_loss": opp.stop_loss,
+                "take_profit": opp.take_profit,
+                "thesis": opp.thesis,
+                "verdict_at_entry": f"Confidence {opp.confidence * 100:.0f}%",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
         return {
             "position_id": position.position_id,

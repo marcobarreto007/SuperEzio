@@ -143,7 +143,9 @@ def test_empty_pipeline_emits_structured_fallback_chunk(client_with_mock_pipelin
     )
 
 
-def test_scan_with_passing_candidates_never_becomes_reject_all_or_unknown(client_with_mock_pipeline):
+def test_scan_with_passing_candidates_never_becomes_reject_all_or_unknown(
+    client_with_mock_pipeline,
+):
     mock_p, client = client_with_mock_pipeline
     mock_p.events_to_yield = [
         {"type": "STREAM_START", "msg_id": "cad100-mini-cap"},

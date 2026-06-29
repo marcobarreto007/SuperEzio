@@ -101,7 +101,11 @@ def format_math_context(report: Mapping[str, Any]) -> str:
     crisis_values = _dig(modules, "crisis_aggregate", "values") or {}
     crisis_status = _dig(modules, "crisis_aggregate", "status")
     crisis_score = _number(
-        _first_present(summary.get("crisis_score"), numbers.get("crisis_score"), crisis_values.get("aggregate_score"))
+        _first_present(
+            summary.get("crisis_score"),
+            numbers.get("crisis_score"),
+            crisis_values.get("aggregate_score"),
+        )
         if isinstance(crisis_values, Mapping)
         else _first_present(summary.get("crisis_score"), numbers.get("crisis_score"))
     )
@@ -124,9 +128,7 @@ def format_math_context(report: Mapping[str, Any]) -> str:
         _dig(technical_values, "macd", "line") if isinstance(technical_values, Mapping) else None,
         technical_values.get("macd") if isinstance(technical_values, Mapping) else None,
     )
-    vwap_value = (
-        technical_values.get("vwap") if isinstance(technical_values, Mapping) else None
-    )
+    vwap_value = technical_values.get("vwap") if isinstance(technical_values, Mapping) else None
 
     crisis_score_text = "N/A"
     if crisis_score is not None:

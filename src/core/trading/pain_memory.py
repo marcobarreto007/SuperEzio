@@ -19,7 +19,6 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any
-from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +29,7 @@ DEFAULT_PAIN_MEMORY_PATH = (
 
 class PainSeverity(Enum):
     """Níveis de dor."""
+
     MILD = (1, "Mild", 100)
     MODERATE = (2, "Moderate", 500)
     SEVERE = (3, "Severe", 1000)
@@ -65,6 +65,7 @@ class PainSeverity(Enum):
 @dataclass
 class PainMemory:
     """Uma memória de dor (perda registrada)."""
+
     memory_id: str
     timestamp: str
     ticker: str
@@ -187,10 +188,27 @@ class PainMemorySystem:
 
         # Palavras comuns de trading
         trading_keywords = {
-            "breakout", "momentum", "dip", "earnings", "news",
-            "trend", "reversal", "volume", "spike", "gap", "resistance",
-            "support", "catalyst", "macro", "sector", "technical",
-            "fundamental", "short", "squeeze", "bull", "bear",
+            "breakout",
+            "momentum",
+            "dip",
+            "earnings",
+            "news",
+            "trend",
+            "reversal",
+            "volume",
+            "spike",
+            "gap",
+            "resistance",
+            "support",
+            "catalyst",
+            "macro",
+            "sector",
+            "technical",
+            "fundamental",
+            "short",
+            "squeeze",
+            "bull",
+            "bear",
         }
 
         text_lower = text.lower()
@@ -351,10 +369,7 @@ class PainMemorySystem:
 
     def get_traumas(self, limit: int = 10) -> list[PainMemory]:
         """Retorna traumas (dores severas)."""
-        traumas = [
-            m for m in self._memories
-            if m.severity == PainSeverity.TRAUMATIC
-        ]
+        traumas = [m for m in self._memories if m.severity == PainSeverity.TRAUMATIC]
         return list(reversed(traumas[-limit:]))
 
     def get_active_pains(self, days: int = 30, min_weight: float = 1.0) -> list[PainMemory]:
@@ -488,7 +503,9 @@ class PainMemorySystem:
         if traumas:
             lines.append("⚠️ TRAUMAS (perdas >$500):")
             for trauma in traumas:
-                lines.append(f"- {trauma.ticker}: -${trauma.loss_amount:.2f} ({trauma.severity.label})")
+                lines.append(
+                    f"- {trauma.ticker}: -${trauma.loss_amount:.2f} ({trauma.severity.label})"
+                )
                 if trauma.what_went_wrong:
                     lines.append(f"  O que deu errado: {trauma.what_went_wrong[:80]}...")
             lines.append("")

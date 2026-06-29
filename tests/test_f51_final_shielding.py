@@ -24,7 +24,9 @@ class TestRawIBKRCLIDisabledByDefault:
 
         result = subprocess.run(
             [sys.executable, "scripts/_ibkr_order.py", "BUY", "AAPL", "10", "150.0"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
             env={**os.environ, "F51_ALLOW_RAW_IBKR_CLI": "false"},
         )
         assert result.returncode != 0, f"CLI should exit non-zero, got {result.returncode}"
@@ -39,7 +41,9 @@ class TestRawIBKRCLIDisabledByDefault:
 
         result = subprocess.run(
             [sys.executable, "scripts/_ibkr_order.py", "BUY", "AAPL", "10", "150.0"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
             env={
                 **os.environ,
                 "F51_ALLOW_RAW_IBKR_CLI": "true",
@@ -58,7 +62,11 @@ class TestExecuteTradeRealCannotBypassGate:
         """With FREEZE=true, execute_trade_real must return blocked."""
         monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "true")
 
-        from core.trading.trading_engine_live import LiveTradingEngine, MarketSentiment, TradingOpportunity
+        from core.trading.trading_engine_live import (
+            LiveTradingEngine,
+            MarketSentiment,
+            TradingOpportunity,
+        )
 
         engine = LiveTradingEngine(use_ibkr=False, equity=10000.0)
         opp = TradingOpportunity(
@@ -74,8 +82,9 @@ class TestExecuteTradeRealCannotBypassGate:
         )
         result = engine.execute_trade_real(opp, quantity=10)
         assert result is not None, "Should return dict, not None"
-        assert result.get("blocked") or "BLOCKED" in str(result.get("reason", "")), \
+        assert result.get("blocked") or "BLOCKED" in str(result.get("reason", "")), (
             f"Should be blocked: {result}"
+        )
 
 
 class TestAutoExecutorRequiresGate:
@@ -137,13 +146,17 @@ class TestLowLevelBrokerRejectsUngatedOrder:
             status=OrderStatus.PENDING,
             limit_price=150.0,
         )
-        object.__setattr__(order, 'gate_metadata', {
-            "gate_status": "BLOCKED",
-            "gate_trace_id": "test-trace",
-            "validated_ticker": "AAPL",
-            "journal_ready": True,
-            "execution_freeze": False,
-        })
+        object.__setattr__(
+            order,
+            "gate_metadata",
+            {
+                "gate_status": "BLOCKED",
+                "gate_trace_id": "test-trace",
+                "validated_ticker": "AAPL",
+                "journal_ready": True,
+                "execution_freeze": False,
+            },
+        )
         assert not _low_level_gate_check(order), "Should reject with gate_status=BLOCKED"
 
     def test_low_level_rejects_missing_trace_id(self):
@@ -160,13 +173,17 @@ class TestLowLevelBrokerRejectsUngatedOrder:
             status=OrderStatus.PENDING,
             limit_price=150.0,
         )
-        object.__setattr__(order, 'gate_metadata', {
-            "gate_status": "ALLOW",
-            "gate_trace_id": "",  # Empty
-            "validated_ticker": "AAPL",
-            "journal_ready": True,
-            "execution_freeze": False,
-        })
+        object.__setattr__(
+            order,
+            "gate_metadata",
+            {
+                "gate_status": "ALLOW",
+                "gate_trace_id": "",  # Empty
+                "validated_ticker": "AAPL",
+                "journal_ready": True,
+                "execution_freeze": False,
+            },
+        )
         assert not _low_level_gate_check(order), "Should reject without gate_trace_id"
 
     def test_low_level_rejects_ticker_mismatch(self):
@@ -183,13 +200,17 @@ class TestLowLevelBrokerRejectsUngatedOrder:
             status=OrderStatus.PENDING,
             limit_price=150.0,
         )
-        object.__setattr__(order, 'gate_metadata', {
-            "gate_status": "ALLOW",
-            "gate_trace_id": "trace-123",
-            "validated_ticker": "TSLA",  # Mismatch!
-            "journal_ready": True,
-            "execution_freeze": False,
-        })
+        object.__setattr__(
+            order,
+            "gate_metadata",
+            {
+                "gate_status": "ALLOW",
+                "gate_trace_id": "trace-123",
+                "validated_ticker": "TSLA",  # Mismatch!
+                "journal_ready": True,
+                "execution_freeze": False,
+            },
+        )
         assert not _low_level_gate_check(order), "Should reject ticker mismatch"
 
     def test_low_level_accepts_valid_gate_metadata(self, monkeypatch):
@@ -207,13 +228,17 @@ class TestLowLevelBrokerRejectsUngatedOrder:
             status=OrderStatus.PENDING,
             limit_price=150.0,
         )
-        object.__setattr__(order, 'gate_metadata', {
-            "gate_status": "ALLOW",
-            "gate_trace_id": "trace-valid-123",
-            "validated_ticker": "AAPL",
-            "journal_ready": True,
-            "execution_freeze": False,
-        })
+        object.__setattr__(
+            order,
+            "gate_metadata",
+            {
+                "gate_status": "ALLOW",
+                "gate_trace_id": "trace-valid-123",
+                "validated_ticker": "AAPL",
+                "journal_ready": True,
+                "execution_freeze": False,
+            },
+        )
         # May fail on IBKR connectivity, but should pass the metadata checks
         # (IBKR offline is a separate concern — test checks metadata validation only)
         result = _low_level_gate_check(order)
@@ -241,13 +266,17 @@ class TestFreezeBlocksLowLevelOrder:
             status=OrderStatus.PENDING,
             limit_price=150.0,
         )
-        object.__setattr__(order, 'gate_metadata', {
-            "gate_status": "ALLOW",
-            "gate_trace_id": "trace-123",
-            "validated_ticker": "AAPL",
-            "journal_ready": True,
-            "execution_freeze": True,  # FROZEN!
-        })
+        object.__setattr__(
+            order,
+            "gate_metadata",
+            {
+                "gate_status": "ALLOW",
+                "gate_trace_id": "trace-123",
+                "validated_ticker": "AAPL",
+                "journal_ready": True,
+                "execution_freeze": True,  # FROZEN!
+            },
+        )
         assert not _low_level_gate_check(order), "Should block when execution_freeze=True"
 
 
@@ -257,6 +286,7 @@ class TestGeneratorHasNoUndefinedNames:
     def test_generator_compiles(self):
         """generator.py must compile without errors."""
         import py_compile
+
         try:
             py_compile.compile("src/core/pipeline/nodes/generator.py", doraise=True)
         except py_compile.PyCompileError as e:

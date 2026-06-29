@@ -79,7 +79,9 @@ class TaskQueue:
                         self._archive(task)
                         self._active.pop(run_id, None)
                         self._by_session.pop(task.session_id, None)
-                        logger.warning("[task_queue] Task %s timed out after %.0fs", run_id, task.elapsed)
+                        logger.warning(
+                            "[task_queue] Task %s timed out after %.0fs", run_id, task.elapsed
+                        )
             except Exception:
                 pass
             await asyncio.sleep(TASK_WATCHDOG_SECONDS)
@@ -99,7 +101,11 @@ class TaskQueue:
                     existing_run_id,
                 )
             elif existing:
-                logger.warning("[task_queue] Session %s already has active task %s", session_id, existing_run_id)
+                logger.warning(
+                    "[task_queue] Session %s already has active task %s",
+                    session_id,
+                    existing_run_id,
+                )
                 return None
 
         task = Task(
@@ -171,7 +177,12 @@ class TaskQueue:
     @property
     def active_tasks(self) -> list[dict[str, Any]]:
         return [
-            {"run_id": t.run_id, "session_id": t.session_id, "elapsed": t.elapsed, "status": t.status}
+            {
+                "run_id": t.run_id,
+                "session_id": t.session_id,
+                "elapsed": t.elapsed,
+                "status": t.status,
+            }
             for t in self._active.values()
         ]
 

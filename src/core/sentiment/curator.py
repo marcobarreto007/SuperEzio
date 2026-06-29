@@ -195,7 +195,9 @@ class SentimentCurator:
         weight = SOURCE_WEIGHTS.get(source_name, SOURCE_WEIGHTS.get(name, 0.4))
         score = _number(raw.get("sentiment_score") or raw.get("score"))
         if score is None:
-            score = _score_from_label(raw.get("sentiment_label") or raw.get("signal_label") or raw.get("label"))
+            score = _score_from_label(
+                raw.get("sentiment_label") or raw.get("signal_label") or raw.get("label")
+            )
         ts = _timestamp(raw)
         if ts and _now() - ts > timedelta(hours=48):
             weight *= 0.3
@@ -203,7 +205,12 @@ class SentimentCurator:
             "source": source_name,
             "weight": weight,
             "score": float(score),
-            "label": str(raw.get("sentiment_label") or raw.get("signal_label") or raw.get("label") or _label_from_score(float(score))).upper(),
+            "label": str(
+                raw.get("sentiment_label")
+                or raw.get("signal_label")
+                or raw.get("label")
+                or _label_from_score(float(score))
+            ).upper(),
             "headline": _headline(raw),
             "raw": dict(raw),
             "institutional": source_name in {"newsapi", "news_scout", "finnhub"},
@@ -240,7 +247,9 @@ class SentimentCurator:
     def _ticker_from_sources(sources: Mapping[str, Any], items: list[dict[str, Any]]) -> str:
         for source in sources.values():
             if isinstance(source, Mapping):
-                ticker = source.get("ticker") or source.get("symbol") or source.get("requested_symbol")
+                ticker = (
+                    source.get("ticker") or source.get("symbol") or source.get("requested_symbol")
+                )
                 if ticker:
                     return str(ticker).upper()
         for item in items:
@@ -281,13 +290,17 @@ class SentimentCurator:
             signal = str(reddit.get("signal_label") or "").upper()
             if "SPIKE" in signal or (avg and mentions >= avg * 3):
                 flags.append("SPIKE")
-            coordinated = reddit.get("new_accounts_same_text") or reddit.get("suspicious_accounts_count")
+            coordinated = reddit.get("new_accounts_same_text") or reddit.get(
+                "suspicious_accounts_count"
+            )
             if isinstance(coordinated, list) and len(coordinated) >= 3:
                 flags.append("POSSIBLE_PUMP")
             elif _number(coordinated) is not None and float(coordinated) >= 3:
                 flags.append("POSSIBLE_PUMP")
             institutional_scores = [
-                item["score"] for item in items if item.get("institutional") and item["source"] != "reddit_pulse"
+                item["score"]
+                for item in items
+                if item.get("institutional") and item["source"] != "reddit_pulse"
             ]
             reddit_score = _number(reddit.get("sentiment_score") or reddit.get("score"))
             if reddit_score is not None and reddit_score > 0.35 and institutional_scores:
@@ -314,13 +327,18 @@ class SentimentCurator:
     def _summary(label: str, flags: list[str], items: list[dict[str, Any]]) -> str:
         institutional = [item for item in items if item.get("institutional")]
         social = [item for item in items if item["source"] == "reddit_pulse"]
-        inst_label = _label_from_score(sum(item["score"] for item in institutional) / len(institutional)) if institutional else "NO_DATA"
-        social_label = _label_from_score(sum(item["score"] for item in social) / len(social)) if social else "NO_DATA"
-        flag_text = f" Flags: {', '.join(flags)}." if flags else ""
-        return (
-            f"Sentiment {label}. Institutional {inst_label}; social {social_label}."
-            f"{flag_text}"
+        inst_label = (
+            _label_from_score(sum(item["score"] for item in institutional) / len(institutional))
+            if institutional
+            else "NO_DATA"
         )
+        social_label = (
+            _label_from_score(sum(item["score"] for item in social) / len(social))
+            if social
+            else "NO_DATA"
+        )
+        flag_text = f" Flags: {', '.join(flags)}." if flags else ""
+        return f"Sentiment {label}. Institutional {inst_label}; social {social_label}.{flag_text}"
 
 
 __all__ = ["CuratedSentiment", "SentimentCurator"]

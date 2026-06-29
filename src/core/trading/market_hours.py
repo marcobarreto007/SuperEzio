@@ -297,7 +297,6 @@ def get_market_state(cached: bool = True, cache_ttl_seconds: int = 60) -> dict[s
         - time_until_close: segundos
         - day_progress: dict se market open
     """
-    import time as _time
 
     now = datetime.now(timezone.utc)
 

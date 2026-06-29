@@ -32,6 +32,7 @@ logger = get_logger(__name__)
 
 class ExecutionStatus(Enum):
     """Status de uma execução."""
+
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
@@ -43,6 +44,7 @@ class ExecutionStatus(Enum):
 
 class RejectionReason(Enum):
     """Motivo de rejeição."""
+
     KILL_SWITCH_ACTIVE = "kill_switch_active"
     RISK_GUARD_REJECTED = "risk_guard_rejected"
     COMMITTEE_REJECTED = "committee_rejected"
@@ -56,6 +58,7 @@ class RejectionReason(Enum):
 @dataclass
 class ExecutionRequest:
     """Requisição de execução."""
+
     request_id: str
     symbol: str
     side: str  # 'buy' ou 'sell'
@@ -98,8 +101,12 @@ class ExecutionRequest:
             "kill_switch_ok": self.kill_switch_ok,
             "risk_guard": self.risk_guard_result.to_dict() if self.risk_guard_result else None,
             "committee": {
-                "consensus": self.committee_decision.consensus.value if self.committee_decision else None,
-                "is_approved": self.committee_decision.is_approved if self.committee_decision else None,
+                "consensus": self.committee_decision.consensus.value
+                if self.committee_decision
+                else None,
+                "is_approved": self.committee_decision.is_approved
+                if self.committee_decision
+                else None,
             },
             "position_size": {
                 "shares": self.position_size.shares if self.position_size else 0,
@@ -116,6 +123,7 @@ class ExecutionRequest:
 @dataclass
 class ExecutorConfig:
     """Configuração do executor."""
+
     # Kill switch
     daily_loss_limit: float = 500.0
     max_drawdown_pct: float = 0.10
@@ -242,7 +250,9 @@ class AutoExecutor:
             if gate_decision.status != "ALLOW":
                 request.status = ExecutionStatus.BLOCKED
                 request.rejection_reason = RejectionReason.KILL_SWITCH_ACTIVE
-                request.rejection_message = f"F51 Trade Gate: {gate_decision.reason_code} — {gate_decision.reason}"
+                request.rejection_message = (
+                    f"F51 Trade Gate: {gate_decision.reason_code} — {gate_decision.reason}"
+                )
                 self._history.append(request)
                 logger.error(
                     "auto_executor_prepare_order_blocked_by_gate",
@@ -252,7 +262,7 @@ class AutoExecutor:
                 return request
             # Stamp gate metadata onto request for downstream low-level check
             request.metadata["gate_status"] = "ALLOW"
-            request.metadata["gate_trace_id"] = run_id or request_id
+            request.metadata["gate_trace_id"] = request_id
             request.metadata["validated_ticker"] = symbol.upper()
             request.metadata["journal_ready"] = True
             request.metadata["execution_freeze"] = False
@@ -353,7 +363,8 @@ class AutoExecutor:
                 qty=position_size.shares,
                 entry_price=entry_price,
                 stop_loss_price=stop_loss or entry_price * 0.95,
-                risk_amount=position_size.shares * (entry_price - (stop_loss or entry_price * 0.95)),
+                risk_amount=position_size.shares
+                * (entry_price - (stop_loss or entry_price * 0.95)),
                 reason=thesis,
             )
             request.approval_status = approval.status
@@ -416,8 +427,12 @@ class AutoExecutor:
                     reason_code=gate_decision.reason_code,
                 )
                 request.status = ExecutionStatus.BLOCKED
-                request.rejection_reason = RejectionReason.KILL_SWITCH_ACTIVE  # closest semantic match
-                request.rejection_message = f"F51 Trade Gate: {gate_decision.reason_code} — {gate_decision.reason}"
+                request.rejection_reason = (
+                    RejectionReason.KILL_SWITCH_ACTIVE
+                )  # closest semantic match
+                request.rejection_message = (
+                    f"F51 Trade Gate: {gate_decision.reason_code} — {gate_decision.reason}"
+                )
                 self._history.append(request)
                 return request
         except ImportError:
@@ -492,7 +507,8 @@ class AutoExecutor:
         rejected_count = sum(
             1
             for r in self._history
-            if r.status in (ExecutionStatus.REJECTED, ExecutionStatus.BLOCKED, ExecutionStatus.KILLED)
+            if r.status
+            in (ExecutionStatus.REJECTED, ExecutionStatus.BLOCKED, ExecutionStatus.KILLED)
         )
 
         rejection_reasons = {}
@@ -503,7 +519,9 @@ class AutoExecutor:
 
         return {
             "kill_switch_active": self._kill_switch.is_active,
-            "kill_switch_reason": self._kill_switch.state.reason.value if self._kill_switch.state.reason else None,
+            "kill_switch_reason": self._kill_switch.state.reason.value
+            if self._kill_switch.state.reason
+            else None,
             "daily_pnl": round(self._kill_switch.state.daily_pnl, 2),
             "consecutive_losses": self._kill_switch.state.consecutive_losses,
             "requests_total": len(self._history),

@@ -94,22 +94,32 @@ def _write_trace_to_db(
     with _WRITE_LOCK:
         conn = sqlite3.connect(db_path)
         try:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO decision_traces (
                     trace_id, run_id, session_id, node, agent,
                     timestamp, latency_ms, decision, confidence,
                     evidence_refs, errors, overrides,
                     input_summary, output_summary
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                trace_id, run_id, "", node, agent,
-                _utc_now(), latency_ms, decision, confidence,
-                json.dumps(evidence_refs),
-                json.dumps(errors),
-                json.dumps(overrides) if overrides else None,
-                input_summary[:200],
-                output_summary[:500],
-            ))
+            """,
+                (
+                    trace_id,
+                    run_id,
+                    "",
+                    node,
+                    agent,
+                    _utc_now(),
+                    latency_ms,
+                    decision,
+                    confidence,
+                    json.dumps(evidence_refs),
+                    json.dumps(errors),
+                    json.dumps(overrides) if overrides else None,
+                    input_summary[:200],
+                    output_summary[:500],
+                ),
+            )
             conn.commit()
         finally:
             conn.close()
@@ -122,7 +132,8 @@ def get_agent_stats(agent: str, days: int = 7, db_path: Path = DB_PATH) -> dict[
 
     conn = sqlite3.connect(db_path)
     try:
-        cursor = conn.execute("""
+        cursor = conn.execute(
+            """
             SELECT
                 COUNT(*) as calls,
                 AVG(latency_ms) as avg_latency,
@@ -131,7 +142,9 @@ def get_agent_stats(agent: str, days: int = 7, db_path: Path = DB_PATH) -> dict[
             FROM decision_traces
             WHERE agent = ?
             AND datetime(timestamp) >= datetime('now', '-' || ? || ' days')
-        """, (agent, days))
+        """,
+            (agent, days),
+        )
         row = cursor.fetchone()
 
         if not row or row[0] == 0:
@@ -307,10 +320,7 @@ class DecisionTraceLogger:
         )[:5]
 
         # Collect overrides
-        overrides = [
-            entry for entry in end_entries
-            if entry.get("overrides")
-        ]
+        overrides = [entry for entry in end_entries if entry.get("overrides")]
 
         # Agent performance (from this run)
         agent_times: dict[str, list[int]] = {}

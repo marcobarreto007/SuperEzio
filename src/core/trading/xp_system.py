@@ -30,13 +30,12 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_XP_LOG_PATH = (
-    Path(__file__).resolve().parent.parent.parent.parent / "data" / "xp_log.jsonl"
-)
+DEFAULT_XP_LOG_PATH = Path(__file__).resolve().parent.parent.parent.parent / "data" / "xp_log.jsonl"
 
 
 class Level(Enum):
     """Níveis de experiência do Bob."""
+
     NOVICE = (1, 10, "Aprendiz")
     JUNIOR = (11, 25, "Junior")
     MID_LEVEL = (26, 50, "Mid-Level")
@@ -74,6 +73,7 @@ class Level(Enum):
 @dataclass
 class XPEvent:
     """Um evento de ganho ou perda de XP."""
+
     event_id: str
     timestamp: str
     type: str  # "gain" | "loss"
@@ -101,6 +101,7 @@ class XPEvent:
 @dataclass
 class XPStats:
     """Estatísticas atuais do XP."""
+
     total_xp: int
     level: Level
     progress: float  # 0-100 dentro do nível atual
@@ -213,7 +214,9 @@ class XPSystem:
             last_updated=datetime.now(timezone.utc).isoformat(),
         )
 
-    def _calculate_pain_factor(self, loss_amount: float, context: dict[str, Any]) -> tuple[float, bool]:
+    def _calculate_pain_factor(
+        self, loss_amount: float, context: dict[str, Any]
+    ) -> tuple[float, bool]:
         """Calcula fator de dor baseado no valor da perda.
 
         Retorna:
@@ -382,7 +385,9 @@ class XPSystem:
 
         return None
 
-    def record_streak(self, streak_type: str, count: int, context: dict[str, Any] | None = None) -> XPEvent:
+    def record_streak(
+        self, streak_type: str, count: int, context: dict[str, Any] | None = None
+    ) -> XPEvent:
         """Registra streak de wins ou losses.
 
         Args:
@@ -406,7 +411,9 @@ class XPSystem:
         # Streak pequeno, sem bonus
         return self.gain_xp(0, f"{streak_type}_streak_small", context or {"streak_count": count})
 
-    def record_lesson_applied(self, lesson_id: str, context: dict[str, Any] | None = None) -> XPEvent:
+    def record_lesson_applied(
+        self, lesson_id: str, context: dict[str, Any] | None = None
+    ) -> XPEvent:
         """Registra lição aprendida aplicada com sucesso.
 
         Args:

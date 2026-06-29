@@ -81,6 +81,7 @@ async def node_neural_decision(state: dict) -> dict:
                     candles = price_candles
             if candles and len(candles) >= 50:
                 from experts.technical_neural.expert import TechnicalNeuralExpert
+
                 mlp = TechnicalNeuralExpert()
                 mlp_result = mlp.evaluate(ticker, list(candles))
         except Exception:

@@ -17,7 +17,10 @@ class ShillerValuationModel:
         ]
 
         if len(valid_obs) < 12:
-            return BaseCrisisModel._insufficient_data(self.__class__.__name__, "Faltam dados suficientes de House Price, Rent ou Income para cálculo Shiller.")
+            return BaseCrisisModel._insufficient_data(
+                self.__class__.__name__,
+                "Faltam dados suficientes de House Price, Rent ou Income para cálculo Shiller.",
+            )
 
         p_to_rent = [o.house_price_index / o.rent_index for o in valid_obs]
         p_to_inc = [o.house_price_index / o.income_index for o in valid_obs]

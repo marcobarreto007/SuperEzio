@@ -14,10 +14,36 @@ logger = logging.getLogger(__name__)
 
 # Curated list of known active penny stocks
 _PENNY_WATCHLIST = [
-    "SNDL", "TLRY", "PLUG", "FCEL", "NOK", "GNUS", "AEHR",
-    "SOS", "CEI", "XELA", "BBIG", "ATER", "CRKN", "GFAI",
-    "MEGL", "TOP", "PRPL", "KODK", "BB", "NIO", "RIG", "CLF",
-    "F", "VALE", "PBR", "HBI", "GPS", "SIRI", "TEVA", "CPRX",
+    "SNDL",
+    "TLRY",
+    "PLUG",
+    "FCEL",
+    "NOK",
+    "GNUS",
+    "AEHR",
+    "SOS",
+    "CEI",
+    "XELA",
+    "BBIG",
+    "ATER",
+    "CRKN",
+    "GFAI",
+    "MEGL",
+    "TOP",
+    "PRPL",
+    "KODK",
+    "BB",
+    "NIO",
+    "RIG",
+    "CLF",
+    "F",
+    "VALE",
+    "PBR",
+    "HBI",
+    "GPS",
+    "SIRI",
+    "TEVA",
+    "CPRX",
 ]
 
 
@@ -34,7 +60,11 @@ def scan_penny_stocks(max_price: float = 5.0, min_volume: int = 100_000) -> list
         try:
             stock = yf.Ticker(ticker)
             info = stock.info
-            price = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("previousClose")
+            price = (
+                info.get("currentPrice")
+                or info.get("regularMarketPrice")
+                or info.get("previousClose")
+            )
             volume = info.get("volume") or info.get("averageVolume") or 0
             name = info.get("shortName") or info.get("longName") or ticker
 
@@ -46,17 +76,19 @@ def scan_penny_stocks(max_price: float = 5.0, min_volume: int = 100_000) -> list
             if volume < min_volume:
                 continue
 
-            results.append({
-                "ticker": ticker,
-                "price": price_f,
-                "volume": int(volume),
-                "name": str(name),
-                "currency": info.get("currency", "USD"),
-                "exchange": info.get("exchange", ""),
-                "sector": info.get("sector", ""),
-                "market_cap": info.get("marketCap"),
-                "source": "yfinance_penny",
-            })
+            results.append(
+                {
+                    "ticker": ticker,
+                    "price": price_f,
+                    "volume": int(volume),
+                    "name": str(name),
+                    "currency": info.get("currency", "USD"),
+                    "exchange": info.get("exchange", ""),
+                    "sector": info.get("sector", ""),
+                    "market_cap": info.get("marketCap"),
+                    "source": "yfinance_penny",
+                }
+            )
         except Exception:
             continue
 

@@ -30,17 +30,19 @@ async def test_ceo_fallback_when_local_fails() -> None:
 
     # Simulate local provider failure by putting it in cooldown
     import time
+
     gateway._provider_cooldown_until["agent"] = time.monotonic() + 1000
 
     # Request should skip local and use GLM
     providers_to_try = gateway._providers_for_request(
-        preferred_provider="agent",
-        allow_fallback=True
+        preferred_provider="agent", allow_fallback=True
     )
 
     # Should have GLM in the list
     provider_names = [p.name for p in providers_to_try]
-    assert "ceo_fallback_glm" in provider_names or any("glm" in name.lower() for name in provider_names)
+    assert "ceo_fallback_glm" in provider_names or any(
+        "glm" in name.lower() for name in provider_names
+    )
 
 
 def test_glm_provider_configured() -> None:

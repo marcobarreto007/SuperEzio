@@ -84,10 +84,7 @@ def test_route_after_trinity_always_reaches_agent():
     from core.pipeline.graph import route_after_trinity
 
     assert route_after_trinity({"trinity_blocked": True}) == "agent"
-    assert (
-        route_after_trinity({"trinity_report": "CONSENSUS: BLOCK unanimous"})
-        == "agent"
-    )
+    assert route_after_trinity({"trinity_report": "CONSENSUS: BLOCK unanimous"}) == "agent"
     assert route_after_trinity({"trinity_report": "CONSENSUS: Both negative."}) == "agent"
 
 
@@ -146,7 +143,9 @@ async def test_pipeline_stream_events_blocks_unscoped_ticket_reference(monkeypat
     assert "agent_primary" in step_names or "agent" in step_names
     assert "explanation" in step_names
     # Pipeline completes without errors (GRAPH completed event exists)
-    graph_events = [e for e in events if e.get("type") == "PIPELINE_STEP" and e.get("step") == "graph"]
+    graph_events = [
+        e for e in events if e.get("type") == "PIPELINE_STEP" and e.get("step") == "graph"
+    ]
     assert any(e.get("status") == "completed" for e in graph_events)
 
     p.shutdown()

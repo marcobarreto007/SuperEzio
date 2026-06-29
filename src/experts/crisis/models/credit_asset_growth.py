@@ -18,7 +18,10 @@ class CreditAssetGrowthModel:
         equities = [o.equity_index for o in input_data.observations if o.equity_index is not None]
 
         if len(credits) < 12 or len(houses) < 12:
-            return BaseCrisisModel._insufficient_data(self.__class__.__name__, "Faltam dados de crédito ou imóveis para avaliar o ciclo cruzado.")
+            return BaseCrisisModel._insufficient_data(
+                self.__class__.__name__,
+                "Faltam dados de crédito ou imóveis para avaliar o ciclo cruzado.",
+            )
 
         cred_pct = percentile_rank(credits, credits[-1])
 

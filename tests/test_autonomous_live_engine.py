@@ -63,11 +63,17 @@ def test_ibkr_adapter_subprocess_uses_order_cli_contract_for_limit_orders(monkey
         limit_price=132.6,
     )
     # F51 low-level gate requires metadata
-    object.__setattr__(order, 'gate_metadata', {
-        "gate_status": "ALLOW", "gate_trace_id": "test-trace",
-        "validated_ticker": "NVDA", "journal_ready": True,
-        "execution_freeze": False,
-    })
+    object.__setattr__(
+        order,
+        "gate_metadata",
+        {
+            "gate_status": "ALLOW",
+            "gate_trace_id": "test-trace",
+            "validated_ticker": "NVDA",
+            "journal_ready": True,
+            "execution_freeze": False,
+        },
+    )
     monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "false")
 
     result = InteractiveBrokersAdapter().submit_order(order)
@@ -102,11 +108,17 @@ def test_ibkr_adapter_blocks_market_orders_by_default(monkeypatch):
         status=OrderStatus.PENDING,
     )
     # Gate metadata required for low-level check
-    object.__setattr__(order, 'gate_metadata', {
-        "gate_status": "ALLOW", "gate_trace_id": "test",
-        "validated_ticker": "AAPL", "journal_ready": True,
-        "execution_freeze": False,
-    })
+    object.__setattr__(
+        order,
+        "gate_metadata",
+        {
+            "gate_status": "ALLOW",
+            "gate_trace_id": "test",
+            "validated_ticker": "AAPL",
+            "journal_ready": True,
+            "execution_freeze": False,
+        },
+    )
     monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "false")
 
     result = InteractiveBrokersAdapter().submit_order(order)

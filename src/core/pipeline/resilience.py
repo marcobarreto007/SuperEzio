@@ -68,7 +68,9 @@ class CircuitBreaker:
         self._last_failure_time = time.monotonic()
         if self._failure_count >= self.failure_threshold:
             self._state = "OPEN"
-            logger.warning("CircuitBreaker(%s): -> OPEN after %d failures", self.name, self._failure_count)
+            logger.warning(
+                "CircuitBreaker(%s): -> OPEN after %d failures", self.name, self._failure_count
+            )
         elif self._state == "HALF_OPEN":
             self._state = "OPEN"
             logger.warning("CircuitBreaker(%s): HALF_OPEN -> OPEN", self.name)
@@ -78,7 +80,9 @@ class CircuitBreaker:
         return self._state != "OPEN"
 
 
-def _resolve_fallback(fallback_value: Any, args: tuple, kwargs: dict, error: Exception | None) -> Any:
+def _resolve_fallback(
+    fallback_value: Any, args: tuple, kwargs: dict, error: Exception | None
+) -> Any:
     if callable(fallback_value):
         try:
             state = args[0] if args else {}
@@ -104,7 +108,12 @@ def resilient_node(
             node_name = func.__name__
             if circuit_breaker and not circuit_breaker.allow_request():
                 logger.warning("resilient_node(%s): circuit OPEN", node_name)
-                return _resolve_fallback(fallback_value, args, kwargs, RuntimeError(f"Circuit breaker OPEN for {node_name}"))
+                return _resolve_fallback(
+                    fallback_value,
+                    args,
+                    kwargs,
+                    RuntimeError(f"Circuit breaker OPEN for {node_name}"),
+                )
             last_error = None
             for attempt in range(max_retries + 1):
                 try:
@@ -117,7 +126,13 @@ def resilient_node(
                     logger.warning("resilient_node(%s): timeout", node_name)
                 except Exception as exc:
                     last_error = exc
-                    logger.warning("resilient_node(%s): attempt %d/%d failed: %s", node_name, attempt + 1, max_retries + 1, exc)
+                    logger.warning(
+                        "resilient_node(%s): attempt %d/%d failed: %s",
+                        node_name,
+                        attempt + 1,
+                        max_retries + 1,
+                        exc,
+                    )
             if circuit_breaker:
                 circuit_breaker.failure(last_error)
             result = _resolve_fallback(fallback_value, args, kwargs, last_error)
@@ -129,7 +144,12 @@ def resilient_node(
         def sync_wrapper(*args, **kwargs):
             node_name = func.__name__
             if circuit_breaker and not circuit_breaker.allow_request():
-                return _resolve_fallback(fallback_value, args, kwargs, RuntimeError(f"Circuit breaker OPEN for {node_name}"))
+                return _resolve_fallback(
+                    fallback_value,
+                    args,
+                    kwargs,
+                    RuntimeError(f"Circuit breaker OPEN for {node_name}"),
+                )
             last_error = None
             for attempt in range(max_retries + 1):
                 try:
@@ -139,7 +159,13 @@ def resilient_node(
                     return result
                 except Exception as exc:
                     last_error = exc
-                    logger.warning("resilient_node(%s): attempt %d/%d failed: %s", node_name, attempt + 1, max_retries + 1, exc)
+                    logger.warning(
+                        "resilient_node(%s): attempt %d/%d failed: %s",
+                        node_name,
+                        attempt + 1,
+                        max_retries + 1,
+                        exc,
+                    )
             if circuit_breaker:
                 circuit_breaker.failure(last_error)
             result = _resolve_fallback(fallback_value, args, kwargs, last_error)
@@ -157,14 +183,23 @@ def resilient_node(
 def safe_import(module_path: str, attr_name: str = "", fallback: Any = None):
     """Import an optional dependency without crashing."""
     try:
-        mod = __import__(module_path, fromlist=[attr_name]) if attr_name else __import__(module_path)
+        mod = (
+            __import__(module_path, fromlist=[attr_name]) if attr_name else __import__(module_path)
+        )
         return getattr(mod, attr_name, fallback) if attr_name else mod
     except ImportError as exc:
         logger.debug("safe_import(%s, %s): %s", module_path, attr_name, exc)
         return fallback
 
 
-def try_run(label: str, func: Callable[..., Any], *args, fallback: Any = None, log_level: str = "debug", **kwargs) -> tuple[Any, Exception | None]:
+def try_run(
+    label: str,
+    func: Callable[..., Any],
+    *args,
+    fallback: Any = None,
+    log_level: str = "debug",
+    **kwargs,
+) -> tuple[Any, Exception | None]:
     """Run a function with standardized error handling. Never raises."""
     try:
         result = func(*args, **kwargs)
@@ -175,7 +210,14 @@ def try_run(label: str, func: Callable[..., Any], *args, fallback: Any = None, l
         return fallback, exc
 
 
-async def try_run_async(label: str, func: Callable[..., Any], *args, fallback: Any = None, log_level: str = "debug", **kwargs) -> tuple[Any, Exception | None]:
+async def try_run_async(
+    label: str,
+    func: Callable[..., Any],
+    *args,
+    fallback: Any = None,
+    log_level: str = "debug",
+    **kwargs,
+) -> tuple[Any, Exception | None]:
     """Async version of try_run."""
     try:
         result = await func(*args, **kwargs)

@@ -202,7 +202,9 @@ class OpenBBScanner:
 
         method = _pick_discovery(sector, industry)
         # Adaptive fallback: try hinted method first, then small caps, then active
-        fallback_chain = [m for m in [method, "aggressive_small_caps", "undervalued_growth", "active"] if m]
+        fallback_chain = [
+            m for m in [method, "aggressive_small_caps", "undervalued_growth", "active"] if m
+        ]
 
         result = None
         for attempt in fallback_chain:

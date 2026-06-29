@@ -19,7 +19,9 @@ class IMFMispricingModel:
         equities = [o.equity_index for o in input_data.observations if o.equity_index is not None]
 
         if len(equities) < 24:
-            return BaseCrisisModel._insufficient_data(self.__class__.__name__, "Dados de equity insuficientes para estimar mispricing.")
+            return BaseCrisisModel._insufficient_data(
+                self.__class__.__name__, "Dados de equity insuficientes para estimar mispricing."
+            )
 
         # Simplified residual estimation: current price vs 24-period mean
         mean_24 = sum(equities[-24:]) / 24.0

@@ -837,6 +837,7 @@ def _get_portfolio_snapshot(state: dict) -> str:
         return f"\n{pf}\n"
     try:
         from core.trading.portfolio_snapshot import fetch_portfolio_snapshot
+
         snapshot = fetch_portfolio_snapshot(language="pt")
         return snapshot if "offline" not in snapshot.lower() else ""
     except Exception:
@@ -2683,12 +2684,20 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     if not isinstance(scan_state, dict) or scan_candidates:
         mandatory_call = _forced_tool_call_before_final(state)
     # FALLBACK: If ticker present but no data and no scan, force collect_data
-    if mandatory_call is None and state.get("ticker") and not state.get("data") and not state.get("scan"):
+    if (
+        mandatory_call is None
+        and state.get("ticker")
+        and not state.get("data")
+        and not state.get("scan")
+    ):
         allowed_tools = set(state.get("allowed_tools") or [])
         executed_tools = set(state.get("executed_tools") or [])
         if "collect_data" in allowed_tools and "collect_data" not in executed_tools:
             mandatory_call = {"tool": "collect_data", "args": {"ticker": state["ticker"]}}
-            logger.info("FORCED_COLLECT_DATA: ticker=%s has no data, auto-calling collect_data", state["ticker"])
+            logger.info(
+                "FORCED_COLLECT_DATA: ticker=%s has no data, auto-calling collect_data",
+                state["ticker"],
+            )
     if mandatory_call:
         _tracer.end_node(
             trace_token,
@@ -2808,6 +2817,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         adaptive_context = ""
         try:
             from core.trading.adaptive_agent import get_adaptive_config, render_adaptive_context
+
             adaptive_cfg = get_adaptive_config()
             adaptive_context = render_adaptive_context(adaptive_cfg)
             # Inject calibrated params into state for downstream nodes
@@ -2819,6 +2829,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         portfolio_context = ""
         try:
             from core.trading.adaptive_agent import inject_portfolio_context
+
             portfolio_context = inject_portfolio_context(state)
         except Exception:
             pass

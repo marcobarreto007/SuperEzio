@@ -13,11 +13,11 @@ from typing import Any
 
 
 class CaseType(str, Enum):
-    INVESTMENT_ANALYSIS = "investment_analysis"    # "analisa AAPL", "vale investir em DIBS?"
-    TRADE_ORDER = "trade_order"                    # "comprar 10 NOK limite $5"
-    MARKET_DISCOVERY = "market_discovery"          # "me ache penny stocks", "scan setor energia"
-    PORTFOLIO_REVIEW = "portfolio_review"          # "como estamos?", "carteira"
-    CASUAL = "casual"                              # "oi", "bom dia"
+    INVESTMENT_ANALYSIS = "investment_analysis"  # "analisa AAPL", "vale investir em DIBS?"
+    TRADE_ORDER = "trade_order"  # "comprar 10 NOK limite $5"
+    MARKET_DISCOVERY = "market_discovery"  # "me ache penny stocks", "scan setor energia"
+    PORTFOLIO_REVIEW = "portfolio_review"  # "como estamos?", "carteira"
+    CASUAL = "casual"  # "oi", "bom dia"
 
 
 @dataclass
@@ -35,11 +35,12 @@ class FinancialCase:
     Bob so pode dar veredito depois que todas as etapas obrigatorias
     forem completadas. Nao existe "responder sem dados".
     """
+
     case_type: CaseType
     ticker: str = ""
-    mandate: str = ""              # o que o usuario pediu
+    mandate: str = ""  # o que o usuario pediu
     steps: dict[str, CaseStep] = field(default_factory=dict)
-    verdict: str = ""              # BUY / SELL / WAIT / REJECT (preenchido pelo Bob)
+    verdict: str = ""  # BUY / SELL / WAIT / REJECT (preenchido pelo Bob)
     verdict_reason: str = ""
     run_id: str = ""
 
@@ -47,19 +48,13 @@ class FinancialCase:
     def is_complete(self) -> bool:
         """Todas as etapas obrigatorias foram completadas?"""
         required = self.required_steps()
-        return all(
-            self.steps.get(name, CaseStep(name="")).completed
-            for name in required
-        )
+        return all(self.steps.get(name, CaseStep(name="")).completed for name in required)
 
     @property
     def pending_steps(self) -> list[str]:
         """Etapas obrigatorias que ainda nao foram completadas."""
         required = self.required_steps()
-        return [
-            name for name in required
-            if not self.steps.get(name, CaseStep(name="")).completed
-        ]
+        return [name for name in required if not self.steps.get(name, CaseStep(name="")).completed]
 
     def required_steps(self) -> list[str]:
         """Etapas obrigatorias para este tipo de case."""
@@ -174,15 +169,26 @@ def create_case(message: str, ticker: str = "", run_id: str = "") -> FinancialCa
 
     # Caso 1: Ordem explicita
     trade_words = (
-        "comprar", "compre", "compra", "vender", "venda", "vendido",
-        "buy", "sell", "ordem", "order", "executar", "execute",
-        "papel", "paper_ticket", "paper ticket", "submit",
+        "comprar",
+        "compre",
+        "compra",
+        "vender",
+        "venda",
+        "vendido",
+        "buy",
+        "sell",
+        "ordem",
+        "order",
+        "executar",
+        "execute",
+        "papel",
+        "paper_ticket",
+        "paper ticket",
+        "submit",
     )
     has_trade = any(w in msg for w in trade_words)
     has_ticker = bool(ticker) or any(
-        c.isupper() and len(c) >= 2
-        for word in msg.split()
-        if (c := word.strip(".,;:!?()[]{}\"'"))
+        c.isupper() and len(c) >= 2 for word in msg.split() if (c := word.strip(".,;:!?()[]{}\"'"))
     )
 
     if has_trade and has_ticker:
@@ -195,10 +201,22 @@ def create_case(message: str, ticker: str = "", run_id: str = "") -> FinancialCa
 
     # Caso 2: Analise de ticker
     analysis_words = (
-        "analisa", "analise", "analisar", "analyze", "analysis",
-        "avalia", "avaliar", "avaliacao", "evaluate",
-        "o que acha", "what do you think", "opiniao", "opiniao",
-        "vale a pena", "is it worth", "investir em",
+        "analisa",
+        "analise",
+        "analisar",
+        "analyze",
+        "analysis",
+        "avalia",
+        "avaliar",
+        "avaliacao",
+        "evaluate",
+        "o que acha",
+        "what do you think",
+        "opiniao",
+        "opiniao",
+        "vale a pena",
+        "is it worth",
+        "investir em",
     )
     has_analysis = any(w in msg for w in analysis_words)
 
@@ -212,11 +230,31 @@ def create_case(message: str, ticker: str = "", run_id: str = "") -> FinancialCa
 
     # Caso 3: Descoberta de mercado
     discovery_words = (
-        "ache", "achar", "encontre", "encontrar", "find", "search",
-        "busca", "buscar", "procura", "procurar", "scan", "scanner",
-        "descubra", "descobrir", "discover", "oportunidade",
-        "penny", "small cap", "microcap", "setor", "sector",
-        "recomend", "recomendar", "sugira", "sugerir",
+        "ache",
+        "achar",
+        "encontre",
+        "encontrar",
+        "find",
+        "search",
+        "busca",
+        "buscar",
+        "procura",
+        "procurar",
+        "scan",
+        "scanner",
+        "descubra",
+        "descobrir",
+        "discover",
+        "oportunidade",
+        "penny",
+        "small cap",
+        "microcap",
+        "setor",
+        "sector",
+        "recomend",
+        "recomendar",
+        "sugira",
+        "sugerir",
     )
     if any(w in msg for w in discovery_words):
         return FinancialCase(
@@ -227,9 +265,16 @@ def create_case(message: str, ticker: str = "", run_id: str = "") -> FinancialCa
 
     # Caso 4: Portfolio / status
     portfolio_words = (
-        "carteira", "portfolio", "posicao", "posicoes",
-        "como estamos", "how are we", "status", "saldo",
-        "quanto tenho", "what do I have",
+        "carteira",
+        "portfolio",
+        "posicao",
+        "posicoes",
+        "como estamos",
+        "how are we",
+        "status",
+        "saldo",
+        "quanto tenho",
+        "what do I have",
     )
     if any(w in msg for w in portfolio_words):
         return FinancialCase(

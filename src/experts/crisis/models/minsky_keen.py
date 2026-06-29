@@ -16,7 +16,10 @@ class MinskyKeenModel:
         ]
 
         if len(valid_obs) < 4:
-            return BaseCrisisModel._insufficient_data(self.__class__.__name__, "Minsky fragility requer credit_to_gdp, gdp_growth_yoy e policy_rate.")
+            return BaseCrisisModel._insufficient_data(
+                self.__class__.__name__,
+                "Minsky fragility requer credit_to_gdp, gdp_growth_yoy e policy_rate.",
+            )
 
         last = valid_obs[-1]
 

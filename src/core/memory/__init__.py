@@ -66,6 +66,7 @@ def get_feedback_loop():
     """Get FeedbackLoop singleton for trade learning."""
     try:
         from core.trading.feedback_loop import get_feedback_loop as _get
+
         return _get()
     except ImportError:
         return None

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +46,7 @@ def _inject_case_context(state: dict, observations: list[str]):
     case_pending = state.get("case_pending") or []
     # Late import to avoid circular dependency
     from .generator import _has_actionable_market_request
+
     if not case_pending and _has_actionable_market_request(state):
         case_pending = ["scanner", "price_enrichment", "sentiment_check"]
     state["case_pending"] = case_pending
@@ -83,6 +83,7 @@ def _inject_system_status(state: dict, observations: list[str]):
 def _inject_feedback_loop(state: dict, observations: list[str]):
     try:
         from core.trading.feedback_loop import get_feedback_loop
+
         feedback = get_feedback_loop()
         lessons_ctx = feedback.render_for_bob(max_chars=1500)
         if lessons_ctx:
@@ -108,6 +109,7 @@ def _inject_feedback_loop(state: dict, observations: list[str]):
 def _inject_rag_knowledge(state: dict, observations: list[str]):
     try:
         from core.rag.engine import forensic_rag
+
         message = state.get("message", "")
         ticker = state.get("ticker", "")
         query = f"{ticker} {message}" if ticker else message
@@ -133,6 +135,7 @@ def _inject_evidence(state: dict, observations: list[str]):
         # Inject pre-computed expert analyses from learner 24/7
         try:
             from core.trading.batch_expert_runner import get_expert_analysis, get_expert_summary
+
             precomputed = get_expert_analysis(ticker)
             if precomputed:
                 summary = get_expert_summary(ticker)
@@ -143,6 +146,7 @@ def _inject_evidence(state: dict, observations: list[str]):
         # Inject cached OHLCV summary
         try:
             from core.trading.historical_cache import get_cached_ohlcv
+
             ohlcv = get_cached_ohlcv(ticker, days=30)
             if ohlcv:
                 closes = [c["close"] for c in ohlcv[-30:]]
@@ -154,8 +158,8 @@ def _inject_evidence(state: dict, observations: list[str]):
                     f"OHLCV CACHE (30 days, pre-computed):\n"
                     f"  Latest: ${latest['close']:.2f} (vol: {latest['volume']:,.0f})\n"
                     f"  30d range: ${low30:.2f} - ${high30:.2f}\n"
-                    f"  30d avg close: ${sum(closes)/len(closes):.2f}\n"
-                    f"  30d avg volume: {sum(volumes)/len(volumes):,.0f}"
+                    f"  30d avg close: ${sum(closes) / len(closes):.2f}\n"
+                    f"  30d avg volume: {sum(volumes) / len(volumes):,.0f}"
                 )
         except Exception:
             pass
@@ -164,7 +168,9 @@ def _inject_evidence(state: dict, observations: list[str]):
         # Never truncate mid-number or mid-word
         if len(ctx) > 4000:
             ctx = ctx[:4000].rsplit(" ", 1)[0] + "\n... (truncated)"
-        observations.append(f"Data/Scan Context (REAL MARKET DATA — use these exact values):\n{ctx}")
+        observations.append(
+            f"Data/Scan Context (REAL MARKET DATA — use these exact values):\n{ctx}"
+        )
     if state.get("expert_summary"):
         observations.append(f"Expert Committee Summary:\n{state.get('expert_summary')}")
     if state.get("trinity_report"):

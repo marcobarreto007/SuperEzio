@@ -175,9 +175,7 @@ class TestHybridRetriever:
         """Test metadata is preserved in results."""
         retriever = HybridRetriever(use_sentence_transformers=False)
         retriever.add_document(
-            "doc1",
-            "test",
-            {"ticker": "AAPL", "verdict": "BUY", "confidence": 0.85}
+            "doc1", "test", {"ticker": "AAPL", "verdict": "BUY", "confidence": 0.85}
         )
 
         results = retriever.search("test", top_k=1)

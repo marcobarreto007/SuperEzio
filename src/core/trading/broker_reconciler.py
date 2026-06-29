@@ -151,7 +151,8 @@ class BrokerReconciler:
 
         positions = list(positions or [])
         open_orders = [
-            order for order in list(open_orders or [])
+            order
+            for order in list(open_orders or [])
             if _clean_status(order.get("status")) in ACTIVE_ORDER_STATUSES
         ]
         journal_entries = list(journal_entries or [])
@@ -168,9 +169,7 @@ class BrokerReconciler:
         issues: list[ReconciliationIssue] = []
 
         journal_refs = {
-            ref
-            for ref in (_journal_order_ref(entry) for entry in journal_entries)
-            if ref
+            ref for ref in (_journal_order_ref(entry) for entry in journal_entries) if ref
         }
         journal_open_position_tickers = {
             _clean_ticker(entry)

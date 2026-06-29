@@ -6,16 +6,12 @@ kill switch, IBKR submission, paper journal, and learning cycle trigger.
 
 from __future__ import annotations
 
-import asyncio
 import os
 import re
-import subprocess
-import sys
 import time
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 from langgraph.config import get_stream_writer
 
@@ -42,7 +38,6 @@ async def auto_execute_paper(state: dict) -> dict:
     Parses the agent's final_answer for ticker/shares/action and
     calls the IBKR paper adapter to place the order in TWS.
     """
-    import json as _json
     from core.pipeline.nodes.tool_executor import _submit_paper_order
 
     settings = get_settings()
@@ -56,22 +51,28 @@ async def auto_execute_paper(state: dict) -> dict:
     # Bind trace context for all logs in this pipeline run
     bind_trace(run_id=run_id)
 
-    writer({
-        "type": "PIPELINE_STEP",
-        "run_id": run_id,
-        "step": "auto_execute_paper",
-        "status": "started",
-    })
+    writer(
+        {
+            "type": "PIPELINE_STEP",
+            "run_id": run_id,
+            "step": "auto_execute_paper",
+            "status": "started",
+        }
+    )
 
     # Dedup guard — memory cache (fast path)
     dedup_key = f"paper_{run_id}"
     if dedup_key in _EXECUTED:
         logger.info("auto_execute_skipped_dedup_memory", run_id=run_id)
-        writer({
-            "type": "PIPELINE_STEP", "run_id": run_id,
-            "step": "auto_execute_paper", "status": "skipped",
-            "reason": "already_executed_for_this_run",
-        })
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "auto_execute_paper",
+                "status": "skipped",
+                "reason": "already_executed_for_this_run",
+            }
+        )
         return {}
     _EXECUTED.append(dedup_key)
 
@@ -86,11 +87,15 @@ async def auto_execute_paper(state: dict) -> dict:
         return {}
 
     if not ticker:
-        writer({
-            "type": "PIPELINE_STEP", "run_id": run_id,
-            "step": "auto_execute_paper", "status": "skipped",
-            "reason": "no_ticker_resolved",
-        })
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "auto_execute_paper",
+                "status": "skipped",
+                "reason": "no_ticker_resolved",
+            }
+        )
         return {"paper_exec_note": "no ticker parsed"}
 
     # ═══════════════════════════════════════════════════════════
@@ -116,14 +121,16 @@ async def auto_execute_paper(state: dict) -> dict:
             limit_price=limit_price,
             idempotency_key=idem_key,
         )
-        writer({
-            "type": "PAPER_ORDER_BLOCKED",
-            "run_id": run_id,
-            "ticker": ticker,
-            "step": "idempotency",
-            "status": "blocked",
-            "reason": f"Duplicate order detected: {idem_key}",
-        })
+        writer(
+            {
+                "type": "PAPER_ORDER_BLOCKED",
+                "run_id": run_id,
+                "ticker": ticker,
+                "step": "idempotency",
+                "status": "blocked",
+                "reason": f"Duplicate order detected: {idem_key}",
+            }
+        )
         return {
             "paper_exec_blocked": "DUPLICATE_ORDER",
             "paper_exec_block_reason": f"Idempotency key already processed: {idem_key}",
@@ -151,16 +158,18 @@ async def auto_execute_paper(state: dict) -> dict:
                 reason_code=gate_decision.reason_code,
                 gates_failed=gate_decision.gates_failed,
             )
-            writer({
-                "type": "PAPER_ORDER_BLOCKED",
-                "run_id": run_id,
-                "ticker": ticker,
-                "step": "f51_trade_gate",
-                "status": "blocked",
-                "reason": gate_decision.reason,
-                "reason_code": gate_decision.reason_code,
-                "gates_failed": gate_decision.gates_failed,
-            })
+            writer(
+                {
+                    "type": "PAPER_ORDER_BLOCKED",
+                    "run_id": run_id,
+                    "ticker": ticker,
+                    "step": "f51_trade_gate",
+                    "status": "blocked",
+                    "reason": gate_decision.reason,
+                    "reason_code": gate_decision.reason_code,
+                    "gates_failed": gate_decision.gates_failed,
+                }
+            )
             record_blocked_order(gate_decision, message=message, ticker=ticker, run_id=run_id)
             # Record idempotency key even for blocked orders (prevents retry spam)
             mark_processed(idem_key, {"status": "blocked", "reason": gate_decision.reason_code})
@@ -178,32 +187,47 @@ async def auto_execute_paper(state: dict) -> dict:
 
     # Position sizing (only reached if gate ALLOWED)
     from core.mission_context import get_mission_equity
+
     paper_equity = get_mission_equity()
 
     try:
         from core.trading.position_sizer import PositionSizer
+
         if limit_price > 0:
             size = PositionSizer(equity=paper_equity).size(entry_price=limit_price)
             if size.shares <= 0:
-                writer({
-                    "type": "PIPELINE_STEP", "run_id": run_id,
-                    "step": "auto_execute_paper", "status": "skipped",
-                    "reason": f"position_sizer_blocked:{size.size_reason}",
-                })
+                writer(
+                    {
+                        "type": "PIPELINE_STEP",
+                        "run_id": run_id,
+                        "step": "auto_execute_paper",
+                        "status": "skipped",
+                        "reason": f"position_sizer_blocked:{size.size_reason}",
+                    }
+                )
                 return {"paper_exec_blocked": f"position_sizer:{size.size_reason}"}
             if int(qty) > size.shares:
                 qty = max(1, size.shares)
-                writer({
-                    "type": "POSITION_SIZE_ADJUSTED", "run_id": run_id,
-                    "ticker": ticker, "requested_qty": int(qty),
-                    "approved_qty": qty, "reason": size.size_reason,
-                })
+                writer(
+                    {
+                        "type": "POSITION_SIZE_ADJUSTED",
+                        "run_id": run_id,
+                        "ticker": ticker,
+                        "requested_qty": int(qty),
+                        "approved_qty": qty,
+                        "reason": size.size_reason,
+                    }
+                )
     except Exception as exc:
-        writer({
-            "type": "PIPELINE_STEP", "run_id": run_id,
-            "step": "auto_execute_paper", "status": "skipped",
-            "reason": f"position_sizer_error:{str(exc)[:120]}",
-        })
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "auto_execute_paper",
+                "status": "skipped",
+                "reason": f"position_sizer_error:{str(exc)[:120]}",
+            }
+        )
         return {"paper_exec_blocked": f"position_sizer_error:{exc}"}
 
     position_value = qty * (limit_price if limit_price > 0 else 100)
@@ -215,14 +239,20 @@ async def auto_execute_paper(state: dict) -> dict:
     # Kill switch
     try:
         from core.trading.kill_switch import get_kill_switch
+
         kill_state = get_kill_switch().check()
         if kill_state.is_active:
             reason = kill_state.reason.value if kill_state.reason else "unknown"
-            writer({
-                "type": "PAPER_ORDER_BLOCKED", "run_id": run_id,
-                "ticker": ticker, "step": "auto_execute_paper",
-                "status": "blocked", "reason": f"kill_switch_active:{reason}",
-            })
+            writer(
+                {
+                    "type": "PAPER_ORDER_BLOCKED",
+                    "run_id": run_id,
+                    "ticker": ticker,
+                    "step": "auto_execute_paper",
+                    "status": "blocked",
+                    "reason": f"kill_switch_active:{reason}",
+                }
+            )
             return {
                 "paper_exec_blocked": f"kill_switch:{reason}",
                 "submit_paper_order_error": f"kill_switch_active:{reason}",
@@ -230,13 +260,20 @@ async def auto_execute_paper(state: dict) -> dict:
     except Exception as exc:
         logger.warning("kill switch preflight unavailable: %s", exc)
 
-    writer({
-        "type": "PAPER_EXEC", "run_id": run_id, "ticker": ticker,
-        "action": action, "qty": qty, "limit_price": limit_price,
-        "position_value": round(position_value, 2),
-        "max_position_pct": 10, "data_age_s": round(data_age_s, 1),
-        "data_source": "datahub_scan" if limit_price > 0 else "fallback",
-    })
+    writer(
+        {
+            "type": "PAPER_EXEC",
+            "run_id": run_id,
+            "ticker": ticker,
+            "action": action,
+            "qty": qty,
+            "limit_price": limit_price,
+            "position_value": round(position_value, 2),
+            "max_position_pct": 10,
+            "data_age_s": round(data_age_s, 1),
+            "data_source": "datahub_scan" if limit_price > 0 else "fallback",
+        }
+    )
 
     # Submit paper order
     order_state = {**state, "ticket_allowed": True}
@@ -247,8 +284,11 @@ async def auto_execute_paper(state: dict) -> dict:
     result = await _submit_paper_order(
         order_state,
         {
-            "ticker": ticker, "action": action, "qty": qty,
-            "order_type": "LMT", "limit_price": limit_price,
+            "ticker": ticker,
+            "action": action,
+            "qty": qty,
+            "order_type": "LMT",
+            "limit_price": limit_price,
         },
     )
 
@@ -258,6 +298,7 @@ async def auto_execute_paper(state: dict) -> dict:
     # ── Adaptive feedback: record trade for XP + AutoCal + RL learning ──
     try:
         from core.trading.adaptive_agent import record_trade_outcome
+
         pnl_estimate = 0.0  # Will be updated when trade closes
         record_trade_outcome(
             ticker=ticker,
@@ -271,11 +312,16 @@ async def auto_execute_paper(state: dict) -> dict:
     except Exception:
         pass
 
-    writer({
-        "type": "PIPELINE_STEP", "run_id": run_id,
-        "step": "auto_execute_paper", "status": "completed",
-        "result": result, "journal_entry": journal_entry,
-    })
+    writer(
+        {
+            "type": "PIPELINE_STEP",
+            "run_id": run_id,
+            "step": "auto_execute_paper",
+            "status": "completed",
+            "result": result,
+            "journal_entry": journal_entry,
+        }
+    )
 
     return {
         "paper_exec_result": result,
@@ -299,7 +345,7 @@ def _extract_thesis_ticker(final: str, state: dict, order_ticker: str) -> str:
         thesis_text = f"{thesis_text} {final}"
 
     # Pattern: 'TICKER SYMB:' or 'TICKER SYMBOL:' at the beginning
-    ticker_match = _re.search(r'TICKER\s+([A-Z]{1,5}(?:\.[A-Z]{2})?)', thesis_text, _re.IGNORECASE)
+    ticker_match = _re.search(r"TICKER\s+([A-Z]{1,5}(?:\.[A-Z]{2})?)", thesis_text, _re.IGNORECASE)
     if ticker_match:
         thesis_ticker = ticker_match.group(1).upper()
         if thesis_ticker != order_ticker.upper():
@@ -366,21 +412,34 @@ def _resolve_trade_params(
         # Only proceed if message contains EXPLICIT trade request
         msg = (final or state.get("message", "")).lower()
         has_explicit_trade = any(
-            w in msg for w in ("comprar", "compre", "vender", "venda", "paper_ticket",
-                               "buy", "sell", "execute order", "submit order", "place trade")
+            w in msg
+            for w in (
+                "comprar",
+                "compre",
+                "vender",
+                "venda",
+                "paper_ticket",
+                "buy",
+                "sell",
+                "execute order",
+                "submit order",
+                "place trade",
+            )
         )
         if not has_explicit_trade:
             return None, 0, ""
         ticker = str(state.get("ticker", "")).upper()
         qty_match = re.search(
             r"(\d+)\s*(?:share|acao|acoes|shares)",
-            final or state.get("message", ""), re.IGNORECASE,
+            final or state.get("message", ""),
+            re.IGNORECASE,
         )
         qty = int(qty_match.group(1)) if qty_match else 0
         if qty <= 0:
             return None, 0, ""  # No valid quantity — gate will block
         action = (
-            "sell" if any(w in (final or "").lower() for w in ("venda", "vender", "sell", "short"))
+            "sell"
+            if any(w in (final or "").lower() for w in ("venda", "vender", "sell", "short"))
             else "buy"
         )
         return ticker, qty, action
@@ -388,19 +447,33 @@ def _resolve_trade_params(
     # Strategy 4: Any ticker + explicit trade intent keywords
     if state.get("ticker") and any(
         w in (state.get("message", "")).lower()
-        for w in ("comprar", "compre", "buy", "venda", "vender", "sell", "trade", "ordem", "paper_ticket")
+        for w in (
+            "comprar",
+            "compre",
+            "buy",
+            "venda",
+            "vender",
+            "sell",
+            "trade",
+            "ordem",
+            "paper_ticket",
+        )
     ):
         ticker = str(state.get("ticker", "")).upper()
         qty_match = re.search(
             r"(\d+)\s*(?:share|acao|acoes|shares)",
-            final or state.get("message", ""), re.IGNORECASE,
+            final or state.get("message", ""),
+            re.IGNORECASE,
         )
         qty = int(qty_match.group(1)) if qty_match else 0
         if qty <= 0:
             return None, 0, ""  # No valid quantity — gate will block
         action = (
-            "sell" if any(w in (final or state.get("message","")).lower()
-                         for w in ("venda", "vender", "sell", "short"))
+            "sell"
+            if any(
+                w in (final or state.get("message", "")).lower()
+                for w in ("venda", "vender", "sell", "short")
+            )
             else "buy"
         )
         return ticker, qty, action
@@ -438,23 +511,33 @@ def _check_concentration(ticker: str, position_value: float, run_id: str) -> boo
 
         check_script = str(
             Path(__file__).resolve().parent.parent.parent.parent.parent
-            / "scripts" / "_ibkr_position_check.py"
+            / "scripts"
+            / "_ibkr_position_check.py"
         )
         proc = _sp.run(
             [_sys.executable, check_script, ticker],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if proc.returncode == 0:
             data = _json.loads(proc.stdout.strip())
             existing_pct = data.get("pct_of_equity", 0)
             from core.mission_context import get_mission_equity
-            new_total_pct = existing_pct + (position_value / data.get("equity", get_mission_equity()) * 100)
+
+            new_total_pct = existing_pct + (
+                position_value / data.get("equity", get_mission_equity()) * 100
+            )
             if new_total_pct > 50:
-                get_stream_writer()({
-                    "type": "PIPELINE_STEP", "run_id": run_id,
-                    "step": "auto_execute_paper", "status": "skipped",
-                    "reason": f"concentration_gate:{ticker}_at_{existing_pct:.0f}pct_would_be_{new_total_pct:.0f}pct",
-                })
+                get_stream_writer()(
+                    {
+                        "type": "PIPELINE_STEP",
+                        "run_id": run_id,
+                        "step": "auto_execute_paper",
+                        "status": "skipped",
+                        "reason": f"concentration_gate:{ticker}_at_{existing_pct:.0f}pct_would_be_{new_total_pct:.0f}pct",
+                    }
+                )
                 return True
     except Exception:
         pass
@@ -488,7 +571,8 @@ def _journal_trade(
                     if so.get("avg_price") and so["avg_price"] > 0:
                         fill_price = float(so["avg_price"])
                     closed = journal.close_trade(
-                        ot["trade_id"], exit_price=fill_price,
+                        ot["trade_id"],
+                        exit_price=fill_price,
                         exit_reason="auto_sell",
                         exit_date=datetime.now(timezone.utc).isoformat(),
                     )
@@ -496,20 +580,27 @@ def _journal_trade(
                         journal.add_reflection(
                             ot["trade_id"],
                             thesis_correct=(closed.outcome == "win"),
-                            what_went_right="Auto-closed by sell order" if closed.outcome == "win" else "",
-                            what_went_wrong="Auto-closed — loss" if closed.outcome == "loss" else "",
+                            what_went_right="Auto-closed by sell order"
+                            if closed.outcome == "win"
+                            else "",
+                            what_went_wrong="Auto-closed — loss"
+                            if closed.outcome == "loss"
+                            else "",
                             lesson_learned=f"Auto trade: {ticker} {'won' if closed.outcome == 'win' else 'lost'} ${abs(closed.pnl_amount or 0):.2f}",
                         )
                         # Background learning cycle
                         import threading
+
                         def _run_learning_cycle():
                             try:
                                 from core.trading.feedback_loop import get_feedback_loop
+
                                 fb = get_feedback_loop()
                                 fb.run_learning_cycle()
                                 logger.info("learning_cycle_completed", trade_id=ot["trade_id"])
                             except Exception as e:
                                 logger.warning("learning_cycle_failed", error=str(e)[:200])
+
                         threading.Thread(target=_run_learning_cycle, daemon=True).start()
                         return f"closed:{ot['trade_id']}"
             return f"no_open_trade_for:{ticker}"

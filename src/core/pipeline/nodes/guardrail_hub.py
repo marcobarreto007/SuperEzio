@@ -76,36 +76,161 @@ class GuardrailHub:
 
     def _build_registry(self) -> list[GuardrailCheck]:
         items: list[tuple[str, str, str, GuardrailRunner]] = [
-            ("input_security_context", "1_input_security", "SecurityContext request gate", self._input_security_context),
-            ("input_validation", "1_input_security", "validate_input injection/size gate", self._input_validation),
-            ("output_sanitization", "1_input_security", "sanitize_output redaction gate", self._output_sanitization),
-            ("private_channel_strip", "1_input_security", "strip private model channels", self._private_channel_strip),
-            ("circuit_breaker", "2_provider_reliability", "provider circuit breaker availability", self._circuit_breaker),
-            ("cost_guard", "2_provider_reliability", "daily budget and run count guard", self._cost_guard),
-            ("model_gateway_fallback", "2_provider_reliability", "gateway fallback route registered", self._model_gateway_fallback),
-            ("quality_gates", "3_data_quality", "trade candidate quality gates", self._quality_gates),
-            ("pennylab_veracity", "3_data_quality", "PennyLab veracity decision", self._pennylab_veracity),
+            (
+                "input_security_context",
+                "1_input_security",
+                "SecurityContext request gate",
+                self._input_security_context,
+            ),
+            (
+                "input_validation",
+                "1_input_security",
+                "validate_input injection/size gate",
+                self._input_validation,
+            ),
+            (
+                "output_sanitization",
+                "1_input_security",
+                "sanitize_output redaction gate",
+                self._output_sanitization,
+            ),
+            (
+                "private_channel_strip",
+                "1_input_security",
+                "strip private model channels",
+                self._private_channel_strip,
+            ),
+            (
+                "circuit_breaker",
+                "2_provider_reliability",
+                "provider circuit breaker availability",
+                self._circuit_breaker,
+            ),
+            (
+                "cost_guard",
+                "2_provider_reliability",
+                "daily budget and run count guard",
+                self._cost_guard,
+            ),
+            (
+                "model_gateway_fallback",
+                "2_provider_reliability",
+                "gateway fallback route registered",
+                self._model_gateway_fallback,
+            ),
+            (
+                "quality_gates",
+                "3_data_quality",
+                "trade candidate quality gates",
+                self._quality_gates,
+            ),
+            (
+                "pennylab_veracity",
+                "3_data_quality",
+                "PennyLab veracity decision",
+                self._pennylab_veracity,
+            ),
             ("f51_veracity", "3_data_quality", "F51 verdict consistency", self._f51_veracity),
-            ("adversarial_critic", "3_data_quality", "F51 adversarial finance critic", self._adversarial_critic),
-            ("sdca_firewall", "4_risk_analysis", "SDCA-Lite decision firewall", self._sdca_firewall),
-            ("sdca_experience_memory", "4_risk_analysis", "SDCA similar experience memory", self._sdca_experience_memory),
+            (
+                "adversarial_critic",
+                "3_data_quality",
+                "F51 adversarial finance critic",
+                self._adversarial_critic,
+            ),
+            (
+                "sdca_firewall",
+                "4_risk_analysis",
+                "SDCA-Lite decision firewall",
+                self._sdca_firewall,
+            ),
+            (
+                "sdca_experience_memory",
+                "4_risk_analysis",
+                "SDCA similar experience memory",
+                self._sdca_experience_memory,
+            ),
             ("reward_gate", "4_risk_analysis", "RewardGate quality scorer", self._reward_gate),
-            ("sanity_check", "4_risk_analysis", "Pure-Python answer sanity checks", self._sanity_check),
-            ("fraud_analyst", "5_fraud_detection", "FraudPatternAnalyst rule checks", self._fraud_analyst),
+            (
+                "sanity_check",
+                "4_risk_analysis",
+                "Pure-Python answer sanity checks",
+                self._sanity_check,
+            ),
+            (
+                "fraud_analyst",
+                "5_fraud_detection",
+                "FraudPatternAnalyst rule checks",
+                self._fraud_analyst,
+            ),
             ("fraud_memory", "5_fraud_detection", "fraud memory rule base", self._fraud_memory),
             ("fraud_rag", "5_fraud_detection", "FraudPatternMatcher local RAG", self._fraud_rag),
-            ("pennylab_scoring", "5_fraud_detection", "PennyLab manipulation scoring", self._pennylab_scoring),
+            (
+                "pennylab_scoring",
+                "5_fraud_detection",
+                "PennyLab manipulation scoring",
+                self._pennylab_scoring,
+            ),
             ("kill_switch", "6_trading_guardrails", "paper trading kill switch", self._kill_switch),
-            ("approval_gate", "6_trading_guardrails", "human approval threshold", self._approval_gate),
-            ("position_sizer", "6_trading_guardrails", "risk-based position sizing", self._position_sizer),
-            ("reward_function", "6_trading_guardrails", "trade reward function", self._reward_function),
-            ("email_alerter", "6_trading_guardrails", "critical alert transport", self._email_alerter),
-            ("crisis_math_12_models", "7_crisis_systemic", "CrisisMath 12-model aggregate", self._crisis_math_12_models),
-            ("crisis_expert", "7_crisis_systemic", "CrisisMathExpert registered", self._crisis_expert),
-            ("crisis_ensemble", "7_crisis_systemic", "crisis ensemble aggregate", self._crisis_ensemble),
-            ("investor_committee", "8_committee_final", "InvestorCommittee aggregation", self._investor_committee),
-            ("prompt_builder_contract", "8_committee_final", "CEO prompt coverage contract", self._prompt_builder_contract),
-            ("decision_trace_logger", "8_committee_final", "DecisionTraceLogger persistence", self._decision_trace_logger),
+            (
+                "approval_gate",
+                "6_trading_guardrails",
+                "human approval threshold",
+                self._approval_gate,
+            ),
+            (
+                "position_sizer",
+                "6_trading_guardrails",
+                "risk-based position sizing",
+                self._position_sizer,
+            ),
+            (
+                "reward_function",
+                "6_trading_guardrails",
+                "trade reward function",
+                self._reward_function,
+            ),
+            (
+                "email_alerter",
+                "6_trading_guardrails",
+                "critical alert transport",
+                self._email_alerter,
+            ),
+            (
+                "crisis_math_12_models",
+                "7_crisis_systemic",
+                "CrisisMath 12-model aggregate",
+                self._crisis_math_12_models,
+            ),
+            (
+                "crisis_expert",
+                "7_crisis_systemic",
+                "CrisisMathExpert registered",
+                self._crisis_expert,
+            ),
+            (
+                "crisis_ensemble",
+                "7_crisis_systemic",
+                "crisis ensemble aggregate",
+                self._crisis_ensemble,
+            ),
+            (
+                "investor_committee",
+                "8_committee_final",
+                "InvestorCommittee aggregation",
+                self._investor_committee,
+            ),
+            (
+                "prompt_builder_contract",
+                "8_committee_final",
+                "CEO prompt coverage contract",
+                self._prompt_builder_contract,
+            ),
+            (
+                "decision_trace_logger",
+                "8_committee_final",
+                "DecisionTraceLogger persistence",
+                self._decision_trace_logger,
+            ),
         ]
         return [
             GuardrailCheck(id=item_id, layer=layer, description=desc, runner=runner)
@@ -177,7 +302,9 @@ class GuardrailHub:
         )
         if sec.error:
             return self._result(decision="BLOCK", reason=sec.error, confidence=0.0)
-        return self._result(details={"request_id": sec.request_id, "pii_detected": sec.pii_detected})
+        return self._result(
+            details={"request_id": sec.request_id, "pii_detected": sec.pii_detected}
+        )
 
     def _input_validation(self, state: dict[str, Any]) -> dict[str, Any]:
         from core.pipeline.security import validate_input
@@ -342,7 +469,9 @@ class GuardrailHub:
         decision = "REVIEW" if risk >= 0.35 else "ALLOW"
         if result.get("recommendation_constraint") == "force_wait_or_avoid":
             decision = "BLOCK"
-        return self._result(decision=decision, confidence=float(result.get("confidence") or 0.0), details=result)
+        return self._result(
+            decision=decision, confidence=float(result.get("confidence") or 0.0), details=result
+        )
 
     def _fraud_memory(self, state: dict[str, Any]) -> dict[str, Any]:
         from core.investor.fraud_memory import get_fraud_memory
@@ -369,7 +498,9 @@ class GuardrailHub:
         scores = pennylab.get("scores") if isinstance(pennylab, dict) else None
         if not scores:
             return self._result(status="skipped", reason="pennylab_scores_not_available")
-        max_score = max(float(v) for v in scores.values() if isinstance(v, (int, float))) if scores else 0.0
+        max_score = (
+            max(float(v) for v in scores.values() if isinstance(v, (int, float))) if scores else 0.0
+        )
         return self._result(
             decision="REVIEW" if max_score >= 0.7 else "ALLOW",
             confidence=1.0 - min(max_score, 1.0),
@@ -380,6 +511,7 @@ class GuardrailHub:
         from core.trading.kill_switch import KillSwitch
 
         from core.mission_context import get_mission_equity
+
         equity = float(state.get("paper_equity") or get_mission_equity())
         switch = KillSwitch(initial_equity=equity)
         switch_state = switch.check()
@@ -408,6 +540,7 @@ class GuardrailHub:
         if price is None:
             return self._result(status="skipped", reason="missing_entry_price")
         from core.mission_context import get_mission_equity
+
         equity = float(state.get("paper_equity") or get_mission_equity())
         size = PositionSizer(equity=equity).size(entry_price=price)
         return self._result(
@@ -428,11 +561,16 @@ class GuardrailHub:
         config = EmailConfig()
         if not config.enabled:
             return self._result(status="skipped", reason="email_alerts_disabled")
-        return self._result(details={"to_addrs": len(config.to_addrs), "smtp_host": bool(config.smtp_host)})
+        return self._result(
+            details={"to_addrs": len(config.to_addrs), "smtp_host": bool(config.smtp_host)}
+        )
 
     def _crisis_math_12_models(self, state: dict[str, Any]) -> dict[str, Any]:
         crisis = self._dict(
-            (((state.get("math_report") or {}).get("modules") or {}).get("crisis_aggregate") or {}).get("values")
+            (
+                ((state.get("math_report") or {}).get("modules") or {}).get("crisis_aggregate")
+                or {}
+            ).get("values")
         )
         if not crisis:
             return self._result(status="skipped", reason="crisis_math_not_available")
@@ -442,20 +580,32 @@ class GuardrailHub:
             decision="ALLOW" if ok > 0 else "REVIEW",
             confidence=(ok / run) if run else 0.0,
             reason="" if ok else "all_crisis_models_failed_or_insufficient",
-            details={"models_ok": ok, "models_run": run, "aggregate_score": crisis.get("aggregate_score")},
+            details={
+                "models_ok": ok,
+                "models_run": run,
+                "aggregate_score": crisis.get("aggregate_score"),
+            },
         )
 
     def _crisis_expert(self, state: dict[str, Any]) -> dict[str, Any]:
         crisis = self._dict(
-            (((state.get("math_report") or {}).get("modules") or {}).get("crisis_aggregate") or {}).get("values")
+            (
+                ((state.get("math_report") or {}).get("modules") or {}).get("crisis_aggregate")
+                or {}
+            ).get("values")
         )
         if not crisis:
             return self._result(status="skipped", reason="crisis_report_missing")
-        return self._result(details={"regime": crisis.get("regime"), "alert_level": crisis.get("alert_level")})
+        return self._result(
+            details={"regime": crisis.get("regime"), "alert_level": crisis.get("alert_level")}
+        )
 
     def _crisis_ensemble(self, state: dict[str, Any]) -> dict[str, Any]:
         crisis = self._dict(
-            (((state.get("math_report") or {}).get("modules") or {}).get("crisis_aggregate") or {}).get("values")
+            (
+                ((state.get("math_report") or {}).get("modules") or {}).get("crisis_aggregate")
+                or {}
+            ).get("values")
         )
         score = crisis.get("aggregate_score")
         if score is None:
@@ -542,7 +692,11 @@ class GuardrailHub:
                 value = profile.get(key)
                 if isinstance(value, (int, float)):
                     features[key] = float(value)
-        math_numbers = (((data.get("math_report") or {}).get("numbers")) if isinstance(data.get("math_report"), dict) else {}) or {}
+        math_numbers = (
+            ((data.get("math_report") or {}).get("numbers"))
+            if isinstance(data.get("math_report"), dict)
+            else {}
+        ) or {}
         for src, dst in (("var_95", "var_95"), ("volatility", "annual_volatility")):
             value = math_numbers.get(src)
             if isinstance(value, (int, float)):
@@ -567,8 +721,10 @@ async def node_guardrail_hub(state: dict[str, Any]) -> dict[str, Any]:
     try:
         writer = get_stream_writer()
     except RuntimeError:
+
         def writer(_event: dict[str, Any]) -> None:
             return None
+
     run_id = state.get("run_id", "")
     writer(
         {

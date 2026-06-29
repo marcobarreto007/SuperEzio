@@ -16,9 +16,7 @@ Schema:
 
 from __future__ import annotations
 
-import json
 import logging
-import os
 import sqlite3
 import time
 from datetime import datetime, timezone, timedelta
@@ -70,13 +68,13 @@ def fetch_and_cache_ticker(ticker: str, force: bool = False) -> int:
     # Fetch from Yahoo Finance
     try:
         import yfinance as yf
-        
+
         end = datetime.now()
         start = end - timedelta(days=LOOKBACK_DAYS + 10)  # +10 buffer
-        
+
         stock = yf.Ticker(ticker)
         df = stock.history(start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"))
-        
+
         if df.empty:
             logger.warning("no_data_for_ticker: %s", ticker)
             return 0
@@ -84,7 +82,7 @@ def fetch_and_cache_ticker(ticker: str, force: bool = False) -> int:
         conn = _get_db()
         now_iso = datetime.now(timezone.utc).isoformat()
         count = 0
-        
+
         for idx, row in df.iterrows():
             date_str = idx.strftime("%Y-%m-%d")
             try:
@@ -93,16 +91,20 @@ def fetch_and_cache_ticker(ticker: str, force: bool = False) -> int:
                        (ticker, date, open, high, low, close, volume, fetched_at)
                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
-                        ticker, date_str,
-                        float(row["Open"]), float(row["High"]),
-                        float(row["Low"]), float(row["Close"]),
-                        float(row["Volume"]), now_iso,
+                        ticker,
+                        date_str,
+                        float(row["Open"]),
+                        float(row["High"]),
+                        float(row["Low"]),
+                        float(row["Close"]),
+                        float(row["Volume"]),
+                        now_iso,
                     ),
                 )
                 count += 1
             except Exception:
                 pass
-        
+
         conn.commit()
         conn.close()
         logger.info("cached_ohlcv: %s -> %d candles", ticker, count)
@@ -131,8 +133,12 @@ def get_cached_ohlcv(ticker: str, days: int = 180) -> list[dict[str, Any]]:
 
     return [
         {
-            "date": r[0], "open": r[1], "high": r[2],
-            "low": r[3], "close": r[4], "volume": r[5],
+            "date": r[0],
+            "open": r[1],
+            "high": r[2],
+            "low": r[3],
+            "close": r[4],
+            "volume": r[5],
         }
         for r in rows
     ]
@@ -141,9 +147,7 @@ def get_cached_ohlcv(ticker: str, days: int = 180) -> list[dict[str, Any]]:
 def get_cached_ticker_count() -> int:
     """Number of tickers with cached data."""
     conn = _get_db()
-    row = conn.execute(
-        "SELECT COUNT(DISTINCT ticker) FROM ohlcv_cache"
-    ).fetchone()
+    row = conn.execute("SELECT COUNT(DISTINCT ticker) FROM ohlcv_cache").fetchone()
     conn.close()
     return row[0] if row else 0
 
@@ -151,18 +155,10 @@ def get_cached_ticker_count() -> int:
 def get_cache_stats() -> dict[str, Any]:
     """Cache statistics."""
     conn = _get_db()
-    tickers = conn.execute(
-        "SELECT COUNT(DISTINCT ticker) FROM ohlcv_cache"
-    ).fetchone()[0]
-    candles = conn.execute(
-        "SELECT COUNT(*) FROM ohlcv_cache"
-    ).fetchone()[0]
-    oldest = conn.execute(
-        "SELECT MIN(date) FROM ohlcv_cache"
-    ).fetchone()[0]
-    newest = conn.execute(
-        "SELECT MAX(date) FROM ohlcv_cache"
-    ).fetchone()[0]
+    tickers = conn.execute("SELECT COUNT(DISTINCT ticker) FROM ohlcv_cache").fetchone()[0]
+    candles = conn.execute("SELECT COUNT(*) FROM ohlcv_cache").fetchone()[0]
+    oldest = conn.execute("SELECT MIN(date) FROM ohlcv_cache").fetchone()[0]
+    newest = conn.execute("SELECT MAX(date) FROM ohlcv_cache").fetchone()[0]
     conn.close()
     return {
         "tickers_cached": tickers,
@@ -182,20 +178,22 @@ def batch_fetch_universe(tickers: list[str], max_parallel: int = 5) -> dict[str,
     """
     results: dict[str, int] = {}
     total = len(tickers)
-    
+
     for i, ticker in enumerate(tickers):
         count = fetch_and_cache_ticker(ticker)
         results[ticker] = count
         if (i + 1) % 50 == 0:
             logger.info(
                 "batch_progress: %d/%d tickers (%.0f%%)",
-                i + 1, total, (i + 1) / total * 100,
+                i + 1,
+                total,
+                (i + 1) / total * 100,
             )
         # Small delay to avoid rate limiting
         if count == 0:
             time.sleep(0.5)
         else:
             time.sleep(0.1)
-    
+
     logger.info("batch_complete: %d tickers processed", total)
     return results

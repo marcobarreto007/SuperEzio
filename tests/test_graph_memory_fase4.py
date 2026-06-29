@@ -24,6 +24,7 @@ from core.memory.graph import (
 @dataclass
 class MockTurn:
     """Mock ConversationTurn for testing."""
+
     session_id: str = "test_session"
     timestamp: str = "2026-06-14T10:00:00"
     user_message: str = "Analyze AAPL stock"
@@ -122,7 +123,7 @@ class TestKnowledgeGraph:
             graph.add_entity(Entity(id=f"n{i}", type="test", name=f"N{i}"))
 
         for i in range(9):
-            graph.add_relation(Relation(source=f"n{i}", target=f"n{i+1}", type="chain"))
+            graph.add_relation(Relation(source=f"n{i}", target=f"n{i + 1}", type="chain"))
 
         # Should not find path with max_depth=3
         path = graph.find_path("n0", "n9", max_depth=3)

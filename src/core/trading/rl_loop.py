@@ -22,13 +22,12 @@ from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_RL_LOG_PATH = (
-    Path(__file__).resolve().parent.parent.parent.parent / "data" / "rl_log.jsonl"
-)
+DEFAULT_RL_LOG_PATH = Path(__file__).resolve().parent.parent.parent.parent / "data" / "rl_log.jsonl"
 
 
 class Action(Enum):
     """Ações que Bob pode tomar."""
+
     BUY = "BUY"
     WAIT = "WAIT"
     REJECT = "REJECT"
@@ -41,6 +40,7 @@ class Action(Enum):
 
 class StateFeature(Enum):
     """Features que definem o estado."""
+
     # Setup quality
     CONFIDENCE_HIGH = "confidence_high"
     CONFIDENCE_MEDIUM = "confidence_medium"
@@ -69,6 +69,7 @@ class StateFeature(Enum):
 @dataclass
 class QValue:
     """Valor Q para um par (estado, ação)."""
+
     state_id: str
     action: Action
     value: float  # Valor Q esperado
@@ -88,6 +89,7 @@ class QValue:
 @dataclass
 class RLEpisode:
     """Um episódio de aprendizado (trade completo)."""
+
     episode_id: str
     timestamp: str
     state_id: str
@@ -132,7 +134,9 @@ class RLLoop:
         self._epsilon_decay = exploration_decay
 
         # Tabela Q: dict[state_id][action] = QValue
-        self._q_table: dict[str, dict[Action, QValue]] = defaultdict(lambda: defaultdict(lambda: None))  # type: ignore
+        self._q_table: dict[str, dict[Action, QValue]] = defaultdict(
+            lambda: defaultdict(lambda: None)
+        )  # type: ignore
 
         # Histórico de episódios
         self._episodes: list[RLEpisode] = []
@@ -243,10 +247,7 @@ class RLLoop:
             target = reward
         else:
             # max Q value para próximo estado
-            next_max = max(
-                self.get_q_value(next_state_id, a)
-                for a in Action
-            )
+            next_max = max(self.get_q_value(next_state_id, a) for a in Action)
             target = reward + self._gamma * next_max
 
         # Q-learning update
@@ -287,11 +288,14 @@ class RLLoop:
         actions = available_actions or [Action.BUY, Action.WAIT, Action.REJECT]
 
         # Epsilon-greedy: explorar com probabilidade epsilon
-        should_explore = explore if explore is not None else (hash(state_id) % 100 < self._epsilon * 100)
+        should_explore = (
+            explore if explore is not None else (hash(state_id) % 100 < self._epsilon * 100)
+        )
 
         if should_explore:
             # Explorar: ação aleatória
             import random
+
             action = random.choice(actions)
             logger.debug("Exploring: chose %s for state %s", action.value, state_id)
             return action
@@ -310,7 +314,9 @@ class RLLoop:
         if best_action is None or best_q == 0:
             best_action = Action.WAIT
 
-        logger.debug("Exploiting: chose %s (Q=%.2f) for state %s", best_action.value, best_q, state_id)
+        logger.debug(
+            "Exploiting: chose %s (Q=%.2f) for state %s", best_action.value, best_q, state_id
+        )
         return best_action
 
     def record_episode(
@@ -455,9 +461,7 @@ class RLLoop:
                 policy[s_id] = {
                     "best_action": best_action.value,
                     "best_q": round(best_q, 3),
-                    "visits": sum(
-                        q.visits for q in actions_dict.values() if q
-                    ),
+                    "visits": sum(q.visits for q in actions_dict.values() if q),
                 }
 
         return policy

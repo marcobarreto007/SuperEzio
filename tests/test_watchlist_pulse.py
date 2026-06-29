@@ -30,8 +30,16 @@ class FakeMonitor:
                 },
             },
             "history_24h": [
-                {"ticker": "TLRY", "sentiment_score": 0.3, "collected_at": datetime.now(timezone.utc).isoformat()},
-                {"ticker": "TLRY", "sentiment_score": -0.3, "collected_at": datetime.now(timezone.utc).isoformat()},
+                {
+                    "ticker": "TLRY",
+                    "sentiment_score": 0.3,
+                    "collected_at": datetime.now(timezone.utc).isoformat(),
+                },
+                {
+                    "ticker": "TLRY",
+                    "sentiment_score": -0.3,
+                    "collected_at": datetime.now(timezone.utc).isoformat(),
+                },
             ],
         }
 

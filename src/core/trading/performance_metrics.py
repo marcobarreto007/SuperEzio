@@ -79,6 +79,7 @@ class PerformanceEngine:
         self._journal = journal
         if initial_equity is None:
             from core.mission_context import get_mission_equity
+
             initial_equity = get_mission_equity()
         self._initial_equity = initial_equity
 

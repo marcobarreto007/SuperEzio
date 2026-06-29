@@ -47,7 +47,10 @@ _shared_processors: list[Any] = [
 def _is_structured() -> bool:
     """Check if structured JSON output is enabled."""
     return os.getenv("STRUCTLOG_ENABLED", "true").strip().lower() in {
-        "1", "true", "yes", "on",
+        "1",
+        "true",
+        "yes",
+        "on",
     }
 
 
@@ -57,7 +60,8 @@ def configure_logging() -> None:
     if _is_structured():
         # Production: JSON to stdout
         structlog.configure(
-            processors=_shared_processors + [
+            processors=_shared_processors
+            + [
                 structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
             ],
             logger_factory=structlog.stdlib.LoggerFactory(),
@@ -80,7 +84,8 @@ def configure_logging() -> None:
     else:
         # Development: colored console
         structlog.configure(
-            processors=_shared_processors + [
+            processors=_shared_processors
+            + [
                 structlog.dev.ConsoleRenderer(colors=True),
             ],
             logger_factory=structlog.stdlib.LoggerFactory(),

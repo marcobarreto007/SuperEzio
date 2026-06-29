@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import json
 import logging
-import math
 from pathlib import Path
 from typing import Any
 
@@ -21,7 +20,9 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_RL_MODEL_PATH = Path(__file__).resolve().parent.parent.parent.parent / "data" / "neural_rl_weights.json"
+DEFAULT_RL_MODEL_PATH = (
+    Path(__file__).resolve().parent.parent.parent.parent / "data" / "neural_rl_weights.json"
+)
 
 
 class NeuralPolicy:
@@ -182,10 +183,14 @@ class NeuralPolicy:
         try:
             DEFAULT_RL_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
             data = {
-                "W1": self.W1.tolist(), "b1": self.b1.tolist(),
-                "W2": self.W2.tolist(), "b2": self.b2.tolist(),
-                "W3": self.W3.tolist(), "b3": self.b3.tolist(),
-                "baseline": self.baseline, "episodes": self.episodes,
+                "W1": self.W1.tolist(),
+                "b1": self.b1.tolist(),
+                "W2": self.W2.tolist(),
+                "b2": self.b2.tolist(),
+                "W3": self.W3.tolist(),
+                "b3": self.b3.tolist(),
+                "baseline": self.baseline,
+                "episodes": self.episodes,
             }
             DEFAULT_RL_MODEL_PATH.write_text(json.dumps(data))
         except Exception:

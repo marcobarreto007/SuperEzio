@@ -142,7 +142,9 @@ def _requires_genie_follow_up(state: Mapping[str, Any], verdict: Mapping[str, An
     return ""
 
 
-def _consensus_and_decision(genie: Mapping[str, Any], deep: Mapping[str, Any]) -> tuple[str, str, bool]:
+def _consensus_and_decision(
+    genie: Mapping[str, Any], deep: Mapping[str, Any]
+) -> tuple[str, str, bool]:
     genie_verdict = str(genie.get("verdict") or "UNKNOWN").upper()
     deep_verdict = str(deep.get("verdict") or "UNKNOWN").upper()
 
@@ -247,11 +249,7 @@ async def node_trinity(state: dict[str, Any], *, gateway=None) -> dict[str, Any]
         "Use only the supplied math context. Output raw JSON with verdict, "
         "confidence, reasoning, top_signals, top_risks, and bob_readable."
     )
-    deep_user = (
-        f"Ticker: {ticker}\n\n"
-        f"{math_context}\n\n"
-        "Give the fundamental/value verdict for Bob."
-    )
+    deep_user = f"Ticker: {ticker}\n\n{math_context}\n\nGive the fundamental/value verdict for Bob."
     deep_first = ExpertDialogue(gateway, max_rounds=max_rounds)
     await deep_first.ask("fundamental_value", "deepseek", deep_system, deep_user)
     deep_prelim = deep_first.get_verdict()

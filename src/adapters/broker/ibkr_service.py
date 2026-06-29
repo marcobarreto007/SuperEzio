@@ -241,9 +241,7 @@ class IBKRService:
                     self._ib.cancelMktData(c)
 
                 for p, ticker in zip(pos_list, tickers):
-                    price = (
-                        ticker.last or ticker.close or ticker.marketPrice() or float(p.avgCost)
-                    )
+                    price = ticker.last or ticker.close or ticker.marketPrice() or float(p.avgCost)
                     positions.append(
                         {
                             "symbol": p.contract.symbol,
@@ -393,16 +391,12 @@ class IBKRService:
                 perm_id = str(getattr(order, "permId", "") or "")
                 client_id = str(getattr(order, "clientId", "") or "")
                 symbol = str(
-                    getattr(contract, "symbol", "")
-                    or getattr(contract, "localSymbol", "")
-                    or ""
+                    getattr(contract, "symbol", "") or getattr(contract, "localSymbol", "") or ""
                 ).upper()
                 status = str(getattr(order_status, "status", "") or "submitted")
                 order_id = perm_id if perm_id not in {"", "0"} else raw_order_id
                 dedupe_key = (
-                    perm_id
-                    if perm_id not in {"", "0"}
-                    else f"{client_id}:{raw_order_id}:{symbol}"
+                    perm_id if perm_id not in {"", "0"} else f"{client_id}:{raw_order_id}:{symbol}"
                 )
 
                 if not order_id or not symbol or dedupe_key in seen:
@@ -479,9 +473,7 @@ class IBKRService:
                 "cache_age_s": round(cache_age, 1),
                 "cooldown_active": cooldown_active,
                 "cooldown_remaining_s": (
-                    round(self._cooldown_until - time.monotonic(), 1)
-                    if cooldown_active
-                    else 0
+                    round(self._cooldown_until - time.monotonic(), 1) if cooldown_active else 0
                 ),
                 "last_error": self._last_error if self._last_error else None,
                 "consecutive_failures": self._consecutive_failures,

@@ -21,12 +21,14 @@ logger = logging.getLogger(__name__)
 
 class PositionSide(Enum):
     """Lado da posição."""
+
     LONG = "long"
     SHORT = "short"
 
 
 class PositionStatus(Enum):
     """Status da posição."""
+
     PENDING_ENTRY = "pending_entry"
     OPEN = "open"
     PENDING_EXIT = "pending_exit"
@@ -37,6 +39,7 @@ class PositionStatus(Enum):
 
 class ExitReason(Enum):
     """Motivo de exit."""
+
     STOP_LOSS = "stop_loss"
     TAKE_PROFIT = "take_profit"
     MANUAL = "manual"
@@ -49,6 +52,7 @@ class ExitReason(Enum):
 @dataclass
 class Position:
     """Uma posição aberta."""
+
     position_id: str
     symbol: str
     side: PositionSide
@@ -155,9 +159,7 @@ class Position:
             self.realized_pnl = (self.entry_price - exit_price) * self.quantity
 
         self.realized_pnl_pct = (
-            (exit_price - self.entry_price) / self.entry_price
-            if self.entry_price > 0
-            else 0
+            (exit_price - self.entry_price) / self.entry_price if self.entry_price > 0 else 0
         )
 
         # Atualizar status
@@ -212,6 +214,7 @@ class Position:
 @dataclass
 class PositionSummary:
     """Resumo de todas as posições."""
+
     total_positions: int
     total_value: float
     total_unrealized_pnl: float
@@ -234,7 +237,9 @@ class PositionSummary:
             },
             "least_profitable": {
                 "symbol": self.least_profitable.symbol if self.least_profitable else "",
-                "pnl": round(self.least_profitable.unrealized_pnl, 2) if self.least_profitable else 0,
+                "pnl": round(self.least_profitable.unrealized_pnl, 2)
+                if self.least_profitable
+                else 0,
             },
             "symbols": self.symbols,
         }

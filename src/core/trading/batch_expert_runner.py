@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import sqlite3
 import time
 from datetime import datetime, timezone
@@ -65,7 +64,9 @@ def run_experts_on_ticker(ticker: str) -> dict[str, Any]:
     closes = [c["close"] for c in ohlcv]
     volumes = [c["volume"] for c in ohlcv]
     latest_price = closes[-1] if closes else 0
-    price_change_30d = ((closes[-1] / closes[-min(21, len(closes))] - 1) * 100) if len(closes) >= 21 else 0
+    price_change_30d = (
+        ((closes[-1] / closes[-min(21, len(closes))] - 1) * 100) if len(closes) >= 21 else 0
+    )
     avg_volume = sum(volumes[-20:]) / min(20, len(volumes)) if volumes else 0
     high_6m = max(c["high"] for c in ohlcv)
     low_6m = min(c["low"] for c in ohlcv)
@@ -83,7 +84,7 @@ def run_experts_on_ticker(ticker: str) -> dict[str, Any]:
 
     # Run experts (lightweight compute — no LLM needed for basic metrics)
     analyses = {}
-    
+
     # 1. momentum_technical
     if len(closes) >= 50:
         sma20 = sum(closes[-20:]) / 20
@@ -100,14 +101,22 @@ def run_experts_on_ticker(ticker: str) -> dict[str, Any]:
     if latest_price > 0:
         price_to_range = (latest_price - low_6m) / (high_6m - low_6m) if high_6m != low_6m else 0.5
         analyses["fundamental_value"] = {
-            "verdict": "undervalued" if price_to_range < 0.3 else "overvalued" if price_to_range > 0.7 else "fair",
+            "verdict": "undervalued"
+            if price_to_range < 0.3
+            else "overvalued"
+            if price_to_range > 0.7
+            else "fair",
             "price_position_in_range": round(price_to_range, 2),
         }
 
     # 3. macro_risk
     vol_30d = _calc_volatility(closes[-21:]) if len(closes) >= 21 else 0
     analyses["macro_risk"] = {
-        "verdict": "high_risk" if vol_30d > 0.03 else "moderate_risk" if vol_30d > 0.015 else "low_risk",
+        "verdict": "high_risk"
+        if vol_30d > 0.03
+        else "moderate_risk"
+        if vol_30d > 0.015
+        else "low_risk",
         "volatility_30d_pct": round(vol_30d * 100, 2),
     }
 
@@ -116,7 +125,11 @@ def run_experts_on_ticker(ticker: str) -> dict[str, Any]:
         half = len(closes) // 2
         first_half_avg = sum(closes[:half]) / half
         second_half_avg = sum(closes[half:]) / (len(closes) - half)
-        trend = "downtrend_reversal" if second_half_avg < first_half_avg and closes[-1] > closes[-2] else "uptrend_continuation"
+        trend = (
+            "downtrend_reversal"
+            if second_half_avg < first_half_avg and closes[-1] > closes[-2]
+            else "uptrend_continuation"
+        )
         analyses["contrarian_opportunity"] = {
             "verdict": trend,
             "half1_avg": round(first_half_avg, 2),
@@ -124,9 +137,17 @@ def run_experts_on_ticker(ticker: str) -> dict[str, Any]:
         }
 
     # 5. sentiment (volume analysis)
-    vol_ratio = (sum(volumes[-5:]) / 5) / (sum(volumes[-20:]) / 20) if len(volumes) >= 20 and sum(volumes[-20:]) > 0 else 1
+    vol_ratio = (
+        (sum(volumes[-5:]) / 5) / (sum(volumes[-20:]) / 20)
+        if len(volumes) >= 20 and sum(volumes[-20:]) > 0
+        else 1
+    )
     analyses["sentiment"] = {
-        "verdict": "high_interest" if vol_ratio > 1.5 else "normal" if vol_ratio > 0.5 else "low_interest",
+        "verdict": "high_interest"
+        if vol_ratio > 1.5
+        else "normal"
+        if vol_ratio > 0.5
+        else "low_interest",
         "volume_ratio_5v20": round(vol_ratio, 2),
     }
 
@@ -159,10 +180,10 @@ def _calc_volatility(prices: list[float]) -> float:
     """Calculate daily volatility (std dev of returns)."""
     if len(prices) < 2:
         return 0.0
-    returns = [(prices[i] / prices[i-1] - 1) for i in range(1, len(prices))]
+    returns = [(prices[i] / prices[i - 1] - 1) for i in range(1, len(prices))]
     mean = sum(returns) / len(returns)
     variance = sum((r - mean) ** 2 for r in returns) / len(returns)
-    return variance ** 0.5
+    return variance**0.5
 
 
 def batch_run_experts(tickers: list[str]) -> dict[str, int]:
@@ -213,12 +234,8 @@ def get_expert_summary(ticker: str) -> str:
 def get_expert_stats() -> dict[str, Any]:
     """Statistics on expert analyses."""
     conn = _get_db()
-    tickers = conn.execute(
-        "SELECT COUNT(DISTINCT ticker) FROM expert_analyses"
-    ).fetchone()[0]
-    total = conn.execute(
-        "SELECT COUNT(*) FROM expert_analyses"
-    ).fetchone()[0]
+    tickers = conn.execute("SELECT COUNT(DISTINCT ticker) FROM expert_analyses").fetchone()[0]
+    total = conn.execute("SELECT COUNT(*) FROM expert_analyses").fetchone()[0]
     conn.close()
     return {
         "tickers_analyzed": tickers,

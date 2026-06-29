@@ -87,7 +87,8 @@ def _try_fast_cache(ticker: str, writer) -> dict | None:
         data = {
             "ticker": ticker,
             "price": {
-                "latest": price, "volume": volume,
+                "latest": price,
+                "volume": volume,
                 "data_quality": "cached",
                 "source": "learner_24_7_cache",
             },
@@ -107,14 +108,16 @@ def _try_fast_cache(ticker: str, writer) -> dict | None:
 
         data_context = "\n".join(lines)
 
-        writer({
-            "type": "PIPELINE_STEP",
-            "step": "data",
-            "status": "cache_hit",
-            "ticker": ticker,
-            "source": "learner_cache",
-            "latency_ms": 0,
-        })
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "step": "data",
+                "status": "cache_hit",
+                "ticker": ticker,
+                "source": "learner_cache",
+                "latency_ms": 0,
+            }
+        )
 
         return {"data": data, "data_context": data_context, "_data_from_cache": True}
     except Exception:
@@ -144,16 +147,21 @@ async def node_collector(state: dict, *, config=None) -> dict:
     if ticker:
         cached = _try_fast_cache(ticker, writer)
         if cached:
-            writer({
-                "type": "PIPELINE_STEP", "run_id": run_id,
-                "step": "data", "status": "completed",
-                "provider": "cache", "route": route, "ticker": ticker,
-            })
+            writer(
+                {
+                    "type": "PIPELINE_STEP",
+                    "run_id": run_id,
+                    "step": "data",
+                    "status": "completed",
+                    "provider": "cache",
+                    "route": route,
+                    "ticker": ticker,
+                }
+            )
             return cached
 
     # ── Ticker analysis ──
     if route == "ticker_analysis" and ticker:
-
         use_pro = os.getenv("SUPEREZIO_PROFESSIONAL_COLLECTOR", "true").lower() in {
             "1",
             "true",
@@ -488,9 +496,18 @@ def _requested_max_price(msg_lower: str) -> float | None:
 
     # Penny stock keywords: default to $5 max
     penny_keywords = (
-        "penny stock", "penny stocks", "pennystock", "pennystocks",
-        "under $5", "under $5.00", "below $5", "below $5.00",
-        "cheap stock", "cheap stocks", "dollar stock", "dollar stocks",
+        "penny stock",
+        "penny stocks",
+        "pennystock",
+        "pennystocks",
+        "under $5",
+        "under $5.00",
+        "below $5",
+        "below $5.00",
+        "cheap stock",
+        "cheap stocks",
+        "dollar stock",
+        "dollar stocks",
     )
     if any(kw in msg_lower for kw in penny_keywords):
         return 5.0
@@ -867,16 +884,18 @@ async def _run_scan(
                 for p in penny_results:
                     sym = str(p["ticker"]).upper()
                     if sym not in existing_tickers:
-                        raw_candidates.append({
-                            "ticker": sym,
-                            "source": "penny_scanner_yfinance",
-                            "market": p.get("exchange", "United States"),
-                            "price": p.get("price"),
-                            "volume": p.get("volume"),
-                            "name": p.get("name", ""),
-                            "sector": p.get("sector", ""),
-                            "market_cap": p.get("market_cap"),
-                        })
+                        raw_candidates.append(
+                            {
+                                "ticker": sym,
+                                "source": "penny_scanner_yfinance",
+                                "market": p.get("exchange", "United States"),
+                                "price": p.get("price"),
+                                "volume": p.get("volume"),
+                                "name": p.get("name", ""),
+                                "sector": p.get("sector", ""),
+                                "market_cap": p.get("market_cap"),
+                            }
+                        )
                         existing_tickers.add(sym)
                         added += 1
                 registry.stage_completed(
@@ -901,14 +920,19 @@ async def _run_scan(
     if allow_penny_otc:
         try:
             from experts.pennylab.data_provider import _PENNY_WATCHLIST
+
             existing_tickers = {c["ticker"].upper() for c in raw_candidates}
             for sym in _PENNY_WATCHLIST:
                 if sym.upper() not in existing_tickers:
-                    raw_candidates.append({
-                        "ticker": sym,
-                        "source": "pennylab_watchlist",
-                        "market": "Canada" if (sym.endswith(".TO") or sym.endswith(".V")) else ("Brazil" if sym.endswith(".SA") else "United States")
-                    })
+                    raw_candidates.append(
+                        {
+                            "ticker": sym,
+                            "source": "pennylab_watchlist",
+                            "market": "Canada"
+                            if (sym.endswith(".TO") or sym.endswith(".V"))
+                            else ("Brazil" if sym.endswith(".SA") else "United States"),
+                        }
+                    )
         except Exception as exc:
             logger.warning("Failed to merge pennylab watchlist: %s", exc)
 

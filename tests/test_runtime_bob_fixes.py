@@ -223,8 +223,7 @@ def test_attached_chart_context_blocks_false_no_data_answer(client_with_mock_pip
         {
             "type": "CHUNK",
             "content": (
-                "Nao ha preco, nem grafico, nem metricas para sustentar "
-                "uma tese operacional."
+                "Nao ha preco, nem grafico, nem metricas para sustentar uma tese operacional."
             ),
         },
     ]

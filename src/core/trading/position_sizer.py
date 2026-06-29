@@ -41,9 +41,7 @@ class PositionSizer:
         if not 0 < max_risk_pct <= 0.1:
             raise ValueError(f"max_risk_pct must be in (0, 0.1], got {max_risk_pct}")
         if not 0 < max_position_pct <= 1.0:
-            raise ValueError(
-                f"max_position_pct must be in (0, 1.0], got {max_position_pct}"
-            )
+            raise ValueError(f"max_position_pct must be in (0, 1.0], got {max_position_pct}")
         if max_open_positions < 1:
             raise ValueError(f"max_open_positions must be >= 1, got {max_open_positions}")
 
@@ -112,9 +110,7 @@ class PositionSizer:
 
         capped = max_shares_by_position < max_shares_by_risk
         cap_reason = (
-            f"; capped by {self.max_position_pct * 100:.1f}% max position"
-            if capped
-            else ""
+            f"; capped by {self.max_position_pct * 100:.1f}% max position" if capped else ""
         )
         return PositionSize(
             shares=shares,

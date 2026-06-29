@@ -29,14 +29,16 @@ class TestExecutionFreeze:
     def test_freeze_blocks_valid_order(self):
         os.environ["F51_TRADING_EXECUTION_FREEZE"] = "true"
         result = evaluate_trade_gate(
-            message="comprar 10 AAPL", ticker="AAPL", qty=10, limit_price=150.0)
+            message="comprar 10 AAPL", ticker="AAPL", qty=10, limit_price=150.0
+        )
         assert result.status == "BLOCK"
         assert result.reason_code == "EXECUTION_FREEZE"
 
     def test_freeze_off_proceeds(self, monkeypatch):
         monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "false")
         result = evaluate_trade_gate(
-            message="comprar 10 AAPL", ticker="AAPL", qty=10, limit_price=150.0)
+            message="comprar 10 AAPL", ticker="AAPL", qty=10, limit_price=150.0
+        )
         assert result.reason_code != "EXECUTION_FREEZE"
 
 
@@ -68,8 +70,8 @@ class TestNonTradeIntent:
     def test_non_trade_blocks_order(self, monkeypatch):
         monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "false")
         result = evaluate_trade_gate(
-            message="me explica o que e sentimento vivo",
-            ticker="S", qty=10, limit_price=20.0)
+            message="me explica o que e sentimento vivo", ticker="S", qty=10, limit_price=20.0
+        )
         assert result.status == "BLOCK"
         assert result.reason_code == "NON_TRADE_INTENT"
 
@@ -101,7 +103,8 @@ class TestTickerBlacklist:
     def test_blacklisted_blocks_order(self, monkeypatch):
         monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "false")
         result = evaluate_trade_gate(
-            message="comprar 10 TODAS", ticker="TODAS", qty=10, limit_price=50.0)
+            message="comprar 10 TODAS", ticker="TODAS", qty=10, limit_price=50.0
+        )
         assert result.status == "BLOCK"
         assert result.reason_code == "BLACKLISTED_TICKER"
 
@@ -127,8 +130,12 @@ class TestTickerMismatch:
         monkeypatch.setenv("IBKR_HOST", "127.0.0.1")
         monkeypatch.setenv("IBKR_PORT", "7497")
         result = evaluate_trade_gate(
-            message="comprar 10 USIO", ticker="AOSL",
-            thesis_ticker="USIO", qty=10, limit_price=48.04)
+            message="comprar 10 USIO",
+            ticker="AOSL",
+            thesis_ticker="USIO",
+            qty=10,
+            limit_price=48.04,
+        )
         assert result.status == "BLOCK"
         assert result.reason_code == "TICKER_MISMATCH"
 
@@ -137,8 +144,12 @@ class TestTickerMismatch:
         monkeypatch.setenv("IBKR_HOST", "127.0.0.1")
         monkeypatch.setenv("IBKR_PORT", "7497")
         result = evaluate_trade_gate(
-            message="comprar 10 AAPL", ticker="AAPL",
-            thesis_ticker="AAPL", qty=10, limit_price=150.0)
+            message="comprar 10 AAPL",
+            ticker="AAPL",
+            thesis_ticker="AAPL",
+            qty=10,
+            limit_price=150.0,
+        )
         if result.reason_code == "TICKER_MISMATCH":
             pytest.fail("Matched ticker should not be blocked for mismatch")
 
@@ -148,8 +159,7 @@ class TestPlaceholderQuantity:
         monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "false")
         monkeypatch.setenv("IBKR_HOST", "127.0.0.1")
         monkeypatch.setenv("IBKR_PORT", "7497")
-        result = evaluate_trade_gate(
-            message="comprar AAPL", ticker="AAPL", qty=5, limit_price=99.0)
+        result = evaluate_trade_gate(message="comprar AAPL", ticker="AAPL", qty=5, limit_price=99.0)
         assert result.status == "BLOCK"
         assert result.reason_code == "PLACEHOLDER_QUANTITY"
 
@@ -158,7 +168,8 @@ class TestPlaceholderQuantity:
         monkeypatch.setenv("IBKR_HOST", "127.0.0.1")
         monkeypatch.setenv("IBKR_PORT", "7497")
         result = evaluate_trade_gate(
-            message="comprar AAPL", ticker="AAPL", qty=10, limit_price=99.0)
+            message="comprar AAPL", ticker="AAPL", qty=10, limit_price=99.0
+        )
         assert result.status == "BLOCK"
         assert result.reason_code == "PLACEHOLDER_QUANTITY"
 
@@ -167,14 +178,16 @@ class TestPlaceholderQuantity:
         monkeypatch.setenv("IBKR_HOST", "127.0.0.1")
         monkeypatch.setenv("IBKR_PORT", "7497")
         result = evaluate_trade_gate(
-            message="comprar AAPL", ticker="AAPL", qty=100, limit_price=99.0)
+            message="comprar AAPL", ticker="AAPL", qty=100, limit_price=99.0
+        )
         assert result.status == "BLOCK"
         assert result.reason_code == "PLACEHOLDER_QUANTITY"
 
     def test_zero_qty_blocks(self, monkeypatch):
         monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "false")
         result = evaluate_trade_gate(
-            message="comprar AAPL", ticker="AAPL", qty=0, limit_price=150.0)
+            message="comprar AAPL", ticker="AAPL", qty=0, limit_price=150.0
+        )
         assert result.status == "BLOCK"
         assert result.reason_code == "INVALID_QUANTITY"
 
@@ -185,7 +198,8 @@ class TestPlaceholderPrice:
         monkeypatch.setenv("IBKR_HOST", "127.0.0.1")
         monkeypatch.setenv("IBKR_PORT", "7497")
         result = evaluate_trade_gate(
-            message="comprar 50 AAPL", ticker="AAPL", qty=50, limit_price=99.0)
+            message="comprar 50 AAPL", ticker="AAPL", qty=50, limit_price=99.0
+        )
         assert result.status == "BLOCK"
         assert result.reason_code == "PLACEHOLDER_PRICE"
 
@@ -202,9 +216,13 @@ class TestTradeGateDecision:
 
     def test_evidence_and_gates_populated(self):
         d = TradeGateDecision(
-            status="BLOCK", reason_code="TEST", reason="Test block",
+            status="BLOCK",
+            reason_code="TEST",
+            reason="Test block",
             evidence={"ticker": "AAPL"},
-            gates_failed=["test_gate"], gates_passed=["other_gate"])
+            gates_failed=["test_gate"],
+            gates_passed=["other_gate"],
+        )
         assert d.status == "BLOCK"
         assert d.reason_code == "TEST"
         assert d.evidence["ticker"] == "AAPL"

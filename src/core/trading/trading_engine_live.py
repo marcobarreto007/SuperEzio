@@ -27,9 +27,9 @@ logger = get_logger(__name__)
 # Importar componentes existentes
 from .market_hours import get_market_state
 from .xp_system import get_xp_system
-from .auto_executor import get_auto_executor, ExecutorConfig, ExecutionStatus
+from .auto_executor import get_auto_executor, ExecutionStatus
 from .position_manager import get_position_manager, PositionSide, ExitReason
-from .risk_guard import get_risk_guard, RiskGuardResult
+from .risk_guard import get_risk_guard
 from .committee import get_reflection_committee
 from .pain_memory import get_pain_memory
 from .paper_journal import PaperJournal
@@ -38,6 +38,7 @@ from .broker_reconciler import BrokerReconciler
 
 class MarketSentiment(Enum):
     """Sentimento de mercado."""
+
     BULLISH = "bullish"
     BEARISH = "bearish"
     NEUTRAL = "neutral"
@@ -46,6 +47,7 @@ class MarketSentiment(Enum):
 @dataclass
 class TradingOpportunity:
     """Oportunidade de trading com dados reais."""
+
     symbol: str
     sentiment: MarketSentiment
     confidence: float
@@ -123,6 +125,7 @@ class LiveTradingEngine:
         """Inicializa provider de dados de mercado."""
         try:
             from adapters.market.market_data_provider import get_market_data_provider
+
             self._market_data_provider = get_market_data_provider(prefer_ibkr=self._use_ibkr)
             logger.info("Market data provider initialized (IBKR: %s)", self._use_ibkr)
         except Exception as e:
@@ -139,7 +142,9 @@ class LiveTradingEngine:
                     self._total_losses = state.get("total_losses", 0)
                     self._total_pnl = state.get("total_pnl", 0.0)
                     self.equity = state.get("equity", self.equity)
-                    logger.info("State loaded: %d trades, PnL: $%.2f", self._total_trades, self._total_pnl)
+                    logger.info(
+                        "State loaded: %d trades, PnL: $%.2f", self._total_trades, self._total_pnl
+                    )
             except Exception as e:
                 logger.warning("Failed to load state: %s", e)
 
@@ -195,6 +200,7 @@ class LiveTradingEngine:
 
         try:
             from adapters.broker.ibkr_service import get_ibkr_service
+
             service = get_ibkr_service()
             equity = service.get_account_equity()
             if equity and equity > 0:
@@ -257,11 +263,13 @@ class LiveTradingEngine:
             return None  # Neutro, pular
 
         # Checar pain memory
-        pain_risk = self._pain_memory.check_setup_risk({
-            "symbol": symbol,
-            "entry_price": last_price,
-            "stop_loss": stop_loss,
-        })
+        pain_risk = self._pain_memory.check_setup_risk(
+            {
+                "symbol": symbol,
+                "entry_price": last_price,
+                "stop_loss": stop_loss,
+            }
+        )
 
         if pain_risk.get("level") == "SEVERE":
             logger.info("Skipping %s due to pain memory", symbol)
@@ -456,7 +464,7 @@ class LiveTradingEngine:
                     limit_price=limit_price,
                     status=result.status.value,
                     thesis=opp.thesis,
-                    verdict_at_entry=f"Confidence {opp.confidence*100:.0f}%",
+                    verdict_at_entry=f"Confidence {opp.confidence * 100:.0f}%",
                     risk_assessment=(
                         f"stop={opp.stop_loss:.4f}; take_profit={opp.take_profit:.4f}; "
                         f"liquidity={opp.liquidity_score:.3f}"
@@ -506,19 +514,21 @@ class LiveTradingEngine:
         self._total_trades += 1
 
         # Registrar no journal
-        self._journal.add_trade({
-            "trade_id": position.position_id,
-            "symbol": opp.symbol,
-            "side": side,
-            "quantity": quantity,
-            "entry_price": opp.entry_price,
-            "stop_loss": opp.stop_loss,
-            "take_profit": opp.take_profit,
-            "thesis": opp.thesis,
-            "verdict_at_entry": f"Confidence {opp.confidence*100:.0f}%",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "market_data": opp.market_data,
-        })
+        self._journal.add_trade(
+            {
+                "trade_id": position.position_id,
+                "symbol": opp.symbol,
+                "side": side,
+                "quantity": quantity,
+                "entry_price": opp.entry_price,
+                "stop_loss": opp.stop_loss,
+                "take_profit": opp.take_profit,
+                "thesis": opp.thesis,
+                "verdict_at_entry": f"Confidence {opp.confidence * 100:.0f}%",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "market_data": opp.market_data,
+            }
+        )
 
         logger.info(
             "TRADE EXECUTED (REAL): %s %s %d shares @ $%.2f | ID: %s",
@@ -548,7 +558,9 @@ class LiveTradingEngine:
             if self._market_data_provider:
                 data = self._market_data_provider.get_data(position.symbol)
                 if data:
-                    self._position_manager.update_position_price(position.position_id, data.last_price)
+                    self._position_manager.update_position_price(
+                        position.position_id, data.last_price
+                    )
 
             # Checar sinais de exit
             exit_signals = self._position_manager.check_exit_signals(position.position_id)
@@ -631,7 +643,9 @@ class LiveTradingEngine:
                 "entry_price": position.entry_price,
                 "exit_reason": getattr(position.exit_reason, "value", position.exit_reason),
                 "thesis": position.thesis,
-                "source": "broker_confirmed_position_close" if self._use_ibkr else "local_position_close",
+                "source": "broker_confirmed_position_close"
+                if self._use_ibkr
+                else "local_position_close",
             },
         )
 

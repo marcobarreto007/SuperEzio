@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Entity:
     """Entidade no grafo de conhecimento."""
+
     id: str  # "ticker:AAPL", "expert:fundamental", "verdict:BUY"
     type: str  # "ticker", "expert", "regime", "verdict", "date"
     name: str  # "AAPL", "fundamental", "BULLISH", "2026-06-14"
@@ -34,6 +35,7 @@ class Entity:
 @dataclass
 class Relation:
     """Relação entre entidades."""
+
     source: str  # Entity ID
     target: str  # Entity ID
     type: str  # "mentions", "analyzed_by", "resulted_in", "on_date"
@@ -44,6 +46,7 @@ class Relation:
 @dataclass
 class GraphNode:
     """Nó no grafo (entidade + conexões)."""
+
     entity: Entity
     outgoing: list[Relation] = field(default_factory=list)
     incoming: list[Relation] = field(default_factory=list)
@@ -157,10 +160,7 @@ class KnowledgeGraph:
 
     def get_entities_by_type(self, entity_type: str) -> list[Entity]:
         """Get all entities of a given type."""
-        return [
-            self._nodes[eid].entity
-            for eid in self._entity_index.get(entity_type, set())
-        ]
+        return [self._nodes[eid].entity for eid in self._entity_index.get(entity_type, set())]
 
     def query_context(
         self,
@@ -209,11 +209,13 @@ class KnowledgeGraph:
                         "metadata": neighbor_entity.metadata,
                     }
 
-                context["relations"].append({
-                    "source": eid,
-                    "target": neighbor,
-                    "weight": weight,
-                })
+                context["relations"].append(
+                    {
+                        "source": eid,
+                        "target": neighbor,
+                        "weight": weight,
+                    }
+                )
 
         return context
 
@@ -226,18 +228,32 @@ class EntityExtractor:
 
     # Verdict keywords
     VERDICTS = {
-        "buy", "sell", "hold", "strong_buy", "strong_sell",
-        "bullish", "bearish", "neutral", "candidate",
+        "buy",
+        "sell",
+        "hold",
+        "strong_buy",
+        "strong_sell",
+        "bullish",
+        "bearish",
+        "neutral",
+        "candidate",
     }
 
     # Expert types
     EXPERTS = {
-        "fundamental", "technical", "sentiment", "macro",
+        "fundamental",
+        "technical",
+        "sentiment",
+        "macro",
     }
 
     # Regime keywords
     REGIMES = {
-        "bull", "bear", "sideways", "volatile", "trending",
+        "bull",
+        "bear",
+        "sideways",
+        "volatile",
+        "trending",
     }
 
     def extract_from_text(self, text: str, doc_id: str) -> list[Entity]:
@@ -254,42 +270,50 @@ class EntityExtractor:
             ticker = match.group(1)
             # Filter common non-ticker words
             if ticker not in {"THE", "AND", "FOR", "WITH", "FROM"}:
-                entities.append(Entity(
-                    id=f"ticker:{ticker}",
-                    type="ticker",
-                    name=ticker,
-                    metadata={"source_doc": doc_id},
-                ))
+                entities.append(
+                    Entity(
+                        id=f"ticker:{ticker}",
+                        type="ticker",
+                        name=ticker,
+                        metadata={"source_doc": doc_id},
+                    )
+                )
 
         # Extract verdicts
         for verdict in self.VERDICTS:
             if verdict in text_lower:
-                entities.append(Entity(
-                    id=f"verdict:{verdict}",
-                    type="verdict",
-                    name=verdict.upper(),
-                    metadata={"source_doc": doc_id},
-                ))
+                entities.append(
+                    Entity(
+                        id=f"verdict:{verdict}",
+                        type="verdict",
+                        name=verdict.upper(),
+                        metadata={"source_doc": doc_id},
+                    )
+                )
 
         # Extract experts
         for expert in self.EXPERTS:
             if expert in text_lower:
-                entities.append(Entity(
-                    id=f"expert:{expert}",
-                    type="expert",
-                    name=expert,
-                    metadata={"source_doc": doc_id},
-                ))
+                entities.append(
+                    Entity(
+                        id=f"expert:{expert}",
+                        type="expert",
+                        name=expert,
+                        metadata={"source_doc": doc_id},
+                    )
+                )
 
         # Extract regimes
         for regime in self.REGIMES:
             if regime in text_lower:
-                entities.append(Entity(
-                    id=f"regime:{regime}",
-                    type="regime",
-                    name=regime.upper(),
-                    metadata={"source_doc": doc_id},
-                ))
+                entities.append(
+                    Entity(
+                        id=f"regime:{regime}",
+                        type="regime",
+                        name=regime.upper(),
+                        metadata={"source_doc": doc_id},
+                    )
+                )
 
         return entities
 
@@ -325,12 +349,14 @@ class GraphMemoryBridge:
         for entity in entities:
             self._graph.add_entity(entity)
             # Connect to doc
-            self._graph.add_relation(Relation(
-                source=doc_id,
-                target=entity.id,
-                type="mentions",
-                weight=1.0,
-            ))
+            self._graph.add_relation(
+                Relation(
+                    source=doc_id,
+                    target=entity.id,
+                    type="mentions",
+                    weight=1.0,
+                )
+            )
 
         # Connect ticker if discussed
         if turn.ticker_discussed:
@@ -341,27 +367,33 @@ class GraphMemoryBridge:
                 name=turn.ticker_discussed,
             )
             self._graph.add_entity(ticker_entity)
-            self._graph.add_relation(Relation(
-                source=doc_id,
-                target=ticker_id,
-                type="discusses",
-                weight=1.0,
-            ))
+            self._graph.add_relation(
+                Relation(
+                    source=doc_id,
+                    target=ticker_id,
+                    type="discusses",
+                    weight=1.0,
+                )
+            )
 
             # Connect verdict if present
             if turn.verdict:
                 verdict_id = f"verdict:{turn.verdict.lower()}"
-                self._graph.add_entity(Entity(
-                    id=verdict_id,
-                    type="verdict",
-                    name=turn.verdict.upper(),
-                ))
-                self._graph.add_relation(Relation(
-                    source=ticker_id,
-                    target=verdict_id,
-                    type="resulted_in",
-                    weight=1.0,
-                ))
+                self._graph.add_entity(
+                    Entity(
+                        id=verdict_id,
+                        type="verdict",
+                        name=turn.verdict.upper(),
+                    )
+                )
+                self._graph.add_relation(
+                    Relation(
+                        source=ticker_id,
+                        target=verdict_id,
+                        type="resulted_in",
+                        weight=1.0,
+                    )
+                )
 
     def ingest_paper_trade(self, trade: dict) -> None:
         """Ingest paper trade into graph."""
@@ -384,33 +416,41 @@ class GraphMemoryBridge:
         ticker = trade.get("ticker", "").upper()
         if ticker:
             ticker_id = f"ticker:{ticker}"
-            self._graph.add_entity(Entity(
-                id=ticker_id,
-                type="ticker",
-                name=ticker,
-            ))
-            self._graph.add_relation(Relation(
-                source=trade_id,
-                target=ticker_id,
-                type="trades",
-                weight=1.0,
-            ))
+            self._graph.add_entity(
+                Entity(
+                    id=ticker_id,
+                    type="ticker",
+                    name=ticker,
+                )
+            )
+            self._graph.add_relation(
+                Relation(
+                    source=trade_id,
+                    target=ticker_id,
+                    type="trades",
+                    weight=1.0,
+                )
+            )
 
             # Outcome connection
             outcome = trade.get("outcome", "")
             if outcome:
                 outcome_id = f"outcome:{outcome.lower()}"
-                self._graph.add_entity(Entity(
-                    id=outcome_id,
-                    type="outcome",
-                    name=outcome.upper(),
-                ))
-                self._graph.add_relation(Relation(
-                    source=trade_id,
-                    target=outcome_id,
-                    type="resulted_in",
-                    weight=1.0,
-                ))
+                self._graph.add_entity(
+                    Entity(
+                        id=outcome_id,
+                        type="outcome",
+                        name=outcome.upper(),
+                    )
+                )
+                self._graph.add_relation(
+                    Relation(
+                        source=trade_id,
+                        target=outcome_id,
+                        type="resulted_in",
+                        weight=1.0,
+                    )
+                )
 
     def query_ticker_context(self, ticker: str) -> dict[str, Any]:
         """Query all context for a ticker."""

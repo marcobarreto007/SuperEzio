@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class RiskLevel(Enum):
     """Níveis de risco."""
+
     SAFE = "safe"
     CAUTION = "caution"
     DANGER = "danger"
@@ -28,6 +29,7 @@ class RiskLevel(Enum):
 
 class ViolationType(Enum):
     """Tipos de violação."""
+
     POSITION_SIZE_EXCEEDED = "position_size_exceeded"
     EXPOSURE_LIMIT_EXCEEDED = "exposure_limit_exceeded"
     LEVERAGE_TOO_HIGH = "leverage_too_high"
@@ -41,6 +43,7 @@ class ViolationType(Enum):
 @dataclass
 class RiskViolation:
     """Uma violação de risco detectada."""
+
     violation_type: ViolationType
     risk_level: RiskLevel
     message: str
@@ -64,6 +67,7 @@ class RiskViolation:
 @dataclass
 class RiskLimits:
     """Limites de risco configuráveis."""
+
     # Tamanho de posição
     max_position_pct: float = 0.10  # Max 10% do equity em uma posição
     max_notional_per_trade: float = 5000.0  # Max notional por trade
@@ -91,6 +95,7 @@ class RiskLimits:
 @dataclass
 class RiskGuardResult:
     """Resultado de uma checagem de risco."""
+
     approved: bool
     violations: list[RiskViolation] = field(default_factory=list)
     risk_level: RiskLevel = RiskLevel.SAFE
@@ -215,7 +220,9 @@ class RiskGuard:
 
         # 2. Checar exposição total
         current_positions = current_positions or []
-        total_exposure = sum(p.get("quantity", 0) * p.get("avg_price", 0) for p in current_positions)
+        total_exposure = sum(
+            p.get("quantity", 0) * p.get("avg_price", 0) for p in current_positions
+        )
         total_exposure_with_new = total_exposure + notional
         total_exposure_pct = total_exposure_with_new / self.equity if self.equity > 0 else 0
 
@@ -282,8 +289,7 @@ class RiskGuard:
         hourly_count = self._hourly_trade_counts[hour_key]
 
         daily_count = sum(
-            count for key, count in self._hourly_trade_counts.items()
-            if key.startswith(day_key)
+            count for key, count in self._hourly_trade_counts.items() if key.startswith(day_key)
         )
 
         if hourly_count > self.limits.max_trades_per_hour:
@@ -365,7 +371,9 @@ class RiskGuard:
 
     def get_current_risk_level(self, current_positions: list[dict[str, Any]]) -> RiskLevel:
         """Retorna o nível de risco atual baseado nas posições."""
-        total_exposure = sum(p.get("quantity", 0) * p.get("avg_price", 0) for p in current_positions)
+        total_exposure = sum(
+            p.get("quantity", 0) * p.get("avg_price", 0) for p in current_positions
+        )
         exposure_pct = total_exposure / self.equity if self.equity > 0 else 0
 
         if exposure_pct > self.limits.max_total_exposure_pct * 0.8:

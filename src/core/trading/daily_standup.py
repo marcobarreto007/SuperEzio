@@ -28,6 +28,7 @@ DEFAULT_STANDUP_LOG_PATH = (
 @dataclass
 class DailyStandup:
     """Relatório diário do Bob."""
+
     date: str  # YYYY-MM-DD
     timestamp: str
     # Performance
@@ -291,7 +292,10 @@ class DailyStandupGenerator:
             tomorrow_goals = ["Máximo 3 trades", "Revisar pain memory antes de cada entrada"]
         else:
             tomorrow_focus = ["Continuar estratégia atual", "Aumentar tamanho em setups validados"]
-            tomorrow_goals = ["Buscar setups similares aos wins recentes", "Aplicar lições aprendidas"]
+            tomorrow_goals = [
+                "Buscar setups similares aos wins recentes",
+                "Aplicar lições aprendidas",
+            ]
 
         # Criar standup
         standup = DailyStandup(
@@ -323,8 +327,9 @@ class DailyStandupGenerator:
         )
 
         self._save_standup(standup)
-        logger.info("Daily standup generated for %s: health=%s pnl=%.2f",
-                     date_str, health_status, pnl_total)
+        logger.info(
+            "Daily standup generated for %s: health=%s pnl=%.2f", date_str, health_status, pnl_total
+        )
 
         return standup
 
@@ -346,9 +351,9 @@ class DailyStandupGenerator:
             standup = self.generate()
 
         lines = [
-            f"\n{'='*60}",
+            f"\n{'=' * 60}",
             f"BOB DAILY STANDUP - {standup.date}",
-            f"{'='*60}",
+            f"{'=' * 60}",
             "",
             "📊 PERFORMANCE",
             f"  Trades: {standup.trades_today}",
@@ -371,21 +376,25 @@ class DailyStandupGenerator:
             for lesson in standup.top_lessons:
                 lines.append(f"    - {lesson}")
 
-        lines.extend([
-            "",
-            f"⚠️ HEALTH: {standup.health_status.upper()} (Score: {standup.health_score:.0f}/100)",
-        ])
+        lines.extend(
+            [
+                "",
+                f"⚠️ HEALTH: {standup.health_status.upper()} (Score: {standup.health_score:.0f}/100)",
+            ]
+        )
 
         if standup.concerns:
             lines.append("  Concerns:")
             for concern in standup.concerns:
                 lines.append(f"    - {concern}")
 
-        lines.extend([
-            "",
-            "📅 PLANS FOR TOMORROW",
-            "  Focus:",
-        ])
+        lines.extend(
+            [
+                "",
+                "📅 PLANS FOR TOMORROW",
+                "  Focus:",
+            ]
+        )
 
         for focus in standup.tomorrow_focus:
             lines.append(f"    - {focus}")
@@ -397,7 +406,7 @@ class DailyStandupGenerator:
         if standup.notes:
             lines.extend(["", f"📝 Notes: {standup.notes}"])
 
-        lines.append(f"\n{'='*60}\n")
+        lines.append(f"\n{'=' * 60}\n")
 
         result = "\n".join(lines)
         if len(result) > max_chars:

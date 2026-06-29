@@ -55,7 +55,13 @@ from .risk_guard import (
     ViolationType,
     get_risk_guard,
 )
-from .trading_engine import MarketSentiment, TradingEngine, TradingOpportunity, TradingSession, get_trading_engine
+from .trading_engine import (
+    MarketSentiment,
+    TradingEngine,
+    TradingOpportunity,
+    TradingSession,
+    get_trading_engine,
+)
 from .trading_engine_live import LiveTradingEngine, get_live_trading_engine
 
 __all__ = [

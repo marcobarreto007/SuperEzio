@@ -13,7 +13,7 @@ from typing import Any
 
 def parse_iso_datetime(value: Any) -> datetime | None:
     """Parse an ISO 8601 timestamp string, handling Z suffix and missing tzinfo.
-    
+
     Returns None on any parse failure.
     """
     if not value:

@@ -150,6 +150,7 @@ def get_kill_switch() -> KillSwitch:
     global _GLOBAL_KILL_SWITCH
     if _GLOBAL_KILL_SWITCH is None:
         from core.mission_context import get_mission_equity
+
         _GLOBAL_KILL_SWITCH = KillSwitch(initial_equity=get_mission_equity())
     _GLOBAL_KILL_SWITCH.check()
     return _GLOBAL_KILL_SWITCH
@@ -160,5 +161,6 @@ def reset_kill_switch_for_test() -> KillSwitch:
 
     global _GLOBAL_KILL_SWITCH
     from core.mission_context import get_mission_equity
+
     _GLOBAL_KILL_SWITCH = KillSwitch(initial_equity=get_mission_equity())
     return _GLOBAL_KILL_SWITCH

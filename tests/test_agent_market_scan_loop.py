@@ -280,7 +280,9 @@ async def test_completed_decisive_scan_finalizes_from_evidence_without_model_or_
 
         async def chat_completion(self, **kwargs):
             self.calls += 1
-            raise AssertionError("completed market evidence must finalize without another model call")
+            raise AssertionError(
+                "completed market evidence must finalize without another model call"
+            )
 
     candidate = {
         "ticker": "TEST.V",

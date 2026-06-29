@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 from typing import Any
 
 from langgraph.config import get_stream_writer
@@ -16,7 +15,7 @@ from .neural_decision import node_neural_decision
 from .sdca_firewall import node_sdca_firewall
 from .rag import node_rag_forensics
 from core.math.penny_momentum import PennyMomentumConfig, simulate_penny_momentum_backtest
-from core.config.logging_config import get_logger, bind_trace
+from core.config.logging_config import get_logger
 from core.config.settings import get_settings
 
 # PennyLab: imported at module level — no lazy import on hot tool path
@@ -435,8 +434,13 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
             try:
                 from core.trading.position_sizer import PositionSizer
                 from core.mission_context import get_mission_equity
-                paper_equity = float(state.get("paper_equity") or state.get("equity") or get_mission_equity())
-                open_positions = int(state.get("open_positions") or state.get("positions_count") or 0)
+
+                paper_equity = float(
+                    state.get("paper_equity") or state.get("equity") or get_mission_equity()
+                )
+                open_positions = int(
+                    state.get("open_positions") or state.get("positions_count") or 0
+                )
                 size = PositionSizer(equity=paper_equity).size(
                     entry_price=limit_price,
                     stop_loss_price=stop_loss_price,
@@ -454,7 +458,11 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
                     "reason": size.size_reason,
                 }
             except Exception:
-                pos_sizing = {"requested_qty": requested_qty, "approved_qty": 0, "reason": "sizer_unavailable"}
+                pos_sizing = {
+                    "requested_qty": requested_qty,
+                    "approved_qty": 0,
+                    "reason": "sizer_unavailable",
+                }
             return {
                 "submit_paper_order_error": f"approval_pending:{approval.id}",
                 "paper_approval_request": approval_payload,
@@ -468,7 +476,9 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
         from core.trading.position_sizer import PositionSizer
         from core.mission_context import get_mission_equity
 
-        paper_equity = float(state.get("paper_equity") or state.get("equity") or get_mission_equity())
+        paper_equity = float(
+            state.get("paper_equity") or state.get("equity") or get_mission_equity()
+        )
         open_positions = int(state.get("open_positions") or state.get("positions_count") or 0)
         size = PositionSizer(equity=paper_equity).size(
             entry_price=limit_price,
@@ -524,9 +534,7 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
     ]
 
     try:
-        proc = await asyncio.to_thread(
-            _sp.run, cmd, capture_output=True, text=True, timeout=20
-        )
+        proc = await asyncio.to_thread(_sp.run, cmd, capture_output=True, text=True, timeout=20)
         if proc.returncode == 0:
             result = _json.loads(proc.stdout.strip())
             return {"submit_paper_order_result": result}
@@ -536,7 +544,11 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
                 error = _json.loads(error_text)
             except Exception:
                 error = {"error": error_text[:200]}
-            return {"submit_paper_order_error": error.get("error", f"subprocess_failed:{proc.returncode}")}
+            return {
+                "submit_paper_order_error": error.get(
+                    "error", f"subprocess_failed:{proc.returncode}"
+                )
+            }
     except Exception as exc:
         return {"submit_paper_order_error": f"bridge_error:{str(exc)[:200]}"}
 
@@ -635,7 +647,9 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
         elif tool_name == "collect_data":
             ticker = args.get("ticker", state.get("ticker", ""))
             if ticker:
-                result = await node_collector({**state, "ticker": ticker, "route": "ticker_analysis"}, config=config)
+                result = await node_collector(
+                    {**state, "ticker": ticker, "route": "ticker_analysis"}, config=config
+                )
             else:
                 result = {"error": "collect_data requires ticker"}
         elif tool_name == "market_scan":
@@ -701,8 +715,11 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                     mark_processed,
                     enqueue_dead_letter,
                 )
+
                 ticker_raw = args.get("ticker", "").upper()
-                qty_raw = int(float(args.get("qty", args.get("quantity", args.get("shares", 0)) or 0)))
+                qty_raw = int(
+                    float(args.get("qty", args.get("quantity", args.get("shares", 0)) or 0))
+                )
                 price_raw = float(args.get("limit_price", 0) or 0)
                 msg = str(state.get("message", "") or "")
                 thesis_ticker = str(state.get("ticker", "") or "").upper()
@@ -732,19 +749,24 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                 )
                 if gate_decision.status != "ALLOW":
                     writer = get_stream_writer()
-                    writer({
-                        "type": "PAPER_ORDER_BLOCKED",
-                        "run_id": run_id,
-                        "ticker": ticker_raw,
-                        "step": "f51_trade_gate",
-                        "status": "blocked",
-                        "reason": gate_decision.reason,
-                        "reason_code": gate_decision.reason_code,
-                        "gates_failed": gate_decision.gates_failed,
-                    })
-                    record_blocked_order(gate_decision, message=msg, ticker=ticker_raw,
-                                         run_id=run_id)
-                    mark_processed(idem_key, {"status": "blocked", "reason": gate_decision.reason_code})
+                    writer(
+                        {
+                            "type": "PAPER_ORDER_BLOCKED",
+                            "run_id": run_id,
+                            "ticker": ticker_raw,
+                            "step": "f51_trade_gate",
+                            "status": "blocked",
+                            "reason": gate_decision.reason,
+                            "reason_code": gate_decision.reason_code,
+                            "gates_failed": gate_decision.gates_failed,
+                        }
+                    )
+                    record_blocked_order(
+                        gate_decision, message=msg, ticker=ticker_raw, run_id=run_id
+                    )
+                    mark_processed(
+                        idem_key, {"status": "blocked", "reason": gate_decision.reason_code}
+                    )
                     logger.info(
                         "tool_executor_gate_blocked",
                         ticker=ticker_raw,
@@ -760,12 +782,18 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                     return result
             except ImportError:
                 logger.warning("tool_executor_gate_unavailable")
-                return {"blocked": True, "reason": "f51_trade_gate_unavailable",
-                        "message": "Ordem bloqueada: F51 Trade Gate indisponível."}
+                return {
+                    "blocked": True,
+                    "reason": "f51_trade_gate_unavailable",
+                    "message": "Ordem bloqueada: F51 Trade Gate indisponível.",
+                }
             except Exception as exc:
                 logger.error("tool_executor_gate_error", error=str(exc)[:200])
-                return {"blocked": True, "reason": f"f51_trade_gate_error:{str(exc)[:80]}",
-                        "message": f"Ordem bloqueada por erro no F51 Trade Gate."}
+                return {
+                    "blocked": True,
+                    "reason": f"f51_trade_gate_error:{str(exc)[:80]}",
+                    "message": f"Ordem bloqueada por erro no F51 Trade Gate.",
+                }
 
             # FORCE expert committee before ANY paper order.
             # Bob cannot shoot without consulting his advisors.
@@ -775,18 +803,20 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             blocked_lesson = _check_lesson_block(ticker)
             if blocked_lesson:
                 writer = get_stream_writer()
-                writer({
-                    "type": "PIPELINE_STEP",
-                    "step": "tool_executor",
-                    "status": "blocked",
-                    "reason": f"lesson_based_block: {blocked_lesson['title']}",
-                })
+                writer(
+                    {
+                        "type": "PIPELINE_STEP",
+                        "step": "tool_executor",
+                        "status": "blocked",
+                        "reason": f"lesson_based_block: {blocked_lesson['title']}",
+                    }
+                )
                 result = {
                     "blocked": True,
                     "reason": "lesson_based_block",
                     "lesson": blocked_lesson,
                     "message": f"Ordem bloqueada por lição aprendida: {blocked_lesson['title']}. "
-                               f"Este ticker já causou prejuízo por: {blocked_lesson['content'][:100]}..."
+                    f"Este ticker já causou prejuízo por: {blocked_lesson['content'][:100]}...",
                 }
                 return result
 
@@ -795,16 +825,19 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             if thesis:
                 try:
                     from core.trading.feedback_loop import get_feedback_loop
+
                     fb = get_feedback_loop()
                     block_reason = fb.check_before_trade(ticker, thesis)
                     if block_reason:
                         writer = get_stream_writer()
-                        writer({
-                            "type": "PIPELINE_STEP",
-                            "step": "tool_executor",
-                            "status": "blocked",
-                            "reason": f"feedback_loop_block: {block_reason}",
-                        })
+                        writer(
+                            {
+                                "type": "PIPELINE_STEP",
+                                "step": "tool_executor",
+                                "status": "blocked",
+                                "reason": f"feedback_loop_block: {block_reason}",
+                            }
+                        )
                         result = {
                             "blocked": True,
                             "reason": "feedback_loop_block",
@@ -816,15 +849,31 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
 
             if ticker and not state.get("_experts_ran_for", "") == ticker:
                 writer = get_stream_writer()
-                writer({"type": "PIPELINE_STEP", "step": "tool_executor",
-                         "status": "running", "mode": "forcing_expert_committee"})
+                writer(
+                    {
+                        "type": "PIPELINE_STEP",
+                        "step": "tool_executor",
+                        "status": "running",
+                        "mode": "forcing_expert_committee",
+                    }
+                )
                 expert_results = []
-                for role in ["macro_risk", "fundamental_value", "momentum_technical",
-                             "contrarian_opportunity", "sentiment", "social_forensics"]:
+                for role in [
+                    "macro_risk",
+                    "fundamental_value",
+                    "momentum_technical",
+                    "contrarian_opportunity",
+                    "sentiment",
+                    "social_forensics",
+                ]:
                     try:
                         res = await node_expert(
-                            {**state, "role": role, "ticker": ticker,
-                             "data_context": state.get("data_context", "")},
+                            {
+                                **state,
+                                "role": role,
+                                "ticker": ticker,
+                                "data_context": state.get("data_context", ""),
+                            },
                             gateway=gateway,
                         )
                         for er in res.get("expert_results", []):
@@ -836,13 +885,31 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                 state["_experts_ran_for"] = ticker
                 # Build summary for Bob
                 verdicts = [er.get("verdict", "?") for er in expert_results if er.get("ok")]
-                all_block = all(v in ("BEARISH", "OVERBOUGHT", "TRAP", "MANIPULATED", "SUSPICIOUS",
-                                      "OVERVALUED", "RISK_OFF", "SELL")
-                                for v in verdicts) if verdicts else False
+                all_block = (
+                    all(
+                        v
+                        in (
+                            "BEARISH",
+                            "OVERBOUGHT",
+                            "TRAP",
+                            "MANIPULATED",
+                            "SUSPICIOUS",
+                            "OVERVALUED",
+                            "RISK_OFF",
+                            "SELL",
+                        )
+                        for v in verdicts
+                    )
+                    if verdicts
+                    else False
+                )
                 if all_block:
-                    result = {"blocked": True, "reason": "expert_committee_unanimous_block",
-                              "verdicts": verdicts,
-                              "message": "Comite de experts unanime contra esta ordem. Ordem bloqueada."}
+                    result = {
+                        "blocked": True,
+                        "reason": "expert_committee_unanimous_block",
+                        "verdicts": verdicts,
+                        "message": "Comite de experts unanime contra esta ordem. Ordem bloqueada.",
+                    }
                 else:
                     result = await _submit_paper_order(state, args)
             else:
@@ -900,7 +967,12 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             if not role:
                 result = {"error": "query_expert requires role"}
             else:
-                expert_state = {**state, "role": role, "message": query, "data_context": state.get("data_context", query)}
+                expert_state = {
+                    **state,
+                    "role": role,
+                    "message": query,
+                    "data_context": state.get("data_context", query),
+                }
                 res = await node_expert(expert_state, gateway=gateway)
                 expert_results = res.get("expert_results", [])
                 expert_response = ""
@@ -913,7 +985,7 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                     "query": query,
                     "response": expert_response or "Expert returned no response",
                     "expert_results": expert_results,
-                    "last_tool_result": f"Expert '{role}' response to query '{query}':\n{expert_response}"
+                    "last_tool_result": f"Expert '{role}' response to query '{query}':\n{expert_response}",
                 }
 
         elif tool_name == "call_math_calculator":
@@ -922,6 +994,7 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                 result = {"error": "call_math_calculator requires ticker"}
             else:
                 from core.math.math_hub import MathHub
+
                 math_hub = MathHub()
                 calc_state = {**state, "ticker": ticker}
                 math_report = math_hub.calculate_all(calc_state)
@@ -930,7 +1003,7 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                     "ticker": ticker,
                     "math_report": math_report,
                     "math_prompt": math_prompt,
-                    "last_tool_result": f"Math Calculator results for ticker {ticker}:\n{math_prompt}"
+                    "last_tool_result": f"Math Calculator results for ticker {ticker}:\n{math_prompt}",
                 }
 
         elif tool_name == "get_live_financial_data":
@@ -938,7 +1011,11 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             if not ticker:
                 result = {"error": "get_live_financial_data requires ticker"}
             else:
-                from core.data_collector.collector import tool_get_market_price, tool_calculate_risk_metrics
+                from core.data_collector.collector import (
+                    tool_get_market_price,
+                    tool_calculate_risk_metrics,
+                )
+
                 try:
                     price_data = await tool_get_market_price(ticker)
                 except Exception as e:
@@ -948,14 +1025,16 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                 except Exception as e:
                     risk_data = {"error": f"risk_calc_failed: {e}"}
 
-                collector_res = await node_collector({**state, "ticker": ticker, "route": "ticker_analysis"}, config=config)
+                collector_res = await node_collector(
+                    {**state, "ticker": ticker, "route": "ticker_analysis"}, config=config
+                )
 
                 result = {
                     "ticker": ticker,
                     "live_price": price_data,
                     "risk_metrics": risk_data,
                     "data_context": collector_res.get("data_context", ""),
-                    "last_tool_result": f"Live Financial Data for {ticker}:\n- Price Data: {price_data}\n- Risk Metrics: {risk_data}\n- Context details: {collector_res.get('data_context', '')[:1000]}..."
+                    "last_tool_result": f"Live Financial Data for {ticker}:\n- Price Data: {price_data}\n- Risk Metrics: {risk_data}\n- Context details: {collector_res.get('data_context', '')[:1000]}...",
                 }
 
         elif tool_name == "calculate":

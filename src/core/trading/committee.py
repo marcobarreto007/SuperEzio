@@ -29,6 +29,7 @@ DEFAULT_COMMITTEE_LOG_PATH = (
 
 class CommitteeRole(Enum):
     """Papéis no comitê."""
+
     CAUTIOUS = "Cautious"
     OPTIMIST = "Optimist"
     ANALYST = "Analyst"
@@ -37,6 +38,7 @@ class CommitteeRole(Enum):
 
 class VoteType(Enum):
     """Tipos de voto."""
+
     APPROVE = "approve"
     REJECT = "reject"
     ABSTAIN = "abstain"
@@ -46,6 +48,7 @@ class VoteType(Enum):
 @dataclass
 class CommitteeVote:
     """Voto de um membro do comitê."""
+
     role: CommitteeRole
     vote: VoteType
     confidence: float  # 0-1, quão confiante no voto
@@ -65,6 +68,7 @@ class CommitteeVote:
 @dataclass
 class CommitteeDecision:
     """Decisão do comitê."""
+
     timestamp: str
     setup: dict[str, Any]
     votes: list[CommitteeVote]
@@ -102,7 +106,9 @@ class CommitteeMember(ABC):
         self.role = role
 
     @abstractmethod
-    def evaluate(self, setup: dict[str, Any], context: dict[str, Any] | None = None) -> CommitteeVote:
+    def evaluate(
+        self, setup: dict[str, Any], context: dict[str, Any] | None = None
+    ) -> CommitteeVote:
         """Avalia setup e retorna voto."""
         pass
 
@@ -475,12 +481,14 @@ class ReflectionCommittee:
             except Exception as e:
                 logger.warning("Member %s failed to evaluate: %s", member.role.value, e)
                 # Voto de falha = ABSTAIN
-                votes.append(CommitteeVote(
-                    role=member.role,
-                    vote=VoteType.ABSTAIN,
-                    confidence=0.0,
-                    reasoning=f"Erro na avaliação: {e}",
-                ))
+                votes.append(
+                    CommitteeVote(
+                        role=member.role,
+                        vote=VoteType.ABSTAIN,
+                        confidence=0.0,
+                        reasoning=f"Erro na avaliação: {e}",
+                    )
+                )
 
         # Calcular resultado
         approve_count = sum(1 for v in votes if v.vote == VoteType.APPROVE)
@@ -503,7 +511,9 @@ class ReflectionCommittee:
         elif approve_count >= (total * self._approval_threshold):
             # Supermaioria aprova
             consensus = VoteType.APPROVE
-        elif conditional_count > 0 and approve_count + conditional_count >= (total * self._approval_threshold):
+        elif conditional_count > 0 and approve_count + conditional_count >= (
+            total * self._approval_threshold
+        ):
             # Aprova com condições
             consensus = VoteType.CONDITIONAL
         else:
@@ -590,7 +600,9 @@ class ReflectionCommittee:
             "approval_rate": approvals / total if total > 0 else 0,
             "rejection_rate": rejections / total if total > 0 else 0,
             "most_common_consensus": most_common,
-            "avg_approval_rate": sum(d.approval_rate for d in self._history) / total if total > 0 else 0,
+            "avg_approval_rate": sum(d.approval_rate for d in self._history) / total
+            if total > 0
+            else 0,
         }
 
     def render_for_bob(self, decision: CommitteeDecision, max_chars: int = 1000) -> str:
@@ -603,8 +615,16 @@ class ReflectionCommittee:
         ]
 
         for vote in decision.votes:
-            symbol = "✓" if vote.vote == VoteType.APPROVE else "✗" if vote.vote == VoteType.REJECT else "~"
-            lines.append(f"{symbol} {vote.role.value}: {vote.vote.value} (conf: {vote.confidence:.2f})")
+            symbol = (
+                "✓"
+                if vote.vote == VoteType.APPROVE
+                else "✗"
+                if vote.vote == VoteType.REJECT
+                else "~"
+            )
+            lines.append(
+                f"{symbol} {vote.role.value}: {vote.vote.value} (conf: {vote.confidence:.2f})"
+            )
             lines.append(f"   {vote.reasoning}")
 
         if decision.conditions:
@@ -655,9 +675,7 @@ if __name__ == "__main__":
         "drawdown_pct": 5.0,
         "win_streak": 2,
         "loss_streak": 0,
-        "ticker_history": {
-            "AAPL": {"trades": 5, "wins": 3, "losses": 2}
-        },
+        "ticker_history": {"AAPL": {"trades": 5, "wins": 3, "losses": 2}},
         "applicable_lessons": ["Use tighter stops on breakouts"],
         "similar_traumas": [],
     }

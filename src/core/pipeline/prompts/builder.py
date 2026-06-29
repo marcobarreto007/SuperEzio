@@ -240,9 +240,7 @@ def _format_math_report(report: dict[str, Any]) -> str:
     summary = report.get("summary") or {}
     coverage = report.get("coverage") or {}
     lines = ["[MATH_REPORT]"]
-    lines.append(
-        f"coverage={coverage.get('ok_modules', 0)}/{coverage.get('total_modules', 0)}"
-    )
+    lines.append(f"coverage={coverage.get('ok_modules', 0)}/{coverage.get('total_modules', 0)}")
     for key in (
         "latest_price",
         "return_annualized",

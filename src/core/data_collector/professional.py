@@ -797,6 +797,7 @@ class ProfessionalCollector:
         ohlcv = []
         try:
             from data.data_hub import hub
+
             candles_result = await asyncio.to_thread(hub.get_candles, ticker, timeframe="6M")
             if "error" not in candles_result:
                 ohlcv = candles_result.get("candles", [])

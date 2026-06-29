@@ -108,7 +108,9 @@ def _build_risk_rules_from_hub() -> list[RiskRule]:
                 elif rid == "no_revenue_with_operations":
                     revenue = features.get("total_revenue", None)
                     mcap = features.get("market_cap")
-                    triggered = (revenue == 0 or revenue is None) and (mcap is not None and mcap > 10_000_000)
+                    triggered = (revenue == 0 or revenue is None) and (
+                        mcap is not None and mcap > 10_000_000
+                    )
                     if triggered:
                         evidence = f"revenue={revenue}, mcap={mcap}"
 

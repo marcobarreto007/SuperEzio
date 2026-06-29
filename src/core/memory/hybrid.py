@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class HybridResult:
     """Resultado de busca híbrida."""
+
     id: str
     text: str
     source: str
@@ -54,13 +55,15 @@ class BM25Index:
     def add_document(self, doc_id: str, text: str, metadata: dict[str, Any] | None = None):
         """Add a document to the index."""
         tokens = self._tokenize(text)
-        self._corpus.append({
-            "id": doc_id,
-            "text": text,
-            "tokens": set(tokens),
-            "token_counts": Counter(tokens),
-            "metadata": metadata or {},
-        })
+        self._corpus.append(
+            {
+                "id": doc_id,
+                "text": text,
+                "tokens": set(tokens),
+                "token_counts": Counter(tokens),
+                "metadata": metadata or {},
+            }
+        )
         self._doc_lengths.append(len(tokens))
 
         # Update document frequencies
@@ -163,6 +166,7 @@ class HybridRetriever:
         if self.use_st:
             try:
                 from sentence_transformers import SentenceTransformer
+
                 self._embedder = SentenceTransformer("all-MiniLM-L6-v2")
                 self._embedder.to("cpu")
                 logger.info("HybridRetriever: using SentenceTransformers")
@@ -181,6 +185,7 @@ class HybridRetriever:
 
         if embedder == "hash":
             from core.memory.conversation_memory import _hashed_embedding
+
             return [_hashed_embedding(t) for t in texts]
 
         # SentenceTransformer
@@ -199,11 +204,13 @@ class HybridRetriever:
         self._bm25.add_document(doc_id, text, metadata)
 
         # Add to dense corpus
-        self._dense_docs.append({
-            "id": doc_id,
-            "text": text,
-            "metadata": metadata or {},
-        })
+        self._dense_docs.append(
+            {
+                "id": doc_id,
+                "text": text,
+                "metadata": metadata or {},
+            }
+        )
 
     def _dense_search(self, query: str, top_k: int = 10) -> list[tuple[str, float]]:
         """Dense semantic search."""
@@ -283,8 +290,7 @@ class HybridRetriever:
                     # Update existing
                     combined[doc_id].sparse_score = float(sparse_score)
                     combined[doc_id].hybrid_score = (
-                        dense_w * combined[doc_id].dense_score +
-                        sparse_w * sparse_score
+                        dense_w * combined[doc_id].dense_score + sparse_w * sparse_score
                     )
                 else:
                     # New from sparse
@@ -335,6 +341,9 @@ def get_hybrid_retriever(
             dense_weight=dense_weight,
             use_sentence_transformers=use_sentence_transformers,
         )
-        logger.info("HybridRetriever initialized (dense=%.2f, sparse=%.2f)",
-                    _hybrid_retriever.dense_weight, _hybrid_retriever.sparse_weight)
+        logger.info(
+            "HybridRetriever initialized (dense=%.2f, sparse=%.2f)",
+            _hybrid_retriever.dense_weight,
+            _hybrid_retriever.sparse_weight,
+        )
     return _hybrid_retriever

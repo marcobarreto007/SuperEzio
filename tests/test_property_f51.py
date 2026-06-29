@@ -12,11 +12,10 @@ Run: pytest -m property
 from __future__ import annotations
 
 import os
-import re
 import sys
 
 import pytest
-from hypothesis import given, strategies as st, settings, HealthCheck
+from hypothesis import given, strategies as st, settings
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -161,9 +160,7 @@ class TestPropExplicitTradeIntent:
 
     def test_all_non_trade_phrases_rejected(self):
         for phrase in _NON_TRADE_PHRASES:
-            assert not is_explicit_trade_intent(
-                phrase
-            ), f"Non-trade phrase flagged: {phrase!r}"
+            assert not is_explicit_trade_intent(phrase), f"Non-trade phrase flagged: {phrase!r}"
 
     @given(_any_string)
     @settings(max_examples=1000, deadline=None)

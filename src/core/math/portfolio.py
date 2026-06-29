@@ -1,5 +1,5 @@
 """Portfolio optimization — Hierarchical Risk Parity (HRP) + covariance.
-  
+
 Best practice 2026: HRP from López de Prado. Replaces single-asset thinking
 with proper multi-asset allocation using cluster-based risk budgeting.
 
@@ -10,7 +10,7 @@ numbers as data, not prose.
 from __future__ import annotations
 
 import math
-from typing import Any, Sequence
+from typing import Any
 
 import numpy as np
 from scipy.cluster.hierarchy import linkage, fcluster
@@ -65,7 +65,7 @@ def _hrp_weights(cov: np.ndarray) -> np.ndarray:
 
     # Hierarchical clustering
     try:
-        link = linkage(squareform(dist, checks=False), method='ward')
+        link = linkage(squareform(dist, checks=False), method="ward")
     except Exception:
         return np.ones(n) / n
 
@@ -75,7 +75,7 @@ def _hrp_weights(cov: np.ndarray) -> np.ndarray:
             return np.ones(len(indices))
 
         # Split into 2 clusters
-        cluster_ids = fcluster(link, t=2, criterion='maxclust')
+        cluster_ids = fcluster(link, t=2, criterion="maxclust")
         c1 = [i for i in indices if cluster_ids[i] == 1]
         c2 = [i for i in indices if cluster_ids[i] == 2]
 
@@ -175,6 +175,7 @@ def structured_numbers_context(numbers: dict[str, Any]) -> str:
             clean[k] = None
 
     import json
+
     json_block = json.dumps(clean, ensure_ascii=False)
     return f"\n```numbers\n{json_block}\n```\n"
 
@@ -194,8 +195,8 @@ def portfolio_snapshot_for_bob(
         f"Method: Hierarchical Risk Parity | Assets: {alloc['n_assets']}",
         f"Portfolio Risk (ann.): {alloc['total_risk']:.1%}",
     ]
-    for t, w in sorted(alloc['weights'].items(), key=lambda x: -x[1]):
-        amount = alloc['allocations'][t]
+    for t, w in sorted(alloc["weights"].items(), key=lambda x: -x[1]):
+        amount = alloc["allocations"][t]
         lines.append(f"  {t}: {w:.1%} (${amount:,.0f})")
 
     return "\n".join(lines)

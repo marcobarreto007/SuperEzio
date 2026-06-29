@@ -49,6 +49,7 @@ def _json_safe(value):
         return value if math.isfinite(value) else None
     return value
 
+
 AGENT_NAME = os.getenv("A2A_AGENT_NAME", "generic_agent")
 ROOT_DIR = PROJECT_ROOT
 FRONTEND_DIR = ROOT_DIR / "frontend"
@@ -98,7 +99,9 @@ def _overlay_runtime_broker_snapshot(
     raw_mode = str(portfolio.get("mode") or ibkr.get("mode") or "").lower()
     raw_connection = str(portfolio.get("connection") or ibkr.get("connection") or "")
     connected = portfolio.get("connected") is True or "connected" in raw_connection
-    paper = portfolio.get("paper") is True or "paper" in raw_mode or raw_connection == "connected_paper"
+    paper = (
+        portfolio.get("paper") is True or "paper" in raw_mode or raw_connection == "connected_paper"
+    )
     can_submit = portfolio.get("can_submit_orders") is True and paper
 
     if connected and paper:
@@ -126,17 +129,26 @@ def _overlay_runtime_broker_snapshot(
             "mode": mode,
             "paper_port": paper,
             "live_port_warning": bool(connected and not paper),
-            "account_equity": str(equity) if equity is not None else ibkr.get("account_equity", "unknown"),
-            "positions_count": positions_count if positions_count is not None else ibkr.get("positions_count", 0),
+            "account_equity": str(equity)
+            if equity is not None
+            else ibkr.get("account_equity", "unknown"),
+            "positions_count": positions_count
+            if positions_count is not None
+            else ibkr.get("positions_count", 0),
             "positions": positions if isinstance(positions, list) else ibkr.get("positions", []),
-            "orders_count": orders_count if orders_count is not None else ibkr.get("orders_count", 0),
+            "orders_count": orders_count
+            if orders_count is not None
+            else ibkr.get("orders_count", 0),
             "broker_orders_count": (
-                broker_orders_count if broker_orders_count is not None else ibkr.get("broker_orders_count", 0)
+                broker_orders_count
+                if broker_orders_count is not None
+                else ibkr.get("broker_orders_count", 0)
             ),
             "can_read_account": bool(connected),
             "can_read_positions": bool(connected),
             "can_submit_orders": bool(can_submit),
-            "verified_at": portfolio.get("verified_at") or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "verified_at": portfolio.get("verified_at")
+            or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "verification_source": "cockpit_portfolio_live",
             "runtime_source": "cockpit_portfolio",
             "orders_source": portfolio.get("orders_source") or ibkr.get("orders_source", "unknown"),
@@ -178,7 +190,9 @@ def _sentiment_interval_minutes() -> int:
     try:
         return max(1, int(raw))
     except (TypeError, ValueError):
-        logger.warning("[%s] invalid SUPEREZIO_SENTIMENT_INTERVAL_MINUTES=%r; using 15", AGENT_NAME, raw)
+        logger.warning(
+            "[%s] invalid SUPEREZIO_SENTIMENT_INTERVAL_MINUTES=%r; using 15", AGENT_NAME, raw
+        )
         return 15
 
 
@@ -208,6 +222,7 @@ async def lifespan(app: FastAPI):
     # Configure structured logging FIRST (before any logger is used)
     try:
         from core.config.logging_config import configure_logging
+
         configure_logging()
         logger.info("structlog_configured: ok")
     except Exception as exc:
@@ -219,6 +234,7 @@ async def lifespan(app: FastAPI):
     # Validate settings at boot — crash early if env vars are misconfigured
     try:
         from core.config.settings import get_settings
+
         _settings = get_settings()
         logger.info(
             "settings_validated: freeze=%s paper_submit=%s",
@@ -250,6 +266,7 @@ async def lifespan(app: FastAPI):
     # ── Start Bob's Autonomic Nervous System (background health monitor) ──
     try:
         from core.bob_consciousness import start_ans
+
         start_ans()
         logger.info("[%s] Bob's autonomic nervous system started — heartbeat active", AGENT_NAME)
     except Exception as exc:
@@ -260,6 +277,7 @@ async def lifespan(app: FastAPI):
     # ── Stop Bob's ANS ──
     try:
         from core.bob_consciousness import stop_ans
+
         stop_ans()
     except Exception:
         pass
@@ -328,11 +346,13 @@ app.include_router(a2a_router)
 # Bob's Body — Health endpoint for his autonomic nervous system
 # ═══════════════════════════════════════════════════════════════
 
+
 @app.get("/bob/health")
 async def bob_health():
     """Bob's full body scan — all organs, pain levels, sick count."""
     try:
         from core.bob_consciousness import bob_body_scan, get_ans
+
         report = bob_body_scan()
         ans = get_ans()
         return {
@@ -348,20 +368,24 @@ async def bob_health():
     except Exception as e:
         return {"bob": "unconscious", "error": str(e)[:200]}
 
+
 @app.get("/bob/pain")
 async def bob_pain():
     """Bob's pain summary — human-readable status of every organ."""
     try:
         from core.bob_consciousness import bob_pain_summary
+
         return {"pain_report": bob_pain_summary()}
     except Exception as e:
         return {"pain_report": f"Bob is unconscious: {str(e)[:200]}"}
+
 
 @app.get("/bob/heal")
 async def bob_heal():
     """Bob tries to heal himself — scan + heal + rescan cycle."""
     try:
         from core.bob_consciousness import get_bobs_body
+
         body = get_bobs_body()
         result = body.heal_and_rescan()
         return {
@@ -372,11 +396,13 @@ async def bob_heal():
     except Exception as e:
         return {"healed": 0, "error": str(e)[:200]}
 
+
 @app.post("/bob/ibkr/recover")
 async def bob_ibkr_recover():
     """Force IBKR recovery attempt - call when TWS/Gateway is back online."""
     try:
         from adapters.broker.ibkr_service import get_ibkr_service
+
         service = get_ibkr_service()
         result = service.force_recovery_attempt()
         return result
@@ -448,12 +474,14 @@ async def prometheus_metrics_endpoint():
     # Update live gauges
     try:
         from core.config.settings import is_frozen
+
         superezio_execution_freeze.set(1 if is_frozen() else 0)
     except Exception:
         superezio_execution_freeze.set(1)  # SAFE: assume frozen
 
     try:
         from core.pipeline.f51_trade_gate import is_ibkr_connectable, is_journal_healthy
+
         superezio_ibkr_connectivity.set(1 if is_ibkr_connectable() else 0)
         superezio_journal_health.set(1 if is_journal_healthy() else 0)
     except Exception:
@@ -462,6 +490,7 @@ async def prometheus_metrics_endpoint():
 
     try:
         from core.idempotency import count_dead_letters
+
         superezio_dead_letters_pending.set(count_dead_letters())
     except Exception:
         superezio_dead_letters_pending.set(-1)
@@ -470,6 +499,7 @@ async def prometheus_metrics_endpoint():
         content=generate_latest(REGISTRY),
         media_type="text/plain; version=0.0.4; charset=utf-8",
     )
+
 
 if FRONTEND_DIR.exists():
     app.mount(
@@ -700,14 +730,17 @@ def run():
 @app.get("/metrics")
 async def get_metrics():
     """Métricas de negócio: latência, erro rate, tokens, cache, Prometheus."""
-    base = _json_safe({
-        "service": "superezio",
-        "version": "4.0.0",
-        **metrics.get_all(),
-    })
+    base = _json_safe(
+        {
+            "service": "superezio",
+            "version": "4.0.0",
+            **metrics.get_all(),
+        }
+    )
     # Add Prometheus discoverability
     try:
         from core.config.settings import is_frozen
+
         base["trading_frozen"] = is_frozen()
     except Exception:
         base["trading_frozen"] = True

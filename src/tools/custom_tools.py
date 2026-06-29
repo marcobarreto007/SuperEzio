@@ -40,14 +40,24 @@ def register_custom_tools(registry):
         import operator
 
         allowed_ops = {
-            ast.Add: operator.add, ast.Sub: operator.sub,
-            ast.Mult: operator.mul, ast.Div: operator.truediv,
-            ast.FloorDiv: operator.floordiv, ast.Mod: operator.mod,
-            ast.Pow: operator.pow, ast.USub: operator.neg, ast.UAdd: operator.pos,
+            ast.Add: operator.add,
+            ast.Sub: operator.sub,
+            ast.Mult: operator.mul,
+            ast.Div: operator.truediv,
+            ast.FloorDiv: operator.floordiv,
+            ast.Mod: operator.mod,
+            ast.Pow: operator.pow,
+            ast.USub: operator.neg,
+            ast.UAdd: operator.pos,
         }
         safe_funcs = {
-            "abs": abs, "round": round, "min": min, "max": max,
-            "sqrt": math.sqrt, "log": math.log, "exp": math.exp,
+            "abs": abs,
+            "round": round,
+            "min": min,
+            "max": max,
+            "sqrt": math.sqrt,
+            "log": math.log,
+            "exp": math.exp,
         }
 
         def _parse_csv(s: str) -> list[float]:
@@ -57,7 +67,8 @@ def register_custom_tools(registry):
             return ret / vol if vol != 0 else 0.0
 
         def _kelly(win_p: float, wl_r: float) -> float:
-            if wl_r <= 0: return 0.0
+            if wl_r <= 0:
+                return 0.0
             f = (win_p * wl_r - (1 - win_p)) / wl_r
             return max(0.0, min(1.0, f))
 
@@ -72,23 +83,31 @@ def register_custom_tools(registry):
 
         def _maxdd(equity_csv: str) -> float:
             eq = _parse_csv(equity_csv)
-            peak = eq[0]; max_dd = 0.0
+            peak = eq[0]
+            max_dd = 0.0
             for v in eq:
-                if v > peak: peak = v
+                if v > peak:
+                    peak = v
                 dd = (v - peak) / peak if peak != 0 else 0
-                if dd < max_dd: max_dd = dd
+                if dd < max_dd:
+                    max_dd = dd
             return max_dd
 
         def _vol(returns_csv: str) -> float:
             r = _parse_csv(returns_csv)
-            if len(r) < 2: return 0.0
+            if len(r) < 2:
+                return 0.0
             mean = sum(r) / len(r)
-            var = sum((x - mean)**2 for x in r) / (len(r) - 1)
+            var = sum((x - mean) ** 2 for x in r) / (len(r) - 1)
             return math.sqrt(var) * math.sqrt(252)
 
         finance_funcs = {
-            "sharpe": _sharpe, "kelly": _kelly, "position": _position,
-            "var_95": _var95, "max_dd": _maxdd, "vol": _vol,
+            "sharpe": _sharpe,
+            "kelly": _kelly,
+            "position": _position,
+            "var_95": _var95,
+            "max_dd": _maxdd,
+            "vol": _vol,
         }
 
         def eval_node(node):
@@ -127,7 +146,9 @@ def register_custom_tools(registry):
         name="calculate",
         func=calculate,
         desc="Calcula expressão matemática/financeira. Suporta: + - * / ** sqrt log exp abs round min max, e funções financeiras: sharpe(ret,vol) kelly(win_p,wl_r) position(capital,risk%,stop%) var_95('r1,r2,...') max_dd('e1,e2,...') vol('r1,r2,...')",
-        schema={"expression": "string, expressão como 'kelly(0.6, 2.0)' ou 'position(10000, 2, 15)' ou 'sharpe(0.12, 0.25)'"},
+        schema={
+            "expression": "string, expressão como 'kelly(0.6, 2.0)' ou 'position(10000, 2, 15)' ou 'sharpe(0.12, 0.25)'"
+        },
     )
 
 

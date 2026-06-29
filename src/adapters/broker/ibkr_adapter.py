@@ -45,7 +45,8 @@ def _low_level_gate_check(order: Any) -> bool:
     if gate_status != "ALLOW":
         logger.error(
             "BLOCKED_LOW_LEVEL_UNGATED_ORDER:missing_gate_status symbol=%s gate_status=%s",
-            getattr(order, "symbol", "?"), gate_status or "MISSING",
+            getattr(order, "symbol", "?"),
+            gate_status or "MISSING",
         )
         return False
 
@@ -62,7 +63,8 @@ def _low_level_gate_check(order: Any) -> bool:
     if not validated_ticker or validated_ticker.upper() != order_symbol:
         logger.error(
             "BLOCKED_LOW_LEVEL_UNGATED_ORDER:ticker_mismatch symbol=%s validated=%s",
-            order_symbol, validated_ticker or "MISSING",
+            order_symbol,
+            validated_ticker or "MISSING",
         )
         return False
 
@@ -104,30 +106,37 @@ def _low_level_gate_check(order: Any) -> bool:
 
     # 8. Journal health
     try:
-        from pathlib import Path
         from core.trading.paper_journal import DEFAULT_JOURNAL_PATH
+
         journal_path = DEFAULT_JOURNAL_PATH
         journal_path.parent.mkdir(parents=True, exist_ok=True)
         with open(journal_path, "a", encoding="utf-8") as fh:
             import json as _json
             from datetime import datetime, timezone
-            fh.write(_json.dumps({
-                "trade_id": f"llg-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}",
-                "ticker": "__LOW_LEVEL_GATE__",
-                "thesis": "low_level_gate_probe",
-                "direction": "none",
-                "entry_date": datetime.now(timezone.utc).isoformat(),
-                "entry_price": 0.0,
-                "shares": 0,
-                "entry_reasoning": "Low-level gate journal probe",
-                "verdict_at_entry": "PROBE",
-                "risk_assessment": "none",
-                "expected_holding_period": "none",
-                "outcome": "probe",
-                "created_at": datetime.now(timezone.utc).isoformat(),
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-                "tags": ["low_level_gate_probe"],
-            }, ensure_ascii=False) + "\n")
+
+            fh.write(
+                _json.dumps(
+                    {
+                        "trade_id": f"llg-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}",
+                        "ticker": "__LOW_LEVEL_GATE__",
+                        "thesis": "low_level_gate_probe",
+                        "direction": "none",
+                        "entry_date": datetime.now(timezone.utc).isoformat(),
+                        "entry_price": 0.0,
+                        "shares": 0,
+                        "entry_reasoning": "Low-level gate journal probe",
+                        "verdict_at_entry": "PROBE",
+                        "risk_assessment": "none",
+                        "expected_holding_period": "none",
+                        "outcome": "probe",
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                        "tags": ["low_level_gate_probe"],
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
             fh.flush()
     except Exception:
         logger.error("low_level_gate_blocked_journal_unhealthy")
@@ -209,7 +218,9 @@ class InteractiveBrokersAdapter:
             )
 
         # Order submission uses subprocess for isolation (existing pattern)
-        order_script = Path(__file__).resolve().parent.parent.parent.parent / "scripts" / "_ibkr_order.py"
+        order_script = (
+            Path(__file__).resolve().parent.parent.parent.parent / "scripts" / "_ibkr_order.py"
+        )
 
         if order.order_type == OrderType.MARKET and os.getenv(
             "SUPEREZIO_IBKR_ALLOW_MARKET_ORDER", "0"
@@ -286,7 +297,9 @@ class InteractiveBrokersAdapter:
                     stop_price=order.stop_price,
                     filled_price=data.get("avg_price") or None,
                     perm_id=str(data.get("perm_id")) if data.get("perm_id") else None,
-                    tws_order_id=str(data.get("tws_order_id")) if data.get("tws_order_id") else None,
+                    tws_order_id=str(data.get("tws_order_id"))
+                    if data.get("tws_order_id")
+                    else None,
                     client_id=str(data.get("client_id")) if data.get("client_id") else None,
                 )
         except Exception as exc:
@@ -307,7 +320,9 @@ class InteractiveBrokersAdapter:
         import sys
         from pathlib import Path
 
-        order_script = Path(__file__).resolve().parent.parent.parent.parent / "scripts" / "_ibkr_order.py"
+        order_script = (
+            Path(__file__).resolve().parent.parent.parent.parent / "scripts" / "_ibkr_order.py"
+        )
         try:
             result = subprocess.run(
                 [sys.executable, str(order_script), "cancel", order_id],

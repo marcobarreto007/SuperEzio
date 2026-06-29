@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import os
 import logging
-from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +33,12 @@ CANADIAN_ETFS = ["XIU.TO", "XIC.TO", "VFV.TO", "XUU.TO", "ZAG.TO", "XBB.TO"]
 CANADIAN_TELECOM = ["BCE.TO", "T.TO", "RCI-B.TO"]
 
 CANADIAN_ALL = (
-    CANADIAN_BANKS + CANADIAN_ENERGY + CANADIAN_MATERIALS +
-    CANADIAN_UTILITIES + CANADIAN_ETFS + CANADIAN_TELECOM
+    CANADIAN_BANKS
+    + CANADIAN_ENERGY
+    + CANADIAN_MATERIALS
+    + CANADIAN_UTILITIES
+    + CANADIAN_ETFS
+    + CANADIAN_TELECOM
 )
 
 # ═══════════════════════════════════════════════════════════
@@ -43,13 +46,47 @@ CANADIAN_ALL = (
 # ═══════════════════════════════════════════════════════════
 
 US_LARGE_CAP = [
-    "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA",
-    "JPM", "V", "JNJ", "WMT", "PG", "XOM", "UNH", "HD",
-    "BAC", "MA", "DIS", "NFLX", "ADBE", "CRM", "AMD", "INTC",
+    "AAPL",
+    "MSFT",
+    "GOOGL",
+    "AMZN",
+    "NVDA",
+    "META",
+    "TSLA",
+    "JPM",
+    "V",
+    "JNJ",
+    "WMT",
+    "PG",
+    "XOM",
+    "UNH",
+    "HD",
+    "BAC",
+    "MA",
+    "DIS",
+    "NFLX",
+    "ADBE",
+    "CRM",
+    "AMD",
+    "INTC",
 ]
 US_SECTOR_ETFS = [
-    "SPY", "QQQ", "IWM", "DIA", "XLF", "XLE", "XLK", "XLV",
-    "XLI", "XLP", "XLY", "XLB", "XLU", "XLRE", "SMH", "SOXX",
+    "SPY",
+    "QQQ",
+    "IWM",
+    "DIA",
+    "XLF",
+    "XLE",
+    "XLK",
+    "XLV",
+    "XLI",
+    "XLP",
+    "XLY",
+    "XLB",
+    "XLU",
+    "XLRE",
+    "SMH",
+    "SOXX",
 ]
 US_DEFENSIVE = ["GLD", "TLT", "SHY", "IEF", "BIL", "SGOV", "VTIP"]
 US_VOLATILITY = ["UVXY", "SVXY", "VXX", "VIXM"]
@@ -58,12 +95,11 @@ US_VOLATILITY = ["UVXY", "SVXY", "VXX", "VIXM"]
 # Market Scanner Integration
 # ═══════════════════════════════════════════════════════════
 
+
 def _scan_finviz_screen(screen: str = "top_gainers", limit: int = 15) -> list[str]:
     """Scan Finviz screener for top movers. Falls back gracefully."""
     try:
         import urllib.request
-        import csv
-        import io
 
         url = f"https://finviz.com/screener.ashx?v=111&f=sh_avgvol_o1000,sh_price_o5&ft=4&o=-change&r={limit}"
         headers = {"User-Agent": "Mozilla/5.0"}
@@ -73,7 +109,8 @@ def _scan_finviz_screen(screen: str = "top_gainers", limit: int = 15) -> list[st
         # Parse Finviz HTML table (simple extraction)
         tickers = set()
         import re
-        for match in re.finditer(r'screener-link[^>]*>([A-Z]{1,5})<', content):
+
+        for match in re.finditer(r"screener-link[^>]*>([A-Z]{1,5})<", content):
             tickers.add(match.group(1))
         return list(tickers)[:limit]
     except Exception:
@@ -85,6 +122,7 @@ def _scan_yahoo_trending(limit: int = 10) -> list[str]:
     try:
         import urllib.request
         import json
+
         url = "https://query1.finance.yahoo.com/v1/finance/trending/US?count=20"
         headers = {"User-Agent": "Mozilla/5.0"}
         req = urllib.request.Request(url, headers=headers)
@@ -109,6 +147,7 @@ def get_investor_watchlist() -> list[str]:
     """Get tickers from investor storage DB."""
     try:
         from core.investor.storage import get_investor_storage
+
         store = get_investor_storage()
         rows = store.get_watchlist()
         return [r["ticker"].upper().strip() for r in rows if r.get("ticker")]
@@ -157,6 +196,7 @@ def get_dynamic_watchlist(
     if use_universe_400:
         try:
             from .universe_builder import build_universe_400
+
             universe = build_universe_400()
             add(universe)
             logger.info("watchlist_universe_400: %d tickers", len(universe))
@@ -220,14 +260,25 @@ def get_watchlist_by_profile(risk_profile: str = "moderate") -> list[str]:
 
     if risk_profile == "conservative":
         # Only large cap, ETFs, bonds, Canadian banks/utilities
-        defensive = set(US_LARGE_CAP[:10] + US_SECTOR_ETFS[:5] + US_DEFENSIVE +
-                       CANADIAN_BANKS + CANADIAN_UTILITIES + CANADIAN_ETFS[:3])
+        defensive = set(
+            US_LARGE_CAP[:10]
+            + US_SECTOR_ETFS[:5]
+            + US_DEFENSIVE
+            + CANADIAN_BANKS
+            + CANADIAN_UTILITIES
+            + CANADIAN_ETFS[:3]
+        )
         return [t for t in all_tickers if t in defensive]
 
     elif risk_profile == "income":
         # Income-focused: Canadian banks, utilities, telecom, dividend ETFs
-        income_set = set(CANADIAN_BANKS + CANADIAN_UTILITIES + CANADIAN_TELECOM +
-                        CANADIAN_ETFS[:3] + ["JNJ", "PG", "WMT", "KO", "PEP", "VZ", "T"])
+        income_set = set(
+            CANADIAN_BANKS
+            + CANADIAN_UTILITIES
+            + CANADIAN_TELECOM
+            + CANADIAN_ETFS[:3]
+            + ["JNJ", "PG", "WMT", "KO", "PEP", "VZ", "T"]
+        )
         return [t for t in all_tickers if t in income_set]
 
     elif risk_profile == "aggressive" or risk_profile == "very_aggressive":

@@ -72,9 +72,7 @@ def _tokenize(text: str) -> set[str]:
 
     text = text.lower()
     tokens = {text} if text and len(text) <= 80 else set()
-    tokens.update(
-        t for t in re.split(r"[^a-z0-9_]+", text) if len(t) >= 2
-    )
+    tokens.update(t for t in re.split(r"[^a-z0-9_]+", text) if len(t) >= 2)
     return tokens
 
 
@@ -193,9 +191,7 @@ class ConversationMemory:
         )
         return turn
 
-    def get_session_history(
-        self, session_id: str, limit: int = 50
-    ) -> list[ConversationTurn]:
+    def get_session_history(self, session_id: str, limit: int = 50) -> list[ConversationTurn]:
         """Recupera histórico de uma sessão específica."""
         self._ensure_loaded()
         return self._cache.get(session_id, [])[-limit:]
@@ -228,11 +224,7 @@ class ConversationMemory:
         query_emb = _hashed_embedding(query)
 
         # Filtra por session_id se especificado
-        candidates = (
-            self._cache.get(session_id, [])
-            if session_id
-            else self._all_turns
-        )
+        candidates = self._cache.get(session_id, []) if session_id else self._all_turns
 
         scored = []
         for turn in candidates:
@@ -251,53 +243,35 @@ class ConversationMemory:
         self._ensure_loaded()
 
         ticker = ticker.upper()
-        candidates = (
-            self._cache.get(session_id, [])
-            if session_id
-            else self._all_turns
-        )
+        candidates = self._cache.get(session_id, []) if session_id else self._all_turns
 
-        filtered = [
-            t for t in candidates if t.ticker_discussed.upper() == ticker
-        ]
+        filtered = [t for t in candidates if t.ticker_discussed.upper() == ticker]
         # Ordena por timestamp (mais recente primeiro)
         filtered.sort(
-            key=lambda t: datetime.fromisoformat(
-                t.timestamp.replace("Z", "+00:00")
-            ),
+            key=lambda t: datetime.fromisoformat(t.timestamp.replace("Z", "+00:00")),
             reverse=True,
         )
         return filtered[:limit]
 
-    def get_theses(
-        self, session_id: str | None = None, days: int = 30
-    ) -> list[ConversationTurn]:
+    def get_theses(self, session_id: str | None = None, days: int = 30) -> list[ConversationTurn]:
         """Recupera teses formuladas recentemente."""
         self._ensure_loaded()
 
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-        candidates = (
-            self._cache.get(session_id, [])
-            if session_id
-            else self._all_turns
-        )
+        candidates = self._cache.get(session_id, []) if session_id else self._all_turns
 
         theses = []
         for turn in candidates:
             if turn.thesis_formed:
                 try:
-                    turn_dt = datetime.fromisoformat(
-                        turn.timestamp.replace("Z", "+00:00")
-                    )
+                    turn_dt = datetime.fromisoformat(turn.timestamp.replace("Z", "+00:00"))
                     if turn_dt >= cutoff:
                         theses.append(turn)
                 except ValueError:
                     continue
 
         theses.sort(
-            key=lambda t: datetime.fromisoformat(
-                t.timestamp.replace("Z", "+00:00")
-            ),
+            key=lambda t: datetime.fromisoformat(t.timestamp.replace("Z", "+00:00")),
             reverse=True,
         )
         return theses
@@ -349,17 +323,13 @@ class ConversationMemory:
                     ticker_counts.get(turn.ticker_discussed, 0) + 1
                 )
 
-        top_tickers = sorted(
-            ticker_counts.items(), key=lambda x: x[1], reverse=True
-        )[:10]
+        top_tickers = sorted(ticker_counts.items(), key=lambda x: x[1], reverse=True)[:10]
 
         return {
             "total_turns": total_turns,
             "total_sessions": total_sessions,
             "categories": categories,
-            "top_tickers": [
-                {"ticker": t, "count": c} for t, c in top_tickers
-            ],
+            "top_tickers": [{"ticker": t, "count": c} for t, c in top_tickers],
             "path": str(self._path),
         }
 

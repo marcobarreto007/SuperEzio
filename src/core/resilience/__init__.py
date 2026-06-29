@@ -58,18 +58,36 @@ def classify_error(exc: Exception) -> type[Exception]:
     exc_type = type(exc).__name__.lower()
 
     permanent_patterns = [
-        "validation", "invalid", "not found", "unauthorized",
-        "forbidden", "auth", "permission", "keyerror",
-        "attributeerror", "typeerror", "valueerror",
+        "validation",
+        "invalid",
+        "not found",
+        "unauthorized",
+        "forbidden",
+        "auth",
+        "permission",
+        "keyerror",
+        "attributeerror",
+        "typeerror",
+        "valueerror",
     ]
     for pattern in permanent_patterns:
         if pattern in exc_str or pattern in exc_type:
             return PermanentError
 
     transient_patterns = [
-        "timeout", "connection", "refused", "unreachable",
-        "temporarily", "busy", "overloaded", "rate limit",
-        "too many", "service unavailable", "503", "502", "504",
+        "timeout",
+        "connection",
+        "refused",
+        "unreachable",
+        "temporarily",
+        "busy",
+        "overloaded",
+        "rate limit",
+        "too many",
+        "service unavailable",
+        "503",
+        "502",
+        "504",
     ]
     for pattern in transient_patterns:
         if pattern in exc_str or pattern in exc_type:
@@ -93,6 +111,7 @@ def with_retry(
     service: str = "unknown",
 ):
     """Decorator: retry on transient errors with exponential backoff."""
+
     def decorator(func: F) -> F:
         @retry(
             stop=stop_after_attempt(max_attempts),
@@ -125,7 +144,9 @@ def with_retry(
                         error=str(exc)[:200],
                     )
                     raise PermanentError(str(exc)) from exc
+
         return wrapper  # type: ignore[return-value]
+
     return decorator
 
 

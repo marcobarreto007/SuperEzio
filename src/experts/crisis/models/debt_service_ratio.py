@@ -16,7 +16,9 @@ class DebtServiceRatioModel:
         ]
 
         if len(obs) < 12:
-            return BaseCrisisModel._insufficient_data(self.__class__.__name__, "Não há histórico suficiente de debt_service_ratio.")
+            return BaseCrisisModel._insufficient_data(
+                self.__class__.__name__, "Não há histórico suficiente de debt_service_ratio."
+            )
 
         current = obs[-1]
         pct = percentile_rank(obs, current)

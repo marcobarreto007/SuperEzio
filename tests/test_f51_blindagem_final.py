@@ -20,7 +20,9 @@ class TestRawIBKRCLIDisabledByDefault:
 
         result = subprocess.run(
             [sys.executable, "scripts/_ibkr_order.py", "BUY", "AAPL", "1", "150.0"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
             env={**os.environ, "F51_ALLOW_RAW_IBKR_CLI": "false"},
         )
         output = json.loads(result.stdout.strip())
@@ -36,7 +38,9 @@ class TestRawIBKRCLIDisabledByDefault:
 
         result = subprocess.run(
             [sys.executable, "scripts/_ibkr_order.py", "BUY", "AAPL", "1", "150.0"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
             env={
                 **os.environ,
                 "F51_ALLOW_RAW_IBKR_CLI": "true",
@@ -55,7 +59,9 @@ class TestRawIBKRCLIDisabledByDefault:
 
         result = subprocess.run(
             [sys.executable, "scripts/_ibkr_order.py", "BUY", "AAPL", "1", "150.0"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
             env={
                 **os.environ,
                 "F51_ALLOW_RAW_IBKR_CLI": "true",
@@ -175,6 +181,7 @@ class TestFreezeBlocksLowLevelOrder:
         monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "true")
 
         from core.pipeline.f51_trade_gate import is_execution_frozen
+
         assert is_execution_frozen() is True
 
     def test_tool_executor_freeze_blocks(self, monkeypatch):
@@ -243,8 +250,17 @@ class TestGeneratorHasNoUndefinedNames:
         import subprocess
 
         result = subprocess.run(
-            [sys.executable, "-m", "ruff", "check", "src/core/pipeline/nodes/generator.py", "--select", "F821"],
-            capture_output=True, text=True,
+            [
+                sys.executable,
+                "-m",
+                "ruff",
+                "check",
+                "src/core/pipeline/nodes/generator.py",
+                "--select",
+                "F821",
+            ],
+            capture_output=True,
+            text=True,
         )
         assert result.returncode == 0, f"ruff F821 failed: {result.stdout}"
         # ruff outputs "All checks passed!" on success

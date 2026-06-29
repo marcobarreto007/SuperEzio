@@ -12,12 +12,12 @@ This is Bob's "heartbeat" — if this stops, Bob is clinically dead.
 from __future__ import annotations
 
 import logging, threading, time
-from datetime import datetime, timezone
 from typing import Any
 
-from .body import get_bobs_body, PainLevel, SystemMode
+from .body import get_bobs_body
 
 logger = logging.getLogger(__name__)
+
 
 class AutonomicNervousSystem:
     """Bob's background health monitor — runs forever."""
@@ -39,8 +39,11 @@ class AutonomicNervousSystem:
         self._running = True
         self._thread = threading.Thread(target=self._loop, daemon=True, name="bob-ans")
         self._thread.start()
-        logger.info("bob_ans_started: scan_every_%ds deep_every_%ds",
-                     self._scan_interval, self._deep_scan_interval)
+        logger.info(
+            "bob_ans_started: scan_every_%ds deep_every_%ds",
+            self._scan_interval,
+            self._deep_scan_interval,
+        )
 
     def stop(self) -> None:
         """Stop the autonomic nervous system."""
@@ -76,7 +79,9 @@ class AutonomicNervousSystem:
                 if self._body.is_man_at_work():
                     # Slow diagnostic scan - check if we can recover
                     if self._cycles % 5 == 0:  # Every 5 cycles
-                        logger.info("man_at_work: diagnostic scan %d - checking for recovery", self._cycles)
+                        logger.info(
+                            "man_at_work: diagnostic scan %d - checking for recovery", self._cycles
+                        )
 
                         # Check if CEO recovered
                         if ceo_status.get("healthy", False):
@@ -94,8 +99,11 @@ class AutonomicNervousSystem:
 
                 # Auto-heal if anything is sick
                 if report["sick_count"] > 0:
-                    logger.warning("bob_pain_detected: %d sick organs, pain=%d",
-                                   report["sick_count"], report["overall_pain"])
+                    logger.warning(
+                        "bob_pain_detected: %d sick organs, pain=%d",
+                        report["sick_count"],
+                        report["overall_pain"],
+                    )
                     heal = self._body.auto_heal()
                     healed = sum(1 for v in heal.values() if v["healed"])
                     if healed > 0:
@@ -108,15 +116,19 @@ class AutonomicNervousSystem:
                         self._critical_events += 1
                         logger.critical(
                             "bob_critical_pain: %d critical organs | total_critical_events=%d",
-                            report["critical_count"], self._critical_events,
+                            report["critical_count"],
+                            self._critical_events,
                         )
 
                 # Log health every 10 cycles
                 if self._cycles % 10 == 0:
                     logger.info(
                         "bob_vitals: healthy=%d sick=%d pain=%d cycles=%d circuits_open=%d mode=%s",
-                        report["healthy_count"], report["sick_count"],
-                        report["overall_pain"], self._cycles, self._count_open_circuits(),
+                        report["healthy_count"],
+                        report["sick_count"],
+                        report["overall_pain"],
+                        self._cycles,
+                        self._count_open_circuits(),
                         self._body.system_mode.value,
                     )
 

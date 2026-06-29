@@ -75,7 +75,9 @@ class WatchlistPulse:
 
         symbol = str(ticker or "").strip().upper()
         snapshot = self.monitor.get_sentiment_snapshot(symbol)
-        raw_sources = snapshot.get("sources") if isinstance(snapshot.get("sources"), Mapping) else {}
+        raw_sources = (
+            snapshot.get("sources") if isinstance(snapshot.get("sources"), Mapping) else {}
+        )
         sources = self._sources_with_ticker(symbol, raw_sources)
         curated = self.curator.curate(sources)
         previous = self._previous_label(snapshot, curated)
@@ -89,7 +91,9 @@ class WatchlistPulse:
             sentiment_display=display,
             score=curated.composite_score,
             confidence=curated.confidence,
-            reddit=self._reddit_summary(raw_sources.get("reddit_pulse") or raw_sources.get("reddit")),
+            reddit=self._reddit_summary(
+                raw_sources.get("reddit_pulse") or raw_sources.get("reddit")
+            ),
             news=self._news_summary(raw_sources),
             flags=curated.flags,
             curator=curated.summary,
@@ -163,7 +167,9 @@ class WatchlistPulse:
 
     @staticmethod
     def _previous_label(snapshot: Mapping[str, Any], curated: CuratedSentiment) -> str:
-        history = snapshot.get("history_24h") if isinstance(snapshot.get("history_24h"), list) else []
+        history = (
+            snapshot.get("history_24h") if isinstance(snapshot.get("history_24h"), list) else []
+        )
         if len(history) < 2:
             return curated.label
         for item in reversed(history[:-1]):
@@ -195,14 +201,19 @@ class WatchlistPulse:
         if not isinstance(source, Mapping):
             return {"mentions": 0, "signal": "NO_DATA", "spike": False}
         mentions = _source_count(source)
-        avg = source.get("avg_mentions") or source.get("average_mentions") or source.get("normal_mentions")
+        avg = (
+            source.get("avg_mentions")
+            or source.get("average_mentions")
+            or source.get("normal_mentions")
+        )
         try:
             avg_number = float(avg) if avg not in (None, "", [], {}) else None
         except (TypeError, ValueError):
             avg_number = None
-        spike = bool(avg_number and mentions >= avg_number * 3) or "SPIKE" in str(
-            source.get("signal_label") or ""
-        ).upper()
+        spike = (
+            bool(avg_number and mentions >= avg_number * 3)
+            or "SPIKE" in str(source.get("signal_label") or "").upper()
+        )
         return {
             "mentions": mentions,
             "average": avg_number,

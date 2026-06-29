@@ -109,7 +109,9 @@ def _source_score(source: Mapping[str, Any]) -> float | None:
 
 
 def _source_label(source: Mapping[str, Any]) -> str:
-    return str(source.get("sentiment_label") or source.get("signal_label") or source.get("label") or "")
+    return str(
+        source.get("sentiment_label") or source.get("signal_label") or source.get("label") or ""
+    )
 
 
 def _reddit_count(reddit: Mapping[str, Any]) -> int:
@@ -417,7 +419,9 @@ class LiveMonitor:
                 try:
                     batches.append(route_news(query, limit=10))
                 except Exception as exc:
-                    logger.warning("[sentiment.monitor] discovery query failed for %r: %s", query, exc)
+                    logger.warning(
+                        "[sentiment.monitor] discovery query failed for %r: %s", query, exc
+                    )
                     continue
 
             articles: list[Any] = []
@@ -583,13 +587,17 @@ class LiveMonitor:
             try:
                 sentiment = data_hub.get_sentiment_summary(ticker)
                 if isinstance(sentiment, dict) and "error" not in sentiment:
-                    source = str(sentiment.get("provider") or sentiment.get("source") or "sentiment")
+                    source = str(
+                        sentiment.get("provider") or sentiment.get("source") or "sentiment"
+                    )
                     sources[source] = sentiment
                 reddit = data_hub.get_reddit_signal(ticker)
                 if isinstance(reddit, dict) and "error" not in reddit:
                     sources["reddit_pulse"] = reddit
             except Exception as exc:
-                logger.warning("[sentiment.monitor] DataHub fallback failed for %s: %s", ticker, exc)
+                logger.warning(
+                    "[sentiment.monitor] DataHub fallback failed for %s: %s", ticker, exc
+                )
 
         collected_at = _now_iso()
         institutional = [
@@ -597,8 +605,14 @@ class LiveMonitor:
             for name, source in sources.items()
             if name in {"newsapi", "news_scout", "finnhub"} and isinstance(source, Mapping)
         ]
-        scores = [score for score in (_source_score(source) for source in institutional) if score is not None]
-        reddit = sources.get("reddit_pulse") if isinstance(sources.get("reddit_pulse"), Mapping) else {}
+        scores = [
+            score
+            for score in (_source_score(source) for source in institutional)
+            if score is not None
+        ]
+        reddit = (
+            sources.get("reddit_pulse") if isinstance(sources.get("reddit_pulse"), Mapping) else {}
+        )
         snapshot = {
             "ticker": ticker,
             "status": "ok" if sources else "NO_DATA",
@@ -647,7 +661,9 @@ class LiveMonitor:
         if isinstance(reddit, Mapping):
             current_count = _reddit_count(reddit)
             historical_counts = [
-                int(item.get("reddit_count") or 0) for item in previous if int(item.get("reddit_count") or 0) > 0
+                int(item.get("reddit_count") or 0)
+                for item in previous
+                if int(item.get("reddit_count") or 0) > 0
             ]
             explicit_avg = _number(
                 reddit.get("avg_mentions")
