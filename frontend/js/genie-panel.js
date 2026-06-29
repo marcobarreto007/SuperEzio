@@ -116,7 +116,7 @@
       }
       cue.innerHTML = [
         '<strong>Bob recebeu ' + esc(ticker) + '</strong>',
-        '<span>Comando TICKER enviado automaticamente.</span>',
+        '<span>Comando TICKER pronto na caixa de envio.</span>',
       ].join("");
       chat.scrollTop = 0;
     }
@@ -126,17 +126,6 @@
       pulse: pulse,
       createdAt: Date.now(),
     };
-
-    // Auto-submit the command to Bob Copilot
-    if (window.SZ && typeof window.SZ.submit === "function") {
-      setTimeout(function () {
-        if (input) {
-          input.value = "";
-          input.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-        window.SZ.submit(command);
-      }, 50);
-    }
   }
 
   function selectPulse(pulse) {

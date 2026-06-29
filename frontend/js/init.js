@@ -610,16 +610,11 @@
     var status = item.status || (kind === "position" ? "OPEN" : "PENDING");
     var price = item.limit_price || item.lmtPrice || item.entry_price || item.avgCost;
     var source = String(item.source || (kind === "position" ? "ibkr_position" : "ibkr")).toUpperCase().replace("_", " ");
-    // Add TRAIN badge for training orders
-    if (kind === "training") {
-      source = "TRAIN";
-      status = "PAPER";
-    }
     var meta = kind === "position"
       ? "position qty " + qty + (price ? " avg " + fmt(Number(price), 2) : "")
       : (item.order_type || item.orderType || "LMT") + " qty " + qty + (price ? " @ " + fmt(Number(price), 2) : "");
     return [
-      '<button class="order-row ' + (selected === ticker ? "is-selected" : "") + (kind === "training" ? " order-row--training" : "") + '" type="button"',
+      '<button class="order-row ' + (selected === ticker ? "is-selected" : "") + '" type="button"',
         ' data-order-kind="' + esc(kind) + '"',
         ' data-order-id="' + esc(item.order_id || item.id || "") + '"',
         ' data-order-ticker="' + esc(ticker) + '">',
@@ -669,10 +664,6 @@
     var orders = brokerOrders.concat(localTickets);
     var positions = positionList(pf);
     var history = tradeHistoryList(pf);
-    // Training orders
-    var trainingOrders = (pf.training_orders || []).map(function (order) {
-      return normalizeOrder(order);
-    });
     var current = sanitTicker(SZ.state.ticker || (document.getElementById("ticker-inp") || {}).value || "");
     var firstTicker = "";
     var rows = [];
@@ -689,30 +680,22 @@
       rows.push(renderOrderButton(order, "order", current));
     });
 
-    // Adicionar ordens de treinamento com badge TRAIN
-    trainingOrders.forEach(function (order) {
-      var ticker = orderTicker(order);
-      if (!firstTicker && ticker) firstTicker = ticker;
-      rows.push(renderOrderButton(order, "training", current));
-    });
-
-    positions.forEach(function (pos) {
-      var ticker = positionTicker(pos);
-      if (!firstTicker && ticker) firstTicker = ticker;
-      rows.push(renderOrderButton(pos, "position", current));
-    });
+    if (!orders.length) {
+      positions.forEach(function (pos) {
+        var ticker = positionTicker(pos);
+        if (!firstTicker && ticker) firstTicker = ticker;
+        rows.push(renderOrderButton(pos, "position", current));
+      });
+    }
 
     var visibleRows = rows.filter(Boolean);
     if (countEl) {
-      var baseCount = String(brokerOrders.length) + " ord / " + String(positions.length) + " pos";
-      var localPart = localTickets.length ? " / " + localTickets.length + " local" : "";
-      var trainingPart = trainingOrders.length ? " / " + trainingOrders.length + " train" : "";
-      countEl.textContent = baseCount + localPart + trainingPart;
+      countEl.textContent = String(brokerOrders.length) + " IBKR" + (localTickets.length ? " / " + localTickets.length + " local" : "");
     }
     if (visibleRows.length) {
       host.innerHTML = visibleRows.join("");
     } else {
-      host.innerHTML = '<div class="cockpit-empty">No open IBKR broker orders or positions. Manual chart remains available.</div>';
+      host.innerHTML = '<div class="cockpit-empty">No open IBKR broker orders. Manual chart remains available.</div>';
     }
 
     if (historyHost) {
@@ -723,11 +706,11 @@
       }).filter(Boolean);
       if (historyRows.length) {
         historyHost.innerHTML = [
-          '<div class="trade-history-title"><span>Local audit history</span><strong>' + esc(String(pf.trade_history_count || history.length)) + '</strong></div>',
+          '<div class="trade-history-title"><span>Paper history</span><strong>' + esc(String(pf.trade_history_count || history.length)) + '</strong></div>',
           '<div class="trade-history-scroll">' + historyRows.join("") + '</div>',
         ].join("");
       } else {
-        historyHost.innerHTML = '<div class="cockpit-empty">No local audit history recorded.</div>';
+        historyHost.innerHTML = '<div class="cockpit-empty">No paper trade history recorded.</div>';
       }
     }
 
@@ -753,20 +736,6 @@
     if (!SZ.api || typeof SZ.api.fetchCockpitPortfolio !== "function") return false;
     try {
       var portfolio = await SZ.api.fetchCockpitPortfolio();
-      // Buscar ordens de treinamento e incluir no portfolio
-      if (SZ.api.fetchTrainingOrders) {
-        try {
-          var training = await SZ.api.fetchTrainingOrders();
-          if (training && training.orders) {
-            portfolio.training_orders = training.orders;
-            portfolio.training_count = training.count;
-          }
-        } catch (trainErr) {
-          // Training orders unavailable - continue without them
-          portfolio.training_orders = [];
-          portfolio.training_count = 0;
-        }
-      }
       return renderPortfolioMirror(portfolio);
     } catch (err) {
       renderPortfolioMirror({ orders: [], positions: [] });
@@ -787,41 +756,6 @@
     setText("live-ticker", ticker);
     markSelectedMirrorTicker(ticker);
     loadChart(ticker);
-
-    if (reason === "ibkr_mirror_click") {
-      var kind = (meta && meta.kind) || "order/position";
-      var command = "TICKER " + ticker + ": sincronize grafico + " + kind + " IBKR. Bob, analise tese, risco, invalidacao e alvo/stop. Se virar trade, rode ferramentas antes de PAPER_TICKET.";
-      var input = document.getElementById("user-inp");
-      if (input) {
-        input.value = command;
-        input.focus();
-        input.dispatchEvent(new Event("input", { bubbles: true }));
-      }
-      var panel = document.getElementById("live-panel");
-      if (panel) panel.classList.remove("is-collapsed");
-      var chat = document.getElementById("chat");
-      if (chat) {
-        var cue = chat.querySelector(".bob-ticker-cue");
-        if (!cue) {
-          cue = document.createElement("div");
-          cue.className = "bob-ticker-cue";
-          chat.insertBefore(cue, chat.firstChild);
-        }
-        cue.innerHTML = [
-          '<strong>Bob recebeu ' + esc(ticker) + '</strong>',
-          '<span>Comando IBKR ' + esc(kind.toUpperCase()) + ' enviado automaticamente.</span>',
-        ].join("");
-        chat.scrollTop = 0;
-      }
-      setTimeout(function() {
-        if (input) {
-          input.value = "";
-          input.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-        submit(command);
-      }, 50);
-    }
-
     return true;
   }
 

@@ -74,7 +74,6 @@
     fetchCapabilities() { return fetchJson("/capabilities"); },
     fetchCockpitSummary() { return fetchJson("/cockpit/summary"); },
     fetchCockpitPortfolio() { return fetchJson("/cockpit/portfolio"); },
-    fetchTrainingOrders() { return fetchJson("/training/orders"); },
     fetchTradeHistory(limit = 50) {
       return fetchJson(`/trades/history?limit=${encodeURIComponent(limit)}`);
     },
