@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-06-28T21:10:00-04:00",
-  "session": "f51-playbook-2026-bootstrap-swarm-save",
+  "timestamp": "2026-06-28T23:45:00-04:00",
+  "session": "f51-lora-dataset-v9-tool-first",
   "orchestrator": "claude-code",
   "status": "completed",
-  "what_was_done": "Playbook 2026 completo: exército de 13 agentes + swarm 4 agentes em paralelo + bug fix + smoke test passou",
+  "what_was_done": "Playbook 2026 + LoRA dataset 2020 exemplos 100% tool-first. Swarm 4 agentes, bug fix F821, smoke test passou, dataset regerado com regra: Bob sempre chama tool antes de responder.",
   "progress": {
     "build_msvc": "completed — 3 binarios compilados com CUDA",
     "model_quantized": "completed — Q8_0→Q4_K_M (17.3 GB, 13.8 min)",
@@ -23,14 +23,16 @@
   "evidence": {
     "build": "bin/llama-finetune-qlora.exe, llama-finetune.exe, llama-quantize.exe",
     "lora": "models/bob_lora_qwenlong_30b_f51/lora_f51_v7.gguf (42.4 MB, 2026-06-28 20:09)",
-    "git_commits": "7ec99a1, dd115e1, 44176dd (sessao 2026-06-28)",
+    "git_commits": "7ec99a1, dd115e1, 44176dd, d8aa108, a9568ba (sessao 2026-06-28)",
     "swarm": "4 agentes em paralelo — recon, security, code-quality, runtime — todos ELITE (26-28/30)",
     "bug_fixed": "F821 'run_id' undefined em auto_executor.py:265",
     "ruff_format": "110 arquivos formatados, 340 total OK",
     "ruff_fix": "49 F401 imports removidos",
     "smoke_test": "PASS — health OK, UI OK, chat Bob 2280 chars, 0 console errors",
-    "server": "Porta 8002 LIVE (PID 26260), GPU RTX 5060 Ti 15.5GB free",
-    "security": "No hardcoded API keys, .gitignore updated for model files"
+    "server": "Porta 8002 LIVE, GPU RTX 5060 Ti 15.5GB free",
+    "security": "No hardcoded API keys, .gitignore updated for model files",
+    "lora_dataset": "2020 exemplos, 18 categorias, 100% tool-first, 1.7 MB ChatML JSONL",
+    "lora_config": "rank=32, alpha=64, lr=5e-5, epochs=4, batch=2, ctx=3072, val=5%"
   },
   "risks": [
     "LoRA treinada com apenas 8 exemplos — overfitted, precisa mais dados",
@@ -40,10 +42,10 @@
     "Servidor instavel — caiu 2x durante a sessao (precisa investigar)"
   ],
   "next_steps": [
-    "Rodar /agent-lab para benchmark dos agentes novos",
-    "Testar inferencia: llama-cli.exe --model q4_k.gguf --lora lora_f51_v7.gguf",
-    "Adicionar mais exemplos ao dataset de treino (20-50 exemplos)",
+    "Treinar LoRA v9: python scripts/train_qwenlong_30b_gguf_f51_v7.py",
+    "Testar inferencia: llama-cli.exe --model q4_k.gguf --lora lora_f51_v9.gguf",
+    "Rodar /agent-lab para benchmark dos agentes",
     "Limpar 59 ruff issues restantes",
-    "Investigar crash do servidor (morreu 2x em ~1h)"
+    "Investigar crash do servidor"
   ]
 }

@@ -1,7 +1,7 @@
 # F51 Entrypoint Map
 
-Updated: 2026-05-21T20:30:00-04:00
-Session: f51-inventory-full-sweep
+Updated: 2026-06-28T23:59:00-04:00
+Session: ceo-swap-30b-lora
 
 ## Primary Entrypoints
 
@@ -17,19 +17,21 @@ Session: f51-inventory-full-sweep
 | Dependencies | CEO model on :8082, `.env` with provider keys |
 | Boot sequence | Load env -> load config -> create gateway -> build pipeline -> serve |
 
-### 2. CEO llama.cpp Server — `scripts/serve_agent_llamacpp.ps1 -Port 8082`
+### 2. CEO llama.cpp Server — `powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082`
 
 | Property | Value |
 |----------|-------|
 | Classification | app |
 | File | `scripts/serve_agent_llamacpp.ps1` |
+| Config | `config.ps1` |
 | Host | `127.0.0.1:8082` |
-| Model | `models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf` (~40 GB) |
-| Architecture | MoE (512 experts, 10 active + 1 shared per token) |
+| Model | `C:\llama.cpp\models\qwenlong-30b-a3b-q4_k.gguf` (17.3 GB) |
+| LoRA | `models/bob_lora_qwenlong_30b_f51/lora_f51_v7.gguf` (42 MB) |
+| Architecture | qwen3moe (128 experts, 8 active, 48 layers) |
+| GPU | 49/49 layers on VRAM (RTX 5060 Ti 16GB) |
 | Interface | OpenAI-compatible `/v1/chat/completions` |
-| Context | 262144 tokens (256K) |
-| Nitro | Layers 1-4 active (Persistence Cache, Async Streams, Lookahead, KV Tiering) |
-| Dependency | llama.cpp binary in `llama.cpp/` |
+| Context | 65536 tokens (64K) |
+| Dependency | llama.cpp binary in `C:\llama.cpp\build\bin\` |
 
 ### 3. Desktop Launcher — RETIRED
 
