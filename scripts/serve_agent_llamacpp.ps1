@@ -1,14 +1,12 @@
 # SuperEzio Bob CEO local server.
 # CEO: Bob Core local + F51 LoRA best.
 # Sources config.ps1 for path detection and keeps command-line overrides.
-# llama-server: C:\llama.cpp\build\bin\llama-server.exe
 
 param(
     [int]$Port = 8082,
     [int]$GpuLayers = 35,
     [int]$ContextLength = 4096,
     [int]$Slots = 1,
-    [int]$CacheRamMiB = 4096,
     [string]$LlamaServerPath = $env:SUPEREZIO_LLAMA_SERVER_EXE
 )
 
@@ -41,7 +39,7 @@ if (-not (Test-Path $ModelPath)) {
 }
 
 if ($LoraPath -and -not (Test-Path $LoraPath)) {
-    Write-Host "WARNING: LoRA not found: $LoraPath — starting without LoRA" -ForegroundColor Yellow
+    Write-Host "WARNING: LoRA not found: $LoraPath - starting without LoRA" -ForegroundColor Yellow
     $LoraPath = $null
 }
 

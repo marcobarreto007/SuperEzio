@@ -27,7 +27,7 @@ scp -P $INSTANCE_PORT \
 # Step 2: Upload model (biggest file, may take 30-60 min)
 echo "[2/3] Uploading model (17.3 GB)..."
 scp -P $INSTANCE_PORT \
-  C:/llama.cpp/models/qwenlong-30b-a3b-q4_k.gguf \
+  C:/llama.cpp/models/bob-core-local.gguf \
   root@$INSTANCE_IP:/root/models/
 
 # Step 3: Upload dataset
@@ -51,13 +51,13 @@ nvidia-smi
 
 echo ""
 echo "=== STARTING 48/48 FULL TRAINING ==="
-echo "Model: qwenlong-30b-a3b-q4_k.gguf"
+echo "Model: bob-core-local.gguf"
 echo "Dataset: 116,000 examples"
 echo "Config: freeze=0, rank=32, alpha=64, 3 epochs"
 echo ""
 
 LD_LIBRARY_PATH=/root/llama-bin ./llama-bin/llama-finetune-qlora \
-  --model /root/models/qwenlong-30b-a3b-q4_k.gguf \
+  --model /root/models/bob-core-local.gguf \
   --train-file /root/train_finance.jsonl \
   --lora-out /root/output/bob_cloud_48layers_rank32.gguf \
   --lora-rank 32 \

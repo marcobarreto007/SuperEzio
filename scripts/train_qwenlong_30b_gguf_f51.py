@@ -1,4 +1,4 @@
-"""F51 Nitro LoRA — QwenLong 30B via GGUF + llama.cpp.
+"""F51 Nitro LoRA — Bob Core local via GGUF + llama.cpp.
 
 Stable Windows training path:
 1. HF model → GGUF (convert_hf_to_gguf.py)
@@ -14,10 +14,10 @@ import os, subprocess, json, shutil
 from pathlib import Path
 
 # === Config ===
-HF_REPO = "huihui-ai/Huihui-QwenLong-L1.5-30B-A3B-abliterated"
+HF_REPO = "huihui-ai/Huihui-QwenLong-L1.5-Bob Core-abliterated"
 LLAMA_CPP = r"C:\llama.cpp"
 MODELS_DIR = os.path.join(LLAMA_CPP, "models")
-OUTPUT_DIR = "./models/bob_lora_qwenlong_30b_f51"
+OUTPUT_DIR = "./models/bob_lora_bob_core_f51"
 WORKSPACE = "./temp_gguf_workspace"
 
 # === Finance Data (same as v2/v3/v4) ===
@@ -49,8 +49,8 @@ def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # === Step 1: Check if GGUF model exists ===
-    gguf_model = os.path.join(MODELS_DIR, "qwenlong-30b-a3b-f16.gguf")
-    gguf_model_q4 = os.path.join(MODELS_DIR, "qwenlong-30b-a3b-q4_k.gguf")
+    gguf_model = os.path.join(MODELS_DIR, "bob-core-local.gguf")
+    gguf_model_q4 = os.path.join(MODELS_DIR, "bob-core-local.gguf")
 
     if not os.path.exists(gguf_model) and not os.path.exists(gguf_model_q4):
         print("=== Step 1: Convert HF to GGUF ===")

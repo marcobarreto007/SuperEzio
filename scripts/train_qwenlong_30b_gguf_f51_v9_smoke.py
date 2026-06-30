@@ -1,4 +1,4 @@
-"""Fail-fast QLoRA gate for the Bob 30B GGUF adapter.
+"""Fail-fast QLoRA gate for the Bob Core GGUF adapter.
 
 Default mode is calibration, because a tiny smoke only proves the finetune
 binary can run. It must not be treated as proof that Bob learned useful
@@ -22,8 +22,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 LLAMA_CPP = Path(r"C:\llama.cpp")
 FINETUNE_EXE = LLAMA_CPP / "build" / "bin" / "llama-finetune-qlora.exe"
-GGUF_MODEL = LLAMA_CPP / "models" / "qwenlong-30b-a3b-q4_k.gguf"
-OUT_DIR = ROOT / "models" / "bob_lora_qwenlong_30b_f51"
+GGUF_MODEL = LLAMA_CPP / "models" / "bob-core-local.gguf"
+OUT_DIR = ROOT / "models" / "bob_lora_bob_core_f51"
 DATA_DIR = ROOT / "temp_gguf_workspace"
 LOG_DIR = ROOT / "runtime" / "logs"
 
@@ -112,7 +112,7 @@ SMOKE_DATASET = [
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run gated Bob 30B GGUF QLoRA training.")
+    parser = argparse.ArgumentParser(description="Run gated Bob Core GGUF QLoRA training.")
     parser.add_argument(
         "--mode",
         choices=("smoke", "calibration"),

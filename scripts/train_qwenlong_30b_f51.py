@@ -1,4 +1,4 @@
-﻿# F51 Nitro LoRA Training - QwenLong 30B-A3B
+# F51 Nitro LoRA Training - Bob Core local
 # Strategy: 4-bit base + LoRA rank=8 on GPU attention, MoE experts on CPU
 # Hardware: RTX 5060 Ti 16GB + 64GB DDR5 + i7-12700K
 
@@ -6,9 +6,9 @@ import os, sys, time, gc, subprocess
 import torch
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
-MODEL_ID = "huihui-ai/Huihui-QwenLong-L1.5-30B-A3B-abliterated"
-OUTPUT_DIR = "./lora_qwenlong_30b_f51"
-GGUF_OUT = "models/bob_lora_qwenlong_30b_f51.gguf"
+MODEL_ID = "huihui-ai/Huihui-QwenLong-L1.5-Bob Core-abliterated"
+OUTPUT_DIR = "./lora_bob_core_f51"
+GGUF_OUT = "models/bob_lora_bob_core_f51.gguf"
 LORA_RANK, LORA_ALPHA = 8, 16
 EPOCHS, LR, BATCH, GA, MAXLEN = 3, 2e-4, 1, 2, 1024
 
@@ -33,7 +33,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model, TaskType, prepare_model_for_kbit_training
 from datasets import Dataset
 
-print(f"\n=== F51 NITRO LORA - QwenLong 30B-A3B ===")
+print(f"\n=== F51 NITRO LORA - Bob Core local ===")
 print(f"GPU: {torch.cuda.get_device_name(0)} | VRAM: {torch.cuda.get_device_properties(0).total_memory/1e9:.1f} GB")
 print(f"Model: {MODEL_ID}")
 

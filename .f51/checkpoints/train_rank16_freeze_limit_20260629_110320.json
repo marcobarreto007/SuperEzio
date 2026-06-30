@@ -19,7 +19,7 @@
     "seed": 42
   },
   "freeze24": {
-    "command": "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode calibration --sample-size 500 --rank 16 --alpha 32 --freeze-layers 24 --gpu-layers 24 --val-split 0.05 --save-every 50",
+    "command": "python scripts\\train_bob_core_gguf_f51_v9_smoke.py --mode calibration --sample-size 500 --rank 16 --alpha 32 --freeze-layers 24 --gpu-layers 24 --val-split 0.05 --save-every 50",
     "status": "PASS",
     "hash": "8F7BD364410007F66AD0F13E08225E182950EE796BE32398424D8104C8C4F1CD",
     "train_steps": 2304,
@@ -27,12 +27,12 @@
     "val_loss": 1.8904,
     "adapter_size_bytes": 22227136,
     "checkpoints": "ckpt50..ckpt550",
-    "adapter": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_calibration_500_20260629_101614.gguf",
+    "adapter": "models\\bob_lora_bob_core_f51\\lora_f51_v9_calibration_500_20260629_101614.gguf",
     "log": "runtime\\logs\\train_v9_calibration_500_20260629_101614.log",
     "outer_log": "runtime\\logs\\train_v9_rank16_freeze24_ckpt50_outer_20260629_101613.log"
   },
   "freeze12": {
-    "command": "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode calibration --sample-size 500 --rank 16 --alpha 32 --freeze-layers 12 --gpu-layers 24 --val-split 0.05 --save-every 50",
+    "command": "python scripts\\train_bob_core_gguf_f51_v9_smoke.py --mode calibration --sample-size 500 --rank 16 --alpha 32 --freeze-layers 12 --gpu-layers 24 --val-split 0.05 --save-every 50",
     "status": "PASS",
     "hash": "C4655B55E14273B511976361BFB4EE1BA8A8BC2DCFC2AD4365769A41C4A85A64",
     "train_steps": 2304,
@@ -40,7 +40,7 @@
     "val_loss": 1.8782,
     "adapter_size_bytes": 33340576,
     "checkpoints": "ckpt50..ckpt550",
-    "adapter": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_calibration_500_20260629_103804.gguf",
+    "adapter": "models\\bob_lora_bob_core_f51\\lora_f51_v9_calibration_500_20260629_103804.gguf",
     "log": "runtime\\logs\\train_v9_calibration_500_20260629_103804.log",
     "outer_log": "runtime\\logs\\train_v9_rank16_freeze12_gpu24_ckpt50_outer_20260629_103804.log"
   },

@@ -17,7 +17,7 @@ param(
     [string]$LlamaPath = "C:\Users\marco\Desktop\llama.cpp",
 
     [Parameter(Mandatory=$false)]
-    [string]$Model = "models\qwenlong_30b_iq4_xs.gguf",
+    [string]$Model = "models\bob_core_local.gguf",
 
     [Parameter(Mandatory=$false)]
     [string]$Dataset = "data\10K_finance.json",

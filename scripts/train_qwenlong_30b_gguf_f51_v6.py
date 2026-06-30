@@ -12,9 +12,9 @@ import os, json, subprocess
 from pathlib import Path
 
 # === Config ===
-HF_REPO = "huihui-ai/Huihui-QwenLong-L1.5-30B-A3B-abliterated"
-GGUF_MODEL = r"C:\llama.cpp\models\qwenlong-30b-a3b-q4_k.gguf"
-OUTPUT_DIR = "./models/bob_lora_qwenlong_30b_f51_v6"
+HF_REPO = "huihui-ai/Huihui-QwenLong-L1.5-Bob Core-abliterated"
+GGUF_MODEL = r"C:\llama.cpp\models\bob-core-local.gguf"
+OUTPUT_DIR = "./models/bob_lora_bob_core_f51_v6"
 WORKSPACE = "./temp_gguf_workspace"
 
 # === Finance Data ===

@@ -34,7 +34,7 @@ def test_math_hub_calculates_report_with_coverage():
     report = MathHub().calculate_all(_sample_state())
 
     assert report["ticker"] == "AAPL"
-    assert report["coverage"]["total_modules"] == 12
+    assert report["coverage"]["total_modules"] == 14
     assert report["coverage"]["ok_modules"] >= 8
     assert report["modules"]["technical_indicators"]["status"] == "ok"
     assert report["modules"]["var_cvar"]["status"] == "ok"

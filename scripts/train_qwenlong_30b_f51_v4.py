@@ -1,9 +1,9 @@
-"""F51 Nitro LoRA — QwenLong 30B. 3 thermal layers: GPU(HOT) + RAM(WARM) + NVMe(COLD)."""
+"""F51 Nitro LoRA — Bob Core local. 3 thermal layers: GPU(HOT) + RAM(WARM) + NVMe(COLD)."""
 import os, sys, time, tempfile, torch
 
-MODEL_ID = "huihui-ai/Huihui-QwenLong-L1.5-30B-A3B-abliterated"
-OUTPUT_DIR = "./lora_qwenlong_30b_f51"
-GGUF_OUT = "models/bob_lora_qwenlong_30b_f51.gguf"
+MODEL_ID = "huihui-ai/Huihui-QwenLong-L1.5-Bob Core-abliterated"
+OUTPUT_DIR = "./lora_bob_core_f51"
+GGUF_OUT = "models/bob_lora_bob_core_f51.gguf"
 OFFLOAD_DIR = os.path.join(tempfile.gettempdir(), "f51_offload")
 RANK, ALPHA, EPOCHS, LR, BATCH, GA, MAXLEN = 8, 16, 3, 2e-4, 1, 2, 1024
 os.makedirs(OFFLOAD_DIR, exist_ok=True)

@@ -1,11 +1,11 @@
-"""F51 Nitro LoRA — QwenLong 30B-A3B. Experts on CPU, attention on GPU."""
+"""F51 Nitro LoRA — Bob Core local. Experts on CPU, attention on GPU."""
 import os, sys, time, gc, torch
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 torch.backends.cuda.matmul.allow_tf32 = True
 
-MODEL_ID = "huihui-ai/Huihui-QwenLong-L1.5-30B-A3B-abliterated"
-OUTPUT_DIR = "./lora_qwenlong_30b_f51"
-GGUF_OUT = "models/bob_lora_qwenlong_30b_f51.gguf"
+MODEL_ID = "huihui-ai/Huihui-QwenLong-L1.5-Bob Core-abliterated"
+OUTPUT_DIR = "./lora_bob_core_f51"
+GGUF_OUT = "models/bob_lora_bob_core_f51.gguf"
 RANK, ALPHA, EPOCHS, LR, BATCH, GA, MAXLEN = 8, 16, 3, 2e-4, 1, 2, 1024
 
 FINANCE_DATA = [
@@ -25,7 +25,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model, TaskType, prepare_model_for_kbit_training
 from datasets import Dataset
 
-print(f"\n=== F51 NITRO LORA — QwenLong 30B-A3B ===")
+print(f"\n=== F51 NITRO LORA — Bob Core local ===")
 free_gb = torch.cuda.mem_get_info()[0]/1e9
 print(f"VRAM free: {free_gb:.1f}GB | Rank={RANK} | Epochs={EPOCHS} | LR={LR}")
 
@@ -106,4 +106,4 @@ if os.path.exists(convert_script):
 else:
     print(f"ERROR: {convert_script} not found")
 
-print("\nDone. Usage: llama-server.exe -m models/Huihui-QwenLong-...gguf --lora models/bob_lora_qwenlong_30b_f51.gguf --cpu-moe")
+print("\nDone. Usage: llama-server.exe -m models/Huihui-QwenLong-...gguf --lora models/bob_lora_bob_core_f51.gguf --cpu-moe")

@@ -7,8 +7,8 @@ import os, json, shutil
 from pathlib import Path
 
 # === Config ===
-GGUF_MODEL = r"C:\llama.cpp\models\qwenlong-30b-a3b-q4_k.gguf"
-OUTPUT_DIR = "./models/bob_lora_qwenlong_30b_f51_v5"
+GGUF_MODEL = r"C:\llama.cpp\models\bob-core-local.gguf"
+OUTPUT_DIR = "./models/bob_lora_bob_core_f51_v5"
 WORKSPACE = "./temp_gguf_workspace"
 
 # === Finance Data ===

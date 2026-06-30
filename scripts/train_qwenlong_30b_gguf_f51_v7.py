@@ -3,11 +3,11 @@
 PRÉ-REQUISITOS (já cumpridos):
   ✅ llama.cpp compilado com MSVC + CUDA
   ✅ llama-finetune-qlora.exe funcional
-  ✅ Modelo QwenLong 30B A3B quantizado (Q4_K_M)
+  ✅ Modelo Bob Core local quantizado (Q4_K_M)
   ✅ Dados de treino em JSONL
 
 USO:
-  python scripts\train_qwenlong_30b_gguf_f51_v7.py
+  python scripts\train_bob_core_gguf_f51_v7.py
 """
 
 import os, sys, json, subprocess
@@ -18,9 +18,9 @@ from datetime import datetime
 ROOT = Path(__file__).parent.parent
 LLAMA_CPP = Path(r"C:\llama.cpp")
 FINETUNE_EXE = LLAMA_CPP / "build" / "bin" / "llama-finetune-qlora.exe"
-GGUF_MODEL = LLAMA_CPP / "models" / "qwenlong-30b-a3b-q4_k.gguf"
+GGUF_MODEL = LLAMA_CPP / "models" / "bob-core-local.gguf"
 TRAIN_DATA = ROOT / "temp_gguf_workspace" / "train_finance.jsonl"
-OUTPUT_DIR = ROOT / "models" / "bob_lora_qwenlong_30b_f51"
+OUTPUT_DIR = ROOT / "models" / "bob_lora_bob_core_f51"
 LORA_OUT = OUTPUT_DIR / "lora_f51_v7.gguf"
 
 # === Training Hyperparams (F51 Nitro) ===
@@ -186,7 +186,7 @@ def main():
     checkpoint_path = ROOT / ".f51" / "checkpoints" / "train_qwenlong_checkpoint.json"
     checkpoint = {
         "timestamp": datetime.now().isoformat(),
-        "task": "train_qwenlong_30b_gguf_f51_v7",
+        "task": "train_bob_core_gguf_f51_v7",
         "status": "completed" if success else "failed",
         "method": "llama-finetune-qlora (native GGUF QLoRA)",
         "config": TRAINING_CONFIG,

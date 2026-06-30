@@ -1,9 +1,9 @@
-"""F51 Nitro LoRA — QwenLong 30B. CPU-only fallback (stable)."""
+"""F51 Nitro LoRA — Bob Core local. CPU-only fallback (stable)."""
 import os, sys, time, torch
 
-MODEL_ID = "huihui-ai/Huihui-QwenLong-L1.5-30B-A3B-abliterated"
-OUTPUT_DIR = "./lora_qwenlong_30b_f51_cpu"
-GGUF_OUT = "models/bob_lora_qwenlong_30b_f51_cpu.gguf"
+MODEL_ID = "huihui-ai/Huihui-QwenLong-L1.5-Bob Core-abliterated"
+OUTPUT_DIR = "./lora_bob_core_f51_cpu"
+GGUF_OUT = "models/bob_lora_bob_core_f51_cpu.gguf"
 RANK, ALPHA, EPOCHS, LR, BATCH, GA, MAXLEN = 8, 16, 3, 2e-4, 1, 2, 1024
 
 FINANCE_DATA = [

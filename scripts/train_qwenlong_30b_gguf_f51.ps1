@@ -1,13 +1,13 @@
-# F51 Nitro LoRA — QwenLong 30B via GGUF + llama.cpp
+# F51 Nitro LoRA — Bob Core local via GGUF + llama.cpp
 # Stable Windows training path: HF → GGUF → Finetune → Export LoRA
 
 $ErrorActionPreference = "Stop"
 
 # === Config ===
-$HF_REPO = "huihui-ai/Huihui-QwenLong-L1.5-30B-A3B-abliterated"
+$HF_REPO = "huihui-ai/Huihui-QwenLong-L1.5-Bob Core-abliterated"
 $LLAMA_CPP = "C:\llama.cpp"
 $MODELS_DIR = "$LLAMA_CPP\models"
-$OUTPUT_DIR = "./models/bob_lora_qwenlong_30b_f51"
+$OUTPUT_DIR = "./models/bob_lora_bob_core_f51"
 $WORKSPACE = "./temp_gguf_workspace"
 
 # === Finance Data (same as v2/v3/v4) ===
@@ -46,8 +46,8 @@ $TRAIN_DATA += @{
 }
 
 # === Step 1: Check if GGUF model exists ===
-$GGUF_MODEL = "$MODELS_DIR\qwenlong-30b-a3b-f16.gguf"
-$GGUF_MODEL_Q4 = "$MODELS_DIR\qwenlong-30b-a3b-q4_k.gguf"
+$GGUF_MODEL = "$MODELS_DIR\bob-core-local.gguf"
+$GGUF_MODEL_Q4 = "$MODELS_DIR\bob-core-local.gguf"
 
 if (-not (Test-Path $GGUF_MODEL) -and -not (Test-Path $GGUF_MODEL_Q4)) {
     Write-Host "=== Step 1: Convert HF to GGUF ===" -ForegroundColor Cyan

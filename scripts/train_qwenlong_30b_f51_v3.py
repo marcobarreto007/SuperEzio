@@ -1,10 +1,10 @@
-"""F51 Nitro LoRA — QwenLong 30B. Custom split: attention on GPU, MoE experts on CPU."""
+"""F51 Nitro LoRA — Bob Core local. Custom split: attention on GPU, MoE experts on CPU."""
 import os, sys, time, torch
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
-MODEL_ID = "huihui-ai/Huihui-QwenLong-L1.5-30B-A3B-abliterated"
-OUTPUT_DIR = "./lora_qwenlong_30b_f51"
-GGUF_OUT = "models/bob_lora_qwenlong_30b_f51.gguf"
+MODEL_ID = "huihui-ai/Huihui-QwenLong-L1.5-Bob Core-abliterated"
+OUTPUT_DIR = "./lora_bob_core_f51"
+GGUF_OUT = "models/bob_lora_bob_core_f51.gguf"
 RANK, ALPHA, EPOCHS, LR, BATCH, GA, MAXLEN = 8, 16, 3, 2e-4, 1, 2, 1024
 
 FINANCE_DATA = [
@@ -23,7 +23,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model, TaskType, prepare_model_for_kbit_training
 from datasets import Dataset
 
-print(f"=== F51 NITRO LORA v3 — QwenLong 30B (custom GPU/CPU split) ===")
+print(f"=== F51 NITRO LORA v3 — Bob Core local (custom GPU/CPU split) ===")
 free_gb = torch.cuda.mem_get_info()[0]/1e9
 print(f"VRAM free: {free_gb:.1f}GB | Strategy: attention→GPU, MoE experts→CPU")
 

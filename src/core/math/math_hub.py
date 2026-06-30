@@ -570,8 +570,16 @@ class MathHub:
                 consensus=0.65,
                 risk=max(0.0, min(1.0, abs(float(var_value or 0.0)) + float(vol_value or 0.0))),
                 uncertainty=heuristic_uncertainty(
-                    float(vol_value or 0.0),
-                    0.15 if data_quality in {"complete", "ok", "high"} else 0.45,
+                    text=str(state.get("message") or ""),
+                    numeric_features={
+                        "volatility": float(vol_value or 0.0),
+                        "missing_data_ratio": 0.15
+                        if data_quality in {"complete", "ok", "high"}
+                        else 0.45,
+                        "data_points": int(
+                            _dig(modules, "price_series", "values", "close_points") or 0
+                        ),
+                    },
                 ),
             )
             confidence = unified_decision(factors)

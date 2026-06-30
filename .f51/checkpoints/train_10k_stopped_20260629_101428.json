@@ -3,7 +3,7 @@
   "session": "f51-lora-v9-10k-stopped-by-operator",
   "orchestrator": "codex",
   "status": "stopped_by_operator_checkpoint_saved",
-  "command": "python scripts\\train_qwenlong_30b_gguf_f51_v9_smoke.py --mode calibration --sample-size 10000 --rank 8 --alpha 16 --freeze-layers 36 --gpu-layers 36 --val-split 0.05",
+  "command": "python scripts\\train_bob_core_gguf_f51_v9_smoke.py --mode calibration --sample-size 10000 --rank 8 --alpha 16 --freeze-layers 36 --gpu-layers 36 --val-split 0.05",
   "processes_stopped": {
     "python_wrapper_pid": 25344,
     "llama_finetune_pid": 9412
@@ -36,7 +36,7 @@
     "dataset": "temp_gguf_workspace\\train_finance_v9_calibration_10000.jsonl",
     "log": "runtime\\logs\\train_v9_calibration_10000_20260629_083245.log",
     "outer_log": "runtime\\logs\\train_v9_calibration_10000_outer_20260629_083245.log",
-    "expected_lora": "models\\bob_lora_qwenlong_30b_f51\\lora_f51_v9_calibration_10000_20260629_083245.gguf",
+    "expected_lora": "models\\bob_lora_bob_core_f51\\lora_f51_v9_calibration_10000_20260629_083245.gguf",
     "partial_lora": null
   },
   "evidence": {
