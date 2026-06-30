@@ -1,0 +1,126 @@
+{
+  "snapshot_id": "man-at-work-1782791785",
+  "timestamp": "2026-06-30T03:56:25.147037+00:00",
+  "trigger_reason": "CEO Brain down: CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu",
+  "system_mode": "man_at_work",
+  "organs": {
+    "ceo_brain": {
+      "healthy": false,
+      "last_check": "2026-06-30T03:56:20.782471+00:00",
+      "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu",
+      "pain_level": 100,
+      "consecutive_failures": 1,
+      "circuit_open_until": 0,
+      "category": "brain"
+    },
+    "api_heart": {
+      "healthy": true,
+      "last_check": "2026-06-30T03:56:20.785480+00:00",
+      "error": "",
+      "pain_level": 75,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "heart"
+    },
+    "datahub_senses": {
+      "healthy": true,
+      "last_check": "2026-06-30T03:56:22.335682+00:00",
+      "error": "",
+      "pain_level": 50,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "senses"
+    },
+    "ibkr_muscles": {
+      "healthy": false,
+      "last_check": "2026-06-30T03:56:24.335709+00:00",
+      "error": "IBKR offline: timed out",
+      "pain_level": 75,
+      "consecutive_failures": 2,
+      "circuit_open_until": 0,
+      "category": "muscles"
+    },
+    "journal_memory": {
+      "healthy": true,
+      "last_check": "2026-06-30T03:56:24.336702+00:00",
+      "error": "",
+      "pain_level": 75,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "memory"
+    },
+    "scanner_eyes": {
+      "healthy": true,
+      "last_check": "2026-06-30T03:56:25.133491+00:00",
+      "error": "",
+      "pain_level": 25,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "senses"
+    },
+    "settings_spine": {
+      "healthy": true,
+      "last_check": "2026-06-30T03:56:25.133491+00:00",
+      "error": "",
+      "pain_level": 100,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "defense"
+    },
+    "dead_letter_kidneys": {
+      "healthy": true,
+      "last_check": "2026-06-30T03:56:25.134491+00:00",
+      "error": "",
+      "pain_level": 25,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "memory"
+    },
+    "cache_liver": {
+      "healthy": true,
+      "last_check": "2026-06-30T03:56:25.143508+00:00",
+      "error": "",
+      "pain_level": 25,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "memory"
+    },
+    "circuit_breakers_immune": {
+      "healthy": true,
+      "last_check": "2026-06-30T03:56:25.143508+00:00",
+      "error": "",
+      "pain_level": 50,
+      "consecutive_failures": 0,
+      "circuit_open_until": 0,
+      "category": "defense"
+    }
+  },
+  "pain_history": [
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-30T03:55:13.490896+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ceo_brain",
+      "pain": 100,
+      "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu",
+      "timestamp": "2026-06-30T03:56:20.782471+00:00",
+      "healed": false
+    },
+    {
+      "organ": "ibkr_muscles",
+      "pain": 75,
+      "error": "IBKR offline: timed out",
+      "timestamp": "2026-06-30T03:56:24.335709+00:00",
+      "healed": false
+    }
+  ],
+  "environment": {
+    "python_version": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "total_scans": 2,
+    "total_heals": 0
+  }
+}
