@@ -382,9 +382,10 @@ async def test_submit_paper_order_caps_qty_before_approval(monkeypatch):
     assert result["paper_approval_request"]["risk_amount"] == pytest.approx(5010.0)
 
 
-def test_default_market_scan_contract_exposes_paper_submission_tool():
+def test_default_market_scan_contract_gates_paper_submission_tool(monkeypatch):
     from src.core.pipeline.intents import infer_cognitive_contract
 
+    monkeypatch.delenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", raising=False)
     contract = infer_cognitive_contract(
         "find a one hour paper training opportunity",
         route="market_scan",
@@ -392,9 +393,20 @@ def test_default_market_scan_contract_exposes_paper_submission_tool():
         action="scan_market",
     )
 
-    assert contract["ticket_allowed"] is True
+    assert contract["ticket_allowed"] is False
     assert "market_scan" in contract["allowed_tools"]
-    assert "submit_paper_order" in contract["allowed_tools"]
+    assert "submit_paper_order" not in contract["allowed_tools"]
+
+    monkeypatch.setenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
+    enabled_contract = infer_cognitive_contract(
+        "find a one hour paper training opportunity",
+        route="market_scan",
+        intent="market_scan",
+        action="scan_market",
+    )
+    assert enabled_contract["ticket_allowed"] is True
+    assert "market_scan" in enabled_contract["allowed_tools"]
+    assert "submit_paper_order" in enabled_contract["allowed_tools"]
 
 
 @pytest.mark.asyncio

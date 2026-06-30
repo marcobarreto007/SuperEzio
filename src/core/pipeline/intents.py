@@ -20,6 +20,7 @@ Constantes exportadas:
 
 from __future__ import annotations
 
+import os
 import json
 import re
 import unicodedata
@@ -175,6 +176,75 @@ BROKER_STATUS_CONTEXT_HINTS = (
 )
 
 
+OPERATIONAL_STATUS_PATTERNS = (
+    r"\b(?:qual|veja|verifica|verifique|mostra|mostre|checa|cheque|check)\b.{0,90}\b(?:estado|status|sistema|runtime|treino|treinamento|checkpoint|broker|ibkr|api|porta|operacional)\b",
+    r"\b(?:estado|status)\b.{0,60}\b(?:operacional|sistema|runtime|treino|treinamento|checkpoint|broker|ibkr|api|porta)\b",
+    r"\b(?:sistema|runtime|treino|treinamento|checkpoint|broker|ibkr|api|porta)\b.{0,60}\b(?:estado|status|rodando|on|online|operacional|pronto)\b",
+)
+
+NEGATIVE_TRADE_INSTRUCTION_PATTERNS = (
+    r"\bnao\s+(?:me\s+)?recomende\b",
+    r"\bnao\s+recomendar\b",
+    r"\bsem\s+(?:recomendacao|recomendar|compra|comprar|trade|ordem)\b",
+    r"\bnao\s+(?:compre|comprar|venda|vender|mande|envie|executa|execute|executar)\b",
+    r"\bdo\s+not\s+(?:recommend|buy|sell|trade|send|execute)\b",
+    r"\bdon'?t\s+(?:recommend|buy|sell|trade|send|execute)\b",
+    r"\bno\s+(?:recommendation|buy|sell|trade|order)\b",
+    r"\bwithout\s+(?:recommendation|buying|selling|trading|sending|executing)\b",
+)
+
+
+def detect_operational_status_request(message: str) -> bool:
+    """Detect system/training/runtime status prompts that must not trigger market tools."""
+    if not message or not message.strip():
+        return False
+    normalized = normalize_message(message)
+    if any(re.search(pattern, normalized) for pattern in OPERATIONAL_STATUS_PATTERNS):
+        return True
+    return detect_broker_status_intent(message)
+
+
+def detect_negative_trade_instruction(message: str) -> bool:
+    """Detect explicit instructions not to recommend, trade, buy, sell, or send orders."""
+    if not message or not message.strip():
+        return False
+    normalized = normalize_message(message)
+    return any(re.search(pattern, normalized) for pattern in NEGATIVE_TRADE_INSTRUCTION_PATTERNS)
+
+
+def _paper_order_submit_enabled() -> bool:
+    return os.getenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "0").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def _is_casual_message(message: str) -> bool:
+    text = normalize_message(message).strip()
+    return bool(
+        text
+        and len(text.split()) <= 2
+        and text
+        in (
+            "oi",
+            "ola",
+            "hey",
+            "hi",
+            "hello",
+            "bom dia",
+            "boa tarde",
+            "boa noite",
+        )
+    )
+
+
+def _without_tools(tools: tuple[str, ...] | list[str], *blocked: str) -> list[str]:
+    blocked_set = set(blocked)
+    return [tool for tool in tools if tool not in blocked_set]
+
+
 def detect_broker_status_intent(message: str) -> bool:
     """Detect broker/API operating-state questions, not ticker analysis."""
     if not message or not message.strip():
@@ -213,67 +283,102 @@ def infer_cognitive_contract(
     action: str,
     ticker: str = "",
 ) -> dict[str, Any]:
-    """Bob Core decide sozinho â€” sem restriÃ§Ã£o de ferramentas.
-
-    O modelo local Ã© inteligente o bastante para decidir quais ferramentas
-    usar. RestriÃ§Ãµes prÃ©-classificatÃ³rias sÃ³ atrapalham: 'ORDEM' vira ticker,
-    'comprar' Ã© bloqueado, scanner fica off. Chega disso.
-
-    Contrato Ãºnico: TODAS as ferramentas liberadas. Bob decide.
-    """
+    """Infer the runtime tool contract for Bob Core."""
     raw = message or ""
 
-    # Ãšnica exceÃ§Ã£o: mensagem vazia ou puramente "oi"
-    if not raw.strip() or (
-        len(raw.strip().split()) <= 2
-        and raw.strip().lower()
-        in (
-            "oi",
-            "ola",
-            "olÃ¡",
-            "hey",
-            "hi",
-            "hello",
-            "bom dia",
-            "boa tarde",
-            "boa noite",
-        )
-    ):
+    if not raw.strip() or _is_casual_message(raw):
         return {
             "cognitive_mode": "CASUAL",
             "information_need": "greeting",
             "allowed_tools": ["final_answer"],
             "market_context_allowed": False,
-            "scanner_allowed": True,
-            "ticker_allowed": True,
-            "ticket_allowed": True,
-            "answer_contract": "Responda com 1-3 linhas. Confirme que estÃ¡ online. Mencione status IBKR brevemente. Nada de tools.",
+            "scanner_allowed": False,
+            "ticker_allowed": False,
+            "ticket_allowed": False,
+            "answer_contract": (
+                "Responda com 1-3 linhas. Confirme que esta online. "
+                "Nao chame market_scan, collect_data ou submit_paper_order."
+            ),
         }
 
-    # â”€â”€ Contrato padrÃ£o: TUDO LIBERADO â”€â”€
-    # O Bob Core tem acesso a todas as ferramentas e decide o que usar.
-    # Ele sabe quando fazer scan, coletar dados, consultar experts, ou emitir ordem.
+    operational_status_request = detect_operational_status_request(raw)
+    negative_market_instruction = detect_negative_scan_instruction(
+        raw
+    ) or detect_negative_trade_instruction(raw)
+    suppress_market_tools = operational_status_request or negative_market_instruction
+    has_ticker = bool(
+        ticker
+        or route == "ticker_analysis"
+        or intent == "ticker_analysis"
+        or action == "collect_data"
+        or (route == "agent" and intent == "bob_decides" and detect_ticker(raw))
+    )
+    scan_requested = bool(
+        route == "market_scan"
+        or intent in {"market_scan", "another_trade_recommendation"}
+        or action == "scan_market"
+        or detect_market_scan_intent(raw)
+    )
+    decisive_trade = detect_decisive_trade_intent(raw)
+
+    scanner_allowed = bool(scan_requested and not suppress_market_tools)
+    ticker_allowed = bool((has_ticker or scanner_allowed) and not suppress_market_tools)
+    market_context_allowed = bool((scanner_allowed or ticker_allowed) and not suppress_market_tools)
+    paper_submit_allowed = bool(
+        scanner_allowed
+        and decisive_trade
+        and _paper_order_submit_enabled()
+        and not detect_negative_trade_instruction(raw)
+    )
+
+    if suppress_market_tools:
+        allowed_tools = ["final_answer"]
+        cognitive_mode = "STATUS_ONLY" if operational_status_request else "ANSWER_ONLY"
+        information_need = (
+            "system_or_policy_status" if operational_status_request else "market_tools_blocked"
+        )
+        answer_contract = (
+            "Responda somente o que foi pedido pelo usuario. "
+            "Nao recomende compra, nao escaneie mercado e nao monte ordem."
+        )
+    elif scanner_allowed:
+        allowed_tools = _without_tools(DISCOVERY_TOOLS, "submit_paper_order")
+        if paper_submit_allowed:
+            allowed_tools.insert(-1, "submit_paper_order")
+        cognitive_mode = "MARKET_DISCOVERY"
+        information_need = "market_scan"
+        answer_contract = (
+            "Use market_scan apenas porque o usuario pediu descoberta/treino de mercado. "
+            "Colete evidencias, rode gates e finalize como pesquisa. "
+            "submit_paper_order so pode ser chamado quando aparecer em allowed_tools."
+        )
+    elif ticker_allowed:
+        allowed_tools = _without_tools(FULL_TICKER_TOOLS, "market_scan", "submit_paper_order")
+        cognitive_mode = "TICKER_RESEARCH"
+        information_need = "ticker_analysis"
+        answer_contract = (
+            "Analise o ticker atual com dados e verificadores. "
+            "Nao escaneie mercado amplo e nao envie ordem. "
+            "Nao diga sem dados se chart_context ou data_context trouxer evidencia."
+        )
+    else:
+        allowed_tools = ["bob_search", "rag_forensics", "final_answer"]
+        cognitive_mode = "ANSWER_ONLY"
+        information_need = "general_answer"
+        answer_contract = (
+            "Responda direto. Se faltar dado operacional, diga o que nao consegue provar. "
+            "Nao chame market_scan nem submit_paper_order."
+        )
+
     return {
-        "cognitive_mode": "FULL_ACCESS",
-        "information_need": "bob_decides",
-        "allowed_tools": list(
-            FULL_TICKER_TOOLS
-        ),  # collect_data, f51, pennylab, experts, neural, sdca, rag, submit_paper_order, final_answer
-        "market_context_allowed": True,
-        "scanner_allowed": True,
-        "ticker_allowed": True,
-        "ticket_allowed": True,
-        "answer_contract": (
-            "VocÃª tem acesso TOTAL a todas as ferramentas. "
-            "Use market_scan para descobrir oportunidades. "
-            "Use collect_data para dados de um ticker especÃ­fico. "
-            "Use run_experts, f51_firewall, neural_decision para anÃ¡lise. "
-            "Use submit_paper_order para executar ordens paper na IBKR. "
-            "Se o usuÃ¡rio pede compra/venda de um ticker com preÃ§o e quantidade, "
-            "analise com as ferramentas e emita PAPER_TICKET com: ticker, quantity, limit_price, stop_loss. "
-            "NÃ£o espere permissÃ£o â€” vocÃª TEM permissÃ£o total. "
-            "Seja direto, sem disclaimer. Fale na lÃ­ngua do usuÃ¡rio."
-        ),
+        "cognitive_mode": cognitive_mode,
+        "information_need": information_need,
+        "allowed_tools": allowed_tools,
+        "market_context_allowed": market_context_allowed,
+        "scanner_allowed": scanner_allowed,
+        "ticker_allowed": ticker_allowed,
+        "ticket_allowed": paper_submit_allowed,
+        "answer_contract": answer_contract,
     }
 
 
@@ -2090,6 +2195,8 @@ def _is_market_scan_request(message: str) -> bool:
         return False
     if detect_risk_lab_intent(message):
         return False
+    if detect_operational_status_request(message) or detect_negative_trade_instruction(message):
+        return False
     # Negative scan clauses block incidental scan words, but act as exclusions
     # when a positive discovery command names an allowed scope.
     normalized = normalize_message(message)
@@ -2175,6 +2282,11 @@ def detect_decisive_trade_intent(message: str) -> bool:
         "ordens",
         "oredem",
         "oredens",
+        "order",
+        "orders",
+        "paper order",
+        "submit",
+        "send",
         "trade",
         "trades",
         "transacao",
@@ -2185,6 +2297,7 @@ def detect_decisive_trade_intent(message: str) -> bool:
         "stop loss",
         "stop",
         "1 hora",
+        "one hour",
         "uma hora",
         "4 horas",
         "quatro horas",
@@ -2262,6 +2375,8 @@ def should_block_vague_financial_prompt(
     if detect_market_scan_intent(raw_message):
         return False
     if detect_negative_scan_instruction(raw_message):
+        return False
+    if detect_operational_status_request(raw_message) or detect_negative_trade_instruction(raw_message):
         return False
     if detect_industry_research_intent(raw_message) or detect_risk_lab_intent(raw_message):
         return False

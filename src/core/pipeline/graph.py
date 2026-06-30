@@ -391,29 +391,24 @@ async def _auto_full_analysis(
     # PARALLEL: f51, neural, sdca, rag, guardrails — todos independentes
     # ═══════════════════════════════════════════════════════
     if ticker:
-
-        async def _run_node(label, node, ws):
-            try:
-                return label, await node(ws), None
-            except Exception as exc:
-                return label, None, exc
-
-        parallel_nodes = [
+        # These nodes are sequential by contract: neural depends on F51,
+        # SDCA depends on neural, and RAG/guardrails need the full state.
+        decision_nodes = [
             ("f51", node_f51_verdict),
             ("neural_decision", node_neural_decision),
             ("sdca_firewall", node_sdca_firewall),
             ("rag_forensics", node_rag_forensics),
             ("guardrail_hub", node_guardrail_hub),
         ]
-        tasks = [_run_node(label, node, dict(working_state)) for label, node in parallel_nodes]
-        results = await asyncio.gather(*tasks)
 
-        for label, result, error in results:
-            if error:
+        for label, node in decision_nodes:
+            try:
+                result = await node(working_state)
+            except Exception as exc:
                 _merge_node_update(
-                    working_state, output, {"errors": [f"auto_full_analysis.{label}:{error}"]}
+                    working_state, output, {"errors": [f"auto_full_analysis.{label}:{exc}"]}
                 )
-            elif result:
+            else:
                 _merge_node_update(working_state, output, result)
     else:
         try:

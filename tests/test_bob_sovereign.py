@@ -23,14 +23,14 @@ async def test_orchestrator_sovereign_mode(monkeypatch):
     assert plan["intent"] == "bob_decides"
     assert plan["ticker"] == ""
     assert plan["risk_tolerance"] == "moderada"
-    assert plan["bob_intent"] == "full_access"
+    assert plan["bob_intent"] == "market_scan"
     assert "market_scan" in plan["allowed_tools"]
     assert "collect_data" in plan["allowed_tools"]
     assert plan["scanner_allowed"] is True
     assert plan["ticker_allowed"] is True
-    assert plan["ticket_allowed"] is True
-    assert plan["cognitive_mode"] == "FULL_ACCESS"
-    assert "Permissao nao e ordem" in plan["answer_contract"]
+    assert plan["ticket_allowed"] is False
+    assert plan["cognitive_mode"] == "MARKET_DISCOVERY"
+    assert "submit_paper_order" not in plan["allowed_tools"]
 
 
 @pytest.mark.asyncio
@@ -68,9 +68,9 @@ async def test_orchestrator_sovereign_mode_blocks_unscoped_ticket_reference(monk
     assert plan["route"] == "agent"
     assert plan["action"] == "analyze_and_execute"
     assert plan["required_slots"] == []
-    assert plan["bob_intent"] == "full_access"
-    assert plan["scanner_allowed"] is True
-    assert plan["ticker_allowed"] is True
+    assert plan["bob_intent"] == "general_answer"
+    assert plan["scanner_allowed"] is False
+    assert plan["ticker_allowed"] is False
     assert "final_answer" in plan["allowed_tools"]
 
 

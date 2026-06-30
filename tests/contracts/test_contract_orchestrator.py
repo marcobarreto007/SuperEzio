@@ -56,7 +56,7 @@ def test_ibkr_broker_status_question_is_not_ticker_analysis():
     assert "broker_status_question" in parsed.reasons
 
 
-def test_ibkr_paper_order_prompt_routes_to_market_scan_not_status():
+def test_ibkr_paper_order_prompt_routes_to_market_scan_not_status(monkeypatch):
     from src.core.pipeline.intents import (
         detect_broker_status_intent,
         detect_decisive_trade_intent,
@@ -64,6 +64,7 @@ def test_ibkr_paper_order_prompt_routes_to_market_scan_not_status():
         parse_user_intent,
     )
 
+    monkeypatch.delenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", raising=False)
     prompt = (
         "Bob, estamos em treinamento paper na IBKR com capital teorico de 100k. "
         "Use 10k para buscar uma oportunidade de investimento com retorno esperado "
@@ -81,8 +82,33 @@ def test_ibkr_paper_order_prompt_routes_to_market_scan_not_status():
     assert parsed.route == "market_scan"
     assert parsed.intent == "market_scan"
     assert plan["scanner_allowed"] is True
-    assert plan["ticket_allowed"] is True
-    assert "submit_paper_order" in plan["allowed_tools"]
+    assert plan["ticket_allowed"] is False
+    assert "submit_paper_order" not in plan["allowed_tools"]
+
+    monkeypatch.setenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
+    enabled_plan = parse_user_intent(prompt, rigor="strict", ticker="").to_plan()
+    assert enabled_plan["ticket_allowed"] is True
+    assert "submit_paper_order" in enabled_plan["allowed_tools"]
+
+
+def test_operational_status_with_no_recommendation_blocks_market_tools():
+    from src.core.pipeline.intents import detect_market_scan_intent, parse_user_intent
+
+    prompt = (
+        "Responda curto: qual e o estado operacional do sistema agora? "
+        "Nao recomende compra."
+    )
+
+    assert not detect_market_scan_intent(prompt)
+
+    parsed = parse_user_intent(prompt, rigor="strict", ticker="")
+    plan = parsed.to_plan()
+    assert parsed.route == "general"
+    assert parsed.intent == "general_question"
+    assert plan["cognitive_mode"] == "STATUS_ONLY"
+    assert plan["scanner_allowed"] is False
+    assert plan["ticket_allowed"] is False
+    assert plan["allowed_tools"] == ["final_answer"]
 
 
 # ---------------------------------------------------------------------------

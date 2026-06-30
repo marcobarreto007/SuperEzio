@@ -680,17 +680,15 @@
       rows.push(renderOrderButton(order, "order", current));
     });
 
-    if (!orders.length) {
-      positions.forEach(function (pos) {
-        var ticker = positionTicker(pos);
-        if (!firstTicker && ticker) firstTicker = ticker;
-        rows.push(renderOrderButton(pos, "position", current));
-      });
-    }
+    positions.forEach(function (pos) {
+      var ticker = positionTicker(pos);
+      if (!firstTicker && ticker) firstTicker = ticker;
+      rows.push(renderOrderButton(pos, "position", current));
+    });
 
     var visibleRows = rows.filter(Boolean);
     if (countEl) {
-      countEl.textContent = String(brokerOrders.length) + " IBKR" + (localTickets.length ? " / " + localTickets.length + " local" : "");
+      countEl.textContent = String(brokerOrders.length) + " ord / " + String(localTickets.length) + " local" + (positions.length ? " / " + String(positions.length) + " pos" : "");
     }
     if (visibleRows.length) {
       host.innerHTML = visibleRows.join("");
@@ -706,7 +704,7 @@
       }).filter(Boolean);
       if (historyRows.length) {
         historyHost.innerHTML = [
-          '<div class="trade-history-title"><span>Paper history</span><strong>' + esc(String(pf.trade_history_count || history.length)) + '</strong></div>',
+          '<div class="trade-history-title"><span>Local audit history</span><strong>' + esc(String(pf.trade_history_count || history.length)) + '</strong></div>',
           '<div class="trade-history-scroll">' + historyRows.join("") + '</div>',
         ].join("");
       } else {

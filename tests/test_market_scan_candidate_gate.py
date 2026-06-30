@@ -811,7 +811,7 @@ def test_portuguese_search_word_busca_is_not_ticker():
     assert result.intent == "market_scan"
     assert result.ticker == ""
     assert result.filters.get("country") == "Canada"
-    assert plan["cognitive_mode"] == "FULL_ACCESS"
+    assert plan["cognitive_mode"] == "MARKET_DISCOVERY"
     assert plan["scanner_allowed"] is True
 
 
@@ -879,9 +879,9 @@ def test_fax_industry_research_is_thesis_first_no_scanner():
     plan = result.to_plan()
 
     assert result.route == "general"
-    assert plan["cognitive_mode"] == "FULL_ACCESS"
-    assert plan["scanner_allowed"] is True
-    assert plan["ticker_allowed"] is True
+    assert plan["cognitive_mode"] == "ANSWER_ONLY"
+    assert plan["scanner_allowed"] is False
+    assert plan["ticker_allowed"] is False
 
 
 def test_cad50_weekly_risk_lab_is_not_scanner_by_default():
@@ -896,9 +896,9 @@ def test_cad50_weekly_risk_lab_is_not_scanner_by_default():
     plan = result.to_plan()
 
     assert result.route == "general"
-    assert plan["cognitive_mode"] == "FULL_ACCESS"
-    assert plan["scanner_allowed"] is True
-    assert plan["ticket_allowed"] is True
+    assert plan["cognitive_mode"] == "ANSWER_ONLY"
+    assert plan["scanner_allowed"] is False
+    assert plan["ticket_allowed"] is False
 
 
 def test_dividend_passive_income_is_final_only_advisory():
@@ -914,8 +914,8 @@ def test_dividend_passive_income_is_final_only_advisory():
     plan = result.to_plan()
 
     assert result.route == "general"
-    assert plan["scanner_allowed"] is True
-    assert plan["ticker_allowed"] is True
+    assert plan["scanner_allowed"] is False
+    assert plan["ticker_allowed"] is False
 
 
 def test_etf_comparison_is_not_single_ticker_analysis():
@@ -931,8 +931,8 @@ def test_etf_comparison_is_not_single_ticker_analysis():
 
     assert result.route == "general"
     assert result.ticker == ""
-    assert plan["scanner_allowed"] is True
-    assert plan["ticker_allowed"] is True
+    assert plan["scanner_allowed"] is False
+    assert plan["ticker_allowed"] is False
 
 
 def test_concentrated_position_is_personal_finance_not_single_ticker_analysis():
@@ -949,7 +949,8 @@ def test_concentrated_position_is_personal_finance_not_single_ticker_analysis():
     assert result.route == "general"
     assert result.intent == "personal_finance"
     assert result.ticker == ""
-    assert plan["scanner_allowed"] is True
+    assert plan["scanner_allowed"] is False
+    assert plan["ticker_allowed"] is False
 
 
 def test_explicit_smallcap_discovery_keeps_scanner_allowed():
@@ -963,7 +964,7 @@ def test_explicit_smallcap_discovery_keeps_scanner_allowed():
     plan = result.to_plan()
 
     assert result.route == "market_scan"
-    assert plan["cognitive_mode"] == "FULL_ACCESS"
+    assert plan["cognitive_mode"] == "MARKET_DISCOVERY"
     assert plan["scanner_allowed"] is True
     assert "market_scan" in plan["allowed_tools"]
 

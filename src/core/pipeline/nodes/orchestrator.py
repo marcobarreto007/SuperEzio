@@ -49,6 +49,16 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
     case_state = financial_case.to_state()
     case_context = financial_case.to_context()
 
+    from core.pipeline.intents import infer_cognitive_contract
+
+    cognitive_contract = infer_cognitive_contract(
+        message,
+        route="agent",
+        intent="bob_decides",
+        action="answer",
+        ticker=incoming_ticker,
+    )
+
     writer(
         {
             "type": "CASE_OPENED",
@@ -60,7 +70,7 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         }
     )
 
-    # â”€â”€ Plano unico: FULL_ACCESS, Bob decide tudo â”€â”€
+    # Plano unico com contrato de ferramentas derivado da mensagem.
     plan = {
         "run_id": run_id,
         "session_id": state.get("session_id", ""),
@@ -73,56 +83,25 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         "action": "analyze_and_execute",
         "ticker": incoming_ticker,
         "filters": {},
-        # Contrato FULL_ACCESS
-        "cognitive_mode": "FULL_ACCESS",
-        "allowed_tools": [
-            "market_scan",
-            "collect_data",
-            "f51_firewall",
-            "pennylab",
-            "run_experts",
-            "neural_decision",
-            "sdca_firewall",
-            "rag_forensics",
-            "bob_search",
-            "submit_paper_order",
-            "final_answer",
-            "query_expert",
-            "call_math_calculator",
-            "get_live_financial_data",
-            "calculate",
-        ],
-        "scanner_allowed": True,
-        "ticker_allowed": True,
-        "ticket_allowed": True,
-        "market_context_allowed": True,
-        "answer_contract": (
-            "Voce e Bob, CEO em treino da SuperEzio. Acesso TOTAL a todas as "
-            "ferramentas, sem classificador e sem freio previo. Permissao nao e "
-            "ordem: antes de chamar ferramenta, decida o objetivo da mensagem. "
-            "Small talk/status/capacidades: responda curto usando SYSTEM STATUS; "
-            "nao chame market_scan. Ticker explicito ou ticker vindo da UI/chart: "
-            "trate como ativo atual e use collect_data/chart_context/sentimento "
-            "antes de concluir. Se CHART_VISUAL_CONTEXT, Sentimento Vivo, OHLCV "
-            "ou data_context estiverem anexados, isso e dado valido; nunca diga "
-            "sem dados para esse ticker. Pedido de scan/descoberta/penny: chame "
-            "market_scan. Pedido de compra/venda/ordem/PAPER_TICKET: primeiro "
-            "colete dados, rode experts, guardrails/firewalls e so depois "
-            "submit_paper_order com LMT, qty, limit_price e risco/invalidacao. "
-            "Se uma licao aprendida contradiz sua tese, mude o comportamento e "
-            "explique a mudanca. Fale na lingua do usuario, direto, sem disclaimer."
-        ),
-        "information_need": "bob_decides_everything",
+        # Contrato de ferramentas vem do mesmo gate usado pelo parser.
+        "cognitive_mode": cognitive_contract["cognitive_mode"],
+        "allowed_tools": list(cognitive_contract["allowed_tools"]),
+        "scanner_allowed": cognitive_contract["scanner_allowed"],
+        "ticker_allowed": cognitive_contract["ticker_allowed"],
+        "ticket_allowed": cognitive_contract["ticket_allowed"],
+        "market_context_allowed": cognitive_contract["market_context_allowed"],
+        "answer_contract": cognitive_contract["answer_contract"],
+        "information_need": cognitive_contract["information_need"],
         "time_horizon": "14 days",
         "risk_tolerance": "moderada",
-        "bob_intent": "full_access",
+        "bob_intent": cognitive_contract["information_need"],
         "intent_source": "passthrough",
         "intent_confidence": 1.0,
         "intent_reasons": ["no_classifier_pure_agent_loop"],
         "required_slots": [],
         "entities": {},
         "errors": [],
-        "orchestrator_plan": "Bob decides everything. Full tool access. No restrictions.",
+        "orchestrator_plan": "Bob decides within the active cognitive tool contract.",
         "orchestrator_model_status": "passthrough_no_classifier",
         "last_tool_result": "",
         # CASE: contrato obrigatorio â€” Bob so decide depois da mesa

@@ -1383,3 +1383,15 @@
 {"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-29T23:56:55.722921+00:00", "healed": false}
 {"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-29T23:57:59.996239+00:00", "healed": false}
 {"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-29T23:59:02.437390+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-06-30T03:34:55.416448+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-06-30T03:34:57.444543+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-30T03:35:00.866312+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-06-30T03:35:08.735447+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-06-30T03:35:10.785327+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-30T03:35:14.203952+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-06-30T03:39:36.118324+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-06-30T03:39:38.155791+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-30T03:39:41.688536+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-06-30T03:39:54.082255+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-06-30T03:39:56.106678+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-06-30T03:39:59.616939+00:00", "healed": false}
