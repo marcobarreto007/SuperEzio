@@ -100,8 +100,11 @@ def _canonical_prediction(value: Any) -> dict[str, Any] | None:
             return None
         if not math.isclose(sum(probabilities.values()), 1.0, abs_tol=1e-6):
             return None
+        probability_direction = max(probabilities, key=probabilities.get).upper()
         if direction is None:
-            direction = max(probabilities, key=probabilities.get).upper()
+            direction = probability_direction
+        elif direction != probability_direction:
+            return None
     elif direction is not None:
         confidence = _unit_confidence(value.get("confidence"))
         remainder = (1.0 - confidence) / 2.0
@@ -257,10 +260,13 @@ class OutcomeLearningEngine:
 
         calibration_status = str(trade.get("calibration_status") or "").lower()
         raw_probability = trade.get("prediction_probability_at_entry")
+        prediction_class = _normalize_direction(trade.get("prediction_class_at_entry"))
+        profitable_class = "UP" if side in {"long", "buy"} else "DOWN"
         prediction_probability = (
             _unit_confidence(raw_probability)
             if raw_probability is not None
             and calibration_status in {"calibrated", "validated_oos"}
+            and prediction_class == profitable_class
             else None
         )
         return {
@@ -275,11 +281,11 @@ class OutcomeLearningEngine:
             "exit_date": str(trade["exit_date"]),
             "outcome": outcome,
             "prediction_probability_at_entry": prediction_probability,
-            "prediction_class_at_entry": _normalize_direction(
-                trade.get("prediction_class_at_entry")
-            ),
+            "prediction_class_at_entry": prediction_class,
             "calibration_status": calibration_status or "unknown",
             "model_id": str(trade.get("model_id") or ""),
+            "forecast_as_of": str(trade.get("forecast_as_of") or ""),
+            "forecast_horizon": trade.get("forecast_horizon"),
             "risk_at_entry": (
                 float(trade["risk_at_entry"]) if trade.get("risk_at_entry") is not None else None
             ),
