@@ -90,18 +90,6 @@ target-version = "py311"
 [tool.ruff.format]
 line-ending = "lf"
 
-[tool.pytest.ini_options]
-addopts = "-n auto --cov=src --cov-fail-under=70 --cov-report=term-missing --strict-markers --tb=short"
-markers = [
-    "smoke: fast runtime and pipeline liveness tests",
-    "contract: public API surface and data invariant tests",
-    "integration: tests requiring live servers (CEO on :8082, API on :8002)",
-    "slow: tests that take more than 5 seconds",
-    "security: SAST and vulnerability scanning tests",
-    "property: Hypothesis property-based tests",
-]
-
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["agent_server*", "core*", "data*", "experts*", "f51*", "tools*", "adapters*"]
-
