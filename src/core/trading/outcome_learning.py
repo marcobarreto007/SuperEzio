@@ -20,6 +20,14 @@ from .reward import RewardFunction, TradeOutcome
 
 DEFAULT_OUTCOME_DB = Path(__file__).resolve().parents[3] / "data" / "adaptive_outcomes.sqlite3"
 OUTCOME_SCHEMA_VERSION = 1
+DEFAULT_EXPERT_WEIGHTS = {
+    "social_forensics": 0.25,
+    "sentiment": 0.15,
+    "macro_risk": 0.15,
+    "fundamental_value": 0.20,
+    "momentum_technical": 0.15,
+    "contrarian_opportunity": 0.10,
+}
 
 
 class OutcomeConflictError(RuntimeError):
@@ -244,3 +252,24 @@ class OutcomeLearningEngine:
         finally:
             if owns_connection:
                 connection.close()
+
+
+def get_effective_expert_weights(db_path: Path | None = None) -> dict[str, float]:
+    """Blend durable learned reliability with safe static priors."""
+    resolved = Path(db_path or DEFAULT_OUTCOME_DB)
+    baseline = dict(DEFAULT_EXPERT_WEIGHTS)
+    if not resolved.exists():
+        return baseline
+
+    learned = OutcomeLearningEngine(resolved).get_normalized_weights()
+    learned_roles = {role: value for role, value in learned.items() if role in baseline}
+    if not learned_roles:
+        return baseline
+
+    # A learned distribution is relative only to roles with observations.
+    # Scaling by their count makes equal learned reliability preserve priors.
+    scale = len(learned_roles)
+    for role, reliability in learned_roles.items():
+        baseline[role] *= reliability * scale
+    total = sum(baseline.values())
+    return {role: weight / total for role, weight in baseline.items()}

@@ -4,7 +4,12 @@ from copy import deepcopy
 
 import pytest
 
-from core.trading.outcome_learning import OutcomeConflictError, OutcomeLearningEngine
+from core.trading.outcome_learning import (
+    DEFAULT_EXPERT_WEIGHTS,
+    OutcomeConflictError,
+    OutcomeLearningEngine,
+    get_effective_expert_weights,
+)
 
 
 def _closed_trade(**overrides):
@@ -88,3 +93,30 @@ def test_reward_uses_ex_ante_risk_not_realized_price_move(tmp_path):
     engine = OutcomeLearningEngine(tmp_path / "learning.sqlite3")
     result = engine.process_trade(_closed_trade(risk_at_entry=200.0, pnl_amount=100.0))
     assert result.reward["risk_adjusted_reward"] == pytest.approx(0.5)
+
+
+def test_effective_weights_use_priors_before_any_outcome(tmp_path):
+    weights = get_effective_expert_weights(tmp_path / "missing.sqlite3")
+    assert weights == DEFAULT_EXPERT_WEIGHTS
+
+
+def test_effective_weights_blend_learned_reliability_and_remain_normalized(tmp_path):
+    db_path = tmp_path / "learning.sqlite3"
+    engine = OutcomeLearningEngine(db_path)
+    engine.process_trade(
+        _closed_trade(expert_attribution={"fundamental_value": 0.9, "macro_risk": 0.7})
+    )
+    engine.process_trade(
+        _closed_trade(
+            trade_id="trade-002",
+            outcome="loss",
+            exit_price=90.0,
+            pnl_amount=-100.0,
+            expert_attribution={"macro_risk": 0.7},
+        )
+    )
+
+    weights = get_effective_expert_weights(db_path)
+    assert sum(weights.values()) == pytest.approx(1.0)
+    assert weights["fundamental_value"] > DEFAULT_EXPERT_WEIGHTS["fundamental_value"]
+    assert weights["macro_risk"] < DEFAULT_EXPERT_WEIGHTS["macro_risk"]
