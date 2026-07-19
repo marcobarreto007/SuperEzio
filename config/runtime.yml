@@ -39,6 +39,14 @@ models:
     preferred_llama_server: "C:\\llama.cpp\\build\\bin\\llama-server.exe"
     fallback_llama_server: llama.cpp\bin\llama-server.exe
     speculative_decoding: disabled
+    # UNVERIFIED (2026-07-19): this contradicts .f51/ENTRYPOINT_MAP.md, which
+    # documents context_length=65536 and gpu_layers=49 for a differently
+    # named artifact (Bob Core-q4_k.gguf, no LoRA) as "runtime real validado
+    # 2026-06-29". Neither this file's model (bob-core-local.gguf +
+    # bob-lora-best.gguf) nor the ENTRYPOINT_MAP.md model exist on this
+    # machine (C:\llama.cpp\models\ is absent) — see .f51/RISK_REGISTER.md
+    # INV-R15. Do not trust either number until re-measured against a live
+    # llama-server /health or /v1/models response.
     context_length: 4096
     gpu_layers: 35
     slots: 1

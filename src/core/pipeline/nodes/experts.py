@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
+import hashlib
+import json
 import os
 from collections import deque
 from typing import Any
@@ -16,9 +19,89 @@ from .expert_dialogue import ExpertDialogue
 # Without this, the entire downstream chain (neural → rag → ceo → explanation)
 # executes twice, doubling latency.
 _COLLECT_SEEN: deque[str] = deque(maxlen=64)
+_EXPERT_CACHE: dict[str, dict[str, Any]] = {}
+_EXPERT_CACHE_LOCK = asyncio.Lock()
+_RESEARCH_BUDGET_LOCK = asyncio.Lock()
+_RESEARCH_TOKENS_SPENT = 0
 
 # Trace logger singleton
 _tracer = DecisionTraceLogger()
+
+
+def _safe_int_env(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+
+
+def _is_strict_json_enabled() -> bool:
+    return os.getenv("SUPEREZIO_EXPERT_STRICT_JSON", "0").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def _is_cache_enabled() -> bool:
+    return os.getenv("SUPEREZIO_CACHE_LLM_RESPONSES", "0").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def _has_valid_json_payload(text: str) -> bool:
+    clean = str(text or "").strip()
+    if not clean:
+        return False
+    if clean.startswith("```"):
+        lines = clean.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        clean = "\n".join(lines).strip()
+    if clean.lower().startswith("json"):
+        clean = clean[4:].strip()
+    try:
+        parsed = json.loads(clean)
+    except json.JSONDecodeError:
+        start = clean.find("{")
+        end = clean.rfind("}")
+        if start < 0 or end <= start:
+            return False
+        try:
+            parsed = json.loads(clean[start : end + 1])
+        except json.JSONDecodeError:
+            return False
+    return isinstance(parsed, dict)
+
+
+def _cache_key(role: str, ticker: str, provider_name: str, context: str) -> str:
+    payload = f"{role}|{ticker}|{provider_name}|{context[:6000]}"
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+async def _reserve_research_tokens(requested_tokens: int) -> tuple[bool, int, int]:
+    """Reserve estimated tokens against SUPEREZIO_RESEARCH_TOKEN_BUDGET.
+
+    Returns (allowed, spent_after, budget).
+    """
+
+    global _RESEARCH_TOKENS_SPENT
+    budget = _safe_int_env("SUPEREZIO_RESEARCH_TOKEN_BUDGET", 0)
+    if budget <= 0:
+        return True, _RESEARCH_TOKENS_SPENT, budget
+
+    async with _RESEARCH_BUDGET_LOCK:
+        projected = _RESEARCH_TOKENS_SPENT + max(0, int(requested_tokens))
+        if projected > budget:
+            return False, _RESEARCH_TOKENS_SPENT, budget
+        _RESEARCH_TOKENS_SPENT = projected
+        return True, _RESEARCH_TOKENS_SPENT, budget
 
 
 # Expert roles mapped to provider names
@@ -28,56 +111,197 @@ EXPERT_PROVIDERS: dict[str, str] = {
     "fundamental_value": "deepseek",
     "momentum_technical": "deepseek",
     "contrarian_opportunity": "deepseek",
-    # Gemini experts
-    "sentiment": "gemini",
-    "social_forensics": "gemini",
+    # Sentiment/forensics now aligned to DeepSeek as well
+    "sentiment": "deepseek",
+    "social_forensics": "deepseek",
+}
+
+# Anti-guessing contract appended to every expert system prompt. Modeled on
+# TradingAgents' (Xiao et al., arXiv:2412.20138) role-scoped analyst design —
+# each analyst is only given the tools/data relevant to its function — and on
+# FinRobot's (AI4Finance-Foundation, arXiv:2405.14767) hard separation between
+# deterministic financial computation (Python) and LLM narration: the model
+# explains and ranks, it never invents a number that isn't in its section.
+_ANTI_GUESSING_CONTRACT = (
+    "You only see the data section provided below — no other expert's data, "
+    "no other expert's verdict. If a field you would need is missing or not "
+    "in your section, say so explicitly (NO_DATA) instead of estimating or "
+    "inventing a number. Never state a specific price, ratio, or percentage "
+    "that is not present in your section."
+)
+
+# Roles mapped to the math_report module(s) each one is allowed to see.
+# Mirrors TradingAgents' per-analyst tool scoping: the Technical analyst gets
+# indicators, not fundamentals; the Sentiment analyst gets sentiment/social
+# signals, not technicals. "core" fields (ticker, latest price) are always
+# included so every expert can anchor its answer to the same instrument.
+EXPERT_CONTEXT_MODULES: dict[str, tuple[str, ...]] = {
+    "macro_risk": ("crisis_aggregate", "var_cvar", "drawdown", "portfolio_hrp"),
+    "fundamental_value": ("dcf_proxy", "return_metrics", "price_series"),
+    "momentum_technical": ("technical_indicators", "price_series", "penny_momentum"),
+    "contrarian_opportunity": (
+        "technical_indicators",
+        "sharpe_sortino",
+        "kelly",
+        "penny_momentum",
+    ),
+    # Sentiment and social_forensics deliberately do NOT receive
+    # technical_indicators/dcf_proxy — per AIMM (arXiv:2512.16103), social
+    # manipulation scoring should be driven by coordination/engagement
+    # signals and raw price/volume, not by indicators that could bias the
+    # analyst toward rationalizing a technical narrative from social noise.
+    "sentiment": ("price_series",),
+    "social_forensics": ("price_series", "penny_momentum"),
 }
 
 EXPERT_PROMPTS: dict[str, tuple[str, str]] = {
     "macro_risk": (
-        "You are SuperEzio's Macro/Risk expert. Output ONLY raw JSON, no markdown, no backticks.\n"
-        'Format: {"expert":"macro_risk","ticker":"...","verdict":"RISK_ON|RISK_OFF|CAUTIOUS|NEUTRAL",'
+        "You are SuperEzio's Macro/Risk analyst, modeled on the Risk Manager "
+        "role in multi-agent trading frameworks (Xiao et al. 2024, "
+        "TradingAgents). Your job is to size systemic and regime risk, not "
+        "to pick a direction. Weigh crisis regime, VaR/CVaR, drawdown, and "
+        "portfolio concentration. " + _ANTI_GUESSING_CONTRACT + "\n"
+        "Output ONLY raw JSON, no markdown, no backticks.\n"
+        'Format: {"expert":"macro_risk","ticker":"...","verdict":"RISK_ON|RISK_OFF|CAUTIOUS|NEUTRAL|NO_DATA",'
         '"confidence":0-100,"top_signals":["signal1","signal2"],"top_risks":["risk1","risk2"],'
         '"bob_readable":"1 sentence Bob can quote"}',
-        "Macro factors for {ticker}.\nContext:\n{context}\n",
+        "Macro/risk data for {ticker}.\n{context}\n",
     ),
     "fundamental_value": (
-        "You are SuperEzio's Fundamental & Value expert. Output ONLY raw JSON, no markdown, no backticks.\n"
+        "You are SuperEzio's Fundamental/Value analyst (Fundamentals Analyst "
+        "role, TradingAgents). Judge whether the instrument is priced above "
+        "or below a defensible intrinsic-value estimate using ONLY the DCF "
+        "proxy and return series given to you — you do not see technical "
+        "indicators, this is deliberate so your verdict is not anchored to "
+        "chart shape. " + _ANTI_GUESSING_CONTRACT + "\n"
+        "Output ONLY raw JSON, no markdown, no backticks.\n"
         'Format: {"expert":"fundamental_value","ticker":"...","verdict":"UNDERVALUED|FAIR|OVERVALUED|NO_DATA",'
         '"confidence":0-100,"top_signals":["signal1","signal2"],"top_risks":["risk1","risk2"],'
         '"bob_readable":"1 sentence Bob can quote"}',
-        "Fundamentals for {ticker}.\nContext:\n{context}\n",
+        "Fundamental data for {ticker}.\n{context}\n",
     ),
     "momentum_technical": (
-        "You are SuperEzio's Momentum & Technical expert. Output ONLY raw JSON, no markdown, no backticks.\n"
-        'Format: {"expert":"momentum_technical","ticker":"...","verdict":"BULLISH|BEARISH|NEUTRAL|OVERSOLD|OVERBOUGHT",'
+        "You are SuperEzio's Momentum/Technical analyst (Technical Analyst "
+        "role, TradingAgents). You see indicators, price series, and the "
+        "penny-momentum backtest signal — you do NOT see fundamentals, "
+        "macro/crisis data, or sentiment. Judge trend and momentum on chart "
+        "evidence alone. " + _ANTI_GUESSING_CONTRACT + "\n"
+        "Output ONLY raw JSON, no markdown, no backticks.\n"
+        'Format: {"expert":"momentum_technical","ticker":"...","verdict":"BULLISH|BEARISH|NEUTRAL|OVERSOLD|OVERBOUGHT|NO_DATA",'
         '"confidence":0-100,"top_signals":["signal1","signal2"],"top_risks":["risk1","risk2"],'
         '"bob_readable":"1 sentence Bob can quote"}',
-        "Technicals for {ticker}.\nContext:\n{context}\n",
+        "Technical data for {ticker}.\n{context}\n",
     ),
     "contrarian_opportunity": (
-        "You are SuperEzio's Contrarian & Opportunity expert. Output ONLY raw JSON, no markdown, no backticks.\n"
-        'Format: {"expert":"contrarian","ticker":"...","verdict":"OPPORTUNITY|TRAP|NEUTRAL|NO_EDGE",'
+        "You are SuperEzio's Contrarian/Opportunity analyst — modeled on the "
+        "Bear Researcher half of the TradingAgents debate stage. Your job is "
+        "to actively argue AGAINST the momentum consensus: look for "
+        "overextension, risk/reward asymmetry (Kelly, Sharpe/Sortino), and "
+        "traps that a trend-following read would miss. You do not see "
+        "fundamentals or macro data — argue from price behavior and "
+        "risk-adjusted return only. " + _ANTI_GUESSING_CONTRACT + "\n"
+        "Output ONLY raw JSON, no markdown, no backticks.\n"
+        'Format: {"expert":"contrarian","ticker":"...","verdict":"OPPORTUNITY|TRAP|NEUTRAL|NO_EDGE|NO_DATA",'
         '"confidence":0-100,"top_signals":["signal1","signal2"],"top_risks":["risk1","risk2"],'
         '"bob_readable":"1 sentence Bob can quote"}',
-        "Contrarian view for {ticker}.\nContext:\n{context}\n",
+        "Contrarian-relevant data for {ticker}.\n{context}\n",
     ),
     "sentiment": (
-        "You are SuperEzio's Sentiment expert. Output ONLY raw JSON, no markdown, no backticks.\n"
-        'Format: {"expert":"sentiment","ticker":"...","verdict":"BULLISH|BEARISH|NEUTRAL|FEARFUL|EUPHORIC",'
+        "You are SuperEzio's Sentiment analyst (Sentiment Analyst role, "
+        "TradingAgents — reads social/news signal, not chart data). You "
+        "receive only price context plus whatever sentiment/news text is "
+        "supplied in the message — you do NOT see technical indicators or "
+        "the fundamental valuation, so your read is not contaminated by "
+        "chart or DCF framing. " + _ANTI_GUESSING_CONTRACT + "\n"
+        "Output ONLY raw JSON, no markdown, no backticks.\n"
+        'Format: {"expert":"sentiment","ticker":"...","verdict":"BULLISH|BEARISH|NEUTRAL|FEARFUL|EUPHORIC|NO_DATA",'
         '"confidence":0-100,"sentiment_score":-1.0-1.0,"top_signals":["signal1","signal2"],'
         '"bob_readable":"1 sentence Bob can quote"}',
-        "Sentiment for {ticker}.\nContext:\n{context}\n",
+        "Sentiment-relevant data for {ticker}.\n{context}\n",
     ),
     "social_forensics": (
-        "You are SuperEzio's Social Forensics expert. Output ONLY raw JSON, no markdown, no backticks.\n"
-        'Format: {"expert":"social_forensics","ticker":"...","verdict":"MANIPULATED|SUSPICIOUS|CLEAN|INCONCLUSIVE",'
+        "You are SuperEzio's Social Forensics analyst, modeled on "
+        "manipulation-risk scoring frameworks that fuse coordination/"
+        "engagement signals with raw price-volume behavior (AIMM, "
+        "arXiv:2512.16103) rather than technical indicators. You look for "
+        "pump-and-dump patterns: abnormal volume vs. price-series shape "
+        "without a fundamental trigger, and any coordination language "
+        "explicitly present in your data. You do NOT see technical "
+        "indicators, DCF, or macro data — do not let chart-pattern "
+        "reasoning substitute for actual evidence of coordination. "
+        + _ANTI_GUESSING_CONTRACT + "\n"
+        "Output ONLY raw JSON, no markdown, no backticks.\n"
+        'Format: {"expert":"social_forensics","ticker":"...","verdict":"MANIPULATED|SUSPICIOUS|CLEAN|INCONCLUSIVE|NO_DATA",'
         '"confidence":0-100,"manipulation_score":0-100,'
         '"suspicious_accounts":["name1","name2"],"recommendation":"AVOID|MONITOR|NO_THREAT",'
         '"bob_readable":"1 sentence Bob can quote"}',
-        "Social forensics for {ticker}.\nData:\n{context}\n",
+        "Social forensics data for {ticker}.\n{context}\n",
     ),
 }
+
+# Judge/auditor roles never see the raw math_report — per TradingAgents'
+# Risk Manager stage, they arbitrate the analysts' own verdicts, not the
+# underlying market data directly. Populated by _build_judge_context().
+_JUDGE_ROLE_PREFIXES = ("judge_agent", "auditor_agent")
+
+
+def _format_module_section(name: str, module: Any) -> str:
+    if not isinstance(module, dict):
+        return f"[{name}] unavailable"
+    status = module.get("status", "unknown")
+    if status != "ok":
+        return f"[{name}] {status}: {module.get('reason', 'no data')}"
+    values = module.get("values", {})
+    parts = ", ".join(f"{k}={v}" for k, v in values.items() if not isinstance(v, (dict, list)))
+    return f"[{name}] {parts}" if parts else f"[{name}] ok (no scalar fields)"
+
+
+def build_role_context(role: str, math_report: dict[str, Any] | None, raw_context: str) -> str:
+    """Slice math_report down to the module(s) a given role is allowed to see.
+
+    Falls back to the full raw_context (existing behaviour) for roles not in
+    EXPERT_CONTEXT_MODULES (red team, judge, auditor, or unknown roles) —
+    those are handled separately by build_judge_context for judge/auditor.
+    """
+    modules_allowed = EXPERT_CONTEXT_MODULES.get(role)
+    if not modules_allowed or not isinstance(math_report, dict):
+        return raw_context
+
+    modules = math_report.get("modules", {})
+    ticker = math_report.get("ticker", "")
+    price = (modules.get("price_series", {}) or {}).get("values", {}).get("latest_price")
+    lines = [f"Ticker: {ticker} | Price: {price if price is not None else 'N/A'}"]
+    for name in modules_allowed:
+        if name in modules:
+            lines.append(_format_module_section(name, modules[name]))
+    return "\n".join(lines)
+
+
+def build_judge_context(expert_results: list[dict[str, Any]]) -> str:
+    """Summarize expert verdicts for the judge/auditor stage.
+
+    Per TradingAgents' Risk Manager design, the arbitration stage sees the
+    analysts' own conclusions (verdict + confidence + top signals/risks),
+    not the raw market data again — that keeps the judge's job as
+    "arbitrate disagreement", not "re-run the same analysis a 7th time".
+    """
+    if not expert_results:
+        return "No expert verdicts available."
+    lines = []
+    for r in expert_results:
+        if not isinstance(r, dict) or not r.get("ok"):
+            continue
+        role = r.get("role", "unknown")
+        parsed = r.get("parsed") if isinstance(r.get("parsed"), dict) else {}
+        verdict = parsed.get("verdict") or r.get("verdict") or "UNKNOWN"
+        confidence = parsed.get("confidence") or r.get("confidence")
+        signals = parsed.get("top_signals") or []
+        risks = parsed.get("top_risks") or []
+        lines.append(
+            f"- {role} (replica {r.get('replica_id', 1)}): verdict={verdict}, "
+            f"confidence={confidence}, signals={signals}, risks={risks}"
+        )
+    return "\n".join(lines) if lines else "Experts ran but produced no parsable verdicts."
 
 
 async def node_expert(state: dict, *, gateway=None) -> dict:
@@ -89,8 +313,45 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
     run_id = state.get("run_id", "")
     role: str = state["role"]
     ticker: str = state["ticker"]
-    context: str = state.get("data_context", "")
-    provider_name: str = EXPERT_PROVIDERS.get(role, "deepseek")
+    replica_id: int = int(state.get("replica_id") or 1)
+    raw_context: str = state.get("data_context", "")
+    provider_name: str = str(state.get("provider_name") or EXPERT_PROVIDERS.get(role, "deepseek"))
+    expert_max_tokens = _safe_int_env("SUPEREZIO_EXPERT_MAX_TOKENS", 2000)
+
+    # Role-scoped context: judge/auditor arbitrate expert verdicts (not raw
+    # market data again); analysts with a module allowlist only see their
+    # slice of math_report; everything else (red team, unknown roles) keeps
+    # the previous full-context behaviour.
+    if role.startswith(_JUDGE_ROLE_PREFIXES) or provider_name in {
+        "daytrade_judge",
+        "daytrade_auditor",
+    }:
+        context = build_judge_context(state.get("expert_results") or [])
+    else:
+        context = build_role_context(role, state.get("math_report"), raw_context)
+
+    cache_key = _cache_key(role, ticker, provider_name, context)
+    if _is_cache_enabled():
+        async with _EXPERT_CACHE_LOCK:
+            cached = _EXPERT_CACHE.get(cache_key)
+        if cached:
+            return {"expert_results": [{**cached, "cached": True, "replica_id": replica_id}]}
+
+    budget_ok, spent_after, budget_total = await _reserve_research_tokens(expert_max_tokens)
+    if not budget_ok:
+        return {
+            "expert_results": [
+                {
+                    "role": role,
+                    "replica_id": replica_id,
+                    "ok": False,
+                    "error": "research_token_budget_exceeded",
+                    "provider": provider_name,
+                    "tokens_spent_estimate": spent_after,
+                    "tokens_budget": budget_total,
+                }
+            ]
+        }
 
     # Start trace
     trace_token = _tracer.start_node(
@@ -120,6 +381,7 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
             "expert_results": [
                 {
                     "role": role,
+                    "replica_id": replica_id,
                     "ok": False,
                     "error": "gateway_unavailable",
                     "provider": provider_name,
@@ -155,10 +417,14 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
             raise RuntimeError(round_result.get("error") or "expert_dialogue_failed")
 
         response_text = str(round_result.get("response") or "")
+        if _is_strict_json_enabled() and not _has_valid_json_payload(response_text):
+            raise RuntimeError("strict_json_validation_failed")
+
         writer(
             {
                 "type": "EXPERT_DONE",
                 "role": role,
+                "replica_id": replica_id,
                 "ok": True,
                 "provider": provider_name,
                 "response": response_text,
@@ -174,16 +440,22 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
             agent=provider_name,
         )
 
+        result_payload = {
+            "role": role,
+            "replica_id": replica_id,
+            "ok": True,
+            "response": response_text,
+            "provider": provider_name,
+            "dialogue": dialogue.history,
+            "tokens_spent_estimate": spent_after,
+            "tokens_budget": budget_total,
+        }
+        if _is_cache_enabled():
+            async with _EXPERT_CACHE_LOCK:
+                _EXPERT_CACHE[cache_key] = result_payload
+
         return {
-            "expert_results": [
-                {
-                    "role": role,
-                    "ok": True,
-                    "response": response_text,
-                    "provider": provider_name,
-                    "dialogue": dialogue.history,
-                }
-            ]
+            "expert_results": [result_payload]
         }
 
     except Exception as exc:
@@ -204,9 +476,12 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
             "expert_results": [
                 {
                     "role": role,
+                    "replica_id": replica_id,
                     "ok": False,
                     "error": str(exc)[:200],
                     "provider": provider_name,
+                    "tokens_spent_estimate": spent_after,
+                    "tokens_budget": budget_total,
                 }
             ]
         }
@@ -268,10 +543,13 @@ async def node_collect_experts(state: dict) -> dict:
         )
         return {"expert_summary": summary}
 
-    # Build results dict by role
+    # Build results dict by role (+ replica when present)
     results: dict[str, Any] = {}
     for i, r in enumerate(results_list):
         key = r.get("role", str(i))
+        replica = r.get("replica_id")
+        if replica not in (None, ""):
+            key = f"{key}#r{replica}"
         results[key] = r
 
     ok_count = sum(1 for r in results.values() if r.get("ok"))

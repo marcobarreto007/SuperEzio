@@ -312,12 +312,22 @@ class ModelGateway:
         preferred_provider: str = None,
         json_mode: bool = False,
         assistant_prefix: str = "",
+        allow_fallback: bool = True,
     ) -> str:
-        """Gera resposta com fallback cascade (Síncrono para compatibilidade)."""
-        providers_to_try = self._providers_for_request(preferred_provider)
+        """Gera resposta com fallback cascade (Síncrono para compatibilidade).
+
+        allow_fallback=False restricts the attempt to the preferred provider
+        only (plus its own configured fallback, e.g. agent -> ceo_fallback_glm).
+        Required for research/audit modes where the caller must know exactly
+        which model answered (see audit/component_lab/reports/phase2_model_gateway.md).
+        """
+        providers_to_try = self._providers_for_request(
+            preferred_provider, allow_fallback=allow_fallback
+        )
 
         max_attempts = self._max_attempts(providers_to_try)
         last_error = None
+        self.last_provider_used: str | None = None
 
         for i in range(max_attempts):
             provider = providers_to_try[i]
@@ -376,6 +386,7 @@ class ModelGateway:
                         # Reset error counter on success
                         self._provider_errors.pop(provider.name, None)
                         self._provider_cooldown_until.pop(provider.name, None)
+                        self.last_provider_used = provider.name
                         return result
 
                 except Exception as e:
@@ -551,13 +562,21 @@ class ModelGateway:
         max_tokens: int | None = None,
         preferred_provider: str = None,
         assistant_prefix: str = "",
+        allow_fallback: bool = True,
     ) -> str:
         """OpenAI-compatible async proxy.
 
         Se a última mensagem for role=assistant, extrai como assistant_prefix
         (ou usa o parâmetro explícito assistant_prefix).
+
+        allow_fallback=False forces the exact preferred_provider (no silent
+        cascade to another provider/model). Callers that need to know which
+        provider actually answered should read gateway.last_provider_used
+        immediately after awaiting this call.
         """
-        provider_obj = self._providers_for_request(preferred_provider)[0]
+        provider_obj = self._providers_for_request(
+            preferred_provider, allow_fallback=allow_fallback
+        )[0]
 
         # Extrai assistant prefix do último message se role=assistant
         prefix = assistant_prefix
@@ -592,6 +611,7 @@ class ModelGateway:
             preferred_provider=provider_obj.name,
             json_mode=json_mode,
             assistant_prefix=prefix,
+            allow_fallback=allow_fallback,
         )
         return await asyncio.to_thread(func)
 

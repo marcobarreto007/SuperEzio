@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Iterable, Mapping
@@ -428,7 +429,13 @@ class MathHub:
             n_scenarios = 100
             states = list(probs.keys())
             weights = [probs[s] for s in states]
-            rng = np.random.RandomState(42)
+            # Seed derived from the actual quantum counts so the simulation
+            # varies with real input instead of being frozen on every call
+            # (was hardcoded RandomState(42) — produced identical scenarios
+            # regardless of ticker or market data).
+            seed_material = "|".join(f"{k}:{v}" for k, v in sorted(counts.items()))
+            seed = int(hashlib.sha256(seed_material.encode("utf-8")).hexdigest()[:8], 16)
+            rng = np.random.RandomState(seed)
 
             # Generate scenario returns: sample from quantum distribution
             # Each scenario gets a return multiplier weighted by quantum probs
@@ -565,9 +572,10 @@ class MathHub:
             data_quality = str(data.get("data_quality") or "").lower()
             var_value = _dig(modules, "var_cvar", "values", "var_95") or 0.0
             vol_value = _dig(modules, "sharpe_sortino", "values", "volatility") or 0.0
+            consensus, consensus_is_heuristic = self._expert_consensus(state)
             factors = DecisionFactors(
                 veracity=0.85 if data_quality in {"complete", "ok", "high"} else 0.55,
-                consensus=0.65,
+                consensus=consensus,
                 risk=max(0.0, min(1.0, abs(float(var_value or 0.0)) + float(vol_value or 0.0))),
                 uncertainty=heuristic_uncertainty(
                     text=str(state.get("message") or ""),
@@ -585,10 +593,43 @@ class MathHub:
             confidence = unified_decision(factors)
             return {
                 "status": "ok",
-                "values": {"confidence": confidence, "factors": factors.__dict__},
+                "values": {
+                    "confidence": confidence,
+                    "factors": factors.__dict__,
+                    "consensus_is_heuristic": consensus_is_heuristic,
+                },
             }
         except Exception as exc:
             return {"status": "error", "reason": str(exc)[:200]}
+
+    @staticmethod
+    def _expert_consensus(state: Mapping[str, Any]) -> tuple[float, bool]:
+        """Derive expert agreement from real expert_results when available.
+
+        Falls back to a documented neutral heuristic (0.5, not 0.65) when no
+        expert has run yet — callers must check consensus_is_heuristic before
+        treating this number as measured agreement.
+        """
+        results = state.get("expert_results")
+        if not isinstance(results, list) or not results:
+            return 0.5, True
+
+        verdicts: list[str] = []
+        for item in results:
+            if not isinstance(item, Mapping) or not item.get("ok"):
+                continue
+            verdict = item.get("verdict") or _dig(item, "parsed", "verdict")
+            if verdict:
+                verdicts.append(str(verdict).upper())
+
+        if not verdicts:
+            return 0.5, True
+
+        from collections import Counter
+
+        counts = Counter(verdicts)
+        top_count = counts.most_common(1)[0][1]
+        return top_count / len(verdicts), False
 
     def _penny_momentum_module(
         self, ticker: str, candles: list[dict[str, float]]

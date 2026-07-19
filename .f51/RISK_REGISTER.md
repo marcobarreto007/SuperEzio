@@ -33,9 +33,9 @@ Session: f51-contracts-phase1-2026-06-01
 
 - Classification: security
 - Risk: DeepSeek, TwelveData, Alpha Vantage, NewsAPI keys were committed. Anyone with repo access can extract them.
-- Evidence: `docs/internal/SECURITY_LEAKED_KEYS.md` documents 4 keys.
+- Evidence: `docs/internal/SECURITY_LEAKED_KEYS.md` previously documented 4 keys (file no longer present in working tree; keys remain in git history regardless).
 - Mitigation: Rotate all 4 keys before any repo transfer or remote push.
-- Status: Pending key rotation.
+- Status: **Risk knowingly accepted by operator (Marco Barreto) on 2026-07-18. Keys not rotated. Decision: proceed without rotation.**
 
 ### INV-R5 - No CI pipeline (GitHub blocked by policy) [MEDIUM]
 

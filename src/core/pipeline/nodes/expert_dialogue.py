@@ -197,6 +197,22 @@ class ExpertDialogue:
             self.history.append(result)
             return result
 
+        # Research/paper-only mode requires knowing exactly which model
+        # answered — silent fallback to another provider would make
+        # "DeepSeek V4 Pro" results unverifiable. See
+        # audit/component_lab/reports/phase2_model_gateway.md.
+        research_mode = os.getenv("SUPEREZIO_RESEARCH_PAPER_ONLY", "0").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        } or os.getenv("SUPEREZIO_DAYTRADE_PAPER_ONLY", "0").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+
         try:
             response = await asyncio.wait_for(
                 self.gateway.chat_completion(
@@ -207,15 +223,19 @@ class ExpertDialogue:
                     preferred_provider=provider,
                     temperature=0.2,
                     max_tokens=int(os.getenv("SUPEREZIO_EXPERT_MAX_TOKENS", "2000")),
+                    allow_fallback=not research_mode,
                 ),
                 timeout=self._timeout,
             )
             response_text = str(response)
             verdict = extract_verdict_payload(response_text)
+            provider_used = getattr(self.gateway, "last_provider_used", None) or provider
             result = {
                 "round": round_no,
                 "role": role,
                 "provider": provider,
+                "provider_used": provider_used,
+                "fallback_occurred": provider_used != provider,
                 "phase": phase,
                 "question": question,
                 "ok": True,
