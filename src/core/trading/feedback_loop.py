@@ -588,12 +588,17 @@ class FeedbackLoop:
         self,
         journal_path: Path | None = None,
         learning_log_path: Path | None = None,
+        outcome_db_path: Path | None = None,
         conversation_memory: Any | None = None,
         xp_system: Any | None = None,
     ):
+        from core.trading.outcome_learning import OutcomeLearningEngine
         from core.trading.paper_journal import PaperJournal
 
         self._journal = PaperJournal(journal_path)
+        if outcome_db_path is None and journal_path is not None:
+            outcome_db_path = Path(journal_path).with_suffix(".outcomes.sqlite3")
+        self._outcome_engine = OutcomeLearningEngine(outcome_db_path)
         self._learning_log = LearningLog(learning_log_path)
         self._pattern_analyzer = PatternAnalyzer(self._journal)
         self._lesson_extractor = LessonExtractor(self._journal)
@@ -613,6 +618,7 @@ class FeedbackLoop:
             "patterns": [],
             "lessons": [],
             "bias_report": {},
+            "adaptive_outcomes": {},
         }
 
         try:
@@ -660,6 +666,12 @@ class FeedbackLoop:
         except Exception as e:
             logger.warning("Bias analysis failed: %s", e)
 
+        # Compute reward and expert weights exactly once per terminal outcome.
+        try:
+            results["adaptive_outcomes"] = self._update_adaptive_from_closed_trades()
+        except Exception as e:
+            logger.warning("Adaptive outcome update failed: %s", e)
+
         # 3. Atualiza XP baseado em trades fechados
         try:
             xp_results = self._update_xp_from_closed_trades()
@@ -683,6 +695,34 @@ class FeedbackLoop:
         )
 
         return results
+
+    def _update_adaptive_from_closed_trades(self) -> dict[str, Any]:
+        """Project terminal journal rows into the durable adaptive ledger."""
+        from core.trading.outcome_learning import OutcomeConflictError
+
+        processed: list[str] = []
+        replayed: list[str] = []
+        conflicts: list[str] = []
+        errors: list[dict[str, str]] = []
+
+        for trade in self._journal.list_closed():
+            trade_id = str(trade.get("trade_id") or "")
+            try:
+                result = self._outcome_engine.process_trade(trade)
+                target = processed if result.processed else replayed
+                target.append(result.event_id)
+            except OutcomeConflictError:
+                conflicts.append(trade_id)
+            except (TypeError, ValueError) as exc:
+                errors.append({"trade_id": trade_id, "error": str(exc)[:160]})
+
+        return {
+            "processed": processed,
+            "replayed": replayed,
+            "conflicts": conflicts,
+            "errors": errors,
+            "expert_weights": self._outcome_engine.get_normalized_weights(),
+        }
 
     def analyze_confidence_bias(self, min_closed: int = 10) -> dict[str, Any]:
         """Compare Bob confidence at entry with real closed-trade outcomes."""

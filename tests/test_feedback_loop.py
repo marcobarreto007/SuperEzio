@@ -14,6 +14,7 @@ def _add_closed_trade(
     *,
     win: bool,
     verdict: str,
+    expert_attribution: dict[str, float] | None = None,
 ) -> None:
     entry_dt = datetime.now(timezone.utc) - timedelta(days=1)
     trade = PaperTrade(
@@ -28,6 +29,9 @@ def _add_closed_trade(
         verdict_at_entry=verdict,
         risk_assessment="moderate",
         expected_holding_period="swing",
+        confidence_at_entry=0.8,
+        risk_at_entry=100.0,
+        expert_attribution=expert_attribution or {},
     )
     journal.open_trade(trade)
     journal.close_trade(
@@ -100,3 +104,29 @@ def test_learning_cycle_includes_bias_report_without_real_memory_write(tmp_path)
     assert results["bias_report"]["bias"] == "overconfidence"
     assert results["theses_closed"] == 0
     assert "CALIBRACAO BOB VS OUTCOME" in results["bob_context"]
+
+
+def test_learning_cycle_processes_each_terminal_outcome_once(tmp_path):
+    journal = PaperJournal(tmp_path / "journal.jsonl")
+    _add_closed_trade(
+        journal,
+        "winner-001",
+        win=True,
+        verdict="BUY_CANDIDATE confidence 80",
+        expert_attribution={"fundamental": 0.9},
+    )
+
+    loop = FeedbackLoop(
+        journal_path=journal.path,
+        learning_log_path=tmp_path / "learning.jsonl",
+        outcome_db_path=tmp_path / "outcomes.sqlite3",
+    )
+    first = loop.run_learning_cycle(record_memory=False)["adaptive_outcomes"]
+    replay = loop.run_learning_cycle(record_memory=False)["adaptive_outcomes"]
+
+    assert first["processed"] == ["winner-001:v1"]
+    assert first["replayed"] == []
+    assert first["expert_weights"] == {"fundamental": 1.0}
+    assert replay["processed"] == []
+    assert replay["replayed"] == ["winner-001:v1"]
+    assert replay["expert_weights"] == first["expert_weights"]
