@@ -22,6 +22,10 @@ from core.idempotency import (
     mark_processed,
     enqueue_dead_letter,
 )
+from core.trading.execution_policy import (
+    adaptive_sizing_config as _adaptive_sizing_config,
+    expert_consensus_block_reason as _expert_consensus_block_reason,
+)
 
 logger = get_logger(__name__)
 
@@ -306,6 +310,7 @@ async def auto_execute_paper(state: dict) -> dict:
             "qty": qty,
             "order_type": "LMT",
             "limit_price": limit_price,
+            "stop_loss_price": limit_price * (1 - sizing_config["default_stop_pct"]),
         },
     )
 
@@ -679,34 +684,3 @@ def _extract_learning_context(state: dict, qty: int, entry_price: float) -> dict
         "risk_at_entry": abs(float(entry_price) * int(qty)) * stop_loss_pct,
         "expert_attribution": attribution,
     }
-
-
-def _adaptive_sizing_config(state: dict) -> dict[str, float]:
-    """Apply adaptive constraints without ever loosening the 10% safety ceiling."""
-    adaptive = state.get("adaptive_config") or {}
-    try:
-        requested_position = float(adaptive.get("max_position_pct", 0.10))
-    except (AttributeError, TypeError, ValueError):
-        requested_position = 0.10
-    try:
-        requested_stop = float(adaptive.get("stop_loss_pct", 0.05))
-    except (AttributeError, TypeError, ValueError):
-        requested_stop = 0.05
-
-    return {
-        "max_position_pct": max(0.0, min(0.10, requested_position)),
-        "default_stop_pct": max(0.01, min(0.50, requested_stop)),
-    }
-
-
-def _expert_consensus_block_reason(state: dict) -> str | None:
-    """Fail closed only when deterministic negative consensus has useful coverage."""
-    consensus = state.get("expert_consensus") or {}
-    try:
-        coverage = float(consensus.get("weight_coverage", 0.0) or 0.0)
-        score = float(consensus.get("score", 0.0) or 0.0)
-    except (AttributeError, TypeError, ValueError):
-        return None
-    if consensus.get("decision") == "BLOCK" and coverage >= 0.30:
-        return f"learned expert consensus blocked order: score={score:.3f}, coverage={coverage:.3f}"
-    return None
