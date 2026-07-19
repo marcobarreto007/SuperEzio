@@ -249,8 +249,9 @@ def test_veracity_gate():
 
     gate = VeracityGate()
     result = gate.verify([], {})
-    assert result.passed is True
-    assert result.confidence == 1.0
+    assert result.passed is False
+    assert result.confidence == 0.0
+    assert "independentes" in result.details
 
 
 def test_veracity_gate_mismatch():

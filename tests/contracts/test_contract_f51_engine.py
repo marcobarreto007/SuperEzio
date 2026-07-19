@@ -256,8 +256,8 @@ def test_expand_budget_above_threshold():
 def test_veracity_gate_empty_claims():
     gate = VeracityGate()
     result = gate.verify([], {})
-    assert result.passed is True
-    assert result.confidence == 1.0
+    assert result.passed is False
+    assert result.confidence == 0.0
     assert result.total == 0
 
 
