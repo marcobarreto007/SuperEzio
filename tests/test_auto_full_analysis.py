@@ -7,6 +7,11 @@ async def test_auto_full_analysis_uses_collector_state_for_decision_stack(monkey
 
     events = []
     monkeypatch.setattr(graph_module, "get_stream_writer", lambda: events.append)
+    # This test assumes exactly 1 replica per expert role (6 roles = 6
+    # results). A real .env on disk may set SUPEREZIO_EXPERT_REPLICAS to
+    # something else (e.g. 3, for research mode) — clear it so this test
+    # stays isolated from whatever .env happens to exist on disk.
+    monkeypatch.delenv("SUPEREZIO_EXPERT_REPLICAS", raising=False)
 
     async def fake_collector(state, config=None):
         assert state["route"] == "market_scan"

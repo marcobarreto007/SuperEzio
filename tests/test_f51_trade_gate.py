@@ -20,6 +20,25 @@ from core.pipeline.f51_trade_gate import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _isolate_from_real_env_file(monkeypatch):
+    """Most tests in this file exercise gates *after* GATE 1 (execution
+    freeze) and assume freeze is off by default. is_execution_frozen() also
+    checks SUPEREZIO_LIVE_TRADING_DISABLED / SUPEREZIO_RESEARCH_PAPER_ONLY /
+    SUPEREZIO_DAYTRADE_PAPER_ONLY (added to keep the rest of the system
+    paper-only by default — see docs/audit/phase6). If a real .env on disk
+    sets any of those (e.g. for scripts/questrade_order_assist.py), every
+    test below GATE 1 would wrongly see EXECUTION_FREEZE instead of the gate
+    it actually means to exercise. Clear them here so this file's tests stay
+    isolated from whatever .env happens to exist on disk; individual tests
+    that specifically test freeze behavior (TestExecutionFreeze) still set
+    F51_TRADING_EXECUTION_FREEZE explicitly as needed.
+    """
+    monkeypatch.delenv("SUPEREZIO_LIVE_TRADING_DISABLED", raising=False)
+    monkeypatch.delenv("SUPEREZIO_RESEARCH_PAPER_ONLY", raising=False)
+    monkeypatch.delenv("SUPEREZIO_DAYTRADE_PAPER_ONLY", raising=False)
+
+
 class TestExecutionFreeze:
     def test_freeze_default_is_on(self):
         # When env var is explicitly set to true, freeze must be ON
@@ -36,6 +55,8 @@ class TestExecutionFreeze:
 
     def test_freeze_off_proceeds(self, monkeypatch):
         monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "false")
+        # SUPEREZIO_* isolation handled by the _isolate_from_real_env_file
+        # autouse fixture above.
         result = evaluate_trade_gate(
             message="comprar 10 AAPL", ticker="AAPL", qty=10, limit_price=150.0
         )

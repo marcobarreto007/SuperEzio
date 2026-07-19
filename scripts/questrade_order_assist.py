@@ -31,17 +31,25 @@ import sys
 import time
 from pathlib import Path
 
+from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright, Page, TimeoutError as PWTimeout
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 LOGIN_URL = "https://login.questrade.com/"
 ORDER_ENTRY_URL = "https://my.questrade.com/trading/"
 
-# Best-effort selectors — VERIFY against the live DOM before relying on this.
-# Keeping them centralized here means a DOM change only needs one edit.
+# Verified against the live DOM on 2026-07-19 via scripts/_debug_open_questrade.py
+# (login page only — order-entry selectors below are still best-effort
+# placeholders and have NOT been verified against a live logged-in session).
 SELECTORS = {
-    "username_input": "input#username, input[name='username']",
-    "password_input": "input#password, input[name='password']",
-    "login_submit": "button[type='submit']",
+    "cookie_accept": "#onetrust-accept-btn-handler",
+    "username_input": "input#userId",
+    "password_input": "input#password",
+    "login_submit": "button#btnLogin",
+    # NOT verified yet — order-entry screen requires a live logged-in
+    # session to inspect. Update these after a first real login using the
+    # same _debug_open_questrade.py pattern on the trading dashboard.
     "symbol_search": "input[placeholder*='symbol' i], input[aria-label*='symbol' i]",
     "buy_tab": "button:has-text('Buy'), [role='tab']:has-text('Buy')",
     "sell_tab": "button:has-text('Sell'), [role='tab']:has-text('Sell')",
@@ -60,6 +68,32 @@ def _pause_for_human(message: str) -> None:
     input("Press Enter here once you've done that in the browser window... ")
 
 
+def _wait_for_url_no_input(page: Page, url_glob: str, message: str, timeout_s: int = 300) -> None:
+    """Poll for a URL change instead of blocking on input().
+
+    input() only works when this script has an interactive terminal attached
+    to it. When launched as a detached/background process (no stdin), input()
+    raises EOFError immediately and kills the whole run, leaving an orphaned
+    browser window nobody controls anymore. Polling the page URL lets a human
+    complete 2FA/Turnstile in the visible browser window with no terminal
+    interaction required at all.
+    """
+    print(f"\n[WAITING] {message}")
+    print(f"(polling for navigation to match '{url_glob}', up to {timeout_s}s — no terminal input needed)")
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        try:
+            page.wait_for_url(url_glob, timeout=2000)
+            print("[OK] Navigation detected — continuing.")
+            return
+        except PWTimeout:
+            continue
+    raise TimeoutError(
+        f"Gave up waiting for URL matching '{url_glob}' after {timeout_s}s. "
+        "The browser window is still open — you can inspect it manually."
+    )
+
+
 def login(page: Page) -> None:
     username = os.getenv("QUESTRADE_USERNAME", "")
     password = os.getenv("QUESTRADE_PASSWORD", "")
@@ -70,18 +104,36 @@ def login(page: Page) -> None:
         )
 
     page.goto(LOGIN_URL)
+    page.wait_for_timeout(3000)  # let the SPA render (site keeps network busy)
+
+    try:
+        page.click(SELECTORS["cookie_accept"], timeout=3000)
+    except PWTimeout:
+        pass  # cookie banner may not appear on every load
+
     page.fill(SELECTORS["username_input"], username)
     page.fill(SELECTORS["password_input"], password)
+
+    # The login page includes a Cloudflare Turnstile challenge
+    # (cf-turnstile-response). It may resolve silently, or require a
+    # visible click/checkbox — we cannot predict or automate that, so if
+    # login doesn't proceed, pause and let the operator handle it.
     page.click(SELECTORS["login_submit"])
 
-    # Questrade will very likely show a 2FA / one-time-code screen here.
-    # We cannot and do not try to bypass it — it's designed to require you.
+    # Questrade will very likely show a 2FA / one-time-code screen here
+    # (or the Turnstile challenge itself). We cannot and do not try to
+    # bypass either — they're designed to require a human. We poll the URL
+    # instead of blocking on input() so this works even when this script has
+    # no interactive terminal attached (see _wait_for_url_no_input).
     try:
         page.wait_for_url("**/trading/**", timeout=8000)
     except PWTimeout:
-        _pause_for_human(
-            "Looks like a 2FA/verification step. Complete it in the browser, "
-            "then wait for the trading dashboard to load."
+        _wait_for_url_no_input(
+            page,
+            "**/trading/**",
+            "Looks like a 2FA/verification step (or the Cloudflare "
+            "Turnstile challenge). Complete it in the browser window — "
+            "no need to type anything here.",
         )
 
 
@@ -146,25 +198,27 @@ def main() -> int:
         context = browser.new_context()
         page = context.new_page()
 
-        try:
-            login(page)
-            fill_order_ticket(
-                page,
-                ticker=args.ticker.upper(),
-                side=args.side,
-                quantity=args.quantity,
-                limit_price=args.limit_price,
-            )
-            shot = screenshot_ticket(page, args.ticker.upper())
-            print(f"Screenshot of the filled ticket saved to: {shot}")
-            _pause_for_human(
-                "Review the order ticket in the browser. This script will "
-                "close the browser once you press Enter — it will NOT click "
-                "confirm/submit for you."
-            )
-        finally:
-            context.close()
-            browser.close()
+        login(page)
+        fill_order_ticket(
+            page,
+            ticker=args.ticker.upper(),
+            side=args.side,
+            quantity=args.quantity,
+            limit_price=args.limit_price,
+        )
+        shot = screenshot_ticket(page, args.ticker.upper())
+        print(f"Screenshot of the filled ticket saved to: {shot}")
+        print(
+            "\n[DONE] Order ticket filled. This script will NOT close the "
+            "browser and will NOT click confirm/submit — review everything "
+            "on screen yourself, then click confirm in the real browser "
+            "window if correct, or just close the window if not. This "
+            "script's job ends here."
+        )
+        # Deliberately not calling context.close()/browser.close(): the
+        # window must stay open and under the operator's control for the
+        # human-only confirm click. Exiting this process (not headless)
+        # leaves the already-launched browser window alive on Windows.
 
     return 0
 

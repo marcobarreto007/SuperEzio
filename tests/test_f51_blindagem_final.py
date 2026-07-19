@@ -205,6 +205,12 @@ class TestFreezeBlocksLowLevelOrder:
         monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "false")
         monkeypatch.setenv("IBKR_HOST", "127.0.0.1")
         monkeypatch.setenv("IBKR_PORT", "7497")
+        # SUPEREZIO_* also freezes execution and must be cleared for this
+        # test to be isolated from any real .env on disk — see
+        # tests/test_f51_trade_gate.py::test_freeze_off_proceeds for context.
+        monkeypatch.delenv("SUPEREZIO_LIVE_TRADING_DISABLED", raising=False)
+        monkeypatch.delenv("SUPEREZIO_RESEARCH_PAPER_ONLY", raising=False)
+        monkeypatch.delenv("SUPEREZIO_DAYTRADE_PAPER_ONLY", raising=False)
 
         from core.pipeline.f51_trade_gate import evaluate_trade_gate
 
