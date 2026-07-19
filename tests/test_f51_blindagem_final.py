@@ -194,6 +194,19 @@ class TestFreezeBlocksLowLevelOrder:
         assert "record_trade_outcome" not in source
         assert "pnl_estimate" not in source
 
+    def test_adaptive_sizing_can_tighten_but_never_loosen_safety_ceiling(self):
+        from core.pipeline.nodes.auto_execute_paper import _adaptive_sizing_config
+
+        tightened = _adaptive_sizing_config(
+            {"adaptive_config": {"max_position_pct": 0.05, "stop_loss_pct": 0.03}}
+        )
+        attempted_loosen = _adaptive_sizing_config(
+            {"adaptive_config": {"max_position_pct": 0.40, "stop_loss_pct": 0.80}}
+        )
+
+        assert tightened == {"max_position_pct": 0.05, "default_stop_pct": 0.03}
+        assert attempted_loosen == {"max_position_pct": 0.10, "default_stop_pct": 0.50}
+
     def test_tool_executor_freeze_blocks(self, monkeypatch):
         """tool_executor bloqueia submit_paper_order com FREEZE=true."""
         monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "true")

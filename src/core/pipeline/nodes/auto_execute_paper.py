@@ -186,12 +186,15 @@ async def auto_execute_paper(state: dict) -> dict:
     from core.mission_context import get_mission_equity
 
     paper_equity = get_mission_equity()
+    sizing_config = _adaptive_sizing_config(state)
 
     try:
         from core.trading.position_sizer import PositionSizer
 
         if limit_price > 0:
-            size = PositionSizer(equity=paper_equity).size(entry_price=limit_price)
+            if sizing_config["max_position_pct"] <= 0:
+                return {"paper_exec_blocked": "adaptive_config:max_position_zero"}
+            size = PositionSizer(equity=paper_equity, **sizing_config).size(entry_price=limit_price)
             if size.shares <= 0:
                 writer(
                     {
@@ -266,7 +269,7 @@ async def auto_execute_paper(state: dict) -> dict:
             "qty": qty,
             "limit_price": limit_price,
             "position_value": round(position_value, 2),
-            "max_position_pct": 10,
+            "max_position_pct": sizing_config["max_position_pct"] * 100,
             "data_age_s": round(data_age_s, 1),
             "data_source": "datahub_scan" if limit_price > 0 else "fallback",
         }
@@ -663,4 +666,22 @@ def _extract_learning_context(state: dict, qty: int, entry_price: float) -> dict
         "confidence_at_entry": max(0.0, min(1.0, confidence_at_entry)),
         "risk_at_entry": abs(float(entry_price) * int(qty)) * stop_loss_pct,
         "expert_attribution": attribution,
+    }
+
+
+def _adaptive_sizing_config(state: dict) -> dict[str, float]:
+    """Apply adaptive constraints without ever loosening the 10% safety ceiling."""
+    adaptive = state.get("adaptive_config") or {}
+    try:
+        requested_position = float(adaptive.get("max_position_pct", 0.10))
+    except (AttributeError, TypeError, ValueError):
+        requested_position = 0.10
+    try:
+        requested_stop = float(adaptive.get("stop_loss_pct", 0.05))
+    except (AttributeError, TypeError, ValueError):
+        requested_stop = 0.05
+
+    return {
+        "max_position_pct": max(0.0, min(0.10, requested_position)),
+        "default_stop_pct": max(0.01, min(0.50, requested_stop)),
     }
