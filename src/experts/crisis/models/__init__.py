@@ -19,7 +19,14 @@ class BaseCrisisModel:
         raise NotImplementedError("Subclass must implement evaluate()")
 
     @staticmethod
-    def _insufficient_data(sensor_name: str, explanation: str = "") -> SensorResult:
+    def _insufficient_data(
+        sensor_name: str,
+        explanation: str = "",
+        *,
+        horizon: str | None = None,
+        sample_size: int = 0,
+        as_of: str | None = None,
+    ) -> SensorResult:
         """Factory for the repeated 'insufficient data' return pattern."""
         return SensorResult(
             sensor_name=sensor_name,
@@ -27,6 +34,11 @@ class BaseCrisisModel:
             confidence=0.0,
             status="insufficient_data",
             explanation=explanation or "Dados insuficientes para calculo do sensor.",
+            method_kind="unavailable",
+            horizon=horizon,
+            sample_size=sample_size,
+            as_of=as_of,
+            calibration_status="unavailable",
         )
 
     @staticmethod
@@ -36,6 +48,12 @@ class BaseCrisisModel:
         confidence: float,
         explanation: str,
         details: dict | None = None,
+        *,
+        method_kind: str = "heuristic",
+        horizon: str | None = None,
+        sample_size: int = 0,
+        as_of: str | None = None,
+        calibration_status: str = "not_calibrated",
     ) -> SensorResult:
         """Factory for the repeated SensorResult return pattern with auto-classified status."""
         return SensorResult(
@@ -44,5 +62,10 @@ class BaseCrisisModel:
             confidence=round(confidence, 3),
             status="ok",
             explanation=explanation,
+            method_kind=method_kind,
+            horizon=horizon,
+            sample_size=sample_size,
+            as_of=as_of,
+            calibration_status=calibration_status,
             details=details or {},
         )

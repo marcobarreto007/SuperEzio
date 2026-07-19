@@ -117,7 +117,8 @@ def _make_crisis_input(**kw):
     obs_list = []
     for i in range(24):
         obs_dict = dict(defaults)
-        obs_dict["date"] = f"2024-{(i % 12) + 1:02d}-01"
+        year, month = divmod(i, 12)
+        obs_dict["date"] = f"{2024 + year:04d}-{month + 1:02d}-01"
         obs_list.append(MacroObservation(**obs_dict))
     return CrisisInput(country="CA", observations=obs_list)
 
@@ -220,7 +221,9 @@ def test_crisis_expert_analyze():
     result = expert.analyze(inp)
     assert hasattr(result, "regime")
     assert hasattr(result, "alert_level")
-    assert result.regime in ("normal", "overheating", "stress", "crisis")
+    assert result.status == "unavailable"
+    assert result.regime == "unavailable"
+    assert result.alert_level == "unavailable"
 
 
 # ── Core Math Crisis ──
@@ -266,6 +269,9 @@ def test_crisis_aggregate():
     result = crisis_aggregate(data, models=["bis_credit_gap", "minsky_keen", "hawkes_stress"])
     assert isinstance(result, dict)
     assert "aggregate_score" in result
+    assert result["status"] == "unavailable"
+    assert result["regime"] == "unavailable"
+    assert result["alert_level"] == "unavailable"
 
 
 def test_crisis_classify():

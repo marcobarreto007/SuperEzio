@@ -1,5 +1,7 @@
 """Smoke tests — CrisisMath ensemble, scoring, normalization (deterministico, sem rede)."""
 
+from datetime import date, timedelta
+
 import numpy as np
 import pytest
 from hypothesis import given, settings, strategies as st
@@ -24,6 +26,15 @@ from experts.crisis.models.lppls_bubble import (
     _zero_crossings,
     _lppls_fit_quality,
 )
+
+
+def _month(index: int) -> str:
+    year, month_zero_based = divmod(index, 12)
+    return f"{2024 + year:04d}-{month_zero_based + 1:02d}"
+
+
+def _day(index: int) -> str:
+    return (date(2024, 1, 1) + timedelta(days=index)).isoformat()
 
 
 def _ok_sensor(name, score):
@@ -92,6 +103,25 @@ class TestCrisisInput:
         ci = CrisisInput(market_series=ms)
         assert ci.market_series[0].close == 100.0
 
+    @pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+    def test_rejects_non_finite_values(self, value):
+        with pytest.raises(ValidationError):
+            MarketObservation(date="2024-01-01", close=value)
+
+    def test_rejects_invalid_dates_and_frequency(self):
+        with pytest.raises(ValidationError):
+            MacroObservation(date="t0", gdp_growth_yoy=0.01)
+        with pytest.raises(ValidationError):
+            CrisisInput(frequency="sometimes")
+
+    def test_rejects_non_monotonic_series(self):
+        observations = [
+            MacroObservation(date="2024-02", gdp_growth_yoy=0.01),
+            MacroObservation(date="2024-01", gdp_growth_yoy=0.02),
+        ]
+        with pytest.raises(ValidationError):
+            CrisisInput(observations=observations)
+
 
 class TestCrisisReport:
     def test_minimal(self):
@@ -116,6 +146,7 @@ class TestAggregateScores:
         assert result["systemic_risk_score"] == 0.0
         assert result["final_risk_score"] == 0.0
         assert result["confidence"] == 0.0
+        assert result["status"] == "unavailable"
 
     def test_single_sensor(self):
         result = aggregate_scores(
@@ -329,7 +360,7 @@ class TestBISCreditGapModel:
     def test_rising_gap(self):
         """Rising credit/gdp → positive gap → higher score"""
         obs = [
-            MacroObservation(date=f"2024-{m:02d}", credit_to_gdp=100.0 + m * 5.0)
+            MacroObservation(date=_month(m - 1), credit_to_gdp=100.0 + m * 5.0)
             for m in range(1, 25)
         ]
         ci = CrisisInput(observations=obs)
@@ -508,7 +539,7 @@ class TestLPPLSBubbleModel:
     def test_insufficient_data(self):
         ci = CrisisInput(
             market_series=[
-                MarketObservation(date=f"2024-{d:03d}", close=100.0) for d in range(1, 30)
+                MarketObservation(date=_day(d), close=100.0) for d in range(1, 30)
             ]
         )
         model = LPPLSBubbleModel()
@@ -517,7 +548,7 @@ class TestLPPLSBubbleModel:
 
     def test_stable_prices(self):
         """Flat prices → no bubble signal → low score"""
-        ms = [MarketObservation(date=f"2024-{d:03d}", close=100.0) for d in range(1, 70)]
+        ms = [MarketObservation(date=_day(d), close=100.0) for d in range(1, 70)]
         ci = CrisisInput(market_series=ms)
         model = LPPLSBubbleModel()
         result = model.evaluate(ci)
@@ -526,7 +557,7 @@ class TestLPPLSBubbleModel:
 
     def test_stress_signal(self):
         """Slightly trending prices → some signal"""
-        ms = [MarketObservation(date=f"2024-{d:03d}", close=100.0 + d * 0.02) for d in range(1, 70)]
+        ms = [MarketObservation(date=_day(d), close=100.0 + d * 0.02) for d in range(1, 70)]
         ci = CrisisInput(market_series=ms)
         model = LPPLSBubbleModel()
         result = model.evaluate(ci)

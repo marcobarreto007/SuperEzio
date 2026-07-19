@@ -8,15 +8,15 @@ Modelos:
   bis_credit_gap      — BIS Credit-to-GDP Gap Sensor
   credit_asset_growth — Credit-Asset Growth Divergence
   debt_service_ratio  — Debt Service Ratio Monitor
-  growth_at_risk      — Growth-at-Risk (quantile regression lite)
+  growth_at_risk      — Growth-at-Risk (quantile regression)
   hawkes_stress       — Hawkes Stress Process (clustering de eventos)
   imf_mispricing      — IMF House Price Mispricing
   lppls_bubble        — LPPLS Bubble Detection (log-periodic power law)
   markov_regime       — Markov Regime Switching
   minsky_keen         — Minsky-Keen Financial Instability
-  network_contagion   — Network Contagion (CoVaR)
+  network_contagion   — Network Contagion (requires bank exposures)
   shiller_valuation   — Shiller CAPE Valuation
-  systemic_bank_risk  — Systemic Bank Risk (SRISK lite)
+  systemic_bank_risk  — Systemic Bank Risk (requires bank balance sheets)
 """
 
 from __future__ import annotations
@@ -71,9 +71,27 @@ def _dict_to_observations(data: dict[str, Any]) -> list[MacroObservation]:
     if obs_list:
         return [MacroObservation(**o) if isinstance(o, dict) else o for o in obs_list]
 
-    # Fallback: constrói a partir de features planas
+    feature_names = {
+        "credit_to_gdp",
+        "credit_growth_yoy",
+        "gdp_growth_yoy",
+        "debt_service_ratio",
+        "house_price_index",
+        "rent_index",
+        "income_index",
+        "equity_index",
+        "policy_rate",
+        "unemployment_rate",
+        "inflation_yoy",
+    }
+    if not any(data.get(name) is not None for name in feature_names):
+        return []
+    if not data.get("date"):
+        raise ValueError("flat crisis observations require an explicit ISO-8601 date")
+
+    # Compatibility for one flat observation, without inventing a timestamp.
     obs = MacroObservation(
-        date=data.get("date", "unknown"),
+        date=data["date"],
         credit_to_gdp=data.get("credit_to_gdp"),
         credit_growth_yoy=data.get("credit_growth_yoy"),
         gdp_growth_yoy=data.get("gdp_growth_yoy"),
@@ -93,10 +111,13 @@ def _dict_to_market_series(data: dict[str, Any]) -> list[MarketObservation] | No
     """Converte dict para MarketObservation series."""
     market = data.get("market_series") or data.get("market")
     if not market:
-        # Fallback: usa close prices se disponíveis
+        # Closing-price arrays need real dates; synthetic t0/t1 labels are forbidden.
         prices = data.get("prices") or data.get("close_prices") or []
         if prices:
-            return [MarketObservation(date=f"t{i}", close=p) for i, p in enumerate(prices)]
+            dates = data.get("market_dates") or []
+            if len(dates) != len(prices):
+                raise ValueError("prices require market_dates with identical length")
+            return [MarketObservation(date=d, close=p) for d, p in zip(dates, prices)]
         return None
     if isinstance(market, list):
         return [MarketObservation(**m) if isinstance(m, dict) else m for m in market]
@@ -145,6 +166,11 @@ def crisis_evaluate(model_name: str, data: dict[str, Any]) -> dict[str, Any]:
             "confidence": result.confidence,
             "status": result.status,
             "explanation": result.explanation,
+            "method_kind": result.method_kind,
+            "horizon": result.horizon,
+            "sample_size": result.sample_size,
+            "as_of": result.as_of,
+            "calibration_status": result.calibration_status,
             "details": result.details,
         }
     except Exception as exc:
@@ -181,12 +207,14 @@ def crisis_aggregate(
     if not scores:
         return {
             "results": results,
-            "aggregate_score": 0.0,
+            "status": "unavailable",
+            "aggregate_score": None,
             "aggregate_confidence": 0.0,
-            "regime": "normal",
-            "alert_level": "green",
+            "regime": "unavailable",
+            "alert_level": "unavailable",
             "models_run": len(to_run),
             "models_ok": 0,
+            "models_failed": len(to_run),
         }
 
     avg_score = sum(scores) / len(scores)
@@ -196,6 +224,7 @@ def crisis_aggregate(
 
     return {
         "results": results,
+        "status": "ok" if len(scores) == len(to_run) else "partial",
         "aggregate_score": round(avg_score, 4),
         "aggregate_confidence": round(avg_conf, 4),
         "regime": regime,

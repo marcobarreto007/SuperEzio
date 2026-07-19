@@ -95,6 +95,8 @@ class CrisisMathExpert:
                         confidence=0.0,
                         status="error",
                         explanation=f"Erro interno no sensor: {str(e)}",
+                        method_kind="unavailable",
+                        calibration_status="failed",
                     )
                 )
 
@@ -102,15 +104,20 @@ class CrisisMathExpert:
         agg = aggregate_scores(sensor_results)
 
         # 3. Classificação
-        alert = classify_alert_level(agg["final_risk_score"])
-        regime = classify_regime(
-            agg["final_risk_score"],
-            agg["bubble_risk_score"],
-            agg["liquidity_stress_score"],
-        )
+        if agg["status"] == "unavailable":
+            alert = "unavailable"
+            regime = "unavailable"
+        else:
+            alert = classify_alert_level(agg["final_risk_score"])
+            regime = classify_regime(
+                agg["final_risk_score"],
+                agg["bubble_risk_score"],
+                agg["liquidity_stress_score"],
+            )
 
         # 4. Monta Relatório Parcial
         report = CrisisReport(
+            status=agg["status"],
             systemic_risk_score=agg["systemic_risk_score"],
             bubble_risk_score=agg["bubble_risk_score"],
             liquidity_stress_score=agg["liquidity_stress_score"],

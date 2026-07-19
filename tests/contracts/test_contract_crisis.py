@@ -43,6 +43,7 @@ def test_crisis_ensemble_aggregate_empty():
     assert "final_risk_score" in result
     assert result["final_risk_score"] == 0.0
     assert result["confidence"] == 0.0
+    assert result["status"] == "unavailable"
 
 
 # ---------------------------------------------------------------------------
@@ -64,6 +65,23 @@ def test_crisis_input_default():
     inp = CrisisInput()
     assert inp.frequency == "monthly"
     assert inp.observations == []
+
+
+def test_sensor_result_exposes_method_metadata():
+    from experts.crisis.contracts.schemas import SensorResult
+
+    result = SensorResult(
+        sensor_name="example",
+        score=0.0,
+        confidence=0.0,
+        status="insufficient_data",
+        explanation="no observations",
+    )
+    assert result.method_kind == "unavailable"
+    assert result.horizon is None
+    assert result.sample_size == 0
+    assert result.as_of is None
+    assert result.calibration_status == "unavailable"
 
 
 def test_crisis_report_default():

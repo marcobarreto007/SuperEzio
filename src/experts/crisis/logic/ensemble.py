@@ -2,11 +2,12 @@
 Ensemble logic to combine sensor scores.
 """
 
-from typing import Dict, List
+from typing import Any
+
 from ..contracts.schemas import SensorResult
 
 
-def aggregate_scores(results: List[SensorResult]) -> Dict[str, float]:
+def aggregate_scores(results: list[SensorResult]) -> dict[str, Any]:
     valid_results = {r.sensor_name: r.score for r in results if r.status == "ok"}
 
     # Defaults
@@ -17,10 +18,15 @@ def aggregate_scores(results: List[SensorResult]) -> Dict[str, float]:
         "liquidity_stress_score": 0.0,
         "final_risk_score": 0.0,
         "confidence": 0.0,
+        "status": "unavailable",
+        "models_available": 0,
     }
 
     if not valid_results:
         return scores
+
+    scores["status"] = "ok" if len(valid_results) == len(results) else "partial"
+    scores["models_available"] = len(valid_results)
 
     def weighted_avg(weights: dict) -> float:
         total_w = 0.0
