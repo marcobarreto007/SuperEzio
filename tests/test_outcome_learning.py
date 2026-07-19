@@ -25,8 +25,15 @@ def _closed_trade(**overrides):
         "exit_date": "2026-07-19T12:00:00+00:00",
         "outcome": "win",
         "confidence_at_entry": 80.0,
+        "prediction_probability_at_entry": 0.8,
+        "prediction_class_at_entry": "UP",
+        "calibration_status": "calibrated",
+        "model_id": "neural-test-v1",
         "risk_at_entry": 50.0,
-        "expert_attribution": {"crisis": 0.7, "fundamental": 0.9},
+        "expert_predictions": {
+            "crisis": {"direction": "UP", "confidence": 0.7},
+            "fundamental": {"direction": "UP", "confidence": 0.9},
+        },
     }
     trade.update(overrides)
     return trade
@@ -74,14 +81,18 @@ def test_non_terminal_trade_never_learns(tmp_path, change):
 
 def test_loss_reduces_losing_expert_relative_to_winner(tmp_path):
     engine = OutcomeLearningEngine(tmp_path / "learning.sqlite3")
-    engine.process_trade(_closed_trade(expert_attribution={"fundamental_value": 0.8}))
+    engine.process_trade(
+        _closed_trade(
+            expert_predictions={"fundamental_value": {"direction": "UP", "confidence": 0.8}}
+        )
+    )
     engine.process_trade(
         _closed_trade(
             trade_id="trade-002",
             outcome="loss",
             exit_price=90.0,
             pnl_amount=-100.0,
-            expert_attribution={"macro_risk": 0.8},
+            expert_predictions={"macro_risk": {"direction": "UP", "confidence": 0.8}},
         )
     )
 
@@ -104,7 +115,12 @@ def test_effective_weights_blend_learned_reliability_and_remain_normalized(tmp_p
     db_path = tmp_path / "learning.sqlite3"
     engine = OutcomeLearningEngine(db_path)
     engine.process_trade(
-        _closed_trade(expert_attribution={"fundamental_value": 0.9, "macro_risk": 0.7})
+        _closed_trade(
+            expert_predictions={
+                "fundamental_value": {"direction": "UP", "confidence": 0.9},
+                "macro_risk": {"direction": "UP", "confidence": 0.7},
+            }
+        )
     )
     engine.process_trade(
         _closed_trade(
@@ -112,7 +128,7 @@ def test_effective_weights_blend_learned_reliability_and_remain_normalized(tmp_p
             outcome="loss",
             exit_price=90.0,
             pnl_amount=-100.0,
-            expert_attribution={"macro_risk": 0.7},
+            expert_predictions={"macro_risk": {"direction": "UP", "confidence": 0.7}},
         )
     )
 
@@ -124,19 +140,60 @@ def test_effective_weights_blend_learned_reliability_and_remain_normalized(tmp_p
 
 def test_role_aliases_update_the_canonical_pipeline_role(tmp_path):
     engine = OutcomeLearningEngine(tmp_path / "learning.sqlite3")
-    engine.process_trade(_closed_trade(expert_attribution={"fundamental": 0.9}))
+    engine.process_trade(
+        _closed_trade(
+            expert_predictions={"fundamental": {"direction": "UP", "confidence": 0.9}}
+        )
+    )
     assert engine.get_normalized_weights() == {"fundamental_value": 1.0}
 
 
-def test_confidence_controls_credit_assignment(tmp_path):
+def test_opposite_expert_directions_receive_opposite_credit(tmp_path):
     engine = OutcomeLearningEngine(tmp_path / "learning.sqlite3")
     engine.process_trade(
         _closed_trade(
-            outcome="loss",
-            exit_price=90.0,
-            pnl_amount=-100.0,
-            expert_attribution={"fundamental_value": 0.9, "macro_risk": 0.1},
+            expert_predictions={
+                "fundamental_value": {"direction": "UP", "confidence": 0.9},
+                "macro_risk": {"direction": "DOWN", "confidence": 0.9},
+            },
         )
     )
     weights = engine.get_normalized_weights()
-    assert weights["macro_risk"] > weights["fundamental_value"]
+    assert weights["fundamental_value"] > weights["macro_risk"]
+
+
+def test_legacy_confidence_without_direction_does_not_change_weights(tmp_path):
+    engine = OutcomeLearningEngine(tmp_path / "learning.sqlite3")
+    result = engine.process_trade(
+        _closed_trade(expert_predictions={}, expert_attribution={"fundamental": 0.99})
+    )
+    assert result.normalized_weights == {}
+
+
+def test_uncalibrated_entry_score_is_not_used_as_probability(tmp_path):
+    engine = OutcomeLearningEngine(tmp_path / "learning.sqlite3")
+    result = engine.process_trade(
+        _closed_trade(
+            calibration_status="not_calibrated",
+            prediction_probability_at_entry=0.99,
+        )
+    )
+    assert result.reward["confidence_alignment"] == 0.0
+
+
+def test_price_direction_not_trade_win_drives_expert_credit(tmp_path):
+    engine = OutcomeLearningEngine(tmp_path / "learning.sqlite3")
+    result = engine.process_trade(
+        _closed_trade(
+            direction="short",
+            outcome="win",
+            exit_price=90.0,
+            pnl_amount=100.0,
+            prediction_class_at_entry="DOWN",
+            expert_predictions={
+                "fundamental_value": {"direction": "DOWN", "confidence": 0.9},
+                "macro_risk": {"direction": "UP", "confidence": 0.9},
+            },
+        )
+    )
+    assert result.normalized_weights["fundamental_value"] > result.normalized_weights["macro_risk"]

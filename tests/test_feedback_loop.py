@@ -15,6 +15,7 @@ def _add_closed_trade(
     win: bool,
     verdict: str,
     expert_attribution: dict[str, float] | None = None,
+    expert_predictions: dict[str, dict] | None = None,
 ) -> None:
     entry_dt = datetime.now(timezone.utc) - timedelta(days=1)
     trade = PaperTrade(
@@ -32,6 +33,7 @@ def _add_closed_trade(
         confidence_at_entry=0.8,
         risk_at_entry=100.0,
         expert_attribution=expert_attribution or {},
+        expert_predictions=expert_predictions or {},
     )
     journal.open_trade(trade)
     journal.close_trade(
@@ -114,6 +116,7 @@ def test_learning_cycle_processes_each_terminal_outcome_once(tmp_path):
         win=True,
         verdict="BUY_CANDIDATE confidence 80",
         expert_attribution={"fundamental": 0.9},
+        expert_predictions={"fundamental": {"direction": "UP", "confidence": 0.9}},
     )
 
     loop = FeedbackLoop(
@@ -124,9 +127,9 @@ def test_learning_cycle_processes_each_terminal_outcome_once(tmp_path):
     first = loop.run_learning_cycle(record_memory=False)["adaptive_outcomes"]
     replay = loop.run_learning_cycle(record_memory=False)["adaptive_outcomes"]
 
-    assert first["processed"] == ["winner-001:v1"]
+    assert first["processed"] == ["winner-001:v2"]
     assert first["replayed"] == []
     assert first["expert_weights"] == {"fundamental_value": 1.0}
     assert replay["processed"] == []
-    assert replay["replayed"] == ["winner-001:v1"]
+    assert replay["replayed"] == ["winner-001:v2"]
     assert replay["expert_weights"] == first["expert_weights"]

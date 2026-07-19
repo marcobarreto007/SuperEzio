@@ -89,10 +89,32 @@ class TestPaperJournal:
             {
                 "message": "buy thesis",
                 "expert_results": [
-                    {"role": "crisis", "ok": True, "confidence": 70},
-                    {"role": "fundamental", "ok": True, "confidence": 0.9},
+                    {
+                        "role": "crisis",
+                        "ok": True,
+                        "confidence": 70,
+                        "verdict": "BEARISH",
+                    },
+                    {
+                        "role": "fundamental",
+                        "ok": True,
+                        "confidence": 0.9,
+                        "verdict": "BULLISH",
+                    },
                 ],
-                "f51_verdict": {"confidence": 80},
+                "f51_verdict": {
+                    "decision_score": 0.8,
+                    "score_type": "uncalibrated_decision_score",
+                },
+                "neural_decision": {
+                    "status": "ready",
+                    "decision": "UP",
+                    "direction_prob": {"up": 0.7, "down": 0.1, "sideways": 0.2},
+                    "calibration_status": "calibrated",
+                    "model_id": "neural-test-v1",
+                    "as_of": "2026-07-19T12:00:00+00:00",
+                    "horizon": 1,
+                },
                 "adaptive_config": {"stop_loss_pct": 0.05},
             },
             {},
@@ -105,12 +127,16 @@ class TestPaperJournal:
 
         assert trade_id == "bob-run-001"
         assert captured["trade"].direction == "long"
-        assert captured["trade"].confidence_at_entry == pytest.approx(0.8)
+        assert captured["trade"].confidence_at_entry == pytest.approx(0.7)
+        assert captured["trade"].prediction_probability_at_entry == pytest.approx(0.7)
+        assert captured["trade"].model_id == "neural-test-v1"
         assert captured["trade"].risk_at_entry == pytest.approx(50.0)
         assert captured["trade"].expert_attribution == {
             "crisis": 0.7,
             "fundamental": 0.9,
         }
+        assert captured["trade"].expert_predictions["crisis"]["direction"] == "DOWN"
+        assert captured["trade"].expert_predictions["fundamental"]["direction"] == "UP"
 
     def test_close_trade_long_win(self, journal, sample_trade):
         """Fecha um trade long com lucro."""

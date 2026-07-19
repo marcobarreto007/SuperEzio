@@ -88,12 +88,46 @@ class TestRewardCompute:
         r_bad = rf.compute(bad)
         assert r_good.confidence_alignment > r_bad.confidence_alignment
 
+    def test_confident_wrong_forecast_is_penalized_more(self):
+        from core.trading.reward import RewardFunction
+
+        rf = RewardFunction()
+        high_confidence_loss = self._make_outcome(pnl=-100.0, confidence_at_entry=0.95)
+        low_confidence_loss = self._make_outcome(pnl=-100.0, confidence_at_entry=0.20)
+        high = rf.compute(high_confidence_loss)
+        low = rf.compute(low_confidence_loss)
+        assert high.confidence_alignment < low.confidence_alignment
+
+    def test_missing_ex_ante_risk_is_unknown_not_one_percent_default(self):
+        from core.trading.reward import RewardFunction
+
+        reward = RewardFunction().compute(self._make_outcome(risk_at_entry=None))
+        assert reward.risk_adjusted_reward == 0.0
+
+    def test_pnl_reward_is_scale_invariant(self):
+        from core.trading.reward import RewardFunction
+
+        rf = RewardFunction()
+        small = rf.compute(
+            self._make_outcome(entry_price=10.0, qty=10, pnl=10.0, risk_at_entry=5.0)
+        )
+        large = rf.compute(
+            self._make_outcome(entry_price=100.0, qty=100, pnl=1000.0, risk_at_entry=500.0)
+        )
+        assert small.pnl_reward == large.pnl_reward
+
+    def test_uncalibrated_probability_absence_has_neutral_alignment(self):
+        from core.trading.reward import RewardFunction
+
+        reward = RewardFunction().compute(self._make_outcome(confidence_at_entry=None))
+        assert reward.confidence_alignment == 0.0
+
     def test_duration_penalty(self):
         from core.trading.reward import RewardFunction
 
         rf = RewardFunction(max_duration_seconds=100.0, duration_penalty_rate=0.01)
-        short = self._make_outcome(hold_duration_seconds=50.0)
-        long = self._make_outcome(hold_duration_seconds=2000.0)
+        short = self._make_outcome(hold_duration_seconds=50.0, pnl=-10.0)
+        long = self._make_outcome(hold_duration_seconds=2000.0, pnl=-10.0)
         r_short = rf.compute(short)
         r_long = rf.compute(long)
         assert r_long.duration_penalty > r_short.duration_penalty
