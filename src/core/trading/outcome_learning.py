@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import sqlite3
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -19,7 +20,7 @@ from .reward import RewardFunction, TradeOutcome
 
 
 DEFAULT_OUTCOME_DB = Path(__file__).resolve().parents[3] / "data" / "adaptive_outcomes.sqlite3"
-OUTCOME_SCHEMA_VERSION = 1
+OUTCOME_SCHEMA_VERSION = 2
 DEFAULT_EXPERT_WEIGHTS = {
     "social_forensics": 0.25,
     "sentiment": 0.15,
@@ -67,6 +68,50 @@ def _unit_confidence(value: Any) -> float:
     return max(0.0, min(1.0, confidence))
 
 
+def _normalize_direction(value: Any) -> str | None:
+    token = str(value or "").strip().upper()
+    if token in {"UP", "BUY", "LONG", "BULLISH", "UNDERVALUED", "SUPPORT"}:
+        return "UP"
+    if token in {"DOWN", "SELL", "SHORT", "BEARISH", "OVERVALUED", "BLOCK"}:
+        return "DOWN"
+    if token in {"SIDEWAYS", "NEUTRAL", "WAIT", "HOLD", "FAIR_VALUE"}:
+        return "SIDEWAYS"
+    return None
+
+
+def _canonical_prediction(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    direction = _normalize_direction(
+        value.get("direction") or value.get("decision") or value.get("verdict")
+    )
+    raw_probabilities = value.get("probabilities") or value.get("direction_prob")
+    if isinstance(raw_probabilities, Mapping):
+        try:
+            probabilities = {
+                label: float(raw_probabilities[label]) for label in ("up", "down", "sideways")
+            }
+        except (KeyError, TypeError, ValueError):
+            return None
+        if any(
+            not math.isfinite(probability) or probability < 0.0 or probability > 1.0
+            for probability in probabilities.values()
+        ):
+            return None
+        if not math.isclose(sum(probabilities.values()), 1.0, abs_tol=1e-6):
+            return None
+        if direction is None:
+            direction = max(probabilities, key=probabilities.get).upper()
+    elif direction is not None:
+        confidence = _unit_confidence(value.get("confidence"))
+        remainder = (1.0 - confidence) / 2.0
+        probabilities = {"up": remainder, "down": remainder, "sideways": remainder}
+        probabilities[direction.lower()] = confidence
+    else:
+        return None
+    return {"direction": direction, "probabilities": probabilities}
+
+
 class OutcomeLearningEngine:
     """Compute reward and update expert statistics exactly once per outcome."""
 
@@ -99,11 +144,22 @@ class OutcomeLearningEngine:
                     total_calls INTEGER NOT NULL,
                     correct_calls REAL NOT NULL,
                     total_confidence REAL NOT NULL,
+                    total_brier REAL NOT NULL DEFAULT 0.0,
+                    baseline_brier REAL NOT NULL DEFAULT 0.0,
+                    brier_skill REAL NOT NULL DEFAULT 0.0,
                     last_called_at TEXT NOT NULL,
                     weight REAL NOT NULL CHECK(weight >= 0.1 AND weight <= 3.0)
                 );
                 """
             )
+            columns = {
+                row[1] for row in connection.execute("PRAGMA table_info(expert_stats)").fetchall()
+            }
+            for name in ("total_brier", "baseline_brier", "brier_skill"):
+                if name not in columns:
+                    connection.execute(
+                        f"ALTER TABLE expert_stats ADD COLUMN {name} REAL NOT NULL DEFAULT 0.0"
+                    )
 
     def process_trade(self, trade: Mapping[str, Any]) -> OutcomeLearningResult:
         payload = self._canonical_payload(trade)
@@ -144,9 +200,14 @@ class OutcomeLearningEngine:
                     now,
                 ),
             )
-            correct = payload["outcome"] == "win"
-            for expert_name, confidence in payload["expert_attribution"].items():
-                self._update_expert(connection, expert_name, confidence, correct, now)
+            for expert_name, prediction in payload["expert_predictions"].items():
+                self._update_expert(
+                    connection,
+                    expert_name,
+                    prediction["probabilities"],
+                    payload["realized_direction"],
+                    now,
+                )
             connection.commit()
 
         return OutcomeLearningResult(
@@ -166,31 +227,66 @@ class OutcomeLearningEngine:
         if trade.get("exit_price") is None or not trade.get("exit_date"):
             raise ValueError("learning requires exit_price and exit_date")
 
-        raw_attribution = trade.get("expert_attribution") or {}
-        attribution: dict[str, float] = {}
-        for name, confidence in raw_attribution.items():
+        raw_predictions = trade.get("expert_predictions") or {}
+        predictions: dict[str, dict[str, Any]] = {}
+        for name, prediction in raw_predictions.items():
             role = str(name).strip().lower().split("#", 1)[0]
             role = EXPERT_ROLE_ALIASES.get(role, role)
-            if role in DEFAULT_EXPERT_WEIGHTS:
-                attribution[role] = _unit_confidence(confidence)
+            canonical = _canonical_prediction(prediction)
+            if role in DEFAULT_EXPERT_WEIGHTS and canonical is not None:
+                predictions[role] = canonical
+
+        entry_price = float(trade.get("entry_price") or 0.0)
+        exit_price = float(trade["exit_price"])
+        qty = float(trade.get("shares") or trade.get("qty") or 0.0)
+        side = str(trade.get("direction") or trade.get("side") or "").lower()
+        if entry_price <= 0 or exit_price <= 0 or qty <= 0:
+            raise ValueError("learning requires positive entry_price, exit_price, and qty")
+        if side not in {"long", "buy", "short", "sell"}:
+            raise ValueError("learning requires an explicit long/short side")
+        move = exit_price / entry_price - 1.0
+        costs = float(trade.get("fees") or 0.0) + float(trade.get("slippage") or 0.0)
+        cost_rate = max(0.0, costs) / max(entry_price * qty, 1e-12)
+        deadband = max(0.001, cost_rate)
+        if move > deadband:
+            realized_direction = "UP"
+        elif move < -deadband:
+            realized_direction = "DOWN"
+        else:
+            realized_direction = "SIDEWAYS"
+
+        calibration_status = str(trade.get("calibration_status") or "").lower()
+        raw_probability = trade.get("prediction_probability_at_entry")
+        prediction_probability = (
+            _unit_confidence(raw_probability)
+            if raw_probability is not None
+            and calibration_status in {"calibrated", "validated_oos"}
+            else None
+        )
         return {
             "trade_id": trade_id,
             "symbol": str(trade.get("ticker") or trade.get("symbol") or "").upper(),
-            "side": str(trade.get("direction") or trade.get("side") or "long").lower(),
-            "entry_price": float(trade.get("entry_price") or 0.0),
-            "exit_price": float(trade["exit_price"]),
-            "qty": float(trade.get("shares") or trade.get("qty") or 0.0),
+            "side": side,
+            "entry_price": entry_price,
+            "exit_price": exit_price,
+            "qty": qty,
             "pnl": float(trade.get("pnl_amount") or 0.0),
             "entry_date": str(trade.get("entry_date") or trade["exit_date"]),
             "exit_date": str(trade["exit_date"]),
             "outcome": outcome,
-            "confidence_at_entry": _unit_confidence(trade.get("confidence_at_entry", 0.0)),
+            "prediction_probability_at_entry": prediction_probability,
+            "prediction_class_at_entry": _normalize_direction(
+                trade.get("prediction_class_at_entry")
+            ),
+            "calibration_status": calibration_status or "unknown",
+            "model_id": str(trade.get("model_id") or ""),
             "risk_at_entry": (
                 float(trade["risk_at_entry"]) if trade.get("risk_at_entry") is not None else None
             ),
             "fees": float(trade.get("fees") or 0.0),
             "slippage": float(trade.get("slippage") or 0.0),
-            "expert_attribution": attribution,
+            "expert_predictions": predictions,
+            "realized_direction": realized_direction,
         }
 
     def _to_trade_outcome(self, payload: Mapping[str, Any]) -> TradeOutcome:
@@ -208,8 +304,8 @@ class OutcomeLearningEngine:
             qty=payload["qty"],
             pnl=payload["pnl"],
             hold_duration_seconds=duration,
-            confidence_at_entry=payload["confidence_at_entry"],
-            verdict_at_entry=payload["confidence_at_entry"],
+            confidence_at_entry=payload["prediction_probability_at_entry"],
+            verdict_at_entry=payload["prediction_probability_at_entry"],
             risk_at_entry=payload["risk_at_entry"],
             fees=payload["fees"],
             slippage=payload["slippage"],
@@ -219,31 +315,60 @@ class OutcomeLearningEngine:
     def _update_expert(
         connection: sqlite3.Connection,
         expert_name: str,
-        confidence: float,
-        correct: bool,
+        probabilities: Mapping[str, float],
+        realized_direction: str,
         now: str,
     ) -> None:
         row = connection.execute(
-            "SELECT total_calls, correct_calls, total_confidence FROM expert_stats WHERE expert_name = ?",
+            """SELECT total_calls, correct_calls, total_confidence,
+                      total_brier, baseline_brier
+               FROM expert_stats WHERE expert_name = ?""",
             (expert_name,),
         ).fetchone()
         total = (row["total_calls"] if row else 0) + 1
-        evidence = confidence if correct else 1.0 - confidence
-        correct_total = (row["correct_calls"] if row else 0.0) + evidence
-        confidence_total = (row["total_confidence"] if row else 0.0) + confidence
-        smoothed_accuracy = (correct_total + 1.0) / (total + 2.0)
-        weight = max(0.1, min(3.0, 0.5 + smoothed_accuracy))
+        selected = max(probabilities, key=probabilities.get).upper()
+        correct_total = (row["correct_calls"] if row else 0.0) + float(
+            selected == realized_direction
+        )
+        confidence_total = (row["total_confidence"] if row else 0.0) + max(
+            probabilities.values()
+        )
+        target = {
+            "up": float(realized_direction == "UP"),
+            "down": float(realized_direction == "DOWN"),
+            "sideways": float(realized_direction == "SIDEWAYS"),
+        }
+        brier = sum((probabilities[label] - target[label]) ** 2 for label in target)
+        total_brier = (row["total_brier"] if row else 0.0) + brier
+        baseline_brier = (row["baseline_brier"] if row else 0.0) + 2.0 / 3.0
+        raw_skill = 1.0 - total_brier / baseline_brier
+        shrunk_skill = raw_skill * total / (total + 20.0)
+        weight = max(0.5, min(2.0, math.exp(2.0 * shrunk_skill)))
         connection.execute(
             """INSERT INTO expert_stats
-               (expert_name, total_calls, correct_calls, total_confidence, last_called_at, weight)
-               VALUES (?, ?, ?, ?, ?, ?)
+               (expert_name, total_calls, correct_calls, total_confidence,
+                total_brier, baseline_brier, brier_skill, last_called_at, weight)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(expert_name) DO UPDATE SET
                  total_calls=excluded.total_calls,
                  correct_calls=excluded.correct_calls,
                  total_confidence=excluded.total_confidence,
+                 total_brier=excluded.total_brier,
+                 baseline_brier=excluded.baseline_brier,
+                 brier_skill=excluded.brier_skill,
                  last_called_at=excluded.last_called_at,
                  weight=excluded.weight""",
-            (expert_name, total, correct_total, confidence_total, now, weight),
+            (
+                expert_name,
+                total,
+                correct_total,
+                confidence_total,
+                total_brier,
+                baseline_brier,
+                shrunk_skill,
+                now,
+                weight,
+            ),
         )
 
     def get_normalized_weights(
