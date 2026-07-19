@@ -6,15 +6,19 @@ Falls back to keyword search if sentence-transformers is unavailable.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
 import numpy as np
 
 from core.paths import resolve_project_path
+from core.storage.atomic import atomic_write_bytes, atomic_write_text
 
 logger = logging.getLogger(__name__)
 
@@ -352,48 +356,102 @@ class ForensicRAG:
     # ── Index persistence ──────────────────────────────────────────────
 
     def save_index(self, path: str | None = None):
-        """Persist FAISS index and document cache to disk."""
+        """Persist a safe immutable generation and atomically publish it."""
         global _faiss_index, _documents_cache
 
-        target = str(resolve_project_path(path or FAISS_INDEX_DIR))
-        os.makedirs(target, exist_ok=True)
+        target = Path(resolve_project_path(path or FAISS_INDEX_DIR))
+        generation_id = uuid.uuid4().hex
+        generation = target / "generations" / generation_id
+        generation.mkdir(parents=True, exist_ok=False)
 
-        np.save(
-            os.path.join(target, "documents.npy"),
-            np.array(_documents_cache, dtype=object),
-        )
+        documents = [
+            {
+                "id": str(document.get("id") or ""),
+                "text": str(document.get("text") or ""),
+                "source": str(document.get("source") or ""),
+            }
+            for document in _documents_cache
+        ]
+        documents_bytes = "".join(
+            json.dumps(document, ensure_ascii=False, sort_keys=True) + "\n"
+            for document in documents
+        ).encode("utf-8")
+        atomic_write_bytes(generation / "documents.jsonl", documents_bytes)
+
+        index_hash: str | None = None
 
         if _faiss_index is not None:
             try:
                 import faiss  # type: ignore[import]
 
-                faiss.write_index(_faiss_index, os.path.join(target, "index.faiss"))
-                logger.info("ForensicRAG: index saved to %s", target)
+                index_bytes = faiss.serialize_index(_faiss_index).tobytes()
+                atomic_write_bytes(generation / "index.faiss", index_bytes)
+                index_hash = hashlib.sha256(index_bytes).hexdigest()
             except Exception as exc:
                 logger.warning("Failed to save FAISS index: %s", exc)
 
+        manifest = {
+            "schema_version": 1,
+            "generation": generation_id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "document_count": len(documents),
+            "documents_sha256": hashlib.sha256(documents_bytes).hexdigest(),
+            "index_sha256": index_hash,
+            "embedding_model": EMBEDDING_MODEL,
+        }
+        atomic_write_text(
+            generation / "manifest.json",
+            json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True),
+        )
+        atomic_write_text(target / "CURRENT", generation_id + "\n")
+        logger.info("ForensicRAG: index generation %s saved to %s", generation_id, target)
+
     def load_index(self, path: str | None = None):
-        """Load FAISS index and document cache from disk."""
+        """Load and verify the atomically published safe generation."""
         global _faiss_index, _documents_cache, _embeddings_cache
 
-        target = str(resolve_project_path(path or FAISS_INDEX_DIR))
-        docs_path = os.path.join(target, "documents.npy")
-        index_path = os.path.join(target, "index.faiss")
-
-        if not os.path.exists(docs_path):
+        target = Path(resolve_project_path(path or FAISS_INDEX_DIR))
+        current_path = target / "CURRENT"
+        if not current_path.exists():
             logger.info("ForensicRAG: no persisted index at %s", target)
             return False
 
         try:
-            _documents_cache = list(np.load(docs_path, allow_pickle=True))
-            if os.path.exists(index_path) and self._faiss_available():
+            generation_id = current_path.read_text(encoding="utf-8").strip()
+            if not generation_id or any(char not in "0123456789abcdef" for char in generation_id):
+                raise ValueError("invalid RAG generation id")
+            generation = target / "generations" / generation_id
+            manifest = json.loads((generation / "manifest.json").read_text(encoding="utf-8"))
+            if manifest.get("schema_version") != 1 or manifest.get("generation") != generation_id:
+                raise ValueError("unsupported or mismatched RAG manifest")
+
+            documents_bytes = (generation / "documents.jsonl").read_bytes()
+            if hashlib.sha256(documents_bytes).hexdigest() != manifest.get("documents_sha256"):
+                raise ValueError("RAG documents hash mismatch")
+            documents = [
+                json.loads(line)
+                for line in documents_bytes.decode("utf-8").splitlines()
+                if line.strip()
+            ]
+            if len(documents) != manifest.get("document_count") or any(
+                not isinstance(document, dict) or not {"id", "text", "source"}.issubset(document)
+                for document in documents
+            ):
+                raise ValueError("RAG document manifest count/schema mismatch")
+            _documents_cache = documents
+
+            index_path = generation / "index.faiss"
+            if index_path.exists() and self._faiss_available():
                 import faiss  # type: ignore[import]
 
-                _faiss_index = faiss.read_index(index_path)
+                index_bytes = index_path.read_bytes()
+                if hashlib.sha256(index_bytes).hexdigest() != manifest.get("index_sha256"):
+                    raise ValueError("RAG FAISS index hash mismatch")
+                _faiss_index = faiss.deserialize_index(np.frombuffer(index_bytes, dtype=np.uint8))
                 _embeddings_cache = None  # re-computed on demand
                 logger.info(
                     "ForensicRAG: loaded index from %s (%d docs, %d vectors)",
-                    target,
+                    generation,
                     len(_documents_cache),
                     _faiss_index.ntotal,
                 )
