@@ -17,7 +17,11 @@ from experts.crisis.logic.ensemble import aggregate_scores
 from experts.crisis.logic.scoring import classify_alert_level, classify_regime
 from experts.crisis.logic.normalization import clamp, minmax_score, percentile_rank
 from experts.crisis.models.bis_credit_gap import BISCreditGapModel
-from experts.crisis.models.markov_regime import MarkovRegimeModel
+from experts.crisis.models.markov_regime import (
+    MarkovRegimeModel,
+    _fit_gaussian_hmm,
+    _forward_filter,
+)
 from experts.crisis.models.shiller_valuation import ShillerValuationModel
 from experts.crisis.models.minsky_keen import MinskyKeenModel
 from experts.crisis.models.lppls_bubble import (
@@ -381,40 +385,45 @@ class TestMarkovRegimeModel:
         result = model.evaluate(ci)
         assert result.status == "insufficient_data"
 
-    def test_crisis_regime(self):
-        ms = [MarketObservation(date=f"2024-{d:02d}-15", close=100.0) for d in range(1, 10)]
-        ms[-1] = MarketObservation(
-            date="2024-09-15", close=100.0, realized_volatility=0.35, credit_spread=6.0
+    def test_synthetic_stress_regime(self):
+        rng = np.random.default_rng(51)
+        returns = np.concatenate(
+            [rng.normal(0.0005, 0.003, 180), rng.normal(-0.004, 0.035, 60)]
         )
-        ci = CrisisInput(market_series=ms)
-        model = MarkovRegimeModel()
-        result = model.evaluate(ci)
-        # score is 0-1 (was 0-100 — fixed to match every other crisis
-        # model's contract, see docs/audit/phase9_parallel_fixes_and_critical_findings.md)
-        assert result.score == 1.0
-        assert "CRISE" in result.explanation
+        closes = 100.0 * np.exp(np.r_[0.0, np.cumsum(returns)])
+        market = [
+            MarketObservation(date=_day(index), close=float(close))
+            for index, close in enumerate(closes)
+        ]
+        result = MarkovRegimeModel().evaluate(
+            CrisisInput(frequency="daily", market_series=market)
+        )
+        assert result.status == "ok"
+        assert result.method_kind == "statistical_model"
+        assert result.details["posterior_kind"] == "filtered_causal"
+        assert result.details["converged"] is True
+        assert result.score > 0.65
 
-    def test_normal_regime(self):
-        ms = [MarketObservation(date=f"2024-{d:02d}-15", close=100.0) for d in range(1, 10)]
-        ms[-1] = MarketObservation(
-            date="2024-09-15", close=100.0, realized_volatility=0.10, credit_spread=1.0
+    def test_forward_filter_is_causal_for_fixed_parameters(self):
+        rng = np.random.default_rng(7)
+        values = np.r_[rng.normal(0.0, 0.004, 100), rng.normal(0.0, 0.03, 80)]
+        fit = _fit_gaussian_hmm(values)
+        cutoff = 120
+        prefix, _, _ = _forward_filter(
+            values[:cutoff], fit.means, fit.variances, fit.transition, fit.initial
         )
-        ci = CrisisInput(market_series=ms)
-        model = MarkovRegimeModel()
-        result = model.evaluate(ci)
-        assert result.score == 0.20
-        assert "NORMAL" in result.explanation
+        full, _, _ = _forward_filter(
+            values, fit.means, fit.variances, fit.transition, fit.initial
+        )
+        assert np.allclose(prefix[-1], full[cutoff - 1], atol=1e-12)
 
-    def test_stress_regime(self):
-        ms = [MarketObservation(date=f"2024-{d:02d}-15", close=100.0) for d in range(1, 10)]
-        ms[-1] = MarketObservation(
-            date="2024-09-15", close=100.0, realized_volatility=0.25, credit_spread=2.0
+    def test_constant_series_is_not_called_normal(self):
+        market = [MarketObservation(date=_day(i), close=100.0) for i in range(80)]
+        result = MarkovRegimeModel().evaluate(
+            CrisisInput(frequency="daily", market_series=market)
         )
-        ci = CrisisInput(market_series=ms)
-        model = MarkovRegimeModel()
-        result = model.evaluate(ci)
-        assert result.score == 0.70
-        assert "STRESS" in result.explanation
+        assert result.status == "insufficient_data"
+        assert result.confidence == 0.0
 
 
 class TestShillerValuationModel:
