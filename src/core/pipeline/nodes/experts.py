@@ -28,6 +28,61 @@ _RESEARCH_TOKENS_SPENT = 0
 # Trace logger singleton
 _tracer = DecisionTraceLogger()
 
+_POSITIVE_VERDICTS = {
+    "RISK_ON",
+    "UNDERVALUED",
+    "BULLISH",
+    "OVERSOLD",
+    "OPPORTUNITY",
+    "CLEAN",
+}
+_NEGATIVE_VERDICTS = {
+    "RISK_OFF",
+    "OVERVALUED",
+    "BEARISH",
+    "OVERBOUGHT",
+    "TRAP",
+    "MANIPULATED",
+    "SUSPICIOUS",
+}
+
+
+def calculate_weighted_expert_consensus(
+    parsed: dict[str, dict], weights: dict[str, float]
+) -> dict[str, Any]:
+    """Produce a deterministic decision from expert verdicts and learned weights."""
+    by_role: dict[str, list[float]] = {}
+    for role_key, payload in parsed.items():
+        role = role_key.split("#", 1)[0]
+        verdict = str(payload.get("verdict") or "").upper()
+        polarity = (
+            1.0 if verdict in _POSITIVE_VERDICTS else -1.0 if verdict in _NEGATIVE_VERDICTS else 0.0
+        )
+        try:
+            confidence = float(payload.get("confidence", 0.0) or 0.0)
+        except (TypeError, ValueError):
+            confidence = 0.0
+        if confidence > 1.0:
+            confidence /= 100.0
+        by_role.setdefault(role, []).append(polarity * max(0.0, min(1.0, confidence)))
+
+    weighted_score = 0.0
+    coverage = 0.0
+    for role, signals in by_role.items():
+        weight = float(weights.get(role, 0.0))
+        if weight <= 0 or not signals:
+            continue
+        weighted_score += weight * (sum(signals) / len(signals))
+        coverage += weight
+
+    score = weighted_score / coverage if coverage > 0 else 0.0
+    decision = "SUPPORT" if score >= 0.15 else "BLOCK" if score <= -0.15 else "NEUTRAL"
+    return {
+        "decision": decision,
+        "score": round(score, 6),
+        "weight_coverage": round(coverage, 6),
+    }
+
 
 def _safe_int_env(name: str, default: int) -> int:
     try:
@@ -675,6 +730,12 @@ async def node_collect_experts(state: dict) -> dict:
 
     expert_summary = "\n".join(bob_lines)
     raw_summary = "\n".join(raw_lines)  # kept for backward compat in traces
+    weighted_consensus = calculate_weighted_expert_consensus(parsed, expert_weights)
+    expert_summary += (
+        f"\n[WEIGHTED_CONSENSUS] {weighted_consensus['decision']} "
+        f"score={weighted_consensus['score']:.3f} "
+        f"coverage={weighted_consensus['weight_coverage']:.3f}"
+    )
 
     writer(
         {
@@ -691,4 +752,5 @@ async def node_collect_experts(state: dict) -> dict:
         "expert_raw": raw_summary,
         "expert_structured": parsed,
         "expert_weights": expert_weights,
+        "expert_consensus": weighted_consensus,
     }

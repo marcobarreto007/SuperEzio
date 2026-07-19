@@ -3,9 +3,28 @@
 import src.core.pipeline.nodes.experts as experts_node
 from src.core.pipeline.nodes.experts import (
     EXPERT_PROVIDERS,
+    calculate_weighted_expert_consensus,
     node_collect_experts,
     node_expert,
 )
+
+
+def test_learned_weights_change_deterministic_consensus():
+    verdicts = {
+        "fundamental_value": {"verdict": "UNDERVALUED", "confidence": 90},
+        "macro_risk": {"verdict": "RISK_OFF", "confidence": 90},
+    }
+
+    fundamental_dominates = calculate_weighted_expert_consensus(
+        verdicts, {"fundamental_value": 0.8, "macro_risk": 0.2}
+    )
+    risk_dominates = calculate_weighted_expert_consensus(
+        verdicts, {"fundamental_value": 0.2, "macro_risk": 0.8}
+    )
+
+    assert fundamental_dominates["decision"] == "SUPPORT"
+    assert risk_dominates["decision"] == "BLOCK"
+    assert fundamental_dominates["score"] == -risk_dominates["score"]
 
 
 def _noop_writer(_event: dict) -> None:
