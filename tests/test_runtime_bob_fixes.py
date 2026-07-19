@@ -1,8 +1,11 @@
 import json
+from unittest.mock import MagicMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
 from agent_server.main import app
 from agent_server.endpoints import _session_history
+from core.bob_consciousness.body import BobsBody
 
 
 # Mock Pipeline for controlling runtime responses
@@ -34,6 +37,20 @@ def client_with_mock_pipeline():
         app.state.pipeline = original_pipeline
     else:
         delattr(app.state, "pipeline")
+
+
+def test_man_at_work_notification_applies_timeout_to_urlopen(monkeypatch):
+    """urllib Request has no timeout argument; the network operation owns it."""
+    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", "test-key-not-a-secret")
+    response = MagicMock()
+    response.__enter__.return_value.read.return_value = b'{"choices": []}'
+
+    with patch("urllib.request.urlopen", return_value=response) as urlopen:
+        BobsBody()._try_deepseek_notification("test containment")
+
+    request = urlopen.call_args.args[0]
+    assert request.full_url == "https://api.deepseek.com/v1/chat/completions"
+    assert urlopen.call_args.kwargs == {"timeout": 10}
 
 
 # Test A — Macro thesis does not attach AAPL

@@ -3,7 +3,8 @@
   "use strict";
 
   function sanitTicker(r) {
-    return String(r || "").replace(/[^A-Za-z0-9.\-]/g, "").toUpperCase().substring(0, 12);
+    var ticker = String(r || "").replace(/[^A-Za-z0-9.\-]/g, "").toUpperCase().substring(0, 12);
+    return ticker === "HEARTBEAT" ? "" : ticker;
   }
 
   function pct(v) {

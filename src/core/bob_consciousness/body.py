@@ -579,10 +579,9 @@ Keep response under 200 words. Focus on: 1) What broke, 2) How to fix, 3) Preven
                     "Content-Type": "application/json",
                     "Authorization": f"Bearer {api_key}",
                 },
-                timeout=10,
             )
 
-            with urllib.request.urlopen(req) as resp:
+            with urllib.request.urlopen(req, timeout=10) as resp:
                 result = json.loads(resp.read())
                 advice = result["choices"][0]["message"]["content"]
 

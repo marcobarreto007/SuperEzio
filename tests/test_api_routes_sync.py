@@ -1019,6 +1019,15 @@ def test_frontend_ibkr_order_mirror_integration():
     assert ".order-row.is-selected" in charts_css
 
 
+def test_frontend_rejects_internal_heartbeat_as_market_ticker():
+    """Internal journal sentinel must never trigger a market-data request."""
+    from pathlib import Path
+
+    init_js = Path("frontend/js/init.js").read_text(encoding="utf-8")
+
+    assert 'return ticker === "HEARTBEAT" ? "" : ticker;' in init_js
+
+
 def test_frontend_genie_pulse_click_drives_bob_and_chart():
     """Genie pulse rows are actionable: ticker -> chart selection -> Bob draft."""
     from pathlib import Path
