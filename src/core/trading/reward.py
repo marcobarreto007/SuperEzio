@@ -16,6 +16,9 @@ class TradeOutcome:
     hold_duration_seconds: float
     confidence_at_entry: float
     verdict_at_entry: float
+    risk_at_entry: float | None = None
+    fees: float = 0.0
+    slippage: float = 0.0
     stop_loss_hit: bool = False
     take_profit_hit: bool = False
     ceo_response_text: str = ""
@@ -90,8 +93,13 @@ class RewardFunction:
         return max(-1.0, outcome.pnl / 500.0)
 
     def _risk_adjusted_reward(self, outcome: TradeOutcome) -> float:
-        risk = abs(outcome.entry_price - outcome.exit_price) * outcome.qty
-        if risk == 0:
+        costs = max(0.0, outcome.fees) + max(0.0, outcome.slippage)
+        if outcome.risk_at_entry is not None:
+            risk = max(0.0, outcome.risk_at_entry) + costs
+        else:
+            # Conservative fallback when the decision predates explicit risk capture.
+            risk = abs(outcome.entry_price * outcome.qty) * 0.01 + costs
+        if risk <= 0:
             return 0.0
         return max(-1.0, min(1.0, outcome.pnl / risk))
 
