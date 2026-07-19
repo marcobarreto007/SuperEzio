@@ -15,6 +15,46 @@ class BrokerTransportResult:
     stdout: str
 
 
+def cancel_open_order(order_id: str, *, host: str, port: int) -> bool:
+    """Cancel a matching open IBKR order as a risk-reducing operation."""
+    ib = None
+    try:
+        from ib_insync import IB
+
+        try:
+            asyncio.get_event_loop()
+        except RuntimeError:
+            asyncio.set_event_loop(asyncio.new_event_loop())
+
+        ib = IB()
+        client_id = int(time.time() * 1000) % 9000 + 100
+        ib.connect(host, port, clientId=client_id, timeout=10)
+        target = str(order_id or "").strip()
+        if not target:
+            return False
+        for trade in ib.reqAllOpenOrders() or []:
+            broker_order = getattr(trade, "order", None)
+            if broker_order is None:
+                continue
+            identifiers = {
+                str(getattr(broker_order, "permId", "") or ""),
+                str(getattr(broker_order, "orderId", "") or ""),
+            }
+            if target in identifiers:
+                ib.cancelOrder(broker_order)
+                ib.sleep(1)
+                return True
+        return False
+    except Exception:
+        return False
+    finally:
+        if ib is not None:
+            try:
+                ib.disconnect()
+            except Exception:
+                pass
+
+
 def run_prepared_order(order: Any, *, host: str, port: int) -> BrokerTransportResult:
     """Place an already-prepared order from the adapter's worker thread."""
     ib = None

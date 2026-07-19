@@ -297,25 +297,10 @@ class InteractiveBrokersAdapter:
         )
 
     def cancel_order(self, order_id: str) -> bool:
-        """Cancel order via subprocess (existing pattern)."""
-        import subprocess
-        import sys
-        from pathlib import Path
+        """Cancel an open order through the isolated risk-reduction worker."""
+        from .ibkr_order_worker import cancel_open_order
 
-        order_script = (
-            Path(__file__).resolve().parent.parent.parent.parent / "scripts" / "_ibkr_order.py"
-        )
-        try:
-            result = subprocess.run(
-                [sys.executable, str(order_script), "cancel", order_id],
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-            return result.returncode == 0
-        except Exception as exc:
-            logger.warning("IBKR cancel_order failed: %s", exc)
-            return False
+        return cancel_open_order(order_id, host=self._host, port=self._port)
 
     def get_order(self, order_id: str) -> Any | None:
         """Get order status from IBKRService (cached open orders)."""

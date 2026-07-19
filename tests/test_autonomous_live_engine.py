@@ -88,16 +88,10 @@ def test_ibkr_adapter_uses_prepared_worker_for_limit_orders(monkeypatch):
 
 
 def test_ibkr_adapter_blocks_market_orders_by_default(monkeypatch):
-    import subprocess
-
     from adapters.broker.ibkr_adapter import InteractiveBrokersAdapter
     from core.trading.broker import Order, OrderSide, OrderStatus, OrderType
 
-    def fail_run(*_args, **_kwargs):
-        raise AssertionError("market order must not reach _ibkr_order.py by default")
-
     monkeypatch.delenv("SUPEREZIO_IBKR_ALLOW_MARKET_ORDER", raising=False)
-    monkeypatch.setattr(subprocess, "run", fail_run)
 
     order = Order(
         id="pytest-market",
@@ -124,7 +118,23 @@ def test_ibkr_adapter_blocks_market_orders_by_default(monkeypatch):
     result = InteractiveBrokersAdapter().submit_order(order)
 
     assert result.status == OrderStatus.REJECTED
-    assert "blocked" in result.id.lower()  # Either market-order or ungated-order
+    assert "blocked" in result.id.lower()
+
+
+def test_ibkr_adapter_cancel_uses_risk_reduction_worker(monkeypatch):
+    import adapters.broker.ibkr_order_worker as order_worker_module
+    from adapters.broker.ibkr_adapter import InteractiveBrokersAdapter
+
+    captured = {}
+
+    def fake_cancel(order_id, *, host, port):
+        captured.update(order_id=order_id, host=host, port=port)
+        return True
+
+    monkeypatch.setattr(order_worker_module, "cancel_open_order", fake_cancel)
+
+    assert InteractiveBrokersAdapter().cancel_order("perm-42") is True
+    assert captured == {"order_id": "perm-42", "host": "127.0.0.1", "port": 7497}
 
 
 def test_live_trading_engine_submits_limit_order(monkeypatch, tmp_path):
