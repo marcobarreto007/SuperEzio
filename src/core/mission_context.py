@@ -7,6 +7,7 @@ the product/runtime posture Bob should understand before answering users.
 from __future__ import annotations
 
 import json
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -59,6 +60,38 @@ def load_mission_context(path: str | Path | None = None) -> dict[str, Any]:
     except Exception:
         return {}
     return payload if isinstance(payload, dict) else {}
+
+
+def _resolve_apprenticeship_status(
+    apprenticeship: dict[str, Any], today: date | None = None
+) -> str:
+    """Resolve the effective apprenticeship status against the real calendar date.
+
+    The JSON's ``status`` field is static and can go stale the moment
+    ``end_date`` passes. This computes the *effective* status so the prompt
+    never claims Bob is actively inside a training window that already
+    ended, without requiring a manual edit to the JSON every time a date
+    passes.
+
+    Returns one of: "active_training_window", "expired", or whatever
+    status was explicitly set in the JSON when no end_date is present or it
+    fails to parse (fail open to the stored value, never fail closed on a
+    parse error).
+    """
+    stored_status = apprenticeship.get("status", "unknown")
+    end_date_raw = apprenticeship.get("end_date")
+    if not end_date_raw:
+        return stored_status
+
+    try:
+        end_date = datetime.strptime(str(end_date_raw), "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return stored_status
+
+    current_date = today if today is not None else datetime.now().date()
+    if current_date > end_date:
+        return "expired"
+    return stored_status
 
 
 def _append_key_values(lines: list[str], title: str, payload: dict[str, Any]) -> None:
@@ -114,10 +147,20 @@ def render_mission_context_for_prompt(path: str | Path | None = None) -> str:
     _append_key_values(lines, "## TRAINING AND LIMITS", training)
 
     if apprenticeship:
+        effective_status = _resolve_apprenticeship_status(apprenticeship)
+        is_expired = effective_status == "expired"
+
         lines.append("## TWO-WEEK IBKR APPRENTICESHIP")
-        for key in ("name", "status", "start_date", "end_date", "duration_days"):
+        if is_expired:
+            lines.append(
+                "- NOTE: this training window has ENDED. Do not say you are "
+                "currently/actively inside the 14-day apprenticeship — refer "
+                "to it only in the past tense as completed training context."
+            )
+        for key in ("name", "start_date", "end_date", "duration_days"):
             if key in apprenticeship:
                 lines.append(f"- {key}: {apprenticeship[key]}")
+        lines.append(f"- status: {effective_status}")
         if apprenticeship.get("role_language"):
             lines.append(f"- role_language: {apprenticeship['role_language']}")
         if apprenticeship.get("purpose"):
@@ -316,12 +359,18 @@ def mission_health_summary(path: str | Path | None = None) -> dict[str, Any]:
 
     situation = data.get("current_situation", {})
     mission = data.get("grand_mission", {}) if isinstance(data.get("grand_mission"), dict) else {}
+    apprenticeship = (
+        data.get("apprenticeship", {}) if isinstance(data.get("apprenticeship"), dict) else {}
+    )
+    apprenticeship_effective = dict(apprenticeship)
+    if apprenticeship:
+        apprenticeship_effective["status"] = _resolve_apprenticeship_status(apprenticeship)
     return {
         "status": "loaded",
         "phase": data.get("agent", {}).get("phase", "unknown"),
         "phase_description": data.get("agent", {}).get("phase_description", ""),
         "training": data.get("training", {}),
-        "apprenticeship": data.get("apprenticeship", {}),
+        "apprenticeship": apprenticeship_effective,
         "broker": situation.get("broker", {}) if isinstance(situation, dict) else {},
         "paper_trading": situation.get("paper_trading", {}) if isinstance(situation, dict) else {},
         "debut_criteria": _build_debut_summary(mission),
