@@ -576,7 +576,10 @@ class MathHub:
             factors = DecisionFactors(
                 veracity=0.85 if data_quality in {"complete", "ok", "high"} else 0.55,
                 consensus=consensus,
-                risk=max(0.0, min(1.0, abs(float(var_value or 0.0)) + float(vol_value or 0.0))),
+                # DecisionFactors has no 'risk' field (it has 'danger') —
+                # this call raised TypeError on every real invocation before
+                # this fix (confirmed live via /task/submit, 2026-07-19).
+                danger=max(0.0, min(1.0, abs(float(var_value or 0.0)) + float(vol_value or 0.0))),
                 uncertainty=heuristic_uncertainty(
                     text=str(state.get("message") or ""),
                     numeric_features={
