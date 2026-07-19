@@ -104,6 +104,4 @@ async def test_low_level_submit_blocks_when_neural_decision_is_missing(monkeypat
         {"ticket_allowed": True},
         {"ticker": "AAPL", "action": "buy", "qty": 1, "limit_price": 100.0},
     )
-    assert result["submit_paper_order_error"] == (
-        "neural_execution_gate:NEURAL_DECISION_MISSING"
-    )
+    assert result["submit_paper_order_error"] == ("neural_execution_gate:NEURAL_DECISION_MISSING")

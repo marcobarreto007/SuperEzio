@@ -763,7 +763,9 @@ def _extract_learning_context(
     model_id = str(neural.get("model_id") or "")
     prediction_class = _normalize_prediction_direction(neural.get("decision"))
     expected_class = (
-        "UP" if str(action or "").lower() in {"buy", "long"} else "DOWN"
+        "UP"
+        if str(action or "").lower() in {"buy", "long"}
+        else "DOWN"
         if action is not None
         else None
     )
@@ -776,9 +778,7 @@ def _extract_learning_context(
         and (expected_class is None or prediction_class == expected_class)
         and isinstance(direction_prob, dict)
     ):
-        prediction_probability = _finite_probability(
-            direction_prob.get(prediction_class.lower())
-        )
+        prediction_probability = _finite_probability(direction_prob.get(prediction_class.lower()))
 
     stop_loss_pct = _adaptive_sizing_config(state)["default_stop_pct"]
 

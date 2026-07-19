@@ -18,9 +18,7 @@ from scipy.spatial.distance import squareform
 from sklearn.covariance import LedoitWolf
 
 
-def _aligned_return_matrix(
-    returns: dict[str, list[float]], tickers: list[str]
-) -> np.ndarray:
+def _aligned_return_matrix(returns: dict[str, list[float]], tickers: list[str]) -> np.ndarray:
     if not tickers:
         return np.empty((0, 0), dtype=float)
     min_len = min(len(returns[ticker]) for ticker in tickers)
@@ -150,16 +148,13 @@ def hrp_allocate(
     # Do not renormalize capped positions: doing so silently violates the cap.
     asset_weights = np.minimum(weights_raw, max_single_position)
     result_weights = {
-        ticker: round(float(asset_weights[index]), 10)
-        for index, ticker in enumerate(tickers)
+        ticker: round(float(asset_weights[index]), 10) for index, ticker in enumerate(tickers)
     }
     cash_weight = round(max(0.0, 1.0 - sum(result_weights.values())), 10)
     if cash_weight > 0:
         result_weights["CASH"] = cash_weight
 
-    result_alloc = {
-        ticker: round(float(result_weights[ticker] * capital), 2) for ticker in tickers
-    }
+    result_alloc = {ticker: round(float(result_weights[ticker] * capital), 2) for ticker in tickers}
     if cash_weight > 0:
         result_alloc["CASH"] = round(capital - sum(result_alloc.values()), 2)
 

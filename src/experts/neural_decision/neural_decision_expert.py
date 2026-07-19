@@ -56,9 +56,7 @@ class FeatureContractValidator:
         errors.extend(self._validate_group("Context", context, "required_context"))
         return errors
 
-    def _validate_group(
-        self, label: str, values: dict[str, Any], contract_key: str
-    ) -> list[str]:
+    def _validate_group(self, label: str, values: dict[str, Any], contract_key: str) -> list[str]:
         errors: list[str] = []
         for name, spec in self.contract.get(contract_key, {}).items():
             if name not in values:
@@ -69,9 +67,7 @@ class FeatureContractValidator:
             expected_type = spec["type"]
             if expected_type == "float":
                 if not isinstance(value, (int, float)) or isinstance(value, bool):
-                    errors.append(
-                        f"{label} '{name}' must be float/int, got {type(value).__name__}"
-                    )
+                    errors.append(f"{label} '{name}' must be float/int, got {type(value).__name__}")
                     continue
                 if "min" in spec and value < spec["min"]:
                     errors.append(f"{label} '{name}' value {value} is below minimum {spec['min']}")

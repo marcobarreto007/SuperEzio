@@ -190,9 +190,9 @@ def _build_features(
             if not isinstance(candle, dict):
                 return {}
             timestamp = TechnicalNeuralExpert._parse_timestamp(candle)
-            values = tuple(
-                float(candle[name]) for name in ("open", "high", "low", "close")
-            ) + (float(candle.get("volume", 0.0)),)
+            values = tuple(float(candle[name]) for name in ("open", "high", "low", "close")) + (
+                float(candle.get("volume", 0.0)),
+            )
             if not all(math.isfinite(value) for value in values):
                 return {}
             previous = by_time.get(timestamp)
@@ -240,9 +240,7 @@ def _build_features(
     volume_window = volumes[-20:]
     volume_std = float(np.std(volume_window, ddof=1))
     volume_zscore = (
-        float((volumes[-1] - np.mean(volume_window)) / volume_std)
-        if volume_std > 0.0
-        else 0.0
+        float((volumes[-1] - np.mean(volume_window)) / volume_std) if volume_std > 0.0 else 0.0
     )
     log_window = np.log(closes[-20:])
     trend_slope = float(np.polyfit(np.arange(len(log_window)), log_window, 1)[0] * 10.0)

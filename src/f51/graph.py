@@ -165,9 +165,7 @@ class F51Engine:
         should_expand = expand_budget(decision_score, domain)
         veracity_node = ctx.get("veracity_gate")
         veracity_established = bool(
-            veracity_node
-            and veracity_node.ok
-            and veracity_node.evidence.get("passed") is True
+            veracity_node and veracity_node.ok and veracity_node.evidence.get("passed") is True
         )
 
         return {
@@ -267,9 +265,7 @@ class F51Engine:
                 )
 
             # Zero pode ser uma observação válida (retorno/sentimento neutro).
-            present = sum(
-                1 for f in _PLATINUM_FIELDS if f in features and features[f] is not None
-            )
+            present = sum(1 for f in _PLATINUM_FIELDS if f in features and features[f] is not None)
             completeness = present / len(_PLATINUM_FIELDS)
 
             # Consistência: RSI vs daily_return

@@ -141,9 +141,7 @@ def test_effective_weights_blend_learned_reliability_and_remain_normalized(tmp_p
 def test_role_aliases_update_the_canonical_pipeline_role(tmp_path):
     engine = OutcomeLearningEngine(tmp_path / "learning.sqlite3")
     engine.process_trade(
-        _closed_trade(
-            expert_predictions={"fundamental": {"direction": "UP", "confidence": 0.9}}
-        )
+        _closed_trade(expert_predictions={"fundamental": {"direction": "UP", "confidence": 0.9}})
     )
     assert engine.get_normalized_weights() == {"fundamental_value": 1.0}
 

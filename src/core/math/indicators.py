@@ -40,9 +40,7 @@ def macd(prices: Sequence[float]) -> dict[str, float | None]:
     macd_value = series["macd"][-1] if series["macd"] else None
     signal_value = series["signal"][-1] if series["signal"] else None
     histogram = (
-        macd_value - signal_value
-        if macd_value is not None and signal_value is not None
-        else None
+        macd_value - signal_value if macd_value is not None and signal_value is not None else None
     )
     return {"macd": macd_value, "signal": signal_value, "histogram": histogram}
 

@@ -36,9 +36,7 @@ def expert_consensus_block_reason(state: Mapping[str, Any]) -> str | None:
     return None
 
 
-def evaluate_neural_execution_gate(
-    state: Mapping[str, Any], action: str
-) -> dict[str, Any]:
+def evaluate_neural_execution_gate(state: Mapping[str, Any], action: str) -> dict[str, Any]:
     """Validate that an autonomous order is backed by a usable neural forecast.
 
     A bounded number is not enough: the model must explicitly be ready,
@@ -81,7 +79,9 @@ def evaluate_neural_execution_gate(
         }
     except (KeyError, TypeError, ValueError):
         return {"allowed": False, "code": "NEURAL_SIMPLEX_INVALID"}
-    if any(not math.isfinite(value) or value < 0.0 or value > 1.0 for value in probabilities.values()):
+    if any(
+        not math.isfinite(value) or value < 0.0 or value > 1.0 for value in probabilities.values()
+    ):
         return {"allowed": False, "code": "NEURAL_SIMPLEX_INVALID"}
     if not math.isclose(sum(probabilities.values()), 1.0, abs_tol=1e-6):
         return {"allowed": False, "code": "NEURAL_SIMPLEX_INVALID"}

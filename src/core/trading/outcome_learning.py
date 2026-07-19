@@ -336,9 +336,7 @@ class OutcomeLearningEngine:
         correct_total = (row["correct_calls"] if row else 0.0) + float(
             selected == realized_direction
         )
-        confidence_total = (row["total_confidence"] if row else 0.0) + max(
-            probabilities.values()
-        )
+        confidence_total = (row["total_confidence"] if row else 0.0) + max(probabilities.values())
         target = {
             "up": float(realized_direction == "UP"),
             "down": float(realized_direction == "DOWN"),

@@ -107,9 +107,7 @@ def _build_risk_rules_from_hub() -> list[RiskRule]:
                 elif rid == "no_revenue_with_operations":
                     revenue = features.get("total_revenue", None)
                     mcap = features.get("market_cap")
-                    triggered = revenue == 0 and (
-                        mcap is not None and mcap > 10_000_000
-                    )
+                    triggered = revenue == 0 and (mcap is not None and mcap > 10_000_000)
                     if triggered:
                         evidence = f"revenue={revenue}, mcap={mcap}"
 
@@ -384,9 +382,7 @@ class F51HubAdapter:
             "sentiment_score": _first_finite(
                 sentiment.get("sentiment_score"), sentiment.get("score")
             ),
-            "reddit_sentiment": _first_finite(
-                reddit.get("sentiment_score"), reddit.get("score")
-            ),
+            "reddit_sentiment": _first_finite(reddit.get("sentiment_score"), reddit.get("score")),
             "monte_carlo_prob_up": _finite_float(quant.get("monte_carlo_prob_up")),
             "ml_prob_up": _finite_float(quant.get("ml_prob_up")),
         }

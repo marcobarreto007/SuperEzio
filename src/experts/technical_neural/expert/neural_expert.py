@@ -115,7 +115,9 @@ class TechnicalNeuralExpert:
             return self._closed("insufficient_data", str(exc), ticker=symbol)
         except Exception as exc:  # defensive boundary for untrusted provider payloads
             logger.exception("Candle preparation failed for %s", symbol)
-            return self._closed("error", "CANDLE_PREPARATION_FAILED", ticker=symbol, detail=str(exc))
+            return self._closed(
+                "error", "CANDLE_PREPARATION_FAILED", ticker=symbol, detail=str(exc)
+            )
 
         if prepared.as_of > reference_time + timedelta(minutes=5):
             return self._closed(
@@ -303,9 +305,7 @@ class TechnicalNeuralExpert:
         climatology = (train_counts + 1.0) / (float(train_counts.sum()) + 3.0)
 
         validation_prob = self._manual_predict(model.coefs_, model.intercepts_, validation_x)
-        validation_metrics = self._metrics(
-            labels[split.validation], validation_prob, climatology
-        )
+        validation_metrics = self._metrics(labels[split.validation], validation_prob, climatology)
         if not self._finite_metrics(validation_metrics):
             return (
                 self._closed(
@@ -348,9 +348,7 @@ class TechnicalNeuralExpert:
                 None,
             )
 
-        calibration_raw_prob = self._manual_predict(
-            model.coefs_, model.intercepts_, calibration_x
-        )
+        calibration_raw_prob = self._manual_predict(model.coefs_, model.intercepts_, calibration_x)
         calibration_prob = self._temperature_scale(calibration_raw_prob, temperature)
         conformal_threshold = self._conformal_threshold(
             calibration_prob,
@@ -683,7 +681,9 @@ class TechnicalNeuralExpert:
         return calibrated
 
     def _artifact_paths(self, symbol: str) -> tuple[Path, Path]:
-        safe_symbol = "".join(character for character in symbol if character.isalnum() or character in "-_")
+        safe_symbol = "".join(
+            character for character in symbol if character.isalnum() or character in "-_"
+        )
         if not safe_symbol:
             raise ArtifactError("unsafe symbol")
         stem = f"{safe_symbol}_h{self.horizon_bars}"
@@ -708,7 +708,11 @@ class TechnicalNeuralExpert:
         temp_manifest: Path | None = None
         try:
             with tempfile.NamedTemporaryFile(
-                mode="wb", dir=manifest_path.parent, prefix=f".{npz_path.stem}.", suffix=".tmp", delete=False
+                mode="wb",
+                dir=manifest_path.parent,
+                prefix=f".{npz_path.stem}.",
+                suffix=".tmp",
+                delete=False,
             ) as file_handle:
                 temp_npz = Path(file_handle.name)
                 np.savez_compressed(file_handle, **arrays)
@@ -727,9 +731,7 @@ class TechnicalNeuralExpert:
                 "temperature": artifact["temperature"],
                 "conformal_alpha": artifact["conformal_alpha"],
                 "conformal_threshold": artifact["conformal_threshold"],
-                "conformal_calibration_samples": artifact[
-                    "conformal_calibration_samples"
-                ],
+                "conformal_calibration_samples": artifact["conformal_calibration_samples"],
                 "metrics": artifact["metrics"],
                 "npz_file": npz_path.name,
                 "npz_sha256": payload_hash,
@@ -859,9 +861,7 @@ class TechnicalNeuralExpert:
             "temperature": float(manifest["temperature"]),
             "conformal_alpha": float(manifest["conformal_alpha"]),
             "conformal_threshold": float(manifest["conformal_threshold"]),
-            "conformal_calibration_samples": int(
-                manifest["conformal_calibration_samples"]
-            ),
+            "conformal_calibration_samples": int(manifest["conformal_calibration_samples"]),
             "metrics": manifest["metrics"],
             "scaler_mean": scaler_mean,
             "scaler_scale": scaler_scale,
@@ -880,9 +880,7 @@ class TechnicalNeuralExpert:
         if artifact["conformal_calibration_samples"] < self.MIN_WINDOW_SAMPLES:
             raise ArtifactError("conformal calibration window too small")
         try:
-            self._predict_artifact(
-                artifact, np.zeros(len(self.FEATURE_NAMES), dtype=np.float64)
-            )
+            self._predict_artifact(artifact, np.zeros(len(self.FEATURE_NAMES), dtype=np.float64))
         except (ArtifactError, ValueError, FloatingPointError, OverflowError) as exc:
             raise ArtifactError("payload architecture is invalid") from exc
         return artifact

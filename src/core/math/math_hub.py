@@ -535,9 +535,7 @@ class MathHub:
             "phase": "pre_experts",
         }
 
-    def _penny_momentum_module(
-        self, ticker: str, candles: list[dict[str, Any]]
-    ) -> dict[str, Any]:
+    def _penny_momentum_module(self, ticker: str, candles: list[dict[str, Any]]) -> dict[str, Any]:
         if not ticker or len(candles) < 20:
             return {"status": "skipped", "reason": "need_ticker_and_20_candles"}
         if any(not candle.get("date") for candle in candles):

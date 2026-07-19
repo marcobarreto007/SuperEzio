@@ -163,9 +163,7 @@ def test_artifact_manifest_hash_matches_safe_npz(qualified_model: dict[str, obje
         assert arrays["classes"].tolist() == [0, 1, 2]
 
 
-def test_corrupt_artifact_fails_closed(
-    qualified_model: dict[str, object], tmp_path: Path
-) -> None:
+def test_corrupt_artifact_fails_closed(qualified_model: dict[str, object], tmp_path: Path) -> None:
     source_dir = qualified_model["artifact_dir"]
     candles = qualified_model["candles"]
     assert isinstance(source_dir, Path)
@@ -174,9 +172,7 @@ def test_corrupt_artifact_fails_closed(
     shutil.copy2(source_dir / "TRUTH_h1.npz", tmp_path / "TRUTH_h1.npz")
     with (tmp_path / "TRUTH_h1.npz").open("ab") as file_handle:
         file_handle.write(b"corruption")
-    result = TechnicalNeuralExpert(artifact_dir=tmp_path).evaluate(
-        "TRUTH", candles, now=AS_OF
-    )
+    result = TechnicalNeuralExpert(artifact_dir=tmp_path).evaluate("TRUTH", candles, now=AS_OF)
     assert result["status"] == "error"
     assert result["decision"] == "ABSTAIN"
     assert result["direction_prob"] == {}

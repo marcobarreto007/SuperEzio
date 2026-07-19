@@ -396,7 +396,9 @@ class DataCollector:
                 "insufficient_data",
                 "unavailable",
             }
-            payload.setdefault("data_quality", "unavailable" if unavailable else "provider_or_computed")
+            payload.setdefault(
+                "data_quality", "unavailable" if unavailable else "provider_or_computed"
+            )
 
         errors = [
             section
