@@ -721,7 +721,7 @@ SSE_REFRESH_INTERVAL: dict[str, int] = {
 
 def _sanitize_ticker(raw: str) -> str:
     clean_ticker = re.sub(r"[^\w.\-\^]", "", raw).upper()
-    if not clean_ticker:
+    if not clean_ticker or clean_ticker.strip("_") == "HEARTBEAT":
         raise HTTPException(status_code=400, detail="Ticker invalido")
     return clean_ticker
 

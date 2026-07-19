@@ -894,35 +894,9 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                         expert_results.append({"role": role, "ok": False, "error": str(exc)[:100]})
                 state["expert_results"] = expert_results
                 state["_experts_ran_for"] = ticker
-                # Build summary for Bob
-                verdicts = [er.get("verdict", "?") for er in expert_results if er.get("ok")]
-                all_block = (
-                    all(
-                        v
-                        in (
-                            "BEARISH",
-                            "OVERBOUGHT",
-                            "TRAP",
-                            "MANIPULATED",
-                            "SUSPICIOUS",
-                            "OVERVALUED",
-                            "RISK_OFF",
-                            "SELL",
-                        )
-                        for v in verdicts
-                    )
-                    if verdicts
-                    else False
-                )
-                if all_block:
-                    result = {
-                        "blocked": True,
-                        "reason": "expert_committee_unanimous_block",
-                        "verdicts": verdicts,
-                        "message": "Comite de experts unanime contra esta ordem. Ordem bloqueada.",
-                    }
-                else:
-                    result = await _submit_paper_order(state, args)
+                collected = await node_collect_experts(state)
+                state.update(collected)
+                result = await _submit_paper_order(state, args)
             else:
                 result = await _submit_paper_order(state, args)
 

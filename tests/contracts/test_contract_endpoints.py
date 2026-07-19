@@ -36,6 +36,8 @@ def test_sanitize_ticker_invalid_raises():
         _sanitize_ticker("")
     with pytest.raises(HTTPException):
         _sanitize_ticker("   ")
+    with pytest.raises(HTTPException):
+        _sanitize_ticker("__HEARTBEAT__")
 
 
 def test_build_ohlcv():

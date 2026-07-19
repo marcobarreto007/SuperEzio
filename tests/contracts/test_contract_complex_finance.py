@@ -751,3 +751,41 @@ async def test_complex_finance_invalid_model_json_gets_deterministic_fallback(mo
     assert "TFSA, RRSP, RESP, or FHSA" in content
     assert "Final verdict:" in content
     assert any(event.get("type") == "CHUNK" for event in events)
+
+
+@pytest.mark.asyncio
+async def test_complex_finance_answer_cannot_bypass_structured_grounding(monkeypatch):
+    from src.core.pipeline.nodes import agent as agent_module
+
+    monkeypatch.setattr(agent_module, "get_stream_writer", lambda: lambda _event: None)
+    monkeypatch.setattr(agent_module, "_get_portfolio_snapshot", lambda _state: "")
+
+    class HallucinatingGateway:
+        async def chat_completion(self, **kwargs):
+            return (
+                '{"tool":"final_answer","args":{"content":'
+                '"Allocate the capital to TSLA at $999. Final verdict: BUY"}}'
+            )
+
+    message = (
+        "I have CAD 25,000, unstable family income, debt, and education costs. "
+        "Build a serious capital allocation plan across cash, debt, ETFs, and equipment."
+    )
+    result = await agent_module.node_agent(
+        {
+            "run_id": "complex-grounding-test",
+            "route": "general",
+            "message": message,
+            "data": {
+                "ticker": "AAPL",
+                "price": 200.0,
+                "source": "test-evidence",
+                "data_quality": "verified",
+            },
+        },
+        gateway=HallucinatingGateway(),
+    )
+
+    assert "only have collected data" in result["final"]
+    assert "Final verdict: WAIT" in result["final"]
+    assert "$999" not in result["final"]

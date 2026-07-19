@@ -3053,6 +3053,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     content = _contract_fallback_answer(state)
                 elif is_complex_finance:
                     content = _repair_complex_finance_answer(state.get("message", ""), content)
+                    content = _apply_grounding_guard(state, content)
                 else:
                     content = _repair_answer_quality(content, state.get("message", ""))
                     content = _apply_grounding_guard(state, content)

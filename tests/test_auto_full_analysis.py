@@ -407,6 +407,73 @@ async def test_submit_paper_order_cannot_bypass_weighted_consensus(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_forced_expert_committee_materializes_weighted_consensus_before_submit(monkeypatch):
+    from types import SimpleNamespace
+
+    import core.idempotency as idempotency_module
+    import core.pipeline.f51_trade_gate as trade_gate_module
+    from src.core.pipeline.nodes import tool_executor as tool_executor_module
+
+    monkeypatch.setattr(tool_executor_module, "get_stream_writer", lambda: lambda _event: None)
+    monkeypatch.setattr(idempotency_module, "is_duplicate", lambda _key: False)
+    monkeypatch.setattr(
+        trade_gate_module,
+        "evaluate_trade_gate",
+        lambda **_kwargs: SimpleNamespace(status="ALLOW"),
+    )
+
+    async def fake_expert(state, *, gateway=None):
+        return {
+            "expert_results": [
+                {
+                    "role": state["role"],
+                    "ok": True,
+                    "response": '{"verdict":"NEUTRAL","confidence":0.5}',
+                }
+            ]
+        }
+
+    async def fake_collect(state):
+        assert len(state["expert_results"]) == 6
+        return {
+            "expert_consensus": {
+                "decision": "BLOCK",
+                "score": -0.51,
+                "weight_coverage": 0.8,
+            }
+        }
+
+    async def fake_submit(state, args):
+        assert state["expert_consensus"]["decision"] == "BLOCK"
+        return {"submit_paper_order_error": "weighted_expert_consensus:test"}
+
+    monkeypatch.setattr(tool_executor_module, "node_expert", fake_expert)
+    monkeypatch.setattr(tool_executor_module, "node_collect_experts", fake_collect)
+    monkeypatch.setattr(tool_executor_module, "_submit_paper_order", fake_submit)
+
+    result = await tool_executor_module.node_tool_executor(
+        {
+            "run_id": "forced-consensus-test",
+            "ticker": "AAPL",
+            "ticket_allowed": True,
+            "agent_tool_call": {
+                "tool": "submit_paper_order",
+                "args": {
+                    "ticker": "AAPL",
+                    "action": "buy",
+                    "qty": 1,
+                    "order_type": "LMT",
+                    "limit_price": 100.0,
+                },
+            },
+        },
+        gateway=object(),
+    )
+
+    assert result["submit_paper_order_error"].startswith("weighted_expert_consensus:")
+
+
+@pytest.mark.asyncio
 async def test_submit_paper_order_applies_adaptive_stop_and_position_cap(monkeypatch):
     from core.trading.approval_gate import reset_approval_gate_for_test
     from core.trading.kill_switch import reset_kill_switch_for_test
