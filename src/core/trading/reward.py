@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 
@@ -14,8 +15,8 @@ class TradeOutcome:
     qty: float
     pnl: float
     hold_duration_seconds: float
-    confidence_at_entry: float
-    verdict_at_entry: float
+    confidence_at_entry: float | None
+    verdict_at_entry: float | None
     risk_at_entry: float | None = None
     fees: float = 0.0
     slippage: float = 0.0
@@ -88,28 +89,37 @@ class RewardFunction:
         )
 
     def _pnl_reward(self, outcome: TradeOutcome) -> float:
-        if outcome.pnl > 0:
-            return min(1.0, outcome.pnl / 1000.0)
-        return max(-1.0, outcome.pnl / 500.0)
+        notional = abs(outcome.entry_price * outcome.qty)
+        if notional <= 0:
+            return 0.0
+        costs = max(0.0, outcome.fees) + max(0.0, outcome.slippage)
+        net_return = (outcome.pnl - costs) / notional
+        # Symmetric and scale invariant: the same percentage return receives
+        # the same reward regardless of account or position size.
+        return math.tanh(10.0 * net_return)
 
     def _risk_adjusted_reward(self, outcome: TradeOutcome) -> float:
         costs = max(0.0, outcome.fees) + max(0.0, outcome.slippage)
         if outcome.risk_at_entry is not None:
             risk = max(0.0, outcome.risk_at_entry) + costs
         else:
-            # Conservative fallback when the decision predates explicit risk capture.
-            risk = abs(outcome.entry_price * outcome.qty) * 0.01 + costs
+            # Missing ex-ante risk is unknown, not an invented 1% position risk.
+            return 0.0
         if risk <= 0:
             return 0.0
-        return max(-1.0, min(1.0, outcome.pnl / risk))
+        return max(-1.0, min(1.0, (outcome.pnl - costs) / risk))
 
     def _confidence_alignment(self, outcome: TradeOutcome) -> float:
-        if outcome.pnl > 0:
-            return outcome.confidence_at_entry * 0.5
-        return -(1.0 - outcome.confidence_at_entry) * 0.5
+        if outcome.confidence_at_entry is None or outcome.pnl == 0:
+            return 0.0
+        probability = max(0.0, min(1.0, float(outcome.confidence_at_entry)))
+        target = 1.0 if outcome.pnl > 0 else 0.0
+        # Brier skill relative to an uninformative 0.5 forecast.  A confident
+        # wrong forecast is penalized more, not less.
+        return max(-1.0, min(1.0, 1.0 - 4.0 * (probability - target) ** 2))
 
     def _duration_penalty(self, outcome: TradeOutcome) -> float:
-        if outcome.hold_duration_seconds <= self.max_duration_seconds:
+        if outcome.pnl > 0 or outcome.hold_duration_seconds <= self.max_duration_seconds:
             return 0.0
         excess = outcome.hold_duration_seconds - self.max_duration_seconds
         return min(0.5, excess * self.duration_penalty_rate)
