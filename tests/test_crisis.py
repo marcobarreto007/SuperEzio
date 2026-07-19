@@ -611,23 +611,37 @@ class TestLPPLSBubbleModel:
         assert result.status == "insufficient_data"
 
     def test_stable_prices(self):
-        """Flat prices → no bubble signal → low score"""
-        ms = [MarketObservation(date=_day(d), close=100.0) for d in range(1, 70)]
+        """A constant series cannot calibrate LPPLS and must remain unavailable."""
+        ms = [MarketObservation(date=_day(d), close=100.0) for d in range(1, 130)]
         ci = CrisisInput(market_series=ms)
         model = LPPLSBubbleModel()
         result = model.evaluate(ci)
-        assert result.status in ("ok", "warning")
-        assert result.score <= 0.3  # flat → low bubble score
+        assert result.status == "insufficient_data"
+        assert result.score == 0.0
 
     def test_stress_signal(self):
         """Slightly trending prices → some signal"""
-        ms = [MarketObservation(date=_day(d), close=100.0 + d * 0.02) for d in range(1, 70)]
+        ms = [MarketObservation(date=_day(d), close=100.0 + d * 0.02) for d in range(1, 130)]
         ci = CrisisInput(market_series=ms)
         model = LPPLSBubbleModel()
         result = model.evaluate(ci)
-        assert result.status in ("ok", "warning", "stress")
+        assert result.status == "ok"
         assert 0.0 <= result.score <= 1.0
         assert 0.0 <= result.confidence <= 1.0
+
+    def test_smooth_exponential_is_not_an_lppls_bubble(self):
+        market = [
+            MarketObservation(date=_day(index), close=float(100.0 * np.exp(0.003 * index)))
+            for index in range(180)
+        ]
+        result = LPPLSBubbleModel().evaluate(
+            CrisisInput(frequency="daily", market_series=market)
+        )
+
+        assert result.status == "ok"
+        assert result.score <= 0.20
+        assert result.details["confirmed"] is False
+        assert result.details["accepted_windows"] < 2
 
 
 class TestLPPLSHelpers:

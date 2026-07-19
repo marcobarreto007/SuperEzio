@@ -1,206 +1,261 @@
-"""
-LPPLS Bubble Sensor — detecção de bolhas via Log-Periodic Power Law (versão lite).
-
-Referência: Sornette et al. — LPPLS model:
-    ln(p(t)) = A + B*(tc - t)^m + C*(tc - t)^m * cos(ω*ln(tc - t) + φ)
-
-Versão simplificada para dados diários:
-- Detecta aceleração super-exponencial nos log-preços
-- Conta oscilações log-periódicas via zero-crossings da segunda derivada
-- Score combinado: aceleração + frequência de oscilações + volatilidade crescente
-"""
+"""Multi-window Log-Periodic Power Law Singularity (LPPLS) bubble filter."""
 
 from __future__ import annotations
+
+from dataclasses import dataclass
 import math
 
 import numpy as np
+from scipy.optimize import minimize
 
 from ..contracts.schemas import CrisisInput, SensorResult
 from . import BaseCrisisModel
 
 
+@dataclass(frozen=True)
+class LPPLSFit:
+    tc: float
+    m: float
+    omega: float
+    a: float
+    b: float
+    c1: float
+    c2: float
+    r_squared: float
+    relative_error: float
+    damping: float
+    oscillations: float
+    accepted: bool
+    converged: bool
+
+
 def _second_derivative(y: np.ndarray) -> np.ndarray:
-    """Segunda derivada discreta (centrais, edges com forward/backward)."""
-    n = len(y)
-    d2 = np.zeros(n)
-    if n < 3:
-        return d2
-    d2[0] = y[2] - 2 * y[1] + y[0]
-    d2[-1] = y[-1] - 2 * y[-2] + y[-3]
-    for i in range(1, n - 1):
-        d2[i] = y[i + 1] - 2 * y[i] + y[i - 1]
-    return d2
+    """Second discrete derivative retained for compatibility diagnostics."""
+    values = np.asarray(y, dtype=float)
+    if len(values) < 3:
+        return np.zeros_like(values)
+    result = np.empty_like(values)
+    result[1:-1] = values[2:] - 2.0 * values[1:-1] + values[:-2]
+    result[0] = values[2] - 2.0 * values[1] + values[0]
+    result[-1] = values[-1] - 2.0 * values[-2] + values[-3]
+    return result
 
 
 def _zero_crossings(y: np.ndarray) -> int:
-    """Conta quantas vezes a série cruza zero (muda de sinal)."""
-    return int(np.sum((y[:-1] * y[1:]) < 0))
+    values = np.asarray(y, dtype=float)
+    return int(np.sum(values[:-1] * values[1:] < 0.0))
+
+
+def _linear_lppls(
+    log_prices: np.ndarray, t: np.ndarray, tc: float, m: float, omega: float
+) -> tuple[np.ndarray, np.ndarray]:
+    distance = tc - t
+    if np.any(distance <= 0.0):
+        raise ValueError("LPPLS critical time must be strictly after the fitted window")
+    power = distance**m
+    phase = omega * np.log(distance)
+    design = np.column_stack(
+        [np.ones_like(t), power, power * np.cos(phase), power * np.sin(phase)]
+    )
+    coefficients, _, rank, _ = np.linalg.lstsq(design, log_prices, rcond=None)
+    if rank < 4:
+        raise ValueError("LPPLS linear design is rank deficient")
+    return coefficients, design @ coefficients
 
 
 def _lppls_fit_quality(
     log_prices: np.ndarray, t: np.ndarray, tc: float, m: float, omega: float
 ) -> float:
-    """Calcula R² de um fit LPPLS simplificado (sem otimização não-linear pesada).
-
-    Fit: ln(p) ≈ A + B*(tc - t)^m + C*(tc - t)^m * cos(ω*ln(tc - t))
-    Resolve A, B, C via mínimos quadrados lineares para (tc, m, ω) fixos.
-    """
-    dt = tc - t
-    valid = dt > 0
-    if not np.any(valid):
-        return 0.0
-
-    dt = dt[valid]
-    lp = log_prices[valid]
-
-    pow_term = dt**m
-    # cos term — adiciona pequeno epsilon para evitar log(0)
-    log_dt = np.log(np.maximum(dt, 1e-9))
-    cos_term = pow_term * np.cos(omega * log_dt)
-
-    # Design matrix para [A, B, C]
-    X = np.column_stack([np.ones_like(pow_term), pow_term, cos_term])
-
-    # Mínimos quadrados: beta = (X'X)^(-1) X'y
+    """Compatibility helper returning R-squared for the complete A/B/C1/C2 model."""
     try:
-        beta = np.linalg.lstsq(X, lp, rcond=None)[0]
-        fitted = X @ beta
-        ss_res = np.sum((lp - fitted) ** 2)
-        ss_tot = np.sum((lp - np.mean(lp)) ** 2)
-        if ss_tot == 0:
-            # Série constante (variância zero) — não é bolha, é dado degenerado.
-            # Retornar 1.0 aqui pintaria falso positivo de "fit perfeito".
-            return 0.0
-        r2 = 1.0 - ss_res / ss_tot
-        # Penaliza B > 0 (bolha requer B < 0, i.e., preço acelerando para cima)
-        if beta[1] > 0:
-            r2 *= 0.3
-        return max(0.0, r2)
-    except Exception:
+        coefficients, fitted = _linear_lppls(log_prices, t, tc, m, omega)
+    except (ValueError, np.linalg.LinAlgError):
         return 0.0
+    total = float(np.sum((log_prices - np.mean(log_prices)) ** 2))
+    if total <= 1e-16 or coefficients[1] >= 0.0:
+        return 0.0
+    residual = float(np.sum((log_prices - fitted) ** 2))
+    return max(0.0, min(1.0, 1.0 - residual / total))
+
+
+def _fit_lppls_window(log_prices: np.ndarray) -> LPPLSFit:
+    """Profile A/B/C1/C2 and optimize tc/m/omega with deterministic multistart."""
+    log_prices = np.asarray(log_prices, dtype=float)
+    n = len(log_prices)
+    if n < 60 or not np.isfinite(log_prices).all() or float(np.ptp(log_prices)) <= 1e-10:
+        raise ValueError("LPPLS requires at least 60 finite, non-constant log prices")
+    t = np.arange(n, dtype=float)
+    last_time = float(n - 1)
+    bounds = [(last_time + 1.0, last_time + 0.35 * n), (0.1, 0.9), (6.0, 13.0)]
+    total_variation = float(np.sum((log_prices - np.mean(log_prices)) ** 2))
+
+    def objective(parameters: np.ndarray) -> float:
+        try:
+            _, fitted = _linear_lppls(
+                log_prices, t, float(parameters[0]), float(parameters[1]), float(parameters[2])
+            )
+        except (ValueError, np.linalg.LinAlgError):
+            return 1e6
+        return float(np.sum((log_prices - fitted) ** 2) / total_variation)
+
+    best = None
+    for critical_fraction in (0.05, 0.15, 0.30):
+        for initial_m in (0.25, 0.55, 0.80):
+            for initial_omega in (6.5, 9.0, 12.0):
+                initial = np.array(
+                    [last_time + max(1.0, critical_fraction * n), initial_m, initial_omega]
+                )
+                candidate = minimize(
+                    objective,
+                    initial,
+                    method="L-BFGS-B",
+                    bounds=bounds,
+                    options={"maxiter": 350, "ftol": 1e-12},
+                )
+                if best is None or candidate.fun < best.fun:
+                    best = candidate
+    if best is None or not np.isfinite(best.fun):
+        raise ValueError("LPPLS nonlinear optimization failed")
+
+    tc, m, omega = (float(value) for value in best.x)
+    coefficients, fitted = _linear_lppls(log_prices, t, tc, m, omega)
+    a, b, c1, c2 = (float(value) for value in coefficients)
+    residual_sum = float(np.sum((log_prices - fitted) ** 2))
+    r_squared = max(0.0, min(1.0, 1.0 - residual_sum / total_variation))
+    price_range = max(float(np.ptp(log_prices)), 1e-12)
+    relative_error = math.sqrt(residual_sum / n) / price_range
+    amplitude = math.hypot(c1, c2)
+    damping = math.inf if amplitude <= 1e-14 else m * abs(b) / (omega * amplitude)
+    oscillations = omega / (2.0 * math.pi) * math.log(tc / (tc - last_time))
+    amplitude_ratio = amplitude / max(abs(b), 1e-14)
+    accepted = bool(
+        best.success
+        and b < 0.0
+        and r_squared >= 0.95
+        and relative_error <= 0.10
+        and damping >= 1.0
+        and oscillations >= 2.5
+        and 0.01 <= amplitude_ratio <= 1.0
+        and log_prices[-1] > log_prices[0]
+    )
+    return LPPLSFit(
+        tc=tc,
+        m=m,
+        omega=omega,
+        a=a,
+        b=b,
+        c1=c1,
+        c2=c2,
+        r_squared=r_squared,
+        relative_error=relative_error,
+        damping=damping,
+        oscillations=oscillations,
+        accepted=accepted,
+        converged=bool(best.success),
+    )
 
 
 class LPPLSBubbleModel:
-    MIN_DAYS = 60
-    THRESHOLD_SCORE = 0.50
+    MIN_DAYS = 90
 
     def evaluate(self, input_data: CrisisInput) -> SensorResult:
-        market = input_data.market_series
-        if not market or len(market) < self.MIN_DAYS:
+        market = input_data.market_series or []
+        as_of = market[-1].date if market else None
+        if len(market) < self.MIN_DAYS:
             return BaseCrisisModel._insufficient_data(
                 self.__class__.__name__,
-                f"LPPLS requer ≥{self.MIN_DAYS} dias de série de preços.",
+                f"Multi-window LPPLS requires at least {self.MIN_DAYS} market observations.",
+                horizon=f"1 to 35% of fitted {input_data.frequency} window ahead",
+                sample_size=len(market),
+                as_of=as_of,
             )
 
-        closes = np.array([m.close for m in market if m.close > 0])
-        n = len(closes)
-        if n < self.MIN_DAYS:
-            return BaseCrisisModel._insufficient_data(
-                self.__class__.__name__,
-                f"Preços válidos insuficientes ({n} < {self.MIN_DAYS}).",
-            )
-
-        log_prices = np.log(closes)
-        t = np.arange(n, dtype=float)
-
-        # ── 1. Aceleração super-exponencial ─────────────────────────────────────
-        # Fit quadrático: ln(p) = a + b*t + c*t^2
-        # Se c > 0 e significativo → aceleração super-exponencial
-        X_quad = np.column_stack([np.ones(n), t, t**2])
-        try:
-            beta_quad = np.linalg.lstsq(X_quad, log_prices, rcond=None)[0]
-            accel = float(beta_quad[2])  # coeficiente quadrático
-        except Exception:
-            accel = 0.0
-
-        # Resíduos do fit linear (para detectar oscilações)
-        X_lin = np.column_stack([np.ones(n), t])
-        try:
-            beta_lin = np.linalg.lstsq(X_lin, log_prices, rcond=None)[0]
-            fitted_lin = X_lin @ beta_lin
-            residuals = log_prices - fitted_lin
-        except Exception:
-            residuals = np.zeros(n)
-
-        # ── 2. Oscilações log-periódicas ────────────────────────────────────────
-        d2_res = _second_derivative(residuals)
-        oscillations = _zero_crossings(d2_res)
-        # Frequência: oscilações por unidade de log-tempo
-        log_span = math.log(max(n, 2))
-        freq = oscillations / log_span if log_span > 0 else 0.0
-
-        # ── 3. Fit LPPLS simplificado em grid ───────────────────────────────────
-        # Grid search leve em (tc, m, omega)
-        best_r2 = 0.0
-        best_params = {}
-        # tc varia entre t[-1] + 1 (imediato) e t[-1] + 60 (2-3 meses)
-        tc_base = float(n)
-        for tc_offset in [1, 7, 14, 21, 30, 45, 60]:
-            tc = tc_base + tc_offset
-            for m in [0.2, 0.33, 0.5, 0.66, 0.8]:
-                for omega in [4.0, 6.0, 8.0, 10.0, 12.0]:
-                    r2 = _lppls_fit_quality(log_prices, t, tc, m, omega)
-                    if r2 > best_r2:
-                        best_r2 = r2
-                        best_params = {
-                            "tc_offset": tc_offset,
-                            "m": m,
-                            "omega": omega,
-                            "r2": r2,
-                        }
-
-        # ── 4. Volatilidade crescente (sinal de bolha) ──────────────────────────
-        if n >= 30:
-            vol_window = 20
-            vols = []
-            for i in range(vol_window, n):
-                window_rets = np.diff(log_prices[i - vol_window : i])
-                vols.append(float(np.std(window_rets)))
-            vols = np.array(vols)
-            vol_trend = (
-                float(np.polyfit(np.arange(len(vols)), vols, 1)[0]) if len(vols) >= 10 else 0.0
-            )
-        else:
-            vol_trend = 0.0
-
-        # ── Score combinado ─────────────────────────────────────────────────────
-        # Componentes normalizados para [0, 1]
-        score_accel = max(0.0, min(1.0, accel * 5000.0))  # heurístico
-        score_osc = max(0.0, min(1.0, freq / 3.0))
-        score_r2 = max(0.0, min(1.0, best_r2))
-        score_vol = max(0.0, min(1.0, vol_trend * 500.0))
-
-        # Pesos: R² do fit LPPLS pesa mais
-        score = 0.30 * score_accel + 0.15 * score_osc + 0.35 * score_r2 + 0.20 * score_vol
-        score = max(0.0, min(1.0, score))
-
-        # Confiança: quanto mais dados e melhor o fit, maior a confiança
-        confidence = max(0.3, min(0.95, 0.4 + 0.4 * best_r2 + 0.01 * n / 30))
-
-        explanation = (
-            f"LPPLS bubble: aceleração={accel:.2e}, oscilações={oscillations}, "
-            f"freq={freq:.2f}, best_R²={best_r2:.3f}, vol_trend={vol_trend:.2e}. "
-            f"Score={score:.2f}."
+        log_prices = np.log(np.asarray([point.close for point in market], dtype=float))
+        n = len(log_prices)
+        window_sizes = sorted(
+            {
+                max(60, n // 2),
+                max(75, 3 * n // 4),
+                min(120, n),
+                min(180, n),
+                n,
+            }
         )
+        fits: list[tuple[int, LPPLSFit]] = []
+        for window in window_sizes:
+            if window < 60:
+                continue
+            try:
+                fits.append((window, _fit_lppls_window(log_prices[-window:])))
+            except ValueError:
+                continue
+        if len(fits) < 2:
+            return BaseCrisisModel._insufficient_data(
+                self.__class__.__name__,
+                "LPPLS optimization did not produce at least two valid window fits.",
+                horizon=f"1 to 35% of fitted {input_data.frequency} window ahead",
+                sample_size=n,
+                as_of=as_of,
+            )
+
+        accepted = [fit for _, fit in fits if fit.accepted]
+        accepted_fraction = len(accepted) / len(fits)
+        confirmed = len(accepted) >= 2 and accepted_fraction >= 0.50
+        if confirmed:
+            median_r_squared = float(np.median([fit.r_squared for fit in accepted]))
+            score = min(1.0, accepted_fraction * median_r_squared)
+        else:
+            score = 0.0
+        convergence_fraction = sum(fit.converged for _, fit in fits) / len(fits)
+        confidence = min(0.92, 0.35 + 0.35 * convergence_fraction + 0.15 * len(fits) / 5.0)
+
+        fit_details = []
+        for window, fit in fits:
+            fit_details.append(
+                {
+                    "window": window,
+                    "tc_offset": round(fit.tc - (window - 1), 6),
+                    "m": round(fit.m, 6),
+                    "omega": round(fit.omega, 6),
+                    "A": round(fit.a, 8),
+                    "B": round(fit.b, 8),
+                    "C1": round(fit.c1, 8),
+                    "C2": round(fit.c2, 8),
+                    "r_squared": round(fit.r_squared, 6),
+                    "relative_error": round(fit.relative_error, 6),
+                    "damping": round(fit.damping, 6) if math.isfinite(fit.damping) else None,
+                    "oscillations": round(fit.oscillations, 6),
+                    "accepted": fit.accepted,
+                    "converged": fit.converged,
+                }
+            )
 
         return BaseCrisisModel._result(
             sensor_name=self.__class__.__name__,
             score=score,
             confidence=confidence,
-            explanation=explanation,
+            explanation=(
+                f"Complete LPPLS A/B/C1/C2 filter accepted {len(accepted)}/{len(fits)} "
+                f"windows; multi-window bubble confirmation is {confirmed}."
+            ),
+            method_kind="statistical_model",
+            horizon=f"1 to 35% of fitted {input_data.frequency} window ahead",
+            sample_size=n,
+            as_of=as_of,
+            calibration_status="multi_window_filtered",
             details={
-                "n_days": n,
-                "acceleration": round(accel, 6),
-                "oscillations": oscillations,
-                "log_frequency": round(freq, 3),
-                "best_r2": round(best_r2, 3),
-                "best_params": best_params,
-                "volatility_trend": round(vol_trend, 6),
-                "score_components": {
-                    "acceleration": round(score_accel, 3),
-                    "oscillations": round(score_osc, 3),
-                    "lppls_fit": round(score_r2, 3),
-                    "vol_trend": round(score_vol, 3),
+                "confirmed": confirmed,
+                "accepted_windows": len(accepted),
+                "fitted_windows": len(fits),
+                "accepted_fraction": round(accepted_fraction, 6),
+                "filters": {
+                    "m": [0.1, 0.9],
+                    "omega": [6.0, 13.0],
+                    "B_negative": True,
+                    "r_squared_min": 0.95,
+                    "damping_min": 1.0,
+                    "oscillations_min": 2.5,
                 },
+                "window_fits": fit_details,
             },
         )
