@@ -26,9 +26,7 @@ def _quantile_regression(X: np.ndarray, y: np.ndarray, q: float = 0.05) -> np.nd
         raise ValueError("quantile regression requires finite data and 0 < q < 1")
 
     n_samples, n_features = X.shape
-    objective = np.r_[
-        np.zeros(n_features), np.full(n_samples, q), np.full(n_samples, 1.0 - q)
-    ]
+    objective = np.r_[np.zeros(n_features), np.full(n_samples, q), np.full(n_samples, 1.0 - q)]
     # y - X beta = positive_residual - negative_residual
     equality = np.column_stack([X, np.eye(n_samples), -np.eye(n_samples)])
     bounds = [(None, None)] * n_features + [(0.0, None)] * (2 * n_samples)
@@ -145,12 +143,8 @@ class GrowthAtRiskModel:
             )
 
         rolling_y = np.asarray(rolling_targets)
-        model_pinball = _pinball_loss(
-            rolling_y, np.asarray(rolling_predictions), self.QUANTILE
-        )
-        baseline_pinball = _pinball_loss(
-            rolling_y, np.asarray(baseline_predictions), self.QUANTILE
-        )
+        model_pinball = _pinball_loss(rolling_y, np.asarray(rolling_predictions), self.QUANTILE)
+        baseline_pinball = _pinball_loss(rolling_y, np.asarray(baseline_predictions), self.QUANTILE)
         if baseline_pinball <= 1e-12:
             skill = 0.0
         else:

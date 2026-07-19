@@ -155,9 +155,7 @@ class HawkesStressModel:
         )
         stationary_intensity = fit.mu / (1.0 - fit.branching_ratio)
         intensity_ratio = current_intensity / stationary_intensity
-        likelihood_ratio = max(
-            0.0, 2.0 * (fit.log_likelihood - fit.poisson_log_likelihood) - 4.0
-        )
+        likelihood_ratio = max(0.0, 2.0 * (fit.log_likelihood - fit.poisson_log_likelihood) - 4.0)
         evidence = 1.0 - math.exp(-likelihood_ratio / 10.0)
         current_excess = min(1.0, max(0.0, intensity_ratio - 1.0) / 2.0)
         score = min(

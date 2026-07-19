@@ -395,17 +395,13 @@ class TestMarkovRegimeModel:
 
     def test_synthetic_stress_regime(self):
         rng = np.random.default_rng(51)
-        returns = np.concatenate(
-            [rng.normal(0.0005, 0.003, 180), rng.normal(-0.004, 0.035, 60)]
-        )
+        returns = np.concatenate([rng.normal(0.0005, 0.003, 180), rng.normal(-0.004, 0.035, 60)])
         closes = 100.0 * np.exp(np.r_[0.0, np.cumsum(returns)])
         market = [
             MarketObservation(date=_day(index), close=float(close))
             for index, close in enumerate(closes)
         ]
-        result = MarkovRegimeModel().evaluate(
-            CrisisInput(frequency="daily", market_series=market)
-        )
+        result = MarkovRegimeModel().evaluate(CrisisInput(frequency="daily", market_series=market))
         assert result.status == "ok"
         assert result.method_kind == "statistical_model"
         assert result.details["posterior_kind"] == "filtered_causal"
@@ -420,16 +416,12 @@ class TestMarkovRegimeModel:
         prefix, _, _ = _forward_filter(
             values[:cutoff], fit.means, fit.variances, fit.transition, fit.initial
         )
-        full, _, _ = _forward_filter(
-            values, fit.means, fit.variances, fit.transition, fit.initial
-        )
+        full, _, _ = _forward_filter(values, fit.means, fit.variances, fit.transition, fit.initial)
         assert np.allclose(prefix[-1], full[cutoff - 1], atol=1e-12)
 
     def test_constant_series_is_not_called_normal(self):
         market = [MarketObservation(date=_day(i), close=100.0) for i in range(80)]
-        result = MarkovRegimeModel().evaluate(
-            CrisisInput(frequency="daily", market_series=market)
-        )
+        result = MarkovRegimeModel().evaluate(CrisisInput(frequency="daily", market_series=market))
         assert result.status == "insufficient_data"
         assert result.confidence == 0.0
 
@@ -603,10 +595,7 @@ class TestGrowthAtRiskModel:
 
 class TestUnavailableSystemicModels:
     def test_covar_and_debtrank_require_real_network_data(self):
-        market = [
-            MarketObservation(date=_day(index), close=100.0 + index)
-            for index in range(120)
-        ]
+        market = [MarketObservation(date=_day(index), close=100.0 + index) for index in range(120)]
         result = NetworkContagionModel().evaluate(
             CrisisInput(frequency="daily", market_series=market)
         )
@@ -632,9 +621,7 @@ class TestUnavailableSystemicModels:
 class TestLPPLSBubbleModel:
     def test_insufficient_data(self):
         ci = CrisisInput(
-            market_series=[
-                MarketObservation(date=_day(d), close=100.0) for d in range(1, 30)
-            ]
+            market_series=[MarketObservation(date=_day(d), close=100.0) for d in range(1, 30)]
         )
         model = LPPLSBubbleModel()
         result = model.evaluate(ci)
@@ -664,9 +651,7 @@ class TestLPPLSBubbleModel:
             MarketObservation(date=_day(index), close=float(100.0 * np.exp(0.003 * index)))
             for index in range(180)
         ]
-        result = LPPLSBubbleModel().evaluate(
-            CrisisInput(frequency="daily", market_series=market)
-        )
+        result = LPPLSBubbleModel().evaluate(CrisisInput(frequency="daily", market_series=market))
 
         assert result.status == "ok"
         assert result.score <= 0.20

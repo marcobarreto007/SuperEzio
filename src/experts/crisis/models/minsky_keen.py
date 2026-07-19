@@ -34,15 +34,19 @@ class MinskyKeenModel:
         debt_score = percentile_rank(debt_values, latest.credit_to_gdp) / 100.0
         rate_score = min(1.0, max(0.0, latest.policy_rate / 5.0))
         growth_score = (
-            1.0
-            if latest.gdp_growth_yoy < 0.0
-            else max(0.0, 1.0 - latest.gdp_growth_yoy * 0.20)
+            1.0 if latest.gdp_growth_yoy < 0.0 else max(0.0, 1.0 - latest.gdp_growth_yoy * 0.20)
         )
         fragility = clamp(
             0.40 * debt_score + 0.30 * rate_score + 0.30 * growth_score,
             max_value=1.0,
         )
-        state = "Ponzi-like" if fragility > 0.80 else "Speculative-like" if fragility > 0.50 else "Hedge-like"
+        state = (
+            "Ponzi-like"
+            if fragility > 0.80
+            else "Speculative-like"
+            if fragility > 0.50
+            else "Hedge-like"
+        )
         return SensorResult(
             sensor_name=self.PUBLIC_NAME,
             score=float(fragility),

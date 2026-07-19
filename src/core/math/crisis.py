@@ -143,6 +143,11 @@ def crisis_evaluate(model_name: str, data: dict[str, Any]) -> dict[str, Any]:
             "model": model_name,
             "score": 0.0,
             "confidence": 0.0,
+            "method_kind": "unavailable",
+            "horizon": None,
+            "sample_size": 0,
+            "as_of": None,
+            "calibration_status": "failed",
             "status": "error",
             "explanation": f"Modelo '{model_name}' não encontrado. Disponível: {list(CRISIS_MODELS)}",
         }
@@ -179,6 +184,11 @@ def crisis_evaluate(model_name: str, data: dict[str, Any]) -> dict[str, Any]:
             "model": model_name,
             "score": 0.0,
             "confidence": 0.0,
+            "method_kind": "unavailable",
+            "horizon": None,
+            "sample_size": 0,
+            "as_of": None,
+            "calibration_status": "failed",
             "status": "error",
             "explanation": str(exc)[:200],
         }
@@ -206,6 +216,12 @@ def crisis_aggregate(
             confidences.append(r["confidence"])
 
     if not scores:
+        known_as_of = [result.get("as_of") for result in results.values() if result.get("as_of")]
+        known_samples = [
+            result.get("sample_size", 0)
+            for result in results.values()
+            if result.get("sample_size", 0) > 0
+        ]
         return {
             "results": results,
             "status": "unavailable",
@@ -216,10 +232,18 @@ def crisis_aggregate(
             "models_run": len(to_run),
             "models_ok": 0,
             "models_failed": len(to_run),
+            "method_kind": "unavailable",
+            "horizon": None,
+            "sample_size": max(known_samples) if known_samples else 0,
+            "as_of": max(known_as_of) if known_as_of else None,
+            "calibration_status": "unavailable",
         }
 
     avg_score = sum(scores) / len(scores)
     avg_conf = sum(confidences) / len(confidences)
+    available = [result for result in results.values() if result["status"] == "ok"]
+    known_samples = [result["sample_size"] for result in available if result["sample_size"] > 0]
+    known_as_of = [result["as_of"] for result in available if result["as_of"]]
     alert = classify_alert_level(avg_score)
     regime = classify_regime(avg_score, avg_score, avg_score)
 
@@ -233,6 +257,11 @@ def crisis_aggregate(
         "models_run": len(to_run),
         "models_ok": len(scores),
         "models_failed": len(to_run) - len(scores),
+        "method_kind": "component_mean_ensemble",
+        "horizon": "mixed_component_horizons",
+        "sample_size": min(known_samples) if known_samples else 0,
+        "as_of": max(known_as_of) if known_as_of else None,
+        "calibration_status": "component_level_only",
     }
 
 

@@ -54,9 +54,7 @@ def _linear_lppls(
         raise ValueError("LPPLS critical time must be strictly after the fitted window")
     power = distance**m
     phase = omega * np.log(distance)
-    design = np.column_stack(
-        [np.ones_like(t), power, power * np.cos(phase), power * np.sin(phase)]
-    )
+    design = np.column_stack([np.ones_like(t), power, power * np.cos(phase), power * np.sin(phase)])
     coefficients, _, rank, _ = np.linalg.lstsq(design, log_prices, rcond=None)
     if rank < 4:
         raise ValueError("LPPLS linear design is rank deficient")

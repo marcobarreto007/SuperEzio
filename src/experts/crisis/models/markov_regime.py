@@ -123,9 +123,7 @@ def _fit_gaussian_hmm(
         transition = np.clip(transition, 1e-6, 1.0)
         transition /= transition.sum(axis=1, keepdims=True)
         means = (gamma * values[:, None]).sum(axis=0) / occupancy
-        variances = (
-            gamma * ((values[:, None] - means[None, :]) ** 2)
-        ).sum(axis=0) / occupancy
+        variances = (gamma * ((values[:, None] - means[None, :]) ** 2)).sum(axis=0) / occupancy
         variances = np.maximum(variances, variance_floor)
 
         if np.isfinite(previous_log_likelihood) and abs(

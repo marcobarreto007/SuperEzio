@@ -1,6 +1,6 @@
 """Validated, audit-friendly data contracts for CrisisMathExpert."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 from typing import Any, Literal, Optional
 
@@ -23,6 +23,15 @@ def _validate_observation_date(value: str) -> str:
     except ValueError as exc:
         raise ValueError("date must be ISO-8601 or YYYY-MM") from exc
     return value
+
+
+def _date_sort_key(value: str) -> datetime:
+    if _MONTH_RE.fullmatch(value):
+        return datetime.strptime(value, "%Y-%m")
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed
 
 
 class MacroObservation(BaseModel):
@@ -73,7 +82,8 @@ class CrisisInput(BaseModel):
             ("market_series", self.market_series or []),
         ):
             dates = [item.date for item in values]
-            if dates != sorted(dates) or len(dates) != len(set(dates)):
+            instants = [_date_sort_key(value) for value in dates]
+            if instants != sorted(instants) or len(instants) != len(set(instants)):
                 raise ValueError(f"{field_name} dates must be unique and strictly increasing")
         return self
 

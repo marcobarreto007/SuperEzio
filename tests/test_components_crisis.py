@@ -272,6 +272,8 @@ def test_crisis_aggregate():
     assert result["status"] == "unavailable"
     assert result["regime"] == "unavailable"
     assert result["alert_level"] == "unavailable"
+    assert result["method_kind"] == "unavailable"
+    assert result["calibration_status"] == "unavailable"
 
 
 def test_crisis_classify():

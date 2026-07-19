@@ -43,15 +43,11 @@ class CreditAssetGrowthModel:
             for index in range(12, len(houses))
             if houses[index - 12] > 0.0
         ]
-        house_percentile = (
-            percentile_rank(house_history, house_yoy) if house_history else 50.0
-        )
+        house_percentile = percentile_rank(house_history, house_yoy) if house_history else 50.0
         equity_percentile = 0.0
         if len(equities) >= 12:
             equity_yoy = (
-                ((equities[-1] / equities[-12]) - 1.0) * 100.0
-                if equities[-12] > 0.0
-                else 0.0
+                ((equities[-1] / equities[-12]) - 1.0) * 100.0 if equities[-12] > 0.0 else 0.0
             )
             equity_history = [
                 ((equities[index] / equities[index - 12]) - 1.0) * 100.0
