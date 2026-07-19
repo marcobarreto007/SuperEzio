@@ -655,12 +655,7 @@ def _extract_learning_context(state: dict, qty: int, entry_price: float) -> dict
     if confidence_at_entry > 1.0:
         confidence_at_entry /= 100.0
 
-    adaptive = state.get("adaptive_config") or {}
-    try:
-        stop_loss_pct = float(adaptive.get("stop_loss_pct", 0.01) or 0.01)
-    except (AttributeError, TypeError, ValueError):
-        stop_loss_pct = 0.01
-    stop_loss_pct = max(0.0, min(1.0, stop_loss_pct))
+    stop_loss_pct = _adaptive_sizing_config(state)["default_stop_pct"]
 
     return {
         "confidence_at_entry": max(0.0, min(1.0, confidence_at_entry)),

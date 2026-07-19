@@ -195,7 +195,10 @@ class TestFreezeBlocksLowLevelOrder:
         assert "pnl_estimate" not in source
 
     def test_adaptive_sizing_can_tighten_but_never_loosen_safety_ceiling(self):
-        from core.pipeline.nodes.auto_execute_paper import _adaptive_sizing_config
+        from core.pipeline.nodes.auto_execute_paper import (
+            _adaptive_sizing_config,
+            _extract_learning_context,
+        )
 
         tightened = _adaptive_sizing_config(
             {"adaptive_config": {"max_position_pct": 0.05, "stop_loss_pct": 0.03}}
@@ -206,6 +209,10 @@ class TestFreezeBlocksLowLevelOrder:
 
         assert tightened == {"max_position_pct": 0.05, "default_stop_pct": 0.03}
         assert attempted_loosen == {"max_position_pct": 0.10, "default_stop_pct": 0.50}
+        captured = _extract_learning_context(
+            {"adaptive_config": {"stop_loss_pct": 0.80}}, qty=10, entry_price=100.0
+        )
+        assert captured["risk_at_entry"] == 500.0
 
     def test_tool_executor_freeze_blocks(self, monkeypatch):
         """tool_executor bloqueia submit_paper_order com FREEZE=true."""
