@@ -14,6 +14,15 @@
 
 ## Done
 
+- [x] 2026-07-19 - Component-by-component audit (Claude Code): 4 phases documented in
+  `docs/audit/phase1-4b`. Confirmed and fixed: quantum_module fixed RNG seed (math_hub.py),
+  f51_module hardcoded consensus=0.65, silent gateway fallback with no opt-out on the sync
+  expert path, and all experts/judge/auditor sharing identical unfiltered data_context.
+  Rewrote EXPERT_PROMPTS with per-role data isolation (EXPERT_CONTEXT_MODULES) and
+  build_judge_context(), informed by TradingAgents (arXiv:2412.20138), FinRobot
+  (arXiv:2405.14767), AIMM (arXiv:2512.16103). runtime.yml context_length divergence
+  (4096 vs 65536) documented as unverifiable — no GGUF present on disk. Commit 7f77357.
+  Full suite: 498 passed, 5 pre-existing failures unaffected, 2 skipped.
 - [x] 2026-06-13 - Career bootstrapping: created professional Portuguese & English resumes, LinkedIn strategy, and GitHub portfolio optimization guide under docs/career/.
 - [x] 2026-06-01 - Phase 3 (f51-tests): 977/979 pass. 2 pre-existing failures documented in RISK_REGISTER (INV-R13, INV-R14).
 - [x] 2026-06-01 - Phase 2 (f51-runtime): Runtime verified with healthchecks, logs, checkpoints, runbook.
