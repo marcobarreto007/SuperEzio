@@ -1,87 +1,96 @@
-"""
-Credit x Asset Growth Sensor.
-"""
+"""Explicit fixed-weight heuristic for concurrent credit and asset growth."""
 
 from ..contracts.schemas import CrisisInput, SensorResult
-from . import BaseCrisisModel
 from ..logic.normalization import clamp, percentile_rank
+from . import BaseCrisisModel
 
 
 class CreditAssetGrowthModel:
+    """Stable import name; public result name states that this is a heuristic."""
+
+    PUBLIC_NAME = "CreditAssetPercentileHeuristic"
+
     def evaluate(self, input_data: CrisisInput) -> SensorResult:
         credits = [
-            o.credit_growth_yoy for o in input_data.observations if o.credit_growth_yoy is not None
+            item.credit_growth_yoy
+            for item in input_data.observations
+            if item.credit_growth_yoy is not None
         ]
         houses = [
-            o.house_price_index for o in input_data.observations if o.house_price_index is not None
+            item.house_price_index
+            for item in input_data.observations
+            if item.house_price_index is not None
         ]
-        equities = [o.equity_index for o in input_data.observations if o.equity_index is not None]
-
-        if len(credits) < 12 or len(houses) < 12:
+        equities = [
+            item.equity_index for item in input_data.observations if item.equity_index is not None
+        ]
+        sample_size = min(len(credits), len(houses))
+        as_of = input_data.observations[-1].date if input_data.observations else None
+        horizon = f"current {input_data.frequency} percentile"
+        if sample_size < 12:
             return BaseCrisisModel._insufficient_data(
-                self.__class__.__name__,
-                "Faltam dados de crédito ou imóveis para avaliar o ciclo cruzado.",
+                self.PUBLIC_NAME,
+                "Credit/asset heuristic requires at least 12 credit and housing observations.",
+                horizon=horizon,
+                sample_size=sample_size,
+                as_of=as_of,
             )
 
-        cred_pct = percentile_rank(credits, credits[-1])
-
-        # Calculate YoY for house
-        h_yoy = ((houses[-1] / houses[-12]) - 1.0) * 100 if houses[-12] > 0 else 0.0
-        # Pseudo history for percentiles
-        h_yoys = []
-        for i in range(12, len(houses)):
-            if houses[i - 12] > 0:
-                h_yoys.append(((houses[i] / houses[i - 12]) - 1.0) * 100)
-        h_pct = percentile_rank(h_yoys, h_yoy) if h_yoys else 50.0
-
-        e_pct = 0.0
+        credit_percentile = percentile_rank(credits, credits[-1])
+        house_yoy = ((houses[-1] / houses[-12]) - 1.0) * 100.0 if houses[-12] > 0.0 else 0.0
+        house_history = [
+            ((houses[index] / houses[index - 12]) - 1.0) * 100.0
+            for index in range(12, len(houses))
+            if houses[index - 12] > 0.0
+        ]
+        house_percentile = (
+            percentile_rank(house_history, house_yoy) if house_history else 50.0
+        )
+        equity_percentile = 0.0
         if len(equities) >= 12:
-            e_yoy = ((equities[-1] / equities[-12]) - 1.0) * 100 if equities[-12] > 0 else 0.0
-            e_yoys = [
-                ((equities[i] / equities[i - 12]) - 1.0) * 100
-                for i in range(12, len(equities))
-                if equities[i - 12] > 0
-            ]
-            e_pct = percentile_rank(e_yoys, e_yoy) if e_yoys else 50.0
-
-        base_score = 0.45 * cred_pct + 0.35 * h_pct + 0.20 * e_pct
-
-        # Interaction bonuses
-        bonus = 0.0
-        if cred_pct >= 90 and h_pct >= 90 and e_pct >= 90:
-            bonus = 30.0
-        elif cred_pct >= 90 and h_pct >= 90:
-            bonus = 20.0
-        elif cred_pct >= 75 and h_pct >= 75:
-            bonus = 10.0
-
-        # base_score/bonus/final_score are computed on 0-100 (matches
-        # percentile_rank()'s own 0-100 convention and clamp()'s default
-        # max_value=100.0). Thresholds below stay on that scale; only the
-        # SensorResult score/confidence are converted to 0-1 to match every
-        # other crisis model's contract (crisis.py's aggregator assumes 0-1
-        # then multiplies by 100 once — a 0-100 score here doubled the
-        # scale. See docs/audit/phase9_parallel_fixes_and_critical_findings.md).
-        final_score = clamp(base_score + bonus)
-
-        if final_score > 80:
-            exp = (
-                "Sinais fortes de duplo boom: expansão extrema de crédito e valorização de ativos."
+            equity_yoy = (
+                ((equities[-1] / equities[-12]) - 1.0) * 100.0
+                if equities[-12] > 0.0
+                else 0.0
             )
-        elif final_score > 60:
-            exp = "Crescimento combinado de crédito e ativos acima da média."
+            equity_history = [
+                ((equities[index] / equities[index - 12]) - 1.0) * 100.0
+                for index in range(12, len(equities))
+                if equities[index - 12] > 0.0
+            ]
+            equity_percentile = (
+                percentile_rank(equity_history, equity_yoy) if equity_history else 50.0
+            )
+
+        fixed_weight_score = (
+            0.45 * credit_percentile + 0.35 * house_percentile + 0.20 * equity_percentile
+        )
+        if credit_percentile >= 90.0 and house_percentile >= 90.0:
+            interaction = 30.0 if equity_percentile >= 90.0 else 20.0
+        elif credit_percentile >= 75.0 and house_percentile >= 75.0:
+            interaction = 10.0
         else:
-            exp = "Não há boom simultâneo alarmante de crédito e ativos no momento."
+            interaction = 0.0
+        score = clamp(fixed_weight_score + interaction) / 100.0
 
         return SensorResult(
-            sensor_name=self.__class__.__name__,
-            score=final_score / 100.0,
-            confidence=0.85,
+            sensor_name=self.PUBLIC_NAME,
+            score=float(score),
+            confidence=0.55,
             status="ok",
-            explanation=exp,
+            explanation=(
+                "Fixed-weight historical percentiles summarize concurrent credit and asset growth."
+            ),
+            method_kind="heuristic",
+            horizon=horizon,
+            sample_size=sample_size,
+            as_of=as_of,
+            calibration_status="not_calibrated",
             details={
-                "credit_growth_pct": cred_pct,
-                "house_growth_pct": h_pct,
-                "equity_growth_pct": e_pct,
+                "credit_growth_percentile": credit_percentile,
+                "house_growth_percentile": house_percentile,
+                "equity_growth_percentile": equity_percentile,
+                "interaction_bonus": interaction,
+                "method_name": "fixed_weight_percentile_interaction_heuristic",
             },
         )

@@ -6,16 +6,16 @@ Adiciona método compute(data: dict) -> dict para integração com o pipeline.
 
 Modelos:
   bis_credit_gap      — BIS Credit-to-GDP Gap Sensor
-  credit_asset_growth — Credit-Asset Growth Divergence
-  debt_service_ratio  — Debt Service Ratio Monitor
+  credit_asset_growth — fixed-weight credit/asset percentile heuristic
+  debt_service_ratio  — debt-service historical-percentile heuristic
   growth_at_risk      — Growth-at-Risk (quantile regression)
   hawkes_stress       — Hawkes Stress Process (clustering de eventos)
-  imf_mispricing      — IMF House Price Mispricing
+  imf_mispricing      — compatibility key for an equity rolling-z heuristic
   lppls_bubble        — LPPLS Bubble Detection (log-periodic power law)
   markov_regime       — Markov Regime Switching
-  minsky_keen         — Minsky-Keen Financial Instability
+  minsky_keen         — compatibility key for a fixed debt-fragility heuristic
   network_contagion   — Network Contagion (requires bank exposures)
-  shiller_valuation   — Shiller CAPE Valuation
+  shiller_valuation   — housing ratio percentile heuristic (not Shiller CAPE)
   systemic_bank_risk  — Systemic Bank Risk (requires bank balance sheets)
 """
 
@@ -162,6 +162,7 @@ def crisis_evaluate(model_name: str, data: dict[str, Any]) -> dict[str, Any]:
         result: SensorResult = model.evaluate(inp)
         return {
             "model": model_name,
+            "sensor_name": result.sensor_name,
             "score": result.score,
             "confidence": result.confidence,
             "status": result.status,

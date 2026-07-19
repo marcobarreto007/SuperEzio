@@ -7,8 +7,21 @@ from typing import Any
 from ..contracts.schemas import SensorResult
 
 
+_PUBLIC_SENSOR_NAMES = {
+    "DebtServiceRatioModel": "DebtServicePercentileHeuristic",
+    "CreditAssetGrowthModel": "CreditAssetPercentileHeuristic",
+    "ShillerValuationModel": "HousingValuationPercentileHeuristic",
+    "IMFMispricingModel": "EquityRollingZScoreHeuristic",
+    "MinskyKeenModel": "PrivateDebtFragilityHeuristic",
+}
+
+
 def aggregate_scores(results: list[SensorResult]) -> dict[str, Any]:
-    valid_results = {r.sensor_name: r.score for r in results if r.status == "ok"}
+    valid_results = {
+        _PUBLIC_SENSOR_NAMES.get(result.sensor_name, result.sensor_name): result.score
+        for result in results
+        if result.status == "ok"
+    }
 
     # Defaults
     scores = {
@@ -40,20 +53,20 @@ def aggregate_scores(results: list[SensorResult]) -> dict[str, Any]:
     scores["systemic_risk_score"] = weighted_avg(
         {
             "BISCreditGapModel": 0.20,
-            "DebtServiceRatioModel": 0.15,
-            "CreditAssetGrowthModel": 0.20,
-            "ShillerValuationModel": 0.15,
-            "IMFMispricingModel": 0.10,
-            "MinskyKeenModel": 0.10,
+            "DebtServicePercentileHeuristic": 0.15,
+            "CreditAssetPercentileHeuristic": 0.20,
+            "HousingValuationPercentileHeuristic": 0.15,
+            "EquityRollingZScoreHeuristic": 0.10,
+            "PrivateDebtFragilityHeuristic": 0.10,
             "MarkovRegimeModel": 0.10,
         }
     )
 
     scores["bubble_risk_score"] = weighted_avg(
         {
-            "CreditAssetGrowthModel": 0.30,
-            "ShillerValuationModel": 0.40,
-            "IMFMispricingModel": 0.20,
+            "CreditAssetPercentileHeuristic": 0.30,
+            "HousingValuationPercentileHeuristic": 0.40,
+            "EquityRollingZScoreHeuristic": 0.20,
             "LPPLSBubbleModel": 0.10,
         }
     )
@@ -61,8 +74,8 @@ def aggregate_scores(results: list[SensorResult]) -> dict[str, Any]:
     scores["credit_fragility_score"] = weighted_avg(
         {
             "BISCreditGapModel": 0.40,
-            "DebtServiceRatioModel": 0.30,
-            "MinskyKeenModel": 0.30,
+            "DebtServicePercentileHeuristic": 0.30,
+            "PrivateDebtFragilityHeuristic": 0.30,
         }
     )
 

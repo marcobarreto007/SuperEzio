@@ -119,8 +119,10 @@ class SensorResult(BaseModel):
 
     @computed_field
     @property
-    def severity(self) -> Literal["normal", "warning", "stress", "crisis"]:
+    def severity(self) -> Literal["normal", "warning", "stress", "crisis", "unavailable"]:
         """Severity is a pure projection of score, never a second source of truth."""
+        if self.status != "ok":
+            return "unavailable"
         if self.score > 0.75:
             return "crisis"
         if self.score > 0.50:

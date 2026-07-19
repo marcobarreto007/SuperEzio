@@ -82,6 +82,7 @@ def test_sensor_result_exposes_method_metadata():
     assert result.sample_size == 0
     assert result.as_of is None
     assert result.calibration_status == "unavailable"
+    assert result.severity == "unavailable"
 
 
 def test_crisis_report_default():

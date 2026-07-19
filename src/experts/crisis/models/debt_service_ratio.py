@@ -1,52 +1,57 @@
-"""
-Debt Service Ratio Sensor.
-"""
+"""Explicit historical-percentile heuristic for debt-service burden."""
 
 from ..contracts.schemas import CrisisInput, SensorResult
-from . import BaseCrisisModel
 from ..logic.normalization import percentile_rank
+from . import BaseCrisisModel
 
 
 class DebtServiceRatioModel:
-    def evaluate(self, input_data: CrisisInput) -> SensorResult:
-        obs = [
-            o.debt_service_ratio
-            for o in input_data.observations
-            if o.debt_service_ratio is not None
-        ]
+    PUBLIC_NAME = "DebtServicePercentileHeuristic"
 
-        if len(obs) < 12:
+    def evaluate(self, input_data: CrisisInput) -> SensorResult:
+        values = [
+            item.debt_service_ratio
+            for item in input_data.observations
+            if item.debt_service_ratio is not None
+        ]
+        as_of = input_data.observations[-1].date if input_data.observations else None
+        horizon = f"current {input_data.frequency} percentile"
+        if len(values) < 12:
             return BaseCrisisModel._insufficient_data(
-                self.__class__.__name__, "Não há histórico suficiente de debt_service_ratio."
+                self.PUBLIC_NAME,
+                "Debt-service percentile requires at least 12 observations.",
+                horizon=horizon,
+                sample_size=len(values),
+                as_of=as_of,
             )
 
-        # percentile_rank() returns 0-100 (see its docstring); pct/thresholds
-        # stay on that scale, but score/confidence in SensorResult must be
-        # 0-1 to match every other crisis model's contract (crisis.py's
-        # aggregator assumes 0-1 then multiplies by 100 once — a 0-100 score
-        # here doubled the scale. See
-        # docs/audit/phase9_parallel_fixes_and_critical_findings.md).
-        current = obs[-1]
-        pct = percentile_rank(obs, current)
-
-        if pct < 50:
+        current = values[-1]
+        percentile = percentile_rank(values, current)
+        if percentile < 50.0:
             score = 0.20
-            exp = "DSR está abaixo da mediana histórica. Fardo da dívida controlável."
-        elif pct < 75:
+        elif percentile < 75.0:
             score = 0.50
-            exp = "DSR moderado a alto contra histórico."
-        elif pct < 90:
+        elif percentile < 90.0:
             score = 0.80
-            exp = "DSR no quartil superior histórico. Oneração de caixa relevante."
         else:
             score = 1.0
-            exp = "DSR em nível extremo (percentil 90+). Alta probabilidade de default em massa."
-
         return SensorResult(
-            sensor_name=self.__class__.__name__,
+            sensor_name=self.PUBLIC_NAME,
             score=score,
-            confidence=0.80,
+            confidence=0.55,
             status="ok",
-            explanation=exp,
-            details={"current_dsr": current, "percentile": pct},
+            explanation=(
+                f"Debt-service ratio is at historical percentile {percentile:.1f}; "
+                "risk buckets are fixed heuristic thresholds."
+            ),
+            method_kind="heuristic",
+            horizon=horizon,
+            sample_size=len(values),
+            as_of=as_of,
+            calibration_status="not_calibrated",
+            details={
+                "current_dsr": current,
+                "percentile": percentile,
+                "method_name": "historical_percentile_threshold_heuristic",
+            },
         )

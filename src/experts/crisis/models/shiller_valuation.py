@@ -1,57 +1,65 @@
-"""
-Shiller Valuation Sensor.
-"""
+"""Housing price-to-rent/income percentile heuristic; not Shiller CAPE."""
 
 from ..contracts.schemas import CrisisInput, SensorResult
-from . import BaseCrisisModel
 from ..logic.normalization import percentile_rank
+from . import BaseCrisisModel
 
 
 class ShillerValuationModel:
-    def evaluate(self, input_data: CrisisInput) -> SensorResult:
-        # We need house, rent, income to compute real ratios
-        valid_obs = [
-            o
-            for o in input_data.observations
-            if o.house_price_index and o.rent_index and o.income_index
-        ]
+    """Stable import name for an honestly named housing-percentile result."""
 
-        if len(valid_obs) < 12:
+    PUBLIC_NAME = "HousingValuationPercentileHeuristic"
+
+    def evaluate(self, input_data: CrisisInput) -> SensorResult:
+        valid = [
+            item
+            for item in input_data.observations
+            if item.house_price_index is not None
+            and item.rent_index is not None
+            and item.income_index is not None
+            and item.rent_index > 0.0
+            and item.income_index > 0.0
+        ]
+        as_of = valid[-1].date if valid else None
+        horizon = f"current {input_data.frequency} valuation percentile"
+        if len(valid) < 12:
             return BaseCrisisModel._insufficient_data(
-                self.__class__.__name__,
-                "Faltam dados suficientes de House Price, Rent ou Income para cálculo Shiller.",
+                self.PUBLIC_NAME,
+                "Housing valuation percentiles require 12 complete price/rent/income observations.",
+                horizon=horizon,
+                sample_size=len(valid),
+                as_of=as_of,
             )
 
-        p_to_rent = [o.house_price_index / o.rent_index for o in valid_obs]
-        p_to_inc = [o.house_price_index / o.income_index for o in valid_obs]
-
-        # percentile_rank() returns 0-100 (see its docstring); avg_pct stays
-        # on that scale for the threshold checks below (matches the model's
-        # original intent), but score/confidence in SensorResult must be
-        # 0-1 to match every other crisis model's contract (crisis.py's
-        # aggregator averages r["score"]/r["confidence"] assuming 0-1, then
-        # multiplies by 100 once — a 0-100 score here doubled the scale.
-        # See docs/audit/phase9_parallel_fixes_and_critical_findings.md).
-        pr_pct = percentile_rank(p_to_rent, p_to_rent[-1])
-        pi_pct = percentile_rank(p_to_inc, p_to_inc[-1])
-
-        avg_pct = (pr_pct + pi_pct) / 2.0
-
-        if avg_pct > 90:
-            exp = "Valuation imobiliário extremo vs. aluguéis e renda (bolha)."
+        price_to_rent = [item.house_price_index / item.rent_index for item in valid]
+        price_to_income = [item.house_price_index / item.income_index for item in valid]
+        rent_percentile = percentile_rank(price_to_rent, price_to_rent[-1])
+        income_percentile = percentile_rank(price_to_income, price_to_income[-1])
+        average_percentile = (rent_percentile + income_percentile) / 2.0
+        if average_percentile > 90.0:
             score = 1.0
-        elif avg_pct > 75:
-            exp = "Ativos caros em relação aos fundamentos clássicos."
+        elif average_percentile > 75.0:
             score = 0.75
         else:
-            exp = "Valuation dentro da normalidade histórica."
-            score = avg_pct / 100.0
-
+            score = average_percentile / 100.0
         return SensorResult(
-            sensor_name=self.__class__.__name__,
-            score=score,
-            confidence=0.80,
+            sensor_name=self.PUBLIC_NAME,
+            score=float(score),
+            confidence=0.55,
             status="ok",
-            explanation=exp,
-            details={"price_to_rent_pct": pr_pct, "price_to_income_pct": pi_pct},
+            explanation=(
+                f"Housing price-to-rent/income historical percentile is "
+                f"{average_percentile:.1f}; this is not Shiller CAPE."
+            ),
+            method_kind="heuristic",
+            horizon=horizon,
+            sample_size=len(valid),
+            as_of=as_of,
+            calibration_status="not_calibrated",
+            details={
+                "price_to_rent_pct": rent_percentile,
+                "price_to_income_pct": income_percentile,
+                "method_name": "housing_ratio_historical_percentile_heuristic",
+                "not_shiller_cape": True,
+            },
         )

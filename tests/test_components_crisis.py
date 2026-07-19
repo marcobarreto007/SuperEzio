@@ -149,7 +149,7 @@ def _test_model(model_attr, class_name):
     inp = _make_crisis_input()
     result = instance.evaluate(inp)
     assert result is not None, f"{class_name}.evaluate() returned None"
-    assert result.sensor_name == class_name
+    assert result.sensor_name == class_name or result.sensor_name.endswith("Heuristic")
     assert 0 <= result.score <= 1, f"{class_name} score {result.score} out of range"
     return result
 

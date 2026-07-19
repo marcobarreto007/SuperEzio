@@ -1,73 +1,74 @@
-"""
-Mispricing sensor — naive z-score over equity series.
+"""Rolling equity z-score heuristic; not an IMF mispricing model."""
 
-NOTE: not the IMF model. This is a simple residual-vs-rolling-mean z-score,
-kept under the stable class name for ensemble weight stability. The honest
-implementation label is exposed in ``details["implementation"]``.
-"""
+import numpy as np
 
 from ..contracts.schemas import CrisisInput, SensorResult
-from . import BaseCrisisModel
 from ..logic.normalization import zscore_to_risk
+from . import BaseCrisisModel
 
 
 class IMFMispricingModel:
-    """Equity z-score mispricing sensor (stable class name retained)."""
+    """Stable import name for the honestly named public heuristic result."""
+
+    PUBLIC_NAME = "EquityRollingZScoreHeuristic"
+    WINDOW = 24
 
     def evaluate(self, input_data: CrisisInput) -> SensorResult:
-        # Fallback simple mispricing (z-score against long moving average)
-        equities = [o.equity_index for o in input_data.observations if o.equity_index is not None]
-
-        if len(equities) < 24:
+        values = np.asarray(
+            [
+                item.equity_index
+                for item in input_data.observations
+                if item.equity_index is not None
+            ],
+            dtype=float,
+        )
+        as_of = input_data.observations[-1].date if input_data.observations else None
+        horizon = f"current {input_data.frequency} deviation"
+        if len(values) < self.WINDOW + 2:
             return BaseCrisisModel._insufficient_data(
-                self.__class__.__name__, "Dados de equity insuficientes para estimar mispricing."
+                self.PUBLIC_NAME,
+                f"Rolling z-score requires at least {self.WINDOW + 2} equity observations.",
+                horizon=horizon,
+                sample_size=len(values),
+                as_of=as_of,
             )
 
-        # Simplified residual estimation: current price vs 24-period mean
-        mean_24 = sum(equities[-24:]) / 24.0
-        residual = (equities[-1] - mean_24) / mean_24
-
-        # Naive historical standard deviation of this residual
         residuals = []
-        for i in range(24, len(equities)):
-            m = sum(equities[i - 24 : i]) / 24.0
-            residuals.append((equities[i] - m) / m)
-
-        if not residuals:
-            residuals = [0.0]
-
-        import math
-
-        mean_res = sum(residuals) / len(residuals)
-        std_res = (
-            math.sqrt(sum((r - mean_res) ** 2 for r in residuals) / len(residuals))
-            if len(residuals) > 1
-            else 1.0
-        )
-        if std_res == 0:
-            std_res = 1.0
-
-        z_score = (residual - mean_res) / std_res
-
-        # zscore_to_risk() returns 0-100 (see its own comment: "0 -> 50");
-        # SensorResult.score/confidence must be 0-1 to match every other
-        # crisis model's contract (crisis.py's aggregator assumes 0-1,
-        # multiplies by 100 once — a 0-100 score here doubled the scale.
-        # See docs/audit/phase9_parallel_fixes_and_critical_findings.md).
+        for index in range(self.WINDOW, len(values)):
+            trailing_mean = float(np.mean(values[index - self.WINDOW : index]))
+            if trailing_mean <= 0.0:
+                continue
+            residuals.append((float(values[index]) - trailing_mean) / trailing_mean)
+        calibration = np.asarray(residuals[:-1])
+        calibration_std = float(np.std(calibration))
+        if len(residuals) < 3 or calibration_std <= 1e-12:
+            return BaseCrisisModel._insufficient_data(
+                self.PUBLIC_NAME,
+                "Rolling z-score residual variance is not identifiable.",
+                horizon=horizon,
+                sample_size=len(values),
+                as_of=as_of,
+            )
+        residual_array = np.asarray(residuals)
+        z_score = float((residual_array[-1] - np.mean(calibration)) / calibration_std)
         score = zscore_to_risk(z_score) / 100.0
-
         return SensorResult(
-            sensor_name=self.__class__.__name__,
-            score=score,
-            confidence=0.60,  # Low confidence for naive model
+            sensor_name=self.PUBLIC_NAME,
+            score=float(score),
+            confidence=0.45,
             status="ok",
-            explanation=f"Z-Score estimado de mispricing de ativos: {z_score:.2f}.",
+            explanation=(
+                f"Rolling 24-observation equity residual z-score is {z_score:.2f}; "
+                "this is not an IMF structural valuation model."
+            ),
+            method_kind="heuristic",
+            horizon=horizon,
+            sample_size=len(values),
+            as_of=as_of,
+            calibration_status="not_calibrated",
             details={
                 "z_score": z_score,
-                "implementation": "naive_zscore_24m",
-                "implementation_note": (
-                    "Residual-vs-rolling-mean z-score over the last 24 "
-                    "observations. Not the IMF mispricing model."
-                ),
+                "method_name": "rolling_mean_residual_zscore_heuristic",
+                "not_imf_model": True,
             },
         )
