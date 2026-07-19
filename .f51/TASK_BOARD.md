@@ -14,6 +14,25 @@
 
 ## Done
 
+- [x] 2026-07-19 - 4 parallel subagent fixes + critical security findings (Claude Code):
+  launched 4 subagents in parallel, each with exclusive file scope, no conflicts. Fixed:
+  F51 spider_sense hardcoded evidence + critic fail-open (4bda75c), DataHub accepting
+  empty {} as usable result + exec() in custom_tools audited/reinforced with 18 tests
+  (ea63541), expired IBKR apprenticeship date now resolved by real date comparison
+  (10490cf), root cause of red_team KeyError('provider') found (double-formatting an
+  already-resolved f-string) + SDCA _truthy_high inverted "low" logic (d8ca01b). Full
+  suite after merge: 1402 passed, 0 failed, 11 skipped. Verified live: red_team no longer
+  crashes (now fails on legitimate strict_json_validation_failed), f51_unified status=ok,
+  consumer-facing test ("I'm new to investing...") produced an honest, complete,
+  non-fallback response. CRITICAL, NOT fixed per explicit operator instruction to stop
+  touching anything token/secret-related: real Hugging Face token exposed in 6 files
+  under F51-Nitro-MoE/ (only 2 known before this session; found 4 more), and
+  np.load(allow_pickle=True) in src/core/rag/engine.py:388 (arbitrary code execution risk
+  if the RAG index file is tampered with). See docs/audit/phase9_parallel_fixes_and_critical_findings.md.
+  Operator must revoke the HF token; pickle fix awaits explicit go-ahead. A separate
+  external audit also reported several ALTO/MEDIO findings (no API auth, paper-order
+  default-on flag, crisis.py scale mixing, etc.) — NOT independently verified this
+  session, do not act on them without checking first.
 - [x] 2026-07-19 - Live end-to-end verification + F51 critical fix (Claude Code): started
   the real server (agent_server.main), opened the real UI, and submitted real requests via
   /task/submit. Found and fixed a bug invisible to unit tests: math_hub.py called
