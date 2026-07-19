@@ -346,10 +346,7 @@ def infer_cognitive_contract(
         scanner_allowed
         and decisive_trade
         and not detect_negative_trade_instruction(raw)
-        and (
-            _paper_order_submit_enabled()
-            or _default_paper_submit_for_decisive_training(raw)
-        )
+        and (_paper_order_submit_enabled() or _default_paper_submit_for_decisive_training(raw))
     )
 
     if suppress_market_tools:
@@ -2397,7 +2394,9 @@ def should_block_vague_financial_prompt(
         return False
     if detect_negative_scan_instruction(raw_message):
         return False
-    if detect_operational_status_request(raw_message) or detect_negative_trade_instruction(raw_message):
+    if detect_operational_status_request(raw_message) or detect_negative_trade_instruction(
+        raw_message
+    ):
         return False
     if detect_industry_research_intent(raw_message) or detect_risk_lab_intent(raw_message):
         return False
@@ -2969,4 +2968,3 @@ def extract_json_object(text: str) -> dict[str, Any] | None:
     except json.JSONDecodeError:
         return None
     return parsed if isinstance(parsed, dict) else None
-

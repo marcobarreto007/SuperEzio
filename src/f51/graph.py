@@ -206,6 +206,7 @@ class F51Engine:
         gate = VeracityGate()
 
         graph = Graph()
+
         def _default_spider_sense_node(ctx: Context) -> NodeResult:
             danger, alerts = spider.detect(str(ctx.input))
             # confidence do detector = 1 - danger (quanto mais perigo, menos

@@ -792,4 +792,3 @@ def bob_body_scan() -> dict[str, Any]:
 def bob_pain_summary() -> str:
     """Get pain summary for Bob's system prompt."""
     return get_bobs_body().pain_summary()
-

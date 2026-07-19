@@ -365,9 +365,7 @@ async def _auto_full_analysis(
                     for expert_result in res.get("expert_results", []):
                         expert_result.setdefault("role", role)
                         expert_result.setdefault("replica_id", replica_id)
-                        expert_result.setdefault(
-                            "provider", EXPERT_PROVIDERS.get(role, "unknown")
-                        )
+                        expert_result.setdefault("provider", EXPERT_PROVIDERS.get(role, "unknown"))
                         out.append(expert_result)
                     return out
                 except Exception as exc:
@@ -428,6 +426,7 @@ async def _auto_full_analysis(
             _merge_node_update(working_state, output, {"red_team_results": red_team_results})
 
         if judge_agents > 0:
+
             async def _run_judge(idx: int) -> list[dict[str, Any]]:
                 async with semaphore:
                     try:

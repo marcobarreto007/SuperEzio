@@ -161,4 +161,3 @@ def _extract_time_horizon(message: str) -> str:
     if unit in ("ano", "anos"):
         return f"{num * 12} months"
     return match.group(0)
-

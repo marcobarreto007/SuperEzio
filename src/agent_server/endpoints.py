@@ -2422,4 +2422,3 @@ async def list_active_tasks() -> dict[str, Any]:
 
     tq = get_task_queue()
     return {"count": tq.active_count, "tasks": tq.active_tasks}
-

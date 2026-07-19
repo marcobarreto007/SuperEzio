@@ -961,7 +961,6 @@ async def _run_scan(
         except ImportError:
             hub = None
         if hub is not None:
-
             per_item_timeout = float(os.getenv("SUPEREZIO_SCAN_ENRICH_TIMEOUT_MS", "60000")) / 1000
             stage_deadline_ms = int(os.getenv("SUPEREZIO_SCAN_STAGE_DEADLINE_MS", "180000"))
             num_workers = max(1, int(os.getenv("SUPEREZIO_SCAN_ENRICH_CONCURRENCY", "2")))

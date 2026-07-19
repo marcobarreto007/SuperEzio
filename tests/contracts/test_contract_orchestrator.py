@@ -94,10 +94,7 @@ def test_ibkr_paper_order_prompt_routes_to_market_scan_not_status(monkeypatch):
 def test_operational_status_with_no_recommendation_blocks_market_tools():
     from src.core.pipeline.intents import detect_market_scan_intent, parse_user_intent
 
-    prompt = (
-        "Responda curto: qual e o estado operacional do sistema agora? "
-        "Nao recomende compra."
-    )
+    prompt = "Responda curto: qual e o estado operacional do sistema agora? Nao recomende compra."
 
     assert not detect_market_scan_intent(prompt)
 

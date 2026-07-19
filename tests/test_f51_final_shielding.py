@@ -301,6 +301,7 @@ class TestGeneratorHasNoUndefinedNames:
                 _market_scan_answer,
                 _loop_failsafe_answer,
             )
+
             assert all(
                 callable(fn)
                 for fn in (

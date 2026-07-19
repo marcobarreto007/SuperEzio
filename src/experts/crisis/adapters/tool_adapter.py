@@ -8,7 +8,9 @@ from experts.crisis.contracts.schemas import CrisisInput
 from experts.crisis.expert.crisis_expert import CrisisMathExpert
 
 
-def tool_analyze_systemic_risk(payload: dict[str, Any] | None = None, **kwargs: Any) -> dict[str, Any]:
+def tool_analyze_systemic_risk(
+    payload: dict[str, Any] | None = None, **kwargs: Any
+) -> dict[str, Any]:
     """Run CrisisMath from a tool-style dict payload."""
     data = dict(payload or {})
     data.update(kwargs)
