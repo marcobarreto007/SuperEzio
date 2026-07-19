@@ -1,20 +1,29 @@
 # F51 Risk Register
 
-Updated: 2026-06-01T12:00:00-04:00
-Session: f51-contracts-phase1-2026-06-01
+Updated: 2026-07-19T17:24:00-04:00
+Session: predictive-truth-modernization
 
 ## Active Risks
 
-### INV-R16 - Predictive labels exceed implemented evidence [CRITICAL]
+### INV-R16 - Predictive labels exceed implemented evidence [CRITICAL] -> MITIGATED 2026-07-19
 
 - Classification: scientific integrity / execution safety
 - Risk: F51, neural, crisis and MathHub surfaces can present heuristics, proxies,
   leakage or missing data as confidence, prediction, normal regime or ground truth.
 - Evidence: predictive-truth impact map in `.f51/checkpoints/latest.json` and the
   three independent module audits executed on 2026-07-19.
-- Mitigation: fail closed on missing evidence; causal temporal validation;
-  calibrated champion/candidate promotion; bind qualified inference to orders.
-- Status: In remediation.
+- Resolution: F51 score relabeled uncalibrated and requires independent evidence;
+  neural direction now uses causal temporal partitions, OOS baseline skill,
+  temperature calibration, split conformal abstention and durable provenance;
+  every order path requires a singleton qualified forecast; crisis/systemic modules
+  return insufficient_data without required inputs; fabricated 50% and quantum paths
+  were removed; random pseudo-RL was retired.
+- Evidence: commits `dba0d08..aee4a1c`, report
+  `docs/audit/predictive_truth_modernization_2026-07-19.md`, full suite
+  `1532 passed, 11 skipped`, live browser smoke passed.
+- Residual risk: statistical integrity is enforced, but profitable alpha is not proven.
+  Keep paper/prequential collection active before claiming predictive edge.
+- Status: Mitigated; residual performance risk active by design.
 
 ### INV-R17 - Runtime dependency drift [HIGH]
 
@@ -26,6 +35,30 @@ Session: f51-contracts-phase1-2026-06-01
 - Mitigation: do not hide optional-dependency absence; implement deterministic
   supported paths and verify the locked environment separately.
 - Status: Active.
+
+### INV-R18 - Required empirical datasets are absent [HIGH]
+
+- Classification: model availability / scientific validity
+- Risk: MacroDataset has no Parquet files in the workspace, and institution-level
+  capital, liabilities, LRMES and exposure networks are unavailable. Several crisis
+  sensors therefore cannot estimate their named targets.
+- Evidence: recursive Parquet inventory returned zero files; SRISK/CoVaR/DebtRank
+  contract tests now assert insufficient_data.
+- Mitigation: keep fail-closed states; ingest versioned, timestamped real datasets
+  before enabling those models. Never restore synthetic proxies.
+- Status: Active and honestly surfaced.
+
+### INV-R19 - Predictive profitability is unproven [HIGH]
+
+- Classification: model risk
+- Risk: passing OOS gates on available per-request history does not establish stable
+  live alpha after costs, regime shift and repeated model selection.
+- Evidence: no sufficiently long prequential prediction/outcome ledger was available
+  in this session.
+- Mitigation: paper-only champion/challenger evaluation by symbol/horizon; compare
+  against climatology and current champion using Brier/log-loss, conformal coverage,
+  turnover/costs and regime stability.
+- Status: Active; autonomous execution remains heavily gated.
 
 ### INV-R1 - GitHub remains blocked [HIGH]
 

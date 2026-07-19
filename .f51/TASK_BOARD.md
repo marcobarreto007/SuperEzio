@@ -19,12 +19,6 @@
 
 ## In Progress
 
-- [ ] 2026-07-19 - **Predictive truth modernization:** replace decorative/hardcoded
-  prediction with causal indicators, temporally validated persistent forecasts,
-  calibrated uncertainty, honest crisis sensors, directional outcome attribution,
-  abstention, and execution-bound predictive evidence. Impact map recorded in
-  `.f51/checkpoints/latest.json`; GitHub remains blocked and credentials are out of scope.
-
 - [x] 2026-06-01 - **Phase 1 (f51-contracts):** Defined `live-modules.contract.md` covering 26 modules. Created 108 new contract tests (all passing): model-serving (13), config (15), crisis (24), trading (16), investor (8), aux-modules (32). Contract coverage now spans 100% of inventory modules.
 
 - [x] 2026-06-01 - **Phase 2 (f51-runtime):** Runtime verified. Entrypoints confirmed: CEO :8082 (llama.cpp), API :8002 (FastAPI). Healthchecks: /health, /health/details, /metrics. Logs: runtime/logs/. Checkpoints: runtime/checkpoints/latest.json. Runbook: docs/runbooks/RUNBOOK.md.
@@ -32,6 +26,18 @@
 - [x] 2026-06-01 - **Phase 3 (f51-tests):** Full suite: 977 passed, 2 failed (pre-existing: CEO GGUF offline, launcher path), 8 skipped in 27.60s. Smoke + contract + integration coverage confirmed. No fake tests.
 
 ## Done
+
+- [x] 2026-07-19 - **Predictive truth modernization (Codex + 3 deep subagents):**
+  removed fixed/random predictive evidence; corrected causal RSI/MACD, HRP and return
+  bootstrap; rebuilt crisis HMM/Hawkes/GaR/LPPLS with honest insufficient-data states;
+  built a persistent causal three-class neural champion with chronological gaps,
+  train-only scaling, OOS baseline gates, temperature calibration, split conformal
+  abstention and safe artifacts; bound singleton neural evidence to paper/broker order
+  entry; made terminal outcomes update expert weights through directional multiclass
+  Brier skill with shrinkage; retired random pseudo-RL actions. Full verification:
+  `1532 passed, 11 skipped, 0 failed`, Ruff clean, live browser smoke clean. Honest
+  remaining data/runtime limits are in
+  `docs/audit/predictive_truth_modernization_2026-07-19.md` and the durable checkpoint.
 
 - [x] 2026-07-19 - 4 parallel subagent fixes + critical security findings (Claude Code):
   launched 4 subagents in parallel, each with exclusive file scope, no conflicts. Fixed:

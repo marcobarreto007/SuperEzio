@@ -1,63 +1,73 @@
 {
-  "timestamp": "2026-07-19T16:45:00-04:00",
+  "timestamp": "2026-07-19T17:24:00-04:00",
   "session": "predictive-truth-modernization",
   "orchestrator": "codex",
-  "status": "impact_mapped",
+  "status": "completed_with_honest_data_limits",
   "objective": "Replace decorative prediction with causal, validated, persistent forecasting and make every execution path fail closed without qualified evidence.",
-  "impact_map": {
-    "architecture": [
-      "data -> MathHub -> F51 -> expert consensus",
-      "candles -> predictive model -> neural decision -> SDCA",
-      "crisis observations -> statistical sensors -> calibrated aggregate",
-      "terminal outcomes -> expert reliability -> execution policy",
-      "qualified inference -> prepared order envelope -> broker"
+  "result": {
+    "neural": [
+      "Causal OHLCV features and explicit horizon.",
+      "Chronological train/validation/conformal/test split with horizon gaps and train-only scaler.",
+      "Deterministic three-class MLP must beat train climatology OOS in Brier, log-loss and balanced accuracy.",
+      "Temperature calibration plus independent split-conformal prediction set.",
+      "Atomic JSON+NPZ persistence with SHA-256, model_id, input hash, as_of and no pickle.",
+      "Missing, stale, corrupt, unskilled or ambiguous inference returns ABSTAIN."
     ],
-    "critical_findings": [
-      "F51 can pass nearly empty evidence with artificial confidence.",
-      "RSI contains look-ahead and MACD signal is not an EMA signal line.",
-      "quantum_bias has no market input and is non-empirical.",
-      "NeuralDecisionExpert publishes hardcoded probabilities and the active MLP leaks time.",
-      "Neural veto is not required at the broker boundary.",
-      "Crisis aggregation converts missing evidence into normal/green.",
-      "GrowthAtRisk is not quantile regression; SRISK and network contagion use invalid proxies.",
-      "Outcome learning lacks expert direction and does not consume its computed reward."
+    "math": [
+      "Causal Wilder RSI and genuine MACD 12/26/9.",
+      "Stationary block bootstrap replaces no-input quantum randomness.",
+      "Ledoit-Wolf HRP with single linkage, recursive bisection and cash-preserving caps.",
+      "MathHub labels estimates and F51 decision scores honestly."
     ],
-    "indirect_consumers": [
-      "pipeline prompts and SSE events",
-      "SDCA and GuardrailHub",
-      "paper-order preparation and broker adapter",
-      "frontend neural and crisis cards",
-      "signal ledger and paper journal",
-      "contract, integration, property and browser tests"
+    "crisis": [
+      "Causal Gaussian HMM, stable Hawkes MLE, rolling pinball Growth-at-Risk and full multi-window LPPLS.",
+      "SRISK, CoVaR and contagion reject synthetic proxies and return insufficient_data.",
+      "No macro data can no longer become normal or green."
     ],
-    "breakage_risks": [
-      "Artificially high scores will become unavailable or blocked.",
-      "Canonical RSI and MACD will change historical snapshots.",
-      "Insufficient samples will cause abstention instead of fabricated forecasts.",
-      "Execution contracts will require qualified, fresh, symbol-bound inference."
+    "learning": [
+      "Terminal-outcome-only SQLite ledger, idempotent schema v2 and ex-ante forecast provenance.",
+      "Directional multiclass Brier skill versus baseline with sample shrinkage updates expert reliability.",
+      "Scale-invariant reward and no credit for legacy directionless confidence.",
+      "Random pseudo-RL policy retired; compatibility only returns WAIT."
     ],
-    "patch_sequence": [
-      "Remove false certainty from F51 and MathHub.",
-      "Correct causal indicators, bootstrap scenarios, backtest and HRP.",
-      "Build a persistent time-ordered predictive champion with calibration and abstention.",
-      "Replace or disable misnamed crisis models according to available real data.",
-      "Use directional proper scoring for adaptive reliability.",
-      "Bind qualified inference and veto to every order envelope.",
-      "Run focused, property, full-suite and live browser verification."
+    "execution": [
+      "F51 requires independent evidence and exposes an uncalibrated decision score.",
+      "Paper and broker boundaries require ready calibrated neural provenance, valid simplex, matching direction and singleton conformal set.",
+      "No-input quantum and fixed 50 percent quant baselines are explicit removed/insufficient states."
     ]
   },
-  "research_basis": [
-    "Chronos-2 universal multivariate forecasting (2025)",
-    "TimesFM in-context time-series adaptation (ICML 2025)",
-    "Adaptive conformal inference under distribution shift",
-    "TimeSeriesSplit and independent probability calibration",
-    "Hamilton-filter Markov switching, Hawkes maximum likelihood, proper LPPLS",
-    "SRISK and DebtRank data requirements"
-  ],
-  "baseline": {
-    "previous_full_suite": "1452 passed, 11 skipped, 0 failed",
-    "previous_lint": "ruff check passed",
-    "workspace": "User runtime data and diagnostics remain dirty and must not be staged or reverted."
+  "verification": {
+    "ruff": "python -m ruff check src/ tests/ -> passed",
+    "pytest": "python -m pytest tests/ -q -> 1532 passed, 11 skipped, 0 failed in 113.22s",
+    "browser_smoke": "passed against live 127.0.0.1:8002; health 200; AAPL 124 candles; canvas nonblank; zero console errors",
+    "screenshot": "output/playwright/superezio-browser-smoke-20260719-172141.png"
   },
-  "credentials": "Out of scope and untouched."
+  "key_commits": [
+    "dba0d08 causal RSI and MACD",
+    "458ca5c genuine capped HRP",
+    "7dd01c2 observed-return stationary bootstrap",
+    "8930f50 F51 independent evidence",
+    "0238f4d neural execution gate",
+    "ce0dbce scale-invariant proper rewards",
+    "108d169 directional Brier expert skill",
+    "b42fda3 ex-ante forecast attribution",
+    "beabe8e..85750c9 honest calibrated crisis layer",
+    "f9755f2 causal calibrated neural forecast",
+    "03d9c70 neural integrity tests",
+    "54d129f remove fabricated predictive baselines",
+    "7dc3df9 distinguish estimates from ground truth",
+    "35e6c5c conformal selective execution",
+    "aee4a1c retire random pseudo-RL actions"
+  ],
+  "remaining_limits": [
+    "No live profitability or alpha is proven; paper prequential history is still required.",
+    "MacroDataset Parquet inputs are absent.",
+    "Real institutional balance-sheet and exposure data are absent for SRISK, CoVaR and DebtRank.",
+    "Runtime dependency drift: NumPy 2.4.6 vs <2.3/lock 2.2.6; sklearn 1.9.0 vs lock 1.8.0; statsmodels locked but absent.",
+    "Local CEO GGUF remains unavailable; MAN_AT_WORK blocks trading safely."
+  ],
+  "report": "docs/audit/predictive_truth_modernization_2026-07-19.md",
+  "workspace": "User runtime data, diagnostics and deleted debug script were preserved and not staged or reverted.",
+  "credentials": "Out of scope and untouched.",
+  "github": "Blocked by policy; local commits only."
 }
