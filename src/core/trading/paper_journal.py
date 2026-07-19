@@ -56,11 +56,20 @@ class PaperTrade:
     expected_holding_period: str  # "day_trade" | "swing" | "position" | "long_term"
 
     # Immutable decision snapshot used only after a terminal outcome.
-    confidence_at_entry: float = 0.0
+    # Legacy compatibility field. New learning uses only a calibrated
+    # prediction_probability_at_entry with its provenance below.
+    confidence_at_entry: float | None = None
+    prediction_probability_at_entry: float | None = None
+    prediction_class_at_entry: str | None = None
+    calibration_status: str = "unknown"
+    model_id: str = ""
+    forecast_as_of: str = ""
+    forecast_horizon: str | int | None = None
     risk_at_entry: float | None = None
     fees: float = 0.0
     slippage: float = 0.0
     expert_attribution: dict[str, float] = field(default_factory=dict)
+    expert_predictions: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     # Saida (preenchida no fechamento)
     exit_date: str | None = None
@@ -241,6 +250,18 @@ class PaperJournal:
             expected_holding_period=str(
                 trade.get("expected_holding_period") or trade.get("horizon") or "unknown"
             ),
+            confidence_at_entry=trade.get("confidence_at_entry"),
+            prediction_probability_at_entry=trade.get("prediction_probability_at_entry"),
+            prediction_class_at_entry=trade.get("prediction_class_at_entry"),
+            calibration_status=str(trade.get("calibration_status") or "unknown"),
+            model_id=str(trade.get("model_id") or ""),
+            forecast_as_of=str(trade.get("forecast_as_of") or ""),
+            forecast_horizon=trade.get("forecast_horizon"),
+            risk_at_entry=trade.get("risk_at_entry"),
+            fees=float(trade.get("fees") or 0.0),
+            slippage=float(trade.get("slippage") or 0.0),
+            expert_attribution=dict(trade.get("expert_attribution") or {}),
+            expert_predictions=dict(trade.get("expert_predictions") or {}),
             tags=list(trade.get("tags") or []),
         ).to_dict()
 

@@ -6,6 +6,8 @@ kill switch, IBKR submission, paper journal, and learning cycle trigger.
 
 from __future__ import annotations
 
+import json
+import math
 import os
 import re
 import time
@@ -630,7 +632,7 @@ def _journal_trade(
                         return f"closed:{ot['trade_id']}"
             return f"no_open_trade_for:{ticker}"
         else:
-            learning_context = _extract_learning_context(state, qty, limit_price)
+            learning_context = _extract_learning_context(state, qty, limit_price, action=action)
             trade = PaperTrade(
                 trade_id=f"bob-{run_id[:12]}" if run_id else f"bob-{int(time.time())}",
                 ticker=ticker,
@@ -672,35 +674,123 @@ def _journal_trade(
         return f"journal_error_dead_letter:{exc}"
 
 
-def _extract_learning_context(state: dict, qty: int, entry_price: float) -> dict:
+def _normalize_prediction_direction(value: object) -> str | None:
+    token = str(value or "").strip().upper()
+    if token in {"UP", "BUY", "LONG", "BULLISH", "UNDERVALUED", "SUPPORT"}:
+        return "UP"
+    if token in {"DOWN", "SELL", "SHORT", "BEARISH", "OVERVALUED", "BLOCK", "RISK_OFF"}:
+        return "DOWN"
+    if token in {"SIDEWAYS", "NEUTRAL", "WAIT", "HOLD", "FAIR_VALUE"}:
+        return "SIDEWAYS"
+    return None
+
+
+def _finite_probability(value: object) -> float | None:
+    try:
+        probability = float(value)
+    except (TypeError, ValueError):
+        return None
+    if probability > 1.0:
+        probability /= 100.0
+    if not math.isfinite(probability) or probability < 0.0 or probability > 1.0:
+        return None
+    return probability
+
+
+def _extract_learning_context(
+    state: dict, qty: int, entry_price: float, *, action: str | None = None
+) -> dict:
     """Capture decision-time facts without producing a learning outcome."""
     attribution: dict[str, float] = {}
+    predictions: dict[str, dict] = {}
+
+    structured = state.get("expert_structured") or {}
+    if isinstance(structured, dict):
+        for name, payload in structured.items():
+            if not isinstance(payload, dict):
+                continue
+            direction = _normalize_prediction_direction(
+                payload.get("direction") or payload.get("decision") or payload.get("verdict")
+            )
+            confidence = _finite_probability(payload.get("confidence"))
+            probabilities = payload.get("direction_prob")
+            if direction is None or (confidence is None and not isinstance(probabilities, dict)):
+                continue
+            prediction: dict[str, object] = {"direction": direction}
+            if isinstance(probabilities, dict):
+                prediction["probabilities"] = probabilities
+            else:
+                prediction["confidence"] = confidence
+            predictions[str(name)] = prediction
+            if confidence is not None:
+                attribution[str(name)] = confidence
+
     for result in state.get("expert_results") or []:
         if not isinstance(result, dict) or result.get("ok") is False:
             continue
         name = str(result.get("role") or result.get("expert") or result.get("name") or "").strip()
         if not name:
             continue
-        try:
-            confidence = float(result.get("confidence", 0.5) or 0.5)
-        except (TypeError, ValueError):
-            confidence = 0.5
-        if confidence > 1.0:
-            confidence /= 100.0
-        attribution[name] = max(0.0, min(1.0, confidence))
+        payload = result
+        raw_response = result.get("response")
+        if isinstance(raw_response, str):
+            clean = raw_response.strip().removeprefix("```json").removesuffix("```").strip()
+            try:
+                decoded = json.loads(clean)
+                if isinstance(decoded, dict):
+                    payload = {**result, **decoded}
+            except json.JSONDecodeError:
+                pass
+        direction = _normalize_prediction_direction(
+            payload.get("direction") or payload.get("decision") or payload.get("verdict")
+        )
+        confidence = _finite_probability(payload.get("confidence"))
+        probabilities = payload.get("direction_prob")
+        if direction is None or (confidence is None and not isinstance(probabilities, dict)):
+            continue
+        if name not in predictions:
+            prediction = {"direction": direction}
+            if isinstance(probabilities, dict):
+                prediction["probabilities"] = probabilities
+            else:
+                prediction["confidence"] = confidence
+            predictions[name] = prediction
+        if confidence is not None:
+            attribution[name] = confidence
 
-    verdict = state.get("f51_verdict") or {}
-    try:
-        confidence_at_entry = float(verdict.get("confidence", 0.0) or 0.0)
-    except (AttributeError, TypeError, ValueError):
-        confidence_at_entry = 0.0
-    if confidence_at_entry > 1.0:
-        confidence_at_entry /= 100.0
+    neural = state.get("neural_decision") or {}
+    calibration_status = str(neural.get("calibration_status") or "unknown").lower()
+    model_id = str(neural.get("model_id") or "")
+    prediction_class = _normalize_prediction_direction(neural.get("decision"))
+    expected_class = (
+        "UP" if str(action or "").lower() in {"buy", "long"} else "DOWN"
+        if action is not None
+        else None
+    )
+    prediction_probability = None
+    direction_prob = neural.get("direction_prob")
+    if (
+        neural.get("status") == "ready"
+        and calibration_status in {"calibrated", "validated_oos"}
+        and prediction_class is not None
+        and (expected_class is None or prediction_class == expected_class)
+        and isinstance(direction_prob, dict)
+    ):
+        prediction_probability = _finite_probability(
+            direction_prob.get(prediction_class.lower())
+        )
 
     stop_loss_pct = _adaptive_sizing_config(state)["default_stop_pct"]
 
     return {
-        "confidence_at_entry": max(0.0, min(1.0, confidence_at_entry)),
+        "confidence_at_entry": prediction_probability,
+        "prediction_probability_at_entry": prediction_probability,
+        "prediction_class_at_entry": prediction_class,
+        "calibration_status": calibration_status,
+        "model_id": model_id,
+        "forecast_as_of": str(neural.get("as_of") or ""),
+        "forecast_horizon": neural.get("horizon"),
         "risk_at_entry": abs(float(entry_price) * int(qty)) * stop_loss_pct,
         "expert_attribution": attribution,
+        "expert_predictions": predictions,
     }
