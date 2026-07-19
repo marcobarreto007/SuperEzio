@@ -939,14 +939,9 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                             "expert": "social_forensics",
                         }
                     break
-            result["expert_weights"] = {
-                "social_forensics": 0.25,
-                "sentiment": 0.15,
-                "macro_risk": 0.15,
-                "fundamental_value": 0.20,
-                "momentum_technical": 0.15,
-                "contrarian_opportunity": 0.10,
-            }
+            from core.trading.outcome_learning import get_effective_expert_weights
+
+            result["expert_weights"] = get_effective_expert_weights()
 
         elif tool_name == "bob_search":
             # Bob wants to search for current information.

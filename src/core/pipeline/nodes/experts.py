@@ -12,6 +12,7 @@ from typing import Any
 from langgraph.config import get_stream_writer
 
 from core.audit.decision_trace import DecisionTraceLogger
+from core.trading.outcome_learning import get_effective_expert_weights
 from .expert_dialogue import ExpertDialogue
 
 # Module-level dedup: prevent collect_experts from running twice per run_id
@@ -229,7 +230,8 @@ EXPERT_PROMPTS: dict[str, tuple[str, str]] = {
         "explicitly present in your data. You do NOT see technical "
         "indicators, DCF, or macro data — do not let chart-pattern "
         "reasoning substitute for actual evidence of coordination. "
-        + _ANTI_GUESSING_CONTRACT + "\n"
+        + _ANTI_GUESSING_CONTRACT
+        + "\n"
         "Output ONLY raw JSON, no markdown, no backticks.\n"
         'Format: {"expert":"social_forensics","ticker":"...","verdict":"MANIPULATED|SUSPICIOUS|CLEAN|INCONCLUSIVE|NO_DATA",'
         '"confidence":0-100,"manipulation_score":0-100,'
@@ -470,9 +472,7 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
             async with _EXPERT_CACHE_LOCK:
                 _EXPERT_CACHE[cache_key] = result_payload
 
-        return {
-            "expert_results": [result_payload]
-        }
+        return {"expert_results": [result_payload]}
 
     except Exception as exc:
         writer(
@@ -577,6 +577,7 @@ async def node_collect_experts(state: dict) -> dict:
     parsed: dict[str, dict] = {}
     bob_lines: list[str] = []
     raw_lines: list[str] = []
+    expert_weights = get_effective_expert_weights()
 
     for role, r in results.items():
         ok = r.get("ok", False)
@@ -615,6 +616,13 @@ async def node_collect_experts(state: dict) -> dict:
 
             verdict = json_match.get("verdict", "?")
             confidence = json_match.get("confidence", "?")
+            try:
+                normalized_confidence = float(confidence)
+                if normalized_confidence > 1.0:
+                    normalized_confidence /= 100.0
+                r["confidence"] = max(0.0, min(1.0, normalized_confidence))
+            except (TypeError, ValueError):
+                pass
             bob_readable = json_match.get("bob_readable", "")
             score = ""
             for score_key in ("sentiment_score", "manipulation_score", "score"):
@@ -624,7 +632,12 @@ async def node_collect_experts(state: dict) -> dict:
 
             # Build Bob-readable summary line
             score_str = f" score={score}" if score != "" else ""
-            bob_lines.append(f"[{role}] -> {verdict} (confidence={confidence}{score_str})")
+            base_role = role.split("#", 1)[0]
+            reliability = expert_weights.get(base_role)
+            weight_str = f" reliability={reliability:.3f}" if reliability is not None else ""
+            bob_lines.append(
+                f"[{role}] -> {verdict} (confidence={confidence}{score_str}{weight_str})"
+            )
             if bob_readable:
                 bob_lines.append(f"  Bob: {bob_readable}")
 
@@ -677,4 +690,5 @@ async def node_collect_experts(state: dict) -> dict:
         "expert_summary": expert_summary,
         "expert_raw": raw_summary,
         "expert_structured": parsed,
+        "expert_weights": expert_weights,
     }

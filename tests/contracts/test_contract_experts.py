@@ -105,11 +105,16 @@ def test_node_collect_experts_with_results():
     assert "timeout" in summary
 
 
-def test_node_collect_experts_parses_json_and_preserves_zero_score():
+def test_node_collect_experts_parses_json_and_preserves_zero_score(monkeypatch):
     """Structured expert JSON should become Bob-readable without losing 0.0 scores."""
     import asyncio
 
     experts_node.get_stream_writer = lambda: _noop_writer
+    monkeypatch.setattr(
+        experts_node,
+        "get_effective_expert_weights",
+        lambda: {"sentiment": 0.4, "fundamental_value": 0.6},
+    )
 
     async def _run():
         return await node_collect_experts(
@@ -134,6 +139,8 @@ def test_node_collect_experts_parses_json_and_preserves_zero_score():
     result = asyncio.run(_run())
     assert result["expert_structured"]["sentiment"]["verdict"] == "NEUTRAL"
     assert result["expert_structured"]["sentiment"]["sentiment_score"] == 0.0
+    assert result["expert_weights"]["sentiment"] == 0.4
+    assert result["expert_summary"].find("reliability=0.400") > -1
     assert "score=0.0" in result["expert_summary"]
     assert "Sentiment is balanced" in result["expert_summary"]
 
