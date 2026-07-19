@@ -1015,6 +1015,8 @@ class FeedbackLoop:
 
             # Registrar outcome no XP system
             try:
+                if self._xp_system.get_trade_outcome_event(trade_id) is not None:
+                    continue
                 event = self._xp_system.record_trade_outcome(
                     outcome=outcome,
                     pnl_amount=pnl,

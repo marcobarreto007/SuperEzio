@@ -346,6 +346,10 @@ class XPSystem:
         Returns:
             Evento criado ou None (se breakeven)
         """
+        existing = self.get_trade_outcome_event(trade_id)
+        if existing is not None:
+            return existing
+
         ctx = context or {}
         if pnl_amount is not None:
             ctx["pnl_amount"] = pnl_amount
@@ -384,6 +388,20 @@ class XPSystem:
             return event
 
         return None
+
+    def get_trade_outcome_event(self, trade_id: str | None) -> XPEvent | None:
+        """Return the durable XP outcome for a trade, if already recorded."""
+        if not trade_id:
+            return None
+        outcome_sources = {"trade_win", "trade_loss", "breakeven"}
+        return next(
+            (
+                event
+                for event in self._events
+                if event.trade_id == trade_id and event.source in outcome_sources
+            ),
+            None,
+        )
 
     def record_streak(
         self, streak_type: str, count: int, context: dict[str, Any] | None = None
