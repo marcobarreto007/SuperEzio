@@ -52,7 +52,33 @@ stream NDJSON — não é diagrama aspiracional, é comportamento observado com 
 2. **Gates de segurança duplicados e não sincronizados** (`F51_TRADING_EXECUTION_FREEZE` vs `SUPEREZIO_LIVE_TRADING_DISABLED`) — unificados; `SUPEREZIO_LIVE_TRADING_DISABLED` agora tem default seguro (`True`).
 3. **Suíte de testes inteira era frágil contra a existência de um `.env` real** — 5 testes assumiam ambiente sem env vars nunca setadas; corrigido com isolamento explícito via `monkeypatch`/fixture `autouse`.
 
-## Bugs encontrados HOJE, ainda NÃO corrigidos
+## Bloqueador nº1 RESOLVIDO (2026-07-19, mesma sessão)
+
+Hardware real desta máquina confirmado: RTX 2070, **8 GB VRAM** (mínimo declarado, abaixo do
+recomendado de 16 GB), 80 GB RAM, 218 GB disco livre. O modelo local (17.3 GB) nunca esteve
+presente no disco. **Decisão do operador**: abandonar o CEO local, usar DeepSeek V4 Pro
+(chave real configurada no `.env`) também para o papel de agente/CEO, não só para os
+especialistas.
+
+Isso expôs um segundo bug real: `src/core/pipeline/nodes/agent.py` (o node que sintetiza a
+resposta final do Bob) sempre chama o gateway com `preferred_provider=AGENT_PROVIDER_NAME`
+("agent"), nunca `"local_orchestrator"`/`"primary"`. O provider `"agent"` em `providers.py`
+só lia `SUPEREZIO_AGENT_BASE_URL` do ambiente — `model` e `api_key` estavam hardcoded
+(`AGENT_MODEL_ID`, `""`). Apontar a URL pra nuvem sem corrigir isso mandava chave vazia e
+model id errado — confirmado via `PROVIDER_ERROR` no log do gateway. Corrigido: `providers.py`
+agora lê `SUPEREZIO_AGENT_MODEL`/`SUPEREZIO_AGENT_API_KEY` do ambiente também.
+
+**Verificado ao vivo, antes/depois, mesma pergunta** ("I have CAD 25,000 to allocate. Build a
+serious framework with risk limits."):
+- Antes: `fallback_used: true`, resposta genérica de 536 caracteres.
+- Depois: `fallback_used: false`, resposta real de 2752 caracteres — framework estruturado,
+  limites de risco concretos, matriz de ação por regra quebrada, honesto sobre o broker estar
+  offline, referenciando resultados reais do SDCA firewall e do fraud RAG que rodaram no
+  pipeline. Isto é o "amigo correto e matemático" funcionando de fato, não hipoteticamente.
+
+Commits: `a808c74` (fix), suite completa 1367 passed / 0 failed / 11 skipped.
+
+## Bugs encontrados, ainda NÃO corrigidos
 
 1. **`KeyError: 'provider'` nos agentes de red team** (`red_team_agent_1/2/3`) — erro genuíno de código, distinto da falta de credencial DeepSeek (que é esperada/honesta). Precisa de investigação com traceback completo dentro do contexto real do LangGraph (tentativa de reprodução isolada falhou por exigir um `runnable context` que só existe dentro do grafo real rodando). **Prioridade alta** — o red team é uma camada de veto de segurança; se ele sempre falha, essa camada de proteção está sempre ausente silenciosamente.
 2. **`.f51/ENTRYPOINT_MAP.md` menciona um "14-day IBKR paper brokerage apprenticeship" com `end_date: 2026-06-19`** — já expirou há um mês. Isso é injetado no prompt do Bob como contexto de identidade; se perguntado, Bob provavelmente descreve um estado de treinamento desatualizado. Não trava nada tecnicamente, mas é uma inconsistência que o próprio "consultor" carregaria pra conversa com você.
@@ -63,9 +89,9 @@ stream NDJSON — não é diagrama aspiracional, é comportamento observado com 
 Isto não é sobre broker/execução (que já é corretamente gateado e travado) — é sobre a
 qualidade e confiabilidade da conversa em si:
 
-### Bloqueadores diretos
-- **Nenhum provider LLM está configurado** (`DEEPSEEK_API_KEY` ausente) — sem isso, os 6 especialistas + juiz + auditor + CEO nunca respondem de verdade; o sistema roda inteiramente em modo fallback matemático + mensagens genéricas. Para o objetivo de "consultor em tempo real", isto é o bloqueador nº1: sem chave de API real, o produto não conversa, só calcula.
-- **CEO local (Bob Core GGUF) não existe nesta máquina** (`C:\llama.cpp\` ausente) — o orquestrador cai em modo `passthrough` (confirmado no log: `model_status: "passthrough"`), sem classificação de intenção por LLM real, só regex/golden dataset. Isso limita a qualidade de entendimento de perguntas fora do script esperado.
+### Bloqueadores diretos (atualizado)
+- ~~Nenhum provider LLM configurado~~ — **RESOLVIDO** acima. O Bob conversa de verdade agora.
+- **Orquestrador ainda em modo `passthrough`** (confirmado no log: `model_status: "passthrough"`) — a classificação inicial de intenção continua sendo regex/golden dataset, não LLM real. Isso não impede respostas boas (o teste acima prova isso), mas pode limitar a qualidade de roteamento em perguntas fora do script esperado. A decidir se vale a pena mudar isso ou se o passthrough + síntese forte do Bob já é suficiente.
 
 ### Correções de qualidade (não bloqueadoras, mas relevantes ao "amigo correto")
 - Corrigir o `KeyError('provider')` do red team (item acima) — sem isso, uma camada de "ele te avisa quando está errado" está ausente.
