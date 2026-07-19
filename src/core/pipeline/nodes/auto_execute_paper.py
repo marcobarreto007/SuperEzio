@@ -292,23 +292,6 @@ async def auto_execute_paper(state: dict) -> dict:
     # Paper journal audit trail
     journal_entry = _journal_trade(state, result, ticker, action, qty, limit_price, run_id)
 
-    # ── Adaptive feedback: record trade for XP + AutoCal + RL learning ──
-    try:
-        from core.trading.adaptive_agent import record_trade_outcome
-
-        pnl_estimate = 0.0  # Will be updated when trade closes
-        record_trade_outcome(
-            ticker=ticker,
-            action=action,
-            entry=float(limit_price),
-            exit_price=float(limit_price),  # placeholder until close
-            qty=int(qty),
-            pnl=pnl_estimate,
-            verdict_confidence=float(state.get("f51_verdict", {}).get("confidence", 0) or 0),
-        )
-    except Exception:
-        pass
-
     writer(
         {
             "type": "PIPELINE_STEP",

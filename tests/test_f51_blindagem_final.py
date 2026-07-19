@@ -184,6 +184,16 @@ class TestFreezeBlocksLowLevelOrder:
 
         assert is_execution_frozen() is True
 
+    def test_order_submission_never_records_provisional_learning_outcome(self):
+        """Learning must wait for a terminal journal outcome, never order submission."""
+        import inspect
+
+        from core.pipeline.nodes.auto_execute_paper import auto_execute_paper
+
+        source = inspect.getsource(auto_execute_paper)
+        assert "record_trade_outcome" not in source
+        assert "pnl_estimate" not in source
+
     def test_tool_executor_freeze_blocks(self, monkeypatch):
         """tool_executor bloqueia submit_paper_order com FREEZE=true."""
         monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "true")
