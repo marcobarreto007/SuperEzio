@@ -30,6 +30,10 @@ def _low_level_gate_check(order: Any) -> bool:
       - validated_ticker (non-empty, matches order.symbol)
       - journal_ready == True
       - execution_freeze == False
+      - pipeline_prepared == True
+      - adaptive_policy_applied == True
+      - approval_id (non-empty)
+      - consensus_decision in {SUPPORT, NEUTRAL}
     """
     import socket
 
@@ -40,6 +44,10 @@ def _low_level_gate_check(order: Any) -> bool:
     validated_ticker = order_meta.get("validated_ticker", "")
     journal_ready = order_meta.get("journal_ready", False)
     execution_freeze = order_meta.get("execution_freeze", True)  # default SAFE
+    pipeline_prepared = order_meta.get("pipeline_prepared", False)
+    adaptive_policy_applied = order_meta.get("adaptive_policy_applied", False)
+    approval_id = str(order_meta.get("approval_id") or "")
+    consensus_decision = str(order_meta.get("consensus_decision") or "").upper()
 
     # 1. gate_status MUST be ALLOW
     if gate_status != "ALLOW":
@@ -84,6 +92,26 @@ def _low_level_gate_check(order: Any) -> bool:
         )
         return False
 
+    if not pipeline_prepared or not adaptive_policy_applied:
+        logger.error(
+            "BLOCKED_LOW_LEVEL_UNGATED_ORDER:pipeline_policy_missing symbol=%s",
+            getattr(order, "symbol", "?"),
+        )
+        return False
+    if not approval_id:
+        logger.error(
+            "BLOCKED_LOW_LEVEL_UNGATED_ORDER:approval_missing symbol=%s",
+            getattr(order, "symbol", "?"),
+        )
+        return False
+    if consensus_decision not in {"SUPPORT", "NEUTRAL"}:
+        logger.error(
+            "BLOCKED_LOW_LEVEL_UNGATED_ORDER:consensus_missing symbol=%s decision=%s",
+            getattr(order, "symbol", "?"),
+            consensus_decision or "MISSING",
+        )
+        return False
+
     # ── Environmental checks (defense in depth) ──
 
     # 6. Env-level freeze (catches cases where metadata is forged)
@@ -106,38 +134,11 @@ def _low_level_gate_check(order: Any) -> bool:
 
     # 8. Journal health
     try:
-        from core.trading.paper_journal import DEFAULT_JOURNAL_PATH
+        from core.pipeline.f51_trade_gate import is_journal_healthy
 
-        journal_path = DEFAULT_JOURNAL_PATH
-        journal_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(journal_path, "a", encoding="utf-8") as fh:
-            import json as _json
-            from datetime import datetime, timezone
-
-            fh.write(
-                _json.dumps(
-                    {
-                        "trade_id": f"llg-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}",
-                        "ticker": "__LOW_LEVEL_GATE__",
-                        "thesis": "low_level_gate_probe",
-                        "direction": "none",
-                        "entry_date": datetime.now(timezone.utc).isoformat(),
-                        "entry_price": 0.0,
-                        "shares": 0,
-                        "entry_reasoning": "Low-level gate journal probe",
-                        "verdict_at_entry": "PROBE",
-                        "risk_assessment": "none",
-                        "expected_holding_period": "none",
-                        "outcome": "probe",
-                        "created_at": datetime.now(timezone.utc).isoformat(),
-                        "updated_at": datetime.now(timezone.utc).isoformat(),
-                        "tags": ["low_level_gate_probe"],
-                    },
-                    ensure_ascii=False,
-                )
-                + "\n"
-            )
-            fh.flush()
+        if not is_journal_healthy():
+            logger.error("low_level_gate_blocked_journal_unhealthy")
+            return False
     except Exception:
         logger.error("low_level_gate_blocked_journal_unhealthy")
         return False
@@ -247,6 +248,11 @@ class InteractiveBrokersAdapter:
             )
 
         try:
+            child_env = os.environ.copy()
+            child_env["F51_ALLOW_RAW_IBKR_CLI"] = "true"
+            child_env["SUPEREZIO_PIPELINE_ORDER_ENVELOPE"] = json.dumps(
+                dict(order.gate_metadata), separators=(",", ":"), sort_keys=True
+            )
             result = subprocess.run(
                 [
                     sys.executable,
@@ -259,6 +265,7 @@ class InteractiveBrokersAdapter:
                 capture_output=True,
                 text=True,
                 timeout=20,
+                env=child_env,
             )
 
             if result.returncode == 0 and result.stdout:

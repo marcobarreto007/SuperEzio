@@ -263,6 +263,7 @@ def is_ibkr_connectable() -> bool:
 
 def is_journal_healthy(journal_path: str | None = None) -> bool:
     from pathlib import Path
+    import tempfile
 
     try:
         if journal_path:
@@ -272,28 +273,21 @@ def is_journal_healthy(journal_path: str | None = None) -> bool:
 
             path = DEFAULT_JOURNAL_PATH
         path.parent.mkdir(parents=True, exist_ok=True)
-        import json as _json
-
-        heartbeat = {
-            "trade_id": f"hb-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}",
-            "ticker": "__HEARTBEAT__",
-            "thesis": "journal_health_check",
-            "direction": "none",
-            "entry_date": datetime.now(timezone.utc).isoformat(),
-            "entry_price": 0.0,
-            "shares": 0,
-            "entry_reasoning": "F51_TRADE_GATE journal health probe",
-            "verdict_at_entry": "HEARTBEAT",
-            "risk_assessment": "none",
-            "expected_holding_period": "none",
-            "outcome": "heartbeat",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "tags": ["heartbeat"],
-        }
-        with open(path, "a", encoding="utf-8") as fh:
-            fh.write(_json.dumps(heartbeat, ensure_ascii=False) + "\n")
-            fh.flush()
+        probe_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="wb",
+                prefix=".journal-health-",
+                dir=path.parent,
+                delete=False,
+            ) as probe:
+                probe.write(b"ok")
+                probe.flush()
+                os.fsync(probe.fileno())
+                probe_path = Path(probe.name)
+        finally:
+            if probe_path is not None:
+                probe_path.unlink(missing_ok=True)
         logger.info("[F51_TRADE_GATE] Journal healthy: %s", path)
         return True
     except Exception as exc:
@@ -386,6 +380,41 @@ class TradeGateDecision:
     checked_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     gates_passed: list[str] = field(default_factory=list)
     gates_failed: list[str] = field(default_factory=list)
+
+
+def build_order_gate_metadata(
+    decision: TradeGateDecision,
+    *,
+    order_symbol: str,
+    approval_id: str,
+    consensus_decision: str,
+) -> dict[str, Any]:
+    """Bind a prepared order to an actual successful gate decision."""
+    symbol = str(order_symbol or "").strip().upper()
+    validated = str(decision.evidence.get("validated_ticker") or "").strip().upper()
+    trace_id = str(decision.evidence.get("run_id") or "").strip()
+    consensus = str(consensus_decision or "").strip().upper()
+    if decision.status != "ALLOW":
+        raise ValueError("gate decision is not ALLOW")
+    if not symbol or validated != symbol:
+        raise ValueError("gate decision ticker does not match order")
+    if not trace_id:
+        raise ValueError("gate decision has no trace id")
+    if not approval_id:
+        raise ValueError("order has no approval id")
+    if consensus not in {"SUPPORT", "NEUTRAL"}:
+        raise ValueError("order has no non-blocking weighted consensus")
+    return {
+        "gate_status": "ALLOW",
+        "gate_trace_id": trace_id,
+        "validated_ticker": validated,
+        "journal_ready": True,
+        "execution_freeze": False,
+        "pipeline_prepared": True,
+        "adaptive_policy_applied": True,
+        "approval_id": approval_id,
+        "consensus_decision": consensus,
+    }
 
 
 # ═══════════════════════════════════════════════════════════════

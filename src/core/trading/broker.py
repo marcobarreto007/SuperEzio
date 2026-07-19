@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Protocol
+from typing import Any, Mapping, Protocol
 
 
 logger = logging.getLogger(__name__)
@@ -50,6 +50,7 @@ class Order:
     perm_id: str | None = None
     tws_order_id: str | None = None
     client_id: str | None = None
+    gate_metadata: Mapping[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

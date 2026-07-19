@@ -528,39 +528,59 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
     except Exception as exc:
         return {"submit_paper_order_error": f"position_sizer_error:{str(exc)[:160]}"}
 
-    import subprocess as _sp
-    import json as _json
-    import sys as _sys
-    from pathlib import Path
-
-    script = str(
-        Path(__file__).resolve().parent.parent.parent.parent.parent / "scripts" / "_ibkr_order.py"
-    )
-    cmd = [
-        _sys.executable,
-        script,
-        "BUY" if action in ("buy", "long") else "SELL",
-        symbol,
-        str(int(qty)),
-        str(limit_price),
-    ]
-
     try:
-        proc = await asyncio.to_thread(_sp.run, cmd, capture_output=True, text=True, timeout=20)
-        if proc.returncode == 0:
-            result = _json.loads(proc.stdout.strip())
-            return {"submit_paper_order_result": result}
-        else:
-            error_text = proc.stderr.strip() or proc.stdout.strip() or "{}"
-            try:
-                error = _json.loads(error_text)
-            except Exception:
-                error = {"error": error_text[:200]}
-            return {
-                "submit_paper_order_error": error.get(
-                    "error", f"subprocess_failed:{proc.returncode}"
-                )
+        from adapters.broker.ibkr_adapter import InteractiveBrokersAdapter
+        from core.pipeline.f51_trade_gate import (
+            build_order_gate_metadata,
+            evaluate_trade_gate,
+        )
+        from core.trading.broker import Order, OrderSide, OrderStatus, OrderType
+
+        consensus = state.get("expert_consensus") or {}
+        decision = evaluate_trade_gate(
+            message=str(state.get("message") or "prepared paper order"),
+            ticker=symbol,
+            thesis_ticker=str(state.get("ticker") or symbol),
+            qty=int(qty),
+            limit_price=limit_price,
+            run_id=str(state.get("run_id") or approval.id),
+        )
+        metadata = build_order_gate_metadata(
+            decision,
+            order_symbol=symbol,
+            approval_id=approval.id,
+            consensus_decision=str(consensus.get("decision") or ""),
+        )
+        order = Order(
+            id=f"prepared-{approval.id}",
+            symbol=symbol,
+            side=OrderSide.BUY if action in ("buy", "long") else OrderSide.SELL,
+            order_type=OrderType.LIMIT,
+            qty=float(qty),
+            status=OrderStatus.PENDING,
+            limit_price=limit_price,
+            stop_price=stop_loss_price,
+            gate_metadata=metadata,
+        )
+        submitted = await asyncio.to_thread(InteractiveBrokersAdapter().submit_order, order)
+        if submitted.status == OrderStatus.REJECTED:
+            return {"submit_paper_order_error": f"broker_rejected:{submitted.id}"}
+        return {
+            "submit_paper_order_result": {
+                "order_id": submitted.id,
+                "symbol": submitted.symbol,
+                "action": submitted.side.value,
+                "qty": submitted.qty,
+                "limit_price": submitted.limit_price,
+                "status": submitted.status.value,
+                "perm_id": submitted.perm_id,
+                "tws_order_id": submitted.tws_order_id,
+                "client_id": submitted.client_id,
+                "gate_checked": True,
             }
+        }
+    except ValueError as exc:
+        return {"submit_paper_order_error": f"prepared_order_invalid:{str(exc)[:160]}"}
     except Exception as exc:
         return {"submit_paper_order_error": f"bridge_error:{str(exc)[:200]}"}
 

@@ -54,6 +54,28 @@ class TestRawIBKRCLIDisabledByDefault:
         assert data.get("blocked"), f"Should be blocked by freeze: {data}"
         assert "FREEZE" in data.get("reason", ""), f"Wrong reason: {data.get('reason')}"
 
+    def test_raw_cli_cannot_use_env_toggles_without_pipeline_envelope(self):
+        import subprocess
+
+        env = {
+            **os.environ,
+            "F51_ALLOW_RAW_IBKR_CLI": "true",
+            "F51_TRADING_EXECUTION_FREEZE": "false",
+            "F51_PAPER_MODE_CONFIRMED": "true",
+        }
+        env.pop("SUPEREZIO_PIPELINE_ORDER_ENVELOPE", None)
+        result = subprocess.run(
+            [sys.executable, "scripts/_ibkr_order.py", "BUY", "AAPL", "10", "150.0"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            env=env,
+        )
+
+        data = json.loads(result.stdout.strip())
+        assert result.returncode != 0
+        assert data["reason"] == "BLOCKED_PIPELINE_ONLY"
+
 
 class TestExecuteTradeRealCannotBypassGate:
     """trading_engine_live.execute_trade_real() must not execute without gate."""

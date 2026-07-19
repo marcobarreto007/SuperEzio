@@ -10,6 +10,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from core.pipeline.f51_trade_gate import (
+    build_order_gate_metadata,
     is_execution_frozen,
     is_ticker_blacklisted,
     is_valid_ticker_format,
@@ -18,6 +19,37 @@ from core.pipeline.f51_trade_gate import (
     TradeGateDecision,
     is_journal_healthy,
 )
+
+
+def test_order_gate_metadata_requires_real_allow_decision_and_consensus():
+    allowed = TradeGateDecision(
+        status="ALLOW",
+        evidence={"validated_ticker": "AAPL", "run_id": "run-123"},
+    )
+    metadata = build_order_gate_metadata(
+        allowed,
+        order_symbol="AAPL",
+        approval_id="apr-123",
+        consensus_decision="SUPPORT",
+    )
+    assert metadata["pipeline_prepared"] is True
+    assert metadata["adaptive_policy_applied"] is True
+    assert metadata["gate_trace_id"] == "run-123"
+
+    with pytest.raises(ValueError):
+        build_order_gate_metadata(
+            TradeGateDecision(status="BLOCK"),
+            order_symbol="AAPL",
+            approval_id="apr-123",
+            consensus_decision="SUPPORT",
+        )
+    with pytest.raises(ValueError):
+        build_order_gate_metadata(
+            allowed,
+            order_symbol="AAPL",
+            approval_id="apr-123",
+            consensus_decision="BLOCK",
+        )
 
 
 @pytest.fixture(autouse=True)
@@ -226,8 +258,14 @@ class TestPlaceholderPrice:
 
 
 class TestJournalHealth:
-    def test_journal_is_healthy_on_disk(self):
-        assert is_journal_healthy() is True
+    def test_journal_health_probe_does_not_append_fake_trade(self, tmp_path):
+        journal = tmp_path / "paper_trades.jsonl"
+        journal.write_text('{"trade_id":"real-trade"}\n', encoding="utf-8")
+        before = journal.read_bytes()
+
+        assert is_journal_healthy(str(journal)) is True
+        assert journal.read_bytes() == before
+        assert list(tmp_path.glob(".journal-health-*")) == []
 
 
 class TestTradeGateDecision:

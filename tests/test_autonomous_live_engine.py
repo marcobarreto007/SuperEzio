@@ -39,19 +39,22 @@ def test_autonomous_loop_defaults_to_live_engine(monkeypatch, tmp_path):
 def test_ibkr_adapter_subprocess_uses_order_cli_contract_for_limit_orders(monkeypatch):
     import subprocess
 
+    import adapters.broker.ibkr_adapter as ibkr_adapter_module
     from adapters.broker.ibkr_adapter import InteractiveBrokersAdapter
     from core.trading.broker import Order, OrderSide, OrderStatus, OrderType
 
     captured = {}
 
-    def fake_run(args, **_kwargs):
+    def fake_run(args, **kwargs):
         captured["args"] = args
+        captured["env"] = kwargs["env"]
         return SimpleNamespace(
             returncode=0,
             stdout=json.dumps({"order_id": "ibkr-42", "status": "Submitted"}),
         )
 
     monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(ibkr_adapter_module, "_low_level_gate_check", lambda _order: True)
 
     order = Order(
         id="pytest-order",
@@ -61,30 +64,27 @@ def test_ibkr_adapter_subprocess_uses_order_cli_contract_for_limit_orders(monkey
         qty=5,
         status=OrderStatus.PENDING,
         limit_price=132.6,
-    )
-    # F51 low-level gate requires metadata
-    object.__setattr__(
-        order,
-        "gate_metadata",
-        {
+        gate_metadata={
             "gate_status": "ALLOW",
             "gate_trace_id": "test-trace",
             "validated_ticker": "NVDA",
             "journal_ready": True,
             "execution_freeze": False,
+            "pipeline_prepared": True,
+            "adaptive_policy_applied": True,
+            "approval_id": "apr-test",
+            "consensus_decision": "SUPPORT",
         },
     )
     monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "false")
 
     result = InteractiveBrokersAdapter().submit_order(order)
 
-    # Low-level gate may block in unit test (IBKR offline, journal path, etc)
-    if result.status == OrderStatus.REJECTED:
-        assert "blocked" in result.id.lower() or "ungated" in result.id.lower()
-    else:
-        assert captured["args"][-4:] == ["BUY", "NVDA", "5", "132.6"]
-        assert result.status == OrderStatus.SUBMITTED
-        assert result.limit_price == 132.6
+    assert captured["args"][-4:] == ["BUY", "NVDA", "5", "132.6"]
+    envelope = json.loads(captured["env"]["SUPEREZIO_PIPELINE_ORDER_ENVELOPE"])
+    assert envelope["approval_id"] == "apr-test"
+    assert result.status == OrderStatus.SUBMITTED
+    assert result.limit_price == 132.6
 
 
 def test_ibkr_adapter_blocks_market_orders_by_default(monkeypatch):

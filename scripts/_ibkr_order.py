@@ -52,6 +52,33 @@ def _gate_check(action: str, ticker: str, qty: float, limit_price: float) -> dic
         }
 
     # ── GATE 3: Full F51 Trade Gate validation ──
+    # This is an adapter-owned transport. Environment toggles alone cannot
+    # prove weighted consensus, approval, or adaptive sizing.
+    try:
+        envelope = json.loads(os.getenv("SUPEREZIO_PIPELINE_ORDER_ENVELOPE", ""))
+    except json.JSONDecodeError:
+        envelope = {}
+    required = {
+        "gate_status": "ALLOW",
+        "validated_ticker": ticker,
+        "journal_ready": True,
+        "execution_freeze": False,
+        "pipeline_prepared": True,
+        "adaptive_policy_applied": True,
+    }
+    if (
+        not isinstance(envelope, dict)
+        or any(envelope.get(key) != value for key, value in required.items())
+        or not envelope.get("gate_trace_id")
+        or not envelope.get("approval_id")
+        or envelope.get("consensus_decision") not in {"SUPPORT", "NEUTRAL"}
+    ):
+        return {
+            "blocked": True,
+            "reason": "BLOCKED_PIPELINE_ONLY",
+            "message": "Raw broker transport requires a prepared pipeline order envelope.",
+        }
+
     try:
         from core.pipeline.f51_trade_gate import evaluate_trade_gate
 
@@ -118,10 +145,10 @@ def main():
 
         if limit_price > 0:
             order = LimitOrder(action, qty, limit_price)
-            order.tif = 'GTC'  # Good-Til-Canceled — sobrevive ao preset DAY
+            order.tif = "GTC"  # Good-Til-Canceled — sobrevive ao preset DAY
         else:
             order = MarketOrder(action, qty)
-            order.tif = 'GTC'
+            order.tif = "GTC"
 
         trade = ib.placeOrder(contract, order)
         ib.sleep(5)  # Wait longer for order acknowledgment
