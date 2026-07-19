@@ -187,6 +187,20 @@ def create_code_executor_tool():
 
     Roadmap: substituir por subprocess isolado com seccomp/firejail antes de
     reabilitar por default.
+
+    Decisao de auditoria (docs/audit/phase7_idempotency_security_repro.md,
+    achado 7.2): o exec() em `execute_python` (abaixo) foi revisado e
+    mantido, nao removido, porque ja possui defesa em profundidade:
+    (1) desabilitado por default via env var opt-in; (2) AST validator
+    bloqueia import/from-import, acesso a qualquer atributo dunder e uma
+    blocklist de builtins/metodos perigosos (eval, exec, open, os, sys,
+    subprocess, getattr, etc); (3) __builtins__ restrito passado ao exec()
+    (sem __import__, open, getattr...). Provado com testes em
+    tests/test_custom_tools.py::test_execute_python_blocks_known_sandbox_escapes
+    contra os bypasses classicos (walk de __class__.__bases__.__subclasses__,
+    __globals__ de closures, __import__, eval/exec/open/getattr diretos).
+    Se algum desses testes falhar apos uma mudanca aqui, a mudanca introduziu
+    uma regressao de sandbox e nao deve ser commitada.
     """
     import os as _os
 

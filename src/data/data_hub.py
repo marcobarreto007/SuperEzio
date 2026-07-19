@@ -484,7 +484,7 @@ class DataHub:
         if result is None:
             return False
         if isinstance(result, dict):
-            return "error" not in result
+            return "error" not in result and len(result) > 0
         if isinstance(result, list):
             return len(result) > 0
         return True
