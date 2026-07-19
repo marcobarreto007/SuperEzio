@@ -28,6 +28,14 @@ DEFAULT_EXPERT_WEIGHTS = {
     "momentum_technical": 0.15,
     "contrarian_opportunity": 0.10,
 }
+EXPERT_ROLE_ALIASES = {
+    "fundamental": "fundamental_value",
+    "technical": "momentum_technical",
+    "momentum": "momentum_technical",
+    "contrarian": "contrarian_opportunity",
+    "risk": "macro_risk",
+    "crisis": "macro_risk",
+}
 
 
 class OutcomeConflictError(RuntimeError):
@@ -89,7 +97,7 @@ class OutcomeLearningEngine:
                 CREATE TABLE IF NOT EXISTS expert_stats (
                     expert_name TEXT PRIMARY KEY,
                     total_calls INTEGER NOT NULL,
-                    correct_calls INTEGER NOT NULL,
+                    correct_calls REAL NOT NULL,
                     total_confidence REAL NOT NULL,
                     last_called_at TEXT NOT NULL,
                     weight REAL NOT NULL CHECK(weight >= 0.1 AND weight <= 3.0)
@@ -136,7 +144,7 @@ class OutcomeLearningEngine:
                     now,
                 ),
             )
-            correct = 1 if payload["outcome"] == "win" else 0
+            correct = payload["outcome"] == "win"
             for expert_name, confidence in payload["expert_attribution"].items():
                 self._update_expert(connection, expert_name, confidence, correct, now)
             connection.commit()
@@ -159,11 +167,12 @@ class OutcomeLearningEngine:
             raise ValueError("learning requires exit_price and exit_date")
 
         raw_attribution = trade.get("expert_attribution") or {}
-        attribution = {
-            str(name): _unit_confidence(confidence)
-            for name, confidence in raw_attribution.items()
-            if str(name).strip()
-        }
+        attribution: dict[str, float] = {}
+        for name, confidence in raw_attribution.items():
+            role = str(name).strip().lower().split("#", 1)[0]
+            role = EXPERT_ROLE_ALIASES.get(role, role)
+            if role in DEFAULT_EXPERT_WEIGHTS:
+                attribution[role] = _unit_confidence(confidence)
         return {
             "trade_id": trade_id,
             "symbol": str(trade.get("ticker") or trade.get("symbol") or "").upper(),
@@ -211,7 +220,7 @@ class OutcomeLearningEngine:
         connection: sqlite3.Connection,
         expert_name: str,
         confidence: float,
-        correct: int,
+        correct: bool,
         now: str,
     ) -> None:
         row = connection.execute(
@@ -219,7 +228,8 @@ class OutcomeLearningEngine:
             (expert_name,),
         ).fetchone()
         total = (row["total_calls"] if row else 0) + 1
-        correct_total = (row["correct_calls"] if row else 0) + correct
+        evidence = confidence if correct else 1.0 - confidence
+        correct_total = (row["correct_calls"] if row else 0.0) + evidence
         confidence_total = (row["total_confidence"] if row else 0.0) + confidence
         smoothed_accuracy = (correct_total + 1.0) / (total + 2.0)
         weight = max(0.1, min(3.0, 0.5 + smoothed_accuracy))

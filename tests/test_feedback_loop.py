@@ -126,7 +126,7 @@ def test_learning_cycle_processes_each_terminal_outcome_once(tmp_path):
 
     assert first["processed"] == ["winner-001:v1"]
     assert first["replayed"] == []
-    assert first["expert_weights"] == {"fundamental": 1.0}
+    assert first["expert_weights"] == {"fundamental_value": 1.0}
     assert replay["processed"] == []
     assert replay["replayed"] == ["winner-001:v1"]
     assert replay["expert_weights"] == first["expert_weights"]

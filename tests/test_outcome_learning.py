@@ -74,19 +74,19 @@ def test_non_terminal_trade_never_learns(tmp_path, change):
 
 def test_loss_reduces_losing_expert_relative_to_winner(tmp_path):
     engine = OutcomeLearningEngine(tmp_path / "learning.sqlite3")
-    engine.process_trade(_closed_trade(expert_attribution={"winner": 0.8}))
+    engine.process_trade(_closed_trade(expert_attribution={"fundamental_value": 0.8}))
     engine.process_trade(
         _closed_trade(
             trade_id="trade-002",
             outcome="loss",
             exit_price=90.0,
             pnl_amount=-100.0,
-            expert_attribution={"loser": 0.8},
+            expert_attribution={"macro_risk": 0.8},
         )
     )
 
     weights = engine.get_normalized_weights()
-    assert weights["winner"] > weights["loser"]
+    assert weights["fundamental_value"] > weights["macro_risk"]
 
 
 def test_reward_uses_ex_ante_risk_not_realized_price_move(tmp_path):
@@ -120,3 +120,23 @@ def test_effective_weights_blend_learned_reliability_and_remain_normalized(tmp_p
     assert sum(weights.values()) == pytest.approx(1.0)
     assert weights["fundamental_value"] > DEFAULT_EXPERT_WEIGHTS["fundamental_value"]
     assert weights["macro_risk"] < DEFAULT_EXPERT_WEIGHTS["macro_risk"]
+
+
+def test_role_aliases_update_the_canonical_pipeline_role(tmp_path):
+    engine = OutcomeLearningEngine(tmp_path / "learning.sqlite3")
+    engine.process_trade(_closed_trade(expert_attribution={"fundamental": 0.9}))
+    assert engine.get_normalized_weights() == {"fundamental_value": 1.0}
+
+
+def test_confidence_controls_credit_assignment(tmp_path):
+    engine = OutcomeLearningEngine(tmp_path / "learning.sqlite3")
+    engine.process_trade(
+        _closed_trade(
+            outcome="loss",
+            exit_price=90.0,
+            pnl_amount=-100.0,
+            expert_attribution={"fundamental_value": 0.9, "macro_risk": 0.1},
+        )
+    )
+    weights = engine.get_normalized_weights()
+    assert weights["macro_risk"] > weights["fundamental_value"]
