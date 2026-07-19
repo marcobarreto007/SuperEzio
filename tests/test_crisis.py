@@ -30,6 +30,8 @@ from experts.crisis.models.growth_at_risk import (
     _pinball_loss,
     _quantile_regression,
 )
+from experts.crisis.models.network_contagion import NetworkContagionModel
+from experts.crisis.models.systemic_bank_risk import SystemicBankRiskModel
 from experts.crisis.models.lppls_bubble import (
     LPPLSBubbleModel,
     _second_derivative,
@@ -597,6 +599,34 @@ class TestGrowthAtRiskModel:
         assert result.calibration_status == "rolling_validated"
         assert result.details["rolling_folds"] >= 8
         assert result.details["pinball_loss"] >= 0.0
+
+
+class TestUnavailableSystemicModels:
+    def test_covar_and_debtrank_require_real_network_data(self):
+        market = [
+            MarketObservation(date=_day(index), close=100.0 + index)
+            for index in range(120)
+        ]
+        result = NetworkContagionModel().evaluate(
+            CrisisInput(frequency="daily", market_series=market)
+        )
+        assert result.status == "insufficient_data"
+        assert result.method_kind == "unavailable"
+        assert "bilateral exposure matrix" in result.explanation
+
+    def test_srisk_requires_bank_level_balance_sheets(self):
+        observations = [
+            MacroObservation(
+                date=_month(index),
+                equity_index=100.0 + index,
+                credit_to_gdp=120.0 + index,
+            )
+            for index in range(36)
+        ]
+        result = SystemicBankRiskModel().evaluate(CrisisInput(observations=observations))
+        assert result.status == "insufficient_data"
+        assert result.method_kind == "unavailable"
+        assert "bank-level equity returns" in result.explanation
 
 
 class TestLPPLSBubbleModel:
