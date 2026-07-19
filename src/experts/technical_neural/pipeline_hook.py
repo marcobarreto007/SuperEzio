@@ -23,12 +23,21 @@ def analyze_technical_neural_sync(ticker: str) -> Dict[str, Any]:
     from .expert.neural_expert import TechnicalNeuralExpert
 
     try:
-        response = hub.get_candles(ticker, timeframe="6M")
+        # One year is the shortest supported provider window that normally leaves
+        # enough observations for four chronological partitions plus leakage gaps.
+        response = hub.get_candles(ticker, timeframe="1Y")
         if "error" in response:
             return {
                 "ticker": ticker,
-                "neural_score": 0.5,
-                "verdict": "WAIT",
+                "status": "insufficient_data",
+                "decision": "ABSTAIN",
+                "direction_prob": {},
+                "calibration_status": "unavailable",
+                "skill_status": "unqualified",
+                "model_id": None,
+                "as_of": None,
+                "horizon": {"bars": 1},
+                "reason_codes": ["CANDLE_COLLECTION_FAILED"],
                 "confidence": 0.0,
                 "error": response["error"],
                 "source": "technical_neural",
@@ -39,8 +48,15 @@ def analyze_technical_neural_sync(ticker: str) -> Dict[str, Any]:
         logger.error(f"Erro ao buscar candles para o Neural Expert: {e}")
         return {
             "ticker": ticker,
-            "neural_score": 0.5,
-            "verdict": "WAIT",
+            "status": "error",
+            "decision": "ABSTAIN",
+            "direction_prob": {},
+            "calibration_status": "unavailable",
+            "skill_status": "unqualified",
+            "model_id": None,
+            "as_of": None,
+            "horizon": {"bars": 1},
+            "reason_codes": ["CANDLE_COLLECTION_FAILED"],
             "confidence": 0.0,
             "error": "Falha na coleta histórica",
             "source": "technical_neural",
