@@ -375,7 +375,13 @@ You have access to the following tools:
 
 13. final_answer
     Description: Provides the final natural language answer to the user.
-    Input schema: {"content": "Your final verdict and analysis in the user's language."}
+    Input schema: {"content": "Your final verdict and analysis in the user's language.",
+                   "mentioned_tickers": ["AAPL", "SHOP"]}
+    mentioned_tickers: list every stock/crypto ticker symbol your content actually
+    names as a security you analyzed or recommended (e.g. "SHOP", "AAPL"). Do NOT
+    include acronyms that are not tickers (FCF, DCF, HRP, EMA, RSI, VWAP, IBKR,
+    SDCA, F51, etc. are metrics/module names, never tickers). Use [] if you did
+    not name any ticker.
 
 **CRITICAL INSTRUCTIONS**:
 - You must ONLY output a valid JSON object. No other text.
@@ -773,13 +779,29 @@ def _mentioned_tickers(text: str, grounded: set[str] | None = None) -> set[str]:
     )
 
 
-def _grounding_guard_answer(state: dict, content: str) -> str:
+def _grounding_guard_answer(
+    state: dict, content: str, declared_tickers: set[str] | None = None
+) -> str:
     claims = collect_security_claims(state)
     grounded = set(claims)
     if not grounded:
         return content
 
-    ungrounded = sorted(_mentioned_tickers(content, grounded) - grounded)
+    # Prefer the LLM's own structured declaration (final_answer's
+    # mentioned_tickers arg) over regex-guessing ticker mentions from
+    # prose. The regex path (_mentioned_tickers) kept needing new
+    # exclusions for every domain acronym Bob happened to capitalize
+    # (ALLOW/DCF/EMA/IBKR/SELL/TRAP/VWAP, then DADOS/SEM/SCAN, then
+    # FCF/HRP — see commits c53daf4, phase9 report, 47659a7). Declared
+    # tickers can't collide with acronyms because the model is asked
+    # directly which symbols it named, not asked to free-associate over
+    # its own prose after the fact. Only fall back to the regex when the
+    # model didn't declare anything (older/uncooperative model output).
+    if declared_tickers is not None:
+        mentioned = declared_tickers
+    else:
+        mentioned = _mentioned_tickers(content, grounded)
+    ungrounded = sorted(mentioned - grounded)
     price_mismatches = sorted(mismatched_price_symbols(content, claims))
     ungrounded = sorted(set(ungrounded) | set(price_mismatches))
     if not ungrounded:
@@ -857,10 +879,26 @@ def _get_portfolio_snapshot(state: dict) -> str:
         return ""
 
 
-def _apply_grounding_guard(state: dict, content: str) -> str:
+def _parse_declared_tickers(value: Any) -> set[str] | None:
+    """Parse the LLM-declared mentioned_tickers list from final_answer args.
+
+    Returns None (not an empty set) when the field is absent/malformed, so
+    callers can distinguish "model didn't declare anything" (fall back to
+    regex scanning) from "model declared zero tickers" (trust that; an
+    empty list is a valid, common answer for non-ticker questions).
+    """
+    if not isinstance(value, list):
+        return None
+    tickers = {_normalize_ticker_symbol(item) for item in value if isinstance(item, str)}
+    return {t for t in tickers if t}
+
+
+def _apply_grounding_guard(
+    state: dict, content: str, declared_tickers: set[str] | None = None
+) -> str:
     if not state.get("data") and not state.get("scan") and not state.get("data_context"):
         return content
-    return _grounding_guard_answer(state, content)
+    return _grounding_guard_answer(state, content, declared_tickers)
 
 
 # ============================================================================
@@ -3045,7 +3083,9 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                         "current_datetime": state.get("current_datetime", ""),
                     }
             if tool_call["tool"] == "final_answer":
-                content = tool_call.get("args", {}).get("content") or ""
+                tool_args = tool_call.get("args", {}) or {}
+                content = tool_args.get("content") or ""
+                declared_tickers = _parse_declared_tickers(tool_args.get("mentioned_tickers"))
                 if state.get("submit_paper_order_result") or state.get("submit_paper_order_error"):
                     content = _paper_order_execution_answer(state)
                 elif state.get("scan"):
@@ -3059,10 +3099,10 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     content = _contract_fallback_answer(state)
                 elif is_complex_finance:
                     content = _repair_complex_finance_answer(state.get("message", ""), content)
-                    content = _apply_grounding_guard(state, content)
+                    content = _apply_grounding_guard(state, content, declared_tickers)
                 else:
                     content = _repair_answer_quality(content, state.get("message", ""))
-                    content = _apply_grounding_guard(state, content)
+                    content = _apply_grounding_guard(state, content, declared_tickers)
 
                 # ── Inject portfolio snapshot BEFORE the CHUNK ──
                 pf = _get_portfolio_snapshot(state)
