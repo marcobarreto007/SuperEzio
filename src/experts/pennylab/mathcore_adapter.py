@@ -40,8 +40,7 @@ except ImportError:
 def score_to_alert(score: float) -> str:
     """Converte score 0-1 → green / yellow / red / black usando crisis."""
     if _CRISIS_AVAILABLE:
-        # crisis usa 0-100 internamente
-        return _classify_alert(score * 100)
+        return _classify_alert(score)
     return _classify_alert(score)
 
 

@@ -1,6 +1,9 @@
 """Smoke tests — CrisisMath ensemble, scoring, normalization (deterministico, sem rede)."""
 
 import numpy as np
+import pytest
+from hypothesis import given, settings, strategies as st
+from pydantic import ValidationError
 from experts.crisis.contracts.schemas import (
     CrisisInput,
     MacroObservation,
@@ -27,7 +30,7 @@ def _ok_sensor(name, score):
     return SensorResult(
         sensor_name=name,
         score=score,
-        confidence=80.0,
+        confidence=0.8,
         status="ok",
         explanation="test",
     )
@@ -37,14 +40,28 @@ class TestSensorResult:
     def test_ok_status(self):
         sr = SensorResult(
             sensor_name="test",
-            score=75.0,
-            confidence=80.0,
+            score=0.75,
+            confidence=0.8,
             status="ok",
             explanation="works",
         )
         assert sr.sensor_name == "test"
-        assert sr.score == 75.0
+        assert sr.score == 0.75
         assert sr.status == "ok"
+
+    @pytest.mark.parametrize("field", ["score", "confidence"])
+    @pytest.mark.parametrize("value", [-0.01, 1.01])
+    def test_rejects_values_outside_unit_interval(self, field, value):
+        payload = {
+            "sensor_name": "invalid",
+            "score": 0.5,
+            "confidence": 0.5,
+            "status": "ok",
+            "explanation": "invalid bounds",
+        }
+        payload[field] = value
+        with pytest.raises(ValidationError):
+            SensorResult(**payload)
 
     def test_error_status(self):
         sr = SensorResult(
@@ -79,14 +96,14 @@ class TestCrisisInput:
 class TestCrisisReport:
     def test_minimal(self):
         cr = CrisisReport(
-            systemic_risk_score=30.0,
-            bubble_risk_score=20.0,
-            liquidity_stress_score=10.0,
-            credit_fragility_score=15.0,
-            final_risk_score=22.0,
+            systemic_risk_score=0.30,
+            bubble_risk_score=0.20,
+            liquidity_stress_score=0.10,
+            credit_fragility_score=0.15,
+            final_risk_score=0.22,
             regime="normal",
             alert_level="green",
-            confidence=80.0,
+            confidence=0.80,
             summary="OK",
         )
         assert cr.alert_level == "green"
@@ -103,30 +120,36 @@ class TestAggregateScores:
     def test_single_sensor(self):
         result = aggregate_scores(
             [
-                _ok_sensor("BISCreditGapModel", 50.0),
+                _ok_sensor("BISCreditGapModel", 0.50),
             ]
         )
         # BISCreditGapModel weight=0.20 in systemic_risk
-        assert 0 < result["systemic_risk_score"] < 55
-        # confidence: 1/8 * 100 = 12.5
-        assert result["confidence"] == 12.5
+        assert 0 < result["systemic_risk_score"] < 0.55
+        assert result["confidence"] == pytest.approx(0.8 / 12)
+
+    def test_high_severity_is_still_operationally_valid(self):
+        from experts.crisis.models import BaseCrisisModel
+
+        sensor = BaseCrisisModel._result("HighRisk", 0.90, 0.80, "high risk")
+        assert sensor.status == "ok"
+        assert sensor.severity == "crisis"
 
     def test_all_sensors_ok(self):
         sensors = [
-            _ok_sensor("BISCreditGapModel", 40.0),
-            _ok_sensor("DebtServiceRatioModel", 30.0),
-            _ok_sensor("CreditAssetGrowthModel", 50.0),
-            _ok_sensor("ShillerValuationModel", 60.0),
-            _ok_sensor("IMFMispricingModel", 45.0),
-            _ok_sensor("MinskyKeenModel", 55.0),
-            _ok_sensor("MarkovRegimeModel", 35.0),
-            _ok_sensor("LPPLSBubbleModel", 25.0),
-            _ok_sensor("HawkesStressModel", 30.0),
-            _ok_sensor("GrowthAtRiskModel", 20.0),
+            _ok_sensor("BISCreditGapModel", 0.40),
+            _ok_sensor("DebtServiceRatioModel", 0.30),
+            _ok_sensor("CreditAssetGrowthModel", 0.50),
+            _ok_sensor("ShillerValuationModel", 0.60),
+            _ok_sensor("IMFMispricingModel", 0.45),
+            _ok_sensor("MinskyKeenModel", 0.55),
+            _ok_sensor("MarkovRegimeModel", 0.35),
+            _ok_sensor("LPPLSBubbleModel", 0.25),
+            _ok_sensor("HawkesStressModel", 0.30),
+            _ok_sensor("GrowthAtRiskModel", 0.20),
         ]
         result = aggregate_scores(sensors)
-        assert result["confidence"] == 100.0  # 10 valid >= 8, capped at 100
-        assert 0 <= result["final_risk_score"] <= 100
+        assert result["confidence"] == pytest.approx(0.8 * 10 / 12)
+        assert 0 <= result["final_risk_score"] <= 1
         assert result["systemic_risk_score"] > 0
         assert result["bubble_risk_score"] > 0
         assert result["credit_fragility_score"] > 0
@@ -136,26 +159,26 @@ class TestAggregateScores:
         """Final = systemic*0.35 + bubble*0.25 + credit*0.20 + liquidity*0.20"""
         result = aggregate_scores(
             [
-                _ok_sensor("BISCreditGapModel", 100.0),
+                _ok_sensor("BISCreditGapModel", 1.0),
                 _ok_sensor("CreditAssetGrowthModel", 0.0),
                 _ok_sensor("MarkovRegimeModel", 0.0),
             ]
         )
-        # systemic: BIS(0.20) + CreditAsset(0.20) + Markov(0.10) → (100*0.20)/(0.50)=40
+        # systemic: BIS(.20) + CreditAsset(.20) + Markov(.10) → (1*.20)/(.50)=.40
         # bubble: CreditAsset only (0.30) → 0/0.30=0
-        # credit: BIS only (0.40) → 100*0.40/0.40=100
+        # credit: BIS only (0.40) → 1*0.40/0.40=1
         # liquidity: Markov only (0.40) → 0/0.40=0
-        # final = 40*0.35 + 0*0.25 + 100*0.20 + 0*0.20 = 34.0
-        assert result["final_risk_score"] == 34.0
+        # final = .40*.35 + 0*.25 + 1*.20 + 0*.20 = .34
+        assert result["final_risk_score"] == pytest.approx(0.34)
 
-    def test_confidence_capped_at_100(self):
-        sensors = [_ok_sensor(f"M{i}", 50.0) for i in range(20)]
+    def test_confidence_capped_at_one(self):
+        sensors = [_ok_sensor(f"M{i}", 0.50) for i in range(20)]
         result = aggregate_scores(sensors)
-        assert result["confidence"] == 100.0
+        assert result["confidence"] == pytest.approx(0.8)
 
     def test_error_status_ignored(self):
         sensors = [
-            _ok_sensor("BISCreditGapModel", 50.0),
+            _ok_sensor("BISCreditGapModel", 0.50),
             SensorResult(
                 sensor_name="ShillerValuationModel",
                 score=0.0,
@@ -165,42 +188,88 @@ class TestAggregateScores:
             ),
         ]
         result = aggregate_scores(sensors)
-        assert result["confidence"] == 12.5  # only 1 valid
+        assert result["confidence"] == pytest.approx(0.8 / 12)
 
 
 class TestClassifyAlertLevel:
     def test_green(self):
-        assert classify_alert_level(10.0) == "green"
-        assert classify_alert_level(24.9) == "green"
+        assert classify_alert_level(0.10) == "green"
+        assert classify_alert_level(0.249) == "green"
 
     def test_yellow(self):
-        assert classify_alert_level(25.0) == "yellow"
-        assert classify_alert_level(49.9) == "yellow"
+        assert classify_alert_level(0.25) == "yellow"
+        assert classify_alert_level(0.499) == "yellow"
 
     def test_red(self):
-        assert classify_alert_level(50.0) == "red"
-        assert classify_alert_level(74.9) == "red"
+        assert classify_alert_level(0.50) == "red"
+        assert classify_alert_level(0.749) == "red"
 
     def test_black(self):
-        assert classify_alert_level(75.0) == "black"
-        assert classify_alert_level(100.0) == "black"
+        assert classify_alert_level(0.75) == "black"
+        assert classify_alert_level(1.0) == "black"
+
+    @given(st.floats(min_value=0.0, max_value=1.0, allow_nan=False))
+    @settings(max_examples=1000)
+    def test_always_returns_known_level(self, score):
+        assert classify_alert_level(score) in {"green", "yellow", "red", "black"}
 
 
 class TestClassifyRegime:
     def test_normal(self):
-        assert classify_regime(20.0, 30.0, 30.0) == "normal"
+        assert classify_regime(0.20, 0.30, 0.30) == "normal"
 
     def test_overheating(self):
-        assert classify_regime(50.0, 50.0, 30.0) == "overheating"
-        assert classify_regime(30.0, 60.0, 20.0) == "overheating"
+        assert classify_regime(0.50, 0.50, 0.30) == "overheating"
+        assert classify_regime(0.30, 0.60, 0.20) == "overheating"
 
     def test_stress(self):
-        assert classify_regime(70.0, 50.0, 60.0) == "stress"
-        assert classify_regime(40.0, 80.0, 50.0) == "stress"
+        assert classify_regime(0.70, 0.50, 0.60) == "stress"
+        assert classify_regime(0.40, 0.80, 0.50) == "stress"
 
     def test_crisis(self):
-        assert classify_regime(80.0, 20.0, 75.0) == "crisis"
-        assert classify_regime(40.0, 40.0, 90.0) == "crisis"
+        assert classify_regime(0.80, 0.20, 0.75) == "crisis"
+        assert classify_regime(0.40, 0.40, 0.90) == "crisis"
+
+
+def test_crisis_expert_classifies_high_normalized_ensemble_as_crisis():
+    from experts.crisis.contracts.schemas import CrisisInput
+    from experts.crisis.expert.crisis_expert import CrisisMathExpert
+
+    sensor_names = (
+        "BISCreditGapModel",
+        "DebtServiceRatioModel",
+        "CreditAssetGrowthModel",
+        "ShillerValuationModel",
+        "IMFMispricingModel",
+        "MarkovRegimeModel",
+        "MinskyKeenModel",
+        "GrowthAtRiskModel",
+        "LPPLSBubbleModel",
+        "HawkesStressModel",
+    )
+
+    def make_sensor(name):
+        return type(
+            name,
+            (),
+            {
+                "evaluate": lambda self, data: SensorResult(
+                    sensor_name=name,
+                    score=0.90,
+                    confidence=0.90,
+                    status="ok",
+                    explanation="synthetic high risk",
+                )
+            },
+        )()
+
+    expert = CrisisMathExpert(fraud_patterns=object())
+    expert.sensors = [make_sensor(name) for name in sensor_names]
+    report = expert.analyze(CrisisInput())
+
+    assert report.alert_level == "black"
+    assert report.regime == "crisis"
+    assert report.final_risk_score == pytest.approx(0.90)
 
 
 class TestNormalization:

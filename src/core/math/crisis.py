@@ -191,8 +191,8 @@ def crisis_aggregate(
 
     avg_score = sum(scores) / len(scores)
     avg_conf = sum(confidences) / len(confidences)
-    alert = classify_alert_level(int(avg_score * 100))
-    regime = classify_regime(avg_score * 100, avg_conf * 100, avg_score * 80)
+    alert = classify_alert_level(avg_score)
+    regime = classify_regime(avg_score, avg_score, avg_score)
 
     return {
         "results": results,
@@ -208,4 +208,4 @@ def crisis_aggregate(
 
 def crisis_classify(score: float) -> str:
     """Classifica score 0-1 em nível de alerta."""
-    return classify_alert_level(int(score * 100))
+    return classify_alert_level(score)

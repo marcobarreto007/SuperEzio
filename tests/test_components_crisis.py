@@ -28,16 +28,16 @@ def test_minmax_score():
 def test_classify_alert_level():
     from experts.crisis.logic.scoring import classify_alert_level
 
-    assert classify_alert_level(15) == "green"
-    assert classify_alert_level(40) == "yellow"
-    assert classify_alert_level(65) == "red"
-    assert classify_alert_level(85) == "black"
+    assert classify_alert_level(0.15) == "green"
+    assert classify_alert_level(0.40) == "yellow"
+    assert classify_alert_level(0.65) == "red"
+    assert classify_alert_level(0.85) == "black"
 
 
 def test_classify_regime():
     from experts.crisis.logic.scoring import classify_regime
 
-    r = classify_regime(score=30, bubble_score=10, stress_score=20)
+    r = classify_regime(score=0.30, bubble_score=0.10, stress_score=0.20)
     assert r in ("normal", "overheating", "stress", "crisis")
 
 
@@ -49,7 +49,7 @@ def test_aggregate_scores():
     results = [
         SensorResult(
             sensor_name="TestModel",
-            score=45.0,
+            score=0.45,
             confidence=0.8,
             status="ok",
             explanation="test",
@@ -89,13 +89,13 @@ def test_sensor_result():
 
     sr = SensorResult(
         sensor_name="test_model",
-        score=45.0,
+        score=0.45,
         confidence=0.8,
         status="ok",
         explanation="test",
     )
     assert sr.sensor_name == "test_model"
-    assert sr.score == 45.0
+    assert sr.score == 0.45
 
 
 # ── Helper: builds CrisisInput with 24 monthly observations ──
@@ -149,7 +149,7 @@ def _test_model(model_attr, class_name):
     result = instance.evaluate(inp)
     assert result is not None, f"{class_name}.evaluate() returned None"
     assert result.sensor_name == class_name
-    assert 0 <= result.score <= 100, f"{class_name} score {result.score} out of range"
+    assert 0 <= result.score <= 1, f"{class_name} score {result.score} out of range"
     return result
 
 

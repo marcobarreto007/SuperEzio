@@ -77,7 +77,7 @@ def test_crisis_report_default():
         final_risk_score=0.0,
         regime="normal",
         alert_level="green",
-        confidence=100.0,
+        confidence=1.0,
         sensor_results=[],
         summary="Test",
         recommendations=[],
@@ -102,16 +102,16 @@ def test_crisis_scoring_import():
 def test_classify_alert_level():
     from experts.crisis.logic.scoring import classify_alert_level
 
-    assert classify_alert_level(10) == "green"
-    assert classify_alert_level(40) == "yellow"
-    assert classify_alert_level(60) == "red"
-    assert classify_alert_level(90) == "black"
+    assert classify_alert_level(0.10) == "green"
+    assert classify_alert_level(0.40) == "yellow"
+    assert classify_alert_level(0.60) == "red"
+    assert classify_alert_level(0.90) == "black"
 
 
 def test_classify_regime():
     from experts.crisis.logic.scoring import classify_regime
 
-    regime = classify_regime(20, 10, 5)
+    regime = classify_regime(0.20, 0.10, 0.05)
     assert regime in ("normal", "overheating", "stress", "crisis")
 
 

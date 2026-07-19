@@ -2,7 +2,7 @@
 Ensemble logic to combine sensor scores.
 """
 
-from typing import List, Dict
+from typing import Dict, List
 from ..contracts.schemas import SensorResult
 
 
@@ -68,25 +68,18 @@ def aggregate_scores(results: List[SensorResult]) -> Dict[str, float]:
         }
     )
 
-    scores["final_risk_score"] = weighted_avg(
-        {
-            "systemic_risk_score_virtual": 0.35,  # virtual mapping below
-            "bubble_risk_score_virtual": 0.25,
-            "credit_fragility_score_virtual": 0.20,
-            "liquidity_stress_score_virtual": 0.20,
-        }
-    )  # Actually we just combine the computed ones
-
     final = (
         scores["systemic_risk_score"] * 0.35
         + scores["bubble_risk_score"] * 0.25
         + scores["credit_fragility_score"] * 0.20
         + scores["liquidity_stress_score"] * 0.20
     )
-    scores["final_risk_score"] = final
+    scores["final_risk_score"] = min(max(final, 0.0), 1.0)
 
-    # Confidence drops if sensors missing
-    scores["confidence"] = (len(valid_results) / 8.0) * 100.0  # Assumes 8 core sensors
-    scores["confidence"] = min(scores["confidence"], 100.0)
+    # Confidence combines model confidence and coverage across the 12-sensor ensemble.
+    valid = [r for r in results if r.status == "ok"]
+    mean_confidence = sum(r.confidence for r in valid) / len(valid)
+    coverage = min(len(valid) / 12.0, 1.0)
+    scores["confidence"] = mean_confidence * coverage
 
     return scores

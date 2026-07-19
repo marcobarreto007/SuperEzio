@@ -2,8 +2,8 @@
 Data contracts for CrisisMathExpert.
 """
 
-from typing import Any, List, Optional
-from pydantic import BaseModel, Field
+from typing import Any, List, Literal, Optional
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 
 class MacroObservation(BaseModel):
@@ -40,25 +40,41 @@ class CrisisInput(BaseModel):
 
 
 class SensorResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     sensor_name: str
-    score: float
-    confidence: float
-    status: str  # ok, insufficient_data, error
+    score: float = Field(ge=0.0, le=1.0, strict=True, description="Risk score on the unit interval")
+    confidence: float = Field(
+        ge=0.0, le=1.0, strict=True, description="Sensor confidence on the unit interval"
+    )
+    status: Literal["ok", "insufficient_data", "error"]
     explanation: str
     details: dict[str, Any] = Field(default_factory=dict)
 
+    @computed_field
+    @property
+    def severity(self) -> Literal["normal", "warning", "stress", "crisis"]:
+        """Severity is a pure projection of score, never a second source of truth."""
+        if self.score > 0.75:
+            return "crisis"
+        if self.score > 0.50:
+            return "stress"
+        if self.score > 0.25:
+            return "warning"
+        return "normal"
+
 
 class CrisisReport(BaseModel):
-    systemic_risk_score: float
-    bubble_risk_score: float
-    liquidity_stress_score: float
-    credit_fragility_score: float
-    bank_fragility_score: Optional[float] = None
-    contagion_risk_score: Optional[float] = None
-    final_risk_score: float
-    regime: str  # normal, overheating, stress, crisis
-    alert_level: str  # green, yellow, red, black
-    confidence: float
+    systemic_risk_score: float = Field(ge=0.0, le=1.0, strict=True)
+    bubble_risk_score: float = Field(ge=0.0, le=1.0, strict=True)
+    liquidity_stress_score: float = Field(ge=0.0, le=1.0, strict=True)
+    credit_fragility_score: float = Field(ge=0.0, le=1.0, strict=True)
+    bank_fragility_score: Optional[float] = Field(default=None, ge=0.0, le=1.0, strict=True)
+    contagion_risk_score: Optional[float] = Field(default=None, ge=0.0, le=1.0, strict=True)
+    final_risk_score: float = Field(ge=0.0, le=1.0, strict=True)
+    regime: Literal["normal", "overheating", "stress", "crisis"]
+    alert_level: Literal["green", "yellow", "red", "black"]
+    confidence: float = Field(ge=0.0, le=1.0, strict=True)
     sensor_results: List[SensorResult] = Field(default_factory=list)
     summary: str
     recommendations: List[str] = Field(default_factory=list)
