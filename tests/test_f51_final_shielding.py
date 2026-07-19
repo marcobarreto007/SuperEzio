@@ -74,7 +74,7 @@ class TestRawIBKRCLIDisabledByDefault:
 
         data = json.loads(result.stdout.strip())
         assert result.returncode != 0
-        assert data["reason"] == "BLOCKED_PIPELINE_ONLY"
+        assert data["reason"] == "BLOCKED_RETIRED_TRANSPORT"
 
 
 class TestExecuteTradeRealCannotBypassGate:

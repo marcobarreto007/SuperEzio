@@ -153,8 +153,7 @@ class InteractiveBrokersAdapter:
     get_order, get_positions, get_account_equity.
 
     Delegates to IBKRService singleton for positions/equity (cached).
-    Uses subprocess for orders (via scripts/_ibkr_order.py) to maintain
-    isolation.
+    Uses a worker-owned IB connection for prepared orders.
 
     Handles connection errors gracefully (returns zero/empty instead of crashing).
     """
@@ -190,7 +189,7 @@ class InteractiveBrokersAdapter:
         return status.get("connected", False) and status.get("can_read", False)
 
     def submit_order(self, order: Any) -> Any:
-        """Submit order via subprocess (scripts/_ibkr_order.py) for isolation.
+        """Submit only an F51-gated, approved, adaptively prepared order.
 
         This maintains the existing behavior — orders go through a subprocess
         to avoid event-loop conflicts. The adapter does not use in-process IB().
@@ -199,11 +198,8 @@ class InteractiveBrokersAdapter:
         reaching this adapter. The subprocess (_ibkr_order.py) also enforces
         the gate independently (defense in depth).
         """
-        from core.trading.broker import Order, OrderSide, OrderType, OrderStatus
-        import subprocess
-        import sys
+        from core.trading.broker import Order, OrderType, OrderStatus
         import json
-        from pathlib import Path
 
         # ═══════════════════════════════════════════════════════
         # F51 LOW-LEVEL GATE — Last line of defense
@@ -217,11 +213,6 @@ class InteractiveBrokersAdapter:
                 qty=order.qty,
                 status=OrderStatus.REJECTED,
             )
-
-        # Order submission uses subprocess for isolation (existing pattern)
-        order_script = (
-            Path(__file__).resolve().parent.parent.parent.parent / "scripts" / "_ibkr_order.py"
-        )
 
         if order.order_type == OrderType.MARKET and os.getenv(
             "SUPEREZIO_IBKR_ALLOW_MARKET_ORDER", "0"
@@ -248,25 +239,9 @@ class InteractiveBrokersAdapter:
             )
 
         try:
-            child_env = os.environ.copy()
-            child_env["F51_ALLOW_RAW_IBKR_CLI"] = "true"
-            child_env["SUPEREZIO_PIPELINE_ORDER_ENVELOPE"] = json.dumps(
-                dict(order.gate_metadata), separators=(",", ":"), sort_keys=True
-            )
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    str(order_script),
-                    "BUY" if order.side == OrderSide.BUY else "SELL",
-                    order.symbol.upper(),
-                    str(int(order.qty)),
-                    str(order.limit_price or 0),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=20,
-                env=child_env,
-            )
+            from .ibkr_order_worker import run_prepared_order
+
+            result = run_prepared_order(order, host=self._host, port=self._port)
 
             if result.returncode == 0 and result.stdout:
                 data = json.loads(result.stdout.strip())

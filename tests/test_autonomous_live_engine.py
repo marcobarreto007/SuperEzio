@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from types import SimpleNamespace
 
 
@@ -36,24 +35,25 @@ def test_autonomous_loop_defaults_to_live_engine(monkeypatch, tmp_path):
     assert loop._engine_mode == "live_ibkr"
 
 
-def test_ibkr_adapter_subprocess_uses_order_cli_contract_for_limit_orders(monkeypatch):
-    import subprocess
-
+def test_ibkr_adapter_uses_prepared_worker_for_limit_orders(monkeypatch):
     import adapters.broker.ibkr_adapter as ibkr_adapter_module
+    import adapters.broker.ibkr_order_worker as order_worker_module
     from adapters.broker.ibkr_adapter import InteractiveBrokersAdapter
+    from adapters.broker.ibkr_order_worker import BrokerTransportResult
     from core.trading.broker import Order, OrderSide, OrderStatus, OrderType
 
     captured = {}
 
-    def fake_run(args, **kwargs):
-        captured["args"] = args
-        captured["env"] = kwargs["env"]
-        return SimpleNamespace(
+    def fake_run(order, *, host, port):
+        captured["order"] = order
+        captured["host"] = host
+        captured["port"] = port
+        return BrokerTransportResult(
             returncode=0,
-            stdout=json.dumps({"order_id": "ibkr-42", "status": "Submitted"}),
+            stdout='{"order_id":"ibkr-42","status":"Submitted"}',
         )
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(order_worker_module, "run_prepared_order", fake_run)
     monkeypatch.setattr(ibkr_adapter_module, "_low_level_gate_check", lambda _order: True)
 
     order = Order(
@@ -80,9 +80,9 @@ def test_ibkr_adapter_subprocess_uses_order_cli_contract_for_limit_orders(monkey
 
     result = InteractiveBrokersAdapter().submit_order(order)
 
-    assert captured["args"][-4:] == ["BUY", "NVDA", "5", "132.6"]
-    envelope = json.loads(captured["env"]["SUPEREZIO_PIPELINE_ORDER_ENVELOPE"])
-    assert envelope["approval_id"] == "apr-test"
+    assert captured["order"] is order
+    assert captured["host"] == "127.0.0.1"
+    assert captured["order"].gate_metadata["approval_id"] == "apr-test"
     assert result.status == OrderStatus.SUBMITTED
     assert result.limit_price == 132.6
 
