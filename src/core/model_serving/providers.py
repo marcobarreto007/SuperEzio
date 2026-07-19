@@ -150,22 +150,32 @@ def build_default_providers(
             )
         )
 
-    # Agent — local Bob core via llama-server.
+    # Agent — local Bob core via llama-server by default. model/api_key were
+    # previously hardcoded (AGENT_MODEL_ID, "") with no env override, so
+    # pointing SUPEREZIO_AGENT_BASE_URL at a cloud provider (e.g. DeepSeek)
+    # still sent an empty API key and the wrong model id — confirmed live
+    # via PROVIDER_ERROR in the gateway logs (2026-07-19) when the operator
+    # had no local GGUF and tried to use DeepSeek as the agent/CEO instead.
     agent_base_url = os.getenv(
         "SUPEREZIO_AGENT_BASE_URL",
         "http://127.0.0.1:8082/v1",
+    )
+    agent_model = os.getenv("SUPEREZIO_AGENT_MODEL", AGENT_MODEL_ID)
+    agent_api_key = os.getenv("SUPEREZIO_AGENT_API_KEY", "")
+    agent_is_local = agent_base_url.startswith("http://127.0.0.1") or agent_base_url.startswith(
+        "http://localhost"
     )
     providers.append(
         ModelProvider(
             name=AGENT_PROVIDER_NAME,
             base_url=agent_base_url,
-            api_key="",
+            api_key=agent_api_key,
             priority=-10,  # HIGH priority — local Bob CEO
-            model=AGENT_MODEL_ID,
+            model=agent_model,
             timeout_s=int(os.getenv("SUPEREZIO_AGENT_TIMEOUT_SEC", "600")),
             max_tokens=8192,
             temperature=0.4,
-            is_local=True,
+            is_local=agent_is_local,
             backend="openai_compatible",
         )
     )

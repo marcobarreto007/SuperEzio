@@ -64,6 +64,8 @@ def test_build_default_providers_agent_present(monkeypatch):
     monkeypatch.delenv("SUPEREZIO_PRIMARY_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_AGENT_BASE_URL", raising=False)
+    monkeypatch.delenv("SUPEREZIO_AGENT_MODEL", raising=False)
+    monkeypatch.delenv("SUPEREZIO_AGENT_API_KEY", raising=False)
 
     from core.config.schema import UniversalConfig
     from core.model_serving.providers import (

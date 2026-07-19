@@ -177,6 +177,12 @@ def test_provider_factory_keeps_agent_local_only(monkeypatch):
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_MODEL", raising=False)
     monkeypatch.delenv("SUPEREZIO_AGENT_BASE_URL", raising=False)
+    # Added when providers.py's "agent" provider started reading model/api_key
+    # from env too (was hardcoded before — see providers.py comment,
+    # 2026-07-19). A real .env pointing "agent" at a cloud provider must not
+    # leak into this contract test.
+    monkeypatch.delenv("SUPEREZIO_AGENT_MODEL", raising=False)
+    monkeypatch.delenv("SUPEREZIO_AGENT_API_KEY", raising=False)
 
     from core.config.schema import UniversalConfig
     from core.model_serving.providers import (
