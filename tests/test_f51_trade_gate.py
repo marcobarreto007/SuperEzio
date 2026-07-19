@@ -21,6 +21,14 @@ from core.pipeline.f51_trade_gate import (
 )
 
 
+_NEURAL_GATE = {
+    "allowed": True,
+    "model_id": "neural-test-v1",
+    "as_of": "2026-07-19T12:00:00+00:00",
+    "horizon": 1,
+}
+
+
 def test_order_gate_metadata_requires_real_allow_decision_and_consensus():
     allowed = TradeGateDecision(
         status="ALLOW",
@@ -31,10 +39,13 @@ def test_order_gate_metadata_requires_real_allow_decision_and_consensus():
         order_symbol="AAPL",
         approval_id="apr-123",
         consensus_decision="SUPPORT",
+        neural_gate=_NEURAL_GATE,
     )
     assert metadata["pipeline_prepared"] is True
     assert metadata["adaptive_policy_applied"] is True
     assert metadata["gate_trace_id"] == "run-123"
+    assert metadata["neural_gate_status"] == "ALLOW"
+    assert metadata["neural_model_id"] == "neural-test-v1"
 
     with pytest.raises(ValueError):
         build_order_gate_metadata(
@@ -42,6 +53,7 @@ def test_order_gate_metadata_requires_real_allow_decision_and_consensus():
             order_symbol="AAPL",
             approval_id="apr-123",
             consensus_decision="SUPPORT",
+            neural_gate=_NEURAL_GATE,
         )
     with pytest.raises(ValueError):
         build_order_gate_metadata(
@@ -49,6 +61,16 @@ def test_order_gate_metadata_requires_real_allow_decision_and_consensus():
             order_symbol="AAPL",
             approval_id="apr-123",
             consensus_decision="BLOCK",
+            neural_gate=_NEURAL_GATE,
+        )
+
+    with pytest.raises(ValueError):
+        build_order_gate_metadata(
+            allowed,
+            order_symbol="AAPL",
+            approval_id="apr-123",
+            consensus_decision="SUPPORT",
+            neural_gate={"allowed": False},
         )
 
 

@@ -1,6 +1,18 @@
 import pytest
 
 
+def _ready_neural_decision(direction: str = "UP") -> dict:
+    return {
+        "status": "ready",
+        "decision": direction,
+        "direction_prob": {"up": 0.7, "down": 0.1, "sideways": 0.2},
+        "calibration_status": "calibrated",
+        "model_id": "test-neural-v1",
+        "as_of": "2026-07-19T12:00:00+00:00",
+        "horizon": 1,
+    }
+
+
 @pytest.mark.asyncio
 async def test_auto_full_analysis_uses_collector_state_for_decision_stack(monkeypatch):
     from src.core.pipeline import graph as graph_module
@@ -341,7 +353,11 @@ async def test_submit_paper_order_pending_when_risk_exceeds_approval(monkeypatch
     reset_approval_gate_for_test()
 
     result = await tool_executor_module._submit_paper_order(
-        {"run_id": "approval-pending-test", "ticket_allowed": True},
+        {
+            "run_id": "approval-pending-test",
+            "ticket_allowed": True,
+            "neural_decision": _ready_neural_decision(),
+        },
         {
             "ticker": "PLUG",
             "action": "buy",
@@ -368,7 +384,12 @@ async def test_submit_paper_order_caps_qty_before_approval(monkeypatch):
     reset_approval_gate_for_test()
 
     result = await tool_executor_module._submit_paper_order(
-        {"run_id": "position-cap-test", "ticket_allowed": True, "paper_equity": 100_000.0},
+        {
+            "run_id": "position-cap-test",
+            "ticket_allowed": True,
+            "paper_equity": 100_000.0,
+            "neural_decision": _ready_neural_decision(),
+        },
         {
             "ticker": "PLUG",
             "action": "buy",
@@ -488,6 +509,7 @@ async def test_submit_paper_order_applies_adaptive_stop_and_position_cap(monkeyp
             "ticket_allowed": True,
             "paper_equity": 100_000.0,
             "adaptive_config": {"stop_loss_pct": 0.03, "max_position_pct": 0.05},
+            "neural_decision": _ready_neural_decision(),
         },
         {
             "ticker": "PLUG",
