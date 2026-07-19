@@ -1,6 +1,10 @@
 import logging
 from typing import Any, Dict
 
+from .indicators import ema as canonical_ema
+from .indicators import macd as canonical_macd
+from .indicators import rsi as canonical_rsi
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -122,40 +126,23 @@ class FinancialEngine:
 
 
 def _compute_rsi(closes: list, period: int = 14) -> float:
-    n = len(closes)
-    if n < period + 1:
-        return 50.0
-    gains = []
-    losses = []
-    for i in range(1, n):
-        delta = closes[i] - closes[i - 1]
-        gains.append(max(delta, 0))
-        losses.append(max(-delta, 0))
-    avg_gain = sum(gains[-period:]) / period
-    avg_loss = sum(losses[-period:]) / period
-    if avg_loss == 0:
-        return 100.0
-    rs = avg_gain / avg_loss
-    return round(100.0 - (100.0 / (1.0 + rs)), 1)
+    value = canonical_rsi(closes, period)
+    return round(value, 1) if value is not None else 50.0
 
 
 def _compute_ema(values: list, span: int) -> float:
-    if not values:
-        return 0.0
-    alpha = 2.0 / (span + 1.0)
-    ema = values[0]
-    for v in values[1:]:
-        ema = alpha * v + (1.0 - alpha) * ema
-    return round(ema, 2)
+    value = canonical_ema(values, span)
+    return round(value, 2) if value is not None else 0.0
 
 
 def _compute_macd(closes: list) -> tuple[float, float]:
-    ema12 = _compute_ema(closes, 12)
-    ema26 = _compute_ema(closes, 26)
-    macd = round(ema12 - ema26, 4)
-    # Signal line approximation
-    signal = round(macd * 0.85, 4)
-    return macd, signal
+    values = canonical_macd(closes)
+    line = values["macd"]
+    signal = values["signal"]
+    return (
+        round(line, 4) if line is not None else 0.0,
+        round(signal, 4) if signal is not None else 0.0,
+    )
 
 
 def _compute_bollinger(closes: list, period: int = 20) -> tuple[float, float]:

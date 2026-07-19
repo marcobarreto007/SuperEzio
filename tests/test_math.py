@@ -3,7 +3,17 @@
 import math
 import pytest
 from core.math.utils import sigmoid, clamp, t_norm, t_conorm, percentile_rank, zscore
-from core.math.indicators import sma, ema, rsi, macd, bollinger, vwap, vwap_deviation
+from core.math.indicators import (
+    bollinger,
+    calc_macd,
+    calc_rsi,
+    ema,
+    macd,
+    rsi,
+    sma,
+    vwap,
+    vwap_deviation,
+)
 from core.math.risk import (
     log_return,
     simple_return,
@@ -97,10 +107,56 @@ class TestIndicators:
         assert result is not None
         assert result > 90
 
+    def test_wilder_rsi_is_prefix_invariant(self):
+        prices = [100 + ((i % 7) - 3) * 0.7 + i * 0.05 for i in range(80)]
+        full = calc_rsi(prices, period=14)
+        for prefix_length in range(15, len(prices) + 1):
+            assert calc_rsi(prices[:prefix_length], period=14) == full[:prefix_length]
+
+    def test_wilder_rsi_known_reference_sequence(self):
+        prices = [
+            44.34,
+            44.09,
+            44.15,
+            43.61,
+            44.33,
+            44.83,
+            45.10,
+            45.42,
+            45.84,
+            46.08,
+            45.89,
+            46.03,
+            45.61,
+            46.28,
+            46.28,
+        ]
+        assert calc_rsi(prices, period=14)[-1] == pytest.approx(70.46, abs=0.01)
+
     def test_macd_ok(self):
         result = macd(self.PRICES)
         assert isinstance(result, dict)
         assert "macd" in result
+
+    def test_macd_signal_is_real_ema9_and_prefix_invariant(self):
+        prices = [100 + i * 0.3 + math.sin(i / 3) for i in range(80)]
+        full = calc_macd(prices)
+        assert full["signal"][32] is None
+        assert full["signal"][33] is not None
+        first_nine = [value for value in full["macd"] if value is not None][:9]
+        assert full["signal"][33] == pytest.approx(sum(first_nine) / 9, abs=1e-4)
+        for prefix_length in range(34, len(prices) + 1):
+            prefix = calc_macd(prices[:prefix_length])
+            for name in ("macd", "signal", "histogram"):
+                assert prefix[name] == full[name][:prefix_length]
+
+    def test_scalar_macd_matches_latest_series_values(self):
+        prices = [100 + i * 0.2 + math.sin(i / 2) for i in range(60)]
+        scalar = macd(prices)
+        series = calc_macd(prices)
+        assert scalar["macd"] == pytest.approx(series["macd"][-1], abs=1e-4)
+        assert scalar["signal"] == pytest.approx(series["signal"][-1], abs=1e-4)
+        assert scalar["histogram"] == pytest.approx(series["histogram"][-1], abs=1e-4)
 
     def test_bollinger_ok(self):
         result = bollinger(self.PRICES)

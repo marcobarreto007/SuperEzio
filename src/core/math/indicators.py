@@ -24,39 +24,27 @@ def sma(prices: Sequence[float], period: int) -> float | None:
 
 def ema(prices: Sequence[float], period: int) -> float | None:
     """Média móvel exponencial."""
-    if len(prices) < period:
-        return None
-    k = 2.0 / (period + 1)
-    arr = list(prices)
-    ema_val = sum(arr[:period]) / period
-    for p in arr[period:]:
-        ema_val = p * k + ema_val * (1.0 - k)
-    return ema_val
+    series = _ema_series(prices, period)
+    return series[-1] if series and series[-1] is not None else None
 
 
 def rsi(prices: Sequence[float], period: int = 14) -> float | None:
-    """Wilder RSI."""
-    if len(prices) < period + 1:
-        return None
-    deltas = [prices[i] - prices[i - 1] for i in range(1, len(prices))]
-    gains = [max(d, 0.0) for d in deltas[-period:]]
-    losses = [abs(min(d, 0.0)) for d in deltas[-period:]]
-    avg_gain = sum(gains) / period
-    avg_loss = sum(losses) / period
-    if avg_loss == 0:
-        return 100.0
-    rs = avg_gain / avg_loss
-    return 100.0 - (100.0 / (1.0 + rs))
+    """Latest causal Wilder RSI value."""
+    series = _rsi_series(prices, period)
+    return series[-1] if series and series[-1] is not None else None
 
 
 def macd(prices: Sequence[float]) -> dict[str, float | None]:
     """MACD padrão (12, 26, 9)."""
-    ema12 = ema(prices, 12)
-    ema26 = ema(prices, 26)
-    if ema12 is None or ema26 is None:
-        return {"macd": None, "signal": None, "histogram": None}
-    macd_line = ema12 - ema26
-    return {"macd": macd_line, "signal": macd_line * 0.9, "histogram": macd_line * 0.1}
+    series = _macd_series(prices)
+    macd_value = series["macd"][-1] if series["macd"] else None
+    signal_value = series["signal"][-1] if series["signal"] else None
+    histogram = (
+        macd_value - signal_value
+        if macd_value is not None and signal_value is not None
+        else None
+    )
+    return {"macd": macd_value, "signal": signal_value, "histogram": histogram}
 
 
 def bollinger(
@@ -103,58 +91,90 @@ def calc_sma(closes: list, period: int) -> list:
 
 def calc_ema(closes: list, period: int) -> list:
     """Média Móvel Exponencial retornada como série."""
-    arr = np.array(closes, dtype=float)
-    ema_vals = np.full_like(arr, np.nan)
-    if len(arr) < period:
-        return [None] * len(arr)
-    ema_vals[period - 1] = np.mean(arr[:period])
-    k = 2.0 / (period + 1)
-    for i in range(period, len(arr)):
-        ema_vals[i] = arr[i] * k + ema_vals[i - 1] * (1 - k)
-    return [None if np.isnan(v) else round(float(v), 4) for v in ema_vals]
+    return [None if value is None else round(value, 4) for value in _ema_series(closes, period)]
 
 
 def calc_rsi(closes: list, period: int = 14) -> list:
     """Wilder RSI retornado como série."""
-    arr = np.array(closes, dtype=float)
-    deltas = np.diff(arr)
-    rsi_vals = [None] * len(arr)
-    if len(deltas) < period:
-        return rsi_vals
-    gains = np.where(deltas > 0, deltas, 0.0)
-    losses = np.where(deltas < 0, -deltas, 0.0)
-    avg_gain = np.mean(gains[:period])
-    avg_loss = np.mean(losses[:period])
-    for i in range(period, len(deltas)):
-        if avg_loss == 0:
-            rsi_vals[i + 1] = 100.0
-        else:
-            rs = avg_gain / avg_loss
-            rsi_vals[i + 1] = round(100 - 100 / (1 + rs), 2)
-        avg_gain = (avg_gain * (period - 1) + gains[i]) / period
-        avg_loss = (avg_loss * (period - 1) + losses[i]) / period
-    rsi_vals[period] = 100.0 if avg_loss == 0 else round(100 - 100 / (1 + avg_gain / avg_loss), 2)
-    return rsi_vals
+    return [None if value is None else round(value, 2) for value in _rsi_series(closes, period)]
 
 
 def calc_macd(closes: list) -> dict[str, list]:
     """MACD retornado como séries (macd, signal, histogram)."""
-    ema12 = calc_ema(closes, 12)
-    ema26 = calc_ema(closes, 26)
+    raw = _macd_series(closes)
+    return {
+        name: [None if value is None else round(value, 4) for value in values]
+        for name, values in raw.items()
+    }
+
+
+def _ema_series(values: Sequence[float], period: int) -> list[float | None]:
+    """SMA-seeded EMA without rounding intermediate state."""
+    if period <= 0:
+        raise ValueError("period must be positive")
+    arr = [float(value) for value in values]
+    result: list[float | None] = [None] * len(arr)
+    if len(arr) < period:
+        return result
+    current = sum(arr[:period]) / period
+    result[period - 1] = current
+    alpha = 2.0 / (period + 1.0)
+    for index in range(period, len(arr)):
+        current = alpha * arr[index] + (1.0 - alpha) * current
+        result[index] = current
+    return result
+
+
+def _rsi_value(avg_gain: float, avg_loss: float) -> float:
+    if avg_gain == 0.0 and avg_loss == 0.0:
+        return 50.0
+    if avg_loss == 0.0:
+        return 100.0
+    if avg_gain == 0.0:
+        return 0.0
+    return 100.0 - 100.0 / (1.0 + avg_gain / avg_loss)
+
+
+def _rsi_series(values: Sequence[float], period: int) -> list[float | None]:
+    """Causal Wilder smoothing; every prefix is independent of later observations."""
+    if period <= 0:
+        raise ValueError("period must be positive")
+    arr = [float(value) for value in values]
+    result: list[float | None] = [None] * len(arr)
+    if len(arr) < period + 1:
+        return result
+
+    deltas = [arr[index] - arr[index - 1] for index in range(1, len(arr))]
+    gains = [max(delta, 0.0) for delta in deltas]
+    losses = [max(-delta, 0.0) for delta in deltas]
+    avg_gain = sum(gains[:period]) / period
+    avg_loss = sum(losses[:period]) / period
+    result[period] = _rsi_value(avg_gain, avg_loss)
+
+    for delta_index in range(period, len(deltas)):
+        avg_gain = (avg_gain * (period - 1) + gains[delta_index]) / period
+        avg_loss = (avg_loss * (period - 1) + losses[delta_index]) / period
+        result[delta_index + 1] = _rsi_value(avg_gain, avg_loss)
+    return result
+
+
+def _macd_series(values: Sequence[float]) -> dict[str, list[float | None]]:
+    """Full-precision 12/26 MACD with a genuine 9-period EMA signal."""
+    ema12 = _ema_series(values, 12)
+    ema26 = _ema_series(values, 26)
     macd_line = [
-        round(a - b, 4) if a is not None and b is not None else None for a, b in zip(ema12, ema26)
+        fast - slow if fast is not None and slow is not None else None
+        for fast, slow in zip(ema12, ema26)
     ]
-    valid = [v for v in macd_line if v is not None]
-    signal = [None] * len(macd_line)
-    if len(valid) >= 9:
-        start_idx = next(i for i, v in enumerate(macd_line) if v is not None)
-        sig_vals = calc_ema(valid, 9)
-        for j, sv in enumerate(sig_vals):
-            if sv is not None:
-                signal[start_idx + j] = sv
+    first_valid = next((i for i, value in enumerate(macd_line) if value is not None), None)
+    signal: list[float | None] = [None] * len(macd_line)
+    if first_valid is not None:
+        valid_macd = [value for value in macd_line[first_valid:] if value is not None]
+        signal_tail = _ema_series(valid_macd, 9)
+        signal[first_valid:] = signal_tail
     histogram = [
-        round(m - s, 4) if m is not None and s is not None else None
-        for m, s in zip(macd_line, signal)
+        line - sig if line is not None and sig is not None else None
+        for line, sig in zip(macd_line, signal)
     ]
     return {"macd": macd_line, "signal": signal, "histogram": histogram}
 
