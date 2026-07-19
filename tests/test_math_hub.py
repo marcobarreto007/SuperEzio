@@ -1,9 +1,15 @@
+from datetime import date, timedelta
+
+import pytest
+
 from core.math.math_hub import MathHub
 from core.pipeline.prompts.math_prompt import format_math_context
+from experts.crisis.quantum_expert import StationaryBlockBootstrap
 
 
 def _sample_state():
     candles = []
+    start = date(2026, 1, 1)
     for i in range(30):
         close = 10.0 + i * 0.2
         candles.append(
@@ -13,6 +19,7 @@ def _sample_state():
                 "low": close - 0.2,
                 "close": close,
                 "volume": 100000 + i * 1000,
+                "date": (start + timedelta(days=i)).isoformat(),
             }
         )
     return {
@@ -38,7 +45,67 @@ def test_math_hub_calculates_report_with_coverage():
     assert report["coverage"]["ok_modules"] >= 8
     assert report["modules"]["technical_indicators"]["status"] == "ok"
     assert report["modules"]["var_cvar"]["status"] == "ok"
+    assert report["modules"]["return_bootstrap"]["status"] == "ok"
+    assert report["modules"]["return_bootstrap"]["values"]["method"] == (
+        "stationary_block_bootstrap"
+    )
+    assert report["modules"]["f51_unified"] == {
+        "status": "skipped",
+        "reason": "f51_verdict_not_available_at_pre_expert_math_stage",
+        "phase": "pre_experts",
+    }
+    assert report["modules"]["price_series"]["values"]["start_date"] == "2026-01-01"
+    assert report["modules"]["price_series"]["values"]["end_date"] == "2026-01-30"
     assert report["summary"]["latest_price"] == 15.8
+
+
+def test_math_hub_preserves_iso_timestamp_for_penny_integration():
+    candles = MathHub()._extract_candles(
+        {
+            "ohlcv": [
+                {
+                    "timestamp": "2026-07-19T14:30:00Z",
+                    "open": 2.0,
+                    "high": 2.1,
+                    "low": 1.9,
+                    "close": 2.05,
+                    "volume": 1_000_000,
+                }
+            ]
+        }
+    )
+
+    assert candles[0]["date"] == "2026-07-19T14:30:00Z"
+
+
+def test_math_hub_never_invents_dates_for_penny_backtest():
+    state = _sample_state()
+    for candle in state["data"]["ohlcv"]:
+        candle.pop("date")
+
+    report = MathHub().calculate_all(state)
+
+    assert report["modules"]["penny_momentum"] == {
+        "status": "insufficient_data",
+        "reason": "candles_missing_iso_dates",
+    }
+
+
+def test_stationary_bootstrap_is_deterministic_and_uses_observed_returns():
+    returns = [0.01, -0.02, 0.015, -0.005, 0.008, -0.012] * 5
+    bootstrap = StationaryBlockBootstrap(n_scenarios=500, horizon=10)
+
+    first = bootstrap.run_simulation(returns)
+    second = bootstrap.run_simulation(returns)
+    changed = bootstrap.run_simulation([value * 2 for value in returns])
+
+    assert first == second
+    assert first["input_source"] == "observed_simple_returns"
+    assert first["block_length_distribution"] == "geometric"
+    assert first["n_observations"] == len(returns)
+    assert first["expected_cumulative_return"] != pytest.approx(
+        changed["expected_cumulative_return"]
+    )
 
 
 def test_math_hub_renders_numeric_prompt():

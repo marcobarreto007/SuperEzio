@@ -1,86 +1,89 @@
+"""Dependence-aware return resampling kept at this legacy import path.
+
+The former implementation generated a quantum-walk distribution unrelated to
+market observations. This module now exposes an honestly named stationary
+bootstrap that resamples only the observed return series supplied by a caller.
+"""
+
+from __future__ import annotations
+
+import hashlib
+from typing import Any, Sequence
+
 import numpy as np
-from datetime import datetime
-from typing import Dict, Any
 
 
-class QuantumWalkBias:
-    """
-    Discrete Quantum Random Walk on a circular state space.
+class StationaryBlockBootstrap:
+    """Politis-Romano stationary bootstrap for weakly dependent returns."""
 
-    Uses Hadamard coin operator + cyclic shift operator on a complex
-    state vector of dimension 2^n_qubits to produce a probability
-    distribution. Samples from that distribution to derive a small
-    stochastic bias for pricing models.
-    """
+    def __init__(
+        self,
+        *,
+        n_scenarios: int = 2_000,
+        mean_block_length: int | None = None,
+        horizon: int | None = None,
+        random_seed: int | None = None,
+    ) -> None:
+        if n_scenarios <= 0:
+            raise ValueError("n_scenarios must be positive")
+        if mean_block_length is not None and mean_block_length <= 0:
+            raise ValueError("mean_block_length must be positive")
+        if horizon is not None and horizon <= 0:
+            raise ValueError("horizon must be positive")
+        self.n_scenarios = n_scenarios
+        self.mean_block_length = mean_block_length
+        self.horizon = horizon
+        self.random_seed = random_seed
 
-    def __init__(self, n_qubits: int = 4):
-        self.n_qubits = n_qubits
+    def run_simulation(self, returns: Sequence[float]) -> dict[str, Any]:
+        observations = np.asarray(returns, dtype=float)
+        if observations.ndim != 1 or observations.size < 2:
+            raise ValueError("at least two observed returns are required")
+        if not np.isfinite(observations).all():
+            raise ValueError("returns must contain only finite observations")
+        if np.any(observations < -1.0):
+            raise ValueError("simple returns cannot be below -100%")
 
-    def run_simulation(self) -> Dict[str, Any]:
-        """
-        Simula a execução de uma Caminhada Quântica Discreta (QRW) no tempo no espaço
-        circular de dimensão 2^n_qubits usando o operador de moeda Hadamard.
-        """
-        try:
-            n_positions = 2**self.n_qubits
+        sample_size = int(observations.size)
+        block_length = self.mean_block_length or max(2, round(sample_size ** (1.0 / 3.0)))
+        horizon = self.horizon or min(20, sample_size)
+        restart_probability = min(1.0, 1.0 / block_length)
+        seed = self.random_seed if self.random_seed is not None else self._data_seed(observations)
+        rng = np.random.default_rng(seed)
 
-            # Inicializa estado quântico complexo: (coin_state, position)
-            # coin_state: 0 (up), 1 (down)
-            psi = np.zeros((2, n_positions), dtype=complex)
+        indices = rng.integers(0, sample_size, size=self.n_scenarios)
+        sampled = np.empty((self.n_scenarios, horizon), dtype=float)
+        sampled[:, 0] = observations[indices]
+        for step in range(1, horizon):
+            restart = rng.random(self.n_scenarios) < restart_probability
+            new_starts = rng.integers(0, sample_size, size=self.n_scenarios)
+            indices = np.where(restart, new_starts, (indices + 1) % sample_size)
+            sampled[:, step] = observations[indices]
 
-            # Estado inicial simétrico localizado na posição 0 para espalhar uniformemente
-            psi[0, 0] = 1.0 / np.sqrt(2)
-            psi[1, 0] = 1j / np.sqrt(2)
+        cumulative_returns = np.prod(1.0 + sampled, axis=1) - 1.0
+        return {
+            "status": "complete",
+            "method": "stationary_block_bootstrap",
+            "estimator": "Politis-Romano stationary bootstrap",
+            "input_source": "observed_simple_returns",
+            "n_observations": sample_size,
+            "n_scenarios": self.n_scenarios,
+            "horizon_observations": horizon,
+            "mean_block_length": block_length,
+            "block_length_distribution": "geometric",
+            "restart_probability": restart_probability,
+            "seed_policy": (
+                "caller_supplied" if self.random_seed is not None else "sha256_observed_returns"
+            ),
+            "expected_cumulative_return": float(np.mean(cumulative_returns)),
+            "median_cumulative_return": float(np.median(cumulative_returns)),
+            "return_quantile_05": float(np.quantile(cumulative_returns, 0.05)),
+            "return_quantile_01": float(np.quantile(cumulative_returns, 0.01)),
+            "worst_sampled_return": float(np.min(cumulative_returns)),
+            "best_sampled_return": float(np.max(cumulative_returns)),
+        }
 
-            # Executa passos da Caminhada Quântica
-            steps = 12
-            for _ in range(steps):
-                # 1. Aplica a moeda Hadamard em cada posição
-                # H = [[1, 1], [1, -1]] / sqrt(2)
-                psi_new = np.zeros_like(psi)
-                psi_new[0, :] = (psi[0, :] + psi[1, :]) / np.sqrt(2)
-                psi_new[1, :] = (psi[0, :] - psi[1, :]) / np.sqrt(2)
-
-                # 2. Operador de deslocamento (Shift)
-                # Coin 0 desloca para a esquerda (passo -1)
-                # Coin 1 desloca para a direita (passo +1)
-                psi[0, :] = np.roll(psi_new[0, :], -1)
-                psi[1, :] = np.roll(psi_new[1, :], 1)
-
-            # Calcula a distribuição de probabilidade de medição (quadrado do módulo da amplitude)
-            prob = np.abs(psi[0, :]) ** 2 + np.abs(psi[1, :]) ** 2
-            prob /= np.sum(prob)  # Garante normalização unitária
-
-            # Amostra 1000 'shots' com base na distribuição quântica obtida
-            shots = 1000
-            sampled_indices = np.random.choice(n_positions, size=shots, p=prob)
-
-            counts = {}
-            for idx in sampled_indices:
-                # Converte o índice posicional para representação binária de n_qubits
-                binary_state = format(idx, f"0{self.n_qubits}b")
-                counts[binary_state] = counts.get(binary_state, 0) + 1
-
-            return {
-                "counts": counts,
-                "timestamp": datetime.now().isoformat(),
-                "status": "Discrete quantum random walk on circle complete",
-                "qubits": self.n_qubits,
-            }
-        except Exception as e:
-            return {"error": str(e), "counts": {}}
-
-    def sample_bias(self) -> float:
-        """Stochastic bias in [-0.05, 0.05] from quantum walk amplitude sampling."""
-        res = self.run_simulation()
-        if "error" in res:
-            return 0.0
-
-        # Usa a proporção de estados '1' para gerar um ruído quântico
-        c = res["counts"]
-        total = sum(c.values())
-        ones = c.get("1" * self.n_qubits, 0)
-
-        # Converte para um valor entre -0.05 e 0.05
-        bias = (ones / total - 0.5) * 0.1
-        return float(bias)
+    @staticmethod
+    def _data_seed(observations: np.ndarray) -> int:
+        digest = hashlib.sha256(observations.astype("<f8", copy=False).tobytes()).digest()
+        return int.from_bytes(digest[:8], "big", signed=False)

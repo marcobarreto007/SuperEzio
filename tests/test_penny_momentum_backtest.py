@@ -110,6 +110,13 @@ def test_scenario_8_mixed_universe_only_trades_valid_symbols():
     assert result["trades"][0]["symbol"] == "GOOD"
 
 
+def test_scenario_dates_remain_iso_in_trade_ledger():
+    result = simulate_penny_momentum_backtest({"GOOD": _bars()})
+
+    assert date.fromisoformat(result["trades"][0]["entry_date"])
+    assert date.fromisoformat(result["trades"][0]["exit_date"])
+
+
 def test_scenario_9_contract_accepts_penny_momentum_tool():
     call = AgentToolCall.model_validate(
         {"tool": "penny_momentum_backtest", "args": {"tickers": ["GOOD"]}}

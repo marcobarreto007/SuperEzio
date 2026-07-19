@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Iterable, Mapping
@@ -28,6 +27,20 @@ def _safe_float(value: Any, default: float | None = None) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def _preserve_iso_date(value: Any) -> str | None:
+    """Return an ISO date/time unchanged, rejecting non-ISO synthetic labels."""
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if value in (None, ""):
+        return None
+    text = str(value).strip()
+    try:
+        datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return text
 
 
 def _json_safe(value: Any) -> Any:
@@ -92,7 +105,7 @@ class MathHub:
         "kelly",
         "dcf_proxy",
         "crisis_aggregate",
-        "quantum_bias",
+        "return_bootstrap",
         "portfolio_hrp",
         "f51_unified",
         "penny_momentum",
@@ -132,7 +145,7 @@ class MathHub:
         report.modules["kelly"] = self._kelly_module(returns)
         report.modules["dcf_proxy"] = self._dcf_module(data)
         report.modules["crisis_aggregate"] = self._crisis_module(data, ticker, closes)
-        report.modules["quantum_bias"] = self._quantum_module()
+        report.modules["return_bootstrap"] = self._return_bootstrap_module(returns)
         report.modules["portfolio_hrp"] = self._portfolio_module(closes, ticker)
         report.modules["f51_unified"] = self._f51_module(report.modules, data, state)
         report.modules["penny_momentum"] = self._penny_momentum_module(ticker, candles)
@@ -159,7 +172,7 @@ class MathHub:
             "var_95": report.numbers.get("var_95"),
             "kelly_fraction": report.numbers.get("kelly_fraction"),
             "crisis_score": report.numbers.get("crisis_score"),
-            "quantum_bias": report.numbers.get("quantum_bias"),
+            "bootstrap_expected_return": report.numbers.get("bootstrap_expected_return"),
             "f51_confidence": report.numbers.get("f51_confidence"),
         }
         report.coverage = {
@@ -185,7 +198,7 @@ class MathHub:
             return dict(data)
         return dict(state)
 
-    def _extract_candles(self, data: Mapping[str, Any]) -> list[dict[str, float]]:
+    def _extract_candles(self, data: Mapping[str, Any]) -> list[dict[str, Any]]:
         raw = (
             data.get("ohlcv")
             or data.get("candles")
@@ -193,7 +206,7 @@ class MathHub:
             or _dig(data, "price", "ohlcv")
             or []
         )
-        candles: list[dict[str, float]] = []
+        candles: list[dict[str, Any]] = []
         if isinstance(raw, Iterable) and not isinstance(raw, (str, bytes, Mapping)):
             for item in raw:
                 if not isinstance(item, Mapping):
@@ -201,15 +214,19 @@ class MathHub:
                 close = _safe_float(item.get("close"))
                 if close is None:
                     continue
-                candles.append(
-                    {
-                        "open": _safe_float(item.get("open"), close) or close,
-                        "high": _safe_float(item.get("high"), close) or close,
-                        "low": _safe_float(item.get("low"), close) or close,
-                        "close": close,
-                        "volume": _safe_float(item.get("volume"), 0.0) or 0.0,
-                    }
+                candle = {
+                    "open": _safe_float(item.get("open"), close) or close,
+                    "high": _safe_float(item.get("high"), close) or close,
+                    "low": _safe_float(item.get("low"), close) or close,
+                    "close": close,
+                    "volume": _safe_float(item.get("volume"), 0.0) or 0.0,
+                }
+                iso_date = _preserve_iso_date(
+                    item.get("date") or item.get("time") or item.get("timestamp")
                 )
+                if iso_date is not None:
+                    candle["date"] = iso_date
+                candles.append(candle)
         if candles:
             return candles
 
@@ -245,16 +262,19 @@ class MathHub:
         *,
         latest_price: float | None,
         closes: list[float],
-        candles: list[dict[str, float]],
+        candles: list[dict[str, Any]],
     ) -> dict[str, Any]:
         if latest_price is None and not closes:
             return {"status": "insufficient_data", "reason": "missing_price_series"}
+        dates = [candle["date"] for candle in candles if candle.get("date")]
         return {
             "status": "ok",
             "values": {
                 "latest_price": latest_price,
                 "close_points": len(closes),
                 "candle_points": len(candles),
+                "start_date": dates[0] if dates else None,
+                "end_date": dates[-1] if dates else None,
             },
         }
 
@@ -404,74 +424,17 @@ class MathHub:
         except Exception as exc:
             return {"status": "error", "reason": str(exc)[:200]}
 
-    def _quantum_module(self) -> dict[str, Any]:
-        """Monte Carlo scenario generator — quantum walk distribution weights simulations.
-
-        Replaces cosmetic QuantumWalkBias with actual utility:
-        Uses the quantum walk probability distribution as scenario weights
-        for a mini Monte Carlo simulation over price paths.
-        """
+    def _return_bootstrap_module(self, returns: list[float]) -> dict[str, Any]:
+        """Dependence-aware scenarios resampled strictly from observed returns."""
+        if len(returns) < 10:
+            return {"status": "insufficient_data", "reason": "need_10_observed_returns"}
         try:
-            from experts.crisis.quantum_expert import QuantumWalkBias
-            import numpy as np
+            from experts.crisis.quantum_expert import StationaryBlockBootstrap
 
-            qw = QuantumWalkBias(n_qubits=4)
-            result = qw.run_simulation()
-            counts = result.get("counts", {})
-            if not counts:
-                return {"status": "skipped", "reason": "no_quantum_counts"}
-
-            # Normalize to probabilities
-            total = sum(counts.values())
-            probs = {k: v / total for k, v in counts.items()}
-
-            # Use as scenario weights for mini Monte Carlo (100 scenarios)
-            n_scenarios = 100
-            states = list(probs.keys())
-            weights = [probs[s] for s in states]
-            # Seed derived from the actual quantum counts so the simulation
-            # varies with real input instead of being frozen on every call
-            # (was hardcoded RandomState(42) — produced identical scenarios
-            # regardless of ticker or market data).
-            seed_material = "|".join(f"{k}:{v}" for k, v in sorted(counts.items()))
-            seed = int(hashlib.sha256(seed_material.encode("utf-8")).hexdigest()[:8], 16)
-            rng = np.random.RandomState(seed)
-
-            # Generate scenario returns: sample from quantum distribution
-            # Each scenario gets a return multiplier weighted by quantum probs
-            scenarios = []
-            for _ in range(n_scenarios):
-                # Weighted random choice of quantum state
-                state_idx = rng.choice(len(states), p=weights)
-                # Map state to return multiplier: 0=0.95, 1=0.98, 2=1.0, 3=1.02, 4=1.05, etc
-                state_val = int(states[state_idx], 2)  # binary to int
-                multiplier = 0.90 + (state_val / max(1, 2**4 - 1)) * 0.20  # 0.90 to 1.10
-                # Add noise
-                multiplier += rng.normal(0, 0.01)
-                scenarios.append(round(multiplier, 4))
-
-            scenarios.sort()
-            var_95_mc = float(np.percentile(scenarios, 5))
-            var_99_mc = float(np.percentile(scenarios, 1))
-            expected_mult = float(np.mean(scenarios))
-            worst_case = float(min(scenarios))
-            best_case = float(max(scenarios))
-
-            return {
-                "status": "ok",
-                "values": {
-                    "method": "quantum_weighted_monte_carlo",
-                    "n_scenarios": n_scenarios,
-                    "expected_multiplier": round(expected_mult, 4),
-                    "var_95_multiplier": round(var_95_mc, 4),
-                    "var_99_multiplier": round(var_99_mc, 4),
-                    "worst_case": round(worst_case, 4),
-                    "best_case": round(best_case, 4),
-                    "qubits": 4,
-                },
-            }
+            result = StationaryBlockBootstrap(n_scenarios=2_000).run_simulation(returns)
+            return {"status": "ok", "values": result}
         except Exception as exc:
-            return {"status": "skipped", "reason": str(exc)[:100]}
+            return {"status": "error", "reason": str(exc)[:200]}
 
     def _portfolio_module(self, closes: list[float], ticker: str) -> dict[str, Any]:
         """HRP portfolio allocation — multi-asset from historical cache."""
@@ -566,85 +529,32 @@ class MathHub:
         existing = state.get("f51_verdict")
         if isinstance(existing, Mapping) and existing:
             return {"status": "ok", "values": dict(existing)}
-        try:
-            from f51.formulas import DecisionFactors, heuristic_uncertainty, unified_decision
-
-            data_quality = str(data.get("data_quality") or "").lower()
-            var_value = _dig(modules, "var_cvar", "values", "var_95") or 0.0
-            vol_value = _dig(modules, "sharpe_sortino", "values", "volatility") or 0.0
-            consensus, consensus_is_heuristic = self._expert_consensus(state)
-            factors = DecisionFactors(
-                veracity=0.85 if data_quality in {"complete", "ok", "high"} else 0.55,
-                consensus=consensus,
-                # DecisionFactors has no 'risk' field (it has 'danger') —
-                # this call raised TypeError on every real invocation before
-                # this fix (confirmed live via /task/submit, 2026-07-19).
-                danger=max(0.0, min(1.0, abs(float(var_value or 0.0)) + float(vol_value or 0.0))),
-                uncertainty=heuristic_uncertainty(
-                    text=str(state.get("message") or ""),
-                    numeric_features={
-                        "volatility": float(vol_value or 0.0),
-                        "missing_data_ratio": 0.15
-                        if data_quality in {"complete", "ok", "high"}
-                        else 0.45,
-                        "data_points": int(
-                            _dig(modules, "price_series", "values", "close_points") or 0
-                        ),
-                    },
-                ),
-            )
-            confidence = unified_decision(factors)
-            return {
-                "status": "ok",
-                "values": {
-                    "confidence": confidence,
-                    "factors": factors.__dict__,
-                    "consensus_is_heuristic": consensus_is_heuristic,
-                },
-            }
-        except Exception as exc:
-            return {"status": "error", "reason": str(exc)[:200]}
-
-    @staticmethod
-    def _expert_consensus(state: Mapping[str, Any]) -> tuple[float, bool]:
-        """Derive expert agreement from real expert_results when available.
-
-        Falls back to a documented neutral heuristic (0.5, not 0.65) when no
-        expert has run yet — callers must check consensus_is_heuristic before
-        treating this number as measured agreement.
-        """
-        results = state.get("expert_results")
-        if not isinstance(results, list) or not results:
-            return 0.5, True
-
-        verdicts: list[str] = []
-        for item in results:
-            if not isinstance(item, Mapping) or not item.get("ok"):
-                continue
-            verdict = item.get("verdict") or _dig(item, "parsed", "verdict")
-            if verdict:
-                verdicts.append(str(verdict).upper())
-
-        if not verdicts:
-            return 0.5, True
-
-        from collections import Counter
-
-        counts = Counter(verdicts)
-        top_count = counts.most_common(1)[0][1]
-        return top_count / len(verdicts), False
+        return {
+            "status": "skipped",
+            "reason": "f51_verdict_not_available_at_pre_expert_math_stage",
+            "phase": "pre_experts",
+        }
 
     def _penny_momentum_module(
-        self, ticker: str, candles: list[dict[str, float]]
+        self, ticker: str, candles: list[dict[str, Any]]
     ) -> dict[str, Any]:
         if not ticker or len(candles) < 20:
             return {"status": "skipped", "reason": "need_ticker_and_20_candles"}
+        if any(not candle.get("date") for candle in candles):
+            return {"status": "insufficient_data", "reason": "candles_missing_iso_dates"}
         try:
             from .penny_momentum import simulate_penny_momentum_backtest
 
             bars = [
-                {"date": f"t{i}", "close": c["close"], "volume": c.get("volume", 0.0)}
-                for i, c in enumerate(candles)
+                {
+                    "date": candle["date"],
+                    "open": candle["open"],
+                    "high": candle["high"],
+                    "low": candle["low"],
+                    "close": candle["close"],
+                    "volume": candle.get("volume", 0.0),
+                }
+                for candle in candles
             ]
             result = simulate_penny_momentum_backtest({ticker: bars})
             return {"status": "ok", "values": result}
@@ -682,7 +592,12 @@ class MathHub:
             "cvar_95": _dig(modules, "var_cvar", "values", "cvar_95"),
             "kelly_fraction": _dig(modules, "kelly", "values", "kelly_fraction"),
             "crisis_score": _dig(modules, "crisis_aggregate", "values", "aggregate_score"),
-            "quantum_bias": _dig(modules, "quantum_bias", "values", "bias"),
+            "bootstrap_expected_return": _dig(
+                modules,
+                "return_bootstrap",
+                "values",
+                "expected_cumulative_return",
+            ),
             "f51_confidence": _dig(modules, "f51_unified", "values", "confidence"),
             # Technical indicators
             "rsi": _dig(modules, "technical_indicators", "values", "rsi14"),
