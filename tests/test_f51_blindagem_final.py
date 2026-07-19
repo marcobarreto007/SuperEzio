@@ -214,6 +214,31 @@ class TestFreezeBlocksLowLevelOrder:
         )
         assert captured["risk_at_entry"] == 500.0
 
+    def test_deterministic_learned_consensus_blocks_only_with_coverage(self):
+        from core.pipeline.nodes.auto_execute_paper import _expert_consensus_block_reason
+
+        blocked = _expert_consensus_block_reason(
+            {
+                "expert_consensus": {
+                    "decision": "BLOCK",
+                    "score": -0.7,
+                    "weight_coverage": 0.8,
+                }
+            }
+        )
+        low_coverage = _expert_consensus_block_reason(
+            {
+                "expert_consensus": {
+                    "decision": "BLOCK",
+                    "score": -0.9,
+                    "weight_coverage": 0.1,
+                }
+            }
+        )
+
+        assert "score=-0.700" in blocked
+        assert low_coverage is None
+
     def test_tool_executor_freeze_blocks(self, monkeypatch):
         """tool_executor bloqueia submit_paper_order com FREEZE=true."""
         monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "true")
