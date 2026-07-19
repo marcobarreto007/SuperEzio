@@ -12,6 +12,11 @@ from typing import Any
 from langgraph.config import get_stream_writer
 
 from core.audit.decision_trace import DecisionTraceLogger
+from core.evidence.grounding import (
+    collect_security_claims,
+    mentioned_security_symbols,
+    mismatched_price_symbols,
+)
 from ...mission_context import render_mission_context_for_prompt
 from ..contracts import AgentToolCall
 from ..intents import (
@@ -707,35 +712,7 @@ def _normalize_ticker_symbol(value: Any) -> str:
 
 
 def _grounded_tickers(state: dict) -> set[str]:
-    tickers: set[str] = set()
-    ticker = _normalize_ticker_symbol(state.get("ticker"))
-    if ticker:
-        tickers.add(ticker)
-
-    data = state.get("data") or {}
-    if isinstance(data, dict):
-        for key in ("ticker", "symbol"):
-            value = _normalize_ticker_symbol(data.get(key))
-            if value:
-                tickers.add(value)
-
-    scan = state.get("scan") or {}
-    if isinstance(scan, dict):
-        for item in scan.get("candidates") or []:
-            if isinstance(item, dict):
-                value = _normalize_ticker_symbol(item.get("ticker") or item.get("symbol"))
-                if value:
-                    tickers.add(value)
-        for entry in scan.get("ranked_candidates") or []:
-            if not isinstance(entry, dict):
-                continue
-            candidate = entry.get("candidate") or {}
-            if isinstance(candidate, dict):
-                value = _normalize_ticker_symbol(candidate.get("ticker") or candidate.get("symbol"))
-                if value:
-                    tickers.add(value)
-
-    return tickers
+    return set(collect_security_claims(state))
 
 
 _COMMON_CAPS_WORDS = {
@@ -781,24 +758,24 @@ _COMMON_CAPS_WORDS = {
 }
 
 
-def _mentioned_tickers(text: str) -> set[str]:
-    symbols = {
-        _normalize_ticker_symbol(match.group(0))
-        for match in re.finditer(r"\b[A-Z][A-Z0-9]{1,4}(?:\.[A-Z]{1,2})?\b", text or "")
-    }
-    return {
-        symbol
-        for symbol in symbols
-        if symbol and symbol not in _NON_TICKER_SYMBOLS and symbol not in _COMMON_CAPS_WORDS
-    }
+def _mentioned_tickers(text: str, grounded: set[str] | None = None) -> set[str]:
+    return mentioned_security_symbols(
+        text,
+        grounded=grounded or set(),
+        exclusions=_NON_TICKER_SYMBOLS,
+        prose_words=_COMMON_CAPS_WORDS,
+    )
 
 
 def _grounding_guard_answer(state: dict, content: str) -> str:
-    grounded = _grounded_tickers(state)
+    claims = collect_security_claims(state)
+    grounded = set(claims)
     if not grounded:
         return content
 
-    ungrounded = sorted(_mentioned_tickers(content) - grounded)
+    ungrounded = sorted(_mentioned_tickers(content, grounded) - grounded)
+    price_mismatches = sorted(mismatched_price_symbols(content, claims))
+    ungrounded = sorted(set(ungrounded) | set(price_mismatches))
     if not ungrounded:
         return content
 
@@ -828,41 +805,6 @@ def _grounding_guard_answer(state: dict, content: str) -> str:
             m = re.search(r"CURRENT PORTFOLIO.*?(?=\n\n|\Z)", final, re.DOTALL)
             if m:
                 portfolio = m.group(0)
-    # Last resort: fetch directly from IBKR if nothing in state
-    if not portfolio or "offline" in portfolio.lower():
-        try:
-            from ib_insync import IB as _IB
-            import time as _time
-
-            _ib = _IB()
-            _ib.connect(
-                "127.0.0.1", 7497, clientId=int(_time.time() * 1000) % 9000 + 500, timeout=3
-            )
-            pos = list(_ib.positions())
-            eq = 0.0
-            for v in _ib.accountSummary():
-                if v.tag == "NetLiquidation":
-                    eq = float(v.value)
-            if pos:
-                lines = [
-                    "CURRENT PORTFOLIO (IBKR paper):",
-                    f"  Equity: ${eq:,.2f}",
-                    f"  Positions: {len(pos)}",
-                ]
-                total = 0.0
-                for p in pos:
-                    val = float(p.position) * float(p.avgCost)
-                    total += val
-                    lines.append(
-                        f"    {p.contract.symbol}: {p.position} shares @ avg ${float(p.avgCost):.2f} = ${val:,.2f}"
-                    )
-                lines.append(f"  Total invested: ${total:,.2f}")
-                lines.append(f"  Cash: ${eq - total:,.2f}")
-                portfolio = "\n".join(lines)
-            _ib.disconnect()
-        except Exception:
-            pass
-
     portfolio_block = ""
     if portfolio and "offline" not in portfolio.lower() and grounded_list:
         portfolio_block = f"\n\nCARTEIRA ATUAL (IBKR paper):\n{portfolio}"

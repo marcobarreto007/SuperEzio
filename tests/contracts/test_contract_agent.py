@@ -233,6 +233,31 @@ def test_grounding_guard_allows_scan_candidates():
     assert _apply_grounding_guard(state, draft) == draft
 
 
+def test_grounding_guard_keeps_ambiguous_real_ticker_when_evidence_bound():
+    state = {
+        "message": "Analyze REAL",
+        "data": {
+            "ticker": "REAL",
+            "price": 6.25,
+            "source": "test",
+            "collected_at": "2026-07-19T12:00:00Z",
+        },
+    }
+    assert _apply_grounding_guard(state, "REAL trades at $6.25.") == "REAL trades at $6.25."
+
+
+def test_grounding_guard_rejects_price_that_conflicts_with_evidence():
+    state = {
+        "message": "Analyze AAPL",
+        "ticker": "AAPL",
+        "data": {"ticker": "AAPL", "price": 200.0, "source": "test"},
+        "data_context": "AAPL evidence",
+    }
+    guarded = _apply_grounding_guard(state, "AAPL trades at $315.")
+    assert "only have collected data" in guarded
+    assert "$315" not in guarded
+
+
 def test_answer_quality_softens_exact_short_term_return_ranges():
     draft = "A 5-8% pop in two weeks is plausible. But 5-8%? That's very doable."
 
