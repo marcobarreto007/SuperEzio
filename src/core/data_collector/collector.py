@@ -9,7 +9,7 @@ core.pipeline.nodes.collector (node_collector / _run_scan).
 
 Pipeline per ticker:
     1. DataHub → preço, histórico, perfil, indicadores técnicos
-    2. QuantEngine → Monte Carlo, ML prediction, RSI, SMA
+    2. QuantEngine → estado preditivo (exige série observada e modelo validado)
     3. RiskCalculator → VaR, CVaR, Sharpe, Sortino, drawdown
     4. NewsScout → notícias + sentimento (Brave/DuckDuckGo)
     5. RedditPulse → posts qualificados + sentimento social
@@ -36,15 +36,18 @@ from ..observability.debug_logger import MODULE_DATA_COLLECTOR, debug_logger
 
 class QuantEngine:
     def analyze_asset(self, ticker: str) -> Dict[str, Any]:
-        # Return a neutral statistical baseline — quant analysis is delegated to f51 gates
+        """Refuse to fabricate a forecast when no observed series was supplied.
+
+        This compatibility entrypoint only receives a ticker. A probability cannot
+        be estimated, calibrated, or timestamped from a symbol alone, so a neutral
+        50% value would be fake evidence rather than a statistical baseline.
+        """
         return {
-            "rsi": 50.0,
-            "monte_carlo_prob_up": 50.0,
-            "ml_prob_up": 50.0,
-            "combined_prob_up": 50.0,
-            "ml_reinforcement_reward": 0.0,
-            "ml_reinforcement_pain": 0.0,
-            "evidence": {"ml": "Statistical baseline calculated: neutral verdict (prob: 50.00%)"},
+            "status": "insufficient_data",
+            "ticker": ticker,
+            "reason": "forecast_requires_observed_candles_and_a_validated_model",
+            "direction_prob": {},
+            "calibration_status": "not_available",
         }
 
 
@@ -99,10 +102,10 @@ class DataCollector:
             from data.data_hub import hub
 
             self._data_hub = hub
-        if quantum_walk is not None:
-            self._quantum = quantum_walk
-        else:
-            self._quantum = None
+        # ``quantum_walk`` remains accepted only to avoid breaking old callers.
+        # It is deliberately never executed: the former no-input random walk was
+        # not a market model and had no predictive provenance.
+        del quantum_walk
 
     @property
     def engine(self) -> FinancialEngine:
@@ -150,15 +153,12 @@ class DataCollector:
             return {"error": str(e)}
 
     async def _get_quantum_analysis(self) -> Dict[str, Any]:
-        """Simulação quântica tricolor."""
-        try:
-            if self._quantum is None:
-                from adapters.quantum.quantum_adapter import make_quantum_walk
-
-                self._quantum = make_quantum_walk()
-            return await asyncio.to_thread(self._quantum.run_simulation)
-        except Exception as exc:
-            return {"error": f"quantum unavailable: {exc}"}
+        """Compatibility tombstone for the removed no-input random walk."""
+        return {
+            "status": "removed",
+            "reason": "no_input_quantum_walk_was_not_a_market_model",
+            "replacement": "MathHub.return_bootstrap_requires_observed_returns",
+        }
 
     async def collect_all(self, ticker: str, timeout: float = 60.0) -> Dict[str, Any]:
         """
@@ -213,7 +213,10 @@ class DataCollector:
                 "macro": {"error": f"collect_all timed out after {timeout}s"},
                 "crisis": {"error": f"collect_all timed out after {timeout}s"},
                 "realtime_price": {"error": f"collect_all timed out after {timeout}s"},
-                "quantum": {"error": f"collect_all timed out after {timeout}s"},
+                "quantum": {
+                    "status": "removed",
+                    "reason": "no_input_quantum_walk_was_not_a_market_model",
+                },
                 "data_quality": "timeout",
                 "source_errors": ["timeout"],
             }
@@ -378,7 +381,7 @@ class DataCollector:
             "macro": "macro_provider_alphavantage",
             "crisis": "crisis_rag",
             "realtime_price": "market_hub_cascaded",
-            "quantum": "quantum_random_walk",
+            "quantum": "removed_non_predictive_quantum_path",
         }
 
         for section, source in sources.items():
@@ -388,18 +391,27 @@ class DataCollector:
             payload.setdefault("source", source)
             payload.setdefault("evidence_id", f"{source}_{ticker}_{date_part}")
             payload.setdefault("timestamp", collected_at)
-            payload.setdefault(
-                "data_quality",
-                "unavailable" if "error" in payload else "provider_or_computed",
-            )
+            unavailable = "error" in payload or payload.get("status") in {
+                "removed",
+                "insufficient_data",
+                "unavailable",
+            }
+            payload.setdefault("data_quality", "unavailable" if unavailable else "provider_or_computed")
 
         errors = [
             section
             for section in sources
             if isinstance(data.get(section), dict) and "error" in data[section]
         ]
-        data["data_quality"] = "partial" if errors else "provider_or_computed"
+        unavailable = [
+            section
+            for section in sources
+            if isinstance(data.get(section), dict)
+            and data[section].get("data_quality") == "unavailable"
+        ]
+        data["data_quality"] = "partial" if errors or unavailable else "provider_or_computed"
         data["source_errors"] = errors
+        data["source_unavailable"] = unavailable
 
     @staticmethod
     def _persist_trace(data: Dict[str, Any]) -> None:

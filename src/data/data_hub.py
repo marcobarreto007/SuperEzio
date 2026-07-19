@@ -45,12 +45,6 @@ def _make_reddit_pulse() -> Any:
     return RedditPulse()
 
 
-def _make_quantum_walk() -> Any:
-    from adapters.quantum.quantum_adapter import make_quantum_walk
-
-    return make_quantum_walk()
-
-
 def _make_boc_provider() -> Any:
     from .boc_provider import get_macro_summary_ca
 
@@ -270,16 +264,6 @@ class DataHub:
                 methods={"reddit": "get_signal", "social_sentiment": "get_signal"},
                 priority=20,
                 required_key=None,
-            )
-        )
-
-        self.register_provider(
-            ProviderRoute(
-                name="quantum",
-                capabilities=("quantum",),
-                factory=_make_quantum_walk,
-                methods={"quantum": "run_simulation"},
-                priority=50,
             )
         )
 
@@ -583,7 +567,12 @@ class DataHub:
         return self.route("reddit", ticker)
 
     def run_quantum_simulation(self) -> Dict[str, Any]:
-        return self.route("quantum")
+        """Compatibility tombstone for a removed no-input random simulation."""
+        return {
+            "status": "removed",
+            "reason": "no_input_quantum_walk_was_not_a_market_model",
+            "replacement": "MathHub.return_bootstrap_requires_observed_returns",
+        }
 
     def get_macro(self, market: str = "US") -> Dict[str, Any]:
         """Route macro data by market (CA → BoC, US → Fed)."""
