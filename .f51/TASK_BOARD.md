@@ -14,6 +14,20 @@
 
 ## Done
 
+- [x] 2026-07-19 - Live end-to-end verification + F51 critical fix (Claude Code): started
+  the real server (agent_server.main), opened the real UI, and submitted real requests via
+  /task/submit. Found and fixed a bug invisible to unit tests: math_hub.py called
+  DecisionFactors(risk=...) but the class has no 'risk' field (it's 'danger') — every real
+  invocation of the F51 verdict engine raised TypeError and silently returned
+  status=error. Confirmed live before/after via identical requests. Also confirmed the
+  autonomous MAN_AT_WORK safety mode works correctly (blocks all trading when CEO is
+  unreachable, without being asked to). Found remaining live bug: KeyError('provider') in
+  red_team_agent_* roles (not yet root-caused — reproduction outside the real LangGraph
+  runnable context fails differently). Wrote docs/audit/ROADMAP_CONSULTANT.md reframing the
+  project's goal per operator direction: a real-time natural-language financial consultant,
+  not an automated trading system. Documents the full verified request flow and what
+  specifically blocks that goal (no LLM provider configured, no local CEO GGUF present).
+  Full suite: 1367 passed, 0 failed, 11 skipped. Commits 632a43f, 4bdc248.
 - [x] 2026-07-19 - Safety gate unification (Claude Code): fixed CRITICAL gap from
   phase6 audit — F51_TRADING_EXECUTION_FREEZE and SUPEREZIO_LIVE_TRADING_DISABLED
   were independent, non-communicating safety families. is_execution_frozen() now
