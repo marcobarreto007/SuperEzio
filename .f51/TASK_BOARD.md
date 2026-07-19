@@ -3,6 +3,33 @@
 ## Backlog
 
 - [ ] Re-run a browser E2E pass after any future UI changes.
+- [ ] Extend structured mentioned_tickers declaration to remaining final_answer
+  call sites that don't yet pass declared_tickers (fallback regex path still
+  active there); once all call sites declare, consider retiring
+  _mentioned_tickers/_NON_TICKER_SYMBOLS/_COMMON_CAPS_WORDS entirely.
+- [x] 2026-07-19 - Structural grounding redesign (Claude Code): root-caused the
+  recurring "acronym false-flagged as invented ticker" bug (3rd occurrence:
+  ALLOW/DCF/EMA/IBKR/SELL/TRAP/VWAP, then DADOS/SEM/SCAN, then FCF/HRP) by
+  adding mentioned_tickers to final_answer's tool schema so the LLM declares
+  which securities it named instead of the pipeline regex-guessing from prose
+  after the fact. Verified live: "analyze SHOP for me" produced a full,
+  correct synthesis (6 experts, Trinity divergence, MathHub, F51, SDCA,
+  crisis guardrails, explicit non-recommendation) with "DCF, FCF" in the text
+  and no false guard trigger — first live run of this exact prompt that
+  didn't fall back to a generic discard message. Old regex path kept as
+  fallback for calls that don't populate the new field, not yet retired
+  (see Backlog item above). Also confirmed (read-only) that the separate
+  8-model crisis heuristic rewrite the operator asked for was already done
+  by the predictive-truth-modernization session (Minsky-Keen, IMF mispricing,
+  Shiller, debt-service-ratio, credit-asset-growth now carry honest
+  PUBLIC_NAME + method_kind="heuristic"; network_contagion/systemic_bank_risk
+  correctly return insufficient_data instead of fabricating proxies) — no
+  further crisis-model work was needed. Also independently verified and fixed
+  a formatting gap the Codex session's report had missed (15 files, mostly
+  the predictive-truth core, were not ruff-formatted despite the report
+  claiming "355 files already formatted" — fixed, 0 test regressions).
+  Full suite: 1538 passed, 0 failed, 11 skipped. Commits 0efa30f, 47659a7,
+  3a6ae8d.
 - [x] 2026-07-19 - Independent verification (Claude Code) of a separate large session
   ("codex", session organism-truth-remediation, 28 commits af84440..dfff247) that built
   directly on top of my crisis-scale fix (63978d9) and grounding-guard fix (c53daf4).
