@@ -13,6 +13,7 @@ from .formulas import (
     DecisionFactors,
     decision_threshold,
     expand_budget,
+    clamp,
 )
 
 # =============================================================================
@@ -185,7 +186,15 @@ class F51Engine:
     def _compute_proxy(self, ctx: Context) -> float:
         critic = ctx.get("adversarial_critic")
         critic_conf = critic.confidence if critic and critic.ok else 0.5
-        return 0.3 * ctx.factor("platinum_scorer") + 0.4 * critic_conf + 0.2 * 0.8
+        # Sanity (peso 0.2 na fórmula proxy_reward: 0.3·consenso + 0.4·critic +
+        # 0.2·sanity): usa a confiança REAL do veracity_gate (claims batendo
+        # com ground_truth) quando o nó rodou. veracity_gate já retorna 1.0
+        # quando não há claims a verificar ("sem_claims"), então isso não
+        # penaliza o caso comum sem claims — é o mesmo valor heurístico
+        # anterior (0.8) só quando o gate falhou/não rodou.
+        veracity = ctx.get("veracity_gate")
+        sanity = veracity.confidence if veracity and veracity.ok else 0.8
+        return 0.3 * ctx.factor("platinum_scorer") + 0.4 * critic_conf + 0.2 * sanity
 
     def _build_default_graph(self) -> Graph:
         """Constrói o grafo padrão com todos os detectores/scorers/gates."""
@@ -197,16 +206,30 @@ class F51Engine:
         gate = VeracityGate()
 
         graph = Graph()
-        graph.add(
-            Node(
+        def _default_spider_sense_node(ctx: Context) -> NodeResult:
+            danger, alerts = spider.detect(str(ctx.input))
+            # confidence do detector = 1 - danger (quanto mais perigo, menos
+            # confiamos no input); evidence carrega o danger REAL medido e os
+            # alertas disparados, não um valor fixo.
+            return NodeResult(
                 "spider_sense",
-                lambda ctx: NodeResult(
-                    "spider_sense",
-                    *spider.detect(str(ctx.input)),
-                    evidence={"danger": 1.0},
-                ),
+                value=danger,
+                confidence=clamp(1.0 - danger),
+                evidence={
+                    "danger": danger,
+                    "alerts": [
+                        {
+                            "pattern": a.pattern,
+                            "category": a.category,
+                            "danger": a.danger,
+                            "warning": a.warning,
+                        }
+                        for a in alerts
+                    ],
+                },
             )
-        )
+
+        graph.add(Node("spider_sense", _default_spider_sense_node))
         graph.add(
             Node(
                 "difficulty_estimator",

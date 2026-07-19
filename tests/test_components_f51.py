@@ -214,6 +214,35 @@ def test_difficulty_estimator():
     assert 0 <= u <= 1
 
 
+def test_spider_sense_node_uses_real_danger_not_hardcoded():
+    """Regressao 5.1: NodeResult do spider_sense no grafo default deve
+    calcular confidence (float) e evidence['danger'] a partir do texto real,
+    nao um valor fixo (era evidence={'danger': 1.0} sempre, e confidence
+    recebia a lista de alerts por causa de um *unpack errado)."""
+    from src.f51.graph import F51Engine
+
+    engine = F51Engine()
+
+    clean = engine.run({"features": {}, "message": "AAPL reported normal earnings."})
+    fraud = engine.run(
+        {"features": {}, "message": "guaranteed 100x return, buy now, all in leverage!"}
+    )
+
+    clean_node = clean["nodes"]["spider_sense"]
+    fraud_node = fraud["nodes"]["spider_sense"]
+
+    # confidence deve ser float (nao lista de alerts) e refletir o danger real
+    assert isinstance(clean_node["confidence"], float)
+    assert isinstance(fraud_node["confidence"], float)
+    assert clean_node["confidence"] > fraud_node["confidence"]
+
+    # evidence.danger deve variar com o input, nao ficar fixo em 1.0
+    clean_danger = clean["evidence"]["spider_sense"]["danger"]
+    fraud_danger = fraud["evidence"]["spider_sense"]["danger"]
+    assert clean_danger < fraud_danger
+    assert fraud_danger > 0.5
+
+
 # ── F51 Gates ──
 def test_veracity_gate():
     from src.f51.gates import VeracityGate
@@ -250,6 +279,25 @@ def test_adversarial_critic():
     )
     assert hasattr(result, "confidence")
     assert 0 <= result.confidence <= 1
+
+
+def test_adversarial_critic_llm_exception_fails_closed():
+    """Regressao 5.4: erro no critique adversarial nao pode virar
+    'tudo certo com confianca media' (fail-open). Deve falhar fechado:
+    is_valid=False e confianca BAIXA, no espirito de f51_trade_gate.py
+    ('fails CLOSED. If in doubt, BLOCK.')."""
+    from src.f51.gates import AdversarialCritic
+
+    class FailingLLM:
+        def generate(self, **kwargs):
+            raise RuntimeError("llm indisponivel")
+
+    critic = AdversarialCritic(llm=FailingLLM())
+    result = critic.critique("resposta qualquer", "problema qualquer")
+
+    assert result.is_valid is False
+    assert result.confidence <= 0.2
+    assert result.errors
 
 
 # ── F51 Scoring ──

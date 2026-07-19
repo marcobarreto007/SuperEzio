@@ -198,7 +198,16 @@ class AdversarialCritic:
                 reasoning=output,
             )
         except Exception as e:
-            return CriticResult(is_valid=True, confidence=0.5, errors=[], reasoning=str(e))
+            # Fail CLOSED: erro no critique adversarial não pode virar "tudo
+            # certo com confiança média". Sem crítica real, tratamos como
+            # não-validado e com confiança BAIXA (mesmo princípio de
+            # f51_trade_gate.py: "If in doubt, BLOCK").
+            return CriticResult(
+                is_valid=False,
+                confidence=0.1,
+                errors=[f"critique_failed: {e}"],
+                reasoning=f"AdversarialCritic._llm_critique raised {e!r}; failing closed.",
+            )
 
 
 # =============================================================================
