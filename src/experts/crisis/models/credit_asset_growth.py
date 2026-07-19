@@ -55,6 +55,13 @@ class CreditAssetGrowthModel:
         elif cred_pct >= 75 and h_pct >= 75:
             bonus = 10.0
 
+        # base_score/bonus/final_score are computed on 0-100 (matches
+        # percentile_rank()'s own 0-100 convention and clamp()'s default
+        # max_value=100.0). Thresholds below stay on that scale; only the
+        # SensorResult score/confidence are converted to 0-1 to match every
+        # other crisis model's contract (crisis.py's aggregator assumes 0-1
+        # then multiplies by 100 once — a 0-100 score here doubled the
+        # scale. See docs/audit/phase9_parallel_fixes_and_critical_findings.md).
         final_score = clamp(base_score + bonus)
 
         if final_score > 80:
@@ -68,8 +75,8 @@ class CreditAssetGrowthModel:
 
         return SensorResult(
             sensor_name=self.__class__.__name__,
-            score=final_score,
-            confidence=85.0,
+            score=final_score / 100.0,
+            confidence=0.85,
             status="ok",
             explanation=exp,
             details={

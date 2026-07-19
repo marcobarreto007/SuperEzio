@@ -49,12 +49,17 @@ class IMFMispricingModel:
 
         z_score = (residual - mean_res) / std_res
 
-        score = zscore_to_risk(z_score)
+        # zscore_to_risk() returns 0-100 (see its own comment: "0 -> 50");
+        # SensorResult.score/confidence must be 0-1 to match every other
+        # crisis model's contract (crisis.py's aggregator assumes 0-1,
+        # multiplies by 100 once — a 0-100 score here doubled the scale.
+        # See docs/audit/phase9_parallel_fixes_and_critical_findings.md).
+        score = zscore_to_risk(z_score) / 100.0
 
         return SensorResult(
             sensor_name=self.__class__.__name__,
             score=score,
-            confidence=60.0,  # Low confidence for naive model
+            confidence=0.60,  # Low confidence for naive model
             status="ok",
             explanation=f"Z-Score estimado de mispricing de ativos: {z_score:.2f}.",
             details={

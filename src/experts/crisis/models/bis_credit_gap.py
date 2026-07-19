@@ -50,10 +50,15 @@ class BISCreditGapModel:
         if degraded:
             explanation = f"[modelo simplificado — média móvel 12 períodos no lugar do HP filter] {explanation}"
 
+        # raw_score above is computed 0-100; SensorResult.score/confidence
+        # must be 0-1 to match every other crisis model's contract
+        # (crisis.py's aggregator assumes 0-1, multiplies by 100 once — a
+        # 0-100 score here doubled the scale. See
+        # docs/audit/phase9_parallel_fixes_and_critical_findings.md).
         return SensorResult(
             sensor_name=self.__class__.__name__,
-            score=raw_score,
-            confidence=60.0 if degraded else 80.0,
+            score=raw_score / 100.0,
+            confidence=0.60 if degraded else 0.80,
             status="ok",
             explanation=explanation,
             details={

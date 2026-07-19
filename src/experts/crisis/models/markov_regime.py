@@ -27,26 +27,30 @@ class MarkovRegimeModel:
         vol = recent.realized_volatility or 0.0
         spread = recent.credit_spread or 0.0
 
+        # score/confidence are 0-1 to match every other crisis model's
+        # contract (crisis.py's aggregator assumes 0-1, multiplies by 100
+        # once — a 0-100 score here doubled the scale. See
+        # docs/audit/phase9_parallel_fixes_and_critical_findings.md).
         score = 0.0
         exp = "Regime Normal"
 
         if vol > 0.30 and spread > 5.0:
-            score = 100.0
+            score = 1.0
             exp = "Regime de CRISE: Volatilidade e spreads de crédito explodiram."
         elif vol > 0.20 or spread > 3.0:
-            score = 70.0
+            score = 0.70
             exp = "Regime de STRESS: Mercado sinaliza prêmios de risco altos."
         elif vol < 0.12 and spread < 1.5:
-            score = 20.0
+            score = 0.20
             exp = "Regime NORMAL / Complacente."
         else:
-            score = 40.0
+            score = 0.40
             exp = "Regime de transição."
 
         return SensorResult(
             sensor_name=self.__class__.__name__,
             score=score,
-            confidence=70.0,
+            confidence=0.70,
             status="ok",
             explanation=exp,
             details={

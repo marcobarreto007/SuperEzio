@@ -20,26 +20,32 @@ class DebtServiceRatioModel:
                 self.__class__.__name__, "Não há histórico suficiente de debt_service_ratio."
             )
 
+        # percentile_rank() returns 0-100 (see its docstring); pct/thresholds
+        # stay on that scale, but score/confidence in SensorResult must be
+        # 0-1 to match every other crisis model's contract (crisis.py's
+        # aggregator assumes 0-1 then multiplies by 100 once — a 0-100 score
+        # here doubled the scale. See
+        # docs/audit/phase9_parallel_fixes_and_critical_findings.md).
         current = obs[-1]
         pct = percentile_rank(obs, current)
 
         if pct < 50:
-            score = 20.0
+            score = 0.20
             exp = "DSR está abaixo da mediana histórica. Fardo da dívida controlável."
         elif pct < 75:
-            score = 50.0
+            score = 0.50
             exp = "DSR moderado a alto contra histórico."
         elif pct < 90:
-            score = 80.0
+            score = 0.80
             exp = "DSR no quartil superior histórico. Oneração de caixa relevante."
         else:
-            score = 100.0
+            score = 1.0
             exp = "DSR em nível extremo (percentil 90+). Alta probabilidade de default em massa."
 
         return SensorResult(
             sensor_name=self.__class__.__name__,
             score=score,
-            confidence=80.0,
+            confidence=0.80,
             status="ok",
             explanation=exp,
             details={"current_dsr": current, "percentile": pct},

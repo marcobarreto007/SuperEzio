@@ -289,7 +289,9 @@ class TestMarkovRegimeModel:
         ci = CrisisInput(market_series=ms)
         model = MarkovRegimeModel()
         result = model.evaluate(ci)
-        assert result.score == 100.0
+        # score is 0-1 (was 0-100 — fixed to match every other crisis
+        # model's contract, see docs/audit/phase9_parallel_fixes_and_critical_findings.md)
+        assert result.score == 1.0
         assert "CRISE" in result.explanation
 
     def test_normal_regime(self):
@@ -300,7 +302,7 @@ class TestMarkovRegimeModel:
         ci = CrisisInput(market_series=ms)
         model = MarkovRegimeModel()
         result = model.evaluate(ci)
-        assert result.score == 20.0
+        assert result.score == 0.20
         assert "NORMAL" in result.explanation
 
     def test_stress_regime(self):
@@ -311,7 +313,7 @@ class TestMarkovRegimeModel:
         ci = CrisisInput(market_series=ms)
         model = MarkovRegimeModel()
         result = model.evaluate(ci)
-        assert result.score == 70.0
+        assert result.score == 0.70
         assert "STRESS" in result.explanation
 
 
@@ -371,7 +373,9 @@ class TestShillerValuationModel:
         model = ShillerValuationModel()
         result = model.evaluate(ci)
         assert result.status == "ok"
-        assert result.score >= 75  # >= 75th percentile → high score
+        # score is 0-1 (was 0-100); details still expose the raw 0-100
+        # percentile for readability.
+        assert result.score >= 0.75  # >= 75th percentile → high score
 
 
 class TestMinskyKeenModel:
