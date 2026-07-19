@@ -3,8 +3,8 @@
 This module is the "spinal cord" between:
 - XP System (experience points from trades)
 - Bob's Body (pain from sick organs)
-- Auto-Calibrator (dynamic trading parameters)
-- RL Loop (Q-learning from trade outcomes)
+- conservative runtime limits
+- OutcomeLearningEngine (durable proper-score expert weights)
 
 All four feed into calibrated parameters that adjust Bob's decision thresholds
 in real-time before he answers each request.
@@ -12,7 +12,6 @@ in real-time before he answers each request.
 
 from __future__ import annotations
 
-import numpy as np
 from typing import Any
 
 
@@ -31,7 +30,8 @@ def get_adaptive_config() -> dict[str, Any]:
         "xp_total": 0,
         "pain_level": 0,
         "pain_mode": "normal",
-        "rl_best_action": None,
+        "learning_status": "baseline_only",
+        "expert_weights": {},
     }
 
     # ── XP System ──
@@ -42,9 +42,7 @@ def get_adaptive_config() -> dict[str, Any]:
         config["xp_total"] = getattr(xp, "total_xp", 0)
         config["xp_level"] = getattr(xp, "level_name", "Novice")
 
-        # Higher XP → slightly lower confidence threshold (expertise = confidence)
-        xp_bonus = min(0.10, config["xp_total"] / 5000)
-        config["buy_confidence_threshold"] -= int(xp_bonus * 100)
+        # XP is descriptive only. Gamification must never loosen a risk gate.
     except Exception:
         pass
 
@@ -96,25 +94,18 @@ def get_adaptive_config() -> dict[str, Any]:
         except Exception:
             pass
 
-    # ── Neural RL (policy gradient, replaces tabular Q-learning) ──
+    # ── Durable outcome learning (weights only, never an order action) ──
     try:
-        from core.trading.neural_rl import get_neural_policy
+        from core.trading.outcome_learning import (
+            DEFAULT_OUTCOME_DB,
+            get_effective_expert_weights,
+        )
 
-        policy = get_neural_policy()
-        rl_state = {
-            "confidence": "confidence_high"
-            if config["buy_confidence_threshold"] < 80
-            else "confidence_medium",
-            "market": "market_sideways",
-            "pain_level": config["pain_level"],
-            "xp_level": min(100, config["xp_total"] // 10),
-            "streak": "win_streak",
-            "time": "morning",
-        }
-        best_action, prob = policy.get_best_action(rl_state)
-        config["rl_best_action"] = best_action
-        config["rl_confidence"] = round(prob, 3)
-        config["rl_stats"] = policy.get_stats()
+        config["expert_weights"] = get_effective_expert_weights()
+        config["learning_status"] = (
+            "durable_outcomes_available" if DEFAULT_OUTCOME_DB.exists() else "baseline_only"
+        )
+        config["learning_method"] = "directional_multiclass_brier_skill_with_shrinkage"
     except Exception:
         pass
 
@@ -129,21 +120,19 @@ def get_adaptive_config() -> dict[str, Any]:
 def render_adaptive_context(config: dict[str, Any]) -> str:
     """Render calibrated parameters as text for Bob's system prompt."""
     lines = [
-        "=== ADAPTIVE TRADING PARAMETERS (XP + Pain + Neural RL calibrated) ===",
+        "=== ADAPTIVE TRADING PARAMETERS (safety + durable outcomes) ===",
         f"XP Level: {config.get('xp_level', '?')} ({config.get('xp_total', 0)} pts)",
         f"Pain: {config.get('pain_level', 0)}/100 [{config.get('pain_mode', 'normal')}]",
         f"Buy Confidence Threshold: {config.get('buy_confidence_threshold', 75)}%",
         f"Max Position: {config.get('max_position_pct', 0.25):.0%} of capital",
         f"Stop Loss: {config.get('stop_loss_pct', 0.15):.0%}",
     ]
-    if config.get("rl_best_action"):
-        rl_stats = config.get("rl_stats", {})
-        lines.append(
-            f"Neural RL: {config['rl_best_action']} "
-            f"(p={config.get('rl_confidence', 0):.2f}, "
-            f"{rl_stats.get('episodes', 0)} eps, "
-            f"avg_r={rl_stats.get('avg_reward', 0):.3f})"
-        )
+    lines.append(
+        f"Outcome learning: {config.get('learning_status', 'unknown')} "
+        f"[{config.get('learning_method', 'static_priors')}]"
+    )
+    if config.get("expert_weights"):
+        lines.append(f"Expert reliability weights: {config['expert_weights']}")
     return "\n".join(lines)
 
 
@@ -199,53 +188,10 @@ def record_trade_outcome(
     pnl: float,
     verdict_confidence: float = 0.0,
 ) -> None:
-    """Record a completed trade for XP, Auto-Calibration, and RL learning.
-
-    Called after a paper trade closes (post_trade_review or paper_journal).
-    """
-    # XP
-    try:
-        from core.trading.xp_system import get_xp_system
-
-        xp = get_xp_system()
-        xp_gain = 10 if pnl > 0 else -5
-        # Pain scaling: bigger losses hurt more
-        if pnl < -100:
-            xp_gain = -20
-        if pnl < -500:
-            xp_gain = -50
-        getattr(xp, "add_xp", lambda x: None)(xp_gain)
-    except Exception:
-        pass
-
-    # Auto-Calibration
-    try:
-        from core.trading.auto_calibration import AutoCalibrator
-
-        cal = AutoCalibrator()
-        # Update win_rate signal
-        cal.update_parameter("last_trade_pnl", pnl)
-        cal.update_parameter("last_trade_result", "win" if pnl > 0 else "loss")
-    except Exception:
-        pass
-
-    # Neural RL (policy gradient update)
-    try:
-        from core.trading.neural_rl import get_neural_policy
-
-        policy = get_neural_policy()
-        rl_state = {
-            "confidence": "confidence_high" if verdict_confidence > 75 else "confidence_medium",
-            "market": "market_sideways",
-            "pain_level": 50,
-            "xp_level": 10,
-            "streak": "win_streak" if pnl > 0 else "lose_streak",
-            "time": "morning",
-        }
-        # Reward = PnL as fraction of position value, clipped
-        position_value = max(abs(entry * qty), 1.0)
-        reward = np.clip(pnl / position_value, -1.0, 1.0)
-        policy.update(rl_state, action, float(reward))
-        policy.save()
-    except Exception:
-        pass
+    """Reject the legacy outcome API because it lacks immutable provenance."""
+    del ticker, action, entry, exit_price, qty, pnl, verdict_confidence
+    raise RuntimeError(
+        "legacy record_trade_outcome lacks trade_id, timestamps, risk and ex-ante "
+        "forecasts; close the journal trade and let FeedbackLoop project it into "
+        "OutcomeLearningEngine"
+    )

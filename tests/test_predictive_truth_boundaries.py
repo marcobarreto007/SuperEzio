@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import asyncio
 
+import pytest
+
 from core.data_collector.collector import DataCollector, QuantEngine
+from core.trading.adaptive_agent import record_trade_outcome, render_adaptive_context
+from core.trading.neural_rl import NeuralPolicy
 from data.data_hub import DataHub
 
 
@@ -54,3 +58,30 @@ def test_removed_sources_make_collection_quality_partial() -> None:
     assert payload["quantum"]["data_quality"] == "unavailable"
     assert payload["data_quality"] == "partial"
     assert "quantum" in payload["source_unavailable"]
+
+
+def test_retired_random_rl_policy_can_only_wait() -> None:
+    policy = NeuralPolicy()
+
+    assert policy.choose_action({"market": "market_bull"}) == ("WAIT", 0.0)
+    assert policy.get_best_action({"market": "market_bear"}) == ("WAIT", 0.0)
+    assert policy.get_stats()["status"] == "retired"
+    with pytest.raises(RuntimeError, match="OutcomeLearningEngine"):
+        policy.update({}, "BUY", 1.0)
+
+
+def test_adaptive_context_never_publishes_random_rl_action() -> None:
+    context = render_adaptive_context(
+        {
+            "learning_status": "baseline_only",
+            "learning_method": "directional_multiclass_brier_skill_with_shrinkage",
+        }
+    )
+
+    assert "Outcome learning: baseline_only" in context
+    assert "Neural RL:" not in context
+
+
+def test_legacy_outcome_api_rejects_attribution_without_provenance() -> None:
+    with pytest.raises(RuntimeError, match="lacks trade_id"):
+        record_trade_outcome("AAPL", "BUY", 100.0, 101.0, 1, 1.0, 80.0)
