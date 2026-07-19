@@ -3,6 +3,19 @@
 ## Backlog
 
 - [ ] Re-run a browser E2E pass after any future UI changes.
+- [x] 2026-07-19 - Independent verification (Claude Code) of a separate large session
+  ("codex", session organism-truth-remediation, 28 commits af84440..dfff247) that built
+  directly on top of my crisis-scale fix (63978d9) and grounding-guard fix (c53daf4).
+  That session implemented exactly the "organism that learns from real outcomes" gap I had
+  flagged but not built: terminal-outcome-only learning ledger, deterministic weighted
+  expert consensus, a single shared adaptive execution policy across all order paths, atomic
+  crash-safe persistence, pickle-free RAG, and closed the gate_metadata/raw-CLI bypass an
+  earlier external audit had flagged as P0. Independently re-ran and confirmed (not just
+  trusted the report): full suite 1452 passed/0 failed/11 skipped, ruff check clean, ruff
+  format clean (355 files), 38/38 broker+gate contract tests passed. See
+  docs/audit/phase10_organism_truth_and_remediation_2026-07-19.md for that session's full
+  report — its "Honest residual limits" section is worth reading before assuming predictive
+  quality is proven (it explicitly is not — only the causal/risk accounting is).
 
 ## In Progress
 
