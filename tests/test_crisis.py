@@ -25,6 +25,11 @@ from experts.crisis.models.markov_regime import (
 from experts.crisis.models.shiller_valuation import ShillerValuationModel
 from experts.crisis.models.minsky_keen import MinskyKeenModel
 from experts.crisis.models.hawkes_stress import _fit_exponential_hawkes
+from experts.crisis.models.growth_at_risk import (
+    GrowthAtRiskModel,
+    _pinball_loss,
+    _quantile_regression,
+)
 from experts.crisis.models.lppls_bubble import (
     LPPLSBubbleModel,
     _second_derivative,
@@ -558,6 +563,40 @@ class TestHawkesStressModel:
         assert self_exciting.branching_ratio > 0.60
         assert self_exciting.log_likelihood > self_exciting.poisson_log_likelihood
         assert self_exciting.alpha / self_exciting.beta < 1.0
+
+
+class TestGrowthAtRiskModel:
+    def test_intercept_only_quantile_is_the_sample_median(self):
+        design = np.ones((5, 1), dtype=float)
+        target = np.array([5.0, 1.0, 4.0, 2.0, 3.0])
+        beta = _quantile_regression(design, target, q=0.5)
+        prediction = np.full_like(target, beta[0])
+
+        assert beta[0] == pytest.approx(3.0)
+        assert _pinball_loss(target, prediction, 0.5) == pytest.approx(0.6)
+
+    def test_reports_rolling_pinball_validation(self):
+        observations = []
+        for index in range(42):
+            debt_service = 8.0 + 0.15 * index + 0.8 * np.sin(index / 3.0)
+            gdp_growth = 0.035 - 0.0035 * debt_service + 0.002 * np.cos(index)
+            observations.append(
+                MacroObservation(
+                    date=_month(index),
+                    credit_to_gdp=100.0 + 1.3 * index,
+                    debt_service_ratio=debt_service,
+                    house_price_index=100.0 + 0.7 * index + np.sin(index / 2.0),
+                    gdp_growth_yoy=gdp_growth,
+                )
+            )
+        result = GrowthAtRiskModel().evaluate(
+            CrisisInput(frequency="monthly", observations=observations)
+        )
+
+        assert result.status == "ok"
+        assert result.calibration_status == "rolling_validated"
+        assert result.details["rolling_folds"] >= 8
+        assert result.details["pinball_loss"] >= 0.0
 
 
 class TestLPPLSBubbleModel:
