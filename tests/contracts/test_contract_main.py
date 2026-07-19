@@ -29,7 +29,7 @@ def test_fastapi_app_routes():
     for route in app.routes:
         if hasattr(route, "path"):
             paths.add(route.path)
-        elif hasattr(route, "routes"):
+        if hasattr(route, "routes"):
             for sub_route in route.routes:
                 if hasattr(sub_route, "path"):
                     paths.add(sub_route.path)

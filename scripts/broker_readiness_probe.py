@@ -20,7 +20,10 @@ IBKR_LIVE_PORTS = (7496, 4001)
 
 
 def _package_present(module_name: str) -> bool:
-    return importlib.util.find_spec(module_name) is not None
+    try:
+        return importlib.util.find_spec(module_name) is not None
+    except ModuleNotFoundError:
+        return False
 
 
 def _env_state(names: list[str]) -> dict[str, dict[str, bool]]:
@@ -120,11 +123,11 @@ def probe_alpaca_paper(timeout: float = 10.0) -> dict[str, Any]:
         "error": None,
     }
 
-    if not result["package_present"]:
-        result["error"] = "package_missing: install alpaca-py"
-        return result
     if not credentials_present:
         result["error"] = "credentials_missing: set ALPACA_API_KEY and ALPACA_SECRET_KEY"
+        return result
+    if not result["package_present"]:
+        result["error"] = "package_missing: install alpaca-py"
         return result
 
     try:

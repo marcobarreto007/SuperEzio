@@ -221,6 +221,24 @@ def _paper_order_submit_enabled() -> bool:
     }
 
 
+DEFAULT_PAPER_SUBMIT_HINTS = (
+    "ticket",
+    "transacao",
+    "transacoes",
+    "transação",
+    "transações",
+    "trades",
+    "ordens rapidas",
+)
+
+
+def _default_paper_submit_for_decisive_training(message: str) -> bool:
+    """Allow ticket submission by default only for explicit training ticket workflows."""
+    if not message or not message.strip():
+        return False
+    return has_hint(message, DEFAULT_PAPER_SUBMIT_HINTS)
+
+
 def _is_casual_message(message: str) -> bool:
     text = normalize_message(message).strip()
     return bool(
@@ -327,8 +345,11 @@ def infer_cognitive_contract(
     paper_submit_allowed = bool(
         scanner_allowed
         and decisive_trade
-        and _paper_order_submit_enabled()
         and not detect_negative_trade_instruction(raw)
+        and (
+            _paper_order_submit_enabled()
+            or _default_paper_submit_for_decisive_training(raw)
+        )
     )
 
     if suppress_market_tools:

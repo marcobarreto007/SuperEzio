@@ -107,7 +107,8 @@ class PennylabReport(BaseModel):
     veracity_passed: bool = True
     generated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
-    model_config = ConfigDict(use_enum_values=True)
+    # Keep enum instances in-memory (tests and internal logic rely on Enum semantics).
+    model_config = ConfigDict(use_enum_values=False)
 
 
 # ---------------------------------------------------------------------------

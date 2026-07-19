@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from typing import Any
 
 from langgraph.config import get_stream_writer
@@ -74,8 +75,16 @@ _SEMI_REPEATABLE_LIMITS: dict[str, int] = {"collect_data": 2, "calculate": 5}
 
 
 def _paper_order_submission_error(state: dict, args: dict) -> str:
-    settings = get_settings()
-    if not settings.superezio_enable_paper_order_submit:
+    # Runtime env override takes precedence so tests and operational toggles
+    # are reflected immediately without requiring settings singleton reload.
+    env_override = os.getenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT")
+    if env_override is None:
+        settings = get_settings()
+        paper_submit_enabled = bool(settings.superezio_enable_paper_order_submit)
+    else:
+        paper_submit_enabled = env_override.strip().lower() in {"1", "true", "yes", "on"}
+
+    if not paper_submit_enabled:
         return "paper_order_submission_disabled_by_env"
     if not state.get("ticket_allowed", False) and not args.get("_forced_by_case"):
         return "paper_order_not_allowed_by_cognitive_contract"

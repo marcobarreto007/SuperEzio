@@ -238,7 +238,7 @@ class TestGeneratorHasNoUndefinedNames:
         assert gen_path.exists(), "generator.py not found"
 
         # Parse sem erros
-        with open(gen_path) as fh:
+        with open(gen_path, encoding="utf-8") as fh:
             tree = ast.parse(fh.read())
         assert tree is not None
 

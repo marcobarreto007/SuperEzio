@@ -22,6 +22,8 @@ DEEPSEEK_PROVIDER_NAME = "deepseek"
 DEEPSEEK_MODEL_ID = "deepseek-v4-pro"
 GEMINI_PROVIDER_NAME = "gemini"
 GEMINI_MODEL_ID = "gemini-3.5-flash"
+DAYTRADE_JUDGE_PROVIDER_NAME = "daytrade_judge"
+DAYTRADE_AUDITOR_PROVIDER_NAME = "daytrade_auditor"
 
 
 @dataclass
@@ -93,6 +95,35 @@ def build_default_providers(
             api_key=deepseek_key,
             priority=-300,
             model=deepseek_model,
+            timeout_s=int(os.getenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", "240")),
+            max_tokens=int(os.getenv("SUPEREZIO_DEEPSEEK_MAX_TOKENS", "4096")),
+            temperature=float(os.getenv("SUPEREZIO_DEEPSEEK_TEMPERATURE", "0.2")),
+        )
+    )
+
+    # Daytrade judge and auditor providers can use independent model IDs,
+    # while still sharing DeepSeek credentials/base URL.
+    judge_model = os.getenv("SUPEREZIO_DAYTRADE_JUDGE_MODEL", deepseek_model)
+    auditor_model = os.getenv("SUPEREZIO_DAYTRADE_AUDITOR_MODEL", deepseek_model)
+    providers.append(
+        ModelProvider(
+            name=DAYTRADE_JUDGE_PROVIDER_NAME,
+            base_url=deepseek_base_url,
+            api_key=deepseek_key,
+            priority=-305,
+            model=judge_model,
+            timeout_s=int(os.getenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", "240")),
+            max_tokens=int(os.getenv("SUPEREZIO_DEEPSEEK_MAX_TOKENS", "4096")),
+            temperature=float(os.getenv("SUPEREZIO_DEEPSEEK_TEMPERATURE", "0.2")),
+        )
+    )
+    providers.append(
+        ModelProvider(
+            name=DAYTRADE_AUDITOR_PROVIDER_NAME,
+            base_url=deepseek_base_url,
+            api_key=deepseek_key,
+            priority=-304,
+            model=auditor_model,
             timeout_s=int(os.getenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", "240")),
             max_tokens=int(os.getenv("SUPEREZIO_DEEPSEEK_MAX_TOKENS", "4096")),
             temperature=float(os.getenv("SUPEREZIO_DEEPSEEK_TEMPERATURE", "0.2")),

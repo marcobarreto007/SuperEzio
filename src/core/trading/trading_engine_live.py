@@ -36,6 +36,13 @@ from .paper_journal import PaperJournal
 from .broker_reconciler import BrokerReconciler
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
 class MarketSentiment(Enum):
     """Sentimento de mercado."""
 
@@ -79,8 +86,22 @@ class LiveTradingEngine:
         persistence_path: Path | None = None,
         watchlist: list[str] | None = None,
     ):
+        # Fail-safe default: live trading is DISABLED unless the operator
+        # explicitly sets SUPEREZIO_LIVE_TRADING_DISABLED=false. Previously
+        # defaulted to False (i.e. live-enabled) when unset, which meant a
+        # missing .env silently allowed real IBKR execution — confirmed gap,
+        # see docs/audit/phase6_rag_pennylab_execution.md finding 6.3.
+        live_disabled = _env_bool("SUPEREZIO_LIVE_TRADING_DISABLED", True)
+        paper_only = _env_bool("SUPEREZIO_RESEARCH_PAPER_ONLY", False) or _env_bool(
+            "SUPEREZIO_DAYTRADE_PAPER_ONLY", False
+        )
+        if live_disabled:
+            use_ibkr = False
+
         self.equity = equity
         self._use_ibkr = use_ibkr
+        self._live_trading_disabled = live_disabled
+        self._paper_only = paper_only
         self._journal_path = journal_path or Path("data/paper_journal.jsonl")
         self._persistence_path = persistence_path or Path("data/live_trading_engine_state.json")
         self._persistence_path.parent.mkdir(parents=True, exist_ok=True)
@@ -824,6 +845,8 @@ class LiveTradingEngine:
                 "win_rate": round(self._total_wins / max(1, self._total_trades), 3),
                 "total_pnl": round(self._total_pnl, 2),
                 "xp_level": str(self._xp_system.get_level()),
+                "paper_only": self._paper_only,
+                "live_trading_disabled": self._live_trading_disabled,
             },
             "positions": {
                 "open": len(open_positions),
@@ -845,4 +868,6 @@ class LiveTradingEngine:
 
 def get_live_trading_engine(use_ibkr: bool = True, equity: float = 10000.0) -> LiveTradingEngine:
     """Retorna instância do Live Trading Engine."""
+    if _env_bool("SUPEREZIO_LIVE_TRADING_DISABLED", True):
+        use_ibkr = False
     return LiveTradingEngine(use_ibkr=use_ibkr, equity=equity)

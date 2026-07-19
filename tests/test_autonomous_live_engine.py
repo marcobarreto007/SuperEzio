@@ -212,6 +212,13 @@ def test_live_cycle_blocks_when_reconciliation_blocks(monkeypatch, tmp_path):
     from core.trading.broker_reconciler import BrokerReconciliationReport, ReconciliationIssue
     from core.trading.trading_engine_live import LiveTradingEngine
 
+    # SUPEREZIO_LIVE_TRADING_DISABLED now defaults to True (fail-safe — see
+    # docs/audit/phase6_rag_pennylab_execution.md finding 6.3), which forces
+    # use_ibkr=False regardless of the constructor argument. This test
+    # specifically exercises the IBKR-enabled reconciliation path, so it
+    # must opt out of the fail-safe default explicitly.
+    monkeypatch.setenv("SUPEREZIO_LIVE_TRADING_DISABLED", "false")
+
     engine = LiveTradingEngine(
         use_ibkr=True,
         equity=100000,

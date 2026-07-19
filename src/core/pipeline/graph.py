@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import uuid
 from typing import Any, AsyncGenerator, Generator
 
@@ -34,6 +35,13 @@ from .nodes.trinity import node_trinity
 logger = logging.getLogger(__name__)
 
 __all__ = ["PipelineApp", "build_graph", "route_after_orchestrator", "route_after_trinity"]
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _scan_evidence_payload(
@@ -127,6 +135,18 @@ async def _auto_full_analysis(
     # Preserve case_pending from orchestrator (survives state propagation)
     output["case_pending"] = list(working_state.get("case_pending") or [])
     output["case_context"] = working_state.get("case_context") or ""
+
+    paper_only_research = _env_bool("SUPEREZIO_RESEARCH_PAPER_ONLY", False) or _env_bool(
+        "SUPEREZIO_DAYTRADE_PAPER_ONLY", False
+    )
+    live_disabled = _env_bool("SUPEREZIO_LIVE_TRADING_DISABLED", False)
+    if paper_only_research or live_disabled:
+        safety = {
+            "paper_only": bool(paper_only_research),
+            "live_trading_disabled": bool(live_disabled),
+        }
+        output["research_safety"] = safety
+        working_state["research_safety"] = safety
 
     def _mark_step(step_name: str, evidence: dict | None = None):
         if financial_case:
@@ -323,33 +343,61 @@ async def _auto_full_analysis(
             "sentiment",
             "social_forensics",
         ]
-        for role in roles:
-            try:
-                res = await node_expert(
-                    {
-                        **working_state,
-                        "role": role,
-                        "ticker": ticker,
-                        "data_context": data_context,
-                    },
-                    gateway=gateway,
-                )
-                for expert_result in res.get("expert_results", []):
-                    expert_result.setdefault("role", role)
-                    expert_result.setdefault("provider", EXPERT_PROVIDERS.get(role, "unknown"))
-                    expert_results.append(expert_result)
-            except Exception as exc:
-                expert_results.append(
-                    {
-                        "role": role,
-                        "ok": False,
-                        "error": str(exc)[:200],
-                        "provider": EXPERT_PROVIDERS.get(role, "?"),
-                    }
-                )
+
+        replicas = max(1, int(os.getenv("SUPEREZIO_EXPERT_REPLICAS", "1")))
+        concurrency = max(1, int(os.getenv("SUPEREZIO_EXPERT_CONCURRENCY", "3")))
+        semaphore = asyncio.Semaphore(concurrency)
+
+        async def _run_one_expert(role: str, replica_id: int) -> list[dict[str, Any]]:
+            async with semaphore:
+                try:
+                    res = await node_expert(
+                        {
+                            **working_state,
+                            "role": role,
+                            "replica_id": replica_id,
+                            "ticker": ticker,
+                            "data_context": data_context,
+                        },
+                        gateway=gateway,
+                    )
+                    out: list[dict[str, Any]] = []
+                    for expert_result in res.get("expert_results", []):
+                        expert_result.setdefault("role", role)
+                        expert_result.setdefault("replica_id", replica_id)
+                        expert_result.setdefault(
+                            "provider", EXPERT_PROVIDERS.get(role, "unknown")
+                        )
+                        out.append(expert_result)
+                    return out
+                except Exception as exc:
+                    return [
+                        {
+                            "role": role,
+                            "replica_id": replica_id,
+                            "ok": False,
+                            "error": str(exc)[:200],
+                            "provider": EXPERT_PROVIDERS.get(role, "?"),
+                        }
+                    ]
+
+        jobs = [
+            _run_one_expert(role, replica_id)
+            for role in roles
+            for replica_id in range(1, replicas + 1)
+        ]
+        for batch in await asyncio.gather(*jobs):
+            expert_results.extend(batch)
 
         _merge_node_update(working_state, output, {"expert_results": expert_results})
-        _mark_step("expert_committee", {"roles_ran": len(expert_results)})
+        _mark_step(
+            "expert_committee",
+            {
+                "roles_ran": len(expert_results),
+                "replicas": replicas,
+                "concurrency": concurrency,
+            },
+        )
         try:
             collect_res = await node_collect_experts(
                 {**working_state, "expert_results": expert_results}
@@ -364,6 +412,75 @@ async def _auto_full_analysis(
                     "errors": [f"auto_full_analysis.experts:{exc}"],
                 },
             )
+
+        red_team_agents = max(0, int(os.getenv("SUPEREZIO_RED_TEAM_AGENTS", "0")))
+        judge_agents = max(0, int(os.getenv("SUPEREZIO_JUDGE_AGENTS", "0")))
+        red_team_results: list[dict[str, Any]] = []
+        judge_results: list[dict[str, Any]] = []
+        auditor_result: dict[str, Any] | None = None
+
+        if red_team_agents > 0:
+            red_jobs = [
+                _run_one_expert(f"red_team_agent_{i}", 1) for i in range(1, red_team_agents + 1)
+            ]
+            for batch in await asyncio.gather(*red_jobs):
+                red_team_results.extend(batch)
+            _merge_node_update(working_state, output, {"red_team_results": red_team_results})
+
+        if judge_agents > 0:
+            async def _run_judge(idx: int) -> list[dict[str, Any]]:
+                async with semaphore:
+                    try:
+                        res = await node_expert(
+                            {
+                                **working_state,
+                                "role": f"judge_agent_{idx}",
+                                "replica_id": 1,
+                                "ticker": ticker,
+                                "data_context": data_context,
+                                "provider_name": "daytrade_judge",
+                            },
+                            gateway=gateway,
+                        )
+                        return list(res.get("expert_results", []))
+                    except Exception as exc:
+                        return [
+                            {
+                                "role": f"judge_agent_{idx}",
+                                "ok": False,
+                                "error": str(exc)[:200],
+                                "provider": "daytrade_judge",
+                            }
+                        ]
+
+            judge_jobs = [_run_judge(i) for i in range(1, judge_agents + 1)]
+            for batch in await asyncio.gather(*judge_jobs):
+                judge_results.extend(batch)
+            _merge_node_update(working_state, output, {"judge_results": judge_results})
+
+        if os.getenv("SUPEREZIO_DAYTRADE_AUDITOR_MODEL"):
+            try:
+                auditor_res = await node_expert(
+                    {
+                        **working_state,
+                        "role": "auditor_agent",
+                        "replica_id": 1,
+                        "ticker": ticker,
+                        "data_context": data_context,
+                        "provider_name": "daytrade_auditor",
+                    },
+                    gateway=gateway,
+                )
+                if auditor_res.get("expert_results"):
+                    auditor_result = auditor_res["expert_results"][0]
+            except Exception as exc:
+                auditor_result = {
+                    "role": "auditor_agent",
+                    "ok": False,
+                    "error": str(exc)[:200],
+                    "provider": "daytrade_auditor",
+                }
+            _merge_node_update(working_state, output, {"auditor_result": auditor_result})
     # ── IBKR portfolio snapshot: always inject current positions ──
     try:
         from core.trading.portfolio_snapshot import fetch_portfolio_snapshot

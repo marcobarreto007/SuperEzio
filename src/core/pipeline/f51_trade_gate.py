@@ -29,12 +29,41 @@ logger = get_logger(__name__)
 # ═══════════════════════════════════════════════════════════════
 
 
+def _superezio_paper_only_or_live_disabled() -> str | None:
+    """Check the SUPEREZIO_* safety family, unified with F51_TRADING_EXECUTION_FREEZE.
+
+    These two variable families were introduced independently (F51_* by the
+    original trade gate, SUPEREZIO_* by the research/paper-only pipeline
+    added later) and did not check each other — a gate audit (2026-07-19,
+    docs/audit/phase6_rag_pennylab_execution.md, finding 6.1) confirmed this
+    let SUPEREZIO_LIVE_TRADING_DISABLED default to False with no effect on
+    this gate. Both families must now agree for real execution to be
+    possible; either one requesting safety wins (fail-safe OR, not AND).
+
+    Returns a reason string if either SUPEREZIO_* flag requests a freeze,
+    else None.
+    """
+    live_disabled = os.getenv("SUPEREZIO_LIVE_TRADING_DISABLED", "").strip().lower()
+    if live_disabled in {"1", "true", "yes", "on"}:
+        return "SUPEREZIO_LIVE_TRADING_DISABLED=true"
+    paper_only = os.getenv("SUPEREZIO_RESEARCH_PAPER_ONLY", "").strip().lower()
+    if paper_only in {"1", "true", "yes", "on"}:
+        return "SUPEREZIO_RESEARCH_PAPER_ONLY=true"
+    daytrade_paper_only = os.getenv("SUPEREZIO_DAYTRADE_PAPER_ONLY", "").strip().lower()
+    if daytrade_paper_only in {"1", "true", "yes", "on"}:
+        return "SUPEREZIO_DAYTRADE_PAPER_ONLY=true"
+    return None
+
+
 def is_execution_frozen() -> bool:
     """Check global kill switch (fail-safe: defaults to True).
 
-    Priority: env var F51_TRADING_EXECUTION_FREEZE > Pydantic Settings > default True.
+    Priority: SUPEREZIO_* research/paper-only flags (any one true freezes)
+    > env var F51_TRADING_EXECUTION_FREEZE > Pydantic Settings > default True.
     Direct env var check preserves testability via monkeypatch.
     """
+    if _superezio_paper_only_or_live_disabled() is not None:
+        return True
     # Check raw env var first (allows test overrides via monkeypatch.setenv)
     raw = os.getenv("F51_TRADING_EXECUTION_FREEZE", "").strip().lower()
     if raw in {"0", "false", "no", "off"}:
@@ -377,12 +406,14 @@ def evaluate_trade_gate(
 
     # GATE 1: Execution Freeze
     if is_execution_frozen():
+        superezio_reason = _superezio_paper_only_or_live_disabled()
+        reason = superezio_reason or "F51_TRADING_EXECUTION_FREEZE=true"
         gates_checked.append(("freeze", False, "execution_frozen_by_env"))
         return _build(
             decision,
             "BLOCK",
             "EXECUTION_FREEZE",
-            "Trading execution frozen by F51_TRADING_EXECUTION_FREEZE=true",
+            f"Trading execution frozen by {reason}",
             gates_checked,
         )
     gates_checked.append(("freeze", True, "ok"))
@@ -428,21 +459,21 @@ def evaluate_trade_gate(
         )
     gates_checked.append(("ticker_format", True, "ok"))
 
-    # GATE 5: Ticker Validation via DataHub
-    validated_ticker, resolved_price, validation_error = resolve_and_validate_ticker(ticker)
-    if validation_error:
-        gates_checked.append(("ticker_validation", False, validation_error))
+    # GATE 5: Ticker Mismatch (thesis vs order) should be evaluated before
+    # external ticker validation so mismatch diagnostics remain deterministic.
+    if thesis_ticker and thesis_ticker.upper() != ticker:
+        gates_checked.append(("ticker_mismatch", False, f"{thesis_ticker}_vs_{ticker}"))
         return _build(
             decision,
             "BLOCK",
-            "TICKER_VALIDATION_FAILED",
-            f"Ticker '{ticker}' failed DataHub validation: {validation_error}",
+            "TICKER_MISMATCH",
+            f"Thesis ticker {thesis_ticker} != order ticker {ticker}",
             gates_checked,
-            evidence={"ticker": ticker, "error": validation_error},
+            evidence={"thesis_ticker": thesis_ticker, "order_ticker": ticker},
         )
-    gates_checked.append(("ticker_validation", True, f"ok:{validated_ticker}"))
+    gates_checked.append(("ticker_mismatch", True, "ok"))
 
-    # GATE 6: Quantity Placeholder
+    # GATE 7: Quantity Placeholder
     if qty in (5, 10, 100) and limit_price == 99.0:
         gates_checked.append(("quantity", False, "placeholder_quantity_price"))
         return _build(
@@ -465,41 +496,32 @@ def evaluate_trade_gate(
         )
     gates_checked.append(("quantity", True, "ok"))
 
-    # GATE 7: Price Placeholder ($99.00)
-    if limit_price == 99.0 and resolved_price is not None and abs(resolved_price - 99.0) > 0.01:
-        gates_checked.append(("price", False, f"placeholder_99_vs_real_{resolved_price:.2f}"))
+    # GATE 8: Price Placeholder ($99.00)
+    if limit_price == 99.0:
+        gates_checked.append(("price", False, "placeholder_99"))
         return _build(
             decision,
             "BLOCK",
             "PLACEHOLDER_PRICE",
-            f"Placeholder price $99.00 vs DataHub ${resolved_price:.2f} for {ticker}",
+            "Placeholder price $99.00 blocked by policy.",
             gates_checked,
-            evidence={"placeholder": 99.0, "resolved": resolved_price},
-        )
-    if limit_price == 99.0 and resolved_price is None:
-        gates_checked.append(("price", False, "placeholder_99_no_resolution"))
-        return _build(
-            decision,
-            "BLOCK",
-            "PLACEHOLDER_PRICE",
-            f"Placeholder price $99.00 and DataHub could not resolve {ticker}",
-            gates_checked,
-            evidence={"ticker": ticker},
+            evidence={"placeholder": 99.0, "ticker": ticker},
         )
     gates_checked.append(("price", True, "ok"))
 
-    # GATE 8: Ticker Mismatch (thesis vs order)
-    if thesis_ticker and thesis_ticker.upper() != ticker:
-        gates_checked.append(("ticker_mismatch", False, f"{thesis_ticker}_vs_{ticker}"))
+    # GATE 9: Ticker Validation via DataHub
+    validated_ticker, resolved_price, validation_error = resolve_and_validate_ticker(ticker)
+    if validation_error:
+        gates_checked.append(("ticker_validation", False, validation_error))
         return _build(
             decision,
             "BLOCK",
-            "TICKER_MISMATCH",
-            f"Thesis ticker {thesis_ticker} != order ticker {ticker}",
+            "TICKER_VALIDATION_FAILED",
+            f"Ticker '{ticker}' failed DataHub validation: {validation_error}",
             gates_checked,
-            evidence={"thesis_ticker": thesis_ticker, "order_ticker": ticker},
+            evidence={"ticker": ticker, "error": validation_error},
         )
-    gates_checked.append(("ticker_mismatch", True, "ok"))
+    gates_checked.append(("ticker_validation", True, f"ok:{validated_ticker}"))
 
     # GATE 9: IBKR Health
     ibkr_online = is_ibkr_connectable()

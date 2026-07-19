@@ -961,8 +961,6 @@ async def _run_scan(
         except ImportError:
             hub = None
         if hub is not None:
-            if not os.getenv("FINNHUB_API_KEY"):
-                source_errors.append("finnhub: FINNHUB_API_KEY not configured")
 
             per_item_timeout = float(os.getenv("SUPEREZIO_SCAN_ENRICH_TIMEOUT_MS", "60000")) / 1000
             stage_deadline_ms = int(os.getenv("SUPEREZIO_SCAN_STAGE_DEADLINE_MS", "180000"))

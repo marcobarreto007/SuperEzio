@@ -27,8 +27,10 @@ from core.mission_context import mission_health_summary  # noqa: E402
 from core.observability import log_queue, metrics  # noqa: E402
 from core.paths import PROJECT_ROOT  # noqa: E402
 from core.sentiment import LiveMonitor, SentimentCurator, WatchlistPulse  # noqa: E402
+from core.ports.protocol import A2AMessage  # noqa: E402
 
 from .endpoints import router as a2a_router  # noqa: E402
+from .endpoints import submit_task as _submit_task_endpoint  # noqa: E402
 
 # Load local environment before reading runtime configuration.
 # Priority: OS env > .env.local > .env
@@ -344,6 +346,12 @@ async def security_headers_middleware(request: Request, call_next):
 
 
 app.include_router(a2a_router)
+
+
+@app.post("/task/submit")
+async def submit_task_compat(envelope: A2AMessage, request: Request):
+    """Compatibility route kept at app level for strict contracts/tests."""
+    return await _submit_task_endpoint(envelope, request)
 
 
 # ═══════════════════════════════════════════════════════════════
