@@ -40,7 +40,12 @@ def _truthy_high(value: Any) -> bool:
     if isinstance(value, (int, float)):
         return value >= 0.65
     text = _lower(value).strip()
-    return text in {"high", "true", "yes", "wide", "unstable", "low", "stale", "degraded"}
+    # "low" must NOT be here: this helper flags HIGH-risk textual signals
+    # (flow_toxicity, spread, fomo, leverage, latency, stale_signal, ...).
+    # A field reporting "low" (e.g. flow_toxicity=low, leverage=low) is the
+    # opposite of high risk and was being misclassified as high-risk by this
+    # set (docs/audit/phase5_f51_sdca_neural.md, finding 5.5).
+    return text in {"high", "true", "yes", "wide", "unstable", "stale", "degraded"}
 
 
 def _num(value: Any, default: float = 0.0) -> float:

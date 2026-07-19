@@ -138,6 +138,43 @@ def test_node_collect_experts_parses_json_and_preserves_zero_score():
     assert "Sentiment is balanced" in result["expert_summary"]
 
 
+def test_node_expert_red_team_fallback_survives_stray_braces_in_context():
+    """Regression: red_team_agent_N (not in EXPERT_PROMPTS) must not crash with
+    KeyError('provider') when data_context contains literal "{...}" text
+    (e.g. a dict-repr fragment like "{provider}" copied from another
+    expert's raw output). See docs/audit — the fallback prompt used to be
+    built via f-string and then re-passed through .format(), which made
+    str.format() treat any stray "{name}" inside the context as a
+    placeholder and raise KeyError.
+    """
+    import asyncio
+
+    experts_node.get_stream_writer = lambda: _noop_writer
+
+    class _FakeGateway:
+        last_provider_used = "deepseek"
+
+        async def chat_completion(self, **kwargs):
+            # Prove the prompt actually built successfully and reached here.
+            assert "{provider}" in kwargs["messages"][1]["content"]
+            return '{"verdict":"NEUTRAL","confidence":50}'
+
+    async def _run():
+        return await node_expert(
+            {
+                "role": "red_team_agent_1",
+                "ticker": "XYZ",
+                "data_context": "prior expert says: {provider} used deepseek and returned NEUTRAL",
+                "run_id": "test-red-team-braces",
+            },
+            gateway=_FakeGateway(),
+        )
+
+    result = asyncio.run(_run())
+    assert result["expert_results"][0]["ok"] is True
+    assert result["expert_results"][0].get("error") is None
+
+
 def test_node_collect_experts_partial_data_without_results():
     """Partial data quality with no expert results flags error."""
     import asyncio

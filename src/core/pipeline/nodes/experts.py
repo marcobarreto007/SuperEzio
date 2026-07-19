@@ -398,15 +398,31 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
     )
 
     try:
-        prompts = EXPERT_PROMPTS.get(
-            role,
-            (
-                f"You are SuperEzio's {role} expert. Provide concise, data-driven analysis in English. Be quantitative.",
-                f"Analyze {ticker} as a {role} expert.\n\nContext:\n{context[:3000]}\n\nProvide a structured assessment with key metrics and risk flags.",
-            ),
-        )
-        system_prompt, user_prompt_template = prompts
-        user_prompt = user_prompt_template.format(ticker=ticker, context=context[:3000])
+        role_prompt = EXPERT_PROMPTS.get(role)
+        if role_prompt is not None:
+            system_prompt, user_prompt_template = role_prompt
+            # Templates in EXPERT_PROMPTS use literal {ticker}/{context}
+            # placeholders and are safe to .format() here.
+            user_prompt = user_prompt_template.format(ticker=ticker, context=context[:3000])
+        else:
+            # Fallback for roles with no dedicated prompt (red team, and any
+            # future unnamed role): built directly via f-string, NOT passed
+            # through .format() again. context/math_report text is external,
+            # untrusted content that may itself contain literal "{...}"
+            # sequences (e.g. dict-repr fragments like "{provider}" copied
+            # from another expert's raw output) — re-running .format() over
+            # already-interpolated text made str.format() treat that stray
+            # "{provider}" as a placeholder and raise KeyError('provider'),
+            # which crashed every red_team_agent_N run (see docs/audit).
+            system_prompt = (
+                f"You are SuperEzio's {role} expert. Provide concise, "
+                "data-driven analysis in English. Be quantitative."
+            )
+            user_prompt = (
+                f"Analyze {ticker} as a {role} expert.\n\n"
+                f"Context:\n{context[:3000]}\n\n"
+                "Provide a structured assessment with key metrics and risk flags."
+            )
 
         dialogue = ExpertDialogue(
             gateway,
