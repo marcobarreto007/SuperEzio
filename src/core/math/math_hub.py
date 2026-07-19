@@ -173,7 +173,7 @@ class MathHub:
             "kelly_fraction": report.numbers.get("kelly_fraction"),
             "crisis_score": report.numbers.get("crisis_score"),
             "bootstrap_expected_return": report.numbers.get("bootstrap_expected_return"),
-            "f51_confidence": report.numbers.get("f51_confidence"),
+            "f51_decision_score": report.numbers.get("f51_decision_score"),
         }
         report.coverage = {
             "total_modules": len(self.MODULES),
@@ -598,7 +598,12 @@ class MathHub:
                 "values",
                 "expected_cumulative_return",
             ),
-            "f51_confidence": _dig(modules, "f51_unified", "values", "confidence"),
+            "f51_decision_score": _dig(
+                modules,
+                "f51_unified",
+                "values",
+                "decision_score",
+            ),
             # Technical indicators
             "rsi": _dig(modules, "technical_indicators", "values", "rsi14"),
             "macd": _dig(modules, "technical_indicators", "values", "macd"),

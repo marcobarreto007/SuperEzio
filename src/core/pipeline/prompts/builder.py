@@ -250,7 +250,7 @@ def _format_math_report(report: dict[str, Any]) -> str:
         "var_95",
         "kelly_fraction",
         "crisis_score",
-        "f51_confidence",
+        "f51_decision_score",
     ):
         value = summary.get(key)
         if value not in (None, "", [], {}):

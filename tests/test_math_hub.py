@@ -78,6 +78,23 @@ def test_math_hub_preserves_iso_timestamp_for_penny_integration():
     assert candles[0]["date"] == "2026-07-19T14:30:00Z"
 
 
+def test_math_hub_labels_f51_heuristic_as_decision_score_not_confidence():
+    state = _sample_state()
+    state["f51_verdict"] = {
+        "decision_score": 0.71,
+        "confidence": 0.71,
+        "score_type": "uncalibrated_decision_score",
+        "calibration_status": "not_calibrated",
+    }
+
+    report = MathHub().calculate_all(state)
+
+    assert report["summary"]["f51_decision_score"] == pytest.approx(0.71)
+    assert report["numbers"]["f51_decision_score"] == pytest.approx(0.71)
+    assert "f51_confidence" not in report["summary"]
+    assert "f51_confidence" not in report["numbers"]
+
+
 def test_math_hub_never_invents_dates_for_penny_backtest():
     state = _sample_state()
     for candle in state["data"]["ohlcv"]:

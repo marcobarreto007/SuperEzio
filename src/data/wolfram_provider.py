@@ -195,7 +195,7 @@ class WolframProvider:
         return self.query(expression)
 
     def verify_f51_output(self, score: float, confidence: float) -> Dict[str, Any]:
-        """Quick sanity check on F51 engine numerical output."""
+        """Range-check legacy F51 numerical scores without implying calibration."""
         checks = []
         checks.append(f"is {score} between 0 and 1")
         checks.append(f"is {confidence} between 0 and 1")
@@ -210,7 +210,8 @@ class WolframProvider:
             )
         return {
             "f51_score": score,
-            "f51_confidence": confidence,
+            "f51_decision_score": confidence,
+            "score_type": "uncalibrated_decision_score",
             "checks": results,
             "timestamp": time.time(),
         }

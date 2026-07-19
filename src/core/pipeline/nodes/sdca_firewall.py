@@ -52,7 +52,9 @@ def _build_candidate(state: dict[str, Any]) -> DecisionCandidate:
         "pennylab_decision": pennylab.get("decision"),
         "pennylab_scores": pennylab.get("scores", {}),
         "f51_passed": f51.get("passed"),
-        "f51_confidence": f51.get("confidence"),
+        "f51_decision_score": f51.get("decision_score"),
+        "f51_score_type": f51.get("score_type"),
+        "f51_calibration_status": f51.get("calibration_status"),
     }
     raw_signals = {
         "technicals": data.get("technicals", {}),
