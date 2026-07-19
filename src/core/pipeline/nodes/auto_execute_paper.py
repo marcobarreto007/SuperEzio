@@ -225,6 +225,38 @@ async def auto_execute_paper(state: dict) -> dict:
         logger.error("trade_gate_error", error=str(exc)[:200])
         return {"paper_exec_blocked": f"f51_trade_gate_error:{str(exc)[:120]}"}
 
+    # ═══════════════════════════════════════════════════════════
+    # ATOMIC IDEMPOTENCY CLAIM — the ALLOW path was only protected by the
+    # is_duplicate() pre-check above, which is a plain existence test (TOCTOU:
+    # two concurrent requests for the same ticker/qty/price/window can both
+    # pass it before either writes the marker). mark_processed() now claims
+    # the key with an exclusive file create; only the first caller to reach
+    # here for this key proceeds to submit. A lost race is treated as a
+    # duplicate, not silently re-submitted.
+    # ═══════════════════════════════════════════════════════════
+    if not mark_processed(idem_key, {"status": "allowed"}):
+        logger.warning(
+            "auto_execute_duplicate_blocked_race",
+            ticker=ticker,
+            qty=qty,
+            limit_price=limit_price,
+            idempotency_key=idem_key,
+        )
+        writer(
+            {
+                "type": "PAPER_ORDER_BLOCKED",
+                "run_id": run_id,
+                "ticker": ticker,
+                "step": "idempotency",
+                "status": "blocked",
+                "reason": f"Duplicate order detected (concurrent claim lost): {idem_key}",
+            }
+        )
+        return {
+            "paper_exec_blocked": "DUPLICATE_ORDER",
+            "paper_exec_block_reason": f"Idempotency key already claimed concurrently: {idem_key}",
+        }
+
     # Position sizing (only reached if gate ALLOWED)
     from core.mission_context import get_mission_equity
 

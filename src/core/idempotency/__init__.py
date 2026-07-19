@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -67,15 +68,26 @@ def is_duplicate(idempotency_key: str) -> bool:
     """Check if this idempotency key has already been processed.
 
     Returns True if the key was seen before (duplicate), False if new.
+
+    NOTE: this is a plain existence check and is NOT atomic by itself.
+    Concurrent callers must use `mark_processed` (which claims the key
+    atomically) and treat a claim failure as "duplicate" — see the
+    check-then-claim pattern used in `auto_execute_paper.py`.
     """
     dedup_file = _ensure_dedup_dir() / f"{idempotency_key}.json"
     return dedup_file.exists()
 
 
-def mark_processed(idempotency_key: str, metadata: dict[str, Any] | None = None) -> None:
-    """Record that this idempotency key has been processed.
+def mark_processed(idempotency_key: str, metadata: dict[str, Any] | None = None) -> bool:
+    """Atomically claim this idempotency key as processed.
 
-    Writes a marker file to journal/dedup/ for cross-process dedup.
+    Writes a marker file to journal/dedup/ for cross-process dedup using
+    an exclusive create (O_CREAT|O_EXCL) so two concurrent callers racing
+    on the same key cannot both "win" — the loser gets FileExistsError and
+    this returns False instead of silently overwriting the winner's record.
+
+    Returns True if this call claimed the key (first writer), False if the
+    key was already claimed by another concurrent/prior call (duplicate).
     """
     dedup_file = _ensure_dedup_dir() / f"{idempotency_key}.json"
     record = {
@@ -83,8 +95,18 @@ def mark_processed(idempotency_key: str, metadata: dict[str, Any] | None = None)
         "processed_at": datetime.now(timezone.utc).isoformat(),
         "metadata": metadata or {},
     }
-    dedup_file.write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
+    payload = json.dumps(record, ensure_ascii=False).encode("utf-8")
+    try:
+        fd = os.open(dedup_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        logger.warning("idempotency_key_race_lost", key=idempotency_key)
+        return False
+    try:
+        os.write(fd, payload)
+    finally:
+        os.close(fd)
     logger.info("idempotency_key_recorded", key=idempotency_key)
+    return True
 
 
 # ═══════════════════════════════════════════════════════════════
