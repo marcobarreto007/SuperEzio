@@ -160,14 +160,25 @@ class F51Engine:
             danger=ctx.factor("spider_sense"),
         )
 
-        confidence = unified_decision(factors)
+        decision_score = unified_decision(factors)
         threshold = decision_threshold(domain)
-        should_expand = expand_budget(confidence, domain)
+        should_expand = expand_budget(decision_score, domain)
+        veracity_node = ctx.get("veracity_gate")
+        veracity_established = bool(
+            veracity_node
+            and veracity_node.ok
+            and veracity_node.evidence.get("passed") is True
+        )
 
         return {
-            "confidence": round(confidence, 3),
+            # Compatibility alias: this is not a calibrated probability.
+            "decision_score": round(decision_score, 3),
+            "confidence": round(decision_score, 3),
+            "score_type": "uncalibrated_decision_score",
+            "calibration_status": "not_calibrated",
             "threshold": threshold,
-            "passed": confidence >= threshold,
+            "passed": decision_score >= threshold and veracity_established,
+            "reason_codes": [] if veracity_established else ["VERACITY_NOT_ESTABLISHED"],
             "expand_compute": should_expand,
             "factors": factors.__dict__,
             "nodes": {
@@ -185,15 +196,9 @@ class F51Engine:
 
     def _compute_proxy(self, ctx: Context) -> float:
         critic = ctx.get("adversarial_critic")
-        critic_conf = critic.confidence if critic and critic.ok else 0.5
-        # Sanity (peso 0.2 na fórmula proxy_reward: 0.3·consenso + 0.4·critic +
-        # 0.2·sanity): usa a confiança REAL do veracity_gate (claims batendo
-        # com ground_truth) quando o nó rodou. veracity_gate já retorna 1.0
-        # quando não há claims a verificar ("sem_claims"), então isso não
-        # penaliza o caso comum sem claims — é o mesmo valor heurístico
-        # anterior (0.8) só quando o gate falhou/não rodou.
+        critic_conf = critic.confidence if critic and critic.ok else 0.0
         veracity = ctx.get("veracity_gate")
-        sanity = veracity.confidence if veracity and veracity.ok else 0.8
+        sanity = veracity.confidence if veracity and veracity.ok else 0.0
         return 0.3 * ctx.factor("platinum_scorer") + 0.4 * critic_conf + 0.2 * sanity
 
     def _build_default_graph(self) -> Graph:
@@ -254,25 +259,30 @@ class F51Engine:
         def _default_platinum_node(ctx: Context) -> NodeResult:
             features = ctx.input.get("features", {}) if isinstance(ctx.input, dict) else {}
             if not features:
-                return NodeResult("platinum_scorer", 0.5, confidence=0.5)
+                return NodeResult(
+                    "platinum_scorer",
+                    0.0,
+                    confidence=0.0,
+                    evidence={"reason": "no_features"},
+                )
 
-            # Completude: fração de campos-chave presentes e não-zero
+            # Zero pode ser uma observação válida (retorno/sentimento neutro).
             present = sum(
-                1 for f in _PLATINUM_FIELDS if features.get(f) is not None and features.get(f) != 0
+                1 for f in _PLATINUM_FIELDS if f in features and features[f] is not None
             )
             completeness = present / len(_PLATINUM_FIELDS)
 
             # Consistência: RSI vs daily_return
             consistent = 1.0
-            rsi = features.get("rsi_14", 50)
-            daily_ret = features.get("daily_return", 0)
-            if rsi > 70 and daily_ret < 0:
+            rsi = features.get("rsi_14")
+            daily_ret = features.get("daily_return")
+            if rsi is not None and daily_ret is not None and rsi > 70 and daily_ret < 0:
                 consistent *= 0.7
-            if rsi < 30 and daily_ret > 0:
+            if rsi is not None and daily_ret is not None and rsi < 30 and daily_ret > 0:
                 consistent *= 0.7
 
-            vol_z = abs(features.get("volume_z_score", 0))
-            if vol_z > 3:
+            vol_z = features.get("volume_z_score")
+            if vol_z is not None and abs(vol_z) > 3:
                 consistent *= 0.8
 
             score = completeness * consistent
@@ -295,7 +305,7 @@ class F51Engine:
         def _default_veracity_node(ctx: Context) -> NodeResult:
             if not isinstance(ctx.input, dict):
                 return NodeResult(
-                    "veracity_gate", "", confidence=1.0, evidence={"reason": "no_dict"}
+                    "veracity_gate", "", confidence=0.0, evidence={"reason": "no_dict"}
                 )
 
             claims = ctx.input.get("claims", [])
@@ -305,8 +315,8 @@ class F51Engine:
                 return NodeResult(
                     "veracity_gate",
                     "",
-                    confidence=1.0,
-                    evidence={"reason": "sem_claims"},
+                    confidence=0.0,
+                    evidence={"passed": False, "reason": "no_independent_claims"},
                 )
 
             result = gate.verify(claims, ground_truth, tolerance=0.15)

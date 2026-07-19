@@ -4,6 +4,7 @@ VeracityGate (checagem de claims) + AdversarialCritic + ProxyReward.
 """
 
 from __future__ import annotations
+import math
 import re
 from dataclasses import dataclass, field
 from .formulas import proxy_reward as proxy_formula, clamp
@@ -35,7 +36,14 @@ class VeracityGate:
         tolerance: float = DEFAULT_TOLERANCE,
     ) -> VeracityResult:
         if not claims:
-            return VeracityResult(True, 1.0, 0, 0, [], "Sem claims para verificar.")
+            return VeracityResult(
+                False,
+                0.0,
+                0,
+                0,
+                [],
+                "Sem claims independentes para verificar.",
+            )
 
         verified = 0
         mismatches = []
@@ -47,15 +55,25 @@ class VeracityGate:
                 unverifiable.append(f"{field_name}: sem dado real")
                 continue
 
-            diff = abs(value - actual) / max(abs(actual), 0.001)
+            try:
+                claimed_value = float(value)
+                actual_value = float(actual)
+            except (TypeError, ValueError):
+                unverifiable.append(f"{field_name}: valor não numérico")
+                continue
+            if not math.isfinite(claimed_value) or not math.isfinite(actual_value):
+                unverifiable.append(f"{field_name}: valor não finito")
+                continue
+
+            diff = abs(claimed_value - actual_value) / max(abs(actual_value), 0.001)
             if diff <= tolerance:
                 verified += 1
             else:
                 mismatches.append(
                     {
                         "field": field_name,
-                        "claimed": value,
-                        "actual": actual,
+                        "claimed": claimed_value,
+                        "actual": actual_value,
                         "diff": round(diff, 3),
                         "tolerance": tolerance,
                     }

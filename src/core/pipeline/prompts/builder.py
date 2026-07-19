@@ -556,7 +556,11 @@ def build_agent_prompt(
     if f51:
         f51_block = (
             f"F51_VERDICT: passed={f51.get('passed')}, "
-            f"confidence={f51.get('confidence')}, "
+            f"decision_score={f51.get('decision_score', f51.get('confidence'))}, "
+            f"score_type={f51.get('score_type', 'legacy_unknown')}, "
+            f"calibration={f51.get('calibration_status', 'unknown')}, "
+            f"evidence_status={f51.get('evidence_status', 'unknown')}, "
+            f"reason_codes={f51.get('reason_codes', [])}, "
             f"factors={f51.get('factors', {})}"
         )
         parts.append(f51_block)

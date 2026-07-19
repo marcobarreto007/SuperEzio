@@ -1,6 +1,10 @@
 """F51 Verdict node — runs the F51Engine on collected data."""
 
+import logging
+
 from langgraph.config import get_stream_writer
+
+logger = logging.getLogger(__name__)
 
 
 async def node_f51_verdict(state: dict) -> dict:
@@ -34,12 +38,19 @@ async def node_f51_verdict(state: dict) -> dict:
         from ...f51_adapter import F51HubAdapter
 
         adapter = F51HubAdapter()
-        verdict = adapter.run_on_trace(data, domain="trading")
+        trace = dict(data)
+        trace.setdefault("ticker", ticker)
+        trace.setdefault("user_message", state.get("message") or "")
+        verdict = adapter.run_on_trace(trace, domain="trading")
 
         writer(
             {
                 "type": "F51_VERDICT",
                 "confidence": verdict.get("confidence"),
+                "decision_score": verdict.get("decision_score"),
+                "score_type": verdict.get("score_type"),
+                "calibration_status": verdict.get("calibration_status"),
+                "evidence_status": verdict.get("evidence_status"),
                 "passed": verdict.get("passed"),
                 "factors": verdict.get("factors"),
                 "hub_risk_score": verdict.get("hub_risk", {}).get("risk_score"),
@@ -65,8 +76,8 @@ async def node_f51_verdict(state: dict) -> dict:
                     "lppls_bubble",
                 ],
             )
+            verdict["crisis"] = crisis_result
             if (crisis_result.get("models_ok") or 0) > 0:
-                verdict["crisis"] = crisis_result
                 writer(
                     {
                         "type": "CRISIS_MATH",
@@ -75,8 +86,27 @@ async def node_f51_verdict(state: dict) -> dict:
                         "alert": crisis_result.get("alert_level"),
                     }
                 )
-        except Exception:
-            pass  # CrisisMath is optional
+            else:
+                writer(
+                    {
+                        "type": "CRISIS_MATH",
+                        "status": "insufficient_data",
+                        "detail": crisis_result.get("status") or crisis_result.get("reason"),
+                    }
+                )
+        except Exception as crisis_exc:
+            logger.warning("crisis_math_unavailable", exc_info=True)
+            verdict["crisis"] = {
+                "status": "error",
+                "error": str(crisis_exc),
+            }
+            writer(
+                {
+                    "type": "CRISIS_MATH",
+                    "status": "error",
+                    "detail": str(crisis_exc),
+                }
+            )
 
         writer(
             {

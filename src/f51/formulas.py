@@ -65,9 +65,11 @@ def unified_decision(
     factors: DecisionFactors,
     weights: FormulaWeights = None,
 ) -> float:
-    """Confiança em uma decisão, dados os fatores e pesos.
+    """Score heurístico de decisão, dados os fatores e pesos fixos.
 
-    Retorna P(sucesso) ∈ [0, 1].
+    O sigmoid limita o resultado a ``[0, 1]``, mas não o transforma em
+    probabilidade. Sem calibração prospectiva e validação fora da amostra,
+    este valor não deve ser interpretado como ``P(sucesso)``.
     """
     w = weights or FormulaWeights.default()
     factors.validate()

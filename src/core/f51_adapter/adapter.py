@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import logging
+import math
+import statistics
 from pathlib import Path
 from typing import Any
 
@@ -33,28 +35,21 @@ def _load_json(path: Path) -> dict | list:
         return {}
 
 
-def _volume_z_score(volume: int, avg_volume: float) -> float:
-    if avg_volume <= 0:
-        return 0.0
-    return (volume - avg_volume) / max(avg_volume, 1.0)
-
-
-def _safe_float(val: Any, default: float = 0.0) -> float:
-    if val is None:
-        return default
+def _finite_float(val: Any) -> float | None:
+    """Return a real finite observation; never invent a numeric default."""
     try:
-        return float(val)
+        value = float(val)
     except (ValueError, TypeError):
-        return default
+        return None
+    return value if math.isfinite(value) else None
 
 
-def _safe_int(val: Any, default: int = 0) -> int:
-    if val is None:
-        return default
-    try:
-        return int(val)
-    except (ValueError, TypeError):
-        return default
+def _first_finite(*values: Any) -> float | None:
+    for value in values:
+        parsed = _finite_float(value)
+        if parsed is not None:
+            return parsed
+    return None
 
 
 def _build_risk_rules_from_hub() -> list[RiskRule]:
@@ -75,21 +70,25 @@ def _build_risk_rules_from_hub() -> list[RiskRule]:
                 evidence = ""
 
                 if rid == "unusual_volume_without_clear_news":
-                    z = features.get("volume_z_score", 0)
-                    triggered = 2.0 <= z < 3.5
+                    z = features.get("volume_z_score")
+                    triggered = z is not None and 2.0 <= z < 3.5
                     if triggered:
                         evidence = f"volume_z_score={z:.2f}"
 
                 elif rid == "extreme_volume_spike":
-                    z = features.get("volume_z_score", 0)
-                    triggered = z >= 3.5
+                    z = features.get("volume_z_score")
+                    triggered = z is not None and z >= 3.5
                     if triggered:
                         evidence = f"extreme_volume_zscore={z:.2f}"
 
                 elif rid == "price_spike_high_volatility":
-                    daily_ret = abs(features.get("daily_return", 0))
-                    mcap = features.get("market_cap", 0)
-                    triggered = daily_ret >= 0.15 or (daily_ret >= 0.10 and mcap < 200_000_000)
+                    observed_return = features.get("daily_return")
+                    daily_ret = abs(observed_return) if observed_return is not None else None
+                    mcap = features.get("market_cap")
+                    triggered = daily_ret is not None and (
+                        daily_ret >= 0.15
+                        or (daily_ret >= 0.10 and mcap is not None and mcap < 200_000_000)
+                    )
                     if triggered:
                         evidence = f"daily_return={daily_ret:.2%}, mcap={mcap}"
 
@@ -108,7 +107,7 @@ def _build_risk_rules_from_hub() -> list[RiskRule]:
                 elif rid == "no_revenue_with_operations":
                     revenue = features.get("total_revenue", None)
                     mcap = features.get("market_cap")
-                    triggered = (revenue == 0 or revenue is None) and (
+                    triggered = revenue == 0 and (
                         mcap is not None and mcap > 10_000_000
                     )
                     if triggered:
@@ -126,32 +125,23 @@ def _build_risk_rules_from_hub() -> list[RiskRule]:
     return rules
 
 
-def _missing_data_ratio(trace: dict[str, Any]) -> float:
-    """Estima fração de campos críticos ausentes no trace."""
-    critical_keys = ["technicals", "profile", "risk", "quant", "sentiment"]
-    missing = 0
-    for k in critical_keys:
-        val = trace.get(k)
-        if not val or (isinstance(val, dict) and len(val) <= 2):
-            missing += 1
-    return missing / len(critical_keys)
-
-
 def _build_claims(trace: dict[str, Any]) -> list[tuple[str, float, str]]:
-    """Extrai claims verificáveis do trace para o VeracityGate."""
+    """Read explicit claims only; observed features are not their own proof."""
     claims: list[tuple[str, float, str]] = []
-    tech = trace.get("technicals", {}) or {}
-    risk = trace.get("risk", {}) or {}
-    quant = trace.get("quant", {}) or {}
-
-    if tech.get("rsi_14") is not None:
-        claims.append(("rsi_14", float(tech["rsi_14"]), "technical"))
-    if tech.get("price") is not None:
-        claims.append(("price", float(tech["price"]), "technical"))
-    if risk.get("annual_volatility") is not None:
-        claims.append(("annual_volatility", float(risk["annual_volatility"]), "risk"))
-    if quant.get("monte_carlo_prob_up") is not None:
-        claims.append(("monte_carlo_prob_up", float(quant["monte_carlo_prob_up"]), "quant"))
+    raw_claims = trace.get("claims") or []
+    for item in raw_claims:
+        if isinstance(item, dict):
+            field = str(item.get("field", "")).strip()
+            value = _finite_float(item.get("value"))
+            context = str(item.get("source") or item.get("context") or "explicit")
+        elif isinstance(item, (tuple, list)) and len(item) >= 2:
+            field = str(item[0]).strip()
+            value = _finite_float(item[1])
+            context = str(item[2]) if len(item) >= 3 else "explicit"
+        else:
+            continue
+        if field and value is not None:
+            claims.append((field, value, context))
     return claims
 
 
@@ -211,11 +201,12 @@ class F51HubAdapter:
     def _node_difficulty(ctx: Context) -> NodeResult:
         inp = ctx.input or {}
         features = inp.get("features", {})
-        missing = features.get("missing_data_ratio", 0.0)
-        volatility = features.get("annual_volatility", 0.2)
+        missing = features.get("missing_data_ratio", 1.0)
+        volatility = features.get("annual_volatility")
         text = str(inp.get("user_text", ""))
         u = heuristic_uncertainty(text, features)
-        u = min(0.95, u + 0.2 * missing + 0.1 * volatility)
+        volatility_penalty = min(max(volatility, 0.0), 2.0) if volatility is not None else 0.0
+        u = min(0.95, u + 0.2 * missing + 0.1 * volatility_penalty)
         return NodeResult(
             "difficulty_estimator",
             value=u,
@@ -236,18 +227,18 @@ class F51HubAdapter:
             "sentiment_score",
             "market_cap",
         ]
-        present = sum(1 for f in fields if features.get(f) is not None and features.get(f) != 0)
+        present = sum(1 for f in fields if f in features and features[f] is not None)
         completeness = present / len(fields)
 
-        rsi = features.get("rsi_14", 50)
-        daily_ret = features.get("daily_return", 0)
+        rsi = features.get("rsi_14")
+        daily_ret = features.get("daily_return")
         consistent = 1.0
-        if rsi > 70 and daily_ret < 0:
+        if rsi is not None and daily_ret is not None and rsi > 70 and daily_ret < 0:
             consistent *= 0.7
-        if rsi < 30 and daily_ret > 0:
+        if rsi is not None and daily_ret is not None and rsi < 30 and daily_ret > 0:
             consistent *= 0.7
-        vol_z = abs(features.get("volume_z_score", 0))
-        if vol_z > 3:
+        vol_z = features.get("volume_z_score")
+        if vol_z is not None and abs(vol_z) > 3:
             consistent *= 0.8
 
         score = completeness * consistent
@@ -267,8 +258,8 @@ class F51HubAdapter:
             return NodeResult(
                 "veracity_gate",
                 value="",
-                confidence=1.0,
-                evidence={"reason": "sem_claims"},
+                confidence=0.0,
+                evidence={"passed": False, "reason": "no_independent_claims"},
             )
         gate = VeracityGate()
         result = gate.verify(claims, ground_truth, tolerance=0.15)
@@ -287,6 +278,16 @@ class F51HubAdapter:
     def _node_critic(self, ctx: Context) -> NodeResult:
         inp = ctx.input or {}
         features = inp.get("features", {})
+        observed = {
+            k: v for k, v in features.items() if k not in {"missing_data_ratio", "data_points"}
+        }
+        if not observed:
+            return NodeResult(
+                "adversarial_critic",
+                value="",
+                confidence=0.0,
+                evidence={"issues": ["no_financial_features"], "robustness": 0.0},
+            )
         result = self.critic.evaluate_finance(features)
         return NodeResult(
             "adversarial_critic",
@@ -297,35 +298,57 @@ class F51HubAdapter:
 
     @staticmethod
     def extract_features(trace: dict[str, Any]) -> dict[str, Any]:
-        """Extrai features numéricas de um trace do DataCollector."""
+        """Extract only finite observations or causal candle-derived values."""
         tech = trace.get("technicals", {}) or {}
-        prof = trace.get("profile", {}) or {}
+        prof = trace.get("profile") or trace.get("fundamentals") or {}
         risk = trace.get("risk", {}) or {}
         quant = trace.get("quant", {}) or {}
         sentiment = trace.get("sentiment", {}) or {}
-        reddit = trace.get("reddit", {}) or {}
+        reddit = trace.get("reddit") or trace.get("social") or {}
+        price_payload = trace.get("price", {}) or {}
+        candles = trace.get("candles") or trace.get("ohlcv") or []
+        if not candles and isinstance(price_payload, dict):
+            candles = price_payload.get("candles") or price_payload.get("ohlcv") or []
 
-        price = tech.get("price") if tech.get("price") is not None else 0
-        if isinstance(price, (int, float)) and price > 0:
-            rsi = tech.get("rsi_14") if tech.get("rsi_14") is not None else 50
-            if rsi > 80:
-                daily_ret = 0.18
-            elif rsi < 20:
-                daily_ret = -0.18
-            else:
-                daily_ret = 0.02
-        else:
-            daily_ret = 0.0
+        closes = [
+            value
+            for candle in candles
+            if isinstance(candle, dict)
+            and (value := _finite_float(candle.get("close"))) is not None
+            and value > 0
+        ]
+        price = _first_finite(
+            tech.get("price"),
+            price_payload.get("price") if isinstance(price_payload, dict) else None,
+            price_payload.get("last") if isinstance(price_payload, dict) else None,
+            closes[-1] if closes else None,
+        )
 
-        volume = tech.get("volume") if tech.get("volume") is not None else 0
-        avg_volume = volume
-        volume_z = 0.0
+        daily_return = None
+        if len(closes) >= 2 and closes[-2] != 0:
+            daily_return = closes[-1] / closes[-2] - 1.0
 
-        mcap = prof.get("market_cap") if prof.get("market_cap") is not None else 0
-        if isinstance(mcap, str):
-            mcap = 0
+        candle_volumes = [
+            value
+            for candle in candles
+            if isinstance(candle, dict)
+            and (value := _finite_float(candle.get("volume"))) is not None
+            and value >= 0
+        ]
+        volume = _first_finite(tech.get("volume"), candle_volumes[-1] if candle_volumes else None)
+        avg_volume = None
+        volume_z = None
+        historical_volumes = candle_volumes[:-1]
+        if volume is not None and historical_volumes:
+            avg_volume = statistics.fmean(historical_volumes)
+            if len(historical_volumes) >= 2:
+                std_volume = statistics.stdev(historical_volumes)
+                if std_volume > 0:
+                    volume_z = (volume - avg_volume) / std_volume
 
-        summary = str(prof.get("summary", "")).lower()
+        mcap = _first_finite(prof.get("market_cap"), prof.get("marketCap"))
+
+        summary = str(prof.get("summary") or prof.get("description") or "").lower()
         hype_keywords = [
             "artificial intelligence",
             "ai-powered",
@@ -346,71 +369,108 @@ class F51HubAdapter:
             "game-changer",
             "paradigm shift",
         ]
-        hype_count = sum(1 for kw in hype_keywords if kw in summary)
-
-        total_revenue = prof.get("total_revenue")
-        if total_revenue is None:
-            pe = prof.get("pe_ratio")
-            if isinstance(pe, (int, float)) and pe > 0 and mcap > 0:
-                total_revenue = mcap / pe
-            else:
-                total_revenue = 1
-
-        features = {
-            "price": _safe_float(price),
-            "daily_return": daily_ret,
-            "volume": _safe_int(volume),
-            "avg_volume": _safe_float(avg_volume),
+        candidates = {
+            "price": price,
+            "daily_return": daily_return,
+            "volume": volume,
+            "avg_volume": avg_volume,
             "volume_z_score": volume_z,
-            "market_cap": _safe_float(mcap),
-            "rsi_14": _safe_float(tech.get("rsi_14"), 50.0),
-            "annual_volatility": _safe_float(risk.get("annual_volatility"), 0.2),
-            "var_95": _safe_float(risk.get("var_95"), -0.02),
-            "sharpe_ratio": _safe_float(risk.get("sharpe_ratio"), 0.0),
-            "hype_keyword_count": hype_count,
-            "total_revenue": _safe_float(total_revenue, 0.0),
-            "sentiment_score": _safe_float(sentiment.get("sentiment_score"), 0.0),
-            "reddit_sentiment": _safe_float(reddit.get("sentiment_score"), 0.0),
-            "monte_carlo_prob_up": _safe_float(quant.get("monte_carlo_prob_up"), 50.0),
-            "ml_prob_up": _safe_float(quant.get("ml_prob_up"), 50.0),
-            "missing_data_ratio": _missing_data_ratio(trace),
+            "market_cap": mcap,
+            "rsi_14": _finite_float(tech.get("rsi_14")),
+            "annual_volatility": _finite_float(risk.get("annual_volatility")),
+            "var_95": _finite_float(risk.get("var_95")),
+            "sharpe_ratio": _finite_float(risk.get("sharpe_ratio")),
+            "total_revenue": _first_finite(prof.get("total_revenue"), prof.get("revenue")),
+            "sentiment_score": _first_finite(
+                sentiment.get("sentiment_score"), sentiment.get("score")
+            ),
+            "reddit_sentiment": _first_finite(
+                reddit.get("sentiment_score"), reddit.get("score")
+            ),
+            "monte_carlo_prob_up": _finite_float(quant.get("monte_carlo_prob_up")),
+            "ml_prob_up": _finite_float(quant.get("ml_prob_up")),
         }
+        features = {key: value for key, value in candidates.items() if value is not None}
+        if summary:
+            features["hype_keyword_count"] = sum(1 for kw in hype_keywords if kw in summary)
+        expected = (
+            "price",
+            "daily_return",
+            "volume_z_score",
+            "market_cap",
+            "rsi_14",
+            "annual_volatility",
+            "sentiment_score",
+        )
+        observed = sum(1 for key in expected if key in features)
+        features["missing_data_ratio"] = 1.0 - observed / len(expected)
+        features["data_points"] = len(closes)
         return features
 
     def run_on_trace(self, trace: dict[str, Any], domain: str = "trading") -> dict[str, Any]:
         """Roda o f51 motor em um trace completo do SuperEzio."""
         features = self.extract_features(trace)
 
-        user_text = trace.get("user_message", "")
+        user_text = str(trace.get("user_message") or trace.get("message") or "")
         from f51 import SpiderSense
 
         spider = SpiderSense()
         danger, alerts = spider.detect(user_text)
 
+        claims = _build_claims(trace)
+        raw_truth = trace.get("independent_ground_truth")
+        independent_truth = (
+            {
+                str(key): value
+                for key, raw_value in raw_truth.items()
+                if (value := _finite_float(raw_value)) is not None
+            }
+            if isinstance(raw_truth, dict)
+            else {}
+        )
         f51_input = {
             "features": features,
-            "claims": _build_claims(trace),
-            "ground_truth": features,
+            "claims": claims,
+            "ground_truth": independent_truth,
             "ticker": trace.get("ticker", ""),
             "user_text": user_text,
             "danger": danger,
             "alerts": [a.__dict__ for a in alerts],
         }
 
-        self.engine._metadata = {"spider_result": (danger, alerts)}
-
         result = self.engine.run(f51_input, domain=domain)
 
-        risk_result = self.risk_engine.evaluate(features)
+        risk_result = self.risk_engine.evaluate({"features": features})
+        risk_result["score_type"] = "deterministic_rule_risk_score"
         result["hub_risk"] = risk_result
 
-        claims = f51_input["claims"]
-        if claims:
-            vgate = self.veracity_gate.verify(claims, features, tolerance=0.15)
-            result["veracity_explicit"] = {
-                "passed": vgate.passed,
-                "confidence": vgate.confidence,
-                "mismatches": vgate.mismatches,
-            }
+        vgate = self.veracity_gate.verify(claims, independent_truth, tolerance=0.15)
+        result["veracity_explicit"] = {
+            "passed": vgate.passed,
+            "confidence": vgate.confidence,
+            "verified": vgate.verified,
+            "total": vgate.total,
+            "mismatches": vgate.mismatches,
+            "details": vgate.details,
+        }
+        reason_codes: list[str] = []
+        if not claims:
+            reason_codes.append("NO_INDEPENDENT_CLAIMS")
+        if claims and not independent_truth:
+            reason_codes.append("NO_INDEPENDENT_GROUND_TRUTH")
+        if not vgate.passed:
+            reason_codes.append("VERACITY_NOT_ESTABLISHED")
+        if vgate.verified < 2:
+            reason_codes.append("INSUFFICIENT_INDEPENDENT_VERIFICATION")
+        if features.get("missing_data_ratio", 1.0) > 0.5:
+            reason_codes.append("INSUFFICIENT_MARKET_EVIDENCE")
+
+        evidence_ready = not reason_codes
+        result["heuristic_score"] = result.get("decision_score", result.get("confidence", 0.0))
+        result["score_type"] = "uncalibrated_decision_score"
+        result["calibration_status"] = "not_calibrated"
+        result["evidence_status"] = "verified" if evidence_ready else "insufficient"
+        result["reason_codes"] = reason_codes
+        result["passed"] = bool(result.get("passed")) and evidence_ready
 
         return result
