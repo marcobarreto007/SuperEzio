@@ -1,33 +1,23 @@
-# TWS Preset Cancel Fix
+# TWS limit-order preset guidance
 
 ## Problem
-TWS paper trading account has a preset that auto-cancels LMT (limit) orders. This causes 4/5 paper orders to be canceled immediately.
 
-## Solution: Disable TWS Order Preset
+An Interactive Brokers paper account can apply TWS presets that cancel or alter limit orders immediately.
 
-1. Open TWS Paper Trading account
-2. Go to **Configuration** → **Order Presets**
-3. Find the preset that cancels LMT orders
-4. Delete or disable the preset
+## Current code contract
 
-## Code Fix (already applied)
+- The raw `_ibkr_order.py` command is retired and never contacts IBKR.
+- Prepared orders pass through `InteractiveBrokersAdapter` and its isolated worker.
+- Limit orders use explicit `GTC` time-in-force in the worker.
+- Market orders remain blocked by default.
+- Orders require F51 approval, matching ticker evidence, weighted consensus, adaptive sizing, and a healthy journal before the adapter accepts them.
 
-The `_ibkr_order.py` script now sets:
-- `order.tif = 'DAY'` — explicit Time-In-Force
-- `order.displaySize = qty` — show full size
-- `order.outsideRth = False` — regular hours only
+## TWS configuration
 
-This should prevent most auto-cancellations, but the TWS preset still needs to be disabled for 100% reliability.
+1. Open the paper-trading TWS account.
+2. Open **Configuration → Order Presets**.
+3. Inspect the stock preset for automatic cancellation or conflicting time-in-force rules.
+4. Disable only the conflicting preset.
+5. Submit through the SuperEzio prepared pipeline and verify the order in the TWS order book.
 
-## Verification
-
-After disabling the preset:
-1. Submit a test LMT order via the script
-2. Check TWS Order Book
-3. Verify order stays active (not Cancelled)
-
-## Alternative: Use Market Orders
-
-If LMT orders continue to be cancelled, use MARKET orders for paper trading:
-- Set `limit_price = 0.0` in the order request
-- This bypasses the LMT preset entirely
+Do not use the retired raw CLI or switch to market orders as a workaround.

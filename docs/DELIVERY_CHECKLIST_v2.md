@@ -92,14 +92,10 @@
   - [ ] Zero crashes no servidor
 
 - [ ] **M3 — Paper Trading Real (25 ordens):**
-  ```powershell
-  # Habilitar env no terminal do servidor:
-  $env:SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT = "1"
-  
-  # Rodar ordens diretas:
-  python scripts/stress_test_25.py --direct-only
-  ```
-  ⚠️ Isso VAI submeter ordens paper reais no TWS.
+  O modo legado `--direct-only` foi aposentado porque contornava a preparação
+  adaptativa. Qualquer teste de submissão deve entrar pelo fluxo canônico,
+  produzir um `PreparedOrderEnvelope` aprovado e permanecer em paper trading.
+  A ativação isolada de uma variável de ambiente não autoriza uma ordem.
 
 - [ ] Verificar TWS após stress:
   - [ ] Ordens aparecem na aba "Orders"
@@ -192,8 +188,8 @@ Data:        ____-__-__
 | `scripts/serve_agent_llamacpp.ps1 -Port 8082` | Iniciar CEO |
 | `python -m pytest tests/ -q` | Suíte completa |
 | `python scripts/stress_test_25.py` | 25 prompts pipeline |
-| `python scripts/stress_test_25.py --direct-only` | 25 ordens IBKR diretas |
+| `python scripts/stress_test_25.py --direct-only` | Legado bloqueado; não usar |
 | `python scripts/browser_smoke.py --headed` | Smoke visual |
-| `python scripts/_ibkr_order.py BUY AAPL 10 150.00` | Ordem única direta |
+| `python scripts/_ibkr_order.py BUY AAPL 10 150.00` | Transporte aposentado; sempre bloqueia |
 | `curl.exe http://127.0.0.1:8002/cockpit/summary` | Status JSON |
 | `curl.exe http://127.0.0.1:8002/sentiment/history/AAPL/db?days=7` | Histórico sentimento |

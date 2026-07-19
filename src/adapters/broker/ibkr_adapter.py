@@ -191,12 +191,8 @@ class InteractiveBrokersAdapter:
     def submit_order(self, order: Any) -> Any:
         """Submit only an F51-gated, approved, adaptively prepared order.
 
-        This maintains the existing behavior — orders go through a subprocess
-        to avoid event-loop conflicts. The adapter does not use in-process IB().
-
-        F51 INVARIANT: All orders MUST pass through f51_trade_gate BEFORE
-        reaching this adapter. The subprocess (_ibkr_order.py) also enforces
-        the gate independently (defense in depth).
+        The isolated worker owns its IB connection, while this adapter remains
+        the sole validation boundary for prepared submissions.
         """
         from core.trading.broker import Order, OrderType, OrderStatus
         import json
