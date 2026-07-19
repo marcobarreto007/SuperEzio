@@ -13,34 +13,75 @@ import math
 from typing import Any
 
 import numpy as np
-from scipy.cluster.hierarchy import linkage, fcluster
+from scipy.cluster.hierarchy import leaves_list, linkage
 from scipy.spatial.distance import squareform
+from sklearn.covariance import LedoitWolf
+
+
+def _aligned_return_matrix(
+    returns: dict[str, list[float]], tickers: list[str]
+) -> np.ndarray:
+    if not tickers:
+        return np.empty((0, 0), dtype=float)
+    min_len = min(len(returns[ticker]) for ticker in tickers)
+    if min_len == 0:
+        return np.empty((0, len(tickers)), dtype=float)
+    matrix = np.column_stack(
+        [np.asarray(returns[ticker][-min_len:], dtype=float) for ticker in tickers]
+    )
+    if not np.isfinite(matrix).all():
+        raise ValueError("returns must contain only finite observations")
+    return matrix
+
+
+def _ledoit_wolf_covariance(observations: np.ndarray) -> np.ndarray:
+    """Estimate a stable covariance matrix from rows=time and columns=assets."""
+    if observations.shape[1] == 0:
+        return np.empty((0, 0), dtype=float)
+    if observations.shape[0] < 2:
+        return np.zeros((observations.shape[1], observations.shape[1]), dtype=float)
+    covariance = LedoitWolf(assume_centered=False).fit(observations).covariance_
+    return np.asarray(covariance, dtype=float)
 
 
 def covariance_matrix(returns: dict[str, list[float]]) -> dict[str, dict[str, float]]:
-    """Build covariance matrix from dict of ticker→daily_returns."""
-    tickers = list(returns.keys())
+    """Build a Ledoit-Wolf shrinkage covariance matrix from daily returns."""
+    tickers = sorted(returns)
     n = len(tickers)
-    if n < 2:
-        return {t: {t: 1.0} for t in tickers}
-
-    # Align all return series to same length
-    min_len = min(len(r) for r in returns.values())
-    aligned = np.array([returns[t][-min_len:] for t in tickers])
-    cov = np.cov(aligned)
+    if n == 0:
+        return {}
+    observations = _aligned_return_matrix(returns, tickers)
+    cov = _ledoit_wolf_covariance(observations)
     return {tickers[i]: {tickers[j]: float(cov[i][j]) for j in range(n)} for i in range(n)}
 
 
 def correlation_matrix(returns: dict[str, list[float]]) -> dict[str, dict[str, float]]:
-    """Build correlation matrix from returns."""
-    tickers = list(returns.keys())
+    """Build a correlation matrix from the shrinkage covariance estimate."""
+    tickers = sorted(returns)
     n = len(tickers)
-    if n < 2:
-        return {t: {t: 1.0} for t in tickers}
-    min_len = min(len(r) for r in returns.values())
-    aligned = np.array([returns[t][-min_len:] for t in tickers])
-    corr = np.corrcoef(aligned)
+    if n == 0:
+        return {}
+    observations = _aligned_return_matrix(returns, tickers)
+    cov = _ledoit_wolf_covariance(observations)
+    corr = _covariance_to_correlation(cov)
     return {tickers[i]: {tickers[j]: float(corr[i][j]) for j in range(n)} for i in range(n)}
+
+
+def _covariance_to_correlation(cov: np.ndarray) -> np.ndarray:
+    std = np.sqrt(np.maximum(np.diag(cov), 0.0))
+    denominator = np.outer(std, std)
+    corr = np.divide(cov, denominator, out=np.zeros_like(cov), where=denominator > 0)
+    corr = np.clip(corr, -1.0, 1.0)
+    np.fill_diagonal(corr, 1.0)
+    return corr
+
+
+def _cluster_variance(cov: np.ndarray, indices: list[int]) -> float:
+    cluster_cov = cov[np.ix_(indices, indices)]
+    diagonal = np.maximum(np.diag(cluster_cov), 1e-18)
+    inverse_variance = 1.0 / diagonal
+    inverse_variance /= inverse_variance.sum()
+    return float(inverse_variance @ cluster_cov @ inverse_variance)
 
 
 def _hrp_weights(cov: np.ndarray) -> np.ndarray:
@@ -51,62 +92,34 @@ def _hrp_weights(cov: np.ndarray) -> np.ndarray:
     if n == 0:
         return np.array([])
 
-    corr = np.zeros_like(cov)
-    std = np.sqrt(np.diag(cov))
-    for i in range(n):
-        for j in range(n):
-            if std[i] > 0 and std[j] > 0:
-                corr[i][j] = cov[i][j] / (std[i] * std[j])
+    corr = _covariance_to_correlation(cov)
+    distance = np.sqrt(np.maximum(0.0, 0.5 * (1.0 - corr)))
+    np.fill_diagonal(distance, 0.0)
+    condensed = squareform(distance, checks=False)
+    hierarchy = linkage(condensed, method="single", optimal_ordering=True)
 
-    # Distance matrix (clamp correlation for numerical stability)
-    corr_clipped = np.clip(corr, -1.0, 1.0)
-    dist = np.sqrt(0.5 * (1.0 - corr_clipped))
-    dist[np.isnan(dist)] = 1.0
+    # leaves_list is the quasi-diagonal ordering of the covariance matrix.
+    ordered_indices = [int(index) for index in leaves_list(hierarchy)]
+    weights = np.ones(n, dtype=float)
 
-    # Hierarchical clustering
-    try:
-        link = linkage(squareform(dist, checks=False), method="ward")
-    except Exception:
-        return np.ones(n) / n
-
-    # Recursive bisection
-    def _bisect(indices: list[int]) -> np.ndarray:
+    def _bisect(indices: list[int]) -> None:
         if len(indices) <= 1:
-            return np.ones(len(indices))
+            return
+        split = len(indices) // 2
+        left = indices[:split]
+        right = indices[split:]
+        left_variance = _cluster_variance(cov, left)
+        right_variance = _cluster_variance(cov, right)
+        total_variance = left_variance + right_variance
+        left_weight = right_variance / total_variance if total_variance > 0 else 0.5
+        weights[left] *= left_weight
+        weights[right] *= 1.0 - left_weight
+        _bisect(left)
+        _bisect(right)
 
-        # Split into 2 clusters
-        cluster_ids = fcluster(link, t=2, criterion="maxclust")
-        c1 = [i for i in indices if cluster_ids[i] == 1]
-        c2 = [i for i in indices if cluster_ids[i] == 2]
-
-        if not c1 or not c2:
-            return np.ones(len(indices)) / len(indices)
-
-        w1 = _bisect(c1)
-        w2 = _bisect(c2)
-
-        # Inverse-variance weighting per cluster
-        cov1 = cov[np.ix_(c1, c1)]
-        cov2 = cov[np.ix_(c2, c2)]
-        var1 = (w1 @ cov1 @ w1) if len(c1) > 0 else 1.0
-        var2 = (w2 @ cov2 @ w2) if len(c2) > 0 else 1.0
-        alpha1 = 1.0 / max(var1, 1e-9)
-        alpha2 = 1.0 / max(var2, 1e-9)
-        total_alpha = alpha1 + alpha2
-
-        scale1 = alpha1 / total_alpha if total_alpha > 0 else 0.5
-        scale2 = alpha2 / total_alpha if total_alpha > 0 else 0.5
-
-        result = np.zeros(len(indices))
-        for i, idx in enumerate(c1):
-            result[idx] = w1[i] * scale1
-        for i, idx in enumerate(c2):
-            result[idx] = w2[i] * scale2
-
-        return result / result.sum()
-
-    weights = _bisect(list(range(n)))
-    return weights
+    _bisect(ordered_indices)
+    total = weights.sum()
+    return weights / total if total > 0 else np.ones(n, dtype=float) / n
 
 
 def hrp_allocate(
@@ -114,35 +127,44 @@ def hrp_allocate(
     capital: float = 10000.0,
     max_single_position: float = 0.25,
 ) -> dict[str, Any]:
-    """Allocate capital across tickers using Hierarchical Risk Parity."""
-    tickers = list(returns.keys())
+    """Allocate with HRP; capped asset weight is retained as uninvested CASH."""
+    if capital < 0:
+        raise ValueError("capital must be non-negative")
+    if not 0 < max_single_position <= 1:
+        raise ValueError("max_single_position must be in (0, 1]")
+    tickers = sorted(returns)
     if not tickers:
-        return {"weights": {}, "allocations": {}, "total_risk": 0.0}
-
-    if len(tickers) == 1:
-        t = tickers[0]
-        w = 1.0
         return {
-            "weights": {t: w},
-            "allocations": {t: round(capital * w, 2)},
-            "total_risk": float(np.std(returns[t])) if returns[t] else 0.0,
+            "weights": {},
+            "allocations": {},
+            "total_risk": 0.0,
+            "method": "HRP",
+            "n_assets": 0,
         }
 
-    cov_dict = covariance_matrix(returns)
-    tickers_sorted = sorted(tickers)
-    cov_arr = np.array([[cov_dict[ti][tj] for tj in tickers_sorted] for ti in tickers_sorted])
+    observations = _aligned_return_matrix(returns, tickers)
+    cov_arr = _ledoit_wolf_covariance(observations)
 
     weights_raw = _hrp_weights(cov_arr)
 
-    # Apply max position cap + renormalize
-    weights = np.minimum(weights_raw, max_single_position)
-    weights = weights / weights.sum()
+    # Do not renormalize capped positions: doing so silently violates the cap.
+    asset_weights = np.minimum(weights_raw, max_single_position)
+    result_weights = {
+        ticker: round(float(asset_weights[index]), 10)
+        for index, ticker in enumerate(tickers)
+    }
+    cash_weight = round(max(0.0, 1.0 - sum(result_weights.values())), 10)
+    if cash_weight > 0:
+        result_weights["CASH"] = cash_weight
 
-    result_weights = {t: round(float(weights[i]), 4) for i, t in enumerate(tickers_sorted)}
-    result_alloc = {t: round(float(weights[i] * capital), 2) for i, t in enumerate(tickers_sorted)}
+    result_alloc = {
+        ticker: round(float(result_weights[ticker] * capital), 2) for ticker in tickers
+    }
+    if cash_weight > 0:
+        result_alloc["CASH"] = round(capital - sum(result_alloc.values()), 2)
 
     # Portfolio risk (annualized)
-    port_var = weights @ cov_arr @ weights
+    port_var = asset_weights @ cov_arr @ asset_weights
     port_vol = math.sqrt(max(port_var, 0)) * math.sqrt(252)
 
     return {
@@ -150,6 +172,9 @@ def hrp_allocate(
         "allocations": result_alloc,
         "total_risk": round(port_vol, 4),
         "method": "HRP",
+        "covariance_estimator": "Ledoit-Wolf shrinkage",
+        "cluster_linkage": "single",
+        "cash_policy": "unallocated_cap_excess",
         "n_assets": len(tickers),
     }
 
