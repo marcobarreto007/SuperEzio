@@ -55,6 +55,13 @@ class PaperTrade:
     risk_assessment: str  # Riscos identificados
     expected_holding_period: str  # "day_trade" | "swing" | "position" | "long_term"
 
+    # Immutable decision snapshot used only after a terminal outcome.
+    confidence_at_entry: float = 0.0
+    risk_at_entry: float | None = None
+    fees: float = 0.0
+    slippage: float = 0.0
+    expert_attribution: dict[str, float] = field(default_factory=dict)
+
     # Saida (preenchida no fechamento)
     exit_date: str | None = None
     exit_price: float | None = None

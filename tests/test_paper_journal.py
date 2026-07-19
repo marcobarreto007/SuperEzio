@@ -60,6 +60,58 @@ class TestPaperJournal:
         assert opened[0]["ticker"] == "AAPL"
         assert opened[0]["outcome"] is None  # Ainda nao fechado
 
+    def test_decision_snapshot_survives_close(self, journal, sample_trade):
+        sample_trade.confidence_at_entry = 0.82
+        sample_trade.risk_at_entry = 250.0
+        sample_trade.expert_attribution = {"crisis": 0.7, "fundamental": 0.9}
+        journal.open_trade(sample_trade)
+
+        journal.close_trade("test-001", exit_price=195.0, exit_reason="take_profit")
+        stored = journal.list_closed()[0]
+
+        assert stored["confidence_at_entry"] == pytest.approx(0.82)
+        assert stored["risk_at_entry"] == pytest.approx(250.0)
+        assert stored["expert_attribution"] == {"crisis": 0.7, "fundamental": 0.9}
+
+    def test_auto_journal_maps_buy_to_long_and_captures_experts(self, monkeypatch):
+        import core.trading.paper_journal as journal_module
+        from core.pipeline.nodes.auto_execute_paper import _journal_trade
+
+        captured = {}
+
+        class FakeJournal:
+            def open_trade(self, trade):
+                captured["trade"] = trade
+                return trade.trade_id
+
+        monkeypatch.setattr(journal_module, "PaperJournal", FakeJournal)
+        trade_id = _journal_trade(
+            {
+                "message": "buy thesis",
+                "expert_results": [
+                    {"role": "crisis", "ok": True, "confidence": 70},
+                    {"role": "fundamental", "ok": True, "confidence": 0.9},
+                ],
+                "f51_verdict": {"confidence": 80},
+                "adaptive_config": {"stop_loss_pct": 0.05},
+            },
+            {},
+            "AAPL",
+            "buy",
+            10,
+            100.0,
+            "run-001",
+        )
+
+        assert trade_id == "bob-run-001"
+        assert captured["trade"].direction == "long"
+        assert captured["trade"].confidence_at_entry == pytest.approx(0.8)
+        assert captured["trade"].risk_at_entry == pytest.approx(50.0)
+        assert captured["trade"].expert_attribution == {
+            "crisis": 0.7,
+            "fundamental": 0.9,
+        }
+
     def test_close_trade_long_win(self, journal, sample_trade):
         """Fecha um trade long com lucro."""
         journal.open_trade(sample_trade)

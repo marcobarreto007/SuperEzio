@@ -585,11 +585,12 @@ def _journal_trade(
                         return f"closed:{ot['trade_id']}"
             return f"no_open_trade_for:{ticker}"
         else:
+            learning_context = _extract_learning_context(state, qty, limit_price)
             trade = PaperTrade(
                 trade_id=f"bob-{run_id[:12]}" if run_id else f"bob-{int(time.time())}",
                 ticker=ticker,
                 thesis=state.get("message", "Auto-executed paper trade")[:200],
-                direction=action,
+                direction="long" if action.lower() == "buy" else "short",
                 entry_date=datetime.now(timezone.utc).isoformat(),
                 entry_price=limit_price,
                 shares=qty,
@@ -597,6 +598,7 @@ def _journal_trade(
                 verdict_at_entry=state.get("trade_order_context", {}).get("decision", "auto"),
                 risk_assessment=state.get("risk_tolerance", "moderada"),
                 expected_holding_period="swing",
+                **learning_context,
             )
             trade_id = journal.open_trade(trade)
             logger.info(
@@ -623,3 +625,42 @@ def _journal_trade(
             },
         )
         return f"journal_error_dead_letter:{exc}"
+
+
+def _extract_learning_context(state: dict, qty: int, entry_price: float) -> dict:
+    """Capture decision-time facts without producing a learning outcome."""
+    attribution: dict[str, float] = {}
+    for result in state.get("expert_results") or []:
+        if not isinstance(result, dict) or result.get("ok") is False:
+            continue
+        name = str(result.get("role") or result.get("expert") or result.get("name") or "").strip()
+        if not name:
+            continue
+        try:
+            confidence = float(result.get("confidence", 0.5) or 0.5)
+        except (TypeError, ValueError):
+            confidence = 0.5
+        if confidence > 1.0:
+            confidence /= 100.0
+        attribution[name] = max(0.0, min(1.0, confidence))
+
+    verdict = state.get("f51_verdict") or {}
+    try:
+        confidence_at_entry = float(verdict.get("confidence", 0.0) or 0.0)
+    except (AttributeError, TypeError, ValueError):
+        confidence_at_entry = 0.0
+    if confidence_at_entry > 1.0:
+        confidence_at_entry /= 100.0
+
+    adaptive = state.get("adaptive_config") or {}
+    try:
+        stop_loss_pct = float(adaptive.get("stop_loss_pct", 0.01) or 0.01)
+    except (AttributeError, TypeError, ValueError):
+        stop_loss_pct = 0.01
+    stop_loss_pct = max(0.0, min(1.0, stop_loss_pct))
+
+    return {
+        "confidence_at_entry": max(0.0, min(1.0, confidence_at_entry)),
+        "risk_at_entry": abs(float(entry_price) * int(qty)) * stop_loss_pct,
+        "expert_attribution": attribution,
+    }
