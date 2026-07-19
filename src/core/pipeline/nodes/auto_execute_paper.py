@@ -24,6 +24,7 @@ from core.idempotency import (
 )
 from core.trading.execution_policy import (
     adaptive_sizing_config as _adaptive_sizing_config,
+    evaluate_neural_execution_gate as _evaluate_neural_execution_gate,
     expert_consensus_block_reason as _expert_consensus_block_reason,
 )
 
@@ -114,6 +115,25 @@ async def auto_execute_paper(state: dict) -> dict:
         return {
             "paper_exec_blocked": "WEIGHTED_EXPERT_CONSENSUS",
             "paper_exec_block_reason": consensus_block,
+        }
+
+    neural_gate = _evaluate_neural_execution_gate(state, action)
+    if not neural_gate["allowed"]:
+        writer(
+            {
+                "type": "PAPER_ORDER_BLOCKED",
+                "run_id": run_id,
+                "ticker": ticker,
+                "step": "neural_execution_gate",
+                "status": "blocked",
+                "reason": neural_gate["code"],
+                "evidence": neural_gate,
+            }
+        )
+        return {
+            "paper_exec_blocked": neural_gate["code"],
+            "paper_exec_block_reason": "neural forecast is not execution-eligible",
+            "neural_gate": neural_gate,
         }
 
     # ═══════════════════════════════════════════════════════════

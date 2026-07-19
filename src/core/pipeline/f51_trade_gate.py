@@ -388,6 +388,7 @@ def build_order_gate_metadata(
     order_symbol: str,
     approval_id: str,
     consensus_decision: str,
+    neural_gate: dict[str, Any],
 ) -> dict[str, Any]:
     """Bind a prepared order to an actual successful gate decision."""
     symbol = str(order_symbol or "").strip().upper()
@@ -404,6 +405,11 @@ def build_order_gate_metadata(
         raise ValueError("order has no approval id")
     if consensus not in {"SUPPORT", "NEUTRAL"}:
         raise ValueError("order has no non-blocking weighted consensus")
+    if not isinstance(neural_gate, dict) or neural_gate.get("allowed") is not True:
+        raise ValueError("order has no successful neural execution gate")
+    neural_model_id = str(neural_gate.get("model_id") or "").strip()
+    if not neural_model_id:
+        raise ValueError("neural execution gate has no model id")
     return {
         "gate_status": "ALLOW",
         "gate_trace_id": trace_id,
@@ -414,6 +420,10 @@ def build_order_gate_metadata(
         "adaptive_policy_applied": True,
         "approval_id": approval_id,
         "consensus_decision": consensus,
+        "neural_gate_status": "ALLOW",
+        "neural_model_id": neural_model_id,
+        "neural_as_of": str(neural_gate.get("as_of") or ""),
+        "neural_horizon": neural_gate.get("horizon"),
     }
 
 

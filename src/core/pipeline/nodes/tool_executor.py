@@ -403,12 +403,22 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
 
     from core.trading.execution_policy import (
         adaptive_sizing_config,
+        evaluate_neural_execution_gate,
         expert_consensus_block_reason,
     )
 
     consensus_block = expert_consensus_block_reason(state)
     if consensus_block:
         return {"submit_paper_order_error": f"weighted_expert_consensus:{consensus_block}"}
+
+    neural_gate = evaluate_neural_execution_gate(
+        state, str(args.get("action", args.get("side", "buy")))
+    )
+    if not neural_gate["allowed"]:
+        return {
+            "submit_paper_order_error": f"neural_execution_gate:{neural_gate['code']}",
+            "neural_gate": neural_gate,
+        }
 
     permission_error = _paper_order_submission_error(state, args)
     if permission_error:
@@ -550,6 +560,7 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
             order_symbol=symbol,
             approval_id=approval.id,
             consensus_decision=str(consensus.get("decision") or ""),
+            neural_gate=neural_gate,
         )
         order = Order(
             id=f"prepared-{approval.id}",

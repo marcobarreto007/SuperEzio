@@ -34,6 +34,8 @@ def _low_level_gate_check(order: Any) -> bool:
       - adaptive_policy_applied == True
       - approval_id (non-empty)
       - consensus_decision in {SUPPORT, NEUTRAL}
+      - neural_gate_status == ALLOW
+      - neural_model_id (non-empty)
     """
     import socket
 
@@ -48,6 +50,8 @@ def _low_level_gate_check(order: Any) -> bool:
     adaptive_policy_applied = order_meta.get("adaptive_policy_applied", False)
     approval_id = str(order_meta.get("approval_id") or "")
     consensus_decision = str(order_meta.get("consensus_decision") or "").upper()
+    neural_gate_status = str(order_meta.get("neural_gate_status") or "").upper()
+    neural_model_id = str(order_meta.get("neural_model_id") or "").strip()
 
     # 1. gate_status MUST be ALLOW
     if gate_status != "ALLOW":
@@ -109,6 +113,14 @@ def _low_level_gate_check(order: Any) -> bool:
             "BLOCKED_LOW_LEVEL_UNGATED_ORDER:consensus_missing symbol=%s decision=%s",
             getattr(order, "symbol", "?"),
             consensus_decision or "MISSING",
+        )
+        return False
+    if neural_gate_status != "ALLOW" or not neural_model_id:
+        logger.error(
+            "BLOCKED_LOW_LEVEL_UNGATED_ORDER:neural_gate_missing symbol=%s status=%s model=%s",
+            getattr(order, "symbol", "?"),
+            neural_gate_status or "MISSING",
+            neural_model_id or "MISSING",
         )
         return False
 
