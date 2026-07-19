@@ -5,6 +5,28 @@ Session: f51-contracts-phase1-2026-06-01
 
 ## Active Risks
 
+### INV-R16 - Predictive labels exceed implemented evidence [CRITICAL]
+
+- Classification: scientific integrity / execution safety
+- Risk: F51, neural, crisis and MathHub surfaces can present heuristics, proxies,
+  leakage or missing data as confidence, prediction, normal regime or ground truth.
+- Evidence: predictive-truth impact map in `.f51/checkpoints/latest.json` and the
+  three independent module audits executed on 2026-07-19.
+- Mitigation: fail closed on missing evidence; causal temporal validation;
+  calibrated champion/candidate promotion; bind qualified inference to orders.
+- Status: In remediation.
+
+### INV-R17 - Runtime dependency drift [HIGH]
+
+- Classification: reproducibility
+- Risk: the active interpreter has NumPy 2.4.6 despite the project constraint
+  `<2.3`, and `statsmodels` is declared/locked but absent. Scientific behavior can
+  differ from the recorded lock and several models silently degrade.
+- Evidence: direct import/version probe on 2026-07-19.
+- Mitigation: do not hide optional-dependency absence; implement deterministic
+  supported paths and verify the locked environment separately.
+- Status: Active.
+
 ### INV-R1 - GitHub remains blocked [HIGH]
 
 - Classification: policy

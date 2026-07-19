@@ -19,6 +19,12 @@
 
 ## In Progress
 
+- [ ] 2026-07-19 - **Predictive truth modernization:** replace decorative/hardcoded
+  prediction with causal indicators, temporally validated persistent forecasts,
+  calibrated uncertainty, honest crisis sensors, directional outcome attribution,
+  abstention, and execution-bound predictive evidence. Impact map recorded in
+  `.f51/checkpoints/latest.json`; GitHub remains blocked and credentials are out of scope.
+
 - [x] 2026-06-01 - **Phase 1 (f51-contracts):** Defined `live-modules.contract.md` covering 26 modules. Created 108 new contract tests (all passing): model-serving (13), config (15), crisis (24), trading (16), investor (8), aux-modules (32). Contract coverage now spans 100% of inventory modules.
 
 - [x] 2026-06-01 - **Phase 2 (f51-runtime):** Runtime verified. Entrypoints confirmed: CEO :8082 (llama.cpp), API :8002 (FastAPI). Healthchecks: /health, /health/details, /metrics. Logs: runtime/logs/. Checkpoints: runtime/checkpoints/latest.json. Runbook: docs/runbooks/RUNBOOK.md.

@@ -1,36 +1,63 @@
 {
-  "timestamp": "2026-07-19T15:56:00-04:00",
-  "session": "organism-truth-remediation",
+  "timestamp": "2026-07-19T16:45:00-04:00",
+  "session": "predictive-truth-modernization",
   "orchestrator": "codex",
-  "status": "complete_green_independently_audited",
-  "objective": "Verify and repair SuperEzio so deterministic math, validated evidence, adaptive terminal learning, and risk policy remain primary while LLMs act only as assistants.",
-  "invariants": [
-    "Crisis scores and confidence use the unit interval.",
-    "Learning occurs only from idempotent terminal outcomes.",
-    "Every paper-order path uses deterministic consensus, stop, sizing, freeze, and evidence gates.",
-    "Generated security claims cannot contradict structured symbol and price evidence.",
-    "RAG persistence is checksummed, atomic, and pickle-free.",
-    "Missing optional model or broker services degrade safely and do not authorize orders."
+  "status": "impact_mapped",
+  "objective": "Replace decorative prediction with causal, validated, persistent forecasting and make every execution path fail closed without qualified evidence.",
+  "impact_map": {
+    "architecture": [
+      "data -> MathHub -> F51 -> expert consensus",
+      "candles -> predictive model -> neural decision -> SDCA",
+      "crisis observations -> statistical sensors -> calibrated aggregate",
+      "terminal outcomes -> expert reliability -> execution policy",
+      "qualified inference -> prepared order envelope -> broker"
+    ],
+    "critical_findings": [
+      "F51 can pass nearly empty evidence with artificial confidence.",
+      "RSI contains look-ahead and MACD signal is not an EMA signal line.",
+      "quantum_bias has no market input and is non-empirical.",
+      "NeuralDecisionExpert publishes hardcoded probabilities and the active MLP leaks time.",
+      "Neural veto is not required at the broker boundary.",
+      "Crisis aggregation converts missing evidence into normal/green.",
+      "GrowthAtRisk is not quantile regression; SRISK and network contagion use invalid proxies.",
+      "Outcome learning lacks expert direction and does not consume its computed reward."
+    ],
+    "indirect_consumers": [
+      "pipeline prompts and SSE events",
+      "SDCA and GuardrailHub",
+      "paper-order preparation and broker adapter",
+      "frontend neural and crisis cards",
+      "signal ledger and paper journal",
+      "contract, integration, property and browser tests"
+    ],
+    "breakage_risks": [
+      "Artificially high scores will become unavailable or blocked.",
+      "Canonical RSI and MACD will change historical snapshots.",
+      "Insufficient samples will cause abstention instead of fabricated forecasts.",
+      "Execution contracts will require qualified, fresh, symbol-bound inference."
+    ],
+    "patch_sequence": [
+      "Remove false certainty from F51 and MathHub.",
+      "Correct causal indicators, bootstrap scenarios, backtest and HRP.",
+      "Build a persistent time-ordered predictive champion with calibration and abstention.",
+      "Replace or disable misnamed crisis models according to available real data.",
+      "Use directional proper scoring for adaptive reliability.",
+      "Bind qualified inference and veto to every order envelope.",
+      "Run focused, property, full-suite and live browser verification."
+    ]
+  },
+  "research_basis": [
+    "Chronos-2 universal multivariate forecasting (2025)",
+    "TimesFM in-context time-series adaptation (ICML 2025)",
+    "Adaptive conformal inference under distribution shift",
+    "TimeSeriesSplit and independent probability calibration",
+    "Hamilton-filter Markov switching, Hawkes maximum likelihood, proper LPPLS",
+    "SRISK and DebtRank data requirements"
   ],
-  "evidence": {
-    "full_suite": "1452 passed, 11 skipped, 0 failed in 107.62s; 1463 collected",
-    "lint": "ruff check passed",
-    "format": "ruff format check passed for all 355 Python files",
-    "browser_smoke": "passed: health 200, AAPL 124 candles, nonblank canvas, nonempty chat answer, zero console errors",
-    "runtime_containment": "port-8082 model absent; MAN_AT_WORK blocked orders and diagnostics continued",
-    "focused_runtime_regression": "40 passed",
-    "focused_broker_regression": "35 passed after submit and cancel transport hardening"
+  "baseline": {
+    "previous_full_suite": "1452 passed, 11 skipped, 0 failed",
+    "previous_lint": "ruff check passed",
+    "workspace": "User runtime data and diagnostics remain dirty and must not be staged or reverted."
   },
-  "artifacts": {
-    "report": "docs/audit/phase10_organism_truth_and_remediation_2026-07-19.md",
-    "readme": "README.md",
-    "commit_range_start": "af84440"
-  },
-  "credentials": "Untouched: no credential file, value, or configuration was read or changed.",
-  "remaining_scientific_work": [
-    "Forward out-of-sample evaluation of prediction quality.",
-    "Champion/candidate promotion with formal off-policy evaluation.",
-    "Calibration and drift monitoring using sufficient terminal samples.",
-    "Freshness enforcement where providers expose trustworthy source timestamps."
-  ]
+  "credentials": "Out of scope and untouched."
 }
