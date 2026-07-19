@@ -24,6 +24,7 @@ from experts.crisis.models.markov_regime import (
 )
 from experts.crisis.models.shiller_valuation import ShillerValuationModel
 from experts.crisis.models.minsky_keen import MinskyKeenModel
+from experts.crisis.models.hawkes_stress import _fit_exponential_hawkes
 from experts.crisis.models.lppls_bubble import (
     LPPLSBubbleModel,
     _second_derivative,
@@ -542,6 +543,21 @@ class TestMinskyKeenModel:
         result = model.evaluate(ci)
         assert result.status == "ok"
         assert "Ponzi" in result.details["minsky_state"]
+
+
+class TestHawkesStressModel:
+    def test_clustered_events_outscore_regular_poisson_events(self):
+        regular = np.linspace(5.0, 195.0, 40)
+        clustered = np.concatenate(
+            [base + np.arange(8, dtype=float) * 0.2 for base in (20, 60, 100, 140, 180)]
+        )
+        poisson_like = _fit_exponential_hawkes(regular, horizon=220.0)
+        self_exciting = _fit_exponential_hawkes(clustered, horizon=220.0)
+
+        assert poisson_like.branching_ratio < 0.05
+        assert self_exciting.branching_ratio > 0.60
+        assert self_exciting.log_likelihood > self_exciting.poisson_log_likelihood
+        assert self_exciting.alpha / self_exciting.beta < 1.0
 
 
 class TestLPPLSBubbleModel:
