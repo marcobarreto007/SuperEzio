@@ -14,6 +14,17 @@
 
 ## Done
 
+- [x] 2026-07-19 - Safety gate unification (Claude Code): fixed CRITICAL gap from
+  phase6 audit — F51_TRADING_EXECUTION_FREEZE and SUPEREZIO_LIVE_TRADING_DISABLED
+  were independent, non-communicating safety families. is_execution_frozen() now
+  checks both; SUPEREZIO_LIVE_TRADING_DISABLED default changed False -> True
+  (fail-safe). Fixed 1 test that relied on the old unsafe default. Full suite:
+  1367 passed, 0 failed, 11 skipped. Commit 47404b2. Also folded in phase5-8
+  audit reports (F51/SDCA/Neural, RAG/PennyLab/execution, idempotency/security,
+  executive summary) produced by a separate agent run via
+  docs/audit/SUBAGENT_RESEARCH_PROMPT.md, plus scripts/questrade_order_assist.py
+  (Playwright fills the Questrade order ticket, never clicks submit/confirm —
+  that stays a human action in the real browser window).
 - [x] 2026-07-19 - Component-by-component audit (Claude Code): 4 phases documented in
   `docs/audit/phase1-4b`. Confirmed and fixed: quantum_module fixed RNG seed (math_hub.py),
   f51_module hardcoded consensus=0.65, silent gateway fallback with no opt-out on the sync

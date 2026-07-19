@@ -1,49 +1,46 @@
 {
-  "timestamp": "2026-07-19T00:30:00-04:00",
-  "session": "component-audit-expert-isolation-fix",
+  "timestamp": "2026-07-19T09:10:00-04:00",
+  "session": "safety-gate-unification",
   "orchestrator": "claude-code",
-  "status": "audit_complete_fixes_committed",
-  "objective": "Audit SuperEzio pipeline component-by-component (config, math, gateway, DataHub, expert isolation), fix confirmed defects with evidence, no feature invention beyond documented gaps.",
+  "status": "critical_gap_fixed_full_suite_green",
+  "objective": "Verify a separate agent's phase5-8 audit findings, fix the P0 safety-gate gap it found (F51_* vs SUPEREZIO_* not communicating), and get the full test suite to a clean state before running any real Questrade automation.",
   "what_was_done": [
-    "Phase 1: audited config/runtime.yml, .env.example, providers.py, math_hub.py. Confirmed context_length 4096 vs 65536 contradiction against .f51/ENTRYPOINT_MAP.md; confirmed .env.example had 3 duplicated variables; confirmed math_hub._quantum_module used numpy RandomState(42) fixed seed; confirmed f51_module used consensus=0.65 hardcoded constant.",
-    "Phase 2: audited gateway.py end-to-end. Confirmed allow_fallback existed only on stream_generate_async, not on the sync path (generate/chat_completion) that expert_dialogue.py actually calls — silent provider fallback (including Gemini as an orphaned fallback target) could not be disabled during research runs.",
-    "Phase 3: audited data_hub.py. Confirmed DataHub._is_usable_result treats an empty dict {} as a usable result (only checks absence of 'error' key), which would silently break the market-data fallback chain if any provider ever returns {}.",
-    "Phase 4: audited expert data isolation. Confirmed all 6 named experts, red team, judge, and auditor received the identical unfiltered data_context (raw math_report + message) with zero filtering — contradicting the intended architecture where each expert sees only its relevant data and the judge arbitrates expert verdicts rather than re-reading raw market data.",
-    "Researched TradingAgents (Xiao et al., arXiv:2412.20138, TauricResearch), FinRobot (AI4Finance-Foundation, arXiv:2405.14767), and AIMM (arXiv:2512.16103) for real multi-agent financial system role/prompt/data-isolation patterns.",
-    "Fixed math_hub.py: _quantum_module now derives its Monte Carlo seed from the actual quantum walk counts (sha256 hash) instead of a hardcoded 42.",
-    "Fixed math_hub.py: _f51_module now computes real consensus from expert_results when available (Counter over parsed verdicts), falls back to a documented neutral 0.5 with consensus_is_heuristic=true when no experts have run yet (was: silent 0.65 constant always).",
-    "Fixed gateway.py + expert_dialogue.py: added allow_fallback param end-to-end on the sync path (generate -> chat_completion), plus gateway.last_provider_used tracking. expert_dialogue.py now forces allow_fallback=False when SUPEREZIO_RESEARCH_PAPER_ONLY or SUPEREZIO_DAYTRADE_PAPER_ONLY is set, and records provider_used + fallback_occurred in every expert result.",
-    "Fixed experts.py: added EXPERT_CONTEXT_MODULES (role -> allowed math_report module names) and build_role_context() to slice math_report per role instead of sending the full report to everyone. Added build_judge_context() so judge/auditor roles receive a structured summary of expert verdicts instead of raw market data. Rewrote all 6 EXPERT_PROMPTS with an anti-guessing contract (declare NO_DATA instead of inventing numbers) and explicit references to which real-system role each SuperEzio expert mirrors.",
-    "Documented (did not guess) the runtime.yml context_length/gpu_layers divergence against ENTRYPOINT_MAP.md with an inline comment — verified via disk check that neither referenced GGUF model exists on this machine (C:\\llama.cpp\\ absent), so neither number can be trusted without a live server measurement.",
-    "Cleaned 3 duplicated env var entries in .env.example.",
-    "RISK_REGISTER.md INV-R4 (4 leaked API keys in git history) updated: operator explicitly and knowingly accepted the risk without rotation on 2026-07-18 — recorded verbatim, not a technical decision.",
-    "Committed all changes locally as 7f77357 (disk-only per .f51/GITHUB_POLICY.json — no git push/pull/fetch performed at any point)."
+    "Read docs/audit/phase5_f51_sdca_neural.md, phase6_rag_pennylab_execution.md, phase7_idempotency_security_repro.md, phase8_executive_summary.md — a separate agent run following docs/audit/SUBAGENT_RESEARCH_PROMPT.md (written in the previous session).",
+    "Independently verified the two P0 findings by direct code reading (not just trusting the report): confirmed f51_trade_gate.py's is_execution_frozen() only checked F51_TRADING_EXECUTION_FREEZE, and confirmed no .env file exists on disk, meaning SUPEREZIO_LIVE_TRADING_DISABLED (default False in trading_engine_live.py) provided zero protection on its own.",
+    "Fixed f51_trade_gate.py: added _superezio_paper_only_or_live_disabled() helper; is_execution_frozen() now also freezes if SUPEREZIO_LIVE_TRADING_DISABLED / SUPEREZIO_RESEARCH_PAPER_ONLY / SUPEREZIO_DAYTRADE_PAPER_ONLY is true. BLOCK reason message now reports the actual triggering flag.",
+    "Fixed trading_engine_live.py: SUPEREZIO_LIVE_TRADING_DISABLED default changed from False to True in both LiveTradingEngine.__init__ and get_live_trading_engine() (fail-safe: missing .env now disables live IBKR execution instead of silently allowing it).",
+    "Confirmed scripts/_ibkr_order.py needed no direct edit — it already calls evaluate_trade_gate() as its GATE 3, which now inherits the unified check automatically.",
+    "Found and fixed a real regression this change caused: tests/test_autonomous_live_engine.py::test_live_cycle_blocks_when_reconciliation_blocks constructed LiveTradingEngine(use_ibkr=True) expecting real IBKR reconciliation behavior, but the new fail-safe default silently forced use_ibkr=False, skipping the test's mocked reconciliation path entirely. Fixed by adding monkeypatch.setenv('SUPEREZIO_LIVE_TRADING_DISABLED', 'false') to that specific test, restoring its intended scenario without reverting the production fail-safe.",
+    "Built scripts/questrade_order_assist.py: Playwright script that logs into Questrade, pauses for the operator to complete 2FA manually, fills the order ticket (ticker/side/quantity/LIMIT price), screenshots it, and pauses again before closing — it has no code path that clicks submit/confirm. Verified playwright + chromium actually install and launch on this machine (previously neither was installed despite being in requirements.txt).",
+    "Flagged a lookalike/phishing domain (questrade.co.com, NOT questrade.com) that surfaced in a web search — warned the operator, used only the confirmed official domain (login.questrade.com) in the script.",
+    "Declined (and will continue to decline) fully automating the Questrade order submit/confirm click via Playwright even after the operator explicitly accepted the account-suspension risk — that action would bypass a rule Questrade deliberately wrote (order execution automation is partner-only), which is a different kind of line than personal risk-acceptance.",
+    "Committed everything locally as 47404b2 (disk-only, no GitHub operation), including the phase5-8 reports and the other agent's small fixes in scripts/broker_readiness_probe.py, src/core/pipeline/intents.py, nodes/collector.py, nodes/tool_executor.py, experts/pennylab/schemas.py — all validated together via the full suite run, not just compiled in isolation."
   ],
   "artifacts": {
-    "phase1_report": "docs/audit/phase1_config_math.md",
-    "phase2_report": "docs/audit/phase2_model_gateway.md",
-    "phase3_report": "docs/audit/phase3_datahub.md",
-    "phase4_report": "docs/audit/phase4_expert_isolation.md",
-    "phase4b_fix_report": "docs/audit/phase4b_expert_isolation_fix.md",
-    "commit": "7f77357"
+    "phase5_report": "docs/audit/phase5_f51_sdca_neural.md",
+    "phase6_report": "docs/audit/phase6_rag_pennylab_execution.md",
+    "phase7_report": "docs/audit/phase7_idempotency_security_repro.md",
+    "phase8_executive_summary": "docs/audit/phase8_executive_summary.md",
+    "questrade_assist_script": "scripts/questrade_order_assist.py",
+    "commit": "47404b2"
   },
   "evidence": {
-    "compile_check": "python -m py_compile on all 3 edited src files -> exit 0",
-    "targeted_tests": "python -m pytest tests/ -k \"math_hub or gateway or expert_dialogue or providers or experts or trinity or contract_experts\" -q -> 84 passed, 0 failed",
-    "full_suite_before_edits": "git stash; python -m pytest tests/test_auto_full_analysis.py -k kill_switch... -> same 4 failures present BEFORE any edit (A/B confirmed)",
-    "full_suite_after_edits": "python -m pytest tests/ -q --ignore=tests/test_property_f51.py -> 498 passed, 5 failed (same pre-existing failures), 2 skipped"
+    "compile_check": "python -m py_compile on f51_trade_gate.py + trading_engine_live.py -> exit 0",
+    "targeted_tests_before_full_run": "python -m pytest tests/ -k \"trade_gate or trading_engine or f51_blindagem or ibkr\" -q -> 57 passed",
+    "full_suite_first_pass": "1 failed (test_live_cycle_blocks_when_reconciliation_blocks — regression caused by this session's fail-safe default change), 1366 passed, 11 skipped",
+    "full_suite_after_test_fix": "python -m pytest tests/ -q -> 1367 passed, 0 failed, 11 skipped",
+    "playwright_smoke": "python -c \"from playwright.sync_api import sync_playwright; ...\" -> chromium launched OK"
   },
   "risks": [
-    "INV-R4 (leaked API keys) remains unrotated by explicit operator decision — still a real exposure if this repo is ever connected to a remote.",
-    "INV-R15 (missing GGUF models) still blocks live pipeline verification; runtime.yml context_length/gpu_layers numbers remain unverified against a live server.",
-    "Expert diversity is still fundamentally same-model (DeepSeek V4 Pro) with different prompts/data slices, not different model weights — data isolation fix reduces but does not eliminate correlated-groupthink risk across replicas of the same role.",
-    "Red team agents (red_team_agent_N) still use the generic context[:3000] fallback without role-scoped data isolation — out of scope for this fix, no named role existed to map them to.",
-    "No live DeepSeek API call was made to validate the rewritten prompts actually produce well-formed, role-appropriate output — verification was structural/static only."
+    "INV-R4 (leaked API keys) still unrotated by explicit prior operator decision.",
+    "No .env file exists on this machine at all — every safety default in the codebase is currently what's actually protecting the system. Any future .env creation must preserve F51_TRADING_EXECUTION_FREEZE and/or SUPEREZIO_LIVE_TRADING_DISABLED as true/blocking unless the operator explicitly intends to go live.",
+    "scripts/questrade_order_assist.py selectors (SELECTORS dict) are best-effort placeholders never verified against a real logged-in Questrade session — first real run will likely need selector adjustments after inspecting the live DOM.",
+    "P1/P2 findings from phase5-7 (spider_sense inconsistency, adversarial critic fail-open, idempotency success-marking gap, exec() in custom_tools, RAG silent degradation, expert cache without TTL/LRU) remain OPEN — not addressed this session, only the two P0 items were.",
+    "Full suite went from 1364 collected / some pre-existing failures (previous session) to 1367 passed / 0 failed this session — likely because hypothesis got installed in between (enabling test_property_f51.py) by the other agent's work, not fully attributable to this session alone."
   ],
   "next_steps": [
-    "If credentials/server are available, run a live smoke test of node_expert for all 6 roles + judge to confirm the new prompts produce valid JSON and the context slicing doesn't starve any role of data it needs.",
-    "Decide whether red_team_agent_N roles deserve their own EXPERT_CONTEXT_MODULES entry or should stay generic.",
-    "Resolve runtime.yml context_length divergence by actually starting scripts/serve_agent_llamacpp.ps1 and reading /health or /v1/models once a GGUF model is present on disk.",
-    "Continue Phase 5+ of the original component audit plan if desired: F51 Verdict engine, SDCA firewall, Neural Decision, RAG/ForensicRAG, PennyLab, execution/broker layer — none of these were audited in this session."
+    "Operator: run scripts/questrade_order_assist.py for the first time with real Questrade credentials in .env (QUESTRADE_USERNAME/QUESTRADE_PASSWORD) and report which selectors fail so they can be corrected against the real DOM.",
+    "Address remaining P1 findings from docs/audit/phase8_executive_summary.md (Sprint B/C in that report's remediation plan) if desired.",
+    "Consider whether F51_TRADING_EXECUTION_FREEZE and the SUPEREZIO_* family should be collapsed into a single canonical flag long-term, rather than maintained as two families that now cross-check each other."
   ]
 }
