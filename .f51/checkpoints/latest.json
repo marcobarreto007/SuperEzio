@@ -1,46 +1,36 @@
 {
-  "timestamp": "2026-07-19T09:10:00-04:00",
-  "session": "safety-gate-unification",
-  "orchestrator": "claude-code",
-  "status": "critical_gap_fixed_full_suite_green",
-  "objective": "Verify a separate agent's phase5-8 audit findings, fix the P0 safety-gate gap it found (F51_* vs SUPEREZIO_* not communicating), and get the full test suite to a clean state before running any real Questrade automation.",
-  "what_was_done": [
-    "Read docs/audit/phase5_f51_sdca_neural.md, phase6_rag_pennylab_execution.md, phase7_idempotency_security_repro.md, phase8_executive_summary.md — a separate agent run following docs/audit/SUBAGENT_RESEARCH_PROMPT.md (written in the previous session).",
-    "Independently verified the two P0 findings by direct code reading (not just trusting the report): confirmed f51_trade_gate.py's is_execution_frozen() only checked F51_TRADING_EXECUTION_FREEZE, and confirmed no .env file exists on disk, meaning SUPEREZIO_LIVE_TRADING_DISABLED (default False in trading_engine_live.py) provided zero protection on its own.",
-    "Fixed f51_trade_gate.py: added _superezio_paper_only_or_live_disabled() helper; is_execution_frozen() now also freezes if SUPEREZIO_LIVE_TRADING_DISABLED / SUPEREZIO_RESEARCH_PAPER_ONLY / SUPEREZIO_DAYTRADE_PAPER_ONLY is true. BLOCK reason message now reports the actual triggering flag.",
-    "Fixed trading_engine_live.py: SUPEREZIO_LIVE_TRADING_DISABLED default changed from False to True in both LiveTradingEngine.__init__ and get_live_trading_engine() (fail-safe: missing .env now disables live IBKR execution instead of silently allowing it).",
-    "Confirmed scripts/_ibkr_order.py needed no direct edit — it already calls evaluate_trade_gate() as its GATE 3, which now inherits the unified check automatically.",
-    "Found and fixed a real regression this change caused: tests/test_autonomous_live_engine.py::test_live_cycle_blocks_when_reconciliation_blocks constructed LiveTradingEngine(use_ibkr=True) expecting real IBKR reconciliation behavior, but the new fail-safe default silently forced use_ibkr=False, skipping the test's mocked reconciliation path entirely. Fixed by adding monkeypatch.setenv('SUPEREZIO_LIVE_TRADING_DISABLED', 'false') to that specific test, restoring its intended scenario without reverting the production fail-safe.",
-    "Built scripts/questrade_order_assist.py: Playwright script that logs into Questrade, pauses for the operator to complete 2FA manually, fills the order ticket (ticker/side/quantity/LIMIT price), screenshots it, and pauses again before closing — it has no code path that clicks submit/confirm. Verified playwright + chromium actually install and launch on this machine (previously neither was installed despite being in requirements.txt).",
-    "Flagged a lookalike/phishing domain (questrade.co.com, NOT questrade.com) that surfaced in a web search — warned the operator, used only the confirmed official domain (login.questrade.com) in the script.",
-    "Declined (and will continue to decline) fully automating the Questrade order submit/confirm click via Playwright even after the operator explicitly accepted the account-suspension risk — that action would bypass a rule Questrade deliberately wrote (order execution automation is partner-only), which is a different kind of line than personal risk-acceptance.",
-    "Committed everything locally as 47404b2 (disk-only, no GitHub operation), including the phase5-8 reports and the other agent's small fixes in scripts/broker_readiness_probe.py, src/core/pipeline/intents.py, nodes/collector.py, nodes/tool_executor.py, experts/pennylab/schemas.py — all validated together via the full suite run, not just compiled in isolation."
+  "timestamp": "2026-07-19T15:56:00-04:00",
+  "session": "organism-truth-remediation",
+  "orchestrator": "codex",
+  "status": "complete_green_independently_audited",
+  "objective": "Verify and repair SuperEzio so deterministic math, validated evidence, adaptive terminal learning, and risk policy remain primary while LLMs act only as assistants.",
+  "invariants": [
+    "Crisis scores and confidence use the unit interval.",
+    "Learning occurs only from idempotent terminal outcomes.",
+    "Every paper-order path uses deterministic consensus, stop, sizing, freeze, and evidence gates.",
+    "Generated security claims cannot contradict structured symbol and price evidence.",
+    "RAG persistence is checksummed, atomic, and pickle-free.",
+    "Missing optional model or broker services degrade safely and do not authorize orders."
   ],
-  "artifacts": {
-    "phase5_report": "docs/audit/phase5_f51_sdca_neural.md",
-    "phase6_report": "docs/audit/phase6_rag_pennylab_execution.md",
-    "phase7_report": "docs/audit/phase7_idempotency_security_repro.md",
-    "phase8_executive_summary": "docs/audit/phase8_executive_summary.md",
-    "questrade_assist_script": "scripts/questrade_order_assist.py",
-    "commit": "47404b2"
-  },
   "evidence": {
-    "compile_check": "python -m py_compile on f51_trade_gate.py + trading_engine_live.py -> exit 0",
-    "targeted_tests_before_full_run": "python -m pytest tests/ -k \"trade_gate or trading_engine or f51_blindagem or ibkr\" -q -> 57 passed",
-    "full_suite_first_pass": "1 failed (test_live_cycle_blocks_when_reconciliation_blocks — regression caused by this session's fail-safe default change), 1366 passed, 11 skipped",
-    "full_suite_after_test_fix": "python -m pytest tests/ -q -> 1367 passed, 0 failed, 11 skipped",
-    "playwright_smoke": "python -c \"from playwright.sync_api import sync_playwright; ...\" -> chromium launched OK"
+    "full_suite": "1452 passed, 11 skipped, 0 failed in 107.62s; 1463 collected",
+    "lint": "ruff check passed",
+    "format": "ruff format check passed for all 355 Python files",
+    "browser_smoke": "passed: health 200, AAPL 124 candles, nonblank canvas, nonempty chat answer, zero console errors",
+    "runtime_containment": "port-8082 model absent; MAN_AT_WORK blocked orders and diagnostics continued",
+    "focused_runtime_regression": "40 passed",
+    "focused_broker_regression": "35 passed after submit and cancel transport hardening"
   },
-  "risks": [
-    "INV-R4 (leaked API keys) still unrotated by explicit prior operator decision.",
-    "No .env file exists on this machine at all — every safety default in the codebase is currently what's actually protecting the system. Any future .env creation must preserve F51_TRADING_EXECUTION_FREEZE and/or SUPEREZIO_LIVE_TRADING_DISABLED as true/blocking unless the operator explicitly intends to go live.",
-    "scripts/questrade_order_assist.py selectors (SELECTORS dict) are best-effort placeholders never verified against a real logged-in Questrade session — first real run will likely need selector adjustments after inspecting the live DOM.",
-    "P1/P2 findings from phase5-7 (spider_sense inconsistency, adversarial critic fail-open, idempotency success-marking gap, exec() in custom_tools, RAG silent degradation, expert cache without TTL/LRU) remain OPEN — not addressed this session, only the two P0 items were.",
-    "Full suite went from 1364 collected / some pre-existing failures (previous session) to 1367 passed / 0 failed this session — likely because hypothesis got installed in between (enabling test_property_f51.py) by the other agent's work, not fully attributable to this session alone."
-  ],
-  "next_steps": [
-    "Operator: run scripts/questrade_order_assist.py for the first time with real Questrade credentials in .env (QUESTRADE_USERNAME/QUESTRADE_PASSWORD) and report which selectors fail so they can be corrected against the real DOM.",
-    "Address remaining P1 findings from docs/audit/phase8_executive_summary.md (Sprint B/C in that report's remediation plan) if desired.",
-    "Consider whether F51_TRADING_EXECUTION_FREEZE and the SUPEREZIO_* family should be collapsed into a single canonical flag long-term, rather than maintained as two families that now cross-check each other."
+  "artifacts": {
+    "report": "docs/audit/phase10_organism_truth_and_remediation_2026-07-19.md",
+    "readme": "README.md",
+    "commit_range_start": "af84440"
+  },
+  "credentials": "Untouched: no credential file, value, or configuration was read or changed.",
+  "remaining_scientific_work": [
+    "Forward out-of-sample evaluation of prediction quality.",
+    "Champion/candidate promotion with formal off-policy evaluation.",
+    "Calibration and drift monitoring using sufficient terminal samples.",
+    "Freshness enforcement where providers expose trustworthy source timestamps."
   ]
 }
