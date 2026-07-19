@@ -638,16 +638,25 @@ def _format_candidate_block_pt(item: dict[str, Any]) -> list[str]:
 
 _NON_TICKER_SYMBOLS = {
     "AI",
+    "ALLOW",
     "API",
     "ATR",
+    "AVOID",
     "B3",
     "BAND",
+    "BEARISH",
+    "BLOCK",
+    "BULLISH",
     "BUY",
     "CAD",
     "CEO",
     "CFO",
     "CPI",
     "DCA",
+    "DCF",
+    "EMA",
+    "EMA20",
+    "EMA50",
     "ETF",
     "ETFS",
     "EV",
@@ -657,12 +666,18 @@ _NON_TICKER_SYMBOLS = {
     "F51",
     "FHSA",
     "GDP",
+    "HOLD",
+    "IBKR",
     "IPO",
     "IRR",
     "MACD",
     "NASDAQ",
+    "NEUTRAL",
     "NYSE",
+    "OPPORTUNITY",
     "OTC",
+    "OVERBOUGHT",
+    "OVERSOLD",
     "PCT",
     "PE",
     "QA",
@@ -673,12 +688,15 @@ _NON_TICKER_SYMBOLS = {
     "RRSP",
     "SDCA",
     "SEC",
+    "SELL",
     "STUDY",
     "TFSA",
+    "TRAP",
     "TSX",
     "USD",
     "US",
     "USA",
+    "VWAP",
     "WAIT",
 }
 
@@ -720,12 +738,59 @@ def _grounded_tickers(state: dict) -> set[str]:
     return tickers
 
 
+_COMMON_CAPS_WORDS = {
+    # Common English/Portuguese words Bob's prose emphasizes in ALL-CAPS
+    # that are not tickers. A plain \b[A-Z]{2,5}\b regex treats every such
+    # word as a possible ticker, which made the grounding guard falsely
+    # trigger on emphasis words instead of real symbols — confirmed live via
+    # /task/submit, 2026-07-19 (see
+    # docs/audit/phase9_parallel_fixes_and_critical_findings.md). Unlike
+    # _NON_TICKER_SYMBOLS (domain acronyms: MACD, RSI, IBKR...), this list
+    # is generic prose words that show up because of emphasis capitalization,
+    # not because they collide with a real trading term.
+    "DADOS",
+    "SEM",
+    "SCAN",
+    "PARA",
+    "COM",
+    "SEUS",
+    "SUAS",
+    "ESTA",
+    "ESTE",
+    "ISSO",
+    "MUITO",
+    "MAIS",
+    "MENOS",
+    "TUDO",
+    "NADA",
+    "AGORA",
+    "AINDA",
+    "APENAS",
+    "TAMBEM",
+    "ENTAO",
+    "PORQUE",
+    "QUANDO",
+    "ONDE",
+    "COMO",
+    "QUAL",
+    "TODOS",
+    "TODAS",
+    "REAL",
+    "REAIS",
+    "DADO",
+}
+
+
 def _mentioned_tickers(text: str) -> set[str]:
     symbols = {
         _normalize_ticker_symbol(match.group(0))
         for match in re.finditer(r"\b[A-Z][A-Z0-9]{1,4}(?:\.[A-Z]{1,2})?\b", text or "")
     }
-    return {symbol for symbol in symbols if symbol and symbol not in _NON_TICKER_SYMBOLS}
+    return {
+        symbol
+        for symbol in symbols
+        if symbol and symbol not in _NON_TICKER_SYMBOLS and symbol not in _COMMON_CAPS_WORDS
+    }
 
 
 def _grounding_guard_answer(state: dict, content: str) -> str:
