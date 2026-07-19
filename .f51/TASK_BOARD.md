@@ -3,7 +3,58 @@
 ## Backlog
 
 - [ ] Re-run a browser E2E pass after any future UI changes.
-- [ ] Extend structured mentioned_tickers declaration to remaining final_answer
+- [ ] **P0 — no API auth**: /task/submit, /paper/approve, /paper/reject, /bob/ibkr/recover,
+  /trade/execute and ~20 other routes have zero identity check; only CORS + security headers
+  exist. docker-compose.yml publishes 8002 on the host. main.py:563 assumes an "edge gateway"
+  that does not exist in this repo. Confirmed by independent verification agent, 2026-07-19.
+- [ ] auto_execute_paper.py:50 `os.environ.setdefault("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT","1")`
+  runs on every conversation turn (graph.py:642, unconditional) and leaks "1" into the process
+  environment for its lifetime via setdefault semantics, even when docker-compose.yml sets it
+  to false. F51_TRADING_EXECUTION_FREEZE (default True) independently still blocks, but this
+  env leak should be fixed at the source, not just relied on as a second gate.
+- [ ] tool_executor.py's submit_paper_order path likely has the same non-atomic idempotency
+  claim bug fixed in auto_execute_paper.py (commit 1f24c84) — not yet mapped/fixed, more gates
+  between ALLOW and real submission there (lesson-block, expert committee) need tracing first.
+- [ ] /health always returns hardcoded {"status":"ok"} with HTTP 200 regardless of real state;
+  Docker/docker-compose healthcheck uses `curl -f .../health`, so a container can be "healthy"
+  with zero operational capability. /health/details computes real status but also always
+  returns HTTP 200 (tests/test_api_routes_sync.py:105,147 pin this), so switching the
+  healthcheck target doesn't fix it without also changing the status-code contract.
+- [ ] pytest.ini's addopts has no --cov; coverage is a listed dependency but never invoked by
+  the default `pytest tests/ -q` command — "suite green" does not mean coverage was measured.
+- [x] 2026-07-19 - **3-agent independent verification wave** (Claude Code): dispatched 3
+  parallel subagents with disjoint file scope to verify (not trust) claims from the Codex
+  predictive-truth-modernization session and an external audit, using concrete synthetic-data
+  proof rather than reading docstrings. **Math/crisis models** (src/core/math, src/experts/crisis):
+  all CONFIRMED_REAL with numeric evidence — HMM detected a synthetic 100x variance regime
+  shift (stress probability 0.0024→0.9999); Hawkes MLE recovered branching_ratio=0.828 from a
+  true 0.85 simulated process via Ogata thinning, stability constraint alpha/beta<1 verified
+  hard-enforced; Growth-at-Risk pinball loss matched the reference formula exactly (0.00e+00
+  diff, 500 points, 5 quantiles); LPPLS recovered known synthetic parameters (tc, m, omega)
+  with R²=0.9998; former quantum_bias confirmed fully replaced by a real Politis-Romano
+  stationary block bootstrap over actual OHLCV returns (zero "quantum" references left);
+  HRP recovered the exact inverse-variance weight ratio (diff <1e-9) against a synthetic
+  2-asset case. **Neural/adaptive learning** (technical_neural, neural_decision,
+  outcome_learning): all 6 claims CONFIRMED — chronological split with gaps verified via a
+  leakage probe (tampered future candles proved bit-identical train features); split-conformal
+  prediction set (not a naive confidence threshold) traced end-to-end into the execution gate;
+  idempotent ledger proven via a duplicate-event probe (same id+same payload→no-op, same
+  id+different payload→OutcomeConflictError, ledger untouched); confirmed zero code path fakes
+  a pnl=0/exit=entry pseudo-outcome before a trade actually closes; confirmed the old random
+  pseudo-RL policy (neural_rl.py) is now a fail-closed WAIT-only compatibility stub with zero
+  active callers; confirmed atomic tempfile+fsync+os.replace artifact writes with SHA-256 +
+  smoke-test validation on load. **Security/infra**: found and FIXED a real TOCTOU idempotency
+  bug (commit 1f24c84) — the ALLOW path in auto_execute_paper.py never called mark_processed(),
+  so approved paper orders were only deduplicated by an in-memory deque that doesn't survive a
+  restart; fixed with an atomic os.open(O_CREAT|O_EXCL) claim. Also confirmed REAL and unfixed:
+  no API auth on ~20 routes (see Backlog P0 above), a SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT env
+  leak via setdefault, /health always-200 regardless of real state, and no coverage measurement
+  by default — all logged to Backlog rather than patched, since each needs a contract decision
+  (auth scheme, status-code semantics) beyond a small reversible fix. One earlier claim
+  (Order.gate_metadata missing) was REFUTED — the contract already matches; either never true
+  in this codebase state or already fixed before this session. Full suite after all 3 agents:
+  1538 passed, 0 failed, 11 skipped — identical to the pre-verification baseline except for
+  the one real fix. No GitHub operation performed by any agent.
   call sites that don't yet pass declared_tickers (fallback regex path still
   active there); once all call sites declare, consider retiring
   _mentioned_tickers/_NON_TICKER_SYMBOLS/_COMMON_CAPS_WORDS entirely.
