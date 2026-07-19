@@ -1127,6 +1127,17 @@ def _build_submit_paper_order_call(state: dict) -> dict[str, Any] | None:
     if not _is_paper_training_request(message):
         return None
 
+    from core.trading.execution_policy import (
+        adaptive_sizing_config,
+        expert_consensus_block_reason,
+    )
+
+    if expert_consensus_block_reason(state):
+        return None
+    sizing_config = adaptive_sizing_config(state)
+    if sizing_config["max_position_pct"] <= 0:
+        return None
+
     scan = state.get("scan") or {}
     candidates = [c for c in scan.get("candidates", []) if isinstance(c, dict)]
     if not candidates:
@@ -1193,6 +1204,7 @@ def _build_submit_paper_order_call(state: dict) -> dict[str, Any] | None:
             "qty": qty,
             "order_type": "LMT",
             "limit_price": round(price, 2),
+            "stop_loss_price": round(price * (1 - sizing_config["default_stop_pct"]), 4),
         },
     }
 

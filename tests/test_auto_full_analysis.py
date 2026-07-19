@@ -387,6 +387,56 @@ async def test_submit_paper_order_caps_qty_before_approval(monkeypatch):
     assert result["paper_approval_request"]["risk_amount"] == pytest.approx(5010.0)
 
 
+@pytest.mark.asyncio
+async def test_submit_paper_order_cannot_bypass_weighted_consensus(monkeypatch):
+    from src.core.pipeline.nodes import tool_executor as tool_executor_module
+
+    monkeypatch.setenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
+    result = await tool_executor_module._submit_paper_order(
+        {
+            "ticket_allowed": True,
+            "expert_consensus": {
+                "decision": "BLOCK",
+                "score": -0.8,
+                "weight_coverage": 0.7,
+            },
+        },
+        {"ticker": "PLUG", "action": "buy", "qty": 10, "limit_price": 100.0},
+    )
+    assert result["submit_paper_order_error"].startswith("weighted_expert_consensus:")
+
+
+@pytest.mark.asyncio
+async def test_submit_paper_order_applies_adaptive_stop_and_position_cap(monkeypatch):
+    from core.trading.approval_gate import reset_approval_gate_for_test
+    from core.trading.kill_switch import reset_kill_switch_for_test
+    from src.core.pipeline.nodes import tool_executor as tool_executor_module
+
+    monkeypatch.setenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
+    reset_kill_switch_for_test()
+    reset_approval_gate_for_test()
+    result = await tool_executor_module._submit_paper_order(
+        {
+            "run_id": "adaptive-risk-test",
+            "ticket_allowed": True,
+            "paper_equity": 100_000.0,
+            "adaptive_config": {"stop_loss_pct": 0.03, "max_position_pct": 0.05},
+        },
+        {
+            "ticker": "PLUG",
+            "action": "buy",
+            "qty": 200,
+            "order_type": "LMT",
+            "limit_price": 100.0,
+        },
+    )
+
+    assert result["submit_paper_order_error"].startswith("approval_pending:")
+    assert result["paper_approval_request"]["stop_loss_price"] == pytest.approx(97.0)
+    assert result["paper_approval_request"]["risk_amount"] == pytest.approx(600.0)
+    assert result["position_sizing"]["approved_qty"] == 50
+
+
 def test_default_market_scan_contract_gates_paper_submission_tool(monkeypatch):
     from src.core.pipeline.intents import infer_cognitive_contract
 
@@ -511,7 +561,48 @@ async def test_agent_forces_paper_submit_when_model_finalizes(monkeypatch):
         "qty": 3125,
         "order_type": "LMT",
         "limit_price": 3.2,
+        "stop_loss_price": 3.04,
     }
+
+
+def test_agent_builder_propagates_adaptive_stop_and_honors_consensus(monkeypatch):
+    from src.core.pipeline.nodes.agent import _build_submit_paper_order_call
+
+    monkeypatch.setenv("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
+    state = {
+        "message": "treinamento paper com 100k; use 10k para ordem rapida com stop loss",
+        "allowed_tools": ["submit_paper_order"],
+        "ticket_allowed": True,
+        "adaptive_config": {"stop_loss_pct": 0.03, "max_position_pct": 0.05},
+        "f51_verdict": {"passed": True, "confidence": 0.91},
+        "sdca_firewall": {"decision": "ALLOW", "confidence": 0.88},
+        "scan": {
+            "candidates": [
+                {
+                    "ticker": "PLUG",
+                    "name": "Plug Power",
+                    "market": "United States",
+                    "price": 3.2,
+                    "currency": "USD",
+                    "volume": 4_000_000,
+                    "catalyst": "short-term momentum",
+                    "risk": "trend reversal",
+                    "invalidation": "close below support",
+                    "provider": "test",
+                }
+            ],
+            "source_errors": [],
+        },
+    }
+    call = _build_submit_paper_order_call(state)
+    assert call["args"]["stop_loss_price"] == 3.104
+
+    state["expert_consensus"] = {
+        "decision": "BLOCK",
+        "score": -0.5,
+        "weight_coverage": 0.6,
+    }
+    assert _build_submit_paper_order_call(state) is None
 
 
 @pytest.mark.asyncio

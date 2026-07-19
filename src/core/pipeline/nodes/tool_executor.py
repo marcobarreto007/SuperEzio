@@ -401,6 +401,15 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
     Disabled by default; enabled only by explicit paper-submit env.
     """
 
+    from core.trading.execution_policy import (
+        adaptive_sizing_config,
+        expert_consensus_block_reason,
+    )
+
+    consensus_block = expert_consensus_block_reason(state)
+    if consensus_block:
+        return {"submit_paper_order_error": f"weighted_expert_consensus:{consensus_block}"}
+
     permission_error = _paper_order_submission_error(state, args)
     if permission_error:
         return {"submit_paper_order_error": permission_error}
@@ -414,7 +423,12 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
         return {"submit_paper_order_error": "missing_ticker"}
 
     requested_qty = int(qty)
-    stop_loss_price = float(args.get("stop_loss_price") or limit_price * 0.95)
+    sizing_config = adaptive_sizing_config(state)
+    if sizing_config["max_position_pct"] <= 0:
+        return {"submit_paper_order_error": "adaptive_config:max_position_zero"}
+    stop_loss_price = float(
+        args.get("stop_loss_price") or limit_price * (1 - sizing_config["default_stop_pct"])
+    )
 
     # ── Approval gate FIRST (before position sizing) ──
     # The gate must evaluate the REQUESTED risk, not the capped risk,
@@ -450,7 +464,7 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
                 open_positions = int(
                     state.get("open_positions") or state.get("positions_count") or 0
                 )
-                size = PositionSizer(equity=paper_equity).size(
+                size = PositionSizer(equity=paper_equity, **sizing_config).size(
                     entry_price=limit_price,
                     stop_loss_price=stop_loss_price,
                     open_positions=open_positions,
@@ -489,7 +503,7 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
             state.get("paper_equity") or state.get("equity") or get_mission_equity()
         )
         open_positions = int(state.get("open_positions") or state.get("positions_count") or 0)
-        size = PositionSizer(equity=paper_equity).size(
+        size = PositionSizer(equity=paper_equity, **sizing_config).size(
             entry_price=limit_price,
             stop_loss_price=stop_loss_price,
             open_positions=open_positions,
