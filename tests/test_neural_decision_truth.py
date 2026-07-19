@@ -27,6 +27,7 @@ def _valid_payload() -> tuple[dict[str, object], dict[str, object]]:
             "news_sentiment": "neutral",
             "fraud_risk": 0.1,
             "veracity_score": 0.9,
+            "evidence_complete": True,
         },
     )
 
@@ -39,6 +40,14 @@ def test_snapshot_expert_never_fabricates_direction_probabilities() -> None:
     assert result["direction_prob"] == {}
     assert result["calibration_status"] == "unavailable"
     assert "DIRECTION_MODEL_REQUIRED" in result["reason_codes"]
+
+
+def test_snapshot_expert_vetoes_incomplete_safety_evidence() -> None:
+    features, context = _valid_payload()
+    context["evidence_complete"] = False
+    result = NeuralDecisionExpert().predict("AAPL", "1d", features, context)
+    assert result["veto"] is True
+    assert "SAFETY_EVIDENCE_INCOMPLETE" in result["reason_codes"]
 
 
 def test_pipeline_without_candles_is_insufficient_and_never_buy(

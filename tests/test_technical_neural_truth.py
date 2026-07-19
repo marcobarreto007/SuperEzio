@@ -64,6 +64,10 @@ def test_ready_result_is_calibrated_three_class_simplex(qualified_model: dict[st
     assert result["calibration_status"] == "calibrated"
     assert result["skill_status"] == "qualified"
     assert result["decision"] in {"DOWN", "SIDEWAYS", "UP"}
+    assert set(result["prediction_set"]).issubset({"DOWN", "SIDEWAYS", "UP"})
+    assert result["conformal"]["method"] == "split_conformal_inverse_probability"
+    assert result["conformal"]["marginal_coverage_target"] == pytest.approx(0.9)
+    assert result["conformal"]["calibration_samples"] >= 12
 
 
 def test_scaler_is_fit_on_train_partition_only(qualified_model: dict[str, object]) -> None:
@@ -153,7 +157,7 @@ def test_artifact_manifest_hash_matches_safe_npz(qualified_model: dict[str, obje
     assert isinstance(artifact_dir, Path)
     manifest = json.loads((artifact_dir / "TRUTH_h1.json").read_text(encoding="utf-8"))
     payload = artifact_dir / manifest["npz_file"]
-    assert manifest["artifact_version"] == 1
+    assert manifest["artifact_version"] == 2
     assert manifest["npz_sha256"] == hashlib.sha256(payload.read_bytes()).hexdigest()
     with np.load(payload, allow_pickle=False) as arrays:
         assert arrays["classes"].tolist() == [0, 1, 2]

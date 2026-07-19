@@ -624,6 +624,7 @@ def test_neural_predict(client_with_mock_pipeline):
             "news_sentiment": "neutral",
             "fraud_risk": 0.12,
             "veracity_score": 0.77,
+            "evidence_complete": True,
         },
     }
     response = client.post("/experts/neural-decision/predict", json=payload)

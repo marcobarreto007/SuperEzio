@@ -14,6 +14,7 @@ def _ready(direction: str = "UP") -> dict:
             "decision": direction,
             "direction_prob": {"up": 0.7, "down": 0.1, "sideways": 0.2},
             "calibration_status": "calibrated",
+            "prediction_set": [direction],
             "model_id": "model-sha256",
             "as_of": "2026-07-19T12:00:00+00:00",
             "horizon": 1,
@@ -76,6 +77,15 @@ def test_ambiguous_conformal_prediction_set_blocks() -> None:
     result = evaluate_neural_execution_gate(state, "buy")
     assert result["allowed"] is False
     assert result["code"] == "NEURAL_PREDICTION_SET_AMBIGUOUS"
+
+
+def test_missing_conformal_prediction_set_blocks() -> None:
+    state = _ready()
+    state["neural_decision"].pop("prediction_set")
+
+    result = evaluate_neural_execution_gate(state, "buy")
+    assert result["allowed"] is False
+    assert result["code"] == "NEURAL_PREDICTION_SET_MISSING"
 
 
 def test_ready_calibrated_directionally_aligned_model_can_pass() -> None:

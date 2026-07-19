@@ -14,8 +14,9 @@
   },
   "required_context": {
     "macro_risk": {"type": "string", "enum": ["low", "neutral", "high", "unknown"]},
-    "news_sentiment": {"type": "string", "enum": ["bullish", "neutral", "bearish", "mixed"]},
+    "news_sentiment": {"type": "string", "enum": ["bullish", "neutral", "bearish", "mixed", "unknown"]},
     "fraud_risk": {"type": "float", "min": 0.0, "max": 1.0},
-    "veracity_score": {"type": "float", "min": 0.0, "max": 1.0}
+    "veracity_score": {"type": "float", "min": 0.0, "max": 1.0},
+    "evidence_complete": {"type": "boolean"}
   }
 }

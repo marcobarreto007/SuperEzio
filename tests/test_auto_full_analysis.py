@@ -7,6 +7,7 @@ def _ready_neural_decision(direction: str = "UP") -> dict:
         "decision": direction,
         "direction_prob": {"up": 0.7, "down": 0.1, "sideways": 0.2},
         "calibration_status": "calibrated",
+        "prediction_set": [direction],
         "model_id": "test-neural-v1",
         "as_of": "2026-07-19T12:00:00+00:00",
         "horizon": 1,

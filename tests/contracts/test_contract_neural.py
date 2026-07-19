@@ -17,24 +17,30 @@ def _noop_writer(_event: dict) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _observed_candles() -> list[dict]:
+    candles = []
+    price = 100.0
+    for index in range(30):
+        open_price = price
+        price *= 1.0 + (0.01 if index % 3 == 0 else -0.003)
+        candles.append(
+            {
+                "date": f"2026-06-{index + 1:02d}",
+                "open": open_price,
+                "high": max(open_price, price) * 1.002,
+                "low": min(open_price, price) * 0.998,
+                "close": price,
+                "volume": 1_000_000 + index * 10_000,
+            }
+        )
+    return candles
+
+
 def test_build_features_with_technicals():
-    data = {
-        "technicals": {
-            "price": 150.0,
-            "rsi_14": 65.0,
-            "ema_20": 145.0,
-            "ema_50": 140.0,
-            "bb_upper": 160.0,
-            "bb_lower": 140.0,
-            "volume": 5_000_000,
-            "macd": 2.0,
-            "macd_signal": 1.5,
-        }
-    }
+    data = {"candles": _observed_candles()}
     result = _build_features(data)
     assert isinstance(result, dict)
     assert "rsi_14" in result
-    assert result["rsi_14"] == 65.0
     assert "return_1" in result
     assert -1.0 <= result["return_1"] <= 1.0
     assert "atr_pct" in result
@@ -46,24 +52,15 @@ def test_build_features_with_technicals():
 
 
 def test_build_features_empty_data():
-    """Empty data must produce safe defaults, not crash."""
+    """Empty data must expose missing evidence, not fake neutral values."""
     result = _build_features({})
-    assert isinstance(result, dict)
-    assert result["rsi_14"] == 50.0
-    assert result["return_1"] == 0.0
-    assert -1.0 <= result["return_1"] <= 1.0
+    assert result == {}
 
 
-def test_build_features_with_price_fallback():
-    """Features should use price from price key when technicals lacks it."""
-    data = {
-        "price": {"price": 200.0},
-        "technicals": {"rsi_14": 55.0},
-    }
+def test_build_features_does_not_use_snapshot_price_as_history():
+    data = {"price": {"price": 200.0}, "technicals": {"rsi_14": 55.0}}
     result = _build_features(data)
-    assert result["rsi_14"] == 55.0
-    # price is used internally; verify no crash
-    assert "return_1" in result
+    assert result == {}
 
 
 # ---------------------------------------------------------------------------
@@ -90,12 +87,14 @@ def test_build_context_with_macro_and_sentiment():
 
 
 def test_build_context_empty():
-    """Empty data must produce safe defaults."""
+    """Empty data must remain unknown and fail closed."""
     result = _build_context({}, {})
     assert isinstance(result, dict)
-    assert result["macro_risk"] == "neutral"
-    assert result["news_sentiment"] == "neutral"
+    assert result["macro_risk"] == "unknown"
+    assert result["news_sentiment"] == "unknown"
     assert result["fraud_risk"] == 0.0
+    assert result["veracity_score"] == 0.0
+    assert result["evidence_complete"] is False
 
 
 def test_build_context_bearish_sentiment():

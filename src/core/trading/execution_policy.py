@@ -100,14 +100,15 @@ def evaluate_neural_execution_gate(
         }
 
     prediction_set = neural.get("prediction_set")
-    if prediction_set is not None:
-        normalized_set = {str(label).strip().upper() for label in prediction_set}
-        if normalized_set != {required_decision}:
-            return {
-                "allowed": False,
-                "code": "NEURAL_PREDICTION_SET_AMBIGUOUS",
-                "prediction_set": sorted(normalized_set),
-            }
+    if not isinstance(prediction_set, (list, tuple, set)):
+        return {"allowed": False, "code": "NEURAL_PREDICTION_SET_MISSING"}
+    normalized_set = {str(label).strip().upper() for label in prediction_set}
+    if normalized_set != {required_decision}:
+        return {
+            "allowed": False,
+            "code": "NEURAL_PREDICTION_SET_AMBIGUOUS",
+            "prediction_set": sorted(normalized_set),
+        }
 
     return {
         "allowed": True,

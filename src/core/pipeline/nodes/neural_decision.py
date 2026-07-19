@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from collections import deque
+import math
 from typing import Any
 
 from langgraph.config import get_stream_writer
+import numpy as np
 
 _NEURAL_SEEN: deque[str] = deque(maxlen=64)
 
@@ -60,11 +62,11 @@ async def node_neural_decision(state: dict[str, Any]) -> dict[str, Any]:
     try:
         from experts.neural_decision import NeuralDecisionExpert
 
-        features = _build_features(data)
+        candles = _extract_candles(data)
+        features = _build_features(data, candles)
         context = _build_context(data, pennylab)
         timeframe = str(state.get("time_horizon") or "14 days")
         safety = NeuralDecisionExpert().predict(ticker, timeframe, features, context)
-        candles = _extract_candles(data)
 
         if not candles:
             result = _closed_neural_result(ticker, "insufficient_data", "NO_CANDLES")
@@ -171,65 +173,99 @@ def _closed_neural_result(ticker: str, status: str, reason_code: str) -> dict[st
     }
 
 
-def _build_features(data: dict[str, Any]) -> dict[str, Any]:
-    """Extract descriptive snapshot features for the risk copilot."""
-    technicals = data.get("technicals", {})
-    price_data = data.get("price", {})
-    if not isinstance(technicals, dict):
-        technicals = {}
-    if not isinstance(price_data, dict):
-        price_data = {}
-    realtime_price = data.get("realtime_price", {})
-    if not isinstance(realtime_price, dict):
-        realtime_price = {}
+def _build_features(
+    data: dict[str, Any],
+    candles: list[Any] | None = None,
+) -> dict[str, Any]:
+    """Compute the risk snapshot strictly from observed OHLCV candles."""
+    raw_candles = candles if candles is not None else _extract_candles(data)
+    del data  # compatibility parameter; synthetic technical defaults are forbidden
+    if len(raw_candles) < 21:
+        return {}
+    try:
+        from experts.technical_neural.expert import TechnicalNeuralExpert
 
-    price = float(technicals.get("price") or price_data.get("price") or realtime_price.get("price") or 0)
-    rsi = float(technicals.get("rsi_14", 50.0))
-    ema21 = float(technicals.get("ema_20", price))
-    bb_upper = float(technicals.get("bb_upper", 0))
-    bb_lower = float(technicals.get("bb_lower", 0))
-    volume = float(technicals.get("volume", 0))
+        by_time: dict[Any, tuple[float, float, float, float, float]] = {}
+        for candle in raw_candles:
+            if not isinstance(candle, dict):
+                return {}
+            timestamp = TechnicalNeuralExpert._parse_timestamp(candle)
+            values = tuple(
+                float(candle[name]) for name in ("open", "high", "low", "close")
+            ) + (float(candle.get("volume", 0.0)),)
+            if not all(math.isfinite(value) for value in values):
+                return {}
+            previous = by_time.get(timestamp)
+            if previous is not None and previous != values:
+                return {}
+            by_time[timestamp] = values
+        ordered = [values for _, values in sorted(by_time.items())]
+        if len(ordered) < 21:
+            return {}
+        matrix = np.asarray(ordered, dtype=np.float64)
+        highs = matrix[:, 1]
+        lows = matrix[:, 2]
+        closes = matrix[:, 3]
+        volumes = matrix[:, 4]
+        if np.any(closes <= 0) or np.any(volumes < 0):
+            return {}
+    except (KeyError, TypeError, ValueError):
+        return {}
 
-    price_vs_ema21 = ((price - ema21) / ema21) if ema21 > 0 else 0.0
-    price_vs_ema21 = max(-1.0, min(1.0, price_vs_ema21))
+    return_1 = float(closes[-1] / closes[-2] - 1.0)
+    return_5 = float(closes[-1] / closes[-6] - 1.0)
+    from core.math.indicators import rsi as calculate_rsi
 
-    atr_pct = (bb_upper - bb_lower) / price if bb_upper and bb_lower and price > 0 else 0.02
-    atr_pct = max(0.0, min(1.0, atr_pct))
+    rsi_value = calculate_rsi(closes.tolist(), period=14)
+    if rsi_value is None:
+        return {}
 
-    volume_zscore = 0.0
-    if volume > 0:
-        volume_zscore = min(10.0, max(-10.0, volume / 10_000_000 - 1.0))
+    true_ranges = []
+    for index in range(max(1, len(closes) - 14), len(closes)):
+        true_ranges.append(
+            max(
+                highs[index] - lows[index],
+                abs(highs[index] - closes[index - 1]),
+                abs(lows[index] - closes[index - 1]),
+            )
+        )
+    atr_pct = float(np.mean(true_ranges) / closes[-1])
 
-    ema50 = float(technicals.get("ema_50", ema21))
-    trend_slope = ((ema21 - ema50) / ema50) * 10.0 if ema50 > 0 else 0.0
-    trend_slope = max(-10.0, min(10.0, trend_slope))
+    ema21 = float(closes[0])
+    alpha = 2.0 / 22.0
+    for close in closes[1:]:
+        ema21 = alpha * float(close) + (1.0 - alpha) * ema21
+    price_vs_ema21 = float(closes[-1] / ema21 - 1.0)
 
-    bb_width_pct = (bb_upper - bb_lower) / price if price > 0 else 0.02
-    if bb_width_pct > 0.15:
+    volume_window = volumes[-20:]
+    volume_std = float(np.std(volume_window, ddof=1))
+    volume_zscore = (
+        float((volumes[-1] - np.mean(volume_window)) / volume_std)
+        if volume_std > 0.0
+        else 0.0
+    )
+    log_window = np.log(closes[-20:])
+    trend_slope = float(np.polyfit(np.arange(len(log_window)), log_window, 1)[0] * 10.0)
+    realized_volatility = float(np.std(np.diff(log_window), ddof=1))
+    if realized_volatility > 0.05:
         volatility_regime = "extreme"
-    elif bb_width_pct > 0.08:
+    elif realized_volatility > 0.025:
         volatility_regime = "high"
-    elif bb_width_pct > 0.03:
+    elif realized_volatility > 0.01:
         volatility_regime = "normal"
     else:
         volatility_regime = "low"
 
-    liquidity_sweep = bool(
-        volume_zscore > 2.0 and (price_vs_ema21 > 0.05 or price_vs_ema21 < -0.05)
-    )
-    macd = float(technicals.get("macd", 0))
-    macd_signal = float(technicals.get("macd_signal", 0))
-    return_1 = (macd - macd_signal) / price if price > 0 else 0.0
-    return_1 = max(-1.0, min(1.0, return_1 * 5.0))
+    liquidity_sweep = bool(volume_zscore > 2.0 and abs(return_1) > max(2 * atr_pct, 0.03))
 
     return {
-        "return_1": round(return_1, 4),
-        "return_5": round(return_1 * 0.7, 4),
-        "rsi_14": round(rsi, 1),
-        "atr_pct": round(atr_pct, 4),
-        "volume_zscore": round(volume_zscore, 2),
-        "price_vs_ema_21": round(price_vs_ema21, 4),
-        "trend_slope": round(trend_slope, 4),
+        "return_1": max(-1.0, min(1.0, return_1)),
+        "return_5": max(-1.0, min(1.0, return_5)),
+        "rsi_14": float(rsi_value),
+        "atr_pct": max(0.0, min(1.0, atr_pct)),
+        "volume_zscore": max(-10.0, min(100.0, volume_zscore)),
+        "price_vs_ema_21": max(-1.0, min(1.0, price_vs_ema21)),
+        "trend_slope": max(-10.0, min(10.0, trend_slope)),
         "volatility_regime": volatility_regime,
         "liquidity_sweep": liquidity_sweep,
     }
@@ -242,13 +278,15 @@ def _build_context(data: dict[str, Any], pennylab: dict[str, Any]) -> dict[str, 
     if not isinstance(sentiment, dict):
         sentiment = {}
 
-    if isinstance(macro, dict):
+    if isinstance(macro, dict) and macro:
         if macro.get("data_quality") == "unavailable":
             macro_risk = "unknown"
         elif any(value.get("error") for value in macro.values() if isinstance(value, dict)):
             macro_risk = "unknown"
-        else:
+        elif any(value not in (None, "", {}, []) for value in macro.values()):
             macro_risk = "neutral"
+        else:
+            macro_risk = "unknown"
     else:
         macro_risk = "unknown"
 
@@ -259,12 +297,16 @@ def _build_context(data: dict[str, Any], pennylab: dict[str, Any]) -> dict[str, 
         news_sentiment = "bearish"
     elif "mixed" in sentiment_label:
         news_sentiment = "mixed"
-    else:
+    elif sentiment_label:
         news_sentiment = "neutral"
+    else:
+        news_sentiment = "unknown"
 
     scores = pennylab.get("scores", {})
     if not isinstance(scores, dict):
         scores = {}
+    required_scores = {"whale_suspicion", "pump_probability", "trap_risk"}
+    fraud_evidence_available = required_scores.issubset(scores)
     fraud_risk = float(
         scores.get("whale_suspicion", 0.0) * 0.3
         + scores.get("pump_probability", 0.0) * 0.3
@@ -272,11 +314,24 @@ def _build_context(data: dict[str, Any], pennylab: dict[str, Any]) -> dict[str, 
     )
     fraud_risk = round(max(0.0, min(1.0, fraud_risk)), 2)
 
-    quality_map = {"high": 0.85, "partial": 0.55, "degraded": 0.25, "timeout": 0.15}
-    veracity_score = quality_map.get(str(data.get("data_quality", "partial")), 0.5)
+    quality_map = {
+        "complete": 0.90,
+        "high": 0.85,
+        "provider_or_computed": 0.75,
+        "partial": 0.55,
+        "degraded": 0.25,
+        "timeout": 0.15,
+    }
+    data_quality = str(data.get("data_quality") or "unknown")
+    veracity_score = quality_map.get(data_quality, 0.0)
+    evidence_complete = bool(
+        fraud_evidence_available
+        and data_quality in {"complete", "high", "provider_or_computed", "partial"}
+    )
     return {
         "macro_risk": macro_risk,
         "news_sentiment": news_sentiment,
         "fraud_risk": fraud_risk,
         "veracity_score": round(veracity_score, 2),
+        "evidence_complete": evidence_complete,
     }

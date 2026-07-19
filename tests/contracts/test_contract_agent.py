@@ -547,7 +547,10 @@ def test_format_neural_decision_empty():
 
 
 def test_format_neural_decision_with_error():
-    assert _format_neural_decision({"error": "timeout"}) == ""
+    result = _format_neural_decision({"status": "error", "error": "timeout"})
+    assert "[NEURAL_DECISION]" in result
+    assert "status=error" in result
+    assert "error=timeout" in result
 
 
 def test_format_neural_decision_full():

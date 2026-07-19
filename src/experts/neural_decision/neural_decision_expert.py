@@ -41,10 +41,11 @@ class FeatureContractValidator:
                     },
                     "news_sentiment": {
                         "type": "string",
-                        "enum": ["bullish", "neutral", "bearish", "mixed"],
+                        "enum": ["bullish", "neutral", "bearish", "mixed", "unknown"],
                     },
                     "fraud_risk": {"type": "float", "min": 0.0, "max": 1.0},
                     "veracity_score": {"type": "float", "min": 0.0, "max": 1.0},
+                    "evidence_complete": {"type": "boolean"},
                 },
             }
 
@@ -144,6 +145,7 @@ class NeuralDecisionExpert:
 
         fraud_risk = float(context["fraud_risk"])
         veracity_score = float(context["veracity_score"])
+        evidence_complete = bool(context["evidence_complete"])
         rsi = float(features["rsi_14"])
         vol_zscore = float(features["volume_zscore"])
         trend_slope = float(features["trend_slope"])
@@ -171,7 +173,12 @@ class NeuralDecisionExpert:
         normalized_shock = abs(return_1) / max(3.0 * atr_pct, 1e-9)
         drawdown_risk = max(fraud_risk, 1.0 - veracity_score, min(1.0, normalized_shock))
         drawdown_risk = max(0.0, min(1.0, drawdown_risk))
-        veto = (fraud_risk > 0.5) or (veracity_score < 0.5) or (drawdown_risk > 0.8)
+        veto = (
+            not evidence_complete
+            or (fraud_risk > 0.5)
+            or (veracity_score < 0.5)
+            or (drawdown_risk > 0.8)
+        )
 
         if veto:
             recommendation = "veto_block"
@@ -187,6 +194,8 @@ class NeuralDecisionExpert:
             reason = "Sem previsao direcional qualificada; aguardar dados causais e calibracao."
 
         reason_codes = ["DIRECTION_MODEL_REQUIRED"]
+        if not evidence_complete:
+            reason_codes.append("SAFETY_EVIDENCE_INCOMPLETE")
         if veto:
             reason_codes.append("SAFETY_VETO")
         return {

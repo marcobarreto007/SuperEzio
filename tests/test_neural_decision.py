@@ -33,6 +33,7 @@ def get_valid_payload() -> dict:
             "news_sentiment": "neutral",
             "fraud_risk": 0.12,
             "veracity_score": 0.77,
+            "evidence_complete": True,
         },
     }
 

@@ -187,9 +187,23 @@ def _format_pennylab(pennylab: dict[str, Any]) -> str:
 
 def _format_neural_decision(neural: dict[str, Any]) -> str:
     """Compact NeuralDecisionExpert block for CEO prompt."""
-    if not neural or neural.get("error"):
+    if not neural:
         return ""
     lines = ["[NEURAL_DECISION]"]
+    for key in (
+        "status",
+        "decision",
+        "calibration_status",
+        "skill_status",
+        "model_id",
+        "as_of",
+        "horizon",
+        "prediction_set",
+        "reason_codes",
+    ):
+        value = neural.get(key)
+        if value not in (None, "", [], {}):
+            lines.append(f"{key}={value}")
     direction = neural.get("direction_prob", {})
     if direction:
         lines.append(
@@ -206,6 +220,7 @@ def _format_neural_decision(neural: dict[str, Any]) -> str:
         "veto",
         "reason",
         "timeframe",
+        "error",
     ):
         val = neural.get(key)
         if val is not None and val != "":

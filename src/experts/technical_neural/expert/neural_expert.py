@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 CLASS_NAMES = ("down", "sideways", "up")
 CLASS_DECISIONS = ("DOWN", "SIDEWAYS", "UP")
-ARTIFACT_VERSION = 1
+ARTIFACT_VERSION = 2
 
 
 class CandleValidationError(ValueError):
@@ -84,13 +84,17 @@ class TechnicalNeuralExpert:
         artifact_dir: str | Path | None = None,
         max_data_age: timedelta = timedelta(days=7),
         random_state: int = 42,
+        conformal_alpha: float = 0.10,
     ) -> None:
         if not isinstance(horizon_bars, int) or horizon_bars < 1:
             raise ValueError("horizon_bars must be a positive integer")
+        if not 0.0 < conformal_alpha < 1.0:
+            raise ValueError("conformal_alpha must be between zero and one")
         self.horizon_bars = horizon_bars
         self.artifact_dir = Path(artifact_dir or "data/technical_neural_models")
         self.max_data_age = max_data_age
         self.random_state = random_state
+        self.conformal_alpha = float(conformal_alpha)
 
     def evaluate(
         self,
@@ -169,6 +173,12 @@ class TechnicalNeuralExpert:
             )
 
         decision_index = int(np.argmax(probabilities))
+        conformal_threshold = float(artifact["conformal_threshold"])
+        prediction_set = [
+            CLASS_DECISIONS[index]
+            for index, probability in enumerate(probabilities)
+            if 1.0 - float(probability) <= conformal_threshold
+        ]
         entropy = float(-np.sum(probabilities * np.log(np.clip(probabilities, 1e-15, 1.0))))
         confidence = 1.0 - entropy / math.log(3.0)
         class_returns = np.asarray(artifact["class_return_means"], dtype=np.float64)
@@ -185,6 +195,14 @@ class TechnicalNeuralExpert:
                 name: float(probabilities[index]) for index, name in enumerate(CLASS_NAMES)
             },
             "calibration_status": "calibrated",
+            "prediction_set": prediction_set,
+            "conformal": {
+                "method": "split_conformal_inverse_probability",
+                "alpha": self.conformal_alpha,
+                "marginal_coverage_target": 1.0 - self.conformal_alpha,
+                "threshold": conformal_threshold,
+                "calibration_samples": int(artifact["conformal_calibration_samples"]),
+            },
             "skill_status": "qualified",
             "baseline_comparison": metrics,
             "confidence": confidence,
@@ -316,8 +334,9 @@ class TechnicalNeuralExpert:
                 None,
             )
 
-        calibration_prob = self._manual_predict(model.coefs_, model.intercepts_, calibration_x)
-        temperature = self._fit_temperature(calibration_prob, labels[split.calibration])
+        # Temperature is selected on the validation window.  The calibration
+        # window remains untouched until split-conformal scores are computed.
+        temperature = self._fit_temperature(validation_prob, labels[split.validation])
         if not math.isfinite(temperature) or not 0.05 <= temperature <= 20.0:
             return (
                 self._closed(
@@ -328,6 +347,16 @@ class TechnicalNeuralExpert:
                 ),
                 None,
             )
+
+        calibration_raw_prob = self._manual_predict(
+            model.coefs_, model.intercepts_, calibration_x
+        )
+        calibration_prob = self._temperature_scale(calibration_raw_prob, temperature)
+        conformal_threshold = self._conformal_threshold(
+            calibration_prob,
+            labels[split.calibration],
+            self.conformal_alpha,
+        )
 
         test_raw_prob = self._manual_predict(model.coefs_, model.intercepts_, test_x)
         test_prob = self._temperature_scale(test_raw_prob, temperature)
@@ -381,6 +410,9 @@ class TechnicalNeuralExpert:
             "input_hash": prepared.input_hash,
             "movement_threshold": movement_threshold,
             "temperature": temperature,
+            "conformal_alpha": self.conformal_alpha,
+            "conformal_threshold": conformal_threshold,
+            "conformal_calibration_samples": len(split.calibration),
             "feature_names": list(self.FEATURE_NAMES),
             "scaler_mean": np.asarray(scaler.mean_, dtype=np.float64),
             "scaler_scale": np.asarray(scaler.scale_, dtype=np.float64),
@@ -596,6 +628,22 @@ class TechnicalNeuralExpert:
         return float(math.exp(optimum.x))
 
     @staticmethod
+    def _conformal_threshold(
+        probabilities: np.ndarray,
+        labels: np.ndarray,
+        alpha: float,
+    ) -> float:
+        """Finite-sample split-conformal quantile for inverse-probability scores."""
+        if len(labels) == 0 or probabilities.shape != (len(labels), 3):
+            raise ArtifactError("invalid conformal calibration window")
+        scores = 1.0 - probabilities[np.arange(len(labels)), labels]
+        if not np.all(np.isfinite(scores)):
+            raise ArtifactError("non-finite conformal scores")
+        rank = math.ceil((len(scores) + 1) * (1.0 - alpha))
+        rank = min(max(rank, 1), len(scores))
+        return float(np.sort(scores)[rank - 1])
+
+    @staticmethod
     def _metrics(
         labels: np.ndarray, probabilities: np.ndarray, climatology: np.ndarray
     ) -> dict[str, dict[str, float]]:
@@ -677,6 +725,11 @@ class TechnicalNeuralExpert:
                 "feature_names": list(self.FEATURE_NAMES),
                 "movement_threshold": artifact["movement_threshold"],
                 "temperature": artifact["temperature"],
+                "conformal_alpha": artifact["conformal_alpha"],
+                "conformal_threshold": artifact["conformal_threshold"],
+                "conformal_calibration_samples": artifact[
+                    "conformal_calibration_samples"
+                ],
                 "metrics": artifact["metrics"],
                 "npz_file": npz_path.name,
                 "npz_sha256": payload_hash,
@@ -737,6 +790,9 @@ class TechnicalNeuralExpert:
             "input_hash",
             "feature_names",
             "temperature",
+            "conformal_alpha",
+            "conformal_threshold",
+            "conformal_calibration_samples",
             "metrics",
             "npz_file",
             "npz_sha256",
@@ -748,6 +804,13 @@ class TechnicalNeuralExpert:
             raise ArtifactError("unsupported artifact version")
         if manifest["ticker"] != symbol or manifest["horizon_bars"] != self.horizon_bars:
             raise ArtifactError("artifact identity mismatch")
+        if not math.isclose(
+            float(manifest["conformal_alpha"]),
+            self.conformal_alpha,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ):
+            raise ArtifactError("conformal contract mismatch")
         if manifest["feature_names"] != list(self.FEATURE_NAMES):
             raise ArtifactError("feature contract mismatch")
         if manifest["npz_file"] != expected_npz_path.name:
@@ -794,6 +857,11 @@ class TechnicalNeuralExpert:
             "as_of": manifest["as_of"],
             "horizon_bars": self.horizon_bars,
             "temperature": float(manifest["temperature"]),
+            "conformal_alpha": float(manifest["conformal_alpha"]),
+            "conformal_threshold": float(manifest["conformal_threshold"]),
+            "conformal_calibration_samples": int(
+                manifest["conformal_calibration_samples"]
+            ),
             "metrics": manifest["metrics"],
             "scaler_mean": scaler_mean,
             "scaler_scale": scaler_scale,
@@ -807,6 +875,10 @@ class TechnicalNeuralExpert:
         # Validate architecture and numeric content before trusting inference.
         if not all(np.all(np.isfinite(array)) for array in arrays.values()):
             raise ArtifactError("payload contains non-finite values")
+        if not 0.0 <= artifact["conformal_threshold"] <= 1.0:
+            raise ArtifactError("invalid conformal threshold")
+        if artifact["conformal_calibration_samples"] < self.MIN_WINDOW_SAMPLES:
+            raise ArtifactError("conformal calibration window too small")
         try:
             self._predict_artifact(
                 artifact, np.zeros(len(self.FEATURE_NAMES), dtype=np.float64)
@@ -818,6 +890,7 @@ class TechnicalNeuralExpert:
     def _model_id(self, symbol: str, as_of: datetime, input_hash: str) -> str:
         identity = (
             f"technical-neural-v{ARTIFACT_VERSION}|{symbol}|h{self.horizon_bars}|"
+            f"alpha={self.conformal_alpha:.12g}|"
             f"{as_of.isoformat()}|{input_hash}|{'|'.join(self.FEATURE_NAMES)}"
         )
         return hashlib.sha256(identity.encode("utf-8")).hexdigest()[:24]
