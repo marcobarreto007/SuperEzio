@@ -70,13 +70,13 @@ class RewardFunction:
         duration = self._duration_penalty(outcome)
         coverage_penalty = self._coverage_penalty(outcome)
 
-        total = (
+        weighted_signal = (
             self.pnl_weight * pnl_reward
             + self.risk_weight * risk_reward
             + self.confidence_weight * confidence
-            - duration
-            - coverage_penalty
         )
+        total_weight = self.pnl_weight + self.risk_weight + self.confidence_weight
+        total = weighted_signal / max(total_weight, 1e-12) - duration - coverage_penalty
         total = max(-1.0, min(1.0, total))
 
         return RewardComponents(
