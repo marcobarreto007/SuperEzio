@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from data.data_hub import DataHub
+from data.data_hub import DataHub, ProviderRoute
 
 
 def test_market_price_route_order() -> None:
@@ -36,19 +36,22 @@ def test_is_usable_result_rejects_empty_dict() -> None:
 
 
 def test_is_usable_result_accepts_nonempty_dict_without_error() -> None:
-    assert DataHub._is_usable_result({"price": 123.45}) is True
+    assert DataHub._is_usable_result({"price": 123.45}, "price") is True
 
 
 def test_is_usable_result_rejects_dict_with_error_key() -> None:
     assert DataHub._is_usable_result({"error": "not_found"}) is False
 
 
-def test_is_usable_result_accepts_dict_with_falsy_values() -> None:
-    """A dict with real keys whose values are falsy (0/False/"") is still
-    usable content -- only a dict with zero keys is unusable."""
-    assert DataHub._is_usable_result({"price": 0}) is True
+def test_is_usable_result_validates_capability_shape() -> None:
+    assert DataHub._is_usable_result({"price": 0}, "price") is False
+    assert DataHub._is_usable_result({"price": float("nan")}, "price") is False
+    assert DataHub._is_usable_result({"note": ""}, "price") is False
+    assert DataHub._is_usable_result({"candles": []}, "candles") is False
+    assert DataHub._is_usable_result({"candles": [{"close": 12.0}]}, "candles") is True
+    assert DataHub._is_usable_result({"name": "Acme"}, "profile") is True
     assert DataHub._is_usable_result({"is_open": False}) is True
-    assert DataHub._is_usable_result({"note": ""}) is True
+    assert DataHub._is_usable_result({"note": ""}) is False
 
 
 def test_is_usable_result_rejects_empty_list_and_none() -> None:
@@ -60,3 +63,39 @@ def test_is_usable_result_accepts_nonempty_list_and_scalars() -> None:
     assert DataHub._is_usable_result([1, 2, 3]) is True
     assert DataHub._is_usable_result(42) is True
     assert DataHub._is_usable_result("ok") is True
+
+
+def test_price_route_falls_back_when_first_provider_has_no_price() -> None:
+    class EmptyProvider:
+        @staticmethod
+        def get_price(symbol):
+            return {"note": "", "symbol": symbol}
+
+    class PriceProvider:
+        @staticmethod
+        def get_price(symbol):
+            return {"price": 123.0, "symbol": symbol}
+
+    hub = DataHub(register_defaults=False)
+    hub.register_provider(
+        ProviderRoute(
+            name="empty",
+            capabilities=("price",),
+            factory=EmptyProvider,
+            methods={"price": "get_price"},
+            priority=1,
+        )
+    )
+    hub.register_provider(
+        ProviderRoute(
+            name="valid",
+            capabilities=("price",),
+            factory=PriceProvider,
+            methods={"price": "get_price"},
+            priority=2,
+        )
+    )
+
+    result = hub.get_price("AAPL")
+    assert result["price"] == 123.0
+    assert result["provider"] == "valid"

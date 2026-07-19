@@ -11,6 +11,7 @@ from __future__ import annotations
 import inspect
 import json
 import logging
+import math
 import os
 import subprocess
 from dataclasses import dataclass, field
@@ -451,7 +452,7 @@ class DataHub:
                 attempts.append({"provider": route.name, "error": str(exc)})
                 continue
 
-            if self._is_usable_result(result):
+            if self._is_usable_result(result, capability):
                 if isinstance(result, dict):
                     result.setdefault("provider", route.name)
                 return result
@@ -480,13 +481,64 @@ class DataHub:
         return {k: v for k, v in kwargs.items() if k in allowed}
 
     @staticmethod
-    def _is_usable_result(result: Any) -> bool:
+    def _is_usable_result(result: Any, capability: str | None = None) -> bool:
+        """Validate that a provider returned data usable for the requested capability."""
         if result is None:
             return False
         if isinstance(result, dict):
-            return "error" not in result and len(result) > 0
+            if "error" in result or not result:
+                return False
+            if capability in {"price", "market_price", "quote"}:
+                return DataHub._positive_number(result.get("price"))
+            if capability == "candles":
+                candles = result.get("candles")
+                return isinstance(candles, list) and any(
+                    isinstance(candle, dict) and DataHub._positive_number(candle.get("close"))
+                    for candle in candles
+                )
+            if capability == "profile":
+                return bool(str(result.get("name") or "").strip())
+            if capability == "fundamentals":
+                metadata = {"symbol", "requested_symbol", "source", "provider"}
+                return any(
+                    key not in metadata and value is not None for key, value in result.items()
+                )
+            if capability == "treasury":
+                return bool(result.get("data")) or DataHub._finite_number(result.get("yield"))
+            return DataHub._has_meaningful_value(result)
         if isinstance(result, list):
-            return len(result) > 0
+            if capability == "news":
+                return any(
+                    isinstance(item, dict)
+                    and bool(str(item.get("title") or item.get("headline") or "").strip())
+                    for item in result
+                )
+            return any(DataHub._has_meaningful_value(item) for item in result)
+        return DataHub._has_meaningful_value(result)
+
+    @staticmethod
+    def _finite_number(value: Any) -> bool:
+        try:
+            return math.isfinite(float(value))
+        except (TypeError, ValueError):
+            return False
+
+    @staticmethod
+    def _positive_number(value: Any) -> bool:
+        return DataHub._finite_number(value) and float(value) > 0
+
+    @staticmethod
+    def _has_meaningful_value(value: Any) -> bool:
+        if value is None or value == "":
+            return False
+        if isinstance(value, dict):
+            ignored = {"provider", "source", "symbol", "requested_symbol", "note"}
+            return any(
+                key not in ignored and DataHub._has_meaningful_value(item)
+                for key, item in value.items()
+            )
+        if isinstance(value, (list, tuple, set)):
+            return any(DataHub._has_meaningful_value(item) for item in value)
         return True
 
     @staticmethod
