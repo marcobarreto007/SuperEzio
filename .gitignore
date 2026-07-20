@@ -63,6 +63,14 @@ data/traces/
 *.db-shm
 *.db-wal
 *.sqlite
+*.sqlite3
+
+# Runtime-generated scratch (not source of truth, regenerated every run)
+data/man_at_work/diagnosis_*.json
+data/man_at_work/deepseek_advice.txt
+journal/dedup/
+.agents/
+.codex/
 
 # Environment
 .env
