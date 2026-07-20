@@ -87,6 +87,18 @@ def _make_stooq_provider() -> Any:
     return StooqProvider()
 
 
+def _make_akshare_provider() -> Any:
+    from .akshare_provider import AKShareProvider
+
+    return AKShareProvider()
+
+
+def _make_alphasmo_provider() -> Any:
+    from .alphasmo_provider import AlphaSMOProvider
+
+    return AlphaSMOProvider()
+
+
 def _make_apewisdom_provider() -> Any:
     from .apewisdom_provider import ApeWisdomProvider
 
@@ -170,7 +182,11 @@ class DataHub:
         #   1) Finnhub (primary — all equity endpoints below)
         #  12) Twelve Data (fallback)
         #  30) yfinance (last resort)
+        #  40) AKShare (free US stock OHLCV, keyless)
         #  45) Stooq (keyless emergency)
+        # Insider / smart-money chain:
+        #  15) Form4API (free-tier insider trades)
+        #  50) AlphaSMO (free insider + convergence, keyless)
         self.register_provider(
             ProviderRoute(
                 name="finnhub",
@@ -255,6 +271,39 @@ class DataHub:
                 methods={"price": "get_price", "market_price": "get_price"},
                 priority=45,
                 required_key=None,
+            )
+        )
+
+        # ── AKShare (free US stock OHLCV, keyless) ────────────────────────
+        self.register_provider(
+            ProviderRoute(
+                name="akshare",
+                capabilities=("price", "candles", "profile"),
+                factory=_make_akshare_provider,
+                methods={
+                    "price": "get_price",
+                    "candles": "get_candles",
+                    "profile": "get_profile",
+                },
+                priority=40,
+                required_key=None,
+                metadata={"role": "free_market_data_fallback"},
+            )
+        )
+
+        # ── AlphaSMO (free insider + smart-money, keyless) ────────────────
+        self.register_provider(
+            ProviderRoute(
+                name="alphasmo",
+                capabilities=("insider_trades", "smart_money"),
+                factory=_make_alphasmo_provider,
+                methods={
+                    "insider_trades": "get_insider_trades",
+                    "smart_money": "get_smart_money_convergence",
+                },
+                priority=50,
+                required_key=None,
+                metadata={"role": "insider_smart_money"},
             )
         )
 
@@ -609,6 +658,21 @@ class DataHub:
     def get_reddit_signal(self, ticker: str) -> Dict[str, Any]:
         """Route Reddit social signal through reddit_pulse."""
         return self.route("reddit", ticker)
+
+    def get_insider_trades(self, ticker: str) -> Dict[str, Any]:
+        """Route insider-trades lookup (Form4API primary, AlphaSMO fallback)."""
+        return self.route("insider_trades", ticker)
+
+    def get_smart_money_convergence(
+        self, limit: int = 20, min_confidence: int = 60, days: int = 90
+    ) -> Dict[str, Any]:
+        """Route smart-money convergence signal through AlphaSMO."""
+        return self.route(
+            "smart_money",
+            limit=limit,
+            min_confidence=min_confidence,
+            days=days,
+        )
 
     def run_quantum_simulation(self) -> Dict[str, Any]:
         """Compatibility tombstone for a removed no-input random simulation."""
