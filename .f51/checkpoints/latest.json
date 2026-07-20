@@ -1,73 +1,133 @@
 {
-  "timestamp": "2026-07-19T17:24:00-04:00",
-  "session": "predictive-truth-modernization",
-  "orchestrator": "codex",
-  "status": "completed_with_honest_data_limits",
-  "objective": "Replace decorative prediction with causal, validated, persistent forecasting and make every execution path fail closed without qualified evidence.",
-  "result": {
-    "neural": [
-      "Causal OHLCV features and explicit horizon.",
-      "Chronological train/validation/conformal/test split with horizon gaps and train-only scaler.",
-      "Deterministic three-class MLP must beat train climatology OOS in Brier, log-loss and balanced accuracy.",
-      "Temperature calibration plus independent split-conformal prediction set.",
-      "Atomic JSON+NPZ persistence with SHA-256, model_id, input hash, as_of and no pickle.",
-      "Missing, stale, corrupt, unskilled or ambiguous inference returns ABSTAIN."
-    ],
-    "math": [
-      "Causal Wilder RSI and genuine MACD 12/26/9.",
-      "Stationary block bootstrap replaces no-input quantum randomness.",
-      "Ledoit-Wolf HRP with single linkage, recursive bisection and cash-preserving caps.",
-      "MathHub labels estimates and F51 decision scores honestly."
-    ],
-    "crisis": [
-      "Causal Gaussian HMM, stable Hawkes MLE, rolling pinball Growth-at-Risk and full multi-window LPPLS.",
-      "SRISK, CoVaR and contagion reject synthetic proxies and return insufficient_data.",
-      "No macro data can no longer become normal or green."
-    ],
-    "learning": [
-      "Terminal-outcome-only SQLite ledger, idempotent schema v2 and ex-ante forecast provenance.",
-      "Directional multiclass Brier skill versus baseline with sample shrinkage updates expert reliability.",
-      "Scale-invariant reward and no credit for legacy directionless confidence.",
-      "Random pseudo-RL policy retired; compatibility only returns WAIT."
-    ],
-    "execution": [
-      "F51 requires independent evidence and exposes an uncalibrated decision score.",
-      "Paper and broker boundaries require ready calibrated neural provenance, valid simplex, matching direction and singleton conformal set.",
-      "No-input quantum and fixed 50 percent quant baselines are explicit removed/insufficient states."
-    ]
+  "timestamp": "2026-07-19T21:00:00-04:00",
+  "session": "auditoria-completa-wave1-wave2",
+  "orchestrator": "f51-orchestrator",
+  "status": "completed",
+  "objective": "Auditoria interna completa — entender código, achar lixos, duplicações e dar nota como auditor interno",
+  "waves": {
+    "wave1_recon": {
+      "orchestrator_session": "principal",
+      "status": "completed",
+      "agents": {
+        "1.1_dead_code_hunter": {
+          "score": "19/25",
+          "top_findings": [
+            "event_hub.py — 310 linhas completamente mortas (EventHub, InMemoryHub, RedisStreamsHub)",
+            "2 port interfaces mortas — ModelGatewayPort, HealthProbePort",
+            "3 funções tombstone que sempre retornam erro",
+            "4 dependências nunca importadas: statsmodels, pandas-ta, joblib, llama-cpp-python"
+          ]
+        },
+        "1.2_recon_researcher": {
+          "score": "17/25",
+          "top_findings": [
+            "23 scripts órfãos sem nenhuma referência no projeto",
+            "SAFE_ACTIONS duplicado com valores conflitantes (core/prompts/ vs core/pipeline/prompts/)",
+            "src/experts/ — 49 arquivos sem __init__.py",
+            "Docstring do f51/__init__.py mente sobre estrutura real",
+            "F51-Nitro-MoE/ — diretório abandonado"
+          ]
+        },
+        "1.3_dependency_scout": {
+          "score": "15/25",
+          "top_findings": [
+            "numpy 2.4.6 instalado mas constraint é <2.3 — VIOLAÇÃO CRÍTICA",
+            "6 dependências fantasmas: aiohttp, pandas-ta, lxml, statsmodels, joblib, mem0ai",
+            "ib-insync abandonado desde 2023 — fork ib_async é o sucessor",
+            "transformers 4.x → 5.x gap enorme com breaking changes",
+            "financedatabase — shadow dependency (importada mas não declarada)"
+          ]
+        },
+        "1.4_arqueologist": {
+          "score": "14/25",
+          "top_findings": [
+            "5 módulos órfãos em src/core/trading/: neural_rl.py, rl_loop.py, training.py, dataset.py, autonomous_learner.py (~700 linhas mortas)",
+            "33 scripts órfãos em scripts/",
+            "~170MB de dados fora do .gitignore (temp_gguf_workspace/, lora_finance_pt/)",
+            "21 PNGs órfãos — screenshots e assets não referenciados",
+            "7 env vars no código ausentes do .env.example"
+          ]
+        }
+      },
+      "average_score": "16.25/25 (65/100)"
+    },
+    "wave2_deep_audit": {
+      "orchestrator_session": "externo (outro PS)",
+      "status": "completed",
+      "agents": {
+        "2.1_code_quality": {
+          "status": "completed",
+          "ruff_check": "0 findings — all 250 files passed",
+          "ruff_format": "0 files needing reformat",
+          "long_functions_gt_50": 252,
+          "unused_imports": 0,
+          "wildcard_imports": 0,
+          "except_pass_instances": 45,
+          "score_estimated": "18/25",
+          "severity": "0 CRITICAL / 0 HIGH / 45 MEDIUM / 0 LOW"
+        },
+        "2.2_no_mock_police": {
+          "status": "completed",
+          "integrity_score": 39,
+          "critical_findings": 1,
+          "high_findings": 11,
+          "medium_findings": 10,
+          "low_findings": 5,
+          "score_estimated": "13/25",
+          "top_finding": "mission_context.py retorna $10,000 fake equity sem logging"
+        },
+        "2.3_secure_scan": {
+          "status": "completed",
+          "bandit_total": 86,
+          "bandit_high": 0,
+          "bandit_medium": 7,
+          "bandit_low": 79,
+          "secrets_found": 0,
+          "score_estimated": "17/25",
+          "top_finding": "HF from_pretrained com trust_remote_code=True, sem revision pin"
+        },
+        "2.4_contract_watchdog": {
+          "status": "completed",
+          "api_routes": 43,
+          "pydantic_models": 22,
+          "env_vars": "130+",
+          "breaking_changes": 0,
+          "schema_drift": 0,
+          "score_estimated": "20/25",
+          "top_finding": "SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT setdefault leak em auto_execute_paper.py:50"
+        }
+      },
+      "average_score": "17/25 (68/100)"
+    }
   },
-  "verification": {
-    "ruff": "python -m ruff check src/ tests/ -> passed",
-    "pytest": "python -m pytest tests/ -q -> 1532 passed, 11 skipped, 0 failed in 113.22s",
-    "browser_smoke": "passed against live 127.0.0.1:8002; health 200; AAPL 124 candles; canvas nonblank; zero console errors",
-    "screenshot": "output/playwright/superezio-browser-smoke-20260719-172141.png"
+  "cross_wave_consensus": [
+    "CÓDIGO MORTO SISTÊMICO — 6+ módulos em trading/ + event_hub.py (1000+ linhas nunca executadas)",
+    "DEPENDÊNCIAS TÓXICAS — numpy violado, ib-insync abandonado, 6 fantasmas, transformers com gap de major",
+    "except:pass SISTÊMICO — 45+ instâncias, flagged por 3+ agentes",
+    "ENTULHO DE SCRIPTS — 33 scripts órfãos, F51-Nitro-MoE abandonado, ~170MB dados fora do gitignore",
+    "DOCS MENTEM — f51/__init__.py docstring errada, .env.example desatualizado, link quebrado em HF_README.md"
+  ],
+  "consolidated_severity": {
+    "critical": 2,
+    "high": 5,
+    "medium": 8,
+    "low": 6
   },
-  "key_commits": [
-    "dba0d08 causal RSI and MACD",
-    "458ca5c genuine capped HRP",
-    "7dd01c2 observed-return stationary bootstrap",
-    "8930f50 F51 independent evidence",
-    "0238f4d neural execution gate",
-    "ce0dbce scale-invariant proper rewards",
-    "108d169 directional Brier expert skill",
-    "b42fda3 ex-ante forecast attribution",
-    "beabe8e..85750c9 honest calibrated crisis layer",
-    "f9755f2 causal calibrated neural forecast",
-    "03d9c70 neural integrity tests",
-    "54d129f remove fabricated predictive baselines",
-    "7dc3df9 distinguish estimates from ground truth",
-    "35e6c5c conformal selective execution",
-    "aee4a1c retire random pseudo-RL actions"
+  "gates": {
+    "git_status": "modified: latest.json, bob_pain_log.jsonl, conversation_memory.jsonl; untracked: f51-orchestrator skill, watchdog checkpoint",
+    "ruff_check": "All checks passed! (Wave 2)",
+    "pytest": "1538 passed, 11 skipped, 0 failed in 109.81s (Wave 2)",
+    "browser_smoke": "skipped — server not running (connection refused on 8002)"
+  },
+  "positives": [
+    "Ruff 100% limpo — 0 lint, 0 format issues em 250 arquivos",
+    "Zero secrets — nenhum token/senha/chave exposto",
+    "Zero breaking changes — 43 rotas, 22 modelos Pydantic v2 estáveis",
+    "Zero injeção — sem SQL/shell injection",
+    "1538 testes passando, zero falhas",
+    "FastAPI + LangGraph bem estruturados — core arquitetural sólido"
   ],
-  "remaining_limits": [
-    "No live profitability or alpha is proven; paper prequential history is still required.",
-    "MacroDataset Parquet inputs are absent.",
-    "Real institutional balance-sheet and exposure data are absent for SRISK, CoVaR and DebtRank.",
-    "Runtime dependency drift: NumPy 2.4.6 vs <2.3/lock 2.2.6; sklearn 1.9.0 vs lock 1.8.0; statsmodels locked but absent.",
-    "Local CEO GGUF remains unavailable; MAN_AT_WORK blocks trading safely."
-  ],
-  "report": "docs/audit/predictive_truth_modernization_2026-07-19.md",
-  "workspace": "User runtime data, diagnostics and deleted debug script were preserved and not staged or reverted.",
-  "credentials": "Out of scope and untouched.",
-  "github": "Blocked by policy; local commits only."
+  "FINAL_SCORE": "66/100",
+  "rubrica": "CÓDIGO FUNCIONAL, PERIFERIA INTOXICADA. O core (FastAPI, LangGraph, pipeline) é sólido e bem testado. Mas o projeto carrega 1000+ linhas de código morto, 33 scripts órfãos, 6 dependências nunca usadas, numpy com versão violada, ib-insync abandonado, ~170MB de dados de treino fora do gitignore, e documentação desatualizada. A nota reflete um sistema que FUNCIONA mas acumulou entulho técnico que precisa de faxina.",
+  "next": "Recomendada Wave 3 — VERIFY & SCORE para validar os achados e gerar plano de limpeza com ordem de prioridade"
 }
