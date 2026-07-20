@@ -310,15 +310,15 @@
         return;
       }
 
-      // Dev mode detection: use a fast health endpoint with timeout.
-      // /cockpit/summary can hang if pipeline/sentiment are slow,
-      // so we use /health/details which returns promptly.
-      // In production mode (JWT_SECRET set), this endpoint requires auth
-      // and returns 401, triggering the login modal.
-      // In dev mode (no JWT_SECRET), it responds 200 immediately.
+      // Dev mode detection: /health is always fast and public.
+      // In dev mode (no JWT_SECRET) this returns 200 immediately.
+      // In production mode (JWT_SECRET set) it still returns 200,
+      // but the user would already have a valid token (logged in),
+      // so isAuthenticated() returns True and this code never runs.
+      // If the server is unreachable, the catch handler shows login.
       var probeController = new AbortController();
       var probeTimeout = setTimeout(function () { probeController.abort(); }, 4000);
-      fetch(API + "/health/details", { signal: probeController.signal })
+      fetch(API + "/health", { signal: probeController.signal })
         .then(function (r) {
           clearTimeout(probeTimeout);
           if (r.ok) {
@@ -326,7 +326,7 @@
             console.log("SuperEzio: dev mode detected, skipping login");
             return;
           }
-          // 401 or other — production mode, needs login
+          // Non-200 — production mode, needs login
           clearTokens();
           showLogin();
         })
