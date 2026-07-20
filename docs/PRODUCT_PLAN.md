@@ -319,11 +319,14 @@ Um **copiloto financeiro com comite de experts auditoriavel** que ajuda o trader
 - Sistema de sinais (nao da recomendacoes de compra/venda)
 - Rico rapido (propositalmente conservador)
 
-### Estado atual do projeto (2026-07-19)
-- **1538 testes passando**, 0 falhas, 11 skipped
+### Estado atual do projeto (2026-07-20)
+- **1443 testes passando**, 0 falhas, 10 skipped (pos-limpeza de 96 testes mortos)
+- **23 modulos mortos removidos** (8,511 LOC) — core/trading/ agora enxuto
+- **40 scripts legados removidos** — sem mais scripts de treino/bench obsoletos
 - **43 rotas API** funcionais
-- **Browser smoke 100% verde** (Health, Chart, Canvas, Chat Bob)
-- **Paper trading funcional** com journal idempotente
+- **6 security fixes aplicados** — auth middleware, trading 2FA, ticker sanitize, sandbox, .env.local, CI/CD
+- **Ruff limpo** — src/ e tests/ sem violacoes
+- **Browser smoke** pendente (servidor offline)
 - **1 blocking gap**: Zero autenticacao (P0, documentado)
 - **1 missing pre-requisito**: Chat real depende de DeepSeek API key configurada OU GGUF local presente em disco
 
@@ -331,7 +334,7 @@ Um **copiloto financeiro com comite de experts auditoriavel** que ajuda o trader
 
 ## 11. Checkpoint
 
-Atualizado em `.f51/product_checkpoint.json`.
+Atualizado em `.f51/checkpoints/latest.json`.
 
 ## 12. Acao Imediata
 

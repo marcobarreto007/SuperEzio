@@ -105,6 +105,8 @@
 
 ## Done
 
+- [x] 2026-07-20 - **Wave 4 — Integracao final + limpeza massiva (savekeeper):** 23 dead modules (8,511 LOC) removidos de `src/core/trading/` (trading_engine, trading_engine_live, autonomous_loop, autonomous_learner, broker_reconciler, auto_executor, order_builder, daily_cycle, daily_standup, dataset, market_hours, neural_rl, pain_memory, performance_metrics, position_manager, risk_guard, universe_builder, committee, training, rl_loop, dynamic_watchlist, router). 40 scripts legados de treino/bench removidos. 7 testes mortos removidos (autonomous_live_engine, broker_reconciler, daily_cycle, trading_loop2, xp_idempotency, debut_report, fiduciary_battery + f51_blindagem_final, f51_final_shielding). `pyproject.toml` limpo (vulture/deptry removidos). Estado final documentado em `docs/STATE_OF_THE_UNION.md`. Gates: 1443 passed, 10 skipped, 0 failed. Ruff clean. Commits 912ec18, aeefa7d, aa332a6.
+
 - [x] 2026-07-19 - **Predictive truth modernization (Codex + 3 deep subagents):**
   removed fixed/random predictive evidence; corrected causal RSI/MACD, HRP and return
   bootstrap; rebuilt crisis HMM/Hawkes/GaR/LPPLS with honest insufficient-data states;

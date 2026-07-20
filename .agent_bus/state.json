@@ -2,8 +2,8 @@
   "version": "2.0",
   "created": "2026-07-19T23:59:00-04:00",
   "mission": "SuperEzio produto final — trader deposita, analisa, opera. 100% integrado.",
-  "current_wave": 3,
-  "wave_status": "integrating",
+  "current_wave": 4,
+  "wave_status": "complete",
   "transitions": [
     {"timestamp": "2026-07-19T23:59:00-04:00", "from": null, "to": "idle", "reason": "Agent bus initialized."},
     {"timestamp": "2026-07-20T00:15:00-04:00", "from": "idle", "to": "idle", "reason": "Captain deployed."},
@@ -11,10 +11,12 @@
     {"timestamp": "2026-07-20T00:42:00-04:00", "from": "wave1_recon", "to": "wave2_productize", "reason": "Wave 2: 4 agentes PRODUCTIZE"},
     {"timestamp": "2026-07-20T01:10:00-04:00", "from": "wave2_productize", "to": "wave2_applied", "reason": "6/6 security fixes aplicados (f9cee83)"},
     {"timestamp": "2026-07-20T01:20:00-04:00", "from": "wave2_applied", "to": "wave3_verify", "reason": "Wave 3: 3 agentes VERIFY"},
-    {"timestamp": "2026-07-20T01:40:00-04:00", "from": "wave3_verify", "to": "wave3_integrating", "reason": "3/3 concluídos. ZERO regressões. 1539 pass. 2 contract fixes aplicados."}
+    {"timestamp": "2026-07-20T01:40:00-04:00", "from": "wave3_verify", "to": "wave3_integrating", "reason": "3/3 concluídos. ZERO regressões. 1539 pass. 2 contract fixes aplicados."},
+    {"timestamp": "2026-07-20T02:00:00-04:00", "from": "wave3_integrating", "to": "wave4_cleanup", "reason": "Wave 4: limpeza massiva — 23 módulos mortos + 40 scripts + 7 testes removidos (912ec18)"},
+    {"timestamp": "2026-07-20T03:00:00-04:00", "from": "wave4_cleanup", "to": "wave4_integrate_complete", "reason": "Wave 4: savekeeper consolidação final — STATE_OF_THE_UNION, docs, checkpoints"}
   ],
-  "waves_completed": ["wave1_recon", "wave2_productize", "wave3_verify"],
-  "waves_remaining": ["wave4_integrate"],
+  "waves_completed": ["wave1_recon", "wave2_productize", "wave3_verify", "wave4_integrate"],
+  "waves_remaining": [],
   "security_fixes": {
     "total": 6,
     "applied": 6,
@@ -24,9 +26,9 @@
   },
   "gates_summary": {
     "ruff": "clean",
-    "pytest": "1539 passed, 10 skipped, 0 failed",
+    "pytest": "1443 passed, 10 skipped, 0 failed",
     "browser_smoke": "skipped (server offline)",
-    "regression": "0 regressions (2 identical runs)"
+    "regression": "0 regressions — 96 tests removed (dead code killed, no new failures)"
   },
-  "next": "Wave 4 (INTEGRATE) — savekeeper consolidar tudo, atualizar docs finais, checkpoint final"
+  "next": "Fase de Produto — autenticacao JWT, provedor LLM, UI de login"
 }

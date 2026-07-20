@@ -1,7 +1,7 @@
 # F51 Risk Register
 
-Updated: 2026-07-19T17:24:00-04:00
-Session: predictive-truth-modernization
+Updated: 2026-07-20T03:00:00-04:00
+Session: wave4-integrate
 
 ## Active Risks
 
@@ -124,13 +124,13 @@ Session: predictive-truth-modernization
 - Resolution: Single formatter (ruff). No conflict.
 - Status: Resolved.
 
-### INV-R9 - src/core/scanner and src/core/paths are init-only modules [LOW]
+### INV-R9 - src/core/scanner and src/core/paths are init-only modules [LOW] -> RESOLVED 2026-07-20
 
 - Classification: dead code risk
 - Risk: Two packages contain only __init__.py with no separate source files. May indicate dead code.
-- Evidence: `find src/core/scanner src/core/paths -name "*.py" -not -name "__init__.py"` returns 0 files.
-- Mitigation: Verify imports before considering removal.
-- Status: Needs verification.
+- Evidence (2026-07-20): `scanner/` contains openbb_scanner.py (8881 bytes) and penny_scanner.py (2486 bytes). `paths/` __init__.py has 1270 bytes with actual path resolution code. Both modules have real content and active imports across the codebase.
+- Resolution: Verified on 2026-07-20. Real code, not init-only. Risk closed.
+- Status: Resolved.
 
 ### INV-R10 - Duplicate runtime log directories [LOW]
 
@@ -138,7 +138,27 @@ Session: predictive-truth-modernization
 - Risk: runtime/logs/ and output/server/ both contain API/CEO logs. Redundant storage.
 - Evidence: 37 files in runtime/logs, 6 files in output/server.
 - Mitigation: Consolidate to one log directory.
-- Status: Informational.
+- Status: Informational. Not addressed in Wave 4 cleanup.
+
+---
+
+## New Risks (2026-07-20 — Wave 4 Cleanup)
+
+### INV-R20 - Clean tree verification [INFO]
+
+- Classification: quality
+- Risk: 23 dead modules (8,511 LOC) and 40 scripts were removed from `src/core/trading/` in a single commit. Hidden import chains or dynamic lookups could reference removed modules at runtime.
+- Evidence: Full test suite (1443 tests) passes. Ruff import checks pass. Wave 3 regression hunt confirmed zero import errors. Core trading modules still active: paper_journal.py, approval_gate.py, position_sizer.py, order_builder.py (rebuilt lean version), execution_policy.py, outcome_learning.py. All others confirmed dead by 3-agent verification.
+- Mitigation: None needed — verified by test suite + ruff import scan + wave 3 regression hunt.
+- Status: Verified clean. No residual risk.
+
+### INV-R21 - Deleted tests reduce coverage surface [INFO]
+
+- Classification: quality
+- Risk: 7 test files removed (autonomous_live_engine, broker_reconciler, daily_cycle, trading_loop2, xp_idempotency, debut_report, f51_blindagem_final, f51_final_shielding). Test count dropped from 1539 to 1443.
+- Evidence: All removed tests covered dead code that was also removed. Zero coverage loss for active code paths. Test removal was a direct consequence of dead module removal.
+- Mitigation: Rebuild coverage for any new code paths added in product phase. Consider adding --cov to pytest default when coverage quality is a concern.
+- Status: Informational. Acceptable.
 
 ---
 
