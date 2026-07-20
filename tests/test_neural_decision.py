@@ -7,9 +7,17 @@ calibrations, and endpoint integration.
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
+import pytest
 
 from experts.neural_decision import NeuralDecisionExpert
 from agent_server.main import app
+
+
+# ── Autouse fixture: clear JWT_SECRET so API endpoint tests use dev mode ──
+@pytest.fixture(autouse=True)
+def _clear_jwt_secret(monkeypatch):
+    monkeypatch.setenv("SUPEREZIO_JWT_SECRET", "")
+
 
 
 # ── HELPER: Base Valid Payload Generator ──

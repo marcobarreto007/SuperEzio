@@ -48,6 +48,7 @@ def client_with_mock_pipeline(monkeypatch):
     import agent_server.endpoints as endpoints
 
     monkeypatch.setenv("SUPEREZIO_COCKPIT_READ_IBKR_ORDERS", "0")
+    monkeypatch.setenv("SUPEREZIO_JWT_SECRET", "")  # Dev mode: no JWT required
     monkeypatch.setattr(endpoints.reward_gate, "score", lambda _text: 0.50)
     monkeypatch.setattr(
         endpoints.sanity_check,
