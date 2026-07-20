@@ -51,6 +51,13 @@ HYPE_PATTERNS = (
     r"\bcan't lose\b",
 )
 
+# Keywords to detect whale activity, pumps, dumps, and large order discussions.
+# Combined with ticker symbol in Phase 2 search expansion.
+WHALE_KEYWORDS = (
+    "whale", "pump", "dump", "rocket", "moon", "bag",
+    "yolo", "calls", "puts", "DD",
+)
+
 
 def _env_int(name: str, default: int) -> int:
     try:
@@ -133,6 +140,8 @@ class RedditPulse:
                 )
             }
         )
+        # Tracks source failures across subreddits for ApeWisdom fallback
+        self._source_errors: list[str] = []
 
     def get_signal(
         self,
@@ -210,28 +219,34 @@ class RedditPulse:
             return []
 
         match_terms = _match_terms(query)
+        last_error: str | None = None
 
         # Try 1: Pushshift.io — free historical archive, no OAuth required
         try:
             return self._fetch_via_pushshift(
-                subreddit=safe_subreddit, query=query,
-                limit=limit, match_terms=match_terms,
+                subreddit=safe_subreddit,
+                query=query,
+                limit=limit,
+                match_terms=match_terms,
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            last_error = str(exc)
 
         # Try 2: old.reddit.com — public JSON with User-Agent header
         try:
             return self._fetch_via_old_reddit(
-                subreddit=safe_subreddit, query=query,
-                limit=limit, sort=sort, time_filter=time_filter,
+                subreddit=safe_subreddit,
+                query=query,
+                limit=limit,
+                sort=sort,
+                time_filter=time_filter,
                 match_terms=match_terms,
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            last_error = str(exc)
 
-        # All sources failed for this subreddit
-        return []
+        # Both sources failed — raise so get_signal logs the error
+        raise RuntimeError(f"all_reddit_sources_blocked: {last_error}")
 
     def _fetch_via_pushshift(
         self,
@@ -324,7 +339,9 @@ class RedditPulse:
                     "signal_label": (
                         "BULLISH_SOCIAL"
                         if sentiment_score > 0.2
-                        else "BEARISH_SOCIAL" if sentiment_score < -0.2 else "NEUTRAL_SOCIAL"
+                        else "BEARISH_SOCIAL"
+                        if sentiment_score < -0.2
+                        else "NEUTRAL_SOCIAL"
                     ),
                     "sentiment_score": round(sentiment_score, 3),
                     "post_count": mentions,

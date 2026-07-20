@@ -111,6 +111,12 @@ def _make_form4api_provider(api_key: str | None) -> Any:
     return Form4APIProvider(api_key=api_key)
 
 
+def _make_social_whale_provider() -> Any:
+    from .social_whale_provider import SocialWhaleProvider
+
+    return SocialWhaleProvider()
+
+
 @dataclass(frozen=True)
 class ProviderRoute:
     """Metadata needed to route one capability to one provider."""
@@ -331,6 +337,29 @@ class DataHub:
                 priority=1,
                 required_key=None,
                 metadata={"role": "primary_sentiment"},
+            )
+        )
+
+        # ── SocialWhale (whale signals, pump detection, social sentiment) ─
+        self.register_provider(
+            ProviderRoute(
+                name="social_whale",
+                capabilities=(
+                    "whale_signals",
+                    "pump_detection",
+                    "social_sentiment",
+                    "unusual_options_flow",
+                ),
+                factory=_make_social_whale_provider,
+                methods={
+                    "whale_signals": "get_whale_signals",
+                    "pump_detection": "get_pump_detection",
+                    "social_sentiment": "get_social_sentiment",
+                    "unusual_options_flow": "get_unusual_options_flow",
+                },
+                priority=1,
+                required_key=None,
+                metadata={"role": "social_whale_intelligence"},
             )
         )
 
