@@ -822,6 +822,35 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                         "message": f"Ordem bloqueada pelo F51 Trade Gate: {gate_decision.reason}",
                     }
                     return result
+
+                # ALLOW path: atomic idempotency claim
+                # The is_duplicate() pre-check above is a plain existence test with TOCTOU:
+                # two concurrent requests for the same key can both pass it before either
+                # writes the marker. mark_processed() now claims the key with exclusive
+                # file create (O_CREAT|O_EXCL); only the first caller wins, the loser is
+                # treated as duplicate and not silently re-submitted.
+                if not mark_processed(idem_key, {"status": "allowed"}):
+                    logger.warning(
+                        "tool_executor_duplicate_blocked_race",
+                        ticker=ticker_raw,
+                        idempotency_key=idem_key,
+                    )
+                    writer = get_stream_writer()
+                    writer(
+                        {
+                            "type": "PAPER_ORDER_BLOCKED",
+                            "run_id": run_id,
+                            "ticker": ticker_raw,
+                            "step": "idempotency",
+                            "status": "blocked",
+                            "reason": f"Concurrent claim lost for key: {idem_key}",
+                        }
+                    )
+                    return {
+                        "blocked": True,
+                        "reason": "f51_trade_gate:DUPLICATE_ORDER",
+                        "message": f"Ordem duplicada detectada (concurrent claim lost): {idem_key}",
+                    }
             except ImportError:
                 logger.warning("tool_executor_gate_unavailable")
                 return {

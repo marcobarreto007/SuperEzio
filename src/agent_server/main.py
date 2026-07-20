@@ -653,13 +653,52 @@ async def favicon():
 
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def health_check_public(request: Request):
-    """Public liveness probe â€” minimal, no internal config exposure.
+    """Public liveness probe — real health status with proper HTTP codes.
 
+    Returns 503 if any critical component is unhealthy:
+    - Pipeline not initialized
+    - MAN_AT_WORK mode active (CEO offline or critical)
+    - CEO Brain unreachable (verified by ANS background health monitor)
+
+    Docker healthcheck uses curl -f, which treats 503 as failure.
     Detailed health (GPU, providers, redis, cost guard, base URLs) is at
     /health/details and requires auth via the edge gateway.
     """
     if request.method == "HEAD":
         return Response(status_code=200)
+
+    # 1. Pipeline initialized?
+    pipeline = getattr(app.state, "pipeline", None)
+    if pipeline is None:
+        return Response(
+            status_code=503,
+            content=_json.dumps({"status": "error", "detail": "Pipeline not initialized"}),
+            media_type="application/json",
+        )
+
+    # 2. MAN_AT_WORK active?  + 3. CEO Brain healthy? (uses ANS cached state)
+    try:
+        from core.bob_consciousness import get_bobs_body
+
+        body = get_bobs_body()
+        if body.is_man_at_work():
+            return Response(
+                status_code=503,
+                content=_json.dumps({"status": "error", "detail": "MAN_AT_WORK mode active"}),
+                media_type="application/json",
+            )
+        ceo = body.organs.get("ceo_brain")
+        if ceo and ceo.last_check and not ceo.last_health:
+            return Response(
+                status_code=503,
+                content=_json.dumps(
+                    {"status": "error", "detail": f"CEO Brain unreachable: {ceo.last_error}"}
+                ),
+                media_type="application/json",
+            )
+    except Exception:
+        pass
+
     return {"status": "ok", "agent": AGENT_NAME, "version": "4.0.0"}
 
 
@@ -831,6 +870,15 @@ async def health_check():
 
     all_ok = primary_info["configured"] or any(m["reachable"] for m in local_models.values())
     health["status"] = "ok" if all_ok else "degraded_no_backend"
+
+    # Return proper HTTP status code — 503 if system is degraded
+    if health["status"] != "ok":
+        return Response(
+            status_code=503,
+            content=_json.dumps(_json_safe(health)),
+            media_type="application/json",
+        )
+
     return _json_safe(health)
 
 
