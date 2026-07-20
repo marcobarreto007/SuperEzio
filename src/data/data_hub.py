@@ -259,13 +259,18 @@ class DataHub:
         self.register_provider(
             ProviderRoute(
                 name="alpha_vantage",
-                capabilities=("treasury",),
+                capabilities=("price", "market_price", "treasury"),
                 factory=lambda: _make_alpha_vantage_provider(
                     self._get_key("ALPHA_VANTAGE_API_KEY")
                 ),
-                methods={"treasury": "get_treasury_yield"},
-                priority=25,
+                methods={
+                    "price": "get_quote",
+                    "market_price": "get_quote",
+                    "treasury": "get_treasury_yield",
+                },
+                priority=3,
                 required_key="ALPHA_VANTAGE_API_KEY",
+                metadata={"role": "price_and_treasury"},
             )
         )
 
@@ -308,9 +313,9 @@ class DataHub:
                     "insider_trades": "get_insider_trades",
                     "smart_money": "get_smart_money_convergence",
                 },
-                priority=50,
+                priority=1,
                 required_key=None,
-                metadata={"role": "insider_smart_money"},
+                metadata={"role": "primary_insider_smart_money"},
             )
         )
 
@@ -318,15 +323,16 @@ class DataHub:
         self.register_provider(
             ProviderRoute(
                 name="apewisdom",
-                capabilities=("retail_sentiment", "trending"),
+                capabilities=("sentiment", "retail_sentiment", "trending"),
                 factory=_make_apewisdom_provider,
                 methods={
+                    "sentiment": "get_sentiment",
                     "retail_sentiment": "get_retail_buzz",
                     "trending": "get_trending_stocks",
                 },
-                priority=10,
+                priority=1,
                 required_key=None,
-                metadata={"role": "retail_sentiment_tracker"},
+                metadata={"role": "primary_sentiment"},
             )
         )
 
@@ -339,16 +345,16 @@ class DataHub:
                 methods={
                     "insider_trades": "get_insider_trades",
                 },
-                priority=15,
+                priority=2,
                 required_key=None,  # FREE_TIER default works out of the box
-                metadata={"role": "insider_trading", "free_tier_req_day": 500},
+                metadata={"role": "secondary_insider_trading", "free_tier_req_day": 500},
             )
         )
 
         self.register_provider(
             ProviderRoute(
                 name="news_scout",
-                capabilities=("news", "sentiment"),
+                capabilities=("news",),
                 factory=_make_news_scout,
                 methods={"news": "get_news", "sentiment": "get_sentiment_summary"},
                 priority=22,
@@ -359,11 +365,16 @@ class DataHub:
         self.register_provider(
             ProviderRoute(
                 name="reddit_pulse",
-                capabilities=("reddit", "social_sentiment"),
+                capabilities=("sentiment", "reddit", "social_sentiment"),
                 factory=_make_reddit_pulse,
-                methods={"reddit": "get_signal", "social_sentiment": "get_signal"},
-                priority=20,
+                methods={
+                    "sentiment": "get_signal",
+                    "reddit": "get_signal",
+                    "social_sentiment": "get_signal",
+                },
+                priority=3,
                 required_key=None,
+                metadata={"role": "social_sentiment"},
             )
         )
 
@@ -400,7 +411,7 @@ class DataHub:
                     "sentiment": "get_sentiment_summary",
                     "market_sentiment": "get_market_sentiment",
                 },
-                priority=15,
+                priority=2,
                 required_key="NEWSAPI_KEY",
             )
         )
@@ -515,18 +526,27 @@ class DataHub:
 
         A dict containing an ``error`` key or an empty list is considered an
         unusable result and triggers the next fallback.
+
+        Logs which provider was selected and why.
         """
         attempts: list[dict[str, str]] = []
         for route in self.resolve(capability):
             provider = self.get_provider(route.name)
             if provider is None:
                 attempts.append({"provider": route.name, "error": "provider_unavailable"})
+                logger.info("[DATA_HUB] %s: %s skipped — unavailable", capability, route.name)
                 continue
 
             method_name = route.methods.get(capability)
             method = getattr(provider, method_name or "", None)
             if not callable(method):
                 attempts.append({"provider": route.name, "error": "method_unavailable"})
+                logger.info(
+                    "[DATA_HUB] %s: %s skipped — method %s not found",
+                    capability,
+                    route.name,
+                    method_name,
+                )
                 continue
 
             try:
@@ -534,20 +554,25 @@ class DataHub:
                 result = method(*args, **call_kwargs)
             except Exception as exc:
                 attempts.append({"provider": route.name, "error": str(exc)})
+                logger.warning("[DATA_HUB] %s: %s raised — %s", capability, route.name, exc)
                 continue
 
             if self._is_usable_result(result, capability):
                 if isinstance(result, dict):
                     result.setdefault("provider", route.name)
+                logger.info("[DATA_HUB] %s: %s succeeded", capability, route.name)
                 return result
 
-            attempts.append(
-                {
-                    "provider": route.name,
-                    "error": self._result_error(result) or "empty_result",
-                }
+            error = self._result_error(result) or "empty_result"
+            attempts.append({"provider": route.name, "error": error})
+            logger.info(
+                "[DATA_HUB] %s: %s returned unusable result — %s",
+                capability,
+                route.name,
+                error,
             )
 
+        logger.warning("[DATA_HUB] %s: all providers exhausted — %s", capability, attempts)
         return {"error": f"no_provider_result_for_{capability}", "attempts": attempts}
 
     @staticmethod
