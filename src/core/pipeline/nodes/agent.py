@@ -2993,6 +2993,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             "user_prompt": user_prompt[:500],
             "observations_count": len(observations),
             "prompt_report_len": len(prompt_report),
+            "prompt": prompt_report[:1000],
         },
     )
 

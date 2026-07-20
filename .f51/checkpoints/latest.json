@@ -43,18 +43,24 @@
         "docs_files": 80
       },
       "test_gates": {
-        "pytest": "1443 passed, 10 skipped, 0 failed",
+        "pytest": "1446 passed, 10 skipped, 0 failed",
         "ruff": "clean",
         "ruff_format": "clean"
+      },
+      "prompt_debug": {
+        "added_log": "agent.py — logger.debug('bob_prompt') antes de gateway.chat_completion()",
+        "added_save": "runtime/prompts/{run_id}.txt salvo com system + user + observations",
+        "added_test": "scripts/test_pipeline.py — E2E AAPL + verificacao de RSI/MACD/Sharpe/price no prompt",
+        "gitignore": "runtime/prompts/ adicionado ao .gitignore"
       }
     }
   },
-  "verdict": "WAVE 1-4 COMPLETAS. Sistema 18% menor, 0 regressoes, 1443 testes verdes. Pronto para proximo ciclo de produto.",
+  "verdict": "WAVE 1-4 COMPLETAS + PROMPT DEBUG. Sistema 18% menor, 0 regressoes, 1446 testes verdes. Prompt auditavel via runtime/prompts/.",
   "gates": {
     "ruff": "clean",
-    "pytest": "1443/10/0 — pos-limpeza, -96 testes (mortos removidos)",
-    "regression": "zero (remocao de codigo morto, sem quebra)",
-    "contract_breaks": "2 fixed (wave 3), 0 novos"
+    "pytest": "1446/10/0 — +3 vs checkpoint anterior (prompt debug additions)",
+    "regression": "zero",
+    "contract_breaks": "nenhum"
   },
   "next": "Fase de Produto — implementar autenticacao JWT (P0), configurar provedor LLM, UI de login"
 }
