@@ -17,7 +17,7 @@ SERVER = "http://127.0.0.1:8002"
 PROMPTS_DIR = Path("runtime/prompts")
 RESULTS_FILE = Path("runtime/overnight_100_results.jsonl")
 
-# ── 100 Test Cases: simples → complexo ──────────────────────────
+# -- 100 Test Cases: simples → complexo --------------------------
 TESTS = [
     # === SIMPLES (1-15): Consultas básicas de ticker ===
     ("Qual o preço atual de AAPL?", "AAPL", ["price", "AAPL"]),
@@ -268,10 +268,10 @@ def run_tests():
         ok = has_response and not has_error
         if ok:
             passed += 1
-            status = "✅"
+            status = "PASS"
         else:
             failed += 1
-            status = "❌"
+            status = "FAIL"
 
         pipeline_hit = len(prompt_check.get("found", []))
         pipeline_miss = len(prompt_check.get("missing", []))
@@ -307,12 +307,12 @@ def run_tests():
         with open(RESULTS_FILE, "a", encoding="utf-8") as f:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
-    # ── Summary ──
+    # -- Summary --
     print()
     print(f"=== RESULTS ===")
     print(f"Total:   {len(TESTS)}")
-    print(f"Passed:  {passed} ✅")
-    print(f"Failed:  {failed} ❌")
+    print(f"Passed:  {passed} PASS")
+    print(f"Failed:  {failed} FAIL")
     print(f"Pipeline terms in prompt: {total_pipeline_terms_found}/{total_pipeline_terms_checked} "
           f"({100 * total_pipeline_terms_found / max(1, total_pipeline_terms_checked):.0f}%)")
     print(f"Results: {RESULTS_FILE}")
