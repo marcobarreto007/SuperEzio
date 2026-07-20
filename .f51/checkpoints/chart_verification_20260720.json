@@ -1,0 +1,127 @@
+{
+  "checkpoint": "chart_verification_20260720",
+  "agent": "frontend-ux-reviewer",
+  "date": "2026-07-20",
+  "scope": "Verificar WebGL chart (Lightweight Charts) no frontend em http://127.0.0.1:8002",
+  "method": "Playwright (headless Chromium) + curl API tests",
+  "files_inspected": [
+    "frontend/js/chart.js",
+    "frontend/js/render-chart.js",
+    "frontend/js/render-candles.js",
+    "frontend/js/init.js",
+    "frontend/js/api.js",
+    "frontend/js/auth.js",
+    "frontend/js/state.js",
+    "frontend/index.html",
+    "frontend/css/charts.css",
+    "frontend/css/variables.css",
+    "src/agent_server/endpoints.py",
+    "src/agent_server/auth.py",
+    "src/agent_server/main.py",
+    ".env.local",
+    "runtime/checkpoints/chart_verify_final.py",
+    "runtime/checkpoints/chart_screenshot.png",
+    "runtime/checkpoints/chart_full_render.png"
+  ],
+  "tests_executed": [
+    "chart_verify_final.py (Playwright, 11 checks)",
+    "Data format analysis (buildLineData, buildMACD simulation)"
+  ],
+  "results": {
+    "pass": 11,
+    "fail": 0,
+    "bugs": 7
+  },
+  "passing_checks": {
+    "page_load": "Page loads with JWT authentication",
+    "lightweight_charts_loaded": "Lightweight Charts v4.0.1 from CDN (jsdelivr)",
+    "chart_dom_structure": "3 panes: main (flex:1), RSI (88px), MACD (96px)",
+    "candlestick_renders": "Candlestick series renders with 7 canvases in main pane",
+    "volume_renders": "Volume histogram renders as recessive bars",
+    "legend_exists": "Legend with all 5 overlay indicators (SMA20, SMA50, EMA20, BB, VWAP)",
+    "tooltip_exists": "Tooltip div exists (z-index:100, display:none, blur backdrop)",
+    "rsi_subpane": "RSI sub-pane at 88px with label 'RSI(14)'",
+    "macd_subpane": "MACD sub-pane at 96px with label 'MACD(12,26,9)'",
+    "dark_theme": "Stage background rgb(17,24,32) = #111820, CSS variables set",
+    "bull_bear_colors": "Bull: #00e676, Bear: #ef5350 (chart.js design tokens)"
+  },
+  "bugs": {
+    "CRITICAL_indicator_format": {
+      "severity": "CRITICAL",
+      "file": "frontend/js/chart.js",
+      "function": "buildLineData()",
+      "description": "Backend returns indicators as [{time,value},...] but buildLineData calls isFinite(arr[i]) which returns FALSE for objects. All indicator lines silently fail to render (SMA20, SMA50, EMA20, BB, RSI, VWAP). Only OHLCV candles and volume appear.",
+      "evidence": "isFinite({time:1721433600,value:149.5}) = false. buildLineData returns []",
+      "fix": "Pass backend {time,value} objects directly to Lightweight Charts series.setData()"
+    },
+    "CRITICAL_macd_format": {
+      "severity": "CRITICAL",
+      "file": "frontend/js/chart.js",
+      "function": "buildMACD()",
+      "description": "Backend returns macd/macd_histogram/macd_signal as separate [{time,value}] arrays. chart.js expects ind.macd = {histogram:[], line:[], signal:[]}. MACD sub-pane contains zero data points.",
+      "evidence": "ind.macd is Array, not Object. macd.histogram = undefined. All series receive empty arrays.",
+      "fix": "Read macd_histogram as histogram, macd as line, macd_signal as signal, extracting .value from each"
+    },
+    "HIGH_vwap_missing": {
+      "severity": "HIGH",
+      "file": "src/agent_server/endpoints.py",
+      "description": "Backend response has no 'vwap' key. chart.js calls vwapSeries.setData() with undefined. Legend shows VWAP but no line appears.",
+      "evidence": "All 7 indicator keys in response: sma20, sma50, ema20, rsi, macd, macd_histogram, macd_signal, bb_upper, bb_middle, bb_lower. No vwap.",
+      "fix": "Add VWAP computation to backend (or remove from legend)"
+    },
+    "HIGH_auth_devmode_bug": {
+      "severity": "HIGH",
+      "file": "frontend/js/auth.js",
+      "description": "auth.js checks /health for dev-mode detection. /health is public in production too. Result: login skipped but /api/chart-data/ returns 401.",
+      "evidence": ".env.local has SUPEREZIO_JWT_SECRET set. /health returns 200 always. Chart data API returns 401.",
+      "fix": "Check if token exists / JWT secret is configured, not just /health response"
+    },
+    "HIGH_datahub_timeout": {
+      "severity": "HIGH",
+      "file": "src/agent_server/endpoints.py",
+      "description": "Backend chart-data endpoint calls Twelve Data API which hangs (>30s). Even with valid JWT, chart data never loads to frontend.",
+      "evidence": "curl -H 'Authorization: Bearer TOKEN' returns 0 bytes after 30s. Server log shows 'twelve_data succeeded' but response never completes.",
+      "fix": "Add timeout/circuit-breaker to DataHub calls or mock data for dev"
+    },
+    "MEDIUM_register_tokens": {
+      "severity": "MEDIUM",
+      "file": "src/agent_server/auth.py",
+      "description": "POST /auth/register returns UserResponse (profile only). Frontend expects access_token + refresh_token in response.",
+      "evidence": "auth.py register route returns UserResponse model. auth.js register() calls saveTokens(data.access_token, data.refresh_token) which get undefined.",
+      "fix": "Register endpoint should return TokenResponse (with tokens) after creating user"
+    },
+    "MEDIUM_canvas2d_format": {
+      "severity": "MEDIUM",
+      "file": "frontend/js/render-chart.js",
+      "description": "Old Canvas 2D renderers also expect flat arrays (ind.sma_20 with underscore). Backend has ind.sma20 (no underscore) as [{time,value}] objects.",
+      "evidence": "render-chart.js: drawSeries(ind.sma_20, BLUE). Backend: sma20 as [{time,value}] objects.",
+      "fix": "Chart.js already supersedes this path, but if fallback is needed, fix the key names and value format"
+    }
+  },
+  "risk_score": 72,
+  "risks": [
+    "Users see empty indicator lines with no error feedback (silent failure via catch(e){/*ignore*/})",
+    "Chart shows only candles and volume - all technical analysis indicators missing",
+    "Frontend dev-mode detection logs user in but 401s on every API call"
+  ],
+  "next_steps": [
+    "Fix buildLineData() to pass {time,value} objects directly to LW setData()",
+    "Fix buildMACD() to read macd_histogram/macd/macd_signal correctly",
+    "Add VWAP computation to backend",
+    "Fix auth.js dev-mode detection logic",
+    "Add timeout to DataHub candle fetch",
+    "Fix /auth/register to return tokens"
+  ],
+  "artifacts": {
+    "screenshots": [
+      "runtime/checkpoints/chart_screenshot.png",
+      "runtime/checkpoints/chart_full_render.png"
+    ],
+    "reports": [
+      "runtime/checkpoints/chart_verify_report.json"
+    ],
+    "scripts": [
+      "runtime/checkpoints/chart_verify_final.py"
+    ]
+  }
+}
