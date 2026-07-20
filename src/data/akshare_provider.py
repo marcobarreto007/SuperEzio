@@ -268,8 +268,18 @@ class AKShareProvider:
 
     @staticmethod
     def _parse_intraday_timeframe(timeframe: str) -> bool | None:
-        """Return True if timeframe looks like intraday (e.g. '5m', '15min', '60min')."""
-        t = (timeframe or "").strip().lower()
+        """Return True if timeframe looks like intraday (e.g. '5m', '15min', '60min').
+
+        SuperEzio standard timeframes use uppercase 'M' for months (1M, 3M, 6M)
+        and lowercase 'm' for minutes (1m, 5m, 15m). We preserve the original
+        casing to disambiguate: if the raw string is uppercase and ends with 'M',
+        it is monthly, not intraday.
+        """
+        t_raw = (timeframe or "").strip()
+        # SuperEzio monthly standard: "1M", "3M", "6M" — all-uppercase with 'M' suffix
+        if t_raw.isupper() and t_raw.endswith("M"):
+            return None
+        t = t_raw.lower()
         if t.endswith("m") or t.endswith("min"):
             return True
         return None

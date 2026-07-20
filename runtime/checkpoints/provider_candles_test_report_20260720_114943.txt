@@ -1,0 +1,99 @@
+================================================================================
+PROVIDER CANDLES TEST — RELATORIO COMPLETO v2
+Gerado: 2026-07-20 15:49:43 UTC
+================================================================================
+
+--------------------------------------------------------------------------------
+PARTE 1: TESTE DE CADA PROVIDER (timeframe mensal/diario)
+--------------------------------------------------------------------------------
+
+  [FINNHUB]
+    Status: INDISPONIVEL — SKIP: FINNHUB_API_KEY not set
+
+  [TWELVE_DATA]
+    Status: INDISPONIVEL — SKIP: TWELVE_DATA_API_KEY not set
+
+  [ALPHA_VANTAGE]
+    Status: INDISPONIVEL — SKIP: ALPHA_VANTAGE_API_KEY not set
+
+  [YFINANCE]
+    Status: OK
+    AAPL: 63 candles, 1765ms, fields=[open,high,low,close,volume]
+    TSLA: 63 candles, 92ms, fields=[open,high,low,close,volume]
+    SNDL: 63 candles, 99ms, fields=[open,high,low,close,volume]
+
+  [AKSHARE]
+    Status: OK
+    AAPL: ERRO — akshare_hist: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+    TSLA: ERRO — akshare_hist: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+    SNDL: ERRO — akshare_hist: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+    >>> BUG: timeframe='1M' e tratado como intraday (1 minuto) porque o nome termina com 'm'
+       AAPL: ERRO=akshare_intraday: ('Connection aborted.', RemoteDisconnected('Remote end closed  (1224ms)
+       TSLA: ERRO=akshare_intraday: ('Connection aborted.', RemoteDisconnected('Remote end closed  (1200ms)
+       SNDL: ERRO=akshare_intraday: ('Connection aborted.', RemoteDisconnected('Remote end closed  (1215ms)
+
+--------------------------------------------------------------------------------
+PARTE 2: AKSHARE DIRETO — stock_us_hist(symbol='105.AAPL', period='daily')
+--------------------------------------------------------------------------------
+  FALHA: ERROR after 3 retries: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+    Tentativa 1: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+    Tentativa 2: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+    Tentativa 3: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+
+--------------------------------------------------------------------------------
+PARTE 3: CROSS-REFERENCE — AAPL CLOSE EM 2024-07-15
+--------------------------------------------------------------------------------
+  Referencia: N/A = N/A
+
+  Provider                  Close       Diff    Diff%
+  -------------------- ---------- ---------- --------
+  akshare_direct            ERROR ('Connection aborted.', RemoteDisconnected('Remote end close
+
+--------------------------------------------------------------------------------
+PARTE 4: LATENCIA INTRADAY (AAPL — 1m, 5m, 15m)
+--------------------------------------------------------------------------------
+  Provider         TF  Candles   Latencia
+  ------------ ------ -------- ----------
+  yfinance         1m      125    143ms
+  yfinance         5m      125     46ms
+  yfinance        15m      125     49ms
+  akshare          1m      ERR akshare_intraday: ('Connection aborted.', RemoteDisconnected
+  akshare          5m      ERR akshare_intraday: ('Connection aborted.', RemoteDisconnected
+  akshare         15m      ERR akshare_intraday: ('Connection aborted.', RemoteDisconnected
+
+================================================================================
+PARTE 5: RANKING FINAL DOS PROVIDERS DE CANDLES (0-100)
+================================================================================
+
+  Rank   Provider          Score  Notas
+  ------ ---------------- ------  --------------------------------------------------
+  1      yFinance            100/100  63candles/sym; rapido(652ms); OHLCV completo; intraday(3/3); referencia; sem API key
+  2      AKShare              10/100  Nenhum simbolo respondeu
+  3      Finnhub               0/100  Indisponivel
+  4      TwelveData            0/100  Indisponivel
+  5      AlphaVantage          0/100  Indisponivel
+
+================================================================================
+RECOMENDACAO FINAL
+================================================================================
+
+  Melhor provider: yFinance
+
+  BUG ENCONTRADO:
+  AKShareProvider._parse_intraday_timeframe(): timeframe '1M', '3M', '6M'
+  sao interpretados como intraday (1 minuto) porque o metodo verifica
+  se o nome termina com 'm' (case-insensitive). '1M' vira '1m' e cai
+  no ramo intraday, ignorando o mapeamento _PERIOD_MAP que mapeia
+  corretamente '1M' -> 'monthly'.
+
+  Cadeia recomendada (prioridade):
+    1. Finnhub (se FINNHUB_API_KEY setada — melhor latencia)
+    2. TwelveData (se TWELVE_DATA_API_KEY setada — intraday suportado)
+    3. yfinance (sempre disponivel, OHLCV completo, sem key)
+    4. AKShare (gratis, daily funciona, intraday via China)
+
+  NOTA: Este ambiente nao tem FINNHUB_API_KEY, TWELVE_DATA_API_KEY,
+  nem ALPHA_VANTAGE_API_KEY. Apenas yfinance esta operacional,
+  e AKShare com conectividade intermitente a servidores chineses.
+
+================================================================================
