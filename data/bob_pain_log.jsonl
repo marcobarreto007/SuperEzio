@@ -2511,3 +2511,76 @@
 {"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-19T23:45:13.696637+00:00", "healed": false}
 {"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-19T23:45:13.697637+00:00", "healed": false}
 {"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-19T23:45:13.701636+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T01:14:31.251604+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T01:14:33.290642+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-20T01:14:36.251062+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-20T01:14:36.269060+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-20T01:14:36.273061+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T01:14:38.335770+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T01:14:40.369209+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-20T01:14:42.476465+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-20T01:14:42.478462+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-20T01:14:42.482464+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T01:18:21.042593+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T01:18:23.081977+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-20T01:18:25.985083+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-20T01:18:26.012272+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-20T01:18:26.019271+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T01:18:28.125717+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T01:18:30.156820+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-20T01:18:32.274610+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-20T01:18:32.275483+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-20T01:18:32.279451+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T01:18:44.199586+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T01:18:46.235719+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-20T01:18:49.122414+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-20T01:18:49.139312+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-20T01:18:49.143375+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T01:18:51.264306+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T01:18:53.307319+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-20T01:18:55.432203+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-20T01:18:55.433203+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-20T01:18:55.437204+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T02:11:02.681050+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T02:11:04.696206+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-20T02:11:07.683567+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-20T02:11:07.702166+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-20T02:11:07.707167+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T02:11:09.794931+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T02:11:11.818708+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-20T02:11:13.939307+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-20T02:11:13.941825+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-20T02:11:13.949853+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T02:55:19.739999+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-20T02:55:22.626927+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-20T02:55:22.706131+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-20T02:55:22.711134+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T02:56:14.883580+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-07-20T02:56:17.905216+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-20T02:56:20.761792+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-20T02:56:20.778323+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-20T02:56:20.782327+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T02:56:22.854834+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-07-20T02:56:25.880685+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-20T02:56:27.982725+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-20T02:56:27.984251+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-20T02:56:27.988254+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T02:57:23.902428+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-07-20T02:57:26.910094+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-20T02:57:29.142783+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-20T02:57:29.144785+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-20T02:57:29.149783+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T02:57:29.410236+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T02:57:31.184297+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-07-20T02:57:32.419608+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-07-20T02:57:34.196182+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-20T02:57:34.731482+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-20T02:57:34.732482+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-20T02:57:34.736484+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-20T02:57:36.300025+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-20T02:57:36.301032+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-20T02:57:36.305031+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T02:59:36.784029+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-20T02:59:39.143405+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-20T02:59:39.144405+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-20T02:59:39.148409+00:00", "healed": false}

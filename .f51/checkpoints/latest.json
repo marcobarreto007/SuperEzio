@@ -1,109 +1,30 @@
 {
-  "timestamp": "2026-07-19T22:30:00-04:00",
-  "session": "wave3.3-impact-map",
-  "orchestrator": "f51-impact-map",
+  "timestamp": "2026-07-19T23:59:00-04:00",
+  "session": "wave4-remediation",
+  "orchestrator": "f51-orchestrator",
   "status": "completed",
-  "objective": "Wave 3.3 — F51 IMPACT MAP: mapeamento completo da superficie de risco (entrypoints, data flow, dependencias, security, failure domains, Wave 2 cross-reference)",
-  "wave": 3.3,
-  "agents_dispatched": 7,
-  "agents_completed": 7,
-  "findings": {
-    "api_routes_total": 43,
-    "api_routes_unauthenticated": 43,
-    "cli_scripts": 57,
-    "cli_main_blocks": 38,
-    "launcher_scripts": 13,
-    "critical_data_paths": 4,
-    "external_services": 23,
-    "sqlite_databases": 11,
-    "env_vars_total": "60+",
-    "circuit_breakers": 4,
-    "idempotency_mechanisms": 2,
-    "guardrails_total": 30,
-    "guardrails_connected": 7,
-    "guardrails_isolated": 23,
-    "except_pass_instances": 45,
-    "hardcoded_confidence_sites": "20+",
-    "dead_letter_pending": null
-  },
-  "severity": {
-    "critical": 5,
-    "high": 12,
-    "medium": 10,
-    "low": 8
-  },
-  "overall_risk_score": 84,
-  "risk_interpretation": "CRITICO (84/100) — acao imediata necessaria. 42 rotas sem auth, tokens expostos, dados falsos em caminhos criticos.",
-  "top_5_risks": [
-    "1. Zero API authentication on all 43 routes (port 8002 published on host, docker-compose expoe na rede)",
-    "2. HF token exposto em 6+ files + 4 API keys vazadas (DeepSeek, TwelveData, AlphaVantage, NewsAPI) — nao rotacionados",
-    "3. Dados falsos em caminhos criticos: mission_context $10k fake equity, ~20+ sites hardcoded confidence/scores",
-    "4. 45+ except:pass engolem erros silenciosamente em todas as 4 data paths criticas",
-    "5. Dependencias divergentes: NumPy 2.4.6 (constraint <2.3), statsmodels ausente, modelo GGUF ~40GB faltando"
+  "objective": "Wave 4 — Remediacao cirurgica: 5 correcoes pos-auditoria (SAFE_ACTIONS tuple fix, numpy constraint, docstrings, f51/__init__, experts package, .gitignore sync)",
+  "wave": 4,
+  "agents_dispatched": 4,
+  "agents_completed": 4,
+  "fixes_applied": [
+    "financial_prompts.py: SAFE_ACTIONS tupla de 1 elemento → tupla multi-elemento + join canonico",
+    "pyproject.toml: numpy constraint <2.3 → <2.6 (reflete numpy 2.4.6 instalado)",
+    "f51/__init__.py: docstring corrigida — diretorios fantasmas → arquivos reais",
+    "experts/__init__.py: criado — 49 arquivos agora tem pacote formal",
+    ".gitignore: sync com arquivos de diagnostico/scratch"
   ],
-  "top_3_strengths": [
-    "Circuit breakers em 4 variantes (per-provider, service, pipeline nodes, provider mesh) com fallback chains profundas",
-    "Idempotencia persistente com claim atomico O_CREAT|O_EXCL, dead letter queue, e outcome learning ledger",
-    "Bob ANS (BobsBody + AutonomicNervousSystem) com auto-cura de 10 orgaos, modo MAN_AT_WORK, e Prometheus metrics"
-  ],
-  "entrypoints_summary": {
-    "total": 118,
-    "api_routes": 43,
-    "cli_scripts": 57,
-    "launchers": 13,
-    "scheduled_jobs": 5,
-    "module_level_import_triggers": 5
-  },
-  "critical_data_paths": {
-    "path_1_order_submission": {"files": 25, "gates": 6, "failure_points": 12, "silent_failures": 3},
-    "path_2_neural_decision": {"files": 10, "gates": 8, "failure_points": 8, "silent_failures": 2},
-    "path_3_crisis_detection": {"files": 18, "sensors": 12, "failure_points": 13, "silent_failures": 12},
-    "path_4_agent_orchestration": {"files": 20, "nodes": 15, "failure_points": 15, "silent_failures": 4}
-  },
-  "security_surface": {
-    "authenticated_routes": 0,
-    "unauthenticated_routes": 43,
-    "pydantic_models": 22,
-    "api_boundary_validation": false,
-    "pipeline_input_validation": true,
-    "docker_port_exposed": 8002,
-    "data_exfiltration_risk": "HIGH"
-  },
-  "failure_domains": {
-    "ceo_deepseek_offline": {"degradation": "falls through Gemini -> Grok -> GLM", "graceful": true},
-    "ibkr_unreachable": {"degradation": "cache 10s TTL, cooldown 60s, auto-recovery 100 fails", "graceful": true},
-    "redis_down": {"degradation": "in-process EventHub fallback", "graceful": true},
-    "disk_full": {"degradation": "journal/dead_letter may fail silently", "graceful": "PARTIAL"},
-    "all_providers_down": {"degradation": "DataHub retorna {} (bug fix ea63541)", "graceful": "PARTIAL"},
-    "langgraph_state_corruption": {"degradation": "NO state validation", "graceful": false},
-    "llm_hallucination": {"degradation": "30 guardrails, 7 connected", "graceful": "PARTIAL"}
-  },
-  "circuit_breakers": {
-    "per_provider": {"threshold": "5 fails, 10s cooldown", "half_open": true},
-    "service_level": {"threshold": "3 fails, 30s timeout", "half_open": true},
-    "pipeline_node": {"threshold": "5 fails, 30s timeout", "half_open": true},
-    "provider_mesh": {"threshold": "3 fails, 300s cooldown", "half_open": false},
-    "kill_switch": {"threshold": "$500/day, 10% DD, 5 consec fails", "auto_reset": "daily"}
-  },
-  "wave2_finding_mapping": {
-    "no_api_auth_42_routes": {"component": "entrypoints", "blast_radius": "ALL — sistema exposto a rede"},
-    "mission_context_fake_equity": {"component": "path_1_order", "blast_radius": "position sizing"},
-    "except_pass_45_plus": {"component": "ALL PATHS", "blast_radius": "erros engolidos sem rastro"},
-    "hardcoded_confidence_20_plus": {"component": "path_2_neural + path_3_crisis", "blast_radius": "decisoes baseadas em numeros falsos"},
-    "setdefault_env_leak": {"component": "path_1 auto_execute_paper.py:50", "blast_radius": "env var override persiste"},
-    "hf_token_exposed_6_files": {"component": "F51-Nitro-MoE/", "blast_radius": "token valido nao revogado, git history"},
-    "4_api_keys_leaked": {"component": "security surface", "blast_radius": "keys nao rotacionadas"},
-    "numpy_drift_2_4_6": {"component": "ALL PATHS", "blast_radius": "resultados cientificos divergentes"},
-    "zero_parquet_datasets": {"component": "path_3_crisis", "blast_radius": "modelos retornam insufficient_data"},
-    "qwen3_gguf_missing_40gb": {"component": "ceo entrypoint", "blast_radius": "live pipeline bloqueado"}
-  },
   "gates": {
-    "git_status": "clean",
-    "ruff_check": "clean (0 findings, 250 files per Wave 2)",
-    "ruff_format": "clean (0 files needing reformat per Wave 2)",
-    "pytest_baseline": "1538 passed, 11 skipped, 0 failed (Wave 2)",
-    "browser_smoke": "not run (read-only audit)"
+    "git_status": "5 files changed (3 modified, 2 untracked)",
+    "ruff_check": "clean (0 findings)",
+    "ruff_format": "clean (0 files needing reformat)",
+    "pytest": "1538 passed, 11 skipped, 0 failed",
+    "browser_smoke": "all green — Health API, Chart AAPL (124 candles), Canvas (438.400px), Chat Bob (2.302 chars, zero erros), Console errors zero"
   },
-  "output_artifact": "Full F51 Impact Map compiled in session transcript — see .f51/F51_IMPACT_MAP_WAVE3.3.md artifact",
-  "next": "Wave 4 — REMEDIATION: priorizar e remediar os 5 riscos topo com base no Impact Map"
+  "watchdog_wave2.4": {
+    "status": "complete",
+    "mode": "READ_ONLY",
+    "date": "2026-07-19T20:32:00-04:00"
+  },
+  "next": "Wave 5 — continuar remediacao dos 5 riscos criticos do Impact Map (auth API, tokens expostos, dados falsos, except:pass, dependencias)"
 }
