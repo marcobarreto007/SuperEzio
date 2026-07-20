@@ -54,8 +54,16 @@ HYPE_PATTERNS = (
 # Keywords to detect whale activity, pumps, dumps, and large order discussions.
 # Combined with ticker symbol in Phase 2 search expansion.
 WHALE_KEYWORDS = (
-    "whale", "pump", "dump", "rocket", "moon", "bag",
-    "yolo", "calls", "puts", "DD",
+    "whale",
+    "pump",
+    "dump",
+    "rocket",
+    "moon",
+    "bag",
+    "yolo",
+    "calls",
+    "puts",
+    "DD",
 )
 
 
@@ -164,6 +172,7 @@ class RedditPulse:
         query = _clean_query(ticker)
         posts: list[dict[str, Any]] = []
         errors: list[str] = []
+        self._source_errors = []
 
         for subreddit in self.subreddits:
             try:
@@ -183,9 +192,11 @@ class RedditPulse:
         top_posts = qualified[:limit]
         avg_sentiment = self._average_sentiment(top_posts)
 
-        # If all Reddit sources failed, fallback to ApeWisdom
-        if not top_posts and errors:
-            return self._apewisdom_fallback(ticker, query, errors)
+        # If all Reddit sources failed, fallback to ApeWisdom.
+        # _source_errors is populated by _cascade_fetch when Pushshift AND
+        # old.reddit both fail for a subreddit.
+        if not top_posts and (errors or self._source_errors):
+            return self._apewisdom_fallback(ticker, query, errors + self._source_errors)
 
         return {
             "symbol": ticker,
@@ -214,39 +225,117 @@ class RedditPulse:
         sort: str,
         time_filter: str,
     ) -> list[dict[str, Any]]:
+        """Fetch posts for *query* from *subreddit* using up to 2 search phases.
+
+        Phase 1 — Direct ticker search (existing behavior).
+        Phase 2 — Whale/pump/dump keyword expansion (new) to surface posts
+                  discussing whale activity, pumps, and large orders that
+                  the basic ticker search might miss.
+
+        Never raises. Returns ``[]`` on total failure.
+        """
         safe_subreddit = re.sub(r"[^A-Za-z0-9_]", "", subreddit)
         if not safe_subreddit:
             return []
 
         match_terms = _match_terms(query)
+        all_posts: list[dict[str, Any]] = []
+
+        # ── Phase 1: Direct ticker search ────────────────────────────────
+        ticker_posts = self._cascade_fetch(
+            subreddit=safe_subreddit,
+            query=query,
+            limit=limit,
+            sort=sort,
+            time_filter=time_filter,
+            match_terms=match_terms,
+        )
+        all_posts.extend(ticker_posts)
+
+        # ── Phase 2: Whale keyword expansion ─────────────────────────────
+        # Searches for posts mentioning whale/pump/dump terms, then filters
+        # for those that also mention the ticker.  This catches discussions
+        # about whale activity, pumps, and large orders.
+        base_ticker = query.strip('"')
+        if base_ticker:
+            kw_query = f"{query} {' '.join(WHALE_KEYWORDS)}"
+            kw_match_terms = list(set(match_terms + [kw.lower() for kw in WHALE_KEYWORDS]))
+            kw_limit = max(1, limit // 2) if ticker_posts else limit
+            kw_posts = self._cascade_fetch(
+                subreddit=safe_subreddit,
+                query=kw_query,
+                limit=kw_limit,
+                sort=sort,
+                time_filter=time_filter,
+                match_terms=kw_match_terms,
+            )
+            # Strict post-filter: post must mention the ticker AND at least
+            # one whale keyword to qualify.
+            ticker_lower = base_ticker.lower()
+            for post in kw_posts:
+                title_lower = post.get("title", "").lower()
+                snippet_lower = post.get("snippet", "").lower()
+                if ticker_lower not in title_lower and ticker_lower not in snippet_lower:
+                    continue
+                has_whale = any(
+                    kw.lower() in title_lower or kw.lower() in snippet_lower
+                    for kw in WHALE_KEYWORDS
+                )
+                if has_whale:
+                    all_posts.append(post)
+
+        return all_posts
+
+    def _cascade_fetch(
+        self,
+        *,
+        subreddit: str,
+        query: str,
+        limit: int,
+        sort: str,
+        time_filter: str,
+        match_terms: list[str],
+    ) -> list[dict[str, Any]]:
+        """Try Pushshift.io first, then old.reddit.com as fallback.
+
+        Never raises. Records failures in ``self._source_errors`` so that
+        ``get_signal()`` can decide whether to fall back to ApeWisdom.
+        Returns ``[]`` when every source fails.
+        """
         last_error: str | None = None
 
         # Try 1: Pushshift.io — free historical archive, no OAuth required
         try:
-            return self._fetch_via_pushshift(
-                subreddit=safe_subreddit,
+            result = self._fetch_via_pushshift(
+                subreddit=subreddit,
                 query=query,
                 limit=limit,
                 match_terms=match_terms,
             )
+            if result:
+                return result
         except Exception as exc:
-            last_error = str(exc)
+            last_error = f"r/{subreddit} pushshift: {exc}"
 
         # Try 2: old.reddit.com — public JSON with User-Agent header
         try:
-            return self._fetch_via_old_reddit(
-                subreddit=safe_subreddit,
+            result = self._fetch_via_old_reddit(
+                subreddit=subreddit,
                 query=query,
                 limit=limit,
                 sort=sort,
                 time_filter=time_filter,
                 match_terms=match_terms,
             )
+            if result:
+                return result
         except Exception as exc:
-            last_error = str(exc)
+            last_error = f"r/{subreddit} old_reddit: {exc}"
 
-        # Both sources failed — raise so get_signal logs the error
-        raise RuntimeError(f"all_reddit_sources_blocked: {last_error}")
+        # Both sources failed or returned empty
+        if last_error:
+            self._source_errors.append(last_error)
+        return []
 
     def _fetch_via_pushshift(
         self,
