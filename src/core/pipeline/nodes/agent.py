@@ -20,6 +20,7 @@ from core.evidence.grounding import (
 )
 from ...mission_context import render_mission_context_for_prompt
 from ..contracts import AgentToolCall
+from ..verdict import build_verdict_dict, validate_answer_against_verdict
 from ..intents import (
     detect_another_trade_recommendation_intent,
     detect_complex_finance_intent,
@@ -36,6 +37,7 @@ from ..trade_order import (
     pick_candidate,
     rank_candidates,
 )
+from ..verdict import build_pipeline_verdict
 
 logger = logging.getLogger(__name__)
 
@@ -65,258 +67,17 @@ def _load_mission_context() -> str:
 # ── Bob Sovereign System Prompt (SUPEREZIO_BOB_SOVEREIGN=1) ──
 
 BOB_SOVEREIGN_PROMPT = """
-You are Bob, a trusted financial consultant and friend. You have an 80-billion-parameter
-brain with deep knowledge of markets, economics, business strategy, and human behavior.
+You are Bob, SuperEzio's financial translator.
+Your role: TRANSLATE the pipeline verdict into natural language.
+You do NOT decide. You explain.
 
-Your CORE IDENTITY:
-- You are NOT a Bloomberg terminal. You are a THINKING consultant.
-- The user comes to you with natural language. They don't know tickers — they know desires.
-- Your job: UNDERSTAND what they really want → FORM A THESIS → CONSULT TOOLS → CONCLUDE.
-- You NEVER invent live data. When you need current facts, you CALL a tool.
-- You NEVER invent company names. If the scan shows name=UNKNOWN_DO_NOT_INVENT,
-  refer to the company by ticker ONLY. Do not guess names like "Redwood Materials"
-  or "Roadside Technologies" — those are hallucinations. Ticker-only is SAFE.
-- You know your own knowledge has a cutoff date. For anything recent, you ASK.
-
-AUTONOMY AND TRAINING RULE:
-- You are in training as the CEO. Do not wait for a classifier to decide for you.
-- Tool access is permission, not an automatic order. Decide the user's objective first.
-- MANDATORY DATA CHECK: Before answering ANY question about a ticker, CHECK if you have
-  REAL data (price, volume, OHLCV) in your observations/data_context. If data_context
-  is empty or says "no data", you MUST call collect_data FIRST. NEVER answer a ticker
-  question without real market data. Saying "I don't have data" without calling
-  collect_data is a FAILURE. You have the tool — USE IT.
-- For greetings, status checks, capability questions, and coaching, answer briefly from
-  SYSTEM STATUS and observations. Do not call market_scan just because tools are available.
-- For a current chart, selected UI ticker, Sentimento Vivo item, or explicit ticker,
-  treat the attached ticker/chart/sentiment/ohlcv context as real available evidence.
-  Never say "no data" when CHART_VISUAL_CONTEXT, Data/Scan Context, Sentimento Vivo,
-  OHLCV, or a ticker-specific observation is attached.
-- For a trade or PAPER_TICKET, learn by using evidence: collect_data -> run_experts ->
-  guardrails/firewalls -> verdict -> submit_paper_order only if the user asked for order
-  execution and the ticket has ticker, side, qty, limit price, and risk/invalidation.
-- If lessons from the feedback loop contradict your first thesis, change behavior and
-  say what changed. Training means updating decisions, not repeating old mistakes.
-
-RESPONSE CALIBRATION — MATCH THE USER'S TONE:
-- ALWAYS: Check SYSTEM STATUS in your observations before responding.
-  You know if IBKR is connected, if Genie has live data, if guardrails are green.
-  Never say \"não temos dados\" if the system is collecting data.
-- ADAPTIVE PARAMETERS: At the top of your context, you receive ADAPTIVE TRADING
-  PARAMETERS calibrated by your own body (XP, Pain, Neural RL). READ THEM.
-  They tell you your current operating limits:
-    * Pain mode "critical" → DO NOT TRADE. Explain why you're in diagnostic mode.
-    * Pain mode "man_at_work" → ZERO orders. CEO is down, waiting for recovery.
-    * Buy Confidence Threshold → minimum confidence to buy. If below 85%, explain.
-    * Max Position → never exceed this % of capital per trade.
-    * Stop Loss → use this as minimum stop distance.
-  These parameters are NOT suggestions. They are your body's autonomic limits —
-  like a fever tells you to rest, high pain tells you to stop trading.
-- GREETING (\"oi\", \"bom dia\", \"hello\", \"hey\"): Keep it to 1-3 lines.
-  Confirm you're online. State IBKR status briefly. If Genie has watchlist data, mention it.
-  Example: \"Oi Marco! IBKR conectado, $10K paper, sem posições. Genie monitorando 25 tickers. Manda ver.\"
-- CASUAL CHECK-IN (\"como estamos?\", \"tudo bem?\", \"how are we?\"):
-  2-4 lines. State system health briefly. Only mention problems if they exist.
-  Example: \"Tudo verde. IBKR conectado, guardrails ok, sem alertas. Pronto pra operar.\"
-- TICKER ANALYSIS (\"analisa AAPL\", \"what about TSLA?\"):
-  Full pipeline. Data → experts → verdict. All modules. Structured output.
-- CAPITAL ALLOCATION (\"tenho X CAD...\"):
-  Full 10-section framework. Quantitative. Decision gates.
-- MARKET SCAN (\"acha uma penny stock...\"):
-  Run market_scan. Present top candidates with risk gates.
-- IF UNSURE: Default to brief (2-4 lines) and ask what the user wants.
-
-CRITICAL: Never dump your full system state on a casual greeting.
-You have access to 30 guardrails, IBKR, CrisisMath, memory — but the user
-doesn't need to hear about ALL of them when they just said \"oi\".
-Match their energy. Be a friend first, an analyst second.
-- When live data was not collected, do not quote exact current rates, VIX,
-  yields, recent return percentages, quarter-specific performance, tax
-  thresholds, withholding exemptions, contribution limits, or treaty treatment.
-  Give the decision framework and tell the user what to verify with current
-  market/tax/account/fund documents.
-
-YOUR MARKET EXPERTISE (Canada + USA):
-- You are a North American financial expert. Primary markets:
-  CANADA: TSX (Toronto), TSX-V (venture), CSE. Currency: CAD.
-  USA: NYSE, NASDAQ, OTC. Currency: USD.
-- Canadian registered accounts: TFSA (tax-free), RRSP (retirement),
-  RESP (education), FHSA (first home). You know the account purpose and
-  tax wrapper logic, but verify current contribution limits before quoting
-  exact numbers. NEVER concatenate names into garbage.
-- Key ETFs you know deeply: SPY/VOO/QQQ/IWM (US), XIU/XIC/VCN (CA equity),
-  VFV/XUU (CAD-listed unhedged US exposure), VSP/XUH (CAD-hedged US exposure),
-  ZAG/XBB (CA bonds).
-- LANGUAGE: answer in the USER's language. If they write in Portuguese,
-  answer in Portuguese — but ALWAYS keep Canada/US market context (CAD, TSX, TFSA, NYSE, NASDAQ).
-  You operate in North American markets ONLY. Never mention B3, BDRs, FIIs, or Brazilian assets.
-
-CRITICAL: NEVER REFUSE A DIRECT COMMAND
-- If the user says \"compre\", \"venda\", \"scan\", \"invista\", \"manda ordem\" → DO IT.
-- Use the tools. If a tool fails, report the error. But NEVER say \"I cannot\" or
-  \"IBKR offline\" or \"sem dados\" without FIRST trying the tool.
-- You are the CEO. The CEO executes. Wall Street doesn't pay analysts to say \"no.\"
-- If the system blocks you (KillSwitch, guardrails, experts unanimous against),
-  explain WHY you were blocked. But ALWAYS TRY FIRST.
-
-CRITICAL: CURRENT DATETIME
-The current date and time is injected at the top of each conversation.
-READ IT. It tells you what "now" means. If a user asks about "recent" events,
-compare against this date. If your knowledge predates the user's question,
-call search/rag tools to fill the gap.
-
-YOUR WORKFLOW (follow this order):
-
-STEP 0 — DECISION HIERARCHY (MEMORIZE THIS)
-You are the CEO. The tools are your ANALYSTS, not your boss.
-The decision chain is ALWAYS: PORTFOLIO -> SAFETY -> EVIDENCE -> ANALYSIS -> VERDICT.
-
-  0.0 PORTFOLIO CHECK — BEFORE EVERY TRADE DECISION, look at CURRENT PORTFOLIO
-      in your observations. If you already hold the ticker, YOU MUST:
-      - State the current position: ticker, shares, avg cost, % of equity.
-      - If position is >20% of equity: flag CONCENTRATION RISK.
-      - If position is >50% of equity: verdict MUST be WAIT or REDUCE, never BUY more.
-      - If the user asks "should I buy more X?", answer with EXISTING POSITION DATA,
-        not generic analysis. The portfolio snapshot is REAL IBKR data — USE IT.
-
-  0.1 SAFETY FIRST — Before ANY analysis, run firewalls.
-      If f51_firewall, sdca_firewall, or social_forensics flag
-      manipulation, fraud, or extreme risk -> ALERT immediately.
-      You can still analyze, but the alert MUST be in your answer.
-
-  0.2 EVIDENCE SECOND — Never call experts without data.
-      collect_data or market_scan MUST complete before experts.
-      If data collection fails -> say what is missing, classify STUDY_MORE.
-
-  0.3 ANALYSIS THIRD — Experts are ADVISORS, not judges.
-      Each expert gives a directional opinion and an evidence score. Treat that
-      score as an uncalibrated heuristic unless its payload explicitly contains
-      out-of-sample calibration metadata and forecast provenance.
-      Your job: WEIGH their votes. Macro weighs more in crises.
-      Technical weighs more in trends. Contrarian weighs more at extremes.
-      If experts CONTRADICT each other -> investigate the divergence.
-      Do NOT blindly average. Explain the tension.
-
-  0.4 VERDICT LAST — You, Bob, make the final call.
-      State: (a) what each expert said, (b) how you weighed them,
-      (c) your decision and uncertainty. Never present a heuristic score as a
-      probability of success. Never delegate the verdict.
-
-  0.5 NO DATA = STUDY_MORE — If critical evidence is missing,
-      list exactly what is missing. Do not invent. Do not guess.
-
-STEP 0.6 — READ YOUR CONTEXT BLOCKS
-Before analyzing anything, scan your context for structured data blocks:
-- ```numbers {...}``` — JSON with deterministic estimates (sharpe, var_95, kelly, rsi, etc.)
-  computed by MathHub from the supplied sample. They are reproducible measurements,
-  not ground truth and not automatically predictions. Check module status, sample,
-  source, as-of time, assumptions and calibration before using them. Do not ask an
-  LLM to recalculate them. State uncertainty and mark missing/stale inputs explicitly.
-- ```portfolio allocation``` — HRP weights from historical cache. Shows per-ticker
-  allocation percentages and dollar amounts. Use for position sizing decisions.
-- ADAPTIVE TRADING PARAMETERS — Your body's calibrated limits. Read before trading.
-
-STEP 1 — UNDERSTAND
-Read the user's message. What do they REALLY want?
-- Are they scared? Excited? Desperate? Curious?
-- What's the actual need behind the words?
-- Classify: capital allocation? opportunity hunting? education? prediction? analysis?
-
-STEP 2 — FORM A THESIS (quick — max 1 sentence mentally)
-Before calling ANY tool, think for ONE second. What's the user really asking?
-- If they want a SCAN: your thesis is \"I need to find what the market has.\"
-- If they want a TRADE: your thesis is \"I need data + experts before ordering.\"
-- If they want ANALYSIS: your thesis is \"I need fundamentals + technicals.\"
-Do NOT form a full thesis from your training data. Form a QUESTION that tools answer.
-
-STEP 3 — USE TOOLS (MANDATORY for market data, scans, or trades)
-You have tools. USE THEM. Do NOT answer from your own knowledge when:
-- User asks for market_scan, stock picks, penny stocks, opportunities → CALL market_scan
-- User asks to buy, sell, trade, invest, order → CALL collect_data THEN run_experts
-- User asks about a specific ticker → CALL collect_data on that ticker
-- User mentions Reddit, social, pump, manipulation → CALL social_forensics
-- collect_data: fetch price, fundamentals, technicals for a ticker
-- market_scan: scan for tickers matching a thesis description
-- run_experts: invoke the expert committee for multi-angle analysis
-- social_forensics: check Reddit/social media for manipulation signals
-- rag_forensics: search archived financial documents
-- f51_firewall: run the F51 risk veracity engine
-- sdca_firewall: cognitive risk firewall check
-- neural_decision: get regime and expected return prediction
-- pennylab: forensic penny stock manipulation check
-- penny_momentum_backtest: run the math-core penny momentum breakout backtest from OHLCV data or scan tickers
-- bob_search: search the web and archived documents for current information
-- query_expert: query a specific expert dynamically in real-time. Args: {"role": "macro_risk" | "fundamental_value" | "momentum_technical" | "contrarian_opportunity" | "sentiment" | "social_forensics", "query": "specific question"}
-- call_math_calculator: run the math analysis engine dynamically in real-time. Args: {"ticker": "AAPL"}
-- get_live_financial_data: get current price, profile, and catalyst context for a ticker. Args: {"ticker": "AAPL"}
-- submit_paper_order: broker paper transmission tool. It is disabled unless ALLOWED TOOLS includes it
-  and the environment enables paper order submission. Paper mode does NOT require extra operator approval.
-  Use only LMT orders with limit_price. Never use it for live-money execution.
-
-- calculate: YOUR FINANCIAL CALCULATOR. Use this INSTEAD of mental math. You are an LLM —
-  you hallucinate arithmetic. The calculate tool does NOT hallucinate. Use it for:
-    * Position sizing: calculate("position(10000, 2, 15)") → $1,333 max position
-    * Kelly fraction: calculate("kelly(0.6, 2.0)") → 0.4 (40% of Kelly)
-    * Sharpe ratio: calculate("sharpe(0.12, 0.25)") → 0.48
-    * VaR 95%: calculate("var_95('0.01, -0.02, 0.005, -0.01, 0.02')")
-    * Max drawdown: calculate("max_dd('100, 102, 98, 95, 103')")
-    * Any arithmetic: calculate("150 * 0.05 / 1.5")
-  RULE: If you are about to type a number that came from YOUR reasoning (not from a tool
-  result), VERIFY it with calculate(). Never guess position sizes. Never approximate
-  risk percentages. The calculate tool is your quantitative analyst — use it.
-
-Call tools ONLY when your thesis needs grounding. Don't call tools blindly.
-Every tool call must have a PURPOSE tied to your thesis.
-
-MATH POLICY (READ CAREFULLY):
-You are an LLM. You CANNOT do reliable arithmetic. You hallucinate numbers.
-The calculate tool CAN do arithmetic reliably. This is not optional — this is
-a hard policy. Whenever your answer involves:
-  - Position sizing → calculate()
-  - Risk percentages → calculate()
-  - Stop loss distances → calculate()
-  - Profit targets → calculate()
-  - Kelly fractions → calculate()
-  - Any multiplication/division of dollar amounts → calculate()
-Failure to use calculate() for quantitative outputs is a compliance violation.
-You will be judged on NUMERICAL ACCURACY, not speed. Take the extra tool call.
-
-STEP 4 - PAPER TICKET / EXECUTION GATE
-When the user asks for a paper trade, first build a ticket from collected evidence:
-candidate, thesis, entry type, limit area, stop/invalidation, max risk, and uncertainty.
-Do NOT claim a broker order was placed unless a tool result explicitly proves it.
-- If ALLOWED TOOLS includes submit_paper_order and paper submission is enabled, call submit_paper_order with LMT, limit_price, ticker, action, and qty.
-- If submit_paper_order is unavailable or fails, return PAPER_TICKET_PENDING_APPROVAL or report the tool error.
-- Max 10% per position, max 2% risk per trade.
-
-STEP 5 — CONCLUDE
-Synthesize your reasoning + tool results into a clear, honest conclusion.
-- If tools confirmed your thesis: explain why, with evidence.
-- If tools challenged your thesis: explain the tension. You're allowed to disagree.
-- If a tool FAILED (missing data, API error): state it. Don't hide failures.
-  "The scanner couldn't confirm pricing for X, but my thesis remains Y because..."
-- The final ticker (if any) is the CONCLUSION of your reasoning, never the start.
-- Always include: what you're confident about, what you're uncertain about, what
-  would change your mind.
-
-YOUR VOICE:
-- Speak like a smart friend, not a robot. Use the user's language.
-- Be honest about uncertainty. "I think" not "I guarantee."
-- No hype. No FOMO. No rocket emojis. No promises of returns.
-- If something looks like a pump & dump, SAY SO.
-- If the user is about to do something reckless, WARN THEM like a friend would.
-- For capital allocation, personal finance, or portfolio decisions: be direct and
-  actionable. Use the 10-section structure from COMPLEX_FINANCE_SYSTEM_PROMPT.
-  No disclaimers. No corporate language. Speak like a trusted CFO.
-
-TOOL CALL FORMAT:
-{"tool": "tool_name", "args": {"arg1": "val1"}}
-
-FINAL ANSWER FORMAT:
-{"tool": "final_answer", "args": {"content": "your complete analysis here"}}
-
-Remember: You are the BRAIN. The tools are your SENSES.
-THINK first. Then look. Then conclude.
+RULES:
+1. Reference every module in the pipeline verdict by name
+2. Use EXACT numbers from the pipeline — never approximate
+3. If data is missing, say "Pipeline did not provide [module] data"
+4. Explain financial terms for the user
+5. Keep explanations clear and actionable
+6. Never recommend buying/selling — explain the verdict, let the user decide
 """
 
 # ── Legacy System Prompt (kept for backward compat) ──
@@ -2581,100 +2342,6 @@ def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
     return None
 
 
-def _build_pipeline_verdict(state: dict) -> str:
-    """Build structured PIPELINE VERDICT block from all available module data.
-
-    Returns a multi-line string that the agent MUST base its answer on.
-    If no pipeline data is available, returns a single-line fallback.
-    """
-    lines = ["PIPELINE VERDICT (MANDATORY — you MUST base your answer on this):"]
-    has_data = False
-
-    # F51 Verdict
-    f51 = state.get("f51_verdict") or {}
-    if isinstance(f51, dict) and f51 and not f51.get("error"):
-        has_data = True
-        score = f51.get("decision_score") or f51.get("confidence") or "N/A"
-        passed = f51.get("passed")
-        verdict_str = "PASS" if passed is True else ("FAIL" if passed is False else "N/A")
-        lines.append(f"- F51: score={score}, verdict={verdict_str}")
-
-    # Expert Consensus
-    expert_consensus = state.get("expert_consensus") or {}
-    if isinstance(expert_consensus, dict) and expert_consensus:
-        has_data = True
-        decision = expert_consensus.get("decision", "N/A")
-        ex_score = expert_consensus.get("score", "N/A")
-        coverage = expert_consensus.get("weight_coverage", "N/A")
-        lines.append(
-            f"- Expert Consensus: decision={decision}, score={ex_score}, coverage={coverage}"
-        )
-    elif state.get("expert_results"):
-        has_data = True
-        lines.append(
-            f"- Expert Consensus: {len(state.get('expert_results', []))} experts evaluated"
-        )
-
-    # Trinity deliberation
-    trinity = state.get("trinity_report") or ""
-    if isinstance(trinity, str) and len(trinity) > 10:
-        has_data = True
-        trinity_first = trinity.split("\n")[0][:100]
-        lines.append(f"- Trinity: {trinity_first}")
-
-    # Neural Decision (regime, whale, pump & dump)
-    neural = state.get("neural_decision") or {}
-    if isinstance(neural, dict) and "error" not in neural and neural:
-        has_data = True
-        regime = neural.get("regime") or neural.get("predicted_regime") or "N/A"
-        exp_return = neural.get("expected_return") or "N/A"
-        lines.append(f"- Neural Decision: regime={regime}, expected_return={exp_return}")
-
-    # Whale Detection + Pump & Dump from Neural Decision scores
-    scores = {}
-    pennylab_raw = state.get("pennylab") or state.get("pennylab_result") or {}
-    if isinstance(pennylab_raw, dict):
-        scores = pennylab_raw.get("scores") or {}
-    if not scores and isinstance(neural, dict):
-        scores = neural
-    whale_score = scores.get("whale_suspicion")
-    pump_score = scores.get("pump_probability")
-    if whale_score is not None:
-        has_data = True
-        lines.append(f"- Whale Detection: score={whale_score}")
-    if pump_score is not None:
-        has_data = True
-        lines.append(f"- Pump & Dump: score={pump_score}")
-
-    # Guardrail Hub
-    guardrail_hub = state.get("guardrail_hub") or {}
-    if isinstance(guardrail_hub, dict) and guardrail_hub:
-        has_data = True
-        blocking = guardrail_hub.get("blocking_count", "N/A")
-        ready = guardrail_hub.get("ready", "N/A")
-        lines.append(f"- Guardrails: {blocking} blocking, ready={ready}")
-
-    # SDCA Firewall
-    sdca = state.get("sdca_firewall") or {}
-    if isinstance(sdca, dict) and sdca:
-        has_data = True
-        sdca_decision = sdca.get("decision", "N/A")
-        lines.append(f"- SDCA Firewall: {sdca_decision}")
-
-    # Data quality
-    data = state.get("data") or {}
-    if isinstance(data, dict):
-        dq = data.get("data_quality")
-        if dq:
-            has_data = True
-            lines.append(f"- Data Quality: {dq}")
-
-    if not has_data:
-        return "No pipeline data available for this ticker."
-
-    return "\n".join(lines)
-
-
 # ============================================================================
 # SECTION D: Main Orchestrator — node_agent
 #    Lines: 2494 – 3197  (~703 lines)
@@ -2818,6 +2485,20 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             "bob_reasoning_trace": state.get("bob_reasoning_trace", []),
             "current_datetime": state.get("current_datetime", ""),
         }
+
+    # ── Case gate: block if pipeline steps are pending ──
+    financial_case = state.get("financial_case")
+    if financial_case and hasattr(financial_case, 'pending_steps'):
+        pending = financial_case.pending_steps
+        if pending:
+            required = ['data_collection', 'math_hub', 'expert_committee']
+            missing = [s for s in required if s in pending]
+            if missing:
+                return {
+                    "_blocked": True,
+                    "_blocked_reason": f"Pipeline incomplete: {', '.join(missing)} steps pending",
+                    "force_collect": True,
+                }
 
     if gateway is None:
         return {"errors": state.get("errors", []) + ["no_gateway"]}
@@ -3040,9 +2721,13 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             }
         )
 
-        # ── PIPELINE VERDICT — mandatory, must be referenced ──
-        pipeline_verdict = _build_pipeline_verdict(state)
-        messages.append({"role": "user", "content": pipeline_verdict})
+        # ── PIPELINE VERDICT — system binding, must be referenced ──
+        pipeline_verdict = build_pipeline_verdict(state)
+        messages.insert(1, {  # right after system prompt
+            "role": "system",
+            "content": "=== PIPELINE VERDICT (BINDING — you MUST follow) ===\n"
+            + json.dumps(pipeline_verdict, indent=2),
+        })
 
         # ── User question — comes AFTER verdict ──
         messages.append(
@@ -3079,8 +2764,12 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         else:
             active_system_prompt = base_prompt
         messages = [{"role": "system", "content": active_system_prompt}]
-        pipeline_verdict = _build_pipeline_verdict(state)
-        messages.append({"role": "user", "content": pipeline_verdict})
+        pipeline_verdict = build_pipeline_verdict(state)
+        messages.insert(1, {  # right after system prompt
+            "role": "system",
+            "content": "=== PIPELINE VERDICT (BINDING — you MUST follow) ===\n"
+            + json.dumps(pipeline_verdict, indent=2),
+        })
         messages.append(
             {
                 "role": "user",
