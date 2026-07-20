@@ -231,6 +231,7 @@ async def _auto_full_analysis(
         route in {"market_scan", "ticker_analysis"}
         or working_state.get("force_auto_collect")
         or _needs_scan  # ANY data-related request, with or without ticker
+        or _has_ticker  # ANY ticker present — MathHub needs data for RSI/MACD/Sharpe
     )
 
     from core.pipeline.resilience import try_run_async
@@ -282,6 +283,12 @@ async def _auto_full_analysis(
     ).upper()
     data_context = str(working_state.get("data_context") or working_state.get("message") or "")
 
+    logger.info(
+        "MATHHUB_INPUT has_data=%s ohlcv_count=%s ticker=%s",
+        "data" in working_state,
+        len(working_state.get("data", {}).get("ohlcv", [])),
+        ticker,
+    )
     try:
         math_hub = MathHub()
         math_report = math_hub.calculate_all(working_state)
@@ -294,6 +301,13 @@ async def _auto_full_analysis(
         _merge_node_update(working_state, output, math_update)
         _mark_step("math_hub")
         data_context = str(working_state.get("data_context") or data_context)
+        logger.info(
+            "MATHHUB_RESULT ticker=%s coverage=%s latest_price=%s modules_ok=%s",
+            math_report.get("ticker"),
+            math_report.get("coverage"),
+            "summary" in math_report and math_report.get("summary", {}).get("latest_price"),
+            "coverage" in math_report and math_report.get("coverage", {}).get("ok_modules"),
+        )
         writer(
             {
                 "type": "MATH_REPORT",
