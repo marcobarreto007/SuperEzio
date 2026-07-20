@@ -2490,7 +2490,7 @@ async def get_training_orders() -> dict[str, Any]:
                 except json.JSONDecodeError:
                     continue
         except Exception as exc:
-            logger.warning("Failed to load training orders: %s", exc)
+            logger.warning("Failed to load training orders", error=str(exc)[:200])
 
     return {
         "source": "training",

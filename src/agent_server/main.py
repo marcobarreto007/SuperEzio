@@ -632,7 +632,8 @@ async def prometheus_metrics_endpoint():
         from core.config.settings import is_frozen
 
         superezio_execution_freeze.set(1 if is_frozen() else 0)
-    except Exception:
+    except Exception as exc:
+        logger.warning("prometheus_freeze_gauge_failed", error=str(exc)[:120])
         superezio_execution_freeze.set(1)  # SAFE: assume frozen
 
     try:
@@ -640,7 +641,8 @@ async def prometheus_metrics_endpoint():
 
         superezio_ibkr_connectivity.set(1 if is_ibkr_connectable() else 0)
         superezio_journal_health.set(1 if is_journal_healthy() else 0)
-    except Exception:
+    except Exception as exc:
+        logger.warning("prometheus_connectivity_gauge_failed", error=str(exc)[:120])
         superezio_ibkr_connectivity.set(0)
         superezio_journal_health.set(0)
 
@@ -648,7 +650,8 @@ async def prometheus_metrics_endpoint():
         from core.idempotency import count_dead_letters
 
         superezio_dead_letters_pending.set(count_dead_letters())
-    except Exception:
+    except Exception as exc:
+        logger.warning("prometheus_dead_letters_gauge_failed", error=str(exc)[:120])
         superezio_dead_letters_pending.set(-1)
 
     return Response(
@@ -987,8 +990,8 @@ async def health_dashboard():
         if tmpl.exists():
             html = tmpl.read_text(encoding="utf-8")
             return Response(content=html, media_type="text/html; charset=utf-8")
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("health_dashboard_template_failed", error=str(exc)[:120])
     return Response(
         content="<html><body><h1>Health Dashboard</h1><p>Template not found</p></body></html>",
         media_type="text/html; charset=utf-8",
