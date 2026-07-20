@@ -2587,9 +2587,7 @@ def _build_pipeline_verdict(state: dict) -> str:
     Returns a multi-line string that the agent MUST base its answer on.
     If no pipeline data is available, returns a single-line fallback.
     """
-    lines = [
-        "PIPELINE VERDICT (MANDATORY — you MUST base your answer on this):"
-    ]
+    lines = ["PIPELINE VERDICT (MANDATORY — you MUST base your answer on this):"]
     has_data = False
 
     # F51 Verdict
@@ -2598,9 +2596,7 @@ def _build_pipeline_verdict(state: dict) -> str:
         has_data = True
         score = f51.get("decision_score") or f51.get("confidence") or "N/A"
         passed = f51.get("passed")
-        verdict_str = (
-            "PASS" if passed is True else ("FAIL" if passed is False else "N/A")
-        )
+        verdict_str = "PASS" if passed is True else ("FAIL" if passed is False else "N/A")
         lines.append(f"- F51: score={score}, verdict={verdict_str}")
 
     # Expert Consensus
@@ -2611,14 +2607,12 @@ def _build_pipeline_verdict(state: dict) -> str:
         ex_score = expert_consensus.get("score", "N/A")
         coverage = expert_consensus.get("weight_coverage", "N/A")
         lines.append(
-            f"- Expert Consensus: decision={decision}, score={ex_score}, "
-            f"coverage={coverage}"
+            f"- Expert Consensus: decision={decision}, score={ex_score}, coverage={coverage}"
         )
     elif state.get("expert_results"):
         has_data = True
         lines.append(
-            f"- Expert Consensus: {len(state.get('expert_results', []))} "
-            f"experts evaluated"
+            f"- Expert Consensus: {len(state.get('expert_results', []))} experts evaluated"
         )
 
     # Trinity deliberation
@@ -2634,9 +2628,7 @@ def _build_pipeline_verdict(state: dict) -> str:
         has_data = True
         regime = neural.get("regime") or neural.get("predicted_regime") or "N/A"
         exp_return = neural.get("expected_return") or "N/A"
-        lines.append(
-            f"- Neural Decision: regime={regime}, expected_return={exp_return}"
-        )
+        lines.append(f"- Neural Decision: regime={regime}, expected_return={exp_return}")
 
     # Whale Detection + Pump & Dump from Neural Decision scores
     scores = {}
@@ -3008,11 +3000,30 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         if mission_context:
             active_system_prompt = mission_context + "\n\n" + active_system_prompt
 
+        # Prepend pipeline explainer identity — Bob explains the verdict, not his own opinion
+        pipeline_explainer = (
+            "You are NOT a standalone LLM. A pipeline ran BEFORE you. "
+            "Your job is to EXPLAIN the pipeline's verdict, not to form your own opinion. "
+            "NEVER answer from memory if pipeline data is available.\n\n"
+            "You are Bob, the pipeline's narrator. Translate the structured PIPELINE VERDICT "
+            "below into clear natural language. You do NOT make trading decisions — you report "
+            "what the pipeline decided and why.\n\n"
+            "MANDATORY RULES:\n"
+            "1. If PIPELINE VERDICT data is present in the user message, you MUST base your "
+            "entire answer on it. Do NOT answer from your training memory.\n"
+            "2. Reference EVERY module listed in the verdict by name in your explanation.\n"
+            "3. If the verdict says 'No pipeline data available', repeat that exactly and do "
+            "not attempt to form your own analysis from memory.\n"
+        )
+        active_system_prompt = pipeline_explainer + "\n\n" + active_system_prompt
+
         now_str = dt_now.now().strftime("%Y-%m-%d %H:%M:%S UTC")
         risk = state.get("risk_tolerance", "moderada")
         bob_intent = state.get("bob_intent", state.get("intent", "general_question"))
 
         messages = [{"role": "system", "content": active_system_prompt}]
+
+        # ── Context metadata ──
         messages.append(
             {
                 "role": "user",
@@ -3024,8 +3035,22 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     f"ALLOWED TOOLS: {', '.join(str(t) for t in state.get('allowed_tools', ['final_answer']))}\n"
                     f"SCANNER_ALLOWED: {bool(state.get('scanner_allowed', False))}\n"
                     f"TICKER_DATA_ALLOWED: {bool(state.get('ticker_allowed', False))}\n"
-                    f"ANSWER CONTRACT: {state.get('answer_contract', 'Answer directly and do not invent current market data.')}\n\n"
-                    f"USER: {state.get('message', '')}\n\n"
+                    f"ANSWER CONTRACT: {state.get('answer_contract', 'Answer directly and do not invent current market data.')}\n"
+                ),
+            }
+        )
+
+        # ── PIPELINE VERDICT — mandatory, must be referenced ──
+        pipeline_verdict = _build_pipeline_verdict(state)
+        messages.append({"role": "user", "content": pipeline_verdict})
+
+        # ── User question — comes AFTER verdict ──
+        messages.append(
+            {
+                "role": "user",
+                "content": (
+                    f"USER QUESTION (explain the above verdict in natural language): "
+                    f"{state.get('message', '')}\n\n"
                     f"If ALLOWED TOOLS is only final_answer, do not call market_scan, collect_data, experts, or firewalls. "
                     f"Answer the advisory framework directly and state when live data was not collected. "
                     f"If SCANNER_ALLOWED is False, never scan or shortlist current tickers from imagined data. "
@@ -3054,7 +3079,17 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         else:
             active_system_prompt = base_prompt
         messages = [{"role": "system", "content": active_system_prompt}]
-        messages.append({"role": "user", "content": f"User Request: {state.get('message', '')}"})
+        pipeline_verdict = _build_pipeline_verdict(state)
+        messages.append({"role": "user", "content": pipeline_verdict})
+        messages.append(
+            {
+                "role": "user",
+                "content": (
+                    f"USER QUESTION (explain the above verdict in natural language): "
+                    f"{state.get('message', '')}"
+                ),
+            }
+        )
 
     # Inject current state context as observations (delegated to observation_builder)
     from .observation_builder import build_observations
@@ -3067,9 +3102,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     prompt_report = build_agent_prompt(state, mandamentos=mandamentos)
 
     if prompt_report:
-        messages.append(
-            {"role": "user", "content": "Pipeline Report:\n" + prompt_report}
-        )
+        messages.append({"role": "user", "content": "Pipeline Report:\n" + prompt_report})
 
     if observations:
         messages.append(
@@ -3079,7 +3112,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     messages.append(
         {
             "role": "user",
-            "content": "Decide on the next action (tool call or final_answer). Output ONLY the JSON block.",
+            "content": "Explain the pipeline verdict above. Reference every module by name. Output ONLY the JSON block.",
         }
     )
 
