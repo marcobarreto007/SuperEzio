@@ -1,133 +1,109 @@
 {
-  "timestamp": "2026-07-19T21:00:00-04:00",
-  "session": "auditoria-completa-wave1-wave2",
-  "orchestrator": "f51-orchestrator",
+  "timestamp": "2026-07-19T22:30:00-04:00",
+  "session": "wave3.3-impact-map",
+  "orchestrator": "f51-impact-map",
   "status": "completed",
-  "objective": "Auditoria interna completa — entender código, achar lixos, duplicações e dar nota como auditor interno",
-  "waves": {
-    "wave1_recon": {
-      "orchestrator_session": "principal",
-      "status": "completed",
-      "agents": {
-        "1.1_dead_code_hunter": {
-          "score": "19/25",
-          "top_findings": [
-            "event_hub.py — 310 linhas completamente mortas (EventHub, InMemoryHub, RedisStreamsHub)",
-            "2 port interfaces mortas — ModelGatewayPort, HealthProbePort",
-            "3 funções tombstone que sempre retornam erro",
-            "4 dependências nunca importadas: statsmodels, pandas-ta, joblib, llama-cpp-python"
-          ]
-        },
-        "1.2_recon_researcher": {
-          "score": "17/25",
-          "top_findings": [
-            "23 scripts órfãos sem nenhuma referência no projeto",
-            "SAFE_ACTIONS duplicado com valores conflitantes (core/prompts/ vs core/pipeline/prompts/)",
-            "src/experts/ — 49 arquivos sem __init__.py",
-            "Docstring do f51/__init__.py mente sobre estrutura real",
-            "F51-Nitro-MoE/ — diretório abandonado"
-          ]
-        },
-        "1.3_dependency_scout": {
-          "score": "15/25",
-          "top_findings": [
-            "numpy 2.4.6 instalado mas constraint é <2.3 — VIOLAÇÃO CRÍTICA",
-            "6 dependências fantasmas: aiohttp, pandas-ta, lxml, statsmodels, joblib, mem0ai",
-            "ib-insync abandonado desde 2023 — fork ib_async é o sucessor",
-            "transformers 4.x → 5.x gap enorme com breaking changes",
-            "financedatabase — shadow dependency (importada mas não declarada)"
-          ]
-        },
-        "1.4_arqueologist": {
-          "score": "14/25",
-          "top_findings": [
-            "5 módulos órfãos em src/core/trading/: neural_rl.py, rl_loop.py, training.py, dataset.py, autonomous_learner.py (~700 linhas mortas)",
-            "33 scripts órfãos em scripts/",
-            "~170MB de dados fora do .gitignore (temp_gguf_workspace/, lora_finance_pt/)",
-            "21 PNGs órfãos — screenshots e assets não referenciados",
-            "7 env vars no código ausentes do .env.example"
-          ]
-        }
-      },
-      "average_score": "16.25/25 (65/100)"
-    },
-    "wave2_deep_audit": {
-      "orchestrator_session": "externo (outro PS)",
-      "status": "completed",
-      "agents": {
-        "2.1_code_quality": {
-          "status": "completed",
-          "ruff_check": "0 findings — all 250 files passed",
-          "ruff_format": "0 files needing reformat",
-          "long_functions_gt_50": 252,
-          "unused_imports": 0,
-          "wildcard_imports": 0,
-          "except_pass_instances": 45,
-          "score_estimated": "18/25",
-          "severity": "0 CRITICAL / 0 HIGH / 45 MEDIUM / 0 LOW"
-        },
-        "2.2_no_mock_police": {
-          "status": "completed",
-          "integrity_score": 39,
-          "critical_findings": 1,
-          "high_findings": 11,
-          "medium_findings": 10,
-          "low_findings": 5,
-          "score_estimated": "13/25",
-          "top_finding": "mission_context.py retorna $10,000 fake equity sem logging"
-        },
-        "2.3_secure_scan": {
-          "status": "completed",
-          "bandit_total": 86,
-          "bandit_high": 0,
-          "bandit_medium": 7,
-          "bandit_low": 79,
-          "secrets_found": 0,
-          "score_estimated": "17/25",
-          "top_finding": "HF from_pretrained com trust_remote_code=True, sem revision pin"
-        },
-        "2.4_contract_watchdog": {
-          "status": "completed",
-          "api_routes": 43,
-          "pydantic_models": 22,
-          "env_vars": "130+",
-          "breaking_changes": 0,
-          "schema_drift": 0,
-          "score_estimated": "20/25",
-          "top_finding": "SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT setdefault leak em auto_execute_paper.py:50"
-        }
-      },
-      "average_score": "17/25 (68/100)"
-    }
+  "objective": "Wave 3.3 — F51 IMPACT MAP: mapeamento completo da superficie de risco (entrypoints, data flow, dependencias, security, failure domains, Wave 2 cross-reference)",
+  "wave": 3.3,
+  "agents_dispatched": 7,
+  "agents_completed": 7,
+  "findings": {
+    "api_routes_total": 43,
+    "api_routes_unauthenticated": 43,
+    "cli_scripts": 57,
+    "cli_main_blocks": 38,
+    "launcher_scripts": 13,
+    "critical_data_paths": 4,
+    "external_services": 23,
+    "sqlite_databases": 11,
+    "env_vars_total": "60+",
+    "circuit_breakers": 4,
+    "idempotency_mechanisms": 2,
+    "guardrails_total": 30,
+    "guardrails_connected": 7,
+    "guardrails_isolated": 23,
+    "except_pass_instances": 45,
+    "hardcoded_confidence_sites": "20+",
+    "dead_letter_pending": null
   },
-  "cross_wave_consensus": [
-    "CÓDIGO MORTO SISTÊMICO — 6+ módulos em trading/ + event_hub.py (1000+ linhas nunca executadas)",
-    "DEPENDÊNCIAS TÓXICAS — numpy violado, ib-insync abandonado, 6 fantasmas, transformers com gap de major",
-    "except:pass SISTÊMICO — 45+ instâncias, flagged por 3+ agentes",
-    "ENTULHO DE SCRIPTS — 33 scripts órfãos, F51-Nitro-MoE abandonado, ~170MB dados fora do gitignore",
-    "DOCS MENTEM — f51/__init__.py docstring errada, .env.example desatualizado, link quebrado em HF_README.md"
+  "severity": {
+    "critical": 5,
+    "high": 12,
+    "medium": 10,
+    "low": 8
+  },
+  "overall_risk_score": 84,
+  "risk_interpretation": "CRITICO (84/100) — acao imediata necessaria. 42 rotas sem auth, tokens expostos, dados falsos em caminhos criticos.",
+  "top_5_risks": [
+    "1. Zero API authentication on all 43 routes (port 8002 published on host, docker-compose expoe na rede)",
+    "2. HF token exposto em 6+ files + 4 API keys vazadas (DeepSeek, TwelveData, AlphaVantage, NewsAPI) — nao rotacionados",
+    "3. Dados falsos em caminhos criticos: mission_context $10k fake equity, ~20+ sites hardcoded confidence/scores",
+    "4. 45+ except:pass engolem erros silenciosamente em todas as 4 data paths criticas",
+    "5. Dependencias divergentes: NumPy 2.4.6 (constraint <2.3), statsmodels ausente, modelo GGUF ~40GB faltando"
   ],
-  "consolidated_severity": {
-    "critical": 2,
-    "high": 5,
-    "medium": 8,
-    "low": 6
+  "top_3_strengths": [
+    "Circuit breakers em 4 variantes (per-provider, service, pipeline nodes, provider mesh) com fallback chains profundas",
+    "Idempotencia persistente com claim atomico O_CREAT|O_EXCL, dead letter queue, e outcome learning ledger",
+    "Bob ANS (BobsBody + AutonomicNervousSystem) com auto-cura de 10 orgaos, modo MAN_AT_WORK, e Prometheus metrics"
+  ],
+  "entrypoints_summary": {
+    "total": 118,
+    "api_routes": 43,
+    "cli_scripts": 57,
+    "launchers": 13,
+    "scheduled_jobs": 5,
+    "module_level_import_triggers": 5
+  },
+  "critical_data_paths": {
+    "path_1_order_submission": {"files": 25, "gates": 6, "failure_points": 12, "silent_failures": 3},
+    "path_2_neural_decision": {"files": 10, "gates": 8, "failure_points": 8, "silent_failures": 2},
+    "path_3_crisis_detection": {"files": 18, "sensors": 12, "failure_points": 13, "silent_failures": 12},
+    "path_4_agent_orchestration": {"files": 20, "nodes": 15, "failure_points": 15, "silent_failures": 4}
+  },
+  "security_surface": {
+    "authenticated_routes": 0,
+    "unauthenticated_routes": 43,
+    "pydantic_models": 22,
+    "api_boundary_validation": false,
+    "pipeline_input_validation": true,
+    "docker_port_exposed": 8002,
+    "data_exfiltration_risk": "HIGH"
+  },
+  "failure_domains": {
+    "ceo_deepseek_offline": {"degradation": "falls through Gemini -> Grok -> GLM", "graceful": true},
+    "ibkr_unreachable": {"degradation": "cache 10s TTL, cooldown 60s, auto-recovery 100 fails", "graceful": true},
+    "redis_down": {"degradation": "in-process EventHub fallback", "graceful": true},
+    "disk_full": {"degradation": "journal/dead_letter may fail silently", "graceful": "PARTIAL"},
+    "all_providers_down": {"degradation": "DataHub retorna {} (bug fix ea63541)", "graceful": "PARTIAL"},
+    "langgraph_state_corruption": {"degradation": "NO state validation", "graceful": false},
+    "llm_hallucination": {"degradation": "30 guardrails, 7 connected", "graceful": "PARTIAL"}
+  },
+  "circuit_breakers": {
+    "per_provider": {"threshold": "5 fails, 10s cooldown", "half_open": true},
+    "service_level": {"threshold": "3 fails, 30s timeout", "half_open": true},
+    "pipeline_node": {"threshold": "5 fails, 30s timeout", "half_open": true},
+    "provider_mesh": {"threshold": "3 fails, 300s cooldown", "half_open": false},
+    "kill_switch": {"threshold": "$500/day, 10% DD, 5 consec fails", "auto_reset": "daily"}
+  },
+  "wave2_finding_mapping": {
+    "no_api_auth_42_routes": {"component": "entrypoints", "blast_radius": "ALL — sistema exposto a rede"},
+    "mission_context_fake_equity": {"component": "path_1_order", "blast_radius": "position sizing"},
+    "except_pass_45_plus": {"component": "ALL PATHS", "blast_radius": "erros engolidos sem rastro"},
+    "hardcoded_confidence_20_plus": {"component": "path_2_neural + path_3_crisis", "blast_radius": "decisoes baseadas em numeros falsos"},
+    "setdefault_env_leak": {"component": "path_1 auto_execute_paper.py:50", "blast_radius": "env var override persiste"},
+    "hf_token_exposed_6_files": {"component": "F51-Nitro-MoE/", "blast_radius": "token valido nao revogado, git history"},
+    "4_api_keys_leaked": {"component": "security surface", "blast_radius": "keys nao rotacionadas"},
+    "numpy_drift_2_4_6": {"component": "ALL PATHS", "blast_radius": "resultados cientificos divergentes"},
+    "zero_parquet_datasets": {"component": "path_3_crisis", "blast_radius": "modelos retornam insufficient_data"},
+    "qwen3_gguf_missing_40gb": {"component": "ceo entrypoint", "blast_radius": "live pipeline bloqueado"}
   },
   "gates": {
-    "git_status": "modified: latest.json, bob_pain_log.jsonl, conversation_memory.jsonl; untracked: f51-orchestrator skill, watchdog checkpoint",
-    "ruff_check": "All checks passed! (Wave 2)",
-    "pytest": "1538 passed, 11 skipped, 0 failed in 109.81s (Wave 2)",
-    "browser_smoke": "skipped — server not running (connection refused on 8002)"
+    "git_status": "clean",
+    "ruff_check": "clean (0 findings, 250 files per Wave 2)",
+    "ruff_format": "clean (0 files needing reformat per Wave 2)",
+    "pytest_baseline": "1538 passed, 11 skipped, 0 failed (Wave 2)",
+    "browser_smoke": "not run (read-only audit)"
   },
-  "positives": [
-    "Ruff 100% limpo — 0 lint, 0 format issues em 250 arquivos",
-    "Zero secrets — nenhum token/senha/chave exposto",
-    "Zero breaking changes — 43 rotas, 22 modelos Pydantic v2 estáveis",
-    "Zero injeção — sem SQL/shell injection",
-    "1538 testes passando, zero falhas",
-    "FastAPI + LangGraph bem estruturados — core arquitetural sólido"
-  ],
-  "FINAL_SCORE": "66/100",
-  "rubrica": "CÓDIGO FUNCIONAL, PERIFERIA INTOXICADA. O core (FastAPI, LangGraph, pipeline) é sólido e bem testado. Mas o projeto carrega 1000+ linhas de código morto, 33 scripts órfãos, 6 dependências nunca usadas, numpy com versão violada, ib-insync abandonado, ~170MB de dados de treino fora do gitignore, e documentação desatualizada. A nota reflete um sistema que FUNCIONA mas acumulou entulho técnico que precisa de faxina.",
-  "next": "Recomendada Wave 3 — VERIFY & SCORE para validar os achados e gerar plano de limpeza com ordem de prioridade"
+  "output_artifact": "Full F51 Impact Map compiled in session transcript — see .f51/F51_IMPACT_MAP_WAVE3.3.md artifact",
+  "next": "Wave 4 — REMEDIATION: priorizar e remediar os 5 riscos topo com base no Impact Map"
 }
