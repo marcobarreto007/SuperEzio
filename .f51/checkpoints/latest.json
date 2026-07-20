@@ -1,303 +1,37 @@
 {
-  "timestamp": "2026-07-20T17:45:00-03:00",
-  "session": "mangala-proactive-scan",
-  "orchestrator": "claude-agent",
-  "status": "completed",
-  "objective": "Tornar o Mangala Engine PROATIVO — scan de oportunidades a cada 15/60 min, endpoint REST, frontend com dados reais.",
-  "wave": "mangala_proactive",
-  "agents_dispatched": 1,
-  "agents_completed": 1,
-  "total_commits": 57,
-  "commit_range": "9a75ce5..c030307",
-  "findings": {
-    "mangala_proactive_scan": {
-      "result": "Mangala Engine agora PROATIVO — scan automatico + endpoint + frontend com dados reais",
-      "components": {
-        "scan_script": "scripts/mangala_daily_scan.py — scan autonomo que usa DataHub + SocialWhaleProvider, calcula Mangala Score 0-100, mapeia whale_status (FORTE/PROVAVEL/MODERADO/FRACO) e pump_risk (ALERT/RISK/CLEAN), salva top 5 em data/mangala_daily.json",
-        "background_loop": "start_background_scan() / stop_background_scan() — loop async com intervalo variavel: 15 min em horario de mercado (9:30-16:00 ET), 60 min fora. Primeiro scan executado no boot.",
-        "endpoint": "GET /cockpit/mangala/opportunities — retorna ultimo scan com top 5 oportunidades (ticker, price, score, signal, whale_status, pump_risk, flip_plan)",
-        "frontend": "Mangala card agora mostra dados reais de scan — grid compacto com ticker, preco, score, sinal, whale_status, pump_risk, flip_plan para high-conviction. Polling a cada 5 min.",
-        "server_integration": "Lifespan do FastAPI inicia/para o background scan automaticamente"
-      },
-      "no_regression": "Mangala Engine existente (mangala.py, mangala_tracker.py) nao foi modificado. Novos arquivos: scripts/mangala_daily_scan.py. Modificacoes aditivas em endpoints.py, main.py, api.js, cockpit.js, cockpit.css.",
-      "ruff": "clean (scripts/mangala_daily_scan.py + src/agent_server/*.py)",
-      "tests": "63/63 Mangala tests pass (test_mangala.py + test_mangala_tracker.py)",
-      "evidence": "scripts/mangala_daily_scan.py criado, endpoint /cockpit/mangala/opportunities adicionado, background scan integrado ao lifespan, frontend atualizado"
-    }
+  "checkpoint": "2026-07-20-dark-theme-system",
+  "agent": "frontend-ux-reviewer",
+  "task": "Finalizar dark theme system + theme toggle",
+  "scope": [
+    "frontend/css/variables.css — scoped dark/light CSS variables",
+    "frontend/css/cockpit.css — scoped dark/light design tokens",
+    "frontend/css/base.css — variable-driven background patterns",
+    "frontend/css/auth.css — variable-driven auth modal colors",
+    "frontend/css/sdca.css — variable-driven glass backgrounds",
+    "frontend/css/ops-console.css — variable-driven glass backgrounds",
+    "frontend/css/charts.css — variable-driven grid/order-row colors",
+    "frontend/css/chat.css — variable-driven message backgrounds",
+    "frontend/css/indicators.css — fixed hardcoded green border",
+    "frontend/index.html — theme toggle button in topbar",
+    "frontend/js/init.js — theme system module (initTheme, applyTheme, toggleTheme, localStorage)",
+    "frontend/js/chart.js — loadChartColors() from CSS vars, _applyTheme for rebuild"
+  ],
+  "results": {
+    "theme_toggle_renders": true,
+    "localStorage_persistence": true,
+    "chart_theme_reads_css_vars": true,
+    "no_js_errors_on_toggle": true,
+    "light_theme_bg_switches": "rgb(240, 245, 241) from rgb(17, 24, 32)",
+    "all_css_files_use_vars": true
   },
-  "deliverables": {
-    "mangala_proactive_scan": "Mangala Engine proativo — scan autonomo a cada 15/60 min com SocialWhaleProvider (whale + pump), endpoint REST, frontend com dados reais de oportunidades. Zero quebra de contrato publico.",
-    "total_commits": 1,
-    "total_changes": "5 files modified, 1 file created"
+  "evidence": {
+    "screenshots": [
+      "output/playwright/theme-dark.png",
+      "output/playwright/theme-light.png"
+    ],
+    "smoke_validation": "theme toggle tested via Playwright — all assertions passed",
+    "files_modified": 12
   },
-  "verdict": "Mangala Engine tornado PROATIVO. Scan autonomo no boot e a cada 15/60 min. Endpoint /cockpit/mangala/opportunities. Frontend mostra oportunidades reais (nao mais $20 default). Nao quebra Mangala Engine existente.",
-  "gates": {
-    "ruff": "clean",
-    "ruff_format": "clean",
-    "pytest_mangala": "63/63 pass",
-    "regression": "0 novas",
-    "contract_breaks": "nenhum — apenas adicoes"
-  }
-      "result": "7/7 tarefas verificadas — sistema 100% funcional em dev mode sem configuracao",
-      "tasks": {
-        "1_jwt_secret_dev_mode": {
-          "status": "PASS",
-          "detail": "auth.py _is_dev_mode() retorna True quando SUPEREZIO_JWT_SECRET vazio. Middleware injeta dev_anon. main.py API key middleware tambem permite sem SUPEREZIO_API_KEY."
-        },
-        "2_yfinance_fallback": {
-          "status": "PASS",
-          "detail": "yfinance registrado como ultimo recurso (priority 30, no key). Fallback chain: Twelve Data (key) -> Alpha Vantage (key) -> yfinance. Nenhuma API key necessaria para dados de mercado."
-        },
-        "3_frontend_dev_mode_detection": {
-          "status": "PASS",
-          "detail": "auth.js init() chama /cockpit/summary sem token. 200 = dev mode, skip login. 401 = show modal. Usa cockpit, nao /health."
-        },
-        "4_env_example_updated": {
-          "status": "DONE",
-          "detail": ".env.example reescrito com 90+ vars documentadas, nomes corrigidos (TWELVE_DATA_API_KEY, ALPHA_VANTAGE_API_KEY, NEWSAPI_KEY, FORM4API_KEY), vars removidas documentadas, defaults seguros."
-        },
-        "5_safe_defaults": {
-          "status": "PASS",
-          "detail": "F51_TRADING_EXECUTION_FREEZE=true, SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT=0, SUPEREZIO_LIVE_TRADING_DISABLED=1, SUPEREZIO_DAYTRADE_PAPER_ONLY=1, SUPEREZIO_RESEARCH_PAPER_ONLY=1. Todos os defaults sao seguros."
-        },
-        "6_boot_warning": {
-          "status": "PARTIAL",
-          "detail": "main.py:409-412 ja loga warning quando SUPEREZIO_API_KEY vazio. settings.py validado no boot (main.py:243-255). Nao ha banner combinado 'DEV MODE — Auth disabled, Paper trading only' no boot."
-        },
-        "7_browser_no_login": {
-          "status": "PASS",
-          "detail": "auth.js init() skip login em dev mode. Nenhum modal aparece. Todas as funcionalidades carregam sem auth."
-        }
-      }
-    },
-    "reddit_whale_provider": {
-      "result": "RedditPulse aprimorado — whale keyword expansion + 3-source cascade (Pushshift -> old.reddit -> ApeWisdom)",
-      "changes": [
-        "Adicionado WHALE_KEYWORDS: whale, pump, dump, rocket, moon, bag, yolo, calls, puts, DD",
-        "_fetch_subreddit em 2 fases: busca ticker + busca whale keywords",
-        "_cascade_fetch: Pushshift -> old.reddit -> [] (nunca levanta exception)",
-        "_source_errors tracking para fallback ApeWisdom quando Reddit bloqueado",
-        "NUNCA quebra — sempre retorna lista vazia no pior caso",
-        "TextBlob sentiment analysis funcional (instalado)"
-      ],
-      "tested_tickers": ["AAPL (16 mentions via ApeWisdom)", "GME (ApeWisdom sem dados)", "SNDL (ApeWisdom sem dados)"],
-      "source_status": {
-        "pushshift": "403 (bloqueado, fallback funciona)",
-        "old_reddit": "403/rate_limited (bloqueado, fallback funciona)",
-        "apewisdom": "200 OK (ultimo recurso)"
-      },
-      "tests": "30 passed (test_components_data + test_sentiment_prompt)",
-      "ruff": "clean (check + format)",
-      "commits": ["f371430"],
-      "source_file": "src/data/reddit_provider.py"
-    },
-    "social_whale_provider": {
-      "result": "SocialWhaleProvider criado e registrado no DataHub",
-      "source": "Nitter (5 instancias) + ApeWisdom fallback",
-      "methods": [
-        "get_whale_signals(ticker) — score 0-100, sinal WHALE_DETECTED|CLEAN",
-        "get_pump_detection(ticker) — pump_risk 0-100, sinal PUMP_RISK|DUMP_RISK|PUMP_DUMP_ALERT|CLEAN",
-        "get_social_sentiment(ticker) — score -1..1, label BULLISH|NEUTRAL|BEARISH|NO_DATA",
-        "get_unusual_options_flow(ticker) — score 0-100, sinal UNUSUAL_FLOW|NORMAL_FLOW"
-      ],
-      "keywords": {
-        "whale": ["whale", "baleia", "big money", "institutional", "smart money", "大单"],
-        "pump": ["pump", "rocket", "moon", "rocket_emoji", "breakout", "gamma squeeze"],
-        "dump": ["dump", "crash", "rug", "scam", "ponzi", "liquidation"],
-        "options": ["calls", "puts", "dark pool", "unusual", "sweep", "block trade", "ordem grande"]
-      },
-      "fallback": "ApeWisdomProvider quando todas as instancias Nitter estao offline",
-      "source_file": "src/data/social_whale_provider.py",
-      "data_hub": "src/data/data_hub.py — rota social_whale com 4 capabilities",
-      "ruff": "clean (check + format)",
-      "test_evidence": "511 passed, 5 pre-existing failures, 1 skipped — nenhuma regression causada",
-      "preexisting_failures": [
-        "test_cad_25k_allocation_answer_contract",
-        "test_frontend_contract_uses_bob_unified_workspace_without_retired_panels",
-        "test_frontend_ops_console_integration",
-        "test_frontend_genie_pulse_click_drives_bob_and_chart",
-        "test_forced_expert_committee_materializes_weighted_consensus_before_submit"
-      ]
-    },
-    "pipeline_fixes_loop1": {
-      "agents": 4,
-      "result": "Pipeline ressuscitado — prompt, observacoes, math, logging",
-      "fixes": [
-        "build_agent_prompt() reconectado — builder.py agora alimenta agent.py",
-        "observation_builder: JSON bruto -> texto formatado legivel",
-        "math_prompt independente — nunca mais truncado",
-        "prompt debug log adicionado (agent.py logger.debug)",
-        "runtime/prompts/{run_id}.txt salvo em disco",
-        "E2E test script (scripts/test_pipeline.py) com verificacao RSI/MACD/Sharpe",
-        "100 testes overnight (3 loops) passando — pipeline funcional",
-        "Bob usando dados REAIS — RSI, MACD, Sharpe, Kelly nas respostas"
-      ],
-      "test_evolution": "8/100 -> 57/100 -> 93/100 -> 94% PASS",
-      "evidence": "95cfc57, ad55551, d8fca57, 7a6a654, 7c67a2c, 723b759, 38b01cc, 359e5d3"
-    },
-    "jwt_auth_phase1": {
-      "agents": 3,
-      "result": "JWT auth completo — backend",
-      "components": {
-        "models": "AuthDB com SQLite + bcrypt (core/auth/models.py)",
-        "service": "PyJWT + passlib + refresh rotation (core/auth/service.py)",
-        "middleware": "Middleware JWT + constant-time API key (agent_server/auth.py)",
-        "routes": "/auth/register, /auth/login, /auth/refresh, /auth/me"
-      },
-      "packages_added": ["pyjwt", "passlib[bcrypt]", "bcrypt"],
-      "dev_mode_fallback": "anonimo quando SUPEREZIO_JWT_SECRET nao configurado",
-      "evidence": "fc778bb, 1945d4f, 2dfa2f3, 8f6d76b"
-    },
-    "frontend_login_ui": {
-      "result": "Frontend login/register interface com JWT Bearer token",
-      "files": ["frontend/auth.js", "frontend/auth.css", "frontend/api.js"],
-      "mode": "Modal integrado ao SPA existente. Dev mode injeta anonimo.",
-      "seed_admin": "scripts/seed_admin.py disponivel",
-      "evidence": "895a539, 495676e, 4f5b40f"
-    },
-    "security_fixes_post_wave4": {
-      "env_leak": "auto_execute_paper.py: removed env setdefault override",
-      "coverage": "pytest.ini --cov=src --cov-report=term-missing ativado por default",
-      "idempotency": "tool_executor submit_paper_order — claim atomico O_CREAT|O_EXCL",
-      "health_status": "/health retorna 503 real (nao mais 200 hardcoded)",
-      "smoke_auth_detection": "Browser smoke detecta auth modal em dev mode — 100% pass",
-      "evidence": "8ff067f, ec83e6a, 662f8b1, 5d2a0e1, 039055a"
-    },
-    "test_expansion": {
-      "auth_unit_tests": "21 testes — 85-88% coverage em 4 modulos auth",
-      "integration_tests": "68 testes — MathHub, builder, contracts, observations",
-      "sdca_fix": "test_sdca_firewall_inline string check atualizado para fetchWithAuth",
-      "total_tests": "1538 passed, 0 failed, 11 skipped",
-      "evidence": "87fd396, 755ba3e, 4a252c7, ff56d84"
-    },
-    "questrade_portfolio_reader": {
-      "result": "Script Playwright le carteira Questrade sem OAuth token (UI scraping)",
-      "files": ["scripts/questrade_read_portfolio.py"],
-      "snapshot": "data/questrade_portfolio.json — portfolio real",
-      "persistent_session": "runtime/questrade_profile/ — sessao Chrome persistente",
-      "limitation": "API oficial requer OAuth token — nao configurado",
-      "evidence": "6cdb275, 81457ea, 31c14d9"
-    },
-    "final_certification": {
-      "test_run_1": "1446 passed, 0 failed, 10 skipped (pos-Wave-4)",
-      "test_run_2": "1535 passed, 0 failed, 10 skipped (pos-auth+integration tests)",
-      "test_current": "1538 passed, 0 failed, 11 skipped",
-      "ruff": "clean (src/ + tests/ sem violacoes)",
-      "browser_smoke": "100% pass (auth modal detection fix)",
-      "total_test_files": 104,
-      "source_loc": 59089,
-      "test_loc": 22124
-    },
-    "provider_price_test_20260720": {
-      "result": "Testados 5 providers de preco — apenas 2 funcionam (yfinance, TwelveData)",
-      "working": [
-        {"name": "yfinance", "success_rate": "100%", "avg_latency": "0.469s", "no_key": true, "rank": 1},
-        {"name": "twelve_data", "success_rate": "100%", "avg_latency": "0.687s", "no_key": false, "rank": 2}
-      ],
-      "broken": [
-        {"name": "finnhub", "error": "API key b444a4ae invalid (http_401)", "rank": 3},
-        {"name": "akshare", "error": "Chinese API endpoints unreachable (connection aborted)", "rank": 4},
-        {"name": "stooq", "error": "Site offline (all endpoints return HTTP 404)", "rank": 5}
-      ],
-      "cross_provider_accuracy": "All diffs <0.4% between yfinance and TwelveData — no provider is wrong",
-      "recommended_chain": {
-        "primary": "yfinance (fastest, no key, 100% success)",
-        "secondary": "TwelveData (also 100%, requires TWELVE_DATA_API_KEY)",
-        "tertiary": "none (Stooq offline, AKShare blocked, Finnhub key invalid)"
-      }
-    },
-    "frontend_chart_cockpit": {
-      "result": "WebGL GPU chart com Lightweight Charts — 60 FPS, 1087 LOC, IA-native trading workbench",
-      "features": [
-        "Lightweight Charts canvas rendering (60 FPS)",
-        "AI-native trading workbench — Bloomberg x JARVIS redesign",
-        "7 chart bugs corrigidos — indicadores nao renderizavam, format mismatch backend-frontend",
-        "3 bugs criticos — chart indicators, MACD e dev-mode detection corrigidos",
-        "auth fetch reescrito — token agora vai no header"
-      ],
-      "files": ["frontend/chart.html", "frontend/dashboard.html", "frontend/auth.js", "frontend/auth.css", "frontend/api.js"],
-      "tests": "100% pass browser smoke com auth detection",
-      "evidence": "450d015, 9a75ce5, fec488b, c76456b, a87b947, 7574d26, 719e050, c030307"
-    },
-    "bob_sovereignty_pipeline": {
-      "result": "Pipeline 100% real — Bob fala com dados REAIS de mercado",
-      "fixes": [
-        "Bob porta-voz do organismo — prompt reescrito (c0b4778)",
-        "3 camadas de censura REMOVIDAS quando pipeline tem dados (8dbaed8)",
-        "Bob nao mente mais — collect_security_claims le math_report (0b2ff1e)",
-        "Trinity skip para queries simples — Bob responde em <60s (53dd21e)",
-        "Pipeline 100% — has_math_report, has_f51, has_sdca, has_experts TRUE (f79c6fc)",
-        "Timeout LLM 120s → 300s (5161877)",
-        "SUPEREZIO_BOB_SOVEREIGN=1 — Bob respondeu! (5a34a7b)"
-      ],
-      "evidence": "c0b4778, 8dbaed8, 0b2ff1e, 53dd21e, f79c6fc, 5237e28, 5a34a7b, 9f8c424, 24c61d6, 25678fa"
-    },
-    "data_provider_optimization": {
-      "result": "14 providers na cadeia — AKShare, AlphaSMO, ApeWisdom, Form4API integrados",
-      "changes": [
-        "AKShare + AlphaSMO — intraday gratis + insider tracking (3ac4ccc)",
-        "ApeWisdom + Form4API — retail sentiment + SEC insider (3e9d6a3, 28124b2)",
-        "+4 API keys — TwelveData, AlphaVantage, Wolfram, NewsAPI (f4f6281)",
-        "DataHub chain reorganizada com evidencia real (ce2b2c4)",
-        "AKShare removido da cadeia de preco — baixava 893 stocks (e7d8048)",
-        "Stooq REMOVIDO — API offline HTTP 404 (cd21ea8)",
-        "Cross-provider price test — yfinance + TwelveData OK, AlphaVantage volume 200%+ off (0c0d18e)"
-      ],
-      "evidence": "3ac4ccc, 3e9d6a3, 28124b2, f4f6281, ce2b2c4, e7d8048, cd21ea8, 0c0d18e"
-    },
-    "mangala_engine": {
-      "result": "Mangala Engine — scanner + scorer, 46 testes, score 0-100, pipeline integrado",
-      "components": {
-        "scanner": "market_discovery produz candidatos — 2 bugs corrigidos (dd1ab05)",
-        "scorer": "score 0-100, pipeline integrado (35547e8)",
-        "auto_pipeline": "pennylab automatico — whale, pump, volume no auto_full_analysis (2fe0677)"
-      },
-      "evidence": "35547e8, 7dbb2b5, 3a71c0a, dd1ab05, 2fe0677"
-    },
-    "platform_architecture": {
-      "result": "Documentos de arquitetura completos — organismo, templates, UX decisions",
-      "deliverables": [
-        "Mapa completo do organismo SuperEzio (a2a7b80)",
-        "Template pre-preenchido + validacao semantica — 7/7 COMPLETO (1be22cf)",
-        "Verdict.py + veredito como system message (role:system) (ccb60d9)",
-        "Decisao UX — Time de Experts + Bob analista chefe (0c522e6)",
-        "Block + pipeline visivel + prompt 50 linhas (d3e1184)"
-      ],
-      "evidence": "a2a7b80, 1be22cf, ccb60d9, d3e1184, 0c522e6"
-    }
-  },
-  "deliverables": {
-    "dev_mode_audit": ".env.example completo (90+ vars, nomes corrigidos) + relatorio de auditoria dev mode 7/7",
-    "pipeline": "100% funcional — prompt, formato, math, observacoes, logging",
-    "jwt_auth": "Full-stack — backend + frontend login UI + seed admin",
-    "security": "6 fixes pos-Wave-4 (env leak, coverage, idempotency, /health smoke auth, sdca string)",
-    "questrade": "Portfolio reader via Playwright — UI scraping persistente",
-    "testing": "1538/1549 pass — 104 test files, 1611 tests collected",
-    "provider_price_test": "Testados 5 providers de preco. yfinance = melhor. Finnhub/Stooq/AKShare falham.",
-    "frontend_chart": "WebGL GPU chart — Lightweight Charts, 60 FPS, 1087 LOC, workbench AI-native",
-    "bob_sovereignty": "Pipeline 100% real — Bob fala com RSI/MACD/Sharpe reais, censura removida",
-    "data_providers": "14 providers integrados — AKShare, AlphaSMO, ApeWisdom, Form4API adicionados",
-    "mangala_engine": "Scanner + scorer — 46 testes, score 0-100",
-    "platform_architecture": "Organism design + templates + UX decisions completos",
-    "total_commits": 57,
-    "total_changes": "57 commits, ~200+ files changed no periodo"
-  },
-  "verdict": "SuperEzio OPERACIONAL. Auditado: dev mode 7/7 tarefas OK. .env.example completo com 90+ vars e defaults seguros. Pipeline 100% real com Bob soberano. JWT auth full-stack. Frontend login+chart UI. 1538/1549 testes verdes, 0 falhas. 14 data providers (yfinance primario sem key, TwelveData fallback). Sistema pronto para deploy.",
-  "gates": {
-    "ruff": "clean",
-    "ruff_format": "clean",
-    "pytest": "1538/0/11",
-    "browser_smoke": "100% pass",
-    "regression": "0 novas",
-    "contract_breaks": "nenhum",
-    "frontend": "chart + auth UI — 100% pass browser smoke"
-  },
-  "remaining": {
-    "questrade_oauth": "Token OAuth necessario para API oficial",
-    "frontend_login_as_landing": "Login UI existe mas dev mode ainda injeta anonimo",
-    "gguf_download": "Modelo local nao presente (~40 GB)",
-    "deploy": "Containerizar e configurar em producao",
-    "provider_fixes": "Remover providers quebrados: Finnhub (key invalida), Stooq (offline), AKShare (bloqueado China)"
-  },
-  "next": "Deploy / Producao — containerizar, configurar LLM provider, ativar login como tela inicial. F51 artifact sync completo."
+  "next_gate": "f51-quality-gate",
+  "timestamp": "2026-07-20T18:45:00Z"
 }

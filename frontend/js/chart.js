@@ -36,7 +36,7 @@
   }
 
   /* ──────────────────────────────────────────────────────────────
-   * DESIGN TOKENS
+   * DESIGN TOKENS — read from CSS custom properties at runtime
    * ────────────────────────────────────────────────────────────── */
 
   /* All colors from the SuperEzio design system, mapped per dataviz job:
@@ -46,42 +46,53 @@
    *   Sequential        → one hue for volume (recessive)
    *   Status            → reserved (not used here)
    */
-  var C = {
-    surface:  '#111820',
-    gridLine: 'rgba(255,255,255,0.06)',
-    border:   'rgba(255,255,255,0.08)',
-    text:     '#8b949e',
-    textLight:'#f0f7f2',
+  /** Read a CSS variable value from document root */
+  function cssVar(name, fallback) {
+    var val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return val || fallback || '';
+  }
 
-    crosshair: 'rgba(255,255,255,0.18)',
+  /** Load all chart colors from current CSS custom properties */
+  function loadChartColors() {
+    return {
+      surface:  cssVar('--chart-bg', '#030504'),
+      gridLine: cssVar('--line', 'rgba(255,255,255,0.06)'),
+      border:   cssVar('--line', 'rgba(255,255,255,0.08)'),
+      text:     cssVar('--ink-secondary', '#8b949e'),
+      textLight:cssVar('--ink', '#f0f7f2'),
 
-    /* Polarity */
-    bull: '#00e676',
-    bear: '#ef5350',
+      crosshair: cssVar('--line-light', 'rgba(255,255,255,0.18)'),
 
-    /* Volume (sequential — one hue, recessive) */
-    volBull: 'rgba(0,230,118,0.22)',
-    volBear: 'rgba(239,83,80,0.22)',
+      /* Polarity */
+      bull: '#00e676',
+      bear: '#ef5350',
 
-    /* Categorical — identity for each indicator */
-    sma20: '#00e5ff',
-    sma50: '#00e676',
-    ema20: '#ffffff',
-    bbLine: 'rgba(0,230,118,0.18)',
-    bbFill: 'rgba(0,230,118,0.035)',
-    vwap:  '#ff9100',
+      /* Volume (sequential — one hue, recessive) */
+      volBull: 'rgba(0,230,118,0.22)',
+      volBear: 'rgba(239,83,80,0.22)',
 
-    /* RSI sub-pane */
-    rsiLine:   '#00e5ff',
-    rsiOb:     'rgba(239,83,80,0.20)',
-    rsiOs:     'rgba(0,230,118,0.20)',
+      /* Categorical — identity for each indicator */
+      sma20: '#00e5ff',
+      sma50: '#00e676',
+      ema20: cssVar('--ink', '#ffffff'),
+      bbLine: 'rgba(0,230,118,0.18)',
+      bbFill: 'rgba(0,230,118,0.035)',
+      vwap:  '#ff9100',
 
-    /* MACD sub-pane */
-    macdLine:     '#00e5ff',
-    macdSignal:   '#ff9100',
-    macdHistUp:   'rgba(0,230,118,0.55)',
-    macdHistDown: 'rgba(239,83,80,0.55)',
-  };
+      /* RSI sub-pane */
+      rsiLine:   '#00e5ff',
+      rsiOb:     'rgba(239,83,80,0.20)',
+      rsiOs:     'rgba(0,230,118,0.20)',
+
+      /* MACD sub-pane */
+      macdLine:     '#00e5ff',
+      macdSignal:   '#ff9100',
+      macdHistUp:   'rgba(0,230,118,0.55)',
+      macdHistDown: 'rgba(239,83,80,0.55)',
+    };
+  }
+
+  var C = loadChartColors();
 
   /* ──────────────────────────────────────────────────────────────
    * STATE
@@ -485,8 +496,8 @@
         vertLine: { color: C.crosshair, width: 1, style: 2, labelBackgroundColor: C.surface },
         horzLine: { color: C.crosshair, width: 1, style: 2, labelBackgroundColor: C.surface },
       },
-      handleScroll: false,
-      handleScale: false,
+      handleScroll: true,
+      handleScale: true,
       watermark: { visible: false },
     };
   }
@@ -933,6 +944,28 @@
   }
 
   /* ──────────────────────────────────────────────────────────────
+   * THEME SWITCH SUPPORT
+   * ────────────────────────────────────────────────────────────── */
+
+  /**
+   * Re-read chart colors from CSS variables and rebuild the chart.
+   * Called by SZ.theme.apply() when theme changes.
+   */
+  function applyTheme() {
+    C = loadChartColors();
+    if (!isInitialized || isDestroyed) return;
+
+    /* Full destroy + recreate is the only reliable way to update
+     * all LW series colors (candlestick, lines, crosshair, etc.). */
+    var cd = chartDataCache;
+    destroy();
+    if (cd) {
+      if (window.SZ && window.SZ.state) window.SZ.state.chartData = cd;
+      window.SZ.renderChart();
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────────
    * PUBLIC API
    * ────────────────────────────────────────────────────────────── */
 
@@ -1090,6 +1123,7 @@
     update:  update,
     destroy: destroy,
     resize:  manualResize,
+    _applyTheme: applyTheme,
     _apply:  applyChartData,  // internal: for dev / debug
   };
 

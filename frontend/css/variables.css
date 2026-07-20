@@ -1,4 +1,5 @@
-:root {
+:root,
+[data-theme="dark"] {
   /* Futuristic Fonts */
   --font-display: "Unbounded", system-ui, sans-serif;
   --font-body: "Plus Jakarta Sans", system-ui, sans-serif;
@@ -26,18 +27,18 @@
   --muted: #627267;
 
   /* Neon Status Accents */
-  --green: #00e676; /* Vivid Neon Green */
+  --green: #00e676;
   --green-bg: hsla(145, 100%, 45%, 0.08);
   --green-dim: hsla(145, 100%, 45%, 0.16);
 
-  --red: #ff1744; /* Vivid Neon Red/Pink */
+  --red: #ff1744;
   --red-bg: hsla(348, 100%, 55%, 0.08);
   --red-dim: hsla(348, 100%, 55%, 0.16);
 
-  --amber: #ff9100; /* Vivid Amber */
+  --amber: #ff9100;
   --amber-bg: hsla(34, 100%, 50%, 0.08);
 
-  --blue: #00e5ff; /* Holographic Cyan */
+  --blue: #00e5ff;
   --blue-bg: hsla(187, 100%, 50%, 0.08);
 
   /* Institutional Glow & Premium Accents */
@@ -61,6 +62,132 @@
   --radius-sm: 6px;
 
   /* Transitions */
-  --ease: cubic-bezier(0.16, 1, 0.3, 1); /* Premium Ease Out Quint */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --duration: 0.35s;
+
+  /* Background patterns — dark mode */
+  --bg-grid-color: rgba(0, 230, 118, 0.012);
+  --bg-radial-color: rgba(0, 229, 255, 0.035);
+  --bg-scanline-color: rgba(0, 229, 255, 0.08);
+  --bg-glass-1: rgba(8, 12, 9, 0.92);
+  --bg-glass-2: rgba(3, 5, 4, 0.98);
+  --bg-glass-card: rgba(8, 12, 9, 0.7);
+  --border-cyan-glow: rgba(0, 229, 255, 0.2);
+  --shadow-cyan: -2px 0 8px rgba(0, 229, 255, 0.08);
+  --shadow-dark: -8px 0 32px rgba(0, 0, 0, 0.8);
+  --bg-body-overlay: rgba(4, 6, 5, 0.85);
+  --auth-modal-bg: hsl(135, 12%, 6%);
+  --auth-modal-border: rgba(0, 230, 118, 0.12);
+  --auth-input-bg: rgba(0, 0, 0, 0.4);
+  --auth-input-border: rgba(0, 230, 118, 0.1);
+  --auth-label-color: #a4b3a8;
+  --auth-text-color: #f0f7f2;
+  --auth-logo-text: #f0f7f2;
+  --auth-tagline-color: #627267;
+  --auth-tab-bg: rgba(0, 0, 0, 0.3);
+  --auth-tab-color: #627267;
+  --auth-tab-hover: #a4b3a8;
+  --auth-tab-active-bg: rgba(0, 230, 118, 0.1);
+  --auth-submit-bg: linear-gradient(135deg, rgba(0, 230, 118, 0.15), rgba(0, 229, 255, 0.1));
+  --auth-submit-border: rgba(0, 230, 118, 0.25);
+  --auth-footer-line: rgba(0, 230, 118, 0.15);
+  --bottombar-bg: rgba(3, 5, 4, 0.92);
+  --msg-ceo-bg: rgba(14, 20, 16, 0.85);
+  --msg-ceo-border: rgba(0, 230, 118, 0.25);
+  --bob-welcome-bg: rgba(8, 12, 9, 0.8);
+  --orders-mirror-bg: rgba(13, 17, 23, 0.86);
+  --order-row-bg: rgba(17, 24, 32, 0.76);
+  --order-row-border: rgba(48, 54, 61, 0.9);
+  --empty-state-color: inherit;
+}
+
+[data-theme="light"] {
+  /* Background */
+  --bg-h: 135;
+  --bg-s: 14%;
+  --bg-l: 95%;
+  --bg: hsl(var(--bg-h), var(--bg-s), var(--bg-l)); /* #f0f5f1 */
+
+  --surface-h: 135;
+  --surface-s: 10%;
+  --surface-l: 97%;
+  --surface: hsl(var(--surface-h), var(--surface-s), var(--surface-l)); /* #f6f9f7 */
+  --surface-2: hsl(var(--surface-h), var(--surface-s), 93%); /* #eaefe9 */
+  --surface-3: hsl(var(--surface-h), var(--surface-s), 88%); /* #dce4dc */
+
+  --line: hsla(135, 12%, 62%, 0.35);
+  --line-light: hsla(135, 12%, 52%, 0.55);
+
+  /* Typography Colors */
+  --ink: #1a1f1c;
+  --ink-secondary: #3d4d44;
+  --muted: #6f8275;
+
+  /* Neon Status Accents — adjusted for light bg */
+  --green: #00c853;
+  --green-bg: hsla(145, 100%, 38%, 0.08);
+  --green-dim: hsla(145, 100%, 38%, 0.14);
+
+  --red: #d50000;
+  --red-bg: hsla(0, 100%, 42%, 0.07);
+  --red-dim: hsla(0, 100%, 42%, 0.13);
+
+  --amber: #e65100;
+  --amber-bg: hsla(25, 100%, 45%, 0.08);
+
+  --blue: #0091ea;
+  --blue-bg: hsla(202, 100%, 46%, 0.08);
+
+  /* Glows toned down for light */
+  --primary-glow: 0 0 15px rgba(0, 200, 83, 0.15);
+  --border-glow: 0 0 12px rgba(0, 145, 234, 0.12);
+  --glass-border-premium: 1px solid rgba(0, 0, 0, 0.06);
+
+  /* Glassmorphism System */
+  --glass-bg: rgba(246, 249, 247, 0.85);
+  --glass-border: rgba(0, 200, 83, 0.08);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+  --glass-blur: blur(20px);
+
+  --chart-bg: #f0f5f1;
+  --chart-grid: rgba(0, 200, 83, 0.06);
+
+  /* Visual Tokens */
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
+
+  /* Background patterns — light mode */
+  --bg-grid-color: rgba(0, 200, 83, 0.025);
+  --bg-radial-color: rgba(0, 145, 234, 0.04);
+  --bg-scanline-color: rgba(0, 145, 234, 0.05);
+  --bg-glass-1: rgba(246, 249, 247, 0.92);
+  --bg-glass-2: rgba(240, 245, 241, 0.98);
+  --bg-glass-card: rgba(246, 249, 247, 0.85);
+  --border-cyan-glow: rgba(0, 145, 234, 0.2);
+  --shadow-cyan: -2px 0 8px rgba(0, 145, 234, 0.06);
+  --shadow-dark: -8px 0 32px rgba(0, 0, 0, 0.06);
+  --bg-body-overlay: rgba(240, 245, 241, 0.85);
+  --auth-modal-bg: hsl(135, 10%, 97%);
+  --auth-modal-border: rgba(0, 200, 83, 0.15);
+  --auth-input-bg: rgba(255, 255, 255, 0.6);
+  --auth-input-border: rgba(0, 200, 83, 0.2);
+  --auth-label-color: #3d4d44;
+  --auth-text-color: #1a1f1c;
+  --auth-logo-text: #1a1f1c;
+  --auth-tagline-color: #6f8275;
+  --auth-tab-bg: rgba(0, 0, 0, 0.06);
+  --auth-tab-color: #6f8275;
+  --auth-tab-hover: #3d4d44;
+  --auth-tab-active-bg: rgba(0, 200, 83, 0.1);
+  --auth-submit-bg: linear-gradient(135deg, rgba(0, 200, 83, 0.12), rgba(0, 145, 234, 0.08));
+  --auth-submit-border: rgba(0, 200, 83, 0.3);
+  --auth-footer-line: rgba(0, 200, 83, 0.12);
+  --bottombar-bg: rgba(246, 249, 247, 0.92);
+  --msg-ceo-bg: rgba(240, 245, 241, 0.9);
+  --msg-ceo-border: rgba(0, 200, 83, 0.3);
+  --bob-welcome-bg: rgba(246, 249, 247, 0.85);
+  --orders-mirror-bg: rgba(246, 249, 247, 0.9);
+  --order-row-bg: rgba(255, 255, 255, 0.8);
+  --order-row-border: rgba(197, 204, 199, 0.9);
+  --empty-state-color: inherit;
 }

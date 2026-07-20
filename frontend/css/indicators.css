@@ -18,7 +18,7 @@
   gap: 6px; margin-top: 6px; font-size: 10px;
 }
 .f51-hub span { color: var(--muted); font-weight: 700; }
-.f51-hub-bar { height: 8px; border-radius: 4px; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(0, 230, 118, 0.2); overflow: hidden; position: relative; }
+.f51-hub-bar { height: 8px; border-radius: 4px; background: rgba(0, 0, 0, 0.5); border: 1px solid var(--green-dim); overflow: hidden; position: relative; }
 .f51-hub-fill { height: 100%; border-radius: 4px; transition: width 0.4s; background: linear-gradient(90deg, var(--green) 30%, #00e5ff 100%); box-shadow: 0 0 12px var(--green); }
 .f51-hub strong { font-family: var(--font-mono); font-size: 10px; text-align: right; }
 

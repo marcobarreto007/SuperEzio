@@ -41,11 +41,11 @@
   width: min(760px, 100vw);
   display: grid;
   grid-template-rows: auto 1fr;
-  background: linear-gradient(135deg, rgba(8, 12, 9, 0.92) 0%, rgba(3, 5, 4, 0.98) 100%);
+  background: linear-gradient(135deg, var(--bg-glass-1) 0%, var(--bg-glass-2) 100%);
   backdrop-filter: var(--glass-blur);
   border: none;
-  border-left: 1px solid rgba(0, 229, 255, 0.2);
-  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.8), -2px 0 8px rgba(0, 229, 255, 0.08);
+  border-left: 1px solid var(--border-cyan-glow);
+  box-shadow: var(--shadow-dark), var(--shadow-cyan);
   margin: 0;
   padding: 0;
 
@@ -98,7 +98,7 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, rgba(0, 229, 255, 0.3), transparent);
+  background: linear-gradient(90deg, var(--border-cyan-glow), transparent);
 }
 
 .sdca-lab-hdr span { display: block; color: var(--muted); font: 900 9px var(--font-mono); text-transform: uppercase; letter-spacing: 0.1em; }
@@ -112,9 +112,9 @@
   gap: 16px;
   padding: 16px;
   background:
-    radial-gradient(circle at 100% 0%, rgba(0, 229, 255, 0.04), transparent 50%),
-    linear-gradient(rgba(0, 230, 118, 0.005) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 230, 118, 0.005) 1px, transparent 1px);
+    radial-gradient(circle at 100% 0%, var(--bg-radial-color), transparent 50%),
+    linear-gradient(var(--bg-grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bg-grid-color) 1px, transparent 1px);
   background-size: 100% 100%, 24px 24px, 24px 24px;
 }
 
@@ -122,8 +122,8 @@
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: rgba(8, 12, 9, 0.7);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  background: var(--bg-glass-card);
+  box-shadow: var(--shadow);
   padding: 16px;
 }
 

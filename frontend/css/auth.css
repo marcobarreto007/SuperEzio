@@ -8,7 +8,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(4, 6, 5, 0.85);
+  background: var(--bg-body-overlay);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   opacity: 0;
@@ -23,15 +23,13 @@
 
 /* ── Modal Card ── */
 .auth-modal {
-  background: hsl(135, 12%, 6%);
-  border: 1px solid rgba(0, 230, 118, 0.12);
+  background: var(--auth-modal-bg);
+  border: 1px solid var(--auth-modal-border);
   border-radius: 16px;
   padding: 40px 36px 32px;
   width: 400px;
   max-width: 92vw;
-  box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.8),
-    0 0 30px rgba(0, 229, 255, 0.06);
+  box-shadow: var(--shadow-dark), var(--shadow-cyan);
   position: relative;
 }
 
@@ -43,7 +41,7 @@
   transform: translateX(-50%);
   width: 60%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(0, 230, 118, 0.4), transparent);
+  background: linear-gradient(90deg, transparent, var(--green-dim), transparent);
 }
 
 /* ── Header / Logo ── */
@@ -64,7 +62,7 @@
   font-family: "Unbounded", system-ui, sans-serif;
   font-size: 28px;
   font-weight: 900;
-  background: linear-gradient(135deg, #00e676, #00e5ff);
+  background: linear-gradient(135deg, var(--green), var(--blue));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -75,12 +73,12 @@
   font-size: 20px;
   font-weight: 700;
   letter-spacing: 3px;
-  color: #f0f7f2;
+  color: var(--auth-logo-text);
 }
 
 .auth-tagline {
   font-size: 13px;
-  color: #627267;
+  color: var(--auth-tagline-color);
   letter-spacing: 1px;
   text-transform: uppercase;
   font-weight: 500;
@@ -90,7 +88,7 @@
 .auth-tabs {
   display: flex;
   gap: 4px;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--auth-tab-bg);
   border-radius: 10px;
   padding: 4px;
   margin-bottom: 24px;
@@ -102,8 +100,8 @@
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: #627267;
-  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  color: var(--auth-tab-color);
+  font-family: var(--font-body);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -111,13 +109,13 @@
 }
 
 .auth-tab:hover {
-  color: #a4b3a8;
+  color: var(--auth-tab-hover);
 }
 
 .auth-tab--active {
-  background: rgba(0, 230, 118, 0.1);
-  color: #00e676;
-  box-shadow: 0 0 12px rgba(0, 230, 118, 0.08);
+  background: var(--auth-tab-active-bg);
+  color: var(--green);
+  box-shadow: 0 0 12px rgba(0, 200, 83, 0.08);
 }
 
 /* ── Forms ── */
@@ -140,36 +138,37 @@
 .auth-field label {
   font-size: 11px;
   font-weight: 600;
-  color: #a4b3a8;
+  color: var(--auth-label-color);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .auth-field input {
   padding: 12px 14px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(0, 230, 118, 0.1);
+  background: var(--auth-input-bg);
+  border: 1px solid var(--auth-input-border);
   border-radius: 8px;
-  color: #f0f7f2;
-  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  color: var(--auth-text-color);
+  font-family: var(--font-body);
   font-size: 14px;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .auth-field input::placeholder {
-  color: #3a4a3f;
+  color: var(--muted);
+  opacity: 0.6;
 }
 
 .auth-field input:focus {
-  border-color: #00e676;
-  box-shadow: 0 0 12px rgba(0, 230, 118, 0.15);
+  border-color: var(--green);
+  box-shadow: 0 0 12px var(--green-bg);
   outline: none;
 }
 
 /* ── Error Message ── */
 .auth-error {
   font-size: 13px;
-  color: #ff1744;
+  color: var(--red);
   min-height: 18px;
   line-height: 1.4;
 }
@@ -177,11 +176,11 @@
 /* ── Submit Button ── */
 .auth-submit {
   padding: 13px 20px;
-  background: linear-gradient(135deg, rgba(0, 230, 118, 0.15), rgba(0, 229, 255, 0.1));
-  border: 1px solid rgba(0, 230, 118, 0.25);
+  background: var(--auth-submit-bg);
+  border: 1px solid var(--auth-submit-border);
   border-radius: 10px;
-  color: #00e676;
-  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  color: var(--green);
+  font-family: var(--font-body);
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
@@ -190,9 +189,9 @@
 }
 
 .auth-submit:hover {
-  background: linear-gradient(135deg, rgba(0, 230, 118, 0.25), rgba(0, 229, 255, 0.18));
-  border-color: rgba(0, 230, 118, 0.45);
-  box-shadow: 0 0 20px rgba(0, 230, 118, 0.12);
+  background: linear-gradient(135deg, rgba(0, 200, 83, 0.25), rgba(0, 145, 234, 0.18));
+  border-color: var(--green);
+  box-shadow: 0 0 20px var(--green-bg);
 }
 
 .auth-submit:disabled {
@@ -209,5 +208,5 @@
 .auth-footer-line {
   display: block;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(0, 230, 118, 0.15), transparent);
+  background: linear-gradient(90deg, transparent, var(--auth-footer-line), transparent);
 }
