@@ -7,28 +7,33 @@ Tests 5 tickers against ALL available price providers:
 
 Output: CROSS-PROVIDER DISCREPANCY TEST report with tables, outliers,
 volume consistency, historical close comparison, and reliability ranking.
+
+Each provider call has a 30-second timeout via concurrent.futures.
 """
 
 from __future__ import annotations
 
 import os
 import sys
-import json
 import math
-from datetime import datetime, timezone
+import signal
+import functools
+import concurrent.futures
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
-# Ensure project root is on sys.path
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-# ── Tickers under test ────────────────────────────────────────────────
+# ── Configuration ────────────────────────────────────────────────────
 TICKERS = ["AAPL", "MSFT", "SNDL", "VALE", "PETR4.SA"]
+PROVIDER_NAMES = ["twelve_data", "alpha_vantage", "akshare", "yfinance", "stooq"]
+PROVIDER_TIMEOUT = 35  # seconds per call
 
 PROVIDER_INFO = {
-    "twelve_data": {"key_required": True,  "api_key_var": "TWELVE_DATA_API_KEY"},
-    "alpha_vantage": {"key_required": True, "api_key_var": "ALPHA_VANTAGE_API_KEY"},
+    "twelve_data":   {"key_required": True,  "api_key_var": "TWELVE_DATA_API_KEY"},
+    "alpha_vantage": {"key_required": True,  "api_key_var": "ALPHA_VANTAGE_API_KEY"},
     "akshare":       {"key_required": False, "api_key_var": None},
     "yfinance":      {"key_required": False, "api_key_var": None},
     "stooq":         {"key_required": False, "api_key_var": None},
@@ -41,13 +46,16 @@ COL_YELLOW = "\033[93m"
 COL_CYAN = "\033[96m"
 COL_BOLD = "\033[1m"
 
+# Stored results
+results: Dict[str, Dict[str, Any]] = {}
+candle_results: Dict[str, Dict[str, Any]] = {}
+
 # ═══════════════════════════════════════════════════════════════════════
-#  Helper: load .env.local
+#  Helpers
 # ═══════════════════════════════════════════════════════════════════════
 
 
 def _load_env(path: str) -> None:
-    """Minimal dotenv loader — sets os.environ from KEY=VAL lines."""
     try:
         with open(path, encoding="utf-8") as fh:
             for line in fh:
@@ -55,24 +63,16 @@ def _load_env(path: str) -> None:
                 if not line or line.startswith("#") or "=" not in line:
                     continue
                 key, _, val = line.partition("=")
-                key = key.strip()
-                val = val.strip().strip("\"'").strip()
-                os.environ.setdefault(key, val)
+                os.environ.setdefault(key.strip(), val.strip().strip("\"'").strip())
     except FileNotFoundError:
         pass
 
 
-# Load .env.local and .env
 _load_env(os.path.join(PROJECT_ROOT, ".env.local"))
 _load_env(os.path.join(PROJECT_ROOT, ".env"))
 
-# ═══════════════════════════════════════════════════════════════════════
-#  Provider factory
-# ═══════════════════════════════════════════════════════════════════════
-
 
 def _get_provider(name: str):
-    """Lazy-import and instantiate a named provider. Returns None on failure."""
     try:
         if name == "twelve_data":
             from src.data.twelve_data import TwelveDataProvider
@@ -93,49 +93,36 @@ def _get_provider(name: str):
         return None
 
 
-def _get_price_from(provider_name: str, provider, symbol: str) -> Dict[str, Any]:
-    """Call the appropriate price/quote method for this provider."""
+def _get_price_from(pname: str, provider, symbol: str) -> Dict[str, Any]:
     try:
-        if provider_name == "alpha_vantage":
-            # AlphaVantage uses get_quote() instead of get_price()
-            result = provider.get_quote(symbol)
-            # Normalise: map 'price' from quote result
-            if "error" not in result and result.get("price") is None:
-                return {"error": "alpha_vantage_no_price_in_quote"}
-            return result
-        elif provider_name == "twelve_data":
+        if pname == "alpha_vantage":
+            return provider.get_quote(symbol)
+        elif pname == "twelve_data":
             return provider.get_price(symbol)
-        elif provider_name == "akshare":
+        elif pname == "akshare":
             return provider.get_price(symbol, market="US")
-        elif provider_name == "yfinance":
+        elif pname == "yfinance":
             return provider.get_price(symbol, market="US")
-        elif provider_name == "stooq":
+        elif pname == "stooq":
             return provider.get_price(symbol, market="US")
     except Exception as exc:
-        return {"error": f"{provider_name}_exception: {exc}"}
+        return {"error": f"{pname}_exception: {exc}"}
 
 
-def _get_candles_from(provider_name: str, provider, symbol: str, timeframe: str = "1M") -> Dict[str, Any]:
-    """Fetch candles for historical close comparison."""
+def _get_candles_from(pname: str, provider, symbol: str, tf: str = "1M") -> Dict[str, Any]:
     try:
-        if provider_name == "twelve_data":
-            return provider.get_candles(symbol, timeframe=timeframe)
-        elif provider_name == "alpha_vantage":
-            return provider.get_ohlcv(symbol, timeframe=timeframe)
-        elif provider_name == "akshare":
-            return provider.get_candles(symbol, timeframe=timeframe, market="US")
-        elif provider_name == "yfinance":
-            return provider.get_candles(symbol, timeframe=timeframe, market="US")
-        elif provider_name == "stooq":
-            # Stooq only has get_price, no get_candles
+        if pname == "twelve_data":
+            return provider.get_candles(symbol, timeframe=tf)
+        elif pname == "alpha_vantage":
+            return provider.get_ohlcv(symbol, timeframe=tf)
+        elif pname == "akshare":
+            return provider.get_candles(symbol, timeframe=tf, market="US")
+        elif pname == "yfinance":
+            return provider.get_candles(symbol, timeframe=tf, market="US")
+        elif pname == "stooq":
             return {"error": "stooq_no_candles"}
     except Exception as exc:
-        return {"error": f"{provider_name}_candles_exception: {exc}"}
-
-
-# ═══════════════════════════════════════════════════════════════════════
-#  Statistical helpers
-# ═══════════════════════════════════════════════════════════════════════
+        return {"error": f"{pname}_candles_exception: {exc}"}
 
 
 def mean(values: list[float]) -> float:
@@ -148,8 +135,7 @@ def std_dev(values: list[float], avg: float | None = None) -> float:
     if len(values) < 2:
         return 0.0
     avg = avg or mean(values)
-    variance = sum((v - avg) ** 2 for v in values) / len(values)
-    return math.sqrt(variance)
+    return math.sqrt(sum((v - avg) ** 2 for v in values) / len(values))
 
 
 def z_score(value: float, avg: float, sd: float) -> float:
@@ -159,7 +145,6 @@ def z_score(value: float, avg: float, sd: float) -> float:
 
 
 def pct_diff(a: float, b: float) -> float:
-    """Percentage difference relative to the mean."""
     if a == 0 and b == 0:
         return 0.0
     avg = (abs(a) + abs(b)) / 2
@@ -168,322 +153,279 @@ def pct_diff(a: float, b: float) -> float:
     return abs(a - b) / avg * 100
 
 
+def check_provider_available(pname: str) -> bool:
+    """Check if a provider can be used (API key check)."""
+    pinfo = PROVIDER_INFO[pname]
+    if pinfo["key_required"]:
+        return bool(os.getenv(pinfo["api_key_var"]))
+    return True
+
+
 # ═══════════════════════════════════════════════════════════════════════
-#  Main test runner
+#  Parallel execution with timeout
 # ═══════════════════════════════════════════════════════════════════════
 
-results: Dict[str, Dict[str, Any]] = {}  # ticker -> {provider -> result}
-candle_results: Dict[str, Dict[str, Any]] = {}  # ticker -> {provider -> candles}
+
+def _run_with_timeout(func, timeout: int = PROVIDER_TIMEOUT) -> Any:
+    """Run a function in a thread with timeout."""
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        fut = executor.submit(func)
+        try:
+            return fut.result(timeout=timeout)
+        except concurrent.futures.TimeoutError:
+            return {"error": f"timeout_{timeout}s"}
+        except Exception as exc:
+            return {"error": f"execution_error: {exc}"}
 
 
-def run_price_tests() -> None:
-    """Phase 1: collect price from every provider for every ticker."""
-    for ticker in TICKERS:
-        results[ticker] = {}
-        print(f"\n{COL_CYAN}{'='*70}{COL_RESET}")
-        print(f"{COL_BOLD}  TICKER: {ticker}{COL_RESET}")
-        print(f"{COL_CYAN}{'='*70}{COL_RESET}")
+def run_price_test(ticker: str) -> None:
+    """Run price test for one ticker across all providers in parallel."""
+    per_provider_results: Dict[str, Any] = {}
+    futures: Dict[str, concurrent.futures.Future] = {}
 
-        for pname in PROVIDER_INFO:
-            pinfo = PROVIDER_INFO[pname]
-            # Check API key if required
-            if pinfo["key_required"]:
-                key_val = os.getenv(pinfo["api_key_var"])
-                if not key_val:
-                    print(f"  {COL_YELLOW}[SKIP] {pname}: no {pinfo['api_key_var']} set{COL_RESET}")
-                    results[ticker][pname] = {"error": f"no_{pinfo['api_key_var']}_set"}
-                    continue
+    print(f"\n{COL_CYAN}{'='*70}{COL_RESET}")
+    print(f"{COL_BOLD}  TICKER: {ticker}{COL_RESET}")
+    print(f"{COL_CYAN}{'='*70}{COL_RESET}")
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
+        for pname in PROVIDER_NAMES:
+            if not check_provider_available(pname):
+                print(f"  {COL_YELLOW}[SKIP] {pname}: API key not set{COL_RESET}")
+                per_provider_results[pname] = {"error": f"no_{PROVIDER_INFO[pname]['api_key_var']}_set"}
+                continue
 
             provider = _get_provider(pname)
             if provider is None:
-                print(f"  {COL_YELLOW}[SKIP] {pname}: failed to instantiate{COL_RESET}")
-                results[ticker][pname] = {"error": "instantiation_failed"}
+                print(f"  {COL_YELLOW}[SKIP] {pname}: instantiation failed{COL_RESET}")
+                per_provider_results[pname] = {"error": "instantiation_failed"}
                 continue
 
-            result = _get_price_from(pname, provider, ticker)
-            results[ticker][pname] = result
+            future = pool.submit(_get_price_from, pname, provider, ticker)
+            futures[pname] = future
 
+        for pname, future in futures.items():
+            try:
+                result = future.result(timeout=PROVIDER_TIMEOUT)
+            except concurrent.futures.TimeoutError:
+                result = {"error": f"timeout_{PROVIDER_TIMEOUT}s"}
+            except Exception as exc:
+                result = {"error": f"execution_error: {exc}"}
+
+            per_provider_results[pname] = result
             if "error" in result:
-                print(f"  {COL_RED}[ERR]  {pname:16s}: {result['error']}{COL_RESET}")
+                print(f"  {COL_RED}[ERR]  {pname:16s}: {result['error'][:60]}{COL_RESET}")
             else:
                 price = result.get("price", "N/A")
                 volume = result.get("volume", "N/A")
                 print(f"  {COL_GREEN}[OK]   {pname:16s}: price={price}  volume={volume}{COL_RESET}")
 
+    results[ticker] = per_provider_results
 
-def run_candle_tests() -> None:
-    """Phase 2: collect 1M candles from each provider for historical close comparison."""
-    for ticker in TICKERS:
-        candle_results[ticker] = {}
-        for pname in PROVIDER_INFO:
+
+def run_candle_test(ticker: str) -> None:
+    """Run candle test for one ticker across all providers in parallel."""
+    per_provider_results: Dict[str, Any] = {}
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
+        futures = {}
+        for pname in PROVIDER_NAMES:
             if pname == "stooq":
-                # Stooq has no candle/OHLCV endpoint
-                candle_results[ticker][pname] = {"error": "stooq_no_candles"}
+                per_provider_results[pname] = {"error": "stooq_no_candles"}
                 continue
-
-            pinfo = PROVIDER_INFO[pname]
-            if pinfo["key_required"]:
-                key_val = os.getenv(pinfo["api_key_var"])
-                if not key_val:
-                    candle_results[ticker][pname] = {"error": f"no_{pinfo['api_key_var']}_set"}
-                    continue
-
+            if not check_provider_available(pname):
+                per_provider_results[pname] = {"error": f"no_{PROVIDER_INFO[pname]['api_key_var']}_set"}
+                continue
             provider = _get_provider(pname)
             if provider is None:
-                candle_results[ticker][pname] = {"error": "instantiation_failed"}
+                per_provider_results[pname] = {"error": "instantiation_failed"}
                 continue
+            future = pool.submit(_get_candles_from, pname, provider, ticker, "1M")
+            futures[pname] = future
 
-            result = _get_candles_from(pname, provider, ticker, timeframe="1M")
-            candle_results[ticker][pname] = result
+        for pname, future in futures.items():
+            try:
+                result = future.result(timeout=PROVIDER_TIMEOUT)
+            except concurrent.futures.TimeoutError:
+                result = {"error": f"timeout_{PROVIDER_TIMEOUT}s"}
+            except Exception as exc:
+                result = {"error": f"candle_execution_error: {exc}"}
+            per_provider_results[pname] = result
+
+    candle_results[ticker] = per_provider_results
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  Analysis
+# ═══════════════════════════════════════════════════════════════════════
 
 
 def build_price_table() -> str:
-    """Build the price comparison table."""
     lines = []
-    header = f"{'TICKER':12s} {'Provider':16s} {'Price':>10s} {'Volume':>12s} {'Status':>10s}"
+    header = f"{'TICKER':12s} {'Provider':16s} {'Price':>10s} {'Volume':>12s} {'Source':>10s}"
     lines.append(header)
     lines.append("-" * len(header))
-
     for ticker in TICKERS:
-        for pname in PROVIDER_INFO:
+        for pname in PROVIDER_NAMES:
             r = results[ticker].get(pname, {})
             if "error" in r:
-                price_str = "---"
-                vol_str = "---"
-                status = r["error"][:10]
+                lines.append(f"{ticker:12s} {pname:16s} {'---':>10s} {'---':>12s} {'ERR':>10s}")
             else:
-                price_val = r.get("price")
-                price_str = f"{price_val:.2f}" if price_val is not None else "N/A"
-                vol_val = r.get("volume")
-                vol_str = f"{vol_val:,}" if vol_val is not None else "N/A"
-                status = "OK"
-            lines.append(f"{ticker:12s} {pname:16s} {price_str:>10s} {vol_str:>12s} {status:>10s}")
+                pv = r.get("price")
+                ps = f"{pv:.2f}" if pv is not None else "N/A"
+                vv = r.get("volume")
+                vs = f"{vv:,}" if vv is not None else "N/A"
+                src = r.get("source", pname)[:10]
+                lines.append(f"{ticker:12s} {pname:16s} {ps:>10s} {vs:>12s} {src:>10s}")
     return "\n".join(lines)
 
 
 def detect_outliers() -> List[Dict[str, Any]]:
-    """Detect price outliers per ticker using z-score."""
     outliers = []
     for ticker in TICKERS:
-        prices: list[tuple[str, float]] = []
-        for pname in PROVIDER_INFO:
+        prices = []
+        for pname in PROVIDER_NAMES:
             r = results[ticker].get(pname, {})
             if "error" not in r and r.get("price") is not None:
                 prices.append((pname, float(r["price"])))
-
         if len(prices) < 3:
             continue
-
         vals = [p[1] for p in prices]
         avg = mean(vals)
         sd = std_dev(vals, avg)
-        threshold = 2.0  # |z| > 2.0 = outlier
-
         for pname, pval in prices:
             zs = z_score(pval, avg, sd)
-            if abs(zs) > threshold:
-                outliers.append({
-                    "ticker": ticker,
-                    "provider": pname,
-                    "value": pval,
-                    "mean": round(avg, 2),
-                    "z_score": round(zs, 2),
-                    "pct_from_mean": round((pval - avg) / avg * 100, 2),
-                })
+            if abs(zs) > 2.0:
+                outliers.append({"ticker": ticker, "provider": pname, "value": pval,
+                                 "mean": round(avg, 2), "z_score": round(zs, 2),
+                                 "pct_from_mean": round((pval - avg) / avg * 100, 2)})
     return outliers
 
 
 def check_volume_consistency() -> List[Dict[str, Any]]:
-    """Check if any provider's volume deviates >20% from median."""
     discrepancies = []
     for ticker in TICKERS:
-        volumes: list[tuple[str, int]] = []
-        for pname in PROVIDER_INFO:
+        volumes = []
+        for pname in PROVIDER_NAMES:
             r = results[ticker].get(pname, {})
             if "error" not in r and r.get("volume") is not None:
                 vol = int(r["volume"])
                 if vol > 0:
                     volumes.append((pname, vol))
-
         if len(volumes) < 2:
             continue
-
-        # Median volume
         sorted_vols = sorted(v[1] for v in volumes)
         mid = len(sorted_vols) // 2
         median_vol = sorted_vols[mid] if len(sorted_vols) % 2 else (
             sorted_vols[mid - 1] + sorted_vols[mid]) / 2
-
         for pname, vol in volumes:
             if median_vol == 0:
                 continue
-            deviation = abs(vol - median_vol) / median_vol * 100
-            if deviation > 20:
-                discrepancies.append({
-                    "ticker": ticker,
-                    "provider": pname,
-                    "volume": vol,
-                    "median_volume": int(median_vol),
-                    "deviation_pct": round(deviation, 1),
-                })
+            dev = abs(vol - median_vol) / median_vol * 100
+            if dev > 20:
+                discrepancies.append({"ticker": ticker, "provider": pname, "volume": vol,
+                                      "median_volume": int(median_vol), "deviation_pct": round(dev, 1)})
     return discrepancies
 
 
 def compare_historical_close(days_ago: int = 15) -> List[Dict[str, Any]]:
-    """Compare close price N days ago between providers for each ticker."""
     discrepancies = []
-    from datetime import timedelta
-
     for ticker in TICKERS:
-        closes: list[tuple[str, float, str]] = []  # (provider, close, date_str)
-
-        for pname in PROVIDER_INFO:
+        closes = []
+        for pname in PROVIDER_NAMES:
             if pname == "stooq":
                 continue
             cr = candle_results.get(ticker, {}).get(pname, {})
             if "error" in cr:
                 continue
             candles = cr.get("candles", [])
-            if not candles or not isinstance(candles, list):
+            if not candles or not isinstance(candles, list) or len(candles) < days_ago + 1:
                 continue
-
-            # Candles are sorted oldest-first typically. We need approx 15 trading days back.
-            # If we have enough candles, pick one ~15 entries from end.
-            if len(candles) < days_ago + 1:
-                continue
-
-            # Candles from yfinance/akshare are oldest-first; twelve_data/alpha_vantage
-            # may be newest-first (twelve_data reverses).   Try to get the candle
-            # at index -days_ago or days_ago depending on order.
-            # Heuristic: check if first candle date < last candle date
+            # Determine sort order
             try:
-                first_date = candles[0].get("datetime", candles[0].get("time", ""))
-                last_date = candles[-1].get("datetime", candles[-1].get("time", ""))
-                oldest_first = str(first_date) < str(last_date)
+                fd = candles[0].get("datetime", candles[0].get("time", ""))
+                ld = candles[-1].get("datetime", candles[-1].get("time", ""))
+                oldest_first = str(fd) < str(ld)
             except Exception:
                 oldest_first = True
-
-            if oldest_first:
-                target_idx = max(0, len(candles) - days_ago - 1)
-            else:
-                target_idx = min(len(candles) - 1, days_ago)
-
-            c = candles[target_idx]
-            close_val = float(c.get("close", 0))
-            dt_str = str(c.get("datetime", c.get("time", "?")))[:10]
-            if close_val > 0:
-                closes.append((pname, close_val, dt_str))
-
+            idx = max(0, len(candles) - days_ago - 1) if oldest_first else min(len(candles) - 1, days_ago)
+            c = candles[idx]
+            cv = float(c.get("close", 0))
+            dt = str(c.get("datetime", c.get("time", "?")))[:10]
+            if cv > 0:
+                closes.append((pname, cv, dt))
         if len(closes) < 2:
             continue
-
         vals = [c[1] for c in closes]
         avg = mean(vals)
-
-        for pname, close_val, dt_str in closes:
-            # Compare to average
-            pd = pct_diff(close_val, avg) if avg > 0 else 0
-            if pd > 2.0:  # >2% difference from average
-                discrepancies.append({
-                    "ticker": ticker,
-                    "provider": pname,
-                    "close_15d_ago": close_val,
-                    "date": dt_str,
-                    "avg_close": round(avg, 2),
-                    "pct_diff_from_avg": round(pd, 2),
-                })
+        for pname, cv, dt in closes:
+            pd = pct_diff(cv, avg) if avg > 0 else 0
+            if pd > 2.0:
+                discrepancies.append({"ticker": ticker, "provider": pname,
+                                      "close_15d_ago": cv, "date": dt,
+                                      "avg_close": round(avg, 2), "pct_diff_from_avg": round(pd, 2)})
     return discrepancies
 
 
-def rank_reliability() -> Dict[str, Any]:
-    """Rank providers by reliability: success rate and consistency."""
-    stats: Dict[str, Dict[str, Any]] = {}
-    for pname in PROVIDER_INFO:
+def rank_reliability() -> List[Tuple[str, Dict[str, Any]]]:
+    stats = {}
+    for pname in PROVIDER_NAMES:
         stats[pname] = {"attempts": 0, "successes": 0, "prices": [], "score": 0}
-
     for ticker in TICKERS:
-        for pname in PROVIDER_INFO:
+        for pname in PROVIDER_NAMES:
             stats[pname]["attempts"] += 1
             r = results[ticker].get(pname, {})
             if "error" not in r and r.get("price") is not None:
                 stats[pname]["successes"] += 1
                 stats[pname]["prices"].append(float(r["price"]))
-
-    # Score: success_rate * 50 + consistency_score * 30 + coverage * 20
     for pname, s in stats.items():
-        success_rate = s["successes"] / s["attempts"] if s["attempts"] else 0
-        # Consistency: lower std_dev relative to mean = better
+        sr = s["successes"] / s["attempts"] if s["attempts"] else 0
         if len(s["prices"]) >= 2:
-            avg_p = mean(s["prices"])
-            sd = std_dev(s["prices"], avg_p)
-            cv = sd / avg_p if avg_p > 0 else 1.0  # coefficient of variation
-            consistency_score = max(0, 1.0 - min(cv * 10, 1.0))
+            ap = mean(s["prices"])
+            sd = std_dev(s["prices"], ap)
+            cv = sd / ap if ap > 0 else 1.0
+            cs = max(0, 1.0 - min(cv * 10, 1.0))
         else:
-            consistency_score = 0.5
-
-        # Coverage: how many distinct ticker types covered
-        coverage = s["successes"] / s["attempts"]
-
-        s["success_rate"] = round(success_rate, 2)
-        s["consistency_score"] = round(consistency_score, 2)
-        s["coverage"] = round(coverage, 2)
-        s["score"] = round(success_rate * 50 + consistency_score * 30 + coverage * 20, 1)
-
-    # Sort by score descending
-    sorted_rank = sorted(stats.items(), key=lambda x: x[1]["score"], reverse=True)
-    return sorted_rank
+            cs = 0.5
+        cov = s["successes"] / s["attempts"] if s["attempts"] else 0
+        s["success_rate"] = round(sr, 2)
+        s["consistency_score"] = round(cs, 2)
+        s["coverage"] = round(cov, 2)
+        s["score"] = round(sr * 50 + cs * 30 + cov * 20, 1)
+    return sorted(stats.items(), key=lambda x: x[1]["score"], reverse=True)
 
 
-def assess_ticker_type_reliability() -> Dict[str, List[Dict[str, Any]]]:
-    """Assess which provider is best for each ticker type (large cap, tech, penny, ADR, BDR)."""
-    ticker_types = {
-        "AAPL": "large_cap",
-        "MSFT": "tech",
-        "SNDL": "penny",
-        "VALE": "ADR",
-        "PETR4.SA": "BDR",
-    }
-    assessment: Dict[str, List[Dict[str, Any]]] = {}
-    for ticker, ttype in ticker_types.items():
-        best_provider = None
-        best_price = None
-        provider_prices = []
-        for pname in PROVIDER_INFO:
+def assess_ticker_type_reliability() -> Dict[str, Any]:
+    ttypes = {"AAPL": "large_cap", "MSFT": "tech", "SNDL": "penny", "VALE": "ADR", "PETR4.SA": "BDR"}
+    assessment = {}
+    for ticker, ttype in ttypes.items():
+        prices = []
+        for pname in PROVIDER_NAMES:
             r = results[ticker].get(pname, {})
             if "error" not in r and r.get("price") is not None:
-                pval = float(r["price"])
-                provider_prices.append({"provider": pname, "price": pval})
-
-        if provider_prices:
-            vals = [p["price"] for p in provider_prices]
+                prices.append({"provider": pname, "price": float(r["price"])})
+        if prices:
+            vals = [p["price"] for p in prices]
             consensus = mean(vals)
-            for p in provider_prices:
+            for p in prices:
                 p["consensus"] = round(consensus, 2)
                 p["pct_from_consensus"] = round((p["price"] - consensus) / consensus * 100, 2)
-
-            # Best = closest to consensus
-            provider_prices.sort(key=lambda x: abs(x["pct_from_consensus"]))
-            best_provider = provider_prices[0]["provider"]
-
-        assessment[ticker] = {
-            "type": ttype,
-            "best_provider": best_provider,
-            "details": provider_prices,
-        }
+            prices.sort(key=lambda x: abs(x["pct_from_consensus"]))
+            best = prices[0]["provider"] if prices else None
+        else:
+            best = None
+        assessment[ticker] = {"type": ttype, "best_provider": best, "details": prices}
     return assessment
 
 
 # ═══════════════════════════════════════════════════════════════════════
-#  Report generation
+#  Report
 # ═══════════════════════════════════════════════════════════════════════
 
 
 def print_report() -> str:
-    """Generate and print the full CROSS-PROVIDER DISCREPANCY TEST report."""
-    report_parts = []
-
-    def emit(line: str = "") -> None:
-        report_parts.append(line)
+    parts = []
+    def emit(line: str = ""):
+        parts.append(line)
         print(line)
 
     emit(f"\n{COL_BOLD}{COL_CYAN}{'='*80}{COL_RESET}")
@@ -491,36 +433,38 @@ def print_report() -> str:
     emit(f"{COL_BOLD}{COL_CYAN}  Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}{COL_RESET}")
     emit(f"{COL_BOLD}{COL_CYAN}{'='*80}{COL_RESET}\n")
 
-    # ── Environment summary ──────────────────────────────────────────
+    # Environment
     emit(f"{COL_BOLD}ENVIRONMENT:{COL_RESET}")
-    for pname, pinfo in PROVIDER_INFO.items():
+    for pname in PROVIDER_NAMES:
+        pinfo = PROVIDER_INFO[pname]
         if pinfo["key_required"]:
             key = os.getenv(pinfo["api_key_var"])
             status = f"{COL_GREEN}SET{COL_RESET}" if key else f"{COL_RED}NOT SET{COL_RESET}"
             emit(f"  {pname:16s}  key={pinfo['api_key_var']:<24s} {status}")
         else:
             emit(f"  {pname:16s}  no key required (free)")
+    emit(f"  {'':16s}  timeout={PROVIDER_TIMEOUT}s per call")
     emit()
 
-    # ── Price table ──────────────────────────────────────────────────
+    # Price table
     emit(f"{COL_BOLD}PRICE COMPARISON TABLE:{COL_RESET}")
     emit(build_price_table())
     emit()
 
-    # ── Side-by-side summary ─────────────────────────────────────────
+    # Side-by-side
     emit(f"{COL_BOLD}SIDE-BY-SIDE PRICE SUMMARY:{COL_RESET}")
     for ticker in TICKERS:
-        parts = [f"{ticker:10s}:"]
-        for pname in PROVIDER_INFO:
+        parts_line = [f"{ticker:10s}:"]
+        for pname in PROVIDER_NAMES:
             r = results[ticker].get(pname, {})
             if "error" not in r and r.get("price") is not None:
-                parts.append(f"{pname}=${float(r['price']):.2f}")
+                parts_line.append(f"{pname}=${float(r['price']):.2f}")
             else:
-                parts.append(f"{pname}=ERR")
-        emit("  " + " | ".join(parts))
+                parts_line.append(f"{pname}=ERR")
+        emit("  " + " | ".join(parts_line))
     emit()
 
-    # ── Outliers ─────────────────────────────────────────────────────
+    # Outliers
     emit(f"{COL_BOLD}{COL_YELLOW}OUTLIER DETECTION (|z| > 2.0):{COL_RESET}")
     outliers = detect_outliers()
     if outliers:
@@ -532,7 +476,7 @@ def print_report() -> str:
         emit(f"  {COL_GREEN}No outliers detected (all prices within 2-sigma).{COL_RESET}")
     emit()
 
-    # ── Volume consistency ───────────────────────────────────────────
+    # Volume
     emit(f"{COL_BOLD}VOLUME CONSISTENCY CHECK (>20% deviation from median):{COL_RESET}")
     vol_disc = check_volume_consistency()
     if vol_disc:
@@ -544,7 +488,7 @@ def print_report() -> str:
         emit(f"  {COL_GREEN}Volume consistent across providers (no >20% deviations).{COL_RESET}")
     emit()
 
-    # ── Historical close comparison (15 days ago) ────────────────────
+    # Historical close
     emit(f"{COL_BOLD}HISTORICAL CLOSE COMPARISON (~15 days ago):{COL_RESET}")
     hist_disc = compare_historical_close(15)
     if hist_disc:
@@ -555,43 +499,44 @@ def print_report() -> str:
     else:
         emit(f"  {COL_GREEN}Historical close consistent across providers.{COL_RESET}")
 
-    # Show what each provider returned for historical close
-    emit(f"\n{COL_BOLD}HISTORICAL CLOSE RAW DATA:{COL_RESET}")
+    # Raw candle data
+    emit(f"\n{COL_BOLD}HISTORICAL CANDLE DATA SUMMARY:{COL_RESET}")
     for ticker in TICKERS:
         emit(f"  {ticker}:")
-        for pname in PROVIDER_INFO:
+        for pname in PROVIDER_NAMES:
             if pname == "stooq":
                 emit(f"    {pname:16s}: N/A (no candle endpoint)")
                 continue
             cr = candle_results.get(ticker, {}).get(pname, {})
             if "error" in cr:
-                emit(f"    {pname:16s}: ERR - {cr['error'][:50]}")
+                emit(f"    {pname:16s}: ERR - {str(cr['error'])[:60]}")
                 continue
             candles = cr.get("candles", [])
             if not candles or not isinstance(candles, list):
-                emit(f"    {pname:16s}: No candles")
+                emit(f"    {pname:16s}: No candles returned")
                 continue
-            # Show first and last candle date
             try:
-                first_dt = candles[0].get("datetime", candles[0].get("time", "?"))[:10]
-                last_dt = candles[-1].get("datetime", candles[-1].get("time", "?"))[:10]
-                close_last = candles[-1].get("close", "?")
-                emit(f"    {pname:16s}: {len(candles)} candles, "
-                     f"{first_dt} to {last_dt}, last_close={close_last}")
+                fd = str(candles[0].get("datetime", candles[0].get("time", "?")))[:10]
+                ld = str(candles[-1].get("datetime", candles[-1].get("time", "?")))[:10]
+                lc = candles[-1].get("close", "?")
+                lv = candles[-1].get("volume", "?")
+                emit(f"    {pname:16s}: {len(candles)} candles, {fd} to {ld}, "
+                     f"last_close={lc}, last_vol={lv}")
             except Exception:
                 emit(f"    {pname:16s}: {len(candles)} candles (parse error)")
     emit()
 
-    # ── Reliability ranking ──────────────────────────────────────────
+    # Reliability ranking
     emit(f"{COL_BOLD}PROVIDER RELIABILITY RANKING:{COL_RESET}")
     ranking = rank_reliability()
-    emit(f"  {'Rank':>4s} {'Provider':16s} {'Success':>8s} {'Consistency':>12s} {'Coverage':>9s} {'Score':>6s}")
+    hdr = f"  {'Rank':>4s} {'Provider':16s} {'Success':>8s} {'Consistency':>12s} {'Coverage':>9s} {'Score':>6s}"
+    emit(hdr)
     emit(f"  {'-'*4} {'-'*16} {'-'*8} {'-'*12} {'-'*9} {'-'*6}")
-    for rank, (pname, s) in enumerate(ranking, 1):
-        emit(f"  {rank:>4d} {pname:16s} {s['success_rate']:>7.0%} {s['consistency_score']:>11.0%} {s['coverage']:>8.0%} {s['score']:>6.1f}")
+    for rk, (pname, s) in enumerate(ranking, 1):
+        emit(f"  {rk:>4d} {pname:16s} {s['success_rate']:>7.0%} {s['consistency_score']:>11.0%} {s['coverage']:>8.0%} {s['score']:>6.1f}")
     emit()
 
-    # ── Ticker type recommendation ───────────────────────────────────
+    # Ticker type recommendations
     emit(f"{COL_BOLD}BEST PROVIDER PER TICKER TYPE:{COL_RESET}")
     assessment = assess_ticker_type_reliability()
     for ticker, info in assessment.items():
@@ -601,83 +546,75 @@ def print_report() -> str:
                  f"(consensus=${d['consensus']}, {d['pct_from_consensus']:+.2f}%)")
     emit()
 
-    # ── Recommendations ──────────────────────────────────────────────
+    # Recommendations
     emit(f"{COL_BOLD}RECOMMENDATIONS:{COL_RESET}")
-
-    # What's the most reliable provider overall?
     if ranking:
-        best = ranking[0]
-        emit(f"  1. Most reliable overall: {best[0]} (score={best[1]['score']})")
-
-    # Any outliers that need investigation?
+        emit(f"  1. Most reliable overall: {ranking[0][0]} (score={ranking[0][1]['score']})")
     if outliers:
-        emit(f"  2. {COL_RED}ACTION REQUIRED:{COL_RESET} Investigate {len(outliers)} outlier(s):")
+        emit(f"  2. {COL_RED}ACTION REQUIRED:{COL_RESET} {len(outliers)} outlier(s) found:")
         for o in outliers:
-            emit(f"     - {o['ticker']}: {o['provider']} reports ${o['value']:.2f} "
-                 f"vs mean ${o['mean']:.2f}")
+            emit(f"     - {o['ticker']}: {o['provider']} ${o['value']:.2f} vs mean ${o['mean']:.2f}")
     else:
-        emit(f"  2. No price outliers detected — providers agree.")
-
-    # Volume issues?
+        emit(f"  2. No price outliers detected.")
     if vol_disc:
-        emit(f"  3. {COL_YELLOW}CAUTION:{COL_RESET} {len(vol_disc)} volume discrepancy(ies) found. "
-             f"Volume data may be unreliable for those tickers.")
+        emit(f"  3. {COL_YELLOW}CAUTION:{COL_RESET} {len(vol_disc)} volume discrepancy(ies) found.")
     else:
         emit(f"  3. Volume data is consistent across providers.")
 
-    # For PETR4.SA (BDR), which provider works best?
+    # PETR4.SA
     emit(f"  4. PETR4.SA (BDR) recommendation:")
-    for pname in PROVIDER_INFO:
+    for pname in PROVIDER_NAMES:
         r = results.get("PETR4.SA", {}).get(pname, {})
         if "error" not in r and r.get("price") is not None:
-            emit(f"     - {pname}: OK (price=${float(r['price']):.2f})")
+            emit(f"     - {pname}: OK (${float(r['price']):.2f})")
         else:
-            err = r.get("error", "N/A")
-            emit(f"     - {pname}: FAIL ({err})")
+            emit(f"     - {pname}: FAIL ({r.get('error', 'N/A')[:40]})")
 
-    # For SNDL (penny stock)
+    # SNDL (penny stock)
     emit(f"  5. SNDL (penny stock) recommendation:")
-    providers_ok = []
-    for pname in PROVIDER_INFO:
+    ok_providers = []
+    for pname in PROVIDER_NAMES:
         r = results.get("SNDL", {}).get(pname, {})
         if "error" not in r and r.get("price") is not None:
-            providers_ok.append(f"{pname} (${float(r['price']):.2f})")
-    if providers_ok:
-        emit(f"     Working providers: {', '.join(providers_ok)}")
+            ok_providers.append(f"{pname} (${float(r['price']):.2f})")
+    if ok_providers:
+        emit(f"     Working: {', '.join(ok_providers)}")
     else:
         emit(f"     {COL_RED}No provider returned SNDL price{COL_RESET}")
 
     emit(f"\n{COL_BOLD}{COL_CYAN}{'='*80}{COL_RESET}")
     emit(f"{COL_BOLD}{COL_CYAN}  END OF REPORT{COL_RESET}")
     emit(f"{COL_BOLD}{COL_CYAN}{'='*80}{COL_RESET}")
-
-    return "\n".join(report_parts)
+    return "\n".join(parts)
 
 
 # ═══════════════════════════════════════════════════════════════════════
-#  Entry point
+#  Main
 # ═══════════════════════════════════════════════════════════════════════
 
 def main() -> int:
     print(f"{COL_BOLD}{COL_CYAN}SuperEzio Cross-Provider Discrepancy Test{COL_RESET}")
-    print(f"{COL_CYAN}Testing {len(TICKERS)} tickers x {len(PROVIDER_INFO)} providers{COL_RESET}")
+    print(f"{COL_CYAN}Testing {len(TICKERS)} tickers x {len(PROVIDER_NAMES)} providers{COL_RESET}")
+    print(f"{COL_CYAN}Each call has {PROVIDER_TIMEOUT}s timeout{COL_RESET}")
     print(f"{COL_CYAN}{'='*70}{COL_RESET}")
 
-    # Phase 1: prices
-    run_price_tests()
+    # Phase 1: Prices (parallel per ticker)
+    for ticker in TICKERS:
+        run_price_test(ticker)
 
-    # Phase 2: candles (historical)
+    # Phase 2: Candles (parallel per ticker)
     print(f"\n{COL_CYAN}{'='*70}{COL_RESET}")
     print(f"{COL_BOLD}  PHASE 2: HISTORICAL CANDLES (1M){COL_RESET}")
     print(f"{COL_CYAN}{'='*70}{COL_RESET}")
-    run_candle_tests()
+    for ticker in TICKERS:
+        print(f"  Fetching candles for {ticker}...")
+        run_candle_test(ticker)
 
-    # Phase 3: report
+    # Phase 3: Report
     print(f"\n{COL_CYAN}{'='*70}{COL_RESET}")
     print(f"{COL_BOLD}  PHASE 3: GENERATING REPORT{COL_RESET}")
     print(f"{COL_CYAN}{'='*70}{COL_RESET}")
     print_report()
-
     return 0
 
 
