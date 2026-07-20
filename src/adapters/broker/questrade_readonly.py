@@ -76,7 +76,9 @@ class QuestradeReadOnlyClient:
         return [item for item in accounts if isinstance(item, dict)]
 
     def get_balances(self, account_id: str) -> list[dict[str, Any]]:
-        return self._list(f"/v1/accounts/{self._account_id(account_id)}/balances", "perCurrencyBalances")
+        return self._list(
+            f"/v1/accounts/{self._account_id(account_id)}/balances", "perCurrencyBalances"
+        )
 
     def get_positions(self, account_id: str) -> list[dict[str, Any]]:
         return self._list(f"/v1/accounts/{self._account_id(account_id)}/positions", "positions")
@@ -121,7 +123,7 @@ class QuestradeReadOnlyClient:
         self._raise_for_status(response, path)
         return self._json_object(response, path)
 
-    def _list(self, path: str, key: str) -> list[dict[str, Any]:
+    def _list(self, path: str, key: str) -> list[dict[str, Any]]:
         values = self._get(path).get(key)
         if not isinstance(values, list):
             raise QuestradeReadOnlyError(f"Questrade response is missing {key}")
