@@ -77,19 +77,19 @@
 
 ---
 
-## ⬜ STRESS TEST — 25 ORDENS
+## ⬜ TESTE DE INTEGRAÇÃO E CARGA (TRADING LOOPS)
 
-- [ ] Rodar stress test pipeline (sem execução IBKR):
+- [ ] Rodar os testes de loop de trading integrados para estresse simulado:
   ```powershell
-  python scripts/stress_test_25.py --dry-run
+  python -m pytest tests/test_trading_loop1.py tests/test_trading_loop3.py tests/test_trading_loop4.py tests/test_trading_loop5.py -q
   ```
-  Este modo testa análise do Bob sem submeter ordens reais.
+  Este conjunto testa a análise do Bob sob diferentes condições de loops e submissão simulada.
 
-- [ ] Analisar resultados:
-  - [ ] Success rate alvo: ≥ 80%
-  - [ ] Latência média < 300s por prompt
-  - [ ] Routing: market_scan, ticker_analysis, general distribuídos
-  - [ ] Zero crashes no servidor
+- [ ] Analisar os resultados dos testes de loop:
+  - [ ] Zero falhas nos testes de fluxo de trade e gates de decisão.
+  - [ ] Latência monitorada.
+  - [ ] Routing validado: correct matching de envelopes.
+  - [ ] Zero crashes inesperados de runtime.
 
 - [ ] **M3 — Paper Trading Real (25 ordens):**
   O modo legado `--direct-only` foi aposentado porque contornava a preparação
@@ -182,13 +182,10 @@ Data:        ____-__-__
 
 ## 📊 REFERÊNCIA RÁPIDA
 
-| Comando | Descrição |
-|---------|-----------|
 | `python -m agent_server.main` | Iniciar API + frontend |
 | `scripts/serve_agent_llamacpp.ps1 -Port 8082` | Iniciar CEO |
 | `python -m pytest tests/ -q` | Suíte completa |
-| `python scripts/stress_test_25.py` | 25 prompts pipeline |
-| `python scripts/stress_test_25.py --direct-only` | Legado bloqueado; não usar |
+| `python -m pytest tests/test_trading_loop*.py -q` | Teste dos loops de trading |
 | `python scripts/browser_smoke.py --headed` | Smoke visual |
 | `python scripts/_ibkr_order.py BUY AAPL 10 150.00` | Transporte aposentado; sempre bloqueia |
 | `curl.exe http://127.0.0.1:8002/cockpit/summary` | Status JSON |

@@ -22,7 +22,7 @@
 | `scripts/nitro_expert_packer.py` | Python | Expert cluster packing tool — profile co-activation, cluster, optimize GGUF layout |
 | `scripts/nitro_comparison.md` | Markdown | Raw comparison tables (35B/80B/236B × 3 modes) |
 | `scripts/nitro_80b_optim_plan.md` | Markdown | 5-layer optimization plan with targets and dependency graph |
-| `scripts/bench_1M_nitro.ps1` | PowerShell | 1M token benchmark harness |
+| `scripts/bench_1M_nitro.ps1` | PowerShell | 1M token benchmark harness (Arquivado/Removido) |
 | `scripts/bench_1M_runner.py` | Python | 1M token benchmark runner |
 | `scripts/gen_1M_prompts.py` | Python | Prompt generator for benchmarks |
 | `scripts/serve_local.ps1` | PowerShell | Start llama-server with local GGUF |

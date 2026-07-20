@@ -75,3 +75,10 @@ python scripts/browser_smoke.py
 
 MCPs permitidos: filesystem, playwright, firebase, context7, ide.
 Playwright OBRIGATÓRIO com pytest. GitHub BLOQUEADO.
+
+## Autonomia e Bypass de Permissões (Claude Code)
+
+- O arquivo de configuração global (`~/.claude/settings.json`) está configurado no modo **Bypass Global** (`bypassPermissions`):
+  - `autoRun = true`, `autoEdit = true`, `autoWrite = true`, `skipPermissions = true`.
+- Esta configuração permite a livre execução de comandos locais e ferramentas para simular e coordenar subagentes em lote, sem quebras por confirmação interativa.
+- A política de segurança permanece ativa no nível de bloqueio estrito de GitHub (`git push/pull/fetch/gh`) e comandos destrutivos do sistema (`rm -rf /` etc.).

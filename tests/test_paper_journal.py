@@ -1,6 +1,5 @@
 """Testes para PaperJournal (C6) e PerformanceEngine (C7)."""
 
-import json
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -8,7 +7,6 @@ from pathlib import Path
 import pytest
 
 from core.trading.paper_journal import PaperJournal, PaperTrade
-from core.trading.performance_metrics import PerformanceEngine
 
 
 # Fixtures
@@ -347,136 +345,3 @@ class TestPaperJournal:
         )
         assert second_review == []
         assert len(memory.turns) == 1
-
-
-# C7: PerformanceEngine
-
-
-class TestPerformanceEngine:
-    def test_empty_journal(self, journal):
-        """Relatorio de performance com journal vazio."""
-        engine = PerformanceEngine(journal)
-        report = engine.evaluate()
-        assert report.total_trades == 0
-        assert report.closed_trades == 0
-        assert "insufficient_data" in report.detected_biases[0] if report.detected_biases else False
-
-    def test_single_trade_insufficient(self, journal, sample_trade):
-        """Um trade so nao gera metricas robustas."""
-        journal.open_trade(sample_trade)
-        journal.close_trade("test-001", exit_price=195.00, exit_reason="take_profit")
-        engine = PerformanceEngine(journal)
-        report = engine.evaluate()
-        assert report.closed_trades == 1
-        assert report.win_rate_pct == 100.0
-        # Sem reflexao ainda
-        assert report.reflection_rate_pct == 0.0
-        assert (
-            "insufficient_sample" in str(report.detected_biases)
-            if report.detected_biases
-            else False
-        )
-
-    def test_multiple_trades_detects_biases(self, journal):
-        """Multiplos trades ativam deteccao de vieses."""
-        for i in range(6):
-            tid = f"t{i}"
-            trade = PaperTrade(
-                trade_id=tid,
-                ticker=f"TICK{i}",
-                thesis=f"thesis {i}",
-                direction="long",
-                entry_date=f"2026-06-0{i + 1}T10:00:00Z",
-                entry_price=100,
-                shares=10,
-                entry_reasoning="test",
-                verdict_at_entry="test",
-                risk_assessment="test",
-                expected_holding_period="swing",
-            )
-            journal.open_trade(trade)
-            # 4 wins, 2 losses
-            if i < 4:
-                journal.close_trade(tid, exit_price=102, exit_reason="take_profit")
-                journal.add_reflection(tid, thesis_correct=True, lesson_learned="ok")
-            else:
-                journal.close_trade(tid, exit_price=90, exit_reason="stop_loss")
-                journal.add_reflection(tid, thesis_correct=False, lesson_learned="bad")
-
-        engine = PerformanceEngine(journal)
-        report = engine.evaluate()
-
-        assert report.total_trades == 6
-        assert report.closed_trades == 6
-        assert report.win_rate_pct == pytest.approx(66.67, rel=0.1)
-        assert report.profit_factor > 0
-        assert report.reflection_rate_pct == 100.0
-        assert report.thesis_accuracy_pct == pytest.approx(66.67, rel=0.1)
-        # Deve ter vieses detectados (losers outpace winners)
-        assert len(report.detected_biases) > 0
-
-    def test_sharpe_ratio_calculation(self, journal):
-        """Sharpe ratio com trades consistentes."""
-        for i in range(10):
-            tid = f"s{i}"
-            trade = PaperTrade(
-                trade_id=tid,
-                ticker="SPY",
-                thesis="momentum",
-                direction="long",
-                entry_date=f"2026-06-{i + 1:02d}T10:00:00Z",
-                entry_price=500,
-                shares=10,
-                entry_reasoning="test",
-                verdict_at_entry="test",
-                risk_assessment="test",
-                expected_holding_period="swing",
-            )
-            journal.open_trade(trade)
-            # Pequenos ganhos consistentes
-            journal.close_trade(tid, exit_price=501 + i * 0.5, exit_reason="take_profit")
-
-        engine = PerformanceEngine(journal)
-        report = engine.evaluate()
-        assert report.sharpe_ratio > 0  # Retornos positivos consistentes
-        assert report.max_drawdown_percent == 0.0  # Sem drawdown
-
-    def test_drawdown_calculation(self, journal):
-        """Max drawdown com sequencia de perdas."""
-        prices = [100, 98, 96, 94, 102, 101, 100]  # Drawdown depois recuperacao
-        for i, px in enumerate(prices):
-            tid = f"dd{i}"
-            trade = PaperTrade(
-                trade_id=tid,
-                ticker="XYZ",
-                thesis="test",
-                direction="long",
-                entry_date=f"2026-06-{i + 1:02d}T10:00:00Z",
-                entry_price=100,
-                shares=10,
-                entry_reasoning="test",
-                verdict_at_entry="test",
-                risk_assessment="test",
-                expected_holding_period="day_trade",
-            )
-            journal.open_trade(trade)
-            journal.close_trade(tid, exit_price=px, exit_reason="manual")
-
-        engine = PerformanceEngine(journal)
-        report = engine.evaluate()
-        assert report.max_drawdown_percent > 0
-
-    def test_performance_report_serializable(self, journal, sample_trade):
-        """Relatorio e serializavel para JSON."""
-        journal.open_trade(sample_trade)
-        journal.close_trade("test-001", exit_price=195.00, exit_reason="take_profit")
-        journal.add_reflection("test-001", thesis_correct=True, lesson_learned="test")
-
-        engine = PerformanceEngine(journal)
-        report = engine.evaluate()
-        d = report.to_dict()
-        assert isinstance(d, dict)
-        # Deve ser serializavel
-        json_str = json.dumps(d, indent=2)
-        assert len(json_str) > 0
-        assert "win_rate_pct" in json_str

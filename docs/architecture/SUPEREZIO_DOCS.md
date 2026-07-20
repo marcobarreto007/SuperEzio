@@ -49,7 +49,6 @@ Pipeline: orchestrator → coleta → MathHub → 6 experts → F51 →
 
 ```powershell
 python -m pytest tests/ -q           # suíte completa (1250 testes)
-python scripts/stress_test_25.py     # stress test 25 operações
 python scripts/browser_smoke.py      # smoke test do frontend
 ```
 

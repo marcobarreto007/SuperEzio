@@ -55,27 +55,27 @@
 | E1 | **Endpoint `/sentiment/history/{ticker}/db`** — consulta SQLite histórico de sentimento (longo prazo, até 365 dias) | `src/agent_server/endpoints.py` | ✅ DONE |
 | E2 | **`db_rows` no cockpit summary** — count de `sentiment_history` exposto no `/cockpit/summary` | `src/agent_server/endpoints.py` | ✅ DONE |
 | E3 | **Testes D3:** `test_persist_to_db_creates_table_and_inserts_row` + `test_persist_to_db_non_critical_failure_does_not_raise` | `tests/test_sentiment_live_monitor.py` | ✅ DONE |
-| E4 | **Stress test 25 ordens** — script `scripts/stress_test_25.py` com 5 tiers (micro→extreme) | `scripts/stress_test_25.py` | ✅ DONE |
-
----
-
-## Ordem de Execução
-
-```
-✅ 1. C1 (Penny scanner integrado) — Codex
-✅ 2. C2 (check_before_trade) — Codex
-✅ 3. D1 (Calibrate no SYSTEM STATUS) — Deep
-✅ 4. D2 (IBKR Mirror) — Deep
-✅ 5. C3 (Deep Panel) — Codex
-✅ 6. D3 (Histórico sentimento) — Deep
-✅ 7. F1+F2+F3 (Bug fixes) — Extra
-✅ 8. E1+E2 (Sentiment DB endpoint + cockpit) — Extra
-✅ 9. E3 (Testes D3) — Extra
-✅ 10. E4 (Stress test 25 ordens) — Extra
-⬜ 11. M1 (TWS presets) — Marco
-⬜ 12. M2 (CEO fallback test) — Marco
-⬜ 13. M3 (Paper trading real — 25 ordens stress) — Marco
-```
+| E4 | **Stress test 25 ordens** — script `scripts/stress_test_25.py` com 5 tiers (consolidado) | Arquivado/Removido | ✅ DONE |
+ 
+ ---
+ 
+ ## Ordem de Execução
+ 
+ ```
+ ✅ 1. C1 (Penny scanner integrado) — Codex
+ ✅ 2. C2 (check_before_trade) — Codex
+ ✅ 3. D1 (Calibrate no SYSTEM STATUS) — Deep
+ ✅ 4. D2 (IBKR Mirror) — Deep
+ ✅ 5. C3 (Deep Panel) — Codex
+ ✅ 6. D3 (Histórico sentimento) — Deep
+ ✅ 7. F1+F2+F3 (Bug fixes) — Extra
+ ✅ 8. E1+E2 (Sentiment DB endpoint + cockpit) — Extra
+ ✅ 9. E3 (Testes D3) — Extra
+ ✅ 10. E4 (Stress test 25 ordens) — Extra
+ ⬜ 11. M1 (TWS presets) — Marco
+ ⬜ 12. M2 (CEO fallback test) — Marco
+ ⬜ 13. M3 (Paper trading real — consolidado) — Marco
+ ```
 
 ## Alvo: 10/10
 
