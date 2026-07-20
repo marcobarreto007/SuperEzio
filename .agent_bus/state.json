@@ -1,33 +1,26 @@
 {
-  "version": "1.0",
+  "version": "2.0",
   "created": "2026-07-19T23:59:00-04:00",
-  "current_wave": null,
-  "last_wave_completed": "wave4-remediation",
-  "army_status": "idle",
-  "cron_job_id": "3468466f",
-  "cron_schedule": "7 * * * * (hourly at :07, recurring)",
+  "mission": "SuperEzio produto final — trader deposita, analisa, opera. 100% integrado.",
+  "current_wave": 2,
+  "wave_status": "wave_active",
+  "cron_job_id": "91a41a8e",
+  "cron_schedule": "3,18,33,48 * * * * (every 15 min, recurring)",
   "transitions": [
-    {
-      "timestamp": "2026-07-19T23:59:00-04:00",
-      "from": null,
-      "to": "idle",
-      "reason": "Agent bus initialized. Captain ready for orders."
-    },
-    {
-      "timestamp": "2026-07-20T00:15:00-04:00",
-      "from": "idle",
-      "to": "idle",
-      "reason": "Captain agent deployed (.claude/agents/captain.md). Cron loop active (hourly at :07). 3-agent RECON wave configured."
-    }
+    {"timestamp": "2026-07-19T23:59:00-04:00", "from": null, "to": "idle", "reason": "Agent bus initialized."},
+    {"timestamp": "2026-07-20T00:15:00-04:00", "from": "idle", "to": "idle", "reason": "Captain deployed. Cron hourly."},
+    {"timestamp": "2026-07-20T00:30:00-04:00", "from": "idle", "to": "wave1_recon", "reason": "Wave 1 disparada: recon-researcher, code-quality-reviewer, security-reviewer"},
+    {"timestamp": "2026-07-20T00:40:00-04:00", "from": "wave1_recon", "to": "wave1_integrating", "reason": "3/3 agentes concluídos. 5 CRIT, 5 HIGH, 10 MED, 11 LOW encontrados."},
+    {"timestamp": "2026-07-20T00:42:00-04:00", "from": "wave1_integrating", "to": "wave2_productize", "reason": "Wave 2 disparada: security (remediação), code-quality (confiabilidade), product (onboarding/pricing), UX (trader audit). 4 agentes em paralelo."}
   ],
   "agents": {
-    "captain": {"status": "active", "last_run": null, "score": null, "role": "resident"},
-    "recon-researcher": {"status": "idle", "last_run": null, "score": null},
-    "security-reviewer": {"status": "idle", "last_run": null, "score": null},
-    "code-quality-reviewer": {"status": "idle", "last_run": null, "score": null},
+    "captain": {"status": "active", "role": "resident", "last_run": "2026-07-20T00:42:00-04:00"},
+    "recon-researcher": {"status": "completed", "last_run": "2026-07-20T00:30:00-04:00", "findings": "0 CRIT, 2 MED, 5 LOW"},
+    "security-reviewer": {"status": "completed", "last_run": "2026-07-20T00:30:00-04:00", "findings": "3 CRIT, 3 HIGH, 6 MED, 3 LOW"},
+    "code-quality-reviewer": {"status": "completed", "last_run": "2026-07-20T00:30:00-04:00", "findings": "2 CRIT, 2 HIGH, 2 MED, 3 LOW"},
     "runtime-verifier": {"status": "idle", "last_run": null, "score": null},
     "api-contract-verifier": {"status": "idle", "last_run": null, "score": null},
-    "frontend-ux-reviewer": {"status": "idle", "last_run": null, "score": null},
+    "frontend-ux-reviewer": {"status": "running", "last_run": "2026-07-20T00:42:00-04:00"},
     "kb-domain-reviewer": {"status": "idle", "last_run": null, "score": null},
     "training-verifier": {"status": "idle", "last_run": null, "score": null},
     "model-gateway-verifier": {"status": "idle", "last_run": null, "score": null},
@@ -35,5 +28,18 @@
     "agent-benchmarker": {"status": "idle", "last_run": null, "score": null},
     "agent-replacer": {"status": "idle", "last_run": null, "score": null},
     "savekeeper": {"status": "idle", "last_run": null, "score": null}
+  },
+  "product_goal": {
+    "target": "Trader final — depositar, analisar, operar (paper → real)",
+    "mvp_gates": [
+      "Auth nas rotas de trading",
+      "Keys rotacionadas",
+      "Top 10 except cegos corrigidos",
+      "UX fluxo de depósito e portfolio",
+      "Onboarding documentado",
+      "Precificação definida"
+    ],
+    "waves_completed": ["wave1_recon"],
+    "waves_remaining": ["wave2_productize", "wave3_verify", "wave4_integrate"]
   }
 }
