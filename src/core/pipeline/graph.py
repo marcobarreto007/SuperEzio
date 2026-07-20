@@ -283,11 +283,10 @@ async def _auto_full_analysis(
         math_report = math_hub.calculate_all(working_state)
         math_prompt = math_hub.to_deepseek_prompt(math_report)
         math_update: dict[str, Any] = {"math_report": math_report, "math_prompt": math_prompt}
-        if math_prompt:
-            existing_context = str(working_state.get("data_context") or data_context or "")
-            math_update["data_context"] = (
-                f"{existing_context}\n\n{math_prompt}" if existing_context else math_prompt
-            )
+        # math_prompt is now injected SEPARATELY via observation_builder (no truncation).
+        # Do NOT append to data_context — doing so would make it subject to the 4000-char
+        # truncation in observation_builder, silently dropping RSI/MACD/Sharpe/VaR/Kelly
+        # for tickers with rich news/sentiment/macro data.
         _merge_node_update(working_state, output, math_update)
         _mark_step("math_hub")
         data_context = str(working_state.get("data_context") or data_context)

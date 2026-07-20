@@ -137,6 +137,7 @@ output/
 !output/.gitkeep
 runtime/restart_log.txt
 runtime/feedback/
+runtime/prompts/
 runs/evidence/
 
 # Partner temp files

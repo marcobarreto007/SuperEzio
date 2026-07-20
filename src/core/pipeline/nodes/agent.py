@@ -7,6 +7,7 @@ import logging
 import os
 import re
 from decimal import Decimal, InvalidOperation, ROUND_FLOOR
+from pathlib import Path
 from typing import Any
 
 from langgraph.config import get_stream_writer
@@ -2958,6 +2959,16 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
     observations = build_observations(state)
 
+    # Structured prompt from builder.py — formatted sections for all modules
+    from ..prompts.builder import build_agent_prompt
+
+    prompt_report = build_agent_prompt(state, mandamentos=mandamentos)
+
+    if prompt_report:
+        messages.append(
+            {"role": "user", "content": "Pipeline Report:\n" + prompt_report}
+        )
+
     if observations:
         messages.append(
             {"role": "user", "content": "Observations so far:\n" + "\n\n".join(observations)}
@@ -2969,6 +2980,30 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             "content": "Decide on the next action (tool call or final_answer). Output ONLY the JSON block.",
         }
     )
+
+    # ── Prompt debug logging ──
+    system_prompt = messages[0]["content"] if messages else ""
+    user_prompt = messages[1]["content"] if len(messages) > 1 else ""
+    obs_text = "\n".join(observations) if observations else ""
+
+    logger.debug(
+        "bob_prompt",
+        extra={
+            "system_prompt": system_prompt[:500],
+            "user_prompt": user_prompt[:500],
+            "observations_count": len(observations),
+            "prompt_report_len": len(prompt_report),
+        },
+    )
+
+    try:
+        prompt_path = Path("runtime/prompts") / f"{run_id}.txt"
+        prompt_path.parent.mkdir(parents=True, exist_ok=True)
+        prompt_path.write_text(
+            f"=== SYSTEM ===\n{system_prompt}\n\n=== USER ===\n{user_prompt}\n\n=== OBSERVATIONS ===\n{obs_text}"
+        )
+    except Exception as e:
+        logger.warning("Failed to save prompt to disk: %s", e)
 
     try:
         from ...model_serving.providers import AGENT_PROVIDER_NAME
