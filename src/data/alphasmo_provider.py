@@ -114,10 +114,14 @@ class AlphaSMOProvider:
             trades_list = raw.get("trades") or raw.get("data") or []
 
         insider_buys = sum(
-            1 for t in trades_list if str(t.get("type") or t.get("transactionType") or "").lower() in ("buy", "purchase")
+            1
+            for t in trades_list
+            if str(t.get("type") or t.get("transactionType") or "").lower() in ("buy", "purchase")
         )
         insider_sells = sum(
-            1 for t in trades_list if str(t.get("type") or t.get("transactionType") or "").lower() in ("sell", "sale")
+            1
+            for t in trades_list
+            if str(t.get("type") or t.get("transactionType") or "").lower() in ("sell", "sale")
         )
 
         return {
@@ -203,9 +207,12 @@ class AlphaSMOProvider:
         raw = _run_alphasmo(
             [
                 "convergence",
-                "--limit", str(max(1, min(limit, 50))),
-                "--min-confidence", str(max(0, min(min_confidence, 100))),
-                "--days", str(max(1, days)),
+                "--limit",
+                str(max(1, min(limit, 50))),
+                "--min-confidence",
+                str(max(0, min(min_confidence, 100))),
+                "--days",
+                str(max(1, days)),
             ],
         )
         if raw is None:
@@ -219,10 +226,7 @@ class AlphaSMOProvider:
             tickers_list = raw.get("tickers") or raw.get("data") or []
 
         # Compute average convergence score
-        scores = [
-            int(t.get("score") or t.get("convergenceScore") or 0)
-            for t in tickers_list
-        ]
+        scores = [int(t.get("score") or t.get("convergenceScore") or 0) for t in tickers_list]
         avg_score = int(sum(scores) / len(scores)) if scores else 0
 
         return {
@@ -260,7 +264,9 @@ class AlphaSMOProvider:
             "cluster_buy": summary.get("cluster_buy", False),
             "confidence_30d": summary.get("confidence_30d"),
             "confidence_90d": summary.get("confidence_90d"),
-            "convergence_score": summary.get("confidence_90d") or summary.get("confidence_30d") or 50,
+            "convergence_score": summary.get("confidence_90d")
+            or summary.get("confidence_30d")
+            or 50,
             "source": "alphasmo",
             "provider": "alphasmo",
         }

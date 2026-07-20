@@ -217,9 +217,7 @@ class AKShareProvider:
             "provider": "akshare",
         }
 
-    def _get_intraday_candles(
-        self, asymbol: str, symbol: str, timeframe: str
-    ) -> Dict[str, Any]:
+    def _get_intraday_candles(self, asymbol: str, symbol: str, timeframe: str) -> Dict[str, Any]:
         """Fetch intraday minute candles via stock_us_hist_min_em."""
         try:
             df = ak.stock_us_hist_min_em(  # type: ignore[union-attr]
