@@ -1,11 +1,11 @@
 import asyncio
 import hmac
 import json as _json
-import logging
 import math
 import os
 import sys
 import time
+import uuid
 from copy import deepcopy
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -26,6 +26,8 @@ from core.config import get_config  # noqa: E402
 from core.config.secrets import load_local_env  # noqa: E402
 from core.investor.storage import get_investor_storage  # noqa: E402
 from core.mission_context import mission_health_summary  # noqa: E402
+from core.config.logging_config import get_logger, bind_trace, unbind_trace  # noqa: E402
+
 from core.observability import log_queue, metrics  # noqa: E402
 from core.paths import PROJECT_ROOT  # noqa: E402
 from core.sentiment import LiveMonitor, SentimentCurator, WatchlistPulse  # noqa: E402
@@ -39,7 +41,7 @@ from .endpoints import submit_task as _submit_task_endpoint  # noqa: E402
 # Priority: OS env > .env.local > .env
 load_local_env()
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def _json_safe(value):
@@ -352,10 +354,19 @@ async def metrics_middleware(request: Request, call_next):
     t0 = time.time()
     response = await call_next(request)
     elapsed_s = time.time() - t0
+    elapsed_ms = round(elapsed_s * 1000, 2)
     route = request.url.path or "/"
     metrics.latency(f"http_{request.method}_{route}", elapsed_s)
     if response.status_code >= 400:
         metrics.error(f"http_{request.method}_{route}")
+    # Access log: every HTTP request logged with method, path, status, latency
+    logger.info(
+        "http_access",
+        method=request.method,
+        path=route,
+        status=response.status_code,
+        latency_ms=elapsed_ms,
+    )
     return response
 
 
@@ -384,6 +395,8 @@ API_KEY_HEADER = "X-API-Key"
 _PUBLIC_EXACT = frozenset(
     {
         "/health",
+        "/health/dashboard",
+        "/api/health/dashboard-data",
         "/favicon.ico",
         "/",
         "/metrics",
@@ -456,6 +469,23 @@ async def api_key_auth_middleware(request: Request, call_next):
 @app.middleware("http")
 async def api_jwt_auth_middleware(request: Request, call_next):
     return await jwt_auth_middleware(request, call_next)
+
+
+# ==============================
+# Trace ID middleware
+# ==============================
+
+
+@app.middleware("http")
+async def trace_id_middleware(request: Request, call_next):
+    """Bind trace_id from header (or generate one) on every request."""
+    trace_id = request.headers.get("X-Trace-ID", "") or uuid.uuid4().hex[:12]
+    bind_trace(trace_id=trace_id)
+    try:
+        response = await call_next(request)
+        return response
+    finally:
+        unbind_trace()
 
 
 app.include_router(a2a_router)
@@ -853,6 +883,15 @@ async def health_check():
         },
     }
 
+    # -- Circuit Breakers --
+    try:
+        from core.resilience import get_all_circuits_health as _get_circuits_health
+
+        health["checks"]["circuit_breakers"] = _get_circuits_health()
+    except Exception as exc:
+        logger.warning("[%s] circuit_breakers status unavailable: %s", AGENT_NAME, exc)
+        health["checks"]["circuit_breakers"] = {"error": str(exc)[:200]}
+
     # â”€â”€ Cost guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     try:
         health["checks"]["cost_guard"] = get_cost_guard().status()
@@ -930,6 +969,156 @@ async def get_metrics():
 # ═══════════════════════════════════════════════════════════════
 # Dashboard HTML — Quality Engineering 2026
 # ═══════════════════════════════════════════════════════════════
+
+
+# =================================
+# Health Dashboard endpoints
+# =================================
+
+_HEALTH_DASHBOARD_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "templates", "health_dashboard.html")
+
+
+@app.get("/health/dashboard", include_in_schema=False)
+async def health_dashboard():
+    """Health dashboard HTML — provider status, latency, memory, uptime."""
+    try:
+        from pathlib import Path
+        tmpl = Path(_HEALTH_DASHBOARD_PATH)
+        if tmpl.exists():
+            html = tmpl.read_text(encoding="utf-8")
+            return Response(content=html, media_type="text/html; charset=utf-8")
+    except Exception:
+        pass
+    return Response(
+        content="<html><body><h1>Health Dashboard</h1><p>Template not found</p></body></html>",
+        media_type="text/html; charset=utf-8",
+    )
+
+
+@app.get("/api/health/dashboard-data", include_in_schema=False)
+async def health_dashboard_data():
+    """JSON data endpoint consumed by the health dashboard."""
+    uptime_s = metrics.uptime_seconds()
+    memory_mb = _get_memory_usage_mb()
+
+    gpu_info = {"available": False, "devices": []}
+    try:
+        import torch
+        gpu_info["available"] = torch.cuda.is_available()
+        if gpu_info["available"]:
+            for i in range(torch.cuda.device_count()):
+                props = torch.cuda.get_device_properties(i)
+                gpu_info["devices"].append({"id": i, "name": props.name, "vram_mb": props.total_memory // (1024 * 1024)})
+    except ImportError:
+        gpu_info["status"] = "no_torch"
+
+    primary_configured = bool(os.getenv("SUPEREZIO_PRIMARY_API_KEY") or os.getenv("SUPEREZIO_DEEPSEEK_API_KEY"))
+    deepseek_configured = bool(os.getenv("SUPEREZIO_DEEPSEEK_API_KEY"))
+    agent_url = os.getenv("SUPEREZIO_AGENT_BASE_URL", "")
+
+    providers_status = {}
+    try:
+        pipeline = getattr(app.state, "pipeline", None)
+        gateway = getattr(pipeline, "gateway", None) if pipeline else None
+        for p in (list(getattr(gateway, "providers", [])) if gateway else []):
+            providers_status[p.name] = {
+                "configured": bool((p.api_key or "").strip()),
+                "model": p.model,
+                "base_url": p.base_url,
+                "priority": p.priority,
+            }
+    except Exception as exc:
+        providers_status = {"error": str(exc)[:200]}
+
+    all_metrics = metrics.get_all()
+    errors_list = []
+    for k, v in all_metrics.get("counters", {}).items():
+        if "_errors" in k and v > 0:
+            endpoint = k.replace("_errors", "").replace("http_", "", 1)
+            errors_list.append({"endpoint": endpoint, "count": v})
+
+    latency_list = {}
+    for k, v in all_metrics.get("histograms", {}).items():
+        if "_latency_s" in k:
+            endpoint = k.replace("_latency_s", "").replace("http_", "", 1)
+            latency_list[endpoint] = {
+                "avg_ms": round(v.get("avg", 0) * 1000, 2),
+                "p95_ms": round(v.get("p95", 0) * 1000, 2),
+                "count": v.get("count", 0),
+            }
+
+    bob_status = {}
+    try:
+        from core.bob_consciousness import bob_body_scan
+        scan = bob_body_scan()
+        bob_status = {
+            "healthy": scan.get("healthy_count", 0),
+            "sick": scan.get("sick_count", 0),
+            "critical": scan.get("critical_count", 0),
+            "pain": scan.get("overall_pain", 0),
+        }
+    except Exception:
+        bob_status = {"healthy": 0, "sick": 0, "critical": 0, "pain": 0}
+
+    return {
+        "status": "ok",
+        "version": "4.0.0",
+        "agent": AGENT_NAME,
+        "uptime_seconds": uptime_s,
+        "memory_mb": memory_mb,
+        "gpu": gpu_info,
+        "providers": providers_status,
+        "primary_configured": primary_configured,
+        "deepseek_configured": deepseek_configured,
+        "agent_url": agent_url,
+        "errors": errors_list[:10],
+        "latency": latency_list,
+        "bob": bob_status,
+    }
+
+
+def _get_memory_usage_mb() -> float:
+    """Get current process memory usage in MB (cross-platform, no psutil required)."""
+    try:
+        import psutil
+        proc = psutil.Process(os.getpid())
+        return round(proc.memory_info().rss / (1024 * 1024), 1)
+    except ImportError:
+        pass
+    try:
+        import ctypes
+        from ctypes import wintypes
+        kernel32 = ctypes.windll.kernel32
+        process_handle = kernel32.GetCurrentProcess()
+        class PMC(ctypes.Structure):
+            _fields_ = [
+                ("cb", wintypes.DWORD),
+                ("PageFaultCount", wintypes.DWORD),
+                ("PeakWorkingSetSize", ctypes.c_size_t),
+                ("WorkingSetSize", ctypes.c_size_t),
+                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                ("PagefileUsage", ctypes.c_size_t),
+                ("PeakPagefileUsage", ctypes.c_size_t),
+            ]
+        pmc = PMC()
+        if kernel32.GetProcessMemoryInfo(ctypes.c_void_p(process_handle), ctypes.byref(pmc), ctypes.sizeof(pmc)):
+            return round(pmc.WorkingSetSize / (1024 * 1024), 1)
+    except (AttributeError, OSError, ImportError):
+        pass
+    try:
+        with open(f"/proc/{os.getpid()}/status") as fh:
+            for line in fh:
+                if line.startswith("VmRSS:"):
+                    parts = line.strip().split()
+                    if len(parts) >= 2:
+                        return round(float(parts[1]) / 1024, 1)
+    except (FileNotFoundError, IOError, IndexError):
+        pass
+    return 0.0
+
 
 
 @app.get("/dashboard", include_in_schema=False)

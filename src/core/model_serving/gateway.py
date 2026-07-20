@@ -14,6 +14,7 @@ from typing import AsyncGenerator, List, Dict, Any, Generator
 from ..observability.neural_log import log_event, trace_span, SpanContext, metrics
 from ..ports.protocol import A2AMessage, MessageType
 from .sanitizer import PrivateChannelFilter, strip_private_model_channels
+from ..resilience import get_circuit, CircuitOpenError
 
 # OpenAI SDK for external API operations
 from openai import AsyncOpenAI
@@ -333,6 +334,19 @@ class ModelGateway:
             provider = providers_to_try[i]
             log_event("MODEL_GATEWAY", "ATTEMPTING", {"provider": provider.name})
 
+            # ── Circuit breaker gate ──
+            _cb = get_circuit(f"model.{provider.name}", failure_threshold=5, recovery_timeout=60)
+            if _cb.is_open:
+                next_name = providers_to_try[i + 1].name if i + 1 < len(providers_to_try) else "NONE"
+                logger.warning(
+                    "CIRCUIT_OPEN: %s after %d failures, falling back to %s",
+                    provider.name,
+                    _cb.failure_count,
+                    next_name,
+                )
+                last_error = CircuitOpenError(f"Circuit model.{provider.name} is OPEN")
+                continue
+
             for retry in range(self.config.retry_attempts):
                 try:
                     with SpanContext(f"provider.{provider.name}"):
@@ -387,6 +401,7 @@ class ModelGateway:
                         self._provider_errors.pop(provider.name, None)
                         self._provider_cooldown_until.pop(provider.name, None)
                         self.last_provider_used = provider.name
+                        _cb._on_success()
                         return result
 
                 except Exception as e:
@@ -420,6 +435,10 @@ class ModelGateway:
                         import time
 
                         time.sleep(self.config.retry_delay_s * (2**retry))
+
+            # ── Circuit breaker: record failure after all retries exhausted ──
+            if last_error:
+                _cb._on_failure(last_error)
 
         metrics.increment("model.all_failed")
         raise RuntimeError(f"All external providers failed. Last error: {last_error}")

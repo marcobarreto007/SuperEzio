@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import os
 import uuid
 from typing import Any, AsyncGenerator, Generator
+from core.config.logging_config import get_logger
 
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
@@ -32,7 +32,7 @@ from .nodes.rag import node_rag_forensics
 from .nodes.guardrail_hub import node_guardrail_hub
 from .nodes.trinity import node_trinity
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 __all__ = ["PipelineApp", "build_graph", "route_after_orchestrator", "route_after_trinity"]
 

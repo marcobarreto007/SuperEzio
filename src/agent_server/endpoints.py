@@ -1,10 +1,10 @@
 import asyncio
 import json
-import logging
 import os
 import re
 import secrets
 import time
+from core.config.logging_config import get_logger
 from collections.abc import AsyncGenerator
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -40,7 +40,7 @@ from data.data_hub import hub
 
 from core.ports.protocol import A2AMessage, MessageType  # .protocol facade removido (49f6d01)
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 _session_history: dict[str, dict[str, Any]] = {}

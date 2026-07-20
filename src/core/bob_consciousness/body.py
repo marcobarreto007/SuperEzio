@@ -21,18 +21,18 @@ Design principles:
 from __future__ import annotations
 
 import json
-import logging
 import socket
 import sqlite3
 import sys
 import time
+from core.config.logging_config import get_logger
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ===========================================================
 # Pain Levels - How much it hurts when something breaks

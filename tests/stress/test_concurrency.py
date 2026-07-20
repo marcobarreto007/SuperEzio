@@ -9,16 +9,14 @@ Testes:
 
 from __future__ import annotations
 
-import asyncio
+import concurrent.futures
 import gc
 import json
 import os
 import sys
 import tempfile
-import time
 import tracemalloc
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -51,12 +49,14 @@ def _create_health_app():
 
     app = FastAPI(title="SuperEzio Stress Test")
 
-    request_count = 0
+    # Usa atributo de objeto em vez de nonlocal para evitar que o FastAPI
+    # interprete mal os parametros da funcao (nonlocal + closure bug)
+    app.state.request_counter = 0
 
     @app.api_route("/health", methods=["GET", "HEAD"])
     async def health_endpoint(request: Request):
-        nonlocal request_count
-        request_count += 1
+        app.state.request_counter += 1
+        counter = app.state.request_counter
         if request.method == "HEAD":
             return Response(status_code=200)
         # Simula processamento leve (JSON, dict merge, status check)
@@ -65,7 +65,7 @@ def _create_health_app():
             "agent": "stress-test",
             "version": "4.0.0",
             "checks": {},
-            "request_id": request_count,
+            "request_id": counter,
         }
 
     @app.api_route("/bob/health", methods=["GET"])
@@ -106,7 +106,7 @@ def _create_task_submit_app():
             ]
             self.call_count = 0
 
-        async def stream_events(self, prompt: str, **kwargs) -> AsyncMock:
+        async def stream_events(self, prompt: str, **kwargs):
             self.call_count += 1
             for ev in self.events_to_yield:
                 yield ev
@@ -207,6 +207,49 @@ def journal_file():
         pass
 
 
+# ── Helpers de concorrencia ──────────────────────────────────────────────────
+
+
+def _concurrent_requests(app, method: str, path: str, n: int, **kwargs):
+    """Dispara N requisicoes simultaneas via ThreadPoolExecutor + TestClient.
+
+    Cada thread cria seu proprio TestClient (que e sync e usa asyncio.run
+    internamente), garantindo isolamento entre requisicoes.
+    """
+    import concurrent.futures
+    from fastapi.testclient import TestClient
+
+    errors: list[tuple[int, str]] = []
+    results: list = [None] * n
+
+    def _do_request(i: int):
+        try:
+            client = TestClient(app)
+            if method.upper() == "GET":
+                resp = client.get(path, **kwargs)
+            elif method.upper() == "HEAD":
+                resp = client.head(path, **kwargs)
+            elif method.upper() == "POST":
+                resp = client.post(path, **kwargs)
+            else:
+                raise ValueError(f"Unsupported method: {method}")
+            return resp
+        except Exception as e:
+            errors.append((i, str(e)))
+            return None
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(n, 20)) as pool:
+        futures = [pool.submit(_do_request, i) for i in range(n)]
+        for i, f in enumerate(concurrent.futures.as_completed(futures)):
+            # Obtem o indice original (mapeamento complexo com as_completed)
+            pass
+        # Coleta resultados na ordem
+        for i, f in enumerate(futures):
+            results[i] = f.result()
+
+    return results, errors
+
+
 # ── Teste 1: 100 simultaneas em /health ──────────────────────────────────────
 
 
@@ -214,27 +257,17 @@ def journal_file():
 @pytest.mark.timeout(60)
 def test_100_simultaneous_health_requests(health_app):
     """100 requisicoes GET /health simultaneas -> sem crash, 100% 200."""
-    from httpx import AsyncClient, ASGITransport
-
     n = 100
-    transport = ASGITransport(app=health_app)
+    responses, errors = _concurrent_requests(health_app, "GET", "/health", n)
 
-    async def _fire():
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            tasks = [client.get("/health") for _ in range(n)]
-            responses = await asyncio.gather(*tasks, return_exceptions=True)
-        return responses
+    assert len(errors) == 0, f"{len(errors)} erros: {errors[:5]}"
 
-    responses = asyncio.run(_fire())
-
-    errors = [r for r in responses if isinstance(r, Exception)]
-    assert len(errors) == 0, f"{len(errors)} exceptions: {errors[:3]}"
-
-    ok = sum(1 for r in responses if r.status_code == 200)
+    ok = sum(1 for r in responses if r is not None and r.status_code == 200)
     assert ok == n, f"Esperado {n}x 200, obtido {ok}"
 
     # Nenhuma resposta None ou vazia
-    bodies = [r.json() for r in responses if r.status_code == 200]
+    bodies = [r.json() for r in responses if r is not None and r.status_code == 200]
+    assert len(bodies) == n
     assert all(b["status"] == "ok" for b in bodies)
 
 
@@ -242,22 +275,11 @@ def test_100_simultaneous_health_requests(health_app):
 @pytest.mark.timeout(60)
 def test_health_with_head_method(health_app):
     """HEAD /health tambem responde sem crash sob carga."""
-    from httpx import AsyncClient, ASGITransport
-
     n = 50
-    transport = ASGITransport(app=health_app)
+    responses, errors = _concurrent_requests(health_app, "HEAD", "/health", n)
 
-    async def _fire():
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            tasks = [client.head("/health") for _ in range(n)]
-            responses = await asyncio.gather(*tasks, return_exceptions=True)
-        return responses
-
-    responses = asyncio.run(_fire())
-    errors = [r for r in responses if isinstance(r, Exception)]
-    assert len(errors) == 0, f"{len(errors)} exceptions: {errors[:3]}"
-
-    ok = sum(1 for r in responses if r.status_code == 200)
+    assert len(errors) == 0, f"{len(errors)} erros: {errors[:5]}"
+    ok = sum(1 for r in responses if r is not None and r.status_code == 200)
     assert ok == n, f"Esperado {n}x 200 para HEAD, obtido {ok}"
 
 
@@ -271,13 +293,14 @@ def test_50_simultaneous_task_submit(task_app):
 
     Cada requisicao tem session_id unico para evitar o gate "1 ativa por sessao".
     """
-    from httpx import AsyncClient, ASGITransport
     from core.ports.protocol import MessageType
 
     n = 50
-    transport = ASGITransport(app=task_app)
 
-    async def _submit_one(session_id: str, idx: int):
+    def _submit_one(session_id: str, idx: int):
+        from fastapi.testclient import TestClient
+
+        client = TestClient(task_app)
         payload = {
             "from_agent": "stress-test",
             "to_agent": "bob",
@@ -289,23 +312,30 @@ def test_50_simultaneous_task_submit(task_app):
                 "ticker": "AAPL",
             },
         }
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            return await client.post("/task/submit", json=payload, timeout=30.0)
+        return client.post("/task/submit", json=payload)
 
-    async def _fire_all():
-        tasks = [
-            _submit_one(f"session-{i:04d}", i) for i in range(n)
-        ]
-        return await asyncio.gather(*tasks, return_exceptions=True)
+    import concurrent.futures
 
-    responses = asyncio.run(_fire_all())
+    errors: list[tuple[int, str]] = []
+    results: list = [None] * n
 
-    errors = [r for r in responses if isinstance(r, Exception)]
-    assert len(errors) == 0, f"{len(errors)} exceptions: {errors[:3]}"
+    def _safe_submit(i: int):
+        try:
+            return _submit_one(f"session-{i:04d}", i)
+        except Exception as e:
+            errors.append((i, str(e)))
+            return None
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(n, 20)) as pool:
+        futures = [pool.submit(_safe_submit, i) for i in range(n)]
+        for i, f in enumerate(futures):
+            results[i] = f.result()
+
+    assert len(errors) == 0, f"{len(errors)} erros: {errors[:5]}"
 
     # Conta quantas foram aceitas (200) vs rejeitadas (429)
-    ok = sum(1 for r in responses if r.status_code == 200)
-    rejected = sum(1 for r in responses if r.status_code == 429)
+    ok = sum(1 for r in results if r is not None and r.status_code == 200)
+    rejected = sum(1 for r in results if r is not None and r.status_code == 429)
 
     # Com session_id unicos, todas devem ser aceitas
     assert ok == n, (
@@ -313,11 +343,12 @@ def test_50_simultaneous_task_submit(task_app):
     )
 
     # Verifica que todas retornaram NDJSON valido com STREAM_END
-    for r in responses:
+    for r in results:
+        if r is None:
+            continue
         lines = r.text.strip().split("\n")
         events = [json.loads(line) for line in lines]
         types = [ev["type"] for ev in events]
-        # A ordem nem sempre e garantida, mas STREAM_END deve existir
         assert "STREAM_END" in types, f"Resposta sem STREAM_END: {lines[:2]}"
 
 
@@ -325,37 +356,31 @@ def test_50_simultaneous_task_submit(task_app):
 @pytest.mark.timeout(120)
 def test_task_submit_rate_limit_per_session(task_app):
     """2 requisicoes na mesma sessao -> segunda deve ser 429."""
-    from httpx import AsyncClient, ASGITransport
     from core.ports.protocol import MessageType
+    from fastapi.testclient import TestClient
 
-    transport = ASGITransport(app=task_app)
-    session_id = "same-session-test"
+    client = TestClient(task_app)
 
-    async def _run():
-        async with AsyncClient(transport=transport, base_url="http/test") as client:
-            payload = {
-                "from_agent": "stress-test",
-                "to_agent": "bob",
-                "type": MessageType.TASK_SUBMIT,
-                "msg_id": "first",
-                "payload": {
-                    "message": "Primeira requisicao",
-                    "session_id": session_id,
-                },
-            }
-            # Dispara a primeira e comeca a consumir o stream
-            resp1 = await client.post("/task/submit", json=payload, timeout=10.0)
-            assert resp1.status_code == 200
+    payload = {
+        "from_agent": "stress-test",
+        "to_agent": "bob",
+        "type": MessageType.TASK_SUBMIT,
+        "msg_id": "first",
+        "payload": {
+            "message": "Primeira requisicao",
+            "session_id": "same-session-test",
+        },
+    }
+    resp1 = client.post("/task/submit", json=payload)
+    assert resp1.status_code == 200
 
-            # Segunda na mesma sessao
-            payload2 = {**payload, "msg_id": "second"}
-            resp2 = await client.post("/task/submit", json=payload2, timeout=10.0)
+    # Segunda na mesma sessao
+    payload2 = {**payload, "msg_id": "second"}
+    resp2 = client.post("/task/submit", json=payload2)
 
-            # Deve ser 429
-            return resp2.status_code
-
-    status = asyncio.run(_run())
-    assert status == 429, f"Esperado 429 (active_task), obtido {status}"
+    assert resp2.status_code == 429, (
+        f"Esperado 429 (active_task), obtido {resp2.status_code}: {resp2.text[:100]}"
+    )
 
 
 # ── Teste 3: 1000 paper trades no journal ────────────────────────────────────
@@ -445,12 +470,12 @@ def _estimate_app_overhead():
 @pytest.mark.stress
 @pytest.mark.timeout(120)
 def test_memory_leak_1000_health_checks():
-    """1000 chamadas /health -> memoria estavel (crescimento < 5 MB)."""
+    """1000 chamadas /health -> memoria estavel (crescimento < 10 MB)."""
     _estimate_app_overhead()
 
+    from fastapi.testclient import TestClient
+
     app = _create_health_app()
-    from httpx import AsyncClient, ASGITransport
-    transport = ASGITransport(app=app)
 
     # Ativa tracemalloc
     try:
@@ -462,15 +487,13 @@ def test_memory_leak_1000_health_checks():
     gc.collect()
     snapshot_before = tracemalloc.take_snapshot()
 
-    async def _run_health_checks(n: int):
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            for _ in range(n):
-                resp = await client.get("/health")
-                assert resp.status_code == 200
-                # Simula processamento real — parseia JSON
-                _ = resp.json()
+    # Dispara 1000 health checks sequenciais com TestClient
+    client = TestClient(app)
+    for _ in range(1000):
+        resp = client.get("/health")
+        assert resp.status_code == 200
+        _ = resp.json()  # Simula processamento real
 
-    asyncio.run(_run_health_checks(1000))
     gc.collect()
     snapshot_after = tracemalloc.take_snapshot()
 
@@ -482,15 +505,17 @@ def test_memory_leak_1000_health_checks():
     # Para debug: identifica as maiores alocacoes
     top_leakers = sorted(stats, key=lambda s: abs(s.size_diff), reverse=True)[:5]
 
-    # Limite: 5 MB de crescimento e tolerado
+    # Limite: 10 MB de crescimento e tolerado
     # (tracemalloc pode reportar alocacao acumulada, nao residente)
-    # Para alocacoes acumuladas, aceitamos ate 10 MB
     MAX_GROWTH_BYTES = 10 * 1024 * 1024  # 10 MB
 
     assert total_diff < MAX_GROWTH_BYTES, (
         f"Memoria cresceu {total_diff / 1024:.1f} KB apos 1000 health checks. "
         f"Top alocacoes: "
-        + "; ".join(f"{s.traceback.format()[-1]} ({s.size_diff / 1024:.1f} KB)" for s in top_leakers)
+        + "; ".join(
+            f"{s.traceback.format()[-1] if s.traceback else '?'} ({s.size_diff / 1024:.1f} KB)"
+            for s in top_leakers
+        )
     )
 
     # Tambem verifica o numero de objetos alive
@@ -511,24 +536,14 @@ def test_memory_leak_1000_health_checks():
 @pytest.mark.timeout(30)
 def test_concurrent_bob_health(health_app):
     """50 requisicoes GET /bob/health simultaneas -> sem crash."""
-    from httpx import AsyncClient, ASGITransport
-
     n = 50
-    transport = ASGITransport(app=health_app)
+    responses, errors = _concurrent_requests(health_app, "GET", "/bob/health", n)
 
-    async def _fire():
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            tasks = [client.get("/bob/health") for _ in range(n)]
-            responses = await asyncio.gather(*tasks, return_exceptions=True)
-        return responses
-
-    responses = asyncio.run(_fire())
-    errors = [r for r in responses if isinstance(r, Exception)]
-    assert len(errors) == 0, f"{len(errors)} exceptions: {errors[:3]}"
-
-    ok = sum(1 for r in responses if r.status_code == 200)
+    assert len(errors) == 0, f"{len(errors)} erros: {errors[:5]}"
+    ok = sum(1 for r in responses if r is not None and r.status_code == 200)
     assert ok == n, f"Esperado {n}x 200, obtido {ok}"
 
     for r in responses:
-        body = r.json()
-        assert body["bob"] == "alive"
+        if r is not None:
+            body = r.json()
+            assert body["bob"] == "alive"

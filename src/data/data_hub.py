@@ -17,6 +17,8 @@ import subprocess
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
+from core.resilience import get_circuit, CircuitOpenError
+
 ProviderFactory = Callable[[], Any]
 logger = logging.getLogger(__name__)
 
@@ -551,6 +553,17 @@ class DataHub:
                 logger.info("[DATA_HUB] %s: %s skipped — unavailable", capability, route.name)
                 continue
 
+            # ── Circuit breaker gate ──
+            _cb = get_circuit(f"data.{route.name}", failure_threshold=3, recovery_timeout=30)
+            if _cb.is_open:
+                logger.warning(
+                    "CIRCUIT_OPEN: %s after %d failures, falling back",
+                    route.name,
+                    _cb.failure_count,
+                )
+                attempts.append({"provider": route.name, "error": "circuit_open"})
+                continue
+
             method_name = route.methods.get(capability)
             method = getattr(provider, method_name or "", None)
             if not callable(method):
@@ -565,8 +578,17 @@ class DataHub:
 
             try:
                 call_kwargs = self._kwargs_for_method(method, kwargs)
-                result = method(*args, **call_kwargs)
+                import concurrent.futures as _cf
+                with _cf.ThreadPoolExecutor(max_workers=1) as _executor:
+                    _ft = _executor.submit(method, *args, **call_kwargs)
+                    result = _ft.result(timeout=30)
+            except _cf.TimeoutError:
+                _cb._on_failure(TimeoutError(f"{route.name} timed out after 30s"))
+                attempts.append({"provider": route.name, "error": "timeout_30s"})
+                logger.warning("[DATA_HUB] %s: %s timeout (30s)", capability, route.name)
+                continue
             except Exception as exc:
+                _cb._on_failure(exc)
                 attempts.append({"provider": route.name, "error": str(exc)})
                 logger.warning("[DATA_HUB] %s: %s raised — %s", capability, route.name, exc)
                 continue
@@ -575,6 +597,7 @@ class DataHub:
                 if isinstance(result, dict):
                     result.setdefault("provider", route.name)
                 logger.info("[DATA_HUB] %s: %s succeeded", capability, route.name)
+                _cb._on_success()
                 return result
 
             error = self._result_error(result) or "empty_result"

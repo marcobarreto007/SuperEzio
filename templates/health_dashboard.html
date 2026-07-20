@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SuperEzio Health Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#0a0a0f;color:#e0e0e0;padding:24px}
+h1{font-size:28px;margin-bottom:4px;color:#00d4aa}
+.sub{color:#888;margin-bottom:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:20px}
+.card{background:#14141f;border:1px solid #2a2a3f;border-radius:12px;padding:20px}
+.card h3{font-size:14px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid #1a1a2f}
+.row .name{color:#aaa}
+.row .status{font-weight:600}
+.status-ok{color:#00d4aa}
+.status-error{color:#ff4466}
+.error-item{padding:4px 0;font-size:12px;color:#ff4466;border-bottom:1px solid #1a1a2f}
+.refresh{cursor:pointer;background:#00d4aa;color:#000;border:none;padding:8px 20px;border-radius:8px;font-weight:600;margin-top:16px}
+.footer{margin-top:24px;color:#555;font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+<h1>SuperEzio Health Dashboard</h1>
+<p class="sub">Provider status | Latency | Memory | Uptime | Bob Vital Signs</p>
+<div id="dashboard-content" class="grid"></div>
+<button class="refresh" onclick="fetchData()">Refresh</button>
+<div class="footer">Auto-refresh every 15s | <span id="updated"></span></div>
+<script>
+var API = "/api/health/dashboard-data";
+async function fetchData() {
+  try {
+    var resp = await fetch(API);
+    var data = await resp.json();
+    renderDashboard(data);
+  } catch(e) {
+    document.getElementById("dashboard-content").innerHTML = '<div class="card"><h3>Error</h3><div class="value" style="color:#ff4466">API Unreachable</div><div class="meta">' + e.message + '</div></div>';
+  }
+}
+function renderDashboard(data) {
+  var sections = [];
+  var uptimeH = Math.floor(data.uptime_seconds / 3600);
+  var uptimeM = Math.floor((data.uptime_seconds % 3600) / 60);
+  sections.push({title: "System", rows: [
+    {label: "Uptime", value: uptimeH + "h " + uptimeM + "m"},
+    {label: "Memory", value: data.memory_mb ? data.memory_mb + " MB" : "N/A"},
+    {label: "Version", value: data.version},
+    {label: "GPU", value: data.gpu && data.gpu.available ? (data.gpu.devices || []).map(function(d) { return d.name; }).join(", ") : "Unavailable"}
+  ]});
+  sections.push({title: "Bob Body", rows: [
+    {label: "Healthy Organs", value: '<span class="status-ok">' + (data.bob ? (data.bob.healthy || 0) : 0) + "</span>"},
+    {label: "Sick Organs", value: '<span class="' + (data.bob && data.bob.sick > 0 ? "status-error" : "status-ok") + '">' + (data.bob ? (data.bob.sick || 0) : 0) + "</span>"},
+    {label: "Critical", value: '<span class="' + (data.bob && data.bob.critical > 0 ? "status-error" : "status-ok") + '">' + (data.bob ? (data.bob.critical || 0) : 0) + "</span>"},
+    {label: "Pain Level", value: (data.bob ? (data.bob.pain || 0) : 0) + "/100"}
+  ]});
+  var provRows = [];
+  if (data.primary_configured) provRows.push({label: "Primary API", value: "OK"});
+  else provRows.push({label: "Primary API", value: "Not configured"});
+  if (data.deepseek_configured) provRows.push({label: "DeepSeek", value: "OK"});
+  else provRows.push({label: "DeepSeek", value: "Not configured"});
+  if (data.agent_url) provRows.push({label: "Agent URL", value: data.agent_url});
+  if (data.providers && !data.providers.error) {
+    Object.keys(data.providers).forEach(function(name) {
+      var p = data.providers[name];
+      provRows.push({label: name, value: (p.configured ? "OK" : "DOWN") + " " + p.model});
+    });
+  }
+  sections.push({title: "Providers", rows: provRows});
+  if (data.latency && Object.keys(data.latency).length > 0) {
+    var latRows = Object.keys(data.latency).slice(0, 10).map(function(ep) {
+      var l = data.latency[ep];
+      return {label: ep, value: l.avg_ms + "ms avg / p95=" + l.p95_ms + "ms (" + l.count + " req)"};
+    });
+    sections.push({title: "Latency per Endpoint", rows: latRows});
+  } else {
+    sections.push({title: "Latency", rows: [{label: "No data", value: "No requests recorded"}]});
+  }
+  if (data.errors && data.errors.length > 0) {
+    var errHtml = data.errors.map(function(e) { return '<div class="error-item">' + e.endpoint + ": " + e.count + " errors</div>"; }).join("");
+    sections.push({title: "Last Errors", custom: errHtml});
+  } else {
+    sections.push({title: "Errors", custom: '<div class="status-ok">No errors recorded</div>'});
+  }
+  document.getElementById("dashboard-content").innerHTML = sections.map(function(s) {
+    var rowsHtml = s.rows ? s.rows.map(function(r) { return '<div class="row"><span class="name">' + r.label + '</span><span class="status">' + r.value + '</span></div>'; }).join("") : "";
+    return '<div class="card"><h3>' + s.title + "</h3>" + rowsHtml + (s.custom || "") + "</div>";
+  }).join("");
+  document.getElementById("updated").textContent = new Date().toISOString();
+}
+fetchData();
+setInterval(fetchData, 15000);
+</script>
+</body>
+</html>

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-import logging
+from core.config.logging_config import get_logger
 import os
 import secrets
 import sqlite3
@@ -26,7 +26,7 @@ from fastapi import HTTPException, Request, Response
 from passlib.context import CryptContext
 from pydantic import BaseModel, field_validator
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # Constants

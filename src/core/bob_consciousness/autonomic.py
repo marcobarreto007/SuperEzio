@@ -11,14 +11,14 @@ This is Bob's "heartbeat" — if this stops, Bob is clinically dead.
 
 from __future__ import annotations
 
-import logging
 import threading
 import time
+from core.config.logging_config import get_logger
 from typing import Any
 
 from .body import get_bobs_body
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class AutonomicNervousSystem:
