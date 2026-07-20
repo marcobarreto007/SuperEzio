@@ -240,7 +240,7 @@ def run_tests():
     total_pipeline_terms_found = 0
     total_pipeline_terms_checked = 0
 
-    print(f"═══ SUPER EZIO 100 INVESTMENT TESTS ═══")
+    print(f"=== SUPER EZIO 100 INVESTMENT TESTS ===")
     print(f"Start: {datetime.now(timezone.utc).isoformat()}")
     print(f"Server: {SERVER}")
     print(f"Tests: {len(TESTS)}")
@@ -309,7 +309,7 @@ def run_tests():
 
     # ── Summary ──
     print()
-    print(f"═══ RESULTS ═══")
+    print(f"=== RESULTS ===")
     print(f"Total:   {len(TESTS)}")
     print(f"Passed:  {passed} ✅")
     print(f"Failed:  {failed} ❌")
