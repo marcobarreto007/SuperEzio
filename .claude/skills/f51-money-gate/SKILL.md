@@ -1,3 +1,4 @@
+---
 name: f51-money-gate
 description: "Use quando decidir prioridade, corte de escopo e GO/DEFER/NO-GO com base em entrega em 7 dias, receita em 30 dias e redução de caos operacional. Triggers: money gate, prioridade, ROI, go no-go, corte de escopo."
 compatibility: "SuperEzio bootstrap layer"

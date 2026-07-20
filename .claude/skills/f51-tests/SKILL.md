@@ -1,3 +1,4 @@
+---
 name: f51-tests
 description: "Use quando montar plano de testes por risco, executar testes determinísticos e registrar evidência objetiva. Triggers: testes, test plan, smoke, regressão, cobertura de escopo, validação final."
 compatibility: "SuperEzio bootstrap layer"

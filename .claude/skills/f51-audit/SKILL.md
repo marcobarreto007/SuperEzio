@@ -1,3 +1,4 @@
+---
 name: f51-audit
 description: "Use quando auditar risco, regressão, conformidade operacional e bloqueios antes de release ou handoff. Triggers: audit, auditoria, regressão, conformidade, blocker, pre-release."
 compatibility: "SuperEzio bootstrap layer"

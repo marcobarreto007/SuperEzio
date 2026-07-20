@@ -27,6 +27,14 @@ past outcomes + current market evidence
 
 The feedback loop learns only from terminal outcomes. An order submission is not treated as success. Rewards are tied to the risk known at decision time, including transaction friction, and each terminal event has an immutable idempotency key.
 
+## Agent army
+
+SuperEzio operates a 14-agent army defined in `.claude/agents/` and orchestrated via the CLAUDE.md playbook. Agents are specialized for recon, verification, security, contract validation, runtime checks, code quality, UX review, benchmarking, and domain knowledge. The army runs in waves via `/swarm`, persists state through `/save`, and self-evolves via `/agent-lab`.
+
+## Mangala Engine
+
+The Mangala Engine (`src/core/pipeline/nodes/mangala.py`) is a multi-agent simulation layer that drives consensus, crisis detection, and adaptive trading signals. It polls expert outputs, runs deterministic risk invariants, and feeds results into the execution policy. The Mangala Tracker (`src/core/pipeline/nodes/mangala_tracker.py`) records terminal outcomes and adjusts strategy weights accordingly.
+
 ## Current invariants
 
 - Crisis scores use one canonical `[0, 1]` scale.
@@ -47,7 +55,9 @@ The detailed July 2026 verification is in [docs/audit/phase10_organism_truth_and
 | Area | Primary responsibility |
 |---|---|
 | `src/core/math` | Deterministic calculations and crisis integration |
-| `src/data` | Routed market-data acquisition and payload validation |
+| `src/data` | Routed market-data acquisition and payload validation via DataHub (15 providers, capability-based routing with fallback chain) |
+| `src/core/pipeline/nodes/mangala.py` | Mangala Engine — multi-agent simulation for consensus, crisis detection, and adaptive trading signals |
+| `src/core/pipeline/nodes/mangala_tracker.py` | Mangala Tracker — outcome-ledger integration and strategy adaptation |
 | `src/experts` | Domain signals and crisis ensemble |
 | `src/core/pipeline` | Intent, orchestration, evidence, tools, and response flow |
 | `src/core/trading` | Journal, outcome learning, XP, rewards, and execution policy |
@@ -124,7 +134,7 @@ python -m pytest tests/ -q
 python scripts/browser_smoke.py
 ```
 
-The browser smoke requires the API on port `8002`. Its chat step may use the configured model-provider cascade. Tests that require live services are marked `integration` and skip when those services are absent.
+The browser smoke requires the API on port `8002`. A full run executes **1,611 tests** (collected July 2026). Its chat step may use the configured model-provider cascade. Tests that require live services are marked `integration` and skip when those services are absent.
 
 ## Safety and repository policy
 

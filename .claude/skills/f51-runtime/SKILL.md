@@ -1,3 +1,4 @@
+---
 name: f51-runtime
 description: "Use quando validar boot, health checks, variáveis de ambiente, portas, logs e runbooks operacionais. Triggers: runtime, boot, health check, env, portas, logs, runbook."
 compatibility: "SuperEzio bootstrap layer"

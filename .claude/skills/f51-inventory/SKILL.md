@@ -1,3 +1,4 @@
+---
 name: f51-inventory
 description: "Use quando precisar mapear estrutura do repo, entrypoints, comandos reais, dependências e baseline operacional antes de qualquer implementação. Triggers: inventário, inventory, map repo, entrypoints, baseline, estado atual."
 compatibility: "SuperEzio bootstrap layer"

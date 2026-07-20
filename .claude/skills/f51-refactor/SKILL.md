@@ -1,3 +1,4 @@
+---
 name: f51-refactor
 description: "Use quando fizer simplificação pequena, reversível e sem mudança de comportamento. Triggers: refactor, simplificar, duplicação, cleanup seguro, dívida técnica controlada."
 compatibility: "SuperEzio bootstrap layer"

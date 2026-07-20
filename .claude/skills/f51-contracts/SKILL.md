@@ -1,3 +1,4 @@
+---
 name: f51-contracts
 description: "Use quando validar APIs, schemas, assinaturas, formatos de resposta, paths públicos e interfaces antes de qualquer mudança funcional. Triggers: contratos, contracts, schema, assinatura pública, compatibilidade, interface."
 compatibility: "SuperEzio bootstrap layer"
