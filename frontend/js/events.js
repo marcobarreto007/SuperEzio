@@ -397,6 +397,15 @@
         if (inp) inp.focus();
         break;
 
+      /* ── MANGALA_OPPORTUNITIES ── */
+      case "MANGALA_OPPORTUNITIES":
+        (function () {
+          if (SZ.alerts && SZ.alerts.handleMangalaOpportunity) {
+            SZ.alerts.handleMangalaOpportunity(ev);
+          }
+        })();
+        break;
+
       default:
         break;
     }

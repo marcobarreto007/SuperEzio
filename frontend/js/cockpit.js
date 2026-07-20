@@ -1011,10 +1011,85 @@
     if (form) form.classList.remove('is-open');
   }
 
-  /* ── Init ── */
+  /* ---- POPULAR TICKERS FOR AUTOCOMPLETE ---- */
+  var POPULAR_TICKERS = [
+    { ticker: 'AAPL', name: 'Apple Inc.' },
+    { ticker: 'MSFT', name: 'Microsoft Corporation' },
+    { ticker: 'GOOGL', name: 'Alphabet Inc.' },
+    { ticker: 'GOOG', name: 'Alphabet Inc. (Class C)' },
+    { ticker: 'AMZN', name: 'Amazon.com Inc.' },
+    { ticker: 'NVDA', name: 'NVIDIA Corporation' },
+    { ticker: 'META', name: 'Meta Platforms Inc.' },
+    { ticker: 'TSLA', name: 'Tesla Inc.' },
+    { ticker: 'JPM', name: 'JPMorgan Chase and Co.' },
+    { ticker: 'V', name: 'Visa Inc.' },
+    { ticker: 'SPY', name: 'SPDR S&P 500 ETF' },
+    { ticker: 'QQQ', name: 'Invesco QQQ Trust' },
+    { ticker: 'IWM', name: 'iShares Russell 2000 ETF' },
+    { ticker: 'AMD', name: 'Advanced Micro Devices Inc.' },
+    { ticker: 'INTC', name: 'Intel Corporation' },
+    { ticker: 'NFLX', name: 'Netflix Inc.' },
+    { ticker: 'DIS', name: 'The Walt Disney Company' },
+    { ticker: 'BAC', name: 'Bank of America Corp' },
+    { ticker: 'WMT', name: 'Walmart Inc.' },
+    { ticker: 'XOM', name: 'Exxon Mobil Corporation' },
+    { ticker: 'KO', name: 'The Coca-Cola Company' },
+    { ticker: 'PEP', name: 'PepsiCo Inc.' },
+    { ticker: 'F', name: 'Ford Motor Company' },
+    { ticker: 'GME', name: 'GameStop Corp.' },
+    { ticker: 'PLTR', name: 'Palantir Technologies Inc.' },
+    { ticker: 'SOFI', name: 'SoFi Technologies Inc.' },
+    { ticker: 'RIVN', name: 'Rivian Automotive Inc.' },
+    { ticker: 'COIN', name: 'Coinbase Global Inc.' },
+    { ticker: 'PYPL', name: 'PayPal Holdings Inc.' },
+    { ticker: 'ADBE', name: 'Adobe Inc.' },
+    { ticker: 'CRM', name: 'Salesforce Inc.' },
+    { ticker: 'BA', name: 'The Boeing Company' },
+    { ticker: 'NIO', name: 'NIO Inc.' },
+  ];
+  /* ---- TICKER AUTOCOMPLETE ---- */
+  function initTickerAutocomplete() {
+    var inp = document.getElementById("ticker-inp");
+    var dropdown = document.getElementById("ticker-autocomplete");
+    if (!inp || !dropdown) return;
+    var highlightedIdx = -1;
+    var currentResults = [];
+    function esc(v) { var d = document.createElement("div"); d.appendChild(document.createTextNode(String(v))); return d.innerHTML; }
+    function filterTickers(query) { var q = String(query || "").toUpperCase().trim(); if (!q) return []; return POPULAR_TICKERS.filter(function (item) { return item.ticker.indexOf(q) === 0 || item.name.toUpperCase().indexOf(q) >= 0; }).slice(0, 12); }
+    function renderDropdown(results) { dropdown.innerHTML = ""; highlightedIdx = -1; currentResults = results; if (!results || !results.length) { dropdown.innerHTML = "<div class='ticker-autocomplete__empty'>No matches</div>"; dropdown.classList.add("is-visible"); return; } for (var i = 0; i < results.length; i++) { (function (idx) { var item = document.createElement("div"); item.className = "ticker-autocomplete__item"; item.innerHTML = "<span>" + esc(results[idx].ticker) + "</span><span class='ticker-autocomplete__item-name'>" + esc(results[idx].name) + "</span>"; item.addEventListener("mousedown", function (e) { e.preventDefault(); if (currentResults[idx]) { SZ.selectTicker(currentResults[idx].ticker, "autocomplete", null); hideDropdown(); } }); dropdown.appendChild(item); })(i); } dropdown.classList.add("is-visible"); }
+    function hideDropdown() { dropdown.classList.remove("is-visible"); highlightedIdx = -1; currentResults = []; }
+    function highlightNext() { var items = dropdown.querySelectorAll(".ticker-autocomplete__item"); if (!items.length) return; if (highlightedIdx >= 0) items[highlightedIdx].classList.remove("is-highlighted"); highlightedIdx = (highlightedIdx + 1) % items.length; items[highlightedIdx].classList.add("is-highlighted"); items[highlightedIdx].scrollIntoView({ block: "nearest" }); }
+    function highlightPrev() { var items = dropdown.querySelectorAll(".ticker-autocomplete__item"); if (!items.length) return; if (highlightedIdx >= 0) items[highlightedIdx].classList.remove("is-highlighted"); highlightedIdx = (highlightedIdx - 1 + items.length) % items.length; items[highlightedIdx].classList.add("is-highlighted"); items[highlightedIdx].scrollIntoView({ block: "nearest" }); }
+    function selectHighlighted() { var items = dropdown.querySelectorAll(".ticker-autocomplete__item"); if (highlightedIdx >= 0 && highlightedIdx < items.length) { var idx = parseInt(items[highlightedIdx].dataset.index, 10); if (!isNaN(idx) && currentResults[idx]) { SZ.selectTicker(currentResults[idx].ticker, "autocomplete", null); hideDropdown(); } } }
+    inp.addEventListener("input", function () { if (inp.value.length >= 1) { renderDropdown(filterTickers(inp.value)); } else { hideDropdown(); } });
+    inp.addEventListener("keydown", function (e) { if (!dropdown.classList.contains("is-visible")) return; if (e.key === "ArrowDown") { e.preventDefault(); highlightNext(); } else if (e.key === "ArrowUp") { e.preventDefault(); highlightPrev(); } else if (e.key === "Enter" || e.key === "Tab") { if (highlightedIdx >= 0) { e.preventDefault(); selectHighlighted(); } } else if (e.key === "Escape") { hideDropdown(); inp.blur(); } });
+    inp.addEventListener("blur", function () { setTimeout(hideDropdown, 200); });
+    document.addEventListener("click", function (e) { if (!dropdown.contains(e.target) && e.target !== inp) { hideDropdown(); } });
+  }
+  /* ---- MOBILE DRAWER TOGGLE ---- */
+  function initMobileDrawer() {
+    var btn = document.getElementById("mobile-drawer-btn");
+    var panel = document.getElementById("expert-panel");
+    if (!btn || !panel) return;
+    var backdrop = document.createElement("div");
+    backdrop.className = "expert-panel-backdrop";
+    backdrop.id = "expert-panel-backdrop";
+    document.body.appendChild(backdrop);
+    function openDrawer() { panel.classList.add("is-open"); backdrop.classList.add("is-visible"); btn.setAttribute("aria-expanded", "true"); }
+    function closeDrawer() { panel.classList.remove("is-open"); backdrop.classList.remove("is-visible"); btn.setAttribute("aria-expanded", "false"); }
+    btn.addEventListener("click", function () { if (panel.classList.contains("is-open")) { closeDrawer(); } else { openDrawer(); } });
+    backdrop.addEventListener("click", closeDrawer);
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && panel.classList.contains("is-open")) { closeDrawer(); } });
+    var resizeTimer;
+    window.addEventListener("resize", function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(function () { if (window.innerWidth > 860) { closeDrawer(); } }, 150); });
+  }
+
+  /* ---- Init ---- */
   function init() {
     /* Sync timeframe button group */
     syncTimeframeButtons();
+    initTickerAutocomplete();
+    initMobileDrawer();
 
     /* Init Bob Chat slide-in */
     initBobChatToggle();
