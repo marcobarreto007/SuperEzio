@@ -1,0 +1,136 @@
+{
+  "scanned_at": "2026-07-20T21:59:43.187892+00:00",
+  "count": 5,
+  "opportunities": [
+    {
+      "ticker": "NIO",
+      "price": 4.81,
+      "volume": 17166443,
+      "name": "NIO Inc.",
+      "score": 59,
+      "signal": "MEH",
+      "factors": {
+        "volume": 30,
+        "whale": 20,
+        "momentum": 0,
+        "rsi": 3,
+        "catalyst": 6
+      },
+      "whale_status": "PROVAVEL",
+      "whale_score": 50,
+      "pump_risk": "ALERT",
+      "pump_score": 94,
+      "flip_plan": {
+        "entry": 4.81,
+        "target_5pct": 5.05,
+        "stop_3pct": 4.67,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-07-20T21:59:11.318249+00:00"
+    },
+    {
+      "ticker": "SNDL",
+      "price": 1.28,
+      "volume": 1401857,
+      "name": "SNDL Inc.",
+      "score": 53,
+      "signal": "MEH",
+      "factors": {
+        "volume": 30,
+        "whale": 5,
+        "momentum": 5,
+        "rsi": 8,
+        "catalyst": 5
+      },
+      "whale_status": "FRACO",
+      "whale_score": 20,
+      "pump_risk": "ALERT",
+      "pump_score": 94,
+      "flip_plan": {
+        "entry": 1.28,
+        "target_5pct": 1.34,
+        "stop_3pct": 1.24,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-07-20T21:59:34.944250+00:00"
+    },
+    {
+      "ticker": "CLF",
+      "price": 8.98,
+      "volume": 25839671,
+      "name": "Cleveland-Cliffs Inc.",
+      "score": 49,
+      "signal": "MEH",
+      "factors": {
+        "volume": 30,
+        "whale": 5,
+        "momentum": 3,
+        "rsi": 3,
+        "catalyst": 8
+      },
+      "whale_status": "FRACO",
+      "whale_score": 0,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
+      "flip_plan": {
+        "entry": 8.98,
+        "target_5pct": 9.43,
+        "stop_3pct": 8.71,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-07-20T21:59:02.532407+00:00"
+    },
+    {
+      "ticker": "TLRY",
+      "price": 4.23,
+      "volume": 2983740,
+      "name": "Tilray Brands, Inc.",
+      "score": 49,
+      "signal": "MEH",
+      "factors": {
+        "volume": 30,
+        "whale": 5,
+        "momentum": 3,
+        "rsi": 3,
+        "catalyst": 8
+      },
+      "whale_status": "FRACO",
+      "whale_score": 0,
+      "pump_risk": "ALERT",
+      "pump_score": 71,
+      "flip_plan": {
+        "entry": 4.23,
+        "target_5pct": 4.44,
+        "stop_3pct": 4.1,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-07-20T21:59:27.084581+00:00"
+    },
+    {
+      "ticker": "TOP",
+      "price": 2.24,
+      "volume": 692656,
+      "name": "TOP Financial Group Limited",
+      "score": 49,
+      "signal": "MEH",
+      "factors": {
+        "volume": 25,
+        "whale": 5,
+        "momentum": 5,
+        "rsi": 8,
+        "catalyst": 6
+      },
+      "whale_status": "FRACO",
+      "whale_score": 0,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
+      "flip_plan": {
+        "entry": 2.24,
+        "target_5pct": 2.35,
+        "stop_3pct": 2.17,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-07-20T21:59:43.186891+00:00"
+    }
+  ]
+}
