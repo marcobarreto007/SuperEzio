@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 import math
 import re
-import os
 import time
 from collections import deque
 from datetime import datetime, timezone
@@ -46,8 +45,11 @@ async def auto_execute_paper(state: dict) -> dict:
     """
     from core.pipeline.nodes.tool_executor import _submit_paper_order
 
-    # Enable paper order submission for this pipeline execution
-    os.environ.setdefault("SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT", "1")
+    # Paper order submission is controlled by SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT
+    # env var or settings.superezio_enable_paper_order_submit (default False).
+    # Do NOT set os.environ here — that would leak into the process environment
+    # and override the operator's explicit config (e.g. docker-compose.yml).
+    # tool_executor._submit_paper_order reads the env/settings downstream.
 
     writer = get_stream_writer()
     run_id = state.get("run_id", "")
