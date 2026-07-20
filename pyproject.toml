@@ -69,6 +69,7 @@ dev = [
     "hypothesis>=6.100",
     "coverage>=7.6",
     "bandit>=1.8",
+    "pytest-timeout>=2.3",
 ]
 
 [tool.ruff]
