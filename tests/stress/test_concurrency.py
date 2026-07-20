@@ -9,7 +9,6 @@ Testes:
 
 from __future__ import annotations
 
-import concurrent.futures
 import gc
 import json
 import os
@@ -357,17 +356,6 @@ def test_task_submit_rate_limit_per_session(task_app):
     from fastapi.testclient import TestClient
 
     client = TestClient(task_app)
-
-    payload = {
-        "from_agent": "stress-test",
-        "to_agent": "bob",
-        "type": MessageType.TASK_SUBMIT,
-        "msg_id": "first",
-        "payload": {
-            "message": "Primeira requisicao",
-            "session_id": "same-session-test",
-        },
-    }
 
     payload2 = {
         "from_agent": "stress-test",
