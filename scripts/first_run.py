@@ -603,9 +603,9 @@ def run_health_checks(host: str = "127.0.0.1", port: int = 8002) -> dict:
         }.get(result["status"], " ???? ")
 
         icon = {
-            "ok": "✓",
+            "ok": "v",
             "warning": "!",
-            "error": "✗",
+            "error": "x",
             "missing": "?",
             "empty": "?",
             "in_use": "!",

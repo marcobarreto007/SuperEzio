@@ -295,6 +295,7 @@
       setTrustBar("trinity-trust-bar", 0, "");
       return;
     }
+    console.log("[Trinity] received deliberation, rendering...", data);
     var d = data.data || data;
     var structured = d.structured || {};
     var genie = structured.genie || {};
@@ -357,6 +358,7 @@
       setTrustBar("guardrail-trust-bar", 0, "");
       return;
     }
+    console.log("[Guardrails] received hub data, rendering...", data);
     var total = data.total_guardrails || data.total || 30;
     var summary = data.summary || {};
     var blocking = summary.blocking_count != null ? summary.blocking_count : 0;
