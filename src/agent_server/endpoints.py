@@ -2082,6 +2082,43 @@ async def get_cockpit_mangala() -> dict[str, Any]:
         }
 
 
+@router.get("/cockpit/mangala/opportunities")
+async def get_cockpit_mangala_opportunities() -> dict[str, Any]:
+    """Return the top 5 Mangala opportunities from the latest proactive scan.
+
+    Consumido pelo frontend para mostrar as oportunidades scanneadas
+    pelo Mangala Daily Scan (whale, pump, score, flip_plan).
+
+    Returns:
+        Dict with scanned_at, count, and opportunities list.
+        Each opportunity: ticker, price, volume, name, score, signal,
+        factors, whale_status, whale_score, pump_risk, pump_score,
+        flip_plan, scanned_at.
+    """
+    try:
+        from scripts.mangala_daily_scan import load_latest_scan
+
+        data = load_latest_scan()
+        if not data:
+            return {
+                "status": "no_data",
+                "scanned_at": None,
+                "count": 0,
+                "opportunities": [],
+            }
+        data["status"] = "ok"
+        return data
+    except Exception as exc:
+        logger.warning("Mangala opportunities unavailable: %s", exc)
+        return {
+            "status": "unavailable",
+            "scanned_at": None,
+            "count": 0,
+            "opportunities": [],
+            "error": str(exc)[:200],
+        }
+
+
 @router.get("/trades/history")
 async def get_trade_history(limit: int = Query(50, ge=1, le=250)) -> dict[str, Any]:
     """Return PaperJournal trade history for cockpit audit panels."""

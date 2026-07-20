@@ -71,6 +71,104 @@
     }
   }
 
+
+  /* --- Pipeline Progress State --- */
+  var PIPELINE_STEPS = [
+    { id: "coleta", label: "Coleta" },
+    { id: "mathhub", label: "MathHub" },
+    { id: "experts", label: "Experts" },
+    { id: "f51", label: "F51" },
+    { id: "sdca", label: "SDCA" },
+    { id: "trinity", label: "Trinity" },
+    { id: "bob", label: "Bob" }
+  ];
+
+  function initPipelineProgress() {
+    window.SZ.__pipelineProgress = {
+      coleta: "pending",
+      mathhub: "pending",
+      experts: "pending",
+      f51: "pending",
+      sdca: "pending",
+      trinity: "pending",
+      bob: "pending"
+    };
+  }
+
+  function getPipelineStatus(stepId) {
+    var pp = window.SZ.__pipelineProgress || {};
+    return pp[stepId] || "pending";
+  }
+
+  function setPipelineStatus(stepId, status) {
+    if (!window.SZ.__pipelineProgress) initPipelineProgress();
+    window.SZ.__pipelineProgress[stepId] = status;
+  }
+
+  function inferPipelineFromState() {
+    var state = window.SZ.state || {};
+    var deep = state.deep || {};
+    var pp = window.SZ.__pipelineProgress || {};
+    if (!window.SZ.__pipelineProgress) initPipelineProgress();
+
+    if (pp.coleta === "pending" || !pp.coleta)
+      pp.coleta = (state.chartData || state.stream === "active") ? "done" : "pending";
+    if (pp.mathhub === "pending" || !pp.mathhub)
+      pp.mathhub = (deep.math && deep.math.modules) ? "done" : "pending";
+    if (pp.experts === "pending" || !pp.experts)
+      pp.experts = (deep.experts && Object.keys(deep.experts).length > 0) ? "done" : "pending";
+    if (pp.f51 === "pending" || !pp.f51)
+      pp.f51 = state.lastF51Verdict ? "done" : "pending";
+    if (pp.sdca === "pending" || !pp.sdca)
+      pp.sdca = window.SZ.__sdcaState ? "done" : "pending";
+    if (pp.trinity === "pending" || !pp.trinity)
+      pp.trinity = state.lastTrinity ? "done" : "pending";
+    if (pp.bob === "pending" || !pp.bob)
+      pp.bob = state.lastGuardrailHub ? "done" : "pending";
+
+    window.SZ.__pipelineProgress = pp;
+    return pp;
+  }
+
+  function renderPipelineProgress() {
+    var container = document.getElementById("pipeline-progress");
+    if (!container) return;
+
+    var pp = inferPipelineFromState();
+
+    var existing = container.querySelector(".pipeline-progress__dots");
+    if (existing) existing.remove();
+
+    var dotsWrap = document.createElement("span");
+    dotsWrap.className = "pipeline-progress__dots";
+
+    PIPELINE_STEPS.forEach(function (step, idx) {
+      var status = pp[step.id] || "pending";
+
+      var dot = document.createElement("span");
+      dot.className = "pipeline-progress__dot";
+      dot.title = step.label + " (" + status + ")";
+
+      var circle = document.createElement("span");
+      circle.className = "pipeline-progress__dot-circle";
+      if (status === "done") circle.classList.add("is-done");
+      else if (status === "running") circle.classList.add("is-running");
+      else if (status === "error") circle.classList.add("is-error");
+      dot.appendChild(circle);
+      dotsWrap.appendChild(dot);
+
+      if (idx < PIPELINE_STEPS.length - 1) {
+        var conn = document.createElement("span");
+        conn.className = "pipeline-progress__connector";
+        if (status === "done") conn.classList.add("is-done");
+        dotsWrap.appendChild(conn);
+      }
+    });
+
+    container.insertBefore(dotsWrap, container.firstChild);
+  }
+
+
   /* ── Status Bar (kept for compatibility — also updated by status-bar.js) ── */
   function updateStatusBar(data) {
     if (!data) return;
@@ -136,7 +234,7 @@
   /* F51 Verdict Card */
   function renderF51Card(data) {
     if (!data) {
-      $("f51-body").innerHTML = '<div class="empty-state">Aguardando veredito F51.</div>';
+      $("f51-body").innerHTML = '<div class="empty-state">Aguardando veredito F51.</div>' + tradeFormHTML("f51");
       setVerdictEl("f51-verdict", "WAIT");
       return;
     }
@@ -411,7 +509,7 @@
   /* ── Mangala Compound Tracker Card ── */
   function renderMangalaCard(data) {
     if (!data || data.status === "unavailable" || data.total_flips == null) {
-      $("mangala-body").innerHTML = '<div class="empty-state">Aguardando dados do Mangala Tracker.</div>';
+      $("mangala-body").innerHTML = '<div class="empty-state">Aguardando dados do Mangala Tracker.</div>' + tradeFormHTML("mangala");
       setText("mangala-verdict", "$" + (data && data.starting != null ? data.starting.toFixed(2) : "20.00"));
       setTrustBar("mangala-trust-bar", 0, "");
       return;
@@ -475,6 +573,42 @@
     html += '  <span class="mangala-growth__label">Growth:</span>';
     html += '  <span class="mangala-growth__value ' + (growthPct >= 0 ? 'is-positive' : 'is-negative') + '">' + esc(growthStr) + '</span>';
     html += '</div>';
+
+    /* ── Append Scan Opportunities (from proactive scan) ── */
+    var scanData = window.SZ.__mangalaOpportunities;
+    if (scanData && scanData.status === "ok" && scanData.opportunities && scanData.opportunities.length > 0) {
+      html += '<div class="mangala-scan-header">Top Oportunidades</div>';
+      html += '<div class="mangala-scan-list">';
+      scanData.opportunities.forEach(function (opp) {
+        var sig = opp.signal || "PASS";
+        var sigCls = sig === "MANGALA!" ? "is-positive" : (sig === "WATCH" ? "is-warn" : "");
+        var whale = opp.whale_status || "FRACO";
+        var whaleCls = whale === "FORTE" ? "is-positive" : (whale === "PROVAVEL" || whale === "MODERADO" ? "is-warn" : "");
+        var pump = opp.pump_risk || "CLEAN";
+        var pumpCls = pump === "ALERT" ? "is-negative" : (pump === "RISK" ? "is-warn" : "is-positive");
+        var flip = opp.flip_plan || {};
+
+        html += '<div class="mangala-scan-row">';
+        html += '  <span class="mangala-scan__ticker">' + esc(opp.ticker || "?") + '</span>';
+        html += '  <span class="mangala-scan__price">$' + esc(safeVal(opp.price, 2)) + '</span>';
+        html += '  <span class="mangala-scan__score">' + esc(opp.score != null ? opp.score : "?") + '</span>';
+        html += '  <span class="mangala-scan__signal ' + sigCls + '">' + esc(sig) + '</span>';
+        html += '  <span class="mangala-scan__whale ' + whaleCls + '">' + esc(whale) + '</span>';
+        html += '  <span class="mangala-scan__pump ' + pumpCls + '">' + esc(pump) + '</span>';
+        html += '</div>';
+
+        /* Show flip plan for high-conviction */
+        if (sig === "MANGALA!" && flip.entry) {
+          html += '<div class="mangala-scan-flip">';
+          html += '  E:$' + esc(safeVal(flip.entry, 2));
+          html += ' T:$' + esc(safeVal(flip.target_5pct, 2));
+          html += ' S:$' + esc(safeVal(flip.stop_3pct, 2));
+          html += ' ' + esc(flip.max_hold_days || 5) + 'd';
+          html += '</div>';
+        }
+      });
+      html += '</div>';
+    }
 
     $("mangala-body").innerHTML = html;
 
@@ -586,38 +720,45 @@
   /* ── Pipeline Event Handler ── */
   function handlePipelineEvent(event) {
     if (!event || !event.type) return;
+    if (!window.SZ.__pipelineProgress) initPipelineProgress();
 
     switch (event.type) {
       case "F51_VERDICT":
         window.SZ.state = window.SZ.state || {};
         window.SZ.state.lastF51Verdict = event;
         renderF51Card(event);
+        setPipelineStatus("f51", "done");
         break;
 
       case "SDCA_FIREWALL":
         window.SZ.__sdcaState = event;
         renderSDCACard(event);
+        setPipelineStatus("sdca", "done");
         break;
 
       case "NEURAL_DECISION":
         window.SZ.__neuralState = event;
         renderNeuralCard(event);
+        setPipelineStatus("mathhub", "done");
         break;
 
       case "TRINITY_DELIBERATION":
         window.SZ.state = window.SZ.state || {};
         window.SZ.state.lastTrinity = event;
         renderTrinityCard(event);
+        setPipelineStatus("trinity", "done");
         break;
 
       case "GUARDRAIL_HUB":
         window.SZ.state = window.SZ.state || {};
         window.SZ.state.lastGuardrailHub = event;
         renderGuardrailCard(event);
+        setPipelineStatus("bob", "done");
         break;
 
       case "STREAM_START":
-        /* Reset cards for new analysis */
+        /* Reset cards and pipeline for new analysis */
+        initPipelineProgress();
         window.SZ.__sdcaState = null;
         window.SZ.__neuralState = null;
         renderF51Card(null);
@@ -625,13 +766,16 @@
         renderNeuralCard(null);
         renderTrinityCard(null);
         renderGuardrailCard(null);
+        setPipelineStatus("coleta", "running");
         break;
 
       case "STREAM_END":
         /* Re-read deep state after stream ends — deep-panel.js may have updated */
         renderAllCards();
+        setPipelineStatus("bob", "done");
         break;
     }
+    renderPipelineProgress();
   }
 
   /* ── Polling Fallback: /cockpit/summary ── */
@@ -641,6 +785,8 @@
     if (window.SZ.deepPanel && window.SZ.deepPanel.render) {
       renderAllCards();
     }
+    inferPipelineFromState();
+    renderPipelineProgress();
   }
 
   /* Fallback poll that fetches /cockpit/summary directly and maps data to cards.
@@ -731,9 +877,24 @@
   async function refreshMangala() {
     try {
       var data = await window.SZ.api.fetchMangalaSummary();
+      window.SZ.__lastMangalaTracker = data;
       renderMangalaCard(data);
     } catch (e) {
       /* silent — keep last known state */
+    }
+  }
+
+  async function refreshMangalaOpportunities() {
+    try {
+      var data = await window.SZ.api.fetchMangalaOpportunities();
+      window.SZ.__mangalaOpportunities = data;
+      /* Re-render the mangala card with the new opportunities data */
+      var trackerData = window.SZ.__lastMangalaTracker;
+      if (trackerData) {
+        renderMangalaCard(trackerData);
+      }
+    } catch (e) {
+      /* silent */
     }
   }
 
@@ -751,8 +912,11 @@
     }
 
     /* Initial refresh */
+    initPipelineProgress();
     refreshAll();
     refreshMangala();
+    renderPipelineProgress();
+    refreshMangalaOpportunities();
 
     /* Poll every 10 seconds */
     window.setInterval(refreshAll, 10000);
@@ -765,6 +929,9 @@
 
     /* Poll Mangala tracker every 15 seconds (trades change less frequently) */
     window.setInterval(refreshMangala, 15000);
+
+    /* Poll Mangala scan opportunities every 5 minutes (scan results are cached) */
+    window.setInterval(refreshMangalaOpportunities, 300000);
   }
 
   /* ── Public API ── */

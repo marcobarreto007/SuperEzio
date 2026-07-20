@@ -1,16 +1,43 @@
 {
-  "timestamp": "2026-07-20T21:30:00-03:00",
-  "session": "f51-expert-cards-fix",
+  "timestamp": "2026-07-20T17:45:00-03:00",
+  "session": "mangala-proactive-scan",
   "orchestrator": "claude-agent",
   "status": "completed",
-  "objective": "Consertar 5 expert cards (F51, SDCA, Neural, Trinity, Guardrails) que ficavam em WAIT mesmo com pipeline rodando. Causa raiz: formato backend nao alinhado com frontend.",
-  "wave": "frontend_fix",
+  "objective": "Tornar o Mangala Engine PROATIVO — scan de oportunidades a cada 15/60 min, endpoint REST, frontend com dados reais.",
+  "wave": "mangala_proactive",
   "agents_dispatched": 1,
   "agents_completed": 1,
   "total_commits": 57,
   "commit_range": "9a75ce5..c030307",
   "findings": {
-    "dev_mode_audit": {
+    "mangala_proactive_scan": {
+      "result": "Mangala Engine agora PROATIVO — scan automatico + endpoint + frontend com dados reais",
+      "components": {
+        "scan_script": "scripts/mangala_daily_scan.py — scan autonomo que usa DataHub + SocialWhaleProvider, calcula Mangala Score 0-100, mapeia whale_status (FORTE/PROVAVEL/MODERADO/FRACO) e pump_risk (ALERT/RISK/CLEAN), salva top 5 em data/mangala_daily.json",
+        "background_loop": "start_background_scan() / stop_background_scan() — loop async com intervalo variavel: 15 min em horario de mercado (9:30-16:00 ET), 60 min fora. Primeiro scan executado no boot.",
+        "endpoint": "GET /cockpit/mangala/opportunities — retorna ultimo scan com top 5 oportunidades (ticker, price, score, signal, whale_status, pump_risk, flip_plan)",
+        "frontend": "Mangala card agora mostra dados reais de scan — grid compacto com ticker, preco, score, sinal, whale_status, pump_risk, flip_plan para high-conviction. Polling a cada 5 min.",
+        "server_integration": "Lifespan do FastAPI inicia/para o background scan automaticamente"
+      },
+      "no_regression": "Mangala Engine existente (mangala.py, mangala_tracker.py) nao foi modificado. Novos arquivos: scripts/mangala_daily_scan.py. Modificacoes aditivas em endpoints.py, main.py, api.js, cockpit.js, cockpit.css.",
+      "ruff": "clean (scripts/mangala_daily_scan.py + src/agent_server/*.py)",
+      "tests": "63/63 Mangala tests pass (test_mangala.py + test_mangala_tracker.py)",
+      "evidence": "scripts/mangala_daily_scan.py criado, endpoint /cockpit/mangala/opportunities adicionado, background scan integrado ao lifespan, frontend atualizado"
+    }
+  },
+  "deliverables": {
+    "mangala_proactive_scan": "Mangala Engine proativo — scan autonomo a cada 15/60 min com SocialWhaleProvider (whale + pump), endpoint REST, frontend com dados reais de oportunidades. Zero quebra de contrato publico.",
+    "total_commits": 1,
+    "total_changes": "5 files modified, 1 file created"
+  },
+  "verdict": "Mangala Engine tornado PROATIVO. Scan autonomo no boot e a cada 15/60 min. Endpoint /cockpit/mangala/opportunities. Frontend mostra oportunidades reais (nao mais $20 default). Nao quebra Mangala Engine existente.",
+  "gates": {
+    "ruff": "clean",
+    "ruff_format": "clean",
+    "pytest_mangala": "63/63 pass",
+    "regression": "0 novas",
+    "contract_breaks": "nenhum — apenas adicoes"
+  }
       "result": "7/7 tarefas verificadas — sistema 100% funcional em dev mode sem configuracao",
       "tasks": {
         "1_jwt_secret_dev_mode": {

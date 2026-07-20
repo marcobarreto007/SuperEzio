@@ -1031,6 +1031,88 @@ body::after {
   color: var(--red-sell);
 }
 
+/* ── Mangala Scan Opportunities (proactive scan) ── */
+.mangala-scan-header {
+  font: 700 9px var(--font-sans);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 8px;
+  padding: 4px 0 2px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.mangala-scan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 3px;
+}
+
+.mangala-scan-row {
+  display: grid;
+  grid-template-columns: 48px 38px 24px 1fr 44px 36px;
+  gap: 2px;
+  align-items: center;
+  min-height: 18px;
+  padding: 1px 2px;
+  border-radius: 2px;
+  font: 600 9px var(--font-mono);
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+
+.mangala-scan-row:hover {
+  background: var(--bg-hover);
+}
+
+.mangala-scan__ticker {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.mangala-scan__price {
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.mangala-scan__score {
+  font-weight: 700;
+  color: var(--cyan-info);
+  text-align: right;
+}
+
+.mangala-scan__signal {
+  font-size: 8px;
+  text-align: center;
+}
+
+.mangala-scan__whale {
+  font-size: 8px;
+  text-align: center;
+}
+
+.mangala-scan__pump {
+  font-size: 8px;
+  text-align: center;
+}
+
+.mangala-scan__signal.is-positive { color: var(--green-buy); }
+.mangala-scan__signal.is-warn { color: var(--yellow-warn); }
+.mangala-scan__whale.is-positive { color: var(--green-buy); }
+.mangala-scan__whale.is-warn { color: var(--yellow-warn); }
+.mangala-scan__pump.is-positive { color: var(--green-buy); }
+.mangala-scan__pump.is-warn { color: var(--yellow-warn); }
+.mangala-scan__pump.is-negative { color: var(--red-sell); }
+
+.mangala-scan-flip {
+  font: 600 8px var(--font-mono);
+  color: var(--text-muted);
+  padding: 1px 4px 2px 50px;
+  background: var(--bg-primary);
+  border-radius: 2px;
+}
+
 /* Trust architecture bar (bottom of each card) */
 .expert-card__trust {
   display: flex;
@@ -1361,6 +1443,140 @@ body::after {
 }
 
 /* ── RESPONSIVE BREAKPOINTS ── */
+
+/* - Paper Trade Inline Form - */
+.trade-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px solid var(--border-subtle);
+}
+.trade-btn {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--green-dim);
+  border-radius: var(--radius-sm);
+  background: var(--green-dim);
+  color: var(--green-buy);
+  font: 700 9px var(--font-mono);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  flex-shrink: 0;
+}
+.trade-btn:hover {
+  background: rgba(0, 230, 118, 0.25);
+}
+.trade-confirm {
+  font: 600 9px var(--font-mono);
+  color: var(--green-buy);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  flex: 1;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trade-confirm.is-visible {
+  opacity: 1;
+}
+.trade-inline-form {
+  display: none;
+  margin-top: 6px;
+  padding: 6px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+.trade-inline-form.is-open {
+  display: block;
+}
+.trade-form-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.trade-form-row input,
+.trade-form-row select {
+  height: 24px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font: 600 10px var(--font-mono);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+.trade-form-row input:focus,
+.trade-form-row select:focus {
+  border-color: var(--cyan-info);
+}
+.trade-ticker-inp {
+  width: 72px;
+  text-transform: uppercase;
+}
+.trade-action-select {
+  width: 60px;
+}
+.trade-qty-inp {
+  width: 50px;
+}
+.trade-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+}
+.trade-submit-btn {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 10px;
+  border: 1px solid var(--green-dim);
+  border-radius: var(--radius-sm);
+  background: var(--green-dim);
+  color: var(--green-buy);
+  font: 700 9px var(--font-mono);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.trade-submit-btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.trade-submit-btn:hover:not(:disabled) {
+  background: rgba(0, 230, 118, 0.25);
+}
+.trade-cancel-btn {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  font: 600 9px var(--font-mono);
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+.trade-cancel-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
 @media (max-width: 1100px) {
   .app-main {
     grid-template-columns: 1fr minmax(260px, 320px);
@@ -1428,4 +1644,105 @@ body::after {
   .bob-chat {
     width: calc(100vw - 32px);
   }
+}
+
+
+/* ── Pipeline Progress Dots (inside expert-panel__bar) ── */
+#pipeline-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pipeline-progress__dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.pipeline-progress__dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pipeline-progress__dot-circle {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  background: var(--bg-primary);
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.pipeline-progress__dot-circle.is-done {
+  background: var(--green-buy);
+  border-color: var(--green-buy);
+  box-shadow: 0 0 4px rgba(0, 230, 118, 0.4);
+}
+
+.pipeline-progress__dot-circle.is-running {
+  background: var(--yellow-warn);
+  border-color: var(--yellow-warn);
+  box-shadow: 0 0 4px rgba(210, 153, 34, 0.5);
+  animation: pipeline-pulse 1.2s ease-in-out infinite;
+}
+
+.pipeline-progress__dot-circle.is-error {
+  background: var(--red-sell);
+  border-color: var(--red-sell);
+  box-shadow: 0 0 4px rgba(239, 83, 80, 0.4);
+}
+
+.pipeline-progress__connector {
+  width: 10px;
+  height: 2px;
+  background: var(--border-color);
+  flex-shrink: 0;
+  transition: background 0.3s ease;
+  margin: 0 1px;
+}
+
+.pipeline-progress__connector.is-done {
+  background: var(--green-buy);
+}
+
+@keyframes pipeline-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.4); }
+}
+
+/* ── Trust Score Badge (in pipeline-progress) ── */
+.trust-score-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 5px;
+  border-radius: 2px;
+  font: 700 8px var(--font-mono);
+  letter-spacing: 0.03em;
+  cursor: default;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.trust-score-badge.is-good {
+  color: var(--green-buy);
+  background: var(--green-dim);
+}
+
+.trust-score-badge.is-warn {
+  color: var(--yellow-warn);
+  background: var(--yellow-dim);
+}
+
+.trust-score-badge.is-bad {
+  color: var(--red-sell);
+  background: var(--red-dim);
 }

@@ -159,6 +159,7 @@
     fetchCockpitSummary() { return fetchJson("/cockpit/summary"); },
     fetchCockpitPortfolio() { return fetchJson("/cockpit/portfolio"); },
     fetchMangalaSummary() { return fetchJson("/cockpit/mangala"); },
+    fetchMangalaOpportunities() { return fetchJson("/cockpit/mangala/opportunities"); },
     fetchTradeHistory(limit) {
       if (!limit) limit = 50;
       return fetchJson("/trades/history?limit=" + encodeURIComponent(limit));

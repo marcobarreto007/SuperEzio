@@ -288,7 +288,27 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.warning("[%s] Bob ANS failed to start: %s", AGENT_NAME, str(exc)[:200])
 
+    # ── Start Mangala Daily Proactive Scan (background opportunity scanner) ──
+    try:
+        from scripts.mangala_daily_scan import start_background_scan
+
+        start_background_scan()
+        logger.info("[%s] Mangala proactive scan started — scanning every 15/60 min", AGENT_NAME)
+    except Exception as exc:
+        logger.warning(
+            "[%s] Mangala proactive scan failed to start: %s", AGENT_NAME, str(exc)[:200]
+        )
+
     yield
+
+    # ── Stop Mangala Daily Proactive Scan ──
+    try:
+        from scripts.mangala_daily_scan import stop_background_scan
+
+        stop_background_scan()
+        logger.info("[%s] Mangala proactive scan stopped", AGENT_NAME)
+    except Exception:
+        pass
 
     # ── Stop Bob's ANS ──
     try:
