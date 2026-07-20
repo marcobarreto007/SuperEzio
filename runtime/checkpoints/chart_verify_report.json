@@ -1,0 +1,25 @@
+{
+  "page_load": true,
+  "lightweight_charts_loaded": true,
+  "chart_dom_structure": true,
+  "dark_theme": true,
+  "legend": true,
+  "tooltip": true,
+  "sub_pane_labels": true,
+  "no_js_errors": false,
+  "console_errors": [
+    "Invalid or unexpected token",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[SZ] loadChart: Error: /api/chart-data/AAPL?timeframe=6M 401\n    at fetchJson (http://127.0.0.1:8002/js/api.js:36:22)\n    at async loadChart (http://127.0.0.1:8002/js/init.js:782:18)",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  ],
+  "js_warnings": [],
+  "chart_data_loaded": false,
+  "data_format": {}
+}

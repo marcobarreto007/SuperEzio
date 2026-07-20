@@ -80,7 +80,9 @@ async def main():
         # ── Step 3: Navigate to frontend ──
         print("\n[1/9] Navigating to frontend...")
         try:
-            await page.goto(FRONTEND_URL, wait_until="networkidle", timeout=30000)
+            await page.goto(FRONTEND_URL, wait_until="domcontentloaded", timeout=15000)
+            # Wait a bit more for JS to fully execute
+            await page.wait_for_timeout(5000)
             results["page_load"] = True
             print("  [OK] Page loaded")
         except Exception as e:
