@@ -4,30 +4,77 @@
 
   // ── Authenticated fetch wrapper ──
   async function fetchWithAuth(path, opts = {}) {
-    const token = window.SZ?.auth?.getToken?.();
-    const headers = { ...(opts.headers || {}) };
+    var DBG = "[fetchWithAuth]";
+    var auth = window.SZ && window.SZ.auth;
+
+    // ── Step 1: get token (prefer getValidToken if available) ──
+    var token = null;
+    if (auth && typeof auth.getValidToken === "function") {
+      token = auth.getValidToken();
+    } else if (auth && typeof auth.getToken === "function") {
+      token = auth.getToken();
+    }
+
+    // Fallback: read localStorage directly (defensive)
+    if (!token && auth && auth.isAuthenticated && auth.isAuthenticated()) {
+      try { token = localStorage.getItem("sz_access_token"); } catch (_) { /* ignore */ }
+      if (token) console.log(DBG, path, "fallback localStorage OK");
+    }
+
+    // Dev-mode helper: isAuthenticated is false but dev mode was detected earlier
+    if (!token && auth && auth.getToken) {
+      try { token = localStorage.getItem("sz_access_token"); } catch (_) { /* ignore */ }
+    }
+
+    // ── Step 2: if token missing or expired, try refresh before first request ──
+    var needsRefresh = !token;
+    if (token && auth && typeof auth.isAuthenticated === "function" && !auth.isAuthenticated()) {
+      needsRefresh = true;
+    }
+    if (needsRefresh && auth && typeof auth.refreshToken === "function") {
+      console.log(DBG, path, "token missing/expired, refreshing…");
+      var newToken = await auth.refreshToken();
+      if (newToken) {
+        token = newToken;
+        console.log(DBG, path, "refresh OK, token=" + newToken.substring(0, 12) + "…");
+      } else {
+        console.warn(DBG, path, "refresh returned null");
+      }
+    }
+
+    // ── Step 3: build headers (Authorization always included when token exists) ──
+    var headers = { ...(opts.headers || {}) };
     if (token) {
       headers["Authorization"] = "Bearer " + token;
+      console.log(DBG, path, "Authorization: Bearer " + token.substring(0, 12) + "…");
+    } else {
+      console.warn(DBG, path, "NO TOKEN — request will NOT have Authorization header");
     }
     if (!headers["Accept"]) {
       headers["Accept"] = "application/json";
     }
     opts = { ...opts, headers };
 
-    let r = await fetch(API + path, opts);
+    // ── Step 4: execute ──
+    var r = await fetch(API + path, opts);
+    console.log(DBG, path, "status=" + r.status);
 
-    // On 401, try refresh once
-    if (r.status === 401 && window.SZ?.auth?.refreshToken) {
-      const newToken = await window.SZ.auth.refreshToken();
-      if (newToken) {
-        headers["Authorization"] = "Bearer " + newToken;
+    // ── Step 5: on 401, try refresh once ──
+    if (r.status === 401 && auth && typeof auth.refreshToken === "function") {
+      console.log(DBG, path, "401, attempting refresh retry…");
+      var newToken2 = await auth.refreshToken();
+      if (newToken2) {
+        headers["Authorization"] = "Bearer " + newToken2;
         r = await fetch(API + path, { ...opts, headers });
+        console.log(DBG, path, "retry status=" + r.status);
       } else {
-        window.SZ.auth.clearTokens?.();
-        window.SZ.auth.showLogin?.();
+        console.warn(DBG, path, "refresh failed after 401, showing login modal");
+        if (typeof auth.clearTokens === "function") auth.clearTokens();
+        if (typeof auth.showLogin === "function") auth.showLogin();
       }
     }
 
+    console.log(DBG, path, "final status=" + r.status);
     return r;
   }
 

@@ -322,6 +322,13 @@
     });
   }
 
+  // ── getValidToken: returns current token if valid (not expired), else null ──
+
+  function getValidToken() {
+    if (!isAuthenticated()) return null;
+    return getToken();
+  }
+
   // ── Public API ──
 
   window.SZ = window.SZ || {};
@@ -333,6 +340,7 @@
     getRefreshToken: getRefreshToken,
     refreshToken: refreshToken,
     isAuthenticated: isAuthenticated,
+    getValidToken: getValidToken,
     clearTokens: clearTokens,
     showLogin: showLogin,
     hideModal: hideModal,
