@@ -314,7 +314,7 @@ app.add_middleware(
     allow_origins=_cors_origins,
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS", "HEAD"],
-    allow_headers=["Authorization", "Content-Type", "X-API-Key"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key", "X-Trading-Token"],
 )
 
 
@@ -353,22 +353,26 @@ async def security_headers_middleware(request: Request, call_next):
 API_KEY = os.getenv("SUPEREZIO_API_KEY", "")
 API_KEY_HEADER = "X-API-Key"
 
-_PUBLIC_PREFIXES = frozenset({
+_PUBLIC_EXACT = frozenset({
     "/health",
     "/favicon.ico",
     "/",
+    "/metrics",
+})
+
+_PUBLIC_PREFIXES = frozenset({
     "/frontend",
     "/css",
     "/js",
-    "/metrics",
 })
 
 
 def _is_public_path(path: str) -> bool:
     """Check if a path is public (no auth required)."""
-    if path in _PUBLIC_PREFIXES:
+    if path in _PUBLIC_EXACT:
         return True
-    return any(path.startswith(p + "/") for p in _PUBLIC_PREFIXES)
+    # Static assets: allow sub-paths
+    return any(path == p or path.startswith(p + "/") for p in _PUBLIC_PREFIXES)
 
 
 @app.middleware("http")
