@@ -76,7 +76,8 @@ body::after {
   z-index: 100;
 }
 
-.topbar::after {
+.topbar::after,
+.chart-workspace::before {
   display: none !important;
 }
 
@@ -530,6 +531,10 @@ body::after {
   font: 600 9px var(--font-mono);
   color: var(--text-muted);
   letter-spacing: 0.03em;
+}
+
+.expert-panel__status.cockpit-panel__status--idle {
+  color: var(--yellow-warn);
 }
 
 .expert-panel__cards {
