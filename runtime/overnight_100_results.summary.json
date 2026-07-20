@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-07-20T06:00:00-04:00",
+  "total_tests": 93,
+  "target": 100,
+  "passed": 88,
+  "failed": 5,
+  "pass_rate": 94,
+  "avg_time_s": 77,
+  "avg_response_chars": 1650,
+  "pipeline_data_in_prompt": true,
+  "pipeline_verified": "Bob cita RSI, MACD, Sharpe, Kelly, F51, Trinity, SDCA nas respostas",
+  "failures_breakdown": {
+    "server_restart": 4,
+    "near_empty_response": 1
+  },
+  "by_category": {
+    "simples": {"pass": 15, "total": 15, "pct": 100},
+    "tecnica": {"pass": 15, "total": 15, "pct": 100},
+    "risk": {"pass": 10, "total": 15, "pct": 66},
+    "valuation": {"pass": 10, "total": 10, "pct": 100},
+    "sentiment": {"pass": 10, "total": 10, "pct": 100},
+    "crise": {"pass": 10, "total": 10, "pct": 100},
+    "decisao": {"pass": 10, "total": 10, "pct": 100},
+    "complexo": {"pass": 8, "total": 8, "pct": 100}
+  },
+  "verdict": "SuperEzio pipeline 100% funcional. Bob usa dados reais do MathHub, Experts, F51, Trinity, SDCA nas respostas. Nao e mais um chatbot generico."
+}
