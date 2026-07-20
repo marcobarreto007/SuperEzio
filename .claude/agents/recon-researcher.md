@@ -1,5 +1,6 @@
 ---
 name: recon-researcher
+model: sonnet
 description: Arqueólogo do SuperEzio — mapeia arquitetura, entrypoints, arquivos órfãos e código morto. Usar antes de qualquer feature.
 tools: Read, Grep, Glob, Bash, PowerShell
 ---

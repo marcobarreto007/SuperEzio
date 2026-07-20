@@ -81,23 +81,26 @@ services:
       timeout: 10s
       retries: 3
 
-  learner:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: superezio-learner
-    command: ["python", "-m", "core.trading.autonomous_learner"]
-    environment:
-      - PYTHONPATH=/app/src
-    env_file:
-      - .env
-    volumes:
-      - ./src:/app/src:ro
-      - ./data:/app/data
-    depends_on:
-      api-server:
-        condition: service_healthy
-    restart: unless-stopped
+  # learner — REMOVED 2026-07-19 (Wave 4 cleanup)
+  # Módulo core.trading.autonomous_learner foi removido no Wave 4 cleanup.
+  # Serviço mantido comentado para referência histórica.
+  # learner:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: superezio-learner
+  #   command: ["python", "-m", "core.trading.autonomous_learner"]
+  #   environment:
+  #     - PYTHONPATH=/app/src
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - ./src:/app/src:ro
+  #     - ./data:/app/data
+  #   depends_on:
+  #     api-server:
+  #       condition: service_healthy
+  #   restart: unless-stopped
 
   watchdog:
     build:

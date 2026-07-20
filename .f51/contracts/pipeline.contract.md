@@ -45,18 +45,26 @@ O nó `tool_executor` é responsável por executar ferramentas invocadas pelo `a
 | `rag_forensics` / `node_rag_forensics` | rag_context | ticker, data |
 | `pennylab` / `_pennylab_stub` | pennylab | ticker |
 | `market_scan` / `node_collector` | scan | query / message |
+| `penny_momentum_backtest` / `_run_penny_momentum_backtest` | penny_momentum_backtest, data_context | ticker, ohlcv_by_symbol |
+| `submit_paper_order` / `_submit_paper_order` | submit_paper_order_result, submit_paper_order_error | ticker, qty, limit_price |
+| `final_answer` / (terminal) | final | (all state) |
+| `bob_search` / `node_rag_forensics` | rag_context, data_context | query |
+| `social_forensics` / `_gather_social_context` | data_context, social_forensics_veto | ticker, query |
+| `query_expert` / `node_expert` | expert_results, last_tool_result | role, query |
+| `call_math_calculator` / `MathHub.calculate_all` | math_report, math_prompt | ticker |
+| `get_live_financial_data` / `tool_get_market_price` + `collector` | live_price, risk_metrics, data_context | ticker |
 
 ## Pydantic Models
 
 | Model | Fields | Uso |
 |-------|--------|-----|
 | `IntentResult` | route, intent, action, ticker, filters, confidence, required_slots, reasons, entities, diary, pennylab, source | Output do orchestrator |
-| `CEORequest` | task, ticker, intent, route, data_context, pennylab_context, expert_summary, rag_context, f51_verdict, chart_context, mandamentos, model_family | Input estruturado |
+| `AgentRequest` | task, ticker, intent, route, data_context, pennylab_context, expert_summary, rag_context, f51_verdict, chart_context, mandamentos, model_family | Input estruturado |
 | `ExpertCall` | role, ticker, context, provider_name, timeout | Invocação de expert individual |
 
 ## Invariants
 
-1. PipelineState.route ∈ {"general", "ticker_analysis", "market_scan", "needs_scope"}
+1. PipelineState.route ∈ {"agent", "general", "ticker_analysis", "market_scan", "needs_scope"}
 2. Se route = "ticker_analysis", ticker deve ser não-vazio.
 3. expert_results é sempre uma lista (nunca None).
 4. f51_verdict contém chaves: confidence, passed, factors, hub_risk_score.

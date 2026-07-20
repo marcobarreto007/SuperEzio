@@ -1,5 +1,6 @@
 ---
 name: agent-benchmarker
+model: sonnet
 description: Benchmarker de agentes do SuperEzio — testa agentes com a mesma tarefa e compara qualidade objetiva. Seleção natural por evidência.
 tools: Read, Grep, Glob, Bash, PowerShell
 ---

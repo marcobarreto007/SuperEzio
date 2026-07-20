@@ -13,7 +13,7 @@ incorporates the detailed module contracts but does not duplicate them.
 | Contract | File | Scope |
 | --- | --- | --- |
 | Agent Server | `.f51/contracts/agent-server.contract.md` | FastAPI routes, A2A protocol, frontend serving |
-| Pipeline | `.f51/contracts/pipeline.contract.md` | 10-node LangGraph topology, PipelineState, node contracts |
+| Pipeline | `.f51/contracts/pipeline.contract.md` | 5-node LangGraph topology, PipelineState, node contracts |
 | CEO | `.f51/contracts/ceo.contract.md` | CEO prompt builder, module coverage, advisor boundary |
 | F51 Engine | `.f51/contracts/f51-engine.contract.md` | F51 scoring, veracity gate, consensus, uncertainty |
 | DataHub | `.f51/contracts/data-hub.contract.md` | Data collection, provider mesh, price/profile queries |
@@ -38,9 +38,10 @@ incorporates the detailed module contracts but does not duplicate them.
 ## Health Check Layers
 
 1. CEO server `:8082/health` — HTTP 200, `{"status":"ok"}`
-2. API public `:8002/health` — HTTP 200, `{"status":"ok","agent":"superezio","version":"3.0.0"}`
+2. API public `:8002/health` — HTTP 200, `{"status":"ok","agent":"superezio","version":"4.0.0"}`
 3. API deep `:8002/health/details` — GPU, models, Redis, providers, cost guard
 4. DataHub `check_health()` — provider key availability
+5. **Bob Sovereign mode** — when `SUPEREZIO_BOB_SOVEREIGN=1`, Bob runs with autonomous intent classification, self-directed thesis formation, and adaptive reasoning trace. Health reflects sovereign status in API response.
 
 ## Checkpoints
 

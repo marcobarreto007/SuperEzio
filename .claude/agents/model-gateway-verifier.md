@@ -1,5 +1,6 @@
 ---
 name: model-gateway-verifier
+model: sonnet
 description: Validador do gateway de modelos do SuperEzio — cascade de providers, latência, fallback, e qualidade de resposta dos modelos servidos.
 tools: Read, Grep, Glob, Bash, PowerShell
 ---

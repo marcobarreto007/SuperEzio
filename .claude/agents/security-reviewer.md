@@ -1,5 +1,6 @@
 ---
 name: security-reviewer
+model: sonnet
 description: Auditor de segurança do SuperEzio — scan de secrets, chaves expostas, dependências vulneráveis e vetores de ataque. Usar em auditoria e pré-release.
 tools: Read, Grep, Glob, Bash, PowerShell
 ---

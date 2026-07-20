@@ -164,9 +164,9 @@ Session: session-final
 
 ## Resolved Risks
 
-- **INV-R3** (2026-05-24): Pipeline refactor verified — 869 tests pass, contract synced, dead code removed, zombie `data` node removed from graph.
-- **INV-R5** (2026-05-24): Reclassified. No CI exists because GitHub is blocked by policy. `make verify` covers src + tests via ruff + pytest.
-- **INV-R8** (2026-05-24): Closed. Makefile only uses ruff (not black). No format inconsistency.
+- ~~**INV-R3** (2026-05-24): Duplicata removida 2026-07-20. INV-R3 mantido em Active Risks com status RESOLVED.~~
+- ~~**INV-R5** (2026-05-24): Duplicata removida 2026-07-20. INV-R5 mantido em Active Risks acima.~~
+- ~~**INV-R8** (2026-05-24): Duplicata removida 2026-07-20. INV-R8 mantido em Active Risks com status CLOSED.~~
 - **Hardcoded route="general"** (2026-05-24): Removed in commit ce2bf32. Orchestrator classification now flows to agent, experts, and SDCA firewall.
 
 ---
@@ -208,7 +208,7 @@ Session: session-final
 - Mitigation: Use direct commands: `serve_agent_llamacpp.ps1` + `python -m agent_server.main`.
 - Status: **Resolved — BAT retired, launcher test removed from contract suite.**
 
-### INV-R15 - Full suite baseline: 977 pass, 2 fail, 8 skip [INFO]
+### INV-R25 - Full suite baseline: 977 pass, 2 fail, 8 skip [INFO]
 
 - Classification: quality
 - Risk: None. Baseline recorded for future comparison.

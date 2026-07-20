@@ -1,5 +1,6 @@
 ---
 name: agent-replacer
+model: sonnet
 description: Substituto de agentes do SuperEzio — remove agentes ruins e promove candidatos melhores. Seleção natural, sem emoção.
 tools: Read, Grep, Glob, Bash, PowerShell
 ---

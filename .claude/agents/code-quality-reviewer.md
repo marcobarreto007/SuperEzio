@@ -1,5 +1,6 @@
 ---
 name: code-quality-reviewer
+model: sonnet
 description: Revisor de qualidade de código do SuperEzio — lint, dead code, complexidade, tipagem e conformidade estrutural. Usar em auditoria e pré-merge.
 tools: Read, Grep, Glob, Bash, PowerShell
 ---

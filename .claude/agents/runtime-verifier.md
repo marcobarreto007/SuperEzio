@@ -1,5 +1,6 @@
 ---
 name: runtime-verifier
+model: sonnet
 description: Validador de runtime do SuperEzio — health checks, portas, GPU, processos, logs. Usar antes de qualquer teste ou smoke.
 tools: Read, Grep, Glob, Bash, PowerShell
 ---
