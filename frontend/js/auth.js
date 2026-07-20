@@ -298,10 +298,27 @@
     refreshToken().then(function (token) {
       if (token) {
         startRefreshTimer();
-      } else {
-        clearTokens();
-        showLogin();
+        return;
       }
+
+      // Dev mode detection: if API works without auth, skip login
+      fetch("/health")
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (data && data.status === "ok") {
+            // Dev mode — server accepts requests without auth
+            console.log("SuperEzio: dev mode detected, skipping login");
+            return;
+          }
+          // Production mode — show login
+          clearTokens();
+          showLogin();
+        })
+        .catch(function () {
+          // Server unreachable — show login anyway
+          clearTokens();
+          showLogin();
+        });
     });
   }
 

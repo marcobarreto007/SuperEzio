@@ -88,6 +88,8 @@ def _browser_chart_fetch(page: Page) -> dict[str, Any]:
 
 def _submit_chat(page: Page, prompt: str, timeout_ms: int) -> dict[str, Any]:
     """Preenche o input, clica enviar, e espera a resposta do Bob aparecer no chat."""
+    # Dismiss auth modal if present (JWT login UI overlay)
+    page.evaluate("() => { if (window.SZ?.auth?.hideModal) window.SZ.auth.hideModal(); }")
     page.fill("#user-inp", prompt)
     page.click("#send-btn")
     # Wait for Bob's response in the current CEO message UI.
