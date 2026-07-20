@@ -300,7 +300,7 @@ class SocialWhaleProvider:
             if total > 0:
                 scores.append((pos - neg) / total)
                 mention_count += len(tweets)
-                sources_used.append(f"nitter({source})" if "nitter" in source else source)
+                sources_used.append(source)
 
         # 2. ApeWisdom
         ape, ok = self._get_apewisdom()
