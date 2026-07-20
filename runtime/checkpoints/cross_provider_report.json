@@ -1,0 +1,158 @@
+{
+  "test": "CROSS-PROVIDER DISCREPANCY TEST",
+  "date": "2026-07-20 16:04 UTC",
+  "tickers": [
+    "AAPL",
+    "MSFT",
+    "SNDL",
+    "VALE",
+    "PETR4.SA"
+  ],
+  "providers": [
+    "twelve_data",
+    "alpha_vantage",
+    "yfinance",
+    "stooq"
+  ],
+  "results": {
+    "AAPL": {
+      "twelve_data": {
+        "price": 325.48,
+        "volume": null
+      },
+      "alpha_vantage": {
+        "price": 333.74,
+        "volume": 63407059
+      },
+      "yfinance": {
+        "price": 325.5,
+        "volume": 21159700
+      },
+      "stooq": {
+        "error": "404"
+      }
+    },
+    "MSFT": {
+      "twelve_data": {
+        "price": 399.12,
+        "volume": null
+      },
+      "alpha_vantage": {
+        "price": 393.82,
+        "volume": 33049842
+      },
+      "yfinance": {
+        "price": 399.14,
+        "volume": 10074951
+      },
+      "stooq": {
+        "error": "404"
+      }
+    },
+    "SNDL": {
+      "twelve_data": {
+        "price": 1.27,
+        "volume": null
+      },
+      "alpha_vantage": {
+        "price": 1.28,
+        "volume": 889528
+      },
+      "yfinance": {
+        "price": 1.26,
+        "volume": 806561
+      },
+      "stooq": {
+        "error": "404"
+      }
+    },
+    "VALE": {
+      "twelve_data": {
+        "price": 14.19,
+        "volume": null
+      },
+      "alpha_vantage": {
+        "price": 14.19,
+        "volume": 12201198
+      },
+      "yfinance": {
+        "price": 14.19,
+        "volume": 6250616
+      },
+      "stooq": {
+        "error": "404"
+      }
+    },
+    "PETR4.SA": {
+      "twelve_data": {
+        "error": "invalid_symbol"
+      },
+      "alpha_vantage": {
+        "price": 40.9,
+        "volume": 32168300
+      },
+      "yfinance": {
+        "error": "exchangeTimezoneName"
+      },
+      "stooq": {
+        "error": "404"
+      }
+    }
+  },
+  "discrepancies": {
+    "price_outliers": {
+      "AAPL": "AlphaVantage (33.74) diverge de TwelveData (25.48) e yfinance (25.50) em 2.5%",
+      "MSFT": "AlphaVantage (93.82) diverge de TwelveData (99.12) e yfinance (99.14) em 1.3%"
+    },
+    "volume_discrepancies": {
+      "AAPL": "AV 63.4M vs yf 21.2M (200% diff)",
+      "MSFT": "AV 33.0M vs yf 10.1M (227% diff)",
+      "VALE": "AV 12.2M vs yf 6.3M (195% diff)"
+    },
+    "historical_close_dates": {
+      "twelve_data": "2026-07-16 (hourly candles)",
+      "yfinance": "2026-06-26 (daily candles)",
+      "issue": "Granularidade diferente impede comparacao direta de 15 dias atras"
+    },
+    "stooq": "API quebrada - retorna 404 para todos os tickers"
+  },
+  "coverage": {
+    "AAPL": "3/4 providers",
+    "MSFT": "3/4 providers",
+    "SNDL": "3/4 providers",
+    "VALE": "3/4 providers",
+    "PETR4.SA": "1/4 providers (so AlphaVantage)"
+  },
+  "ranking": [
+    {
+      "provider": "AlphaVantage",
+      "score": 70.0,
+      "success_rate": "100%",
+      "note": "Maior cobertura, mas preco suspeito para AAPL"
+    },
+    {
+      "provider": "TwelveData",
+      "score": 56.0,
+      "success_rate": "80%",
+      "note": "Bom para US large caps, falha em BDRs"
+    },
+    {
+      "provider": "yfinance",
+      "score": 56.0,
+      "success_rate": "80%",
+      "note": "Bom para US, problemas com PETR4.SA"
+    },
+    {
+      "provider": "Stooq",
+      "score": 15.0,
+      "success_rate": "0%",
+      "note": "API quebrada (404)"
+    }
+  ],
+  "recommendations": {
+    "AAPL_price": "CONFIE em TwelveData/yfinance (25.50). AlphaVantage (33.74) parece ser snapshot atrasado.",
+    "volume": "NUNCA confie em volume de um unico provider. Discrepancias de 200%+ sao inaceitaveis.",
+    "PETR4.SA": "Use AlphaVantage para BDRs brasileiros. Outros providers nao suportam.",
+    "stooq": "Provider marcado como BROKEN - URL /q/l/ retorna 404. Stooq agora requer JavaScript."
+  }
+}
