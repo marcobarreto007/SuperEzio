@@ -1,0 +1,15 @@
+{
+  "provider": "questrade",
+  "mode": "read_only_playwright",
+  "connected": false,
+  "can_submit_orders": false,
+  "scraped_at": "2026-07-20T13:21:48.753783+00:00",
+  "equity": null,
+  "cash": null,
+  "buying_power": null,
+  "positions": [],
+  "orders": [],
+  "page_url": "https://myportal.questrade.com/investing/money-movement/",
+  "page_title": "Loading https://login.questrade.com/Account/Login?ReturnUrl=%2Fconnect%2Fauthorize%2Fcallback%3Fclient_id%3D69a22618-17b3-4e25-868f-790c1802681b%26redirect_uri%3Dhttps%253A%252F%252Fmyportal.questrade.com%252Foidc%252Fredirect-callback.html%26response_type%3Dcode%26scope%3Dopenid%2520all.usersettings.all%2520all.notifications.all%2520all.loginactivity.read%2520brokerage.settings.all%2520brokerage.accounts.read%2520enterprise.platform-manager.all%2520all.customers-profile.read%2520enterprise.enterprise-accounts-lookup.read%2520brokerage.brokerage-customer-tier.read%2520enterprise.customer-verifications-identity-verification.all%2520enterprise.user-preferences.all%2520enterprise.loyalty-reserve.all%2520enterprise.customer-support-management-decagon-auth.write%26state%3Da4d36b976fd741068f890b55cfc4daa2%26code_challenge%3DPp8q7pd22lsQNhp-IiJhJb4bHIAQ_e7jnIEtLuQjrXw%26code_challenge_method%3DS256",
+  "page_text_sample": "CALL US\n1.888.783.7866\nJOIN NOW\nLog in to Questrade\nUser ID\nPassword\n\nForgot your user ID or password?\n\nLOG IN\n\nTip: Always double check the URL of log-in pages to keep your account secure. Learn More\n\nBy logging in, you agree to the terms and conditions\n\nDisclosure\nSecurity"
+}

@@ -1,0 +1,20 @@
+2026/07/20-09:23:01.158 45bc Creating DB C:\Users\marco\Desktop\SuperEzio\runtime\questrade_profile\Default\IndexedDB\https_myportal.questrade.com_0.indexeddb.leveldb since it was missing.
+2026/07/20-09:23:01.170 45bc Reusing MANIFEST C:\Users\marco\Desktop\SuperEzio\runtime\questrade_profile\Default\IndexedDB\https_myportal.questrade.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/07/20-09:23:01.178 45bc Level-0 table #5: started
+2026/07/20-09:23:01.191 45bc Level-0 table #5: 680 bytes OK
+2026/07/20-09:23:01.192 45bc Delete type=0 #3
+2026/07/20-09:23:01.193 17b4 Manual compaction at level-0 from '\x00\x01\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x02\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/07/20-09:23:01.483 45bc Level-0 table #7: started
+2026/07/20-09:23:01.495 45bc Level-0 table #7: 674 bytes OK
+2026/07/20-09:23:01.497 45bc Delete type=0 #4
+2026/07/20-09:23:01.497 45bc Manual compaction at level-0 from '\x00\x02\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x03\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/07/20-09:23:01.515 45bc Level-0 table #9: started
+2026/07/20-09:23:01.528 45bc Level-0 table #9: 1318 bytes OK
+2026/07/20-09:23:01.529 45bc Delete type=0 #6
+2026/07/20-09:23:01.530 17b4 Manual compaction at level-0 from '\x00\x03\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x04\x00\x00\x00' @ 0 : 0; will stop at '\x00\x05\x00\x00\x05' @ 90 : 1
+2026/07/20-09:23:01.530 17b4 Compacting 1@0 + 1@1 files
+2026/07/20-09:23:01.542 17b4 Generated table #10@0: 41 keys, 937 bytes
+2026/07/20-09:23:01.542 17b4 Compacted 1@0 + 1@1 files => 937 bytes
+2026/07/20-09:23:01.543 17b4 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/07/20-09:23:01.543 17b4 Delete type=2 #9
+2026/07/20-09:23:01.544 17b4 Manual compaction at level-0 from '\x00\x05\x00\x00\x05' @ 90 : 1 .. '\x00\x04\x00\x00\x00' @ 0 : 0; will stop at (end)
