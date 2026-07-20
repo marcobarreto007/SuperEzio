@@ -20,6 +20,7 @@ O exército de agentes do SuperEzio não é um bando de agentes falando ao mesmo
 
 ```
 .claude/agents/
+├── captain.md                   # ★ Capitão residente — orquestrador autônomo (cron-driven)
 ├── recon-researcher.md          # Arqueólogo — mapeia arquitetura real
 ├── security-reviewer.md         # Auditor de segurança — secrets, vulns, vetores
 ├── code-quality-reviewer.md     # Qualidade de código — lint, dead code, complexidade
@@ -34,6 +35,10 @@ O exército de agentes do SuperEzio não é um bando de agentes falando ao mesmo
 ├── agent-replacer.md            # Meta — substitui agentes ruins
 └── deprecated/                  # Cemitério de agentes
 ```
+
+O **Captain** é o único agente **residente**. Os outros 13 são one-shot disparados por ele.
+O Captain é invocado via CronCreate a cada hora (minuto :07) e executa o ciclo:
+diagnóstico → decisão → disparo (3 agentes em paralelo) → integração → checkpoint.
 
 ## Ciclo de Vida do Agente
 

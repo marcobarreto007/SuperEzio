@@ -1,30 +1,30 @@
 {
-  "timestamp": "2026-07-19T23:59:00-04:00",
-  "session": "wave4-remediation",
-  "orchestrator": "f51-orchestrator",
+  "timestamp": "2026-07-20T00:20:00-04:00",
+  "session": "agent-bus-bootstrap",
+  "orchestrator": "captain",
   "status": "completed",
-  "objective": "Wave 4 — Remediacao cirurgica: 5 correcoes pos-auditoria (SAFE_ACTIONS tuple fix, numpy constraint, docstrings, f51/__init__, experts package, .gitignore sync)",
-  "wave": 4,
-  "agents_dispatched": 4,
-  "agents_completed": 4,
-  "fixes_applied": [
-    "financial_prompts.py: SAFE_ACTIONS tupla de 1 elemento → tupla multi-elemento + join canonico",
-    "pyproject.toml: numpy constraint <2.3 → <2.6 (reflete numpy 2.4.6 instalado)",
-    "f51/__init__.py: docstring corrigida — diretorios fantasmas → arquivos reais",
-    "experts/__init__.py: criado — 49 arquivos agora tem pacote formal",
-    ".gitignore: sync com arquivos de diagnostico/scratch"
-  ],
+  "objective": "Bootstrap do Agent Bus — barramento de comunicação inter-agente, agente capitão residente, e loop autônomo via CronCreate",
+  "deliverables": {
+    "agent_bus": {
+      "barramento": ".agent_bus/runtime/ criado com tickets/ e reports/",
+      "state": ".agent_bus/state.json — registro de 14 agentes + transições de estado",
+      "protocolo": ".agent_bus/README.md — documentação do protocolo de comunicação"
+    },
+    "captain": {
+      "definition": ".claude/agents/captain.md — agente residente, 5 fases (diagnóstico → decisão → disparo → integração → gates)",
+      "model": "sonnet",
+      "wave_config": "RECON: 3 agentes em paralelo (recon-researcher, code-quality-reviewer, security-reviewer)"
+    },
+    "cron": {
+      "job_id": "3468466f",
+      "schedule": "7 * * * * (hourly at :07)",
+      "type": "recurring (session-only, 7-day auto-expire)"
+    }
+  },
   "gates": {
-    "git_status": "5 files changed (3 modified, 2 untracked)",
-    "ruff_check": "clean (0 findings)",
-    "ruff_format": "clean (0 files needing reformat)",
-    "pytest": "1538 passed, 11 skipped, 0 failed",
-    "browser_smoke": "all green — Health API, Chart AAPL (124 candles), Canvas (438.400px), Chat Bob (2.302 chars, zero erros), Console errors zero"
+    "git_status": "4 files (3 new, 1 modified)",
+    "ruff_check": "clean (All checks passed!)",
+    "pytest": "not run (no code changes in src/)"
   },
-  "watchdog_wave2.4": {
-    "status": "complete",
-    "mode": "READ_ONLY",
-    "date": "2026-07-19T20:32:00-04:00"
-  },
-  "next": "Wave 5 — continuar remediacao dos 5 riscos criticos do Impact Map (auth API, tokens expostos, dados falsos, except:pass, dependencias)"
+  "next": "Captain vai disparar a primeira Wave 1 (RECON) automaticamente no próximo minuto :07. Ou disparar manualmente: 'Execute o ciclo Captain'."
 }

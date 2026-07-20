@@ -1,0 +1,39 @@
+{
+  "version": "1.0",
+  "created": "2026-07-19T23:59:00-04:00",
+  "current_wave": null,
+  "last_wave_completed": "wave4-remediation",
+  "army_status": "idle",
+  "cron_job_id": "3468466f",
+  "cron_schedule": "7 * * * * (hourly at :07, recurring)",
+  "transitions": [
+    {
+      "timestamp": "2026-07-19T23:59:00-04:00",
+      "from": null,
+      "to": "idle",
+      "reason": "Agent bus initialized. Captain ready for orders."
+    },
+    {
+      "timestamp": "2026-07-20T00:15:00-04:00",
+      "from": "idle",
+      "to": "idle",
+      "reason": "Captain agent deployed (.claude/agents/captain.md). Cron loop active (hourly at :07). 3-agent RECON wave configured."
+    }
+  ],
+  "agents": {
+    "captain": {"status": "active", "last_run": null, "score": null, "role": "resident"},
+    "recon-researcher": {"status": "idle", "last_run": null, "score": null},
+    "security-reviewer": {"status": "idle", "last_run": null, "score": null},
+    "code-quality-reviewer": {"status": "idle", "last_run": null, "score": null},
+    "runtime-verifier": {"status": "idle", "last_run": null, "score": null},
+    "api-contract-verifier": {"status": "idle", "last_run": null, "score": null},
+    "frontend-ux-reviewer": {"status": "idle", "last_run": null, "score": null},
+    "kb-domain-reviewer": {"status": "idle", "last_run": null, "score": null},
+    "training-verifier": {"status": "idle", "last_run": null, "score": null},
+    "model-gateway-verifier": {"status": "idle", "last_run": null, "score": null},
+    "agent-explorer": {"status": "idle", "last_run": null, "score": null},
+    "agent-benchmarker": {"status": "idle", "last_run": null, "score": null},
+    "agent-replacer": {"status": "idle", "last_run": null, "score": null},
+    "savekeeper": {"status": "idle", "last_run": null, "score": null}
+  }
+}
