@@ -502,6 +502,85 @@ async def _auto_full_analysis(
         )
         _mark_step("system_status", {"ibkr": "offline"})
 
+    # ── PennyLab auto-detection (whale, pump & dump, volume spike) ──
+    # Automatico — roda em todo ticker com dados, sem depender do Bob chamar tools
+    if ticker and (working_state.get("data") or working_state.get("scan")):
+        try:
+            from experts.pennylab.experts.volume_spike_expert import VolumeSpikeExpert
+            from experts.pennylab.experts.whale_print_expert import WhalePrintExpert
+            from experts.pennylab.experts.pump_dump_expert import PumpDumpExpert
+            from experts.pennylab.schemas import SignalInput
+
+            _data = working_state.get("data") or {}
+            _tech = _data.get("technicals") or {}
+            _profile = _data.get("profile") or {}
+            _price_data = _data.get("price") or {}
+
+            _signal = SignalInput(
+                ticker=ticker,
+                price=_tech.get("price") or _price_data.get("latest") or _price_data.get("price"),
+                prev_close=_tech.get("prev_close") or _tech.get("previousClose"),
+                volume=_tech.get("volume"),
+                avg_volume_10d=_tech.get("avg_volume_10d") or _tech.get("averageVolume"),
+                market_cap=_profile.get("market_cap") or _profile.get("marketCap"),
+                shares_float=_profile.get("shares_float") or _profile.get("floatShares"),
+                rsi_14=_tech.get("rsi_14") or _tech.get("rsi"),
+                source="pipeline_auto",
+            )
+
+            _vol_res = VolumeSpikeExpert().evaluate(_signal)
+            _whale_res = WhalePrintExpert().evaluate(_signal)
+            _pump_res = PumpDumpExpert().evaluate(_signal)
+
+            _merge_node_update(
+                working_state,
+                output,
+                {
+                    "pennylab_detection": {
+                        "volume_spike": {
+                            "score": _vol_res.score,
+                            "ratio": _vol_res.ratio,
+                            "label": _vol_res.label,
+                            "confidence": _vol_res.confidence,
+                        },
+                        "whale_print": {
+                            "score": _whale_res.score,
+                            "label": _whale_res.label,
+                            "confidence": _whale_res.confidence,
+                        },
+                        "pump_dump": {
+                            "score": _pump_res.score,
+                            "phase": _pump_res.phase,
+                            "confidence": _pump_res.confidence,
+                        },
+                    },
+                },
+            )
+            _mark_step(
+                "pennylab_detection",
+                {
+                    "volume_spike": _vol_res.label,
+                    "whale_print": _whale_res.label,
+                    "pump_dump": _pump_res.phase,
+                },
+            )
+            writer(
+                {
+                    "type": "PENNYLAB_DETECTION",
+                    "run_id": run_id,
+                    "ticker": ticker,
+                    "volume_spike": {"label": _vol_res.label, "score": _vol_res.score},
+                    "whale_print": {"label": _whale_res.label, "score": _whale_res.score},
+                    "pump_dump": {"phase": _pump_res.phase, "score": _pump_res.score},
+                }
+            )
+        except Exception as exc:
+            _merge_node_update(
+                working_state,
+                output,
+                {"errors": [f"auto_full_analysis.pennylab:{exc}"]},
+            )
+
     # ═══════════════════════════════════════════════════════
     # PARALLEL: f51, neural, sdca, rag, guardrails — todos independentes
     # ═══════════════════════════════════════════════════════
