@@ -81,10 +81,7 @@ def _make_yfinance_provider() -> Any:
     return YFinanceProvider()
 
 
-def _make_stooq_provider() -> Any:
-    from .stooq_provider import StooqProvider
-
-    return StooqProvider()
+# Stooq provider removed 2026-07-20 — API offline (HTTP 404 on all endpoints)
 
 
 def _make_akshare_provider() -> Any:
@@ -184,12 +181,13 @@ class DataHub:
         return {name: os.getenv(name) for name in self._key_names}
 
     def _register_default_routes(self) -> None:
-        # Market data — price chain (lower priority number = tried first):
-        #   1) Twelve Data  (fastest, most accurate, key exists)
-        #   2) AKShare      (free, intraday, no rate limit)
-        #   3) Alpha Vantage (fundamentals + price, key exists)
-        #  30) YFinance     (free universal fallback)
-        #  45) Stooq        (last resort)
+        # Market data — price chain (cross-provider tested 2026-07-20):
+        #   1) Twelve Data  (fast 0.69s, accurate, key exists)     [US stocks OK]
+        #   2) AKShare      (free intraday, keyless, may block)    [unreliable]
+        #   3) Alpha Vantage (price OK, volume 200%+ WRONG!)       [BDR coverage]
+        #  30) YFinance     (fast 0.47s, free, always available)   [PRIMARY fallback]
+        # Stooq REMOVED 2026-07-20: API offline (HTTP 404)
+        # Finnhub: key invalid (b444a4ae), registered for quote/news only
         #
         # Quote / profile / fundamentals / news — Finnhub primary at priority 1
         #
@@ -278,16 +276,7 @@ class DataHub:
             )
         )
 
-        self.register_provider(
-            ProviderRoute(
-                name="stooq",
-                capabilities=("price", "market_price"),
-                factory=_make_stooq_provider,
-                methods={"price": "get_price", "market_price": "get_price"},
-                priority=45,
-                required_key=None,
-            )
-        )
+        # Stooq REMOVED — API offline (HTTP 404 on all endpoints, 2026-07-20)
 
         # ── AKShare (free US stock OHLCV, keyless) ────────────────────────
         self.register_provider(

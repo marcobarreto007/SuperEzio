@@ -8,12 +8,12 @@ from data.data_hub import DataHub, ProviderRoute
 def test_market_price_route_order() -> None:
     hub = DataHub(register_defaults=True)
     routes = hub.list_routes("price")
-    # New chain: twelve_data -> akshare -> alpha_vantage -> yfinance -> stooq
+    # Chain (2026-07-20): twelve_data -> akshare -> alpha_vantage -> yfinance
+    # Stooq removed — API offline (HTTP 404)
     ordered = [r["name"] for r in sorted(routes, key=lambda x: x["priority"])]
     assert ordered[0] == "twelve_data"
     assert ordered.index("twelve_data") < ordered.index("akshare")
     assert ordered.index("akshare") < ordered.index("yfinance")
-    assert ordered.index("yfinance") < ordered.index("stooq")
 
 
 def test_finnhub_has_candles_and_news_capabilities() -> None:
@@ -31,7 +31,7 @@ def test_is_usable_result_rejects_empty_dict() -> None:
     Regression guard: an empty dict has no "error" key, so a naive check
     of `"error" not in result` alone would wrongly accept it as success
     and silently break the fallback chain (Finnhub -> TwelveData ->
-    yfinance -> Stooq) since route() stops at the first usable result.
+    yfinance) since route() stops at the first usable result. Stooq removed 2026-07-20.
     """
     assert DataHub._is_usable_result({}) is False
 
