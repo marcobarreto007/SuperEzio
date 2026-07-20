@@ -45,7 +45,7 @@ class GatewayConfig:
     """Model gateway configuration."""
 
     max_fallbacks: int = 2
-    timeout_s: int = 120
+    timeout_s: int = 300
     retry_attempts: int = 2
     retry_delay_s: float = 1.0
     quality_threshold: float = 0.7
