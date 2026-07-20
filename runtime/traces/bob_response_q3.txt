@@ -1,0 +1,1 @@
+{"detail":{"code":"active_task","message":"Bob is already processing another request for this session. Wait for it to finish or cancel it.","run_id":"b8b07ed9-bfa","session_id":"None","elapsed":156.996}}

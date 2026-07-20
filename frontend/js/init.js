@@ -665,7 +665,7 @@
     var orders = brokerOrders.concat(localTickets);
     var positions = positionList(pf);
     var history = tradeHistoryList(pf);
-    var current = sanitTicker(SZ.state.ticker || (document.getElementById("ticker-inp") || {}).value || "");
+    var current = sanitTicker((document.getElementById("ticker-inp") || {}).value || SZ.state.ticker || "");
     var firstTicker = "";
     var rows = [];
 
@@ -755,6 +755,17 @@
     setText("live-ticker", ticker);
     markSelectedMirrorTicker(ticker);
     loadChart(ticker);
+
+    /* Restart live stream if active — avoids stale SSE events
+     * overwriting chart data and labels with the old ticker. */
+    if (SZ.live && SZ.live.start) {
+      var statusEl = document.getElementById("live-status");
+      if (statusEl && statusEl.textContent === "LIVE") {
+        var tf = (document.getElementById("tf-inp") || {}).value || (SZ.config || {}).defaultTimeframe || "6M";
+        SZ.live.start(ticker, tf);
+      }
+    }
+
     return true;
   }
 
@@ -769,6 +780,16 @@
     var t0 = performance.now();
     try {
       var data = await SZ.api.fetchChartData(ticker, tf);
+
+      /* ── Stale-response guard: if the ticker changed while we were
+       *    fetching (race condition), discard this response so the
+       *    newer request's data is not overwritten. ── */
+      var latestTicker = getSelectedChartTicker();
+      if (sanitTicker(latestTicker) !== ticker) {
+        console.log("[SZ] loadChart: ignoring stale response for", ticker, "(latest:", latestTicker, ")");
+        return null;
+      }
+
       var lat = Math.round(performance.now() - t0);
       var latEl = document.getElementById("hud-latency");
       if (latEl) latEl.textContent = lat;

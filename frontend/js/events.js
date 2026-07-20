@@ -145,12 +145,9 @@
         (function () {
           var ceoObj = SZ.chat.currentCEO;
           if (showDebugCards() && SZ.renderF51 && ceoObj) SZ.renderF51(ev, ceoObj);
-          // Always store for deep panel
+          // Store for deep panel — rendered via pipeline-event bus subscription
           if (SZ.state) {
             SZ.state.lastF51Verdict = ev;
-          }
-          if (SZ.deepPanel && SZ.deepPanel.handle) {
-            try { SZ.deepPanel.handle(ev); } catch (_) { /* ignore */ }
           }
         })();
         break;
@@ -199,6 +196,9 @@
             guardEl.className = "cockpit-statusbar__item " + cls;
             guardEl.textContent = "Guardrails: " + ok + "/" + total + (blocking ? " (" + blocking + " blocking)" : "");
           }
+          // Update latency in status bar
+          var latEl = document.getElementById("statusbar-latency");
+          if (latEl) latEl.textContent = "Guard: " + new Date().toLocaleTimeString();
         })();
         break;
 
