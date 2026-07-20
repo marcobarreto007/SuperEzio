@@ -39,6 +39,11 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-width: 0;
+  overflow: hidden;
 }
 
 body::before,
@@ -309,9 +314,8 @@ body::after {
   display: grid;
   grid-template-columns: minmax(520px, 1fr) minmax(300px, 380px);
   gap: 1px;
+  flex: 1;
   min-height: 0;
-  height: calc(100vh - 40px - 32px);
-  background: var(--border-color);
   overflow: hidden;
 }
 
