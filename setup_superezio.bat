@@ -16,6 +16,7 @@ call :step_python
 if %ERR_COUNT% NEQ 0 goto :summary
 call :step_venv
 call :step_install_deps
+call :step_playwright
 call :step_env_file
 call :step_jwt_secret
 call :step_seed_admin
@@ -44,17 +45,17 @@ if errorlevel 1 (
     goto :eof
 )
 for /f "tokens=2" %%v in ('python --version 2^>^&1') do set PY_VER=%%v
-echo [OK] Python: %%PY_VER%%
-for /f "tokens=1,2 delims=." %%a in ("%%PY_VER%%") do (
+echo [OK] Python: !PY_VER!
+for /f "tokens=1,2 delims=." %%a in ("!PY_VER!") do (
     set PY_MAJOR=%%a
     set PY_MINOR=%%b
 )
-if %%PY_MAJOR%% LSS 3 (
+if !PY_MAJOR! LSS 3 (
     echo [FAIL] Python 3.11+ necessario
     set /a ERR_COUNT+=1
     goto :eof
 )
-if %%PY_MAJOR%% EQU 3 if %%PY_MINOR%% LSS 11 (
+if !PY_MAJOR! EQU 3 if !PY_MINOR! LSS 11 (
     echo [FAIL] Python 3.11+ necessario
     set /a ERR_COUNT+=1
     goto :eof
@@ -120,12 +121,12 @@ if exist ".env.local" (
 )
 echo [INFO] Gerando JWT_SECRET aleatorio...
 for /f "delims=" %%s in ('python -c "import secrets; print(secrets.token_urlsafe(48))"') do set JWT_GEN=%%s
-if "%%JWT_GEN%%"=="" (
+if "!JWT_GEN!"=="" (
     echo [FAIL] Erro ao gerar JWT_SECRET
     set /a ERR_COUNT+=1
     goto :eof
 )
-echo SUPEREZIO_JWT_SECRET=%%JWT_GEN%% >> ".env.local"
+echo SUPEREZIO_JWT_SECRET=!JWT_GEN! >> ".env.local"
 echo [OK] JWT_SECRET gerado e salvo em .env.local.
 goto :eof
 :jwt_ok
@@ -140,11 +141,11 @@ if not exist "scripts\seed_admin.py" (
 )
 call :activate_venv
 if not defined SUPEREZIO_ADMIN_PASSWORD set SUPEREZIO_ADMIN_PASSWORD=SuperEzioAdmin2024!
-python scripts/seed_admin.py --username admin --email admin@superezio.com --password %%SUPEREZIO_ADMIN_PASSWORD%%
+python scripts/seed_admin.py --username admin --email admin@superezio.com --password !SUPEREZIO_ADMIN_PASSWORD!
 if errorlevel 1 (
     echo [INFO] Admin pode ja existir - prosseguindo.
 ) else (
-    echo [OK] Admin seed criado: admin / %%SUPEREZIO_ADMIN_PASSWORD%%
+    echo [OK] Admin seed criado: admin / !SUPEREZIO_ADMIN_PASSWORD!
 )
 goto :eof
 
@@ -174,7 +175,7 @@ goto :eof
 
 :summary
 echo.
-if %%ERR_COUNT%% EQU 0 (
+if !ERR_COUNT! EQU 0 (
     echo [OK] Bootstrap concluido com sucesso!
     echo.
     echo Para iniciar o servidor:
@@ -186,7 +187,7 @@ if %%ERR_COUNT%% EQU 0 (
     echo.
     echo Abra: http://127.0.0.1:8002
 ) else (
-    echo [FAIL] %%ERR_COUNT%% erro(s) encontrado(s).
+    echo [FAIL] !ERR_COUNT! erro(s) encontrado(s).
     echo Corrija e rode novamente.
 )
 echo.

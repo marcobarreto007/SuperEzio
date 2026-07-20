@@ -665,10 +665,10 @@ def print_server_info(host: str, port: int, checks: dict) -> None:
     print(f"  Acesse: http://{host}:{port}")
     print()
     print("  Para iniciar o servidor:")
-    print(f"    python -m agent_server.main")
+    print("    python -m agent_server.main")
     print()
     print("  Quick smoke test:")
-    print(f"    python scripts/browser_smoke.py")
+    print("    python scripts/browser_smoke.py")
     print()
     print("  Documentacao:")
     print("    .env.example - Variaveis de ambiente")
@@ -767,7 +767,7 @@ def main(argv: list[str] | None = None) -> None:
             print(f"  >> Servidor iniciado em http://{args.host}:{args.port}")
         except Exception as exc:
             print(f"  >> ERRO ao iniciar servidor: {exc}")
-            print(f"  >> Inicie manualmente: python -m agent_server.main")
+            print("  >> Inicie manualmente: python -m agent_server.main")
     else:
         print("  Dica: use --start-server para iniciar automaticamente.")
     print()
