@@ -171,7 +171,10 @@
     var out = [];
     var len = Math.min(arr.length, ohlcv.length);
     for (var i = 0; i < len; i++) {
-      var val = arr[i];
+      var raw = arr[i];
+      if (raw == null) continue;
+      /* Backend can return {time, value} objects or plain numbers */
+      var val = (typeof raw === 'object' && raw !== null) ? raw.value : raw;
       if (val != null && isFinite(val) && ohlcv[i] && ohlcv[i].time != null) {
         out.push({ time: toLWTime(ohlcv[i].time), value: val });
       }
@@ -179,24 +182,43 @@
     return out;
   }
 
-  /** Build MACD (3-series) data from indicators.macd */
-  function buildMACD(macd, ohlcv) {
+  /** Build MACD (3-series) data from indicators object.
+   *  Backend returns macd, macd_histogram, macd_signal as arrays of {time, value} objects.
+   */
+  function buildMACD(ind, ohlcv) {
     var hist = [], line = [], signal = [];
-    if (!macd || !ohlcv) return { hist: hist, line: line, signal: signal };
+    if (!ind || !ohlcv) return { hist: hist, line: line, signal: signal };
+    var macdLineArr   = ind.macd || [];
+    var macdHistArr   = ind.macd_histogram || ind.macdHistogram || [];
+    var macdSignalArr = ind.macd_signal || ind.macdSignal || [];
     var len = ohlcv.length;
     for (var i = 0; i < len; i++) {
       var t = ohlcv[i] && ohlcv[i].time;
       if (t == null) continue;
       var time = toLWTime(t);
-      if (macd.histogram && macd.histogram[i] != null && isFinite(macd.histogram[i])) {
-        var h = macd.histogram[i];
-        hist.push({ time: time, value: h, color: h >= 0 ? C.macdHistUp : C.macdHistDown });
+
+      var histRaw = macdHistArr[i];
+      if (histRaw != null) {
+        var histVal = (typeof histRaw === 'object') ? histRaw.value : histRaw;
+        if (isFinite(histVal)) {
+          hist.push({ time: time, value: histVal, color: histVal >= 0 ? C.macdHistUp : C.macdHistDown });
+        }
       }
-      if (macd.line && macd.line[i] != null && isFinite(macd.line[i])) {
-        line.push({ time: time, value: macd.line[i] });
+
+      var lineRaw = macdLineArr[i];
+      if (lineRaw != null) {
+        var lineVal = (typeof lineRaw === 'object') ? lineRaw.value : lineRaw;
+        if (isFinite(lineVal)) {
+          line.push({ time: time, value: lineVal });
+        }
       }
-      if (macd.signal && macd.signal[i] != null && isFinite(macd.signal[i])) {
-        signal.push({ time: time, value: macd.signal[i] });
+
+      var sigRaw = macdSignalArr[i];
+      if (sigRaw != null) {
+        var sigVal = (typeof sigRaw === 'object') ? sigRaw.value : sigRaw;
+        if (isFinite(sigVal)) {
+          signal.push({ time: time, value: sigVal });
+        }
       }
     }
     return { hist: hist, line: line, signal: signal };
@@ -325,16 +347,20 @@
 
     /* Indicator values for this time */
     if (ind) {
-      var rsiVal = ind.rsi ? ind.rsi[ohlcvAtTime._idx] : null;
+      var rsiRaw = ind.rsi ? ind.rsi[ohlcvAtTime._idx] : null;
+      var rsiVal = (rsiRaw != null && typeof rsiRaw === 'object') ? rsiRaw.value : rsiRaw;
       if (rsiVal != null && isFinite(rsiVal)) {
         var rsiColor = rsiVal > 70 ? C.bear : rsiVal < 30 ? C.bull : C.text;
         html += '<div style="margin-top:3px;"><span style="color:' + C.sma20 + ';">RSI(14)</span> <span style="color:' + rsiColor + ';font-weight:600;">' + Number(rsiVal).toFixed(1) + '</span></div>';
       }
 
-      var macdObj = ind.macd;
-      if (macdObj && macdObj.line && macdObj.line[ohlcvAtTime._idx] != null) {
-        var macdVal = macdObj.line[ohlcvAtTime._idx];
-        html += '<div style="margin-top:1px;"><span style="color:' + C.macdLine + ';">MACD</span> <span style="color:' + C.textLight + ';">' + Number(macdVal).toFixed(2) + '</span></div>';
+      var macdArr = ind.macd;
+      if (macdArr && macdArr[ohlcvAtTime._idx] != null) {
+        var macdRaw = macdArr[ohlcvAtTime._idx];
+        var macdVal = (typeof macdRaw === 'object') ? macdRaw.value : macdRaw;
+        if (isFinite(macdVal)) {
+          html += '<div style="margin-top:1px;"><span style="color:' + C.macdLine + ';">MACD</span> <span style="color:' + C.textLight + ';">' + Number(macdVal).toFixed(2) + '</span></div>';
+        }
       }
     }
 
@@ -837,7 +863,7 @@
     } catch (e) { /* ignore */ }
 
     /* MACD sub-pane */
-    var macdData = buildMACD(ind.macd, ohlcv);
+    var macdData = buildMACD(ind, ohlcv);
     try {
       macdHistSeries.setData(macdData.hist);
       macdLineSeries.setData(macdData.line);

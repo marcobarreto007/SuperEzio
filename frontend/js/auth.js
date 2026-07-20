@@ -301,16 +301,16 @@
         return;
       }
 
-      // Dev mode detection: if API works without auth, skip login
-      fetch("/health")
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (data) {
-          if (data && data.status === "ok") {
+      // Dev mode detection: call a real auth-gated endpoint to check if auth is required.
+      // /health returns 200 even with JWT_SECRET set, so we use a protected route.
+      fetch(API + "/cockpit/summary")
+        .then(function (r) {
+          if (r.ok) {
             // Dev mode — server accepts requests without auth
             console.log("SuperEzio: dev mode detected, skipping login");
             return;
           }
-          // Production mode — show login
+          // 401 or other — production mode, needs login
           clearTokens();
           showLogin();
         })
