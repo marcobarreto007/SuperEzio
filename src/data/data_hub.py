@@ -87,6 +87,18 @@ def _make_stooq_provider() -> Any:
     return StooqProvider()
 
 
+def _make_apewisdom_provider() -> Any:
+    from .apewisdom_provider import ApeWisdomProvider
+
+    return ApeWisdomProvider()
+
+
+def _make_form4api_provider(api_key: str | None) -> Any:
+    from .form4api_provider import Form4APIProvider
+
+    return Form4APIProvider(api_key=api_key)
+
+
 @dataclass(frozen=True)
 class ProviderRoute:
     """Metadata needed to route one capability to one provider."""
@@ -134,6 +146,7 @@ class DataHub:
             "TAVILY_API_KEY",
             "BRAVE_SEARCH_API_KEY",
             "FINNHUB_API_KEY",
+            "FORM4API_KEY",
         ]
 
         self.tavily_search_path = os.getenv("SUPEREZIO_TAVILY_SEARCH_PATH") or ""
@@ -242,6 +255,37 @@ class DataHub:
                 methods={"price": "get_price", "market_price": "get_price"},
                 priority=45,
                 required_key=None,
+            )
+        )
+
+        # ── ApeWisdom (retail sentiment, Reddit/WSB trending) ─────────
+        self.register_provider(
+            ProviderRoute(
+                name="apewisdom",
+                capabilities=("retail_sentiment", "trending"),
+                factory=_make_apewisdom_provider,
+                methods={
+                    "retail_sentiment": "get_retail_buzz",
+                    "trending": "get_trending_stocks",
+                },
+                priority=10,
+                required_key=None,
+                metadata={"role": "retail_sentiment_tracker"},
+            )
+        )
+
+        # ── Form4API (SEC insider trades — free tier) ────────────────
+        self.register_provider(
+            ProviderRoute(
+                name="form4api",
+                capabilities=("insider_trades",),
+                factory=lambda: _make_form4api_provider(self._get_key("FORM4API_KEY")),
+                methods={
+                    "insider_trades": "get_insider_trades",
+                },
+                priority=15,
+                required_key=None,  # FREE_TIER default works out of the box
+                metadata={"role": "insider_trading", "free_tier_req_day": 500},
             )
         )
 
