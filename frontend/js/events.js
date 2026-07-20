@@ -145,6 +145,13 @@
         (function () {
           var ceoObj = SZ.chat.currentCEO;
           if (showDebugCards() && SZ.renderF51 && ceoObj) SZ.renderF51(ev, ceoObj);
+          // Always store for deep panel
+          if (SZ.state) {
+            SZ.state.lastF51Verdict = ev;
+          }
+          if (SZ.deepPanel && SZ.deepPanel.handle) {
+            try { SZ.deepPanel.handle(ev); } catch (_) { /* ignore */ }
+          }
         })();
         break;
 
@@ -153,6 +160,57 @@
         (function () {
           var ceoObj = SZ.chat.currentCEO;
           if (showDebugCards() && SZ.renderSDCA && ceoObj) SZ.renderSDCA(ev, ceoObj);
+        })();
+        break;
+
+      /* ── MATH_REPORT ── */
+      case "MATH_REPORT":
+        (function () {
+          // Store for deep panel via pipeline-event bus
+          if (SZ.state) SZ.state.lastMathReport = ev;
+          // Update deep panel status badge
+          var statusEl = document.getElementById("deep-panel-status");
+          if (statusEl && ev.ticker) {
+            statusEl.textContent = "MATH: " + String(ev.ticker).toUpperCase();
+            statusEl.classList.remove("cockpit-panel__status--idle");
+          }
+          // Update latency in status bar
+          if (ev.generated_at) {
+            var latEl = document.getElementById("statusbar-latency");
+            if (latEl) latEl.textContent = "Math: " + ev.generated_at.slice(11, 19);
+          }
+        })();
+        break;
+
+      /* ── GUARDRAIL_HUB ── */
+      case "GUARDRAIL_HUB":
+        (function () {
+          if (SZ.state) SZ.state.lastGuardrailHub = ev;
+          // Update status bar guardrail count
+          var summary = ev.summary || {};
+          var ok = (summary.decision_counts || {}).ALLOW || 0;
+          var total = ev.total_guardrails || 30;
+          var blocking = summary.blocking_count || 0;
+          var guardEl = document.getElementById("statusbar-guardrails");
+          if (guardEl) {
+            var cls = "is-ok";
+            if (blocking > 0) cls = "is-warn";
+            if (blocking > 2) cls = "is-error";
+            guardEl.className = "cockpit-statusbar__item " + cls;
+            guardEl.textContent = "Guardrails: " + ok + "/" + total + (blocking ? " (" + blocking + " blocking)" : "");
+          }
+        })();
+        break;
+
+      /* ── TRINITY_DELIBERATION ── */
+      case "TRINITY_DELIBERATION":
+        (function () {
+          if (SZ.state) SZ.state.lastTrinity = ev;
+          var statusEl = document.getElementById("deep-panel-status");
+          if (statusEl) {
+            statusEl.textContent = "TRINITY";
+            statusEl.classList.remove("cockpit-panel__status--idle");
+          }
         })();
         break;
 

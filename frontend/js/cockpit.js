@@ -86,6 +86,9 @@
       });
     }
     if (data.last_trinity) state.trinity = data.last_trinity;
+    if (data.guardrails) {
+      state.guardrails = data.guardrails;
+    }
     if (window.SZ.deepPanel && window.SZ.deepPanel.render) window.SZ.deepPanel.render();
   }
 
@@ -93,7 +96,13 @@
     if (!data) return;
     var state = window.SZ.state.bobPanel = window.SZ.state.bobPanel || { steps: {} };
     if (data.last_decision) state.lastCockpitDecision = data.last_decision;
-    if (data.guardrails) state.guardrailCockpit = data.guardrails;
+    if (data.guardrails) {
+      state.guardrailCockpit = data.guardrails;
+      // Also push guardrails to deep panel
+      var deepState = window.SZ.state.deep = window.SZ.state.deep || {};
+      deepState.guardrails = data.guardrails;
+      if (window.SZ.deepPanel && window.SZ.deepPanel.render) window.SZ.deepPanel.render();
+    }
     if (data.portfolio) state.portfolio = data.portfolio;
     if (data.portfolio && window.SZ.renderPortfolioMirror) {
       window.SZ.renderPortfolioMirror(data.portfolio);
@@ -124,7 +133,8 @@
       updateStatusBar(s.status || {});
 
       feedGenie(s.genie);
-      feedDeep(s.deep);
+      // Pass guardrails from bob section to deep panel too
+      feedDeep(Object.assign({}, s.deep, s.bob ? { guardrails: s.bob.guardrails } : {}));
       feedBob(s.bob);
     } catch (e) {
       // cockpit summary unreachable — panels keep last known state
