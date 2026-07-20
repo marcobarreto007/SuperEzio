@@ -31,6 +31,7 @@ from core.paths import PROJECT_ROOT  # noqa: E402
 from core.sentiment import LiveMonitor, SentimentCurator, WatchlistPulse  # noqa: E402
 from core.ports.protocol import A2AMessage  # noqa: E402
 
+from .auth import jwt_auth_middleware, router as auth_router  # noqa: E402
 from .endpoints import router as a2a_router  # noqa: E402
 from .endpoints import submit_task as _submit_task_endpoint  # noqa: E402
 
@@ -262,6 +263,13 @@ async def lifespan(app: FastAPI):
     gateway = create_gateway()
     app.state.pipeline = build_graph(gateway=gateway)
     logger.info("[%s] Pipeline graph ready.", AGENT_NAME)
+
+    # === AUTH DB INITIALIZATION ===
+    from .auth import AuthDB
+
+    app.state.auth_db = AuthDB()
+    logger.info("[%s] AuthDB initialized.", AGENT_NAME)
+
     _start_sentiment_services(app)
 
     logger.info(
@@ -422,7 +430,16 @@ async def api_key_auth_middleware(request: Request, call_next):
     return await call_next(request)
 
 
+# ═══════════════════════════════════════════════════════════════
+# JWT Authentication Middleware (F51 Security Gate)
+# ═══════════════════════════════════════════════════════════════
+@app.middleware("http")
+async def api_jwt_auth_middleware(request: Request, call_next):
+    return await jwt_auth_middleware(request, call_next)
+
+
 app.include_router(a2a_router)
+app.include_router(auth_router)
 
 
 @app.post("/task/submit")

@@ -49,7 +49,6 @@ dependencies = [
     # â”€â”€ JWT Authentication â”€â”€
     "PyJWT>=2.8",
     "passlib[bcrypt]>=1.7",
-    "bcrypt>=4.0,<4.1",
 
     # â”€â”€ Quality Engineering 2026 â”€â”€
     "structlog>=24.0",

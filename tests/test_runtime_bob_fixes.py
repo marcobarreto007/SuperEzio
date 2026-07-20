@@ -27,7 +27,8 @@ class MockPipeline:
 
 
 @pytest.fixture
-def client_with_mock_pipeline():
+def client_with_mock_pipeline(monkeypatch):
+    monkeypatch.setenv("SUPEREZIO_JWT_SECRET", "")  # Dev mode: no JWT required
     mock_p = MockPipeline()
     original_pipeline = getattr(app.state, "pipeline", None)
     app.state.pipeline = mock_p

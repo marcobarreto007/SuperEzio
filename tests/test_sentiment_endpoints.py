@@ -1,8 +1,15 @@
 from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
+import pytest
 
 from agent_server.main import app
+
+
+# ── Autouse fixture: clear JWT_SECRET so tests use dev mode ──
+@pytest.fixture(autouse=True)
+def _clear_jwt_secret(monkeypatch):
+    monkeypatch.setenv("SUPEREZIO_JWT_SECRET", "")
 
 
 class FakeReport:
