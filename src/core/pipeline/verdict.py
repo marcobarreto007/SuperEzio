@@ -56,6 +56,8 @@ def build_verdict_dict(state: dict) -> dict:
     """
     math_report = state.get("math_report") or {}
     summary = math_report.get("summary") if isinstance(math_report, dict) else {}
+    if not isinstance(summary, dict):
+        summary = {}
     modules_data = math_report.get("modules") if isinstance(math_report, dict) else {}
     technicals = {}
     if isinstance(modules_data, dict):
