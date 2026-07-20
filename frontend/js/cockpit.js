@@ -140,11 +140,19 @@
       setVerdictEl("f51-verdict", "WAIT");
       return;
     }
+    console.log("[F51] received verdict, rendering...", data);
+    /* Backend format: { passed: bool, confidence, decision_score, factors }
+       Also support legacy: { verdict: "PASS"|"FAIL"|object } */
     var verdict = data.verdict || data.f51_verdict;
+    if (!verdict && data.passed !== undefined) {
+      verdict = data.passed === true ? "PASS" : data.passed === false ? "FAIL" : "--";
+    }
     var text = typeof verdict === "object" ? (verdict.verdict || verdict.passed === true ? "PASS" : verdict.passed === false ? "FAIL" : "--") : (verdict || "--");
-    var score = data.score != null ? data.score : (verdict && verdict.score);
+    /* Backend sends decision_score and confidence; no 'score' field */
+    var score = data.score != null ? data.score : (data.decision_score != null ? data.decision_score : (verdict && verdict.score));
     var confidence = data.confidence != null ? data.confidence : (verdict && verdict.confidence);
-    var factors = (verdict && verdict.factors) || data.factors || {};
+    /* Backend sends factors at top level (not nested inside verdict object) */
+    var factors = data.factors || (verdict && verdict.factors) || {};
     var decisionScore = data.decision_score || (verdict && verdict.decision_score);
 
     setVerdictEl("f51-verdict", text || "WAIT");
@@ -201,9 +209,11 @@
       setVerdictEl("sdca-verdict", "WAIT");
       return;
     }
-    var verdict = data.verdict || data.action || data.status || "ALLOW";
-    var riskScore = data.risk_score != null ? data.risk_score : data.score;
-    var blocking = data.blocking_count != null ? data.blocking_count : data.blocking;
+    console.log("[SDCA] received firewall, rendering...", data);
+    /* Backend format: { decision: "ALLOW"|"BLOCK"|"REVIEW", confidence, uncertainty, consequence_score } */
+    var verdict = data.verdict || data.action || data.status || data.decision || "ALLOW";
+    var riskScore = data.risk_score != null ? data.risk_score : (data.score != null ? data.score : data.consequence_score);
+    var blocking = data.blocking_count != null ? data.blocking_count : (data.blocking != null ? data.blocking : (data.decision === "BLOCK" ? 1 : 0));
     var fomo = data.fomo_detected || data.fomo;
     var leverage = data.leverage_flag || data.leverage;
     var slippage = data.slippage_risk || data.slippage;
@@ -247,6 +257,7 @@
       setVerdictEl("neural-verdict", "WAIT");
       return;
     }
+    console.log("[Neural] received decision, rendering...", data);
     var decision = data.decision || data.action || data.prediction || "HOLD";
     var confidence = data.confidence != null ? data.confidence : data.score;
     var signal = data.signal_strength || data.strength;

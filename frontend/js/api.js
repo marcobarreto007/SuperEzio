@@ -7,48 +7,51 @@
     var DBG = "[fetchWithAuth]";
     var auth = window.SZ && window.SZ.auth;
 
-    // ── Step 1: get token (prefer getValidToken if available) ──
+    // ── Step 1: get token ──
+    //   Tries, in order: getValidToken() -> getToken() -> localStorage direct
     var token = null;
-    if (auth && typeof auth.getValidToken === "function") {
-      token = auth.getValidToken();
-    } else if (auth && typeof auth.getToken === "function") {
-      token = auth.getToken();
+    if (auth) {
+      if (typeof auth.getValidToken === "function") {
+        token = auth.getValidToken();
+      }
+      if (!token && typeof auth.getToken === "function") {
+        token = auth.getToken();
+      }
     }
-
-    // Fallback: read localStorage directly (defensive)
-    if (!token && auth && auth.isAuthenticated && auth.isAuthenticated()) {
-      try { token = localStorage.getItem("sz_access_token"); } catch (_) { /* ignore */ }
-      if (token) console.log(DBG, path, "fallback localStorage OK");
-    }
-
-    // Dev-mode helper: isAuthenticated is false but dev mode was detected earlier
-    if (!token && auth && auth.getToken) {
-      try { token = localStorage.getItem("sz_access_token"); } catch (_) { /* ignore */ }
+    // Defensive: read localStorage directly if both methods failed
+    if (!token) {
+      try {
+        var raw = localStorage.getItem("sz_access_token");
+        if (raw) { token = raw; console.log(DBG, "path=" + path + " fallback localStorage OK"); }
+      } catch (_) { /* ignore */ }
     }
 
     // ── Step 2: if token missing or expired, try refresh before first request ──
-    var needsRefresh = !token;
-    if (token && auth && typeof auth.isAuthenticated === "function" && !auth.isAuthenticated()) {
-      needsRefresh = true;
-    }
-    if (needsRefresh && auth && typeof auth.refreshToken === "function") {
-      console.log(DBG, path, "token missing/expired, refreshing…");
+    if (!token && auth && typeof auth.refreshToken === "function") {
+      console.log(DBG, "path=" + path + " token missing, attempting refresh…");
       var newToken = await auth.refreshToken();
       if (newToken) {
         token = newToken;
-        console.log(DBG, path, "refresh OK, token=" + newToken.substring(0, 12) + "…");
+        console.log(DBG, "path=" + path + " refresh OK token=" + newToken.substring(0, 12) + "…");
+      }
+    } else if (token && auth && typeof auth.isAuthenticated === "function" && !auth.isAuthenticated()) {
+      // Token exists but expired — try refresh
+      console.log(DBG, "path=" + path + " token expired, attempting refresh…");
+      var refreshed = await auth.refreshToken();
+      if (refreshed) {
+        token = refreshed;
+        console.log(DBG, "path=" + path + " refresh OK token=" + refreshed.substring(0, 12) + "…");
       } else {
-        console.warn(DBG, path, "refresh returned null");
+        console.warn(DBG, "path=" + path + " refresh returned null — using expired token (will likely get 401)");
       }
     }
 
-    // ── Step 3: build headers (Authorization always included when token exists) ──
+    // ── Step 3: build headers (Authorization ALWAYS included when token exists) ──
     var headers = { ...(opts.headers || {}) };
     if (token) {
       headers["Authorization"] = "Bearer " + token;
-      console.log(DBG, path, "Authorization: Bearer " + token.substring(0, 12) + "…");
     } else {
-      console.warn(DBG, path, "NO TOKEN — request will NOT have Authorization header");
+      console.warn(DBG, "path=" + path + " NO TOKEN — request will NOT have Authorization header");
     }
     if (!headers["Accept"]) {
       headers["Accept"] = "application/json";
@@ -57,24 +60,26 @@
 
     // ── Step 4: execute ──
     var r = await fetch(API + path, opts);
-    console.log(DBG, path, "status=" + r.status);
+    var preview = token ? token.substring(0, 12) + "…" : "none";
+    console.log(DBG, "path=" + path + " token=" + preview + " status=" + r.status);
 
-    // ── Step 5: on 401, try refresh once ──
+    // ── Step 5: on 401, try refresh + retry once ──
     if (r.status === 401 && auth && typeof auth.refreshToken === "function") {
-      console.log(DBG, path, "401, attempting refresh retry…");
-      var newToken2 = await auth.refreshToken();
-      if (newToken2) {
-        headers["Authorization"] = "Bearer " + newToken2;
+      console.log(DBG, "path=" + path + " status=401 attempting refresh retry…");
+      var retryToken = await auth.refreshToken();
+      if (retryToken) {
+        headers["Authorization"] = "Bearer " + retryToken;
         r = await fetch(API + path, { ...opts, headers });
-        console.log(DBG, path, "retry status=" + r.status);
+        var retryPreview = retryToken.substring(0, 12) + "…";
+        console.log(DBG, "path=" + path + " token=" + retryPreview + " retry_status=" + r.status);
       } else {
-        console.warn(DBG, path, "refresh failed after 401, showing login modal");
+        console.warn(DBG, "path=" + path + " refresh failed after 401, showing login modal");
         if (typeof auth.clearTokens === "function") auth.clearTokens();
         if (typeof auth.showLogin === "function") auth.showLogin();
       }
     }
 
-    console.log(DBG, path, "final status=" + r.status);
+    console.log(DBG, "path=" + path + " final status=" + r.status);
     return r;
   }
 

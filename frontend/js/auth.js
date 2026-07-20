@@ -7,6 +7,22 @@
   const STORAGE_KEY_USER = "sz_user";
   const API = location.protocol === "file:" ? "http://127.0.0.1:8002" : "";
 
+  // ── Base64url decode helper (JWT uses base64url, not base64) ──
+
+  function _b64url(str) {
+    // Convert base64url -> base64: replace - with +, _ with /, add padding
+    var b = str.replace(/-/g, "+").replace(/_/g, "/");
+    while (b.length % 4) b += "=";
+    return atob(b);
+  }
+
+  function _decodePayload(token) {
+    if (!token) return null;
+    var parts = token.split(".");
+    if (parts.length !== 3) return null;
+    try { return JSON.parse(_b64url(parts[1])); } catch (_) { return null; }
+  }
+
   // ── Token helpers ──
 
   function getToken() {
@@ -31,24 +47,17 @@
   function isAuthenticated() {
     const token = getToken();
     if (!token) return false;
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      const now = Math.floor(Date.now() / 1000);
-      return payload.exp > now;
-    } catch {
-      return false;
-    }
+    const payload = _decodePayload(token);
+    if (!payload || !payload.exp) return false;
+    const now = Math.floor(Date.now() / 1000);
+    return payload.exp > now;
   }
 
   function getTokenExpiry() {
     const token = getToken();
     if (!token) return 0;
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.exp || 0;
-    } catch {
-      return 0;
-    }
+    const payload = _decodePayload(token);
+    return (payload && payload.exp) || 0;
   }
 
   // ── API calls ──
