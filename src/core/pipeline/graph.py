@@ -98,9 +98,13 @@ async def _do_collect(working_state, output, should_collect_market, route, confi
     """Extracted collector body for try_run_async wrapping."""
     collector_result: dict[str, Any] = {}
     if should_collect_market and not working_state.get("scan") and not working_state.get("data"):
+        # scanner_allowed comes from orchestrator's cognitive_contract — it
+        # is True when the user's message is an explicit market discovery /
+        # scan request, even if a ticker happens to be in the UI state.
+        _is_market_discovery = bool(working_state.get("scanner_allowed"))
         collector_route = (
             "ticker_analysis"
-            if working_state.get("ticker") and route != "market_scan"
+            if working_state.get("ticker") and route != "market_scan" and not _is_market_discovery
             else "market_scan"
         )
         collector_result = await node_collector(

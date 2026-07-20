@@ -2581,6 +2581,108 @@ def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
     return None
 
 
+def _build_pipeline_verdict(state: dict) -> str:
+    """Build structured PIPELINE VERDICT block from all available module data.
+
+    Returns a multi-line string that the agent MUST base its answer on.
+    If no pipeline data is available, returns a single-line fallback.
+    """
+    lines = [
+        "PIPELINE VERDICT (MANDATORY — you MUST base your answer on this):"
+    ]
+    has_data = False
+
+    # F51 Verdict
+    f51 = state.get("f51_verdict") or {}
+    if isinstance(f51, dict) and f51 and not f51.get("error"):
+        has_data = True
+        score = f51.get("decision_score") or f51.get("confidence") or "N/A"
+        passed = f51.get("passed")
+        verdict_str = (
+            "PASS" if passed is True else ("FAIL" if passed is False else "N/A")
+        )
+        lines.append(f"- F51: score={score}, verdict={verdict_str}")
+
+    # Expert Consensus
+    expert_consensus = state.get("expert_consensus") or {}
+    if isinstance(expert_consensus, dict) and expert_consensus:
+        has_data = True
+        decision = expert_consensus.get("decision", "N/A")
+        ex_score = expert_consensus.get("score", "N/A")
+        coverage = expert_consensus.get("weight_coverage", "N/A")
+        lines.append(
+            f"- Expert Consensus: decision={decision}, score={ex_score}, "
+            f"coverage={coverage}"
+        )
+    elif state.get("expert_results"):
+        has_data = True
+        lines.append(
+            f"- Expert Consensus: {len(state.get('expert_results', []))} "
+            f"experts evaluated"
+        )
+
+    # Trinity deliberation
+    trinity = state.get("trinity_report") or ""
+    if isinstance(trinity, str) and len(trinity) > 10:
+        has_data = True
+        trinity_first = trinity.split("\n")[0][:100]
+        lines.append(f"- Trinity: {trinity_first}")
+
+    # Neural Decision (regime, whale, pump & dump)
+    neural = state.get("neural_decision") or {}
+    if isinstance(neural, dict) and "error" not in neural and neural:
+        has_data = True
+        regime = neural.get("regime") or neural.get("predicted_regime") or "N/A"
+        exp_return = neural.get("expected_return") or "N/A"
+        lines.append(
+            f"- Neural Decision: regime={regime}, expected_return={exp_return}"
+        )
+
+    # Whale Detection + Pump & Dump from Neural Decision scores
+    scores = {}
+    pennylab_raw = state.get("pennylab") or state.get("pennylab_result") or {}
+    if isinstance(pennylab_raw, dict):
+        scores = pennylab_raw.get("scores") or {}
+    if not scores and isinstance(neural, dict):
+        scores = neural
+    whale_score = scores.get("whale_suspicion")
+    pump_score = scores.get("pump_probability")
+    if whale_score is not None:
+        has_data = True
+        lines.append(f"- Whale Detection: score={whale_score}")
+    if pump_score is not None:
+        has_data = True
+        lines.append(f"- Pump & Dump: score={pump_score}")
+
+    # Guardrail Hub
+    guardrail_hub = state.get("guardrail_hub") or {}
+    if isinstance(guardrail_hub, dict) and guardrail_hub:
+        has_data = True
+        blocking = guardrail_hub.get("blocking_count", "N/A")
+        ready = guardrail_hub.get("ready", "N/A")
+        lines.append(f"- Guardrails: {blocking} blocking, ready={ready}")
+
+    # SDCA Firewall
+    sdca = state.get("sdca_firewall") or {}
+    if isinstance(sdca, dict) and sdca:
+        has_data = True
+        sdca_decision = sdca.get("decision", "N/A")
+        lines.append(f"- SDCA Firewall: {sdca_decision}")
+
+    # Data quality
+    data = state.get("data") or {}
+    if isinstance(data, dict):
+        dq = data.get("data_quality")
+        if dq:
+            has_data = True
+            lines.append(f"- Data Quality: {dq}")
+
+    if not has_data:
+        return "No pipeline data available for this ticker."
+
+    return "\n".join(lines)
+
+
 # ============================================================================
 # SECTION D: Main Orchestrator — node_agent
 #    Lines: 2494 – 3197  (~703 lines)
