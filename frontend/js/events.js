@@ -153,6 +153,8 @@
         (function () {
           var ceoObj = SZ.chat.currentCEO;
           if (SZ.renderSDCA && ceoObj) SZ.renderSDCA(ev, ceoObj);
+          // Store for cockpit polling fallback
+          window.SZ.__sdcaState = ev;
         })();
         break;
 
@@ -270,6 +272,8 @@
         (function () {
           var ceoObj = SZ.chat.currentCEO;
           if (SZ.renderNeural && ceoObj) SZ.renderNeural(ev, ceoObj);
+          // Store for cockpit polling fallback
+          window.SZ.__neuralState = ev;
         })();
         break;
 

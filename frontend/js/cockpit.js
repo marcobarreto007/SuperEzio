@@ -634,12 +634,55 @@
     }
   }
 
-  /* ── Main Poll: /cockpit/summary ── */
+  /* ── Polling Fallback: /cockpit/summary ── */
   function refreshDeepState() {
     /* deep-panel.js populates window.SZ.state.deep via pipeline events.
        This is a fallback poll to catch any missed state. */
     if (window.SZ.deepPanel && window.SZ.deepPanel.render) {
       renderAllCards();
+    }
+  }
+
+  /* Fallback poll that fetches /cockpit/summary directly and maps data to cards.
+     This runs every 5s in addition to the pipeline event bus, so cards update
+     even if events never arrive or are malformed. */
+  async function pollCockpitFallback() {
+    var online = false;
+    try {
+      var health = await window.SZ.api.fetchHealth();
+      online = health && health.status === "ok";
+    } catch (e) { online = false; }
+    if (!online) return;
+
+    try {
+      var s = await window.SZ.api.fetchCockpitSummary();
+      if (!s) return;
+
+      /* Map /cockpit/summary fields to card data structures */
+      var deep = s.deep || s.bob || {};
+
+      if (deep.f51) {
+        window.SZ.state = window.SZ.state || {};
+        window.SZ.state.lastF51Verdict = deep.f51;
+      }
+      if (deep.sdca) {
+        window.SZ.__sdcaState = deep.sdca;
+      }
+      if (deep.neural) {
+        window.SZ.__neuralState = deep.neural;
+      }
+      if (deep.trinity) {
+        window.SZ.state = window.SZ.state || {};
+        window.SZ.state.lastTrinity = deep.trinity;
+      }
+      if (deep.guardrails) {
+        window.SZ.state = window.SZ.state || {};
+        window.SZ.state.lastGuardrailHub = deep.guardrails;
+      }
+
+      renderAllCards();
+    } catch (e) {
+      /* silent — keep last known state */
     }
   }
 
@@ -717,6 +760,9 @@
     /* Also poll deep state more frequently for card updates */
     window.setInterval(refreshDeepState, 2000);
 
+    /* Fallback: poll /cockpit/summary every 5s to catch missed pipeline events */
+    window.setInterval(pollCockpitFallback, 5000);
+
     /* Poll Mangala tracker every 15 seconds (trades change less frequently) */
     window.setInterval(refreshMangala, 15000);
   }
@@ -734,6 +780,7 @@
     renderGuardrailCard: renderGuardrailCard,
     renderMangalaCard: renderMangalaCard,
     renderAllCards: renderAllCards,
+    pollCockpitFallback: pollCockpitFallback,
   });
 
   document.addEventListener("DOMContentLoaded", init);

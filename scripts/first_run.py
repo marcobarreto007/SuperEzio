@@ -15,7 +15,7 @@ What it does:
   3. Runs a local health check (disk, env vars, API connectivity, port).
   4. Shows "Tudo pronto! Acesse http://<host>:<port>"
 
-Can be skipped entirely with ``--no-wizard`` — useful for automated deploys.
+Can be skipped entirely with ``--no-wizard`` - useful for automated deploys.
 """
 
 from __future__ import annotations
@@ -65,8 +65,8 @@ def _resolve_auth_db() -> Path:
     data_dir = os.getenv("SUPEREZIO_DATA_DIR", "")
     if data_dir:
         return Path(data_dir) / "auth.db"
-    # Default: data/auth.db (used by core.auth)
-    return _project_root() / "data" / "auth.db"
+    # Default: runtime/auth.db (used by agent_server and seed_admin)
+    return _project_root() / "runtime" / "auth.db"
 
 
 # ---------------------------------------------------------------------------
@@ -186,7 +186,10 @@ def detect_first_run() -> bool:
     # No auth.db or no users -> first run
     auth_db = _resolve_auth_db()
     if not _has_users(auth_db):
-        return True
+        # Also check fallback location (data/auth.db) for migration cases
+        fallback = _project_root() / "data" / "auth.db"
+        if not _has_users(fallback):
+            return True
 
     return False
 
@@ -197,7 +200,7 @@ def detect_first_run() -> bool:
 def _print_banner() -> None:
     print()
     print("=" * 60)
-    print("  SUPER EZIO v4.0.0 — Assistente de Configuracao Inicial")
+    print("  SUPER EZIO v4.0.0 - Assistente de Configuracao Inicial")
     print("  Seu assistente inteligente de investimentos")
     print("=" * 60)
     print()
@@ -208,8 +211,8 @@ def _print_banner() -> None:
 def _ask_provider() -> str:
     """Ask the user to choose between DeepSeek API and yfinance."""
     print("Escolha seu provedor de IA:")
-    print("  1) DeepSeek API (recomendado) — Requer chave de API")
-    print("  2) yfinance (gratis) — Dados de mercado via Yahoo Finance")
+    print("  1) DeepSeek API (recomendado) - Requer chave de API")
+    print("  2) yfinance (gratis) - Dados de mercado via Yahoo Finance")
     print()
     while True:
         choice = input("Digite 1 ou 2 [1]: ").strip() or "1"
@@ -288,7 +291,7 @@ def _create_admin_user(username: str, email: str, password: str) -> dict:
         conn.execute("UPDATE users SET role='admin' WHERE id=?", (user["id"],))
         conn.commit()
     except sqlite3.OperationalError:
-        # Older schema may not have 'role' column — add it and retry
+        # Older schema may not have 'role' column - add it and retry
         conn.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
         conn.execute("UPDATE users SET role='admin' WHERE id=?", (user["id"],))
         conn.commit()
@@ -347,7 +350,7 @@ def run_wizard() -> tuple[str, str | None, dict | None]:
         updates["SUPEREZIO_DEEPSEEK_MODEL"] = "deepseek-v4-pro"
         updates["SUPEREZIO_BOB_SOVEREIGN"] = "1"
     else:
-        # yfinance mode — still need basic env
+        # yfinance mode - still need basic env
         updates["SUPEREZIO_AGENT_BASE_URL"] = "http://127.0.0.1:8082/v1"
         updates["SUPEREZIO_AGENT_MODEL"] = "bob-core-gguf"
         updates["SUPEREZIO_BOB_SOVEREIGN"] = "0"
@@ -480,9 +483,14 @@ def _check_auth_db() -> dict:
             return result
         conn = sqlite3.connect(str(auth_db))
         count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-        has_admin = conn.execute(
-            "SELECT COUNT(*) FROM users WHERE role='admin'"
-        ).fetchone()[0]
+        has_admin = 0
+        try:
+            has_admin = conn.execute(
+                "SELECT COUNT(*) FROM users WHERE role='admin'"
+            ).fetchone()[0]
+        except sqlite3.OperationalError:
+            # Older schema may not have 'role' column
+            pass
         conn.close()
         result["user_count"] = count
         result["admin_count"] = has_admin
@@ -503,7 +511,7 @@ def _check_auth_db() -> dict:
 def _check_deepseek_api() -> dict:
     """Ping the DeepSeek API to verify connectivity and key validity.
 
-    This does NOT send a real completion — it only checks HTTP connectivity
+    This does NOT send a real completion - it only checks HTTP connectivity
     by attempting a GET on the base URL.
     """
     result = {"status": "skipped", "detail": "DeepSeek not configured"}
@@ -576,7 +584,7 @@ def run_health_checks(host: str = "127.0.0.1", port: int = 8002) -> dict:
     """Run all health checks and return the aggregated report."""
     print()
     print("=" * 60)
-    print("  HEALTH CHECK — Verificacao do Sistema")
+    print("  HEALTH CHECK - Verificacao do Sistema")
     print("=" * 60)
     print()
 
@@ -623,9 +631,9 @@ def run_health_checks(host: str = "127.0.0.1", port: int = 8002) -> dict:
     env_result = checks.get("env_vars", {})
     for check in env_result.get("checks", []):
         if check["status"] == "missing":
-            print(f"       ! VAR: {check['var']} — nao configurada")
+            print(f"       ! VAR: {check['var']} - nao configurada")
         elif check["status"] == "placeholder":
-            print(f"       ! VAR: {check['var']} — contem placeholder 'substituir'")
+            print(f"       ! VAR: {check['var']} - contem placeholder 'substituir'")
 
     print()
     checks["_all_ok"] = all_ok
@@ -663,9 +671,9 @@ def print_server_info(host: str, port: int, checks: dict) -> None:
     print(f"    python scripts/browser_smoke.py")
     print()
     print("  Documentacao:")
-    print("    .env.example — Variaveis de ambiente")
-    print("    docs/        — Arquitetura e runbooks")
-    print("    .f51/        — Inventario, contratos, checkpoints")
+    print("    .env.example - Variaveis de ambiente")
+    print("    docs/        - Arquitetura e runbooks")
+    print("    .f51/        - Inventario, contratos, checkpoints")
     print()
 
 

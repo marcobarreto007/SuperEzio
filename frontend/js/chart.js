@@ -156,9 +156,12 @@
     for (var i = 0; i < ohlcv.length; i++) {
       var b = ohlcv[i];
       if (!b || b.time == null || b.volume == null) continue;
+      /* Backend can return {time, value} objects or plain numbers for volume */
+      var vol = (typeof b.volume === 'object' && b.volume !== null) ? b.volume.value : b.volume;
+      if (vol == null || !isFinite(vol)) continue;
       out.push({
         time: toLWTime(b.time),
-        value: b.volume,
+        value: vol,
         color: b.close >= b.open ? C.volBull : C.volBear,
       });
     }

@@ -4,10 +4,9 @@ setlocal enabledelayedexpansion
 
 set ERR_COUNT=0
 set STEP=0
-set PASS=[OK]
-set FAIL=[FAIL]
-set SKIP=[SKIP]
-set INFO=[INFO]
+
+:: === SuperEzio Bootstrap v4.0.0 (Windows) ===
+:: Idempotente: pode rodar varias vezes sem quebrar.
 
 if /i "%1"=="run" goto :step_run
 if /i "%1"=="--help" goto :usage
@@ -17,7 +16,6 @@ call :step_python
 if %ERR_COUNT% NEQ 0 goto :summary
 call :step_venv
 call :step_install_deps
-call :step_playwright
 call :step_env_file
 call :step_jwt_secret
 call :step_seed_admin
@@ -26,157 +24,170 @@ goto :summary
 :header
 cls
 echo.
-echo  === SuperEzio Bootstrap v4.0.0 ===
+echo  ====== SuperEzio Bootstrap v4.0.0 ======
 echo  Windows ONE-CLICK Setup
 echo.
 goto :eof
 
 :step_num
 set /a STEP+=1
-echo [%STEP%] %~1
+echo [!STEP!] %~1
 goto :eof
 
 :step_python
-call :step_num Verificando Python 3.11+...
+call :step_num "Verificando Python 3.11+..."
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo %FAIL% Python nao encontrado. Instale de https://www.python.org/downloads/
+    echo [FAIL] Python nao encontrado.
+    echo Instale de https://www.python.org/downloads/
     set /a ERR_COUNT+=1
     goto :eof
 )
-for /f "tokens=2" %%v in ('python --version 2^^^>^&1') do set PY_VER=%%v
-echo %PASS% Python: %PY_VER%
-for /f "tokens=1,2 delims=." %%a in ("%PY_VER%") do set PY_MAJOR=%%a^&set PY_MINOR=%%b
-if %PY_MAJOR% LSS 3 (
-    echo %FAIL% Python 3.11+ necessario
+for /f "tokens=2" %%v in ('python --version 2^>^&1') do set PY_VER=%%v
+echo [OK] Python: %%PY_VER%%
+for /f "tokens=1,2 delims=." %%a in ("%%PY_VER%%") do (
+    set PY_MAJOR=%%a
+    set PY_MINOR=%%b
+)
+if %%PY_MAJOR%% LSS 3 (
+    echo [FAIL] Python 3.11+ necessario
     set /a ERR_COUNT+=1
     goto :eof
 )
-if %PY_MAJOR% EQU 3 if %PY_MINOR% LSS 11 (
-    echo %FAIL% Python 3.11+ necessario
+if %%PY_MAJOR%% EQU 3 if %%PY_MINOR%% LSS 11 (
+    echo [FAIL] Python 3.11+ necessario
     set /a ERR_COUNT+=1
+    goto :eof
 )
-echo %PASS% Requisito atendido.
+echo [OK] Requisito atendido.
 goto :eof
 
 :step_venv
-call :step_num Verificando virtual environment...
+call :step_num "Verificando virtual environment..."
 if exist ".venv\Scripts\python.exe" (
-    echo %PASS% .venv ja existe.
+    echo [OK] .venv ja existe.
     goto :eof
 )
-echo %INFO% Criando .venv...
+echo [INFO] Criando .venv...
 python -m venv .venv
 if errorlevel 1 (
-    echo %FAIL% Erro ao criar .venv
+    echo [FAIL] Erro ao criar .venv
     set /a ERR_COUNT+=1
     goto :eof
 )
-echo %PASS% .venv criado.
+echo [OK] .venv criado.
 goto :eof
 
 :activate_venv
-if exist ".venv\Scriptsctivate.bat" call ".venv\Scriptsctivate.bat" >nul 2>&1
+if exist ".venv\Scripts\activate.bat" (
+    call ".venv\Scripts\activate.bat" >nul 2>&1
+)
 goto :eof
 
 :step_install_deps
-call :step_num Instalando dependencias...
+call :step_num "Instalando dependencias (pip install -e .)..."
 call :activate_venv
-python -m pip install -e . 2>&1 | findstr /V "already satisfied" | findstr /V "^$"
+python -m pip install -e .
 if errorlevel 1 (
-    echo %FAIL% Erro na instalacao.
+    echo [FAIL] Erro na instalacao das dependencias.
     set /a ERR_COUNT+=1
     goto :eof
 )
-echo %PASS% Dependencias instaladas.
-goto :eof
-
-:step_playwright
-call :step_num Instalando Playwright Chromium...
-python -m playwright install chromium 2>&1
-echo %PASS% Playwright Chromium instalado.
+echo [OK] Dependencias instaladas.
 goto :eof
 
 :step_env_file
-call :step_num Verificando .env.local...
+call :step_num "Verificando .env.local..."
 if exist ".env.local" (
-    echo %PASS% .env.local ja existe.
+    echo [OK] .env.local ja existe.
     goto :eof
 )
 if exist ".env.example" (
-    echo %INFO% Copiando .env.example para .env.local...
+    echo [INFO] Copiando .env.example para .env.local...
     copy ".env.example" ".env.local" >nul
-    echo %PASS% .env.local criado.
+    echo [OK] .env.local criado de .env.example.
+    echo [INFO] Edite .env.local com suas API keys.
 ) else (
-    echo %SKIP% .env.example nao encontrado.
+    echo [SKIP] .env.example nao encontrado - pulando.
 )
 goto :eof
 
 :step_jwt_secret
-call :step_num Verificando JWT_SECRET...
+call :step_num "Verificando SUPEREZIO_JWT_SECRET..."
 if exist ".env.local" (
     findstr /B "SUPEREZIO_JWT_SECRET=" ".env.local" >nul 2>&1
-    if not errorlevel 1 echo %PASS% JWT_SECRET ja configurado.^&goto :eof
+    if not errorlevel 1 goto :jwt_ok
 )
-echo %INFO% Gerando JWT_SECRET...
-cd /d "%~dp0"
+echo [INFO] Gerando JWT_SECRET aleatorio...
 for /f "delims=" %%s in ('python -c "import secrets; print(secrets.token_urlsafe(48))"') do set JWT_GEN=%%s
-if "%JWT_GEN%"=="" (
-    echo %FAIL% Erro ao gerar JWT_SECRET
+if "%%JWT_GEN%%"=="" (
+    echo [FAIL] Erro ao gerar JWT_SECRET
     set /a ERR_COUNT+=1
     goto :eof
 )
-echo SUPEREZIO_JWT_SECRET=%JWT_GEN% >> .env.local
-echo %PASS% JWT_SECRET gerado.
+echo SUPEREZIO_JWT_SECRET=%%JWT_GEN%% >> ".env.local"
+echo [OK] JWT_SECRET gerado e salvo em .env.local.
+goto :eof
+:jwt_ok
+echo [OK] SUPEREZIO_JWT_SECRET ja configurado.
 goto :eof
 
 :step_seed_admin
-call :step_num Verificando admin seed...
+call :step_num "Verificando admin seed..."
 if not exist "scripts\seed_admin.py" (
-    echo %SKIP% seed_admin.py nao encontrado.
+    echo [SKIP] seed_admin.py nao encontrado.
     goto :eof
 )
 call :activate_venv
 if not defined SUPEREZIO_ADMIN_PASSWORD set SUPEREZIO_ADMIN_PASSWORD=SuperEzioAdmin2024!
-python scripts/seed_admin.py --username admin --email admin@superezio.com --password %SUPEREZIO_ADMIN_PASSWORD% 2>&1
-echo %PASS% Admin seed verificado.
+python scripts/seed_admin.py --username admin --email admin@superezio.com --password %%SUPEREZIO_ADMIN_PASSWORD%%
+if errorlevel 1 (
+    echo [INFO] Admin pode ja existir - prosseguindo.
+) else (
+    echo [OK] Admin seed criado: admin / %%SUPEREZIO_ADMIN_PASSWORD%%
+)
 goto :eof
 
 :step_run
 call :header
 call :activate_venv
-if %ERR_COUNT% GTR 0 (
-    echo %FAIL% Corrija os erros antes de iniciar.
-    pause
-    exit /b 1
-)
 echo.
-echo Servidor: http://127.0.0.1:8002
-echo Ctrl+C para parar.
+echo  [INFO] Servidor: http://127.0.0.1:8002
+echo  [INFO] Ctrl+C para parar.
 echo.
-start "" /b cmd /c "timeout /t 3 /nobreak ^>nul ^& start http://127.0.0.1:8002"
+start "" /b cmd /c "timeout /t 3 /nobreak >nul & start http://127.0.0.1:8002"
 python -m agent_server.main
+echo.
 pause
 goto :eof
 
 :usage
 call :header
-echo Comandos:
-echo   setup_superezio.bat        bootstrap completo
-echo   setup_superezio.bat run    inicia servidor
-echo   setup_superezio.bat --help esta mensagem
+echo.
+echo  Comandos:
+echo    setup_superezio.bat        bootstrap completo
+echo    setup_superezio.bat run    inicia servidor
+echo    setup_superezio.bat --help esta mensagem
 echo.
 pause
 goto :eof
 
 :summary
 echo.
-if %ERR_COUNT% EQU 0 (
-    echo %PASS% Bootstrap concluido!
-    echo Para iniciar: setup_superezio.bat run
+if %%ERR_COUNT%% EQU 0 (
+    echo [OK] Bootstrap concluido com sucesso!
+    echo.
+    echo Para iniciar o servidor:
+    echo   setup_superezio.bat run
+    echo.
+    echo Ou manualmente:
+    echo   .venv\Scripts\activate
+    echo   python -m agent_server.main
+    echo.
     echo Abra: http://127.0.0.1:8002
 ) else (
-    echo %FAIL% %ERR_COUNT% erro(s). Corrija e rode novamente.
+    echo [FAIL] %%ERR_COUNT%% erro(s) encontrado(s).
+    echo Corrija e rode novamente.
 )
 echo.
 pause
