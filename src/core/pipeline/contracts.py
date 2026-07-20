@@ -99,6 +99,11 @@ class PipelineState(TypedDict, total=False):
     # PennyLab
     pennylab_result: dict[str, Any]
 
+    # Mangala Engine
+    mangala_opportunities: list[dict[str, Any]]
+    mangala_has_high_conviction: bool
+    mangala_prompt: str
+
     # Experts (fan-out via Send — reducer applied by LangGraph)
     expert_results: Annotated[list[dict[str, Any]], _expert_results_reducer]
     expert_summary: str

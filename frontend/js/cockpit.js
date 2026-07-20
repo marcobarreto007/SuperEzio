@@ -395,6 +395,81 @@
     setTrustBar("guardrail-trust-bar", trustPct, trustPct >= 0.9 ? "is-good" : trustPct >= 0.7 ? "is-warn" : "is-bad");
   }
 
+  /* ── Mangala Compound Tracker Card ── */
+  function renderMangalaCard(data) {
+    if (!data || data.status === "unavailable" || data.total_flips == null) {
+      $("mangala-body").innerHTML = '<div class="empty-state">Aguardando dados do Mangala Tracker.</div>';
+      setText("mangala-verdict", "$" + (data && data.starting != null ? data.starting.toFixed(2) : "20.00"));
+      setTrustBar("mangala-trust-bar", 0, "");
+      return;
+    }
+
+    var starting = data.starting || 20.0;
+    var current = data.current || 20.0;
+    var totalFlips = data.total_flips || 0;
+    var winRate = data.win_rate || 0;
+    var totalProfit = data.total_profit || 0;
+    var bestFlip = data.best_flip;
+    var growthPct = data.growth_pct || 0;
+    var nextTarget = data.next_target || (starting * 1.5);
+    var progressPct = data.progress_pct || 0;
+
+    var currentStr = "$" + current.toFixed(2);
+    var profitSign = totalProfit >= 0 ? "+" : "";
+    var profitStr = profitSign + "$" + Math.abs(totalProfit).toFixed(2);
+    var growthSign = growthPct >= 0 ? "+" : "";
+    var growthStr = growthSign + growthPct.toFixed(1) + "%";
+
+    setText("mangala-verdict", currentStr);
+
+    var html = '';
+    html += '<div class="mangala-capital-row">';
+    html += '  <span class="mangala-capital-label">Starting</span>';
+    html += '  <span class="mangala-capital-value">$' + starting.toFixed(2) + '</span>';
+    html += '</div>';
+    html += '<div class="mangala-capital-row">';
+    html += '  <span class="mangala-capital-label">Current</span>';
+    html += '  <span class="mangala-capital-value mangala-current">' + esc(currentStr) + '</span>';
+    html += '</div>';
+    html += '<div class="mangala-stats">';
+    html += '  <span class="mangala-stat">' + esc(totalFlips) + ' flips</span>';
+    html += '  <span class="mangala-stat">' + esc(winRate) + '% wins</span>';
+    html += '  <span class="mangala-stat ' + (totalProfit >= 0 ? 'is-positive' : 'is-negative') + '">' + esc(profitStr) + '</span>';
+    html += '</div>';
+
+    /* Progress bar toward next milestone */
+    html += '<div class="mangala-progress">';
+    html += '  <div class="mangala-progress__label">';
+    html += '    <span>Progress to $' + nextTarget.toFixed(2) + '</span>';
+    html += '    <span>' + esc(progressPct.toFixed(0)) + '%</span>';
+    html += '  </div>';
+    html += '  <div class="mangala-progress__track">';
+    html += '    <i style="width:' + Math.min(100, Math.max(0, progressPct)) + '%"></i>';
+    html += '  </div>';
+    html += '</div>';
+
+    /* Best flip detail */
+    if (bestFlip && bestFlip.ticker) {
+      html += '<div class="mangala-best">';
+      html += '  <span class="mangala-best__label">Best flip:</span>';
+      html += '  <span class="mangala-best__ticker">' + esc(bestFlip.ticker) + '</span>';
+      html += '  <span class="mangala-best__profit">+' + esc(bestFlip.profit.toFixed(2)) + '</span>';
+      html += '</div>';
+    }
+
+    /* Growth indicator */
+    html += '<div class="mangala-growth">';
+    html += '  <span class="mangala-growth__label">Growth:</span>';
+    html += '  <span class="mangala-growth__value ' + (growthPct >= 0 ? 'is-positive' : 'is-negative') + '">' + esc(growthStr) + '</span>';
+    html += '</div>';
+
+    $("mangala-body").innerHTML = html;
+
+    /* Trust bar = progress proxy */
+    var trustPct = Math.min(1, Math.max(0, progressPct / 100));
+    setTrustBar("mangala-trust-bar", trustPct, trustPct >= 0.5 ? "is-good" : trustPct >= 0.2 ? "is-warn" : "is-bad");
+  }
+
   /* ── Read state and render all cards ── */
   function renderAllCards() {
     var deep = window.SZ.state && window.SZ.state.deep;
@@ -597,6 +672,15 @@
     }
   }
 
+  async function refreshMangala() {
+    try {
+      var data = await window.SZ.api.fetchMangalaSummary();
+      renderMangalaCard(data);
+    } catch (e) {
+      /* silent — keep last known state */
+    }
+  }
+
   /* ── Init ── */
   function init() {
     /* Sync timeframe button group */
@@ -612,24 +696,30 @@
 
     /* Initial refresh */
     refreshAll();
+    refreshMangala();
 
     /* Poll every 10 seconds */
     window.setInterval(refreshAll, 10000);
 
     /* Also poll deep state more frequently for card updates */
     window.setInterval(refreshDeepState, 2000);
+
+    /* Poll Mangala tracker every 15 seconds (trades change less frequently) */
+    window.setInterval(refreshMangala, 15000);
   }
 
   /* ── Public API ── */
   window.SZ = window.SZ || {};
   window.SZ.cockpit = Object.assign(window.SZ.cockpit || {}, {
     refreshAll: refreshAll,
+    refreshMangala: refreshMangala,
     updateStatusBar: updateStatusBar,
     renderF51Card: renderF51Card,
     renderSDCACard: renderSDCACard,
     renderNeuralCard: renderNeuralCard,
     renderTrinityCard: renderTrinityCard,
     renderGuardrailCard: renderGuardrailCard,
+    renderMangalaCard: renderMangalaCard,
     renderAllCards: renderAllCards,
   });
 

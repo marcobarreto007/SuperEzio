@@ -585,6 +585,52 @@ async def _auto_full_analysis(
                 {"errors": [f"auto_full_analysis.pennylab:{exc}"]},
             )
 
+    # ── Mangala Engine — caçador de oportunidades baratas ──
+    # Roda em qualquer scan/análise de mercado, busca ativamente stocks < $10
+    if route in {"market_scan", "ticker_analysis"} or _needs_scan:
+        try:
+            from core.pipeline.nodes.mangala import (
+                scan_mangala_opportunities,
+                format_mangala_for_bob,
+            )
+            from core.scanner.penny_scanner import scan_penny_stocks
+            from data.data_hub import hub as data_hub
+
+            mangala_opps = scan_mangala_opportunities(
+                data_hub=data_hub,
+                scanner=scan_penny_stocks,
+            )
+
+            if mangala_opps:
+                high_conviction = [o for o in mangala_opps if o.get("signal") == "MANGALA!"]
+                mangala_update: dict[str, Any] = {
+                    "mangala_opportunities": mangala_opps,
+                    "mangala_has_high_conviction": len(high_conviction) > 0,
+                }
+
+                if high_conviction:
+                    mangala_update["mangala_prompt"] = format_mangala_for_bob(mangala_opps)
+                    writer(
+                        {
+                            "type": "MANGALA_OPPORTUNITIES",
+                            "run_id": run_id,
+                            "opportunities": [
+                                {"ticker": o["ticker"], "score": o["score"], "signal": o["signal"]}
+                                for o in high_conviction
+                            ],
+                        }
+                    )
+
+                _merge_node_update(working_state, output, mangala_update)
+
+            _mark_step("mangala_scan")
+        except Exception as exc:
+            _merge_node_update(
+                working_state,
+                output,
+                {"errors": [f"auto_full_analysis.mangala:{exc}"]},
+            )
+
     # ═══════════════════════════════════════════════════════
     # PARALLEL: f51, neural, sdca, rag, guardrails — todos independentes
     # ═══════════════════════════════════════════════════════

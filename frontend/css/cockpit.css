@@ -583,6 +583,7 @@ body::after {
 .expert-card__badge--neural { color: var(--green-buy); background: var(--green-dim); }
 .expert-card__badge--trinity { color: #d2a8ff; background: rgba(210, 168, 255, 0.12); }
 .expert-card__badge--guard { color: var(--text-secondary); background: rgba(139, 148, 158, 0.12); }
+.expert-card__badge--mangala { color: #ff9800; background: rgba(255, 152, 0, 0.15); }
 
 .expert-card__name {
   font: 600 10px var(--font-sans);
@@ -885,6 +886,150 @@ body::after {
 .guardrail-layer.is-ok { color: var(--green-buy); }
 .guardrail-layer.is-warn { color: var(--yellow-warn); }
 .guardrail-layer.is-err { color: var(--red-sell); }
+
+/* ── Mangala Compound Tracker Card ── */
+.mangala-capital-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 20px;
+}
+
+.mangala-capital-row + .mangala-capital-row {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 3px;
+  margin-top: 3px;
+}
+
+.mangala-capital-label {
+  font: 600 9px var(--font-sans);
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.mangala-capital-value {
+  font: 700 12px var(--font-mono);
+  color: var(--text-primary);
+}
+
+.mangala-capital-value.mangala-current {
+  color: var(--green-buy);
+  font-size: 14px;
+}
+
+.mangala-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.mangala-stat {
+  display: inline-flex;
+  padding: 1px 5px;
+  border-radius: 2px;
+  font: 600 9px var(--font-mono);
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+
+.mangala-stat.is-positive {
+  color: var(--green-buy);
+  background: var(--green-dim);
+}
+
+.mangala-stat.is-negative {
+  color: var(--red-sell);
+  background: var(--red-dim);
+}
+
+.mangala-progress {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.mangala-progress__label {
+  display: flex;
+  justify-content: space-between;
+  font: 600 8px var(--font-sans);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.mangala-progress__track {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+.mangala-progress__track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--yellow-warn), var(--green-buy));
+  transition: width 0.5s ease;
+}
+
+.mangala-best {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-subtle);
+  font: 600 9px var(--font-mono);
+}
+
+.mangala-best__label {
+  color: var(--text-muted);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.mangala-best__ticker {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.mangala-best__profit {
+  color: var(--green-buy);
+  margin-left: auto;
+}
+
+.mangala-growth {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding-top: 3px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.mangala-growth__label {
+  font: 600 8px var(--font-sans);
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.mangala-growth__value {
+  font: 700 10px var(--font-mono);
+  color: var(--text-primary);
+}
+
+.mangala-growth__value.is-positive {
+  color: var(--green-buy);
+}
+
+.mangala-growth__value.is-negative {
+  color: var(--red-sell);
+}
 
 /* Trust architecture bar (bottom of each card) */
 .expert-card__trust {

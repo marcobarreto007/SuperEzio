@@ -2049,6 +2049,39 @@ async def get_cockpit_portfolio() -> dict[str, Any]:
     return _cockpit_portfolio_snapshot()
 
 
+@router.get("/cockpit/mangala")
+async def get_cockpit_mangala() -> dict[str, Any]:
+    """Return the Mangala compound tracker summary for the cockpit.
+
+    Mostra o crescimento do capital comecando com $20 (dinheiro da loteria).
+    Consumido pelo frontend no renderMangalaCard().
+    """
+    try:
+        from core.pipeline.nodes.mangala_tracker import get_mangala_tracker
+
+        tracker = get_mangala_tracker()
+        summary = tracker.compound_summary()
+        summary["status"] = "ok"
+        return summary
+    except Exception as exc:
+        logger.warning("Mangala tracker unavailable: %s", exc)
+        return {
+            "status": "unavailable",
+            "starting": 20.0,
+            "current": 20.0,
+            "total_flips": 0,
+            "win_rate": 0.0,
+            "total_profit": 0.0,
+            "best_flip": None,
+            "worst_flip": None,
+            "growth_pct": 0.0,
+            "next_target": 30.0,
+            "remaining_to_target": 10.0,
+            "progress_pct": 0.0,
+            "error": str(exc)[:200],
+        }
+
+
 @router.get("/trades/history")
 async def get_trade_history(limit: int = Query(50, ge=1, le=250)) -> dict[str, Any]:
     """Return PaperJournal trade history for cockpit audit panels."""
