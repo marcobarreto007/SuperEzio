@@ -178,21 +178,27 @@ class DataHub:
         return {name: os.getenv(name) for name in self._key_names}
 
     def _register_default_routes(self) -> None:
-        # Market data chain (lower priority number = tried first):
-        #   1) Finnhub (primary — all equity endpoints below)
-        #  12) Twelve Data (fallback)
-        #  30) yfinance (last resort)
-        #  40) AKShare (free US stock OHLCV, keyless)
-        #  45) Stooq (keyless emergency)
+        # Market data — price chain (lower priority number = tried first):
+        #   1) Twelve Data  (fastest, most accurate, key exists)
+        #   2) AKShare      (free, intraday, no rate limit)
+        #   3) Alpha Vantage (fundamentals + price, key exists)
+        #  30) YFinance     (free universal fallback)
+        #  45) Stooq        (last resort)
+        #
+        # Quote / profile / fundamentals / news — Finnhub primary at priority 1
+        #
+        # Sentiment chain:
+        #   1) ApeWisdom   (retail Reddit/WSB — most relevant for Mangala)
+        #   2) NewsAPI     (traditional news)
+        #   3) RedditPulse (social signals)
+        #
         # Insider / smart-money chain:
-        #  15) Form4API (free-tier insider trades)
-        #  50) AlphaSMO (free insider + convergence, keyless)
+        #   1) AlphaSMO  (smart-money convergence, keyless)
+        #   2) Form4API  (SEC Form 4 cluster detection, free tier)
         self.register_provider(
             ProviderRoute(
                 name="finnhub",
                 capabilities=(
-                    "price",
-                    "market_price",
                     "quote",
                     "profile",
                     "fundamentals",
@@ -227,9 +233,9 @@ class DataHub:
                     "market_price": "get_price",
                     "candles": "get_candles",
                 },
-                priority=12,
+                priority=1,
                 required_key="TWELVE_DATA_API_KEY",
-                metadata={"role": "fallback_market_data"},
+                metadata={"role": "primary_market_data"},
             )
         )
 
@@ -278,16 +284,17 @@ class DataHub:
         self.register_provider(
             ProviderRoute(
                 name="akshare",
-                capabilities=("price", "candles", "profile"),
+                capabilities=("price", "market_price", "candles", "profile"),
                 factory=_make_akshare_provider,
                 methods={
                     "price": "get_price",
+                    "market_price": "get_price",
                     "candles": "get_candles",
                     "profile": "get_profile",
                 },
-                priority=40,
+                priority=2,
                 required_key=None,
-                metadata={"role": "free_market_data_fallback"},
+                metadata={"role": "secondary_market_data"},
             )
         )
 
