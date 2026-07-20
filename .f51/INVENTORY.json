@@ -1,23 +1,23 @@
 {
     "project": "SuperEzio",
     "version": "4.0.0",
-    "date_local": "2026-05-21T20:30:00-04:00",
-    "session": "f51-inventory-full-sweep",
+    "date_local": "2026-07-20T18:00:00-04:00",
+    "session": "f51-artifact-refresh-wave5",
     "policy": {
         "github_mode": "disk_only",
         "source": ".f51/GITHUB_POLICY.json",
         "severity": "hard_block"
     },
     "summary": {
-        "source_files_non_init": 127,
-        "source_files_init": 43,
-        "test_files": 42,
-        "total_src_modules": 27,
+        "source_files_non_init": 191,
+        "source_files_init": 51,
+        "test_files": 104,
+        "total_src_modules": 28,
         "total_lines_key_files": 4171,
-        "frontend_files": 35,
+        "frontend_files": 48,
         "config_files": 3,
         "doc_files": 25,
-        "contract_definitions": 9,
+        "contract_definitions": 10,
         "data_traces": 532,
         "cache_files": 152
     },
@@ -93,6 +93,7 @@
         {"name": "core/math", "path": "src/core/math/", "files": 6, "classification": "core", "risk": "low", "notes": "Indicators, risk, crisis, financial_engine, trading_losses, utils"},
         {"name": "core/model_serving", "path": "src/core/model_serving/", "files": 3, "classification": "core", "risk": "high", "notes": "ModelGateway + providers (CEO, DeepSeek, local_orchestrator)"},
         {"name": "core/observability", "path": "src/core/observability/", "files": 3, "classification": "core", "risk": "low", "notes": "Debug logger, event hub, neural log"},
+        {"name": "core/auth", "path": "src/core/auth/", "files": 2, "classification": "core", "risk": "high", "notes": "JWT auth — models.py (SQLite+bcrypt), service.py (PyJWT+refresh rotation)"},
         {"name": "core/paths", "path": "src/core/paths/", "files": 1, "classification": "core", "risk": "low", "notes": "PROJECT_ROOT resolution (__init__.py com código real)"},
         {"name": "core/pipeline", "path": "src/core/pipeline/", "files": 18, "classification": "pipeline", "risk": "high", "notes": "LangGraph StateGraph: graph, contracts, intents, security, 11 nodes, prompts"},
         {"name": "core/ports", "path": "src/core/ports/", "files": 5, "classification": "core", "risk": "medium", "notes": "Abstract interfaces: model_gateway, data_collector, audit_log, health_probe, protocol"},
@@ -174,8 +175,6 @@
         "Does data/corpus/ serve any runtime purpose?",
         "Are data/traces/ consumed by any tool or just manual debugging?",
         "Is data/faiss_index_test/ the active RAG index or just a test fixture?",
-        "Is src/core/scanner/ (init-only module) dead code or lazily imported?",
-        "Is src/core/paths/ (init-only module) dead code?",
         "Is src/experts/technical_neural/ distinct from src/experts/neural_decision/ or a legacy split?",
         "Does src/tools/custom_tools.py contain tools registered in the agent or is it unused?"
     ],
