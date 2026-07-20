@@ -373,7 +373,7 @@
 
     var html = '<div class="guardrail-strip">';
     html += '<span class="guardrail-chip ' + (blocking === 0 ? "is-pass" : "is-block") + '">' + (blocking === 0 ? "ALL PASS" : blocking + " BLOCKING") + '</span>';
-    html += '<span class="guardrail-chip ' + statusCls + '">' + okCount + "/" + total + " OK</span>';
+    html += '<span class="guardrail-chip ' + statusCls + '">' + okCount + "/" + total + " OK</span>";
 
     if (decisionCounts.ALLOW != null) html += '<span class="guardrail-chip is-pass">ALLOW: ' + decisionCounts.ALLOW + '</span>';
     if (decisionCounts.BLOCK != null) html += '<span class="guardrail-chip is-block">BLOCK: ' + decisionCounts.BLOCK + '</span>';

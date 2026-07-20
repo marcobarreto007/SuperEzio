@@ -310,10 +310,17 @@
         return;
       }
 
-      // Dev mode detection: call a real auth-gated endpoint to check if auth is required.
-      // /health returns 200 even with JWT_SECRET set, so we use a protected route.
-      fetch(API + "/cockpit/summary")
+      // Dev mode detection: use a fast health endpoint with timeout.
+      // /cockpit/summary can hang if pipeline/sentiment are slow,
+      // so we use /health/details which returns promptly.
+      // In production mode (JWT_SECRET set), this endpoint requires auth
+      // and returns 401, triggering the login modal.
+      // In dev mode (no JWT_SECRET), it responds 200 immediately.
+      var probeController = new AbortController();
+      var probeTimeout = setTimeout(function () { probeController.abort(); }, 4000);
+      fetch(API + "/health/details", { signal: probeController.signal })
         .then(function (r) {
+          clearTimeout(probeTimeout);
           if (r.ok) {
             // Dev mode — server accepts requests without auth
             console.log("SuperEzio: dev mode detected, skipping login");
@@ -324,7 +331,8 @@
           showLogin();
         })
         .catch(function () {
-          // Server unreachable — show login anyway
+          clearTimeout(probeTimeout);
+          // Server unreachable or timeout — show login anyway
           clearTokens();
           showLogin();
         });
