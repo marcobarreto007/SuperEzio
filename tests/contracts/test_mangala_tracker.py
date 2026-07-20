@@ -23,6 +23,7 @@ from src.core.pipeline.nodes.mangala_tracker import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_tracker(starting_capital: float = 20.0) -> MangalaTracker:
     """Cria um tracker isolado com journal temporario."""
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".jsonl", mode="w")
@@ -100,18 +101,21 @@ def test_tracker_rebuilds_from_journal():
     """Tracker reconstroi estado do journal ao inicializar."""
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".jsonl", mode="w")
     tmp.write(
-        json.dumps({
-            "ticker": "AAPL",
-            "entry_price": 150.0,
-            "exit_price": 155.0,
-            "shares": 10,
-            "entry_date": "2026-07-01",
-            "exit_date": "2026-07-10",
-            "profit": 50.0,
-            "profit_pct": 3.3333,
-            "direction": "long",
-            "trade_id": "mangala-AAPL-1",
-        }) + "\n"
+        json.dumps(
+            {
+                "ticker": "AAPL",
+                "entry_price": 150.0,
+                "exit_price": 155.0,
+                "shares": 10,
+                "entry_date": "2026-07-01",
+                "exit_date": "2026-07-10",
+                "profit": 50.0,
+                "profit_pct": 3.3333,
+                "direction": "long",
+                "trade_id": "mangala-AAPL-1",
+            }
+        )
+        + "\n"
     )
     tmp.close()
 
@@ -156,9 +160,9 @@ def test_record_flip_loss():
 def test_record_flip_multiples():
     """Multiplos flips acumulam corretamente."""
     tracker = _make_tracker()
-    tracker.record_flip("AAPL", 100, 110, 10)   # profit +100
-    tracker.record_flip("MSFT", 200, 190, 5)     # profit -50
-    tracker.record_flip("GOOGL", 150, 180, 2)    # profit +60
+    tracker.record_flip("AAPL", 100, 110, 10)  # profit +100
+    tracker.record_flip("MSFT", 200, 190, 5)  # profit -50
+    tracker.record_flip("GOOGL", 150, 180, 2)  # profit +60
 
     assert tracker.current_capital == 130.0  # 20 + 100 - 50 + 60
     assert len(tracker.trades) == 3
@@ -205,9 +209,9 @@ def test_compound_summary_empty():
 def test_compound_summary_with_flips():
     """Summary reflete estatisticas dos flips."""
     tracker = _make_tracker()
-    tracker.record_flip("AAPL", 100, 110, 10)    # win +100
-    tracker.record_flip("MSFT", 200, 190, 5)      # loss -50
-    tracker.record_flip("GOOGL", 50, 60, 10)      # win +100
+    tracker.record_flip("AAPL", 100, 110, 10)  # win +100
+    tracker.record_flip("MSFT", 200, 190, 5)  # loss -50
+    tracker.record_flip("GOOGL", 50, 60, 10)  # win +100
 
     s = tracker.compound_summary()
     assert s["starting"] == 20.0
@@ -304,24 +308,26 @@ def test_flip_syncs_to_paper_journal():
 
     def _test_sync(flip):
         try:
-            paper_journal.add_trade({
-                "trade_id": flip.get("trade_id"),
-                "ticker": flip.get("ticker"),
-                "direction": flip.get("direction", "long"),
-                "entry_price": flip.get("entry_price"),
-                "exit_price": flip.get("exit_price"),
-                "shares": flip.get("shares"),
-                "entry_date": flip.get("entry_date"),
-                "exit_date": flip.get("exit_date"),
-                "pnl_amount": flip.get("profit"),
-                "pnl_percent": flip.get("profit_pct"),
-                "outcome": "win" if (flip.get("profit") or 0) > 0.01 else "loss",
-                "thesis": f"Mangala flip: {flip.get('ticker')}",
-                "verdict_at_entry": "PASS",
-                "risk_assessment": "test",
-                "expected_holding_period": "swing",
-                "tags": ["mangala", "flip"],
-            })
+            paper_journal.add_trade(
+                {
+                    "trade_id": flip.get("trade_id"),
+                    "ticker": flip.get("ticker"),
+                    "direction": flip.get("direction", "long"),
+                    "entry_price": flip.get("entry_price"),
+                    "exit_price": flip.get("exit_price"),
+                    "shares": flip.get("shares"),
+                    "entry_date": flip.get("entry_date"),
+                    "exit_date": flip.get("exit_date"),
+                    "pnl_amount": flip.get("profit"),
+                    "pnl_percent": flip.get("profit_pct"),
+                    "outcome": "win" if (flip.get("profit") or 0) > 0.01 else "loss",
+                    "thesis": f"Mangala flip: {flip.get('ticker')}",
+                    "verdict_at_entry": "PASS",
+                    "risk_assessment": "test",
+                    "expected_holding_period": "swing",
+                    "tags": ["mangala", "flip"],
+                }
+            )
         except Exception:
             pass
 
@@ -335,5 +341,3 @@ def test_flip_syncs_to_paper_journal():
     # Cleanup temp files
     Path(tmp_paper.name).unlink(missing_ok=True)
     Path(tmp_mangala.name).unlink(missing_ok=True)
-
-

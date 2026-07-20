@@ -19,9 +19,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 DEFAULT_JOURNAL_PATH = (
-    Path(__file__).resolve().parent.parent.parent.parent.parent
-    / "data"
-    / "mangala_journal.jsonl"
+    Path(__file__).resolve().parent.parent.parent.parent.parent / "data" / "mangala_journal.jsonl"
 )
 
 
@@ -40,9 +38,7 @@ class FlipRecord:
     direction: str = "long"
     trade_id: str = ""
     tags: list[str] = field(default_factory=list)
-    recorded_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    recorded_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -74,9 +70,7 @@ class MangalaTracker:
     @property
     def current_capital(self) -> float:
         """Capital atual apos todos os flips registrados."""
-        total_profit = sum(
-            t.get("profit", 0.0) or 0.0 for t in self._trades
-        )
+        total_profit = sum(t.get("profit", 0.0) or 0.0 for t in self._trades)
         return self.starting_capital + total_profit
 
     @property
@@ -99,9 +93,7 @@ class MangalaTracker:
                     try:
                         entries.append(json.loads(line))
                     except json.JSONDecodeError:
-                        logger.warning(
-                            "Skipping corrupt mangala journal line"
-                        )
+                        logger.warning("Skipping corrupt mangala journal line")
         self._trades = entries
 
     def _append_to_journal(self, entry: dict[str, Any]) -> None:
@@ -139,14 +131,10 @@ class MangalaTracker:
 
         profit = (exit_price - entry_price) * shares
         profit_pct = (
-            (profit / (entry_price * shares)) * 100
-            if entry_price > 0 and shares > 0
-            else 0.0
+            (profit / (entry_price * shares)) * 100 if entry_price > 0 and shares > 0 else 0.0
         )
 
-        trade_id = (
-            f"mangala-{ticker}-{int(datetime.now(timezone.utc).timestamp() * 1000)}"
-        )
+        trade_id = f"mangala-{ticker}-{int(datetime.now(timezone.utc).timestamp() * 1000)}"
 
         record = FlipRecord(
             ticker=ticker.upper(),
@@ -206,9 +194,7 @@ class MangalaTracker:
                 }
             )
         except Exception as exc:
-            logger.warning(
-                "Could not sync mangala flip to paper journal: %s", exc
-            )
+            logger.warning("Could not sync mangala flip to paper journal: %s", exc)
 
     # ── Summary ───────────────────────────────────────────────────
 
@@ -275,7 +261,11 @@ class MangalaTracker:
             "next_target": next_milestone,
             "remaining_to_target": round(max(0, next_milestone - current), 2),
             "progress_pct": round(
-                min(100, ((current - self.starting_capital) / (next_milestone - self.starting_capital)) * 100)
+                min(
+                    100,
+                    ((current - self.starting_capital) / (next_milestone - self.starting_capital))
+                    * 100,
+                )
                 if next_milestone > self.starting_capital
                 else 0,
                 2,
