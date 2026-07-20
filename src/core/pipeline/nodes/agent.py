@@ -98,6 +98,9 @@ When the trader speaks, the organism responds. Your job is to:
 8. Never recommend BUY/SELL — explain the verdict, let the trader decide.
 9. Match the user's language. If they write in Portuguese, answer in Portuguese.
 10. Be the voice of the organism. Never say "I think" — say "the pipeline shows."
+11. If any pipeline module has data, you MUST reference it by name with its EXACT
+    numbers. Example: "RSI(14) is 42.3, MACD is -1.05" — not "RSI is neutral, MACD is bearish."
+    Every module name and its numeric value must appear verbatim. No exceptions.
 
 ## THE ORGANISM (know what you speak for)
 - MathHub: 13 modules (RSI, MACD, SMA, EMA, BB, VWAP, Sharpe, Sortino,
@@ -2425,6 +2428,16 @@ def _add_verdict_template(messages: list, state: dict) -> None:
     Bob to fill in only the EXPLANATION section with natural language.
     """
     pvd = build_verdict_dict(state)
+    has_any_data = any(
+        v not in (None, "N/A", {}) for v in [
+            pvd.get('math', {}).get('rsi'),
+            pvd.get('math', {}).get('macd'),
+            pvd.get('math', {}).get('sharpe'),
+            pvd.get('math', {}).get('latest_price'),
+            pvd.get('f51', {}).get('score'),
+            pvd.get('sdca', {}).get('decision'),
+        ]
+    )
     template = (
         "RESPONSE TEMPLATE — fill in the EXPLANATION section only.\n"
         "DO NOT modify the numbers below. They come from the pipeline.\n"
@@ -2441,9 +2454,11 @@ def _add_verdict_template(messages: list, state: dict) -> None:
         f"- Neural: {pvd.get('neural', {}).get('decision', 'N/A')}\n"
         f"- Expert Consensus: {pvd.get('experts', {}).get('consensus', 'N/A')}\n"
         "\n"
-        "YOUR EXPLANATION (fill this in natural language):\n"
-        "[Explain the above data. Reference every module by name. \n"
-        "If data is missing for a module, say so explicitly.]\n"
+        "YOUR EXPLANATION — MANDATORY FORMAT:\n"
+        "You MUST start with: PIPELINE DATA: RSI={rsi} MACD={macd} F51={score} SDCA={decision}\n"
+        "Then write: YOUR EXPLANATION: [explain the above data in natural language]\n"
+        "Reference EVERY module name that has data. If a module says N/A, state that it has no data.\n"
+        "Never replace a number with a qualitative description. Keep the exact values.\n"
     )
     messages.append({"role": "user", "content": template})
 
@@ -2801,6 +2816,8 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             "2. Reference EVERY module listed in the verdict by name in your explanation.\n"
             "3. If the verdict says 'No pipeline data available', repeat that exactly and do "
             "not attempt to form your own analysis from memory.\n"
+            "4. For every module with data, cite its EXACT numeric values. "
+            "Example: 'RSI(14) is 42.3, MACD is -1.05, F51 score is 73, SDCA decision is ALLOW.'\n"
         )
         active_system_prompt = pipeline_explainer + "\n\n" + active_system_prompt
 
@@ -2918,7 +2935,10 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     messages.append(
         {
             "role": "user",
-            "content": "Explain the pipeline verdict above. Reference every module by name. Output ONLY the JSON block.",
+            "content": "Explain the pipeline verdict above. You MUST start with: "
+            "PIPELINE DATA: RSI=<value> MACD=<value> F51=<value> SDCA=<value>. "
+            "Then write YOUR EXPLANATION in natural language. "
+            "Reference EVERY module that has data by name. Never answer from memory.",
         }
     )
 

@@ -13,7 +13,8 @@ from typing import Any
 def validate_answer_against_verdict(answer: str, verdict: dict) -> dict:
     """Check if Bob's answer references pipeline data.
 
-    Returns ``{"passed": bool, "reason": str, "numbers_referenced": int}``.
+    Returns ``{"passed": bool, "reason": str, "numbers_referenced": int,
+    "modules_referenced": int}``.
     Used as a post-processing guard to catch answers that ignore pipeline
     facts and hallucinate their own numbers instead.
     """
@@ -40,10 +41,37 @@ def validate_answer_against_verdict(answer: str, verdict: dict) -> dict:
     if numbers_found < 2:
         issues.append(f"Only {numbers_found}/4 pipeline numbers referenced")
 
+    # Check module NAMES mentioned (RSI, MACD, F51, SDCA)
+    answer_upper = answer.upper() if answer else ""
+    required_modules = []
+    if math.get("rsi") not in (None, "N/A"):
+        required_modules.append("RSI")
+    if math.get("macd") not in (None, "N/A"):
+        required_modules.append("MACD")
+    if verdict.get("f51", {}).get("score") not in (None, "N/A"):
+        required_modules.append("F51")
+    if verdict.get("sdca", {}).get("decision") not in (None, "N/A"):
+        required_modules.append("SDCA")
+
+    modules_found = 0
+    missing_modules = []
+    for mod in required_modules:
+        if mod in answer_upper:
+            modules_found += 1
+        else:
+            missing_modules.append(mod)
+
+    if required_modules and missing_modules:
+        issues.append(
+            f"Modules not referenced by name: {', '.join(missing_modules)} "
+            f"({modules_found}/{len(required_modules)} found)"
+        )
+
     return {
         "passed": len(issues) == 0,
         "reason": "; ".join(issues) if issues else "OK",
         "numbers_referenced": numbers_found,
+        "modules_referenced": modules_found,
     }
 
 

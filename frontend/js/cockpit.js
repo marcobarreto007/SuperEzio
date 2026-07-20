@@ -293,7 +293,7 @@
       html += '<div class="empty-state">Score: ' + esc(scorePct) + '. No factor details available.</div>';
     }
 
-    $("f51-body").innerHTML = html;
+    $("f51-body").innerHTML = html + tradeFormHTML("f51");
 
     /* Trust bar: score as confidence indicator */
     var trustPct = score != null ? score : (confidence || 0);
@@ -610,7 +610,7 @@
       html += '</div>';
     }
 
-    $("mangala-body").innerHTML = html;
+    $("mangala-body").innerHTML = html + tradeFormHTML("mangala");
 
     /* Trust bar = progress proxy */
     var trustPct = Math.min(1, Math.max(0, progressPct / 100));
