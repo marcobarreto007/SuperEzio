@@ -1,23 +1,49 @@
 {
-  "scanned_at": "2026-07-20T22:06:20.662927+00:00",
+  "scanned_at": "2026-07-20T23:15:51.885254+00:00",
   "count": 5,
   "opportunities": [
     {
-      "ticker": "SNDL",
-      "price": 1.28,
-      "volume": 1401857,
-      "name": "SNDL Inc.",
-      "score": 60,
+      "ticker": "PLUG",
+      "price": 2.13,
+      "volume": 35550388,
+      "name": "Plug Power, Inc.",
+      "score": 66,
       "signal": "WATCH",
       "factors": {
         "volume": 30,
-        "whale": 12,
+        "whale": 20,
+        "momentum": 3,
+        "rsi": 5,
+        "catalyst": 8
+      },
+      "whale_status": "PROVAVEL",
+      "whale_score": 60,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
+      "flip_plan": {
+        "entry": 2.13,
+        "target_5pct": 2.24,
+        "stop_3pct": 2.07,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-07-20T23:14:45.093741+00:00"
+    },
+    {
+      "ticker": "SNDL",
+      "price": 1.28,
+      "volume": 1406940,
+      "name": "SNDL Inc.",
+      "score": 58,
+      "signal": "MEH",
+      "factors": {
+        "volume": 30,
+        "whale": 5,
         "momentum": 5,
         "rsi": 8,
-        "catalyst": 5
+        "catalyst": 10
       },
-      "whale_status": "MODERADO",
-      "whale_score": 40,
+      "whale_status": "FRACO",
+      "whale_score": 0,
       "pump_risk": "CLEAN",
       "pump_score": 0,
       "flip_plan": {
@@ -26,59 +52,33 @@
         "stop_3pct": 1.24,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-07-20T22:06:13.704707+00:00"
+      "scanned_at": "2026-07-20T23:15:42.973350+00:00"
     },
     {
-      "ticker": "RIG",
-      "price": 5.02,
-      "volume": 26657809,
-      "name": "Transocean Ltd (Switzerland)",
-      "score": 59,
+      "ticker": "TOP",
+      "price": 2.24,
+      "volume": 692656,
+      "name": "TOP Financial Group Limited",
+      "score": 51,
       "signal": "MEH",
       "factors": {
-        "volume": 30,
-        "whale": 20,
-        "momentum": 0,
-        "rsi": 3,
-        "catalyst": 6
+        "volume": 25,
+        "whale": 5,
+        "momentum": 5,
+        "rsi": 8,
+        "catalyst": 8
       },
-      "whale_status": "PROVAVEL",
-      "whale_score": 50,
+      "whale_status": "FRACO",
+      "whale_score": 0,
       "pump_risk": "CLEAN",
       "pump_score": 0,
       "flip_plan": {
-        "entry": 5.02,
-        "target_5pct": 5.27,
-        "stop_3pct": 4.87,
+        "entry": 2.24,
+        "target_5pct": 2.35,
+        "stop_3pct": 2.17,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-07-20T22:05:28.218426+00:00"
-    },
-    {
-      "ticker": "NIO",
-      "price": 4.81,
-      "volume": 17166443,
-      "name": "NIO Inc.",
-      "score": 59,
-      "signal": "MEH",
-      "factors": {
-        "volume": 30,
-        "whale": 20,
-        "momentum": 0,
-        "rsi": 3,
-        "catalyst": 6
-      },
-      "whale_status": "PROVAVEL",
-      "whale_score": 50,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
-      "flip_plan": {
-        "entry": 4.81,
-        "target_5pct": 5.05,
-        "stop_3pct": 4.67,
-        "max_hold_days": 5
-      },
-      "scanned_at": "2026-07-20T22:05:47.532288+00:00"
+      "scanned_at": "2026-07-20T23:15:51.884254+00:00"
     },
     {
       "ticker": "CLF",
@@ -95,7 +95,7 @@
         "catalyst": 8
       },
       "whale_status": "FRACO",
-      "whale_score": 0,
+      "whale_score": 20,
       "pump_risk": "CLEAN",
       "pump_score": 0,
       "flip_plan": {
@@ -104,33 +104,33 @@
         "stop_3pct": 8.71,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-07-20T22:05:37.796714+00:00"
+      "scanned_at": "2026-07-20T23:15:04.484505+00:00"
     },
     {
-      "ticker": "TOP",
-      "price": 2.24,
-      "volume": 692656,
-      "name": "TOP Financial Group Limited",
+      "ticker": "TLRY",
+      "price": 4.23,
+      "volume": 2983740,
+      "name": "Tilray Brands, Inc.",
       "score": 49,
       "signal": "MEH",
       "factors": {
-        "volume": 25,
+        "volume": 30,
         "whale": 5,
-        "momentum": 5,
-        "rsi": 8,
-        "catalyst": 6
+        "momentum": 3,
+        "rsi": 3,
+        "catalyst": 8
       },
       "whale_status": "FRACO",
-      "whale_score": 20,
-      "pump_risk": "ALERT",
-      "pump_score": 71,
+      "whale_score": 0,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
       "flip_plan": {
-        "entry": 2.24,
-        "target_5pct": 2.35,
-        "stop_3pct": 2.17,
+        "entry": 4.23,
+        "target_5pct": 4.44,
+        "stop_3pct": 4.1,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-07-20T22:06:20.661926+00:00"
+      "scanned_at": "2026-07-20T23:15:33.704055+00:00"
     }
   ]
 }
