@@ -42,7 +42,7 @@
       ],
       "keywords": {
         "whale": ["whale", "baleia", "big money", "institutional", "smart money", "大单"],
-        "pump": ["pump", "rocket", "moon", "\U0001f680", "breakout", "gamma squeeze"],
+        "pump": ["pump", "rocket", "moon", "rocket_emoji", "breakout", "gamma squeeze"],
         "dump": ["dump", "crash", "rug", "scam", "ponzi", "liquidation"],
         "options": ["calls", "puts", "dark pool", "unusual", "sweep", "block trade", "ordem grande"]
       },
