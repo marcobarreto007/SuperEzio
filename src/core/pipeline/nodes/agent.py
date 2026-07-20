@@ -2998,11 +2998,16 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     )
 
     try:
-        prompt_path = Path("runtime/prompts") / f"{run_id}.txt"
+        prompt_path = Path("runtime/prompts") / f"{run_id or 'unknown'}.txt"
         prompt_path.parent.mkdir(parents=True, exist_ok=True)
-        prompt_path.write_text(
-            f"=== SYSTEM ===\n{system_prompt}\n\n=== USER ===\n{user_prompt}\n\n=== OBSERVATIONS ===\n{obs_text}"
+        full_prompt = (
+            f"=== SYSTEM ===\n{system_prompt or '(empty)'}\n\n"
+            f"=== USER ===\n{user_prompt or '(empty)'}\n\n"
+            f"=== OBSERVATIONS ===\n{obs_text or '(empty)'}\n\n"
+            f"=== PROMPT REPORT ===\n{prompt_report or '(empty)'}\n"
         )
+        prompt_path.write_text(full_prompt, encoding="utf-8")
+        logger.debug("Prompt saved to %s (%d bytes)", prompt_path, len(full_prompt))
     except Exception as e:
         logger.warning("Failed to save prompt to disk: %s", e)
 
