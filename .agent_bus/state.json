@@ -2,33 +2,35 @@
   "version": "2.0",
   "created": "2026-07-19T23:59:00-04:00",
   "mission": "SuperEzio produto final — trader deposita, analisa, opera. 100% integrado.",
-  "current_wave": 4,
-  "wave_status": "complete",
+  "phase": "PIPELINE_FIX",
+  "current_loop": 3,
+  "loop_status": "running",
   "transitions": [
     {"timestamp": "2026-07-19T23:59:00-04:00", "from": null, "to": "idle", "reason": "Agent bus initialized."},
-    {"timestamp": "2026-07-20T00:15:00-04:00", "from": "idle", "to": "idle", "reason": "Captain deployed."},
-    {"timestamp": "2026-07-20T00:30:00-04:00", "from": "idle", "to": "wave1_recon", "reason": "Wave 1: 3 agentes RECON"},
-    {"timestamp": "2026-07-20T00:42:00-04:00", "from": "wave1_recon", "to": "wave2_productize", "reason": "Wave 2: 4 agentes PRODUCTIZE"},
-    {"timestamp": "2026-07-20T01:10:00-04:00", "from": "wave2_productize", "to": "wave2_applied", "reason": "6/6 security fixes aplicados (f9cee83)"},
-    {"timestamp": "2026-07-20T01:20:00-04:00", "from": "wave2_applied", "to": "wave3_verify", "reason": "Wave 3: 3 agentes VERIFY"},
-    {"timestamp": "2026-07-20T01:40:00-04:00", "from": "wave3_verify", "to": "wave3_integrating", "reason": "3/3 concluídos. ZERO regressões. 1539 pass. 2 contract fixes aplicados."},
-    {"timestamp": "2026-07-20T02:00:00-04:00", "from": "wave3_integrating", "to": "wave4_cleanup", "reason": "Wave 4: limpeza massiva — 23 módulos mortos + 40 scripts + 7 testes removidos (912ec18)"},
-    {"timestamp": "2026-07-20T03:00:00-04:00", "from": "wave4_cleanup", "to": "wave4_integrate_complete", "reason": "Wave 4: savekeeper consolidação final — STATE_OF_THE_UNION, docs, checkpoints"}
+    {"timestamp": "2026-07-20T00:15:00-04:00", "from": "idle", "to": "idle", "reason": "Captain deployed. 4 waves defined."},
+    {"timestamp": "2026-07-20T00:30:00-04:00", "from": "idle", "to": "wave1_recon", "reason": "Wave 1: RECON (3 agentes)"},
+    {"timestamp": "2026-07-20T00:42:00-04:00", "from": "wave1_recon", "to": "wave2_productize", "reason": "Wave 2: PRODUCTIZE (4 agentes)"},
+    {"timestamp": "2026-07-20T01:10:00-04:00", "from": "wave2_productize", "to": "wave2_applied", "reason": "6/6 security fixes applied"},
+    {"timestamp": "2026-07-20T01:20:00-04:00", "from": "wave2_applied", "to": "wave3_verify", "reason": "Wave 3: VERIFY (3 agentes)"},
+    {"timestamp": "2026-07-20T01:40:00-04:00", "from": "wave3_verify", "to": "wave4_integrate", "reason": "Wave 4: INTEGRATE (savekeeper)"},
+    {"timestamp": "2026-07-20T02:00:00-04:00", "from": "wave4_integrate", "to": "cleanup", "reason": "Limpeza massiva: 23 modulos + 40 scripts + 7 testes"},
+    {"timestamp": "2026-07-20T02:30:00-04:00", "from": "cleanup", "to": "bob_chat_fix", "reason": "Bob Chat fix: MAN_AT_WORK falso + socket check"},
+    {"timestamp": "2026-07-20T03:00:00-04:00", "from": "bob_chat_fix", "to": "pipeline_diagnose", "reason": "Loop 1/3: 4 agentes diagnosticando MathHub→Bob"},
+    {"timestamp": "2026-07-20T03:30:00-04:00", "from": "pipeline_diagnose", "to": "pipeline_fix", "reason": "Loop 2/3: 4 agentes FIX (builder, formato, math, log)"},
+    {"timestamp": "2026-07-20T04:30:00-04:00", "from": "pipeline_fix", "to": "pipeline_verify", "reason": "Loop 3/3: 100 testes overnight em execução"}
   ],
-  "waves_completed": ["wave1_recon", "wave2_productize", "wave3_verify", "wave4_integrate"],
-  "waves_remaining": [],
-  "security_fixes": {
-    "total": 6,
-    "applied": 6,
-    "verified": true,
-    "regressions": 0,
-    "contract_fixes": 2
+  "pipeline_fixes": {
+    "builder_resurrected": true,
+    "format_text_not_json": true,
+    "math_prompt_independent": true,
+    "prompt_log": true,
+    "tests_running": 100,
+    "server_restarted_with_new_code": true
   },
   "gates_summary": {
     "ruff": "clean",
-    "pytest": "1443 passed, 10 skipped, 0 failed",
-    "browser_smoke": "skipped (server offline)",
-    "regression": "0 regressions — 96 tests removed (dead code killed, no new failures)"
+    "pytest": "1446/10/0",
+    "browser_smoke": "skipped (server for tests)"
   },
-  "next": "Fase de Produto — autenticacao JWT, provedor LLM, UI de login"
+  "next": "Integrar resultados dos 100 testes → commit final → produto pronto"
 }
