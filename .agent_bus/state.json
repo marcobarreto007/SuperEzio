@@ -4,17 +4,23 @@
   "mission": "SuperEzio produto final — trader deposita, analisa, opera. 100% integrado.",
   "status": "OPERATIONAL",
   "current_phase": "complete",
-  "summary": "Sistema funcional e completo. Pipeline 100% real. JWT auth full-stack. Frontend login UI. Questrade integrado. 1533/1545 testes.",
+  "summary": "Sistema funcional e completo. Pipeline 100% real. JWT auth full-stack. Frontend login+chart UI. Questrade integrado. Mangala engine. 1538/1549 testes.",
   "deliverables": {
     "pipeline_fixes": "3 loops — prompt, format, math, observations, logging ressuscitados",
     "jwt_auth": "Full-stack — models, service, middleware, routes, UI, seed admin",
     "security_post_wave4": "6 fixes (env leak, --cov default, idempotency, /health real, smoke auth, sdca string)",
     "frontend_login_ui": "auth.js, auth.css, api.js com JWT Bearer token",
     "questrade": "Portfolio reader via Playwright — UI scraping persistente",
-    "testing": "1533/1545 pass — 21 auth tests + 68 integration tests adicionados"
+    "frontend_chart": "WebGL GPU chart — Lightweight Charts, 60 FPS, 1087 LOC",
+    "frontend_auth_fetch": "Auth fetch reescrito — token no header, dev-mode detection",
+    "bob_sovereignty": "Pipeline 100% real — Bob fala com RSI/MACD/Sharpe reais",
+    "data_providers": "14 providers — AKShare, AlphaSMO, ApeWisdom, Form4API integrados",
+    "mangala_engine": "Scanner + scorer — 46 testes, score 0-100",
+    "platform_architecture": "Organism design + templates + UX decisions completos",
+    "testing": "1538/1549 pass — 104 test files, 1611 tests collected"
   },
-  "commit_count": 43,
-  "commit_range": "95cfc57..81457ea",
+  "commit_count": 57,
+  "commit_range": "9a75ce5..c030307",
   "waves_completed": [
     "pipeline_loop1_diagnose",
     "pipeline_loop2_fix",
@@ -24,7 +30,15 @@
     "security_fixes_post_wave4",
     "questrade_integration",
     "test_expansion_auth",
-    "test_expansion_integration"
+    "test_expansion_integration",
+    "social_whale_provider",
+    "provider_price_test",
+    "mangala_engine",
+    "data_provider_optimization",
+    "platform_architecture",
+    "bob_sovereignty_pipeline",
+    "frontend_chart_cockpit",
+    "frontend_auth_fetch_fix"
   ],
   "remaining": {
     "questrade_oauth_token": "Script pronto, falta token OAuth",
@@ -35,7 +49,7 @@
   },
   "gates": {
     "ruff": "clean",
-    "pytest": "1533/1/11",
+    "pytest": "1538/0/11",
     "browser_smoke": "100% pass",
     "server": "UP (porta 8002)"
   }
