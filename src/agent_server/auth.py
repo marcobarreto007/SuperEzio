@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 import jwt as _jwt
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import HTTPException, Request, Response
 from passlib.context import CryptContext
 from pydantic import BaseModel, field_validator
 

@@ -65,7 +65,7 @@ def test_gateway_config_defaults():
 
     gc = GatewayConfig()
     assert gc.max_fallbacks == 2
-    assert gc.timeout_s == 120
+    assert gc.timeout_s == 300  # GatewayConfig default: 300s (increased from 120)
     assert gc.retry_attempts == 2
 
 
