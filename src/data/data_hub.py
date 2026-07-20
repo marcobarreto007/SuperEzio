@@ -208,8 +208,6 @@ class DataHub:
                 ),
                 factory=lambda: _make_finnhub_provider(self._get_key("FINNHUB_API_KEY")),
                 methods={
-                    "price": "get_price",
-                    "market_price": "get_price",
                     "quote": "get_quote",
                     "profile": "get_profile",
                     "fundamentals": "get_fundamentals",

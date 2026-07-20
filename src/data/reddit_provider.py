@@ -4,7 +4,7 @@ import math
 import os
 import re
 from typing import Any
-from urllib.parse import quote_plus
+from urllib.parse import urlparse
 
 import requests
 
@@ -209,13 +209,85 @@ class RedditPulse:
         if not safe_subreddit:
             return []
 
+        match_terms = _match_terms(query)
+
+        # Try 1: Pushshift.io — free historical archive, no OAuth required
+        try:
+            return self._fetch_via_pushshift(
+                subreddit=safe_subreddit, query=query,
+                limit=limit, match_terms=match_terms,
+            )
+        except Exception:
+            pass
+
+        # Try 2: old.reddit.com — public JSON with User-Agent header
+        try:
+            return self._fetch_via_old_reddit(
+                subreddit=safe_subreddit, query=query,
+                limit=limit, sort=sort, time_filter=time_filter,
+                match_terms=match_terms,
+            )
+        except Exception:
+            pass
+
+        # All sources failed for this subreddit
+        return []
+
+    def _fetch_via_pushshift(
+        self,
+        *,
+        subreddit: str,
+        query: str,
+        limit: int,
+        match_terms: list[str],
+    ) -> list[dict[str, Any]]:
+        """Fetch posts via Pushshift.io API (free, no OAuth, historical archive)."""
+        url = "https://api.pushshift.io/reddit/search/submission/"
+        params = {
+            "subreddit": subreddit,
+            "q": query,
+            "size": max(1, min(limit, 25)),
+            "sort": "desc",
+            "sort_type": "score",
+        }
+        response = self.session.get(url, params=params, timeout=self.timeout_s)
+        response.raise_for_status()
+        payload = response.json()
+
+        posts = []
+        for item in payload.get("data", []):
+            # Normalise Pushshift's permalink to path-only for _normalize_post
+            permalink = item.get("permalink") or ""
+            if permalink.startswith("http"):
+                parsed = urlparse(permalink)
+                item["permalink"] = parsed.path
+            post = self._normalize_post(item, subreddit, match_terms=match_terms)
+            if post:
+                posts.append(post)
+        return posts
+
+    def _fetch_via_old_reddit(
+        self,
+        *,
+        subreddit: str,
+        query: str,
+        limit: int,
+        sort: str,
+        time_filter: str,
+        match_terms: list[str],
+    ) -> list[dict[str, Any]]:
+        """Fetch posts via old.reddit.com public JSON (needs User-Agent header)."""
         safe_sort = sort if sort in {"relevance", "hot", "top", "new", "comments"} else "top"
-        url = f"https://www.reddit.com/r/{safe_subreddit}/search.json"
-        params = (
-            f"?q={quote_plus(query)}&restrict_sr=1&sort={safe_sort}"
-            f"&t={time_filter}&limit={max(1, min(limit, 25))}&raw_json=1"
-        )
-        response = self.session.get(url + params, timeout=self.timeout_s)
+        url = f"https://old.reddit.com/r/{subreddit}/search.json"
+        params: dict[str, str | int] = {
+            "q": query,
+            "restrict_sr": 1,
+            "sort": safe_sort,
+            "t": time_filter,
+            "limit": max(1, min(limit, 25)),
+            "raw_json": 1,
+        }
+        response = self.session.get(url, params=params, timeout=self.timeout_s)
         if response.status_code == 429:
             raise RuntimeError("rate_limited")
         response.raise_for_status()
@@ -224,10 +296,64 @@ class RedditPulse:
         posts = []
         for child in payload.get("data", {}).get("children", []):
             item = child.get("data", {})
-            post = self._normalize_post(item, safe_subreddit, match_terms=_match_terms(query))
+            post = self._normalize_post(item, subreddit, match_terms=match_terms)
             if post:
                 posts.append(post)
         return posts
+
+    def _apewisdom_fallback(
+        self,
+        ticker: str,
+        query: str,
+        errors: list[str],
+    ) -> dict[str, Any]:
+        """Fallback to ApeWisdom when all Reddit sources are blocked."""
+        try:
+            from .apewisdom_provider import ApeWisdomProvider
+
+            ape = ApeWisdomProvider()
+            ape_result = ape.get_sentiment(ticker)
+            mentions = ape_result.get("mentions", 0)
+            if mentions > 0:
+                raw_score = ape_result.get("sentiment_score", 50)
+                # Normalise ApeWisdom 0-100 score to -1..1 range
+                sentiment_score = (raw_score - 50) / 50.0
+                return {
+                    "symbol": ticker,
+                    "query": query,
+                    "signal_label": (
+                        "BULLISH_SOCIAL"
+                        if sentiment_score > 0.2
+                        else "BEARISH_SOCIAL" if sentiment_score < -0.2 else "NEUTRAL_SOCIAL"
+                    ),
+                    "sentiment_score": round(sentiment_score, 3),
+                    "post_count": mentions,
+                    "qualified_count": 1,
+                    "subreddits": self.subreddits,
+                    "method": "apewisdom_fallback",
+                    "quality_rules": "fallback: reddit_api_blocked",
+                    "top_posts": [],
+                    "top_headline": f"ApeWisdom fallback: {mentions} mentions for {ape_result.get('ticker', ticker)}",
+                    "provider_errors": errors,
+                    "fallback_source": "apewisdom",
+                }
+        except Exception as exc:
+            errors.append(f"apewisdom_fallback: {exc}")
+
+        # ApeWisdom also failed — return empty signal
+        return {
+            "symbol": ticker,
+            "query": query,
+            "signal_label": "NO_DATA",
+            "post_count": 0,
+            "qualified_count": 0,
+            "subreddits": self.subreddits,
+            "method": "all_sources_failed",
+            "quality_rules": "all_reddit_and_fallback_sources_failed",
+            "top_posts": [],
+            "top_headline": "",
+            "provider_errors": errors,
+        }
 
     def _normalize_post(
         self,
