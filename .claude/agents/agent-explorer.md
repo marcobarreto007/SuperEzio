@@ -1,4 +1,4 @@
-﻿---
+---
 name: agent-explorer
 description: Explorador do exército de agentes do SuperEzio — avalia qualidade, detecta redundância e propõe melhorias no próprio sistema de agentes.
 tools: Read, Grep, Glob, Bash, PowerShell

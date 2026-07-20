@@ -1,4 +1,4 @@
-﻿---
+---
 name: training-verifier
 description: Validador de treino de modelos do SuperEzio — classifica scripts, verifica datasets, valida checkpoints e artefatos de LoRA/fine-tune.
 tools: Read, Grep, Glob, Bash, PowerShell

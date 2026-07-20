@@ -1,4 +1,4 @@
-﻿---
+---
 name: savekeeper
 description: Guardião da verdade durável do SuperEzio — versiona docs, atualiza CLAUDE.md, AGENTS.md, changelog e roadmap. Único agente autorizado a editar docs operacionais.
 tools: Read, Edit, Bash, PowerShell

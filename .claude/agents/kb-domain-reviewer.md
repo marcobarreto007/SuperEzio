@@ -1,4 +1,4 @@
-﻿---
+---
 name: kb-domain-reviewer
 description: Revisor de conhecimento de domínio do SuperEzio — valida documentação financeira, precisão conceitual e integridade da base de conhecimento.
 tools: Read, Grep, Glob, Bash, PowerShell

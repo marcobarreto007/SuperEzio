@@ -1,4 +1,4 @@
-﻿---
+---
 name: frontend-ux-reviewer
 description: Revisor de frontend/UX do SuperEzio — valida interface, acessibilidade, experiência de chat, e smoke test visual.
 tools: Read, Grep, Glob, Bash, PowerShell, Playwright

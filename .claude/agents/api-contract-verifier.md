@@ -1,4 +1,4 @@
-﻿---
+---
 name: api-contract-verifier
 description: Validador de contratos do SuperEzio — protege APIs públicas, detecta breaking changes e valida compatibilidade entre módulos.
 tools: Read, Grep, Glob, Bash, PowerShell

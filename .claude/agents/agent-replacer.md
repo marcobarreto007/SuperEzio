@@ -1,4 +1,4 @@
-﻿---
+---
 name: agent-replacer
 description: Substituto de agentes do SuperEzio — remove agentes ruins e promove candidatos melhores. Seleção natural, sem emoção.
 tools: Read, Grep, Glob, Bash, PowerShell
