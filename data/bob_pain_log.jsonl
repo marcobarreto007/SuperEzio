@@ -2765,3 +2765,12 @@
 {"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-20T04:09:56.091086+00:00", "healed": false}
 {"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-20T04:09:56.091086+00:00", "healed": false}
 {"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T04:09:56.091086+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-07-20T04:09:59.095149+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-20T04:09:59.280915+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-20T04:09:59.280915+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-20T04:09:59.280915+00:00", "healed": false}
+{"organ": "ceo_brain", "category": "brain", "pain": 100, "error": "CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu", "timestamp": "2026-07-20T04:10:33.868218+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-07-20T04:10:36.910808+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-20T04:10:37.246802+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-20T04:10:37.247313+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-20T04:10:37.247313+00:00", "healed": false}
