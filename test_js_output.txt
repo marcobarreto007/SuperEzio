@@ -1,8 +1,0 @@
-/* Test with JS content */
-(function () {
-  "use strict";
-  var x = 'hello world';
-  var y = "double quotes work";
-  var z = 'mixed quotes "inside" single';
-  console.log(x);
-})();
