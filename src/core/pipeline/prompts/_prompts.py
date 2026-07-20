@@ -65,7 +65,6 @@ QWEN_PERSONA = (
 )
 
 
-
 MODEL_PROMPTS = {
     "local": {
         "system": QWEN_SYSTEM_PROMPT,

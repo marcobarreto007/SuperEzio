@@ -2313,11 +2313,11 @@ def _require_trading_auth(request: Request) -> str:
         raise HTTPException(status_code=401, detail="Invalid trading token")
     if time.time() - ts > _TRADING_TOKEN_TTL:
         del _TRADING_TOKENS[token]
-        raise HTTPException(status_code=401, detail='Trading token expired')
+        raise HTTPException(status_code=401, detail="Trading token expired")
     return token
 
 
-@router.post('/api/trading/token')
+@router.post("/api/trading/token")
 async def create_trading_token(request: Request) -> dict[str, Any]:
     """Generate a single-use trading session token (valid 15 min). Requires X-API-Key."""
     token = secrets.token_urlsafe(32)
@@ -2325,8 +2325,7 @@ async def create_trading_token(request: Request) -> dict[str, Any]:
     for t, ts in list(_TRADING_TOKENS.items()):
         if time.time() - ts > _TRADING_TOKEN_TTL:
             del _TRADING_TOKENS[t]
-    return {'token': token, 'expires_in': _TRADING_TOKEN_TTL, 'type': 'trading_session'}
-
+    return {"token": token, "expires_in": _TRADING_TOKEN_TTL, "type": "trading_session"}
 
 
 @router.post("/trade/execute")

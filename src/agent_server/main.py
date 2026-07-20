@@ -353,18 +353,22 @@ async def security_headers_middleware(request: Request, call_next):
 API_KEY = os.getenv("SUPEREZIO_API_KEY", "")
 API_KEY_HEADER = "X-API-Key"
 
-_PUBLIC_EXACT = frozenset({
-    "/health",
-    "/favicon.ico",
-    "/",
-    "/metrics",
-})
+_PUBLIC_EXACT = frozenset(
+    {
+        "/health",
+        "/favicon.ico",
+        "/",
+        "/metrics",
+    }
+)
 
-_PUBLIC_PREFIXES = frozenset({
-    "/frontend",
-    "/css",
-    "/js",
-})
+_PUBLIC_PREFIXES = frozenset(
+    {
+        "/frontend",
+        "/css",
+        "/js",
+    }
+)
 
 
 def _is_public_path(path: str) -> bool:

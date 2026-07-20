@@ -34,7 +34,12 @@ def test_parse_declared_tickers_missing_field_returns_none():
 
 def _state_with_grounded_shop():
     return {
-        "data": {"ticker": "SHOP", "price": 117.85, "provider": "finnhub", "data_quality": "partial"},
+        "data": {
+            "ticker": "SHOP",
+            "price": 117.85,
+            "provider": "finnhub",
+            "data_quality": "partial",
+        },
         "ticker": "SHOP",
     }
 

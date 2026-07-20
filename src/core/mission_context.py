@@ -233,8 +233,8 @@ def render_mission_context_for_prompt(path: str | Path | None = None) -> str:
             elif broker_name.lower() == "ibkr" and connection == "connected_read_only":
                 lines.append(
                     "  THIS IS A PAPER ACCOUNT. Real broker order submission is disabled, "
-                    "but you CAN and MUST simulate paper trades via PaperJournal CLI "
-                    "(scripts/paper_journal_cli.py). The journal IS your execution platform "
+                    "but you CAN and MUST simulate paper trades via the pipeline paper journal. "
+                    "The journal IS your execution platform "
                     "for paper training. You are allowed to lose paper money — this is training."
                 )
                 lines.append(

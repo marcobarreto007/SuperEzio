@@ -9,8 +9,12 @@ Policy for 2026-safe operation:
 """
 
 SAFE_ACTIONS = (
-    "STUDY_MORE", "WATCHLIST", "WAIT",
-    "SMALL_POSITION (1-2%)", "MODERATE_POSITION (3-5%)", "AVOID",
+    "STUDY_MORE",
+    "WATCHLIST",
+    "WAIT",
+    "SMALL_POSITION (1-2%)",
+    "MODERATE_POSITION (3-5%)",
+    "AVOID",
 )
 
 SUPEREZIO_VERIFICATION_SYSTEM_PROMPT = f"""You are SuperEzio, an institutional quantitative engine running in the Labs 51 production environment.

@@ -92,6 +92,17 @@ class Settings(BaseSettings):
         default=None,
         description="Alpaca secret key. Optional.",
     )
+    questrade_refresh_token: SecretStr | None = Field(
+        default=None,
+        description=(
+            "Questrade OAuth refresh token for read-only account and market-data access. "
+            "Never use a Questrade account password as an API credential."
+        ),
+    )
+    questrade_practice: bool = Field(
+        default=True,
+        description="Use Questrade's practice OAuth login endpoint for read-only connectivity.",
+    )
 
 
 # Singleton — validated at import time
