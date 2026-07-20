@@ -590,8 +590,19 @@ def _grounding_guard_answer(
 ) -> str:
     claims = collect_security_claims(state)
     grounded = set(claims)
+
+    # Safety: if grounded is empty but math_report and data clearly exist,
+    # enrich grounded with the ticker from math_report. This prevents false
+    # censorship when claim extraction couldn't parse the state format.
     if not grounded:
-        return content
+        mr = state.get("math_report")
+        data = state.get("data")
+        if mr and data and isinstance(mr, dict):
+            mr_ticker = _normalize_ticker_symbol(mr.get("ticker"))
+            if mr_ticker:
+                grounded = {mr_ticker}
+        if not grounded:
+            return content
 
     # Prefer the LLM's own structured declaration (final_answer's
     # mentioned_tickers arg) over regex-guessing ticker mentions from
@@ -2562,10 +2573,10 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
     # ── Case gate: block if pipeline steps are pending ──
     financial_case = state.get("financial_case")
-    if financial_case and hasattr(financial_case, 'pending_steps'):
+    if financial_case and hasattr(financial_case, "pending_steps"):
         pending = financial_case.pending_steps
         if pending:
-            required = ['data_collection', 'math_hub', 'expert_committee']
+            required = ["data_collection", "math_hub", "expert_committee"]
             missing = [s for s in required if s in pending]
             if missing:
                 return {
@@ -2797,11 +2808,14 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
         # ── PIPELINE VERDICT — system binding, must be referenced ──
         pipeline_verdict = build_pipeline_verdict(state)
-        messages.insert(1, {  # right after system prompt
-            "role": "system",
-            "content": "=== PIPELINE VERDICT (BINDING — you MUST follow) ===\n"
-            + json.dumps(pipeline_verdict, indent=2),
-        })
+        messages.insert(
+            1,
+            {  # right after system prompt
+                "role": "system",
+                "content": "=== PIPELINE VERDICT (BINDING — you MUST follow) ===\n"
+                + json.dumps(pipeline_verdict, indent=2),
+            },
+        )
 
         # ── RESPONSE TEMPLATE — pre-filled pipeline data for Bob to explain ──
         _add_verdict_template(messages, state)
@@ -2842,11 +2856,14 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             active_system_prompt = base_prompt
         messages = [{"role": "system", "content": active_system_prompt}]
         pipeline_verdict = build_pipeline_verdict(state)
-        messages.insert(1, {  # right after system prompt
-            "role": "system",
-            "content": "=== PIPELINE VERDICT (BINDING — you MUST follow) ===\n"
-            + json.dumps(pipeline_verdict, indent=2),
-        })
+        messages.insert(
+            1,
+            {  # right after system prompt
+                "role": "system",
+                "content": "=== PIPELINE VERDICT (BINDING — you MUST follow) ===\n"
+                + json.dumps(pipeline_verdict, indent=2),
+            },
+        )
         # ── RESPONSE TEMPLATE — pre-filled pipeline data for Bob to explain ──
         _add_verdict_template(messages, state)
         messages.append(

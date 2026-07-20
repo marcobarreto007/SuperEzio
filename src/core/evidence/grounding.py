@@ -54,6 +54,26 @@ def collect_security_claims(state: Mapping[str, Any]) -> dict[str, GroundedSecur
         else:
             add(data, state_ticker)
 
+    # MathHub report — ticker and latest_price after numerical analysis
+    # Only extract if math_report has a real ticker (avoid overwriting existing claims)
+    math_report = state.get("math_report") or {}
+    mr_ticker = math_report.get("ticker") if isinstance(math_report, Mapping) else None
+    if mr_ticker:
+        _numbers = math_report.get("numbers") or {}
+        _summary = math_report.get("summary") or {}
+        mr_price = (_numbers.get("latest_price") if isinstance(_numbers, Mapping) else None) or (
+            _summary.get("latest_price") if isinstance(_summary, Mapping) else None
+        )
+        add(
+            {
+                "ticker": mr_ticker,
+                "price": mr_price,
+                "source": "math_hub",
+                "as_of": math_report.get("generated_at"),
+            },
+            state_ticker,
+        )
+
     scan = state.get("scan") or {}
     if isinstance(scan, Mapping):
         for candidate in scan.get("candidates") or []:
