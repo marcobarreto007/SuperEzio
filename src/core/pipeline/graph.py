@@ -116,6 +116,61 @@ async def _do_collect(working_state, output, should_collect_market, route, confi
         _mark("data_collection")
 
 
+def _is_simple_query(state: dict) -> bool:
+    """Check if user query is simple enough to skip Trinity (fast path).
+
+    Simple = 1 ticker + basic indicator keywords only.
+    Complex = portfolio, strategy, macro, valuation, DCF, or multi-ticker.
+    """
+    msg = str(state.get("message") or "").lower()
+    ticker = str(state.get("ticker") or "").upper()
+    if not ticker:
+        return False
+
+    # Complex topics — NEVER fast-path
+    complex_keywords = (
+        "portfolio", "alocação", "alocacao", "estrategia", "estratégia",
+        "macro", "crise", "valuation", "dcf", "divida", "dívida",
+        "balanço", "balanco", "crescimento", "projeção", "projecao",
+        "setor", "concorrencia", "concorrência",
+        "diversificação", "diversificacao", "hedge",
+        "lucro", "receita", "margem", "ebitda",
+    )
+    if any(kw in msg for kw in complex_keywords):
+        return False
+
+    # Strip ticker from message
+    msg_clean = msg.replace(ticker.lower(), "").strip()
+    if not msg_clean:
+        return True  # just the ticker → simple
+
+    # Allow simple indicator keywords and common stopwords only
+    simple_keywords = {
+        "price", "preço", "preco", "cotação", "cotacao",
+        "rsi", "macd", "tendência", "tendencia",
+        "recomendação", "recomendacao", "recomenda",
+        "agora", "now", "valor", "atual", "current",
+        "hoje", "today", "status", "indicador", "indicadores",
+        "gráfico", "grafico", "quote", "cotation",
+    }
+    stopwords = {
+        "the", "is", "de", "da", "do", "em", "para", "com",
+        "um", "uma", "os", "as", "no", "na", "a", "o", "e",
+        "que", "do", "da", "dos", "das", "num", "numa",
+        "me", "se", "por", "ao", "aos", "nao", "não",
+    }
+    allowed = simple_keywords | stopwords
+
+    words = set(w.strip(".,!?;:()[]{}\"'") for w in msg_clean.split())
+    meaningful = {w for w in words if len(w) > 1}
+    extra = meaningful - allowed
+    if extra:
+        logger.debug("FAST_PATH_BLOCKED ticker=%s extra_words=%s", ticker, extra)
+        return False
+
+    return True
+
+
 async def _auto_full_analysis(
     state: dict,
     *,
@@ -324,6 +379,22 @@ async def _auto_full_analysis(
             working_state,
             output,
             {"errors": [f"auto_full_analysis.math_hub:{exc}"]},
+        )
+
+    # ── FAST PATH: skip Trinity for simple queries ──
+    # Simple queries (single ticker + basic indicator) go directly to Bob
+    # with math_report + f51_verdict, bypassing Genie/Deep deliberation.
+    if _is_simple_query(working_state):
+        skip_update = {
+            "skip_trinity": True,
+            "trinity_report": "TRINITY_SKIPPED_FAST_PATH",
+            "trinity_structured": {"skipped": True, "reason": "fast_path_simple_query"},
+            "trinity_blocked": False,
+        }
+        _merge_node_update(working_state, output, skip_update)
+        logger.info(
+            "FAST_PATH ticker=%s route=%s reason=simple_query",
+            ticker, route,
         )
 
     # Market experts only run after market/ticker evidence is actually present.
@@ -724,6 +795,10 @@ def build_graph(
         return await _auto_full_analysis(state, gateway=gateway, config=config)
 
     async def _trinity(state: dict) -> dict:
+        if state.get("skip_trinity"):
+            ticker = state.get("ticker", "")
+            logger.info("FAST_PATH_SKIP_TRINITY ticker=%s", ticker)
+            return {}
         return await node_trinity(state, gateway=gateway)
 
     async def _agent(state: dict) -> dict:
