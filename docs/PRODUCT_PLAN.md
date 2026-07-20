@@ -1,6 +1,6 @@
 # SuperEzio — Plano de Produto para Trader Final
 
-> Documento 100% baseado em codigo existente. Tudo marcado como "[EXISTE]" ou "[CONSTRUIR]" conforme o estado real do repositorio em 2026-07-19.
+> Documento 100% baseado em codigo existente. Tudo marcado como "[EXISTE]" ou "[CONSTRUIR]" conforme o estado real do repositorio em 2026-07-20.
 > Gerado pelo skill f51-productizer.
 
 ---
@@ -79,9 +79,15 @@
 - `data/conversation_memory.jsonl` — Memoria de conversacao
 - `data/bob_pain_log.jsonl` — Log de dor do ANS
 
-### 1.7 Seguranca — [EXISTE PARCIAL]
+### 1.7 Seguranca — [EXISTE]
 - Security headers (CORS, X-Frame-Options, HSTS, etc.) — [EXISTE]
-- **ZERO autenticacao** em ~20 rotas — [P0 CONSTRUIR] (documentado em TASK_BOARD.md)
+- **JWT Authentication** — [EXISTE] (P0 resolvido)
+  - `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/me`
+  - SQLite-backed user store com bcrypt + refresh token rotation
+  - Dev mode fallback quando `SUPEREZIO_JWT_SECRET` nao configurado
+  - Middleware JWT em cascata apos API key middleware
+  - Rotas publicas: `/health`, `/frontend/*`, `/auth/*` — sem auth necessaria
+- **Script de seed admin** — `scripts/seed_admin.py` — [EXISTE]
 - `F51_TRADING_EXECUTION_FREEZE` (default True) — [EXISTE]
 - `SUPEREZIO_LIVE_TRADING_DISABLED` (default True) — [EXISTE]
 - `MAN_AT_WORK` mode — [EXISTE]
@@ -151,10 +157,13 @@
 
 ### O que ja funciona HOJE e pode ir para producao:
 
-**5.1 Onboarding — [CONSTRUIR]**
-- [ ] Cadastro com email + senha (auth JWT)
+**5.1 Onboarding — [EXISTE PARCIAL]**
+- [x] Cadastro com email + senha (auth JWT) — `POST /auth/register`
+- [x] Login com JWT — `POST /auth/login`
+- [x] Refresh token rotacao — `POST /auth/refresh`
+- [x] Script de seed admin — `python scripts/seed_admin.py`
 - [ ] Perfil de investidor (risk_profile: conservador/moderno/agressivo)
-- [ ] KYC basico (nome, CPF/SSN,端 foto documento)
+- [ ] KYC basico (nome, CPF/SSN, foto documento)
 - [ ] Termos de uso + risk disclosure
 
 **5.2 Deposito/Funding — [CONSTRUIR]**
@@ -280,11 +289,12 @@ stack:
 ## 9. Roadmap V1 (Proximo Passo)
 
 ### Sprint 1 — Autenticacao e Base (7 dias)
-1. Implementar JWT auth em todas as rotas (P0)
+1. Implementar JWT auth em todas as rotas (P0) — **[FEITO]**
 2. Tela de login/registro no frontend
-3. User model + SQLite users table
-4. Perfil de investidor (questionario de risco)
-5. Rate limiting por usuario
+3. User model + SQLite users table — **[FEITO]** (schema em `core/auth/models.py`)
+4. Seed admin script — **[FEITO]** (`scripts/seed_admin.py`)
+5. Perfil de investidor (questionario de risco)
+6. Rate limiting por usuario
 
 ### Sprint 2 — Plano Free + Onboarding (7 dias)
 1. Feature flags por plano (free vs starter)
@@ -327,7 +337,8 @@ Um **copiloto financeiro com comite de experts auditoriavel** que ajuda o trader
 - **6 security fixes aplicados** — auth middleware, trading 2FA, ticker sanitize, sandbox, .env.local, CI/CD
 - **Ruff limpo** — src/ e tests/ sem violacoes
 - **Browser smoke** pendente (servidor offline)
-- **1 blocking gap**: Zero autenticacao (P0, documentado)
+- **JWT auth implementado** — 4 endpoints (/auth/register, login, refresh, me) + middleware em cascata
+- **Seed admin disponivel** — `python scripts/seed_admin.py` para bootstrap
 - **1 missing pre-requisito**: Chat real depende de DeepSeek API key configurada OU GGUF local presente em disco
 
 ---
@@ -338,11 +349,29 @@ Atualizado em `.f51/checkpoints/latest.json`.
 
 ## 12. Acao Imediata
 
-1. **Antes de qualquer feature de produto**: Implementar autenticacao JWT (P0 de seguranca)
+1. **Seed admin inicial**: `python scripts/seed_admin.py --password SuaSenhaForte!`
 2. **Configurar provedor LLM**: DeepSeek API key ou download do GGUF (~40 GB)
 3. **Criar tela de login** no frontend
 4. **Ativar paper trading** como modo default para novos usuarios
-5. **Testar fluxo completo**: registro -> login -> chat -> paper trade -> journal -> auditoria
+5. **Testar fluxo completo**: seed -> login -> chat -> paper trade -> journal -> auditoria
+
+### Primeiro uso para o trader
+
+```bash
+# 1. Garantir que o servidor esta rodando
+python -m agent_server.main
+
+# 2. Em outro terminal, criar admin inicial
+python scripts/seed_admin.py --username admin --email admin@exemplo.com --password MinhaSenha123
+
+# 3. Testar login via API (opcional)
+curl -X POST http://localhost:8002/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"MinhaSenha123"}'
+
+# 4. Abrir o navegador em http://localhost:8002
+#    (modo dev: user anonimo ate frontend de login ser implementado)
+```
 
 ---
 

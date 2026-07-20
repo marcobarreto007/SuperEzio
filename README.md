@@ -92,6 +92,29 @@ $env:PYTHONPATH = "src"
 python -m agent_server.main
 ```
 
+## Authentication
+
+SuperEzio uses JWT authentication with bcrypt password hashing and refresh-token rotation.
+
+- **`/auth/register`** — create a new user account (username, email, password)
+- **`/auth/login`** — authenticate and receive an access + refresh token pair
+- **`/auth/refresh`** — rotate a refresh token (single-use)
+- **`/auth/me`** — return the authenticated user's profile
+
+When `SUPEREZIO_JWT_SECRET` is not configured the server runs in **dev mode** and injects an anonymous user for all non-public routes.  In production, set a strong secret via `.env.local`:
+
+```ini
+SUPEREZIO_JWT_SECRET=your-strong-random-secret-here
+```
+
+### Seeding the first admin
+
+```powershell
+python scripts/seed_admin.py --username admin --email admin@superezio.com --password StrongPass123!
+```
+
+The script accepts `--db-path` to point to a custom location and falls back to environment variables `SUPEREZIO_ADMIN_USERNAME`, `SUPEREZIO_ADMIN_EMAIL`, and `SUPEREZIO_ADMIN_PASSWORD`.
+
 ## Verification
 
 ```powershell
