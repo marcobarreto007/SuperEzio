@@ -78,6 +78,24 @@
       "total_test_files": 100,
       "source_loc": 59089,
       "test_loc": 22124
+    },
+    "provider_price_test_20260720": {
+      "result": "Testados 5 providers de preco — apenas 2 funcionam (yfinance, TwelveData)",
+      "working": [
+        {"name": "yfinance", "success_rate": "100%", "avg_latency": "0.469s", "no_key": true, "rank": 1},
+        {"name": "twelve_data", "success_rate": "100%", "avg_latency": "0.687s", "no_key": false, "rank": 2}
+      ],
+      "broken": [
+        {"name": "finnhub", "error": "API key b444a4ae invalid (http_401)", "rank": 3},
+        {"name": "akshare", "error": "Chinese API endpoints unreachable (connection aborted)", "rank": 4},
+        {"name": "stooq", "error": "Site offline (all endpoints return HTTP 404)", "rank": 5}
+      ],
+      "cross_provider_accuracy": "All diffs <0.4% between yfinance and TwelveData — no provider is wrong",
+      "recommended_chain": {
+        "primary": "yfinance (fastest, no key, 100% success)",
+        "secondary": "TwelveData (also 100%, requires TWELVE_DATA_API_KEY)",
+        "tertiary": "none (Stooq offline, AKShare blocked, Finnhub key invalid)"
+      }
     }
   },
   "deliverables": {
@@ -86,10 +104,11 @@
     "security": "6 fixes pos-Wave-4 (env leak, coverage, idempotency, /health smoke auth, sdca string)",
     "questrade": "Portfolio reader via Playwright — UI scraping persistente",
     "testing": "1533/1545 pass — 21 auth tests + 68 integration tests",
+    "provider_price_test": "Testados 5 providers de preco. yfinance = melhor. Finnhub/Stooq/AKShare falham.",
     "total_commits": 43,
     "total_changes": "340 files changed, +308 / -163 (ultimo commit)"
   },
-  "verdict": "SuperEzio OPERACIONAL. Pipeline funcional. JWT auth completo. Frontend login UI pronto. Questrade integrado. 1533/1545 testes verdes. 43 commits entregues. Sistema pronto para deploy.",
+  "verdict": "SuperEzio OPERACIONAL. Pipeline funcional. JWT auth completo. Frontend login UI pronto. Questrade integrado. 1533/1545 testes verdes. 43 commits entregues. Sistema pronto para deploy. Cadeia de precos: yfinance primario, TwelveData fallback — 3 providers inoperantes (Finnhub key invalida, Stooq offline, AKShare bloqueado).",
   "gates": {
     "ruff": "clean",
     "ruff_format": "clean",
@@ -103,7 +122,8 @@
     "frontend_login_as_landing": "Login UI existe mas dev mode ainda injeta anonimo",
     "gguf_download": "Modelo local nao presente (~40 GB)",
     "test_regression_1": "Expert committee test falhando — investigar",
-    "deploy": "Containerizar e configurar em producao"
+    "deploy": "Containerizar e configurar em producao",
+    "provider_fixes": "Corrigir ou remover providers quebrados: Finnhub (key invalida), Stooq (offline), AKShare (bloqueado)"
   },
   "next": "Deploy / Producao — containerizar, configurar LLM provider, ativar login como tela inicial"
 }

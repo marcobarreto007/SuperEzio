@@ -227,6 +227,14 @@ Session: session-final
 - Mitigation: Obter token OAuth do Questrade Portal e configurar via .env.
 - Status: Active. Codigo pronto para integracao.
 
+### INV-R24 - Price provider chain has 3/5 providers non-functional [HIGH]
+
+- Classification: data integrity / availability
+- Risk: DataHub price chain claims 5 providers but only 2 work (yfinance, TwelveData). Finnhub key b444a4ae is invalid (http_401). Stooq.com returns 404 on all endpoints (site offline). AKShare Chinese endpoints are blocking connections from this machine. In a scenario where TwelveData rate-limits or yfinance is blocked, price lookup fails completely — there is NO working tertiary fallback.
+- Evidence: 5-provider benchmark test on 2026-07-20 with AAPL, MSFT, TSLA, SNDL, NOK. Finnhub: 0/5 (key invalid). Stooq: 0/5 (HTTP 404). AKShare: stock_us_hist connection aborted, stock_us_spot downloads 893 stocks at ~1.8s each (impractical). TwelveData: 5/5 at 0.687s avg. yfinance: 5/5 at 0.469s avg.
+- Mitigation: (1) Obtain a valid Finnhub API key. (2) Replace Stooq with a working free source (e.g. Polygon.io free tier, IEX Cloud). (3) Investigate if AKShare endpoints require proxy/VPN for Chinese servers. (4) Consider adding a third working fallback (e.g. AlphaVantage GLOBAL_QUOTE). (5) Short-term: set yfinance as primary, TwelveData as fallback in data_hub.py.
+- Status: Active. High risk because only 2 providers work and both could fail (rate limits, network issues).
+
 ### INV-R23 - Test regression: test_forced_expert_committee fails [LOW]
 
 - Classification: quality
