@@ -11,7 +11,6 @@ dependencies = [
     # â”€â”€ Core runtime â”€â”€
     "pydantic>=2.0",
     "httpx>=0.27",
-    "aiohttp>=3.9",
     "fastapi>=0.110",
     "uvicorn[standard]>=0.27",
     "sse-starlette>=1.8",
@@ -36,21 +35,16 @@ dependencies = [
 
     # â”€â”€ Data & Math â”€â”€
     "pandas>=2.0",
-    "numpy>=1.24,<2.3",
+    "numpy>=1.24,<2.6",
     "scipy>=1.11",
     "scikit-learn>=1.3",
-    "statsmodels>=0.14",
-    "pandas-ta>=0.3",
-    "joblib>=1.3",
 
     # â”€â”€ Data providers â”€â”€
-    "lxml>=5.0",
     "textblob>=0.17",
     "duckduckgo-search>=5.0",
     "redis>=5.0",
 
     # â”€â”€ Storage & infra â”€â”€
-    "mem0ai>=0.1",
 
     # â”€â”€ Quality Engineering 2026 â”€â”€
     "structlog>=24.0",

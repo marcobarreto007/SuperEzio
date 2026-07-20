@@ -13,11 +13,10 @@ Uso:
 
 Módulos:
     formulas.py       — fórmulas matemáticas (fator único de verdade)
-    detectors/        — SpiderSense, DifficultyEstimator
-    scoring/          — PlatinumScorer, DeterministicScorer, RiskEngine
-    gates/            — VeracityGate, AdversarialCritic, ProxyReward
-    memory/           — EpisodeMemory (aprendizado cross-domínio)
-    graph/            — Graph, F51Engine (orquestração)
+    detectors.py      — SpiderSense, DifficultyEstimator
+    scoring.py        — PlatinumScorer, DeterministicScorer, RiskEngine
+    gates.py          — VeracityGate, AdversarialCritic, ProxyReward
+    graph.py          — Graph, F51Engine (orquestração)
 """
 
 from __future__ import annotations

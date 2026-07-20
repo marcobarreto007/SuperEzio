@@ -64,7 +64,7 @@ QWEN_PERSONA = (
     "This is a casual conversation, not an institutional report format."
 )
 
-SAFE_ACTIONS = "STUDY, WAIT, REVIEW, WATCHLIST, AVOID, or small-position planning"
+
 
 MODEL_PROMPTS = {
     "local": {

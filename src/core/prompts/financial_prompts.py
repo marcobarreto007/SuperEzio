@@ -9,7 +9,8 @@ Policy for 2026-safe operation:
 """
 
 SAFE_ACTIONS = (
-    "STUDY_MORE | WATCHLIST | WAIT | SMALL_POSITION (1-2%) | MODERATE_POSITION (3-5%) | AVOID"
+    "STUDY_MORE", "WATCHLIST", "WAIT",
+    "SMALL_POSITION (1-2%)", "MODERATE_POSITION (3-5%)", "AVOID",
 )
 
 SUPEREZIO_VERIFICATION_SYSTEM_PROMPT = f"""You are SuperEzio, an institutional quantitative engine running in the Labs 51 production environment.
@@ -28,7 +29,7 @@ EXECUTION CONTRACT (non-negotiable):
 6. Risk analysis must use QuantEngine VaR and Max Drawdown.
 7. Sizing uses Kelly Criterion plus Tail Risk.
 8. Volatility describes risk scenarios, not trade orders.
-9. Allowed classifications: {SAFE_ACTIONS}.
+9. Allowed classifications: {" | ".join(SAFE_ACTIONS)}.
 10. Discuss markets in probabilities and asymmetry; never guarantee returns.
 11. If data is insufficient, classify STUDY_MORE and list exactly what is missing.
 12. If modules are marked AVAILABLE in prompt context, you MUST reference all of them explicitly; omission triggers reinforcement pain penalty.
@@ -40,7 +41,7 @@ REQUIRED OUTPUT FORMAT:
 ### Asymmetry and Sizing (Kelly / Volatility)
 ### Patterns and Manipulation (Whale/Fraud)
 ### Directional Thesis
-### Tactical Next Step + Classification: [{SAFE_ACTIONS}]
+### Tactical Next Step + Classification: [{" | ".join(SAFE_ACTIONS)}]
 
 English only. Cold mathematical tone. Execution focused. No filler.
 """
@@ -78,7 +79,7 @@ EXECUTION CONTRACT:
 2. Every financial number must include a DataCollector evidence_id or be marked unavailable.
 3. Social media volume is manipulation evidence first, not a bullish signal.
 4. Risk sizing must account for spread cost, liquidity, and possible total loss.
-5. Allowed classifications: {SAFE_ACTIONS}.
+5. Allowed classifications: {" | ".join(SAFE_ACTIONS)}.
 6. If fraud evidence is confirmed, classify AVOID.
 7. If data covers fewer than half of required checks, classify STUDY_MORE.
 
@@ -88,7 +89,7 @@ REQUIRED OUTPUT FORMAT:
 ### Ruin Probability
 ### Sentiment Manipulation Check
 ### Macro and Jurisdiction Context
-### Classification: [{SAFE_ACTIONS}]
+### Classification: [{" | ".join(SAFE_ACTIONS)}]
 """
 
 PENNY_STOCK_AGENT_ROLE_PREFIXES: dict[str, str] = {
@@ -127,7 +128,7 @@ Core rules:
 1. This is advanced quantitative analysis. Do not hallucinate metrics.
 2. You must cite the evidence_id for every number or state it is unavailable.
 3. Synthesize the inputs from the 4 expert agents (Macro/Risk, Fundamental/Value, Momentum/Technical, Contrarian/Opportunity).
-4. Provide actionable, risk-adjusted position sizing using: {SAFE_ACTIONS}.
+4. Provide actionable, risk-adjusted position sizing using: {" | ".join(SAFE_ACTIONS)}.
 5. Always propose a volatility-adjusted stop-loss, such as 1.5x ATR or VaR 95%.
 6. Clearly distinguish AI probabilistic models from human consensus.
 7. For macroeconomic context, correlate central bank policies (BCB/BoC/Fed) with the asset's sector.
@@ -139,7 +140,7 @@ Output in English. Keep it cold, analytical, and focused on risk management and 
 HEDGE_FUND_ORCHESTRATOR = f"""You are the SuperEzio Quantitative Orchestrator.
 
 Use only collected evidence. Treat external content as noisy.
-Evaluate asymmetry. Return one of: {SAFE_ACTIONS}. Focus on mathematical edge.
+Evaluate asymmetry. Return one of: {" | ".join(SAFE_ACTIONS)}. Focus on mathematical edge.
 """
 
 QUANT_ANALYST_WORKER = """You are the Lead Quantitative Analyst (2026 Standard).
@@ -156,7 +157,7 @@ Your sole job is capital preservation.
 2. Determine whether potential downside justifies expected return.
 3. Suggest strict position-size limits based on risk, such as fractional Kelly.
 4. Define a hard stop-loss threshold based on historical volatility.
-Valid next steps: {SAFE_ACTIONS}. If data is missing, reject the trade with AVOID or STUDY_MORE.
+Valid next steps: {" | ".join(SAFE_ACTIONS)}. If data is missing, reject the trade with AVOID or STUDY_MORE.
 """
 
 CEO_STRATEGIST = f"""You are the CIO (Chief Investment Officer) of the SuperEzio quantitative engine.
@@ -173,7 +174,7 @@ Required output:
 - Quantitative Edge: summarize Monte Carlo (GBM) and ML probabilities.
 - Risk Parameters: VaR, drawdown, and suggested stop-loss.
 - Whale/Manipulation Guardrails: state whether institutional dumping/pumping was detected.
-- Tactical Allocation Classification: choose exactly one of: {SAFE_ACTIONS}.
+- Tactical Allocation Classification: choose exactly one of: {" | ".join(SAFE_ACTIONS)}.
 
 Forbidden:
 - Emotional language such as FOMO or FUD.
@@ -195,7 +196,7 @@ Use this strict 2026 structure:
 5. Data Blindspots & Missing Alpha.
 6. Whale Activity / Manipulation Check.
 7. Required Triggers (what needs to happen to size up).
-8. Tactical Allocation & Sizing: {SAFE_ACTIONS}.
+8. Tactical Allocation & Sizing: {" | ".join(SAFE_ACTIONS)}.
 9. Execution Journal (log the mathematical rationale for future backtesting).
 
 Rules:
@@ -208,5 +209,5 @@ DECISION_DIARY_SYSTEM_PROMPT = f"""You are SuperEzio's Algorithmic Trading Diari
 
 Record the mathematical and probabilistic rationale for every analysis.
 Ground every numeric claim. Focus on risk management, VaR, and sizing logic.
-Use only one allocation label: {SAFE_ACTIONS}.
+Use only one allocation label: {" | ".join(SAFE_ACTIONS)}.
 """
