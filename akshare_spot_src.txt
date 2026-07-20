@@ -1,0 +1,5 @@
+0: def stock_us_spot() -> pd.DataFrame:
+5: :rtype: pandas.DataFrame
+7: big_df = pd.DataFrame()
+18: dict_list = js_code.call("d", us_js_decode)  # 执行js解密代码
+26: objs=[big_df, pd.DataFrame(data_json["data"])], ignore_index=True
