@@ -898,6 +898,119 @@
     }
   }
 
+
+  /* - Paper Trade Inline Form - */
+  function tradeFormHTML(cardId) {
+    return '<div class="trade-bar">' +
+      '<button class="trade-btn" data-card="' + cardId + '" type="button">+ Trade</button>' +
+      '<span class="trade-confirm" id="trade-confirm-' + cardId + '"></span>' +
+      '</div>' +
+      '<div class="trade-inline-form" id="trade-form-' + cardId + '">' +
+      '<div class="trade-form-row">' +
+      '<input class="trade-ticker-inp" type="text" placeholder="TICKER" maxlength="10">' +
+      '<select class="trade-action-select"><option value="buy">BUY</option><option value="sell">SELL</option></select>' +
+      '<input class="trade-qty-inp" type="number" value="10" min="1" max="99999" step="1" placeholder="Qty">' +
+      '</div>' +
+      '<div class="trade-form-actions">' +
+      '<button class="trade-submit-btn" data-card="' + cardId + '" type="button">Confirm</button>' +
+      '<button class="trade-cancel-btn" data-card="' + cardId + '" type="button">Cancel</button>' +
+      '</div>' +
+      '</div>';
+  }
+
+  function showTradeConfirm(cardId, msg) {
+    var el = document.getElementById('trade-confirm-' + cardId);
+    if (el) {
+      el.textContent = msg;
+      el.classList.add('is-visible');
+      clearTimeout(el._hideTimer);
+      el._hideTimer = setTimeout(function () {
+        el.classList.remove('is-visible');
+      }, 6000);
+    }
+  }
+
+  function handleTradeBtnClick(e) {
+    var btn = e.target.closest('.trade-btn');
+    if (!btn) return;
+    var cardId = btn.getAttribute('data-card');
+    var form = document.getElementById('trade-form-' + cardId);
+    if (!form) return;
+    var isOpen = form.classList.contains('is-open');
+    document.querySelectorAll('.trade-inline-form.is-open').forEach(function (f) {
+      f.classList.remove('is-open');
+    });
+    if (!isOpen) {
+      form.classList.add('is-open');
+      var tickerInp = form.querySelector('.trade-ticker-inp');
+      if (tickerInp) {
+        var wsTicker = ($("ticker-inp") ? $("ticker-inp").value : '').trim().toUpperCase();
+        if (wsTicker) tickerInp.value = wsTicker;
+      }
+    }
+  }
+
+  async function handleTradeSubmitClick(e) {
+    var btn = e.target.closest('.trade-submit-btn');
+    if (!btn) return;
+    var cardId = btn.getAttribute('data-card');
+    var form = document.getElementById('trade-form-' + cardId);
+    if (!form) return;
+
+    var tickerEl = form.querySelector('.trade-ticker-inp');
+    var actionEl = form.querySelector('.trade-action-select');
+    var qtyEl = form.querySelector('.trade-qty-inp');
+
+    var ticker = (tickerEl.value || '').trim().toUpperCase();
+    var action = actionEl.value;
+    var qty = parseInt(qtyEl.value, 10);
+
+    if (!ticker || ticker.length < 1) {
+      showTradeConfirm(cardId, 'Enter a valid ticker');
+      tickerEl.focus();
+      return;
+    }
+    if (isNaN(qty) || qty <= 0) {
+      showTradeConfirm(cardId, 'Enter a valid quantity');
+      qtyEl.focus();
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+
+    try {
+      var r = await window.SZ.api.fetchWithAuth('/trade/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticker: ticker, action: action, qty: qty })
+      });
+      var data = await r.json();
+      if (r.ok) {
+        var msg = 'Paper order submitted: ' + action.toUpperCase() + ' ' + qty + ' ' + ticker;
+        showTradeConfirm(cardId, msg);
+        form.classList.remove('is-open');
+        refreshMangala();
+      } else {
+        var errMsg = data.detail || data.error || data.reason || 'Unknown error';
+        showTradeConfirm(cardId, 'Error: ' + (typeof errMsg === 'string' ? errMsg.substring(0, 120) : 'unknown'));
+      }
+    } catch (ex) {
+      showTradeConfirm(cardId, 'Error: ' + (ex.message || 'request failed').substring(0, 120));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Confirm';
+    }
+  }
+
+  function handleTradeCancelClick(e) {
+    var btn = e.target.closest('.trade-cancel-btn');
+    if (!btn) return;
+    var cardId = btn.getAttribute('data-card');
+    var form = document.getElementById('trade-form-' + cardId);
+    if (form) form.classList.remove('is-open');
+  }
+
   /* ── Init ── */
   function init() {
     /* Sync timeframe button group */
@@ -917,6 +1030,13 @@
     refreshMangala();
     renderPipelineProgress();
     refreshMangalaOpportunities();
+
+    /* Trade UI event delegation */
+    document.addEventListener("click", function (e) {
+      if (e.target.closest(".trade-btn")) { handleTradeBtnClick(e); return; }
+      if (e.target.closest(".trade-submit-btn")) { handleTradeSubmitClick(e); return; }
+      if (e.target.closest(".trade-cancel-btn")) { handleTradeCancelClick(e); return; }
+    });
 
     /* Poll every 10 seconds */
     window.setInterval(refreshAll, 10000);
