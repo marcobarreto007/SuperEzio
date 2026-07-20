@@ -90,7 +90,7 @@ class RedditPulse:
     """
     Low-volume Reddit signal provider.
 
-    Uses public Reddit listing JSON endpoints and ranks only high-signal posts.
+    Uses Pushshift.io (primary) -> old.reddit.com (fallback) -> ApeWisdom (last resort).
     This module treats Reddit as social evidence, never as verified financial fact.
     """
 
@@ -129,7 +129,7 @@ class RedditPulse:
             {
                 "User-Agent": os.getenv(
                     "SUPEREZIO_REDDIT_USER_AGENT",
-                    "SuperEzio/1.0 market-research",
+                    "SuperEzio/4.0 market-research",
                 )
             }
         )
@@ -173,6 +173,10 @@ class RedditPulse:
         qualified = self._dedupe_and_rank(posts)
         top_posts = qualified[:limit]
         avg_sentiment = self._average_sentiment(top_posts)
+
+        # If all Reddit sources failed, fallback to ApeWisdom
+        if not top_posts and errors:
+            return self._apewisdom_fallback(ticker, query, errors)
 
         return {
             "symbol": ticker,
