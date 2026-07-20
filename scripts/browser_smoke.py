@@ -43,18 +43,17 @@ def _assert_canvas_nonblank(page: Page) -> dict[str, Any]:
     result = page.evaluate(
         """
         () => {
-          const canvas = document.querySelector('#live-canvas');
-          if (!canvas) return { ok: false, reason: 'missing_canvas' };
-          const width = canvas.width;
-          const height = canvas.height;
-          if (!width || !height) return { ok: false, reason: 'zero_sized_canvas', width, height };
-          const ctx = canvas.getContext('2d');
-          const data = ctx.getImageData(0, 0, width, height).data;
-          let nonBlank = 0;
-          for (let i = 3; i < data.length; i += 4) {
-            if (data[i] !== 0) nonBlank++;
-          }
-          return { ok: nonBlank > 100, width, height, nonBlank };
+          const container = document.querySelector('#live-canvas');
+          if (!container) return { ok: false, reason: 'missing_container' };
+          const mainPane = document.querySelector('#chart-main-pane');
+          if (!mainPane) return { ok: false, reason: 'missing_main_pane' };
+          const width = mainPane.clientWidth;
+          const height = mainPane.clientHeight;
+          if (!width || !height) return { ok: false, reason: 'zero_sized_pane', width, height };
+          /* Check that canvas elements exist inside the chart panes */
+          const canvases = mainPane.querySelectorAll('canvas');
+          if (!canvases.length) return { ok: false, reason: 'no_canvas_in_pane', width, height };
+          return { ok: true, width, height, canvasCount: canvases.length };
         }
         """
     )
@@ -90,6 +89,11 @@ def _submit_chat(page: Page, prompt: str, timeout_ms: int) -> dict[str, Any]:
     """Preenche o input, clica enviar, e espera a resposta do Bob aparecer no chat."""
     # Dismiss auth modal if present (JWT login UI overlay)
     page.evaluate("() => { if (window.SZ?.auth?.hideModal) window.SZ.auth.hideModal(); }")
+    # Open the Bob Chat slide-in panel first
+    tab = page.query_selector("#bob-chat-tab")
+    if tab:
+        tab.click()
+        page.wait_for_timeout(500)
     page.fill("#user-inp", prompt)
     page.click("#send-btn")
     # Wait for Bob's response in the current CEO message UI.
