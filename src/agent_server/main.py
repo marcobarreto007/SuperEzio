@@ -693,14 +693,19 @@ async def health_check():
         reachable = False
         if url:
             try:
-                s = _socket.socket()
-                s.settimeout(1)
                 host = url.split("://")[-1].split(":")[0] if "://" in url else "127.0.0.1"
-                s.connect((host, port))
-                s.close()
-                reachable = True
+                is_local = host in ("127.0.0.1", "localhost")
+                if is_local:
+                    # Local model: socket probe on configured port
+                    s = _socket.socket()
+                    s.settimeout(1)
+                    s.connect((host, port))
+                    s.close()
+                    reachable = True
+                else:
+                    # Cloud model: skip socket probe (port 8082 doesn't apply to cloud APIs)
+                    reachable = True
             except Exception as exc:
-                # Probe failure expected when local model is offline; record reason.
                 logger.debug("[%s] local model probe failed (%s): %s", AGENT_NAME, name, exc)
         local_models[name] = {
             "url": url or None,

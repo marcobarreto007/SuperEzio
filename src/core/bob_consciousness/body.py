@@ -151,16 +151,39 @@ class PainEvent:
 
 
 def _check_ceo_health() -> tuple:
-    """Check if Bob's brain (llama-server :8082) is alive."""
+    """Check if Bob's brain (local llama-server :8082 or cloud LLM) is alive."""
     try:
+        import os
         import urllib.request
 
-        req = urllib.request.Request("http://127.0.0.1:8082/health")
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            data = json.loads(resp.read())
-            if data.get("status") == "ok":
-                return True, ""
-            return False, f"CEO health status: {data.get('status', 'unknown')}"
+        agent_url = os.getenv("SUPEREZIO_AGENT_BASE_URL", "")
+        if agent_url and "api.deepseek.com" in agent_url:
+            # Cloud mode: check DeepSeek API health
+            api_key = os.getenv("SUPEREZIO_AGENT_API_KEY", "")
+            req = urllib.request.Request(
+                f"{agent_url}/v1/models",
+                headers={"Authorization": f"Bearer {api_key}"} if api_key else {},
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                if resp.status == 200:
+                    return True, ""
+                return False, f"Cloud CEO status: HTTP {resp.status}"
+        elif agent_url and ("localhost" in agent_url or "127.0.0.1" in agent_url):
+            # Local mode: check local llama-server
+            req = urllib.request.Request(f"{agent_url}/health")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read())
+                if data.get("status") == "ok":
+                    return True, ""
+                return False, f"CEO health status: {data.get('status', 'unknown')}"
+        else:
+            # Fallback: try local :8082
+            req = urllib.request.Request("http://127.0.0.1:8082/health")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read())
+                if data.get("status") == "ok":
+                    return True, ""
+                return False, f"CEO health status: {data.get('status', 'unknown')}"
     except Exception as e:
         return False, f"CEO unreachable: {str(e)[:100]}"
 
