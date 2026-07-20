@@ -183,9 +183,9 @@ class DataHub:
     def _register_default_routes(self) -> None:
         # Market data — price chain (cross-provider tested 2026-07-20):
         #   1) Twelve Data  (fast 0.69s, accurate, key exists)     [US stocks OK]
-        #   2) AKShare      (free intraday, keyless, may block)    [unreliable]
-        #   3) Alpha Vantage (price OK, volume 200%+ WRONG!)       [BDR coverage]
         #  30) YFinance     (fast 0.47s, free, always available)   [PRIMARY fallback]
+        #   3) Alpha Vantage (price OK, volume 200%+ WRONG!)       [BDR coverage]
+        # AKShare REMOVED from price (downloads 893 stocks, 3+ min!)
         # Stooq REMOVED 2026-07-20: API offline (HTTP 404)
         # Finnhub: key invalid (b444a4ae), registered for quote/news only
         #
@@ -282,11 +282,9 @@ class DataHub:
         self.register_provider(
             ProviderRoute(
                 name="akshare",
-                capabilities=("price", "market_price", "candles", "profile"),
+                capabilities=("candles", "profile"),  # price removed: downloads 893 stocks (3+ min!)
                 factory=_make_akshare_provider,
                 methods={
-                    "price": "get_price",
-                    "market_price": "get_price",
                     "candles": "get_candles",
                     "profile": "get_profile",
                 },
