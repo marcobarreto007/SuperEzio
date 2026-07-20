@@ -2,44 +2,31 @@
   "version": "2.0",
   "created": "2026-07-19T23:59:00-04:00",
   "mission": "SuperEzio produto final — trader deposita, analisa, opera. 100% integrado.",
-  "current_wave": 2,
-  "wave_status": "wave_active",
-  "cron_job_id": "91a41a8e",
-  "cron_schedule": "3,18,33,48 * * * * (every 15 min, recurring)",
+  "current_wave": 3,
+  "wave_status": "integrating",
   "transitions": [
     {"timestamp": "2026-07-19T23:59:00-04:00", "from": null, "to": "idle", "reason": "Agent bus initialized."},
-    {"timestamp": "2026-07-20T00:15:00-04:00", "from": "idle", "to": "idle", "reason": "Captain deployed. Cron hourly."},
-    {"timestamp": "2026-07-20T00:30:00-04:00", "from": "idle", "to": "wave1_recon", "reason": "Wave 1 disparada: recon-researcher, code-quality-reviewer, security-reviewer"},
-    {"timestamp": "2026-07-20T00:40:00-04:00", "from": "wave1_recon", "to": "wave1_integrating", "reason": "3/3 agentes concluídos. 5 CRIT, 5 HIGH, 10 MED, 11 LOW encontrados."},
-    {"timestamp": "2026-07-20T00:42:00-04:00", "from": "wave1_integrating", "to": "wave2_productize", "reason": "Wave 2 disparada: security (remediação), code-quality (confiabilidade), product (onboarding/pricing), UX (trader audit). 4 agentes em paralelo."}
+    {"timestamp": "2026-07-20T00:15:00-04:00", "from": "idle", "to": "idle", "reason": "Captain deployed."},
+    {"timestamp": "2026-07-20T00:30:00-04:00", "from": "idle", "to": "wave1_recon", "reason": "Wave 1: 3 agentes RECON"},
+    {"timestamp": "2026-07-20T00:42:00-04:00", "from": "wave1_recon", "to": "wave2_productize", "reason": "Wave 2: 4 agentes PRODUCTIZE"},
+    {"timestamp": "2026-07-20T01:10:00-04:00", "from": "wave2_productize", "to": "wave2_applied", "reason": "6/6 security fixes aplicados (f9cee83)"},
+    {"timestamp": "2026-07-20T01:20:00-04:00", "from": "wave2_applied", "to": "wave3_verify", "reason": "Wave 3: 3 agentes VERIFY"},
+    {"timestamp": "2026-07-20T01:40:00-04:00", "from": "wave3_verify", "to": "wave3_integrating", "reason": "3/3 concluídos. ZERO regressões. 1539 pass. 2 contract fixes aplicados."}
   ],
-  "agents": {
-    "captain": {"status": "active", "role": "resident", "last_run": "2026-07-20T00:42:00-04:00"},
-    "recon-researcher": {"status": "completed", "last_run": "2026-07-20T00:30:00-04:00", "findings": "0 CRIT, 2 MED, 5 LOW"},
-    "security-reviewer": {"status": "completed", "last_run": "2026-07-20T00:30:00-04:00", "findings": "3 CRIT, 3 HIGH, 6 MED, 3 LOW"},
-    "code-quality-reviewer": {"status": "completed", "last_run": "2026-07-20T00:30:00-04:00", "findings": "2 CRIT, 2 HIGH, 2 MED, 3 LOW"},
-    "runtime-verifier": {"status": "idle", "last_run": null, "score": null},
-    "api-contract-verifier": {"status": "idle", "last_run": null, "score": null},
-    "frontend-ux-reviewer": {"status": "running", "last_run": "2026-07-20T00:42:00-04:00"},
-    "kb-domain-reviewer": {"status": "idle", "last_run": null, "score": null},
-    "training-verifier": {"status": "idle", "last_run": null, "score": null},
-    "model-gateway-verifier": {"status": "idle", "last_run": null, "score": null},
-    "agent-explorer": {"status": "idle", "last_run": null, "score": null},
-    "agent-benchmarker": {"status": "idle", "last_run": null, "score": null},
-    "agent-replacer": {"status": "idle", "last_run": null, "score": null},
-    "savekeeper": {"status": "idle", "last_run": null, "score": null}
+  "waves_completed": ["wave1_recon", "wave2_productize", "wave3_verify"],
+  "waves_remaining": ["wave4_integrate"],
+  "security_fixes": {
+    "total": 6,
+    "applied": 6,
+    "verified": true,
+    "regressions": 0,
+    "contract_fixes": 2
   },
-  "product_goal": {
-    "target": "Trader final — depositar, analisar, operar (paper → real)",
-    "mvp_gates": [
-      "Auth nas rotas de trading",
-      "Keys rotacionadas",
-      "Top 10 except cegos corrigidos",
-      "UX fluxo de depósito e portfolio",
-      "Onboarding documentado",
-      "Precificação definida"
-    ],
-    "waves_completed": ["wave1_recon"],
-    "waves_remaining": ["wave2_productize", "wave3_verify", "wave4_integrate"]
-  }
+  "gates_summary": {
+    "ruff": "clean",
+    "pytest": "1539 passed, 10 skipped, 0 failed",
+    "browser_smoke": "skipped (server offline)",
+    "regression": "0 regressions (2 identical runs)"
+  },
+  "next": "Wave 4 (INTEGRATE) — savekeeper consolidar tudo, atualizar docs finais, checkpoint final"
 }
