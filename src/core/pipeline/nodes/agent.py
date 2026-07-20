@@ -713,6 +713,9 @@ def _parse_declared_tickers(value: Any) -> set[str] | None:
 def _apply_grounding_guard(
     state: dict, content: str, declared_tickers: set[str] | None = None
 ) -> str:
+    if _pipeline_has_data(state):
+        logger.info("CENSORSHIP_SKIPPED: _apply_grounding_guard -- pipeline has data, trusting Bob")
+        return content
     if not state.get("data") and not state.get("scan") and not state.get("data_context"):
         return content
     return _grounding_guard_answer(state, content, declared_tickers)
@@ -1705,11 +1708,22 @@ def _market_scan_answer(state: dict) -> str:
     return "\n".join(sections)
 
 
+def _pipeline_has_data(state: dict) -> bool:
+    """Returns True if pipeline collected real data -- trust Bob's answer, skip censorship."""
+    if state.get("has_math_report"):
+        return True
+    mr = state.get("math_report")
+    data = state.get("data")
+    return bool(mr and data)
+
+
 def _loop_failsafe_answer(state: dict) -> str:
     if state.get("scan"):
         return _market_scan_answer(state)
     if state.get("cognitive_mode"):
-        return _contract_fallback_answer(state)
+        if not _pipeline_has_data(state):
+            return _contract_fallback_answer(state)
+        logger.info("CENSORSHIP_SKIPPED: _loop_failsafe_answer -- pipeline has data, trusting Bob")
     if _is_portuguese_request(state.get("message", "")):
         return (
             "Bob: Encerrei o ciclo de ferramentas após atingir o limite. "
@@ -1726,7 +1740,9 @@ def _tool_blocked_answer(state: dict) -> str:
     tool = blocked.get("tool", "unknown")
     reason = blocked.get("reason", "already executed")
     if state.get("cognitive_mode") or "cognitive_contract" in str(reason):
-        return _contract_fallback_answer(state)
+        if not _pipeline_has_data(state):
+            return _contract_fallback_answer(state)
+        logger.info("CENSORSHIP_SKIPPED: _tool_blocked_answer -- pipeline has data, trusting Bob")
     if _is_portuguese_request(state.get("message", "")):
         return f"Bob: A ferramenta '{tool}' foi bloqueada ({reason}). Produzindo resposta final."
     return f"Bob: Tool '{tool}' was blocked ({reason}). Producing final answer."
@@ -2210,6 +2226,11 @@ def _advisory_knowledge_fallback_answer(state: dict) -> str:
 
 
 def _contract_fallback_answer(state: dict) -> str:
+    if _pipeline_has_data(state):
+        logger.info(
+            "CENSORSHIP_SKIPPED: _contract_fallback_answer -- pipeline has data, trusting Bob"
+        )
+        return ""
     mode = state.get("cognitive_mode", "ADVISORY_KNOWLEDGE")
     message = state.get("message", "")
     if state.get("scan"):
@@ -3014,10 +3035,15 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             and iterations >= 2
             and not pending_tools
         ):
-            # Model keeps planning without answering — force synthesis
-            tool_calls = [
-                {"tool": "final_answer", "args": {"content": _contract_fallback_answer(state)}}
-            ]
+            if _pipeline_has_data(state):
+                logger.info(
+                    "CENSORSHIP_SKIPPED: max planning loop -- pipeline has data, trusting Bob"
+                )
+            else:
+                # Model keeps planning without answering — force synthesis
+                tool_calls = [
+                    {"tool": "final_answer", "args": {"content": _contract_fallback_answer(state)}}
+                ]
 
         tool_call = tool_calls[0] if tool_calls else None
 
@@ -3052,12 +3078,22 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 elif state.get("scan"):
                     content = _market_scan_answer(state)
                 elif not str(content).strip():
-                    if is_complex_finance:
-                        content = _complex_finance_fallback_answer(state.get("message", ""))
+                    if not _pipeline_has_data(state):
+                        if is_complex_finance:
+                            content = _complex_finance_fallback_answer(state.get("message", ""))
+                        else:
+                            content = _contract_fallback_answer(state)
                     else:
-                        content = _contract_fallback_answer(state)
+                        logger.info(
+                            "CENSORSHIP_SKIPPED: empty content -- pipeline has data, trusting Bob"
+                        )
                 elif _should_force_contract_fallback(state, content):
-                    content = _contract_fallback_answer(state)
+                    if not _pipeline_has_data(state):
+                        content = _contract_fallback_answer(state)
+                    else:
+                        logger.info(
+                            "CENSORSHIP_SKIPPED: _should_force_contract_fallback -- pipeline has data, trusting Bob"
+                        )
                 elif is_complex_finance:
                     content = _repair_complex_finance_answer(state.get("message", ""), content)
                     content = _apply_grounding_guard(state, content, declared_tickers)
@@ -3135,11 +3171,17 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     "current_datetime": state.get("current_datetime", ""),
                 }
             # Fallback
-            content = (
-                _complex_finance_fallback_answer(state.get("message", ""))
-                if is_complex_finance
-                else _contract_fallback_answer(state)
-            )
+            if _pipeline_has_data(state):
+                logger.info(
+                    "CENSORSHIP_SKIPPED: final else fallback -- pipeline has data, trusting Bob"
+                )
+                content = ""
+            else:
+                content = (
+                    _complex_finance_fallback_answer(state.get("message", ""))
+                    if is_complex_finance
+                    else _contract_fallback_answer(state)
+                )
             writer({"type": "CHUNK", "content": content})
             return {
                 "final": content,
