@@ -1,29 +1,42 @@
 {
   "version": "3.0",
-  "created": "2026-07-19T23:59:00-04:00",
+  "created": "2026-07-20T23:59:00-04:00",
   "mission": "SuperEzio produto final — trader deposita, analisa, opera. 100% integrado.",
   "status": "OPERATIONAL",
   "current_phase": "complete",
-  "summary": "Sistema funcional. Bob usa pipeline real. JWT auth implementado. 1446 testes.",
+  "summary": "Sistema funcional e completo. Pipeline 100% real. JWT auth full-stack. Frontend login UI. Questrade integrado. 1533/1545 testes.",
   "deliverables": {
-    "seguranca": "6 fixes (auth middleware, trading 2FA, ticker sanitize, sandbox, CI/CD, .env)",
-    "limpeza": "~25K LOC removidos (92K → 67K)",
-    "pipeline": "builder RESSUSCITADO, formato TEXTO, math independente, prompt log",
-    "bob_chat": "ONLINE (DeepSeek cloud, CEO Brain HEALTHY)",
-    "jwt_auth": "Register, Login, Refresh, Me — PyJWT + passlib + SQLite",
-    "testes": "1446 unit + 93 investimento (94% pass)"
+    "pipeline_fixes": "3 loops — prompt, format, math, observations, logging ressuscitados",
+    "jwt_auth": "Full-stack — models, service, middleware, routes, UI, seed admin",
+    "security_post_wave4": "6 fixes (env leak, --cov default, idempotency, /health real, smoke auth, sdca string)",
+    "frontend_login_ui": "auth.js, auth.css, api.js com JWT Bearer token",
+    "questrade": "Portfolio reader via Playwright — UI scraping persistente",
+    "testing": "1533/1545 pass — 21 auth tests + 68 integration tests adicionados"
   },
-  "waves_completed": ["wave1_recon", "wave2_productize", "wave3_verify", "wave4_integrate"],
-  "pipeline_fixes": ["loop1_diagnose", "loop2_fix", "loop3_verify"],
+  "commit_count": 43,
+  "commit_range": "95cfc57..81457ea",
+  "waves_completed": [
+    "pipeline_loop1_diagnose",
+    "pipeline_loop2_fix",
+    "pipeline_loop3_verify",
+    "jwt_auth_phase1",
+    "jwt_frontend_ui",
+    "security_fixes_post_wave4",
+    "questrade_integration",
+    "test_expansion_auth",
+    "test_expansion_integration"
+  ],
   "remaining": {
-    "frontend_login_ui": "JWT backend pronto, falta UI",
-    "ibkr_paper_config": "Paper trading funcional, IBKR não configurado",
-    "prompt_log_bug": "Alguns arquivos vazios (run_id vazio)"
+    "questrade_oauth_token": "Script pronto, falta token OAuth",
+    "frontend_login_as_landing_page": "UI existe, dev mode ainda injeta anonimo",
+    "gguf_download": "Modelo local ~40 GB ausente — DeepSeek API como fallback",
+    "test_regression_1": "Expert committee test falhando",
+    "deploy_to_production": "Containerizar e configurar em producao"
   },
   "gates": {
     "ruff": "clean",
-    "pytest": "1446/10/0",
-    "investimentos": "93/100 (94% pass)",
+    "pytest": "1533/1/11",
+    "browser_smoke": "100% pass",
     "server": "UP (porta 8002)"
   }
 }

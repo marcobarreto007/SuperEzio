@@ -2,15 +2,13 @@
 
 ## Backlog
 
-- [ ] Re-run a browser E2E pass after any future UI changes.
-- [ ] tool_executor.py's submit_paper_order path likely has the same non-atomic idempotency
-  claim bug fixed in auto_execute_paper.py (commit 1f24c84) — not yet mapped/fixed, more gates
-  between ALLOW and real submission there (lesson-block, expert committee) need tracing first.
-- [ ] /health always returns hardcoded {"status":"ok"} with HTTP 200 regardless of real state;
-  Docker/docker-compose healthcheck uses `curl -f .../health`, so a container can be "healthy"
-  with zero operational capability. /health/details computes real status but also always
-  returns HTTP 200 (tests/test_api_routes_sync.py:105,147 pin this), so switching the
-  healthcheck target doesn't fix it without also changing the status-code contract.
+- [ ] **Questrade OAuth token nao configurado**: `scripts/questrade_read_portfolio.py` esta
+  implementado e funcional (Playwright session persistente, ler carteira sem OAuth token),
+  mas a integracao completa exige um token OAuth valido para a API Questrade.
+  `data/questrade_portfolio.json` contem snapshot de portfolio real como prova de conceito.
+- [ ] **Frontend login UI exists but not user-facing yet**: `frontend/auth.js`, `frontend/auth.css`,
+  `frontend/api.js` implementam modal de login/register com JWT Bearer token, mas a UI
+  ainda nao esta integrada como tela inicial. Dev mode continua injetando usuario anonimo.
 - [x] 2026-07-19 - **3-agent independent verification wave** (Claude Code): dispatched 3
   parallel subagents with disjoint file scope to verify (not trust) claims from the Codex
   predictive-truth-modernization session and an external audit, using concrete synthetic-data
@@ -88,15 +86,27 @@
 
 ## In Progress
 
-- [x] 2026-06-01 - **Phase 1 (f51-contracts):** Defined `live-modules.contract.md` covering 26 modules. Created 108 new contract tests (all passing): model-serving (13), config (15), crisis (24), trading (16), investor (8), aux-modules (32). Contract coverage now spans 100% of inventory modules.
+- [x] 2026-06-01 - **Phase 1 (f51-contracts):** Defined `live-modules.contract.md` covering 26 modules. Created 108 new contract tests (all passing). Contract coverage spans 100% of inventory modules.
+- [x] 2026-06-01 - **Phase 2 (f51-runtime):** Runtime verified. Entrypoints confirmed, healthchecks, logs, checkpoints, runbook.
+- [x] 2026-06-01 - **Phase 3 (f51-tests):** Full suite: 977 passed, 2 pre-existing failures, 8 skipped. Coverage confirmed.
 
-- [x] 2026-06-01 - **Phase 2 (f51-runtime):** Runtime verified. Entrypoints confirmed: CEO :8082 (llama.cpp), API :8002 (FastAPI). Healthchecks: /health, /health/details, /metrics. Logs: runtime/logs/. Checkpoints: runtime/checkpoints/latest.json. Runbook: docs/runbooks/RUNBOOK.md.
-
-- [x] 2026-06-01 - **Phase 3 (f51-tests):** Full suite: 977 passed, 2 failed (pre-existing: CEO GGUF offline, launcher path), 8 skipped in 27.60s. Smoke + contract + integration coverage confirmed. No fake tests.
+_(All phases complete — no active In Progress work.)_
 
 ## Done
 
-- [x] 2026-07-20 - **Wave 4 — Integracao final + limpeza massiva (savekeeper):** 23 dead modules (8,511 LOC) removidos de `src/core/trading/` (trading_engine, trading_engine_live, autonomous_loop, autonomous_learner, broker_reconciler, auto_executor, order_builder, daily_cycle, daily_standup, dataset, market_hours, neural_rl, pain_memory, performance_metrics, position_manager, risk_guard, universe_builder, committee, training, rl_loop, dynamic_watchlist, router). 40 scripts legados de treino/bench removidos. 7 testes mortos removidos (autonomous_live_engine, broker_reconciler, daily_cycle, trading_loop2, xp_idempotency, debut_report, fiduciary_battery + f51_blindagem_final, f51_final_shielding). `pyproject.toml` limpo (vulture/deptry removidos). Estado final documentado em `docs/STATE_OF_THE_UNION.md`. Gates: 1443 passed, 10 skipped, 0 failed. Ruff clean. Commits 912ec18, aeefa7d, aa332a6.
+- [x] 2026-07-20 — **Questrade Portfolio Reader (Playwright):** `scripts/questrade_read_portfolio.py` implementa leitor de carteira Questrade com sessao Playwright persistente. Le dados sem OAuth token (via scraping da UI do Questrade). Snapshot de portfolio real salvo em `data/questrade_portfolio.json`. Codigo pronto, falta token OAuth para API oficial. Commits 6cdb275, 81457ea.
+- [x] 2026-07-20 — **Browser smoke 100% pass + auth modal dev-mode detection:** `scripts/browser_smoke.py` corrigido para detectar auth modal em dev mode. Suite completa passa 100%. Commit 039055a.
+- [x] 2026-07-20 — **68 integration tests — MathHub, builder, contracts, observations:** Nova suite de testes de integracao validando pipeline completo: MathHub, builder, contratos, observacoes. Commit 4a252c7.
+- [x] 2026-07-20 — **21 auth unit tests — 85%+ coverage:** Testes unitarios para `core/auth/` e `agent_server/auth/`. Cobertura 85-88% em 4 modulos. Commits 87fd396, 755ba3e.
+- [x] 2026-07-20 — **tool_executor submit_paper_order idempotency fix:** Claim atomico com `os.open(O_CREAT|O_EXCL)` aplicado ao `submit_paper_order` em `tool_executor.py`, mesma correcao do `auto_execute_paper.py`. Commit ec83e6a.
+- [x] 2026-07-20 — **/health retorna 503 real:** Confirmado e documentado que `/health` agora retorna HTTP 503 quando o sistema nao esta operacional. `test_api_routes_sync.py` atualizado. Commits 662f8b1, 5d2a0e1.
+- [x] 2026-07-20 — **env leak fixed + --cov default:** `auto_execute_paper.py` nao mais vaza `SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT=1` no environment. `pytest.ini` agora inclui `--cov=src --cov-report=term-missing` por default. Commit 8ff067f.
+- [x] 2026-07-20 — **JWT Auth completo (P0):** Implementacao full-stack: `AuthDB` com SQLite + bcrypt em `core/auth/models.py`; servico com PyJWT e refresh rotation em `core/auth/service.py`; middleware JWT em `agent_server/auth.py`; rotas `/auth/*` (register, login, refresh, me); cascata com API-Key middleware; dev mode fallback. Seed admin script em `scripts/seed_admin.py`. Packages: `pyjwt`, `passlib[bcrypt]`, `bcrypt`. Commits fc778bb, 1945d4f, 2dfa2f3, 8f6d76b, 4f5b40f.
+- [x] 2026-07-20 — **Frontend login UI:** `frontend/auth.js`, `frontend/auth.css`, `frontend/api.js` implementam modal de login/register com JWT Bearer token. Integrado ao fluxo dev-mode (anonimo ate login ser implementado como tela inicial). Commits 895a539, 495676e.
+- [x] 2026-07-20 — **SDCA string check fix:** `test_sdca_firewall_inline.py` atualizado para usar `fetchWithAuth` em vez de string desatualizada. Commit ff56d84.
+- [x] 2026-07-20 — **Certificacao completa — 1446/1446 pass:** Sistema operacional apos limpeza Wave 4 + fixes menores. 1446 tests, 0 fails, 10 skipped. Commits 6efb2c1, c81ff8e.
+- [x] 2026-07-20 — **1535 testes, sistema completo:** Apos adicao de 21 auth tests + 68 integration tests: 1535 passed, 0 failed, 10 skipped. Sistema aguardando deploy. Commit e55b2f3.
+- [x] 2026-07-20 — **Wave 4 — Integracao final + limpeza massiva (savekeeper):** 23 dead modules (8,511 LOC) removidos de `src/core/trading/`. 40 scripts legados removidos. 7 testes mortos removidos. `pyproject.toml` limpo. Estado final documentado em `docs/STATE_OF_THE_UNION.md`. Gates: 1443 passed, 10 skipped, 0 failed. Ruff clean. Commits 912ec18, aeefa7d, aa332a6.
 
 - [x] 2026-07-20 - **P0 API auth implemented:** X-API-Key middleware (`main.py:361-430`)
   with constant-time comparison + JWT auth middleware (`auth.py`) + `/auth/*` router

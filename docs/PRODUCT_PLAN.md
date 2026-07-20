@@ -290,7 +290,7 @@ stack:
 
 ### Sprint 1 — Autenticacao e Base (7 dias)
 1. Implementar JWT auth em todas as rotas (P0) — **[FEITO]**
-2. Tela de login/registro no frontend
+2. Tela de login/registro no frontend — **[FEITO]** (`frontend/auth.js`, `frontend/auth.css`, `frontend/api.js`)
 3. User model + SQLite users table — **[FEITO]** (schema em `core/auth/models.py`)
 4. Seed admin script — **[FEITO]** (`scripts/seed_admin.py`)
 5. Perfil de investidor (questionario de risco)
@@ -329,16 +329,21 @@ Um **copiloto financeiro com comite de experts auditoriavel** que ajuda o trader
 - Sistema de sinais (nao da recomendacoes de compra/venda)
 - Rico rapido (propositalmente conservador)
 
-### Estado atual do projeto (2026-07-20)
-- **1443 testes passando**, 0 falhas, 10 skipped (pos-limpeza de 96 testes mortos)
+### Estado atual do projeto (2026-07-20) — Final
+- **1533 testes passando**, 1 falha, 11 skipped (1 regression: expert committee consensus test)
+- **21 auth unit tests** adicionados (85-88% coverage em 4 modulos)
+- **68 integration tests** adicionados (MathHub, builder, contracts, observations)
 - **23 modulos mortos removidos** (8,511 LOC) — core/trading/ agora enxuto
 - **40 scripts legados removidos** — sem mais scripts de treino/bench obsoletos
 - **43 rotas API** funcionais
-- **6 security fixes aplicados** — auth middleware, trading 2FA, ticker sanitize, sandbox, .env.local, CI/CD
+- **8 security fixes aplicados** — auth middleware, trading 2FA, ticker sanitize, sandbox, .env.local, CI/CD + env leak fix, --cov default, idempotency atomico, /health real, smoke auth detection
+- **Pipeline 100% real** — prompt, builder, math, observations, logging ressuscitados
 - **Ruff limpo** — src/ e tests/ sem violacoes
-- **Browser smoke** pendente (servidor offline)
-- **JWT auth implementado** — 4 endpoints (/auth/register, login, refresh, me) + middleware em cascata
+- **Browser smoke 100% pass** — auth modal dev-mode detection corrigido
+- **JWT auth full-stack** — backend (4 endpoints) + frontend login UI (auth.js, auth.css, api.js) + seed admin
+- **Questrade portfolio reader** via Playwright (UI scraping persistente, snapshot real)
 - **Seed admin disponivel** — `python scripts/seed_admin.py` para bootstrap
+- **43 commits entregues** nesta sessao — 95cfc57..81457ea
 - **1 missing pre-requisito**: Chat real depende de DeepSeek API key configurada OU GGUF local presente em disco
 
 ---

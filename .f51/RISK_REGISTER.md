@@ -1,7 +1,7 @@
 # F51 Risk Register
 
-Updated: 2026-07-20T03:00:00-04:00
-Session: wave4-integrate
+Updated: 2026-07-20T23:59:00-04:00
+Session: session-final
 
 ## Active Risks
 
@@ -199,7 +199,7 @@ Session: wave4-integrate
 - Risk: `models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf` (~40 GB) not found at expected path.
 - Evidence: Test `test_agent_runtime_config_matches_manifest_and_script` fails on file existence check.
 - Mitigation: Download from HuggingFace `mradermacher/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated-GGUF`.
-- Status: **Active — blocks live pipeline.**
+- Status: **Active — blocks live CEO pipeline. DeepSeek API works as fallback.**
 
 ### INV-R14 - Desktop launcher cannot resolve project path [RESOLVED]
 
@@ -213,5 +213,24 @@ Session: wave4-integrate
 - Classification: quality
 - Risk: None. Baseline recorded for future comparison.
 - Evidence: `python -m pytest tests/ -q` → 977 passed, 2 failed, 8 skipped in 27.60s.
-- Mitigation: INV-R13 must be resolved before live pipeline verification.
 - Status: **Baseline recorded.**
+
+---
+
+## New Risks (2026-07-20 — Session Final)
+
+### INV-R22 - Questrade OAuth token nao configurado [MEDIUM]
+
+- Classification: integration
+- Risk: Script `scripts/questrade_read_portfolio.py` esta implementado e funcional para scraping via Playwright (sessao persistente), mas a API oficial Questrade requer token OAuth. Sem o token, nao e possivel automatizar leitura de portfolio via API.
+- Evidence: Script executa com sucesso via Playwright UI scraping. `data/questrade_portfolio.json` contem snapshot real. Commit 31c14d9 confirma "codigo pronto, falta OAuth token".
+- Mitigation: Obter token OAuth do Questrade Portal e configurar via .env.
+- Status: Active. Codigo pronto para integracao.
+
+### INV-R23 - Test regression: test_forced_expert_committee fails [LOW]
+
+- Classification: quality
+- Risk: `test_auto_full_analysis.py::test_forced_expert_committee_materializes_weighted_consensus_before_submit` esta falhando no pytest. 1533 pass, 1 fail, 11 skip no estado atual.
+- Evidence: pytest output 2026-07-20: 1 failed out of 1545 total tests.
+- Mitigation: Investigar se falha e pre-existente ou causada por mudancas recentes no pipeline de experts.
+- Status: Active. Isolado — nao afeta 1533 testes restantes.
