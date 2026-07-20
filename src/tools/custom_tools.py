@@ -305,7 +305,7 @@ def create_code_executor_tool():
             "sorted": sorted,
             "reversed": reversed,
             "isinstance": isinstance,
-            "type": type,
+            # "type": type,  # REMOVED — sandbox escape vector via type.__subclasses__()
             "True": True,
             "False": False,
             "None": None,

@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import re
+import secrets
 import time
 from collections.abc import AsyncGenerator
 from datetime import datetime, timedelta, timezone
@@ -2123,7 +2124,8 @@ async def get_cockpit_summary(request: Request) -> dict[str, Any]:
 
 
 @router.post("/paper/approve/{request_id}")
-async def approve_paper_order(request_id: str) -> dict[str, Any]:
+async def approve_paper_order(request_id: str, request: Request) -> dict[str, Any]:
+    _require_trading_auth(request)
     """Approve a pending paper trading request."""
 
     from core.trading.approval_gate import approval_request_to_dict, get_approval_gate
@@ -2135,7 +2137,8 @@ async def approve_paper_order(request_id: str) -> dict[str, Any]:
 
 
 @router.post("/paper/reject/{request_id}")
-async def reject_paper_order(request_id: str) -> dict[str, Any]:
+async def reject_paper_order(request_id: str, request: Request) -> dict[str, Any]:
+    _require_trading_auth(request)
     """Reject a pending paper trading request."""
 
     from core.trading.approval_gate import approval_request_to_dict, get_approval_gate
@@ -2292,11 +2295,43 @@ def _resolve_evidence_file(run_id: str, filename: str):
 
 # â”€â”€ Two-Phase Paper Trade â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-_trade_status: dict[str, dict] = {}  # order_id â†’ {status, pipeline_result, ...}
+_trade_status: dict[str, dict] = {}  # order_id
+# --- Trading auth (2FA) ---
+_TRADING_TOKENS: dict[str, float] = {}
+_TRADING_TOKEN_TTL = 900  # 15 minutes
+
+
+def _require_trading_auth(request: Request) -> str:
+    """Verify second-factor trading token. Skipped if SUPEREZIO_API_KEY is not configured (dev mode)."""
+    if not os.getenv("SUPEREZIO_API_KEY"):
+        return ""  # dev mode — no trading auth required
+    token = request.headers.get("X-Trading-Token", "")
+    if not token:
+        raise HTTPException(status_code=401, detail="Trading requires X-Trading-Token header")
+    ts = _TRADING_TOKENS.get(token)
+    if ts is None:
+        raise HTTPException(status_code=401, detail="Invalid trading token")
+    if time.time() - ts > _TRADING_TOKEN_TTL:
+        del _TRADING_TOKENS[token]
+        raise HTTPException(status_code=401, detail='Trading token expired')
+    return token
+
+
+@router.post('/api/trading/token')
+async def create_trading_token(request: Request) -> dict[str, Any]:
+    """Generate a single-use trading session token (valid 15 min). Requires X-API-Key."""
+    token = secrets.token_urlsafe(32)
+    _TRADING_TOKENS[token] = time.time()
+    for t, ts in list(_TRADING_TOKENS.items()):
+        if time.time() - ts > _TRADING_TOKEN_TTL:
+            del _TRADING_TOKENS[t]
+    return {'token': token, 'expires_in': _TRADING_TOKEN_TTL, 'type': 'trading_session'}
+
 
 
 @router.post("/trade/execute")
-async def execute_trade_fast(payload: dict[str, Any]) -> dict[str, Any]:
+async def execute_trade_fast(payload: dict[str, Any], request: Request) -> dict[str, Any]:
+    _require_trading_auth(request)
     """Create a pending paper-trade ticket without bypassing validation."""
     ticker = str(payload.get("ticker", "")).upper()
     action = str(payload.get("action", "buy")).lower()

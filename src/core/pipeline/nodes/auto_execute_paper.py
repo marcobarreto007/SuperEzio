@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import json
 import math
-import os
 import re
+import os
 import time
 from collections import deque
 from datetime import datetime, timezone
@@ -561,8 +561,29 @@ def _resolve_limit_price(state: dict, scan: dict, ticker: str) -> tuple[float, f
     return limit_price, data_age_s
 
 
+_TICKER_SAFE_RE = re.compile(r"^[A-Z]{1,5}(?:\.(?:SA|TO|V|L))?$")
+
+
+def _validate_ticker_for_subprocess(ticker: str) -> str:
+    """Validate ticker is safe for subprocess call. Only [A-Z]{1,5} + optional .SA/.TO/.V/.L."""
+    ticker = (ticker or "").strip().upper()
+    if not ticker:
+        raise ValueError("Empty ticker rejected")
+    if not _TICKER_SAFE_RE.match(ticker):
+        raise ValueError(f"Invalid ticker format: {ticker}")
+    if len(ticker) > 9:
+        raise ValueError(f"Ticker too long: {ticker}")
+    return ticker
+
+
 def _check_concentration(ticker: str, position_value: float, run_id: str) -> bool:
     """Check if adding this position would exceed 50% concentration. Returns True if blocked."""
+    try:
+        safe_ticker = _validate_ticker_for_subprocess(ticker)
+    except ValueError as ve:
+        logger.warning("Concentration check skipped — invalid ticker: %s", ve)
+        return False
+
     try:
         import subprocess as _sp
         import sys as _sys
@@ -574,7 +595,7 @@ def _check_concentration(ticker: str, position_value: float, run_id: str) -> boo
             / "_ibkr_position_check.py"
         )
         proc = _sp.run(
-            [_sys.executable, check_script, ticker],
+            [_sys.executable, check_script, safe_ticker],
             capture_output=True,
             text=True,
             timeout=10,

@@ -1,4 +1,6 @@
 import asyncio
+import hmac
+import json as _json
 import logging
 import math
 import os
@@ -343,6 +345,73 @@ async def security_headers_middleware(request: Request, call_next):
     if request.url.scheme == "https":
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
+
+
+# ═══════════════════════════════════════════════════════════════
+# API Key Authentication Middleware (F51 Security Gate)
+# ═══════════════════════════════════════════════════════════════
+API_KEY = os.getenv("SUPEREZIO_API_KEY", "")
+API_KEY_HEADER = "X-API-Key"
+
+_PUBLIC_PREFIXES = frozenset({
+    "/health",
+    "/favicon.ico",
+    "/",
+    "/frontend",
+    "/css",
+    "/js",
+    "/metrics",
+})
+
+
+def _is_public_path(path: str) -> bool:
+    """Check if a path is public (no auth required)."""
+    if path in _PUBLIC_PREFIXES:
+        return True
+    return any(path.startswith(p + "/") for p in _PUBLIC_PREFIXES)
+
+
+@app.middleware("http")
+async def api_key_auth_middleware(request: Request, call_next):
+    path = request.url.path
+
+    # Public routes: no auth required
+    if _is_public_path(path):
+        # /health POST/PUT/DELETE still blocked
+        if path == "/health" and request.method not in ("GET", "HEAD"):
+            return Response(
+                status_code=401,
+                content=_json.dumps({"error": "Authentication required for this method"}),
+                media_type="application/json",
+            )
+        return await call_next(request)
+
+    # Static assets: public
+    if path.startswith("/frontend") or path.startswith("/css") or path.startswith("/js"):
+        return await call_next(request)
+
+    # Dev mode: if SUPEREZIO_API_KEY is not configured, warn and allow
+    if not API_KEY:
+        logger.warning("SUPEREZIO_API_KEY not configured — running without auth (DEV MODE ONLY)")
+        return await call_next(request)
+
+    provided_key = request.headers.get(API_KEY_HEADER, "")
+    if not provided_key:
+        return Response(
+            status_code=401,
+            content=_json.dumps({"error": "Missing X-API-Key header"}),
+            media_type="application/json",
+        )
+
+    # Constant-time comparison to prevent timing attacks
+    if not hmac.compare_digest(provided_key, API_KEY):
+        return Response(
+            status_code=401,
+            content=_json.dumps({"error": "Invalid API key"}),
+            media_type="application/json",
+        )
+
+    return await call_next(request)
 
 
 app.include_router(a2a_router)
