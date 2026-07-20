@@ -2342,6 +2342,36 @@ def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
     return None
 
 
+def _add_verdict_template(messages: list, state: dict) -> None:
+    """Append a RESPONSE TEMPLATE message after the pipeline verdict.
+
+    The template shows all pipeline data in a structured format and asks
+    Bob to fill in only the EXPLANATION section with natural language.
+    """
+    pvd = build_verdict_dict(state)
+    template = (
+        "RESPONSE TEMPLATE — fill in the EXPLANATION section only.\n"
+        "DO NOT modify the numbers below. They come from the pipeline.\n"
+        "\n"
+        "PIPELINE DATA (use exactly as shown):\n"
+        f"- Ticker: {pvd['ticker']}\n"
+        f"- Price: {pvd.get('math', {}).get('latest_price', 'N/A')}\n"
+        f"- RSI(14): {pvd.get('math', {}).get('rsi', 'N/A')}\n"
+        f"- MACD: {pvd.get('math', {}).get('macd', 'N/A')}\n"
+        f"- Sharpe: {pvd.get('math', {}).get('sharpe', 'N/A')}\n"
+        f"- F51 Score: {pvd.get('f51', {}).get('score', 'N/A')}\n"
+        f"- F51 Verdict: {pvd.get('f51', {}).get('passed', 'N/A')}\n"
+        f"- SDCA: {pvd.get('sdca', {}).get('decision', 'N/A')}\n"
+        f"- Neural: {pvd.get('neural', {}).get('decision', 'N/A')}\n"
+        f"- Expert Consensus: {pvd.get('experts', {}).get('consensus', 'N/A')}\n"
+        "\n"
+        "YOUR EXPLANATION (fill this in natural language):\n"
+        "[Explain the above data. Reference every module by name. \n"
+        "If data is missing for a module, say so explicitly.]\n"
+    )
+    messages.append({"role": "user", "content": template})
+
+
 # ============================================================================
 # SECTION D: Main Orchestrator — node_agent
 #    Lines: 2494 – 3197  (~703 lines)
@@ -2729,6 +2759,9 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             + json.dumps(pipeline_verdict, indent=2),
         })
 
+        # ── RESPONSE TEMPLATE — pre-filled pipeline data for Bob to explain ──
+        _add_verdict_template(messages, state)
+
         # ── User question — comes AFTER verdict ──
         messages.append(
             {
@@ -2770,6 +2803,8 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             "content": "=== PIPELINE VERDICT (BINDING — you MUST follow) ===\n"
             + json.dumps(pipeline_verdict, indent=2),
         })
+        # ── RESPONSE TEMPLATE — pre-filled pipeline data for Bob to explain ──
+        _add_verdict_template(messages, state)
         messages.append(
             {
                 "role": "user",
@@ -2968,6 +3003,14 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 else:
                     content = _repair_answer_quality(content, state.get("message", ""))
                     content = _apply_grounding_guard(state, content, declared_tickers)
+
+                # ── Pipeline validation: check Bob's answer references pipeline data ──
+                pipeline_vdict = build_verdict_dict(state)
+                validation = validate_answer_against_verdict(content, pipeline_vdict)
+                if not validation["passed"]:
+                    logger.warning(f"Bob answer validation failed: {validation['reason']}")
+                    # Add correction note to Bob's answer
+                    content += f"\n\n[Pipeline validation note: {validation['reason']}]"
 
                 # ── Inject portfolio snapshot BEFORE the CHUNK ──
                 pf = _get_portfolio_snapshot(state)

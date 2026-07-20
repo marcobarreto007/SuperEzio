@@ -7,7 +7,6 @@ pulls only the essential fields (maximum 5-7) from its respective module.
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 
