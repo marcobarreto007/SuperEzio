@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SuperEzio - AI Financial Copilot</title>
-  <meta name="description" content="SuperEzio AI copilot: F51 verdict engine, evidence-based financial analysis.">
-  <meta name="theme-color" content="#0a0e0b">
+  <title>SuperEzio — AI Trading Workbench</title>
+  <meta name="description" content="SuperEzio F51 verdict engine: AI-native trading workbench with multi-agent expert panel.">
+  <meta name="theme-color" content="#111820">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <!-- CSS -->
   <link rel="stylesheet" href="css/variables.css">
@@ -30,158 +30,276 @@
 </head>
 <body>
 
-  <!-- â”€â”€ TOP BAR â”€â”€ -->
-  <header class="topbar">
-    <div class="logo">
-      <span class="logo-mark">F51</span>
-      <span class="logo-text">SUPEREZIO</span>
-      <span class="logo-sub" id="logo-sub">Financial Copilot</span>
-      <span class="status-dot status-dot--off" id="sys-dot" title="Checking..."></span>
-      <span class="cockpit-connection" id="cockpit-connection">DESCONECTADO</span>
+  <!-- ===== TOP BAR ===== -->
+  <header class="topbar" id="topbar">
+    <div class="topbar__left">
+      <div class="topbar__brand">
+        <span class="topbar__logo">F51</span>
+        <span class="topbar__name">SUPEREZIO</span>
+      </div>
+      <div class="topbar__search">
+        <div class="topbar__ticker-group">
+          <input id="ticker-inp" type="text" placeholder="AAPL" autocomplete="off" spellcheck="false" maxlength="10" aria-label="Symbol">
+          <!-- hidden select for JS compatibility; button group is the UI -->
+          <select id="tf-inp" aria-label="Timeframe" class="topbar__tf-hidden">
+            <option value="1D">1D</option>
+            <option value="1W">1W</option>
+            <option value="1M">1M</option>
+            <option value="3M">3M</option>
+            <option value="6M" selected>6M</option>
+            <option value="1Y">1Y</option>
+            <option value="5Y">5Y</option>
+          </select>
+          <div class="topbar__tf-group" id="tf-group" role="tablist" aria-label="Timeframe">
+            <button class="tf-btn" data-tf="1D" role="tab" aria-selected="false">1D</button>
+            <button class="tf-btn" data-tf="1W" role="tab" aria-selected="false">1W</button>
+            <button class="tf-btn" data-tf="1M" role="tab" aria-selected="false">1M</button>
+            <button class="tf-btn" data-tf="3M" role="tab" aria-selected="false">3M</button>
+            <button class="tf-btn tf-btn--active" data-tf="6M" role="tab" aria-selected="true">6M</button>
+            <button class="tf-btn" data-tf="1Y" role="tab" aria-selected="false">1Y</button>
+          </div>
+          <button class="topbar__btn" id="chart-btn" title="Reload chart" type="button"><i data-lucide="refresh-cw" width="14" height="14"></i></button>
+        </div>
+      </div>
     </div>
-    <div class="spacer"></div>
-    <div class="ticker-wrap">
-      <input id="ticker-inp" type="text" placeholder="Chart" autocomplete="off" spellcheck="false" maxlength="10" aria-label="Optional chart symbol" title="Optional chart context. Bob can choose candidates from the chat.">
-      <select id="tf-inp" aria-label="Timeframe">
-        <option value="1D">1D</option>
-        <option value="1W">1W</option>
-        <option value="1M">1M</option>
-        <option value="3M">3M</option>
-        <option value="6M" selected>6M</option>
-        <option value="1Y">1Y</option>
-        <option value="5Y">5Y</option>
-      </select>
-      <button class="btn--icon" id="chart-btn" title="Reload chart" type="button"><i data-lucide="refresh-cw"></i></button>
-      <button class="broker-chip broker-chip--unknown" id="broker-status-btn" title="IBKR paper link status" type="button" aria-label="IBKR paper link status"><i data-lucide="landmark"></i><span id="broker-status-label">IBKR</span></button>
-      <button class="btn--icon" id="sdca-lab-btn" title="Cognitive Risk Firewall Lab" type="button"><i data-lucide="shield-alert"></i></button>
-      <button class="btn--icon" id="ops-console-btn" title="System Ops Console" type="button"><i data-lucide="activity"></i></button>
+    <div class="topbar__right">
+      <div class="topbar__metric">
+        <span class="topbar__metric-label">ACCOUNT</span>
+        <strong class="topbar__metric-value mono" id="account-value">$--</strong>
+      </div>
+      <div class="topbar__metric" id="topbar-pnl">
+        <span class="topbar__metric-label">P&amp;L</span>
+        <strong class="topbar__metric-value mono" id="pnl-value">--</strong>
+      </div>
+      <div class="topbar__connection">
+        <span class="topbar__conn-dot" id="sys-dot" title="Checking..."></span>
+        <span class="topbar__conn-text" id="cockpit-connection">DESCONECTADO</span>
+      </div>
+      <button class="topbar__icon-btn" id="broker-status-btn" title="IBKR paper link status" type="button" aria-label="IBKR paper link status"><i data-lucide="landmark" width="14" height="14"></i><span id="broker-status-label">IBKR</span></button>
+      <button class="topbar__icon-btn" id="sdca-lab-btn" title="SDCA Cognitive Risk Firewall Lab" type="button"><i data-lucide="shield-alert" width="14" height="14"></i></button>
+      <button class="topbar__icon-btn" id="ops-console-btn" title="System Ops Console" type="button"><i data-lucide="terminal" width="14" height="14"></i></button>
     </div>
   </header>
 
-  <!-- â”€â”€ MAIN â”€â”€ -->
+  <!-- ===== MAIN AREA ===== -->
   <section class="app-main">
-    <aside class="cockpit-panel cockpit-panel--genie" id="genie-panel" aria-label="Genie live sentiment panel">
-      <div class="cockpit-panel__header">
-        <div>
-          <span class="cockpit-panel__eyebrow">GENIE</span>
-          <h2>Sentimento Vivo</h2>
-        </div>
-        <span class="cockpit-panel__status cockpit-panel__status--idle" id="genie-panel-status">STANDBY</span>
-      </div>
-      <div class="cockpit-panel__body" id="genie-panel-body">
-        <section class="cockpit-section">
-          <div class="cockpit-section__title">Watchlist Pulse</div>
-          <div class="cockpit-empty" id="genie-watchlist-empty">Aguardando pulse.</div>
-        </section>
-      </div>
-    </aside>
-    <aside class="right-stack right-stack--floatable" id="live-panel" aria-label="Bob conversation">
-      <section class="terminal-card terminal-card--chat">
-        <div class="terminal-card-hdr">
-          <i class="bob-logo-icon">
-            <svg class="bob-logo-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="bob-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#00e676" />
-                  <stop offset="100%" stop-color="#00e5ff" />
-                </linearGradient>
-              </defs>
-              <polygon points="12,2 22,7.5 22,16.5 12,22 2,16.5 2,7.5" stroke="url(#bob-logo-grad)" stroke-width="2" stroke-linejoin="round" />
-              <path d="M6 12C6 12 8.5 9.5 12 9.5C15.5 9.5 18 12 18 12C18 12 15.5 14.5 12 14.5C8.5 14.5 6 12 6 12Z" stroke="url(#bob-logo-grad)" stroke-width="1.5" />
-              <circle cx="12" cy="12" r="2.5" fill="url(#bob-logo-grad)" />
-            </svg>
-          </i>
-          <strong class="bob-logo-text"><b class="bob-brand-accent">BOB</b><em class="bob-brand-sub">COPILOT</em></strong>
-          <span id="live-ticker">--</span>
-        </div>
-        <main class="chat" id="chat" aria-label="Conversation">
-          <section class="bob-welcome">
-            <div class="bob-copy">
-              <strong id="bob-welcome-title">Bob is online.</strong>
-              <p id="bob-welcome-body">Ask directly. Market context is attached when your question needs the chart.</p>
-            </div>
-          </section>
-        </main>
-        <div class="bottombar" id="bottombar">
-          <textarea id="user-inp" rows="1" placeholder="Ask Bob..." autocomplete="off" spellcheck="true"></textarea>
-          <button class="btn btn--primary" id="send-btn" type="button"><i data-lucide="send"></i><span>Send</span></button>
-        </div>
-      </section>
-    </aside>
 
-    <main class="chart-workspace" aria-label="Trading workspace">
+    <!-- CHART ZONE (70%) -->
+    <main class="chart-zone" aria-label="Trading workspace">
       <div class="market-header">
-        <div class="asset-block">
-          <span class="asset-label" id="asset-label">Market snapshot</span>
-          <h1><span id="workspace-ticker">--</span><small id="workspace-tf">--</small></h1>
-          <div class="live-profile" id="live-profile"></div>
+        <div class="market-header__info">
+          <div class="market-header__ticker">
+            <h1><span id="workspace-ticker">--</span><small id="workspace-tf">--</small></h1>
+            <span class="market-header__label" id="asset-label">Market snapshot</span>
+          </div>
+          <div class="market-header__profile" id="live-profile"></div>
         </div>
-        <div class="price-strip">
-          <div><span>Last</span><strong id="live-price">--</strong></div>
-          <div><span>Change</span><strong id="live-change">--</strong></div>
-          <div><span>Mode</span><strong class="live-status live-status--off" id="live-status">SNAPSHOT</strong></div>
+        <div class="market-header__prices">
+          <div class="price-cell">
+            <span class="price-cell__label">Last</span>
+            <strong class="price-cell__value mono" id="live-price">--</strong>
+          </div>
+          <div class="price-cell">
+            <span class="price-cell__label">Chg</span>
+            <strong class="price-cell__value mono" id="live-change">--</strong>
+          </div>
+          <div class="price-cell">
+            <span class="price-cell__label">High</span>
+            <strong class="price-cell__value mono" id="live-high">--</strong>
+          </div>
+          <div class="price-cell">
+            <span class="price-cell__label">Low</span>
+            <strong class="price-cell__value mono" id="live-low">--</strong>
+          </div>
+          <div class="price-cell">
+            <span class="price-cell__label">Vol</span>
+            <strong class="price-cell__value mono" id="live-volume">--</strong>
+          </div>
+          <div class="price-cell price-cell--mode">
+            <span class="price-cell__label">Mode</span>
+            <strong class="price-cell__status" id="live-status">SNAPSHOT</strong>
+          </div>
         </div>
+        <span id="side-ticker" class="expert-panel__hidden"></span>
+        <span id="live-ts" class="expert-panel__hidden"></span>
+        <span id="hud-latency" class="expert-panel__hidden"></span>
       </div>
 
       <section class="chart-stage">
-        <div class="live-canvas-wrap"><canvas id="live-canvas"></canvas></div>
+        <div class="chart-stage__canvas"><canvas id="live-canvas"></canvas></div>
       </section>
 
-      <section class="orders-mirror" id="orders-mirror" aria-label="IBKR open orders">
+      <section class="orders-mirror" id="orders-mirror">
         <div class="orders-mirror__header">
-          <div>
-            <span>IBKR Mirror</span>
-            <strong>Open orders and positions</strong>
+          <div class="orders-mirror__title">
+            <span class="orders-mirror__label">ORDERS &amp; POSITIONS</span>
+            <strong id="orders-count">--</strong>
           </div>
-          <span class="orders-mirror__count" id="orders-count">--</span>
         </div>
-        <div class="orders-list" id="orders-list">
-          <div class="cockpit-empty">Loading IBKR orders.</div>
-        </div>
-        <div class="trade-history-list" id="trade-history-list" aria-label="Paper trade history">
-          <div class="cockpit-empty">Loading trade history.</div>
+        <div class="orders-mirror__body">
+          <div class="orders-list" id="orders-list">
+            <div class="empty-state">Loading IBKR orders...</div>
+          </div>
+          <div class="trade-history-list" id="trade-history-list">
+            <div class="empty-state">Loading trade history...</div>
+          </div>
         </div>
       </section>
     </main>
 
-    <aside class="cockpit-panel cockpit-panel--deep" id="deep-panel" aria-label="Deep math and audit panel">
-      <div class="cockpit-panel__header">
-        <div>
-          <span class="cockpit-panel__eyebrow">DEEP</span>
-          <h2>Math & Experts</h2>
-        </div>
-        <span class="cockpit-panel__status cockpit-panel__status--idle" id="deep-panel-status">WAITING</span>
+    <!-- EXPERT PANEL (30%) -->
+    <aside class="expert-panel" id="expert-panel">
+      <div class="expert-panel__bar">
+        <span class="expert-panel__title">EXPERT PANEL</span>
+        <span class="expert-panel__status" id="deep-panel-status">INACTIVE</span>
       </div>
-      <div class="cockpit-panel__body deep-panel__body" id="deep-panel-body">
-        <section class="cockpit-section">
-          <div class="cockpit-section__title">Math Summary</div>
-          <div class="cockpit-empty">Aguardando MathHub.</div>
-        </section>
-      </div>
-      <section class="blame-panel" id="blame-panel" aria-label="Decision blame report">
-        <div class="cockpit-section__title">Blame Report</div>
-        <div class="blame-controls">
-          <input id="blame-run-id" type="text" autocomplete="off" placeholder="run_id">
-          <button class="btn btn--primary btn--sm" id="blame-load-btn" type="button"><i data-lucide="search"></i><span>Trace</span></button>
-        </div>
-        <div class="blame-report-body" id="blame-report-body">
-          <div class="cockpit-empty">Aguardando um run_id do pipeline.</div>
-        </div>
-      </section>
-    </aside>
 
+      <div class="expert-panel__cards" id="expert-panel-cards">
+
+        <!-- F51 Verdict Card -->
+        <article class="expert-card" id="expert-card-f51">
+          <div class="expert-card__hd">
+            <span class="expert-card__badge expert-card__badge--f51">F51</span>
+            <span class="expert-card__name">Veracity Consensus</span>
+            <span class="expert-card__verdict" id="f51-verdict">WAIT</span>
+          </div>
+          <div class="expert-card__bd" id="f51-body">
+            <div class="empty-state">Aguardando veredito F51.</div>
+          </div>
+          <div class="expert-card__trust">
+            <span class="trust-label">data</span>
+            <div class="trust-bar" id="f51-trust-bar"><span></span></div>
+          </div>
+        </article>
+
+        <!-- SDCA Firewall Card -->
+        <article class="expert-card" id="expert-card-sdca">
+          <div class="expert-card__hd">
+            <span class="expert-card__badge expert-card__badge--sdca">SDCA</span>
+            <span class="expert-card__name">Risk Firewall</span>
+            <span class="expert-card__verdict" id="sdca-verdict">WAIT</span>
+          </div>
+          <div class="expert-card__bd" id="sdca-body">
+            <div class="empty-state">Aguardando firewall.</div>
+          </div>
+          <div class="expert-card__trust">
+            <span class="trust-label">risk</span>
+            <div class="trust-bar" id="sdca-trust-bar"><span></span></div>
+          </div>
+        </article>
+
+        <!-- Neural Decision Card -->
+        <article class="expert-card" id="expert-card-neural">
+          <div class="expert-card__hd">
+            <span class="expert-card__badge expert-card__badge--neural">NRL</span>
+            <span class="expert-card__name">Neural Prediction</span>
+            <span class="expert-card__verdict" id="neural-verdict">WAIT</span>
+          </div>
+          <div class="expert-card__bd" id="neural-body">
+            <div class="empty-state">Aguardando predicao neural.</div>
+          </div>
+          <div class="expert-card__trust">
+            <span class="trust-label">signal</span>
+            <div class="trust-bar" id="neural-trust-bar"><span></span></div>
+          </div>
+        </article>
+
+        <!-- Trinity Deliberation Card -->
+        <article class="expert-card" id="expert-card-trinity">
+          <div class="expert-card__hd">
+            <span class="expert-card__badge expert-card__badge--trinity">TRI</span>
+            <span class="expert-card__name">Trinity Deliberation</span>
+            <span class="expert-card__verdict" id="trinity-verdict">--</span>
+          </div>
+          <div class="expert-card__bd" id="trinity-body">
+            <div class="empty-state">Sem deliberacao.</div>
+          </div>
+          <div class="expert-card__trust">
+            <span class="trust-label">consensus</span>
+            <div class="trust-bar" id="trinity-trust-bar"><span></span></div>
+          </div>
+        </article>
+
+        <!-- Guardrail Summary Card -->
+        <article class="expert-card expert-card--guardrails" id="expert-card-guardrails">
+          <div class="expert-card__hd">
+            <span class="expert-card__badge expert-card__badge--guard">GRD</span>
+            <span class="expert-card__name">Guardrail Hub</span>
+            <span class="expert-card__verdict" id="guardrails-summary">--/30</span>
+          </div>
+          <div class="expert-card__bd" id="guardrails-body">
+            <div class="empty-state">Aguardando guardrails.</div>
+          </div>
+          <div class="expert-card__trust">
+            <span class="trust-label">security</span>
+            <div class="trust-bar" id="guardrail-trust-bar"><span></span></div>
+          </div>
+        </article>
+      </div>
+
+      <!-- Deep Panel hidden data container (required by deep-panel.js) -->
+      <div id="deep-panel-body" class="expert-panel__hidden"></div>
+
+      <!-- Genie panel hidden container (required by genie-panel.js) -->
+      <aside id="genie-panel" class="expert-panel__hidden">
+        <span id="genie-panel-status" class="expert-panel__hidden"></span>
+        <div id="genie-panel-body" class="expert-panel__hidden"></div>
+      </aside>
+    </aside>
   </section>
 
-  <!-- ── SDCA LAB ── -->
-  <footer class="cockpit-statusbar" id="cockpit-statusbar" aria-label="Cockpit status bar">
-    <span class="cockpit-statusbar__item" id="statusbar-ceo">CEO: CHECKING</span>
-    <span class="cockpit-statusbar__item" id="statusbar-genie">Genie: CHECKING</span>
-    <span class="cockpit-statusbar__item" id="statusbar-deep">Deep: CHECKING</span>
-    <span class="cockpit-statusbar__item" id="statusbar-ibkr">IBKR: CHECKING</span>
-    <span class="cockpit-statusbar__item" id="statusbar-guardrails">Guardrails: --</span>
-    <span class="cockpit-statusbar__item" id="statusbar-latency">Last run: --</span>
+  <!-- ===== BOTTOM BAR ===== -->
+  <footer class="bot-bar" id="cockpit-statusbar" aria-label="System status bar">
+    <span class="bot-bar__item" id="statusbar-ceo">CEO: CHECKING</span>
+    <span class="bot-bar__item" id="statusbar-genie">Genie: CHECKING</span>
+    <span class="bot-bar__item" id="statusbar-deep">Deep: CHECKING</span>
+    <span class="bot-bar__item" id="statusbar-ibkr">IBKR: CHECKING</span>
+    <span class="bot-bar__item" id="statusbar-guardrails">Guardrails: --</span>
+    <span class="bot-bar__item" id="statusbar-latency">Last run: --</span>
+    <span class="bot-bar__item" id="statusbar-cost">Cost: $0.00</span>
   </footer>
 
+  <!-- ===== BOB CHAT: SLIDE-IN PANEL ===== -->
+  <aside class="bob-chat" id="live-panel" aria-label="Bob Copilot conversation">
+    <button class="bob-chat__tab" id="bob-chat-tab" type="button" title="Toggle Bob Chat" aria-label="Open Bob Chat">
+      <i data-lucide="message-circle" width="16" height="16"></i>
+      <span class="bob-chat__tab-label">Bob</span>
+    </button>
+    <div class="bob-chat__panel">
+      <div class="terminal-card-hdr">
+        <i class="bob-logo-icon">
+          <svg class="bob-logo-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="bob-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#00e676" />
+                <stop offset="100%" stop-color="#00e5ff" />
+              </linearGradient>
+            </defs>
+            <polygon points="12,2 22,7.5 22,16.5 12,22 2,16.5 2,7.5" stroke="url(#bob-logo-grad)" stroke-width="2" stroke-linejoin="round" />
+            <path d="M6 12C6 12 8.5 9.5 12 9.5C15.5 9.5 18 12 18 12C18 12 15.5 14.5 12 14.5C8.5 14.5 6 12 6 12Z" stroke="url(#bob-logo-grad)" stroke-width="1.5" />
+            <circle cx="12" cy="12" r="2.5" fill="url(#bob-logo-grad)" />
+          </svg>
+        </i>
+        <strong class="bob-logo-text"><b class="bob-brand-accent">BOB</b><em class="bob-brand-sub">COPILOT</em></strong>
+        <span id="live-ticker">--</span>
+        <button class="bob-chat__close" id="bob-chat-close" type="button" title="Close chat" aria-label="Close Bob Chat"><i data-lucide="x" width="14" height="14"></i></button>
+      </div>
+      <main class="chat" id="chat" aria-label="Conversation">
+        <section class="bob-welcome">
+          <div class="bob-copy">
+            <strong id="bob-welcome-title">Bob is online.</strong>
+            <p id="bob-welcome-body">Ask directly. Market context is attached when your question needs the chart.</p>
+          </div>
+        </section>
+      </main>
+      <div class="bottombar" id="bottombar">
+        <textarea id="user-inp" rows="1" placeholder="Ask Bob..." autocomplete="off" spellcheck="true"></textarea>
+        <button class="btn btn--primary" id="send-btn" type="button"><i data-lucide="send" width="14" height="14"></i><span>Send</span></button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== SDCA LAB (popover) ===== -->
   <section popover="manual" class="sdca-lab" id="sdca-lab">
     <div class="sdca-lab-hdr">
       <div><span>F51 Labs</span><strong>Cognitive Risk Firewall</strong></div>
@@ -222,7 +340,7 @@
     </div>
   </section>
 
-  <!-- ── System Ops Console ── -->
+  <!-- ===== SYSTEM OPS CONSOLE (popover) ===== -->
   <section popover="manual" class="ops-console" id="ops-console">
     <div class="ops-console-hdr">
       <div><span>F51 Labs</span><strong>System Operations Control</strong></div>
@@ -230,17 +348,15 @@
     </div>
     <div class="ops-console-body">
       <div class="ops-grid">
-        <!-- 1. Health Status Card -->
         <div class="ops-card" id="ops-card-health">
           <h3>System Health</h3>
           <div class="ops-metrics-list">
             <div class="ops-row"><span id="ops-label-status">Status</span><strong id="ops-health-status">Checking...</strong></div>
-            <div class="ops-row"><span id="ops-label-gpu">GPU Acceleration</span><strong id="ops-health-gpu">Checking...</strong></div>
-            <div class="ops-row"><span id="ops-label-redis">Redis Database</span><strong id="ops-health-redis">Checking...</strong></div>
-            <div class="ops-row"><span id="ops-label-ceo">Local Model (CEO)</span><strong id="ops-health-ceo">Checking...</strong></div>
+            <div class="ops-row"><span id="ops-label-gpu">GPU</span><strong id="ops-health-gpu">Checking...</strong></div>
+            <div class="ops-row"><span id="ops-label-redis">Redis</span><strong id="ops-health-redis">Checking...</strong></div>
+            <div class="ops-row"><span id="ops-label-ceo">CEO</span><strong id="ops-health-ceo">Checking...</strong></div>
           </div>
         </div>
-
         <div class="ops-card" id="ops-card-broker">
           <h3>Broker Link</h3>
           <div class="ops-metrics-list">
@@ -251,29 +367,23 @@
             <div class="ops-row"><span>Positions</span><strong id="ops-broker-positions">--</strong></div>
           </div>
         </div>
-
-        <!-- 2. Performance Metrics Card -->
         <div class="ops-card" id="ops-card-metrics">
           <h3>Performance</h3>
           <div class="ops-metrics-list">
-            <div class="ops-row"><span>Average Latency</span><strong id="ops-metric-latency">--</strong></div>
-            <div class="ops-row"><span>Error Count</span><strong id="ops-metric-errors">--</strong></div>
+            <div class="ops-row"><span>Avg Latency</span><strong id="ops-metric-latency">--</strong></div>
+            <div class="ops-row"><span>Errors</span><strong id="ops-metric-errors">--</strong></div>
           </div>
         </div>
-
-        <!-- 3. System Capabilities Card -->
         <div class="ops-card" id="ops-card-capabilities">
-          <h3 id="ops-title-capabilities">Agent Capabilities</h3>
+          <h3 id="ops-title-capabilities">Capabilities</h3>
           <ul class="ops-bullet-list" id="ops-capabilities-list">
             <li id="ops-capabilities-loading">Loading...</li>
           </ul>
         </div>
-
-        <!-- 4. Product Manifest Card -->
         <div class="ops-card ops-card-wide" id="ops-card-manifest">
-          <h3 id="ops-title-manifest">Product Manifest & Principles</h3>
+          <h3 id="ops-title-manifest">Product Manifest</h3>
           <div class="ops-manifest-desc" id="ops-manifest-desc">Loading...</div>
-          <div class="ops-principles-title" id="ops-title-principles">Operating Principles:</div>
+          <div class="ops-principles-title" id="ops-title-principles">Principles:</div>
           <ul class="ops-bullet-list" id="ops-manifest-principles">
             <li id="ops-manifest-loading">Loading...</li>
           </ul>
@@ -282,10 +392,10 @@
     </div>
   </section>
 
-  <!-- Auth Modal Container -->
+  <!-- ===== AUTH MODAL ===== -->
   <div id="auth-modal"></div>
 
-  <!-- JS (dependency order) -->
+  <!-- ===== JS (dependency order — DO NOT CHANGE) ===== -->
   <script src="js/content.js"></script>
   <script src="js/state.js"></script>
   <script src="js/auth.js"></script>

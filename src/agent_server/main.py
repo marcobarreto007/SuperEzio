@@ -31,7 +31,7 @@ from core.paths import PROJECT_ROOT  # noqa: E402
 from core.sentiment import LiveMonitor, SentimentCurator, WatchlistPulse  # noqa: E402
 from core.ports.protocol import A2AMessage  # noqa: E402
 
-from .auth import jwt_auth_middleware, router as auth_router  # noqa: E402
+from .auth import jwt_auth_middleware, register_auth_routes  # noqa: E402
 from .endpoints import router as a2a_router  # noqa: E402
 from .endpoints import submit_task as _submit_task_endpoint  # noqa: E402
 
@@ -439,7 +439,7 @@ async def api_jwt_auth_middleware(request: Request, call_next):
 
 
 app.include_router(a2a_router)
-app.include_router(auth_router)
+register_auth_routes(app)
 
 
 @app.post("/task/submit")

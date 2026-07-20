@@ -266,14 +266,14 @@ def api_app(tmp_path, jwt_secret):
     from agent_server.auth import (
         AuthDB as ServerAuthDB,
         jwt_auth_middleware,
-        router as auth_router,
+        register_auth_routes,
     )
 
     app = FastAPI()
     app.state.auth_db = ServerAuthDB(db_path=tmp_path / "api_test.db")
 
     # -- routes --
-    app.include_router(auth_router)
+    register_auth_routes(app)
 
     @app.get("/protected")
     async def _protected(request: Request):
@@ -419,9 +419,8 @@ class TestAuthAPI:
     def test_me_endpoint_requires_auth(self, api_client):
         """GET /auth/me without auth returns 401.
 
-        Note: /auth/* paths are public (skipped by JWT middleware), so the
-        /auth/me endpoint relies on its own user check.  Without a prior
-        api_key_auth_middleware setting request.state.user, it always 401s.
+        The JWT middleware now enforces auth on /auth/me (it is not in
+        _PUBLIC_AUTH_PATHS), so missing Authorization header -> 401.
         """
         resp = api_client.get("/auth/me")
         assert resp.status_code == 401

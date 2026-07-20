@@ -308,7 +308,9 @@ def _decode_access_token(token: str) -> dict[str, Any] | None:
 # ---------------------------------------------------------------------------
 _PUBLIC_EXACT = frozenset({"/health", "/favicon.ico", "/", "/metrics"})
 _PUBLIC_PREFIXES = frozenset({"/frontend", "/css", "/js"})
-_AUTH_PREFIXES = frozenset({"/auth"})
+# /auth/register, /auth/login, and /auth/refresh are public (no JWT needed).
+# /auth/me requires authentication and is NOT included here.
+_PUBLIC_AUTH_PATHS = frozenset({"/auth/register", "/auth/login", "/auth/refresh"})
 
 
 def _is_public_path(path: str) -> bool:
@@ -317,7 +319,7 @@ def _is_public_path(path: str) -> bool:
         return True
     if any(path == p or path.startswith(p + "/") for p in _PUBLIC_PREFIXES):
         return True
-    if any(path.startswith(p) for p in _AUTH_PREFIXES):
+    if path in _PUBLIC_AUTH_PATHS:
         return True
     return False
 
@@ -390,10 +392,13 @@ async def jwt_auth_middleware(request: Request, call_next):
 
 
 # ---------------------------------------------------------------------------
-# Router — /auth/* endpoints
+# Auth routes — /auth/* endpoints
 # ---------------------------------------------------------------------------
-
-router = APIRouter(prefix="/auth", tags=["auth"])
+# NOTE: We do NOT use APIRouter here because FastAPI 0.139.0 + Starlette 1.3.1
+# has a known _IncludedRouter bug that causes all prefixed included routes to
+# return 404 at runtime. Instead we register routes directly on the app object
+# via register_auth_routes().
+# See: https://github.com/fastapi/fastapi/issues/12692
 
 
 def _get_auth_db(request: Request) -> AuthDB:
@@ -403,112 +408,123 @@ def _get_auth_db(request: Request) -> AuthDB:
     return db
 
 
-@router.post("/register", status_code=201)
-async def register(body: UserCreate, request: Request) -> UserResponse:
-    """Register a new user account.
+def register_auth_routes(app: "FastAPI") -> None:
+    """Register /auth/* routes directly on the FastAPI application.
 
-    Returns 201 with the public user profile on success.
-    Returns 409 if the username or email is already taken.
+    This bypasses the ``_IncludedRouter`` bug in FastAPI 0.139.0 /
+    Starlette 1.3.1 by adding each route via the standard ``@app.xxx``
+    decorator pattern instead of ``app.include_router(APIRouter(prefix=...))``.
     """
-    db = _get_auth_db(request)
-    user = db.create_user(
-        username=body.username,
-        email=body.email,
-        password=body.password,
-    )
-    return UserResponse(
-        id=user["id"],
-        username=user["username"],
-        email=user["email"],
-        created_at=user["created_at"],
-    )
 
+    # Import FastAPI here to avoid circular imports at module level
+    from fastapi import FastAPI as _FastAPI
 
-@router.post("/login")
-async def login(body: LoginRequest, request: Request) -> TokenResponse:
-    """Authenticate with username and password.
+    # Use a local app reference to satisfy the type checker
+    _app: _FastAPI = app
 
-    Returns an access token (short-lived) and a single-use refresh token.
-    """
-    db = _get_auth_db(request)
-    user = db.get_user_by_username(body.username)
-    if user is None:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+    @_app.post("/auth/register", status_code=201)
+    async def register(body: UserCreate, request: Request) -> UserResponse:
+        """Register a new user account.
 
-    # Constant-time comparison for password verification (handled by passlib).
-    if not _pwd_ctx.verify(body.password, user["password_hash"]):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-
-    access_token = _create_access_token(user["id"], user["username"])
-    refresh_token, refresh_hash, expires_at = _create_refresh_token(user["id"])
-    db.store_refresh_token(user["id"], refresh_hash, expires_at)
-
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
-
-
-@router.post("/refresh")
-async def refresh(body: TokenRefresh, request: Request) -> TokenResponse:
-    """Rotate a refresh token (single-use).
-
-    On success returns a new access token **and** a new refresh token.
-    The old refresh token is revoked. If the same refresh token is presented
-    twice, the request is rejected (potential theft indicator).
-    """
-    db = _get_auth_db(request)
-    token_hash = hashlib.sha256(body.refresh_token.encode()).hexdigest()
-    token_data = db.consume_refresh_token(token_hash)
-
-    if token_data is None:
-        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
-
-    if token_data.get("already_used"):
-        logger.warning(
-            "Refresh token reuse detected for user_id=%s — possible token theft",
-            token_data.get("user_id"),
+        Returns 201 with the public user profile on success.
+        Returns 409 if the username or email is already taken.
+        """
+        db = _get_auth_db(request)
+        user = db.create_user(
+            username=body.username,
+            email=body.email,
+            password=body.password,
         )
-        raise HTTPException(status_code=401, detail="Refresh token already used")
-
-    user = db.get_user_by_id(token_data["user_id"])
-    if user is None:
-        raise HTTPException(status_code=401, detail="User not found")
-
-    access_token = _create_access_token(user["id"], user["username"])
-    new_refresh_token, new_refresh_hash, new_expires_at = _create_refresh_token(user["id"])
-    db.store_refresh_token(user["id"], new_refresh_hash, new_expires_at)
-
-    return TokenResponse(access_token=access_token, refresh_token=new_refresh_token)
-
-
-@router.get("/me")
-async def me(request: Request) -> UserResponse:
-    """Return the currently authenticated user's public profile."""
-    user = getattr(request.state, "user", None)
-    if user is None:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
-    raw_id = user.get("id") or user.get("sub")
-    try:
-        user_id = int(raw_id) if raw_id is not None else 0
-    except (ValueError, TypeError):
-        user_id = 0
-
-    if user_id == 0:
-        # Dev-mode anonymous user.
         return UserResponse(
-            id=0,
-            username=str(user.get("username", "dev_anon")),
-            email="dev@local",
-            created_at="",
+            id=user["id"],
+            username=user["username"],
+            email=user["email"],
+            created_at=user["created_at"],
         )
 
-    db = _get_auth_db(request)
-    db_user = db.get_user_by_id(user_id)
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+    @_app.post("/auth/login")
+    async def login(body: LoginRequest, request: Request) -> TokenResponse:
+        """Authenticate with username and password.
 
-    return UserResponse(
-        id=db_user["id"],
-        username=db_user["username"],
-        email=db_user["email"],
-        created_at=db_user["created_at"],
-    )
+        Returns an access token (short-lived) and a single-use refresh token.
+        """
+        db = _get_auth_db(request)
+        user = db.get_user_by_username(body.username)
+        if user is None:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+
+        # Constant-time comparison for password verification (handled by passlib).
+        if not _pwd_ctx.verify(body.password, user["password_hash"]):
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+
+        access_token = _create_access_token(user["id"], user["username"])
+        refresh_token, refresh_hash, expires_at = _create_refresh_token(user["id"])
+        db.store_refresh_token(user["id"], refresh_hash, expires_at)
+
+        return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
+    @_app.post("/auth/refresh")
+    async def refresh(body: TokenRefresh, request: Request) -> TokenResponse:
+        """Rotate a refresh token (single-use).
+
+        On success returns a new access token **and** a new refresh token.
+        The old refresh token is revoked. If the same refresh token is presented
+        twice, the request is rejected (potential theft indicator).
+        """
+        db = _get_auth_db(request)
+        token_hash = hashlib.sha256(body.refresh_token.encode()).hexdigest()
+        token_data = db.consume_refresh_token(token_hash)
+
+        if token_data is None:
+            raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+
+        if token_data.get("already_used"):
+            logger.warning(
+                "Refresh token reuse detected for user_id=%s — possible token theft",
+                token_data.get("user_id"),
+            )
+            raise HTTPException(status_code=401, detail="Refresh token already used")
+
+        user = db.get_user_by_id(token_data["user_id"])
+        if user is None:
+            raise HTTPException(status_code=401, detail="User not found")
+
+        access_token = _create_access_token(user["id"], user["username"])
+        new_refresh_token, new_refresh_hash, new_expires_at = _create_refresh_token(user["id"])
+        db.store_refresh_token(user["id"], new_refresh_hash, new_expires_at)
+
+        return TokenResponse(access_token=access_token, refresh_token=new_refresh_token)
+
+    @_app.get("/auth/me")
+    async def me(request: Request) -> UserResponse:
+        """Return the currently authenticated user's public profile."""
+        user = getattr(request.state, "user", None)
+        if user is None:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+
+        raw_id = user.get("id") or user.get("sub")
+        try:
+            user_id = int(raw_id) if raw_id is not None else 0
+        except (ValueError, TypeError):
+            user_id = 0
+
+        if user_id == 0:
+            # Dev-mode anonymous user.
+            return UserResponse(
+                id=0,
+                username=str(user.get("username", "dev_anon")),
+                email="dev@local",
+                created_at="",
+            )
+
+        db = _get_auth_db(request)
+        db_user = db.get_user_by_id(user_id)
+        if db_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        return UserResponse(
+            id=db_user["id"],
+            username=db_user["username"],
+            email=db_user["email"],
+            created_at=db_user["created_at"],
+        )

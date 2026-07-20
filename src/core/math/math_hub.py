@@ -221,8 +221,13 @@ class MathHub:
                     "close": close,
                     "volume": _safe_float(item.get("volume"), 0.0) or 0.0,
                 }
+                # yfinance and Finnhub providers use "datetime" key;
+                # ProfessionalCollector stores raw candles with "close", "open", etc.
                 iso_date = _preserve_iso_date(
-                    item.get("date") or item.get("time") or item.get("timestamp")
+                    item.get("datetime")
+                    or item.get("date")
+                    or item.get("time")
+                    or item.get("timestamp")
                 )
                 if iso_date is not None:
                     candle["date"] = iso_date

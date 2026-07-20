@@ -84,6 +84,9 @@ def _try_fast_cache(ticker: str, writer) -> dict | None:
         volume = latest["volume"]
 
         # Build minimal data dict from cache
+        # CRITICAL: include ohlcv so MathHub can compute RSI, MACD, Sharpe, etc.
+        # Without it, _extract_candles returns [] and ALL 14 modules skip with
+        # "missing_price_series" — 0/14 coverage.
         data = {
             "ticker": ticker,
             "price": {
@@ -95,6 +98,7 @@ def _try_fast_cache(ticker: str, writer) -> dict | None:
             "fundamentals": {"data_quality": "cached", "source": "learner_24_7_cache"},
             "technicals": {"data_quality": "cached", "source": "learner_24_7_cache"},
             "risk": {"data_quality": "cached", "source": "learner_24_7_cache"},
+            "ohlcv": ohlcv,
         }
 
         # Build rich data_context from expert analyses
