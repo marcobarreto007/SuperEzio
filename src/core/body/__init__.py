@@ -1,11 +1,15 @@
 """
 CORPO — Camada de corpo do SuperEzio F51.
 ===========================================
-Event bus + Heartbeat + ciclo vital do sistema.
+Event bus + Heartbeat + DNA + Memory Lattice + Immune + Emotion.
 """
 
+from .dna import DNAEngine, Gene
+from .emotion import EMOTION_LABELS, EmotionalState, PADEngine
 from .event_bus import BodyEvent, BodyEventBus
 from .heartbeat import HeartbeatLoop
+from .immune import ImmuneSystem
+from .memory_lattice import LAYER_NAMES, MemoryLattice
 
 
 def create_body(event_bus_type: str = "memory") -> dict:
@@ -28,4 +32,12 @@ __all__ = [
     "BodyEventBus",
     "HeartbeatLoop",
     "create_body",
+    "DNAEngine",
+    "Gene",
+    "EmotionalState",
+    "PADEngine",
+    "EMOTION_LABELS",
+    "ImmuneSystem",
+    "MemoryLattice",
+    "LAYER_NAMES",
 ]

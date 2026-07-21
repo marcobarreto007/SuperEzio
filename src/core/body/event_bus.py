@@ -177,9 +177,7 @@ class BodyEventBus:
     # Subscribe
     # ------------------------------------------------------------------
 
-    async def subscribe(
-        self, event_type: str, callback: BodyEventHandler
-    ) -> None:
+    async def subscribe(self, event_type: str, callback: BodyEventHandler) -> None:
         """Registra um callback para um tipo específico de evento."""
 
         # Wrap the BodyEventHandler to adapt from EventEnvelope

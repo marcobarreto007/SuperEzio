@@ -54,9 +54,7 @@ class ImmuneSystem:
     ) -> None:
         self._project_root = Path(project_root or _find_project_root())
         self._kernel_files = kernel_files or list(_DEFAULT_KERNEL)
-        self._backup_dir = Path(
-            backup_dir or self._project_root / "runtime" / "backups"
-        )
+        self._backup_dir = Path(backup_dir or self._project_root / "runtime" / "backups")
         self._backup_dir.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
         self._kernel_hashes: dict[str, str] = {}
@@ -88,19 +86,14 @@ class ImmuneSystem:
         abs_path = self._project_root / rel_path
         if not abs_path.exists():
             return None
-        backup_name = (
-            f"{rel_path.replace('/', '__').replace('\\\\', '__')}"
-            f"_{_now_stamp()}.bak"
-        )
+        backup_name = f"{rel_path.replace('/', '__').replace('\\\\', '__')}_{_now_stamp()}.bak"
         backup_path = self._backup_dir / backup_name
         with self._lock:
             shutil.copy2(str(abs_path), str(backup_path))
             self._last_backups[rel_path] = backup_path
         return backup_path
 
-    def import_test(
-        self, module_path: str, *, timeout: int = 30
-    ) -> tuple[bool, str]:
+    def import_test(self, module_path: str, *, timeout: int = 30) -> tuple[bool, str]:
         """Attempt to import the given module in an isolated subprocess.
 
         Returns (success, message).

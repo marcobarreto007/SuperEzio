@@ -211,9 +211,7 @@ class MemoryLattice:
 
     def _seed_meta_rules(self) -> None:
         """Populate layer 1 with immutable seed rules if empty."""
-        count = self._conn.execute(
-            "SELECT COUNT(*) as cnt FROM meta_rules"
-        ).fetchone()["cnt"]
+        count = self._conn.execute("SELECT COUNT(*) as cnt FROM meta_rules").fetchone()["cnt"]
         if count > 0:
             return
         with self._lock:

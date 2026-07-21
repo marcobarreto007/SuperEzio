@@ -238,9 +238,7 @@ class DNAEngine:
                 f"range [{gene.min}, {gene.max}]){frozen}"
             )
         lines.append("")
-        lines.append(
-            f"  Crystallized: {len(self._crystallized)} / {len(self._genes)} genes"
-        )
+        lines.append(f"  Crystallized: {len(self._crystallized)} / {len(self._genes)} genes")
         return "\n".join(lines)
 
     def snapshot(self) -> dict[str, Any]:

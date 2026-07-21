@@ -258,9 +258,7 @@ class HeartbeatLoop:
             return DEEP_STAGES
         return FULL_STAGES
 
-    async def _execute_stage(
-        self, stage: HeartbeatStage, cycle: HeartbeatCycle
-    ) -> None:
+    async def _execute_stage(self, stage: HeartbeatStage, cycle: HeartbeatCycle) -> None:
         """Executa um estágio individual e publica no event_bus."""
         event_type_map = {
             HeartbeatCycle.FULL: "event:body.heartbeat.full",
@@ -294,9 +292,7 @@ class HeartbeatLoop:
     # Pain registration
     # ------------------------------------------------------------------
 
-    async def _register_pain(
-        self, stage: HeartbeatStage, error: str
-    ) -> None:
+    async def _register_pain(self, stage: HeartbeatStage, error: str) -> None:
         """Registra dor no sistema (não quebra o loop)."""
         pain_entry = {
             "stage": stage.value,
