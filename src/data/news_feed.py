@@ -18,6 +18,7 @@ Todas as fontes retornam o mesmo schema de Dict.
 
 from __future__ import annotations
 
+import concurrent.futures
 import datetime
 import logging
 import os
@@ -50,6 +51,9 @@ except ImportError:
 
 
 # ── Constantes ──────────────────────────────────────────────────────────────
+_MAX_CRAWL_SECONDS = 30  # timeout total para um ciclo de crawl multi-source
+_SUPEREZIO_NEWSSCOUT_ASYNC = os.getenv("SUPEREZIO_NEWSSCOUT_ASYNC") == "1"
+
 _POS_WORDS = {
     "surges",
     "rallies",
@@ -391,6 +395,7 @@ class NewsScout:
     def __init__(self) -> None:
         self.brave_key: Optional[str] = os.getenv("BRAVE_SEARCH_API_KEY")
         self.newsapi_key: Optional[str] = os.getenv("NEWSAPI_KEY")
+        self._crawl_done: bool = False
         sources = [
             "DDG",
             "Bing News RSS",
@@ -441,6 +446,40 @@ class NewsScout:
         """
         Busca notícias em cascata até atingir `limit` resultados.
         Combina e de-duplica por título.
+
+        SUPEREZIO_NEWSSCOUT_ASYNC=1:
+          - Skip crawl na primeira chamada (evita bloqueio no startup).
+          - O crawl real acontece na segunda chamada (sob demanda).
+        """
+        # ── ASYNC MODE: skip initial crawl, return empty ─────────────────
+        if _SUPEREZIO_NEWSSCOUT_ASYNC and not self._crawl_done:
+            logger.info(
+                "[NEWS] Skipping initial crawl for '%s' (SUPEREZIO_NEWSSCOUT_ASYNC=1)",
+                query,
+            )
+            self._crawl_done = True
+            return []
+
+        # ── Normal mode: run full crawl with total timeout ───────────────
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(self._crawl_all_sources, query, limit)
+                return future.result(timeout=_MAX_CRAWL_SECONDS)
+        except concurrent.futures.TimeoutError:
+            logger.warning(
+                "[NEWS] Crawl timed out after %ds for '%s'",
+                _MAX_CRAWL_SECONDS,
+                query,
+            )
+            return []
+        except Exception as exc:
+            logger.warning("[NEWS] Crawl error for '%s': %s", query, exc)
+            return []
+
+    def _crawl_all_sources(self, query: str, limit: int) -> List[Dict]:
+        """
+        Executa o crawl multi-source em cascata.
+        Extraída para ser chamada via ThreadPoolExecutor com timeout.
         """
         collected: List[Dict] = []
         seen_titles: set = set()
