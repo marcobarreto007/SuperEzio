@@ -767,9 +767,18 @@ async def get_chart_data(
     clean_ticker = _sanitize_ticker(ticker)
 
     # DataHub methods are synchronous (requests-based). Run them in a worker
-    # thread so a slow/saturated provider cannot stall the event loop and starve
-    # every other concurrent request (this was the chart-data browser hang).
-    result = await asyncio.to_thread(hub.get_candles, clean_ticker, timeframe=timeframe)
+    # thread (so a slow provider cannot stall the event loop) AND bound each call
+    # with a timeout — a hanging/saturated provider (or contention with Bob's
+    # background scans) must fail fast instead of hanging the browser request.
+    try:
+        result = await asyncio.wait_for(
+            asyncio.to_thread(hub.get_candles, clean_ticker, timeframe=timeframe),
+            timeout=10.0,
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            status_code=504, detail=f"DataHub candles timeout (>10s) for {clean_ticker}"
+        )
     if "error" in result:
         attempts = result.get("attempts", [])
         detail = result["error"] if not attempts else str(attempts)
@@ -779,7 +788,15 @@ async def get_chart_data(
     if not candles:
         raise HTTPException(status_code=404, detail=f"Sem dados para {clean_ticker}")
 
-    profile_result = await asyncio.to_thread(hub.get_profile, clean_ticker)
+    # Profile is best-effort: bound it so a hanging profile provider never stalls
+    # the chart response (candles already succeeded above).
+    try:
+        profile_result = await asyncio.wait_for(
+            asyncio.to_thread(hub.get_profile, clean_ticker), timeout=5.0
+        )
+    except asyncio.TimeoutError:
+        logger.warning("Profile lookup timed out (>5s) for %s — using fallback", clean_ticker)
+        profile_result = {"error": "profile_timeout"}
     if "error" in profile_result:
         logger.warning(
             "Profile lookup failed for %s: %s",

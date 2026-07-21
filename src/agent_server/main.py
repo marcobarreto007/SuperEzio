@@ -304,15 +304,20 @@ async def lifespan(app: FastAPI):
             logger.warning("[%s] F51 Body HeartbeatLoop failed: %s", AGENT_NAME, str(exc)[:200])
 
     # ── Start Mangala Daily Proactive Scan (background opportunity scanner) ──
-    try:
-        from scripts.mangala_daily_scan import start_background_scan
+    # Env-gated: set SUPEREZIO_MANGALA_SCAN=0 to disable (e.g. for local/dev or
+    # smoke runs where the hundreds-ticker provider storm would starve the UI).
+    if os.getenv("SUPEREZIO_MANGALA_SCAN", "1") != "1":
+        logger.info("[%s] Mangala proactive scan disabled (SUPEREZIO_MANGALA_SCAN!=1)", AGENT_NAME)
+    else:
+        try:
+            from scripts.mangala_daily_scan import start_background_scan
 
-        start_background_scan()
-        logger.info("[%s] Mangala proactive scan started — scanning every 15/60 min", AGENT_NAME)
-    except Exception as exc:
-        logger.warning(
-            "[%s] Mangala proactive scan failed to start: %s", AGENT_NAME, str(exc)[:200]
-        )
+            start_background_scan()
+            logger.info("[%s] Mangala proactive scan started — scanning every 15/60 min", AGENT_NAME)
+        except Exception as exc:
+            logger.warning(
+                "[%s] Mangala proactive scan failed to start: %s", AGENT_NAME, str(exc)[:200]
+            )
 
     yield
 

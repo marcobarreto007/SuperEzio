@@ -493,8 +493,7 @@
               }
               buffer += decoder.decode(result.value, { stream: true });
 
-              var lines = buffer.split("
-");
+              var lines = buffer.split("\n");
               buffer = lines.pop();
 
               for (var i = 0; i < lines.length; i++) {
