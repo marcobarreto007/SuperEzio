@@ -114,14 +114,25 @@ class MemoryLattice:
 
         table = LAYER_NAMES[layer]
         data["_created_at"] = data.get("_created_at", _now_iso())
+        json_data = json.dumps(data)
 
         with self._lock:
             cur = self._conn.execute(
                 f"INSERT INTO {table} (data, created_at) VALUES (?, ?)",
-                (json.dumps(data), data["_created_at"]),
+                (json_data, data["_created_at"]),
             )
+            rowid = cur.lastrowid
+
+            # Sync FTS index for layers that have FTS
+            if layer in LAYERS_WITH_FTS:
+                fts_table = f"{table}_fts"
+                self._conn.execute(
+                    f"INSERT INTO {fts_table} (rowid, data) VALUES (?, ?)",
+                    (rowid, json_data),
+                )
+
             self._conn.commit()
-            return cur.lastrowid  # type: ignore[return-value]
+            return rowid  # type: ignore[return-value]
 
     def query(
         self,
@@ -205,7 +216,7 @@ class MemoryLattice:
                     fts_table = f"{table}_fts"
                     self._conn.execute(
                         f"""CREATE VIRTUAL TABLE IF NOT EXISTS {fts_table}
-                        USING fts5(data, content={table}, content_rowid=rowid)"""
+                        USING fts5(data)"""
                     )
             self._conn.commit()
 

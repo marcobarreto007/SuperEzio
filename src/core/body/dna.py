@@ -157,7 +157,7 @@ class DNAEngine:
         if gene_name in self._crystallized:
             return gene.current_value  # frozen — no mutation
 
-        _record_mutation(gene, "skip", reason="below_rate_threshold")
+        _record_mutation(gene, "below_rate_threshold")
         if _coin_flip(gene.mutation_rate):
             return gene.current_value
 

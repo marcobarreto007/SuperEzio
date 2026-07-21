@@ -15,11 +15,10 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Callable
 
 # Default kernel — files that are NEVER allowed to be modified without review.
 # Paths are relative to the project root.
@@ -86,7 +85,8 @@ class ImmuneSystem:
         abs_path = self._project_root / rel_path
         if not abs_path.exists():
             return None
-        backup_name = f"{rel_path.replace('/', '__').replace('\\\\', '__')}_{_now_stamp()}.bak"
+        safe_name = rel_path.replace("/", "__").replace("\\", "__")
+        backup_name = f"{safe_name}_{_now_stamp()}.bak"
         backup_path = self._backup_dir / backup_name
         with self._lock:
             shutil.copy2(str(abs_path), str(backup_path))

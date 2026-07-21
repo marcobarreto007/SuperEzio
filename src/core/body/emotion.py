@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Any
 
 # ── Emotional state labels ──────────────────────────────────────────────────
 EMOTION_LABELS: dict[tuple[str, str, str], str] = {
@@ -168,9 +167,7 @@ class PADEngine:
         pleasure_cat = "high" if self.pleasure >= 0.0 else "low"
         arousal_cat = "high" if self.arousal >= 0.5 else "low"
         dominance_cat = "high" if self.dominance >= 0.0 else "low"
-        label = EMOTION_LABELS.get(
-            (pleasure_cat, arousal_cat, dominance_cat), "neutral"
-        )
+        label = EMOTION_LABELS.get((pleasure_cat, arousal_cat, dominance_cat), "neutral")
         return EmotionalState(
             label=label,
             pleasure=self.pleasure,
