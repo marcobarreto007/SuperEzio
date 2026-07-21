@@ -144,6 +144,18 @@ The browser smoke requires the API on port `8002`. A full run executes **1,611 t
 - Do not use production fallbacks with fabricated market data.
 - This repository is operated in disk-only mode: no `git push`, `git pull`, `git fetch`, or GitHub CLI operations.
 
+## Docker Quick Start
+
+```powershell
+docker compose up -d                                  # Start all services (bob-ceo, api-server, watchdog)
+docker compose logs -f                                # Tail logs from all services
+docker compose ps                                     # Check health status of each service
+docker compose exec api-server python -m pytest -q    # Run tests inside the api container
+docker compose down -v                                # Stop and remove volumes (caution: deletes data)
+```
+
+See `docker-compose.yml` for service topology, networks, and healthcheck configuration.
+
 ## License
 
 MIT License with attribution. See [LICENSE](LICENSE).

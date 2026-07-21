@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   bob-ceo:
     image: ghcr.io/ggerganov/llama.cpp:full-cuda
@@ -42,6 +40,8 @@ services:
               count: 1
               capabilities: [gpu]
     restart: unless-stopped
+    networks:
+      - backend
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
       interval: 30s
@@ -63,7 +63,10 @@ services:
       - SUPEREZIO_AGENT_BASE_URL=http://bob-ceo:8082/v1
       - SUPEREZIO_CEO_BASE_URL=http://bob-ceo:8082/v1
       - F51_TRADING_EXECUTION_FREEZE=true
+      - SUPEREZIO_LIVE_TRADING_DISABLED=1
+      - SUPEREZIO_DAYTRADE_PAPER_ONLY=1
       - SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT=false
+      - LOG_LEVEL=INFO
     env_file:
       - .env
     volumes:
@@ -75,32 +78,15 @@ services:
       bob-ceo:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - backend
+      - frontend
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-
-  # learner — REMOVED 2026-07-19 (Wave 4 cleanup)
-  # Módulo core.trading.autonomous_learner foi removido no Wave 4 cleanup.
-  # Serviço mantido comentado para referência histórica.
-  # learner:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   container_name: superezio-learner
-  #   command: ["python", "-m", "core.trading.autonomous_learner"]
-  #   environment:
-  #     - PYTHONPATH=/app/src
-  #   env_file:
-  #     - .env
-  #   volumes:
-  #     - ./src:/app/src:ro
-  #     - ./data:/app/data
-  #   depends_on:
-  #     api-server:
-  #       condition: service_healthy
-  #   restart: unless-stopped
+      start_period: 30s
 
   watchdog:
     build:
@@ -111,9 +97,27 @@ services:
     environment:
       - PYTHONPATH=/app/src
       - BOB_WATCHDOG_INTERVAL_SEC=30
+      - LOG_LEVEL=INFO
     volumes:
       - ./src:/app/src:ro
       - ./scripts:/app/scripts:ro
+      - ./data:/app/data
+      - ./runtime:/app/runtime
+      - ./journal:/app/journal
     depends_on:
       - bob-ceo
     restart: unless-stopped
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge

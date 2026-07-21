@@ -50,3 +50,13 @@ htmlcov/
 # Claude
 .claude/
 .continue/
+
+# Node (frontend dependency)
+node_modules/
+
+# Runtime artifacts
+runtime/
+journal/
+
+# Env example (not needed in image)
+.env.example
