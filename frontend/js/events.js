@@ -1,4 +1,4 @@
-/* SuperEzio — Central NDJSON Event Handler */
+/* SuperEzio --- Central NDJSON Event Handler */
 (function () {
   "use strict";
 
@@ -46,9 +46,9 @@
     chat.appendChild(div);
   }
 
-  /* ═══════════════════════════════════════════════════════════════
+  /* ==============================================================
    * MAIN EVENT HANDLER
-   * ═══════════════════════════════════════════════════════════════ */
+   * ============================================================== */
   function handleEvent(ev) {
     if (!ev || !ev.type) return;
     if (ev.run_id) {
@@ -60,8 +60,9 @@
 
     switch (ev.type) {
 
-      /* ── STREAM_START ── */
+      /* -- STREAM_START -- */
       case "STREAM_START":
+        console.log("[SSE] STREAM_START received, initializing stream");
         SZ.chat.finishCEOMessage();
         SZ.chat.ensureCEOMessage();
         SZ.state.stream = {
@@ -75,7 +76,7 @@
         SZ.state.currentCeo = "ceo";
         break;
 
-      /* ── CHART_DATA ── */
+      /* -- CHART_DATA -- */
       case "CHART_DATA":
         if (ev.chartData) {
           SZ.state.chartData = ev.chartData;
@@ -84,30 +85,29 @@
         }
         break;
 
-      /* ── CHUNK ── */
+      /* -- CHUNK -- */
       case "CHUNK":
         if (SZ.chat && SZ.chat.appendChunk) {
           SZ.chat.appendChunk(ev.content || "");
         }
         break;
 
-      /* ── EXPLANATION_CHUNK ── */
+      /* -- EXPLANATION_CHUNK -- */
       case "EXPLANATION_CHUNK":
         if (SZ.renderExplanation && SZ.renderExplanation.accumulate) {
           SZ.renderExplanation.accumulate(ev.content || "");
         }
         break;
 
-      /* ── INTENT_CLASSIFIED ── */
+      /* -- INTENT_CLASSIFIED -- */
       case "INTENT_CLASSIFIED":
-        /* informational only — could add chips later */
         if (SZ.state.stream) {
           SZ.state.stream.intent = ev.intent;
           SZ.state.stream.route = ev.route;
         }
         break;
 
-      /* ── PIPELINE_STEP ── */
+      /* -- PIPELINE_STEP -- */
       case "PIPELINE_STEP":
         if (ev.skipped_duplicate) break;
         if (SZ.renderPipeline && SZ.renderPipeline.updateStep) {
@@ -116,7 +116,6 @@
             SZ.renderPipeline.updateStep(ev.step, ev.status, ceoObj);
           }
         }
-        // Evidence Mode: show report button when graph completes
         if (ev.step === "graph" && ev.status === "completed" && ev.evidence_run_id) {
           (function () {
             var ceo = SZ.chat && SZ.chat.currentCEO;
@@ -136,40 +135,37 @@
         }
         break;
 
-      /* ── F51_VERDICT ── */
+      /* -- F51_VERDICT -- */
       case "F51_VERDICT":
+        console.log("[SSE] F51_VERDICT received, rendering card");
         (function () {
           var ceoObj = SZ.chat.currentCEO;
           if (SZ.renderF51 && ceoObj) SZ.renderF51(ev, ceoObj);
-          // Store for deep panel — rendered via pipeline-event bus subscription
           if (SZ.state) {
             SZ.state.lastF51Verdict = ev;
           }
         })();
         break;
 
-      /* ── SDCA_FIREWALL ── */
+      /* -- SDCA_FIREWALL -- */
       case "SDCA_FIREWALL":
+        console.log("[SSE] SDCA_FIREWALL received, rendering card");
         (function () {
           var ceoObj = SZ.chat.currentCEO;
           if (SZ.renderSDCA && ceoObj) SZ.renderSDCA(ev, ceoObj);
-          // Store for cockpit polling fallback
           window.SZ.__sdcaState = ev;
         })();
         break;
 
-      /* ── MATH_REPORT ── */
+      /* -- MATH_REPORT -- */
       case "MATH_REPORT":
         (function () {
-          // Store for deep panel via pipeline-event bus
           if (SZ.state) SZ.state.lastMathReport = ev;
-          // Update deep panel status badge
           var statusEl = document.getElementById("deep-panel-status");
           if (statusEl && ev.ticker) {
             statusEl.textContent = "MATH: " + String(ev.ticker).toUpperCase();
             statusEl.classList.remove("cockpit-panel__status--idle");
           }
-          // Update latency in status bar
           if (ev.generated_at) {
             var latEl = document.getElementById("statusbar-latency");
             if (latEl) latEl.textContent = "Math: " + ev.generated_at.slice(11, 19);
@@ -177,11 +173,11 @@
         })();
         break;
 
-      /* ── GUARDRAIL_HUB ── */
+      /* -- GUARDRAIL_HUB -- */
       case "GUARDRAIL_HUB":
+        console.log("[SSE] GUARDRAIL_HUB received, rendering card");
         (function () {
           if (SZ.state) SZ.state.lastGuardrailHub = ev;
-          // Update status bar guardrail count
           var summary = ev.summary || {};
           var ok = (summary.decision_counts || {}).ALLOW || 0;
           var total = ev.total_guardrails || 30;
@@ -194,14 +190,14 @@
             guardEl.className = "cockpit-statusbar__item " + cls;
             guardEl.textContent = "Guardrails: " + ok + "/" + total + (blocking ? " (" + blocking + " blocking)" : "");
           }
-          // Update latency in status bar
           var latEl = document.getElementById("statusbar-latency");
           if (latEl) latEl.textContent = "Guard: " + new Date().toLocaleTimeString();
         })();
         break;
 
-      /* ── TRINITY_DELIBERATION ── */
+      /* -- TRINITY_DELIBERATION -- */
       case "TRINITY_DELIBERATION":
+        console.log("[SSE] TRINITY_DELIBERATION received, rendering card");
         (function () {
           if (SZ.state) SZ.state.lastTrinity = ev;
           var statusEl = document.getElementById("deep-panel-status");
@@ -212,7 +208,7 @@
         })();
         break;
 
-      /* ── PENNYLAB_ANALYSIS ── */
+      /* -- PENNYLAB_ANALYSIS -- */
       case "PENNYLAB_ANALYSIS":
         (function () {
           var ceoObj = SZ.chat.currentCEO;
@@ -220,7 +216,7 @@
         })();
         break;
 
-      /* ── CRISIS_MATH ── */
+      /* -- CRISIS_MATH -- */
       case "CRISIS_MATH":
         (function () {
           var ceoObj = SZ.chat.currentCEO;
@@ -228,7 +224,7 @@
         })();
         break;
 
-      /* ── DATA_COLLECTED ── */
+      /* -- DATA_COLLECTED -- */
       case "DATA_COLLECTED":
         (function () {
           var ceoObj = SZ.chat.currentCEO;
@@ -236,7 +232,7 @@
         })();
         break;
 
-      /* ── EXPERT_STARTED ── */
+      /* -- EXPERT_STARTED -- */
       case "EXPERT_STARTED":
         (function () {
           var ceoObj = SZ.chat.currentCEO;
@@ -246,7 +242,7 @@
         })();
         break;
 
-      /* ── EXPERT_DONE ── */
+      /* -- EXPERT_DONE -- */
       case "EXPERT_DONE":
         (function () {
           var ceoObj = SZ.chat.currentCEO;
@@ -257,7 +253,7 @@
         })();
         break;
 
-      /* ── EXPERT_SKIPPED ── */
+      /* -- EXPERT_SKIPPED -- */
       case "EXPERT_SKIPPED":
         (function () {
           var ceoObj = SZ.chat.currentCEO;
@@ -267,17 +263,17 @@
         })();
         break;
 
-      /* ── NEURAL_DECISION ── */
+      /* -- NEURAL_DECISION -- */
       case "NEURAL_DECISION":
+        console.log("[SSE] NEURAL_DECISION received, rendering card");
         (function () {
           var ceoObj = SZ.chat.currentCEO;
           if (SZ.renderNeural && ceoObj) SZ.renderNeural(ev, ceoObj);
-          // Store for cockpit polling fallback
           window.SZ.__neuralState = ev;
         })();
         break;
 
-      /* ── SCAN_EVENT ── (MRI Registry heartbeat/stage lifecycle) */
+      /* -- SCAN_EVENT -- */
       case "SCAN_EVENT":
         (function () {
           if (!SZ.state.scanProgress) SZ.state.scanProgress = {};
@@ -295,7 +291,6 @@
           sp.provider = ev.provider || null;
           if (ev.error) sp.lastError = ev.error;
 
-          /* render scanner status line in chat */
           var ceo = SZ.chat.ensureCEOMessage();
           if (ceo) {
             var existing = ceo.bubble.querySelector(".scanner-progress");
@@ -317,7 +312,7 @@
         })();
         break;
 
-      /* ── SCAN_SUMMARY ── */
+      /* -- SCAN_SUMMARY -- */
       case "SCAN_SUMMARY":
         (function () {
           SZ.state.candidateCount = ev.candidate_count || 0;
@@ -334,12 +329,12 @@
         })();
         break;
 
-      /* ── MODEL_MISSING ── */
+      /* -- MODEL_MISSING -- */
       case "MODEL_MISSING":
         addWarning("Model missing: " + (ev.model || "unknown"));
         break;
 
-      /* ── ERROR ── */
+      /* -- ERROR -- */
       case "ERROR":
         if (SZ.state && SZ.state.stream) {
           SZ.state.stream.error = ev.message || ev.error || ev.detail || "Unknown error";
@@ -347,9 +342,9 @@
         if (SZ.chat && SZ.chat.finishCEOMessage) SZ.chat.finishCEOMessage();
         break;
 
-      /* ── STREAM_END ── */
+      /* -- STREAM_END -- */
       case "STREAM_END":
-        /* finalize explanation if streaming */
+        console.log("[SSE] STREAM_END received, finalizing stream");
         if (SZ.renderExplanation && SZ.renderExplanation.finalize) {
           var ceoObj2 = SZ.chat.currentCEO;
           if (ceoObj2) SZ.renderExplanation.finalize(ceoObj2);
@@ -379,7 +374,6 @@
           var reason = (SZ.state.stream && SZ.state.stream.error) || "Empty response returned from backend.";
           addError("Bob failed to produce a valid answer. Route: " + route + ". Classification: " + intent + ". Error: " + reason);
         }
-        /* save to journal */
         var entry = {
           ticker:   (SZ.state.stream && SZ.state.stream.ticker) || "",
           prompt:   (SZ.state.stream && SZ.state.stream.answer) || "",
@@ -389,7 +383,6 @@
         };
         getJournal().push(entry);
         saveJournal();
-        /* re-enable input */
         var inp = document.getElementById("user-inp");
         var btn = document.getElementById("send-btn");
         if (inp) inp.disabled = false;
@@ -397,7 +390,7 @@
         if (inp) inp.focus();
         break;
 
-      /* ── MANGALA_OPPORTUNITIES ── */
+      /* -- MANGALA_OPPORTUNITIES -- */
       case "MANGALA_OPPORTUNITIES":
         (function () {
           if (SZ.alerts && SZ.alerts.handleMangalaOpportunity) {
@@ -414,11 +407,6 @@
       try { SZ.publish("pipeline-event", ev); } catch (e) { console.warn("pipeline publish error:", e); }
     }
 
-    /* scroll chat */
     var chat = document.getElementById("chat");
     if (chat) chat.scrollTop = chat.scrollHeight;
   }
-
-  window.SZ = window.SZ || {};
-  window.SZ.handleEvent = handleEvent;
-})();
