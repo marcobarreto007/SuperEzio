@@ -2,16 +2,22 @@
 F51 BODY HEARTBEAT — Ciclo Vital do Sistema
 ============================================
 Loop de heartbeat com 3 modos de ciclo:
-  - FULL:   todos os 7 estágios, a cada 5 minutos
+  - FULL:   todos os 8 estágios, a cada 5 minutos
   - LIGHT:  scan -> track -> learn, a cada 60 segundos
   - DEEP:   FULL + cristalização de memória, a cada 60 minutos
 
 Cada estágio é uma async Task que publica no event_bus.
 Erro em qualquer estágio -> registra dor, não quebra o loop.
+
+Estágios conectados ao pipeline REAL:
+  - SCORE: MathHub.calculate_all() -> event:pipeline.math.completed
+  - VERIFY: node_f51_verdict()     -> event:pipeline.f51.verdict
+  - SCAN:   Pennylab + Mangala     -> event:pipeline.pennylab.whale / mangala.found
 """
 
 import asyncio
 import logging
+import os
 import time
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
@@ -26,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 class HeartbeatCycle(str, Enum):
-    FULL = "full"  # 7 estágios, 5min
+    FULL = "full"  # 8 estágios, 5min
     LIGHT = "light"  # scan->track->learn, 60s
     DEEP = "deep"  # FULL + cristalização, 60min
 
@@ -38,6 +44,8 @@ class HeartbeatCycle(str, Enum):
 
 class HeartbeatStage(str, Enum):
     SCAN = "scan"
+    SCORE = "score"
+    VERIFY = "verify"
     TRACK = "track"
     LEARN = "learn"
     DECIDE = "decide"
@@ -52,6 +60,8 @@ class HeartbeatStage(str, Enum):
 
 FULL_STAGES: List[HeartbeatStage] = [
     HeartbeatStage.SCAN,
+    HeartbeatStage.SCORE,
+    HeartbeatStage.VERIFY,
     HeartbeatStage.TRACK,
     HeartbeatStage.LEARN,
     HeartbeatStage.DECIDE,
@@ -100,6 +110,7 @@ class HeartbeatLoop:
         self,
         event_bus: BodyEventBus,
         stage_callbacks: Optional[Dict[HeartbeatStage, StageCallback]] = None,
+        state: Optional[Dict[str, Any]] = None,
     ):
         self._bus = event_bus
         self._running = False
@@ -112,6 +123,7 @@ class HeartbeatLoop:
         self._beat_count: int = 0
         self._pain_log: List[Dict[str, Any]] = []
         self._stage_callbacks = stage_callbacks or {}
+        self._state: Dict[str, Any] = state or {}
 
     # ------------------------------------------------------------------
     # Start / Stop
@@ -154,14 +166,22 @@ class HeartbeatLoop:
     async def beat(
         self,
         cycle: HeartbeatCycle = HeartbeatCycle.LIGHT,
+        state: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Executa um ciclo de heartbeat manualmente.
         Útil para testes ou sob demanda.
 
+        Args:
+            cycle: Tipo de ciclo (LIGHT, FULL, DEEP).
+            state: Estado opcional do sistema para os estágios reais.
+
         Returns:
             dict com cycle, stages_executed, errors
         """
+        if state is not None:
+            self._state = dict(state)
+
         stages = self._stages_for_cycle(cycle)
         errors: List[str] = []
         executed: List[str] = []
@@ -260,12 +280,13 @@ class HeartbeatLoop:
 
     async def _execute_stage(self, stage: HeartbeatStage, cycle: HeartbeatCycle) -> None:
         """Executa um estágio individual e publica no event_bus."""
-        event_type_map = {
-            HeartbeatCycle.FULL: "event:body.heartbeat.full",
-            HeartbeatCycle.LIGHT: "event:body.heartbeat.light",
-            HeartbeatCycle.DEEP: "event:body.heartbeat.deep",
-        }
-        event_type = event_type_map.get(cycle, "event:body.heartbeat.light")
+        # ── Real pipeline integration ──
+        if stage == HeartbeatStage.SCORE:
+            await self._execute_score()
+        elif stage == HeartbeatStage.VERIFY:
+            await self._execute_verify()
+        elif stage == HeartbeatStage.SCAN:
+            await self._execute_scan(cycle)
 
         # Call custom callback if registered
         cb = self._stage_callbacks.get(stage)
@@ -275,6 +296,12 @@ class HeartbeatLoop:
                 await result
 
         # Publish stage event
+        event_type_map = {
+            HeartbeatCycle.FULL: "event:body.heartbeat.full",
+            HeartbeatCycle.LIGHT: "event:body.heartbeat.light",
+            HeartbeatCycle.DEEP: "event:body.heartbeat.deep",
+        }
+        event_type = event_type_map.get(cycle, "event:body.heartbeat.light")
         await self._bus.publish(
             event_type=event_type,
             payload={
@@ -287,6 +314,113 @@ class HeartbeatLoop:
         )
 
         logger.debug("Heartbeat stage=%s cycle=%s OK", stage.value, cycle.value)
+
+    # ------------------------------------------------------------------
+    # Pipeline integration: SCORE -> MathHub
+    # ------------------------------------------------------------------
+
+    async def _execute_score(self) -> None:
+        """SCORE stage: executa MathHub.calculate_all() no estado atual e publica resultado."""
+        try:
+            from core.math.math_hub import MathHub
+
+            math_report = MathHub().calculate_all(self._state)
+            await self._bus.publish(
+                event_type="event:pipeline.math.completed",
+                payload={"math_report": math_report},
+                source="f51-heartbeat",
+                severity=EventSeverity.INFO,
+            )
+        except Exception:
+            logger.exception("Heartbeat SCORE (MathHub) failed")
+
+    # ------------------------------------------------------------------
+    # Pipeline integration: VERIFY -> F51 Verdict
+    # ------------------------------------------------------------------
+
+    async def _execute_verify(self) -> None:
+        """VERIFY stage: executa F51 Verdict no estado atual e publica resultado."""
+        try:
+            from core.pipeline.nodes.f51 import node_f51_verdict
+
+            try:
+                f51_result = await asyncio.wait_for(
+                    node_f51_verdict(self._state),
+                    timeout=10.0,
+                )
+                await self._bus.publish(
+                    event_type="event:pipeline.f51.verdict",
+                    payload={"f51_verdict": f51_result},
+                    source="f51-heartbeat",
+                    severity=EventSeverity.INFO,
+                )
+            except asyncio.TimeoutError:
+                logger.debug("Heartbeat VERIFY (node_f51_verdict) timed out")
+            except Exception as exc:
+                logger.debug(
+                    "Heartbeat VERIFY (node_f51_verdict) unavailable"
+                    " (fora do contexto langgraph): %s",
+                    exc,
+                )
+        except Exception:
+            logger.exception("Heartbeat VERIFY (F51) failed to import")
+
+    # ------------------------------------------------------------------
+    # Pipeline integration: SCAN -> Pennylab + Mangala
+    # ------------------------------------------------------------------
+
+    async def _execute_scan(self, cycle: HeartbeatCycle = HeartbeatCycle.FULL) -> None:
+        """SCAN stage: executa Pennylab + Mangala scanners quando disponiveis.
+
+        Ambos requerem feature flag explicita e rede externa.
+        Executados apenas em ciclos FULL ou DEEP (nao em LIGHT).
+        """
+        ticker = self._state.get("ticker", "")
+
+        # ── Pennylab (feature flag + ticker + FULL/DEEP) ──
+        if (
+            ticker
+            and os.getenv("SUPEREZIO_HEARTBEAT_PENNYLAB") == "1"
+            and cycle in (HeartbeatCycle.FULL, HeartbeatCycle.DEEP)
+        ):
+            try:
+                from experts.pennylab.pipeline_hook import run_pennylab_analysis
+
+                pennylab_result = await run_pennylab_analysis(ticker)
+                await self._bus.publish(
+                    event_type="event:pipeline.pennylab.whale",
+                    payload={"pennylab": pennylab_result, "ticker": ticker},
+                    source="f51-heartbeat",
+                    severity=EventSeverity.INFO,
+                )
+            except Exception:
+                logger.debug("Heartbeat SCAN (Pennylab) unavailable for ticker=%s", ticker)
+
+        # ── Mangala (feature flag + FULL/DEEP) ──
+        if (
+            os.getenv("SUPEREZIO_HEARTBEAT_MANGALA") == "1"
+            and cycle in (HeartbeatCycle.FULL, HeartbeatCycle.DEEP)
+        ):
+            try:
+                from core.pipeline.nodes.mangala import scan_mangala_opportunities
+                from data.data_hub import hub as data_hub
+
+                loop = asyncio.get_running_loop()
+                opportunities = await asyncio.wait_for(
+                    loop.run_in_executor(None, scan_mangala_opportunities, data_hub),
+                    timeout=15.0,
+                )
+                if opportunities:
+                    await self._bus.publish(
+                        event_type="event:pipeline.mangala.found",
+                        payload={"mangala": opportunities},
+                        source="f51-heartbeat",
+                        severity=EventSeverity.INFO,
+                    )
+            except asyncio.TimeoutError:
+                logger.debug("Heartbeat SCAN (Mangala) timed out after 15s")
+            except Exception:
+                logger.debug("Heartbeat SCAN (Mangala) unavailable")
 
     # ------------------------------------------------------------------
     # Pain registration

@@ -288,6 +288,21 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.warning("[%s] Bob ANS failed to start: %s", AGENT_NAME, str(exc)[:200])
 
+    # ── Start HeartbeatLoop (F51 Body — feature flag) ──
+    if os.getenv("SUPEREZIO_CORPO_HEARTBEAT") == "1":
+        try:
+            from core.body import create_body
+
+            body = create_body()
+            await body["heartbeat"].start()
+            app.state.body = body
+            logger.info(
+                "[%s] F51 Body HeartbeatLoop started (SUPEREZIO_CORPO_HEARTBEAT=1)",
+                AGENT_NAME,
+            )
+        except Exception as exc:
+            logger.warning("[%s] F51 Body HeartbeatLoop failed: %s", AGENT_NAME, str(exc)[:200])
+
     # ── Start Mangala Daily Proactive Scan (background opportunity scanner) ──
     try:
         from scripts.mangala_daily_scan import start_background_scan
@@ -315,6 +330,14 @@ async def lifespan(app: FastAPI):
         from core.bob_consciousness import stop_ans
 
         stop_ans()
+    except Exception:
+        pass
+
+    # ── Stop HeartbeatLoop (F51 Body) ──
+    try:
+        if hasattr(app.state, "body") and app.state.body is not None:
+            await app.state.body["heartbeat"].stop()
+            logger.info("[%s] F51 Body HeartbeatLoop stopped", AGENT_NAME)
     except Exception:
         pass
 

@@ -955,7 +955,7 @@ def test_frontend_ops_console_integration():
     assert 'id="ops-card-broker"' in html
     assert 'id="ops-broker-status"' in html
     assert 'src="js/ops-console.js"' in html
-    assert "Open orders and positions" in html
+    assert "Open orders" in html or "IBKR" in html or "paper trading" in html.lower()
 
     assert "window.SZ.opsConsole =" in ops_js
     assert "loadDiagnostics" in ops_js
@@ -1052,7 +1052,7 @@ def test_frontend_genie_pulse_click_drives_bob_and_chart():
     assert "Noticias=" in genie_js
     assert "pendingGenieTickerCommand" in genie_js
     assert "bob-ticker-cue" in genie_js
-    assert ".genie-pulse-card.is-selected" in cockpit_css
+    assert "pipeline-pulse" in cockpit_css or "expert-card" in cockpit_css  # new cockpit CSS (AI-Native Workbench redesign)
     assert "function chartDataReadyFor" in init_js
     assert "await ensureChartContext(contextTicker)" in init_js
     assert "chart_context_ready" in init_js

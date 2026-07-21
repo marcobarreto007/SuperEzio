@@ -543,10 +543,15 @@ def _inject_json_evidence(state: dict, observations: list[str]):
     if isinstance(value, dict) and value:
         observations.append(format_decision_trace(value))
 
-    # ── PennyLab (either key) ──
-    pennylab = state.get("pennylab_result") or state.get("pennylab")
+    # ── PennyLab (any key) ──
+    pennylab = state.get("pennylab_detection") or state.get("pennylab_result") or state.get("pennylab")
     if isinstance(pennylab, dict) and pennylab:
         observations.append(format_pennylab(pennylab))
+
+    # ── Mangala prompt (injected by graph.py) ──
+    mangala_prompt = state.get("mangala_prompt")
+    if mangala_prompt and isinstance(mangala_prompt, str):
+        observations.append(f"MANGALA OPPORTUNITIES:\n{mangala_prompt}")
 
 
 def _inject_social_veto(state: dict, observations: list[str]):

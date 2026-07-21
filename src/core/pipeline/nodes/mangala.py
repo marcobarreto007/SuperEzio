@@ -32,17 +32,36 @@ MIN_PRICE = 0.50
 TOP_N = 10
 TOP_N_FOR_BOB = 5
 
-# ── Score thresholds ───────────────────────────────────────────────────────
-HIGH_CONVICTION = 80  # "MANGALA!"
-WATCH_THRESHOLD = 60  # "WATCH"
-MEH_THRESHOLD = 40  # "MEH"
+# ── DNA gene loader (optional — legacy-safe fallback) ──────────────────────
 
-# ── Weight maximums ────────────────────────────────────────────────────────
-MAX_VOLUME_SCORE = 30
-MAX_WHALE_SCORE = 25
-MAX_MOMENTUM_SCORE = 20
-MAX_RSI_SCORE = 15
-MAX_CATALYST_SCORE = 10
+
+def _load_gene(name: str, default: float) -> float:
+    """Load a gene from the DNA engine if available, else return *default*.
+
+    This allows the Mangala engine to run in legacy mode (standalone without
+    the CORPO DNA layer) while still benefiting from evolutionary tuning when
+    the full stack is deployed.
+    """
+    try:
+        from core.body.dna import get_dna
+
+        dna = get_dna()
+        return dna.get_gene(name)
+    except (ImportError, AttributeError, KeyError):
+        return default
+
+
+# ── Score thresholds (from DNA genes, with fallback defaults) ─────────────
+HIGH_CONVICTION = _load_gene("mangala.high_conviction", 80)  # "MANGALA!"
+WATCH_THRESHOLD = _load_gene("mangala.watch_threshold", 60)  # "WATCH"
+MEH_THRESHOLD = 40  # "MEH" (not in DNA — kept as fixed)
+
+# ── Weight maximums (from DNA genes, with fallback defaults) ──────────────
+MAX_VOLUME_SCORE = int(_load_gene("mangala.volume_weight", 30))
+MAX_WHALE_SCORE = int(_load_gene("mangala.whale_weight", 25))
+MAX_MOMENTUM_SCORE = int(_load_gene("mangala.momentum_weight", 20))
+MAX_RSI_SCORE = int(_load_gene("mangala.rsi_weight", 15))
+MAX_CATALYST_SCORE = int(_load_gene("mangala.catalyst_weight", 10))
 
 
 # ═══════════════════════════════════════════════════════════════════════════

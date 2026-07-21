@@ -48,7 +48,7 @@ def test_gateway_config_defaults():
 
     cfg = GatewayConfig()
     assert cfg.max_fallbacks == 2
-    assert cfg.timeout_s == 120
+    assert cfg.timeout_s == 300  # GatewayConfig default now 300s (was 120)
     assert cfg.retry_attempts == 2
     assert cfg.retry_delay_s == 1.0
     assert cfg.quality_threshold == 0.7

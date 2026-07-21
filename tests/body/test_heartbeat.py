@@ -26,6 +26,8 @@ class TestHeartbeatStages:
     def test_full_stages(self):
         assert FULL_STAGES == [
             HeartbeatStage.SCAN,
+            HeartbeatStage.SCORE,
+            HeartbeatStage.VERIFY,
             HeartbeatStage.TRACK,
             HeartbeatStage.LEARN,
             HeartbeatStage.DECIDE,
@@ -58,7 +60,7 @@ class TestHeartbeatLoop:
         result = await hb.beat(HeartbeatCycle.FULL)
 
         assert result["cycle"] == "full"
-        assert len(result["stages_executed"]) == 6
+        assert len(result["stages_executed"]) == 8
         assert result["errors"] == []
 
     @pytest.mark.asyncio
@@ -68,7 +70,7 @@ class TestHeartbeatLoop:
         result = await hb.beat(HeartbeatCycle.DEEP)
 
         assert result["cycle"] == "deep"
-        assert len(result["stages_executed"]) == 7  # 6 FULL + Crystallize
+        assert len(result["stages_executed"]) == 9  # 8 FULL + Crystallize
         assert result["errors"] == []
 
     @pytest.mark.asyncio
@@ -141,3 +143,86 @@ class TestHeartbeatLoop:
 
         await hb.stop()
         assert hb.health()["running"] is False
+
+    # ------------------------------------------------------------------
+    # Pipeline integration tests
+    # ------------------------------------------------------------------
+
+    @pytest.mark.asyncio
+    async def test_beat_with_state(self):
+        """beat() aceita e propaga state para os estagios reais."""
+        bus = BodyEventBus(hub_type="memory")
+        hb = HeartbeatLoop(event_bus=bus)
+        result = await hb.beat(HeartbeatCycle.LIGHT, state={"ticker": "TEST"})
+
+        assert result["cycle"] == "light"
+        assert len(result["stages_executed"]) == 3
+        assert hb._state["ticker"] == "TEST"
+
+    @pytest.mark.asyncio
+    async def test_beat_publishes_pipeline_events(self):
+        """FULL cycle publica eventos de pipeline reais no event_bus."""
+        bus = BodyEventBus(hub_type="memory")
+        received_events = []
+
+        async def capture(event_type, **kwargs):
+            received_events.append(event_type)
+
+        hb = HeartbeatLoop(event_bus=bus)
+        # Publish sync — capturamos os tipos de evento
+        bus.publish = capture  # type: ignore[assignment]
+
+        await hb.beat(HeartbeatCycle.FULL)
+
+        # No FULL cycle, cada stage publica um evento body.heartbeat.full
+        # E os stages SCORE e VERIFY publicam eventos adicionais
+        full_events = [e for e in received_events if "body.heartbeat" in e]
+        assert len(full_events) >= 8  # pelo menos 1 por stage
+
+    @pytest.mark.asyncio
+    async def test_score_stage_mathhub_empty_state(self):
+        """SCORE com estado vazio nao quebra o loop."""
+        bus = BodyEventBus(hub_type="memory")
+        hb = HeartbeatLoop(event_bus=bus)
+        result = await hb.beat(HeartbeatCycle.FULL)
+
+        # SCORE deve executar sem quebrar (estado vazio = partial)
+        score_errors = [e for e in result["errors"] if "score" in e.lower()]
+        assert len(score_errors) == 0
+
+    @pytest.mark.asyncio
+    async def test_verify_stage_fallback(self):
+        """VERIFY com estado vazio usa fallback e nao quebra."""
+        bus = BodyEventBus(hub_type="memory")
+        hb = HeartbeatLoop(event_bus=bus)
+        result = await hb.beat(HeartbeatCycle.FULL)
+
+        verify_errors = [e for e in result["errors"] if "verify" in e.lower()]
+        assert len(verify_errors) == 0
+
+    @pytest.mark.asyncio
+    async def test_scan_skips_pennylab_without_ticker(self):
+        """SCAN sem ticker skips Pennylab, tenta Mangala."""
+        bus = BodyEventBus(hub_type="memory")
+        hb = HeartbeatLoop(event_bus=bus)
+        result = await hb.beat(HeartbeatCycle.FULL)
+
+        scan_errors = [e for e in result["errors"] if "scan" in e.lower()]
+        assert len(scan_errors) == 0
+
+    @pytest.mark.asyncio
+    async def test_stage_execution_order(self):
+        """Estagios executam na ordem correta no FULL cycle."""
+        bus = BodyEventBus(hub_type="memory")
+        executed_order = []
+
+        def capture_cb(stage, cycle):
+            executed_order.append(stage.value)
+
+        cb_map = {s: capture_cb for s in FULL_STAGES}
+        hb = HeartbeatLoop(event_bus=bus, stage_callbacks=cb_map)
+
+        await hb.beat(HeartbeatCycle.FULL)
+
+        expected_order = [s.value for s in FULL_STAGES]
+        assert executed_order == expected_order

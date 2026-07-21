@@ -87,6 +87,30 @@ class DNAEngine:
             "mutation_rate": 0.12,
             "mutation_step": 0.04,
         },
+        {
+            "name": "mangala.momentum_weight",
+            "default": 20.0,
+            "min": 5.0,
+            "max": 40.0,
+            "mutation_rate": 0.12,
+            "mutation_step": 0.04,
+        },
+        {
+            "name": "mangala.rsi_weight",
+            "default": 15.0,
+            "min": 5.0,
+            "max": 30.0,
+            "mutation_rate": 0.12,
+            "mutation_step": 0.04,
+        },
+        {
+            "name": "mangala.catalyst_weight",
+            "default": 10.0,
+            "min": 5.0,
+            "max": 25.0,
+            "mutation_rate": 0.12,
+            "mutation_step": 0.04,
+        },
         # Risk
         {
             "name": "risk.kelly_multiplier",
@@ -319,7 +343,15 @@ def _record_mutation(gene: Gene, reason: str, **extra: Any) -> None:
     )
 
 
+def get_dna() -> DNAEngine:
+    """Return a singleton DNAEngine instance (used by pipeline nodes)."""
+    if not hasattr(get_dna, "_instance"):
+        get_dna._instance = DNAEngine()
+    return get_dna._instance
+
+
 __all__ = [
     "DNAEngine",
     "Gene",
+    "get_dna",
 ]
