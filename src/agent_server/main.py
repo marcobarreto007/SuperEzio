@@ -280,13 +280,22 @@ async def lifespan(app: FastAPI):
     sys.stdout.flush()
 
     # ── Start Bob's Autonomic Nervous System (background health monitor) ──
-    try:
-        from core.bob_consciousness import start_ans
+    # Env-gated: set SUPEREZIO_ANS_SCAN=0 to disable. The ANS triggers a
+    # collector scan over the full penny-stock universe (~893 tickers) which
+    # saturates the event loop on cold/dev runs; tests and local smoke set
+    # this off for determinism. Production leaves it on (default).
+    if os.getenv("SUPEREZIO_ANS_SCAN", "1") != "1":
+        logger.info("[%s] Bob ANS disabled (SUPEREZIO_ANS_SCAN!=1)", AGENT_NAME)
+    else:
+        try:
+            from core.bob_consciousness import start_ans
 
-        start_ans()
-        logger.info("[%s] Bob's autonomic nervous system started — heartbeat active", AGENT_NAME)
-    except Exception as exc:
-        logger.warning("[%s] Bob ANS failed to start: %s", AGENT_NAME, str(exc)[:200])
+            start_ans()
+            logger.info(
+                "[%s] Bob's autonomic nervous system started — heartbeat active", AGENT_NAME
+            )
+        except Exception as exc:
+            logger.warning("[%s] Bob ANS failed to start: %s", AGENT_NAME, str(exc)[:200])
 
     # ── Start HeartbeatLoop (F51 Body — feature flag) ──
     if os.getenv("SUPEREZIO_CORPO_HEARTBEAT") == "1":

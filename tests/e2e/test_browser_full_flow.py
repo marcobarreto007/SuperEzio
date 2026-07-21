@@ -80,6 +80,12 @@ def _start_server() -> subprocess.Popen:
         "PYTHONPATH": str(SRC),
         # Force dev mode so no JWT auth is required on the UI side
         "SUPEREZIO_JWT_SECRET": "",
+        # Disable heavy background scans so Bob's pipeline gets a clean,
+        # deterministic event loop. The ANS scans ~893 tickers every 60s and
+        # mangala runs a parallel opportunity scan — both starve user requests
+        # on a cold server. Tests must be deterministic (POLITICA F51).
+        "SUPEREZIO_ANS_SCAN": "0",
+        "SUPEREZIO_MANGALA_SCAN": "0",
     }
     proc = subprocess.Popen(
         [sys.executable, "-m", "agent_server.main"],

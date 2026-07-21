@@ -40,16 +40,21 @@ class TestGene:
 class TestDNAEngine:
     """DNA engine creation and gene management."""
 
-    def test_engine_creates_9_genes(self):
+    def test_engine_creates_12_genes(self):
+        # Fase 3 extended mangala scoring with 3 granular weighting genes
+        # (momentum, rsi, catalyst) on top of the original 9.
         engine = DNAEngine()
         genes = engine._genes
-        assert len(genes) == 9
+        assert len(genes) == 12
 
         expected_names = {
             "mangala.high_conviction",
             "mangala.watch_threshold",
             "mangala.volume_weight",
             "mangala.whale_weight",
+            "mangala.momentum_weight",
+            "mangala.rsi_weight",
+            "mangala.catalyst_weight",
             "risk.kelly_multiplier",
             "risk.conviction_threshold",
             "risk.max_position_pct",
@@ -128,10 +133,10 @@ class TestDNAEngine:
     def test_snapshot(self):
         engine = DNAEngine()
         snap = engine.snapshot()
-        assert len(snap["genes"]) == 9
+        assert len(snap["genes"]) == 12
         assert snap["crystallized"] == []
 
     def test_seed_custom_gene(self):
         engine = DNAEngine(seed={"custom.param": {"default": 42.0, "min": 0, "max": 100}})
         assert engine.get_gene("custom.param") == 42.0
-        assert len(engine._genes) == 10
+        assert len(engine._genes) == 13

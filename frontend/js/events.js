@@ -13,6 +13,14 @@
     return d.innerHTML;
   }
 
+  // Pipeline-progress and explanation cards are dev diagnostics. They are
+  // hidden in the clean trader UI unless window.SZ_SHOW_DEBUG_CARDS is set
+  // (state.js mirrors SZ.config.showDebugCards, default false in content.js).
+  // Verdict cards (F51/SDCA/Neural) always render — they are core output.
+  function showDebugCards() {
+    return Boolean(window.SZ_SHOW_DEBUG_CARDS);
+  }
+
   function getCeoBubble() {
     if (!SZ.chat || !SZ.chat.currentCEO) return null;
     return SZ.chat.currentCEO.bubble || null;
@@ -94,7 +102,7 @@
 
       /* -- EXPLANATION_CHUNK -- */
       case "EXPLANATION_CHUNK":
-        if (SZ.renderExplanation && SZ.renderExplanation.accumulate) {
+        if (showDebugCards() && SZ.renderExplanation && SZ.renderExplanation.accumulate) {
           SZ.renderExplanation.accumulate(ev.content || "");
         }
         break;
@@ -110,7 +118,7 @@
       /* -- PIPELINE_STEP -- */
       case "PIPELINE_STEP":
         if (ev.skipped_duplicate) break;
-        if (SZ.renderPipeline && SZ.renderPipeline.updateStep) {
+        if (showDebugCards() && SZ.renderPipeline && SZ.renderPipeline.updateStep) {
           var ceoObj = SZ.chat.currentCEO;
           if (ceoObj) {
             SZ.renderPipeline.updateStep(ev.step, ev.status, ceoObj);

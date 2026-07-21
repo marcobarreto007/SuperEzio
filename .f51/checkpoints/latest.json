@@ -1,37 +1,32 @@
 {
-  "checkpoint": "2026-07-20-dark-theme-system",
-  "agent": "frontend-ux-reviewer",
-  "task": "Finalizar dark theme system + theme toggle",
+  "checkpoint": "2026-07-21-runtime-stability",
+  "agent": "captain",
+  "task": "Fix event loop blocking + background scan saturation + test determinism",
   "scope": [
-    "frontend/css/variables.css — scoped dark/light CSS variables",
-    "frontend/css/cockpit.css — scoped dark/light design tokens",
-    "frontend/css/base.css — variable-driven background patterns",
-    "frontend/css/auth.css — variable-driven auth modal colors",
-    "frontend/css/sdca.css — variable-driven glass backgrounds",
-    "frontend/css/ops-console.css — variable-driven glass backgrounds",
-    "frontend/css/charts.css — variable-driven grid/order-row colors",
-    "frontend/css/chat.css — variable-driven message backgrounds",
-    "frontend/css/indicators.css — fixed hardcoded green border",
-    "frontend/index.html — theme toggle button in topbar",
-    "frontend/js/init.js — theme system module (initTheme, applyTheme, toggleTheme, localStorage)",
-    "frontend/js/chart.js — loadChartColors() from CSS vars, _applyTheme for rebuild"
+    "src/agent_server/endpoints.py — asyncio.wait_for timeouts (10s candles, 5s profile)",
+    "src/agent_server/main.py — env gates SUPEREZIO_ANS_SCAN + SUPEREZIO_MANGALA_SCAN",
+    "scripts/mangala_daily_scan.py — defer first scan to interval (don't block boot)",
+    "frontend/js/events.js — fix SSE split literal + hide debug cards behind SZ_SHOW_DEBUG_CARDS",
+    "tests/body/test_dna.py — update gene count 9→12 (mangala phase 3 granular scoring)",
+    "tests/e2e/test_browser_full_flow.py — disable ANS + Mangala scans for deterministic tests"
   ],
   "results": {
-    "theme_toggle_renders": true,
-    "localStorage_persistence": true,
-    "chart_theme_reads_css_vars": true,
-    "no_js_errors_on_toggle": true,
-    "light_theme_bg_switches": "rgb(240, 245, 241) from rgb(17, 24, 32)",
-    "all_css_files_use_vars": true
+    "chart_data_no_longer_hangs": true,
+    "timeout_fast_fail": "10s candles / 5s profile",
+    "background_scans_gated_by_env": true,
+    "event_loop_not_blocked_by_sync_hub_calls": true,
+    "tests_deterministic": true,
+    "ruff_clean": true,
+    "pytest_pass": true
   },
   "evidence": {
-    "screenshots": [
-      "output/playwright/theme-dark.png",
-      "output/playwright/theme-light.png"
+    "commits": [
+      "aeb2511 — save(data): bob_pain_log + mangala_daily",
+      "0e8cd25 — fix(runtime): chart-data async + scan defer",
+      "77f0c6d — fix(runtime): timeouts + feature-flag Mangala scan"
     ],
-    "smoke_validation": "theme toggle tested via Playwright — all assertions passed",
-    "files_modified": 12
+    "files_modified": 10
   },
   "next_gate": "f51-quality-gate",
-  "timestamp": "2026-07-20T18:45:00Z"
+  "timestamp": "2026-07-21T03:40:00Z"
 }
