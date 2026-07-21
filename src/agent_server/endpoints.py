@@ -766,7 +766,10 @@ async def get_chart_data(
     """Retorna OHLCV + indicadores tecnicos para renderizar charts â€” via DataHub."""
     clean_ticker = _sanitize_ticker(ticker)
 
-    result = hub.get_candles(clean_ticker, timeframe=timeframe)
+    # DataHub methods are synchronous (requests-based). Run them in a worker
+    # thread so a slow/saturated provider cannot stall the event loop and starve
+    # every other concurrent request (this was the chart-data browser hang).
+    result = await asyncio.to_thread(hub.get_candles, clean_ticker, timeframe=timeframe)
     if "error" in result:
         attempts = result.get("attempts", [])
         detail = result["error"] if not attempts else str(attempts)
@@ -776,7 +779,7 @@ async def get_chart_data(
     if not candles:
         raise HTTPException(status_code=404, detail=f"Sem dados para {clean_ticker}")
 
-    profile_result = hub.get_profile(clean_ticker)
+    profile_result = await asyncio.to_thread(hub.get_profile, clean_ticker)
     if "error" in profile_result:
         logger.warning(
             "Profile lookup failed for %s: %s",

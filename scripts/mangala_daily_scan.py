@@ -675,13 +675,7 @@ async def background_scan_loop() -> None:
     global _running
     _running = True
 
-    logger.info("MangalaScan: background loop started")
-
-    # Run first scan immediately on boot
-    try:
-        await asyncio.to_thread(run_daily_scan)
-    except Exception as exc:
-        logger.warning("MangalaScan: initial scan failed: %s", exc)
+    logger.info("MangalaScan: background loop started — first scan deferred to first interval")
 
     while _running:
         interval = get_scan_interval()

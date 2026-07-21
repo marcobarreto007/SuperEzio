@@ -1,38 +1,12 @@
 {
-  "scanned_at": "2026-07-21T03:11:34.371524+00:00",
+  "scanned_at": "2026-07-21T03:16:40.896009+00:00",
   "count": 5,
   "opportunities": [
     {
-      "ticker": "SNDL",
-      "price": 1.28,
-      "volume": 1406940,
-      "name": "SNDL Inc.",
-      "score": 73,
-      "signal": "WATCH",
-      "factors": {
-        "volume": 30,
-        "whale": 20,
-        "momentum": 5,
-        "rsi": 8,
-        "catalyst": 10
-      },
-      "whale_status": "PROVAVEL",
-      "whale_score": 60,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
-      "flip_plan": {
-        "entry": 1.28,
-        "target_5pct": 1.34,
-        "stop_3pct": 1.24,
-        "max_hold_days": 5
-      },
-      "scanned_at": "2026-07-21T03:11:25.402121+00:00"
-    },
-    {
-      "ticker": "NIO",
-      "price": 4.81,
-      "volume": 17166443,
-      "name": "NIO Inc.",
+      "ticker": "RIG",
+      "price": 5.02,
+      "volume": 26657809,
+      "name": "Transocean Ltd (Switzerland)",
       "score": 61,
       "signal": "WATCH",
       "factors": {
@@ -43,42 +17,68 @@
         "catalyst": 8
       },
       "whale_status": "PROVAVEL",
-      "whale_score": 50,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
-      "flip_plan": {
-        "entry": 4.81,
-        "target_5pct": 5.05,
-        "stop_3pct": 4.67,
-        "max_hold_days": 5
-      },
-      "scanned_at": "2026-07-21T03:10:38.984272+00:00"
-    },
-    {
-      "ticker": "TLRY",
-      "price": 4.23,
-      "volume": 2983740,
-      "name": "Tilray Brands, Inc.",
-      "score": 59,
-      "signal": "MEH",
-      "factors": {
-        "volume": 30,
-        "whale": 15,
-        "momentum": 3,
-        "rsi": 3,
-        "catalyst": 8
-      },
-      "whale_status": "FORTE",
-      "whale_score": 70,
+      "whale_score": 60,
       "pump_risk": "ALERT",
       "pump_score": 71,
       "flip_plan": {
-        "entry": 4.23,
-        "target_5pct": 4.44,
-        "stop_3pct": 4.1,
+        "entry": 5.02,
+        "target_5pct": 5.27,
+        "stop_3pct": 4.87,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-07-21T03:11:14.891007+00:00"
+      "scanned_at": "2026-07-21T03:15:45.150533+00:00"
+    },
+    {
+      "ticker": "SNDL",
+      "price": 1.28,
+      "volume": 1406940,
+      "name": "SNDL Inc.",
+      "score": 58,
+      "signal": "MEH",
+      "factors": {
+        "volume": 30,
+        "whale": 5,
+        "momentum": 5,
+        "rsi": 8,
+        "catalyst": 10
+      },
+      "whale_status": "FRACO",
+      "whale_score": 0,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
+      "flip_plan": {
+        "entry": 1.28,
+        "target_5pct": 1.34,
+        "stop_3pct": 1.24,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-07-21T03:16:32.153809+00:00"
+    },
+    {
+      "ticker": "PLUG",
+      "price": 2.13,
+      "volume": 35550388,
+      "name": "Plug Power, Inc.",
+      "score": 51,
+      "signal": "MEH",
+      "factors": {
+        "volume": 30,
+        "whale": 5,
+        "momentum": 3,
+        "rsi": 5,
+        "catalyst": 8
+      },
+      "whale_status": "FRACO",
+      "whale_score": 0,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
+      "flip_plan": {
+        "entry": 2.13,
+        "target_5pct": 2.24,
+        "stop_3pct": 2.07,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-07-21T03:15:33.899026+00:00"
     },
     {
       "ticker": "TOP",
@@ -95,16 +95,16 @@
         "catalyst": 8
       },
       "whale_status": "FRACO",
-      "whale_score": 20,
-      "pump_risk": "ALERT",
-      "pump_score": 96,
+      "whale_score": 0,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
       "flip_plan": {
         "entry": 2.24,
         "target_5pct": 2.35,
         "stop_3pct": 2.17,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-07-21T03:11:34.370510+00:00"
+      "scanned_at": "2026-07-21T03:16:40.895008+00:00"
     },
     {
       "ticker": "CLF",
@@ -122,15 +122,15 @@
       },
       "whale_status": "FRACO",
       "whale_score": 0,
-      "pump_risk": "ALERT",
-      "pump_score": 71,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
       "flip_plan": {
         "entry": 8.98,
         "target_5pct": 9.43,
         "stop_3pct": 8.71,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-07-21T03:10:28.228913+00:00"
+      "scanned_at": "2026-07-21T03:15:55.888839+00:00"
     }
   ]
 }
