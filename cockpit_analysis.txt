@@ -1,0 +1,78 @@
+function handlePipelineEvent(event) {
+    if (!event || !event.type) return;
+    if (!window.SZ.__pipelineProgress) initPipelineProgress();
+
+    switch (event.type) {
+      case "F51_VERDICT":
+        window.SZ.state = window.SZ.state || {};
+        window.SZ.state.lastF51Verdict = event;
+        renderF51Card(event);
+        setPipelineStatus("f51", "done");
+        break;
+
+      case "SDCA_FIREWALL":
+        window.SZ.__sdcaState = event;
+        renderSDCACard(event);
+        setPipelineStatus("sdca", "done");
+        break;
+
+      case "NEURAL_DECISION":
+        window.SZ.__neuralState = event;
+        renderNeuralCard(event);
+        setPipelineStatus("mathhub", "done");
+        break;
+
+      case "TRINITY_DELIBERATION":
+        window.SZ.state = window.SZ.state || {};
+        window.SZ.state.lastTrinity = event;
+        renderTrinityCard(event);
+        setPipelineStatus("trinity", "done");
+        break;
+
+      case "GUARDRAIL_HUB":
+        window.SZ.state = window.SZ.state || {};
+        window.SZ.state.lastGuardrailHub = event;
+        renderGuardrailCard(event);
+        setPipelineStatus("bob", "done");
+        break;
+
+      case "STREAM_START":
+        /* Reset cards and pipeline for new analysis */
+        initPipelineProgress();
+        window.SZ.__sdcaState = null;
+        window.SZ.__neuralState = null;
+        renderF51Card(null);
+        renderSDCACard(null);
+        renderNeuralCard(null);
+        renderTrinityCard(null);
+        renderGuardrailCard(null);
+        setPipelineStatus("coleta", "running");
+        break;
+
+      case "STREAM_END":
+        /* Re-read deep state after stream ends — deep-panel.js may have updated */
+        renderAllCards();
+        setPipelineStatus("bob", "done");
+        break;
+    }
+    renderPipelineProgress();
+  }
+
+  /* ── Polling Fallback: /cockpit/summary ── */
+  function refreshDeepState() {
+    /* deep-panel.js populates window.SZ.state.deep via pipeline events.
+       This is a fallback poll to catch any missed state. */
+    if (window.SZ.deepPanel && window.SZ.deepPanel.render) {
+      renderAllCards();
+    }
+    inferPipelineFromState();
+    renderPipelineProgress();
+  }
+
+  /* Fallback poll that fetches /cockpit/summary directly and maps data to cards.
+     This runs every 5s in addition to the pipeline event bus, so cards update
+     even if events never arrive or are malformed. */
+  async function pollCockpitFallback() {
+    var online = false;
+    try {
+      var health = await window.SZ.api.fetc

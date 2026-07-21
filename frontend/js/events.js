@@ -410,3 +410,169 @@
     var chat = document.getElementById("chat");
     if (chat) chat.scrollTop = chat.scrollHeight;
   }
+
+  /* ==============================================================
+   * SSE PIPELINE STREAM (fallback for real-time events)
+   *
+   * Creates a persistent fetch() + ReadableStream connection to the
+   * backend pipeline event endpoint. Uses fetch() instead of EventSource
+   * so we can pass the JWT token in the Authorization header (EventSource
+   * only supports query params, which risk leaking the token to logs).
+   *
+   * If the endpoint is not available (404) the connection falls back to
+   * silent polling via /cockpit/summary (handled by cockpit.js).
+   *
+   * Auto-reconnects with exponential backoff (2s, 4s, 8s ... 30s max).
+   * ============================================================== */
+  var PIPELINE_SSE_RETRY_DELAYS = [2000, 4000, 8000, 15000, 30000];
+  var _pipelineEs = null;
+  var _pipelineRetryIdx = 0;
+  var _pipelineRetryTimer = null;
+
+  function startPipelineStream(url) {
+    stopPipelineStream();
+    if (!url) url = "/pipeline/events/stream";
+
+    var auth = window.SZ && window.SZ.auth;
+    var token = null;
+    if (auth && typeof auth.getValidToken === "function") {
+      token = auth.getValidToken();
+    }
+    if (!token && auth && typeof auth.getToken === "function") {
+      token = auth.getToken();
+    }
+
+    var headers = { Accept: "application/x-ndjson" };
+    if (token) {
+      headers["Authorization"] = "Bearer " + token;
+    } else {
+      console.warn("[SSE] No JWT token - pipeline stream will lack auth");
+    }
+
+    var api = window.SZ && window.SZ.api;
+    var base = (api && api.base) || "";
+    var absUrl = base + url;
+    var ac = new AbortController();
+    _pipelineEs = ac;
+    _pipelineRetryIdx = 0;
+
+    console.log("[SSE] startPipelineStream connecting to " + absUrl);
+
+    (function connect() {
+      if (ac.signal.aborted) return;
+
+      fetch(absUrl, { headers: headers, signal: ac.signal })
+        .then(function (resp) {
+          if (!resp.ok) {
+            console.warn("[SSE] pipeline stream " + resp.status + " - falling back to polling");
+            ac.abort();
+            _pipelineEs = null;
+            return;
+          }
+          if (!resp.body) {
+            console.warn("[SSE] pipeline stream has no body - fallback to polling");
+            ac.abort();
+            _pipelineEs = null;
+            return;
+          }
+
+          console.log("[SSE] pipeline stream connected");
+          _pipelineRetryIdx = 0;
+
+          var reader = resp.body.getReader();
+          var decoder = new TextDecoder();
+          var buffer = "";
+
+          function pump() {
+            if (ac.signal.aborted) return;
+            reader.read().then(function (result) {
+              if (result.done) {
+                console.log("[SSE] pipeline stream ended (done=true)");
+                scheduleReconnect(ac);
+                return;
+              }
+              buffer += decoder.decode(result.value, { stream: true });
+
+              var lines = buffer.split("
+");
+              buffer = lines.pop();
+
+              for (var i = 0; i < lines.length; i++) {
+                var line = lines[i].trim();
+                if (!line) continue;
+                var ev = null;
+                try {
+                  ev = JSON.parse(line);
+                } catch (parseErr) {
+                  if (line.indexOf("data:") === 0) {
+                    try {
+                      ev = JSON.parse(line.slice(5).trim());
+                    } catch (_) { /* skip malformed */ }
+                  }
+                  if (!ev) {
+                    console.warn("[SSE] parse error (skipping line):", parseErr, line);
+                    continue;
+                  }
+                }
+                try {
+                  if (window.SZ.handleEvent) SZ.handleEvent(ev);
+                } catch (handlerErr) {
+                  console.warn("[SSE] handleEvent error:", handlerErr, ev);
+                }
+              }
+
+              if (typeof window.scheduler !== "undefined" && typeof window.scheduler.yield === "function") {
+                window.scheduler.yield().then(pump);
+              } else {
+                setTimeout(pump, 0);
+              }
+            }).catch(function (err) {
+              if (err.name === "AbortError") return;
+              console.warn("[SSE] read error:", err);
+              scheduleReconnect(ac);
+            });
+          }
+
+          pump();
+        })
+        .catch(function (err) {
+          if (err.name === "AbortError") return;
+          console.warn("[SSE] connection error:", err);
+          scheduleReconnect(ac);
+        });
+    })();
+  }
+
+  function scheduleReconnect(ac) {
+    if (ac.signal.aborted) return;
+    if (_pipelineRetryIdx >= PIPELINE_SSE_RETRY_DELAYS.length) {
+      console.warn("[SSE] max reconnect attempts reached - stopping pipeline stream");
+      return;
+    }
+    var delay = PIPELINE_SSE_RETRY_DELAYS[_pipelineRetryIdx];
+    _pipelineRetryIdx++;
+    console.log("[SSE] reconnecting in " + delay + "ms (attempt " + _pipelineRetryIdx + ")");
+    _pipelineRetryTimer = setTimeout(function () {
+      if (_pipelineEs === ac) {
+        startPipelineStream();
+      }
+    }, delay);
+  }
+
+  function stopPipelineStream() {
+    if (_pipelineRetryTimer) {
+      clearTimeout(_pipelineRetryTimer);
+      _pipelineRetryTimer = null;
+    }
+    if (_pipelineEs) {
+      try { _pipelineEs.abort(); } catch (_) { /* ignore */ }
+      _pipelineEs = null;
+    }
+    _pipelineRetryIdx = 0;
+  }
+
+  window.SZ = window.SZ || {};
+  window.SZ.handleEvent = handleEvent;
+  window.SZ.startPipelineStream = startPipelineStream;
+  window.SZ.stopPipelineStream = stopPipelineStream;
+})();

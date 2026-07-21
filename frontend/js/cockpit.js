@@ -725,6 +725,7 @@
     switch (event.type) {
       case "F51_VERDICT":
         window.SZ.state = window.SZ.state || {};
+        console.log("[Cockpit] PipelineEvent: F51_VERDICT received, rendering card");
         window.SZ.state.lastF51Verdict = event;
         renderF51Card(event);
         setPipelineStatus("f51", "done");
@@ -732,12 +733,14 @@
 
       case "SDCA_FIREWALL":
         window.SZ.__sdcaState = event;
+        console.log("[Cockpit] PipelineEvent: SDCA_FIREWALL received, rendering card");
         renderSDCACard(event);
         setPipelineStatus("sdca", "done");
         break;
 
       case "NEURAL_DECISION":
         window.SZ.__neuralState = event;
+        console.log("[Cockpit] PipelineEvent: NEURAL_DECISION received, rendering card");
         renderNeuralCard(event);
         setPipelineStatus("mathhub", "done");
         break;
@@ -745,6 +748,7 @@
       case "TRINITY_DELIBERATION":
         window.SZ.state = window.SZ.state || {};
         window.SZ.state.lastTrinity = event;
+        console.log("[Cockpit] PipelineEvent: TRINITY_DELIBERATION received, rendering card");
         renderTrinityCard(event);
         setPipelineStatus("trinity", "done");
         break;
@@ -752,11 +756,13 @@
       case "GUARDRAIL_HUB":
         window.SZ.state = window.SZ.state || {};
         window.SZ.state.lastGuardrailHub = event;
+        console.log("[Cockpit] PipelineEvent: GUARDRAIL_HUB received, rendering card");
         renderGuardrailCard(event);
         setPipelineStatus("bob", "done");
         break;
 
       case "STREAM_START":
+        console.log("[Cockpit] PipelineEvent: STREAM_START received, resetting cards");
         /* Reset cards and pipeline for new analysis */
         initPipelineProgress();
         window.SZ.__sdcaState = null;
@@ -770,6 +776,7 @@
         break;
 
       case "STREAM_END":
+        console.log("[Cockpit] PipelineEvent: STREAM_END received, rendering all cards");
         /* Re-read deep state after stream ends — deep-panel.js may have updated */
         renderAllCards();
         setPipelineStatus("bob", "done");
@@ -1097,6 +1104,11 @@
     /* Subscribe to pipeline events for real-time card updates */
     if (window.SZ.subscribe) {
       window.SZ.subscribe("pipeline-event", handlePipelineEvent);
+
+    /* Start persistent SSE pipeline stream as fallback */
+    if (window.SZ.startPipelineStream) {
+      SZ.startPipelineStream();
+    }
     }
 
     /* Initial refresh */

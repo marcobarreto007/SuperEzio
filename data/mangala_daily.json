@@ -1,5 +1,5 @@
 {
-  "scanned_at": "2026-07-21T02:59:56.352406+00:00",
+  "scanned_at": "2026-07-21T03:05:44.334680+00:00",
   "count": 5,
   "opportunities": [
     {
@@ -7,17 +7,17 @@
       "price": 1.28,
       "volume": 1406940,
       "name": "SNDL Inc.",
-      "score": 78,
+      "score": 65,
       "signal": "WATCH",
       "factors": {
         "volume": 30,
-        "whale": 25,
+        "whale": 12,
         "momentum": 5,
         "rsi": 8,
         "catalyst": 10
       },
-      "whale_status": "FORTE",
-      "whale_score": 100,
+      "whale_status": "MODERADO",
+      "whale_score": 40,
       "pump_risk": "CLEAN",
       "pump_score": 0,
       "flip_plan": {
@@ -26,7 +26,7 @@
         "stop_3pct": 1.24,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-07-21T02:59:47.676823+00:00"
+      "scanned_at": "2026-07-21T03:05:35.906119+00:00"
     },
     {
       "ticker": "PLUG",
@@ -52,7 +52,7 @@
         "stop_3pct": 2.07,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-07-21T02:58:42.188423+00:00"
+      "scanned_at": "2026-07-21T03:04:34.726772+00:00"
     },
     {
       "ticker": "TOP",
@@ -69,7 +69,7 @@
         "catalyst": 8
       },
       "whale_status": "FRACO",
-      "whale_score": 0,
+      "whale_score": 20,
       "pump_risk": "CLEAN",
       "pump_score": 0,
       "flip_plan": {
@@ -78,7 +78,33 @@
         "stop_3pct": 2.17,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-07-21T02:59:56.352406+00:00"
+      "scanned_at": "2026-07-21T03:05:44.333664+00:00"
+    },
+    {
+      "ticker": "CLF",
+      "price": 8.98,
+      "volume": 25839671,
+      "name": "Cleveland-Cliffs Inc.",
+      "score": 49,
+      "signal": "MEH",
+      "factors": {
+        "volume": 30,
+        "whale": 5,
+        "momentum": 3,
+        "rsi": 3,
+        "catalyst": 8
+      },
+      "whale_status": "FRACO",
+      "whale_score": 0,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
+      "flip_plan": {
+        "entry": 8.98,
+        "target_5pct": 9.43,
+        "stop_3pct": 8.71,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-07-21T03:04:57.497838+00:00"
     },
     {
       "ticker": "TLRY",
@@ -96,41 +122,15 @@
       },
       "whale_status": "FRACO",
       "whale_score": 20,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
+      "pump_risk": "ALERT",
+      "pump_score": 94,
       "flip_plan": {
         "entry": 4.23,
         "target_5pct": 4.44,
         "stop_3pct": 4.1,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-07-21T02:59:37.972733+00:00"
-    },
-    {
-      "ticker": "BB",
-      "price": 8.83,
-      "volume": 15781027,
-      "name": "BlackBerry Limited",
-      "score": 48,
-      "signal": "MEH",
-      "factors": {
-        "volume": 30,
-        "whale": 5,
-        "momentum": 3,
-        "rsi": 0,
-        "catalyst": 10
-      },
-      "whale_status": "FRACO",
-      "whale_score": 0,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
-      "flip_plan": {
-        "entry": 8.83,
-        "target_5pct": 9.27,
-        "stop_3pct": 8.57,
-        "max_hold_days": 5
-      },
-      "scanned_at": "2026-07-21T02:59:27.815207+00:00"
+      "scanned_at": "2026-07-21T03:05:26.210507+00:00"
     }
   ]
 }

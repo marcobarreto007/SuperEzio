@@ -310,29 +310,31 @@
         return;
       }
 
-      // Dev mode detection: /health is always fast and public.
-      // In dev mode (no JWT_SECRET) this returns 200 immediately.
-      // In production mode (JWT_SECRET set) it still returns 200,
-      // but the user would already have a valid token (logged in),
-      // so isAuthenticated() returns True and this code never runs.
-      // If the server is unreachable, the catch handler shows login.
+      // Dev/prod mode detection.
+      // /health is public in BOTH modes, so probing it cannot tell them
+      // apart — that was the bug (frontend always assumed dev mode and never
+      // showed the login modal, so no token was ever sent → 401 everywhere).
+      // Instead probe a PROTECTED endpoint without credentials:
+      //   - Dev mode (no SUPEREZIO_JWT_SECRET): middleware injects an anon
+      //     user, so /auth/me returns 200 → skip login.
+      //   - Prod mode (secret configured): no token → 401 → show login.
       var probeController = new AbortController();
       var probeTimeout = setTimeout(function () { probeController.abort(); }, 4000);
-      fetch(API + "/health", { signal: probeController.signal })
+      fetch(API + "/auth/me", { signal: probeController.signal })
         .then(function (r) {
           clearTimeout(probeTimeout);
-          if (r.ok) {
-            // Dev mode — server accepts requests without auth
-            console.log("SuperEzio: dev mode detected, skipping login");
-            return;
+          if (r.status === 401) {
+            // Production mode — server requires auth and we have no token.
+            clearTokens();
+            showLogin();
+          } else {
+            // Dev mode (anon-user bypass) — no login required.
+            console.log("SuperEzio: dev mode detected (no auth required), skipping login");
           }
-          // Non-200 — production mode, needs login
-          clearTokens();
-          showLogin();
         })
         .catch(function () {
           clearTimeout(probeTimeout);
-          // Server unreachable or timeout — show login anyway
+          // Server unreachable or timeout — show login anyway.
           clearTokens();
           showLogin();
         });
