@@ -6497,3 +6497,12 @@
 {"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-21T01:59:33.991024+00:00", "healed": false}
 {"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-21T01:59:33.993027+00:00", "healed": false}
 {"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-21T01:59:33.997028+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-21T02:00:35.211135+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-21T02:00:35.213135+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-21T02:00:35.214135+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-21T02:01:38.377505+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-21T02:01:38.381513+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-21T02:01:38.391468+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-07-21T02:02:39.577974+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-07-21T02:02:39.579973+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-07-21T02:02:39.580977+00:00", "healed": false}
