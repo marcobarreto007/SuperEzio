@@ -13,6 +13,9 @@ build/
 *.egg
 # PyInstaller spec files
 *.spec
+.coverage
+superezio*.spec
+*.exe
 
 # Virtual Environments
 .venv/
@@ -44,7 +47,11 @@ runs/evidence/
 data/traces/
 data/signals/
 output/
+!output/.gitkeep
 reports/
+runtime/restart_log.txt
+runtime/feedback/
+runtime/prompts/
 
 # Models (massive GGUF / safetensors files)
 /models/*
@@ -58,7 +65,6 @@ ia/models/
 # Logs
 *.log
 logs/*.txt
-data/traces/
 
 # Database files
 *.db
@@ -73,6 +79,9 @@ data/man_at_work/deepseek_advice.txt
 journal/dedup/
 .agents/
 .codex/
+runtime/questrade_profile/
+temp_gguf_workspace/
+lora_finance_pt/
 
 # Environment
 .env
@@ -134,14 +143,6 @@ F51_Datasets/raw_downloads/
 # ProfessionalCollector TTL disk cache
 .f51/cache/
 
-# Runtime output
-output/
-!output/.gitkeep
-runtime/restart_log.txt
-runtime/feedback/
-runtime/prompts/
-runs/evidence/
-
 # Partner temp files
 .f51/tmp/
 .f51/partner/diff.txt
@@ -178,7 +179,6 @@ F51-Nitro-MoE/build_worktrees/
 *.safetensors
 *.pth
 *.pt
-!.agent_bus/runtime/.gitkeep
 !.f51/**/*.json
 
 # Scratch scripts (testes avulsos)

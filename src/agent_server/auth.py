@@ -306,7 +306,16 @@ def _decode_access_token(token: str) -> dict[str, Any] | None:
 # ---------------------------------------------------------------------------
 # Public-path check (mirrors the set in main.py)
 # ---------------------------------------------------------------------------
-_PUBLIC_EXACT = frozenset({"/health", "/favicon.ico", "/", "/metrics"})
+_PUBLIC_EXACT = frozenset(
+    {
+        "/health",
+        "/health/dashboard",
+        "/api/health/dashboard-data",
+        "/favicon.ico",
+        "/",
+        "/metrics",
+    }
+)
 _PUBLIC_PREFIXES = frozenset({"/frontend", "/css", "/js"})
 # /auth/register, /auth/login, and /auth/refresh are public (no JWT needed).
 # /auth/me requires authentication and is NOT included here.
