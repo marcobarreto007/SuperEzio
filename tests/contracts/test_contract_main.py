@@ -35,7 +35,7 @@ def test_fastapi_app_routes():
                     paths.add(sub_route.path)
 
     assert "/" in paths or any("/api" in p for p in paths)
-    assert any("submit" in p for p in paths)
+    assert any("task" in p for p in paths)  # /task/submit lives in endpoints.py router
 
 
 def test_env_bool():
