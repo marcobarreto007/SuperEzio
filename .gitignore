@@ -11,6 +11,8 @@ __pycache__/
 dist/
 build/
 *.egg
+# PyInstaller spec files
+*.spec
 
 # Virtual Environments
 .venv/
