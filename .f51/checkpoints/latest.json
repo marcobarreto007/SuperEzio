@@ -45,6 +45,20 @@
     "windows_power_plan": "High performance",
     "windows_game_mode": true,
     "windows_game_dvr": false,
+    "processor_boost_mode": "Aggressive",
+    "processor_energy_performance_preference": 0,
+    "processor_core_parking_minimum_percent": 100,
+    "pcie_link_state_power_management": "Off",
+    "usb_selective_suspend_ac": "Off",
+    "disk_idle_timeout_ac_seconds": 0,
+    "startup_disabled": [
+      "Docker Desktop",
+      "Microsoft Edge auto-launch"
+    ],
+    "startup_preserved": [
+      "Steam",
+      "Windows Security"
+    ],
     "installed": [
       "Steam 2.10.91.91",
       "OCCT Personal 17.0.12.0",
@@ -86,6 +100,32 @@
     },
     "overclock": "not applied"
   },
+  "system_benchmarks": {
+    "source": "Windows System Assessment Tool formal assessment",
+    "cpu_score": 9.3,
+    "memory_score": 9.3,
+    "memory_bandwidth_mb_s": 29991.84434,
+    "disk_score": 8.05,
+    "disk_sequential_read_mb_s": 447.965,
+    "disk_random_read_mb_s": 261.21
+  },
+  "bottlenecks": [
+    {
+      "component": "memory topology",
+      "evidence": "Three 16 GB RDIMMs and three 4 GB RDIMMs populate only six of eight slots; measured bandwidth is about 30 GB/s.",
+      "recommended_fix": "Use four matched 16 GB DDR4-2400 ECC RDIMMs across the four primary channel sockets for 64 GB quad-channel operation."
+    },
+    {
+      "component": "GPU power ceiling",
+      "evidence": "FurMark holds about 119 W against a fixed 120 W limit while core clock falls below the 772 MHz application clock.",
+      "recommended_fix": "Prefer memory tuning and efficiency after the R535 driver update; do not use blind core overclocking."
+    },
+    {
+      "component": "graphics driver",
+      "evidence": "Installed driver remains 513.91.",
+      "recommended_fix": "Install the downloaded NVIDIA 539.19 WHQL package and reboot."
+    }
+  ],
   "next_gate": "Install 539.19 cleanly, reboot, rerun the baseline, then tune memory and efficiency against the saved stock result.",
-  "timestamp": "2026-07-24T22:23:00-04:00"
+  "timestamp": "2026-07-24T22:32:00-04:00"
 }
