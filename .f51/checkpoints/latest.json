@@ -64,7 +64,8 @@
       "OCCT Personal 17.0.12.0",
     "MSI Afterburner 4.6.6",
       "RivaTuner Statistics Server",
-      "Geeks3D FurMark 2.10.2"
+      "Geeks3D FurMark 2.10.2",
+      "Magpie 0.12.1"
     ],
     "installed_driver": "NVIDIA Quadro R535 U17 539.19 WHQL",
     "downloaded_driver_signature": "Valid NVIDIA Corporation signature"
@@ -136,6 +137,36 @@
     "average_loaded_power_change_w": -1.5,
     "maximum_temperature_change_c": 0
   },
-  "next_gate": "Test a real game at native 1360x768 and optimize its settings against the 55 FPS FurMark baseline.",
-  "timestamp": "2026-07-24T22:38:00-04:00"
+  "upscaling_profile": {
+    "display": "Insignia NS-28E200NA14, 1360x768 at 60 Hz",
+    "input_resolution": "1280x720 windowed",
+    "output_resolution": "1360x768",
+    "upscaler": "Magpie FSR",
+    "3d_game_mode": true,
+    "output_fps_limit": 60,
+    "activation_shortcut": "Windows+Shift+A",
+    "benchmarks": {
+      "native_1360x749": {
+        "average_fps": 55,
+        "maximum_fps": 61
+      },
+      "raw_1280x720": {
+        "average_fps": 58,
+        "maximum_fps": 64
+      },
+      "fsr_1280x720_to_display": {
+        "average_fps": 56,
+        "maximum_fps": 64,
+        "maximum_temperature_c": 77
+      },
+      "lanczos_1280x720_to_display": {
+        "average_fps": 56,
+        "maximum_fps": 62,
+        "maximum_temperature_c": 78
+      }
+    },
+    "selected": "FSR"
+  },
+  "next_gate": "Launch a real game at 1280x720 windowed, activate Magpie with Windows+Shift+A, and tune graphics for a locked 60 FPS output.",
+  "timestamp": "2026-07-24T22:45:00-04:00"
 }
