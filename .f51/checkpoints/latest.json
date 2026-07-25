@@ -34,7 +34,7 @@
     "display": "1360x768 at 60 Hz"
   },
   "baseline": {
-    "driver": "513.91",
+    "driver": "539.19",
     "gpu_idle_temperature_c": 38,
     "gpu_idle_power_w": 13.28,
     "gpu_power_limit_w": 120,
@@ -66,7 +66,7 @@
       "RivaTuner Statistics Server",
       "Geeks3D FurMark 2.10.2"
     ],
-    "downloaded_driver": "NVIDIA Quadro R535 U17 539.19 WHQL",
+    "installed_driver": "NVIDIA Quadro R535 U17 539.19 WHQL",
     "downloaded_driver_signature": "Valid NVIDIA Corporation signature"
   },
   "quality_gate": {
@@ -78,21 +78,22 @@
       "status": "pass",
       "furmark_resolution": "1360x749 windowed",
       "duration_seconds": 45,
-      "score": 2488,
+      "score": 2510,
       "average_fps": 55,
-      "minimum_fps": 54,
-      "maximum_fps": 58,
+      "minimum_fps": 55,
+      "maximum_fps": 61,
       "maximum_temperature_c": 70,
-      "average_loaded_power_w": 119.1,
-      "core_clock_range_under_full_load_mhz": "658-696",
+      "average_loaded_power_w": 117.6,
+      "core_clock_range_under_full_load_mhz": "607-772",
       "thermal_throttling": false,
       "limiting_factor": "120 W power limit"
     },
     "vram_stress_test": {
       "status": "pass",
-      "tested_vram_mib": 5992,
+      "tested_vram_mib": 5900,
       "maximum_temperature_c": 70,
-      "maximum_loaded_power_w": 120.82,
+      "average_loaded_power_w": 118.4,
+      "maximum_loaded_power_w": 124.46,
       "memory_clock_mhz": 3004,
       "driver_resets": 0,
       "windows_display_driver_errors": 0,
@@ -122,10 +123,19 @@
     },
     {
       "component": "graphics driver",
-      "evidence": "Installed driver remains 513.91.",
-      "recommended_fix": "Install the downloaded NVIDIA 539.19 WHQL package and reboot."
+      "evidence": "NVIDIA 539.19 WHQL is installed and passed the matched FurMark and 6 GB VRAM tests.",
+      "recommended_fix": "Keep 539.19 as the validated baseline."
     }
   ],
-  "next_gate": "Install 539.19 cleanly, reboot, rerun the baseline, then tune memory and efficiency against the saved stock result.",
-  "timestamp": "2026-07-24T22:32:00-04:00"
+  "driver_comparison": {
+    "old_driver": "513.91",
+    "new_driver": "539.19",
+    "furmark_score_change_percent": 0.9,
+    "minimum_fps_change": 1,
+    "maximum_fps_change": 3,
+    "average_loaded_power_change_w": -1.5,
+    "maximum_temperature_change_c": 0
+  },
+  "next_gate": "Test a real game at native 1360x768 and optimize its settings against the 55 FPS FurMark baseline.",
+  "timestamp": "2026-07-24T22:38:00-04:00"
 }
