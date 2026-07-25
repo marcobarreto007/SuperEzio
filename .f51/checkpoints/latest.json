@@ -1,32 +1,67 @@
 {
-  "checkpoint": "2026-07-21-runtime-stability",
-  "agent": "captain",
-  "task": "Fix event loop blocking + background scan saturation + test determinism",
-  "scope": [
-    "src/agent_server/endpoints.py — asyncio.wait_for timeouts (10s candles, 5s profile)",
-    "src/agent_server/main.py — env gates SUPEREZIO_ANS_SCAN + SUPEREZIO_MANGALA_SCAN",
-    "scripts/mangala_daily_scan.py — defer first scan to interval (don't block boot)",
-    "frontend/js/events.js — fix SSE split literal + hide debug cards behind SZ_SHOW_DEBUG_CARDS",
-    "tests/body/test_dna.py — update gene count 9→12 (mangala phase 3 granular scoring)",
-    "tests/e2e/test_browser_full_flow.py — disable ANS + Mangala scans for deterministic tests"
-  ],
-  "results": {
-    "chart_data_no_longer_hangs": true,
-    "timeout_fast_fail": "10s candles / 5s profile",
-    "background_scans_gated_by_env": true,
-    "event_loop_not_blocked_by_sync_hub_calls": true,
-    "tests_deterministic": true,
-    "ruff_clean": true,
-    "pytest_pass": true
-  },
-  "evidence": {
-    "commits": [
-      "aeb2511 — save(data): bob_pain_log + mangala_daily",
-      "0e8cd25 — fix(runtime): chart-data async + scan defer",
-      "77f0c6d — fix(runtime): timeouts + feature-flag Mangala scan"
+  "checkpoint": "2026-07-24-m4000-gaming-baseline",
+  "agent": "codex",
+  "task": "Prepare the Dell Precision T5810 and Quadro M4000 for measured gaming optimization",
+  "impact_map": {
+    "problem": "The Quadro M4000 was running as Microsoft Basic Display Adapter without an NVIDIA driver.",
+    "architecture_touched": [
+      "Windows display driver",
+      "Windows per-user gaming settings",
+      "Windows power plan",
+      "local gaming and telemetry tools"
     ],
-    "files_modified": 10
+    "files_changed": [
+      ".f51/checkpoints/latest.json"
+    ],
+    "indirect_risks": [
+      "Driver updates require a reboot and may reset NVIDIA profiles.",
+      "Overclocking is deferred until thermal and VRAM stability are measured."
+    ],
+    "smallest_safe_change": "Establish a stock-clock baseline, apply reversible Windows settings, and install measurement tools.",
+    "verification": [
+      "nvidia-smi",
+      "powercfg /getactivescheme",
+      "OCCT GPU and VRAM stability tests"
+    ]
   },
-  "next_gate": "f51-quality-gate",
-  "timestamp": "2026-07-21T03:40:00Z"
+  "hardware": {
+    "system": "Dell Precision Tower 5810",
+    "cpu": "Intel Xeon E5-2690 v4 (14 cores / 28 threads)",
+    "ram_bytes": 64341282816,
+    "gpu": "NVIDIA Quadro M4000",
+    "vram_mib": 8192,
+    "pcie": "PCIe 3.0 x16",
+    "display": "1360x768 at 60 Hz"
+  },
+  "baseline": {
+    "driver": "513.91",
+    "gpu_idle_temperature_c": 38,
+    "gpu_idle_power_w": 13.28,
+    "gpu_power_limit_w": 120,
+    "gpu_max_graphics_clock_mhz": 772,
+    "gpu_max_memory_clock_mhz": 3005
+  },
+  "changes": {
+    "windows_power_plan": "High performance",
+    "windows_game_mode": true,
+    "windows_game_dvr": false,
+    "installed": [
+      "Steam 2.10.91.91",
+      "OCCT Personal 17.0.12.0",
+      "MSI Afterburner 4.6.6",
+      "RivaTuner Statistics Server"
+    ],
+    "downloaded_driver": "NVIDIA Quadro R535 U17 539.19 WHQL",
+    "downloaded_driver_signature": "Valid NVIDIA Corporation signature"
+  },
+  "quality_gate": {
+    "driver_detected": true,
+    "gpu_detected": true,
+    "pcie_full_width": true,
+    "temperature_baseline_pass": true,
+    "stock_clock_stress_test": "pending after driver update and reboot",
+    "overclock": "not applied"
+  },
+  "next_gate": "Install 539.19 cleanly, reboot, then run OCCT GPU and VRAM baselines before tuning clocks.",
+  "timestamp": "2026-07-24T22:15:00-04:00"
 }
