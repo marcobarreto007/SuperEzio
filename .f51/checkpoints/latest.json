@@ -48,8 +48,9 @@
     "installed": [
       "Steam 2.10.91.91",
       "OCCT Personal 17.0.12.0",
-      "MSI Afterburner 4.6.6",
-      "RivaTuner Statistics Server"
+    "MSI Afterburner 4.6.6",
+      "RivaTuner Statistics Server",
+      "Geeks3D FurMark 2.10.2"
     ],
     "downloaded_driver": "NVIDIA Quadro R535 U17 539.19 WHQL",
     "downloaded_driver_signature": "Valid NVIDIA Corporation signature"
@@ -59,9 +60,32 @@
     "gpu_detected": true,
     "pcie_full_width": true,
     "temperature_baseline_pass": true,
-    "stock_clock_stress_test": "pending after driver update and reboot",
+    "stock_clock_stress_test": {
+      "status": "pass",
+      "furmark_resolution": "1360x749 windowed",
+      "duration_seconds": 45,
+      "score": 2488,
+      "average_fps": 55,
+      "minimum_fps": 54,
+      "maximum_fps": 58,
+      "maximum_temperature_c": 70,
+      "average_loaded_power_w": 119.1,
+      "core_clock_range_under_full_load_mhz": "658-696",
+      "thermal_throttling": false,
+      "limiting_factor": "120 W power limit"
+    },
+    "vram_stress_test": {
+      "status": "pass",
+      "tested_vram_mib": 5992,
+      "maximum_temperature_c": 70,
+      "maximum_loaded_power_w": 120.82,
+      "memory_clock_mhz": 3004,
+      "driver_resets": 0,
+      "windows_display_driver_errors": 0,
+      "termination": "Stopped at the 55-second safety deadline because FurMark VRAM mode ignored max-time."
+    },
     "overclock": "not applied"
   },
-  "next_gate": "Install 539.19 cleanly, reboot, then run OCCT GPU and VRAM baselines before tuning clocks.",
-  "timestamp": "2026-07-24T22:15:00-04:00"
+  "next_gate": "Install 539.19 cleanly, reboot, rerun the baseline, then tune memory and efficiency against the saved stock result.",
+  "timestamp": "2026-07-24T22:23:00-04:00"
 }
