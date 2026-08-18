@@ -1,0 +1,48 @@
+{
+    "date_local": "2026-08-18T00:45:00-04:00",
+    "session": "anthropic-fs-agent-patterns-2026-08-18",
+    "status": "done",
+    "what_was_done": [
+        "Operador trouxe a referencia: repo oficial anthropics/financial-services (~9.5k stars). Verificado real e oficial via web search + leitura publica.",
+        "Estudo prompt-a-prompt: 2 orquestradores (model-builder, market-researcher) + 6 folhas (data-puller, builder, auditor, sector-reader, comps-spreader, note-writer) lidos VERBATIM via raw.githubusercontent.com (read-only).",
+        "Comparacao com o exercito SuperEzio publicada em docs/architecture/AGENT_PATTERNS_ANTHROPIC_FS.md com vereditos copiar/melhorar/descartar.",
+        "Novo trio market-* em .claude/agents/ com a separacao de poderes oficial (acesso a dados INDEPENDENTE poder de escrita INDEPENDENTE verificacao): market-data-puller (read-only + anti-injecao + [SEM FONTE]), market-thesis-writer (unico Write-holder, [UNSOURCED]=0, stop-and-surface), market-thesis-auditor (pass/fail com localizacoes).",
+        "Correcoes no exercito existente: model-gateway-verifier.md ensinava 'local LLM -> cloud fallback' (residuo pre-zero-nuvem) -> reescrito para fail-closed MAN_AT_WORK com assert cloud_fallback_present=false; captain.md commitava 'git add -A' (2x) -> add escopado (sessoes paralelas compartilham o tree).",
+        "Roster atualizado: AGENT_ORCHESTRATION.md e CLAUDE.md agora registram 17 agentes (14 dev-ops + 3 market-*)."
+    ],
+    "evidence": {
+        "commands": [
+            "WebSearch: repo confirmado oficial (github.com/anthropics/financial-services, ~9.5k stars)",
+            "WebFetch x9: tree do repo + 2 agentes .md + 6 subagentes .yaml verbatim + READMEs de cookbook",
+            "grep cloud|nuvem|fallback|deepseek|gemini|grok em .claude/agents/ -> unico arquivo stale era model-gateway-verifier.md (corrigido)"
+        ],
+        "files_changed": [
+            ".claude/agents/market-data-puller.md (novo)",
+            ".claude/agents/market-thesis-writer.md (novo)",
+            ".claude/agents/market-thesis-auditor.md (novo)",
+            ".claude/agents/model-gateway-verifier.md (zero-cloud)",
+            ".claude/agents/captain.md (git add escopado)",
+            "docs/architecture/AGENT_PATTERNS_ANTHROPIC_FS.md (novo - estudo comparativo)",
+            "docs/AGENT_ORCHESTRATION.md (roster)",
+            "CLAUDE.md (contagem do exercito)",
+            ".f51/TASK_BOARD.md, .f51/RISK_REGISTER.md (INV-R32 INFO), .f51/checkpoints/latest.json (+ arquivo 2026-08-17-zero-cloud.json preservado)"
+        ],
+        "tests": [
+            "Nenhum codigo Python alterado — gates ruff/pytest nao se aplicam a esta mudanca (agentes .md + docs). Suite segue no estado do checkpoint zero-cloud: 506 passed/1 skipped no subset; suite completa pendente de resolucao do crash akshare (INV-R29)."
+        ]
+    },
+    "risks": [
+        {
+            "severity": "info",
+            "description": "INV-R32: trio market-* derivado de templates externos (Anthropic FS) — estudo via leitura publica web, nada clonado/instalado (plugin marketplace = git fetch, bloqueado pela F51_NO_GITHUB_DISK_ONLY).",
+            "mitigation": "Prompts re-escritos para o dominio local; provenance documentada no estudo."
+        },
+        {
+            "severity": "low",
+            "description": "Trio market-* ainda sem benchmark no /agent-lab (score 0-30 pendente).",
+            "mitigation": "Rodar /agent-lab com tarefa-padrao de mercado quando o runtime estiver live."
+        }
+    ],
+    "next_step": "Operador: subir run-cc.ps1 + agent_server (pendencia do checkpoint zero-cloud), depois benchmarkar o trio market-* com /agent-lab.",
+    "owner": "Claude Code (sessao principal)"
+}

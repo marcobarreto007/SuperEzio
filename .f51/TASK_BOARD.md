@@ -102,6 +102,22 @@
 
 ## Done
 
+- [x] 2026-08-18 - **Deep dive na arquitetura Anthropic financial-services (4 frentes)**:
+  operador pediu mergulho a fundo. 4 exploradores paralelos (orquestradores, skills,
+  maquinário, packaging) + 1 fetch da sessão. Cobertura: 10/10 orquestradores, 12 folhas
+  depth-1, 15 skills dissecadas, orchestrate.py (event loop de handoff com ALLOWED_TARGETS
+  + schema), check.py/validate.py (gates da própria Anthropic), packaging completo.
+  Síntese em `docs/architecture/ANTHROPIC_FS_DEEP_DIVE.md`. Padrões novos descobertos:
+  orquestrador-sem-Write (fund-admin), portões humanos por categoria de consequência
+  (posting/distribution/risk-decision/client-send), modeler-computa-e-devolve-JSON,
+  injeção como classe universal de fonte suja. APLICADO: (1) `scripts/check_agents.py`
+  — gate de cross-refs inspirado no check.py deles (frontmatter, skill citada existe,
+  subagent_type existe) + 6 testes; (2) `.claude/skills/tese-tracker/` — primeira skill
+  de DOMÍNIO (31 anteriores eram dev-ops), anatomia oficial, tese falsificável com
+  estado cross-session em runtime/theses/; (3) market-thesis-writer wiring à skill.
+  Evidência: check_agents clean (17 agentes/32 skills), 6 passed, ruff clean.
+  Roadmap registrado no doc §8 (captain dispatch-only, portões nomeados, event loop,
+  skills de candle/sizing).
 - [x] 2026-08-18 - **Arquitetura de agentes alinhada aos templates oficiais da Anthropic
   (financial-services)**: operador trouxe a referência; verificada real e oficial (~9.5k stars).
   Estudo prompt-a-prompt em `docs/architecture/AGENT_PATTERNS_ANTHROPIC_FS.md` com citações

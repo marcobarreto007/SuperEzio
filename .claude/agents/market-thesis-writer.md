@@ -25,7 +25,12 @@ Dado o snapshot do market-data-puller (e SOMENTE ele), um arquivo:
 - **Todo número cita o snapshot.** Número sem origem → marque `[UNSOURCED]`; o relatório só finaliza com zero `[UNSOURCED]`.
 - **Zero nuvem.** Nenhuma chamada a LLM externo. Se precisar de modelo, o servidor local é `http://127.0.0.1:8080/v1` (mesmo que seja "só um rascunho"). Servidor fora → trabalha sem LLM e declara no relatório.
 - **Stop-and-surface.** Após gravar, PARE. Nenhuma ordem, nenhum uso downstream, sem aprovação explícita do operador.
-- **Escrita só em `runtime/reports/`.** Não toca em `src/`, `config/`, `data/`, `frontend/`.
+- **Escrita só em `runtime/reports/` e `runtime/theses/`.** Não toca em `src/`, `config/`, `data/`, `frontend/`.
+- **Registre a tese na skill `tese-tracker`** ao gravar o relatório: cria/atualiza `runtime/theses/<TICKER>.json` (pilares, invalidação, catalysts, conviction — a skill define o formato).
+
+## Skills que este agente usa
+
+`tese-tracker` — manutenção da tese cross-session com estado estruturado.
 
 ## Contrato de saída
 

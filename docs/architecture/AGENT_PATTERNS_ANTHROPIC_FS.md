@@ -1,5 +1,9 @@
 # Padrões de Agentes — Anthropic Financial Services vs SuperEzio
 
+> **Deep dive completo** (10 orquestradores, 12 folhas, 15 skills, maquinário de
+> orquestração, gates, packaging): `ANTHROPIC_FS_DEEP_DIVE.md` — este documento
+> cobre a parte 1 (padrões de prompt aplicados ao trio market-*).
+
 **Data:** 2026-08-18
 **Fonte:** [anthropics/financial-services](https://github.com/anthropics/financial-services) — repo oficial da Anthropic (~9.5k stars): agentes, skills e conectores de referência para serviços financeiros.
 **Método de acesso:** leitura pública via web (read-only). `claude plugin marketplace add` clona do GitHub — bloqueado pela `F51_NO_GITHUB_DISK_ONLY` (override exige checkpoint explícito do operador). Nada foi instalado; os padrões foram estudados e re-implementados localmente, adaptados ao SuperEzio.
