@@ -162,12 +162,13 @@ async def _reserve_research_tokens(requested_tokens: int) -> tuple[bool, int, in
 
 # Expert roles mapped to provider names
 EXPERT_PROVIDERS: dict[str, str] = {
-    # Cloud experts
+    # Zero-cloud (2026-08-17): all roles are served by the shared local
+    # llama-server on :8080. "deepseek" is a legacy routing name kept as a
+    # contract — the endpoint behind it is local (see model_serving/providers.py).
     "macro_risk": "deepseek",
     "fundamental_value": "deepseek",
     "momentum_technical": "deepseek",
     "contrarian_opportunity": "deepseek",
-    # Sentiment/forensics now aligned to DeepSeek as well
     "sentiment": "deepseek",
     "social_forensics": "deepseek",
 }

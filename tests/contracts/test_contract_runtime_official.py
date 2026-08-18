@@ -160,14 +160,18 @@ def test_agent_runtime_config_matches_manifest_and_script():
     assert agent_cfg["server_url"] == agent_manifest["server_url"]
     assert agent_cfg["backend"] == "openai_compatible"
     assert agent_cfg["is_local"] is True
-    assert agent_cfg["preferred_llama_server"] == r"C:\llama.cpp\build\bin\llama-server.exe"
-    assert agent_cfg["fallback_llama_server"] == "llama.cpp\\bin\\llama-server.exe"
+    assert agent_cfg["preferred_llama_server"] == (
+        r"C:\Users\marco\tools\llama.cpp-src\build\bin\Release\llama-server.exe"
+    )
     if not model_path.exists():
         pytest.skip(f"Official agent GGUF not present in this environment: {model_path}")
     assert model_path.name in model_config
     assert "llama-server.exe" in script
     assert "SUPEREZIO_LLAMA_SERVER_EXE" in script
-    assert r"C:\llama.cpp\build\bin\llama-server.exe" in model_config
+    assert (
+        r"C:\Users\marco\tools\llama.cpp-src\build\bin\Release\llama-server.exe"
+        in model_config
+    )
     assert '"--port", $Port' in script
 
 
@@ -199,12 +203,12 @@ def test_provider_factory_keeps_agent_local_only(monkeypatch):
     assert gateway_config.timeout_s == cfg.gateway.timeout_s
     assert by_name[AGENT_PROVIDER_NAME].is_local is True
     assert by_name[AGENT_PROVIDER_NAME].backend == "openai_compatible"
-    assert by_name[AGENT_PROVIDER_NAME].base_url == "http://127.0.0.1:8082/v1"
+    assert by_name[AGENT_PROVIDER_NAME].base_url == "http://127.0.0.1:8080/v1"
     assert by_name[AGENT_PROVIDER_NAME].model == AGENT_MODEL_ID
     assert PRIMARY_PROVIDER_NAME == "local_orchestrator"
     assert by_name[PRIMARY_PROVIDER_NAME].is_local is True
     assert by_name[PRIMARY_PROVIDER_NAME].backend == "openai_compatible"
-    assert by_name[PRIMARY_PROVIDER_NAME].base_url == "http://127.0.0.1:8082/v1"
+    assert by_name[PRIMARY_PROVIDER_NAME].base_url == "http://127.0.0.1:8080/v1"
     assert by_name[PRIMARY_PROVIDER_NAME].model == AGENT_MODEL_ID
 
 
@@ -216,25 +220,28 @@ def test_runtime_checkpoint_tracks_official_entrypoints():
     params = checkpoint["runtime_parameters"]
 
     assert params["api_port"] == 8002
-    assert params["agent_port"] == 8082
+    assert params["agent_port"] == 8080
     assert params["api_entrypoint"] == "python -m agent_server.main"
-    assert params["agent_entrypoint"].endswith("scripts/serve_agent_llamacpp.ps1 -Port 8082")
-    assert params["model_path"] == r"C:\llama.cpp\models\bob-core-local.gguf"
-    assert params["lora_path"] == r"C:\llama.cpp\models\bob-lora-best.gguf"
+    assert params["agent_entrypoint"].endswith("scripts/serve_agent_llamacpp.ps1 -Port 8080")
+    assert params["model_path"] == (
+        r"C:\Users\marco\models\qwen3.8-27b\Qwen3.8-27B-UD-IQ2_XXS.gguf"
+    )
+    assert params.get("lora_path") in (None, "")
 
 
 def test_runbook_documents_official_runtime_commands():
     text = RUNBOOK.read_text(encoding="utf-8")
 
     assert (
-        "powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082"
+        "powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080"
         in text
     )
     assert "python -m agent_server.main" in text
     assert "local_orchestrator" in text
-    assert "https://api.deepseek.com" in text
-    assert "http://127.0.0.1:8082/health" in text
-    assert "http://127.0.0.1:8082/v1/models" in text
+    # Zero-cloud: the runbook must NOT route anything to a cloud API.
+    assert "https://api.deepseek.com" not in text
+    assert "http://127.0.0.1:8080/health" in text
+    assert "http://127.0.0.1:8080/v1/models" in text
     assert "http://127.0.0.1:8002/health/details" in text
     assert "runtime/checkpoints/latest.json" in text
     assert ".f51/GITHUB_POLICY.json" in text

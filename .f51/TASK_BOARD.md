@@ -97,22 +97,26 @@
 
 ## In Progress
 
-- [ ] 2026-08-17 - **Zero-nuvem total (diretiva do operador)**: remover TODA dependência de LLM em nuvem
+(nada ativo — zero-nuvem concluída 2026-08-17)
+
+
+## Done
+
+- [x] 2026-08-17 - **Zero-nuvem total (diretiva do operador)**: remover TODA dependência de LLM em nuvem
   do gateway e superfícies associadas. Decisão do operador: "nada de fallback na nuvem" — escopo
   confirmado via questionário: zero nuvem (não só fallback do CEO), CEO aponta para o servidor
   local compartilhado do perfil cc (`http://127.0.0.1:8080/v1`, Qwen3.8-27B-UD-IQ2_XXS, validado
   16/08 em 2 GPUs). Se o local cair, o sistema para em MAN_AT_WORK — sem nuvem.
   Descoberta motriz: `.env`/`.env.local` sobrescreviam `SUPEREZIO_AGENT_BASE_URL=https://api.deepseek.com`
   com chave preenchida — o CEO estava rodando em DeepSeek cloud, contrário ao modo DISK ONLY.
-  Superfícies a alterar: `src/core/model_serving/providers.py` (DeepSeek x3, Gemini, ceo_fallback_glm),
-  `src/core/model_serving/gateway.py` (fallback GLM, preferência DeepSeek), `src/agent_server/main.py`
-  (health), `src/agent_server/endpoints.py` (provider Gemini hardcoded), `src/core/bob_consciousness/body.py`
-  (_try_deepseek_notification), `src/core/config/schema.py` (default deepseek-chat), `config/runtime.yml`,
-  `config.ps1`, `.env`, `.env.local`. Gate: ruff + pytest subset + commit por etapa.
-
-
-## Done
-
+  Concluído: providers.py (5 providers locais + `_local_only_override` que rejeita override cloud),
+  gateway.py (agente nunca cascadeia), body.py (notification DeepSeek removida), main.py/endpoints.py
+  (UI reporta modelo local), schema.py (default Qwen), runtime.yml/model_manifest/config.ps1/
+  serve_agent_llamacpp.ps1/RUNBOOK.md (8080 + caminhos reais), .env/.env.local limpos (chave real
+  DeepSeek removida — revogação recomendada). Evidência: 506 passed / 1 skipped (contracts + gateway
+  + ceo_fallback + components + runtime_bob_fixes + expert_dialogue), ruff clean nos 12 arquivos
+  tocados, commits 5a1141b + d4d14a1 + final. INV-R15 resolvido; dependência do cc registrada
+  como INV-R26. Próximo: subir run-cc.ps1 e validar live com SUPEREZIO_SMOKE_CHAT=1.
 - [x] 2026-07-20 — **SocialWhaleProvider — whale signals, pump detection, social sentiment (Twitter/Nitter + ApeWisdom):** `src/data/social_whale_provider.py` — novo provider que busca sinais de baleia, pumps e ordens grandes via Nitter (proxy gratuito do Twitter/X, sem API key) com fallback para ApeWisdom quando Nitter esta offline. 4 metodos publicos: `get_whale_signals()`, `get_pump_detection()`, `get_social_sentiment()`, `get_unusual_options_flow()`. Registrado no DataHub como "social_whale" com capabilities `whale_signals`, `pump_detection`, `social_sentiment`, `unusual_options_flow`. Tenta 5 instancias Nitter em cascata. Palavras-chave multilingue (PT/EN/ZH). Ruff check + format clean. Nenhuma regression — 15 data_hub tests pass, 511/516 tests pass (5 pre-existing failures inalatadas).
 - [x] 2026-07-20 — **Questrade Portfolio Reader (Playwright):** `scripts/questrade_read_portfolio.py` implementa leitor de carteira Questrade com sessao Playwright persistente. Le dados sem OAuth token (via scraping da UI do Questrade). Snapshot de portfolio real salvo em `data/questrade_portfolio.json`. Codigo pronto, falta token OAuth para API oficial. Commits 6cdb275, 81457ea.
 - [x] 2026-07-20 — **Browser smoke 100% pass + auth modal dev-mode detection:** `scripts/browser_smoke.py` corrigido para detectar auth modal em dev mode. Suite completa passa 100%. Commit 039055a.

@@ -439,9 +439,10 @@ def _cockpit_status_snapshot(
     portfolio: dict[str, Any],
 ) -> dict[str, Any]:
     guardrails = _cockpit_guardrail_summary()
-    deep_model = os.getenv("SUPEREZIO_DEEPSEEK_MODEL", "deepseek-chat")
-    primary_model = os.getenv("SUPEREZIO_PRIMARY_MODEL") or os.getenv(
-        "SUPEREZIO_DEEPSEEK_MODEL", "local"
+    # Zero-cloud: every panel is served by the shared local llama-server.
+    local_model = os.getenv(
+        "SUPEREZIO_PRIMARY_MODEL",
+        os.getenv("SUPEREZIO_DEEPSEEK_MODEL", "Qwen3.8-27B-UD-IQ2_XXS"),
     )
     ceo_online = pipeline_status.get("status") in {"ok", "ready"} or bool(
         pipeline_status.get("mode")
@@ -450,11 +451,11 @@ def _cockpit_status_snapshot(
         "ceo": "online" if ceo_online else "degraded",
         "genie": {
             "status": "online" if sentiment_available else "offline",
-            "provider": "Gemini",
+            "provider": "local",
         },
         "deep": {
-            "status": "online" if os.getenv("SUPEREZIO_DEEPSEEK_API_KEY") else "degraded",
-            "model": deep_model,
+            "status": "online" if ceo_online else "degraded",
+            "model": local_model,
         },
         "ibkr": {
             "status": "online" if portfolio.get("connected") else "offline",
@@ -465,7 +466,7 @@ def _cockpit_status_snapshot(
         },
         "guardrails": guardrails,
         "kill_switch": {"state": "ARMED", "armed": True},
-        "primary_model": primary_model,
+        "primary_model": local_model,
     }
 
 

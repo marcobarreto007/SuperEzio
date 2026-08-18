@@ -1,9 +1,11 @@
-# SuperEzio Runtime Configuration v4.0.0
+# SuperEzio Runtime Configuration v4.2.0
 # Fonte canonica de configuracao de runtime.
-# ATUALIZADO: 2026-05-20 - CEO merged GGUF, API local, orchestrator local, experts cloud.
+# ATUALIZADO: 2026-08-17 - ZERO-CLOUD: todos os papeis LLM no servidor local
+# compartilhado (perfil cc) em :8080. Sem providers de nuvem. Se :8080 cair,
+# o sistema trava em MAN_AT_WORK.
 
 project_name: SuperEzio
-version: 4.0.0
+version: 4.2.0
 default_country: Canada
 default_currency: CAD
 
@@ -18,17 +20,16 @@ server:
   venv: .venv
 
 # ---------------------------------------------------------------------------
-# Modelos (runtime real validado 2026-06-29)
+# Modelos (ZERO-CLOUD, validado 2026-08-16)
 # ---------------------------------------------------------------------------
 models:
   agent:
-    name: Bob Core Local
+    name: Qwen3.8-27B Local (shared cc)
     provider_name: agent
-    model_id: bob-core-local
-    path: "C:\\llama.cpp\\models\\bob-core-local.gguf"
-    lora_path: "C:\\llama.cpp\\models\\bob-lora-best.gguf"
-    quantization: Q4_K_M
-    server_url: http://127.0.0.1:8082/v1
+    model_id: Qwen3.8-27B-UD-IQ2_XXS
+    path: "C:\\Users\\marco\\models\\qwen3.8-27b\\Qwen3.8-27B-UD-IQ2_XXS.gguf"
+    quantization: UD-IQ2_XXS
+    server_url: http://127.0.0.1:8080/v1
     backend: openai_compatible
     role: agent
     is_local: true
@@ -36,41 +37,37 @@ models:
     max_tokens: 8192
     timeout_s: 300
     script: scripts/serve_agent_llamacpp.ps1
-    preferred_llama_server: "C:\\llama.cpp\\build\\bin\\llama-server.exe"
-    fallback_llama_server: llama.cpp\bin\llama-server.exe
-    speculative_decoding: disabled
-    # UNVERIFIED (2026-07-19): this contradicts .f51/ENTRYPOINT_MAP.md, which
-    # documents context_length=65536 and gpu_layers=49 for a differently
-    # named artifact (Bob Core-q4_k.gguf, no LoRA) as "runtime real validado
-    # 2026-06-29". Neither this file's model (bob-core-local.gguf +
-    # bob-lora-best.gguf) nor the ENTRYPOINT_MAP.md model exist on this
-    # machine (C:\llama.cpp\models\ is absent) — see .f51/RISK_REGISTER.md
-    # INV-R15. Do not trust either number until re-measured against a live
-    # llama-server /health or /v1/models response.
-    context_length: 4096
-    gpu_layers: 35
+    preferred_llama_server: "C:\\Users\\marco\\tools\\llama.cpp-src\\build\\bin\\Release\\llama-server.exe"
+    # Perfil validado 2026-08-16 (run-cc.ps1): -ngl all -sm layer -ts 8,6,
+    # cache q8_0, contexto 40960 processa prompt de 33k tokens sem OOM
+    # (2070 6,5/8,2GB, P106 5,7/6,1GB). c 65536 crasha com CUDA OOM sob carga.
+    context_length: 40960
+    gpu_layers: all
+    tensor_split: "8,6"
     slots: 1
     thinking: disabled
-    model_type: local_gguf_lora
-    base_model: Bob Core
+    model_type: local_gguf
+    base_model: Qwen3.8-27B
+    # Servidor compartilhado com o Claude Code (perfil cc): um servidor, um
+    # slot. NAO subir segunda instancia (VRAM nao aguenta dois servidores).
 
   orchestrator:
-    name: Bob Core Local
+    name: Qwen3.8-27B Local (shared cc)
     provider_name: local_orchestrator
-    path: http://127.0.0.1:8082/v1
-    model_id: bob-core-local
+    path: http://127.0.0.1:8080/v1
+    model_id: Qwen3.8-27B-UD-IQ2_XXS
     backend: openai_compatible
     role: orchestrator
     is_local: true
 
   experts:
-    name: DeepSeek V4 Pro (Experts)
+    name: Local experts (shared cc)
     provider_name: deepseek
-    base_url: https://api.deepseek.com
-    model_id: deepseek-v4-pro
+    base_url: http://127.0.0.1:8080/v1
+    model_id: Qwen3.8-27B-UD-IQ2_XXS
     backend: openai_compatible
     role: worker
-    is_local: false
+    is_local: true
     roles:
       - fundamental
       - technical
@@ -78,15 +75,6 @@ models:
       - macro
       - quant
       - sentiment
-
-  fallback:
-    grok:
-      name: Grok 4.3 (Fallback)
-      provider_name: grok
-      base_url: https://api.x.ai/v1
-      model: grok-4.3
-      role: cloud_primary
-      is_local: false
 
 # ---------------------------------------------------------------------------
 # Gateway
@@ -100,7 +88,7 @@ gateway:
 # ---------------------------------------------------------------------------
 health:
   agent:
-    url: http://127.0.0.1:8082/health
+    url: http://127.0.0.1:8080/health
     method: GET
     expected: ok
   api_public:
@@ -124,13 +112,15 @@ storage:
   models_dir: models
 
 # ---------------------------------------------------------------------------
-# Launch sequence (ordem canÃƒÂ´nica)
+# Launch sequence (ordem canonica)
 # ---------------------------------------------------------------------------
 launch:
   step_1:
-    description: CEO llama-server
-    command: powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082
-    wait_for: http://127.0.0.1:8082/health
+    description: CEO llama-server (perfil cc compartilhado — :8080)
+    # Preferencia: subir via run-cc.ps1 do operador (perfil validado).
+    # Fallback: serve_agent_llamacpp.ps1 sobe o mesmo modelo na :8080.
+    command: powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080
+    wait_for: http://127.0.0.1:8080/health
     timeout_attempts: 50
     window_title: SuperEzio CEO
 

@@ -16,8 +16,9 @@ def test_model_manifest_agent():
     manifest_path = ROOT / "config" / "model_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert "agent" in manifest
-    assert manifest["agent"]["model"] == "bob-core-local"
+    assert manifest["agent"]["model"] == "Qwen3.8-27B-UD-IQ2_XXS"
     assert manifest["agent"]["backend"] == "openai_compatible"
+    assert manifest["agent"]["server_url"].startswith("http://127.0.0.1")  # zero-cloud
 
 
 def test_model_manifest_providers():
@@ -78,7 +79,7 @@ def test_provider_constants():
     )
 
     assert AGENT_PROVIDER_NAME == "agent"
-    assert AGENT_MODEL_ID == "bob-core-local"
+    assert AGENT_MODEL_ID == "Qwen3.8-27B-UD-IQ2_XXS"
     assert PRIMARY_PROVIDER_NAME == "local_orchestrator"
     assert DEEPSEEK_PROVIDER_NAME == "deepseek"
 

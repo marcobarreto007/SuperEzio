@@ -877,18 +877,18 @@ async def health_check():
     health["checks"]["redis"] = redis_info
 
     # â”€â”€ Model providers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Zero-cloud (2026-08-17): the primary provider is always the shared local
+    # llama-server — "configured" no longer means "has a cloud API key".
     primary_info = {
-        "configured": bool(
-            os.getenv("SUPEREZIO_PRIMARY_API_KEY") or os.getenv("SUPEREZIO_DEEPSEEK_API_KEY")
-        ),
+        "configured": True,
         "provider": PRIMARY_PROVIDER_NAME,
         "model": os.getenv(
             "SUPEREZIO_PRIMARY_MODEL",
-            os.getenv("SUPEREZIO_DEEPSEEK_MODEL", "deepseek-chat"),
+            os.getenv("SUPEREZIO_DEEPSEEK_MODEL", "Qwen3.8-27B-UD-IQ2_XXS"),
         ),
         "base_url": os.getenv(
             "SUPEREZIO_PRIMARY_BASE_URL",
-            os.getenv("SUPEREZIO_DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+            os.getenv("SUPEREZIO_DEEPSEEK_BASE_URL", "http://127.0.0.1:8080/v1"),
         ),
     }
     try:
@@ -898,7 +898,7 @@ async def health_check():
         for p in providers:
             key = p.name
             health["checks"][f"provider_{key}"] = {
-                "configured": bool((p.api_key or "").strip()),
+                "configured": p.is_local or bool((p.api_key or "").strip()),
                 "model": p.model,
                 "base_url": p.base_url,
                 "priority": p.priority,
@@ -909,9 +909,10 @@ async def health_check():
 
     health["checks"]["providers_summary"] = {
         "primary": primary_info,
-        "deepseek": {
-            "configured": bool(os.getenv("SUPEREZIO_DEEPSEEK_API_KEY")),
-            "model": os.getenv("SUPEREZIO_DEEPSEEK_MODEL", "deepseek-chat"),
+        "experts": {
+            # Legacy routing name "deepseek" — serves the local endpoint now.
+            "provider": "local",
+            "model": os.getenv("SUPEREZIO_DEEPSEEK_MODEL", "Qwen3.8-27B-UD-IQ2_XXS"),
         },
     }
 
@@ -1044,8 +1045,9 @@ async def health_dashboard_data():
     except ImportError:
         gpu_info["status"] = "no_torch"
 
-    primary_configured = bool(os.getenv("SUPEREZIO_PRIMARY_API_KEY") or os.getenv("SUPEREZIO_DEEPSEEK_API_KEY"))
-    deepseek_configured = bool(os.getenv("SUPEREZIO_DEEPSEEK_API_KEY"))
+    # Zero-cloud: "configured" means the local endpoint is set — not a cloud key.
+    primary_configured = True
+    deepseek_configured = False  # legacy dashboard field — no cloud key is used
     agent_url = os.getenv("SUPEREZIO_AGENT_BASE_URL", "")
 
     providers_status = {}
@@ -1054,7 +1056,7 @@ async def health_dashboard_data():
         gateway = getattr(pipeline, "gateway", None) if pipeline else None
         for p in (list(getattr(gateway, "providers", [])) if gateway else []):
             providers_status[p.name] = {
-                "configured": bool((p.api_key or "").strip()),
+                "configured": p.is_local or bool((p.api_key or "").strip()),
                 "model": p.model,
                 "base_url": p.base_url,
                 "priority": p.priority,

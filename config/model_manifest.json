@@ -1,67 +1,64 @@
 {
     "project":  "SuperEzio",
-    "version":  "4.1.0",
-    "updated":  "2026-06-29",
-    "note":  "CEO Bob: Bob Core local GGUF + F51 LoRA best. Local-only via llama.cpp QLoRA. Cloud providers for orchestration/experts only.",
+    "version":  "4.2.0",
+    "updated":  "2026-08-17",
+    "note":  "ZERO-CLOUD (operator directive 2026-08-17): every LLM role is served by the shared local llama-server (perfil cc) on :8080. No cloud providers. If the server is down the system fails into MAN_AT_WORK.",
     "agent":  {
                 "provider_name":  "agent",
                 "persona":  "Bob",
-                "base_model":  "Bob Core",
-                "model":  "bob-core-local",
-                "path":  "C:\\llama.cpp\\models\\bob-core-local.gguf",
-                "lora_path":  "C:\\llama.cpp\\models\\bob-lora-best.gguf",
-                "quantization":  "Q4_K_M",
-                "server_url":  "http://127.0.0.1:8082/v1",
-                "priority":  -670,
+                "base_model":  "Qwen3.8-27B",
+                "model":  "Qwen3.8-27B-UD-IQ2_XXS",
+                "path":  "C:\\Users\\marco\\models\\qwen3.8-27b\\Qwen3.8-27B-UD-IQ2_XXS.gguf",
+                "quantization":  "UD-IQ2_XXS (8.4 GB)",
+                "server_url":  "http://127.0.0.1:8080/v1",
+                "priority":  -10,
                 "backend":  "openai_compatible",
                 "temperature":  0.3,
                 "max_tokens":  8192,
                 "timeout_s":  300,
                 "tool_calling":  true,
-                "block_count":  48,
-                "reasoning":  "disabled",
-                "context_length":  262144,
-                "gpu_layers":  24,
-                "freeze_layers":  12,
-                "lora_rank":  16,
-                "lora_alpha":  32,
+                "reasoning":  "disabled (--reasoning off)",
+                "context_length":  40960,
+                "gpu_layers":  "all (-ngl all -sm layer)",
+                "tensor_split":  "8,6",
+                "gpus":  "RTX 2070 8GB + P106 6GB",
+                "speculative":  "draft-mtp, draft-n-max 2",
+                "launch_profile":  "C:\\Users\\marco\\models\\qwen3.8-27b\\run-cc.ps1 (validated 2026-08-16)",
                 "model_type":  "dense",
-                "total_experts":  0,
-                "active_experts_per_token":  0
+                "shared_with":  "Claude Code perfil cc — one server, one slot"
             },
     "providers":  {
                       "local_orchestrator":  {
                                                  "provider_name":  "local_orchestrator",
-                                                 "base_url":  "http://127.0.0.1:8082/v1",
-                                                 "model":  "bob-core-local",
-                                                 "priority":  -400,
-                                                 "role":  "orchestrator"
+                                                 "base_url":  "http://127.0.0.1:8080/v1",
+                                                 "model":  "Qwen3.8-27B-UD-IQ2_XXS",
+                                                 "priority":  0,
+                                                 "role":  "orchestrator (local)"
                                              },
-                      "grok":  {
-                                   "provider_name":  "grok",
-                                   "base_url":  "https://api.x.ai/v1",
-                                   "model":  "grok-4.3",
-                                   "priority":  -500,
-                                   "role":  "Cloud primario Ã¢â‚¬â€ mais barato do mercado ($1.25/$2.50 por MTok)",
-                                   "fast_model":  "grok-fast ($0.20/$0.50 por MTok)"
-                               },
                       "deepseek":  {
                                        "provider_name":  "deepseek",
-                                       "base_url":  "https://api.deepseek.com",
-                                       "model":  "deepseek-v4-pro",
+                                       "base_url":  "http://127.0.0.1:8080/v1",
+                                       "model":  "Qwen3.8-27B-UD-IQ2_XXS",
                                        "priority":  -300,
-                                       "role":  "financial experts"
+                                       "role":  "financial experts (legacy routing name — serves the local endpoint)"
                                    },
-                      "gemini_pro":  {
-                                         "provider_name":  "gemini_pro",
-                                         "base_url":  "https://generativelanguage.googleapis.com/v1beta/openai/",
-                                         "model":  "gemini-2.5-flash",
-                                         "priority":  50,
-                                         "role":  "optional fallback when GEMINI_API_KEY is configured"
-                                     }
+                      "daytrade_judge":  {
+                                             "provider_name":  "daytrade_judge",
+                                             "base_url":  "http://127.0.0.1:8080/v1",
+                                             "model":  "Qwen3.8-27B-UD-IQ2_XXS",
+                                             "priority":  -304,
+                                             "role":  "daytrade judge (local)"
+                                         },
+                      "daytrade_auditor":  {
+                                               "provider_name":  "daytrade_auditor",
+                                               "base_url":  "http://127.0.0.1:8080/v1",
+                                               "model":  "Qwen3.8-27B-UD-IQ2_XXS",
+                                               "priority":  -305,
+                                               "role":  "daytrade auditor (local)"
+                                           }
                   },
     "expert_runtime":  {
-                           "description":  "Experts are role prompts selected by intent and served through the deepseek provider.",
+                           "description":  "Experts are role prompts selected by intent, all served through the shared local llama-server on :8080 (zero-cloud).",
                            "roles":  [
                                          "fundamental",
                                          "technical",

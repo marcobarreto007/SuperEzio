@@ -1,0 +1,65 @@
+{
+    "date_local": "2026-08-17T22:55:00-04:00",
+    "session": "save-2026-08-17",
+    "status": "blocked",
+    "what_was_done": [
+        "Persistiu estado operacional do runtime Bob em commit local (disk-only, GitHub bloqueado por politica).",
+        "Versionou pain log completo (24.732 linhas), alerta man_at_work (CEO down -> trading halt), mangala daily de 2026-08-11, e traces de decisao (run c37477042a57 de 2026-07-21 + run b86b0eb20af2 de 2026-08-07).",
+        "Preservou o checkpoint de gaming baseline (M4000) em .f51/checkpoints/2026-07-24-m4000-gaming-baseline.json antes de sobrescrever latest.json.",
+        "Registrou riscos INV-R26 (crash V8 do akshare derruba suite), INV-R27 (CEO unreachable / trading halt) e INV-R28 (pain log cronico) no RISK_REGISTER.",
+        "Executou gates: ruff (4 erros pre-existentes), pytest (suite aborta em 84% - ver evidence.tests), browser smoke (ok:false - servidor down)."
+    ],
+    "evidence": {
+        "commands": [
+            "git status --short",
+            "git diff --check",
+            "python -m ruff check src tests (4 erros pre-existentes: F821 auth.py/gateway.py, F841 agent.py)",
+            "python -m pytest tests/ -q (abortou em 84%: Windows fatal exception 0x80000003 em py_mini_racer/akshare)",
+            "python -m pytest tests/test_pipeline_smoke.py::test_pipeline_stream_events_blocks_unscoped_ticket_reference -q --timeout=90 -o addopts=\"\" (crash V8 reproduzido isolado)",
+            "curl health 8002/8082 (conexao recusada, http 000 em ambas)",
+            "python scripts/browser_smoke.py (ok:false, WinError 10061)"
+        ],
+        "files_changed": [
+            "data/bob_pain_log.jsonl",
+            "data/man_at_work/latest_alert.txt",
+            "data/mangala_daily.json",
+            "runtime/traces/decision_trace_20260721.jsonl",
+            "runtime/traces/decision_trace_20260807.jsonl (novo)",
+            "src/data/bob_pain_log.jsonl",
+            ".f51/checkpoints/latest.json",
+            ".f51/checkpoints/2026-07-24-m4000-gaming-baseline.json (preservado)",
+            ".f51/RISK_REGISTER.md",
+            ".f51/TASK_BOARD.md"
+        ],
+        "tests": [
+            "suíte completa (1691 coletados): aborta em 84% — Windows fatal exception 0x80000003 em py_mini_racer/akshare (INV-R26)",
+            "suíte com 2 deselects (akshare): 4 failed, 1674 passed, 11 skipped em 475.31s — working tree em movimento (sessão paralela zero-cloud commitou d4d14a1/5a1141b durante o run):",
+            "  - tests/e2e/test_browser_full_flow.py::test_full_browser_flow — Bob response 0 chars (gateway 100% local sem servidor :8080)",
+            "  - tests/test_market_scan_candidate_gate.py::test_unavailable_price_candidates_are_rejected — candidatos com 'no quote' não mais rejeitados",
+            "  - tests/test_market_scan_candidate_gate.py::test_explicit_china_scan_is_allowed — 000002.SZ ausente de rejected_tickers (retornou 000004.SZ)",
+            "  - tests/test_runtime_smoke.py::test_app_has_task_submit_route — rota /submit ausente no app FastAPI",
+            "browser smoke: ok:false — servidor recusando conexão (WinError 10061)",
+            "ruff check src tests: 4 erros pré-existentes (F821 auth.py:420, F821 gateway.py:341, F841 agent.py:2431)",
+            "secret scan nos arquivos alterados: limpo (sem api_key/token/password)"
+        ]
+    },
+    "risks": [
+        {
+            "severity": "high",
+            "description": "INV-R29: akshare py_mini_racer (V8) aborta o processo Python com 0x80000003 quando o pipeline testa provider de dados; suite completa nao produz resultado consolidado.",
+            "mitigation": "Deselect dos 2 testes que tocam akshare; corrigir fallback do data context para nao instanciar V8 com circuito data.akshare aberto (INV-R24)."
+        },
+        {
+            "severity": "high",
+            "description": "INV-R30: SuperEzio API (:8002/:8082) fora do ar desde 2026-08-08; alerta man_at_work ativo com NO TRADING ORDERS UNTIL CLEARED; e2e Bob 0 chars com gateway 100% local sem servidor :8080 (ver INV-R26 da sessao paralela).",
+            "mitigation": "Subir servidor local :8080 (perfil cc), depois python -m agent_server.main, e limpar alerta antes de qualquer ordem."
+        },
+        {
+            "severity": "medium",
+            "description": "INV-R31: erros cronicos no pain log (IBKR offline, scanner sem modulo src, cache vazio, circuito data.akshare aberto) repetidos desde 2026-07-20.",
+            "mitigation": "Corrigir import src no scanner e reconectar IBKR apos o CEO voltar."
+        }
+    ],
+    "next_step": "Subir o servidor (agent_server.main + serve_agent_llamacpp.ps1), limpar o alerta man_at_work, e revalidar o gate de suite completa com os 2 testes akshare isolados.",
+    "owner": "Claude Code (save session)"
+}

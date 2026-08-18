@@ -1,7 +1,9 @@
-# Official Runbook - SuperEzio Runtime v4.0.0
+# Official Runbook - SuperEzio Runtime v4.2.0
 
-Updated: 2026-05-20
+Updated: 2026-08-17
 Policy: DISK ONLY. GitHub is blocked by `.f51/GITHUB_POLICY.json`.
+Model policy: ZERO-CLOUD — every LLM role is served by the shared local
+llama-server (perfil cc) on `127.0.0.1:8080`. No cloud fallback exists.
 
 ## Runtime Definition
 
@@ -9,30 +11,29 @@ SuperEzio has two official local runtime processes:
 
 | Component | Entrypoint | Bind | Purpose |
 | --- | --- | --- | --- |
-| Agent llama.cpp server | `powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082` | `127.0.0.1:8082` | Local OpenAI-compatible Agent model endpoint. |
+| CEO llama-server (shared cc) | `powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080` (or the operator's `run-cc.ps1`) | `127.0.0.1:8080` | Local OpenAI-compatible LLM endpoint — serves CEO, orchestrator, experts, judge and auditor. |
 | FastAPI agent server | `python -m agent_server.main` | `127.0.0.1:8002` | Browser UI, A2A envelope, pipeline, health, product routes. |
 
 Official config file: `config/runtime.yml`.
 
-Official CEO model:
+Official CEO model (validated 2026-08-16):
 
 ```text
-models/Huihui-Bob Core-A3B-Instruct-abliterated.IQ4_XS.gguf
+C:\Users\marco\models\qwen3.8-27b\Qwen3.8-27B-UD-IQ2_XXS.gguf
 ```
 
-Architecture: MoE (512 experts, 10 active + 1 shared per token, ~59 MB each)
-Quantization: IQ4_XS (~40 GB file)
-Context: 262144 tokens (256K)
-GPU: 999 layers (max offload) + --cpu-moe (experts on CPU)
-VRAM: ~6.3 GB (shared layers + KV cache)
-RAM: ~39 GB (expert pool)
-Nitro: Layers 1-4 active (Persistence Cache, Async PCIe, Router Lookahead, KV Cache Tiering)
+Model: Qwen3.8-27B (dense)
+Quantization: UD-IQ2_XXS (8.4 GB file)
+Context: 40960 tokens (a 33k-token system prompt processes without OOM; 65536 crashes with CUDA OOM under load)
+GPU: all layers offloaded, split across RTX 2070 8GB + P106 6GB (`-ngl all -sm layer -ts 8,6`)
+Cache: KV q8_0, flash attention on, MTP speculative decoding (draft-n-max 2)
+Slots: 1 (shared with the Claude Code perfil cc — one server, one queue)
 
-Current official model routing:
+Current official model routing (zero-cloud):
 
-- `ceo`: local OpenAI-compatible llama.cpp endpoint at `http://127.0.0.1:8082/v1`.
-- `local_orchestrator`: local orchestrator route using the same CEO endpoint.
-- `deepseek`: cloud expert provider at `https://api.deepseek.com`.
+- `agent`: local OpenAI-compatible llama.cpp endpoint at `http://127.0.0.1:8080/v1`. Never falls back to another provider — if the server is down the system enters MAN_AT_WORK.
+- `local_orchestrator`: local orchestrator route using the same endpoint.
+- `deepseek`: legacy routing name for the financial experts — serves the same local endpoint at `http://127.0.0.1:8080/v1` (NOT api.deepseek.com).
 
 Official launcher: **RETIRED.** The `desktop/SuperEzio.bat` has been deleted. Start services directly.
 
@@ -41,8 +42,10 @@ Official launcher: **RETIRED.** The `desktop/SuperEzio.bat` has been deleted. St
 From the project root:
 
 ```powershell
-# Terminal 1 - CEO
-powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082
+# Terminal 1 - CEO (shared cc server; run-cc.ps1 is the preferred profile)
+C:\Users\marco\models\qwen3.8-27b\run-cc.ps1
+# ...or, equivalently:
+powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080
 
 # Terminal 2 - API
 $env:PYTHONPATH = "src;$env:PYTHONPATH"
@@ -63,8 +66,8 @@ Expected result: `[OK] Config valid` + `True`.
 ## Healthchecks
 
 ```powershell
-curl.exe -fsS http://127.0.0.1:8082/health
-curl.exe -fsS http://127.0.0.1:8082/v1/models
+curl.exe -fsS http://127.0.0.1:8080/health
+curl.exe -fsS http://127.0.0.1:8080/v1/models
 curl.exe -fsS http://127.0.0.1:8002/health
 curl.exe -fsS http://127.0.0.1:8002/health/details
 ```
@@ -77,6 +80,8 @@ Expected:
 - API `/health/details`: JSON with `checks`.
 
 An open TCP port is not enough. Treat the runtime as healthy only after HTTP health responses pass.
+
+If CEO `/health` fails: the system is expected to be in MAN_AT_WORK mode (no trading orders). Do NOT point any provider at a cloud API to "work around" it — that violates the zero-cloud policy. Restart the local server instead.
 
 ## Public API Surface
 
@@ -154,14 +159,14 @@ python -m ruff format --check tests\contracts\test_contract_runtime_official.py 
 
 ## Troubleshooting
 
-### Port 8082 or 8002 already in use
+### Port 8080 or 8002 already in use
 
 ```powershell
-Get-NetTCPConnection -LocalPort 8082 -ErrorAction SilentlyContinue
+Get-NetTCPConnection -LocalPort 8080 -ErrorAction SilentlyContinue
 Get-NetTCPConnection -LocalPort 8002 -ErrorAction SilentlyContinue
 ```
 
-Use the launcher for normal cleanup. Kill individual owners only after confirming the process:
+Kill individual owners only after confirming the process:
 
 ```powershell
 Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -eq <PID> } | Select-Object ProcessId,CommandLine
@@ -170,20 +175,23 @@ Stop-Process -Id <PID> -Force
 
 ### CEO offline
 
-Check:
+Check (paths are real, from `config.ps1`):
 
 ```powershell
-Test-Path models\Huihui-Bob Core-A3B-Instruct-abliterated.IQ4_XS.gguf
-Test-Path llama.cpp\bin\llama-server.exe
-powershell -ExecutionPolicy Bypass -File scripts\serve_agent_llamacpp.ps1 -Port 8082
+Test-Path C:\Users\marco\models\qwen3.8-27b\Qwen3.8-27B-UD-IQ2_XXS.gguf
+Test-Path C:\Users\marco\tools\llama.cpp-src\build\bin\Release\llama-server.exe
+C:\Users\marco\models\qwen3.8-27b\run-cc.ps1
 ```
 
 Then validate:
 
 ```powershell
-curl.exe -fsS http://127.0.0.1:8082/health
-curl.exe -fsS http://127.0.0.1:8082/v1/models
+curl.exe -fsS http://127.0.0.1:8080/health
+curl.exe -fsS http://127.0.0.1:8080/v1/models
 ```
+
+Note: the two GPUs cannot hold two llama-server instances. If the port is
+busy with a working cc server, reuse it — do not start a second one.
 
 ### API offline
 
@@ -205,4 +213,3 @@ curl.exe -fsS http://127.0.0.1:8002/health/details
 ## Regression Rule
 
 Do not change product behavior while updating runtime docs/contracts. If a runtime inconsistency requires product code, stop, record the risk, and patch in a separate task.
-

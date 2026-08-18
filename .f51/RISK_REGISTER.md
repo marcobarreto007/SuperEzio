@@ -204,7 +204,7 @@ Session: save-2026-08-17
   local compartilhado do perfil cc em `http://127.0.0.1:8080/v1` — Qwen3.8-27B-UD-IQ2_XXS.gguf (8,4 GB, 2 GPUs,
   contexto 40960, validado 16/08 em `C:\Users\marco\models\qwen3.8-27b\run-cc.ps1`). Se 8080 cair: MAN_AT_WORK,
   sem fallback de nuvem.
-- Status: **Em resolução — tarefa ativa no TASK_BOARD 2026-08-17.**
+- Status: **Resolved 2026-08-17 — zero-nuvem implementado (commit zero-cloud), 506 testes do subset passando.**
 
 ### INV-R26 - CEO depende de servidor local compartilhado com o perfil cc [MEDIUM] (2026-08-17)
 

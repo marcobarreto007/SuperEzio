@@ -1,5 +1,5 @@
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -40,18 +40,17 @@ def client_with_mock_pipeline(monkeypatch):
         delattr(app.state, "pipeline")
 
 
-def test_man_at_work_notification_applies_timeout_to_urlopen(monkeypatch):
-    """urllib Request has no timeout argument; the network operation owns it."""
-    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", "test-key-not-a-secret")
-    response = MagicMock()
-    response.__enter__.return_value.read.return_value = b'{"choices": []}'
+def test_man_at_work_notification_makes_no_network_calls(monkeypatch, tmp_path):
+    """Zero-cloud contract (2026-08-17): the MAN_AT_WORK notification must not
+    call any external API — the former DeepSeek backup-CEO call was removed.
+    The alert is logged and persisted locally instead."""
+    monkeypatch.chdir(tmp_path)
+    with patch("urllib.request.urlopen") as urlopen:
+        BobsBody()._notify_technician("test containment")
 
-    with patch("urllib.request.urlopen", return_value=response) as urlopen:
-        BobsBody()._try_deepseek_notification("test containment")
-
-    request = urlopen.call_args.args[0]
-    assert request.full_url == "https://api.deepseek.com/v1/chat/completions"
-    assert urlopen.call_args.kwargs == {"timeout": 10}
+    urlopen.assert_not_called()
+    # The alert is persisted locally (under the tmp cwd).
+    assert (tmp_path / "data" / "man_at_work" / "latest_alert.txt").exists()
 
 
 # Test A — Macro thesis does not attach AAPL
