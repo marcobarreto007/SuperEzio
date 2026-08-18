@@ -15,6 +15,8 @@ from __future__ import annotations
 import json
 import logging
 import math
+import os
+import re
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone, timedelta
 from hashlib import blake2b
@@ -28,8 +30,36 @@ DEFAULT_MEMORY_PATH = (
 )
 _EMBEDDING_DIMS = 128
 
+# ── Filtro de sessão (fail-closed) ─────────────────────────────────────────
+# A memória alimenta conselho financeiro: só persistem sessões interativas
+# reais do frontend (bob-<uuid>) ou ids explicitamente liberados pelo
+# operador via SUPEREZIO_MEMORY_EXTRA_SESSIONS (lista separada por vírgula).
+# Sessões de teste/probe (default, test-*, quality-probe-*, overnight-*, ...)
+# são descartadas ANTES de tocar o disco. Motivação: cleanup 2026-08-18 —
+# 468/497 turnos eram resíduo de teste (126 menções de AAPL de probes).
+_REAL_SESSION_RE = re.compile(
+    r"^bob-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+)
+_ENV_EXTRA_SESSIONS = "SUPEREZIO_MEMORY_EXTRA_SESSIONS"
+
 # Singleton cache para memoria global
 _memory_instance: ConversationMemory | None = None
+
+
+def is_real_session_id(session_id: str) -> bool:
+    """True se a sessão é elegível para persistência durável.
+
+    Fail-closed: session_id nulo/desconhecido não persiste. Sessões reais
+    seguem o padrão bob-<uuid>; exceções passam pelo env allowlist.
+    """
+    if not session_id:
+        return False
+    if _REAL_SESSION_RE.match(session_id):
+        return True
+    extra = {
+        s.strip() for s in os.environ.get(_ENV_EXTRA_SESSIONS, "").split(",") if s.strip()
+    }
+    return session_id in extra
 
 
 @dataclass
@@ -101,9 +131,10 @@ def _cosine_sim(a: list[float], b: list[float]) -> float:
 class ConversationMemory:
     """Memória conversacional persistente do Bob."""
 
-    def __init__(self, path: Path | None = None):
+    def __init__(self, path: Path | None = None, *, enforce_session_filter: bool = True):
         self._path = path or DEFAULT_MEMORY_PATH
         self._path.parent.mkdir(parents=True, exist_ok=True)
+        self._enforce_session_filter = enforce_session_filter
         self._cache: dict[str, list[ConversationTurn]] = {}  # session_id -> turns
         self._all_turns: list[ConversationTurn] = []
 
@@ -178,6 +209,16 @@ class ConversationMemory:
 
         # Gera embedding
         turn.embedding_vector = _hashed_embedding(turn.to_embedding_text())
+
+        # Filtro fail-closed: sessões de teste/probe não contaminam a memória
+        # durável (que alimenta conselho financeiro). Turno retorna ao caller,
+        # mas não toca disco nem cache.
+        if self._enforce_session_filter and not is_real_session_id(session_id):
+            logger.info(
+                "Memory: turno de sessao nao-interativa %r NAO persistido (filtro fail-closed)",
+                session_id,
+            )
+            return turn
 
         # Salva no disco e cache
         self._append(turn)
@@ -345,5 +386,9 @@ def get_conversation_memory() -> ConversationMemory:
 
 
 def reset_memory_for_test(test_path: Path) -> ConversationMemory:
-    """Cria nova instância para testes."""
-    return ConversationMemory(path=test_path)
+    """Cria nova instância para testes.
+
+    O filtro de sessão é desligado explicitamente — testes escrevem em
+    caminho temporário próprio e não contaminam a memória de produção.
+    """
+    return ConversationMemory(path=test_path, enforce_session_filter=False)

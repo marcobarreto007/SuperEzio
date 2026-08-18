@@ -26,7 +26,7 @@ def test_conversation_adapter_ingest():
         from core.memory import ConversationMemory
 
         mem_path = Path(tmpdir) / "memory.jsonl"
-        mem = ConversationMemory(mem_path)
+        mem = ConversationMemory(mem_path, enforce_session_filter=False)
         mem.add_turn(
             "session1",
             "Should I buy AAPL?",
@@ -66,7 +66,7 @@ def test_conversation_adapter_search():
         from core.memory import ConversationMemory
 
         mem_path = Path(tmpdir) / "memory.jsonl"
-        mem = ConversationMemory(mem_path)
+        mem = ConversationMemory(mem_path, enforce_session_filter=False)
         mem.add_turn(
             "s1",
             "Tesla stock analysis",
@@ -207,7 +207,7 @@ def test_unified_retriever_ingest_all():
 
         # Setup memória
         mem_path = Path(tmpdir) / "memory.jsonl"
-        mem = ConversationMemory(mem_path)
+        mem = ConversationMemory(mem_path, enforce_session_filter=False)
         mem.add_turn("s1", "Buy AAPL?", "Apple strong", ticker_discussed="AAPL")
 
         # Setup journal

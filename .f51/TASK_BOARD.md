@@ -8,11 +8,13 @@
   23 sessões bob-uuid com prompt CAD, operator/trader/web/marco/user com prompts de teste).
   Mantida apenas a sessão real `bob-7e65d4c1` (29 conversas do operador). Motivação: memória
   RAG do Bob estava contaminada com lixo de teste (126 menções de AAPL).
-- [ ] **Filtrar persistência de memória por sessão**: o runtime grava TODA conversa em
-  `conversation_memory.jsonl`, inclusive testes/probes (`default`, `quality-probe-*`,
-  `test-*`, `overnight_*`). Proposto: não persistir sessões com session_id vazio/default ou
-  prefixos de teste, ou exigir session_id real do frontend. Sem isso a memória re-contamina
-  a cada rodada de teste.
+- [x] 2026-08-18 - **Filtro fail-closed de sessão na memória** (Claude Code): `ConversationMemory`
+  agora só persiste sessões interativas reais (`bob-<uuid>`) ou ids na allowlist
+  `SUPEREZIO_MEMORY_EXTRA_SESSIONS`. Sessões de teste/probe (`default`, `test-*`,
+  `quality-probe-*`, `overnight-*`...) são descartadas ANTES de tocar o disco — memória
+  alimenta conselho financeiro, não pode acumular resíduo de teste. `reset_memory_for_test`
+  desliga o filtro explicitamente (isolamento). Testes: 123 passando no subset de memória
+  (filter + unified + journal + graph + hybrid + conversation).
 
 - [x] 2026-08-17 - **Save session** (Claude Code): persistiu estado operacional do runtime
   Bob (disc-only, sem GitHub). Dados versionados: pain log (24.732 linhas), alerta
