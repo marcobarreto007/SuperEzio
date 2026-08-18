@@ -82,7 +82,7 @@ def test_build_default_providers_agent_present(monkeypatch):
     agent = by_name[AGENT_PROVIDER_NAME]
     assert agent.is_local is True
     assert agent.model == AGENT_MODEL_ID
-    assert "8082" in agent.base_url
+    assert "8080" in agent.base_url
 
 
 def test_build_default_providers_primary_is_present(monkeypatch):
@@ -104,8 +104,10 @@ def test_build_default_providers_primary_is_present(monkeypatch):
     assert isinstance(by_name[PRIMARY_PROVIDER_NAME].is_local, bool)
 
 
-def test_deepseek_provider_decoupled_from_primary(monkeypatch):
-    """DeepSeek must use its own base URL, not the primary URL."""
+def test_experts_provider_is_local_and_rejects_cloud_override(monkeypatch):
+    """Zero-cloud contract: expert roles are served locally. A cloud
+    SUPEREZIO_DEEPSEEK_BASE_URL override must be ignored; a local override
+    must be honored (test stubs use local endpoints)."""
     monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", "sk-ds-test")
     monkeypatch.setenv("SUPEREZIO_DEEPSEEK_BASE_URL", "https://custom-deepseek.example.com")
     monkeypatch.setenv("SUPEREZIO_DEEPSEEK_MODEL", "deepseek-custom-model")
@@ -115,12 +117,19 @@ def test_deepseek_provider_decoupled_from_primary(monkeypatch):
     from core.model_serving.providers import build_default_providers, DEEPSEEK_PROVIDER_NAME
 
     cfg = UniversalConfig()
+
     providers, _ = build_default_providers(cfg)
     by_name = {p.name: p for p in providers}
+    assert DEEPSEEK_PROVIDER_NAME in by_name
+    ds = by_name[DEEPSEEK_PROVIDER_NAME]
+    assert ds.is_local is True
+    assert "custom-deepseek.example.com" not in ds.base_url
+    assert "api.deepseek.com" not in ds.base_url
 
-    if DEEPSEEK_PROVIDER_NAME in by_name:
-        ds = by_name[DEEPSEEK_PROVIDER_NAME]
-        assert ds.is_local is False
+    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_BASE_URL", "http://127.0.0.1:9999/v1")
+    providers, _ = build_default_providers(cfg)
+    by_name = {p.name: p for p in providers}
+    assert by_name[DEEPSEEK_PROVIDER_NAME].base_url == "http://127.0.0.1:9999/v1"
 
 
 # ---------------------------------------------------------------------------
@@ -156,8 +165,9 @@ def test_gateway_providers_for_request_agent_no_fallback(monkeypatch):
     assert providers[0].name == AGENT_PROVIDER_NAME
 
 
-def test_gateway_providers_for_request_agent_uses_glm_fallback_when_configured(monkeypatch):
-    """Agent provider should expose GLM fallback in normal fallback mode."""
+def test_gateway_agent_never_has_cloud_fallback(monkeypatch):
+    """Zero-cloud contract: even with a GLM key configured, no ceo_fallback_glm
+    provider may exist, and the agent/CEO must resolve to itself alone."""
     monkeypatch.setenv("SUPEREZIO_GLM_CODE_PLAN_API_KEY", "test-key")
     monkeypatch.delenv("SUPEREZIO_PRIMARY_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
@@ -168,8 +178,9 @@ def test_gateway_providers_for_request_agent_uses_glm_fallback_when_configured(m
 
     cfg = UniversalConfig()
     gw = create_gateway_from_config(cfg)
+    assert "ceo_fallback_glm" not in [p.name for p in gw.providers]
     providers = gw._providers_for_request(AGENT_PROVIDER_NAME)
-    assert [p.name for p in providers] == [AGENT_PROVIDER_NAME, "ceo_fallback_glm"]
+    assert [p.name for p in providers] == [AGENT_PROVIDER_NAME]
 
 
 def test_gateway_max_attempts():

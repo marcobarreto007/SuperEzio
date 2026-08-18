@@ -1,85 +1,70 @@
-"""Test CEO fallback when GPU/local provider fails."""
+"""Zero-cloud contract tests: the CEO must never fall back to a cloud provider.
 
-import os
-import asyncio
-import pytest
+Operator directive (2026-08-17): "nada de fallback na nuvem". The agent/CEO
+provider is local-only. If the shared local llama-server (:8080) is down, the
+system must fail into MAN_AT_WORK instead of calling any external API.
+"""
+
+import time
 
 from core.model_serving.gateway import ModelGateway
 from core.model_serving.providers import build_providers
 
 
-@pytest.mark.asyncio
-async def test_ceo_fallback_when_local_fails() -> None:
-    """Test that GLM fallback is used when local provider fails."""
-    providers, gw_config = build_providers()
+def test_no_cloud_provider_in_default_build(monkeypatch) -> None:
+    """No provider may point at an external API, regardless of env keys."""
+    monkeypatch.setenv("SUPEREZIO_GLM_CODE_PLAN_API_KEY", "test-key")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", "test-key")
+    for var in (
+        "SUPEREZIO_AGENT_BASE_URL",
+        "SUPEREZIO_AGENT_MODEL",
+        "SUPEREZIO_PRIMARY_BASE_URL",
+        "SUPEREZIO_DEEPSEEK_BASE_URL",
+    ):
+        monkeypatch.delenv(var, raising=False)
 
-    # Find local agent provider
-    local_provider = None
-    glm_provider = None
+    providers, _ = build_providers()
+    assert providers, "default provider build must not be empty"
     for p in providers:
-        if p.name == "agent":
-            local_provider = p
-        elif p.name == "ceo_fallback_glm":
-            glm_provider = p
+        assert p.is_local is True, f"{p.name} must be local"
+        assert "127.0.0.1" in p.base_url or "localhost" in p.base_url, (
+            f"{p.name} must point at a local endpoint (got {p.base_url})"
+        )
+    names = [p.name for p in providers]
+    assert "ceo_fallback_glm" not in names
+    assert "gemini" not in names
 
-    if not local_provider:
-        pytest.skip("No local agent provider configured")
-    if not glm_provider:
-        pytest.skip("No GLM fallback provider configured")
 
+def test_agent_ceo_never_cascades_when_local_fails(monkeypatch) -> None:
+    """An agent/CEO request must resolve to the agent alone — even with the
+    agent in cooldown, nothing non-local may take its place."""
+    for var in ("SUPEREZIO_AGENT_BASE_URL", "SUPEREZIO_PRIMARY_BASE_URL"):
+        monkeypatch.delenv(var, raising=False)
+
+    providers, gw_config = build_providers()
     gateway = ModelGateway(providers, gw_config)
 
-    # Simulate local provider failure by putting it in cooldown
-    import time
-
+    # Simulate local provider failure by putting it in cooldown.
     gateway._provider_cooldown_until["agent"] = time.monotonic() + 1000
 
-    # Request should skip local and use GLM
     providers_to_try = gateway._providers_for_request(
         preferred_provider="agent", allow_fallback=True
     )
-
-    # Should have GLM in the list
-    provider_names = [p.name for p in providers_to_try]
-    assert "ceo_fallback_glm" in provider_names or any(
-        "glm" in name.lower() for name in provider_names
-    )
+    assert [p.name for p in providers_to_try] == ["agent"]
 
 
-def test_glm_provider_configured() -> None:
-    """Test that GLM fallback provider is configured when API key is set."""
-    import os
-
-    glm_key = os.getenv("SUPEREZIO_GLM_CODE_PLAN_API_KEY", "")
-    if not glm_key:
-        pytest.skip("SUPEREZIO_GLM_CODE_PLAN_API_KEY not set")
+def test_stale_cloud_env_override_is_ignored(monkeypatch) -> None:
+    """A leftover .env entry pointing at api.deepseek.com must not route the
+    CEO to the cloud (the exact regression found on 2026-08-17)."""
+    monkeypatch.setenv("SUPEREZIO_AGENT_BASE_URL", "https://api.deepseek.com")
+    monkeypatch.setenv("SUPEREZIO_AGENT_MODEL", "deepseek-v4-pro")
 
     providers, _ = build_providers()
-    provider_names = [p.name for p in providers]
-
-    assert "ceo_fallback_glm" in provider_names
+    agent = next(p for p in providers if p.name == "agent")
+    assert "api.deepseek.com" not in agent.base_url
+    assert agent.is_local is True
 
 
 if __name__ == "__main__":
-    print("Testing CEO fallback...")
-
-    # Test 1: Check if GLM is configured
-    try:
-        test_glm_provider_configured()
-        print("✓ GLM fallback provider is configured")
-    except pytest.skip.Exception as e:
-        print(f"⊘ Skipped: {e}")
-
-    # Test 2: Check fallback when local fails
-    try:
-        asyncio.run(test_ceo_fallback_when_local_fails())
-        print("✓ Fallback mechanism works when local fails")
-    except pytest.skip.Exception as e:
-        print(f"⊘ Skipped: {e}")
-    except Exception as e:
-        print(f"✗ Failed: {e}")
-
-    print("\nCEO Fallback Status:")
-    print("- GLM provider configured:", os.getenv("SUPEREZIO_GLM_CODE_PLAN_API_KEY", "NOT SET"))
-    print("- Fallback mechanism: IMPLEMENTED")
-    print("- To test: Stop local GPU server and run pipeline")
+    raise SystemExit("Run via pytest: python -m pytest tests/test_ceo_fallback.py -q")

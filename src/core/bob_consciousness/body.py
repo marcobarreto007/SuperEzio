@@ -151,39 +151,29 @@ class PainEvent:
 
 
 def _check_ceo_health() -> tuple:
-    """Check if Bob's brain (local llama-server :8082 or cloud LLM) is alive."""
+    """Check if Bob's brain (shared local llama-server :8080) is alive.
+
+    Zero-cloud policy: the CEO is always the local llama-server — there is
+    no cloud URL to check anymore.
+    """
     try:
         import os
         import urllib.request
 
-        agent_url = os.getenv("SUPEREZIO_AGENT_BASE_URL", "")
-        if agent_url and "api.deepseek.com" in agent_url:
-            # Cloud mode: check DeepSeek API health
-            api_key = os.getenv("SUPEREZIO_AGENT_API_KEY", "")
-            req = urllib.request.Request(
-                f"{agent_url}/v1/models",
-                headers={"Authorization": f"Bearer {api_key}"} if api_key else {},
-            )
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                if resp.status == 200:
-                    return True, ""
-                return False, f"Cloud CEO status: HTTP {resp.status}"
-        elif agent_url and ("localhost" in agent_url or "127.0.0.1" in agent_url):
-            # Local mode: check local llama-server
-            req = urllib.request.Request(f"{agent_url}/health")
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                data = json.loads(resp.read())
-                if data.get("status") == "ok":
-                    return True, ""
-                return False, f"CEO health status: {data.get('status', 'unknown')}"
+        agent_url = (os.getenv("SUPEREZIO_AGENT_BASE_URL") or "").strip()
+        if agent_url and ("localhost" in agent_url or "127.0.0.1" in agent_url):
+            # Local llama-server — /health lives at the server root, not under /v1.
+            health_url = agent_url.rstrip("/").removesuffix("/v1") + "/health"
         else:
-            # Fallback: try local :8082
-            req = urllib.request.Request("http://127.0.0.1:8082/health")
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                data = json.loads(resp.read())
-                if data.get("status") == "ok":
-                    return True, ""
-                return False, f"CEO health status: {data.get('status', 'unknown')}"
+            # Default: shared local server (perfil cc). A non-local override is
+            # ignored — zero-cloud policy.
+            health_url = "http://127.0.0.1:8080/health"
+        req = urllib.request.Request(health_url)
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read())
+            if data.get("status") == "ok":
+                return True, ""
+            return False, f"CEO health status: {data.get('status', 'unknown')}"
     except Exception as e:
         return False, f"CEO unreachable: {str(e)[:100]}"
 
@@ -555,8 +545,8 @@ Action: NO TRADING ORDERS UNTIL CLEARED
 """
             logger.critical(alert_msg)
 
-            # Try to notify via DeepSeek if CEO is down
-            self._try_deepseek_notification(reason)
+            # Zero-cloud policy: no external notification channel. The alert is
+            # logged above and persisted below for the operator to find.
 
             # Save alert to dedicated file
             alert_path = Path("data/man_at_work/latest_alert.txt")
@@ -566,60 +556,6 @@ Action: NO TRADING ORDERS UNTIL CLEARED
 
         except Exception as e:
             logger.error("man_at_work: failed to notify: %s", str(e)[:200])
-
-    def _try_deepseek_notification(self, reason: str) -> None:
-        """Try to notify technician via DeepSeek (backup CEO)."""
-        try:
-            import os
-
-            api_key = os.getenv("SUPEREZIO_DEEPSEEK_API_KEY")
-            if not api_key:
-                logger.warning("man_at_work: no DEEPSEEK_API_KEY for notification")
-                return
-
-            # Simple notification using DeepSeek API
-            import urllib.request
-
-            prompt = f"""
-SYSTEM ALERT: SuperEzio Financeiro entered MAN_AT_WORK mode.
-Reason: {reason}
-Time: {self._mode_entered_at}
-
-You are the backup CEO. Analyze the situation and recommend recovery steps.
-Keep response under 200 words. Focus on: 1) What broke, 2) How to fix, 3) Prevention.
-"""
-
-            req = urllib.request.Request(
-                "https://api.deepseek.com/v1/chat/completions",
-                data=json.dumps(
-                    {
-                        "model": "deepseek-chat",
-                        "messages": [{"role": "user", "content": prompt}],
-                        "max_tokens": 500,
-                    }
-                ).encode(),
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {api_key}",
-                },
-            )
-
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                result = json.loads(resp.read())
-                advice = result["choices"][0]["message"]["content"]
-
-                logger.critical("=== DEEPSEEK BACKUP CEO ADVICE ===")
-                logger.critical("%s", advice)
-
-                # Save advice to file
-                advice_path = Path("data/man_at_work/deepseek_advice.txt")
-                with open(advice_path, "w", encoding="utf-8") as f:
-                    f.write(f"Timestamp: {datetime.now(timezone.utc).isoformat()}\n")
-                    f.write(f"Reason: {reason}\n\n")
-                    f.write(advice)
-
-        except Exception as e:
-            logger.warning("man_at_work: DeepSeek notification failed: %s", str(e)[:100])
 
     def check_man_at_work_guard(self, operation: str = "trading") -> tuple[bool, str]:
         """

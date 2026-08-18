@@ -3,8 +3,16 @@ Provider dataclasses and factory for ModelGateway.
 
 Extracted from gateway.py to keep the gateway class focused on
 routing/fallback logic while provider config lives separately.
+
+Zero-cloud policy (operator directive 2026-08-17): every LLM role —
+CEO/agent, orchestrator, experts, daytrade judge/auditor — is served by
+the shared local llama-server (perfil cc) at http://127.0.0.1:8080/v1.
+No provider may point at an external API. Legacy provider names
+("deepseek", "daytrade_judge", ...) are routing contracts kept for
+compatibility — they are all aliases of the local endpoint now.
 """
 
+import logging
 import os
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -14,16 +22,47 @@ from ..config.schema import GatewayConfig
 if TYPE_CHECKING:
     from ..config import UniversalConfig
 
+logger = logging.getLogger(__name__)
+
 AGENT_PROVIDER_NAME = "agent"
-AGENT_MODEL_ID = "bob-core-local"
+# Model id served by the shared local llama-server (perfil cc). llama-server
+# exposes the loaded file name as the model id; confirm via /v1/models on a
+# live server before changing this.
+AGENT_MODEL_ID = "Qwen3.8-27B-UD-IQ2_XXS"
 PRIMARY_PROVIDER_NAME = "local_orchestrator"
 PRIMARY_MODEL_ID = AGENT_MODEL_ID
 DEEPSEEK_PROVIDER_NAME = "deepseek"
-DEEPSEEK_MODEL_ID = "deepseek-v4-pro"
+DEEPSEEK_MODEL_ID = AGENT_MODEL_ID
 GEMINI_PROVIDER_NAME = "gemini"
-GEMINI_MODEL_ID = "gemini-3.5-flash"
+GEMINI_MODEL_ID = AGENT_MODEL_ID
 DAYTRADE_JUDGE_PROVIDER_NAME = "daytrade_judge"
 DAYTRADE_AUDITOR_PROVIDER_NAME = "daytrade_auditor"
+
+# Shared local llama-server (perfil cc — run-cc.ps1, validated 2026-08-16):
+# Qwen3.8-27B-UD-IQ2_XXS (8.4 GB, UD-IQ2_XXS) on 2 GPUs (2070 + P106, -ts 8,6),
+# context 40960, single slot. One server serves Claude Code AND SuperEzio.
+LOCAL_QWEN_BASE_URL = "http://127.0.0.1:8080/v1"
+
+
+def _is_local_url(url: str) -> bool:
+    return url.startswith("http://127.0.0.1") or url.startswith("http://localhost")
+
+
+def _local_only_override(env_var: str) -> str:
+    """Return the env override only if it points at a local endpoint.
+
+    Cloud URLs are rejected with a warning so a stale .env entry (e.g.
+    SUPEREZIO_AGENT_BASE_URL=https://api.deepseek.com, found in this repo on
+    2026-08-17) can never silently route the CEO/experts to an external API.
+    """
+    value = os.getenv(env_var, "").strip()
+    if value and not _is_local_url(value):
+        logger.warning(
+            "ZERO-CLOUD: %s points at a non-local endpoint — ignored by policy.",
+            env_var,
+        )
+        return ""
+    return value
 
 
 @dataclass
@@ -45,32 +84,28 @@ class ModelProvider:
 def build_default_providers(
     config: "UniversalConfig",
 ) -> tuple[list[ModelProvider], GatewayConfig]:
-    """Build the default provider list and gateway config from env + config.
+    """Build the zero-cloud provider list and gateway config.
 
-    Returns (providers, gateway_config) ready to pass to ModelGateway().
+    Every provider points at the shared local llama-server on :8080. If that
+    server is down, calls must fail so callers can enter MAN_AT_WORK — there
+    is no cloud fallback by policy.
     """
     providers: list[ModelProvider] = []
 
     orchestrator_config = config.models.get("orchestrator") or config.models.get("ceo")
-    # Primary local Bob core on :8082.
-    # Falls back to DeepSeek cloud ONLY if local is unreachable.
-    primary_base_url = os.getenv(
-        "SUPEREZIO_PRIMARY_BASE_URL",
-        "http://127.0.0.1:8082/v1",  # LOCAL FIRST
+
+    local_base_url = (
+        _local_only_override("SUPEREZIO_PRIMARY_BASE_URL") or LOCAL_QWEN_BASE_URL
     )
-    primary_model = os.getenv(
-        "SUPEREZIO_PRIMARY_MODEL",
-        PRIMARY_MODEL_ID,
-    )
-    primary_api_key = os.getenv("SUPEREZIO_PRIMARY_API_KEY", "")
+    local_model = os.getenv("SUPEREZIO_PRIMARY_MODEL", PRIMARY_MODEL_ID)
 
     providers.append(
         ModelProvider(
             name=PRIMARY_PROVIDER_NAME,
-            base_url=primary_base_url,
-            api_key=primary_api_key,
+            base_url=local_base_url,
+            api_key="",
             priority=0,  # HIGHEST priority — local model
-            model=primary_model,
+            model=local_model,
             max_tokens=orchestrator_config.max_tokens if orchestrator_config else 8192,
             temperature=orchestrator_config.temperature if orchestrator_config else 0.4,
             is_local=True,
@@ -78,126 +113,70 @@ def build_default_providers(
         )
     )
 
-    # DeepSeek provider for expert roles.
-    # Keep it decoupled from orchestrator/primary URL to avoid accidentally
-    # routing expert traffic to the local agent endpoint.
-    deepseek_key = os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", primary_api_key)
-    deepseek_base_url = os.getenv("SUPEREZIO_DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-    experts_config = config.models.get("experts")
-    deepseek_model = os.getenv(
-        "SUPEREZIO_DEEPSEEK_MODEL",
-        experts_config.model_id if experts_config else DEEPSEEK_MODEL_ID,
-    )
+    # Expert roles. The legacy name "deepseek" is a routing contract
+    # (EXPERT_PROVIDERS in pipeline/nodes/experts.py) — the endpoint behind it
+    # is the local server. SUPEREZIO_DEEPSEEK_* env vars remain honored, but
+    # only for local URLs (see _local_only_override).
+    experts_base_url = _local_only_override("SUPEREZIO_DEEPSEEK_BASE_URL") or local_base_url
+    experts_model = os.getenv("SUPEREZIO_DEEPSEEK_MODEL", local_model)
     providers.append(
         ModelProvider(
             name=DEEPSEEK_PROVIDER_NAME,
-            base_url=deepseek_base_url,
-            api_key=deepseek_key,
+            base_url=experts_base_url,
+            api_key="",
             priority=-300,
-            model=deepseek_model,
+            model=experts_model,
             timeout_s=int(os.getenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", "240")),
             max_tokens=int(os.getenv("SUPEREZIO_DEEPSEEK_MAX_TOKENS", "4096")),
             temperature=float(os.getenv("SUPEREZIO_DEEPSEEK_TEMPERATURE", "0.2")),
-        )
-    )
-
-    # Daytrade judge and auditor providers can use independent model IDs,
-    # while still sharing DeepSeek credentials/base URL.
-    judge_model = os.getenv("SUPEREZIO_DAYTRADE_JUDGE_MODEL", deepseek_model)
-    auditor_model = os.getenv("SUPEREZIO_DAYTRADE_AUDITOR_MODEL", deepseek_model)
-    providers.append(
-        ModelProvider(
-            name=DAYTRADE_JUDGE_PROVIDER_NAME,
-            base_url=deepseek_base_url,
-            api_key=deepseek_key,
-            priority=-305,
-            model=judge_model,
-            timeout_s=int(os.getenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", "240")),
-            max_tokens=int(os.getenv("SUPEREZIO_DEEPSEEK_MAX_TOKENS", "4096")),
-            temperature=float(os.getenv("SUPEREZIO_DEEPSEEK_TEMPERATURE", "0.2")),
-        )
-    )
-    providers.append(
-        ModelProvider(
-            name=DAYTRADE_AUDITOR_PROVIDER_NAME,
-            base_url=deepseek_base_url,
-            api_key=deepseek_key,
-            priority=-304,
-            model=auditor_model,
-            timeout_s=int(os.getenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", "240")),
-            max_tokens=int(os.getenv("SUPEREZIO_DEEPSEEK_MAX_TOKENS", "4096")),
-            temperature=float(os.getenv("SUPEREZIO_DEEPSEEK_TEMPERATURE", "0.2")),
-        )
-    )
-
-    # Gemini 2.5 Flash — sentiment and market narrative expert (cloud).
-    gemini_key = os.getenv("GEMINI_API_KEY", "")
-    gemini_base_url = os.getenv(
-        "GEMINI_BASE_URL",
-        "https://generativelanguage.googleapis.com/v1beta/openai/",
-    )
-    if gemini_key:
-        providers.append(
-            ModelProvider(
-                name=GEMINI_PROVIDER_NAME,
-                base_url=gemini_base_url,
-                api_key=gemini_key,
-                priority=-290,
-                model=os.getenv("GEMINI_MODEL", GEMINI_MODEL_ID),
-                timeout_s=int(os.getenv("GEMINI_TIMEOUT_SEC", "240")),
-                max_tokens=int(os.getenv("GEMINI_MAX_TOKENS", "4096")),
-                temperature=float(os.getenv("GEMINI_TEMPERATURE", "0.3")),
-            )
-        )
-
-    # Agent — local Bob core via llama-server by default. model/api_key were
-    # previously hardcoded (AGENT_MODEL_ID, "") with no env override, so
-    # pointing SUPEREZIO_AGENT_BASE_URL at a cloud provider (e.g. DeepSeek)
-    # still sent an empty API key and the wrong model id — confirmed live
-    # via PROVIDER_ERROR in the gateway logs (2026-07-19) when the operator
-    # had no local GGUF and tried to use DeepSeek as the agent/CEO instead.
-    agent_base_url = os.getenv(
-        "SUPEREZIO_AGENT_BASE_URL",
-        "http://127.0.0.1:8082/v1",
-    )
-    agent_model = os.getenv("SUPEREZIO_AGENT_MODEL", AGENT_MODEL_ID)
-    agent_api_key = os.getenv("SUPEREZIO_AGENT_API_KEY", "")
-    agent_is_local = agent_base_url.startswith("http://127.0.0.1") or agent_base_url.startswith(
-        "http://localhost"
-    )
-    providers.append(
-        ModelProvider(
-            name=AGENT_PROVIDER_NAME,
-            base_url=agent_base_url,
-            api_key=agent_api_key,
-            priority=-10,  # HIGH priority — local Bob CEO
-            model=agent_model,
-            timeout_s=int(os.getenv("SUPEREZIO_AGENT_TIMEOUT_SEC", "600")),
-            max_tokens=8192,
-            temperature=0.4,
-            is_local=agent_is_local,
+            is_local=True,
             backend="openai_compatible",
         )
     )
 
-    # CEO Fallback — GLM Code Plan (glm-5.2) via api.z.ai
-    # Assume se o Qwen local :8082 cair. Mesmo provedor do Bob implementador.
-    glm_fallback_key = os.getenv("SUPEREZIO_GLM_CODE_PLAN_API_KEY", "")
-    if glm_fallback_key:
+    # Daytrade judge and auditor can use independent model ids while sharing
+    # the local endpoint.
+    judge_model = os.getenv("SUPEREZIO_DAYTRADE_JUDGE_MODEL", experts_model)
+    auditor_model = os.getenv("SUPEREZIO_DAYTRADE_AUDITOR_MODEL", experts_model)
+    for name, priority, model in (
+        (DAYTRADE_JUDGE_PROVIDER_NAME, -304, judge_model),
+        (DAYTRADE_AUDITOR_PROVIDER_NAME, -305, auditor_model),
+    ):
         providers.append(
             ModelProvider(
-                name="ceo_fallback_glm",
-                base_url="https://api.z.ai/api/coding/paas/v4",
-                api_key=glm_fallback_key,
-                priority=-680,  # abaixo do agente local (-670), mas disponível
-                model="glm-5.2",
-                timeout_s=int(os.getenv("SUPEREZIO_GLM_FALLBACK_TIMEOUT_SEC", "300")),
-                max_tokens=8192,
-                temperature=0.3,
-                is_local=False,
+                name=name,
+                base_url=experts_base_url,
+                api_key="",
+                priority=priority,
+                model=model,
+                timeout_s=int(os.getenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", "240")),
+                max_tokens=int(os.getenv("SUPEREZIO_DEEPSEEK_MAX_TOKENS", "4096")),
+                temperature=float(os.getenv("SUPEREZIO_DEEPSEEK_TEMPERATURE", "0.2")),
+                is_local=True,
                 backend="openai_compatible",
             )
         )
+
+    # Agent (CEO). Local-only by policy: no cloud fallback exists — the former
+    # ceo_fallback_glm provider (api.z.ai) was removed by the zero-cloud
+    # directive. If :8080 is down, the gateway must fail (MAN_AT_WORK).
+    agent_base_url = _local_only_override("SUPEREZIO_AGENT_BASE_URL") or local_base_url
+    agent_model = os.getenv("SUPEREZIO_AGENT_MODEL", AGENT_MODEL_ID)
+    providers.append(
+        ModelProvider(
+            name=AGENT_PROVIDER_NAME,
+            base_url=agent_base_url,
+            api_key=os.getenv("SUPEREZIO_AGENT_API_KEY", ""),
+            priority=-10,  # HIGH priority — local CEO
+            model=agent_model,
+            timeout_s=int(os.getenv("SUPEREZIO_AGENT_TIMEOUT_SEC", "600")),
+            max_tokens=8192,
+            temperature=0.4,
+            is_local=True,
+            backend="openai_compatible",
+        )
+    )
+
     gw_config = GatewayConfig(
         max_fallbacks=config.gateway.max_fallbacks,
         timeout_s=config.gateway.timeout_s,

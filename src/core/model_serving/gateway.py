@@ -9,6 +9,7 @@ Suporta:
 """
 
 import asyncio
+import logging
 from typing import AsyncGenerator, List, Dict, Any, Generator
 
 from ..observability.neural_log import log_event, trace_span, SpanContext, metrics
@@ -30,6 +31,8 @@ from .providers import (  # noqa: F401 — re-exports
     AGENT_PROVIDER_NAME,
     build_default_providers,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ModelGateway:
@@ -115,13 +118,10 @@ class ModelGateway:
         if preferred_provider:
             for p in self.providers:
                 if p.name == preferred_provider:
-                    # agent model is local-only but has cloud fallback (GLM Code Plan)
-                    if p.name == AGENT_PROVIDER_NAME:
-                        if not allow_fallback:
-                            return [p]
-                        fallback = [fb for fb in self.providers if fb.name == "ceo_fallback_glm"]
-                        return [p] + fallback
-                    if not allow_fallback:
+                    # Zero-cloud (operator directive 2026-08-17): the agent/CEO
+                    # is local-only — no cloud fallback exists. If :8080 is down,
+                    # the call must fail so the caller can enter MAN_AT_WORK.
+                    if p.name == AGENT_PROVIDER_NAME or not allow_fallback:
                         return [p]
                     return [p] + [
                         other
@@ -318,7 +318,9 @@ class ModelGateway:
         """Gera resposta com fallback cascade (Síncrono para compatibilidade).
 
         allow_fallback=False restricts the attempt to the preferred provider
-        only (plus its own configured fallback, e.g. agent -> ceo_fallback_glm).
+        only. The agent/CEO provider never falls back to another provider
+        (zero-cloud policy, 2026-08-17) — if the local server is down the call
+        fails so the caller can enter MAN_AT_WORK.
         Required for research/audit modes where the caller must know exactly
         which model answered (see audit/component_lab/reports/phase2_model_gateway.md).
         """
