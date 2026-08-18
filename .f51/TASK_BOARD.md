@@ -2,6 +2,17 @@
 
 ## Backlog
 
+- [x] 2026-08-17 - **Save session** (Claude Code): persistiu estado operacional do runtime
+  Bob (disc-only, sem GitHub). Dados versionados: pain log (24.732 linhas), alerta
+  man_at_work (CEO down, trading halt), mangala daily 2026-08-11 (PLUG/KODK/NIO/SNDL/RIG),
+  traces de decisão (2026-07-21 run c37477042a57 + 2026-08-07 run b86b0eb20af2).
+  Gates: ruff 4 erros pré-existentes; suíte completa aborta em 84% por crash V8 do
+  akshare (py_mini_racer 0x80000003) — ver INV-R29; suíte com 2 deselects: 4 failed
+  / 1674 passed / 11 skipped em 475s (working tree em movimento — sessão paralela
+  zero-cloud ativa; e2e Bob 0 chars consistente com gateway local sem :8080) — ver
+  INV-R30; browser smoke ok:false (servidor down). Gaming baseline preservado em
+  `.f51/checkpoints/2026-07-24-m4000-gaming-baseline.json`.
+
 - [ ] **Questrade OAuth token nao configurado**: `scripts/questrade_read_portfolio.py` esta
   implementado e funcional (Playwright session persistente, ler carteira sem OAuth token),
   mas a integracao completa exige um token OAuth valido para a API Questrade.
@@ -86,11 +97,19 @@
 
 ## In Progress
 
-- [x] 2026-06-01 - **Phase 1 (f51-contracts):** Defined `live-modules.contract.md` covering 26 modules. Created 108 new contract tests (all passing). Contract coverage spans 100% of inventory modules.
-- [x] 2026-06-01 - **Phase 2 (f51-runtime):** Runtime verified. Entrypoints confirmed, healthchecks, logs, checkpoints, runbook.
-- [x] 2026-06-01 - **Phase 3 (f51-tests):** Full suite: 977 passed, 2 pre-existing failures, 8 skipped. Coverage confirmed.
+- [ ] 2026-08-17 - **Zero-nuvem total (diretiva do operador)**: remover TODA dependência de LLM em nuvem
+  do gateway e superfícies associadas. Decisão do operador: "nada de fallback na nuvem" — escopo
+  confirmado via questionário: zero nuvem (não só fallback do CEO), CEO aponta para o servidor
+  local compartilhado do perfil cc (`http://127.0.0.1:8080/v1`, Qwen3.8-27B-UD-IQ2_XXS, validado
+  16/08 em 2 GPUs). Se o local cair, o sistema para em MAN_AT_WORK — sem nuvem.
+  Descoberta motriz: `.env`/`.env.local` sobrescreviam `SUPEREZIO_AGENT_BASE_URL=https://api.deepseek.com`
+  com chave preenchida — o CEO estava rodando em DeepSeek cloud, contrário ao modo DISK ONLY.
+  Superfícies a alterar: `src/core/model_serving/providers.py` (DeepSeek x3, Gemini, ceo_fallback_glm),
+  `src/core/model_serving/gateway.py` (fallback GLM, preferência DeepSeek), `src/agent_server/main.py`
+  (health), `src/agent_server/endpoints.py` (provider Gemini hardcoded), `src/core/bob_consciousness/body.py`
+  (_try_deepseek_notification), `src/core/config/schema.py` (default deepseek-chat), `config/runtime.yml`,
+  `config.ps1`, `.env`, `.env.local`. Gate: ruff + pytest subset + commit por etapa.
 
-_(All phases complete — no active In Progress work.)_
 
 ## Done
 

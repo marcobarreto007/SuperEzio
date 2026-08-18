@@ -1,0 +1,172 @@
+{
+  "checkpoint": "2026-07-24-m4000-gaming-baseline",
+  "agent": "codex",
+  "task": "Prepare the Dell Precision T5810 and Quadro M4000 for measured gaming optimization",
+  "impact_map": {
+    "problem": "The Quadro M4000 was running as Microsoft Basic Display Adapter without an NVIDIA driver.",
+    "architecture_touched": [
+      "Windows display driver",
+      "Windows per-user gaming settings",
+      "Windows power plan",
+      "local gaming and telemetry tools"
+    ],
+    "files_changed": [
+      ".f51/checkpoints/latest.json"
+    ],
+    "indirect_risks": [
+      "Driver updates require a reboot and may reset NVIDIA profiles.",
+      "Overclocking is deferred until thermal and VRAM stability are measured."
+    ],
+    "smallest_safe_change": "Establish a stock-clock baseline, apply reversible Windows settings, and install measurement tools.",
+    "verification": [
+      "nvidia-smi",
+      "powercfg /getactivescheme",
+      "OCCT GPU and VRAM stability tests"
+    ]
+  },
+  "hardware": {
+    "system": "Dell Precision Tower 5810",
+    "cpu": "Intel Xeon E5-2690 v4 (14 cores / 28 threads)",
+    "ram_bytes": 64341282816,
+    "gpu": "NVIDIA Quadro M4000",
+    "vram_mib": 8192,
+    "pcie": "PCIe 3.0 x16",
+    "display": "1360x768 at 60 Hz"
+  },
+  "baseline": {
+    "driver": "539.19",
+    "gpu_idle_temperature_c": 38,
+    "gpu_idle_power_w": 13.28,
+    "gpu_power_limit_w": 120,
+    "gpu_max_graphics_clock_mhz": 772,
+    "gpu_max_memory_clock_mhz": 3005
+  },
+  "changes": {
+    "windows_power_plan": "High performance",
+    "windows_game_mode": true,
+    "windows_game_dvr": false,
+    "processor_boost_mode": "Aggressive",
+    "processor_energy_performance_preference": 0,
+    "processor_core_parking_minimum_percent": 100,
+    "pcie_link_state_power_management": "Off",
+    "usb_selective_suspend_ac": "Off",
+    "disk_idle_timeout_ac_seconds": 0,
+    "startup_disabled": [
+      "Docker Desktop",
+      "Microsoft Edge auto-launch"
+    ],
+    "startup_preserved": [
+      "Steam",
+      "Windows Security"
+    ],
+    "installed": [
+      "Steam 2.10.91.91",
+      "OCCT Personal 17.0.12.0",
+    "MSI Afterburner 4.6.6",
+      "RivaTuner Statistics Server",
+      "Geeks3D FurMark 2.10.2",
+      "Magpie 0.12.1"
+    ],
+    "installed_driver": "NVIDIA Quadro R535 U17 539.19 WHQL",
+    "downloaded_driver_signature": "Valid NVIDIA Corporation signature"
+  },
+  "quality_gate": {
+    "driver_detected": true,
+    "gpu_detected": true,
+    "pcie_full_width": true,
+    "temperature_baseline_pass": true,
+    "stock_clock_stress_test": {
+      "status": "pass",
+      "furmark_resolution": "1360x749 windowed",
+      "duration_seconds": 45,
+      "score": 2510,
+      "average_fps": 55,
+      "minimum_fps": 55,
+      "maximum_fps": 61,
+      "maximum_temperature_c": 70,
+      "average_loaded_power_w": 117.6,
+      "core_clock_range_under_full_load_mhz": "607-772",
+      "thermal_throttling": false,
+      "limiting_factor": "120 W power limit"
+    },
+    "vram_stress_test": {
+      "status": "pass",
+      "tested_vram_mib": 5900,
+      "maximum_temperature_c": 70,
+      "average_loaded_power_w": 118.4,
+      "maximum_loaded_power_w": 124.46,
+      "memory_clock_mhz": 3004,
+      "driver_resets": 0,
+      "windows_display_driver_errors": 0,
+      "termination": "Stopped at the 55-second safety deadline because FurMark VRAM mode ignored max-time."
+    },
+    "overclock": "not applied"
+  },
+  "system_benchmarks": {
+    "source": "Windows System Assessment Tool formal assessment",
+    "cpu_score": 9.3,
+    "memory_score": 9.3,
+    "memory_bandwidth_mb_s": 29991.84434,
+    "disk_score": 8.05,
+    "disk_sequential_read_mb_s": 447.965,
+    "disk_random_read_mb_s": 261.21
+  },
+  "bottlenecks": [
+    {
+      "component": "memory topology",
+      "evidence": "Three 16 GB RDIMMs and three 4 GB RDIMMs populate only six of eight slots; measured bandwidth is about 30 GB/s.",
+      "recommended_fix": "Use four matched 16 GB DDR4-2400 ECC RDIMMs across the four primary channel sockets for 64 GB quad-channel operation."
+    },
+    {
+      "component": "GPU power ceiling",
+      "evidence": "FurMark holds about 119 W against a fixed 120 W limit while core clock falls below the 772 MHz application clock.",
+      "recommended_fix": "Prefer memory tuning and efficiency after the R535 driver update; do not use blind core overclocking."
+    },
+    {
+      "component": "graphics driver",
+      "evidence": "NVIDIA 539.19 WHQL is installed and passed the matched FurMark and 6 GB VRAM tests.",
+      "recommended_fix": "Keep 539.19 as the validated baseline."
+    }
+  ],
+  "driver_comparison": {
+    "old_driver": "513.91",
+    "new_driver": "539.19",
+    "furmark_score_change_percent": 0.9,
+    "minimum_fps_change": 1,
+    "maximum_fps_change": 3,
+    "average_loaded_power_change_w": -1.5,
+    "maximum_temperature_change_c": 0
+  },
+  "upscaling_profile": {
+    "display": "Insignia NS-28E200NA14, 1360x768 at 60 Hz",
+    "input_resolution": "1280x720 windowed",
+    "output_resolution": "1360x768",
+    "upscaler": "Magpie FSR",
+    "3d_game_mode": true,
+    "output_fps_limit": 60,
+    "activation_shortcut": "Windows+Shift+A",
+    "benchmarks": {
+      "native_1360x749": {
+        "average_fps": 55,
+        "maximum_fps": 61
+      },
+      "raw_1280x720": {
+        "average_fps": 58,
+        "maximum_fps": 64
+      },
+      "fsr_1280x720_to_display": {
+        "average_fps": 56,
+        "maximum_fps": 64,
+        "maximum_temperature_c": 77
+      },
+      "lanczos_1280x720_to_display": {
+        "average_fps": 56,
+        "maximum_fps": 62,
+        "maximum_temperature_c": 78
+      }
+    },
+    "selected": "FSR"
+  },
+  "next_gate": "Launch a real game at 1280x720 windowed, activate Magpie with Windows+Shift+A, and tune graphics for a locked 60 FPS output.",
+  "timestamp": "2026-07-24T22:45:00-04:00"
+}

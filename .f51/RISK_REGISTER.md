@@ -1,7 +1,7 @@
 # F51 Risk Register
 
-Updated: 2026-07-20T23:59:00-04:00
-Session: session-final
+Updated: 2026-08-17T22:55:00-04:00
+Session: save-2026-08-17
 
 ## Active Risks
 
@@ -193,13 +193,30 @@ Session: session-final
 
 ## New Risks (2026-06-01 — Phase 2+3 Runtime + Full Suite)
 
-### INV-R15 - Qwen3-Next-80B Abliterated IQ4_XS GGUF missing from disk [HIGH]
+### INV-R15 - Modelo CEO local ausente [HIGH] → RESOLUÇÃO ADOTADA 2026-08-17
 
 - Classification: operational
-- Risk: `models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf` (~40 GB) not found at expected path.
-- Evidence: Test `test_agent_runtime_config_matches_manifest_and_script` fails on file existence check.
-- Mitigation: Download from HuggingFace `mradermacher/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated-GGUF`.
-- Status: **Active — blocks live CEO pipeline. DeepSeek API works as fallback.**
+- Risk: GGUF esperado (Huihui-Qwen3-Next-80B IQ4_XS, ~40 GB) nunca existiu no disco; `config.ps1`/`runtime.yml`
+  apontavam para `C:\llama.cpp\models\` inexistente. O sistema funcionava apenas porque `.env` sobrescrevia
+  o CEO para DeepSeek cloud (contrário ao modo DISK_ONLY).
+- Evidence: grep de `.env`/`.env.local` (2026-08-17): `SUPEREZIO_AGENT_BASE_URL=https://api.deepseek.com` com chave.
+- Resolution (decisão do operador 2026-08-17): zero-nuvem. CEO e todos os papéis LLM apontam para o servidor
+  local compartilhado do perfil cc em `http://127.0.0.1:8080/v1` — Qwen3.8-27B-UD-IQ2_XXS.gguf (8,4 GB, 2 GPUs,
+  contexto 40960, validado 16/08 em `C:\Users\marco\models\qwen3.8-27b\run-cc.ps1`). Se 8080 cair: MAN_AT_WORK,
+  sem fallback de nuvem.
+- Status: **Em resolução — tarefa ativa no TASK_BOARD 2026-08-17.**
+
+### INV-R26 - CEO depende de servidor local compartilhado com o perfil cc [MEDIUM] (2026-08-17)
+
+- Classification: single point of failure / capacidade
+- Risk: As 2 GPUs (2070 8GB + P106 6GB) sustentam UM servidor llama-server. CEO do SuperEzio compartilha
+  a instância do perfil cc (:8080, 1 slot): (a) se o operador derrubar o servidor cc, o CEO cai;
+  (b) carga do CC e do SuperEzio disputam o mesmo slot (latência); (c) contexto 40960 do cc difere do
+  contexto 4096 herdado do runtime.yml antigo — requires re-validação.
+- Evidence: `run-cc.ps1` (--parallel 1, -ts 8,6, c 40960); runtime.yml legado context_length 4096.
+- Mitigation: documentar dependência no OPERATIONAL_RUNBOOK (ordem de boot: subir cc primeiro);
+  health check do SuperEzio deve monitorar :8080. Servidor dedicado em 8082 só com VRAM adicional.
+- Status: Active — aceito pelo operador como trade-off.
 
 ### INV-R14 - Desktop launcher cannot resolve project path [RESOLVED]
 
@@ -242,3 +259,52 @@ Session: session-final
 - Evidence: pytest output 2026-07-20: 1 failed out of 1545 total tests.
 - Mitigation: Investigar se falha e pre-existente ou causada por mudancas recentes no pipeline de experts.
 - Status: Active. Isolado — nao afeta 1533 testes restantes.
+
+---
+
+## New Risks (2026-08-17 — Save Session)
+
+### INV-R29 - akshare py_mini_racer V8 fatal exception derruba a suíte inteira [HIGH]
+
+- Classification: test infrastructure / environment
+- Risk: `tests/test_pipeline_smoke.py::test_pipeline_stream_events_blocks_unscoped_ticket_reference`
+  (e o teste seguinte `test_pipeline_general_route_goes_to_ceo`) disparam o provider akshare
+  (`akshare_provider.get_profile` → `stock_us_sina.get_us_stock_name` → `py_mini_racer`), que
+  aborta o processo Python inteiro com `Windows fatal exception: code 0x80000003`. A suíte
+  completa (1691 testes) trava no 84% e morre — nenhum resultado consolidado é produzido.
+- Evidence: saída completa em `/tmp/iso_test.txt` (2026-08-17): crash no thread de
+  `py_mini_racer._make_context` dentro de `akshare.stock.stock_us_sina`; dois runs da suíte
+  completa abortaram no mesmo ponto (84%).
+- Mitigation: deselecionar os 2 testes que tocam o provider akshare até o circuito
+  `data.akshare` fechar ou o provider ser substituído (INV-R24). Corrigir o fallback do
+  data context para não instanciar o V8 do akshare quando o circuito está aberto.
+- Status: Active. Bloqueia o gate de suíte completa; resta da suíte roda com 2 deselects.
+
+### INV-R30 - SuperEzio API down (trading halt ativo) [HIGH]
+
+- Classification: runtime availability
+- Risk: o servidor SuperEzio (:8002/:8082) está fora do ar desde 2026-08-08. O alerta
+  `man_at_work` ativou "NO TRADING ORDERS UNTIL CLEARED". Health check de 2026-08-17:
+  porta 8002 e 8082 retornam conexão recusada (WinError 10061). Browser smoke reporta
+  `ok: false`; e2e browser reporta resposta do Bob com 0 chars (gateway agora 100% local
+  — ver INV-R26 — e servidor local :8080 fora do ar durante o teste).
+- Evidence: `data/man_at_work/latest_alert.txt` (2026-08-08, WinError 10054);
+  curl de 2026-08-17 (000 em ambas as portas); `scripts/browser_smoke.py` (ok:false);
+  `tests/e2e/test_browser_full_flow.py` (bob_response_length: 0).
+- Mitigation: subir o servidor local compartilhado :8080 (perfil cc) antes, depois
+  `python -m agent_server.main` (INV-R14), e limpar o alerta man_at_work antes de
+  qualquer ordem. Fail-safe de execução permanece congelado por design.
+- Status: Active.
+
+### INV-R31 - Pain log mostra erros crônicos repetidos há semanas [MEDIUM]
+
+- Classification: operational health
+- Risk: `bob_pain_log.jsonl` cresceu para 24.732 linhas; entradas de 2026-08-07/08-11
+  repetem os mesmos órgãos: `ibkr_muscles` (IBKR offline), `scanner_eyes`
+  ("No module named 'src'"), `cache_liver` (cache com 0 tickers), e
+  `circuit_breakers_immune` com circuito `data.akshare` aberto.
+- Evidence: `data/bob_pain_log.jsonl` e `src/data/bob_pain_log.jsonl` (dif 2026-08-17).
+- Mitigation: tratar como dívida operacional — o loop "IBKR offline → scanner sem src → cache
+  vazio" já era conhecido desde 2026-07-20 (mesmas strings). Priorizar correção do import
+  `src` no scanner e reconexão IBKR após o CEO voltar.
+- Status: Active.
