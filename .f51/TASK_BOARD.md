@@ -2,6 +2,18 @@
 
 ## Backlog
 
+- [x] 2026-08-18 - **Limpeza da memória de conversa** (Claude Code): `data/conversation_memory.jsonl`
+  reduzido de 497 para 29 linhas — removidas todas as sessões de teste/probe (default 109x com
+  prompt do teste de ticket, CAD-25k, quality-probe, overnight_001..092, stress/bench/diag/final,
+  23 sessões bob-uuid com prompt CAD, operator/trader/web/marco/user com prompts de teste).
+  Mantida apenas a sessão real `bob-7e65d4c1` (29 conversas do operador). Motivação: memória
+  RAG do Bob estava contaminada com lixo de teste (126 menções de AAPL).
+- [ ] **Filtrar persistência de memória por sessão**: o runtime grava TODA conversa em
+  `conversation_memory.jsonl`, inclusive testes/probes (`default`, `quality-probe-*`,
+  `test-*`, `overnight_*`). Proposto: não persistir sessões com session_id vazio/default ou
+  prefixos de teste, ou exigir session_id real do frontend. Sem isso a memória re-contamina
+  a cada rodada de teste.
+
 - [x] 2026-08-17 - **Save session** (Claude Code): persistiu estado operacional do runtime
   Bob (disc-only, sem GitHub). Dados versionados: pain log (24.732 linhas), alerta
   man_at_work (CEO down, trading halt), mangala daily 2026-08-11 (PLUG/KODK/NIO/SNDL/RIG),
