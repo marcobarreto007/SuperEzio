@@ -9,6 +9,7 @@ import uuid
 from copy import deepcopy
 from contextlib import asynccontextmanager
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import uvicorn
 from fastapi import FastAPI, Request
@@ -834,10 +835,15 @@ async def health_check():
                 host = url.split("://")[-1].split(":")[0] if "://" in url else "127.0.0.1"
                 is_local = host in ("127.0.0.1", "localhost")
                 if is_local:
-                    # Local model: socket probe on configured port
+                    # Local model: socket probe on the URL's own port
+                    # (zero-cloud: a porta vem da URL, ex. :8080; 8082 é só fallback legado)
+                    try:
+                        probe_port = urlsplit(url).port or port
+                    except ValueError:
+                        probe_port = port
                     s = _socket.socket()
                     s.settimeout(1)
-                    s.connect((host, port))
+                    s.connect((host, probe_port))
                     s.close()
                     reachable = True
                 else:

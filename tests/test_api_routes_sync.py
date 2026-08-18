@@ -119,6 +119,32 @@ def test_health_details(client_with_mock_pipeline):
     assert data["mission"]["broker"]["ibkr"]["can_submit_orders"] is False
 
 
+def test_health_details_probes_port_from_url(client_with_mock_pipeline, monkeypatch):
+    """health/details deve probar a porta da própria URL (zero-cloud :8080), não a 8082 legada."""
+    import socket as _s
+
+    _, client = client_with_mock_pipeline
+
+    # Porta viva (listener real em porta efêmera) -> reachable/ok
+    listener = _s.socket()
+    listener.bind(("127.0.0.1", 0))
+    listener.listen(1)
+    live_port = listener.getsockname()[1]
+    try:
+        monkeypatch.setenv("SUPEREZIO_AGENT_BASE_URL", f"http://127.0.0.1:{live_port}/v1")
+        data = client.get("/health/details").json()
+        assert data["checks"]["local_models"]["agent"]["reachable"] is True
+        assert data["checks"]["local_models"]["agent"]["status"] == "ok"
+    finally:
+        listener.close()
+
+    # Porta morta -> down (fail-closed, sem nuvem para resgatar)
+    monkeypatch.setenv("SUPEREZIO_AGENT_BASE_URL", "http://127.0.0.1:1/v1")
+    data = client.get("/health/details").json()
+    assert data["checks"]["local_models"]["agent"]["reachable"] is False
+    assert data["checks"]["local_models"]["agent"]["status"] == "down"
+
+
 def test_health_details_uses_live_cockpit_broker_snapshot(client_with_mock_pipeline, monkeypatch):
     """health/details must not expose stale mission broker account numbers."""
     import agent_server.endpoints as endpoints

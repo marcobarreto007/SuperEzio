@@ -43,6 +43,12 @@ DAYTRADE_AUDITOR_PROVIDER_NAME = "daytrade_auditor"
 # context 40960, single slot. One server serves Claude Code AND SuperEzio.
 LOCAL_QWEN_BASE_URL = "http://127.0.0.1:8080/v1"
 
+# llama-server ignores the API key, but the OpenAI client library refuses to
+# build a request without one ("Missing credentials"). Local providers carry
+# this placeholder so generation reaches the local endpoint. Zero-cloud: this
+# is NOT a credential — it never leaves the machine.
+LOCAL_API_KEY_PLACEHOLDER = "local-served"
+
 
 def _is_local_url(url: str) -> bool:
     return url.startswith("http://127.0.0.1") or url.startswith("http://localhost")
@@ -103,7 +109,7 @@ def build_default_providers(
         ModelProvider(
             name=PRIMARY_PROVIDER_NAME,
             base_url=local_base_url,
-            api_key="",
+            api_key=LOCAL_API_KEY_PLACEHOLDER,
             priority=0,  # HIGHEST priority — local model
             model=local_model,
             max_tokens=orchestrator_config.max_tokens if orchestrator_config else 8192,
@@ -123,7 +129,7 @@ def build_default_providers(
         ModelProvider(
             name=DEEPSEEK_PROVIDER_NAME,
             base_url=experts_base_url,
-            api_key="",
+            api_key=LOCAL_API_KEY_PLACEHOLDER,
             priority=-300,
             model=experts_model,
             timeout_s=int(os.getenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", "240")),
@@ -146,7 +152,7 @@ def build_default_providers(
             ModelProvider(
                 name=name,
                 base_url=experts_base_url,
-                api_key="",
+                api_key=LOCAL_API_KEY_PLACEHOLDER,
                 priority=priority,
                 model=model,
                 timeout_s=int(os.getenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", "240")),
@@ -166,7 +172,7 @@ def build_default_providers(
         ModelProvider(
             name=AGENT_PROVIDER_NAME,
             base_url=agent_base_url,
-            api_key=os.getenv("SUPEREZIO_AGENT_API_KEY", ""),
+            api_key=os.getenv("SUPEREZIO_AGENT_API_KEY", "") or LOCAL_API_KEY_PLACEHOLDER,
             priority=-10,  # HIGH priority — local CEO
             model=agent_model,
             timeout_s=int(os.getenv("SUPEREZIO_AGENT_TIMEOUT_SEC", "600")),

@@ -84,6 +84,29 @@ def test_provider_constants():
     assert DEEPSEEK_PROVIDER_NAME == "deepseek"
 
 
+def test_local_providers_carry_nonempty_api_key(monkeypatch):
+    """Zero-cloud: todo provider local precisa de api_key não-vazia.
+
+    O client OpenAI recusa requisição sem credencial ("Missing credentials")
+    antes de qualquer HTTP — com api_key vazia o sistema falha mesmo com o
+    llama-server no ar (bug encontrado no quality probe de 2026-08-18).
+    """
+    from core.config import get_config
+    from core.model_serving.providers import LOCAL_API_KEY_PLACEHOLDER, build_default_providers
+
+    monkeypatch.delenv("SUPEREZIO_AGENT_API_KEY", raising=False)
+    providers, _ = build_default_providers(get_config())
+
+    assert providers, "build_default_providers retornou lista vazia"
+    for p in providers:
+        assert p.is_local, f"{p.name} deveria ser local (zero-cloud)"
+        assert p.base_url.startswith("http://127.0.0.1"), f"{p.name} fora do :8080 local"
+        assert p.api_key, (
+            f"{p.name} com api_key vazia: o client OpenAI nem chega a chamar o servidor"
+        )
+        assert p.api_key == LOCAL_API_KEY_PLACEHOLDER
+
+
 # ── Model Serving: Sanitizer ──
 def test_strip_private_model_channels():
     from core.model_serving.sanitizer import strip_private_model_channels
