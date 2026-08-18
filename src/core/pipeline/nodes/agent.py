@@ -2428,16 +2428,6 @@ def _add_verdict_template(messages: list, state: dict) -> None:
     Bob to fill in only the EXPLANATION section with natural language.
     """
     pvd = build_verdict_dict(state)
-    has_any_data = any(
-        v not in (None, "N/A", {}) for v in [
-            pvd.get('math', {}).get('rsi'),
-            pvd.get('math', {}).get('macd'),
-            pvd.get('math', {}).get('sharpe'),
-            pvd.get('math', {}).get('latest_price'),
-            pvd.get('f51', {}).get('score'),
-            pvd.get('sdca', {}).get('decision'),
-        ]
-    )
     template = (
         "RESPONSE TEMPLATE — fill in the EXPLANATION section only.\n"
         "DO NOT modify the numbers below. They come from the pipeline.\n"

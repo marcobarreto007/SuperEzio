@@ -17,7 +17,7 @@ import subprocess
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
-from core.resilience import get_circuit, CircuitOpenError
+from core.resilience import get_circuit
 
 ProviderFactory = Callable[[], Any]
 logger = logging.getLogger(__name__)

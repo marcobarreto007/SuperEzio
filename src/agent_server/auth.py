@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 import jwt as _jwt
-from fastapi import HTTPException, Request, Response
+from fastapi import FastAPI, HTTPException, Request, Response
 from passlib.context import CryptContext
 from pydantic import BaseModel, field_validator
 
@@ -417,7 +417,7 @@ def _get_auth_db(request: Request) -> AuthDB:
     return db
 
 
-def register_auth_routes(app: "FastAPI") -> None:
+def register_auth_routes(app: FastAPI) -> None:
     """Register /auth/* routes directly on the FastAPI application.
 
     This bypasses the ``_IncludedRouter`` bug in FastAPI 0.139.0 /
