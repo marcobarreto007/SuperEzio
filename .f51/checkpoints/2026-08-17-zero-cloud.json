@@ -1,0 +1,56 @@
+{
+    "date_local": "2026-08-17T23:50:00-04:00",
+    "session": "zero-cloud-2026-08-17",
+    "status": "done",
+    "what_was_done": [
+        "ZERO-NUVEM TOTAL (diretiva do operador 2026-08-17: 'nada de fallback na nuvem') implementado e validado.",
+        "Gateway: removidos DeepSeek cloud (experts/judge/auditor apontando p/ api.deepseek.com), Gemini, Grok e ceo_fallback_glm (api.z.ai). Todos os 5 providers agora sao locais no servidor cc :8080 (providers.py, commit d4d14a1).",
+        "providers.py aplica a politica em codigo: _local_only_override() rejeita qualquer override de env apontando para URL nao-local (so 127.0.0.1/localhost) — .env stale nao re-roteia para nuvem.",
+        "Agente/CEO nunca faz cascade (_providers_for_request retorna [p] unico); se :8080 cair, o sistema para em MAN_AT_WORK (fail-closed, INV-R26).",
+        "MAN_AT_WORK nao telefona mais para DeepSeek (_try_deepseek_notification removido; sobrevive _notify_technician que so loga + escreve data/man_at_work/latest_alert.txt).",
+        "Runtime alinhado ao mundo real: runtime.yml v4.2.0, config.ps1, model_manifest.json, serve_agent_llamacpp.ps1 (Port 8080, -ts 8,6, c 40960, q8_0, draft-mtp), RUNBOOK.md — modelo Qwen3.8-27B-UD-IQ2_XXS.gguf em C:/Users/marco/models/qwen3.8-27b/.",
+        "Superficies de UI/status nao anunciam mais nuvem: agent_server main.py/endpoints.py reportam modelo local; schema.py default model_id = Qwen.",
+        "Chave real de DeepSeek removida de .env e .env.local (credenciais Questrade mantidas — feature legitima nao-LLM). Operador deve revogar a chave antiga.",
+        "Checkpoint anterior da sessao save preservado em .f51/checkpoints/2026-08-17-save-runtime-state.json."
+    ],
+    "evidence": {
+        "commands": [
+            "python -m pytest tests/contracts tests/test_gateway.py tests/test_ceo_fallback.py tests/test_components_data.py tests/test_runtime_bob_fixes.py tests/test_expert_dialogue.py -q --no-cov -p no:cacheprovider -> 506 passed, 1 skipped",
+            "python -m ruff check <12 arquivos tocados> -> All checks passed",
+            "curl http://127.0.0.1:8080/health -> DOWN (esperado: operador nao subiu o perfil cc; fail-closed by design)"
+        ],
+        "files_changed": [
+            "src/core/model_serving/providers.py, src/core/model_serving/gateway.py, src/core/bob_consciousness/body.py (commit d4d14a1)",
+            "config/runtime.yml, config/model_manifest.json, config.ps1, scripts/serve_agent_llamacpp.ps1, docs/runbooks/RUNBOOK.md",
+            "src/agent_server/main.py, src/agent_server/endpoints.py, src/core/config/schema.py, src/core/pipeline/nodes/experts.py (comentario)",
+            "tests/test_ceo_fallback.py (reescrito), tests/contracts/test_contract_model_serving.py, tests/contracts/test_contract_runtime_official.py, tests/test_components_data.py, tests/test_runtime_bob_fixes.py",
+            ".env, .env.local, runtime/checkpoints/latest.json",
+            ".f51/TASK_BOARD.md, .f51/RISK_REGISTER.md (INV-R15 resolvido, INV-R26 = dependencia do servidor cc)"
+        ],
+        "tests": [
+            "506 passed, 1 skipped (contracts + gateway + ceo_fallback + components + runtime_bob_fixes + expert_dialogue)",
+            "test_ceo_fallback.py: nenhum provider de nuvem no build default mesmo com keys setadas; agente nunca cascadeia; override cloud em .env e ignorado",
+            "test_runtime_bob_fixes.py: notificacao MAN_AT_WORK faz ZERO chamadas de rede (urlopen nunca chamado) e persiste alerta local",
+            "suite completa nao rodada nesta sessao: crash conhecido akshare/V8 (INV-R29 da outra sessao)"
+        ]
+    },
+    "risks": [
+        {
+            "severity": "medium",
+            "description": "INV-R26: CEO depende do servidor cc compartilhado :8080 (1 slot, 2 GPUs). Se o operador derrubar o cc, SuperEzio entra em MAN_AT_WORK.",
+            "mitigation": "Ordem de boot documentada no RUNBOOK (cc primeiro); health check do SuperEzio monitora :8080."
+        },
+        {
+            "severity": "medium",
+            "description": "Model id 'Qwen3.8-27B-UD-IQ2_XXS' assume que o llama-server expoe o nome do arquivo.",
+            "mitigation": "Confirmar contra GET /v1/models no primeiro boot live."
+        },
+        {
+            "severity": "high",
+            "description": "Chave DeepSeek real ficou ativa em .env.local ate 2026-08-17.",
+            "mitigation": "Operador deve revogar a chave no painel da DeepSeek (registro no RISK_REGISTER)."
+        }
+    ],
+    "next_step": "Operador: subir run-cc.ps1 (servidor :8080), depois python -m agent_server.main, depois browser_smoke com SUPEREZIO_SMOKE_CHAT=1 para validar o pipeline local completo; confirmar model id via /v1/models.",
+    "owner": "Claude Code (zero-cloud session)"
+}

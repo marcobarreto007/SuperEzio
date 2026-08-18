@@ -33,10 +33,15 @@ O exército de agentes do SuperEzio não é um bando de agentes falando ao mesmo
 ├── agent-explorer.md            # Meta — avalia qualidade dos agentes
 ├── agent-benchmarker.md         # Meta — testa agentes com mesma tarefa
 ├── agent-replacer.md            # Meta — substitui agentes ruins
+├── market-data-puller.md        # Mercado — folha de dados (read-only, anti-injeção)
+├── market-thesis-writer.md      # Mercado — único Write-holder (tese em runtime/reports/)
+├── market-thesis-auditor.md     # Mercado — auditoria pass/fail (read-only)
 └── deprecated/                  # Cemitério de agentes
 ```
 
-O **Captain** é o único agente **residente**. Os outros 13 são one-shot disparados por ele.
+O **Captain** é o único agente **residente**. Os outros 16 são one-shot disparados por ele ou pela sessão.
+O trio `market-*` segue o padrão de separação de poderes dos templates oficiais da Anthropic
+(data-puller → builder → auditor) — ver `docs/architecture/AGENT_PATTERNS_ANTHROPIC_FS.md`.
 O Captain é invocado via CronCreate a cada hora (minuto :07) e executa o ciclo:
 diagnóstico → decisão → disparo (3 agentes em paralelo) → integração → checkpoint.
 

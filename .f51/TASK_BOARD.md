@@ -102,6 +102,19 @@
 
 ## Done
 
+- [x] 2026-08-18 - **Arquitetura de agentes alinhada aos templates oficiais da Anthropic
+  (financial-services)**: operador trouxe a referência; verificada real e oficial (~9.5k stars).
+  Estudo prompt-a-prompt em `docs/architecture/AGENT_PATTERNS_ANTHROPIC_FS.md` com citações
+  verbatim e vereditos copiar/melhorar/descartar. Aplicado: (1) novo trio market-* em
+  `.claude/agents/` com separação de poderes oficial — `market-data-puller` (read-only,
+  anti-injeção, `[SEM FONTE]`), `market-thesis-writer` (ÚNICO Write-holder, `[UNSOURCED]`=0,
+  stop-and-surface), `market-thesis-auditor` (pass/fail com localizações); (2) corrigido
+  `model-gateway-verifier.md` que ainda instruía "local LLM → cloud fallback" (resquício
+  pré-zero-nuvem); (3) corrigido `git add -A` do captain (2x) → add escopado (sessões
+  paralelas); (4) roster em `AGENT_ORCHESTRATION.md` + CLAUDE.md (17 agentes). Conformidade:
+  leitura pública web apenas — `claude plugin marketplace add` clona do GitHub e permanece
+  bloqueado (F51_NO_GITHUB_DISK_ONLY); nada instalado, prompts re-escritos para o domínio
+  local. Evidência: commit desta task; INV-R32 (INFO) registra provenance.
 - [x] 2026-08-17 - **Zero-nuvem total (diretiva do operador)**: remover TODA dependência de LLM em nuvem
   do gateway e superfícies associadas. Decisão do operador: "nada de fallback na nuvem" — escopo
   confirmado via questionário: zero nuvem (não só fallback do CEO), CEO aponta para o servidor

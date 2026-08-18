@@ -308,3 +308,17 @@ Session: save-2026-08-17
   vazio" já era conhecido desde 2026-07-20 (mesmas strings). Priorizar correção do import
   `src` no scanner e reconexão IBKR após o CEO voltar.
 - Status: Active.
+
+### INV-R32 - Novo time de agentes market-* segue padrão externo (Anthropic FS) [INFO]
+
+- Classification: arquitetura / provenance
+- Risk: baixo. O trio `market-data-puller` / `market-thesis-writer` / `market-thesis-auditor`
+  (2026-08-18) foi derivado dos templates oficiais `anthropics/financial-services`
+  (data-puller → builder → auditor), estudados via leitura pública web — NENHUM clone/install
+  (plugin marketplace = git fetch, bloqueado pela F51_NO_GITHUB_DISK_ONLY). Prompts foram
+  re-escritos para o domínio SuperEzio (day-trading, zero-cloud, stop-and-surface).
+- Evidence: `docs/architecture/AGENT_PATTERNS_ANTHROPIC_FS.md` (comparação prompt a prompt,
+  citações verbatim e decisões copiar/melhorar/descartar).
+- Mitigation: nenhum risco aberto. Nota: os agentes ainda não têm benchmark no `/agent-lab`
+  (score pendente na pontuação 0-30 do Playbook).
+- Status: Info — padrão adotado como referência oficial de arquitetura multiagente do projeto.

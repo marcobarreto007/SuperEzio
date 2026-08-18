@@ -131,7 +131,7 @@ Agent(subagent_type="savekeeper")
 3. Atualizar `.agent_bus/state.json`
 4. Salvar relatórios em `.agent_bus/runtime/reports/`
 5. Atualizar `.f51/checkpoints/latest.json`
-6. **Commit automático** (git add -A && git commit)
+6. **Commit automático** (git add ESCOPADO — somente os arquivos da wave; sessões paralelas compartilham o working tree, `-A` sequestra trabalho alheio)
 
 ### Fase 5: GATES
 ```powershell
@@ -146,7 +146,7 @@ python -m pytest tests/ -q
 2. **SEMPRE 4 em paralelo** nas Waves 1 e 2
 3. **NUNCA escrever nos mesmos arquivos** que outros agentes
 4. **SEMPRE evidência** — file:line ou output de comando
-5. **Commit após cada wave** — git add -A && git commit
+5. **Commit após cada wave** — git add escopado aos arquivos da wave (nunca `-A`: sessões paralelas compartilham o working tree)
 6. **NUNCA GitHub** — DISK ONLY
 7. **Checkpoint obrigatório** a cada wave concluída
 8. **Modelo Sonnet** para velocidade — agentes individuais podem usar o default

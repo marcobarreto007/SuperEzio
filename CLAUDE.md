@@ -130,7 +130,7 @@ Fonte: Playbook 2026 — Exercitos de Claude Code.
 ### Estrutura
 
 ```
-.claude/agents/     # 10 agentes versionados
+.claude/agents/     # 17 agentes versionados (14 dev-ops + 3 market-*, padrão Anthropic FS)
 .claude/commands/   # /swarm, /save, /agent-lab
 .agent_bus/runtime/ # Memória volátil (gitignored)
 docs/AGENT_ORCHESTRATION.md
