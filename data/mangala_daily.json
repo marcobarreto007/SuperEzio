@@ -1,136 +1,136 @@
 {
-  "scanned_at": "2026-08-11T01:17:23.447625+00:00",
+  "scanned_at": "2026-08-18T16:21:04.664974+00:00",
   "count": 5,
   "opportunities": [
     {
-      "ticker": "PLUG",
-      "price": 2.11,
-      "volume": 116930153,
-      "name": "Plug Power, Inc.",
-      "score": 71,
-      "signal": "WATCH",
+      "ticker": "RIG",
+      "price": 5.86,
+      "volume": 20817725,
+      "name": "Transocean Ltd (Switzerland)",
+      "score": 56,
+      "signal": "MEH",
       "factors": {
-        "volume": 30,
-        "whale": 20,
-        "momentum": 3,
-        "rsi": 8,
-        "catalyst": 10
-      },
-      "whale_status": "PROVAVEL",
-      "whale_score": 50,
-      "pump_risk": "RISK",
-      "pump_score": 50,
-      "flip_plan": {
-        "entry": 2.11,
-        "target_5pct": 2.22,
-        "stop_3pct": 2.05,
-        "max_hold_days": 5
-      },
-      "scanned_at": "2026-08-11T01:15:22.748683+00:00"
-    },
-    {
-      "ticker": "KODK",
-      "price": 9.99,
-      "volume": 878455,
-      "name": "Eastman Kodak Company",
-      "score": 63,
-      "signal": "WATCH",
-      "factors": {
-        "volume": 30,
+        "volume": 25,
         "whale": 5,
-        "momentum": 5,
+        "momentum": 3,
         "rsi": 15,
         "catalyst": 8
-      },
-      "whale_status": "FRACO",
-      "whale_score": 0,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
-      "flip_plan": {
-        "entry": 9.99,
-        "target_5pct": 10.49,
-        "stop_3pct": 9.69,
-        "max_hold_days": 5
-      },
-      "scanned_at": "2026-08-11T01:17:23.447625+00:00"
-    },
-    {
-      "ticker": "NIO",
-      "price": 4.82,
-      "volume": 15932718,
-      "name": "NIO Inc.",
-      "score": 62,
-      "signal": "WATCH",
-      "factors": {
-        "volume": 30,
-        "whale": 5,
-        "momentum": 5,
-        "rsi": 12,
-        "catalyst": 10
-      },
-      "whale_status": "FRACO",
-      "whale_score": 0,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
-      "flip_plan": {
-        "entry": 4.82,
-        "target_5pct": 5.06,
-        "stop_3pct": 4.68,
-        "max_hold_days": 5
-      },
-      "scanned_at": "2026-08-11T01:16:18.001628+00:00"
-    },
-    {
-      "ticker": "SNDL",
-      "price": 1.22,
-      "volume": 2172193,
-      "name": "SNDL Inc.",
-      "score": 62,
-      "signal": "WATCH",
-      "factors": {
-        "volume": 30,
-        "whale": 5,
-        "momentum": 5,
-        "rsi": 12,
-        "catalyst": 10
       },
       "whale_status": "FRACO",
       "whale_score": 0,
       "pump_risk": "ALERT",
       "pump_score": 77,
       "flip_plan": {
-        "entry": 1.22,
-        "target_5pct": 1.28,
-        "stop_3pct": 1.18,
+        "entry": 5.86,
+        "target_5pct": 6.15,
+        "stop_3pct": 5.68,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-11T01:17:04.972513+00:00"
+      "scanned_at": "2026-08-18T16:20:39.055947+00:00"
     },
     {
-      "ticker": "RIG",
-      "price": 5.72,
-      "volume": 59339703,
-      "name": "Transocean Ltd (Switzerland)",
-      "score": 54,
+      "ticker": "NIO",
+      "price": 4.51,
+      "volume": 9616846,
+      "name": "NIO Inc.",
+      "score": 48,
       "signal": "MEH",
       "factors": {
         "volume": 30,
         "whale": 5,
-        "momentum": 3,
-        "rsi": 8,
+        "momentum": 0,
+        "rsi": 5,
         "catalyst": 8
+      },
+      "whale_status": "FRACO",
+      "whale_score": 0,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
+      "flip_plan": {
+        "entry": 4.51,
+        "target_5pct": 4.74,
+        "stop_3pct": 4.38,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-08-18T16:20:47.823384+00:00"
+    },
+    {
+      "ticker": "PLUG",
+      "price": 2.15,
+      "volume": 31531815,
+      "name": "Plug Power, Inc.",
+      "score": 41,
+      "signal": "MEH",
+      "factors": {
+        "volume": 25,
+        "whale": 5,
+        "momentum": 0,
+        "rsi": 3,
+        "catalyst": 8
+      },
+      "whale_status": "FRACO",
+      "whale_score": 0,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
+      "flip_plan": {
+        "entry": 2.15,
+        "target_5pct": 2.26,
+        "stop_3pct": 2.09,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-08-18T16:20:31.064617+00:00"
+    },
+    {
+      "ticker": "TLRY",
+      "price": 4.53,
+      "volume": 1569439,
+      "name": "Tilray Brands, Inc.",
+      "score": 27,
+      "signal": "PASS",
+      "factors": {
+        "volume": 0,
+        "whale": 5,
+        "momentum": 0,
+        "rsi": 12,
+        "catalyst": 10
       },
       "whale_status": "FRACO",
       "whale_score": 20,
       "pump_risk": "ALERT",
       "pump_score": 77,
       "flip_plan": {
-        "entry": 5.72,
-        "target_5pct": 6.01,
-        "stop_3pct": 5.55,
+        "entry": 4.53,
+        "target_5pct": 4.75,
+        "stop_3pct": 4.39,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-11T01:15:29.316444+00:00"
+      "scanned_at": "2026-08-18T16:21:04.664974+00:00"
+    },
+    {
+      "ticker": "BB",
+      "price": 8.55,
+      "volume": 5305726,
+      "name": "BlackBerry Limited",
+      "score": 18,
+      "signal": "PASS",
+      "factors": {
+        "volume": 0,
+        "whale": 5,
+        "momentum": 0,
+        "rsi": 5,
+        "catalyst": 8
+      },
+      "whale_status": "FRACO",
+      "whale_score": 20,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
+      "flip_plan": {
+        "entry": 8.55,
+        "target_5pct": 8.98,
+        "stop_3pct": 8.3,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-08-18T16:20:56.715455+00:00"
     }
   ]
 }
