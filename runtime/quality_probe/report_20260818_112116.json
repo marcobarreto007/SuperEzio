@@ -1,0 +1,86 @@
+{
+  "timestamp": "20260818_112116",
+  "api": "http://127.0.0.1:8002",
+  "results": [
+    {
+      "id": "status_pt",
+      "expected_intent": "status",
+      "ttfb_s": 7.8,
+      "total_s": 7.8,
+      "content_chars": 536,
+      "content": "A pipeline terminou sem publicar uma resposta final. Isto Ã© uma falha interna de sÃ­ntese, nÃ£o falta de detalhe no teu pedido.\n\nI can still give a useful framework from the available context. Start with objective, time horizon, liquidity need, risk capacity, and what data is missing. Use tools only when current market evidence or a named ticker is required.\nFinal verdict: WAIT\nSuggestion: state the goal, horizon, amount, and whether you want framework, ticker analysis, or a scan.\nroute: general\ndetected_intent: general_question\n",
+      "trace": {
+        "detected_intent": "general_question",
+        "fallback_used": true,
+        "scanner_invoked": false,
+        "chart_context_attached": false,
+        "final_content_length": 536,
+        "selected_ui_ticker": ""
+      }
+    },
+    {
+      "id": "ticker_analysis",
+      "expected_intent": "ticker_analysis",
+      "ttfb_s": 53.11,
+      "total_s": 53.12,
+      "content_chars": 536,
+      "content": "A pipeline terminou sem publicar uma resposta final. Isto Ã© uma falha interna de sÃ­ntese, nÃ£o falta de detalhe no teu pedido.\n\nI can still give a useful framework from the available context. Start with objective, time horizon, liquidity need, risk capacity, and what data is missing. Use tools only when current market evidence or a named ticker is required.\nFinal verdict: WAIT\nSuggestion: state the goal, horizon, amount, and whether you want framework, ticker analysis, or a scan.\nroute: general\ndetected_intent: general_question\n",
+      "trace": {
+        "detected_intent": "general_question",
+        "fallback_used": true,
+        "scanner_invoked": false,
+        "chart_context_attached": false,
+        "final_content_length": 536,
+        "selected_ui_ticker": "AAPL"
+      }
+    },
+    {
+      "id": "macro_thesis",
+      "expected_intent": "MACRO_THESIS",
+      "ttfb_s": 7.28,
+      "total_s": 7.28,
+      "content_chars": 536,
+      "content": "A pipeline terminou sem publicar uma resposta final. Isto Ã© uma falha interna de sÃ­ntese, nÃ£o falta de detalhe no teu pedido.\n\nI can still give a useful framework from the available context. Start with objective, time horizon, liquidity need, risk capacity, and what data is missing. Use tools only when current market evidence or a named ticker is required.\nFinal verdict: WAIT\nSuggestion: state the goal, horizon, amount, and whether you want framework, ticker analysis, or a scan.\nroute: general\ndetected_intent: general_question\n",
+      "trace": {
+        "detected_intent": "general_question",
+        "fallback_used": true,
+        "scanner_invoked": false,
+        "chart_context_attached": false,
+        "final_content_length": 536,
+        "selected_ui_ticker": ""
+      }
+    },
+    {
+      "id": "risk_question",
+      "expected_intent": "risk",
+      "ttfb_s": 245.73,
+      "total_s": 245.75,
+      "content_chars": 3645,
+      "content": "Bob: este e um relatorio de pesquisa de mercado, nao uma ordem de compra. Lucro nao e garantido.\n\n1) Classificacao: pesquisa de oportunidade de curto prazo.\n2) Horizonte: aproximadamente 2 semanas (curto prazo).\n3) Universo do scan: US_CANADA_LIQUID\n4) Gate de qualidade de dados: ticker, exchange, preco atual, volume/liquidez, catalisador de curto prazo, risco e condicao de invalidacao sao obrigatorios. Sem todos esses campos, o candidato e rejeitado.\n\n5) Candidatos:\n- OMER (—)\n  Mercado: United States\n  Preco atual: 17.030000686645508 USD\n  Volume/liquidez: 350.5K shares/day ($6.0M/day)\n  Razao/catalisador (2 sem.): OMER: liquid equity on major US exchange — suitable for short-term tactical allocation\n  Risco: broad market / sector risk; position size 0.5% of capital\n  Invalidacao: close below 200-day MA or 8% from entry\n  Confianca: pesquisa-apenas\n- BTMDW (—)\n  Mercado: United States\n  Preco atual: 334.4200134277344 USD\n  Volume/liquidez: 631.7K shares/day ($211.2M/day)\n  Razao/catalisador (2 sem.): BTMDW: liquid equity on major US exchange — suitable for short-term tactical allocation\n  Risco: broad market / sector risk; position size 0.5% of capital\n  Invalidacao: close below 200-day MA or 8% from entry\n  Confianca: pesquisa-apenas\n- KEYS (Keysight Technologies Inc.)\n  Mercado: United States\n  Preco atual: 334.79 USD\n  Volume/liquidez: 642.9K shares/day ($215.2M/day)\n  Razao/catalisador (2 sem.): KEYS: liquid equity on major US exchange — suitable for short-term tactical allocation\n  Risco: broad market / sector risk; position size 0.5% of capital\n  Invalidacao: close below 200-day MA or 8% from entry\n  Confianca: pesquisa-apenas\n- TDE (—)\n  Mercado: United States\n  Preco atual: 36.974998474121094 USD\n  Volume/liquidez: 65.0K shares/day ($2.4M/day)\n  Razao/catalisador (2 sem.): TDE: liquid equity on major US exchange — suitable for short-term tactical allocation\n  Risco: broad market / sector risk; position size 0.5% of capital\n  Invalidacao: close below 200-day MA or 8% from entry\n  Confianca: pesquisa-apenas\n- CDP (COPT Defense Properties)\n  Mercado: United States\n  Preco atual: 36.975 USD\n  Volume/liquidez: 65.7K shares/day ($2.4M/day)\n  Razao/catalisador (2 sem.): CDP: liquid equity on major US exchange — suitable for short-term tactical allocation\n  Risco: broad market / sector risk; position size 0.5% of capital\n  Invalidacao: close below 200-day MA or 8% from entry\n  Confianca: pesquisa-apenas\n\n6) Resumo de rejeicoes: 8 ticker(s) descartado(s).\n   Principais motivos:\n   - sem volume recente ou proxy de liquidez — 4\n   - preco abaixo de US$1 filtrado (gate penny) — 2\n   - preco atual indisponivel no data hub — 2\n   Filtros usados: paises=['United States', 'Canada'], setor=None, permitir_penny_otc=False, permitir_microcap=False.\n\n7) Controles de risco:\n   - Defina perda maxima por posicao antes de qualquer ordem.\n   - Exija liquidez suficiente para entrar e sair sem spread absurdo.\n   - Confirme catalisador verificavel (filing, earnings, evento) e nao hype social.\n   - Estabeleca condicao de invalidacao tecnica/fundamentalista clara.\n\n8) Aviso: apenas pesquisa. Sem garantia de lucro. Decisao de compra/venda e sua responsabilidade.\n\nLimite de dados: price_provider: no_provider_result_for_price=4; price_routes_active: twelve_data,alpha_vantage,yfinance; price_attempts_sample: twelve_data:You have run out of API credits for the current minute. 10 API credits were used, with the current limit being 8. Wait for the next minute or consider switching to a higher tier plan at https://twelvedata.com/pricing; alpha_vantage:No data found; yfinance:yfinance: 'exchangeTimezoneName'",
+      "trace": {
+        "detected_intent": "market_scan",
+        "fallback_used": false,
+        "scanner_invoked": true,
+        "chart_context_attached": false,
+        "final_content_length": 3645,
+        "selected_ui_ticker": ""
+      }
+    },
+    {
+      "id": "refusal_edge",
+      "expected_intent": "any",
+      "ttfb_s": 262.7,
+      "total_s": 262.72,
+      "content_chars": 3001,
+      "content": "Bob: this is a market research report, not a buy order. Profit is not guaranteed.\n\n1) Classification: short-term opportunity research.\n2) Time horizon: approximately 2 weeks (short term).\n3) Scan universe: US_CANADA_LIQUID\n4) Data quality gate: ticker, exchange, latest price, volume/liquidity, short-term catalyst, downside risk and an invalidation condition are all required. Without every field, a candidate is rejected.\n\n5) Candidates:\n- AORT (—)\n  Market: United States\n  Latest price: 29.670000076293945 USD\n  Volume/liquidity: 144.2K shares/day ($4.3M/day)\n  Reason/catalyst (2w): AORT: liquid equity on major US exchange — suitable for short-term tactical allocation\n  Risk: broad market / sector risk; position size 0.5% of capital\n  Invalidation: close below 200-day MA or 8% from entry\n  Confidence: research-only\n- LOW (—)\n  Market: United States\n  Latest price: 218.14500427246094 USD\n  Volume/liquidity: 937.6K shares/day ($204.5M/day)\n  Reason/catalyst (2w): LOW: liquid equity on major US exchange — suitable for short-term tactical allocation\n  Risk: broad market / sector risk; position size 0.5% of capital\n  Invalidation: close below 200-day MA or 8% from entry\n  Confidence: research-only\n- MRCY (—)\n  Market: United States\n  Latest price: 112.18000030517578 USD\n  Volume/liquidity: 481.9K shares/day ($54.1M/day)\n  Reason/catalyst (2w): MRCY: liquid equity on major US exchange — suitable for short-term tactical allocation\n  Risk: broad market / sector risk; position size 0.5% of capital\n  Invalidation: close below 200-day MA or 8% from entry\n  Confidence: research-only\n- OSBC (—)\n  Market: United States\n  Latest price: 25.700000762939453 USD\n  Volume/liquidity: 78.3K shares/day ($2.0M/day)\n  Reason/catalyst (2w): OSBC: liquid equity on major US exchange — suitable for short-term tactical allocation\n  Risk: broad market / sector risk; position size 0.5% of capital\n  Invalidation: close below 200-day MA or 8% from entry\n  Confidence: research-only\n- CBSH (—)\n  Market: United States\n  Latest price: 59.65999984741211 USD\n  Volume/liquidity: 140.8K shares/day ($8.4M/day)\n  Reason/catalyst (2w): CBSH: liquid equity on major US exchange — suitable for short-term tactical allocation\n  Risk: broad market / sector risk; position size 0.5% of capital\n  Invalidation: close below 200-day MA or 8% from entry\n  Confidence: research-only\n\n6) Rejected candidates summary: 4 ticker(s) discarded.\n   Top reasons:\n   - no recent volume or liquidity proxy — 4\n   Filters used: countries=['United States', 'Canada'], setor=None, allow_penny_otc=False, allow_microcap=False.\n\n7) Risk controls:\n   - Define maximum loss per position before placing any order.\n   - Require liquidity sufficient to enter and exit without extreme spreads.\n   - Confirm a verifiable catalyst (filing, earnings, event) rather than social hype.\n   - Set a clear technical/fundamental invalidation condition.\n\n8) Caveat: research only. No guaranteed profit. The buy/sell decision is your own responsibility.",
+      "trace": {
+        "detected_intent": "general_question",
+        "fallback_used": false,
+        "scanner_invoked": true,
+        "chart_context_attached": false,
+        "final_content_length": 3001,
+        "selected_ui_ticker": ""
+      }
+    }
+  ]
+}

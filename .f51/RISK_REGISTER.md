@@ -322,3 +322,45 @@ Session: save-2026-08-17
 - Mitigation: nenhum risco aberto. Nota: os agentes ainda não têm benchmark no `/agent-lab`
   (score pendente na pontuação 0-30 do Playbook).
 - Status: Info — padrão adotado como referência oficial de arquitetura multiagente do projeto.
+
+### INV-R33 - Quality probe 2026-08-18: defeitos de qualidade nas respostas do Bob [MEDIUM]
+
+- Classification: qualidade de resposta / UX / dados
+- Contexto: bateria `scripts/quality_probe.py` (5 prompts PT) contra o runtime zero-cloud
+  após o fix do INV abaixo (api_key placeholder). 5/5 respostas com geração real, 0 fallbacks.
+- Achados (ranqueados):
+  1. **Latência**: rotas com scan levam 13-17 min (varredura sequencial de universo em
+     providers com rate-limit; o modelo em si responde em 100-130 s).
+  2. **Intent misrouting**: pergunta de risco e ticker inexistente (XYZ123) roteiam para
+     `market_scan` — respondem outra pergunta com scan de 15 min.
+  3. **Idioma inconsistente**: prompt PT gera resposta EN na rota general sem ticker
+     (macro_thesis) e no template de scan EN (refusal_edge).
+  4. **Vazamento de template interno**: "PIPELINE DATA:", "YOUR EXPLANATION:", dumps de
+     módulos (## DATA, ## F51_VERDICT) chegam ao usuário final; typo "NEURAL_DECION"
+     no próprio template.
+  5. **Ticker↔nome desincronizados no scanner**: NGVC→"Alphabet Depositary Shares",
+     KIDS→"Social Capital Hedosophia", KBR→"OrthoPediatrics" — nomes errados ao lado do
+     ticker, potencialmente enganosos.
+  6. Catalisador genérico boilerplate para todos os candidatos (não é catalisador real).
+  - (Menor) `data/man_at_work/latest_alert.txt` stale de 2026-08-08 não é limpo quando o
+    CEO volta; mojibake no template de falha.
+- Evidence: `runtime/quality_probe/report_20260818_113401.md` (pós-fix) e
+  `report_20260818_112116.md` (pré-fix, 3/5 em template de falha).
+- Mitigation proposta: cache/pré-aquecimento de universo no scanner; detectores de intent
+  para "pergunta conceitual" vs "scan"; template de resposta por camada (interno vs user-
+  facing); validar join ticker→nome no data hub.
+- Status: Open — nenhum item bloqueia entrega v3 (sistema operacional), mas 1-3 degradam a
+  experiência e devem entrar no backlog.
+
+### INV-R34 - Client OpenAI recusava chamada local sem api_key (zero-cloud) [HIGH → Resolved]
+
+- Classification: bug de integração / zero-cloud
+- Risk: TODO o tráfego LLM morria ANTES do HTTP: providers locais construídos com
+  `api_key=""` fazem o client OpenAI levantar "Missing credentials" — sintomas: circuits
+  `deepseek`/`daytrade_judge` abrindo, 3/5 prompts em template de falha, RewardGate em
+  fallback heurístico. O llama-server estava saudável o tempo todo.
+- Fix: `LOCAL_API_KEY_PLACEHOLDER` em `providers.py` (commit 38ea6e6) — não é credencial,
+  nunca sai da máquina (llama-server ignora). Mesma bateria pós-fix: 5/5 geração real.
+- Evidence: commit 38ea6e6; regressões `test_local_providers_carry_nonempty_api_key` e
+  `test_health_details_probes_port_from_url` (porta do probe de saúde vinha hardcoded 8082).
+- Status: Resolved 2026-08-18.
