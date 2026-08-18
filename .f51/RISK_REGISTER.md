@@ -264,7 +264,7 @@ Session: save-2026-08-17
 
 ## New Risks (2026-08-17 — Save Session)
 
-### INV-R29 - akshare py_mini_racer V8 fatal exception derruba a suíte inteira [HIGH]
+### INV-R29 - akshare py_mini_racer V8 fatal exception derruba a suíte inteira [HIGH] → MITIGADO 2026-08-18
 
 - Classification: test infrastructure / environment
 - Risk: `tests/test_pipeline_smoke.py::test_pipeline_stream_events_blocks_unscoped_ticket_reference`
@@ -272,13 +272,19 @@ Session: save-2026-08-17
   (`akshare_provider.get_profile` → `stock_us_sina.get_us_stock_name` → `py_mini_racer`), que
   aborta o processo Python inteiro com `Windows fatal exception: code 0x80000003`. A suíte
   completa (1691 testes) trava no 84% e morre — nenhum resultado consolidado é produzido.
+  Confirmado em PRODUÇÃO 2026-08-18: chat real derrubou o servidor live no nó `data`
+  (auto_full_analysis → scan → akshare).
 - Evidence: saída completa em `/tmp/iso_test.txt` (2026-08-17): crash no thread de
   `py_mini_racer._make_context` dentro de `akshare.stock.stock_us_sina`; dois runs da suíte
-  completa abortaram no mesmo ponto (84%).
-- Mitigation: deselecionar os 2 testes que tocam o provider akshare até o circuito
-  `data.akshare` fechar ou o provider ser substituído (INV-R24). Corrigir o fallback do
-  data context para não instanciar o V8 do akshare quando o circuito está aberto.
-- Status: Active. Bloqueia o gate de suíte completa; resta da suíte roda com 2 deselects.
+  completa abortaram no mesmo ponto (84%). Crash live em 2026-08-18 (17:26Z): servidor
+  agent_server morto durante scan de mercado.
+- Mitigation (aplicada): `get_us_stock_name()` agora roda isolado em subprocesso
+  (`_us_stock_names_via_subprocess` em `src/data/akshare_provider.py`) — o crash fatal do
+  V8 mata o filho, não o servidor; o DataHub cai para o próximo provider. 8 testes novos
+  em `tests/test_akshare_provider.py` (sem rede, sem V8). Validação live: servidor
+  sobreviveu a pipeline completo de scan (108 eventos) após o fix.
+- Status: Mitigated. Circuito `data.akshare` permanece aberto (INV-R24); os 2 testes da
+  suíte continuam deselect até revalidação.
 
 ### INV-R30 - SuperEzio API down (trading halt ativo) [HIGH]
 

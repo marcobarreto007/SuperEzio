@@ -8,6 +8,11 @@
   23 sessões bob-uuid com prompt CAD, operator/trader/web/marco/user com prompts de teste).
   Mantida apenas a sessão real `bob-7e65d4c1` (29 conversas do operador). Motivação: memória
   RAG do Bob estava contaminada com lixo de teste (126 menções de AAPL).
+- [x] 2026-08-18 - **Fix anti-crash do akshare (INV-R29 ao vivo)** (Claude Code): teste live
+  derrubou o servidor (V8 py_mini_racer mata o processo inteiro, sem exceção capturável).
+  `get_us_stock_name()` agora roda isolado em subprocesso — o filho morre, o servidor
+  sobrevive e o hub cai pro próximo provider. 8 testes novos + ruff limpo. Validação live:
+  pipeline de scan completo sobreviveu (108 eventos, candidatos SYKE/HBI/GPS).
 - [x] 2026-08-18 - **Filtro fail-closed de sessão na memória** (Claude Code): `ConversationMemory`
   agora só persiste sessões interativas reais (`bob-<uuid>`) ou ids na allowlist
   `SUPEREZIO_MEMORY_EXTRA_SESSIONS`. Sessões de teste/probe (`default`, `test-*`,

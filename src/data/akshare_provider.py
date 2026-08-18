@@ -41,6 +41,66 @@ def _akshare_us_symbol(symbol: str) -> str | None:
     return f"105.{raw}"
 
 
+# ── Isolamento anti-crash (INV-R29) ────────────────────────────────────────
+# `ak.get_us_stock_name()` passa por `stock_us_sina`, que usa py_mini_racer
+# (V8). Nesta maquina o V8 aborta o processo Python INTEIRO com
+# 0x80000003 (fatal, sem excecao capturavel por try/except). Reproduzido
+# 3x: suite de testes (2x) e servidor live (2026-08-18, chat real).
+# Solucao: rodar a chamada em subprocesso — quem morre e o filho; o
+# servidor sobrevive e o DataHub cai para o proximo provider.
+
+_AKSHARE_NAMES_CHILD = (
+    "import sys\n"
+    "sys.stdout.reconfigure(encoding='utf-8')\n"
+    "import akshare as ak\n"
+    "try:\n"
+    "    df = ak.get_us_stock_name()\n"
+    "    df.to_csv(sys.stdout, index=False)\n"
+    "except Exception as e:\n"
+    "    sys.stderr.write('AKCHILD_ERR:' + repr(e))\n"
+    "    sys.exit(2)\n"
+)
+
+
+def _us_stock_names_via_subprocess(timeout_s: float = 25.0) -> Dict[str, Any]:
+    """Obtem a tabela de nomes de US stocks sem arriscar o processo pai.
+
+    Retorna ``{"names_csv": ...}`` em sucesso ou ``{"error": ...}``.
+    """
+    import subprocess
+    import sys
+
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", _AKSHARE_NAMES_CHILD],
+            capture_output=True,
+            timeout=timeout_s,
+        )
+    except subprocess.TimeoutExpired:
+        return {"error": "akshare_js_timeout"}
+
+    if proc.returncode != 0:
+        stderr = proc.stderr.decode("utf-8", errors="replace").strip()[:200]
+        return {"error": f"akshare_js_subprocess_rc={proc.returncode} {stderr}"}
+
+    csv_text = proc.stdout.decode("utf-8", errors="replace")
+    if not csv_text.strip():
+        return {"error": "akshare_js_empty_output"}
+    return {"names_csv": csv_text}
+
+
+def _parse_names_csv(csv_text: str):
+    """Converte o CSV do subprocesso em DataFrame."""
+    import io
+
+    import pandas as pd
+
+    try:
+        return pd.read_csv(io.StringIO(csv_text))
+    except Exception:
+        return None
+
+
 class AKShareProvider:
     """Free US stock price, candles and profile data via AKShare.
 
@@ -346,10 +406,17 @@ class AKShareProvider:
         if ak is None:
             return {"error": f"akshare_not_installed: {self._import_error}"}
 
+        # get_us_stock_name usa py_mini_racer (V8) que aborta o processo
+        # inteiro nesta maquina — rodar isolado em subprocesso (INV-R29).
         try:
-            names_df = ak.get_us_stock_name()  # type: ignore[union-attr]
+            payload = _us_stock_names_via_subprocess()
         except Exception as exc:
             return {"error": f"akshare_profile: {exc}"}
+
+        if "error" in payload:
+            return {"error": f"akshare_profile: {payload['error']}"}
+
+        names_df = _parse_names_csv(payload["names_csv"])
 
         if names_df is None or names_df.empty:
             return {"error": "akshare_no_names"}
