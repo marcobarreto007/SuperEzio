@@ -333,6 +333,74 @@ class TradeWorkflowStore:
             ).fetchone()
         return json.loads(row["state_json"]) if row is not None else None
 
+    def save_approval(self, request: Mapping[str, Any]) -> None:
+        """Insert or update an approval without allowing its ticket link to change."""
+
+        approval_id = str(request.get("id") or "").strip()
+        ticket_id = str(request.get("ticket_id") or "").strip() or None
+        ticket_fingerprint = str(request.get("ticket_fingerprint") or "").strip() or None
+        status = str(request.get("status") or "").strip().lower()
+        if not approval_id or not status:
+            raise WorkflowStoreError("approval id and status are required")
+        request_json = _canonical_json(request)
+        with self._lock, self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                "SELECT ticket_id, ticket_fingerprint FROM approvals WHERE approval_id = ?",
+                (approval_id,),
+            ).fetchone()
+            if existing is not None and (
+                (existing["ticket_id"] or None) != ticket_id
+                or (existing["ticket_fingerprint"] or None) != ticket_fingerprint
+            ):
+                connection.rollback()
+                raise WorkflowConflictError("approval ticket identity is immutable")
+            if ticket_id is not None:
+                ticket = connection.execute(
+                    "SELECT fingerprint FROM trade_tickets WHERE ticket_id = ?", (ticket_id,)
+                ).fetchone()
+                if ticket is None or str(ticket["fingerprint"]) != ticket_fingerprint:
+                    connection.rollback()
+                    raise WorkflowConflictError("approval does not match its durable ticket")
+            connection.execute(
+                """
+                INSERT INTO approvals(
+                    approval_id, ticket_id, ticket_fingerprint, status, request_json,
+                    created_at, resolved_at, resolved_by
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(approval_id) DO UPDATE SET
+                    status = excluded.status,
+                    request_json = excluded.request_json,
+                    resolved_at = excluded.resolved_at,
+                    resolved_by = excluded.resolved_by
+                """,
+                (
+                    approval_id,
+                    ticket_id,
+                    ticket_fingerprint,
+                    status,
+                    request_json,
+                    float(request.get("created_at") or 0.0),
+                    float(request.get("resolved_at") or 0.0),
+                    str(request.get("resolved_by") or ""),
+                ),
+            )
+            connection.commit()
+
+    def load_approvals(self) -> list[dict[str, Any]]:
+        with self._lock, self._connect() as connection:
+            rows = connection.execute(
+                "SELECT request_json FROM approvals ORDER BY created_at, approval_id"
+            ).fetchall()
+        return [json.loads(row["request_json"]) for row in rows]
+
+    def get_approval_for_ticket(self, ticket_id: str) -> dict[str, Any] | None:
+        with self._lock, self._connect() as connection:
+            row = connection.execute(
+                "SELECT request_json FROM approvals WHERE ticket_id = ?", (ticket_id,)
+            ).fetchone()
+        return json.loads(row["request_json"]) if row is not None else None
+
     def record_dead_letter(
         self,
         *,

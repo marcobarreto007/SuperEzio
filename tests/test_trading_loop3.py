@@ -159,6 +159,69 @@ class TestApprovalGateState:
         assert len(gate.get_history()) == 1
         assert gate.pending_count == 0
 
+    def test_pending_approval_survives_store_restart(self, tmp_path):
+        from core.trading.approval_gate import ApprovalGate, GateConfig
+        from core.trading.workflow_store import TradeWorkflowStore
+
+        db = tmp_path / "workflow.sqlite3"
+        gate = ApprovalGate(
+            config=GateConfig(max_auto_approve_amount=0.0),
+            store=TradeWorkflowStore(db),
+        )
+        req = gate.submit("AAPL", "buy", 100, 100.0, 95.0, 500.0)
+
+        restored = ApprovalGate(
+            config=GateConfig(max_auto_approve_amount=0.0),
+            store=TradeWorkflowStore(db),
+        )
+        assert restored.get_pending()[0].id == req.id
+        restored.approve(req.id, approver="marco")
+        final = ApprovalGate(store=TradeWorkflowStore(db)).get_history()[0]
+        assert final.status.value == "approved"
+        assert final.resolved_by == "marco"
+
+    def test_approval_is_bound_to_same_ticket_hash(self, tmp_path):
+        from core.trading.approval_gate import ApprovalGate, GateConfig
+        from core.trading.workflow_store import TradeWorkflowStore
+
+        store = TradeWorkflowStore(tmp_path / "workflow.sqlite3")
+        ticket = {
+            "ticket_id": "ticket-approval",
+            "fingerprint": "c" * 64,
+            "broker": "TD_DIRECT_INVESTING_CANADA",
+            "status": "AWAITING_HUMAN",
+            "phase": "human_review",
+            "submitted_to_broker": False,
+        }
+        store.create_ticket(ticket)
+        gate = ApprovalGate(
+            config=GateConfig(max_auto_approve_amount=0.0),
+            store=store,
+        )
+        first = gate.submit(
+            "TD",
+            "buy",
+            2,
+            110.0,
+            108.0,
+            4.0,
+            ticket_id="ticket-approval",
+            ticket_fingerprint="c" * 64,
+        )
+        retry = ApprovalGate(store=TradeWorkflowStore(store.path)).submit(
+            "TD",
+            "buy",
+            2,
+            110.0,
+            108.0,
+            4.0,
+            ticket_id="ticket-approval",
+            ticket_fingerprint="c" * 64,
+        )
+
+        assert retry.id == first.id == f"apr-{'c' * 24}"
+        assert retry.ticket_id == "ticket-approval"
+
 
 # ── EmailAlerter ────────────────────────────────────────────────────────────
 
