@@ -63,8 +63,12 @@
       "python -m pytest tests/test_api_routes_sync.py -q --no-cov",
       "python -m ruff check src/ tests/",
       "python scripts/browser_smoke.py"
-    ]
+    ],
+    "status": "complete",
+    "commit": "7270652",
+    "result": "39 tests passed; ruff and JS syntax passed; browser smoke passed with 130 candles and 7 canvases."
   },
-  "next_step": "Conectar cotacao server-side confiavel e Money Gate ao rascunho antes de qualquer promocao para revisao de ordem real.",
+  "roadmap": "docs/TD_LIVE_READINESS_ROADMAP.md",
+  "next_step": "Fase 2: isolar testes e descontaminar journals, memoria e RAG sem excluir dados antes do inventario com hashes.",
   "owner": "Codex"
 }
