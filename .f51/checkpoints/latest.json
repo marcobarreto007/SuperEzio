@@ -45,6 +45,12 @@
     "td_agreement": "Electronic Brokerage Services Client Agreement, secao 6: acesso a conta/servicos/informacao somente pelos sites TD, nao por software de terceiros.",
     "baseline": "ruff completo passou; 71 testes direcionados passaram; API/modelo/broker offline; browser smoke falhou por conexao recusada."
   },
-  "next_step": "Implementar e testar o contrato de ticket TD live manual.",
+  "milestone": {
+    "commit": "e65a52f",
+    "delivered": "Universo oficial de 108 ETFs sem comissao, filtro fail-closed e rascunho TD nao executavel.",
+    "verification": "58 testes direcionados passaram; ruff completo passou; rota live retornou 108; browser smoke ficou 503 porque CEO/model server esta offline.",
+    "go_live": "BLOCKED_BY_DESIGN"
+  },
+  "next_step": "Conectar cotacao server-side confiavel e Money Gate ao rascunho antes de qualquer promocao para revisao de ordem real.",
   "owner": "Codex"
 }
