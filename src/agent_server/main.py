@@ -208,7 +208,12 @@ def _sentiment_interval_minutes() -> int:
 
 def _start_sentiment_services(app: FastAPI) -> None:
     watchlist = _load_sentiment_watchlist()
-    monitor = LiveMonitor(watchlist, interval_minutes=_sentiment_interval_minutes())
+    sentiment_db = os.getenv("SUPEREZIO_SENTIMENT_DB", "").strip() or None
+    monitor = LiveMonitor(
+        watchlist,
+        interval_minutes=_sentiment_interval_minutes(),
+        db_path=sentiment_db,
+    )
     curator = SentimentCurator()
     pulse = WatchlistPulse(monitor, curator)
 
@@ -323,7 +328,9 @@ async def lifespan(app: FastAPI):
             from scripts.mangala_daily_scan import start_background_scan
 
             start_background_scan()
-            logger.info("[%s] Mangala proactive scan started — scanning every 15/60 min", AGENT_NAME)
+            logger.info(
+                "[%s] Mangala proactive scan started — scanning every 15/60 min", AGENT_NAME
+            )
         except Exception as exc:
             logger.warning(
                 "[%s] Mangala proactive scan failed to start: %s", AGENT_NAME, str(exc)[:200]
@@ -1014,7 +1021,9 @@ async def get_metrics():
 # Health Dashboard endpoints
 # =================================
 
-_HEALTH_DASHBOARD_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "templates", "health_dashboard.html")
+_HEALTH_DASHBOARD_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "..", "templates", "health_dashboard.html"
+)
 
 
 @app.get("/health/dashboard", include_in_schema=False)
@@ -1022,6 +1031,7 @@ async def health_dashboard():
     """Health dashboard HTML — provider status, latency, memory, uptime."""
     try:
         from pathlib import Path
+
         tmpl = Path(_HEALTH_DASHBOARD_PATH)
         if tmpl.exists():
             html = tmpl.read_text(encoding="utf-8")
@@ -1043,11 +1053,14 @@ async def health_dashboard_data():
     gpu_info = {"available": False, "devices": []}
     try:
         import torch
+
         gpu_info["available"] = torch.cuda.is_available()
         if gpu_info["available"]:
             for i in range(torch.cuda.device_count()):
                 props = torch.cuda.get_device_properties(i)
-                gpu_info["devices"].append({"id": i, "name": props.name, "vram_mb": props.total_memory // (1024 * 1024)})
+                gpu_info["devices"].append(
+                    {"id": i, "name": props.name, "vram_mb": props.total_memory // (1024 * 1024)}
+                )
     except ImportError:
         gpu_info["status"] = "no_torch"
 
@@ -1060,7 +1073,7 @@ async def health_dashboard_data():
     try:
         pipeline = getattr(app.state, "pipeline", None)
         gateway = getattr(pipeline, "gateway", None) if pipeline else None
-        for p in (list(getattr(gateway, "providers", [])) if gateway else []):
+        for p in list(getattr(gateway, "providers", [])) if gateway else []:
             providers_status[p.name] = {
                 "configured": p.is_local or bool((p.api_key or "").strip()),
                 "model": p.model,
@@ -1090,6 +1103,7 @@ async def health_dashboard_data():
     bob_status = {}
     try:
         from core.bob_consciousness import bob_body_scan
+
         scan = bob_body_scan()
         bob_status = {
             "healthy": scan.get("healthy_count", 0),
@@ -1121,6 +1135,7 @@ def _get_memory_usage_mb() -> float:
     """Get current process memory usage in MB (cross-platform, no psutil required)."""
     try:
         import psutil
+
         proc = psutil.Process(os.getpid())
         return round(proc.memory_info().rss / (1024 * 1024), 1)
     except ImportError:
@@ -1128,8 +1143,10 @@ def _get_memory_usage_mb() -> float:
     try:
         import ctypes
         from ctypes import wintypes
+
         kernel32 = ctypes.windll.kernel32
         process_handle = kernel32.GetCurrentProcess()
+
         class PMC(ctypes.Structure):
             _fields_ = [
                 ("cb", wintypes.DWORD),
@@ -1143,8 +1160,11 @@ def _get_memory_usage_mb() -> float:
                 ("PagefileUsage", ctypes.c_size_t),
                 ("PeakPagefileUsage", ctypes.c_size_t),
             ]
+
         pmc = PMC()
-        if kernel32.GetProcessMemoryInfo(ctypes.c_void_p(process_handle), ctypes.byref(pmc), ctypes.sizeof(pmc)):
+        if kernel32.GetProcessMemoryInfo(
+            ctypes.c_void_p(process_handle), ctypes.byref(pmc), ctypes.sizeof(pmc)
+        ):
             return round(pmc.WorkingSetSize / (1024 * 1024), 1)
     except (AttributeError, OSError, ImportError):
         pass
@@ -1158,7 +1178,6 @@ def _get_memory_usage_mb() -> float:
     except (FileNotFoundError, IOError, IndexError):
         pass
     return 0.0
-
 
 
 @app.get("/dashboard", include_in_schema=False)

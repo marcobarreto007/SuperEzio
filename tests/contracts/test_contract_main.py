@@ -85,9 +85,10 @@ def test_sentiment_services_start_and_stop(monkeypatch):
     stopped = []
 
     class FakeMonitor:
-        def __init__(self, watchlist, interval_minutes=15):
+        def __init__(self, watchlist, interval_minutes=15, db_path=None):
             self.watchlist = watchlist
             self.interval_minutes = interval_minutes
+            self.db_path = db_path
 
         def start(self):
             started.append((self.watchlist, self.interval_minutes))

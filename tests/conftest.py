@@ -18,6 +18,7 @@ os.environ["SUPEREZIO_EDGE_SECRET"] = "pytest-secret-key-12345"
 _PYTEST_OUTPUT = Path(_PROJECT_ROOT) / "output" / "pytest" / f"process-{os.getpid()}"
 os.environ["SUPEREZIO_TRACE_DIR"] = str(_PYTEST_OUTPUT / "traces")
 os.environ["SUPEREZIO_DECISION_TRACE_DB"] = str(_PYTEST_OUTPUT / "decision-traces.sqlite3")
+os.environ["SUPEREZIO_SENTIMENT_DB"] = str(_PYTEST_OUTPUT / "sentiment.sqlite3")
 
 from helpers import (  # noqa: E402
     CANNED_TECHNICALS,

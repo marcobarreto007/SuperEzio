@@ -86,6 +86,15 @@ def _get_sentiment_monitor(request: Request):
     return monitor
 
 
+def _sentiment_db_path():
+    from pathlib import Path
+
+    configured = os.getenv("SUPEREZIO_SENTIMENT_DB", "").strip()
+    if configured:
+        return Path(configured)
+    return Path(__file__).resolve().parent.parent.parent / "runtime" / "investor.db"
+
+
 def _parse_iso_datetime(value: Any) -> datetime | None:
     if not value:
         return None
@@ -2186,9 +2195,8 @@ async def get_cockpit_summary(request: Request) -> dict[str, Any]:
     # â”€â”€ Sentiment DB stats (SQLite long-term history) â”€â”€
     try:
         import sqlite3
-        from pathlib import Path as _Path
 
-        _db = _Path(__file__).resolve().parent.parent.parent / "runtime" / "investor.db"
+        _db = _sentiment_db_path()
         if _db.exists():
             _conn = sqlite3.connect(str(_db))
             _cnt = _conn.execute("SELECT COUNT(*) FROM sentiment_history").fetchone()
@@ -2314,10 +2322,9 @@ async def get_sentiment_history_db(
 ) -> dict[str, Any]:
     """Return long-term sentiment history from SQLite."""
     import sqlite3
-    from pathlib import Path
 
     clean = _sanitize_ticker(ticker)
-    db_path = Path(__file__).resolve().parent.parent.parent / "runtime" / "investor.db"
+    db_path = _sentiment_db_path()
     if not db_path.exists():
         return {"ticker": clean, "days": days, "history": [], "count": 0}
 
