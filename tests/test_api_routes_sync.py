@@ -1439,6 +1439,7 @@ def test_frontend_operational_truth_contract():
     cockpit_js = Path("frontend/js/cockpit.js").read_text(encoding="utf-8")
     trust_js = Path("frontend/js/trust-score.js").read_text(encoding="utf-8")
     init_js = Path("frontend/js/init.js").read_text(encoding="utf-8")
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
 
     assert 'core: { state: details ? "online" : "offline" }' in health_js
     assert 'provider: broker.provider || "IBKR"' in health_js
@@ -1452,6 +1453,13 @@ def test_frontend_operational_truth_contract():
     assert 'score == null ? "TRUST: --"' in trust_js
     assert "open hypotheses: " in init_js
     assert "audit evidence, not broker positions" in init_js
+    assert "CORE CHECKING · PAPER MODE · IBKR CHECKING" in html
+    assert 'id="f51-verdict">READY<' in html
+    assert 'id="sdca-verdict">READY<' in html
+    assert 'id="neural-verdict">READY<' in html
+    assert 'id="trinity-verdict">READY<' in html
+    assert 'id="guardrails-summary">--<' in html
+    assert 'id="mangala-verdict">IDLE · PAPER<' in html
 
 
 def test_trade_history_exposes_semantic_counts(client_with_mock_pipeline):

@@ -74,7 +74,7 @@
       </div>
       <div class="topbar__connection">
         <span class="topbar__conn-dot" id="sys-dot" title="Checking..."></span>
-        <span class="topbar__conn-text" id="cockpit-connection">DESCONECTADO</span>
+        <span class="topbar__conn-text" id="cockpit-connection">CORE CHECKING · PAPER MODE · IBKR CHECKING</span>
       </div>
       <button class="topbar__icon-btn broker-chip--unknown" id="broker-status-btn" title="IBKR paper link status" type="button" aria-label="IBKR paper link status"><i data-lucide="landmark" width="14" height="14"></i><span id="broker-status-label">IBKR</span></button>
       <button class="topbar__icon-btn" id="sdca-lab-btn" title="SDCA Cognitive Risk Firewall Lab" type="button"><i data-lucide="shield-alert" width="14" height="14"></i></button>
@@ -168,7 +168,7 @@
       <div class="expert-panel__bar">
         <span class="expert-panel__title">EXPERT PANEL</span>
         <div id="pipeline-progress"></div>
-        <span class="expert-panel__status" id="deep-panel-status">INACTIVE</span>
+        <span class="expert-panel__status" id="deep-panel-status">READY</span>
       </div>
 
       <div class="expert-panel__cards" id="expert-panel-cards">
@@ -178,10 +178,10 @@
           <div class="expert-card__hd">
             <span class="expert-card__badge expert-card__badge--f51">F51</span>
             <span class="expert-card__name">Veracity Consensus</span>
-            <span class="expert-card__verdict" id="f51-verdict">WAIT</span>
+            <span class="expert-card__verdict" id="f51-verdict">READY</span>
           </div>
           <div class="expert-card__bd" id="f51-body">
-            <div class="empty-state">Aguardando veredito F51.</div>
+            <div class="empty-state">No active analysis.</div>
           </div>
           <div class="expert-card__trust">
             <span class="trust-label">data</span>
@@ -194,10 +194,10 @@
           <div class="expert-card__hd">
             <span class="expert-card__badge expert-card__badge--sdca">SDCA</span>
             <span class="expert-card__name">Risk Firewall</span>
-            <span class="expert-card__verdict" id="sdca-verdict">WAIT</span>
+            <span class="expert-card__verdict" id="sdca-verdict">READY</span>
           </div>
           <div class="expert-card__bd" id="sdca-body">
-            <div class="empty-state">Aguardando firewall.</div>
+            <div class="empty-state">No decision submitted.</div>
           </div>
           <div class="expert-card__trust">
             <span class="trust-label">risk</span>
@@ -210,10 +210,10 @@
           <div class="expert-card__hd">
             <span class="expert-card__badge expert-card__badge--neural">NRL</span>
             <span class="expert-card__name">Neural Prediction</span>
-            <span class="expert-card__verdict" id="neural-verdict">WAIT</span>
+            <span class="expert-card__verdict" id="neural-verdict">READY</span>
           </div>
           <div class="expert-card__bd" id="neural-body">
-            <div class="empty-state">Aguardando predicao neural.</div>
+            <div class="empty-state">No active inference.</div>
           </div>
           <div class="expert-card__trust">
             <span class="trust-label">signal</span>
@@ -226,10 +226,10 @@
           <div class="expert-card__hd">
             <span class="expert-card__badge expert-card__badge--trinity">TRI</span>
             <span class="expert-card__name">Trinity Deliberation</span>
-            <span class="expert-card__verdict" id="trinity-verdict">--</span>
+            <span class="expert-card__verdict" id="trinity-verdict">READY</span>
           </div>
           <div class="expert-card__bd" id="trinity-body">
-            <div class="empty-state">Sem deliberacao.</div>
+            <div class="empty-state">No deliberation running.</div>
           </div>
           <div class="expert-card__trust">
             <span class="trust-label">consensus</span>
@@ -242,10 +242,10 @@
           <div class="expert-card__hd">
             <span class="expert-card__badge expert-card__badge--guard">GRD</span>
             <span class="expert-card__name">Guardrail Hub</span>
-            <span class="expert-card__verdict" id="guardrails-summary">--/30</span>
+            <span class="expert-card__verdict" id="guardrails-summary">--</span>
           </div>
           <div class="expert-card__bd" id="guardrails-body">
-            <div class="empty-state">Aguardando guardrails.</div>
+            <div class="empty-state">Health evidence unavailable.</div>
           </div>
           <div class="expert-card__trust">
             <span class="trust-label">security</span>
@@ -258,10 +258,10 @@
           <div class="expert-card__hd">
             <span class="expert-card__badge expert-card__badge--mangala">MNG</span>
             <span class="expert-card__name">Mangala Tracker</span>
-            <span class="expert-card__verdict" id="mangala-verdict">$20.00</span>
+            <span class="expert-card__verdict" id="mangala-verdict">IDLE · PAPER</span>
           </div>
           <div class="expert-card__bd" id="mangala-body">
-            <div class="empty-state">Carregando compounding...</div>
+            <div class="empty-state">No paper operation running.</div>
           </div>
           <div class="expert-card__trust">
             <span class="trust-label">compounding</span>
@@ -283,12 +283,12 @@
 
   <!-- ===== BOTTOM BAR ===== -->
   <footer class="bot-bar" id="cockpit-statusbar" aria-label="System status bar">
-    <span class="bot-bar__item" id="statusbar-ceo">CEO: CHECKING</span>
-    <span class="bot-bar__item" id="statusbar-genie">Genie: CHECKING</span>
-    <span class="bot-bar__item" id="statusbar-deep">Deep: CHECKING</span>
+    <span class="bot-bar__item" id="statusbar-ceo">CORE: CHECKING</span>
+    <span class="bot-bar__item" id="statusbar-genie">CEO: CHECKING</span>
+    <span class="bot-bar__item" id="statusbar-deep">DATA: UNKNOWN</span>
     <span class="bot-bar__item" id="statusbar-ibkr">IBKR: CHECKING</span>
-    <span class="bot-bar__item" id="statusbar-guardrails">Guardrails: --</span>
-    <span class="bot-bar__item" id="statusbar-latency">Last run: --</span>
+    <span class="bot-bar__item" id="statusbar-guardrails">MODE: PAPER</span>
+    <span class="bot-bar__item" id="statusbar-latency">PIPELINE: IDLE</span>
     <span class="bot-bar__item" id="statusbar-cost">Cost: $0.00</span>
   </footer>
 

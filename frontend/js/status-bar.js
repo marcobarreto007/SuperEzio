@@ -22,6 +22,10 @@
     setItem("statusbar-ibkr", upper(broker.provider) + ": " + upper(broker.state), tone(broker.state));
     setItem("statusbar-guardrails", "MODE: " + mode, mode === "PAPER" ? "is-warn" : "is-ok");
     setItem("statusbar-latency", "PIPELINE: " + upper(pipeline.state), tone(pipeline.state));
+    var marketStatus = $("live-status");
+    if (marketStatus) marketStatus.textContent = "DATA " + upper(data.state);
+    var marketTs = $("live-ts");
+    if (marketTs) marketTs.textContent = data.asOf || "";
     var label = $("cockpit-connection");
     if (label) { label.textContent = "CORE " + upper(core.state) + " · " + mode + " MODE · " + upper(broker.provider) + " " + upper(broker.state); label.classList.toggle("is-online", core.state === "online"); }
     var brokerLabel = $("broker-status-label");
