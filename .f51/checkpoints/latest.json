@@ -163,6 +163,38 @@
       "trace_quarantine": "187 pytest trace rows copied to runtime/quarantine; operator trace restored to its prior tracked content"
     }
   },
+  "phase_4_impact_map": {
+    "status": "in_progress",
+    "problem": "O rascunho TD persiste, mas ainda não possui máquina de estados broker-neutral para aprovação, entrada humana e confirmação externa.",
+    "architecture_touched": [
+      "state machine de trade manual",
+      "eventos append-only do workflow",
+      "approval ligado ao ticket",
+      "endpoints live-manual fail-closed"
+    ],
+    "files_planned": [
+      "src/core/trading/manual_trade_workflow.py",
+      "src/core/trading/workflow_store.py",
+      "src/agent_server/endpoints.py",
+      "tests/test_manual_trade_workflow.py",
+      "tests/test_trade_workflow_store.py",
+      "tests/test_api_routes_sync.py"
+    ],
+    "risks": [
+      "pular gate por transição arbitrária",
+      "aprovar ticket diferente",
+      "confundir entrada manual com transmissão pelo sistema",
+      "confirmar corretora sem referência e operador"
+    ],
+    "smallest_safe_patch": "Enforce allowed transitions, persist evidence events, require linked human approval and explicit operator/broker confirmations; expose no transport adapter.",
+    "verification": [
+      "illegal transition tests",
+      "restart through each manual state",
+      "no broker adapter import/call assertion",
+      "Ruff, pytest and browser smoke"
+    ],
+    "go_live": "BLOCKED_PENDING_TRUSTED_QUOTE_MONEY_GATE_AND_TD_PREVIEW"
+  },
   "next_step": "Fase 4: criar o workflow broker-neutral de ticket manual TD e remover IBKR/paper do caminho TD.",
   "owner": "Codex"
 }
