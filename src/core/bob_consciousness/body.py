@@ -224,30 +224,13 @@ def _check_ibkr_health() -> tuple:
 
 
 def _check_journal_health() -> tuple:
-    """Check if paper journal is writable."""
+    """Check journal storage without adding a synthetic financial record."""
     try:
-        from core.trading.paper_journal import DEFAULT_JOURNAL_PATH
+        from core.pipeline.f51_trade_gate import is_journal_healthy
+        from core.trading.paper_journal import PaperJournal
 
-        path = DEFAULT_JOURNAL_PATH
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "a", encoding="utf-8") as fh:
-            fh.write(
-                json.dumps(
-                    {
-                        "trade_id": f"hb-{int(time.time())}",
-                        "ticker": "__HEARTBEAT__",
-                        "direction": "none",
-                        "entry_date": datetime.now(timezone.utc).isoformat(),
-                        "entry_price": 0.0,
-                        "shares": 0,
-                        "outcome": "heartbeat",
-                        "created_at": datetime.now(timezone.utc).isoformat(),
-                    }
-                )
-                + "\n"
-            )
-            fh.flush()
-        return True, ""
+        healthy = is_journal_healthy(str(PaperJournal().path))
+        return (True, "") if healthy else (False, "Journal storage probe failed")
     except Exception as e:
         return False, f"Journal unwritable: {str(e)[:100]}"
 

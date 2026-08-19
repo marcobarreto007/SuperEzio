@@ -1,3 +1,4 @@
+import hashlib
 import json
 from unittest.mock import patch
 
@@ -299,3 +300,17 @@ def test_attached_chart_context_blocks_false_no_data_answer(client_with_mock_pip
     assert trace["repair_reason"] == "model_denied_attached_chart_context"
     assert mock_p.last_stream_kwargs.get("ticker") == "DIBS"
     assert "DIBS" in mock_p.last_stream_kwargs.get("context", "")
+
+
+def test_journal_health_probe_never_appends_financial_rows(monkeypatch, tmp_path):
+    from core.bob_consciousness.body import _check_journal_health
+
+    journal = tmp_path / "operator-paper-journal.jsonl"
+    journal.write_text('{"trade_id":"real-row"}\n', encoding="utf-8")
+    before = hashlib.sha256(journal.read_bytes()).hexdigest()
+    monkeypatch.setenv("SUPEREZIO_PAPER_JOURNAL_PATH", str(journal))
+
+    healthy, detail = _check_journal_health()
+
+    assert healthy is True, detail
+    assert hashlib.sha256(journal.read_bytes()).hexdigest() == before
