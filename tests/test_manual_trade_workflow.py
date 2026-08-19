@@ -22,11 +22,14 @@ def _ticket(**overrides: object) -> dict[str, object]:
         "submitted_to_broker": False,
         "transmission_capability": False,
         "symbol": "QQQ",
+        "currency": "USD",
         "side": "BUY",
         "quantity": 1,
         "limit_price": 100.0,
         "stop_price": 98.0,
         "planned_stop_risk": 2.0,
+        "commission": {"eligible": False, "verified_at": "2026-08-18"},
+        "require_commission_free": False,
         "expires_at": (NOW + timedelta(minutes=5)).isoformat(),
         "required_gates": {
             "server_side_quote": False,
@@ -55,25 +58,50 @@ def _all_gates() -> dict[str, bool]:
     }
 
 
+def _preview(**overrides: object) -> dict[str, object]:
+    preview: dict[str, object] = {
+        "operator": "marco",
+        "commission_confirmed": True,
+        "commission_free_eligibility_confirmed": False,
+        "digital_trade": True,
+        "strategy_order": False,
+        "td_easy_trade": False,
+        "estimated_commission": 0,
+        "estimated_spread": 0.02,
+        "estimated_fx": 0,
+        "estimated_ecn_fees": 0,
+        "estimated_regulatory_fees": 0,
+        "estimated_other_fees": 0,
+        "total_estimated_cost": 0.02,
+        "fx_conversion_required": False,
+        "fx_rate": None,
+        "cost_currency": "USD",
+        "td_preview_as_of": NOW.isoformat(),
+        "platform": "WEBBROKER",
+    }
+    preview.update(overrides)
+    return preview
+
+
+def _gate_and_preview(workflow: ManualTradeWorkflow, ticket_id: str = "manual-ticket-1") -> None:
+    workflow.mark_gated(
+        ticket_id,
+        evidence=_all_gates(),
+        evidence_records={"money_gate": {"passed": True, "evidence_hash": "f" * 64}},
+    )
+    workflow.record_td_preview(ticket_id, _preview(), actor="marco", now=NOW)
+
+
 def test_manual_workflow_survives_restart_and_never_transports(tmp_path: Path) -> None:
     workflow = _workflow(tmp_path)
-    workflow.mark_gated("manual-ticket-1", evidence=_all_gates())
-    approval = workflow.request_approval("manual-ticket-1", actor="marco")
+    _gate_and_preview(workflow)
+    approval = workflow.request_approval("manual-ticket-1", actor="marco", now=NOW)
 
     restarted = ManualTradeWorkflow(TradeWorkflowStore(workflow.store.path))
-    restarted.approve("manual-ticket-1", approval.id, actor="marco")
+    restarted.approve("manual-ticket-1", approval.id, actor="marco", now=NOW)
     entered = restarted.record_manual_entry(
         "manual-ticket-1",
-        {
-            "commission_confirmed": True,
-            "estimated_commission": 0,
-            "estimated_spread": 0.02,
-            "estimated_fx": 1.25,
-            "estimated_other_fees": 0,
-            "total_estimated_cost": 1.27,
-            "td_preview_as_of": NOW.isoformat(),
-            "platform": "WEBBROKER",
-        },
+        _preview(),
         actor="marco",
         now=NOW,
     )
@@ -94,7 +122,7 @@ def test_manual_workflow_survives_restart_and_never_transports(tmp_path: Path) -
     assert confirmed["transmission_capability"] is False
     assert confirmed["submitted_to_broker"] is True
     assert confirmed["broker_confirmation"]["confirmation_ref"] == "TD-ORDER-1234"
-    assert len(restarted.status("manual-ticket-1")["events"]) == 6
+    assert len(restarted.status("manual-ticket-1")["events"]) == 7
 
 
 def test_cannot_request_approval_before_all_gates(tmp_path: Path) -> None:
@@ -110,35 +138,35 @@ def test_cannot_request_approval_before_all_gates(tmp_path: Path) -> None:
 
 def test_approval_cannot_be_used_for_another_ticket(tmp_path: Path) -> None:
     workflow = _workflow(tmp_path)
-    workflow.mark_gated("manual-ticket-1", evidence=_all_gates())
-    approval = workflow.request_approval("manual-ticket-1")
+    _gate_and_preview(workflow)
+    approval = workflow.request_approval("manual-ticket-1", now=NOW)
     other = _ticket(ticket_id="manual-ticket-2", fingerprint="e" * 64)
     workflow.store.create_ticket(other)
-    workflow.mark_gated("manual-ticket-2", evidence=_all_gates())
-    workflow.request_approval("manual-ticket-2")
+    _gate_and_preview(workflow, "manual-ticket-2")
+    workflow.request_approval("manual-ticket-2", now=NOW)
 
     with pytest.raises(ManualTradeWorkflowError, match="does not belong"):
-        workflow.approve("manual-ticket-2", approval.id, actor="marco")
+        workflow.approve("manual-ticket-2", approval.id, actor="marco", now=NOW)
 
 
 def test_manual_entry_requires_fresh_balanced_td_preview(tmp_path: Path) -> None:
     workflow = _workflow(tmp_path)
-    workflow.mark_gated("manual-ticket-1", evidence=_all_gates())
-    approval = workflow.request_approval("manual-ticket-1")
-    workflow.approve("manual-ticket-1", approval.id, actor="marco")
+    _gate_and_preview(workflow)
+    approval = workflow.request_approval("manual-ticket-1", now=NOW)
+    workflow.approve("manual-ticket-1", approval.id, actor="marco", now=NOW)
 
     with pytest.raises(ManualTradeWorkflowError, match="does not match"):
         workflow.record_manual_entry(
             "manual-ticket-1",
-            {
-                "commission_confirmed": True,
-                "estimated_commission": 0,
-                "estimated_spread": 0.02,
-                "estimated_fx": 1.25,
-                "total_estimated_cost": 99,
-                "td_preview_as_of": NOW.isoformat(),
-                "platform": "WEBBROKER",
-            },
+            _preview(total_estimated_cost=99),
+            actor="marco",
+            now=NOW,
+        )
+
+    with pytest.raises(ManualTradeWorkflowError, match="changed after approval"):
+        workflow.record_manual_entry(
+            "manual-ticket-1",
+            _preview(estimated_spread=0.04, total_estimated_cost=0.04),
             actor="marco",
             now=NOW,
         )

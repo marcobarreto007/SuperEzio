@@ -728,6 +728,34 @@ def test_td_manual_workflow_requires_gates_and_records_only_human_confirmation(
     assert gated.status_code == 200
     assert gated.json()["ticket"]["status"] == "GATED"
     assert gated.json()["money_gate"]["passed"] is True
+    preview_time = datetime.now(timezone.utc)
+    preview_payload = {
+        "operator": "marco",
+        "commission_confirmed": True,
+        "commission_free_eligibility_confirmed": True,
+        "digital_trade": True,
+        "strategy_order": False,
+        "td_easy_trade": False,
+        "estimated_commission": 0,
+        "estimated_spread": 0.03,
+        "estimated_fx": 1.5,
+        "estimated_ecn_fees": 0,
+        "estimated_regulatory_fees": 0,
+        "estimated_other_fees": 0,
+        "total_estimated_cost": 1.53,
+        "fx_conversion_required": True,
+        "fx_rate": 1.35,
+        "cost_currency": "USD",
+        "td_preview_as_of": preview_time.isoformat(),
+        "platform": "WEBBROKER",
+    }
+    recorded_preview = client.post(
+        f"/trade/manual/{ticket_id}/td-preview",
+        headers=headers(),
+        json=preview_payload,
+    )
+    assert recorded_preview.status_code == 200
+    assert len(recorded_preview.json()["preview_evidence_hash"]) == 64
     approval_response = client.post(
         f"/trade/manual/{ticket_id}/request-approval",
         headers=headers(),
@@ -745,21 +773,10 @@ def test_td_manual_workflow_requires_gates_and_records_only_human_confirmation(
     assert approved.json()["ticket"]["status"] == "APPROVED"
     assert approved.json()["submitted_to_broker"] is False
 
-    preview_time = datetime.now(timezone.utc)
     entered = client.post(
         f"/trade/manual/{ticket_id}/entered",
         headers=headers(),
-        json={
-            "operator": "marco",
-            "commission_confirmed": True,
-            "estimated_commission": 0,
-            "estimated_spread": 0.03,
-            "estimated_fx": 1.5,
-            "estimated_other_fees": 0,
-            "total_estimated_cost": 1.53,
-            "td_preview_as_of": preview_time.isoformat(),
-            "platform": "WEBBROKER",
-        },
+        json=preview_payload,
     )
     assert entered.status_code == 200
     assert entered.json()["ok"] is False
@@ -783,7 +800,7 @@ def test_td_manual_workflow_requires_gates_and_records_only_human_confirmation(
     status = client.get(f"/trade/status/{ticket_id}").json()
     assert status["status"] == "BROKER_CONFIRMED"
     assert status["broker_confirmation"]["confirmation_ref"] == "TD-ORDER-TEST-1234"
-    assert len(status["events"]) == 6
+    assert len(status["events"]) == 7
 
 
 def test_td_commission_free_route_exposes_official_108_etf_universe(

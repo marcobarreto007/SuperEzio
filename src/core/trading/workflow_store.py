@@ -33,6 +33,7 @@ _ALLOWED_STATUS_TRANSITIONS = {
     "CANCELLED": set(),
 }
 _MUTABLE_EVIDENCE_FIELDS = {
+    "approval_context_hash",
     "broker_confirmation",
     "buying_power_gate",
     "costs",
@@ -364,6 +365,87 @@ class TradeWorkflowStore:
         if updated is None:  # pragma: no cover
             raise WorkflowStoreError("ticket disappeared after transition")
         return updated
+
+    def attach_ticket_evidence(
+        self,
+        ticket_id: str,
+        *,
+        expected_status: str,
+        actor: str,
+        idempotency_key: str,
+        evidence_patch: Mapping[str, Any],
+        details: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Attach allowlisted immutable evidence without pretending a state transition occurred."""
+
+        event_key = f"evidence:{ticket_id}:{idempotency_key.strip()}"
+        if not actor.strip() or not idempotency_key.strip():
+            raise WorkflowStoreError("actor and idempotency_key are required")
+        patch = dict(evidence_patch)
+        unsupported = sorted(set(patch) - _MUTABLE_EVIDENCE_FIELDS)
+        if unsupported:
+            raise WorkflowConflictError(
+                "unsupported mutable evidence fields: " + ", ".join(unsupported)
+            )
+        with self._lock, self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT * FROM trade_tickets WHERE ticket_id = ?", (ticket_id,)
+            ).fetchone()
+            if row is None:
+                connection.rollback()
+                raise WorkflowStoreError(f"unknown ticket: {ticket_id}")
+            prior = connection.execute(
+                "SELECT 1 FROM workflow_events WHERE event_key = ?", (event_key,)
+            ).fetchone()
+            if prior is not None:
+                connection.commit()
+                return self._decode_ticket(row)
+            if str(row["status"]).upper() != expected_status.strip().upper():
+                connection.rollback()
+                raise WorkflowConflictError(
+                    f"ticket status is {row['status']}, expected {expected_status}"
+                )
+            record = json.loads(row["record_json"])
+            immutable_attachment_fields = {"td_preview", "costs", "approval_context_hash"}
+            if any(
+                field in immutable_attachment_fields
+                and field in record
+                and record[field] not in (None, {}, "")
+                and record[field] != value
+                for field, value in patch.items()
+            ):
+                connection.rollback()
+                raise WorkflowConflictError("existing ticket evidence is immutable")
+            record.update(patch)
+            now = _utc_now()
+            connection.execute(
+                "UPDATE trade_tickets SET record_json=?, updated_at=?, version=version+1 "
+                "WHERE ticket_id=?",
+                (_canonical_json(record), now, ticket_id),
+            )
+            connection.execute(
+                """
+                INSERT INTO workflow_events(
+                    event_key, ticket_id, event_type, from_status, to_status,
+                    actor, details_json, created_at
+                ) VALUES (?, ?, 'evidence_attached', ?, ?, ?, ?, ?)
+                """,
+                (
+                    event_key,
+                    ticket_id,
+                    row["status"],
+                    row["status"],
+                    actor.strip(),
+                    _canonical_json(details or {}),
+                    now,
+                ),
+            )
+            connection.commit()
+        attached = self.get_ticket(ticket_id)
+        if attached is None:  # pragma: no cover
+            raise WorkflowStoreError("ticket disappeared after evidence attachment")
+        return attached
 
     def get_events(self, ticket_id: str) -> list[dict[str, Any]]:
         with self._lock, self._connect() as connection:

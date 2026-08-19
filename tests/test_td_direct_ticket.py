@@ -184,6 +184,23 @@ def test_manifest_loader_fails_closed_for_invalid_data(tmp_path):
         load_td_commission_free_manifest(path)
 
 
+def test_manifest_loader_fails_closed_when_official_list_is_stale(tmp_path):
+    path = tmp_path / "stale.json"
+    path.write_text(
+        json.dumps(
+            {
+                "verified_at": "2020-01-01",
+                "source_url": "https://www.td.com/ca/en/investing/direct-investing/commission-free-etfs",
+                "symbols": {"CAN": ["TTP"], "US": ["QQQ"]},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(TDDirectTicketError, match="unavailable or invalid"):
+        load_td_commission_free_manifest(path)
+
+
 def test_commission_free_eligibility_distinguishes_listed_etf_from_stock():
     assert td_commission_eligibility("QQQ", "NASDAQ")["eligible"] is True
     assert td_commission_eligibility("AAPL", "NASDAQ")["eligible"] is False

@@ -39,6 +39,7 @@ class ApprovalRequest:
     resolved_by: str = ""
     ticket_id: str = ""
     ticket_fingerprint: str = ""
+    context_hash: str = ""
 
 
 @dataclass
@@ -100,13 +101,14 @@ class ApprovalGate:
         *,
         ticket_id: str = "",
         ticket_fingerprint: str = "",
+        context_hash: str = "",
     ) -> ApprovalRequest:
         if self._store is not None and ticket_id:
             existing = self._store.get_approval_for_ticket(ticket_id)
             if existing is not None:
                 return self._request_from_dict(existing)
         request_id = (
-            f"apr-{ticket_fingerprint[:24]}"
+            f"apr-{ticket_fingerprint[:12]}-{context_hash[:12]}"
             if ticket_id and ticket_fingerprint
             else f"apr-{uuid.uuid4().hex}"
             if self._store is not None
@@ -124,6 +126,7 @@ class ApprovalGate:
             created_at=time.time(),
             ticket_id=ticket_id,
             ticket_fingerprint=ticket_fingerprint,
+            context_hash=context_hash,
         )
         self._next_id += 1
 

@@ -194,6 +194,13 @@ def load_td_commission_free_manifest(
         manifest = json.loads(path.read_text(encoding="utf-8"))
         canadian = manifest["symbols"]["CAN"]
         us = manifest["symbols"]["US"]
+        verified_date = datetime.fromisoformat(str(manifest["verified_at"])).date()
+        age_days = (datetime.now(timezone.utc).date() - verified_date).days
+        max_age_days = _positive_env_int("SUPEREZIO_TD_COMMISSION_LIST_MAX_AGE_DAYS", "7")
+        if age_days < 0 or age_days > max_age_days:
+            raise ValueError("commission-free manifest is stale or future-dated")
+        if not str(manifest["source_url"]).startswith("https://www.td.com/"):
+            raise ValueError("commission-free manifest source is not official TD")
         if not isinstance(canadian, list) or not isinstance(us, list):
             raise TypeError("symbol collections must be lists")
         symbols = [str(item).strip().upper() for item in [*canadian, *us]]
@@ -346,6 +353,7 @@ def build_td_direct_ticket(
         "stop_price": round(stop_price, 4) if stop_price is not None else None,
         "account_type": account_type,
         "commission": commission,
+        "require_commission_free": require_commission_free,
         "quote_as_of": quote_as_of.isoformat(),
         "quote_evidence_hash": evidence_hash,
     }
@@ -390,6 +398,7 @@ def build_td_direct_ticket(
         "planned_stop_risk": planned_stop_risk,
         "account_type": account_type,
         "commission": commission,
+        "require_commission_free": require_commission_free,
         "thesis": thesis,
         "invalidation": invalidation,
         "quote": {

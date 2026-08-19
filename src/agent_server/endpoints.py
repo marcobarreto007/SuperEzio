@@ -2623,6 +2623,27 @@ async def request_manual_trade_approval(
     }
 
 
+@router.post("/trade/manual/{ticket_id}/td-preview")
+async def record_manual_td_preview(
+    ticket_id: str, payload: dict[str, Any], request: Request
+) -> dict[str, Any]:
+    """Record the complete official TD cost preview before human approval."""
+
+    _require_td_ticket_auth(request)
+    operator = _manual_operator(payload)
+    try:
+        ticket = _manual_workflow().record_td_preview(ticket_id, payload, actor=operator)
+    except (ManualTradeWorkflowError, WorkflowConflictError, WorkflowStoreError) as exc:
+        raise _manual_workflow_http_error(exc) from exc
+    return {
+        "ok": True,
+        "ticket": ticket,
+        "preview_evidence_hash": ticket["td_preview"]["evidence_hash"],
+        "submitted_to_broker": False,
+        "system_transmitted": False,
+    }
+
+
 @router.post("/trade/manual/{ticket_id}/money-gate")
 async def run_manual_trade_money_gate(
     ticket_id: str, payload: dict[str, Any], request: Request

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import re
+import hashlib
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
@@ -18,6 +19,7 @@ from core.trading.workflow_store import (
     WorkflowConflictError,
     WorkflowStoreError,
 )
+from core.trading.td_cost_gate import TDCostGateError, normalize_td_preview_costs
 
 
 _REQUIRED_AUTOMATED_GATES = {
@@ -140,10 +142,25 @@ class ManualTradeWorkflow:
             actor=actor,
         )
 
-    def request_approval(self, ticket_id: str, *, actor: str = "operator") -> ApprovalRequest:
+    def request_approval(
+        self,
+        ticket_id: str,
+        *,
+        actor: str = "operator",
+        now: datetime | None = None,
+    ) -> ApprovalRequest:
         ticket = self._ticket(ticket_id)
         if ticket["status"] not in {"GATED", "AWAITING_HUMAN"}:
             raise ManualTradeWorkflowError(f"ticket is not gated: {ticket['status']}")
+        preview = dict(ticket.get("td_preview") or {})
+        context_hash = str(ticket.get("approval_context_hash") or "")
+        if not re.fullmatch(r"[0-9a-f]{64}", str(preview.get("evidence_hash") or "")):
+            raise ManualTradeWorkflowError("TD cost preview must be recorded before approval")
+        if not re.fullmatch(r"[0-9a-f]{64}", context_hash):
+            raise ManualTradeWorkflowError("approval context hash is missing")
+        current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+        if current > _aware_utc(preview.get("expires_at"), "preview.expires_at"):
+            raise ManualTradeWorkflowError("TD cost preview expired before approval")
         request = self.approvals.submit(
             str(ticket.get("symbol") or ticket.get("ticker") or ""),
             str(ticket.get("side") or ticket.get("action") or ""),
@@ -154,6 +171,7 @@ class ManualTradeWorkflow:
             reason="live-manual ticket requires explicit human approval",
             ticket_id=ticket_id,
             ticket_fingerprint=str(ticket["fingerprint"]),
+            context_hash=context_hash,
         )
         if ticket["status"] == "GATED":
             self.store.transition_ticket(
@@ -167,10 +185,64 @@ class ManualTradeWorkflow:
             )
         return request
 
-    def approve(self, ticket_id: str, approval_id: str, *, actor: str) -> dict[str, Any]:
+    def record_td_preview(
+        self,
+        ticket_id: str,
+        preview: Mapping[str, Any],
+        *,
+        actor: str,
+        now: datetime | None = None,
+    ) -> dict[str, Any]:
+        """Attach the official TD economic preview before requesting approval."""
+
+        ticket = self._ticket(ticket_id)
+        if ticket.get("status") != "GATED":
+            raise ManualTradeWorkflowError(f"ticket is not gated: {ticket.get('status')}")
+        try:
+            normalized = normalize_td_preview_costs(ticket, preview, actor=actor, now=now)
+        except TDCostGateError as exc:
+            raise ManualTradeWorkflowError(str(exc)) from exc
+        money_hash = str(dict(ticket.get("money_gate") or {}).get("evidence_hash") or "")
+        if not re.fullmatch(r"[0-9a-f]{64}", money_hash):
+            raise ManualTradeWorkflowError("Money Gate evidence is missing")
+        context_hash = hashlib.sha256(
+            f"{ticket['fingerprint']}|{money_hash}|{normalized['evidence_hash']}".encode("utf-8")
+        ).hexdigest()
+        required_gates = dict(ticket.get("required_gates") or {})
+        required_gates["td_order_preview"] = True
+        return self.store.attach_ticket_evidence(
+            ticket_id,
+            expected_status="GATED",
+            actor=actor,
+            idempotency_key=f"td-preview:{normalized['evidence_hash']}",
+            details={"preview_evidence_hash": normalized["evidence_hash"]},
+            evidence_patch={
+                "td_preview": normalized,
+                "costs": normalized,
+                "approval_context_hash": context_hash,
+                "required_gates": required_gates,
+            },
+        )
+
+    def approve(
+        self,
+        ticket_id: str,
+        approval_id: str,
+        *,
+        actor: str,
+        now: datetime | None = None,
+    ) -> dict[str, Any]:
+        ticket = self._ticket(ticket_id)
         request = self.approvals.get_request(approval_id)
         if request is None or request.ticket_id != ticket_id:
             raise ManualTradeWorkflowError("approval does not belong to this ticket")
+        if request.context_hash != str(ticket.get("approval_context_hash") or ""):
+            raise ManualTradeWorkflowError("approval context does not match TD cost preview")
+        current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+        if current > _aware_utc(
+            dict(ticket.get("td_preview") or {}).get("expires_at"), "preview.expires_at"
+        ):
+            raise ManualTradeWorkflowError("TD cost preview expired before approval")
         if request.status == ApprovalStatus.PENDING:
             request = self.approvals.approve(approval_id, approver=actor)
         if request is None or request.status != ApprovalStatus.APPROVED:
@@ -217,43 +289,25 @@ class ManualTradeWorkflow:
         current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
         if ticket.get("expires_at") and current > _aware_utc(ticket["expires_at"], "expires_at"):
             raise ManualTradeWorkflowError("ticket expired before manual entry")
-        if preview.get("commission_confirmed") is not True:
-            raise ManualTradeWorkflowError("TD preview commission must be explicitly confirmed")
-        preview_as_of = _aware_utc(preview.get("td_preview_as_of"), "td_preview_as_of")
-        if abs((current - preview_as_of).total_seconds()) > 120:
-            raise ManualTradeWorkflowError("TD preview is stale or future-dated")
-        commission = _nonnegative(preview.get("estimated_commission"), "estimated_commission")
-        spread = _nonnegative(preview.get("estimated_spread"), "estimated_spread")
-        fx = _nonnegative(preview.get("estimated_fx"), "estimated_fx")
-        other = _nonnegative(preview.get("estimated_other_fees", 0), "estimated_other_fees")
-        total = _nonnegative(preview.get("total_estimated_cost"), "total_estimated_cost")
-        if abs(total - (commission + spread + fx + other)) > 0.01:
-            raise ManualTradeWorkflowError("total_estimated_cost does not match cost components")
+        try:
+            repeated_preview = normalize_td_preview_costs(ticket, preview, actor=actor, now=current)
+        except TDCostGateError as exc:
+            raise ManualTradeWorkflowError(str(exc)) from exc
+        stored_preview = dict(ticket.get("td_preview") or {})
+        if repeated_preview["evidence_hash"] != stored_preview.get("evidence_hash"):
+            raise ManualTradeWorkflowError(
+                "TD preview changed after approval; cancel and obtain a new ticket approval"
+            )
+        preview_as_of = _aware_utc(repeated_preview.get("td_preview_as_of"), "td_preview_as_of")
         entry = {
             "actor": actor,
             "entered_at": current.isoformat(),
-            "platform": str(preview.get("platform") or "").strip(),
+            "platform": repeated_preview["platform"],
             "system_transmitted": False,
             "operator_reported_submitted": True,
         }
-        if entry["platform"] not in {
-            "WEBBROKER",
-            "TD_APP",
-            "ADVANCED_DASHBOARD",
-            "TD_ACTIVE_TRADER",
-        }:
-            raise ManualTradeWorkflowError("unsupported official TD platform")
         required_gates = dict(ticket.get("required_gates") or {})
         required_gates["td_order_preview"] = True
-        normalized_preview = {
-            "commission_confirmed": True,
-            "estimated_commission": commission,
-            "estimated_spread": spread,
-            "estimated_fx": fx,
-            "estimated_other_fees": other,
-            "total_estimated_cost": total,
-            "td_preview_as_of": preview_as_of.isoformat(),
-        }
         ticket = self.store.transition_ticket(
             ticket_id,
             expected_status="APPROVED",
@@ -265,8 +319,8 @@ class ManualTradeWorkflow:
             submitted_to_broker=True,
             evidence_patch={
                 "manual_entry": entry,
-                "td_preview": normalized_preview,
-                "costs": normalized_preview,
+                "td_preview": stored_preview,
+                "costs": stored_preview,
                 "required_gates": required_gates,
             },
         )
