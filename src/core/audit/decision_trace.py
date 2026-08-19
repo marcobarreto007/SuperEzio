@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import threading
 import time
@@ -19,7 +20,7 @@ from core.paths import resolve_project_path
 _WRITE_LOCK = threading.Lock()
 
 # Database path
-DB_PATH = resolve_project_path("runtime/investor.db")
+DB_PATH = resolve_project_path(os.getenv("SUPEREZIO_DECISION_TRACE_DB", "runtime/investor.db"))
 
 
 def _utc_now() -> str:
@@ -181,8 +182,9 @@ class TraceToken:
 class DecisionTraceLogger:
     """Append-only JSONL trace with per-node start/end/error entries."""
 
-    def __init__(self, output_dir: str | Path = "runtime/traces") -> None:
-        self.output_dir = resolve_project_path(output_dir)
+    def __init__(self, output_dir: str | Path | None = None) -> None:
+        configured = output_dir or os.getenv("SUPEREZIO_TRACE_DIR", "runtime/traces")
+        self.output_dir = resolve_project_path(configured)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.entries: list[dict[str, Any]] = []
 

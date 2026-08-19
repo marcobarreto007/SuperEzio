@@ -56,12 +56,11 @@ def make_idempotency_key(
 # Persistent Dedup
 # ═══════════════════════════════════════════════════════════════
 
-_DEDUP_DIR = Path("journal/dedup")
-
 
 def _ensure_dedup_dir() -> Path:
-    _DEDUP_DIR.mkdir(parents=True, exist_ok=True)
-    return _DEDUP_DIR
+    directory = Path(os.getenv("SUPEREZIO_DEDUP_DIR", "journal/dedup"))
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
 
 
 def is_duplicate(idempotency_key: str) -> bool:
@@ -102,7 +101,10 @@ def mark_processed(idempotency_key: str, metadata: dict[str, Any] | None = None)
         logger.warning("idempotency_key_race_lost", key=idempotency_key)
         return False
     try:
-        os.write(fd, payload)
+        offset = 0
+        while offset < len(payload):
+            offset += os.write(fd, payload[offset:])
+        os.fsync(fd)
     finally:
         os.close(fd)
     logger.info("idempotency_key_recorded", key=idempotency_key)
@@ -113,12 +115,11 @@ def mark_processed(idempotency_key: str, metadata: dict[str, Any] | None = None)
 # Dead Letter Queue
 # ═══════════════════════════════════════════════════════════════
 
-_DEAD_LETTER_DIR = Path("journal/dead_letter")
-
 
 def _ensure_dead_letter_dir() -> Path:
-    _DEAD_LETTER_DIR.mkdir(parents=True, exist_ok=True)
-    return _DEAD_LETTER_DIR
+    directory = Path(os.getenv("SUPEREZIO_DEAD_LETTER_DIR", "journal/dead_letter"))
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
 
 
 def enqueue_dead_letter(

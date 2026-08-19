@@ -15,6 +15,9 @@ sys.path.insert(0, _PROJECT_ROOT)  # scripts/ acessível via "from scripts impor
 os.environ["DISABLE_OTEL"] = "1"
 os.environ["SUPEREZIO_EDGE_AUTH"] = "false"
 os.environ["SUPEREZIO_EDGE_SECRET"] = "pytest-secret-key-12345"
+_PYTEST_OUTPUT = Path(_PROJECT_ROOT) / "output" / "pytest" / f"process-{os.getpid()}"
+os.environ["SUPEREZIO_TRACE_DIR"] = str(_PYTEST_OUTPUT / "traces")
+os.environ["SUPEREZIO_DECISION_TRACE_DB"] = str(_PYTEST_OUTPUT / "decision-traces.sqlite3")
 
 from helpers import (  # noqa: E402
     CANNED_TECHNICALS,
@@ -55,6 +58,7 @@ def isolated_trading_state(monkeypatch, tmp_path):
     """Never let pytest open operator trading state or dead-letter storage."""
 
     monkeypatch.setenv("SUPEREZIO_TRADING_STATE_DB", str(tmp_path / "trading-state.sqlite3"))
+    monkeypatch.setenv("SUPEREZIO_DEDUP_DIR", str(tmp_path / "dedup"))
     monkeypatch.setenv("SUPEREZIO_DEAD_LETTER_DIR", str(tmp_path / "dead-letter"))
 
 
