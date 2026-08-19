@@ -6,12 +6,15 @@ A (Frontend UI) -> B (Backend Server) -> C (Pipeline/Bob/LLM) -> B -> A.
 
 from __future__ import annotations
 
+import asyncio
+import inspect
 import json
 import time
 import unittest.mock
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
+import httpx
 import pytest
 from fastapi import Request
 from fastapi.testclient import TestClient
@@ -144,6 +147,50 @@ def test_health_details(client_with_mock_pipeline):
     assert data["mission"]["broker"]["ibkr"]["connection"] == "offline"
     assert data["mission"]["broker"]["ibkr"]["mode"] == "offline"
     assert data["mission"]["broker"]["ibkr"]["can_submit_orders"] is False
+
+
+@pytest.mark.asyncio
+async def test_slow_cockpit_probe_does_not_block_liveness(
+    client_with_mock_pipeline, monkeypatch
+):
+    """Slow synchronous probes must run outside the API event loop."""
+    import agent_server.endpoints as endpoints
+
+    slow_snapshot = {
+        "provider": "IBKR",
+        "connected": False,
+        "connection": "offline",
+        "mode": "offline",
+        "paper": False,
+        "can_submit_orders": False,
+        "equity": "0.00",
+        "positions_count": 0,
+        "positions": [],
+        "orders_count": 0,
+    }
+
+    def blocked_broker_probe():
+        time.sleep(0.5)
+        return slow_snapshot
+
+    monkeypatch.setattr(endpoints, "_cockpit_portfolio_snapshot", blocked_broker_probe)
+
+    routes = {route.path: route.endpoint for route in app.routes if hasattr(route, "endpoint")}
+    for path in ("/health/details", "/cockpit/portfolio", "/cockpit/summary"):
+        assert not inspect.iscoroutinefunction(routes[path]), f"{path} would block the event loop"
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        started = time.perf_counter()
+        slow_request = asyncio.create_task(client.get("/cockpit/portfolio"))
+        await asyncio.sleep(0)
+        liveness = await client.get("/health")
+        elapsed = time.perf_counter() - started
+        slow_response = await slow_request
+
+    assert liveness.status_code in (200, 503)
+    assert slow_response.status_code == 200
+    assert elapsed < 0.25, f"liveness waited {elapsed:.3f}s for a slow broker probe"
 
 
 def test_health_details_probes_port_from_url(client_with_mock_pipeline, monkeypatch):

@@ -2095,7 +2095,7 @@ async def list_evidence_runs() -> dict:
 
 
 @router.get("/cockpit/portfolio")
-async def get_cockpit_portfolio() -> dict[str, Any]:
+def get_cockpit_portfolio() -> dict[str, Any]:
     """Return the portfolio snapshot consumed by the cockpit frontpage."""
 
     return _cockpit_portfolio_snapshot()
@@ -2179,7 +2179,7 @@ async def get_trade_history(limit: int = Query(50, ge=1, le=250)) -> dict[str, A
 
 
 @router.get("/cockpit/summary")
-async def get_cockpit_summary(request: Request) -> dict[str, Any]:
+def get_cockpit_summary(request: Request) -> dict[str, Any]:
     """Return aggregated cockpit data for the frontpage panels."""
 
     pipeline = getattr(request.app.state, "pipeline", None)

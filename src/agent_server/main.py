@@ -831,7 +831,7 @@ async def health_check_public(request: Request):
 
 
 @app.get("/health/details")
-async def health_check():
+def health_check():
     """Deep health check â€” verifica GPU, modelos, Redis, providers, cache."""
     import socket as _socket
     from core.investor.cost_guard import get_cost_guard
