@@ -264,7 +264,7 @@
     }
   },
   "phase_6_impact_map": {
-    "status": "in_progress",
+    "status": "complete",
     "problem": "O ticket tem preço confiável, mas ainda pode ser promovido sem equity, buying power, posições, concentração, moeda e restrições da conta TD.",
     "architecture_touched": [
       "snapshot manual atestado do WebBroker",
@@ -296,8 +296,17 @@
       "restart persistence and route contract",
       "Ruff, focused pytest and browser smoke"
     ],
-    "go_live": "BLOCKED_PENDING_IMPLEMENTATION"
+    "go_live": "BLOCKED_PENDING_TD_COST_PREVIEW",
+    "commit": "e81c3cc",
+    "result": "A fresh operator-attested TD snapshot is validated with explicit TFSA/RRSP/FHSA/CASH/MARGIN rules; all risk and exposure math runs server-side in CAD; Bank of Canada FX evidence is required for USD; pending tickets reserve buying power and exposure transactionally across processes.",
+    "evidence": {
+      "focused_gate": "64 workflow/API tests passed plus 14 dedicated Money Gate tests including Hypothesis",
+      "lint": "python -m ruff check src/ tests/ passed",
+      "browser": "passed with 130 candles and 7 canvases using isolated storage",
+      "concurrency": "two simultaneous tickets cannot double-spend buying power or exceed symbol/sector/currency/gross limits",
+      "known_nonblocking": "pre-existing /pipeline/events/stream 404 and Windows Proactor Ctrl-C shutdown assertion"
+    }
   },
-  "next_step": "Fase 6: construir e provar o Money Gate Canadá sem confiar implicitamente em dados TD declarados pelo navegador.",
+  "next_step": "Fase 7: ligar o preview oficial TD, custo total e aprovação ao mesmo hash imutável.",
   "owner": "Codex"
 }
