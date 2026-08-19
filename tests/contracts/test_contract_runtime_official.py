@@ -170,6 +170,10 @@ def test_agent_runtime_config_matches_manifest_and_script():
     assert "SUPEREZIO_LLAMA_SERVER_EXE" in script
     assert r"C:\Users\marco\tools\llama.cpp\llama-server.exe" in model_config
     assert '"--port", $Port' in script
+    assert "$script:CeoPort" in model_config
+    assert "8080" in model_config
+    assert "function Initialize-SuperEzioDirs" in model_config
+    assert "function Get-SuperEzioPortOwner" in model_config
 
 
 def test_provider_factory_keeps_agent_local_only(monkeypatch):

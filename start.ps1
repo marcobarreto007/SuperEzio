@@ -1,5 +1,5 @@
 # SuperEzio START script.
-# Starts CEO (llama-server :8082) and API (FastAPI :8002), verifies health,
+# Starts CEO (llama-server :8080) and API (FastAPI :8002), verifies health,
 # then opens the browser unless -SkipBrowser is provided.
 
 param(
@@ -54,8 +54,8 @@ if ($blockedPorts.Count -gt 0) {
     exit 7
 }
 
-$bobLog = Join-Path $LogsDir "bob-8082-latest.log"
-$bobErrLog = Join-Path $LogsDir "bob-8082-latest.err.log"
+$bobLog = Join-Path $LogsDir "bob-$CeoPort-latest.log"
+$bobErrLog = Join-Path $LogsDir "bob-$CeoPort-latest.err.log"
 Remove-Item -LiteralPath $bobLog, $bobErrLog -Force -ErrorAction SilentlyContinue
 
 if (-not $LlamaServerPath) {

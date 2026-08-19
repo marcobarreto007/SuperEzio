@@ -41,7 +41,7 @@ if (Test-Path $configPath) {
     $PythonExe = $null
     $LlamaServerPath = $null
     $ModelPath = Join-Path $ScriptDir "models"
-    $CeoPort = 8082
+    $CeoPort = 8080
     $ApiPort = 8002
 }
 
