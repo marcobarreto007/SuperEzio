@@ -352,6 +352,41 @@
       "known_nonblocking": "pre-existing /pipeline/events/stream 404 and Windows Proactor Ctrl-C shutdown assertion"
     }
   },
-  "next_step": "Fase 8: reproduce the locked environment, repair broken contracts, and run the complete local release gate without touching operator financial data.",
+  "phase_8_impact_map": {
+    "status": "in_progress",
+    "problem": "The financial workflow passes focused tests, but release readiness still depends on incomplete env coverage, dependency/secret scans, broken repository references and a full-suite proof that operator data is unchanged.",
+    "architecture_touched": [
+      "Pydantic environment schema",
+      "dependency and security inventory",
+      "broken runtime contract references",
+      "isolated full local quality gate"
+    ],
+    "files_planned": [
+      "src/core/config/settings.py",
+      ".env.example",
+      "pyproject.toml",
+      "docker-compose.yml",
+      "docs/signals/SIGNAL_LEDGER.md",
+      ".pre-commit-config.yaml",
+      ".f51/checkpoints/latest.json"
+    ],
+    "risks": [
+      "unsafe env typo accepted",
+      "unlocked or vulnerable dependency",
+      "secret committed in source",
+      "documented command points to missing file",
+      "full suite mutates operator financial data"
+    ],
+    "smallest_safe_patch": "Inventory before editing, repair only proven broken public contracts, add fail-closed validation for financial env vars, and run all local gates with before/after hashes.",
+    "verification": [
+      "env coverage report",
+      "Bandit and secret scan",
+      "dependency and lock inventory",
+      "Ruff check/format, complete pytest, browser smoke",
+      "operator artifact hashes before and after"
+    ],
+    "go_live": "BLOCKED_PENDING_RELEASE_GATE"
+  },
+  "next_step": "Fase 8: inventory environment, dependencies, security and broken contracts before the full isolated release gate.",
   "owner": "Codex"
 }
