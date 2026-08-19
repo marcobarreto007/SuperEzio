@@ -208,6 +208,48 @@
       "broker_isolation": "API regression raises if the manual TD workflow touches the IBKR adapter"
     }
   },
+  "phase_5_impact_map": {
+    "status": "in_progress",
+    "problem": "O cliente ainda declara preço, fonte e timestamp; esses campos podem ser falsificados e não verificam bolsa/moeda.",
+    "architecture_touched": [
+      "provedores Twelve Data, Finnhub e yfinance",
+      "consenso de duas cotações server-side",
+      "circuit breakers e métricas",
+      "contrato do rascunho TD"
+    ],
+    "files_planned": [
+      "src/core/trading/server_quote.py",
+      "src/core/trading/td_direct_ticket.py",
+      "src/data/twelve_data.py",
+      "src/data/finnhub_provider.py",
+      "src/data/yfinance_provider.py",
+      "src/agent_server/endpoints.py",
+      "src/agent_server/main.py",
+      "tests/test_server_quote.py",
+      "tests/test_td_direct_ticket.py",
+      "tests/test_api_routes_sync.py"
+    ],
+    "risks": [
+      "fonte única ou mesma fonte duplicada",
+      "quote timestamp stale durante mercado fechado",
+      "bolsa/moeda divergente",
+      "provider timeout bloquear o servidor",
+      "fallback stale parecer live"
+    ],
+    "smallest_safe_patch": "Reject all client quote assertions; require two independent server providers with market timestamps, coherent exchange/currency and bounded divergence; no stale cache fallback for live tickets.",
+    "verification": [
+      "two-source consensus and divergence tests",
+      "stale/future/exchange/currency rejection",
+      "circuit open/half-open recovery tests",
+      "route rejects client quote fields",
+      "Ruff, pytest and browser smoke"
+    ],
+    "official_research": [
+      "Twelve Data /quote returns exchange, currency and timestamp",
+      "Finnhub /quote returns current price and Unix timestamp t"
+    ],
+    "go_live": "BLOCKED_PENDING_MONEY_GATE"
+  },
   "next_step": "Fase 5: integrar cotação confiável server-side com exchange, moeda, timestamp e divergência verificáveis.",
   "owner": "Codex"
 }
