@@ -428,7 +428,17 @@ def append_td_direct_ticket(
     try:
         claim_descriptor = os.open(claim_path, claim_flags, 0o600)
     except FileExistsError as exc:
-        raise TDDirectTicketError("duplicate TD ticket fingerprint") from exc
+        if target.exists():
+            for raw_line in target.read_text(encoding="utf-8").splitlines():
+                try:
+                    existing = json.loads(raw_line)
+                except json.JSONDecodeError:
+                    continue
+                if str(existing.get("fingerprint") or "").lower() == fingerprint:
+                    return target
+        raise TDDirectTicketError(
+            "incomplete TD ticket audit claim requires dead-letter replay"
+        ) from exc
     try:
         claim = json.dumps(
             {"ticket_id": ticket.get("ticket_id"), "fingerprint": fingerprint},

@@ -43,7 +43,7 @@ class MockPipeline:
 
 
 @pytest.fixture
-def client_with_mock_pipeline(monkeypatch):
+def client_with_mock_pipeline(monkeypatch, tmp_path):
     mock_p = MockPipeline()
     original_pipeline = getattr(app.state, "pipeline", None)
     app.state.pipeline = mock_p
@@ -51,6 +51,8 @@ def client_with_mock_pipeline(monkeypatch):
 
     monkeypatch.setenv("SUPEREZIO_COCKPIT_READ_IBKR_ORDERS", "0")
     monkeypatch.setenv("SUPEREZIO_JWT_SECRET", "")  # Dev mode: no JWT required
+    monkeypatch.setenv("SUPEREZIO_TRADING_STATE_DB", str(tmp_path / "trading-state.sqlite3"))
+    monkeypatch.setenv("SUPEREZIO_DEAD_LETTER_DIR", str(tmp_path / "dead-letter"))
     monkeypatch.setattr(endpoints.reward_gate, "score", lambda _text: 0.50)
     monkeypatch.setattr(
         endpoints.sanity_check,
@@ -462,6 +464,19 @@ def test_trade_execute_creates_pending_ticket_without_broker_submit(
     assert status.status_code == 200
     assert status.json()["phase"] == "pending_validation"
 
+    retry = client.post(
+        "/trade/execute",
+        json={
+            "ticker": "AAPL",
+            "action": "buy",
+            "qty": 1,
+            "limit_price": 100,
+            "message": "test guarded ticket",
+        },
+    )
+    assert retry.json()["order_id"] == data["order_id"]
+    assert retry.json()["idempotent_replay"] is True
+
 
 def test_td_ticket_route_creates_live_manual_ticket_without_submit(
     client_with_mock_pipeline, monkeypatch, tmp_path
@@ -527,6 +542,46 @@ def test_td_ticket_route_fails_closed_without_api_key(client_with_mock_pipeline,
     response = client.post("/trade/td-draft", json={})
 
     assert response.status_code == 503
+
+
+def test_td_ticket_audit_failure_writes_dead_letter(
+    client_with_mock_pipeline, monkeypatch, tmp_path
+):
+    import agent_server.endpoints as endpoints
+
+    monkeypatch.setenv("SUPEREZIO_API_KEY", "configured-for-test")
+    token = "td-dead-letter-token"
+    endpoints._TRADING_TOKENS[token] = time.time()
+    monkeypatch.setattr(
+        endpoints,
+        "append_td_direct_ticket",
+        lambda _ticket: (_ for _ in ()).throw(OSError("audit disk unavailable")),
+    )
+    _, client = client_with_mock_pipeline
+    response = client.post(
+        "/trade/td-draft",
+        headers={"X-Trading-Token": token},
+        json={
+            "ticker": "TD.TO",
+            "exchange": "TSX",
+            "currency": "CAD",
+            "side": "BUY",
+            "quantity": 2,
+            "order_type": "LIMIT",
+            "limit_price": 110.0,
+            "stop_price": 108.0,
+            "risk_budget": 5.0,
+            "account_type": "TFSA",
+            "quote_price": 109.9,
+            "quote_as_of": datetime.now(timezone.utc).isoformat(),
+            "quote_source": "test_provider",
+            "thesis": "Liquid Canadian bank setup with defined risk.",
+            "invalidation": "Exit if the declared stop level is breached.",
+        },
+    )
+
+    assert response.status_code == 503
+    assert len(list((tmp_path / "dead-letter").glob("*.json"))) == 1
 
 
 def test_td_commission_free_route_exposes_official_108_etf_universe(

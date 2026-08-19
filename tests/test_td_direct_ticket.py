@@ -127,13 +127,14 @@ def test_append_ticket_writes_one_jsonl_record(tmp_path):
     assert "password" not in records[0]
 
 
-def test_append_ticket_rejects_duplicate_fingerprint(tmp_path):
+def test_append_ticket_is_idempotent_for_completed_audit(tmp_path):
     ticket = build_td_direct_ticket(_buy_payload(), now=NOW)
     path = tmp_path / "tickets.jsonl"
     append_td_direct_ticket(ticket, path)
 
-    with pytest.raises(TDDirectTicketError, match="duplicate"):
-        append_td_direct_ticket(ticket, path)
+    append_td_direct_ticket(ticket, path)
+
+    assert len(path.read_text(encoding="utf-8").splitlines()) == 1
 
 
 def test_official_commission_free_manifest_has_108_unique_etfs():

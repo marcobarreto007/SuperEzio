@@ -41,6 +41,29 @@ def resolve_workflow_db_path() -> Path:
     return Path(configured).resolve() if configured else DEFAULT_WORKFLOW_DB
 
 
+def build_trade_intent_fingerprint(
+    intent: Mapping[str, Any],
+    *,
+    now: datetime | None = None,
+    window_seconds: int = 300,
+) -> str:
+    """Build a stable retry key from intent fields and a five-minute UTC window."""
+
+    if window_seconds <= 0:
+        raise WorkflowStoreError("window_seconds must be positive")
+    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    window_start = int(current.timestamp()) // window_seconds * window_seconds
+    canonical = {
+        "account": str(intent.get("account") or intent.get("session_id") or "unknown").strip(),
+        "limit_price": float(intent.get("limit_price") or 0.0),
+        "quantity": float(intent.get("quantity") or intent.get("qty") or 0.0),
+        "side": str(intent.get("side") or intent.get("action") or "").strip().upper(),
+        "symbol": str(intent.get("symbol") or intent.get("ticker") or "").strip().upper(),
+        "window_start_utc": window_start,
+    }
+    return hashlib.sha256(_canonical_json(canonical).encode("utf-8")).hexdigest()
+
+
 class TradeWorkflowStore:
     """SQLite source of truth with cross-process uniqueness guarantees."""
 
@@ -366,7 +389,9 @@ class TradeWorkflowStore:
                 encoded = (json.dumps(body, ensure_ascii=False, sort_keys=True) + "\n").encode(
                     "utf-8"
                 )
-                os.write(descriptor, encoded)
+                offset = 0
+                while offset < len(encoded):
+                    offset += os.write(descriptor, encoded[offset:])
                 os.fsync(descriptor)
             finally:
                 os.close(descriptor)

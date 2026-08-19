@@ -9,6 +9,7 @@ from core.trading.workflow_store import (
     TradeWorkflowStore,
     WorkflowConflictError,
     WorkflowStoreError,
+    build_trade_intent_fingerprint,
 )
 
 
@@ -117,3 +118,21 @@ def test_new_ticket_requires_explicit_not_submitted(tmp_path: Path) -> None:
     store = TradeWorkflowStore(tmp_path / "workflow.sqlite3")
     with pytest.raises(WorkflowStoreError, match="submitted_to_broker=false"):
         store.create_ticket(_ticket(submitted_to_broker=True))
+
+
+def test_intent_fingerprint_is_stable_inside_five_minute_window() -> None:
+    from datetime import datetime, timezone
+
+    intent = {"ticker": "TD", "action": "buy", "qty": 2, "limit_price": 110, "session_id": "s"}
+    first = build_trade_intent_fingerprint(
+        intent, now=datetime(2026, 8, 19, 2, 1, tzinfo=timezone.utc)
+    )
+    retry = build_trade_intent_fingerprint(
+        intent, now=datetime(2026, 8, 19, 2, 4, tzinfo=timezone.utc)
+    )
+    later = build_trade_intent_fingerprint(
+        intent, now=datetime(2026, 8, 19, 2, 5, tzinfo=timezone.utc)
+    )
+
+    assert first == retry
+    assert later != first

@@ -42,6 +42,12 @@ from core.trading.td_direct_ticket import (
     build_td_direct_ticket,
     load_td_commission_free_manifest,
 )
+from core.trading.workflow_store import (
+    WorkflowConflictError,
+    WorkflowStoreError,
+    build_trade_intent_fingerprint,
+    get_trade_workflow_store,
+)
 from data.data_hub import hub
 
 from core.ports.protocol import A2AMessage, MessageType  # .protocol facade removido (49f6d01)
@@ -164,14 +170,19 @@ def _normalize_order_row(row: dict[str, Any], *, source: str) -> dict[str, Any] 
 
 def _cockpit_local_order_tickets() -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for order_id, status in dict(globals().get("_trade_status") or {}).items():
+    try:
+        statuses = get_trade_workflow_store().list_tickets()
+    except WorkflowStoreError as exc:
+        logger.warning("Persistent local trade status unavailable: %s", exc)
+        return rows
+    for status in statuses:
         if not isinstance(status, dict):
             continue
         row = {
-            "order_id": order_id,
-            "ticker": status.get("ticker"),
-            "action": status.get("action"),
-            "qty": status.get("qty"),
+            "order_id": status.get("ticket_id"),
+            "ticker": status.get("ticker") or status.get("symbol"),
+            "action": status.get("action") or status.get("side"),
+            "qty": status.get("qty") or status.get("quantity"),
             "status": status.get("status") or status.get("phase"),
             "source": "local_pending",
         }
@@ -2392,7 +2403,6 @@ def _resolve_evidence_file(run_id: str, filename: str):
 
 # â”€â”€ Two-Phase Paper Trade â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-_trade_status: dict[str, dict] = {}  # order_id
 # --- Trading auth (2FA) ---
 _TRADING_TOKENS: dict[str, float] = {}
 _TRADING_TOKEN_TTL = 900  # 15 minutes
@@ -2456,8 +2466,20 @@ async def execute_trade_fast(payload: dict[str, Any], request: Request) -> dict[
     if qty <= 0:
         raise HTTPException(status_code=400, detail="qty must be positive")
 
-    order_id = f"ticket-{ticker}-{int(asyncio.get_event_loop().time() * 1000)}"
+    fingerprint = build_trade_intent_fingerprint(
+        {
+            "ticker": ticker,
+            "action": action,
+            "qty": qty,
+            "limit_price": limit_price,
+            "session_id": session_id,
+        }
+    )
+    order_id = f"ticket-{fingerprint[:20]}"
     ticket = {
+        "ticket_id": order_id,
+        "fingerprint": fingerprint,
+        "broker": "BROKER_NEUTRAL_VALIDATION_ONLY",
         "phase": "pending_validation",
         "status": "PENDING_VALIDATION",
         "ticker": ticker,
@@ -2474,12 +2496,16 @@ async def execute_trade_fast(payload: dict[str, Any], request: Request) -> dict[
             "and expert committee run before broker transmission."
         ),
     }
-    _trade_status[str(order_id)] = ticket
+    try:
+        stored, created = get_trade_workflow_store().create_ticket(ticket)
+    except (WorkflowStoreError, WorkflowConflictError) as exc:
+        raise HTTPException(status_code=503, detail="trade status store is unavailable") from exc
 
     return {
         "ok": False,
         "order_id": order_id,
-        **ticket,
+        "idempotent_replay": not created,
+        **stored,
     }
 
 
@@ -2490,30 +2516,35 @@ async def create_td_direct_live_ticket(payload: dict[str, Any], request: Request
     _require_td_ticket_auth(request)
     try:
         ticket = build_td_direct_ticket(payload)
-        append_td_direct_ticket(ticket)
     except TDDirectTicketError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    except OSError as exc:
+
+    try:
+        store = get_trade_workflow_store()
+        stored_ticket, created = store.create_ticket(ticket)
+        append_td_direct_ticket(ticket)
+    except (OSError, TDDirectTicketError, WorkflowStoreError, WorkflowConflictError) as exc:
+        try:
+            fingerprint = str(locals().get("ticket", {}).get("fingerprint") or "unknown")
+            store = locals().get("store") or get_trade_workflow_store()
+            store.record_dead_letter(
+                category="td_ticket_audit",
+                idempotency_key=fingerprint,
+                payload=locals().get("ticket", {"payload_rejected": True}),
+                error=str(exc),
+            )
+        except Exception:
+            logger.exception("Failed to persist TD ticket dead letter")
         raise HTTPException(status_code=503, detail="TD ticket audit log is unavailable") from exc
 
-    order_id = str(ticket["ticket_id"])
-    _trade_status[order_id] = {
-        "phase": ticket["phase"],
-        "status": ticket["status"],
-        "ticker": ticket["symbol"],
-        "side": str(ticket["side"]).lower(),
-        "qty": ticket["quantity"],
-        "limit_price": ticket["limit_price"],
-        "source": "td_direct_manual",
-        "submitted_to_broker": False,
-        "expires_at": ticket["expires_at"],
-    }
+    order_id = str(stored_ticket["ticket_id"])
     return {
         "ok": False,
         "ready_for_execution": False,
         "order_id": order_id,
         "audit_recorded": True,
-        "ticket": ticket,
+        "idempotent_replay": not created,
+        "ticket": stored_ticket,
     }
 
 
@@ -2538,7 +2569,10 @@ async def get_td_commission_free_etfs() -> dict[str, Any]:
 @router.get("/trade/status/{order_id}")
 async def get_trade_status(order_id: str) -> dict[str, Any]:
     """Fase 2: Verificar status da validaÃ§Ã£o (pipeline background)."""
-    status = _trade_status.get(order_id, {"phase": "unknown"})
+    try:
+        status = get_trade_workflow_store().get_ticket(order_id) or {"phase": "unknown"}
+    except WorkflowStoreError as exc:
+        raise HTTPException(status_code=503, detail="trade status store is unavailable") from exc
     return {"order_id": order_id, **status}
 
 
