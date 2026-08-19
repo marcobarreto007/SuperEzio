@@ -1488,6 +1488,9 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                 final_content_length
             nonlocal candidate_count, rejected_count, rejection_summary, provider_error
             nonlocal trade_order_context
+            current_task = asyncio.current_task()
+            if current_task is not None:
+                task.bind_execution(current_task)
             buffer_answer_until_validation = chart_context_attached
             answer_repaired = False
             if detected_ticker:
@@ -1839,14 +1842,11 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     json.dumps({"type": "STREAM_END", "trace": trace, "run_id": task.run_id}) + "\n"
                 )
             except asyncio.CancelledError:
-                # Client disconnected. Let the pipeline tear down naturally
-                # without propagating cancellation to the LLM backend â€” this
-                # prevents spurious Â»cancel taskÂ« entries in the llama-server log.
                 logger.info(
                     "Client disconnected for session=%s msg=%s", session_id, envelope.msg_id
                 )
-                # Don't re-raise; let the stream end silently.
-                return
+                tq.cancel(task.run_id)
+                raise
             except Exception as exc:
                 fallback_used = True
                 err_detail = _safe_error_detail(exc)

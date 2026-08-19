@@ -27,6 +27,7 @@ class Task:
     result: Any = None
     error: str | None = None
     _cancel: asyncio.Event = field(default_factory=asyncio.Event)
+    _execution_task: asyncio.Task[Any] | None = field(default=None, repr=False)
 
     @property
     def elapsed(self) -> float:
@@ -40,9 +41,20 @@ class Task:
     def cancelled(self) -> bool:
         return self._cancel.is_set()
 
+    def bind_execution(self, execution_task: asyncio.Task[Any]) -> None:
+        """Bind the actual coroutine so cancellation stops downstream work."""
+        self._execution_task = execution_task
+
     def cancel(self) -> None:
         self._cancel.set()
         self.status = "cancelled"
+        execution_task = self._execution_task
+        if (
+            execution_task is not None
+            and not execution_task.done()
+            and execution_task is not asyncio.current_task()
+        ):
+            execution_task.cancel()
 
 
 class TaskQueue:
@@ -75,6 +87,7 @@ class TaskQueue:
             try:
                 for run_id, task in list(self._active.items()):
                     if task.expired:
+                        task.cancel()
                         task.status = "timeout"
                         self._archive(task)
                         self._active.pop(run_id, None)
@@ -92,6 +105,7 @@ class TaskQueue:
             existing_run_id = self._by_session[session_id]
             existing = self._active.get(existing_run_id)
             if existing and existing.expired:
+                existing.cancel()
                 existing.status = "timeout"
                 self._archive(existing)
                 self._active.pop(existing_run_id, None)
@@ -152,6 +166,7 @@ class TaskQueue:
             return None
         task = self._active.get(run_id)
         if task and task.expired:
+            task.cancel()
             task.status = "timeout"
             self._archive(task)
             self._active.pop(run_id, None)
