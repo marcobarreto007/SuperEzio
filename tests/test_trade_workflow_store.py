@@ -55,6 +55,14 @@ def test_transition_is_idempotent_and_checks_expected_status(tmp_path: Path) -> 
     updated = store.transition_ticket(
         "ticket-1",
         expected_status="DRAFT_UNVERIFIED_QUOTE",
+        new_status="GATED",
+        new_phase="gated",
+        actor="system",
+        idempotency_key="gate-1",
+    )
+    updated = store.transition_ticket(
+        "ticket-1",
+        expected_status="GATED",
         new_status="AWAITING_HUMAN",
         new_phase="human_review",
         actor="operator",
@@ -62,7 +70,7 @@ def test_transition_is_idempotent_and_checks_expected_status(tmp_path: Path) -> 
     )
     replay = TradeWorkflowStore(db).transition_ticket(
         "ticket-1",
-        expected_status="DRAFT_UNVERIFIED_QUOTE",
+        expected_status="GATED",
         new_status="AWAITING_HUMAN",
         new_phase="human_review",
         actor="operator",
@@ -70,15 +78,40 @@ def test_transition_is_idempotent_and_checks_expected_status(tmp_path: Path) -> 
     )
 
     assert updated["status"] == replay["status"] == "AWAITING_HUMAN"
-    assert replay["workflow_version"] == 2
+    assert replay["workflow_version"] == 3
     with pytest.raises(WorkflowConflictError, match="expected"):
         store.transition_ticket(
             "ticket-1",
-            expected_status="DRAFT_UNVERIFIED_QUOTE",
+            expected_status="GATED",
             new_status="APPROVED",
             new_phase="approved",
             actor="operator",
             idempotency_key="approval-1",
+        )
+
+
+def test_illegal_transition_and_identity_patch_are_blocked(tmp_path: Path) -> None:
+    store = TradeWorkflowStore(tmp_path / "workflow.sqlite3")
+    store.create_ticket(_ticket())
+
+    with pytest.raises(WorkflowConflictError, match="illegal"):
+        store.transition_ticket(
+            "ticket-1",
+            expected_status="DRAFT_UNVERIFIED_QUOTE",
+            new_status="BROKER_CONFIRMED",
+            new_phase="confirmed",
+            actor="operator",
+            idempotency_key="skip-all-gates",
+        )
+    with pytest.raises(WorkflowConflictError, match="unsupported"):
+        store.transition_ticket(
+            "ticket-1",
+            expected_status="DRAFT_UNVERIFIED_QUOTE",
+            new_status="GATED",
+            new_phase="gated",
+            actor="system",
+            idempotency_key="mutate-symbol",
+            evidence_patch={"symbol": "AAPL"},
         )
 
 

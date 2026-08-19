@@ -18,6 +18,29 @@ from core.paths import resolve_project_path
 DEFAULT_WORKFLOW_DB = resolve_project_path("runtime/trading_state.sqlite3")
 DEFAULT_DEAD_LETTER_DIR = resolve_project_path("journal/dead_letter")
 _HEX_64 = re.compile(r"^[0-9a-f]{64}$")
+_ALLOWED_STATUS_TRANSITIONS = {
+    "DRAFT_UNVERIFIED_QUOTE": {"GATED", "AUDIT_WRITE_FAILED", "CANCELLED"},
+    "PENDING_VALIDATION": {"GATED", "REJECTED", "CANCELLED"},
+    "AUDIT_WRITE_FAILED": {"DRAFT_UNVERIFIED_QUOTE", "CANCELLED"},
+    "GATED": {"AWAITING_HUMAN", "REJECTED", "CANCELLED"},
+    "AWAITING_HUMAN": {"APPROVED", "REJECTED", "CANCELLED"},
+    "APPROVED": {"MANUALLY_ENTERED", "CANCELLED"},
+    "MANUALLY_ENTERED": {"BROKER_CONFIRMED", "REJECTED", "CANCELLED"},
+    "BROKER_CONFIRMED": set(),
+    "REJECTED": set(),
+    "CANCELLED": set(),
+}
+_MUTABLE_EVIDENCE_FIELDS = {
+    "broker_confirmation",
+    "buying_power_gate",
+    "costs",
+    "manual_entry",
+    "money_gate",
+    "portfolio_gate",
+    "required_gates",
+    "server_quote",
+    "td_preview",
+}
 
 
 class WorkflowStoreError(RuntimeError):
@@ -241,6 +264,7 @@ class TradeWorkflowStore:
         idempotency_key: str,
         details: Mapping[str, Any] | None = None,
         submitted_to_broker: bool = False,
+        evidence_patch: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Atomically apply one named transition, idempotent across processes."""
 
@@ -266,8 +290,23 @@ class TradeWorkflowStore:
                 raise WorkflowConflictError(
                     f"ticket status is {row['status']}, expected {expected_status}"
                 )
+            current_status = str(row["status"]).upper()
+            target_status = new_status.strip().upper()
+            if target_status not in _ALLOWED_STATUS_TRANSITIONS.get(current_status, set()):
+                connection.rollback()
+                raise WorkflowConflictError(
+                    f"illegal workflow transition: {current_status} -> {target_status}"
+                )
             record = json.loads(row["record_json"])
-            record["status"] = new_status.strip().upper()
+            patch = dict(evidence_patch or {})
+            unsupported = sorted(set(patch) - _MUTABLE_EVIDENCE_FIELDS)
+            if unsupported:
+                connection.rollback()
+                raise WorkflowConflictError(
+                    "unsupported mutable evidence fields: " + ", ".join(unsupported)
+                )
+            record.update(patch)
+            record["status"] = target_status
             record["phase"] = new_phase.strip()
             record["submitted_to_broker"] = bool(submitted_to_broker)
             now = _utc_now()
@@ -309,6 +348,31 @@ class TradeWorkflowStore:
         if updated is None:  # pragma: no cover
             raise WorkflowStoreError("ticket disappeared after transition")
         return updated
+
+    def get_events(self, ticket_id: str) -> list[dict[str, Any]]:
+        with self._lock, self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT event_key, event_type, from_status, to_status, actor,
+                       details_json, created_at
+                FROM workflow_events
+                WHERE ticket_id = ?
+                ORDER BY sequence
+                """,
+                (ticket_id,),
+            ).fetchall()
+        return [
+            {
+                "event_key": row["event_key"],
+                "event_type": row["event_type"],
+                "from_status": row["from_status"],
+                "to_status": row["to_status"],
+                "actor": row["actor"],
+                "details": json.loads(row["details_json"]),
+                "created_at": row["created_at"],
+            }
+            for row in rows
+        ]
 
     def save_system_state(self, state_key: str, state: Mapping[str, Any]) -> None:
         if not state_key.strip():
@@ -398,6 +462,13 @@ class TradeWorkflowStore:
         with self._lock, self._connect() as connection:
             row = connection.execute(
                 "SELECT request_json FROM approvals WHERE ticket_id = ?", (ticket_id,)
+            ).fetchone()
+        return json.loads(row["request_json"]) if row is not None else None
+
+    def get_approval(self, approval_id: str) -> dict[str, Any] | None:
+        with self._lock, self._connect() as connection:
+            row = connection.execute(
+                "SELECT request_json FROM approvals WHERE approval_id = ?", (approval_id,)
             ).fetchone()
         return json.loads(row["request_json"]) if row is not None else None
 

@@ -183,6 +183,16 @@ class ApprovalGate:
     def get_history(self) -> list[ApprovalRequest]:
         return list(self._history)
 
+    def get_request(self, request_id: str) -> ApprovalRequest | None:
+        for request in self._history:
+            if request.id == request_id:
+                return request
+        if self._store is not None:
+            stored = self._store.get_approval(request_id)
+            if stored is not None:
+                return self._request_from_dict(stored)
+        return None
+
     @property
     def pending_count(self) -> int:
         return len(self._pending)
