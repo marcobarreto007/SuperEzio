@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import hashlib
+import inspect
 import json
 import math
 import os
@@ -118,11 +119,17 @@ class ServerQuoteService:
         method = getattr(provider, "get_price", None)
         if not callable(method):
             raise PermanentQuoteError(f"{provider_name}: get_price_unavailable")
-        kwargs = {"market": exchange, "exchange": exchange}
-        try:
-            result = method(symbol, **kwargs)
-        except TypeError:
-            result = method(symbol)
+        signature = inspect.signature(method)
+        accepts_kwargs = any(
+            parameter.kind is inspect.Parameter.VAR_KEYWORD
+            for parameter in signature.parameters.values()
+        )
+        kwargs = {
+            name: exchange
+            for name in ("market", "exchange")
+            if accepts_kwargs or name in signature.parameters
+        }
+        result = method(symbol, **kwargs)
         if not isinstance(result, dict):
             raise PermanentQuoteError(f"{provider_name}: non_object_result")
         if result.get("error"):

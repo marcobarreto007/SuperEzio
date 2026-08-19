@@ -44,6 +44,7 @@ from core.trading.td_direct_ticket import (
 )
 from core.trading.approval_gate import approval_request_to_dict
 from core.trading.manual_trade_workflow import ManualTradeWorkflow, ManualTradeWorkflowError
+from core.trading.server_quote import ServerQuoteError, resolve_server_quote
 from core.trading.workflow_store import (
     WorkflowConflictError,
     WorkflowStoreError,
@@ -2540,8 +2541,19 @@ async def create_td_direct_live_ticket(payload: dict[str, Any], request: Request
     """Create an auditable live-manual TD ticket; never connect to or submit at TD."""
 
     _require_td_ticket_auth(request)
+    client_quote_fields = sorted(
+        field for field in ("quote_price", "quote_source", "quote_as_of") if field in payload
+    )
+    if client_quote_fields:
+        raise HTTPException(
+            status_code=422,
+            detail="client quote assertions are forbidden: " + ", ".join(client_quote_fields),
+        )
     try:
-        ticket = build_td_direct_ticket(payload)
+        trusted_quote = resolve_server_quote(payload, data_hub=hub)
+        ticket = build_td_direct_ticket(payload, trusted_quote=trusted_quote)
+    except ServerQuoteError as exc:
+        raise HTTPException(status_code=503, detail=f"trusted quote unavailable: {exc}") from exc
     except TDDirectTicketError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -2560,10 +2572,10 @@ async def create_td_direct_live_ticket(payload: dict[str, Any], request: Request
                 error=str(exc),
             )
             stored = locals().get("stored_ticket")
-            if isinstance(stored, dict) and stored.get("status") == "DRAFT_UNVERIFIED_QUOTE":
+            if isinstance(stored, dict) and str(stored.get("status", "")).startswith("DRAFT_"):
                 store.transition_ticket(
                     str(stored["ticket_id"]),
-                    expected_status="DRAFT_UNVERIFIED_QUOTE",
+                    expected_status=str(stored["status"]),
                     new_status="AUDIT_WRITE_FAILED",
                     new_phase="dead_letter_replay_required",
                     actor="system",

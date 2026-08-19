@@ -21,16 +21,28 @@ def replay(
     ticket = store.get_ticket(ticket_id)
     if ticket is None:
         raise RuntimeError(f"unknown ticket: {ticket_id}")
-    if ticket["status"] not in {"AUDIT_WRITE_FAILED", "DRAFT_UNVERIFIED_QUOTE"}:
+    allowed_statuses = {
+        "AUDIT_WRITE_FAILED",
+        "DRAFT_UNVERIFIED_QUOTE",
+        "DRAFT_QUOTE_VERIFIED",
+    }
+    if ticket["status"] not in allowed_statuses:
         raise RuntimeError(f"ticket is not awaiting audit replay: {ticket['status']}")
     replay_td_direct_ticket_audit(ticket, ticket_log)
     restored = ticket
     if ticket["status"] == "AUDIT_WRITE_FAILED":
+        restored_status = (
+            "DRAFT_QUOTE_VERIFIED" if ticket.get("quote", {}).get("evidence_hash") else "DRAFT_UNVERIFIED_QUOTE"
+        )
         restored = store.transition_ticket(
             ticket_id,
             expected_status="AUDIT_WRITE_FAILED",
-            new_status="DRAFT_UNVERIFIED_QUOTE",
-            new_phase="independent_quote_verification_required",
+            new_status=restored_status,
+            new_phase=(
+                "money_gate_required"
+                if restored_status == "DRAFT_QUOTE_VERIFIED"
+                else "independent_quote_verification_required"
+            ),
             actor=actor,
             idempotency_key=f"audit-replayed:{ticket['fingerprint']}",
             details={"ticket_log": str(ticket_log.resolve())},

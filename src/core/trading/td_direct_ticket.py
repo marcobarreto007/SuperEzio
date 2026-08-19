@@ -49,9 +49,6 @@ _ALLOWED_FIELDS = {
     "position_qty",
     "qty",
     "quantity",
-    "quote_as_of",
-    "quote_price",
-    "quote_source",
     "require_commission_free",
     "risk_budget",
     "side",
@@ -212,6 +209,7 @@ def load_td_commission_free_manifest(
 def build_td_direct_ticket(
     payload: Mapping[str, Any],
     *,
+    trusted_quote: Mapping[str, Any] | None = None,
     now: datetime | None = None,
 ) -> dict[str, Any]:
     """Build a short-lived, non-transmitting TD Direct Investing order ticket."""
@@ -256,11 +254,28 @@ def build_td_direct_ticket(
 
     quantity = _positive_int(payload.get("quantity", payload.get("qty")), "quantity")
     limit_price = _positive_float(payload.get("limit_price"), "limit_price")
-    quote_price = _positive_float(payload.get("quote_price"), "quote_price")
-    quote_as_of = _utc_datetime(payload.get("quote_as_of"), "quote_as_of")
-    quote_source = str(payload.get("quote_source") or "").strip()
-    if not quote_source:
-        raise TDDirectTicketError("quote_source is required")
+    if not isinstance(trusted_quote, Mapping):
+        raise TDDirectTicketError("trusted server quote is required")
+    if trusted_quote.get("trust") != "SERVER_VERIFIED_CONSENSUS":
+        raise TDDirectTicketError("trusted quote consensus is not verified")
+    if trusted_quote.get("stale_fallback_used") is not False:
+        raise TDDirectTicketError("stale quote fallback is forbidden for live-manual tickets")
+    if str(trusted_quote.get("exchange") or "").upper() != exchange:
+        raise TDDirectTicketError("trusted quote exchange does not match ticket exchange")
+    if str(trusted_quote.get("currency") or "").upper() != currency:
+        raise TDDirectTicketError("trusted quote currency does not match ticket currency")
+    evidence_hash = str(trusted_quote.get("evidence_hash") or "").strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", evidence_hash):
+        raise TDDirectTicketError("trusted quote evidence_hash is invalid")
+    try:
+        source_count = int(trusted_quote.get("source_count") or 0)
+    except (TypeError, ValueError) as exc:
+        raise TDDirectTicketError("trusted quote source_count is invalid") from exc
+    if source_count < 2:
+        raise TDDirectTicketError("trusted quote requires at least two independent sources")
+    quote_price = _positive_float(trusted_quote.get("price"), "trusted_quote.price")
+    quote_as_of = _utc_datetime(trusted_quote.get("as_of"), "trusted_quote.as_of")
+    quote_sources = list(trusted_quote.get("sources") or [])
 
     max_quote_age = _positive_env_int("SUPEREZIO_TD_TICKET_MAX_QUOTE_AGE_SEC", "120")
     quote_age = (current - quote_as_of).total_seconds()
@@ -284,8 +299,8 @@ def build_td_direct_ticket(
         raise TDDirectTicketError("thesis must contain at least 12 characters")
     if len(invalidation) < 12:
         raise TDDirectTicketError("invalidation must contain at least 12 characters")
-    if len(thesis) > 500 or len(invalidation) > 500 or len(quote_source) > 100:
-        raise TDDirectTicketError("quote_source, thesis, or invalidation exceeds its size limit")
+    if len(thesis) > 500 or len(invalidation) > 500:
+        raise TDDirectTicketError("thesis or invalidation exceeds its size limit")
 
     stop_price: float | None = None
     risk_budget: float | None = None
@@ -332,6 +347,7 @@ def build_td_direct_ticket(
         "account_type": account_type,
         "commission": commission,
         "quote_as_of": quote_as_of.isoformat(),
+        "quote_evidence_hash": evidence_hash,
     }
     fingerprint = hashlib.sha256(
         json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -354,8 +370,8 @@ def build_td_direct_ticket(
         "fingerprint": fingerprint,
         "broker": "TD_DIRECT_INVESTING_CANADA",
         "execution_mode": "LIVE_MANUAL",
-        "status": "DRAFT_UNVERIFIED_QUOTE",
-        "phase": "independent_quote_verification_required",
+        "status": "DRAFT_QUOTE_VERIFIED",
+        "phase": "money_gate_required",
         "submitted_to_broker": False,
         "transmission_capability": False,
         "ready_for_execution": False,
@@ -378,14 +394,18 @@ def build_td_direct_ticket(
         "invalidation": invalidation,
         "quote": {
             "price": round(quote_price, 4),
-            "source": quote_source,
             "as_of": quote_as_of.isoformat(),
             "age_seconds": max(0, round(quote_age, 3)),
             "limit_deviation_pct": round(deviation_pct, 4),
-            "trust": "UNVERIFIED_CLIENT_ASSERTION",
+            "trust": "SERVER_VERIFIED_CONSENSUS",
+            "source_count": source_count,
+            "sources": quote_sources,
+            "evidence_hash": evidence_hash,
+            "server_acquired_at": trusted_quote.get("server_acquired_at"),
+            "stale_fallback_used": False,
         },
         "required_gates": {
-            "server_side_quote": False,
+            "server_side_quote": True,
             "money_gate": False,
             "portfolio_risk": False,
             "buying_power": False,

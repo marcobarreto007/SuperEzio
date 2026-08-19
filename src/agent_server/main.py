@@ -645,6 +645,11 @@ try:
         "superezio_dead_letters_pending",
         "Número de ordens na dead letter queue",
     )
+    superezio_circuit_breaker_state = Gauge(
+        "superezio_circuit_breaker_state",
+        "Estado do circuit breaker: closed=0, half_open=1, open=2",
+        ["circuit"],
+    )
     superezio_pipeline_duration_seconds = Histogram(
         "superezio_pipeline_duration_seconds",
         "Latência do pipeline completo",
@@ -690,6 +695,17 @@ async def prometheus_metrics_endpoint():
     except Exception as exc:
         logger.warning("prometheus_dead_letters_gauge_failed", error=str(exc)[:120])
         superezio_dead_letters_pending.set(-1)
+
+    try:
+        from core.resilience import get_all_circuits_health
+
+        circuit_values = {"closed": 0, "half_open": 1, "open": 2}
+        for circuit in get_all_circuits_health():
+            superezio_circuit_breaker_state.labels(circuit=str(circuit["circuit"])).set(
+                circuit_values.get(str(circuit["state"]), 2)
+            )
+    except Exception as exc:
+        logger.warning("prometheus_circuit_gauge_failed", error=str(exc)[:120])
 
     return Response(
         content=generate_latest(REGISTRY),

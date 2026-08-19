@@ -32,9 +32,6 @@ def _buy_payload(**overrides):
         "stop_price": 107.5,
         "risk_budget": 30.0,
         "account_type": "TFSA",
-        "quote_price": 109.9,
-        "quote_as_of": (NOW - timedelta(seconds=20)).isoformat(),
-        "quote_source": "yfinance",
         "thesis": "Liquid Canadian bank setup with a defined entry.",
         "invalidation": "Exit if price trades through the declared stop.",
     }
@@ -42,8 +39,38 @@ def _buy_payload(**overrides):
     return payload
 
 
+def _trusted_quote(**overrides):
+    quote = {
+        "symbol": "TD",
+        "exchange": "TSX",
+        "currency": "CAD",
+        "price": 109.9,
+        "as_of": (NOW - timedelta(seconds=20)).isoformat(),
+        "server_acquired_at": NOW.isoformat(),
+        "sources": [
+            {"provider": "twelve_data", "price": 109.88},
+            {"provider": "finnhub", "price": 109.92},
+        ],
+        "source_count": 2,
+        "divergence_pct": 0.0364,
+        "trust": "SERVER_VERIFIED_CONSENSUS",
+        "stale_fallback_used": False,
+        "evidence_hash": "a" * 64,
+    }
+    quote.update(overrides)
+    return quote
+
+
+def _build(payload=None, *, quote=None, now=NOW):
+    return build_td_direct_ticket(
+        payload or _buy_payload(),
+        trusted_quote=quote or _trusted_quote(),
+        now=now,
+    )
+
+
 def test_build_buy_ticket_is_live_manual_and_never_transmitted():
-    ticket = build_td_direct_ticket(_buy_payload(), now=NOW)
+    ticket = _build()
 
     assert ticket["broker"] == "TD_DIRECT_INVESTING_CANADA"
     assert ticket["execution_mode"] == "LIVE_MANUAL"
@@ -51,39 +78,39 @@ def test_build_buy_ticket_is_live_manual_and_never_transmitted():
     assert ticket["transmission_capability"] is False
     assert ticket["symbol"] == "TD"
     assert ticket["planned_stop_risk"] == 25.0
-    assert ticket["status"] == "DRAFT_UNVERIFIED_QUOTE"
+    assert ticket["status"] == "DRAFT_QUOTE_VERIFIED"
+    assert ticket["quote"]["trust"] == "SERVER_VERIFIED_CONSENSUS"
     assert ticket["commission"]["status"] == "NOT_LISTED"
 
 
 @pytest.mark.parametrize("field", ["password", "username", "account_number", "cookie"])
 def test_ticket_rejects_td_credentials_and_account_identifiers(field):
     with pytest.raises(TDDirectTicketError, match="forbidden"):
-        build_td_direct_ticket(_buy_payload(**{field: "secret"}), now=NOW)
+        _build(_buy_payload(**{field: "secret"}))
 
 
 def test_ticket_rejects_stale_quote():
     with pytest.raises(TDDirectTicketError, match="stale"):
-        build_td_direct_ticket(
-            _buy_payload(quote_as_of=(NOW - timedelta(minutes=10)).isoformat()), now=NOW
+        _build(
+            quote=_trusted_quote(as_of=(NOW - timedelta(minutes=10)).isoformat())
         )
 
 
 def test_ticket_expiry_is_anchored_to_quote_timestamp():
-    ticket = build_td_direct_ticket(_buy_payload(), now=NOW)
+    ticket = _build()
 
     assert datetime.fromisoformat(ticket["expires_at"]) == NOW + timedelta(seconds=100)
 
 
 def test_ticket_rejects_risk_over_budget():
     with pytest.raises(TDDirectTicketError, match="planned stop risk.*exceeds risk budget"):
-        build_td_direct_ticket(_buy_payload(quantity=100), now=NOW)
+        _build(_buy_payload(quantity=100))
 
 
 def test_ticket_compares_stop_risk_before_rounding():
     with pytest.raises(TDDirectTicketError, match="exceeds risk budget"):
-        build_td_direct_ticket(
+        _build(
             _buy_payload(quantity=1, limit_price=110.005, stop_price=109.0, risk_budget=1.0),
-            now=NOW,
         )
 
 
@@ -98,12 +125,12 @@ def test_ticket_rejects_invalid_safety_configuration(monkeypatch, name, value):
     monkeypatch.setenv(name, value)
 
     with pytest.raises(TDDirectTicketError, match=name):
-        build_td_direct_ticket(_buy_payload(), now=NOW)
+        _build()
 
 
 def test_ticket_rejects_market_order():
     with pytest.raises(TDDirectTicketError, match="LIMIT orders only"):
-        build_td_direct_ticket(_buy_payload(order_type="MARKET"), now=NOW)
+        _build(_buy_payload(order_type="MARKET"))
 
 
 def test_sell_ticket_cannot_exceed_declared_position():
@@ -115,11 +142,11 @@ def test_sell_ticket_cannot_exceed_declared_position():
         risk_budget=None,
     )
     with pytest.raises(TDDirectTicketError, match="short selling is blocked"):
-        build_td_direct_ticket(payload, now=NOW)
+        _build(payload)
 
 
 def test_append_ticket_writes_one_jsonl_record(tmp_path):
-    ticket = build_td_direct_ticket(_buy_payload(), now=NOW)
+    ticket = _build()
     path = append_td_direct_ticket(ticket, tmp_path / "tickets.jsonl")
 
     records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
@@ -128,7 +155,7 @@ def test_append_ticket_writes_one_jsonl_record(tmp_path):
 
 
 def test_append_ticket_is_idempotent_for_completed_audit(tmp_path):
-    ticket = build_td_direct_ticket(_buy_payload(), now=NOW)
+    ticket = _build()
     path = tmp_path / "tickets.jsonl"
     append_td_direct_ticket(ticket, path)
 
@@ -169,11 +196,41 @@ def test_ticket_can_require_proven_commission_free_symbol():
         currency="USD",
         require_commission_free=True,
     )
-    ticket = build_td_direct_ticket(payload, now=NOW)
+    ticket = _build(
+        payload,
+        quote=_trusted_quote(
+            symbol="QQQ", exchange="NASDAQ", currency="USD", price=109.9
+        ),
+    )
     assert ticket["commission"]["eligible"] is True
     assert ticket["commission"]["estimated_base_commission"] == 0.0
 
 
 def test_ticket_blocks_unlisted_symbol_when_commission_free_is_required():
     with pytest.raises(TDDirectTicketError, match="not proven commission-free"):
-        build_td_direct_ticket(_buy_payload(require_commission_free=True), now=NOW)
+        _build(_buy_payload(require_commission_free=True))
+
+
+@pytest.mark.parametrize("field", ["quote_price", "quote_as_of", "quote_source"])
+def test_ticket_rejects_client_supplied_quote_assertions(field):
+    with pytest.raises(TDDirectTicketError, match="unsupported fields"):
+        _build(_buy_payload(**{field: "forged"}))
+
+
+def test_ticket_requires_trusted_server_quote():
+    with pytest.raises(TDDirectTicketError, match="trusted server quote is required"):
+        build_td_direct_ticket(_buy_payload(), now=NOW)
+
+
+@pytest.mark.parametrize(
+    ("override", "message"),
+    [
+        ({"source_count": 1}, "at least two"),
+        ({"stale_fallback_used": True}, "stale quote fallback"),
+        ({"exchange": "NYSE"}, "exchange does not match"),
+        ({"currency": "USD"}, "currency does not match"),
+    ],
+)
+def test_ticket_rejects_untrusted_quote_evidence(override, message):
+    with pytest.raises(TDDirectTicketError, match=message):
+        _build(quote=_trusted_quote(**override))

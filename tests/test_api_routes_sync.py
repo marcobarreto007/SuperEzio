@@ -22,6 +22,29 @@ from core.observability import log_queue
 from core.pipeline.task_queue import get_task_queue
 
 
+def _trusted_td_quote(
+    *, symbol: str = "TD", exchange: str = "TSX", currency: str = "CAD", price: float = 109.9
+) -> dict[str, object]:
+    now = datetime.now(timezone.utc).isoformat()
+    return {
+        "symbol": symbol,
+        "exchange": exchange,
+        "currency": currency,
+        "price": price,
+        "as_of": now,
+        "server_acquired_at": now,
+        "sources": [
+            {"provider": "twelve_data", "price": price - 0.01},
+            {"provider": "finnhub", "price": price + 0.01},
+        ],
+        "source_count": 2,
+        "divergence_pct": 0.02,
+        "trust": "SERVER_VERIFIED_CONSENSUS",
+        "stale_fallback_used": False,
+        "evidence_hash": "b" * 64,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Mock Pipeline & Fixture
 # ---------------------------------------------------------------------------
@@ -492,12 +515,11 @@ def test_td_ticket_route_creates_live_manual_ticket_without_submit(
         "append_td_direct_ticket",
         lambda ticket: append_td_direct_ticket(ticket, audit_path),
     )
+    monkeypatch.setattr(endpoints, "resolve_server_quote", lambda *_args, **_kwargs: _trusted_td_quote())
     monkeypatch.setenv("SUPEREZIO_API_KEY", "configured-for-test")
     trading_token = "td-test-token"
     endpoints._TRADING_TOKENS[trading_token] = time.time()
     _, client = client_with_mock_pipeline
-    now = datetime.now(timezone.utc).isoformat()
-
     response = client.post(
         "/trade/td-draft",
         headers={"X-Trading-Token": trading_token},
@@ -512,9 +534,6 @@ def test_td_ticket_route_creates_live_manual_ticket_without_submit(
             "stop_price": 108.0,
             "risk_budget": 5.0,
             "account_type": "TFSA",
-            "quote_price": 109.9,
-            "quote_as_of": now,
-            "quote_source": "test_provider",
             "thesis": "Liquid Canadian bank setup with defined risk.",
             "invalidation": "Exit if the declared stop level is breached.",
         },
@@ -532,7 +551,34 @@ def test_td_ticket_route_creates_live_manual_ticket_without_submit(
 
     status = client.get(f"/trade/status/{data['order_id']}")
     assert status.status_code == 200
-    assert status.json()["phase"] == "independent_quote_verification_required"
+    assert status.json()["phase"] == "money_gate_required"
+
+
+def test_td_ticket_route_rejects_client_quote_assertions(
+    client_with_mock_pipeline, monkeypatch
+):
+    import agent_server.endpoints as endpoints
+
+    monkeypatch.setenv("SUPEREZIO_API_KEY", "configured-for-test")
+    token = "td-forged-quote-token"
+    endpoints._TRADING_TOKENS[token] = time.time()
+    monkeypatch.setattr(
+        endpoints,
+        "resolve_server_quote",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("resolver must not run for forged client quote")
+        ),
+    )
+    _, client = client_with_mock_pipeline
+
+    response = client.post(
+        "/trade/td-draft",
+        headers={"X-Trading-Token": token},
+        json={"ticker": "TD.TO", "quote_price": 1.0},
+    )
+
+    assert response.status_code == 422
+    assert "client quote assertions are forbidden" in response.json()["detail"]
 
 
 def test_td_ticket_route_fails_closed_without_api_key(client_with_mock_pipeline, monkeypatch):
@@ -557,6 +603,7 @@ def test_td_ticket_audit_failure_writes_dead_letter(
         "append_td_direct_ticket",
         lambda _ticket: (_ for _ in ()).throw(OSError("audit disk unavailable")),
     )
+    monkeypatch.setattr(endpoints, "resolve_server_quote", lambda *_args, **_kwargs: _trusted_td_quote())
     _, client = client_with_mock_pipeline
     response = client.post(
         "/trade/td-draft",
@@ -572,9 +619,6 @@ def test_td_ticket_audit_failure_writes_dead_letter(
             "stop_price": 108.0,
             "risk_budget": 5.0,
             "account_type": "TFSA",
-            "quote_price": 109.9,
-            "quote_as_of": datetime.now(timezone.utc).isoformat(),
-            "quote_source": "test_provider",
             "thesis": "Liquid Canadian bank setup with defined risk.",
             "invalidation": "Exit if the declared stop level is breached.",
         },
@@ -603,6 +647,13 @@ def test_td_manual_workflow_requires_gates_and_records_only_human_confirmation(
         "append_td_direct_ticket",
         lambda ticket: append_td_direct_ticket(ticket, tmp_path / "td-audit.jsonl"),
     )
+    monkeypatch.setattr(
+        endpoints,
+        "resolve_server_quote",
+        lambda *_args, **_kwargs: _trusted_td_quote(
+            symbol="QQQ", exchange="NASDAQ", currency="USD", price=569.9
+        ),
+    )
     monkeypatch.setenv("SUPEREZIO_API_KEY", "configured-for-test")
     _, client = client_with_mock_pipeline
 
@@ -615,7 +666,6 @@ def test_td_manual_workflow_requires_gates_and_records_only_human_confirmation(
         endpoints._TRADING_TOKENS[token] = time.time()
         return {"X-Trading-Token": token}
 
-    quote_time = datetime.now(timezone.utc)
     draft_response = client.post(
         "/trade/td-draft",
         headers=headers(),
@@ -630,9 +680,6 @@ def test_td_manual_workflow_requires_gates_and_records_only_human_confirmation(
             "stop_price": 565.0,
             "risk_budget": 5.0,
             "account_type": "RRSP",
-            "quote_price": 569.9,
-            "quote_as_of": quote_time.isoformat(),
-            "quote_source": "test_provider",
             "thesis": "Broad liquid ETF setup with a defined entry.",
             "invalidation": "Exit if the declared stop level is breached.",
         },

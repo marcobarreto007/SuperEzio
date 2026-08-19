@@ -89,9 +89,11 @@ class ManualTradeWorkflow:
         required_gates = dict(ticket.get("required_gates") or {})
         required_gates.update({name: True for name in _REQUIRED_AUTOMATED_GATES})
         required_gates["td_order_preview"] = False
+        if ticket["status"] not in {"DRAFT_UNVERIFIED_QUOTE", "DRAFT_QUOTE_VERIFIED"}:
+            raise ManualTradeWorkflowError(f"ticket is not a draft: {ticket['status']}")
         return self.store.transition_ticket(
             ticket_id,
-            expected_status="DRAFT_UNVERIFIED_QUOTE",
+            expected_status=str(ticket["status"]),
             new_status="GATED",
             new_phase="automated_gates_passed",
             actor=actor,
