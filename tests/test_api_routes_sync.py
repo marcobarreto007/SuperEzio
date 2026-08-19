@@ -449,7 +449,9 @@ def test_cockpit_summary(client_with_mock_pipeline, monkeypatch):
     assert data["bob"]["portfolio"]["provider"] == "IBKR"
     assert data["status"]["ibkr"]["status"] == "online"
     assert "orders_count" in data["status"]["ibkr"]
-    assert data["status"]["guardrails"]["total"] == 30
+    assert data["status"]["guardrails"]["status"] == "unknown"
+    assert data["status"]["guardrails"]["ok"] is None
+    assert data["status"]["guardrails"]["total"] is None
 
 
 def test_trade_execute_creates_pending_ticket_without_broker_submit(
@@ -1450,6 +1452,7 @@ def test_frontend_operational_truth_contract():
     assert 'setVerdictEl("sdca-verdict", "READY")' in cockpit_js
     assert 'setVerdictEl("neural-verdict", "READY")' in cockpit_js
     assert 'setVerdictEl("trinity-verdict", "READY")' in cockpit_js
+    assert 'data.status === "unknown"' in cockpit_js
     assert 'score == null ? "TRUST: --"' in trust_js
     assert "open hypotheses: " in init_js
     assert "audit evidence, not broker positions" in init_js

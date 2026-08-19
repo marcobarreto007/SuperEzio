@@ -442,21 +442,13 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
 
 
 def _cockpit_guardrail_summary() -> dict[str, Any]:
-    layers = [
-        {"layer": "L1 Input Security", "ok": 4, "total": 4, "status": "ok"},
-        {"layer": "L2 Provider", "ok": 3, "total": 3, "status": "ok"},
-        {"layer": "L3 Data Quality", "ok": 4, "total": 4, "status": "ok"},
-        {"layer": "L4 Risk Analysis", "ok": 4, "total": 4, "status": "ok"},
-        {"layer": "L5 Fraud Detection", "ok": 4, "total": 4, "status": "ok"},
-        {"layer": "L6 Trading", "ok": 5, "total": 5, "status": "ok"},
-        {"layer": "L7 Crisis", "ok": 3, "total": 3, "status": "ok"},
-        {"layer": "L8 Committee", "ok": 3, "total": 3, "status": "ok"},
-    ]
+    """Return no score until a real Guardrail Hub run supplies evidence."""
     return {
-        "ok": sum(layer["ok"] for layer in layers),
-        "total": sum(layer["total"] for layer in layers),
-        "status": "ok",
-        "layers": layers,
+        "ok": None,
+        "total": None,
+        "status": "unknown",
+        "layers": [],
+        "evidence_at": None,
     }
 
 

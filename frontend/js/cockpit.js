@@ -454,7 +454,7 @@
 
   /* Guardrail Summary Card */
   function renderGuardrailCard(data) {
-    if (!data) {
+    if (!data || data.status === "unknown" || data.status === "unavailable" || data.total == null) {
       $("guardrails-body").innerHTML = '<div class="empty-state">Health evidence unavailable.</div>';
       setText("guardrails-summary", "--");
       setTrustBar("guardrail-trust-bar", 0, "");
