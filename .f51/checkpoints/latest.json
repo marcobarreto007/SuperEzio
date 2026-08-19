@@ -449,5 +449,38 @@
     },
     "go_live": "BLOCKED_PENDING_CHART_RELEASE_GATE"
   },
+  "api_responsiveness_impact_map": {
+    "status": "in_progress",
+    "problem": "Deep health and cockpit routes are declared async but perform slow synchronous broker and system probes, blocking unrelated requests and making chart/UI startup appear hung.",
+    "architecture_touched": [
+      "FastAPI route scheduling",
+      "deep health probes",
+      "cockpit broker snapshots",
+      "browser release smoke"
+    ],
+    "files_planned": [
+      "src/agent_server/main.py",
+      "src/agent_server/endpoints.py",
+      "tests/test_api_routes_sync.py"
+    ],
+    "risks": [
+      "event loop starvation",
+      "concurrent access to broker snapshot caches",
+      "changing public response contracts"
+    ],
+    "smallest_safe_patch": "Run the three purely synchronous slow routes in FastAPI's threadpool by declaring them as def; preserve URLs, response bodies and all fail-closed timeouts.",
+    "verification": [
+      "concurrent liveness regression test",
+      "python -m ruff check on changed Python files",
+      "focused pytest",
+      "Playwright browser smoke and screenshot"
+    ],
+    "baseline": {
+      "health_during_chart_seconds": 0.004103,
+      "health_during_deep_health_seconds": 3.983908,
+      "health_during_cockpit_portfolio_seconds": 12.114588,
+      "health_during_cockpit_summary_seconds": 7.660944
+    }
+  },
   "owner": "Codex"
 }
