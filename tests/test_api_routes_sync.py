@@ -1430,6 +1430,48 @@ def test_frontend_ibkr_order_mirror_integration():
     assert ".order-row.is-selected" in charts_css
 
 
+def test_frontend_operational_truth_contract():
+    """Idle experts, broker isolation and trust null must be explicit UI contracts."""
+    from pathlib import Path
+
+    health_js = Path("frontend/js/health.js").read_text(encoding="utf-8")
+    status_js = Path("frontend/js/status-bar.js").read_text(encoding="utf-8")
+    cockpit_js = Path("frontend/js/cockpit.js").read_text(encoding="utf-8")
+    trust_js = Path("frontend/js/trust-score.js").read_text(encoding="utf-8")
+    init_js = Path("frontend/js/init.js").read_text(encoding="utf-8")
+
+    assert 'core: { state: details ? "online" : "offline" }' in health_js
+    assert 'provider: broker.provider || "IBKR"' in health_js
+    assert 'return "ready"' in health_js
+    assert '"CORE " + upper(core.state)' in status_js
+    assert '" · " + mode + " MODE · "' in status_js
+    assert 'setVerdictEl("f51-verdict", "READY")' in cockpit_js
+    assert 'setVerdictEl("sdca-verdict", "READY")' in cockpit_js
+    assert 'setVerdictEl("neural-verdict", "READY")' in cockpit_js
+    assert 'setVerdictEl("trinity-verdict", "READY")' in cockpit_js
+    assert 'score == null ? "TRUST: --"' in trust_js
+    assert "open hypotheses: " in init_js
+    assert "audit evidence, not broker positions" in init_js
+
+
+def test_trade_history_exposes_semantic_counts(client_with_mock_pipeline):
+    _, client = client_with_mock_pipeline
+    response = client.get("/trades/history")
+    assert response.status_code == 200
+    stats = response.json()["stats"]
+    assert set(
+        [
+            "journal_records",
+            "open_hypotheses",
+            "closed_trades",
+            "broker_orders",
+            "broker_fills",
+            "broker_open_positions",
+        ]
+    ).issubset(stats)
+    assert stats["broker_orders"] == stats["broker_fills"] == stats["broker_open_positions"] == 0
+
+
 def test_frontend_rejects_internal_heartbeat_as_market_ticker():
     """Internal journal sentinel must never trigger a market-data request."""
     from pathlib import Path

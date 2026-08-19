@@ -701,18 +701,19 @@
 	    } else if (offlineMode) {
 	      /* Show paper trading mode banner with journal stats when IBKR offline */
 	      var statsHtml = "";
-	      var totalTrades = tradeStats.total_trades || tradeStats.closed_trades || 0;
+	      var journalRecords = tradeStats.journal_records || 0;
 	      var winRate = tradeStats.win_rate_pct;
 	      var totalPnl = tradeStats.total_pnl;
-	      var openTrades = tradeStats.open_trades || 0;
+	      var openHypotheses = tradeStats.open_hypotheses || 0;
+	      var closedTrades = tradeStats.closed_trades || 0;
 	      var wins = tradeStats.wins || 0;
 	      var losses = tradeStats.losses || 0;
 
-	      if (totalTrades > 0) {
+	      if (journalRecords > 0) {
 	        statsHtml = '<div class="paper-summary" style="margin:4px 0 6px;padding:4px 6px;background:var(--bg-tertiary);border-radius:4px;border:1px solid var(--border-subtle);">';
 	        statsHtml += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">';
 	        statsHtml += '<span style="font:700 9px var(--font-mono);color:var(--yellow-warn);letter-spacing:0.04em;">PAPER JOURNAL</span>';
-	        statsHtml += '<span style="font:600 8px var(--font-mono);color:var(--text-muted);">' + esc(String(totalTrades)) + ' trades</span>';
+	        statsHtml += '<span style="font:600 8px var(--font-mono);color:var(--text-muted);">' + esc(String(journalRecords)) + ' records</span>';
 	        statsHtml += "</div>";
 	        statsHtml += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
 	        if (wins > 0 || losses > 0) {
@@ -727,9 +728,10 @@
 	          var pnlSign = totalPnl >= 0 ? "+" : "";
 	          statsHtml += '<span style="font:700 9px var(--font-mono);' + pnlCls + '">P&L: ' + pnlSign + "$" + esc(Number(Math.abs(totalPnl)).toFixed(2)) + "</span>";
 	        }
-	        if (openTrades > 0) {
-	          statsHtml += '<span style="font:600 9px var(--font-mono);color:var(--cyan-info);">open: ' + openTrades + "</span>";
+	        if (openHypotheses > 0) {
+	          statsHtml += '<span style="font:600 9px var(--font-mono);color:var(--cyan-info);">open hypotheses: ' + openHypotheses + "</span>";
 	        }
+	        statsHtml += '<span style="font:600 9px var(--font-mono);color:var(--text-secondary);">closed trades: ' + closedTrades + "</span>";
 	        statsHtml += "</div></div>";
 	      }
 
@@ -739,7 +741,7 @@
 	          '<span style="font:600 9px var(--font-sans);color:var(--text-secondary);">paper trading mode</span>',
 	        "</div>",
 	        statsHtml,
-	        '<div class="cockpit-empty">No open IBKR orders. Paper journal trades below.</div>',
+	          '<div class="cockpit-empty">No IBKR orders or positions. Paper journal records are audit evidence, not broker positions.</div>',
 	      ].join("");
 	    } else {
 	      host.innerHTML = '<div class="cockpit-empty">No open IBKR broker orders. Manual chart remains available.</div>';
@@ -753,7 +755,7 @@
 	      }).filter(Boolean);
 	      if (historyRows.length) {
 	        var historyTitle = offlineMode
-	          ? "<span>Paper journal trades</span>"
+	          ? "<span>Paper journal records</span>"
 	          : "<span>Local audit history</span>";
 	        historyHost.innerHTML = [
 	          '<div class="trade-history-title">' + historyTitle + "<strong>" + esc(String(pf.trade_history_count || history.length)) + "</strong></div>",

@@ -315,6 +315,11 @@ def _cockpit_trade_history(limit: int = 50) -> dict[str, Any]:
         ]
         trades.sort(key=_trade_history_sort_key, reverse=True)
         stats = journal.get_stats()
+        stats["journal_records"] = len(trades)
+        stats["open_hypotheses"] = sum(1 for trade in trades if trade.get("status") == "open")
+        stats["broker_orders"] = 0
+        stats["broker_fills"] = 0
+        stats["broker_open_positions"] = 0
         return {
             "source": "paper_journal",
             "path": str(journal.path),
