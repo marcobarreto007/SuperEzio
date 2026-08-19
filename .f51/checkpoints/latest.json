@@ -263,6 +263,41 @@
       "known_nonblocking": "browser reports the pre-existing /pipeline/events/stream 404; Windows Proactor logged an assertion only during Ctrl-C shutdown"
     }
   },
-  "next_step": "Fase 6: implementar Money Gate canadense com exposição total, buying power, TFSA/RRSP e risco cambial.",
+  "phase_6_impact_map": {
+    "status": "in_progress",
+    "problem": "O ticket tem preço confiável, mas ainda pode ser promovido sem equity, buying power, posições, concentração, moeda e restrições da conta TD.",
+    "architecture_touched": [
+      "snapshot manual atestado do WebBroker",
+      "Money Gate broker-neutral canadense",
+      "limites tipados e fail-closed",
+      "promoção DRAFT_QUOTE_VERIFIED para GATED"
+    ],
+    "files_planned": [
+      "src/core/trading/canada_money_gate.py",
+      "src/core/trading/manual_trade_workflow.py",
+      "src/core/config/settings.py",
+      "src/agent_server/endpoints.py",
+      "tests/test_canada_money_gate.py",
+      "tests/test_api_routes_sync.py"
+    ],
+    "risks": [
+      "snapshot de saldo falsificado ou stale",
+      "buying power insuficiente",
+      "concentracao por ativo, setor ou moeda",
+      "TFSA/RRSP/FHSA tratados como margem",
+      "SELL criar short acidental",
+      "duas ordens concorrentes consumirem o mesmo buying power"
+    ],
+    "smallest_safe_patch": "Require a fresh operator-attested TD account snapshot, compute every threshold server-side in CAD, reserve pending ticket notional transactionally, and only then call the existing immutable gate transition.",
+    "verification": [
+      "boundary/property tests for quantity, currencies and limits",
+      "stale/insufficient/incompatible account tests",
+      "concurrent reservation test",
+      "restart persistence and route contract",
+      "Ruff, focused pytest and browser smoke"
+    ],
+    "go_live": "BLOCKED_PENDING_IMPLEMENTATION"
+  },
+  "next_step": "Fase 6: construir e provar o Money Gate Canadá sem confiar implicitamente em dados TD declarados pelo navegador.",
   "owner": "Codex"
 }
