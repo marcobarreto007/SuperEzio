@@ -69,6 +69,37 @@
     "result": "39 tests passed; ruff and JS syntax passed; browser smoke passed with 130 candles and 7 canvases."
   },
   "roadmap": "docs/TD_LIVE_READINESS_ROADMAP.md",
+  "phase_2_impact_map": {
+    "status": "in_progress",
+    "problem": "Mangala tests use a temporary tracker journal but sync each flip into the default operator PaperJournal.",
+    "architecture_touched": [
+      "MangalaTracker dependency injection",
+      "PaperJournal provenance",
+      "test storage isolation",
+      "RAG ingestion eligibility"
+    ],
+    "files_planned": [
+      "src/core/pipeline/nodes/mangala_tracker.py",
+      "src/core/trading/paper_journal.py",
+      "src/core/memory/unified.py",
+      "tests/contracts/test_mangala_tracker.py",
+      "tests/test_paper_journal.py",
+      "tests/test_unified_memory_fase1.py"
+    ],
+    "risks": [
+      "test data written to operator journal",
+      "synthetic rows ingested into financial RAG",
+      "unrecoverable deletion during cleanup",
+      "breaking runtime singleton construction"
+    ],
+    "smallest_safe_patch": "Inject the PaperJournal destination into MangalaTracker, stamp environment/provenance, reject test rows in operator storage, and quarantine proven synthetic records without deletion.",
+    "verification": [
+      "hash operator artifacts before and after tests",
+      "pytest Mangala, PaperJournal and UnifiedMemory tests",
+      "ruff full",
+      "browser smoke"
+    ]
+  },
   "next_step": "Fase 2: isolar testes e descontaminar journals, memoria e RAG sem excluir dados antes do inventario com hashes.",
   "owner": "Codex"
 }
