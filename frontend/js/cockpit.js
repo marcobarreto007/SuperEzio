@@ -993,11 +993,15 @@
         body: JSON.stringify({ ticker: ticker, action: action, qty: qty })
       });
       var data = await r.json();
-      if (r.ok) {
-        var msg = 'Paper order submitted: ' + action.toUpperCase() + ' ' + qty + ' ' + ticker;
+      var brokerConfirmed = r.ok && data && data.ok === true && data.submitted_to_broker === true;
+      if (brokerConfirmed) {
+        var msg = 'Broker confirmed submission: ' + action.toUpperCase() + ' ' + qty + ' ' + ticker;
         showTradeConfirm(cardId, msg);
         form.classList.remove('is-open');
         refreshMangala();
+      } else if (r.ok && data && data.submitted_to_broker === false) {
+        var pendingStatus = data.status || data.phase || 'pending validation';
+        showTradeConfirm(cardId, 'Not submitted to broker — ' + String(pendingStatus).replace(/_/g, ' '));
       } else {
         var errMsg = data.detail || data.error || data.reason || 'Unknown error';
         showTradeConfirm(cardId, 'Error: ' + (typeof errMsg === 'string' ? errMsg.substring(0, 120) : 'unknown'));

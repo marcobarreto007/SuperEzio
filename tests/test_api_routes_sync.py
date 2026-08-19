@@ -1106,6 +1106,21 @@ def test_frontend_bob_submit_blocks_parallel_requests():
     assert ".bob-local-notice" in chat_css
 
 
+def test_frontend_trade_confirmation_requires_explicit_broker_confirmation():
+    """HTTP 200 with ok=false must never be rendered as a submitted broker order."""
+    from pathlib import Path
+
+    cockpit_js = Path("frontend/js/cockpit.js").read_text(encoding="utf-8")
+    start = cockpit_js.index("async function handleTradeSubmitClick")
+    end = cockpit_js.index("function handleTradeCancelClick", start)
+    trade_submit = cockpit_js[start:end]
+
+    assert "r.ok && data && data.ok === true && data.submitted_to_broker === true" in trade_submit
+    assert "Not submitted to broker" in trade_submit
+    assert "if (r.ok) {" not in trade_submit
+    assert "Paper order submitted" not in trade_submit
+
+
 def test_frontend_ibkr_order_mirror_integration():
     """15. Frontpage exposes active IBKR orders and clicking one drives the chart ticker."""
     from pathlib import Path
