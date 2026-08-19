@@ -110,6 +110,43 @@
       "source_modified": false
     }
   },
+  "phase_3_impact_map": {
+    "status": "in_progress",
+    "problem": "Kill switch, approvals and trade status are process-memory state; restart loses safety decisions and can duplicate an intent.",
+    "architecture_touched": [
+      "broker-neutral SQLite workflow state",
+      "deterministic ticket idempotency",
+      "persistent approval state",
+      "persistent global kill switch",
+      "trade status API and cockpit"
+    ],
+    "files_planned": [
+      "src/core/trading/workflow_store.py",
+      "src/core/trading/approval_gate.py",
+      "src/core/trading/kill_switch.py",
+      "src/core/pipeline/nodes/guardrail_hub.py",
+      "src/agent_server/endpoints.py",
+      "tests/test_trade_workflow_store.py",
+      "tests/test_trading_loop1.py",
+      "tests/test_trading_loop3.py",
+      "tests/test_api_routes_sync.py"
+    ],
+    "risks": [
+      "duplicate ticket across process restart",
+      "approval resolving a different ticket",
+      "kill switch returning inactive after restart",
+      "tests writing production financial state",
+      "partial audit write without replay evidence"
+    ],
+    "smallest_safe_patch": "Add one SQLite source of truth with unique fingerprint/event keys, inject it into global safety gates, persist endpoint status, and fail closed with dead-letter evidence on partial writes.",
+    "verification": [
+      "restart/cross-instance idempotency tests",
+      "approval and kill-switch restart tests",
+      "operator database hash unchanged across pytest",
+      "Ruff, focused pytest and browser smoke"
+    ],
+    "go_live": "BLOCKED_BY_DESIGN_UNTIL_PHASES_4_TO_10"
+  },
   "next_step": "Fase 3: tornar kill switch, approval, ticket e status persistentes, idempotentes e unidos pelo mesmo ticket hash.",
   "owner": "Codex"
 }
