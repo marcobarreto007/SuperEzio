@@ -88,34 +88,6 @@ services:
       retries: 3
       start_period: 30s
 
-  watchdog:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: superezio-watchdog
-    command: ["python", "scripts/bob_watchdog.py"]
-    environment:
-      - PYTHONPATH=/app/src
-      - BOB_WATCHDOG_INTERVAL_SEC=30
-      - LOG_LEVEL=INFO
-    volumes:
-      - ./src:/app/src:ro
-      - ./scripts:/app/scripts:ro
-      - ./data:/app/data
-      - ./runtime:/app/runtime
-      - ./journal:/app/journal
-    depends_on:
-      - bob-ceo
-    restart: unless-stopped
-    networks:
-      - backend
-    healthcheck:
-      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-
 networks:
   backend:
     driver: bridge

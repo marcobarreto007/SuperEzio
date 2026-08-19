@@ -118,7 +118,7 @@ class MemoryLattice:
 
         with self._lock:
             cur = self._conn.execute(
-                f"INSERT INTO {table} (data, created_at) VALUES (?, ?)",
+                f"INSERT INTO {table} (data, created_at) VALUES (?, ?)",  # nosec B608 -- constant map
                 (json_data, data["_created_at"]),
             )
             rowid = cur.lastrowid
@@ -127,7 +127,7 @@ class MemoryLattice:
             if layer in LAYERS_WITH_FTS:
                 fts_table = f"{table}_fts"
                 self._conn.execute(
-                    f"INSERT INTO {fts_table} (rowid, data) VALUES (?, ?)",
+                    f"INSERT INTO {fts_table} (rowid, data) VALUES (?, ?)",  # nosec B608 -- constant map
                     (rowid, json_data),
                 )
 

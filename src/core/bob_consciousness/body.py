@@ -169,7 +169,7 @@ def _check_ceo_health() -> tuple:
             # ignored — zero-cloud policy.
             health_url = "http://127.0.0.1:8080/health"
         req = urllib.request.Request(health_url)
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with urllib.request.urlopen(req, timeout=5) as resp:  # nosec B310 -- loopback-only URL
             data = json.loads(resp.read())
             if data.get("status") == "ok":
                 return True, ""
@@ -184,7 +184,7 @@ def _check_api_health() -> tuple:
         import urllib.request
 
         req = urllib.request.Request("http://127.0.0.1:8002/health")
-        with urllib.request.urlopen(req, timeout=3) as resp:
+        with urllib.request.urlopen(req, timeout=3) as resp:  # nosec B310 -- fixed loopback URL
             data = json.loads(resp.read())
             if data.get("status") == "ok":
                 return True, ""

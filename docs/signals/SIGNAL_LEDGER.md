@@ -77,31 +77,18 @@ Preço de referência: **close do dia UTC** em `reference_ts` (ajustável na pol
 
 ---
 
-## Comandos
+## Estado executável
 
-```powershell
-# 1) Gravar emit a partir de NDJSON capturado (curl /task/submit, log do painel, etc.)
-python scripts/signal_ledger/append_from_ndjson.py data/signals/inbox/run.ndjson
-
-# Dry-run (não grava)
-python scripts/signal_ledger/append_from_ndjson.py data/signals/inbox/run.ndjson --dry-run
-
-# 2) Resolver sinais official abertos (CSV ticker,date,close ou --manual-price AAPL=310)
-python scripts/signal_ledger/resolve_signals.py --prices-csv data/signals/prices.csv
-python scripts/signal_ledger/resolve_signals.py --manual-price AAPL=310.5 --horizon 5d
-
-# 3) Relatório
-python scripts/signal_ledger/report_signals.py
-python scripts/signal_ledger/report_signals.py --json
-```
-
-Variáveis úteis: `PYTHONPATH=src` se algum import de paths do projeto for necessário; os scripts usam stdlib + pydantic já no projeto.
+Este documento define somente schema e política. Os antigos comandos
+`scripts/signal_ledger/*` foram removidos porque os scripts nunca existiram no repositório e
+não havia caller de produto. Até uma implementação testada ser adicionada, o Signal Ledger
+não deve ser apresentado como trilha de performance ativa nem usado para decisões financeiras.
 
 ---
 
 ## Próximo passo (produto, não obrigatório agora)
 
-- Hook opcional em `agent_server` para append automático pós-stream (1 chamada ao módulo `scripts/signal_ledger`).
+- Implementar primeiro um writer append-only testado e só então ligar um hook pós-stream.
 - UI Bob: aba “Track record” lendo `emitted.jsonl` + `resolutions.jsonl`.
 - Política v2: universo penny-only, spread mínimo, volume mínimo.
 
