@@ -237,3 +237,31 @@ class TestKillSwitchControl:
         reset_kill_switch_for_test()
         assert get_kill_switch() is get_kill_switch()
         assert get_kill_switch().state.last_reset_utc
+
+    def test_manual_kill_switch_survives_store_restart(self, tmp_path):
+        from core.trading.kill_switch import KillSwitch, KillSwitchReason
+        from core.trading.workflow_store import TradeWorkflowStore
+
+        db = tmp_path / "workflow.sqlite3"
+        first = KillSwitch(store=TradeWorkflowStore(db))
+        first.activate(KillSwitchReason.MANUAL)
+
+        restored = KillSwitch(store=TradeWorkflowStore(db))
+        assert restored.is_active is True
+        assert restored.state.reason == KillSwitchReason.MANUAL
+
+        restored.deactivate()
+        final = KillSwitch(store=TradeWorkflowStore(db))
+        assert final.is_active is False
+
+    def test_daily_loss_state_survives_store_restart(self, tmp_path):
+        from core.trading.kill_switch import KillSwitch
+        from core.trading.workflow_store import TradeWorkflowStore
+
+        db = tmp_path / "workflow.sqlite3"
+        first = KillSwitch(daily_loss_limit=500, store=TradeWorkflowStore(db))
+        first.record_trade(-125.0)
+
+        restored = KillSwitch(daily_loss_limit=500, store=TradeWorkflowStore(db))
+        assert restored.state.daily_pnl == -125.0
+        assert restored.state.trade_count == 1

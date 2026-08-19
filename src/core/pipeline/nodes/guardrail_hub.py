@@ -508,12 +508,9 @@ class GuardrailHub:
         )
 
     def _kill_switch(self, state: dict[str, Any]) -> dict[str, Any]:
-        from core.trading.kill_switch import KillSwitch
+        from core.trading.kill_switch import get_kill_switch
 
-        from core.mission_context import get_mission_equity
-
-        equity = float(state.get("paper_equity") or get_mission_equity())
-        switch = KillSwitch(initial_equity=equity)
+        switch = get_kill_switch()
         switch_state = switch.check()
         return self._result(
             decision="BLOCK" if switch_state.is_active else "ALLOW",

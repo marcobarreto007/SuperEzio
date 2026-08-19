@@ -50,6 +50,14 @@ def skip_gateway(monkeypatch):
     monkeypatch.setenv("UNIVERSAL_SKIP_GATEWAY", "1")
 
 
+@pytest.fixture(autouse=True)
+def isolated_trading_state(monkeypatch, tmp_path):
+    """Never let pytest open operator trading state or dead-letter storage."""
+
+    monkeypatch.setenv("SUPEREZIO_TRADING_STATE_DB", str(tmp_path / "trading-state.sqlite3"))
+    monkeypatch.setenv("SUPEREZIO_DEAD_LETTER_DIR", str(tmp_path / "dead-letter"))
+
+
 def requires_deepseek_key():
     """Skip decorator para testes que precisam de API key."""
     key = os.getenv("SUPEREZIO_DEEPSEEK_API_KEY") or os.getenv("SUPEREZIO_PRIMARY_API_KEY")
