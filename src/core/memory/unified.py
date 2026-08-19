@@ -134,9 +134,16 @@ class PaperJournalAdapter:
 
         self._journal = PaperJournal(journal_path)
 
+    def _eligible_trade(self, trade: dict) -> bool:
+        """Accept only rows with explicit provenance matching this storage environment."""
+
+        return trade.get("storage_environment") == self._journal.storage_environment and bool(
+            str(trade.get("provenance") or "").strip()
+        )
+
     def ingest_to_rag(self, rag_instance) -> int:
         """Ingerir trades paper no ForensicRAG."""
-        trades = self._journal.list_all()
+        trades = [trade for trade in self._journal.list_all() if self._eligible_trade(trade)]
         ingested = 0
 
         for trade in trades:
@@ -179,7 +186,7 @@ class PaperJournalAdapter:
         """Busca trades por similaridade de texto."""
         from core.memory.conversation_memory import _cosine_sim, _hashed_embedding
 
-        trades = self._journal.list_all()
+        trades = [trade for trade in self._journal.list_all() if self._eligible_trade(trade)]
         query_emb = _hashed_embedding(query)
 
         scored = []

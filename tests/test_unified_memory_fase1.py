@@ -153,6 +153,18 @@ def test_paper_journal_adapter_search():
         assert results[0].ticker == "NVDA"
 
 
+def test_paper_journal_adapter_rejects_unprovenanced_rows(tmp_path):
+    """Legacy or synthetic rows cannot silently enter financial RAG."""
+    journal_path = tmp_path / "legacy.jsonl"
+    journal_path.write_text(
+        '{"trade_id":"legacy","ticker":"AAPL","thesis":"synthetic"}\n',
+        encoding="utf-8",
+    )
+    adapter = PaperJournalAdapter(journal_path)
+
+    assert adapter.search("AAPL synthetic", top_k=3) == []
+
+
 def test_unified_retriever_search():
     """Test unified retriever searches across sources."""
     retriever = UnifiedRetriever()

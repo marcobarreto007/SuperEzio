@@ -341,3 +341,34 @@ def test_flip_syncs_to_paper_journal():
     # Cleanup temp files
     Path(tmp_paper.name).unlink(missing_ok=True)
     Path(tmp_mangala.name).unlink(missing_ok=True)
+
+
+def test_custom_tracker_does_not_sync_to_operator_journal(monkeypatch, tmp_path):
+    """An isolated tracker must not instantiate or mutate the default PaperJournal."""
+    from core.trading.paper_journal import PaperJournal
+
+    def _unexpected_add(*args, **kwargs):
+        raise AssertionError("isolated Mangala tracker touched the operator journal")
+
+    monkeypatch.setattr(PaperJournal, "add_trade", _unexpected_add)
+    tracker = MangalaTracker(journal_path=tmp_path / "mangala.jsonl")
+
+    tracker.record_flip("AAPL", 100.0, 101.0, 1)
+
+
+def test_custom_tracker_can_sync_to_an_explicit_isolated_journal(tmp_path):
+    """Tests and sandboxes may opt into a second temporary journal explicitly."""
+    from core.trading.paper_journal import PaperJournal
+
+    paper_path = tmp_path / "paper.jsonl"
+    tracker = MangalaTracker(
+        journal_path=tmp_path / "mangala.jsonl",
+        paper_journal_path=paper_path,
+    )
+
+    tracker.record_flip("AAPL", 100.0, 101.0, 1)
+
+    rows = PaperJournal(paper_path).list_all()
+    assert len(rows) == 1
+    assert rows[0]["storage_environment"] == "isolated"
+    assert rows[0]["provenance"] == "mangala_tracker"

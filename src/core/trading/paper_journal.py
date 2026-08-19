@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -147,10 +148,43 @@ class PaperJournal:
     def __init__(self, path: Path | None = None):
         self._path = path or DEFAULT_JOURNAL_PATH
         self._path.parent.mkdir(parents=True, exist_ok=True)
+        self._storage_environment = (
+            "operator" if self._path.resolve() == _PRODUCTION_JOURNAL else "isolated"
+        )
 
     @property
     def path(self) -> Path:
         return self._path
+
+    @property
+    def storage_environment(self) -> str:
+        """Environment stamped onto new rows written by this journal."""
+
+        return self._storage_environment
+
+    def _assert_write_allowed(self) -> None:
+        """Prevent pytest from ever mutating the operator's journal."""
+
+        if self._path.resolve() == _PRODUCTION_JOURNAL and os.getenv("PYTEST_CURRENT_TEST"):
+            raise RuntimeError(
+                "Tests may not write to the operator paper journal; inject a temporary path"
+            )
+
+    def _prepare_new_entry(self, entry: dict[str, Any]) -> dict[str, Any]:
+        prepared = dict(entry)
+        claimed_environment = str(
+            prepared.get("storage_environment") or self._storage_environment
+        ).strip()
+        if claimed_environment != self._storage_environment:
+            raise RuntimeError(
+                f"Journal environment mismatch: row={claimed_environment} "
+                f"storage={self._storage_environment}"
+            )
+        prepared["storage_environment"] = self._storage_environment
+        prepared["provenance"] = str(prepared.get("provenance") or "paper_journal").strip()
+        if not prepared["provenance"]:
+            raise RuntimeError("Journal provenance is required")
+        return prepared
 
     def _read_all(self) -> list[dict[str, Any]]:
         """Le todas as entradas do journal."""
@@ -169,8 +203,10 @@ class PaperJournal:
 
     def _append(self, entry: dict[str, Any]) -> None:
         """Adiciona uma entrada ao journal."""
+        self._assert_write_allowed()
+        prepared = self._prepare_new_entry(entry)
         with open(self._path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            f.write(json.dumps(prepared, ensure_ascii=False) + "\n")
 
     def _rewrite(self, entries: list[dict[str, Any]]) -> None:
         """Reescreve o journal inteiro (usado para updates).
@@ -185,6 +221,7 @@ class PaperJournal:
                 f"The production journal is append-only. "
                 f"To reset it, delete the file manually with explicit intent."
             )
+        self._assert_write_allowed()
         with open(self._path, "w", encoding="utf-8") as f:
             for entry in entries:
                 f.write(json.dumps(entry, ensure_ascii=False) + "\n")

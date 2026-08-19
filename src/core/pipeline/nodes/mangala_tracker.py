@@ -56,10 +56,18 @@ class MangalaTracker:
         self,
         starting_capital: float = 20.0,
         journal_path: Path | None = None,
+        paper_journal_path: Path | None = None,
+        sync_to_paper_journal: bool | None = None,
     ):
         self.starting_capital = starting_capital
         self._journal_path = journal_path or DEFAULT_JOURNAL_PATH
         self._journal_path.parent.mkdir(parents=True, exist_ok=True)
+        self._paper_journal_path = paper_journal_path
+        self._sync_paper_journal = (
+            journal_path is None or paper_journal_path is not None
+            if sync_to_paper_journal is None
+            else bool(sync_to_paper_journal)
+        )
 
         # Rebuild state from existing journal
         self._trades: list[dict[str, Any]] = []
@@ -169,10 +177,12 @@ class MangalaTracker:
 
     def _sync_to_paper_journal(self, flip: dict[str, Any]) -> None:
         """Sincroniza um flip do Mangala com o PaperJournal principal."""
+        if not self._sync_paper_journal:
+            return
         try:
             from core.trading.paper_journal import PaperJournal
 
-            journal = PaperJournal()
+            journal = PaperJournal(self._paper_journal_path)
             journal.add_trade(
                 {
                     "trade_id": flip.get("trade_id"),
@@ -191,6 +201,7 @@ class MangalaTracker:
                     "risk_assessment": "Mangala capital compounding flip",
                     "expected_holding_period": "swing",
                     "tags": ["mangala", "flip"],
+                    "provenance": "mangala_tracker",
                 }
             )
         except Exception as exc:

@@ -290,6 +290,21 @@ class TestPaperJournal:
         journal._rewrite([])  # nao deve levantar
         assert journal.count() == 0
 
+    def test_pytest_cannot_append_to_operator_journal(self):
+        """Even an accidental default constructor must fail before touching operator data."""
+        from core.trading.paper_journal import _PRODUCTION_JOURNAL
+
+        prod_journal = PaperJournal(_PRODUCTION_JOURNAL)
+        with pytest.raises(RuntimeError, match="Tests may not write"):
+            prod_journal._append({"trade_id": "must-not-exist"})
+
+    def test_new_rows_carry_storage_environment_and_provenance(self, journal, sample_trade):
+        journal.open_trade(sample_trade)
+
+        row = journal.list_all()[0]
+        assert row["storage_environment"] == "isolated"
+        assert row["provenance"] == "paper_journal"
+
     def test_review_aged_closed_thesis_records_post_mortem_once(self, journal):
         """Fecha C6 em trades fechados com 14+ dias e registra memoria uma vez."""
 
