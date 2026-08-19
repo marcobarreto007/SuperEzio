@@ -14,6 +14,7 @@ RUNTIME_YML = ROOT / "config" / "runtime.yml"
 MODEL_MANIFEST = ROOT / "config" / "model_manifest.json"
 AGENT_SCRIPT = ROOT / "scripts" / "serve_agent_llamacpp.ps1"
 MODEL_CONFIG = ROOT / "config.ps1"
+START_SCRIPT = ROOT / "start.ps1"
 AGENT_CONTRACT = ROOT / ".f51" / "contracts" / "agent-server.contract.md"
 RUNTIME_CHECKPOINT = ROOT / "runtime" / "checkpoints" / "latest.json"
 RUNBOOK = ROOT / "docs" / "runbooks" / "RUNBOOK.md"
@@ -174,6 +175,17 @@ def test_agent_runtime_config_matches_manifest_and_script():
     assert "8080" in model_config
     assert "function Initialize-SuperEzioDirs" in model_config
     assert "function Get-SuperEzioPortOwner" in model_config
+
+
+def test_launcher_has_isolated_fail_closed_validation_mode():
+    script = START_SCRIPT.read_text(encoding="utf-8")
+
+    assert "[switch]$IsolatedValidation" in script
+    assert 'SUPEREZIO_TRADING_STATE_DB = Join-Path $validationRoot' in script
+    assert 'SUPEREZIO_BOB_PAIN_LOG = Join-Path $validationRoot' in script
+    assert '$env:F51_TRADING_EXECUTION_FREEZE = "1"' in script
+    assert '$env:SUPEREZIO_LIVE_TRADING_DISABLED = "1"' in script
+    assert '$env:SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT = "0"' in script
 
 
 def test_provider_factory_keeps_agent_local_only(monkeypatch):

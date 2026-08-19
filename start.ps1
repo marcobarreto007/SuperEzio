@@ -4,6 +4,7 @@
 
 param(
     [switch]$SkipBrowser,
+    [switch]$IsolatedValidation,
     [int]$HealthTimeoutMinutes = 6
 )
 
@@ -18,9 +19,32 @@ if (-not (Test-Path $configPath)) {
 }
 . $configPath
 
+$timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+if ($IsolatedValidation) {
+    $validationRoot = Join-Path $RuntimeDir "validation\$timestamp"
+    $script:LogsDir = Join-Path $validationRoot "logs"
+    $env:SUPEREZIO_DATA_DIR = Join-Path $validationRoot "data"
+    $env:SUPEREZIO_TRACE_DIR = Join-Path $validationRoot "traces"
+    $env:SUPEREZIO_DECISION_TRACE_DB = Join-Path $validationRoot "decision-traces.sqlite3"
+    $env:SUPEREZIO_SENTIMENT_DB = Join-Path $validationRoot "sentiment.sqlite3"
+    $env:SUPEREZIO_TRADING_STATE_DB = Join-Path $validationRoot "trading-state.sqlite3"
+    $env:SUPEREZIO_DEDUP_DIR = Join-Path $validationRoot "dedup"
+    $env:SUPEREZIO_DEAD_LETTER_DIR = Join-Path $validationRoot "dead-letter"
+    $env:SUPEREZIO_FEEDBACK_DIR = Join-Path $validationRoot "feedback"
+    $env:SUPEREZIO_CACHE_DIR = Join-Path $validationRoot "cache"
+    $env:SUPEREZIO_RAG_INDEX_DIR = Join-Path $validationRoot "rag-index"
+    $env:SUPEREZIO_BOB_PAIN_LOG = Join-Path $validationRoot "bob-pain-log.jsonl"
+    $env:SUPEREZIO_ANS_SCAN = "0"
+    $env:SUPEREZIO_MANGALA_SCAN = "0"
+    $env:SUPEREZIO_CORPO_HEARTBEAT = "0"
+    $env:F51_TRADING_EXECUTION_FREEZE = "1"
+    $env:SUPEREZIO_LIVE_TRADING_DISABLED = "1"
+    $env:SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT = "0"
+    Write-Host "Validation storage: $validationRoot" -ForegroundColor Yellow
+}
+
 Initialize-SuperEzioDirs
 
-$timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $startupLog = Join-Path $LogsDir "startup-$timestamp.log"
 
 function Log {
