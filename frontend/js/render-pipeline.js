@@ -80,6 +80,18 @@
     var resolved = resolveStep(step);
     if (!resolved) return;
 
+    if (window.SZ && window.SZ.state) {
+      window.SZ.state.activePipelineNode = status === "running" ? resolved : null;
+      if (status === "running") window.SZ.state.busy = true;
+      if (status === "fail") window.SZ.state.pipelineError = true;
+      if (status === "done" && resolved === "explanation") window.SZ.state.busy = false;
+      if (window.SZ.health && window.SZ.health.buildSnapshot) {
+        var snapshot = window.SZ.health.buildSnapshot(window.SZ.state.healthDetails);
+        window.SZ.state.operationalSnapshot = snapshot;
+        window.SZ.publish("operational-snapshot", snapshot);
+      }
+    }
+
     var bar = ceo.bubble.querySelector("[data-sz-pipeline]");
     if (!bar) bar = renderBar(ceo);
 

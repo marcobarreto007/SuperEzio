@@ -63,11 +63,11 @@
     if (dot) {
       dot.classList.toggle("status-dot--on", Boolean(online));
       dot.classList.toggle("status-dot--off", !online);
-      dot.title = online ? "CONECTADO" : "DESCONECTADO";
+      dot.title = online ? "Core online" : "Core offline";
     }
     if (label) {
       label.classList.toggle("is-online", Boolean(online));
-      label.textContent = online ? "CONECTADO" : "DESCONECTADO";
+      label.textContent = online ? "CORE ONLINE" : "CORE OFFLINE";
     }
   }
 
@@ -171,6 +171,10 @@
 
   /* ── Status Bar (kept for compatibility — also updated by status-bar.js) ── */
   function updateStatusBar(data) {
+    if (window.SZ.state && window.SZ.state.operationalSnapshot) {
+      if (window.SZ.statusBar) window.SZ.statusBar.render(window.SZ.state.operationalSnapshot);
+      return;
+    }
     if (!data) return;
     function getStatus(obj) {
       if (typeof obj === "string") return obj;
@@ -234,8 +238,8 @@
   /* F51 Verdict Card */
   function renderF51Card(data) {
     if (!data) {
-      $("f51-body").innerHTML = '<div class="empty-state">Aguardando veredito F51.</div>' + tradeFormHTML("f51");
-      setVerdictEl("f51-verdict", "WAIT");
+      $("f51-body").innerHTML = '<div class="empty-state">No active analysis.</div>' + tradeFormHTML("f51");
+      setVerdictEl("f51-verdict", "READY");
       return;
     }
     console.log("[F51] received verdict, rendering...", data);
@@ -303,8 +307,8 @@
   /* SDCA Firewall Card */
   function renderSDCACard(data) {
     if (!data) {
-      $("sdca-body").innerHTML = '<div class="empty-state">Aguardando firewall.</div>';
-      setVerdictEl("sdca-verdict", "WAIT");
+      $("sdca-body").innerHTML = '<div class="empty-state">No decision submitted.</div>';
+      setVerdictEl("sdca-verdict", "READY");
       return;
     }
     console.log("[SDCA] received firewall, rendering...", data);
@@ -351,8 +355,8 @@
   /* Neural Decision Card */
   function renderNeuralCard(data) {
     if (!data) {
-      $("neural-body").innerHTML = '<div class="empty-state">Aguardando predicao neural.</div>';
-      setVerdictEl("neural-verdict", "WAIT");
+      $("neural-body").innerHTML = '<div class="empty-state">No active inference.</div>';
+      setVerdictEl("neural-verdict", "READY");
       return;
     }
     console.log("[Neural] received decision, rendering...", data);
@@ -388,8 +392,8 @@
   /* Trinity Deliberation Card */
   function renderTrinityCard(data) {
     if (!data) {
-      $("trinity-body").innerHTML = '<div class="empty-state">Sem deliberacao Trinity.</div>';
-      setVerdictEl("trinity-verdict", "--");
+      $("trinity-body").innerHTML = '<div class="empty-state">No deliberation running.</div>';
+      setVerdictEl("trinity-verdict", "READY");
       setTrustBar("trinity-trust-bar", 0, "");
       return;
     }
@@ -451,8 +455,8 @@
   /* Guardrail Summary Card */
   function renderGuardrailCard(data) {
     if (!data) {
-      $("guardrails-body").innerHTML = '<div class="empty-state">Aguardando guardrails.</div>';
-      setText("guardrails-summary", "--/30");
+      $("guardrails-body").innerHTML = '<div class="empty-state">Health evidence unavailable.</div>';
+      setText("guardrails-summary", "--");
       setTrustBar("guardrail-trust-bar", 0, "");
       return;
     }
@@ -509,8 +513,8 @@
   /* ── Mangala Compound Tracker Card ── */
   function renderMangalaCard(data) {
     if (!data || data.status === "unavailable" || data.total_flips == null) {
-      $("mangala-body").innerHTML = '<div class="empty-state">Aguardando dados do Mangala Tracker.</div>' + tradeFormHTML("mangala");
-      setText("mangala-verdict", "$" + (data && data.starting != null ? data.starting.toFixed(2) : "20.00"));
+      $("mangala-body").innerHTML = '<div class="empty-state">No paper operation running.</div>' + tradeFormHTML("mangala");
+      setText("mangala-verdict", "IDLE · PAPER");
       setTrustBar("mangala-trust-bar", 0, "");
       return;
     }
@@ -802,8 +806,8 @@
   async function pollCockpitFallback() {
     var online = false;
     try {
-      var health = await window.SZ.api.fetchHealth();
-      online = health && health.status === "ok";
+      var snapshot = await window.SZ.health.check();
+      online = snapshot && snapshot.core && snapshot.core.state === "online";
     } catch (e) { online = false; }
     if (!online) return;
 
@@ -848,7 +852,9 @@
     setConnection(online);
 
     if (!online) {
-      updateStatusBar({ ceo: "offline", genie: "offline", deep: "offline", ibkr: "offline" });
+      if (window.SZ.statusBar && window.SZ.state.operationalSnapshot) {
+        window.SZ.statusBar.render(window.SZ.state.operationalSnapshot);
+      }
       return;
     }
 
