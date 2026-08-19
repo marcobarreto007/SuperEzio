@@ -7,7 +7,9 @@ A (Frontend UI) -> B (Backend Server) -> C (Pipeline/Bob/LLM) -> B -> A.
 from __future__ import annotations
 
 import json
+import time
 import unittest.mock
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -459,6 +461,86 @@ def test_trade_execute_creates_pending_ticket_without_broker_submit(
     status = client.get(f"/trade/status/{data['order_id']}")
     assert status.status_code == 200
     assert status.json()["phase"] == "pending_validation"
+
+
+def test_td_ticket_route_creates_live_manual_ticket_without_submit(
+    client_with_mock_pipeline, monkeypatch, tmp_path
+):
+    """POST /trade/td-draft creates an audited draft, never a broker order."""
+    import agent_server.endpoints as endpoints
+
+    audit_path = tmp_path / "td-tickets.jsonl"
+    from core.trading.td_direct_ticket import append_td_direct_ticket
+
+    monkeypatch.setattr(
+        endpoints,
+        "append_td_direct_ticket",
+        lambda ticket: append_td_direct_ticket(ticket, audit_path),
+    )
+    monkeypatch.setenv("SUPEREZIO_API_KEY", "configured-for-test")
+    trading_token = "td-test-token"
+    endpoints._TRADING_TOKENS[trading_token] = time.time()
+    _, client = client_with_mock_pipeline
+    now = datetime.now(timezone.utc).isoformat()
+
+    response = client.post(
+        "/trade/td-draft",
+        headers={"X-Trading-Token": trading_token},
+        json={
+            "ticker": "TD.TO",
+            "exchange": "TSX",
+            "currency": "CAD",
+            "side": "BUY",
+            "quantity": 2,
+            "order_type": "LIMIT",
+            "limit_price": 110.0,
+            "stop_price": 108.0,
+            "risk_budget": 5.0,
+            "account_type": "TFSA",
+            "quote_price": 109.9,
+            "quote_as_of": now,
+            "quote_source": "test_provider",
+            "thesis": "Liquid Canadian bank setup with defined risk.",
+            "invalidation": "Exit if the declared stop level is breached.",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ok"] is False
+    assert data["ready_for_execution"] is False
+    assert data["ticket"]["execution_mode"] == "LIVE_MANUAL"
+    assert data["ticket"]["submitted_to_broker"] is False
+    assert data["ticket"]["transmission_capability"] is False
+    assert audit_path.is_file()
+    assert trading_token not in endpoints._TRADING_TOKENS
+
+    status = client.get(f"/trade/status/{data['order_id']}")
+    assert status.status_code == 200
+    assert status.json()["phase"] == "independent_quote_verification_required"
+
+
+def test_td_ticket_route_fails_closed_without_api_key(client_with_mock_pipeline, monkeypatch):
+    _, client = client_with_mock_pipeline
+    monkeypatch.delenv("SUPEREZIO_API_KEY", raising=False)
+
+    response = client.post("/trade/td-draft", json={})
+
+    assert response.status_code == 503
+
+
+def test_td_commission_free_route_exposes_official_108_etf_universe(
+    client_with_mock_pipeline,
+):
+    _, client = client_with_mock_pipeline
+
+    response = client.get("/trade/td-commission-free")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["count"] == 108
+    assert data["manifest"]["verified_at"] == "2026-08-18"
+    assert "QQQ" in data["manifest"]["symbols"]["US"]
 
 
 def test_paper_approval_endpoints(client_with_mock_pipeline):
@@ -1078,7 +1160,9 @@ def test_frontend_genie_pulse_click_drives_bob_and_chart():
     assert "Noticias=" in genie_js
     assert "pendingGenieTickerCommand" in genie_js
     assert "bob-ticker-cue" in genie_js
-    assert "pipeline-pulse" in cockpit_css or "expert-card" in cockpit_css  # new cockpit CSS (AI-Native Workbench redesign)
+    assert (
+        "pipeline-pulse" in cockpit_css or "expert-card" in cockpit_css
+    )  # new cockpit CSS (AI-Native Workbench redesign)
     assert "function chartDataReadyFor" in init_js
     assert "await ensureChartContext(contextTicker)" in init_js
     assert "chart_context_ready" in init_js

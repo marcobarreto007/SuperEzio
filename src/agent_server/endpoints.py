@@ -36,6 +36,12 @@ from core.pipeline.intents import (
     parse_user_intent,
 )
 from core.risk_firewall import DecisionCandidate, evaluate_decision_with_sdca
+from core.trading.td_direct_ticket import (
+    TDDirectTicketError,
+    append_td_direct_ticket,
+    build_td_direct_ticket,
+    load_td_commission_free_manifest,
+)
 from data.data_hub import hub
 
 from core.ports.protocol import A2AMessage, MessageType  # .protocol facade removido (49f6d01)
@@ -2408,6 +2414,19 @@ def _require_trading_auth(request: Request) -> str:
     return token
 
 
+def _require_td_ticket_auth(request: Request) -> str:
+    """Fail closed for live-manual artifacts even when the rest of the app is in dev mode."""
+
+    if not os.getenv("SUPEREZIO_API_KEY"):
+        raise HTTPException(
+            status_code=503,
+            detail="TD live-manual tickets require SUPEREZIO_API_KEY to be configured",
+        )
+    token = _require_trading_auth(request)
+    _TRADING_TOKENS.pop(token, None)
+    return token
+
+
 @router.post("/api/trading/token")
 async def create_trading_token(request: Request) -> dict[str, Any]:
     """Generate a single-use trading session token (valid 15 min). Requires X-API-Key."""
@@ -2461,6 +2480,58 @@ async def execute_trade_fast(payload: dict[str, Any], request: Request) -> dict[
         "ok": False,
         "order_id": order_id,
         **ticket,
+    }
+
+
+@router.post("/trade/td-draft")
+async def create_td_direct_live_ticket(payload: dict[str, Any], request: Request) -> dict[str, Any]:
+    """Create an auditable live-manual TD ticket; never connect to or submit at TD."""
+
+    _require_td_ticket_auth(request)
+    try:
+        ticket = build_td_direct_ticket(payload)
+        append_td_direct_ticket(ticket)
+    except TDDirectTicketError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except OSError as exc:
+        raise HTTPException(status_code=503, detail="TD ticket audit log is unavailable") from exc
+
+    order_id = str(ticket["ticket_id"])
+    _trade_status[order_id] = {
+        "phase": ticket["phase"],
+        "status": ticket["status"],
+        "ticker": ticket["symbol"],
+        "side": str(ticket["side"]).lower(),
+        "qty": ticket["quantity"],
+        "limit_price": ticket["limit_price"],
+        "source": "td_direct_manual",
+        "submitted_to_broker": False,
+        "expires_at": ticket["expires_at"],
+    }
+    return {
+        "ok": False,
+        "ready_for_execution": False,
+        "order_id": order_id,
+        "audit_recorded": True,
+        "ticket": ticket,
+    }
+
+
+@router.get("/trade/td-commission-free")
+async def get_td_commission_free_etfs() -> dict[str, Any]:
+    """Return the dated official TD commission-free ETF research universe."""
+
+    try:
+        manifest = load_td_commission_free_manifest()
+    except TDDirectTicketError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    canadian = manifest["symbols"]["CAN"]
+    us = manifest["symbols"]["US"]
+    return {
+        "ok": True,
+        "count": len(canadian) + len(us),
+        "manifest": manifest,
+        "warning": "Confirm eligibility and total fees in TD's order preview before trading.",
     }
 
 

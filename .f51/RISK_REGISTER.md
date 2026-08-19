@@ -370,3 +370,15 @@ Session: save-2026-08-17
 - Evidence: commit 38ea6e6; regressões `test_local_providers_carry_nonempty_api_key` e
   `test_health_details_probes_port_from_url` (porta do probe de saúde vinha hardcoded 8082).
 - Status: Resolved 2026-08-18.
+### INV-R35 - TD commission-free research is not execution-ready [CRITICAL]
+
+- Classification: live trading / broker terms / data provenance.
+- Risk: TD publishes a changeable commission-free ETF list, but SuperEzio has no official TD
+  order API or trusted TD quote/account feed. Caller-supplied prices and self-declared risk
+  cannot authorize real money.
+- Evidence: `config/td_direct_commission_free_etfs.json`,
+  `src/core/trading/td_direct_ticket.py`, and the official TD source linked in the manifest.
+- Mitigation: dated 7-day fail-closed list; research-only GET; authenticated local draft returns
+  `ok=false` and `ready_for_execution=false`; no TD credentials, scraping, or transmission.
+- Status: Active — real-money go-live blocked pending server-side provenance, Money Gate,
+  portfolio/buying-power gates, durable approval, and TD preview confirmation.

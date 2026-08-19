@@ -30,6 +30,8 @@
 | `/product/manifest` | GET | Returns public product metadata plus runtime pipeline status when initialized. |
 | `/api/sdca/evaluate` | POST | Evaluates a decision candidate with SDCA-Lite. It must not execute trades. |
 | `/experts/neural-decision/predict` | POST | Runs NeuralDecisionExpert and returns prediction or validation error. |
+| `/trade/td-commission-free` | GET | Returns the dated TD Direct Investing commission-free ETF research universe and its official source. |
+| `/trade/td-draft` | POST | Creates an authenticated, single-use-token, local draft. Always returns `ok=false`, `ready_for_execution=false`; never connects to TD or submits an order. |
 
 ## Runtime Invariants
 
@@ -39,6 +41,9 @@
 4. `/task/submit` output is newline-delimited JSON events, not fake SSE text.
 5. Errors emitted through `/task/submit` must redact secret-like environment values.
 6. `PRODUCT_MANIFEST.safe_actions` must stay non-executing; no broker/order route is introduced here.
+7. TD credentials and account numbers are forbidden. TD access remains manual through official TD platforms.
+8. A caller-supplied quote is untrusted evidence and cannot promote a TD draft to execution-ready.
+9. Commission-free eligibility is a dated research filter, not an investment recommendation; the operator must confirm the TD order preview.
 
 ## Dependencies
 

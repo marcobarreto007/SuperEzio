@@ -2,6 +2,11 @@
 
 ## Backlog
 
+- [x] 2026-08-18 - **TD Direct commission-free research universe** (Codex): captured the
+  official 108-ETF list (83 Canada, 25 US), added dated/stale-failing eligibility checks and
+  `GET /trade/td-commission-free`. Added an authenticated, non-transmitting `/trade/td-draft`
+  that is explicitly not execution-ready. Real-money go-live remains blocked by INV-R35.
+
 - [x] 2026-08-18 - **Limpeza da memória de conversa** (Claude Code): `data/conversation_memory.jsonl`
   reduzido de 497 para 29 linhas — removidas todas as sessões de teste/probe (default 109x com
   prompt do teste de ticket, CAD-25k, quality-probe, overnight_001..092, stress/bench/diag/final,

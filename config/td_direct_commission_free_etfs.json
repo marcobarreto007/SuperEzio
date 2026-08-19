@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "verified_at": "2026-08-18",
+  "source_url": "https://www.td.com/ca/en/investing/direct-investing/commission-free-etfs",
+  "product": "TD Direct Investing Canada",
+  "conditions": [
+    "Digital trades only through WebBroker, TD app, Advanced Dashboard, or TD Active Trader.",
+    "Not applicable to TD Easy Trade.",
+    "Strategy orders that include a listed ETF may still be charged a commission.",
+    "Eligibility and fees must be confirmed in the TD order preview before manual transmit."
+  ],
+  "symbols": {
+    "CAN": [
+      "BTCX.B", "ETHX.B", "FCID", "HAF", "HEWB", "HLPR",
+      "TGED", "TGED.U", "TGGR", "TGFI", "TINF", "TGRE", "TPRF", "TUEX",
+      "TUED", "TUED.U", "TUHY", "TEQT", "TBAL", "TDB", "TBNK", "TTP", "TCLB",
+      "TCSH", "TCON", "TDOC", "TDOC.U", "TEC", "TECI", "TECX", "TEC.U", "TGRO",
+      "THE", "TPE", "TDNA", "TQCD", "TCLV", "TQGD", "TQGM", "TILV", "TULV",
+      "TQSM", "TQSM.U", "TCSB", "TUSB.U", "TBCF", "TBUF.U", "TBCG", "TBUG.U",
+      "TBCH", "TBCI", "TBCJ", "TUSD.U", "THU", "TPU", "TPU.U", "TULB", "TUSB",
+      "VEQT", "VBAL", "VAB", "VLB", "VSC", "VCNS", "VCN", "VCE", "VDY", "VIU",
+      "VE", "VIDY", "VEE", "VXC", "VVO", "VGRO", "VFV", "VSP", "VGG", "VGH",
+      "VUN", "TCOM", "TCCB", "TSTB", "TUST"
+    ],
+    "US": [
+      "ARKK", "QQQ", "TLT", "IBIT", "ETHA", "IWM", "SCHD", "DIA", "GLD", "SPY",
+      "SPHY", "GDX", "SMH", "VUG", "VHT", "VYM", "VGT", "VGLT", "VNQ", "VOO",
+      "VCSH", "VB", "VTI", "VFMV", "VFMF"
+    ]
+  }
+}
