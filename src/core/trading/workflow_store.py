@@ -536,6 +536,35 @@ class TradeWorkflowStore:
                 os.close(descriptor)
         return target
 
+    def resolve_dead_letter(
+        self,
+        *,
+        category: str,
+        idempotency_key: str,
+        actor: str,
+    ) -> None:
+        """Mark one durable dead letter replayed; never delete its evidence file."""
+
+        with self._lock, self._connect() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE dead_letters
+                SET status = ?
+                WHERE category = ? AND idempotency_key = ?
+                  AND status = 'pending_manual_replay'
+                """,
+                (f"replayed_by:{actor.strip()}", category.strip(), idempotency_key.strip()),
+            )
+            if cursor.rowcount != 1:
+                row = connection.execute(
+                    "SELECT status FROM dead_letters WHERE category = ? AND idempotency_key = ?",
+                    (category.strip(), idempotency_key.strip()),
+                ).fetchone()
+                if row is None or not str(row["status"]).startswith("replayed_by:"):
+                    connection.rollback()
+                    raise WorkflowStoreError("pending dead letter not found")
+            connection.commit()
+
 
 def get_trade_workflow_store() -> TradeWorkflowStore:
     """Open the configured durable workflow database."""

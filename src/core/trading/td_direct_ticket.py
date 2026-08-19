@@ -460,3 +460,58 @@ def append_td_direct_ticket(
     finally:
         os.close(descriptor)
     return target
+
+
+def replay_td_direct_ticket_audit(
+    ticket: Mapping[str, Any],
+    path: str | Path | None = None,
+) -> Path:
+    """Repair an incomplete claimed audit append without creating a new ticket claim."""
+
+    target = Path(path) if path is not None else DEFAULT_TICKET_LOG
+    fingerprint = str(ticket.get("fingerprint") or "").strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", fingerprint):
+        raise TDDirectTicketError("ticket fingerprint is missing or invalid")
+    claim_path = target.parent / "claims" / f"{fingerprint}.json"
+    try:
+        claim = json.loads(claim_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise TDDirectTicketError("TD ticket audit claim is unavailable or corrupt") from exc
+    if claim.get("fingerprint") != fingerprint or claim.get("ticket_id") != ticket.get("ticket_id"):
+        raise TDDirectTicketError("TD ticket audit claim does not match the durable ticket")
+    if target.exists():
+        for raw_line in target.read_text(encoding="utf-8").splitlines():
+            try:
+                existing = json.loads(raw_line)
+            except json.JSONDecodeError:
+                continue
+            if str(existing.get("fingerprint") or "").lower() == fingerprint:
+                return target
+
+    replay_lock = claim_path.with_suffix(".replay.lock")
+    lock_flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0)
+    try:
+        lock_descriptor = os.open(replay_lock, lock_flags, 0o600)
+    except FileExistsError as exc:
+        raise TDDirectTicketError("TD ticket audit replay is already claimed") from exc
+    try:
+        os.write(lock_descriptor, str(ticket.get("ticket_id") or "").encode("utf-8"))
+        os.fsync(lock_descriptor)
+    finally:
+        os.close(lock_descriptor)
+
+    line = (json.dumps(dict(ticket), ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8")
+    flags = os.O_APPEND | os.O_CREAT | os.O_WRONLY | getattr(os, "O_BINARY", 0)
+    descriptor = os.open(target, flags, 0o600)
+    try:
+        offset = 0
+        while offset < len(line):
+            offset += os.write(descriptor, line[offset:])
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+    try:
+        replay_lock.unlink()
+    except OSError:
+        pass
+    return target
