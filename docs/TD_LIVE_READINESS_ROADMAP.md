@@ -34,7 +34,7 @@ Verificação registrada:
 
 Gate de saída: **verde**.
 
-### Fase 2 — isolamento e descontaminação de dados
+### Fase 2 — isolamento e descontaminação de dados — CONCLUÍDA
 
 Objetivo: provar que testes e simulações não conseguem tocar dados usados para decisão.
 
@@ -57,7 +57,7 @@ Testes obrigatórios:
 Gate de saída: suíte relevante passa e os hashes de todos os dados do operador permanecem
 idênticos. Se qualquer byte de produção mudar, a fase falha.
 
-### Fase 3 — estado financeiro persistente e único
+### Fase 3 — estado financeiro persistente e único — CONCLUÍDA
 
 Objetivo: eliminar kill switch, approval, ticket e status divergentes ou voláteis.
 
@@ -83,7 +83,7 @@ Testes obrigatórios:
 Gate de saída: nenhum estado financeiro depende de dicionário em memória e toda transição é
 rastreável e reproduzível.
 
-### Fase 4 — workflow broker-neutral e TD manual
+### Fase 4 — workflow broker-neutral e TD manual — CONCLUÍDA
 
 Objetivo: retirar IBKR/paper do caminho escolhido para TD sem apagar o legado antes da prova.
 
@@ -106,7 +106,7 @@ Testes obrigatórios:
 Gate de saída: uma análise TD completa produz somente um ticket manual persistente; zero chamadas
 de broker e zero credenciais TD.
 
-### Fase 5 — cotação confiável server-side
+### Fase 5 — cotação confiável server-side — CONCLUÍDA
 
 Objetivo: impedir que preço, horário ou fonte declarados pelo navegador autorizem um ticket.
 
@@ -128,7 +128,7 @@ Testes obrigatórios:
 
 Gate de saída: somente evidência criada e assinada pelo servidor pode mover o ticket para `GATED`.
 
-### Fase 6 — Money Gate Canadá
+### Fase 6 — Money Gate Canadá — CONCLUÍDA
 
 Objetivo: calcular risco real da carteira e impedir exposição incompatível com a conta.
 
@@ -152,7 +152,7 @@ Testes obrigatórios:
 Gate de saída: nenhuma aprovação é possível sem snapshot de carteira válido e todos os limites
 passando simultaneamente.
 
-### Fase 7 — custos e confirmação no TD
+### Fase 7 — custos e confirmação no TD — CONCLUÍDA
 
 Objetivo: registrar o custo visto pelo operador na prévia oficial do TD.
 
@@ -194,6 +194,14 @@ Testes obrigatórios:
 - hashes dos dados do operador antes/depois da suíte.
 
 Gate de saída: todos os gates verdes em máquina limpa e nenhuma diferença nos dados do operador.
+
+Status em 2026-08-19: **EM PROGRESSO / NO-GO**. A suíte completa passou com
+1.822 testes e 9 skips, cobertura global de 68%, e o isolamento preservou os hashes
+do banco, pain log e traces. O health check que escrevia heartbeats no PaperJournal
+foi removido; 6.156 registros sintéticos foram separados com backup recuperável,
+restando 534 registros. O browser smoke continua vermelho porque
+`/api/chart-data/AAPL` excede 20 segundos no ambiente isolado. Fases 9 e 10 não
+começam até esse endpoint falhar rapidamente ou entregar candles verificáveis.
 
 ### Fase 9 — benchmark temporal dos agentes
 

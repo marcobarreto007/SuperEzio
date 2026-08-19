@@ -66,15 +66,25 @@ def _browser_chart_fetch(page: Page) -> dict[str, Any]:
     result = page.evaluate(
         """
         async () => {
-          const response = await fetch('/api/chart-data/AAPL?timeframe=6M');
-          const data = await response.json();
-          return {
-            ok: response.ok,
-            status: response.status,
-            ticker: data.ticker || null,
-            hasPrice: Boolean(data.price),
-            candleCount: Array.isArray(data.ohlcv) ? data.ohlcv.length : 0
-          };
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 20000);
+          try {
+            const response = await fetch('/api/chart-data/AAPL?timeframe=6M', {
+              signal: controller.signal
+            });
+            const data = await response.json();
+            return {
+              ok: response.ok,
+              status: response.status,
+              ticker: data.ticker || null,
+              hasPrice: Boolean(data.price),
+              candleCount: Array.isArray(data.ohlcv) ? data.ohlcv.length : 0
+            };
+          } catch (error) {
+            return { ok: false, status: 0, error: String(error), candleCount: 0 };
+          } finally {
+            clearTimeout(timer);
+          }
         }
         """
     )
@@ -138,7 +148,8 @@ def run_smoke(
     timeout_ms: int,
     slow_mo: int = 0,
 ) -> dict[str, Any]:
-    health = _http_json(f"{base_url.rstrip('/')}/health")
+    health_timeout_s = max(5.0, min(timeout_ms / 1000.0, 30.0))
+    health = _http_json(f"{base_url.rstrip('/')}/health", timeout_s=health_timeout_s)
     out_dir = ROOT / "output" / "playwright"
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%d-%H%M%S")
@@ -173,7 +184,12 @@ def run_smoke(
                 """
                 async () => {
                   if (window.SZ && typeof window.SZ.loadChart === 'function') {
-                    await window.SZ.loadChart('AAPL');
+                    await Promise.race([
+                      window.SZ.loadChart('AAPL'),
+                      new Promise((_, reject) => setTimeout(
+                        () => reject(new Error('loadChart timed out after 20s')), 20000
+                      ))
+                    ]);
                   }
                 }
                 """
