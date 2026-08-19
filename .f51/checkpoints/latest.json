@@ -403,7 +403,7 @@
   },
   "next_step": "Fase 8: make the isolated chart-data path bounded and deterministic using verified cached/provider data, rerun browser smoke, then repeat operator hashes. Phase 9 remains blocked and Phase 10 capital remains zero.",
   "ui_operational_truth_impact_map": {
-    "status": "in_progress",
+    "status": "code_complete_browser_blocked_by_chart_endpoint",
     "problem": "The cockpit conflates broker connectivity with core availability and renders idle components as failed or waiting.",
     "architecture_touched": [
       "canonical frontend health snapshot",
@@ -432,7 +432,21 @@
       "node --check on changed JavaScript",
       "focused frontend contract tests",
       "pytest plus browser smoke per repository policy"
-    ]
+    ],
+    "result": "Core, CEO, data, mode, broker and pipeline render independently from one canonical snapshot. Idle experts render READY, trust remains null until F51 completes, guardrails never default to 30/30, Mangala renders IDLE PAPER, and PaperJournal records are not presented as broker positions.",
+    "evidence": {
+      "tests": "45 tests/test_api_routes_sync.py tests passed",
+      "javascript": "node --check passed for health, state, trust-score, status-bar, cockpit, render-pipeline and init",
+      "browser": "Playwright navigation failed because the pre-existing chart-data request blocks the single API worker; /health/details also timed out while chart-data was pending",
+      "commits": [
+        "75925aa",
+        "3e683a1",
+        "1ed378b",
+        "31da15e",
+        "3eaab27"
+      ]
+    },
+    "go_live": "BLOCKED_PENDING_CHART_RELEASE_GATE"
   },
   "owner": "Codex"
 }
