@@ -209,7 +209,7 @@
     }
   },
   "phase_5_impact_map": {
-    "status": "in_progress",
+    "status": "complete",
     "problem": "O cliente ainda declara preço, fonte e timestamp; esses campos podem ser falsificados e não verificam bolsa/moeda.",
     "architecture_touched": [
       "provedores Twelve Data, Finnhub e yfinance",
@@ -248,8 +248,21 @@
       "Twelve Data /quote returns exchange, currency and timestamp",
       "Finnhub /quote returns current price and Unix timestamp t"
     ],
-    "go_live": "BLOCKED_PENDING_MONEY_GATE"
+    "go_live": "BLOCKED_PENDING_MONEY_GATE",
+    "commits": [
+      "911d1e4",
+      "6d1577e",
+      "0f22cd9"
+    ],
+    "result": "TD drafts reject browser-supplied quote assertions and require two independent server providers with bounded age/divergence, coherent exchange/currency, immutable evidence hash, bounded transient retries and per-provider circuit breakers. No stale quote fallback is accepted.",
+    "evidence": {
+      "focused_gate": "108 tests passed in 48.83s",
+      "lint": "python -m ruff check src/ tests/ passed",
+      "browser": "passed with 130 candles and 7 canvases using isolated workflow, trace, sentiment, dedup and dead-letter storage",
+      "circuit_metrics": "Prometheus gauge exports closed=0, half_open=1, open=2 per circuit",
+      "known_nonblocking": "browser reports the pre-existing /pipeline/events/stream 404; Windows Proactor logged an assertion only during Ctrl-C shutdown"
+    }
   },
-  "next_step": "Fase 5: integrar cotação confiável server-side com exchange, moeda, timestamp e divergência verificáveis.",
+  "next_step": "Fase 6: implementar Money Gate canadense com exposição total, buying power, TFSA/RRSP e risco cambial.",
   "owner": "Codex"
 }
