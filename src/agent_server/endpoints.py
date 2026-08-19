@@ -42,6 +42,8 @@ from core.trading.td_direct_ticket import (
     build_td_direct_ticket,
     load_td_commission_free_manifest,
 )
+from core.trading.approval_gate import approval_request_to_dict
+from core.trading.manual_trade_workflow import ManualTradeWorkflow, ManualTradeWorkflowError
 from core.trading.workflow_store import (
     WorkflowConflictError,
     WorkflowStoreError,
@@ -2444,6 +2446,23 @@ def _require_td_ticket_auth(request: Request) -> str:
     return token
 
 
+def _manual_workflow() -> ManualTradeWorkflow:
+    return ManualTradeWorkflow(get_trade_workflow_store())
+
+
+def _manual_operator(payload: dict[str, Any]) -> str:
+    operator = str(payload.get("operator") or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{2,63}", operator):
+        raise HTTPException(status_code=422, detail="operator identity is required")
+    return operator
+
+
+def _manual_workflow_http_error(exc: Exception) -> HTTPException:
+    detail = str(exc)
+    status_code = 404 if detail.startswith("unknown ticket:") else 409
+    return HTTPException(status_code=status_code, detail=detail)
+
+
 @router.post("/api/trading/token")
 async def create_trading_token(request: Request) -> dict[str, Any]:
     """Generate a single-use trading session token (valid 15 min). Requires X-API-Key."""
@@ -2540,6 +2559,17 @@ async def create_td_direct_live_ticket(payload: dict[str, Any], request: Request
                 payload=locals().get("ticket", {"payload_rejected": True}),
                 error=str(exc),
             )
+            stored = locals().get("stored_ticket")
+            if isinstance(stored, dict) and stored.get("status") == "DRAFT_UNVERIFIED_QUOTE":
+                store.transition_ticket(
+                    str(stored["ticket_id"]),
+                    expected_status="DRAFT_UNVERIFIED_QUOTE",
+                    new_status="AUDIT_WRITE_FAILED",
+                    new_phase="dead_letter_replay_required",
+                    actor="system",
+                    idempotency_key=f"audit-write-failed:{fingerprint}",
+                    details={"error": type(exc).__name__},
+                )
         except Exception:
             logger.exception("Failed to persist TD ticket dead letter")
         raise HTTPException(status_code=503, detail="TD ticket audit log is unavailable") from exc
@@ -2552,6 +2582,101 @@ async def create_td_direct_live_ticket(payload: dict[str, Any], request: Request
         "audit_recorded": True,
         "idempotent_replay": not created,
         "ticket": stored_ticket,
+    }
+
+
+@router.post("/trade/manual/{ticket_id}/request-approval")
+async def request_manual_trade_approval(
+    ticket_id: str, payload: dict[str, Any], request: Request
+) -> dict[str, Any]:
+    """Request human approval after trusted automated gates have passed."""
+
+    _require_td_ticket_auth(request)
+    operator = _manual_operator(payload)
+    try:
+        approval = _manual_workflow().request_approval(ticket_id, actor=operator)
+    except (ManualTradeWorkflowError, WorkflowConflictError, WorkflowStoreError) as exc:
+        raise _manual_workflow_http_error(exc) from exc
+    return {
+        "ok": False,
+        "ready_for_execution": False,
+        "ticket_id": ticket_id,
+        "approval": approval_request_to_dict(approval),
+        "submitted_to_broker": False,
+    }
+
+
+@router.post("/trade/manual/{ticket_id}/approve/{approval_id}")
+async def approve_manual_trade(
+    ticket_id: str,
+    approval_id: str,
+    payload: dict[str, Any],
+    request: Request,
+) -> dict[str, Any]:
+    """Resolve the approval attached to exactly one durable ticket hash."""
+
+    _require_td_ticket_auth(request)
+    operator = _manual_operator(payload)
+    try:
+        ticket = _manual_workflow().approve(ticket_id, approval_id, actor=operator)
+    except (ManualTradeWorkflowError, WorkflowConflictError, WorkflowStoreError) as exc:
+        raise _manual_workflow_http_error(exc) from exc
+    return {"ok": True, "ticket": ticket, "submitted_to_broker": False}
+
+
+@router.post("/trade/manual/{ticket_id}/reject/{approval_id}")
+async def reject_manual_trade(
+    ticket_id: str,
+    approval_id: str,
+    payload: dict[str, Any],
+    request: Request,
+) -> dict[str, Any]:
+    _require_td_ticket_auth(request)
+    operator = _manual_operator(payload)
+    try:
+        ticket = _manual_workflow().reject(ticket_id, approval_id, actor=operator)
+    except (ManualTradeWorkflowError, WorkflowConflictError, WorkflowStoreError) as exc:
+        raise _manual_workflow_http_error(exc) from exc
+    return {"ok": True, "ticket": ticket, "submitted_to_broker": False}
+
+
+@router.post("/trade/manual/{ticket_id}/entered")
+async def record_manual_trade_entry(
+    ticket_id: str, payload: dict[str, Any], request: Request
+) -> dict[str, Any]:
+    """Record the operator's attestation after using an official TD platform."""
+
+    _require_td_ticket_auth(request)
+    operator = _manual_operator(payload)
+    try:
+        ticket = _manual_workflow().record_manual_entry(ticket_id, payload, actor=operator)
+    except (ManualTradeWorkflowError, WorkflowConflictError, WorkflowStoreError) as exc:
+        raise _manual_workflow_http_error(exc) from exc
+    return {
+        "ok": False,
+        "broker_confirmed": False,
+        "ticket": ticket,
+        "warning": "Operator-reported submission is not yet broker confirmation.",
+    }
+
+
+@router.post("/trade/manual/{ticket_id}/broker-confirm")
+async def record_manual_trade_broker_confirmation(
+    ticket_id: str, payload: dict[str, Any], request: Request
+) -> dict[str, Any]:
+    """Record a human-observed TD confirmation reference; never contact TD."""
+
+    _require_td_ticket_auth(request)
+    operator = _manual_operator(payload)
+    try:
+        ticket = _manual_workflow().record_broker_confirmation(ticket_id, payload, actor=operator)
+    except (ManualTradeWorkflowError, WorkflowConflictError, WorkflowStoreError) as exc:
+        raise _manual_workflow_http_error(exc) from exc
+    return {
+        "ok": True,
+        "broker_confirmed": True,
+        "ticket": ticket,
+        "system_transmitted": False,
     }
 
 
@@ -2577,7 +2702,10 @@ async def get_td_commission_free_etfs() -> dict[str, Any]:
 async def get_trade_status(order_id: str) -> dict[str, Any]:
     """Fase 2: Verificar status da validaÃ§Ã£o (pipeline background)."""
     try:
-        status = get_trade_workflow_store().get_ticket(order_id) or {"phase": "unknown"}
+        store = get_trade_workflow_store()
+        status = store.get_ticket(order_id) or {"phase": "unknown"}
+        if status.get("ticket_id"):
+            status["events"] = store.get_events(order_id)
     except WorkflowStoreError as exc:
         raise HTTPException(status_code=503, detail="trade status store is unavailable") from exc
     return {"order_id": order_id, **status}

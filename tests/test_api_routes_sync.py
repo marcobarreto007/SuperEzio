@@ -584,6 +584,138 @@ def test_td_ticket_audit_failure_writes_dead_letter(
     assert len(list((tmp_path / "dead-letter").glob("*.json"))) == 1
 
 
+def test_td_manual_workflow_requires_gates_and_records_only_human_confirmation(
+    client_with_mock_pipeline, monkeypatch, tmp_path
+):
+    import adapters.broker as broker_adapters
+    import agent_server.endpoints as endpoints
+    from core.trading.manual_trade_workflow import ManualTradeWorkflow
+    from core.trading.td_direct_ticket import append_td_direct_ticket
+    from core.trading.workflow_store import get_trade_workflow_store
+
+    monkeypatch.setattr(
+        broker_adapters,
+        "get_ibkr_service",
+        lambda: (_ for _ in ()).throw(AssertionError("manual TD workflow touched IBKR")),
+    )
+    monkeypatch.setattr(
+        endpoints,
+        "append_td_direct_ticket",
+        lambda ticket: append_td_direct_ticket(ticket, tmp_path / "td-audit.jsonl"),
+    )
+    monkeypatch.setenv("SUPEREZIO_API_KEY", "configured-for-test")
+    _, client = client_with_mock_pipeline
+
+    token_counter = 0
+
+    def headers() -> dict[str, str]:
+        nonlocal token_counter
+        token_counter += 1
+        token = f"manual-flow-token-{token_counter}"
+        endpoints._TRADING_TOKENS[token] = time.time()
+        return {"X-Trading-Token": token}
+
+    quote_time = datetime.now(timezone.utc)
+    draft_response = client.post(
+        "/trade/td-draft",
+        headers=headers(),
+        json={
+            "ticker": "QQQ",
+            "exchange": "NASDAQ",
+            "currency": "USD",
+            "side": "BUY",
+            "quantity": 1,
+            "order_type": "LIMIT",
+            "limit_price": 570.0,
+            "stop_price": 565.0,
+            "risk_budget": 5.0,
+            "account_type": "RRSP",
+            "quote_price": 569.9,
+            "quote_as_of": quote_time.isoformat(),
+            "quote_source": "test_provider",
+            "thesis": "Broad liquid ETF setup with a defined entry.",
+            "invalidation": "Exit if the declared stop level is breached.",
+        },
+    )
+    assert draft_response.status_code == 200
+    ticket_id = draft_response.json()["order_id"]
+
+    blocked = client.post(
+        f"/trade/manual/{ticket_id}/request-approval",
+        headers=headers(),
+        json={"operator": "marco"},
+    )
+    assert blocked.status_code == 409
+    assert "not gated" in blocked.json()["detail"]
+
+    workflow = ManualTradeWorkflow(get_trade_workflow_store())
+    workflow.mark_gated(
+        ticket_id,
+        evidence={
+            "server_side_quote": True,
+            "money_gate": True,
+            "portfolio_risk": True,
+            "buying_power": True,
+        },
+    )
+    approval_response = client.post(
+        f"/trade/manual/{ticket_id}/request-approval",
+        headers=headers(),
+        json={"operator": "marco"},
+    )
+    assert approval_response.status_code == 200
+    approval_id = approval_response.json()["approval"]["id"]
+
+    approved = client.post(
+        f"/trade/manual/{ticket_id}/approve/{approval_id}",
+        headers=headers(),
+        json={"operator": "marco"},
+    )
+    assert approved.status_code == 200
+    assert approved.json()["ticket"]["status"] == "APPROVED"
+    assert approved.json()["submitted_to_broker"] is False
+
+    preview_time = datetime.now(timezone.utc)
+    entered = client.post(
+        f"/trade/manual/{ticket_id}/entered",
+        headers=headers(),
+        json={
+            "operator": "marco",
+            "commission_confirmed": True,
+            "estimated_commission": 0,
+            "estimated_spread": 0.03,
+            "estimated_fx": 1.5,
+            "estimated_other_fees": 0,
+            "total_estimated_cost": 1.53,
+            "td_preview_as_of": preview_time.isoformat(),
+            "platform": "WEBBROKER",
+        },
+    )
+    assert entered.status_code == 200
+    assert entered.json()["ok"] is False
+    assert entered.json()["broker_confirmed"] is False
+    assert entered.json()["ticket"]["manual_entry"]["system_transmitted"] is False
+
+    confirmed = client.post(
+        f"/trade/manual/{ticket_id}/broker-confirm",
+        headers=headers(),
+        json={
+            "operator": "marco",
+            "confirmation_ref": "TD-ORDER-TEST-1234",
+            "confirmed_at": datetime.now(timezone.utc).isoformat(),
+            "broker_status": "OPEN",
+        },
+    )
+    assert confirmed.status_code == 200
+    assert confirmed.json()["broker_confirmed"] is True
+    assert confirmed.json()["system_transmitted"] is False
+
+    status = client.get(f"/trade/status/{ticket_id}").json()
+    assert status["status"] == "BROKER_CONFIRMED"
+    assert status["broker_confirmation"]["confirmation_ref"] == "TD-ORDER-TEST-1234"
+    assert len(status["events"]) == 6
+
+
 def test_td_commission_free_route_exposes_official_108_etf_universe(
     client_with_mock_pipeline,
 ):
