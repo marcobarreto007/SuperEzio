@@ -53,6 +53,15 @@ def test_man_at_work_notification_makes_no_network_calls(monkeypatch, tmp_path):
     assert (tmp_path / "data" / "man_at_work" / "latest_alert.txt").exists()
 
 
+def test_bob_pain_log_uses_configured_test_path(monkeypatch, tmp_path):
+    pain_log = tmp_path / "bob-pain.jsonl"
+    monkeypatch.setenv("SUPEREZIO_BOB_PAIN_LOG", str(pain_log))
+
+    body = BobsBody()
+
+    assert body._pain_log_path == pain_log
+
+
 # Test A — Macro thesis does not attach AAPL
 def test_macro_thesis_does_not_attach_aapl(client_with_mock_pipeline):
     mock_p, client = client_with_mock_pipeline

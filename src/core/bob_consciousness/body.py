@@ -21,6 +21,7 @@ Design principles:
 from __future__ import annotations
 
 import json
+import os
 import socket
 import sqlite3
 import sys
@@ -428,7 +429,7 @@ class BobsBody:
         self.last_full_scan: str = ""
         self.total_scans: int = 0
         self.total_heals: int = 0
-        self._pain_log_path = Path("data/bob_pain_log.jsonl")
+        self._pain_log_path = Path(os.getenv("SUPEREZIO_BOB_PAIN_LOG", "data/bob_pain_log.jsonl"))
         # System mode: NORMAL, MAN_AT_WORK, EMERGENCY_SHUTDOWN
         self.system_mode = SystemMode.NORMAL
         self._mode_entered_at: str = ""
