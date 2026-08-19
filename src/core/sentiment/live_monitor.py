@@ -289,7 +289,9 @@ class LiveMonitor:
             ticker: deque(maxlen=288) for ticker in self.watchlist
         }
         self._data_hub = data_hub
-        self._db_path: Path | None = Path(db_path) if db_path else None
+        configured_db = str(os.getenv("SUPEREZIO_SENTIMENT_DB") or "").strip()
+        selected_db = db_path or configured_db or None
+        self._db_path: Path | None = Path(selected_db) if selected_db else None
 
     def start(self) -> None:
         """Start the daemon monitor thread once."""

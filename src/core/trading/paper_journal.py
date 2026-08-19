@@ -146,7 +146,8 @@ class PaperJournal:
     """Journal de trades paper - append-only JSONL."""
 
     def __init__(self, path: Path | None = None):
-        self._path = path or DEFAULT_JOURNAL_PATH
+        configured = str(os.getenv("SUPEREZIO_PAPER_JOURNAL_PATH") or "").strip()
+        self._path = path or (Path(configured) if configured else DEFAULT_JOURNAL_PATH)
         self._path.parent.mkdir(parents=True, exist_ok=True)
         self._storage_environment = (
             "operator" if self._path.resolve() == _PRODUCTION_JOURNAL else "isolated"

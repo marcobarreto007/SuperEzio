@@ -340,6 +340,24 @@ def test_persist_to_db_creates_table_and_inserts_row(tmp_path):
     conn.close()
 
 
+def test_persist_to_db_honors_isolated_env_path(monkeypatch, tmp_path):
+    isolated_db = tmp_path / "sentiment-from-env.sqlite3"
+    monkeypatch.setenv("SUPEREZIO_SENTIMENT_DB", str(isolated_db))
+    monitor = LiveMonitor(watchlist=[], data_hub=FakeHub())
+
+    monitor._persist_to_db(
+        "AAPL",
+        {
+            "ticker": "AAPL",
+            "collected_at": "2026-08-19T00:00:00+00:00",
+            "sentiment_score": 0.0,
+            "sources": {},
+        },
+    )
+
+    assert isolated_db.is_file()
+
+
 def test_persist_to_db_non_critical_failure_does_not_raise(tmp_path):
     """D3: Erro no DB não crasha a thread — comportamento non-blocking."""
     monitor = LiveMonitor(

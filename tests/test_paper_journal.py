@@ -298,6 +298,16 @@ class TestPaperJournal:
         with pytest.raises(RuntimeError, match="Tests may not write"):
             prod_journal._append({"trade_id": "must-not-exist"})
 
+    def test_default_constructor_honors_isolated_env_path(self, monkeypatch, tmp_path):
+        isolated = tmp_path / "default-paper-journal.jsonl"
+        monkeypatch.setenv("SUPEREZIO_PAPER_JOURNAL_PATH", str(isolated))
+
+        journal = PaperJournal()
+        journal._append({"trade_id": "isolated-default"})
+
+        assert journal.path == isolated
+        assert isolated.is_file()
+
     def test_new_rows_carry_storage_environment_and_provenance(self, journal, sample_trade):
         journal.open_trade(sample_trade)
 
