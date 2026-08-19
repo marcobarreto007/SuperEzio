@@ -1301,59 +1301,10 @@ async def _run_scan(
                                 source_errors.append("price_attempts_sample: " + "; ".join(parts))
                             break
 
-        # ── Price fallback: yfinance direct for items still without price ──
-        # When hub enrichment fails (or hub is unavailable), FinanceDatabase items
-        # arrive at the gate with no price/volume and ALL get rejected
-        # ("missing_price", "missing_liquidity"). This fallback ensures every
-        # candidate has at least a price before hitting the gate.
-        items_missing_price = [it for it in price_targets if it.get("price") is None]
-        if items_missing_price:
-            registry.stage_started("enrich_price_fallback", provider="yfinance_direct")
-            try:
-                import yfinance as yf  # type: ignore[import-untyped]
-
-                fb_ok = 0
-                fb_err = 0
-                for it in items_missing_price:
-                    sym = str(it.get("ticker") or "")
-                    if not sym:
-                        fb_err += 1
-                        continue
-                    try:
-                        yf_ticker = yf.Ticker(sym)
-                        yf_info = yf_ticker.info
-                        yf_price = (
-                            yf_info.get("currentPrice")
-                            or yf_info.get("regularMarketPrice")
-                            or yf_info.get("previousClose")
-                        )
-                        if yf_price is not None:
-                            it["price"] = float(yf_price)
-                            fb_ok += 1
-                        yf_volume = yf_info.get("volume") or yf_info.get("averageVolume") or 0
-                        if yf_volume:
-                            it["volume"] = int(yf_volume)
-                        yf_name = yf_info.get("shortName") or yf_info.get("longName")
-                        if yf_name and not it.get("name"):
-                            it["name"] = str(yf_name)
-                        yf_sector = yf_info.get("sector")
-                        if yf_sector and not it.get("sector"):
-                            it["sector"] = str(yf_sector)
-                    except Exception:
-                        fb_err += 1
-                registry.stage_completed(
-                    "enrich_price_fallback",
-                    provider="yfinance_direct",
-                    done=fb_ok,
-                    total=len(items_missing_price),
-                    errors=fb_err,
-                )
-                if fb_ok:
-                    provider_sources_used.add("yfinance_fallback")
-            except ImportError:
-                registry.stage_failed(
-                    "enrich_price_fallback", "yfinance_not_installed", provider="yfinance_direct"
-                )
+        # Price discovery is intentionally confined to DataHub. If every
+        # configured route fails, the candidate must reach the gate without a
+        # price and be rejected. A direct provider call here would bypass
+        # DataHub routing, observability, circuit breakers and test isolation.
 
     # ── Catalyst fallback for ALL candidates (covers items beyond enrich budget) ──
     for item in raw_candidates:
