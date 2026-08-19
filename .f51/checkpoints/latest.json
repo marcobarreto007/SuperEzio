@@ -164,7 +164,7 @@
     }
   },
   "phase_4_impact_map": {
-    "status": "in_progress",
+    "status": "complete",
     "problem": "O rascunho TD persiste, mas ainda não possui máquina de estados broker-neutral para aprovação, entrada humana e confirmação externa.",
     "architecture_touched": [
       "state machine de trade manual",
@@ -193,8 +193,21 @@
       "no broker adapter import/call assertion",
       "Ruff, pytest and browser smoke"
     ],
-    "go_live": "BLOCKED_PENDING_TRUSTED_QUOTE_MONEY_GATE_AND_TD_PREVIEW"
+    "go_live": "BLOCKED_PENDING_TRUSTED_QUOTE_MONEY_GATE_AND_TD_PREVIEW",
+    "commits": [
+      "8529bd0",
+      "e85944e",
+      "06bf5c1"
+    ],
+    "result": "Broker-neutral manual state machine enforced from draft through broker confirmation; every approval is hash-bound; manual entry requires fresh balanced TD preview costs; system_transmitted remains false; TD audit dead letters have idempotent replay.",
+    "evidence": {
+      "focused_gate": "102 tests passed in 43.28s",
+      "operator_storage": "trace, investor DB and PaperJournal hashes unchanged",
+      "lint": "python -m ruff check src/ tests/ passed",
+      "browser": "passed with 130 candles and 7 canvases",
+      "broker_isolation": "API regression raises if the manual TD workflow touches the IBKR adapter"
+    }
   },
-  "next_step": "Fase 4: criar o workflow broker-neutral de ticket manual TD e remover IBKR/paper do caminho TD.",
+  "next_step": "Fase 5: integrar cotação confiável server-side com exchange, moeda, timestamp e divergência verificáveis.",
   "owner": "Codex"
 }
