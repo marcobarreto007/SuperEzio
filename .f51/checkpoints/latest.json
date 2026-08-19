@@ -111,7 +111,7 @@
     }
   },
   "phase_3_impact_map": {
-    "status": "in_progress",
+    "status": "complete",
     "problem": "Kill switch, approvals and trade status are process-memory state; restart loses safety decisions and can duplicate an intent.",
     "architecture_touched": [
       "broker-neutral SQLite workflow state",
@@ -145,8 +145,24 @@
       "operator database hash unchanged across pytest",
       "Ruff, focused pytest and browser smoke"
     ],
-    "go_live": "BLOCKED_BY_DESIGN_UNTIL_PHASES_4_TO_10"
+    "go_live": "BLOCKED_BY_DESIGN_UNTIL_PHASES_4_TO_10",
+    "commits": [
+      "5b4b55d",
+      "5a27a2d",
+      "32e7639",
+      "f537539",
+      "381d4f9",
+      "6335bbd"
+    ],
+    "result": "SQLite workflow state is cross-process idempotent; trade status survives restart; approvals are bound to one ticket hash; global kill switch survives restart and Guardrail Hub reads it; dead letters are durable; pytest and browser storage are isolated.",
+    "evidence": {
+      "focused_gate": "155 tests passed in 74.25s",
+      "lint": "python -m ruff check src/ tests/ passed",
+      "browser": "passed with 130 candles and 7 canvases",
+      "isolation": "59-test proof kept operator trace, investor DB, PaperJournal and dedup unchanged; second browser smoke used isolated sentiment/workflow/trace/dedup databases",
+      "trace_quarantine": "187 pytest trace rows copied to runtime/quarantine; operator trace restored to its prior tracked content"
+    }
   },
-  "next_step": "Fase 3: tornar kill switch, approval, ticket e status persistentes, idempotentes e unidos pelo mesmo ticket hash.",
+  "next_step": "Fase 4: criar o workflow broker-neutral de ticket manual TD e remover IBKR/paper do caminho TD.",
   "owner": "Codex"
 }
