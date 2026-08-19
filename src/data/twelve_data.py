@@ -1,5 +1,6 @@
 import requests
 import os
+from datetime import datetime, timezone
 from typing import Dict, Any
 
 
@@ -36,20 +37,34 @@ class TwelveDataProvider:
             raise RuntimeError("TWELVE_DATA_API_KEY is required but not set")
         self.base_url = "https://api.twelvedata.com"
 
-    def get_price(self, symbol: str) -> Dict[str, Any]:
-        """Obtém preço em tempo real."""
-        url = f"{self.base_url}/price"
+    def get_price(self, symbol: str, *, exchange: str | None = None, **_: Any) -> Dict[str, Any]:
+        """Obtain a quote with exchange, currency, and market timestamp metadata."""
+        url = f"{self.base_url}/quote"
         params = {"symbol": symbol, "apikey": self.api_key}
+        if exchange:
+            params["exchange"] = exchange
         try:
             response = requests.get(url, params=params, timeout=10)
             data = response.json()
-            if "price" not in data:
+            price = data.get("close") or data.get("price")
+            if price is None:
                 return {"error": data.get("message", "Unknown error")}
+
+            timestamp = data.get("last_update_at") or data.get("timestamp")
+            if isinstance(timestamp, (int, float)):
+                as_of = datetime.fromtimestamp(float(timestamp), tz=timezone.utc).isoformat()
+            else:
+                as_of = str(timestamp or "").strip() or None
 
             return {
                 "symbol": symbol,
-                "price": float(data["price"]),
+                "price": float(price),
                 "source": "twelve_data",
+                "provider": "twelve_data",
+                "exchange": str(data.get("exchange") or exchange or "").upper() or None,
+                "currency": str(data.get("currency") or "").upper() or None,
+                "as_of": as_of,
+                "market_timestamp": data.get("timestamp"),
             }
         except Exception as e:
             _log_event("TWELVE_DATA", "ERROR", {"symbol": symbol, "error": str(e)})

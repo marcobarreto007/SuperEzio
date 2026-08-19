@@ -83,6 +83,7 @@ def test_get_price_returns_finnhub_shape_when_quote_succeeds() -> None:
         "d": 1.25,
         "dp": 0.64,
         "pc": 194.25,
+        "t": 1766206800,
     }
     metric_payload = {"metric": {"10DayAverageTradingVolume": 50.0}}
 
@@ -104,6 +105,8 @@ def test_get_price_returns_finnhub_shape_when_quote_succeeds() -> None:
     assert result.get("prev_close") == 194.25
     assert result.get("volume") == 50_000_000.0
     assert result.get("avg_daily_volume_shares") == 50_000_000.0
+    assert result.get("market_timestamp") == 1766206800
+    assert result.get("as_of", "").endswith("+00:00")
     assert "error" not in result
 
 

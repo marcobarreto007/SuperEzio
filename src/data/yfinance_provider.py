@@ -100,6 +100,16 @@ class YFinanceProvider:
                     info = ticker.info or {}
                     volume = info.get("averageVolume") or info.get("volume")
 
+                intraday = ticker.history(period="1d", interval="1m", prepost=False)
+                as_of = None
+                if intraday is not None and not intraday.empty:
+                    price = float(intraday["Close"].iloc[-1])
+                    timestamp = intraday.index[-1]
+                    if hasattr(timestamp, "to_pydatetime"):
+                        as_of = timestamp.to_pydatetime().astimezone(timezone.utc).isoformat()
+                exchange = getattr(fast, "exchange", None) if fast is not None else None
+                currency = getattr(fast, "currency", None) if fast is not None else None
+
             return {
                 "symbol": symbol,
                 "yahoo_symbol": ysym,
@@ -107,6 +117,9 @@ class YFinanceProvider:
                 "volume": int(volume) if volume is not None else None,
                 "source": "yfinance",
                 "provider": "yfinance",
+                "exchange": str(exchange or "").upper() or None,
+                "currency": str(currency or "").upper() or None,
+                "as_of": as_of,
             }
         except Exception as exc:
             return {"error": f"yfinance: {exc}"}

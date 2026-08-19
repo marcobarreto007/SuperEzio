@@ -148,6 +148,12 @@ class FinnhubProvider:
                 "prev_close": float(data.get("pc") or 0.0),
                 "source": "finnhub",
             }
+            quote_timestamp = data.get("t")
+            if quote_timestamp:
+                payload["market_timestamp"] = int(quote_timestamp)
+                payload["as_of"] = datetime.fromtimestamp(
+                    float(quote_timestamp), tz=timezone.utc
+                ).isoformat()
 
             if include_avg_volume:
                 volume = self._fetch_avg_volume(variant)
