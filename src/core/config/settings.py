@@ -104,6 +104,18 @@ class Settings(BaseSettings):
         description="Use Questrade's practice OAuth login endpoint for read-only connectivity.",
     )
 
+    # Canadian live-manual Money Gate — conservative defaults, all percentages of equity.
+    superezio_money_gate_snapshot_max_age_sec: int = Field(default=120, ge=30, le=600)
+    superezio_money_gate_min_equity_cad: float = Field(default=1000.0, gt=0)
+    superezio_money_gate_max_risk_pct: float = Field(default=0.5, gt=0, le=2)
+    superezio_money_gate_max_notional_pct: float = Field(default=10.0, gt=0, le=25)
+    superezio_money_gate_max_symbol_pct: float = Field(default=10.0, gt=0, le=25)
+    superezio_money_gate_max_sector_pct: float = Field(default=25.0, gt=0, le=50)
+    superezio_money_gate_max_non_cad_pct: float = Field(default=30.0, gt=0, le=75)
+    superezio_money_gate_max_gross_pct: float = Field(default=100.0, gt=0, le=150)
+    superezio_money_gate_gap_multiplier: float = Field(default=2.0, ge=1, le=5)
+    superezio_money_gate_slippage_bps: float = Field(default=25.0, ge=0, le=200)
+
 
 # Singleton — validated at import time
 _settings: Settings | None = None

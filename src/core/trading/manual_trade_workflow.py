@@ -76,6 +76,7 @@ class ManualTradeWorkflow:
         ticket_id: str,
         *,
         evidence: Mapping[str, Any],
+        evidence_records: Mapping[str, Any] | None = None,
         actor: str = "system",
     ) -> dict[str, Any]:
         """Internal transition used only after all automated gates have evidence."""
@@ -91,6 +92,9 @@ class ManualTradeWorkflow:
         required_gates["td_order_preview"] = False
         if ticket["status"] not in {"DRAFT_UNVERIFIED_QUOTE", "DRAFT_QUOTE_VERIFIED"}:
             raise ManualTradeWorkflowError(f"ticket is not a draft: {ticket['status']}")
+        patch = {"required_gates": required_gates}
+        if evidence_records:
+            patch.update(dict(evidence_records))
         return self.store.transition_ticket(
             ticket_id,
             expected_status=str(ticket["status"]),
@@ -99,7 +103,41 @@ class ManualTradeWorkflow:
             actor=actor,
             idempotency_key=f"gated:{ticket['fingerprint']}",
             details={"gate_names": sorted(_REQUIRED_AUTOMATED_GATES)},
-            evidence_patch={"required_gates": required_gates},
+            evidence_patch=patch,
+        )
+
+    def apply_money_gate(
+        self, ticket_id: str, evidence: Mapping[str, Any], *, actor: str = "system"
+    ) -> dict[str, Any]:
+        """Promote a quote-verified draft only with immutable Money Gate evidence."""
+
+        evidence_hash = str(evidence.get("evidence_hash") or "")
+        if evidence.get("passed") is not True or not re.fullmatch(r"[0-9a-f]{64}", evidence_hash):
+            raise ManualTradeWorkflowError("valid passed Money Gate evidence is required")
+        return self.mark_gated(
+            ticket_id,
+            evidence={
+                "server_side_quote": True,
+                "money_gate": True,
+                "portfolio_risk": True,
+                "buying_power": True,
+            },
+            evidence_records={
+                "money_gate": dict(evidence),
+                "portfolio_gate": {
+                    "passed": True,
+                    "evidence_hash": evidence_hash,
+                    "metrics": evidence.get("metrics"),
+                },
+                "buying_power_gate": {
+                    "passed": True,
+                    "evidence_hash": evidence_hash,
+                    "required_buying_power_cad": dict(evidence.get("metrics") or {}).get(
+                        "required_buying_power_cad"
+                    ),
+                },
+            },
+            actor=actor,
         )
 
     def request_approval(self, ticket_id: str, *, actor: str = "operator") -> ApprovalRequest:
@@ -155,7 +193,7 @@ class ManualTradeWorkflow:
             request = self.approvals.reject(approval_id, approver=actor)
         if request is None or request.status != ApprovalStatus.REJECTED:
             raise ManualTradeWorkflowError("approval is not rejected")
-        return self.store.transition_ticket(
+        ticket = self.store.transition_ticket(
             ticket_id,
             expected_status="AWAITING_HUMAN",
             new_status="REJECTED",
@@ -164,6 +202,8 @@ class ManualTradeWorkflow:
             idempotency_key=f"approval-resolved:{approval_id}:rejected",
             details={"approval_id": approval_id, "resolved_by": request.resolved_by},
         )
+        self.store.release_money_reservation(ticket_id)
+        return ticket
 
     def record_manual_entry(
         self,
@@ -214,7 +254,7 @@ class ManualTradeWorkflow:
             "total_estimated_cost": total,
             "td_preview_as_of": preview_as_of.isoformat(),
         }
-        return self.store.transition_ticket(
+        ticket = self.store.transition_ticket(
             ticket_id,
             expected_status="APPROVED",
             new_status="MANUALLY_ENTERED",
@@ -230,6 +270,8 @@ class ManualTradeWorkflow:
                 "required_gates": required_gates,
             },
         )
+        self.store.release_money_reservation(ticket_id)
+        return ticket
 
     def record_broker_confirmation(
         self,

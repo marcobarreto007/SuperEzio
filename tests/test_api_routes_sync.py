@@ -633,9 +633,7 @@ def test_td_manual_workflow_requires_gates_and_records_only_human_confirmation(
 ):
     import adapters.broker as broker_adapters
     import agent_server.endpoints as endpoints
-    from core.trading.manual_trade_workflow import ManualTradeWorkflow
     from core.trading.td_direct_ticket import append_td_direct_ticket
-    from core.trading.workflow_store import get_trade_workflow_store
 
     monkeypatch.setattr(
         broker_adapters,
@@ -653,6 +651,17 @@ def test_td_manual_workflow_requires_gates_and_records_only_human_confirmation(
         lambda *_args, **_kwargs: _trusted_td_quote(
             symbol="QQQ", exchange="NASDAQ", currency="USD", price=569.9
         ),
+    )
+    monkeypatch.setattr(
+        endpoints,
+        "resolve_usd_cad_evidence",
+        lambda: {
+            "pair": "USD/CAD",
+            "rate": 1.35,
+            "source": "BANK_OF_CANADA_VALET_FXUSDCAD",
+            "stale_fallback_used": False,
+            "evidence_hash": "c" * 64,
+        },
     )
     monkeypatch.setenv("SUPEREZIO_API_KEY", "configured-for-test")
     _, client = client_with_mock_pipeline
@@ -695,16 +704,30 @@ def test_td_manual_workflow_requires_gates_and_records_only_human_confirmation(
     assert blocked.status_code == 409
     assert "not gated" in blocked.json()["detail"]
 
-    workflow = ManualTradeWorkflow(get_trade_workflow_store())
-    workflow.mark_gated(
-        ticket_id,
-        evidence={
-            "server_side_quote": True,
-            "money_gate": True,
-            "portfolio_risk": True,
-            "buying_power": True,
+    gated = client.post(
+        f"/trade/manual/{ticket_id}/money-gate",
+        headers=headers(),
+        json={
+            "operator": "marco",
+            "account_snapshot": {
+                "account_alias": "primary_rrsp",
+                "account_type": "RRSP",
+                "base_currency": "CAD",
+                "equity_cad": 100000,
+                "buying_power_cad": 50000,
+                "cash_cad": 100000,
+                "margin_enabled": False,
+                "captured_at": datetime.now(timezone.utc).isoformat(),
+                "operator": "marco",
+                "source_platform": "WEBBROKER",
+                "attested_from_td": True,
+                "positions": [],
+            },
         },
     )
+    assert gated.status_code == 200
+    assert gated.json()["ticket"]["status"] == "GATED"
+    assert gated.json()["money_gate"]["passed"] is True
     approval_response = client.post(
         f"/trade/manual/{ticket_id}/request-approval",
         headers=headers(),

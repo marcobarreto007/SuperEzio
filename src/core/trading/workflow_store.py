@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import sqlite3
@@ -162,6 +163,20 @@ class TradeWorkflowStore:
                     status TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     UNIQUE(category, idempotency_key)
+                );
+                CREATE TABLE IF NOT EXISTS money_reservations (
+                    ticket_id TEXT PRIMARY KEY,
+                    account_scope TEXT NOT NULL,
+                    snapshot_hash TEXT NOT NULL,
+                    amount_cad REAL NOT NULL CHECK(amount_cad >= 0),
+                    symbol TEXT NOT NULL,
+                    sector TEXT NOT NULL,
+                    gross_addition_cad REAL NOT NULL CHECK(gross_addition_cad >= 0),
+                    non_cad_addition_cad REAL NOT NULL CHECK(non_cad_addition_cad >= 0),
+                    status TEXT NOT NULL CHECK(status IN ('active', 'released')),
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    FOREIGN KEY(ticket_id) REFERENCES trade_tickets(ticket_id)
                 );
                 """
             )
@@ -388,6 +403,172 @@ class TradeWorkflowStore:
                     updated_at = excluded.updated_at
                 """,
                 (state_key.strip(), _canonical_json(state), _utc_now()),
+            )
+            connection.commit()
+
+    def reserve_money_gate(
+        self,
+        ticket_id: str,
+        *,
+        account_scope: str,
+        snapshot_hash: str,
+        amount_cad: float,
+        buying_power_cad: float,
+        symbol: str,
+        sector: str,
+        gross_addition_cad: float,
+        non_cad_addition_cad: float,
+        base_gross_cad: float,
+        base_symbol_cad: float,
+        base_sector_cad: float,
+        base_non_cad_cad: float,
+        equity_cad: float,
+        max_gross_pct: float,
+        max_symbol_pct: float,
+        max_sector_pct: float,
+        max_non_cad_pct: float,
+    ) -> float:
+        """Atomically reserve buying power across processes for one logical TD account."""
+
+        if not _HEX_64.fullmatch(account_scope) or not _HEX_64.fullmatch(snapshot_hash):
+            raise WorkflowStoreError("money reservation hashes must be SHA-256")
+        numeric_values = (
+            amount_cad,
+            buying_power_cad,
+            gross_addition_cad,
+            non_cad_addition_cad,
+            base_gross_cad,
+            base_symbol_cad,
+            base_sector_cad,
+            base_non_cad_cad,
+            equity_cad,
+            max_gross_pct,
+            max_symbol_pct,
+            max_sector_pct,
+            max_non_cad_pct,
+        )
+        if not all(math.isfinite(value) and value >= 0 for value in numeric_values):
+            raise WorkflowStoreError("money reservation values must be non-negative and finite")
+        if equity_cad <= 0 or not symbol.strip() or not sector.strip():
+            raise WorkflowStoreError("money reservation exposure scope is invalid")
+        now = _utc_now()
+        with self._lock, self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            ticket = connection.execute(
+                "SELECT status FROM trade_tickets WHERE ticket_id = ?", (ticket_id,)
+            ).fetchone()
+            if ticket is None:
+                connection.rollback()
+                raise WorkflowStoreError(f"unknown ticket: {ticket_id}")
+            existing = connection.execute(
+                "SELECT * FROM money_reservations WHERE ticket_id = ?", (ticket_id,)
+            ).fetchone()
+            if existing is not None and existing["status"] == "active":
+                if (
+                    existing["account_scope"] != account_scope
+                    or existing["snapshot_hash"] != snapshot_hash
+                    or abs(float(existing["amount_cad"]) - amount_cad) > 0.01
+                    or existing["symbol"] != symbol
+                    or existing["sector"] != sector
+                ):
+                    connection.rollback()
+                    raise WorkflowConflictError("ticket already has a different money reservation")
+                connection.commit()
+                return float(existing["amount_cad"])
+            reserved = float(
+                connection.execute(
+                    "SELECT COALESCE(SUM(amount_cad), 0) FROM money_reservations "
+                    "WHERE account_scope = ? AND status = 'active' AND ticket_id != ?",
+                    (account_scope, ticket_id),
+                ).fetchone()[0]
+            )
+            if reserved + amount_cad > buying_power_cad + 0.01:
+                connection.rollback()
+                raise WorkflowConflictError("buying power is already reserved by pending tickets")
+            active = connection.execute(
+                "SELECT symbol, sector, gross_addition_cad, non_cad_addition_cad "
+                "FROM money_reservations WHERE account_scope = ? AND status = 'active' "
+                "AND ticket_id != ?",
+                (account_scope, ticket_id),
+            ).fetchall()
+            pending_gross = sum(float(row["gross_addition_cad"]) for row in active)
+            pending_symbol = sum(
+                float(row["gross_addition_cad"]) for row in active if row["symbol"] == symbol
+            )
+            pending_sector = sum(
+                float(row["gross_addition_cad"]) for row in active if row["sector"] == sector
+            )
+            pending_non_cad = sum(float(row["non_cad_addition_cad"]) for row in active)
+            exposure_failures = [
+                name
+                for name, post_value, maximum_pct in (
+                    (
+                        "gross_exposure",
+                        base_gross_cad + pending_gross + gross_addition_cad,
+                        max_gross_pct,
+                    ),
+                    (
+                        "symbol_concentration",
+                        base_symbol_cad + pending_symbol + gross_addition_cad,
+                        max_symbol_pct,
+                    ),
+                    (
+                        "sector_concentration",
+                        base_sector_cad + pending_sector + gross_addition_cad,
+                        max_sector_pct,
+                    ),
+                    (
+                        "non_cad_exposure",
+                        base_non_cad_cad + pending_non_cad + non_cad_addition_cad,
+                        max_non_cad_pct,
+                    ),
+                )
+                if post_value / equity_cad * 100 > maximum_pct
+            ]
+            if exposure_failures:
+                connection.rollback()
+                raise WorkflowConflictError(
+                    "pending tickets exceed portfolio limits: " + ", ".join(exposure_failures)
+                )
+            connection.execute(
+                """
+                INSERT INTO money_reservations(
+                    ticket_id, account_scope, snapshot_hash, amount_cad, symbol, sector,
+                    gross_addition_cad, non_cad_addition_cad, status,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
+                ON CONFLICT(ticket_id) DO UPDATE SET
+                    account_scope=excluded.account_scope,
+                    snapshot_hash=excluded.snapshot_hash,
+                    amount_cad=excluded.amount_cad,
+                    symbol=excluded.symbol,
+                    sector=excluded.sector,
+                    gross_addition_cad=excluded.gross_addition_cad,
+                    non_cad_addition_cad=excluded.non_cad_addition_cad,
+                    status='active',
+                    updated_at=excluded.updated_at
+                """,
+                (
+                    ticket_id,
+                    account_scope,
+                    snapshot_hash,
+                    amount_cad,
+                    symbol,
+                    sector,
+                    gross_addition_cad,
+                    non_cad_addition_cad,
+                    now,
+                    now,
+                ),
+            )
+            connection.commit()
+        return amount_cad
+
+    def release_money_reservation(self, ticket_id: str) -> None:
+        with self._lock, self._connect() as connection:
+            connection.execute(
+                "UPDATE money_reservations SET status='released', updated_at=? WHERE ticket_id=?",
+                (_utc_now(), ticket_id),
             )
             connection.commit()
 

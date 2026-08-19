@@ -45,6 +45,11 @@ from core.trading.td_direct_ticket import (
 from core.trading.approval_gate import approval_request_to_dict
 from core.trading.manual_trade_workflow import ManualTradeWorkflow, ManualTradeWorkflowError
 from core.trading.server_quote import ServerQuoteError, resolve_server_quote
+from core.trading.canada_money_gate import (
+    CanadaMoneyGate,
+    CanadaMoneyGateError,
+    resolve_usd_cad_evidence,
+)
 from core.trading.workflow_store import (
     WorkflowConflictError,
     WorkflowStoreError,
@@ -2615,6 +2620,54 @@ async def request_manual_trade_approval(
         "ticket_id": ticket_id,
         "approval": approval_request_to_dict(approval),
         "submitted_to_broker": False,
+    }
+
+
+@router.post("/trade/manual/{ticket_id}/money-gate")
+async def run_manual_trade_money_gate(
+    ticket_id: str, payload: dict[str, Any], request: Request
+) -> dict[str, Any]:
+    """Evaluate a fresh operator-attested TD snapshot and reserve buying power."""
+
+    _require_td_ticket_auth(request)
+    operator = _manual_operator(payload)
+    store = get_trade_workflow_store()
+    ticket = store.get_ticket(ticket_id)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail=f"unknown ticket: {ticket_id}")
+    if ticket.get("status") == "GATED" and dict(ticket.get("money_gate") or {}).get("passed"):
+        return {
+            "ok": True,
+            "ticket": ticket,
+            "money_gate": ticket["money_gate"],
+            "submitted_to_broker": False,
+            "system_transmitted": False,
+            "idempotent_replay": True,
+        }
+    try:
+        fx_evidence = (
+            resolve_usd_cad_evidence() if str(ticket.get("currency")).upper() == "USD" else None
+        )
+        evidence = CanadaMoneyGate(store).evaluate(
+            ticket,
+            payload.get("account_snapshot") or {},
+            operator=operator,
+            fx_evidence=fx_evidence,
+        )
+        gated = _manual_workflow().apply_money_gate(ticket_id, evidence)
+    except (
+        CanadaMoneyGateError,
+        ManualTradeWorkflowError,
+        WorkflowConflictError,
+        WorkflowStoreError,
+    ) as exc:
+        raise _manual_workflow_http_error(exc) from exc
+    return {
+        "ok": True,
+        "ticket": gated,
+        "money_gate": evidence,
+        "submitted_to_broker": False,
+        "system_transmitted": False,
     }
 
 
