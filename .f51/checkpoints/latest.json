@@ -1,21 +1,50 @@
 {
-  "date_local": "2026-08-18T17:45:00-04:00",
-  "session": "qwen38-q4km-3060-2070-2026-08-18",
-  "status": "done",
-  "what_was_done": [
-    "llama-server :8080 agora serve Qwen3.8-27B-Q4_K_M (nao IQ2) nas GPUs reais 3060+2070.",
-    "ctx 24576 CUDA OOM; fallback aceite 16384 no ar. MTP desligado (OOM no 2070).",
-    "Config canonica alinhada: config.ps1, runtime.yml, model_manifest.json, serve_agent_llamacpp.ps1, RUNBOOK.md, providers.py."
-  ],
-  "evidence": {
-    "model": "C:\\Users\\marco\\models\\qwen3.8-27b\\Qwen3.8-27B-Q4_K_M.gguf",
-    "size_bytes": 17106775008,
-    "download": false,
-    "ctx": 16384,
-    "tensor_split": "12,8",
-    "health": "http://127.0.0.1:8080/health -> {status:ok}",
-    "vram": "3060 10086/12288 MiB, 2070 7062/8192 MiB"
+  "date_local": "2026-08-18T22:55:03-04:00",
+  "session": "td-direct-live-manual-readiness-2026-08-18",
+  "status": "in_progress",
+  "objective": "Preparar o SuperEzio para trading real via TD Direct Investing Canada sem paper trading, scraping, credenciais TD ou transmissao automatica.",
+  "impact_map": {
+    "problem": "O runtime esta acoplado a IBKR/paper e nao possui um contrato seguro para entregar ordens live ao TD Direct Investing.",
+    "architecture_touched": [
+      "contrato deterministico de ordem",
+      "endpoint FastAPI de ticket",
+      "persistencia auditavel local",
+      "contratos, testes e runbook"
+    ],
+    "files_planned": [
+      "src/core/trading/td_direct_ticket.py",
+      "src/agent_server/endpoints.py",
+      "tests/test_td_direct_ticket.py",
+      "tests/test_api_routes_sync.py",
+      ".f51/contracts/agent-server.contract.md",
+      "docs/runbooks/TD_DIRECT_LIVE_MANUAL.md",
+      ".env.example"
+    ],
+    "indirectly_affected": [
+      "src/core/pipeline/trade_order.py",
+      "frontend/js/cockpit.js",
+      "src/core/trading/approval_gate.py"
+    ],
+    "risks": [
+      "confundir ticket local com ordem transmitida",
+      "ticker, bolsa ou moeda incompativeis",
+      "dimensionamento de risco incorreto",
+      "expor credenciais ou automatizar WebBroker contra os termos TD",
+      "quebrar contratos existentes de paper order"
+    ],
+    "smallest_safe_patch": "Adicionar ticket TD live manual fail-closed, somente LIMIT, sem senha, navegador ou broker submit; manter todo legado de transmissao congelado.",
+    "verification": [
+      "python -m pytest tests/test_td_direct_ticket.py tests/test_api_routes_sync.py -q",
+      "python -m ruff check src/ tests/",
+      "python -m pytest tests/ -q",
+      "python scripts/browser_smoke.py"
+    ]
   },
-  "next_step": "Manter :8080 Q4 ctx 16384; nao voltar para IQ2.",
-  "owner": "Cursor Grok (subagent)"
+  "evidence": {
+    "td_official_platforms": "TD lista WebBroker, TD app, Advanced Dashboard e TD Active Trader; nenhuma API publica de ordens foi encontrada.",
+    "td_agreement": "Electronic Brokerage Services Client Agreement, secao 6: acesso a conta/servicos/informacao somente pelos sites TD, nao por software de terceiros.",
+    "baseline": "ruff completo passou; 71 testes direcionados passaram; API/modelo/broker offline; browser smoke falhou por conexao recusada."
+  },
+  "next_step": "Implementar e testar o contrato de ticket TD live manual.",
+  "owner": "Codex"
 }
