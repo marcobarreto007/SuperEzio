@@ -402,5 +402,37 @@
     }
   },
   "next_step": "Fase 8: make the isolated chart-data path bounded and deterministic using verified cached/provider data, rerun browser smoke, then repeat operator hashes. Phase 9 remains blocked and Phase 10 capital remains zero.",
+  "ui_operational_truth_impact_map": {
+    "status": "in_progress",
+    "problem": "The cockpit conflates broker connectivity with core availability and renders idle components as failed or waiting.",
+    "architecture_touched": [
+      "canonical frontend health snapshot",
+      "top and bottom status bars",
+      "expert idle/running/result states",
+      "pipeline lifecycle presentation",
+      "paper journal semantic counters"
+    ],
+    "files_planned": [
+      "frontend/js/health.js",
+      "frontend/js/status-bar.js",
+      "frontend/js/cockpit.js",
+      "frontend/js/render-pipeline.js",
+      "frontend/js/init.js",
+      "frontend/index.html",
+      "tests/test_api_routes_sync.py"
+    ],
+    "risks": [
+      "stale polling overwrites an active pipeline event",
+      "broker offline is displayed as system offline",
+      "hardcoded guardrail count appears as live evidence",
+      "journal events are presented as positions or open trades"
+    ],
+    "smallest_safe_patch": "Create one presentation-only snapshot from current health/details and runtime state, then make existing renderers consume it without changing trading or backend behavior.",
+    "verification": [
+      "node --check on changed JavaScript",
+      "focused frontend contract tests",
+      "pytest plus browser smoke per repository policy"
+    ]
+  },
   "owner": "Codex"
 }
