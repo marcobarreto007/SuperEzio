@@ -80,6 +80,8 @@
   }
 
   function computeTrustScore() {
+    var state = window.SZ.state || {};
+    if (!state.lastF51Verdict && !(state.deep && state.deep.f51)) return null;
     var mc = getMathCoverage();
     var df = getDataFreshness();
     var ec = getExpertConsensus();
@@ -94,6 +96,7 @@
   }
 
   function getScoreTone(score) {
+    if (score == null) return "is-neutral";
     if (score >= 80) return "is-good";
     if (score >= 50) return "is-warn";
     return "is-bad";
@@ -105,18 +108,21 @@
 
     var score = computeTrustScore();
     var tone = getScoreTone(score);
+    var text = score == null ? "TRUST: --" : "TRUST: " + score + "/100";
 
     var existing = container.querySelector(".trust-score-badge");
     if (existing) {
-      existing.textContent = "TRUST: " + score + "/100";
+      existing.textContent = text;
       existing.className = "trust-score-badge " + tone;
       return;
     }
 
     var badge = document.createElement("span");
     badge.className = "trust-score-badge " + tone;
-    badge.textContent = "TRUST: " + score + "/100";
-    badge.title = "Math: " + getMathCoverage() + "/14 | Freshness: " + Math.round(getDataFreshness() * 100) + "% | Consensus: " + Math.round(getExpertConsensus() * 100) + "% | F51: " + Math.round(getF51Confidence() * 100) + "%";
+    badge.textContent = text;
+    badge.title = score == null
+      ? "Available after an F51 verdict"
+      : "Math: " + getMathCoverage() + "/14 | Freshness: " + Math.round(getDataFreshness() * 100) + "% | Consensus: " + Math.round(getExpertConsensus() * 100) + "% | F51: " + Math.round(getF51Confidence() * 100) + "%";
     container.appendChild(badge);
   }
 

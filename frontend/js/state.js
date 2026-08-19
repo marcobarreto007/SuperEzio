@@ -3,6 +3,7 @@
   const state = {
     health: false,
     healthDetails: null,
+    operationalSnapshot: null,
     ticker: "",
     chartData: null,
     portfolio: {},
