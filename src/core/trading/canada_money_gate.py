@@ -160,10 +160,15 @@ class CanadaMoneyGate:
         try:
             snapshot = TDAccountSnapshot.model_validate(snapshot_payload)
         except ValidationError as exc:
-            raise CanadaMoneyGateError(f"invalid TD account snapshot: {exc.errors()[0]['msg']}") from exc
+            raise CanadaMoneyGateError(
+                f"invalid TD account snapshot: {exc.errors()[0]['msg']}"
+            ) from exc
         captured_at = snapshot.captured_at.astimezone(timezone.utc)
         age_seconds = (current - captured_at).total_seconds()
-        if age_seconds < -5 or age_seconds > self.settings.superezio_money_gate_snapshot_max_age_sec:
+        if (
+            age_seconds < -5
+            or age_seconds > self.settings.superezio_money_gate_snapshot_max_age_sec
+        ):
             raise CanadaMoneyGateError("TD account snapshot is stale or future-dated")
         if snapshot.operator != operator:
             raise CanadaMoneyGateError("snapshot operator does not match authenticated operator")
@@ -215,7 +220,9 @@ class CanadaMoneyGate:
             raise CanadaMoneyGateError("ticket sizing inputs are invalid")
         notional_cad = quantity * limit_price * fx_rate
         slippage_cad = notional_cad * self.settings.superezio_money_gate_slippage_bps / 10_000
-        gap_risk_cad = planned_stop_risk * fx_rate * self.settings.superezio_money_gate_gap_multiplier
+        gap_risk_cad = (
+            planned_stop_risk * fx_rate * self.settings.superezio_money_gate_gap_multiplier
+        )
         worst_loss_cad = gap_risk_cad + slippage_cad
         equity = snapshot.equity_cad
 
@@ -226,7 +233,9 @@ class CanadaMoneyGate:
         if snapshot.account_type != "MARGIN":
             balance_delta = abs(snapshot.equity_cad - (snapshot.cash_cad + current_gross))
             if balance_delta > max(50.0, snapshot.equity_cad * 0.02):
-                raise CanadaMoneyGateError("TD snapshot equity does not reconcile with cash and positions")
+                raise CanadaMoneyGateError(
+                    "TD snapshot equity does not reconcile with cash and positions"
+                )
         current_non_cad = sum(
             float(item.market_value_cad) for item in snapshot.positions if item.currency != "CAD"
         )
@@ -242,7 +251,9 @@ class CanadaMoneyGate:
             post_symbol = max(0.0, current_symbol_value - reduction)
             post_gross = max(0.0, current_gross - reduction)
             post_sector = max(0.0, current_sector - reduction)
-            post_non_cad = max(0.0, current_non_cad - (reduction if ticket_currency != "CAD" else 0))
+            post_non_cad = max(
+                0.0, current_non_cad - (reduction if ticket_currency != "CAD" else 0)
+            )
             required_buying_power = 0.0
         elif side == "BUY":
             post_symbol = current_symbol_value + notional_cad
@@ -277,8 +288,16 @@ class CanadaMoneyGate:
             for name, actual, maximum in (
                 ("risk_per_trade", metrics["risk_pct_equity"], limits["max_risk_pct"]),
                 ("order_notional", metrics["notional_pct_equity"], limits["max_notional_pct"]),
-                ("symbol_concentration", metrics["post_symbol_pct_equity"], limits["max_symbol_pct"]),
-                ("sector_concentration", metrics["post_sector_pct_equity"], limits["max_sector_pct"]),
+                (
+                    "symbol_concentration",
+                    metrics["post_symbol_pct_equity"],
+                    limits["max_symbol_pct"],
+                ),
+                (
+                    "sector_concentration",
+                    metrics["post_sector_pct_equity"],
+                    limits["max_sector_pct"],
+                ),
                 ("non_cad_exposure", metrics["post_non_cad_pct_equity"], limits["max_non_cad_pct"]),
                 ("gross_exposure", metrics["post_gross_pct_equity"], limits["max_gross_pct"]),
             )

@@ -147,7 +147,7 @@ def test_sell_cannot_exceed_attested_position(tmp_path: Path) -> None:
                 "currency": "CAD",
                 "sector": "Financials",
             }
-        ]
+        ],
     )
 
     with pytest.raises(CanadaMoneyGateError, match="SELL quantity exceeds"):

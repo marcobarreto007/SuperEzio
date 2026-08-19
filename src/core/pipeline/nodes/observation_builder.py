@@ -19,9 +19,7 @@ logger = logging.getLogger(__name__)
 # Can be overridden via env var SUPEREZIO_DATA_CONTEXT_MAX_CHARS.
 # math_prompt is injected separately (never truncated), so this limit
 # only affects raw news/sentiment/macro context.
-DATA_CONTEXT_MAX_CHARS: int = int(
-    os.getenv("SUPEREZIO_DATA_CONTEXT_MAX_CHARS", "4000")
-)
+DATA_CONTEXT_MAX_CHARS: int = int(os.getenv("SUPEREZIO_DATA_CONTEXT_MAX_CHARS", "4000"))
 
 # ── Formatters: convert JSON dicts to readable flat text ──
 
@@ -99,8 +97,17 @@ def format_math_report(report: dict) -> str:
 
     # Fallback: dump any remaining top-level keys not yet shown
     shown_keys = {
-        "ticker", "price", "close", "technical_indicators", "technicals",
-        "returns", "performance", "risk", "risk_metrics", "crisis", "crisis_metrics",
+        "ticker",
+        "price",
+        "close",
+        "technical_indicators",
+        "technicals",
+        "returns",
+        "performance",
+        "risk",
+        "risk_metrics",
+        "crisis",
+        "crisis_metrics",
     }
     extra = {k: v for k, v in report.items() if k not in shown_keys and not k.startswith("_")}
     if extra:
@@ -118,9 +125,7 @@ def format_f51_verdict(f51: dict) -> str:
     score = f51.get("score", f51.get("f51_score", ""))
     passed = f51.get("passed", f51.get("approved", ""))
     decision_score = f51.get("decision_score", f51.get("confidence", ""))
-    lines.append(
-        f"score={score} | passed={passed} | decision_score={decision_score}"
-    )
+    lines.append(f"score={score} | passed={passed} | decision_score={decision_score}")
 
     # Factors breakdown
     factors = f51.get("factors", f51.get("scores", f51.get("breakdown", {})))
@@ -129,10 +134,23 @@ def format_f51_verdict(f51: dict) -> str:
         lines.append("Factors: " + ", ".join(factor_strs))
 
     # Extra fields
-    extra = {k: v for k, v in f51.items()
-             if k not in ("score", "f51_score", "passed", "approved",
-                          "decision_score", "confidence", "factors", "scores", "breakdown")
-             and not k.startswith("_")}
+    extra = {
+        k: v
+        for k, v in f51.items()
+        if k
+        not in (
+            "score",
+            "f51_score",
+            "passed",
+            "approved",
+            "decision_score",
+            "confidence",
+            "factors",
+            "scores",
+            "breakdown",
+        )
+        and not k.startswith("_")
+    }
     for k, v in extra.items():
         if isinstance(v, (int, float, str)):
             lines.append(f"{k}: {v}")
@@ -160,11 +178,25 @@ def format_neural_decision(neural: dict) -> str:
             lines.append(f"Drawdown Risk: {dd_risk}")
 
     # Extra fields
-    extra = {k: v for k, v in neural.items()
-             if k not in ("regime", "market_regime", "direction", "signal", "prediction",
-                          "confidence", "score", "recommendation", "action", "drawdown_risk",
-                          "max_drawdown")
-             and not k.startswith("_")}
+    extra = {
+        k: v
+        for k, v in neural.items()
+        if k
+        not in (
+            "regime",
+            "market_regime",
+            "direction",
+            "signal",
+            "prediction",
+            "confidence",
+            "score",
+            "recommendation",
+            "action",
+            "drawdown_risk",
+            "max_drawdown",
+        )
+        and not k.startswith("_")
+    }
     for k, v in extra.items():
         if isinstance(v, (int, float, str)):
             lines.append(f"{k}: {v}")
@@ -179,9 +211,13 @@ def format_sdca(sdca: dict) -> str:
     checks = sdca.get("cognitive_checks", sdca.get("checks_passed", sdca.get("checks", "")))
     total = sdca.get("total_checks", sdca.get("checks_total", ""))
     if checks and total:
-        lines.append(f"Decision: {decision} | risk_level={risk_level} | cognitive_checks={checks}/{total} passed")
+        lines.append(
+            f"Decision: {decision} | risk_level={risk_level} | cognitive_checks={checks}/{total} passed"
+        )
     elif checks:
-        lines.append(f"Decision: {decision} | risk_level={risk_level} | cognitive_checks={checks} passed")
+        lines.append(
+            f"Decision: {decision} | risk_level={risk_level} | cognitive_checks={checks} passed"
+        )
     else:
         lines.append(f"Decision: {decision} | risk_level={risk_level}")
 
@@ -190,11 +226,27 @@ def format_sdca(sdca: dict) -> str:
     if reason:
         lines.append(f"Reason: {reason}")
 
-    extra = {k: v for k, v in sdca.items()
-             if k not in ("decision", "status", "verdict", "risk_level", "severity",
-                          "cognitive_checks", "checks_passed", "checks", "total_checks",
-                          "checks_total", "reason", "explanation", "details")
-             and not k.startswith("_")}
+    extra = {
+        k: v
+        for k, v in sdca.items()
+        if k
+        not in (
+            "decision",
+            "status",
+            "verdict",
+            "risk_level",
+            "severity",
+            "cognitive_checks",
+            "checks_passed",
+            "checks",
+            "total_checks",
+            "checks_total",
+            "reason",
+            "explanation",
+            "details",
+        )
+        and not k.startswith("_")
+    }
     for k, v in extra.items():
         if isinstance(v, (int, float, str)):
             lines.append(f"{k}: {v}")
@@ -208,7 +260,9 @@ def format_guardrail_hub(guardrail: dict) -> str:
     if not isinstance(summary, dict):
         summary = guardrail
 
-    completed = summary.get("completed", summary.get("executed_checks", summary.get("total_run", 0)))
+    completed = summary.get(
+        "completed", summary.get("executed_checks", summary.get("total_run", 0))
+    )
     total = summary.get("total", summary.get("total_guardrails", summary.get("total_checks", 0)))
     if completed or total:
         lines.append(f"{completed}/{total} completed")
@@ -228,15 +282,32 @@ def format_guardrail_hub(guardrail: dict) -> str:
         if parts:
             lines.append(" | ".join(parts))
 
-    blockers = summary.get("blocking_guardrails", summary.get("blocked_by", summary.get("blockers", [])))
+    blockers = summary.get(
+        "blocking_guardrails", summary.get("blocked_by", summary.get("blockers", []))
+    )
     if isinstance(blockers, list) and blockers:
         lines.append("Blocking: " + str(blockers))
 
-    extra = {k: v for k, v in summary.items()
-             if k not in ("completed", "executed_checks", "total_run", "total", "total_guardrails",
-                          "total_checks", "decision_counts", "counts", "results",
-                          "blocking_guardrails", "blocked_by", "blockers")
-             and not k.startswith("_")}
+    extra = {
+        k: v
+        for k, v in summary.items()
+        if k
+        not in (
+            "completed",
+            "executed_checks",
+            "total_run",
+            "total",
+            "total_guardrails",
+            "total_checks",
+            "decision_counts",
+            "counts",
+            "results",
+            "blocking_guardrails",
+            "blocked_by",
+            "blockers",
+        )
+        and not k.startswith("_")
+    }
     for k, v in extra.items():
         if isinstance(v, (int, float, str)):
             lines.append(f"{k}: {v}")
@@ -264,11 +335,25 @@ def format_decision_trace(trace: dict) -> str:
         elif isinstance(path, str):
             lines.append(f"Path: {path[:300]}")
 
-    extra = {k: v for k, v in trace.items()
-             if k not in ("decision", "final_decision", "action", "confidence",
-                          "overall_confidence", "model", "model_used", "llm",
-                          "path", "decision_path", "reasoning_path")
-             and not k.startswith("_")}
+    extra = {
+        k: v
+        for k, v in trace.items()
+        if k
+        not in (
+            "decision",
+            "final_decision",
+            "action",
+            "confidence",
+            "overall_confidence",
+            "model",
+            "model_used",
+            "llm",
+            "path",
+            "decision_path",
+            "reasoning_path",
+        )
+        and not k.startswith("_")
+    }
     for k, v in extra.items():
         if isinstance(v, (int, float, str)):
             lines.append(f"{k}: {v}")
@@ -292,14 +377,28 @@ def format_pennylab(pennylab: dict) -> str:
             detail_str = detail_str[:600] + "..."
         lines.append(f"Details: {detail_str}")
 
-    extra = {k: v for k, v in pennylab.items()
-             if k not in ("signal", "verdict", "decision", "score", "confidence",
-                          "pennylab_score", "details", "analysis", "reasoning")
-             and not k.startswith("_")}
+    extra = {
+        k: v
+        for k, v in pennylab.items()
+        if k
+        not in (
+            "signal",
+            "verdict",
+            "decision",
+            "score",
+            "confidence",
+            "pennylab_score",
+            "details",
+            "analysis",
+            "reasoning",
+        )
+        and not k.startswith("_")
+    }
     for k, v in extra.items():
         if isinstance(v, (int, float, str)):
             lines.append(f"{k}: {v}")
     return "\n".join(lines)
+
 
 # ── End of formatters ──
 
@@ -544,7 +643,9 @@ def _inject_json_evidence(state: dict, observations: list[str]):
         observations.append(format_decision_trace(value))
 
     # ── PennyLab (any key) ──
-    pennylab = state.get("pennylab_detection") or state.get("pennylab_result") or state.get("pennylab")
+    pennylab = (
+        state.get("pennylab_detection") or state.get("pennylab_result") or state.get("pennylab")
+    )
     if isinstance(pennylab, dict) and pennylab:
         observations.append(format_pennylab(pennylab))
 

@@ -38,9 +38,7 @@ SCREENSHOT_DIR = ROOT / "output" / "playwright" / "e2e"
 # ── Timeouts ──────────────────────────────────────────────────────────────────
 HEALTH_TIMEOUT_S = 45
 NAV_TIMEOUT_MS = 30_000
-PIPELINE_TIMEOUT_MS = int(
-    os.environ.get("SUPEREZIO_E2E_PIPELINE_TIMEOUT", "150_000")
-)
+PIPELINE_TIMEOUT_MS = int(os.environ.get("SUPEREZIO_E2E_PIPELINE_TIMEOUT", "150_000"))
 
 # ── Expert card definitions (verdict element IDs and initial states) ──────────
 EXPERT_CARDS: dict[str, dict[str, str]] = {
@@ -61,9 +59,7 @@ def _server_healthy(url: str, timeout_s: float = 5.0) -> bool:
     import urllib.request
 
     try:
-        resp = urllib.request.urlopen(
-            f"{url.rstrip('/')}/health", timeout=timeout_s
-        )
+        resp = urllib.request.urlopen(f"{url.rstrip('/')}/health", timeout=timeout_s)
         return resp.status == 200
     except Exception:
         return False
@@ -102,9 +98,7 @@ def _start_server() -> subprocess.Popen:
         time.sleep(1.0)
 
     proc.kill()
-    raise RuntimeError(
-        f"Server did not become healthy within {HEALTH_TIMEOUT_S}s at {BASE_URL}"
-    )
+    raise RuntimeError(f"Server did not become healthy within {HEALTH_TIMEOUT_S}s at {BASE_URL}")
 
 
 def _screenshot(page: Page, name: str) -> Path:
@@ -259,11 +253,7 @@ def test_full_browser_flow(server: subprocess.Popen | None, browser) -> None:
     page = browser.new_page(viewport={"width": 1440, "height": 980})
     page.on(
         "console",
-        lambda msg: (
-            console_errors.append(msg.text)
-            if msg.type == "error"
-            else None
-        ),
+        lambda msg: console_errors.append(msg.text) if msg.type == "error" else None,
     )
     page.on("pageerror", lambda exc: page_errors.append(str(exc)))
 
@@ -424,14 +414,10 @@ def test_full_browser_flow(server: subprocess.Popen | None, browser) -> None:
         bob_text = state.get("bobResponseText", "")
         if bob_len < 80:
             errors.append(
-                f"Bob response too short: {bob_len} chars "
-                f"(expected >= 80). Text: {bob_text[:150]}"
+                f"Bob response too short: {bob_len} chars (expected >= 80). Text: {bob_text[:150]}"
             )
         elif "AAPL" not in bob_text.upper():
-            errors.append(
-                f"Bob answer does not mention AAPL. "
-                f"First 200 chars: {bob_text[:200]}"
-            )
+            errors.append(f"Bob answer does not mention AAPL. First 200 chars: {bob_text[:200]}")
 
         # ── 6d. At least 2 of 5 expert cards updated from initial state ──
         verdicts = state.get("verdicts", {})
@@ -451,9 +437,7 @@ def test_full_browser_flow(server: subprocess.Popen | None, browser) -> None:
             )
 
         # ── 6e. No 401 errors in console ──
-        auth_errors = [
-            e for e in console_errors if "401" in e or "401" in str(e)
-        ]
+        auth_errors = [e for e in console_errors if "401" in e or "401" in str(e)]
         if auth_errors:
             errors.append(
                 f"Found {len(auth_errors)} 401 error(s) in browser console. "
@@ -461,10 +445,7 @@ def test_full_browser_flow(server: subprocess.Popen | None, browser) -> None:
             )
 
         # ── 6f. No WAIT on expert cards after pipeline complete ──
-        stuck_cards = [
-            c for c in WAIT_CARDS
-            if verdicts.get(c, "") == "WAIT"
-        ]
+        stuck_cards = [c for c in WAIT_CARDS if verdicts.get(c, "") == "WAIT"]
         if stuck_cards:
             errors.append(
                 f"Expert cards still showing WAIT after pipeline: {stuck_cards}. "

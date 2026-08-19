@@ -284,7 +284,10 @@ class DataHub:
         self.register_provider(
             ProviderRoute(
                 name="akshare",
-                capabilities=("candles", "profile"),  # price removed: downloads 893 stocks (3+ min!)
+                capabilities=(
+                    "candles",
+                    "profile",
+                ),  # price removed: downloads 893 stocks (3+ min!)
                 factory=_make_akshare_provider,
                 methods={
                     "candles": "get_candles",
@@ -579,6 +582,7 @@ class DataHub:
             try:
                 call_kwargs = self._kwargs_for_method(method, kwargs)
                 import concurrent.futures as _cf
+
                 with _cf.ThreadPoolExecutor(max_workers=1) as _executor:
                     _ft = _executor.submit(method, *args, **call_kwargs)
                     result = _ft.result(timeout=30)

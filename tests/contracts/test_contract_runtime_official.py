@@ -168,10 +168,7 @@ def test_agent_runtime_config_matches_manifest_and_script():
     assert model_path.name in model_config
     assert "llama-server.exe" in script
     assert "SUPEREZIO_LLAMA_SERVER_EXE" in script
-    assert (
-        r"C:\Users\marco\tools\llama.cpp\llama-server.exe"
-        in model_config
-    )
+    assert r"C:\Users\marco\tools\llama.cpp\llama-server.exe" in model_config
     assert '"--port", $Port' in script
 
 
@@ -223,9 +220,7 @@ def test_runtime_checkpoint_tracks_official_entrypoints():
     assert params["agent_port"] == 8080
     assert params["api_entrypoint"] == "python -m agent_server.main"
     assert params["agent_entrypoint"].endswith("scripts/serve_agent_llamacpp.ps1 -Port 8080")
-    assert params["model_path"] == (
-        r"C:\Users\marco\models\qwen3.8-27b\Qwen3.8-27B-Q4_K_M.gguf"
-    )
+    assert params["model_path"] == (r"C:\Users\marco\models\qwen3.8-27b\Qwen3.8-27B-Q4_K_M.gguf")
     assert params.get("lora_path") in (None, "")
 
 

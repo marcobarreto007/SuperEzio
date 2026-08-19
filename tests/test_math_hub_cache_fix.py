@@ -6,6 +6,7 @@ MathHub._extract_candles found zero candles and ALL 14 modules were skipped.
 
 Fix: _try_fast_cache now includes "ohlcv" in the returned data dict.
 """
+
 from datetime import date, timedelta
 
 from core.math.math_hub import MathHub
@@ -20,9 +21,36 @@ def _simulate_cache_data():
     candles = []
     start = date(2026, 1, 1)
     raw_prices = [
-        10.00, 10.05, 10.12, 10.08, 10.15, 10.22, 10.18, 10.25, 10.30, 10.28,
-        10.35, 10.40, 10.32, 10.38, 10.45, 10.50, 10.42, 10.48, 10.55, 10.60,
-        10.52, 10.58, 10.65, 10.70, 10.62, 10.68, 10.75, 10.80, 10.72, 10.78,
+        10.00,
+        10.05,
+        10.12,
+        10.08,
+        10.15,
+        10.22,
+        10.18,
+        10.25,
+        10.30,
+        10.28,
+        10.35,
+        10.40,
+        10.32,
+        10.38,
+        10.45,
+        10.50,
+        10.42,
+        10.48,
+        10.55,
+        10.60,
+        10.52,
+        10.58,
+        10.65,
+        10.70,
+        10.62,
+        10.68,
+        10.75,
+        10.80,
+        10.72,
+        10.78,
     ]
     for i, close in enumerate(raw_prices):
         candles.append(

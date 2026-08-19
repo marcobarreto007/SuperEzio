@@ -111,9 +111,7 @@ class TestAuthDB:
                 password="MyP@ssw0rd",
             )
         )
-        user = core_db.authenticate(
-            UserLogin(username="bob", password="MyP@ssw0rd")
-        )
+        user = core_db.authenticate(UserLogin(username="bob", password="MyP@ssw0rd"))
         assert user["username"] == "bob"
         assert "password_hash" not in user
         assert user["is_active"] == 1
@@ -128,16 +126,12 @@ class TestAuthDB:
             )
         )
         with pytest.raises(ValueError, match="Invalid username or password"):
-            core_db.authenticate(
-                UserLogin(username="charlie", password="WrongP@ss1")
-            )
+            core_db.authenticate(UserLogin(username="charlie", password="WrongP@ss1"))
 
     def test_authenticate_unknown_user_fails(self, core_db):
         """Non-existent username must raise ValueError."""
         with pytest.raises(ValueError, match="Invalid username or password"):
-            core_db.authenticate(
-                UserLogin(username="nobody", password="irrelevant")
-            )
+            core_db.authenticate(UserLogin(username="nobody", password="irrelevant"))
 
     # -- login ------------------------------------------------------------
 
@@ -219,9 +213,7 @@ class TestAuthDB:
 
     def test_decode_valid_token(self, core_db, jwt_secret):
         """Decoding a valid access token returns the original payload."""
-        token = core_db.create_access_token(
-            {"id": 42, "username": "grace", "role": "user"}
-        )
+        token = core_db.create_access_token({"id": 42, "username": "grace", "role": "user"})
         decoded = core_db.decode_token(token)
 
         assert decoded["sub"] == "42"
@@ -246,9 +238,7 @@ class TestAuthDB:
 
         # create_access_token must raise
         with pytest.raises(RuntimeError, match="SUPEREZIO_JWT_SECRET"):
-            db.create_access_token(
-                {"id": 1, "username": "hank", "role": "user"}
-            )
+            db.create_access_token({"id": 1, "username": "hank", "role": "user"})
 
         # login must also raise since it calls create_access_token internally
         with pytest.raises(RuntimeError, match="SUPEREZIO_JWT_SECRET"):

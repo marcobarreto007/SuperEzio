@@ -397,9 +397,9 @@ class HeartbeatLoop:
                 logger.debug("Heartbeat SCAN (Pennylab) unavailable for ticker=%s", ticker)
 
         # ── Mangala (feature flag + FULL/DEEP) ──
-        if (
-            os.getenv("SUPEREZIO_HEARTBEAT_MANGALA") == "1"
-            and cycle in (HeartbeatCycle.FULL, HeartbeatCycle.DEEP)
+        if os.getenv("SUPEREZIO_HEARTBEAT_MANGALA") == "1" and cycle in (
+            HeartbeatCycle.FULL,
+            HeartbeatCycle.DEEP,
         ):
             try:
                 from core.pipeline.nodes.mangala import scan_mangala_opportunities

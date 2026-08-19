@@ -52,6 +52,7 @@ def journal_file():
 def journal(journal_file):
     """PaperJournal limpo para cada teste."""
     from core.trading.paper_journal import PaperJournal
+
     return PaperJournal(journal_file)
 
 
@@ -112,10 +113,10 @@ def test_24h_simulated_loop_no_degradation(journal):
             close_id = f"iter-{iteration - 5:04d}-0"
             existing = journal.get_trade(close_id)
             if existing and existing.get("exit_date") is None:
-                exit_price = existing["entry_price"] + (
-                    5.0 if (iteration % 3) != 0 else -5.0
+                exit_price = existing["entry_price"] + (5.0 if (iteration % 3) != 0 else -5.0)
+                exit_reason = (
+                    reasons_tp[iteration % 3] if (iteration % 3) != 0 else reasons_sl[iteration % 3]
                 )
-                exit_reason = reasons_tp[iteration % 3] if (iteration % 3) != 0 else reasons_sl[iteration % 3]
                 t0 = time.perf_counter()
                 journal.close_trade(close_id, exit_price=exit_price, exit_reason=exit_reason)
                 op_times.append(time.perf_counter() - t0)
@@ -126,9 +127,15 @@ def test_24h_simulated_loop_no_degradation(journal):
             reflected = journal.add_reflection(
                 reflect_id,
                 thesis_correct=(iteration % 3 != 0),
-                what_went_right="Entry timing was correct" if iteration % 2 == 0 else "Risk management worked",
-                what_went_wrong="Exit was too early" if iteration % 2 == 0 else "Should have cut loss faster",
-                lesson_learned="Patience pays off in swing trades" if iteration % 2 == 0 else "Always set stop-loss at entry",
+                what_went_right="Entry timing was correct"
+                if iteration % 2 == 0
+                else "Risk management worked",
+                what_went_wrong="Exit was too early"
+                if iteration % 2 == 0
+                else "Should have cut loss faster",
+                lesson_learned="Patience pays off in swing trades"
+                if iteration % 2 == 0
+                else "Always set stop-loss at entry",
             )
             assert reflected is not None or journal.get_trade(reflect_id) is None
 
@@ -234,10 +241,14 @@ def test_journal_recovery_after_file_corruption(journal):
     with open(journal.path) as f:
         original_lines = f.readlines()
 
-    corrupted_lines = original_lines[:3] + [
-        "Esta linha e JSON invalido!!!\n",
-        "{tambem: incompleto\n",
-    ] + original_lines[3:]
+    corrupted_lines = (
+        original_lines[:3]
+        + [
+            "Esta linha e JSON invalido!!!\n",
+            "{tambem: incompleto\n",
+        ]
+        + original_lines[3:]
+    )
 
     with open(journal.path, "w") as f:
         f.writelines(corrupted_lines)
@@ -316,6 +327,7 @@ def test_journal_append_after_file_deleted_and_recreated(journal):
     # 3. Novo journal com o mesmo path deve criar arquivo novo
     # (o construtor cria o diretorio se nao existir)
     from core.trading.paper_journal import PaperJournal
+
     journal2 = PaperJournal(journal.path)
     assert journal2.count() == 0, "Novo journal deve comecar vazio"
 

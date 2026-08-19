@@ -515,7 +515,9 @@ def test_td_ticket_route_creates_live_manual_ticket_without_submit(
         "append_td_direct_ticket",
         lambda ticket: append_td_direct_ticket(ticket, audit_path),
     )
-    monkeypatch.setattr(endpoints, "resolve_server_quote", lambda *_args, **_kwargs: _trusted_td_quote())
+    monkeypatch.setattr(
+        endpoints, "resolve_server_quote", lambda *_args, **_kwargs: _trusted_td_quote()
+    )
     monkeypatch.setenv("SUPEREZIO_API_KEY", "configured-for-test")
     trading_token = "td-test-token"
     endpoints._TRADING_TOKENS[trading_token] = time.time()
@@ -554,9 +556,7 @@ def test_td_ticket_route_creates_live_manual_ticket_without_submit(
     assert status.json()["phase"] == "money_gate_required"
 
 
-def test_td_ticket_route_rejects_client_quote_assertions(
-    client_with_mock_pipeline, monkeypatch
-):
+def test_td_ticket_route_rejects_client_quote_assertions(client_with_mock_pipeline, monkeypatch):
     import agent_server.endpoints as endpoints
 
     monkeypatch.setenv("SUPEREZIO_API_KEY", "configured-for-test")
@@ -603,7 +603,9 @@ def test_td_ticket_audit_failure_writes_dead_letter(
         "append_td_direct_ticket",
         lambda _ticket: (_ for _ in ()).throw(OSError("audit disk unavailable")),
     )
-    monkeypatch.setattr(endpoints, "resolve_server_quote", lambda *_args, **_kwargs: _trusted_td_quote())
+    monkeypatch.setattr(
+        endpoints, "resolve_server_quote", lambda *_args, **_kwargs: _trusted_td_quote()
+    )
     _, client = client_with_mock_pipeline
     response = client.post(
         "/trade/td-draft",

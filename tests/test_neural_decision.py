@@ -19,7 +19,6 @@ def _clear_jwt_secret(monkeypatch):
     monkeypatch.setenv("SUPEREZIO_JWT_SECRET", "")
 
 
-
 # ── HELPER: Base Valid Payload Generator ──
 def get_valid_payload() -> dict:
     return {

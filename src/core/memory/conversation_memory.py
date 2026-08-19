@@ -37,9 +37,7 @@ _EMBEDDING_DIMS = 128
 # Sessões de teste/probe (default, test-*, quality-probe-*, overnight-*, ...)
 # são descartadas ANTES de tocar o disco. Motivação: cleanup 2026-08-18 —
 # 468/497 turnos eram resíduo de teste (126 menções de AAPL de probes).
-_REAL_SESSION_RE = re.compile(
-    r"^bob-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
-)
+_REAL_SESSION_RE = re.compile(r"^bob-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 _ENV_EXTRA_SESSIONS = "SUPEREZIO_MEMORY_EXTRA_SESSIONS"
 
 # Singleton cache para memoria global
@@ -56,9 +54,7 @@ def is_real_session_id(session_id: str) -> bool:
         return False
     if _REAL_SESSION_RE.match(session_id):
         return True
-    extra = {
-        s.strip() for s in os.environ.get(_ENV_EXTRA_SESSIONS, "").split(",") if s.strip()
-    }
+    extra = {s.strip() for s in os.environ.get(_ENV_EXTRA_SESSIONS, "").split(",") if s.strip()}
     return session_id in extra
 
 

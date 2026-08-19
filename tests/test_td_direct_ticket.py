@@ -91,9 +91,7 @@ def test_ticket_rejects_td_credentials_and_account_identifiers(field):
 
 def test_ticket_rejects_stale_quote():
     with pytest.raises(TDDirectTicketError, match="stale"):
-        _build(
-            quote=_trusted_quote(as_of=(NOW - timedelta(minutes=10)).isoformat())
-        )
+        _build(quote=_trusted_quote(as_of=(NOW - timedelta(minutes=10)).isoformat()))
 
 
 def test_ticket_expiry_is_anchored_to_quote_timestamp():
@@ -215,9 +213,7 @@ def test_ticket_can_require_proven_commission_free_symbol():
     )
     ticket = _build(
         payload,
-        quote=_trusted_quote(
-            symbol="QQQ", exchange="NASDAQ", currency="USD", price=109.9
-        ),
+        quote=_trusted_quote(symbol="QQQ", exchange="NASDAQ", currency="USD", price=109.9),
     )
     assert ticket["commission"]["eligible"] is True
     assert ticket["commission"]["estimated_base_commission"] == 0.0

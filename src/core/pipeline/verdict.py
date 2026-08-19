@@ -261,10 +261,8 @@ def _extract_pennylab(state: dict) -> dict[str, Any]:
         scores = {}
     return {
         "decision": pennylab.get("decision"),
-        "whale_suspicion": scores.get("whale_suspicion")
-        or pennylab.get("whale_suspicion"),
-        "pump_probability": scores.get("pump_probability")
-        or pennylab.get("pump_probability"),
+        "whale_suspicion": scores.get("whale_suspicion") or pennylab.get("whale_suspicion"),
+        "pump_probability": scores.get("pump_probability") or pennylab.get("pump_probability"),
         "error": pennylab.get("error"),
         "flags": _safe_list(pennylab.get("flags")),
     }

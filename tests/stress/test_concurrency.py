@@ -110,9 +110,7 @@ async def _submit_task_handler(request: Request):
 
     envelope = A2AMessage(**body)
     if envelope.type != MessageType.TASK_SUBMIT:
-        raise HTTPException(
-            status_code=400, detail="Invalid message type for this endpoint"
-        )
+        raise HTTPException(status_code=400, detail="Invalid message type for this endpoint")
 
     payload = envelope.payload if isinstance(envelope.payload, dict) else {}
     session_id = payload.get("session_id", "default")
@@ -135,21 +133,36 @@ async def _submit_task_handler(request: Request):
 
     async def event_stream():
         try:
-            yield json.dumps({
-                "type": "STREAM_START",
-                "msg_id": msg_id,
-                "run_id": run_id,
-            }) + "\n"
+            yield (
+                json.dumps(
+                    {
+                        "type": "STREAM_START",
+                        "msg_id": msg_id,
+                        "run_id": run_id,
+                    }
+                )
+                + "\n"
+            )
             await asyncio.sleep(0.005)
-            yield json.dumps({
-                "type": "CHUNK",
-                "content": f"Analise concluida para sessao {session_id}",
-            }) + "\n"
+            yield (
+                json.dumps(
+                    {
+                        "type": "CHUNK",
+                        "content": f"Analise concluida para sessao {session_id}",
+                    }
+                )
+                + "\n"
+            )
             await asyncio.sleep(0.005)
-            yield json.dumps({
-                "type": "STREAM_END",
-                "trace": {"final_content_length": 35, "run_id": run_id},
-            }) + "\n"
+            yield (
+                json.dumps(
+                    {
+                        "type": "STREAM_END",
+                        "trace": {"final_content_length": 35, "run_id": run_id},
+                    }
+                )
+                + "\n"
+            )
         finally:
             request.app.state.task_semaphore.pop(session_id, None)
 
@@ -329,9 +342,7 @@ def test_50_simultaneous_task_submit(task_app):
     rejected = sum(1 for r in results if r is not None and r.status_code == 429)
 
     # Com session_id unicos, todas devem ser aceitas
-    assert ok == n, (
-        f"Esperado {n}x 200, obtido {ok} ({rejected} rejeitadas por rate-limit)"
-    )
+    assert ok == n, f"Esperado {n}x 200, obtido {ok} ({rejected} rejeitadas por rate-limit)"
 
     # Verifica que todas retornaram NDJSON valido com STREAM_END
     for r in results:
@@ -531,8 +542,7 @@ def test_memory_leak_1000_health_checks():
     obj_growth = obj_count_after - obj_count_before
     # Tolerancia: ate 1000 objetos apos 1000 requisicoes (1 objeto/request de overhead)
     assert obj_growth < 1000, (
-        f"Crescimento de {obj_growth} objetos apos 1000 health checks. "
-        f"Possivel leak de objetos."
+        f"Crescimento de {obj_growth} objetos apos 1000 health checks. Possivel leak de objetos."
     )
 
     tracemalloc.stop()

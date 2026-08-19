@@ -100,9 +100,7 @@ def build_default_providers(
 
     orchestrator_config = config.models.get("orchestrator") or config.models.get("ceo")
 
-    local_base_url = (
-        _local_only_override("SUPEREZIO_PRIMARY_BASE_URL") or LOCAL_QWEN_BASE_URL
-    )
+    local_base_url = _local_only_override("SUPEREZIO_PRIMARY_BASE_URL") or LOCAL_QWEN_BASE_URL
     local_model = os.getenv("SUPEREZIO_PRIMARY_MODEL", PRIMARY_MODEL_ID)
 
     providers.append(

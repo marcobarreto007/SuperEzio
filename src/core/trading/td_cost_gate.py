@@ -61,7 +61,9 @@ def normalize_td_preview_costs(
     if preview.get("digital_trade") is not True:
         raise TDCostGateError("commission eligibility requires a digital TD trade")
     if preview.get("strategy_order") is not False:
-        raise TDCostGateError("strategy orders are not eligible for automatic commission-free status")
+        raise TDCostGateError(
+            "strategy orders are not eligible for automatic commission-free status"
+        )
     if preview.get("td_easy_trade") is not False:
         raise TDCostGateError("TD Easy Trade is outside this TD Direct workflow")
     platform = str(preview.get("platform") or "").strip().upper()
@@ -105,7 +107,9 @@ def normalize_td_preview_costs(
     if eligible and commission == 0 and not eligibility_confirmed:
         raise TDCostGateError("zero commission requires explicit eligibility confirmation")
     if ticket.get("require_commission_free") is True and commission != 0:
-        raise TDCostGateError("TD preview shows a commission but this ticket requires commission-free")
+        raise TDCostGateError(
+            "TD preview shows a commission but this ticket requires commission-free"
+        )
 
     economic = {
         "operator": operator,

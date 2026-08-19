@@ -339,7 +339,9 @@ class ModelGateway:
             # ── Circuit breaker gate ──
             _cb = get_circuit(f"model.{provider.name}", failure_threshold=5, recovery_timeout=60)
             if _cb.is_open:
-                next_name = providers_to_try[i + 1].name if i + 1 < len(providers_to_try) else "NONE"
+                next_name = (
+                    providers_to_try[i + 1].name if i + 1 < len(providers_to_try) else "NONE"
+                )
                 logger.warning(
                     "CIRCUIT_OPEN: %s after %d failures, falling back to %s",
                     provider.name,
