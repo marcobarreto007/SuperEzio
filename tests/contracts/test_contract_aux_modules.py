@@ -221,9 +221,11 @@ def test_audit_log_import():
     assert DecisionLogger is not None
 
 
-def test_audit_record_decision():
+def test_audit_record_decision(monkeypatch, tmp_path):
     from core.audit.decision_logger import DecisionLogger
 
+    trace_dir = tmp_path / "traces"
+    monkeypatch.setenv("SUPEREZIO_TRACE_DIR", str(trace_dir))
     logger = DecisionLogger()
     # Must not raise
     logger.record_decision(
@@ -232,6 +234,7 @@ def test_audit_record_decision():
         decision="ALLOW",
         rationale={"reason": "testing"},
     )
+    assert list(trace_dir.glob("decision_trace_*.jsonl"))
 
 
 # ============================================================================

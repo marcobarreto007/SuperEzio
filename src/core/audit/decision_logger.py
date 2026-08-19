@@ -11,7 +11,7 @@ from core.audit.decision_trace import DecisionTraceLogger
 class DecisionLogger:
     """Small audit-log facade used by gateway and legacy contracts."""
 
-    def __init__(self, output_dir: str | Path = "runtime/traces") -> None:
+    def __init__(self, output_dir: str | Path | None = None) -> None:
         self._trace = DecisionTraceLogger(output_dir=output_dir)
 
     def record_decision(
