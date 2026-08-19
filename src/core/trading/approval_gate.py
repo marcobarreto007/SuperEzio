@@ -108,7 +108,11 @@ class ApprovalGate:
             if existing is not None:
                 return self._request_from_dict(existing)
         request_id = (
-            f"apr-{ticket_fingerprint[:12]}-{context_hash[:12]}"
+            (
+                f"apr-{ticket_fingerprint[:12]}-{context_hash[:12]}"
+                if context_hash
+                else f"apr-{ticket_fingerprint[:24]}"
+            )
             if ticket_id and ticket_fingerprint
             else f"apr-{uuid.uuid4().hex}"
             if self._store is not None

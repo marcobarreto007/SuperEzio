@@ -785,12 +785,16 @@ async def health_check_public(request: Request):
     if request.method == "HEAD":
         return Response(status_code=200)
 
+    identity = {"agent": AGENT_NAME, "version": "4.0.0"}
+
     # 1. Pipeline initialized?
     pipeline = getattr(app.state, "pipeline", None)
     if pipeline is None:
         return Response(
             status_code=503,
-            content=_json.dumps({"status": "error", "detail": "Pipeline not initialized"}),
+            content=_json.dumps(
+                {"status": "error", "detail": "Pipeline not initialized", **identity}
+            ),
             media_type="application/json",
         )
 
@@ -802,7 +806,9 @@ async def health_check_public(request: Request):
         if body.is_man_at_work():
             return Response(
                 status_code=503,
-                content=_json.dumps({"status": "error", "detail": "MAN_AT_WORK mode active"}),
+                content=_json.dumps(
+                    {"status": "error", "detail": "MAN_AT_WORK mode active", **identity}
+                ),
                 media_type="application/json",
             )
         ceo = body.organs.get("ceo_brain")
@@ -810,14 +816,18 @@ async def health_check_public(request: Request):
             return Response(
                 status_code=503,
                 content=_json.dumps(
-                    {"status": "error", "detail": f"CEO Brain unreachable: {ceo.last_error}"}
+                    {
+                        "status": "error",
+                        "detail": f"CEO Brain unreachable: {ceo.last_error}",
+                        **identity,
+                    }
                 ),
                 media_type="application/json",
             )
     except Exception:
         pass
 
-    return {"status": "ok", "agent": AGENT_NAME, "version": "4.0.0"}
+    return {"status": "ok", **identity}
 
 
 @app.get("/health/details")

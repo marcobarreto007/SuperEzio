@@ -37,7 +37,7 @@ class TwelveDataProvider:
             raise RuntimeError("TWELVE_DATA_API_KEY is required but not set")
         self.base_url = "https://api.twelvedata.com"
 
-    def get_price(self, symbol: str, *, exchange: str | None = None, **_: Any) -> Dict[str, Any]:
+    def get_price(self, symbol: str, *, exchange: str | None = None) -> Dict[str, Any]:
         """Obtain a quote with exchange, currency, and market timestamp metadata."""
         url = f"{self.base_url}/quote"
         params = {"symbol": symbol, "apikey": self.api_key}
