@@ -531,7 +531,19 @@ async def trace_id_middleware(request: Request, call_next):
         unbind_trace()
 
 
-app.include_router(a2a_router)
+def _register_public_routes(app: FastAPI) -> None:
+    """Register endpoint routes without FastAPI 0.139's _IncludedRouter.
+
+    This project currently runs FastAPI 0.139.0 / Starlette 1.3.1, where
+    ``include_router`` wraps an APIRouter in a route object without a public
+    path and the wrapped endpoints are not exposed reliably. The endpoint
+    router has no prefix or router-level dependencies, so registering its
+    already-built routes directly preserves the same route contract.
+    """
+    app.router.routes.extend(a2a_router.routes)
+
+
+_register_public_routes(app)
 register_auth_routes(app)
 
 
