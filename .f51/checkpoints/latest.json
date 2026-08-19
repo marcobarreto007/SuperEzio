@@ -308,7 +308,7 @@
     }
   },
   "phase_7_impact_map": {
-    "status": "in_progress",
+    "status": "complete",
     "problem": "A entrada manual aceita custos somente depois da aprovação; assim a aprovação atual não está ligada à comissão, spread, FX e fees vistos no preview TD.",
     "architecture_touched": [
       "contrato normalizado de custos TD",
@@ -341,8 +341,17 @@
       "changed preview invalidates entry/approval context",
       "Ruff, focused pytest and browser smoke"
     ],
-    "go_live": "BLOCKED_PENDING_IMPLEMENTATION"
+    "go_live": "BLOCKED_PENDING_RELEASE_GATE_AND_BENCHMARK",
+    "commit": "8f28028",
+    "result": "The complete TD economic preview is recorded before approval and its hash is combined with ticket and Money Gate evidence. Manual entry must repeat the same economic preview; any commission, spread, FX, ECN, regulatory or other fee change is rejected and requires a new ticket approval.",
+    "evidence": {
+      "focused_gate": "93 tests passed in 34.93s",
+      "lint": "python -m ruff check src/ tests/ passed",
+      "browser": "passed with 130 candles and 7 canvases using isolated storage",
+      "commission_list": "official TD source, 108 unique ETFs, 7-day fail-closed TTL",
+      "known_nonblocking": "pre-existing /pipeline/events/stream 404 and Windows Proactor Ctrl-C shutdown assertion"
+    }
   },
-  "next_step": "Fase 7: implementar preview TD pré-aprovação com custo econômico integral e hash de contexto.",
+  "next_step": "Fase 8: reproduce the locked environment, repair broken contracts, and run the complete local release gate without touching operator financial data.",
   "owner": "Codex"
 }
