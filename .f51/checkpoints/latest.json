@@ -353,7 +353,7 @@
     }
   },
   "phase_8_impact_map": {
-    "status": "blocked_by_chart_release_gate",
+    "status": "complete",
     "problem": "The financial workflow passes focused tests, but release readiness still depends on incomplete env coverage, dependency/secret scans, broken repository references and a full-suite proof that operator data is unchanged.",
     "architecture_touched": [
       "Pydantic environment schema",
@@ -386,24 +386,25 @@
       "operator artifact hashes before and after"
     ],
     "go_live": "BLOCKED_PENDING_RELEASE_GATE",
-    "result": "Full deterministic suite is green, test subprocess storage is isolated, orphaned pipeline cancellation works, and health probes no longer append fake financial rows. Browser release smoke is still red because the isolated chart endpoint does not return within 20 seconds.",
+    "result": "Full deterministic suite is green, test subprocess storage is isolated, orphaned pipeline cancellation works, health probes no longer append fake financial rows, and slow deep-health/broker probes cannot block chart or liveness requests.",
     "evidence": {
       "full_suite": "1822 passed, 9 skipped in 532.65s; total coverage 68%",
       "storage_recovery": "4 synthetic TLRY sentiment rows removed after full database backup; 6156 system heartbeat rows quarantined after full PaperJournal backup; 534 non-heartbeat rows retained",
       "operator_hashes": "runtime/investor.db, Bob pain log and decision trace remained byte-identical during the final full suite; the PaperJournal mutation exposed and led to removal of the write-on-health bug",
-      "browser": "FAIL: /api/chart-data/AAPL aborted after 20 seconds in isolated validation runtime",
+      "browser": "PASS: /api/chart-data/AAPL returned 200 with 130 candles; 7 canvases rendered; zero console errors; screenshot output/playwright/superezio-browser-smoke-20260819-162039.png",
       "commits": [
         "a4c0920",
         "d45153c",
         "a5a72df",
         "bdd8073",
-        "a1e5caf"
+        "a1e5caf",
+        "426bf3b"
       ]
     }
   },
-  "next_step": "Fase 8: make the isolated chart-data path bounded and deterministic using verified cached/provider data, rerun browser smoke, then repeat operator hashes. Phase 9 remains blocked and Phase 10 capital remains zero.",
+  "next_step": "Phase 9: benchmark agents out of sample with explicit costs and simple baselines. Phase 10 real-capital pilot remains blocked and capital remains zero until that evidence is accepted.",
   "ui_operational_truth_impact_map": {
-    "status": "code_complete_browser_blocked_by_chart_endpoint",
+    "status": "complete",
     "problem": "The cockpit conflates broker connectivity with core availability and renders idle components as failed or waiting.",
     "architecture_touched": [
       "canonical frontend health snapshot",
@@ -437,7 +438,7 @@
     "evidence": {
       "tests": "45 tests/test_api_routes_sync.py tests passed",
       "javascript": "node --check passed for health, state, trust-score, status-bar, cockpit, render-pipeline and init",
-      "browser": "Playwright navigation failed because the pre-existing chart-data request blocks the single API worker; /health/details also timed out while chart-data was pending",
+      "browser": "Playwright passed after isolating synchronous deep-health and cockpit probes from the event loop; chart returned 130 candles and the page rendered 7 canvases with zero console errors.",
       "commits": [
         "75925aa",
         "3e683a1",
@@ -447,10 +448,10 @@
         "5c87fdb"
       ]
     },
-    "go_live": "BLOCKED_PENDING_CHART_RELEASE_GATE"
+    "go_live": "BLOCKED_PENDING_PHASE_9_BENCHMARK_AND_LIMITED_CAPITAL_PILOT"
   },
   "api_responsiveness_impact_map": {
-    "status": "in_progress",
+    "status": "complete",
     "problem": "Deep health and cockpit routes are declared async but perform slow synchronous broker and system probes, blocking unrelated requests and making chart/UI startup appear hung.",
     "architecture_touched": [
       "FastAPI route scheduling",
@@ -480,6 +481,21 @@
       "health_during_deep_health_seconds": 3.983908,
       "health_during_cockpit_portfolio_seconds": 12.114588,
       "health_during_cockpit_summary_seconds": 7.660944
+    },
+    "result": "FastAPI now schedules deep health, cockpit portfolio and cockpit summary in its threadpool. Slow broker/system probes no longer starve unrelated requests; public response contracts are unchanged.",
+    "evidence": {
+      "commit": "426bf3b",
+      "focused_tests": "46 passed in 31.52s",
+      "full_tests": "1827 passed, 8 skipped in 525.73s; total coverage 68%",
+      "lint": "python -m ruff check src/ tests/ passed",
+      "runtime_after_seconds": {
+        "health_during_deep_health": 0.004696,
+        "health_during_cockpit_portfolio": 0.004152,
+        "health_during_cockpit_summary": 0.004191,
+        "health_during_chart": 0.003916
+      },
+      "browser": "PASS: AAPL chart 200, 130 candles, 7 canvases, zero console errors",
+      "screenshot": "output/playwright/superezio-browser-smoke-20260819-162039.png"
     }
   },
   "owner": "Codex"
