@@ -1,13 +1,13 @@
 # SuperEzio CEO local server (ZERO-CLOUD).
-# Sube o mesmo modelo/perfil do servidor cc compartilhado (Qwen3.8-27B-UD-IQ2_XXS)
-# na porta 8080. Um servidor por vez — as 2 GPUs nao aguentam duas instancias.
+# Sobe Qwen3.8-27B-Q4_K_M na porta 8080. Um servidor por vez — as 2 GPUs
+# (RTX 3060 12GB + RTX 2070 8GB) nao aguentam duas instancias.
 # Preferencia do operador: run-cc.ps1 (C:\Users\marco\models\qwen3.8-27b\).
 # Sources config.ps1 for path detection and keeps command-line overrides.
 
 param(
     [int]$Port = 8080,
-    [string]$TensorSplit = "8,6",
-    [int]$ContextLength = 40960,
+    [string]$TensorSplit = "12,8",
+    [int]$ContextLength = 8192,
     [int]$Slots = 1,
     [string]$LlamaServerPath = $env:SUPEREZIO_LLAMA_SERVER_EXE
 )
@@ -63,7 +63,7 @@ try {
     $ErrorActionPreference = $oldEAP
 }
 
-$hasCuda = ($version -match "cuda") -or ($LlamaServerPath -match "cuda|build-cuda|Release")
+$hasCuda = ($version -match "cuda") -or ($LlamaServerPath -match "cuda|build-cuda|Release|tools\\llama.cpp")
 
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host " SuperEzio CEO Server (ZERO-CLOUD)" -ForegroundColor Cyan
@@ -89,8 +89,9 @@ if (-not $hasCuda) {
 
 Write-Host "Starting llama-server..." -ForegroundColor Green
 
-# Perfil validado 2026-08-16 (run-cc.ps1): IQ2_XXS nas 2 GPUs com tensor split
-# 8,6, cache q8_0 e contexto 40960. MTP speculative decoding para acelerar.
+# Perfil 2026-08-18: Q4_K_M nas 2 GPUs (3060+2070) com tensor split 12,8,
+# cache q8_0 e contexto 8192.
+# MTP (--spec-type draft-mtp) tambem OOM no 2070 com Q4; nao usar.
 $args = @(
     "-m", $ModelPath,
     "-ngl", "all",
@@ -102,8 +103,6 @@ $args = @(
     "-fa", "on",
     "--cache-type-k", "q8_0",
     "--cache-type-v", "q8_0",
-    "--spec-type", "draft-mtp",
-    "--spec-draft-n-max", "2",
     "--reasoning", "off"
 )
 

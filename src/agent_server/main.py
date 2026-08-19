@@ -890,7 +890,7 @@ async def health_check():
         "provider": PRIMARY_PROVIDER_NAME,
         "model": os.getenv(
             "SUPEREZIO_PRIMARY_MODEL",
-            os.getenv("SUPEREZIO_DEEPSEEK_MODEL", "Qwen3.8-27B-UD-IQ2_XXS"),
+            os.getenv("SUPEREZIO_DEEPSEEK_MODEL", "Qwen3.8-27B-Q4_K_M"),
         ),
         "base_url": os.getenv(
             "SUPEREZIO_PRIMARY_BASE_URL",
@@ -918,7 +918,7 @@ async def health_check():
         "experts": {
             # Legacy routing name "deepseek" — serves the local endpoint now.
             "provider": "local",
-            "model": os.getenv("SUPEREZIO_DEEPSEEK_MODEL", "Qwen3.8-27B-UD-IQ2_XXS"),
+            "model": os.getenv("SUPEREZIO_DEEPSEEK_MODEL", "Qwen3.8-27B-Q4_K_M"),
         },
     }
 

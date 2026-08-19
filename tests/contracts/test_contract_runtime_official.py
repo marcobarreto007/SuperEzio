@@ -161,7 +161,7 @@ def test_agent_runtime_config_matches_manifest_and_script():
     assert agent_cfg["backend"] == "openai_compatible"
     assert agent_cfg["is_local"] is True
     assert agent_cfg["preferred_llama_server"] == (
-        r"C:\Users\marco\tools\llama.cpp-src\build\bin\Release\llama-server.exe"
+        r"C:\Users\marco\tools\llama.cpp\llama-server.exe"
     )
     if not model_path.exists():
         pytest.skip(f"Official agent GGUF not present in this environment: {model_path}")
@@ -169,7 +169,7 @@ def test_agent_runtime_config_matches_manifest_and_script():
     assert "llama-server.exe" in script
     assert "SUPEREZIO_LLAMA_SERVER_EXE" in script
     assert (
-        r"C:\Users\marco\tools\llama.cpp-src\build\bin\Release\llama-server.exe"
+        r"C:\Users\marco\tools\llama.cpp\llama-server.exe"
         in model_config
     )
     assert '"--port", $Port' in script
@@ -224,7 +224,7 @@ def test_runtime_checkpoint_tracks_official_entrypoints():
     assert params["api_entrypoint"] == "python -m agent_server.main"
     assert params["agent_entrypoint"].endswith("scripts/serve_agent_llamacpp.ps1 -Port 8080")
     assert params["model_path"] == (
-        r"C:\Users\marco\models\qwen3.8-27b\Qwen3.8-27B-UD-IQ2_XXS.gguf"
+        r"C:\Users\marco\models\qwen3.8-27b\Qwen3.8-27B-Q4_K_M.gguf"
     )
     assert params.get("lora_path") in (None, "")
 

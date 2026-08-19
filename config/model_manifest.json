@@ -1,15 +1,15 @@
 {
     "project":  "SuperEzio",
     "version":  "4.2.0",
-    "updated":  "2026-08-17",
+    "updated":  "2026-08-18",
     "note":  "ZERO-CLOUD (operator directive 2026-08-17): every LLM role is served by the shared local llama-server (perfil cc) on :8080. No cloud providers. If the server is down the system fails into MAN_AT_WORK.",
     "agent":  {
                 "provider_name":  "agent",
                 "persona":  "Bob",
                 "base_model":  "Qwen3.8-27B",
-                "model":  "Qwen3.8-27B-UD-IQ2_XXS",
-                "path":  "C:\\Users\\marco\\models\\qwen3.8-27b\\Qwen3.8-27B-UD-IQ2_XXS.gguf",
-                "quantization":  "UD-IQ2_XXS (8.4 GB)",
+                "model":  "Qwen3.8-27B-Q4_K_M",
+                "path":  "C:\\Users\\marco\\models\\qwen3.8-27b\\Qwen3.8-27B-Q4_K_M.gguf",
+                "quantization":  "Q4_K_M (15.9 GB)",
                 "server_url":  "http://127.0.0.1:8080/v1",
                 "priority":  -10,
                 "backend":  "openai_compatible",
@@ -18,12 +18,12 @@
                 "timeout_s":  300,
                 "tool_calling":  true,
                 "reasoning":  "disabled (--reasoning off)",
-                "context_length":  40960,
+                "context_length":  8192,
                 "gpu_layers":  "all (-ngl all -sm layer)",
-                "tensor_split":  "8,6",
-                "gpus":  "RTX 2070 8GB + P106 6GB",
-                "speculative":  "draft-mtp, draft-n-max 2",
-                "launch_profile":  "C:\\Users\\marco\\models\\qwen3.8-27b\\run-cc.ps1 (validated 2026-08-16)",
+                "tensor_split":  "12,8",
+                "gpus":  "RTX 3060 12GB + RTX 2070 8GB",
+                "speculative":  "disabled (draft-mtp CUDA OOM on 2070 with Q4_K_M)",
+                "launch_profile":  "C:\\Users\\marco\\models\\qwen3.8-27b\\run-cc.ps1 (updated 2026-08-18 Q4_K_M)",
                 "model_type":  "dense",
                 "shared_with":  "Claude Code perfil cc — one server, one slot"
             },
@@ -31,28 +31,28 @@
                       "local_orchestrator":  {
                                                  "provider_name":  "local_orchestrator",
                                                  "base_url":  "http://127.0.0.1:8080/v1",
-                                                 "model":  "Qwen3.8-27B-UD-IQ2_XXS",
+                                                 "model":  "Qwen3.8-27B-Q4_K_M",
                                                  "priority":  0,
                                                  "role":  "orchestrator (local)"
                                              },
                       "deepseek":  {
                                        "provider_name":  "deepseek",
                                        "base_url":  "http://127.0.0.1:8080/v1",
-                                       "model":  "Qwen3.8-27B-UD-IQ2_XXS",
+                                       "model":  "Qwen3.8-27B-Q4_K_M",
                                        "priority":  -300,
                                        "role":  "financial experts (legacy routing name — serves the local endpoint)"
                                    },
                       "daytrade_judge":  {
                                              "provider_name":  "daytrade_judge",
                                              "base_url":  "http://127.0.0.1:8080/v1",
-                                             "model":  "Qwen3.8-27B-UD-IQ2_XXS",
+                                             "model":  "Qwen3.8-27B-Q4_K_M",
                                              "priority":  -304,
                                              "role":  "daytrade judge (local)"
                                          },
                       "daytrade_auditor":  {
                                                "provider_name":  "daytrade_auditor",
                                                "base_url":  "http://127.0.0.1:8080/v1",
-                                               "model":  "Qwen3.8-27B-UD-IQ2_XXS",
+                                               "model":  "Qwen3.8-27B-Q4_K_M",
                                                "priority":  -305,
                                                "role":  "daytrade auditor (local)"
                                            }

@@ -1,6 +1,6 @@
 # Official Runbook - SuperEzio Runtime v4.2.0
 
-Updated: 2026-08-17
+Updated: 2026-08-18
 Policy: DISK ONLY. GitHub is blocked by `.f51/GITHUB_POLICY.json`.
 Model policy: ZERO-CLOUD — every LLM role is served by the shared local
 llama-server (perfil cc) on `127.0.0.1:8080`. No cloud fallback exists.
@@ -16,17 +16,17 @@ SuperEzio has two official local runtime processes:
 
 Official config file: `config/runtime.yml`.
 
-Official CEO model (validated 2026-08-16):
+Official CEO model (2026-08-18):
 
 ```text
-C:\Users\marco\models\qwen3.8-27b\Qwen3.8-27B-UD-IQ2_XXS.gguf
+C:\Users\marco\models\qwen3.8-27b\Qwen3.8-27B-Q4_K_M.gguf
 ```
 
 Model: Qwen3.8-27B (dense)
-Quantization: UD-IQ2_XXS (8.4 GB file)
-Context: 40960 tokens (a 33k-token system prompt processes without OOM; 65536 crashes with CUDA OOM under load)
-GPU: all layers offloaded, split across RTX 2070 8GB + P106 6GB (`-ngl all -sm layer -ts 8,6`)
-Cache: KV q8_0, flash attention on, MTP speculative decoding (draft-n-max 2)
+Quantization: Q4_K_M (15.9 GB file)
+Context: 16384 tokens (24576 CUDA OOM on RTX 2070 KV/compute buffers; MTP also OOM — disabled)
+GPU: all layers offloaded, split across RTX 3060 12GB + RTX 2070 8GB (`-ngl all -sm layer -ts 12,8`)
+Cache: KV q8_0, flash attention on. MTP disabled (CUDA OOM on 2070 with Q4).
 Slots: 1 (shared with the Claude Code perfil cc — one server, one queue)
 
 Current official model routing (zero-cloud):
@@ -178,8 +178,8 @@ Stop-Process -Id <PID> -Force
 Check (paths are real, from `config.ps1`):
 
 ```powershell
-Test-Path C:\Users\marco\models\qwen3.8-27b\Qwen3.8-27B-UD-IQ2_XXS.gguf
-Test-Path C:\Users\marco\tools\llama.cpp-src\build\bin\Release\llama-server.exe
+Test-Path C:\Users\marco\models\qwen3.8-27b\Qwen3.8-27B-Q4_K_M.gguf
+Test-Path C:\Users\marco\tools\llama.cpp\llama-server.exe
 C:\Users\marco\models\qwen3.8-27b\run-cc.ps1
 ```
 

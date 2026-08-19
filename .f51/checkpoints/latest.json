@@ -1,49 +1,21 @@
 {
-    "date_local": "2026-08-18T01:35:00-04:00",
-    "session": "anthropic-fs-deep-dive-2026-08-18",
-    "status": "done",
-    "what_was_done": [
-        "Deep dive no repo anthropics/financial-services a pedido do operador ('estudar a arquitetura a fundo, mergulhe nele').",
-        "4 exploradores paralelos + 1 fetch da sessao principal, tudo leitura publica web (read-only, zero git/gh/marketplace).",
-        "Cobertura total: 10/10 orquestradores (meeting-prep coberto pela sessao principal apos 429 do subagente), 12 folhas depth-1, 15 skills dissecadas, scripts/orchestrate.py + check.py + validate.py + sync-agent-skills.py + deploy, packaging (marketplace.json/plugin.json/.mcp.json/commands-vs-skills).",
-        "Sintese publicada em docs/architecture/ANTHROPIC_FS_DEEP_DIVE.md (9 secoes: sistema em 1 pagina, catalogo, folhas, skills, maquinario, gates, packaging, aplicacao, veredito).",
-        "APLICADO 1: scripts/check_agents.py — gate de cross-referencias inspirado no check.py da Anthropic (frontmatter de agentes/skills valida; toda skill citada existe; todo subagent_type existe ou e builtin; pasta de skill sem SKILL.md = issue). Exit 0/1 como o original.",
-        "APLICADO 2: .claude/skills/tese-tracker/SKILL.md — primeira skill de DOMINIO do projeto (as 31 anteriores sao dev-ops): tese falsificavel, scorecard de pilares, invalidacao observavel, catalysts, conviction com historico, estado cross-session em runtime/theses/<TICKER>.json; principio verbatim do original ('disconfirming evidence as rigorously as confirming').",
-        "APLICADO 3: market-thesis-writer.md agora invoca a skill tese-tracker (workflow invoca skill nomeada, como no padrao oficial) e escopo de escrita ampliado para runtime/theses/.",
-        "Docs parte 1 (AGENT_PATTERNS_ANTHROPIC_FS.md) agora linka o deep dive."
-    ],
-    "evidence": {
-        "commands": [
-            "python scripts/check_agents.py -> clean (17 agentes, 32 skills, 0 issues)",
-            "python -m pytest tests/test_check_agents.py -q --no-cov -p no:cacheprovider -> 6 passed in 0.34s",
-            "python -m ruff check scripts/check_agents.py tests/test_check_agents.py -> All checks passed"
-        ],
-        "files_changed": [
-            "docs/architecture/ANTHROPIC_FS_DEEP_DIVE.md (novo)",
-            "docs/architecture/AGENT_PATTERNS_ANTHROPIC_FS.md (link p/ deep dive)",
-            "scripts/check_agents.py (novo — gate)",
-            "tests/test_check_agents.py (novo — 6 testes)",
-            ".claude/skills/tese-tracker/SKILL.md (novo — 1a skill de dominio)",
-            ".claude/agents/market-thesis-writer.md (wiring tese-tracker)",
-            ".f51/TASK_BOARD.md, .f51/checkpoints/latest.json (+ 2026-08-18-agent-patterns.json preservado)"
-        ],
-        "tests": [
-            "tests/test_check_agents.py: 6 passed (parser frontmatter, extracao de refs skill/agente, ignorar backticks nao-skill, tree atual limpa)",
-            "Suite ampliaida nao rodada: mudanca nao toca src/ (script novo + .md); baseline zero-cloud 506 passed segue valido"
-        ]
-    },
-    "risks": [
-        {
-            "severity": "low",
-            "description": "Gaps honestos do estudo: meeting-prep-agent extraido em modo resumo (sumarizador recusou verbatim); scripts/recalc.py 404.",
-            "mitigation": "Fatos-chave do meeting-prep confirmados (untrusted emails, no client-facing send); recalc.py nao e essencial para os padroes."
-        },
-        {
-            "severity": "info",
-            "description": "test_current_tree_is_clean falha se alguem citar skill/agente inexistente — por design (gate como teste, como o CI deles).",
-            "mitigation": "Comportamento desejado: ref quebrada quebra build."
-        }
-    ],
-    "next_step": "Roadmap do doc §8: captain dispatch-only (task dedicada), nomear portoes humanos por consequencia (TWO_PHASE_ORDER/money-gate), proximas skills de dominio (candle/volume, sizing, journaling), event loop local so quando houver 2+ orquestradores residentes.",
-    "owner": "Claude Code (sessao principal)"
+  "date_local": "2026-08-18T17:45:00-04:00",
+  "session": "qwen38-q4km-3060-2070-2026-08-18",
+  "status": "done",
+  "what_was_done": [
+    "llama-server :8080 agora serve Qwen3.8-27B-Q4_K_M (nao IQ2) nas GPUs reais 3060+2070.",
+    "ctx 24576 CUDA OOM; fallback aceite 16384 no ar. MTP desligado (OOM no 2070).",
+    "Config canonica alinhada: config.ps1, runtime.yml, model_manifest.json, serve_agent_llamacpp.ps1, RUNBOOK.md, providers.py."
+  ],
+  "evidence": {
+    "model": "C:\\Users\\marco\\models\\qwen3.8-27b\\Qwen3.8-27B-Q4_K_M.gguf",
+    "size_bytes": 17106775008,
+    "download": false,
+    "ctx": 16384,
+    "tensor_split": "12,8",
+    "health": "http://127.0.0.1:8080/health -> {status:ok}",
+    "vram": "3060 10086/12288 MiB, 2070 7062/8192 MiB"
+  },
+  "next_step": "Manter :8080 Q4 ctx 16384; nao voltar para IQ2.",
+  "owner": "Cursor Grok (subagent)"
 }

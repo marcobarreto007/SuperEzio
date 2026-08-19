@@ -1,6 +1,6 @@
 # SuperEzio Runtime Configuration v4.2.0
 # Fonte canonica de configuracao de runtime.
-# ATUALIZADO: 2026-08-17 - ZERO-CLOUD: todos os papeis LLM no servidor local
+# ATUALIZADO: 2026-08-18 - ZERO-CLOUD: todos os papeis LLM no servidor local
 # compartilhado (perfil cc) em :8080. Sem providers de nuvem. Se :8080 cair,
 # o sistema trava em MAN_AT_WORK.
 
@@ -26,9 +26,9 @@ models:
   agent:
     name: Qwen3.8-27B Local (shared cc)
     provider_name: agent
-    model_id: Qwen3.8-27B-UD-IQ2_XXS
-    path: "C:\\Users\\marco\\models\\qwen3.8-27b\\Qwen3.8-27B-UD-IQ2_XXS.gguf"
-    quantization: UD-IQ2_XXS
+    model_id: Qwen3.8-27B-Q4_K_M
+    path: "C:\\Users\\marco\\models\\qwen3.8-27b\\Qwen3.8-27B-Q4_K_M.gguf"
+    quantization: Q4_K_M
     server_url: http://127.0.0.1:8080/v1
     backend: openai_compatible
     role: agent
@@ -37,13 +37,12 @@ models:
     max_tokens: 8192
     timeout_s: 300
     script: scripts/serve_agent_llamacpp.ps1
-    preferred_llama_server: "C:\\Users\\marco\\tools\\llama.cpp-src\\build\\bin\\Release\\llama-server.exe"
-    # Perfil validado 2026-08-16 (run-cc.ps1): -ngl all -sm layer -ts 8,6,
-    # cache q8_0, contexto 40960 processa prompt de 33k tokens sem OOM
-    # (2070 6,5/8,2GB, P106 5,7/6,1GB). c 65536 crasha com CUDA OOM sob carga.
-    context_length: 40960
+    preferred_llama_server: "C:\\Users\\marco\\tools\\llama.cpp\\llama-server.exe"
+    # Perfil 2026-08-18: -ngl all -sm layer -ts 12,8, cache q8_0, contexto 8192
+    # (RTX 3060 12GB + RTX 2070 8GB). Sem IQ2. MTP desligado (OOM com Q4).
+    context_length: 8192
     gpu_layers: all
-    tensor_split: "8,6"
+    tensor_split: "12,8"
     slots: 1
     thinking: disabled
     model_type: local_gguf
@@ -55,7 +54,7 @@ models:
     name: Qwen3.8-27B Local (shared cc)
     provider_name: local_orchestrator
     path: http://127.0.0.1:8080/v1
-    model_id: Qwen3.8-27B-UD-IQ2_XXS
+    model_id: Qwen3.8-27B-Q4_K_M
     backend: openai_compatible
     role: orchestrator
     is_local: true
@@ -64,7 +63,7 @@ models:
     name: Local experts (shared cc)
     provider_name: deepseek
     base_url: http://127.0.0.1:8080/v1
-    model_id: Qwen3.8-27B-UD-IQ2_XXS
+    model_id: Qwen3.8-27B-Q4_K_M
     backend: openai_compatible
     role: worker
     is_local: true

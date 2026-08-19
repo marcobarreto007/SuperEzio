@@ -442,7 +442,7 @@ def _cockpit_status_snapshot(
     # Zero-cloud: every panel is served by the shared local llama-server.
     local_model = os.getenv(
         "SUPEREZIO_PRIMARY_MODEL",
-        os.getenv("SUPEREZIO_DEEPSEEK_MODEL", "Qwen3.8-27B-UD-IQ2_XXS"),
+        os.getenv("SUPEREZIO_DEEPSEEK_MODEL", "Qwen3.8-27B-Q4_K_M"),
     )
     ceo_online = pipeline_status.get("status") in {"ok", "ready"} or bool(
         pipeline_status.get("mode")

@@ -28,7 +28,7 @@ AGENT_PROVIDER_NAME = "agent"
 # Model id served by the shared local llama-server (perfil cc). llama-server
 # exposes the loaded file name as the model id; confirm via /v1/models on a
 # live server before changing this.
-AGENT_MODEL_ID = "Qwen3.8-27B-UD-IQ2_XXS"
+AGENT_MODEL_ID = "Qwen3.8-27B-Q4_K_M"
 PRIMARY_PROVIDER_NAME = "local_orchestrator"
 PRIMARY_MODEL_ID = AGENT_MODEL_ID
 DEEPSEEK_PROVIDER_NAME = "deepseek"
@@ -38,9 +38,9 @@ GEMINI_MODEL_ID = AGENT_MODEL_ID
 DAYTRADE_JUDGE_PROVIDER_NAME = "daytrade_judge"
 DAYTRADE_AUDITOR_PROVIDER_NAME = "daytrade_auditor"
 
-# Shared local llama-server (perfil cc — run-cc.ps1, validated 2026-08-16):
-# Qwen3.8-27B-UD-IQ2_XXS (8.4 GB, UD-IQ2_XXS) on 2 GPUs (2070 + P106, -ts 8,6),
-# context 40960, single slot. One server serves Claude Code AND SuperEzio.
+# Shared local llama-server (perfil cc — 2026-08-18):
+# Qwen3.8-27B-Q4_K_M (15.9 GB) on 2 GPUs (RTX 3060 12GB + RTX 2070 8GB, -ts 12,8),
+# context 16384 (24576 CUDA OOM), single slot. One server serves Claude Code AND SuperEzio.
 LOCAL_QWEN_BASE_URL = "http://127.0.0.1:8080/v1"
 
 # llama-server ignores the API key, but the OpenAI client library refuses to
