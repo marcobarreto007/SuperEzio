@@ -53,6 +53,7 @@ runtime/restart_log.txt
 runtime/feedback/
 runtime/prompts/
 runtime/quarantine/
+runtime/validation/
 
 # Models (massive GGUF / safetensors files)
 /models/*
