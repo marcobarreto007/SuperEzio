@@ -39,6 +39,11 @@ SCREENSHOT_DIR = ROOT / "output" / "playwright" / "e2e"
 HEALTH_TIMEOUT_S = 45
 NAV_TIMEOUT_MS = 30_000
 PIPELINE_TIMEOUT_MS = int(os.environ.get("SUPEREZIO_E2E_PIPELINE_TIMEOUT", "150_000"))
+RUN_LIVE_MODEL_E2E = os.environ.get("SUPEREZIO_RUN_LIVE_MODEL_E2E", "").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+}
 
 # ── Expert card definitions (verdict element IDs and initial states) ──────────
 EXPERT_CARDS: dict[str, dict[str, str]] = {
@@ -244,6 +249,10 @@ def browser():
 # ── The Test ──────────────────────────────────────────────────────────────────
 
 
+@pytest.mark.skipif(
+    not RUN_LIVE_MODEL_E2E,
+    reason="requires SUPEREZIO_RUN_LIVE_MODEL_E2E=1 and a local model server",
+)
 def test_full_browser_flow(server: subprocess.Popen | None, browser) -> None:
     """E2E smoke covering the complete user flow: auth, chart, chat, pipeline."""
     # ── Collect console/page errors ──────────────────────────────────────
