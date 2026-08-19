@@ -1397,6 +1397,15 @@ def test_frontend_trade_confirmation_requires_explicit_broker_confirmation():
     assert "Paper order submitted" not in trade_submit
 
 
+def test_frontend_does_not_autostart_missing_pipeline_stream():
+    """The optional stream helper must not call a route the backend does not expose."""
+    from pathlib import Path
+
+    cockpit_js = Path("frontend/js/cockpit.js").read_text(encoding="utf-8")
+
+    assert "SZ.startPipelineStream();" not in cockpit_js
+
+
 def test_frontend_ibkr_order_mirror_integration():
     """15. Frontpage exposes active IBKR orders and clicking one drives the chart ticker."""
     from pathlib import Path

@@ -1109,10 +1109,6 @@
     if (window.SZ.subscribe) {
       window.SZ.subscribe("pipeline-event", handlePipelineEvent);
 
-    /* Start persistent SSE pipeline stream as fallback */
-    if (window.SZ.startPipelineStream) {
-      SZ.startPipelineStream();
-    }
     }
 
     /* Initial refresh */
