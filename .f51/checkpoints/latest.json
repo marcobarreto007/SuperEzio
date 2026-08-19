@@ -307,6 +307,42 @@
       "known_nonblocking": "pre-existing /pipeline/events/stream 404 and Windows Proactor Ctrl-C shutdown assertion"
     }
   },
-  "next_step": "Fase 7: ligar o preview oficial TD, custo total e aprovação ao mesmo hash imutável.",
+  "phase_7_impact_map": {
+    "status": "in_progress",
+    "problem": "A entrada manual aceita custos somente depois da aprovação; assim a aprovação atual não está ligada à comissão, spread, FX e fees vistos no preview TD.",
+    "architecture_touched": [
+      "contrato normalizado de custos TD",
+      "evidência anexada ao ticket GATED",
+      "approval context hash",
+      "validação de preview no momento da entrada manual"
+    ],
+    "files_planned": [
+      "src/core/trading/td_cost_gate.py",
+      "src/core/trading/manual_trade_workflow.py",
+      "src/core/trading/approval_gate.py",
+      "src/core/trading/workflow_store.py",
+      "src/agent_server/endpoints.py",
+      "tests/test_td_cost_gate.py",
+      "tests/test_manual_trade_workflow.py",
+      "tests/test_api_routes_sync.py"
+    ],
+    "risks": [
+      "comissão zero virar bypass de risco",
+      "Easy Trade ou strategy order marcado como elegível",
+      "preview alterado depois da aprovação",
+      "FX e fees omitidos do custo total",
+      "lista oficial stale"
+    ],
+    "smallest_safe_patch": "Normalize and hash the official TD preview before approval, bind the approval to that context, and reject manual entry unless the repeated preview is byte-equivalent in economic fields.",
+    "verification": [
+      "stale list and preview tests",
+      "unexpected commission and incompatible condition tests",
+      "CAD/USD conversion tests",
+      "changed preview invalidates entry/approval context",
+      "Ruff, focused pytest and browser smoke"
+    ],
+    "go_live": "BLOCKED_PENDING_IMPLEMENTATION"
+  },
+  "next_step": "Fase 7: implementar preview TD pré-aprovação com custo econômico integral e hash de contexto.",
   "owner": "Codex"
 }
