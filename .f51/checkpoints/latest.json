@@ -1,5 +1,5 @@
 {
-  "date_local": "2026-08-18T22:55:03-04:00",
+  "date_local": "2026-08-18T23:45:00-04:00",
   "session": "td-direct-live-manual-readiness-2026-08-18",
   "status": "in_progress",
   "objective": "Preparar o SuperEzio para trading real via TD Direct Investing Canada sem paper trading, scraping, credenciais TD ou transmissao automatica.",
@@ -70,7 +70,7 @@
   },
   "roadmap": "docs/TD_LIVE_READINESS_ROADMAP.md",
   "phase_2_impact_map": {
-    "status": "in_progress",
+    "status": "complete",
     "problem": "Mangala tests use a temporary tracker journal but sync each flip into the default operator PaperJournal.",
     "architecture_touched": [
       "MangalaTracker dependency injection",
@@ -98,8 +98,18 @@
       "pytest Mangala, PaperJournal and UnifiedMemory tests",
       "ruff full",
       "browser smoke"
-    ]
+    ],
+    "commit": "aa0a8db",
+    "result": "48 tests passed; all five operator artifacts kept identical hashes across pytest; targeted Ruff passed; browser smoke passed with 130 candles and 7 canvases.",
+    "quarantine": {
+      "classification": "known_mangala_contract_test_contamination",
+      "record_count": 453,
+      "source_sha256": "e4fe013ce45c3593a27f5e21bd3ebbc1f34f09faa3322eb19316bee314600e86",
+      "records_sha256": "37a57c637a7c46c0339fa95ef47e8972f972c34ad1ba2cd6d5c78fe258bad7c8",
+      "manifest": "runtime/quarantine/paper_journal-test-contamination-e4fe013ce45c.manifest.json",
+      "source_modified": false
+    }
   },
-  "next_step": "Fase 2: isolar testes e descontaminar journals, memoria e RAG sem excluir dados antes do inventario com hashes.",
+  "next_step": "Fase 3: tornar kill switch, approval, ticket e status persistentes, idempotentes e unidos pelo mesmo ticket hash.",
   "owner": "Codex"
 }
