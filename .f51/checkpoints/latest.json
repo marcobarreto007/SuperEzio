@@ -51,6 +51,20 @@
     "verification": "58 testes direcionados passaram; ruff completo passou; rota live retornou 108; browser smoke ficou 503 porque CEO/model server esta offline.",
     "go_live": "BLOCKED_BY_DESIGN"
   },
+  "active_patch": {
+    "problem": "O cockpit mostra Paper order submitted quando /trade/execute responde HTTP 200 com ok=false e submitted_to_broker=false.",
+    "files": [
+      "frontend/js/cockpit.js",
+      "tests/test_api_routes_sync.py"
+    ],
+    "risk": "Confundir ticket pendente com ordem transmitida.",
+    "smallest_safe_patch": "Exigir confirmacao positiva do corpo para mensagem de submit; caso contrario mostrar pending/not submitted.",
+    "verification": [
+      "python -m pytest tests/test_api_routes_sync.py -q --no-cov",
+      "python -m ruff check src/ tests/",
+      "python scripts/browser_smoke.py"
+    ]
+  },
   "next_step": "Conectar cotacao server-side confiavel e Money Gate ao rascunho antes de qualquer promocao para revisao de ordem real.",
   "owner": "Codex"
 }
