@@ -577,6 +577,8 @@ Action: NO TRADING ORDERS UNTIL CLEARED
         }
 
         for name, organ in self.organs.items():
+            was_healthy = organ.last_health
+            previous_error = organ.last_error
             healthy = organ.check()
             report["organs"][name] = {
                 "healthy": healthy,
@@ -593,15 +595,18 @@ Action: NO TRADING ORDERS UNTIL CLEARED
                     report["critical_count"] += 1
                 report["overall_pain"] = max(report["overall_pain"], organ.pain_level.value)
 
-                # Record pain event
-                event = PainEvent(
-                    organ_name=name,
-                    category=organ.category,
-                    pain_level=organ.pain_level,
-                    error=organ.last_error,
-                )
-                self.pain_history.append(event)
-                self._log_pain(event)
+                # Health endpoints are polled frequently. Persist a pain event
+                # only on a healthy -> unhealthy transition or when the
+                # diagnosis changes, never once per read-only health request.
+                if was_healthy or organ.last_error != previous_error:
+                    event = PainEvent(
+                        organ_name=name,
+                        category=organ.category,
+                        pain_level=organ.pain_level,
+                        error=organ.last_error,
+                    )
+                    self.pain_history.append(event)
+                    self._log_pain(event)
 
         self.total_scans += 1
         self.last_full_scan = report["timestamp"]
