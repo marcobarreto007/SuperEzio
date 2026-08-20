@@ -707,7 +707,11 @@ async def health_check_public(request: Request):
     if request.method == "HEAD":
         return Response(status_code=200)
 
-    identity = {"agent": AGENT_NAME, "version": "4.0.0"}
+    identity = {
+        "agent": AGENT_NAME,
+        "version": "4.0.0",
+        "validation_mode": _env_bool("SUPEREZIO_VALIDATION_MODE", False),
+    }
 
     # 1. Pipeline initialized?
     pipeline = getattr(app.state, "pipeline", None)

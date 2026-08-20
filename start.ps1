@@ -20,7 +20,9 @@ if (-not (Test-Path $configPath)) {
 . $configPath
 
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+$env:SUPEREZIO_VALIDATION_MODE = "0"
 if ($IsolatedValidation) {
+    $env:SUPEREZIO_VALIDATION_MODE = "1"
     $validationRoot = Join-Path $RuntimeDir "validation\$timestamp"
     $script:LogsDir = Join-Path $validationRoot "logs"
     $env:SUPEREZIO_DATA_DIR = Join-Path $validationRoot "data"

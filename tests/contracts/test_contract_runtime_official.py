@@ -217,11 +217,31 @@ def test_launcher_has_isolated_fail_closed_validation_mode():
     script = START_SCRIPT.read_text(encoding="utf-8")
 
     assert "[switch]$IsolatedValidation" in script
+    assert '$env:SUPEREZIO_VALIDATION_MODE = "0"' in script
+    assert '$env:SUPEREZIO_VALIDATION_MODE = "1"' in script
     assert 'SUPEREZIO_TRADING_STATE_DB = Join-Path $validationRoot' in script
     assert 'SUPEREZIO_BOB_PAIN_LOG = Join-Path $validationRoot' in script
     assert '$env:F51_TRADING_EXECUTION_FREEZE = "1"' in script
     assert '$env:SUPEREZIO_LIVE_TRADING_DISABLED = "1"' in script
     assert '$env:SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT = "0"' in script
+
+
+def test_public_health_exposes_validation_mode_without_sensitive_paths(monkeypatch):
+    from fastapi.testclient import TestClient
+    from agent_server.main import app
+
+    monkeypatch.setenv("SUPEREZIO_VALIDATION_MODE", "1")
+    original_pipeline = getattr(app.state, "pipeline", None)
+    app.state.pipeline = object()
+    try:
+        response = TestClient(app).get("/health")
+    finally:
+        app.state.pipeline = original_pipeline
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["validation_mode"] is True
+    assert "validation" not in json.dumps(payload.get("paths", {})).lower()
 
 
 def test_provider_factory_keeps_agent_local_only(monkeypatch):
