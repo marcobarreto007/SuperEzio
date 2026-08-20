@@ -1526,6 +1526,12 @@ def test_aapl_is_never_selected_automatically():
 
     assert 'defaultTicker: ""' in automatic_selection_files["content"]
     assert 'setOpsCard("ops-market", "warn", "Select ticker")' in automatic_selection_files["init"]
+    assert (
+        automatic_selection_files["init"].count(
+            "if (!firstTicker && ticker) firstTicker = ticker;"
+        )
+        == 3
+    ), "only broker orders, local tickets and positions may bootstrap a ticker"
     assert "TD.TO" in automatic_selection_files["browser_smoke"]
     for name, source in automatic_selection_files.items():
         assert "AAPL" not in source, f"AAPL returned to automatic selection in {name}"

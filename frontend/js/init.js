@@ -753,8 +753,6 @@
 
 	    if (historyHost) {
 	      var historyRows = history.slice(0, 10).map(function (trade) {
-	        var ticker = orderTicker(trade);
-	        if (!firstTicker && ticker) firstTicker = ticker;
 	        return renderTradeHistoryRow(trade, current);
 	      }).filter(Boolean);
 	      if (historyRows.length) {
