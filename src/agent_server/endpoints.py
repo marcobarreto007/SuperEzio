@@ -405,12 +405,6 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
         selected_ticker = str(orders[0].get("ticker") or orders[0].get("symbol") or "").upper()
     if not selected_ticker:
         selected_ticker = _first_position_ticker(positions)
-    if not selected_ticker and trade_history["trades"]:
-        selected_ticker = str(
-            trade_history["trades"][0].get("ticker")
-            or trade_history["trades"][0].get("symbol")
-            or ""
-        ).upper()
     orders_source = "ibkr" if broker_orders else ("local_pending" if local_tickets else "none")
     return {
         "provider": "IBKR",

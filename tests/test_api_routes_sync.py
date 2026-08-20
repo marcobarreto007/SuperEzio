@@ -310,6 +310,8 @@ def test_cockpit_portfolio(client_with_mock_pipeline):
     assert isinstance(data["trade_history"], list)
     assert "trade_stats" in data
     assert "selected_ticker" in data
+    if not data["orders"] and not data["positions"]:
+        assert data["selected_ticker"] == "", "journal evidence must not select the chart ticker"
 
 
 def test_cockpit_portfolio_marks_connected_after_service_cache_refresh(
