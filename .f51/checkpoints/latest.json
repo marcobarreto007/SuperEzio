@@ -606,7 +606,7 @@
     "go_live": "NO_GO_REAL_CAPITAL; operational UI recovery does not authorize live execution"
   },
   "product_delivery_v1": {
-    "status": "in_progress",
+    "status": "release_candidate_ready",
     "activated_at": "2026-08-20",
     "objective": "Deliver a transferable local Windows financial-research copilot; no broker transport and no real-capital authorization.",
     "official_research_conclusion": "Reliable delivery systems converge on a human product owner, narrow orchestrator, isolated implementer, independent verifiers, deterministic release gates, canary/pilot and SRE ownership. No universal best agent exists; measured role performance matters more than agent count.",
@@ -667,7 +667,11 @@
         "95b8d42",
         "6934500",
         "803048f",
-        "594cbab"
+        "594cbab",
+        "3c1bb6b",
+        "56d71c5",
+        "6fd0f90",
+        "8dc7bae"
       ]
     },
     "completed_slices": {
@@ -705,9 +709,28 @@
           "803048f",
           "594cbab"
         ]
+      },
+      "clean_release_package": {
+        "result": "An allowlisted package is built exclusively from local Git HEAD, with per-file SHA-256 manifest and ZIP checksum. Operator env files, memory, journals, databases, runtime, traces, outputs and machine-local settings are excluded.",
+        "rehearsal": "ZIP extracted outside the repository; src compiled; 446 package contracts passed and 2 expected operator-artifact/model skips were recorded.",
+        "files": 696,
+        "commits": [
+          "3c1bb6b",
+          "56d71c5"
+        ]
       }
     },
-    "next_step": "Build a clean allowlisted Windows ZIP with manifest and SHA-256, then rehearse install from the extracted package without operator data or secrets.",
+    "quality_gate": {
+      "verdict": "PASS_FOR_V1_RESEARCH_COPILOT",
+      "git_status": "source changes committed; only pre-existing/operator runtime artifacts remain dirty and are excluded from release",
+      "ruff_check": "PASS",
+      "ruff_format": "PASS; 394 files formatted",
+      "pytest": "1876 passed, 9 skipped in 555.29s",
+      "coverage": "68% total",
+      "build": "PASS; extracted package compileall and contract gate",
+      "browser": "PASS; TD.TO chart, 7 canvases, non-empty chat and zero console errors"
+    },
+    "next_step": "Before any external transfer, the operator must rotate provider credentials and rehearse the locked dependency install on the recipient Windows machine. Real-capital and TD transport remain out of scope and NO-GO.",
     "go_live": "NO_GO_REAL_CAPITAL"
   },
   "owner": "Codex"
