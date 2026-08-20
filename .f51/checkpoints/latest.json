@@ -657,7 +657,17 @@
         "01d4494",
         "be7b55c",
         "c86a88e",
-        "49979ae"
+        "49979ae",
+        "a3dce56",
+        "8771bd2",
+        "03aa9e7",
+        "c5d0684",
+        "5f669b5",
+        "d799c04",
+        "95b8d42",
+        "6934500",
+        "803048f",
+        "594cbab"
       ]
     },
     "completed_slices": {
@@ -667,9 +677,37 @@
         "tests": "3 targeted bootstrap contract tests passed; Ruff passed",
         "browser_smoke": "TD.TO returned 123 candles, 7 canvases and zero console errors",
         "commit": "49979ae"
+      },
+      "authentication_boundary": {
+        "result": "JWT protects the product while the trading-factor API key is scoped only to trading-token issuance; bootstrap and browser registration use the active runtime auth database and no token prefix is logged.",
+        "tests": "71 auth/API tests plus bootstrap and frontend contract regressions passed",
+        "commits": [
+          "a3dce56",
+          "8771bd2",
+          "03aa9e7"
+        ]
+      },
+      "canonical_runtime_and_quality_gate": {
+        "result": "Canonical runtime is API 8002 plus local Qwen3.8-27B on 8080. Quality validation now fails closed on transport, stream, fallback, SLO, language, template and ticker violations and refuses a non-isolated runtime.",
+        "tests": "44 runtime/quality contract tests passed; repeated TD.TO browser smokes rendered 7 canvases with zero console errors",
+        "commits": [
+          "c5d0684",
+          "5f669b5",
+          "d799c04"
+        ]
+      },
+      "portable_runtime_and_docs": {
+        "result": "Launcher discovers model/runtime paths without an operator-specific absolute path; distributed manifests are relative; legacy launchers delegate to the locked bootstrap; buyer and CEO docs match the proven runtime.",
+        "tests": "16 setup/runtime tests passed with one expected missing-bundled-model skip; browser smoke passed",
+        "commits": [
+          "95b8d42",
+          "6934500",
+          "803048f",
+          "594cbab"
+        ]
       }
     },
-    "next_step": "Unify the V1 authentication boundary and verify login to protected route to logout.",
+    "next_step": "Build a clean allowlisted Windows ZIP with manifest and SHA-256, then rehearse install from the extracted package without operator data or secrets.",
     "go_live": "NO_GO_REAL_CAPITAL"
   },
   "owner": "Codex"
