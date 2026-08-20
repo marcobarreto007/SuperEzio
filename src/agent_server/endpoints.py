@@ -1,4 +1,5 @@
 import asyncio
+import hmac
 import json
 import os
 import re
@@ -2518,7 +2519,17 @@ def _manual_workflow_http_error(exc: Exception) -> HTTPException:
 
 @router.post("/api/trading/token")
 async def create_trading_token(request: Request) -> dict[str, Any]:
-    """Generate a single-use trading session token (valid 15 min). Requires X-API-Key."""
+    """Generate a single-use trading token after JWT and API-key authentication."""
+    expected_key = os.getenv("SUPEREZIO_API_KEY", "")
+    if not expected_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Trading token issuance is disabled until SUPEREZIO_API_KEY is configured",
+        )
+    provided_key = request.headers.get("X-API-Key", "")
+    if not provided_key or not hmac.compare_digest(provided_key, expected_key):
+        raise HTTPException(status_code=401, detail="Invalid or missing X-API-Key")
+
     token = secrets.token_urlsafe(32)
     _TRADING_TOKENS[token] = time.time()
     for t, ts in list(_TRADING_TOKENS.items()):

@@ -607,6 +607,74 @@ def test_td_ticket_route_creates_live_manual_ticket_without_submit(
     assert status.json()["phase"] == "money_gate_required"
 
 
+def test_product_login_uses_jwt_while_trading_token_keeps_api_key_second_factor(
+    client_with_mock_pipeline, monkeypatch, tmp_path
+):
+    """API key must never block login, but trading-token issuance needs JWT plus API key."""
+    from agent_server.auth import AuthDB
+
+    configured_api_key = "configured-trading-second-factor"
+    monkeypatch.setenv("SUPEREZIO_JWT_SECRET", "jwt-test-secret-at-least-32-characters")
+    monkeypatch.setenv("SUPEREZIO_API_KEY", configured_api_key)
+
+    original_auth_db = getattr(app.state, "auth_db", None)
+    app.state.auth_db = AuthDB(db_path=tmp_path / "auth.db")
+    _, client = client_with_mock_pipeline
+    try:
+        registered = client.post(
+            "/auth/register",
+            json={
+                "username": "release_operator",
+                "email": "release@example.test",
+                "password": "ReleaseP@ssword1",
+            },
+        )
+        assert registered.status_code == 201
+
+        login = client.post(
+            "/auth/login",
+            json={"username": "release_operator", "password": "ReleaseP@ssword1"},
+        )
+        assert login.status_code == 200
+        bearer = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+        missing_bearer = client.post(
+            "/api/trading/token", headers={"X-API-Key": configured_api_key}
+        )
+        assert missing_bearer.status_code == 401
+
+        missing_api_key = client.post("/api/trading/token", headers=bearer)
+        assert missing_api_key.status_code == 401
+
+        wrong_api_key = client.post(
+            "/api/trading/token", headers={**bearer, "X-API-Key": "wrong"}
+        )
+        assert wrong_api_key.status_code == 401
+
+        accepted = client.post(
+            "/api/trading/token",
+            headers={**bearer, "X-API-Key": configured_api_key},
+        )
+        assert accepted.status_code == 200
+        assert accepted.json()["type"] == "trading_session"
+    finally:
+        if original_auth_db is None:
+            delattr(app.state, "auth_db")
+        else:
+            app.state.auth_db = original_auth_db
+
+
+def test_trading_token_fails_closed_without_api_key_configuration(
+    client_with_mock_pipeline, monkeypatch
+):
+    monkeypatch.delenv("SUPEREZIO_API_KEY", raising=False)
+    _, client = client_with_mock_pipeline
+
+    response = client.post("/api/trading/token")
+
+    assert response.status_code == 503
+
+
 def test_td_ticket_route_rejects_client_quote_assertions(client_with_mock_pipeline, monkeypatch):
     import agent_server.endpoints as endpoints
 
