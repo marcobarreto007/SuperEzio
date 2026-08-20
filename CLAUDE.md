@@ -130,7 +130,7 @@ Fonte: Playbook 2026 — Exercitos de Claude Code.
 ### Estrutura
 
 ```
-.claude/agents/     # 17 agentes versionados (14 dev-ops + 3 market-*, padrão Anthropic FS)
+.claude/agents/     # 22 agentes versionados (5 delivery + 3 market + verifiers/meta/captain)
 .claude/commands/   # /swarm, /save, /agent-lab
 .agent_bus/runtime/ # Memória volátil (gitignored)
 docs/AGENT_ORCHESTRATION.md
@@ -141,7 +141,7 @@ docs/AGENT_OPERATING_SYSTEM.md
 
 | Comando | Ação |
 |---------|------|
-| `/swarm <objetivo>` | Dispara 10 agentes em 4 waves |
+| `/swarm <objetivo>` | Auditoria ampla; delivery normal seleciona agentes pelo risco |
 | `/save` | Salva docs + checkpoint + commit local |
 | `/agent-lab` | Testa, compara e evolui agentes |
 
@@ -169,4 +169,3 @@ python -m pytest tests/ -q
 
 Evidência + Utilidade + Precisão + Escopo + Verificação + Concisão.
 Elite: 26+ | Bom: 21-25 | Fraco: 10-15 | Substituir: <10.
-

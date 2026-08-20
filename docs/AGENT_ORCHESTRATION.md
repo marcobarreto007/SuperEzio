@@ -21,6 +21,11 @@ O exército de agentes do SuperEzio não é um bando de agentes falando ao mesmo
 ```
 .claude/agents/
 ├── captain.md                   # ★ Capitão residente — orquestrador autônomo (cron-driven)
+├── product-delivery-orchestrator.md # Slice, aceite, ownership e gates
+├── product-implementer.md       # Único builder de produto por ticket
+├── ai-eval-verifier.md          # Evals e regressões independentes
+├── reliability-sre-operator.md  # Operação e recuperação por runbook
+├── release-readiness-manager.md # Release candidate reproduzível
 ├── recon-researcher.md          # Arqueólogo — mapeia arquitetura real
 ├── security-reviewer.md         # Auditor de segurança — secrets, vulns, vetores
 ├── code-quality-reviewer.md     # Qualidade de código — lint, dead code, complexidade
@@ -39,11 +44,12 @@ O exército de agentes do SuperEzio não é um bando de agentes falando ao mesmo
 └── deprecated/                  # Cemitério de agentes
 ```
 
-O **Captain** é o único agente **residente**. Os outros 16 são one-shot disparados por ele ou pela sessão.
+O **Captain** é o único agente **residente**. Os outros 21 são one-shot disparados por ele ou pela sessão.
 O trio `market-*` segue o padrão de separação de poderes dos templates oficiais da Anthropic
 (data-puller → builder → auditor) — ver `docs/architecture/AGENT_PATTERNS_ANTHROPIC_FS.md`.
-O Captain é invocado via CronCreate a cada hora (minuto :07) e executa o ciclo:
-diagnóstico → decisão → disparo (3 agentes em paralelo) → integração → checkpoint.
+O Captain executa o ciclo selecionado pelo risco:
+slice/aceite → implementer → verifier independente → SRE/runtime → release → savekeeper.
+Pesquisa independente pode ser paralela; edição acoplada é sequencial.
 
 ## Ciclo de Vida do Agente
 

@@ -9,7 +9,16 @@ Fonte: `.f51/GITHUB_POLICY.json`. Modo **DISK ONLY**.
 - NUNCA `git push`, `git pull`, `git fetch`, `gh`
 - Commits locais OBRIGATÓRIOS após cada mudança mínima
 
-## Exército Ativo (13 agentes)
+## Exército Versionado (22 agentes)
+
+### Delivery (5 candidatos)
+| Agente | Classe | Missão |
+|--------|--------|--------|
+| `product-delivery-orchestrator` | Orchestrator | Slice, critérios de aceite, ownership e gates |
+| `product-implementer` | Builder | Implementa um ticket em arquivos explicitamente atribuídos |
+| `ai-eval-verifier` | Verifier | Evals, regressões, baseline, latência e valor fora da amostra |
+| `reliability-sre-operator` | Operator | Startup, recovery, restart, restore e rollback por runbook |
+| `release-readiness-manager` | Release | Artefato reproduzível, manifesto, checksums e matriz de gates |
 
 ### Verifiers (7)
 | Agente | Classe | Missão |
@@ -39,6 +48,18 @@ Fonte: `.f51/GITHUB_POLICY.json`. Modo **DISK ONLY**.
 | Agente | Classe | Missão |
 |--------|--------|--------|
 | `savekeeper` | Savekeeper | Salva verdade durável, checkpoints, changelog |
+
+### Mercado (3)
+| Agente | Classe | Missão |
+|--------|--------|--------|
+| `market-data-puller` | Researcher | Snapshot read-only e rastreável |
+| `market-thesis-writer` | Builder | Único writer da tese em runtime |
+| `market-thesis-auditor` | Verifier | Auditoria independente da tese |
+
+### Orquestração (1)
+| Agente | Classe | Missão |
+|--------|--------|--------|
+| `captain` | Orchestrator | Seleciona slice e coordena delivery sem liberar o próprio trabalho |
 
 ## Comandos
 
