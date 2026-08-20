@@ -551,7 +551,7 @@
     }
   },
   "broken_screen_recovery_impact_map": {
-    "status": "in_progress",
+    "status": "complete",
     "problem": "A stopped/stale runtime produced mixed ticker state and empty Bob responses; after current startup, casual greetings still enter the full financial pipeline and hold the UI busy for minutes.",
     "architecture_touched": [
       "service startup and health",
@@ -582,7 +582,28 @@
       "screenshot_state": "TKO input with AAPL chart, AAPL journal row, CEO offline and empty Bob response",
       "current_runtime": "API and CEO both HTTP 200; served assets match current no-AAPL code",
       "greeting_task_elapsed_seconds": 156.9
-    }
+    },
+    "result": "Current runtime is healthy; TKO stays consistent across symbol, workspace, chart and Bob context; exact greetings bypass the financial graph; idle experts render READY; repeated health polling no longer duplicates unchanged pain events.",
+    "evidence": {
+      "runtime": "CEO :8080 and API :8002 returned HTTP 200 after official stop/start scripts",
+      "playwright": "TKO rendered end-to-end, Bob answered 'Oi! Bob esta online. Como posso ajudar?', chat input re-enabled, expert panel READY, pipeline IDLE, no AAPL, no failure text and zero console errors",
+      "browser_smoke": "passed; TD.TO chart HTTP 200, 126 candles, 7 canvases, zero console errors",
+      "full_tests": "1830 passed, 8 skipped in 508.07s; total coverage 68%",
+      "lint": "python -m ruff check src/ tests/ passed",
+      "screenshots": [
+        "output/playwright/superezio-tko-chat-fixed.png",
+        "output/playwright/superezio-browser-smoke-20260819-220747.png"
+      ],
+      "operator_data": "58 validation-only pain-log rows removed; pre-existing data/man_at_work/latest_alert.txt left untouched"
+    },
+    "commits": [
+      "6587939",
+      "fb3c92a",
+      "aaef938",
+      "8446aa5",
+      "609a129"
+    ],
+    "go_live": "NO_GO_REAL_CAPITAL; operational UI recovery does not authorize live execution"
   },
   "owner": "Codex"
 }
