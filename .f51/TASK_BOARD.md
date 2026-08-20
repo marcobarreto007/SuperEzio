@@ -121,10 +121,33 @@
 
 ## In Progress
 
-(nada ativo — zero-nuvem concluída 2026-08-17)
+- [ ] **P0 — runtime Windows canonico:** instalar a partir de `requirements-lock.txt`, sem
+  caminhos do desenvolvedor, e iniciar/parar API :8002 + modelo local :8080 com identidade
+  de processo verificavel.
+- [ ] **P0 — autenticacao unica:** remover senha conhecida, alinhar JWT/API key e garantir
+  que login, rotas protegidas e logout usem o mesmo contrato fail-closed.
+- [ ] **P0 — verdade operacional:** sincronizar inventario, contratos, onboarding e health
+  com 27B/:8080/:8002; separar liveness, readiness, dados e broker.
+- [ ] **P0 — quality probe fail-closed:** falhar o gate diante de resposta vazia, vazamento
+  de template, ticker/nome incoerente, timeout ou fallback enganoso.
+- [ ] **P0 — pacote transferivel:** gerar ZIP limpo, manifest, checksum e ensaio em Windows
+  limpo; excluir `.env*`, bancos, WAL/SHM, logs, journals e dados do operador.
+- [ ] **P0 — segredos:** rotacionar chaves de providers ja expostas antes de qualquer
+  transferencia do pacote.
+- [ ] **Phase 9 — benchmark temporal:** comparar agentes fora da amostra contra baselines
+  simples, incluindo custos, latencia e abstencao. Sem claim de lucro antes disso.
+- [ ] **Phase 10 — piloto real:** bloqueado; exige novo Money Gate, capital estritamente
+  limitado, confirmacao humana e todos os riscos criticos resolvidos.
 
 
 ## Done
+
+- [x] 2026-08-20 - **Cadeia de entrega de produto criada e conectada**: roster passou de
+  revisores sem builder para separacao explicita entre orquestracao, implementacao,
+  avaliacao de IA, SRE e release. `scripts/check_agents.py` agora falha se esses papeis
+  faltarem, se o implementador nao puder editar ou se o captain virar agente geral.
+  Gate estrutural: 22 agentes, 32 skills, 0 violacoes; teste direcionado e browser smoke
+  aprovados. Isso valida estrutura, nao qualidade preditiva nem prontidao financeira.
 
 - [x] 2026-08-18 - **Deep dive na arquitetura Anthropic financial-services (4 frentes)**:
   operador pediu mergulho a fundo. 4 exploradores paralelos (orquestradores, skills,

@@ -205,3 +205,37 @@ O custo de oportunidade de mais 6 meses de engenharia sem receita e destrutivo.
 | Trabalho proibido | Novos modelos, novos experts, refatoracao arquitetural, UI premium, SaaS |
 | Checkpoint requerido | Sinais emitidos + demo publicada ate 2026-06-20 |
 | Falha do checkpoint | Congelar projeto |
+
+---
+
+## Reavaliacao 2026-08-20 — GO V1 delivery / DEFER capital real
+
+Esta decisao substitui o prazo vencido de 2026-06-20 como gate operacional atual.
+Ela nao autoriza recomendacao financeira, transmissao de ordem, piloto com dinheiro real
+nem venda do software.
+
+### Perguntas obrigatorias
+
+| Pergunta | Resposta verificavel |
+|----------|----------------------|
+| Ajuda a entregar em 7 dias? | **Sim.** A cadeia de entrega ganhou implementador, orquestrador, avaliador, SRE e release manager, com gate estrutural e responsabilidade separada. |
+| Ajuda receita em 30 dias? | **Indiretamente.** Um pacote Windows transferivel permite validar uso real; receita, pricing e claims permanecem sem prova. |
+| Reduz caos operacional? | **Sim.** O V1 congela novas features e concentra o trabalho em instalacao, autenticacao, contratos, qualidade e release reproduzivel. |
+| Protege estabilidade familiar/financeira? | **Sim, dentro deste escopo.** O V1 e research-only; TD, broker transport e capital real permanecem bloqueados por INV-R35. |
+| Possui checkpoint ativo? | **Sim.** O checkpoint ativo passa a ser Product Delivery V1, com Definition of Done em `docs/PRODUCT_DELIVERY_V1.md`. |
+
+### Decisao
+
+- **GO:** concluir o V1 local Windows de pesquisa financeira, autenticado, auditavel e
+  reproduzivel; executar Phase 8 de release somente apos todos os gates deterministas.
+- **DEFER:** pricing, venda externa, publicacao de sinais, benchmark com claims de retorno,
+  piloto TD e qualquer uso de capital real.
+- **NO-GO permanente ate novo Money Gate:** credenciais de broker em agentes, transmissao
+  automatica de ordens, aprovacao financeira por LLM e inferencia de custo zero apenas por
+  comissao zero.
+
+### Proximo passo mais seguro
+
+Construir e testar o instalador/runtime canonico do Windows a partir do lock, sem caminhos
+absolutos da maquina de desenvolvimento, sem senha padrao e sem incluir dados financeiros,
+segredos, journals ou bancos no pacote.

@@ -382,3 +382,52 @@ Session: save-2026-08-17
   `ok=false` and `ready_for_execution=false`; no TD credentials, scraping, or transmission.
 - Status: Active — real-money go-live blocked pending server-side provenance, Money Gate,
   portfolio/buying-power gates, durable approval, and TD preview confirmation.
+
+### INV-R36 - V1 Windows ainda nao e transferivel [CRITICAL]
+
+- Classification: product delivery / reproducibility.
+- Risk: instaladores e launchers divergentes usam dependencias sem lock, caminhos ou portas
+  historicas e fluxos de start incompletos. Nao existe pacote limpo com manifest, checksum e
+  ensaio em uma maquina Windows sem o ambiente do desenvolvedor.
+- Evidence: `setup_superezio.bat`, `start_all.bat`, `config.ps1`, `start.ps1`, `stop.ps1` e
+  ausencia de artefato de distribuicao versionado.
+- Mitigation: um unico bootstrap relativo ao diretorio do produto, instalacao pelo lock,
+  start/stop com identidade de processo, ZIP allowlisted, checksum e ensaio em VM limpa.
+- Status: Active — bloqueia release V1.
+
+### INV-R37 - Contrato de autenticacao esta dividido [HIGH]
+
+- Classification: security / onboarding.
+- Risk: o setup continha credencial administrativa conhecida; frontend e backend misturam
+  JWT Bearer, `X-API-Key` e modos anonimos. O operador pode receber uma tela de login que nao
+  consegue atravessar o proprio middleware ou uma rota financeira pode falhar aberta.
+- Evidence: `setup_superezio.bat`, `scripts/seed_admin.py`, `frontend/auth.js`,
+  `frontend/api.js` e middleware de `src/agent_server/main.py`.
+- Mitigation: remover toda senha padrao, definir uma unica fronteira de autenticacao,
+  documentar bootstrap do primeiro usuario e testar login -> rota protegida -> logout.
+- Status: Active — bloqueia release V1 e qualquer uso financeiro.
+
+### INV-R38 - Fontes de verdade de entrega divergem [HIGH]
+
+- Classification: contracts / operational truth.
+- Risk: inventario, contratos, board, launchers e docs registram portas, modelos e estado de
+  conclusao diferentes. O quality probe tambem pode terminar com codigo zero apesar de
+  resposta vazia ou degradada, permitindo um falso PASS de release.
+- Evidence: `.f51/INVENTORY.json`, `.f51/CONTRACTS.json`, `.f51/TASK_BOARD.md`,
+  `docs/AGENT_OPERATING_SYSTEM.md` e `scripts/quality_probe.py`.
+- Mitigation: gerar snapshots canonicos do runtime, validar drift no gate e tornar todo probe
+  de qualidade fail-closed.
+- Status: Active — bloqueia release V1.
+
+### INV-R39 - Novos agentes de entrega ainda nao foram benchmarkados [MEDIUM]
+
+- Classification: agent quality / governance.
+- Risk: prompts estruturalmente validos podem produzir planos vagos, edicoes fora de escopo
+  ou autoaprovacao. O gate atual prova referencias e separacao de poder, nao eficacia real.
+- Evidence: `.claude/agents/product-delivery-orchestrator.md`,
+  `.claude/agents/product-implementer.md`, `.claude/agents/ai-eval-verifier.md`,
+  `.claude/agents/reliability-sre-operator.md` e
+  `.claude/agents/release-readiness-manager.md`.
+- Mitigation: executar `/agent-lab` com tarefas identicas, score minimo >20/30 e zero
+  violacoes criticas antes de promover os novos papeis como confiaveis.
+- Status: Active — nao bloqueia corrigir o produto; bloqueia alegar que o exército e o melhor.
