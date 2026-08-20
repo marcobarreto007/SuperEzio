@@ -1,6 +1,7 @@
 @echo off
 title SuperEzio Bootstrap
 setlocal enabledelayedexpansion
+cd /d "%~dp0"
 
 set ERR_COUNT=0
 set STEP=0
@@ -86,15 +87,37 @@ if exist ".venv\Scripts\activate.bat" (
 goto :eof
 
 :step_install_deps
-call :step_num "Instalando dependencias (pip install -e .)..."
+call :step_num "Instalando dependencias fixadas..."
 call :activate_venv
-python -m pip install -e .
+if not exist "requirements-lock.txt" (
+    echo [FAIL] requirements-lock.txt nao encontrado.
+    set /a ERR_COUNT+=1
+    goto :eof
+)
+".venv\Scripts\python.exe" -m pip install -r requirements-lock.txt
 if errorlevel 1 (
-    echo [FAIL] Erro na instalacao das dependencias.
+    echo [FAIL] Erro ao instalar requirements-lock.txt.
+    set /a ERR_COUNT+=1
+    goto :eof
+)
+".venv\Scripts\python.exe" -m pip install --no-deps --no-build-isolation -e .
+if errorlevel 1 (
+    echo [FAIL] Erro ao instalar o pacote SuperEzio.
     set /a ERR_COUNT+=1
     goto :eof
 )
 echo [OK] Dependencias instaladas.
+goto :eof
+
+:step_playwright
+call :step_num "Instalando navegador Chromium do Playwright..."
+".venv\Scripts\python.exe" -m playwright install chromium
+if errorlevel 1 (
+    echo [FAIL] Erro ao instalar Chromium para o browser smoke.
+    set /a ERR_COUNT+=1
+    goto :eof
+)
+echo [OK] Chromium do Playwright instalado.
 goto :eof
 
 :step_env_file
@@ -120,7 +143,7 @@ if exist ".env.local" (
     if not errorlevel 1 goto :jwt_ok
 )
 echo [INFO] Gerando JWT_SECRET aleatorio...
-for /f "delims=" %%s in ('python -c "import secrets; print(secrets.token_urlsafe(48))"') do set JWT_GEN=%%s
+for /f "delims=" %%s in ('".venv\Scripts\python.exe" -c "import secrets; print(secrets.token_urlsafe(48))"') do set JWT_GEN=%%s
 if "!JWT_GEN!"=="" (
     echo [FAIL] Erro ao gerar JWT_SECRET
     set /a ERR_COUNT+=1
@@ -140,26 +163,28 @@ if not exist "scripts\seed_admin.py" (
     goto :eof
 )
 call :activate_venv
-if not defined SUPEREZIO_ADMIN_PASSWORD set SUPEREZIO_ADMIN_PASSWORD=SuperEzioAdmin2024!
-python scripts/seed_admin.py --username admin --email admin@superezio.com --password !SUPEREZIO_ADMIN_PASSWORD!
+if not defined SUPEREZIO_ADMIN_PASSWORD (
+    echo [FAIL] SUPEREZIO_ADMIN_PASSWORD nao definido.
+    echo [INFO] Defina uma senha unica nesta sessao antes de rodar o bootstrap:
+    echo        set SUPEREZIO_ADMIN_PASSWORD=uma-senha-forte-e-unica
+    set /a ERR_COUNT+=1
+    goto :eof
+)
+".venv\Scripts\python.exe" scripts/seed_admin.py --username admin --email admin@superezio.com
 if errorlevel 1 (
     echo [INFO] Admin pode ja existir - prosseguindo.
 ) else (
-    echo [OK] Admin seed criado: admin / !SUPEREZIO_ADMIN_PASSWORD!
+    echo [OK] Admin seed criado: admin.
 )
 goto :eof
 
 :step_run
 call :header
-call :activate_venv
 echo.
-echo  [INFO] Servidor: http://127.0.0.1:8002
-echo  [INFO] Ctrl+C para parar.
+echo  [INFO] Iniciando CEO :8080 e API :8002 pelo launcher oficial.
 echo.
-start "" /b cmd /c "timeout /t 3 /nobreak >nul & start http://127.0.0.1:8002"
-python -m agent_server.main
-echo.
-pause
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0start.ps1"
+if errorlevel 1 exit /b %errorlevel%
 goto :eof
 
 :usage
@@ -182,8 +207,7 @@ if !ERR_COUNT! EQU 0 (
     echo   setup_superezio.bat run
     echo.
     echo Ou manualmente:
-    echo   .venv\Scripts\activate
-    echo   python -m agent_server.main
+    echo   powershell -NoProfile -ExecutionPolicy Bypass -File start.ps1
     echo.
     echo Abra: http://127.0.0.1:8002
 ) else (
