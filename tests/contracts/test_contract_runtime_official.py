@@ -11,6 +11,8 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_YML = ROOT / "config" / "runtime.yml"
+INVENTORY = ROOT / ".f51" / "INVENTORY.json"
+RUNTIME_CONTRACT = ROOT / ".f51" / "contracts" / "runtime.contract.md"
 MODEL_MANIFEST = ROOT / "config" / "model_manifest.json"
 AGENT_SCRIPT = ROOT / "scripts" / "serve_agent_llamacpp.ps1"
 MODEL_CONFIG = ROOT / "config.ps1"
@@ -32,8 +34,42 @@ def _manifest() -> dict:
 
 
 def test_official_runtime_files_exist():
-    for path in [RUNTIME_YML, MODEL_MANIFEST, AGENT_SCRIPT, AGENT_CONTRACT, RUNBOOK]:
+    for path in [
+        RUNTIME_YML,
+        MODEL_MANIFEST,
+        AGENT_SCRIPT,
+        AGENT_CONTRACT,
+        INVENTORY,
+        RUNTIME_CONTRACT,
+        RUNBOOK,
+    ]:
         assert path.exists(), f"Missing official runtime artifact: {path}"
+
+
+def test_canonical_inventory_and_contract_match_the_official_runtime():
+    cfg = _runtime_config()
+    manifest = _manifest()
+    inventory = json.loads(INVENTORY.read_text(encoding="utf-8"))
+    contract = RUNTIME_CONTRACT.read_text(encoding="utf-8")
+    canonical_text = INVENTORY.read_text(encoding="utf-8") + "\n" + contract
+
+    by_name = {item["name"]: item for item in inventory["entrypoints"]}
+    ceo = by_name["CEO llama.cpp Server"]
+    api = by_name["API Server"]
+    launcher = by_name["Canonical Windows Product Launcher"]
+
+    assert inventory["version"] == cfg["version"] == manifest["version"]
+    assert ceo["port"] == 8080
+    assert ceo["command"].endswith("serve_agent_llamacpp.ps1 -Port 8080")
+    assert api["port"] == cfg["server"]["port"] == 8002
+    assert api["command"] == cfg["server"]["entrypoint"]
+    assert launcher["command"] == "setup_superezio.bat run"
+    assert launcher["canonical"] is True
+    assert cfg["models"]["agent"]["model_id"] == manifest["agent"]["model"]
+    assert cfg["models"]["agent"]["context_length"] == 8192
+    assert "Qwen3.8-27B-Q4_K_M" in contract
+    assert "8082" not in canonical_text
+    assert "80B" not in canonical_text
 
 
 def test_runtime_server_contract_matches_agent_server_import(monkeypatch):

@@ -1,6 +1,6 @@
 # Runtime Contract — SuperEzio v4.0.0
 
-**Session:** f51-contracts-runtime-tests-2026-05-21
+**Session:** product-delivery-v1-runtime-truth-2026-08-20
 **Status:** CANONICAL
 
 ## Scope
@@ -13,7 +13,7 @@ incorporates the detailed module contracts but does not duplicate them.
 | Contract | File | Scope |
 | --- | --- | --- |
 | Agent Server | `.f51/contracts/agent-server.contract.md` | FastAPI routes, A2A protocol, frontend serving |
-| Pipeline | `.f51/contracts/pipeline.contract.md` | 5-node LangGraph topology, PipelineState, node contracts |
+| Pipeline | `.f51/contracts/pipeline.contract.md` | LangGraph ReAct topology, PipelineState, node contracts |
 | CEO | `.f51/contracts/ceo.contract.md` | CEO prompt builder, module coverage, advisor boundary |
 | F51 Engine | `.f51/contracts/f51-engine.contract.md` | F51 scoring, veracity gate, consensus, uncertainty |
 | DataHub | `.f51/contracts/data-hub.contract.md` | Data collection, provider mesh, price/profile queries |
@@ -25,23 +25,32 @@ incorporates the detailed module contracts but does not duplicate them.
 
 | Component | Command | Port | Health URL |
 | --- | --- | --- | --- |
-| CEO (llama.cpp) | `scripts/serve_agent_llamacpp.ps1 -Port 8082` | 8082 | `http://127.0.0.1:8082/health` |
+| Product launcher | `setup_superezio.bat run` -> `start.ps1` | 8080 + 8002 | both URLs below |
+| CEO (llama.cpp) | `scripts/serve_agent_llamacpp.ps1 -Port 8080` | 8080 | `http://127.0.0.1:8080/health` |
 | API (FastAPI) | `python -m agent_server.main` | 8002 | `http://127.0.0.1:8002/health` |
+
+The supported model is `Qwen3.8-27B-Q4_K_M` with an 8192-token context on the
+shared local llama.cpp server. All LLM roles use this zero-cloud endpoint. The
+GGUF and llama.cpp executable are external machine prerequisites and are not
+included in the release ZIP.
 
 ## Configuration
 
-- **Canonical:** `config/runtime.yml` (UniversalConfig schema)
+- **Canonical model/runtime:** `config/runtime.yml` and `config/model_manifest.json`
+- **Canonical Windows process composition:** `config.ps1`, `start.ps1`, `stop.ps1`
 - **Secrets:** `.env` / `.env.local` (never committed)
 - **Template:** `.env.example`
 - **Test config:** `pytest.ini`
 
 ## Health Check Layers
 
-1. CEO server `:8082/health` — HTTP 200, `{"status":"ok"}`
+1. CEO server `:8080/health` — HTTP 200
 2. API public `:8002/health` — HTTP 200, `{"status":"ok","agent":"superezio","version":"4.0.0"}`
 3. API deep `:8002/health/details` — GPU, models, Redis, providers, cost guard
 4. DataHub `check_health()` — provider key availability
-5. **Bob Sovereign mode** — when `SUPEREZIO_BOB_SOVEREIGN=1`, Bob runs with autonomous intent classification, self-directed thesis formation, and adaptive reasoning trace. Health reflects sovereign status in API response.
+
+Liveness, readiness, market-data state and broker state are separate. An offline
+broker does not make the local research product offline.
 
 ## Checkpoints
 
@@ -52,9 +61,9 @@ incorporates the detailed module contracts but does not duplicate them.
 
 ```powershell
 python -m pytest tests/contracts -q           # All contracts
-python -m pytest tests/test_runtime_smoke.py -q  # Runtime smoke
-python -m pytest tests/test_pipeline_smoke.py -q # Pipeline smoke
-python -m pytest tests/test_integration_runtime.py -q  # Live integration
+python -m pytest tests/test_runtime_smoke.py tests/test_integration_runtime.py -q
+python -m ruff check src/ tests/
+python scripts/browser_smoke.py
 ```
 
 ## Non-Negotiables
@@ -63,3 +72,5 @@ python -m pytest tests/test_integration_runtime.py -q  # Live integration
 2. No feature before inventory, contracts, runtime, tests
 3. No mock for critical integration — only for unit isolation
 4. Every task updates TASK_BOARD, RISK_REGISTER, and checkpoint
+5. V1 is research-only; no broker transport or real-capital authorization
+6. Canonical surfaces must not refer to retired model/port/launcher contracts

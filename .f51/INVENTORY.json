@@ -1,70 +1,70 @@
 {
     "project": "SuperEzio",
-    "version": "4.0.0",
-    "date_local": "2026-07-20T18:00:00-04:00",
-    "session": "f51-artifact-refresh-wave5",
+    "version": "4.2.0",
+    "date_local": "2026-08-20T06:15:00-04:00",
+    "session": "product-delivery-v1-runtime-truth",
     "policy": {
         "github_mode": "disk_only",
         "source": ".f51/GITHUB_POLICY.json",
         "severity": "hard_block"
     },
     "summary": {
-        "source_files_non_init": 191,
-        "source_files_init": 51,
-        "test_files": 104,
+        "source_files_non_init": 203,
+        "source_files_init": 52,
+        "test_files": 136,
         "total_src_modules": 28,
         "total_lines_key_files": 4171,
-        "frontend_files": 48,
-        "config_files": 3,
-        "doc_files": 25,
+        "frontend_files": 50,
+        "config_files": 5,
+        "doc_files": 96,
         "contract_definitions": 10,
         "data_traces": 532,
         "cache_files": 152
     },
     "entrypoints": [
         {
+            "name": "Canonical Windows Product Launcher",
+            "command": "setup_superezio.bat run",
+            "port": "8080+8002",
+            "file": "setup_superezio.bat -> start.ps1",
+            "classification": "app",
+            "canonical": true
+        },
+        {
             "name": "API Server",
             "command": "python -m agent_server.main",
             "port": 8002,
             "file": "src/agent_server/main.py",
-            "classification": "app"
+            "classification": "internal_component"
         },
         {
             "name": "CEO llama.cpp Server",
-            "command": "powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082",
-            "port": 8082,
+            "command": "powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080",
+            "port": 8080,
             "file": "scripts/serve_agent_llamacpp.ps1",
-            "classification": "app"
+            "classification": "internal_component"
         },
         {
-            "name": "Desktop Launcher (RETIRED)",
-            "command": "RETIRED — use serve_agent_llamacpp.ps1 + agent_server.main directly",
-            "port": "8082+8002",
-            "file": "desktop/SuperEzio.bat (DELETED)",
-            "classification": "app"
-        },
-        {
-            "name": "Eval Pipeline",
-            "command": "python scripts/eval_pipeline.py",
+            "name": "Browser Release Smoke",
+            "command": "python scripts/browser_smoke.py",
             "port": null,
-            "file": "scripts/eval_pipeline.py",
+            "file": "scripts/browser_smoke.py",
             "classification": "test"
         }
     ],
     "runtime_commands": [
-        "python -m agent_server.main",
+        "setup_superezio.bat run",
+        "powershell -NoProfile -ExecutionPolicy Bypass -File start.ps1",
+        "powershell -NoProfile -ExecutionPolicy Bypass -File stop.ps1",
         "python -m pytest tests/ -q",
-        "python -m pytest tests/ -m smoke -q",
-        "python -m pytest tests/ -m contract -q",
-        "python -m ruff check src tests",
-        "python -m ruff format --check src tests"
+        "python -m ruff check src/ tests/",
+        "python scripts/browser_smoke.py"
     ],
     "test_commands": [
         "python -m pytest tests/ -q",
-        "python -m pytest tests/ -m smoke -q",
-        "python -m pytest tests/ -m contract -q",
-        "python -m pytest tests/ -m integration -q",
-        "python -m pytest tests/test_pipeline_smoke.py tests/test_runtime_smoke.py -q"
+        "python -m pytest tests/contracts -q",
+        "python -m pytest tests/test_runtime_smoke.py tests/test_integration_runtime.py -q",
+        "python scripts/browser_smoke.py"
     ],
     "critical_paths": [
         "src/agent_server/main.py",
@@ -74,12 +74,15 @@
         "src/core/pipeline/nodes/orchestrator.py",
         "src/core/pipeline/nodes/agent.py",
         "src/core/pipeline/nodes/tool_executor.py",
-        "src/core/pipeline/nodes/ceo.py",
         "src/core/model_serving/gateway.py",
         "src/core/model_serving/providers.py",
         "src/data/data_hub.py",
         "config/runtime.yml",
-        "models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf"
+        "config/model_manifest.json",
+        "config.ps1",
+        "start.ps1",
+        "stop.ps1",
+        "setup_superezio.bat"
     ],
     "modules": [
         {"name": "agent_server", "path": "src/agent_server/", "files": 3, "classification": "app", "risk": "high", "notes": "FastAPI app, endpoints, A2A protocol facade"},
@@ -124,7 +127,7 @@
         {"name": "blood-pact", "file": ".f51/contracts/f51-blood-pact-operational-runtime.json", "public_surface": "Operational runtime pact", "compatibility_risk": "medium"}
     ],
     "artifact_sizes": {
-        "models": "80 GB",
+        "active_model": "15.9 GB (Qwen3.8-27B-Q4_K_M, external to release ZIP)",
         "f51_tmp": "8.1 GB",
         "fraud_datasets": "3.3 GB",
         "data_traces": "9.2 MB",
@@ -153,7 +156,7 @@
             "size": "9.2 MB",
             "files": 532,
             "classification": "doc",
-            "notes": "Pipeline execution traces (AAPL, NVDA, GME, etc.). Historical debug data."
+            "notes": "Historical pipeline execution traces. Operator/audit data; excluded from release ZIP."
         },
         "data_corpus": {
             "path": "data/corpus/",
@@ -178,5 +181,13 @@
         "Is src/experts/technical_neural/ distinct from src/experts/neural_decision/ or a legacy split?",
         "Does src/tools/custom_tools.py contain tools registered in the agent or is it unused?"
     ],
-    "next_step": "Run /arqueologist to validate classification and identify dead code."
+    "release_exclusions": [
+        "start_all.bat (legacy, non-distributable)",
+        "superezio_launcher.bat (legacy, non-distributable)",
+        ".env and .env.local",
+        "runtime databases, WAL/SHM, logs and traces",
+        "operator journals and financial data",
+        "external GGUF model files"
+    ],
+    "next_step": "Finish Product Delivery V1 P0 gates and build the allowlisted Windows ZIP."
 }
