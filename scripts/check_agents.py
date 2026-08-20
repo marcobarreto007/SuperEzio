@@ -26,6 +26,13 @@ COMMANDS_DIR = ROOT / ".claude" / "commands"
 
 # Subagentes builtins do Claude Code (nao sao arquivos nossos)
 BUILTIN_SUBAGENTS = {"general-purpose", "Explore", "Plan", "claude", "fork"}
+REQUIRED_DELIVERY_AGENTS = {
+    "product-delivery-orchestrator",
+    "product-implementer",
+    "ai-eval-verifier",
+    "reliability-sre-operator",
+    "release-readiness-manager",
+}
 
 KEBAB = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)+$")
 SKILL_CALL = re.compile(r'Skill\(\s*"([a-z0-9-]+)"')
@@ -77,6 +84,19 @@ def check() -> list[str]:
     issues: list[str] = []
     agents = collect_agents()
     skills = collect_skills()
+
+    for name in sorted(REQUIRED_DELIVERY_AGENTS - agents.keys()):
+        issues.append(f"delivery: agente obrigatorio '{name}' ausente")
+
+    implementer = agents.get("product-implementer")
+    if implementer:
+        tools = parse_frontmatter(implementer.read_text(encoding="utf-8")).get("tools", "")
+        if "Write" not in tools or "Edit" not in tools:
+            issues.append("delivery: product-implementer precisa de Write e Edit")
+
+    captain = agents.get("captain")
+    if captain and 'subagent_type="general-purpose"' in captain.read_text(encoding="utf-8"):
+        issues.append("delivery: captain nao pode delegar ownership a general-purpose")
 
     # 1. Frontmatter dos agentes
     for name, path in agents.items():

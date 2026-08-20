@@ -55,3 +55,17 @@ def test_current_tree_is_clean():
     """The gate itself, as a test: every cross-ref in the live tree must resolve."""
     issues = check_agents.check()
     assert issues == [], "cross-reference violations:\n" + "\n".join(issues)
+
+
+def test_delivery_roster_has_builder_and_separation_of_powers():
+    agents = check_agents.collect_agents()
+
+    assert check_agents.REQUIRED_DELIVERY_AGENTS <= agents.keys()
+    implementer = check_agents.parse_frontmatter(
+        agents["product-implementer"].read_text(encoding="utf-8")
+    )
+    assert "Write" in implementer["tools"]
+    assert "Edit" in implementer["tools"]
+    captain = agents["captain"].read_text(encoding="utf-8")
+    assert 'subagent_type="general-purpose"' not in captain
+    assert "O implementer não aprova o próprio trabalho" in captain
