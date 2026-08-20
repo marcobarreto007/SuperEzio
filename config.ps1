@@ -14,11 +14,21 @@ $script:EnvExampleFile = Join-Path $SuperEzioRoot ".env.example"
 # Official zero-cloud runtime: shared local llama-server on 8080 and API on 8002.
 $script:CeoPort = if ($env:SUPEREZIO_MODEL_PORT) { [int]$env:SUPEREZIO_MODEL_PORT } else { 8080 }
 $script:ApiPort = if ($env:SUPEREZIO_PORT) { [int]$env:SUPEREZIO_PORT } else { 8002 }
-$script:ModelsDir = "C:\Users\marco\models\qwen3.8-27b"
-$script:ModelPath = if ($env:SUPEREZIO_MODEL_PATH) {
-    $env:SUPEREZIO_MODEL_PATH
-} else {
-    Join-Path $ModelsDir "Qwen3.8-27B-Q4_K_M.gguf"
+$script:ModelsDir = Join-Path $SuperEzioRoot "models"
+$modelFileName = "Qwen3.8-27B-Q4_K_M.gguf"
+$modelCandidates = @(
+    $env:SUPEREZIO_MODEL_PATH,
+    (Join-Path $ModelsDir $modelFileName)
+)
+if ($env:USERPROFILE) {
+    $modelCandidates += Join-Path $env:USERPROFILE "models\qwen3.8-27b\$modelFileName"
+}
+$script:ModelPath = $modelCandidates | Where-Object {
+    $_ -and (Test-Path -LiteralPath $_)
+} | Select-Object -First 1
+if (-not $ModelPath) {
+    # Keep the failure message actionable even before the model is installed.
+    $script:ModelPath = Join-Path $ModelsDir $modelFileName
 }
 $script:LoraPath = $null
 
@@ -50,9 +60,11 @@ function Get-SuperEzioPython {
 function Get-SuperEzioLlamaServer {
     $candidates = @(
         $env:SUPEREZIO_LLAMA_SERVER_EXE,
-        "C:\Users\marco\tools\llama.cpp\llama-server.exe",
         (Join-Path $SuperEzioRoot "llama.cpp\bin\llama-server.exe")
     )
+    if ($env:USERPROFILE) {
+        $candidates += Join-Path $env:USERPROFILE "tools\llama.cpp\llama-server.exe"
+    }
     try {
         $inPath = Get-Command llama-server.exe -ErrorAction SilentlyContinue
         if ($inPath) { $candidates += $inPath.Source }
