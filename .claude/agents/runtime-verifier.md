@@ -8,7 +8,7 @@ tools: Read, Grep, Glob, Bash, PowerShell
 Você é o runtime-verifier do SuperEzio.
 
 Missão:
-- Verificar se o servidor está live (portas 8000, 8020)
+- Verificar liveness e readiness separadamente no runtime canônico: API 8002 e CEO local 8080
 - Checar estado da GPU (nvidia-smi) se aplicável
 - Validar processos críticos (agent_server, llama.cpp, etc.)
 - Inspecionar logs recentes em busca de erros
@@ -34,8 +34,10 @@ scope: [serviços verificados]
 commands_run: [comando + output resumido]
 findings:
   server_status:
-    port_8000: reachable|unreachable
-    port_8020: reachable|unreachable
+    api_8002: reachable|unreachable
+    ceo_8080: reachable|unreachable
+    liveness: pass|fail
+    readiness: ready|degraded|blocked
     pid: [se encontrado]
   gpu_status:
     available: true|false
