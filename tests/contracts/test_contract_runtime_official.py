@@ -289,6 +289,8 @@ def test_provider_factory_keeps_agent_local_only(monkeypatch):
 
 
 def test_runtime_checkpoint_tracks_official_entrypoints():
+    if not RUNTIME_CHECKPOINT.exists():
+        pytest.skip("Operator runtime checkpoint is intentionally excluded from release packages")
     checkpoint = json.loads(RUNTIME_CHECKPOINT.read_text(encoding="utf-8"))
     params = checkpoint["runtime_parameters"]
 
