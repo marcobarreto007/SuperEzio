@@ -1352,9 +1352,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     )
                     request.app.state.last_decision_trace = trace
                     yield (
-                        json.dumps(
-                            {"type": "STREAM_END", "trace": trace, "run_id": task.run_id}
-                        )
+                        json.dumps({"type": "STREAM_END", "trace": trace, "run_id": task.run_id})
                         + "\n"
                     )
                 finally:

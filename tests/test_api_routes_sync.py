@@ -150,9 +150,7 @@ def test_health_details(client_with_mock_pipeline):
 
 
 @pytest.mark.asyncio
-async def test_slow_cockpit_probe_does_not_block_liveness(
-    client_with_mock_pipeline, monkeypatch
-):
+async def test_slow_cockpit_probe_does_not_block_liveness(client_with_mock_pipeline, monkeypatch):
     """Slow synchronous probes must run outside the API event loop."""
     import agent_server.endpoints as endpoints
 
@@ -646,9 +644,7 @@ def test_product_login_uses_jwt_while_trading_token_keeps_api_key_second_factor(
         missing_api_key = client.post("/api/trading/token", headers=bearer)
         assert missing_api_key.status_code == 401
 
-        wrong_api_key = client.post(
-            "/api/trading/token", headers={**bearer, "X-API-Key": "wrong"}
-        )
+        wrong_api_key = client.post("/api/trading/token", headers={**bearer, "X-API-Key": "wrong"})
         assert wrong_api_key.status_code == 401
 
         accepted = client.post(
@@ -685,9 +681,12 @@ def test_frontend_registration_uses_login_contract_and_eight_character_password(
     assert "return login(username, password);" in auth_js
     assert 'minlength="8"' in auth_js
     assert 'minlength="6"' not in auth_js
-    assert "saveTokens(data.access_token, data.refresh_token);" not in auth_js.split(
-        "async function register", maxsplit=1
-    )[1].split("async function refreshToken", maxsplit=1)[0]
+    assert (
+        "saveTokens(data.access_token, data.refresh_token);"
+        not in auth_js.split("async function register", maxsplit=1)[1].split(
+            "async function refreshToken", maxsplit=1
+        )[0]
+    )
 
 
 def test_frontend_never_logs_or_sends_secret_auth_material() -> None:
@@ -1636,9 +1635,7 @@ def test_aapl_is_never_selected_automatically():
     assert 'hiddenAuditTickers: ["AAPL"]' in automatic_selection_files["content"]
     assert 'setOpsCard("ops-market", "warn", "Select ticker")' in automatic_selection_files["init"]
     assert (
-        automatic_selection_files["init"].count(
-            "if (!firstTicker && ticker) firstTicker = ticker;"
-        )
+        automatic_selection_files["init"].count("if (!firstTicker && ticker) firstTicker = ticker;")
         == 3
     ), "only broker orders, local tickets and positions may bootstrap a ticker"
     assert "TD.TO" in automatic_selection_files["browser_smoke"]
