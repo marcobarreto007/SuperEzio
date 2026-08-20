@@ -1512,6 +1512,18 @@ def test_frontend_operational_truth_contract():
     assert 'id="mangala-verdict">IDLE · PAPER<' in html
 
 
+def test_cockpit_local_response_does_not_leave_pipeline_running():
+    """A local greeting must return experts to READY, not fake an active collection."""
+    from pathlib import Path
+
+    cockpit_js = Path("frontend/js/cockpit.js").read_text(encoding="utf-8")
+
+    assert "trace.agent_called === false && trace.scanner_invoked === false" in cockpit_js
+    assert 'panelStatus.textContent = "READY"' in cockpit_js
+    assert 'getPipelineStatus("coleta") === "running"' in cockpit_js
+    assert 'panelStatus.textContent = "COMPLETE"' in cockpit_js
+
+
 def test_aapl_is_never_selected_automatically():
     """AAPL may be analyzed explicitly, but it must never bootstrap the cockpit or release smoke."""
     from pathlib import Path

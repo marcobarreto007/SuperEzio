@@ -783,7 +783,24 @@
         console.log("[Cockpit] PipelineEvent: STREAM_END received, rendering all cards");
         /* Re-read deep state after stream ends — deep-panel.js may have updated */
         renderAllCards();
-        setPipelineStatus("bob", "done");
+        var trace = event.trace || {};
+        var analysisWasSkipped = trace.agent_called === false && trace.scanner_invoked === false;
+        var panelStatus = document.getElementById("deep-panel-status");
+        if (analysisWasSkipped) {
+          /* Deterministic local responses never ran the financial pipeline. */
+          initPipelineProgress();
+          if (panelStatus) {
+            panelStatus.textContent = "READY";
+            panelStatus.classList.add("cockpit-panel__status--idle");
+          }
+        } else {
+          if (getPipelineStatus("coleta") === "running") setPipelineStatus("coleta", "done");
+          setPipelineStatus("bob", "done");
+          if (panelStatus) {
+            panelStatus.textContent = "COMPLETE";
+            panelStatus.classList.remove("cockpit-panel__status--idle");
+          }
+        }
         break;
     }
     renderPipelineProgress();
