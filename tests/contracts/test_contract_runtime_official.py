@@ -207,6 +207,8 @@ def test_agent_runtime_config_matches_manifest_and_script():
     assert "C:\\Users\\marco" not in model_config
     assert "llama-server.exe" in script
     assert "SUPEREZIO_LLAMA_SERVER_EXE" in script
+    assert "SUPEREZIO_CUDA_BIN" in script
+    assert "C:\\Users\\marco" not in script
     assert '"--port", $Port' in script
     assert "$script:CeoPort" in model_config
     assert "8080" in model_config

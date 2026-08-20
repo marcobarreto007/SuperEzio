@@ -1,8 +1,7 @@
 # SuperEzio CEO local server (ZERO-CLOUD).
 # Sobe Qwen3.8-27B-Q4_K_M na porta 8080. Um servidor por vez — as 2 GPUs
 # (RTX 3060 12GB + RTX 2070 8GB) nao aguentam duas instancias.
-# Preferencia do operador: run-cc.ps1 (C:\Users\marco\models\qwen3.8-27b\).
-# Sources config.ps1 for path detection and keeps command-line overrides.
+# Sources config.ps1 for portable path detection and keeps command-line overrides.
 
 param(
     [int]$Port = 8080,
@@ -50,7 +49,20 @@ if (-not $LlamaServerPath) {
 }
 
 $BinDir = Split-Path -Parent $LlamaServerPath
-$env:PATH = "$BinDir;C:\Users\marco\tools\cuda-12.4\bin;$env:PATH"
+$pathEntries = @($BinDir)
+$requestedCudaBin = $env:SUPEREZIO_CUDA_BIN
+if (-not $requestedCudaBin -and $env:CUDA_PATH) {
+    $requestedCudaBin = Join-Path $env:CUDA_PATH "bin"
+}
+if ($requestedCudaBin) {
+    if (-not (Test-Path -LiteralPath $requestedCudaBin)) {
+        Write-Host "ERROR: Configured CUDA bin directory not found: $requestedCudaBin" -ForegroundColor Red
+        exit 1
+    }
+    $pathEntries += (Resolve-Path -LiteralPath $requestedCudaBin).Path
+}
+$pathEntries += $env:PATH
+$env:PATH = $pathEntries -join ";"
 
 $version = ""
 $oldEAP = $ErrorActionPreference
