@@ -23,8 +23,7 @@
 
     // Step 3: execute fetch
     var r = await fetch(API + path, opts);
-    var preview = token ? token.substring(0, 12) + "..." : "none";
-    console.log(DBG, "path=" + path + " token=" + preview + " status=" + r.status);
+    console.log(DBG, "path=" + path + " status=" + r.status);
 
     // Step 4: on 401, try refresh + retry once
     if (r.status === 401 && token) {

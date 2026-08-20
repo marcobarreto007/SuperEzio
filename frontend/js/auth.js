@@ -88,10 +88,10 @@
       const data = await r.json().catch(() => ({}));
       throw new Error(data.detail || `Registration failed (${r.status})`);
     }
-    const data = await r.json();
-    saveTokens(data.access_token, data.refresh_token);
-    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify({ username }));
-    return data;
+    // Registration returns the public profile, not tokens. Authenticate through
+    // the canonical login contract before storing any session material.
+    await r.json();
+    return login(username, password);
   }
 
   async function refreshToken() {
@@ -164,7 +164,7 @@
           </div>
           <div class="auth-field">
             <label for="auth-reg-password">Password</label>
-            <input id="auth-reg-password" type="password" autocomplete="new-password" placeholder="Create a password (min 6 chars)" required minlength="6">
+            <input id="auth-reg-password" type="password" autocomplete="new-password" placeholder="Create a password (min 8 chars)" required minlength="8">
           </div>
           <div class="auth-error" id="auth-error-register"></div>
           <button class="auth-submit" type="submit">Create Account</button>

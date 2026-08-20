@@ -675,6 +675,33 @@ def test_trading_token_fails_closed_without_api_key_configuration(
     assert response.status_code == 503
 
 
+def test_frontend_registration_uses_login_contract_and_eight_character_password() -> None:
+    from pathlib import Path
+
+    auth_js = (Path(__file__).parents[1] / "frontend" / "js" / "auth.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert "return login(username, password);" in auth_js
+    assert 'minlength="8"' in auth_js
+    assert 'minlength="6"' not in auth_js
+    assert "saveTokens(data.access_token, data.refresh_token);" not in auth_js.split(
+        "async function register", maxsplit=1
+    )[1].split("async function refreshToken", maxsplit=1)[0]
+
+
+def test_frontend_never_logs_or_sends_secret_auth_material() -> None:
+    from pathlib import Path
+
+    frontend_root = Path(__file__).parents[1] / "frontend" / "js"
+    api_js = (frontend_root / "api.js").read_text(encoding="utf-8")
+    auth_js = (frontend_root / "auth.js").read_text(encoding="utf-8")
+
+    assert "token.substring" not in api_js
+    assert "X-API-Key" not in api_js
+    assert "X-API-Key" not in auth_js
+
+
 def test_td_ticket_route_rejects_client_quote_assertions(client_with_mock_pipeline, monkeypatch):
     import agent_server.endpoints as endpoints
 
