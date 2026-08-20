@@ -8,7 +8,7 @@
                 "persona":  "Bob",
                 "base_model":  "Qwen3.8-27B",
                 "model":  "Qwen3.8-27B-Q4_K_M",
-                "path":  "C:\\Users\\marco\\models\\qwen3.8-27b\\Qwen3.8-27B-Q4_K_M.gguf",
+                "path":  "models/Qwen3.8-27B-Q4_K_M.gguf",
                 "quantization":  "Q4_K_M (15.9 GB)",
                 "server_url":  "http://127.0.0.1:8080/v1",
                 "priority":  -10,
@@ -23,7 +23,7 @@
                 "tensor_split":  "12,8",
                 "gpus":  "RTX 3060 12GB + RTX 2070 8GB",
                 "speculative":  "disabled (draft-mtp CUDA OOM on 2070 with Q4_K_M)",
-                "launch_profile":  "C:\\Users\\marco\\models\\qwen3.8-27b\\run-cc.ps1 (updated 2026-08-18 Q4_K_M)",
+                "launch_profile":  "scripts/serve_agent_llamacpp.ps1 -Port 8080",
                 "model_type":  "dense",
                 "shared_with":  "Claude Code perfil cc — one server, one slot"
             },

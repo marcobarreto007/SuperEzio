@@ -197,21 +197,24 @@ def test_agent_runtime_config_matches_manifest_and_script():
     assert agent_cfg["server_url"] == agent_manifest["server_url"]
     assert agent_cfg["backend"] == "openai_compatible"
     assert agent_cfg["is_local"] is True
-    assert agent_cfg["preferred_llama_server"]
-    if not model_path.exists():
-        pytest.skip(f"Official agent GGUF not present in this environment: {model_path}")
-    assert model_path.name in model_config
-    assert "llama-server.exe" in script
-    assert "SUPEREZIO_LLAMA_SERVER_EXE" in script
+    assert agent_cfg["path"] == "models/Qwen3.8-27B-Q4_K_M.gguf"
+    assert agent_cfg["preferred_llama_server"] == "llama.cpp/bin/llama-server.exe"
+    assert "C:\\Users\\" not in RUNTIME_YML.read_text(encoding="utf-8")
+    assert "C:\\\\Users\\\\" not in MODEL_MANIFEST.read_text(encoding="utf-8")
     assert "SUPEREZIO_MODEL_PATH" in model_config
     assert "SUPEREZIO_LLAMA_SERVER_EXE" in model_config
     assert 'Join-Path $SuperEzioRoot "models"' in model_config
     assert "C:\\Users\\marco" not in model_config
+    assert "llama-server.exe" in script
+    assert "SUPEREZIO_LLAMA_SERVER_EXE" in script
     assert '"--port", $Port' in script
     assert "$script:CeoPort" in model_config
     assert "8080" in model_config
     assert "function Initialize-SuperEzioDirs" in model_config
     assert "function Get-SuperEzioPortOwner" in model_config
+    if not model_path.exists():
+        pytest.skip(f"Official agent GGUF not present in this environment: {model_path}")
+    assert model_path.name in model_config
 
 
 def test_launcher_has_isolated_fail_closed_validation_mode():

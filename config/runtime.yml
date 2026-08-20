@@ -27,7 +27,7 @@ models:
     name: Qwen3.8-27B Local (shared cc)
     provider_name: agent
     model_id: Qwen3.8-27B-Q4_K_M
-    path: "C:\\Users\\marco\\models\\qwen3.8-27b\\Qwen3.8-27B-Q4_K_M.gguf"
+    path: models/Qwen3.8-27B-Q4_K_M.gguf
     quantization: Q4_K_M
     server_url: http://127.0.0.1:8080/v1
     backend: openai_compatible
@@ -37,7 +37,7 @@ models:
     max_tokens: 8192
     timeout_s: 300
     script: scripts/serve_agent_llamacpp.ps1
-    preferred_llama_server: "C:\\Users\\marco\\tools\\llama.cpp\\llama-server.exe"
+    preferred_llama_server: llama.cpp/bin/llama-server.exe
     # Perfil 2026-08-18: -ngl all -sm layer -ts 12,8, cache q8_0, contexto 8192
     # (RTX 3060 12GB + RTX 2070 8GB). Sem IQ2. MTP desligado (OOM com Q4).
     context_length: 8192
