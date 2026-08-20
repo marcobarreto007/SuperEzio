@@ -1030,7 +1030,6 @@
 
   /* ---- POPULAR TICKERS FOR AUTOCOMPLETE ---- */
   var POPULAR_TICKERS = [
-    { ticker: 'AAPL', name: 'Apple Inc.' },
     { ticker: 'MSFT', name: 'Microsoft Corporation' },
     { ticker: 'GOOGL', name: 'Alphabet Inc.' },
     { ticker: 'GOOG', name: 'Alphabet Inc. (Class C)' },

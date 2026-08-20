@@ -5,6 +5,7 @@
   window.SZ.config = Object.assign({
     defaultTicker: "",
     defaultTimeframe: "6M",
+    hiddenAuditTickers: ["AAPL"],
     showDebugCards: false,
   }, window.SZ.config || {});
 
