@@ -223,8 +223,8 @@ def test_launcher_has_isolated_fail_closed_validation_mode():
     assert "[switch]$IsolatedValidation" in script
     assert '$env:SUPEREZIO_VALIDATION_MODE = "0"' in script
     assert '$env:SUPEREZIO_VALIDATION_MODE = "1"' in script
-    assert 'SUPEREZIO_TRADING_STATE_DB = Join-Path $validationRoot' in script
-    assert 'SUPEREZIO_BOB_PAIN_LOG = Join-Path $validationRoot' in script
+    assert "SUPEREZIO_TRADING_STATE_DB = Join-Path $validationRoot" in script
+    assert "SUPEREZIO_BOB_PAIN_LOG = Join-Path $validationRoot" in script
     assert '$env:F51_TRADING_EXECUTION_FREEZE = "1"' in script
     assert '$env:SUPEREZIO_LIVE_TRADING_DISABLED = "1"' in script
     assert '$env:SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT = "0"' in script

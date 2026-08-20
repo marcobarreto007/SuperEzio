@@ -59,19 +59,44 @@ def test_valid_result_passes() -> None:
     ("update", "violation"),
     [
         ({"content": ""}, "empty_content"),
-        ({"protocol": {"start_count": 1, "end_count": 0, "error_count": 0,
-                        "last_type": "CHUNK"}}, "stream_end_count"),
-        ({"protocol": {"start_count": 1, "end_count": 1, "error_count": 1,
-                        "last_type": "STREAM_END"}}, "stream_error"),
-        ({"protocol": {"start_count": 1, "end_count": 1, "error_count": 0,
-                        "last_type": "CHUNK"}}, "stream_end_not_last"),
+        (
+            {
+                "protocol": {
+                    "start_count": 1,
+                    "end_count": 0,
+                    "error_count": 0,
+                    "last_type": "CHUNK",
+                }
+            },
+            "stream_end_count",
+        ),
+        (
+            {
+                "protocol": {
+                    "start_count": 1,
+                    "end_count": 1,
+                    "error_count": 1,
+                    "last_type": "STREAM_END",
+                }
+            },
+            "stream_error",
+        ),
+        (
+            {
+                "protocol": {
+                    "start_count": 1,
+                    "end_count": 1,
+                    "error_count": 0,
+                    "last_type": "CHUNK",
+                }
+            },
+            "stream_end_not_last",
+        ),
         ({"ttfb_s": 121.0}, "ttfb_slo"),
         ({"total_s": 181.0}, "total_slo"),
     ],
 )
-def test_transport_and_protocol_violations_fail(
-    update: dict[str, Any], violation: str
-) -> None:
+def test_transport_and_protocol_violations_fail(update: dict[str, Any], violation: str) -> None:
     assert violation in probe.validate_result(_case(), _result(**update))
 
 
@@ -95,10 +120,7 @@ def test_trace_violations_fail(trace_update: dict[str, Any], violation: str) -> 
 def test_template_leaks_are_blocked(marker: str) -> None:
     result = _result(content=f"Analise com risco e dados: {marker}")
     result["trace"]["final_content_length"] = len(result["content"])
-    assert any(
-        item.startswith("template_leak:")
-        for item in probe.validate_result(_case(), result)
-    )
+    assert any(item.startswith("template_leak:") for item in probe.validate_result(_case(), result))
 
 
 @pytest.mark.parametrize(
