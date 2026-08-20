@@ -3,7 +3,7 @@
   window.SZ = window.SZ || {};
 
   window.SZ.config = Object.assign({
-    defaultTicker: "AAPL",
+    defaultTicker: "",
     defaultTimeframe: "6M",
     showDebugCards: false,
   }, window.SZ.config || {});

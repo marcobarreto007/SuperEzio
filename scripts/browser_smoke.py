@@ -69,7 +69,7 @@ def _browser_chart_fetch(page: Page) -> dict[str, Any]:
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), 20000);
           try {
-            const response = await fetch('/api/chart-data/AAPL?timeframe=6M', {
+            const response = await fetch('/api/chart-data/TD.TO?timeframe=6M', {
               signal: controller.signal
             });
             const data = await response.json();
@@ -185,7 +185,7 @@ def run_smoke(
                 async () => {
                   if (window.SZ && typeof window.SZ.loadChart === 'function') {
                     await Promise.race([
-                      window.SZ.loadChart('AAPL'),
+                      window.SZ.loadChart('TD.TO'),
                       new Promise((_, reject) => setTimeout(
                         () => reject(new Error('loadChart timed out after 20s')), 20000
                       ))

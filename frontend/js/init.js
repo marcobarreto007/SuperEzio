@@ -203,10 +203,14 @@
     try {
       var cfg = SZ.config || {};
       var ticker = sanitTicker((document.getElementById("ticker-inp") || {}).value || cfg.defaultTicker) || cfg.defaultTicker;
-      var tf = (document.getElementById("tf-inp") || {}).value || cfg.defaultTimeframe;
-      var data = await SZ.api.fetchChartData(ticker, tf);
-      var count = data && data.ohlcv ? data.ohlcv.length : 0;
-      setOpsCard("ops-market", count > 0 ? "ok" : "warn", count > 0 ? count + " points" : "No candles");
+      if (!ticker) {
+        setOpsCard("ops-market", "warn", "Select ticker");
+      } else {
+        var tf = (document.getElementById("tf-inp") || {}).value || cfg.defaultTimeframe;
+        var data = await SZ.api.fetchChartData(ticker, tf);
+        var count = data && data.ohlcv ? data.ohlcv.length : 0;
+        setOpsCard("ops-market", count > 0 ? "ok" : "warn", count > 0 ? count + " points" : "No candles");
+      }
     } catch (e2) {
       setOpsCard("ops-market", "err", "Failed");
     }
@@ -326,7 +330,7 @@
       var pt = positionTicker(positions[j]);
       if (pt) return pt;
     }
-    return sanitTicker((pf && pf.selected_ticker) || (SZ.config || {}).defaultTicker || "AAPL");
+    return sanitTicker((pf && pf.selected_ticker) || (SZ.config || {}).defaultTicker || "");
   }
 
   function chartDataReadyFor(ticker) {
