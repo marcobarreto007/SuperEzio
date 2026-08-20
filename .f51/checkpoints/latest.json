@@ -1,8 +1,8 @@
 {
-  "date_local": "2026-08-18T23:45:00-04:00",
-  "session": "td-direct-live-manual-readiness-2026-08-18",
-  "status": "in_progress",
-  "objective": "Preparar o SuperEzio para trading real via TD Direct Investing Canada sem paper trading, scraping, credenciais TD ou transmissao automatica.",
+  "date_local": "2026-08-20T16:00:00-04:00",
+  "session": "total-system-documentation-sync-2026-08-20",
+  "status": "complete",
+  "objective": "Manter runtime, codigo, configuracao, testes, launchers e documentacao sob uma unica verdade operacional verificavel.",
   "impact_map": {
     "problem": "O runtime esta acoplado a IBKR/paper e nao possui um contrato seguro para entregar ordens live ao TD Direct Investing.",
     "architecture_touched": [
@@ -734,7 +734,7 @@
     "go_live": "NO_GO_REAL_CAPITAL"
   },
   "documentation_system_total_sync_20260820": {
-    "status": "in_progress",
+    "status": "complete",
     "objective": "Eliminar integralmente o drift entre runtime, código, configuração, testes, launchers, documentação ativa e material histórico.",
     "impact_map": {
       "problem": "O runtime canônico zero-cloud usa CEO :8080 e API/UI :8002, mas código, testes e documentos ainda misturam :8082, modelo 80B, cloud fallback, 14 agentes e contagens de teste antigas.",
@@ -788,6 +788,27 @@
       "pytest": "FAIL; 1874 passed, 10 skipped, 1 failed in 597.05s; coverage 68%",
       "browser": "BLOCKED; API/model ports offline",
       "failing_test": "tests/contracts/test_contract_runtime_official.py::test_public_health_exposes_validation_mode_without_sensitive_paths returned 503 after shared MAN_AT_WORK state; isolated file passed"
+    },
+    "final_gate": {
+      "canonical_runtime": "Qwen3.8-27B-Q4_K_M local em 127.0.0.1:8080; API/UI em 127.0.0.1:8002; contexto 8192; zero-cloud",
+      "ruff_check": "PASS",
+      "ruff_format": "PASS; 394 files already formatted",
+      "agents": "PASS; 22 agents, 32 skills, 0 issues",
+      "pytest": "1883 passed, 10 skipped in 613.47s; coverage 68%",
+      "browser": "PASS; TD.TO 123 candles, 7 canvases, zero console errors",
+      "live_integration": "PASS; AAPL completed in 2112.16s; fallback=false; quality=0.87; retries=0; cancels=0; overflows=0; cloud calls=0; expert failures=0",
+      "validation_directory": "runtime/validation/20260820-150840",
+      "docker": "docker compose config --quiet PASS; image build/boot NOT RUN because Docker Desktop daemon was offline",
+      "public_contract": "INTACT for API routes, methods, schemas and status codes; Docker public model port intentionally synchronized from legacy 8082 to canonical 8080",
+      "commits": [
+        "17918ef",
+        "8ffb144",
+        "2c1cc24",
+        "f6f1f0c",
+        "9e56ff4",
+        "c4ce4c9",
+        "588ee8a"
+      ]
     }
   },
   "owner": "Codex"

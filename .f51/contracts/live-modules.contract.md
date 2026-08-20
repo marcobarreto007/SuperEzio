@@ -1,6 +1,6 @@
 # Live Modules Contract â€” SuperEzio v4.0.0
 
-**Session:** f51-contracts-phase1-2026-06-01
+**Session:** total-system-documentation-sync-2026-08-20
 **Status:** CANONICAL
 **Source:** `.f51/INVENTORY.json` + live source tree
 
@@ -30,12 +30,12 @@ defined inline.
 - **Canonical:** `.f51/contracts/pipeline.contract.md`
 - **Path:** `src/core/pipeline/` (18 files)
 - **Public surface:** `PipelineState` (TypedDict), `IntentResult`, `CEORequest`, `ExpertCall`, `AgentToolCall`, `PipelineApp`, `build_graph`
-- **Graph:** `orchestrator â†’ agent â‡„ tool_executor â†’ explanation/respond_blocked â†’ END`
+- **Graph:** `orchestrator_primary (passthrough) â†’ agent â‡„ tool_executor â†’ explanation/respond_blocked â†’ END`
 - **Nodes:** `orchestrator_primary`, `agent`, `tool_executor`, `explanation`, `respond_blocked`
 - **Tools:** `collect_data`, `f51_firewall`, `pennylab`, `run_experts`, `neural_decision`, `sdca_firewall`, `rag_forensics`, `market_scan`, `final_answer`
 - **Invariants:**
-  1. `PipelineState.route` âˆˆ {`general`, `ticker_analysis`, `market_scan`, `needs_scope`}
-  2. If `route = ticker_analysis`, `ticker` must be non-empty.
+  1. `orchestrator_primary` does not classify intent; it delegates with `route=agent` and `intent=bob_decides`.
+  2. Bob and the tool loop determine the operation from the request and collected evidence.
   3. `expert_results` is always a list (never None).
   4. `f51_verdict` contains keys: `confidence`, `passed`, `factors`, `hub_risk_score`.
 
@@ -44,7 +44,7 @@ defined inline.
 - **Canonical:** `.f51/contracts/ceo.contract.md`
 - **Path:** `src/core/pipeline/prompts/_prompts.py`, `src/core/pipeline/prompts/builder.py`
 - **Public surface:** `ceo_system_prompt()`, `build_ceo_prompt(state)`, `QWEN_SYSTEM_PROMPT`
-- **Model:** `models/Huihui-Bob Core-A3B-Instruct-abliterated.IQ4_XS.gguf` (llama.cpp + F51 Nitro MoE, :8082)
+- **Model:** operator-supplied `Qwen3.8-27B-Q4_K_M.gguf` (llama.cpp, zero-cloud, `:8080`, context 8192)
 - **Invariants:** always returns non-empty string â‰¥ 100 chars; includes `Bob's read` for ticker analysis
 
 ## 4. F51 Engine
@@ -65,7 +65,7 @@ defined inline.
 - **Canonical:** `.f51/contracts/data-hub.contract.md`
 - **Path:** `src/data/` (13 files)
 - **Public surface:** `DataHub` class with `.get_price(ticker)`, `.get_profile(ticker)`, `.get_candles(ticker, period)`, `.get_quote(ticker)`, `.check_health()`
-- **Providers:** `alpha_vantage`, `boc_provider`, `fed_provider`, `finnhub_provider`, `news_feed`, `newsapi_provider`, `reddit_provider`, `stooq_provider`, `twelve_data`, `wolfram_provider`, `yfinance_provider`
+- **Providers:** `akshare`, `alpha_vantage`, `alphasmo`, `apewisdom`, `boc_macro`, `fed_macro`, `finnhub`, `form4api`, `news_scout`, `newsapi`, `reddit_pulse`, `social_whale`, `twelve_data`, `wolfram`, `yfinance`
 - **Invariants:** `check_health()` returns dict with provider key availability
 
 ## 6. Neural Decision Expert
@@ -89,7 +89,7 @@ defined inline.
 
 - **Canonical:** `.f51/contracts/runtime.contract.md`
 - **Path:** `runtime/`, `.f51/`, `config/runtime.yml`
-- **Processes:** CEO :8082 (llama.cpp), API :8002 (FastAPI)
+- **Processes:** CEO `:8080` (llama.cpp), API/UI `:8002` (FastAPI)
 - **Config:** `config/runtime.yml` (UniversalConfig)
 
 ---
@@ -107,8 +107,8 @@ defined inline.
   - `create_gateway(config, audit) -> ModelGateway`
   - Provider names: `CEO_PROVIDER_NAME`, `PRIMARY_PROVIDER_NAME`, `DEEPSEEK_PROVIDER_NAME`
 - **Invariants:**
-  1. CEO provider is `is_local=True`, never used as generic fallback
-  2. DeepSeek is decoupled from primary URL (uses `SUPEREZIO_DEEPSEEK_BASE_URL`)
+  1. Every LLM provider is local and resolves to the canonical llama-server; cloud fallback is forbidden.
+  2. Loopback is accepted; `bob-ceo:8080` is accepted only under the explicit Docker runtime profile.
   3. `_providers_for_request("ceo")` returns only `[ceo_provider]` (no fallback)
   4. `_max_attempts(providers)` â‰¤ `len(providers)` and â‰¤ `max_fallbacks + 1`
   5. Stream generate yields non-None chunks
@@ -353,4 +353,3 @@ defined inline.
 | **observability** | via smoke tests | ðŸŸ¡ Partial |
 | **math-core** | via `test_contract_f51_engine.py` | ðŸŸ¡ Partial |
 | **security** | via `test_contract_guardrails.py` | ðŸŸ¡ Partial |
-

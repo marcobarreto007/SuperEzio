@@ -1,7 +1,7 @@
 # F51 Test Map
 
-Updated: 2026-05-21T20:30:00-04:00
-Session: f51-inventory-full-sweep
+Updated: 2026-08-20
+Session: total-system-documentation-sync-2026-08-20
 
 ## Test Framework
 
@@ -12,7 +12,8 @@ Session: f51-inventory-full-sweep
 | Async mode | auto |
 | Min version | 8.0 |
 | Coverage | pytest-cov 5.0 available |
-| Total test files | 42 |
+| Total test files | 133 |
+| Latest full result | 1883 passed, 10 skipped, 0 failed |
 
 ## Test Markers
 
@@ -20,7 +21,7 @@ Session: f51-inventory-full-sweep
 |--------|---------|--------------|
 | `smoke` | Fast runtime and pipeline liveness tests | ~20 |
 | `contract` | Public API surface and data invariant tests | ~15 |
-| `integration` | Requires live CEO (:8082) + API (:8002), auto-skips offline | ~7 |
+| `integration` | Requires live CEO (:8080) + API (:8002), auto-skips offline | ~7 |
 | `slow` | Tests taking > 5 seconds | unknown |
 
 ## Smoke Tests
@@ -80,8 +81,8 @@ Session: f51-inventory-full-sweep
 | Test | Requires | Classification |
 |------|----------|----------------|
 | Health endpoints | API :8002 | app |
-| Task/submit SSE stream (casual) | CEO :8082 + API :8002 | pipeline |
-| Task/submit SSE stream (ticker analysis) | CEO :8082 + API :8002 | pipeline |
+| Task/submit SSE stream (casual) | CEO :8080 + API :8002 | pipeline |
+| Task/submit SSE stream (ticker analysis) | CEO :8080 + API :8002 | pipeline |
 | Capabilities endpoint | API :8002 | app |
 | Product manifest | API :8002 | app |
 
@@ -140,4 +141,3 @@ Session: f51-inventory-full-sweep
 - **Date**: 2026-05-22 (Full clean-up verification)
 - **Result**: 788 passed, 8 skipped, 7 warnings, 29.08s
 - **Caveat**: All active contract, smoke, and domain tests pass.
-

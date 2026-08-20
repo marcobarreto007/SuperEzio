@@ -407,7 +407,7 @@ Session: total-system-documentation-sync-2026-08-20
   documentar bootstrap do primeiro usuario e testar login -> rota protegida -> logout.
 - Status: Active — bloqueia release V1 e qualquer uso financeiro.
 
-### INV-R38 - Fontes de verdade de entrega divergem [HIGH]
+### INV-R38 - Fontes de verdade de entrega divergem [HIGH -> RESOLVED 2026-08-20]
 
 - Classification: contracts / operational truth.
 - Risk: inventario, contratos, board, launchers e docs registram portas, modelos e estado de
@@ -415,11 +415,15 @@ Session: total-system-documentation-sync-2026-08-20
   resposta vazia ou degradada, permitindo um falso PASS de release.
 - Evidence: `.f51/INVENTORY.json`, `.f51/CONTRACTS.json`, `.f51/TASK_BOARD.md`,
   `docs/AGENT_OPERATING_SYSTEM.md` e `scripts/quality_probe.py`.
-- Mitigation: correção total em andamento com recon independente, runtime/config/testes e
-  documentação em ownerships separados; fonte canônica fixada em `config/runtime.yml`,
-  `config/model_manifest.json`, `config.ps1` e `docs/runbooks/RUNBOOK.md`. O gate final exige
-  suíte completa determinística, build/release checks e smoke real ou bloqueio explícito.
-- Status: Active — remediação iniciada em 2026-08-20; continua bloqueando release até o gate.
+- Resolution: recon independente, runtime/config/testes e documentação foram corrigidos em
+  ownerships separados. A fonte executável é `config/runtime.yml` mais `config.ps1`; o
+  manifesto e o runbook espelham esse contrato. Entrypoints inseguros foram aposentados
+  fail-closed. Gate final: Ruff PASS, 22 agentes/32 skills PASS, `1883 passed, 10 skipped`,
+  browser smoke real PASS e análise AAPL real sem fallback, overflow ou chamada cloud.
+- Residual validation limit: `docker compose config --quiet` passou, mas o build/boot da
+  imagem Docker não foi ensaiado porque o daemon Docker Desktop estava indisponível. Isso
+  limita a evidência Docker, não reabre o drift das fontes ativas.
+- Status: Resolved 2026-08-20.
 
 ### INV-R39 - Novos agentes de entrega ainda nao foram benchmarkados [MEDIUM]
 

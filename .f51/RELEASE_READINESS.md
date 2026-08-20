@@ -4,7 +4,10 @@ Updated: 2026-08-20
 
 ## Status
 
-**PENDING CURRENT GATE EVIDENCE.** Documentation now targets the canonical zero-cloud runtime, but readiness is established only by a fresh successful gate run on the delivery tree. Historical pass counts are evidence snapshots, not permanent release claims.
+**PASS FOR THE LOCAL WINDOWS RESEARCH COPILOT.** The active code, configuration,
+launchers, contracts and documentation target the same canonical zero-cloud runtime.
+Real-capital execution remains NO-GO. Docker configuration is contract-valid but its image
+build/boot still needs a run with Docker Desktop available.
 
 ## Canonical Runtime
 
@@ -40,7 +43,18 @@ Readiness also requires proof that stopping `:8080` produces fail-closed `MAN_AT
 
 ## Sign-off Record
 
-Record the current timestamp, commit, collected/passed/failed/skipped counts, model ID returned by `/v1/models`, health results, browser-smoke result, and fail-closed/recovery result. Do not copy results from an older checkpoint.
+- Date: 2026-08-20 (America/Toronto).
+- Source commits: `17918ef..588ee8a` plus final F51 closeout commit.
+- Static gates: Ruff check PASS; Ruff format PASS (394 files); agent contract PASS
+  (22 agents, 32 skills); Docker Compose config PASS.
+- Full suite: `1883 passed, 10 skipped` in 613.47 seconds; 68% coverage.
+- Live runtime: official isolated launcher; local Qwen3.8-27B on `:8080`; API healthy on
+  `:8002`; AAPL integration passed in 2112.16 seconds.
+- Trace result: `fallback_used=false`, quality 0.87, no retry, cancellation, context overflow,
+  expert failure or cloud-LLM call.
+- Browser smoke: PASS; TD.TO returned 123 candles, 7 canvases and zero console errors.
+- Validation evidence: `runtime/validation/20260820-150840`.
+- Docker limitation: image build/boot NOT RUN because the Docker Desktop daemon was offline.
 
 ## Policy
 

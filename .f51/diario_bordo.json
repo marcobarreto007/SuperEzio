@@ -1,7 +1,8 @@
 {
   "project": "SuperEzio",
   "date_local": "2026-06-14T00:05:00-04:00",
-  "status": "ready_for_video_factory_integration",
+  "status": "historical_superseded",
+  "superseded_note": "Snapshot de 2026-06-14; nao usar para operacao. A fonte atual e config/runtime.yml: Qwen3.8-27B-Q4_K_M, contexto 8192, llama-server :8080 e API/UI :8002, zero-cloud.",
   "model": {
     "name": "Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf",
     "path": "models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf",

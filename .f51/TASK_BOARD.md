@@ -2,13 +2,6 @@
 
 ## Backlog
 
-- [ ] 2026-08-20 - **Correção total sistema ↔ documentação** (Codex + subagentes):
-  consolidar uma única verdade operacional (CEO local zero-cloud `:8080`, API/UI `:8002`,
-  22 agentes), corrigir referências divergentes em código/config/testes, sincronizar toda
-  documentação ativa, rotular evidência histórica, eliminar comandos inexistentes e fechar
-  o gate com suíte completa, cobertura, build/release checks e browser smoke. Contratos
-  públicos devem permanecer intactos. Risco rastreado em INV-R38.
-
 - [x] 2026-08-18 - **TD Direct commission-free research universe** (Codex): captured the
   official 108-ETF list (83 Canada, 25 US), added dated/stale-failing eligibility checks and
   `GET /trade/td-commission-free`. Added an authenticated, non-transmitting `/trade/td-draft`
@@ -148,6 +141,16 @@
 
 
 ## Done
+
+- [x] 2026-08-20 - **Correção total sistema ↔ documentação** (Codex + 3 subagentes):
+  consolidada a verdade operacional zero-cloud (Qwen3.8-27B-Q4_K_M em `:8080`, API/UI
+  em `:8002`, contexto 8192 e 22 agentes); código, configuração, launchers Windows/Docker,
+  testes e documentação ativa foram alinhados; superfícies históricas ou inseguras foram
+  aposentadas fail-closed ou marcadas SUPERSEDED. O runtime vivo concluiu análise AAPL sem
+  fallback, retry, cancelamento, overflow ou chamada cloud. Gate final: Ruff e agentes PASS;
+  `1883 passed, 10 skipped`; browser smoke PASS. `docker compose config --quiet` passou;
+  build Docker vivo não foi executado porque o daemon Docker Desktop estava indisponível.
+  Contratos públicos da API permaneceram intactos; INV-R38 resolvido.
 
 - [x] 2026-08-20 - **Cadeia de entrega de produto criada e conectada**: roster passou de
   revisores sem builder para separacao explicita entre orquestracao, implementacao,
