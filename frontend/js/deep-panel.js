@@ -117,7 +117,7 @@
     if (experts) parts.push(experts + "/6 EXP");
     if (hasGuardrails) parts.push("GRD");
     if (hasTrinity) parts.push("TRI");
-    status.textContent = parts.length ? parts.join(" | ") : "WAITING";
+    status.textContent = parts.length ? parts.join(" | ") : "READY";
     status.classList.toggle("cockpit-panel__status--idle", !parts.length);
   }
 

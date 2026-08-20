@@ -1486,6 +1486,7 @@ def test_frontend_operational_truth_contract():
     health_js = Path("frontend/js/health.js").read_text(encoding="utf-8")
     status_js = Path("frontend/js/status-bar.js").read_text(encoding="utf-8")
     cockpit_js = Path("frontend/js/cockpit.js").read_text(encoding="utf-8")
+    deep_panel_js = Path("frontend/js/deep-panel.js").read_text(encoding="utf-8")
     trust_js = Path("frontend/js/trust-score.js").read_text(encoding="utf-8")
     init_js = Path("frontend/js/init.js").read_text(encoding="utf-8")
     html = Path("frontend/index.html").read_text(encoding="utf-8")
@@ -1500,6 +1501,7 @@ def test_frontend_operational_truth_contract():
     assert 'setVerdictEl("neural-verdict", "READY")' in cockpit_js
     assert 'setVerdictEl("trinity-verdict", "READY")' in cockpit_js
     assert 'data.status === "unknown"' in cockpit_js
+    assert 'parts.length ? parts.join(" | ") : "READY"' in deep_panel_js
     assert 'score == null ? "TRUST: --"' in trust_js
     assert "open hypotheses: " in init_js
     assert "audit evidence, not broker positions" in init_js
