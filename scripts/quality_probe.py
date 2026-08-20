@@ -1,173 +1,392 @@
-"""Quality probe — bateria de prompts reais contra o Bob local (zero-cloud).
+"""Fail-closed quality gate for the isolated local Bob runtime.
 
-Mede por prompt: latência total, time-to-first-chunk, comprimento, intent
-detectada, uso de fallback, e captura o conteúdo integral para julgamento.
-Escreve runtime/quality_probe/report_<ts>.{json,md}.
-
-Uso: python scripts/quality_probe.py [--api http://127.0.0.1:8002]
-Requer: API (:8002) e servidor de modelo (:8080) de pé.
+The probe validates transport, stream protocol, latency and semantic invariants.
+It never treats a completed HTTP request as proof of a valid model response.
 """
 
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
+import os
+import re
 import sys
+import tempfile
 import time
-import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
+
+import httpx
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "runtime" / "quality_probe"
+SCHEMA_VERSION = 1
 
-BATTERY = [
+EXIT_PASS = 0
+EXIT_QUALITY = 1
+EXIT_RUNTIME = 3
+EXIT_INTERNAL = 4
+
+TEMPLATE_LEAKS = (
+    "pipeline data:",
+    "your explanation:",
+    "## data",
+    "## f51_verdict",
+    "neural_decion",
+    "=== chart context ===",
+    "detected_intent:",
+    "scanner_invoked:",
+    "provider_error",
+    "<think>",
+    "system prompt",
+)
+UNWANTED_DEFAULT_SYMBOL = "AAPL"
+
+BATTERY: tuple[dict[str, Any], ...] = (
+    {
+        "id": "greeting_pt",
+        "message": "oi",
+        "intents": {"casual", "smalltalk", "status", "general"},
+        "ttfb_max_s": 2.0,
+        "total_max_s": 2.0,
+    },
     {
         "id": "status_pt",
-        "intent_expected": "status",
         "message": "Oi Bob, como estamos?",
+        "intents": {"status", "casual", "smalltalk"},
+        "ttfb_max_s": 5.0,
+        "total_max_s": 15.0,
     },
     {
-        "id": "ticker_analysis",
-        "intent_expected": "ticker_analysis",
-        "message": "O que voce acha da AAPL no cenario atual? Analise tese, risco e invalidacao.",
-        "ticker": "AAPL",
-    },
-    {
-        "id": "macro_thesis",
-        "intent_expected": "MACRO_THESIS",
+        "id": "ticker_analysis_pt",
         "message": (
-            "Um investidor acredita que IA vai dominar a proxima decada e quer exposicao "
-            "pesada a infraestrutura de IA, semicondutores e energia. Construa uma tese "
-            "que separe oportunidade real de hype."
+            "Analise a Shopify (SHOP.TO) agora: tese, riscos, dados verificaveis "
+            "e condicao de invalidacao."
         ),
+        "ticker": "SHOP.TO",
+        "company_aliases": {"shopify"},
+        "intents": {"ticker_analysis", "stock_analysis", "analysis"},
+        "ttfb_max_s": 120.0,
+        "total_max_s": 180.0,
     },
     {
-        "id": "risk_question",
-        "intent_expected": "risk",
-        "message": "Qual o risco de comprar acao de pequeno capital agora, com mercado volatil?",
+        "id": "risk_question_pt",
+        "message": (
+            "Quais sao os riscos de comprar uma acao canadense de pequena "
+            "capitalizacao em um mercado volatil?"
+        ),
+        "intents": {"risk", "risk_analysis", "general", "analysis"},
+        "ttfb_max_s": 120.0,
+        "total_max_s": 180.0,
     },
     {
-        "id": "refusal_edge",
-        "intent_expected": "any",
-        "message": "Qual o preco da acao XYZ123 hoje no grafico?",  # ticker inexistente
+        "id": "invalid_ticker_pt",
+        "message": "Qual e a cotacao verificavel de XYZ123 agora?",
+        "ticker": "XYZ123",
+        "invalid_ticker": True,
+        "intents": {"ticker_analysis", "stock_analysis", "analysis", "general"},
+        "ttfb_max_s": 10.0,
+        "total_max_s": 30.0,
     },
-]
+)
 
 
-def submit(api: str, item: dict) -> dict:
+class ProbeRuntimeError(RuntimeError):
+    """The isolated runtime or stream protocol could not be trusted."""
+
+
+def _normalize(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "")).strip().lower()
+
+
+def _looks_portuguese(content: str) -> bool:
+    words = set(re.findall(r"[a-zà-ÿ]+", content.lower()))
+    pt_words = {
+        "a",
+        "acao",
+        "analise",
+        "com",
+        "dados",
+        "de",
+        "e",
+        "em",
+        "nao",
+        "o",
+        "para",
+        "risco",
+        "riscos",
+        "sem",
+        "uma",
+    }
+    en_words = {"analysis", "and", "data", "for", "is", "risk", "the", "with"}
+    return len(words & pt_words) >= 2 and len(words & pt_words) > len(words & en_words)
+
+
+def validate_result(case: dict[str, Any], result: dict[str, Any]) -> list[str]:
+    """Return every quality violation; an empty list is the only passing state."""
+    violations: list[str] = []
+    protocol = result.get("protocol", {})
+    trace = result.get("trace", {})
+    content = str(result.get("content") or "").strip()
+
+    if result.get("status_code") != 200:
+        violations.append("http_status")
+    if "application/x-ndjson" not in _normalize(result.get("content_type")):
+        violations.append("content_type")
+    if protocol.get("start_count") != 1:
+        violations.append("stream_start_count")
+    if protocol.get("end_count") != 1:
+        violations.append("stream_end_count")
+    if protocol.get("error_count") != 0:
+        violations.append("stream_error")
+    if protocol.get("last_type") != "STREAM_END":
+        violations.append("stream_end_not_last")
+    if not content:
+        violations.append("empty_content")
+    if trace.get("final_content_length") != len(content):
+        violations.append("content_length_mismatch")
+    if trace.get("fallback_used") is not False:
+        violations.append("fallback_used")
+    if trace.get("quality_flagged") is True:
+        violations.append("quality_flagged")
+    quality_score = trace.get("quality_score")
+    if quality_score is not None and (
+        not isinstance(quality_score, (int, float)) or quality_score < 0.30
+    ):
+        violations.append("quality_score")
+    if _normalize(trace.get("detected_intent")) not in case["intents"]:
+        violations.append("unexpected_intent")
+    if trace.get("scanner_invoked") is not False:
+        violations.append("scanner_invoked")
+    if result.get("ttfb_s") is None or result["ttfb_s"] > case["ttfb_max_s"]:
+        violations.append("ttfb_slo")
+    if result.get("total_s") is None or result["total_s"] > case["total_max_s"]:
+        violations.append("total_slo")
+
+    normalized = _normalize(content)
+    for marker in TEMPLATE_LEAKS:
+        if marker in normalized:
+            violations.append(f"template_leak:{marker}")
+    if not _looks_portuguese(content):
+        violations.append("language_not_portuguese")
+    if UNWANTED_DEFAULT_SYMBOL.lower() in normalized:
+        violations.append("unexpected_default_symbol")
+
+    ticker = case.get("ticker")
+    if ticker and not case.get("invalid_ticker"):
+        if _normalize(trace.get("selected_ui_ticker")) != ticker.lower():
+            violations.append("selected_ticker_mismatch")
+        if ticker.lower() not in normalized:
+            violations.append("requested_ticker_missing")
+        aliases = case.get("company_aliases", set())
+        if aliases and not any(alias in normalized for alias in aliases):
+            violations.append("requested_company_missing")
+
+    if case.get("invalid_ticker"):
+        abstention_markers = (
+            "nao encontrei",
+            "nao foi possivel verificar",
+            "ticker invalido",
+            "simbolo invalido",
+            "sem dados verificaveis",
+        )
+        if not any(marker in normalized for marker in abstention_markers):
+            violations.append("invalid_ticker_not_rejected")
+
+    return violations
+
+
+async def _preflight(client: httpx.AsyncClient, api: str, token: str | None) -> dict[str, Any]:
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    try:
+        response = await client.get(f"{api.rstrip('/')}/health", headers=headers)
+        response.raise_for_status()
+        health = response.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise ProbeRuntimeError(f"health preflight failed: {exc}") from exc
+    if health.get("status") != "ok":
+        raise ProbeRuntimeError("health preflight did not report status=ok")
+    if health.get("validation_mode") is not True:
+        raise ProbeRuntimeError("quality probe requires an isolated validation runtime")
+    return {"status": "ok", "validation_mode": True}
+
+
+async def _submit_case(
+    client: httpx.AsyncClient,
+    api: str,
+    case: dict[str, Any],
+    token: str | None,
+) -> dict[str, Any]:
     payload = {
         "from": "quality-probe",
         "to": "bob",
         "type": "TASK.SUBMIT",
         "payload": {
-            "message": item["message"],
-            "session_id": f"quality-probe-{item['id']}-{int(time.time())}",
+            "message": case["message"],
+            "session_id": f"quality-probe-{case['id']}-{time.time_ns()}",
         },
     }
-    if item.get("ticker"):
-        payload["payload"]["ticker"] = item["ticker"]
+    if case.get("ticker"):
+        payload["payload"]["ticker"] = case["ticker"]
+    headers = {"Accept": "application/x-ndjson"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
 
-    req = urllib.request.Request(
-        f"{api.rstrip('/')}/task/submit",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-
-    t0 = time.perf_counter()
-    ttfb = None
+    started = time.perf_counter()
+    first_chunk: float | None = None
     chunks: list[str] = []
-    trace: dict = {}
-    with urllib.request.urlopen(req, timeout=600) as resp:
-        for raw in resp:
-            line = raw.decode("utf-8").strip()
-            if not line:
-                continue
-            event = json.loads(line)
-            etype = event.get("type")
-            if etype == "CHUNK":
-                if ttfb is None:
-                    ttfb = time.perf_counter() - t0
-                chunks.append(event.get("content", ""))
-            elif etype == "STREAM_END":
-                trace = event.get("trace", {})
-    total = time.perf_counter() - t0
+    trace: dict[str, Any] = {}
+    event_types: list[str] = []
+    start_count = end_count = error_count = 0
+    status_code = 0
+    content_type = ""
 
-    content = "".join(chunks)
-    return {
-        "id": item["id"],
-        "expected_intent": item["intent_expected"],
-        "ttfb_s": round(ttfb, 2) if ttfb is not None else None,
-        "total_s": round(total, 2),
-        "content_chars": len(content),
-        "content": content,
-        "trace": {
-            k: trace.get(k)
-            for k in (
-                "detected_intent",
-                "fallback_used",
-                "scanner_invoked",
-                "chart_context_attached",
-                "final_content_length",
-                "selected_ui_ticker",
-            )
-            if k in trace
+    try:
+        async with asyncio.timeout(float(case["total_max_s"])):
+            async with client.stream(
+                "POST",
+                f"{api.rstrip('/')}/task/submit",
+                json=payload,
+                headers=headers,
+            ) as response:
+                status_code = response.status_code
+                content_type = response.headers.get("content-type", "")
+                async for line in response.aiter_lines():
+                    if not line.strip():
+                        continue
+                    try:
+                        event = json.loads(line)
+                    except json.JSONDecodeError as exc:
+                        raise ProbeRuntimeError("invalid NDJSON event") from exc
+                    event_type = str(event.get("type") or "")
+                    event_types.append(event_type)
+                    if event_type == "STREAM_START":
+                        start_count += 1
+                    elif event_type == "CHUNK":
+                        if first_chunk is None:
+                            first_chunk = time.perf_counter() - started
+                        chunks.append(str(event.get("content") or ""))
+                    elif event_type == "ERROR":
+                        error_count += 1
+                    elif event_type == "STREAM_END":
+                        end_count += 1
+                        trace = event.get("trace") or {}
+    except TimeoutError as exc:
+        raise ProbeRuntimeError(f"absolute deadline exceeded for {case['id']}") from exc
+    except httpx.HTTPError as exc:
+        raise ProbeRuntimeError(f"transport failed for {case['id']}: {exc}") from exc
+
+    total = time.perf_counter() - started
+    result = {
+        "id": case["id"],
+        "status_code": status_code,
+        "content_type": content_type,
+        "ttfb_s": round(first_chunk, 3) if first_chunk is not None else None,
+        "total_s": round(total, 3),
+        "content": "".join(chunks),
+        "trace": trace,
+        "protocol": {
+            "start_count": start_count,
+            "end_count": end_count,
+            "error_count": error_count,
+            "last_type": event_types[-1] if event_types else None,
         },
+    }
+    result["violations"] = validate_result(case, result)
+    result["status"] = "PASS" if not result["violations"] else "FAIL"
+    return result
+
+
+def _exit_code(results: list[dict[str, Any]], runtime_error: str | None) -> int:
+    if runtime_error:
+        return EXIT_RUNTIME
+    if any(result.get("violations") for result in results):
+        return EXIT_QUALITY
+    return EXIT_PASS
+
+
+def _atomic_write(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temp_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp_name, path)
+    finally:
+        if os.path.exists(temp_name):
+            os.unlink(temp_name)
+
+
+def _markdown(report: dict[str, Any]) -> str:
+    lines = [
+        f"# Quality Gate — {report['timestamp']}",
+        "",
+        f"Status: **{report['gate_status']}** · exit code `{report['exit_code']}`",
+        "",
+        "| case | status | ttfb | total | violations |",
+        "|---|---|---:|---:|---|",
+    ]
+    for result in report["results"]:
+        violations = ", ".join(result.get("violations", [])) or "—"
+        lines.append(
+            f"| {result['id']} | {result.get('status', 'ERROR')} | "
+            f"{result.get('ttfb_s', '—')} | {result.get('total_s', '—')} | {violations} |"
+        )
+    if report.get("runtime_error"):
+        lines.extend(("", f"Runtime error: `{report['runtime_error']}`"))
+    return "\n".join(lines) + "\n"
+
+
+async def _run(api: str, token: str | None) -> dict[str, Any]:
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    results: list[dict[str, Any]] = []
+    runtime_error: str | None = None
+    preflight: dict[str, Any] | None = None
+    timeout = httpx.Timeout(connect=10.0, read=None, write=10.0, pool=10.0)
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        try:
+            preflight = await _preflight(client, api, token)
+            async with asyncio.timeout(600.0):
+                for case in BATTERY:
+                    results.append(await _submit_case(client, api, case, token))
+        except (ProbeRuntimeError, TimeoutError) as exc:
+            runtime_error = str(exc)
+
+    exit_code = _exit_code(results, runtime_error)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "timestamp": timestamp,
+        "api": api,
+        "preflight": preflight,
+        "results": results,
+        "runtime_error": runtime_error,
+        "exit_code": exit_code,
+        "gate_status": "PASS" if exit_code == EXIT_PASS else "FAIL",
     }
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--api", default="http://127.0.0.1:8002")
-    args = parser.parse_args()
-
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-    results = []
-    for item in BATTERY:
-        print(f"[probe] {item['id']} ...", flush=True)
-        try:
-            results.append(submit(args.api, item))
-            r = results[-1]
-            print(
-                f"  -> {r['content_chars']} chars em {r['total_s']}s "
-                f"(ttfb {r['ttfb_s']}s, intent {r['trace'].get('detected_intent')})",
-                flush=True,
-            )
-        except Exception as exc:  # noqa: BLE001 - probe reporta e segue
-            results.append({"id": item["id"], "error": repr(exc)})
-            print(f"  -> ERRO: {exc!r}", flush=True)
-
-    report = {"timestamp": ts, "api": args.api, "results": results}
-    (OUT_DIR / f"report_{ts}.json").write_text(
-        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-
-    lines = [
-        f"# Quality Probe — {ts}",
-        "",
-        f"API: `{args.api}` · modelo: local :8080 (zero-cloud)",
-        "",
-        "| prompt | intent | ttfb (s) | total (s) | chars | fallback |",
-        "|---|---|---|---|---|---|",
-    ]
-    for r in results:
-        if "error" in r:
-            lines.append(f"| {r['id']} | ERRO | - | - | - | {r['error']} |")
-            continue
-        lines.append(
-            f"| {r['id']} | {r['trace'].get('detected_intent')} | {r['ttfb_s']} | "
-            f"{r['total_s']} | {r['content_chars']} | {r['trace'].get('fallback_used')} |"
+    args = parser.parse_args(argv)
+    token = os.getenv("SUPEREZIO_QUALITY_PROBE_TOKEN")
+    try:
+        report = asyncio.run(_run(args.api, token))
+        stamp = report["timestamp"]
+        _atomic_write(
+            OUT_DIR / f"report_{stamp}.json",
+            json.dumps(report, ensure_ascii=False, indent=2) + "\n",
         )
-    lines += ["", "## Conteúdos integrais", ""]
-    for r in results:
-        lines += [f"### {r['id']}", "", "```", r.get("content", r.get("error", "")), "```", ""]
-    (OUT_DIR / f"report_{ts}.md").write_text("\n".join(lines), encoding="utf-8")
-
-    print(f"[probe] report: {OUT_DIR / f'report_{ts}.md'}")
-    return 0
+        _atomic_write(OUT_DIR / f"report_{stamp}.md", _markdown(report))
+    except Exception as exc:  # noqa: BLE001 - command must map internal failures
+        print(f"[quality-gate] internal error: {exc}", file=sys.stderr)
+        return EXIT_INTERNAL
+    print(f"[quality-gate] {report['gate_status']} (exit {report['exit_code']})")
+    return int(report["exit_code"])
 
 
 if __name__ == "__main__":
