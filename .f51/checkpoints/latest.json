@@ -733,5 +733,62 @@
     "next_step": "Before any external transfer, the operator must rotate provider credentials and rehearse the locked dependency install on the recipient Windows machine. Real-capital and TD transport remain out of scope and NO-GO.",
     "go_live": "NO_GO_REAL_CAPITAL"
   },
+  "documentation_system_total_sync_20260820": {
+    "status": "in_progress",
+    "objective": "Eliminar integralmente o drift entre runtime, código, configuração, testes, launchers, documentação ativa e material histórico.",
+    "impact_map": {
+      "problem": "O runtime canônico zero-cloud usa CEO :8080 e API/UI :8002, mas código, testes e documentos ainda misturam :8082, modelo 80B, cloud fallback, 14 agentes e contagens de teste antigas.",
+      "architecture_touched": [
+        "runtime e model gateway",
+        "health e MAN_AT_WORK",
+        "launchers Windows e Docker",
+        "contratos de teste e release",
+        "documentação operacional e histórica",
+        "governança de agentes"
+      ],
+      "direct_files": [
+        "src/core/pipeline/prompts/builder.py",
+        "src/core/bob_consciousness/body.py",
+        "src/agent_server/main.py",
+        "config/mission_context.json",
+        "pytest.ini",
+        "tests/contracts/test_contract_runtime_official.py",
+        "README.md",
+        "README_FIRST.md",
+        "DELIVERY.md",
+        "docs/",
+        ".f51/RELEASE_READINESS.md"
+      ],
+      "indirect_risks": [
+        "operador iniciar ou diagnosticar a porta errada",
+        "teste público de health depender de estado singleton do operador",
+        "documento histórico ser confundido com runbook ativo",
+        "release gate registrar PASS divergente da suíte atual"
+      ],
+      "smallest_complete_solution": "Uma única correção coordenada: alinhar código/config/testes, sincronizar todos os documentos ativos, marcar históricos, executar regressão e gates completos.",
+      "verification": [
+        "python -m ruff check src tests",
+        "python -m ruff format --check src tests",
+        "python -m pytest tests -q",
+        "python scripts/browser_smoke.py",
+        "python scripts/check_agents.py",
+        "python scripts/build_release.ps1"
+      ]
+    },
+    "contract_watchdog": {
+      "status": "INTACT",
+      "public_api": "Nenhuma rota, método, schema ou status code público será alterado.",
+      "config": "Porta oficial existente :8080 será propagada; aliases legados não serão transformados em novo contrato.",
+      "cli": "Entry points existentes serão preservados; comandos inexistentes serão removidos apenas da documentação."
+    },
+    "baseline": {
+      "ruff": "PASS",
+      "format": "PASS; 393 files formatted",
+      "agents": "PASS; 22 agents, 32 skills",
+      "pytest": "FAIL; 1874 passed, 10 skipped, 1 failed in 597.05s; coverage 68%",
+      "browser": "BLOCKED; API/model ports offline",
+      "failing_test": "tests/contracts/test_contract_runtime_official.py::test_public_health_exposes_validation_mode_without_sensitive_paths returned 503 after shared MAN_AT_WORK state; isolated file passed"
+    }
+  },
   "owner": "Codex"
 }

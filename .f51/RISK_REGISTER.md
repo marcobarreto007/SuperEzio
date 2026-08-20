@@ -1,7 +1,7 @@
 # F51 Risk Register
 
-Updated: 2026-08-17T22:55:00-04:00
-Session: save-2026-08-17
+Updated: 2026-08-20T12:30:00-04:00
+Session: total-system-documentation-sync-2026-08-20
 
 ## Active Risks
 
@@ -415,9 +415,11 @@ Session: save-2026-08-17
   resposta vazia ou degradada, permitindo um falso PASS de release.
 - Evidence: `.f51/INVENTORY.json`, `.f51/CONTRACTS.json`, `.f51/TASK_BOARD.md`,
   `docs/AGENT_OPERATING_SYSTEM.md` e `scripts/quality_probe.py`.
-- Mitigation: gerar snapshots canonicos do runtime, validar drift no gate e tornar todo probe
-  de qualidade fail-closed.
-- Status: Active — bloqueia release V1.
+- Mitigation: correção total em andamento com recon independente, runtime/config/testes e
+  documentação em ownerships separados; fonte canônica fixada em `config/runtime.yml`,
+  `config/model_manifest.json`, `config.ps1` e `docs/runbooks/RUNBOOK.md`. O gate final exige
+  suíte completa determinística, build/release checks e smoke real ou bloqueio explícito.
+- Status: Active — remediação iniciada em 2026-08-20; continua bloqueando release até o gate.
 
 ### INV-R39 - Novos agentes de entrega ainda nao foram benchmarkados [MEDIUM]
 

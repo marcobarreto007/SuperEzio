@@ -2,6 +2,13 @@
 
 ## Backlog
 
+- [ ] 2026-08-20 - **Correção total sistema ↔ documentação** (Codex + subagentes):
+  consolidar uma única verdade operacional (CEO local zero-cloud `:8080`, API/UI `:8002`,
+  22 agentes), corrigir referências divergentes em código/config/testes, sincronizar toda
+  documentação ativa, rotular evidência histórica, eliminar comandos inexistentes e fechar
+  o gate com suíte completa, cobertura, build/release checks e browser smoke. Contratos
+  públicos devem permanecer intactos. Risco rastreado em INV-R38.
+
 - [x] 2026-08-18 - **TD Direct commission-free research universe** (Codex): captured the
   official 108-ETF list (83 Canada, 25 US), added dated/stale-failing eligibility checks and
   `GET /trade/td-commission-free`. Added an authenticated, non-transmitting `/trade/td-draft`
