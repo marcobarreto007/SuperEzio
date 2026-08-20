@@ -605,5 +605,61 @@
     ],
     "go_live": "NO_GO_REAL_CAPITAL; operational UI recovery does not authorize live execution"
   },
+  "product_delivery_v1": {
+    "status": "in_progress",
+    "activated_at": "2026-08-20",
+    "objective": "Deliver a transferable local Windows financial-research copilot; no broker transport and no real-capital authorization.",
+    "official_research_conclusion": "Reliable delivery systems converge on a human product owner, narrow orchestrator, isolated implementer, independent verifiers, deterministic release gates, canary/pilot and SRE ownership. No universal best agent exists; measured role performance matters more than agent count.",
+    "delivery_agents": [
+      "product-delivery-orchestrator",
+      "product-implementer",
+      "ai-eval-verifier",
+      "reliability-sre-operator",
+      "release-readiness-manager"
+    ],
+    "money_gate": {
+      "v1_delivery": "GO",
+      "external_sale": "DEFER",
+      "real_capital": "NO_GO",
+      "td_execution": "NO_GO"
+    },
+    "product_contract": {
+      "initial_operator": "Marco, Canadian self-directed investor",
+      "value": "Local, auditable financial research and risk copilot",
+      "package": "Clean Windows ZIP installed from requirements-lock.txt",
+      "cuts": [
+        "broker automation",
+        "SaaS and multi-tenancy",
+        "new models and new experts",
+        "profit claims",
+        "premium UI redesign"
+      ],
+      "pricing": "Deferred until transferable-product validation and temporal evaluation"
+    },
+    "p0": [
+      "canonical locked Windows runtime without developer paths",
+      "single fail-closed authentication contract without default password",
+      "canonical runtime and API inventory for ports 8002 and 8080",
+      "quality probe that fails closed",
+      "clean ZIP, manifest, checksum and clean-machine rehearsal",
+      "provider secret rotation before transfer"
+    ],
+    "evidence": {
+      "agent_gate": "22 agents, 32 skills, 0 structural violations",
+      "agent_tests": "7 targeted tests passed",
+      "lint": "Ruff passed on the changed Python files",
+      "browser_smoke": "TD.TO returned 126 candles, 7 canvases and zero console errors",
+      "commits": [
+        "91554f6",
+        "e6100e8",
+        "ca5f14f",
+        "357ceb4",
+        "01d4494",
+        "be7b55c"
+      ]
+    },
+    "next_step": "Repair and test the canonical Windows bootstrap from the dependency lock.",
+    "go_live": "NO_GO_REAL_CAPITAL"
+  },
   "owner": "Codex"
 }
