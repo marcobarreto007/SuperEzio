@@ -655,10 +655,21 @@
         "ca5f14f",
         "357ceb4",
         "01d4494",
-        "be7b55c"
+        "be7b55c",
+        "c86a88e",
+        "49979ae"
       ]
     },
-    "next_step": "Repair and test the canonical Windows bootstrap from the dependency lock.",
+    "completed_slices": {
+      "windows_bootstrap_contract": {
+        "result": "Bootstrap is project-relative, installs the regenerated Windows Python 3.11 lock, installs SuperEzio without dependency re-resolution, installs Playwright Chromium, requires an operator-supplied admin password and delegates runtime startup to start.ps1.",
+        "lock": "134 packages resolved from pyproject.toml plus the dev extra for Windows/Python 3.11",
+        "tests": "3 targeted bootstrap contract tests passed; Ruff passed",
+        "browser_smoke": "TD.TO returned 123 candles, 7 canvases and zero console errors",
+        "commit": "49979ae"
+      }
+    },
+    "next_step": "Unify the V1 authentication boundary and verify login to protected route to logout.",
     "go_live": "NO_GO_REAL_CAPITAL"
   },
   "owner": "Codex"
