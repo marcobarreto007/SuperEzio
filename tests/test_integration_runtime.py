@@ -70,7 +70,9 @@ def test_api_health_endpoint(servers_running):
 
 def test_api_health_details_endpoint(servers_running):
     req = urllib.request.Request(API_DETAILS)
-    resp = urllib.request.urlopen(req, timeout=5)
+    # Detailed health performs bounded broker/data probes and is intentionally
+    # slower than the liveness endpoint. Keep this above those probe budgets.
+    resp = urllib.request.urlopen(req, timeout=15)
     assert resp.status == 200
     body = json.loads(resp.read())
     assert body.get("status") == "ok"
@@ -88,7 +90,10 @@ def test_task_submit_casual(servers_running):
         "from": "test-runner",
         "to": "bob",
         "type": "TASK.SUBMIT",
-        "payload": {"message": "Hello, what can you do?"},
+        "payload": {
+            "message": "Reply with exactly one short sentence describing your role.",
+            "session_id": "integration-casual",
+        },
     }
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
@@ -96,7 +101,9 @@ def test_task_submit_casual(servers_running):
         data=data,
         headers={"Content-Type": "application/json"},
     )
-    resp = urllib.request.urlopen(req, timeout=180)
+    # The canonical local runtime allows up to 600 seconds. This prompt takes
+    # roughly three minutes on the validated dual-GPU profile after cold boot.
+    resp = urllib.request.urlopen(req, timeout=600)
     body = resp.read().decode("utf-8")
     # SSE stream — should produce multiple lines
     lines = [line for line in body.strip().split("\n") if line.strip()]
@@ -122,6 +129,7 @@ def test_task_submit_ticker_analysis(servers_running):
             "message": "AAPL 14 dias analise",
             "ticker": "AAPL",
             "time_horizon": "14 days",
+            "session_id": "integration-ticker",
         },
     }
     data = json.dumps(payload).encode("utf-8")
@@ -130,7 +138,7 @@ def test_task_submit_ticker_analysis(servers_running):
         data=data,
         headers={"Content-Type": "application/json"},
     )
-    resp = urllib.request.urlopen(req, timeout=300)
+    resp = urllib.request.urlopen(req, timeout=600)
     body = resp.read().decode("utf-8")
     lines = [line for line in body.strip().split("\n") if line.strip()]
     assert len(lines) >= 10, f"Expected at least 10 SSE lines, got {len(lines)}"

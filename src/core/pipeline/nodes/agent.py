@@ -41,8 +41,66 @@ from ..verdict import build_pipeline_verdict
 
 logger = logging.getLogger(__name__)
 
+# Conservative character budget for an 8192-token llama context while
+# reserving 512 output tokens and chat-template overhead. Runtime evidence on
+# Qwen3.8 showed that an unbounded 37 KB prompt became 8705 input tokens.
+LOCAL_AGENT_INPUT_CHAR_BUDGET = 24_000
+_PROMPT_TRUNCATION_MARKER = "\n[TRUNCATED TO FIT LOCAL CONTEXT]"
+
 # Trace logger singleton
 _tracer = DecisionTraceLogger()
+
+
+def _fit_messages_to_local_context(
+    messages: list[dict[str, str]],
+    char_budget: int = LOCAL_AGENT_INPUT_CHAR_BUDGET,
+) -> list[dict[str, str]]:
+    """Bound low-priority prompt material before calling the local model.
+
+    The binding system/verdict messages and final instruction are preserved as
+    long as possible. Pipeline reports and observations are trimmed first.
+    """
+
+    fitted = [dict(message) for message in messages]
+
+    def total_chars() -> int:
+        return sum(len(str(message.get("content", ""))) for message in fitted)
+
+    def trim(index: int, minimum: int) -> None:
+        excess = total_chars() - char_budget
+        if excess <= 0:
+            return
+        content = str(fitted[index].get("content", ""))
+        removable = max(0, len(content) - minimum)
+        if removable <= 0:
+            return
+        remove = min(removable, excess + len(_PROMPT_TRUNCATION_MARKER))
+        keep = max(minimum, len(content) - remove)
+        fitted[index]["content"] = content[:keep] + _PROMPT_TRUNCATION_MARKER
+
+    # These duplicate structured state already represented by the binding
+    # verdict and are safest to abbreviate.
+    for prefix in ("Pipeline Report:\n", "Observations so far:\n"):
+        for index, message in enumerate(fitted):
+            if str(message.get("content", "")).startswith(prefix):
+                trim(index, len(prefix) + 512)
+
+    # Defensive fallback for future prompt additions: trim the largest
+    # non-final user messages, then system messages only if unavoidable.
+    final_index = len(fitted) - 1
+    candidates = sorted(
+        (index for index in range(len(fitted)) if index != final_index),
+        key=lambda index: len(str(fitted[index].get("content", ""))),
+        reverse=True,
+    )
+    for index in candidates:
+        role = str(fitted[index].get("role", ""))
+        trim(index, 2048 if role == "system" else 256)
+
+    if total_chars() > char_budget:
+        raise ValueError("binding prompt exceeds local context budget")
+    return fitted
+
 
 # ============================================================================
 # SECTION A: Prompt Builders & Formatters
@@ -2932,6 +2990,8 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         }
     )
 
+    messages = _fit_messages_to_local_context(messages)
+
     # ── Prompt debug logging ──
     system_prompt = messages[0]["content"] if messages else ""
     user_prompt = messages[1]["content"] if len(messages) > 1 else ""
@@ -2963,12 +3023,14 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         logger.warning("Failed to save prompt to disk: %s", e)
 
     try:
-        from ...model_serving.providers import AGENT_PROVIDER_NAME
+        from ...model_serving.providers import AGENT_PROVIDER_NAME, LOCAL_MAX_TOKENS
 
         raw = await gateway.chat_completion(
             messages=messages,
             temperature=0.7 if bob_sovereign else 0.1,
-            max_tokens=4096 if bob_sovereign else 2048,
+            # The validated Qwen 27B profile generates ~1.3 tok/s. A larger
+            # cap can exceed the 600s gateway timeout and strand the SSE task.
+            max_tokens=LOCAL_MAX_TOKENS,
             preferred_provider=AGENT_PROVIDER_NAME,
             json_mode=False if bob_sovereign else True,
         )

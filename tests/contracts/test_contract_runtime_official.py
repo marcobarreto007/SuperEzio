@@ -276,6 +276,7 @@ def test_provider_factory_keeps_agent_local_only(monkeypatch):
     from core.model_serving.providers import (
         AGENT_MODEL_ID,
         AGENT_PROVIDER_NAME,
+        DEEPSEEK_PROVIDER_NAME,
         PRIMARY_PROVIDER_NAME,
         build_default_providers,
     )
@@ -289,11 +290,19 @@ def test_provider_factory_keeps_agent_local_only(monkeypatch):
     assert by_name[AGENT_PROVIDER_NAME].backend == "openai_compatible"
     assert by_name[AGENT_PROVIDER_NAME].base_url == "http://127.0.0.1:8080/v1"
     assert by_name[AGENT_PROVIDER_NAME].model == AGENT_MODEL_ID
+    assert by_name[AGENT_PROVIDER_NAME].max_tokens == 512
+    assert by_name[AGENT_PROVIDER_NAME].timeout_s == 600
     assert PRIMARY_PROVIDER_NAME == "local_orchestrator"
     assert by_name[PRIMARY_PROVIDER_NAME].is_local is True
     assert by_name[PRIMARY_PROVIDER_NAME].backend == "openai_compatible"
     assert by_name[PRIMARY_PROVIDER_NAME].base_url == "http://127.0.0.1:8080/v1"
     assert by_name[PRIMARY_PROVIDER_NAME].model == AGENT_MODEL_ID
+    assert by_name[PRIMARY_PROVIDER_NAME].max_tokens == 512
+    assert by_name[PRIMARY_PROVIDER_NAME].timeout_s == cfg.models["orchestrator"].timeout_s
+    assert cfg.models["agent"].timeout_s == 600
+    assert gateway_config.timeout_s == 600
+    assert by_name[DEEPSEEK_PROVIDER_NAME].max_tokens == 192
+    assert by_name[DEEPSEEK_PROVIDER_NAME].timeout_s == 600
 
 
 # Launcher batch file has been retired/deleted.

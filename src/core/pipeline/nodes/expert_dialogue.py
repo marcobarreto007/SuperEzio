@@ -8,6 +8,8 @@ import os
 import re
 from typing import Any
 
+from ...model_serving.providers import LOCAL_EXPERT_MAX_TOKENS, LOCAL_TIMEOUT_S
+
 
 def _parse_json_object(text: str) -> dict[str, Any]:
     clean = str(text or "").strip()
@@ -95,7 +97,10 @@ class ExpertDialogue:
         self.max_rounds = max(1, int(max_rounds or 1))
         self.history: list[dict[str, Any]] = []
         self._system_prompts: dict[str, str] = {}
-        self._timeout = int(os.getenv("SUPEREZIO_EXPERT_TIMEOUT", "240"))
+        self._timeout = max(
+            int(os.getenv("SUPEREZIO_EXPERT_TIMEOUT", str(LOCAL_TIMEOUT_S))),
+            LOCAL_TIMEOUT_S,
+        )
 
     async def ask(
         self,
@@ -222,7 +227,15 @@ class ExpertDialogue:
                     ],
                     preferred_provider=provider,
                     temperature=0.2,
-                    max_tokens=int(os.getenv("SUPEREZIO_EXPERT_MAX_TOKENS", "2000")),
+                    max_tokens=min(
+                        int(
+                            os.getenv(
+                                "SUPEREZIO_EXPERT_MAX_TOKENS",
+                                str(LOCAL_EXPERT_MAX_TOKENS),
+                            )
+                        ),
+                        LOCAL_EXPERT_MAX_TOKENS,
+                    ),
                     allow_fallback=not research_mode,
                 ),
                 timeout=self._timeout,

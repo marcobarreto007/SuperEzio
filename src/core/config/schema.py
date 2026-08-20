@@ -33,6 +33,7 @@ class ModelConfig:
     engine: str = "openai_compatible"
     system_prefix: str = ""
     max_tokens: int = 2048
+    timeout_s: int = 600
     temperature: float = 0.7
     n_threads: int = 0
     name: str = ""

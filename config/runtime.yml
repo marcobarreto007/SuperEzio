@@ -34,8 +34,10 @@ models:
     role: agent
     is_local: true
     temperature: 0.3
-    max_tokens: 8192
-    timeout_s: 300
+    # 512 keeps worst-case generation inside the 600s local gateway budget
+    # on the validated ~1.3 tok/s dual-GPU profile.
+    max_tokens: 512
+    timeout_s: 600
     script: scripts/serve_agent_llamacpp.ps1
     preferred_llama_server: llama.cpp/bin/llama-server.exe
     # Perfil 2026-08-18: -ngl all -sm layer -ts 12,8, cache q8_0, contexto 8192
@@ -58,6 +60,8 @@ models:
     backend: openai_compatible
     role: orchestrator
     is_local: true
+    max_tokens: 512
+    timeout_s: 600
 
   experts:
     name: Local experts (shared cc)
@@ -67,6 +71,8 @@ models:
     backend: openai_compatible
     role: worker
     is_local: true
+    max_tokens: 192
+    timeout_s: 600
     roles:
       - fundamental
       - technical

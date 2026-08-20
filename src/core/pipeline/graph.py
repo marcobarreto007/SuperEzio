@@ -500,8 +500,12 @@ async def _auto_full_analysis(
             "social_forensics",
         ]
 
-        replicas = max(1, int(os.getenv("SUPEREZIO_EXPERT_REPLICAS", "1")))
-        concurrency = max(1, int(os.getenv("SUPEREZIO_EXPERT_CONCURRENCY", "3")))
+        # The official profile has one inference slot. Replicas above one
+        # multiply wall-clock latency without adding model diversity.
+        replicas = 1
+        # The canonical llama-server has one slot. Parallel expert requests
+        # only wait in its queue and can expire before generation starts.
+        concurrency = 1
         semaphore = asyncio.Semaphore(concurrency)
 
         async def _run_one_expert(role: str, replica_id: int) -> list[dict[str, Any]]:
@@ -567,8 +571,8 @@ async def _auto_full_analysis(
                 },
             )
 
-        red_team_agents = max(0, int(os.getenv("SUPEREZIO_RED_TEAM_AGENTS", "0")))
-        judge_agents = max(0, int(os.getenv("SUPEREZIO_JUDGE_AGENTS", "0")))
+        red_team_agents = min(max(0, int(os.getenv("SUPEREZIO_RED_TEAM_AGENTS", "0"))), 1)
+        judge_agents = min(max(0, int(os.getenv("SUPEREZIO_JUDGE_AGENTS", "0"))), 1)
         red_team_results: list[dict[str, Any]] = []
         judge_results: list[dict[str, Any]] = []
         auditor_result: dict[str, Any] | None = None

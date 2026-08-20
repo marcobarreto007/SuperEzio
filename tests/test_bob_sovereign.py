@@ -1,8 +1,30 @@
 import pytest
 
 from src.core.pipeline.nodes.orchestrator import node_orchestrator
-from src.core.pipeline.nodes.agent import _parse_tool_calls, node_agent
+from src.core.pipeline.nodes.agent import (
+    _fit_messages_to_local_context,
+    _parse_tool_calls,
+    node_agent,
+)
 from src.core.pipeline.nodes.tool_executor import node_tool_executor
+
+
+def test_local_prompt_budget_trims_reports_before_binding_contracts():
+    messages = [
+        {"role": "system", "content": "binding-system" * 300},
+        {"role": "system", "content": "binding-verdict" * 300},
+        {"role": "user", "content": "Pipeline Report:\n" + "P" * 20_000},
+        {"role": "user", "content": "Observations so far:\n" + "O" * 12_000},
+        {"role": "user", "content": "final instruction"},
+    ]
+
+    fitted = _fit_messages_to_local_context(messages)
+
+    assert sum(len(message["content"]) for message in fitted) <= 24_000
+    assert fitted[0]["content"] == messages[0]["content"]
+    assert fitted[1]["content"] == messages[1]["content"]
+    assert fitted[-1]["content"] == "final instruction"
+    assert any("TRUNCATED TO FIT LOCAL CONTEXT" in message["content"] for message in fitted)
 
 
 @pytest.mark.asyncio

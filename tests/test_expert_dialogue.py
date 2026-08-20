@@ -65,3 +65,17 @@ def test_extract_verdict_payload_supports_text_fallback():
 
     assert payload["verdict"] == "SUSPICIOUS"
     assert payload["confidence"] == 72.0
+
+
+@pytest.mark.asyncio
+async def test_expert_dialogue_caps_output_and_enforces_local_timeout(monkeypatch):
+    monkeypatch.setenv("SUPEREZIO_EXPERT_MAX_TOKENS", "2000")
+    monkeypatch.setenv("SUPEREZIO_EXPERT_TIMEOUT", "240")
+    gateway = RecordingGateway(['{"verdict":"NEUTRAL","confidence":50}'])
+
+    dialogue = ExpertDialogue(gateway, max_rounds=1)
+    result = await dialogue.ask("sentiment", "deepseek", "system", "context")
+
+    assert result["ok"] is True
+    assert dialogue._timeout == 600
+    assert gateway.calls[0]["max_tokens"] == 192

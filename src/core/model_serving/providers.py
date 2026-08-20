@@ -43,6 +43,9 @@ DAYTRADE_AUDITOR_PROVIDER_NAME = "daytrade_auditor"
 # Qwen3.8-27B-Q4_K_M (15.9 GB) on 2 GPUs (RTX 3060 12GB + RTX 2070 8GB, -ts 12,8),
 # context 8192, single slot. One server serves Claude Code AND SuperEzio.
 LOCAL_QWEN_BASE_URL = "http://127.0.0.1:8080/v1"
+LOCAL_MAX_TOKENS = 512
+LOCAL_EXPERT_MAX_TOKENS = 192
+LOCAL_TIMEOUT_S = 600
 
 # llama-server ignores the API key, but the OpenAI client library refuses to
 # build a request without one ("Missing credentials"). Local providers carry
@@ -127,7 +130,14 @@ def build_default_providers(
             api_key=LOCAL_API_KEY_PLACEHOLDER,
             priority=0,  # HIGHEST priority — local model
             model=local_model,
-            max_tokens=orchestrator_config.max_tokens if orchestrator_config else 8192,
+            timeout_s=max(
+                orchestrator_config.timeout_s if orchestrator_config else LOCAL_TIMEOUT_S,
+                LOCAL_TIMEOUT_S,
+            ),
+            max_tokens=min(
+                orchestrator_config.max_tokens if orchestrator_config else LOCAL_MAX_TOKENS,
+                LOCAL_MAX_TOKENS,
+            ),
             temperature=orchestrator_config.temperature if orchestrator_config else 0.4,
             is_local=True,
             backend="openai_compatible",
@@ -147,8 +157,14 @@ def build_default_providers(
             api_key=LOCAL_API_KEY_PLACEHOLDER,
             priority=-300,
             model=experts_model,
-            timeout_s=int(os.getenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", "240")),
-            max_tokens=int(os.getenv("SUPEREZIO_DEEPSEEK_MAX_TOKENS", "4096")),
+            timeout_s=max(
+                int(os.getenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", str(LOCAL_TIMEOUT_S))),
+                LOCAL_TIMEOUT_S,
+            ),
+            max_tokens=min(
+                int(os.getenv("SUPEREZIO_DEEPSEEK_MAX_TOKENS", str(LOCAL_EXPERT_MAX_TOKENS))),
+                LOCAL_EXPERT_MAX_TOKENS,
+            ),
             temperature=float(os.getenv("SUPEREZIO_DEEPSEEK_TEMPERATURE", "0.2")),
             is_local=True,
             backend="openai_compatible",
@@ -170,8 +186,19 @@ def build_default_providers(
                 api_key=LOCAL_API_KEY_PLACEHOLDER,
                 priority=priority,
                 model=model,
-                timeout_s=int(os.getenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", "240")),
-                max_tokens=int(os.getenv("SUPEREZIO_DEEPSEEK_MAX_TOKENS", "4096")),
+                timeout_s=max(
+                    int(os.getenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", str(LOCAL_TIMEOUT_S))),
+                    LOCAL_TIMEOUT_S,
+                ),
+                max_tokens=min(
+                    int(
+                        os.getenv(
+                            "SUPEREZIO_DEEPSEEK_MAX_TOKENS",
+                            str(LOCAL_EXPERT_MAX_TOKENS),
+                        )
+                    ),
+                    LOCAL_EXPERT_MAX_TOKENS,
+                ),
                 temperature=float(os.getenv("SUPEREZIO_DEEPSEEK_TEMPERATURE", "0.2")),
                 is_local=True,
                 backend="openai_compatible",
@@ -190,8 +217,11 @@ def build_default_providers(
             api_key=os.getenv("SUPEREZIO_AGENT_API_KEY", "") or LOCAL_API_KEY_PLACEHOLDER,
             priority=-10,  # HIGH priority — local CEO
             model=agent_model,
-            timeout_s=int(os.getenv("SUPEREZIO_AGENT_TIMEOUT_SEC", "600")),
-            max_tokens=8192,
+            timeout_s=max(
+                int(os.getenv("SUPEREZIO_AGENT_TIMEOUT_SEC", str(LOCAL_TIMEOUT_S))),
+                LOCAL_TIMEOUT_S,
+            ),
+            max_tokens=LOCAL_MAX_TOKENS,
             temperature=0.4,
             is_local=True,
             backend="openai_compatible",
