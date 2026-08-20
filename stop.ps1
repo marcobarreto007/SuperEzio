@@ -11,7 +11,7 @@ $configPath = Join-Path $ScriptDir "config.ps1"
 if (Test-Path $configPath) {
     . $configPath
 } else {
-    $CeoPort = 8082
+    $CeoPort = 8080
     $ApiPort = 8002
 }
 

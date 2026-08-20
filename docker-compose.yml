@@ -1,35 +1,35 @@
 services:
   bob-ceo:
-    image: ghcr.io/ggerganov/llama.cpp:full-cuda
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
     container_name: superezio-bob
     command:
       - "--model"
-      - "/models/Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf"
+      - "/models/Qwen3.8-27B-Q4_K_M.gguf"
       - "--port"
-      - "8082"
+      - "8080"
       - "--host"
       - "0.0.0.0"
       - "-ngl"
-      - "14"
+      - "all"
+      - "-sm"
+      - "layer"
+      - "-ts"
+      - "12,8"
       - "-c"
-      - "131072"
+      - "8192"
       - "-np"
-      - "2"
+      - "1"
       - "-fa"
       - "on"
-      - "-ctk"
+      - "--cache-type-k"
       - "q8_0"
-      - "-ctv"
+      - "--cache-type-v"
       - "q8_0"
-      - "--n-cpu-moe"
-      - "31"
-      - "-cram"
-      - "8192"
       - "--reasoning"
       - "off"
       - "--mlock"
     ports:
-      - "8082:8082"
+      - "8080:8080"
     volumes:
       - ./models:/models:ro
     deploy:
@@ -37,13 +37,13 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              count: 1
+              count: all
               capabilities: [gpu]
     restart: unless-stopped
     networks:
       - backend
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -59,9 +59,15 @@ services:
       - "8002:8002"
     environment:
       - PYTHONPATH=/app/src
-      - SUPEREZIO_PRIMARY_BASE_URL=http://bob-ceo:8082/v1
-      - SUPEREZIO_AGENT_BASE_URL=http://bob-ceo:8082/v1
-      - SUPEREZIO_CEO_BASE_URL=http://bob-ceo:8082/v1
+      - SUPEREZIO_HOST=0.0.0.0
+      - SUPEREZIO_RUNTIME_PROFILE=docker
+      - SUPEREZIO_PRIMARY_BASE_URL=http://bob-ceo:8080/v1
+      - SUPEREZIO_AGENT_BASE_URL=http://bob-ceo:8080/v1
+      - SUPEREZIO_DEEPSEEK_BASE_URL=http://bob-ceo:8080/v1
+      - SUPEREZIO_CEO_BASE_URL=http://bob-ceo:8080/v1
+      - SUPEREZIO_PRIMARY_MODEL=Qwen3.8-27B-Q4_K_M
+      - SUPEREZIO_AGENT_MODEL=Qwen3.8-27B-Q4_K_M
+      - SUPEREZIO_DEEPSEEK_MODEL=Qwen3.8-27B-Q4_K_M
       - F51_TRADING_EXECUTION_FREEZE=true
       - SUPEREZIO_LIVE_TRADING_DISABLED=1
       - SUPEREZIO_DAYTRADE_PAPER_ONLY=1

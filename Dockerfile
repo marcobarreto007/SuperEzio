@@ -4,19 +4,18 @@ WORKDIR /app
 
 # System deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Python deps
-COPY pyproject.toml .
-RUN pip install --no-cache-dir -e ".[dev]" 2>/dev/null || \
-    pip install --no-cache-dir \
-    structlog pydantic-settings prometheus-client tenacity \
-    fastapi uvicorn httpx aiohttp pydantic pyyaml \
-    pandas numpy scipy scikit-learn yfinance \
-    hypothesis coverage pytest pytest-asyncio pytest-cov pytest-xdist
-
 COPY . .
+
+# Install the project only after its src/ tree is available.  The previous
+# editable install ran with pyproject.toml alone and silently fell back to an
+# incomplete hand-maintained dependency list.
+RUN python -m pip install --no-cache-dir --upgrade pip && \
+    python -m pip install --no-cache-dir .
 
 ENV PYTHONPATH=/app/src
 EXPOSE 8002

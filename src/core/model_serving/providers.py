@@ -16,6 +16,7 @@ import logging
 import os
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
 from ..config.schema import GatewayConfig
 
@@ -40,7 +41,7 @@ DAYTRADE_AUDITOR_PROVIDER_NAME = "daytrade_auditor"
 
 # Shared local llama-server (perfil cc — 2026-08-18):
 # Qwen3.8-27B-Q4_K_M (15.9 GB) on 2 GPUs (RTX 3060 12GB + RTX 2070 8GB, -ts 12,8),
-# context 16384 (24576 CUDA OOM), single slot. One server serves Claude Code AND SuperEzio.
+# context 8192, single slot. One server serves Claude Code AND SuperEzio.
 LOCAL_QWEN_BASE_URL = "http://127.0.0.1:8080/v1"
 
 # llama-server ignores the API key, but the OpenAI client library refuses to
@@ -51,7 +52,23 @@ LOCAL_API_KEY_PLACEHOLDER = "local-served"
 
 
 def _is_local_url(url: str) -> bool:
-    return url.startswith("http://127.0.0.1") or url.startswith("http://localhost")
+    """Accept loopback, plus the compose service only in Docker profile.
+
+    Parsing the hostname prevents lookalikes such as ``localhost.example.com``.
+    The Docker DNS name is deliberately unavailable unless the compose-only
+    runtime profile is explicit, so a host-side stale env cannot widen the
+    zero-cloud boundary.
+    """
+    parsed = urlparse(url)
+    if parsed.scheme != "http":
+        return False
+    if parsed.hostname in {"127.0.0.1", "localhost", "::1"}:
+        return True
+    return (
+        os.getenv("SUPEREZIO_RUNTIME_PROFILE", "").strip().lower() == "docker"
+        and parsed.hostname == "bob-ceo"
+        and parsed.port == 8080
+    )
 
 
 def _local_only_override(env_var: str) -> str:

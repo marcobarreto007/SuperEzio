@@ -66,5 +66,34 @@ def test_stale_cloud_env_override_is_ignored(monkeypatch) -> None:
     assert agent.is_local is True
 
 
+def test_docker_service_hostname_requires_explicit_docker_profile(monkeypatch) -> None:
+    """bob-ceo is local only inside the isolated compose network."""
+    monkeypatch.setenv("SUPEREZIO_AGENT_BASE_URL", "http://bob-ceo:8080/v1")
+    monkeypatch.delenv("SUPEREZIO_RUNTIME_PROFILE", raising=False)
+
+    providers, _ = build_providers()
+    agent = next(p for p in providers if p.name == "agent")
+    assert agent.base_url == "http://127.0.0.1:8080/v1"
+
+    monkeypatch.setenv("SUPEREZIO_RUNTIME_PROFILE", "docker")
+    providers, _ = build_providers()
+    agent = next(p for p in providers if p.name == "agent")
+    assert agent.base_url == "http://bob-ceo:8080/v1"
+
+
+def test_docker_profile_does_not_allow_other_hosts_or_ports(monkeypatch) -> None:
+    monkeypatch.setenv("SUPEREZIO_RUNTIME_PROFILE", "docker")
+    for unsafe_url in (
+        "https://bob-ceo:8080/v1",
+        "http://bob-ceo:8082/v1",
+        "http://api.deepseek.com/v1",
+        "http://localhost.example.com:8080/v1",
+    ):
+        monkeypatch.setenv("SUPEREZIO_AGENT_BASE_URL", unsafe_url)
+        providers, _ = build_providers()
+        agent = next(p for p in providers if p.name == "agent")
+        assert agent.base_url == "http://127.0.0.1:8080/v1"
+
+
 if __name__ == "__main__":
     raise SystemExit("Run via pytest: python -m pytest tests/test_ceo_fallback.py -q")

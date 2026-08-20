@@ -141,6 +141,10 @@ The browser smoke requires the API on port `8002`. The suite collected **1,885 t
 
 ## Docker Quick Start
 
+Before starting Compose, place `Qwen3.8-27B-Q4_K_M.gguf` in the repository's
+`models/` directory. The GGUF is intentionally not versioned or copied into the
+API image; Compose mounts that directory read-only at `/models`.
+
 ```powershell
 docker compose up -d                                  # Start local services (bob-ceo on 8080, api-server on 8002)
 docker compose logs -f                                # Tail logs from all services

@@ -120,7 +120,7 @@
         const ceoEl = $("ops-health-ceo");
         if (ceoEl) {
           if (ceo.reachable) {
-            ceoEl.textContent = "Reachable (:8082)";
+            ceoEl.textContent = "Reachable (:8080)";
             ceoEl.className = "ops-status-ok";
           } else if (orchestrator.configured) {
             ceoEl.textContent = `Configured (${esc(orchestrator.model || "local orchestrator")})`;

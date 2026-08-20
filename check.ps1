@@ -182,7 +182,7 @@ if (Test-Path $EnvFile) {
     Pass ".env exists"
 } elseif (Test-Path $EnvExampleFile) {
     Warn ".env missing. Copy .env.example to .env if you want external data/provider keys."
-    Warn "The local CEO can run without cloud keys, but data/expert coverage may be reduced."
+    Warn "The local CEO can run without cloud keys, but market-data coverage may be reduced."
 } else {
     Fail ".env and .env.example missing." "Create a .env file from the documented template."
 }
