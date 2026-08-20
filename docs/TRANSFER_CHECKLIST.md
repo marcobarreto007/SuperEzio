@@ -74,7 +74,7 @@ powershell -ExecutionPolicy Bypass -File .\clean.ps1 -Apply
 - [ ] `start.ps1` brings CEO and API healthy.
 - [ ] UI opens at `http://127.0.0.1:8002`.
 - [ ] One bounded research prompt completes.
-- [ ] `stop.ps1` frees ports 8082 and 8002.
+- [ ] `stop.ps1` frees ports 8080 and 8002.
 
 ## Sign-Off
 

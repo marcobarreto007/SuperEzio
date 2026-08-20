@@ -1,5 +1,7 @@
 # Estudo Completo — SuperEzio v4
 
+> **HISTORICO / SUPERSEDED.** Estudo preservado de 2026-06-15. O runtime atual esta documentado em `docs/runbooks/RUNBOOK.md`.
+
 **Data:** 2026-06-15 | **Autor:** Deep (Auditoria Final)
 **Serviços:** CEO ONLINE | API ONLINE | IBKR ONLINE ($100K, 1 pos)
 

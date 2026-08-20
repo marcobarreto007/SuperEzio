@@ -1,5 +1,7 @@
 # DELIVERY — SuperEzio Personal Financial Copilot
 
+> **HISTORICO / SUPERSEDED.** Este handoff registra o estado da entrega de 2026-05-21 e deve permanecer como evidência histórica. Ele não é um runbook do runtime atual; comandos, portas, modelos e fallbacks descritos abaixo podem estar obsoletos. Para operação e release atuais, use `docs/runbooks/RUNBOOK.md` e `docs/runbooks/DELIVERY_CHECKLIST_v3.md`. O contrato atual é zero-cloud: Qwen3.8-27B local em `:8080`, API/UI em `:8002`, sem fallback de LLM em nuvem.
+
 **Release Tag:** Zero-Garbage-Runtime v1
 **Audit Pass:** Pre-Delivery Quality Gate
 **Date of Final Pass:** 2026-05-21

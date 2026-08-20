@@ -9,38 +9,39 @@ Browser (http://127.0.0.1:8002)
 FastAPI Server (:8002)
     |
     +--> Pipeline (LangGraph v4)
-    |    +-- orchestrator_primary     classifies intent, route, data needs
-    |    +-- data collector           fetches price, fundamentals, technicals, macro
-    |    +-- institutional experts    macro, fundamental, momentum, contrarian
-    |    +-- f51_verdict              deterministic scoring engine
-    |    +-- pennylab                 optional forensic penny-stock guardrails
-    |    +-- neural                   pattern-matching engine
-    |    +-- sdca                     cognitive risk firewall
-    |    +-- rag                      forensic retrieval
-    |    +-- ceo (Bob)                response consolidation
+    |    +-- orchestrator_primary     passthrough; opens case and tool contract
+    |    +-- auto_full_analysis       deterministic analysis/evidence stage
+    |    +-- trinity                  deliberation and safety route
+    |    +-- agent (Bob)              decides intent and calls tools as needed
+    |    |       ^
+    |    |       +-- tool_executor    executes allowed tool, then returns to Bob
+    |    +-- auto_execute_paper       guarded paper-order submission path
     |    +-- explanation              streaming NDJSON to UI
+    |    +-- respond_blocked          fail-closed response path
     |
     +--> DataHub
-    |    +-- Finnhub                  price, profile, fundamentals, catalyst
-    |    +-- Twelve Data              fallback price
-    |    +-- yfinance                 fallback price and candles
-    |    +-- Stooq                    emergency keyless price
+    |    +-- market/fundamentals      yfinance, Finnhub, Twelve Data, Alpha Vantage, AKShare
+    |    +-- macro/quant              BoC Macro, Fed Macro, AlphaSMO, Wolfram
+    |    +-- news/social/filings      NewsAPI, News Scout, Reddit Pulse, ApeWisdom,
+    |                                 Social Whale, Form4API
     |
     +--> Model Gateway
-         +-- Local CEO (:8082)        Bob Core
-         +-- Optional cloud experts   configured provider fallback
+         +-- Shared local llama-server (:8080)
+             +-- Bob CEO              Qwen3.8-27B
+             +-- orchestrator         role prompt on the same model
+             +-- experts/judges       role prompts on the same model
 ```
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| API | FastAPI + uvicorn + SSE streaming |
+| API | FastAPI + uvicorn + streaming NDJSON responses |
 | Pipeline | LangGraph DAG with conditional routing |
 | Validation | Pydantic v2 |
-| CEO Model | Bob Core GGUF |
+| LLM Roles | Qwen3.8-27B GGUF, shared locally by CEO, orchestrator, experts, judge, and auditor |
 | Model Serving | llama.cpp + F51 Nitro MoE runtime knobs |
-| Data | yfinance, Finnhub, Twelve Data, Alpha Vantage, Stooq |
+| Data | DataHub capability routing across 15 providers: AKShare, Alpha Vantage, AlphaSMO, ApeWisdom, BoC Macro, Fed Macro, Finnhub, Form4API, News Scout, NewsAPI, Reddit Pulse, Social Whale, Twelve Data, Wolfram, and yfinance |
 | AI/ML | PyTorch, transformers, sentence-transformers, FAISS |
 | Observability | Traces, metrics, and structured logs |
 | Frontend | Vanilla HTML/CSS/JS with canvas candle rendering |
@@ -49,21 +50,19 @@ FastAPI Server (:8002)
 
 ## Data Flow Per Request
 
-1. User sends a prompt and the orchestrator classifies intent.
-2. If the request is a market scan, DataHub scans US and Canadian equities.
-3. Enrichment collects price, profile, fundamentals, technicals, and catalysts where available.
-4. Gates reject candidates with missing price, weak thesis, micro-cap risk, or poor data quality.
-5. Experts analyze survivors from different perspectives.
-6. The SDCA firewall checks FOMO, leverage, slippage, and stale-signal risks.
-7. The F51 verdict layer scores confidence and uncertainty.
-8. Bob CEO consolidates the evidence into one bounded next step.
-9. The UI renders the streaming answer, trace, and chart context.
+1. The user sends a prompt to `POST /task/submit`.
+2. `orchestrator_primary` performs no intent classification: it opens the financial case, derives the cognitive tool contract, and routes the raw request forward as `bob_decides`.
+3. `auto_full_analysis` prepares deterministic analysis and evidence; `trinity` deliberates and may route to the blocked response.
+4. Bob receives the state, decides how to handle the request, and either produces an answer or calls an allowed tool.
+5. `tool_executor` executes the allowed call and returns control to Bob; this loop can repeat.
+6. A final answer passes through the guarded paper-order stage and then `explanation`; a safety rejection goes to `respond_blocked`.
+7. The UI renders the streamed answer, trace, and available chart context.
 
 ## Key Design Decisions
 
-- Local CEO first: the final synthesis is designed to run locally when the model/runtime are installed.
+- Zero-cloud LLM policy: every LLM role uses the shared local server on `127.0.0.1:8080`; there is no cloud-LLM fallback.
+- Fail closed: if the local model server is unavailable, SuperEzio enters `MAN_AT_WORK` and blocks order submission.
 - Traceable evidence: collected financial numbers are expected to carry provider/source metadata where available.
 - Missing data blocks conclusions: the system prefers STUDY_MORE over guessing.
 - Single pipeline: one graph keeps routing predictable instead of splitting behavior across hidden modes.
 - Circuit breakers: provider failures are isolated so one bad data source does not collapse the request.
-

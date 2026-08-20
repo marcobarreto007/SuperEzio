@@ -2,6 +2,8 @@
 
 SuperEzio is an adaptive financial-analysis organism. Its deterministic modules collect evidence, calculate mathematical signals, enforce risk invariants, record outcomes, and adjust future behavior. Language models are assistants: they interpret, debate, and explain, but they do not own the execution truth and cannot bypass the deterministic policy.
 
+Version boundary: the installable package and public API currently report `4.0.0`; the independently versioned local runtime and model manifest are `4.2.0`. These identifiers describe different contracts and are not interchangeable.
+
 ## Operating model
 
 ```text
@@ -29,7 +31,7 @@ The feedback loop learns only from terminal outcomes. An order submission is not
 
 ## Agent army
 
-SuperEzio operates a 14-agent army defined in `.claude/agents/` and orchestrated via the CLAUDE.md playbook. Agents are specialized for recon, verification, security, contract validation, runtime checks, code quality, UX review, benchmarking, and domain knowledge. The army runs in waves via `/swarm`, persists state through `/save`, and self-evolves via `/agent-lab`.
+SuperEzio operates a 22-agent army defined in `.claude/agents/` and orchestrated via the `CLAUDE.md` playbook. Agents are specialized for delivery, recon, verification, security, contract validation, runtime checks, code quality, UX review, benchmarking, domain knowledge, release readiness, and durable state. The army runs in waves via `/swarm`, persists state through `/save`, and self-evolves via `/agent-lab`.
 
 ## Mangala Engine
 
@@ -46,7 +48,7 @@ The Mangala Engine (`src/core/pipeline/nodes/mangala.py`) is a multi-agent simul
 - RAG persistence uses checksummed generations and never loads NumPy pickle data.
 - Durable files use same-directory temporary writes followed by atomic replacement.
 - Live execution is fail-safe disabled unless the explicit safety configuration allows it.
-- The local CEO/model process is optional for core containment: if it is unavailable, the organism enters diagnostic mode and blocks orders.
+- The shared local LLM process is required for LLM-backed operation: if it is unavailable, the organism enters `MAN_AT_WORK` and blocks orders. It never falls back to a cloud LLM.
 
 The detailed July 2026 verification is in [docs/audit/phase10_organism_truth_and_remediation_2026-07-19.md](docs/audit/phase10_organism_truth_and_remediation_2026-07-19.md).
 
@@ -127,7 +129,7 @@ python -m pytest tests/ -q
 python scripts/browser_smoke.py
 ```
 
-The browser smoke requires the API on port `8002`. A full run executes **1,611 tests** (collected July 2026). Its chat step may use the configured model-provider cascade. Tests that require live services are marked `integration` and skip when those services are absent.
+The browser smoke requires the API on port `8002`. The suite collected **1,885 tests on 2026-08-20**; use `python -m pytest tests/ --collect-only -q` for the current count instead of treating that snapshot as permanent. The chat step uses the shared local model on port `8080`. Tests that require live services are marked `integration` and skip when those services are absent.
 
 ## Safety and repository policy
 
@@ -140,7 +142,7 @@ The browser smoke requires the API on port `8002`. A full run executes **1,611 t
 ## Docker Quick Start
 
 ```powershell
-docker compose up -d                                  # Start all services (bob-ceo, api-server, watchdog)
+docker compose up -d                                  # Start local services (bob-ceo on 8080, api-server on 8002)
 docker compose logs -f                                # Tail logs from all services
 docker compose ps                                     # Check health status of each service
 docker compose exec api-server python -m pytest -q    # Run tests inside the api container

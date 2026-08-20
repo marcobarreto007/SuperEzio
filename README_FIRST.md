@@ -12,7 +12,7 @@ SuperEzio is an AI copilot that:
 4. Delivers a bounded verdict: STUDY_MORE, WATCHLIST, WAIT, SMALL_POSITION, or AVOID.
 5. Flags missing data instead of fabricating numbers.
 
-The final CEO synthesis runs on a local 80B model when the included runtime is available. Optional market-data and expert providers may call external APIs depending on the keys configured in `.env`.
+All LLM roles, including the final CEO synthesis, run on the shared local Qwen3.8-27B server. There is no cloud-LLM fallback. Market-data providers may still call their documented external data APIs; they are not LLM fallbacks.
 
 ## What You Need
 
@@ -27,7 +27,16 @@ The final CEO synthesis runs on a local 80B model when the included runtime is a
 
 ## Quick Start
 
-### 1. Check
+### 1. Bootstrap
+
+```powershell
+$env:SUPEREZIO_ADMIN_PASSWORD = "replace-with-a-unique-long-password"
+.\setup_superezio.bat
+```
+
+This creates the locked Python environment, local secrets, browser runtime, and first operator account.
+
+### 2. Check
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File check.ps1
@@ -35,15 +44,15 @@ powershell -ExecutionPolicy Bypass -File check.ps1
 
 This verifies the machine, model, Python environment, runtime, and ports. If anything fails, it prints the next fix.
 
-### 2. Start
+### 3. Start
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File start.ps1
+.\setup_superezio.bat run
 ```
 
-This starts the local CEO model on port 8082 and the API/UI on port 8002. First load can take several minutes because the model is large.
+This starts the shared local Qwen3.8-27B CEO model on port 8080 and the API/UI on port 8002. First load can take several minutes because the model is large.
 
-### 3. Open
+### 4. Open
 
 Open:
 
@@ -67,9 +76,9 @@ powershell -ExecutionPolicy Bypass -File stop.ps1
 
 ## Important
 
-This is an educational framework, not financial advice. It does not execute trades, guarantee returns, or replace a licensed financial advisor.
+This is an educational framework, not financial advice. It never submits live/real-capital orders. IBKR paper orders can be transmitted only when explicitly enabled and all safety/readiness gates pass; TD Direct Investing remains a manual workflow with no broker transport. The system does not guarantee returns or replace a licensed financial advisor.
 
-The local CEO model runs on your machine. External providers are optional and controlled by `.env`; if enabled, they may receive the data required for market-data collection or expert sub-analysis.
+The local CEO and expert roles run on your machine through the same server on port 8080. External market-data providers are optional and controlled by `.env`; if enabled, they receive only the data required for market-data collection. No external provider receives LLM prompts as a fallback.
 
 ## Support
 

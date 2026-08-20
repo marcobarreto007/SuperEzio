@@ -162,3 +162,6 @@ This will:
 **Document Version:** 1.0
 **Last Updated:** 2025-01-15
 **Status:** Ready for Application
+> **HISTORICO / SUPERSEDED:** este documento descreve um experimento antigo de build MoE.
+> `scripts/build_moe_fix.ps1` foi aposentado em modo fail-closed e não faz parte do runtime
+> ou build de release atual. Para operação use `docs/runbooks/RUNBOOK.md`.

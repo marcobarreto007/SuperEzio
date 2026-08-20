@@ -1,5 +1,7 @@
 # SuperEzio E2E Delivery Gate - 2026-05-13
 
+> **HISTORICO / SUPERSEDED.** Evidencia de entrega de 2026-05-13. Nao use como runbook atual; consulte `docs/runbooks/RUNBOOK.md`.
+
 ## Scope
 
 Delivery validation for local client handoff on Windows:

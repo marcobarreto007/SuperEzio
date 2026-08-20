@@ -1,5 +1,7 @@
 # Fase 2 — Auditoria do Model Gateway (isolado)
 
+> **HISTORICO / SUPERSEDED.** Evidencia da auditoria de 2026-07-19; nao descreve o gateway zero-cloud atual. Para operacao use `docs/runbooks/RUNBOOK.md`.
+
 Gerado: 2026-07-19
 Escopo: `src/core/model_serving/gateway.py`, `src/core/pipeline/nodes/expert_dialogue.py`
 Método: leitura direta de código, rastreamento de chamada real ponta a ponta. Sem chamadas de rede.

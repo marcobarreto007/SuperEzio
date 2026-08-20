@@ -1,6 +1,8 @@
 # SuperEzio — Documentação Final
 # Versão: v4.0 | Data: 2026-06-16 | Nota: 9.5/10
 
+> **HISTORICO / SUPERSEDED.** Esta documentacao final v4.0 preserva o estado de 2026-06-16. Para o contrato atual use `docs/runbooks/RUNBOOK.md`.
+
 ---
 
 ## Arquitetura

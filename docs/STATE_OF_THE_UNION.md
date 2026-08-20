@@ -1,5 +1,7 @@
 # SuperEzio - State of the Union
 
+> **HISTORICO / SUPERSEDED.** Este retrato preserva a evidencia da Wave 4 em 2026-07-20 e nao descreve o runtime atual. Nao use portas, providers, contagens de testes, riscos ou proximos passos abaixo para operar o sistema. A fonte operacional canonica e `docs/runbooks/RUNBOOK.md`; o runtime atual e zero-cloud, com Qwen3.8-27B local em `:8080`, API/UI em `:8002` e 22 agentes. Em 2026-08-20, `pytest --collect-only` encontrou 1.885 testes; obtenha sempre a contagem atual dinamicamente.
+
 > Documento final de estado consolidado apos 4 ondas de auditoria, remediacao e limpeza.
 > Data: 2026-07-20 | Versao: Wave 4 completa
 

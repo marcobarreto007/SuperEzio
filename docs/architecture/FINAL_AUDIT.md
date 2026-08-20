@@ -1,5 +1,7 @@
 # SuperEzio Final Audit
 
+> **HISTORICO / SUPERSEDED.** Auditoria preservada de 2026-05-21. Para o runtime atual use `docs/runbooks/RUNBOOK.md`.
+
 Updated: 2026-05-21T00:00:00-04:00
 
 ## Verdict

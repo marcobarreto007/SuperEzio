@@ -1,8 +1,10 @@
 # SuperEzio V1 — Windows Setup Guide
 
 This guide covers the deliverable V1: a local, authenticated financial-research
-copilot. It does not submit orders to a broker. TD Direct Investing remains a
-manual, human-confirmed workflow and real-capital automation is **NO-GO**.
+copilot. It never submits live/real-capital orders. IBKR paper orders can be
+transmitted only when explicitly enabled and all safety/readiness gates pass.
+TD Direct Investing remains a manual workflow with no broker transport, and
+real-capital automation is **NO-GO**.
 
 ## 1. Prerequisites
 
@@ -109,6 +111,8 @@ python scripts\quality_probe.py --api http://127.0.0.1:8002
 ## 6. Product boundary
 
 - V1 is research and decision support, not financial advice.
+- IBKR transport is paper-only, explicitly enabled and protected by readiness and safety gates.
+- TD Direct Investing remains manual; SuperEzio does not transport TD orders.
 - Broker offline does not mean core offline.
 - No successful HTTP request is treated as broker confirmation.
 - No TD credential is required or stored.

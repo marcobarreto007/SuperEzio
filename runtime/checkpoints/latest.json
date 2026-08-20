@@ -2,6 +2,7 @@
   "date_local": "2026-08-18T17:45:00-04:00",
   "session": "qwen38-q4km-3060-2070-2026-08-18",
   "status": "q4km_real_gpus_runtime",
+  "superseded_note": "This checkpoint preserves the 2026-08-18 transition evidence. Its ctx 16384 narrative was superseded by the validated and configured 8192-token runtime; runtime_parameters and next_step carry the current value.",
   "what_was_done": [
     "ZERO-CLOUD retained: every LLM role still served by the shared local llama-server on :8080",
     "Active GGUF switched from Qwen3.8-27B-UD-IQ2_XXS to Qwen3.8-27B-Q4_K_M (already on disk, 15.93 GB, no download)",
@@ -37,6 +38,6 @@
     "24576 does not fit Q4_K_M on 3060+2070 even with empty VRAM, q8_0 and flash attn",
     "llama.cpp-src MSVC binary is unusable on this GPU pair (no kernel image)"
   ],
-  "next_step": "Keep :8080 Q4_K_M ctx 16384 running; start python -m agent_server.main if the API is down.",
+  "next_step": "Keep :8080 Q4_K_M ctx 8192 running; start python -m agent_server.main if the API is down.",
   "owner": "Marco"
 }

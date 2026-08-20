@@ -2,6 +2,8 @@
 
 Date: 2026-05-21
 
+> **HISTORICO / SUPERSEDED.** Esta checklist preserva o gate de 2026-05-21. Para entrega atual use `docs/runbooks/DELIVERY_CHECKLIST_v3.md` e `docs/runbooks/RUNBOOK.md`.
+
 ## Required Before Delivery
 
 - [ ] `git status --short` reviewed.

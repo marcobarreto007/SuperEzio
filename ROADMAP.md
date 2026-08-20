@@ -1,25 +1,25 @@
 # SuperEzio Financeiro Roadmap - Bob Core Runtime
 
-Atualizado em 2026-06-29.
+Atualizado em 2026-08-20.
 
 ## Estado Atual
 
-- Runtime local: API `8002` e Bob Core `8082`.
-- Modelo operacional: `bob-core-local.gguf` com `bob-lora-best.gguf`.
+- Runtime zero-cloud local: API/UI `8002` e servidor LLM compartilhado `8080`.
+- Modelo operacional: `Qwen3.8-27B-Q4_K_M.gguf`; CEO, orquestrador, experts, judge e auditor usam o mesmo endpoint local.
 - Modo de produto: pesquisa e validacao paper.
 - Broker: offline ate a probe real do IBKR/TWS confirmar `port_open=true`.
 - GitHub: bloqueado por politica DISK ONLY.
 
 ## P0 - Pronto Para Demo Local
 
-- [x] Usar aliases neutros de runtime: `bob-core-local.gguf` e `bob-lora-best.gguf`.
-- [x] Remover branding antigo das superficies ativas de runtime, manifest, README, runbooks e contratos.
-- [x] Corrigir contrato oficial de runtime para Bob Core.
+- [x] Consolidar o runtime zero-cloud em `127.0.0.1:8080` com Qwen3.8-27B.
+- [x] Remover fallback de LLM em nuvem das superficies ativas de runtime.
+- [x] Corrigir o contrato oficial de runtime para o endpoint local compartilhado.
 - [x] Corrigir shim legado `core.pipeline.nodes.collect_experts`.
 - [x] Corrigir smoke de browser para a UI atual (`#user-inp`, `msg-ceo`).
 - [x] Corrigir botao de chart para chamar `loadChart()` sem passar evento bruto.
 - [x] Corrigir `/cockpit/portfolio` e `/health/details` para nao marcar broker como paper conectado quando o snapshot vivo esta offline.
-- [ ] Reiniciar API e Bob Core com os aliases neutros e validar `/v1/models`, `/health/details`, chart e chat.
+- [ ] Reiniciar API e servidor Qwen3.8-27B e validar `/v1/models`, `/health/details`, chart e chat.
 - [ ] Rodar browser smoke completo com chat.
 
 ## P1 - Gates De Qualidade
@@ -56,7 +56,7 @@ Atualizado em 2026-06-29.
 
 O sistema so deve ser chamado de pronto quando:
 
-- API e Bob Core sobem com aliases neutros.
+- API e Qwen3.8-27B sobem em `8002` e `8080`, respectivamente.
 - `/health/details` nao contradiz a probe real do broker.
 - Chart renderiza no browser.
 - `/task/submit` chega em `STREAM_END` com resposta coerente ao intent.

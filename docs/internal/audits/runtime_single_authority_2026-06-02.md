@@ -1,5 +1,7 @@
 # Runtime Single Authority Audit - 2026-06-02
 
+> **HISTORICO / SUPERSEDED.** Esta auditoria preserva a antiga autoridade da porta `8082`. A autoridade atual e Qwen3.8-27B local em `:8080`; use `docs/runbooks/RUNBOOK.md`.
+
 ## Objective
 
 Make the Bob runtime unambiguous: one owner for port 8082, one owner for port 8002, and one explicit inference engine path.

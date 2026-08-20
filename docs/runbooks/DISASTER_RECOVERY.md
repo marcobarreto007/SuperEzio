@@ -1,5 +1,7 @@
 # SuperEzio â€” Disaster Recovery & Continuidade
 
+> **HISTORICO / SUPERSEDED.** Este runbook contem caminhos, modelos e fallbacks de nuvem antigos e nao deve ser executado. Para recuperacao atual use `docs/runbooks/RUNBOOK.md` e `docs/runbooks/OPERATIONAL_RUNBOOK.md`: Qwen3.8-27B local em `:8080`, API/UI em `:8002`, zero-cloud e fail-closed em `MAN_AT_WORK`.
+
 ## O que estÃ¡ em risco
 
 | Ativo | LocalizaÃ§Ã£o | Perda se sumir |
@@ -92,4 +94,3 @@ Gemini 3.5 Flash Ã© grÃ¡tis (1500 req/dia). JÃ¡ Ã© provider de sentiment
 # - Paper trading pausa (sem IBKR)
 # - Mensagem clara: "MODO OFFLINE. AnÃ¡lise limitada ao meu conhecimento local."
 ```
-

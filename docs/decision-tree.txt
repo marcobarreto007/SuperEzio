@@ -1,6 +1,6 @@
 # SuperEzio Decision Tree
 
-Runtime: SuperEzio v4.0.0 local API plus Bob CEO GGUF.
+Runtime: SuperEzio v4.2.0, local API plus shared Qwen3.8-27B GGUF.
 
 ## Runtime Path
 
@@ -8,15 +8,16 @@ Runtime: SuperEzio v4.0.0 local API plus Bob CEO GGUF.
 2. Intent parser classifies the request as general, ticker analysis, market scan, or needs scope.
 3. Data collection runs only when the route needs market data.
 4. F51 verdict and domain modules produce bounded evidence.
-5. Bob, the local CEO model at `http://127.0.0.1:8082/v1`, writes the final natural-language answer.
+5. Bob, served by the shared local Qwen3.8-27B endpoint at `http://127.0.0.1:8080/v1`, writes the final natural-language answer.
 6. Explanation stream emits user-visible NDJSON chunks until `STREAM_END`.
 
 ## Model Runtime
 
-- Model file: `models/superezio-ceo-intent-merged.Q4_K_M.gguf`
-- Launcher: `scripts/serve_ceo_llamacpp.ps1 -Port 8082`
+- Model file: `models/Qwen3.8-27B-Q4_K_M.gguf` (or `SUPEREZIO_MODEL_PATH`)
+- Launcher: `scripts/serve_agent_llamacpp.ps1 -Port 8080`
 - API: OpenAI-compatible `/v1` plus `/health`
 - API server: `python -m agent_server.main` on port `8002`
+- Policy: all LLM roles use this endpoint; there is no cloud-LLM fallback. If it is offline, the system enters `MAN_AT_WORK`.
 
 ## Active Tree Policy
 
@@ -25,8 +26,8 @@ The repo serves and validates the already-merged GGUF model. Model build tooling
 ## Commands
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/serve_ceo_llamacpp.ps1 -Port 8082
+powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080
 python -m agent_server.main
-python -m pytest tests -q
-python -m ruff check .
+python -m pytest tests/ -q
+python -m ruff check src/ tests/
 ```

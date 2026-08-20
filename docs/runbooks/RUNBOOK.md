@@ -1,9 +1,11 @@
 # Official Runbook - SuperEzio Runtime v4.2.0
 
-Updated: 2026-08-18
+Updated: 2026-08-20
 Policy: DISK ONLY. GitHub is blocked by `.f51/GITHUB_POLICY.json`.
 Model policy: ZERO-CLOUD — every LLM role is served by the shared local
 llama-server (perfil cc) on `127.0.0.1:8080`. No cloud fallback exists.
+
+Version boundary: Python package and public API `4.0.0`; runtime configuration and model manifest `4.2.0`.
 
 ## Runtime Definition
 
@@ -11,7 +13,7 @@ SuperEzio has two official local runtime processes:
 
 | Component | Entrypoint | Bind | Purpose |
 | --- | --- | --- | --- |
-| CEO llama-server (shared cc) | `powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080` (or the operator's `run-cc.ps1`) | `127.0.0.1:8080` | Local OpenAI-compatible LLM endpoint — serves CEO, orchestrator, experts, judge and auditor. |
+| CEO llama-server | `powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080` | `127.0.0.1:8080` | Local OpenAI-compatible LLM endpoint — serves CEO, orchestrator, experts, judge and auditor. |
 | FastAPI agent server | `python -m agent_server.main` | `127.0.0.1:8002` | Browser UI, A2A envelope, pipeline, health, product routes. |
 
 Official config file: `config/runtime.yml`.
@@ -19,12 +21,13 @@ Official config file: `config/runtime.yml`.
 Official CEO model (2026-08-18):
 
 ```text
-C:\Users\marco\models\qwen3.8-27b\Qwen3.8-27B-Q4_K_M.gguf
+models\Qwen3.8-27B-Q4_K_M.gguf
+# or the absolute file supplied through SUPEREZIO_MODEL_PATH
 ```
 
 Model: Qwen3.8-27B (dense)
 Quantization: Q4_K_M (15.9 GB file)
-Context: 16384 tokens (24576 CUDA OOM on RTX 2070 KV/compute buffers; MTP also OOM — disabled)
+Context: 8192 tokens
 GPU: all layers offloaded, split across RTX 3060 12GB + RTX 2070 8GB (`-ngl all -sm layer -ts 12,8`)
 Cache: KV q8_0, flash attention on. MTP disabled (CUDA OOM on 2070 with Q4).
 Slots: 1 (shared with the Claude Code perfil cc — one server, one queue)
@@ -35,16 +38,14 @@ Current official model routing (zero-cloud):
 - `local_orchestrator`: local orchestrator route using the same endpoint.
 - `deepseek`: legacy routing name for the financial experts — serves the same local endpoint at `http://127.0.0.1:8080/v1` (NOT api.deepseek.com).
 
-Official launcher: **RETIRED.** The `desktop/SuperEzio.bat` has been deleted. Start services directly.
+Official Windows launcher: `start.ps1`, invoked directly or through `setup_superezio.bat run`.
 
 ## Manual Start
 
 From the project root:
 
 ```powershell
-# Terminal 1 - CEO (shared cc server; run-cc.ps1 is the preferred profile)
-C:\Users\marco\models\qwen3.8-27b\run-cc.ps1
-# ...or, equivalently:
+# Terminal 1 - CEO
 powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080
 
 # Terminal 2 - API
@@ -52,7 +53,7 @@ $env:PYTHONPATH = "src;$env:PYTHONPATH"
 python -m agent_server.main
 ```
 
-For launcher validation without starting servers (BAT retired, use direct validation):
+For launcher validation without starting servers:
 
 ```powershell
 # Validate config integrity
@@ -175,12 +176,14 @@ Stop-Process -Id <PID> -Force
 
 ### CEO offline
 
-Check (paths are real, from `config.ps1`):
+Check the portable configuration resolved by `config.ps1`:
 
 ```powershell
-Test-Path C:\Users\marco\models\qwen3.8-27b\Qwen3.8-27B-Q4_K_M.gguf
-Test-Path C:\Users\marco\tools\llama.cpp\llama-server.exe
-C:\Users\marco\models\qwen3.8-27b\run-cc.ps1
+. .\config.ps1
+Write-SuperEzioConfig
+Test-Path -LiteralPath $ModelPath
+Test-Path -LiteralPath $LlamaServerPath
+powershell -ExecutionPolicy Bypass -File scripts\serve_agent_llamacpp.ps1 -Port 8080
 ```
 
 Then validate:

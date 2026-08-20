@@ -1,5 +1,7 @@
 # SuperEzio Clean Tree Report
 
+> **HISTORICO / SUPERSEDED.** Retrato preservado de 2026-05-21. Nao use seus contratos de runtime como fonte atual; consulte `docs/runbooks/RUNBOOK.md`.
+
 Date: 2026-05-21
 
 ## Current State

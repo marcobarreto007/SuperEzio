@@ -1,5 +1,7 @@
 # Market Debut Protocol - Bob SuperEzio CEO
 
+> **HISTORICO / SUPERSEDED.** Este protocolo preserva criterios de pre-debut de 2026-06-05 e nao define o runtime atual. Use `docs/runbooks/RUNBOOK.md` e `docs/runbooks/DELIVERY_CHECKLIST_v3.md`.
+
 **Version:** 1.2.0
 **Date:** 2026-06-05
 **Status:** Pre-Debut Validation (6/8 criteria proven)
@@ -210,4 +212,3 @@ Operational prerequisites:
 - `tests/test_broker_readiness_probe.py` - broker probe tests.
 
 Update this runbook after every major validation checkpoint.
-

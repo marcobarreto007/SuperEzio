@@ -1,6 +1,8 @@
 # F51 PRODUCTIZER REPORT — SuperEzio v4.0.0
 ## Análise de produto baseada em código real. 2026-07-20.
 
+> **HISTORICO / SUPERSEDED.** Este relatório preserva a análise de produto feita em 2026-07-20. As afirmações abaixo sobre DeepSeek/Gemini/GLM, 14 agentes, hospedagem SaaS e custos de API não representam o contrato atual. Para operação, use `docs/runbooks/RUNBOOK.md`: o runtime atual é zero-cloud, usa Qwen3.8-27B local em `:8080`, API/UI em `:8002` e possui 22 agentes.
+
 ---
 
 ## 1. O QUE O PROJETO FAZ (CÓDIGO REAL)

@@ -8,7 +8,7 @@ Bem-vindo ao SuperEzio. Este guia foi feito para quem quer usar a ferramenta sem
 
 ### O que voce precisa
 
-- Um computador com Windows, macOS ou Linux
+- Um computador com Windows 10/11 64-bit
 - Python 3.11 ou superior instalado
 - Acesso a internet (para baixar dados do mercado)
 
@@ -20,33 +20,27 @@ Bem-vindo ao SuperEzio. Este guia foi feito para quem quer usar a ferramenta sem
 2. Digite:
 
 ```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install -e .
+$env:SUPEREZIO_ADMIN_PASSWORD = "troque-por-uma-senha-unica-e-longa"
+.\setup_superezio.bat
 ```
 
-3. Depois de instalar, inicie o servidor:
+3. Depois de instalar, inicie o runtime completo:
 
 ```powershell
-python -m agent_server.main
+.\setup_superezio.bat run
 ```
+
+Esse comando inicia o servidor Qwen3.8-27B compartilhado em `127.0.0.1:8080` e a API/UI em `127.0.0.1:8002`. Todos os papeis LLM sao locais; nao existe fallback para LLM em nuvem.
 
 4. Abra o navegador em: **http://localhost:8002**
 
-**Linux / macOS:**
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -e .
-python -m agent_server.main
-```
+Para instalacao e operacao detalhadas, use `docs/runbooks/RUNBOOK.md`, a fonte operacional canonica.
 
 No navegador, voce ve a tela principal do SuperEzio. Pronto.
 
 ### Quer um atalho?
 
-Na pasta do projeto, execute `launcher.ps1` (Windows) ou `./setup_superezio.sh run` (Linux/macOS). O sistema inicia e abre o navegador automaticamente.
+Depois que o runtime estiver saudavel, use `OPEN_UI.url` para abrir o cockpit diretamente.
 
 ---
 
@@ -359,12 +353,12 @@ O sistema tem multiplas camadas de seguranca internas (Guardrail Hub). Entre ela
 
 - As respostas do Bob levam de 30 segundos a 2 minutos (ele processa muitos dados)
 - Verifique se o servidor esta rodando
-- Se o servidor de AI (llama-server na porta 8082) nao estiver rodando, o Bob funciona em modo limitado
+- Verifique `http://127.0.0.1:8080/health`. Se o llama-server estiver offline, o sistema entra em `MAN_AT_WORK` e bloqueia ordens; nao existe fallback para LLM em nuvem
 - Tente perguntar algo mais especifico
 
 ### "Erro 'Porta ja em uso'"
 
-Outro programa ja esta usando a porta 8002 ou 8082. No Windows, execute `stop.ps1` para liberar as portas.
+Outro programa ja esta usando a porta 8002 ou 8080. No Windows, execute `stop.ps1` para encerrar apenas os processos gerenciados pelo SuperEzio e verifique os donos das portas conforme `docs/runbooks/RUNBOOK.md`.
 
 ### "Nao consigo digitar tickers brasileiros"
 

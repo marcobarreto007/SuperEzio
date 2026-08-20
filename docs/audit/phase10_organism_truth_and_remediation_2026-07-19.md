@@ -1,5 +1,7 @@
 # Phase 10 — Organism truth and remediation
 
+> **HISTORICO / SUPERSEDED.** Este relatorio preserva a evidencia de 2026-07-19. Portas, providers, contagens e riscos abaixo nao sao instrucoes operacionais atuais; use `docs/runbooks/RUNBOOK.md`.
+
 Date: 2026-07-19
 Scope: crisis math, data routing, adaptive learning, expert consensus, execution, persistence, grounding, runtime, frontend, and repository gates.
 Credential policy: no credential file, secret value, or credential configuration was read or changed.

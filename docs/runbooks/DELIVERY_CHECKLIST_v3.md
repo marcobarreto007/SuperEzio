@@ -1,15 +1,15 @@
 # SUPEREZIO — Delivery Checklist v3 (Zero-Cloud)
 
-**Data:** 2026-08-18 · **Substitui:** `docs/DELIVERY_CHECKLIST_v2.md` (mundo 8082 + providers de nuvem — obsoleto desde a diretiva zero-cloud de 2026-08-17)
-**Runtime alvo:** Qwen3.8-27B-UD-IQ2_XXS local no servidor compartilhado do perfil cc (`:8080`), API em `:8002`. **Se :8080 cair, o sistema para em MAN_AT_WORK — não existe fallback em nuvem, por design.**
+**Data:** 2026-08-20 · **Substitui:** `docs/DELIVERY_CHECKLIST_v2.md` (mundo 8082 + providers de nuvem — obsoleto desde a diretiva zero-cloud de 2026-08-17)
+**Runtime alvo:** Qwen3.8-27B-Q4_K_M local no servidor compartilhado do perfil cc (`:8080`), API em `:8002`. **Se :8080 cair, o sistema para em MAN_AT_WORK — não existe fallback em nuvem, por design.**
 
 ---
 
 ## ⬜ PRÉ-VOO
 
 - [ ] GPUs livres: `nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader`
-      (perfil validado 16/08: 2070 6,5/8,2 GB + P106 5,7/6,1 GB sob carga; se houver >1 GB ocupado, investigar antes)
-- [ ] `.env` zero-cloud: `SUPEREZIO_AGENT_BASE_URL=http://127.0.0.1:8080/v1`, model `Qwen3.8-27B-UD-IQ2_XXS`, **nenhuma** chave de LLM em nuvem (Questrade pode existir — feature não-LLM)
+      (perfil canônico: RTX 3060 12 GB + RTX 2070 8 GB, tensor split `12,8`; investigar consumo concorrente antes do boot)
+- [ ] `.env` zero-cloud: `SUPEREZIO_AGENT_BASE_URL=http://127.0.0.1:8080/v1`, model `Qwen3.8-27B-Q4_K_M`, **nenhuma** chave de LLM em nuvem (Questrade pode existir — feature não-LLM)
 - [ ] TWS Paper (opcional nesta fase; obrigatório para loops de ordem): porta 7497, TIF DAY default desmarcado (M1)
 
 ## ⬜ BOOT (ordem documentada — cc primeiro)
@@ -24,7 +24,7 @@
   ```powershell
   curl.exe -fsS http://127.0.0.1:8080/v1/models
   ```
-  Esperado: `Qwen3.8-27B-UD-IQ2_XXS` (nome do arquivo). Se divergir → atualizar `AGENT_MODEL_ID` em providers.py + manifestos antes de prosseguir.
+  Esperado: `Qwen3.8-27B-Q4_K_M`. Se divergir do `config/model_manifest.json`, interromper o gate e corrigir o contrato antes de prosseguir.
 - [ ] **Terminal 2 — API + frontend:**
   ```powershell
   python -m agent_server.main
@@ -44,11 +44,11 @@
   python -m ruff check src tests
   python scripts/check_agents.py
   ```
-- [ ] Suíte com os 2 testes akshare deselecionados (crash V8 conhecido — INV-R29):
+- [ ] Suíte completa:
   ```powershell
-  python -m pytest tests/ -q --deselect <akshare_1> --deselect <akshare_2>
+  python -m pytest tests/ -q
   ```
-  Registrar o número real de passed/failed/skipped — sem green-wash.
+  Registrar o número real de collected/passed/failed/skipped — sem green-wash. Como referência datada, a coleta de 2026-08-20 encontrou 1.885 testes; a contagem atual deve vir do comando, não deste documento.
 - [ ] Smoke do browser **com resposta real do Bob**:
   ```powershell
   $env:SUPEREZIO_SMOKE_CHAT = "1"
@@ -71,7 +71,7 @@
 ## ⬜ SIGN-OFF
 
 ```
-SUPEREZIO DELIVERY v3 ZERO-CLOUD — 2026-08-18
+SUPEREZIO DELIVERY v3 ZERO-CLOUD — 2026-08-20
 ==============================================
 Model server:  :8080 Qwen3.8-27B local    [ ]
 Model id:      confirmado via /v1/models  [ ]
@@ -80,6 +80,6 @@ Bob chat real: smoke chat respondendo     [ ]
 Fail-closed:   MAN_AT_WORK sem nuvem      [ ]
 Ruff:          0 erros                    [ ]
 Check agents:  0 issues                   [ ]
-Pytest:        ___ passed ___ failed ___ skipped (akshare deselecionado)
+Pytest:        ___ collected ___ passed ___ failed ___ skipped
 TWS/loops:     [ ] fase seguinte
 ```

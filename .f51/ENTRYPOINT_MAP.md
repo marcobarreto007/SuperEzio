@@ -1,7 +1,9 @@
 # F51 Entrypoint Map
 
-Updated: 2026-06-28T23:59:00-04:00
-Session: bob-core-lora
+Updated: 2026-08-20
+Session: zero-cloud-qwen38-q4km
+
+Version boundary: package/public API `4.0.0`; runtime configuration/model manifest `4.2.0`.
 
 ## Primary Entrypoints
 
@@ -10,43 +12,47 @@ Session: bob-core-lora
 | Property | Value |
 |----------|-------|
 | Classification | app |
-| File | `src/agent_server/main.py` (368 lines) |
+| File | `src/agent_server/main.py` |
 | Host | `127.0.0.1:8002` |
 | Framework | FastAPI + uvicorn |
 | Config | `config/runtime.yml` + `.env` |
-| Dependencies | CEO model on :8082, `.env` with provider keys |
+| Dependencies | Shared local Qwen3.8-27B endpoint on `:8080`; optional market-data credentials only |
 | Boot sequence | Load env -> load config -> create gateway -> build pipeline -> serve |
 
-### 2. CEO llama.cpp Server â€” `powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082`
+### 2. Shared llama.cpp Server â€” `powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080`
 
 | Property | Value |
 |----------|-------|
 | Classification | app |
 | File | `scripts/serve_agent_llamacpp.ps1` |
 | Config | `config.ps1` |
-| Host | `127.0.0.1:8082` |
-| Model | `C:\llama.cpp\models\Bob Core-q4_k.gguf` (17.3 GB) |
-| LoRA | `C:\\llama.cpp\\models\\bob-lora-best.gguf` (42 MB) |
-| Architecture | qwen3moe (128 experts, 8 active, 48 layers) |
-| GPU | 49/49 layers on VRAM (RTX 5060 Ti 16GB) |
+| Host | `127.0.0.1:8080` |
+| Model | `models/Qwen3.8-27B-Q4_K_M.gguf` or `SUPEREZIO_MODEL_PATH` |
+| LoRA | None |
+| Architecture | Qwen3.8-27B dense |
+| GPU | All layers, RTX 3060 12 GB + RTX 2070 8 GB, tensor split `12,8` |
 | Interface | OpenAI-compatible `/v1/chat/completions` |
-| Context | 65536 tokens (64K) |
-| Dependency | llama.cpp binary in `C:\llama.cpp\build\bin\` |
+| Context | 8192 tokens |
+| Dependency | `llama-server.exe` resolved by `config.ps1` |
+| Policy | Serves CEO, orchestrator, experts, judge and auditor; zero-cloud, no LLM fallback |
 
-### 3. Desktop Launcher â€” RETIRED
+### 3. Windows Launcher â€” `setup_superezio.bat run` / `start.ps1`
 
-The `desktop/SuperEzio.bat` launcher has been retired. Start services directly:
-- CEO: `powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082`
-- API: `python -m agent_server.main`
+| Property | Value |
+|----------|-------|
+| Classification | app |
+| Files | `setup_superezio.bat`, `start.ps1`, `stop.ps1` |
+| Purpose | Resolve portable paths, start CEO `:8080`, then API/UI `:8002`, and verify HTTP health |
+| Policy | Single lifecycle owner; legacy restart/watchdog wrappers are retired |
 
-### 4. Eval Pipeline â€” `python scripts/eval_pipeline.py`
+### 4. Quality Probe â€” `python scripts/quality_probe.py`
 
 | Property | Value |
 |----------|-------|
 | Classification | test |
-| File | `scripts/eval_pipeline.py` |
-| Purpose | Evaluate CEO model intent classification |
-| Data | `data/eval_questions.jsonl`, `data/intent_golden.jsonl` |
+| File | `scripts/quality_probe.py` |
+| Purpose | Validate live response transport, content, latency and quality invariants |
+| Dependency | Isolated live runtime on `:8080`/`:8002` |
 
 ## API Endpoints (FastAPI)
 
@@ -69,14 +75,14 @@ The `desktop/SuperEzio.bat` launcher has been retired. Start services directly:
 
 ```
 START
-  -> orchestrator_primary (3-layer intent: regex -> golden -> CEO LLM)
-    -> agent (ReAct loop, "Bob", max 7 iterations)
-      <-> tool_executor (maps tool calls to pipeline nodes)
-        -> collector / experts / f51 / pennylab / neural_decision / sdca / rag / market_scan
-    -> explanation (streaming interpretability)
-      -> END
-    -> respond_blocked (SDCA block)
-      -> END
+  -> orchestrator_primary (passthrough; opens case and cognitive tool contract)
+    -> auto_full_analysis
+      -> trinity
+        -> agent (Bob decides and may call tools)
+          <-> tool_executor
+          -> auto_execute_paper (guarded paper-only path)
+            -> explanation -> END
+        -> respond_blocked -> END
 ```
 
 ## Docker Entrypoints
@@ -85,5 +91,3 @@ START
 |--------|------|-----|----------------|
 | `cpu` | python:3.12-slim | `python -m agent_server.main` | config |
 | `gpu` | nvidia/cuda:12.4-runtime-ubuntu22.04 | `python -m agent_server.main` | config |
-
-

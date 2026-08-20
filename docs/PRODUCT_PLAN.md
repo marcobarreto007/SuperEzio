@@ -1,5 +1,7 @@
 # SuperEzio — Plano de Produto para Trader Final
 
+> **HISTORICO / SUPERSEDED.** Este plano preserva a fotografia de produto de 2026-07-20. Claims de providers, runtime ou empacotamento abaixo nao substituem o contrato operacional atual em `docs/runbooks/RUNBOOK.md`.
+
 > Documento 100% baseado em codigo existente. Tudo marcado como "[EXISTE]" ou "[CONSTRUIR]" conforme o estado real do repositorio em 2026-07-20.
 > Gerado pelo skill f51-productizer.
 

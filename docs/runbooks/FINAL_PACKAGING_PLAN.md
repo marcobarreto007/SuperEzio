@@ -1,5 +1,7 @@
 # Final Packaging Plan
 
+> **HISTORICAL / SUPERSEDED.** This plan preserves an earlier packaging snapshot and references artifacts and broker boundaries that are no longer authoritative. Do not use it as a delivery checklist. Use `README.md`, `docs/runbooks/RUNBOOK.md`, and `docs/runbooks/DELIVERY_CHECKLIST_v3.md`.
+
 Objective: package SuperEzio Financeiro as a buyer-ready AI financial copilot for small investors, while preserving the deeper technical system as an advanced trust layer.
 
 ## Product Position
@@ -106,4 +108,3 @@ Ready to list only when:
 - evidence index links to current artifacts
 - transfer checklist is complete
 - asking price and reserve are written down before negotiations
-

@@ -1,5 +1,7 @@
 # CEO Fallback — Automatic Backup
 
+> **HISTORICO / SUPERSEDED.** Este desenho de fallback em nuvem e proibido pelo contrato zero-cloud atual. Nao implemente nem opere os passos abaixo. Use `docs/runbooks/RUNBOOK.md`: todos os papeis LLM usam Qwen3.8-27B local em `:8080`, e falha do servidor resulta em `MAN_AT_WORK`.
+
 ## Problem
 GPU/local provider crashes → System dies, no response.
 

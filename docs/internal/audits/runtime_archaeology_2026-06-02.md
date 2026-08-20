@@ -1,5 +1,7 @@
 # Runtime archaeology - SuperEzio Financeiro
 
+> **HISTORICO / SUPERSEDED.** Evidencia arqueologica de 2026-06-02. O runtime atual esta em `docs/runbooks/RUNBOOK.md`.
+
 Date: 2026-06-02
 Scope: `C:\Users\marco\Desktop\SuperEzio Financeiro`
 Mode: codebase archaeology, duplicate hunt, runtime speed and math-core focus

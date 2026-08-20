@@ -1,18 +1,20 @@
 # SuperEzio - Evidence Index
 
+> Evidence rows below preserve the result produced by their named checkpoint and date; they are not current-runtime claims. Refresh every gate before handoff. The operational source of truth is `docs/runbooks/RUNBOOK.md` (Qwen3.8-27B local `:8080`, API/UI `:8002`, zero-cloud).
+
 This index separates verified evidence from claims that still need a fresh proof run before sale.
 
-## Current Source Of Truth
+## Recorded Evidence Sources
 
 | Evidence | Location | Status |
 |----------|----------|--------|
-| Packaging checkpoint | `.f51/checkpoints/latest.json` | Current local checkpoint |
-| Packaging commit | `fd8429e chore(packaging): harden portable buyer kit` | Local commit, no GitHub push |
+| Packaging checkpoint | `.f51/checkpoints/latest.json` | Historical packaging checkpoint; refresh before handoff |
+| Packaging commit | `fd8429e chore(packaging): harden portable buyer kit` | Historical local commit, no GitHub push |
 | Frontpage audit | `docs/internal/audits/frontpage_correspondence_audit_2026-06-03.md` | Current UI correspondence audit |
 | Final packaging plan | `docs/runbooks/FINAL_PACKAGING_PLAN.md` | Current packaging gate |
 | Browser smoke screenshot | `output/playwright/superezio-browser-smoke-20260603-101308.png` | Exists locally, generated output |
 
-## Verified In The Latest Packaging Checkpoint
+## Historical Packaging Checkpoint Snapshot
 
 These results are recorded in `.f51/checkpoints/latest.json` and should be refreshed before a buyer handoff:
 
@@ -22,9 +24,9 @@ These results are recorded in `.f51/checkpoints/latest.json` and should be refre
 | PowerShell parser checks | `config.ps1`, `check.ps1`, `start.ps1`, and `scripts/serve_agent_llamacpp.ps1` parse OK |
 | `config.ps1` live probe | Python `.venv`, `C:\llama.cpp\build-cuda\bin\llama-server.exe`, model present, ports free |
 | `powershell -File .\check.ps1` | 16 passed, 0 warnings, 0 failed |
-| `powershell -File .\start.ps1 -SkipBrowser` | CEO healthy on 8082; API healthy on 8002 |
+| `powershell -File .\start.ps1 -SkipBrowser` | Historical result: CEO healthy on 8082; API healthy on 8002. Superseded by the current `8080`/`8002` contract. |
 | `python -u scripts\browser_smoke.py --skip-chat --timeout-ms 180000` | OK; AAPL chart 130 candles; canvas nonblank; console errors empty |
-| `powershell -File .\stop.ps1` | Stopped official CEO/API processes; ports 8082 and 8002 free |
+| `powershell -File .\stop.ps1` | Historical result: ports 8082 and 8002 free. Superseded by the current `8080`/`8002` contract. |
 
 ## Refresh Commands Before Sale
 
