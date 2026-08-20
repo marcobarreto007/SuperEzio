@@ -43,3 +43,12 @@ def test_windows_lock_contains_runtime_and_browser_dependencies() -> None:
         "uvicorn",
     ):
         assert re.search(rf"(?m)^{re.escape(package)}==[^\s]+$", locked), package
+
+
+def test_legacy_batch_launchers_only_delegate_to_official_bootstrap() -> None:
+    for filename in ("start_all.bat", "superezio_launcher.bat"):
+        script = (ROOT / filename).read_text(encoding="utf-8").lower()
+        assert 'call "%~dp0setup_superezio.bat" run %*' in script
+        assert "8082" not in script
+        assert "pip install" not in script
+        assert "python312" not in script
