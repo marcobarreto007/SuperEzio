@@ -499,7 +499,7 @@
     }
   },
   "no_automatic_aapl_impact_map": {
-    "status": "in_progress",
+    "status": "complete",
     "problem": "AAPL is hardcoded as the cockpit bootstrap/fallback and browser-smoke symbol, so it appears without an explicit user or portfolio selection.",
     "architecture_touched": [
       "frontend chart bootstrap",
@@ -521,13 +521,34 @@
       "real broker position hidden by a global symbol block",
       "Canadian smoke symbol lacks provider data"
     ],
-    "smallest_safe_patch": "Start with no default/fallback ticker, skip the market probe until the operator selects one, preserve explicit portfolio/user selections, and use TD.TO only inside browser validation.",
+    "smallest_safe_patch": "Start with no default/fallback ticker, skip the market probe until the operator selects one, permit only real orders/positions to bootstrap a chart, hide AAPL audit rows from the cockpit without deleting them, and use TD.TO only inside browser validation.",
     "verification": [
       "no automatic AAPL contract search",
       "node --check frontend/js/content.js frontend/js/init.js",
       "focused pytest",
       "browser smoke with TD.TO"
-    ]
+    ],
+    "result": "The cockpit now starts with an empty symbol and chart. Paper Journal history cannot select a chart, AAPL audit rows are retained on disk but hidden from cockpit presentation, and AAPL is absent from autocomplete. Explicit real orders/positions remain authoritative.",
+    "evidence": {
+      "frontend_contract": "document.body.innerText.includes('AAPL') returned false after a 10-second Playwright load; Symbol value returned an empty string",
+      "browser_smoke": "PASS with TD.TO: HTTP 200, 123 candles, 7 canvases, zero console errors",
+      "focused_tests": "47 API/frontend contract tests passed; final targeted selection tests 4 passed",
+      "full_tests": "1828 passed, 8 skipped in 524.40s; total coverage 68%",
+      "lint": "python -m ruff check src/ tests/ passed",
+      "screenshots": [
+        "output/playwright/superezio-no-aapl-visible-20260819-204028.png",
+        "output/playwright/superezio-browser-smoke-20260819-204037.png"
+      ],
+      "commits": [
+        "28e061c",
+        "f777cd4",
+        "7e93873",
+        "0f69260",
+        "ec33ba8",
+        "27b7871"
+      ],
+      "audit_data_deleted": false
+    }
   },
   "owner": "Codex"
 }
