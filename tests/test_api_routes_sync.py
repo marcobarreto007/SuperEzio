@@ -1521,10 +1521,12 @@ def test_aapl_is_never_selected_automatically():
     automatic_selection_files = {
         "content": Path("frontend/js/content.js").read_text(encoding="utf-8"),
         "init": Path("frontend/js/init.js").read_text(encoding="utf-8"),
+        "cockpit": Path("frontend/js/cockpit.js").read_text(encoding="utf-8"),
         "browser_smoke": Path("scripts/browser_smoke.py").read_text(encoding="utf-8"),
     }
 
     assert 'defaultTicker: ""' in automatic_selection_files["content"]
+    assert 'hiddenAuditTickers: ["AAPL"]' in automatic_selection_files["content"]
     assert 'setOpsCard("ops-market", "warn", "Select ticker")' in automatic_selection_files["init"]
     assert (
         automatic_selection_files["init"].count(
@@ -1533,7 +1535,8 @@ def test_aapl_is_never_selected_automatically():
         == 3
     ), "only broker orders, local tickets and positions may bootstrap a ticker"
     assert "TD.TO" in automatic_selection_files["browser_smoke"]
-    for name, source in automatic_selection_files.items():
+    for name in ("init", "cockpit", "browser_smoke"):
+        source = automatic_selection_files[name]
         assert "AAPL" not in source, f"AAPL returned to automatic selection in {name}"
 
 
