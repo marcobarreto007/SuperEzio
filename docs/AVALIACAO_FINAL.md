@@ -1,5 +1,7 @@
 # Avaliação Final — SuperEzio — 2026-06-16
 
+> **HISTORICO / SUPERSEDED.** Esta avaliacao preserva metricas e arquitetura verificadas em 2026-06-16. Nao use contagens, providers ou conclusoes abaixo como estado atual. A fonte operacional vigente e `docs/runbooks/RUNBOOK.md`: Qwen3.8-27B local em `:8080`, API/UI em `:8002`, zero-cloud.
+
 ## Números
 
 - **435 commits** no total

@@ -1,5 +1,7 @@
 # F51 Chama Lab — Etapa 1 (inventário + 3 testes)
 
+> **HISTORICO / SUPERSEDED.** Este roteiro de benchmark preserva o laboratorio e o modelo antigos; seus caminhos, portas e comandos nao devem ser usados no runtime atual. Para operacao use `docs/runbooks/RUNBOOK.md`: Qwen3.8-27B-Q4_K_M local em `:8080`, contexto 8192, API/UI em `:8002`, zero-cloud.
+
 ## 1. Inventário
 
 No **CMD** (como administrador se `wmic` falhar):

@@ -1,6 +1,8 @@
 # F51 GPU Rental Manual — Self-Reference Card
-> **Flag:** `F51_GPU_RENTAL` — ler antes de alugar GPU.
-> **Orçamento típico:** $1-5 por treino (30 min – 5h)
+
+> **HISTORICO / SUPERSEDED.** Este cartao preserva experimentos antigos de treino e aluguel; hardware, precos, caminhos, modelos e portas abaixo nao definem o runtime do produto. Para operacao atual use `docs/runbooks/RUNBOOK.md`: Qwen3.8-27B local em `:8080`, contexto 8192, API/UI em `:8002`, zero-cloud.
+
+> **Flag historica:** `F51_GPU_RENTAL`.
 
 ---
 

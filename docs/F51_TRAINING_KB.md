@@ -1,6 +1,8 @@
 # F51 Training Knowledge Base — Complete Guide
-> **Flag:** `F51_TRAINING_KB` — qualquer agente deve ler este arquivo antes de tentar treinar.
-> **Status:** Vivo. Atualizado 2026-06-30. Baseado em ~50 tentativas reais.
+
+> **HISTORICO / SUPERSEDED.** Esta base preserva tentativas de treino ate 2026-06-30 e nao e uma instrucao de runtime ou treino atual. Caminhos, hardware, modelo e porta abaixo podem estar obsoletos. Para o produto vigente use `docs/runbooks/RUNBOOK.md`: Qwen3.8-27B local em `:8080`, contexto 8192, API/UI em `:8002`, zero-cloud.
+
+> **Flag historica:** `F51_TRAINING_KB`. **Status:** arquivado; baseado em aproximadamente 50 tentativas reais.
 
 ---
 
