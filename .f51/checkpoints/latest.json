@@ -498,5 +498,36 @@
       "screenshot": "output/playwright/superezio-browser-smoke-20260819-162039.png"
     }
   },
+  "no_automatic_aapl_impact_map": {
+    "status": "in_progress",
+    "problem": "AAPL is hardcoded as the cockpit bootstrap/fallback and browser-smoke symbol, so it appears without an explicit user or portfolio selection.",
+    "architecture_touched": [
+      "frontend chart bootstrap",
+      "market-data operations probe",
+      "Playwright release smoke"
+    ],
+    "files_planned": [
+      "frontend/js/content.js",
+      "frontend/js/init.js",
+      "scripts/browser_smoke.py"
+    ],
+    "indirectly_affected": [
+      "portfolio-selected ticker bootstrap",
+      "chart empty state",
+      "browser release evidence"
+    ],
+    "risks": [
+      "empty ticker sent to chart API",
+      "real broker position hidden by a global symbol block",
+      "Canadian smoke symbol lacks provider data"
+    ],
+    "smallest_safe_patch": "Start with no default/fallback ticker, skip the market probe until the operator selects one, preserve explicit portfolio/user selections, and use TD.TO only inside browser validation.",
+    "verification": [
+      "no automatic AAPL contract search",
+      "node --check frontend/js/content.js frontend/js/init.js",
+      "focused pytest",
+      "browser smoke with TD.TO"
+    ]
+  },
   "owner": "Codex"
 }
