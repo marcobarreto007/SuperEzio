@@ -66,7 +66,7 @@
   "current_situation": {
     "runtime": {
       "status": "operational",
-      "ceo_server": "http://127.0.0.1:8082 - llama.cpp with Bob Core + F51 LoRA",
+      "ceo_server": "http://127.0.0.1:8080 - llama.cpp with Bob Core + F51 LoRA",
       "api_server": "http://127.0.0.1:8002 - FastAPI + LangGraph pipeline v4",
       "frontend": "http://127.0.0.1:8002 - SuperEzio UI",
       "gpu": "NVIDIA GeForce RTX 5060 Ti - 16 GB VRAM",
@@ -230,4 +230,3 @@
     ]
   }
 }
-

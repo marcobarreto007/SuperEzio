@@ -346,7 +346,7 @@ class BobsBody:
     def __init__(self):
         self.organs: dict[str, Organ] = {
             "ceo_brain": Organ(
-                name="CEO Brain (Bob Core :8082)",
+                name="CEO Brain (Bob Core :8080)",
                 category=OrganCategory.BRAIN,
                 check_fn=_check_ceo_health,
                 pain_level=PainLevel.CRITICAL,

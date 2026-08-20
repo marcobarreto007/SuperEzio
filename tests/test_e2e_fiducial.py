@@ -37,7 +37,7 @@ def test_e2e():
         return
     passed += 1
 
-    if not check(_bob_alive(), "Bob CEO online :8082"):
+    if not check(_bob_alive(), "Bob CEO online :8080"):
         print("Start Bob: scripts/serve_agent_llamacpp.ps1")
         failed += 1
     else:
@@ -159,7 +159,7 @@ def _bob_alive():
 
         s = socket.socket()
         s.settimeout(2)
-        s.connect(("127.0.0.1", 8082))
+        s.connect(("127.0.0.1", 8080))
         s.close()
         return True
     except Exception:

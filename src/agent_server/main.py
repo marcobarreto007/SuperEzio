@@ -796,8 +796,8 @@ def health_check():
     # â”€â”€ Local models â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     local_models: dict = {}
     for name, url_env, port in [
-        ("agent", "SUPEREZIO_AGENT_BASE_URL", 8082),
-        ("agent_lora", "SUPEREZIO_AGENT_LORA_BASE_URL", 8082),
+        ("agent", "SUPEREZIO_AGENT_BASE_URL", 8080),
+        ("agent_lora", "SUPEREZIO_AGENT_LORA_BASE_URL", 8080),
     ]:
         url = os.getenv(url_env, "")
         reachable = False
@@ -807,7 +807,7 @@ def health_check():
                 is_local = host in ("127.0.0.1", "localhost")
                 if is_local:
                     # Local model: socket probe on the URL's own port
-                    # (zero-cloud: a porta vem da URL, ex. :8080; 8082 é só fallback legado)
+                    # (zero-cloud: a porta vem da URL; :8080 é o fallback canônico)
                     try:
                         probe_port = urlsplit(url).port or port
                     except ValueError:
@@ -818,7 +818,7 @@ def health_check():
                     s.close()
                     reachable = True
                 else:
-                    # Cloud model: skip socket probe (port 8082 doesn't apply to cloud APIs)
+                    # Cloud model: skip socket probe (the local port doesn't apply to cloud APIs)
                     reachable = True
             except Exception as exc:
                 logger.debug("[%s] local model probe failed (%s): %s", AGENT_NAME, name, exc)

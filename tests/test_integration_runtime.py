@@ -2,7 +2,7 @@
 
 Run with: python -m pytest tests/test_integration_runtime.py -q -v
 Prerequisites:
-  - agent llama-server on :8082 (scripts/serve_agent_llamacpp.ps1)
+  - agent llama-server on :8080 (scripts/serve_agent_llamacpp.ps1)
   - API agent_server on :8002 (python -m agent_server.main)
 """
 
@@ -15,7 +15,7 @@ import pytest
 pytestmark = pytest.mark.integration
 
 
-AGENT_HEALTH = "http://127.0.0.1:8082/health"
+AGENT_HEALTH = "http://127.0.0.1:8080/health"
 API_HEALTH = "http://127.0.0.1:8002/health"
 API_DETAILS = "http://127.0.0.1:8002/health/details"
 TASK_SUBMIT = "http://127.0.0.1:8002/task/submit"

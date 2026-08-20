@@ -233,8 +233,17 @@ def test_launcher_has_isolated_fail_closed_validation_mode():
 def test_public_health_exposes_validation_mode_without_sensitive_paths(monkeypatch):
     from fastapi.testclient import TestClient
     from agent_server.main import app
+    import core.bob_consciousness as bob_consciousness
+
+    class HealthyBody:
+        organs: dict = {}
+
+        @staticmethod
+        def is_man_at_work() -> bool:
+            return False
 
     monkeypatch.setenv("SUPEREZIO_VALIDATION_MODE", "1")
+    monkeypatch.setattr(bob_consciousness, "get_bobs_body", lambda: HealthyBody())
     original_pipeline = getattr(app.state, "pipeline", None)
     app.state.pipeline = object()
     try:

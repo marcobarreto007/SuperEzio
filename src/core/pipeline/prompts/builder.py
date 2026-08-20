@@ -630,10 +630,10 @@ def missing_agent_text(
         return (
             "MODEL_MISSING: local Bob Core CEO is offline.\n\n"
             f"Prepared route: {route} | ticker: {ticker or 'no ticker'}.\n"
-            "Action: verify CEO model server is running on port 8082"
+            "Action: verify CEO model server is running on port 8080"
         )
     return (
         "MODEL_MISSING: local Bob Core CEO did not respond.\n\n"
         f"Prepared route: {route} | ticker: {ticker or 'no ticker'}.\n"
-        "Action: verify http://127.0.0.1:8082/health and http://127.0.0.1:8082/v1/models."
+        "Action: verify http://127.0.0.1:8080/health and http://127.0.0.1:8080/v1/models."
     )
