@@ -1288,8 +1288,6 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
             },
         )
 
-    pipeline = _get_pipeline(request)
-
     try:
         payload = envelope.payload if isinstance(envelope.payload, dict) else {}
         raw_message = (
@@ -1306,6 +1304,64 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
         session_id = payload.get("session_id") or envelope.from_agent or "default"
         memory_mode = payload.get("memory_mode") or "relevant_all"
         rigor = payload.get("rigor") or "strict"
+
+        if _SMALLTALK_RE.match(raw_message):
+            greeting = "Oi! Bob está online. Como posso ajudar?"
+            trace = {
+                "user_query": raw_message,
+                "detected_intent": "general_question",
+                "selected_ui_ticker": "",
+                "chart_context_attached": False,
+                "route_used": "general",
+                "scanner_invoked": False,
+                "agent_called": False,
+                "fallback_used": False,
+                "final_content_length": len(greeting),
+            }
+            _session_history[session_id] = {
+                "detected_intent": "general_question",
+                "failed": False,
+            }
+
+            async def stream_smalltalk() -> AsyncGenerator[str, None]:
+                try:
+                    yield (
+                        json.dumps(
+                            {
+                                "type": "STREAM_START",
+                                "msg_id": envelope.msg_id,
+                                "run_id": task.run_id,
+                            }
+                        )
+                        + "\n"
+                    )
+                    yield (
+                        json.dumps(
+                            {
+                                "type": "INTENT_CLASSIFIED",
+                                "intent": "general_question",
+                                "route": "general",
+                            }
+                        )
+                        + "\n"
+                    )
+                    yield (
+                        json.dumps({"type": "CHUNK", "content": greeting}, ensure_ascii=False)
+                        + "\n"
+                    )
+                    request.app.state.last_decision_trace = trace
+                    yield (
+                        json.dumps(
+                            {"type": "STREAM_END", "trace": trace, "run_id": task.run_id}
+                        )
+                        + "\n"
+                    )
+                finally:
+                    tq.complete(task.run_id)
+
+            return StreamingResponse(stream_smalltalk(), media_type="application/x-ndjson")
+
+        pipeline = _get_pipeline(request)
         chart_context = str(payload.get("chart_context") or "")
         if len(chart_context) > _MAX_CHART_CONTEXT_CHARS:
             chart_context = chart_context[:_MAX_CHART_CONTEXT_CHARS]

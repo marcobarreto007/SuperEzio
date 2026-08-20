@@ -1077,14 +1077,11 @@ def test_neural_predict(client_with_mock_pipeline):
 # Endpoints: Task Submit Complete E2E Flow (A -> B -> C -> B -> A)
 # ---------------------------------------------------------------------------
 def test_task_submit_casual_flow(client_with_mock_pipeline):
-    """13a. POST /task/submit - E2E flow for casual query"""
+    """13a. Exact greetings return immediately without the financial pipeline."""
     mock_p, client = client_with_mock_pipeline
 
     mock_p.events_to_yield = [
-        {"type": "STREAM_START", "msg_id": "test-msg-001"},
-        {"type": "INTENT_CLASSIFIED", "intent": "general_question", "route": "general"},
-        {"type": "CHUNK", "content": "Hello! I am Bob, your financial orchestrator."},
-        {"type": "PIPELINE_STEP", "step": "agent_primary", "status": "completed"},
+        {"type": "CHUNK", "content": "pipeline must not run for an exact greeting"},
     ]
 
     payload = {
@@ -1093,7 +1090,7 @@ def test_task_submit_casual_flow(client_with_mock_pipeline):
         "to": "superezio",
         "type": "TASK.SUBMIT",
         "payload": {
-            "message": "Hi Bob!",
+            "message": "oi",
             "session_id": "session-test-01",
         },
     }
@@ -1113,13 +1110,14 @@ def test_task_submit_casual_flow(client_with_mock_pipeline):
     assert "STREAM_END" in event_types
 
     chunks = [ev for ev in events if ev["type"] == "CHUNK"]
-    assert chunks[0]["content"] == "Hello! I am Bob, your financial orchestrator."
+    assert chunks[0]["content"] == "Oi! Bob está online. Como posso ajudar?"
+    assert mock_p.last_stream_kwargs == {}
 
     # Validate STREAM_END contains trace metadata
     stream_end = events[-1]
     assert stream_end["type"] == "STREAM_END"
     trace = stream_end["trace"]
-    assert trace["user_query"] == "Hi Bob!"
+    assert trace["user_query"] == "oi"
     assert trace["detected_intent"] == "general_question"
     assert trace["route_used"] == "general"
     assert trace["fallback_used"] is False
