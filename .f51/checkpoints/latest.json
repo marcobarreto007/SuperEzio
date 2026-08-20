@@ -550,5 +550,39 @@
       "audit_data_deleted": false
     }
   },
+  "broken_screen_recovery_impact_map": {
+    "status": "in_progress",
+    "problem": "A stopped/stale runtime produced mixed ticker state and empty Bob responses; after current startup, casual greetings still enter the full financial pipeline and hold the UI busy for minutes.",
+    "architecture_touched": [
+      "service startup and health",
+      "task submit NDJSON contract",
+      "casual greeting routing",
+      "browser chat lifecycle"
+    ],
+    "files_planned": [
+      "src/agent_server/endpoints.py",
+      "tests/test_api_routes_sync.py"
+    ],
+    "risks": [
+      "breaking the existing streaming response contract",
+      "casual fast path accidentally accepting financial prompts",
+      "task queue record not completed",
+      "frontend remaining busy after stream end"
+    ],
+    "smallest_safe_patch": "Keep financial prompts on the full pipeline, but answer the existing exact smalltalk regex through a deterministic STREAM_START/INTENT_CLASSIFIED/CHUNK/STREAM_END sequence and always complete the task queue record.",
+    "verification": [
+      "greeting route does not call pipeline",
+      "financial prompt still calls pipeline",
+      "focused API tests and Ruff",
+      "Playwright TKO consistency and greeting response",
+      "browser smoke"
+    ],
+    "baseline": {
+      "ports_before_start": "8002, 8080 and 8082 offline",
+      "screenshot_state": "TKO input with AAPL chart, AAPL journal row, CEO offline and empty Bob response",
+      "current_runtime": "API and CEO both HTTP 200; served assets match current no-AAPL code",
+      "greeting_task_elapsed_seconds": 156.9
+    }
+  },
   "owner": "Codex"
 }
