@@ -71,9 +71,24 @@ python scripts\browser_smoke.py
 
 Quando há runtime/modelo:
 ```powershell
-Get-NetTCPConnection -LocalPort 8000,8020 -ErrorAction SilentlyContinue
+Get-NetTCPConnection -LocalPort 8002,8080 -ErrorAction SilentlyContinue
 nvidia-smi --query-gpu=index,name,memory.used,memory.free --format=csv,noheader,nounits
 ```
+
+## Workflow de Delivery
+
+```text
+product-delivery-orchestrator (read-only: slice + aceite + ownership)
+  -> product-implementer (um ticket, arquivos explícitos)
+  -> verifiers independentes selecionados pelo risco
+  -> reliability-sre-operator -> runtime-verifier
+  -> release-readiness-manager
+  -> savekeeper
+```
+
+Verifier nunca é autor do patch. Release manager não corrige produto. Capital real,
+credenciais, broker e go-live financeiro exigem decisão separada do operador humano.
+
 
 ## Comunicação Entre Agentes
 
