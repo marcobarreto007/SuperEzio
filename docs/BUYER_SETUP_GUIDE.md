@@ -1,164 +1,127 @@
-# SuperEzio - Buyer Setup Guide
+# SuperEzio V1 — Windows Setup Guide
 
-This guide is for a technical buyer or evaluator setting up SuperEzio on a clean Windows machine.
+This guide covers the deliverable V1: a local, authenticated financial-research
+copilot. It does not submit orders to a broker. TD Direct Investing remains a
+manual, human-confirmed workflow and real-capital automation is **NO-GO**.
 
-## 1. Hardware Requirements
+## 1. Prerequisites
 
-| Component | Minimum | Verified On |
-|-----------|---------|-------------|
-| OS | Windows 10/11 64-bit | Windows 11 Pro |
-| RAM | 48 GB | 64 GB |
-| GPU | NVIDIA RTX, 8 GB VRAM | RTX 5060 Ti, 16 GB VRAM |
-| Storage | 60 GB free SSD | NVMe SSD |
-| Network | Required for initial setup and optional data providers | Local runtime tested |
+- Windows 10/11, 64-bit.
+- Python 3.11 or 3.12, 64-bit.
+- NVIDIA drivers and a CUDA-capable `llama.cpp` build for GPU acceleration.
+- Enough RAM/VRAM and SSD space for the 15.9 GB Q4_K_M model.
+- Network access for the initial dependency install and optional market-data providers.
 
-The 80B GGUF model is large. Machines below the minimum may boot slowly, swap heavily, or fail to load the model.
+The validated operator runtime uses the local
+`Qwen3.8-27B-Q4_K_M.gguf` model with an 8192-token context. Hardware with less
+available memory can be slower or may fail to load the model.
 
-## 2. Install Prerequisites
+## 2. Install the local model runtime
 
-Install these before running the kit:
-
-- Python 3.12.x or 3.11.x, 64-bit.
-- Microsoft Visual C++ Redistributable x64.
-- NVIDIA driver and CUDA-compatible runtime if GPU acceleration is expected.
-- Git is optional. It is useful for source history, but not required if the seller provides a ZIP or folder transfer.
-
-Verify from PowerShell:
-
-```powershell
-python --version
-nvidia-smi
-```
-
-## 3. Install llama.cpp
-
-SuperEzio starts a local `llama-server.exe` on port 8082.
-
-Recommended path:
+Install `llama-server.exe`, then either place it at:
 
 ```text
-C:\llama.cpp\build-cuda\bin\llama-server.exe
+llama.cpp\bin\llama-server.exe
 ```
 
-Alternative: set an explicit path before starting:
+or define its location for the current PowerShell session:
 
 ```powershell
 $env:SUPEREZIO_LLAMA_SERVER_EXE = "C:\path\to\llama-server.exe"
 ```
 
-If you are using a custom F51/Nitro build, verify acceleration from the server logs. The launcher no longer claims F51 just because the executable lives in a CUDA folder.
-
-## 4. Add The Model
-
-The model is not included in source-only packages. See `models/README_MODEL.md`.
-
-Expected filename:
+The GGUF is not included in a source-only package. Place it at:
 
 ```text
-models\Huihui-Qwen3-Next-80B-A3B-Instruct-abliterated.IQ4_XS.gguf
+models\Qwen3.8-27B-Q4_K_M.gguf
 ```
 
-## 5. Install SuperEzio
-
-From the SuperEzio root folder:
+or define:
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -e .
+$env:SUPEREZIO_MODEL_PATH = "D:\models\Qwen3.8-27B-Q4_K_M.gguf"
 ```
 
-`requirements.txt` is provided as a dependency mirror, but `pip install -e .` is the primary install path because `pyproject.toml` is the source of truth.
+## 3. Bootstrap the product
 
-## 6. Configure Environment
-
-Copy the template:
+From the extracted SuperEzio directory, set a unique first-operator password in
+the current process and run the locked bootstrap:
 
 ```powershell
-Copy-Item .env.example .env
+$env:SUPEREZIO_ADMIN_PASSWORD = "replace-with-a-unique-long-password"
+.\setup_superezio.bat
 ```
 
-The local CEO can run without cloud model keys, but market-data and expert coverage may be reduced.
+The bootstrap:
 
-Common optional keys:
+- creates `.venv`;
+- installs the exact versions in `requirements-lock.txt`;
+- installs the local package without resolving a second dependency graph;
+- installs Playwright Chromium;
+- creates `.env.local` and a random JWT secret when needed;
+- seeds the first local operator without putting the password in command history.
 
-- `FINNHUB_API_KEY`: market data.
-- `SUPEREZIO_DEEPSEEK_API_KEY`: optional expert sub-analysis.
-- `GEMINI_API_KEY`: optional sentiment or fallback analysis.
-- `ALPACA_API_KEY` and `ALPACA_SECRET_KEY`: optional Alpaca paper account proof.
-- `IBKR_HOST`, `IBKR_PORT`, and `IBKR_CLIENT_ID`: optional Interactive Brokers paper API proof.
+Do not distribute `.env`, `.env.local`, databases, journals, logs, traces or
+saved browser sessions.
 
-Do not ship a real `.env` file to a buyer. Ship `.env.example` and let the buyer add their own keys.
+## 4. Start and stop
 
-## 7. Verify Installation
-
-Run:
+Start through the only supported launcher:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\check.ps1
+.\setup_superezio.bat run
 ```
 
-Expected on a clean stopped system: all required checks pass. If ports 8082 or 8002 are already in use, run:
+It starts:
+
+- local CEO/model server: `http://127.0.0.1:8080`;
+- API and browser product: `http://127.0.0.1:8002`.
+
+Stop with:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\stop.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\stop.ps1
 ```
 
-Then run `check.ps1` again.
+`start_all.bat` and `superezio_launcher.bat` are compatibility shims that now
+delegate to the same official launcher.
 
-## 8. Start SuperEzio
+## 5. Verify
+
+After the services are healthy:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\start.ps1
+python -m ruff check src tests
+python -m pytest tests\contracts tests\test_windows_bootstrap_contract.py -q
+python scripts\browser_smoke.py
 ```
 
-The script starts:
+The browser smoke uses `TD.TO`, verifies a non-empty chart and canvas, sends one
+bounded chat request, and fails on visible or console errors.
 
-- CEO model server at `http://127.0.0.1:8082/v1`
-- API and UI at `http://127.0.0.1:8002`
-
-The first model load can take several minutes.
-
-## 9. Test The Product
-
-Open:
-
-```text
-http://127.0.0.1:8002
-```
-
-Try a bounded research prompt:
-
-```text
-I have CAD 25,000 to allocate. Build a serious framework with risk limits.
-```
-
-Expected: a structured educational analysis with risk framing and a bounded next step. This is not financial advice and does not execute trades.
-
-Optional broker connectivity proof:
+The response-quality gate must only run against a separately started isolated
+validation runtime. It refuses the normal product runtime by design:
 
 ```powershell
-.\.venv\Scripts\python.exe .\scripts\broker_readiness_probe.py --provider all --json
+python scripts\quality_probe.py --api http://127.0.0.1:8002
 ```
 
-Expected without broker setup: both providers report `connected: false` with explicit setup errors. Expected with paper credentials or a local paper TWS/Gateway API: read-only account and position counts are reported. This probe never submits, cancels, or modifies orders.
+## 6. Product boundary
 
-## 10. Stop
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\stop.ps1
-```
-
-The stop script only targets processes listening on the official SuperEzio ports.
+- V1 is research and decision support, not financial advice.
+- Broker offline does not mean core offline.
+- No successful HTTP request is treated as broker confirmation.
+- No TD credential is required or stored.
+- Any future real-capital pilot requires a new Money Gate decision, independent
+  release evidence and explicit human approval.
 
 ## Troubleshooting
 
 | Problem | Action |
-|---------|--------|
-| Port 8082 or 8002 in use | Run `stop.ps1`, then retry |
-| Model not found | Put the GGUF file under `models\` with the expected filename |
-| `llama-server.exe` not found | Install llama.cpp or set `SUPEREZIO_LLAMA_SERVER_EXE` |
-| CUDA unavailable | Check NVIDIA driver, CUDA runtime, and llama.cpp build |
-| Missing Python package | Run `python -m pip install -e .` |
-| Slow responses | Expected for complex prompts on an 80B local model |
+|---|---|
+| Port 8080 or 8002 in use | Run `stop.ps1`, then start again. |
+| Model not found | Set `SUPEREZIO_MODEL_PATH` or use the documented `models` path. |
+| `llama-server.exe` not found | Set `SUPEREZIO_LLAMA_SERVER_EXE` or use the bundled path. |
+| CUDA unavailable | Check NVIDIA drivers and the llama.cpp build. |
+| Login unavailable | Re-run bootstrap so `.env.local` gets a JWT secret. |
+| Quality probe refuses runtime | Start an isolated validation runtime; refusal is fail-closed behavior. |

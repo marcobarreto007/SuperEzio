@@ -68,39 +68,28 @@ The detailed July 2026 verification is in [docs/audit/phase10_organism_truth_and
 
 ## Installation
 
-Python 3.11 or newer is required.
+Python 3.11 or newer is required. On Windows, use the locked bootstrap and
+provide a unique first-operator password through the current process:
 
 ```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install -e .
-python -m playwright install chromium
+$env:SUPEREZIO_ADMIN_PASSWORD = "replace-with-a-unique-long-password"
+.\setup_superezio.bat
 ```
 
-Configuration is read from environment variables. Copy `.env.example` only if you need a local configuration file. Never commit secrets.
+The bootstrap installs `requirements-lock.txt`, creates `.env.local`, generates
+a JWT secret and installs Playwright Chromium. Never commit or distribute secrets.
 
 ## Running
 
-The API and cockpit run on `127.0.0.1:8002` by default:
+The official launcher starts both the local model and the product:
 
 ```powershell
-python -m agent_server.main
+.\setup_superezio.bat run
 ```
 
-Then open `http://127.0.0.1:8002`.
-
-The optional local model gateway runs on port `8082`:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8082
-```
-
-If the package has not been installed in editable mode, use this development-only launch:
-
-```powershell
-$env:PYTHONPATH = "src"
-python -m agent_server.main
-```
+The model server is local on `127.0.0.1:8080`; the API and cockpit are on
+`127.0.0.1:8002`. The GGUF path can be supplied with
+`SUPEREZIO_MODEL_PATH`, and the executable with `SUPEREZIO_LLAMA_SERVER_EXE`.
 
 ## Authentication
 
@@ -111,7 +100,8 @@ SuperEzio uses JWT authentication with bcrypt password hashing and refresh-token
 - **`/auth/refresh`** — rotate a refresh token (single-use)
 - **`/auth/me`** — return the authenticated user's profile
 
-When `SUPEREZIO_JWT_SECRET` is not configured the server runs in **dev mode** and injects an anonymous user for all non-public routes.  In production, set a strong secret via `.env.local`:
+The Windows bootstrap generates `SUPEREZIO_JWT_SECRET` in `.env.local`. A
+secret is required for the deliverable product; anonymous mode is development-only.
 
 ```ini
 SUPEREZIO_JWT_SECRET=your-strong-random-secret-here
@@ -120,10 +110,13 @@ SUPEREZIO_JWT_SECRET=your-strong-random-secret-here
 ### Seeding the first admin
 
 ```powershell
-python scripts/seed_admin.py --username admin --email admin@superezio.com --password StrongPass123!
+$env:SUPEREZIO_ADMIN_PASSWORD = "replace-with-a-unique-long-password"
+python scripts/seed_admin.py --username admin --email admin@superezio.com
 ```
 
-The script accepts `--db-path` to point to a custom location and falls back to environment variables `SUPEREZIO_ADMIN_USERNAME`, `SUPEREZIO_ADMIN_EMAIL`, and `SUPEREZIO_ADMIN_PASSWORD`.
+The password is read from `SUPEREZIO_ADMIN_PASSWORD`; it is not accepted on the
+command line. The script can also read `SUPEREZIO_ADMIN_USERNAME` and
+`SUPEREZIO_ADMIN_EMAIL`.
 
 ## Verification
 
