@@ -268,37 +268,25 @@ def _generate_jwt_secret() -> str:
 
 
 def _create_admin_user(username: str, email: str, password: str) -> dict:
-    """Create admin user via core.auth and promote to admin role.
+    """Create the initial operator using the runtime auth authority.
 
     Returns the user dict on success.
-    Raises ValueError on duplicate or invalid data.
+    Raises a validation or HTTP conflict error on invalid/duplicate data.
     """
-    from core.auth.models import UserRegister
-    from core.auth.service import AuthDB
+    from agent_server.auth import AuthDB, UserCreate
 
     auth_db_path = _resolve_auth_db()
     db = AuthDB(db_path=auth_db_path)
 
     # Validate via Pydantic
-    payload = UserRegister(username=username, email=email, password=password)
+    payload = UserCreate(username=username, email=email, password=password)
 
     # Register user
-    user = db.register(payload)
-
-    # Promote to admin
-    conn = sqlite3.connect(str(auth_db_path))
-    try:
-        conn.execute("UPDATE users SET role='admin' WHERE id=?", (user["id"],))
-        conn.commit()
-    except sqlite3.OperationalError:
-        # Older schema may not have 'role' column - add it and retry
-        conn.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
-        conn.execute("UPDATE users SET role='admin' WHERE id=?", (user["id"],))
-        conn.commit()
-    finally:
-        conn.close()
-
-    return user
+    return db.create_user(
+        username=payload.username,
+        email=payload.email,
+        password=payload.password,
+    )
 
 
 def _show_summary(
@@ -317,9 +305,9 @@ def _show_summary(
         masked = deepseek_key[:8] + "..." + deepseek_key[-4:] if len(deepseek_key) > 12 else "***"
         print(f"  DeepSeek Key:    {masked}")
     if admin_user:
-        print(f"  Admin Username:  {admin_user['username']}")
-        print(f"  Admin Email:     {admin_user['email']}")
-        print(f"  Admin ID:        {admin_user['id']}")
+        print(f"  Operator Username: {admin_user['username']}")
+        print(f"  Operator Email:    {admin_user['email']}")
+        print(f"  Operator ID:       {admin_user['id']}")
     print(f"  Arquivo env:     {env_path}")
     print("=" * 60)
     print()
@@ -483,25 +471,13 @@ def _check_auth_db() -> dict:
             return result
         conn = sqlite3.connect(str(auth_db))
         count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-        has_admin = 0
-        try:
-            has_admin = conn.execute(
-                "SELECT COUNT(*) FROM users WHERE role='admin'"
-            ).fetchone()[0]
-        except sqlite3.OperationalError:
-            # Older schema may not have 'role' column
-            pass
         conn.close()
         result["user_count"] = count
-        result["admin_count"] = has_admin
         if count == 0:
             result["status"] = "empty"
             result["detail"] = "No users in auth database"
-        elif has_admin == 0:
-            result["status"] = "warning"
-            result["detail"] = f"{count} user(s) but no admin"
         else:
-            result["detail"] = f"{count} user(s), {has_admin} admin(s)"
+            result["detail"] = f"{count} operator account(s)"
     except Exception as exc:
         result["status"] = "error"
         result["detail"] = str(exc)[:120]

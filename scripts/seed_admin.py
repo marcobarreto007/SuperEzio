@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Seed Admin — Create the initial admin user for SuperEzio.
+Seed Admin — Create the initial local operator for SuperEzio.
 
-Creates a privileged admin account in the auth database used by the
-FastAPI server.  The admin user gets role='admin' and can access all
-JWT-protected routes.
+Creates the first account in the same auth database and schema used by the
+FastAPI server. The V1 is single-operator; it does not claim role-based access
+control that the active middleware does not enforce.
 
 Usage:
     python scripts/seed_admin.py --username admin --email admin@superezio.com --password StrongPass123!
@@ -20,7 +20,7 @@ server.  Use --db-path to point to a different location.
 
 Prerequisites:
   - Python 3.11+
-  - Package installed (``pip install -e .``) so that ``core.auth`` is importable.
+  - Package installed (``pip install -e .``) so that ``agent_server`` is importable.
   - ``SUPEREZIO_JWT_SECRET`` must be set in the environment or .env.local
     (otherwise AuthDB cannot create tokens, but user creation itself still works).
 """
@@ -29,19 +29,19 @@ from __future__ import annotations
 
 import argparse
 import os
-import sqlite3
 import sys
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# Ensure src/ is on sys.path so that core.auth is importable from scripts/
+# Ensure src/ is on sys.path so that agent_server.auth is importable from scripts/
 # ---------------------------------------------------------------------------
 _SRC = Path(__file__).resolve().parent.parent / "src"
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
-from core.auth import AuthDB  # noqa: E402
-from core.auth.models import UserRegister  # noqa: E402
+from fastapi import HTTPException  # noqa: E402
+
+from agent_server.auth import AuthDB, UserCreate  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Arg parsing
@@ -109,32 +109,6 @@ def _resolve_db_path(args: argparse.Namespace) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Promote user to admin role
-# ---------------------------------------------------------------------------
-
-
-def _ensure_role_column(db_path: Path) -> None:
-    """Add ``role`` column if it doesn't exist (schema migration for older DBs)."""
-    try:
-        conn = sqlite3.connect(str(db_path))
-        conn.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
-        conn.commit()
-        conn.close()
-    except sqlite3.OperationalError:
-        # Column already exists — nothing to do.
-        pass
-
-
-def _promote_to_admin(db_path: Path, user_id: int) -> None:
-    """Set the user's role to 'admin'."""
-    _ensure_role_column(db_path)
-    conn = sqlite3.connect(str(db_path))
-    conn.execute("UPDATE users SET role='admin' WHERE id=?", (user_id,))
-    conn.commit()
-    conn.close()
-
-
-# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -146,7 +120,7 @@ def main(argv: list[str] | None = None) -> None:
 
     # --- Validate credentials via Pydantic before hitting the DB ---
     try:
-        payload = UserRegister(username=username, email=email, password=password)
+        payload = UserCreate(username=username, email=email, password=password)
     except Exception as exc:
         print(f"ERROR: Invalid credentials — {exc}", file=sys.stderr)
         sys.exit(1)
@@ -160,19 +134,19 @@ def main(argv: list[str] | None = None) -> None:
     # --- Create user ---
     db = AuthDB(db_path=db_path)
     try:
-        user = db.register(payload)
-    except ValueError as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
+        user = db.create_user(
+            username=payload.username,
+            email=payload.email,
+            password=payload.password,
+        )
+    except HTTPException as exc:
+        print(f"ERROR: {exc.detail}", file=sys.stderr)
         sys.exit(1)
 
-    # --- Promote to admin ---
-    _promote_to_admin(db_path, user["id"])
-
-    print("Admin user created successfully!")
+    print("Initial operator created successfully!")
     print(f"  ID      : {user['id']}")
     print(f"  Username: {user['username']}")
     print(f"  Email   : {user['email']}")
-    print("  Role    : admin")
     print()
     print("You can now log in via POST /auth/login or the browser UI.")
     print()
