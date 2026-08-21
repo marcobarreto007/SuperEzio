@@ -907,5 +907,38 @@
     ],
     "evidence_report": "docs/audit/MULTI_ASSET_INVESTMENT_QUALITY_2026-08-20.md"
   },
+  "predictive_core_remediation_20260820": {
+    "status": "impact_mapped",
+    "problem": "O produto funciona tecnicamente, mas o motor direcional qualificou 0/24 casos exploratorios e nao entrega habilidade de investimento demonstrada.",
+    "architecture_touched": [
+      "TechnicalNeuralExpert e artifact contract",
+      "node_neural_decision e execution_policy",
+      "forecast/paper journal",
+      "OutcomeLearningEngine e feedback loop",
+      "historical challenger evaluation"
+    ],
+    "files_to_change_after_recon": [
+      "src/experts/technical_neural/",
+      "src/core/pipeline/nodes/neural_decision.py",
+      "src/core/trading/paper_journal.py",
+      "src/core/trading/outcome_learning.py",
+      "scripts/ e tests/ para nested walk-forward e ledger ex-ante"
+    ],
+    "indirect_risks": [
+      "overfit por escolher modelo e medir no mesmo periodo",
+      "leakage temporal entre features, labels e splits",
+      "promover challenger sem vantagem por ativo/regime",
+      "registrar forecast depois de conhecer outcome",
+      "alterar gate de ordem para aceitar evidencia inferior"
+    ],
+    "complete_solution": "Comparar challengers simples em nested walk-forward sem AAPL privilegiado, promover somente se superar baselines em outer folds e manter ledger ex-ante imutavel para confirmacao futura; caso contrario, retirar forecast direcional do produto e operar como research copilot abstencionista.",
+    "verification": [
+      "testes causais e de invariantes do artifact",
+      "nested walk-forward multiativo com custos e baselines",
+      "testes de imutabilidade/idempotencia do forecast ledger",
+      "gate de execucao permanece fail-closed",
+      "Ruff, suite completa e regression hunt"
+    ]
+  },
   "owner": "Codex"
 }
