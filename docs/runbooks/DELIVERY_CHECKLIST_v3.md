@@ -1,7 +1,7 @@
 # SUPEREZIO — Delivery Checklist v3 (Hybrid Models)
 
 **Atualizado:** 2026-08-21 · **Substitui:** `docs/DELIVERY_CHECKLIST_v2.md` (mundo 8082 e roteamento antigo)
-**Runtime alvo:** Qwen3.8-27B-Q4_K_M local para CEO/orquestrador (`:8080`), DeepSeek V4 Pro externo para experts/judge/auditor e API em `:8002`. **Nao existe fallback cruzado entre os tiers.**
+**Runtime alvo:** Qwen3.8-27B-UD-IQ2_XXS local para CEO/orquestrador (`:8080`), DeepSeek V4 Pro externo para experts/judge/auditor e API em `:8002`. **Nao existe fallback cruzado entre os tiers.**
 
 ---
 
@@ -9,7 +9,7 @@
 
 - [ ] GPUs livres: `nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader`
       (perfil canônico: RTX 3060 12 GB + RTX 2070 8 GB, tensor split `12,8`; investigar consumo concorrente antes do boot)
-- [ ] `.env.local` hibrido: agent em `http://127.0.0.1:8080/v1`, model `Qwen3.8-27B-Q4_K_M`, DeepSeek em `https://api.deepseek.com`, model `deepseek-v4-pro` e `SUPEREZIO_DEEPSEEK_API_KEY` preenchida sem ser impressa/commitada
+- [ ] `.env.local` hibrido: agent em `http://127.0.0.1:8080/v1`, model `Qwen3.8-27B-UD-IQ2_XXS`, DeepSeek em `https://api.deepseek.com`, model `deepseek-v4-pro` e `SUPEREZIO_DEEPSEEK_API_KEY` preenchida sem ser impressa/commitada
 - [ ] TWS Paper (opcional nesta fase; obrigatório para loops de ordem): porta 7497, TIF DAY default desmarcado (M1)
 
 ## ⬜ BOOT (ordem documentada — cc primeiro)
@@ -24,7 +24,7 @@
   ```powershell
   curl.exe -fsS http://127.0.0.1:8080/v1/models
   ```
-  Esperado: `Qwen3.8-27B-Q4_K_M`. Se divergir do `config/model_manifest.json`, interromper o gate e corrigir o contrato antes de prosseguir.
+  Esperado: `Qwen3.8-27B-UD-IQ2_XXS`. Se divergir do `config/model_manifest.json`, interromper o gate e corrigir o contrato antes de prosseguir.
 - [ ] **Terminal 2 — API + frontend:**
   ```powershell
   python -m agent_server.main

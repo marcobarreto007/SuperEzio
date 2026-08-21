@@ -1,14 +1,12 @@
 {
-  "date_local": "2026-08-18T17:45:00-04:00",
-  "session": "qwen38-q4km-3060-2070-2026-08-18",
-  "status": "q4km_real_gpus_runtime",
-  "superseded_note": "This checkpoint preserves the 2026-08-18 transition evidence. Its ctx 16384 narrative was superseded by the validated and configured 8192-token runtime; runtime_parameters and next_step carry the current value.",
+  "date_local": "2026-08-21",
+  "session": "single-gpu-iq2-launch-2026-08-21",
+  "status": "LIVE",
+  "superseded_note": "Switch canonico 2026-08-21: single-GPU RTX 3060 12GB com UD-IQ2_XXS (8.4GB). Q4_K_M (15.9GB) permanece em disco como perfil de 2 GPUs/offload. RTX 2070 segue em Code 31.",
   "what_was_done": [
-    "ZERO-CLOUD retained: every LLM role still served by the shared local llama-server on :8080",
-    "Active GGUF switched from Qwen3.8-27B-UD-IQ2_XXS to Qwen3.8-27B-Q4_K_M (already on disk, 15.93 GB, no download)",
-    "Hardware comments updated from stale 2070+P106 / -ts 8,6 / ctx 40960 to RTX 3060 12GB + RTX 2070 8GB / -ts 12,8 / ctx 16384",
-    "llama-server binary switched to C:\\Users\\marco\\tools\\llama.cpp\\llama-server.exe (src MSVC build crashes: no kernel image in ggml_cuda_kernel_can_use_pdl)",
-    "MTP disabled: draft context CUDA OOM on 2070 with Q4"
+    "Servidor :8080 iniciado direto via llama-server.exe (build 10435) com -ts 12, ctx 8192, presence-penalty 1.5",
+    "/v1/chat/completions respondeu em PT: \"A regra numero um do investimento e proteger o capital\" (27 completion tokens)",
+    "GPU: 9220 MiB / 12288 MiB em uso; health {\"status\":\"ok\"}"
   ],
   "runtime_parameters": {
     "api_port": 8002,
@@ -16,12 +14,12 @@
     "api_entrypoint": "python -m agent_server.main",
     "agent_entrypoint": "scripts/serve_agent_llamacpp.ps1 -Port 8080",
     "llama_server": "C:\\Users\\marco\\tools\\llama.cpp\\llama-server.exe",
-    "model_path": "C:\\Users\\marco\\models\\qwen3.8-27b\\Qwen3.8-27B-Q4_K_M.gguf",
+    "model_path": "C:\\Users\\marco\\models\\qwen3.8-27b\\Qwen3.8-27B-UD-IQ2_XXS.gguf",
     "lora_path": null,
-    "quantization": "Q4_K_M",
+    "quantization": "UD-IQ2_XXS",
     "context_length": 8192,
     "gpu_layers": "all",
-    "tensor_split": "12,8",
+    "tensor_split": "12",
     "model_type": "dense",
     "shared_with": "Claude Code perfil cc (one server, one slot)",
     "cloud_providers": "none (zero-cloud policy)"
@@ -38,6 +36,6 @@
     "24576 does not fit Q4_K_M on 3060+2070 even with empty VRAM, q8_0 and flash attn",
     "llama.cpp-src MSVC binary is unusable on this GPU pair (no kernel image)"
   ],
-  "next_step": "Keep :8080 Q4_K_M ctx 8192 running; start python -m agent_server.main if the API is down.",
+  "next_step": "Validar o Bob via gateway SuperEzio (python -m agent_server.main usa AGENT_MODEL_ID=Qwen3.8-27B-UD-IQ2_XXS) e rodar browser smoke quando o operador liberar MAN_AT_WORK.",
   "owner": "Marco"
 }

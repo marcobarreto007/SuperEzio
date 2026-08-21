@@ -29,7 +29,7 @@ incorporates the detailed module contracts but does not duplicate them.
 | CEO (llama.cpp) | `scripts/serve_agent_llamacpp.ps1 -Port 8080` | 8080 | `http://127.0.0.1:8080/health` |
 | API (FastAPI) | `python -m agent_server.main` | 8002 | `http://127.0.0.1:8002/health` |
 
-The supported CEO/orchestrator model is `Qwen3.8-27B-Q4_K_M` with an 8192-token
+The supported CEO/orchestrator model is `Qwen3.8-27B-UD-IQ2_XXS` (Unsloth Dynamic v3, 8.4GB) with an 8192-token
 context on the shared local llama.cpp server. Financial experts, day-trade
 judge, and auditor are pinned to `deepseek-v4-pro` on the official DeepSeek
 HTTPS API. No cross-provider fallback is permitted. The GGUF, llama.cpp

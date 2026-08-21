@@ -11,7 +11,7 @@ build/boot still needs a run with Docker Desktop available.
 
 ## Canonical Runtime
 
-- Shared local Qwen3.8-27B-Q4_K_M llama-server: `127.0.0.1:8080`.
+- Shared local Qwen3.8-27B-UD-IQ2_XXS llama-server: `127.0.0.1:8080`.
 - FastAPI and browser UI: `127.0.0.1:8002`.
 - CEO/orchestrator use the shared local endpoint; experts/judge/auditor use pinned `deepseek-v4-pro` at the official DeepSeek HTTPS API.
 - No cross-provider fallback exists. Missing DeepSeek credentials degrade detailed readiness and block expert work explicitly.

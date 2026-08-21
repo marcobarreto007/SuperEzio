@@ -50,7 +50,7 @@ def test_default_build_has_local_ceo_and_pinned_deepseek_experts(monkeypatch) ->
     for name in ("agent", "local_orchestrator"):
         assert by_name[name].is_local is True
         assert "127.0.0.1" in by_name[name].base_url
-        assert by_name[name].model == "Qwen3.8-27B-Q4_K_M"
+        assert by_name[name].model == "Qwen3.8-27B-UD-IQ2_XXS"
     for name in ("deepseek", "daytrade_judge", "daytrade_auditor"):
         assert by_name[name].is_local is False
         assert by_name[name].base_url == "https://api.deepseek.com"

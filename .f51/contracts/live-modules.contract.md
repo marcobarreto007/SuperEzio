@@ -44,7 +44,7 @@ defined inline.
 - **Canonical:** `.f51/contracts/ceo.contract.md`
 - **Path:** `src/core/pipeline/prompts/_prompts.py`, `src/core/pipeline/prompts/builder.py`
 - **Public surface:** `ceo_system_prompt()`, `build_ceo_prompt(state)`, `QWEN_SYSTEM_PROMPT`
-- **Model:** operator-supplied `Qwen3.8-27B-Q4_K_M.gguf` (llama.cpp, local `:8080`, context 8192)
+- **Model:** operator-supplied `Qwen3.8-27B-UD-IQ2_XXS.gguf` (llama.cpp, local `:8080`, context 8192, single GPU)
 - **Invariants:** always returns non-empty string â‰¥ 100 chars; includes `Bob's read` for ticker analysis
 
 ## 4. F51 Engine

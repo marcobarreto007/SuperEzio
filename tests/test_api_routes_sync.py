@@ -513,7 +513,7 @@ def test_cockpit_summary(client_with_mock_pipeline, monkeypatch):
     assert data["status"]["guardrails"]["status"] == "unknown"
     assert data["status"]["guardrails"]["ok"] is None
     assert data["status"]["guardrails"]["total"] is None
-    assert data["status"]["primary_model"] == "Qwen3.8-27B-Q4_K_M"
+    assert data["status"]["primary_model"] == "Qwen3.8-27B-UD-IQ2_XXS"
     assert data["status"]["deep"] == {
         "status": "degraded",
         "provider": "deepseek",

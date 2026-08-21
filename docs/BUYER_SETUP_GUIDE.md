@@ -15,7 +15,7 @@ real-capital automation is **NO-GO**.
 - Network access for the initial dependency install and optional market-data providers.
 
 The validated operator runtime uses the local
-`Qwen3.8-27B-Q4_K_M.gguf` model with an 8192-token context. Hardware with less
+`Qwen3.8-27B-UD-IQ2_XXS.gguf` model with an 8192-token context. Hardware with less
 available memory can be slower or may fail to load the model.
 
 ## 2. Install the local model runtime
@@ -35,13 +35,13 @@ $env:SUPEREZIO_LLAMA_SERVER_EXE = "C:\path\to\llama-server.exe"
 The GGUF is not included in a source-only package. Place it at:
 
 ```text
-models\Qwen3.8-27B-Q4_K_M.gguf
+models\Qwen3.8-27B-UD-IQ2_XXS.gguf
 ```
 
 or define:
 
 ```powershell
-$env:SUPEREZIO_MODEL_PATH = "D:\models\Qwen3.8-27B-Q4_K_M.gguf"
+$env:SUPEREZIO_MODEL_PATH = "D:\models\Qwen3.8-27B-UD-IQ2_XXS.gguf"
 ```
 
 ## 3. Bootstrap the product

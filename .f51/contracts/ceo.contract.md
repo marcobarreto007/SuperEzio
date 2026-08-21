@@ -32,7 +32,7 @@ CEO deve referenciar explicitamente cada mÃ³dulo disponÃ­vel:
 ## Invariants
 
 1. CEO responde no idioma do usuario; o gate V1 valida respostas em portugues quando o prompt esta em portugues.
-2. Modelo canonico: `Qwen3.8-27B-Q4_K_M.gguf`, servido localmente em `http://127.0.0.1:8080/v1`.
+2. Modelo canonico: `Qwen3.8-27B-UD-IQ2_XXS.gguf` (single-GPU RTX 3060 12GB), servido localmente em `http://127.0.0.1:8080/v1`.
 3. Temperatura: 0.3, max_tokens: 512, timeout: 600s e contexto efetivo: 8192 tokens. O limite de saida mantem a geracao no orcamento do gateway no perfil validado de ~1,3 token/s.
 4. O prompt final e limitado a 24.000 caracteres, com relatorio/observacoes truncados antes dos contratos binding, para reservar a janela da resposta no contexto de 8192 tokens.
 4. `_strip_thinking` remove blocos `<think>...</think>` do output.

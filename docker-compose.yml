@@ -4,7 +4,7 @@ services:
     container_name: superezio-bob
     command:
       - "--model"
-      - "/models/Qwen3.8-27B-Q4_K_M.gguf"
+      - "/models/Qwen3.8-27B-UD-IQ2_XXS.gguf"
       - "--port"
       - "8080"
       - "--host"
@@ -66,8 +66,8 @@ services:
       - SUPEREZIO_DEEPSEEK_BASE_URL=https://api.deepseek.com
       - "SUPEREZIO_DEEPSEEK_API_KEY=${SUPEREZIO_DEEPSEEK_API_KEY:?SUPEREZIO_DEEPSEEK_API_KEY is required}"
       - SUPEREZIO_CEO_BASE_URL=http://bob-ceo:8080/v1
-      - SUPEREZIO_PRIMARY_MODEL=Qwen3.8-27B-Q4_K_M
-      - SUPEREZIO_AGENT_MODEL=Qwen3.8-27B-Q4_K_M
+      - SUPEREZIO_PRIMARY_MODEL=Qwen3.8-27B-UD-IQ2_XXS
+      - SUPEREZIO_AGENT_MODEL=Qwen3.8-27B-UD-IQ2_XXS
       - SUPEREZIO_DEEPSEEK_MODEL=deepseek-v4-pro
       - F51_TRADING_EXECUTION_FREEZE=true
       - SUPEREZIO_LIVE_TRADING_DISABLED=1

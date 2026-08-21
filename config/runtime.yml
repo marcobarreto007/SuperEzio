@@ -26,25 +26,26 @@ models:
   agent:
     name: Qwen3.8-27B Local (shared cc)
     provider_name: agent
-    model_id: Qwen3.8-27B-Q4_K_M
-    path: models/Qwen3.8-27B-Q4_K_M.gguf
-    quantization: Q4_K_M
+    model_id: Qwen3.8-27B-UD-IQ2_XXS
+    path: models/Qwen3.8-27B-UD-IQ2_XXS.gguf
+    quantization: UD-IQ2_XXS
     server_url: http://127.0.0.1:8080/v1
     backend: openai_compatible
     role: agent
     is_local: true
     temperature: 0.3
     # 512 keeps worst-case generation inside the 600s local gateway budget
-    # on the validated ~1.3 tok/s dual-GPU profile.
+    # on the single-GPU IQ2 profile.
     max_tokens: 512
     timeout_s: 600
     script: scripts/serve_agent_llamacpp.ps1
     preferred_llama_server: llama.cpp/bin/llama-server.exe
-    # Perfil 2026-08-18: -ngl all -sm layer -ts 12,8, cache q8_0, contexto 8192
-    # (RTX 3060 12GB + RTX 2070 8GB). Sem IQ2. MTP desligado (OOM com Q4).
+    # Perfil 2026-08-21: -ngl all -sm layer -ts 12, cache q8_0, contexto 8192,
+    # UD-IQ2_XXS (Unsloth Dynamic v3, 8.4GB) na unica GPU funcional
+    # (RTX 3060 12GB). presence-penalty 1.5. MTP desligado.
     context_length: 8192
     gpu_layers: all
-    tensor_split: "12,8"
+    tensor_split: "12"
     slots: 1
     thinking: disabled
     model_type: local_gguf
@@ -56,7 +57,7 @@ models:
     name: Qwen3.8-27B Local (shared cc)
     provider_name: local_orchestrator
     path: http://127.0.0.1:8080/v1
-    model_id: Qwen3.8-27B-Q4_K_M
+    model_id: Qwen3.8-27B-UD-IQ2_XXS
     backend: openai_compatible
     role: orchestrator
     is_local: true

@@ -27,7 +27,7 @@ Version boundary: package/public API `4.0.0`; runtime configuration/model manife
 | File | `scripts/serve_agent_llamacpp.ps1` |
 | Config | `config.ps1` |
 | Host | `127.0.0.1:8080` |
-| Model | `models/Qwen3.8-27B-Q4_K_M.gguf` or `SUPEREZIO_MODEL_PATH` |
+| Model | `models/Qwen3.8-27B-UD-IQ2_XXS.gguf` or `SUPEREZIO_MODEL_PATH` |
 | LoRA | None |
 | Architecture | Qwen3.8-27B dense |
 | GPU | All layers, RTX 3060 12 GB + RTX 2070 8 GB, tensor split `12,8` |

@@ -21,10 +21,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 AGENT_PROVIDER_NAME = "agent"
-# Model id served by the shared local llama-server (perfil cc). llama-server
-# exposes the loaded file name as the model id; confirm via /v1/models on a
-# live server before changing this.
-AGENT_MODEL_ID = "Qwen3.8-27B-Q4_K_M"
+# Model id served by the shared local llama-server (perfil cc). Single-model
+# llama-server accepts any requested name; /v1/models reports the loaded file
+# path. This id is the canonical name of the quant in use.
+AGENT_MODEL_ID = "Qwen3.8-27B-UD-IQ2_XXS"
 PRIMARY_PROVIDER_NAME = "local_orchestrator"
 PRIMARY_MODEL_ID = AGENT_MODEL_ID
 DEEPSEEK_PROVIDER_NAME = "deepseek"

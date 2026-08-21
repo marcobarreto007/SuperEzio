@@ -119,7 +119,7 @@ def test_build_default_providers_primary_is_present(monkeypatch):
 
     assert PRIMARY_PROVIDER_NAME in by_name
     assert by_name[PRIMARY_PROVIDER_NAME].is_local is True
-    assert by_name[PRIMARY_PROVIDER_NAME].model == "Qwen3.8-27B-Q4_K_M"
+    assert by_name[PRIMARY_PROVIDER_NAME].model == "Qwen3.8-27B-UD-IQ2_XXS"
 
 
 def test_experts_are_pinned_to_official_deepseek(monkeypatch):

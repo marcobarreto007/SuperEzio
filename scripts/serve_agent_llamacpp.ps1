@@ -115,7 +115,10 @@ $args = @(
     "-fa", "on",
     "--cache-type-k", "q8_0",
     "--cache-type-v", "q8_0",
-    "--reasoning", "off"
+    "--reasoning", "off",
+    # Unsloth Dynamic v3 guidance: quants below Q2_K_XL need presence
+    # penalty >= 1.5 to avoid repetition loops.
+    "--presence-penalty", "1.5"
 )
 
 if ($LoraPath) {

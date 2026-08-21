@@ -15,7 +15,10 @@ $script:EnvExampleFile = Join-Path $SuperEzioRoot ".env.example"
 $script:CeoPort = if ($env:SUPEREZIO_MODEL_PORT) { [int]$env:SUPEREZIO_MODEL_PORT } else { 8080 }
 $script:ApiPort = if ($env:SUPEREZIO_PORT) { [int]$env:SUPEREZIO_PORT } else { 8002 }
 $script:ModelsDir = Join-Path $SuperEzioRoot "models"
-$modelFileName = "Qwen3.8-27B-Q4_K_M.gguf"
+# Single-GPU (RTX 3060 12GB) default: Unsloth Dynamic v3 2-bit quant (8.4GB)
+# fits VRAM-only with headroom for 8-16K context. Swap to
+# "Qwen3.8-27B-Q4_K_M.gguf" when running 2 GPUs or CPU offload.
+$modelFileName = "Qwen3.8-27B-UD-IQ2_XXS.gguf"
 $modelCandidates = @(
     $env:SUPEREZIO_MODEL_PATH,
     (Join-Path $ModelsDir $modelFileName)

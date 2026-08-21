@@ -127,7 +127,7 @@
         {"name": "blood-pact", "file": ".f51/contracts/f51-blood-pact-operational-runtime.json", "public_surface": "Operational runtime pact", "compatibility_risk": "medium"}
     ],
     "artifact_sizes": {
-        "active_model": "15.9 GB (Qwen3.8-27B-Q4_K_M, external to release ZIP)",
+        "active_model": "8.4 GB (Qwen3.8-27B-UD-IQ2_XXS, Unsloth Dynamic v3, external to release ZIP)",
         "f51_tmp": "8.1 GB",
         "fraud_datasets": "3.3 GB",
         "data_traces": "9.2 MB",
