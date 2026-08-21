@@ -259,11 +259,12 @@ def test_public_health_exposes_validation_mode_without_sensitive_paths(monkeypat
     assert "validation" not in json.dumps(payload.get("paths", {})).lower()
 
 
-def test_provider_factory_keeps_agent_local_only(monkeypatch):
+def test_provider_factory_keeps_agent_local_and_pins_experts_to_deepseek(monkeypatch):
     monkeypatch.delenv("SUPEREZIO_PRIMARY_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_PRIMARY_MODEL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_MODEL", raising=False)
+    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", "runtime-contract-test-key")
     monkeypatch.delenv("SUPEREZIO_AGENT_BASE_URL", raising=False)
     # Added when providers.py's "agent" provider started reading model/api_key
     # from env too (was hardcoded before — see providers.py comment,
@@ -276,10 +277,24 @@ def test_provider_factory_keeps_agent_local_only(monkeypatch):
     from core.model_serving.providers import (
         AGENT_MODEL_ID,
         AGENT_PROVIDER_NAME,
+        DAYTRADE_AUDITOR_PROVIDER_NAME,
+        DAYTRADE_JUDGE_PROVIDER_NAME,
+        DEEPSEEK_MODEL_ID,
+        DEEPSEEK_OFFICIAL_BASE_URL,
         DEEPSEEK_PROVIDER_NAME,
         PRIMARY_PROVIDER_NAME,
         build_default_providers,
     )
+
+    for name in (
+        "SUPEREZIO_DEEPSEEK_MAX_TOKENS",
+        "SUPEREZIO_DEEPSEEK_TIMEOUT_SEC",
+        "SUPEREZIO_EXPERT_MAX_TOKENS",
+        "SUPEREZIO_EXPERT_TIMEOUT",
+        "SUPEREZIO_DAYTRADE_JUDGE_MODEL",
+        "SUPEREZIO_DAYTRADE_AUDITOR_MODEL",
+    ):
+        monkeypatch.delenv(name, raising=False)
 
     cfg = UniversalConfig.from_dict(_runtime_config())
     providers, gateway_config = build_default_providers(cfg)
@@ -301,8 +316,26 @@ def test_provider_factory_keeps_agent_local_only(monkeypatch):
     assert by_name[PRIMARY_PROVIDER_NAME].timeout_s == cfg.models["orchestrator"].timeout_s
     assert cfg.models["agent"].timeout_s == 600
     assert gateway_config.timeout_s == 600
-    assert by_name[DEEPSEEK_PROVIDER_NAME].max_tokens == 192
-    assert by_name[DEEPSEEK_PROVIDER_NAME].timeout_s == 600
+    for name in (
+        DEEPSEEK_PROVIDER_NAME,
+        DAYTRADE_JUDGE_PROVIDER_NAME,
+        DAYTRADE_AUDITOR_PROVIDER_NAME,
+    ):
+        provider = by_name[name]
+        assert provider.is_local is False
+        assert provider.base_url == DEEPSEEK_OFFICIAL_BASE_URL
+        assert provider.model == DEEPSEEK_MODEL_ID
+        assert provider.max_tokens == 1800
+        assert provider.timeout_s == 180
+        assert provider.api_key == "runtime-contract-test-key"
+
+    raw_cfg = _runtime_config()
+    for section in ("experts", "daytrade_judge", "daytrade_auditor"):
+        assert raw_cfg["models"][section]["base_url"] == DEEPSEEK_OFFICIAL_BASE_URL
+        assert raw_cfg["models"][section]["model_id"] == DEEPSEEK_MODEL_ID
+        assert raw_cfg["models"][section]["is_local"] is False
+        assert raw_cfg["models"][section]["allow_fallback"] is False
+        assert raw_cfg["models"][section]["api_key_env"] == "SUPEREZIO_DEEPSEEK_API_KEY"
 
 
 # Launcher batch file has been retired/deleted.
@@ -331,8 +364,6 @@ def test_runbook_documents_official_runtime_commands():
     )
     assert "python -m agent_server.main" in text
     assert "local_orchestrator" in text
-    # Zero-cloud: the runbook must NOT route anything to a cloud API.
-    assert "https://api.deepseek.com" not in text
     assert "http://127.0.0.1:8080/health" in text
     assert "http://127.0.0.1:8080/v1/models" in text
     assert "http://127.0.0.1:8002/health/details" in text

@@ -1,8 +1,8 @@
 {
     "project":  "SuperEzio",
     "version":  "4.2.0",
-    "updated":  "2026-08-18",
-    "note":  "ZERO-CLOUD (operator directive 2026-08-17): every LLM role is served by the shared local llama-server (perfil cc) on :8080. No cloud providers. If the server is down the system fails into MAN_AT_WORK.",
+    "updated":  "2026-08-21",
+    "note":  "HYBRID TRUST BOUNDARY: CEO/agent and orchestrator remain on the shared local Qwen server at :8080. Financial experts, daytrade judge and auditor are pinned to the official DeepSeek HTTPS API and fail closed without SUPEREZIO_DEEPSEEK_API_KEY. No cross-provider fallback is allowed.",
     "agent":  {
                 "provider_name":  "agent",
                 "persona":  "Bob",
@@ -37,28 +37,43 @@
                                              },
                       "deepseek":  {
                                        "provider_name":  "deepseek",
-                                       "base_url":  "http://127.0.0.1:8080/v1",
-                                       "model":  "Qwen3.8-27B-Q4_K_M",
+                                       "base_url":  "https://api.deepseek.com",
+                                       "model":  "deepseek-v4-pro",
                                        "priority":  -300,
-                                       "role":  "financial experts (legacy routing name — serves the local endpoint)"
+                                       "role":  "financial experts (external, provider-pinned)",
+                                       "api_key_env":  "SUPEREZIO_DEEPSEEK_API_KEY",
+                                       "api_key_required":  true,
+                                       "allow_fallback":  false,
+                                       "max_tokens":  1800,
+                                       "timeout_s":  180
                                    },
                       "daytrade_judge":  {
                                              "provider_name":  "daytrade_judge",
-                                             "base_url":  "http://127.0.0.1:8080/v1",
-                                             "model":  "Qwen3.8-27B-Q4_K_M",
+                                             "base_url":  "https://api.deepseek.com",
+                                             "model":  "deepseek-v4-pro",
                                              "priority":  -304,
-                                             "role":  "daytrade judge (local)"
+                                             "role":  "daytrade judge (external, provider-pinned)",
+                                             "api_key_env":  "SUPEREZIO_DEEPSEEK_API_KEY",
+                                             "api_key_required":  true,
+                                             "allow_fallback":  false,
+                                             "max_tokens":  1800,
+                                             "timeout_s":  180
                                          },
                       "daytrade_auditor":  {
                                                "provider_name":  "daytrade_auditor",
-                                               "base_url":  "http://127.0.0.1:8080/v1",
-                                               "model":  "Qwen3.8-27B-Q4_K_M",
+                                               "base_url":  "https://api.deepseek.com",
+                                               "model":  "deepseek-v4-pro",
                                                "priority":  -305,
-                                               "role":  "daytrade auditor (local)"
+                                               "role":  "daytrade auditor (external, provider-pinned)",
+                                               "api_key_env":  "SUPEREZIO_DEEPSEEK_API_KEY",
+                                               "api_key_required":  true,
+                                               "allow_fallback":  false,
+                                               "max_tokens":  1800,
+                                               "timeout_s":  180
                                            }
                   },
     "expert_runtime":  {
-                           "description":  "Experts are role prompts selected by intent, all served through the shared local llama-server on :8080 (zero-cloud).",
+                           "description":  "Experts are role prompts selected by intent and pinned to deepseek-v4-pro at the official DeepSeek HTTPS API. CEO and orchestrator remain local Qwen roles.",
                            "roles":  [
                                          "fundamental",
                                          "technical",

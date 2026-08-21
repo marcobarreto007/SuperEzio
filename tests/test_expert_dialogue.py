@@ -68,7 +68,9 @@ def test_extract_verdict_payload_supports_text_fallback():
 
 
 @pytest.mark.asyncio
-async def test_expert_dialogue_caps_output_and_enforces_local_timeout(monkeypatch):
+async def test_expert_dialogue_respects_external_limits_and_disables_fallback(monkeypatch):
+    monkeypatch.delenv("SUPEREZIO_DEEPSEEK_MAX_TOKENS", raising=False)
+    monkeypatch.delenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", raising=False)
     monkeypatch.setenv("SUPEREZIO_EXPERT_MAX_TOKENS", "2000")
     monkeypatch.setenv("SUPEREZIO_EXPERT_TIMEOUT", "240")
     gateway = RecordingGateway(['{"verdict":"NEUTRAL","confidence":50}'])
@@ -77,5 +79,34 @@ async def test_expert_dialogue_caps_output_and_enforces_local_timeout(monkeypatc
     result = await dialogue.ask("sentiment", "deepseek", "system", "context")
 
     assert result["ok"] is True
-    assert dialogue._timeout == 600
-    assert gateway.calls[0]["max_tokens"] == 192
+    assert dialogue._timeout == 240
+    assert gateway.calls[0]["max_tokens"] == 2000
+    assert gateway.calls[0]["allow_fallback"] is False
+
+
+@pytest.mark.asyncio
+async def test_expert_dialogue_missing_provider_fails_without_calling_gateway():
+    class MissingProviderGateway:
+        providers = []
+
+        async def chat_completion(self, **kwargs):
+            raise AssertionError("missing provider must not fall through")
+
+    dialogue = ExpertDialogue(MissingProviderGateway(), max_rounds=1)
+    result = await dialogue.ask("sentiment", "deepseek", "system", "context")
+
+    assert result["ok"] is False
+    assert result["error"] == "provider_not_configured"
+
+
+@pytest.mark.asyncio
+async def test_expert_dialogue_rejects_provider_provenance_mismatch():
+    gateway = RecordingGateway(['{"verdict":"NEUTRAL","confidence":50}'])
+    gateway.last_provider_used = "local_orchestrator"
+
+    dialogue = ExpertDialogue(gateway, max_rounds=1)
+    result = await dialogue.ask("sentiment", "deepseek", "system", "context")
+
+    assert result["ok"] is False
+    assert result["error"] == "provider_provenance_mismatch"
+    assert gateway.calls[0]["allow_fallback"] is False

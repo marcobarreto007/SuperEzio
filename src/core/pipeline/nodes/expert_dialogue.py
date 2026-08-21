@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import re
 from typing import Any
 
-from ...model_serving.providers import LOCAL_EXPERT_MAX_TOKENS, LOCAL_TIMEOUT_S
+from ...model_serving.providers import get_deepseek_max_tokens, get_deepseek_timeout_s
 
 
 def _parse_json_object(text: str) -> dict[str, Any]:
@@ -97,10 +96,7 @@ class ExpertDialogue:
         self.max_rounds = max(1, int(max_rounds or 1))
         self.history: list[dict[str, Any]] = []
         self._system_prompts: dict[str, str] = {}
-        self._timeout = max(
-            int(os.getenv("SUPEREZIO_EXPERT_TIMEOUT", str(LOCAL_TIMEOUT_S))),
-            LOCAL_TIMEOUT_S,
-        )
+        self._timeout = get_deepseek_timeout_s()
 
     async def ask(
         self,
@@ -202,21 +198,21 @@ class ExpertDialogue:
             self.history.append(result)
             return result
 
-        # Research/paper-only mode requires knowing exactly which model
-        # answered — silent fallback to another provider would make
-        # "DeepSeek V4 Pro" results unverifiable. See
-        # audit/component_lab/reports/phase2_model_gateway.md.
-        research_mode = os.getenv("SUPEREZIO_RESEARCH_PAPER_ONLY", "0").strip().lower() in {
-            "1",
-            "true",
-            "yes",
-            "on",
-        } or os.getenv("SUPEREZIO_DAYTRADE_PAPER_ONLY", "0").strip().lower() in {
-            "1",
-            "true",
-            "yes",
-            "on",
-        }
+        configured = getattr(self.gateway, "providers", None)
+        if isinstance(configured, list) and not any(
+            getattr(item, "name", None) == provider for item in configured
+        ):
+            result = {
+                "round": round_no,
+                "role": role,
+                "provider": provider,
+                "phase": phase,
+                "question": question,
+                "ok": False,
+                "error": "provider_not_configured",
+            }
+            self.history.append(result)
+            return result
 
         try:
             response = await asyncio.wait_for(
@@ -227,22 +223,17 @@ class ExpertDialogue:
                     ],
                     preferred_provider=provider,
                     temperature=0.2,
-                    max_tokens=min(
-                        int(
-                            os.getenv(
-                                "SUPEREZIO_EXPERT_MAX_TOKENS",
-                                str(LOCAL_EXPERT_MAX_TOKENS),
-                            )
-                        ),
-                        LOCAL_EXPERT_MAX_TOKENS,
-                    ),
-                    allow_fallback=not research_mode,
+                    max_tokens=get_deepseek_max_tokens(),
+                    allow_fallback=False,
                 ),
                 timeout=self._timeout,
             )
             response_text = str(response)
+            actual_provider = getattr(self.gateway, "last_provider_used", None)
+            if actual_provider and actual_provider != provider:
+                raise RuntimeError("provider_provenance_mismatch")
             verdict = extract_verdict_payload(response_text)
-            provider_used = getattr(self.gateway, "last_provider_used", None) or provider
+            provider_used = actual_provider or provider
             result = {
                 "round": round_no,
                 "role": role,

@@ -8,7 +8,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_compose_uses_canonical_local_runtime_profile() -> None:
+def test_compose_uses_local_ceo_and_required_deepseek_experts() -> None:
     compose = yaml.safe_load((ROOT / "docker-compose.yml").read_text(encoding="utf-8"))
     services = compose["services"]
     ceo = services["bob-ceo"]
@@ -25,8 +25,14 @@ def test_compose_uses_canonical_local_runtime_profile() -> None:
     assert "SUPEREZIO_RUNTIME_PROFILE=docker" in env
     assert "SUPEREZIO_AGENT_BASE_URL=http://bob-ceo:8080/v1" in env
     assert "SUPEREZIO_PRIMARY_BASE_URL=http://bob-ceo:8080/v1" in env
-    assert "SUPEREZIO_DEEPSEEK_BASE_URL=http://bob-ceo:8080/v1" in env
-    assert all("https://" not in item for item in env)
+    assert "SUPEREZIO_DEEPSEEK_BASE_URL=https://api.deepseek.com" in env
+    assert "SUPEREZIO_DEEPSEEK_MODEL=deepseek-v4-pro" in env
+    key_binding = next(item for item in env if item.startswith("SUPEREZIO_DEEPSEEK_API_KEY="))
+    assert key_binding == (
+        "SUPEREZIO_DEEPSEEK_API_KEY="
+        "${SUPEREZIO_DEEPSEEK_API_KEY:?SUPEREZIO_DEEPSEEK_API_KEY is required}"
+    )
+    assert "sk-" not in key_binding
 
 
 def test_dockerfile_installs_the_real_project_without_silent_fallback() -> None:

@@ -1,37 +1,61 @@
-"""Zero-cloud contract tests: the CEO must never fall back to a cloud provider.
+"""Hybrid provider-boundary tests.
 
-Operator directive (2026-08-17): "nada de fallback na nuvem". The agent/CEO
-provider is local-only. If the shared local llama-server (:8080) is down, the
-system must fail into MAN_AT_WORK instead of calling any external API.
+The CEO remains local-only. Experts use pinned DeepSeek providers, but they
+must never become a fallback for the CEO or vice versa.
 """
 
 import time
+
+import pytest
 
 from core.model_serving.gateway import ModelGateway
 from core.model_serving.providers import build_providers
 
 
-def test_no_cloud_provider_in_default_build(monkeypatch) -> None:
-    """No provider may point at an external API, regardless of env keys."""
+@pytest.fixture(autouse=True)
+def _deepseek_contract_env(monkeypatch):
+    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", "test-key")
+    monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
+    monkeypatch.delenv("SUPEREZIO_DEEPSEEK_MODEL", raising=False)
+    monkeypatch.delenv("SUPEREZIO_ALLOW_CUSTOM_DEEPSEEK_BASE_URL", raising=False)
+
+
+def test_default_build_has_local_ceo_and_pinned_deepseek_experts(monkeypatch) -> None:
     monkeypatch.setenv("SUPEREZIO_GLM_CODE_PLAN_API_KEY", "test-key")
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
-    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", "test-key")
     for var in (
         "SUPEREZIO_AGENT_BASE_URL",
         "SUPEREZIO_AGENT_MODEL",
         "SUPEREZIO_PRIMARY_BASE_URL",
-        "SUPEREZIO_DEEPSEEK_BASE_URL",
     ):
         monkeypatch.delenv(var, raising=False)
 
-    providers, _ = build_providers()
+    from core.config import get_config
+    from core.model_serving.providers import build_default_providers
+
+    cfg = get_config()
+    for var in (
+        "SUPEREZIO_AGENT_MODEL",
+        "SUPEREZIO_PRIMARY_MODEL",
+        "SUPEREZIO_DEEPSEEK_BASE_URL",
+        "SUPEREZIO_DEEPSEEK_MODEL",
+        "SUPEREZIO_ALLOW_CUSTOM_DEEPSEEK_BASE_URL",
+        "SUPEREZIO_DAYTRADE_JUDGE_MODEL",
+        "SUPEREZIO_DAYTRADE_AUDITOR_MODEL",
+    ):
+        monkeypatch.delenv(var, raising=False)
+    providers, _ = build_default_providers(cfg)
     assert providers, "default provider build must not be empty"
-    for p in providers:
-        assert p.is_local is True, f"{p.name} must be local"
-        assert "127.0.0.1" in p.base_url or "localhost" in p.base_url, (
-            f"{p.name} must point at a local endpoint (got {p.base_url})"
-        )
-    names = [p.name for p in providers]
+    by_name = {p.name: p for p in providers}
+    for name in ("agent", "local_orchestrator"):
+        assert by_name[name].is_local is True
+        assert "127.0.0.1" in by_name[name].base_url
+        assert by_name[name].model == "Qwen3.8-27B-Q4_K_M"
+    for name in ("deepseek", "daytrade_judge", "daytrade_auditor"):
+        assert by_name[name].is_local is False
+        assert by_name[name].base_url == "https://api.deepseek.com"
+        assert by_name[name].model == "deepseek-v4-pro"
+    names = list(by_name)
     assert "ceo_fallback_glm" not in names
     assert "gemini" not in names
 

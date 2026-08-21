@@ -2,9 +2,26 @@
 
 from __future__ import annotations
 
+import pytest
+
 
 # Import validation helpers — no deep imports at module level
 ROOT = __import__("pathlib").Path(__file__).resolve().parents[2]
+
+
+@pytest.fixture(autouse=True)
+def _deepseek_contract_env(monkeypatch):
+    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", "sk-ds-test-only")
+    for name in (
+        "SUPEREZIO_DEEPSEEK_BASE_URL",
+        "SUPEREZIO_DEEPSEEK_MODEL",
+        "SUPEREZIO_DEEPSEEK_MAX_TOKENS",
+        "SUPEREZIO_DEEPSEEK_TIMEOUT_SEC",
+        "SUPEREZIO_EXPERT_MAX_TOKENS",
+        "SUPEREZIO_EXPERT_TIMEOUT",
+        "SUPEREZIO_ALLOW_CUSTOM_DEEPSEEK_BASE_URL",
+    ):
+        monkeypatch.delenv(name, raising=False)
 
 
 # ---------------------------------------------------------------------------
@@ -90,7 +107,6 @@ def test_build_default_providers_primary_is_present(monkeypatch):
     monkeypatch.delenv("SUPEREZIO_PRIMARY_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_PRIMARY_MODEL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
-    monkeypatch.delenv("SUPEREZIO_DEEPSEEK_API_KEY", raising=False)
 
     from core.config.schema import UniversalConfig
     from core.model_serving.providers import build_default_providers, PRIMARY_PROVIDER_NAME
@@ -100,36 +116,113 @@ def test_build_default_providers_primary_is_present(monkeypatch):
     by_name = {p.name: p for p in providers}
 
     assert PRIMARY_PROVIDER_NAME in by_name
-    # Primary may be local or cloud depending on env vars — either is valid
-    assert isinstance(by_name[PRIMARY_PROVIDER_NAME].is_local, bool)
+    assert by_name[PRIMARY_PROVIDER_NAME].is_local is True
+    assert by_name[PRIMARY_PROVIDER_NAME].model == "Qwen3.8-27B-Q4_K_M"
 
 
-def test_experts_provider_is_local_and_rejects_cloud_override(monkeypatch):
-    """Zero-cloud contract: expert roles are served locally. A cloud
-    SUPEREZIO_DEEPSEEK_BASE_URL override must be ignored; a local override
-    must be honored (test stubs use local endpoints)."""
-    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", "sk-ds-test")
-    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_BASE_URL", "https://custom-deepseek.example.com")
-    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_MODEL", "deepseek-custom-model")
+def test_experts_are_pinned_to_official_deepseek(monkeypatch):
     monkeypatch.delenv("SUPEREZIO_PRIMARY_BASE_URL", raising=False)
 
     from core.config.schema import UniversalConfig
-    from core.model_serving.providers import build_default_providers, DEEPSEEK_PROVIDER_NAME
+    from core.model_serving.providers import (
+        DAYTRADE_AUDITOR_PROVIDER_NAME,
+        DAYTRADE_JUDGE_PROVIDER_NAME,
+        DEEPSEEK_MODEL_ID,
+        DEEPSEEK_OFFICIAL_BASE_URL,
+        DEEPSEEK_PROVIDER_NAME,
+        build_default_providers,
+    )
 
     cfg = UniversalConfig()
-
     providers, _ = build_default_providers(cfg)
     by_name = {p.name: p for p in providers}
-    assert DEEPSEEK_PROVIDER_NAME in by_name
-    ds = by_name[DEEPSEEK_PROVIDER_NAME]
-    assert ds.is_local is True
-    assert "custom-deepseek.example.com" not in ds.base_url
-    assert "api.deepseek.com" not in ds.base_url
+    for name in (
+        DEEPSEEK_PROVIDER_NAME,
+        DAYTRADE_JUDGE_PROVIDER_NAME,
+        DAYTRADE_AUDITOR_PROVIDER_NAME,
+    ):
+        provider = by_name[name]
+        assert provider.base_url == DEEPSEEK_OFFICIAL_BASE_URL
+        assert provider.model == DEEPSEEK_MODEL_ID
+        assert provider.api_key == "sk-ds-test-only"
+        assert provider.is_local is False
+        assert provider.max_tokens == 1800
+        assert provider.timeout_s == 180
 
-    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_BASE_URL", "http://127.0.0.1:9999/v1")
-    providers, _ = build_default_providers(cfg)
-    by_name = {p.name: p for p in providers}
-    assert by_name[DEEPSEEK_PROVIDER_NAME].base_url == "http://127.0.0.1:9999/v1"
+
+def test_missing_deepseek_key_fails_closed_without_echoing_secret(monkeypatch):
+    monkeypatch.delenv("SUPEREZIO_DEEPSEEK_API_KEY", raising=False)
+
+    from core.config.schema import UniversalConfig
+    from core.model_serving.providers import build_default_providers
+
+    with pytest.raises(RuntimeError, match="SUPEREZIO_DEEPSEEK_API_KEY is required") as exc:
+        build_default_providers(UniversalConfig())
+    assert "sk-" not in str(exc.value)
+
+
+def test_model_provider_repr_hides_api_key():
+    from core.model_serving.providers import ModelProvider
+
+    provider = ModelProvider(
+        name="deepseek", base_url="https://api.deepseek.com", api_key="secret-canary"
+    )
+    assert "secret-canary" not in repr(provider)
+    assert "api_key" not in repr(provider)
+
+
+@pytest.mark.parametrize(
+    "url",
+    (
+        "http://api.deepseek.com",
+        "http://127.0.0.1:8080/v1",
+        "https://localhost/v1",
+        "https://user:password@example.com/v1",
+        "https://example.com:8443/v1",
+    ),
+)
+def test_unsafe_deepseek_override_is_rejected_even_with_opt_in(monkeypatch, url):
+    monkeypatch.setenv("SUPEREZIO_ALLOW_CUSTOM_DEEPSEEK_BASE_URL", "1")
+    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_BASE_URL", url)
+
+    from core.config.schema import UniversalConfig
+    from core.model_serving.providers import build_default_providers
+
+    with pytest.raises(RuntimeError, match="DeepSeek endpoint"):
+        build_default_providers(UniversalConfig())
+
+
+def test_secure_custom_deepseek_host_requires_explicit_opt_in(monkeypatch):
+    custom_url = "https://deepseek-proxy.example.com/v1"
+    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_BASE_URL", custom_url)
+
+    from core.config.schema import UniversalConfig
+    from core.model_serving.providers import build_default_providers
+
+    with pytest.raises(RuntimeError, match="Custom SUPEREZIO_DEEPSEEK_BASE_URL is disabled"):
+        build_default_providers(UniversalConfig())
+
+    monkeypatch.setenv("SUPEREZIO_ALLOW_CUSTOM_DEEPSEEK_BASE_URL", "true")
+    providers, _ = build_default_providers(UniversalConfig())
+    assert next(p for p in providers if p.name == "deepseek").base_url == custom_url
+
+
+def test_deepseek_limits_respect_specific_and_legacy_env(monkeypatch):
+    from core.model_serving.providers import get_deepseek_max_tokens, get_deepseek_timeout_s
+
+    monkeypatch.setenv("SUPEREZIO_EXPERT_MAX_TOKENS", "2000")
+    monkeypatch.setenv("SUPEREZIO_EXPERT_TIMEOUT", "240")
+    assert get_deepseek_max_tokens() == 2000
+    assert get_deepseek_timeout_s() == 240
+
+    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_MAX_TOKENS", "1800")
+    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", "90")
+    assert get_deepseek_max_tokens() == 1800
+    assert get_deepseek_timeout_s() == 90
+
+    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_MAX_TOKENS", "9000")
+    with pytest.raises(RuntimeError, match="between 128 and 8192"):
+        get_deepseek_max_tokens()
 
 
 # ---------------------------------------------------------------------------

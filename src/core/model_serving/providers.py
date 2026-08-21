@@ -1,20 +1,15 @@
-"""
-Provider dataclasses and factory for ModelGateway.
+"""Provider dataclasses and the hybrid local/DeepSeek provider factory.
 
-Extracted from gateway.py to keep the gateway class focused on
-routing/fallback logic while provider config lives separately.
-
-Zero-cloud policy (operator directive 2026-08-17): every LLM role —
-CEO/agent, orchestrator, experts, daytrade judge/auditor — is served by
-the shared local llama-server (perfil cc) at http://127.0.0.1:8080/v1.
-No provider may point at an external API. Legacy provider names
-("deepseek", "daytrade_judge", ...) are routing contracts kept for
-compatibility — they are all aliases of the local endpoint now.
+The CEO/agent and orchestrator remain pinned to the shared local Qwen
+runtime. Financial experts, including the day-trade judge and auditor, are
+pinned to the official DeepSeek HTTPS API. These two trust boundaries must
+never silently substitute for one another.
 """
 
+import ipaddress
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
@@ -33,7 +28,8 @@ AGENT_MODEL_ID = "Qwen3.8-27B-Q4_K_M"
 PRIMARY_PROVIDER_NAME = "local_orchestrator"
 PRIMARY_MODEL_ID = AGENT_MODEL_ID
 DEEPSEEK_PROVIDER_NAME = "deepseek"
-DEEPSEEK_MODEL_ID = AGENT_MODEL_ID
+DEEPSEEK_MODEL_ID = "deepseek-v4-pro"
+DEEPSEEK_OFFICIAL_BASE_URL = "https://api.deepseek.com"
 GEMINI_PROVIDER_NAME = "gemini"
 GEMINI_MODEL_ID = AGENT_MODEL_ID
 DAYTRADE_JUDGE_PROVIDER_NAME = "daytrade_judge"
@@ -44,8 +40,17 @@ DAYTRADE_AUDITOR_PROVIDER_NAME = "daytrade_auditor"
 # context 8192, single slot. One server serves Claude Code AND SuperEzio.
 LOCAL_QWEN_BASE_URL = "http://127.0.0.1:8080/v1"
 LOCAL_MAX_TOKENS = 512
+# Retained for import compatibility with older callers. External expert calls
+# use ``get_deepseek_max_tokens`` and are not clamped to this local value.
 LOCAL_EXPERT_MAX_TOKENS = 192
 LOCAL_TIMEOUT_S = 600
+
+DEEPSEEK_DEFAULT_MAX_TOKENS = 1800
+DEEPSEEK_MIN_MAX_TOKENS = 128
+DEEPSEEK_MAX_MAX_TOKENS = 8192
+DEEPSEEK_DEFAULT_TIMEOUT_S = 180
+DEEPSEEK_MIN_TIMEOUT_S = 10
+DEEPSEEK_MAX_TIMEOUT_S = 600
 
 # llama-server ignores the API key, but the OpenAI client library refuses to
 # build a request without one ("Missing credentials"). Local providers carry
@@ -91,13 +96,110 @@ def _local_only_override(env_var: str) -> str:
     return value
 
 
+def _env_flag(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _bounded_int_env(
+    names: tuple[str, ...],
+    *,
+    default: int,
+    minimum: int,
+    maximum: int,
+) -> int:
+    """Read the first configured integer and reject invalid unsafe values."""
+    selected_name = names[0]
+    raw = ""
+    for name in names:
+        candidate = os.getenv(name, "").strip()
+        if candidate:
+            selected_name = name
+            raw = candidate
+            break
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise RuntimeError(f"{selected_name} must be an integer") from exc
+    if not minimum <= value <= maximum:
+        raise RuntimeError(f"{selected_name} must be between {minimum} and {maximum}")
+    return value
+
+
+def get_deepseek_max_tokens() -> int:
+    """Return the external expert output budget without the old 192 clamp."""
+    return _bounded_int_env(
+        ("SUPEREZIO_DEEPSEEK_MAX_TOKENS", "SUPEREZIO_EXPERT_MAX_TOKENS"),
+        default=DEEPSEEK_DEFAULT_MAX_TOKENS,
+        minimum=DEEPSEEK_MIN_MAX_TOKENS,
+        maximum=DEEPSEEK_MAX_MAX_TOKENS,
+    )
+
+
+def get_deepseek_timeout_s() -> int:
+    """Return the external request timeout without imposing a 600s floor."""
+    return _bounded_int_env(
+        ("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", "SUPEREZIO_EXPERT_TIMEOUT"),
+        default=DEEPSEEK_DEFAULT_TIMEOUT_S,
+        minimum=DEEPSEEK_MIN_TIMEOUT_S,
+        maximum=DEEPSEEK_MAX_TIMEOUT_S,
+    )
+
+
+def _deepseek_api_key() -> str:
+    api_key = os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("SUPEREZIO_DEEPSEEK_API_KEY is required for external financial experts")
+    return api_key
+
+
+def _validate_custom_deepseek_url(value: str) -> str:
+    """Validate an explicitly opted-in custom DeepSeek-compatible endpoint."""
+    parsed = urlparse(value)
+    if parsed.scheme != "https":
+        raise RuntimeError("Custom DeepSeek endpoint must use HTTPS")
+    if not parsed.hostname or parsed.username or parsed.password:
+        raise RuntimeError("Custom DeepSeek endpoint has an invalid authority")
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise RuntimeError("Custom DeepSeek endpoint has an invalid port") from exc
+    if port not in {None, 443}:
+        raise RuntimeError("Custom DeepSeek endpoint must use the default HTTPS port")
+    if parsed.query or parsed.fragment:
+        raise RuntimeError("Custom DeepSeek endpoint cannot contain query or fragment data")
+
+    hostname = parsed.hostname.casefold().rstrip(".")
+    if hostname == "localhost" or hostname.endswith((".localhost", ".local")):
+        raise RuntimeError("Custom DeepSeek endpoint cannot target a local host")
+    try:
+        address = ipaddress.ip_address(hostname)
+    except ValueError:
+        address = None
+    if address is not None and not address.is_global:
+        raise RuntimeError("Custom DeepSeek endpoint cannot target a private network")
+    return value.rstrip("/")
+
+
+def _deepseek_base_url() -> str:
+    override = os.getenv("SUPEREZIO_DEEPSEEK_BASE_URL", "").strip()
+    if not override or override.rstrip("/") == DEEPSEEK_OFFICIAL_BASE_URL:
+        return DEEPSEEK_OFFICIAL_BASE_URL
+    if not _env_flag("SUPEREZIO_ALLOW_CUSTOM_DEEPSEEK_BASE_URL"):
+        raise RuntimeError(
+            "Custom SUPEREZIO_DEEPSEEK_BASE_URL is disabled; use the official endpoint"
+        )
+    return _validate_custom_deepseek_url(override)
+
+
 @dataclass
 class ModelProvider:
     """Configuração de um provedor de modelo (externo)."""
 
     name: str
     base_url: str
-    api_key: str = ""
+    api_key: str = field(default="", repr=False)
     model: str = PRIMARY_MODEL_ID
     timeout_s: int = 120
     priority: int = 0
@@ -110,12 +212,7 @@ class ModelProvider:
 def build_default_providers(
     config: "UniversalConfig",
 ) -> tuple[list[ModelProvider], GatewayConfig]:
-    """Build the zero-cloud provider list and gateway config.
-
-    Every provider points at the shared local llama-server on :8080. If that
-    server is down, calls must fail so callers can enter MAN_AT_WORK — there
-    is no cloud fallback by policy.
-    """
+    """Build the fail-closed hybrid local/DeepSeek provider list."""
     providers: list[ModelProvider] = []
 
     orchestrator_config = config.models.get("orchestrator") or config.models.get("ceo")
@@ -144,35 +241,33 @@ def build_default_providers(
         )
     )
 
-    # Expert roles. The legacy name "deepseek" is a routing contract
-    # (EXPERT_PROVIDERS in pipeline/nodes/experts.py) — the endpoint behind it
-    # is the local server. SUPEREZIO_DEEPSEEK_* env vars remain honored, but
-    # only for local URLs (see _local_only_override).
-    experts_base_url = _local_only_override("SUPEREZIO_DEEPSEEK_BASE_URL") or local_base_url
-    experts_model = os.getenv("SUPEREZIO_DEEPSEEK_MODEL", local_model)
+    # Financial experts are an external, provider-pinned trust boundary. A
+    # missing key or unsafe endpoint aborts provider construction; it must not
+    # degrade to the local Qwen model.
+    experts_api_key = _deepseek_api_key()
+    experts_base_url = _deepseek_base_url()
+    experts_model = os.getenv("SUPEREZIO_DEEPSEEK_MODEL", DEEPSEEK_MODEL_ID).strip()
+    if not experts_model:
+        raise RuntimeError("SUPEREZIO_DEEPSEEK_MODEL cannot be blank")
+    experts_timeout_s = get_deepseek_timeout_s()
+    experts_max_tokens = get_deepseek_max_tokens()
     providers.append(
         ModelProvider(
             name=DEEPSEEK_PROVIDER_NAME,
             base_url=experts_base_url,
-            api_key=LOCAL_API_KEY_PLACEHOLDER,
+            api_key=experts_api_key,
             priority=-300,
             model=experts_model,
-            timeout_s=max(
-                int(os.getenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", str(LOCAL_TIMEOUT_S))),
-                LOCAL_TIMEOUT_S,
-            ),
-            max_tokens=min(
-                int(os.getenv("SUPEREZIO_DEEPSEEK_MAX_TOKENS", str(LOCAL_EXPERT_MAX_TOKENS))),
-                LOCAL_EXPERT_MAX_TOKENS,
-            ),
+            timeout_s=experts_timeout_s,
+            max_tokens=experts_max_tokens,
             temperature=float(os.getenv("SUPEREZIO_DEEPSEEK_TEMPERATURE", "0.2")),
-            is_local=True,
+            is_local=False,
             backend="openai_compatible",
         )
     )
 
-    # Daytrade judge and auditor can use independent model ids while sharing
-    # the local endpoint.
+    # Judge and auditor may use independent DeepSeek model ids, but share the
+    # same authenticated official endpoint and never fall back to local Qwen.
     judge_model = os.getenv("SUPEREZIO_DAYTRADE_JUDGE_MODEL", experts_model)
     auditor_model = os.getenv("SUPEREZIO_DAYTRADE_AUDITOR_MODEL", experts_model)
     for name, priority, model in (
@@ -183,24 +278,13 @@ def build_default_providers(
             ModelProvider(
                 name=name,
                 base_url=experts_base_url,
-                api_key=LOCAL_API_KEY_PLACEHOLDER,
+                api_key=experts_api_key,
                 priority=priority,
                 model=model,
-                timeout_s=max(
-                    int(os.getenv("SUPEREZIO_DEEPSEEK_TIMEOUT_SEC", str(LOCAL_TIMEOUT_S))),
-                    LOCAL_TIMEOUT_S,
-                ),
-                max_tokens=min(
-                    int(
-                        os.getenv(
-                            "SUPEREZIO_DEEPSEEK_MAX_TOKENS",
-                            str(LOCAL_EXPERT_MAX_TOKENS),
-                        )
-                    ),
-                    LOCAL_EXPERT_MAX_TOKENS,
-                ),
+                timeout_s=experts_timeout_s,
+                max_tokens=experts_max_tokens,
                 temperature=float(os.getenv("SUPEREZIO_DEEPSEEK_TEMPERATURE", "0.2")),
-                is_local=True,
+                is_local=False,
                 backend="openai_compatible",
             )
         )

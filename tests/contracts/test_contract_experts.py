@@ -164,7 +164,7 @@ def test_node_collect_experts_parses_json_and_preserves_zero_score(monkeypatch):
     assert "Sentiment is balanced" in result["expert_summary"]
 
 
-def test_node_expert_red_team_fallback_survives_stray_braces_in_context():
+def test_node_expert_red_team_fallback_survives_stray_braces_in_context(monkeypatch):
     """Regression: red_team_agent_N (not in EXPERT_PROMPTS) must not crash with
     KeyError('provider') when data_context contains literal "{...}" text
     (e.g. a dict-repr fragment like "{provider}" copied from another
@@ -176,11 +176,14 @@ def test_node_expert_red_team_fallback_survives_stray_braces_in_context():
     import asyncio
 
     experts_node.get_stream_writer = lambda: _noop_writer
+    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_MAX_TOKENS", "1800")
 
     class _FakeGateway:
         last_provider_used = "deepseek"
+        calls = []
 
         async def chat_completion(self, **kwargs):
+            self.calls.append(kwargs)
             # Prove the prompt actually built successfully and reached here.
             assert "{provider}" in kwargs["messages"][1]["content"]
             return '{"verdict":"NEUTRAL","confidence":50}'
@@ -199,6 +202,8 @@ def test_node_expert_red_team_fallback_survives_stray_braces_in_context():
     result = asyncio.run(_run())
     assert result["expert_results"][0]["ok"] is True
     assert result["expert_results"][0].get("error") is None
+    assert _FakeGateway.calls[0]["allow_fallback"] is False
+    assert _FakeGateway.calls[0]["max_tokens"] == 1800
 
 
 def test_node_collect_experts_partial_data_without_results():

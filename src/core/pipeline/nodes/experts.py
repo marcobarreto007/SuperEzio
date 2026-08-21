@@ -12,7 +12,7 @@ from typing import Any
 from langgraph.config import get_stream_writer
 
 from core.audit.decision_trace import DecisionTraceLogger
-from core.model_serving.providers import LOCAL_EXPERT_MAX_TOKENS
+from core.model_serving.providers import get_deepseek_max_tokens
 from core.trading.outcome_learning import get_effective_expert_weights
 from .expert_dialogue import ExpertDialogue
 
@@ -161,11 +161,8 @@ async def _reserve_research_tokens(requested_tokens: int) -> tuple[bool, int, in
         return True, _RESEARCH_TOKENS_SPENT, budget
 
 
-# Expert roles mapped to provider names
+# Expert roles mapped to the provider-pinned external DeepSeek boundary.
 EXPERT_PROVIDERS: dict[str, str] = {
-    # Zero-cloud (2026-08-17): all roles are served by the shared local
-    # llama-server on :8080. "deepseek" is a legacy routing name kept as a
-    # contract — the endpoint behind it is local (see model_serving/providers.py).
     "macro_risk": "deepseek",
     "fundamental_value": "deepseek",
     "momentum_technical": "deepseek",
@@ -375,10 +372,7 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
     replica_id: int = int(state.get("replica_id") or 1)
     raw_context: str = state.get("data_context", "")
     provider_name: str = str(state.get("provider_name") or EXPERT_PROVIDERS.get(role, "deepseek"))
-    expert_max_tokens = min(
-        _safe_int_env("SUPEREZIO_EXPERT_MAX_TOKENS", LOCAL_EXPERT_MAX_TOKENS),
-        LOCAL_EXPERT_MAX_TOKENS,
-    )
+    expert_max_tokens = get_deepseek_max_tokens()
 
     # Role-scoped context: judge/auditor arbitrate expert verdicts (not raw
     # market data again); analysts with a module allowlist only see their
