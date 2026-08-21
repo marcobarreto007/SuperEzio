@@ -23,6 +23,9 @@ if (Test-Path $configPath) {
     Write-Host "ERROR: config.ps1 not found at $configPath" -ForegroundColor Red
     exit 1
 }
+# config.ps1 sets $ErrorActionPreference = "Continue" for its own path probing;
+# re-assert fail-fast here or startup errors would be silently swallowed.
+$ErrorActionPreference = "Stop"
 
 if ($RequestedLlamaServerPath) {
     if (Test-Path $RequestedLlamaServerPath) {
