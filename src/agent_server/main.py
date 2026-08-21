@@ -55,6 +55,10 @@ def _json_safe(value):
     return value
 
 
+# Canonical product version — must match the trio in .f51 inventory /
+# config/runtime.yml / config/model_manifest.json (contract-tested).
+VERSION = "4.2.0"
+
 AGENT_NAME = os.getenv("A2A_AGENT_NAME", "generic_agent")
 ROOT_DIR = PROJECT_ROOT
 FRONTEND_DIR = ROOT_DIR / "frontend"
@@ -742,7 +746,7 @@ async def health_check_public(request: Request):
 
     identity = {
         "agent": AGENT_NAME,
-        "version": "4.0.0",
+        "version": VERSION,
         "validation_mode": _env_bool("SUPEREZIO_VALIDATION_MODE", False),
     }
 
@@ -799,7 +803,7 @@ def health_check():
     health = {
         "status": "ok",
         "agent": AGENT_NAME,
-        "version": "4.0.0",
+        "version": VERSION,
         "checks": {},
     }
 
@@ -1018,7 +1022,7 @@ async def get_metrics():
     base = _json_safe(
         {
             "service": "superezio",
-            "version": "4.0.0",
+            "version": VERSION,
             **metrics.get_all(),
         }
     )
@@ -1137,7 +1141,7 @@ async def health_dashboard_data():
 
     return {
         "status": "ok",
-        "version": "4.0.0",
+        "version": VERSION,
         "agent": AGENT_NAME,
         "uptime_seconds": uptime_s,
         "memory_mb": memory_mb,
@@ -1271,7 +1275,7 @@ h1{font-size:28px;margin-bottom:8px;color:#00d4aa}
   </div>
 </div>
 <button class="refresh" onclick="fetchMetrics()">🔄 Atualizar</button>
-<div class="footer">SuperEzio v4.0.0 · Quality Engineering 2026 · <span id="updated"></span></div>
+<div class="footer">SuperEzio v4.2.0 · Quality Engineering 2026 · <span id="updated"></span></div>
 <script>
 async function fetchMetrics() {
   try {
