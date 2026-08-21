@@ -209,6 +209,39 @@ async def test_auto_full_analysis_does_not_scan_on_allocation_wording(monkeypatc
     assert result["math_report"]
 
 
+def test_route_after_agent_paper_gate():
+    """auto_execute_paper only with an explicit submit_paper_order grant.
+
+    Regression for 2026-08-21: an allocation prompt (no ticker, advisory
+    contract) still entered the auto_execute_paper node in the live graph.
+    """
+    from src.core.pipeline import graph as graph_module
+
+    # Advisory: no grant → straight to explanation
+    assert (
+        graph_module.route_after_agent_paper_gate(
+            {"agent_tool_call": None, "allowed_tools": ["final_answer"]}
+        )
+        == "explanation"
+    )
+    # Missing allowed_tools entirely → fail-closed to explanation
+    assert graph_module.route_after_agent_paper_gate({"agent_tool_call": None}) == "explanation"
+    # Tool call still routes to the executor
+    assert (
+        graph_module.route_after_agent_paper_gate(
+            {"agent_tool_call": {"tool": "market_scan"}, "allowed_tools": []}
+        )
+        == "tool_executor"
+    )
+    # Decisive trade with grant → auto_execute_paper
+    assert (
+        graph_module.route_after_agent_paper_gate(
+            {"agent_tool_call": None, "allowed_tools": ["submit_paper_order"]}
+        )
+        == "auto_execute_paper"
+    )
+
+
 @pytest.mark.asyncio
 async def test_auto_full_analysis_agent_full_access_does_not_prescan(monkeypatch):
     from src.core.pipeline import graph as graph_module

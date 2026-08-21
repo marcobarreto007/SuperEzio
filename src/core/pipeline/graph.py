@@ -37,6 +37,22 @@ logger = get_logger(__name__)
 
 __all__ = ["PipelineApp", "build_graph", "route_after_orchestrator", "route_after_trinity"]
 
+
+def route_after_agent_paper_gate(state: dict) -> str:
+    """Route agent output to tool_executor / explanation / auto_execute_paper.
+
+    auto_execute_paper is only reachable when the cognitive contract granted
+    the submit_paper_order tool — advisory and casual prompts never enter the
+    paper-execution node (fail-closed: no grant, no auto-execution).
+    """
+    base = route_after_agent(state)
+    if base != "explanation":
+        return base
+    if "submit_paper_order" in (state.get("allowed_tools") or []):
+        return "auto_execute_paper"
+    return "explanation"
+
+
 # Words that require market data collection. Matched WORD-INITIALLY (prefix
 # boundary): "acao" must not fire inside "educacao"/"alocacao" (reproduced
 # 2026-08-21 — a PT allocation prompt triggered a full market scan through a
@@ -927,13 +943,17 @@ def build_graph(
 
     # Agent decides whether to call a tool or output the final answer.
     # Route through auto_execute_paper before explanation so paper orders
-    # are auto-submitted to IBKR when Bob produces a PAPER_TICKET.
+    # are auto-submitted to IBKR when Bob produces a PAPER_TICKET — but only
+    # when the cognitive contract granted the submit_paper_order tool.
+    # Advisory/casual prompts (allocation, greetings) never enter the
+    # paper-execution node (fail-closed: no grant, no auto-execution).
     builder.add_conditional_edges(
         "agent",
-        route_after_agent,
+        route_after_agent_paper_gate,
         {
             "tool_executor": "tool_executor",
-            "explanation": "auto_execute_paper",
+            "explanation": "explanation",
+            "auto_execute_paper": "auto_execute_paper",
         },
     )
 
