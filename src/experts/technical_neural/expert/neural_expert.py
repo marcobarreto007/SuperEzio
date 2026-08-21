@@ -447,7 +447,15 @@ class TechnicalNeuralExpert:
                 raise CandleValidationError("NON_FINITE_CANDLE_VALUES")
             if min(open_price, high, low, close) <= 0 or volume < 0:
                 raise CandleValidationError("NON_POSITIVE_PRICE_OR_NEGATIVE_VOLUME")
-            if high < max(open_price, close, low) or low > min(open_price, close, high):
+            upper = max(open_price, close, low)
+            lower = min(open_price, close, high)
+            high_invalid = high < upper and not math.isclose(
+                high, upper, rel_tol=1e-12, abs_tol=1e-10
+            )
+            low_invalid = low > lower and not math.isclose(
+                low, lower, rel_tol=1e-12, abs_tol=1e-10
+            )
+            if high_invalid or low_invalid:
                 raise CandleValidationError("INCONSISTENT_OHLC")
             candle_tuple = (open_price, high, low, close, volume)
             previous = by_time.get(timestamp)

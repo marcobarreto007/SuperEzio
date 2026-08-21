@@ -136,6 +136,24 @@ def test_conflicting_duplicate_timestamp_fails_closed() -> None:
     assert result["reason_codes"] == ["CONFLICTING_DUPLICATE_TIMESTAMP"]
 
 
+def test_provider_floating_point_noise_does_not_invalidate_ohlc() -> None:
+    candles = _predictable_candles(180)
+    noisy = [dict(candle) for candle in candles]
+    noisy[50]["high"] = float(noisy[50]["close"]) - 1e-14
+    noisy[50]["open"] = min(float(noisy[50]["open"]), float(noisy[50]["high"]))
+    prepared = TechnicalNeuralExpert()._prepare_with_horizon(noisy)
+    assert len(prepared.features) > 100
+
+
+def test_materially_inconsistent_ohlc_still_fails_closed() -> None:
+    candles = _predictable_candles(180)
+    invalid = [dict(candle) for candle in candles]
+    invalid[50]["high"] = float(invalid[50]["close"]) * 0.99
+    result = TechnicalNeuralExpert().evaluate("BAD", invalid, now=AS_OF)
+    assert result["status"] == "insufficient_data"
+    assert result["reason_codes"] == ["INCONSISTENT_OHLC"]
+
+
 def test_restart_reloads_identical_prediction(qualified_model: dict[str, object]) -> None:
     artifact_dir = qualified_model["artifact_dir"]
     candles = qualified_model["candles"]
