@@ -811,5 +811,35 @@
       ]
     }
   },
+  "multi_asset_investment_quality_20260820": {
+    "status": "impact_mapped",
+    "problem": "AAPL domina scripts e o E2E historico; uma resposta operacional para um unico ticker nao mede qualidade de investimento.",
+    "architecture_touched": [
+      "avaliacao causal do TechnicalNeuralExpert",
+      "dados historicos observados via yfinance",
+      "smoke e E2E de API/browser",
+      "contratos de qualidade e evidencias de release"
+    ],
+    "files_expected_to_change": [
+      "novo runner de avaliacao multiativo em scripts/",
+      "testes do runner em tests/",
+      "scripts e E2E que fixam AAPL como unica prova",
+      ".f51/RELEASE_READINESS.md e checkpoint"
+    ],
+    "indirect_risks": [
+      "vazamento temporal em treino/teste",
+      "confundir qualidade textual com retorno financeiro",
+      "selecionar apenas ativos vencedores",
+      "falha de rede ou dado indisponivel virar falso PASS",
+      "teste vivo excessivamente lento"
+    ],
+    "complete_solution": "Criar avaliacao reproduzivel walk-forward/OOS em universo diversificado e predefinido, usando OHLCV observado, comparando modelo com climatologia e registrando abstencao; tornar os smokes operacionais multiativos e impedir AAPL como simbolo automatico unico.",
+    "verification": [
+      "pytest focado no contrato do avaliador",
+      "execucao real do avaliador com dados externos observados",
+      "smoke/API com mais de um ticker",
+      "Ruff e suite de regressao"
+    ]
+  },
   "owner": "Codex"
 }
