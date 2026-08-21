@@ -11,7 +11,9 @@ Design contract:
 
 from __future__ import annotations
 
-from pydantic import Field, SecretStr
+from urllib.parse import urlsplit
+
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -104,6 +106,23 @@ class Settings(BaseSettings):
         description="Use Questrade's practice OAuth login endpoint for read-only connectivity.",
     )
 
+    # External DeepSeek expert tier. The key is intentionally optional so the
+    # local CEO/API can remain live while readiness reports the expert tier as
+    # unavailable. Legacy/local endpoints are accepted during config loading,
+    # but they never qualify as an externally configured expert tier.
+    superezio_deepseek_api_key: SecretStr | None = Field(
+        default=None,
+        description="DeepSeek API credential for external financial experts.",
+    )
+    superezio_deepseek_base_url: str = Field(
+        default="https://api.deepseek.com/v1",
+        description="OpenAI-compatible external DeepSeek API base URL.",
+    )
+    superezio_deepseek_model: str = Field(
+        default="deepseek-chat",
+        description="External DeepSeek model used by financial experts.",
+    )
+
     # Canadian live-manual Money Gate — conservative defaults, all percentages of equity.
     superezio_money_gate_snapshot_max_age_sec: int = Field(default=120, ge=30, le=600)
     superezio_money_gate_min_equity_cad: float = Field(default=1000.0, gt=0)
@@ -115,6 +134,58 @@ class Settings(BaseSettings):
     superezio_money_gate_max_gross_pct: float = Field(default=100.0, gt=0, le=150)
     superezio_money_gate_gap_multiplier: float = Field(default=2.0, ge=1, le=5)
     superezio_money_gate_slippage_bps: float = Field(default=25.0, ge=0, le=200)
+
+    @field_validator("superezio_deepseek_api_key", mode="before")
+    @classmethod
+    def _normalize_deepseek_api_key(cls, value: object) -> object:
+        if value is None or isinstance(value, SecretStr):
+            return value
+        cleaned = str(value).strip()
+        return cleaned or None
+
+    @field_validator("superezio_deepseek_base_url")
+    @classmethod
+    def _validate_deepseek_base_url(cls, value: str) -> str:
+        cleaned = value.strip().rstrip("/")
+        parsed = urlsplit(cleaned)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            raise ValueError("SUPEREZIO_DEEPSEEK_BASE_URL must be an absolute HTTP(S) URL")
+        if parsed.username or parsed.password or parsed.query or parsed.fragment:
+            raise ValueError(
+                "SUPEREZIO_DEEPSEEK_BASE_URL must not contain credentials, query, or fragment"
+            )
+        return cleaned
+
+    @field_validator("superezio_deepseek_model")
+    @classmethod
+    def _validate_deepseek_model(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("SUPEREZIO_DEEPSEEK_MODEL must not be blank")
+        return cleaned
+
+    @property
+    def deepseek_api_key_configured(self) -> bool:
+        secret = self.superezio_deepseek_api_key
+        return bool(secret and secret.get_secret_value().strip())
+
+    @property
+    def deepseek_external_endpoint(self) -> bool:
+        parsed = urlsplit(self.superezio_deepseek_base_url)
+        host = (parsed.hostname or "").lower()
+        return parsed.scheme == "https" and host not in {"127.0.0.1", "localhost", "::1"}
+
+    @property
+    def deepseek_experts_configured(self) -> bool:
+        return self.deepseek_api_key_configured and self.deepseek_external_endpoint
+
+    @property
+    def deepseek_configuration_status(self) -> str:
+        if not self.deepseek_api_key_configured:
+            return "unconfigured_missing_api_key"
+        if not self.deepseek_external_endpoint:
+            return "misconfigured_non_external_endpoint"
+        return "configured"
 
 
 # Singleton — validated at import time
