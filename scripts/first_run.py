@@ -86,7 +86,7 @@ def main(argv: list[str] | None = None) -> None:
     print("RETIRED: scripts/first_run.py no longer owns setup or model configuration.")
     print(f"Run: {root / 'setup_superezio.bat'}")
     print(f"Then: {root / 'check.ps1'}")
-    print("Official runtime: local Qwen3.8-27B-Q4_K_M on :8080; API on :8002.")
+    print("Official runtime: local Qwen3.8-27B-UD-IQ2_XXS on :8080; API on :8002.")
     raise SystemExit(2)
 
 

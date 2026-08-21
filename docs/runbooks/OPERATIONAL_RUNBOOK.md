@@ -8,7 +8,7 @@ Atualizado: 2026-08-21
 
 | Componente | Bind | Contrato |
 |---|---|---|
-| llama-server compartilhado | `127.0.0.1:8080` | Qwen3.8-27B-Q4_K_M; atende CEO e orquestrador |
+| llama-server compartilhado | `127.0.0.1:8080` | Qwen3.8-27B-UD-IQ2_XXS; atende CEO e orquestrador |
 | DeepSeek oficial | `https://api.deepseek.com` | `deepseek-v4-pro`; atende experts financeiros, judge e auditor |
 | API + UI | `127.0.0.1:8002` | FastAPI, pipeline, health e cockpit |
 
@@ -37,7 +37,7 @@ curl.exe -fsS http://127.0.0.1:8002/health
 curl.exe -fsS http://127.0.0.1:8002/health/details
 ```
 
-`/v1/models` deve refletir `Qwen3.8-27B-Q4_K_M`, conforme `config/model_manifest.json`. A UI fica em `http://127.0.0.1:8002`.
+`/v1/models` deve refletir `Qwen3.8-27B-UD-IQ2_XXS`, conforme `config/model_manifest.json`. A UI fica em `http://127.0.0.1:8002`.
 
 ## Recuperacao
 

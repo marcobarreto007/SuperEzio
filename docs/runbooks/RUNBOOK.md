@@ -23,18 +23,18 @@ financial experts, day-trade judge, and auditor. Store
 
 Official config file: `config/runtime.yml`.
 
-Official CEO model (2026-08-18):
+Official CEO model (2026-08-21, canonical single-GPU switch — commit 03d7fd7):
 
 ```text
-models\Qwen3.8-27B-Q4_K_M.gguf
+%USERPROFILE%\models\qwen3.8-27b\Qwen3.8-27B-UD-IQ2_XXS.gguf
 # or the absolute file supplied through SUPEREZIO_MODEL_PATH
 ```
 
 Model: Qwen3.8-27B (dense)
-Quantization: Q4_K_M (15.9 GB file)
+Quantization: UD-IQ2_XXS (Unsloth Dynamic v3 2-bit, 8.4 GB file)
 Context: 8192 tokens
-GPU: all layers offloaded, split across RTX 3060 12GB + RTX 2070 8GB (`-ngl all -sm layer -ts 12,8`)
-Cache: KV q8_0, flash attention on. MTP disabled (CUDA OOM on 2070 with Q4).
+GPU: all layers offloaded to the single real GPU, RTX 3060 12GB (`-ngl all -sm layer -ts 12`)
+Cache: KV q8_0, flash attention on. MTP disabled (no VRAM headroom with UD-IQ2_XXS).
 Slots: 1 (shared with the Claude Code perfil cc — one server, one queue)
 
 Current official model routing:

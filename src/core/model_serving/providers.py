@@ -35,7 +35,7 @@ DAYTRADE_JUDGE_PROVIDER_NAME = "daytrade_judge"
 DAYTRADE_AUDITOR_PROVIDER_NAME = "daytrade_auditor"
 
 # Shared local llama-server (perfil cc — 2026-08-21):
-# Qwen3.8-27B-Q4_K_M (15.9 GB) on the single real GPU (RTX 3060 12GB, -ts 12),
+# Qwen3.8-27B-UD-IQ2_XXS (8.4 GB) on the single real GPU (RTX 3060 12GB, -ts 12),
 # context 8192, single slot. One server serves Claude Code AND SuperEzio.
 LOCAL_QWEN_BASE_URL = "http://127.0.0.1:8080/v1"
 LOCAL_MAX_TOKENS = 512

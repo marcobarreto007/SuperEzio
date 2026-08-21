@@ -1,6 +1,6 @@
 {
     "project":  "SuperEzio",
-    "version":  "4.2.0",
+    "version":  "4.0.0",
     "updated":  "2026-08-21",
     "note":  "HYBRID TRUST BOUNDARY: CEO/agent and orchestrator remain on the shared local Qwen server at :8080. Financial experts, daytrade judge and auditor are pinned to the official DeepSeek HTTPS API and fail closed without SUPEREZIO_DEEPSEEK_API_KEY. No cross-provider fallback is allowed.",
     "agent":  {
@@ -22,7 +22,7 @@
                 "gpu_layers":  "all (-ngl all -sm layer)",
                 "tensor_split":  "12",
                 "gpus":  "RTX 3060 12GB",
-                "speculative":  "disabled (no VRAM headroom on a single RTX 3060 with Q4_K_M)",
+                "speculative":  "disabled (no VRAM headroom on a single RTX 3060 with UD-IQ2_XXS)",
                 "launch_profile":  "scripts/serve_agent_llamacpp.ps1 -Port 8080",
                 "availability":  "GGUF PRESENT at %USERPROFILE%\\models\\qwen3.8-27b\\ (Q4_K_M 15.9GB, UD-IQ2_XXS 8.4GB, UD-IQ3_XXS 11.1GB, mmproj-BF16 0.9GB; downloaded 2026-08-14/15) — config.ps1 resolves this path automatically",
                 "model_type":  "dense",
