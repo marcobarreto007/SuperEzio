@@ -53,7 +53,7 @@ async def test_run_scan_uses_restored_market_scanner(monkeypatch):
             assert country == "United States"
             assert sector == "Technology"
             assert limit == 12
-            return ["AAPL", "MSFT"]
+            return ["NVDA", "MSFT"]
 
     class FakeHub:
         def get_price(self, ticker):
@@ -63,9 +63,20 @@ async def test_run_scan_uses_restored_market_scanner(monkeypatch):
                 "volume": 25_000_000,
                 "currency": "USD",
                 "provider": f"fake-{ticker}",
-                "catalyst": "Earnings event within the 2-week window.",
-                "risk": "Macro tape risk.",
-                "invalidation": "Close below 20-day SMA.",
+                "catalyst": f"{ticker} reports Q2 earnings on 2026-08-27.",
+                "risk": f"{ticker} Q2 revenue may miss published consensus.",
+                "invalidation": f"Invalidate {ticker} on a close below USD 92 after Q2.",
+                "provenance": {
+                    field: {"source": f"fake-{ticker}"}
+                    for field in (
+                        "ticker",
+                        "price",
+                        "volume",
+                        "catalyst",
+                        "risk",
+                        "invalidation",
+                    )
+                },
             }
 
     monkeypatch.setattr(scanner_module, "MarketScanner", FakeScanner)
@@ -85,9 +96,9 @@ async def test_run_scan_uses_restored_market_scanner(monkeypatch):
     assert result["source_errors"] == []
     assert result["data_quality"] == "provider_or_computed"
     assert result["universe"] == "explicit:United States"
-    assert [c["ticker"] for c in result["candidates"]] == ["AAPL", "MSFT"]
-    aapl = result["candidates"][0]
-    assert aapl["source"] == "financedatabase"
-    assert aapl["price"] == 100.0
-    assert aapl["volume"] == 25_000_000
-    assert aapl["catalyst"]
+    assert [c["ticker"] for c in result["candidates"]] == ["NVDA", "MSFT"]
+    nvda = result["candidates"][0]
+    assert nvda["source"] == "financedatabase"
+    assert nvda["price"] == 100.0
+    assert nvda["volume"] == 25_000_000
+    assert nvda["catalyst"]
