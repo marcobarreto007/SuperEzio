@@ -1285,5 +1285,21 @@
     "language_drift_explained": "Modelo cru responde PT (4/4); o ingles do smoke vem do system prompt EN em src/core/pipeline/prompts/builder.py:473 e _prompts.py:4,56 — falha de produto, nao do modelo.",
     "report": "runtime/checkpoints/quality-eval-4-agents-2026-08-21.md",
     "next_steps": "Corrigir DRIFT-1 (defaults + .env) e re-executar test_api_routes_sync.py; refactor do EAP/pin set/dead code; smoke com assercoes de idioma e proveniencia; doc-sync RUNBOOK; investigar chart-data lento e localhost/::1."
+  },
+  "smoke_hardening_and_pipeline_hang_20260821": {
+    "status": "smoke_committed_new_blocker_found",
+    "objective": "Endurecer o browser smoke (tarefa 3 dos 4 itens aprovados) com assercoes de idioma, proveniencia, frescor de candles e console_errors.",
+    "smoke_changes": "commit 6063f0c — sentinela de mensagem NOVA, filtro de status do scanner, idioma PT obrigatorio, primary_model == UD-IQ2_XXS, timestamps dos candles >0 e crescentes, canvas com pixels pintados, console_errors assertados, timeout de chat 600s.",
+    "caught_by_new_smoke": {
+      "false_positive_anterior": "O PASS de 17:50 foi servido do CACHE de LLM (SUPEREZIO_CACHE_LLM_RESPONSES=1): nenhum POST /task/submit no log para aquela resposta — o pipeline nunca rodou.",
+      "pipeline_hang_real": "3 tasks submetidos (18:56Z, 18:57Z, 19:01Z) — todos chegaram a MATHHUB e salvaram evidence (runs/evidence/20260821-*), mas 0 STREAM_END em 12+ min. O llama-server completou a ultima geracao (task 1453, 289 tokens, 20.29 t/s) e ficou IDLE — o hang esta na finalizacao do pipeline da API, nao no modelo.",
+      "nota": "O processo da API rodando ainda e o codigo PRE-refactor (reiniciado antes dos commits do refactor) — o refactor nao e suspeito. Bug pre-existente, agora evidenciado."
+    },
+    "new_blocker": "Pipeline nao emite STREAM_END para prompts de alocacao (PT, cache miss). Previsao: resposta final nunca chega ao cockpit. Precisa de tarefa propria (investigacao + fix + teste).",
+    "next_steps": [
+      "Decidir com o operador: abrir tarefa do STREAM_END hang antes ou depois da doc-sync (tarefa 4).",
+      "Reiniciar a API para carregar o codigo refatorado antes de qualquer nova validacao.",
+      "Doc-sync (tarefa 4) e independente do hang."
+    ]
   }
 }
