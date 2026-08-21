@@ -1301,5 +1301,45 @@
       "Reiniciar a API para carregar o codigo refatorado antes de qualquer nova validacao.",
       "Doc-sync (tarefa 4) e independente do hang."
     ]
+  },
+  "four_items_and_pipeline_fix_20260821": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "objective": "Executar em ordem os 4 itens aprovados pelo operador + investigacao do STREAM_END.",
+    "items": {
+      "1_drift1": "endpoints.py/schema.py/main.py defaults + .env alinhados a UD-IQ2_XXS (commit 24bb99e) — tests/test_api_routes_sync.py 52/52.",
+      "2_refactor": "EAP re-assert (b8bbf44), pin set judge/auditor (1a6e590), dead code removido mantendo _is_a2a_provider/unload_all contratados (7cdb89c), retry policy deduplicada em 3 helpers (df09986) — 85/85 nos testes de serving.",
+      "3_smoke_honesto": "browser_smoke.py endurecido (6063f0c, 6fe9708): sentinela de mensagem nova, timestamps de candles validos, canvas com pixels, console_errors assertados, proveniencia UD-IQ2_XXS, idioma PT validado no stream NDJSON da API (DOM e racico por cards de status).",
+      "4_docsync": "RUNBOOK.md, OPERATIONAL_RUNBOOK.md, first_run.py, comentarios do serve script e providers.py sincronizados (81fbd8b); clear do MAN_AT_WORK persistido no latest_alert.txt com motivo original (d3a4f6d)."
+    },
+    "5_pipeline_investigation": {
+      "root_cause": "STREAM_END nunca chegou porque 'acao' (substring em _needs_scan) casava dentro de 'educacao'/'alocacao' — prompt de alocacao sem ticker disparava scan de mercado completo. Nao era hang: a stream fechava limpa em 276s com o scan.",
+      "fix": "casamento por fronteira de palavra (prefix-boundary regex) em _SCAN_NEED_KEYWORDS (de11166) + teste de regressao.",
+      "result_live": "45.7s vs 276.2s, 0 SCAN_EVENTs, STREAM_END limpo.",
+      "template_pt": "template de resposta do agente estava em INGLES (PIPELINE DATA / YOUR EXPLANATION) — traduzido com 'Responda SEMPRE em portugues' (6fe9708). Resposta real agora: 'DADOS DO PIPELINE ... SUA EXPLICACAO: O pipeline foi executado sem um ticker...'"
+    },
+    "final_gates": {
+      "smoke": "PASS — chat_api sawStreamEnd=true, 1976 chars, languageOk=true (PT, 0 marcadores EN), 72.8s; chart 126 candles timesOk=true; 7 canvases com pixels; 0 console errors; cockpit_primary_model=UD-IQ2_XXS; screenshot output/playwright/superezio-browser-smoke-20260821-180816.png",
+      "full_pytest": "1993 passed, 2 skipped, 1 failed (test_canonical_inventory_and_contract_match_the_official_runtime por mudanca indevida do manifest) — revertido em 26dbc5c, arquivo re-rodado 11/11. Suíte efetivamente verde.",
+      "ruff": "check + format PASS em src/ e tests/",
+      "git": "working tree salvo; data files de runtime commitados junto ao checkpoint"
+    },
+    "remaining_known_drifts": [
+      "Constante de versao no /health (main.py) reporta 4.0.0 enquanto o trio canonico (inventory/runtime.yml/manifest) e 4.2.0 — baixo, nao corrigido aqui.",
+      "auto_execute_paper disparou em prompt de alocacao (observado no stream; nao transmitiu ordem — paper/validation) — candidato a tarefa propria.",
+      "Chart-data ~8-9s sem cache e penalidade localhost/::1 (~2s) — investigar em tarefa futura."
+    ],
+    "commits": [
+      "24bb99e",
+      "1a6e590",
+      "b8bbf44",
+      "7cdb89c",
+      "df09986",
+      "6063f0c",
+      "de11166",
+      "d3a4f6d",
+      "81fbd8b",
+      "6fe9708",
+      "26dbc5c"
+    ]
   }
 }
