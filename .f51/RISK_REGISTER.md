@@ -10,9 +10,10 @@ Session: total-system-documentation-sync-2026-08-20
 - Classification: model quality / financial evidence.
 - Risk: funcionamento técnico, resposta textual estruturada e gates causais podem ser
   confundidos com capacidade de prever retornos ou superar benchmarks.
-- Evidence: avaliação pré-registrada com 5 anos de OHLCV observado em 8 ativos e 3
-  horizontes carregou 24/24 casos, mas qualificou 0/24; 23 não superaram a validação e 1
-  não convergiu. O backtest penny causal em 4 ativos produziu 0 trades.
+- Evidence: avaliação exploratória criada e executada na mesma sessão, com 5 anos de OHLCV
+  observado em 8 ativos e 3 horizontes, carregou 24/24 casos, mas qualificou 0/24; 23 não
+  superaram a validação e 1 não convergiu. Não houve pré-registro independente. O backtest
+  penny causal em 4 ativos produziu 0 trades.
 - Mitigation: real-capital NO-GO; abstinência fail-closed; score textual rotulado como
   `response_form_not_investment_accuracy`; coletar previsões ex-ante e outcomes antes de
   alegar skill.

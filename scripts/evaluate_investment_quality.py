@@ -38,8 +38,8 @@ class AssetCase:
     asset_class: str
 
 
-# Pre-registered before downloading data.  AAPL is intentionally absent: no single
-# company is allowed to stand in for investment quality or market coverage.
+# Fixed default for reproducibility, but not independently preregistered. AAPL is
+# intentionally absent: no single company may stand in for investment quality.
 DEFAULT_UNIVERSE = (
     AssetCase("SPY", "us_large_cap"),
     AssetCase("QQQ", "us_growth"),
@@ -324,7 +324,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="Exit non-zero unless every pre-registered investment-skill gate passes",
+        help="Exit non-zero unless every fixed exploratory investment-skill gate passes",
     )
     return parser.parse_args()
 

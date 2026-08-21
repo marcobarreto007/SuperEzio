@@ -67,7 +67,7 @@ def test_abstentions_cannot_be_reported_as_investment_skill() -> None:
     assert report["qualification_rate"] == 0.0
 
 
-def test_all_preregistered_gates_are_required_for_positive_verdict() -> None:
+def test_all_fixed_exploratory_gates_are_required_for_positive_verdict() -> None:
     rows = [
         _evaluated("SPY", "equity"),
         _evaluated("QQQ", "growth"),

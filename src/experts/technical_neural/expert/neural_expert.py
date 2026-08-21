@@ -77,7 +77,7 @@ class TechnicalNeuralExpert:
     MIN_LABELLED_SAMPLES = 140
     MIN_WINDOW_SAMPLES = 12
     # Eight causal inputs do not justify the former 24x12 network, which failed
-    # to converge on every member of the pre-registered real-market universe.
+    # to converge on every member of the exploratory real-market evaluation universe.
     # Keep capacity proportional to evidence and continue to fail closed on any
     # convergence warning or out-of-sample baseline miss.
     HIDDEN_LAYER_SIZES: ClassVar[tuple[int, ...]] = (8,)
