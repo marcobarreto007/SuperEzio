@@ -1095,7 +1095,7 @@
   "owner": "Codex",
   "delivery_hardening_20260821": {
     "status": "DELIVERED_WITH_EVIDENCE",
-    "problem": "Auditoria adversarial confirmou o nucleo do sistema (1.965 testes reais, 39.310 traces, 108 ETFs, SDCA exato, TD fail-closed) mas achou: GPU fantasma (RTX 2070), GGUF ausente (fail-closed por falta de arquivo), fraud guard morto (0 regras computaveis), cobertura 67% nao reproduzivel (--cov nos addopts), drift triplo de constantes de risco, decision_traces poluido por ~14k linhas de teste, playbook com ETFs fora dos 108 sem comissao, RISK_REGISTER fora de gate.",
+    "problem": "Auditoria adversarial confirmou o nucleo do sistema (1.965 testes reais, 39.310 traces, 108 ETFs, SDCA exato, TD fail-closed) mas achou: GPU fantasma (RTX 2070), GGUF reportado ausente (FALSO POSITIVO do auditor: arquivos presentes em %USERPROFILE%\\models\\qwen3.8-27b\\ desde 14-15/08), fraud guard morto (0 regras computaveis), cobertura 67% nao reproduzivel (--cov nos addopts), drift triplo de constantes de risco, decision_traces poluido por ~14k linhas de teste, playbook com ETFs fora dos 108 sem comissao, RISK_REGISTER fora de gate.",
     "work_packages": {
       "WP1_runtime_single_gpu": {
         "commit": "a653c5e",
@@ -1184,7 +1184,7 @@
       "51447b5"
     ],
     "remaining_blockers": [
-      "GGUF ausente: operador deve prover models/Qwen3.8-27B-Q4_K_M.gguf (~15.9 GB) para o CEO local subir (INV-R41).",
+      "GGUF PRESENTE em %USERPROFILE%\\models\\qwen3.8-27b\\ (Q4_K_M, UD-IQ2_XXS, UD-IQ3_XXS, mmproj) + llama-server em tools\\llama.cpp — :8080 offline por MAN_AT_WORK, nao por arquivo. Launch single-GPU recomendado: UD-IQ2_XXS (8.4GB).",
       "Limpeza das ~14k linhas historicas de teste no runtime/investor.db pendente de aprovacao do operador (INV-R47).",
       "SUPEREZIO_DEEPSEEK_API_KEY ausente no shell (presente no .env): chamadas reais de experts exigem o operador (INV existente)."
     ]

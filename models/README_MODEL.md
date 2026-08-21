@@ -5,39 +5,39 @@ The local CEO model (Bob) is **Qwen3.8-27B-Q4_K_M** (GGUF, ~15.9 GB).
 ## Current machine state (2026-08-21)
 
 - **GPU**: single working NVIDIA RTX 3060 12GB (driver 560.94 / CUDA 12.6).
-  A machine also has an RTX 2070 8GB that is physically present but in a
-  FAILED state (Windows Code 31, mismatched OEM driver packages) and a
-  P106-100 mining card. The runtime assumes 1 GPU until the 2070 is
-  repaired; if repaired, total VRAM is 20GB and the 2-GPU tensor-split
-  profile becomes viable again.
-- **Model file**: **NOT INSTALLED**. `models/` contains only this README.
-  Until `Qwen3.8-27B-Q4_K_M.gguf` is present, the CEO server on :8080 is
-  fail-closed: `scripts/serve_agent_llamacpp.ps1` aborts with
-  `ERROR: Model not found`.
+  The machine also has an RTX 2070 8GB physically present but in a FAILED
+  state (Windows Code 31, mismatched OEM driver packages) and a P106-100
+  mining card. The runtime assumes 1 GPU until the 2070 is repaired.
+- **Model files**: **PRESENT** at `C:\Users\marco\models\qwen3.8-27b\`
+  (downloaded 2026-08-14/15) — `config.ps1` probes this path automatically:
+
+```text
+Qwen3.8-27B-Q4_K_M.gguf        15.9 GB   (2-GPU / offload profile)
+Qwen3.8-27B-UD-IQ2_XXS.gguf     8.4 GB   (single-GPU 12GB VRAM, Unsloth Dynamic v3)
+Qwen3.8-27B-UD-IQ3_XXS.gguf    11.1 GB   (single-GPU, tight KV headroom)
+mmproj-BF16.gguf                0.9 GB   (vision projector for image input)
+```
+
+- **llama-server**: present at `C:\Users\marco\tools\llama.cpp\llama-server.exe`
+  (build 10435, 0.1.0-dev) — `config.ps1` probes this path automatically.
 - **LoRA**: the current runtime config (`config.ps1`) uses no LoRA adapter.
 
-## Expected Files
+## Single-GPU recommendation (12GB VRAM)
 
-```text
-models\Qwen3.8-27B-Q4_K_M.gguf          (base model, ~15.9 GB)
-```
+Use `Qwen3.8-27B-UD-IQ2_XXS.gguf` (8.4GB): fits VRAM-only with ~3.4GB
+headroom for an 8-16K context. Unsloth recommends `presence_penalty >= 1.5`
+for quants below Q2_K_XL to avoid repetition loops. The Q4_K_M build needs
+either 2 working GPUs or CPU offload (48GB system RAM available).
 
-Optional user-profile fallback probed by `config.ps1`:
+## How To Add Variants
 
-```text
-%USERPROFILE%\models\qwen3.8-27b\Qwen3.8-27B-Q4_K_M.gguf
-```
+Option 1: copy a GGUF from an existing verified SuperEzio installation
+into `models\` (project dir) or `%USERPROFILE%\models\qwen3.8-27b\`.
 
-## How To Provide
+Option 2: download Qwen3.8-27B quants from the official source
+(`unsloth/Qwen3.8-27B-GGUF` on Hugging Face) into either path above.
 
-Option 1: copy the GGUF from an existing verified SuperEzio installation
-into `models\`.
-
-Option 2: download the Qwen3.8-27B Q4_K_M GGUF from the official source and
-place it in `models\`.
-
-Option 3: use a compatible GGUF elsewhere and point `SUPEREZIO_MODEL_PATH`
-(or edit `config.ps1`) at it.
+Option 3: point `SUPEREZIO_MODEL_PATH` at any other compatible GGUF.
 
 ## Verify
 

@@ -455,17 +455,23 @@ Session: delivery-hardening-2026-08-21
   violacoes criticas antes de promover os novos papeis como confiaveis.
 - Status: Active — nao bloqueia corrigir o produto; bloqueia alegar que o exército e o melhor.
 
-### INV-R41 - Modelo local (GGUF) ausente no disco [CRITICAL]
+### INV-R41 - Modelo local (GGUF) ausente no disco [FALSO POSITIVO DA AUDITORIA -> RESOLVIDO 2026-08-21]
 
 - Classification: runtime / zero-cloud integrity.
-- Risk: `models/` contem apenas README; o CEO local na :8080 e fail-closed por ausencia
-  de arquivo, nao por design. Relatorios que descrevem a topologia local como operacional
-  omitem que o servidor nao pode subir.
-- Evidence: `nvidia-smi -L` (1 GPU), `models/` (sem .gguf), `scripts/serve_agent_llamacpp.ps1`
-  (aborta com "ERROR: Model not found"), `config/model_manifest.json` campo `availability`.
-- Mitigation: config e manifest agora declaram o estado real (commit a653c5e). O operador
-  deve prover `models/Qwen3.8-27B-Q4_K_M.gguf` (~15.9 GB) conforme `models/README_MODEL.md`.
-- Status: Active — nao bloqueia testes/entrega; bloqueia qualquer claim de CEO local operacional.
+- Risk registrado: `models/` do projeto contem apenas README e o CEO local seria
+  fail-closed por ausencia de arquivo. O auditor adversarial olhou apenas `models/`
+  (projeto) e `C:\llama.cpp\models`, e concluiu "o modelo nao existe em lugar nenhum".
+- CORRECAO (2026-08-21, verificacao direta): os arquivos SEMPRE estiveram presentes em
+  `C:\Users\marco\models\qwen3.8-27b\` — caminho que o `config.ps1` ja sondava:
+  Q4_K_M 15.9GB (14/08), UD-IQ2_XXS 8.4GB (15/08), UD-IQ3_XXS 11.1GB (15/08),
+  mmproj-BF16 0.9GB (14/08). O binario `llama-server.exe` tambem existe em
+  `C:\Users\marco\tools\llama.cpp\` (build 10435). A :8080 offline decorre da pausa
+  MAN_AT_WORK do operador, nao de arquivo faltante.
+- Licao registrada: auditorias precisam checar TODOS os caminhos que o config sonda
+  (`%USERPROFILE%\models\...`), nao apenas o dir do projeto.
+- Resolution: manifest/README/checkpoint corrigidos para o estado real (commit deste
+  registro). O launch com UD-IQ2_XXS (8.4GB, single GPU 3060) e viavel sem offload.
+- Status: Resolved 2026-08-21 (falso positivo da auditoria).
 
 ### INV-R42 - GPU secundaria (RTX 2070) em estado de falha Code 31 [HIGH -> CONFIG RESOLVED; HARDWARE PENDENTE]
 
