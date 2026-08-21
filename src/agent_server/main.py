@@ -895,7 +895,7 @@ def health_check():
         "provider": PRIMARY_PROVIDER_NAME,
         "role": "ceo",
         "topology": "local",
-        "model": os.getenv("SUPEREZIO_AGENT_MODEL", "Qwen3.8-27B-Q4_K_M"),
+        "model": os.getenv("SUPEREZIO_AGENT_MODEL", "Qwen3.8-27B-UD-IQ2_XXS"),
         "base_url": ceo_runtime["url"],
         "reachable": ceo_runtime["reachable"],
         "status": ceo_runtime["status"],

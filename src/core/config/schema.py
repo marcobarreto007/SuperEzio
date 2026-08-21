@@ -165,7 +165,7 @@ class UniversalConfig:
                     temperature=section.get("temperature", 0.7),
                     n_threads=section.get("n_threads", 0),
                     is_local=section.get("is_local", False),
-                    model_id=section.get("model_id", "Qwen3.8-27B-Q4_K_M"),
+                    model_id=section.get("model_id", "Qwen3.8-27B-UD-IQ2_XXS"),
                 )
 
         if "gateway" in data:

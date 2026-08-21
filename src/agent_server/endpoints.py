@@ -465,7 +465,7 @@ def _cockpit_status_snapshot(
     portfolio: dict[str, Any],
 ) -> dict[str, Any]:
     guardrails = _cockpit_guardrail_summary()
-    local_model = os.getenv("SUPEREZIO_PRIMARY_MODEL", "Qwen3.8-27B-Q4_K_M")
+    local_model = os.getenv("SUPEREZIO_PRIMARY_MODEL", "Qwen3.8-27B-UD-IQ2_XXS")
     try:
         from core.config.settings import Settings
 
