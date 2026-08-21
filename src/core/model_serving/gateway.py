@@ -10,12 +10,14 @@ Suporta:
 
 import asyncio
 import logging
+import time
+from enum import Enum
 from typing import AsyncGenerator, List, Dict, Any, Generator
 
 from ..observability.neural_log import log_event, trace_span, SpanContext, metrics
 from ..ports.protocol import A2AMessage, MessageType
 from .sanitizer import PrivateChannelFilter, strip_private_model_channels
-from ..resilience import get_circuit, CircuitOpenError
+from ..resilience import CircuitOpenError, CircuitState, get_circuit
 
 # OpenAI SDK for external API operations
 from openai import AsyncOpenAI
@@ -33,6 +35,13 @@ from .providers import (  # noqa: F401 — re-exports
 )
 
 logger = logging.getLogger(__name__)
+
+
+class _FailureKind(Enum):
+    """Internal retry classification for provider failures."""
+
+    TRANSIENT = "transient"
+    PERMANENT = "permanent"
 
 
 class ModelGateway:
@@ -121,7 +130,14 @@ class ModelGateway:
                     # Zero-cloud (operator directive 2026-08-17): the agent/CEO
                     # is local-only — no cloud fallback exists. If :8080 is down,
                     # the call must fail so the caller can enter MAN_AT_WORK.
-                    if p.name == AGENT_PROVIDER_NAME or not allow_fallback:
+                    # DeepSeek calls are also provider-pinned. Expert responses
+                    # carry role/model provenance; silently replacing DeepSeek
+                    # with Qwen (or a different external model) would turn a
+                    # failed DeepSeek evaluation into apparently valid evidence.
+                    if (
+                        p.name in {AGENT_PROVIDER_NAME, DEEPSEEK_PROVIDER_NAME}
+                        or not allow_fallback
+                    ):
                         return [p]
                     return [p] + [
                         other
@@ -143,6 +159,127 @@ class ModelGateway:
         if not providers_to_try:
             return 0
         return min(len(providers_to_try), max(0, self.config.max_fallbacks) + 1)
+
+    @staticmethod
+    def _classify_provider_failure(exc: Exception) -> _FailureKind:
+        """Classify only known recoverable failures as transient.
+
+        HTTP 429 and 5xx responses, timeouts and connection failures may
+        recover. Authentication and all other 4xx responses are permanent for
+        the current request/configuration and must never be retried. Unknown
+        exceptions default to permanent so programming/validation errors do
+        not create retry storms.
+        """
+
+        response = getattr(exc, "response", None)
+        status = getattr(exc, "status_code", None) or getattr(response, "status_code", None)
+        if isinstance(status, int):
+            if status == 429 or status == 408 or 500 <= status <= 599:
+                return _FailureKind.TRANSIENT
+            if 400 <= status <= 499:
+                return _FailureKind.PERMANENT
+
+        if isinstance(exc, (asyncio.TimeoutError, TimeoutError, ConnectionError)):
+            return _FailureKind.TRANSIENT
+
+        error_name = type(exc).__name__.lower()
+        if any(
+            token in error_name
+            for token in (
+                "timeout",
+                "connection",
+                "ratelimit",
+                "servererror",
+                "serviceunavailable",
+            )
+        ):
+            return _FailureKind.TRANSIENT
+        if any(
+            token in error_name
+            for token in (
+                "authentication",
+                "permissiondenied",
+                "badrequest",
+                "notfound",
+                "unprocessable",
+                "conflict",
+            )
+        ):
+            return _FailureKind.PERMANENT
+        return _FailureKind.PERMANENT
+
+    @staticmethod
+    def _record_circuit_state(provider_name: str, circuit) -> None:
+        """Expose CLOSED=0, OPEN=1, HALF_OPEN=2 through existing metrics."""
+
+        state_value = {
+            CircuitState.CLOSED: 0,
+            CircuitState.OPEN: 1,
+            CircuitState.HALF_OPEN: 2,
+        }[circuit.state]
+        metrics.observe(f"model.{provider_name}.circuit_state", state_value)
+        log_event(
+            "MODEL_GATEWAY",
+            "CIRCUIT_STATE",
+            {
+                "provider": provider_name,
+                "state": circuit.state.value,
+                "state_value": state_value,
+                "failures": circuit.failure_count,
+            },
+        )
+
+    @classmethod
+    def _circuit_allows_attempt(cls, provider_name: str, circuit) -> bool:
+        """Advance an expired OPEN circuit to HALF_OPEN for one probe."""
+
+        previous_state = circuit.state
+        allowed = circuit.allow_request()
+        if previous_state == CircuitState.OPEN and circuit.state == CircuitState.HALF_OPEN:
+            metrics.increment(f"model.{provider_name}.circuit_half_open")
+        cls._record_circuit_state(provider_name, circuit)
+        return allowed
+
+    def _record_provider_error(
+        self,
+        provider: ModelProvider,
+        exc: Exception,
+        failure_kind: _FailureKind,
+    ) -> None:
+        """Record one failed API attempt without changing the public API."""
+
+        err_count = self._provider_errors.get(provider.name, 0) + 1
+        self._provider_errors[provider.name] = err_count
+        event = (
+            "PROVIDER_TRANSIENT_ERROR"
+            if failure_kind is _FailureKind.TRANSIENT
+            else "PROVIDER_PERMANENT_ERROR"
+        )
+        log_event(
+            "MODEL_GATEWAY",
+            event,
+            {
+                "provider": provider.name,
+                "error_type": type(exc).__name__,
+                "consecutive_errors": err_count,
+            },
+        )
+        metrics.increment(f"model.{provider.name}.error")
+        metrics.increment(f"model.{provider.name}.{failure_kind.value}_error")
+
+        if err_count >= self._provider_cooldown_max_errors:
+            self._provider_cooldown_until[provider.name] = (
+                time.monotonic() + self._provider_cooldown_seconds
+            )
+            log_event(
+                "MODEL_GATEWAY",
+                "PROVIDER_COOLDOWN",
+                {
+                    "provider": provider.name,
+                    "consecutive_errors": err_count,
+                    "cooldown_s": self._provider_cooldown_seconds,
+                },
+            )
 
     @staticmethod
     def _apply_deepseek_options(provider: ModelProvider, kwargs: Dict[str, Any]) -> None:
@@ -338,7 +475,7 @@ class ModelGateway:
 
             # ── Circuit breaker gate ──
             _cb = get_circuit(f"model.{provider.name}", failure_threshold=5, recovery_timeout=60)
-            if _cb.is_open:
+            if not self._circuit_allows_attempt(provider.name, _cb):
                 next_name = (
                     providers_to_try[i + 1].name if i + 1 < len(providers_to_try) else "NONE"
                 )
@@ -351,43 +488,39 @@ class ModelGateway:
                 last_error = CircuitOpenError(f"Circuit model.{provider.name} is OPEN")
                 continue
 
-            for retry in range(self.config.retry_attempts):
+            # HALF_OPEN is a single recovery probe, never a retry burst.
+            retry_attempts = (
+                1 if _cb.state == CircuitState.HALF_OPEN else max(1, self.config.retry_attempts)
+            )
+            provider_error: Exception | None = None
+            for retry_index in range(retry_attempts):
                 try:
                     with SpanContext(f"provider.{provider.name}"):
                         # External API sync bridge
                         try:
                             loop = asyncio.get_event_loop()
-                            if loop.is_running():
-                                import concurrent.futures
+                        except RuntimeError:
+                            loop = None
 
-                                with concurrent.futures.ThreadPoolExecutor() as executor:
-                                    future = executor.submit(
-                                        lambda: asyncio.run(
-                                            self.generate_api(
-                                                provider,
-                                                prompt,
-                                                system_prompt,
-                                                max_tokens,
-                                                temperature,
-                                                json_mode,
-                                                assistant_prefix,
-                                            )
+                        if loop is not None and loop.is_running():
+                            import concurrent.futures
+
+                            with concurrent.futures.ThreadPoolExecutor() as executor:
+                                future = executor.submit(
+                                    lambda: asyncio.run(
+                                        self.generate_api(
+                                            provider,
+                                            prompt,
+                                            system_prompt,
+                                            max_tokens,
+                                            temperature,
+                                            json_mode,
+                                            assistant_prefix,
                                         )
                                     )
-                                    result = future.result()
-                            else:
-                                result = asyncio.run(
-                                    self.generate_api(
-                                        provider,
-                                        prompt,
-                                        system_prompt,
-                                        max_tokens,
-                                        temperature,
-                                        json_mode,
-                                        assistant_prefix,
-                                    )
                                 )
-                        except RuntimeError:
+                                result = future.result()
+                        else:
                             result = asyncio.run(
                                 self.generate_api(
                                     provider,
@@ -405,44 +538,53 @@ class ModelGateway:
                         self._provider_errors.pop(provider.name, None)
                         self._provider_cooldown_until.pop(provider.name, None)
                         self.last_provider_used = provider.name
-                        _cb._on_success()
+                        _cb.record_success()
+                        self._record_circuit_state(provider.name, _cb)
                         return result
 
                 except Exception as e:
                     last_error = e
-                    err_count = self._provider_errors.get(provider.name, 0) + 1
-                    self._provider_errors[provider.name] = err_count
-                    if err_count >= self._provider_cooldown_max_errors:
-                        import time as _time
+                    provider_error = e
+                    failure_kind = self._classify_provider_failure(e)
+                    self._record_provider_error(provider, e, failure_kind)
 
-                        self._provider_cooldown_until[provider.name] = (
-                            _time.monotonic() + self._provider_cooldown_seconds
-                        )
+                    if failure_kind is _FailureKind.PERMANENT:
+                        _cb.record_failure(e)
+                        self._record_circuit_state(provider.name, _cb)
+                        metrics.increment(f"model.{provider.name}.retry_suppressed")
+                        raise RuntimeError(
+                            f"Provider {provider.name} failed permanently: {type(e).__name__}"
+                        ) from e
+
+                    if retry_index < retry_attempts - 1:
+                        delay = self.config.retry_delay_s * (2**retry_index)
+                        metrics.increment(f"model.{provider.name}.retry")
                         log_event(
                             "MODEL_GATEWAY",
-                            "PROVIDER_COOLDOWN",
+                            "PROVIDER_RETRY",
                             {
                                 "provider": provider.name,
-                                "consecutive_errors": err_count,
-                                "cooldown_s": self._provider_cooldown_seconds,
+                                "attempt": retry_index + 2,
+                                "max_attempts": retry_attempts,
+                                "delay_s": delay,
                             },
                         )
-                    else:
-                        log_event(
-                            "MODEL_GATEWAY",
-                            "PROVIDER_ERROR",
-                            {"provider": provider.name, "error": str(e)[:200]},
-                        )
-                    metrics.increment(f"model.{provider.name}.error")
-
-                    if retry < self.config.retry_attempts - 1:
-                        import time
-
-                        time.sleep(self.config.retry_delay_s * (2**retry))
+                        time.sleep(delay)
 
             # ── Circuit breaker: record failure after all retries exhausted ──
-            if last_error:
-                _cb._on_failure(last_error)
+            if provider_error is not None:
+                _cb.record_failure(provider_error)
+                self._record_circuit_state(provider.name, _cb)
+                if i + 1 < max_attempts:
+                    log_event(
+                        "MODEL_GATEWAY",
+                        "PROVIDER_FALLBACK",
+                        {
+                            "from_provider": provider.name,
+                            "to_provider": providers_to_try[i + 1].name,
+                            "failure_kind": _FailureKind.TRANSIENT.value,
+                        },
+                    )
 
         metrics.increment("model.all_failed")
         raise RuntimeError(f"All external providers failed. Last error: {last_error}")
@@ -460,55 +602,92 @@ class ModelGateway:
         providers_to_try = self._providers_for_request(preferred_provider)
 
         max_attempts = self._max_attempts(providers_to_try)
+        self.last_provider_used = None
 
         for i in range(max_attempts):
             provider = providers_to_try[i]
+            circuit = get_circuit(
+                f"model.{provider.name}", failure_threshold=5, recovery_timeout=60
+            )
+            if not self._circuit_allows_attempt(provider.name, circuit):
+                continue
 
-            try:
-                # External Async Bridge
-                import queue
-                import threading
+            retry_attempts = (
+                1 if circuit.state == CircuitState.HALF_OPEN else max(1, self.config.retry_attempts)
+            )
+            for retry_index in range(retry_attempts):
+                emitted = False
+                try:
+                    # External Async Bridge
+                    import queue
+                    import threading
 
-                q: queue.Queue = queue.Queue()
+                    q: queue.Queue = queue.Queue()
 
-                def run_async_stream():
-                    async def task():
-                        try:
-                            async for chunk in self.stream_generate_api(
-                                provider,
-                                prompt,
-                                system_prompt,
-                                max_tokens,
-                                temperature,
-                                assistant_prefix=assistant_prefix,
-                            ):
-                                q.put(chunk)
-                            q.put(None)
-                        except Exception as e:
-                            q.put(e)
-                            q.put(None)
+                    def run_async_stream():
+                        async def task():
+                            try:
+                                async for chunk in self.stream_generate_api(
+                                    provider,
+                                    prompt,
+                                    system_prompt,
+                                    max_tokens,
+                                    temperature,
+                                    assistant_prefix=assistant_prefix,
+                                ):
+                                    q.put(chunk)
+                                q.put(None)
+                            except Exception as exc:
+                                q.put(exc)
+                                q.put(None)
 
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    loop.run_until_complete(task())
-                    loop.close()
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        loop.run_until_complete(task())
+                        loop.close()
 
-                threading.Thread(target=run_async_stream, daemon=True).start()
+                    threading.Thread(target=run_async_stream, daemon=True).start()
 
-                while True:
-                    item = q.get()
-                    if item is None:
-                        break
-                    if isinstance(item, Exception):
-                        raise item
-                    yield item
-                return
-            except Exception as e:
-                log_event(
-                    "MODEL_GATEWAY",
-                    "STREAM_FALLBACK",
-                    {"provider": provider.name, "error": str(e)},
-                )
+                    while True:
+                        item = q.get()
+                        if item is None:
+                            break
+                        if isinstance(item, Exception):
+                            raise item
+                        emitted = True
+                        yield item
+                    circuit.record_success()
+                    self._record_circuit_state(provider.name, circuit)
+                    self._provider_errors.pop(provider.name, None)
+                    self._provider_cooldown_until.pop(provider.name, None)
+                    self.last_provider_used = provider.name
+                    return
+                except Exception as exc:
+                    failure_kind = self._classify_provider_failure(exc)
+                    self._record_provider_error(provider, exc, failure_kind)
+                    if emitted or failure_kind is _FailureKind.PERMANENT:
+                        circuit.record_failure(exc)
+                        self._record_circuit_state(provider.name, circuit)
+                        metrics.increment(f"model.{provider.name}.retry_suppressed")
+                        yield f"[ERROR] Provider {provider.name} failed: {type(exc).__name__}."
+                        return
+                    if retry_index < retry_attempts - 1:
+                        delay = self.config.retry_delay_s * (2**retry_index)
+                        metrics.increment(f"model.{provider.name}.retry")
+                        time.sleep(delay)
+                        continue
+                    circuit.record_failure(exc)
+                    self._record_circuit_state(provider.name, circuit)
+                    if i + 1 < max_attempts:
+                        log_event(
+                            "MODEL_GATEWAY",
+                            "STREAM_FALLBACK",
+                            {
+                                "from_provider": provider.name,
+                                "to_provider": providers_to_try[i + 1].name,
+                                "failure_kind": failure_kind.value,
+                            },
+                        )
 
         yield "[ERROR] Todos os modelos de nuvem falharam."
 
@@ -534,35 +713,77 @@ class ModelGateway:
         )
         max_attempts = self._max_attempts(providers_to_try)
         attempted: list[str] = []
+        self.last_provider_used = None
 
         for i in range(max_attempts):
             provider = providers_to_try[i]
             attempted.append(provider.name)
-            try:
-                async for chunk in self.stream_generate_api(
-                    provider,
-                    prompt,
-                    system_prompt=system_prompt,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                    assistant_prefix=assistant_prefix,
-                    tools=tools,
-                ):
-                    yield chunk
-                if self._audit:
-                    self._audit.record_decision(
-                        run_id=request_id,
-                        step="gateway_fallback",
-                        decision=provider.name,
-                        rationale={
-                            "preferred": preferred_provider,
-                            "attempted": attempted,
-                            "success": True,
-                        },
-                    )
-                return
-            except Exception as e:
-                log_event("GATEWAY", "ASYNC_ERROR", {"error": str(e)})
+            circuit = get_circuit(
+                f"model.{provider.name}", failure_threshold=5, recovery_timeout=60
+            )
+            if not self._circuit_allows_attempt(provider.name, circuit):
+                continue
+
+            retry_attempts = (
+                1 if circuit.state == CircuitState.HALF_OPEN else max(1, self.config.retry_attempts)
+            )
+            for retry_index in range(retry_attempts):
+                emitted = False
+                try:
+                    async for chunk in self.stream_generate_api(
+                        provider,
+                        prompt,
+                        system_prompt=system_prompt,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        assistant_prefix=assistant_prefix,
+                        tools=tools,
+                    ):
+                        emitted = True
+                        yield chunk
+                    circuit.record_success()
+                    self._record_circuit_state(provider.name, circuit)
+                    self._provider_errors.pop(provider.name, None)
+                    self._provider_cooldown_until.pop(provider.name, None)
+                    self.last_provider_used = provider.name
+                    if self._audit:
+                        self._audit.record_decision(
+                            run_id=request_id,
+                            step="gateway_fallback",
+                            decision=provider.name,
+                            rationale={
+                                "preferred": preferred_provider,
+                                "attempted": attempted,
+                                "success": True,
+                            },
+                        )
+                    return
+                except Exception as exc:
+                    failure_kind = self._classify_provider_failure(exc)
+                    self._record_provider_error(provider, exc, failure_kind)
+                    if emitted or failure_kind is _FailureKind.PERMANENT:
+                        circuit.record_failure(exc)
+                        self._record_circuit_state(provider.name, circuit)
+                        metrics.increment(f"model.{provider.name}.retry_suppressed")
+                        yield f"[ERROR] Provider {provider.name} failed: {type(exc).__name__}."
+                        return
+                    if retry_index < retry_attempts - 1:
+                        delay = self.config.retry_delay_s * (2**retry_index)
+                        metrics.increment(f"model.{provider.name}.retry")
+                        await asyncio.sleep(delay)
+                        continue
+                    circuit.record_failure(exc)
+                    self._record_circuit_state(provider.name, circuit)
+                    if i + 1 < max_attempts:
+                        log_event(
+                            "MODEL_GATEWAY",
+                            "ASYNC_STREAM_FALLBACK",
+                            {
+                                "from_provider": provider.name,
+                                "to_provider": providers_to_try[i + 1].name,
+                                "failure_kind": failure_kind.value,
+                            },
+                        )
 
         if self._audit:
             self._audit.record_decision(

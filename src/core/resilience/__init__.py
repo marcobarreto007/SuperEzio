@@ -180,24 +180,45 @@ class CircuitBreaker:
     total_failures: int = 0
     total_successes: int = 0
 
+    def allow_request(self) -> bool:
+        """Return whether a request may run, advancing expired OPEN to HALF_OPEN.
+
+        HALF_OPEN admits a recovery probe. The caller must pair an allowed
+        request with :meth:`record_success` or :meth:`record_failure`.
+        """
+
+        if self.state != CircuitState.OPEN:
+            return True
+        if time.time() - self.last_failure_time < self.recovery_timeout:
+            return False
+        self.state = CircuitState.HALF_OPEN
+        logger.info("circuit_half_open", circuit=self.name)
+        return True
+
+    def record_success(self) -> None:
+        """Record a successful request and close a HALF_OPEN circuit."""
+
+        self._on_success()
+
+    def record_failure(self, exc: Exception) -> None:
+        """Record a failed request and open/reopen at the configured threshold."""
+
+        self._on_failure(exc)
+
     def call(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         """Call a function through the circuit breaker."""
-        if self.state == CircuitState.OPEN:
-            if time.time() - self.last_failure_time >= self.recovery_timeout:
-                self.state = CircuitState.HALF_OPEN
-                logger.info("circuit_half_open", circuit=self.name)
-            else:
-                raise CircuitOpenError(
-                    f"Circuit {self.name} is OPEN. "
-                    f"Retry in {self.recovery_timeout - (time.time() - self.last_failure_time):.0f}s"
-                )
+        if not self.allow_request():
+            raise CircuitOpenError(
+                f"Circuit {self.name} is OPEN. "
+                f"Retry in {self.recovery_timeout - (time.time() - self.last_failure_time):.0f}s"
+            )
 
         try:
             result = func(*args, **kwargs)
-            self._on_success()
+            self.record_success()
             return result
         except Exception as exc:
-            self._on_failure(exc)
+            self.record_failure(exc)
             raise
 
     def _on_success(self) -> None:
