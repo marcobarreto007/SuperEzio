@@ -31,6 +31,8 @@ from .providers import (  # noqa: F401 — re-exports
     DEEPSEEK_PROVIDER_NAME,
     GEMINI_PROVIDER_NAME,
     AGENT_PROVIDER_NAME,
+    DAYTRADE_JUDGE_PROVIDER_NAME,
+    DAYTRADE_AUDITOR_PROVIDER_NAME,
     build_default_providers,
 )
 from ..config.secrets import load_local_env
@@ -136,7 +138,13 @@ class ModelGateway:
                     # with Qwen (or a different external model) would turn a
                     # failed DeepSeek evaluation into apparently valid evidence.
                     if (
-                        p.name in {AGENT_PROVIDER_NAME, DEEPSEEK_PROVIDER_NAME}
+                        p.name
+                        in {
+                            AGENT_PROVIDER_NAME,
+                            DEEPSEEK_PROVIDER_NAME,
+                            DAYTRADE_JUDGE_PROVIDER_NAME,
+                            DAYTRADE_AUDITOR_PROVIDER_NAME,
+                        }
                         or not allow_fallback
                     ):
                         return [p]
