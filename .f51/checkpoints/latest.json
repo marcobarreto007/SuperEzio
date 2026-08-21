@@ -1085,7 +1085,7 @@
       "missing_key": "fail-closed RuntimeError without secret disclosure",
       "official_endpoint_reachability": "HTTPS 401 without authentication; no paid inference",
       "lint": "Ruff check and format PASS on 401 Python files",
-      "full_pytest": "1965 passed, 10 skipped, 1975 collected, coverage 67%, 545.20s",
+      "full_pytest": "1965 passed, 10 skipped, 1975 collected, coverage 67%, 574.93s",
       "agent_registry": "22 agents, 32 skills, 0 issues",
       "docker_compose_contract": "PASS with redacted test-only interpolation value; correctly refuses missing required DeepSeek key",
       "browser_smoke": "BLOCKED/OFFLINE: API :8002 and CEO :8080 both refused connection; no live external inference attempted"
