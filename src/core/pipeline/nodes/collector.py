@@ -21,7 +21,12 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 
-from ..trade_order import normalize_liquidity_fields, pick_candidate, rank_candidates
+from ..trade_order import (
+    evaluate_quality_gates,
+    normalize_liquidity_fields,
+    pick_candidate,
+    rank_candidates,
+)
 from ..scan_registry import ScanEventRegistry
 from ..circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
 
@@ -49,6 +54,23 @@ def _scan_max_llm_calls():
 
 def _scan_llm_timeout():
     return float(os.getenv("SUPEREZIO_SCAN_LLM_TIMEOUT_SECONDS", "600"))
+
+
+def _final_scan_decision(ranked: list[dict[str, Any]]) -> str:
+    """Derive the scan decision from independently gated ranking entries."""
+    buy_count = sum(
+        entry.get("eligible") is True
+        and not entry.get("gate_failures")
+        and entry.get("decision") == "BUY_CANDIDATE"
+        for entry in ranked
+    )
+    if buy_count == 1:
+        return "BUY_CANDIDATE"
+    if buy_count > 1:
+        return "BUY_CANDIDATES"
+    if ranked:
+        return "WAIT"
+    return "REJECT_ALL"
 
 
 def _cache_is_fresh(trade_ctx: dict[str, Any]) -> bool:
@@ -540,26 +562,27 @@ def _resolve_universe(explicit_country: str | None, msg_lower: str) -> tuple[str
 
 
 def _generate_fallback_catalyst(item: dict[str, Any]) -> dict[str, Any]:
-    """Generate technical catalyst, risk, and invalidation from OpenBB data.
+    """Derive a thesis only from attributable, concrete technical evidence.
 
-    Finnhub's earnings calendar only catches scheduled events — many liquid
-    tickers have no earnings in the next 14 days. When Finnhub returns empty,
-    this fallback builds a thesis from price, moving averages, momentum, and
-    the earnings date that OpenBB discovery already provides.
+    This is deliberately *not* a generic fallback. If the required observed
+    inputs or their provenance are absent, it returns an empty dict and the
+    candidate fails closed at the quality gate.
     """
     price = item.get("price")
     ma50 = item.get("ma50")
     ma200 = item.get("ma200")
     earnings_date = item.get("earnings_date")
     change_pct = item.get("change_pct")
-    ticker = str(item.get("ticker", "?"))
+    provenance = item.get("provenance") if isinstance(item.get("provenance"), dict) else {}
 
     catalyst = None
     invalidation = None
     risk = None
 
-    # Priority 1: upcoming earnings already known from OpenBB
-    if earnings_date:
+    evidence_inputs: list[str] = []
+
+    # Priority 1: upcoming earnings already known from an attributable provider.
+    if earnings_date and provenance.get("earnings_date"):
         try:
             ed = datetime.fromisoformat(str(earnings_date))
             days = (ed.date() - datetime.now(timezone.utc).date()).days
@@ -569,15 +592,22 @@ def _generate_fallback_catalyst(item: dict[str, Any]) -> dict[str, Any]:
                     f"(scheduled {earnings_date}) — potential volatility catalyst"
                 )
                 invalidation = (
-                    "close below prior-week low after earnings print, "
-                    "or guidance miss / negative pre-announcement"
+                    f"invalidate if the {earnings_date} event is cancelled, guidance is cut, "
+                    "or price closes below the pre-event weekly low"
                 )
-                risk = "post-earnings volatility; position size 0.5% of capital max"
+                risk = f"binary event risk around the scheduled {earnings_date} earnings release"
+                evidence_inputs = ["earnings_date"]
         except Exception:
             pass
 
     # Priority 2: bullish moving-average alignment
-    if not catalyst and price is not None and ma50 is not None and ma200 is not None:
+    if (
+        not catalyst
+        and price is not None
+        and ma50 is not None
+        and ma200 is not None
+        and all(provenance.get(field) for field in ("price", "ma50", "ma200"))
+    ):
         p = float(price)
         m50 = float(ma50)
         m200 = float(ma200)
@@ -587,46 +617,48 @@ def _generate_fallback_catalyst(item: dict[str, Any]) -> dict[str, Any]:
                 f"and 200d MA (${m200:.2f}), uptrend intact"
             )
             invalidation = f"close below 50-day MA (${m50:.2f})"
-            risk = "trend reversal; max loss 0.5% of trading capital"
+            risk = f"trend thesis fails on a close below the observed 50-day MA (${m50:.2f})"
+            evidence_inputs = ["price", "ma50", "ma200"]
         elif p > m50:
             catalyst = (
                 f"short-term uptrend: price (${p:.2f}) above 50d MA (${m50:.2f}), "
                 f"200d MA at ${m200:.2f}"
             )
             invalidation = f"close below 50-day MA (${m50:.2f})"
-            risk = "mid-trend entry; max loss 0.5% of trading capital"
+            risk = f"price is above the 50-day MA but long-term support is only ${m200:.2f}"
+            evidence_inputs = ["price", "ma50", "ma200"]
 
     # Priority 3: daily momentum
-    if not catalyst and change_pct is not None and float(change_pct) > 2:
+    if (
+        not catalyst
+        and price is not None
+        and change_pct is not None
+        and float(change_pct) > 2
+        and all(provenance.get(field) for field in ("price", "change_pct"))
+    ):
         pct = float(change_pct)
-        catalyst = (
-            f"positive momentum: +{pct:.1f}% daily move with elevated volume, "
-            f"price ${float(price):.2f}"
-            if price
-            else f"+{pct:.1f}% daily move"
-        )
-        invalidation = (
-            f"close below today's low (${float(price):.2f})"
-            if price
-            else "close below prior day low"
-        )
-        risk = "momentum fade risk; tight stop-loss recommended, 0.5% max"
+        catalyst = f"positive momentum: observed +{pct:.1f}% daily move, price ${float(price):.2f}"
+        invalidation = f"momentum evidence is invalidated if price closes below ${float(price):.2f}"
+        risk = f"the observed +{pct:.1f}% one-day move can mean-revert from ${float(price):.2f}"
+        evidence_inputs = ["price", "change_pct"]
 
-    # Priority 4: generic — liquid, listed, tradable
-    if not catalyst:
-        catalyst = (
-            f"{ticker}: liquid equity on major US exchange"
-            f"{', market cap $' + str(item.get('market_cap', '')) if item.get('market_cap') else ''}"
-            " — suitable for short-term tactical allocation"
-        )
-        invalidation = "close below 200-day MA or 8% from entry"
-        risk = "broad market / sector risk; position size 0.5% of capital"
+    if not catalyst or not evidence_inputs:
+        return {}
+
+    computed_provenance = {
+        "source": "computed:technical_evidence",
+        "inputs": evidence_inputs,
+    }
 
     return {
         "catalyst": catalyst,
         "invalidation": invalidation,
         "risk": risk,
-        "source": "technical_fallback",
+        "provenance": {
+            "catalyst": dict(computed_provenance),
+            "invalidation": dict(computed_provenance),
+            "risk": dict(computed_provenance),
+        },
     }
 
 
@@ -677,6 +709,10 @@ def _apply_candidate_gate(
         return False, "missing_liquidity"
     if isinstance(volume, (int, float)) and volume <= 0:
         return False, "missing_liquidity"
+
+    eligible, failures = evaluate_quality_gates(item)
+    if not eligible:
+        return False, failures[0] if failures else "quality_gate_failed"
 
     return True, None
 
@@ -947,6 +983,42 @@ async def _run_scan(
     max_raw = _scan_max_raw()
     if len(raw_candidates) > max_raw:
         raw_candidates = raw_candidates[:max_raw]
+
+    # Preserve field-level provenance from discovery before enrichment mutates
+    # candidates. A top-level ``source`` alone is not enough to prove which
+    # provider supplied price, liquidity, or thesis evidence.
+    _DISCOVERY_FIELDS = (
+        "ticker",
+        "market",
+        "exchange",
+        "venue",
+        "price",
+        "volume",
+        "avg_volume",
+        "liquidity",
+        "ma50",
+        "ma200",
+        "change_pct",
+        "earnings_date",
+        "catalyst",
+        "thesis",
+        "short_term_thesis",
+        "reason",
+        "risk",
+        "downside_risk",
+        "invalidation",
+        "invalidation_condition",
+    )
+    for item in raw_candidates:
+        discovery_source = str(item.get("source") or item.get("provider") or "").strip()
+        item_provenance = item.setdefault("provenance", {})
+        if not isinstance(item_provenance, dict):
+            item_provenance = {}
+            item["provenance"] = item_provenance
+        if discovery_source:
+            for field in _DISCOVERY_FIELDS:
+                if item.get(field) is not None:
+                    item_provenance.setdefault(field, {"source": discovery_source})
 
     # Profile + catalyst are heavier on Finnhub; keep a smaller default budget.
     enrich_budget = int(os.getenv("SUPEREZIO_SCAN_ENRICH", "12"))
@@ -1239,9 +1311,20 @@ async def _run_scan(
                 provider = result.get("provider") or result.get("source")
                 if provider is not None:
                     item.setdefault("provider", provider)
+                    provider_sources_used.add(str(provider))
+                item_provenance = item.setdefault("provenance", {})
+                if not isinstance(item_provenance, dict):
+                    item_provenance = {}
+                    item["provenance"] = item_provenance
+                result_source = str(provider or "").strip()
+                for field in ("price", "volume", "currency"):
+                    if result.get(field) is not None and result_source:
+                        item_provenance.setdefault(field, {"source": result_source})
                 for field in _RICH_FIELDS:
                     if result.get(field) is not None and item.get(field) is None:
                         item[field] = result[field]
+                    if result.get(field) is not None and result_source:
+                        item_provenance.setdefault(field, {"source": result_source})
 
             price_error_counts: dict[str, int] = {}
             for item, price_res in zip(price_targets, price_results):
@@ -1280,6 +1363,8 @@ async def _run_scan(
                         item.setdefault("invalidation", fb["invalidation"])
                     if fb.get("risk"):
                         item.setdefault("risk", fb["risk"])
+                    if isinstance(fb.get("provenance"), dict):
+                        item.setdefault("provenance", {}).update(fb["provenance"])
 
             if price_error_counts:
                 top = sorted(price_error_counts.items(), key=lambda kv: kv[1], reverse=True)[:5]
@@ -1322,6 +1407,8 @@ async def _run_scan(
                 item.setdefault("invalidation", fb["invalidation"])
             if fb.get("risk"):
                 item.setdefault("risk", fb["risk"])
+            if isinstance(fb.get("provenance"), dict):
+                item.setdefault("provenance", {}).update(fb["provenance"])
 
     # ── Gate ──
     registry.stage_started("gate")
@@ -1370,17 +1457,18 @@ async def _run_scan(
     )
     registry.stage_completed("rank", done=len(ranked), total=len(ranked))
 
-    # Hard cap: only top N after gate go to candidates
+    # Hard cap: expose candidates in ranked order, never scanner insertion order.
     max_after_gate = _scan_max_after_gate()
-    capped_passing = passing[:max_after_gate]
+    capped_ranked = ranked[:max_after_gate]
+    capped_passing = [entry["candidate"] for entry in capped_ranked]
     max_llm = _scan_max_llm_candidates()
-    llm_candidates = capped_passing[:max_llm]
+    llm_ranked = capped_ranked[:max_llm]
+    llm_candidates = [entry["candidate"] for entry in llm_ranked]
 
-    # Determine final decision
-    if llm_candidates:
-        final_decision = "BUY_CANDIDATE" if len(llm_candidates) == 1 else "BUY_CANDIDATES"
-    else:
-        final_decision = "REJECT_ALL"
+    # The existence of a list is not an investment decision. Only entries that
+    # independently passed every gate *and* crossed the confidence threshold
+    # can produce BUY_CANDIDATE(S).
+    final_decision = _final_scan_decision(llm_ranked)
 
     # ── Finalize ──
     registry.stage_started("finalize")

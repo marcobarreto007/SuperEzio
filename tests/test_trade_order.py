@@ -24,9 +24,20 @@ def _strong_candidate(**overrides) -> dict:
         "currency": "USD",
         "avg_daily_volume_shares": 2_202_650,
         "catalyst": "Earnings release on 2026-05-27 after market close.",
-        "risk": "Macro tape risk and sector rotation pressure.",
+        "risk": "The scheduled earnings event can cut FY guidance below the current consensus.",
         "invalidation": "Close below prior-week low after earnings print.",
         "provider": "finnhub",
+        "provenance": {
+            field: {"source": "finnhub"}
+            for field in (
+                "ticker",
+                "price",
+                "avg_daily_volume_shares",
+                "catalyst",
+                "risk",
+                "invalidation",
+            )
+        },
     }
     base.update(overrides)
     return base
@@ -56,7 +67,7 @@ def test_buy_blocked_when_liquidity_invalid():
     assert "liquidity_below_minimum" in failures
     confidence = compute_model_confidence(candidate, gate_failures=failures)
     assert confidence <= MAX_CONFIDENCE_WITH_GATE_FAILURE
-    assert decide_final_action(confidence, failures) != "BUY_CANDIDATE"
+    assert decide_final_action(confidence, failures) == "WAIT"
 
 
 def test_buy_blocked_when_risk_missing():
@@ -108,3 +119,37 @@ def test_currency_market_mismatch_blocks_fast_trade_candidate():
     confidence = compute_model_confidence(candidate, gate_failures=failures)
     assert confidence <= MAX_CONFIDENCE_WITH_GATE_FAILURE
     assert decide_final_action(confidence, failures) != "BUY_CANDIDATE"
+
+
+def test_fictitious_liquid_ticker_without_provenance_fails_closed():
+    candidate = {
+        "ticker": "ZZZZ",
+        "price": 42.0,
+        "volume": 50_000_000,
+        "catalyst": "Earnings release tomorrow.",
+        "risk": "Guidance may be cut.",
+        "invalidation": "Close below $40.",
+    }
+
+    ok, failures = evaluate_quality_gates(candidate)
+    confidence = compute_model_confidence(candidate, gate_failures=failures)
+
+    assert not ok
+    assert "missing_ticker_provenance" in failures
+    assert "missing_price_provenance" in failures
+    assert "missing_liquidity_provenance" in failures
+    assert decide_final_action(confidence, failures) == "REJECT_ALL"
+
+
+def test_generic_fields_cannot_authorize_candidate_even_with_source_label():
+    candidate = _strong_candidate(
+        catalyst="Liquid equity on major exchange",
+        risk="Market risk",
+        invalidation="Close below $100.",
+    )
+
+    ok, failures = evaluate_quality_gates(candidate)
+
+    assert not ok
+    assert "missing_catalyst" in failures
+    assert "missing_risk" in failures

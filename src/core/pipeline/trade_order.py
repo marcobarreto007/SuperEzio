@@ -15,6 +15,21 @@ STRONG_CONFIDENCE_THRESHOLD = int(os.getenv("SUPEREZIO_STRONG_CONFIDENCE_THRESHO
 MAX_CONFIDENCE_WITH_GATE_FAILURE = int(os.getenv("SUPEREZIO_MAX_CONFIDENCE_GATE_FAILURE", "55"))
 
 _EMPTY_RISK_VALUES = frozenset({"—", "-", "", "see risk controls", "ver controles de risco"})
+_GENERIC_EVIDENCE_VALUES = frozenset(
+    {
+        "broad market / sector risk; position size 0.5% of capital",
+        "macro tape risk and sector rotation pressure",
+        "market risk",
+        "volatility risk",
+        "technical setup",
+        "short-term opportunity",
+        "liquid equity on major exchange",
+        "suitable for short-term tactical allocation",
+    }
+)
+_UNTRUSTED_PROVENANCE_SOURCES = frozenset(
+    {"", "fallback", "fallback_empty", "generic", "generated", "unknown", "no_data"}
+)
 
 
 def volume_shares_from_raw(volume: Any) -> float | None:
@@ -102,16 +117,119 @@ def _is_present(value: Any) -> bool:
     return True
 
 
+def _is_actionable_evidence(value: Any, field: str) -> bool:
+    """Return whether text is concrete enough to support an investment gate."""
+    if not _is_present(value):
+        return False
+    if not isinstance(value, str):
+        return True
+    normalized = " ".join(value.strip().lower().split())
+    if normalized in _GENERIC_EVIDENCE_VALUES or len(normalized) < 20:
+        return False
+    has_number = bool(any(character.isdigit() for character in normalized))
+    concrete_terms = {
+        "catalyst": (
+            "earnings",
+            "guidance",
+            "filing",
+            "approval",
+            "contract",
+            "merger",
+            "acquisition",
+            "launch",
+            "investor day",
+        ),
+        "risk": (
+            "earnings",
+            "guidance",
+            "revenue",
+            "margin",
+            "debt",
+            "dilution",
+            "regulatory",
+            "currency",
+            "consensus",
+            "moving average",
+        ),
+        "invalidation": (
+            "close below",
+            "close above",
+            "prior-week",
+            "prior day",
+            "cancelled",
+            "guidance",
+            "moving average",
+        ),
+    }
+    return has_number or any(term in normalized for term in concrete_terms.get(field, ()))
+
+
+def _provenance(candidate: dict[str, Any]) -> dict[str, Any]:
+    value = candidate.get("provenance") or candidate.get("evidence_provenance")
+    return value if isinstance(value, dict) else {}
+
+
+def _has_field_provenance(
+    candidate: dict[str, Any], field: str, *, _visited: frozenset[str] = frozenset()
+) -> bool:
+    """Require an attributable source for every field that can authorize a trade."""
+    provenance = _provenance(candidate)
+    if field in _visited:
+        return False
+    visited = _visited | {field}
+    entry = provenance.get(field)
+    if isinstance(entry, str):
+        source = entry.strip().lower()
+        return source not in _UNTRUSTED_PROVENANCE_SOURCES and not any(
+            token in source for token in ("fallback", "generic", "generated", "unknown", "no_data")
+        )
+    if not isinstance(entry, dict):
+        return False
+    source = str(entry.get("source") or entry.get("provider") or "").strip().lower()
+    if source in _UNTRUSTED_PROVENANCE_SOURCES:
+        return False
+    if source.startswith("computed:"):
+        inputs = entry.get("inputs")
+        if not isinstance(inputs, list) or not inputs:
+            return False
+        return all(
+            _has_field_provenance(candidate, str(input_field), _visited=visited)
+            for input_field in inputs
+        )
+    return not any(
+        token in source for token in ("fallback", "generic", "generated", "unknown", "no_data")
+    )
+
+
 def evaluate_quality_gates(candidate: dict[str, Any]) -> tuple[bool, list[str]]:
     """Hard gates for short-term DECISIVE_TRADE_ORDER eligibility."""
     normalize_liquidity_fields(candidate)
     failures: list[str] = []
+
+    ticker = str(candidate.get("ticker") or "").strip()
+    if not ticker:
+        failures.append("missing_ticker")
+    elif not _has_field_provenance(candidate, "ticker"):
+        failures.append("missing_ticker_provenance")
+
+    price = candidate.get("price")
+    if not isinstance(price, (int, float)) or price <= 0:
+        failures.append("missing_price")
+    elif not _has_field_provenance(candidate, "price"):
+        failures.append("missing_price_provenance")
 
     shares = candidate.get("avg_daily_volume_shares")
     if shares is None or shares <= 0:
         failures.append("missing_liquidity")
     elif shares < MIN_AVG_DAILY_VOLUME_SHARES:
         failures.append("liquidity_below_minimum")
+    elif not (
+        _has_field_provenance(candidate, "avg_daily_volume_shares")
+        or _has_field_provenance(candidate, "volume")
+        or _has_field_provenance(candidate, "avg_volume")
+        or _has_field_provenance(candidate, "liquidity")
+    ):
+        failures.append("missing_liquidity_provenance")
 
     dollar = candidate.get("avg_daily_dollar_volume")
     if dollar is not None and dollar < MIN_AVG_DAILY_DOLLAR_VOLUME_USD:
@@ -123,16 +241,34 @@ def evaluate_quality_gates(candidate: dict[str, Any]) -> tuple[bool, list[str]]:
         or candidate.get("short_term_thesis")
         or candidate.get("reason")
     )
-    if not _is_present(catalyst):
+    if not _is_actionable_evidence(catalyst, "catalyst"):
         failures.append("missing_catalyst")
+    elif not any(
+        _has_field_provenance(candidate, field)
+        for field in ("catalyst", "thesis", "short_term_thesis", "reason")
+        if candidate.get(field) == catalyst
+    ):
+        failures.append("missing_catalyst_provenance")
 
     risk = candidate.get("risk") or candidate.get("downside_risk")
-    if not _is_present(risk):
+    if not _is_actionable_evidence(risk, "risk"):
         failures.append("missing_risk")
+    elif not any(
+        _has_field_provenance(candidate, field)
+        for field in ("risk", "downside_risk")
+        if candidate.get(field) == risk
+    ):
+        failures.append("missing_risk_provenance")
 
     invalidation = candidate.get("invalidation") or candidate.get("invalidation_condition")
-    if not _is_present(invalidation):
+    if not _is_actionable_evidence(invalidation, "invalidation"):
         failures.append("missing_invalidation")
+    elif not any(
+        _has_field_provenance(candidate, field)
+        for field in ("invalidation", "invalidation_condition")
+        if candidate.get(field) == invalidation
+    ):
+        failures.append("missing_invalidation_provenance")
 
     if candidate.get("price_error") or candidate.get("provider_error"):
         failures.append("provider_error")
@@ -239,13 +375,20 @@ def compute_model_confidence(
 def decide_final_action(confidence: int, gate_failures: list[str]) -> str:
     """Map confidence + gates to BUY_CANDIDATE / WAIT / REJECT_ALL."""
     if gate_failures:
-        severe = {
+        hard_reject = {
             "missing_catalyst",
+            "missing_catalyst_provenance",
             "missing_liquidity",
+            "missing_liquidity_provenance",
+            "missing_price",
+            "missing_price_provenance",
+            "missing_risk_provenance",
+            "missing_invalidation_provenance",
+            "missing_ticker_provenance",
             "provider_error",
             "currency_market_mismatch",
         }
-        if confidence <= 40 and any(f in gate_failures for f in severe):
+        if any(failure in hard_reject for failure in gate_failures):
             return "REJECT_ALL"
         return "WAIT"
     if confidence >= BUY_CONFIDENCE_THRESHOLD:

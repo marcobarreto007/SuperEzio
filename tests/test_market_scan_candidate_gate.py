@@ -241,7 +241,7 @@ async def test_valid_candidate_requires_full_data(monkeypatch):
                     "currency": "USD",
                     "provider": "stub-quote",
                     "catalyst": "Q1 earnings next week with guided revenue beat.",
-                    "risk": "Macro tape risk and sector rotation pressure.",
+                    "risk": "Q1 guidance may fall below the current analyst consensus.",
                     "invalidation": "Close below 20-day moving average.",
                     "name": "Apple Inc.",
                     "confidence": "medium",
@@ -290,8 +290,8 @@ async def test_valid_candidate_requires_full_data(monkeypatch):
     assert incomplete.get("rejected_reason") == "missing_price"
 
 
-def test_candidate_gate_allows_missing_risk_and_invalidation():
-    """Short-term scan candidates now pass the relaxed gate even without risk and invalidation."""
+def test_candidate_gate_rejects_missing_evidence_and_provenance():
+    """Price and liquidity alone must never become an investment candidate."""
     from src.core.pipeline.nodes.collector import _apply_candidate_gate
 
     base = {
@@ -306,18 +306,35 @@ def test_candidate_gate_allows_missing_risk_and_invalidation():
         allow_penny_otc=False,
         allow_microcap=False,
     )
-    assert ok
-    assert reason is None
+    assert not ok
+    assert reason == "missing_ticker_provenance"
+
+
+def test_final_decision_is_not_buy_just_because_ranked_list_exists():
+    from src.core.pipeline.nodes.collector import _final_scan_decision
+
+    waiting = [{"candidate": {"ticker": "ZZZZ"}, "eligible": False, "decision": "WAIT"}]
+
+    assert _final_scan_decision(waiting) == "WAIT"
+    assert _final_scan_decision([]) == "REJECT_ALL"
+    assert (
+        _final_scan_decision(
+            [
+                {
+                    "candidate": {"ticker": "REAL"},
+                    "eligible": True,
+                    "gate_failures": [],
+                    "decision": "BUY_CANDIDATE",
+                }
+            ]
+        )
+        == "BUY_CANDIDATE"
+    )
 
 
 @pytest.mark.asyncio
 async def test_priced_candidates_fail_on_thesis_not_price(monkeypatch):
-    """Priced candidates now pass the gate via technical-fallback catalyst.
-
-    When Finnhub returns no_catalyst_in_window but the item has price, volume,
-    and exchange, the fallback generates a technical thesis from the data.
-    These candidates should now pass, not be rejected.
-    """
+    """Price and volume cannot be promoted through a generic thesis fallback."""
     from src.core import scanner as scanner_module
     from src.core.pipeline.nodes.collector import _run_scan
 
@@ -361,12 +378,11 @@ async def test_priced_candidates_fail_on_thesis_not_price(monkeypatch):
         {},
     )
 
-    # Both tickers now pass — the fallback generates catalyst, risk, invalidation
-    # from the available price/volume/exchange data.
-    assert len(result["candidates"]) == 2
+    assert result["candidates"] == []
     summary = result["rejection_summary"]
     assert summary.get("missing_price", 0) == 0
-    assert summary.get("missing_short_term_thesis", 0) == 0
+    assert summary.get("missing_catalyst", 0) == 2
+    assert result["scan_trace"]["final_decision"] == "REJECT_ALL"
 
 
 @pytest.mark.asyncio
@@ -384,7 +400,7 @@ async def test_under_cad_price_request_filters_expensive_candidates(monkeypatch)
             return {
                 "ticker": ticker,
                 "price": price,
-                "volume": 1_000_000,
+                "volume": 3_000_000,
                 "currency": "CAD",
                 "provider": "stub",
                 "market": "Canada",
@@ -396,9 +412,9 @@ async def test_under_cad_price_request_filters_expensive_candidates(monkeypatch)
 
         def route(self, capability, ticker):
             return {
-                "catalyst": "scheduled event catalyst",
-                "risk": "event risk",
-                "invalidation": "close below support",
+                "catalyst": f"{ticker} reports audited FY results on 2026-09-02.",
+                "risk": f"{ticker} FY revenue may miss the published CAD 20M consensus.",
+                "invalidation": f"Invalidate if {ticker} closes below CAD 3.80 after results.",
                 "provider": "stub",
             }
 
@@ -464,8 +480,8 @@ async def test_fundamentals_failures_do_not_skip_catalyst_enrichment(monkeypatch
             if capability == "short_term_catalyst":
                 self.catalyst_calls.append(ticker)
                 return {
-                    "catalyst": f"{ticker} has a scheduled event catalyst.",
-                    "risk": "Event can disappoint or broader market can sell off.",
+                    "catalyst": f"{ticker} reports Q2 earnings on 2026-09-02.",
+                    "risk": f"{ticker} Q2 revenue may miss the published consensus estimate.",
                     "invalidation": "Close below the 20-day moving average.",
                     "source": "finnhub",
                 }
@@ -497,7 +513,8 @@ async def test_fundamentals_failures_do_not_skip_catalyst_enrichment(monkeypatch
     breakers = result["scan_trace"]["circuit_breakers"]
     assert breakers["finnhub"]["state"] == "closed"
     assert "finnhub_fundamentals" in breakers
-    assert all("scheduled event catalyst" in c.get("catalyst", "") for c in result["candidates"])
+    assert all("Q2 earnings on 2026-09-02" in c.get("catalyst", "") for c in result["candidates"])
+    assert all(c["provenance"]["catalyst"]["source"] == "finnhub" for c in result["candidates"])
 
 
 # ---------------------------------------------------------------------------

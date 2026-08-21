@@ -5,16 +5,17 @@ aggregator for equities and crypto.
 Sources (tried in cascade):
   1. Nitter (Twitter/X proxy — free, no API key needed)
      Instances: nitter.net, nitter.it, nitter.cz, nitter.1d4.us, nitter.kylrth.com
-  2. ApeWisdom (Reddit/WSB retail sentiment — free, no key) — fallback
-  3. CryptoPanic (crypto social news — public tier) — secondary fallback
-  4. Clean empty result when all sources are offline
+  2. ApeWisdom (Reddit/WSB retail sentiment — free, no key), used only by
+     the aggregate sentiment method
+  3. Explicit NO_DATA/UNKNOWN result when specialized evidence is unavailable
 
 Every public method returns a sensible dict on failure — never raises.
 
 Resilience guarantee:
   - All sources are tried with short timeouts (12 s each)
   - Instance-level failures are logged at DEBUG level, never WARNING
-  - If every source fails, a ``CLEAN`` signal with ``error`` key is returned
+  - If every source fails, ``NO_DATA``/``UNKNOWN`` is returned; absence of
+    evidence is never represented as a clean market signal
 """
 
 from __future__ import annotations
@@ -189,7 +190,7 @@ class SocialWhaleProvider:
                 "whale_mentions": 8,
                 "top_tweets": [...],
                 "signal": "WHALE_DETECTED" | "CLEAN",
-                "source": "nitter" | "apewisdom" | "fallback"
+                "source": "nitter" | "no_data"
             }
         """
         ticker = ticker.strip().upper()
@@ -213,6 +214,7 @@ class SocialWhaleProvider:
             "top_tweets": tweets[:5],
             "signal": "WHALE_DETECTED" if whale_score >= 40 else "CLEAN",
             "source": source,
+            "data_status": "OBSERVED",
         }
 
     def get_pump_detection(self, ticker: str) -> Dict[str, Any]:
@@ -229,7 +231,7 @@ class SocialWhaleProvider:
                 "mention_count": 20,
                 "top_tweets": [...],
                 "signal": "PUMP_RISK" | "DUMP_RISK" | "PUMP_DUMP_ALERT" | "CLEAN",
-                "source": "nitter" | "apewisdom" | "fallback"
+                "source": "nitter" | "no_data"
             }
         """
         ticker = ticker.strip().upper()
@@ -270,6 +272,7 @@ class SocialWhaleProvider:
             "top_tweets": tweets[:5],
             "signal": signal,
             "source": source,
+            "data_status": "OBSERVED",
         }
 
     def get_social_sentiment(self, ticker: str) -> Dict[str, Any]:
@@ -323,6 +326,7 @@ class SocialWhaleProvider:
                 "sentiment_label": "NO_DATA",
                 "mention_count": 0,
                 "sources_used": sources_used or [],
+                "data_status": "NO_DATA",
             }
 
         avg_score = sum(scores) / len(scores)
@@ -340,6 +344,7 @@ class SocialWhaleProvider:
             "sentiment_label": label,
             "mention_count": mention_count,
             "sources_used": sources_used,
+            "data_status": "OBSERVED",
         }
 
     def get_unusual_options_flow(self, ticker: str) -> Dict[str, Any]:
@@ -355,7 +360,7 @@ class SocialWhaleProvider:
                 "mention_count": 18,
                 "top_tweets": [...],
                 "signal": "UNUSUAL_FLOW" | "NORMAL_FLOW",
-                "source": "nitter" | "apewisdom" | "fallback"
+                "source": "nitter" | "no_data"
             }
         """
         ticker = ticker.strip().upper()
@@ -390,6 +395,7 @@ class SocialWhaleProvider:
             "top_tweets": tweets[:5],
             "signal": "UNUSUAL_FLOW" if unusual_flow_score >= 40 else "NORMAL_FLOW",
             "source": source,
+            "data_status": "OBSERVED",
         }
 
     # ──────────────────────────────────────────────────────────────────────
@@ -497,7 +503,7 @@ class SocialWhaleProvider:
         return []
 
     # ──────────────────────────────────────────────────────────────────────
-    #  Internal: ApeWisdom fallback
+    #  Internal: ApeWisdom sentiment and fail-closed specialized results
     # ──────────────────────────────────────────────────────────────────────
 
     def _get_apewisdom(self) -> tuple[Any, bool]:
@@ -514,65 +520,28 @@ class SocialWhaleProvider:
             return None, False
 
     def _fallback_result(self, ticker: str, method: str) -> Dict[str, Any]:
+        """Return an explicit unknown result for unavailable specialized data.
+
+        ApeWisdom exposes aggregate retail sentiment. It does not prove whale
+        activity, pump/dump language, or unusual options flow, so it must never
+        be converted into those semantics.
         """
-        Return fallback data when primary Nitter sources are offline.
-
-        Tries ApeWisdom, then returns a clean empty result.
-        """
-        ape, ok = self._get_apewisdom()
-        if ok and ape is not None:
-            try:
-                ape_result = ape.get_sentiment(ticker)
-                mentions = ape_result.get("mentions", 0)
-                if mentions > 0:
-                    raw_score = ape_result.get("sentiment_score", 50)
-                    score = int(raw_score)
-
-                    if method == "whale_signals":
-                        return {
-                            "ticker": ticker,
-                            "whale_score": score,
-                            "mention_count": mentions,
-                            "whale_mentions": mentions,
-                            "top_tweets": [],
-                            "signal": ("WHALE_DETECTED" if score >= 40 else "CLEAN"),
-                            "source": "apewisdom_fallback",
-                            "note": "nitter_offline_fallback_to_apewisdom",
-                        }
-                    if method == "pump_detection":
-                        pump_risk = min(100, score)
-                        return {
-                            "ticker": ticker,
-                            "pump_risk": pump_risk,
-                            "pump_mentions": mentions,
-                            "dump_mentions": 0,
-                            "mention_count": mentions,
-                            "top_tweets": [],
-                            "signal": ("PUMP_RISK" if pump_risk >= 50 else "CLEAN"),
-                            "source": "apewisdom_fallback",
-                            "note": "nitter_offline_fallback_to_apewisdom",
-                        }
-                    if method == "unusual_options_flow":
-                        return {
-                            "ticker": ticker,
-                            "unusual_flow_score": score,
-                            "options_mentions": mentions,
-                            "mention_count": mentions,
-                            "top_tweets": [],
-                            "signal": ("UNUSUAL_FLOW" if score >= 40 else "NORMAL_FLOW"),
-                            "source": "apewisdom_fallback",
-                            "note": "nitter_offline_fallback_to_apewisdom",
-                        }
-            except Exception as exc:
-                logger.debug("[SocialWhale] ApeWisdom fallback failed: %s", exc)
-
-        # No data at all — return clean empty signal
-        return {
+        base: Dict[str, Any] = {
             "ticker": ticker,
             "error": "no_data_all_sources_offline",
-            "signal": "CLEAN",
-            "source": "fallback_empty",
+            "signal": "UNKNOWN",
+            "data_status": "NO_DATA",
+            "source": "no_data",
+            "mention_count": 0,
+            "top_tweets": [],
         }
+        if method == "whale_signals":
+            base.update({"whale_score": None, "whale_mentions": 0})
+        elif method == "pump_detection":
+            base.update({"pump_risk": None, "pump_mentions": 0, "dump_mentions": 0})
+        elif method == "unusual_options_flow":
+            base.update({"unusual_flow_score": None, "options_mentions": 0})
+        return base
 
     # ──────────────────────────────────────────────────────────────────────
     #  Internal: scoring
