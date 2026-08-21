@@ -1263,5 +1263,27 @@
       "Drift: SUPEREZIO_AGENT_MODEL=Q4_K_M no .env enquanto o servido e UD-IQ2_XXS — llama-server ignora o nome pedido, mas config deve ser alinhada",
       "NewsAPI 429 rate-limit nao bloqueante"
     ]
+  },
+  "quality_eval_4_agents_20260821": {
+    "status": "complete",
+    "objective": "4 subagentes em paralelo avaliando a qualidade do sistema vivo e dos scripts de serving.",
+    "agents": [
+      "model-gateway-verifier (3 PASS + 1 parcial: serving saudavel, 19.9 tok/s, 4/4 PT, MAN_AT_WORK coerente)",
+      "code-quality-reviewer (1 CRITICO EAP clobber + 2 ALTO: pin set incompleto, DRIFT-1; dead code; retry loop triplicado; smoke falsos positivos)",
+      "runtime-verifier (runtime saudavel: 0 criticos, sem zumbis; RUNBOOK stale, provider_agent.model stale, gpu.available falso-negativo)",
+      "ai-eval-verifier (BLOCK: 51/52 testes, test_cockpit_summary falha — cockpit reporta Q4_K_M vs contrato UD-IQ2_XXS)"
+    ],
+    "consensus": "DRIFT-1: commit 03d7fd7 incompleto — endpoints.py:468, schema.py:168 e .env:11 ainda apontam Q4_K_M; cockpit/proveniencia anunciam modelo errado. Regressao reproduzida em primeira mao pelo operador (1 failed, 51 passed).",
+    "metrics": {
+      "decode_steady_tok_s": "20.37",
+      "ttft_streaming_s": "0.102",
+      "health_p50_s": "0.212",
+      "chart_data_s": "7.65-9.01 (sem cache)",
+      "vram": "9092/12288 MiB, GPU unica",
+      "critical_errors_48min": 0
+    },
+    "language_drift_explained": "Modelo cru responde PT (4/4); o ingles do smoke vem do system prompt EN em src/core/pipeline/prompts/builder.py:473 e _prompts.py:4,56 — falha de produto, nao do modelo.",
+    "report": "runtime/checkpoints/quality-eval-4-agents-2026-08-21.md",
+    "next_steps": "Corrigir DRIFT-1 (defaults + .env) e re-executar test_api_routes_sync.py; refactor do EAP/pin set/dead code; smoke com assercoes de idioma e proveniencia; doc-sync RUNBOOK; investigar chart-data lento e localhost/::1."
   }
 }
