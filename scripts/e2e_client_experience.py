@@ -15,12 +15,11 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 import time
 from pathlib import Path
 from typing import Any
 
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = ROOT / "output" / "playwright"
@@ -58,10 +57,10 @@ def run_client_e2e() -> dict[str, Any]:
             response = page.goto(BASE_URL, wait_until="domcontentloaded", timeout=25000)
             status_code = response.status if response else 0
             page.wait_for_timeout(2000)
-            
+
             # Dismiss auth modal if opened in non-dev mode
             page.evaluate("() => { if (window.SZ?.auth?.hideModal) window.SZ.auth.hideModal(); }")
-            
+
             ss1 = OUTPUT_DIR / f"01_cockpit_initial_{stamp}.png"
             page.screenshot(path=str(ss1), full_page=True)
             results["screenshots"].append(str(ss1))
@@ -112,7 +111,7 @@ def run_client_e2e() -> dict[str, Any]:
                     return { ok: false, error: e.message };
                 }
             }""")
-            
+
             # Trigger chart load on UI if available
             page.evaluate("""async () => {
                 if (window.SZ && typeof window.SZ.loadChart === 'function') {
@@ -120,11 +119,11 @@ def run_client_e2e() -> dict[str, Any]:
                 }
             }""")
             page.wait_for_timeout(1500)
-            
+
             ss2 = OUTPUT_DIR / f"02_chart_rendered_{stamp}.png"
             page.screenshot(path=str(ss2), full_page=True)
             results["screenshots"].append(str(ss2))
-            
+
             results["steps"]["02_chart_test"] = {
                 "ok": chart_eval.get("ok", False),
                 "data": chart_eval,
@@ -234,7 +233,7 @@ def run_client_e2e() -> dict[str, Any]:
             # Trigger auth modal show
             page.evaluate("() => { if (window.SZ?.auth?.showModal) window.SZ.auth.showModal(); }")
             page.wait_for_timeout(800)
-            
+
             ss4 = OUTPUT_DIR / f"04_auth_modal_{stamp}.png"
             page.screenshot(path=str(ss4), full_page=True)
             results["screenshots"].append(str(ss4))
@@ -262,7 +261,16 @@ def run_client_e2e() -> dict[str, Any]:
 
     results["console_sample"] = console_logs[:20]
     results["success"] = all(
-        step.get("ok", False) for k, step in results["steps"].items() if k in ["01_cockpit_load", "02_chart_test", "03_td_commission_free", "04_bob_chat", "06_auth_modal"]
+        step.get("ok", False)
+        for k, step in results["steps"].items()
+        if k
+        in [
+            "01_cockpit_load",
+            "02_chart_test",
+            "03_td_commission_free",
+            "04_bob_chat",
+            "06_auth_modal",
+        ]
     )
     return results
 
@@ -272,7 +280,7 @@ def main() -> int:
     report_file = OUTPUT_DIR / f"e2e_client_report_{result['timestamp']}.json"
     with open(report_file, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
-    
+
     print("\n" + "=" * 60)
     print(f"E2E CLIENT EXPERIENCE TEST RESULT: {'SUCCESS' if result['success'] else 'PARTIAL'}")
     print(f"Report saved to: {report_file}")

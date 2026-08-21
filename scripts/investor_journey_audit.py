@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -80,7 +79,7 @@ def run_investor_audit() -> dict[str, Any]:
         report["scenarios"]["scenario_a_capital_allocation"] = {
             "prompt": prompt_a,
             "result": chat_state_a,
-            "assessed": True
+            "assessed": True,
         }
 
         # Scenario B: Technical & Asset Analysis on TD.TO
@@ -99,7 +98,7 @@ def run_investor_audit() -> dict[str, Any]:
                     rsi14: data.indicators ? data.indicators.rsi14 : null
                 };
             }""")
-            
+
             # Switch to 1Y timeframe
             page.evaluate("""async () => {
                 if (window.SZ && typeof window.SZ.loadChart === 'function') {
@@ -107,15 +106,15 @@ def run_investor_audit() -> dict[str, Any]:
                 }
             }""")
             page.wait_for_timeout(1500)
-            
+
             ss_scen_b = OUTPUT_DIR / f"03_scenario_b_td_analysis_{stamp}.png"
             page.screenshot(path=str(ss_scen_b), full_page=True)
             report["screenshots"].append(str(ss_scen_b))
-            
+
             report["scenarios"]["scenario_b_asset_analysis"] = {
                 "ticker": "TD.TO",
                 "market_data": chart_data,
-                "assessed": True
+                "assessed": True,
             }
         except Exception as exc:
             report["scenarios"]["scenario_b_asset_analysis"] = {"error": str(exc)}
@@ -133,10 +132,7 @@ def run_investor_audit() -> dict[str, Any]:
                     sample: (data.etfs || []).slice(0, 5)
                 };
             }""")
-            report["scenarios"]["scenario_c_etf_catalog"] = {
-                "etf_data": etf_data,
-                "assessed": True
-            }
+            report["scenarios"]["scenario_c_etf_catalog"] = {"etf_data": etf_data, "assessed": True}
         except Exception as exc:
             report["scenarios"]["scenario_c_etf_catalog"] = {"error": str(exc)}
 
@@ -167,7 +163,7 @@ def run_investor_audit() -> dict[str, Any]:
             }""")
             report["scenarios"]["scenario_d_ticket_gate"] = {
                 "ticket_result": ticket_eval,
-                "assessed": True
+                "assessed": True,
             }
         except Exception as exc:
             report["scenarios"]["scenario_d_ticket_gate"] = {"error": str(exc)}
@@ -180,28 +176,28 @@ def run_investor_audit() -> dict[str, Any]:
         "downside_protection": {
             "score": 9.5,
             "max": 10.0,
-            "reasoning": "Money Gate atua em modo fail-closed, transmissão live desativada por design (BLOCKED_BY_DESIGN), e Bob prioriza 3-6 meses de reserva de emergência antes de alocar em risco."
+            "reasoning": "Money Gate atua em modo fail-closed, transmissão live desativada por design (BLOCKED_BY_DESIGN), e Bob prioriza 3-6 meses de reserva de emergência antes de alocar em risco.",
         },
         "market_data_accuracy": {
             "score": 9.0,
             "max": 10.0,
-            "reasoning": "Cálculo real de indicadores técnicos (SMA20, SMA50, EMA20, Bollinger, VWAP, RSI14, MACD) e 126 candles históricos para TD.TO sem dados sintéticos."
+            "reasoning": "Cálculo real de indicadores técnicos (SMA20, SMA50, EMA20, Bollinger, VWAP, RSI14, MACD) e 126 candles históricos para TD.TO sem dados sintéticos.",
         },
         "etf_universe_efficiency": {
             "score": 9.5,
             "max": 10.0,
-            "reasoning": "108 ETFs commission-free verificados para investidores no TD Direct Investing Canadá, eliminando drag de taxas em DCA."
+            "reasoning": "108 ETFs commission-free verificados para investidores no TD Direct Investing Canadá, eliminando drag de taxas em DCA.",
         },
         "ai_firewall_and_sdca": {
             "score": 9.0,
             "max": 10.0,
-            "reasoning": "SDCA Firewall intercepta e avalia incerteza e utilidade antes de liberar respostas no Copilot, com guardrails transparentes."
+            "reasoning": "SDCA Firewall intercepta e avalia incerteza e utilidade antes de liberar respostas no Copilot, com guardrails transparentes.",
         },
         "overall_investor_rating": {
             "rating": "A (Excelente / Risco Controlado)",
             "score_composite": 9.25,
-            "verdict": "SISTEMA ROBUSTO E PRONTO PARA USO DO INVESTIDOR EM MODO ASSISTIDO / MANUAL"
-        }
+            "verdict": "SISTEMA ROBUSTO E PRONTO PARA USO DO INVESTIDOR EM MODO ASSISTIDO / MANUAL",
+        },
     }
 
     report_path = OUTPUT_DIR / f"investor_audit_report_{stamp}.json"
