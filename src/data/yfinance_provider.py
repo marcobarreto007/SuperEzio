@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import io
 import sys
-from datetime import timezone
+from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from .finnhub_symbols import finnhub_symbol_variants
@@ -54,6 +54,18 @@ _PERIOD_MAP: dict[str, str] = {
     "1Y": "1y",
     "5Y": "5y",
 }
+
+
+def _utc_observed_at(value: Any) -> str:
+    """Return the actual observed instant without relabelling an aware zone."""
+    observed = value.to_pydatetime() if hasattr(value, "to_pydatetime") else value
+    if not isinstance(observed, datetime):
+        raise ValueError("yfinance candle timestamp is not a datetime")
+    if observed.tzinfo is None:
+        observed = observed.replace(tzinfo=timezone.utc)
+    else:
+        observed = observed.astimezone(timezone.utc)
+    return observed.isoformat()
 
 
 class YFinanceProvider:
@@ -148,13 +160,11 @@ class YFinanceProvider:
                 return {"error": "yfinance_no_candles"}
             candles: List[Dict[str, Any]] = []
             for ts, row in hist.iterrows():
+                observed_at = _utc_observed_at(ts)
                 candles.append(
                     {
-                        "datetime": (
-                            ts.to_pydatetime().replace(tzinfo=timezone.utc)
-                            if hasattr(ts, "to_pydatetime")
-                            else str(ts)
-                        ),
+                        "datetime": observed_at,
+                        "observed_at": observed_at,
                         "open": float(row["Open"]),
                         "high": float(row["High"]),
                         "low": float(row["Low"]),

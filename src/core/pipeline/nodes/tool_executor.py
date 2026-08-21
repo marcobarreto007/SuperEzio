@@ -286,31 +286,44 @@ async def _run_penny_momentum_backtest(state: dict, args: dict[str, Any]) -> dic
             tickers,
             str(args.get("timeframe") or "5Y"),
         )
+        missing_tickers = sorted(set(tickers) - {str(key).upper() for key in ohlcv_by_symbol})
+        if missing_tickers:
+            return _penny_backtest_error(
+                state,
+                "missing_ohlcv_for_requested_tickers:" + ",".join(missing_tickers),
+            )
 
     if not ohlcv_by_symbol:
-        content = (
-            "[MATHCORE BACKTEST ERROR]\n"
-            "strategy=penny_momentum_breakout\n"
-            "status=missing_ohlcv\n"
-            "reason=Provide ohlcv_by_symbol, explicit tickers, or run market_scan first."
-        )
-        return {
-            "penny_momentum_backtest": {
-                "error": "missing_ohlcv",
-                "strategy": "penny_momentum_breakout",
-            },
-            "data_context": _append_context(state.get("data_context", ""), content),
-            "errors": state.get("errors", []) + ["penny_momentum_backtest:missing_ohlcv"],
-        }
+        return _penny_backtest_error(state, "missing_ohlcv")
 
-    result = simulate_penny_momentum_backtest(
-        ohlcv_by_symbol,
-        config=_penny_config_from_args(args),
-    )
+    try:
+        result = simulate_penny_momentum_backtest(
+            ohlcv_by_symbol,
+            config=_penny_config_from_args(args),
+        )
+    except ValueError as exc:
+        return _penny_backtest_error(state, str(exc))
     context = _format_penny_backtest_context(result)
     return {
         "penny_momentum_backtest": result,
         "data_context": _append_context(state.get("data_context", ""), context),
+    }
+
+
+def _penny_backtest_error(state: dict, reason: str) -> dict:
+    content = (
+        "[MATHCORE BACKTEST ERROR]\n"
+        "strategy=penny_momentum_breakout\n"
+        f"status={reason}\n"
+        "reason=Historical OHLCV is mandatory and every requested symbol must have valid data."
+    )
+    return {
+        "penny_momentum_backtest": {
+            "error": reason,
+            "strategy": "penny_momentum_breakout",
+        },
+        "data_context": _append_context(state.get("data_context", ""), content),
+        "errors": state.get("errors", []) + [f"penny_momentum_backtest:{reason}"],
     }
 
 
@@ -363,6 +376,8 @@ def _penny_config_from_args(args: dict[str, Any]) -> PennyMomentumConfig:
         "target_weight": float,
         "hold_days": int,
         "stop_loss_pct": float,
+        "commission_bps": float,
+        "slippage_bps": float,
     }
     for key, caster in casts.items():
         if key not in args:
@@ -375,6 +390,8 @@ def _penny_config_from_args(args: dict[str, Any]) -> PennyMomentumConfig:
 
 
 def _format_penny_backtest_context(result: dict[str, Any]) -> str:
+    benchmark = result.get("benchmarks", {}).get("buy_and_hold_equal_weight", {})
+    costs = result.get("costs", {})
     return (
         "[MATHCORE BACKTEST]\n"
         f"strategy={result.get('strategy')}\n"
@@ -384,6 +401,10 @@ def _format_penny_backtest_context(result: dict[str, Any]) -> str:
         f"max_drawdown={result.get('max_drawdown_pct')}%\n"
         f"win_rate={result.get('win_rate_pct')}%\n"
         f"trade_count={result.get('trade_count')}\n"
+        f"buy_hold_return={benchmark.get('total_return')}\n"
+        f"excess_return_vs_buy_hold={result.get('excess_return_vs_buy_and_hold')}\n"
+        f"commission_bps={costs.get('commission_bps')}\n"
+        f"slippage_bps={costs.get('slippage_bps')}\n"
         f"mathcore_verdict={result.get('mathcore_verdict')}"
     )
 

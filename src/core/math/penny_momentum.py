@@ -1,14 +1,9 @@
-"""Penny-stock momentum backtest primitives.
-
-This module is intentionally pure: no model calls, no pipeline state, no I/O.
-The runtime tool can fetch or inject OHLCV data, then this module computes the
-strategy result deterministically.
-"""
+"""Pure, causal penny-stock momentum backtest primitives."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import date, datetime
+from dataclasses import asdict, dataclass
+from datetime import date, datetime, timezone
 from typing import Any, Mapping, Sequence
 
 from .risk import max_drawdown, sharpe_ratio
@@ -29,16 +24,24 @@ class PennyMomentumConfig:
     target_weight: float = 0.10
     hold_days: int = 10
     stop_loss_pct: float = -0.15
+    commission_bps: float = 5.0
+    slippage_bps: float = 10.0
 
 
 @dataclass(frozen=True)
 class Trade:
     symbol: str
+    signal_date: str
+    signal_observed_at: str
     entry_date: str
+    entry_observed_at: str
     exit_date: str
+    exit_observed_at: str
     entry_price: float
     exit_price: float
     qty: float
+    gross_pnl: float
+    fees: float
     pnl: float
     return_pct: float
     exit_reason: str
@@ -49,281 +52,346 @@ def simulate_penny_momentum_backtest(
     ohlcv_by_symbol: Mapping[str, Sequence[Mapping[str, Any]]],
     config: PennyMomentumConfig | None = None,
 ) -> dict[str, Any]:
-    """Run the long-only penny momentum breakout strategy.
-
-    Data format per bar:
-    {"date": "YYYY-MM-DD", "open": float, "high": float, "low": float,
-     "close": float, "volume": float}
-    """
-
+    """Simulate signals at close ``t`` with execution at the next bar open."""
     cfg = config or PennyMomentumConfig()
-    series = {
-        symbol.upper(): _normalize_bars(bars) for symbol, bars in ohlcv_by_symbol.items() if bars
-    }
-    if not series:
-        return _empty_result(cfg, "missing_ohlcv")
+    _validate_config(cfg)
+    if not ohlcv_by_symbol:
+        raise ValueError("missing_ohlcv")
+
+    series: dict[str, list[dict[str, Any]]] = {}
+    for raw_symbol, raw_bars in ohlcv_by_symbol.items():
+        symbol = str(raw_symbol).strip().upper()
+        if not symbol or not raw_bars:
+            raise ValueError(f"missing_ohlcv:{symbol or '<blank_symbol>'}")
+        bars = _normalize_bars(raw_bars)
+        if not bars:
+            raise ValueError(f"invalid_ohlcv:{symbol}")
+        series[symbol] = bars
 
     calendar = sorted({bar["date"] for bars in series.values() for bar in bars})
-    if not calendar:
-        return _empty_result(cfg, "missing_calendar")
-
     by_date = {
         symbol: {bar["date"]: idx for idx, bar in enumerate(bars)}
         for symbol, bars in series.items()
     }
     cash = float(cfg.starting_capital)
     positions: dict[str, dict[str, Any]] = {}
+    pending: dict[str, dict[str, Any]] = {}
     trades: list[Trade] = []
-    equity_curve: list[float] = []
+    equity_curve = [cash]
 
     for current_date in calendar:
-        # Mark to market before exits/entries for a stable daily equity curve.
-        equity = cash + sum(
-            pos["qty"] * _close_on_or_before(series[symbol], by_date[symbol], current_date)
-            for symbol, pos in positions.items()
-        )
-        equity_curve.append(equity)
-
-        # Exits first.
         for symbol in list(positions):
-            idx = by_date.get(symbol, {}).get(current_date)
+            idx = by_date[symbol].get(current_date)
             if idx is None:
                 continue
-            bar = series[symbol][idx]
-            pos = positions[symbol]
+            bar, pos = series[symbol][idx], positions[symbol]
             held = int(pos["held_days"]) + 1
-            stop_price = pos["entry_price"] * (1.0 + cfg.stop_loss_pct)
-            exit_reason = ""
-            exit_price = 0.0
-            if bar["low"] <= stop_price:
-                exit_reason = "stop_loss"
-                exit_price = stop_price
-            elif held >= cfg.hold_days:
-                exit_reason = "time_exit"
-                exit_price = bar["close"]
-
-            if exit_reason:
-                qty = pos["qty"]
-                proceeds = qty * exit_price
-                cash += proceeds
-                pnl = proceeds - pos["cost"]
-                trades.append(
-                    Trade(
-                        symbol=symbol,
-                        entry_date=pos["entry_date"],
-                        exit_date=_date_to_str(current_date),
-                        entry_price=round(pos["entry_price"], 4),
-                        exit_price=round(exit_price, 4),
-                        qty=round(qty, 6),
-                        pnl=round(pnl, 4),
-                        return_pct=round((exit_price - pos["entry_price"]) / pos["entry_price"], 6),
-                        exit_reason=exit_reason,
-                        hold_days=held,
-                    )
+            stop = pos["entry_price"] * (1.0 + cfg.stop_loss_pct)
+            if bar["low"] <= stop:
+                cash += _exit(
+                    symbol, pos, bar, min(bar["open"], stop), "stop_loss", held, cfg, trades
                 )
+                del positions[symbol]
+            elif held >= cfg.hold_days:
+                cash += _exit(symbol, pos, bar, bar["open"], "time_exit", held, cfg, trades)
                 del positions[symbol]
             else:
                 pos["held_days"] = held
 
-        # Entries after exits, using close-to-close simulation.
-        slots = cfg.max_positions - len(positions)
-        if slots <= 0:
-            continue
-        candidates = []
-        for symbol, bars in series.items():
-            if symbol in positions:
+        eligible = [
+            (symbol, signal)
+            for symbol, signal in pending.items()
+            if symbol not in positions
+            and current_date > signal["signal_date"]
+            and current_date in by_date[symbol]
+        ]
+        eligible.sort(key=lambda item: item[1]["rank"], reverse=True)
+        slots = max(0, cfg.max_positions - len(positions))
+        for symbol, signal in eligible[:slots]:
+            bar = series[symbol][by_date[symbol][current_date]]
+            equity_at_open = cash + sum(
+                pos["qty"] * _known_open_price(series[s], by_date[s], current_date)
+                for s, pos in positions.items()
+            )
+            allocation = min(cash, equity_at_open * cfg.target_weight)
+            entry_price = bar["open"] * (1.0 + cfg.slippage_bps / 10_000.0)
+            fee_rate = cfg.commission_bps / 10_000.0
+            qty = allocation / (entry_price * (1.0 + fee_rate)) if entry_price > 0 else 0.0
+            if allocation <= 0 or qty <= 0:
                 continue
-            idx = by_date.get(symbol, {}).get(current_date)
+            notional = qty * entry_price
+            entry_fee = notional * fee_rate
+            cost = notional + entry_fee
+            cash -= cost
+            positions[symbol] = {
+                "signal_date": signal["signal_date"],
+                "signal_observed_at": signal["signal_observed_at"],
+                "entry_date": current_date,
+                "entry_observed_at": bar["observed_at"],
+                "entry_price": entry_price,
+                "entry_fee": entry_fee,
+                "qty": qty,
+                "cost": cost,
+                "held_days": 0,
+            }
+            del pending[symbol]
+
+        # A next-open order is valid for that open only. Do not carry stale
+        # signals forward merely because the portfolio had no free slot.
+        for symbol, _signal in eligible[slots:]:
+            del pending[symbol]
+
+        # Only now, after the close, calculate signals for a future open.
+        for symbol, bars in series.items():
+            if symbol in positions or symbol in pending:
+                continue
+            idx = by_date[symbol].get(current_date)
             if idx is None:
                 continue
             signal = _entry_signal(bars, idx, cfg)
             if signal["entry"]:
-                candidates.append((symbol, signal["rank"]))
-        candidates.sort(key=lambda item: item[1], reverse=True)
+                pending[symbol] = {
+                    "signal_date": current_date,
+                    "signal_observed_at": bars[idx]["observed_at"],
+                    "rank": signal["rank"],
+                }
 
-        for symbol, _rank in candidates[:slots]:
-            idx = by_date[symbol][current_date]
-            close = series[symbol][idx]["close"]
-            equity = cash + sum(
+        equity_curve.append(
+            cash
+            + sum(
                 pos["qty"] * _close_on_or_before(series[s], by_date[s], current_date)
                 for s, pos in positions.items()
             )
-            allocation = min(cash, equity * cfg.target_weight)
-            if allocation <= 0 or close <= 0:
-                continue
-            qty = allocation / close
-            cash -= allocation
-            positions[symbol] = {
-                "entry_date": _date_to_str(current_date),
-                "entry_price": close,
-                "qty": qty,
-                "cost": allocation,
-                "held_days": 0,
-            }
+        )
 
-    # Liquidate open positions at the last available close.
-    final_date = calendar[-1]
     for symbol in list(positions):
-        pos = positions[symbol]
-        exit_price = _close_on_or_before(series[symbol], by_date[symbol], final_date)
-        proceeds = pos["qty"] * exit_price
-        cash += proceeds
-        pnl = proceeds - pos["cost"]
-        trades.append(
-            Trade(
-                symbol=symbol,
-                entry_date=pos["entry_date"],
-                exit_date=_date_to_str(final_date),
-                entry_price=round(pos["entry_price"], 4),
-                exit_price=round(exit_price, 4),
-                qty=round(pos["qty"], 6),
-                pnl=round(pnl, 4),
-                return_pct=round((exit_price - pos["entry_price"]) / pos["entry_price"], 6),
-                exit_reason="final_liquidation",
-                hold_days=int(pos["held_days"]),
-            )
+        pos, bar = positions[symbol], series[symbol][-1]
+        cash += _exit(
+            symbol, pos, bar, bar["close"], "final_liquidation", int(pos["held_days"]), cfg, trades
         )
         del positions[symbol]
 
     final_equity = cash
     equity_curve.append(final_equity)
-    daily_returns = [
+    returns = [
         (equity_curve[i] - equity_curve[i - 1]) / equity_curve[i - 1]
         for i in range(1, len(equity_curve))
         if equity_curve[i - 1] > 0
     ]
-    wins = [t for t in trades if t.pnl > 0]
-    losses = [t for t in trades if t.pnl <= 0]
+    wins, losses = [t for t in trades if t.pnl > 0], [t for t in trades if t.pnl <= 0]
     total_return = (final_equity - cfg.starting_capital) / cfg.starting_capital
     drawdown = max_drawdown(equity_curve)
+    buy_hold = _buy_hold(series, cfg)
     result = {
         "strategy": "penny_momentum_breakout",
+        "execution_rule": "signal_on_close_t_execute_next_observed_open",
         "starting_capital": round(cfg.starting_capital, 2),
         "final_equity": round(final_equity, 2),
         "total_return": round(total_return, 6),
         "total_return_pct": round(total_return * 100.0, 2),
-        "sharpe": round(sharpe_ratio(daily_returns), 4),
+        "sharpe": round(sharpe_ratio(returns), 4),
         "max_drawdown": round(drawdown, 6),
         "max_drawdown_pct": round(drawdown * 100.0, 2),
         "win_rate": round(len(wins) / len(trades), 4) if trades else 0.0,
-        "win_rate_pct": round((len(wins) / len(trades)) * 100.0, 2) if trades else 0.0,
+        "win_rate_pct": round(len(wins) / len(trades) * 100.0, 2) if trades else 0.0,
         "trade_count": len(trades),
         "avg_win_pct": round(_avg([t.return_pct for t in wins]) * 100.0, 2),
         "avg_loss_pct": round(_avg([t.return_pct for t in losses]) * 100.0, 2),
+        "costs": {
+            "commission_bps": cfg.commission_bps,
+            "slippage_bps": cfg.slippage_bps,
+            "total_fees": round(sum(t.fees for t in trades), 4),
+        },
+        "benchmarks": {
+            "cash": {"final_equity": round(cfg.starting_capital, 2), "total_return": 0.0},
+            "buy_and_hold_equal_weight": buy_hold,
+        },
+        "excess_return_vs_buy_and_hold": round(total_return - buy_hold["total_return"], 6),
+        "data_window": {
+            s: {
+                "first_observed_at": bars[0]["observed_at"],
+                "last_observed_at": bars[-1]["observed_at"],
+                "bar_count": len(bars),
+            }
+            for s, bars in series.items()
+        },
         "verdict": _verdict(total_return, drawdown, trades),
-        "trades": [t.__dict__ for t in trades],
-        "equity_curve": [round(v, 2) for v in equity_curve],
+        "trades": [asdict(t) for t in trades],
+        "equity_curve": [round(value, 2) for value in equity_curve],
     }
     result["mathcore_verdict"] = _mathcore_verdict(result)
     return result
+
+
+def _exit(
+    symbol: str,
+    pos: Mapping[str, Any],
+    bar: Mapping[str, Any],
+    raw_price: float,
+    reason: str,
+    held: int,
+    cfg: PennyMomentumConfig,
+    trades: list[Trade],
+) -> float:
+    price = raw_price * (1.0 - cfg.slippage_bps / 10_000.0)
+    gross_proceeds = pos["qty"] * price
+    exit_fee = gross_proceeds * cfg.commission_bps / 10_000.0
+    proceeds = gross_proceeds - exit_fee
+    pnl = proceeds - pos["cost"]
+    trades.append(
+        Trade(
+            symbol=symbol,
+            signal_date=pos["signal_date"].isoformat(),
+            signal_observed_at=pos["signal_observed_at"],
+            entry_date=pos["entry_date"].isoformat(),
+            entry_observed_at=pos["entry_observed_at"],
+            exit_date=bar["date"].isoformat(),
+            exit_observed_at=bar["observed_at"],
+            entry_price=round(pos["entry_price"], 4),
+            exit_price=round(price, 4),
+            qty=round(pos["qty"], 6),
+            gross_pnl=round(pos["qty"] * (price - pos["entry_price"]), 4),
+            fees=round(pos["entry_fee"] + exit_fee, 4),
+            pnl=round(pnl, 4),
+            return_pct=round(pnl / pos["cost"], 6),
+            exit_reason=reason,
+            hold_days=held,
+        )
+    )
+    return proceeds
+
+
+def _buy_hold(
+    series: Mapping[str, Sequence[Mapping[str, Any]]], cfg: PennyMomentumConfig
+) -> dict[str, Any]:
+    allocation = cfg.starting_capital / len(series)
+    fee_rate = cfg.commission_bps / 10_000.0
+    final_equity = 0.0
+    for bars in series.values():
+        entry = float(bars[0]["open"]) * (1.0 + cfg.slippage_bps / 10_000.0)
+        qty = allocation / (entry * (1.0 + fee_rate))
+        exit_price = float(bars[-1]["close"]) * (1.0 - cfg.slippage_bps / 10_000.0)
+        final_equity += qty * exit_price * (1.0 - fee_rate)
+    total_return = (final_equity - cfg.starting_capital) / cfg.starting_capital
+    return {"final_equity": round(final_equity, 2), "total_return": round(total_return, 6)}
 
 
 def _entry_signal(
-    bars: Sequence[dict[str, Any]],
-    idx: int,
-    cfg: PennyMomentumConfig,
+    bars: Sequence[dict[str, Any]], idx: int, cfg: PennyMomentumConfig
 ) -> dict[str, Any]:
-    min_history = max(
-        cfg.avg_dollar_volume_period,
-        cfg.volume_slow_period,
-        cfg.breakout_lookback,
-    )
-    if idx < min_history:
+    minimum = max(cfg.avg_dollar_volume_period, cfg.volume_slow_period, cfg.breakout_lookback)
+    if idx < minimum:
         return {"entry": False, "reason": "insufficient_history", "rank": 0.0}
-    bar = bars[idx]
-    close = bar["close"]
-    if close < cfg.min_price or close > cfg.max_price:
+    close = bars[idx]["close"]
+    if not cfg.min_price <= close <= cfg.max_price:
         return {"entry": False, "reason": "price_filter", "rank": 0.0}
-
-    slow_window = bars[idx - cfg.volume_slow_period + 1 : idx + 1]
-    fast_window = bars[idx - cfg.volume_fast_period + 1 : idx + 1]
-    dollar_window = bars[idx - cfg.avg_dollar_volume_period + 1 : idx + 1]
-    avg_dollar_volume = _avg([b["close"] * b["volume"] for b in dollar_window])
-    if avg_dollar_volume < cfg.min_avg_dollar_volume:
+    slow = bars[idx - cfg.volume_slow_period + 1 : idx + 1]
+    fast = bars[idx - cfg.volume_fast_period + 1 : idx + 1]
+    liquid = bars[idx - cfg.avg_dollar_volume_period + 1 : idx + 1]
+    if _avg([b["close"] * b["volume"] for b in liquid]) < cfg.min_avg_dollar_volume:
         return {"entry": False, "reason": "liquidity_filter", "rank": 0.0}
-
-    fast_volume = _avg([b["volume"] for b in fast_window])
-    slow_volume = _avg([b["volume"] for b in slow_window])
+    fast_volume, slow_volume = _avg([b["volume"] for b in fast]), _avg([b["volume"] for b in slow])
     if slow_volume <= 0 or fast_volume <= cfg.volume_spike_ratio * slow_volume:
         return {"entry": False, "reason": "volume_filter", "rank": 0.0}
-
-    breakout_window = bars[idx - cfg.breakout_lookback : idx]
-    previous_high = max(b["close"] for b in breakout_window)
+    previous_high = max(b["close"] for b in bars[idx - cfg.breakout_lookback : idx])
     if close <= previous_high:
         return {"entry": False, "reason": "breakout_filter", "rank": 0.0}
+    return {
+        "entry": True,
+        "reason": "momentum_breakout",
+        "rank": fast_volume / slow_volume * close / previous_high,
+    }
 
-    rank = (fast_volume / slow_volume) * (close / previous_high)
-    return {"entry": True, "reason": "momentum_breakout", "rank": rank}
+
+def _normalize_bars(raw_bars: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    bars = []
+    for raw in raw_bars:
+        value = raw.get("datetime")
+        if value is None:
+            value = raw.get("date") or raw.get("time") or raw.get("timestamp")
+        observed = _parse_observed_at(value)
+        bar = {
+            "date": observed.date(),
+            "observed_at": observed.isoformat(),
+            "open": _required_float(raw.get("open"), "open"),
+            "high": _required_float(raw.get("high"), "high"),
+            "low": _required_float(raw.get("low"), "low"),
+            "close": _required_float(
+                raw.get("close") if raw.get("close") is not None else raw.get("price"), "close"
+            ),
+            "volume": _required_float(raw.get("volume"), "volume"),
+        }
+        if min(bar["open"], bar["high"], bar["low"], bar["close"]) <= 0 or bar["volume"] < 0:
+            raise ValueError("invalid_ohlcv_value")
+        bars.append(bar)
+    bars.sort(key=lambda item: item["observed_at"])
+    if len({bar["date"] for bar in bars}) != len(bars):
+        raise ValueError("duplicate_daily_candle")
+    return bars
 
 
-def _normalize_bars(bars: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
-    normalized = []
-    for raw in bars:
-        close = _float(raw.get("close") or raw.get("price"))
-        high = _float(raw.get("high"), close)
-        low = _float(raw.get("low"), close)
-        volume = _float(raw.get("volume"))
-        if close <= 0 or volume < 0:
-            continue
-        normalized.append(
-            {
-                "date": _parse_date(raw.get("date") or raw.get("time") or raw.get("timestamp")),
-                "open": _float(raw.get("open"), close),
-                "high": high,
-                "low": low,
-                "close": close,
-                "volume": volume,
-            }
-        )
-    normalized.sort(key=lambda item: item["date"])
-    return normalized
+def _known_open_price(
+    bars: Sequence[dict[str, Any]], by_date: Mapping[date, int], current: date
+) -> float:
+    idx = by_date.get(current)
+    if idx is None:
+        return _close_on_or_before(bars, by_date, current)
+    return bars[idx - 1]["close"] if idx > 0 else bars[idx]["open"]
 
 
 def _close_on_or_before(
-    bars: Sequence[dict[str, Any]],
-    by_date: Mapping[date, int],
-    current_date: date,
+    bars: Sequence[dict[str, Any]], by_date: Mapping[date, int], current: date
 ) -> float:
-    idx = by_date.get(current_date)
+    idx = by_date.get(current)
     if idx is not None:
         return bars[idx]["close"]
-    previous = [bar for bar in bars if bar["date"] <= current_date]
-    return previous[-1]["close"] if previous else bars[0]["close"]
+    previous = [bar for bar in bars if bar["date"] <= current]
+    return previous[-1]["close"] if previous else bars[0]["open"]
 
 
-def _empty_result(cfg: PennyMomentumConfig, reason: str) -> dict[str, Any]:
-    result = {
-        "strategy": "penny_momentum_breakout",
-        "starting_capital": round(cfg.starting_capital, 2),
-        "final_equity": round(cfg.starting_capital, 2),
-        "total_return": 0.0,
-        "total_return_pct": 0.0,
-        "sharpe": 0.0,
-        "max_drawdown": 0.0,
-        "max_drawdown_pct": 0.0,
-        "win_rate": 0.0,
-        "win_rate_pct": 0.0,
-        "trade_count": 0,
-        "avg_win_pct": 0.0,
-        "avg_loss_pct": 0.0,
-        "verdict": "NO_DATA",
-        "reason": reason,
-        "trades": [],
-        "equity_curve": [round(cfg.starting_capital, 2)],
-    }
-    result["mathcore_verdict"] = _mathcore_verdict(result)
-    return result
+def _validate_config(cfg: PennyMomentumConfig) -> None:
+    if cfg.starting_capital <= 0:
+        raise ValueError("starting_capital_must_be_positive")
+    if cfg.max_positions <= 0 or not 0 < cfg.target_weight <= 1:
+        raise ValueError("invalid_position_limits")
+    if cfg.hold_days <= 0:
+        raise ValueError("hold_days_must_be_positive")
+    if cfg.commission_bps < 0 or cfg.slippage_bps < 0:
+        raise ValueError("costs_must_be_non_negative")
+
+
+def _required_float(value: Any, field: str) -> float:
+    if value is None:
+        raise ValueError(f"missing_{field}")
+    try:
+        return float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"invalid_{field}") from exc
+
+
+def _parse_observed_at(value: Any) -> datetime:
+    if isinstance(value, datetime):
+        observed = value
+    elif isinstance(value, date):
+        observed = datetime.combine(value, datetime.min.time())
+    elif isinstance(value, (int, float)):
+        observed = datetime.fromtimestamp(float(value), tz=timezone.utc)
+    elif value is None:
+        raise ValueError("bar_datetime_is_required")
+    else:
+        try:
+            observed = datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("invalid_bar_datetime") from exc
+    return observed.astimezone(timezone.utc) if observed.tzinfo is not None else observed
 
 
 def _mathcore_verdict(result: Mapping[str, Any]) -> str:
     return (
         "[mathcore/penny_momentum] "
-        f"verdict={result.get('verdict')} "
-        f"total_return={result.get('total_return_pct')}% "
-        f"sharpe={result.get('sharpe')} "
-        f"max_drawdown={result.get('max_drawdown_pct')}% "
-        f"win_rate={result.get('win_rate_pct')}% "
-        f"trades={result.get('trade_count')}"
+        f"verdict={result.get('verdict')} total_return={result.get('total_return_pct')}% "
+        f"sharpe={result.get('sharpe')} max_drawdown={result.get('max_drawdown_pct')}% "
+        f"win_rate={result.get('win_rate_pct')}% trades={result.get('trade_count')}"
     )
 
 
@@ -334,34 +402,8 @@ def _verdict(total_return: float, drawdown: float, trades: Sequence[Trade]) -> s
         return "REJECT_DRAWDOWN"
     if total_return <= -0.10:
         return "REJECT_NEGATIVE_EDGE"
-    if total_return > 0.10 and drawdown > -0.25:
-        return "PASS_EXPERIMENTAL"
-    return "WATCH_ONLY"
+    return "PASS_EXPERIMENTAL" if total_return > 0.10 and drawdown > -0.25 else "WATCH_ONLY"
 
 
 def _avg(values: Sequence[float]) -> float:
     return sum(values) / len(values) if values else 0.0
-
-
-def _float(value: Any, default: float = 0.0) -> float:
-    try:
-        if value is None:
-            return float(default)
-        return float(value)
-    except (TypeError, ValueError):
-        return float(default)
-
-
-def _parse_date(value: Any) -> date:
-    if isinstance(value, datetime):
-        return value.date()
-    if isinstance(value, date):
-        return value
-    if value is None:
-        raise ValueError("bar date is required")
-    text = str(value).replace("Z", "+00:00")
-    return datetime.fromisoformat(text[:10]).date()
-
-
-def _date_to_str(value: date) -> str:
-    return value.isoformat()

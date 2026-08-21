@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
-from src.core.math.penny_momentum import simulate_penny_momentum_backtest
+from src.core.math.penny_momentum import PennyMomentumConfig, simulate_penny_momentum_backtest
 from src.core.pipeline.contracts import AgentToolCall
 from src.core.pipeline.nodes.tool_executor import node_tool_executor
+from src.data.yfinance_provider import _utc_observed_at
 
 
 def _bars(
@@ -27,7 +28,7 @@ def _bars(
         if i == 25:
             close = price + 0.85 if breakout else price + 0.05
         if i > 25:
-            close = price + 1.05
+            close = price + 1.05 + (i - 26) * 0.01
         low = close
         if stop and i == 27:
             low = (price + 0.85) * 0.80
@@ -165,3 +166,93 @@ async def test_tool_executor_missing_data_feeds_error_context(monkeypatch):
     assert result["executed_tools"] == ["penny_momentum_backtest"]
     assert "missing_ohlcv" in result["data_context"]
     assert "penny_momentum_backtest:missing_ohlcv" in result["errors"]
+
+
+def test_yfinance_datetime_payload_is_accepted_and_observation_is_preserved():
+    bars = _bars()
+    for index, bar in enumerate(bars):
+        bar["datetime"] = datetime(2026, 1, 1, 14, 30, tzinfo=timezone.utc) + timedelta(days=index)
+        del bar["date"]
+
+    result = simulate_penny_momentum_backtest({"REAL": bars})
+
+    assert result["data_window"]["REAL"]["first_observed_at"] == "2026-01-01T14:30:00+00:00"
+    assert result["trades"][0]["signal_observed_at"] == "2026-01-26T14:30:00+00:00"
+    assert result["trades"][0]["entry_observed_at"] == "2026-01-27T14:30:00+00:00"
+
+
+def test_yfinance_timestamp_converts_zone_without_relabelling_clock():
+    eastern = timezone(-timedelta(hours=5))
+
+    assert _utc_observed_at(datetime(2026, 1, 5, 9, 30, tzinfo=eastern)) == (
+        "2026-01-05T14:30:00+00:00"
+    )
+
+
+def test_signal_at_close_executes_only_at_next_open():
+    bars = _bars()
+    signal_close = bars[25]["close"]
+    bars[26]["open"] = 4.25
+    bars[26]["high"] = 4.30
+    bars[26]["low"] = 4.20
+    bars[26]["close"] = 4.25
+    cfg = PennyMomentumConfig(commission_bps=0.0, slippage_bps=0.0)
+
+    result = simulate_penny_momentum_backtest({"CAUSAL": bars}, cfg)
+    trade = result["trades"][0]
+
+    assert trade["signal_date"] == "2026-01-26"
+    assert trade["entry_date"] == "2026-01-27"
+    assert trade["entry_price"] == 4.25
+    assert trade["entry_price"] != signal_close
+    assert result["execution_rule"] == "signal_on_close_t_execute_next_observed_open"
+
+
+def test_fees_slippage_and_benchmarks_are_reported_and_reduce_equity():
+    no_cost = simulate_penny_momentum_backtest(
+        {"GOOD": _bars()}, PennyMomentumConfig(commission_bps=0.0, slippage_bps=0.0)
+    )
+    with_cost = simulate_penny_momentum_backtest(
+        {"GOOD": _bars()}, PennyMomentumConfig(commission_bps=25.0, slippage_bps=50.0)
+    )
+
+    assert with_cost["final_equity"] < no_cost["final_equity"]
+    assert with_cost["costs"]["total_fees"] > 0
+    assert with_cost["benchmarks"]["cash"]["total_return"] == 0.0
+    assert "total_return" in with_cost["benchmarks"]["buy_and_hold_equal_weight"]
+    assert "excess_return_vs_buy_and_hold" in with_cost
+
+
+@pytest.mark.parametrize(
+    "payload, reason",
+    [({}, "missing_ohlcv"), ({"EMPTY": []}, "missing_ohlcv:EMPTY")],
+)
+def test_absent_market_data_fails_explicitly(payload, reason):
+    with pytest.raises(ValueError, match=reason):
+        simulate_penny_momentum_backtest(payload)
+
+
+@pytest.mark.asyncio
+async def test_tool_executor_rejects_partial_requested_universe(monkeypatch):
+    monkeypatch.setattr(
+        "src.core.pipeline.nodes.tool_executor.get_stream_writer", lambda: lambda _event: None
+    )
+    monkeypatch.setattr(
+        "src.core.pipeline.nodes.tool_executor._fetch_backtest_ohlcv",
+        lambda tickers, timeframe: {"GOOD": _bars()},
+    )
+    state = {
+        "agent_tool_call": {
+            "tool": "penny_momentum_backtest",
+            "args": {"tickers": ["GOOD", "MISSING"]},
+        },
+        "executed_tools": [],
+        "executed_tool_counts": {},
+        "errors": [],
+    }
+
+    result = await node_tool_executor(state, gateway=None, config=None)
+
+    assert result["penny_momentum_backtest"]["error"] == (
+        "missing_ohlcv_for_requested_tickers:MISSING"
+    )
