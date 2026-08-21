@@ -1,0 +1,425 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.9, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\marco\Desktop\SuperEzio
+configfile: pytest.ini
+plugins: anyio-4.14.2, hypothesis-6.157.0, langsmith-0.10.6, asyncio-1.4.0, cov-7.1.0, timeout-2.4.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collected 1994 items
+
+tests\body\test_dna.py ............                                      [  0%]
+tests\body\test_emotion.py ...........                                   [  1%]
+tests\body\test_event_bus.py ........                                    [  1%]
+tests\body\test_heartbeat.py ................                            [  2%]
+tests\body\test_immune.py ........                                       [  2%]
+tests\body\test_memory_lattice.py ...........                            [  3%]
+tests\contracts\test_contract_a2a.py .............                       [  3%]
+tests\contracts\test_contract_agent.py ................................. [  5%]
+........................                                                 [  6%]
+tests\contracts\test_contract_aux_modules.py ........................... [  8%]
+..                                                                       [  8%]
+tests\contracts\test_contract_collector.py .......                       [  8%]
+tests\contracts\test_contract_complex_finance.py ....................... [  9%]
+........................................s..                              [ 11%]
+tests\contracts\test_contract_config.py ...............                  [ 12%]
+tests\contracts\test_contract_crisis.py ..........................       [ 13%]
+tests\contracts\test_contract_endpoints.py ...........                   [ 14%]
+tests\contracts\test_contract_experts.py .........                       [ 14%]
+tests\contracts\test_contract_explanation.py .........                   [ 15%]
+tests\contracts\test_contract_f51_engine.py ............................ [ 16%]
+..............                                                           [ 17%]
+tests\contracts\test_contract_guardrails.py ..............               [ 18%]
+tests\contracts\test_contract_investor.py .........                      [ 18%]
+tests\contracts\test_contract_main.py ........                           [ 19%]
+tests\contracts\test_contract_model_serving.py ......................... [ 20%]
+.                                                                        [ 20%]
+tests\contracts\test_contract_neural.py .......                          [ 20%]
+tests\contracts\test_contract_orchestrator.py .................          [ 21%]
+tests\contracts\test_contract_pipeline.py ...............                [ 22%]
+tests\contracts\test_contract_rag.py .........                           [ 22%]
+tests\contracts\test_contract_runtime_official.py ......s.....           [ 23%]
+tests\contracts\test_contract_sdca.py ...........                        [ 23%]
+tests\contracts\test_mangala_tracker.py ...................              [ 24%]
+tests\contracts\test_trading_losses.py .........................         [ 26%]
+tests\e2e\test_browser_full_flow.py s                                    [ 26%]
+tests\stress\test_concurrency.py .......                                 [ 26%]
+tests\stress\test_stability.py ......                                    [ 26%]
+tests\test_agent_market_scan_loop.py ..........                          [ 27%]
+tests\test_akshare_provider.py ........                                  [ 27%]
+tests\test_api_routes_sync.py .......................................... [ 29%]
+..........                                                               [ 30%]
+tests\test_atomic_storage.py ..                                          [ 30%]
+tests\test_auth.py .....................                                 [ 31%]
+tests\test_auth_bootstrap.py ...                                         [ 31%]
+tests\test_auto_full_analysis.py ..................                      [ 32%]
+tests\test_bob_body_health.py .                                          [ 32%]
+tests\test_bob_sovereign.py ........                                     [ 33%]
+tests\test_broker_readiness_probe.py ....                                [ 33%]
+tests\test_canada_money_gate.py ..............                           [ 33%]
+tests\test_ceo_fallback.py .....                                         [ 34%]
+tests\test_chart_data_times.py ..                                        [ 34%]
+tests\test_check_agents.py .......                                       [ 34%]
+tests\test_circuit_breaker.py .....                                      [ 34%]
+tests\test_collect_experts_shim.py .....                                 [ 35%]
+tests\test_components_crisis.py .........................                [ 36%]
+tests\test_components_data.py ............................               [ 37%]
+tests\test_components_f51.py .............................               [ 39%]
+tests\test_components_pennylab.py ................                       [ 40%]
+tests\test_conversation_memory.py ........                               [ 40%]
+tests\test_crisis.py ................................................... [ 43%]
+..................                                                       [ 43%]
+tests\test_custom_tools.py ..........................                    [ 45%]
+tests\test_data_hub_routing.py .........                                 [ 45%]
+tests\test_datahub_health_probe.py ..                                    [ 45%]
+tests\test_decision_trace_guard.py ..                                    [ 45%]
+tests\test_decisive_trade_order.py ........................              [ 47%]
+tests\test_docker_zero_cloud_contract.py ....                            [ 47%]
+tests\test_e2e_fiducial.py .                                             [ 47%]
+tests\test_evidence_mode.py ...                                          [ 47%]
+tests\test_execution_policy.py ..                                        [ 47%]
+tests\test_expert_dialogue.py ......                                     [ 47%]
+tests\test_f51_engine.py ...............                                 [ 48%]
+tests\test_f51_evidence_integrity.py ........                            [ 49%]
+tests\test_f51_formulas.py ..........................                    [ 50%]
+tests\test_f51_trade_gate.py .................................           [ 52%]
+tests\test_feedback_loop.py ....                                         [ 52%]
+tests\test_finnhub_provider.py ...............                           [ 52%]
+tests\test_finnhub_symbols.py ...                                        [ 53%]
+tests\test_fraud_guard_live.py .......                                   [ 53%]
+tests\test_gateway.py .............................................      [ 55%]
+tests\test_generator.py ..............................                   [ 57%]
+tests\test_graph_memory_fase4.py ......................                  [ 58%]
+tests\test_guardrail_hub.py ..                                           [ 58%]
+tests\test_health_provider_topology.py ....                              [ 58%]
+tests\test_hybrid_memory_fase2.py ................                       [ 59%]
+tests\test_integration_runtime.py sssss.ss                               [ 59%]
+tests\test_investment_answer_quality.py .............                    [ 60%]
+tests\test_investment_quality_evaluator.py ....                          [ 60%]
+tests\test_investment_test_matrix.py ..                                  [ 60%]
+tests\test_investor_portfolio_allocator.py ........                      [ 61%]
+tests\test_mangala.py ..............................................     [ 63%]
+tests\test_manual_trade_workflow.py .....                                [ 63%]
+tests\test_market_scan_candidate_gate.py ............................... [ 65%]
+....                                                                     [ 65%]
+tests\test_market_scanner.py ....                                        [ 65%]
+tests\test_math.py .........................................             [ 67%]
+tests\test_math_hub.py .......                                           [ 68%]
+tests\test_math_hub_cache_fix.py ...                                     [ 68%]
+tests\test_memory_session_filter.py ......................               [ 69%]
+tests\test_ml_quality_guards.py .....                                    [ 69%]
+tests\test_model_sanitizer.py ..                                         [ 69%]
+tests\test_neural_decision.py ....................                       [ 70%]
+tests\test_neural_decision_truth.py ...                                  [ 70%]
+tests\test_neural_execution_gate.py ..............                       [ 71%]
+tests\test_no_empty_response_and_trace.py ....                           [ 71%]
+tests\test_outcome_learning.py ...............                           [ 72%]
+tests\test_paper_journal.py ..................                           [ 73%]
+tests\test_penny_momentum_backtest.py ...................                [ 74%]
+tests\test_pennylab.py ................................................. [ 76%]
+.......                                                                  [ 77%]
+tests\test_pipeline_integration.py ..................................... [ 79%]
+...............................                                          [ 80%]
+tests\test_pipeline_smoke.py ...........                                 [ 81%]
+tests\test_portfolio.py ........                                         [ 81%]
+tests\test_property_f51.py ..............                                [ 82%]
+tests\test_quality_probe.py ................................             [ 83%]
+tests\test_quarantine_paper_journal.py ..                                [ 83%]
+tests\test_quarantine_test_traces.py .                                   [ 84%]
+tests\test_questrade_readiness_probe.py .                                [ 84%]
+tests\test_questrade_readonly.py ..                                      [ 84%]
+tests\test_rag_safe_persistence.py ..                                    [ 84%]
+tests\test_release_package.py .                                          [ 84%]
+tests\test_replay_td_ticket_dead_letter.py .                             [ 84%]
+tests\test_reranker_fase3.py ...............                             [ 85%]
+tests\test_runtime_bob_fixes.py ........                                 [ 85%]
+tests\test_runtime_smoke.py ....................                         [ 86%]
+tests\test_sdca_lite.py ..............                                   [ 87%]
+tests\test_sentiment_curator.py ....                                     [ 87%]
+tests\test_sentiment_endpoints.py ...                                    [ 87%]
+tests\test_sentiment_live_monitor.py ..........                          [ 88%]
+tests\test_sentiment_prompt.py ...                                       [ 88%]
+tests\test_server_quote.py ........                                      [ 88%]
+tests\test_settings_deepseek.py ...................                      [ 89%]
+tests\test_social_whale_provider.py ..                                   [ 89%]
+tests\test_stooq_provider.py ....                                        [ 89%]
+tests\test_structured_grounding.py ...                                   [ 90%]
+tests\test_structured_grounding_declared_tickers.py ......               [ 90%]
+tests\test_task_queue.py ..                                              [ 90%]
+tests\test_td_cost_gate.py .........                                     [ 90%]
+tests\test_td_direct_ticket.py .............................             [ 92%]
+tests\test_technical_neural_truth.py ..............                      [ 93%]
+tests\test_trace_logger.py ..........                                    [ 93%]
+tests\test_trade_order.py ..........                                     [ 94%]
+tests\test_trade_workflow_store.py ........                              [ 94%]
+tests\test_trading_loop1.py ............................                 [ 95%]
+tests\test_trading_loop3.py ...........................                  [ 97%]
+tests\test_trading_loop4.py ....................                         [ 98%]
+tests\test_trading_loop5.py ...............                              [ 98%]
+tests\test_trinity.py ...                                                [ 99%]
+tests\test_twelve_data_quote_metadata.py .                               [ 99%]
+tests\test_unified_memory_fase1.py ..........                            [ 99%]
+tests\test_watchlist_pulse.py ...                                        [ 99%]
+tests\test_windows_bootstrap_contract.py ....                            [100%]
+
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.11.9-final-0 _______________
+
+Name                                                    Stmts   Miss  Cover   Missing
+-------------------------------------------------------------------------------------
+src\adapters\__init__.py                                    0      0   100%
+src\adapters\broker\__init__.py                             4      0   100%
+src\adapters\broker\ibkr_adapter.py                       170    154     9%   40-158, 180-183, 187-193, 197-201, 209-298, 309-311, 315-336, 340-350, 354-388, 392-400
+src\adapters\broker\ibkr_order_worker.py                   68     68     0%   3-102
+src\adapters\broker\ibkr_service.py                       276    163    41%   103-104, 117-122, 127, 133-143, 148-153, 166-174, 181-184, 195-201, 205-210, 216-217, 225-288, 303, 305, 309, 317-327, 342, 344, 348, 355-364, 375-454, 496-522, 531-532
+src\adapters\broker\questrade_readonly.py                  94     20    79%   41, 67, 75, 79, 87, 90, 93-100, 129, 143-144, 146, 153-154
+src\adapters\data_collector\__init__.py                     0      0   100%
+src\adapters\data_collector\subprocess_collector.py        43     27    37%   25-26, 33-85, 90, 99-100, 113-114
+src\agent_server\__init__.py                                0      0   100%
+src\agent_server\auth.py                                  238     28    88%   60, 67, 74, 184-186, 246, 298, 330, 385, 416, 463, 499, 510-534
+src\agent_server\endpoints.py                            1290    404    69%   94, 104, 109, 113, 116, 118-119, 125, 134, 139-142, 146-149, 163-171, 193-195, 197-209, 219-233, 245, 269, 275, 277, 331-333, 347, 393-394, 476-479, 513, 515-517, 519, 552-555, 635, 641, 658-664, 668-679, 681-687, 689-695, 697-702, 704-710, 712-718, 720-726, 774, 780-786, 825-826, 830-832, 836, 844-846, 848-853, 932, 950, 976-984, 988-989, 1267, 1271, 1279, 1289, 1318, 1320, 1386, 1394-1399, 1488-1492, 1532-1534, 1626-1629, 1637, 1642-1731, 1744-1747, 1814-1816, 1833-1838, 1857, 1900, 1904-1910, 1917-1988, 1996-2001, 2015, 2017, 2019, 2021, 2034, 2122-2132, 2138-2145, 2151-2170, 2187-2196, 2226-2241, 2267-2269, 2282-2287, 2345, 2405-2435, 2444-2447, 2453-2463, 2476, 2483, 2505, 2508, 2510-2511, 2535, 2562, 2578, 2580, 2582, 2616-2617, 2643-2646, 2673-2674, 2719-2720, 2741, 2743, 2762-2768, 2791-2792, 2803-2809, 2822-2823, 2842-2843, 2858-2859, 2878-2879, 2886-2925, 2938-2940, 2946-2949
+src\agent_server\main.py                                  614    286    53%   23, 52, 66-67, 86-87, 128, 133-134, 142, 153-155, 217-219, 234-238, 267-401, 460, 513-529, 535-540, 546-557, 563-570, 586-620, 632-677, 698, 706, 741, 752, 766, 786-787, 813-822, 825-826, 846-847, 855, 870-879, 885-886, 931-933, 936-937, 950-952, 957-959, 980-983, 996, 1012, 1030-1031, 1053-1062, 1071-1138, 1157-1201, 1207-1344, 1365
+src\core\__init__.py                                        6      0   100%
+src\core\audit\__init__.py                                  2      0   100%
+src\core\audit\decision_logger.py                          12      1    92%   39
+src\core\audit\decision_trace.py                          145     12    92%   58-62, 173, 296-297, 386, 394, 398-399
+src\core\auth\__init__.py                                   3      0   100%
+src\core\auth\models.py                                    17      0   100%
+src\core\auth\service.py                                  136     20    85%   56-58, 132-134, 166, 278-279, 287, 289, 330-334, 351-355
+src\core\bob_consciousness\__init__.py                      5      1    80%   49
+src\core\bob_consciousness\autonomic.py                    85     66    22%   28-35, 39-44, 52-55, 59, 63-140, 145-146, 164-166, 170, 174-175
+src\core\bob_consciousness\body.py                        377    154    59%   92, 103-104, 114-121, 124-130, 172, 175-178, 190-193, 211, 221, 227-229, 231-232, 236-237, 244-245, 254-255, 268-269, 279-282, 284-285, 295-296, 306, 308-309, 317, 324-326, 337, 339-340, 350-358, 363-369, 459-475, 483-493, 497-549, 575-576, 588-597, 670-671, 677-691, 695-706, 712-736, 741, 770, 775
+src\core\body\__init__.py                                  11      0   100%
+src\core\body\dna.py                                      106      6    94%   180, 186, 216, 238, 282, 314
+src\core\body\emotion.py                                   67      6    91%   128-141
+src\core\body\event_bus.py                                 60      5    92%   141, 143, 227-228, 241
+src\core\body\heartbeat.py                                182     49    73%   135-136, 237-246, 250-268, 334-335, 351, 358, 365-366, 386-397, 404-423, 446-447
+src\core\body\immune.py                                   153     62    59%   76-77, 87, 101-133, 142, 156-189, 195, 212-214, 220-222, 245-246, 268-272
+src\core\body\memory_lattice.py                            95      2    98%   159, 227
+src\core\config\__init__.py                                 3      0   100%
+src\core\config\logging_config.py                          27     11    59%   49, 60-86
+src\core\config\schema.py                                 157      9    94%   251-254, 263-267
+src\core\config\secrets.py                                 64     31    52%   34-39, 59-75, 98-107
+src\core\config\settings.py                               114     10    91%   186, 234-235, 245, 256-258, 263-266
+src\core\data_collector\__init__.py                         3      0   100%
+src\core\data_collector\collector.py                      221    176    20%   45, 55, 62, 71-76, 80, 84, 96-108, 112-115, 119-122, 126-153, 157, 168-262, 266-288, 295-338, 341, 344, 347, 350-351, 354, 357, 360, 364-366, 370-416, 420-430, 434-436, 441-607
+src\core\data_collector\professional.py                   492    382    22%   80, 84, 89-98, 103-108, 134-136, 140, 144, 147, 150, 164-169, 172-173, 176-187, 190-201, 212-223, 228-243, 248-252, 257-260, 264-269, 274-286, 299, 323-325, 328-330, 333-340, 353-368, 371-372, 375-376, 379, 390-398, 402-424, 442-507, 530-535, 539-603, 618-633, 637-658, 662-671, 675-689, 698-705, 709-722, 743-824, 828-836, 840-873, 877-885, 889-904, 911-985, 1002-1004, 1008, 1015-1018, 1024-1027, 1037-1039
+src\core\data_collector\scraper.py                         20     14    30%   12, 18-40
+src\core\evidence\__init__.py                               4      0   100%
+src\core\evidence\grounding.py                             75      8    89%   20, 53, 62-67, 83-84
+src\core\evidence\report.py                                77     21    73%   80-81, 91, 121-133, 147-157, 179, 199-207
+src\core\evidence\run.py                                   68     10    85%   106-112, 122-129, 132-133, 142-143, 155-163
+src\core\evidence\storage.py                               17      0   100%
+src\core\explanation\__init__.py                            2      0   100%
+src\core\explanation\engine.py                            170    110    35%   40-45, 50-54, 59-87, 107, 142, 144, 147, 162-193, 202, 204, 208-210, 217-242, 248-308
+src\core\f51_adapter\__init__.py                            2      0   100%
+src\core\f51_adapter\adapter.py                           256     21    92%   29-30, 33-35, 93, 99, 105, 112, 135-140, 189-190, 235, 237, 240, 391, 456
+src\core\idempotency\__init__.py                           64     16    75%   100-102, 142-166, 174-179
+src\core\investor\__init__.py                               6      0   100%
+src\core\investor\committee.py                            196    167    15%   109-368, 381-421, 437-442, 450-453, 469-613, 617-622, 637-645
+src\core\investor\cost_guard.py                            29      6    79%   14, 16, 19-22, 25
+src\core\investor\fraud_analyst.py                        351    154    56%   110-120, 151, 219, 222, 239-299, 306-314, 318-326, 331, 341-344, 348-389, 432, 468, 471, 479, 482, 487, 496, 501, 510-514, 528, 532, 537-538, 567, 601-605, 613-617, 632-633, 661-666, 714-720, 733-815, 819-842
+src\core\investor\fraud_memory.py                          89     25    72%   52, 60-61, 80-81, 90-92, 96-100, 104-105, 117, 124-127, 137, 140-145
+src\core\investor\prompts.py                                8      0   100%
+src\core\investor\storage.py                               75     50    33%   29-31, 35, 45-46, 53-56, 59-60, 129-163, 166-177, 192-193, 211-224, 231-236, 239-241, 248-253, 256-267, 277-281
+src\core\math\__init__.py                                   7      0   100%
+src\core\math\crisis.py                                    79     19    76%   89-107, 120, 122-124, 142, 215-216, 242-250
+src\core\math\financial_engine.py                          88     69    22%   12-13, 17-21, 31, 37-95, 99-122, 129-130, 134-135, 139-142, 149-155, 159-166
+src\core\math\indicators.py                               114      6    95%   65, 72, 112, 128, 132, 139
+src\core\math\math_hub.py                                 297     46    85%   28-29, 41-42, 55, 59, 163, 213, 216, 257, 429-430, 441-442, 462-474, 476-477, 497-512, 525-526, 564-565, 572-584
+src\core\math\penny_momentum.py                           226     26    88%   68, 86, 121, 150, 168-172, 325, 329, 338, 348-349, 354, 356, 358, 360, 365, 368-369, 376, 378, 380, 384-385, 402, 404
+src\core\math\portfolio.py                                126     30    76%   23, 26, 31, 38, 40, 50, 58-65, 91, 130, 135, 190-195, 209-222
+src\core\math\risk.py                                     109     29    73%   26, 32, 38, 45, 56, 64, 83-85, 89-95, 99, 104, 112, 120, 148-156
+src\core\math\trading_losses.py                            74      6    92%   104, 140, 147, 167, 194, 196
+src\core\math\utils.py                                     25      0   100%
+src\core\memory\__init__.py                                12      5    58%   67-72
+src\core\memory\conversation_memory.py                    194     19    90%   116, 123, 156, 158-159, 246-251, 307-308, 322, 377-381
+src\core\memory\graph.py                                  177      5    97%   76, 78, 106, 135, 138
+src\core\memory\hybrid.py                                 146     15    90%   90, 105, 167-176, 193-199, 226, 297
+src\core\memory\reranker.py                                82     13    84%   60, 65-71, 108-135
+src\core\memory\unified.py                                283     74    74%   78-79, 160-161, 176-181, 244, 250-252, 272-275, 288, 290, 292, 297-298, 302, 304, 308, 310, 315, 319, 321, 325, 327, 342-343, 392-393, 402-404, 414-421, 429-440, 458-460, 472, 480-481, 485-486, 499, 506-507, 510-513, 516-530, 538, 565-566
+src\core\mission_context.py                               236     62    74%   25, 31, 36-37, 47, 57, 60-61, 84, 88-89, 94, 99, 113, 194, 224-229, 234-240, 250-256, 268, 272-275, 297-317, 358, 387, 391, 401-414
+src\core\ml\__init__.py                                     4      0   100%
+src\core\ml\feedback.py                                    49      6    88%   19, 54, 69-70, 76, 82
+src\core\ml\reward_gate.py                                 88     26    70%   33, 38-47, 69, 71, 82, 84, 86, 104-116, 122, 132
+src\core\ml\sanity.py                                      66     14    79%   41-43, 46-48, 53-55, 66, 77, 81, 101-102
+src\core\model_serving\__init__.py                          3      0   100%
+src\core\model_serving\gateway.py                         416    153    63%   85-86, 122, 124-125, 143, 197, 209, 272-275, 301, 314, 333-389, 406-442, 507-523, 580, 614, 639-640, 655, 658-665, 675-693, 726, 751, 776-800, 822-861, 874, 878-916, 933-937
+src\core\model_serving\providers.py                       149      7    95%   124-125, 171-172, 176, 186, 205
+src\core\model_serving\sanitizer.py                       196    105    46%   35-36, 64, 79, 94, 103-112, 136, 153-172, 179-181, 184-187, 190, 193-237, 245-271
+src\core\observability\__init__.py                          4      0   100%
+src\core\observability\debug_logger.py                    159     72    55%   83-90, 114, 129, 134, 138-139, 148-150, 154-156, 162-163, 170-179, 183-186, 194-199, 203, 207-223, 227, 239-242, 248-249, 253-254, 258-259, 263-264, 285-290, 301-303, 310, 319, 323
+src\core\observability\event_hub.py                       161     90    44%   38, 47, 51, 68, 73, 78, 116-119, 126-127, 130-131, 154-163, 166-184, 187-191, 198-203, 206-212, 216-244, 247-258, 261-265, 281-288, 299-303
+src\core\observability\neural_log.py                      185     81    56%   34-46, 128-155, 162, 191-205, 224-256, 279-282, 287-292, 299-300, 335, 338, 341-342, 348, 353-355
+src\core\paths\__init__.py                                 21      2    90%   21, 29
+src\core\pipeline\__init__.py                               3      0   100%
+src\core\pipeline\case.py                                  93     15    84%   87, 90, 100-104, 108-111, 155-156, 195, 280
+src\core\pipeline\circuit_breaker.py                       58     11    81%   62, 65-67, 69, 75-78, 90, 101
+src\core\pipeline\contracts.py                            119      0   100%
+src\core\pipeline\f51_trade_gate.py                       235     48    80%   51, 54, 74-77, 252-253, 272-274, 293-295, 305, 308, 310, 326-346, 363-364, 366, 401, 403, 405, 412, 490-491, 554-555, 580-596, 662-663
+src\core\pipeline\graph.py                                495    144    71%   43, 60, 87-92, 160, 165, 238, 279-285, 375-376, 397, 444-445, 455-462, 485, 490-492, 531-532, 564-565, 605-606, 635-636, 655-664, 738-739, 769-770, 784-785, 808-809, 818-819, 826-827, 871-873, 880, 890, 980-983, 1003-1004, 1015, 1042-1046, 1054-1055, 1064-1065, 1077, 1079, 1094-1095, 1099, 1112, 1127, 1133, 1141, 1143-1145, 1148-1149, 1163, 1175-1176, 1187-1194, 1201-1259, 1271-1283, 1286, 1289-1292, 1295, 1318-1327
+src\core\pipeline\intents.py                              686    165    76%   200, 210, 238, 269, 286, 293, 484, 497-498, 1594, 1608, 1689, 1756, 1758, 1927-1929, 1944, 1960, 2041, 2046-2050, 2065-2067, 2116-2117, 2176, 2189, 2211, 2233, 2240, 2244, 2255, 2264, 2360, 2364, 2371, 2386, 2390, 2408, 2429, 2440, 2446, 2448, 2483, 2512, 2530, 2545, 2582-2583, 2760-2762, 2766-2769, 2777, 2791-2844, 2865-2888, 2897-2925, 2934-2944, 2956-2970
+src\core\pipeline\nodes\__init__.py                        10      0   100%
+src\core\pipeline\nodes\agent.py                         1193    264    78%   76, 101, 399-400, 408-409, 421-422, 493-509, 594, 659-666, 689, 700, 709-713, 716, 719, 732, 748-757, 778-779, 781, 813, 815-816, 900, 947-948, 950, 986, 988, 990, 995, 1006, 1011, 1015, 1026, 1032, 1044, 1048, 1051-1052, 1054, 1058, 1061-1062, 1064, 1087-1098, 1146, 1148, 1153, 1155, 1157, 1209-1227, 1277-1291, 1325, 1332, 1334-1337, 1355, 1360, 1382, 1384, 1488-1490, 1515-1526, 1532, 1534, 1615-1620, 1683-1684, 1716-1717, 1767-1768, 1775, 1783, 1785-1787, 1793, 1804-1806, 1808, 2150, 2166-2196, 2205-2219, 2261-2281, 2291-2294, 2298, 2301-2326, 2335, 2346, 2350, 2352, 2377, 2379, 2381, 2384, 2406, 2434, 2438, 2445, 2461, 2469, 2477, 2632-2651, 2661-2666, 2704-2705, 2833-2834, 2842-2843, 2937-2955, 3022-3023, 3049, 3068-3070, 3075, 3092, 3099-3100, 3110-3116, 3126, 3136, 3149, 3151, 3153-3159, 3163-3166, 3173-3174, 3187, 3235-3270
+src\core\pipeline\nodes\auto_execute_paper.py             341    236    31%   72-82, 95-387, 402-420, 437, 441-446, 450-455, 459-469, 474-506, 523-540, 547-563, 571-578, 583-626, 648-688, 715-729, 738-740, 746-747, 751, 765-781, 785, 788, 792-798, 805, 809
+src\core\pipeline\nodes\collect_experts.py                  2      0   100%
+src\core\pipeline\nodes\collector.py                      695    196    72%   56, 78-86, 104-150, 176-187, 199, 260, 263, 275, 320-321, 349-393, 405-413, 518-519, 539, 543, 586-601, 611-629, 639-643, 648-653, 681, 685, 691, 700, 711, 727-730, 741-742, 753-754, 770-771, 836-858, 889-892, 895, 913-957, 961-977, 980, 985, 1016-1017, 1037-1038, 1074, 1096-1097, 1120-1121, 1128, 1151, 1159-1161, 1171, 1177-1179, 1195-1197, 1215-1217, 1317-1318, 1332-1333, 1361, 1363, 1365, 1367, 1405, 1407, 1409, 1411, 1422-1428
+src\core\pipeline\nodes\expert_dialogue.py                112     21    81%   16, 18-23, 25, 33-36, 57, 68-69, 189-199, 268, 272, 279
+src\core\pipeline\nodes\experts.py                        291     60    79%   64-65, 75, 91-92, 116, 118-123, 125, 128-136, 154, 159, 306, 310-312, 345, 350-356, 394, 398, 459-462, 489, 493, 531-545, 571-579, 650-657, 660, 678-679, 706, 711, 716
+src\core\pipeline\nodes\explanation.py                     24     14    42%   12-20, 43-78
+src\core\pipeline\nodes\f51.py                             37     32    14%   13-137
+src\core\pipeline\nodes\generator.py                      537    351    35%   78-80, 100, 102, 109, 120, 123, 133-257, 266-467, 486-555, 588-780, 784-785, 841-872, 881-896, 928, 939, 950, 970, 972, 979, 981, 983-984, 998, 1259, 1285, 1287, 1290, 1295-1297, 1313-1333, 1343, 1346, 1349, 1365-1443
+src\core\pipeline\nodes\guardrail_hub.py                  318     54    83%   56-66, 246, 304, 314, 323-325, 333-334, 352-353, 358, 379-382, 403-404, 414, 434-439, 449-453, 465-472, 486, 501-504, 528, 531, 553, 561, 637, 673, 685, 688-691, 700, 706
+src\core\pipeline\nodes\guardrails.py                      23      0   100%
+src\core\pipeline\nodes\mangala.py                        263     37    86%   50-51, 94-95, 102, 105, 118-120, 229-232, 236-246, 266-273, 314-315, 326-327, 335-336, 414-415
+src\core\pipeline\nodes\mangala_tracker.py                107      4    96%   103-104, 207-208
+src\core\pipeline\nodes\neural_decision.py                166     36    78%   23-31, 47, 50, 74-76, 87-92, 124-134, 150, 152, 191, 197, 200, 204, 211-213, 221, 249, 251, 253, 277, 281, 283, 287, 297, 299, 305
+src\core\pipeline\nodes\observation_builder.py            349     81    77%   39-54, 62-63, 66, 69, 71, 79-80, 83-84, 87-88, 95-96, 116, 155-156, 178, 201-202, 218, 251-252, 261, 312-313, 335-336, 358-359, 377, 398-399, 453, 460, 493-497, 512-513, 532-535, 543-556, 561, 574, 576, 578, 580, 587, 597, 606, 655, 661-663
+src\core\pipeline\nodes\orchestrator.py                    46      1    98%   163
+src\core\pipeline\nodes\rag.py                             30     28     7%   8-72
+src\core\pipeline\nodes\sdca_firewall.py                   57      7    88%   138-139, 141, 143-153
+src\core\pipeline\nodes\tool_executor.py                  535    280    48%   27-31, 46, 52, 56, 60, 63-69, 90, 93, 96-98, 106-107, 119-120, 122-125, 153-224, 234-271, 304-305, 333, 343-345, 350-364, 385-388, 414, 446, 454, 459, 514-515, 525-617, 623, 627-628, 705-706, 712-718, 721, 734, 737, 761, 764, 767, 794-799, 854-884, 897-913, 918-940, 974-975, 982-1126, 1136-1138, 1154-1155, 1160-1163
+src\core\pipeline\nodes\trinity.py                        143     19    87%   56, 59-60, 66, 73, 122, 141, 155-159, 172-178
+src\core\pipeline\prompts\__init__.py                       3      0   100%
+src\core\pipeline\prompts\_prompts.py                       3      0   100%
+src\core\pipeline\prompts\builder.py                      198      9    95%   46-49, 152, 248, 517, 527, 548
+src\core\pipeline\prompts\math_prompt.py                   84      9    89%   22-23, 53, 61, 64-66, 80, 118
+src\core\pipeline\prompts\sentiment_prompt.py             175     25    86%   18, 21-22, 28, 43, 58-61, 70, 80-82, 103, 106, 118, 124-125, 133, 139, 153-156, 221
+src\core\pipeline\resilience.py                           131    107    18%   37-44, 48-49, 52-56, 59-64, 67-76, 79-80, 86-93, 105-180, 185-192, 204-210, 225-228
+src\core\pipeline\scan_registry.py                         35      5    86%   122, 133-136
+src\core\pipeline\security.py                             118     39    67%   120-134, 138-139, 145-152, 157-164, 178-201, 228-235, 239-247, 290-299, 303-314, 320-329, 344-347, 351
+src\core\pipeline\task_queue.py                           136     24    82%   42, 77, 81-82, 98-99, 108-113, 155, 158, 163, 166, 169-174, 180, 186
+src\core\pipeline\trade_order.py                          243     30    88%   42, 47-48, 52-54, 57-58, 63, 105, 117, 125, 178, 182-183, 190, 192-195, 211, 271, 274, 318, 359, 367, 370, 396, 409, 445
+src\core\pipeline\verdict.py                              113     33    71%   26, 36-37, 39, 48, 50, 52, 54, 59-62, 65, 92-94, 158, 172, 187, 201, 216, 219-222, 224-225, 234, 245, 259-262, 278
+src\core\ports\__init__.py                                  6      0   100%
+src\core\ports\audit_log.py                                 5      0   100%
+src\core\ports\data_collector.py                            5      0   100%
+src\core\ports\health_probe.py                              4      0   100%
+src\core\ports\model_gateway.py                             8      0   100%
+src\core\ports\protocol.py                                 31      0   100%
+src\core\prompts\__init__.py                                0      0   100%
+src\core\prompts\financial_prompts.py                      14      0   100%
+src\core\rag\__init__.py                                    4      0   100%
+src\core\rag\engine.py                                    268     96    64%   73-74, 82, 86, 104, 127, 130-131, 133, 153, 160-167, 174-183, 190, 198-199, 204-227, 242-275, 290, 293, 297, 338-351, 384-391, 416-417, 422, 426, 440, 445-452
+src\core\rag\fraud_rag.py                                 118     50    58%   28, 40-65, 83, 87, 98, 113, 116-117, 119, 133, 150-160, 167-200
+src\core\rag\macro_dataset.py                              47     26    45%   28, 31-32, 39-54, 57-62, 68-84
+src\core\resilience\__init__.py                           124     36    71%   57-99, 115-150, 299-304
+src\core\risk_firewall\__init__.py                          3      0   100%
+src\core\risk_firewall\experience_memory.py               177     17    90%   59, 65, 140, 159-160, 167, 170-171, 174, 208, 211-212, 228, 240, 274, 299, 317
+src\core\risk_firewall\sdca_contracts.py                   64      1    98%   29
+src\core\risk_firewall\sdca_lite.py                       221     26    88%   33, 41, 85-86, 88-89, 91-92, 104-105, 107-108, 145-146, 153-154, 172-173, 180-181, 207, 272-274, 403, 411
+src\core\scanner\__init__.py                              110     40    64%   36-39, 66-69, 74-77, 103, 110, 112, 117, 150-152, 156-170, 173-176, 179-182
+src\core\scanner\openbb_scanner.py                        144    119    17%   22, 51-60, 73-149, 172-177, 180, 199-250, 254
+src\core\scanner\penny_scanner.py                          32      5    84%   54-56, 92-93
+src\core\security\__init__.py                               0      0   100%
+src\core\security\constants.py                              3      0   100%
+src\core\sentiment\__init__.py                              4      0   100%
+src\core\sentiment\curator.py                             221     23    90%   47-48, 74, 101-103, 118-127, 185, 193, 230, 244, 259, 265, 297
+src\core\sentiment\live_monitor.py                        433     86    80%   91-92, 94, 123-124, 130, 132, 149, 156-159, 165-167, 174, 183, 192, 197, 199, 203-205, 232-233, 236, 301, 341, 357, 362-363, 376-377, 381-383, 399, 413-414, 423-427, 432, 437, 454, 461, 478, 482, 494-499, 552-554, 570, 573-580, 582, 589-600, 646, 710, 722, 726-727, 732-744, 763
+src\core\sentiment\watchlist_pulse.py                     155     18    88%   41-43, 50, 62-65, 122, 132-133, 136-139, 179, 211-212
+src\core\storage\__init__.py                                0      0   100%
+src\core\storage\atomic.py                                 30      6    80%   27, 40-45
+src\core\trading\__init__.py                                8      0   100%
+src\core\trading\adaptive_agent.py                         97     49    49%   46-47, 59-61, 67-76, 80-95, 109-110, 149-163, 166-171, 178-179, 192-193
+src\core\trading\alerter.py                                75      6    92%   66-75
+src\core\trading\approval_gate.py                         143      6    96%   168, 197-201
+src\core\trading\auto_calibration.py                      210    210     0%   16-544
+src\core\trading\batch_expert_runner.py                    98     70    29%   56-161, 166-171, 176-184, 207-216, 221-225
+src\core\trading\broker.py                                146     79    46%   90-93, 96-107, 110-168, 181-187, 190-196, 199-205, 208-216, 223-226, 229-244, 247-252, 255, 258, 261, 265-276, 289
+src\core\trading\canada_money_gate.py                     203     46    77%   46, 71, 79, 87, 94, 101, 113-140, 162-163, 174, 181, 183, 185, 187, 209-210, 212-214, 220, 236, 250-257, 265, 311
+src\core\trading\execution_policy.py                       64      9    86%   14-15, 18-19, 32-33, 71, 75, 93
+src\core\trading\expert_weights.py                         67      0   100%
+src\core\trading\feedback_loop.py                         561    141    75%   34, 37-38, 40, 47, 175, 178, 185-188, 225, 237-241, 245-249, 294-313, 329, 333, 335, 385, 395, 405, 411-430, 454, 483-499, 532-533, 543, 576, 632-634, 648-649, 661-662, 666-667, 672-673, 680-681, 688-689, 714-717, 768-773, 832-833, 857-858, 881, 896-920, 927-929, 940-952, 979-980, 996, 1001-1003, 1020-1035, 1039-1043, 1046-1050, 1062-1072
+src\core\trading\historical_cache.py                       85     56    34%   56-115, 149-152, 157-163, 179-199
+src\core\trading\kill_switch.py                           122      1    99%   166
+src\core\trading\manual_trade_workflow.py                 149     36    76%   41-42, 44, 49-55, 71, 73, 96, 118, 158, 160, 163, 200, 203-204, 207, 240, 245, 249, 261-278, 291, 349
+src\core\trading\outcome_learning.py                      191     25    87%   57, 64-65, 67, 78, 84, 90-107, 114, 163, 227, 247, 249, 259
+src\core\trading\paper_journal.py                         289     32    89%   33, 36-37, 39, 180, 187, 251, 259, 261, 263, 333-336, 400-401, 439-440, 511, 515, 525, 543-546, 585-591, 599, 619-620
+src\core\trading\portfolio_snapshot.py                     50     36    28%   31-99, 122-125
+src\core\trading\position_sizer.py                         55      2    96%   48, 50
+src\core\trading\reward.py                                 80      2    98%   94, 109
+src\core\trading\server_quote.py                          150     24    84%   47-48, 50, 57-58, 60, 66, 69-70, 72, 84, 86, 118, 121, 134, 191-195, 245, 252, 254, 294
+src\core\trading\td_cost_gate.py                           82     14    83%   24-25, 27, 34-35, 37, 58, 60, 71, 97-98, 100, 102, 108
+src\core\trading\td_direct_ticket.py                      299     61    80%   68-69, 71, 77, 80-81, 83, 90-91, 103, 109, 113, 116-117, 119, 131-132, 134-135, 137, 156, 160, 173-174, 203, 205, 208, 238, 244, 257, 267, 276, 279-280, 290, 299, 306, 308, 310, 319, 337, 342, 451, 464-465, 468, 503, 507-508, 510, 512-518, 524-525, 544-545
+src\core\trading\workflow_store.py                        287     42    85%   79, 99, 210, 212, 289, 300-301, 383, 387, 396-397, 402-403, 405-406, 418-419, 477, 516, 533, 535, 543-544, 549-559, 568-569, 672, 684-685, 691-692, 733-737, 823-829
+src\core\trading\xp_system.py                             253    100    60%   54, 117, 151, 157, 171-173, 180-181, 185, 198, 225-233, 253-271, 293-327, 349-390, 395, 419-430, 444-446, 450, 459-466, 471, 484, 487, 489, 497-498, 520, 528-531, 537, 557-563
+src\core\utils\__init__.py                                  2      0   100%
+src\core\utils\datetime.py                                 15      4    73%   24, 27, 29-30
+src\data\__init__.py                                        0      0   100%
+src\data\akshare_provider.py                              190    126    34%   23-25, 32, 35, 39-40, 88, 130-176, 206-271, 282-320, 338-345, 350-365, 370-385, 404, 407, 413-414, 422, 428, 430
+src\data\alpha_vantage.py                                  80     56    30%   7-12, 38-55, 67, 87-89, 93-119, 123-143, 147-164
+src\data\alphasmo_provider.py                              87     87     0%   18-260
+src\data\apewisdom_provider.py                             47     13    72%   24-25, 56, 80-82, 95, 111-128
+src\data\boc_provider.py                                   68     53    22%   48-81, 86-90, 101-119, 124-135, 150
+src\data\data_hub.py                                      321    102    68%   45-47, 51-53, 57-59, 69-71, 75-77, 96-98, 108-110, 114-116, 149-150, 183, 455-459, 463, 467, 475, 487, 491-493, 555-557, 562-568, 573-580, 589-598, 626-627, 652-653, 657, 683, 691, 722, 733, 737, 743, 752, 760-765, 775-800, 804-818, 822-840, 847-848
+src\data\fed_provider.py                                   77     67    13%   34-62, 67-126, 136-161
+src\data\finnhub_provider.py                              297     93    69%   44-45, 52-53, 60-61, 70-75, 112, 171, 191, 204, 208-209, 218, 221, 223, 249-256, 413-420, 495-553, 563-610
+src\data\finnhub_symbols.py                                29      6    79%   10, 18, 27-30
+src\data\form4api_provider.py                             105    105     0%   17-318
+src\data\news_feed.py                                     274    147    46%   41-42, 49-50, 122-126, 157-176, 181-199, 205, 211, 227-229, 234-264, 269, 274-303, 308-333, 339, 352, 376-378, 408, 416, 429-443, 456-461, 468-477, 496-498, 504, 509, 522-538, 542-553
+src\data\newsapi_provider.py                               89     56    37%   24-25, 31-32, 113-123, 135, 144, 164-193, 197-225, 239-249
+src\data\reddit_provider.py                               217    168    23%   73-74, 80-81, 87, 91-95, 99, 163-201, 237-287, 305-338, 349-371, 384-406, 415-450, 470-510, 536-541, 544-552, 555-556, 559-561, 564-568, 572-578
+src\data\social_whale_provider.py                         202    131    35%   33-34, 118-124, 129-130, 160-174, 244-266, 292-341, 377, 382-390, 412-433, 443-503, 511-520, 556
+src\data\stooq_provider.py                                 58     38    34%   22, 28, 41-42, 51-92
+src\data\twelve_data.py                                    54     14    74%   8-13, 37, 57, 69-71, 87, 108-110
+src\data\wolfram_provider.py                               82     82     0%   14-211
+src\data\yfinance_provider.py                             119     35    71%   41, 44, 63, 65, 83, 86-87, 104, 112-113, 147-184, 195, 198-199, 218-219
+src\experts\__init__.py                                     0      0   100%
+src\experts\crisis\__init__.py                              0      0   100%
+src\experts\crisis\adapters\__init__.py                     0      0   100%
+src\experts\crisis\adapters\tool_adapter.py                 9      4    56%   15-18
+src\experts\crisis\contracts\__init__.py                    0      0   100%
+src\experts\crisis\contracts\schemas.py                   113      7    94%   17, 33, 138-142
+src\experts\crisis\expert\__init__.py                       0      0   100%
+src\experts\crisis\expert\crisis_expert.py                 67      7    90%   62, 72-74, 90-91, 143
+src\experts\crisis\io\__init__.py                           0      0   100%
+src\experts\crisis\io\report.py                            21      6    71%   12-17, 32
+src\experts\crisis\logic\__init__.py                        0      0   100%
+src\experts\crisis\logic\ensemble.py                       29      0   100%
+src\experts\crisis\logic\normalization.py                  21      7    67%   25-33
+src\experts\crisis\logic\scoring.py                        21      2    90%   9, 23
+src\experts\crisis\models\__init__.py                      10      1    90%   19
+src\experts\crisis\models\bis_credit_gap.py                30      4    87%   30, 54-57
+src\experts\crisis\models\credit_asset_growth.py           31      5    84%   49-57, 65, 67
+src\experts\crisis\models\debt_service_ratio.py            21      4    81%   31, 34-37
+src\experts\crisis\models\growth_at_risk.py                98     12    88%   24, 26, 41, 79, 100, 125-126, 137, 156-157, 171, 183
+src\experts\crisis\models\hawkes_stress.py                 90     25    72%   32, 41, 61, 99, 129-169
+src\experts\crisis\models\imf_mispricing.py                27     14    48%   36-55
+src\experts\crisis\models\lppls_bubble.py                 126     10    92%   54, 60, 70-71, 95-96, 116, 185, 203-204
+src\experts\crisis\models\markov_regime.py                105      3    97%   62, 70, 191
+src\experts\crisis\models\minsky_keen.py                   19      0   100%
+src\experts\crisis\models\network_contagion.py              6      0   100%
+src\experts\crisis\models\shiller_valuation.py             22      1    95%   42
+src\experts\crisis\models\systemic_bank_risk.py             6      0   100%
+src\experts\crisis\quantum_expert.py                       44      6    86%   28, 30, 32, 41, 43, 45
+src\experts\neural_decision\__init__.py                     2      0   100%
+src\experts\neural_decision\neural_decision_expert.py     104      9    91%   21-22, 78-79, 86, 113-114, 154, 165
+src\experts\pennylab\__init__.py                            5      0   100%
+src\experts\pennylab\cli.py                                91     91     0%   20-246
+src\experts\pennylab\config.py                             25      0   100%
+src\experts\pennylab\data_provider.py                     133    133     0%   14-318
+src\experts\pennylab\experts\__init__.py                    6      0   100%
+src\experts\pennylab\experts\liquidity_risk_expert.py      76      2    97%   70-71
+src\experts\pennylab\experts\pump_dump_expert.py           79      2    97%   71-72
+src\experts\pennylab\experts\veracity_gate.py              40      1    98%   75
+src\experts\pennylab\experts\volume_spike_expert.py        31      0   100%
+src\experts\pennylab\experts\whale_print_expert.py         67      1    99%   98
+src\experts\pennylab\lab_journal.py                        53     36    32%   41-42, 46-48, 56-67, 71-72, 83-107
+src\experts\pennylab\mathcore_adapter.py                   29     11    62%   26-37, 44
+src\experts\pennylab\pipeline_hook.py                      46     36    22%   25-49, 66-68, 92-93, 109-148
+src\experts\pennylab\rag_hooks.py                          27      9    67%   35-37, 39-42, 54-55
+src\experts\pennylab\schemas.py                            74      0   100%
+src\experts\pennylab\scoring.py                            80      1    99%   179
+src\experts\technical_neural\__init__.py                    2      0   100%
+src\experts\technical_neural\expert\__init__.py             2      0   100%
+src\experts\technical_neural\expert\neural_expert.py      500     94    81%   97, 99, 116, 123-125, 130, 160-162, 175-176, 234, 262, 291, 301, 317, 348, 370, 388, 437, 442, 450-451, 454, 456, 473, 489, 500, 502, 519-531, 542-547, 585, 591, 600, 615, 638, 649, 652, 684, 686, 693, 701, 784, 798-799, 801, 820, 822, 824, 831, 833, 835, 838, 840, 843, 845, 847, 854-855, 859, 868-869, 871, 893, 895, 897, 900-901, 934, 939, 941-949, 954-957
+src\experts\technical_neural\pipeline_hook.py              23     17    26%   18-69, 74
+src\f51\__init__.py                                         7      0   100%
+src\f51\detectors.py                                       62     12    81%   189, 210, 216-230, 254-258
+src\f51\formulas.py                                        74      2    97%   168-169
+src\f51\gates.py                                          114     11    90%   61-63, 65-66, 154, 208-212
+src\f51\graph.py                                          141      6    96%   64, 103-104, 278, 318-319
+src\f51\scoring.py                                         91     29    68%   57-62, 66-67, 85-89, 101-110, 121-124, 161-162
+src\tools\__init__.py                                       2      0   100%
+src\tools\custom_tools.py                                 140     50    64%   18, 64, 67, 71, 76-77, 80-82, 85-94, 97-102, 125, 130, 133, 157-175, 259-260, 273, 333, 335-336
+-------------------------------------------------------------------------------------
+TOTAL                                                   30282   9770    68%
+================ 1984 passed, 10 skipped in 543.76s (0:09:03) =================

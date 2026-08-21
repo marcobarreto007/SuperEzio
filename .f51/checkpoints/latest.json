@@ -1094,7 +1094,7 @@
   },
   "owner": "Codex",
   "delivery_hardening_20260821": {
-    "status": "DELIVERED",
+    "status": "DELIVERED_WITH_EVIDENCE",
     "problem": "Auditoria adversarial confirmou o nucleo do sistema (1.965 testes reais, 39.310 traces, 108 ETFs, SDCA exato, TD fail-closed) mas achou: GPU fantasma (RTX 2070), GGUF ausente (fail-closed por falta de arquivo), fraud guard morto (0 regras computaveis), cobertura 67% nao reproduzivel (--cov nos addopts), drift triplo de constantes de risco, decision_traces poluido por ~14k linhas de teste, playbook com ETFs fora dos 108 sem comissao, RISK_REGISTER fora de gate.",
     "work_packages": {
       "WP1_runtime_single_gpu": {
@@ -1168,8 +1168,10 @@
       "ruff_check": "PASS (arquivos tocados verificados)",
       "ruff_format": "PASS",
       "targeted_tests": "103 + 95 + 2 + 9 + 16 + 28 + 14 + 43 + 8 + 14 + 2 = 334 passed (pacotes WP1-WP9)",
-      "full_suite": "pendente do gate final (roda completa + coverage + browser smoke)",
-      "browser_smoke": "pendente do gate final (servidor :8002 live em MAN_AT_WORK)"
+      "full_suite": "1984 passed, 10 skipped, 0 failed in 543.76s",
+      "browser_smoke": "BLOCKED/BY-DESIGN: servidor :8002 em MAN_AT_WORK (pausa protetiva) — /health responde 503 de proposito; fail-closed correto, nao desativado",
+      "coverage": "68% (30282 statements, 9770 missed) — medido no run final, report duravel em runtime/checkpoints/coverage-report-2026-08-21.txt",
+      "ruff": "ruff check PASS + ruff format PASS (405 arquivos)"
     },
     "commits": [
       "a653c5e",
