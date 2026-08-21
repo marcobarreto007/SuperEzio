@@ -24,10 +24,13 @@ from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError, sy
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASE_URL = os.getenv("SUPEREZIO_BROWSER_SMOKE_URL", "http://127.0.0.1:8002")
 DEFAULT_PROMPT = (
-    "I live in Canada, earn and spend in CAD, have a family, unstable work income, "
-    "and have CAD 25,000 to allocate between emergency cash reserve, debt, ETFs, "
-    "side-business equipment, and education. Give me a concise serious framework."
+    "Moro no Canada, ganho e gasto em CAD, tenho familia, renda de trabalho instavel "
+    "e CAD 25.000 para alocar entre reserva de emergencia, dividas, ETFs, "
+    "equipamento para negocio proprio e educacao. De um framework serio e conciso, "
+    "em portugues."
 )
+# The CEO must answer Brazilian-Portuguese operators in Portuguese.
+PT_MARKERS_RE = r"\b(você|não|uma|para|com|como|por|dos|das|ser|pode|deve)\b"
 
 
 def _http_json(url: str, timeout_s: float = 5.0) -> dict[str, Any]:
@@ -53,6 +56,21 @@ def _assert_canvas_nonblank(page: Page) -> dict[str, Any]:
           /* Check that canvas elements exist inside the chart panes */
           const canvases = mainPane.querySelectorAll('canvas');
           if (!canvases.length) return { ok: false, reason: 'no_canvas_in_pane', width, height };
+          /* Require at least one canvas with painted (non-transparent) pixels. */
+          const painted = Array.from(canvases).map((canvas) => {
+            try {
+              const ctx = canvas.getContext('2d');
+              if (!ctx) return false;
+              const sample = ctx.getImageData(0, 0, Math.min(canvas.width, 128), Math.min(canvas.height, 128)).data;
+              for (let i = 3; i < sample.length; i += 4) {
+                if (sample[i] > 0) return true;
+              }
+              return false;
+            } catch (error) { return false; }
+          });
+          if (!painted.some(Boolean)) {
+            return { ok: false, reason: 'all_canvases_blank', width, height };
+          }
           return { ok: true, width, height, canvasCount: canvases.length };
         }
         """
@@ -73,12 +91,36 @@ def _browser_chart_fetch(page: Page) -> dict[str, Any]:
               signal: controller.signal
             });
             const data = await response.json();
+            const ohlcv = Array.isArray(data.ohlcv) ? data.ohlcv : [];
+            let timesOk = false;
+            let firstTime = null;
+            let lastTime = null;
+            if (ohlcv.length) {
+              const first = ohlcv[0];
+              const key =
+                first && typeof first === 'object' && 'time' in first ? 'time'
+                : first && typeof first === 'object' && 't' in first ? 't'
+                : null;
+              if (key) {
+                const times = ohlcv.map((c) => Number(c[key])).filter(Number.isFinite);
+                firstTime = times.length ? times[0] : null;
+                lastTime = times.length ? times[times.length - 1] : null;
+                let increasing = true;
+                for (let i = 1; i < times.length; i++) {
+                  if (times[i] < times[i - 1]) { increasing = false; break; }
+                }
+                timesOk = times.length > 0 && times[0] > 0 && increasing;
+              }
+            }
             return {
               ok: response.ok,
               status: response.status,
               ticker: data.ticker || null,
               hasPrice: Boolean(data.price),
-              candleCount: Array.isArray(data.ohlcv) ? data.ohlcv.length : 0
+              candleCount: ohlcv.length,
+              timesOk,
+              firstTime,
+              lastTime
             };
           } catch (error) {
             return { ok: false, status: 0, error: String(error), candleCount: 0 };
@@ -92,6 +134,10 @@ def _browser_chart_fetch(page: Page) -> dict[str, Any]:
         raise AssertionError(f"browser chart fetch failed: {result}")
     if result.get("candleCount", 0) <= 0:
         raise AssertionError(f"browser chart fetch returned no candles: {result}")
+    if not result.get("timesOk"):
+        raise AssertionError(
+            f"browser chart fetch returned invalid timestamps (zero or unordered): {result}"
+        )
     return result
 
 
@@ -104,29 +150,44 @@ def _submit_chat(page: Page, prompt: str, timeout_ms: int) -> dict[str, Any]:
     if tab:
         tab.click()
         page.wait_for_timeout(500)
+    # Sentinel: a stale answer from a previous session must never satisfy the
+    # smoke. Only a NEW CEO message beyond this baseline counts.
+    baseline = page.evaluate("() => document.querySelectorAll('#chat .msg-ceo').length")
     page.fill("#user-inp", prompt)
     page.click("#send-btn")
     # Wait for Bob's response in the current CEO message UI.
     page.wait_for_function(
-        """
-        () => {
+        f"""
+        () => {{
           const bobMsgs = document.querySelectorAll('#chat .msg-ceo');
-          if (bobMsgs.length < 1) return false;
-          const lastBob = bobMsgs[bobMsgs.length - 1];
-          const text = lastBob.innerText || '';
-          return text.length > 80 && !text.includes('Erro:');
-        }
+          if (bobMsgs.length <= {baseline}) return false;
+          for (let i = bobMsgs.length - 1; i >= {baseline}; i--) {{
+            const text = bobMsgs[i].innerText || '';
+            if (text.length > 80 && !text.includes('Erro:')
+                && !text.includes('[SCANNER]') && !text.includes('heartbeat')) return true;
+          }}
+          return false;
+        }}
         """,
         timeout=timeout_ms,
     )
-    return page.evaluate(
+    result = page.evaluate(
         """
         () => {
           const bobMsgs = document.querySelectorAll('#chat .msg-ceo');
-          const lastBob = bobMsgs[bobMsgs.length - 1];
-          const text = lastBob ? lastBob.innerText : '';
+          let text = '';
+          for (let i = bobMsgs.length - 1; i >= 0; i--) {
+            const candidate = bobMsgs[i].innerText || '';
+            if (candidate.length > 80 && !candidate.includes('Erro:')
+                && !candidate.includes('[SCANNER]') && !candidate.includes('heartbeat')) {
+              text = candidate;
+              break;
+            }
+          }
           const userMsgs = document.querySelectorAll('#chat .msg-user');
           const typing = document.getElementById('typing');
+          const pt = /\b(você|não|uma|para|com|como|por|dos|das|ser|pode|deve)\b/i.test(text);
+          const en = /\b(the|of|and|your|you|is|are|with)\b/i.test(text);
           return {
             responseLength: text.length,
             bobMsgCount: bobMsgs.length,
@@ -134,11 +195,16 @@ def _submit_chat(page: Page, prompt: str, timeout_ms: int) -> dict[str, Any]:
             typingVisible: typing ? typing.style.display !== 'none' : null,
             containsError: text.includes('Erro:'),
             containsPrice: /\\$\\d/.test(text),
+            hasPtMarkers: pt,
+            hasEnMarkers: en,
+            languageOk: pt && !en,
             firstChars: text.substring(0, 200)
           };
         }
         """
     )
+    result["newMessageCount"] = result.get("bobMsgCount", 0) - baseline
+    return result
 
 
 def run_smoke(
@@ -150,6 +216,13 @@ def run_smoke(
 ) -> dict[str, Any]:
     health_timeout_s = max(5.0, min(timeout_ms / 1000.0, 30.0))
     health = _http_json(f"{base_url.rstrip('/')}/health", timeout_s=health_timeout_s)
+    cockpit = _http_json(f"{base_url.rstrip('/')}/cockpit/summary", timeout_s=health_timeout_s)
+    primary_model = (cockpit.get("status") or {}).get("primary_model")
+    if primary_model != "Qwen3.8-27B-UD-IQ2_XXS":
+        raise AssertionError(
+            f"cockpit reports wrong primary model: {primary_model!r} "
+            f"(contract: Qwen3.8-27B-UD-IQ2_XXS)"
+        )
     out_dir = ROOT / "output" / "playwright"
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%d-%H%M%S")
@@ -171,7 +244,9 @@ def run_smoke(
         page.wait_for_selector("#chat", timeout=timeout_ms)
         page.wait_for_selector("#user-inp", timeout=timeout_ms)
         page.wait_for_selector("#send-btn", timeout=timeout_ms)
-        page.wait_for_function("window.SZ && typeof window.SZ.loadChart === 'function'", timeout=timeout_ms)
+        page.wait_for_function(
+            "window.SZ && typeof window.SZ.loadChart === 'function'", timeout=timeout_ms
+        )
         page.wait_for_timeout(1500)
 
         # Canvas + chart (skip gracefully if not on page)
@@ -206,16 +281,27 @@ def run_smoke(
                 raise AssertionError(f"chat returned error: {chat}")
             if chat.get("responseLength", 0) <= 80:
                 raise AssertionError(f"chat produced empty/short answer: {chat}")
+            if not chat.get("newMessageCount", 0) > 0:
+                raise AssertionError(
+                    f"chat did not produce a NEW Bob message (stale-answer risk): {chat}"
+                )
+            if not chat.get("languageOk"):
+                raise AssertionError(
+                    f"chat language drift — expected PT answer, got: {chat.get('firstChars')!r}"
+                )
 
         page.screenshot(path=str(screenshot_path), full_page=True)
         browser.close()
 
     if page_errors:
         raise AssertionError(f"browser page errors: {page_errors}")
+    if console_errors:
+        raise AssertionError(f"browser console errors: {console_errors}")
 
     return {
         "base_url": base_url,
         "health": health,
+        "cockpit_primary_model": primary_model,
         "chart_fetch": chart_fetch,
         "canvas": canvas,
         "chat": chat,
@@ -229,7 +315,12 @@ def main() -> int:
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL)
     parser.add_argument("--headed", action="store_true")
     parser.add_argument("--skip-chat", action="store_true")
-    parser.add_argument("--timeout-ms", type=int, default=180000)
+    parser.add_argument(
+        "--timeout-ms",
+        type=int,
+        default=600000,
+        help="Chat answer timeout — the full financial pipeline can take minutes",
+    )
     parser.add_argument(
         "--slow-mo",
         type=int,
