@@ -7,6 +7,7 @@ Prerequisites:
 """
 
 import json
+import os
 import urllib.error
 import urllib.request
 
@@ -19,6 +20,28 @@ AGENT_HEALTH = "http://127.0.0.1:8080/health"
 API_HEALTH = "http://127.0.0.1:8002/health"
 API_DETAILS = "http://127.0.0.1:8002/health/details"
 TASK_SUBMIT = "http://127.0.0.1:8002/task/submit"
+
+# A live model run is expensive, so one deterministic case is executed per
+# invocation.  The complete matrix remains a testable contract and deliberately
+# spans markets and asset classes instead of privileging one US mega-cap.
+INVESTMENT_CASES = (
+    {"ticker": "MSFT", "market": "US", "asset_class": "equity"},
+    {"ticker": "TD.TO", "market": "CA", "asset_class": "equity"},
+    {"ticker": "PETR4.SA", "market": "BR", "asset_class": "equity"},
+    {"ticker": "SPY", "market": "US", "asset_class": "etf"},
+    {"ticker": "BTC-USD", "market": "CRYPTO", "asset_class": "crypto"},
+    {"ticker": "INVALID-NO-SUCH-ASSET", "market": "INVALID", "asset_class": "invalid"},
+    {"ticker": None, "market": "NONE", "asset_class": "no_ticker"},
+)
+
+
+def _selected_investment_case() -> dict[str, str]:
+    requested = os.environ.get("SUPEREZIO_INTEGRATION_TICKER", "").strip().upper()
+    if requested:
+        return {"ticker": requested, "market": "OVERRIDE", "asset_class": "configured"}
+    index = int(os.environ.get("SUPEREZIO_INTEGRATION_CASE_INDEX", "0"))
+    case = INVESTMENT_CASES[index % 5]
+    return {key: str(value) for key, value in case.items() if value is not None}
 
 
 def _check_server(url: str, timeout: int = 5) -> bool:
@@ -121,13 +144,15 @@ def test_task_submit_casual(servers_running):
 
 def test_task_submit_ticker_analysis(servers_running):
     """A ticker analysis request should complete the full pipeline."""
+    case = _selected_investment_case()
+    ticker = case["ticker"]
     payload = {
         "from": "test-runner",
         "to": "bob",
         "type": "TASK.SUBMIT",
         "payload": {
-            "message": "AAPL 14 dias analise",
-            "ticker": "AAPL",
+            "message": f"Analise {ticker} como investimento para os proximos 14 dias",
+            "ticker": ticker,
             "time_horizon": "14 days",
             "session_id": "integration-ticker",
         },
@@ -164,6 +189,21 @@ def test_task_submit_ticker_analysis(servers_running):
     expected_steps = {"orchestrator_primary", "data", "agent_primary"}
     found = expected_steps & steps
     assert len(found) >= 2, f"Missing steps: {expected_steps - found}"
+
+
+def test_investment_case_matrix_contract():
+    """The live-test universe covers real diversity plus negative routing."""
+    tickers = {case["ticker"] for case in INVESTMENT_CASES if case["ticker"]}
+    markets = {
+        case["market"] for case in INVESTMENT_CASES if case["market"] not in {"INVALID", "NONE"}
+    }
+    classes = {case["asset_class"] for case in INVESTMENT_CASES}
+
+    assert len(tickers - {"INVALID-NO-SUCH-ASSET"}) >= 5
+    assert len(markets) >= 3
+    assert {"equity", "etf", "crypto", "invalid", "no_ticker"} <= classes
+    assert any(case["ticker"] is None for case in INVESTMENT_CASES)
+    assert "AAPL" not in tickers
 
 
 # ---------------------------------------------------------------------------

@@ -3,9 +3,9 @@
 Validates (per POLITICA F51 — Playwright obrigatorio):
 1. Page loads and auth is handled (dev mode skip or manual login)
 2. Chart loads with visible candles and indicators (RSI, MACD, SMA)
-3. Chat submission works with "AAPL analise"
+3. Chat submission works with a configurable, non-AAPL default instrument
 4. Pipeline completes with expert cards updated (>=2 of 5)
-5. Bob responds with text containing "AAPL"
+5. Bob responds with text containing the configured instrument
 6. No 401 errors in browser console
 7. No expert card shows "WAIT" after pipeline completes
 
@@ -33,6 +33,8 @@ from playwright.sync_api import (
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "src"
 BASE_URL = os.environ.get("SUPEREZIO_E2E_URL", "http://127.0.0.1:8002")
+E2E_TICKER = os.environ.get("SUPEREZIO_E2E_TICKER", "TD.TO").strip().upper()
+E2E_QUERY = os.environ.get("SUPEREZIO_E2E_QUERY", f"Analise {E2E_TICKER} como investimento")
 SCREENSHOT_DIR = ROOT / "output" / "playwright" / "e2e"
 
 # ── Timeouts ──────────────────────────────────────────────────────────────────
@@ -316,6 +318,10 @@ def test_full_browser_flow(server: subprocess.Popen | None, browser) -> None:
         # ═════════════════════════════════════════════════════════════════
         # 3. CHART INICIAL — esperar dados carregarem
         # ═════════════════════════════════════════════════════════════════
+        ticker_input = page.query_selector("#ticker-inp")
+        if ticker_input:
+            page.fill("#ticker-inp", E2E_TICKER)
+            page.press("#ticker-inp", "Enter")
         try:
             page.wait_for_function(
                 """() => window.SZ && window.SZ.state && window.SZ.state.chartData
@@ -355,7 +361,7 @@ def test_full_browser_flow(server: subprocess.Popen | None, browser) -> None:
         page.wait_for_selector("#user-inp:not([disabled])", timeout=5000)
 
         # Type the query and click Send
-        page.fill("#user-inp", "AAPL analise")
+        page.fill("#user-inp", E2E_QUERY)
         page.wait_for_timeout(400)
 
         _screenshot(page, "step-04-about-to-send")
@@ -418,15 +424,17 @@ def test_full_browser_flow(server: subprocess.Popen | None, browser) -> None:
                 f"Available keys: {state.get('indicatorKeys', [])}"
             )
 
-        # ── 6c. Bob answered with text containing "AAPL" ──
+        # ── 6c. Bob answered with text containing the selected instrument ──
         bob_len = state.get("bobResponseLength", 0)
         bob_text = state.get("bobResponseText", "")
         if bob_len < 80:
             errors.append(
                 f"Bob response too short: {bob_len} chars (expected >= 80). Text: {bob_text[:150]}"
             )
-        elif "AAPL" not in bob_text.upper():
-            errors.append(f"Bob answer does not mention AAPL. First 200 chars: {bob_text[:200]}")
+        elif E2E_TICKER not in bob_text.upper():
+            errors.append(
+                f"Bob answer does not mention {E2E_TICKER}. First 200 chars: {bob_text[:200]}"
+            )
 
         # ── 6d. At least 2 of 5 expert cards updated from initial state ──
         verdicts = state.get("verdicts", {})
@@ -475,7 +483,8 @@ def test_full_browser_flow(server: subprocess.Popen | None, browser) -> None:
             "has_sma": state.get("hasSmaInData", False),
             "chart_rendered": has_pane or canvas_nb > 100,
             "bob_response_length": bob_len,
-            "bob_mentions_aapl": "AAPL" in bob_text.upper(),
+            "tested_ticker": E2E_TICKER,
+            "bob_mentions_tested_ticker": E2E_TICKER in bob_text.upper(),
             "expert_cards_updated": updated_count,
             "expert_cards_updated_names": updated_names,
             "cards_stuck_on_wait": stuck_cards,

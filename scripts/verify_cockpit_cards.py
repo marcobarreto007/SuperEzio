@@ -9,16 +9,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import time
 from pathlib import Path
 from typing import Any
 
-from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError, sync_playwright
+from playwright.sync_api import Page, sync_playwright
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASE_URL = "http://localhost:8002"
-QUERY = "AAPL analise"
+DEFAULT_TICKER = os.environ.get("SUPEREZIO_TEST_TICKER", "TD.TO").strip().upper()
 
 # Initial "empty" states per card
 INITIAL_STATES = {
@@ -37,14 +38,27 @@ def check_card_state(page: Page) -> dict[str, Any]:
     for key, id_map in [
         ("f51", {"verdict": "f51-verdict", "body": "f51-body", "trust": "f51-trust-bar"}),
         ("sdca", {"verdict": "sdca-verdict", "body": "sdca-body", "trust": "sdca-trust-bar"}),
-        ("neural", {"verdict": "neural-verdict", "body": "neural-body", "trust": "neural-trust-bar"}),
-        ("trinity", {"verdict": "trinity-verdict", "body": "trinity-body", "trust": "trinity-trust-bar"}),
-        ("guardrail", {"summary": "guardrails-summary", "body": "guardrails-body", "trust": "guardrail-trust-bar"}),
+        (
+            "neural",
+            {"verdict": "neural-verdict", "body": "neural-body", "trust": "neural-trust-bar"},
+        ),
+        (
+            "trinity",
+            {"verdict": "trinity-verdict", "body": "trinity-body", "trust": "trinity-trust-bar"},
+        ),
+        (
+            "guardrail",
+            {
+                "summary": "guardrails-summary",
+                "body": "guardrails-body",
+                "trust": "guardrail-trust-bar",
+            },
+        ),
     ]:
         card_data = {}
         for field, dom_id in id_map.items():
             val = page.evaluate(
-                f"(id) => document.getElementById(id)?.textContent?.trim() || null",
+                "(id) => document.getElementById(id)?.textContent?.trim() || null",
                 dom_id,
             )
             card_data[field] = val or ""
@@ -52,7 +66,7 @@ def check_card_state(page: Page) -> dict[str, Any]:
         card_data["body_length"] = len(card_data.get("body", ""))
         # Trust bar width
         trust_w = page.evaluate(
-            f"(id) => {{ const b=document.getElementById(id); if(!b) return null; const s=b.querySelector('span'); return s ? s.style.width : null; }}",
+            "(id) => { const b=document.getElementById(id); if(!b) return null; const s=b.querySelector('span'); return s ? s.style.width : null; }",
             id_map.get("trust", ""),
         )
         card_data["trust_width"] = trust_w or "0%"
@@ -79,6 +93,7 @@ def run_verification(
     base_url: str,
     headed: bool,
     timeout_ms: int,
+    ticker: str,
     slow_mo: int = 0,
 ) -> dict[str, Any]:
     out_dir = ROOT / "output" / "playwright"
@@ -97,7 +112,9 @@ def run_verification(
             args=["--no-sandbox", "--disable-web-security"],
         )
         page = browser.new_page(viewport={"width": 1440, "height": 980})
-        page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
+        page.on(
+            "console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None
+        )
         page.on("pageerror", lambda exc: page_errors.append(str(exc)))
 
         # 1. Load page
@@ -117,7 +134,8 @@ def run_verification(
         inp = page.locator("#user-inp")
         inp.wait_for(state="visible", timeout=5000)
         inp.focus()
-        inp.fill(QUERY)
+        query = f"Analise {ticker} como investimento"
+        inp.fill(query)
         page.wait_for_timeout(200)
         inp.press("Enter")
 
@@ -155,7 +173,9 @@ def run_verification(
 
         # Final snapshot
         final = check_card_state(page)
-        timeline.append({"t": int(time.time() - last_snapshot_time), "label": "final", "cards": final})
+        timeline.append(
+            {"t": int(time.time() - last_snapshot_time), "label": "final", "cards": final}
+        )
 
         # Check if Bob answered
         chat_ok = page.evaluate(
@@ -172,7 +192,8 @@ def run_verification(
 
     return {
         "base_url": base_url,
-        "query": QUERY,
+        "ticker": ticker,
+        "query": f"Analise {ticker} como investimento",
         "chat_responded": bool(chat_ok),
         "initial": initial,
         "final": final,
@@ -190,6 +211,7 @@ def main() -> int:
     parser.add_argument("--headed", action="store_true")
     parser.add_argument("--timeout-ms", type=int, default=300000)
     parser.add_argument("--slow-mo", type=int, default=300)
+    parser.add_argument("--ticker", default=DEFAULT_TICKER)
     args = parser.parse_args()
 
     slow_mo = args.slow_mo if args.headed else 0
@@ -198,6 +220,7 @@ def main() -> int:
         base_url=args.base_url,
         headed=args.headed,
         timeout_ms=args.timeout_ms,
+        ticker=args.ticker.strip().upper(),
         slow_mo=slow_mo,
     )
 
@@ -218,7 +241,9 @@ def main() -> int:
     healthy = len(INITIAL_STATES) - len(problems)
     health_pct = round(healthy / len(INITIAL_STATES) * 100, 1)
 
-    realtime_detected = len(result["timeline"]) > 2  # More than initial + final = intermediate updates
+    realtime_detected = (
+        len(result["timeline"]) > 2
+    )  # More than initial + final = intermediate updates
 
     output = {
         "ok": healthy >= 3,  # At least 3 out of 5 cards healthy

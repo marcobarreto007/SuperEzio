@@ -94,15 +94,9 @@ if ($LASTEXITCODE -ne 0) {
     exit 95
 }
 
-if ($env:FINNHUB_API_KEY) {
-    Write-Host ""
-    Write-Host "[>] Live DataHub price smoke (AAPL via Finnhub)" -ForegroundColor Cyan
-    & python scripts/smoke_datahub_price.py
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "[X] Live DataHub price smoke failed (check FINNHUB_API_KEY / network)." -ForegroundColor Red
-        exit 94
-    }
-}
+# Live provider validation belongs to the configurable multi-asset integration
+# suite.  This gate intentionally remains network-free and no longer invokes
+# the removed single-symbol smoke script.
 
 # ---- Suite definitions ------------------------------------------------------
 $suites = @(

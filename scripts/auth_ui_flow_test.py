@@ -25,6 +25,7 @@ from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError, sy
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASE_URL = "http://127.0.0.1:8002"
+DEFAULT_TICKER = os.environ.get("SUPEREZIO_TEST_TICKER", "TD.TO").strip().upper()
 
 
 def _http_json(url: str, timeout_s: float = 5.0) -> dict[str, Any]:
@@ -49,14 +50,6 @@ def test_auth_modal_behavior(page: Page) -> dict[str, Any]:
                 opacity: window.getComputedStyle(overlay).opacity,
                 pointerEvents: window.getComputedStyle(overlay).pointerEvents
             };
-        }"""
-    )
-
-    # Check dev mode detection
-    dev_mode = page.evaluate(
-        """() => {
-            const logs = document.querySelector('body') ? true : false;
-            return { devModeDetected: window.SZ?.auth?.isAuthenticated ? false : false };
         }"""
     )
 
@@ -211,6 +204,7 @@ def run_verification(
     base_url: str,
     headed: bool,
     timeout_ms: int,
+    ticker: str,
     slow_mo: int = 0,
 ) -> dict[str, Any]:
     out_dir = ROOT / "output" / "playwright"
@@ -231,9 +225,11 @@ def run_verification(
         page = context.new_page()
         page.on(
             "console",
-            lambda msg: console_errors.append({"text": msg.text, "type": msg.type})
+            lambda msg: (
+                console_errors.append({"text": msg.text, "type": msg.type})
                 if msg.type in ("error", "warning")
-                else None,
+                else None
+            ),
         )
         page.on("pageerror", lambda exc: page_errors.append(str(exc)))
 
@@ -266,9 +262,9 @@ def run_verification(
         # 7. Chart data fetch (authenticated)
         try:
             chart_fetch = page.evaluate(
-                """async () => {
+                """async (ticker) => {
                     try {
-                        const response = await fetch('/api/chart-data/AAPL?timeframe=6M');
+                        const response = await fetch(`/api/chart-data/${encodeURIComponent(ticker)}?timeframe=6M`);
                         const data = await response.json();
                         return {
                             ok: response.ok,
@@ -280,7 +276,8 @@ def run_verification(
                     } catch(e) {
                         return {ok: false, error: e.message};
                     }
-                }"""
+                }""",
+                ticker,
             )
             results["chart_data"] = chart_fetch
         except Exception as e:
@@ -327,6 +324,7 @@ def main() -> int:
     parser.add_argument("--headed", action="store_true", default=True)
     parser.add_argument("--timeout-ms", type=int, default=30000)
     parser.add_argument("--slow-mo", type=int, default=100)
+    parser.add_argument("--ticker", default=DEFAULT_TICKER)
     args = parser.parse_args()
 
     try:
@@ -334,6 +332,7 @@ def main() -> int:
             base_url=args.base_url.rstrip("/"),
             headed=args.headed,
             timeout_ms=args.timeout_ms,
+            ticker=args.ticker.strip().upper(),
             slow_mo=args.slow_mo,
         )
     except PlaywrightTimeoutError as exc:

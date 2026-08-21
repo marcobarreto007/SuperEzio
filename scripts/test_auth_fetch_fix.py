@@ -1,14 +1,25 @@
 """Validate that fetchWithAuth() correctly sends Authorization header."""
-import json, sys, urllib.request, urllib.error
+
+import json
+import os
+import sys
+import urllib.error
+import urllib.request
 from playwright.sync_api import sync_playwright
 
 BASE = "http://127.0.0.1:8002"
+TEST_TICKER = os.environ.get("SUPEREZIO_TEST_TICKER", "TD.TO").strip().upper()
+
 
 def main():
     # Login to get a real token
     login_payload = json.dumps({"username": "smoke_test_user", "password": "TestPass123!"}).encode()
-    req = urllib.request.Request(f"{BASE}/auth/login", data=login_payload,
-        headers={"Content-Type": "application/json"}, method="POST")
+    req = urllib.request.Request(
+        f"{BASE}/auth/login",
+        data=login_payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
     try:
         resp = urllib.request.urlopen(req, timeout=10)
         login_data = json.loads(resp.read())
@@ -16,9 +27,22 @@ def main():
     except urllib.error.HTTPError as e:
         if e.code == 401:
             # Need to register first
-            reg = json.dumps({"username": "smoke_test_user", "email": "smoke@test.io", "password": "TestPass123!"}).encode()
-            urllib.request.urlopen(urllib.request.Request(f"{BASE}/auth/register",
-                data=reg, headers={"Content-Type": "application/json"}, method="POST"), timeout=10)
+            reg = json.dumps(
+                {
+                    "username": "smoke_test_user",
+                    "email": "smoke@test.io",
+                    "password": "TestPass123!",
+                }
+            ).encode()
+            urllib.request.urlopen(
+                urllib.request.Request(
+                    f"{BASE}/auth/register",
+                    data=reg,
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                ),
+                timeout=10,
+            )
             resp = urllib.request.urlopen(req, timeout=10)
             login_data = json.loads(resp.read())
             token = login_data["access_token"]
@@ -66,29 +90,34 @@ def main():
             }
         """)
         if hdr and hdr.get("authHeader"):
-            print(f"[PASS] TEST 1: Authorization header PRESENT")
+            print("[PASS] TEST 1: Authorization header PRESENT")
             print(f"       Value: {hdr['authHeader'][:50]}...")
-            print(f"       URL: {hdr.get('url','')}")
+            print(f"       URL: {hdr.get('url', '')}")
         else:
-            print(f"[FAIL] TEST 1: No Authorization header")
+            print("[FAIL] TEST 1: No Authorization header")
             print(f"       {json.dumps(hdr)}")
             page.screenshot(path="C:/Users/marco/Desktop/SuperEzio/output/playwright/t1_fail.png")
             browser.close()
             return 1
 
         # TEST 2: Real chart data
-        chart = page.evaluate("""
-            async () => {
+        chart = page.evaluate(
+            """
+            async (ticker) => {
                 try {
-                    const d = await window.SZ.api.fetchChartData('AAPL', '1D');
+                    const d = await window.SZ.api.fetchChartData(ticker, '1D');
                     return {ok: true, ticker: d.ticker, hasPrice: Boolean(d.price), candles: Array.isArray(d.ohlcv) ? d.ohlcv.length : 0};
                 } catch(e) {
                     return {ok: false, error: e.message || String(e)};
                 }
             }
-        """)
+        """,
+            TEST_TICKER,
+        )
         if chart.get("ok"):
-            print(f"[PASS] TEST 2: fetchChartData OK (ticker={chart.get('ticker')}, candles={chart.get('candles')})")
+            print(
+                f"[PASS] TEST 2: fetchChartData OK (ticker={chart.get('ticker')}, candles={chart.get('candles')})"
+            )
         else:
             print(f"[FAIL] TEST 2: {chart}")
 
@@ -104,17 +133,21 @@ def main():
             }
         """)
         if cockpit.get("ok"):
-            print(f"[PASS] TEST 3: Cockpit OK")
+            print("[PASS] TEST 3: Cockpit OK")
         else:
             print(f"[INFO] TEST 3: {cockpit}")
 
-        page.screenshot(path="C:/Users/marco/Desktop/SuperEzio/output/playwright/auth_fix_verified.png", full_page=True)
+        page.screenshot(
+            path="C:/Users/marco/Desktop/SuperEzio/output/playwright/auth_fix_verified.png",
+            full_page=True,
+        )
         browser.close()
 
     all_ok = bool(hdr and hdr.get("authHeader")) and bool(chart.get("ok"))
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"VERDICT: {'PASS' if all_ok else 'FAIL'}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     return 0 if all_ok else 1
+
 
 sys.exit(main())
