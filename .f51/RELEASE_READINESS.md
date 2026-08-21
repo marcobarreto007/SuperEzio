@@ -44,10 +44,10 @@ Readiness also requires proof that stopping `:8080` produces fail-closed `MAN_AT
 ## Sign-off Record
 
 - Date: 2026-08-20 (America/Toronto).
-- Source commits: `17918ef..588ee8a` plus final F51 closeout commit.
-- Static gates: Ruff check PASS; Ruff format PASS (394 files); agent contract PASS
+- Source commits: `4013d23..46cd73e` for the multiasset investment-quality correction.
+- Static gates: Ruff check PASS; Ruff format PASS (399 files); agent contract PASS
   (22 agents, 32 skills); Docker Compose config PASS.
-- Full suite: `1883 passed, 10 skipped` in 613.47 seconds; 68% coverage.
+- Full suite: `1907 passed, 10 skipped` in 551.38 seconds; 66% coverage.
 - Live runtime: official isolated launcher; local Qwen3.8-27B on `:8080`; API healthy on
   `:8002`. The former AAPL-only proof has been superseded by the configurable multiasset
   matrix.

@@ -792,11 +792,11 @@
     "final_gate": {
       "canonical_runtime": "Qwen3.8-27B-Q4_K_M local em 127.0.0.1:8080; API/UI em 127.0.0.1:8002; contexto 8192; zero-cloud",
       "ruff_check": "PASS",
-      "ruff_format": "PASS; 394 files already formatted",
+      "ruff_format": "PASS; 399 files already formatted",
       "agents": "PASS; 22 agents, 32 skills, 0 issues",
-      "pytest": "1883 passed, 10 skipped in 613.47s; coverage 68%",
+      "pytest": "1907 passed, 10 skipped in 551.38s; coverage 66%",
       "browser": "PASS; TD.TO 123 candles, 7 canvases, zero console errors",
-      "live_integration": "PASS; AAPL completed in 2112.16s; fallback=false; quality=0.87; retries=0; cancels=0; overflows=0; cloud calls=0; expert failures=0",
+      "live_integration": "SUPERSEDED; the former single-AAPL response and heuristic text score are not investment-quality evidence. Live integration now uses a configurable multiasset matrix.",
       "validation_directory": "runtime/validation/20260820-150840",
       "docker": "docker compose config --quiet PASS; image build/boot NOT RUN because Docker Desktop daemon was offline",
       "public_contract": "INTACT for API routes, methods, schemas and status codes; Docker public model port intentionally synchronized from legacy 8082 to canonical 8080",
@@ -812,7 +812,7 @@
     }
   },
   "multi_asset_investment_quality_20260820": {
-    "status": "impact_mapped",
+    "status": "complete",
     "problem": "AAPL domina scripts e o E2E historico; uma resposta operacional para um unico ticker nao mede qualidade de investimento.",
     "architecture_touched": [
       "avaliacao causal do TechnicalNeuralExpert",
@@ -839,7 +839,73 @@
       "execucao real do avaliador com dados externos observados",
       "smoke/API com mais de um ticker",
       "Ruff e suite de regressao"
-    ]
+    ],
+    "real_evaluation": {
+      "universe": [
+        "SPY",
+        "QQQ",
+        "IWM",
+        "RY.TO",
+        "XIU.TO",
+        "GLD",
+        "TLT",
+        "BTC-USD"
+      ],
+      "horizons_bars": [
+        1,
+        5,
+        20
+      ],
+      "data": "5Y observed adjusted OHLCV from yfinance; 80% development prefix plus untouched 20% future holdout",
+      "availability": "24/24 cases loaded",
+      "qualification": "0/24; 23 validation baseline not beaten, 1 model did not converge",
+      "verdict": "INVESTMENT_SKILL_NOT_PROVEN"
+    },
+    "real_penny_backtest": {
+      "universe": [
+        "SNDL",
+        "NOK",
+        "PLUG",
+        "OPEN"
+      ],
+      "candles_per_asset": 1254,
+      "execution": "signal close t, execute next observed open; 5 bps commission; 10 bps slippage",
+      "result": "0 trades; 0.00% strategy; -40.0818% equal-weight buy-and-hold; NO_TRADE",
+      "interpretation": "Cash avoidance is not predictive edge. Official filters produced no actionable sample."
+    },
+    "integrity_fixes": [
+      "removed privileged AAPL health, prompt, fallback, history-filter and live-test coupling",
+      "generic unsourced catalyst/risk/invalidation can no longer authorize a candidate",
+      "missing social data is UNKNOWN/NO_DATA and sentiment is not relabeled as whale/options/pump evidence",
+      "penny backtest is next-open causal with costs and benchmarks",
+      "response score records source and response_form_not_investment_accuracy scope",
+      "overnight matrix has 100 stratified multiasset, macro/no-ticker, invalid and edge cases"
+    ],
+    "regression_hunt": {
+      "verdict": "CLEAN",
+      "public_api": "INTACT",
+      "env": "EXTENDED only for configurable integration/E2E tickers and DataHub health basket",
+      "ruff": "PASS",
+      "format": "PASS; 399 files",
+      "agents": "PASS; 22 agents, 32 skills, 0 issues",
+      "pytest": "1907 passed, 10 skipped in 551.38s; coverage 66%"
+    },
+    "commits": [
+      "4013d23",
+      "50033e8",
+      "914b7fb",
+      "05673b2",
+      "bd8ca78",
+      "e87b00e",
+      "85a4a08",
+      "237f967",
+      "aaa982d",
+      "a6c0096",
+      "d42b0a0",
+      "6249674",
+      "46cd73e"
+    ],
+    "evidence_report": "docs/audit/MULTI_ASSET_INVESTMENT_QUALITY_2026-08-20.md"
   },
   "owner": "Codex"
 }
