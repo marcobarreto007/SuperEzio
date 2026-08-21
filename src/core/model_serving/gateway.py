@@ -15,7 +15,6 @@ from enum import Enum
 from typing import AsyncGenerator, List, Dict, Any, Generator
 
 from ..observability.neural_log import log_event, trace_span, SpanContext, metrics
-from ..ports.protocol import A2AMessage, MessageType
 from .sanitizer import PrivateChannelFilter, strip_private_model_channels
 from ..resilience import CircuitOpenError, CircuitState, get_circuit
 
@@ -29,7 +28,6 @@ from .providers import (  # noqa: F401 — re-exports
     PRIMARY_PROVIDER_NAME,
     PRIMARY_MODEL_ID,
     DEEPSEEK_PROVIDER_NAME,
-    GEMINI_PROVIDER_NAME,
     AGENT_PROVIDER_NAME,
     DAYTRADE_JUDGE_PROVIDER_NAME,
     DAYTRADE_AUDITOR_PROVIDER_NAME,
@@ -66,7 +64,6 @@ class ModelGateway:
     ):
         self.providers = sorted(providers or [], key=lambda p: p.priority)
         self.config = config or GatewayConfig()
-        self._deepseek_provider = None
         self._audit = audit
         self._provider_errors: dict[str, int] = {}  # consecutive error counter
         self._provider_cooldown_until: dict[str, float] = {}  # timestamp until provider is skipped
@@ -81,11 +78,6 @@ class ModelGateway:
                 "max_fallbacks": self.config.max_fallbacks,
             },
         )
-
-    def set_deepseek_provider(self, deepseek_provider) -> None:
-        """Habilita o provedor DeepSeek para tarefas complexas."""
-        self._deepseek_provider = deepseek_provider
-        log_event("MODEL_GATEWAY", "DEEPSEEK_ENABLED", {"status": "active"})
 
     def add_provider(self, provider: ModelProvider) -> None:
         """Adiciona um provedor."""
@@ -114,9 +106,7 @@ class ModelGateway:
         if preferred_provider == "bob":
             preferred_provider = AGENT_PROVIDER_NAME
 
-        import time as _time
-
-        now = _time.monotonic()
+        now = time.monotonic()
 
         def _skip_cooldown(name: str) -> bool:
             until = self._provider_cooldown_until.get(name)
@@ -313,14 +303,6 @@ class ModelGateway:
             kwargs["reasoning_effort"] = os.getenv("SUPEREZIO_DEEPSEEK_REASONING_EFFORT", "high")
             kwargs.pop("temperature", None)
 
-    @staticmethod
-    def _apply_gemini_options(provider: ModelProvider, kwargs: Dict[str, Any]) -> None:
-        """Gemini 2.5 Flash on the /v1beta/openai path runs without thinking by
-        default — no special parameters needed. The provider's max_tokens
-        is already set from GEMINI_MAX_TOKENS env (default 4096), which is
-        sufficient for structured JSON expert output."""
-        pass
-
     async def stream_generate_api(
         self,
         provider: ModelProvider,
@@ -365,7 +347,6 @@ class ModelGateway:
             kwargs["tools"] = tools
 
         self._apply_deepseek_options(provider, kwargs)
-        self._apply_gemini_options(provider, kwargs)
         if json_mode:
             kwargs["response_format"] = {"type": "json_object"}
 
@@ -434,7 +415,6 @@ class ModelGateway:
             "temperature": temp,
         }
         self._apply_deepseek_options(provider, kwargs)
-        self._apply_gemini_options(provider, kwargs)
         if json_mode:
             kwargs["response_format"] = {"type": "json_object"}
 
@@ -847,11 +827,6 @@ class ModelGateway:
             else:
                 prompt += f"\n{msg['role'].capitalize()}: {msg['content']}"
 
-        # A2A Check. OpenAI-compatible /v1 endpoints also start with http,
-        # so only providers explicitly marked as A2A use the remote protocol.
-        if provider_obj and self._is_a2a_provider(provider_obj):
-            return await self.generate_a2a_remote(prompt, provider_obj)
-
         # Default Generate API
         import functools
 
@@ -876,52 +851,6 @@ class ModelGateway:
     def _is_a2a_provider(provider: ModelProvider) -> bool:
         base_url = (provider.base_url or "").rstrip("/")
         return provider.backend == "a2a" or base_url.endswith("/task/submit")
-
-    async def warmup(self) -> None:
-        """No warmup needed for external models."""
-        pass
-
-    async def generate_a2a_remote(self, prompt: str, provider: ModelProvider) -> str:
-        """Chamada para outro agente SuperEzio via protocolo A2A."""
-        import httpx
-        import json
-
-        envelope = A2AMessage(
-            from_agent="orchestrator",
-            to_agent=provider.name,
-            type=MessageType.TASK_SUBMIT,
-            payload={"message": prompt},
-        )
-
-        try:
-            async with httpx.AsyncClient(timeout=self.config.timeout_s) as client:
-                base_url = provider.base_url.rstrip("/")
-                target_url = (
-                    base_url if base_url.endswith("/task/submit") else f"{base_url}/task/submit"
-                )
-                full_response = []
-                async with client.stream(
-                    "POST", target_url, json=envelope.model_dump(by_alias=True)
-                ) as response:
-                    if response.status_code != 200:
-                        raise Exception(f"Remote agent error {response.status_code}")
-
-                    async for line in response.aiter_lines():
-                        if not line:
-                            continue
-                        try:
-                            data = json.loads(line)
-                            if data.get("type") == "CHUNK":
-                                full_response.append(data.get("content", ""))
-                            elif data.get("type") == "ERROR":
-                                raise Exception(f"Remote failure: {data.get('detail')}")
-                        except json.JSONDecodeError:
-                            continue
-
-                return "".join(full_response)
-        except Exception as e:
-            log_event("MODEL_GATEWAY", "REMOTE_ERROR", {"error": str(e)})
-            raise
 
 
 def create_gateway_from_config(config, audit=None) -> ModelGateway:
