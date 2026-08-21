@@ -33,6 +33,7 @@ from .providers import (  # noqa: F401 — re-exports
     AGENT_PROVIDER_NAME,
     build_default_providers,
 )
+from ..config.secrets import load_local_env
 
 logger = logging.getLogger(__name__)
 
@@ -916,7 +917,13 @@ class ModelGateway:
 
 
 def create_gateway_from_config(config, audit=None) -> ModelGateway:
-    """Cria gateway a partir da configuração."""
+    """Cria gateway a partir da configuração.
+
+    Loads .env/.env.local (never overriding already-set OS variables) so
+    SUPEREZIO_DEEPSEEK_API_KEY resolves regardless of which entrypoint
+    constructs the gateway. Idempotent: first call wins.
+    """
+    load_local_env()
     providers, gw_config = build_default_providers(config)
     return ModelGateway(providers=providers, config=gw_config, audit=audit)
 

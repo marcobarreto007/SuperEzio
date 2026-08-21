@@ -151,7 +151,11 @@ def get_deepseek_timeout_s() -> int:
 def _deepseek_api_key() -> str:
     api_key = os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", "").strip()
     if not api_key:
-        raise RuntimeError("SUPEREZIO_DEEPSEEK_API_KEY is required for external financial experts")
+        raise RuntimeError(
+            "SUPEREZIO_DEEPSEEK_API_KEY is required for external financial experts "
+            "(set it in the environment or in .env/.env.local; entrypoints load "
+            "both via core.config.secrets.load_local_env)"
+        )
     return api_key
 
 
