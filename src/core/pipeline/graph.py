@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import uuid
 from typing import Any, AsyncGenerator, Generator
 from core.config.logging_config import get_logger
@@ -35,6 +36,41 @@ from .nodes.trinity import node_trinity
 logger = get_logger(__name__)
 
 __all__ = ["PipelineApp", "build_graph", "route_after_orchestrator", "route_after_trinity"]
+
+# Words that require market data collection. Matched WORD-INITIALLY (prefix
+# boundary): "acao" must not fire inside "educacao"/"alocacao" (reproduced
+# 2026-08-21 — a PT allocation prompt triggered a full market scan through a
+# substring hit), while inflected forms ("analisando", "investirei") and
+# stems ("recomend...") keep working.
+_SCAN_NEED_KEYWORDS = (
+    "scan",
+    "ache",
+    "encontre",
+    "find",
+    "busque",
+    "procure",
+    "penny",
+    "momentum",
+    "catalyst",
+    "catalisador",
+    "recomend",
+    "recomendacao",
+    "sugira",
+    "sugestao",
+    "papel",
+    "ticket",
+    "ordem",
+    "comprar",
+    "vender",
+    "trade",
+    "investir",
+    "investimento",
+    "acao",
+    "stock",
+    "analise",
+    "analyze",
+    "analisa",
+)
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -317,38 +353,7 @@ async def _auto_full_analysis(
     # Collector must run BEFORE Bob for any data-dependent request.
     _msg = str(working_state.get("message") or "").lower()
     _has_ticker = bool(working_state.get("ticker") or working_state.get("case_ticker"))
-    _needs_scan = any(
-        w in _msg
-        for w in (
-            "scan",
-            "ache",
-            "encontre",
-            "find",
-            "busque",
-            "procure",
-            "penny",
-            "momentum",
-            "catalyst",
-            "catalisador",
-            "recomend",
-            "recomendacao",
-            "sugira",
-            "sugestao",
-            "papel",
-            "ticket",
-            "ordem",
-            "comprar",
-            "vender",
-            "trade",
-            "investir",
-            "investimento",
-            "acao",
-            "stock",
-            "analise",
-            "analyze",
-            "analisa",  # single-ticker analysis
-        )
-    )
+    _needs_scan = any(re.search(rf"\b{re.escape(w)}", _msg) for w in _SCAN_NEED_KEYWORDS)
     should_collect_market = bool(
         route in {"market_scan", "ticker_analysis"}
         or working_state.get("force_auto_collect")

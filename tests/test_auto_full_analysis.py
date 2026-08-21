@@ -155,6 +155,61 @@ async def test_auto_full_analysis_skips_market_stack_for_finance_answer(monkeypa
 
 
 @pytest.mark.asyncio
+async def test_auto_full_analysis_does_not_scan_on_allocation_wording(monkeypatch):
+    """'educacao'/'alocacao' must not substring-trigger the scan keyword 'acao'.
+
+    Regression for 2026-08-21: a PT capital-allocation prompt routed a full
+    market scan (10+ min) because "acao" matched inside "educacao". Even a
+    misclassified scanner_allowed=True must not force data collection when
+    the deterministic keywords do not fire.
+    """
+    from src.core.pipeline import graph as graph_module
+
+    events = []
+    monkeypatch.setattr(graph_module, "get_stream_writer", lambda: events.append)
+
+    async def forbidden_collector(state, config=None):
+        raise AssertionError("collector must not run for allocation-only answers")
+
+    async def forbidden_expert(state, gateway=None):
+        raise AssertionError("experts must not run without collected data")
+
+    async def forbidden_collect_experts(state):
+        raise AssertionError("expert collector must not run without collected data")
+
+    async def fake_sdca(state):
+        return {"sdca_firewall": {"decision": "ALLOW", "confidence": 0.9}}
+
+    monkeypatch.setattr(graph_module, "node_collector", forbidden_collector)
+    monkeypatch.setattr(graph_module, "node_expert", forbidden_expert)
+    monkeypatch.setattr(graph_module, "node_collect_experts", forbidden_collect_experts)
+    monkeypatch.setattr(graph_module, "node_sdca_firewall", fake_sdca)
+
+    result = await graph_module._auto_full_analysis(
+        {
+            "run_id": "auto-allocation-wording-test",
+            "route": "agent",
+            "intent": "capital_allocation",
+            "message": (
+                "Moro no Canada e tenho CAD 25.000 para alocar entre reserva "
+                "de emergencia, dividas, ETFs, equipamento e educacao."
+            ),
+            "scanner_allowed": True,  # LLM misclassification must not force a scan
+            "ticker_allowed": False,
+            "allowed_tools": ["final_answer"],
+            "errors": [],
+        },
+        gateway="gateway-ok",
+    )
+
+    assert "scan" not in result
+    assert "data" not in result
+    assert "expert_results" not in result
+    assert "expert_summary" not in result
+    assert result["math_report"]
+
+
+@pytest.mark.asyncio
 async def test_auto_full_analysis_agent_full_access_does_not_prescan(monkeypatch):
     from src.core.pipeline import graph as graph_module
 
