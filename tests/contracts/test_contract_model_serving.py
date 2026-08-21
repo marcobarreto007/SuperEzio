@@ -20,6 +20,8 @@ def _deepseek_contract_env(monkeypatch):
         "SUPEREZIO_EXPERT_MAX_TOKENS",
         "SUPEREZIO_EXPERT_TIMEOUT",
         "SUPEREZIO_ALLOW_CUSTOM_DEEPSEEK_BASE_URL",
+        "SUPEREZIO_DAYTRADE_JUDGE_MODEL",
+        "SUPEREZIO_DAYTRADE_AUDITOR_MODEL",
     ):
         monkeypatch.delenv(name, raising=False)
 
@@ -159,6 +161,24 @@ def test_missing_deepseek_key_fails_closed_without_echoing_secret(monkeypatch):
     with pytest.raises(RuntimeError, match="SUPEREZIO_DEEPSEEK_API_KEY is required") as exc:
         build_default_providers(UniversalConfig())
     assert "sk-" not in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    "env_name",
+    (
+        "SUPEREZIO_DEEPSEEK_MODEL",
+        "SUPEREZIO_DAYTRADE_JUDGE_MODEL",
+        "SUPEREZIO_DAYTRADE_AUDITOR_MODEL",
+    ),
+)
+def test_official_deepseek_rejects_local_or_retired_model_ids(monkeypatch, env_name):
+    monkeypatch.setenv(env_name, "Qwen3.8-27B-UD-IQ2_XXS")
+
+    from core.config.schema import UniversalConfig
+    from core.model_serving.providers import build_default_providers
+
+    with pytest.raises(RuntimeError, match="official DeepSeek models"):
+        build_default_providers(UniversalConfig())
 
 
 def test_model_provider_repr_hides_api_key():

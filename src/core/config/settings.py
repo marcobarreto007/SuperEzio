@@ -16,6 +16,8 @@ from urllib.parse import urlsplit
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_OFFICIAL_DEEPSEEK_MODELS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -196,7 +198,7 @@ class Settings(BaseSettings):
 
     @property
     def deepseek_experts_configured(self) -> bool:
-        return self.deepseek_api_key_configured and self.deepseek_external_endpoint
+        return self.deepseek_configuration_status == "configured"
 
     @property
     def deepseek_configuration_status(self) -> str:
@@ -208,6 +210,15 @@ class Settings(BaseSettings):
             return "misconfigured_non_external_endpoint"
         if host != "api.deepseek.com" and not self.superezio_allow_custom_deepseek_base_url:
             return "misconfigured_custom_endpoint_not_allowed"
+        if host == "api.deepseek.com" and any(
+            model not in _OFFICIAL_DEEPSEEK_MODELS
+            for model in (
+                self.superezio_deepseek_model,
+                self.superezio_daytrade_judge_model,
+                self.superezio_daytrade_auditor_model,
+            )
+        ):
+            return "misconfigured_unsupported_model"
         return "configured"
 
 

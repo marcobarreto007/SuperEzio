@@ -6,6 +6,24 @@ from pydantic import SecretStr, ValidationError
 from core.config.settings import Settings
 
 
+@pytest.fixture(autouse=True)
+def _clean_deepseek_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in (
+        "SUPEREZIO_DEEPSEEK_API_KEY",
+        "SUPEREZIO_DEEPSEEK_BASE_URL",
+        "SUPEREZIO_DEEPSEEK_MODEL",
+        "SUPEREZIO_ALLOW_CUSTOM_DEEPSEEK_BASE_URL",
+        "SUPEREZIO_DEEPSEEK_MAX_TOKENS",
+        "SUPEREZIO_DEEPSEEK_TIMEOUT_SEC",
+        "SUPEREZIO_DEEPSEEK_TEMPERATURE",
+        "SUPEREZIO_DAYTRADE_JUDGE_MODEL",
+        "SUPEREZIO_DAYTRADE_AUDITOR_MODEL",
+        "SUPEREZIO_EXPERT_MAX_TOKENS",
+        "SUPEREZIO_EXPERT_TIMEOUT",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+
 def _settings(**overrides: object) -> Settings:
     return Settings(_env_file=None, **overrides)
 
@@ -84,6 +102,16 @@ def test_custom_deepseek_endpoint_requires_explicit_opt_in() -> None:
     assert denied.deepseek_configuration_status == "misconfigured_custom_endpoint_not_allowed"
     assert allowed.deepseek_experts_configured is True
     assert allowed.deepseek_configuration_status == "configured"
+
+
+def test_official_deepseek_rejects_retired_or_local_model_ids_from_readiness() -> None:
+    settings = _settings(
+        superezio_deepseek_api_key="test-key",
+        superezio_deepseek_model="deepseek-chat",
+    )
+
+    assert settings.deepseek_experts_configured is False
+    assert settings.deepseek_configuration_status == "misconfigured_unsupported_model"
 
 
 @pytest.mark.parametrize(

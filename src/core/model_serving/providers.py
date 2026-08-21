@@ -30,6 +30,7 @@ PRIMARY_MODEL_ID = AGENT_MODEL_ID
 DEEPSEEK_PROVIDER_NAME = "deepseek"
 DEEPSEEK_MODEL_ID = "deepseek-v4-pro"
 DEEPSEEK_OFFICIAL_BASE_URL = "https://api.deepseek.com"
+DEEPSEEK_OFFICIAL_MODELS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})
 GEMINI_PROVIDER_NAME = "gemini"
 GEMINI_MODEL_ID = AGENT_MODEL_ID
 DAYTRADE_JUDGE_PROVIDER_NAME = "daytrade_judge"
@@ -193,6 +194,17 @@ def _deepseek_base_url() -> str:
     return _validate_custom_deepseek_url(override)
 
 
+def _deepseek_model(env_name: str, default: str, *, official_endpoint: bool) -> str:
+    """Resolve a model without sending local or retired ids to the official API."""
+    model = os.getenv(env_name, default).strip()
+    if not model:
+        raise RuntimeError(f"{env_name} cannot be blank")
+    if official_endpoint and model not in DEEPSEEK_OFFICIAL_MODELS:
+        allowed = ", ".join(sorted(DEEPSEEK_OFFICIAL_MODELS))
+        raise RuntimeError(f"{env_name} must be one of the official DeepSeek models: {allowed}")
+    return model
+
+
 @dataclass
 class ModelProvider:
     """Configuração de um provedor de modelo (externo)."""
@@ -246,9 +258,12 @@ def build_default_providers(
     # degrade to the local Qwen model.
     experts_api_key = _deepseek_api_key()
     experts_base_url = _deepseek_base_url()
-    experts_model = os.getenv("SUPEREZIO_DEEPSEEK_MODEL", DEEPSEEK_MODEL_ID).strip()
-    if not experts_model:
-        raise RuntimeError("SUPEREZIO_DEEPSEEK_MODEL cannot be blank")
+    official_endpoint = experts_base_url == DEEPSEEK_OFFICIAL_BASE_URL
+    experts_model = _deepseek_model(
+        "SUPEREZIO_DEEPSEEK_MODEL",
+        DEEPSEEK_MODEL_ID,
+        official_endpoint=official_endpoint,
+    )
     experts_timeout_s = get_deepseek_timeout_s()
     experts_max_tokens = get_deepseek_max_tokens()
     providers.append(
@@ -268,8 +283,16 @@ def build_default_providers(
 
     # Judge and auditor may use independent DeepSeek model ids, but share the
     # same authenticated official endpoint and never fall back to local Qwen.
-    judge_model = os.getenv("SUPEREZIO_DAYTRADE_JUDGE_MODEL", experts_model)
-    auditor_model = os.getenv("SUPEREZIO_DAYTRADE_AUDITOR_MODEL", experts_model)
+    judge_model = _deepseek_model(
+        "SUPEREZIO_DAYTRADE_JUDGE_MODEL",
+        experts_model,
+        official_endpoint=official_endpoint,
+    )
+    auditor_model = _deepseek_model(
+        "SUPEREZIO_DAYTRADE_AUDITOR_MODEL",
+        experts_model,
+        official_endpoint=official_endpoint,
+    )
     for name, priority, model in (
         (DAYTRADE_JUDGE_PROVIDER_NAME, -304, judge_model),
         (DAYTRADE_AUDITOR_PROVIDER_NAME, -305, auditor_model),

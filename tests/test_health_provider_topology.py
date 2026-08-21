@@ -11,6 +11,14 @@ from fastapi.testclient import TestClient
 from agent_server.main import app
 
 
+def _configure_official_deepseek(monkeypatch, *, api_key: str) -> None:
+    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", api_key)
+    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_MODEL", "deepseek-v4-pro")
+    monkeypatch.setenv("SUPEREZIO_DAYTRADE_JUDGE_MODEL", "deepseek-v4-pro")
+    monkeypatch.setenv("SUPEREZIO_DAYTRADE_AUDITOR_MODEL", "deepseek-v4-pro")
+
+
 @contextmanager
 def _healthy_local_ceo(monkeypatch) -> Iterator[None]:
     listener = socket.socket()
@@ -39,7 +47,7 @@ def _deepseek_provider(*, api_key: str, is_local: bool = False) -> SimpleNamespa
         name="deepseek",
         is_local=is_local,
         api_key=api_key,
-        model="deepseek-chat",
+        model="deepseek-v4-pro",
         base_url=("http://127.0.0.1:8080/v1" if is_local else "https://api.deepseek.com/v1"),
         priority=-300,
     )
@@ -48,7 +56,9 @@ def _deepseek_provider(*, api_key: str, is_local: bool = False) -> SimpleNamespa
 def test_missing_deepseek_key_degrades_readiness_without_exposing_a_secret(monkeypatch) -> None:
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_API_KEY", raising=False)
     monkeypatch.setenv("SUPEREZIO_DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
-    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_MODEL", "deepseek-chat")
+    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_MODEL", "deepseek-v4-pro")
+    monkeypatch.setenv("SUPEREZIO_DAYTRADE_JUDGE_MODEL", "deepseek-v4-pro")
+    monkeypatch.setenv("SUPEREZIO_DAYTRADE_AUDITOR_MODEL", "deepseek-v4-pro")
 
     runtime_secret = "runtime-provider-secret-must-not-leak"
     with (
@@ -73,9 +83,7 @@ def test_missing_deepseek_key_degrades_readiness_without_exposing_a_secret(monke
 
 def test_configured_external_deepseek_and_local_ceo_make_readiness_truthful(monkeypatch) -> None:
     secret_value = "sk-deepseek-health-test"
-    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", secret_value)
-    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
-    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_MODEL", "deepseek-chat")
+    _configure_official_deepseek(monkeypatch, api_key=secret_value)
 
     provider = _deepseek_provider(api_key=secret_value)
     with _healthy_local_ceo(monkeypatch), _gateway_provider(provider):
@@ -96,8 +104,7 @@ def test_configured_external_deepseek_and_local_ceo_make_readiness_truthful(monk
 
 
 def test_local_runtime_cannot_masquerade_as_external_deepseek(monkeypatch) -> None:
-    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", "sk-deepseek-health-test")
-    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
+    _configure_official_deepseek(monkeypatch, api_key="sk-deepseek-health-test")
 
     provider = _deepseek_provider(api_key="sk-deepseek-health-test", is_local=True)
     with _healthy_local_ceo(monkeypatch), _gateway_provider(provider):

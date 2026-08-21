@@ -462,6 +462,11 @@ def test_cockpit_summary(client_with_mock_pipeline, monkeypatch):
     """GET /cockpit/summary - aggregate frontpage contract."""
     import agent_server.endpoints as endpoints
 
+    monkeypatch.delenv("SUPEREZIO_DEEPSEEK_API_KEY", raising=False)
+    monkeypatch.setenv("SUPEREZIO_DEEPSEEK_MODEL", "deepseek-v4-pro")
+    monkeypatch.setenv("SUPEREZIO_DAYTRADE_JUDGE_MODEL", "deepseek-v4-pro")
+    monkeypatch.setenv("SUPEREZIO_DAYTRADE_AUDITOR_MODEL", "deepseek-v4-pro")
+
     monkeypatch.setattr(
         endpoints,
         "_cockpit_portfolio_snapshot",
@@ -508,6 +513,15 @@ def test_cockpit_summary(client_with_mock_pipeline, monkeypatch):
     assert data["status"]["guardrails"]["status"] == "unknown"
     assert data["status"]["guardrails"]["ok"] is None
     assert data["status"]["guardrails"]["total"] is None
+    assert data["status"]["primary_model"] == "Qwen3.8-27B-Q4_K_M"
+    assert data["status"]["deep"] == {
+        "status": "degraded",
+        "provider": "deepseek",
+        "topology": "external",
+        "configured": False,
+        "configuration_status": "unconfigured_missing_api_key",
+        "model": "deepseek-v4-pro",
+    }
 
 
 def test_trade_execute_creates_pending_ticket_without_broker_submit(

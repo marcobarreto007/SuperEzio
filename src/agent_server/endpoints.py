@@ -465,11 +465,18 @@ def _cockpit_status_snapshot(
     portfolio: dict[str, Any],
 ) -> dict[str, Any]:
     guardrails = _cockpit_guardrail_summary()
-    # Zero-cloud: every panel is served by the shared local llama-server.
-    local_model = os.getenv(
-        "SUPEREZIO_PRIMARY_MODEL",
-        os.getenv("SUPEREZIO_DEEPSEEK_MODEL", "Qwen3.8-27B-Q4_K_M"),
-    )
+    local_model = os.getenv("SUPEREZIO_PRIMARY_MODEL", "Qwen3.8-27B-Q4_K_M")
+    try:
+        from core.config.settings import Settings
+
+        settings = Settings(_env_file=None)
+        deep_model = settings.superezio_deepseek_model
+        deep_configured = settings.deepseek_experts_configured
+        deep_configuration_status = settings.deepseek_configuration_status
+    except Exception:
+        deep_model = None
+        deep_configured = False
+        deep_configuration_status = "invalid_configuration"
     ceo_online = pipeline_status.get("status") in {"ok", "ready"} or bool(
         pipeline_status.get("mode")
     )
@@ -480,8 +487,12 @@ def _cockpit_status_snapshot(
             "provider": "local",
         },
         "deep": {
-            "status": "online" if ceo_online else "degraded",
-            "model": local_model,
+            "status": "online" if deep_configured else "degraded",
+            "provider": "deepseek",
+            "topology": "external",
+            "configured": deep_configured,
+            "configuration_status": deep_configuration_status,
+            "model": deep_model,
         },
         "ibkr": {
             "status": "online" if portfolio.get("connected") else "offline",
