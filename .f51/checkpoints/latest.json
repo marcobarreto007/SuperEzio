@@ -1209,5 +1209,27 @@
       "358ef98",
       "ca93cdd"
     ]
+  },
+  "model_speed_probe_20260821": {
+    "status": "complete",
+    "objective": "Subir o CEO local e medir velocidade real de geracao (tok/s) na unica GPU.",
+    "runtime": {
+      "binary": "tools/llama.cpp/llama-server.exe (build 10435, CUDA 12)",
+      "model": "Qwen3.8-27B-UD-IQ2_XXS.gguf (9.0GB)",
+      "flags": "-ngl all -sm layer -ts 12 -c 8192 -np 1 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --reasoning off --presence-penalty 1.5",
+      "port": 8080,
+      "boot_healthy_seconds": "~10",
+      "gpu": "RTX 3060 12GB — 9004 MiB used, 3112 MiB free apos carga"
+    },
+    "measurements": {
+      "non_streaming_256max": "143 tokens em 9.82s end-to-end = 14.56 tok/s (inclui processamento do prompt de 49 tokens)",
+      "ttft": "0.354s (streaming, primeiro token)",
+      "streaming_128max": "14 content chunks em 1.09s",
+      "historico_comparacao": "full_system_e2e_20260820 registrava 1.38-1.41 tok/s com Q4_K_M — UD-IQ2_XXS single-GPU ~10x mais rapido"
+    },
+    "notes": [
+      "Servidor permanece ativo em :8080 (task de sessao); encerrar com stop.ps1 ou TaskStop.",
+      "API :8002 segue MAN_AT_WORK — probe do modelo nao altera o gate."
+    ]
   }
 }
