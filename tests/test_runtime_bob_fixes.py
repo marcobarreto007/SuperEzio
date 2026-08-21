@@ -54,6 +54,24 @@ def test_man_at_work_notification_makes_no_network_calls(monkeypatch, tmp_path):
     assert (tmp_path / "data" / "man_at_work" / "latest_alert.txt").exists()
 
 
+def test_exit_man_at_work_persists_clear_record(monkeypatch, tmp_path):
+    """The alert file must record recovery: monitoring that reads
+    latest_alert.txt after CEO recovery must not see a stale active gate."""
+    monkeypatch.chdir(tmp_path)
+    body = BobsBody()
+    body.enter_man_at_work_mode("CEO Brain down: CEO unreachable")
+    alert_path = tmp_path / "data" / "man_at_work" / "latest_alert.txt"
+    assert alert_path.exists()
+    assert "MAN_AT_WORK MODE" in alert_path.read_text(encoding="utf-8")
+
+    body.exit_man_at_work_mode()
+
+    cleared = alert_path.read_text(encoding="utf-8")
+    assert "MAN_AT_WORK CLEARED" in cleared
+    assert "CEO Brain down" in cleared  # original reason retained for audit
+    assert body.is_man_at_work() is False
+
+
 def test_bob_pain_log_uses_configured_test_path(monkeypatch, tmp_path):
     pain_log = tmp_path / "bob-pain.jsonl"
     monkeypatch.setenv("SUPEREZIO_BOB_PAIN_LOG", str(pain_log))

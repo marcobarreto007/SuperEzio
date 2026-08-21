@@ -484,13 +484,31 @@ class BobsBody:
             return
 
         duration = datetime.now(timezone.utc) - datetime.fromisoformat(self._mode_entered_at)
+        reason = self._mode_reason
         logger.info("=== EXITING MAN_AT_WORK MODE ===")
         logger.info("Duration: %s", duration)
-        logger.info("Original reason: %s", self._mode_reason)
+        logger.info("Original reason: %s", reason)
 
         self.system_mode = SystemMode.NORMAL
         self._mode_entered_at = ""
         self._mode_reason = ""
+
+        # Persist the recovery so operators (and any monitoring that reads the
+        # alert file) see the gate cleared, with the original reason retained
+        # for audit. Forensic detail stays in the diagnostic snapshots.
+        try:
+            alert_path = Path("data/man_at_work/latest_alert.txt")
+            alert_path.parent.mkdir(parents=True, exist_ok=True)
+            cleared = (
+                "MAN_AT_WORK CLEARED\n"
+                f"Time: {datetime.now(timezone.utc).isoformat()}\n"
+                f"Duration: {duration}\n"
+                f"Original reason: {reason}\n"
+            )
+            with open(alert_path, "w", encoding="utf-8") as f:
+                f.write(cleared)
+        except Exception as e:
+            logger.error("man_at_work: failed to persist clear: %s", str(e)[:200])
 
     def _save_diagnostic_snapshot(self, trigger_reason: str) -> None:
         """Save complete system state for technician analysis."""
