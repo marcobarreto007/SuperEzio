@@ -34,13 +34,16 @@ class AllocationPlan:
     summary_verdict: str
 
 
-def load_commission_free_etfs() -> List[Dict[str, Any]]:
+def load_commission_free_etfs() -> List[str]:
     if not COMMISSION_FREE_MANIFEST.exists():
         return []
     try:
         with open(COMMISSION_FREE_MANIFEST, "r", encoding="utf-8") as f:
             data = json.load(f)
-            return data.get("etfs", [])
+            symbols = data.get("symbols", {})
+            can = symbols.get("CAN", [])
+            us = symbols.get("US", [])
+            return can + us
     except Exception:
         return []
 
