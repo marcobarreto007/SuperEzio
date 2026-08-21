@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
 import threading
 import time
@@ -21,6 +22,26 @@ _WRITE_LOCK = threading.Lock()
 
 # Database path
 DB_PATH = resolve_project_path(os.getenv("SUPEREZIO_DECISION_TRACE_DB", "runtime/investor.db"))
+
+# Synthetic run ids that must never reach the production decision_traces
+# ledger. Historical pollution came from runs like "agent-full-access-no-prescan-test",
+# "auto-full-analysis-test", "node1", "test_node", "contract_test". conftest.py
+# already redirects pytest via SUPEREZIO_DECISION_TRACE_DB; this is defense in
+# depth for callers that bypass the env override.
+_SYNTHETIC_RUN_ID = re.compile(
+    r"(?:^|[-_])(?:test|pytest|probe|benchmark)(?:$|[-_])|"
+    r"^(?:test|pytest|probe|benchmark)(?:$|[-_])|"
+    r"^node\d*$|^unknown$",
+    re.IGNORECASE,
+)
+
+
+def is_synthetic_run_id(run_id: str) -> bool:
+    """True when a run id is test/probe-shaped (or empty) and must not be persisted."""
+    rid = str(run_id or "").strip()
+    if not rid or rid.lower() == "unknown":
+        return True
+    return bool(_SYNTHETIC_RUN_ID.search(rid))
 
 
 def _utc_now() -> str:
@@ -251,7 +272,11 @@ class DecisionTraceLogger:
         }
         self._record(entry)
 
-        # Also write to SQLite for blame attribution
+        # Also write to SQLite for blame attribution. Synthetic run ids are
+        # excluded so test/probe executions never pollute the production ledger.
+        if is_synthetic_run_id(token.run_id):
+            return entry
+
         try:
             _write_trace_to_db(
                 db_path=DB_PATH,
