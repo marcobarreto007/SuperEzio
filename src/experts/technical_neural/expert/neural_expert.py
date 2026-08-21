@@ -459,9 +459,7 @@ class TechnicalNeuralExpert:
             high_invalid = high < upper and not math.isclose(
                 high, upper, rel_tol=1e-12, abs_tol=1e-10
             )
-            low_invalid = low > lower and not math.isclose(
-                low, lower, rel_tol=1e-12, abs_tol=1e-10
-            )
+            low_invalid = low > lower and not math.isclose(low, lower, rel_tol=1e-12, abs_tol=1e-10)
             if high_invalid or low_invalid:
                 raise CandleValidationError("INCONSISTENT_OHLC")
             candle_tuple = (open_price, high, low, close, volume)
