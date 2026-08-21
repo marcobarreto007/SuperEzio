@@ -4,8 +4,12 @@ The local CEO model (Bob) is **Qwen3.8-27B-Q4_K_M** (GGUF, ~15.9 GB).
 
 ## Current machine state (2026-08-21)
 
-- **GPU**: single NVIDIA RTX 3060 12GB (driver 560.94 / CUDA 12.6). There is
-  no second GPU on this machine — manifest, scripts and docs assume 1 GPU.
+- **GPU**: single working NVIDIA RTX 3060 12GB (driver 560.94 / CUDA 12.6).
+  A machine also has an RTX 2070 8GB that is physically present but in a
+  FAILED state (Windows Code 31, mismatched OEM driver packages) and a
+  P106-100 mining card. The runtime assumes 1 GPU until the 2070 is
+  repaired; if repaired, total VRAM is 20GB and the 2-GPU tensor-split
+  profile becomes viable again.
 - **Model file**: **NOT INSTALLED**. `models/` contains only this README.
   Until `Qwen3.8-27B-Q4_K_M.gguf` is present, the CEO server on :8080 is
   fail-closed: `scripts/serve_agent_llamacpp.ps1` aborts with

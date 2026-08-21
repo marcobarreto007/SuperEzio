@@ -467,16 +467,23 @@ Session: delivery-hardening-2026-08-21
   deve prover `models/Qwen3.8-27B-Q4_K_M.gguf` (~15.9 GB) conforme `models/README_MODEL.md`.
 - Status: Active — nao bloqueia testes/entrega; bloqueia qualquer claim de CEO local operacional.
 
-### INV-R42 - GPU fantasma (RTX 2070) em config e scripts [HIGH -> RESOLVED 2026-08-21]
+### INV-R42 - GPU secundaria (RTX 2070) em estado de falha Code 31 [HIGH -> CONFIG RESOLVED; HARDWARE PENDENTE]
 
 - Classification: runtime / configuration truth.
-- Risk: manifest, providers.py e launch scripts assumiam 2 GPUs (`-ts 12,8`); o launch
-  profile falharia ou degradaria na maquina real (1x RTX 3060 12GB).
-- Evidence: `config/model_manifest.json`, `src/core/model_serving/providers.py`,
-  `scripts/serve_agent_llamacpp.ps1`, `nvidia-smi -L`.
-- Resolution: tensor split 12, gpus "RTX 3060 12GB", comentarios e README alinhados.
-  Commit a653c5e; testes de contrato 103 passed, 1 skipped (skip honesto do GGUF).
-- Status: Resolved 2026-08-21.
+- Risk: manifest, providers.py e launch scripts assumiam 2 GPUs funcionais (`-ts 12,8`);
+  na realidade a RTX 2070 8GB EXISTE fisicamente mas esta em estado Error (Code 31,
+  CM_PROB_FAILED_ADD) e nao aparece no `nvidia-smi -L` — o launch perfil 2-GPU
+  falharia ou degradaria.
+- Evidence: `Get-PnpDevice -Class Display` (RTX 2070: Status Error; RTX 3060: OK;
+  P106-100: Unknown), drivers OEM divergentes por placa (3060: oem18.inf 560.94
+  Ago/2024; 2070: oem13.inf 581.80 Out/2025) — causa classica de Code 31.
+- Resolution (config): tensor split 12, gpus "RTX 3060 12GB", comentarios e README
+  alinhados. Commit a653c5e; testes de contrato 103 passed, 1 skipped.
+- Repair path (operador): instalar UM unico pacote de driver NVIDIA (DDU em modo
+  seguro + driver mais recente) para 3060 + 2070 compartilharem o mesmo driver;
+  remover/ignorar a P106-100 se estiver fora de uso. Com a 2070 OK, o total de
+  VRAM sobe para 20GB e o perfil original Q4_K_M/-ts 12,8 volta a valer.
+- Status: Config Resolved 2026-08-21; reparo de hardware pendente do operador.
 
 ### INV-R43 - Fraud guard morto: 15 regras, 0 computaveis [HIGH -> RESOLVED 2026-08-21]
 
