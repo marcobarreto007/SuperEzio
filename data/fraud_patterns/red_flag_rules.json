@@ -1,7 +1,7 @@
 {
-  "version": "2.0",
-  "generated": "2026-06-30",
-  "description": "F51 Red Flag Detection Rules",
+  "version": "3.0",
+  "generated": "2026-08-21",
+  "description": "F51 Red Flag Detection Rules — computable rules are evaluated by FraudPatternAnalyst and the f51-hub adapter against DataHub market data; provider-gated rules (insider data, order book, social platforms) remain documented but non-computable until a provider is available.",
   "rules": [
     {
       "rule_id": "R001",
@@ -9,7 +9,9 @@
       "description": "Daily volume > 5x 20-day average with no SEC filing, earnings, or major news within 48 hours.",
       "severity": "high",
       "action": "flag_for_review",
-      "category": "volume_anomaly"
+      "category": "volume_anomaly",
+      "computable": false,
+      "limitation_when_absent": "R001 not computable: news/filing timeline provider not available"
     },
     {
       "rule_id": "R002",
@@ -17,7 +19,9 @@
       "description": "Ticker mentioned with terms like 'moon', '100x', 'next big thing', 'guaranteed', 'no way this fails' on Reddit/Twitter.",
       "severity": "high",
       "action": "block_if_microcap",
-      "category": "social_sentiment"
+      "category": "social_sentiment",
+      "computable": false,
+      "limitation_when_absent": "R002 not computable: social platform stream provider not available"
     },
     {
       "rule_id": "R003",
@@ -25,7 +29,9 @@
       "description": "Insider sales > $100K within 7 days of social media promotion spike or volume anomaly.",
       "severity": "critical",
       "action": "block_immediately",
-      "category": "insider_activity"
+      "category": "insider_activity",
+      "computable": false,
+      "limitation_when_absent": "R003 not computable: insider transaction feed not available"
     },
     {
       "rule_id": "R004",
@@ -33,7 +39,9 @@
       "description": "Market cap < $50M AND quarterly revenue < $100K. Shell company risk.",
       "severity": "critical",
       "action": "block_immediately",
-      "category": "fundamental"
+      "category": "fundamental",
+      "computable": false,
+      "limitation_when_absent": "R004 not computable: quarterly revenue source not available (superseded by no_revenue_with_operations when revenue is present)"
     },
     {
       "rule_id": "R005",
@@ -41,7 +49,9 @@
       "description": "> 30% of daily volume occurs in last 10 minutes of trading. Closing price manipulation risk.",
       "severity": "high",
       "action": "flag_for_review",
-      "category": "price_manipulation"
+      "category": "price_manipulation",
+      "computable": false,
+      "limitation_when_absent": "R005 not computable: intraday/order-flow data not available"
     },
     {
       "rule_id": "R006",
@@ -49,7 +59,9 @@
       "description": "Same ticker promoted across 3+ social platforms within 24 hours by accounts with low karma/follower overlap.",
       "severity": "critical",
       "action": "block_immediately",
-      "category": "social_sentiment"
+      "category": "social_sentiment",
+      "computable": false,
+      "limitation_when_absent": "R006 not computable: cross-platform promotion data not available"
     },
     {
       "rule_id": "R007",
@@ -57,7 +69,9 @@
       "description": "Bid-ask spread > 5% of price for stock with daily volume > $1M. Liquidity concern or spoofing.",
       "severity": "medium",
       "action": "flag_for_review",
-      "category": "market_structure"
+      "category": "market_structure",
+      "computable": false,
+      "limitation_when_absent": "R007 not computable: bid-ask quote data not available"
     },
     {
       "rule_id": "R008",
@@ -65,7 +79,9 @@
       "description": "Asset traded on unregulated exchange without KYC/AML compliance. High fraud risk.",
       "severity": "critical",
       "action": "block_immediately",
-      "category": "regulatory"
+      "category": "regulatory",
+      "computable": false,
+      "limitation_when_absent": "R008 not computable: exchange compliance registry not available"
     },
     {
       "rule_id": "R009",
@@ -73,7 +89,9 @@
       "description": "Stock < $5 with > 100% price increase in 5 days. Momentum trap risk.",
       "severity": "high",
       "action": "flag_for_review",
-      "category": "price_anomaly"
+      "category": "price_anomaly",
+      "computable": false,
+      "limitation_when_absent": "R009 not computable: 5-day price-window enrichment not wired into rule engine"
     },
     {
       "rule_id": "R010",
@@ -81,7 +99,9 @@
       "description": "Volume-to-market-cap > 100% with no price movement. Circular trading suspected.",
       "severity": "critical",
       "action": "block_immediately",
-      "category": "volume_anomaly"
+      "category": "volume_anomaly",
+      "computable": false,
+      "limitation_when_absent": "R010 not computable: volume/market-cap ratio rule not wired into rule engine"
     },
     {
       "rule_id": "R011",
@@ -89,7 +109,9 @@
       "description": "Ticker promoted in 'investment newsletter' from unknown source. Paid promotion = pump.",
       "severity": "high",
       "action": "block_if_microcap",
-      "category": "social_sentiment"
+      "category": "social_sentiment",
+      "computable": false,
+      "limitation_when_absent": "R011 not computable: newsletter promotion source not available"
     },
     {
       "rule_id": "R012",
@@ -97,7 +119,9 @@
       "description": "Ticker or crypto promoted by celebrity/influencer without #ad disclosure. Illegal promotion.",
       "severity": "critical",
       "action": "block_immediately",
-      "category": "social_sentiment"
+      "category": "social_sentiment",
+      "computable": false,
+      "limitation_when_absent": "R012 not computable: endorsement disclosure stream not available"
     },
     {
       "rule_id": "R013",
@@ -105,7 +129,9 @@
       "description": "Any mention of 'guaranteed returns', 'risk-free', 'can't lose'. These do not exist in markets.",
       "severity": "critical",
       "action": "block_immediately",
-      "category": "social_sentiment"
+      "category": "social_sentiment",
+      "computable": false,
+      "limitation_when_absent": "R013 not computable: social language stream not available"
     },
     {
       "rule_id": "R014",
@@ -113,7 +139,9 @@
       "description": "Ticker on TSX-V with market cap < $10M AND daily volume < $50K. Extreme illiquidity + manipulation risk.",
       "severity": "high",
       "action": "flag_for_review",
-      "category": "regulatory"
+      "category": "regulatory",
+      "computable": false,
+      "limitation_when_absent": "R014 not computable: exchange/listing registry lookup not wired into rule engine"
     },
     {
       "rule_id": "R015",
@@ -121,7 +149,94 @@
       "description": "Negative earnings AND debt/equity > 3x. Fundamental weakness exploited by manipulators.",
       "severity": "medium",
       "action": "flag_for_review",
-      "category": "fundamental"
+      "category": "fundamental",
+      "computable": false,
+      "limitation_when_absent": "R015 not computable: balance-sheet ratios not available from DataHub profile"
+    },
+    {
+      "rule_id": "extreme_volume_spike",
+      "name": "Extreme Volume Spike",
+      "description": "Volume z-score >= 3.5 versus the 20-day window. Extreme anomaly typically associated with pumps or scheduled-news breaks.",
+      "severity": "high",
+      "action": "flag_for_review",
+      "category": "volume_anomaly",
+      "computable": true,
+      "weight": 0.35,
+      "condition": "volume_z_score >= 3.5",
+      "evidence_id_template": "extreme_volume_zscore_{ticker}_{date}",
+      "limitation_when_absent": "extreme_volume_spike_skipped: volume_z_score not available from DataHub",
+      "matched_patterns": ["pump_and_dump", "wash_trading", "momentum_ignition", "microcap_fraud", "crypto_wash_trading"]
+    },
+    {
+      "rule_id": "unusual_volume_without_clear_news",
+      "name": "Unusual Volume Without Clear News",
+      "description": "Volume z-score between 2.0 and 3.5 versus the 20-day window, without an evident catalyst in the data available.",
+      "severity": "medium",
+      "action": "flag_for_review",
+      "category": "volume_anomaly",
+      "computable": true,
+      "weight": 0.25,
+      "condition": "2.0 <= volume_z_score < 3.5",
+      "evidence_id_template": "volume_zscore_{ticker}_{date}",
+      "limitation_when_absent": "unusual_volume_without_clear_news_skipped: volume_z_score not available from DataHub",
+      "matched_patterns": ["pump_and_dump", "spoofing", "layering", "wash_trading", "momentum_ignition", "crypto_wash_trading"]
+    },
+    {
+      "rule_id": "price_spike_high_volatility",
+      "name": "Price Spike With High Volatility",
+      "description": "Absolute daily return >= 15% (>= 10% for microcaps under $200M market cap). Momentum-trap risk.",
+      "severity": "high",
+      "action": "flag_for_review",
+      "category": "price_anomaly",
+      "computable": true,
+      "weight": 0.30,
+      "condition": "abs(daily_return) >= 0.15, or >= 0.10 when market_cap < $200M",
+      "evidence_id_template": "price_spike_{ticker}_{date}",
+      "limitation_when_absent": "price_spike_high_volatility_skipped: daily_return not available from DataHub",
+      "matched_patterns": ["pump_and_dump", "spoofing", "wash_trading", "momentum_ignition"]
+    },
+    {
+      "rule_id": "microcap_concentration",
+      "name": "Microcap Concentration",
+      "description": "Market cap below $50M. High manipulation susceptibility and liquidity risk.",
+      "severity": "critical",
+      "action": "block_immediately",
+      "category": "fundamental",
+      "computable": true,
+      "weight": 0.40,
+      "condition": "market_cap < 50_000_000",
+      "evidence_id_template": "market_cap_{ticker}_{date}",
+      "limitation_when_absent": "microcap_concentration_skipped: market_cap not available from DataHub for this ticker",
+      "matched_patterns": ["pump_and_dump", "misleading_promotion", "microcap_fraud"]
+    },
+    {
+      "rule_id": "vague_hype_sector_description",
+      "name": "Vague Hype Sector Description",
+      "description": "Company description contains 2+ hype keywords ('moon', '100x', 'guaranteed', etc.) without concrete business substance.",
+      "severity": "high",
+      "action": "flag_for_review",
+      "category": "social_sentiment",
+      "computable": true,
+      "weight": 0.25,
+      "condition": "hype_keyword_count >= 2 in company description",
+      "evidence_id_template": "hype_keywords_{ticker}_{date}",
+      "limitation_when_absent": "vague_hype_sector_description_skipped: company description not available from DataHub for this ticker",
+      "hype_keywords": ["moon", "100x", "to the moon", "guaranteed", "no way this fails", "next big thing", "risk-free", "can't lose"],
+      "matched_patterns": ["misleading_promotion", "microcap_fraud", "insider_selling_after_hype", "crypto_wash_trading"]
+    },
+    {
+      "rule_id": "no_revenue_with_operations",
+      "name": "No Revenue With Operations",
+      "description": "Reported revenue is zero while market cap exceeds $10M and the company has an operational description. Shell-company risk.",
+      "severity": "medium",
+      "action": "flag_for_review",
+      "category": "fundamental",
+      "computable": true,
+      "weight": 0.30,
+      "condition": "revenue == 0 AND market_cap > $10M AND description length > 50",
+      "evidence_id_template": "revenue_zero_{ticker}_{date}",
+      "limitation_when_absent": "no_revenue_with_operations_skipped: totalRevenue not available from DataHub for this ticker",
+      "matched_patterns": ["misleading_promotion", "microcap_fraud", "insider_selling_after_hype", "crypto_wash_trading"]
     }
   ]
 }
