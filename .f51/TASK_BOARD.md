@@ -315,6 +315,7 @@
 - [x] 2026-05-21 - Removed model build surfaces from the active tree and kept the merged GGUF runtime path.
 - [x] 2026-05-21 - Clean tree pass: removed archived runtime/docs surfaces, generic non-F51 skill bundles, retired provider alias path, edge placeholder hooks, and stale F51 map content.
 - [x] 2026-05-20 - Frontend/runtime/contracts/tests delivery saved locally.
+- [x] 2026-08-21 - Hardening delivery (pos-auditoria adversarial de 5 subagentes): config single-GPU honesta (a653c5e), gateway carrega .env no factory + default deepseek-v4-pro (e302dd1), fraud guard vivo com 6 regras computaveis + testes (1d4313e), cobertura explicita fora dos addopts (9ee8dca), fonte unica de risco documentada (6d124ee), allocator fail-closed + playbook so com ETFs do universo 108 (8f5e1cf), guard de run_ids sinteticos no decision ledger (4ec5127), regressao pinned candles time=0 (51447b5). RISK_REGISTER R41-R49. Working tree limpa, DISK ONLY.
 
 ## Policy
 

@@ -1,8 +1,8 @@
 {
-  "date_local": "2026-08-21T09:36:00-04:00",
-  "session": "investor-playbook-and-allocator-delivery-2026-08-21",
-  "status": "complete",
-  "objective": "Manter runtime, codigo, configuracao, testes, launchers e documentacao sob uma unica verdade operacional verificavel.",
+  "date_local": "2026-08-21",
+  "session": "delivery-hardening-2026-08-21",
+  "status": "DELIVERED",
+  "objective": "Converter os achados da auditoria adversarial (5 subagentes, 2026-08-21) em produto endurecido com evidencia e contratos honestos.",
   "impact_map": {
     "problem": "O runtime esta acoplado a IBKR/paper e nao possui um contrato seguro para entregar ordens live ao TD Direct Investing.",
     "architecture_touched": [
@@ -1092,5 +1092,99 @@
     },
     "remaining_blocker": "No SUPEREZIO_DEEPSEEK_API_KEY is configured locally. A paid live expert call and fresh full browser/pipeline E2E cannot be truthfully claimed until the operator supplies it without committing or pasting it into chat."
   },
-  "owner": "Codex"
+  "owner": "Codex",
+  "delivery_hardening_20260821": {
+    "status": "DELIVERED",
+    "problem": "Auditoria adversarial confirmou o nucleo do sistema (1.965 testes reais, 39.310 traces, 108 ETFs, SDCA exato, TD fail-closed) mas achou: GPU fantasma (RTX 2070), GGUF ausente (fail-closed por falta de arquivo), fraud guard morto (0 regras computaveis), cobertura 67% nao reproduzivel (--cov nos addopts), drift triplo de constantes de risco, decision_traces poluido por ~14k linhas de teste, playbook com ETFs fora dos 108 sem comissao, RISK_REGISTER fora de gate.",
+    "work_packages": {
+      "WP1_runtime_single_gpu": {
+        "commit": "a653c5e",
+        "files": [
+          "config/model_manifest.json",
+          "src/core/model_serving/providers.py",
+          "scripts/serve_agent_llamacpp.ps1",
+          "models/README_MODEL.md"
+        ],
+        "tests": "103 passed, 1 skipped (skip honesto: GGUF ausente)"
+      },
+      "WP2_gateway_env_failclosed": {
+        "commit": "e302dd1",
+        "files": [
+          "src/core/model_serving/gateway.py",
+          "src/core/model_serving/providers.py",
+          "src/core/investor/storage.py"
+        ],
+        "tests": "95 + 2 + 9 passed"
+      },
+      "WP3_fraud_guard_live": {
+        "commit": "1d4313e",
+        "files": [
+          "data/fraud_patterns/red_flag_rules.json",
+          "tests/test_fraud_guard_live.py"
+        ],
+        "tests": "16 passed; 6 regras computaveis disparam sem rede"
+      },
+      "WP4_coverage_durable": {
+        "commit": "9ee8dca",
+        "files": [
+          "pytest.ini"
+        ],
+        "tests": "provado: run default nao toca .coverage (mtime inalterado)"
+      },
+      "WP5_risk_single_source": {
+        "commit": "6d124ee",
+        "files": [
+          "src/core/trading/position_sizer.py",
+          "src/core/config/settings.py"
+        ],
+        "tests": "28 + 14 + 43 passed (trading loop, money gate, td ticket)"
+      },
+      "WP6_allocator_failclosed": {
+        "commit": "8f5e1cf",
+        "files": [
+          "scripts/investor_portfolio_allocator.py",
+          "tests/test_investor_portfolio_allocator.py",
+          "docs/INVESTOR_PLAYBOOK.md"
+        ],
+        "tests": "8 passed"
+      },
+      "WP7_trace_ledger_guard": {
+        "commit": "4ec5127",
+        "files": [
+          "src/core/audit/decision_trace.py",
+          "tests/test_decision_trace_guard.py"
+        ],
+        "tests": "14 passed (guard + trace logger + guardrail hub)"
+      },
+      "WP9_chart_time_regression": {
+        "commit": "51447b5",
+        "files": [
+          "tests/test_chart_data_times.py"
+        ],
+        "tests": "2 passed; servidor vivo :8002 verificado: 0 candles/sma20 com time=0"
+      }
+    },
+    "verification": {
+      "ruff_check": "PASS (arquivos tocados verificados)",
+      "ruff_format": "PASS",
+      "targeted_tests": "103 + 95 + 2 + 9 + 16 + 28 + 14 + 43 + 8 + 14 + 2 = 334 passed (pacotes WP1-WP9)",
+      "full_suite": "pendente do gate final (roda completa + coverage + browser smoke)",
+      "browser_smoke": "pendente do gate final (servidor :8002 live em MAN_AT_WORK)"
+    },
+    "commits": [
+      "a653c5e",
+      "e302dd1",
+      "1d4313e",
+      "9ee8dca",
+      "6d124ee",
+      "8f5e1cf",
+      "4ec5127",
+      "51447b5"
+    ],
+    "remaining_blockers": [
+      "GGUF ausente: operador deve prover models/Qwen3.8-27B-Q4_K_M.gguf (~15.9 GB) para o CEO local subir (INV-R41).",
+      "Limpeza das ~14k linhas historicas de teste no runtime/investor.db pendente de aprovacao do operador (INV-R47).",
+      "SUPEREZIO_DEEPSEEK_API_KEY ausente no shell (presente no .env): chamadas reais de experts exigem o operador (INV existente)."
+    ]
+  }
 }

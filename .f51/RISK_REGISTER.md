@@ -1,7 +1,7 @@
 # F51 Risk Register
 
-Updated: 2026-08-20T12:30:00-04:00
-Session: total-system-documentation-sync-2026-08-20
+Updated: 2026-08-21T10:45:00-04:00
+Session: delivery-hardening-2026-08-21
 
 ## Active Risks
 
@@ -454,3 +454,102 @@ Session: total-system-documentation-sync-2026-08-20
 - Mitigation: executar `/agent-lab` com tarefas identicas, score minimo >20/30 e zero
   violacoes criticas antes de promover os novos papeis como confiaveis.
 - Status: Active — nao bloqueia corrigir o produto; bloqueia alegar que o exército e o melhor.
+
+### INV-R41 - Modelo local (GGUF) ausente no disco [CRITICAL]
+
+- Classification: runtime / zero-cloud integrity.
+- Risk: `models/` contem apenas README; o CEO local na :8080 e fail-closed por ausencia
+  de arquivo, nao por design. Relatorios que descrevem a topologia local como operacional
+  omitem que o servidor nao pode subir.
+- Evidence: `nvidia-smi -L` (1 GPU), `models/` (sem .gguf), `scripts/serve_agent_llamacpp.ps1`
+  (aborta com "ERROR: Model not found"), `config/model_manifest.json` campo `availability`.
+- Mitigation: config e manifest agora declaram o estado real (commit a653c5e). O operador
+  deve prover `models/Qwen3.8-27B-Q4_K_M.gguf` (~15.9 GB) conforme `models/README_MODEL.md`.
+- Status: Active — nao bloqueia testes/entrega; bloqueia qualquer claim de CEO local operacional.
+
+### INV-R42 - GPU fantasma (RTX 2070) em config e scripts [HIGH -> RESOLVED 2026-08-21]
+
+- Classification: runtime / configuration truth.
+- Risk: manifest, providers.py e launch scripts assumiam 2 GPUs (`-ts 12,8`); o launch
+  profile falharia ou degradaria na maquina real (1x RTX 3060 12GB).
+- Evidence: `config/model_manifest.json`, `src/core/model_serving/providers.py`,
+  `scripts/serve_agent_llamacpp.ps1`, `nvidia-smi -L`.
+- Resolution: tensor split 12, gpus "RTX 3060 12GB", comentarios e README alinhados.
+  Commit a653c5e; testes de contrato 103 passed, 1 skipped (skip honesto do GGUF).
+- Status: Resolved 2026-08-21.
+
+### INV-R43 - Fraud guard morto: 15 regras, 0 computaveis [HIGH -> RESOLVED 2026-08-21]
+
+- Classification: financial safety / pump-and-dump defense.
+- Risk: `red_flag_rules.json` (R001-R015) nao tinha flag computable e os dois motores
+  implementam outros 6 ids; resultado medido: 0 regras montadas e confidence 0.0.
+- Evidence: `data/fraud_patterns/red_flag_rules.json`, `src/core/investor/fraud_analyst.py`,
+  `src/core/f51_adapter/adapter.py`.
+- Resolution: dataset v3.0 marca as 15 regras provider-gated como `computable: false` com
+  `limitation_when_absent`, e adiciona as 6 regras computaveis com pesos, evidence templates
+  e matched_patterns. Regressao pinned em `tests/test_fraud_guard_live.py` (7 testes).
+  Commit 1d4313e.
+- Status: Resolved 2026-08-21.
+
+### INV-R44 - Evidencia de cobertura autodestrutiva [HIGH -> RESOLVED 2026-08-21]
+
+- Classification: evidence integrity / test infra.
+- Risk: `--cov=src` nos addopts fazia qualquer pytest (ate collect-only) sobrescrever o
+  `.coverage`; 67% identico em dois runs distintos sugere metrica copiada; commit 4f183e1
+  editou a mao apenas o tempo do run (545.20s -> 574.93s) sem log do artefato.
+- Resolution: `--cov` removido dos addopts (comando explicito documentado no pytest.ini);
+  relatorio duravel salvo em `runtime/checkpoints/` a cada run final completo.
+  Commit 9ee8dca.
+- Residual: limpeza das ~14 mil linhas de teste no DB de traces pendente de decisao do
+  operador (ver INV-R47).
+- Status: Resolved 2026-08-21 (procedimento), com residual de dados historicos.
+
+### INV-R45 - Drift triplo de constantes de risco (0.5% vs 2% vs "1-2%") [MEDIUM -> RESOLVED 2026-08-21]
+
+- Classification: risk governance / documentation.
+- Risk: relatorios confundiam o default do Money Gate (0.5%, teto le=2) com o default do
+  PositionSizer (2%) e a faixa "1-2%" do docstring.
+- Resolution: `src/core/config/settings.py` declarado como fonte unica de verdade do gate;
+  docstring do PositionSizer distingue o knob pre-gate. Sem mudanca de comportamento.
+  Commit 6d124ee.
+- Status: Resolved 2026-08-21.
+
+### INV-R46 - Playbook/allocator recomendavam ETFs fora do universo de 108 [MEDIUM -> RESOLVED 2026-08-21]
+
+- Classification: product accuracy / cost drag.
+- Risk: o playbook sugeria XEQT/XIC/XEF/ZSP (com corretagem) como "sem comissao", e o
+  allocator recomendava candidatos nao verificados.
+- Resolution: playbook usa somente simbolos do universo real (VEQT/VGRO/VBAL/VCNS, VFV/VSP,
+  VCN/VCE, VIU/VXC); allocator descarta candidatos nao verificados (fail-closed), com
+  flag explicita apenas para o bucket tatico (nao-ETF). Testes novos em
+  `tests/test_investor_portfolio_allocator.py` (8 passed). Commit 8f5e1cf.
+- Status: Resolved 2026-08-21.
+
+### INV-R47 - DB decision_traces poluido por runs de teste [MEDIUM -> MITIGATED 2026-08-21]
+
+- Classification: operational data integrity.
+- Risk: ~14 mil linhas de run_ids de teste (auto-full-analysis-test, node1/node2,
+  test_node, contract_test...) no `runtime/investor.db`; 88.4% das latencias 0.0ms.
+- Resolution: `is_synthetic_run_id()` em `src/core/audit/decision_trace.py` impede novos
+  writes sinteticos no ledger (defense in depth alem do redirect do conftest). Regressao em
+  `tests/test_decision_trace_guard.py`. Commit 4ec5127.
+- Residual: limpeza das linhas historicas pendente de aprovacao do operador (dados reais).
+- Status: Mitigated 2026-08-21; residual Active ate limpeza aprovada.
+
+### INV-R48 - Candles time=0 colapsavam charts [CRITICAL 2026-08-20 -> RESOLVED 2026-08-21]
+
+- Classification: chart data / usability.
+- Risk: checkpoint de 20/08 registrava todo candle com time=0, tornando o chart inutil.
+- Verification: servidor vivo :8002 (MAN_AT_WORK) consultado hoje: 0/126 candles e 0/46
+  sma20 com time=0; provider entrega ISO-8601 e `_parse_candle_time` converte para epoch.
+- Resolution: regressao pinned em `tests/test_chart_data_times.py` (endpoint + builder).
+  Commit 51447b5.
+- Status: Resolved 2026-08-21.
+
+### INV-R49 - RISK_REGISTER fora de gate na entrega investor [LOW -> RESOLVED 2026-08-21]
+
+- Classification: process compliance / definicao de pronto.
+- Risk: a entrega playbook/allocator (2026-08-21 09:34) nao registrou risco novo, violando
+  a definicao de pronto do projeto.
+- Resolution: este update registra R41-R49 e o TASK_BOARD recebeu a entrada de hoje.
+- Status: Resolved 2026-08-21.
