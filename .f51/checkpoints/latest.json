@@ -1022,5 +1022,53 @@
     },
     "final_verdict": "SYSTEM_NOT_APPROVED; technical unit integrity is high, but complete financial/runtime/UI behavior fails and investment skill remains unproven"
   },
+  "deepseek_expert_topology_restore_20260821": {
+    "status": "impact_mapped",
+    "problem": "A politica zero-cloud de 2026-08-17 substituiu os experts DeepSeek externos pelo mesmo Qwen local do CEO, contrariando a arquitetura definida pelo operador e invalidando o teste de latencia dos experts.",
+    "architecture_touched": [
+      "ModelProvider factory e ModelGateway",
+      "seis expert roles, daytrade judge e auditor",
+      "schema/env de credencial DeepSeek",
+      "health/readiness e observabilidade",
+      "contratos e testes de fallback/resiliencia"
+    ],
+    "files_planned": [
+      "src/core/model_serving/providers.py",
+      "src/core/model_serving/gateway.py",
+      "src/core/config/settings.py",
+      "src/agent_server/main.py",
+      "config/runtime.yml",
+      "config/model_manifest.json",
+      ".env.example",
+      "tests de providers, gateway, settings e health"
+    ],
+    "indirect_risks": [
+      "custo e vazamento de contexto financeiro para API externa",
+      "chave ausente ou exposta em log/repr",
+      "erro 401/403 sendo repetido inutilmente",
+      "429/5xx sem backoff ou circuito half-open",
+      "falha DeepSeek caindo silenciosamente no Qwen local",
+      "health declarando experts prontos sem credencial"
+    ],
+    "contract_watchdog": {
+      "status": "BREAKING_CONFIRMED_BY_OPERATOR",
+      "changed": "experts transport changes from forced loopback to official DeepSeek HTTPS and requires SUPEREZIO_DEEPSEEK_API_KEY",
+      "intact": "HTTP routes, response schemas, CEO/API ports and all execution freezes"
+    },
+    "official_provider_contract": {
+      "base_url": "https://api.deepseek.com",
+      "default_model": "deepseek-v4-pro",
+      "legacy_aliases": "deepseek-chat and deepseek-reasoner retired after 2026-07-24"
+    },
+    "smallest_complete_solution": "Restore only expert/judge/auditor traffic to DeepSeek V4 Pro, keep CEO local, validate the secret without logging it, fail closed without local fallback, classify permanent versus transient failures and expose truthful readiness.",
+    "verification": [
+      "provider resolution with and without a redacted test key",
+      "gateway tests for auth, timeout, 429, 5xx and open/half-open recovery",
+      "health tests proving missing credential is degraded",
+      "focused pytest and Ruff",
+      "full pytest and isolated runtime smoke",
+      "one paid live expert call only if an operator credential is already configured"
+    ]
+  },
   "owner": "Codex"
 }
