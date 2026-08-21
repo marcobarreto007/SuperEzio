@@ -161,8 +161,8 @@ def calculate_allocation(
     }
 
     verdict = (
-        f"Alocação Segura: {emergency_reserve:.2f} {currency} em Reserva ({emergency_months:.1f} meses), "
-        f"{debt_payoff:.2f} {currency} em Dívidas ({debt_interest_rate}% juros) e "
+        f"Alocacao Segura: {emergency_reserve:.2f} {currency} em Reserva ({emergency_months:.1f} meses), "
+        f"{debt_payoff:.2f} {currency} em Dividas ({debt_interest_rate}% juros) e "
         f"{investable_surplus:.2f} {currency} em Ativos Produtivos Core/Explore."
     )
 
@@ -211,24 +211,24 @@ def main() -> int:
         print(json.dumps(asdict(plan), indent=2, ensure_ascii=False))
     else:
         print("\n" + "=" * 60)
-        print("🏛️  SUPEREZIO INVESTOR ALLOCATION PLAN")
+        print("[SUPEREZIO INVESTOR ALLOCATION PLAN]")
         print("=" * 60)
         print(f"Capital Total:          CAD ${plan.total_capital:,.2f}")
         print(
-            f"Reserva de Emergência:  CAD ${plan.emergency_reserve:,.2f} ({plan.emergency_months:.1f} meses)"
+            f"Reserva de Emergencia:  CAD ${plan.emergency_reserve:,.2f} ({plan.emergency_months:.1f} meses)"
         )
-        print(f"Amortização de Dívidas: CAD ${plan.debt_payoff:,.2f}")
-        print(f"Excedente Investível:   CAD ${plan.investable_surplus:,.2f}")
-        print(f"  ├─ Core (Longo Prazo): CAD ${plan.core_allocation:,.2f}")
-        print(f"  └─ Explore (Tático):   CAD ${plan.explore_allocation:,.2f}")
+        print(f"Amortizacao de Dividas: CAD ${plan.debt_payoff:,.2f}")
+        print(f"Excedente Investivel:   CAD ${plan.investable_surplus:,.2f}")
+        print(f"  |-- Core (Longo Prazo): CAD ${plan.core_allocation:,.2f}")
+        print(f"  \\-- Explore (Tatico):   CAD ${plan.explore_allocation:,.2f}")
         print("-" * 60)
-        print("📌 Roteamento de Contas Sugerido:")
+        print("Roteamento de Contas Sugerido:")
         for acct, val in plan.account_routing.items():
-            print(f"  • {acct:<20}: CAD ${val:,.2f}")
+            print(f"  * {acct:<20}: CAD ${val:,.2f}")
         print("-" * 60)
-        print("📈 ETFs Recomendados (TD Commission-Free):")
+        print("ETFs Recomendados (TD Commission-Free):")
         for etf in plan.recommended_etfs:
-            print(f"  • [{etf['weight']}] {etf['ticker']:<10} - {etf['name']}")
+            print(f"  * [{etf['weight']}] {etf['ticker']:<10} - {etf['name']}")
         print("=" * 60)
         print(f"Veredito: {plan.summary_verdict}\n")
 
