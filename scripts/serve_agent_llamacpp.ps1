@@ -1,11 +1,11 @@
 # SuperEzio CEO local server (ZERO-CLOUD).
-# Sobe Qwen3.8-27B-Q4_K_M na porta 8080. Um servidor por vez — as 2 GPUs
-# (RTX 3060 12GB + RTX 2070 8GB) nao aguentam duas instancias.
+# Sobe Qwen3.8-27B-Q4_K_M na porta 8080. Um servidor por vez — a unica GPU
+# real desta maquina (RTX 3060 12GB) nao aguenta duas instancias.
 # Sources config.ps1 for portable path detection and keeps command-line overrides.
 
 param(
     [int]$Port = 8080,
-    [string]$TensorSplit = "12,8",
+    [string]$TensorSplit = "12",
     [int]$ContextLength = 8192,
     [int]$Slots = 1,
     [string]$LlamaServerPath = $env:SUPEREZIO_LLAMA_SERVER_EXE
@@ -101,9 +101,9 @@ if (-not $hasCuda) {
 
 Write-Host "Starting llama-server..." -ForegroundColor Green
 
-# Perfil 2026-08-18: Q4_K_M nas 2 GPUs (3060+2070) com tensor split 12,8,
+# Perfil 2026-08-21: Q4_K_M na unica GPU real (RTX 3060 12GB), tensor split 12,
 # cache q8_0 e contexto 8192.
-# MTP (--spec-type draft-mtp) tambem OOM no 2070 com Q4; nao usar.
+# MTP (--spec-type draft-mtp) nao cabe no VRAM livre da 3060 com Q4; nao usar.
 $args = @(
     "-m", $ModelPath,
     "-ngl", "all",
