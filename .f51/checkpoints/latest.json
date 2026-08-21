@@ -1231,5 +1231,18 @@
       "Servidor permanece ativo em :8080 (task de sessao); encerrar com stop.ps1 ou TaskStop.",
       "API :8002 segue MAN_AT_WORK — probe do modelo nao altera o gate."
     ]
+  },
+  "smoke_blocked_20260821": {
+    "status": "blocked_operator_secret",
+    "objective": "Rodar smoke completo (API :8002 + browser) contra o modelo local vivo em :8080.",
+    "finding": "API boot fail-closed com RuntimeError em providers.py:154: SUPEREZIO_DEEPSEEK_API_KEY obrigatoria para experts externos. A chave EXISTE como variavel mas esta VAZIA em .env:15 e .env.local:15. O checkpoint anterior dizia 'presente no .env' — correcao: presente como placeholder vazio, nunca preenchida.",
+    "correction": "remaining_blocker do delivery_hardening_20260821 (SUPEREZIO_DEEPSEEK_API_KEY) segue valido e agora com evidencia precisa.",
+    "evidence": {
+      "model_8080": "healthy (UD-IQ2_XXS, 14.56 tok/s)",
+      "api_8002": "startup failed; exit 3; settings_validated freeze=True paper_submit=False antes do crash",
+      "env_state": "SUPEREZIO_DEEPSEEK_API_KEY= (vazio) em .env:15 e .env.local:15; ausente no shell",
+      "load_local_env": "main.py:40 chama load_local_env() — .env e carregado; o valor e que esta vazio"
+    },
+    "next_step": "Operador preenche a chave real no .env sem colar o valor no chat; nenhuma chave fake foi inserida (politica no-mock)."
   }
 }
