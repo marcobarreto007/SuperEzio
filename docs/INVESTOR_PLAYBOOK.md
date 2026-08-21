@@ -44,17 +44,20 @@ Para evitar que taxas de corretagem corroam os aportes mensais (*drag de correta
 #### A. Portfólio All-in-One Simples (Rebalanceamento Automático)
 | Ticker | Nome do Fundo | Perfil | Composição |
 |---|---|---|---|
-| **`XEQT.TO`** | iShares Core Equity ETF | Crescimento / 100% Ações | ~45% EUA, ~25% Canadá, ~25% Internacional, ~5% Emergentes |
 | **`VEQT.TO`** | Vanguard All-Equity ETF | Crescimento / 100% Ações | ~44% EUA, ~30% Canadá, ~19% Desenvolvidos, ~7% Emergentes |
-| **`XGRO.TO`** | iShares Core Growth ETF | Moderado / 80-20 | 80% Ações Globais / 20% Renda Fixa |
+| **`VGRO.TO`** | Vanguard Growth ETF Portfolio | Moderado / 80-20 | 80% Ações Globais / 20% Renda Fixa |
 | **`VBAL.TO`** | Vanguard Balanced ETF | Conservador / 60-40 | 60% Ações Globais / 40% Renda Fixa |
+| **`VCNS.TO`** | Vanguard Conservative Income ETF | Defensivo / 40-60 | 40% Ações Globais / 60% Renda Fixa |
+
+> Todos os tickers acima fazem parte do universo de 108 ETFs sem comissão do
+> TD Direct Investing (`config/td_direct_commission_free_etfs.json`).
 
 #### B. Portfólio Modular de 3 Blocos (Personalizável)
 | Bloco | Ticker Sugerido | Peso Típico | Taxa (MER) | Objetivo |
 |---|---|:---:|:---:|---|
-| **EUA** | `VFV.TO` ou `ZSP.TO` | 45% a 50% | 0.09% | Acompanhar o índice S&P 500 em CAD |
-| **Canadá** | `XIC.TO` ou `VCN.TO` | 20% a 25% | 0.06% | Exposição ao mercado total canadense (TSX) |
-| **Internacional** | `XEF.TO` ou `VIU.TO` | 20% a 25% | 0.22% | Europa, Ásia e Pacífico Desenvolvidos |
+| **EUA** | `VFV.TO` ou `VSP.TO` | 45% a 50% | 0.09% | Acompanhar o índice S&P 500 em CAD |
+| **Canadá** | `VCN.TO` ou `VCE.TO` | 20% a 25% | 0.06% | Exposição ao mercado canadense (TSX) |
+| **Internacional** | `VIU.TO` ou `VXC.TO` | 20% a 25% | 0.22% | Mercados desenvolvidos e globais ex-Canadá |
 
 ---
 
@@ -102,6 +105,6 @@ python scripts/investor_portfolio_allocator.py --capital 25000 --json
 ## 6. Rotina Mensal do Investidor (Checklist de 15 Minutos)
 
 1. **Dia 1 do Mês**: Verificar o saldo da reserva de emergência em CAD.
-2. **Aporte DCA**: Acessar o TD WebBroker e comprar cotas do ETF selecionado (`XEQT.TO` ou `VFV.TO`) usando ordem `LIMIT`.
+2. **Aporte DCA**: Acessar o TD WebBroker e comprar cotas do ETF selecionado (`VEQT.TO` ou `VFV.TO`) usando ordem `LIMIT`.
 3. **Auditoria no SuperEzio**: Abrir o Cockpit (`http://127.0.0.1:8002`), verificar os indicadores técnicos e registrar eventuais notas de tese.
 4. **Sem Estresse**: Fechar a plataforma e não acompanhar oscilações diárias desnecessárias.

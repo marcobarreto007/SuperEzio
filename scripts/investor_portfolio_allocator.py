@@ -161,12 +161,17 @@ def calculate_allocation(
                     "name": "Mangala / Tactical Swings (Stop 3%)",
                     "weight_pct": 10.0,
                     "category": "tactical_explore",
+                    "allow_unverified": True,  # tactical bucket, not an ETF
                 },
             ]
 
         for cand in candidates:
             base_sym = cand.get("base_symbol", "")
             is_cf = base_sym in valid_symbols
+            if not is_cf and not cand.get("allow_unverified"):
+                # Fail-closed recommendation: an ETF that is not in the 108
+                # commission-free universe must not be suggested as a 0-fee pick.
+                continue
             allocated_dollars = round(investable_surplus * (cand["weight_pct"] / 100.0), 2)
             recommended_etfs.append(
                 {

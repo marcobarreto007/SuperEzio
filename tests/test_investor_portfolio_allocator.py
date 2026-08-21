@@ -73,3 +73,43 @@ def test_etf_commission_free_verification():
         assert etf["allocated_amount"] > 0
     total_allocated = sum(e["allocated_amount"] for e in plan.recommended_etfs)
     assert round(total_allocated, 2) == 11000.0
+
+
+def test_growth_profile_etfs_all_verified():
+    plan = calculate_allocation(
+        total_capital=25000.0,
+        monthly_expenses=3500.0,
+        emergency_months=4.0,
+        risk_tolerance="growth",
+    )
+    etfs = [e for e in plan.recommended_etfs if e["ticker"] != "MNG_TACTICAL"]
+    assert len(etfs) == 3  # VFV, VCN, VIU
+    for etf in etfs:
+        assert etf["commission_free_verified"] is True
+
+
+def test_conservative_profile_etfs_all_verified():
+    plan = calculate_allocation(
+        total_capital=25000.0,
+        monthly_expenses=3500.0,
+        emergency_months=4.0,
+        risk_tolerance="conservative",
+    )
+    assert len(plan.recommended_etfs) == 2  # VBAL, VAB
+    for etf in plan.recommended_etfs:
+        assert etf["commission_free_verified"] is True
+
+
+def test_non_verified_etf_candidate_is_excluded_fail_closed(monkeypatch):
+    from scripts import investor_portfolio_allocator as alloc
+
+    # Simulate a corrupted/manifest mismatch: only VFV remains verified.
+    monkeypatch.setattr(alloc, "load_commission_free_etfs", lambda: ["VFV"])
+    plan = calculate_allocation(
+        total_capital=25000.0,
+        monthly_expenses=3500.0,
+        emergency_months=4.0,
+        risk_tolerance="moderate",
+    )
+    tickers = [e["ticker"] for e in plan.recommended_etfs]
+    assert tickers == ["VFV.TO"], "non-verified ETFs must not be recommended"
