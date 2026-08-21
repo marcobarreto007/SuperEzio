@@ -4,7 +4,7 @@ Updated: 2026-08-20
 
 ## Status
 
-**PASS FOR THE LOCAL WINDOWS RESEARCH COPILOT.** The active code, configuration,
+**PASS FOR THE LOCAL WINDOWS RESEARCH COPILOT; INVESTMENT SKILL NOT PROVEN.** The active code, configuration,
 launchers, contracts and documentation target the same canonical zero-cloud runtime.
 Real-capital execution remains NO-GO. Docker configuration is contract-valid but its image
 build/boot still needs a run with Docker Desktop available.
@@ -49,9 +49,14 @@ Readiness also requires proof that stopping `:8080` produces fail-closed `MAN_AT
   (22 agents, 32 skills); Docker Compose config PASS.
 - Full suite: `1883 passed, 10 skipped` in 613.47 seconds; 68% coverage.
 - Live runtime: official isolated launcher; local Qwen3.8-27B on `:8080`; API healthy on
-  `:8002`; AAPL integration passed in 2112.16 seconds.
-- Trace result: `fallback_used=false`, quality 0.87, no retry, cancellation, context overflow,
-  expert failure or cloud-LLM call.
+  `:8002`. The former AAPL-only proof has been superseded by the configurable multiasset
+  matrix.
+- Response-form telemetry now exposes scorer provenance and explicitly states that it does
+  not measure investment accuracy. The previous heuristic score 0.87 is not release evidence.
+- Real investment gate: 8 assets x 3 horizons, five years of observed data, 24/24 available,
+  0/24 models qualified; verdict `INVESTMENT_SKILL_NOT_PROVEN`.
+- Real penny backtest: 4 assets x 1,254 candles, next-open causal execution, fees/slippage
+  and benchmarks; 0 trades, verdict `NO_TRADE`.
 - Browser smoke: PASS; TD.TO returned 123 candles, 7 canvases and zero console errors.
 - Validation evidence: `runtime/validation/20260820-150840`.
 - Docker limitation: image build/boot NOT RUN because the Docker Desktop daemon was offline.

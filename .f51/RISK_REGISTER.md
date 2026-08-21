@@ -5,6 +5,21 @@ Session: total-system-documentation-sync-2026-08-20
 
 ## Active Risks
 
+### INV-R40 - Habilidade de investimento nao comprovada [CRITICAL]
+
+- Classification: model quality / financial evidence.
+- Risk: funcionamento técnico, resposta textual estruturada e gates causais podem ser
+  confundidos com capacidade de prever retornos ou superar benchmarks.
+- Evidence: avaliação pré-registrada com 5 anos de OHLCV observado em 8 ativos e 3
+  horizontes carregou 24/24 casos, mas qualificou 0/24; 23 não superaram a validação e 1
+  não convergiu. O backtest penny causal em 4 ativos produziu 0 trades.
+- Mitigation: real-capital NO-GO; abstinência fail-closed; score textual rotulado como
+  `response_form_not_investment_accuracy`; coletar previsões ex-ante e outcomes antes de
+  alegar skill.
+- Evidence report: `docs/audit/MULTI_ASSET_INVESTMENT_QUALITY_2026-08-20.md`.
+- Status: Active — bloqueia qualquer alegação de alpha, recomendação automatizada ou uso de
+  capital real; não bloqueia pesquisa e aconselhamento com supervisão humana.
+
 ### INV-R16 - Predictive labels exceed implemented evidence [CRITICAL] -> MITIGATED 2026-07-19
 
 - Classification: scientific integrity / execution safety
