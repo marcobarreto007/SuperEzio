@@ -1341,5 +1341,23 @@
       "6fe9708",
       "26dbc5c"
     ]
+  },
+  "three_drifts_fixed_20260821": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "objective": "Resolver os 3 drifts remanescentes registrados no checkpoint anterior, cada um como task propria.",
+    "items": {
+      "version_drift": "VERSION constante unica em main.py = 4.2.0; /health e footer alinhados ao trio canonico (commit 736d4e5) — contract + concurrency 18/18.",
+      "auto_execute_paper_gate": "route_after_agent_paper_gate: auto_execute_paper so alcancavel com grant submit_paper_order no contrato cognitivo; fail-closed sem grant (commit 498ee1c) — 48/48 + teste de regressao com 4 cenarios.",
+      "chart_cache": "cache TTL 60s em memoria para /api/chart-data com limite de 128 entradas (commit a985af3) — ao vivo: 7.62s frio → 3.9ms/3.4ms quente; test_api_routes_sync 52/52."
+    },
+    "remaining_notes": [
+      "Penalidade localhost/::1 (~2s) afeta clientes python que usam 'localhost' — o produto usa 127.0.0.1 internamente; e comportamento de cliente, nao bug de produto.",
+      "NewsAPI 429 rate-limit e circuit-open do OpenBB scanner seguem como degradacao de dados externa (fallbacks cobrem)."
+    ],
+    "commits": [
+      "736d4e5",
+      "498ee1c",
+      "a985af3"
+    ]
   }
 }
