@@ -626,10 +626,21 @@ async def test_agent_forces_paper_submit_when_model_finalizes(monkeypatch):
                     "price": 3.2,
                     "currency": "USD",
                     "volume": 4_000_000,
-                    "catalyst": "short-term momentum",
-                    "risk": "trend reversal",
-                    "invalidation": "close below support",
+                    "catalyst": "PLUG reports Q2 earnings on 2026-08-25.",
+                    "risk": "PLUG Q2 revenue may miss the published USD 180M consensus.",
+                    "invalidation": "Invalidate on a close below USD 3.04 after Q2 earnings.",
                     "provider": "test",
+                    "provenance": {
+                        field: {"source": "test"}
+                        for field in (
+                            "ticker",
+                            "price",
+                            "volume",
+                            "catalyst",
+                            "risk",
+                            "invalidation",
+                        )
+                    },
                 }
             ],
             "source_errors": [],
@@ -672,10 +683,21 @@ def test_agent_builder_propagates_adaptive_stop_and_honors_consensus(monkeypatch
                     "price": 3.2,
                     "currency": "USD",
                     "volume": 4_000_000,
-                    "catalyst": "short-term momentum",
-                    "risk": "trend reversal",
-                    "invalidation": "close below support",
+                    "catalyst": "PLUG reports Q2 earnings on 2026-08-25.",
+                    "risk": "PLUG Q2 revenue may miss the published USD 180M consensus.",
+                    "invalidation": "Invalidate on a close below USD 3.04 after Q2 earnings.",
                     "provider": "test",
+                    "provenance": {
+                        field: {"source": "test"}
+                        for field in (
+                            "ticker",
+                            "price",
+                            "volume",
+                            "catalyst",
+                            "risk",
+                            "invalidation",
+                        )
+                    },
                 }
             ],
             "source_errors": [],

@@ -291,12 +291,16 @@ async def test_completed_decisive_scan_finalizes_from_evidence_without_model_or_
         "exchange": "TSXV",
         "price": 2.0,
         "currency": "CAD",
-        "volume": 750_000,
+        "volume": 6_000_000,
         "market_cap": 120_000_000,
-        "catalyst": "Verified earnings release inside the requested horizon.",
-        "risk": "Microcap volatility and liquidity risk.",
-        "invalidation": "Close below the prior-week low.",
+        "catalyst": "TEST.V reports Q2 earnings on 2026-08-24 inside the requested horizon.",
+        "risk": "TEST.V Q2 revenue may miss the published CAD 12M consensus estimate.",
+        "invalidation": "Invalidate on a close below CAD 1.80 after the Q2 report.",
         "provider": "test-provider",
+        "provenance": {
+            field: {"source": "test-provider"}
+            for field in ("ticker", "price", "volume", "catalyst", "risk", "invalidation")
+        },
     }
     gateway = GatewayMustNotRun()
     result = await agent_module.node_agent(
@@ -341,7 +345,7 @@ async def test_completed_decisive_scan_finalizes_from_evidence_without_model_or_
             "data": {
                 "ticker": "TEST.V",
                 "price": {"price": 2.0, "currency": "CAD"},
-                "technicals": {"price": 2.0, "volume": 750_000},
+                "technicals": {"price": 2.0, "volume": 6_000_000},
             },
             "expert_summary": "Committee reviewed TEST.V; risks and invalidation are explicit.",
             "f51_verdict": {"passed": True, "confidence": 0.91},

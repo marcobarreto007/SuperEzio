@@ -61,10 +61,14 @@ _STRONG_CANDIDATE = {
     "currency": "USD",
     "volume": 2_202_650,
     "catalyst": "Earnings release on 2026-05-27 after market close.",
-    "risk": "Macro tape risk and sector rotation pressure.",
+    "risk": "Agilent Q2 guidance may fall below the published USD 1.7B revenue consensus.",
     "invalidation": "Close below prior-week low after earnings print.",
     "confidence": "medium",
     "provider": "finnhub",
+    "provenance": {
+        field: {"source": "finnhub"}
+        for field in ("ticker", "price", "volume", "catalyst", "risk", "invalidation")
+    },
 }
 
 
@@ -215,12 +219,12 @@ def test_liquidity_in_old_format_also_has_units():
 
 
 # ---------------------------------------------------------------------------
-# Test 3 — Weak candidate → WAIT, not fake BUY
+# Test 3 — Unproven weak candidate → REJECT_ALL, not fake BUY/WAIT
 # ---------------------------------------------------------------------------
 
 
 def test_weak_candidate_produces_wait():
-    """If confidence is below threshold, decision must be WAIT, not fake BUY."""
+    """Missing provenance, risk and invalidation must fail closed as REJECT_ALL."""
     from src.core.pipeline.nodes.agent import _market_scan_answer, _compute_model_confidence
 
     confidence = _compute_model_confidence(_WEAK_CANDIDATE)
@@ -234,16 +238,16 @@ def test_weak_candidate_produces_wait():
     answer = _market_scan_answer(state)
 
     assert "DECISIVE_TRADE_ORDER" in answer
-    assert "WAIT" in answer
-    assert "Final Decision: WAIT" in answer or "Decisao Final: WAIT" in answer
-    # The Final Decision line must NOT say BUY_CANDIDATE
+    assert "Final Decision: REJECT_ALL" in answer
     assert "Final Decision: BUY_CANDIDATE" not in answer
     assert "Decisao Final: BUY_CANDIDATE" not in answer
-    assert "Model verdict: WAIT" in answer
+    assert "Model verdict: REJECT_ALL" in answer
 
-    # WAIT answer must explain why
-    assert "below" in answer.lower() or "watchlist" in answer.lower()
-    assert "upgrade" in answer.lower() or "elevaria" in answer.lower()
+    # The candidate lacks source provenance and mandatory downside controls;
+    # low confidence alone must not downgrade a hard evidence failure to WAIT.
+    assert "missing_ticker_provenance" in answer
+    assert "missing_risk" in answer
+    assert "missing_invalidation" in answer
 
 
 # ---------------------------------------------------------------------------
