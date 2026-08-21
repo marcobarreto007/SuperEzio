@@ -6,7 +6,7 @@ VAGUE_FINANCIAL_RESPONSE = (
     "[SuperEzio Trust OS] I cannot provide investment recommendations "
     "without a specific ticker and a clear research question.\n\n"
     "Please ask again with:\n"
-    "- A ticker (e.g., AAPL, ENB.TO, HIVE.V)\n"
+    "- A ticker (e.g., ENB.TO, HIVE.V, MSFT)\n"
     "- A research goal (e.g., analyze risk, detect fraud, check volume spike)\n"
     "- Optional: country, sector, or time horizon"
 )

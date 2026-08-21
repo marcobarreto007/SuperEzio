@@ -21,6 +21,7 @@ Design principles:
 from __future__ import annotations
 
 import json
+import math
 import os
 import socket
 import sqlite3
@@ -195,7 +196,12 @@ def _check_api_health() -> tuple:
 
 
 def _check_datahub_health() -> tuple:
-    """Check if at least one price provider works."""
+    """Check whether any real provider can price any configured probe symbol.
+
+    A health check must measure provider availability, not the availability of
+    one privileged security.  Operators can replace the diversified defaults
+    through ``SUPEREZIO_DATAHUB_HEALTH_SYMBOLS`` (comma-separated).
+    """
     try:
         from data.data_hub import DataHub
 
@@ -203,10 +209,38 @@ def _check_datahub_health() -> tuple:
         active = hub.list_active()
         if not active:
             return False, "No active data providers"
-        result = hub.get_price("AAPL")
-        if result and result.get("price"):
-            return True, f"via {result.get('source', 'unknown')}"
-        return False, "DataHub returned no price for AAPL"
+        active_names = {str(provider).strip().casefold() for provider in active}
+
+        configured = os.getenv("SUPEREZIO_DATAHUB_HEALTH_SYMBOLS", "MSFT,TD.TO,BTC-USD")
+        symbols = list(
+            dict.fromkeys(
+                symbol.strip().upper() for symbol in configured.split(",") if symbol.strip()
+            )
+        )
+        if not symbols:
+            return False, "No DataHub health probe symbols configured"
+
+        failures: list[str] = []
+        for symbol in symbols:
+            try:
+                result = hub.get_price(symbol)
+            except Exception as exc:
+                failures.append(f"{symbol}: {str(exc)[:60]}")
+                continue
+            if not isinstance(result, dict):
+                failures.append(f"{symbol}: invalid result")
+                continue
+            provider = str(result.get("provider") or result.get("source") or "").strip()
+            try:
+                price = float(result.get("price", 0))
+            except (TypeError, ValueError):
+                price = 0
+            if provider.casefold() in active_names and math.isfinite(price) and price > 0:
+                return True, f"{symbol} via {provider}"
+            failures.append(f"{symbol}: no provider price")
+
+        detail = "; ".join(failures[:3])
+        return False, f"DataHub probes exhausted ({detail})"
     except Exception as e:
         return False, f"DataHub error: {str(e)[:100]}"
 

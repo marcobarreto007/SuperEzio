@@ -269,11 +269,7 @@
   }
 
   function tradeHistoryList(pf) {
-    var history = pf && Array.isArray(pf.trade_history) ? pf.trade_history : [];
-    var hidden = ((SZ.config || {}).hiddenAuditTickers || []).map(sanitTicker);
-    return history.filter(function (trade) {
-      return hidden.indexOf(orderTicker(trade)) < 0;
-    });
+    return pf && Array.isArray(pf.trade_history) ? pf.trade_history : [];
   }
 
   function applyFrontendContent() {

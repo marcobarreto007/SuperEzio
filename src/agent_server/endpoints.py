@@ -560,7 +560,7 @@ def _is_advisory_scanner_violation(
 
 VAGUE_FINANCIAL_RESPONSE = (
     "Para anÃ¡lise financeira, informe pelo menos um ativo/ticker, o prazo desejado "
-    "(ex.: AAPL 14 dias, tendÃªncia, risco, valuation, notÃ­cias)."
+    "(ex.: ENB.TO 14 dias, tendÃªncia, risco, valuation, notÃ­cias)."
 )
 
 
@@ -1072,7 +1072,7 @@ PRODUCT_MANIFEST = {
 # Regex para detectar tickers em mensagens do usuÃ¡rio
 _TICKER_RE = re.compile(
     r"\b([A-Z]{1,5}(?:34|4|3|11)?\.(?:SA|TO|V))\b"  # BR/CA: PETR4.SA, RY.TO
-    r"|\b([A-Z]{1,5})\b"  # US: AAPL, MSFT
+    r"|\b([A-Z]{1,5})\b"  # US symbols, for example MSFT
 )
 
 _SMALLTALK_RE = re.compile(

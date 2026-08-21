@@ -400,7 +400,7 @@ def test_cockpit_portfolio_separates_broker_local_and_history(
             "trades": [
                 {
                     "trade_id": "paper-1",
-                    "ticker": "PLUG",
+                    "ticker": "AAPL",
                     "status": "open",
                     "source": "paper_journal",
                 }
@@ -423,6 +423,7 @@ def test_cockpit_portfolio_separates_broker_local_and_history(
     assert data["orders"][1]["source"] == "local_pending"
     assert data["trade_history_count"] == 1
     assert data["trade_history"][0]["trade_id"] == "paper-1"
+    assert data["trade_history"][0]["ticker"] == data["broker_orders"][0]["ticker"]
 
 
 def test_trade_history_endpoint(client_with_mock_pipeline, monkeypatch):
@@ -516,7 +517,7 @@ def test_trade_execute_creates_pending_ticket_without_broker_submit(
     response = client.post(
         "/trade/execute",
         json={
-            "ticker": "AAPL",
+            "ticker": "MSFT",
             "action": "buy",
             "qty": 1,
             "limit_price": 100,
@@ -539,7 +540,7 @@ def test_trade_execute_creates_pending_ticket_without_broker_submit(
     retry = client.post(
         "/trade/execute",
         json={
-            "ticker": "AAPL",
+            "ticker": "MSFT",
             "action": "buy",
             "qty": 1,
             "limit_price": 100,
@@ -1031,10 +1032,10 @@ def test_chart_data(client_with_mock_pipeline, monkeypatch):
         },
     )
 
-    response = client.get("/api/chart-data/AAPL?timeframe=6M")
+    response = client.get("/api/chart-data/ENB.TO?timeframe=6M")
     assert response.status_code == 200
     data = response.json()
-    assert data["ticker"] == "AAPL"
+    assert data["ticker"] == "ENB.TO"
     assert "ohlcv" in data
     assert len(data["ohlcv"]) == 2
     assert "price" in data
@@ -1075,9 +1076,9 @@ def test_chart_sse(client_with_mock_pipeline, monkeypatch):
         return calls > 1
 
     with unittest.mock.patch.object(Request, "is_disconnected", mock_is_disconnected):
-        response = client.get("/api/chart-sse/AAPL?timeframe=1D&refresh_s=1")
+        response = client.get("/api/chart-sse/TD.TO?timeframe=1D&refresh_s=1")
         assert response.status_code == 200
-        assert "AAPL" in response.text
+        assert "TD.TO" in response.text
         assert "event: candle_snapshot" in response.text or "data: " in response.text
 
 
@@ -1365,7 +1366,7 @@ def test_task_submit_empty_fallback(client_with_mock_pipeline):
         "to": "superezio",
         "type": "TASK.SUBMIT",
         "payload": {
-            "message": "Analyze AAPL",
+            "message": "Analyze SHOP.TO",
             "session_id": "session-test-02",
         },
     }
@@ -1620,8 +1621,8 @@ def test_cockpit_local_response_does_not_leave_pipeline_running():
     assert 'panelStatus.textContent = "COMPLETE"' in cockpit_js
 
 
-def test_aapl_is_never_selected_automatically():
-    """AAPL may be analyzed explicitly, but it must never bootstrap the cockpit or release smoke."""
+def test_no_ticker_is_privileged_or_hidden_by_the_frontend():
+    """Selection stays evidence-driven and trade history never hides a symbol by name."""
     from pathlib import Path
 
     automatic_selection_files = {
@@ -1632,16 +1633,23 @@ def test_aapl_is_never_selected_automatically():
     }
 
     assert 'defaultTicker: ""' in automatic_selection_files["content"]
-    assert 'hiddenAuditTickers: ["AAPL"]' in automatic_selection_files["content"]
+    assert "hiddenAuditTickers" not in automatic_selection_files["content"]
+    assert "var hidden =" not in automatic_selection_files["init"]
+    assert (
+        "return pf && Array.isArray(pf.trade_history) ? pf.trade_history : [];"
+        in (automatic_selection_files["init"])
+    )
     assert 'setOpsCard("ops-market", "warn", "Select ticker")' in automatic_selection_files["init"]
     assert (
         automatic_selection_files["init"].count("if (!firstTicker && ticker) firstTicker = ticker;")
         == 3
     ), "only broker orders, local tickets and positions may bootstrap a ticker"
     assert "TD.TO" in automatic_selection_files["browser_smoke"]
-    for name in ("init", "cockpit", "browser_smoke"):
+    for name in ("content", "init", "cockpit", "browser_smoke"):
         source = automatic_selection_files[name]
-        assert "AAPL" not in source, f"AAPL returned to automatic selection in {name}"
+        assert "AAPL" not in source, (
+            f"ticker-specific fixture returned to active frontend in {name}"
+        )
 
 
 def test_trade_history_exposes_semantic_counts(client_with_mock_pipeline):

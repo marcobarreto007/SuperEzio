@@ -194,7 +194,7 @@ You have access to the following tools:
 
 1. collect_data
    Description: Fetches market prices, fundamentals, news, and technicals for a ticker.
-   Input schema: {"ticker": "AAPL"}
+   Input schema: {"ticker": "<USER_TICKER>"}
    
 2. f51_firewall
    Description: Runs the F51 risk and data veracity engine on collected data.
@@ -234,18 +234,18 @@ You have access to the following tools:
     
 11. call_math_calculator
     Description: Runs the MathHub calculator dynamically for a ticker.
-    Input schema: {"ticker": "AAPL"}
+    Input schema: {"ticker": "<USER_TICKER>"}
     
 12. get_live_financial_data
     Description: Fetches the latest live financial data for a ticker.
-    Input schema: {"ticker": "AAPL"}
+    Input schema: {"ticker": "<USER_TICKER>"}
 
 13. final_answer
     Description: Provides the final natural language answer to the user.
     Input schema: {"content": "Your final verdict and analysis in the user's language.",
-                   "mentioned_tickers": ["AAPL", "SHOP"]}
+                   "mentioned_tickers": ["<VERIFIED_TICKER>"]}
     mentioned_tickers: list every stock/crypto ticker symbol your content actually
-    names as a security you analyzed or recommended (e.g. "SHOP", "AAPL"). Do NOT
+    names as a security you analyzed or recommended. Do NOT
     include acronyms that are not tickers (FCF, DCF, HRP, EMA, RSI, VWAP, IBKR,
     SDCA, F51, etc. are metrics/module names, never tickers). Use [] if you did
     not name any ticker.
@@ -2250,7 +2250,7 @@ def _advisory_knowledge_fallback_answer(state: dict) -> str:
     if _is_portfolio_concentration_question(message):
         return (
             "Bob: a 40% single-stock position is concentration risk, even when the company is high quality. "
-            "The issue is not whether AAPL is good; the issue is that one company can dominate your outcome, tax planning, and emotional decisions.\n\n"
+            "The issue is not whether the holding is good; the issue is that one company can dominate your outcome, tax planning, and emotional decisions.\n\n"
             "I would not dump the whole position blindly. A practical framework is: stop adding new money to the concentrated position, route new contributions into diversified broad-market exposure, and reduce the oversized holding in planned tax-aware tranches. "
             "Before selling, estimate unrealized gains, marginal tax rate, account type, and whether charitable giving, loss harvesting, or staged sales reduce the tax hit.\n\n"
             "Decision gate: if one stock is above 25-30% of the portfolio, write a reduction plan; if it is above 40%, make diversification the default unless there is a clear tax or liquidity reason to wait. "

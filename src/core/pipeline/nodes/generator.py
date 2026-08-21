@@ -927,7 +927,7 @@ def _advisory_knowledge_fallback_answer(state: dict) -> str:
     if _is_portfolio_concentration_question(message):
         return (
             "Bob: a 40% single-stock position is concentration risk, even when the company is high quality. "
-            "The issue is not whether AAPL is good; the issue is that one company can dominate your outcome, tax planning, and emotional decisions.\n\n"
+            "The issue is not whether the holding is good; the issue is that one company can dominate your outcome, tax planning, and emotional decisions.\n\n"
             "I would not dump the whole position blindly. A practical framework is: stop adding new money to the concentrated position, route new contributions into diversified broad-market exposure, and reduce the oversized holding in planned tax-aware tranches. "
             "Before selling, estimate unrealized gains, marginal tax rate, account type, and whether charitable giving, loss harvesting, or staged sales reduce the tax hit.\n\n"
             "Decision gate: if one stock is above 25-30% of the portfolio, write a reduction plan; if it is above 40%, make diversification the default unless there is a clear tax or liquidity reason to wait. "
