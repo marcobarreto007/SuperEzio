@@ -179,7 +179,7 @@
       "Bash(mkfs *)",
       "Bash(dd *)",
       "Bash(> /dev/sd*)",
-      "Bash(:(){ :|:& };:)",
+      "Bash(:*)",
       "Bash(chmod 777 *)",
       "Bash(gh *)"
     ]
