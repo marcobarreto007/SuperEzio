@@ -62,6 +62,12 @@ from data.data_hub import hub
 from core.ports.protocol import A2AMessage, MessageType  # .protocol facade removido (49f6d01)
 
 logger = get_logger(__name__)
+
+# Short-TTL in-memory cache for /api/chart-data (DataHub candles are slow:
+# 7-10s on provider chain without repeat-call benefit — measured 2026-08-21).
+_CHART_CACHE: dict[tuple[str, str], tuple[float, dict]] = {}
+_CHART_CACHE_TTL_S = 60.0
+_CHART_CACHE_MAX_ENTRIES = 128
 router = APIRouter()
 
 _session_history: dict[str, dict[str, Any]] = {}
@@ -813,6 +819,17 @@ async def get_chart_data(
     """Retorna OHLCV + indicadores tecnicos para renderizar charts â€” via DataHub."""
     clean_ticker = _sanitize_ticker(ticker)
 
+    # Short-TTL in-memory cache: DataHub takes 7-10s on cache miss with no
+    # benefit on repeat calls (measured 2026-08-21: cold 7.65s, 2nd call
+    # 9.01s). The cockpit repolls charts on ticker selection, so a 60s TTL
+    # turns back-to-back requests into a dict hit. Evicted wholesale beyond
+    # a small bound (worst case recompute, never unbounded growth).
+    _cache_key = (clean_ticker, timeframe)
+    _cache_now = time.monotonic()
+    _cache_hit = _CHART_CACHE.get(_cache_key)
+    if _cache_hit and _cache_now - _cache_hit[0] < _CHART_CACHE_TTL_S:
+        return _cache_hit[1]
+
     # DataHub methods are synchronous (requests-based). Run them in a worker
     # thread (so a slow provider cannot stall the event loop) AND bound each call
     # with a timeout — a hanging/saturated provider (or contention with Bob's
@@ -878,7 +895,7 @@ async def get_chart_data(
 
     macd_data = calc_macd(closes)
     bb = calc_bollinger(closes)
-    return {
+    response = {
         "ticker": clean_ticker,
         "timeframe": timeframe,
         "profile": info,
@@ -902,6 +919,10 @@ async def get_chart_data(
             "bb_lower": _series(bb["lower"]),
         },
     }
+    if len(_CHART_CACHE) > _CHART_CACHE_MAX_ENTRIES:
+        _CHART_CACHE.clear()
+    _CHART_CACHE[_cache_key] = (_cache_now, response)
+    return response
 
 
 @router.get("/api/chart-sse/{ticker}")
