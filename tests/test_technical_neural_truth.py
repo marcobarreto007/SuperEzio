@@ -175,7 +175,10 @@ def test_artifact_manifest_hash_matches_safe_npz(qualified_model: dict[str, obje
     assert isinstance(artifact_dir, Path)
     manifest = json.loads((artifact_dir / "TRUTH_h1.json").read_text(encoding="utf-8"))
     payload = artifact_dir / manifest["npz_file"]
-    assert manifest["artifact_version"] == 2
+    assert manifest["artifact_version"] == 3
+    assert manifest["hidden_layer_sizes"] == [8]
+    assert manifest["model_alpha"] == pytest.approx(0.1)
+    assert manifest["model_max_iter"] == 1000
     assert manifest["npz_sha256"] == hashlib.sha256(payload.read_bytes()).hexdigest()
     with np.load(payload, allow_pickle=False) as arrays:
         assert arrays["classes"].tolist() == [0, 1, 2]

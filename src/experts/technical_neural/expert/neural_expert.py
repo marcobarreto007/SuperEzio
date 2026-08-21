@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 CLASS_NAMES = ("down", "sideways", "up")
 CLASS_DECISIONS = ("DOWN", "SIDEWAYS", "UP")
-ARTIFACT_VERSION = 2
+ARTIFACT_VERSION = 3
 
 
 class CandleValidationError(ValueError):
@@ -76,6 +76,13 @@ class TechnicalNeuralExpert:
     )
     MIN_LABELLED_SAMPLES = 140
     MIN_WINDOW_SAMPLES = 12
+    # Eight causal inputs do not justify the former 24x12 network, which failed
+    # to converge on every member of the pre-registered real-market universe.
+    # Keep capacity proportional to evidence and continue to fail closed on any
+    # convergence warning or out-of-sample baseline miss.
+    HIDDEN_LAYER_SIZES: ClassVar[tuple[int, ...]] = (8,)
+    MODEL_ALPHA = 0.1
+    MODEL_MAX_ITER = 1000
 
     def __init__(
         self,
@@ -269,11 +276,11 @@ class TechnicalNeuralExpert:
         test_x = scaler.transform(prepared.features[split.test])
 
         model = MLPClassifier(
-            hidden_layer_sizes=(24, 12),
+            hidden_layer_sizes=self.HIDDEN_LAYER_SIZES,
             activation="relu",
             solver="lbfgs",
-            alpha=0.01,
-            max_iter=500,
+            alpha=self.MODEL_ALPHA,
+            max_iter=self.MODEL_MAX_ITER,
             random_state=self.random_state,
             shuffle=False,
         )
@@ -735,6 +742,9 @@ class TechnicalNeuralExpert:
                 "horizon_bars": self.horizon_bars,
                 "input_hash": artifact["input_hash"],
                 "feature_names": list(self.FEATURE_NAMES),
+                "hidden_layer_sizes": list(self.HIDDEN_LAYER_SIZES),
+                "model_alpha": self.MODEL_ALPHA,
+                "model_max_iter": self.MODEL_MAX_ITER,
                 "movement_threshold": artifact["movement_threshold"],
                 "temperature": artifact["temperature"],
                 "conformal_alpha": artifact["conformal_alpha"],
