@@ -48,7 +48,7 @@ The Mangala Engine (`src/core/pipeline/nodes/mangala.py`) is a multi-agent simul
 - RAG persistence uses checksummed generations and never loads NumPy pickle data.
 - Durable files use same-directory temporary writes followed by atomic replacement.
 - Live execution is fail-safe disabled unless the explicit safety configuration allows it.
-- The shared local LLM process is required for LLM-backed operation: if it is unavailable, the organism enters `MAN_AT_WORK` and blocks orders. It never falls back to a cloud LLM.
+- The CEO/orchestrator local LLM process is required: if it is unavailable, the organism enters `MAN_AT_WORK` and blocks orders. Financial experts are independently pinned to the official DeepSeek API and never fall back to the local CEO model.
 
 The detailed July 2026 verification is in [docs/audit/phase10_organism_truth_and_remediation_2026-07-19.md](docs/audit/phase10_organism_truth_and_remediation_2026-07-19.md).
 
@@ -92,6 +92,10 @@ The official launcher starts both the local model and the product:
 The model server is local on `127.0.0.1:8080`; the API and cockpit are on
 `127.0.0.1:8002`. The GGUF path can be supplied with
 `SUPEREZIO_MODEL_PATH`, and the executable with `SUPEREZIO_LLAMA_SERVER_EXE`.
+Before expert analysis can be ready, set `SUPEREZIO_DEEPSEEK_API_KEY` in the
+ignored local `.env.local`; experts, judge, and auditor use `deepseek-v4-pro`
+at `https://api.deepseek.com`. A missing key is reported explicitly by
+`/health/details` and never triggers a local-model fallback.
 
 ## Authentication
 
@@ -129,7 +133,7 @@ python -m pytest tests/ -q
 python scripts/browser_smoke.py
 ```
 
-The browser smoke requires the API on port `8002`. The suite collected **1,885 tests on 2026-08-20**; use `python -m pytest tests/ --collect-only -q` for the current count instead of treating that snapshot as permanent. The chat step uses the shared local model on port `8080`. Tests that require live services are marked `integration` and skip when those services are absent.
+The browser smoke requires the API on port `8002`. On 2026-08-21 the suite collected 1,975 tests and completed with **1,965 passed, 10 skipped**; use `python -m pytest tests/ --collect-only -q` for the current count instead of treating that snapshot as permanent. The chat step uses the local CEO on port `8080` plus the configured external expert tier. Tests that require live services are marked `integration` and skip when those services are absent.
 
 ## Safety and repository policy
 
@@ -143,7 +147,9 @@ The browser smoke requires the API on port `8002`. The suite collected **1,885 t
 
 Before starting Compose, place `Qwen3.8-27B-Q4_K_M.gguf` in the repository's
 `models/` directory. The GGUF is intentionally not versioned or copied into the
-API image; Compose mounts that directory read-only at `/models`.
+API image; Compose mounts that directory read-only at `/models`. Export
+`SUPEREZIO_DEEPSEEK_API_KEY` in the host environment before starting Compose;
+Compose requires it for the external expert tier.
 
 ```powershell
 docker compose up -d                                  # Start local services (bob-ceo on 8080, api-server on 8002)

@@ -1,6 +1,6 @@
 # SuperEzio - Evidence Index
 
-> Evidence rows below preserve the result produced by their named checkpoint and date; they are not current-runtime claims. Refresh every gate before handoff. The operational source of truth is `docs/runbooks/RUNBOOK.md` (Qwen3.8-27B local `:8080`, API/UI `:8002`, zero-cloud).
+> Evidence rows below preserve the result produced by their named checkpoint and date; they are not current-runtime claims. Refresh every gate before handoff. The operational source of truth is `docs/runbooks/RUNBOOK.md` (CEO/orchestrator Qwen local `:8080`, experts DeepSeek external, API/UI `:8002`).
 
 This index separates verified evidence from claims that still need a fresh proof run before sale.
 

@@ -1,11 +1,11 @@
 # F51 Release Readiness
 
-Updated: 2026-08-20
+Updated: 2026-08-21
 
 ## Status
 
-**PASS FOR THE LOCAL WINDOWS RESEARCH COPILOT; INVESTMENT SKILL NOT PROVEN.** The active code, configuration,
-launchers, contracts and documentation target the same canonical zero-cloud runtime.
+**PENDING OPERATOR CREDENTIAL AND FRESH HYBRID E2E; INVESTMENT SKILL NOT PROVEN.** The active code,
+configuration, launchers, contracts and documentation target the canonical hybrid runtime.
 Real-capital execution remains NO-GO. Docker configuration is contract-valid but its image
 build/boot still needs a run with Docker Desktop available.
 
@@ -13,12 +13,15 @@ build/boot still needs a run with Docker Desktop available.
 
 - Shared local Qwen3.8-27B-Q4_K_M llama-server: `127.0.0.1:8080`.
 - FastAPI and browser UI: `127.0.0.1:8002`.
-- All LLM roles use the shared local endpoint; no cloud-LLM fallback exists.
+- CEO/orchestrator use the shared local endpoint; experts/judge/auditor use pinned `deepseek-v4-pro` at the official DeepSeek HTTPS API.
+- No cross-provider fallback exists. Missing DeepSeek credentials degrade detailed readiness and block expert work explicitly.
 - If the local model server is unavailable, the system must enter `MAN_AT_WORK` and block order submission.
 - Agent army: 22 versioned agents.
-- Test discovery snapshot: 1,885 tests collected on 2026-08-20. Always record the current collection and outcome.
+- Test snapshot: 1,975 collected, 1,965 passed and 10 skipped on 2026-08-21; coverage 67%. Always record the current collection and outcome.
 
 Canonical operational sources: `config/runtime.yml`, `config/model_manifest.json`, and `docs/runbooks/RUNBOOK.md`.
+
+Current blocker: `SUPEREZIO_DEEPSEEK_API_KEY` is intentionally absent from versioned files and blank in the local template. A real external expert call and full browser/pipeline E2E must be rerun after the operator configures the key locally.
 
 ## Required Checks
 

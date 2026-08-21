@@ -30,7 +30,7 @@ $env:SUPEREZIO_ADMIN_PASSWORD = "troque-por-uma-senha-unica-e-longa"
 .\setup_superezio.bat run
 ```
 
-Esse comando inicia o servidor Qwen3.8-27B compartilhado em `127.0.0.1:8080` e a API/UI em `127.0.0.1:8002`. Todos os papeis LLM sao locais; nao existe fallback para LLM em nuvem.
+Esse comando inicia o Qwen3.8-27B local do CEO/orquestrador em `127.0.0.1:8080` e a API/UI em `127.0.0.1:8002`. Os experts financeiros, judge e auditor usam `deepseek-v4-pro` na API oficial externa; configure `SUPEREZIO_DEEPSEEK_API_KEY` em `.env.local`. Nao existe fallback cruzado entre DeepSeek e Qwen.
 
 4. Abra o navegador em: **http://localhost:8002**
 

@@ -29,10 +29,12 @@ incorporates the detailed module contracts but does not duplicate them.
 | CEO (llama.cpp) | `scripts/serve_agent_llamacpp.ps1 -Port 8080` | 8080 | `http://127.0.0.1:8080/health` |
 | API (FastAPI) | `python -m agent_server.main` | 8002 | `http://127.0.0.1:8002/health` |
 
-The supported model is `Qwen3.8-27B-Q4_K_M` with an 8192-token context on the
-shared local llama.cpp server. All LLM roles use this zero-cloud endpoint. The
-GGUF and llama.cpp executable are external machine prerequisites and are not
-included in the release ZIP.
+The supported CEO/orchestrator model is `Qwen3.8-27B-Q4_K_M` with an 8192-token
+context on the shared local llama.cpp server. Financial experts, day-trade
+judge, and auditor are pinned to `deepseek-v4-pro` on the official DeepSeek
+HTTPS API. No cross-provider fallback is permitted. The GGUF, llama.cpp
+executable, and a local `SUPEREZIO_DEEPSEEK_API_KEY` are external machine
+prerequisites and are not included in the release ZIP.
 
 ## Configuration
 
@@ -46,7 +48,7 @@ included in the release ZIP.
 
 1. CEO server `:8080/health` — HTTP 200
 2. API public `:8002/health` — HTTP 200, `{"status":"ok","agent":"superezio","version":"4.0.0"}`
-3. API deep `:8002/health/details` — GPU, models, Redis, providers, cost guard
+3. API deep `:8002/health/details` — GPU, models, Redis, providers, cost guard; 503 when the local CEO or external expert tier is not ready
 4. DataHub `check_health()` — provider key availability
 
 Liveness, readiness, market-data state and broker state are separate. An offline

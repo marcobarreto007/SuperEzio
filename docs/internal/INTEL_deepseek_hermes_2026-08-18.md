@@ -1,5 +1,7 @@
 # Intel — "DeepSeek Agent Hermes" (colhido 2026-08-18)
 
+> **HISTORICO / SUPERSEDED EM 2026-08-21.** A pesquisa de produto abaixo e preservada, mas a conclusao operacional zero-cloud nao vale mais. O contrato atual usa DeepSeek V4 Pro para experts/judge/auditor e Qwen local apenas para CEO/orquestrador; consulte `docs/runbooks/RUNBOOK.md`.
+
 **Pergunta do operador:** "DeepSeek lançou o DeepSeek Agent Hermes esta semana — pesquisa."
 **Resposta curta:** não existe um produto "DeepSeek Agent Hermes". O nome funde duas coisas distintas — uma delas lançada esta semana, a outra não é da DeepSeek.
 

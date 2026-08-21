@@ -1,6 +1,6 @@
 # SuperEzio â€” Disaster Recovery & Continuidade
 
-> **HISTORICO / SUPERSEDED.** Este runbook contem caminhos, modelos e fallbacks de nuvem antigos e nao deve ser executado. Para recuperacao atual use `docs/runbooks/RUNBOOK.md` e `docs/runbooks/OPERATIONAL_RUNBOOK.md`: Qwen3.8-27B local em `:8080`, API/UI em `:8002`, zero-cloud e fail-closed em `MAN_AT_WORK`.
+> **HISTORICO / SUPERSEDED.** Este runbook contem caminhos, modelos e fallbacks antigos e nao deve ser executado. Para recuperacao atual use `docs/runbooks/RUNBOOK.md` e `docs/runbooks/OPERATIONAL_RUNBOOK.md`: CEO/orquestrador Qwen local em `:8080`, experts DeepSeek externos, API/UI em `:8002` e isolamento fail-closed.
 
 ## O que estÃ¡ em risco
 

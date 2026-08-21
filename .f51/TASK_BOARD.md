@@ -2,6 +2,8 @@
 
 ## Backlog
 
+- [x] 2026-08-21 - **Topologia hibrida restaurada por diretiva do operador** (Codex): CEO/orquestrador permanecem no Qwen local `:8080`; experts financeiros, judge e auditor usam `deepseek-v4-pro` na API oficial. Chave ausente falha explicitamente, modelos locais/aposentados sao rejeitados, nao existe fallback cruzado, health/cockpit reportam readiness real. Validacao externa paga permanece pendente ate o operador configurar `SUPEREZIO_DEEPSEEK_API_KEY` localmente.
+
 - [x] 2026-08-18 - **TD Direct commission-free research universe** (Codex): captured the
   official 108-ETF list (83 Canada, 25 US), added dated/stale-failing eligibility checks and
   `GET /trade/td-commission-free`. Added an authenticated, non-transmitting `/trade/td-draft`

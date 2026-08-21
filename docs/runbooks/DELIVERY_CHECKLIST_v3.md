@@ -1,7 +1,7 @@
-# SUPEREZIO — Delivery Checklist v3 (Zero-Cloud)
+# SUPEREZIO — Delivery Checklist v3 (Hybrid Models)
 
-**Data:** 2026-08-20 · **Substitui:** `docs/DELIVERY_CHECKLIST_v2.md` (mundo 8082 + providers de nuvem — obsoleto desde a diretiva zero-cloud de 2026-08-17)
-**Runtime alvo:** Qwen3.8-27B-Q4_K_M local no servidor compartilhado do perfil cc (`:8080`), API em `:8002`. **Se :8080 cair, o sistema para em MAN_AT_WORK — não existe fallback em nuvem, por design.**
+**Atualizado:** 2026-08-21 · **Substitui:** `docs/DELIVERY_CHECKLIST_v2.md` (mundo 8082 e roteamento antigo)
+**Runtime alvo:** Qwen3.8-27B-Q4_K_M local para CEO/orquestrador (`:8080`), DeepSeek V4 Pro externo para experts/judge/auditor e API em `:8002`. **Nao existe fallback cruzado entre os tiers.**
 
 ---
 
@@ -9,7 +9,7 @@
 
 - [ ] GPUs livres: `nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader`
       (perfil canônico: RTX 3060 12 GB + RTX 2070 8 GB, tensor split `12,8`; investigar consumo concorrente antes do boot)
-- [ ] `.env` zero-cloud: `SUPEREZIO_AGENT_BASE_URL=http://127.0.0.1:8080/v1`, model `Qwen3.8-27B-Q4_K_M`, **nenhuma** chave de LLM em nuvem (Questrade pode existir — feature não-LLM)
+- [ ] `.env.local` hibrido: agent em `http://127.0.0.1:8080/v1`, model `Qwen3.8-27B-Q4_K_M`, DeepSeek em `https://api.deepseek.com`, model `deepseek-v4-pro` e `SUPEREZIO_DEEPSEEK_API_KEY` preenchida sem ser impressa/commitada
 - [ ] TWS Paper (opcional nesta fase; obrigatório para loops de ordem): porta 7497, TIF DAY default desmarcado (M1)
 
 ## ⬜ BOOT (ordem documentada — cc primeiro)
@@ -35,7 +35,7 @@
   curl.exe -fsS http://127.0.0.1:8002/health
   curl.exe -fsS http://127.0.0.1:8002/health/details
   ```
-  Esperado: CEO/agente online, `cloud_fallback_present: false`
+  Esperado: CEO local online e `provider_deepseek` externo/configurado; nenhum fallback cruzado
 
 ## ⬜ VERIFICAÇÃO PRÉ-TRADE
 
@@ -48,36 +48,39 @@
   ```powershell
   python -m pytest tests/ -q
   ```
-  Registrar o número real de collected/passed/failed/skipped — sem green-wash. Como referência datada, a coleta de 2026-08-20 encontrou 1.885 testes; a contagem atual deve vir do comando, não deste documento.
+  Registrar o número real de collected/passed/failed/skipped — sem green-wash. Como referência datada, em 2026-08-21 foram 1.975 collected, 1.965 passed e 10 skipped; a contagem atual deve vir do comando, não deste documento.
 - [ ] Smoke do browser **com resposta real do Bob**:
   ```powershell
   $env:SUPEREZIO_SMOKE_CHAT = "1"
   python scripts/browser_smoke.py --headed
   ```
-- [ ] Cockpit em http://127.0.0.1:8002: Genie + Deep Panel + Bob respondendo com modelo LOCAL (sem menção a provider de nuvem)
+- [ ] Cockpit em http://127.0.0.1:8002: Bob responde via Qwen local; Deep Panel identifica DeepSeek externo e registra experts reais
 - [ ] MAN_AT_WORK: com CEO online, alerta deve limpar; se não limpar sozinho, investigar `data/man_at_work/latest_alert.txt` antes de qualquer ordem
 
-## ⬜ TESTE DE FAIL-CLOSED (substitui o "Fallback Test" do v2)
+## ⬜ TESTES DE FAIL-CLOSED
 
 - [ ] Com sistema operacional, derrubar :8080 (Ctrl+C no Terminal 1)
 - [ ] `curl.exe http://127.0.0.1:8002/health/details` → CEO offline, sistema em MAN_AT_WORK
-- [ ] **Nenhuma chamada para fora** (zero-cloud é o contrato): se qualquer provider de nuvem aparecer no log = BUG crítico
+- [ ] Confirmar que o CEO nao cai para DeepSeek e entra em MAN_AT_WORK
 - [ ] Religar :8080 → recuperação para online
+- [ ] Invalidar temporariamente a chave DeepSeek → `/health/details` 503 e expert explicitamente indisponivel, sem chamada a Qwen
+- [ ] Restaurar a chave local e confirmar `provider_deepseek.status=configured`
 
 ## ⬌ LOOPS DE TRADING (fase seguinte, com TWS paper)
 
-- Mantém-se o bloco TRADING LOOPS do v2 (`test_trading_loop1/3/4/5.py`, 25 ordens paper via envelope canônico `PreparedOrderEnvelope`) — inalterado pelo zero-cloud.
+- Mantém-se o bloco TRADING LOOPS do v2 (`test_trading_loop1/3/4/5.py`, 25 ordens paper via envelope canônico `PreparedOrderEnvelope`) — a topologia de modelos nao altera os money gates.
 
 ## ⬜ SIGN-OFF
 
 ```
-SUPEREZIO DELIVERY v3 ZERO-CLOUD — 2026-08-20
-==============================================
+SUPEREZIO DELIVERY v3 HYBRID — 2026-08-21
+===========================================
 Model server:  :8080 Qwen3.8-27B local    [ ]
 Model id:      confirmado via /v1/models  [ ]
+Experts:       DeepSeek V4 Pro externo     [ ]
 API:           :8002 online               [ ]
 Bob chat real: smoke chat respondendo     [ ]
-Fail-closed:   MAN_AT_WORK sem nuvem      [ ]
+Fail-closed:   tiers isolados              [ ]
 Ruff:          0 erros                    [ ]
 Check agents:  0 issues                   [ ]
 Pytest:        ___ collected ___ passed ___ failed ___ skipped

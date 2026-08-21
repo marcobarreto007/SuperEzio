@@ -2,7 +2,7 @@
 # Release: Zero-Garbage-Runtime v2 (2026-06-16)
 # Alvo: 10/10
 
-> **HISTORICO / SUPERSEDED.** Preservado como evidencia da release v2. Nao use estes comandos para entrega atual. Use `docs/runbooks/DELIVERY_CHECKLIST_v3.md` e `docs/runbooks/RUNBOOK.md` (Qwen3.8-27B local `:8080`, API/UI `:8002`, zero-cloud).
+> **HISTORICO / SUPERSEDED.** Preservado como evidencia da release v2. Nao use estes comandos para entrega atual. Use `docs/runbooks/DELIVERY_CHECKLIST_v3.md` e `docs/runbooks/RUNBOOK.md` (CEO/orquestrador Qwen local `:8080`, experts DeepSeek externos, API/UI `:8002`).
 
 ---
 

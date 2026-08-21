@@ -1,9 +1,10 @@
 # Official Runbook - SuperEzio Runtime v4.2.0
 
-Updated: 2026-08-20
+Updated: 2026-08-21
 Policy: DISK ONLY. GitHub is blocked by `.f51/GITHUB_POLICY.json`.
-Model policy: ZERO-CLOUD — every LLM role is served by the shared local
-llama-server (perfil cc) on `127.0.0.1:8080`. No cloud fallback exists.
+Model policy: HYBRID TRUST BOUNDARY — CEO/orchestrator use the shared local
+llama-server on `127.0.0.1:8080`; financial experts, judge, and auditor use
+the official DeepSeek HTTPS API. Neither tier may fall back to the other.
 
 Version boundary: Python package and public API `4.0.0`; runtime configuration and model manifest `4.2.0`.
 
@@ -13,8 +14,12 @@ SuperEzio has two official local runtime processes:
 
 | Component | Entrypoint | Bind | Purpose |
 | --- | --- | --- | --- |
-| CEO llama-server | `powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080` | `127.0.0.1:8080` | Local OpenAI-compatible LLM endpoint — serves CEO, orchestrator, experts, judge and auditor. |
+| CEO llama-server | `powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080` | `127.0.0.1:8080` | Local OpenAI-compatible LLM endpoint for CEO and orchestrator. |
 | FastAPI agent server | `python -m agent_server.main` | `127.0.0.1:8002` | Browser UI, A2A envelope, pipeline, health, product routes. |
+
+External dependency: official DeepSeek API (`https://api.deepseek.com`) for
+financial experts, day-trade judge, and auditor. Store
+`SUPEREZIO_DEEPSEEK_API_KEY` only in ignored local environment files.
 
 Official config file: `config/runtime.yml`.
 
@@ -32,11 +37,13 @@ GPU: all layers offloaded, split across RTX 3060 12GB + RTX 2070 8GB (`-ngl all 
 Cache: KV q8_0, flash attention on. MTP disabled (CUDA OOM on 2070 with Q4).
 Slots: 1 (shared with the Claude Code perfil cc — one server, one queue)
 
-Current official model routing (zero-cloud):
+Current official model routing:
 
 - `agent`: local OpenAI-compatible llama.cpp endpoint at `http://127.0.0.1:8080/v1`. Never falls back to another provider — if the server is down the system enters MAN_AT_WORK.
 - `local_orchestrator`: local orchestrator route using the same endpoint.
-- `deepseek`: legacy routing name for the financial experts — serves the same local endpoint at `http://127.0.0.1:8080/v1` (NOT api.deepseek.com).
+- `deepseek`: financial experts pinned to `deepseek-v4-pro` at `https://api.deepseek.com`.
+- `daytrade_judge` and `daytrade_auditor`: independently pinned DeepSeek roles using the same authenticated external endpoint.
+- Missing/invalid DeepSeek configuration fails closed; it never redirects expert traffic to Qwen. A local CEO failure likewise never redirects Bob to DeepSeek.
 
 Official Windows launcher: `start.ps1`, invoked directly or through `setup_superezio.bat run`.
 
@@ -51,6 +58,12 @@ powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 
 # Terminal 2 - API
 $env:PYTHONPATH = "src;$env:PYTHONPATH"
 python -m agent_server.main
+```
+
+Before Terminal 2, configure this secret in `.env.local` (never commit it):
+
+```ini
+SUPEREZIO_DEEPSEEK_API_KEY=your-deepseek-api-key
 ```
 
 For launcher validation without starting servers:
@@ -78,11 +91,11 @@ Expected:
 - CEO `/health`: JSON with `status=ok`.
 - CEO `/v1/models`: OpenAI-compatible model listing.
 - API `/health`: JSON with `status=ok`.
-- API `/health/details`: JSON with `checks`.
+- API `/health/details`: HTTP 200 only when the local CEO is reachable and the external expert tier is configured; otherwise HTTP 503 with a secret-safe status such as `unconfigured_missing_api_key`.
 
 An open TCP port is not enough. Treat the runtime as healthy only after HTTP health responses pass.
 
-If CEO `/health` fails: the system is expected to be in MAN_AT_WORK mode (no trading orders). Do NOT point any provider at a cloud API to "work around" it — that violates the zero-cloud policy. Restart the local server instead.
+If CEO `/health` fails: the system is expected to be in MAN_AT_WORK mode (no trading orders). Do not point the CEO at DeepSeek as a workaround; restart the local server instead. If DeepSeek readiness fails, validate the key, official base URL, model id, and outbound HTTPS separately; do not redirect experts to Qwen.
 
 ## Public API Surface
 

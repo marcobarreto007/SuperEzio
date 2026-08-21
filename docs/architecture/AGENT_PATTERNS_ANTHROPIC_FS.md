@@ -98,7 +98,7 @@ Lidos: `captain.md`, `recon-researcher.md`, `model-gateway-verifier.md` (amostra
 
 ## 3. O que NÃO copiamos (e por quê)
 
-- **Conectores MCP pagos** (CapIQ, FactSet, Morningstar, S&P...) — exigem assinatura + são nuvem. Zero-cloud proíbe.
+- **Conectores MCP pagos** (CapIQ, FactSet, Morningstar, S&P...) — exigem assinatura e contrato próprio; não estão habilitados automaticamente pela topologia híbrida de modelos.
 - **Excel/PowerPoint como artefato** (`xlsx-author`, `pptx-author`) — nosso produto é runtime de trading, não banca de investimento.
 - **Deploy Managed Agents** (`POST /v1/agents`, `ANTHROPIC_API_KEY`) — API Anthropic em nuvem, bloqueado.
 - **`model: claude-opus-4-7` nas folhas** — nosso runtime é Qwen local (:8080). Folhas novas herdam o modelo da sessão.
@@ -110,7 +110,7 @@ Lidos: `captain.md`, `recon-researcher.md`, `model-gateway-verifier.md` (amostra
 | `.claude/agents/market-data-puller.md` | **NOVO** — folha de dados somente-leitura, defesa contra injeção, `[SEM FONTE]`, contrato estrito |
 | `.claude/agents/market-thesis-writer.md` | **NOVO** — único Write-holder do time, entrada só o snapshot validado, `[UNSOURCED]`=0, stop-and-surface |
 | `.claude/agents/market-thesis-auditor.md` | **NOVO** — somente-leitura, pass/fail com localização, 5 checks (rastreabilidade/invalidação/coerência/contaminação/premissas) |
-| `.claude/agents/model-gateway-verifier.md` | **CORRIGIDO** — zero-cloud; `cloud_fallback_present: false` virou assert do contrato |
+| `.claude/agents/model-gateway-verifier.md` | **SUPERSEDED EM 2026-08-21** — o contrato atual exige CEO local + experts DeepSeek externos, sem fallback cruzado |
 | `.claude/agents/captain.md` | **CORRIGIDO** — `git add -A` → add escopado (2 ocorrências) |
 | `docs/AGENT_ORCHESTRATION.md` | roster atualizado (17 agentes) |
 

@@ -1,7 +1,7 @@
 # F51 Entrypoint Map
 
-Updated: 2026-08-20
-Session: zero-cloud-qwen38-q4km
+Updated: 2026-08-21
+Session: hybrid-qwen38-deepseek-v4
 
 Version boundary: package/public API `4.0.0`; runtime configuration/model manifest `4.2.0`.
 
@@ -16,7 +16,7 @@ Version boundary: package/public API `4.0.0`; runtime configuration/model manife
 | Host | `127.0.0.1:8002` |
 | Framework | FastAPI + uvicorn |
 | Config | `config/runtime.yml` + `.env` |
-| Dependencies | Shared local Qwen3.8-27B endpoint on `:8080`; optional market-data credentials only |
+| Dependencies | Shared local Qwen3.8-27B endpoint on `:8080`; required DeepSeek key for external experts; optional market-data credentials |
 | Boot sequence | Load env -> load config -> create gateway -> build pipeline -> serve |
 
 ### 2. Shared llama.cpp Server â€” `powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080`
@@ -34,7 +34,7 @@ Version boundary: package/public API `4.0.0`; runtime configuration/model manife
 | Interface | OpenAI-compatible `/v1/chat/completions` |
 | Context | 8192 tokens |
 | Dependency | `llama-server.exe` resolved by `config.ps1` |
-| Policy | Serves CEO, orchestrator, experts, judge and auditor; zero-cloud, no LLM fallback |
+| Policy | Serves CEO and orchestrator only; never receives expert fallback traffic |
 
 ### 3. Windows Launcher â€” `setup_superezio.bat run` / `start.ps1`
 

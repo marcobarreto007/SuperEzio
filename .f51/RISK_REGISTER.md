@@ -221,6 +221,7 @@ Session: total-system-documentation-sync-2026-08-20
   contexto 40960, validado 16/08 em `C:\Users\marco\models\qwen3.8-27b\run-cc.ps1`). Se 8080 cair: MAN_AT_WORK,
   sem fallback de nuvem.
 - Status: **Resolved 2026-08-17 — zero-nuvem implementado (commit zero-cloud), 506 testes do subset passando.**
+- Superseded 2026-08-21: a resolucao do CEO local permanece, mas o operador restaurou o tier externo DeepSeek para experts/judge/auditor. O contrato atual e hibrido e proibe fallback cruzado; ver `docs/runbooks/RUNBOOK.md`.
 
 ### INV-R26 - CEO depende de servidor local compartilhado com o perfil cc [MEDIUM] (2026-08-17)
 

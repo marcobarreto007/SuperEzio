@@ -1,6 +1,6 @@
 # F51 GPU Rental Manual — Self-Reference Card
 
-> **HISTORICO / SUPERSEDED.** Este cartao preserva experimentos antigos de treino e aluguel; hardware, precos, caminhos, modelos e portas abaixo nao definem o runtime do produto. Para operacao atual use `docs/runbooks/RUNBOOK.md`: Qwen3.8-27B local em `:8080`, contexto 8192, API/UI em `:8002`, zero-cloud.
+> **HISTORICO / SUPERSEDED.** Este cartao preserva experimentos antigos de treino e aluguel; hardware, precos, caminhos, modelos e portas abaixo nao definem o runtime do produto. Para operacao atual use `docs/runbooks/RUNBOOK.md`: CEO/orquestrador Qwen local em `:8080`, contexto 8192, experts DeepSeek externos e API/UI em `:8002`.
 
 > **Flag historica:** `F51_GPU_RENTAL`.
 

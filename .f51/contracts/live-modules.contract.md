@@ -44,7 +44,7 @@ defined inline.
 - **Canonical:** `.f51/contracts/ceo.contract.md`
 - **Path:** `src/core/pipeline/prompts/_prompts.py`, `src/core/pipeline/prompts/builder.py`
 - **Public surface:** `ceo_system_prompt()`, `build_ceo_prompt(state)`, `QWEN_SYSTEM_PROMPT`
-- **Model:** operator-supplied `Qwen3.8-27B-Q4_K_M.gguf` (llama.cpp, zero-cloud, `:8080`, context 8192)
+- **Model:** operator-supplied `Qwen3.8-27B-Q4_K_M.gguf` (llama.cpp, local `:8080`, context 8192)
 - **Invariants:** always returns non-empty string â‰¥ 100 chars; includes `Bob's read` for ticker analysis
 
 ## 4. F51 Engine
@@ -105,9 +105,9 @@ defined inline.
   - `build_default_providers(config) -> (list[ModelProvider], GatewayConfig)`
   - `create_gateway_from_config(config, audit) -> ModelGateway`
   - `create_gateway(config, audit) -> ModelGateway`
-  - Provider names: `CEO_PROVIDER_NAME`, `PRIMARY_PROVIDER_NAME`, `DEEPSEEK_PROVIDER_NAME`
+  - Provider names: `AGENT_PROVIDER_NAME`, `PRIMARY_PROVIDER_NAME`, `DEEPSEEK_PROVIDER_NAME`, `DAYTRADE_JUDGE_PROVIDER_NAME`, `DAYTRADE_AUDITOR_PROVIDER_NAME`
 - **Invariants:**
-  1. Every LLM provider is local and resolves to the canonical llama-server; cloud fallback is forbidden.
+  1. CEO/orchestrator resolve only to the canonical local llama-server; experts/judge/auditor resolve only to the authenticated official DeepSeek HTTPS tier. Cross-provider fallback is forbidden.
   2. Loopback is accepted; `bob-ceo:8080` is accepted only under the explicit Docker runtime profile.
   3. `_providers_for_request("ceo")` returns only `[ceo_provider]` (no fallback)
   4. `_max_attempts(providers)` â‰¤ `len(providers)` and â‰¤ `max_fallbacks + 1`

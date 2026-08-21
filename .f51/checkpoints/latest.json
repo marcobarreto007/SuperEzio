@@ -962,6 +962,7 @@
     "financial_pipeline": {
       "ticker": "MSFT",
       "verdict": "FAIL",
+      "expert_topology_validity": "SUPERSEDED FOR EXPERT LATENCY/OUTPUT: this run incorrectly routed experts through the single-slot local Qwen server. Chart, routing, data-quality and no-final-response defects remain valid until retested.",
       "elapsed_seconds": 625.096,
       "response": "empty; no STREAM_END",
       "data_quality": "partial; fundamentals and social unavailable",
@@ -1023,7 +1024,7 @@
     "final_verdict": "SYSTEM_NOT_APPROVED; technical unit integrity is high, but complete financial/runtime/UI behavior fails and investment skill remains unproven"
   },
   "deepseek_expert_topology_restore_20260821": {
-    "status": "impact_mapped",
+    "status": "implementation_complete_live_validation_blocked_missing_operator_secret",
     "problem": "A politica zero-cloud de 2026-08-17 substituiu os experts DeepSeek externos pelo mesmo Qwen local do CEO, contrariando a arquitetura definida pelo operador e invalidando o teste de latencia dos experts.",
     "architecture_touched": [
       "ModelProvider factory e ModelGateway",
@@ -1068,7 +1069,28 @@
       "focused pytest and Ruff",
       "full pytest and isolated runtime smoke",
       "one paid live expert call only if an operator credential is already configured"
-    ]
+    ],
+    "implemented_commits": [
+      "8e2be70",
+      "aa0bf99",
+      "11db361",
+      "c3230d7",
+      "9f46cfa",
+      "0668314"
+    ],
+    "evidence": {
+      "focused_contracts": "158 passed, 1 skipped",
+      "cockpit_settings_health_contracts": "50 passed",
+      "provider_resolution": "CEO/orchestrator Qwen3.8-27B-Q4_K_M local :8080; experts/judge/auditor deepseek-v4-pro official HTTPS",
+      "missing_key": "fail-closed RuntimeError without secret disclosure",
+      "official_endpoint_reachability": "HTTPS 401 without authentication; no paid inference",
+      "lint": "Ruff check and format PASS on 401 Python files",
+      "full_pytest": "1965 passed, 10 skipped, 1975 collected, coverage 67%, 545.20s",
+      "agent_registry": "22 agents, 32 skills, 0 issues",
+      "docker_compose_contract": "PASS with redacted test-only interpolation value; correctly refuses missing required DeepSeek key",
+      "browser_smoke": "BLOCKED/OFFLINE: API :8002 and CEO :8080 both refused connection; no live external inference attempted"
+    },
+    "remaining_blocker": "No SUPEREZIO_DEEPSEEK_API_KEY is configured locally. A paid live expert call and fresh full browser/pipeline E2E cannot be truthfully claimed until the operator supplies it without committing or pasting it into chat."
   },
   "owner": "Codex"
 }

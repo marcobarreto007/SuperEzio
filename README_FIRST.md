@@ -12,7 +12,7 @@ SuperEzio is an AI copilot that:
 4. Delivers a bounded verdict: STUDY_MORE, WATCHLIST, WAIT, SMALL_POSITION, or AVOID.
 5. Flags missing data instead of fabricating numbers.
 
-All LLM roles, including the final CEO synthesis, run on the shared local Qwen3.8-27B server. There is no cloud-LLM fallback. Market-data providers may still call their documented external data APIs; they are not LLM fallbacks.
+The CEO and orchestrator run on the shared local Qwen3.8-27B server. Financial experts, the day-trade judge, and auditor use the official external DeepSeek API with no cross-provider fallback. Market-data providers may also call their documented external data APIs.
 
 ## What You Need
 

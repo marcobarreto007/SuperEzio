@@ -27,9 +27,11 @@ FastAPI Server (:8002)
     |
     +--> Model Gateway
          +-- Shared local llama-server (:8080)
-             +-- Bob CEO              Qwen3.8-27B
-             +-- orchestrator         role prompt on the same model
-             +-- experts/judges       role prompts on the same model
+         |   +-- Bob CEO              Qwen3.8-27B
+         |   +-- orchestrator         role prompt on the same model
+         +-- Official DeepSeek HTTPS API
+             +-- financial experts    deepseek-v4-pro
+             +-- judge/auditor        provider-pinned roles
 ```
 
 ## Tech Stack
@@ -39,8 +41,8 @@ FastAPI Server (:8002)
 | API | FastAPI + uvicorn + streaming NDJSON responses |
 | Pipeline | LangGraph DAG with conditional routing |
 | Validation | Pydantic v2 |
-| LLM Roles | Qwen3.8-27B GGUF, shared locally by CEO, orchestrator, experts, judge, and auditor |
-| Model Serving | llama.cpp + F51 Nitro MoE runtime knobs |
+| LLM Roles | Qwen3.8-27B local for CEO/orchestrator; deepseek-v4-pro external for experts/judge/auditor |
+| Model Serving | llama.cpp locally plus the official DeepSeek OpenAI-compatible HTTPS API |
 | Data | DataHub capability routing across 15 providers: AKShare, Alpha Vantage, AlphaSMO, ApeWisdom, BoC Macro, Fed Macro, Finnhub, Form4API, News Scout, NewsAPI, Reddit Pulse, Social Whale, Twelve Data, Wolfram, and yfinance |
 | AI/ML | PyTorch, transformers, sentence-transformers, FAISS |
 | Observability | Traces, metrics, and structured logs |
@@ -60,7 +62,7 @@ FastAPI Server (:8002)
 
 ## Key Design Decisions
 
-- Zero-cloud LLM policy: every LLM role uses the shared local server on `127.0.0.1:8080`; there is no cloud-LLM fallback.
+- Hybrid trust boundary: CEO/orchestrator use local `127.0.0.1:8080`; experts/judge/auditor use official DeepSeek. No role crosses tiers as a fallback.
 - Fail closed: if the local model server is unavailable, SuperEzio enters `MAN_AT_WORK` and blocks order submission.
 - Traceable evidence: collected financial numbers are expected to carry provider/source metadata where available.
 - Missing data blocks conclusions: the system prefers STUDY_MORE over guessing.

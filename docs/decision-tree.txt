@@ -17,7 +17,7 @@ Runtime: SuperEzio v4.2.0, local API plus shared Qwen3.8-27B GGUF.
 - Launcher: `scripts/serve_agent_llamacpp.ps1 -Port 8080`
 - API: OpenAI-compatible `/v1` plus `/health`
 - API server: `python -m agent_server.main` on port `8002`
-- Policy: all LLM roles use this endpoint; there is no cloud-LLM fallback. If it is offline, the system enters `MAN_AT_WORK`.
+- Policy: CEO/orchestrator use this endpoint; experts/judge/auditor use pinned external DeepSeek. Neither tier falls back to the other. If the CEO endpoint is offline, the system enters `MAN_AT_WORK`.
 
 ## Active Tree Policy
 
