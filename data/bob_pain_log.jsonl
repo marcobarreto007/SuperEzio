@@ -25060,3 +25060,5 @@
 {"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-08-21T14:12:49.499571+00:00", "healed": false}
 {"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-21T14:13:19.131127+00:00", "healed": false}
 {"organ": "circuit_breakers_immune", "category": "defense", "pain": 50, "error": "Open circuits: ['model.deepseek']", "timestamp": "2026-08-21T14:13:21.810586+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: HTTP Error 503: Service Unavailable", "timestamp": "2026-08-21T14:14:51.564382+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-21T16:03:06.044913+00:00", "healed": false}
