@@ -940,5 +940,87 @@
       "Ruff, suite completa e regression hunt"
     ]
   },
+  "full_system_e2e_20260820": {
+    "status": "failed",
+    "objective": "Validar o SuperEzio completo com runtime real, dados multiativos, pipeline financeiro, navegador, quality probe e gates locais, sem transmitir ordens.",
+    "safety": {
+      "validation_mode": true,
+      "live_trading_disabled": true,
+      "paper_order_submit": false,
+      "execution_frozen": true,
+      "orders_transmitted": 0
+    },
+    "runtime": {
+      "canonical_boot": "PASS; CEO :8080 healthy em 22s e API/UI :8002 em mais 5s",
+      "direct_inference": "PASS; HTTP 200 em 4.393s",
+      "health_stability": "PASS; 20/20 CEO e 20/20 API",
+      "verdict": "FAIL; Python global sem .venv, prometheus-client e ib-insync ausentes, health mascara degradacao, GPU/model manifest contradizem processo real",
+      "throughput": "1.38-1.41 generated tokens/s; np=1",
+      "windows_compatibility_score": "6/10",
+      "shutdown": "PASS; stop.ps1 encerrou os PIDs conhecidos e liberou :8080/:8002"
+    },
+    "financial_pipeline": {
+      "ticker": "MSFT",
+      "verdict": "FAIL",
+      "elapsed_seconds": 625.096,
+      "response": "empty; no STREAM_END",
+      "data_quality": "partial; fundamentals and social unavailable",
+      "routing_defect": "analysis-only request opened trade_order and required paper_order",
+      "expert_failures": [
+        "macro_risk strict_json_validation_failed",
+        "momentum_technical strict_json_validation_failed"
+      ],
+      "evidence": "runs/evidence/20260821-014347_5b99db_MSFT"
+    },
+    "multiasset_data": {
+      "valid": [
+        "MSFT",
+        "TD.TO",
+        "SPY",
+        "XIU.TO",
+        "BTC-USD"
+      ],
+      "failed": [
+        "PETR4.SA HTTP 502",
+        "INVALID-NO-SUCH-ASSET HTTP 502"
+      ],
+      "critical_defect": "Every returned OHLCV candle had time=0, collapsing every tested chart"
+    },
+    "browser": {
+      "verdict": "FAIL",
+      "td_to_elapsed": ">600s then cancelled",
+      "response_length": 0,
+      "chart": "123 candles but all timestamps zero; visually unusable",
+      "state_drift": "pipeline displayed IDLE while task was running; cards displayed READY without a final answer",
+      "official_pytest_e2e": "FAIL in 169.84s; Bob response 0 chars and pipeline still busy",
+      "smoke": "FALSE POSITIVE; canvas/candle counts passed without timestamp validity",
+      "artifacts": "output/playwright/full-system-20260820"
+    },
+    "quality_probe": {
+      "verdict": "FAIL; exit 3",
+      "greeting": "6ms but unexpected_intent and language_not_portuguese",
+      "status_case": "absolute deadline exceeded",
+      "report": "runtime/quality_probe/report_20260821T020710Z.json"
+    },
+    "quality_gate": {
+      "ruff_check": "PASS",
+      "ruff_format": "PASS; 398 files",
+      "pytest_non_live": "1907 passed, 1 skipped, 8 deselected in 570.49s",
+      "coverage": "67%",
+      "docker_compose_config": "PASS",
+      "python_build": "SKIP; build module not installed",
+      "verdict": "FAIL"
+    },
+    "no_mock_police": {
+      "integrity_score": 35,
+      "critical_findings": [
+        "health reports ok while required runtime capabilities are missing",
+        "browser smoke accepts candles whose timestamps are all zero",
+        "expert cards show READY without completed analysis",
+        "BUY/research pipeline routes analysis-only input through paper-order semantics"
+      ]
+    },
+    "final_verdict": "SYSTEM_NOT_APPROVED; technical unit integrity is high, but complete financial/runtime/UI behavior fails and investment skill remains unproven"
+  },
   "owner": "Codex"
 }
