@@ -1244,5 +1244,24 @@
       "load_local_env": "main.py:40 chama load_local_env() — .env e carregado; o valor e que esta vazio"
     },
     "next_step": "Operador preenche a chave real no .env sem colar o valor no chat; nenhuma chave fake foi inserida (politica no-mock)."
+  },
+  "browser_smoke_20260821": {
+    "status": "PASS",
+    "objective": "Smoke completo API+browser contra o modelo local vivo (UD-IQ2_XXS :8080) com experts DeepSeek configurados.",
+    "evidence": {
+      "api_health": "HTTP 200 status ok v4.0.0; MAN_AT_WORK recuperado apos CEO voltar a ser reachable",
+      "chart": "TD.TO HTTP 200, 126 candles, hasPrice true",
+      "canvas": "7 canvases 1041x494",
+      "chat": "Bob respondeu 2626 chars sem erro; resposta estruturada Question Classification CAPITAL_ALLOCATION — pipeline completo executou",
+      "console_errors": 0,
+      "screenshot": "output/playwright/superezio-browser-smoke-20260821-135040.png",
+      "key_handling": "chave gravada em .env/.env.local (gitignored, 0 arquivos rastreados); nenhum vazamento no log (grep 0 ocorrencias)"
+    },
+    "flags": [
+      "Resposta do Bob em INGLES (language drift — quality probe do E2E ja sinalizou language_not_portuguese)",
+      "validation_mode:false no health; SUPEREZIO_LIVE_TRADING_DISABLED=1 no .env mantem execucao congelada",
+      "Drift: SUPEREZIO_AGENT_MODEL=Q4_K_M no .env enquanto o servido e UD-IQ2_XXS — llama-server ignora o nome pedido, mas config deve ser alinhada",
+      "NewsAPI 429 rate-limit nao bloqueante"
+    ]
   }
 }
