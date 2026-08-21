@@ -1188,5 +1188,26 @@
       "Limpeza das ~14k linhas historicas de teste no runtime/investor.db pendente de aprovacao do operador (INV-R47).",
       "SUPEREZIO_DEEPSEEK_API_KEY ausente no shell (presente no .env): chamadas reais de experts exigem o operador (INV existente)."
     ]
+  },
+  "save_20260821_12h20_working_tree": {
+    "status": "complete",
+    "objective": "Persistir o estado da arvore de trabalho e registrar a evidencia operacional observada no dia 2026-08-21.",
+    "session_context": "CEO live no :8080 com UD-IQ2_XXS single-GPU (commit 03d7fd7); API/UI :8002.",
+    "changes_saved": {
+      "settings_local_fix": "Removida a regra invalida 'Bash(:*)' de permissions.deny — era ignorada pelo validador com warning; nenhuma mudanca de comportamento (commit 358ef98).",
+      "bob_pain_log": "2 novos pain events api_heart (HTTP 503 e timeout, pain 75, healed=false) entre 14:14 e 16:03 UTC.",
+      "mangala_daily": "Rotacao do scan diario 2026-08-21 (PLUG 72 WATCH, NIO 55 MEH; whale/pump checks limpos).",
+      "coverage_report_ceo_live": "runtime/checkpoints/coverage-report-2026-08-21-ceo-live.txt — transcricao PARCIAL do pytest, interrompida aos 59% sem summary de cobertura; 1 F observado em tests/test_api_routes_sync.py sem detalhes; nenhum processo pytest ativo no momento do save."
+    },
+    "gates": {
+      "secrets_scan": "PASS — diffs dos arquivos alterados e conteudo do report novo sem api_key/token/password/cert.",
+      "tests": "Nao executados neste save; ultimo full suite registrado: 1984 passed, 10 skipped, 0 failed (delivery_hardening_20260821).",
+      "risk_register": "Sem nova classe de risco — nao alterado.",
+      "blockers": "Inalterados: MAN_AT_WORK em :8002; SUPEREZIO_DEEPSEEK_API_KEY ausente no shell; limpeza INV-R47 pendente."
+    },
+    "commits": [
+      "358ef98",
+      "ca93cdd"
+    ]
   }
 }
