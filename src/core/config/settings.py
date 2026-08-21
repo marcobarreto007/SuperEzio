@@ -139,6 +139,9 @@ class Settings(BaseSettings):
     superezio_expert_timeout: int | None = Field(default=None, ge=10, le=600)
 
     # Canadian live-manual Money Gate — conservative defaults, all percentages of equity.
+    # SINGLE SOURCE OF TRUTH for the gate's risk-per-trade limit: default 0.5%,
+    # hard cap 2% (le=2). PositionSizer.max_risk_pct (default 2%) is a separate
+    # pre-gate sizing knob, NOT the gate limit.
     superezio_money_gate_snapshot_max_age_sec: int = Field(default=120, ge=30, le=600)
     superezio_money_gate_min_equity_cad: float = Field(default=1000.0, gt=0)
     superezio_money_gate_max_risk_pct: float = Field(default=0.5, gt=0, le=2)
