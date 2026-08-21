@@ -1,11 +1,11 @@
-"""Investor Journey & Practical Evaluation Audit for SuperEzio.
+"""Investor Journey & Fact-Based Audit for SuperEzio.
 
-Simulates a real investor workflow:
-1. Scenario A: Capital Allocation & Cash Reserve Framework (CAD $25,000)
-2. Scenario B: Deep Dive on Canadian Core Asset (TD.TO) & Technical Indicators
-3. Scenario C: Exploration of Commission-Free ETF Universe (108 ETFs)
-4. Scenario D: Preparation of a TD Direct Limit Order Ticket & Money Gate test
-5. Evaluation & Institutional Scorecard Generation
+Audits real system execution without hardcoded scores:
+1. Scenario A: Capital Allocation Question to Bob (extracts actual streamed text and SDCA trace).
+2. Scenario B: Real Market Analysis on TD.TO (verifies candle count, non-zero timestamps, and indicators).
+3. Scenario C: TD Direct Commission-Free ETF Catalog (verifies 83 CAN + 25 US = 108 symbols).
+4. Scenario D: Money Gate & TD Limit Ticket Validation (verifies fail-closed authentication protection).
+5. Compiles an objective, fact-based verification matrix.
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ def run_investor_audit() -> dict[str, Any]:
         "timestamp": stamp,
         "investor_profile": "Canadian Retail Investor (CAD 25k, Family, Moderate Risk)",
         "scenarios": {},
-        "scorecard": {},
+        "verifications": {},
         "screenshots": [],
     }
 
@@ -62,7 +62,21 @@ def run_investor_audit() -> dict[str, Any]:
         if page.query_selector("#user-inp") and page.query_selector("#send-btn"):
             page.fill("#user-inp", prompt_a)
             page.click("#send-btn")
-            page.wait_for_timeout(3500)
+
+            # Wait for Bob's response stream to finish (up to 15s)
+            for _ in range(15):
+                page.wait_for_timeout(1000)
+                is_done = page.evaluate("""() => {
+                    const chatBox = document.getElementById('chat');
+                    if (!chatBox) return false;
+                    const ceoMsgs = chatBox.querySelectorAll('.msg-ceo .msg-bubble');
+                    if (ceoMsgs.length === 0) return false;
+                    const lastBubble = ceoMsgs[ceoMsgs.length - 1];
+                    const text = lastBubble.innerText.trim();
+                    return text.length > 50 && !document.querySelector('.typing-indicator');
+                }""")
+                if is_done:
+                    break
 
         ss_scen_a = OUTPUT_DIR / f"02_scenario_a_capital_alloc_{stamp}.png"
         page.screenshot(path=str(ss_scen_a), full_page=True)
@@ -70,10 +84,17 @@ def run_investor_audit() -> dict[str, Any]:
 
         chat_state_a = page.evaluate("""() => {
             const chatBox = document.getElementById('chat');
-            const msgs = chatBox ? Array.from(chatBox.querySelectorAll('.msg-ceo, .msg-user, .msg')).map(m => m.textContent.trim()) : [];
+            if (!chatBox) return { messageCount: 0, text: '' };
+            const ceoMsgs = chatBox.querySelectorAll('.msg-ceo .msg-bubble');
+            const userMsgs = chatBox.querySelectorAll('.msg-user .msg-bubble');
+            const lastCeo = ceoMsgs.length > 0 ? ceoMsgs[ceoMsgs.length - 1].innerText.trim() : '';
+            const lastUser = userMsgs.length > 0 ? userMsgs[userMsgs.length - 1].innerText.trim() : '';
             return {
-                messageCount: msgs.length,
-                lastResponse: msgs.length > 0 ? msgs[msgs.length - 1] : ''
+                userMessagesCount: userMsgs.length,
+                ceoMessagesCount: ceoMsgs.length,
+                lastUserPrompt: lastUser,
+                lastBobResponse: lastCeo,
+                responseLength: lastCeo.length
             };
         }""")
         report["scenarios"]["scenario_a_capital_allocation"] = {
@@ -88,24 +109,21 @@ def run_investor_audit() -> dict[str, Any]:
             chart_data = page.evaluate("""async () => {
                 const res = await fetch('/api/chart-data/TD.TO?timeframe=6M');
                 const data = await res.json();
+                const ohlcv = Array.isArray(data.ohlcv) ? data.ohlcv : [];
+                const zeroTimestamps = ohlcv.filter(c => !c.time || c.time === 0).length;
                 return {
                     status: res.status,
                     ticker: data.ticker,
                     current_price: data.price ? data.price.current : null,
                     change_pct: data.price ? data.price.change_pct : null,
-                    candles: Array.isArray(data.ohlcv) ? data.ohlcv.length : 0,
-                    sma20: data.indicators ? data.indicators.sma20 : null,
-                    rsi14: data.indicators ? data.indicators.rsi14 : null
+                    candles_count: ohlcv.length,
+                    zero_timestamps_count: zeroTimestamps,
+                    first_candle: ohlcv.length > 0 ? ohlcv[0] : null,
+                    last_candle: ohlcv.length > 0 ? ohlcv[ohlcv.length - 1] : null,
+                    has_sma20: !!(data.indicators && Array.isArray(data.indicators.sma20) && data.indicators.sma20.length > 0),
+                    has_bollinger: !!(data.indicators && Array.isArray(data.indicators.bollinger_upper) && data.indicators.bollinger_upper.length > 0)
                 };
             }""")
-
-            # Switch to 1Y timeframe
-            page.evaluate("""async () => {
-                if (window.SZ && typeof window.SZ.loadChart === 'function') {
-                    try { await window.SZ.loadChart('TD.TO', '1Y'); } catch(e) {}
-                }
-            }""")
-            page.wait_for_timeout(1500)
 
             ss_scen_b = OUTPUT_DIR / f"03_scenario_b_td_analysis_{stamp}.png"
             page.screenshot(path=str(ss_scen_b), full_page=True)
@@ -125,11 +143,19 @@ def run_investor_audit() -> dict[str, Any]:
             etf_data = page.evaluate("""async () => {
                 const res = await fetch('/trade/td-commission-free');
                 const data = await res.json();
+                const manifest = data.manifest || {};
+                const symbols = manifest.symbols || {};
+                const can = Array.isArray(symbols.CAN) ? symbols.CAN : [];
+                const us = Array.isArray(symbols.US) ? symbols.US : [];
                 return {
                     status: res.status,
-                    count: data.count,
-                    cad_etfs: (data.etfs || []).filter(e => (e.exchange || '').includes('TSX') || (e.currency || '') === 'CAD').length,
-                    sample: (data.etfs || []).slice(0, 5)
+                    ok: data.ok,
+                    count_reported: data.count,
+                    canadian_count: can.length,
+                    us_count: us.length,
+                    total_symbols_verified: can.length + us.length,
+                    sample_can: can.slice(0, 5),
+                    sample_us: us.slice(0, 5)
                 };
             }""")
             report["scenarios"]["scenario_c_etf_catalog"] = {"etf_data": etf_data, "assessed": True}
@@ -158,7 +184,7 @@ def run_investor_audit() -> dict[str, Any]:
                 return {
                     status: res.status,
                     ok: res.ok,
-                    ticket: data
+                    fail_closed_detail: data.detail || null
                 };
             }""")
             report["scenarios"]["scenario_d_ticket_gate"] = {
@@ -170,34 +196,20 @@ def run_investor_audit() -> dict[str, Any]:
 
         browser.close()
 
-    # Calculate Investor Scorecard
-    print("[Investor Audit] 6. Compiling Scorecard...")
-    report["scorecard"] = {
-        "downside_protection": {
-            "score": 9.5,
-            "max": 10.0,
-            "reasoning": "Money Gate atua em modo fail-closed, transmissão live desativada por design (BLOCKED_BY_DESIGN), e Bob prioriza 3-6 meses de reserva de emergência antes de alocar em risco.",
-        },
-        "market_data_accuracy": {
-            "score": 9.0,
-            "max": 10.0,
-            "reasoning": "Cálculo real de indicadores técnicos (SMA20, SMA50, EMA20, Bollinger, VWAP, RSI14, MACD) e 126 candles históricos para TD.TO sem dados sintéticos.",
-        },
-        "etf_universe_efficiency": {
-            "score": 9.5,
-            "max": 10.0,
-            "reasoning": "108 ETFs commission-free verificados para investidores no TD Direct Investing Canadá, eliminando drag de taxas em DCA.",
-        },
-        "ai_firewall_and_sdca": {
-            "score": 9.0,
-            "max": 10.0,
-            "reasoning": "SDCA Firewall intercepta e avalia incerteza e utilidade antes de liberar respostas no Copilot, com guardrails transparentes.",
-        },
-        "overall_investor_rating": {
-            "rating": "A (Excelente / Risco Controlado)",
-            "score_composite": 9.25,
-            "verdict": "SISTEMA ROBUSTO E PRONTO PARA USO DO INVESTIDOR EM MODO ASSISTIDO / MANUAL",
-        },
+    # Fact-Based Verifications (Pass/Fail)
+    print("[Investor Audit] 6. Compiling Objective Verifications...")
+    b_data = report["scenarios"].get("scenario_b_asset_analysis", {}).get("market_data", {})
+    c_data = report["scenarios"].get("scenario_c_etf_catalog", {}).get("etf_data", {})
+    d_data = report["scenarios"].get("scenario_d_ticket_gate", {}).get("ticket_result", {})
+
+    report["verifications"] = {
+        "candles_count_verified": b_data.get("candles_count", 0) > 100,
+        "timestamps_nonzero_verified": b_data.get("zero_timestamps_count") == 0,
+        "sma20_calculated": b_data.get("has_sma20") is True,
+        "td_etfs_exact_count": c_data.get("total_symbols_verified") == 108,
+        "td_canadian_etfs_count": c_data.get("canadian_count") == 83,
+        "td_us_etfs_count": c_data.get("us_count") == 25,
+        "money_gate_fail_closed": d_data.get("status") == 503,
     }
 
     report_path = OUTPUT_DIR / f"investor_audit_report_{stamp}.json"
@@ -210,4 +222,6 @@ def run_investor_audit() -> dict[str, Any]:
 
 if __name__ == "__main__":
     result = run_investor_audit()
-    print(json.dumps(result["scorecard"], indent=2, ensure_ascii=False))
+    print("\n=== FACT-BASED AUDIT VERIFICATIONS ===")
+    for k, v in result["verifications"].items():
+        print(f"  • {k:<30}: {'PASS [OK]' if v else 'FAIL [X]'}")

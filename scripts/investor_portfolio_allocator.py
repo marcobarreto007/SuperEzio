@@ -85,74 +85,100 @@ def calculate_allocation(
     explore_allocation = round(investable_surplus * explore_weight, 2)
     core_allocation = round(investable_surplus - explore_allocation, 2)
 
-    # 5. ETF matching from verified universe
-    _ = load_commission_free_etfs()
+    # 5. ETF matching from verified 108 TD Direct commission-free universe
+    valid_symbols = set(load_commission_free_etfs())
     recommended_etfs: List[Dict[str, Any]] = []
 
     if investable_surplus > 0:
+        candidates: List[Dict[str, Any]] = []
         if risk_tolerance.lower() == "conservative":
-            recommended_etfs = [
+            candidates = [
                 {
-                    "ticker": "XGRO.TO",
-                    "name": "iShares Core Growth ETF (80/20)",
-                    "weight": "60%",
+                    "ticker": "VBAL.TO",
+                    "base_symbol": "VBAL",
+                    "name": "Vanguard Balanced ETF Portfolio (60/40)",
+                    "weight_pct": 70.0,
                     "category": "balanced_core",
                 },
                 {
-                    "ticker": "CBIL.TO",
-                    "name": "Horizons 0-3 Month T-Bill",
-                    "weight": "40%",
-                    "category": "cash_preservation",
+                    "ticker": "VAB.TO",
+                    "base_symbol": "VAB",
+                    "name": "Vanguard Canadian Aggregate Bond Index ETF",
+                    "weight_pct": 30.0,
+                    "category": "fixed_income_preservation",
                 },
             ]
         elif risk_tolerance.lower() == "moderate":
-            recommended_etfs = [
+            candidates = [
                 {
-                    "ticker": "XEQT.TO",
-                    "name": "iShares Core Equity All-Cap (100% Equity)",
-                    "weight": "50%",
+                    "ticker": "VEQT.TO",
+                    "base_symbol": "VEQT",
+                    "name": "Vanguard All-Equity ETF Portfolio (100% Equity)",
+                    "weight_pct": 50.0,
                     "category": "global_all_cap",
                 },
                 {
                     "ticker": "VFV.TO",
+                    "base_symbol": "VFV",
                     "name": "Vanguard S&P 500 Index ETF",
-                    "weight": "30%",
+                    "weight_pct": 30.0,
                     "category": "us_large_cap",
                 },
                 {
-                    "ticker": "XIC.TO",
-                    "name": "iShares Core S&P/TSX Capped Composite",
-                    "weight": "20%",
+                    "ticker": "VCN.TO",
+                    "base_symbol": "VCN",
+                    "name": "Vanguard FTSE Canada All Cap Index ETF",
+                    "weight_pct": 20.0,
                     "category": "canada_total_market",
                 },
             ]
         else:
-            recommended_etfs = [
+            candidates = [
                 {
                     "ticker": "VFV.TO",
+                    "base_symbol": "VFV",
                     "name": "Vanguard S&P 500 Index ETF",
-                    "weight": "45%",
+                    "weight_pct": 45.0,
                     "category": "us_large_cap",
                 },
                 {
-                    "ticker": "XIC.TO",
-                    "name": "iShares Core S&P/TSX Composite",
-                    "weight": "25%",
+                    "ticker": "VCN.TO",
+                    "base_symbol": "VCN",
+                    "name": "Vanguard FTSE Canada All Cap Index ETF",
+                    "weight_pct": 25.0,
                     "category": "canada_total_market",
                 },
                 {
-                    "ticker": "XEF.TO",
-                    "name": "iShares Core MSCI EAFE IMI",
-                    "weight": "20%",
+                    "ticker": "VIU.TO",
+                    "base_symbol": "VIU",
+                    "name": "Vanguard FTSE Developed All Cap ex North America",
+                    "weight_pct": 20.0,
                     "category": "international_developed",
                 },
                 {
                     "ticker": "MNG_TACTICAL",
+                    "base_symbol": "TACTICAL",
                     "name": "Mangala / Tactical Swings (Stop 3%)",
-                    "weight": "10%",
+                    "weight_pct": 10.0,
                     "category": "tactical_explore",
                 },
             ]
+
+        for cand in candidates:
+            base_sym = cand.get("base_symbol", "")
+            is_cf = base_sym in valid_symbols
+            allocated_dollars = round(investable_surplus * (cand["weight_pct"] / 100.0), 2)
+            recommended_etfs.append(
+                {
+                    "ticker": cand["ticker"],
+                    "name": cand["name"],
+                    "weight": f"{cand['weight_pct']:.0f}%",
+                    "weight_pct": cand["weight_pct"],
+                    "allocated_amount": allocated_dollars,
+                    "commission_free_verified": is_cf,
+                    "category": cand["category"],
+                }
+            )
 
     # 6. Account Routing (Canada TFSA / RRSP / Non-Registered)
     tfsa_room_estimate = 7000.0
@@ -228,10 +254,13 @@ def main() -> int:
         print("Roteamento de Contas Sugerido:")
         for acct, val in plan.account_routing.items():
             print(f"  * {acct:<20}: CAD ${val:,.2f}")
-        print("-" * 60)
-        print("ETFs Recomendados (TD Commission-Free):")
+        print("ETFs Recomendados (TD Commission-Free Universe):")
         for etf in plan.recommended_etfs:
-            print(f"  * [{etf['weight']}] {etf['ticker']:<10} - {etf['name']}")
+            cf_tag = "TD 0-Fee: YES" if etf.get("commission_free_verified") else "TD 0-Fee: N/A"
+            amt = etf.get("allocated_amount", 0.0)
+            print(
+                f"  * [{etf['weight']:>4}] CAD ${amt:>8,.2f} | {etf['ticker']:<10} | [{cf_tag}] - {etf['name']}"
+            )
         print("=" * 60)
         print(f"Veredito: {plan.summary_verdict}\n")
 

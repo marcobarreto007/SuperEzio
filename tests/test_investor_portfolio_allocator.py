@@ -56,3 +56,20 @@ def test_low_interest_debt_preservation():
 def test_invalid_capital_rejected():
     with pytest.raises(ValueError, match="Total capital must be greater than zero"):
         calculate_allocation(total_capital=0.0)
+
+
+def test_etf_commission_free_verification():
+    plan = calculate_allocation(
+        total_capital=25000.0,
+        monthly_expenses=3500.0,
+        emergency_months=4.0,
+        risk_tolerance="moderate",
+    )
+    assert plan.investable_surplus == 11000.0
+    assert len(plan.recommended_etfs) == 3
+    # VEQT, VFV, VCN must be verified TD Commission-Free
+    for etf in plan.recommended_etfs:
+        assert etf["commission_free_verified"] is True
+        assert etf["allocated_amount"] > 0
+    total_allocated = sum(e["allocated_amount"] for e in plan.recommended_etfs)
+    assert round(total_allocated, 2) == 11000.0

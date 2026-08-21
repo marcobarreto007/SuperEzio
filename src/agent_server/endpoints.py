@@ -765,15 +765,24 @@ def _sanitize_ticker(raw: str) -> str:
     return clean_ticker
 
 
-def _parse_candle_time(raw: str) -> int:
-    """Converte timestamp string do provider para Unix epoch (segundos)."""
+def _parse_candle_time(raw: Any) -> int:
+    """Converte timestamp/datetime do provider para Unix epoch (segundos)."""
+    if isinstance(raw, (int, float)):
+        return int(raw)
+    raw_str = str(raw).strip()
+    if not raw_str:
+        return 0
     from datetime import datetime
 
-    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
-        try:
-            return int(datetime.strptime(raw, fmt).timestamp())
-        except ValueError:
-            continue
+    try:
+        dt = datetime.fromisoformat(raw_str.replace("Z", "+00:00"))
+        return int(dt.timestamp())
+    except Exception:
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
+            try:
+                return int(datetime.strptime(raw_str, fmt).timestamp())
+            except ValueError:
+                continue
     return 0
 
 
@@ -781,8 +790,8 @@ def _build_ohlcv(candles: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Normaliza candles de qualquer provider para o formato do frontend."""
     ohlcv: list[dict[str, Any]] = []
     for c in candles:
-        t_raw = c.get("time", "")
-        t = int(t_raw) if isinstance(t_raw, (int, float)) else _parse_candle_time(str(t_raw))
+        t_raw = c.get("time") or c.get("datetime") or c.get("date") or ""
+        t = _parse_candle_time(t_raw)
         ohlcv.append(
             {
                 "time": t,
