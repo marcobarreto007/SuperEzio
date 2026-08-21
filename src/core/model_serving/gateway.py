@@ -429,6 +429,41 @@ class ModelGateway:
         finally:
             await client.close()
 
+    def _retry_attempts_for(self, circuit) -> int:
+        """HALF_OPEN is a single recovery probe, never a retry burst."""
+        return 1 if circuit.state == CircuitState.HALF_OPEN else max(1, self.config.retry_attempts)
+
+    def _mark_provider_success(self, provider_name: str, circuit) -> None:
+        """Reset failure state and record a successful provider response."""
+        circuit.record_success()
+        self._record_circuit_state(provider_name, circuit)
+        self._provider_errors.pop(provider_name, None)
+        self._provider_cooldown_until.pop(provider_name, None)
+        self.last_provider_used = provider_name
+
+    def _mark_provider_exhausted(
+        self,
+        provider_name: str,
+        circuit,
+        exc: Exception,
+        next_name: str | None,
+        event: str,
+        failure_kind: _FailureKind,
+    ) -> None:
+        """Record failure after retries are exhausted and log the fallback hop."""
+        circuit.record_failure(exc)
+        self._record_circuit_state(provider_name, circuit)
+        if next_name is not None:
+            log_event(
+                "MODEL_GATEWAY",
+                event,
+                {
+                    "from_provider": provider_name,
+                    "to_provider": next_name,
+                    "failure_kind": failure_kind.value,
+                },
+            )
+
     @trace_span("gateway.generate")
     def generate(
         self,
@@ -477,10 +512,7 @@ class ModelGateway:
                 last_error = CircuitOpenError(f"Circuit model.{provider.name} is OPEN")
                 continue
 
-            # HALF_OPEN is a single recovery probe, never a retry burst.
-            retry_attempts = (
-                1 if _cb.state == CircuitState.HALF_OPEN else max(1, self.config.retry_attempts)
-            )
+            retry_attempts = self._retry_attempts_for(_cb)
             provider_error: Exception | None = None
             for retry_index in range(retry_attempts):
                 try:
@@ -523,12 +555,7 @@ class ModelGateway:
                             )
 
                         metrics.increment(f"model.{provider.name}.success")
-                        # Reset error counter on success
-                        self._provider_errors.pop(provider.name, None)
-                        self._provider_cooldown_until.pop(provider.name, None)
-                        self.last_provider_used = provider.name
-                        _cb.record_success()
-                        self._record_circuit_state(provider.name, _cb)
+                        self._mark_provider_success(provider.name, _cb)
                         return result
 
                 except Exception as e:
@@ -562,18 +589,14 @@ class ModelGateway:
 
             # ── Circuit breaker: record failure after all retries exhausted ──
             if provider_error is not None:
-                _cb.record_failure(provider_error)
-                self._record_circuit_state(provider.name, _cb)
-                if i + 1 < max_attempts:
-                    log_event(
-                        "MODEL_GATEWAY",
-                        "PROVIDER_FALLBACK",
-                        {
-                            "from_provider": provider.name,
-                            "to_provider": providers_to_try[i + 1].name,
-                            "failure_kind": _FailureKind.TRANSIENT.value,
-                        },
-                    )
+                self._mark_provider_exhausted(
+                    provider.name,
+                    _cb,
+                    provider_error,
+                    providers_to_try[i + 1].name if i + 1 < max_attempts else None,
+                    "PROVIDER_FALLBACK",
+                    _FailureKind.TRANSIENT,
+                )
 
         metrics.increment("model.all_failed")
         raise RuntimeError(f"All external providers failed. Last error: {last_error}")
@@ -601,9 +624,7 @@ class ModelGateway:
             if not self._circuit_allows_attempt(provider.name, circuit):
                 continue
 
-            retry_attempts = (
-                1 if circuit.state == CircuitState.HALF_OPEN else max(1, self.config.retry_attempts)
-            )
+            retry_attempts = self._retry_attempts_for(circuit)
             for retry_index in range(retry_attempts):
                 emitted = False
                 try:
@@ -645,11 +666,7 @@ class ModelGateway:
                             raise item
                         emitted = True
                         yield item
-                    circuit.record_success()
-                    self._record_circuit_state(provider.name, circuit)
-                    self._provider_errors.pop(provider.name, None)
-                    self._provider_cooldown_until.pop(provider.name, None)
-                    self.last_provider_used = provider.name
+                    self._mark_provider_success(provider.name, circuit)
                     return
                 except Exception as exc:
                     failure_kind = self._classify_provider_failure(exc)
@@ -665,18 +682,14 @@ class ModelGateway:
                         metrics.increment(f"model.{provider.name}.retry")
                         time.sleep(delay)
                         continue
-                    circuit.record_failure(exc)
-                    self._record_circuit_state(provider.name, circuit)
-                    if i + 1 < max_attempts:
-                        log_event(
-                            "MODEL_GATEWAY",
-                            "STREAM_FALLBACK",
-                            {
-                                "from_provider": provider.name,
-                                "to_provider": providers_to_try[i + 1].name,
-                                "failure_kind": failure_kind.value,
-                            },
-                        )
+                    self._mark_provider_exhausted(
+                        provider.name,
+                        circuit,
+                        exc,
+                        providers_to_try[i + 1].name if i + 1 < max_attempts else None,
+                        "STREAM_FALLBACK",
+                        failure_kind,
+                    )
 
         yield "[ERROR] Todos os modelos de nuvem falharam."
 
@@ -713,9 +726,7 @@ class ModelGateway:
             if not self._circuit_allows_attempt(provider.name, circuit):
                 continue
 
-            retry_attempts = (
-                1 if circuit.state == CircuitState.HALF_OPEN else max(1, self.config.retry_attempts)
-            )
+            retry_attempts = self._retry_attempts_for(circuit)
             for retry_index in range(retry_attempts):
                 emitted = False
                 try:
@@ -730,11 +741,7 @@ class ModelGateway:
                     ):
                         emitted = True
                         yield chunk
-                    circuit.record_success()
-                    self._record_circuit_state(provider.name, circuit)
-                    self._provider_errors.pop(provider.name, None)
-                    self._provider_cooldown_until.pop(provider.name, None)
-                    self.last_provider_used = provider.name
+                    self._mark_provider_success(provider.name, circuit)
                     if self._audit:
                         self._audit.record_decision(
                             run_id=request_id,
@@ -761,19 +768,14 @@ class ModelGateway:
                         metrics.increment(f"model.{provider.name}.retry")
                         await asyncio.sleep(delay)
                         continue
-                    circuit.record_failure(exc)
-                    self._record_circuit_state(provider.name, circuit)
-                    if i + 1 < max_attempts:
-                        log_event(
-                            "MODEL_GATEWAY",
-                            "ASYNC_STREAM_FALLBACK",
-                            {
-                                "from_provider": provider.name,
-                                "to_provider": providers_to_try[i + 1].name,
-                                "failure_kind": failure_kind.value,
-                            },
-                        )
-
+                    self._mark_provider_exhausted(
+                        provider.name,
+                        circuit,
+                        exc,
+                        providers_to_try[i + 1].name if i + 1 < max_attempts else None,
+                        "ASYNC_STREAM_FALLBACK",
+                        failure_kind,
+                    )
         if self._audit:
             self._audit.record_decision(
                 run_id=request_id,
