@@ -56,7 +56,14 @@ def test_ohlcv_builder_parses_iso_datetime_and_epoch(monkeypatch):
     from agent_server.endpoints import _build_ohlcv
 
     candles = [
-        {"datetime": "2026-08-21T04:00:00+00:00", "open": 1, "high": 2, "low": 0.5, "close": 1.5, "volume": 10},
+        {
+            "datetime": "2026-08-21T04:00:00+00:00",
+            "open": 1,
+            "high": 2,
+            "low": 0.5,
+            "close": 1.5,
+            "volume": 10,
+        },
         {"time": 1787284800, "open": 1, "high": 2, "low": 0.5, "close": 1.5, "volume": 10},
         {"date": "2026-08-19", "open": 1, "high": 2, "low": 0.5, "close": 1.5, "volume": 10},
     ]

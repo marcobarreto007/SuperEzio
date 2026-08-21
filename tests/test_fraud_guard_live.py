@@ -42,7 +42,8 @@ def test_non_computable_rules_are_explicitly_flagged():
 def test_extreme_volume_spike_fires():
     analyst = FraudPatternAnalyst()
     rule = next(
-        r for r in get_fraud_memory().get_computable_rules()
+        r
+        for r in get_fraud_memory().get_computable_rules()
         if r["rule_id"] == "extreme_volume_spike"
     )
     fired, evidence = analyst._evaluate_single_rule(
@@ -56,7 +57,8 @@ def test_extreme_volume_spike_fires():
 def test_unusual_volume_band_fires_without_subsume():
     analyst = FraudPatternAnalyst()
     rule = next(
-        r for r in get_fraud_memory().get_computable_rules()
+        r
+        for r in get_fraud_memory().get_computable_rules()
         if r["rule_id"] == "unusual_volume_without_clear_news"
     )
     fired, _ = analyst._evaluate_single_rule(
@@ -75,7 +77,8 @@ def test_unusual_volume_band_fires_without_subsume():
 def test_microcap_concentration_fires_and_clears():
     analyst = FraudPatternAnalyst()
     rule = next(
-        r for r in get_fraud_memory().get_computable_rules()
+        r
+        for r in get_fraud_memory().get_computable_rules()
         if r["rule_id"] == "microcap_concentration"
     )
     fired, _ = analyst._evaluate_single_rule(
