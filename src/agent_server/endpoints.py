@@ -1779,11 +1779,16 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     )
 
                 quality_score: float | None = None
+                quality_score_source: str | None = None
+                quality_score_scope: str | None = None
                 quality_warnings: list[str] = []
                 quality_flagged = False
                 if accumulated_answer.strip() and agent_called and not fallback_used:
                     try:
-                        quality_score = reward_gate.score(accumulated_answer)
+                        score_result = reward_gate.score_with_provenance(accumulated_answer)
+                        quality_score = score_result.value
+                        quality_score_source = score_result.source
+                        quality_score_scope = score_result.scope
                         sanity = sanity_check.verify(raw_message, accumulated_answer)
                         if not sanity.passed:
                             quality_flagged = True
@@ -1854,6 +1859,8 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                 }
                 if quality_score is not None:
                     trace["quality_score"] = round(quality_score, 4)
+                    trace["quality_score_source"] = quality_score_source
+                    trace["quality_score_scope"] = quality_score_scope
                 if quality_warnings:
                     trace["quality_warnings"] = quality_warnings
                 if quality_flagged:

@@ -9,12 +9,22 @@ from __future__ import annotations
 
 import logging
 import time
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
 _model: object | None = None
 _tokenizer: object | None = None
 _torch: object | None = None
+
+
+@dataclass(frozen=True)
+class QualityScore:
+    """A response-form score with explicit provenance and limited scope."""
+
+    value: float
+    source: str
+    scope: str = "response_form_not_investment_accuracy"
 
 
 def _ensure_loaded() -> tuple[object, object]:
@@ -78,9 +88,15 @@ class RewardGate:
         return min(score, 0.95)
 
     def score(self, text: str) -> float:
-        """Return a quality score in [0, 1], or heuristic fallback if model unavailable."""
+        """Compatibility wrapper returning only the response-form score."""
+
+        return self.score_with_provenance(text).value
+
+    def score_with_provenance(self, text: str) -> QualityScore:
+        """Return score, scorer provenance, and an explicit non-financial scope."""
+
         if not text or not text.strip():
-            return 0.0
+            return QualityScore(0.0, "empty_response")
 
         t0 = time.time()
         try:
@@ -97,10 +113,10 @@ class RewardGate:
             model_score = float(_torch.sigmoid(_torch.tensor(raw)).item())
             elapsed_ms = int((time.time() - t0) * 1000)
             logger.debug("RewardGate score=%.4f (%dms)", model_score, elapsed_ms)
-            return model_score
+            return QualityScore(model_score, "openassistant_reward_model")
         except Exception:
             logger.warning("RewardGate model unavailable; using heuristic fallback")
-            return self._heuristic_score(text)
+            return QualityScore(self._heuristic_score(text), "text_structure_heuristic")
 
     def passes(self, text: str) -> bool:
         return self.score(text) >= self.threshold

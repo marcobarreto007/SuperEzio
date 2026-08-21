@@ -79,7 +79,15 @@ def client_with_mock_pipeline(monkeypatch, tmp_path):
     monkeypatch.setenv("SUPEREZIO_JWT_SECRET", "")  # Dev mode: no JWT required
     monkeypatch.setenv("SUPEREZIO_TRADING_STATE_DB", str(tmp_path / "trading-state.sqlite3"))
     monkeypatch.setenv("SUPEREZIO_DEAD_LETTER_DIR", str(tmp_path / "dead-letter"))
-    monkeypatch.setattr(endpoints.reward_gate, "score", lambda _text: 0.50)
+    monkeypatch.setattr(
+        endpoints.reward_gate,
+        "score_with_provenance",
+        lambda _text: SimpleNamespace(
+            value=0.50,
+            source="test_stub",
+            scope="response_form_not_investment_accuracy",
+        ),
+    )
     monkeypatch.setattr(
         endpoints.sanity_check,
         "verify",
@@ -1317,7 +1325,15 @@ def test_task_submit_quality_gate_flags_low_score(client_with_mock_pipeline, mon
 
     import agent_server.endpoints as endpoints
 
-    monkeypatch.setattr(endpoints.reward_gate, "score", lambda _text: 0.12)
+    monkeypatch.setattr(
+        endpoints.reward_gate,
+        "score_with_provenance",
+        lambda _text: SimpleNamespace(
+            value=0.12,
+            source="test_stub",
+            scope="response_form_not_investment_accuracy",
+        ),
+    )
     mock_p.events_to_yield = [
         {"type": "STREAM_START", "msg_id": "test-msg-quality"},
         {"type": "INTENT_CLASSIFIED", "intent": "general_question", "route": "general"},
@@ -1346,6 +1362,8 @@ def test_task_submit_quality_gate_flags_low_score(client_with_mock_pipeline, mon
     trace = events[-1]["trace"]
 
     assert trace["quality_score"] == 0.12
+    assert trace["quality_score_source"] == "test_stub"
+    assert trace["quality_score_scope"] == "response_form_not_investment_accuracy"
     assert trace["quality_flagged"] is True
     assert trace["quality_warnings"] == ["reward_score=0.120 < 0.3"]
     assert trace["fallback_used"] is False

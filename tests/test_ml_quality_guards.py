@@ -1,4 +1,4 @@
-from core.ml.reward_gate import RewardGate
+from core.ml.reward_gate import QualityScore, RewardGate
 from core.ml.sanity import SanityCheck
 
 
@@ -6,6 +6,22 @@ def test_reward_gate_empty_text_does_not_load_model():
     gate = RewardGate()
 
     assert gate.score("") == 0.0
+
+
+def test_quality_score_never_claims_investment_accuracy(monkeypatch):
+    import importlib
+
+    gate = RewardGate()
+
+    def unavailable():
+        raise RuntimeError("offline")
+
+    reward_module = importlib.import_module("core.ml.reward_gate")
+    monkeypatch.setattr(reward_module, "_ensure_loaded", unavailable)
+    result = gate.score_with_provenance("Structured answer " * 30)
+    assert isinstance(result, QualityScore)
+    assert result.source == "text_structure_heuristic"
+    assert result.scope == "response_form_not_investment_accuracy"
 
 
 def test_reward_gate_best_of_uses_min_score(monkeypatch):
