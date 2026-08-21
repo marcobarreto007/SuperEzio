@@ -1,7 +1,7 @@
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 ðŸš¨ MAN_AT_WORK MODE - TECHNICIAN NEEDED ðŸš¨
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-Reason: CEO Brain down: CEO unreachable: <urlopen error [WinError 10054] An existing connection was forcibly closed by the remote host>
-Time: 2026-08-08T08:53:11.444616+00:00
+Reason: CEO Brain down: CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu
+Time: 2026-08-21T13:27:47.984460+00:00
 Action: NO TRADING ORDERS UNTIL CLEARED
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
