@@ -2487,12 +2487,12 @@ def _add_verdict_template(messages: list, state: dict) -> None:
     """
     pvd = build_verdict_dict(state)
     template = (
-        "RESPONSE TEMPLATE — fill in the EXPLANATION section only.\n"
-        "DO NOT modify the numbers below. They come from the pipeline.\n"
+        "MODELO DE RESPOSTA — preencha apenas a secao EXPLICACAO.\n"
+        "NAO altere os numeros abaixo. Eles vem do pipeline.\n"
         "\n"
-        "PIPELINE DATA (use exactly as shown):\n"
+        "DADOS DO PIPELINE (use exatamente como mostrado):\n"
         f"- Ticker: {pvd['ticker']}\n"
-        f"- Price: {pvd.get('math', {}).get('latest_price', 'N/A')}\n"
+        f"- Preco: {pvd.get('math', {}).get('latest_price', 'N/A')}\n"
         f"- RSI(14): {pvd.get('math', {}).get('rsi', 'N/A')}\n"
         f"- MACD: {pvd.get('math', {}).get('macd', 'N/A')}\n"
         f"- Sharpe: {pvd.get('math', {}).get('sharpe', 'N/A')}\n"
@@ -2500,13 +2500,14 @@ def _add_verdict_template(messages: list, state: dict) -> None:
         f"- F51 Verdict: {pvd.get('f51', {}).get('passed', 'N/A')}\n"
         f"- SDCA: {pvd.get('sdca', {}).get('decision', 'N/A')}\n"
         f"- Neural: {pvd.get('neural', {}).get('decision', 'N/A')}\n"
-        f"- Expert Consensus: {pvd.get('experts', {}).get('consensus', 'N/A')}\n"
+        f"- Consenso dos Experts: {pvd.get('experts', {}).get('consensus', 'N/A')}\n"
         "\n"
-        "YOUR EXPLANATION — MANDATORY FORMAT:\n"
-        "You MUST start with: PIPELINE DATA: RSI={rsi} MACD={macd} F51={score} SDCA={decision}\n"
-        "Then write: YOUR EXPLANATION: [explain the above data in natural language]\n"
-        "Reference EVERY module name that has data. If a module says N/A, state that it has no data.\n"
-        "Never replace a number with a qualitative description. Keep the exact values.\n"
+        "SUA EXPLICACAO — FORMATO OBRIGATORIO:\n"
+        "Voce DEVE comecar com: DADOS DO PIPELINE: RSI={rsi} MACD={macd} F51={score} SDCA={decision}\n"
+        "Depois escreva: SUA EXPLICACAO: [explique os dados acima em linguagem natural]\n"
+        "Referencie CADA modulo que tenha dados. Se um modulo diz N/A, declare que nao tem dados.\n"
+        "Nunca troque um numero por descricao qualitativa. Mantenha os valores exatos.\n"
+        "Responda SEMPRE em portugues.\n"
     )
     messages.append({"role": "user", "content": template})
 
@@ -2983,10 +2984,11 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     messages.append(
         {
             "role": "user",
-            "content": "Explain the pipeline verdict above. You MUST start with: "
-            "PIPELINE DATA: RSI=<value> MACD=<value> F51=<value> SDCA=<value>. "
-            "Then write YOUR EXPLANATION in natural language. "
-            "Reference EVERY module that has data by name. Never answer from memory.",
+            "content": "Explique o veredito do pipeline acima, SEMPRE em portugues. "
+            "Voce DEVE comecar com: DADOS DO PIPELINE: RSI=<valor> MACD=<valor> "
+            "F51=<valor> SDCA=<valor>. Depois escreva SUA EXPLICACAO em linguagem "
+            "natural. Referencie CADA modulo que tenha dados pelo nome. "
+            "Nunca responda de memoria.",
         }
     )
 

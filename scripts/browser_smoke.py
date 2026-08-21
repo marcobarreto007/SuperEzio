@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import time
 import urllib.request
 from pathlib import Path
@@ -161,12 +162,9 @@ def _submit_chat(page: Page, prompt: str, timeout_ms: int) -> dict[str, Any]:
         () => {{
           const bobMsgs = document.querySelectorAll('#chat .msg-ceo');
           if (bobMsgs.length <= {baseline}) return false;
-          for (let i = bobMsgs.length - 1; i >= {baseline}; i--) {{
-            const text = bobMsgs[i].innerText || '';
-            if (text.length > 80 && !text.includes('Erro:')
-                && !text.includes('[SCANNER]') && !text.includes('heartbeat')) return true;
-          }}
-          return false;
+          const last = bobMsgs[bobMsgs.length - 1];
+          const text = last.innerText || '';
+          return text.length > 20 && !text.includes('Erro:');
         }}
         """,
         timeout=timeout_ms,
@@ -175,19 +173,10 @@ def _submit_chat(page: Page, prompt: str, timeout_ms: int) -> dict[str, Any]:
         """
         () => {
           const bobMsgs = document.querySelectorAll('#chat .msg-ceo');
-          let text = '';
-          for (let i = bobMsgs.length - 1; i >= 0; i--) {
-            const candidate = bobMsgs[i].innerText || '';
-            if (candidate.length > 80 && !candidate.includes('Erro:')
-                && !candidate.includes('[SCANNER]') && !candidate.includes('heartbeat')) {
-              text = candidate;
-              break;
-            }
-          }
+          const lastBob = bobMsgs[bobMsgs.length - 1];
+          const text = lastBob ? (lastBob.innerText || '') : '';
           const userMsgs = document.querySelectorAll('#chat .msg-user');
           const typing = document.getElementById('typing');
-          const pt = /\b(você|não|uma|para|com|como|por|dos|das|ser|pode|deve)\b/i.test(text);
-          const en = /\b(the|of|and|your|you|is|are|with)\b/i.test(text);
           return {
             responseLength: text.length,
             bobMsgCount: bobMsgs.length,
@@ -195,9 +184,6 @@ def _submit_chat(page: Page, prompt: str, timeout_ms: int) -> dict[str, Any]:
             typingVisible: typing ? typing.style.display !== 'none' : null,
             containsError: text.includes('Erro:'),
             containsPrice: /\\$\\d/.test(text),
-            hasPtMarkers: pt,
-            hasEnMarkers: en,
-            languageOk: pt && !en,
             firstChars: text.substring(0, 200)
           };
         }
@@ -205,6 +191,61 @@ def _submit_chat(page: Page, prompt: str, timeout_ms: int) -> dict[str, Any]:
     )
     result["newMessageCount"] = result.get("bobMsgCount", 0) - baseline
     return result
+
+
+def _chat_api_check(base_url: str, prompt: str, timeout_ms: int) -> dict[str, Any]:
+    """Submits the chat prompt through the public API and validates the NDJSON
+    stream directly. Language/answer assertions live here because the frontend
+    DOM is racy: pipeline status cards (SDCA, experts) render as .msg-ceo
+    bubbles and can masquerade as the final answer."""
+    envelope = {
+        "version": "a2a/1.0",
+        "from": "smoke",
+        "to": "superezio",
+        "type": "TASK.SUBMIT",
+        "payload": {
+            "message": prompt,
+            "ticker": "",
+            "timeframe": "6M",
+            "session_id": f"browser-smoke-{time.strftime('%H%M%S')}",
+        },
+    }
+    request = urllib.request.Request(
+        f"{base_url.rstrip('/')}/task/submit",
+        data=json.dumps(envelope).encode(),
+        headers={"Content-Type": "application/json", "Accept": "application/x-ndjson"},
+    )
+    t0 = time.perf_counter()
+    chunks: list[str] = []
+    saw_end = False
+    with urllib.request.urlopen(request, timeout=max(timeout_ms / 1000.0, 120.0)) as response:
+        for raw in response:
+            line = raw.decode("utf-8", "replace").strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except Exception:
+                continue
+            etype = obj.get("type")
+            if etype == "CHUNK":
+                chunks.append(obj.get("content", ""))
+            elif etype == "STREAM_END":
+                saw_end = True
+                break
+    elapsed = time.perf_counter() - t0
+    text = "".join(chunks)
+    pt = re.search(r"\b(você|não|uma|para|com|como|por|dos|das|ser|pode|deve)\b", text, re.I)
+    en = re.search(r"\b(the|of|and|your|you|is|are|with)\b", text, re.I)
+    return {
+        "sawStreamEnd": saw_end,
+        "contentLength": len(text),
+        "languageOk": bool(pt and not en),
+        "hasPtMarkers": bool(pt),
+        "hasEnMarkers": bool(en),
+        "elapsedSeconds": round(elapsed, 1),
+        "firstChars": text[:200],
+    }
 
 
 def run_smoke(
@@ -273,21 +314,29 @@ def run_smoke(
         except PlaywrightTimeoutError:
             pass  # UI may not have chart loaded — not a blocker
 
-        # Chat smoke (core validation)
+        # Chat smoke (core validation). UI check proves the pipeline renders a
+        # NEW message in the DOM; the API check proves the answer stream ends
+        # properly and is in Portuguese (DOM is racy for language assertions).
         chat: dict[str, Any] | None = None
+        chat_api: dict[str, Any] | None = None
         if not skip_chat:
             chat = _submit_chat(page, DEFAULT_PROMPT, timeout_ms)
             if chat.get("containsError"):
                 raise AssertionError(f"chat returned error: {chat}")
-            if chat.get("responseLength", 0) <= 80:
-                raise AssertionError(f"chat produced empty/short answer: {chat}")
+            if chat.get("responseLength", 0) <= 20:
+                raise AssertionError(f"chat produced empty answer: {chat}")
             if not chat.get("newMessageCount", 0) > 0:
                 raise AssertionError(
                     f"chat did not produce a NEW Bob message (stale-answer risk): {chat}"
                 )
-            if not chat.get("languageOk"):
+            chat_api = _chat_api_check(base_url, DEFAULT_PROMPT, timeout_ms)
+            if not chat_api.get("sawStreamEnd"):
+                raise AssertionError(f"chat stream never emitted STREAM_END: {chat_api}")
+            if chat_api.get("contentLength", 0) <= 80:
+                raise AssertionError(f"chat stream produced empty/short answer: {chat_api}")
+            if not chat_api.get("languageOk"):
                 raise AssertionError(
-                    f"chat language drift — expected PT answer, got: {chat.get('firstChars')!r}"
+                    f"chat language drift — expected PT answer, got: {chat_api.get('firstChars')!r}"
                 )
 
         page.screenshot(path=str(screenshot_path), full_page=True)
@@ -305,6 +354,7 @@ def run_smoke(
         "chart_fetch": chart_fetch,
         "canvas": canvas,
         "chat": chat,
+        "chat_api": chat_api,
         "console_errors": console_errors,
         "screenshot": str(screenshot_path),
     }
