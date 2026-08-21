@@ -115,13 +115,26 @@ class Settings(BaseSettings):
         description="DeepSeek API credential for external financial experts.",
     )
     superezio_deepseek_base_url: str = Field(
-        default="https://api.deepseek.com/v1",
+        default="https://api.deepseek.com",
         description="OpenAI-compatible external DeepSeek API base URL.",
     )
     superezio_deepseek_model: str = Field(
-        default="deepseek-chat",
+        default="deepseek-v4-pro",
         description="External DeepSeek model used by financial experts.",
     )
+    superezio_allow_custom_deepseek_base_url: bool = Field(
+        default=False,
+        description="Allow an explicitly configured non-official HTTPS DeepSeek endpoint.",
+    )
+    superezio_deepseek_max_tokens: int = Field(default=1800, ge=128, le=8192)
+    superezio_deepseek_timeout_sec: int = Field(default=180, ge=10, le=600)
+    superezio_deepseek_temperature: float = Field(default=0.2, ge=0.0, le=2.0)
+    superezio_daytrade_judge_model: str = Field(default="deepseek-v4-pro")
+    superezio_daytrade_auditor_model: str = Field(default="deepseek-v4-pro")
+    # Read-only schema coverage for provider migration fallbacks. The provider
+    # owns precedence; retaining these names avoids rejecting legacy deployments.
+    superezio_expert_max_tokens: int | None = Field(default=None, ge=128, le=8192)
+    superezio_expert_timeout: int | None = Field(default=None, ge=10, le=600)
 
     # Canadian live-manual Money Gate — conservative defaults, all percentages of equity.
     superezio_money_gate_snapshot_max_age_sec: int = Field(default=120, ge=30, le=600)
@@ -156,7 +169,11 @@ class Settings(BaseSettings):
             )
         return cleaned
 
-    @field_validator("superezio_deepseek_model")
+    @field_validator(
+        "superezio_deepseek_model",
+        "superezio_daytrade_judge_model",
+        "superezio_daytrade_auditor_model",
+    )
     @classmethod
     def _validate_deepseek_model(cls, value: str) -> str:
         cleaned = value.strip()
@@ -173,7 +190,9 @@ class Settings(BaseSettings):
     def deepseek_external_endpoint(self) -> bool:
         parsed = urlsplit(self.superezio_deepseek_base_url)
         host = (parsed.hostname or "").lower()
-        return parsed.scheme == "https" and host not in {"127.0.0.1", "localhost", "::1"}
+        if parsed.scheme != "https" or host in {"127.0.0.1", "localhost", "::1"}:
+            return False
+        return host == "api.deepseek.com" or self.superezio_allow_custom_deepseek_base_url
 
     @property
     def deepseek_experts_configured(self) -> bool:
@@ -183,8 +202,12 @@ class Settings(BaseSettings):
     def deepseek_configuration_status(self) -> str:
         if not self.deepseek_api_key_configured:
             return "unconfigured_missing_api_key"
-        if not self.deepseek_external_endpoint:
+        parsed = urlsplit(self.superezio_deepseek_base_url)
+        host = (parsed.hostname or "").lower()
+        if parsed.scheme != "https" or host in {"127.0.0.1", "localhost", "::1"}:
             return "misconfigured_non_external_endpoint"
+        if host != "api.deepseek.com" and not self.superezio_allow_custom_deepseek_base_url:
+            return "misconfigured_custom_endpoint_not_allowed"
         return "configured"
 
 

@@ -77,6 +77,39 @@ def _env_bool(name: str, default: bool = False) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _deepseek_expert_readiness() -> dict[str, object]:
+    """Return secret-safe configuration readiness for the external expert tier."""
+    try:
+        from core.config.settings import Settings
+
+        settings = Settings(_env_file=None)
+    except Exception:
+        return {
+            "provider": "deepseek",
+            "role": "financial_experts",
+            "topology": "external",
+            "configured": False,
+            "status": "invalid_configuration",
+            "model": None,
+            "base_url": None,
+        }
+
+    return {
+        "provider": "deepseek",
+        "role": "financial_experts",
+        "topology": "external",
+        "configured": settings.deepseek_experts_configured,
+        "status": settings.deepseek_configuration_status,
+        "model": settings.superezio_deepseek_model,
+        "base_url": settings.superezio_deepseek_base_url,
+        "max_tokens": settings.superezio_deepseek_max_tokens,
+        "timeout_sec": settings.superezio_deepseek_timeout_sec,
+        "temperature": settings.superezio_deepseek_temperature,
+        "judge_model": settings.superezio_daytrade_judge_model,
+        "auditor_model": settings.superezio_daytrade_auditor_model,
+    }
+
+
 def _clean_watchlist_ticker(value: object) -> str:
     return "".join(ch for ch in str(value or "").strip().upper() if ch.isalnum() or ch in ".-")
 
@@ -795,11 +828,11 @@ def health_check():
 
     # â”€â”€ Local models â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     local_models: dict = {}
-    for name, url_env, port in [
-        ("agent", "SUPEREZIO_AGENT_BASE_URL", 8080),
-        ("agent_lora", "SUPEREZIO_AGENT_LORA_BASE_URL", 8080),
+    for name, url_env, port, default_url in [
+        ("agent", "SUPEREZIO_AGENT_BASE_URL", 8080, "http://127.0.0.1:8080/v1"),
+        ("agent_lora", "SUPEREZIO_AGENT_LORA_BASE_URL", 8080, ""),
     ]:
-        url = os.getenv(url_env, "")
+        url = os.getenv(url_env, default_url)
         reachable = False
         if url:
             try:
@@ -854,24 +887,27 @@ def health_check():
     health["checks"]["redis"] = redis_info
 
     # â”€â”€ Model providers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    # Zero-cloud (2026-08-17): the primary provider is always the shared local
-    # llama-server — "configured" no longer means "has a cloud API key".
+    # The CEO remains on the local llama-server. Financial experts are a
+    # distinct external DeepSeek tier and require their own credential.
+    ceo_runtime = local_models["agent"]
     primary_info = {
         "configured": True,
         "provider": PRIMARY_PROVIDER_NAME,
-        "model": os.getenv(
-            "SUPEREZIO_PRIMARY_MODEL",
-            os.getenv("SUPEREZIO_DEEPSEEK_MODEL", "Qwen3.8-27B-Q4_K_M"),
-        ),
-        "base_url": os.getenv(
-            "SUPEREZIO_PRIMARY_BASE_URL",
-            os.getenv("SUPEREZIO_DEEPSEEK_BASE_URL", "http://127.0.0.1:8080/v1"),
-        ),
+        "role": "ceo",
+        "topology": "local",
+        "model": os.getenv("SUPEREZIO_AGENT_MODEL", "Qwen3.8-27B-Q4_K_M"),
+        "base_url": ceo_runtime["url"],
+        "reachable": ceo_runtime["reachable"],
+        "status": ceo_runtime["status"],
     }
+    experts_info = _deepseek_expert_readiness()
+    gateway_has_providers = False
+    deepseek_runtime_seen = False
     try:
         pipeline = getattr(app.state, "pipeline", None)
         gateway = getattr(pipeline, "gateway", None)
         providers = list(getattr(gateway, "providers", []))
+        gateway_has_providers = bool(providers)
         for p in providers:
             key = p.name
             health["checks"][f"provider_{key}"] = {
@@ -880,17 +916,30 @@ def health_check():
                 "base_url": p.base_url,
                 "priority": p.priority,
             }
+            if key == "deepseek":
+                deepseek_runtime_seen = True
+                parsed = urlsplit(p.base_url)
+                runtime_external = (
+                    not p.is_local
+                    and parsed.scheme == "https"
+                    and (parsed.hostname or "").lower() not in {"127.0.0.1", "localhost", "::1"}
+                )
+                experts_info["runtime_topology"] = "external" if runtime_external else "local"
+                if experts_info["configured"] and not runtime_external:
+                    experts_info["configured"] = False
+                    experts_info["status"] = "misconfigured_runtime_topology"
     except Exception as exc:
         logger.warning("[%s] provider summary unavailable: %s", AGENT_NAME, exc)
         health["checks"]["providers_introspection_error"] = str(exc)[:200]
 
+    if gateway_has_providers and not deepseek_runtime_seen:
+        experts_info["configured"] = False
+        experts_info["status"] = "runtime_provider_missing"
+    health["checks"]["provider_deepseek"] = dict(experts_info)
+
     health["checks"]["providers_summary"] = {
         "primary": primary_info,
-        "experts": {
-            # Legacy routing name "deepseek" — serves the local endpoint now.
-            "provider": "local",
-            "model": os.getenv("SUPEREZIO_DEEPSEEK_MODEL", "Qwen3.8-27B-Q4_K_M"),
-        },
+        "experts": dict(experts_info),
     }
 
     # -- Circuit Breakers --
@@ -937,8 +986,16 @@ def health_check():
             "error": str(exc)[:200],
         }
 
-    all_ok = primary_info["configured"] or any(m["reachable"] for m in local_models.values())
-    health["status"] = "ok" if all_ok else "degraded_no_backend"
+    ceo_ready = bool(primary_info["reachable"])
+    experts_ready = bool(experts_info["configured"])
+    if ceo_ready and experts_ready:
+        health["status"] = "ok"
+    elif not ceo_ready and not experts_ready:
+        health["status"] = "degraded_backends_unavailable"
+    elif not ceo_ready:
+        health["status"] = "degraded_ceo_unreachable"
+    else:
+        health["status"] = "degraded_experts_unconfigured"
 
     # Return proper HTTP status code — 503 if system is degraded
     if health["status"] != "ok":

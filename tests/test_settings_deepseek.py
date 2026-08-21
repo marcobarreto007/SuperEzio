@@ -23,6 +23,32 @@ def test_deepseek_secret_is_typed_redacted_and_external_ready() -> None:
     assert secret_value not in str(settings.model_dump())
 
 
+def test_deepseek_operational_defaults_match_provider_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for name in (
+        "SUPEREZIO_DEEPSEEK_BASE_URL",
+        "SUPEREZIO_DEEPSEEK_MODEL",
+        "SUPEREZIO_ALLOW_CUSTOM_DEEPSEEK_BASE_URL",
+        "SUPEREZIO_DEEPSEEK_MAX_TOKENS",
+        "SUPEREZIO_DEEPSEEK_TIMEOUT_SEC",
+        "SUPEREZIO_DEEPSEEK_TEMPERATURE",
+        "SUPEREZIO_DAYTRADE_JUDGE_MODEL",
+        "SUPEREZIO_DAYTRADE_AUDITOR_MODEL",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    settings = _settings()
+
+    assert settings.superezio_deepseek_base_url == "https://api.deepseek.com"
+    assert settings.superezio_deepseek_model == "deepseek-v4-pro"
+    assert settings.superezio_allow_custom_deepseek_base_url is False
+    assert settings.superezio_deepseek_max_tokens == 1800
+    assert settings.superezio_deepseek_timeout_sec == 180
+    assert settings.superezio_deepseek_temperature == 0.2
+    assert settings.superezio_daytrade_judge_model == "deepseek-v4-pro"
+    assert settings.superezio_daytrade_auditor_model == "deepseek-v4-pro"
+
+
 def test_missing_deepseek_key_is_explicitly_unconfigured_without_invalidating_settings() -> None:
     settings = _settings(superezio_deepseek_api_key="   ")
 
@@ -41,6 +67,41 @@ def test_legacy_local_deepseek_endpoint_loads_but_cannot_claim_external_readines
     assert settings.deepseek_external_endpoint is False
     assert settings.deepseek_experts_configured is False
     assert settings.deepseek_configuration_status == "misconfigured_non_external_endpoint"
+
+
+def test_custom_deepseek_endpoint_requires_explicit_opt_in() -> None:
+    denied = _settings(
+        superezio_deepseek_api_key="test-key",
+        superezio_deepseek_base_url="https://gateway.example.test/v1",
+    )
+    allowed = _settings(
+        superezio_deepseek_api_key="test-key",
+        superezio_deepseek_base_url="https://gateway.example.test/v1",
+        superezio_allow_custom_deepseek_base_url=True,
+    )
+
+    assert denied.deepseek_experts_configured is False
+    assert denied.deepseek_configuration_status == "misconfigured_custom_endpoint_not_allowed"
+    assert allowed.deepseek_experts_configured is True
+    assert allowed.deepseek_configuration_status == "configured"
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("superezio_deepseek_max_tokens", 127),
+        ("superezio_deepseek_max_tokens", 8193),
+        ("superezio_deepseek_timeout_sec", 9),
+        ("superezio_deepseek_timeout_sec", 601),
+        ("superezio_deepseek_temperature", -0.01),
+        ("superezio_deepseek_temperature", 2.01),
+        ("superezio_expert_max_tokens", 127),
+        ("superezio_expert_timeout", 601),
+    ],
+)
+def test_deepseek_operational_limits_are_validated(field: str, value: object) -> None:
+    with pytest.raises(ValidationError):
+        _settings(**{field: value})
 
 
 @pytest.mark.parametrize(
