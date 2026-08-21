@@ -1,6 +1,6 @@
 {
     "project":  "SuperEzio",
-    "version":  "4.0.0",
+    "version":  "4.2.0",
     "updated":  "2026-08-21",
     "note":  "HYBRID TRUST BOUNDARY: CEO/agent and orchestrator remain on the shared local Qwen server at :8080. Financial experts, daytrade judge and auditor are pinned to the official DeepSeek HTTPS API and fail closed without SUPEREZIO_DEEPSEEK_API_KEY. No cross-provider fallback is allowed.",
     "agent":  {
