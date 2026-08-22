@@ -15,7 +15,7 @@
   --border-subtle: #21262d;
   --text-primary: #e6edf3;
   --text-secondary: #8b949e;
-  --text-muted: #6e7681;
+  --text-muted: #8b96a3; /* >=4.5:1 on the dark bg (was #6e7681 at ~3.4-3.9:1 — R4 G7) */
   --green-buy: #00e676;
   --green-dim: rgba(0, 230, 118, 0.15);
   --red-sell: #ef5350;
@@ -2228,5 +2228,47 @@ body::after {
   .toast-container {
     max-width: calc(100vw - 24px);
     right: 12px;
+  }
+}
+
+/* ── Mobile touch targets, typography, a11y (R4 G5/G6/G7/G8) ──
+   MUST stay last in the file to win the cascade. */
+@media (max-width: 600px) {
+  .tf-btn {
+    height: 40px;
+    min-width: 40px;
+    font-size: 11px;
+  }
+
+  .topbar__btn,
+  .topbar__icon-btn,
+  #bob-chat-close {
+    width: 40px;
+    height: 40px;
+  }
+
+  .ticker-wrap input,
+  .ticker-wrap select {
+    min-height: 44px;
+  }
+
+  #user-inp {
+    min-height: 44px;
+  }
+
+  /* Micro-labels were 7-10px (illegible, R4 G6) — 11px keeps layout. */
+  .price-cell__label,
+  .trust-label,
+  .mangala-progress__label,
+  .market-header__label,
+  .bob-chat__tab-label {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 600px) {
+  /* Fixed 26px height overrides min-height — raise explicitly. */
+  #ticker-inp {
+    height: 44px;
   }
 }

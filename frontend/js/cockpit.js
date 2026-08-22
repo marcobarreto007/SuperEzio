@@ -938,7 +938,7 @@
       '<div class="trade-inline-form" id="trade-form-' + cardId + '">' +
       '<div class="trade-form-row">' +
       '<input class="trade-ticker-inp" type="text" placeholder="TICKER" maxlength="10">' +
-      '<select class="trade-action-select"><option value="buy">BUY</option><option value="sell">SELL</option></select>' +
+      '<select class="trade-action-select" aria-label="Acao da ordem"><option value="buy">BUY</option><option value="sell">SELL</option></select>' +
       '<input class="trade-qty-inp" type="number" value="10" min="1" max="99999" step="1" placeholder="Qty">' +
       '</div>' +
       '<div class="trade-form-actions">' +
