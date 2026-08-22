@@ -1366,5 +1366,37 @@
     "risk_context_shown": "INVESTMENT_SKILL_NOT_PROVEN (0/24 casos, multi_asset_investment_quality_20260820) — recomendacoes do motor nao tem habilidade de investimento demonstrada. Operador manteve a decisao apos ver o contexto.",
     "still_binding": "F51/SDCA ALLOW/BLOCK/REVIEW, kill switch, idempotencia, route_after_agent_paper_gate e SUPEREZIO_LIVE_TRADING_DISABLED=1 continuam valendo — recomendacao e texto; execucao segue paper/validation.",
     "verification": "test_auto_full_analysis + test_contract_orchestrator 37/37; ruff limpo."
+  },
+  "decisive_recommendation_live_test_20260822": {
+    "status": "PASS",
+    "objective": "Teste ao vivo de decisao de compra ('Compro TD.TO ou nao?') com obrigacao de consultar o sistema inteiro.",
+    "changes_in_flow": [
+      "Regra 11 adicionada (08c0d02): decisoes de compra/venda devem esperar o veredito completo do pipeline, nunca responder de memoria.",
+      "LOCAL_MAX_TOKENS 512 -> 1024 (d5f8f30): o teto anterior cortava a resposta no meio antes da recomendacao."
+    ],
+    "modules_consulted": [
+      "orchestrator_primary",
+      "data (professional_collector, DATA_COLLECTED)",
+      "MathHub (MATH_REPORT)",
+      "experts (DeepSeek)",
+      "f51_verdict",
+      "neural_decision",
+      "sdca_firewall",
+      "rag_forensics",
+      "guardrail_hub",
+      "trinity (Genie vs Deep)",
+      "agent_primary (Bob)",
+      "explanation",
+      "STREAM_END"
+    ],
+    "answer_evidence": "1953 chars, PT, numeros exatos do pipeline (RSI=34.115927, MACD=-0.871621, F51=0.779, SDCA=ALLOW) e recomendacao clara: NAO COMPRAR agora — F51 False + RSI/MACD negativos; aguardar reversao tecnica.",
+    "notes": [
+      "F51 veredito False com SDCA ALLOW — Bob reportou a contradicao com os numeros exatos, sem mascara-la.",
+      "Recomendacao agora permitida (regra 8 removida) e obrigatoriamente baseada no sistema (regra 11)."
+    ],
+    "commits": [
+      "08c0d02",
+      "d5f8f30"
+    ]
   }
 }
