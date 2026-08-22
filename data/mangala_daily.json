@@ -1,5 +1,5 @@
 {
-  "scanned_at": "2026-08-22T17:54:00.565053+00:00",
+  "scanned_at": "2026-08-22T19:46:08.275250+00:00",
   "count": 5,
   "opportunities": [
     {
@@ -26,7 +26,7 @@
         "stop_3pct": 4.69,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-22T17:53:43.471036+00:00"
+      "scanned_at": "2026-08-22T19:45:53.436335+00:00"
     },
     {
       "ticker": "SNDL",
@@ -44,15 +44,15 @@
       },
       "whale_status": "FRACO",
       "whale_score": 0,
-      "pump_risk": "ALERT",
-      "pump_score": 77,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
       "flip_plan": {
         "entry": 1.37,
         "target_5pct": 1.44,
         "stop_3pct": 1.33,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-22T17:53:51.558507+00:00"
+      "scanned_at": "2026-08-22T19:46:00.438901+00:00"
     },
     {
       "ticker": "KODK",
@@ -69,7 +69,7 @@
         "catalyst": 8
       },
       "whale_status": "FRACO",
-      "whale_score": 0,
+      "whale_score": 20,
       "pump_risk": "CLEAN",
       "pump_score": 0,
       "flip_plan": {
@@ -78,21 +78,21 @@
         "stop_3pct": 9.54,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-22T17:54:00.565053+00:00"
+      "scanned_at": "2026-08-22T19:46:08.274240+00:00"
     },
     {
       "ticker": "PLUG",
       "price": 2.27,
       "volume": 56420354,
       "name": "Plug Power, Inc.",
-      "score": 35,
+      "score": 33,
       "signal": "PASS",
       "factors": {
         "volume": 5,
         "whale": 5,
         "momentum": 3,
         "rsi": 12,
-        "catalyst": 10
+        "catalyst": 8
       },
       "whale_status": "FRACO",
       "whale_score": 0,
@@ -104,7 +104,7 @@
         "stop_3pct": 2.2,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-22T17:52:55.215390+00:00"
+      "scanned_at": "2026-08-22T19:45:21.129729+00:00"
     },
     {
       "ticker": "RIG",
@@ -130,7 +130,7 @@
         "stop_3pct": 5.74,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-22T17:53:03.207392+00:00"
+      "scanned_at": "2026-08-22T19:45:29.975295+00:00"
     }
   ]
 }

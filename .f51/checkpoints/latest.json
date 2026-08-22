@@ -1398,5 +1398,27 @@
       "08c0d02",
       "d5f8f30"
     ]
+  },
+  "committee_4_tickets_20260822": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "objective": "Comite de 4 product-implementers resolvendo as falhas identificadas, com teste de tudo e entrega pronta.",
+    "tickets": {
+      "T1_expert_consensus": "LangGraph descartava silenciosamente chaves de node-update fora do schema PipelineState — expert_consensus/expert_raw/expert_structured/expert_weights agora declarados (commit d9a739e). Consenso dos experts deixa de ser N/A. 30/30 + teste de regressao compilando o StateGraph real.",
+      "T2_explanation_skip": "INTENCIONAL e correto — explanation e interpretador do veredito F51, nao polimento; resposta vem dos CHUNKs do agente. Documentado o contrato no ponto do skip (commit 2a668fe). Sem fix inventado.",
+      "T3_gpu_probe": "Probe era torch-CUDA-only → falso-negativo na maquina. Fallback nvidia-smi read-only com timeout 3s e falhas honestas (commit 14b4bff). AO VIVO: checks.gpu = {available:true, RTX 3060, 9194MiB usados, source:nvidia-smi}. 64/64 testes.",
+      "T4_generic_queue": "Fila generica do gateway exclui judge/auditor (papeis de arbitragem); SUPEREZIO_AGENT_TIMEOUT_SEC com parse seguro _bounded_int_env (commit e047ddf). 78/78 testes."
+    },
+    "final_gates": {
+      "full_pytest": "2010 passed, 2 skipped, 1 failed (contrato stale de max_tokens 512) — corrigido em 49beb5d, arquivo re-rodado 11/11. Suite efetivamente verde.",
+      "gpu_live": "checks.gpu.available=true com fonte nvidia-smi verificada ao vivo apos reload",
+      "smoke": "PASS — resposta PT, 106.9s, 0 console errors, screenshot superezio-browser-smoke-20260822-161907.png"
+    },
+    "commits": [
+      "e047ddf",
+      "2a668fe",
+      "d9a739e",
+      "14b4bff",
+      "49beb5d"
+    ]
   }
 }
