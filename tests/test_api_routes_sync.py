@@ -157,6 +157,31 @@ def test_health_details(client_with_mock_pipeline):
     assert data["mission"]["broker"]["ibkr"]["can_submit_orders"] is False
 
 
+def test_health_details_gpu_block_comes_from_probe(client_with_mock_pipeline, monkeypatch):
+    """4b. T3 — /health/details surfaces the deterministic GPU probe result verbatim."""
+    import agent_server.main as main_module
+
+    probe_result = {
+        "available": True,
+        "devices": [
+            {
+                "id": 0,
+                "name": "NVIDIA GeForce RTX 3060",
+                "vram_mb": 12116,
+                "memory_used_mb": 9195,
+                "memory_free_mb": 2921,
+            }
+        ],
+        "status": "ok",
+        "source": "nvidia-smi",
+    }
+    monkeypatch.setattr(main_module, "_probe_gpu", lambda: probe_result)
+    _, client = client_with_mock_pipeline
+    response = client.get("/health/details")
+    assert response.status_code in (200, 503), f"Expected 200 or 503, got {response.status_code}"
+    assert response.json()["checks"]["gpu"] == probe_result
+
+
 @pytest.mark.asyncio
 async def test_slow_cockpit_probe_does_not_block_liveness(client_with_mock_pipeline, monkeypatch):
     """Slow synchronous probes must run outside the API event loop."""

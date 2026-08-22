@@ -2,6 +2,7 @@ import asyncio
 import json as _json
 import math
 import os
+import subprocess
 import sys
 import time
 import uuid
@@ -793,6 +794,117 @@ async def health_check_public(request: Request):
     return {"status": "ok", **identity}
 
 
+def _probe_gpu_torch() -> dict | None:
+    """Primary GPU probe via torch CUDA. Returns a populated gpu_info dict, or
+    None when torch-CUDA is not usable (not installed, CPU-only build, or error)."""
+    try:
+        import torch
+    except ImportError:
+        return None
+    try:
+        if not torch.cuda.is_available():
+            return None
+        devices = []
+        for i in range(torch.cuda.device_count()):
+            props = torch.cuda.get_device_properties(i)
+            devices.append(
+                {
+                    "id": i,
+                    "name": props.name,
+                    "vram_mb": props.total_memory // (1024 * 1024),
+                }
+            )
+        return {"available": True, "devices": devices, "status": "ok", "source": "torch"}
+    except Exception:
+        return None
+
+
+def _parse_nvidia_smi(stdout: str) -> list[dict]:
+    """Parse `nvidia-smi --query-gpu=name,memory.used,memory.free --format=csv`
+    output into the same device shape used by the torch probe. Pure, read-only
+    parser: never raises; header and unparseable lines are skipped."""
+    devices: list[dict] = []
+
+    def _mb(value: str) -> int | None:
+        token = value.strip().split()
+        if not token or token[0].upper() == "N/A":
+            return None
+        digits = "".join(ch for ch in token[0] if ch.isdigit())
+        return int(digits) if digits else None
+
+    for raw in stdout.splitlines():
+        line = raw.strip()
+        if not line or line.lower().startswith("name"):
+            continue
+        parts = [p.strip() for p in line.split(",")]
+        if len(parts) < 3 or not parts[0]:
+            continue
+        used_mb = _mb(parts[1])
+        free_mb = _mb(parts[2])
+        devices.append(
+            {
+                "id": len(devices),
+                "name": parts[0],
+                "vram_mb": (used_mb or 0) + (free_mb or 0),
+                "memory_used_mb": used_mb,
+                "memory_free_mb": free_mb,
+            }
+        )
+    return devices
+
+
+def _probe_gpu_nvidia_smi() -> tuple[dict | None, str]:
+    """Fallback GPU probe: parse `nvidia-smi` via subprocess (read-only only).
+    Returns (gpu_info, failure_reason): never raises, so the caller can report
+    the honest reason when the GPU is genuinely unavailable."""
+    try:
+        proc = subprocess.run(
+            ["nvidia-smi", "--query-gpu=name,memory.used,memory.free", "--format=csv"],
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+    except FileNotFoundError:
+        return None, "nvidia-smi not found"
+    except subprocess.TimeoutExpired:
+        return None, "nvidia-smi timed out after 3s"
+    except OSError as exc:
+        return None, f"nvidia-smi launch failed: {str(exc)[:120]}"
+    if proc.returncode != 0:
+        stderr = (proc.stderr or "").strip()
+        return None, f"nvidia-smi exited rc={proc.returncode}: {stderr[:120]}"
+    devices = _parse_nvidia_smi(proc.stdout)
+    if not devices:
+        return None, "nvidia-smi returned no GPU rows"
+    return (
+        {"available": True, "devices": devices, "status": "ok", "source": "nvidia-smi"},
+        "",
+    )
+
+
+def _probe_gpu() -> dict:
+    """Deterministic GPU readiness probe for /health/details and the dashboard.
+
+    Order: torch-CUDA (primary), then nvidia-smi (fallback). The fallback never
+    masks a failure: when both probes fail, gpu.available stays False and
+    `reason` lists every failure observed.
+    """
+    torch_info = _probe_gpu_torch()
+    if torch_info is not None:
+        return torch_info
+    reasons = ["torch-CUDA probe unavailable (not installed, CPU-only build, or error)"]
+    smi_info, smi_reason = _probe_gpu_nvidia_smi()
+    if smi_info is not None:
+        return smi_info
+    reasons.append(smi_reason)
+    return {
+        "available": False,
+        "devices": [],
+        "status": "unavailable",
+        "reason": "; ".join(reasons),
+    }
+
+
 @app.get("/health/details")
 def health_check():
     """Deep health check â€” verifica GPU, modelos, Redis, providers, cache."""
@@ -808,26 +920,7 @@ def health_check():
     }
 
     # â”€â”€ GPU â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    gpu_info: dict = {"available": False, "devices": []}
-    try:
-        import torch
-
-        gpu_info["available"] = torch.cuda.is_available()
-        if gpu_info["available"]:
-            for i in range(torch.cuda.device_count()):
-                props = torch.cuda.get_device_properties(i)
-                gpu_info["devices"].append(
-                    {
-                        "id": i,
-                        "name": props.name,
-                        "vram_mb": props.total_memory // (1024 * 1024),
-                    }
-                )
-            gpu_info["status"] = "ok"
-        else:
-            gpu_info["status"] = "unavailable"
-    except ImportError:
-        gpu_info["status"] = "no_torch"
+    gpu_info = _probe_gpu()
     health["checks"]["gpu"] = gpu_info
 
     # â”€â”€ Local models â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1075,19 +1168,7 @@ async def health_dashboard_data():
     uptime_s = metrics.uptime_seconds()
     memory_mb = _get_memory_usage_mb()
 
-    gpu_info = {"available": False, "devices": []}
-    try:
-        import torch
-
-        gpu_info["available"] = torch.cuda.is_available()
-        if gpu_info["available"]:
-            for i in range(torch.cuda.device_count()):
-                props = torch.cuda.get_device_properties(i)
-                gpu_info["devices"].append(
-                    {"id": i, "name": props.name, "vram_mb": props.total_memory // (1024 * 1024)}
-                )
-    except ImportError:
-        gpu_info["status"] = "no_torch"
+    gpu_info = _probe_gpu()
 
     # Zero-cloud: "configured" means the local endpoint is set — not a cloud key.
     primary_configured = True
