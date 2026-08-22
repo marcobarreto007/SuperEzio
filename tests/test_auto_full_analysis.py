@@ -54,7 +54,10 @@ async def test_auto_full_analysis_uses_collector_state_for_decision_stack(monkey
 
     async def fake_collect_experts(state):
         assert len(state["expert_results"]) == 6
-        return {"expert_summary": "six experts checked PLUG"}
+        return {
+            "expert_summary": "six experts checked PLUG",
+            "expert_consensus": {"decision": "SUPPORT", "score": 0.42, "weight_coverage": 0.9},
+        }
 
     async def fake_f51(state):
         assert state["data"]["ticker"] == "PLUG"
@@ -96,6 +99,7 @@ async def test_auto_full_analysis_uses_collector_state_for_decision_stack(monkey
     assert "PRICE=3.20" in result["data_context"]
     assert len(result["expert_results"]) == 6
     assert result["expert_summary"] == "six experts checked PLUG"
+    assert result["expert_consensus"]["decision"] == "SUPPORT"
     assert result["f51_verdict"]["passed"] is True
     assert result["neural_decision"]["recommendation"] == "WATCH"
     assert result["sdca_firewall"]["decision"] == "ALLOW"
@@ -104,6 +108,54 @@ async def test_auto_full_analysis_uses_collector_state_for_decision_stack(monkey
     assert result["guardrail_hub"]["total_guardrails"] == 30
     assert result["decision_trace"]["summary"]["total_events"] >= 1
     assert any(event.get("step") == "auto_full_analysis" for event in events)
+
+
+@pytest.mark.asyncio
+async def test_expert_consensus_survives_langgraph_state_schema():
+    """Regression (T1, 2026-08-22): expert_consensus must survive the graph.
+
+    LangGraph filters node updates to keys declared in the state TypedDict.
+    node_collect_experts emits expert_consensus (plus expert_raw/structured/
+    weights), but PipelineState only declared expert_summary — so the compiled
+    graph silently dropped the consensus and build_verdict_dict rendered
+    "Consenso dos Experts: N/A" even after the experts had run live.
+    """
+    from langgraph.graph import END, START, StateGraph
+
+    from src.core.pipeline.contracts import PipelineState
+    from src.core.pipeline.verdict import build_verdict_dict
+
+    seen: dict = {}
+
+    async def produce(state):
+        return {
+            "expert_summary": "six experts checked PLUG",
+            "expert_raw": "[macro_risk][ok] raw",
+            "expert_structured": {"macro_risk": {"verdict": "RISK_ON"}},
+            "expert_weights": {"macro_risk": 0.5},
+            "expert_consensus": {"decision": "SUPPORT", "score": 0.42, "weight_coverage": 0.9},
+        }
+
+    async def consume(state):
+        seen["consensus"] = state.get("expert_consensus")
+        seen["verdict_consensus"] = build_verdict_dict(state)["experts"]["consensus"]
+        return {}
+
+    builder = StateGraph(PipelineState)
+    builder.add_node("produce", produce)
+    builder.add_node("consume", consume)
+    builder.add_edge(START, "produce")
+    builder.add_edge("produce", "consume")
+    builder.add_edge("consume", END)
+    await builder.compile().ainvoke({})
+
+    assert seen["consensus"] == {
+        "decision": "SUPPORT",
+        "score": 0.42,
+        "weight_coverage": 0.9,
+    }
+    # build_verdict_dict must read the surviving consensus, not default to N/A.
+    assert seen["verdict_consensus"] == "SUPPORT"
 
 
 @pytest.mark.asyncio

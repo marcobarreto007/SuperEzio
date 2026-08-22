@@ -107,6 +107,10 @@ class PipelineState(TypedDict, total=False):
     # Experts (fan-out via Send — reducer applied by LangGraph)
     expert_results: Annotated[list[dict[str, Any]], _expert_results_reducer]
     expert_summary: str
+    expert_raw: str
+    expert_structured: dict[str, Any]
+    expert_weights: dict[str, float]
+    expert_consensus: dict[str, Any]
 
     # F51 Verdict
     f51_verdict: dict[str, Any]
