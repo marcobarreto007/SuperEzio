@@ -131,6 +131,23 @@ class TestProvidersForRequest:
         result = gw._providers_for_request("deepseek")
         assert [provider.name for provider in result] == ["deepseek"]
 
+    def test_no_preference_excludes_arbitration_roles(self):
+        """T4: generic requests (no preferred_provider) must not fall back to
+        the arbitration-only judge/auditor roles; deepseek stays eligible."""
+        gw = _gateway(
+            _provider(AGENT_PROVIDER_NAME, priority=-670),
+            _provider("local_orchestrator", priority=-400),
+            _provider("deepseek", priority=-300),
+            _provider("daytrade_judge", priority=-304),
+            _provider("daytrade_auditor", priority=-305),
+        )
+        result = gw._providers_for_request(None)
+        names = [p.name for p in result]
+        assert "daytrade_judge" not in names
+        assert "daytrade_auditor" not in names
+        assert "deepseek" in names
+        assert names == ["local_orchestrator", "deepseek"]
+
 
 class TestPrimaryProvider:
     def test_finds_primary(self):

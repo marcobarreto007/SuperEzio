@@ -296,6 +296,34 @@ def test_gateway_agent_never_has_cloud_fallback(monkeypatch):
     assert [p.name for p in providers] == [AGENT_PROVIDER_NAME]
 
 
+def test_agent_timeout_invalid_value_fails_cleanly(monkeypatch):
+    """T4: an invalid SUPEREZIO_AGENT_TIMEOUT_SEC must raise the bounded-parse
+    RuntimeError (consistent with DeepSeek env parsing), not a raw
+    ValueError from int() that crashes the provider build."""
+    monkeypatch.setenv("SUPEREZIO_AGENT_TIMEOUT_SEC", "not-a-number")
+
+    from core.config.schema import UniversalConfig
+    from core.model_serving.providers import build_default_providers
+
+    cfg = UniversalConfig()
+    with pytest.raises(RuntimeError, match="SUPEREZIO_AGENT_TIMEOUT_SEC must be an integer"):
+        build_default_providers(cfg)
+
+
+def test_agent_timeout_env_below_floor_is_clamped(monkeypatch):
+    """T4: a valid but small SUPEREZIO_AGENT_TIMEOUT_SEC is clamped to the
+    LOCAL_TIMEOUT_S floor, preserving the previous behavior."""
+    monkeypatch.setenv("SUPEREZIO_AGENT_TIMEOUT_SEC", "10")
+
+    from core.config.schema import UniversalConfig
+    from core.model_serving.providers import AGENT_PROVIDER_NAME, build_default_providers
+
+    cfg = UniversalConfig()
+    providers, _ = build_default_providers(cfg)
+    agent = next(p for p in providers if p.name == AGENT_PROVIDER_NAME)
+    assert agent.timeout_s >= 600
+
+
 def test_gateway_max_attempts():
     from core.model_serving.gateway import ModelGateway
     from core.model_serving.providers import ModelProvider, GatewayConfig

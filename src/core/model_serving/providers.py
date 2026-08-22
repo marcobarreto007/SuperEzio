@@ -330,7 +330,12 @@ def build_default_providers(
             priority=-10,  # HIGH priority — local CEO
             model=agent_model,
             timeout_s=max(
-                int(os.getenv("SUPEREZIO_AGENT_TIMEOUT_SEC", str(LOCAL_TIMEOUT_S))),
+                _bounded_int_env(
+                    ("SUPEREZIO_AGENT_TIMEOUT_SEC",),
+                    default=LOCAL_TIMEOUT_S,
+                    minimum=1,
+                    maximum=3600,
+                ),
                 LOCAL_TIMEOUT_S,
             ),
             max_tokens=LOCAL_MAX_TOKENS,

@@ -146,11 +146,20 @@ class ModelGateway:
                         and not _skip_cooldown(other.name)
                     ]
         # No preferred provider: keep external-provider order and avoid routing
-        # generic tasks to local agent runtime.
+        # generic tasks to local agent runtime. Arbitration-only roles
+        # (daytrade judge/auditor) are not generic fallbacks either — a generic
+        # task routed to them would spend external DeepSeek tokens outside the
+        # arbitration flow. The plain deepseek provider stays eligible.
         non_local = [
             p
             for p in self.providers
-            if p.name != AGENT_PROVIDER_NAME and not _skip_cooldown(p.name)
+            if p.name
+            not in {
+                AGENT_PROVIDER_NAME,
+                DAYTRADE_JUDGE_PROVIDER_NAME,
+                DAYTRADE_AUDITOR_PROVIDER_NAME,
+            }
+            and not _skip_cooldown(p.name)
         ]
         return non_local or self.providers
 
