@@ -1,0 +1,1511 @@
+[
+ {
+  "name": "mobile-390",
+  "measure": {
+   "vw": 390,
+   "vh": 844,
+   "bodySW": 390,
+   "docSW": 390,
+   "overflow": 0,
+   "topbarH": 40,
+   "chartPane": {
+    "w": 372,
+    "h": 133
+   },
+   "canvasCount": 21,
+   "offenders": [
+    {
+     "t": "ARTICLE",
+     "id": "expert-card-mangala",
+     "c": "expert-card",
+     "l": 1519,
+     "r": 1762,
+     "w": 243
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "expert-card__hd",
+     "l": 1519,
+     "r": 1762,
+     "w": 243
+    },
+    {
+     "t": "DIV",
+     "id": "mangala-body",
+     "c": "expert-card__bd",
+     "l": 1519,
+     "r": 1762,
+     "w": 243
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "expert-card__trust",
+     "l": 1519,
+     "r": 1762,
+     "w": 243
+    },
+    {
+     "t": "SPAN",
+     "id": "mangala-verdict",
+     "c": "expert-card__verdict",
+     "l": 1702,
+     "r": 1752,
+     "w": 50
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-capital-row",
+     "l": 1529,
+     "r": 1752,
+     "w": 223
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-capital-value",
+     "l": 1709,
+     "r": 1752,
+     "w": 43
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-capital-row",
+     "l": 1529,
+     "r": 1752,
+     "w": 223
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-capital-value.mangala-current",
+     "l": 1701,
+     "r": 1752,
+     "w": 50
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-stats",
+     "l": 1529,
+     "r": 1752,
+     "w": 223
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-progress",
+     "l": 1529,
+     "r": 1752,
+     "w": 223
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-progress__label",
+     "l": 1529,
+     "r": 1752,
+     "w": 223
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "",
+     "l": 1738,
+     "r": 1752,
+     "w": 13
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-progress__track",
+     "l": 1529,
+     "r": 1752,
+     "w": 223
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-growth",
+     "l": 1529,
+     "r": 1752,
+     "w": 223
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-growth__value.is-positive",
+     "l": 1722,
+     "r": 1752,
+     "w": 30
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-scan-header",
+     "l": 1529,
+     "r": 1752,
+     "w": 223
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-scan-list",
+     "l": 1529,
+     "r": 1752,
+     "w": 223
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-scan-row",
+     "l": 1529,
+     "r": 1752,
+     "w": 223
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-scan-row",
+     "l": 1529,
+     "r": 1752,
+     "w": 223
+    }
+   ],
+   "smallFonts": [
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-label",
+     "fs": 7,
+     "txt": "data"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-label",
+     "fs": 7,
+     "txt": "risk"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-label",
+     "fs": 7,
+     "txt": "signal"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-label",
+     "fs": 7,
+     "txt": "consensus"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-label",
+     "fs": 7,
+     "txt": "security"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-label",
+     "fs": 7,
+     "txt": "compounding"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "price-cell__label",
+     "fs": 8,
+     "txt": "Last"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "price-cell__label",
+     "fs": 8,
+     "txt": "Chg"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "price-cell__label",
+     "fs": 8,
+     "txt": "High"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-score-badge.is-neutral",
+     "fs": 8,
+     "txt": "TRUST: --"
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-progress__label",
+     "fs": 8,
+     "txt": "Progress to $30.00"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "",
+     "fs": 8,
+     "txt": "Progress to $30.00"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "",
+     "fs": 8,
+     "txt": "0%"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-growth__label",
+     "fs": 8,
+     "txt": "Growth:"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-scan__signal",
+     "fs": 8,
+     "txt": "MEH"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-scan__whale",
+     "fs": 8,
+     "txt": "FRACO"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-scan__pump.is-positive",
+     "fs": 8,
+     "txt": "CLEAN"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-scan__signal",
+     "fs": 8,
+     "txt": "MEH"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-scan__whale",
+     "fs": 8,
+     "txt": "FRACO"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-scan__pump.is-negative",
+     "fs": 8,
+     "txt": "ALERT"
+    }
+   ],
+   "smallFontCount": 156,
+   "smallTargets": [
+    {
+     "t": "BUTTON",
+     "id": "mobile-drawer-btn",
+     "c": "topbar__hamburger",
+     "w": 30,
+     "h": 30
+    },
+    {
+     "t": "INPUT",
+     "id": "ticker-inp",
+     "c": "",
+     "w": 80,
+     "h": 34
+    },
+    {
+     "t": "SELECT",
+     "id": "tf-inp",
+     "c": "topbar__tf-hidden",
+     "w": 154,
+     "h": 34
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "tf-btn",
+     "w": 36,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "tf-btn",
+     "w": 36,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "tf-btn",
+     "w": 36,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "tf-btn",
+     "w": 36,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "chart-btn",
+     "c": "topbar__btn",
+     "w": 17,
+     "h": 28
+    },
+    {
+     "t": "BUTTON",
+     "id": "broker-status-btn",
+     "c": "topbar__icon-btn.broker-chip--unknown",
+     "w": 54,
+     "h": 26
+    },
+    {
+     "t": "BUTTON",
+     "id": "sdca-lab-btn",
+     "c": "topbar__icon-btn",
+     "w": 28,
+     "h": 26
+    },
+    {
+     "t": "BUTTON",
+     "id": "theme-toggle-btn",
+     "c": "topbar__icon-btn.theme-toggle",
+     "w": 28,
+     "h": 26
+    },
+    {
+     "t": "BUTTON",
+     "id": "alert-bell-btn",
+     "c": "topbar__icon-btn",
+     "w": 28,
+     "h": 26
+    },
+    {
+     "t": "BUTTON",
+     "id": "ops-console-btn",
+     "c": "topbar__icon-btn",
+     "w": 28,
+     "h": 26
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "trade-btn",
+     "w": 56,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "trade-btn",
+     "w": 56,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "bob-chat-tab",
+     "c": "bob-chat__tab",
+     "w": 33,
+     "h": 773
+    },
+    {
+     "t": "BUTTON",
+     "id": "bob-chat-close",
+     "c": "bob-chat__close",
+     "w": 22,
+     "h": 22
+    },
+    {
+     "t": "TEXTAREA",
+     "id": "user-inp",
+     "c": "",
+     "w": 230,
+     "h": 28
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "auth-tab.auth-tab--active",
+     "w": 136,
+     "h": 39
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "auth-tab",
+     "w": 136,
+     "h": 39
+    }
+   ],
+   "smallTargetCount": 20
+  },
+  "console_errors": [],
+  "page_errors": [],
+  "drawer": {
+   "open": true,
+   "l": 0,
+   "r": 390,
+   "w": 390,
+   "top": 40,
+   "bottom": 813,
+   "vw": 390,
+   "vh": 844
+  },
+  "bob_chat": {
+   "open": true,
+   "l": 32,
+   "r": 390,
+   "w": 358,
+   "vw": 390
+  },
+  "autocomplete": {
+   "visible": true,
+   "l": 99,
+   "r": 319,
+   "w": 220,
+   "vw": 390
+  },
+  "alerts": {
+   "l": 210,
+   "r": 576,
+   "w": 366,
+   "vw": 588,
+   "visible": true
+  },
+  "sdca_lab": {
+   "l": 0,
+   "r": 390,
+   "w": 390,
+   "vw": 588,
+   "open": true
+  }
+ },
+ {
+  "name": "tablet-768",
+  "measure": {
+   "vw": 768,
+   "vh": 1024,
+   "bodySW": 768,
+   "docSW": 768,
+   "overflow": 0,
+   "topbarH": 40,
+   "chartPane": {
+    "w": 750,
+    "h": 133
+   },
+   "canvasCount": 21,
+   "offenders": [
+    {
+     "t": "ARTICLE",
+     "id": "expert-card-mangala",
+     "c": "expert-card",
+     "l": 1897,
+     "r": 2140,
+     "w": 243
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "expert-card__hd",
+     "l": 1897,
+     "r": 2140,
+     "w": 243
+    },
+    {
+     "t": "DIV",
+     "id": "mangala-body",
+     "c": "expert-card__bd",
+     "l": 1897,
+     "r": 2140,
+     "w": 243
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "expert-card__trust",
+     "l": 1897,
+     "r": 2140,
+     "w": 243
+    },
+    {
+     "t": "SPAN",
+     "id": "mangala-verdict",
+     "c": "expert-card__verdict",
+     "l": 2080,
+     "r": 2130,
+     "w": 50
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-capital-row",
+     "l": 1907,
+     "r": 2130,
+     "w": 223
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-capital-value",
+     "l": 2087,
+     "r": 2130,
+     "w": 43
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-capital-row",
+     "l": 1907,
+     "r": 2130,
+     "w": 223
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-capital-value.mangala-current",
+     "l": 2079,
+     "r": 2130,
+     "w": 50
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-stats",
+     "l": 1907,
+     "r": 2130,
+     "w": 223
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-progress",
+     "l": 1907,
+     "r": 2130,
+     "w": 223
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-progress__label",
+     "l": 1907,
+     "r": 2130,
+     "w": 223
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "",
+     "l": 2116,
+     "r": 2130,
+     "w": 13
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-progress__track",
+     "l": 1907,
+     "r": 2130,
+     "w": 223
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-growth",
+     "l": 1907,
+     "r": 2130,
+     "w": 223
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-growth__value.is-positive",
+     "l": 2100,
+     "r": 2130,
+     "w": 30
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-scan-header",
+     "l": 1907,
+     "r": 2130,
+     "w": 223
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-scan-list",
+     "l": 1907,
+     "r": 2130,
+     "w": 223
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-scan-row",
+     "l": 1907,
+     "r": 2130,
+     "w": 223
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-scan-row",
+     "l": 1907,
+     "r": 2130,
+     "w": 223
+    }
+   ],
+   "smallFonts": [
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-label",
+     "fs": 7,
+     "txt": "data"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-label",
+     "fs": 7,
+     "txt": "risk"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-label",
+     "fs": 7,
+     "txt": "signal"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-label",
+     "fs": 7,
+     "txt": "consensus"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-label",
+     "fs": 7,
+     "txt": "security"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-label",
+     "fs": 7,
+     "txt": "compounding"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "price-cell__label",
+     "fs": 8,
+     "txt": "Last"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "price-cell__label",
+     "fs": 8,
+     "txt": "Chg"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "price-cell__label",
+     "fs": 8,
+     "txt": "High"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "price-cell__label",
+     "fs": 8,
+     "txt": "Low"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "price-cell__label",
+     "fs": 8,
+     "txt": "Vol"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "price-cell__label",
+     "fs": 8,
+     "txt": "Mode"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-score-badge.is-neutral",
+     "fs": 8,
+     "txt": "TRUST: --"
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-progress__label",
+     "fs": 8,
+     "txt": "Progress to $30.00"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "",
+     "fs": 8,
+     "txt": "Progress to $30.00"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "",
+     "fs": 8,
+     "txt": "0%"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-growth__label",
+     "fs": 8,
+     "txt": "Growth:"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-scan__signal",
+     "fs": 8,
+     "txt": "MEH"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-scan__whale",
+     "fs": 8,
+     "txt": "FRACO"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-scan__pump.is-positive",
+     "fs": 8,
+     "txt": "CLEAN"
+    }
+   ],
+   "smallFontCount": 163,
+   "smallTargets": [
+    {
+     "t": "BUTTON",
+     "id": "mobile-drawer-btn",
+     "c": "topbar__hamburger",
+     "w": 30,
+     "h": 30
+    },
+    {
+     "t": "INPUT",
+     "id": "ticker-inp",
+     "c": "",
+     "w": 80,
+     "h": 36
+    },
+    {
+     "t": "SELECT",
+     "id": "tf-inp",
+     "c": "topbar__tf-hidden",
+     "w": 70,
+     "h": 36
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "tf-btn",
+     "w": 36,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "tf-btn",
+     "w": 36,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "tf-btn",
+     "w": 36,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "tf-btn",
+     "w": 36,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "tf-btn.tf-btn--active",
+     "w": 36,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "tf-btn",
+     "w": 36,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "tf-btn",
+     "w": 36,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "chart-btn",
+     "c": "topbar__btn",
+     "w": 28,
+     "h": 28
+    },
+    {
+     "t": "BUTTON",
+     "id": "broker-status-btn",
+     "c": "topbar__icon-btn.broker-chip--unknown",
+     "w": 54,
+     "h": 26
+    },
+    {
+     "t": "BUTTON",
+     "id": "sdca-lab-btn",
+     "c": "topbar__icon-btn",
+     "w": 28,
+     "h": 26
+    },
+    {
+     "t": "BUTTON",
+     "id": "theme-toggle-btn",
+     "c": "topbar__icon-btn.theme-toggle",
+     "w": 28,
+     "h": 26
+    },
+    {
+     "t": "BUTTON",
+     "id": "alert-bell-btn",
+     "c": "topbar__icon-btn",
+     "w": 28,
+     "h": 26
+    },
+    {
+     "t": "BUTTON",
+     "id": "ops-console-btn",
+     "c": "topbar__icon-btn",
+     "w": 28,
+     "h": 26
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "trade-btn",
+     "w": 56,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "trade-btn",
+     "w": 56,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "bob-chat-tab",
+     "c": "bob-chat__tab",
+     "w": 33,
+     "h": 953
+    },
+    {
+     "t": "BUTTON",
+     "id": "bob-chat-close",
+     "c": "bob-chat__close",
+     "w": 22,
+     "h": 22
+    },
+    {
+     "t": "TEXTAREA",
+     "id": "user-inp",
+     "c": "",
+     "w": 212,
+     "h": 28
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "auth-tab.auth-tab--active",
+     "w": 157,
+     "h": 39
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "auth-tab",
+     "w": 157,
+     "h": 39
+    }
+   ],
+   "smallTargetCount": 23
+  },
+  "console_errors": [],
+  "page_errors": [],
+  "drawer": {
+   "open": true,
+   "l": 428,
+   "r": 768,
+   "w": 340,
+   "top": 40,
+   "bottom": 993,
+   "vw": 768,
+   "vh": 1024
+  },
+  "bob_chat": {
+   "open": true,
+   "l": 428,
+   "r": 768,
+   "w": 340,
+   "vw": 768
+  },
+  "autocomplete": {
+   "visible": true,
+   "l": 99,
+   "r": 319,
+   "w": 220,
+   "vw": 768
+  },
+  "alerts": {
+   "l": 12,
+   "r": 756,
+   "w": 744,
+   "vw": 768,
+   "visible": true
+  },
+  "sdca_lab": {
+   "l": 0,
+   "r": 760,
+   "w": 760,
+   "vw": 768,
+   "open": true
+  }
+ },
+ {
+  "name": "desktop-1440",
+  "measure": {
+   "vw": 1440,
+   "vh": 900,
+   "bodySW": 1440,
+   "docSW": 1440,
+   "overflow": 0,
+   "topbarH": 40,
+   "chartPane": {
+    "w": 1041,
+    "h": 460
+   },
+   "canvasCount": 21,
+   "offenders": [
+    {
+     "t": "ASIDE",
+     "id": "live-panel",
+     "c": "bob-chat",
+     "l": 1408,
+     "r": 1808,
+     "w": 400
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "bob-chat__panel",
+     "l": 1441,
+     "r": 1808,
+     "w": 367
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "terminal-card-hdr",
+     "l": 1442,
+     "r": 1808,
+     "w": 366
+    },
+    {
+     "t": "MAIN",
+     "id": "chat",
+     "c": "chat",
+     "l": 1442,
+     "r": 1808,
+     "w": 366
+    },
+    {
+     "t": "DIV",
+     "id": "bottombar",
+     "c": "bottombar",
+     "l": 1442,
+     "r": 1808,
+     "w": 366
+    },
+    {
+     "t": "BUTTON",
+     "id": "bob-chat-close",
+     "c": "bob-chat__close",
+     "l": 1776,
+     "r": 1798,
+     "w": 22
+    },
+    {
+     "t": "SECTION",
+     "id": "",
+     "c": "bob-welcome",
+     "l": 1452,
+     "r": 1798,
+     "w": 346
+    },
+    {
+     "t": "BUTTON",
+     "id": "send-btn",
+     "c": "btn.btn--primary",
+     "l": 1730,
+     "r": 1798,
+     "w": 68
+    },
+    {
+     "t": "svg",
+     "id": "",
+     "c": "",
+     "l": 1779,
+     "r": 1795,
+     "w": 16
+    },
+    {
+     "t": "path",
+     "id": "",
+     "c": "",
+     "l": 1783,
+     "r": 1791,
+     "w": 8
+    },
+    {
+     "t": "path",
+     "id": "",
+     "c": "",
+     "l": 1783,
+     "r": 1791,
+     "w": 8
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "",
+     "l": 1759,
+     "r": 1787,
+     "w": 28
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "bob-copy",
+     "l": 1469,
+     "r": 1781,
+     "w": 312
+    },
+    {
+     "t": "STRONG",
+     "id": "bob-welcome-title",
+     "c": "",
+     "l": 1469,
+     "r": 1781,
+     "w": 312
+    },
+    {
+     "t": "P",
+     "id": "bob-welcome-body",
+     "c": "",
+     "l": 1469,
+     "r": 1781,
+     "w": 312
+    },
+    {
+     "t": "svg",
+     "id": "",
+     "c": "",
+     "l": 1741,
+     "r": 1755,
+     "w": 14
+    },
+    {
+     "t": "path",
+     "id": "",
+     "c": "",
+     "l": 1743,
+     "r": 1754,
+     "w": 12
+    },
+    {
+     "t": "path",
+     "id": "",
+     "c": "",
+     "l": 1748,
+     "r": 1754,
+     "w": 6
+    },
+    {
+     "t": "TEXTAREA",
+     "id": "user-inp",
+     "c": "",
+     "l": 1452,
+     "r": 1724,
+     "w": 272
+    },
+    {
+     "t": "SPAN",
+     "id": "live-ticker",
+     "c": "",
+     "l": 1658,
+     "r": 1672,
+     "w": 13
+    }
+   ],
+   "smallFonts": [
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-label",
+     "fs": 7,
+     "txt": "data"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-label",
+     "fs": 7,
+     "txt": "risk"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-label",
+     "fs": 7,
+     "txt": "signal"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-label",
+     "fs": 7,
+     "txt": "consensus"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-label",
+     "fs": 7,
+     "txt": "security"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-label",
+     "fs": 7,
+     "txt": "compounding"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "topbar__metric-label",
+     "fs": 8,
+     "txt": "ACCOUNT"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "topbar__metric-label",
+     "fs": 8,
+     "txt": "P&L"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "price-cell__label",
+     "fs": 8,
+     "txt": "Last"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "price-cell__label",
+     "fs": 8,
+     "txt": "Chg"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "price-cell__label",
+     "fs": 8,
+     "txt": "High"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "price-cell__label",
+     "fs": 8,
+     "txt": "Low"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "price-cell__label",
+     "fs": 8,
+     "txt": "Vol"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "price-cell__label",
+     "fs": 8,
+     "txt": "Mode"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "trust-score-badge.is-neutral",
+     "fs": 8,
+     "txt": "TRUST: --"
+    },
+    {
+     "t": "DIV",
+     "id": "",
+     "c": "mangala-progress__label",
+     "fs": 8,
+     "txt": "Progress to $30.00"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "",
+     "fs": 8,
+     "txt": "Progress to $30.00"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "",
+     "fs": 8,
+     "txt": "0%"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-growth__label",
+     "fs": 8,
+     "txt": "Growth:"
+    },
+    {
+     "t": "SPAN",
+     "id": "",
+     "c": "mangala-scan__signal",
+     "fs": 8,
+     "txt": "MEH"
+    }
+   ],
+   "smallFontCount": 165,
+   "smallTargets": [
+    {
+     "t": "INPUT",
+     "id": "ticker-inp",
+     "c": "",
+     "w": 80,
+     "h": 36
+    },
+    {
+     "t": "SELECT",
+     "id": "tf-inp",
+     "c": "topbar__tf-hidden",
+     "w": 70,
+     "h": 36
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "tf-btn",
+     "w": 36,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "tf-btn",
+     "w": 36,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "tf-btn",
+     "w": 36,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "tf-btn",
+     "w": 36,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "tf-btn.tf-btn--active",
+     "w": 36,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "tf-btn",
+     "w": 36,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "tf-btn",
+     "w": 36,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "chart-btn",
+     "c": "topbar__btn",
+     "w": 28,
+     "h": 28
+    },
+    {
+     "t": "BUTTON",
+     "id": "broker-status-btn",
+     "c": "topbar__icon-btn.broker-chip--unknown",
+     "w": 54,
+     "h": 26
+    },
+    {
+     "t": "BUTTON",
+     "id": "sdca-lab-btn",
+     "c": "topbar__icon-btn",
+     "w": 28,
+     "h": 26
+    },
+    {
+     "t": "BUTTON",
+     "id": "theme-toggle-btn",
+     "c": "topbar__icon-btn.theme-toggle",
+     "w": 28,
+     "h": 26
+    },
+    {
+     "t": "BUTTON",
+     "id": "alert-bell-btn",
+     "c": "topbar__icon-btn",
+     "w": 28,
+     "h": 26
+    },
+    {
+     "t": "BUTTON",
+     "id": "ops-console-btn",
+     "c": "topbar__icon-btn",
+     "w": 28,
+     "h": 26
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "trade-btn",
+     "w": 56,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "trade-btn",
+     "w": 56,
+     "h": 24
+    },
+    {
+     "t": "BUTTON",
+     "id": "bob-chat-tab",
+     "c": "bob-chat__tab",
+     "w": 33,
+     "h": 829
+    },
+    {
+     "t": "BUTTON",
+     "id": "bob-chat-close",
+     "c": "bob-chat__close",
+     "w": 22,
+     "h": 22
+    },
+    {
+     "t": "TEXTAREA",
+     "id": "user-inp",
+     "c": "",
+     "w": 272,
+     "h": 28
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "auth-tab.auth-tab--active",
+     "w": 157,
+     "h": 39
+    },
+    {
+     "t": "BUTTON",
+     "id": "",
+     "c": "auth-tab",
+     "w": 157,
+     "h": 39
+    }
+   ],
+   "smallTargetCount": 22
+  },
+  "console_errors": [],
+  "page_errors": []
+ }
+]
