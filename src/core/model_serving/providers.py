@@ -38,7 +38,10 @@ DAYTRADE_AUDITOR_PROVIDER_NAME = "daytrade_auditor"
 # Qwen3.8-27B-UD-IQ2_XXS (8.4 GB) on the single real GPU (RTX 3060 12GB, -ts 12),
 # context 8192, single slot. One server serves Claude Code AND SuperEzio.
 LOCAL_QWEN_BASE_URL = "http://127.0.0.1:8080/v1"
-LOCAL_MAX_TOKENS = 512
+# 512 cut complex verdict answers mid-sentence (reproduced 2026-08-22:
+# decisive TD.TO answer ended at "...impede uma validacao de" before the
+# recommendation). 1024 fits comfortably: ctx 8192, prompt ~2-3k tokens.
+LOCAL_MAX_TOKENS = 1024
 # Retained for import compatibility with older callers. External expert calls
 # use ``get_deepseek_max_tokens`` and are not clamped to this local value.
 LOCAL_EXPERT_MAX_TOKENS = 192
