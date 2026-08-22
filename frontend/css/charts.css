@@ -542,3 +542,29 @@
     padding-bottom: 4px;
   }
 }
+
+/* Phone: the fixed 520px price row + 88/96px oscillator panes crushed the
+   price pane to ~133px (R4 G3). Give the stage a real minimum, shrink the
+   oscillator panes (inline styles need !important), and let the orders
+   mirror scroll instead of stretching. MUST stay last in the file so it
+   wins the cascade over the 900px block above. */
+@media (max-width: 600px) {
+  /* Keep the 900px row sizing (minmax(520px,64vh)) — shrinking row1 to
+     "auto" collapsed the chart-zone to 172px (R4 re-measure). The real
+     win is shrinking the oscillator panes so the price pane keeps the
+     space instead. */
+  #chart-rsi-pane {
+    flex-basis: 56px !important;
+    min-height: 56px !important;
+  }
+
+  #chart-macd-pane {
+    flex-basis: 56px !important;
+    min-height: 56px !important;
+  }
+
+  .orders-mirror {
+    max-height: 30vh;
+    overflow-y: auto;
+  }
+}
