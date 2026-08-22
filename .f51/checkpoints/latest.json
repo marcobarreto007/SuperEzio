@@ -1359,5 +1359,12 @@
       "498ee1c",
       "a985af3"
     ]
+  },
+  "bob_recommendation_policy_20260822": {
+    "status": "OPERATOR_DECISION_APPLIED",
+    "decision": "Remover a regra 8 ('Never recommend BUY/SELL') do system prompt do Bob — o Bob passa a recomendar compra/venda baseado na vontade do operador (commit eca3225).",
+    "risk_context_shown": "INVESTMENT_SKILL_NOT_PROVEN (0/24 casos, multi_asset_investment_quality_20260820) — recomendacoes do motor nao tem habilidade de investimento demonstrada. Operador manteve a decisao apos ver o contexto.",
+    "still_binding": "F51/SDCA ALLOW/BLOCK/REVIEW, kill switch, idempotencia, route_after_agent_paper_gate e SUPEREZIO_LIVE_TRADING_DISABLED=1 continuam valendo — recomendacao e texto; execucao segue paper/validation.",
+    "verification": "test_auto_full_analysis + test_contract_orchestrator 37/37; ruff limpo."
   }
 }
