@@ -265,12 +265,38 @@
   color: var(--ink);
 }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .topbar {
     flex-wrap: wrap;
     align-items: flex-start;
     gap: 8px;
     padding: 8px 12px;
+    height: auto;
+    min-height: 40px;
+  }
+
+  /* Left cluster owns its full row and wraps internally: brand/connection,
+     ticker row, timeframe row. No flex-shrink crushing (R4 G1/G4). */
+  .topbar__left {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  .topbar__right {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    flex: 1 1 auto;
+  }
+
+  /* Timeframe group and reload must sit ABOVE metrics when wrapping
+     (R4 hit-tests: taps were landing on .topbar__right) and must never
+     shrink below their content (shrink -> one-button-per-row collapse). */
+  .topbar__tf-group,
+  #chart-btn {
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
   }
 
   .topbar .spacer {

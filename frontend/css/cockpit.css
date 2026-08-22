@@ -98,6 +98,14 @@ body::after {
   z-index: 100;
 }
 
+/* Mobile/tablet: the topbar must GROW when its clusters wrap (fixed 40px
+   here would override the wrap height:auto in topbar.css — R4 G4). */
+@media (max-width: 860px) {
+  .topbar {
+    height: auto;
+  }
+}
+
 .topbar::after,
 .chart-workspace::before {
   display: none !important;
@@ -1775,8 +1783,29 @@ body::after {
 
 
 @media (max-width: 600px) {
-  .topbar__tf-group .tf-btn:nth-child(n+5) {
-    display: none;
+  /* ALL timeframes stay visible — hiding 6M/1Y/5Y lost core function
+     (R4: default 6M was unreachable on mobile). The group owns a full
+     row and wraps internally only if needed. */
+  .topbar__tf-group {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
+  /* Keep wrapped right-cluster controls clear of the docked Bob chat tab
+     (R4 hit-test: ops-console-btn was covered by #bob-chat-tab). The base
+     rule sets flex-shrink:0, which would overflow the line past the tab. */
+  .topbar__right {
+    margin-right: 44px;
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: calc(100% - 44px);
+  }
+
+  /* Same clearance for the left cluster (chart-btn collided with the tab
+     strip at 320px). */
+  .topbar__left {
+    padding-right: 40px;
   }
 
   .market-header__prices .price-cell:nth-child(n+4) {
