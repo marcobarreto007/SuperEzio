@@ -305,14 +305,14 @@ def test_provider_factory_keeps_agent_local_and_pins_experts_to_deepseek(monkeyp
     assert by_name[AGENT_PROVIDER_NAME].backend == "openai_compatible"
     assert by_name[AGENT_PROVIDER_NAME].base_url == "http://127.0.0.1:8080/v1"
     assert by_name[AGENT_PROVIDER_NAME].model == AGENT_MODEL_ID
-    assert by_name[AGENT_PROVIDER_NAME].max_tokens == 512
+    assert by_name[AGENT_PROVIDER_NAME].max_tokens == 1024  # 512 cut decisive answers mid-sentence (2026-08-22)
     assert by_name[AGENT_PROVIDER_NAME].timeout_s == 600
     assert PRIMARY_PROVIDER_NAME == "local_orchestrator"
     assert by_name[PRIMARY_PROVIDER_NAME].is_local is True
     assert by_name[PRIMARY_PROVIDER_NAME].backend == "openai_compatible"
     assert by_name[PRIMARY_PROVIDER_NAME].base_url == "http://127.0.0.1:8080/v1"
     assert by_name[PRIMARY_PROVIDER_NAME].model == AGENT_MODEL_ID
-    assert by_name[PRIMARY_PROVIDER_NAME].max_tokens == 512
+    assert by_name[PRIMARY_PROVIDER_NAME].max_tokens == 512  # orchestrator cap comes from config, not LOCAL_MAX_TOKENS
     assert by_name[PRIMARY_PROVIDER_NAME].timeout_s == cfg.models["orchestrator"].timeout_s
     assert cfg.models["agent"].timeout_s == 600
     assert gateway_config.timeout_s == 600
