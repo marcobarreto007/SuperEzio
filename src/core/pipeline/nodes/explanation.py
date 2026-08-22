@@ -29,6 +29,13 @@ async def node_explanation(state: dict) -> dict:
     )
 
     verdict = state.get("f51_verdict") or {}
+    # CONTRACT: explanation is an interpretability layer for the deterministic
+    # F51 verdict ONLY — it is not a polish step for the agent's answer. The
+    # agent already streamed the final answer (state["final"]) and the user-
+    # facing response is complete without this node (the ExplainEngine itself
+    # appends "the Decision Room brief above remains the controlling answer").
+    # With no verdict (ticker-less route, or F51 errored/skipped upstream)
+    # there is nothing to explain: skip instead of fabricating a nurse note.
     if not verdict:
         writer(
             {
