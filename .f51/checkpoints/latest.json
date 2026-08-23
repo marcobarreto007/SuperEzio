@@ -1,8 +1,8 @@
 {
   "date_local": "2026-08-23",
-  "session": "datahub-quote-fallback-2026-08-23",
+  "session": "ui-tactical-flow-and-chart-action-2026-08-23",
   "status": "DELIVERED",
-  "objective": "Fechar o buraco da capability \"quote\" no DataHub: finnhub era a unica rota com quote e, sem chave, o scan morria com \"all providers exhausted\".",
+  "objective": "Eliminar falsos alarmes vermelhos de broker offline, modernizar o deck inferior de trades/posições, implementar o botão real '⚡ Analisar com Bob' no cabeçalho do gráfico e garantir layout responsivo validado.",
   "impact_map": {
     "problem": "O runtime esta acoplado a IBKR/paper e nao possui um contrato seguro para entregar ordens live ao TD Direct Investing.",
     "architecture_touched": [
