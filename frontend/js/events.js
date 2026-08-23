@@ -114,6 +114,9 @@
         + candidate_count + " aprovado(s), " + rejected_count + " rejeitado(s)"
     ];
     if (elapsed_ms) parts.push(Math.round(elapsed_ms / 1000) + "s");
+    // TD specialization: surface the commission-free count on passing scans.
+    var cfree = Number(ls.commission_free_count || 0);
+    if (pass && cfree > 0) parts.push("sem comissao TD: " + cfree + " candidato(s)");
     if (!pass) {
       var reasons = topRejectionReasons(ls.rejection_summary);
       if (reasons.length) parts.push("motivos: " + reasons.join(", "));
@@ -313,7 +316,8 @@
               source_errors: ev.source_errors || [],
               quality: ev.quality || null,
               candidates: ev.candidates || 0,
-              rejected_count: ev.rejected_count || 0
+              rejected_count: ev.rejected_count || 0,
+              commission_free_count: ev.commission_free_count || 0
             };
             // DATA_COLLECTED can arrive after SCAN_SUMMARY — refresh the
             // summary so rejection reasons show up immediately. Only when the
