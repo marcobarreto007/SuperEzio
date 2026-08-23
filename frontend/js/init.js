@@ -1004,18 +1004,22 @@
 
     /* ANALYZE CHART WITH BOB — shared by the header button and the
        automatic trigger fired when the operator selects a ticker. */
-    function analyzeChartWithBob() {
-      var ticker = (SZ.state && SZ.state.ticker) || (document.getElementById("ticker-inp") || {}).value || "TD.TO";
-      var tf = (document.getElementById("tf-inp") || {}).value || "6M";
+    function askBob(prompt) {
       var bobTab = document.getElementById("bob-chat-tab");
       if (bobTab) bobTab.click();
-      var prompt = "Bob, analise o gráfico de " + ticker + " (" + tf + ") em detalhes. Explique os pontos de entrada, stop loss sugerido, alvos e o consenso dos experts com base no mercado real.";
       var userInp = document.getElementById("user-inp");
       var sendBtn = document.getElementById("send-btn");
       if (userInp && sendBtn) {
         userInp.value = prompt;
         sendBtn.click();
       }
+    }
+
+    function analyzeChartWithBob() {
+      var ticker = (SZ.state && SZ.state.ticker) || (document.getElementById("ticker-inp") || {}).value || "TD.TO";
+      var tf = (document.getElementById("tf-inp") || {}).value || "6M";
+      var prompt = "Bob, analise o gráfico de " + ticker + " (" + tf + ") em detalhes. Explique os pontos de entrada, stop loss sugerido, alvos e o consenso dos experts com base no mercado real.";
+      askBob(prompt);
       if (window.SZ && SZ.state) SZ.state.lastAutoAnalyzedTicker = ticker;
     }
 
@@ -1042,6 +1046,20 @@
       analyzeBobBtn.addEventListener("click", function (event) {
         event.preventDefault();
         analyzeChartWithBob();
+      });
+    }
+
+    /* ⚡ Sugestão — one click fires Bob's market scan for TD-tradable
+       opportunities (real pipeline, commission-free candidates tagged). */
+    var suggestBtn = document.getElementById("suggest-btn");
+    if (suggestBtn) {
+      suggestBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        askBob(
+          "Pesquise oportunidades de curto prazo no universo negociavel pelo " +
+          "TD Direct Investing. Prefira ETFs sem comissao quando existirem. " +
+          "Mostre os candidatos que passaram nos gates com entrada, stop e alvo."
+        );
       });
     }
 
