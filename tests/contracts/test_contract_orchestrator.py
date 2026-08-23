@@ -265,3 +265,18 @@ def test_node_orchestrator_ignores_classifier_gateway_in_passthrough(monkeypatch
     assert result["intent_source"] == "passthrough"
     assert result["intent"] == "bob_decides"
     assert result["risk_tolerance"] == "moderada"
+
+
+def test_detect_ticker_no_prefix_false_positives():
+    """Keyword prefixes must not capture leftovers as tickers.
+
+    Regression 2026-08-23: "apenas ativos listados" produced ticker "S"
+    ("ativo" matched the prefix of "ativos" and the leftover "s" became
+    the symbol). Same class for "acoes".
+    """
+    from core.pipeline.intents import detect_ticker
+
+    assert detect_ticker("apenas ativos listados") == ""
+    assert detect_ticker("acoes e etfs") == ""
+    assert detect_ticker("ativo: AAPL") == "AAPL"
+    assert detect_ticker("papel PETR4") == "PETR4"

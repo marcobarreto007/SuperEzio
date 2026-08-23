@@ -1055,10 +1055,13 @@
     if (suggestBtn) {
       suggestBtn.addEventListener("click", function (event) {
         event.preventDefault();
+        /* Sem a palavra "TD" solta: o detector de ticker a captura como o
+           símbolo TD (banco), desviando do scan para análise de ticker. */
         askBob(
-          "Pesquise oportunidades de curto prazo no universo negociavel pelo " +
-          "TD Direct Investing. Prefira ETFs sem comissao quando existirem. " +
-          "Mostre os candidatos que passaram nos gates com entrada, stop e alvo."
+          "Pesquise oportunidades de curto prazo nas bolsas canadenses e " +
+          "americanas, apenas ativos listados. Prefira ETFs sem comissao " +
+          "quando existirem. Mostre os candidatos que passaram nos gates " +
+          "com entrada, stop e alvo."
         );
       });
     }

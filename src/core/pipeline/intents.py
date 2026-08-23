@@ -2117,8 +2117,11 @@ def detect_ticker(message: str) -> str:
             candidates.append((upper, 80, len(upper)))
 
     # 6. Ticker explÃ­cito (ex: "ticker: AAPL", "papel: PETR4")
+    #    The keyword needs its own word boundary: without it "ativos" matches
+    #    "ativo" and the leftover "s" is captured as a ticker (reproduced
+    #    2026-08-23: "apenas ativos listados" -> ticker "S").
     explicit_symbol_matches = re.findall(
-        r"\b(?:ticker|symbol|papel|ativo|acao)\s*[:=-]?\s*([A-Za-z]{1,5}\d{0,2})\b",
+        r"\b(?:ticker|symbol|papel|ativo|acao)\b\s*[:=-]?\s*([A-Za-z]{1,5}\d{0,2})\b",
         normalized,
         re.IGNORECASE,
     )
