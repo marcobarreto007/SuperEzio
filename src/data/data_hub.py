@@ -95,6 +95,18 @@ def _make_reddit_pulse() -> Any:
     return RedditPulse()
 
 
+def _make_google_news_ca_provider() -> Any:
+    from .google_news_ca_provider import GoogleNewsCAProvider
+
+    return GoogleNewsCAProvider()
+
+
+def _make_yahoo_conversation_provider() -> Any:
+    from .yahoo_conversation_provider import YahooConversationProvider
+
+    return YahooConversationProvider()
+
+
 def _make_boc_provider() -> Any:
     from .boc_provider import get_macro_summary_ca
 
@@ -138,6 +150,12 @@ def _make_akshare_provider() -> Any:
     from .akshare_provider import AKShareProvider
 
     return AKShareProvider()
+
+
+def _make_tmx_provider() -> Any:
+    from .tmx_provider import TmxProvider
+
+    return TmxProvider()
 
 
 def _make_alphasmo_provider() -> Any:
@@ -253,9 +271,14 @@ class DataHub:
         # is Canadian-listed (2026-08-23: TD.TO pipeline gap closed).
         #
         # Sentiment chain:
-        #   1) ApeWisdom   (retail Reddit/WSB — most relevant for Mangala)
-        #   2) NewsAPI     (traditional news)
-        #   3) RedditPulse (social signals)
+        #   1) ApeWisdom       (retail Reddit/WSB — most relevant for Mangala)
+        #   2) NewsAPI         (traditional news)
+        #   3) RedditPulse     (social signals)
+        #   4) YahooConversation (keyless news sentiment, covers .TO/.V)
+        #
+        # News chain: Finnhub company-news first, then NewsAPI, then the
+        # keyless RSS/feed routes — google_news_ca (en-CA locale) → yahoo_
+        # conversation (relatedTickers-filtered) → news_scout (generic crawl).
         #
         # Insider / smart-money chain:
         #   1) AlphaSMO  (smart-money convergence, keyless)
@@ -363,6 +386,30 @@ class DataHub:
             )
         )
 
+        # ── TMX Money (official TSX/TSXV site, keyless) ───────────────────
+        # Real-time quotes straight from the Toronto Stock Exchange site
+        # (money.tmx.com GraphQL). Canadian fallback: only resolves TSX/TSXV
+        # listings — bare US symbols map to the TSX-listed CDR, so it must
+        # never outrank twelve_data/alpha_vantage for the general price
+        # chain; sits just above the yfinance last resort (2026-08-23).
+        self.register_provider(
+            ProviderRoute(
+                name="tmx",
+                capabilities=("price", "market_price", "quote", "profile", "fundamentals"),
+                factory=_make_tmx_provider,
+                methods={
+                    "price": "get_price",
+                    "market_price": "get_price",
+                    "quote": "get_price",
+                    "profile": "get_profile",
+                    "fundamentals": "get_fundamentals",
+                },
+                priority=25,
+                required_key=None,
+                metadata={"role": "canadian_fallback_market_data"},
+            )
+        )
+
         # ── AlphaSMO (free insider + smart-money, keyless) ────────────────
         self.register_provider(
             ProviderRoute(
@@ -442,6 +489,43 @@ class DataHub:
                 methods={"news": "get_news", "sentiment": "get_sentiment_summary"},
                 priority=22,
                 required_key=None,
+            )
+        )
+
+        # ── Google News RSS (Canada) — keyless Canadian news for .TO/.V ──
+        # Free, scraping-allowed feed (operator-authorized) with
+        # hl=en-CA&gl=CA: biases results to Canadian outlets (Globe and Mail,
+        # Toronto Star) — the TSX-news gap NewsAPI/Finnhub leave open.
+        # Live-tested 2026-08-23 (q="TD.TO" → 200, 100 items).
+        self.register_provider(
+            ProviderRoute(
+                name="google_news_ca",
+                capabilities=("news",),
+                factory=_make_google_news_ca_provider,
+                methods={"news": "get_news"},
+                priority=20,
+                required_key=None,
+                metadata={"role": "canadian_news_feed"},
+            )
+        )
+
+        # ── Yahoo Finance conversation search — keyless news + sentiment ──
+        # v1/finance/search is the only Yahoo endpoint still open without
+        # crumb auth (v7/v10 → 401 since 2026-08). Base-ticker query +
+        # relatedTickers filter returns real TD Bank news incl. .TO/.V.
+        # Live-tested 2026-08-23 (q=TD → 200, 10 relevant items).
+        self.register_provider(
+            ProviderRoute(
+                name="yahoo_conversation",
+                capabilities=("news", "sentiment"),
+                factory=_make_yahoo_conversation_provider,
+                methods={
+                    "news": "get_news",
+                    "sentiment": "get_sentiment_summary",
+                },
+                priority=21,
+                required_key=None,
+                metadata={"role": "keyless_news_sentiment"},
             )
         )
 
@@ -608,8 +692,7 @@ class DataHub:
         return [
             route
             for route in sorted(self.routes.values(), key=lambda item: item.priority)
-            if any(cap in route.capabilities for cap in accepted)
-            and self._is_configured(route)
+            if any(cap in route.capabilities for cap in accepted) and self._is_configured(route)
         ]
 
     def route(self, capability: str, *args: Any, **kwargs: Any) -> Any:
@@ -653,9 +736,7 @@ class DataHub:
             if not method_name and capability == "quote":
                 # Alias method fallback: price-capable routes satisfy "quote"
                 # via their price method (see _CAPABILITY_ALIASES).
-                method_name = route.methods.get("price") or route.methods.get(
-                    "market_price"
-                )
+                method_name = route.methods.get("price") or route.methods.get("market_price")
             method = getattr(provider, method_name or "", None)
             if not callable(method):
                 attempts.append({"provider": route.name, "error": "method_unavailable"})

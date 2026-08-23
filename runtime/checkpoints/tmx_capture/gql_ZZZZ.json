@@ -1,0 +1,24 @@
+{
+ "symbol_requested": "ZZZZ",
+ "http_status": 200,
+ "payload": {
+  "errors": [
+   {
+    "message": "Sorry, we couldn't find any results for \"ZZZZ\". Please try again.",
+    "code": "404",
+    "locations": [
+     {
+      "line": 2,
+      "column": 3
+     }
+    ],
+    "path": [
+     "getQuoteBySymbol"
+    ]
+   }
+  ],
+  "data": {
+   "getQuoteBySymbol": null
+  }
+ }
+}

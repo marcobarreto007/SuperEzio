@@ -175,3 +175,33 @@ def test_quote_prefers_dedicated_quote_method_over_alias() -> None:
     result = hub.route("quote", "AAPL")
     assert result["price"] == 7.0
     assert result["provider"] == "both"
+
+
+def test_new_keyless_news_sentiment_routes_registered() -> None:
+    """google_news_ca and yahoo_conversation must be registered, keyless, and
+    resolvable for the gaps they fill (Canadian news, .TO sentiment)."""
+    hub = DataHub(register_defaults=False)
+    hub._register_default_routes()
+
+    news = [r.name for r in hub.resolve("news")]
+    assert "google_news_ca" in news
+    assert "yahoo_conversation" in news
+
+    sentiment = [r.name for r in hub.resolve("sentiment")]
+    assert "yahoo_conversation" in sentiment
+
+    for name in ("google_news_ca", "yahoo_conversation"):
+        route = hub.routes[name]
+        assert route.required_key is None  # keyless by design
+        assert route.enabled
+        assert hub.get_provider(name) is not None  # factory instantiates
+
+
+def test_keyless_news_routes_precede_news_scout_crawl() -> None:
+    """Order: finnhub/newsapi (keyed) → google_news_ca (20) → yahoo_conversation
+    (21) → news_scout (22) — the dedicated keyless feeds win over the crawl."""
+    hub = DataHub(register_defaults=False)
+    hub._register_default_routes()
+    ranked = [r.name for r in hub.resolve("news")]
+    assert ranked.index("google_news_ca") < ranked.index("yahoo_conversation")
+    assert ranked.index("yahoo_conversation") < ranked.index("news_scout")
