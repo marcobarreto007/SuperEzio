@@ -15,12 +15,20 @@ import json
 import os
 import re
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
 
 from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError, sync_playwright
 
+
+try:  # load .env.local so public-mode credentials resolve (same as the API)
+    from core.config.secrets import load_local_env
+
+    load_local_env()
+except ImportError:  # PYTHONPATH=src not set — credentials must come from the OS env
+    pass
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASE_URL = os.getenv("SUPEREZIO_BROWSER_SMOKE_URL", "http://127.0.0.1:8002")
@@ -34,13 +42,55 @@ DEFAULT_PROMPT = (
 PT_MARKERS_RE = r"\b(você|não|uma|para|com|como|por|dos|das|ser|pode|deve)\b"
 
 
-def _http_json(url: str, timeout_s: float = 5.0) -> dict[str, Any]:
-    with urllib.request.urlopen(url, timeout=timeout_s) as response:
+def _http_json(
+    url: str, timeout_s: float = 5.0, headers: dict[str, str] | None = None
+) -> dict[str, Any]:
+    request = urllib.request.Request(url, headers=headers or {})
+    with urllib.request.urlopen(request, timeout=timeout_s) as response:
         raw = response.read().decode("utf-8")
     data = json.loads(raw)
     if not isinstance(data, dict):
         raise AssertionError(f"{url} did not return a JSON object")
     return data
+
+
+def _auth_bootstrap(base_url: str) -> str | None:
+    """Return a Bearer access token when the server runs in public mode.
+
+    Dev mode (/auth/me -> 200 anonymous) returns None. Public mode logs in
+    with SUPEREZIO_SMOKE_USER (default admin) and SUPEREZIO_SMOKE_PASSWORD
+    (fallback SUPEREZIO_ADMIN_PASSWORD from .env.local).
+    """
+    base = base_url.rstrip("/")
+    try:
+        with urllib.request.urlopen(f"{base}/auth/me", timeout=5) as resp:
+            return None  # dev mode — anonymous allowed
+    except urllib.error.HTTPError as exc:
+        if exc.code != 401:
+            raise RuntimeError(f"/auth/me returned {exc.code} during smoke auth bootstrap")
+
+    username = os.getenv("SUPEREZIO_SMOKE_USER", "admin")
+    password = os.getenv("SUPEREZIO_SMOKE_PASSWORD") or os.getenv("SUPEREZIO_ADMIN_PASSWORD", "")
+    if not password:
+        raise RuntimeError(
+            "Public mode active: set SUPEREZIO_SMOKE_PASSWORD (or "
+            "SUPEREZIO_ADMIN_PASSWORD in .env.local) to run the smoke"
+        )
+    payload = json.dumps({"username": username, "password": password}).encode()
+    request = urllib.request.Request(
+        f"{base}/auth/login",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=10) as resp:
+            body = json.loads(resp.read().decode())
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"/auth/login returned {exc.code} — check smoke credentials") from exc
+    token = body.get("access_token")
+    if not token:
+        raise RuntimeError("/auth/login returned no access_token")
+    return token
 
 
 def _assert_canvas_nonblank(page: Page) -> dict[str, Any]:
@@ -88,8 +138,10 @@ def _browser_chart_fetch(page: Page) -> dict[str, Any]:
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), 20000);
           try {
+            const token = localStorage.getItem('sz_access_token');
             const response = await fetch('/api/chart-data/TD.TO?timeframe=6M', {
-              signal: controller.signal
+              signal: controller.signal,
+              headers: token ? { Authorization: 'Bearer ' + token } : {}
             });
             const data = await response.json();
             const ohlcv = Array.isArray(data.ohlcv) ? data.ohlcv : [];
@@ -193,7 +245,9 @@ def _submit_chat(page: Page, prompt: str, timeout_ms: int) -> dict[str, Any]:
     return result
 
 
-def _chat_api_check(base_url: str, prompt: str, timeout_ms: int) -> dict[str, Any]:
+def _chat_api_check(
+    base_url: str, prompt: str, timeout_ms: int, headers: dict[str, str] | None = None
+) -> dict[str, Any]:
     """Submits the chat prompt through the public API and validates the NDJSON
     stream directly. Language/answer assertions live here because the frontend
     DOM is racy: pipeline status cards (SDCA, experts) render as .msg-ceo
@@ -213,7 +267,11 @@ def _chat_api_check(base_url: str, prompt: str, timeout_ms: int) -> dict[str, An
     request = urllib.request.Request(
         f"{base_url.rstrip('/')}/task/submit",
         data=json.dumps(envelope).encode(),
-        headers={"Content-Type": "application/json", "Accept": "application/x-ndjson"},
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/x-ndjson",
+            **(headers or {}),
+        },
     )
     t0 = time.perf_counter()
     chunks: list[str] = []
@@ -257,7 +315,13 @@ def run_smoke(
 ) -> dict[str, Any]:
     health_timeout_s = max(5.0, min(timeout_ms / 1000.0, 30.0))
     health = _http_json(f"{base_url.rstrip('/')}/health", timeout_s=health_timeout_s)
-    cockpit = _http_json(f"{base_url.rstrip('/')}/cockpit/summary", timeout_s=health_timeout_s)
+    token = _auth_bootstrap(base_url)
+    auth_headers = {"Authorization": f"Bearer {token}"} if token else {}
+    cockpit = _http_json(
+        f"{base_url.rstrip('/')}/cockpit/summary",
+        timeout_s=health_timeout_s,
+        headers=auth_headers,
+    )
     primary_model = (cockpit.get("status") or {}).get("primary_model")
     if primary_model != "Qwen3.8-27B-UD-IQ2_XXS":
         raise AssertionError(
@@ -274,7 +338,14 @@ def run_smoke(
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=not headed, slow_mo=slow_mo)
-        page = browser.new_page(viewport={"width": 1440, "height": 980})
+        context = browser.new_context(viewport={"width": 1440, "height": 980})
+        if token:
+            # Public mode: the token must exist BEFORE the first fetch —
+            # otherwise the initial load logs 401 console errors.
+            context.add_init_script(
+                f"localStorage.setItem('sz_access_token', {json.dumps(token)});"
+            )
+        page = context.new_page()
         page.on(
             "console",
             lambda msg: console_errors.append(msg.text) if msg.type == "error" else None,
@@ -329,7 +400,7 @@ def run_smoke(
                 raise AssertionError(
                     f"chat did not produce a NEW Bob message (stale-answer risk): {chat}"
                 )
-            chat_api = _chat_api_check(base_url, DEFAULT_PROMPT, timeout_ms)
+            chat_api = _chat_api_check(base_url, DEFAULT_PROMPT, timeout_ms, auth_headers)
             if not chat_api.get("sawStreamEnd"):
                 raise AssertionError(f"chat stream never emitted STREAM_END: {chat_api}")
             if chat_api.get("contentLength", 0) <= 80:
@@ -340,6 +411,7 @@ def run_smoke(
                 )
 
         page.screenshot(path=str(screenshot_path), full_page=True)
+        context.close()
         browser.close()
 
     if page_errors:

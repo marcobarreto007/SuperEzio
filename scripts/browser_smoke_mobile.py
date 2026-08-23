@@ -11,13 +11,58 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import urllib.error
 import urllib.request
 from typing import Any
 
 from playwright.sync_api import sync_playwright
 
+try:  # load .env.local so public-mode credentials resolve (same as the API)
+    from core.config.secrets import load_local_env
+
+    load_local_env()
+except ImportError:  # PYTHONPATH=src not set — credentials must come from the OS env
+    pass
+
 DEFAULT_BASE_URL = "http://127.0.0.1:8002"
+
+
+def _auth_bootstrap(base_url: str) -> str | None:
+    """Return a Bearer access token when the server runs in public mode."""
+    base = base_url.rstrip("/")
+    try:
+        with urllib.request.urlopen(f"{base}/auth/me", timeout=5) as resp:
+            return None  # dev mode — anonymous allowed
+    except urllib.error.HTTPError as exc:
+        if exc.code != 401:
+            raise RuntimeError(f"/auth/me returned {exc.code} during smoke auth bootstrap")
+
+    username = os.getenv("SUPEREZIO_SMOKE_USER", "admin")
+    password = os.getenv("SUPEREZIO_SMOKE_PASSWORD") or os.getenv("SUPEREZIO_ADMIN_PASSWORD", "")
+    if not password:
+        raise RuntimeError(
+            "Public mode active: set SUPEREZIO_SMOKE_PASSWORD (or "
+            "SUPEREZIO_ADMIN_PASSWORD in .env.local) to run the smoke"
+        )
+    payload = json.dumps({"username": username, "password": password}).encode()
+    request = urllib.request.Request(
+        f"{base}/auth/login",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=10) as resp:
+            body = json.loads(resp.read().decode())
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"/auth/login returned {exc.code} — check smoke credentials") from exc
+    token = body.get("access_token")
+    if not token:
+        raise RuntimeError("/auth/login returned no access_token")
+    return token
+
+
 VIEWPORTS = [(390, 844), (320, 844)]
 TARGET_SELECTORS = (
     ".topbar__tf-group .tf-btn",
@@ -76,25 +121,35 @@ def run_mobile_smoke(base_url: str, timeout_ms: int) -> dict[str, Any]:
     if not _http_ok(base_url):
         raise RuntimeError(f"API unreachable at {base_url}")
 
+    token = _auth_bootstrap(base_url)
     results: list[dict[str, Any]] = []
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
         for vw, vh in VIEWPORTS:
-            page = browser.new_page(
+            context = browser.new_context(
                 viewport={"width": vw, "height": vh},
                 device_scale_factor=2,
                 is_mobile=True,
                 has_touch=True,
             )
+            if token:
+                # Public mode: the token must exist BEFORE the first fetch —
+                # otherwise the initial load logs 401 console errors.
+                context.add_init_script(
+                    f"localStorage.setItem('sz_access_token', {json.dumps(token)});"
+                )
+            page = context.new_page()
             console_errors: list[str] = []
-            page.on("console", lambda m: console_errors.append(m.text) if m.type == "error" else None)
+            page.on(
+                "console", lambda m: console_errors.append(m.text) if m.type == "error" else None
+            )
             page.goto(base_url, wait_until="domcontentloaded", timeout=timeout_ms)
             page.wait_for_timeout(3000)
             check = _check_viewport(page, vw, vh)
             check["consoleErrors"] = len(console_errors)
             check["consoleErrorText"] = console_errors[:5]
             results.append(check)
-            page.close()
+            context.close()
         browser.close()
     return {"base_url": base_url, "viewports": results}
 
