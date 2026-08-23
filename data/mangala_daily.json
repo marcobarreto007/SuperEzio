@@ -1,5 +1,5 @@
 {
-  "scanned_at": "2026-08-23T00:08:50.580807+00:00",
+  "scanned_at": "2026-08-23T01:10:14.473063+00:00",
   "count": 5,
   "opportunities": [
     {
@@ -26,7 +26,7 @@
         "stop_3pct": 4.49,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-23T00:08:26.320286+00:00"
+      "scanned_at": "2026-08-23T01:09:40.348108+00:00"
     },
     {
       "ticker": "TLRY",
@@ -52,7 +52,7 @@
         "stop_3pct": 4.69,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-23T00:08:38.633253+00:00"
+      "scanned_at": "2026-08-23T01:09:58.690304+00:00"
     },
     {
       "ticker": "SNDL",
@@ -69,16 +69,16 @@
         "catalyst": 8
       },
       "whale_status": "FRACO",
-      "whale_score": 0,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
+      "whale_score": 20,
+      "pump_risk": "ALERT",
+      "pump_score": 77,
       "flip_plan": {
         "entry": 1.37,
         "target_5pct": 1.44,
         "stop_3pct": 1.33,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-23T00:08:44.481180+00:00"
+      "scanned_at": "2026-08-23T01:10:07.636593+00:00"
     },
     {
       "ticker": "KODK",
@@ -96,15 +96,15 @@
       },
       "whale_status": "FRACO",
       "whale_score": 0,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
+      "pump_risk": "ALERT",
+      "pump_score": 77,
       "flip_plan": {
         "entry": 9.84,
         "target_5pct": 10.33,
         "stop_3pct": 9.54,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-23T00:08:50.580807+00:00"
+      "scanned_at": "2026-08-23T01:10:14.473063+00:00"
     },
     {
       "ticker": "PLUG",
@@ -121,16 +121,16 @@
         "catalyst": 8
       },
       "whale_status": "FRACO",
-      "whale_score": 0,
-      "pump_risk": "ALERT",
-      "pump_score": 77,
+      "whale_score": 20,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
       "flip_plan": {
         "entry": 2.27,
         "target_5pct": 2.38,
         "stop_3pct": 2.2,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-23T00:08:13.790286+00:00"
+      "scanned_at": "2026-08-23T01:09:16.454489+00:00"
     }
   ]
 }

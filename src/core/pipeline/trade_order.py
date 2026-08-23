@@ -218,10 +218,18 @@ def evaluate_quality_gates(candidate: dict[str, Any]) -> tuple[bool, list[str]]:
     elif not _has_field_provenance(candidate, "price"):
         failures.append("missing_price_provenance")
 
+    allow_penny = bool(
+        candidate.get("allow_penny_otc")
+        or candidate.get("allow_microcap")
+        or (isinstance(price, (int, float)) and price < 5.0)
+    )
+    min_shares = 50_000 if allow_penny else MIN_AVG_DAILY_VOLUME_SHARES
+    min_dollar = 100_000 if allow_penny else MIN_AVG_DAILY_DOLLAR_VOLUME_USD
+
     shares = candidate.get("avg_daily_volume_shares")
     if shares is None or shares <= 0:
         failures.append("missing_liquidity")
-    elif shares < MIN_AVG_DAILY_VOLUME_SHARES:
+    elif shares < min_shares:
         failures.append("liquidity_below_minimum")
     elif not (
         _has_field_provenance(candidate, "avg_daily_volume_shares")
@@ -232,7 +240,7 @@ def evaluate_quality_gates(candidate: dict[str, Any]) -> tuple[bool, list[str]]:
         failures.append("missing_liquidity_provenance")
 
     dollar = candidate.get("avg_daily_dollar_volume")
-    if dollar is not None and dollar < MIN_AVG_DAILY_DOLLAR_VOLUME_USD:
+    if dollar is not None and dollar < min_dollar:
         failures.append("dollar_volume_below_minimum")
 
     catalyst = (

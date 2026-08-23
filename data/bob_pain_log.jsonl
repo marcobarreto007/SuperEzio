@@ -25113,3 +25113,16 @@
 {"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-22T23:58:35.855920+00:00", "healed": false}
 {"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-23T00:00:18.795892+00:00", "healed": false}
 {"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-23T00:06:31.310711+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-23T01:42:25.639116+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-23T01:45:44.883225+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-08-23T01:53:37.668238+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-08-23T01:53:37.709158+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-08-23T01:53:37.713125+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-23T02:07:18.716715+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-23T02:10:04.803804+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-08-23T02:10:47.357017+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "OpenBB not available", "timestamp": "2026-08-23T02:10:47.397574+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-08-23T02:10:47.401721+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-23T02:22:44.156140+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-23T02:24:27.964691+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-23T02:25:58.640043+00:00", "healed": false}

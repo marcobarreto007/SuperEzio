@@ -6,8 +6,6 @@ No API key. Used after Finnhub and Twelve Data fail or are unavailable.
 
 from __future__ import annotations
 
-import io
-import sys
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
@@ -15,23 +13,13 @@ from .finnhub_symbols import finnhub_symbol_variants
 
 
 class _SuppressYFinanceOutput:
-    """Context manager to suppress yfinance stdout/stderr spam ("possibly delisted", etc.)."""
-
-    def __init__(self) -> None:
-        self._devnull = io.StringIO()
-        self._old_stdout: list[Any] = []
-        self._old_stderr: list[Any] = []
+    """Safe context manager without global sys.stdout mutation."""
 
     def __enter__(self) -> "_SuppressYFinanceOutput":
-        self._old_stdout.append(sys.stdout)
-        self._old_stderr.append(sys.stderr)
-        sys.stdout = self._devnull  # type: ignore[assignment]
-        sys.stderr = self._devnull  # type: ignore[assignment]
         return self
 
     def __exit__(self, *args: Any) -> None:
-        sys.stdout = self._old_stdout.pop()
-        sys.stderr = self._old_stderr.pop()
+        pass
 
 
 def yfinance_ticker(symbol: str, market: str | None = None) -> str | None:
@@ -92,35 +80,60 @@ class YFinanceProvider:
                 fast = getattr(ticker, "fast_info", None)
                 price = None
                 if fast is not None:
-                    price = getattr(fast, "last_price", None) or getattr(
-                        fast, "regular_market_price", None
-                    )
+                    try:
+                        price = getattr(fast, "last_price", None) or getattr(
+                            fast, "regular_market_price", None
+                        )
+                    except Exception:
+                        price = None
                 if price is None:
-                    info = ticker.info or {}
-                    price = info.get("regularMarketPrice") or info.get("currentPrice")
+                    try:
+                        info = getattr(ticker, "info", None) or {}
+                        price = info.get("regularMarketPrice") or info.get("currentPrice")
+                    except Exception:
+                        price = None
                 if price is None or float(price) <= 0:
-                    hist = ticker.history(period="5d")
-                    if hist is not None and not hist.empty:
-                        price = float(hist["Close"].iloc[-1])
+                    try:
+                        hist = ticker.history(period="5d")
+                        if hist is not None and not hist.empty:
+                            price = float(hist["Close"].iloc[-1])
+                    except Exception:
+                        pass
                 if price is None or float(price) <= 0:
                     return {"error": "yfinance_no_price"}
 
                 volume = None
                 if fast is not None:
-                    volume = getattr(fast, "last_volume", None)
+                    try:
+                        volume = getattr(fast, "last_volume", None)
+                    except Exception:
+                        volume = None
                 if volume is None:
-                    info = ticker.info or {}
-                    volume = info.get("averageVolume") or info.get("volume")
+                    try:
+                        info = getattr(ticker, "info", None) or {}
+                        volume = info.get("averageVolume") or info.get("volume")
+                    except Exception:
+                        volume = None
 
-                intraday = ticker.history(period="1d", interval="1m", prepost=False)
                 as_of = None
-                if intraday is not None and not intraday.empty:
-                    price = float(intraday["Close"].iloc[-1])
-                    timestamp = intraday.index[-1]
-                    if hasattr(timestamp, "to_pydatetime"):
-                        as_of = timestamp.to_pydatetime().astimezone(timezone.utc).isoformat()
-                exchange = getattr(fast, "exchange", None) if fast is not None else None
-                currency = getattr(fast, "currency", None) if fast is not None else None
+                try:
+                    intraday = ticker.history(period="1d", interval="1m", prepost=False)
+                    if intraday is not None and not intraday.empty:
+                        price = float(intraday["Close"].iloc[-1])
+                        timestamp = intraday.index[-1]
+                        if hasattr(timestamp, "to_pydatetime"):
+                            as_of = timestamp.to_pydatetime().astimezone(timezone.utc).isoformat()
+                except Exception:
+                    pass
+
+                exchange = None
+                currency = None
+                if fast is not None:
+                    try:
+                        exchange = getattr(fast, "exchange", None)
+                        currency = getattr(fast, "currency", None)
+                    except Exception:
+                        pass
 
             return {
                 "symbol": symbol,
@@ -155,7 +168,17 @@ class YFinanceProvider:
         period = _PERIOD_MAP.get(timeframe, "6mo")
         try:
             with _SuppressYFinanceOutput():
-                hist = yf.Ticker(ysym).history(period=period, auto_adjust=True)
+                ticker = yf.Ticker(ysym)
+                try:
+                    hist = ticker.history(period=period, auto_adjust=True)
+                except KeyError as exc:
+                    if "exchangeTimezoneName" in str(exc):
+                        # yfinance 1.5.x raises KeyError('exchangeTimezoneName')
+                        # when Yahoo omits the timezone metadata field — the
+                        # module-level download parses defensively.
+                        hist = yf.download(ysym, period=period, auto_adjust=True, progress=False)
+                    else:
+                        raise
             if hist is None or hist.empty:
                 return {"error": "yfinance_no_candles"}
             candles: List[Dict[str, Any]] = []
@@ -199,7 +222,16 @@ class YFinanceProvider:
             return {"error": "yfinance_not_installed"}
         try:
             with _SuppressYFinanceOutput():
-                info = yf.Ticker(ysym).info or {}
+                ticker = yf.Ticker(ysym)
+                try:
+                    info = ticker.info or {}
+                except KeyError as exc:
+                    if "exchangeTimezoneName" in str(exc):
+                        # Same yfinance 1.5.x timezone-metadata break — the
+                        # get_info() path reads the raw quoteSummary payload.
+                        info = ticker.get_info() or {}
+                    else:
+                        raise
             name = info.get("longName") or info.get("shortName")
             if not name:
                 return {"error": "yfinance_no_profile"}

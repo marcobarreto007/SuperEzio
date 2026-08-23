@@ -447,9 +447,25 @@ _PENNY_OTC_HINTS = (
     "acoes de pouco valor",
     "ações de pouco valor",
     "pouco valor",
+    "baixo valor",
+    "baixo preco",
+    "baixo preço",
     "pump and dump",
     "pump",
     "dump",
+    "alto risco",
+    "alto-risco",
+    "ariscada",
+    "arriscado",
+    "arriscada",
+    "especulativo",
+    "especulativa",
+    "high risk",
+    "high-risk",
+    "risky",
+    "500 cad",
+    "500 usd",
+    "pequeno capital",
 )
 
 _MICROCAP_HINTS = (
@@ -465,6 +481,13 @@ _MICROCAP_HINTS = (
     "small cap risky",
     "high risk penny",
     "high-risk penny",
+    "alto risco",
+    "alto-risco",
+    "especulativo",
+    "especulativa",
+    "high risk",
+    "high-risk",
+    "risky",
 )
 
 
@@ -641,6 +664,16 @@ def _generate_fallback_catalyst(item: dict[str, Any]) -> dict[str, Any]:
         invalidation = f"momentum evidence is invalidated if price closes below ${float(price):.2f}"
         risk = f"the observed +{pct:.1f}% one-day move can mean-revert from ${float(price):.2f}"
         evidence_inputs = ["price", "change_pct"]
+
+    # Priority 4: active market quote with defined risk stop
+    if not catalyst and price is not None:
+        p = float(price)
+        vol = item.get("volume") or item.get("avg_volume")
+        vol_str = f" and observed volume {int(vol):,}" if vol else ""
+        catalyst = f"active market liquidity at ${p:.2f}{vol_str} for short-term risk allocation"
+        invalidation = f"invalidate if price breaks below ${(p * 0.90):.2f} (-10% stop threshold)"
+        risk = f"downside risk to ${(p * 0.90):.2f} in speculative allocation"
+        evidence_inputs = ["price"]
 
     if not catalyst or not evidence_inputs:
         return {}
@@ -1037,9 +1070,9 @@ async def _run_scan(
         except ImportError:
             hub = None
         if hub is not None:
-            per_item_timeout = float(os.getenv("SUPEREZIO_SCAN_ENRICH_TIMEOUT_MS", "60000")) / 1000
-            stage_deadline_ms = int(os.getenv("SUPEREZIO_SCAN_STAGE_DEADLINE_MS", "180000"))
-            num_workers = max(1, int(os.getenv("SUPEREZIO_SCAN_ENRICH_CONCURRENCY", "2")))
+            per_item_timeout = float(os.getenv("SUPEREZIO_SCAN_ENRICH_TIMEOUT_MS", "10000")) / 1000
+            stage_deadline_ms = int(os.getenv("SUPEREZIO_SCAN_STAGE_DEADLINE_MS", "30000"))
+            num_workers = max(1, int(os.getenv("SUPEREZIO_SCAN_ENRICH_CONCURRENCY", "6")))
 
             # ── Circuit breakers per provider ──
             breaker_finnhub = CircuitBreaker("finnhub")

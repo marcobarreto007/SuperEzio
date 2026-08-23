@@ -55,42 +55,54 @@ def scan_penny_stocks(max_price: float = 5.0, min_volume: int = 100_000) -> list
         logger.warning("yfinance not installed")
         return []
 
-    results: list[dict[str, Any]] = []
-    for ticker in _PENNY_WATCHLIST:
+    from concurrent.futures import ThreadPoolExecutor
+
+    def _fetch_one(ticker: str) -> dict[str, Any] | None:
         try:
             stock = yf.Ticker(ticker)
-            info = stock.info
-            price = (
-                info.get("currentPrice")
-                or info.get("regularMarketPrice")
-                or info.get("previousClose")
-            )
-            volume = info.get("volume") or info.get("averageVolume") or 0
-            name = info.get("shortName") or info.get("longName") or ticker
+            fast = getattr(stock, "fast_info", None)
+            price = None
+            volume = None
+            if fast is not None:
+                try:
+                    price = getattr(fast, "last_price", None) or getattr(fast, "regular_market_price", None)
+                    volume = getattr(fast, "last_volume", None)
+                except Exception:
+                    pass
+
+            if price is None or float(price) <= 0:
+                hist = stock.history(period="1d")
+                if hist is not None and not hist.empty:
+                    price = float(hist["Close"].iloc[-1])
+                    volume = int(hist["Volume"].iloc[-1]) if "Volume" in hist else volume
 
             if not price:
-                continue
+                return None
             price_f = float(price)
             if price_f <= 0 or price_f > max_price:
-                continue
-            if volume < min_volume:
-                continue
+                return None
 
-            results.append(
-                {
-                    "ticker": ticker,
-                    "price": price_f,
-                    "volume": int(volume),
-                    "name": str(name),
-                    "currency": info.get("currency", "USD"),
-                    "exchange": info.get("exchange", ""),
-                    "sector": info.get("sector", ""),
-                    "market_cap": info.get("marketCap"),
-                    "source": "yfinance_penny",
-                }
-            )
+            vol_val = int(volume) if volume else 0
+            if vol_val < min_volume:
+                return None
+
+            currency = getattr(fast, "currency", "USD") if fast else "USD"
+            exchange = getattr(fast, "exchange", "NASDAQ") if fast else "NASDAQ"
+
+            return {
+                "ticker": ticker,
+                "price": price_f,
+                "volume": vol_val,
+                "name": ticker,
+                "currency": currency,
+                "exchange": exchange,
+                "source": "yfinance_penny",
+            }
         except Exception:
-            continue
+            return None
+
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        results = [r for r in executor.map(_fetch_one, _PENNY_WATCHLIST) if r is not None]
 
     results.sort(key=lambda x: x["volume"], reverse=True)
     logger.info("Penny scan: %d stocks < $%.2f", len(results), max_price)

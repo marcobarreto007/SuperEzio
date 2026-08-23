@@ -40,9 +40,18 @@ class TwelveDataProvider:
     def get_price(self, symbol: str, *, exchange: str | None = None) -> Dict[str, Any]:
         """Obtain a quote with exchange, currency, and market timestamp metadata."""
         url = f"{self.base_url}/quote"
-        params = {"symbol": symbol, "apikey": self.api_key}
-        if exchange:
-            params["exchange"] = exchange
+        tw_symbol = symbol
+        tw_exchange = exchange
+        if symbol.endswith(".TO"):
+            tw_symbol = symbol[:-3]
+            tw_exchange = tw_exchange or "TSX"
+        elif symbol.endswith(".V"):
+            tw_symbol = symbol[:-2]
+            tw_exchange = tw_exchange or "TSXV"
+
+        params = {"symbol": tw_symbol, "apikey": self.api_key}
+        if tw_exchange:
+            params["exchange"] = tw_exchange
         try:
             response = requests.get(url, params=params, timeout=10)
             data = response.json()
@@ -74,12 +83,23 @@ class TwelveDataProvider:
         """OHLCV candles via TwelveData /time_series — padronizado para o DataHub."""
         interval, outputsize = _TWELVE_DATA_CANDLE_MAP.get(timeframe, ("1day", 130))
         url = f"{self.base_url}/time_series"
+        tw_symbol = symbol
+        tw_exchange = None
+        if symbol.endswith(".TO"):
+            tw_symbol = symbol[:-3]
+            tw_exchange = "TSX"
+        elif symbol.endswith(".V"):
+            tw_symbol = symbol[:-2]
+            tw_exchange = "TSXV"
+
         params = {
-            "symbol": symbol,
+            "symbol": tw_symbol,
             "interval": interval,
             "outputsize": outputsize,
             "apikey": self.api_key,
         }
+        if tw_exchange:
+            params["exchange"] = tw_exchange
         try:
             response = requests.get(url, params=params, timeout=15)
             data = response.json()

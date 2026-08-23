@@ -662,6 +662,8 @@ def test_product_login_uses_jwt_while_trading_token_keeps_api_key_second_factor(
     configured_api_key = "configured-trading-second-factor"
     monkeypatch.setenv("SUPEREZIO_JWT_SECRET", "jwt-test-secret-at-least-32-characters")
     monkeypatch.setenv("SUPEREZIO_API_KEY", configured_api_key)
+    monkeypatch.setenv("SUPEREZIO_PUBLIC_REGISTRATION", "1")
+    monkeypatch.setenv("SUPEREZIO_PUBLIC_MODE", "0")
 
     original_auth_db = getattr(app.state, "auth_db", None)
     app.state.auth_db = AuthDB(db_path=tmp_path / "auth.db")

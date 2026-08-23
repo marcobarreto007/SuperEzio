@@ -1473,6 +1473,28 @@
       "964cc64"
     ]
   },
+  "public_mode_live_20260822": {
+    "status": "AUTH_LIVE_GATE_GREEN_TUNNEL_PENDING",
+    "objective": "Ligar a auth fail-closed e deixar o deploy publico a um passo do operador.",
+    "delivered": [
+      "SUPEREZIO_JWT_SECRET (64 hex) + SUPEREZIO_ADMIN_PASSWORD gerados no .env.local; SUPEREZIO_PUBLIC_MODE=1",
+      "Conta admin provisionada via seed_admin.py (senha somente no .env.local)",
+      "Gate 100% verde no servidor vivo: verify_public_gate.py failures=[] (G1-G6+G12)",
+      "cloudflared 2026.8.2 instalado via winget (GitHub bloqueado respeitado)",
+      "Smokes auth-aware: bootstrap de login + token via add_init_script antes do primeiro fetch; mobile e desktop PASS em modo publico com 0 console errors (commits 0157e82, e7fb414)"
+    ],
+    "operator_blocked": [
+      "cloudflared tunnel login (conta Cloudflare do operador)",
+      "tunnel create + DNS CNAME no dashboard",
+      "criacao da conta do cliente (aguardando username/email)",
+      "chat publico segue DEFER (DeepSeek pago — teto a aprovar)"
+    ],
+    "client_address": "https://supereziorealtime.com (entra no ar apos o tunel)",
+    "commits": [
+      "0157e82",
+      "e7fb414"
+    ]
+  },
   "runtime_state_save_20260822": {
     "status": "SAVED",
     "timestamp": "2026-08-22T23:32:00+00:00",
@@ -1510,6 +1532,25 @@
         "output/user_testing/03_expert_panel_interaction.png",
         "output/user_testing/04_bob_live_response.png"
       ]
+    }
+  },
+  "high_risk_scanner_hardening_20260822": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "timestamp": "2026-08-23T02:27:00Z",
+    "objective": "Desbloqueio e aceleracao do scanner de mercado para consultas de alto risco/penny stocks e resiliencia total contra provider exceptions.",
+    "fixes": [
+      "1. src/data/yfinance_provider.py: Protecao total contra exchangeTimezoneName e isolamento de stdout multithread.",
+      "2. src/data/data_hub.py: Registro de price/market_price/quote para Finnhub e priorizacao inteligente de rotas.",
+      "3. src/data/twelve_data.py: Normalizacao de sufixos de bolsas canadenses (.TO -> TSX, .V -> TSXV).",
+      "4. src/core/pipeline/nodes/collector.py: Inclusao de termos em portugues e ingles de alto risco/especulacao e geracao de tese tecnica automatica.",
+      "5. src/core/scanner/penny_scanner.py: Paralelizacao do scan com ThreadPoolExecutor e fast_info (< 1.5s vs 40s anterior).",
+      "6. src/core/pipeline/trade_order.py: Ajuste dinamico de liquidez minima para microcaps e penny stocks."
+    ],
+    "verification": {
+      "ruff": "100% PASS",
+      "pytest": "115/115 passed in 42.45s",
+      "browser_smoke": "PASS (0 console errors, 126 candles, 7 canvases, Portuguese stream valid)",
+      "live_scan_test": "PASS (2 valid high-risk liquid candidates returned)"
     }
   }
 }
