@@ -1627,5 +1627,21 @@
     "open_dependency": "Rotacionar a chave no portal Finnhub e gravar FINNHUB_API_KEY em .env.local reativa a rota automaticamente (auth-failure map e indexado pelo valor da chave).",
     "restart_required": "APPLIED 2026-08-23 14:58 UTC (sessao atual, scans off) e depois retomado 15:03:40 UTC por OUTRA sessao claude.exe (PID 10072, Antigravity IDE) que matou o processo desta sessao e subiu o seu logando em runtime/logs/api-smoke-test-20260821.log — SEM as vars de scan (Mangala proactive ON 15/60min). Ambos os processos tem o fix (subiram apos c486f78).",
     "live_evidence": "resolve(\"quote\") -> [twelve_data, alpha_vantage, yfinance]; route(\"quote\",\"SHOP.TO\") -> 205.61 via yfinance. No servidor da outra sessao: twelve_data estourou cota diaria (1550/800) e price caiu para yfinance — a cadeia de fallback funcionando ao vivo no cenario real de exaustao de free tier."
+  },
+  "td_specialization_20260823": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "objective": "Especializar o SuperEzio no universo negociavel pelo TD Direct Investing (decisao do operador 2026-08-23).",
+    "delivered": [
+      "Contrato do universo: src/core/trading/td_universe.py — manifest dos 108 ETFs sem comissao (83 CAN + 25 US) + is_commission_free/is_td_tradable_exchange (commit 432d3a8)",
+      "Scanner: OTC/pink rejeitado INCONDICIONALMENTE (antes so quando penny desativado) — universo listado TSX/TSXV/NYSE/NASDAQ (commit f306732)",
+      "Cockpit: candidatos aprovados taggeados commission_free + badge 'sem comissao TD: N candidato(s)' no resumo do scan (commit com eventos)",
+      "Dados: Finnhub free cobre US + dual-listadas (TD/RY via NYSE); yfinance cobre TSX-only keyless — universos cobertos de graca"
+    ],
+    "live_evidence": {
+      "scan_pipeline": "pipeline ao vivo 139.4s STREAM_END com dados Finnhub (price 117.15 NYSE TD, F51 0.828, SDCA ALLOW, resposta PT completa)",
+      "finnhub_key": "nova key do operador ativa no .env.local (40 chars, validada: AAPL quote ok; .TO negado por free tier — por design, fallback yfinance)",
+      "gate": "verify_public_gate 100% verde em modo publico"
+    },
+    "tests": "52/52 (gate + universe + scan loop); node --check limpo"
   }
 }
