@@ -1447,6 +1447,32 @@
       "0813f1c"
     ]
   },
+  "public_deploy_gate_a_20260822": {
+    "status": "CODE_DELIVERED_OPERATOR_STEPS_PENDING",
+    "objective": "Gate A do plano de deploy publico (supereziorealtime.com): auth JWT fail-closed + conjunto publico reduzido + scripts.",
+    "code_delivered": [
+      "validate_public_mode_or_raise() no boot: SUPEREZIO_PUBLIC_MODE=1 exige secret >=32 chars ou nao sobe (commit 5732be5)",
+      "/auth/register -> 403 em modo publico (SUPEREZIO_PUBLIC_REGISTRATION=1 reabre explicitamente)",
+      "conjunto publico reduzido em modo publico: /metrics, /health/dashboard, /api/health/dashboard-data exigem JWT; /health e / ficam publicos",
+      "tests/test_auth_public_gate.py: G1-G6 — 27/27 com test_auth.py",
+      "scripts/verify_public_gate.py (G1-G6+G12 contra qualquer URL) e scripts/cloudflare_tunnel.ps1 (ingress unico 127.0.0.1:8002, nunca :8080) — commit 964cc64"
+    ],
+    "verifier_proof": "verify_public_gate.py contra o servidor dev ATUAL reporta NO-GO (401 falhando, register aberto, set publico 200) — comportamento correto; vira verde apos a Fase 0 do operador.",
+    "operator_steps_remaining": [
+      "1. Gerar SUPEREZIO_JWT_SECRET (secrets.token_hex(32)) e SUPEREZIO_ADMIN_PASSWORD no .env.local; reiniciar a API.",
+      "2. python scripts/seed_admin.py --username admin --password <senha> (provisionar o operador).",
+      "3. Rodar verify_public_gate.py contra 127.0.0.1:8002 — deve ficar 100% verde.",
+      "4. Só entao: winget install cloudflared + login + tunnel create (conta do operador); rodar scripts/cloudflare_tunnel.ps1 -TunnelId <UUID>.",
+      "5. DNS no dashboard: CNAME @ -> <UUID>.cfargotunnel.com, Proxy ON.",
+      "6. Pos-exposicao: verify_public_gate.py contra https://supereziorealtime.com + janela 24h com chat bloqueado (DeepSeek DEFER)."
+    ],
+    "verdict": "NO-GO para expor HOJE (dev mode ativo). Gate A de codigo pronto; apos os passos do operador, GO condicional por fase (plano: runtime/checkpoints/public-deploy-plan-20260822.md).",
+    "commits": [
+      "18ff95b",
+      "5732be5",
+      "964cc64"
+    ]
+  },
   "runtime_state_save_20260822": {
     "status": "SAVED",
     "timestamp": "2026-08-22T23:32:00+00:00",
