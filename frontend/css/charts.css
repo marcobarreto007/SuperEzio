@@ -31,6 +31,32 @@
   backdrop-filter: var(--glass-blur);
 }
 
+.analyze-chart-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  font: 700 11px var(--font-mono);
+  color: #00e5ff;
+  background: rgba(0, 229, 255, 0.1);
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+}
+
+.analyze-chart-btn:hover {
+  background: rgba(0, 229, 255, 0.2);
+  border-color: #00e5ff;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.analyze-chart-btn:active {
+  transform: translateY(0);
+}
+
 /* Telemetry HUD styling */
 .telemetry-hud {
   display: flex;

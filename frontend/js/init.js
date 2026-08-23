@@ -987,6 +987,30 @@
       });
     }
 
+    /* ANALYZE CHART WITH BOB */
+    var analyzeBobBtn = document.getElementById("analyze-chart-bob-btn");
+    if (analyzeBobBtn) {
+      analyzeBobBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        var ticker = (SZ.state && SZ.state.ticker) || (document.getElementById("ticker-inp") || {}).value || "TD.TO";
+        var tf = (document.getElementById("tf-inp") || {}).value || "6M";
+
+        /* Open Bob chat tab */
+        var bobTab = document.getElementById("bob-chat-tab");
+        if (bobTab) {
+          bobTab.click();
+        }
+
+        var prompt = "Bob, analise o gráfico de " + ticker + " (" + tf + ") em detalhes. Explique os pontos de entrada, stop loss sugerido, alvos e o consenso dos experts com base no mercado real.";
+        var userInp = document.getElementById("user-inp");
+        var sendBtn = document.getElementById("send-btn");
+        if (userInp && sendBtn) {
+          userInp.value = prompt;
+          sendBtn.click();
+        }
+      });
+    }
+
     var brokerBtn = document.getElementById("broker-status-btn");
     if (brokerBtn) {
       brokerBtn.addEventListener("click", function () {
