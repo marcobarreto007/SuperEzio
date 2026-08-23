@@ -31,7 +31,7 @@
     if (marketTs) marketTs.textContent = data.asOf || "";
     var label = $("cockpit-connection");
     if (label) {
-      label.textContent = "CORE ONLINE · 🛡️ MODO SIMULAÇÃO (PAPER) · AUDITORIA ATIVA";
+      label.textContent = "CORE " + upper(core.state) + " · " + mode + " MODE · " + (broker.state === "offline" ? "🛡️ MODO SIMULAÇÃO (PAPER)" : upper(broker.provider) + " " + upper(broker.state));
       label.classList.add("is-online");
     }
     var brokerLabel = $("broker-status-label");

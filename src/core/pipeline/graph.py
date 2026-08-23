@@ -380,14 +380,20 @@ async def _auto_full_analysis(
 
     # Collector must run BEFORE Bob for any data-dependent request.
     _msg = str(working_state.get("message") or "").lower()
+    from core.pipeline.intents import _is_casual_message
+
+    _is_casual = _is_casual_message(_msg) or working_state.get("cognitive_mode") == "CASUAL"
     _has_ticker = bool(working_state.get("ticker") or working_state.get("case_ticker"))
     _needs_scan = any(re.search(rf"\b{re.escape(w)}", _msg) for w in _SCAN_NEED_KEYWORDS)
-    should_collect_market = bool(
-        route in {"market_scan", "ticker_analysis"}
-        or working_state.get("force_auto_collect")
-        or _needs_scan  # ANY data-related request, with or without ticker
-        or _has_ticker  # ANY ticker present — MathHub needs data for RSI/MACD/Sharpe
-    )
+    if _is_casual:
+        should_collect_market = False
+    else:
+        should_collect_market = bool(
+            route in {"market_scan", "ticker_analysis"}
+            or working_state.get("force_auto_collect")
+            or _needs_scan  # ANY data-related request, with or without ticker
+            or _has_ticker  # ANY ticker present — MathHub needs data for RSI/MACD/Sharpe
+        )
 
     from core.pipeline.resilience import try_run_async
 
@@ -438,53 +444,50 @@ async def _auto_full_analysis(
     ).upper()
     data_context = str(working_state.get("data_context") or working_state.get("message") or "")
 
-    logger.info(
-        "MATHHUB_INPUT has_data=%s ohlcv_count=%s ticker=%s",
-        "data" in working_state,
-        len(working_state.get("data", {}).get("ohlcv", [])),
-        ticker,
-    )
-    try:
-        math_hub = MathHub()
-        math_report = math_hub.calculate_all(working_state)
-        math_prompt = math_hub.to_deepseek_prompt(math_report)
-        math_update: dict[str, Any] = {"math_report": math_report, "math_prompt": math_prompt}
-        # math_prompt is now injected SEPARATELY via observation_builder (no truncation).
-        # Do NOT append to data_context — doing so would make it subject to the 4000-char
-        # truncation in observation_builder, silently dropping RSI/MACD/Sharpe/VaR/Kelly
-        # for tickers with rich news/sentiment/macro data.
-        _merge_node_update(working_state, output, math_update)
-        _mark_step("math_hub")
-        data_context = str(working_state.get("data_context") or data_context)
+    if not _is_casual and (working_state.get("data") or should_collect_market):
         logger.info(
-            "MATHHUB_RESULT ticker=%s coverage=%s latest_price=%s modules_ok=%s",
-            math_report.get("ticker"),
-            math_report.get("coverage"),
-            "summary" in math_report and math_report.get("summary", {}).get("latest_price"),
-            "coverage" in math_report and math_report.get("coverage", {}).get("ok_modules"),
+            "MATHHUB_INPUT has_data=%s ohlcv_count=%s ticker=%s",
+            "data" in working_state,
+            len(working_state.get("data", {}).get("ohlcv", [])),
+            ticker,
         )
-        writer(
-            {
-                "type": "MATH_REPORT",
-                "run_id": run_id,
-                "ticker": math_report.get("ticker"),
-                "coverage": math_report.get("coverage"),
-                "summary": math_report.get("summary"),
-                "modules": math_report.get("modules"),
-                "numbers": math_report.get("numbers"),
-            }
-        )
-    except Exception as exc:
-        _merge_node_update(
-            working_state,
-            output,
-            {"errors": [f"auto_full_analysis.math_hub:{exc}"]},
-        )
+        try:
+            math_hub = MathHub()
+            math_report = math_hub.calculate_all(working_state)
+            math_prompt = math_hub.to_deepseek_prompt(math_report)
+            math_update: dict[str, Any] = {"math_report": math_report, "math_prompt": math_prompt}
+            _merge_node_update(working_state, output, math_update)
+            _mark_step("math_hub")
+            data_context = str(working_state.get("data_context") or data_context)
+            logger.info(
+                "MATHHUB_RESULT ticker=%s coverage=%s latest_price=%s modules_ok=%s",
+                math_report.get("ticker"),
+                math_report.get("coverage"),
+                "summary" in math_report and math_report.get("summary", {}).get("latest_price"),
+                "coverage" in math_report and math_report.get("coverage", {}).get("ok_modules"),
+            )
+            writer(
+                {
+                    "type": "MATH_REPORT",
+                    "run_id": run_id,
+                    "ticker": math_report.get("ticker"),
+                    "coverage": math_report.get("coverage"),
+                    "summary": math_report.get("summary"),
+                    "modules": math_report.get("modules"),
+                    "numbers": math_report.get("numbers"),
+                }
+            )
+        except Exception as exc:
+            _merge_node_update(
+                working_state,
+                output,
+                {"errors": [f"auto_full_analysis.math_hub:{exc}"]},
+            )
 
     # ── FAST PATH: skip Trinity for simple queries ──
     # Simple queries (single ticker + basic indicator) go directly to Bob
     # with math_report + f51_verdict, bypassing Genie/Deep deliberation.
-    if _is_simple_query(working_state):
+    if not _is_casual and _is_simple_query(working_state):
         skip_update = {
             "skip_trinity": True,
             "trinity_report": "TRINITY_SKIPPED_FAST_PATH",
@@ -506,7 +509,8 @@ async def _auto_full_analysis(
         and working_state["data"].get("price", {}).get("source") == "learner_24_7_cache"
     )
     should_run_market_stack = (
-        not data_from_cache
+        not _is_casual
+        and not data_from_cache
         and bool(working_state.get("scan") or working_state.get("data"))
         and (
             should_collect_market

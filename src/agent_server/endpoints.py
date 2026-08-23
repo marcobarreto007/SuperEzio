@@ -26,6 +26,7 @@ from core.math.indicators import (
     calc_sma,
 )
 from core.pipeline.intents import (
+    _is_casual_message,
     detect_ticker,
     should_block_vague_financial_prompt,
     has_hint,
@@ -1480,19 +1481,20 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                 return StreamingResponse(stream_intercepted(), media_type="application/x-ndjson")
 
         # Ticker from UI field takes priority; fall back to message text detection
+        is_casual = _is_casual_message(raw_message)
         is_broker_status = detect_broker_status_intent(raw_message)
-        explicit_ticker = "" if is_broker_status else str(payload.get("ticker") or "").strip()
-        detected_ticker = "" if is_broker_status else explicit_ticker or detect_ticker(raw_message)
+        explicit_ticker = "" if (is_casual or is_broker_status) else str(payload.get("ticker") or "").strip()
+        detected_ticker = "" if (is_casual or is_broker_status) else explicit_ticker or detect_ticker(raw_message)
 
-        # Hard block context leak for advisory / scan intents.
-        # - Complex finance / capital allocation: chart context must never leak.
+        # Hard block context leak for advisory / scan / casual intents.
+        # - Complex finance / capital allocation / casual: chart context must never leak.
         # - Market scan: UI ticker must not hijack routing away from the scanner.
-        #   The user asked to FIND stocks, not to analyze the chart ticker.
+        #   The user asked to FIND stocks or chat casually, not to analyze the chart ticker.
         is_complex = detect_complex_finance_intent(raw_message)
         is_capital_alloc = detect_capital_allocation_intent(raw_message)
         is_market_scan = detect_market_scan_intent(raw_message)
         is_paper_training = detect_decisive_trade_intent(raw_message)
-        if is_broker_status or is_complex or is_capital_alloc:
+        if is_casual or is_broker_status or is_complex or is_capital_alloc:
             explicit_ticker = ""
             detected_ticker = ""
             chart_context = ""

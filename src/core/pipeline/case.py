@@ -165,6 +165,17 @@ def create_case(message: str, ticker: str = "", run_id: str = "") -> FinancialCa
     Classificacao simples e pragmatica — sem regex fragil.
     Olha palavras-chave e contexto.
     """
+    from core.pipeline.intents import _is_casual_message, detect_ticker
+
+    if _is_casual_message(message):
+        return FinancialCase(
+            case_type=CaseType.CASUAL,
+            mandate=message,
+            run_id=run_id,
+        )
+
+    resolved_ticker = ticker or detect_ticker(message)
+    has_ticker = bool(resolved_ticker)
     msg = message.lower().strip() if message else ""
 
     # Caso 1: Ordem explicita
@@ -187,14 +198,11 @@ def create_case(message: str, ticker: str = "", run_id: str = "") -> FinancialCa
         "submit",
     )
     has_trade = any(w in msg for w in trade_words)
-    has_ticker = bool(ticker) or any(
-        c.isupper() and len(c) >= 2 for word in msg.split() if (c := word.strip(".,;:!?()[]{}\"'"))
-    )
 
     if has_trade and has_ticker:
         return FinancialCase(
             case_type=CaseType.TRADE_ORDER,
-            ticker=ticker,
+            ticker=resolved_ticker,
             mandate=message,
             run_id=run_id,
         )

@@ -2607,6 +2607,32 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             "current_datetime": state.get("current_datetime", ""),
         }
 
+    # ── Casual greeting shortcut ──
+    from core.pipeline.intents import _is_casual_message
+
+    is_casual = _is_casual_message(state.get("message", "")) or state.get("cognitive_mode") == "CASUAL"
+    if is_casual:
+        content = (
+            "Tudo ótimo por aqui! Bob a postos e conectado ao Cockpit. "
+            "Como posso te ajudar hoje? Deseja analisar algum ativo específico ou fazer um scan no mercado?"
+        )
+        writer({"type": "CHUNK", "run_id": run_id, "content": content})
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "agent_primary",
+                "status": "completed",
+                "mode": "casual_greeting_fast_path",
+            }
+        )
+        return {
+            **_final_payload(content, iterations),
+            "bob_thesis": content,
+            "bob_reasoning_trace": ["casual_greeting"],
+            "current_datetime": state.get("current_datetime", ""),
+        }
+
     # ── Portfolio status shortcut ──
     msg = (state.get("message") or "").lower().strip()
     is_status_check = any(
@@ -2777,6 +2803,37 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         }
 
     _detected_intent = state.get("intent", "")
+    from core.pipeline.intents import _is_casual_message
+
+    is_casual = _is_casual_message(state.get("message", "")) or state.get("cognitive_mode") == "CASUAL"
+    if (
+        is_casual
+        and iterations == 0
+        and not state.get("ticker")
+        and not state.get("scan")
+        and not state.get("data")
+    ):
+        content = (
+            "Tudo ótimo por aqui! Bob a postos e conectado ao Cockpit. "
+            "Como posso te ajudar hoje? Deseja analisar algum ativo específico ou fazer um scan no mercado?"
+        )
+        writer({"type": "CHUNK", "run_id": run_id, "content": content})
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "agent_primary",
+                "status": "completed",
+                "mode": "casual_greeting_fast_path",
+            }
+        )
+        return {
+            **_final_payload(content, iterations),
+            "bob_thesis": content,
+            "bob_reasoning_trace": ["casual_greeting"],
+            "current_datetime": state.get("current_datetime", ""),
+        }
+
     is_complex_finance = detect_complex_finance_intent(
         state.get("message", "")
     ) or _detected_intent in ("capital_allocation", "personal_finance")

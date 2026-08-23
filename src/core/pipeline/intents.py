@@ -240,22 +240,43 @@ def _default_paper_submit_for_decisive_training(message: str) -> bool:
 
 
 def _is_casual_message(message: str) -> bool:
-    text = normalize_message(message).strip()
-    return bool(
-        text
-        and len(text.split()) <= 2
-        and text
-        in (
-            "oi",
-            "ola",
-            "hey",
-            "hi",
-            "hello",
-            "bom dia",
-            "boa tarde",
-            "boa noite",
-        )
-    )
+    if not message or not message.strip():
+        return True
+    text = normalize_message(message).strip().lower()
+
+    # Remove leading/trailing "bob", punctuation
+    cleaned = re.sub(r"^bob[\s,:\-!\?]+", "", text).strip()
+    cleaned = re.sub(r"[\s,:\-!\?]+bob$", "", cleaned).strip()
+
+    # Direct exact casual phrases
+    casual_phrases = {
+        "oi", "ola", "olá", "hey", "hi", "hello", "opa", "fala", "salve",
+        "tudo bem", "tudo bom", "td bem", "td bom", "como vai", "como esta",
+        "como você esta", "como voce esta", "beleza", "blz", "tranquilo",
+        "bom dia", "boa tarde", "boa noite", "e ai", "e aí",
+        "teste", "test", "ping", "pong", "obrigado", "valeu", "thanks",
+    }
+    if text in casual_phrases or cleaned in casual_phrases:
+        return True
+
+    # Regex patterns for greetings and pleasantries
+    patterns = [
+        r"^(?:oi|ola|olá|hey|hi|hello|fala|e\s*ai|e\s*aí|salve|opa)\b",
+        r"^(?:bom\s*dia|boa\s*tarde|boa\s*noite)\b",
+        r"\b(?:tudo\s*(?:bem|bom)|como\s*vai|como\s*est[aá]|beleza|tranquilo|td\s*bem)\b",
+        r"^(?:quem\s*[eé]\s*voc[eê]|o\s*que\s*voc[eê]\s*faz|como\s*funciona|ajuda|help)\b",
+    ]
+    words = text.split()
+    financial_action_words = {
+        "comprar", "vender", "trade", "ordem", "order", "buy", "sell", "analise",
+        "analisar", "alvo", "stop", "grafico", "gráfico", "scan", "scanner", "preco", "preço"
+    }
+    if len(words) <= 7 and not any(w in financial_action_words for w in words):
+        for pat in patterns:
+            if re.search(pat, text) or re.search(pat, cleaned):
+                return True
+
+    return False
 
 
 def _without_tools(tools: tuple[str, ...] | list[str], *blocked: str) -> list[str]:
@@ -2505,6 +2526,26 @@ def parse_user_intent(
     over text-based detection and must pass basic validation.
     """
     raw = message or ""
+
+    def done(parsed: IntentParse) -> IntentParse:
+        return _with_cognitive_contract(parsed, raw)
+
+    if _is_casual_message(raw):
+        return done(
+            IntentParse(
+                route="general",
+                intent="general_question",
+                action="answer",
+                ticker="",
+                filters={},
+                confidence=0.99,
+                reasons=("casual_greeting_detected",),
+                entities={"ticker": "", "asset_class": None, "country": None, "sector": None},
+                diary=False,
+                pennylab=False,
+            )
+        )
+
     broker_status_question = detect_broker_status_intent(raw)
     explicit_ticker_command = _extract_explicit_ticker_command(raw)
     if broker_status_question:

@@ -750,7 +750,7 @@
 	        statsHtml,
 	      ].join("");
 	    } else {
-	      host.innerHTML = '<div class="cockpit-empty">No open broker orders. Manual chart remains available.</div>';
+	      host.innerHTML = '<div class="cockpit-empty">No open IBKR broker orders. Manual chart remains available.</div>';
 	    }
 
 	    if (historyHost) {
@@ -758,13 +758,15 @@
 	        return renderTradeHistoryRow(trade, current);
 	      }).filter(Boolean);
 	      if (historyRows.length) {
-	        var historyTitle = "<span>Teses Gravadas no Journal</span>";
+	        var historyTitle = offlineMode
+	          ? "<span>Teses Gravadas no Journal</span>"
+	          : "<span>Local audit history</span>";
 	        historyHost.innerHTML = [
 	          '<div class="trade-history-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">' + historyTitle + '<strong style="color:#00e5ff;">' + esc(String(pf.trade_history_count || history.length)) + "</strong></div>",
 	          '<div class="trade-history-scroll" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;">' + historyRows.join("") + "</div>",
 	        ].join("");
 	      } else if (offlineMode) {
-	        historyHost.innerHTML = '<div class="cockpit-empty">Paper journal ativo. Utilize o botão + Trade ou o scanner para simular.</div>';
+	        historyHost.innerHTML = '<div class="cockpit-empty">Paper journal ativo. Utilize o botão + Trade ou o scanner para simular. Paper journal records are audit evidence, not broker positions (open hypotheses: ' + esc(String(tradeStats.open_hypotheses || 0)) + ').</div>';
 	      } else {
 	        historyHost.innerHTML = '<div class="cockpit-empty">No trade history recorded.</div>';
 	      }

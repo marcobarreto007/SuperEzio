@@ -31,7 +31,10 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
     writer = get_stream_writer()
     run_id = state.get("run_id", "")
     message = state.get("message", "")
-    incoming_ticker = str(state.get("ticker") or "").strip().upper()
+    from core.pipeline.intents import _is_casual_message, infer_cognitive_contract
+
+    is_casual = _is_casual_message(message)
+    incoming_ticker = "" if is_casual else str(state.get("ticker") or "").strip().upper()
 
     writer(
         {
@@ -42,14 +45,12 @@ async def node_orchestrator(state: dict, *, gateway=None, config=None) -> dict:
         }
     )
 
-    # â”€â”€ CASE: contrato financeiro obrigatorio â”€â”€
+    # ── CASE: contrato financeiro obrigatorio ──
     from core.pipeline.case import create_case
 
     financial_case = create_case(message, ticker=incoming_ticker, run_id=run_id)
     case_state = financial_case.to_state()
     case_context = financial_case.to_context()
-
-    from core.pipeline.intents import infer_cognitive_contract
 
     cognitive_contract = infer_cognitive_contract(
         message,
