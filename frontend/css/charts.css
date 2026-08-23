@@ -249,7 +249,15 @@
   background: var(--green-bg);
 }
 
-.orders-list,
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 .trade-history-scroll {
   display: flex;
   align-items: stretch;
