@@ -189,3 +189,104 @@ def test_is_rate_limit_signal_matches_provider_error_messages() -> None:
     assert not DataHub._is_rate_limit_signal("no_quote")
     assert not DataHub._is_rate_limit_signal("empty_result")
     assert not DataHub._is_rate_limit_signal("")
+
+
+# ---------------------------------------------------------------------------
+# Hub analysis 2026-08-23 — auth-failure skip, per-type TTL, provider pacing
+# ---------------------------------------------------------------------------
+
+
+class _AuthFailingProvider:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def get_price(self, symbol: str) -> dict:
+        self.calls += 1
+        return {"error": "Invalid API key."}
+
+
+def test_auth_failure_disables_route_until_key_rotation(monkeypatch) -> None:
+    monkeypatch.setenv("FINNHUB_API_KEY", "dead-key-123")
+    provider = _AuthFailingProvider()
+    hub = DataHub(register_defaults=False)
+    hub.register_provider(
+        ProviderRoute(
+            name="finnhub",
+            capabilities=("price",),
+            factory=lambda: provider,
+            methods={"price": "get_price"},
+            priority=1,
+            required_key="FINNHUB_API_KEY",
+        )
+    )
+
+    first = hub.get_price("AAPL")
+    assert "error" in first
+    assert provider.calls == 1
+
+    # The dead key must never be retried while it stays the same.
+    hub.get_price("AAPL")
+    assert provider.calls == 1, "dead key must be skipped, not retried"
+
+    # Rotating the key re-enables the route automatically.
+    monkeypatch.setenv("FINNHUB_API_KEY", "fresh-key-456")
+    hub.get_price("AAPL")
+    assert provider.calls == 2, "rotated key must retry the provider"
+
+
+def test_fundamentals_use_long_cache_ttl(monkeypatch) -> None:
+    class _CountingFundamentals:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def get_fundamentals(self, symbol: str) -> dict:
+            self.calls += 1
+            return {"pe_ratio": 12.0, "symbol": symbol}
+
+    provider = _CountingFundamentals()
+    hub = DataHub(register_defaults=False)
+    hub.register_provider(
+        ProviderRoute(
+            name="fundy",
+            capabilities=("fundamentals",),
+            factory=lambda: provider,
+            methods={"fundamentals": "get_fundamentals"},
+            priority=1,
+        )
+    )
+
+    hub.get_fundamentals("TD.TO")
+    hub.get_fundamentals("TD.TO")
+    assert provider.calls == 1, "fundamentals must hit the long-TTL cache"
+
+    # Simulate TTL expiry by rewriting the cache timestamp.
+    (key, (stamp, value)) = next(iter(hub._response_cache.items()))
+    hub._response_cache[key] = (stamp - 999999.0, value)
+    hub.get_fundamentals("TD.TO")
+    assert provider.calls == 2, "expired cache must refetch"
+
+
+def test_pacing_sleeps_between_calls(monkeypatch) -> None:
+    provider = _CountingPriceProvider()
+    hub = DataHub(register_defaults=False)
+    hub.register_provider(
+        ProviderRoute(
+            name="twelve_data",
+            capabilities=("price",),
+            factory=lambda: provider,
+            methods={"price": "get_price"},
+            priority=1,
+        )
+    )
+
+    sleeps: list[float] = []
+    monkeypatch.setattr("data.data_hub.time.sleep", lambda s: sleeps.append(s))
+    clock = [1000.0]
+    monkeypatch.setattr("data.data_hub.time.monotonic", lambda: clock[0])
+
+    hub.get_price("AAPL")
+    assert sleeps == [], "first call must not sleep"
+
+    clock[0] += 2.0  # only 2s since the last call — 8s minimum applies
+    hub.get_price("MSFT")
+    assert sleeps and abs(sleeps[-1] - 6.0) < 0.01, f"expected ~6s pacing sleep, got {sleeps}"

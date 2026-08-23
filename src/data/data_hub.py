@@ -31,9 +31,28 @@ logger = logging.getLogger(__name__)
 # requests. Only successful results are cached — rate-limit/empty errors are
 # transient and must not poison the fallback chain (same rule as Finnhub
 # _fetch_metrics_raw).
-_DATAHUB_CACHE_TTL_S = 60.0
+# Per-capability cache TTL: quotes rotate fast, profiles rarely, fundamentals
+# almost never intraday. Skipping the cache on these was re-fetching yfinance
+# fundamentals (~4s) on every call (hub analysis 2026-08-23).
+_DATAHUB_CACHE_TTL_BY_CAPABILITY = {
+    "price": 60.0,
+    "market_price": 60.0,
+    "quote": 60.0,
+    "candles": 60.0,
+    "profile": 600.0,
+    "fundamentals": 21600.0,  # 6h
+}
 _DATAHUB_CACHE_MAX_ENTRIES = 256
-_DATAHUB_CACHE_CAPABILITIES = frozenset({"price", "market_price", "quote", "candles"})
+_DATAHUB_CACHE_CAPABILITIES = frozenset(_DATAHUB_CACHE_TTL_BY_CAPABILITY)
+
+# Proactive pacing (seconds between calls to the same provider). Reactive
+# backoff (circuit breaker) alone let the first burst burn the free tier
+# (TwelveData 8 req/min exhausted during the 2026-08-22 scan).
+_PROVIDER_MIN_INTERVAL_S = {
+    "twelve_data": 8.0,
+    "finnhub": 1.0,
+    "alpha_vantage": 12.0,  # 5 req/min free tier
+}
 
 
 class ProviderRateLimited(RuntimeError):
@@ -190,6 +209,12 @@ class DataHub:
         self.providers: Dict[str, Any] = {}
         # Per-instance so the singleton hub and test doubles never share state.
         self._response_cache: Dict[tuple[str, ...], tuple[float, Any]] = {}
+        # route name -> API key value that failed authentication. The route is
+        # skipped while the env key stays the same; swapping the key re-enables
+        # it (operator rotation without a restart).
+        self._auth_failures: Dict[str, str] = {}
+        # route name -> monotonic timestamp of the last real provider call.
+        self._last_call: Dict[str, float] = {}
         if register_defaults:
             self._register_default_routes()
 
@@ -501,7 +526,14 @@ class DataHub:
         if not route.enabled:
             return False
         if route.required_key:
-            return bool(self._get_key(route.required_key))
+            key = self._get_key(route.required_key)
+            if not key:
+                return False
+            # A key that already failed authentication is NOT configured —
+            # trying it first on every call wastes one attempt per request
+            # (Finnhub b444a4ae case). Retried automatically once rotated.
+            if route.name in self._auth_failures and self._auth_failures[route.name] == key:
+                return False
         return True
 
     def get_provider(self, name: str) -> Optional[Any]:
@@ -579,8 +611,9 @@ class DataHub:
         cache_key: tuple[str, ...] | None = None
         if capability in _DATAHUB_CACHE_CAPABILITIES:
             cache_key = DataHub._cache_key_for(capability, args, kwargs)
+            ttl = _DATAHUB_CACHE_TTL_BY_CAPABILITY.get(capability, 60.0)
             cached = self._response_cache.get(cache_key)
-            if cached is not None and time.monotonic() - cached[0] < _DATAHUB_CACHE_TTL_S:
+            if cached is not None and time.monotonic() - cached[0] < ttl:
                 result = cached[1]
                 return dict(result) if isinstance(result, dict) else result
 
@@ -613,6 +646,16 @@ class DataHub:
                     method_name,
                 )
                 continue
+
+            # Proactive pacing: sleep the remainder before hitting a provider
+            # whose free tier is measured in requests/minute. The caller runs
+            # this in a worker thread, so a paced call does not block the loop.
+            min_interval = _PROVIDER_MIN_INTERVAL_S.get(route.name)
+            if min_interval:
+                since = time.monotonic() - self._last_call.get(route.name, 0.0)
+                if since < min_interval:
+                    time.sleep(min_interval - since)
+                self._last_call[route.name] = time.monotonic()
 
             try:
                 call_kwargs = self._kwargs_for_method(method, kwargs)
@@ -651,6 +694,19 @@ class DataHub:
                 route.name,
                 error,
             )
+            if DataHub._is_auth_failure(error):
+                # An invalid API key is a PERMANENT condition for this config —
+                # mark the route unconfigured until the operator rotates the
+                # key. Without this, every call wasted its first attempt on
+                # the dead key before falling through.
+                self._auth_failures[route.name] = (
+                    self._get_key(route.required_key) if route.required_key else ""
+                ) or ""
+                logger.warning(
+                    "[DATA_HUB] %s: %s auth failure — route disabled until key rotation",
+                    capability,
+                    route.name,
+                )
             if DataHub._is_rate_limit_signal(error):
                 # Rate-limit responses (429 / "credit limit" / "rate limit")
                 # must count toward the circuit breaker: otherwise an exhausted
@@ -692,6 +748,25 @@ class DataHub:
         lowered = (error or "").lower()
         return any(
             token in lowered for token in ("429", "credit limit", "rate limit", "too many requests")
+        )
+
+    @staticmethod
+    def _is_auth_failure(error: str) -> bool:
+        """True when a provider error signals an invalid/missing API key.
+
+        Distinct from rate limiting: authentication never recovers on its
+        own — the route must be skipped until the operator rotates the key.
+        """
+        lowered = (error or "").lower()
+        return any(
+            token in lowered
+            for token in (
+                "invalid api key",
+                "invalid key",
+                "unauthorized",
+                "authentication failed",
+                "401",
+            )
         )
 
     @staticmethod
