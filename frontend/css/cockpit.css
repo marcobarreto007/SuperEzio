@@ -2286,3 +2286,37 @@ body::after {
     }
   }
 }
+
+/* Auto chart-vision toggle chip (Bob reads the chart on ticker selection) */
+.auto-analyze-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  font: 700 9px var(--font-mono);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.auto-analyze-chip__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--red-sell);
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.auto-analyze-chip.is-on {
+  color: var(--cyan-info);
+  border-color: var(--cyan-dim);
+}
+
+.auto-analyze-chip.is-on .auto-analyze-chip__dot {
+  background: var(--cyan-info);
+  box-shadow: 0 0 6px var(--cyan-info);
+}

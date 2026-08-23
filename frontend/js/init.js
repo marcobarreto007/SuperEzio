@@ -813,6 +813,12 @@
     markSelectedMirrorTicker(ticker);
     loadChart(ticker);
 
+    /* Auto chart vision: after the selection, Bob reads the chart and
+       explains it (real chart_context, no mocks). Guarded once per ticker. */
+    if (window.SZ && SZ.autoAnalyzeChart) {
+      SZ.autoAnalyzeChart(ticker, reason);
+    }
+
     /* Restart live stream if active — avoids stale SSE events
      * overwriting chart data and labels with the old ticker. */
     if (SZ.live && SZ.live.start) {
@@ -966,6 +972,15 @@
       tickerInp.addEventListener("change", function () {
         selectTicker(tickerInp.value, "manual", null);
       });
+      /* Enter commits the ticker: change only fires on blur in Chrome, so a
+         user pressing Enter would see nothing happen. Blur → change → the
+         same selectTicker path, no duplicate selection. */
+      tickerInp.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          tickerInp.blur();
+        }
+      });
     }
     var tfInp = document.getElementById("tf-inp");
     if (tfInp) {
@@ -987,28 +1002,62 @@
       });
     }
 
-    /* ANALYZE CHART WITH BOB */
+    /* ANALYZE CHART WITH BOB — shared by the header button and the
+       automatic trigger fired when the operator selects a ticker. */
+    function analyzeChartWithBob() {
+      var ticker = (SZ.state && SZ.state.ticker) || (document.getElementById("ticker-inp") || {}).value || "TD.TO";
+      var tf = (document.getElementById("tf-inp") || {}).value || "6M";
+      var bobTab = document.getElementById("bob-chat-tab");
+      if (bobTab) bobTab.click();
+      var prompt = "Bob, analise o gráfico de " + ticker + " (" + tf + ") em detalhes. Explique os pontos de entrada, stop loss sugerido, alvos e o consenso dos experts com base no mercado real.";
+      var userInp = document.getElementById("user-inp");
+      var sendBtn = document.getElementById("send-btn");
+      if (userInp && sendBtn) {
+        userInp.value = prompt;
+        sendBtn.click();
+      }
+      if (window.SZ && SZ.state) SZ.state.lastAutoAnalyzedTicker = ticker;
+    }
+
+    function autoAnalyzeEnabled() {
+      try {
+        return localStorage.getItem("sz_auto_analyze") !== "0";
+      } catch (e) { return true; }
+    }
+
+    /* Automatic chart vision: when the operator picks a ticker, Bob fires
+       once per ticker with the real chart context attached. Toggleable via
+       the AUTO chip; never fires twice for the same ticker. */
+    SZ.autoAnalyzeChart = function (ticker, reason) {
+      if (!autoAnalyzeEnabled()) return;
+      if (!reason || reason === "boot") return;  // only selection-driven
+      var san = sanitTicker(ticker);
+      if (!san) return;
+      if (SZ.state && SZ.state.lastAutoAnalyzedTicker === san) return;
+      setTimeout(analyzeChartWithBob, 1200);
+    };
+
     var analyzeBobBtn = document.getElementById("analyze-chart-bob-btn");
     if (analyzeBobBtn) {
       analyzeBobBtn.addEventListener("click", function (event) {
         event.preventDefault();
-        var ticker = (SZ.state && SZ.state.ticker) || (document.getElementById("ticker-inp") || {}).value || "TD.TO";
-        var tf = (document.getElementById("tf-inp") || {}).value || "6M";
-
-        /* Open Bob chat tab */
-        var bobTab = document.getElementById("bob-chat-tab");
-        if (bobTab) {
-          bobTab.click();
-        }
-
-        var prompt = "Bob, analise o gráfico de " + ticker + " (" + tf + ") em detalhes. Explique os pontos de entrada, stop loss sugerido, alvos e o consenso dos experts com base no mercado real.";
-        var userInp = document.getElementById("user-inp");
-        var sendBtn = document.getElementById("send-btn");
-        if (userInp && sendBtn) {
-          userInp.value = prompt;
-          sendBtn.click();
-        }
+        analyzeChartWithBob();
       });
+    }
+
+    var autoAnalyzeChip = document.getElementById("auto-analyze-chip");
+    if (autoAnalyzeChip) {
+      var syncChip = function () {
+        var on = autoAnalyzeEnabled();
+        autoAnalyzeChip.classList.toggle("is-on", on);
+        autoAnalyzeChip.setAttribute("aria-pressed", on ? "true" : "false");
+      };
+      autoAnalyzeChip.addEventListener("click", function () {
+        var on = autoAnalyzeEnabled();
+        try { localStorage.setItem("sz_auto_analyze", on ? "0" : "1"); } catch (e) {}
+        syncChip();
+      });
+      syncChip();
     }
 
     var brokerBtn = document.getElementById("broker-status-btn");
