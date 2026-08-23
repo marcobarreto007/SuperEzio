@@ -54,6 +54,18 @@ _PROVIDER_MIN_INTERVAL_S = {
     "alpha_vantage": 12.0,  # 5 req/min free tier
 }
 
+# Capability aliases: a route offering any of the listed capabilities satisfies
+# the alias key. "quote" resolves to price-capable providers (twelve_data,
+# alpha_vantage, yfinance) when finnhub — the only dedicated quote route — is
+# unconfigured; without this, route("quote") dies with "all providers
+# exhausted" (observed with finnhub 401/absent key, 2026-07-21 log and
+# 2026-08-23 hub review). Price payloads carry enough fields for
+# DataQualityFilter.normalize_price (change_pct/volume optional → lower
+# completeness score, not invalidation).
+_CAPABILITY_ALIASES: dict[str, tuple[str, ...]] = {
+    "quote": ("quote", "price", "market_price"),
+}
+
 
 class ProviderRateLimited(RuntimeError):
     """Recorded on the provider circuit when a rate-limit response is seen."""
@@ -592,10 +604,12 @@ class DataHub:
 
     def resolve(self, capability: str) -> list[ProviderRoute]:
         """Return configured routes that can satisfy a capability."""
+        accepted = _CAPABILITY_ALIASES.get(capability, (capability,))
         return [
             route
             for route in sorted(self.routes.values(), key=lambda item: item.priority)
-            if capability in route.capabilities and self._is_configured(route)
+            if any(cap in route.capabilities for cap in accepted)
+            and self._is_configured(route)
         ]
 
     def route(self, capability: str, *args: Any, **kwargs: Any) -> Any:
@@ -636,6 +650,12 @@ class DataHub:
                 continue
 
             method_name = route.methods.get(capability)
+            if not method_name and capability == "quote":
+                # Alias method fallback: price-capable routes satisfy "quote"
+                # via their price method (see _CAPABILITY_ALIASES).
+                method_name = route.methods.get("price") or route.methods.get(
+                    "market_price"
+                )
             method = getattr(provider, method_name or "", None)
             if not callable(method):
                 attempts.append({"provider": route.name, "error": "method_unavailable"})

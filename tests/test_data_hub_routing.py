@@ -100,3 +100,78 @@ def test_price_route_falls_back_when_first_provider_has_no_price() -> None:
     result = hub.get_price("AAPL")
     assert result["price"] == 123.0
     assert result["provider"] == "valid"
+
+
+def test_quote_capability_resolves_price_capable_routes() -> None:
+    """With finnhub unconfigured, "quote" must still resolve via price-capable
+    routes (2026-08-23: quote died with "all providers exhausted" after the
+    Finnhub key was removed)."""
+
+    class PriceProvider:
+        @staticmethod
+        def get_price(symbol):
+            return {"price": 42.0, "symbol": symbol}
+
+    hub = DataHub(register_defaults=False)
+    hub.register_provider(
+        ProviderRoute(
+            name="price_only",
+            capabilities=("price",),
+            factory=PriceProvider,
+            methods={"price": "get_price"},
+            priority=1,
+        )
+    )
+    assert [route.name for route in hub.resolve("quote")] == ["price_only"]
+
+
+def test_quote_route_falls_back_to_price_method() -> None:
+    """route("quote") uses the route's price method when no dedicated quote
+    method exists (capability alias fallback)."""
+
+    class PriceProvider:
+        @staticmethod
+        def get_price(symbol):
+            return {"price": 42.0, "symbol": symbol}
+
+    hub = DataHub(register_defaults=False)
+    hub.register_provider(
+        ProviderRoute(
+            name="price_only",
+            capabilities=("price",),
+            factory=PriceProvider,
+            methods={"price": "get_price"},
+            priority=1,
+        )
+    )
+    result = hub.route("quote", "AAPL")
+    assert result["price"] == 42.0
+    assert result["provider"] == "price_only"
+
+
+def test_quote_prefers_dedicated_quote_method_over_alias() -> None:
+    """A route exposing both "quote" and "price" methods must serve quote via
+    its dedicated quote method (finnhub contract preserved)."""
+
+    class BothProvider:
+        @staticmethod
+        def get_quote(symbol):
+            return {"price": 7.0, "symbol": symbol}
+
+        @staticmethod
+        def get_price(symbol):
+            return {"price": 1.0, "symbol": symbol}
+
+    hub = DataHub(register_defaults=False)
+    hub.register_provider(
+        ProviderRoute(
+            name="both",
+            capabilities=("quote", "price"),
+            factory=BothProvider,
+            methods={"quote": "get_quote", "price": "get_price"},
+            priority=1,
+        )
+    )
+    result = hub.route("quote", "AAPL")
+    assert result["price"] == 7.0
+    assert result["provider"] == "both"
