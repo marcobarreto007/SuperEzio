@@ -1,9 +1,17 @@
 # F51 Risk Register
 
-Updated: 2026-08-21T10:45:00-04:00
-Session: delivery-hardening-2026-08-21
+Updated: 2026-08-23
+Session: datahub-quote-fallback-2026-08-23
 
 ## Active Risks
+
+### INV-R50 - Quote sem finnhub depende de payload de price (change_pct/volume ausentes) [LOW]
+
+- Classification: data quality / free-tier resilience.
+- Risk: com finnhub fora, a capability `quote` e atendida por rotas de price (twelve_data, alpha_vantage, yfinance) via alias no DataHub. TwelveData e yfinance nao expoem `change_pct`; TwelveData nao expoe `volume` — o score de completude da quote cai (3-4 de 5 campos) e consumidores que exigirem variacao intradiaria podem receber dado parcial.
+- Evidence: contratos atuais (`DataQualityFilter.normalize_price`, `_is_usable_result`) tratam esses campos como opcionais; nenhum consumidor em `src/` exige `change_pct` hard-fail. Observado em revisao 2026-08-23 (commit c486f78).
+- Mitigation: quando a Finnhub key for rotacionada, finnhub (quote dedicada completa) volta a ser prioridade 1 automaticamente. Se necessario, enriquecer `yfinance.get_price` com change_pct via `previous_close` e `twelve_data.get_price` com `change`/`volume` do payload /quote (ja retornados pela API, nao extraidos).
+- Status: Active (monitorar completude do quote enquanto finnhub estiver sem chave).
 
 ### INV-R40 - Habilidade de investimento nao comprovada [CRITICAL]
 

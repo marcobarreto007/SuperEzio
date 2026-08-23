@@ -1,8 +1,8 @@
 {
-  "date_local": "2026-08-21",
-  "session": "delivery-hardening-2026-08-21",
+  "date_local": "2026-08-23",
+  "session": "datahub-quote-fallback-2026-08-23",
   "status": "DELIVERED",
-  "objective": "Converter os achados da auditoria adversarial (5 subagentes, 2026-08-21) em produto endurecido com evidencia e contratos honestos.",
+  "objective": "Fechar o buraco da capability \"quote\" no DataHub: finnhub era a unica rota com quote e, sem chave, o scan morria com \"all providers exhausted\".",
   "impact_map": {
     "problem": "O runtime esta acoplado a IBKR/paper e nao possui um contrato seguro para entregar ordens live ao TD Direct Investing.",
     "architecture_touched": [
@@ -1092,7 +1092,7 @@
     },
     "remaining_blocker": "No SUPEREZIO_DEEPSEEK_API_KEY is configured locally. A paid live expert call and fresh full browser/pipeline E2E cannot be truthfully claimed until the operator supplies it without committing or pasting it into chat."
   },
-  "owner": "Codex",
+  "owner": "Claude Code (local)",
   "delivery_hardening_20260821": {
     "status": "DELIVERED_WITH_EVIDENCE",
     "problem": "Auditoria adversarial confirmou o nucleo do sistema (1.965 testes reais, 39.310 traces, 108 ETFs, SDCA exato, TD fail-closed) mas achou: GPU fantasma (RTX 2070), GGUF reportado ausente (FALSO POSITIVO do auditor: arquivos presentes em %USERPROFILE%\\models\\qwen3.8-27b\\ desde 14-15/08), fraud guard morto (0 regras computaveis), cobertura 67% nao reproduzivel (--cov nos addopts), drift triplo de constantes de risco, decision_traces poluido por ~14k linhas de teste, playbook com ETFs fora dos 108 sem comissao, RISK_REGISTER fora de gate.",
@@ -1597,7 +1597,10 @@
       "root_url": "https://supereziorealtime.com",
       "ingress": "supereziorealtime.com -> http://127.0.0.1:8002",
       "dns": "CNAME @ -> 22e6fc68-8166-43be-a5b2-6e8b33803571.cfargotunnel.com (Proxied)",
-      "cors_origins": ["https://supereziorealtime.com", "https://www.supereziorealtime.com"]
+      "cors_origins": [
+        "https://supereziorealtime.com",
+        "https://www.supereziorealtime.com"
+      ]
     },
     "verification": {
       "verify_public_gate": "PASS (G1, G4, G5, G6, G12 all OK, 0 failures, 0 leaks)",
@@ -1606,5 +1609,22 @@
       "pytest": "115/115 passed in 46.25s",
       "ruff": "100% PASS"
     }
+  },
+  "datahub_quote_fallback_20260823": {
+    "status": "DELIVERED",
+    "problem": "finnhub e a unica rota registrada com a capability \"quote\". Com FINNHUB_API_KEY ausente de .env/.env.local (chave b444a4ae removida apos 401), resolve(\"quote\") retornava vazio e route(\"quote\") morria com \"all providers exhausted\" (log 2026-07-21; confirmado em revisao 2026-08-23).",
+    "change": "Alias _CAPABILITY_ALIASES['quote']=(quote, price, market_price) em DataHub.resolve() + fallback de metodo para 'price'/'market_price' em route() quando a rota nao tem metodo quote dedicado. Payloads de price passam em _is_usable_result('quote') (exige price>0); change_pct/volume continuam opcionais (completeness score menor, sem invalidacao).",
+    "files": [
+      "src/data/data_hub.py",
+      "tests/test_data_hub_routing.py"
+    ],
+    "tests": {
+      "new": 3,
+      "data_layer_battery": "67 passed (routing/cache/health/finnhub/yfinance/circuit/twelve/akshare)",
+      "ruff": "clean"
+    },
+    "commit": "c486f78",
+    "open_dependency": "Rotacionar a chave no portal Finnhub e gravar FINNHUB_API_KEY em .env.local reativa a rota automaticamente (auth-failure map e indexado pelo valor da chave).",
+    "restart_required": "API :8002 precisa reiniciar para carregar o fix (processo atual iniciado 2026-08-23 09:28, pre-fix)."
   }
 }

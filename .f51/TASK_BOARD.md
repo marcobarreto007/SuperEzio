@@ -2,6 +2,8 @@
 
 ## Backlog
 
+- [x] 2026-08-23 - **Fallback de quote no DataHub sem finnhub** (Claude Code): finnhub era a única rota com a capability `quote`; com a `FINNHUB_API_KEY` ausente, `route("quote")` morria com "all providers exhausted". Alias de capability (`quote` → `price`/`market_price`) + fallback de método em `src/data/data_hub.py`; 3 testes novos em `tests/test_data_hub_routing.py`; bateria da camada de dados 67 passed; ruff limpo; commit `c486f78`. Pendência do operador: rotacionar a chave no portal Finnhub e gravar em `.env.local` (reativa a rota sozinho); reiniciar a API :8002 para carregar o fix.
+
 - [x] 2026-08-21 - **Investor Playbook e CLI de Alocação de Capital** (Antigravity): Criação do Playbook Oficial do Investidor em `docs/INVESTOR_PLAYBOOK.md`, CLI interativo e determinístico em `scripts/investor_portfolio_allocator.py`, suíte de testes unitários em `tests/test_investor_portfolio_allocator.py` (4 testes passando), framework Core & Explore para ETFs commission-free no TD Direct Investing e roteamento de contas TFSA/RRSP/HISA.
 
 - [x] 2026-08-21 - **Topologia hibrida restaurada por diretiva do operador** (Codex): CEO/orquestrador permanecem no Qwen local `:8080`; experts financeiros, judge e auditor usam `deepseek-v4-pro` na API oficial. Chave ausente falha explicitamente, modelos locais/aposentados sao rejeitados, nao existe fallback cruzado, health/cockpit reportam readiness real. Validacao externa paga permanece pendente ate o operador configurar `SUPEREZIO_DEEPSEEK_API_KEY` localmente.
