@@ -1487,5 +1487,29 @@
       "pytest": "115 passed (test_api_routes_sync, test_f51_trade_gate, test_td_direct_ticket)",
       "gates": "Todos os gates verdes, modo DISK ONLY respeitado."
     }
+  },
+  "end_user_journey_test_20260822": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "timestamp": "2026-08-23T01:52:38Z",
+    "objective": "Auditoria de ponta a ponta simulando um investidor humano interagindo com o cockpit completo.",
+    "flow_tested": [
+      "1. Navegacao e verificacao inicial dos componentes e canvases",
+      "2. Busca e selecao do ativo TD.TO com renderizacao de candles e indicadores",
+      "3. Interacoes com paineis e ferramentas (Expert Panel / SDCA Lab / Timeframes)",
+      "4. Conversa ao vivo com o Bob (transmissao de stream, calculos de risco e veredito do firewall)",
+      "5. Captura de snapshots visuais e analise de erros de console"
+    ],
+    "verification": {
+      "success": true,
+      "console_errors": 0,
+      "chat_duration_s": 18.08,
+      "total_time_s": 27.11,
+      "screenshots": [
+        "output/user_testing/01_initial_cockpit.png",
+        "output/user_testing/02_chart_loaded_td_to.png",
+        "output/user_testing/03_expert_panel_interaction.png",
+        "output/user_testing/04_bob_live_response.png"
+      ]
+    }
   }
 }
