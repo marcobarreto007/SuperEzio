@@ -309,6 +309,7 @@ def _chat_api_check(
         "languageOk": bool(pt and not en),
         "hasPtMarkers": bool(pt),
         "hasEnMarkers": bool(en),
+        "enMarker": en.group(0) if en else None,
         "elapsedSeconds": round(elapsed, 1),
         "firstChars": text[:200],
     }
@@ -416,6 +417,7 @@ def run_smoke(
             if not chat_api.get("languageOk"):
                 raise AssertionError(
                     f"chat language drift — expected PT answer, got: {chat_api.get('firstChars')!r}"
+                    f" (en marker: {chat_api.get('enMarker')!r})"
                 )
 
         page.screenshot(path=str(screenshot_path), full_page=True)
