@@ -1688,5 +1688,21 @@
       "a2f0522",
       "a9d965d"
     ]
+  },
+  "discovery_delivery_20260823": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "objective": "Scan sem ticker entrega candidatos; microcap e oportunidade valida (decisoes do operador 2026-08-23).",
+    "delivered": [
+      "fix(intents): fronteira de palavra no detector de ticker — 'ativos' nao vira mais ticker 'S'; prompt de sugestao sem 'TD' solto (47c1106)",
+      "feat(scanner): discovery inclui microcap/penny por padrao, exceto blue-chip/max-price explicito (5f5d246)",
+      "feat(scanner): seed do Mangala diario quando o scanner cru vem com <5 (c428def + a965c5e)",
+      "feat(ui): botao Sugestao + auto chart-vision + Enter no ticker (ae53d47, 49bb17e)"
+    ],
+    "live_evidence": {
+      "real_hub_scan": "CANDIDATOS: PLUG, NIO, TLRY, SNDL (dados Finnhub reais); rejeitados 20 (17 missing_price por quota diaria TwelveData 800/dia esgotada; 3 dollar_volume)",
+      "isolated_seed_test": "scanner morto -> 5 candidatos (PLUG, NIO, HIVE, ACB, CGC) com lock TD rejeitando exchange nao suportada",
+      "tests": "103/103 gate+universe+scan; 55/55 apos isolamento do seed"
+    },
+    "remaining_bottleneck": "Quota diaria do TwelveData (reseta meia-noite UTC). Finnhub cobre US/dual-list; yfinance cobre TSX."
   }
 }
