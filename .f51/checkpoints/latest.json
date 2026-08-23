@@ -1611,7 +1611,7 @@
     }
   },
   "datahub_quote_fallback_20260823": {
-    "status": "DELIVERED",
+    "status": "DELIVERED_AND_LIVE",
     "problem": "finnhub e a unica rota registrada com a capability \"quote\". Com FINNHUB_API_KEY ausente de .env/.env.local (chave b444a4ae removida apos 401), resolve(\"quote\") retornava vazio e route(\"quote\") morria com \"all providers exhausted\" (log 2026-07-21; confirmado em revisao 2026-08-23).",
     "change": "Alias _CAPABILITY_ALIASES['quote']=(quote, price, market_price) em DataHub.resolve() + fallback de metodo para 'price'/'market_price' em route() quando a rota nao tem metodo quote dedicado. Payloads de price passam em _is_usable_result('quote') (exige price>0); change_pct/volume continuam opcionais (completeness score menor, sem invalidacao).",
     "files": [
@@ -1625,6 +1625,7 @@
     },
     "commit": "c486f78",
     "open_dependency": "Rotacionar a chave no portal Finnhub e gravar FINNHUB_API_KEY em .env.local reativa a rota automaticamente (auth-failure map e indexado pelo valor da chave).",
-    "restart_required": "API :8002 precisa reiniciar para carregar o fix (processo atual iniciado 2026-08-23 09:28, pre-fix)."
+    "restart_required": "APPLIED 2026-08-23 ~14:58 UTC: API reiniciada com scans desativados (SUPEREZIO_ANS_SCAN=0, SUPEREZIO_MANGALA_SCAN=0); health 200; sem re-submit de task.",
+    "live_evidence": "resolve(\"quote\") -> [twelve_data, alpha_vantage, yfinance]; route(\"quote\",\"SHOP.TO\") -> 205.61 via yfinance (twelve_data nao cobre TSX no free tier, cadeia caiu como desenhado)."
   }
 }
