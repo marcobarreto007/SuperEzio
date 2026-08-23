@@ -14,6 +14,7 @@ import logging
 import math
 import os
 import subprocess
+import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
@@ -21,6 +22,22 @@ from core.resilience import get_circuit
 
 ProviderFactory = Callable[[], Any]
 logger = logging.getLogger(__name__)
+
+# ── Short-TTL response cache (pattern: _CHART_CACHE in agent_server/endpoints.py) ──
+# Providers run on strict free tiers (TwelveData ~8 req/min, AlphaVantage
+# ~25 req/day) and the same symbol is requested repeatedly within one scan
+# cycle (price enrichment stage, chart endpoints, pipeline hooks). A 60s
+# dedupe window turns repeat calls into dict hits instead of provider
+# requests. Only successful results are cached — rate-limit/empty errors are
+# transient and must not poison the fallback chain (same rule as Finnhub
+# _fetch_metrics_raw).
+_DATAHUB_CACHE_TTL_S = 60.0
+_DATAHUB_CACHE_MAX_ENTRIES = 256
+_DATAHUB_CACHE_CAPABILITIES = frozenset({"price", "market_price", "quote", "candles"})
+
+
+class ProviderRateLimited(RuntimeError):
+    """Recorded on the provider circuit when a rate-limit response is seen."""
 
 
 def _make_twelve_data_provider(api_key: str | None) -> Any:
@@ -171,6 +188,8 @@ class DataHub:
 
         self.routes: Dict[str, ProviderRoute] = {}
         self.providers: Dict[str, Any] = {}
+        # Per-instance so the singleton hub and test doubles never share state.
+        self._response_cache: Dict[tuple[str, ...], tuple[float, Any]] = {}
         if register_defaults:
             self._register_default_routes()
 
@@ -553,6 +572,14 @@ class DataHub:
         Logs which provider was selected and why.
         """
         attempts: list[dict[str, str]] = []
+        cache_key: tuple[str, ...] | None = None
+        if capability in _DATAHUB_CACHE_CAPABILITIES:
+            cache_key = DataHub._cache_key_for(capability, args, kwargs)
+            cached = self._response_cache.get(cache_key)
+            if cached is not None and time.monotonic() - cached[0] < _DATAHUB_CACHE_TTL_S:
+                result = cached[1]
+                return dict(result) if isinstance(result, dict) else result
+
         for route in self.resolve(capability):
             provider = self.get_provider(route.name)
             if provider is None:
@@ -606,6 +633,10 @@ class DataHub:
                     result.setdefault("provider", route.name)
                 logger.info("[DATA_HUB] %s: %s succeeded", capability, route.name)
                 _cb._on_success()
+                if cache_key is not None:
+                    if len(self._response_cache) > _DATAHUB_CACHE_MAX_ENTRIES:
+                        self._response_cache.clear()
+                    self._response_cache[cache_key] = (time.monotonic(), result)
                 return result
 
             error = self._result_error(result) or "empty_result"
@@ -616,6 +647,13 @@ class DataHub:
                 route.name,
                 error,
             )
+            if DataHub._is_rate_limit_signal(error):
+                # Rate-limit responses (429 / "credit limit" / "rate limit")
+                # must count toward the circuit breaker: otherwise an exhausted
+                # free tier is hammered on every call and never backs off. After
+                # `failure_threshold` hits the circuit opens for 30s and the
+                # chain falls through to the next provider.
+                _cb._on_failure(ProviderRateLimited(f"{route.name}: {error}"))
 
         logger.warning("[DATA_HUB] %s: all providers exhausted — %s", capability, attempts)
         return {"error": f"no_provider_result_for_{capability}", "attempts": attempts}
@@ -633,6 +671,24 @@ class DataHub:
             return dict(kwargs)
         allowed = set(sig.parameters.keys())
         return {k: v for k, v in kwargs.items() if k in allowed}
+
+    @staticmethod
+    def _cache_key_for(
+        capability: str, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ) -> tuple[str, ...]:
+        """Build a hashable dedupe key for one routed capability call."""
+        parts: list[str] = [capability]
+        parts.extend(str(arg) for arg in args)
+        parts.extend(f"{key}={value}" for key, value in sorted(kwargs.items()))
+        return tuple(parts)
+
+    @staticmethod
+    def _is_rate_limit_signal(error: str) -> bool:
+        """True when a provider error message signals an exhausted free tier."""
+        lowered = (error or "").lower()
+        return any(
+            token in lowered for token in ("429", "credit limit", "rate limit", "too many requests")
+        )
 
     @staticmethod
     def _is_usable_result(result: Any, capability: str | None = None) -> bool:

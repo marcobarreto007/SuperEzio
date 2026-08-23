@@ -8,11 +8,11 @@ from data.data_hub import DataHub, ProviderRoute
 def test_market_price_route_order() -> None:
     hub = DataHub(register_defaults=True)
     routes = hub.list_routes("price")
-    # Chain (2026-07-20): twelve_data -> alpha_vantage -> yfinance
+    # Chain (2026-08-22): finnhub (priority 1) -> twelve_data -> yfinance
     # AKShare removed from price (downloads 893 stocks, 3+ min!)
     # Stooq removed — API offline (HTTP 404)
     ordered = [r["name"] for r in sorted(routes, key=lambda x: x["priority"])]
-    assert ordered[0] == "twelve_data"
+    assert ordered[0] == "finnhub"
     assert ordered.index("twelve_data") < ordered.index("yfinance")
 
 

@@ -31,6 +31,13 @@ def _make_candles(n: int = 30) -> list[dict]:
 def test_chart_data_candles_have_epoch_times(monkeypatch):
     import agent_server.endpoints as ep
 
+    # This test owns the candle-time contract, not auth: importing
+    # agent_server.main runs load_local_env() and leaks the operator's
+    # PUBLIC_MODE=1 + secret into the process env (the endpoint would 401).
+    # Pin dev-anon mode for the TestClient.
+    monkeypatch.delenv("SUPEREZIO_JWT_SECRET", raising=False)
+    monkeypatch.setenv("SUPEREZIO_PUBLIC_MODE", "0")
+
     monkeypatch.setattr(
         ep.hub, "get_candles", lambda ticker, timeframe="6M": {"candles": _make_candles()}
     )
