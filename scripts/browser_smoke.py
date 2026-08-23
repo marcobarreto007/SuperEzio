@@ -301,11 +301,24 @@ def _chat_api_check(
                 break
     elapsed = time.perf_counter() - t0
     text = "".join(chunks)
-    pt = re.search(r"\b(você|não|uma|para|com|como|por|dos|das|ser|pode|deve)\b", text, re.I)
-    en = re.search(r"\b(the|of|and|your|you|is|are|with)\b", text, re.I)
+    # Language check applies only to the model's explanation segment. The raw
+    # stream also carries pipeline trace sections (## DATA, ## MATH_REPORT...)
+    # whose template prose is English by contract and must not fail the check.
+    seg = text
+    m = re.search(r"SUA EXPLICA[ÇC][AÃ]O\s*[:=]", text, re.I)
+    if m:
+        seg = text[m.end():]
+        cut = re.search(r"\n## ", seg)
+        if cut:
+            seg = seg[:cut.start()]
+    if not seg.strip():
+        seg = text
+    pt = re.search(r"\b(você|não|uma|para|com|como|por|dos|das|ser|pode|deve)\b", seg, re.I)
+    en = re.search(r"\b(the|of|and|your|you|is|are|with)\b", seg, re.I)
     return {
         "sawStreamEnd": saw_end,
         "contentLength": len(text),
+        "languageSegLength": len(seg),
         "languageOk": bool(pt and not en),
         "hasPtMarkers": bool(pt),
         "hasEnMarkers": bool(en),

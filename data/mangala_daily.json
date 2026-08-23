@@ -1,5 +1,5 @@
 {
-  "scanned_at": "2026-08-23T20:43:45.047038+00:00",
+  "scanned_at": "2026-08-23T22:20:18.298097+00:00",
   "count": 5,
   "opportunities": [
     {
@@ -26,7 +26,7 @@
         "stop_3pct": 1.33,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-23T20:43:34.488751+00:00"
+      "scanned_at": "2026-08-23T22:20:09.730881+00:00"
     },
     {
       "ticker": "TLRY",
@@ -43,16 +43,16 @@
         "catalyst": 8
       },
       "whale_status": "FRACO",
-      "whale_score": 0,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
+      "whale_score": 20,
+      "pump_risk": "ALERT",
+      "pump_score": 77,
       "flip_plan": {
         "entry": 4.84,
         "target_5pct": 5.08,
         "stop_3pct": 4.69,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-23T20:43:24.957513+00:00"
+      "scanned_at": "2026-08-23T22:20:00.500611+00:00"
     },
     {
       "ticker": "RIG",
@@ -70,15 +70,15 @@
       },
       "whale_status": "FRACO",
       "whale_score": 0,
-      "pump_risk": "ALERT",
-      "pump_score": 77,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
       "flip_plan": {
         "entry": 5.92,
         "target_5pct": 6.22,
         "stop_3pct": 5.74,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-23T20:42:58.237735+00:00"
+      "scanned_at": "2026-08-23T22:19:36.102910+00:00"
     },
     {
       "ticker": "KODK",
@@ -104,7 +104,7 @@
         "stop_3pct": 9.54,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-23T20:43:45.047038+00:00"
+      "scanned_at": "2026-08-23T22:20:18.297550+00:00"
     },
     {
       "ticker": "PLUG",
@@ -122,15 +122,15 @@
       },
       "whale_status": "FRACO",
       "whale_score": 0,
-      "pump_risk": "ALERT",
-      "pump_score": 77,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
       "flip_plan": {
         "entry": 2.27,
         "target_5pct": 2.38,
         "stop_3pct": 2.2,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-23T20:42:50.322407+00:00"
+      "scanned_at": "2026-08-23T22:19:27.978094+00:00"
     }
   ]
 }

@@ -5,6 +5,32 @@ Session: td-universe-lock-2026-08-23
 
 ## Active Risks
 
+### INV-R53 - CEO llama-server sem supervisor (queda por janela fechada) [HIGH]
+
+- Classification: operational resilience / runtime supervision.
+- Risk: `serve_agent_llamacpp.ps1` roda o modelo em foreground, preso a janela do
+  terminal. Em 2026-08-23 a janela/sessao foi encerrada ~21:10Z, matou o llama-server
+  sem mensagem de shutdown e nada religou: 49 min em MAN_AT_WORK ate intervencao manual
+  (checkpoint `restart-ceo-20260823.json`). Sem watchdog, qualquer queda exige operador.
+- Mitigation: `scripts/watchdog_ceo.ps1` (health a cada 30s, grace de 3 ciclos, relance
+  detached, anti-crashloop max 4/h). Ativado 2026-08-23 em janela hidden.
+- Residual: integrar ao logon (Task Scheduler) ou `start.ps1` para sobreviver a reboot.
+- Status: Active; mitigation em execucao, integracao ao boot pendente.
+
+### INV-R54 - Stream de chat contem trace de pipeline em EN (falso positivo no smoke) [MEDIUM]
+
+- Classification: product language consistency / test gate false positive.
+- Risk: as secoes `## DATA ... ## BOB_VERDICT` streamadas na resposta de chat eram
+  instruidas em ingles no prompt (`builder.py`), e o modelo ecoava prosa EN; o
+  `browser_smoke.py` checava o stream bruto e reprovava "language drift" em respostas
+  cujo texto do modelo era 100% PT. Smoke falhava consistentemente pos-restart.
+- Resolution: instrucoes das secoes traduzidas para PT em
+  `src/core/pipeline/prompts/builder.py` (headers `## *` e marcadores `MISSING`,
+  `[MODULO]`, `Bob's read`, `MANDATORY FORMAT` preservados — contratos de teste);
+  checagem de idioma do smoke restrita ao segmento `SUA EXPLICACAO` do modelo
+  (`browser_smoke.py`, `languageSegLength` novo no relatorio).
+- Status: Active ate verificacao (pytest contratos/integracao + smoke verde).
+
 ### INV-R51 - Manifest do universo TD degrada com idade (TTL 7 dias) [MEDIUM]
 
 - Classification: data freshness / fail-closed degradation.
