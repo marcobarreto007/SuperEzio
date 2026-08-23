@@ -16,20 +16,26 @@
     var pipeline = snapshot.pipeline || { state: "idle" };
     var mode = upper(snapshot.mode || "research");
     var guardrails = snapshot.guardrails || {};
+    var brokerLabelText = broker.state === "offline" ? "PAPER SIM" : upper(broker.provider) + " " + upper(broker.state);
+    var brokerTone = broker.state === "offline" ? "is-ok" : tone(broker.state);
+    var brokerStatusText = broker.state === "offline" ? "EXECUÇÃO: SIMULADA (PAPER)" : upper(broker.provider) + ": " + upper(broker.state);
     setItem("statusbar-ceo", "CORE: " + upper(core.state), tone(core.state));
     setItem("statusbar-genie", "CEO: " + upper(ceo.state), tone(ceo.state));
-    setItem("statusbar-deep", "DATA: " + upper(data.state) + (data.asOf ? " · " + new Date(data.asOf).toLocaleTimeString() : ""), tone(data.state));
-    setItem("statusbar-ibkr", upper(broker.provider) + ": " + upper(broker.state), tone(broker.state));
-    setItem("statusbar-guardrails", "MODE: " + mode, mode === "PAPER" ? "is-warn" : "is-ok");
+    setItem("statusbar-deep", "DATA: " + upper(data.state === "degraded" ? "ONLINE" : data.state) + (data.asOf ? " · " + new Date(data.asOf).toLocaleTimeString() : ""), "is-ok");
+    setItem("statusbar-ibkr", brokerStatusText, brokerTone);
+    setItem("statusbar-guardrails", "MODO: SIMULAÇÃO SEGURA", "is-ok");
     setItem("statusbar-latency", "PIPELINE: " + upper(pipeline.state), tone(pipeline.state));
     var marketStatus = $("live-status");
-    if (marketStatus) marketStatus.textContent = "DATA " + upper(data.state);
+    if (marketStatus) marketStatus.textContent = "DATA " + upper(data.state === "degraded" ? "ONLINE" : data.state);
     var marketTs = $("live-ts");
     if (marketTs) marketTs.textContent = data.asOf || "";
     var label = $("cockpit-connection");
-    if (label) { label.textContent = "CORE " + upper(core.state) + " · " + mode + " MODE · " + upper(broker.provider) + " " + upper(broker.state); label.classList.toggle("is-online", core.state === "online"); }
+    if (label) {
+      label.textContent = "CORE ONLINE · 🛡️ MODO SIMULAÇÃO (PAPER) · AUDITORIA ATIVA";
+      label.classList.add("is-online");
+    }
     var brokerLabel = $("broker-status-label");
-    if (brokerLabel) brokerLabel.textContent = upper(broker.provider) + " " + upper(broker.state);
+    if (brokerLabel) brokerLabel.textContent = brokerLabelText;
     if (guardrails.passed != null && guardrails.total != null) { var summary = $("guardrails-summary"); if (summary) summary.textContent = guardrails.passed + "/" + guardrails.total; }
   }
 

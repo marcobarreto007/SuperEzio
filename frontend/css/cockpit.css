@@ -438,6 +438,7 @@ body::after {
 /* broker states */
 .broker-chip--read { color: var(--cyan-info); border-color: var(--cyan-dim); }
 .broker-chip--trade { color: var(--green-buy); border-color: var(--green-dim); }
+.broker-chip--paper { color: var(--cyan-info); border-color: var(--cyan-dim); background: var(--cyan-dim); }
 .broker-chip--off { color: var(--red-sell); border-color: var(--red-dim); }
 .broker-chip--unknown { color: var(--text-muted); }
 

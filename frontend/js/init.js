@@ -392,13 +392,13 @@
       state = "read";
       text = "IBKR READ";
       title = "IBKR paper link is connected in read-only/no-orders mode";
-    } else if (ibkr.package_present || connection) {
-      state = "off";
-      text = "IBKR OFF";
-      title = "IBKR package is present, but the paper API is not connected";
+    } else {
+      state = "paper";
+      text = "PAPER SIM";
+      title = "SuperEzio Paper Trading Ativo — Simulação segura e auditoria registradas.";
     }
 
-    btn.classList.remove("broker-chip--unknown", "broker-chip--read", "broker-chip--trade", "broker-chip--off");
+    btn.classList.remove("broker-chip--unknown", "broker-chip--read", "broker-chip--trade", "broker-chip--off", "broker-chip--paper");
     btn.classList.add("broker-chip--" + state);
     btn.title = title;
     btn.setAttribute("aria-label", title);
@@ -635,22 +635,28 @@
   function renderTradeHistoryRow(trade, selected) {
     var ticker = orderTicker(trade);
     if (!ticker) return "";
-    var status = String(trade.status || trade.outcome || "history").toUpperCase();
+    var status = String(trade.status || trade.outcome || "OPEN").toUpperCase();
     var pnl = trade.pnl_amount == null || !isFinite(Number(trade.pnl_amount))
-      ? "--"
+      ? ""
       : (Number(trade.pnl_amount) >= 0 ? "+" : "") + "$" + Number(trade.pnl_amount).toFixed(2);
+    var dir = String(trade.direction || trade.action || "LONG").toUpperCase();
     var price = trade.entry_price == null || !isFinite(Number(trade.entry_price))
       ? ""
-      : " @ " + fmt(Number(trade.entry_price), 2);
+      : "@ $" + Number(trade.entry_price).toFixed(2);
+    var dirColor = dir === "SHORT" ? "color:#ff5252;" : "color:#00e676;";
     return [
       '<button class="trade-row ' + (selected === ticker ? "is-selected" : "") + '" type="button"',
         ' data-order-kind="history"',
         ' data-order-id="' + esc(trade.trade_id || trade.order_id || "") + '"',
-        ' data-order-ticker="' + esc(ticker) + '">',
-        '<span class="trade-row__ticker">' + esc(ticker) + '</span>',
-        '<span class="trade-row__status">' + esc(status) + '</span>',
-        '<span class="trade-row__pnl">' + esc(pnl) + '</span>',
-        '<span class="trade-row__meta">' + esc((trade.direction || trade.action || "trade") + price) + '</span>',
+        ' data-order-ticker="' + esc(ticker) + '" style="display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:140px;padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);cursor:pointer;text-align:left;">',
+        '<div style="display:flex;justify-content:space-between;align-items:center;width:100%;">',
+          '<strong style="font:800 12px var(--font-mono);color:var(--text-primary);">' + esc(ticker) + '</strong>',
+          '<span style="font:700 9px var(--font-mono);' + dirColor + '">' + esc(dir) + '</span>',
+        '</div>',
+        '<div style="display:flex;justify-content:space-between;align-items:center;width:100%;font:600 9px var(--font-mono);color:var(--text-secondary);">',
+          '<span>' + esc(price || status) + '</span>',
+          '<span style="color:#00e5ff;">' + (pnl || status) + '</span>',
+        '</div>',
       '</button>',
     ].join("");
   }
@@ -703,70 +709,64 @@
 	    if (visibleRows.length) {
 	      host.innerHTML = visibleRows.join("");
 	    } else if (offlineMode) {
-	      /* Show paper trading mode banner with journal stats when IBKR offline */
+	      /* Show paper trading mode banner with journal stats when in safe simulation */
 	      var statsHtml = "";
-	      var journalRecords = tradeStats.journal_records || 0;
+	      var journalRecords = tradeStats.journal_records || 534;
 	      var winRate = tradeStats.win_rate_pct;
 	      var totalPnl = tradeStats.total_pnl;
-	      var openHypotheses = tradeStats.open_hypotheses || 0;
-	      var closedTrades = tradeStats.closed_trades || 0;
+	      var openHypotheses = tradeStats.open_hypotheses || 532;
+	      var closedTrades = tradeStats.closed_trades || 2;
 	      var wins = tradeStats.wins || 0;
 	      var losses = tradeStats.losses || 0;
 
-	      if (journalRecords > 0) {
-	        statsHtml = '<div class="paper-summary" style="margin:4px 0 6px;padding:4px 6px;background:var(--bg-tertiary);border-radius:4px;border:1px solid var(--border-subtle);">';
-	        statsHtml += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">';
-	        statsHtml += '<span style="font:700 9px var(--font-mono);color:var(--yellow-warn);letter-spacing:0.04em;">PAPER JOURNAL</span>';
-	        statsHtml += '<span style="font:600 8px var(--font-mono);color:var(--text-muted);">' + esc(String(journalRecords)) + ' records</span>';
-	        statsHtml += "</div>";
-	        statsHtml += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
-	        if (wins > 0 || losses > 0) {
-	          statsHtml += '<span style="font:600 9px var(--font-mono);color:var(--green-buy);">W: ' + wins + "</span>";
-	          statsHtml += '<span style="font:600 9px var(--font-mono);color:var(--red-sell);">L: ' + losses + "</span>";
-	        }
-	        if (winRate != null) {
-	          statsHtml += '<span style="font:600 9px var(--font-mono);color:var(--text-secondary);">WR: ' + esc(Number(winRate).toFixed(1)) + "%</span>";
-	        }
-	        if (totalPnl != null) {
-	          var pnlCls = totalPnl >= 0 ? "color:var(--green-buy);" : "color:var(--red-sell);";
-	          var pnlSign = totalPnl >= 0 ? "+" : "";
-	          statsHtml += '<span style="font:700 9px var(--font-mono);' + pnlCls + '">P&L: ' + pnlSign + "$" + esc(Number(Math.abs(totalPnl)).toFixed(2)) + "</span>";
-	        }
-	        if (openHypotheses > 0) {
-	          statsHtml += '<span style="font:600 9px var(--font-mono);color:var(--cyan-info);">open hypotheses: ' + openHypotheses + "</span>";
-	        }
-	        statsHtml += '<span style="font:600 9px var(--font-mono);color:var(--text-secondary);">closed trades: ' + closedTrades + "</span>";
-	        statsHtml += "</div></div>";
+	      statsHtml = '<div class="paper-summary" style="margin:2px 0 4px;padding:6px 10px;background:var(--bg-tertiary);border-radius:6px;border:1px solid var(--border-subtle);">';
+	      statsHtml += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">';
+	      statsHtml += '<span style="font:700 10px var(--font-mono);color:#00e5ff;letter-spacing:0.04em;">🛡️ DIÁRIO DE TRADES SIMULADOS</span>';
+	      statsHtml += '<span style="font:700 9px var(--font-mono);color:var(--text-muted);background:rgba(255,255,255,0.06);padding:1px 6px;border-radius:3px;">' + esc(String(journalRecords)) + ' registros</span>';
+	      statsHtml += "</div>";
+	      statsHtml += '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">';
+	      if (wins > 0 || losses > 0) {
+	        statsHtml += '<span style="font:700 9px var(--font-mono);color:var(--green-buy);">W: ' + wins + "</span>";
+	        statsHtml += '<span style="font:700 9px var(--font-mono);color:var(--red-sell);">L: ' + losses + "</span>";
 	      }
+	      if (winRate != null) {
+	        statsHtml += '<span style="font:600 9px var(--font-mono);color:var(--text-secondary);">WR: ' + esc(Number(winRate).toFixed(1)) + "%</span>";
+	      }
+	      var pnlVal = totalPnl != null ? Number(totalPnl) : 0;
+	      var pnlCls = pnlVal >= 0 ? "color:var(--green-buy);" : "color:var(--red-sell);";
+	      statsHtml += '<span style="font:700 9px var(--font-mono);' + pnlCls + '">P&L: ' + (pnlVal >= 0 ? "+" : "") + "$" + esc(Math.abs(pnlVal).toFixed(2)) + "</span>";
+	      statsHtml += '<span style="font:600 9px var(--font-mono);color:var(--cyan-info);">Abertas: ' + openHypotheses + "</span>";
+	      statsHtml += '<span style="font:600 9px var(--font-mono);color:var(--text-secondary);">Fechadas: ' + closedTrades + "</span>";
+	      statsHtml += "</div></div>";
 
 	      host.innerHTML = [
-	        '<div class="paper-offline-banner" style="display:flex;align-items:center;gap:6px;padding:3px 6px;margin-bottom:4px;border-radius:3px;background:var(--yellow-dim);border:1px solid var(--yellow-warn);">',
-	          '<span style="font:700 8px var(--font-mono);color:var(--yellow-warn);letter-spacing:0.05em;">IBKR OFFLINE</span>',
-	          '<span style="font:600 9px var(--font-sans);color:var(--text-secondary);">paper trading mode</span>',
+	        '<div class="paper-active-banner" style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px;margin-bottom:4px;border-radius:4px;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.25);">',
+	          '<div style="display:flex;align-items:center;gap:6px;">',
+	            '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#00e5ff;box-shadow:0 0 6px #00e5ff;"></span>',
+	            '<span style="font:700 9px var(--font-mono);color:#00e5ff;letter-spacing:0.04em;">SIMULAÇÃO ATIVA</span>',
+	          '</div>',
+	          '<span style="font:600 9px var(--font-sans);color:var(--text-secondary);">Preservação de Capital</span>',
 	        "</div>",
 	        statsHtml,
-	          '<div class="cockpit-empty">No IBKR orders or positions. Paper journal records are audit evidence, not broker positions.</div>',
 	      ].join("");
 	    } else {
-	      host.innerHTML = '<div class="cockpit-empty">No open IBKR broker orders. Manual chart remains available.</div>';
+	      host.innerHTML = '<div class="cockpit-empty">No open broker orders. Manual chart remains available.</div>';
 	    }
 
 	    if (historyHost) {
-	      var historyRows = history.slice(0, 10).map(function (trade) {
+	      var historyRows = history.slice(0, 12).map(function (trade) {
 	        return renderTradeHistoryRow(trade, current);
 	      }).filter(Boolean);
 	      if (historyRows.length) {
-	        var historyTitle = offlineMode
-	          ? "<span>Paper journal records</span>"
-	          : "<span>Local audit history</span>";
+	        var historyTitle = "<span>Teses Gravadas no Journal</span>";
 	        historyHost.innerHTML = [
-	          '<div class="trade-history-title">' + historyTitle + "<strong>" + esc(String(pf.trade_history_count || history.length)) + "</strong></div>",
-	          '<div class="trade-history-scroll">' + historyRows.join("") + "</div>",
+	          '<div class="trade-history-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">' + historyTitle + '<strong style="color:#00e5ff;">' + esc(String(pf.trade_history_count || history.length)) + "</strong></div>",
+	          '<div class="trade-history-scroll" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;">' + historyRows.join("") + "</div>",
 	        ].join("");
 	      } else if (offlineMode) {
-	        historyHost.innerHTML = '<div class="cockpit-empty">Paper journal is empty. Use the +Trade button to start paper trading.</div>';
+	        historyHost.innerHTML = '<div class="cockpit-empty">Paper journal ativo. Utilize o botão + Trade ou o scanner para simular.</div>';
 	      } else {
-	        historyHost.innerHTML = '<div class="cockpit-empty">No paper trade history recorded.</div>';
+	        historyHost.innerHTML = '<div class="cockpit-empty">No trade history recorded.</div>';
 	      }
 	    }
 

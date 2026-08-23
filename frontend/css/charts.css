@@ -203,12 +203,12 @@
 
 .orders-mirror {
   display: grid;
-  grid-template-columns: minmax(170px, 220px) minmax(0, 1fr) minmax(240px, 0.75fr);
-  align-items: stretch;
-  gap: 10px;
-  min-height: 94px;
-  max-height: 138px;
-  padding: 10px 16px 12px;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  min-height: 84px;
+  max-height: 124px;
+  padding: 8px 16px;
   border-top: 1px solid var(--line);
   background: var(--orders-mirror-bg);
 }

@@ -240,6 +240,13 @@
   box-shadow: 0 0 12px rgba(255, 145, 0, 0.16);
 }
 
+.broker-chip--paper {
+  border-color: rgba(0, 229, 255, 0.4);
+  color: #00e5ff;
+  background: rgba(0, 229, 255, 0.08);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.15);
+}
+
 .broker-chip--off,
 .broker-chip--unknown {
   border-color: rgba(255, 255, 255, 0.08);
