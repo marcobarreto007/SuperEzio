@@ -1706,7 +1706,7 @@
     "remaining_bottleneck": "Quota diaria do TwelveData (reseta meia-noite UTC). Finnhub cobre US/dual-list; yfinance cobre TSX."
   },
   "data_expansion_mission_20260823": {
-    "status": "3_AGENTS_RUNNING",
+    "status": "3_OF_3_DELIVERED",
     "objective": "Ampliar as fontes de dados (operador autorizou scraping): Reddit sentiment .TO, fontes free extras, scraper oficial TMX.",
     "agents": [
       "D1 reddit_sentiment_to (old.reddit search JSON, arctic-shift, subreddits canadenses)",
@@ -1717,6 +1717,11 @@
     "artifacts_so_far": [
       "runtime/checkpoints/tmx_capture/ (capturas da exploracao TMX do D3)",
       "tmx_redirect.json (raiz, aguardando o D3)"
-    ]
+    ],
+    "results": {
+      "D1_reddit": "Unica rota viva = www.reddit.com search.rss (Atom, anonimo). RedditTickerSentiment com 4 subreddits .TO, sentimento keyword determinista, NO_DATA honesto. LIVE: RY.TO 3 posts reais CanadianInvestor -> NEUTRAL_SOCIAL. commit 90a2ba3",
+      "D2_free_sources": "Google News CA RSS (100 itens) + Yahoo v1 conversation (news+sentiment) implementados com fixtures reais. stockanalysis/TMX-HTML/CBOE/TradingView/MarketWatch mortos documentados. commit b1f2dc1",
+      "D3_tmx": "GraphQL oficial app-money.tmx.com decifrado: preco/profile/fundamentals .TO keyless ~0.5s. LIVE: TD.TO 161.24 CAD, SHOP.TO mcap 248.5B. commit b1f2dc1"
+    }
   }
 }
