@@ -1,9 +1,44 @@
 # F51 Risk Register
 
 Updated: 2026-08-23
-Session: datahub-quote-fallback-2026-08-23
+Session: td-universe-lock-2026-08-23
 
 ## Active Risks
+
+### INV-R51 - Manifest do universo TD degrada com idade (TTL 7 dias) [MEDIUM]
+
+- Classification: data freshness / fail-closed degradation.
+- Risk: o manifest `config/td_tradable_universe.json` (11.527 símbolos US) voucha por
+  candidatos cuja fonte não prova a bolsa. Vencido (>7d) ou ausente, `is_td_tradable`
+  degrada para a allowlist de bolsas — itens sem bolsa verificada são rejeitados
+  (`exchange_not_td_supported`) em vez de aceitos: o sistema fica mais restrito, nunca
+  mais permissivo. Mas scans podem encolher silenciosamente até o refresh.
+- Evidence: `tradable_universe_state()` em `src/core/trading/td_universe.py`; estado
+  exposto em `td_universe_summary()`; testes fresh/stale/invalid/missing em
+  `tests/test_td_universe.py`. CA section vazia (Twelve Data quota 1550/800 em
+  2026-08-23) — TSX/TSXV cobertos pela allowlist de venue nesse meio-tempo.
+- Mitigation: rodar `python scripts/update_td_universe_manifest.py --only all`
+  após o reset de quota (midnight UTC) e a cada ≤7 dias; NUNCA `--only ca`
+  sozinho (sobrescreve o manifest com CA-only). Monitorar
+  `tradable_manifest_state` no summary.
+- Status: Active — degradação fail-closed por design; refresh é operacional.
+
+### INV-R52 - Allowlist de 6 bolsas não reconfirmada em fonte oficial TD [MEDIUM]
+
+- Classification: data provenance / verification gap.
+- Risk: TSX/TSXV/NYSE/NASDAQ/NYSEAMERICAN/NYSEARCA foi derivada por consistência
+  interna (Arca exigida pelos próprios ETFs commission-free SPY/GLD/SMH/GDX; AMEX
+  exigida pelo contrato do ticket TD) + análise de código — não reconfirmada contra
+  página oficial da TD Direct Investing (cota de WebSearch esgotada até 2026-09-14).
+  CSE/NEO/TSX Alpha ficam de fora fail-closed "até o operador confirmar com a TD";
+  se a TD listar alguma delas, o sistema rejeitaria ativos negociáveis (falso
+  negativo, direção segura).
+- Evidence: relatórios dos 3 subagentes de pesquisa (S1/S2/S3, 2026-08-23); S2 não
+  conseguiu fonte TD oficial; enumeração live-validated: Nasdaq SymDir + Twelve Data.
+- Mitigation: em setembro, reconfirmar a lista de bolsas suportadas na página oficial
+  TD Direct Investing e revalidar símbolo a símbolo os 108 commission-free; ajustar
+  `TD_EXCHANGE_CURRENCY` se necessário (única fonte, sem drift).
+- Status: Active — erro na direção segura (rejeita demais, nunca aceita demais).
 
 ### INV-R50 - Quote sem finnhub depende de payload de price (change_pct/volume ausentes) [LOW]
 
