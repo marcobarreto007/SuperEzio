@@ -1061,3 +1061,68 @@ def test_cockpit_ticker_command_routes_to_ticker_analysis_even_with_tese_wording
     assert result.intent == "ticker_analysis"
     assert result.action == "collect_data"
     assert result.ticker == "DIBS"
+
+
+# ---------------------------------------------------------------------------
+# TD specialization (2026-08-23): OTC venues are never TD-tradable
+# ---------------------------------------------------------------------------
+
+
+def _td_candidate(ticker, exchange, price, volume):
+    """Enriched candidate in the canonical gate shape (see parity tests)."""
+    item = {
+        "ticker": ticker,
+        "name": ticker,
+        "market": "United States",
+        "source": "financedatabase",
+        "price": price,
+        "volume": volume,
+        "exchange": exchange,
+        "currency": "USD",
+        "provider": "finnhub",
+        "catalyst": f"{ticker} reports Q2 earnings on 2026-09-02 inside the requested horizon.",
+        "risk": f"{ticker} Q2 revenue may miss the published consensus estimate.",
+        "invalidation": "Invalidate on a close below the 20-day moving average.",
+        "provenance": {
+            "ticker": {"source": "financedatabase"},
+            "market": {"source": "financedatabase"},
+            "price": {"source": "finnhub"},
+            "volume": {"source": "finnhub"},
+            "catalyst": {"source": "finnhub"},
+            "risk": {"source": "finnhub"},
+            "invalidation": {"source": "finnhub"},
+        },
+    }
+    return item
+
+
+def test_otc_candidate_rejected_even_when_penny_otc_allowed():
+    from src.core.pipeline.nodes.collector import _apply_candidate_gate
+
+    item = _td_candidate("FAKEO", "OTC Markets", 0.8, 5_000_000)
+    item["venue"] = "OTC"
+    ok, reason = _apply_candidate_gate(item, allow_penny_otc=True, allow_microcap=True)
+    assert not ok
+    assert reason == "otc_filtered", f"expected otc_filtered, got {reason}"
+
+
+def test_listed_candidate_accepted_on_td_exchanges():
+    from src.core.pipeline.nodes.collector import _apply_candidate_gate
+
+    for venue in ("TSE", "NYSE", "NASDAQ"):
+        ok, reason = _apply_candidate_gate(
+            _td_candidate("GOOD", venue, 25.0, 5_000_000),
+            allow_penny_otc=False,
+            allow_microcap=False,
+        )
+        assert ok, f"{venue} must be TD-tradable, got {reason}"
+
+
+def test_pink_sheet_candidate_rejected():
+    from src.core.pipeline.nodes.collector import _apply_candidate_gate
+
+    item = _td_candidate("FAKE", "PNK", 2.0, 1_000_000)
+    item["venue"] = "PNK"
+    ok, reason = _apply_candidate_gate(item, allow_penny_otc=True, allow_microcap=True)
+    assert not ok
+    assert reason == "otc_filtered"

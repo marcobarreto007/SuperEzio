@@ -706,8 +706,9 @@ def _apply_candidate_gate(
 
     Returns (passes, rejected_reason). A candidate is only valid when it has a
     ticker, an exchange/market, a positive latest price, a positive recent
-    volume proxy, and a verifiable short-term thesis. Penny prices and
-    over-the-counter venues are rejected unless explicitly requested.
+    volume proxy, and a verifiable short-term thesis. Penny prices are
+    rejected unless explicitly requested; over-the-counter venues are ALWAYS
+    rejected (TD specialization 2026-08-23: OTC is never TD-tradable).
     """
     ticker = item.get("ticker")
     if not ticker or not isinstance(ticker, str):
@@ -728,9 +729,15 @@ def _apply_candidate_gate(
     if not allow_penny_otc:
         if isinstance(price, (int, float)) and price < 1.0:
             return False, "penny_filtered"
-        venue = str(item.get("venue") or item.get("exchange") or "").lower()
-        if "otc" in venue or "pink" in venue:
-            return False, "otc_filtered"
+
+    # TD specialization (operator decision 2026-08-23): the tradable universe
+    # is listed exchanges (TSX/TSXV/NYSE/NASDAQ). OTC/pink venues are rejected
+    # unconditionally — even when penny scanning is explicitly requested.
+    from core.trading.td_universe import is_td_tradable_exchange
+
+    venue = str(item.get("venue") or item.get("exchange") or item.get("market") or "")
+    if not is_td_tradable_exchange(venue):
+        return False, "otc_filtered"
 
     if not allow_microcap:
         mcap = item.get("market_cap") or item.get("marketcap")
