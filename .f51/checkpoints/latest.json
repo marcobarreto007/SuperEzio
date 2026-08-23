@@ -1643,5 +1643,50 @@
       "gate": "verify_public_gate 100% verde em modo publico"
     },
     "tests": "52/52 (gate + universe + scan loop); node --check limpo"
+  },
+  "td_universe_lock_20260823": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "objective": "Travar o sistema INTEIRO fail-closed no universo negociavel pelo TD Direct Investing (pedido do operador: 'da um jeito do sistema travar sempre nos ativos do td'), com 3 subagentes de pesquisa descobrindo o universo completo.",
+    "research": {
+      "method": "3 subagentes paralelos (S1 fontes de enumeracao, S2 verificacao TD oficial, S3 analise de codigo local) — GitHub bloqueado respeitado em todos",
+      "enumeration_sources_live_validated": [
+        "Nasdaq Trader SymDir keyless (nasdaqlisted + otherlisted; N/A/P mantidos, Z/V excluidos, Test Issue filtrado)",
+        "Twelve Data /stocks?exchange=XTSE|XTSX (unica fonte CA; quota diaria 800 — exaurida 1550/800 pelos scans do dia)"
+      ],
+      "verification_gap": "S2 nao conseguiu reconfirmar a lista de bolsas em fonte oficial TD (WebSearch quota ate 2026-09-14) — allowlist derivada por consistencia interna (Arca exigida pelos proprios ETFs commission-free SPY/GLD/SMH/GDX; AMEX pelo contrato do ticket) — ver INV-R52"
+    },
+    "delivered": {
+      "single_contract": "src/core/trading/td_universe.py — 5 definicoes de venue em drift viraram 1: allowlist positiva TSX/TSXV/NYSE/NASDAQ/NYSEAMERICAN/NYSEARCA + TD_EXCHANGE_CURRENCY + normalizacao de aliases (TOR/TSV/NYQ/NMS/NGM/NCM/ASE/PCX/XTSE/XTSX/AMEX/NYSEMKT/ARCA/TSXVENTURE/TORONTO); 'US' generico deliberadamente NAO mapeado (nao prova listado vs OTC)",
+      "scanner": "whitelists derivadas do contrato (nao ha mais lista propria); scan_equities_detailed preserva a bolsa VERIFICADA como provenanca — antes o scanner descartava a exchange e o gate chutava por country label (bug real de inanicao: candidatos rejeitados em massa)",
+      "collector_gate": "has_otc_marker -> otc_filtered (contrato preservado, pinado por teste); fora da allowlist e sem vouch de manifest fresco -> exchange_not_td_supported; pennylab estampa .TO=TSX/.V=TSXV",
+      "closed_holes": "LSE/BVMF(CSE .CN/NEO .NE/JPX/generico US rejeitados; literal 'OTC' como exchange suportada morta em professional.py; caminho .SA->BVMF removido",
+      "manifest": "config/td_tradable_universe.json schema v2 TTL 7d — 11.527 simbolos US construidos AO VIVO 2026-08-23 (NASDAQ 5593, NYSE 2918, NYSEAMERICAN 309, NYSEARCA 2707); builder scripts/update_td_universe_manifest.py (chave Twelve Data so de .env/.env.local, erros HTTP redigidos — apikey nunca alcanc o log); degradacao TTL e fail-closed (stale = so allowlist de venue, nunca mais permissivo) exposta via tradable_universe_state()",
+      "ticket": "td_direct_ticket.py consome o contrato (TD_EXCHANGE_CURRENCY + normalize_td_exchange) — dict local removido",
+      "frontend": "label PT 'bolsa fora do universo TD' para exchange_not_td_supported"
+    },
+    "verification": {
+      "targeted": "187/187 ampliados (test_td_universe reescrito com estados de manifest via fixture isolada; test_market_scan_candidate_gate com LSE/BVMF/JPX/CSE/NEO/US-generico rejeitados, Arca/AMEX aceitos, vouch de manifest, .TO/.V estampados; test_market_scanner com manifest pinado por monkeypatch — deterministico)",
+      "full_suite": "2105 passed, 2 skipped, 0 failed em 692.43s (pos-formatacao dos arquivos da sessao: 97/97 re-rodados)",
+      "ruff": "check PASS; format aplicado nos 4 arquivos da sessao (7 arquivos com drift pre-existente de outras sessoes NAO tocados — reportado, nao corrigido)",
+      "live_contract_sanity": "NVDA/SPY vouchados pelo manifest, LSE/BVMF rejeitados, summary fresh/11527 (codigo atual)",
+      "browser_smoke": "PASS — TD.TO 200/126 candles timesOk, 7 canvases, chat 3946 chars PT com STREAM_END, 0 console errors; falha anterior de language drift foi nao-determinismo da geracao (run atual enMarker=null; diagnostico enMarker adicionado ao smoke, commit a2f0522); 504 transitiorio de provider no chart resolvido no retry",
+      "smoke_caveat": "o servidor :8002 vivo e processo de OUTRA sessao com codigo pre-mudanca — o smoke valida o runtime/chat/chart, o gate foi validado pela suite + sanidade live direta; reiniciar a API para carregar o lock em producao"
+    },
+    "pending_operator": [
+      "Rodar 'python scripts/update_td_universe_manifest.py --only all' apos reset de quota Twelve Data (midnight UTC) e a cada <=7 dias — NUNCA '--only ca' sozinho (sobrescreve o manifest com CA-only)",
+      "Reiniciar a API :8002 para carregar o gate (processo atual e de outra sessao)",
+      "Setembro: reconfirmar bolsas suportadas na pagina oficial TD + revalidar os 108 commission-free simbolo a simbolo (INV-R52; WebSearch quota)"
+    ],
+    "known_nonblocking": [
+      "Pyright: ruido pre-existente nos arquivos tocados (scanner country: str = None, openbb unresolved, collector coroutine typing) — fora de escopo pela politica de nao-misturar refatoracao com feature",
+      "CA section do manifest vazia ate o refresh (allowlist de venue cobre TSX/TSXV)",
+      "7 arquivos com drift de ruff format pre-existente de outras sessoes (penny_scanner, data_hub, 5 testes) — left as-is"
+    ],
+    "commits": [
+      "acdab43",
+      "5007e36",
+      "a2f0522",
+      "a9d965d"
+    ]
   }
 }

@@ -1153,9 +1153,7 @@ def test_cse_neo_candidate_rejected():
     for venue in ("CSE", "NEO"):
         item = _td_candidate("FAKE", "TSX", 4.0, 2_000_000)
         item["venue"] = venue
-        ok, reason = _apply_candidate_gate(
-            item, allow_penny_otc=True, allow_microcap=True
-        )
+        ok, reason = _apply_candidate_gate(item, allow_penny_otc=True, allow_microcap=True)
         assert not ok, f"{venue} must not be TD-tradable"
         assert reason == "exchange_not_td_supported"
 
@@ -1166,9 +1164,7 @@ def test_generic_us_market_without_exchange_rejected():
 
     item = _td_candidate("FAKE", "US", 25.0, 5_000_000)
     item.pop("venue", None)
-    ok, reason = _apply_candidate_gate(
-        item, allow_penny_otc=False, allow_microcap=True
-    )
+    ok, reason = _apply_candidate_gate(item, allow_penny_otc=False, allow_microcap=True)
     assert not ok
     assert reason == "exchange_not_td_supported"
 
@@ -1178,21 +1174,15 @@ def test_country_label_item_vouched_by_fresh_manifest(monkeypatch):
     import core.trading.td_universe as td_universe
     from src.core.pipeline.nodes.collector import _apply_candidate_gate
 
-    monkeypatch.setattr(
-        td_universe, "_tradable_symbols_cached", lambda: frozenset({"NVDA"})
-    )
+    monkeypatch.setattr(td_universe, "_tradable_symbols_cached", lambda: frozenset({"NVDA"}))
     vouched = _td_candidate("NVDA", "United States", 100.0, 25_000_000)
     vouched.pop("venue", None)
-    ok, reason = _apply_candidate_gate(
-        vouched, allow_penny_otc=False, allow_microcap=False
-    )
+    ok, reason = _apply_candidate_gate(vouched, allow_penny_otc=False, allow_microcap=False)
     assert ok, f"manifest-vouched NVDA must pass, got {reason}"
 
     unknown = _td_candidate("ZZZZZZ", "United States", 100.0, 25_000_000)
     unknown.pop("venue", None)
-    ok, reason = _apply_candidate_gate(
-        unknown, allow_penny_otc=False, allow_microcap=True
-    )
+    ok, reason = _apply_candidate_gate(unknown, allow_penny_otc=False, allow_microcap=True)
     assert not ok
     assert reason == "exchange_not_td_supported"
 
@@ -1205,9 +1195,7 @@ def test_country_label_item_rejected_without_manifest(monkeypatch):
     monkeypatch.setattr(td_universe, "_tradable_symbols_cached", lambda: None)
     item = _td_candidate("NVDA", "United States", 100.0, 25_000_000)
     item.pop("venue", None)
-    ok, reason = _apply_candidate_gate(
-        item, allow_penny_otc=False, allow_microcap=True
-    )
+    ok, reason = _apply_candidate_gate(item, allow_penny_otc=False, allow_microcap=True)
     assert not ok
     assert reason == "exchange_not_td_supported"
 
@@ -1220,9 +1208,7 @@ def test_tsx_suffix_watchlist_item_stamped_and_accepted():
         item = _td_candidate(ticker, "Canada", 4.0, 2_000_000)
         item.pop("venue", None)
         item["exchange"] = exchange
-        ok, reason = _apply_candidate_gate(
-            item, allow_penny_otc=True, allow_microcap=True
-        )
+        ok, reason = _apply_candidate_gate(item, allow_penny_otc=True, allow_microcap=True)
         assert ok, f"{ticker} stamped {exchange} must pass, got {reason}"
 
 

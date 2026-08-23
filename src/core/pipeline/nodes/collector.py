@@ -297,9 +297,7 @@ async def node_collector(state: dict, *, config=None) -> dict:
                 "quality": scan.get("data_quality", "partial"),
                 "source_errors": scan.get("source_errors", []),
                 "candidates": len(candidates),
-                "commission_free_count": sum(
-                    1 for c in candidates if c.get("commission_free")
-                ),
+                "commission_free_count": sum(1 for c in candidates if c.get("commission_free")),
                 "rejected_count": scan.get("rejected_count", 0),
                 "rejection_summary": scan.get("rejection_summary", {}),
                 "providers": providers_used,
@@ -956,8 +954,7 @@ async def _run_scan(
                     fetch_errors += 1
                     continue
                 exchanges_by_ticker = {
-                    str(e.get("ticker") or ""): str(e.get("exchange") or "")
-                    for e in entries or []
+                    str(e.get("ticker") or ""): str(e.get("exchange") or "") for e in entries or []
                 }
                 for sym in tickers or []:
                     if not sym:

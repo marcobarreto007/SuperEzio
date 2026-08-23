@@ -98,9 +98,7 @@ def _map_item(r: Any, source_label: str) -> dict[str, Any]:
         # private venue lists in this module.
         from core.trading.td_universe import td_exchange_alias_codes
 
-        _us_exchanges = td_exchange_alias_codes(
-            {"NYSE", "NASDAQ", "NYSEAMERICAN", "NYSEARCA"}
-        )
+        _us_exchanges = td_exchange_alias_codes({"NYSE", "NASDAQ", "NYSEAMERICAN", "NYSEARCA"})
         _ca_exchanges = td_exchange_alias_codes({"TSX", "TSXV"})
         _exc = str(exchange).upper()
         if _exc in _us_exchanges:

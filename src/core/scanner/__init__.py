@@ -20,9 +20,7 @@ _CA_TICKER_RE = re.compile(r"^[A-Z]{1,5}\.(TO|V)$")
 # excluded: not TD-tradable, and their tickers waste the enrichment budget.
 from ..trading.td_universe import td_exchange_alias_codes  # noqa: E402
 
-_US_EXCHANGE_WHITELIST = td_exchange_alias_codes(
-    {"NYSE", "NASDAQ", "NYSEAMERICAN", "NYSEARCA"}
-)
+_US_EXCHANGE_WHITELIST = td_exchange_alias_codes({"NYSE", "NASDAQ", "NYSEAMERICAN", "NYSEARCA"})
 _CA_EXCHANGE_WHITELIST = td_exchange_alias_codes({"TSX", "TSXV"})
 
 # Market cap labels to exclude — these are typically SPACs, warrants, empty shells,
