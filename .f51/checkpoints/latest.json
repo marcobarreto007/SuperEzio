@@ -1421,6 +1421,32 @@
       "49beb5d"
     ]
   },
+  "mobile_adaptation_20260822": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "objective": "Adaptar o dashboard para celular SEM perder funcao, com base na pesquisa de 4 experts (R1-R3) e auditoria ao vivo (R4).",
+    "research": {
+      "R1_responsive": "container queries p/ componentes, clamp() fluido, svh+safe-area, bottom nav anti-hamburger, retrofit desktop-first com remediacao (nao rewrite)",
+      "R2_charts": "LTTB p/ decimacao, DPR cap 2, preco + 1 pane empilhado, crosshair por long-press, rAF + Page Visibility",
+      "R3_ux": "progressive disclosure sem esconder status de risco, touch >=44px, bottom sheets, ticket em 2 camadas (IBKR 2025), inputmode/enterkeyhint",
+      "R4_audit": "1 P0 (timeframe intocavel), 5 P1, 4 P2 — evidencia em runtime/checkpoints/mobile-*-probe.py"
+    },
+    "fixes": {
+      "F1_topbar": "commit 7f7ffdf — todos os controles self-hit em 320/390/768/1440, zero overflow; 6M/1Y/5Y restaurados (estavam display:none); breakpoint 760->860",
+      "F2_chart": "commit 55df95e — pane de preco 133px -> 205px (panes RSI/MACD 56px, orders-mirror com scroll); desktop intacto",
+      "F3_touch_a11y": "commit 0813f1c — alvos >=40px, fontes micro 7-10px -> 11px, --text-muted AA 4.5:1, aria-labels em user-inp e trade selects",
+      "F5_smoke_mobile": "scripts/browser_smoke_mobile.py — hit-tests de toque, overflow, pane >=180px, console errors em 390/320 com touch"
+    },
+    "verification": {
+      "mobile_smoke": "PASS — 390x844 e 320x844: 0 fails, 0 small targets, 0 overflow, pane 205px, 0 console errors",
+      "full_pytest": "2011 passed, 2 skipped em 677.98s",
+      "desktop_smoke": "PASS — resposta PT, 119s, 0 console errors, screenshot superezio-browser-smoke-20260822-200614.png"
+    },
+    "commits": [
+      "7f7ffdf",
+      "55df95e",
+      "0813f1c"
+    ]
+  },
   "runtime_state_save_20260822": {
     "status": "SAVED",
     "timestamp": "2026-08-22T23:32:00+00:00",

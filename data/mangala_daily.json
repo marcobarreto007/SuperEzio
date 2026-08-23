@@ -1,18 +1,44 @@
 {
-  "scanned_at": "2026-08-22T23:07:57.054198+00:00",
+  "scanned_at": "2026-08-23T00:08:50.580807+00:00",
   "count": 5,
   "opportunities": [
+    {
+      "ticker": "NIO",
+      "price": 4.63,
+      "volume": 21891270,
+      "name": "NIO Inc.",
+      "score": 61,
+      "signal": "WATCH",
+      "factors": {
+        "volume": 30,
+        "whale": 5,
+        "momentum": 3,
+        "rsi": 15,
+        "catalyst": 8
+      },
+      "whale_status": "FRACO",
+      "whale_score": 0,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
+      "flip_plan": {
+        "entry": 4.63,
+        "target_5pct": 4.86,
+        "stop_3pct": 4.49,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-08-23T00:08:26.320286+00:00"
+    },
     {
       "ticker": "TLRY",
       "price": 4.84,
       "volume": 4248618,
       "name": "Tilray Brands, Inc.",
-      "score": 48,
-      "signal": "MEH",
+      "score": 61,
+      "signal": "WATCH",
       "factors": {
-        "volume": 5,
+        "volume": 30,
         "whale": 5,
-        "momentum": 15,
+        "momentum": 3,
         "rsi": 15,
         "catalyst": 8
       },
@@ -26,46 +52,46 @@
         "stop_3pct": 4.69,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-22T23:07:41.087308+00:00"
+      "scanned_at": "2026-08-23T00:08:38.633253+00:00"
     },
     {
       "ticker": "SNDL",
       "price": 1.37,
       "volume": 1582406,
       "name": "SNDL Inc.",
-      "score": 46,
-      "signal": "MEH",
+      "score": 60,
+      "signal": "WATCH",
       "factors": {
-        "volume": 0,
+        "volume": 30,
         "whale": 5,
-        "momentum": 18,
-        "rsi": 15,
+        "momentum": 5,
+        "rsi": 12,
         "catalyst": 8
       },
       "whale_status": "FRACO",
       "whale_score": 0,
-      "pump_risk": "ALERT",
-      "pump_score": 77,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
       "flip_plan": {
         "entry": 1.37,
         "target_5pct": 1.44,
         "stop_3pct": 1.33,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-22T23:07:48.316628+00:00"
+      "scanned_at": "2026-08-23T00:08:44.481180+00:00"
     },
     {
       "ticker": "KODK",
       "price": 9.84,
       "volume": 1380306,
       "name": "Eastman Kodak Company",
-      "score": 38,
-      "signal": "PASS",
+      "score": 60,
+      "signal": "WATCH",
       "factors": {
-        "volume": 10,
+        "volume": 30,
         "whale": 5,
-        "momentum": 0,
-        "rsi": 15,
+        "momentum": 5,
+        "rsi": 12,
         "catalyst": 8
       },
       "whale_status": "FRACO",
@@ -78,59 +104,33 @@
         "stop_3pct": 9.54,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-22T23:07:57.053166+00:00"
+      "scanned_at": "2026-08-23T00:08:50.580807+00:00"
     },
     {
       "ticker": "PLUG",
       "price": 2.27,
       "volume": 56420354,
       "name": "Plug Power, Inc.",
-      "score": 33,
-      "signal": "PASS",
+      "score": 58,
+      "signal": "MEH",
       "factors": {
-        "volume": 5,
+        "volume": 30,
         "whale": 5,
-        "momentum": 3,
-        "rsi": 12,
-        "catalyst": 8
-      },
-      "whale_status": "FRACO",
-      "whale_score": 0,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
-      "flip_plan": {
-        "entry": 2.27,
-        "target_5pct": 2.38,
-        "stop_3pct": 2.2,
-        "max_hold_days": 5
-      },
-      "scanned_at": "2026-08-22T23:07:10.853563+00:00"
-    },
-    {
-      "ticker": "RIG",
-      "price": 5.92,
-      "volume": 27093243,
-      "name": "Transocean Ltd (Switzerland)",
-      "score": 33,
-      "signal": "PASS",
-      "factors": {
-        "volume": 0,
-        "whale": 5,
-        "momentum": 3,
+        "momentum": 0,
         "rsi": 15,
-        "catalyst": 10
+        "catalyst": 8
       },
       "whale_status": "FRACO",
       "whale_score": 0,
       "pump_risk": "ALERT",
       "pump_score": 77,
       "flip_plan": {
-        "entry": 5.92,
-        "target_5pct": 6.22,
-        "stop_3pct": 5.74,
+        "entry": 2.27,
+        "target_5pct": 2.38,
+        "stop_3pct": 2.2,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-22T23:07:19.129806+00:00"
+      "scanned_at": "2026-08-23T00:08:13.790286+00:00"
     }
   ]
 }
