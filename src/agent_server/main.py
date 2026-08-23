@@ -297,6 +297,17 @@ async def lifespan(app: FastAPI):
         logger.critical("settings_validation_failed: %s", str(exc)[:200])
         raise
 
+    # Fail-closed public-mode gate: a public deployment (Cloudflare tunnel)
+    # with a missing/weak JWT secret must never boot — that would re-open the
+    # dev-mode anonymous injection on the internet (audit 2026-08-22, CRITICAL).
+    try:
+        from .auth import validate_public_mode_or_raise
+
+        validate_public_mode_or_raise()
+    except Exception as exc:
+        logger.critical("public_mode_gate_failed: %s", str(exc)[:200])
+        raise
+
     # === BRAIN INITIALIZATION ===
     from core.pipeline import build_graph
     from core.model_serving.gateway import create_gateway

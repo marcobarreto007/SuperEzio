@@ -264,6 +264,37 @@ def _is_dev_mode() -> bool:
     return not bool(_get_secret())
 
 
+def _public_mode() -> bool:
+    """Public-facing deployment flag — tightens the anonymous surface."""
+    return os.getenv("SUPEREZIO_PUBLIC_MODE", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _registration_enabled() -> bool:
+    """Registration policy: default open in dev, closed in public mode."""
+    flag = os.getenv("SUPEREZIO_PUBLIC_REGISTRATION", "").strip().lower()
+    if flag:
+        return flag in {"1", "true", "yes", "on"}
+    return not _public_mode()
+
+
+def validate_public_mode_or_raise() -> None:
+    """Fail closed: public deployments must carry a strong JWT secret.
+
+    Called at server startup (main.py lifespan). Without this, a public
+    tunnel with an empty secret would silently run the dev-mode anonymous
+    injection — the exact exposure the 2026-08-22 audit flagged CRITICAL.
+    """
+    if not _public_mode():
+        return
+    secret = _get_secret()
+    if len(secret) < 32:
+        raise RuntimeError(
+            "SUPEREZIO_PUBLIC_MODE=1 requires SUPEREZIO_JWT_SECRET with at least "
+            "32 characters. Generate one with: "
+            'python -c "import secrets; print(secrets.token_hex(32))"'
+        )
+
+
 def _create_access_token(user_id: int, username: str) -> str:
     secret = _get_secret()
     payload = {
@@ -316,6 +347,9 @@ _PUBLIC_EXACT = frozenset(
         "/metrics",
     }
 )
+# In public mode the anonymous surface shrinks to liveness + shell: no metrics,
+# no infra dashboard (GPU/providers/redis/topology leak — audit 2026-08-22).
+_PUBLIC_EXACT_TIGHTENED = frozenset({"/health", "/favicon.ico", "/"})
 _PUBLIC_PREFIXES = frozenset({"/frontend", "/css", "/js"})
 # /auth/register, /auth/login, and /auth/refresh are public (no JWT needed).
 # /auth/me requires authentication and is NOT included here.
@@ -324,7 +358,8 @@ _PUBLIC_AUTH_PATHS = frozenset({"/auth/register", "/auth/login", "/auth/refresh"
 
 def _is_public_path(path: str) -> bool:
     """Return True if *path* is a public route that requires no auth."""
-    if path in _PUBLIC_EXACT:
+    allowed = _PUBLIC_EXACT_TIGHTENED if _public_mode() else _PUBLIC_EXACT
+    if path in allowed:
         return True
     if any(path == p or path.startswith(p + "/") for p in _PUBLIC_PREFIXES):
         return True
@@ -437,7 +472,13 @@ def register_auth_routes(app: FastAPI) -> None:
 
         Returns 201 with the public user profile on success.
         Returns 409 if the username or email is already taken.
+        Returns 403 in public mode (accounts are operator-provisioned only).
         """
+        if not _registration_enabled():
+            raise HTTPException(
+                status_code=403,
+                detail="Registration is disabled by the operator",
+            )
         db = _get_auth_db(request)
         user = db.create_user(
             username=body.username,
