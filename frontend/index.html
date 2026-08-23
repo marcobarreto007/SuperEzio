@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>SuperEzio — AI Trading Workbench</title>
   <meta name="description" content="SuperEzio F51 verdict engine: AI-native trading workbench with multi-agent expert panel.">
   <meta name="theme-color" content="#111820">
@@ -39,7 +39,7 @@
       </div>
       <div class="topbar__search">
         <div class="topbar__ticker-group">
-          <span class="ticker-wrap"><input id="ticker-inp" type="text" placeholder="Search symbol..." autocomplete="off" spellcheck="false" maxlength="10" aria-label="Symbol">
+          <span class="ticker-wrap"><input id="ticker-inp" type="search" placeholder="Search symbol..." autocomplete="off" spellcheck="false" maxlength="10" aria-label="Symbol" enterkeyhint="search" autocapitalize="characters">
           <!-- hidden select for JS compatibility; button group is the UI -->
           <select id="tf-inp" aria-label="Timeframe" class="topbar__tf-hidden">
             <option value="1D">1D</option>
@@ -326,7 +326,7 @@
         </section>
       </main>
       <div class="bottombar" id="bottombar">
-        <textarea id="user-inp" rows="1" placeholder="Ask Bob..." aria-label="Mensagem para o Bob" autocomplete="off" spellcheck="true"></textarea>
+        <textarea id="user-inp" rows="1" placeholder="Ask Bob..." aria-label="Mensagem para o Bob" autocomplete="off" spellcheck="true" enterkeyhint="send" autocapitalize="sentences"></textarea>
         <button class="btn btn--primary" id="send-btn" type="button"><i data-lucide="send" width="14" height="14"></i><span>Send</span></button>
       </div>
     </div>

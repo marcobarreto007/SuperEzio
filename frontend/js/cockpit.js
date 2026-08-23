@@ -939,7 +939,7 @@
       '<div class="trade-form-row">' +
       '<input class="trade-ticker-inp" type="text" placeholder="TICKER" maxlength="10">' +
       '<select class="trade-action-select" aria-label="Acao da ordem"><option value="buy">BUY</option><option value="sell">SELL</option></select>' +
-      '<input class="trade-qty-inp" type="number" value="10" min="1" max="99999" step="1" placeholder="Qty">' +
+      '<input class="trade-qty-inp" type="text" inputmode="decimal" value="10" min="1" max="99999" step="1" placeholder="Qty" aria-label="Quantidade">' +
       '</div>' +
       '<div class="trade-form-actions">' +
       '<button class="trade-submit-btn" data-card="' + cardId + '" type="button">Confirm</button>' +

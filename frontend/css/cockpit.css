@@ -2272,3 +2272,16 @@ body::after {
     height: 44px;
   }
 }
+
+/* Notch/home-indicator safe areas (viewport-fit=cover ativo) — R3 2026-08-22 */
+@supports (padding: env(safe-area-inset-bottom)) {
+  @media (max-width: 600px) {
+    .bob-chat {
+      bottom: calc(31px + env(safe-area-inset-bottom));
+    }
+
+    .bob-chat__tab {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+  }
+}
