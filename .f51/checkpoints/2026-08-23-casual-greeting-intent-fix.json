@@ -1,0 +1,1727 @@
+{
+  "date_local": "2026-08-23",
+  "session": "casual-greeting-intent-fix-and-server-restart-2026-08-23",
+  "status": "DELIVERED",
+  "objective": "Corrigir classificador de intenções para saudações casuais em português ('bob tudo bem'), isolar ticker do gráfico em conversas gerais, eliminar falsos erros vermelhos do F51 e reiniciar o servidor em produção.",
+  "impact_map": {
+    "problem": "O runtime esta acoplado a IBKR/paper e nao possui um contrato seguro para entregar ordens live ao TD Direct Investing.",
+    "architecture_touched": [
+      "contrato deterministico de ordem",
+      "endpoint FastAPI de ticket",
+      "persistencia auditavel local",
+      "contratos, testes e runbook"
+    ],
+    "files_planned": [
+      "src/core/trading/td_direct_ticket.py",
+      "src/agent_server/endpoints.py",
+      "tests/test_td_direct_ticket.py",
+      "tests/test_api_routes_sync.py",
+      ".f51/contracts/agent-server.contract.md",
+      "docs/runbooks/TD_DIRECT_LIVE_MANUAL.md",
+      ".env.example"
+    ],
+    "indirectly_affected": [
+      "src/core/pipeline/trade_order.py",
+      "frontend/js/cockpit.js",
+      "src/core/trading/approval_gate.py"
+    ],
+    "risks": [
+      "confundir ticket local com ordem transmitida",
+      "ticker, bolsa ou moeda incompativeis",
+      "dimensionamento de risco incorreto",
+      "expor credenciais ou automatizar WebBroker contra os termos TD",
+      "quebrar contratos existentes de paper order"
+    ],
+    "smallest_safe_patch": "Adicionar ticket TD live manual fail-closed, somente LIMIT, sem senha, navegador ou broker submit; manter todo legado de transmissao congelado.",
+    "verification": [
+      "python -m pytest tests/test_td_direct_ticket.py tests/test_api_routes_sync.py -q",
+      "python -m ruff check src/ tests/",
+      "python -m pytest tests/ -q",
+      "python scripts/browser_smoke.py"
+    ]
+  },
+  "evidence": {
+    "td_official_platforms": "TD lista WebBroker, TD app, Advanced Dashboard e TD Active Trader; nenhuma API publica de ordens foi encontrada.",
+    "td_agreement": "Electronic Brokerage Services Client Agreement, secao 6: acesso a conta/servicos/informacao somente pelos sites TD, nao por software de terceiros.",
+    "baseline": "ruff completo passou; 71 testes direcionados passaram; API/modelo/broker offline; browser smoke falhou por conexao recusada."
+  },
+  "milestone": {
+    "commit": "e65a52f",
+    "delivered": "Universo oficial de 108 ETFs sem comissao, filtro fail-closed e rascunho TD nao executavel.",
+    "verification": "58 testes direcionados passaram; ruff completo passou; rota live retornou 108; browser smoke ficou 503 porque CEO/model server esta offline.",
+    "go_live": "BLOCKED_BY_DESIGN"
+  },
+  "active_patch": {
+    "problem": "O cockpit mostra Paper order submitted quando /trade/execute responde HTTP 200 com ok=false e submitted_to_broker=false.",
+    "files": [
+      "frontend/js/cockpit.js",
+      "tests/test_api_routes_sync.py"
+    ],
+    "risk": "Confundir ticket pendente com ordem transmitida.",
+    "smallest_safe_patch": "Exigir confirmacao positiva do corpo para mensagem de submit; caso contrario mostrar pending/not submitted.",
+    "verification": [
+      "python -m pytest tests/test_api_routes_sync.py -q --no-cov",
+      "python -m ruff check src/ tests/",
+      "python scripts/browser_smoke.py"
+    ],
+    "status": "complete",
+    "commit": "7270652",
+    "result": "39 tests passed; ruff and JS syntax passed; browser smoke passed with 130 candles and 7 canvases."
+  },
+  "roadmap": "docs/TD_LIVE_READINESS_ROADMAP.md",
+  "phase_2_impact_map": {
+    "status": "complete",
+    "problem": "Mangala tests use a temporary tracker journal but sync each flip into the default operator PaperJournal.",
+    "architecture_touched": [
+      "MangalaTracker dependency injection",
+      "PaperJournal provenance",
+      "test storage isolation",
+      "RAG ingestion eligibility"
+    ],
+    "files_planned": [
+      "src/core/pipeline/nodes/mangala_tracker.py",
+      "src/core/trading/paper_journal.py",
+      "src/core/memory/unified.py",
+      "tests/contracts/test_mangala_tracker.py",
+      "tests/test_paper_journal.py",
+      "tests/test_unified_memory_fase1.py"
+    ],
+    "risks": [
+      "test data written to operator journal",
+      "synthetic rows ingested into financial RAG",
+      "unrecoverable deletion during cleanup",
+      "breaking runtime singleton construction"
+    ],
+    "smallest_safe_patch": "Inject the PaperJournal destination into MangalaTracker, stamp environment/provenance, reject test rows in operator storage, and quarantine proven synthetic records without deletion.",
+    "verification": [
+      "hash operator artifacts before and after tests",
+      "pytest Mangala, PaperJournal and UnifiedMemory tests",
+      "ruff full",
+      "browser smoke"
+    ],
+    "commit": "aa0a8db",
+    "result": "48 tests passed; all five operator artifacts kept identical hashes across pytest; targeted Ruff passed; browser smoke passed with 130 candles and 7 canvases.",
+    "quarantine": {
+      "classification": "known_mangala_contract_test_contamination",
+      "record_count": 453,
+      "source_sha256": "e4fe013ce45c3593a27f5e21bd3ebbc1f34f09faa3322eb19316bee314600e86",
+      "records_sha256": "37a57c637a7c46c0339fa95ef47e8972f972c34ad1ba2cd6d5c78fe258bad7c8",
+      "manifest": "runtime/quarantine/paper_journal-test-contamination-e4fe013ce45c.manifest.json",
+      "source_modified": false
+    }
+  },
+  "phase_3_impact_map": {
+    "status": "complete",
+    "problem": "Kill switch, approvals and trade status are process-memory state; restart loses safety decisions and can duplicate an intent.",
+    "architecture_touched": [
+      "broker-neutral SQLite workflow state",
+      "deterministic ticket idempotency",
+      "persistent approval state",
+      "persistent global kill switch",
+      "trade status API and cockpit"
+    ],
+    "files_planned": [
+      "src/core/trading/workflow_store.py",
+      "src/core/trading/approval_gate.py",
+      "src/core/trading/kill_switch.py",
+      "src/core/pipeline/nodes/guardrail_hub.py",
+      "src/agent_server/endpoints.py",
+      "tests/test_trade_workflow_store.py",
+      "tests/test_trading_loop1.py",
+      "tests/test_trading_loop3.py",
+      "tests/test_api_routes_sync.py"
+    ],
+    "risks": [
+      "duplicate ticket across process restart",
+      "approval resolving a different ticket",
+      "kill switch returning inactive after restart",
+      "tests writing production financial state",
+      "partial audit write without replay evidence"
+    ],
+    "smallest_safe_patch": "Add one SQLite source of truth with unique fingerprint/event keys, inject it into global safety gates, persist endpoint status, and fail closed with dead-letter evidence on partial writes.",
+    "verification": [
+      "restart/cross-instance idempotency tests",
+      "approval and kill-switch restart tests",
+      "operator database hash unchanged across pytest",
+      "Ruff, focused pytest and browser smoke"
+    ],
+    "go_live": "BLOCKED_BY_DESIGN_UNTIL_PHASES_4_TO_10",
+    "commits": [
+      "5b4b55d",
+      "5a27a2d",
+      "32e7639",
+      "f537539",
+      "381d4f9",
+      "6335bbd"
+    ],
+    "result": "SQLite workflow state is cross-process idempotent; trade status survives restart; approvals are bound to one ticket hash; global kill switch survives restart and Guardrail Hub reads it; dead letters are durable; pytest and browser storage are isolated.",
+    "evidence": {
+      "focused_gate": "155 tests passed in 74.25s",
+      "lint": "python -m ruff check src/ tests/ passed",
+      "browser": "passed with 130 candles and 7 canvases",
+      "isolation": "59-test proof kept operator trace, investor DB, PaperJournal and dedup unchanged; second browser smoke used isolated sentiment/workflow/trace/dedup databases",
+      "trace_quarantine": "187 pytest trace rows copied to runtime/quarantine; operator trace restored to its prior tracked content"
+    }
+  },
+  "phase_4_impact_map": {
+    "status": "complete",
+    "problem": "O rascunho TD persiste, mas ainda não possui máquina de estados broker-neutral para aprovação, entrada humana e confirmação externa.",
+    "architecture_touched": [
+      "state machine de trade manual",
+      "eventos append-only do workflow",
+      "approval ligado ao ticket",
+      "endpoints live-manual fail-closed"
+    ],
+    "files_planned": [
+      "src/core/trading/manual_trade_workflow.py",
+      "src/core/trading/workflow_store.py",
+      "src/agent_server/endpoints.py",
+      "tests/test_manual_trade_workflow.py",
+      "tests/test_trade_workflow_store.py",
+      "tests/test_api_routes_sync.py"
+    ],
+    "risks": [
+      "pular gate por transição arbitrária",
+      "aprovar ticket diferente",
+      "confundir entrada manual com transmissão pelo sistema",
+      "confirmar corretora sem referência e operador"
+    ],
+    "smallest_safe_patch": "Enforce allowed transitions, persist evidence events, require linked human approval and explicit operator/broker confirmations; expose no transport adapter.",
+    "verification": [
+      "illegal transition tests",
+      "restart through each manual state",
+      "no broker adapter import/call assertion",
+      "Ruff, pytest and browser smoke"
+    ],
+    "go_live": "BLOCKED_PENDING_TRUSTED_QUOTE_MONEY_GATE_AND_TD_PREVIEW",
+    "commits": [
+      "8529bd0",
+      "e85944e",
+      "06bf5c1"
+    ],
+    "result": "Broker-neutral manual state machine enforced from draft through broker confirmation; every approval is hash-bound; manual entry requires fresh balanced TD preview costs; system_transmitted remains false; TD audit dead letters have idempotent replay.",
+    "evidence": {
+      "focused_gate": "102 tests passed in 43.28s",
+      "operator_storage": "trace, investor DB and PaperJournal hashes unchanged",
+      "lint": "python -m ruff check src/ tests/ passed",
+      "browser": "passed with 130 candles and 7 canvases",
+      "broker_isolation": "API regression raises if the manual TD workflow touches the IBKR adapter"
+    }
+  },
+  "phase_5_impact_map": {
+    "status": "complete",
+    "problem": "O cliente ainda declara preço, fonte e timestamp; esses campos podem ser falsificados e não verificam bolsa/moeda.",
+    "architecture_touched": [
+      "provedores Twelve Data, Finnhub e yfinance",
+      "consenso de duas cotações server-side",
+      "circuit breakers e métricas",
+      "contrato do rascunho TD"
+    ],
+    "files_planned": [
+      "src/core/trading/server_quote.py",
+      "src/core/trading/td_direct_ticket.py",
+      "src/data/twelve_data.py",
+      "src/data/finnhub_provider.py",
+      "src/data/yfinance_provider.py",
+      "src/agent_server/endpoints.py",
+      "src/agent_server/main.py",
+      "tests/test_server_quote.py",
+      "tests/test_td_direct_ticket.py",
+      "tests/test_api_routes_sync.py"
+    ],
+    "risks": [
+      "fonte única ou mesma fonte duplicada",
+      "quote timestamp stale durante mercado fechado",
+      "bolsa/moeda divergente",
+      "provider timeout bloquear o servidor",
+      "fallback stale parecer live"
+    ],
+    "smallest_safe_patch": "Reject all client quote assertions; require two independent server providers with market timestamps, coherent exchange/currency and bounded divergence; no stale cache fallback for live tickets.",
+    "verification": [
+      "two-source consensus and divergence tests",
+      "stale/future/exchange/currency rejection",
+      "circuit open/half-open recovery tests",
+      "route rejects client quote fields",
+      "Ruff, pytest and browser smoke"
+    ],
+    "official_research": [
+      "Twelve Data /quote returns exchange, currency and timestamp",
+      "Finnhub /quote returns current price and Unix timestamp t"
+    ],
+    "go_live": "BLOCKED_PENDING_MONEY_GATE",
+    "commits": [
+      "911d1e4",
+      "6d1577e",
+      "0f22cd9"
+    ],
+    "result": "TD drafts reject browser-supplied quote assertions and require two independent server providers with bounded age/divergence, coherent exchange/currency, immutable evidence hash, bounded transient retries and per-provider circuit breakers. No stale quote fallback is accepted.",
+    "evidence": {
+      "focused_gate": "108 tests passed in 48.83s",
+      "lint": "python -m ruff check src/ tests/ passed",
+      "browser": "passed with 130 candles and 7 canvases using isolated workflow, trace, sentiment, dedup and dead-letter storage",
+      "circuit_metrics": "Prometheus gauge exports closed=0, half_open=1, open=2 per circuit",
+      "known_nonblocking": "browser reports the pre-existing /pipeline/events/stream 404; Windows Proactor logged an assertion only during Ctrl-C shutdown"
+    }
+  },
+  "phase_6_impact_map": {
+    "status": "complete",
+    "problem": "O ticket tem preço confiável, mas ainda pode ser promovido sem equity, buying power, posições, concentração, moeda e restrições da conta TD.",
+    "architecture_touched": [
+      "snapshot manual atestado do WebBroker",
+      "Money Gate broker-neutral canadense",
+      "limites tipados e fail-closed",
+      "promoção DRAFT_QUOTE_VERIFIED para GATED"
+    ],
+    "files_planned": [
+      "src/core/trading/canada_money_gate.py",
+      "src/core/trading/manual_trade_workflow.py",
+      "src/core/config/settings.py",
+      "src/agent_server/endpoints.py",
+      "tests/test_canada_money_gate.py",
+      "tests/test_api_routes_sync.py"
+    ],
+    "risks": [
+      "snapshot de saldo falsificado ou stale",
+      "buying power insuficiente",
+      "concentracao por ativo, setor ou moeda",
+      "TFSA/RRSP/FHSA tratados como margem",
+      "SELL criar short acidental",
+      "duas ordens concorrentes consumirem o mesmo buying power"
+    ],
+    "smallest_safe_patch": "Require a fresh operator-attested TD account snapshot, compute every threshold server-side in CAD, reserve pending ticket notional transactionally, and only then call the existing immutable gate transition.",
+    "verification": [
+      "boundary/property tests for quantity, currencies and limits",
+      "stale/insufficient/incompatible account tests",
+      "concurrent reservation test",
+      "restart persistence and route contract",
+      "Ruff, focused pytest and browser smoke"
+    ],
+    "go_live": "BLOCKED_PENDING_TD_COST_PREVIEW",
+    "commit": "e81c3cc",
+    "result": "A fresh operator-attested TD snapshot is validated with explicit TFSA/RRSP/FHSA/CASH/MARGIN rules; all risk and exposure math runs server-side in CAD; Bank of Canada FX evidence is required for USD; pending tickets reserve buying power and exposure transactionally across processes.",
+    "evidence": {
+      "focused_gate": "64 workflow/API tests passed plus 14 dedicated Money Gate tests including Hypothesis",
+      "lint": "python -m ruff check src/ tests/ passed",
+      "browser": "passed with 130 candles and 7 canvases using isolated storage",
+      "concurrency": "two simultaneous tickets cannot double-spend buying power or exceed symbol/sector/currency/gross limits",
+      "known_nonblocking": "pre-existing /pipeline/events/stream 404 and Windows Proactor Ctrl-C shutdown assertion"
+    }
+  },
+  "phase_7_impact_map": {
+    "status": "complete",
+    "problem": "A entrada manual aceita custos somente depois da aprovação; assim a aprovação atual não está ligada à comissão, spread, FX e fees vistos no preview TD.",
+    "architecture_touched": [
+      "contrato normalizado de custos TD",
+      "evidência anexada ao ticket GATED",
+      "approval context hash",
+      "validação de preview no momento da entrada manual"
+    ],
+    "files_planned": [
+      "src/core/trading/td_cost_gate.py",
+      "src/core/trading/manual_trade_workflow.py",
+      "src/core/trading/approval_gate.py",
+      "src/core/trading/workflow_store.py",
+      "src/agent_server/endpoints.py",
+      "tests/test_td_cost_gate.py",
+      "tests/test_manual_trade_workflow.py",
+      "tests/test_api_routes_sync.py"
+    ],
+    "risks": [
+      "comissão zero virar bypass de risco",
+      "Easy Trade ou strategy order marcado como elegível",
+      "preview alterado depois da aprovação",
+      "FX e fees omitidos do custo total",
+      "lista oficial stale"
+    ],
+    "smallest_safe_patch": "Normalize and hash the official TD preview before approval, bind the approval to that context, and reject manual entry unless the repeated preview is byte-equivalent in economic fields.",
+    "verification": [
+      "stale list and preview tests",
+      "unexpected commission and incompatible condition tests",
+      "CAD/USD conversion tests",
+      "changed preview invalidates entry/approval context",
+      "Ruff, focused pytest and browser smoke"
+    ],
+    "go_live": "BLOCKED_PENDING_RELEASE_GATE_AND_BENCHMARK",
+    "commit": "8f28028",
+    "result": "The complete TD economic preview is recorded before approval and its hash is combined with ticket and Money Gate evidence. Manual entry must repeat the same economic preview; any commission, spread, FX, ECN, regulatory or other fee change is rejected and requires a new ticket approval.",
+    "evidence": {
+      "focused_gate": "93 tests passed in 34.93s",
+      "lint": "python -m ruff check src/ tests/ passed",
+      "browser": "passed with 130 candles and 7 canvases using isolated storage",
+      "commission_list": "official TD source, 108 unique ETFs, 7-day fail-closed TTL",
+      "known_nonblocking": "pre-existing /pipeline/events/stream 404 and Windows Proactor Ctrl-C shutdown assertion"
+    }
+  },
+  "phase_8_impact_map": {
+    "status": "complete",
+    "problem": "The financial workflow passes focused tests, but release readiness still depends on incomplete env coverage, dependency/secret scans, broken repository references and a full-suite proof that operator data is unchanged.",
+    "architecture_touched": [
+      "Pydantic environment schema",
+      "dependency and security inventory",
+      "broken runtime contract references",
+      "isolated full local quality gate"
+    ],
+    "files_planned": [
+      "src/core/config/settings.py",
+      ".env.example",
+      "pyproject.toml",
+      "docker-compose.yml",
+      "docs/signals/SIGNAL_LEDGER.md",
+      ".pre-commit-config.yaml",
+      ".f51/checkpoints/latest.json"
+    ],
+    "risks": [
+      "unsafe env typo accepted",
+      "unlocked or vulnerable dependency",
+      "secret committed in source",
+      "documented command points to missing file",
+      "full suite mutates operator financial data"
+    ],
+    "smallest_safe_patch": "Inventory before editing, repair only proven broken public contracts, add fail-closed validation for financial env vars, and run all local gates with before/after hashes.",
+    "verification": [
+      "env coverage report",
+      "Bandit and secret scan",
+      "dependency and lock inventory",
+      "Ruff check/format, complete pytest, browser smoke",
+      "operator artifact hashes before and after"
+    ],
+    "go_live": "BLOCKED_PENDING_RELEASE_GATE",
+    "result": "Full deterministic suite is green, test subprocess storage is isolated, orphaned pipeline cancellation works, health probes no longer append fake financial rows, and slow deep-health/broker probes cannot block chart or liveness requests.",
+    "evidence": {
+      "full_suite": "1822 passed, 9 skipped in 532.65s; total coverage 68%",
+      "storage_recovery": "4 synthetic TLRY sentiment rows removed after full database backup; 6156 system heartbeat rows quarantined after full PaperJournal backup; 534 non-heartbeat rows retained",
+      "operator_hashes": "runtime/investor.db, Bob pain log and decision trace remained byte-identical during the final full suite; the PaperJournal mutation exposed and led to removal of the write-on-health bug",
+      "browser": "PASS: /api/chart-data/AAPL returned 200 with 130 candles; 7 canvases rendered; zero console errors; screenshot output/playwright/superezio-browser-smoke-20260819-162039.png",
+      "commits": [
+        "a4c0920",
+        "d45153c",
+        "a5a72df",
+        "bdd8073",
+        "a1e5caf",
+        "426bf3b"
+      ]
+    }
+  },
+  "next_step": "Phase 9: benchmark agents out of sample with explicit costs and simple baselines. Phase 10 real-capital pilot remains blocked and capital remains zero until that evidence is accepted.",
+  "ui_operational_truth_impact_map": {
+    "status": "complete",
+    "problem": "The cockpit conflates broker connectivity with core availability and renders idle components as failed or waiting.",
+    "architecture_touched": [
+      "canonical frontend health snapshot",
+      "top and bottom status bars",
+      "expert idle/running/result states",
+      "pipeline lifecycle presentation",
+      "paper journal semantic counters"
+    ],
+    "files_planned": [
+      "frontend/js/health.js",
+      "frontend/js/status-bar.js",
+      "frontend/js/cockpit.js",
+      "frontend/js/render-pipeline.js",
+      "frontend/js/init.js",
+      "frontend/index.html",
+      "tests/test_api_routes_sync.py"
+    ],
+    "risks": [
+      "stale polling overwrites an active pipeline event",
+      "broker offline is displayed as system offline",
+      "hardcoded guardrail count appears as live evidence",
+      "journal events are presented as positions or open trades"
+    ],
+    "smallest_safe_patch": "Create one presentation-only snapshot from current health/details and runtime state, then make existing renderers consume it without changing trading or backend behavior.",
+    "verification": [
+      "node --check on changed JavaScript",
+      "focused frontend contract tests",
+      "pytest plus browser smoke per repository policy"
+    ],
+    "result": "Core, CEO, data, mode, broker and pipeline render independently from one canonical snapshot. Idle experts render READY, trust remains null until F51 completes, guardrails never default to 30/30, Mangala renders IDLE PAPER, and PaperJournal records are not presented as broker positions.",
+    "evidence": {
+      "tests": "45 tests/test_api_routes_sync.py tests passed",
+      "javascript": "node --check passed for health, state, trust-score, status-bar, cockpit, render-pipeline and init",
+      "browser": "Playwright passed after isolating synchronous deep-health and cockpit probes from the event loop; chart returned 130 candles and the page rendered 7 canvases with zero console errors.",
+      "commits": [
+        "75925aa",
+        "3e683a1",
+        "1ed378b",
+        "31da15e",
+        "3eaab27",
+        "5c87fdb"
+      ]
+    },
+    "go_live": "BLOCKED_PENDING_PHASE_9_BENCHMARK_AND_LIMITED_CAPITAL_PILOT"
+  },
+  "api_responsiveness_impact_map": {
+    "status": "complete",
+    "problem": "Deep health and cockpit routes are declared async but perform slow synchronous broker and system probes, blocking unrelated requests and making chart/UI startup appear hung.",
+    "architecture_touched": [
+      "FastAPI route scheduling",
+      "deep health probes",
+      "cockpit broker snapshots",
+      "browser release smoke"
+    ],
+    "files_planned": [
+      "src/agent_server/main.py",
+      "src/agent_server/endpoints.py",
+      "tests/test_api_routes_sync.py"
+    ],
+    "risks": [
+      "event loop starvation",
+      "concurrent access to broker snapshot caches",
+      "changing public response contracts"
+    ],
+    "smallest_safe_patch": "Run the three purely synchronous slow routes in FastAPI's threadpool by declaring them as def; preserve URLs, response bodies and all fail-closed timeouts.",
+    "verification": [
+      "concurrent liveness regression test",
+      "python -m ruff check on changed Python files",
+      "focused pytest",
+      "Playwright browser smoke and screenshot"
+    ],
+    "baseline": {
+      "health_during_chart_seconds": 0.004103,
+      "health_during_deep_health_seconds": 3.983908,
+      "health_during_cockpit_portfolio_seconds": 12.114588,
+      "health_during_cockpit_summary_seconds": 7.660944
+    },
+    "result": "FastAPI now schedules deep health, cockpit portfolio and cockpit summary in its threadpool. Slow broker/system probes no longer starve unrelated requests; public response contracts are unchanged.",
+    "evidence": {
+      "commit": "426bf3b",
+      "focused_tests": "46 passed in 31.52s",
+      "full_tests": "1827 passed, 8 skipped in 525.73s; total coverage 68%",
+      "lint": "python -m ruff check src/ tests/ passed",
+      "runtime_after_seconds": {
+        "health_during_deep_health": 0.004696,
+        "health_during_cockpit_portfolio": 0.004152,
+        "health_during_cockpit_summary": 0.004191,
+        "health_during_chart": 0.003916
+      },
+      "browser": "PASS: AAPL chart 200, 130 candles, 7 canvases, zero console errors",
+      "screenshot": "output/playwright/superezio-browser-smoke-20260819-162039.png"
+    }
+  },
+  "no_automatic_aapl_impact_map": {
+    "status": "complete",
+    "problem": "AAPL is hardcoded as the cockpit bootstrap/fallback and browser-smoke symbol, so it appears without an explicit user or portfolio selection.",
+    "architecture_touched": [
+      "frontend chart bootstrap",
+      "market-data operations probe",
+      "Playwright release smoke"
+    ],
+    "files_planned": [
+      "frontend/js/content.js",
+      "frontend/js/init.js",
+      "scripts/browser_smoke.py"
+    ],
+    "indirectly_affected": [
+      "portfolio-selected ticker bootstrap",
+      "chart empty state",
+      "browser release evidence"
+    ],
+    "risks": [
+      "empty ticker sent to chart API",
+      "real broker position hidden by a global symbol block",
+      "Canadian smoke symbol lacks provider data"
+    ],
+    "smallest_safe_patch": "Start with no default/fallback ticker, skip the market probe until the operator selects one, permit only real orders/positions to bootstrap a chart, hide AAPL audit rows from the cockpit without deleting them, and use TD.TO only inside browser validation.",
+    "verification": [
+      "no automatic AAPL contract search",
+      "node --check frontend/js/content.js frontend/js/init.js",
+      "focused pytest",
+      "browser smoke with TD.TO"
+    ],
+    "result": "The cockpit now starts with an empty symbol and chart. Paper Journal history cannot select a chart, AAPL audit rows are retained on disk but hidden from cockpit presentation, and AAPL is absent from autocomplete. Explicit real orders/positions remain authoritative.",
+    "evidence": {
+      "frontend_contract": "document.body.innerText.includes('AAPL') returned false after a 10-second Playwright load; Symbol value returned an empty string",
+      "browser_smoke": "PASS with TD.TO: HTTP 200, 123 candles, 7 canvases, zero console errors",
+      "focused_tests": "47 API/frontend contract tests passed; final targeted selection tests 4 passed",
+      "full_tests": "1828 passed, 8 skipped in 524.40s; total coverage 68%",
+      "lint": "python -m ruff check src/ tests/ passed",
+      "screenshots": [
+        "output/playwright/superezio-no-aapl-visible-20260819-204028.png",
+        "output/playwright/superezio-browser-smoke-20260819-204037.png"
+      ],
+      "commits": [
+        "28e061c",
+        "f777cd4",
+        "7e93873",
+        "0f69260",
+        "ec33ba8",
+        "27b7871"
+      ],
+      "audit_data_deleted": false
+    }
+  },
+  "broken_screen_recovery_impact_map": {
+    "status": "complete",
+    "problem": "A stopped/stale runtime produced mixed ticker state and empty Bob responses; after current startup, casual greetings still enter the full financial pipeline and hold the UI busy for minutes.",
+    "architecture_touched": [
+      "service startup and health",
+      "task submit NDJSON contract",
+      "casual greeting routing",
+      "browser chat lifecycle"
+    ],
+    "files_planned": [
+      "src/agent_server/endpoints.py",
+      "tests/test_api_routes_sync.py"
+    ],
+    "risks": [
+      "breaking the existing streaming response contract",
+      "casual fast path accidentally accepting financial prompts",
+      "task queue record not completed",
+      "frontend remaining busy after stream end"
+    ],
+    "smallest_safe_patch": "Keep financial prompts on the full pipeline, but answer the existing exact smalltalk regex through a deterministic STREAM_START/INTENT_CLASSIFIED/CHUNK/STREAM_END sequence and always complete the task queue record.",
+    "verification": [
+      "greeting route does not call pipeline",
+      "financial prompt still calls pipeline",
+      "focused API tests and Ruff",
+      "Playwright TKO consistency and greeting response",
+      "browser smoke"
+    ],
+    "baseline": {
+      "ports_before_start": "8002, 8080 and 8082 offline",
+      "screenshot_state": "TKO input with AAPL chart, AAPL journal row, CEO offline and empty Bob response",
+      "current_runtime": "API and CEO both HTTP 200; served assets match current no-AAPL code",
+      "greeting_task_elapsed_seconds": 156.9
+    },
+    "result": "Current runtime is healthy; TKO stays consistent across symbol, workspace, chart and Bob context; exact greetings bypass the financial graph; idle experts render READY; repeated health polling no longer duplicates unchanged pain events.",
+    "evidence": {
+      "runtime": "CEO :8080 and API :8002 returned HTTP 200 after official stop/start scripts",
+      "playwright": "TKO rendered end-to-end, Bob answered 'Oi! Bob esta online. Como posso ajudar?', chat input re-enabled, expert panel READY, pipeline IDLE, no AAPL, no failure text and zero console errors",
+      "browser_smoke": "passed; TD.TO chart HTTP 200, 126 candles, 7 canvases, zero console errors",
+      "full_tests": "1830 passed, 8 skipped in 508.07s; total coverage 68%",
+      "lint": "python -m ruff check src/ tests/ passed",
+      "screenshots": [
+        "output/playwright/superezio-tko-chat-fixed.png",
+        "output/playwright/superezio-browser-smoke-20260819-220747.png"
+      ],
+      "operator_data": "58 validation-only pain-log rows removed; pre-existing data/man_at_work/latest_alert.txt left untouched"
+    },
+    "commits": [
+      "6587939",
+      "fb3c92a",
+      "aaef938",
+      "8446aa5",
+      "609a129"
+    ],
+    "go_live": "NO_GO_REAL_CAPITAL; operational UI recovery does not authorize live execution"
+  },
+  "product_delivery_v1": {
+    "status": "release_candidate_ready",
+    "activated_at": "2026-08-20",
+    "objective": "Deliver a transferable local Windows financial-research copilot; no broker transport and no real-capital authorization.",
+    "official_research_conclusion": "Reliable delivery systems converge on a human product owner, narrow orchestrator, isolated implementer, independent verifiers, deterministic release gates, canary/pilot and SRE ownership. No universal best agent exists; measured role performance matters more than agent count.",
+    "delivery_agents": [
+      "product-delivery-orchestrator",
+      "product-implementer",
+      "ai-eval-verifier",
+      "reliability-sre-operator",
+      "release-readiness-manager"
+    ],
+    "money_gate": {
+      "v1_delivery": "GO",
+      "external_sale": "DEFER",
+      "real_capital": "NO_GO",
+      "td_execution": "NO_GO"
+    },
+    "product_contract": {
+      "initial_operator": "Marco, Canadian self-directed investor",
+      "value": "Local, auditable financial research and risk copilot",
+      "package": "Clean Windows ZIP installed from requirements-lock.txt",
+      "cuts": [
+        "broker automation",
+        "SaaS and multi-tenancy",
+        "new models and new experts",
+        "profit claims",
+        "premium UI redesign"
+      ],
+      "pricing": "Deferred until transferable-product validation and temporal evaluation"
+    },
+    "p0": [
+      "canonical locked Windows runtime without developer paths",
+      "single fail-closed authentication contract without default password",
+      "canonical runtime and API inventory for ports 8002 and 8080",
+      "quality probe that fails closed",
+      "clean ZIP, manifest, checksum and clean-machine rehearsal",
+      "provider secret rotation before transfer"
+    ],
+    "evidence": {
+      "agent_gate": "22 agents, 32 skills, 0 structural violations",
+      "agent_tests": "7 targeted tests passed",
+      "lint": "Ruff passed on the changed Python files",
+      "browser_smoke": "TD.TO returned 126 candles, 7 canvases and zero console errors",
+      "commits": [
+        "91554f6",
+        "e6100e8",
+        "ca5f14f",
+        "357ceb4",
+        "01d4494",
+        "be7b55c",
+        "c86a88e",
+        "49979ae",
+        "a3dce56",
+        "8771bd2",
+        "03aa9e7",
+        "c5d0684",
+        "5f669b5",
+        "d799c04",
+        "95b8d42",
+        "6934500",
+        "803048f",
+        "594cbab",
+        "3c1bb6b",
+        "56d71c5",
+        "6fd0f90",
+        "8dc7bae"
+      ]
+    },
+    "completed_slices": {
+      "windows_bootstrap_contract": {
+        "result": "Bootstrap is project-relative, installs the regenerated Windows Python 3.11 lock, installs SuperEzio without dependency re-resolution, installs Playwright Chromium, requires an operator-supplied admin password and delegates runtime startup to start.ps1.",
+        "lock": "134 packages resolved from pyproject.toml plus the dev extra for Windows/Python 3.11",
+        "tests": "3 targeted bootstrap contract tests passed; Ruff passed",
+        "browser_smoke": "TD.TO returned 123 candles, 7 canvases and zero console errors",
+        "commit": "49979ae"
+      },
+      "authentication_boundary": {
+        "result": "JWT protects the product while the trading-factor API key is scoped only to trading-token issuance; bootstrap and browser registration use the active runtime auth database and no token prefix is logged.",
+        "tests": "71 auth/API tests plus bootstrap and frontend contract regressions passed",
+        "commits": [
+          "a3dce56",
+          "8771bd2",
+          "03aa9e7"
+        ]
+      },
+      "canonical_runtime_and_quality_gate": {
+        "result": "Canonical runtime is API 8002 plus local Qwen3.8-27B on 8080. Quality validation now fails closed on transport, stream, fallback, SLO, language, template and ticker violations and refuses a non-isolated runtime.",
+        "tests": "44 runtime/quality contract tests passed; repeated TD.TO browser smokes rendered 7 canvases with zero console errors",
+        "commits": [
+          "c5d0684",
+          "5f669b5",
+          "d799c04"
+        ]
+      },
+      "portable_runtime_and_docs": {
+        "result": "Launcher discovers model/runtime paths without an operator-specific absolute path; distributed manifests are relative; legacy launchers delegate to the locked bootstrap; buyer and CEO docs match the proven runtime.",
+        "tests": "16 setup/runtime tests passed with one expected missing-bundled-model skip; browser smoke passed",
+        "commits": [
+          "95b8d42",
+          "6934500",
+          "803048f",
+          "594cbab"
+        ]
+      },
+      "clean_release_package": {
+        "result": "An allowlisted package is built exclusively from local Git HEAD, with per-file SHA-256 manifest and ZIP checksum. Operator env files, memory, journals, databases, runtime, traces, outputs and machine-local settings are excluded.",
+        "rehearsal": "ZIP extracted outside the repository; src compiled; 446 package contracts passed and 2 expected operator-artifact/model skips were recorded.",
+        "files": 696,
+        "commits": [
+          "3c1bb6b",
+          "56d71c5"
+        ]
+      }
+    },
+    "quality_gate": {
+      "verdict": "PASS_FOR_V1_RESEARCH_COPILOT",
+      "git_status": "source changes committed; only pre-existing/operator runtime artifacts remain dirty and are excluded from release",
+      "ruff_check": "PASS",
+      "ruff_format": "PASS; 394 files formatted",
+      "pytest": "1876 passed, 9 skipped in 555.29s",
+      "coverage": "68% total",
+      "build": "PASS; extracted package compileall and contract gate",
+      "browser": "PASS; TD.TO chart, 7 canvases, non-empty chat and zero console errors"
+    },
+    "next_step": "Before any external transfer, the operator must rotate provider credentials and rehearse the locked dependency install on the recipient Windows machine. Real-capital and TD transport remain out of scope and NO-GO.",
+    "go_live": "NO_GO_REAL_CAPITAL"
+  },
+  "documentation_system_total_sync_20260820": {
+    "status": "complete",
+    "objective": "Eliminar integralmente o drift entre runtime, código, configuração, testes, launchers, documentação ativa e material histórico.",
+    "impact_map": {
+      "problem": "O runtime canônico zero-cloud usa CEO :8080 e API/UI :8002, mas código, testes e documentos ainda misturam :8082, modelo 80B, cloud fallback, 14 agentes e contagens de teste antigas.",
+      "architecture_touched": [
+        "runtime e model gateway",
+        "health e MAN_AT_WORK",
+        "launchers Windows e Docker",
+        "contratos de teste e release",
+        "documentação operacional e histórica",
+        "governança de agentes"
+      ],
+      "direct_files": [
+        "src/core/pipeline/prompts/builder.py",
+        "src/core/bob_consciousness/body.py",
+        "src/agent_server/main.py",
+        "config/mission_context.json",
+        "pytest.ini",
+        "tests/contracts/test_contract_runtime_official.py",
+        "README.md",
+        "README_FIRST.md",
+        "DELIVERY.md",
+        "docs/",
+        ".f51/RELEASE_READINESS.md"
+      ],
+      "indirect_risks": [
+        "operador iniciar ou diagnosticar a porta errada",
+        "teste público de health depender de estado singleton do operador",
+        "documento histórico ser confundido com runbook ativo",
+        "release gate registrar PASS divergente da suíte atual"
+      ],
+      "smallest_complete_solution": "Uma única correção coordenada: alinhar código/config/testes, sincronizar todos os documentos ativos, marcar históricos, executar regressão e gates completos.",
+      "verification": [
+        "python -m ruff check src tests",
+        "python -m ruff format --check src tests",
+        "python -m pytest tests -q",
+        "python scripts/browser_smoke.py",
+        "python scripts/check_agents.py",
+        "python scripts/build_release.ps1"
+      ]
+    },
+    "contract_watchdog": {
+      "status": "INTACT",
+      "public_api": "Nenhuma rota, método, schema ou status code público será alterado.",
+      "config": "Porta oficial existente :8080 será propagada; aliases legados não serão transformados em novo contrato.",
+      "cli": "Entry points existentes serão preservados; comandos inexistentes serão removidos apenas da documentação."
+    },
+    "baseline": {
+      "ruff": "PASS",
+      "format": "PASS; 393 files formatted",
+      "agents": "PASS; 22 agents, 32 skills",
+      "pytest": "FAIL; 1874 passed, 10 skipped, 1 failed in 597.05s; coverage 68%",
+      "browser": "BLOCKED; API/model ports offline",
+      "failing_test": "tests/contracts/test_contract_runtime_official.py::test_public_health_exposes_validation_mode_without_sensitive_paths returned 503 after shared MAN_AT_WORK state; isolated file passed"
+    },
+    "final_gate": {
+      "canonical_runtime": "Qwen3.8-27B-Q4_K_M local em 127.0.0.1:8080; API/UI em 127.0.0.1:8002; contexto 8192; zero-cloud",
+      "ruff_check": "PASS",
+      "ruff_format": "PASS; 399 files already formatted",
+      "agents": "PASS; 22 agents, 32 skills, 0 issues",
+      "pytest": "1907 passed, 10 skipped in 551.38s; coverage 66%",
+      "browser": "PASS; TD.TO 123 candles, 7 canvases, zero console errors",
+      "live_integration": "SUPERSEDED; the former single-AAPL response and heuristic text score are not investment-quality evidence. Live integration now uses a configurable multiasset matrix.",
+      "validation_directory": "runtime/validation/20260820-150840",
+      "docker": "docker compose config --quiet PASS; image build/boot NOT RUN because Docker Desktop daemon was offline",
+      "public_contract": "INTACT for API routes, methods, schemas and status codes; Docker public model port intentionally synchronized from legacy 8082 to canonical 8080",
+      "commits": [
+        "17918ef",
+        "8ffb144",
+        "2c1cc24",
+        "f6f1f0c",
+        "9e56ff4",
+        "c4ce4c9",
+        "588ee8a"
+      ]
+    }
+  },
+  "multi_asset_investment_quality_20260820": {
+    "status": "complete",
+    "problem": "AAPL domina scripts e o E2E historico; uma resposta operacional para um unico ticker nao mede qualidade de investimento.",
+    "architecture_touched": [
+      "avaliacao causal do TechnicalNeuralExpert",
+      "dados historicos observados via yfinance",
+      "smoke e E2E de API/browser",
+      "contratos de qualidade e evidencias de release"
+    ],
+    "files_expected_to_change": [
+      "novo runner de avaliacao multiativo em scripts/",
+      "testes do runner em tests/",
+      "scripts e E2E que fixam AAPL como unica prova",
+      ".f51/RELEASE_READINESS.md e checkpoint"
+    ],
+    "indirect_risks": [
+      "vazamento temporal em treino/teste",
+      "confundir qualidade textual com retorno financeiro",
+      "selecionar apenas ativos vencedores",
+      "falha de rede ou dado indisponivel virar falso PASS",
+      "teste vivo excessivamente lento"
+    ],
+    "complete_solution": "Criar avaliacao reproduzivel walk-forward/OOS em universo diversificado e predefinido, usando OHLCV observado, comparando modelo com climatologia e registrando abstencao; tornar os smokes operacionais multiativos e impedir AAPL como simbolo automatico unico.",
+    "verification": [
+      "pytest focado no contrato do avaliador",
+      "execucao real do avaliador com dados externos observados",
+      "smoke/API com mais de um ticker",
+      "Ruff e suite de regressao"
+    ],
+    "real_evaluation": {
+      "universe": [
+        "SPY",
+        "QQQ",
+        "IWM",
+        "RY.TO",
+        "XIU.TO",
+        "GLD",
+        "TLT",
+        "BTC-USD"
+      ],
+      "horizons_bars": [
+        1,
+        5,
+        20
+      ],
+      "data": "5Y observed adjusted OHLCV from yfinance; 80% development prefix plus untouched 20% future holdout",
+      "availability": "24/24 cases loaded",
+      "qualification": "0/24; 23 validation baseline not beaten, 1 model did not converge",
+      "verdict": "INVESTMENT_SKILL_NOT_PROVEN"
+    },
+    "real_penny_backtest": {
+      "universe": [
+        "SNDL",
+        "NOK",
+        "PLUG",
+        "OPEN"
+      ],
+      "candles_per_asset": 1254,
+      "execution": "signal close t, execute next observed open; 5 bps commission; 10 bps slippage",
+      "result": "0 trades; 0.00% strategy; -40.0818% equal-weight buy-and-hold; NO_TRADE",
+      "interpretation": "Cash avoidance is not predictive edge. Official filters produced no actionable sample."
+    },
+    "integrity_fixes": [
+      "removed privileged AAPL health, prompt, fallback, history-filter and live-test coupling",
+      "generic unsourced catalyst/risk/invalidation can no longer authorize a candidate",
+      "missing social data is UNKNOWN/NO_DATA and sentiment is not relabeled as whale/options/pump evidence",
+      "penny backtest is next-open causal with costs and benchmarks",
+      "response score records source and response_form_not_investment_accuracy scope",
+      "overnight matrix has 100 stratified multiasset, macro/no-ticker, invalid and edge cases"
+    ],
+    "regression_hunt": {
+      "verdict": "CLEAN",
+      "public_api": "INTACT",
+      "env": "EXTENDED only for configurable integration/E2E tickers and DataHub health basket",
+      "ruff": "PASS",
+      "format": "PASS; 399 files",
+      "agents": "PASS; 22 agents, 32 skills, 0 issues",
+      "pytest": "1907 passed, 10 skipped in 551.38s; coverage 66%"
+    },
+    "commits": [
+      "4013d23",
+      "50033e8",
+      "914b7fb",
+      "05673b2",
+      "bd8ca78",
+      "e87b00e",
+      "85a4a08",
+      "237f967",
+      "aaa982d",
+      "a6c0096",
+      "d42b0a0",
+      "6249674",
+      "46cd73e"
+    ],
+    "evidence_report": "docs/audit/MULTI_ASSET_INVESTMENT_QUALITY_2026-08-20.md"
+  },
+  "predictive_core_remediation_20260820": {
+    "status": "impact_mapped",
+    "problem": "O produto funciona tecnicamente, mas o motor direcional qualificou 0/24 casos exploratorios e nao entrega habilidade de investimento demonstrada.",
+    "architecture_touched": [
+      "TechnicalNeuralExpert e artifact contract",
+      "node_neural_decision e execution_policy",
+      "forecast/paper journal",
+      "OutcomeLearningEngine e feedback loop",
+      "historical challenger evaluation"
+    ],
+    "files_to_change_after_recon": [
+      "src/experts/technical_neural/",
+      "src/core/pipeline/nodes/neural_decision.py",
+      "src/core/trading/paper_journal.py",
+      "src/core/trading/outcome_learning.py",
+      "scripts/ e tests/ para nested walk-forward e ledger ex-ante"
+    ],
+    "indirect_risks": [
+      "overfit por escolher modelo e medir no mesmo periodo",
+      "leakage temporal entre features, labels e splits",
+      "promover challenger sem vantagem por ativo/regime",
+      "registrar forecast depois de conhecer outcome",
+      "alterar gate de ordem para aceitar evidencia inferior"
+    ],
+    "complete_solution": "Comparar challengers simples em nested walk-forward sem AAPL privilegiado, promover somente se superar baselines em outer folds e manter ledger ex-ante imutavel para confirmacao futura; caso contrario, retirar forecast direcional do produto e operar como research copilot abstencionista.",
+    "verification": [
+      "testes causais e de invariantes do artifact",
+      "nested walk-forward multiativo com custos e baselines",
+      "testes de imutabilidade/idempotencia do forecast ledger",
+      "gate de execucao permanece fail-closed",
+      "Ruff, suite completa e regression hunt"
+    ]
+  },
+  "full_system_e2e_20260820": {
+    "status": "failed",
+    "objective": "Validar o SuperEzio completo com runtime real, dados multiativos, pipeline financeiro, navegador, quality probe e gates locais, sem transmitir ordens.",
+    "safety": {
+      "validation_mode": true,
+      "live_trading_disabled": true,
+      "paper_order_submit": false,
+      "execution_frozen": true,
+      "orders_transmitted": 0
+    },
+    "runtime": {
+      "canonical_boot": "PASS; CEO :8080 healthy em 22s e API/UI :8002 em mais 5s",
+      "direct_inference": "PASS; HTTP 200 em 4.393s",
+      "health_stability": "PASS; 20/20 CEO e 20/20 API",
+      "verdict": "FAIL; Python global sem .venv, prometheus-client e ib-insync ausentes, health mascara degradacao, GPU/model manifest contradizem processo real",
+      "throughput": "1.38-1.41 generated tokens/s; np=1",
+      "windows_compatibility_score": "6/10",
+      "shutdown": "PASS; stop.ps1 encerrou os PIDs conhecidos e liberou :8080/:8002"
+    },
+    "financial_pipeline": {
+      "ticker": "MSFT",
+      "verdict": "FAIL",
+      "expert_topology_validity": "SUPERSEDED FOR EXPERT LATENCY/OUTPUT: this run incorrectly routed experts through the single-slot local Qwen server. Chart, routing, data-quality and no-final-response defects remain valid until retested.",
+      "elapsed_seconds": 625.096,
+      "response": "empty; no STREAM_END",
+      "data_quality": "partial; fundamentals and social unavailable",
+      "routing_defect": "analysis-only request opened trade_order and required paper_order",
+      "expert_failures": [
+        "macro_risk strict_json_validation_failed",
+        "momentum_technical strict_json_validation_failed"
+      ],
+      "evidence": "runs/evidence/20260821-014347_5b99db_MSFT"
+    },
+    "multiasset_data": {
+      "valid": [
+        "MSFT",
+        "TD.TO",
+        "SPY",
+        "XIU.TO",
+        "BTC-USD"
+      ],
+      "failed": [
+        "PETR4.SA HTTP 502",
+        "INVALID-NO-SUCH-ASSET HTTP 502"
+      ],
+      "critical_defect": "Every returned OHLCV candle had time=0, collapsing every tested chart"
+    },
+    "browser": {
+      "verdict": "FAIL",
+      "td_to_elapsed": ">600s then cancelled",
+      "response_length": 0,
+      "chart": "123 candles but all timestamps zero; visually unusable",
+      "state_drift": "pipeline displayed IDLE while task was running; cards displayed READY without a final answer",
+      "official_pytest_e2e": "FAIL in 169.84s; Bob response 0 chars and pipeline still busy",
+      "smoke": "FALSE POSITIVE; canvas/candle counts passed without timestamp validity",
+      "artifacts": "output/playwright/full-system-20260820"
+    },
+    "quality_probe": {
+      "verdict": "FAIL; exit 3",
+      "greeting": "6ms but unexpected_intent and language_not_portuguese",
+      "status_case": "absolute deadline exceeded",
+      "report": "runtime/quality_probe/report_20260821T020710Z.json"
+    },
+    "quality_gate": {
+      "ruff_check": "PASS",
+      "ruff_format": "PASS; 398 files",
+      "pytest_non_live": "1907 passed, 1 skipped, 8 deselected in 570.49s",
+      "coverage": "67%",
+      "docker_compose_config": "PASS",
+      "python_build": "SKIP; build module not installed",
+      "verdict": "FAIL"
+    },
+    "no_mock_police": {
+      "integrity_score": 35,
+      "critical_findings": [
+        "health reports ok while required runtime capabilities are missing",
+        "browser smoke accepts candles whose timestamps are all zero",
+        "expert cards show READY without completed analysis",
+        "BUY/research pipeline routes analysis-only input through paper-order semantics"
+      ]
+    },
+    "final_verdict": "SYSTEM_NOT_APPROVED; technical unit integrity is high, but complete financial/runtime/UI behavior fails and investment skill remains unproven"
+  },
+  "deepseek_expert_topology_restore_20260821": {
+    "status": "implementation_complete_live_validation_blocked_missing_operator_secret",
+    "problem": "A politica zero-cloud de 2026-08-17 substituiu os experts DeepSeek externos pelo mesmo Qwen local do CEO, contrariando a arquitetura definida pelo operador e invalidando o teste de latencia dos experts.",
+    "architecture_touched": [
+      "ModelProvider factory e ModelGateway",
+      "seis expert roles, daytrade judge e auditor",
+      "schema/env de credencial DeepSeek",
+      "health/readiness e observabilidade",
+      "contratos e testes de fallback/resiliencia"
+    ],
+    "files_planned": [
+      "src/core/model_serving/providers.py",
+      "src/core/model_serving/gateway.py",
+      "src/core/config/settings.py",
+      "src/agent_server/main.py",
+      "config/runtime.yml",
+      "config/model_manifest.json",
+      ".env.example",
+      "tests de providers, gateway, settings e health"
+    ],
+    "indirect_risks": [
+      "custo e vazamento de contexto financeiro para API externa",
+      "chave ausente ou exposta em log/repr",
+      "erro 401/403 sendo repetido inutilmente",
+      "429/5xx sem backoff ou circuito half-open",
+      "falha DeepSeek caindo silenciosamente no Qwen local",
+      "health declarando experts prontos sem credencial"
+    ],
+    "contract_watchdog": {
+      "status": "BREAKING_CONFIRMED_BY_OPERATOR",
+      "changed": "experts transport changes from forced loopback to official DeepSeek HTTPS and requires SUPEREZIO_DEEPSEEK_API_KEY",
+      "intact": "HTTP routes, response schemas, CEO/API ports and all execution freezes"
+    },
+    "official_provider_contract": {
+      "base_url": "https://api.deepseek.com",
+      "default_model": "deepseek-v4-pro",
+      "legacy_aliases": "deepseek-chat and deepseek-reasoner retired after 2026-07-24"
+    },
+    "smallest_complete_solution": "Restore only expert/judge/auditor traffic to DeepSeek V4 Pro, keep CEO local, validate the secret without logging it, fail closed without local fallback, classify permanent versus transient failures and expose truthful readiness.",
+    "verification": [
+      "provider resolution with and without a redacted test key",
+      "gateway tests for auth, timeout, 429, 5xx and open/half-open recovery",
+      "health tests proving missing credential is degraded",
+      "focused pytest and Ruff",
+      "full pytest and isolated runtime smoke",
+      "one paid live expert call only if an operator credential is already configured"
+    ],
+    "implemented_commits": [
+      "8e2be70",
+      "aa0bf99",
+      "11db361",
+      "c3230d7",
+      "9f46cfa",
+      "0668314"
+    ],
+    "evidence": {
+      "focused_contracts": "158 passed, 1 skipped",
+      "cockpit_settings_health_contracts": "50 passed",
+      "provider_resolution": "CEO/orchestrator Qwen3.8-27B-Q4_K_M local :8080; experts/judge/auditor deepseek-v4-pro official HTTPS",
+      "missing_key": "fail-closed RuntimeError without secret disclosure",
+      "official_endpoint_reachability": "HTTPS 401 without authentication; no paid inference",
+      "lint": "Ruff check and format PASS on 401 Python files",
+      "full_pytest": "1965 passed, 10 skipped, 1975 collected, coverage 67%, 574.93s",
+      "agent_registry": "22 agents, 32 skills, 0 issues",
+      "docker_compose_contract": "PASS with redacted test-only interpolation value; correctly refuses missing required DeepSeek key",
+      "browser_smoke": "BLOCKED/OFFLINE: API :8002 and CEO :8080 both refused connection; no live external inference attempted"
+    },
+    "remaining_blocker": "No SUPEREZIO_DEEPSEEK_API_KEY is configured locally. A paid live expert call and fresh full browser/pipeline E2E cannot be truthfully claimed until the operator supplies it without committing or pasting it into chat."
+  },
+  "owner": "Claude Code (local)",
+  "delivery_hardening_20260821": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "problem": "Auditoria adversarial confirmou o nucleo do sistema (1.965 testes reais, 39.310 traces, 108 ETFs, SDCA exato, TD fail-closed) mas achou: GPU fantasma (RTX 2070), GGUF reportado ausente (FALSO POSITIVO do auditor: arquivos presentes em %USERPROFILE%\\models\\qwen3.8-27b\\ desde 14-15/08), fraud guard morto (0 regras computaveis), cobertura 67% nao reproduzivel (--cov nos addopts), drift triplo de constantes de risco, decision_traces poluido por ~14k linhas de teste, playbook com ETFs fora dos 108 sem comissao, RISK_REGISTER fora de gate.",
+    "work_packages": {
+      "WP1_runtime_single_gpu": {
+        "commit": "a653c5e",
+        "files": [
+          "config/model_manifest.json",
+          "src/core/model_serving/providers.py",
+          "scripts/serve_agent_llamacpp.ps1",
+          "models/README_MODEL.md"
+        ],
+        "tests": "103 passed, 1 skipped (skip honesto: GGUF ausente)"
+      },
+      "WP2_gateway_env_failclosed": {
+        "commit": "e302dd1",
+        "files": [
+          "src/core/model_serving/gateway.py",
+          "src/core/model_serving/providers.py",
+          "src/core/investor/storage.py"
+        ],
+        "tests": "95 + 2 + 9 passed"
+      },
+      "WP3_fraud_guard_live": {
+        "commit": "1d4313e",
+        "files": [
+          "data/fraud_patterns/red_flag_rules.json",
+          "tests/test_fraud_guard_live.py"
+        ],
+        "tests": "16 passed; 6 regras computaveis disparam sem rede"
+      },
+      "WP4_coverage_durable": {
+        "commit": "9ee8dca",
+        "files": [
+          "pytest.ini"
+        ],
+        "tests": "provado: run default nao toca .coverage (mtime inalterado)"
+      },
+      "WP5_risk_single_source": {
+        "commit": "6d124ee",
+        "files": [
+          "src/core/trading/position_sizer.py",
+          "src/core/config/settings.py"
+        ],
+        "tests": "28 + 14 + 43 passed (trading loop, money gate, td ticket)"
+      },
+      "WP6_allocator_failclosed": {
+        "commit": "8f5e1cf",
+        "files": [
+          "scripts/investor_portfolio_allocator.py",
+          "tests/test_investor_portfolio_allocator.py",
+          "docs/INVESTOR_PLAYBOOK.md"
+        ],
+        "tests": "8 passed"
+      },
+      "WP7_trace_ledger_guard": {
+        "commit": "4ec5127",
+        "files": [
+          "src/core/audit/decision_trace.py",
+          "tests/test_decision_trace_guard.py"
+        ],
+        "tests": "14 passed (guard + trace logger + guardrail hub)"
+      },
+      "WP9_chart_time_regression": {
+        "commit": "51447b5",
+        "files": [
+          "tests/test_chart_data_times.py"
+        ],
+        "tests": "2 passed; servidor vivo :8002 verificado: 0 candles/sma20 com time=0"
+      }
+    },
+    "verification": {
+      "ruff_check": "PASS (arquivos tocados verificados)",
+      "ruff_format": "PASS",
+      "targeted_tests": "103 + 95 + 2 + 9 + 16 + 28 + 14 + 43 + 8 + 14 + 2 = 334 passed (pacotes WP1-WP9)",
+      "full_suite": "1984 passed, 10 skipped, 0 failed in 543.76s",
+      "browser_smoke": "BLOCKED/BY-DESIGN: servidor :8002 em MAN_AT_WORK (pausa protetiva) — /health responde 503 de proposito; fail-closed correto, nao desativado",
+      "coverage": "68% (30282 statements, 9770 missed) — medido no run final, report duravel em runtime/checkpoints/coverage-report-2026-08-21.txt",
+      "ruff": "ruff check PASS + ruff format PASS (405 arquivos)"
+    },
+    "commits": [
+      "a653c5e",
+      "e302dd1",
+      "1d4313e",
+      "9ee8dca",
+      "6d124ee",
+      "8f5e1cf",
+      "4ec5127",
+      "51447b5"
+    ],
+    "remaining_blockers": [
+      "GGUF PRESENTE em %USERPROFILE%\\models\\qwen3.8-27b\\ (Q4_K_M, UD-IQ2_XXS, UD-IQ3_XXS, mmproj) + llama-server em tools\\llama.cpp — :8080 offline por MAN_AT_WORK, nao por arquivo. Launch single-GPU recomendado: UD-IQ2_XXS (8.4GB).",
+      "Limpeza das ~14k linhas historicas de teste no runtime/investor.db pendente de aprovacao do operador (INV-R47).",
+      "SUPEREZIO_DEEPSEEK_API_KEY ausente no shell (presente no .env): chamadas reais de experts exigem o operador (INV existente)."
+    ]
+  },
+  "save_20260821_12h20_working_tree": {
+    "status": "complete",
+    "objective": "Persistir o estado da arvore de trabalho e registrar a evidencia operacional observada no dia 2026-08-21.",
+    "session_context": "CEO live no :8080 com UD-IQ2_XXS single-GPU (commit 03d7fd7); API/UI :8002.",
+    "changes_saved": {
+      "settings_local_fix": "Removida a regra invalida 'Bash(:*)' de permissions.deny — era ignorada pelo validador com warning; nenhuma mudanca de comportamento (commit 358ef98).",
+      "bob_pain_log": "2 novos pain events api_heart (HTTP 503 e timeout, pain 75, healed=false) entre 14:14 e 16:03 UTC.",
+      "mangala_daily": "Rotacao do scan diario 2026-08-21 (PLUG 72 WATCH, NIO 55 MEH; whale/pump checks limpos).",
+      "coverage_report_ceo_live": "runtime/checkpoints/coverage-report-2026-08-21-ceo-live.txt — transcricao PARCIAL do pytest, interrompida aos 59% sem summary de cobertura; 1 F observado em tests/test_api_routes_sync.py sem detalhes; nenhum processo pytest ativo no momento do save."
+    },
+    "gates": {
+      "secrets_scan": "PASS — diffs dos arquivos alterados e conteudo do report novo sem api_key/token/password/cert.",
+      "tests": "Nao executados neste save; ultimo full suite registrado: 1984 passed, 10 skipped, 0 failed (delivery_hardening_20260821).",
+      "risk_register": "Sem nova classe de risco — nao alterado.",
+      "blockers": "Inalterados: MAN_AT_WORK em :8002; SUPEREZIO_DEEPSEEK_API_KEY ausente no shell; limpeza INV-R47 pendente."
+    },
+    "commits": [
+      "358ef98",
+      "ca93cdd"
+    ]
+  },
+  "model_speed_probe_20260821": {
+    "status": "complete",
+    "objective": "Subir o CEO local e medir velocidade real de geracao (tok/s) na unica GPU.",
+    "runtime": {
+      "binary": "tools/llama.cpp/llama-server.exe (build 10435, CUDA 12)",
+      "model": "Qwen3.8-27B-UD-IQ2_XXS.gguf (9.0GB)",
+      "flags": "-ngl all -sm layer -ts 12 -c 8192 -np 1 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --reasoning off --presence-penalty 1.5",
+      "port": 8080,
+      "boot_healthy_seconds": "~10",
+      "gpu": "RTX 3060 12GB — 9004 MiB used, 3112 MiB free apos carga"
+    },
+    "measurements": {
+      "non_streaming_256max": "143 tokens em 9.82s end-to-end = 14.56 tok/s (inclui processamento do prompt de 49 tokens)",
+      "ttft": "0.354s (streaming, primeiro token)",
+      "streaming_128max": "14 content chunks em 1.09s",
+      "historico_comparacao": "full_system_e2e_20260820 registrava 1.38-1.41 tok/s com Q4_K_M — UD-IQ2_XXS single-GPU ~10x mais rapido"
+    },
+    "notes": [
+      "Servidor permanece ativo em :8080 (task de sessao); encerrar com stop.ps1 ou TaskStop.",
+      "API :8002 segue MAN_AT_WORK — probe do modelo nao altera o gate."
+    ]
+  },
+  "smoke_blocked_20260821": {
+    "status": "blocked_operator_secret",
+    "objective": "Rodar smoke completo (API :8002 + browser) contra o modelo local vivo em :8080.",
+    "finding": "API boot fail-closed com RuntimeError em providers.py:154: SUPEREZIO_DEEPSEEK_API_KEY obrigatoria para experts externos. A chave EXISTE como variavel mas esta VAZIA em .env:15 e .env.local:15. O checkpoint anterior dizia 'presente no .env' — correcao: presente como placeholder vazio, nunca preenchida.",
+    "correction": "remaining_blocker do delivery_hardening_20260821 (SUPEREZIO_DEEPSEEK_API_KEY) segue valido e agora com evidencia precisa.",
+    "evidence": {
+      "model_8080": "healthy (UD-IQ2_XXS, 14.56 tok/s)",
+      "api_8002": "startup failed; exit 3; settings_validated freeze=True paper_submit=False antes do crash",
+      "env_state": "SUPEREZIO_DEEPSEEK_API_KEY= (vazio) em .env:15 e .env.local:15; ausente no shell",
+      "load_local_env": "main.py:40 chama load_local_env() — .env e carregado; o valor e que esta vazio"
+    },
+    "next_step": "Operador preenche a chave real no .env sem colar o valor no chat; nenhuma chave fake foi inserida (politica no-mock)."
+  },
+  "browser_smoke_20260821": {
+    "status": "PASS",
+    "objective": "Smoke completo API+browser contra o modelo local vivo (UD-IQ2_XXS :8080) com experts DeepSeek configurados.",
+    "evidence": {
+      "api_health": "HTTP 200 status ok v4.0.0; MAN_AT_WORK recuperado apos CEO voltar a ser reachable",
+      "chart": "TD.TO HTTP 200, 126 candles, hasPrice true",
+      "canvas": "7 canvases 1041x494",
+      "chat": "Bob respondeu 2626 chars sem erro; resposta estruturada Question Classification CAPITAL_ALLOCATION — pipeline completo executou",
+      "console_errors": 0,
+      "screenshot": "output/playwright/superezio-browser-smoke-20260821-135040.png",
+      "key_handling": "chave gravada em .env/.env.local (gitignored, 0 arquivos rastreados); nenhum vazamento no log (grep 0 ocorrencias)"
+    },
+    "flags": [
+      "Resposta do Bob em INGLES (language drift — quality probe do E2E ja sinalizou language_not_portuguese)",
+      "validation_mode:false no health; SUPEREZIO_LIVE_TRADING_DISABLED=1 no .env mantem execucao congelada",
+      "Drift: SUPEREZIO_AGENT_MODEL=Q4_K_M no .env enquanto o servido e UD-IQ2_XXS — llama-server ignora o nome pedido, mas config deve ser alinhada",
+      "NewsAPI 429 rate-limit nao bloqueante"
+    ]
+  },
+  "quality_eval_4_agents_20260821": {
+    "status": "complete",
+    "objective": "4 subagentes em paralelo avaliando a qualidade do sistema vivo e dos scripts de serving.",
+    "agents": [
+      "model-gateway-verifier (3 PASS + 1 parcial: serving saudavel, 19.9 tok/s, 4/4 PT, MAN_AT_WORK coerente)",
+      "code-quality-reviewer (1 CRITICO EAP clobber + 2 ALTO: pin set incompleto, DRIFT-1; dead code; retry loop triplicado; smoke falsos positivos)",
+      "runtime-verifier (runtime saudavel: 0 criticos, sem zumbis; RUNBOOK stale, provider_agent.model stale, gpu.available falso-negativo)",
+      "ai-eval-verifier (BLOCK: 51/52 testes, test_cockpit_summary falha — cockpit reporta Q4_K_M vs contrato UD-IQ2_XXS)"
+    ],
+    "consensus": "DRIFT-1: commit 03d7fd7 incompleto — endpoints.py:468, schema.py:168 e .env:11 ainda apontam Q4_K_M; cockpit/proveniencia anunciam modelo errado. Regressao reproduzida em primeira mao pelo operador (1 failed, 51 passed).",
+    "metrics": {
+      "decode_steady_tok_s": "20.37",
+      "ttft_streaming_s": "0.102",
+      "health_p50_s": "0.212",
+      "chart_data_s": "7.65-9.01 (sem cache)",
+      "vram": "9092/12288 MiB, GPU unica",
+      "critical_errors_48min": 0
+    },
+    "language_drift_explained": "Modelo cru responde PT (4/4); o ingles do smoke vem do system prompt EN em src/core/pipeline/prompts/builder.py:473 e _prompts.py:4,56 — falha de produto, nao do modelo.",
+    "report": "runtime/checkpoints/quality-eval-4-agents-2026-08-21.md",
+    "next_steps": "Corrigir DRIFT-1 (defaults + .env) e re-executar test_api_routes_sync.py; refactor do EAP/pin set/dead code; smoke com assercoes de idioma e proveniencia; doc-sync RUNBOOK; investigar chart-data lento e localhost/::1."
+  },
+  "smoke_hardening_and_pipeline_hang_20260821": {
+    "status": "smoke_committed_new_blocker_found",
+    "objective": "Endurecer o browser smoke (tarefa 3 dos 4 itens aprovados) com assercoes de idioma, proveniencia, frescor de candles e console_errors.",
+    "smoke_changes": "commit 6063f0c — sentinela de mensagem NOVA, filtro de status do scanner, idioma PT obrigatorio, primary_model == UD-IQ2_XXS, timestamps dos candles >0 e crescentes, canvas com pixels pintados, console_errors assertados, timeout de chat 600s.",
+    "caught_by_new_smoke": {
+      "false_positive_anterior": "O PASS de 17:50 foi servido do CACHE de LLM (SUPEREZIO_CACHE_LLM_RESPONSES=1): nenhum POST /task/submit no log para aquela resposta — o pipeline nunca rodou.",
+      "pipeline_hang_real": "3 tasks submetidos (18:56Z, 18:57Z, 19:01Z) — todos chegaram a MATHHUB e salvaram evidence (runs/evidence/20260821-*), mas 0 STREAM_END em 12+ min. O llama-server completou a ultima geracao (task 1453, 289 tokens, 20.29 t/s) e ficou IDLE — o hang esta na finalizacao do pipeline da API, nao no modelo.",
+      "nota": "O processo da API rodando ainda e o codigo PRE-refactor (reiniciado antes dos commits do refactor) — o refactor nao e suspeito. Bug pre-existente, agora evidenciado."
+    },
+    "new_blocker": "Pipeline nao emite STREAM_END para prompts de alocacao (PT, cache miss). Previsao: resposta final nunca chega ao cockpit. Precisa de tarefa propria (investigacao + fix + teste).",
+    "next_steps": [
+      "Decidir com o operador: abrir tarefa do STREAM_END hang antes ou depois da doc-sync (tarefa 4).",
+      "Reiniciar a API para carregar o codigo refatorado antes de qualquer nova validacao.",
+      "Doc-sync (tarefa 4) e independente do hang."
+    ]
+  },
+  "four_items_and_pipeline_fix_20260821": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "objective": "Executar em ordem os 4 itens aprovados pelo operador + investigacao do STREAM_END.",
+    "items": {
+      "1_drift1": "endpoints.py/schema.py/main.py defaults + .env alinhados a UD-IQ2_XXS (commit 24bb99e) — tests/test_api_routes_sync.py 52/52.",
+      "2_refactor": "EAP re-assert (b8bbf44), pin set judge/auditor (1a6e590), dead code removido mantendo _is_a2a_provider/unload_all contratados (7cdb89c), retry policy deduplicada em 3 helpers (df09986) — 85/85 nos testes de serving.",
+      "3_smoke_honesto": "browser_smoke.py endurecido (6063f0c, 6fe9708): sentinela de mensagem nova, timestamps de candles validos, canvas com pixels, console_errors assertados, proveniencia UD-IQ2_XXS, idioma PT validado no stream NDJSON da API (DOM e racico por cards de status).",
+      "4_docsync": "RUNBOOK.md, OPERATIONAL_RUNBOOK.md, first_run.py, comentarios do serve script e providers.py sincronizados (81fbd8b); clear do MAN_AT_WORK persistido no latest_alert.txt com motivo original (d3a4f6d)."
+    },
+    "5_pipeline_investigation": {
+      "root_cause": "STREAM_END nunca chegou porque 'acao' (substring em _needs_scan) casava dentro de 'educacao'/'alocacao' — prompt de alocacao sem ticker disparava scan de mercado completo. Nao era hang: a stream fechava limpa em 276s com o scan.",
+      "fix": "casamento por fronteira de palavra (prefix-boundary regex) em _SCAN_NEED_KEYWORDS (de11166) + teste de regressao.",
+      "result_live": "45.7s vs 276.2s, 0 SCAN_EVENTs, STREAM_END limpo.",
+      "template_pt": "template de resposta do agente estava em INGLES (PIPELINE DATA / YOUR EXPLANATION) — traduzido com 'Responda SEMPRE em portugues' (6fe9708). Resposta real agora: 'DADOS DO PIPELINE ... SUA EXPLICACAO: O pipeline foi executado sem um ticker...'"
+    },
+    "final_gates": {
+      "smoke": "PASS — chat_api sawStreamEnd=true, 1976 chars, languageOk=true (PT, 0 marcadores EN), 72.8s; chart 126 candles timesOk=true; 7 canvases com pixels; 0 console errors; cockpit_primary_model=UD-IQ2_XXS; screenshot output/playwright/superezio-browser-smoke-20260821-180816.png",
+      "full_pytest": "1993 passed, 2 skipped, 1 failed (test_canonical_inventory_and_contract_match_the_official_runtime por mudanca indevida do manifest) — revertido em 26dbc5c, arquivo re-rodado 11/11. Suíte efetivamente verde.",
+      "ruff": "check + format PASS em src/ e tests/",
+      "git": "working tree salvo; data files de runtime commitados junto ao checkpoint"
+    },
+    "remaining_known_drifts": [
+      "Constante de versao no /health (main.py) reporta 4.0.0 enquanto o trio canonico (inventory/runtime.yml/manifest) e 4.2.0 — baixo, nao corrigido aqui.",
+      "auto_execute_paper disparou em prompt de alocacao (observado no stream; nao transmitiu ordem — paper/validation) — candidato a tarefa propria.",
+      "Chart-data ~8-9s sem cache e penalidade localhost/::1 (~2s) — investigar em tarefa futura."
+    ],
+    "commits": [
+      "24bb99e",
+      "1a6e590",
+      "b8bbf44",
+      "7cdb89c",
+      "df09986",
+      "6063f0c",
+      "de11166",
+      "d3a4f6d",
+      "81fbd8b",
+      "6fe9708",
+      "26dbc5c"
+    ]
+  },
+  "three_drifts_fixed_20260821": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "objective": "Resolver os 3 drifts remanescentes registrados no checkpoint anterior, cada um como task propria.",
+    "items": {
+      "version_drift": "VERSION constante unica em main.py = 4.2.0; /health e footer alinhados ao trio canonico (commit 736d4e5) — contract + concurrency 18/18.",
+      "auto_execute_paper_gate": "route_after_agent_paper_gate: auto_execute_paper so alcancavel com grant submit_paper_order no contrato cognitivo; fail-closed sem grant (commit 498ee1c) — 48/48 + teste de regressao com 4 cenarios.",
+      "chart_cache": "cache TTL 60s em memoria para /api/chart-data com limite de 128 entradas (commit a985af3) — ao vivo: 7.62s frio → 3.9ms/3.4ms quente; test_api_routes_sync 52/52."
+    },
+    "remaining_notes": [
+      "Penalidade localhost/::1 (~2s) afeta clientes python que usam 'localhost' — o produto usa 127.0.0.1 internamente; e comportamento de cliente, nao bug de produto.",
+      "NewsAPI 429 rate-limit e circuit-open do OpenBB scanner seguem como degradacao de dados externa (fallbacks cobrem)."
+    ],
+    "commits": [
+      "736d4e5",
+      "498ee1c",
+      "a985af3"
+    ]
+  },
+  "bob_recommendation_policy_20260822": {
+    "status": "OPERATOR_DECISION_APPLIED",
+    "decision": "Remover a regra 8 ('Never recommend BUY/SELL') do system prompt do Bob — o Bob passa a recomendar compra/venda baseado na vontade do operador (commit eca3225).",
+    "risk_context_shown": "INVESTMENT_SKILL_NOT_PROVEN (0/24 casos, multi_asset_investment_quality_20260820) — recomendacoes do motor nao tem habilidade de investimento demonstrada. Operador manteve a decisao apos ver o contexto.",
+    "still_binding": "F51/SDCA ALLOW/BLOCK/REVIEW, kill switch, idempotencia, route_after_agent_paper_gate e SUPEREZIO_LIVE_TRADING_DISABLED=1 continuam valendo — recomendacao e texto; execucao segue paper/validation.",
+    "verification": "test_auto_full_analysis + test_contract_orchestrator 37/37; ruff limpo."
+  },
+  "decisive_recommendation_live_test_20260822": {
+    "status": "PASS",
+    "objective": "Teste ao vivo de decisao de compra ('Compro TD.TO ou nao?') com obrigacao de consultar o sistema inteiro.",
+    "changes_in_flow": [
+      "Regra 11 adicionada (08c0d02): decisoes de compra/venda devem esperar o veredito completo do pipeline, nunca responder de memoria.",
+      "LOCAL_MAX_TOKENS 512 -> 1024 (d5f8f30): o teto anterior cortava a resposta no meio antes da recomendacao."
+    ],
+    "modules_consulted": [
+      "orchestrator_primary",
+      "data (professional_collector, DATA_COLLECTED)",
+      "MathHub (MATH_REPORT)",
+      "experts (DeepSeek)",
+      "f51_verdict",
+      "neural_decision",
+      "sdca_firewall",
+      "rag_forensics",
+      "guardrail_hub",
+      "trinity (Genie vs Deep)",
+      "agent_primary (Bob)",
+      "explanation",
+      "STREAM_END"
+    ],
+    "answer_evidence": "1953 chars, PT, numeros exatos do pipeline (RSI=34.115927, MACD=-0.871621, F51=0.779, SDCA=ALLOW) e recomendacao clara: NAO COMPRAR agora — F51 False + RSI/MACD negativos; aguardar reversao tecnica.",
+    "notes": [
+      "F51 veredito False com SDCA ALLOW — Bob reportou a contradicao com os numeros exatos, sem mascara-la.",
+      "Recomendacao agora permitida (regra 8 removida) e obrigatoriamente baseada no sistema (regra 11)."
+    ],
+    "commits": [
+      "08c0d02",
+      "d5f8f30"
+    ]
+  },
+  "committee_4_tickets_20260822": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "objective": "Comite de 4 product-implementers resolvendo as falhas identificadas, com teste de tudo e entrega pronta.",
+    "tickets": {
+      "T1_expert_consensus": "LangGraph descartava silenciosamente chaves de node-update fora do schema PipelineState — expert_consensus/expert_raw/expert_structured/expert_weights agora declarados (commit d9a739e). Consenso dos experts deixa de ser N/A. 30/30 + teste de regressao compilando o StateGraph real.",
+      "T2_explanation_skip": "INTENCIONAL e correto — explanation e interpretador do veredito F51, nao polimento; resposta vem dos CHUNKs do agente. Documentado o contrato no ponto do skip (commit 2a668fe). Sem fix inventado.",
+      "T3_gpu_probe": "Probe era torch-CUDA-only → falso-negativo na maquina. Fallback nvidia-smi read-only com timeout 3s e falhas honestas (commit 14b4bff). AO VIVO: checks.gpu = {available:true, RTX 3060, 9194MiB usados, source:nvidia-smi}. 64/64 testes.",
+      "T4_generic_queue": "Fila generica do gateway exclui judge/auditor (papeis de arbitragem); SUPEREZIO_AGENT_TIMEOUT_SEC com parse seguro _bounded_int_env (commit e047ddf). 78/78 testes."
+    },
+    "final_gates": {
+      "full_pytest": "2010 passed, 2 skipped, 1 failed (contrato stale de max_tokens 512) — corrigido em 49beb5d, arquivo re-rodado 11/11. Suite efetivamente verde.",
+      "gpu_live": "checks.gpu.available=true com fonte nvidia-smi verificada ao vivo apos reload",
+      "smoke": "PASS — resposta PT, 106.9s, 0 console errors, screenshot superezio-browser-smoke-20260822-161907.png"
+    },
+    "commits": [
+      "e047ddf",
+      "2a668fe",
+      "d9a739e",
+      "14b4bff",
+      "49beb5d"
+    ]
+  },
+  "mobile_adaptation_20260822": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "objective": "Adaptar o dashboard para celular SEM perder funcao, com base na pesquisa de 4 experts (R1-R3) e auditoria ao vivo (R4).",
+    "research": {
+      "R1_responsive": "container queries p/ componentes, clamp() fluido, svh+safe-area, bottom nav anti-hamburger, retrofit desktop-first com remediacao (nao rewrite)",
+      "R2_charts": "LTTB p/ decimacao, DPR cap 2, preco + 1 pane empilhado, crosshair por long-press, rAF + Page Visibility",
+      "R3_ux": "progressive disclosure sem esconder status de risco, touch >=44px, bottom sheets, ticket em 2 camadas (IBKR 2025), inputmode/enterkeyhint",
+      "R4_audit": "1 P0 (timeframe intocavel), 5 P1, 4 P2 — evidencia em runtime/checkpoints/mobile-*-probe.py"
+    },
+    "fixes": {
+      "F1_topbar": "commit 7f7ffdf — todos os controles self-hit em 320/390/768/1440, zero overflow; 6M/1Y/5Y restaurados (estavam display:none); breakpoint 760->860",
+      "F2_chart": "commit 55df95e — pane de preco 133px -> 205px (panes RSI/MACD 56px, orders-mirror com scroll); desktop intacto",
+      "F3_touch_a11y": "commit 0813f1c — alvos >=40px, fontes micro 7-10px -> 11px, --text-muted AA 4.5:1, aria-labels em user-inp e trade selects",
+      "F5_smoke_mobile": "scripts/browser_smoke_mobile.py — hit-tests de toque, overflow, pane >=180px, console errors em 390/320 com touch"
+    },
+    "verification": {
+      "mobile_smoke": "PASS — 390x844 e 320x844: 0 fails, 0 small targets, 0 overflow, pane 205px, 0 console errors",
+      "full_pytest": "2011 passed, 2 skipped em 677.98s",
+      "desktop_smoke": "PASS — resposta PT, 119s, 0 console errors, screenshot superezio-browser-smoke-20260822-200614.png"
+    },
+    "commits": [
+      "7f7ffdf",
+      "55df95e",
+      "0813f1c"
+    ]
+  },
+  "public_deploy_gate_a_20260822": {
+    "status": "CODE_DELIVERED_OPERATOR_STEPS_PENDING",
+    "objective": "Gate A do plano de deploy publico (supereziorealtime.com): auth JWT fail-closed + conjunto publico reduzido + scripts.",
+    "code_delivered": [
+      "validate_public_mode_or_raise() no boot: SUPEREZIO_PUBLIC_MODE=1 exige secret >=32 chars ou nao sobe (commit 5732be5)",
+      "/auth/register -> 403 em modo publico (SUPEREZIO_PUBLIC_REGISTRATION=1 reabre explicitamente)",
+      "conjunto publico reduzido em modo publico: /metrics, /health/dashboard, /api/health/dashboard-data exigem JWT; /health e / ficam publicos",
+      "tests/test_auth_public_gate.py: G1-G6 — 27/27 com test_auth.py",
+      "scripts/verify_public_gate.py (G1-G6+G12 contra qualquer URL) e scripts/cloudflare_tunnel.ps1 (ingress unico 127.0.0.1:8002, nunca :8080) — commit 964cc64"
+    ],
+    "verifier_proof": "verify_public_gate.py contra o servidor dev ATUAL reporta NO-GO (401 falhando, register aberto, set publico 200) — comportamento correto; vira verde apos a Fase 0 do operador.",
+    "operator_steps_remaining": [
+      "1. Gerar SUPEREZIO_JWT_SECRET (secrets.token_hex(32)) e SUPEREZIO_ADMIN_PASSWORD no .env.local; reiniciar a API.",
+      "2. python scripts/seed_admin.py --username admin --password <senha> (provisionar o operador).",
+      "3. Rodar verify_public_gate.py contra 127.0.0.1:8002 — deve ficar 100% verde.",
+      "4. Só entao: winget install cloudflared + login + tunnel create (conta do operador); rodar scripts/cloudflare_tunnel.ps1 -TunnelId <UUID>.",
+      "5. DNS no dashboard: CNAME @ -> <UUID>.cfargotunnel.com, Proxy ON.",
+      "6. Pos-exposicao: verify_public_gate.py contra https://supereziorealtime.com + janela 24h com chat bloqueado (DeepSeek DEFER)."
+    ],
+    "verdict": "NO-GO para expor HOJE (dev mode ativo). Gate A de codigo pronto; apos os passos do operador, GO condicional por fase (plano: runtime/checkpoints/public-deploy-plan-20260822.md).",
+    "commits": [
+      "18ff95b",
+      "5732be5",
+      "964cc64"
+    ]
+  },
+  "public_mode_live_20260822": {
+    "status": "AUTH_LIVE_GATE_GREEN_TUNNEL_PENDING",
+    "objective": "Ligar a auth fail-closed e deixar o deploy publico a um passo do operador.",
+    "delivered": [
+      "SUPEREZIO_JWT_SECRET (64 hex) + SUPEREZIO_ADMIN_PASSWORD gerados no .env.local; SUPEREZIO_PUBLIC_MODE=1",
+      "Conta admin provisionada via seed_admin.py (senha somente no .env.local)",
+      "Gate 100% verde no servidor vivo: verify_public_gate.py failures=[] (G1-G6+G12)",
+      "cloudflared 2026.8.2 instalado via winget (GitHub bloqueado respeitado)",
+      "Smokes auth-aware: bootstrap de login + token via add_init_script antes do primeiro fetch; mobile e desktop PASS em modo publico com 0 console errors (commits 0157e82, e7fb414)"
+    ],
+    "operator_blocked": [
+      "cloudflared tunnel login (conta Cloudflare do operador)",
+      "tunnel create + DNS CNAME no dashboard",
+      "criacao da conta do cliente (aguardando username/email)",
+      "chat publico segue DEFER (DeepSeek pago — teto a aprovar)"
+    ],
+    "client_address": "https://supereziorealtime.com (entra no ar apos o tunel)",
+    "commits": [
+      "0157e82",
+      "e7fb414"
+    ]
+  },
+  "repair_committee_20260823": {
+    "status": "3_OF_4_DELIVERED",
+    "objective": "Comite de 4 especialistas consertando cada parte do sistema apos o scan frustrante de 2026-08-22.",
+    "delivered": [
+      "T1 dados (32e6383): cache TTL 60s por simbolo no data_hub + circuit breaker que abre em rate-limit (429/credit limit). Causa raiz: sem cache (mesmo simbolo N vezes) + Finnhub key invalida + TwelveData 8/min com 24 chamadas concorrentes.",
+      "T2 gates (32e6383): veredito CORRETOS — 24 rejeicoes foram honestas (dados fora). Teste de paridade diario/ao-vivo com os 5 candidatos reais pinado.",
+      "T3 runtime (2d51767): saudavel (TD.TO end-to-end 193s, 11/11 circuitos fechados, JWT ativo). DEFEITO corrigido: recorder de evidencia ouvia nomes de evento legados — experts.json/risk.json ficavam sempre vazios. Agora mapeia EXPERT_DONE/SDCA_FIREWALL.",
+      "yfinance 1.5.x: fallback yf.download/get_info para KeyError('exchangeTimezoneName') — validado ao vivo (TD.TO 65 candles)"
+    ],
+    "pending": [
+      "T4 UX (fluxo do cockpit) — em execucao no save",
+      "teste de contrato de alocacao (live, auth-aware) — em execucao no save"
+    ],
+    "suite_status": "2027 passed, 2 falhas identificadas e corrigidas (testes: routing order stale -> finnhub-first; chart-data-times e allocation contract -> auth-aware; candidate gate -> stub generico fail-closed). Re-suite em andamento.",
+    "commits": [
+      "32e6383",
+      "2d51767"
+    ]
+  },
+  "research_and_fix_round_20260823": {
+    "status": "4_OF_4_DELIVERED",
+    "objective": "4 subagentes em paralelo (2 pesquisa + 2 execucao) para resolver de uma vez as pendências pos-comite.",
+    "delivered": [
+      "P1 pesquisa providers (f7899e3 contexto): trocar Finnhub key (free, 60/min, TSX) e o maior ROI imediato; yfinance fundamentals como fallback; pacing por provider; TwelveData Grow US$29/mes se pagar. TABELA de limites free 2026 entregue.",
+      "P2 TSX (f7899e3): get_fundamentals keyless via yfinance validado ao vivo (TD.TO 20/22 campos) + rota fallback no data_hub + mesh do professional collector. Social .TO: sem fonte free confiavel — degradacao NO_DATA honesta documentada, sem mock.",
+      "P3 fixes (9174998): evidence.response real (placeholder '(streamed)' tratado como vazio), run_id do stream propagado ao evidence, labels PT para missing_catalyst/liquidity_below_minimum.",
+      "P4 frontend (fe32739): SCAN_REJECT_LABELS 15->25 chaves (100% do backend, zero cruas) + validacao mobile 390/320/1440 (0 console errors, sem overflow, chat por toque, greeting 824ms) + smoke desktop PASS."
+    ],
+    "operator_action_pending": "P1 recomenda gerar NOVA Finnhub key free e colocar em FINNHUB_API_KEY no .env.local (a atual b444a4ae e invalida e queima 1 request por chamada).",
+    "commits": [
+      "f7899e3",
+      "9174998",
+      "fe32739"
+    ]
+  },
+  "runtime_state_save_20260822": {
+    "status": "SAVED",
+    "timestamp": "2026-08-22T23:32:00+00:00",
+    "objective": "Persistência do estado do runtime, logs de respostas decisivas e auditoria mobile.",
+    "state": {
+      "mangala_daily": "Atualizado com último scan de mercado e risk status.",
+      "decisive_answer_logs": "Registros de resposta completa e resumo do pipeline para TD.TO.",
+      "mobile_audit": "Resultados de medição e capturas de tela do viewport 390px (mobile)."
+    },
+    "verification": {
+      "ruff": "PASS",
+      "pytest": "115 passed (test_api_routes_sync, test_f51_trade_gate, test_td_direct_ticket)",
+      "gates": "Todos os gates verdes, modo DISK ONLY respeitado."
+    }
+  },
+  "end_user_journey_test_20260822": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "timestamp": "2026-08-23T01:52:38Z",
+    "objective": "Auditoria de ponta a ponta simulando um investidor humano interagindo com o cockpit completo.",
+    "flow_tested": [
+      "1. Navegacao e verificacao inicial dos componentes e canvases",
+      "2. Busca e selecao do ativo TD.TO com renderizacao de candles e indicadores",
+      "3. Interacoes com paineis e ferramentas (Expert Panel / SDCA Lab / Timeframes)",
+      "4. Conversa ao vivo com o Bob (transmissao de stream, calculos de risco e veredito do firewall)",
+      "5. Captura de snapshots visuais e analise de erros de console"
+    ],
+    "verification": {
+      "success": true,
+      "console_errors": 0,
+      "chat_duration_s": 18.08,
+      "total_time_s": 27.11,
+      "screenshots": [
+        "output/user_testing/01_initial_cockpit.png",
+        "output/user_testing/02_chart_loaded_td_to.png",
+        "output/user_testing/03_expert_panel_interaction.png",
+        "output/user_testing/04_bob_live_response.png"
+      ]
+    }
+  },
+  "high_risk_scanner_hardening_20260822": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "timestamp": "2026-08-23T02:27:00Z",
+    "objective": "Desbloqueio e aceleracao do scanner de mercado para consultas de alto risco/penny stocks e resiliencia total contra provider exceptions.",
+    "fixes": [
+      "1. src/data/yfinance_provider.py: Protecao total contra exchangeTimezoneName e isolamento de stdout multithread.",
+      "2. src/data/data_hub.py: Registro de price/market_price/quote para Finnhub e priorizacao inteligente de rotas.",
+      "3. src/data/twelve_data.py: Normalizacao de sufixos de bolsas canadenses (.TO -> TSX, .V -> TSXV).",
+      "4. src/core/pipeline/nodes/collector.py: Inclusao de termos em portugues e ingles de alto risco/especulacao e geracao de tese tecnica automatica.",
+      "5. src/core/scanner/penny_scanner.py: Paralelizacao do scan com ThreadPoolExecutor e fast_info (< 1.5s vs 40s anterior).",
+      "6. src/core/pipeline/trade_order.py: Ajuste dinamico de liquidez minima para microcaps e penny stocks."
+    ],
+    "verification": {
+      "ruff": "100% PASS",
+      "pytest": "115/115 passed in 42.45s",
+      "browser_smoke": "PASS (0 console errors, 126 candles, 7 canvases, Portuguese stream valid)",
+      "live_scan_test": "PASS (2 valid high-risk liquid candidates returned)"
+    }
+  },
+  "cloudflare_public_deploy_20260822": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "timestamp": "2026-08-23T02:44:00Z",
+    "objective": "Deploy público do domínio raiz https://supereziorealtime.com via Cloudflare Tunnel com autenticação JWT fail-closed e gates G1-G12 100% verdes.",
+    "state": {
+      "tunnel_id": "22e6fc68-8166-43be-a5b2-6e8b33803571",
+      "root_url": "https://supereziorealtime.com",
+      "ingress": "supereziorealtime.com -> http://127.0.0.1:8002",
+      "dns": "CNAME @ -> 22e6fc68-8166-43be-a5b2-6e8b33803571.cfargotunnel.com (Proxied)",
+      "cors_origins": [
+        "https://supereziorealtime.com",
+        "https://www.supereziorealtime.com"
+      ]
+    },
+    "verification": {
+      "verify_public_gate": "PASS (G1, G4, G5, G6, G12 all OK, 0 failures, 0 leaks)",
+      "root_health_check": "200 OK via HTTPS (HTML 25KB)",
+      "auth_protection": "401 on /auth/me, 403 on /auth/register",
+      "pytest": "115/115 passed in 46.25s",
+      "ruff": "100% PASS"
+    }
+  },
+  "datahub_quote_fallback_20260823": {
+    "status": "DELIVERED_AND_LIVE",
+    "problem": "finnhub e a unica rota registrada com a capability \"quote\". Com FINNHUB_API_KEY ausente de .env/.env.local (chave b444a4ae removida apos 401), resolve(\"quote\") retornava vazio e route(\"quote\") morria com \"all providers exhausted\" (log 2026-07-21; confirmado em revisao 2026-08-23).",
+    "change": "Alias _CAPABILITY_ALIASES['quote']=(quote, price, market_price) em DataHub.resolve() + fallback de metodo para 'price'/'market_price' em route() quando a rota nao tem metodo quote dedicado. Payloads de price passam em _is_usable_result('quote') (exige price>0); change_pct/volume continuam opcionais (completeness score menor, sem invalidacao).",
+    "files": [
+      "src/data/data_hub.py",
+      "tests/test_data_hub_routing.py"
+    ],
+    "tests": {
+      "new": 3,
+      "data_layer_battery": "67 passed (routing/cache/health/finnhub/yfinance/circuit/twelve/akshare)",
+      "ruff": "clean"
+    },
+    "commit": "c486f78",
+    "open_dependency": "Rotacionar a chave no portal Finnhub e gravar FINNHUB_API_KEY em .env.local reativa a rota automaticamente (auth-failure map e indexado pelo valor da chave).",
+    "restart_required": "APPLIED 2026-08-23 14:58 UTC (sessao atual, scans off) e depois retomado 15:03:40 UTC por OUTRA sessao claude.exe (PID 10072, Antigravity IDE) que matou o processo desta sessao e subiu o seu logando em runtime/logs/api-smoke-test-20260821.log — SEM as vars de scan (Mangala proactive ON 15/60min). Ambos os processos tem o fix (subiram apos c486f78).",
+    "live_evidence": "resolve(\"quote\") -> [twelve_data, alpha_vantage, yfinance]; route(\"quote\",\"SHOP.TO\") -> 205.61 via yfinance. No servidor da outra sessao: twelve_data estourou cota diaria (1550/800) e price caiu para yfinance — a cadeia de fallback funcionando ao vivo no cenario real de exaustao de free tier."
+  },
+  "td_specialization_20260823": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "objective": "Especializar o SuperEzio no universo negociavel pelo TD Direct Investing (decisao do operador 2026-08-23).",
+    "delivered": [
+      "Contrato do universo: src/core/trading/td_universe.py — manifest dos 108 ETFs sem comissao (83 CAN + 25 US) + is_commission_free/is_td_tradable_exchange (commit 432d3a8)",
+      "Scanner: OTC/pink rejeitado INCONDICIONALMENTE (antes so quando penny desativado) — universo listado TSX/TSXV/NYSE/NASDAQ (commit f306732)",
+      "Cockpit: candidatos aprovados taggeados commission_free + badge 'sem comissao TD: N candidato(s)' no resumo do scan (commit com eventos)",
+      "Dados: Finnhub free cobre US + dual-listadas (TD/RY via NYSE); yfinance cobre TSX-only keyless — universos cobertos de graca"
+    ],
+    "live_evidence": {
+      "scan_pipeline": "pipeline ao vivo 139.4s STREAM_END com dados Finnhub (price 117.15 NYSE TD, F51 0.828, SDCA ALLOW, resposta PT completa)",
+      "finnhub_key": "nova key do operador ativa no .env.local (40 chars, validada: AAPL quote ok; .TO negado por free tier — por design, fallback yfinance)",
+      "gate": "verify_public_gate 100% verde em modo publico"
+    },
+    "tests": "52/52 (gate + universe + scan loop); node --check limpo"
+  },
+  "td_universe_lock_20260823": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "objective": "Travar o sistema INTEIRO fail-closed no universo negociavel pelo TD Direct Investing (pedido do operador: 'da um jeito do sistema travar sempre nos ativos do td'), com 3 subagentes de pesquisa descobrindo o universo completo.",
+    "research": {
+      "method": "3 subagentes paralelos (S1 fontes de enumeracao, S2 verificacao TD oficial, S3 analise de codigo local) — GitHub bloqueado respeitado em todos",
+      "enumeration_sources_live_validated": [
+        "Nasdaq Trader SymDir keyless (nasdaqlisted + otherlisted; N/A/P mantidos, Z/V excluidos, Test Issue filtrado)",
+        "Twelve Data /stocks?exchange=XTSE|XTSX (unica fonte CA; quota diaria 800 — exaurida 1550/800 pelos scans do dia)"
+      ],
+      "verification_gap": "S2 nao conseguiu reconfirmar a lista de bolsas em fonte oficial TD (WebSearch quota ate 2026-09-14) — allowlist derivada por consistencia interna (Arca exigida pelos proprios ETFs commission-free SPY/GLD/SMH/GDX; AMEX pelo contrato do ticket) — ver INV-R52"
+    },
+    "delivered": {
+      "single_contract": "src/core/trading/td_universe.py — 5 definicoes de venue em drift viraram 1: allowlist positiva TSX/TSXV/NYSE/NASDAQ/NYSEAMERICAN/NYSEARCA + TD_EXCHANGE_CURRENCY + normalizacao de aliases (TOR/TSV/NYQ/NMS/NGM/NCM/ASE/PCX/XTSE/XTSX/AMEX/NYSEMKT/ARCA/TSXVENTURE/TORONTO); 'US' generico deliberadamente NAO mapeado (nao prova listado vs OTC)",
+      "scanner": "whitelists derivadas do contrato (nao ha mais lista propria); scan_equities_detailed preserva a bolsa VERIFICADA como provenanca — antes o scanner descartava a exchange e o gate chutava por country label (bug real de inanicao: candidatos rejeitados em massa)",
+      "collector_gate": "has_otc_marker -> otc_filtered (contrato preservado, pinado por teste); fora da allowlist e sem vouch de manifest fresco -> exchange_not_td_supported; pennylab estampa .TO=TSX/.V=TSXV",
+      "closed_holes": "LSE/BVMF(CSE .CN/NEO .NE/JPX/generico US rejeitados; literal 'OTC' como exchange suportada morta em professional.py; caminho .SA->BVMF removido",
+      "manifest": "config/td_tradable_universe.json schema v2 TTL 7d — 11.527 simbolos US construidos AO VIVO 2026-08-23 (NASDAQ 5593, NYSE 2918, NYSEAMERICAN 309, NYSEARCA 2707); builder scripts/update_td_universe_manifest.py (chave Twelve Data so de .env/.env.local, erros HTTP redigidos — apikey nunca alcanc o log); degradacao TTL e fail-closed (stale = so allowlist de venue, nunca mais permissivo) exposta via tradable_universe_state()",
+      "ticket": "td_direct_ticket.py consome o contrato (TD_EXCHANGE_CURRENCY + normalize_td_exchange) — dict local removido",
+      "frontend": "label PT 'bolsa fora do universo TD' para exchange_not_td_supported"
+    },
+    "verification": {
+      "targeted": "187/187 ampliados (test_td_universe reescrito com estados de manifest via fixture isolada; test_market_scan_candidate_gate com LSE/BVMF/JPX/CSE/NEO/US-generico rejeitados, Arca/AMEX aceitos, vouch de manifest, .TO/.V estampados; test_market_scanner com manifest pinado por monkeypatch — deterministico)",
+      "full_suite": "2105 passed, 2 skipped, 0 failed em 692.43s (pos-formatacao dos arquivos da sessao: 97/97 re-rodados)",
+      "ruff": "check PASS; format aplicado nos 4 arquivos da sessao (7 arquivos com drift pre-existente de outras sessoes NAO tocados — reportado, nao corrigido)",
+      "live_contract_sanity": "NVDA/SPY vouchados pelo manifest, LSE/BVMF rejeitados, summary fresh/11527 (codigo atual)",
+      "browser_smoke": "PASS — TD.TO 200/126 candles timesOk, 7 canvases, chat 3946 chars PT com STREAM_END, 0 console errors; falha anterior de language drift foi nao-determinismo da geracao (run atual enMarker=null; diagnostico enMarker adicionado ao smoke, commit a2f0522); 504 transitiorio de provider no chart resolvido no retry",
+      "smoke_caveat": "o servidor :8002 vivo e processo de OUTRA sessao com codigo pre-mudanca — o smoke valida o runtime/chat/chart, o gate foi validado pela suite + sanidade live direta; reiniciar a API para carregar o lock em producao"
+    },
+    "pending_operator": [
+      "Rodar 'python scripts/update_td_universe_manifest.py --only all' apos reset de quota Twelve Data (midnight UTC) e a cada <=7 dias — NUNCA '--only ca' sozinho (sobrescreve o manifest com CA-only)",
+      "Reiniciar a API :8002 para carregar o gate (processo atual e de outra sessao)",
+      "Setembro: reconfirmar bolsas suportadas na pagina oficial TD + revalidar os 108 commission-free simbolo a simbolo (INV-R52; WebSearch quota)"
+    ],
+    "known_nonblocking": [
+      "Pyright: ruido pre-existente nos arquivos tocados (scanner country: str = None, openbb unresolved, collector coroutine typing) — fora de escopo pela politica de nao-misturar refatoracao com feature",
+      "CA section do manifest vazia ate o refresh (allowlist de venue cobre TSX/TSXV)",
+      "7 arquivos com drift de ruff format pre-existente de outras sessoes (penny_scanner, data_hub, 5 testes) — left as-is"
+    ],
+    "commits": [
+      "acdab43",
+      "5007e36",
+      "a2f0522",
+      "a9d965d"
+    ]
+  },
+  "discovery_delivery_20260823": {
+    "status": "DELIVERED_WITH_EVIDENCE",
+    "objective": "Scan sem ticker entrega candidatos; microcap e oportunidade valida (decisoes do operador 2026-08-23).",
+    "delivered": [
+      "fix(intents): fronteira de palavra no detector de ticker — 'ativos' nao vira mais ticker 'S'; prompt de sugestao sem 'TD' solto (47c1106)",
+      "feat(scanner): discovery inclui microcap/penny por padrao, exceto blue-chip/max-price explicito (5f5d246)",
+      "feat(scanner): seed do Mangala diario quando o scanner cru vem com <5 (c428def + a965c5e)",
+      "feat(ui): botao Sugestao + auto chart-vision + Enter no ticker (ae53d47, 49bb17e)"
+    ],
+    "live_evidence": {
+      "real_hub_scan": "CANDIDATOS: PLUG, NIO, TLRY, SNDL (dados Finnhub reais); rejeitados 20 (17 missing_price por quota diaria TwelveData 800/dia esgotada; 3 dollar_volume)",
+      "isolated_seed_test": "scanner morto -> 5 candidatos (PLUG, NIO, HIVE, ACB, CGC) com lock TD rejeitando exchange nao suportada",
+      "tests": "103/103 gate+universe+scan; 55/55 apos isolamento do seed"
+    },
+    "remaining_bottleneck": "Quota diaria do TwelveData (reseta meia-noite UTC). Finnhub cobre US/dual-list; yfinance cobre TSX."
+  },
+  "data_expansion_mission_20260823": {
+    "status": "3_OF_3_DELIVERED",
+    "objective": "Ampliar as fontes de dados (operador autorizou scraping): Reddit sentiment .TO, fontes free extras, scraper oficial TMX.",
+    "agents": [
+      "D1 reddit_sentiment_to (old.reddit search JSON, arctic-shift, subreddits canadenses)",
+      "D2 free_sources (stockanalysis.com, TMX Money, Google News RSS, Yahoo conversation — testar ao vivo, implementar 2 melhores)",
+      "D3 tmx_scraper (money.tmx.com quote/profile/fundamentals .TO)"
+    ],
+    "rules": "sem mocks (respostas reais ou NO_DATA honesto); sem GitHub; sem commits pelos agentes; ruff nos tocados.",
+    "artifacts_so_far": [
+      "runtime/checkpoints/tmx_capture/ (capturas da exploracao TMX do D3)",
+      "tmx_redirect.json (raiz, aguardando o D3)"
+    ],
+    "results": {
+      "D1_reddit": "Unica rota viva = www.reddit.com search.rss (Atom, anonimo). RedditTickerSentiment com 4 subreddits .TO, sentimento keyword determinista, NO_DATA honesto. LIVE: RY.TO 3 posts reais CanadianInvestor -> NEUTRAL_SOCIAL. commit 90a2ba3",
+      "D2_free_sources": "Google News CA RSS (100 itens) + Yahoo v1 conversation (news+sentiment) implementados com fixtures reais. stockanalysis/TMX-HTML/CBOE/TradingView/MarketWatch mortos documentados. commit b1f2dc1",
+      "D3_tmx": "GraphQL oficial app-money.tmx.com decifrado: preco/profile/fundamentals .TO keyless ~0.5s. LIVE: TD.TO 161.24 CAD, SHOP.TO mcap 248.5B. commit b1f2dc1"
+    }
+  }
+}

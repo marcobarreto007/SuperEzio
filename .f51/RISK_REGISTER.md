@@ -1,7 +1,7 @@
 # F51 Risk Register
 
 Updated: 2026-08-23
-Session: td-universe-lock-2026-08-23
+Session: unified-restart-and-fixes-2026-08-23 (consolida td-universe-lock, casual-greeting-intent-fix, restart-ceo e post-restart-fixes — ver .f51/checkpoints/latest.json)
 
 ## Active Risks
 
