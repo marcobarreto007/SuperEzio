@@ -848,6 +848,17 @@ async def _run_scan(
 
     allow_penny_otc = _wants_penny_or_otc(msg_lower)
     allow_microcap = _wants_microcap(msg_lower) or allow_penny_otc
+    # Operator decision 2026-08-23: discovery scans include microcap and
+    # penny opportunities on LISTED exchanges by default — microcap is an
+    # opportunity class, not a hazard class. OTC/pink remains excluded by
+    # the TD venue lock (is_td_tradable_exchange). Explicit large/blue-chip
+    # narrowing or a max-price request still overrides.
+    _wants_large_caps = any(
+        hint in msg_lower for hint in ("blue chip", "large cap", "large-cap", "liquidas")
+    )
+    if not _wants_large_caps and _requested_max_price(msg_lower) is None:
+        allow_penny_otc = True
+        allow_microcap = True
     requested_max_price = _requested_max_price(msg_lower)
 
     universe_label, countries = _resolve_universe(explicit_country, msg_lower)

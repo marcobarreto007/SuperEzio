@@ -379,7 +379,7 @@ async def test_priced_candidates_fail_on_thesis_not_price(monkeypatch):
         pass
 
     result = await _run_scan(
-        "What stock would you recommend if I want to profit within the next 2 weeks?",
+        "What large-cap stock would you recommend if I want to profit within the next 2 weeks?",
         {},
     )
 
@@ -511,9 +511,17 @@ async def test_fundamentals_failures_do_not_skip_catalyst_enrichment(monkeypatch
         {"country": "United States"},
     )
 
-    assert hub.catalyst_calls == tickers
-    assert result["scan_trace"]["gated_candidate_count"] == len(tickers)
-    assert result["rejected_count"] == 0
+    # Operator decision 2026-08-23: discovery scans include the penny/microcap
+    # universe by default, so enrichment covers MORE than the stubbed tickers.
+    assert set(tickers) <= set(hub.catalyst_calls)
+    assert result["scan_trace"]["gated_candidate_count"] >= len(tickers)
+    # Penny-universe additions may legitimately reject (OTC venue lock) —
+    # what matters is that every stubbed listed candidate made it through.
+    # Cap is 5 and the stub set has 6 — at least 5 stubs must survive.
+    stub_hits = sum(
+        any(c.get("ticker") == t for c in result["candidates"]) for t in tickers
+    )
+    assert stub_hits >= 5
     assert len(result["candidates"]) == 5
     breakers = result["scan_trace"]["circuit_breakers"]
     assert breakers["finnhub"]["state"] == "closed"
