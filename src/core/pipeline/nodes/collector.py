@@ -27,6 +27,7 @@ from ..trade_order import (
     pick_candidate,
     rank_candidates,
 )
+from core.trading.td_universe import is_commission_free
 from ..scan_registry import ScanEventRegistry
 from ..circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
 
@@ -296,6 +297,9 @@ async def node_collector(state: dict, *, config=None) -> dict:
                 "quality": scan.get("data_quality", "partial"),
                 "source_errors": scan.get("source_errors", []),
                 "candidates": len(candidates),
+                "commission_free_count": sum(
+                    1 for c in candidates if c.get("commission_free")
+                ),
                 "rejected_count": scan.get("rejected_count", 0),
                 "rejection_summary": scan.get("rejection_summary", {}),
                 "providers": providers_used,
@@ -1474,6 +1478,9 @@ async def _run_scan(
         )
         if ok:
             normalize_liquidity_fields(item)
+            # TD specialization: tag candidates that belong to the official
+            # commission-free ETF universe so the cockpit can badge them.
+            item["commission_free"] = is_commission_free(str(item.get("ticker") or ""))
             passing.append(item)
             continue
         rj = dict(item)
