@@ -1625,7 +1625,7 @@
     },
     "commit": "c486f78",
     "open_dependency": "Rotacionar a chave no portal Finnhub e gravar FINNHUB_API_KEY em .env.local reativa a rota automaticamente (auth-failure map e indexado pelo valor da chave).",
-    "restart_required": "APPLIED 2026-08-23 ~14:58 UTC: API reiniciada com scans desativados (SUPEREZIO_ANS_SCAN=0, SUPEREZIO_MANGALA_SCAN=0); health 200; sem re-submit de task.",
-    "live_evidence": "resolve(\"quote\") -> [twelve_data, alpha_vantage, yfinance]; route(\"quote\",\"SHOP.TO\") -> 205.61 via yfinance (twelve_data nao cobre TSX no free tier, cadeia caiu como desenhado)."
+    "restart_required": "APPLIED 2026-08-23 14:58 UTC (sessao atual, scans off) e depois retomado 15:03:40 UTC por OUTRA sessao claude.exe (PID 10072, Antigravity IDE) que matou o processo desta sessao e subiu o seu logando em runtime/logs/api-smoke-test-20260821.log — SEM as vars de scan (Mangala proactive ON 15/60min). Ambos os processos tem o fix (subiram apos c486f78).",
+    "live_evidence": "resolve(\"quote\") -> [twelve_data, alpha_vantage, yfinance]; route(\"quote\",\"SHOP.TO\") -> 205.61 via yfinance. No servidor da outra sessao: twelve_data estourou cota diaria (1550/800) e price caiu para yfinance — a cadeia de fallback funcionando ao vivo no cenario real de exaustao de free tier."
   }
 }
