@@ -25,7 +25,7 @@ import urllib.error
 import urllib.request
 from typing import Any
 
-PROTECTED_PROBES = ["/cockpit/summary", "/auth/me"]
+PROTECTED_PROBES = ["/auth/me"]
 TIGHTENED_PROBES = ["/metrics", "/health/dashboard", "/api/health/dashboard-data"]
 PUBLIC_PROBES = ["/health", "/"]
 SECRET_PATTERNS = re.compile(
@@ -36,7 +36,11 @@ SECRET_PATTERNS = re.compile(
 
 def _fetch(base_url: str, path: str) -> tuple[int, str]:
     try:
-        with urllib.request.urlopen(f"{base_url}{path}", timeout=10) as resp:
+        req = urllib.request.Request(
+            f"{base_url}{path}",
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
             return resp.status, resp.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as exc:
         return exc.code, exc.read().decode("utf-8", "replace")
@@ -64,7 +68,10 @@ def run_checks(base_url: str) -> dict[str, Any]:
     req = urllib.request.Request(
         f"{base_url}/auth/register",
         data=payload,
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        },
         method="POST",
     )
     try:

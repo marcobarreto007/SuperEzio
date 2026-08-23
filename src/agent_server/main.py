@@ -429,6 +429,9 @@ _configured_origins = getattr(_conf.server, "cors_origins", []) if _conf else []
 _cors_origins = [origin for origin in _configured_origins if origin and origin != "*"] or [
     "http://localhost:8002",
     "http://127.0.0.1:8002",
+    "https://supereziorealtime.com",
+    "https://www.supereziorealtime.com",
+    "https://cockpit.supereziorealtime.com",
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -470,6 +473,7 @@ async def security_headers_middleware(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "0"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["X-Accel-Buffering"] = "no"
     if request.url.path == "/" or request.url.path.startswith(("/frontend", "/css", "/js")):
         response.headers["Cache-Control"] = "no-store"
     if request.url.scheme == "https":

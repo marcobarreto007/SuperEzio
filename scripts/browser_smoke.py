@@ -42,10 +42,16 @@ DEFAULT_PROMPT = (
 PT_MARKERS_RE = r"\b(você|não|uma|para|com|como|por|dos|das|ser|pode|deve)\b"
 
 
+DEFAULT_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+}
+
+
 def _http_json(
     url: str, timeout_s: float = 5.0, headers: dict[str, str] | None = None
 ) -> dict[str, Any]:
-    request = urllib.request.Request(url, headers=headers or {})
+    merged_headers = {**DEFAULT_HEADERS, **(headers or {})}
+    request = urllib.request.Request(url, headers=merged_headers)
     with urllib.request.urlopen(request, timeout=timeout_s) as response:
         raw = response.read().decode("utf-8")
     data = json.loads(raw)
@@ -63,7 +69,8 @@ def _auth_bootstrap(base_url: str) -> str | None:
     """
     base = base_url.rstrip("/")
     try:
-        with urllib.request.urlopen(f"{base}/auth/me", timeout=5) as resp:
+        req = urllib.request.Request(f"{base}/auth/me", headers=DEFAULT_HEADERS)
+        with urllib.request.urlopen(req, timeout=5) as resp:
             return None  # dev mode — anonymous allowed
     except urllib.error.HTTPError as exc:
         if exc.code != 401:
@@ -80,7 +87,7 @@ def _auth_bootstrap(base_url: str) -> str | None:
     request = urllib.request.Request(
         f"{base}/auth/login",
         data=payload,
-        headers={"Content-Type": "application/json"},
+        headers={"Content-Type": "application/json", **DEFAULT_HEADERS},
     )
     try:
         with urllib.request.urlopen(request, timeout=10) as resp:
@@ -270,6 +277,7 @@ def _chat_api_check(
         headers={
             "Content-Type": "application/json",
             "Accept": "application/x-ndjson",
+            **DEFAULT_HEADERS,
             **(headers or {}),
         },
     )
