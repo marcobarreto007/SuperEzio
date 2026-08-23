@@ -45,8 +45,17 @@ def test_market_scanner_imports_from_production_path():
 @pytest.mark.asyncio
 async def test_run_scan_uses_restored_market_scanner(monkeypatch):
     """The restored MarketScanner must drive _run_scan and feed the gate."""
+    import core.trading.td_universe as _td_universe
     from src.core import scanner as scanner_module
     from src.core.pipeline.nodes.collector import _run_scan
+
+    # FakeScanner has no scan_equities_detailed, so items reach the TD gate
+    # with only a country label — the fresh-manifest fallback must vouch for
+    # them. Pin the manifest deterministically (no real-manifest freshness
+    # dependency in unit tests).
+    monkeypatch.setattr(
+        _td_universe, "_tradable_symbols_cached", lambda: frozenset({"NVDA", "MSFT"})
+    )
 
     class FakeScanner:
         def scan_equities(self, country=None, sector=None, industry=None, limit=10):

@@ -76,6 +76,7 @@
     currency_market_mismatch: "moeda/market incompativel",
     penny_filtered: "penny filtrado",
     otc_filtered: "OTC filtrado",
+    exchange_not_td_supported: "bolsa fora do universo TD",
     microcap_filtered: "microcap filtrada",
     price_above_requested_max: "acima do teto pedido",
     quality_gate_failed: "gate de qualidade",

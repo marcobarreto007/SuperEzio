@@ -14,11 +14,16 @@ import financedatabase as fd
 _US_TICKER_RE = re.compile(r"^[A-Z]{1,5}([.-][A-Z])?$")
 _CA_TICKER_RE = re.compile(r"^[A-Z]{1,5}\.(TO|V)$")
 
-# Only major exchanges that free pricing APIs (Finnhub, YFinance, Stooq) cover.
-# OTC Pink (PNK), OTCQB (OQB), and other minor exchanges are excluded — their
-# tickers have no verifiable price data and waste the enrichment budget.
-_US_EXCHANGE_WHITELIST = {"NYQ", "NMS", "NCM", "ASE", "NGM"}
-_CA_EXCHANGE_WHITELIST = {"TOR", "TSX", "TSV"}
+# Only TD-supported exchanges (TD specialization 2026-08-23). Derived from the
+# single td_universe contract — this module must NOT keep its own venue list.
+# OTC Pink (PNK), OTCQB (OQB), CSE (.CN), NEO (.NE) and other venues are
+# excluded: not TD-tradable, and their tickers waste the enrichment budget.
+from ..trading.td_universe import td_exchange_alias_codes  # noqa: E402
+
+_US_EXCHANGE_WHITELIST = td_exchange_alias_codes(
+    {"NYSE", "NASDAQ", "NYSEAMERICAN", "NYSEARCA"}
+)
+_CA_EXCHANGE_WHITELIST = td_exchange_alias_codes({"TSX", "TSXV"})
 
 # Market cap labels to exclude — these are typically SPACs, warrants, empty shells,
 # or companies with no tradable liquidity.
@@ -81,6 +86,71 @@ class MarketScanner:
         """Salva resultado no cache."""
         self._cache[key] = (value, time.time())
 
+    def _filter_us_ca_selection(self, selection) -> List[tuple]:
+        """Apply the TD venue/ticker/market-cap gates; return (ticker, exchange)."""
+        # Both US and Canadian companies trade on major US exchanges.
+        # "country" is the incorporation country, not the listing venue.
+        # TOR/TSX/TSV are legitimate Canadian venues but FinanceDatabase
+        # primarily indexes Canadian companies via their US-listed symbols.
+        exchange_ok = _US_EXCHANGE_WHITELIST | _CA_EXCHANGE_WHITELIST
+
+        pairs: list[tuple] = []
+        for t in selection.index:
+            s = str(t)
+            if not _is_valid_us_ca_ticker(s):
+                continue
+            # Exchange gate — reject OTC (PNK), OTCQB (OQB), etc.
+            row = selection.loc[t]
+            exc = str(row.get("exchange") or "")
+            if exc and exc not in exchange_ok:
+                continue
+            # Market cap gate — reject Nano Caps (typically SPAC/warrant shells)
+            mcap = str(row.get("market_cap") or "")
+            if mcap in _EXCLUDED_MARKET_CAPS:
+                continue
+            pairs.append((s, exc))
+        return pairs
+
+    def scan_equities_detailed(
+        self,
+        country: str = None,
+        sector: str = None,
+        industry: str = None,
+        limit: int = 10,
+    ) -> List[dict]:
+        """Like scan_equities, but keeps the VERIFIED exchange per ticker.
+
+        The exchange is provenance the collector needs for the TD-universe
+        gate — throwing it away (bare symbols + country label) forces the
+        gate to guess. Test doubles may omit this method; callers must
+        fall back to scan_equities.
+        """
+        selection = self._select_equities(country, sector, industry)
+        if selection is None:
+            return []
+        try:
+            pairs = self._filter_us_ca_selection(selection)
+            rng = random.Random(time.time())
+            rng.shuffle(pairs)
+            return [{"ticker": s, "exchange": exc} for s, exc in pairs[:limit]]
+        except Exception as e:
+            _log_event("SCANNER", "SCAN_ERROR", {"type": "equities", "error": str(e)})
+            return []
+
+    def _select_equities(self, country, sector, industry):
+        try:
+            kwargs = {}
+            if country:
+                kwargs["country"] = country
+            if sector:
+                kwargs["sector"] = sector
+            if industry:
+                kwargs["industry"] = industry
+            return self.equities.select(**kwargs)
+        except Exception as e:
+            _log_event("SCANNER", "SCAN_ERROR", {"type": "select", "error": str(e)})
+            return None
+
     def scan_equities(
         self,
         country: str = None,
@@ -103,47 +173,18 @@ class MarketScanner:
             return cached
 
         try:
-            kwargs = {}
-            if country:
-                kwargs["country"] = country
-            if sector:
-                kwargs["sector"] = sector
-            if industry:
-                kwargs["industry"] = industry
-
-            selection = self.equities.select(**kwargs)
-
+            selection = self._select_equities(country, sector, industry)
             if selection is None or selection.empty:
                 return []
 
-            # Both US and Canadian companies trade on major US exchanges.
-            # "country" is the incorporation country, not the listing venue.
-            # TOR/TSX/TSV are legitimate Canadian venues but FinanceDatabase
-            # primarily indexes Canadian companies via their US-listed symbols.
-            exchange_ok = _US_EXCHANGE_WHITELIST | _CA_EXCHANGE_WHITELIST
-
-            tickers: list[str] = []
-            for t in selection.index:
-                s = str(t)
-                if not _is_valid_us_ca_ticker(s):
-                    continue
-                # Exchange gate — reject OTC (PNK), OTCQB (OQB), etc.
-                row = selection.loc[t]
-                exc = str(row.get("exchange") or "")
-                if exc and exc not in exchange_ok:
-                    continue
-                # Market cap gate — reject Nano Caps (typically SPAC/warrant shells)
-                mcap = str(row.get("market_cap") or "")
-                if mcap in _EXCLUDED_MARKET_CAPS:
-                    continue
-                tickers.append(s)
+            pairs = self._filter_us_ca_selection(selection)
 
             # Shuffle so every scan returns different tickers instead of
             # the same alphabetical A* garbage.
             rng = random.Random(time.time())
-            rng.shuffle(tickers)
+            rng.shuffle(pairs)
 
-            result = tickers[:limit]
+            result = [s for s, _ in pairs[:limit]]
             self._set_cached(cache_key, result)
             return result
 

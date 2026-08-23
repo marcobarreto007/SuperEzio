@@ -735,13 +735,20 @@ def _apply_candidate_gate(
             return False, "penny_filtered"
 
     # TD specialization (operator decision 2026-08-23): the tradable universe
-    # is listed exchanges (TSX/TSXV/NYSE/NASDAQ). OTC/pink venues are rejected
-    # unconditionally — even when penny scanning is explicitly requested.
-    from core.trading.td_universe import is_td_tradable_exchange
+    # is ONLY exchanges supported by TD Direct Investing — TSX, TSXV, NYSE,
+    # NASDAQ, NYSE American and NYSE Arca (single contract in td_universe).
+    # OTC/pink is rejected unconditionally — even when penny scanning is
+    # explicitly requested. Any other venue (CSE, NEO, generic/unknown,
+    # foreign exchanges) is rejected fail-closed with its own reason.
+    from core.trading.td_universe import has_otc_marker, is_td_tradable
 
     venue = str(item.get("venue") or item.get("exchange") or item.get("market") or "")
-    if not is_td_tradable_exchange(venue):
+    if has_otc_marker(venue):
         return False, "otc_filtered"
+    # Allowlist first; a venue-less item (country label only) can still be
+    # vouched by the fresh full ticker manifest — otherwise fail closed.
+    if not is_td_tradable(str(item.get("ticker") or ""), venue):
+        return False, "exchange_not_td_supported"
 
     if not allow_microcap:
         mcap = item.get("market_cap") or item.get("marketcap")
@@ -924,26 +931,46 @@ async def _run_scan(
                     errors=fetch_errors,
                 )
                 try:
-                    tickers = await asyncio.to_thread(
-                        scanner.scan_equities,
-                        country=country,
-                        sector=explicit_sector,
-                        limit=per_country_limit,
-                    )
+                    # Prefer the detailed scan: it carries the venue the
+                    # scanner already verified, which the TD-universe gate
+                    # needs (a country label alone proves nothing).
+                    detailed = getattr(scanner, "scan_equities_detailed", None)
+                    if detailed is not None:
+                        entries = await asyncio.to_thread(
+                            detailed,
+                            country=country,
+                            sector=explicit_sector,
+                            limit=per_country_limit,
+                        )
+                        tickers = [str(e.get("ticker") or "") for e in entries or []]
+                    else:
+                        entries = []
+                        tickers = await asyncio.to_thread(
+                            scanner.scan_equities,
+                            country=country,
+                            sector=explicit_sector,
+                            limit=per_country_limit,
+                        )
                 except Exception as exc:  # noqa: BLE001
                     source_errors.append(f"scanner_{country}: {exc}")
                     fetch_errors += 1
                     continue
+                exchanges_by_ticker = {
+                    str(e.get("ticker") or ""): str(e.get("exchange") or "")
+                    for e in entries or []
+                }
                 for sym in tickers or []:
                     if not sym:
                         continue
-                    raw_candidates.append(
-                        {
-                            "ticker": str(sym),
-                            "source": "financedatabase",
-                            "market": country,
-                        }
-                    )
+                    candidate = {
+                        "ticker": str(sym),
+                        "source": "financedatabase",
+                        "market": country,
+                    }
+                    exc = exchanges_by_ticker.get(str(sym), "")
+                    if exc:
+                        candidate["exchange"] = exc
+                    raw_candidates.append(candidate)
             registry.stage_completed(
                 "fetch_tickers",
                 provider="scanner",
@@ -1008,15 +1035,20 @@ async def _run_scan(
             existing_tickers = {c["ticker"].upper() for c in raw_candidates}
             for sym in _PENNY_WATCHLIST:
                 if sym.upper() not in existing_tickers:
-                    raw_candidates.append(
-                        {
-                            "ticker": sym,
-                            "source": "pennylab_watchlist",
-                            "market": "Canada"
-                            if (sym.endswith(".TO") or sym.endswith(".V"))
-                            else ("Brazil" if sym.endswith(".SA") else "United States"),
-                        }
-                    )
+                    candidate = {
+                        "ticker": sym,
+                        "source": "pennylab_watchlist",
+                        "market": "Canada"
+                        if (sym.endswith(".TO") or sym.endswith(".V"))
+                        else ("Brazil" if sym.endswith(".SA") else "United States"),
+                    }
+                    # A .TO/.V suffix proves the TSX/TSXV listing venue —
+                    # stamp it so the TD gate needs no guesswork.
+                    if sym.endswith(".TO"):
+                        candidate["exchange"] = "TSX"
+                    elif sym.endswith(".V"):
+                        candidate["exchange"] = "TSXV"
+                    raw_candidates.append(candidate)
         except Exception as exc:
             logger.warning("Failed to merge pennylab watchlist: %s", exc)
 

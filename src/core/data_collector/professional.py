@@ -31,7 +31,12 @@ logger = logging.getLogger(__name__)
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
-_SUPPORTED_EXCHANGES = frozenset({"TSX", "TSXV", "NASDAQ", "NYSE", "NYSEARCA", "OTC"})
+# TD-supported exchanges only (TD specialization 2026-08-23). Derived from the
+# single td_universe contract — the previous literal included "OTC", which
+# contradicted the specialization.
+from core.trading.td_universe import td_canonical_exchanges  # noqa: E402
+
+_SUPPORTED_EXCHANGES = td_canonical_exchanges()
 
 _CAPABILITY_PRICE = "price"
 _CAPABILITY_QUOTE = "quote"
@@ -84,15 +89,33 @@ def _safe_filename(ticker: str) -> str:
     return "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in ticker)
 
 
+_NON_TD_SUFFIXES = (
+    ".SA",
+    ".CN",
+    ".NE",
+    ".L",
+    ".F",
+    ".DE",
+    ".SI",
+    ".T",
+    ".HK",
+    ".SS",
+    ".SZ",
+)
+
+
 def _detect_exchange(ticker: str) -> str:
-    """Detect exchange from ticker suffix/prefix."""
+    """Detect exchange from ticker suffix/prefix (TD universe only)."""
     t = ticker.upper().replace(" ", "")
     if t.endswith(".TO"):
         return "TSX"
     if t.endswith(".V"):
         return "TSXV"
-    if t.endswith(".SA"):
-        return "BVMF"
+    # Non-TD venue suffixes (B3, CSE, NEO/Cboe Canada, LSE, Germany, Tokyo,
+    # Singapore, Hong Kong, China) are never tradable — surface them as
+    # UNSUPPORTED instead of guessing a US venue (TD specialization).
+    if t.endswith(_NON_TD_SUFFIXES):
+        return "UNSUPPORTED"
     if len(t) <= 5 and t.isalpha():
         return "NYSE"  # Most short alphabetic tickers are NYSE/NASDAQ
     return "NASDAQ"

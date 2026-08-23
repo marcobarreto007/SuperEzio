@@ -93,9 +93,15 @@ def _map_item(r: Any, source_label: str) -> dict[str, Any]:
     exchange = getattr(r, "exchange", None)
     if exchange:
         item["exchange"] = str(exchange)
-        # Map exchange to market for downstream compatibility
-        _us_exchanges = {"NMS", "NYQ", "NCM", "ASE", "NGM"}
-        _ca_exchanges = {"TOR", "TSX", "TSV"}
+        # Map exchange to market for downstream compatibility. Codes derive
+        # from the td_universe contract (TD specialization 2026-08-23) — no
+        # private venue lists in this module.
+        from core.trading.td_universe import td_exchange_alias_codes
+
+        _us_exchanges = td_exchange_alias_codes(
+            {"NYSE", "NASDAQ", "NYSEAMERICAN", "NYSEARCA"}
+        )
+        _ca_exchanges = td_exchange_alias_codes({"TSX", "TSXV"})
         _exc = str(exchange).upper()
         if _exc in _us_exchanges:
             item["market"] = "United States"

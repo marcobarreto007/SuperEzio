@@ -17,18 +17,13 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from core.paths import resolve_project_path
+from core.trading.td_universe import TD_EXCHANGE_CURRENCY as _EXCHANGE_CURRENCY
+from core.trading.td_universe import normalize_td_exchange
 
 
 DEFAULT_TICKET_LOG = resolve_project_path("runtime/td_direct/tickets.jsonl")
 DEFAULT_COMMISSION_MANIFEST = resolve_project_path("config/td_direct_commission_free_etfs.json")
 _SYMBOL_RE = re.compile(r"^[A-Z0-9]{1,8}(?:[.-][A-Z0-9]{1,4})?$")
-_EXCHANGE_CURRENCY = {
-    "TSX": "CAD",
-    "TSXV": "CAD",
-    "NYSE": "USD",
-    "NASDAQ": "USD",
-    "AMEX": "USD",
-}
 _FORBIDDEN_SECRET_FIELDS = {
     "account_number",
     "connect_id",
@@ -233,8 +228,11 @@ def build_td_direct_ticket(
         raise TDDirectTicketError("unsupported fields: " + ", ".join(unknown_fields))
 
     current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
-    exchange = str(payload.get("exchange") or "").strip().upper()
-    if exchange not in _EXCHANGE_CURRENCY:
+    # Canonical exchange comes from the td_universe contract: provider
+    # spellings (AMEX, NYSE American, ARCA, ...) normalize to the six
+    # TD-supported venues before currency and symbol checks.
+    exchange = normalize_td_exchange(str(payload.get("exchange") or "").strip().upper())
+    if exchange is None:
         raise TDDirectTicketError(
             "exchange must be one of: " + ", ".join(sorted(_EXCHANGE_CURRENCY))
         )
@@ -267,7 +265,8 @@ def build_td_direct_ticket(
         raise TDDirectTicketError("trusted quote consensus is not verified")
     if trusted_quote.get("stale_fallback_used") is not False:
         raise TDDirectTicketError("stale quote fallback is forbidden for live-manual tickets")
-    if str(trusted_quote.get("exchange") or "").upper() != exchange:
+    quote_exchange = normalize_td_exchange(str(trusted_quote.get("exchange") or ""))
+    if quote_exchange != exchange:
         raise TDDirectTicketError("trusted quote exchange does not match ticket exchange")
     if str(trusted_quote.get("currency") or "").upper() != currency:
         raise TDDirectTicketError("trusted quote currency does not match ticket currency")
