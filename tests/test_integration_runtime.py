@@ -70,6 +70,40 @@ def servers_running():
     return True
 
 
+def _bootstrap_auth_headers() -> dict[str, str]:
+    """Bearer headers when the API runs in public mode; {} in dev mode."""
+    try:  # load .env.local so public-mode credentials resolve (like the smokes)
+        from core.config.secrets import load_local_env
+
+        load_local_env()
+    except ImportError:
+        pass
+    try:
+        urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:8002/auth/me"), timeout=5)
+        return {}
+    except urllib.error.HTTPError as exc:
+        if exc.code != 401:
+            return {}
+    username = os.getenv("SUPEREZIO_SMOKE_USER", "admin")
+    password = os.getenv("SUPEREZIO_SMOKE_PASSWORD") or os.getenv("SUPEREZIO_ADMIN_PASSWORD", "")
+    if not password:
+        pytest.skip("Public mode active and no SUPEREZIO_ADMIN_PASSWORD in env — cannot auth")
+    payload = json.dumps({"username": username, "password": password}).encode()
+    req = urllib.request.Request(
+        "http://127.0.0.1:8002/auth/login",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        body = json.loads(resp.read().decode())
+    return {"Authorization": f"Bearer {body['access_token']}"}
+
+
+@pytest.fixture(scope="module")
+def auth_headers():
+    return _bootstrap_auth_headers()
+
+
 # ---------------------------------------------------------------------------
 # Health checks (real endpoints)
 # ---------------------------------------------------------------------------
@@ -91,8 +125,8 @@ def test_api_health_endpoint(servers_running):
     assert body.get("status") == "ok"
 
 
-def test_api_health_details_endpoint(servers_running):
-    req = urllib.request.Request(API_DETAILS)
+def test_api_health_details_endpoint(servers_running, auth_headers):
+    req = urllib.request.Request(API_DETAILS, headers=auth_headers)
     # Detailed health performs bounded broker/data probes and is intentionally
     # slower than the liveness endpoint. Keep this above those probe budgets.
     resp = urllib.request.urlopen(req, timeout=15)
@@ -107,7 +141,7 @@ def test_api_health_details_endpoint(servers_running):
 # ---------------------------------------------------------------------------
 
 
-def test_task_submit_casual(servers_running):
+def test_task_submit_casual(servers_running, auth_headers):
     """A casual message should complete without ticker analysis."""
     payload = {
         "from": "test-runner",
@@ -122,7 +156,7 @@ def test_task_submit_casual(servers_running):
     req = urllib.request.Request(
         TASK_SUBMIT,
         data=data,
-        headers={"Content-Type": "application/json"},
+        headers={"Content-Type": "application/json", **auth_headers},
     )
     # The canonical local runtime allows up to 600 seconds. This prompt takes
     # roughly three minutes on the validated dual-GPU profile after cold boot.
@@ -142,7 +176,7 @@ def test_task_submit_casual(servers_running):
     assert "STREAM_END" in types
 
 
-def test_task_submit_ticker_analysis(servers_running):
+def test_task_submit_ticker_analysis(servers_running, auth_headers):
     """A ticker analysis request should complete the full pipeline."""
     case = _selected_investment_case()
     ticker = case["ticker"]
@@ -161,7 +195,7 @@ def test_task_submit_ticker_analysis(servers_running):
     req = urllib.request.Request(
         TASK_SUBMIT,
         data=data,
-        headers={"Content-Type": "application/json"},
+        headers={"Content-Type": "application/json", **auth_headers},
     )
     resp = urllib.request.urlopen(req, timeout=600)
     body = resp.read().decode("utf-8")
@@ -211,8 +245,8 @@ def test_investment_case_matrix_contract():
 # ---------------------------------------------------------------------------
 
 
-def test_capabilities_endpoint(servers_running):
-    req = urllib.request.Request("http://127.0.0.1:8002/capabilities")
+def test_capabilities_endpoint(servers_running, auth_headers):
+    req = urllib.request.Request("http://127.0.0.1:8002/capabilities", headers=auth_headers)
     try:
         resp = urllib.request.urlopen(req, timeout=5)
         assert resp.status == 200
@@ -229,8 +263,8 @@ def test_capabilities_endpoint(servers_running):
 # ---------------------------------------------------------------------------
 
 
-def test_product_manifest_endpoint(servers_running):
-    req = urllib.request.Request("http://127.0.0.1:8002/product/manifest")
+def test_product_manifest_endpoint(servers_running, auth_headers):
+    req = urllib.request.Request("http://127.0.0.1:8002/product/manifest", headers=auth_headers)
     try:
         resp = urllib.request.urlopen(req, timeout=5)
         assert resp.status == 200

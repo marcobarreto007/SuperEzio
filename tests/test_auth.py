@@ -31,11 +31,18 @@ from core.auth.models import UserRegister, UserLogin
 
 @pytest.fixture
 def jwt_secret(monkeypatch):
-    """Set a deterministic JWT secret for all tests that need tokens."""
+    """Set a deterministic JWT secret for all tests that need tokens.
+
+    Also pins PUBLIC_MODE=0: other test modules import agent_server.main,
+    which loads .env.local into the shared process env — with the operator's
+    SUPEREZIO_PUBLIC_MODE=1 that would silently flip these dev-mode auth
+    tests (register 201 -> 403). These tests own the dev contract.
+    """
     monkeypatch.setenv(
         "SUPEREZIO_JWT_SECRET",
         "test-secret-for-testing-purposes-only",
     )
+    monkeypatch.setenv("SUPEREZIO_PUBLIC_MODE", "0")
     return "test-secret-for-testing-purposes-only"
 
 
