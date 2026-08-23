@@ -1,8 +1,8 @@
 {
   "date_local": "2026-08-23",
-  "session": "ui-tactical-flow-and-chart-action-2026-08-23",
+  "session": "casual-greeting-intent-fix-and-server-restart-2026-08-23",
   "status": "DELIVERED",
-  "objective": "Eliminar falsos alarmes vermelhos de broker offline, modernizar o deck inferior de trades/posições, implementar o botão real '⚡ Analisar com Bob' no cabeçalho do gráfico e garantir layout responsivo validado.",
+  "objective": "Corrigir classificador de intenções para saudações casuais em português ('bob tudo bem'), isolar ticker do gráfico em conversas gerais, eliminar falsos erros vermelhos do F51 e reiniciar o servidor em produção.",
   "impact_map": {
     "problem": "O runtime esta acoplado a IBKR/paper e nao possui um contrato seguro para entregar ordens live ao TD Direct Investing.",
     "architecture_touched": [
