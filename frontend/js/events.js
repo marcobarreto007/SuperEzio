@@ -54,6 +54,68 @@
     chat.appendChild(div);
   }
 
+  /* ── Scan UX: rejection reasons + degraded-data warning ── */
+  var SCAN_REJECT_LABELS = {
+    missing_ticker: "ticker ausente",
+    missing_exchange: "exchange desconhecido",
+    missing_price: "preco indisponivel",
+    missing_liquidity: "sem volume/liquidez",
+    liquidity_below_minimum: "liquidez abaixo do minimo",
+    dollar_volume_below_minimum: "volume em $ abaixo do minimo",
+    missing_catalyst: "sem catalisador verificavel",
+    missing_catalyst_provenance: "catalisador sem origem",
+    penny_filtered: "penny filtrado",
+    otc_filtered: "OTC filtrado",
+    microcap_filtered: "microcap filtrada",
+    price_above_requested_max: "acima do teto pedido",
+    quality_gate_failed: "gate de qualidade",
+    excluded_previous_recommendation: "ja recomendado",
+    unknown: "motivo desconhecido"
+  };
+
+  function topRejectionReasons(rejection_summary, limit) {
+    if (!rejection_summary) return [];
+    var keys = Object.keys(rejection_summary);
+    keys.sort(function (a, b) { return (rejection_summary[b] || 0) - (rejection_summary[a] || 0); });
+    return keys.slice(0, limit || 3).map(function (k) {
+      return (SCAN_REJECT_LABELS[k] || k) + " (" + rejection_summary[k] + ")";
+    });
+  }
+
+  function renderScanSummary(candidate_count, rejected_count, elapsed_ms, providers) {
+    var ceo = SZ.chat.ensureCEOMessage();
+    if (!ceo) return;
+    var pass = Number(candidate_count) > 0;
+    var ls = SZ.state.lastScan || {};
+    var summary = ceo.bubble.querySelector(".scan-summary");
+    if (!summary) {
+      summary = SZ.dom.el("div", "scan-summary");
+      ceo.bubble.insertBefore(summary, ceo.bubble.firstChild);
+    }
+    // The progress line is superseded by the summary — remove it so it
+    // never lingers as a stale debug artifact above the final answer.
+    var stale = ceo.bubble.querySelector(".scanner-progress");
+    if (stale) stale.remove();
+    summary.style.cssText = "font-size:12px;color:" + (pass ? "#66bb6a" : "#ffb74d")
+      + ";padding:6px 8px;background:" + (pass ? "rgba(102,187,106,0.08)" : "rgba(255,183,77,0.12)")
+      + ";border-radius:4px;margin:4px 0;";
+    var parts = [
+      "Scan " + (pass ? "aprovou " + candidate_count : "concluido sem aprovacao") + ": "
+        + candidate_count + " aprovado(s), " + rejected_count + " rejeitado(s)"
+    ];
+    if (elapsed_ms) parts.push(Math.round(elapsed_ms / 1000) + "s");
+    if (!pass) {
+      var reasons = topRejectionReasons(ls.rejection_summary);
+      if (reasons.length) parts.push("motivos: " + reasons.join(", "));
+    }
+    if (providers && providers.length) parts.push("fontes: " + providers.join(", "));
+    var errs = ls.source_errors || [];
+    if (errs.length > 0 || ls.quality === "partial") {
+      parts.push("dados degradados" + (errs.length ? " (" + errs.length + " fonte(s) com erro)" : ""));
+    }
+    summary.textContent = parts.join(" — ");
+  }
+
   /* ==============================================================
    * MAIN EVENT HANDLER
    * ============================================================== */
@@ -235,8 +297,34 @@
       /* -- DATA_COLLECTED -- */
       case "DATA_COLLECTED":
         (function () {
+          if (ev.capability === "market_scan" || ev.rejection_summary || ev.source_errors) {
+            SZ.state.lastScan = {
+              rejection_summary: ev.rejection_summary || null,
+              source_errors: ev.source_errors || [],
+              quality: ev.quality || null,
+              candidates: ev.candidates || 0,
+              rejected_count: ev.rejected_count || 0
+            };
+            // DATA_COLLECTED can arrive after SCAN_SUMMARY — refresh the
+            // summary so rejection reasons show up immediately. Only when the
+            // scan actually rejected candidates (ticker_analysis events may
+            // also carry rejection data but are covered by the quality card).
+            if (ev.rejection_summary && Object.keys(ev.rejection_summary).length > 0) {
+              renderScanSummary(
+                SZ.state.lastScan.candidates,
+                SZ.state.lastScan.rejected_count,
+                SZ.state.scanProgress ? SZ.state.scanProgress.elapsedMs : 0,
+                ev.providers || null
+              );
+            }
+          }
           var ceoObj = SZ.chat.currentCEO;
-          if (SZ.renderDataQuality && ceoObj) SZ.renderDataQuality(ev, ceoObj);
+          // market_scan DATA_COLLECTED carries rejection stats, not per-source
+          // statuses — the generic Data Quality card would render all-unknown
+          // tiles (misleading "0/10"). The scan summary covers that case.
+          if (ev.capability !== "market_scan" && SZ.renderDataQuality && ceoObj) {
+            SZ.renderDataQuality(ev, ceoObj);
+          }
         })();
         break;
 
@@ -300,7 +388,7 @@
           if (ev.error) sp.lastError = ev.error;
 
           var ceo = SZ.chat.ensureCEOMessage();
-          if (ceo) {
+          if (ceo && !ceo.bubble.querySelector(".scan-summary") && ceo.msg.dataset.done !== "1") {
             var existing = ceo.bubble.querySelector(".scanner-progress");
             if (!existing) {
               existing = SZ.dom.el("div", "scanner-progress");
@@ -325,15 +413,12 @@
         (function () {
           SZ.state.candidateCount = ev.candidate_count || 0;
           SZ.state.rejectedCount = ev.rejected_count || 0;
-          var ceo = SZ.chat.ensureCEOMessage();
-          if (ceo) {
-            var summary = SZ.dom.el("div", "scan-summary");
-            summary.style.cssText = "font-size:12px;color:#66bb6a;padding:6px 8px;background:rgba(102,187,106,0.08);border-radius:4px;margin:4px 0;";
-            summary.textContent = "Scan complete: " + SZ.state.candidateCount
-              + " candidates, " + SZ.state.rejectedCount + " rejected"
-              + (ev.provider_sources_used ? " | sources: " + ev.provider_sources_used.join(", ") : "");
-            ceo.bubble.insertBefore(summary, ceo.bubble.firstChild);
-          }
+          renderScanSummary(
+            SZ.state.candidateCount,
+            SZ.state.rejectedCount,
+            ev.elapsed_ms,
+            ev.provider_sources_used || null
+          );
         })();
         break;
 

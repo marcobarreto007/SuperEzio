@@ -1,0 +1,29 @@
+{
+  "date_local": "2026-08-22",
+  "session": "T4-scan-ux",
+  "status": "PATCHED_AND_VALIDATED",
+  "objective": "Diagnosticar e consertar o fluxo do scan no cockpit (operador frustrado com 183s de espera e 'Nenhum candidato passou' sem contexto)",
+  "root_cause": "O pipeline estava correto (fail-closed por dados), mas a UX nao explicava: (1) resumo do scan ficava VERDE mesmo com 0 aprovados; (2) motivos de rejeicao chegavam ao browser via DATA_COLLECTED mas eram descartados (events.js); (3) card 'Data Quality 0/10' enganoso renderizado para events market_scan; (4) linha [SCANNER] stale ficava visivel na resposta final",
+  "patch": [
+    "frontend/js/events.js: helper renderScanSummary + SCAN_REJECT_LABELS (labels PT de rejeicao)",
+    "frontend/js/events.js: DATA_COLLECTED armazena lastScan (rejection_summary/source_errors/quality) e pula card generico para market_scan",
+    "frontend/js/events.js: SCAN_SUMMARY usa renderScanSummary (cor amber quando 0 aprovados, elapsed, top-3 motivos, aviso 'dados degradados')",
+    "frontend/js/events.js: SCAN_EVENT nao recria linha de progresso apos resumo ou resposta final"
+  ],
+  "evidence": [
+    "output/t4-ux/t4-20260822-225054-report.json (pos-patch: resumo com motivos em 184s, zero console errors)",
+    "output/t4-ux/t4-20260822-223939-report.json (pre-patch: 'Scan complete: 0 candidates, 24 rejected' verde, card 0/10)",
+    "output/t4-ux/t4-20260822-225054-*.png (screenshots)",
+    "node --check frontend/js/events.js: OK",
+    "mobile 390px: chat visivel, sem overflow, sem console errors"
+  ],
+  "not_run": [
+    "suíte pytest completa (missao T4: uma passada, sem suíte)",
+    "browser_smoke.py oficial com chat (2 passadas instrumentadas equivalentes executadas)"
+  ],
+  "risks": [
+    "label map de rejeicao e frontend-only: novas chaves de rejeicao no backend aparecerao cruas",
+    "backend src/core/pipeline/nodes/agent.py _REJECTION_LABELS_PT incompleto (missing_catalyst/liquidity_below_minimum cru na resposta final) — fora do escopo (src/ protegido)"
+  ],
+  "next_gate": "f51-quality-gate ou fix de UI em _REJECTION_LABELS_PT"
+}
