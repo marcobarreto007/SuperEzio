@@ -1060,6 +1060,50 @@ async def _run_scan(
         except Exception as exc:
             logger.warning("Failed to merge pennylab watchlist: %s", exc)
 
+    # ── Discovery seed: the daily Mangala scan is the discovery layer that
+    #    works even when the live scanner is degraded (OpenBB offline). When
+    #    the on-demand scan came back thin, seed it with the daily artifact —
+    #    REAL observed candidates from today's run, refreshed by enrichment
+    #    with live prices. Provenance stamped, never fabricated.
+    if len(raw_candidates) < 5:
+        try:
+            from pathlib import Path as _Path
+            import json as _json
+
+            daily_path = _Path("data/mangala_daily.json")
+            if daily_path.exists():
+                daily = _json.loads(daily_path.read_text(encoding="utf-8"))
+                existing = {str(c.get("ticker") or "").upper() for c in raw_candidates}
+                seeded = 0
+                for opp in daily.get("opportunities", []):
+                    ticker = str(opp.get("ticker") or "").upper()
+                    if not ticker or ticker in existing:
+                        continue
+                    raw_candidates.append(
+                        {
+                            "ticker": ticker,
+                            "price": opp.get("price"),
+                            "volume": opp.get("volume"),
+                            "exchange": opp.get("exchange") or "NASDAQ",
+                            "source": "mangala_daily_seed",
+                            "provenance": {
+                                "ticker": {"source": "mangala_daily_seed"},
+                                "price": {"source": "mangala_daily_seed"},
+                                "volume": {"source": "mangala_daily_seed"},
+                            },
+                        }
+                    )
+                    existing.add(ticker)
+                    seeded += 1
+                if seeded:
+                    provider_sources_used.add("mangala_daily_seed")
+                    logger.info(
+                        "scan seeded %d candidates from mangala_daily (live scanner thin)",
+                        seeded,
+                    )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("mangala_daily seed failed: %s", exc)
+
     if len(raw_candidates) > scan_max_total:
         raw_candidates = raw_candidates[:scan_max_total]
 
