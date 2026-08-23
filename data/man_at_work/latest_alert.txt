@@ -1,7 +1,4 @@
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-ðŸš¨ MAN_AT_WORK MODE - TECHNICIAN NEEDED ðŸš¨
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-Reason: CEO Brain down: CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu
-Time: 2026-08-23T21:28:43.637609+00:00
-Action: NO TRADING ORDERS UNTIL CLEARED
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+MAN_AT_WORK CLEARED
+Time: 2026-08-23T21:59:29.770742+00:00
+Duration: 0:30:46.132569
+Original reason: CEO Brain down: CEO unreachable: <urlopen error [WinError 10061] No connection could be made because the target machine actively refu

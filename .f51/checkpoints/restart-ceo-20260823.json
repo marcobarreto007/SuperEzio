@@ -1,0 +1,27 @@
+{
+  "session": "restart-ceo-after-maw-2026-08-23",
+  "date": "2026-08-23",
+  "status": "DELIVERED",
+  "objective": "Reiniciar o CEO (llama-server :8080) apos queda abrupta e validar recuperacao completa do sistema.",
+  "summary": {
+    "root_cause": "llama-server morreu ~21:10Z sem mensagem de shutdown; log terminou no meio de operacao saudavel (19.8 tok/s). Sem reboot no Windows (event log limpo). serve_agent_llamacpp.ps1 roda o modelo em foreground, preso a janela do terminal; janela/sessao encerrada matou o processo. Sem supervisor/watchdog.",
+    "recovery": "CEO relancado DETACHED (Start-Process -WindowStyle Hidden, logs em runtime/logs/ceo-serve-20260823*.log). MAN_AT_WORK limpo automaticamente pelo loop autonomico em ~3.8 min (autonomic.py:91). latest_alert.txt marcado CLEARED 21:59:29Z, duracao 30:46.",
+    "verification": {
+      "ceo_health": "PASS — /health {\"status\":\"ok\"}, modelo Qwen3.8-27B-UD-IQ2_XXS carregado",
+      "inference": "PASS — 1 prompt minimo: resposta coerente, 0.59s total, ~17.5 tok/s",
+      "api_recovery": "PASS — /health :8002 503->200, MAN_AT_WORK exit automatico",
+      "pipeline_e2e": "PASS — /task/submit NDJSON com STREAM_END, resposta do CEO em PT",
+      "browser_smoke": "FAIL (nao bloqueante para o restart) — chat language drift: heuristica do smoke concatena o stream inteiro e reprova marcadores EN que estao nos blocos de trace do pipeline (## SDCA_FIREWALL, ## MATH_REPORT, ## TRINITY, etc. — templates hardcoded em EN), nao na resposta do modelo. Explicacao do CEO (SUA EXPLICACAO) e 100% PT."
+    }
+  },
+  "open_items": [
+    "SMOKE-LANG-CHECK: browser_smoke.py:309-310 aplica regex EN no stream bruto incluindo trace do pipeline; avaliar filtrar apenas o texto do modelo ou mover checagem para o campo de resposta final.",
+    "CEO-SUPERVISION: sem watchdog para llama-server; queda por janela fechada deixou o sistema em MAN_AT_WORK por 49 min. Candidato a risco no RISK_REGISTER (savekeeper).",
+    "PIPELINE-TRACE-STREAM: blocos internos ## * em EN sao streamados na resposta de chat ao usuario; decisao de produto pendente."
+  ],
+  "gates": {
+    "github": "DISK ONLY respeitado",
+    "product_dirs": "nenhum diretorio de produto alterado",
+    "tests": "smoke executado 2x (mesma falha, nao-flaky) + probe de evidencia com stream completo"
+  }
+}
