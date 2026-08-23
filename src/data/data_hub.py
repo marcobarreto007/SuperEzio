@@ -211,6 +211,9 @@ class DataHub:
         # Finnhub: key invalid (b444a4ae), registered for quote/news only
         #
         # Quote / profile / fundamentals / news — Finnhub primary at priority 1
+        # Fundamentals fallback: yfinance (keyless, covers TSX/TSXV .TO/.V via
+        # Yahoo quoteSummary) when the Finnhub key is invalid or the exchange
+        # is Canadian-listed (2026-08-23: TD.TO pipeline gap closed).
         #
         # Sentiment chain:
         #   1) ApeWisdom   (retail Reddit/WSB — most relevant for Mangala)
@@ -269,13 +272,14 @@ class DataHub:
         self.register_provider(
             ProviderRoute(
                 name="yfinance",
-                capabilities=("price", "market_price", "candles", "profile"),
+                capabilities=("price", "market_price", "candles", "profile", "fundamentals"),
                 factory=_make_yfinance_provider,
                 methods={
                     "price": "get_price",
                     "market_price": "get_price",
                     "candles": "get_candles",
                     "profile": "get_profile",
+                    "fundamentals": "get_fundamentals",
                 },
                 priority=30,
                 required_key=None,

@@ -552,6 +552,19 @@ class ProfessionalCollector:
         )
 
         # ── Fundamentals ─────────────────────────────────────────────────
+        # hub_fundamentals (DataHub fundamentals chain: Finnhub -> yfinance,
+        # keyless Yahoo quoteSummary covers TSX/TSXV .TO/.V) wins on
+        # completeness; hub_profile (name/market_cap only) stays as fallback.
+        self.mesh.register(
+            ProviderSpec(
+                name="hub_fundamentals",
+                capabilities=(_CAPABILITY_FUNDAMENTALS,),
+                fetch=self._fetch_hub_fundamentals,
+                priority=10,
+                rate_limit_rps=1.0,
+                supports_penny=True,
+            )
+        )
         self.mesh.register(
             ProviderSpec(
                 name="hub_profile",
@@ -631,6 +644,23 @@ class ProfessionalCollector:
             }
         except Exception as exc:
             return {"error": f"hub_price: {exc}"}
+
+    @staticmethod
+    def _fetch_hub_fundamentals(ticker: str) -> dict:
+        try:
+            from data.data_hub import hub
+
+            result = hub.get_fundamentals(ticker)
+            if "error" in result:
+                return result
+            return {
+                **result,
+                "symbol": ticker,
+                "source": "datahub",
+                "timestamp": _now_iso(),
+            }
+        except Exception as exc:
+            return {"error": f"hub_fundamentals: {exc}"}
 
     @staticmethod
     def _fetch_hub_profile(ticker: str) -> dict:

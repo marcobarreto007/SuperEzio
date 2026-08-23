@@ -43,6 +43,32 @@ _PERIOD_MAP: dict[str, str] = {
     "5Y": "5y",
 }
 
+# Yahoo `Ticker.info` key -> DataHub fundamentals contract key (same payload
+# shape as Finnhub get_fundamentals). Yahoo covers TSX/TSXV tickers (.TO/.V)
+# with full quoteSummary, so this is the free, keyless fundamentals source for
+# Canadian-listed equities. dividendYield is reported by Yahoo in percent
+# (2.78 = 2.78%), matching Finnhub's dividendYieldIndicatedAnnual units.
+_YF_FUNDAMENTALS_MAP: dict[str, tuple[str, ...]] = {
+    "pe_ratio": ("trailingPE", "forwardPE"),
+    "forward_pe": ("forwardPE",),
+    "beta": ("beta",),
+    "eps": ("trailingEps", "forwardEps"),
+    "forward_eps": ("forwardEps",),
+    "dividend_yield": ("dividendYield",),
+    "price_to_book": ("priceToBook",),
+    "price_to_sales": ("priceToSalesTrailing12Months",),
+    "roe": ("returnOnEquity",),
+    "roa": ("returnOnAssets",),
+    "profit_margin": ("profitMargins",),
+    "operating_margin": ("operatingMargins",),
+    "gross_margin": ("grossMargins",),
+    "revenue_growth_yoy": ("revenueGrowth",),
+    "eps_growth_yoy": ("earningsGrowth",),
+    "debt_to_equity": ("debtToEquity",),
+    "current_ratio": ("currentRatio",),
+    "enterprise_to_ebitda": ("enterpriseToEbitda",),
+}
+
 
 def _utc_observed_at(value: Any) -> str:
     """Return the actual observed instant without relabelling an aware zone."""
@@ -247,5 +273,80 @@ class YFinanceProvider:
                 "source": "yfinance",
                 "provider": "yfinance",
             }
+        except Exception as exc:
+            return {"error": f"yfinance: {exc}"}
+
+    def get_fundamentals(
+        self,
+        symbol: str,
+        *,
+        market: str | None = None,
+        **_: Any,
+    ) -> Dict[str, Any]:
+        """Keyless fundamentals for any Yahoo-covered market (incl. .TO/.V).
+
+        Uses a single `Ticker.info` call (the same quoteSummary feed as the
+        profile method), so it adds no extra dependency or API quota. Works
+        for TSX/TSXV tickers where Finnhub/AlphaVantage free tiers are
+        unavailable or rate-limited. dividend_yield is in percent, matching
+        the Finnhub fundamentals contract.
+
+        Returns:
+            {symbol, pe_ratio, beta, eps, dividend_yield, price_to_book, ...,
+             sector, industry, market_cap, name, source}
+            or {"error": ...} when Yahoo returns no usable metrics.
+        """
+        ysym = yfinance_ticker(symbol, market)
+        if not ysym:
+            return {"error": "invalid_symbol"}
+        try:
+            import yfinance as yf
+        except ImportError:
+            return {"error": "yfinance_not_installed"}
+        try:
+            with _SuppressYFinanceOutput():
+                ticker = yf.Ticker(ysym)
+                try:
+                    info = ticker.info or {}
+                except KeyError as exc:
+                    if "exchangeTimezoneName" in str(exc):
+                        # Same yfinance 1.5.x timezone-metadata break handled
+                        # in get_profile — raw quoteSummary read still works.
+                        info = ticker.get_info() or {}
+                    else:
+                        raise
+
+            payload: Dict[str, Any] = {
+                "symbol": symbol,
+                "yahoo_symbol": ysym,
+                "source": "yfinance",
+                "provider": "yfinance",
+            }
+            for target, sources in _YF_FUNDAMENTALS_MAP.items():
+                value = next((info.get(src) for src in sources if info.get(src) is not None), None)
+                if value is not None:
+                    payload[target] = float(value) if isinstance(value, (int, float)) else value
+
+            name = info.get("longName") or info.get("shortName")
+            if name:
+                payload["name"] = name
+            for target, source in (
+                ("sector", "sector"),
+                ("industry", "industry"),
+                ("currency", "currency"),
+                ("country", "country"),
+                ("exchange", "exchange"),
+            ):
+                if info.get(source) is not None:
+                    payload[target] = info[source]
+            mcap = info.get("marketCap")
+            if mcap is not None:
+                payload["market_cap"] = int(mcap)
+            if info.get("averageVolume") is not None:
+                payload["avg_daily_volume_shares"] = int(info["averageVolume"])
+
+            if len(payload) <= 4:  # only symbol/yahoo_symbol/source/provider
+                return {"error": "yfinance_no_fundamentals", "symbol": symbol}
+            return payload
         except Exception as exc:
             return {"error": f"yfinance: {exc}"}
