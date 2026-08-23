@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import os
 import re
+import time
 from typing import Any
 from urllib.parse import urlparse
 
@@ -49,6 +50,56 @@ HYPE_PATTERNS = (
     r"\bfree money\b",
     r"\binsider leak\b",
     r"\bcan't lose\b",
+)
+
+# Subreddits most likely to discuss Canadian (.TO) tickers. Live-probed
+# 2026-08-23: r/CanadianInvestor confirmed active (real RY.TO mentions);
+# r/Wealthsimple_Trade confirmed alive (0 mentions, month window);
+# r/BayStreetBets and r/PersonalFinanceCanada probed live (see research note
+# in RedditTickerSentiment docstring).
+CANADIAN_SUBREDDITS = (
+    "CanadianInvestor",
+    "BayStreetBets",
+    "Wealthsimple_Trade",
+    "PersonalFinanceCanada",
+)
+
+# Simple keyword sentiment (bull/bear) for ticker-mention posts. Deliberately
+# small and deterministic — a heuristic score, not a language model.
+BULL_KEYWORDS = (
+    "bullish",
+    "buy",
+    "bought",
+    "accumulate",
+    "undervalued",
+    "rally",
+    "breakout",
+    "gains",
+    "strong",
+    "beat",
+    "outperform",
+    "upside",
+    "long",
+    "cheap",
+    "uptrend",
+)
+
+BEAR_KEYWORDS = (
+    "bearish",
+    "sell",
+    "sold",
+    "overvalued",
+    "crash",
+    "losses",
+    "breakdown",
+    "weak",
+    "missed",
+    "underperform",
+    "downside",
+    "short",
+    "dump",
+    "risk",
+    "downtrend",
 )
 
 # Keywords to detect whale activity, pumps, dumps, and large order discussions.
@@ -99,6 +150,12 @@ def _match_terms(query: str) -> list[str]:
     return [
         term.lower() for term in re.findall(r"[A-Za-z0-9.]{2,12}", query) if term.lower() != "or"
     ]
+
+
+def _strip_html(value: str) -> str:
+    """Strip HTML tags from RSS content, collapsing whitespace."""
+    text = re.sub(r"<[^>]+>", " ", value)
+    return re.sub(r"\s+", " ", text).strip()
 
 
 class RedditPulse:
@@ -576,3 +633,259 @@ class RedditPulse:
         if score < -0.15:
             return "BEARISH_SOCIAL"
         return "NEUTRAL_SOCIAL"
+
+
+class RedditTickerSentiment:
+    """Ticker-mention sentiment via Reddit's official anonymous RSS search.
+
+    Research note (live probes, 2026-08-23): the anonymous JSON search
+    surfaces are dead. old.reddit.com/r/X/search.json redirects to
+    /login (302, reason=lor2); www.reddit.com/r/X/search.json returns 403
+    "blocked by network security" even with a browser User-Agent;
+    api.pushshift.io loops a 307; arctic-shift.info does not resolve DNS;
+    api.pullpush.io answers 429 ("no free scraping resources for agents");
+    public redlib mirrors are offline or challenge-walled. The only live
+    anonymous search surface is the official Atom feed
+    https://www.reddit.com/r/{sub}/search.rss?q=...&restrict_sr=1
+    which returns real results with a browser-like User-Agent but enforces a
+    strict burst limit (429 beyond roughly one request per 20-30s per IP).
+    The feed carries no score/num_comments fields, so ups/comments are
+    reported as None (NO_DATA) — never invented.
+
+    Search behavior: Reddit tokenizes "RY.TO" and matches posts that only
+    mention the bare "RY" (verified live: q=RY.TO and q=RY return the same
+    posts in r/CanadianInvestor), so one query covers both forms; the
+    mention filter still counts suffix vs bare matches per post.
+    """
+
+    def __init__(
+        self,
+        subreddits: list[str] | None = None,
+        timeout_s: float | None = None,
+        delay_s: float | None = None,
+    ) -> None:
+        self.enabled = os.getenv("SUPEREZIO_REDDIT_ENABLED", "1").lower() not in {
+            "0",
+            "false",
+            "no",
+        }
+        self.subreddits = subreddits or _parse_subreddits(
+            os.getenv("SUPEREZIO_REDDIT_CA_SUBREDDITS", ",".join(CANADIAN_SUBREDDITS))
+        )
+        self.timeout_s = (
+            timeout_s if timeout_s is not None else _env_float("SUPEREZIO_REDDIT_TIMEOUT_S", 8.0)
+        )
+        # Pacing between subreddit fetches: the live RSS endpoint bursts 429
+        # beyond ~1 req/20-30s per IP (observed 2026-08-23).
+        self.delay_s = (
+            delay_s if delay_s is not None else _env_float("SUPEREZIO_REDDIT_RSS_DELAY_S", 5.0)
+        )
+        self.session = requests.Session()
+        self.session.headers.update(
+            {
+                "User-Agent": os.getenv(
+                    "SUPEREZIO_REDDIT_USER_AGENT",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 SuperEzio/4.0",
+                )
+            }
+        )
+
+    def get_signal(
+        self,
+        ticker: str,
+        *,
+        limit: int = 25,
+        sort: str = "top",
+        time_filter: str = "month",
+    ) -> dict[str, Any]:
+        if not self.enabled:
+            return {
+                "symbol": ticker,
+                "signal_label": "NO_DATA",
+                "post_count": 0,
+                "qualified_count": 0,
+                "reason": "reddit_disabled",
+            }
+
+        base, full = self._ticker_variants(ticker)
+        errors: list[str] = []
+        posts: list[dict[str, Any]] = []
+        mention_full = 0
+        mention_bare = 0
+
+        for subreddit in self.subreddits:
+            try:
+                entries = self._fetch_subreddit(
+                    subreddit=subreddit,
+                    query=full,
+                    limit=limit,
+                    sort=sort,
+                    time_filter=time_filter,
+                )
+            except Exception as exc:
+                errors.append(f"r/{subreddit}: {exc}")
+                continue
+
+            for entry in entries:
+                text = f"{entry['title']} {entry['content']}".lower()
+                has_full = full.lower() in text
+                has_bare = bool(re.search(rf"\b{re.escape(base.lower())}\b", text))
+                if not (has_full or has_bare):
+                    continue
+                mention_full += int(has_full)
+                mention_bare += int(has_bare)
+                posts.append(
+                    self._build_post(
+                        entry=entry, subreddit=subreddit, has_full=has_full, has_bare=has_bare
+                    )
+                )
+            if self.delay_s > 0:
+                time.sleep(self.delay_s)
+
+        posts.sort(key=lambda item: item["published_utc"] or "", reverse=True)
+        top_posts = posts[:limit]
+        sentiment = self._average_polarity(top_posts)
+
+        if not posts:
+            reason = "no_mentions_found"
+            if errors:
+                reason = (
+                    "rate_limited"
+                    if any("rate" in err.lower() for err in errors)
+                    else "all_sources_failed"
+                )
+        else:
+            reason = ""
+
+        return {
+            "symbol": ticker,
+            "query": full,
+            "signal_label": RedditPulse._sentiment_label(sentiment, top_posts),
+            "sentiment_score": round(sentiment, 3),
+            "post_count": len(posts),
+            "qualified_count": len(top_posts),
+            "mention_with_suffix": mention_full,
+            "mention_without_suffix": mention_bare,
+            "ups_total": None,  # RSS feed carries no score field (NO_DATA, not invented)
+            "comments_total": None,  # RSS feed carries no num_comments field (NO_DATA)
+            "subreddits": self.subreddits,
+            "method": "reddit_rss_search",
+            "quality_rules": (
+                "official reddit Atom search.rss, restrict_sr=1, mention filter "
+                "(suffix exact or bare word-boundary), keyword bull/bear polarity"
+            ),
+            "top_posts": top_posts,
+            "top_headline": top_posts[0]["title"] if top_posts else "",
+            "provider_errors": errors,
+            "reason": reason,
+        }
+
+    @staticmethod
+    def _ticker_variants(ticker: str) -> tuple[str, str]:
+        value = ticker.upper().strip()
+        base = re.sub(r"\.(SA|TO|V|NE|CN)$", "", value)
+        return base, value
+
+    def _fetch_subreddit(
+        self,
+        *,
+        subreddit: str,
+        query: str,
+        limit: int,
+        sort: str,
+        time_filter: str,
+    ) -> list[dict[str, Any]]:
+        """Fetch search results for *query* in *subreddit* via official RSS.
+
+        Raises on HTTP/rate-limit failure; the caller records the error and
+        keeps the signal honest (NO_DATA when every subreddit fails).
+        """
+        safe_subreddit = re.sub(r"[^A-Za-z0-9_]", "", subreddit)
+        if not safe_subreddit:
+            return []
+
+        url = f"https://www.reddit.com/r/{safe_subreddit}/search.rss"
+        safe_sort = sort if sort in {"relevance", "hot", "top", "new", "comments"} else "top"
+        params: dict[str, str | int] = {
+            "q": query,
+            "restrict_sr": 1,
+            "sort": safe_sort,
+            "t": time_filter,
+            "limit": max(1, min(limit, 25)),
+        }
+        response = self.session.get(url, params=params, timeout=self.timeout_s)
+        if response.status_code in {429, 403}:
+            if response.status_code == 429:
+                raise RuntimeError("rate_limited")
+            raise RuntimeError("blocked_by_reddit_waf")
+        response.raise_for_status()
+        return self._parse_feed(response.content)
+
+    @staticmethod
+    def _parse_feed(xml_bytes: bytes) -> list[dict[str, Any]]:
+        """Parse an Atom search.rss response into lightweight entries."""
+        import xml.etree.ElementTree as ET
+
+        root = ET.fromstring(xml_bytes)
+        ns = {"atom": "http://www.w3.org/2005/Atom"}
+        entries: list[dict[str, Any]] = []
+        for node in root.findall("atom:entry", ns):
+            title = (node.findtext("atom:title", default="", namespaces=ns) or "").strip()
+            if not title:
+                continue
+            link = node.find("atom:link", ns)
+            entries.append(
+                {
+                    "id": node.findtext("atom:id", default="", namespaces=ns) or "",
+                    "title": title,
+                    "content": _strip_html(
+                        node.findtext("atom:content", default="", namespaces=ns) or ""
+                    ),
+                    "url": link.get("href", "") if link is not None else "",
+                    "published_utc": node.findtext("atom:published", default="", namespaces=ns)
+                    or "",
+                }
+            )
+        return entries
+
+    def _build_post(
+        self,
+        *,
+        entry: dict[str, Any],
+        subreddit: str,
+        has_full: bool,
+        has_bare: bool,
+    ) -> dict[str, Any]:
+        polarity = self._keyword_polarity(f"{entry['title']} {entry['content']}")
+        return {
+            "id": entry["id"],
+            "subreddit": subreddit,
+            "title": entry["title"][:240],
+            "snippet": entry["content"][:220],
+            "url": entry["url"],
+            "published_utc": entry["published_utc"],
+            "score": None,
+            "comments": None,
+            "sentiment_score": polarity,
+            "mention_with_suffix": has_full,
+            "mention_without_suffix": has_bare,
+        }
+
+    @staticmethod
+    def _keyword_polarity(text: str) -> int:
+        """+1 if bull keywords dominate, -1 if bear, 0 on tie or neither."""
+        lowered = text.lower()
+        bull = sum(1 for kw in BULL_KEYWORDS if re.search(rf"\b{kw}", lowered))
+        bear = sum(1 for kw in BEAR_KEYWORDS if re.search(rf"\b{kw}", lowered))
+        if bull > bear:
+            return 1
+        if bear > bull:
+            return -1
+        return 0
+
+    @staticmethod
+    def _average_polarity(posts: list[dict[str, Any]]) -> float:
+        if not posts:
+            return 0.0
+        return sum(post["sentiment_score"] for post in posts) / len(posts)
