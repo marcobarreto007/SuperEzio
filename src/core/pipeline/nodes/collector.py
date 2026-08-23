@@ -1070,7 +1070,9 @@ async def _run_scan(
             from pathlib import Path as _Path
             import json as _json
 
-            daily_path = _Path("data/mangala_daily.json")
+            daily_path = _Path(
+                os.getenv("SUPEREZIO_MANGALA_SEED_PATH", "data/mangala_daily.json")
+            )
             if daily_path.exists():
                 daily = _json.loads(daily_path.read_text(encoding="utf-8"))
                 existing = {str(c.get("ticker") or "").upper() for c in raw_candidates}

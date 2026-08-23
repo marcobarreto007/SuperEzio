@@ -16,6 +16,13 @@ import types
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _disable_mangala_seed(monkeypatch):
+    """These gate tests own their stubbed universe — the daily-seed fallback
+    must not inject real candidates into the counts (c428def)."""
+    monkeypatch.setenv("SUPEREZIO_MANGALA_SEED_PATH", "tests/.no_seed.json")
+
+
 # ---------------------------------------------------------------------------
 # Test 1 — unavailable price candidates are rejected, never shown
 # ---------------------------------------------------------------------------
