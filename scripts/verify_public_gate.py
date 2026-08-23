@@ -57,25 +57,23 @@ def run_checks(base_url: str) -> dict[str, Any]:
         code, body = _fetch(base_url, path)
         check(f"G1/G5 protected {path} -> 401", code == 401, f"got {code}")
 
-    # G4 — registration must be operator-gated in public mode
-    code, body = _fetch(base_url, "/auth/register")
-    if code != 405:  # 405 = method not allowed for GET — probe with POST
-        payload = json.dumps(
-            {"username": "probe", "email": "p@x.com", "password": "p@ssw0rd123"}
-        ).encode()
-        req = urllib.request.Request(
-            f"{base_url}/auth/register",
-            data=payload,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                code = resp.status
-        except urllib.error.HTTPError as exc:
-            code = exc.code
-        except Exception:
-            code = 0
+    # G4 — registration must be operator-gated in public mode (POST probe)
+    payload = json.dumps(
+        {"username": "probe", "email": "p@x.com", "password": "p@ssw0rd123"}
+    ).encode()
+    req = urllib.request.Request(
+        f"{base_url}/auth/register",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            code = resp.status
+    except urllib.error.HTTPError as exc:
+        code = exc.code
+    except Exception:
+        code = 0
     check("G4 register -> 403", code == 403, f"got {code}")
 
     # G6 — tightened public set
