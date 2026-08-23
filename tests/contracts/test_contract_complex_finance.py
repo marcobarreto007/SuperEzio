@@ -582,6 +582,7 @@ class TestAgentP2CapitalAllocationQuality:
         """Add contract test: CAD 25k allocation answer must contain emergency fund gate,
         debt interest gate, business cashflow gate, tax-account note, and no unsupported exact probability.
         """
+        import urllib.error
         import urllib.request
         import json
 
@@ -614,10 +615,45 @@ class TestAgentP2CapitalAllocationQuality:
         }
 
         data = json.dumps(payload).encode("utf-8")
+        headers = {"Content-Type": "application/json"}
+
+        # Public-mode auth: the live API requires a Bearer since 2026-08-22.
+        # Bootstrap it exactly like the integration tests do.
+        try:
+            from core.config.secrets import load_local_env
+
+            load_local_env()
+        except ImportError:
+            pass
+        import os
+
+        try:
+            urllib.request.urlopen(
+                urllib.request.Request("http://127.0.0.1:8002/auth/me"), timeout=5
+            )
+        except urllib.error.HTTPError as exc:
+            if exc.code == 401:
+                password = os.getenv("SUPEREZIO_SMOKE_PASSWORD") or os.getenv(
+                    "SUPEREZIO_ADMIN_PASSWORD", ""
+                )
+                if not password:
+                    pytest.skip("Public mode active and no admin password in env")
+                login = json.dumps(
+                    {"username": os.getenv("SUPEREZIO_SMOKE_USER", "admin"), "password": password}
+                ).encode()
+                lreq = urllib.request.Request(
+                    "http://127.0.0.1:8002/auth/login",
+                    data=login,
+                    headers={"Content-Type": "application/json"},
+                )
+                with urllib.request.urlopen(lreq, timeout=10) as lresp:
+                    token = json.loads(lresp.read().decode())["access_token"]
+                headers["Authorization"] = f"Bearer {token}"
+
         req = urllib.request.Request(
             "http://127.0.0.1:8002/task/submit",
             data=data,
-            headers={"Content-Type": "application/json"},
+            headers=headers,
         )
 
         try:

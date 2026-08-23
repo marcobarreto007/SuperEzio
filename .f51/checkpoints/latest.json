@@ -1495,6 +1495,25 @@
       "e7fb414"
     ]
   },
+  "repair_committee_20260823": {
+    "status": "3_OF_4_DELIVERED",
+    "objective": "Comite de 4 especialistas consertando cada parte do sistema apos o scan frustrante de 2026-08-22.",
+    "delivered": [
+      "T1 dados (32e6383): cache TTL 60s por simbolo no data_hub + circuit breaker que abre em rate-limit (429/credit limit). Causa raiz: sem cache (mesmo simbolo N vezes) + Finnhub key invalida + TwelveData 8/min com 24 chamadas concorrentes.",
+      "T2 gates (32e6383): veredito CORRETOS — 24 rejeicoes foram honestas (dados fora). Teste de paridade diario/ao-vivo com os 5 candidatos reais pinado.",
+      "T3 runtime (2d51767): saudavel (TD.TO end-to-end 193s, 11/11 circuitos fechados, JWT ativo). DEFEITO corrigido: recorder de evidencia ouvia nomes de evento legados — experts.json/risk.json ficavam sempre vazios. Agora mapeia EXPERT_DONE/SDCA_FIREWALL.",
+      "yfinance 1.5.x: fallback yf.download/get_info para KeyError('exchangeTimezoneName') — validado ao vivo (TD.TO 65 candles)"
+    ],
+    "pending": [
+      "T4 UX (fluxo do cockpit) — em execucao no save",
+      "teste de contrato de alocacao (live, auth-aware) — em execucao no save"
+    ],
+    "suite_status": "2027 passed, 2 falhas identificadas e corrigidas (testes: routing order stale -> finnhub-first; chart-data-times e allocation contract -> auth-aware; candidate gate -> stub generico fail-closed). Re-suite em andamento.",
+    "commits": [
+      "32e6383",
+      "2d51767"
+    ]
+  },
   "runtime_state_save_20260822": {
     "status": "SAVED",
     "timestamp": "2026-08-22T23:32:00+00:00",

@@ -356,7 +356,10 @@ async def test_priced_candidates_fail_on_thesis_not_price(monkeypatch):
             return {"name": ticker, "exchange": "NASDAQ", "source": "finnhub"}
 
         def route(self, capability, ticker):
-            return {"error": "no_catalyst_in_window"}
+            # Generic catalyst text cannot authorize a candidate (fail-closed
+            # contract since 413e1ea) — unlike an error, which now triggers
+            # the computed price+volume fallback and would PASS.
+            return {"catalyst": "Liquid equity on major exchange", "source": "finnhub"}
 
         def list_routes(self, capability=None):
             return [{"name": "finnhub", "configured": True}]
