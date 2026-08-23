@@ -1514,6 +1514,22 @@
       "2d51767"
     ]
   },
+  "research_and_fix_round_20260823": {
+    "status": "4_OF_4_DELIVERED",
+    "objective": "4 subagentes em paralelo (2 pesquisa + 2 execucao) para resolver de uma vez as pendências pos-comite.",
+    "delivered": [
+      "P1 pesquisa providers (f7899e3 contexto): trocar Finnhub key (free, 60/min, TSX) e o maior ROI imediato; yfinance fundamentals como fallback; pacing por provider; TwelveData Grow US$29/mes se pagar. TABELA de limites free 2026 entregue.",
+      "P2 TSX (f7899e3): get_fundamentals keyless via yfinance validado ao vivo (TD.TO 20/22 campos) + rota fallback no data_hub + mesh do professional collector. Social .TO: sem fonte free confiavel — degradacao NO_DATA honesta documentada, sem mock.",
+      "P3 fixes (9174998): evidence.response real (placeholder '(streamed)' tratado como vazio), run_id do stream propagado ao evidence, labels PT para missing_catalyst/liquidity_below_minimum.",
+      "P4 frontend (fe32739): SCAN_REJECT_LABELS 15->25 chaves (100% do backend, zero cruas) + validacao mobile 390/320/1440 (0 console errors, sem overflow, chat por toque, greeting 824ms) + smoke desktop PASS."
+    ],
+    "operator_action_pending": "P1 recomenda gerar NOVA Finnhub key free e colocar em FINNHUB_API_KEY no .env.local (a atual b444a4ae e invalida e queima 1 request por chamada).",
+    "commits": [
+      "f7899e3",
+      "9174998",
+      "fe32739"
+    ]
+  },
   "runtime_state_save_20260822": {
     "status": "SAVED",
     "timestamp": "2026-08-22T23:32:00+00:00",
