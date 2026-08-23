@@ -46,6 +46,36 @@ def test_evidence_file_resolution_blocks_traversal(
         endpoints._resolve_evidence_file("../bad", "report.html")
 
 
+def test_evidence_run_propagates_stream_run_id() -> None:
+    """The stream run_id must be baked into evidence_run_id (unification)."""
+    run = EvidenceRun(prompt="p", ticker="AAPL", run_id="abc123def456")
+
+    assert run.run_id.endswith("_abc123def456_AAPL")
+    assert run.run_dir.name == run.run_id
+
+    # Legacy format (timestamp + 6-hex) preserved when no run_id is passed.
+    legacy = EvidenceRun(prompt="p", ticker="")
+    assert len(legacy.run_id.rsplit("_", 1)[1]) == 6
+
+
+def test_finalize_treats_streamed_placeholder_as_empty() -> None:
+    """The explanation node's "(streamed)" marker must not count as a response."""
+    from core.pipeline.graph import _is_real_evidence_response
+
+    assert _is_real_evidence_response("") is False
+    assert _is_real_evidence_response("(streamed)") is False
+    assert _is_real_evidence_response("real streamed answer") is True
+
+
+def test_record_response_overwrites_streamed_placeholder() -> None:
+    """The finalize fallback depends on record_response overwriting the placeholder."""
+    run = EvidenceRun(prompt="p", ticker="AAPL")
+    run.record_response("(streamed)", tokens=1)
+    run.record_response("real streamed answer", tokens=3)
+
+    assert run.response == "real streamed answer"
+
+
 def test_scan_evidence_payload_reads_nested_scan_output() -> None:
     payload = _scan_evidence_payload(
         {

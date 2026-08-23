@@ -706,3 +706,33 @@ def test_confidence_not_80_with_weak_data():
 
     weak = {**_STRONG_CANDIDATE, "risk": "—", "volume": 100}
     assert _compute_model_confidence(weak) < 80
+
+
+def test_rejection_labels_pt_cover_quality_gate_keys():
+    """PT labels must cover the raw keys emitted by the real quality gate."""
+    from src.core.pipeline.nodes.agent import (
+        _REJECTION_LABELS_PT,
+        _top_rejection_reasons,
+    )
+    from src.core.pipeline.trade_order import evaluate_quality_gates
+
+    # Candidate without catalyst and with below-minimum liquidity.
+    _, failures = evaluate_quality_gates(
+        {
+            "ticker": "AAA",
+            "price": 5.0,
+            "avg_daily_volume_shares": 100,
+            "catalyst": None,
+        }
+    )
+    assert {"missing_catalyst", "liquidity_below_minimum"} <= set(failures)
+
+    reasons = _top_rejection_reasons(
+        {"missing_catalyst": 2, "liquidity_below_minimum": 3},
+        _REJECTION_LABELS_PT,
+    )
+    text = " ".join(reasons)
+    assert "missing_catalyst" not in text
+    assert "liquidity_below_minimum" not in text
+    assert "sem catalisador verificavel" in text
+    assert "liquidez abaixo do minimo" in text

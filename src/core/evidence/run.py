@@ -22,10 +22,12 @@ def _safe_run_suffix(ticker: str) -> str:
 class EvidenceRun:
     """One analysis run's worth of evidence."""
 
-    def __init__(self, prompt: str, ticker: str = "") -> None:
-        self.run_id = (
-            f"{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}_{uuid.uuid4().hex[:6]}"
-        )
+    def __init__(self, prompt: str, ticker: str = "", run_id: str | None = None) -> None:
+        # run_id (stream/trace id) is propagated so evidence_run_id is
+        # traceable back to the run that produced it (runtime-verifier
+        # 2026-08-23: stream run_id != evidence_run_id).
+        mid = run_id or uuid.uuid4().hex[:6]
+        self.run_id = f"{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}_{mid}"
         suffix = _safe_run_suffix(ticker)
         if suffix:
             self.run_id += f"_{suffix}"

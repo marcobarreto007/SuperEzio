@@ -35,6 +35,18 @@ from .nodes.trinity import node_trinity
 
 logger = get_logger(__name__)
 
+
+def _is_real_evidence_response(text: str) -> bool:
+    """True only when the response holds real content.
+
+    The explanation node streams straight to the client and marks its output
+    with the "(streamed)" placeholder — that placeholder must not satisfy
+    "evidence.response already recorded", or the streamed chunks never get
+    persisted (runtime-verifier 2026-08-23).
+    """
+    return text not in ("", "(streamed)")
+
+
 __all__ = ["PipelineApp", "build_graph", "route_after_orchestrator", "route_after_trinity"]
 
 
@@ -1023,7 +1035,7 @@ class PipelineApp:
         evidence_saved = False
         response_chunks: list[str] = []
         try:
-            evidence = EvidenceRun(prompt=message, ticker=ticker)
+            evidence = EvidenceRun(prompt=message, ticker=ticker, run_id=run_id)
             evidence.start()
         except Exception:
             pass
@@ -1075,7 +1087,7 @@ class PipelineApp:
             if evidence is None or evidence_saved:
                 return
             try:
-                if response_chunks and not evidence.response:
+                if response_chunks and not _is_real_evidence_response(evidence.response):
                     response_text = "".join(response_chunks)
                     evidence.record_response(
                         response_text=response_text,
@@ -1199,8 +1211,8 @@ class PipelineApp:
                         try:
                             for node_name, node_output in payload.items():
                                 if isinstance(node_output, dict):
-                                    if node_name == "explanation" and node_output.get(
-                                        "explanation"
+                                    if node_name == "explanation" and _is_real_evidence_response(
+                                        str(node_output.get("explanation", ""))
                                     ):
                                         evidence.record_response(
                                             response_text=str(node_output["explanation"]),
