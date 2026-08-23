@@ -67,6 +67,10 @@ _YF_FUNDAMENTALS_MAP: dict[str, tuple[str, ...]] = {
     "debt_to_equity": ("debtToEquity",),
     "current_ratio": ("currentRatio",),
     "enterprise_to_ebitda": ("enterpriseToEbitda",),
+    "free_cash_flow": ("freeCashflow", "operatingCashflow"),
+    "shares_outstanding": ("sharesOutstanding", "impliedSharesOutstanding"),
+    "target_mean_price": ("targetMeanPrice",),
+    "recommendation_key": ("recommendationKey",),
 }
 
 
@@ -262,6 +266,8 @@ class YFinanceProvider:
             if not name:
                 return {"error": "yfinance_no_profile"}
             mcap = info.get("marketCap")
+            fcf = info.get("freeCashflow") or info.get("operatingCashflow")
+            shares = info.get("sharesOutstanding") or info.get("impliedSharesOutstanding")
             return {
                 "symbol": symbol,
                 "yahoo_symbol": ysym,
@@ -269,6 +275,8 @@ class YFinanceProvider:
                 "exchange": info.get("exchange"),
                 "currency": info.get("currency"),
                 "market_cap": int(mcap) if mcap is not None else None,
+                "free_cash_flow": float(fcf) if fcf is not None else None,
+                "shares_outstanding": int(shares) if shares is not None else None,
                 "country": info.get("country"),
                 "source": "yfinance",
                 "provider": "yfinance",
