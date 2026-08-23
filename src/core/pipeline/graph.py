@@ -1162,7 +1162,24 @@ class PipelineApp:
                                         provider=payload.get("provider", "unknown"),
                                         bob_readable=payload.get("bob_readable", ""),
                                     )
+                                elif evt_type == "EXPERT_DONE":
+                                    # experts.py emits EXPERT_DONE {role, provider,
+                                    # response} — the recorder listened for a
+                                    # legacy event name and experts.json was
+                                    # always empty (runtime-verifier 2026-08-23).
+                                    evidence.record_expert(
+                                        expert_name=payload.get("role", "unknown"),
+                                        verdict=payload.get("verdict", "?"),
+                                        confidence=float(payload.get("confidence", 0)),
+                                        provider=payload.get("provider", "unknown"),
+                                        bob_readable=payload.get("response", ""),
+                                    )
                                 elif evt_type == "SDCA_COMPLETE":
+                                    evidence.record_risk(payload)
+                                elif evt_type == "SDCA_FIREWALL":
+                                    # sdca_firewall.py emits SDCA_FIREWALL with
+                                    # decision/confidence/ghost_tokens — risk.json
+                                    # was always empty for the same reason.
                                     evidence.record_risk(payload)
                                 elif evt_type == "F51_VERDICT":
                                     evidence.record_verdict(payload)
