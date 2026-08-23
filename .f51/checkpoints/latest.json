@@ -1704,5 +1704,19 @@
       "tests": "103/103 gate+universe+scan; 55/55 apos isolamento do seed"
     },
     "remaining_bottleneck": "Quota diaria do TwelveData (reseta meia-noite UTC). Finnhub cobre US/dual-list; yfinance cobre TSX."
+  },
+  "data_expansion_mission_20260823": {
+    "status": "3_AGENTS_RUNNING",
+    "objective": "Ampliar as fontes de dados (operador autorizou scraping): Reddit sentiment .TO, fontes free extras, scraper oficial TMX.",
+    "agents": [
+      "D1 reddit_sentiment_to (old.reddit search JSON, arctic-shift, subreddits canadenses)",
+      "D2 free_sources (stockanalysis.com, TMX Money, Google News RSS, Yahoo conversation — testar ao vivo, implementar 2 melhores)",
+      "D3 tmx_scraper (money.tmx.com quote/profile/fundamentals .TO)"
+    ],
+    "rules": "sem mocks (respostas reais ou NO_DATA honesto); sem GitHub; sem commits pelos agentes; ruff nos tocados.",
+    "artifacts_so_far": [
+      "runtime/checkpoints/tmx_capture/ (capturas da exploracao TMX do D3)",
+      "tmx_redirect.json (raiz, aguardando o D3)"
+    ]
   }
 }
