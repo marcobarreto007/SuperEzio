@@ -1555,17 +1555,18 @@
   },
   "cloudflare_public_deploy_20260822": {
     "status": "DELIVERED_WITH_EVIDENCE",
-    "timestamp": "2026-08-23T02:40:00Z",
-    "objective": "Deploy público via Cloudflare Tunnel para https://cockpit.supereziorealtime.com com autenticação JWT fail-closed e gates G1-G12 100% verdes.",
+    "timestamp": "2026-08-23T02:44:00Z",
+    "objective": "Deploy público do domínio raiz https://supereziorealtime.com via Cloudflare Tunnel com autenticação JWT fail-closed e gates G1-G12 100% verdes.",
     "state": {
       "tunnel_id": "22e6fc68-8166-43be-a5b2-6e8b33803571",
-      "public_url": "https://cockpit.supereziorealtime.com",
-      "ingress": "cockpit.supereziorealtime.com -> http://127.0.0.1:8002",
-      "cors_origins": ["https://cockpit.supereziorealtime.com", "https://supereziorealtime.com"]
+      "root_url": "https://supereziorealtime.com",
+      "ingress": "supereziorealtime.com -> http://127.0.0.1:8002",
+      "dns": "CNAME @ -> 22e6fc68-8166-43be-a5b2-6e8b33803571.cfargotunnel.com (Proxied)",
+      "cors_origins": ["https://supereziorealtime.com", "https://www.supereziorealtime.com"]
     },
     "verification": {
       "verify_public_gate": "PASS (G1, G4, G5, G6, G12 all OK, 0 failures, 0 leaks)",
-      "health_check": "200 OK via HTTPS",
+      "root_health_check": "200 OK via HTTPS (HTML 25KB)",
       "auth_protection": "401 on /auth/me, 403 on /auth/register",
       "pytest": "115/115 passed in 46.25s",
       "ruff": "100% PASS"
