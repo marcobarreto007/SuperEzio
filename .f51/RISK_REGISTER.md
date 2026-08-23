@@ -14,8 +14,10 @@ Session: td-universe-lock-2026-08-23
   (checkpoint `restart-ceo-20260823.json`). Sem watchdog, qualquer queda exige operador.
 - Mitigation: `scripts/watchdog_ceo.ps1` (health a cada 30s, grace de 3 ciclos, relance
   detached, anti-crashloop max 4/h). Ativado 2026-08-23 em janela hidden.
-- Residual: integrar ao logon (Task Scheduler) ou `start.ps1` para sobreviver a reboot.
-- Status: Active; mitigation em execucao, integracao ao boot pendente.
+- Residual: integrar ao logon (Task Scheduler) ou `start.ps1` para sobreviver a reboot;
+  rehearsal de queda controlada (kill do llama-server e observar relance automatico) pendente
+  de decisao do operador.
+- Status: MITIGATED 2026-08-23 (watchdog ativo desde 18:38Z, PID 20284 na epoca).
 
 ### INV-R54 - Stream de chat contem trace de pipeline em EN (falso positivo no smoke) [MEDIUM]
 
@@ -29,7 +31,8 @@ Session: td-universe-lock-2026-08-23
   `[MODULO]`, `Bob's read`, `MANDATORY FORMAT` preservados — contratos de teste);
   checagem de idioma do smoke restrita ao segmento `SUA EXPLICACAO` do modelo
   (`browser_smoke.py`, `languageSegLength` novo no relatorio).
-- Status: Active ate verificacao (pytest contratos/integracao + smoke verde).
+- Status: MITIGATED 2026-08-23 — pytest contratos/integracao 125 passed; smoke verde
+  (languageOk=true, 0 marcadores EN no stream ao vivo de 2806 chars).
 
 ### INV-R51 - Manifest do universo TD degrada com idade (TTL 7 dias) [MEDIUM]
 

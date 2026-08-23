@@ -1,0 +1,31 @@
+{
+  "session": "post-restart-fixes-2026-08-23",
+  "date": "2026-08-23",
+  "status": "DELIVERED",
+  "objective": "Corrigir 3 problemas expostos pelo restart do CEO: (1) falso positivo de idioma no browser_smoke, (2) ausencia de watchdog para o CEO, (3) trace do pipeline em EN no chat.",
+  "summary": {
+    "1_smoke_language_check": {
+      "fix": "browser_smoke.py: checagem de idioma restrita ao segmento SUA EXPLICACAO do modelo (regex SUA EXPLICA[ÇC][AÃ]O + corte no primeiro '## '), ignorando secoes de trace do pipeline cuja prosa template e EN por contrato. Novo campo languageSegLength no relatorio.",
+      "evidence": "smoke verde pos-fix: languageOk=true, hasEnMarkers=false, enMarker=null, sawStreamEnd=true, console_errors=[], screenshot 20260823-184132."
+    },
+    "2_ceo_watchdog": {
+      "fix": "scripts/watchdog_ceo.ps1 novo: health :8080 a cada 30s, grace 3 ciclos (modelo carregando), relance detached via serve_agent_llamacpp.ps1, anti-crashloop max 4 relances/h, log runtime/logs/watchdog_ceo.log.",
+      "status": "ATIVO (janela hidden desde 18:38Z, PID 20284 na epoca). Rehearsal de queda controlada pendente de decisao do operador; integracao ao boot (Task Scheduler/start.ps1) pendente."
+    },
+    "3_pt_prompts": {
+      "fix": "src/core/pipeline/prompts/builder.py: instrucoes das secoes (Then explain WHY, bullets de modulos, regras, CRITICAL_OUTPUT_REQUIREMENT) traduzidas para PT. Contratos preservados: headers '## *', 'RULES:', '[MODULO] MISSING - confidence reduced', 'MISSING -- confidence reduced', 'Bob's read', 'MANDATORY FORMAT'.",
+      "evidence": "pytest tests/test_pipeline_integration.py + tests/contracts/test_contract_agent.py: 125 passed (1 falha intermediaria: 'RULES' e contrato assertado em teste — label restaurado, balas PT). Probe ao vivo pos-restart da API: 0 marcadores EN no stream completo de 2806 chars (antes: 8)."
+    }
+  },
+  "runtime_changes": {
+    "api_restart": "API :8002 reiniciada detached (cmd cd /d + python -m agent_server.main) para carregar os prompts novos; health 200 sem MAN_AT_WORK. Nota: primeira tentativa via Start-Process -WorkingDirectory falhou (module not found) — licao registrada.",
+    "watchdog_started": "watchdog_ceo.ps1 em execucao desde 18:38Z."
+  },
+  "collision_note": "Sessao paralela na mesma working tree committou d0c92c4 (18:40:19) varrendo as mudancas desta sessao com git add amplo (incluiu data/mangala_daily.json que nao e desta sessao). Conteudo verificado via git show: todas as edicoes desta sessao estao intactas no commit. Confirmado o alerta de memoria sobre sessões paralelas: nunca usar git add -A; sempre add explicito.",
+  "risks_updated": "INV-R53 (watchdog) e INV-R54 (trace EN/smoke) registrados no RISK_REGISTER; status flips para MITIGATED apos verificacao.",
+  "gates": {
+    "github": "DISK ONLY respeitado",
+    "contracts": "strings contratuais de prompt preservadas (pytest 125 passed prova)",
+    "tests": "ruff ok nos arquivos alterados; pytest direcionado 125 passed; smoke verde"
+  }
+}
