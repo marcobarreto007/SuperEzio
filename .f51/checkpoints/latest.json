@@ -15,7 +15,7 @@
     "targeted": "test_auto_full_analysis 21 + test_casual_greetings_and_intent 11 = 32 passed; test_market_scanner 4 passed (3.1s, sem rede); test_yfinance_fundamentals_tsx 8 passed",
     "affected_batteries": "contracts agent/complex_finance/endpoints + api_routes_sync + pipeline_integration + guardrail_hub + trinity: 261 passed",
     "full_suite": "2209 passed, 0 failed, 3 skipped em 694.93s (baseline pre-fix: 5 failed / 2201 passed)",
-    "smoke": "browser_smoke VERDE: 126 candles TD.TO timestamps validos, canvas 1041x511 7 canvases, STREAM_END, resposta PT 3886 chars 108.9s, 0 erros console. Nota: servidor :8002 vivo roda codigo pre-fix ate o proximo restart",
+    "smoke": "browser_smoke VERDE: 126 candles TD.TO timestamps validos, canvas 1041x511 7 canvases, STREAM_END, resposta PT 3886 chars 108.9s, 0 erros console. Servidor :8002 REINICIADO 2026-08-24 (PID 18732, PYTHONPATH=src, log runtime/logs/agent_server_20260824_restart.log): probe 'oi bob, status rapido sem operar' agora roda pipeline completo com MATH_REPORT; 'oi bob' responde cumprimento canonico em 0.4s sem MATH_REPORT (fast-path preservado)",
     "ruff": "check + format limpos nos 4 arquivos tocados"
   },
   "risks": "INV-R56 (classificador casual: escopo do fast-path estreitado — aberturas com conteudo real agora rodam pipeline completo; intencional)",
