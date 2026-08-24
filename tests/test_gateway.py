@@ -520,3 +520,36 @@ class TestStreamingFailurePolicy:
         assert chunks == ["partial", "[ERROR] Provider deepseek failed: _HTTPFailure."]
         assert calls == 1
         assert gateway.last_provider_used is None
+
+
+class TestStreamChatCompletion:
+    @pytest.mark.asyncio
+    async def test_forwards_vision_messages_and_json_mode(self, monkeypatch):
+        gateway = _gateway(_provider(AGENT_PROVIDER_NAME, backend="openai_compatible"))
+        captured = {}
+
+        async def capture(**kwargs):
+            captured.update(kwargs)
+            yield "WAIT"
+
+        monkeypatch.setattr(gateway, "stream_generate_async", capture)
+        msgs = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "leia o grafico"},
+                    {"type": "image_url", "image_url": {"url": "data:image/png;base64,xx"}},
+                ],
+            }
+        ]
+        chunks = [
+            chunk
+            async for chunk in gateway.stream_chat_completion(
+                messages=msgs,
+                json_mode=True,
+                preferred_provider=AGENT_PROVIDER_NAME,
+            )
+        ]
+        assert chunks == ["WAIT"]
+        assert captured["messages"] == msgs
+        assert captured["json_mode"] is False

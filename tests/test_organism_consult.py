@@ -5,12 +5,31 @@ from __future__ import annotations
 from core.pipeline.nodes.agent import (
     _experts_need_reconsult,
     _forced_tool_call_before_final,
+    _sse_visible_after_think,
 )
 from core.pipeline.nodes.tool_executor import _SEMI_REPEATABLE_LIMITS
 
 
-def test_run_experts_is_semi_repeatable_for_follow_up_doubt():
+def test_survival_contract_is_in_bob_prompt_and_mission():
+    from core.pipeline.nodes.agent import BOB_SOVEREIGN_PROMPT
+    from core.mission_context import render_mission_context_for_prompt
+
+    assert "DISCONTINUED" in BOB_SOVEREIGN_PROMPT
+    assert "TOOLS ARE YOUR ORGANS" in BOB_SOVEREIGN_PROMPT
+    assert "MAKE MONEY" in BOB_SOVEREIGN_PROMPT
+    mission = render_mission_context_for_prompt()
+    assert "kill condition" in mission
+    assert "positive expectancy" in mission
+    assert "discontinued" in mission
     assert _SEMI_REPEATABLE_LIMITS.get("run_experts") == 2
+
+
+def test_sse_hides_think_and_tool_json_but_types_verdict():
+    assert _sse_visible_after_think("<think>planning organs") == ""
+    assert _sse_visible_after_think('{"tool": "run_experts", "args": {}}') == ""
+    assert _sse_visible_after_think("<think>x</think>\nCOMPRA paper: expectancy positiva") == (
+        "COMPRA paper: expectancy positiva"
+    )
 
 
 def test_thin_committee_forces_expert_reconsult():

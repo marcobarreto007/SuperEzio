@@ -64,6 +64,9 @@ def test_mission_context_tells_bob_ibkr_paper_submission_is_disabled_when_offlin
     assert "can_submit_orders=False" in context
     assert "disabled until the local broker readiness probe confirms" in context
     assert "Do not claim live-money execution capability" in context
+    assert "kill condition" in context
+    assert "positive expectancy" in context
+    assert "discontinued" in context
 
 
 def test_agent_loader_injects_current_mission_context():

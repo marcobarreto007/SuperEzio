@@ -756,6 +756,7 @@ class ModelGateway:
         allow_fallback: bool = True,
         tools: List[Dict[str, Any]] | None = None,
         messages: List[Dict[str, Any]] | None = None,
+        json_mode: bool = False,
     ) -> "AsyncGenerator[str, None]":
         """Stream generate Assíncrono (Non-blocking)."""
 
@@ -789,6 +790,7 @@ class ModelGateway:
                         system_prompt=system_prompt,
                         max_tokens=max_tokens,
                         temperature=temperature,
+                        json_mode=json_mode,
                         assistant_prefix=assistant_prefix,
                         tools=tools,
                         messages=messages,
@@ -914,6 +916,60 @@ class ModelGateway:
             allow_fallback=allow_fallback,
         )
         return await asyncio.to_thread(func)
+
+    async def stream_chat_completion(
+        self,
+        messages: List[Dict[str, Any]],
+        json_mode: bool = False,
+        temperature: float = 0.7,
+        max_tokens: int | None = None,
+        preferred_provider: str = None,
+        assistant_prefix: str = "",
+        allow_fallback: bool = True,
+    ) -> AsyncGenerator[str, None]:
+        """Stream OpenAI-compatible chat; yields tokens until the decision is complete."""
+        prefix = assistant_prefix
+        msgs = list(messages)
+        if msgs and msgs[-1].get("role") == "assistant":
+            content = msgs[-1].get("content", "")
+            prefix = prefix or (content if isinstance(content, str) else "")
+            msgs = msgs[:-1]
+
+        if _has_image_content(msgs):
+            async for chunk in self.stream_generate_async(
+                prompt="",
+                system_prompt="",
+                max_tokens=max_tokens,
+                temperature=temperature,
+                preferred_provider=preferred_provider,
+                assistant_prefix=prefix,
+                allow_fallback=allow_fallback,
+                messages=msgs,
+                json_mode=False,
+            ):
+                yield chunk
+            return
+
+        prompt = ""
+        system_prompt = ""
+        for msg in msgs:
+            content = msg.get("content", "")
+            if msg["role"] == "system":
+                system_prompt = content if isinstance(content, str) else str(content)
+            else:
+                prompt += f"\n{msg['role'].capitalize()}: {content}"
+
+        async for chunk in self.stream_generate_async(
+            prompt=prompt,
+            system_prompt=system_prompt,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            preferred_provider=preferred_provider,
+            assistant_prefix=prefix,
+            allow_fallback=allow_fallback,
+            json_mode=json_mode,
+        ):
+            yield chunk
 
     def unload_all(self) -> None:
         """Cleanup."""

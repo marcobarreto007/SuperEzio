@@ -402,6 +402,21 @@ _REJECTION_LABELS_PT = {
 }
 
 
+def _sse_visible_after_think(text: str) -> str:
+    """Text the operator should see while Bob is still generating.
+
+    Incomplete <think> stays hidden. Tool-call JSON is never typed into chat;
+    only natural-language verdict streams live over SSE.
+    """
+    if "<think>" in text and "</think>" not in text:
+        return ""
+    visible = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+    stripped = visible.lstrip()
+    if stripped.startswith("{") or stripped.startswith("```"):
+        return ""
+    return visible
+
+
 def _parse_tool_call(text: str) -> dict[str, Any] | None:
     """Extract the first valid JSON tool-call object from *text*."""
     calls = _parse_tool_calls(text)
@@ -3199,17 +3214,54 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     except Exception as e:
         logger.warning("Failed to save prompt to disk: %s", e)
 
+    bob_streamed_live = False
     try:
         from ...model_serving.providers import AGENT_PROVIDER_NAME, LOCAL_MAX_TOKENS
 
-        raw = await gateway.chat_completion(
-            messages=messages,
-            temperature=0.7 if bob_sovereign else 0.1,
-            # The validated Qwen 27B profile generates ~1.3 tok/s. A larger
-            # cap can exceed the 600s gateway timeout and strand the SSE task.
-            max_tokens=LOCAL_MAX_TOKENS,
-            preferred_provider=AGENT_PROVIDER_NAME,
-            json_mode=False if (bob_sovereign or chart_message) else True,
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "bob_generating",
+                "status": "started",
+            }
+        )
+        raw_parts: list[str] = []
+        emitted_visible = ""
+        streamer = getattr(gateway, "stream_chat_completion", None)
+        if callable(streamer):
+            async for token in streamer(
+                messages=messages,
+                temperature=0.7 if bob_sovereign else 0.1,
+                max_tokens=LOCAL_MAX_TOKENS,
+                preferred_provider=AGENT_PROVIDER_NAME,
+                json_mode=False if (bob_sovereign or chart_message) else True,
+            ):
+                if token:
+                    raw_parts.append(token)
+                    visible = _sse_visible_after_think("".join(raw_parts))
+                    if visible.startswith(emitted_visible):
+                        delta = visible[len(emitted_visible) :]
+                        if delta:
+                            writer({"type": "CHUNK", "run_id": run_id, "content": delta})
+                            emitted_visible = visible
+            raw = "".join(raw_parts)
+            bob_streamed_live = bool(emitted_visible)
+        else:
+            raw = await gateway.chat_completion(
+                messages=messages,
+                temperature=0.7 if bob_sovereign else 0.1,
+                max_tokens=LOCAL_MAX_TOKENS,
+                preferred_provider=AGENT_PROVIDER_NAME,
+                json_mode=False if (bob_sovereign or chart_message) else True,
+            )
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": run_id,
+                "step": "bob_generating",
+                "status": "completed",
+            }
         )
 
         # Extract sovereign reasoning before cleaning thinking blocks
@@ -3362,7 +3414,14 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 pf = _get_portfolio_snapshot(state)
                 if pf:
                     writer({"type": "CHUNK", "content": pf})
-                writer({"type": "CHUNK", "content": content})
+                if bob_streamed_live:
+                    note = ""
+                    marker = "[Pipeline validation note:"
+                    if marker in content:
+                        note = content[content.find(marker) :]
+                        writer({"type": "CHUNK", "content": "\n\n" + note})
+                else:
+                    writer({"type": "CHUNK", "content": content})
                 writer(
                     {
                         "type": "PIPELINE_STEP",
