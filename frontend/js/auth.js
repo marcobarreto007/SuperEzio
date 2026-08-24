@@ -258,6 +258,10 @@
   }
 
   function showLogin() {
+    if (isOpenAccess()) {
+      hideModal();
+      return;
+    }
     injectModal();
     if (modalEl) modalEl.classList.add("auth-overlay--visible");
     // Switch to login tab
@@ -295,50 +299,89 @@
 
   // ── Init ──
 
-  function init() {
-    injectModal();
+  var _authRequired = null;
 
-    if (isAuthenticated()) {
-      startRefreshTimer();
-      return;
+  function setAuthRequired(value) {
+    _authRequired = value === false ? false : value === true ? true : null;
+    if (window.SZ && window.SZ.auth) {
+      window.SZ.auth.authRequired = _authRequired;
     }
+  }
 
-    // Try refresh once
-    refreshToken().then(function (token) {
-      if (token) {
-        startRefreshTimer();
-        return;
-      }
+  function isOpenAccess() {
+    return _authRequired === false;
+  }
 
-      // Dev/prod mode detection.
-      // /health is public in BOTH modes, so probing it cannot tell them
-      // apart — that was the bug (frontend always assumed dev mode and never
-      // showed the login modal, so no token was ever sent → 401 everywhere).
-      // Instead probe a PROTECTED endpoint without credentials:
-      //   - Dev mode (no SUPEREZIO_JWT_SECRET): middleware injects an anon
-      //     user, so /auth/me returns 200 → skip login.
-      //   - Prod mode (secret configured): no token → 401 → show login.
-      var probeController = new AbortController();
-      var probeTimeout = setTimeout(function () { probeController.abort(); }, 4000);
-      fetch(API + "/auth/me", { signal: probeController.signal })
-        .then(function (r) {
-          clearTimeout(probeTimeout);
-          if (r.status === 401) {
-            // Production mode — server requires auth and we have no token.
+  function probeLoginRequirement() {
+    // /health now carries auth_required (dev/open-access = false). That is
+    // the public signal — do not infer from a 4s /auth/me timeout, which
+    // used to paint the login wall over a live cockpit on slow mobile.
+    var probeController = new AbortController();
+    var probeTimeout = setTimeout(function () { probeController.abort(); }, 6000);
+    fetch(API + "/health", { signal: probeController.signal })
+      .then(function (r) { return r.json().then(function (body) { return { ok: r.ok || r.status === 503, body: body }; }).catch(function () { return { ok: false, body: {} }; }); })
+      .then(function (result) {
+        clearTimeout(probeTimeout);
+        var required = result.body && result.body.auth_required;
+        if (required === false) {
+          setAuthRequired(false);
+          hideModal();
+          console.log("SuperEzio: open access — skipping login");
+          return;
+        }
+        if (required === true) {
+          setAuthRequired(true);
+        }
+        if (isAuthenticated()) {
+          startRefreshTimer();
+          return;
+        }
+        refreshToken().then(function (token) {
+          if (token) {
+            startRefreshTimer();
+            return;
+          }
+          if (required === true) {
             clearTokens();
             showLogin();
-          } else {
-            // Dev mode (anon-user bypass) — no login required.
-            console.log("SuperEzio: dev mode detected (no auth required), skipping login");
+            return;
           }
-        })
-        .catch(function () {
-          clearTimeout(probeTimeout);
-          // Server unreachable or timeout — show login anyway.
-          clearTokens();
-          showLogin();
+          // auth_required missing (old server): fall back to /auth/me.
+          var meController = new AbortController();
+          var meTimeout = setTimeout(function () { meController.abort(); }, 4000);
+          fetch(API + "/auth/me", { signal: meController.signal })
+            .then(function (r) {
+              clearTimeout(meTimeout);
+              if (r.status === 401) {
+                setAuthRequired(true);
+                clearTokens();
+                showLogin();
+              } else {
+                setAuthRequired(false);
+                hideModal();
+              }
+            })
+            .catch(function () {
+              clearTimeout(meTimeout);
+              // Unreachable: do not cover the UI with a login wall.
+              setAuthRequired(false);
+              hideModal();
+            });
         });
-    });
+      })
+      .catch(function () {
+        clearTimeout(probeTimeout);
+        setAuthRequired(false);
+        hideModal();
+      });
+  }
+
+  function init() {
+    injectModal();
+    if (isAuthenticated()) {
+      startRefreshTimer();
+    }
+    probeLoginRequirement();
   }
 
   // ── getValidToken: returns current token if valid (not expired), else null ──
@@ -364,6 +407,8 @@
     showLogin: showLogin,
     hideModal: hideModal,
     init: init,
+    authRequired: null,
+    isOpenAccess: isOpenAccess,
   };
 
   // Auto-init

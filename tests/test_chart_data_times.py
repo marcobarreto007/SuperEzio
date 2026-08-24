@@ -37,6 +37,7 @@ def test_chart_data_candles_have_epoch_times(monkeypatch):
     # Pin dev-anon mode for the TestClient.
     monkeypatch.delenv("SUPEREZIO_JWT_SECRET", raising=False)
     monkeypatch.setenv("SUPEREZIO_PUBLIC_MODE", "0")
+    monkeypatch.setenv("SUPEREZIO_OPEN_ACCESS", "0")
 
     monkeypatch.setattr(
         ep.hub, "get_candles", lambda ticker, timeframe="6M": {"candles": _make_candles()}

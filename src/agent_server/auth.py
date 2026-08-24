@@ -264,6 +264,39 @@ def _is_dev_mode() -> bool:
     return not bool(_get_secret())
 
 
+def _open_access() -> bool:
+    """Operator opt-in: anonymous guests, no login wall.
+
+    Used for a small trusted distribution. Trading endpoints still require
+    their own factor (``SUPEREZIO_API_KEY``) when configured. Registration
+    stays closed in public mode.
+    """
+    return os.getenv("SUPEREZIO_OPEN_ACCESS", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def auth_required_for_clients() -> bool:
+    """Whether the UI must present login. False in dev mode or open access."""
+    return not (_is_dev_mode() or _open_access())
+
+
+def _guest_user() -> dict[str, Any]:
+    if _open_access():
+        return {
+            "id": 0,
+            "sub": "0",
+            "username": "guest_open",
+            "role": "guest",
+            "type": "access",
+        }
+    return {
+        "id": 0,
+        "sub": "0",
+        "username": "dev_anon",
+        "role": "dev",
+        "type": "access",
+    }
+
+
 def _public_mode() -> bool:
     """Public-facing deployment flag — tightens the anonymous surface."""
     return os.getenv("SUPEREZIO_PUBLIC_MODE", "").strip().lower() in {"1", "true", "yes", "on"}
@@ -380,8 +413,9 @@ async def jwt_auth_middleware(request: Request, call_next):
     ---------
     * Public routes (same set as ``api_key_auth_middleware`` plus ``/auth/*``):
       pass through without authentication.
-    * Dev mode (``SUPEREZIO_JWT_SECRET`` empty / not set): inject an anonymous
-      user into ``request.state.user`` and pass through.
+    * Dev mode (``SUPEREZIO_JWT_SECRET`` empty / not set) or open access
+      (``SUPEREZIO_OPEN_ACCESS=1``): inject a guest user. A valid Bearer
+      token, if present, is still honoured.
     * Production: extract the ``Bearer`` token from the ``Authorization``
       header, validate it, and inject the decoded payload into
       ``request.state.user``.
@@ -395,15 +429,17 @@ async def jwt_auth_middleware(request: Request, call_next):
     if _is_public_path(path):
         return await call_next(request)
 
-    # Dev mode — inject anonymous user.
-    if _is_dev_mode():
-        request.state.user = {
-            "id": 0,
-            "sub": "0",
-            "username": "dev_anon",
-            "role": "dev",
-            "type": "access",
-        }
+    # Dev mode / open access — guest passthrough. Prefer a valid token if
+    # one was sent (operator still logged in) so identity is not discarded.
+    if _is_dev_mode() or _open_access():
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header.removeprefix("Bearer ").strip()
+            payload = _decode_access_token(token) if token else None
+            if payload is not None:
+                request.state.user = payload
+                return await call_next(request)
+        request.state.user = _guest_user()
         return await call_next(request)
 
     # Extract Bearer token.
@@ -559,11 +595,13 @@ def register_auth_routes(app: FastAPI) -> None:
             user_id = 0
 
         if user_id == 0:
-            # Dev-mode anonymous user.
+            # Dev-mode / open-access guest.
+            username = str(user.get("username") or "dev_anon")
+            email = "guest@open" if username == "guest_open" else "dev@local"
             return UserResponse(
                 id=0,
-                username=str(user.get("username", "dev_anon")),
-                email="dev@local",
+                username=username,
+                email=email,
                 created_at="",
             )
 

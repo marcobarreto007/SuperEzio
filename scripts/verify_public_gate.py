@@ -56,10 +56,24 @@ def run_checks(base_url: str) -> dict[str, Any]:
         if not ok:
             results["failures"].append(name)
 
-    # G1/G5 — protected routes must refuse anonymous access
+    health_code, health_body = _fetch(base_url, "/health")
+    check("health reachable", health_code in (200, 503), f"got {health_code}")
+    auth_required = True
+    try:
+        auth_required = json.loads(health_body).get("auth_required", True)
+    except Exception:
+        auth_required = True
+    results["auth_required"] = auth_required
+    results["open_access"] = auth_required is False
+
+    # G1/G5 — protected routes refuse anonymous access unless open-access
+    # was explicitly enabled by the operator (guest_open passthrough).
     for path in PROTECTED_PROBES:
         code, body = _fetch(base_url, path)
-        check(f"G1/G5 protected {path} -> 401", code == 401, f"got {code}")
+        if auth_required is False:
+            check(f"G1/G5 open-access {path} -> 200", code == 200, f"got {code}")
+        else:
+            check(f"G1/G5 protected {path} -> 401", code == 401, f"got {code}")
 
     # G4 — registration must be operator-gated in public mode (POST probe)
     payload = json.dumps(
@@ -89,11 +103,18 @@ def run_checks(base_url: str) -> dict[str, Any]:
         check(f"G6 public {path} -> 200", code == 200, f"got {code}")
     for path in TIGHTENED_PROBES:
         code, body = _fetch(base_url, path)
-        check(
-            f"G6 tightened {path} not anonymous (401/403/404)",
-            code in (401, 403, 404),
-            f"got {code}",
-        )
+        if auth_required is False:
+            check(
+                f"G6 open-access {path} reachable",
+                code in (200, 503),
+                f"got {code}",
+            )
+        else:
+            check(
+                f"G6 tightened {path} not anonymous (401/403/404)",
+                code in (401, 403, 404),
+                f"got {code}",
+            )
 
     # G12 — no secret-shaped values in anonymous responses
     leaks = []

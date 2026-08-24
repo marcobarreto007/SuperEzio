@@ -134,6 +134,8 @@ def test_health(client_with_mock_pipeline):
     data = response.json()
     if response.status_code == 200:
         assert data["status"] == "ok"
+        assert "auth_required" in data
+        assert isinstance(data["auth_required"], bool)
     assert "agent" in data
     assert "version" in data
 
@@ -664,6 +666,7 @@ def test_product_login_uses_jwt_while_trading_token_keeps_api_key_second_factor(
     monkeypatch.setenv("SUPEREZIO_API_KEY", configured_api_key)
     monkeypatch.setenv("SUPEREZIO_PUBLIC_REGISTRATION", "1")
     monkeypatch.setenv("SUPEREZIO_PUBLIC_MODE", "0")
+    monkeypatch.setenv("SUPEREZIO_OPEN_ACCESS", "0")
 
     original_auth_db = getattr(app.state, "auth_db", None)
     app.state.auth_db = AuthDB(db_path=tmp_path / "auth.db")

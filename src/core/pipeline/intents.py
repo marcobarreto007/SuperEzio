@@ -268,8 +268,11 @@ def _is_casual_message(message: str) -> bool:
     ]
     words = text.split()
     financial_action_words = {
-        "comprar", "vender", "trade", "ordem", "order", "buy", "sell", "analise",
-        "analisar", "alvo", "stop", "grafico", "gráfico", "scan", "scanner", "preco", "preço"
+        "comprar", "compro", "compra", "vender", "vendo", "venda",
+        "trade", "ordem", "order", "buy", "sell", "analise", "analisar",
+        "alvo", "stop", "grafico", "gráfico", "scan", "scanner",
+        "preco", "preço", "recomenda", "recomendacao", "recomendação",
+        "recomendaria",
     }
     if len(words) <= 7 and not any(w in financial_action_words for w in words):
         for pat in patterns:

@@ -45,3 +45,19 @@ async def test_casual_greeting_pipeline_fast_path():
 
     assert any("Tudo ótimo por aqui" in c or "Bob a postos" in c for c in chunks), f"Expected casual greeting reply, got: {chunks}"
     assert not any(s.get("step") == "f51_firewall" and s.get("status") == "failed" for s in steps)
+
+
+def test_buy_question_is_not_casual():
+    from core.pipeline.intents import _is_casual_message
+
+    assert _is_casual_message("Compro TD.TO ou nao?") is False
+    assert _is_casual_message("compro TD.TO") is False
+    assert _is_casual_message("TD.TO recomenda?") is False
+
+
+def test_buy_question_does_not_skip_trinity():
+    from core.pipeline.graph import _is_simple_query
+
+    assert _is_simple_query({"message": "Compro TD.TO ou nao?", "ticker": "TD.TO"}) is False
+    assert _is_simple_query({"message": "TD.TO recomenda?", "ticker": "TD.TO"}) is False
+    assert _is_simple_query({"message": "TD.TO rsi", "ticker": "TD.TO"}) is True

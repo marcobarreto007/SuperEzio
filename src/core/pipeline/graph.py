@@ -185,10 +185,34 @@ def _is_simple_query(state: dict) -> bool:
 
     Simple = 1 ticker + basic indicator keywords only.
     Complex = portfolio, strategy, macro, valuation, DCF, or multi-ticker.
+    Buy/sell/recommendation questions NEVER fast-path — Bob must consult
+    Trinity, experts, F51 and SDCA before answering.
     """
     msg = str(state.get("message") or "").lower()
     ticker = str(state.get("ticker") or "").upper()
     if not ticker:
+        return False
+
+    # Decision questions — NEVER fast-path (full pipeline required)
+    decision_keywords = (
+        "compro",
+        "comprar",
+        "compra",
+        "vendo",
+        "vender",
+        "venda",
+        "buy",
+        "sell",
+        "short",
+        "recomendação",
+        "recomendacao",
+        "recomenda",
+        "recomendaria",
+        "vale a pena",
+        "ou não",
+        "ou nao",
+    )
+    if any(kw in msg for kw in decision_keywords):
         return False
 
     # Complex topics — NEVER fast-path
@@ -239,9 +263,6 @@ def _is_simple_query(state: dict) -> bool:
         "macd",
         "tendência",
         "tendencia",
-        "recomendação",
-        "recomendacao",
-        "recomenda",
         "agora",
         "now",
         "valor",

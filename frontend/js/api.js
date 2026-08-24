@@ -13,8 +13,6 @@
     var headers = { ...(opts.headers || {}) };
     if (token) {
       headers["Authorization"] = "Bearer " + token;
-    } else {
-      console.warn(DBG, "path=" + path + " NO TOKEN — request will NOT have Authorization header");
     }
     if (!headers["Accept"]) {
       headers["Accept"] = "application/json";
@@ -25,7 +23,8 @@
     var r = await fetch(API + path, opts);
     console.log(DBG, "path=" + path + " status=" + r.status);
 
-    // Step 4: on 401, try refresh + retry once
+    // Step 4: on 401, try refresh; if that fails, retry as guest (open access)
+    // instead of covering the cockpit with a login wall.
     if (r.status === 401 && token) {
       console.log(DBG, "path=" + path + " status=401 attempting refresh retry...");
       try {
@@ -38,9 +37,15 @@
           r = await fetch(API + path, { ...opts, headers });
           console.log(DBG, "path=" + path + " retry_status=" + r.status);
         } else {
-          console.warn(DBG, "path=" + path + " refresh returned null, showing login");
           if (authMod && typeof authMod.clearTokens === "function") authMod.clearTokens();
-          if (authMod && typeof authMod.showLogin === "function") authMod.showLogin();
+          var guestHeaders = { ...headers };
+          delete guestHeaders["Authorization"];
+          r = await fetch(API + path, { ...opts, headers: guestHeaders });
+          console.log(DBG, "path=" + path + " guest_retry_status=" + r.status);
+          var open = authMod && (authMod.authRequired === false || (typeof authMod.isOpenAccess === "function" && authMod.isOpenAccess()));
+          if (r.status === 401 && !open && authMod && typeof authMod.showLogin === "function") {
+            authMod.showLogin();
+          }
         }
       } catch (e) {
         console.warn(DBG, "path=" + path + " refresh threw:", e);

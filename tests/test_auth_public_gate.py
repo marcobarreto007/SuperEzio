@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 
 from agent_server.auth import (
     AuthDB,
+    auth_required_for_clients,
     jwt_auth_middleware,
     register_auth_routes,
     validate_public_mode_or_raise,
@@ -25,6 +26,7 @@ STRONG_SECRET = "x" * 64  # 64 chars — meets the >= 32 requirement
 def _build_app(db_path, monkeypatch):
     monkeypatch.setenv("SUPEREZIO_JWT_SECRET", STRONG_SECRET)
     monkeypatch.setenv("SUPEREZIO_PUBLIC_MODE", "1")
+    monkeypatch.setenv("SUPEREZIO_OPEN_ACCESS", "0")
     app = FastAPI()
     app.state.auth_db = AuthDB(db_path=db_path)
     register_auth_routes(app)
@@ -118,3 +120,42 @@ def test_g6_public_set_tightened(public_client):
     assert public_client.get("/metrics").status_code == 401
     assert public_client.get("/health/dashboard").status_code == 401
     assert public_client.get("/api/health/dashboard-data").status_code == 401
+
+
+def test_open_access_guest_passthrough(tmp_path, monkeypatch):
+    """Operator flag: no login wall, registration still closed, trading untouched."""
+    monkeypatch.setenv("SUPEREZIO_OPEN_ACCESS", "1")
+    monkeypatch.setenv("SUPEREZIO_JWT_SECRET", STRONG_SECRET)
+    monkeypatch.setenv("SUPEREZIO_PUBLIC_MODE", "1")
+    assert auth_required_for_clients() is False
+
+    app = FastAPI()
+    app.state.auth_db = AuthDB(db_path=tmp_path / "open.db")
+    register_auth_routes(app)
+
+    @app.get("/protected")
+    async def _protected(request: Request):
+        return {"username": request.state.user.get("username")}
+
+    app.middleware("http")(jwt_auth_middleware)
+    client = TestClient(app)
+
+    me = client.get("/auth/me")
+    assert me.status_code == 200
+    assert me.json()["username"] == "guest_open"
+    protected = client.get("/protected")
+    assert protected.status_code == 200
+    assert protected.json()["username"] == "guest_open"
+    # Self-serve accounts stay closed even when the product is open.
+    reg = client.post(
+        "/auth/register",
+        json={"username": "intruder", "email": "i@x.com", "password": "p@ssw0rd123"},
+    )
+    assert reg.status_code == 403
+
+
+def test_open_access_off_still_requires_login(monkeypatch):
+    monkeypatch.setenv("SUPEREZIO_OPEN_ACCESS", "0")
+    monkeypatch.setenv("SUPEREZIO_JWT_SECRET", STRONG_SECRET)
+    monkeypatch.setenv("SUPEREZIO_PUBLIC_MODE", "1")
+    assert auth_required_for_clients() is True

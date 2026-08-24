@@ -553,8 +553,6 @@
     var headers = { Accept: "application/x-ndjson" };
     if (token) {
       headers["Authorization"] = "Bearer " + token;
-    } else {
-      console.warn("[SSE] No JWT token - pipeline stream will lack auth");
     }
 
     var api = window.SZ && window.SZ.api;

@@ -33,7 +33,11 @@ from core.observability import log_queue, metrics  # noqa: E402
 from core.paths import PROJECT_ROOT  # noqa: E402
 from core.sentiment import LiveMonitor, SentimentCurator, WatchlistPulse  # noqa: E402
 
-from .auth import jwt_auth_middleware, register_auth_routes  # noqa: E402
+from .auth import (  # noqa: E402
+    auth_required_for_clients,
+    jwt_auth_middleware,
+    register_auth_routes,
+)
 from .endpoints import router as a2a_router  # noqa: E402
 
 # Load local environment before reading runtime configuration.
@@ -764,6 +768,7 @@ async def health_check_public(request: Request):
         "agent": AGENT_NAME,
         "version": VERSION,
         "validation_mode": _env_bool("SUPEREZIO_VALIDATION_MODE", False),
+        "auth_required": auth_required_for_clients(),
     }
 
     # 1. Pipeline initialized?

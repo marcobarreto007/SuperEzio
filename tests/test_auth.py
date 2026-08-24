@@ -43,6 +43,7 @@ def jwt_secret(monkeypatch):
         "test-secret-for-testing-purposes-only",
     )
     monkeypatch.setenv("SUPEREZIO_PUBLIC_MODE", "0")
+    monkeypatch.setenv("SUPEREZIO_OPEN_ACCESS", "0")
     return "test-secret-for-testing-purposes-only"
 
 
