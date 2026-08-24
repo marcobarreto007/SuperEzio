@@ -1,9 +1,25 @@
 # F51 Risk Register
 
-Updated: 2026-08-23
-Session: unified-restart-and-fixes-2026-08-23 (consolida td-universe-lock, casual-greeting-intent-fix, restart-ceo e post-restart-fixes — ver .f51/checkpoints/latest.json)
+Updated: 2026-08-24
+Session: full-regression-fix-20260824 (consolida o reparo das 5 falhas pre-existentes da suíte completa — ver .f51/checkpoints/latest.json)
 
 ## Active Risks
+
+### INV-R56 - Classificador casual exige saudacao de mensagem inteira [LOW]
+
+- Classification: routing / behavior change.
+- Risk: `_is_casual_message` (src/core/pipeline/intents.py) agora so classifica como
+  casual a mensagem composta INTEIRAMENTE por tokens de saudacao/cortesia. Aberturas
+  conversacionais com conteudo real ("oi bob, status rapido sem operar", "bom dia, o
+  mercado abre hoje?") deixam o fast-path casual e entram no pipeline completo
+  (MathHub incluso — restauracao do contrato math_report quebrado pelo 54cebc8).
+  Saudacoes puras ("oi bob", "bom dia bob") continuam no fast-path. Efeito colateral
+  aceito: aberturas charmosas sem pedido concreto ("oi, tudo certo por ai?") agora
+  rodam o pipeline em vez da resposta curta canonica.
+- Mitigation: matriz pinned em `tests/test_casual_greetings_and_intent.py` (casos
+  puros continuam casuais) + casos de conteudo no mesmo arquivo; verificado 16/16
+  na validacao manual e 32 passed na bateria.
+- Status: MITIGATED 2026-08-24.
 
 ### INV-R55 - OPEN_ACCESS na URL publica (5 pessoas) [HIGH]
 

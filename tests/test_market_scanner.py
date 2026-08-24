@@ -97,6 +97,22 @@ async def test_run_scan_uses_restored_market_scanner(monkeypatch):
     except ImportError:
         pass
 
+    # FakeScanner returns only 2 candidates, which trips the thin-scan
+    # (< 5) supplemental discovery layers in _run_scan. Each one injects
+    # REAL data and must be pinned off so this unit test stays hermetic:
+    #   1. penny_scanner_yfinance — live yfinance network calls
+    #   2. pennylab watchlist merge — 40 hardcoded real symbols
+    #   3. mangala_daily_seed — data/mangala_daily.json from disk
+    import src.core.scanner.penny_scanner as _penny_mod
+
+    monkeypatch.setattr(_penny_mod, "scan_penny_stocks", lambda **_kwargs: [])
+    import experts.pennylab.data_provider as _pennylab_mod
+
+    monkeypatch.setattr(_pennylab_mod, "_PENNY_WATCHLIST", [])
+    monkeypatch.setenv(
+        "SUPEREZIO_MANGALA_SEED_PATH", "data/__nonexistent_seed_for_unit_test__.json"
+    )
+
     result = await _run_scan(
         "scan technology stocks",
         {"country": "United States", "sector": "Technology"},

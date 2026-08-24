@@ -140,9 +140,21 @@ def test_datahub_routes_fundamentals_to_yfinance_when_finnhub_key_missing(
     monkeypatch.setenv("FINNHUB_API_KEY", "")  # invalid/missing key → route off
     _install_fake_yfinance(monkeypatch, _FAKE_INFO)
 
+    class _OfflineTmx:
+        """Deterministic TMX: no real money.tmx.com GraphQL call in unit tests."""
+
+        def get_fundamentals(self, symbol: str, **_: object) -> dict[str, object]:
+            return {"error": "tmx_offline_in_test", "symbol": symbol}
+
+    import data.data_hub as _data_hub_module
+
+    monkeypatch.setattr(_data_hub_module, "_make_tmx_provider", lambda: _OfflineTmx())
+
     hub = DataHub(register_defaults=True)
     fundamentals_routes = [r["name"] for r in hub.list_routes("fundamentals")]
-    assert fundamentals_routes == ["finnhub", "yfinance"]
+    # TMX (priority 25, Canadian fallback) joined the chain on 2026-08-23,
+    # sitting just above the yfinance last resort.
+    assert fundamentals_routes == ["finnhub", "tmx", "yfinance"]
 
     result = hub.get_fundamentals("TD.TO")
 

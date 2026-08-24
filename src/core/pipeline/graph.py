@@ -481,7 +481,11 @@ async def _auto_full_analysis(
     ).upper()
     data_context = str(working_state.get("data_context") or working_state.get("message") or "")
 
-    if not _is_casual and (working_state.get("data") or should_collect_market):
+    # MathHub is a declared PipelineState key (math_report): every non-casual
+    # answer carries one, even without collected data — allocation/framework
+    # answers compute portfolio math from the message, not OHLCV. Only pure
+    # casual greetings skip it (fast path).
+    if not _is_casual:
         logger.info(
             "MATHHUB_INPUT has_data=%s ohlcv_count=%s ticker=%s",
             "data" in working_state,

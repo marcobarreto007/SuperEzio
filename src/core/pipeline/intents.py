@@ -250,11 +250,38 @@ def _is_casual_message(message: str) -> bool:
 
     # Direct exact casual phrases
     casual_phrases = {
-        "oi", "ola", "olá", "hey", "hi", "hello", "opa", "fala", "salve",
-        "tudo bem", "tudo bom", "td bem", "td bom", "como vai", "como esta",
-        "como você esta", "como voce esta", "beleza", "blz", "tranquilo",
-        "bom dia", "boa tarde", "boa noite", "e ai", "e aí",
-        "teste", "test", "ping", "pong", "obrigado", "valeu", "thanks",
+        "oi",
+        "ola",
+        "olá",
+        "hey",
+        "hi",
+        "hello",
+        "opa",
+        "fala",
+        "salve",
+        "tudo bem",
+        "tudo bom",
+        "td bem",
+        "td bom",
+        "como vai",
+        "como esta",
+        "como você esta",
+        "como voce esta",
+        "beleza",
+        "blz",
+        "tranquilo",
+        "bom dia",
+        "boa tarde",
+        "boa noite",
+        "e ai",
+        "e aí",
+        "teste",
+        "test",
+        "ping",
+        "pong",
+        "obrigado",
+        "valeu",
+        "thanks",
     }
     if text in casual_phrases or cleaned in casual_phrases:
         return True
@@ -268,18 +295,107 @@ def _is_casual_message(message: str) -> bool:
     ]
     words = text.split()
     financial_action_words = {
-        "comprar", "compro", "compra", "vender", "vendo", "venda",
-        "trade", "ordem", "order", "buy", "sell", "analise", "analisar",
-        "alvo", "stop", "grafico", "gráfico", "scan", "scanner",
-        "preco", "preço", "recomenda", "recomendacao", "recomendação",
+        "comprar",
+        "compro",
+        "compra",
+        "vender",
+        "vendo",
+        "venda",
+        "trade",
+        "ordem",
+        "order",
+        "buy",
+        "sell",
+        "analise",
+        "analisar",
+        "alvo",
+        "stop",
+        "grafico",
+        "gráfico",
+        "scan",
+        "scanner",
+        "preco",
+        "preço",
+        "recomenda",
+        "recomendacao",
+        "recomendação",
         "recomendaria",
     }
     if len(words) <= 7 and not any(w in financial_action_words for w in words):
         for pat in patterns:
             if re.search(pat, text) or re.search(pat, cleaned):
-                return True
+                # The greeting must span the WHOLE message. "oi bob" is a
+                # casual greeting; "oi bob, status rapido sem operar" carries
+                # a real request and must reach the full pipeline (MathHub
+                # included) — only pure pleasantry tokens may remain.
+                if not _residual_content(text):
+                    return True
 
     return False
+
+
+# Tokens that carry no request content — greetings, pleasantries, the
+# operator name, and the identity/help phrases matched by the patterns above.
+_CASUAL_TOKENS = frozenset(
+    {
+        # greetings / interjections
+        "oi",
+        "ola",
+        "olá",
+        "hey",
+        "hi",
+        "hello",
+        "opa",
+        "fala",
+        "salve",
+        "e",
+        "ai",
+        "aí",
+        # time-of-day greetings
+        "bom",
+        "boa",
+        "dia",
+        "tarde",
+        "noite",
+        # pleasantries
+        "tudo",
+        "bem",
+        "como",
+        "vai",
+        "esta",
+        "está",
+        "voce",
+        "você",
+        "beleza",
+        "blz",
+        "tranquilo",
+        "td",
+        "obrigado",
+        "valeu",
+        "thanks",
+        # meta / test probes
+        "teste",
+        "test",
+        "ping",
+        "pong",
+        # identity/help phrases (patterns above)
+        "quem",
+        "é",
+        "faz",
+        "que",
+        "funciona",
+        "ajuda",
+        "help",
+        # operator name
+        "bob",
+    }
+)
+
+
+def _residual_content(text: str) -> str:
+    """Strip casual tokens from ``text``; return whatever real content remains."""
+    tokens = [t.strip(".,:;!?-–—\"'()") for t in text.split()]
+    return " ".join(t for t in tokens if t and t.lower() not in _CASUAL_TOKENS)
 
 
 def _without_tools(tools: tuple[str, ...] | list[str], *blocked: str) -> list[str]:

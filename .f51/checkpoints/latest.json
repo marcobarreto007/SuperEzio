@@ -1,20 +1,24 @@
 {
-  "date_local": "2026-08-23",
-  "session": "bob-survival-sse-20260823",
+  "date_local": "2026-08-24",
+  "session": "full-regression-fix-20260824",
   "status": "DELIVERED",
-  "objective": "Bob trata ferramentas como orgaos: expectancy paper ou discontinuado. SSE digita o veredito em tempo real.",
-  "predecessor": "bob-living-organism-consult-20260823",
-  "problema": "SSE ja existia; o contrato de sobrevivencia (ganhar dinheiro via tools ou ser apagado) nao estava no prompt nem o stream filtrava JSON de tool-call.",
+  "objective": "Resolva tudo: zerar as 5 falhas pre-existentes da suíte completa sem remover comportamento — so melhorar.",
+  "predecessor": "bob-survival-sse-20260823",
+  "problema": "Suíte completa em 39dacd2: 5 failed / 2201 passed. (a) 3x KeyError math_report em test_auto_full_analysis — guarda do 54cebc8 (`data or should_collect_market`) pulava o MathHub em respostas sem dados, quebrando o contrato de PipelineState; alem disso o classificador casual tratava 'oi bob, status rapido sem operar' como saudacao pura. (b) test_yfinance_fundamentals_tsx esperava a cadeia de fundamentals pre-TMX (rota tmx prioridade 25 entrou 2026-08-23) e dependia de falha de rede real do TMX para cair no yfinance. (c) test_market_scanner injetava candidatos REAIS (PLUG/NIO/TLRY) pelas 3 camadas suplementares de descoberta (penny_scanner_yfinance com rede real, watchlist pennylab 40 simbolos, seed mangala_daily.json do disco).",
   "patch": {
-    "agent.py": "SURVIVAL AND EVOLUTION no prompt soberano; explainer deixa de ser so narrador; stream_chat_completion com CHUNK so do veredito (esconde think e JSON de tool); bob_streamed_live inicializado",
-    "gateway.py": "stream_chat_completion + json_mode no stream_generate_async; visao nao flatten",
-    "mission_context.json": "kill condition, expectancy, SSE ate o veredito completo"
+    "graph.py": "guarda do MathHub em _auto_full_analysis: `if not _is_casual:` — toda resposta nao-casual carrega math_report (chave declarada de PipelineState), mesmo sem dados coletados; saudacoes puras continuam no fast-path",
+    "intents.py": "_is_casual_message exige saudacao de mensagem INTEIRA (_CASUAL_TOKENS + _residual_content): 'oi bob' continua casual; 'oi bob, status rapido sem operar' vira pipeline completo. Matriz pinned do 54cebc8 intacta (16/16 na validacao manual)",
+    "test_market_scanner.py": "isolamento hermetico das 3 camadas suplementares: scan_penny_stocks -> [], _PENNY_WATCHLIST -> [], SUPEREZIO_MANGALA_SEED_PATH -> caminho inexistente",
+    "test_yfinance_fundamentals_tsx.py": "espera ['finnhub','tmx','yfinance'] + stub _OfflineTmx (sem GraphQL real) — roteamento deterministico ate o yfinance fake"
   },
   "verification": {
-    "pytest_slice": "organism 5 + gateway stream + contract mission + bob_sovereign + chart_visual: 124 passed no slice amplo; 7/7 no re-run pos-fix de identity",
-    "ruff": "clean nos arquivos do slice",
-    "known_unrelated": "3 test_auto_full_analysis KeyError math_report em finance-only"
+    "targeted": "test_auto_full_analysis 21 + test_casual_greetings_and_intent 11 = 32 passed; test_market_scanner 4 passed (3.1s, sem rede); test_yfinance_fundamentals_tsx 8 passed",
+    "affected_batteries": "contracts agent/complex_finance/endpoints + api_routes_sync + pipeline_integration + guardrail_hub + trinity: 261 passed",
+    "full_suite": "2209 passed, 0 failed, 3 skipped em 694.93s (baseline pre-fix: 5 failed / 2201 passed)",
+    "smoke": "browser_smoke VERDE: 126 candles TD.TO timestamps validos, canvas 1041x511 7 canvases, STREAM_END, resposta PT 3886 chars 108.9s, 0 erros console. Nota: servidor :8002 vivo roda codigo pre-fix ate o proximo restart",
+    "ruff": "check + format limpos nos 4 arquivos tocados"
   },
+  "risks": "INV-R56 (classificador casual: escopo do fast-path estreitado — aberturas com conteudo real agora rodam pipeline completo; intencional)",
   "still_true": {
     "live_execution": "FROZEN",
     "github": "DISK ONLY",
