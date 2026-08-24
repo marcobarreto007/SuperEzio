@@ -553,3 +553,115 @@ class TestStreamChatCompletion:
         assert chunks == ["WAIT"]
         assert captured["messages"] == msgs
         assert captured["json_mode"] is False
+
+
+class TestPortSignatureParity:
+    """Testa paridade de assinatura entre Port e implementação."""
+
+    def test_generate_api_signature_parity(self):
+        """Port.generate_api tem os mesmos parâmetros que ModelGateway.generate_api."""
+        import inspect
+        from core.ports.model_gateway import ModelGatewayPort
+
+        port_sig = inspect.signature(ModelGatewayPort.generate_api)
+        impl_sig = inspect.signature(ModelGateway.generate_api)
+
+        port_params = set(port_sig.parameters.keys())
+        impl_params = set(impl_sig.parameters.keys())
+
+        assert port_params == impl_params, (
+            f"Port params {port_params} != impl params {impl_params}"
+        )
+
+
+class TestJsonModeWithImageWarning:
+    """Testa warning emitido quando json_mode=True + imagem."""
+
+    @pytest.mark.asyncio
+    async def test_json_mode_with_image_emits_warning(self, caplog, monkeypatch):
+        """json_mode=True + image_url deve emitir warning em generate_api."""
+        import logging
+
+        gateway = _gateway(_provider(AGENT_PROVIDER_NAME, backend="openai_compatible"))
+        msgs = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "descreva"},
+                    {"type": "image_url", "image_url": {"url": "data:image/png;base64,abc"}},
+                ],
+            }
+        ]
+
+        # Mock the AsyncOpenAI client to avoid actual API calls
+        async def mock_create(*args, **kwargs):
+            class MockChoice:
+                class MockMessage:
+                    content = "{}"
+                message = MockMessage()
+            class MockResponse:
+                choices = [MockChoice()]
+            return MockResponse()
+
+        class MockClient:
+            class MockChat:
+                class MockCompletions:
+                    create = mock_create
+                completions = MockCompletions()
+            chat = MockChat()
+
+            async def close(self):
+                pass
+
+        monkeypatch.setattr("core.model_serving.gateway.AsyncOpenAI", lambda *args, **kwargs: MockClient())
+
+        with caplog.at_level(logging.WARNING):
+            await gateway.generate_api(
+                provider=gateway.providers[0],
+                messages=msgs,
+                json_mode=True,
+            )
+
+        assert (
+            "json_mode disabled: image content present (vision cannot emit structured JSON)"
+            in caplog.text
+        )
+
+    @pytest.mark.asyncio
+    async def test_json_mode_without_image_no_warning(self, caplog, monkeypatch):
+        """json_mode=True sem imagem não deve emitir warning em generate_api."""
+        import logging
+
+        gateway = _gateway(_provider(AGENT_PROVIDER_NAME, backend="openai_compatible"))
+        msgs = [{"role": "user", "content": "retorne JSON"}]
+
+        # Mock the AsyncOpenAI client to avoid actual API calls
+        async def mock_create(*args, **kwargs):
+            class MockChoice:
+                class MockMessage:
+                    content = "{}"
+                message = MockMessage()
+            class MockResponse:
+                choices = [MockChoice()]
+            return MockResponse()
+
+        class MockClient:
+            class MockChat:
+                class MockCompletions:
+                    create = mock_create
+                completions = MockCompletions()
+            chat = MockChat()
+
+            async def close(self):
+                pass
+
+        monkeypatch.setattr("core.model_serving.gateway.AsyncOpenAI", lambda *args, **kwargs: MockClient())
+
+        with caplog.at_level(logging.WARNING):
+            await gateway.generate_api(
+                provider=gateway.providers[0],
+                messages=msgs,
+                json_mode=True,
+            )
+
+        assert "json_mode disabled" not in caplog.text

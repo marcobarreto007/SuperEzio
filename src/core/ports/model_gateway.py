@@ -56,6 +56,7 @@ class ModelGatewayPort(Protocol):
         temperature: float | None = None,
         json_mode: bool = False,
         assistant_prefix: str = "",
+        messages: list[dict[str, Any]] | None = None,
     ) -> str:
         """Gera resposta não-streaming direto em um provider específico (raw)."""
         ...

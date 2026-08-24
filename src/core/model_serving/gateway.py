@@ -376,6 +376,10 @@ class ModelGateway:
 
         tok = max_tokens if max_tokens is not None else provider.max_tokens
         temp = temperature if temperature is not None else provider.temperature
+        if json_mode and _has_image_content(api_messages):
+            logger.warning(
+                "json_mode disabled: image content present (vision cannot emit structured JSON)"
+            )
         use_json = bool(json_mode) and not _has_image_content(api_messages)
 
         kwargs = {
@@ -455,6 +459,10 @@ class ModelGateway:
 
         tok = max_tokens if max_tokens is not None else provider.max_tokens
         temp = temperature if temperature is not None else provider.temperature
+        if json_mode and _has_image_content(api_messages):
+            logger.warning(
+                "json_mode disabled: image content present (vision cannot emit structured JSON)"
+            )
         use_json = bool(json_mode) and not _has_image_content(api_messages)
 
         kwargs = {

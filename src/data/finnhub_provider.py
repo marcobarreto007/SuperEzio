@@ -75,6 +75,25 @@ def _rate_limit_before_request() -> None:
         _LAST_REQUEST_MONO = time.monotonic()
 
 
+def _canonicalize_finnhub_key(symbol: str) -> str:
+    """
+    Return a canonical cache key for Finnhub symbols so that variants
+    (BRK.B, BRK-B) share the same cache entry.
+
+    Rules:
+    - For class shares (. and - variants), prefer dot notation (BRK.B)
+    - Otherwise, use the symbol as-is (uppercased)
+    """
+    raw = (symbol or "").strip().upper()
+    if not raw:
+        return raw
+
+    # For class shares, prefer dot notation as canonical (BRK.B over BRK-B)
+    if "-" in raw and "." not in raw and not raw.endswith((".TO", ".V", ".CN")):
+        return raw.replace("-", ".")
+    return raw
+
+
 class FinnhubProvider:
     """
     Finnhub provider for equity price, profile, and short-term catalyst data.
@@ -188,10 +207,14 @@ class FinnhubProvider:
         get_price + get_fundamentals share the same API call within a scan
         cycle. Failures are not cached, because provider 429/5xx/no_payload
         states are transient in the local runtime.
+
+        Cache key uses canonical symbol notation (BRK.B) so that variants
+        (BRK.B, BRK-B) share the same cache entry.
         """
         if not hasattr(self, "_metrics_cache"):
             self._metrics_cache: dict[str, tuple[float, dict]] = {}
-        key = symbol.upper()
+        # Canonicalize cache key so BRK.B and BRK-B share the same entry
+        key = _canonicalize_finnhub_key(symbol)
         ttl = _finnhub_metric_cache_ttl_sec()
         cached = self._metrics_cache.get(key)
         if cached is not None:

@@ -7,6 +7,21 @@
     return ticker === "HEARTBEAT" ? "" : ticker;
   }
 
+  function isValidTicker(ticker) {
+    if (!ticker || typeof ticker !== "string") return false;
+    var trimmed = ticker.trim();
+    if (trimmed === "") return false;
+    if (trimmed === "HEARTBEAT") return false;
+    if (trimmed.length > 12) return false;
+    var pattern = /^[A-Z0-9.\-]+$/i;
+    return pattern.test(trimmed);
+  }
+
+  function safeTicker(ticker) {
+    var candidate = sanitTicker(ticker);
+    return isValidTicker(candidate) ? candidate : "";
+  }
+
   function pct(v) {
     if (v == null || !isFinite(v)) return "—";
     return Math.round(v * 100) + "%";
@@ -810,7 +825,11 @@
     SZ.state.selectedOrder = meta || null;
     var tickerInput = document.getElementById("ticker-inp");
     if (tickerInput) tickerInput.value = ticker;
-    try { localStorage.setItem("sz_last_ticker", ticker); } catch (e) { /* ignore */ }
+    try {
+      if (isValidTicker(ticker)) {
+        localStorage.setItem("sz_last_ticker", ticker);
+      }
+    } catch (e) { /* ignore */ }
     setText("workspace-ticker", ticker);
     setText("live-ticker", ticker);
     markSelectedMirrorTicker(ticker);
@@ -1310,7 +1329,10 @@
     refreshCockpitPortfolio().then(function (selected) {
       if (selected || (SZ.state && SZ.state.chartData)) return;
       var last = "";
-      try { last = sanitTicker(localStorage.getItem("sz_last_ticker") || ""); } catch (e) { last = ""; }
+      try {
+        var stored = localStorage.getItem("sz_last_ticker") || "";
+        last = safeTicker(stored);
+      } catch (e) { last = ""; }
       selectTicker(last || "TD.TO", "boot");
     });
     refreshBrokerStatus();

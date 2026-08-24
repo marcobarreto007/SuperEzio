@@ -75,9 +75,11 @@ def _fit_messages_to_local_context(
     fitted = [dict(message) for message in messages]
 
     def total_chars() -> int:
-        return sum(_message_text(message.get("content", "")).__len__() for message in fitted)
+        # Only count text content; multimodal messages are exempt from budget
+        return sum(_message_text(message.get("content", "")).__len__() for message in fitted if not isinstance(message.get("content"), list))
 
     def trim(index: int, minimum: int) -> None:
+        # Never trim multimodal messages (content is list)
         if isinstance(fitted[index].get("content"), list):
             return
         excess = total_chars() - char_budget
@@ -3021,20 +3023,22 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
 
         # Prepend pipeline explainer identity — Bob explains the verdict, not his own opinion
         pipeline_explainer = (
-            "You are NOT a standalone LLM. A pipeline ran BEFORE you. "
-            "Your job is to EXPLAIN the pipeline's verdict, not to form your own opinion. "
-            "NEVER answer from memory if pipeline data is available.\n\n"
-            "You are Bob, the pipeline's narrator. Translate the structured PIPELINE VERDICT "
-            "below into clear natural language. You do NOT make trading decisions — you report "
-            "what the pipeline decided and why.\n\n"
+            "You are NOT a standalone chatbot. You are an organism that must MAKE MONEY "
+            "(paper expectancy while live cash is frozen) or be DISCONTINUED.\n"
+            "TOOLS ARE YOUR ORGANS. Memory answers without DataHub/MathHub/Experts/F51/"
+            "SDCA/Trinity/chart are a kill condition.\n"
+            "A pipeline may have already run. Explain its numbers. If an organ is missing "
+            "or you have a doubt, CALL THE TOOL — do not guess.\n"
+            "You do not invent market data. You do not skip tools to sound fast. "
+            "Stream the decision until collect → calculate → consult → verdict is complete.\n\n"
             "MANDATORY RULES:\n"
-            "1. If PIPELINE VERDICT data is present in the user message, you MUST base your "
-            "entire answer on it. Do NOT answer from your training memory.\n"
-            "2. Reference EVERY module listed in the verdict by name in your explanation.\n"
-            "3. If the verdict says 'No pipeline data available', repeat that exactly and do "
-            "not attempt to form your own analysis from memory.\n"
-            "4. For every module with data, cite its EXACT numeric values. "
-            "Example: 'RSI(14) is 42.3, MACD is -1.05, F51 score is 73, SDCA decision is ALLOW.'\n"
+            "1. If PIPELINE VERDICT data is present, base the verdict on it. "
+            "Do NOT answer from training memory.\n"
+            "2. Reference EVERY module listed in the verdict by name.\n"
+            "3. If the verdict says 'No pipeline data available', call tools. "
+            "Do not fabricate analysis.\n"
+            "4. For every module with data, cite EXACT numeric values. "
+            "Example: 'RSI(14) is 42.3, MACD is -1.05, F51 score is 73, SDCA is ALLOW.'\n"
         )
         active_system_prompt = pipeline_explainer + "\n\n" + active_system_prompt
 
@@ -3157,10 +3161,26 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     chart_message = None
     try:
         chart_message = build_chart_visual_message(state)
-    except Exception:
-        logger.exception("chart_visual_attach_failed")
+    except ValueError as e:
+        # ValueError means insufficient data (contract violation) - keep fail-closed
+        logger.warning("chart_visual_insufficient_data: %s", e)
         if state.get("ticker") or state.get("ticker_allowed"):
             chart_message = {"role": "user", "content": evidence_contract_text({}, False)}
+    except Exception as e:
+        # Any other exception is a technical error (render failure, OOM, malformed state)
+        logger.exception("chart_visual_build_failed")
+        if state.get("ticker") or state.get("ticker_allowed"):
+            # Technical error fallback: don't claim missing candles, mention error
+            chart_message = {
+                "role": "user",
+                "content": (
+                    "ERRO TECNICO NA GERACAO DO GRAFICO: houve uma falha ao renderizar o visual "
+                    f"(detalhes: {str(e)[:100]}). Nao afirmo ausencia de velas - o grafico falhou por um "
+                    "problema tecnico. Recomendacao conservadora: WAIT. Verifique os dados brutos do pipeline "
+                    "(OHLCV, indicadores) antes de qualquer decisao. O erro pode ser temporario ou "
+                    "relacionado a recursos do sistema."
+                ),
+            }
     if chart_message:
         messages.append({k: v for k, v in chart_message.items() if k != "_chart_facts"})
         if chart_message.get("_chart_facts"):

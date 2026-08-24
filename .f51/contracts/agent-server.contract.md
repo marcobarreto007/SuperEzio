@@ -19,7 +19,7 @@
 | Route | Method | Contract |
 | --- | --- | --- |
 | `/` | GET | Returns frontend HTML or a small service object if the frontend is missing. |
-| `/health` | GET, HEAD | Public liveness. GET returns a dict with `status=ok`; HEAD returns 200. |
+| `/health` | GET, HEAD | Public liveness. GET returns a dict with `status=ok` and `auth_required: bool` (true when open access is disabled, false when `SUPEREZIO_OPEN_ACCESS=1`); HEAD returns 200. |
 | `/health/details` | GET | Readiness details for GPU, local models, Redis, providers, and cost guard. |
 | `/metrics` | GET | Returns service metrics from the observability layer. |
 | `/neural/logs` | GET | Streams observability logs as SSE. |

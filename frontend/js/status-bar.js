@@ -7,6 +7,24 @@
   function tone(state) { if (["online", "live", "healthy", "complete"].indexOf(state) >= 0) return "is-ok"; if (["offline", "error"].indexOf(state) >= 0) return "is-error"; return "is-warn"; }
   function upper(value) { return String(value || "unknown").toUpperCase(); }
 
+  /* Explicit data state map: state → display label and tone */
+  var DATA_STATE_MAP = {
+    "unknown":     { label: "AGUARDANDO", tone: "is-warn" },
+    "offline":     { label: "OFFLINE", tone: "is-warn" },
+    "online":      { label: "ONLINE", tone: "is-ok" },
+    "live":        { label: "LIVE", tone: "is-ok" },
+    "healthy":     { label: "ONLINE", tone: "is-ok" },
+    "degraded":    { label: "ONLINE", tone: "is-ok" },
+    "error":       { label: "ERRO", tone: "is-error" },
+    "stale":       { label: "STALE", tone: "is-warn" },
+    "fetching":    { label: "CARREGANDO", tone: "is-warn" }
+  };
+
+  function getDataStateInfo(state) {
+    var key = String(state || "unknown").toLowerCase();
+    return DATA_STATE_MAP[key] || DATA_STATE_MAP["unknown"];
+  }
+
   function render(snapshot) {
     if (!snapshot) return;
     var core = snapshot.core || { state: "unknown" };
@@ -21,12 +39,15 @@
     var brokerStatusText = broker.state === "offline" ? "EXECUÇÃO: SIMULADA (PAPER)" : upper(broker.provider) + ": " + upper(broker.state);
     setItem("statusbar-ceo", "CORE: " + upper(core.state), tone(core.state));
     setItem("statusbar-genie", "CEO: " + upper(ceo.state), tone(ceo.state));
-    setItem("statusbar-deep", data.state === "unknown" ? "DATA: AGUARDANDO" : ("DATA: " + upper(data.state === "degraded" ? "ONLINE" : data.state) + (data.asOf ? " · " + new Date(data.asOf).toLocaleTimeString() : "")), data.state === "unknown" || data.state === "offline" ? "is-warn" : "is-ok");
+    var dataStateInfo = getDataStateInfo(data.state);
+    var dataText = "DATA: " + dataStateInfo.label;
+    if (data.asOf) dataText += " · " + new Date(data.asOf).toLocaleTimeString();
+    setItem("statusbar-deep", dataText, dataStateInfo.tone);
     setItem("statusbar-ibkr", brokerStatusText, brokerTone);
     setItem("statusbar-guardrails", "MODO: SIMULAÇÃO SEGURA", "is-ok");
     setItem("statusbar-latency", "PIPELINE: " + upper(pipeline.state), tone(pipeline.state));
     var marketStatus = $("live-status");
-    if (marketStatus) marketStatus.textContent = data.state === "unknown" ? "AGUARDANDO" : ("DATA " + upper(data.state === "degraded" ? "ONLINE" : data.state));
+    if (marketStatus) marketStatus.textContent = "DATA " + dataStateInfo.label;
     var marketTs = $("live-ts");
     if (marketTs) marketTs.textContent = data.asOf || "";
     var label = $("cockpit-connection");

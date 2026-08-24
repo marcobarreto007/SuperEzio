@@ -69,6 +69,17 @@ O nó `tool_executor` é responsável por executar ferramentas invocadas pelo `a
 3. expert_results é sempre uma lista (nunca None).
 4. f51_verdict contém chaves: confidence, passed, factors, hub_risk_score.
 
+## Candidate Gates (Market Scan)
+
+O nó `node_collector` aplica gates de qualidade em candidatos de market scan:
+
+### Catalisador
+
+- **Regra:** Candidato DEVE ter catalisador verificável (earnings, guidance, etc.) com invalidação associada.
+- **Comportamento (2026-08-23):** O fallback "Priority 4: active market liquidity" foi removido (commit 59f1310). Sem catalisador real, o candidato é rejeitado com `missing_catalyst`.
+- **Invalidação:** Catalisadores devem ter condição de invalidação clara (ex: "close below prior-week low after earnings print").
+- **Provenance:** Catalisador genérico sem fonte (`missing_catalyst_provenance`) rejeita o candidato.
+
 ## Dependencies
 
 - `langgraph` (TypedDict state, StateGraph)

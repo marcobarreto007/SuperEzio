@@ -230,6 +230,37 @@ def test_metric_cache_does_not_persist_transient_failure() -> None:
     assert mock_get.call_count == 2
 
 
+def test_metric_cache_hits_across_symbol_variants() -> None:
+    """BRK.B and BRK-B must share the same cache entry (canonical key)."""
+    provider = _make_provider()
+    metric_payload = {"metric": {"10DayAverageTradingVolume": 25.0, "peBasicExclExtraTTM": 28.5}}
+    quote_payload = {"c": 350.75, "d": 1.5, "dp": 0.43, "pc": 349.25, "t": 1766206800}
+    call_count = {"count": 0}
+
+    def fake_get(url: str, *_, **__):
+        if "/stock/metric" in url:
+            call_count["count"] += 1
+            return _FakeResponse(status_code=200, payload=metric_payload)
+        if "/quote" in url:
+            return _FakeResponse(status_code=200, payload=quote_payload)
+        return _FakeResponse(status_code=404, payload={})
+
+    with patch("data.finnhub_provider.requests.get", side_effect=fake_get):
+        # First call with BRK.B
+        price1 = provider.get_price("BRK.B")
+        # Second call with BRK-B (different variant) should hit cache
+        price2 = provider.get_price("BRK-B")
+        # Third call with BRK.B again should also hit cache
+        fundamentals = provider.get_fundamentals("BRK.B")
+
+    # All three calls should share the same cached metric result
+    assert price1.get("avg_daily_volume_shares") == 25_000_000.0
+    assert price2.get("avg_daily_volume_shares") == 25_000_000.0
+    assert fundamentals.get("pe_ratio") == 28.5
+    # Only one actual HTTP call to /stock/metric (shared across variants)
+    assert call_count["count"] == 1
+
+
 def test_short_term_catalyst_returns_event_when_earnings_in_window() -> None:
     provider = _make_provider()
 

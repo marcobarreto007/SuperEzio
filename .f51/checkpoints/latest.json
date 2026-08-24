@@ -1,23 +1,24 @@
 {
   "date_local": "2026-08-23",
-  "session": "bob-living-organism-consult-20260823",
+  "session": "bob-survival-sse-20260823",
   "status": "DELIVERED",
-  "objective": "Bob so decide depois de consultar o organismo; duvida volta para os experts.",
-  "predecessor": "bob-chart-vision-evidence-20260823",
-  "problema": "Fast-path pulava Trinity em pergunta de grafico; cache pulava o comite; run_experts nao podia ser chamado de novo.",
+  "objective": "Bob trata ferramentas como orgaos: expectancy paper ou discontinuado. SSE digita o veredito em tempo real.",
+  "predecessor": "bob-living-organism-consult-20260823",
+  "problema": "SSE ja existia; o contrato de sobrevivencia (ganhar dinheiro via tools ou ser apagado) nao estava no prompt nem o stream filtrava JSON de tool-call.",
   "patch": {
-    "graph.py": "analisa/grafico/porque nunca skip Trinity; cache so pula experts em quote simples",
-    "agent.py": "reconsulta experts se comite fino/errado; contrato ECOSSISTEMA VIVO",
-    "tool_executor.py": "run_experts semi-repeatable (2) com args.question"
+    "agent.py": "SURVIVAL AND EVOLUTION no prompt soberano; explainer deixa de ser so narrador; stream_chat_completion com CHUNK so do veredito (esconde think e JSON de tool); bob_streamed_live inicializado",
+    "gateway.py": "stream_chat_completion + json_mode no stream_generate_async; visao nao flatten",
+    "mission_context.json": "kill condition, expectancy, SSE ate o veredito completo"
   },
   "verification": {
-    "pytest_slice": "test_organism_consult 4 pass; casual+trinity 11 pass; scan loop 12 pass; chart visual 8 pass",
-    "ruff": "clean",
-    "known_unrelated": "3 test_auto_full_analysis KeyError math_report em finance-only — math_if nao foi tocado neste patch"
+    "pytest_slice": "organism 5 + gateway stream + contract mission + bob_sovereign + chart_visual: 124 passed no slice amplo; 7/7 no re-run pos-fix de identity",
+    "ruff": "clean nos arquivos do slice",
+    "known_unrelated": "3 test_auto_full_analysis KeyError math_report em finance-only"
   },
   "still_true": {
     "live_execution": "FROZEN",
     "github": "DISK ONLY",
-    "vision": "mmproj loaded on :8080"
+    "vision": "mmproj loaded on :8080",
+    "open_access": "SUPEREZIO_OPEN_ACCESS from .env.local"
   }
 }

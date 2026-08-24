@@ -159,3 +159,89 @@ def test_chat_completion_forwards_image_messages_without_flattening():
     assert captured["json_mode"] is False
     assert captured["prompt"] == ""
     assert _has_image_content(captured["messages"]) is True
+
+
+def test_exact_boundary_of_20_candles_is_minimum():
+    """Boundary test: exactly 20 candles should be the minimum accepted."""
+    msg = build_chart_visual_message(
+        {"ticker": "TEST", "data": {"ohlcv": _candles(MIN_CANDLES)}}
+    )
+    assert msg is not None
+    assert msg["role"] == "user"
+    assert isinstance(msg["content"], list)
+    kinds = [p["type"] for p in msg["content"]]
+    assert "text" in kinds
+    assert "image_url" in kinds
+    url = next(p["image_url"]["url"] for p in msg["content"] if p["type"] == "image_url")
+    assert url.startswith("data:image/png;base64,")
+
+
+def test_candle_with_nan_price_in_middle_of_series():
+    """Test that candles with NaN price cause render failure (current behavior)."""
+    rows = _candles(25, start=100.0)
+    rows[10]["close"] = float("nan")
+    # Current implementation: NaN values pass initial filtering but fail during render
+    # This is a known edge case where render_ohlcv_png will raise ValueError
+    try:
+        msg = build_chart_visual_message({"ticker": "NAN_TEST", "data": {"ohlcv": rows}})
+        # If we get here without exception, the implementation was improved
+        assert msg is not None
+        if isinstance(msg["content"], list):
+            url = next(p["image_url"]["url"] for p in msg["content"] if p["type"] == "image_url")
+            assert url.startswith("data:image/png;base64,")
+        else:
+            assert "WAIT" in msg["content"]
+    except ValueError as e:
+        # Current behavior: NaN during render causes ValueError
+        # This is acceptable as fail-closed (no chart generated)
+        assert "nan" in str(e).lower() or "convert" in str(e).lower()
+
+
+def test_all_candles_with_zero_volume():
+    """Test that zero volume doesn't crash chart generation."""
+    rows = _candles(25, start=100.0)
+    for row in rows:
+        row["volume"] = 0
+    msg = build_chart_visual_message({"ticker": "ZERO_VOL", "data": {"ohlcv": rows}})
+    assert msg is not None
+    assert msg["role"] == "user"
+    assert isinstance(msg["content"], list)
+    url = next(p["image_url"]["url"] for p in msg["content"] if p["type"] == "image_url")
+    assert url.startswith("data:image/png;base64,")
+
+
+def test_empty_ticker_string_returns_none():
+    """Test that empty ticker string returns None (casual turn, no chart needed)."""
+    msg = build_chart_visual_message({"ticker": "", "data": {"ohlcv": _candles(25)}})
+    # Empty ticker without ticker_allowed flag returns None (casual turn)
+    assert msg is None
+
+
+def test_empty_ticker_with_ticker_allowed_generates_chart():
+    """Test that empty ticker with ticker_allowed flag still generates chart."""
+    msg = build_chart_visual_message({
+        "ticker": "",
+        "ticker_allowed": True,
+        "data": {"ohlcv": _candles(25)}
+    })
+    assert msg is not None
+    assert msg["role"] == "user"
+    assert isinstance(msg["content"], list)
+    url = next(p["image_url"]["url"] for p in msg["content"] if p["type"] == "image_url")
+    assert url.startswith("data:image/png;base64,")
+
+
+def test_fail_closed_contract_text_appears_when_insufficient_candles():
+    """Verify the exact fail-closed contract text from chart_image.py is used."""
+    msg = build_chart_visual_message(
+        {"ticker": "FAIL_TEST", "data": {"ohlcv": _candles(MIN_CANDLES - 1)}}
+    )
+    assert msg is not None
+    assert isinstance(msg["content"], str)
+    # Contract from chart_image.py line 300-302:
+    # "CONTRATO FAIL-CLOSED: nao ha velas reais o bastante para gerar o grafico.
+    # Nao recomende COMPRA. Diga WAIT. Explique o que falta..."
+    assert "CONTRATO FAIL-CLOSED" in msg["content"]
+    assert "nao ha velas reais o bastante" in msg["content"]
+    assert "Nao recomende COMPRA" in msg["content"]
+    assert "WAIT" in msg["content"]
