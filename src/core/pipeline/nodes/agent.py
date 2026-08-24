@@ -51,6 +51,16 @@ _PROMPT_TRUNCATION_MARKER = "\n[TRUNCATED TO FIT LOCAL CONTEXT]"
 _tracer = DecisionTraceLogger()
 
 
+def _message_text(content: Any) -> str:
+    if isinstance(content, list):
+        parts = []
+        for part in content:
+            if isinstance(part, dict) and part.get("type") == "text":
+                parts.append(str(part.get("text") or ""))
+        return "".join(parts)
+    return str(content or "")
+
+
 def _fit_messages_to_local_context(
     messages: list[dict[str, str]],
     char_budget: int = LOCAL_AGENT_INPUT_CHAR_BUDGET,
@@ -59,14 +69,17 @@ def _fit_messages_to_local_context(
 
     The binding system/verdict messages and final instruction are preserved as
     long as possible. Pipeline reports and observations are trimmed first.
+    Multimodal (image) messages are never trimmed — vision parts must stay intact.
     """
 
     fitted = [dict(message) for message in messages]
 
     def total_chars() -> int:
-        return sum(len(str(message.get("content", ""))) for message in fitted)
+        return sum(_message_text(message.get("content", "")).__len__() for message in fitted)
 
     def trim(index: int, minimum: int) -> None:
+        if isinstance(fitted[index].get("content"), list):
+            return
         excess = total_chars() - char_budget
         if excess <= 0:
             return
@@ -155,6 +168,9 @@ When the trader speaks, the organism responds. Your job is to:
 8. When Guardrails BLOCK or CAUTION something, explain WHY in clear, objective trader terms.
 9. Be the voice of the organism.
 10. If any pipeline module has data, cite the key numbers directly with confidence.
+11. When a real chart image is attached, DESCRIBE what the candles show before any buy talk.
+    Never recommend COMPRA without: visual confirmation + exact pipeline numbers + a concrete catalyst.
+    Missing any piece = WAIT. Live trading stays frozen; paper/ticket only.
 
 ## THE ORGANISM (know what you speak for)
 - MathHub: 13 modules (RSI, MACD, SMA, EMA, BB, VWAP, Sharpe, Sortino,
@@ -3074,6 +3090,20 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             {"role": "user", "content": "Observations so far:\n" + "\n\n".join(observations)}
         )
 
+    from ..chart_image import build_chart_visual_message, evidence_contract_text
+
+    chart_message = None
+    try:
+        chart_message = build_chart_visual_message(state)
+    except Exception:
+        logger.exception("chart_visual_attach_failed")
+        if state.get("ticker") or state.get("ticker_allowed"):
+            chart_message = {"role": "user", "content": evidence_contract_text({}, False)}
+    if chart_message:
+        messages.append({k: v for k, v in chart_message.items() if k != "_chart_facts"})
+        if chart_message.get("_chart_facts"):
+            state["chart_visual"] = chart_message["_chart_facts"]
+
     messages.append(
         {
             "role": "user",
@@ -3081,7 +3111,10 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             "Voce DEVE comecar com: DADOS DO PIPELINE: RSI=<valor> MACD=<valor> "
             "F51=<valor> SDCA=<valor>. Depois escreva SUA EXPLICACAO em linguagem "
             "natural. Referencie CADA modulo que tenha dados pelo nome. "
-            "Nunca responda de memoria.",
+            "Nunca responda de memoria. "
+            "Se um GRAFICO REAL estiver anexado, descreva o que as velas mostram "
+            "e so fale em COMPRA com evidencia visual + numeros do pipeline + catalisador. "
+            "Sem isso, a acao e WAIT.",
         }
     )
 
@@ -3127,7 +3160,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             # cap can exceed the 600s gateway timeout and strand the SSE task.
             max_tokens=LOCAL_MAX_TOKENS,
             preferred_provider=AGENT_PROVIDER_NAME,
-            json_mode=False if bob_sovereign else True,
+            json_mode=False if (bob_sovereign or chart_message) else True,
         )
 
         # Extract sovereign reasoning before cleaning thinking blocks

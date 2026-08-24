@@ -38,6 +38,33 @@ from ..config.secrets import load_local_env
 logger = logging.getLogger(__name__)
 
 
+def _has_image_content(messages: List[Dict[str, Any]] | None) -> bool:
+    """True when any message carries an OpenAI image_url part."""
+    for msg in messages or []:
+        if not isinstance(msg, dict):
+            continue
+        content = msg.get("content")
+        if not isinstance(content, list):
+            continue
+        for part in content:
+            if isinstance(part, dict) and part.get("type") == "image_url":
+                return True
+    return False
+
+
+def _openai_messages(raw: List[Dict[str, Any]] | None) -> List[Dict[str, Any]]:
+    """Drop internal keys (e.g. _chart_facts) before the provider call."""
+    out: List[Dict[str, Any]] = []
+    for msg in raw or []:
+        if not isinstance(msg, dict):
+            continue
+        role = msg.get("role")
+        if role not in {"system", "user", "assistant"}:
+            continue
+        out.append({"role": role, "content": msg.get("content")})
+    return out
+
+
 class _FailureKind(Enum):
     """Internal retry classification for provider failures."""
 
@@ -389,17 +416,20 @@ class ModelGateway:
     async def generate_api(
         self,
         provider: ModelProvider,
-        prompt: str,
+        prompt: str = "",
         system_prompt: str = "",
         max_tokens: int | None = None,
         temperature: float | None = None,
         json_mode: bool = False,
         assistant_prefix: str = "",
+        messages: List[Dict[str, Any]] | None = None,
     ) -> str:
         """Gera resposta via API OpenAI-compatible (Não-streaming).
 
         assistant_prefix: injeta mensagem role=assistant antes da geração
         para contornar filtros de recusa do modelo (prefill trick).
+        messages: when set, sent as-is (vision image_url parts included).
+        json_mode is forced off when an image is present.
         """
         client = AsyncOpenAI(
             base_url=provider.base_url,
@@ -407,24 +437,28 @@ class ModelGateway:
             timeout=provider.timeout_s,
         )
 
-        messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": prompt})
+        if messages:
+            api_messages = _openai_messages(messages)
+        else:
+            api_messages = []
+            if system_prompt:
+                api_messages.append({"role": "system", "content": system_prompt})
+            api_messages.append({"role": "user", "content": prompt})
         if assistant_prefix:
-            messages.append({"role": "assistant", "content": assistant_prefix})
+            api_messages.append({"role": "assistant", "content": assistant_prefix})
 
         tok = max_tokens if max_tokens is not None else provider.max_tokens
         temp = temperature if temperature is not None else provider.temperature
+        use_json = bool(json_mode) and not _has_image_content(api_messages)
 
         kwargs = {
             "model": provider.model,
-            "messages": messages,
+            "messages": api_messages,
             "max_tokens": tok,
             "temperature": temp,
         }
         self._apply_deepseek_options(provider, kwargs)
-        if json_mode:
+        if use_json:
             kwargs["response_format"] = {"type": "json_object"}
 
         try:
@@ -484,6 +518,7 @@ class ModelGateway:
         json_mode: bool = False,
         assistant_prefix: str = "",
         allow_fallback: bool = True,
+        messages: List[Dict[str, Any]] | None = None,
     ) -> str:
         """Gera resposta com fallback cascade (Síncrono para compatibilidade).
 
@@ -546,6 +581,7 @@ class ModelGateway:
                                             temperature,
                                             json_mode,
                                             assistant_prefix,
+                                            messages,
                                         )
                                     )
                                 )
@@ -560,6 +596,7 @@ class ModelGateway:
                                     temperature,
                                     json_mode,
                                     assistant_prefix,
+                                    messages,
                                 )
                             )
 
@@ -829,17 +866,33 @@ class ModelGateway:
             prefix = prefix or msgs[-1].get("content", "")
             msgs = msgs[:-1]
 
-        # Convert to prompt
+        # Vision: keep native OpenAI messages so image_url parts reach llama-server.
+        # Text-only stays on the flattened prompt path (existing Bob contract).
+        import functools
+
+        if _has_image_content(msgs):
+            func = functools.partial(
+                self.generate,
+                prompt="",
+                system_prompt="",
+                max_tokens=max_tokens,
+                temperature=temperature,
+                preferred_provider=provider_obj.name,
+                json_mode=False,
+                assistant_prefix=prefix,
+                allow_fallback=allow_fallback,
+                messages=msgs,
+            )
+            return await asyncio.to_thread(func)
+
         prompt = ""
         system_prompt = ""
         for msg in msgs:
+            content = msg.get("content", "")
             if msg["role"] == "system":
-                system_prompt = msg["content"]
+                system_prompt = content if isinstance(content, str) else str(content)
             else:
-                prompt += f"\n{msg['role'].capitalize()}: {msg['content']}"
-
-        # Default Generate API
-        import functools
+                prompt += f"\n{msg['role'].capitalize()}: {content}"
 
         func = functools.partial(
             self.generate,

@@ -1,27 +1,44 @@
 {
   "date_local": "2026-08-23",
-  "session": "ui-debug-overlay-cleanup-20260823",
+  "session": "save-multiwave-chart-visual-20260823",
   "status": "DELIVERED",
-  "objective": "Tirar a bagunca visual: overlay Decision Trace em cima do grafico, chart vazio, DATA UNKNOWN. Open access (sem login) permanece.",
-  "predecessor": "open-access-full-product-20260823",
-  "problema": "OPEN_ACCESS ligava debug cards e mostrava #bob-runtime dentro do drawer do chat. Sem CSS, o dump Decision Trace/Portfolio/Guardrail vazava por cima do chart. Boot nao carregava ticker (defaultTicker vazio) e o header pintava DATA UNKNOWN.",
-  "patch": {
-    "auth.js": "open-access nao liga mais SZ_SHOW_DEBUG_CARDS",
-    "events.js": "showDebugCards so com flag explicita",
-    "cockpit.css": "bob-runtime continua display:none; overflow:hidden no .bob-chat",
-    "bob-panel.js": "host vai para expert-panel-cards, nao para o chat",
-    "init.js": "boot restaura ultimo ticker ou TD.TO (reason=boot, sem auto-analise); persiste sz_last_ticker; HIGH/LOW/VOL do ultimo candle; health.check apos loadChart",
-    "status-bar.js": "unknown vira DATA: AGUARDANDO ate o chart carregar"
+  "objective": "Salvar a arvore multi-sessao sob ordem do operador: validar com gates objetivos o que estava solto, reparar HEAD quebrado (import chart_image sem arquivo no repo) e commitar.",
+  "predecessor": "bob-chart-vision-evidence-20260823",
+  "incident_parallel_commit": {
+    "what": "Durante os gates deste save, uma sessao paralela commitou 59f1310 (scan resilience + finnhub caching + cockpit UI) e levou junto agent.py que importa core.pipeline.chart_image — mas chart_image.py ficou UNTRACKED. HEAD ficou incoerente: checkout limpo morreria no ImportError; smoke so passava porque o arquivo existia solto na arvore.",
+    "repair": "Commitar chart_image.py + test_chart_visual.py + gateway.py (suporte a mensagens multimodais) + agent.py (wiring final) — feito neste save."
   },
-  "verification": {
-    "browser": "http://127.0.0.1:8002/?v=ui-fix-20260823d — sem Sign In, bob-runtime display:none, parent expert-panel-cards, TD.TO 161.24, DATA ONLINE, chart com candles RSI/MACD, expert panel limpo",
-    "chart_api": "GET /api/chart-data/TD.TO?timeframe=6M 200",
-    "smoke_skip_chat": "504 transitório no fetch de 20s durante carga; API 200 em seguida"
+  "chart_visual_wave": {
+    "feature": "Bob enxerga o grafico: gateway.generate_api aceita messages com partes image_url (json_mode desligado quando ha imagem, chaves internas como _chart_facts removidas antes da chamada); chart_image.py (343 linhas) constroi a mensagem visual a partir do estado do pipeline; agent.py anexa a mensagem com evidence contract e regra PT: sem confirmacao visual + numeros + catalisador, acao e WAIT.",
+    "files": [
+      "src/core/pipeline/chart_image.py (novo)",
+      "tests/test_chart_visual.py (novo)",
+      "src/core/model_serving/gateway.py",
+      "src/core/pipeline/nodes/agent.py"
+    ]
+  },
+  "tests_run": {
+    "pytest_direcionado_onda_scan": "154 passed (8 arquivos tocados pelo 59f1310: scan loop, api routes sync, finnhub provider/symbols, mangala gate parity, market scan candidate gate, trade order, scan enrich resilience)",
+    "pytest_direcionado_onda_chart": "66 passed (test_chart_visual, test_gateway, test_agent_market_scan_loop)",
+    "browser_smoke": "VERDE pos-frontend-open-access: health ok com auth_required=false, 126 candles TD.TO, canvas 1041x511 com 7 canvases pintados, resposta NOVA do Bob em PT via stream (3851 chars, STREAM_END, 109.9s), 0 erros de console. Screenshot: output/playwright/superezio-browser-smoke-20260823-231325.png",
+    "ruff": "limpo em TODOS os arquivos tocados (ondas scan + chart). 100 erros pre-existentes em arquivos nao tocados (E701/E702 estilo), identicos no HEAD — nao desta onda",
+    "secrets_scan": "diff completo + arquivos novos: nada encontrado (so memoria de conversa em data/*.jsonl, fora do commit por politica)"
   },
   "still_true": {
     "open_access": "auth_required=false, guest_open, sem login wall",
     "live_execution": "FROZEN",
-    "github": "DISK ONLY"
+    "github": "DISK ONLY respeitado em toda a cadeia"
   },
-  "risk": "INV-R55 inalterado"
+  "excluded_from_commit": {
+    "data/bob_pain_log.jsonl": "dataset runtime bruto — politica do save: never save raw datasets",
+    "data/conversation_memory.jsonl": "idem (memoria RAG de conversas)"
+  },
+  "risks": {
+    "nota": "Nenhum risco novo inventariado por este save. INV-R55 (open access) permanece o risco dominante da noite. A feature chart-visual muda o caminho de prompt do Bob (anexo de imagem) — coberta por test_chart_visual + gateway tests, mas validacao visual ao vivo com grafico real anexado ainda pendente (proximo passo sugerido)."
+  },
+  "gates": {
+    "github": "DISK ONLY",
+    "product_dirs": "src/ foi alterado — porem sob ordem explicita do operador ('commita e salva as mudancas'), com HEAD quebrado a reparar; contratos cobertos por 220 testes direcionados verdes",
+    "smoke": "pytest acompanhou browser_smoke conforme regra do projeto"
+  }
 }
