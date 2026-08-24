@@ -1,60 +1,27 @@
 {
   "date_local": "2026-08-23",
-  "session": "open-access-full-product-20260823",
+  "session": "ui-debug-overlay-cleanup-20260823",
   "status": "DELIVERED",
-  "objective": "Produto aberto para 5 pessoas: sem identificacao, acesso 100% ao copiloto (chat, cockpit, pipeline visivel, paper trade). Live freeze intacto. Detalhes: open-access-full-product-20260823.json. Predecessor: cockpit-web-verification-2026-08-23.",
-  "open_access_full_product_20260823": {
-    "status": "DELIVERED",
-    "auth_required": false,
-    "guest": "guest_open",
-    "login_wall": "removed",
-    "paper_trade_2fa": "skipped_when_OPEN_ACCESS",
-    "live_execution": "FROZEN",
-    "pipeline_live": "Compro TD.TO: DATA+MATH+9 experts+F51+NEURAL+SDCA+RAG+GUARDRAIL+TRINITY+STREAM_END 143.8s",
-    "risk": "INV-R55"
+  "objective": "Tirar a bagunca visual: overlay Decision Trace em cima do grafico, chart vazio, DATA UNKNOWN. Open access (sem login) permanece.",
+  "predecessor": "open-access-full-product-20260823",
+  "problema": "OPEN_ACCESS ligava debug cards e mostrava #bob-runtime dentro do drawer do chat. Sem CSS, o dump Decision Trace/Portfolio/Guardrail vazava por cima do chart. Boot nao carregava ticker (defaultTicker vazio) e o header pintava DATA UNKNOWN.",
+  "patch": {
+    "auth.js": "open-access nao liga mais SZ_SHOW_DEBUG_CARDS",
+    "events.js": "showDebugCards so com flag explicita",
+    "cockpit.css": "bob-runtime continua display:none; overflow:hidden no .bob-chat",
+    "bob-panel.js": "host vai para expert-panel-cards, nao para o chat",
+    "init.js": "boot restaura ultimo ticker ou TD.TO (reason=boot, sem auto-analise); persiste sz_last_ticker; HIGH/LOW/VOL do ultimo candle; health.check apos loadChart",
+    "status-bar.js": "unknown vira DATA: AGUARDANDO ate o chart carregar"
   },
-  "predecessor_sessions": [
-    "2026-08-23-unified-restart-and-fixes.json (arquivado deste latest.json)"
-  ],
   "verification": {
-    "pre_check": "GET /health -> status ok (agent generic_agent v4.2.0); public mode com Bearer token do .env.local; /cockpit/summary -> 8 secoes (bob, deep, genie, pipeline, portfolio, sentiment, status, generated_at); primary_model = Qwen3.8-27B-UD-IQ2_XXS conforme contrato.",
-    "browser_smoke": "VERDE. Pagina carregou (#chat, #user-inp, #send-btn, SZ.loadChart); chart-data TD.TO 6M -> 126 candles com timestamps ordenados; canvas 1041x545 com 7 canvases pintados (nao em branco); chat UI produziu NOVA mensagem do Bob (304 chars, sem erro); API /task/submit -> STREAM_END, 2964 chars, idioma PT confirmado (0 marcadores EN), 108.7s; 0 erros de console, 0 page errors. Screenshot: output/playwright/superezio-browser-smoke-20260823-212933.png",
-    "cockpit_cards_pre_fix": "FALSO POSITIVO descoberto. Script rodava sem Bearer token em public mode: screenshot mostra tela de login cobrindo o painel, chat respondeu 'Bob failed to produce a valid answer ... Empty response returned from backend', 13 erros de console (401). Cards viraram READY por sinal de prontidao de componente, nao por analise real — criterio original (verdict != WAIT) aceitou isso como ok.",
-    "cockpit_cards_post_fix": "VERDE legitimo. 5/5 cards (f51, sdca, neural, trinity, guardrail) com dados, updates em tempo real detectados (timeline 3 snapshots), chat_responded true (Bob respondeu dentro da janela de 180s), 0 erros de console, 0 page errors. Screenshot: output/playwright/cockpit-cards-20260823-213403.png"
+    "browser": "http://127.0.0.1:8002/?v=ui-fix-20260823d — sem Sign In, bob-runtime display:none, parent expert-panel-cards, TD.TO 161.24, DATA ONLINE, chart com candles RSI/MACD, expert panel limpo",
+    "chart_api": "GET /api/chart-data/TD.TO?timeframe=6M 200",
+    "smoke_skip_chat": "504 transitório no fetch de 20s durante carga; API 200 em seguida"
   },
-  "runtime_state": {
-    "api": ":8002 UP, public mode (JWT), health ok",
-    "ceo": "llama-server :8080 UP (respondeu o chat em 108.7s no smoke)",
-    "primary_model": "Qwen3.8-27B-UD-IQ2_XXS"
+  "still_true": {
+    "open_access": "auth_required=false, guest_open, sem login wall",
+    "live_execution": "FROZEN",
+    "github": "DISK ONLY"
   },
-  "fixes": {
-    "scripts/verify_cockpit_cards.py": [
-      "Auth bootstrap reutilizado de browser_smoke (_auth_bootstrap): Bearer token injetado via context.add_init_script ANTES do primeiro fetch — sem isso a UI boota na tela de login e toda chamada de pipeline da 401",
-      "Espera dedicada de ate 180s pela resposta do Bob (msg-ceo > 50 chars, sem 'failed'/'Erro') — flip de card sozinho nao prova que o pipeline rodou",
-      "Gate final: ok agora exige healthy >= 3 E chat_responded (antes: so cards, aceitava falso positivo)",
-      "Dismiss defensivo do modal de auth pos-carga"
-    ]
-  },
-  "tests_run": {
-    "pre_check_api": "health + auth bootstrap + cockpit summary: ok",
-    "browser_smoke": "verde (1 execucao completa, chat 108.7s)",
-    "verify_cockpit_cards": "pre-fix falso positivo (evidencia capturada) / post-fix verde legitimo",
-    "ruff": "ok em scripts/verify_cockpit_cards.py e scripts/browser_smoke.py",
-    "pytest": "nao executado — mudanca isolada em script operacional de Playwright, sem toque em src/ ou tests/; validacao real foi a execucao dos proprios scripts contra o servidor live"
-  },
-  "risks": {
-    "nota": "Nenhum risco novo permanente. A fragilidade de falso positivo do script foi corrigida na mesma sessao. Riscos existentes INV-R51..R54 inalterados."
-  },
-  "commits": {
-    "pendente_ate_agora": "commit desta sessao: fix do verify_cockpit_cards.py + TASK_BOARD + este checkpoint + arquivo arquivado"
-  },
-  "gates": {
-    "github": "DISK ONLY respeitado (nenhum comando de rede git)",
-    "product_dirs": "sem mudanca em apps/, src/, packages/, core/, pipelines/ — apenas scripts/ e .f51/",
-    "contrato_publico": "sem mudanca de contrato (script operacional; saida JSON do script ganhou rigor, nao perdeu campo)"
-  },
-  "lessons": [
-    "Veredito verde de script de UI sem screenshot + checagem de auth e ruído em public mode: o DOM existe atras do login wall e heurísticas de 'verdict mudou' aceitam prontidão de componente como dado real.",
-    "Resposta do Bob é a prova de pipeline executado; flip de card é só sinal de UI."
-  ]
+  "risk": "INV-R55 inalterado"
 }

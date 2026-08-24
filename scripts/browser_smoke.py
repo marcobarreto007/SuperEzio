@@ -314,7 +314,9 @@ def _chat_api_check(
     if not seg.strip():
         seg = text
     pt = re.search(r"\b(você|não|uma|para|com|como|por|dos|das|ser|pode|deve)\b", seg, re.I)
-    en = re.search(r"\b(the|of|and|your|you|is|are|with)\b", seg, re.I)
+    # Avoid 'and'/'of'/'is'/'with': they appear in ticker notes and pipeline dumps
+    # inside otherwise-Portuguese Bob answers and false-fail the smoke.
+    en = re.search(r"\b(the|your|you|please|however|because)\b", seg, re.I)
     return {
         "sawStreamEnd": saw_end,
         "contentLength": len(text),

@@ -352,6 +352,7 @@ _REJECTION_LABELS_EN = {
     "otc_filtered": "OTC/pink venue filtered",
     "microcap_filtered": "microcap (<$300M) filtered",
     "price_above_requested_max": "price above requested maximum",
+    "currency_market_mismatch": "quote currency does not match market/venue",
 }
 
 _REJECTION_LABELS_PT = {
@@ -366,6 +367,7 @@ _REJECTION_LABELS_PT = {
     "otc_filtered": "venue OTC/pink filtrado",
     "microcap_filtered": "microcap (<US$300M) filtrada",
     "price_above_requested_max": "preco acima do teto solicitado",
+    "currency_market_mismatch": "moeda/mercado incompativel",
 }
 
 
@@ -457,8 +459,26 @@ def _top_rejection_reasons(
     return [f"{labels.get(reason, reason)} — {count}" for reason, count in ordered]
 
 
+def _has_exchange_currency_provenance(item: dict[str, Any]) -> bool:
+    """Skip formatting a buy idea when venue or quote currency is missing."""
+    venue = str(item.get("market") or item.get("exchange") or "").strip()
+    currency = str(item.get("currency") or "").strip()
+    return bool(venue and currency)
+
+
+def _price_provider_exceptions(errors: list[Any]) -> bool:
+    return any(
+        "price_provider" in str(err).lower() and "exception" in str(err).lower()
+        for err in errors
+    )
+
+
 def _format_candidate_block_en(item: dict[str, Any]) -> list[str]:
     ticker = item.get("ticker") or "?"
+    if not _has_exchange_currency_provenance(item):
+        return [
+            f"- {ticker}: missing exchange/currency provenance; not a buy idea.",
+        ]
     name = item.get("name") or item.get("company") or "—"
     market = item.get("market") or item.get("exchange") or "—"
     price = item.get("price")
@@ -488,6 +508,10 @@ def _format_candidate_block_en(item: dict[str, Any]) -> list[str]:
 
 def _format_candidate_block_pt(item: dict[str, Any]) -> list[str]:
     ticker = item.get("ticker") or "?"
+    if not _has_exchange_currency_provenance(item):
+        return [
+            f"- {ticker}: sem proveniencia de exchange/moeda; nao e ideia de compra.",
+        ]
     name = item.get("name") or item.get("company") or "—"
     market = item.get("market") or item.get("exchange") or "—"
     price = item.get("price")
@@ -1661,6 +1685,8 @@ def _market_scan_answer(state: dict) -> str:
     portuguese = _is_portuguese_request(message)
     labels = _REJECTION_LABELS_PT if portuguese else _REJECTION_LABELS_EN
     top_reasons = _top_rejection_reasons(rejection_summary, labels)
+    displayable = [item for item in candidates if _has_exchange_currency_provenance(item)]
+    hub_price_failed = _price_provider_exceptions(errors)
 
     if portuguese:
         sections: list[str] = []
@@ -1676,13 +1702,17 @@ def _market_scan_answer(state: dict) -> str:
         )
         sections.append("")
         sections.append("5) Candidatos:")
-        if candidates:
-            for item in candidates[:6]:
+        if displayable:
+            for item in displayable[:6]:
                 sections.extend(_format_candidate_block_pt(item))
         else:
             sections.append(
                 "Nenhum candidato passou nos gates minimos de qualidade de dados para uma ideia de pesquisa de 2 semanas."
             )
+            if hub_price_failed:
+                sections.append(
+                    "O data hub falhou: o preco falhou para a maioria dos nomes. Nenhum ticker e inventado como candidato."
+                )
         sections.append("")
         sections.append(f"6) Resumo de rejeicoes: {rejected_count} ticker(s) descartado(s).")
         if top_reasons:
@@ -1704,7 +1734,7 @@ def _market_scan_answer(state: dict) -> str:
         sections.append(
             "8) Aviso: apenas pesquisa. Sem garantia de lucro. Decisao de compra/venda e sua responsabilidade."
         )
-        if not candidates:
+        if not displayable:
             sections.append("")
             sections.append(
                 "Proximo prompt sugerido: 'Repita o scan com teto de preco, liquidez minima, janela de catalisador e retorne REJECT_ALL se nenhum candidato passar.'"
@@ -1727,13 +1757,17 @@ def _market_scan_answer(state: dict) -> str:
     )
     sections.append("")
     sections.append("5) Candidates:")
-    if candidates:
-        for item in candidates[:6]:
+    if displayable:
+        for item in displayable[:6]:
             sections.extend(_format_candidate_block_en(item))
     else:
         sections.append(
             "No candidate passed the minimum data-quality gates for a 2-week research idea."
         )
+        if hub_price_failed:
+            sections.append(
+                "The data hub failed to price most names. No ticker is invented as a candidate."
+            )
     sections.append("")
     sections.append(f"6) Rejected candidates summary: {rejected_count} ticker(s) discarded.")
     if top_reasons:
@@ -1755,7 +1789,7 @@ def _market_scan_answer(state: dict) -> str:
     sections.append(
         "8) Caveat: research only. No guaranteed profit. The buy/sell decision is your own responsibility."
     )
-    if not candidates:
+    if not displayable:
         sections.append("")
         sections.append(
             "Suggested next prompt: 'Repeat the scan with max price, minimum liquidity, catalyst window, and return REJECT_ALL if no candidate passes.'"

@@ -810,6 +810,7 @@
     SZ.state.selectedOrder = meta || null;
     var tickerInput = document.getElementById("ticker-inp");
     if (tickerInput) tickerInput.value = ticker;
+    try { localStorage.setItem("sz_last_ticker", ticker); } catch (e) { /* ignore */ }
     setText("workspace-ticker", ticker);
     setText("live-ticker", ticker);
     markSelectedMirrorTicker(ticker);
@@ -864,6 +865,7 @@
       if (SZ.renderProfile)   SZ.renderProfile();
       if (SZ.renderChart)     SZ.renderChart();
       if (SZ.drawLiveCandles) SZ.drawLiveCandles();
+      if (SZ.health && typeof SZ.health.check === "function") SZ.health.check();
       return data;
     } catch (err) {
       console.error("[SZ] loadChart:", err);
@@ -889,6 +891,17 @@
       changeEl.textContent = cp != null ? (cp >= 0 ? "+" : "") + fmt(cp, 2) + "%" : "--";
       changeEl.style.color = cp == null ? "" : cp >= 0 ? "#00c853" : "#ff1744";
     }
+    var ohlcv = data && Array.isArray(data.ohlcv) ? data.ohlcv : [];
+    var lastBar = ohlcv.length ? ohlcv[ohlcv.length - 1] : {};
+    var highEl = document.getElementById("live-high");
+    var lowEl = document.getElementById("live-low");
+    var volEl = document.getElementById("live-volume");
+    var high = numOrNull(price.high != null ? price.high : lastBar.high);
+    var low = numOrNull(price.low != null ? price.low : lastBar.low);
+    var vol = numOrNull(price.volume != null ? price.volume : lastBar.volume);
+    if (highEl) highEl.textContent = high != null ? fmt(high, 2) : "--";
+    if (lowEl) lowEl.textContent = low != null ? fmt(low, 2) : "--";
+    if (volEl) volEl.textContent = vol != null ? fmtCompact(vol) : "--";
   }
 
   function toggleLive() {
@@ -1295,7 +1308,10 @@
     if (window.lucide) lucide.createIcons();
 
     refreshCockpitPortfolio().then(function (selected) {
-      if (!selected && !(SZ.state && SZ.state.chartData)) loadChart();
+      if (selected || (SZ.state && SZ.state.chartData)) return;
+      var last = "";
+      try { last = sanitTicker(localStorage.getItem("sz_last_ticker") || ""); } catch (e) { last = ""; }
+      selectTicker(last || "TD.TO", "boot");
     });
     refreshBrokerStatus();
     probeOps();

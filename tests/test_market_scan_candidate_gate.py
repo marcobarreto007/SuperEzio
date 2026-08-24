@@ -417,6 +417,9 @@ async def test_under_cad_price_request_filters_expensive_candidates(monkeypatch)
                 "provider": "stub",
                 "market": "Canada",
                 "exchange": "TSX",
+                "catalyst": f"{ticker} reports audited FY results on 2026-09-02.",
+                "risk": f"{ticker} FY revenue may miss the published CAD 20M consensus.",
+                "invalidation": f"Invalidate if {ticker} closes below CAD 3.80 after results.",
             }
 
         def get_profile(self, ticker):
@@ -1223,6 +1226,8 @@ def test_tsx_suffix_watchlist_item_stamped_and_accepted():
         item = _td_candidate(ticker, "Canada", 4.0, 2_000_000)
         item.pop("venue", None)
         item["exchange"] = exchange
+        item["currency"] = "CAD"
+        item["market"] = "Canada"
         ok, reason = _apply_candidate_gate(item, allow_penny_otc=True, allow_microcap=True)
         assert ok, f"{ticker} stamped {exchange} must pass, got {reason}"
 

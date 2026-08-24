@@ -12,7 +12,7 @@ daily scan:
   3. The same 5 candidates PASS the full gate when healthily enriched
      (catalyst + risk + invalidation + provenance) — healthy data approves
      exactly these candidates.
-  4. The live scan's own computed-thesis fallback is actionable for them.
+  4. Price+volume without earnings/MA/momentum does NOT fabricate a thesis.
   5. Generic provider catalyst text still fails closed (missing_catalyst).
 
 Offline and deterministic — values are embedded from the real artifact.
@@ -25,7 +25,6 @@ from src.core.pipeline.nodes.collector import (
     _generate_fallback_catalyst,
 )
 from src.core.pipeline.trade_order import (
-    _is_actionable_evidence,
     evaluate_quality_gates,
     normalize_liquidity_fields,
 )
@@ -114,23 +113,33 @@ def test_daily_top5_pass_full_gate_when_healthily_enriched():
         assert ok2, f"{ticker} failed quality gates: {failures}"
 
 
-def test_computed_fallback_thesis_passes_for_real_candidates():
-    """The live scan's own price/volume fallback thesis is actionable for all 5.
+def test_computed_fallback_thesis_fails_closed_without_event_or_trend():
+    """Price + volume is discovery, not a 2-week thesis.
 
-    This is the no-provider-catalyst path: even with a silent catalyst route,
-    priced+volumed candidates get a computed, attributable thesis and pass.
+    Live scan used to fabricate 'active market liquidity at $X' and pass the
+    gate. That shipped GRTS (delisted) as a candidate. Fail closed instead.
     """
     for ticker, price, volume in DAILY_TOP5:
         item = _raw_discovery_entry(ticker, price, volume)
         fb = _generate_fallback_catalyst(item)
-        assert fb.get("catalyst"), f"{ticker}: fallback produced no catalyst"
-        assert _is_actionable_evidence(fb["catalyst"], "catalyst"), f"{ticker}: not actionable"
-        item["catalyst"] = fb["catalyst"]
-        item["invalidation"] = fb["invalidation"]
-        item["risk"] = fb["risk"]
-        item["provenance"].update(fb["provenance"])
+        assert not fb.get("catalyst"), f"{ticker}: liquidity-only fallback must stay empty"
         ok, reason = _apply_candidate_gate(item, allow_penny_otc=False, allow_microcap=False)
-        assert ok, f"{ticker} failed with computed thesis: {reason}"
+        assert not ok
+        assert reason == "missing_catalyst"
+
+
+def test_liquidity_sentence_is_not_a_catalyst():
+    """The GRTS report sentence must not clear the quality gate."""
+    item = _healthily_enriched("NIO", 4.63, 21_891_270)
+    item["catalyst"] = (
+        "active market liquidity at $9.58 and observed volume 4,222,060 "
+        "for short-term risk allocation"
+    )
+    item["risk"] = "downside risk to $8.62 in speculative allocation"
+    item["invalidation"] = "invalidate if price breaks below $8.62 (-10% stop threshold)"
+    ok, reason = _apply_candidate_gate(item, allow_penny_otc=True, allow_microcap=True)
+    assert not ok
+    assert reason == "missing_catalyst"
 
 
 def test_generic_provider_catalyst_still_fails_closed():

@@ -17,18 +17,11 @@ def finnhub_symbol_variants(symbol: str, market: str | None = None) -> list[str]
     if "." in raw and "-" not in raw and not raw.endswith((".TO", ".V", ".CN")):
         variants.append(raw.replace(".", "-"))
 
-    # Canadian listings: try bare symbol and .TO suffix.
+    # Canadian listings: add .TO for a bare Canada-market symbol.
+    # Never strip .TO / .V / .CN down to a US-listed homonym
+    # (TD.TO must not resolve as NYSE TD).
     market_l = (market or "").lower()
-    if raw.endswith(".TO"):
-        base = raw[:-3]
-        if base:
-            variants.append(base)
-    elif raw.endswith(".V"):
-        base = raw[:-2]
-        if base:
-            variants.append(base)
-            variants.append(f"{base}.V")
-    elif "canada" in market_l:
+    if not raw.endswith((".TO", ".V", ".CN")) and "canada" in market_l:
         variants.append(f"{raw}.TO")
 
     seen: set[str] = set()

@@ -21,12 +21,12 @@
     var brokerStatusText = broker.state === "offline" ? "EXECUÇÃO: SIMULADA (PAPER)" : upper(broker.provider) + ": " + upper(broker.state);
     setItem("statusbar-ceo", "CORE: " + upper(core.state), tone(core.state));
     setItem("statusbar-genie", "CEO: " + upper(ceo.state), tone(ceo.state));
-    setItem("statusbar-deep", "DATA: " + upper(data.state === "degraded" ? "ONLINE" : data.state) + (data.asOf ? " · " + new Date(data.asOf).toLocaleTimeString() : ""), "is-ok");
+    setItem("statusbar-deep", data.state === "unknown" ? "DATA: AGUARDANDO" : ("DATA: " + upper(data.state === "degraded" ? "ONLINE" : data.state) + (data.asOf ? " · " + new Date(data.asOf).toLocaleTimeString() : "")), data.state === "unknown" || data.state === "offline" ? "is-warn" : "is-ok");
     setItem("statusbar-ibkr", brokerStatusText, brokerTone);
     setItem("statusbar-guardrails", "MODO: SIMULAÇÃO SEGURA", "is-ok");
     setItem("statusbar-latency", "PIPELINE: " + upper(pipeline.state), tone(pipeline.state));
     var marketStatus = $("live-status");
-    if (marketStatus) marketStatus.textContent = "DATA " + upper(data.state === "degraded" ? "ONLINE" : data.state);
+    if (marketStatus) marketStatus.textContent = data.state === "unknown" ? "AGUARDANDO" : ("DATA " + upper(data.state === "degraded" ? "ONLINE" : data.state));
     var marketTs = $("live-ts");
     if (marketTs) marketTs.textContent = data.asOf || "";
     var label = $("cockpit-connection");

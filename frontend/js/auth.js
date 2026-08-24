@@ -334,8 +334,6 @@
         if (required === false) {
           setAuthRequired(false);
           if (document.body) document.body.classList.add("is-open-access");
-          if (window.SZ && window.SZ.config) window.SZ.config.showDebugCards = true;
-          window.SZ_SHOW_DEBUG_CARDS = true;
           hideModal();
           console.log("SuperEzio: open access — skipping login, full product UI");
           return;

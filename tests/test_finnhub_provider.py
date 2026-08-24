@@ -279,6 +279,55 @@ def test_short_term_catalyst_returns_no_catalyst_when_empty_window() -> None:
 # ---------------------------------------------------------------------------
 
 
+def test_get_price_skips_us_homonym_quote_for_to_request() -> None:
+    """A mocked NYSE TD quote must never be returned as the TD.TO price."""
+    provider = _make_provider()
+
+    def fake_get(url: str, *_, **kwargs):
+        params = kwargs.get("params") or {}
+        quoted = params.get("symbol", "")
+        if "/quote" in url:
+            if quoted == "TD":
+                return _FakeResponse(
+                    status_code=200,
+                    payload={"c": 117.15, "d": 0.1, "dp": 0.1, "pc": 117.0, "t": 1},
+                )
+            return _FakeResponse(status_code=200, payload={"c": 0})
+        return _FakeResponse(status_code=404, payload={})
+
+    with (
+        patch(
+            "data.finnhub_provider.finnhub_symbol_variants",
+            return_value=["TD.TO", "TD"],
+        ),
+        patch("data.finnhub_provider.requests.get", side_effect=fake_get),
+    ):
+        result = provider.get_price("TD.TO", include_avg_volume=False)
+
+    assert result.get("error") == "no_quote"
+    assert result.get("symbol") != "TD"
+    assert result.get("price") != 117.15
+
+
+def test_get_price_tags_cad_on_accepted_to_quote() -> None:
+    provider = _make_provider()
+    quote_payload = {"c": 161.20, "d": 0.5, "dp": 0.3, "pc": 160.70, "t": 1766206800}
+
+    def fake_get(url: str, *_, **__):
+        if "/quote" in url:
+            return _FakeResponse(status_code=200, payload=quote_payload)
+        return _FakeResponse(status_code=404, payload={})
+
+    with patch("data.finnhub_provider.requests.get", side_effect=fake_get):
+        result = provider.get_price("TD.TO", include_avg_volume=False)
+
+    assert result.get("source") == "finnhub"
+    assert result.get("symbol") == "TD.TO"
+    assert result.get("price") == 161.20
+    assert result.get("currency") == "CAD"
+    assert "error" not in result
+
+
 def test_get_price_returns_error_on_zero_quote() -> None:
     """A zero ``c`` field is Finnhub's signal for unknown/inactive ticker.
     The provider must convert that into a structured error, never silently

@@ -139,6 +139,14 @@ class FinnhubProvider:
                 last_error = "no_quote"
                 continue
 
+            requested = (symbol or "").strip().upper()
+            canadian_suffixes = (".TO", ".V", ".CN")
+            if requested.endswith(canadian_suffixes) and not variant.endswith(
+                canadian_suffixes
+            ):
+                last_error = "no_quote"
+                continue
+
             payload: Dict[str, Any] = {
                 "symbol": variant,
                 "requested_symbol": symbol,
@@ -148,6 +156,8 @@ class FinnhubProvider:
                 "prev_close": float(data.get("pc") or 0.0),
                 "source": "finnhub",
             }
+            if variant.endswith(canadian_suffixes):
+                payload["currency"] = "CAD"
             quote_timestamp = data.get("t")
             if quote_timestamp:
                 payload["market_timestamp"] = int(quote_timestamp)

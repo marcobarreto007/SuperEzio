@@ -368,3 +368,48 @@ def test_parse_tool_call_rejects_legacy_unknown_tool():
     from src.core.pipeline.nodes.agent import _parse_tool_call
 
     assert _parse_tool_call('{"tool": "legacy_magic_tool", "args": {}}') is None
+
+
+def test_empty_scan_with_price_provider_exceptions_does_not_invent_candidate():
+    """Hub exceptions + zero candidates must say the data hub failed — not invent GRTS."""
+    from src.core.pipeline.nodes.agent import _market_scan_answer
+
+    state = {
+        "message": "Bob, pesquisa mercado pequeno com risco alto",
+        "scan": {
+            "candidates": [],
+            "rejected": [{"ticker": "GRTS", "rejected_reason": "missing_price"}],
+            "rejected_count": 20,
+            "rejection_summary": {"missing_price": 20},
+            "universe": "US_CANADA_LIQUID",
+            "filters": {
+                "resolved_countries": ["United States", "Canada"],
+                "allow_penny_otc": False,
+                "allow_microcap": False,
+            },
+            "source_errors": ["price_provider: exception=20"],
+        },
+    }
+
+    answer = _market_scan_answer(state)
+
+    assert "Nenhum candidato passou" in answer
+    assert "hub" in answer.lower()
+    assert "preco falhou" in answer.lower()
+    assert "GRTS" not in answer
+    assert "ideia de compra" not in answer.lower() or "nao e ideia de compra" in answer.lower()
+
+
+def test_candidate_without_venue_currency_is_not_formatted_as_buy_idea():
+    from src.core.pipeline.nodes.agent import _format_candidate_block_pt
+
+    lines = _format_candidate_block_pt(
+        {
+            "ticker": "GRTS",
+            "price": 9.58,
+            "catalyst": "Earnings release on 2026-05-27 after market close.",
+        }
+    )
+    text = "\n".join(lines)
+    assert "nao e ideia de compra" in text
+    assert "Preco atual:" not in text

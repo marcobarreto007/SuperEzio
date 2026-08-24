@@ -126,7 +126,6 @@ def _is_actionable_evidence(value: Any, field: str) -> bool:
     normalized = " ".join(value.strip().lower().split())
     if normalized in _GENERIC_EVIDENCE_VALUES or len(normalized) < 20:
         return False
-    has_number = bool(any(character.isdigit() for character in normalized))
     concrete_terms = {
         "catalyst": (
             "earnings",
@@ -138,6 +137,12 @@ def _is_actionable_evidence(value: Any, field: str) -> bool:
             "acquisition",
             "launch",
             "investor day",
+            "moving average",
+            "50d ma",
+            "200d ma",
+            "momentum",
+            "fy results",
+            "results on",
         ),
         "risk": (
             "earnings",
@@ -161,7 +166,13 @@ def _is_actionable_evidence(value: Any, field: str) -> bool:
             "moving average",
         ),
     }
-    return has_number or any(term in normalized for term in concrete_terms.get(field, ()))
+    has_number = bool(any(character.isdigit() for character in normalized))
+    has_term = any(term in normalized for term in concrete_terms.get(field, ()))
+    # A dollar figure alone is not a catalyst. GRTS-style "liquidity at $9.58"
+    # used to pass the gate and ship as a 2-week thesis.
+    if field == "catalyst":
+        return has_term
+    return has_number or has_term
 
 
 def _provenance(candidate: dict[str, Any]) -> dict[str, Any]:
@@ -199,6 +210,50 @@ def _has_field_provenance(
     return not any(
         token in source for token in ("fallback", "generic", "generated", "unknown", "no_data")
     )
+
+
+_CANADA_VENUE_MARKERS = ("tsx", "canada", "toronto")
+_US_VENUE_PHRASES = ("united states", "nasdaq", "nyse")
+_US_VENUE_WORDS = frozenset({"us", "usa"})
+
+
+def _venue_text(candidate: dict[str, Any]) -> str:
+    return " ".join(str(candidate.get(key) or "") for key in ("market", "exchange")).lower()
+
+
+def _ticker_is_canada_listed(ticker: str) -> bool:
+    upper = ticker.upper()
+    return upper.endswith(".TO") or upper.endswith(".V")
+
+
+def _is_canada_venue(candidate: dict[str, Any], ticker: str) -> bool:
+    if _ticker_is_canada_listed(ticker):
+        return True
+    return any(marker in _venue_text(candidate) for marker in _CANADA_VENUE_MARKERS)
+
+
+def _is_us_venue(candidate: dict[str, Any]) -> bool:
+    text = _venue_text(candidate)
+    if any(phrase in text for phrase in _US_VENUE_PHRASES):
+        return True
+    words = set(text.replace("/", " ").replace("-", " ").replace(",", " ").split())
+    return bool(words & _US_VENUE_WORDS)
+
+
+def _currency_contradicts_venue(candidate: dict[str, Any], ticker: str) -> bool:
+    """Fail closed when quote currency cannot belong to the listed venue.
+
+    Covers both directions: a non-USD quote on a US listing, and a USD quote
+    on a TSX/TSXV/Canada ticker (the live TD.TO-at-117-USD bug).
+    """
+    currency = str(candidate.get("currency") or "").upper()
+    if not currency:
+        return False
+    if currency == "USD" and _is_canada_venue(candidate, ticker):
+        return True
+    if currency != "USD" and _is_us_venue(candidate):
+        return True
+    return False
 
 
 def evaluate_quality_gates(candidate: dict[str, Any]) -> tuple[bool, list[str]]:
@@ -281,13 +336,7 @@ def evaluate_quality_gates(candidate: dict[str, Any]) -> tuple[bool, list[str]]:
     if candidate.get("price_error") or candidate.get("provider_error"):
         failures.append("provider_error")
 
-    market = str(candidate.get("market") or candidate.get("exchange") or "").lower()
-    currency = str(candidate.get("currency") or "").upper()
-    if (
-        currency
-        and currency != "USD"
-        and any(token in market for token in ("united states", "nasdaq", "nyse", "usa", "us"))
-    ):
+    if _currency_contradicts_venue(candidate, ticker):
         failures.append("currency_market_mismatch")
 
     return (len(failures) == 0, failures)

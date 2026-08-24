@@ -618,6 +618,7 @@ def test_td_ticket_route_creates_live_manual_ticket_without_submit(
         endpoints, "resolve_server_quote", lambda *_args, **_kwargs: _trusted_td_quote()
     )
     monkeypatch.setenv("SUPEREZIO_API_KEY", "configured-for-test")
+    monkeypatch.setenv("SUPEREZIO_OPEN_ACCESS", "0")
     trading_token = "td-test-token"
     endpoints._TRADING_TOKENS[trading_token] = time.time()
     _, client = client_with_mock_pipeline

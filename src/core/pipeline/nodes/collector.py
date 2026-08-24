@@ -29,7 +29,7 @@ from ..trade_order import (
 )
 from core.trading.td_universe import is_commission_free
 from ..scan_registry import ScanEventRegistry
-from ..circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
+from ..circuit_breaker import CircuitBreaker
 
 _SCAN_CACHE_TTL_SECONDS = 300  # 5 min — ranked candidates are stale after this
 
@@ -667,16 +667,6 @@ def _generate_fallback_catalyst(item: dict[str, Any]) -> dict[str, Any]:
         risk = f"the observed +{pct:.1f}% one-day move can mean-revert from ${float(price):.2f}"
         evidence_inputs = ["price", "change_pct"]
 
-    # Priority 4: active market quote with defined risk stop
-    if not catalyst and price is not None:
-        p = float(price)
-        vol = item.get("volume") or item.get("avg_volume")
-        vol_str = f" and observed volume {int(vol):,}" if vol else ""
-        catalyst = f"active market liquidity at ${p:.2f}{vol_str} for short-term risk allocation"
-        invalidation = f"invalidate if price breaks below ${(p * 0.90):.2f} (-10% stop threshold)"
-        risk = f"downside risk to ${(p * 0.90):.2f} in speculative allocation"
-        evidence_inputs = ["price"]
-
     if not catalyst or not evidence_inputs:
         return {}
 
@@ -1169,7 +1159,17 @@ async def _run_scan(
         if hub is not None:
             per_item_timeout = float(os.getenv("SUPEREZIO_SCAN_ENRICH_TIMEOUT_MS", "10000")) / 1000
             stage_deadline_ms = int(os.getenv("SUPEREZIO_SCAN_STAGE_DEADLINE_MS", "30000"))
-            num_workers = max(1, int(os.getenv("SUPEREZIO_SCAN_ENRICH_CONCURRENCY", "6")))
+            # Price stage defaults to 2 workers so a 24-row enrich cannot
+            # burst Finnhub's 60 req/min cap (DELIVERY.md §2.4). Profile /
+            # catalyst / fundamentals stay on a small pool and run as later
+            # sequential stages — they must not multiply 24×3 parallel calls.
+            price_num_workers = max(1, int(os.getenv("SUPEREZIO_SCAN_PRICE_CONCURRENCY", "2")))
+            other_num_workers = max(1, int(os.getenv("SUPEREZIO_SCAN_ENRICH_CONCURRENCY", "4")))
+
+            def _enrich_error(exc: BaseException) -> dict[str, str]:
+                if isinstance(exc, (TimeoutError, asyncio.TimeoutError)):
+                    return {"error": "enrich_timeout"}
+                return {"error": str(exc) or type(exc).__name__}
 
             # ── Circuit breakers per provider ──
             breaker_finnhub = CircuitBreaker("finnhub")
@@ -1193,6 +1193,8 @@ async def _run_scan(
                 stage: str,
                 items: list[dict[str, Any]],
                 call_fn,  # async (item) -> Any
+                *,
+                worker_count: int,
             ) -> list[tuple[dict[str, Any], Any]]:
                 """Process items through a provider queue with worker pool.
 
@@ -1210,6 +1212,7 @@ async def _run_scan(
                 error_count = 0
                 total = len(items)
                 _done_event = asyncio.Event()
+                pool = max(1, min(int(worker_count), total))
 
                 for item in items:
                     in_queue.put_nowait(item)
@@ -1224,7 +1227,7 @@ async def _run_scan(
                         try:
                             result = await call_fn(item)
                         except Exception as exc:
-                            result = exc
+                            result = _enrich_error(exc)
                         out_pairs.append((item, result))
                         done_count += 1
                         if isinstance(result, Exception) or (
@@ -1243,7 +1246,7 @@ async def _run_scan(
                         if done_count >= total:
                             _done_event.set()
 
-                workers = [asyncio.create_task(_worker()) for _ in range(num_workers)]
+                workers = [asyncio.create_task(_worker()) for _ in range(pool)]
 
                 try:
                     await asyncio.wait_for(_done_event.wait(), timeout=stage_deadline_ms / 1000)
@@ -1252,6 +1255,7 @@ async def _run_scan(
 
                 for w in workers:
                     w.cancel()
+                await asyncio.gather(*workers, return_exceptions=True)
 
                 abandoned = total - done_count
                 if abandoned > 0:
@@ -1278,7 +1282,7 @@ async def _run_scan(
             async def _call_price(item: dict[str, Any]) -> Any:
                 breaker = _resolve_breaker(item)
                 if not breaker.allow():
-                    return CircuitBreakerOpenError(f"circuit_open:{breaker.provider}")
+                    return {"error": f"circuit_open:{breaker.provider}"}
                 ticker = str(item.get("ticker") or "")
                 market = item.get("market")
                 try:
@@ -1286,9 +1290,9 @@ async def _run_scan(
                         asyncio.to_thread(_safe_get_price, hub, ticker, market=market),
                         timeout=per_item_timeout,
                     )
-                except Exception:
+                except Exception as exc:
                     breaker.failure()
-                    raise
+                    return _enrich_error(exc)
                 if isinstance(result, dict) and "error" in result:
                     breaker.failure()
                 else:
@@ -1298,15 +1302,15 @@ async def _run_scan(
             async def _call_profile(item: dict[str, Any]) -> Any:
                 breaker = _resolve_breaker(item)
                 if not breaker.allow():
-                    return CircuitBreakerOpenError(f"circuit_open:{breaker.provider}")
+                    return {"error": f"circuit_open:{breaker.provider}"}
                 try:
                     result = await asyncio.wait_for(
                         asyncio.to_thread(_safe_get_profile, hub, item.get("ticker", "")),
                         timeout=per_item_timeout,
                     )
-                except Exception:
+                except Exception as exc:
                     breaker.failure()
-                    raise
+                    return _enrich_error(exc)
                 if isinstance(result, dict) and "error" in result:
                     breaker.failure()
                 else:
@@ -1316,15 +1320,15 @@ async def _run_scan(
             async def _call_fundamentals(item: dict[str, Any]) -> Any:
                 breaker = breaker_finnhub_fundamentals
                 if not breaker.allow():
-                    return CircuitBreakerOpenError(f"circuit_open:{breaker.provider}")
+                    return {"error": f"circuit_open:{breaker.provider}"}
                 try:
                     result = await asyncio.wait_for(
                         asyncio.to_thread(_safe_get_fundamentals, hub, item.get("ticker", "")),
                         timeout=per_item_timeout,
                     )
-                except Exception:
+                except Exception as exc:
                     breaker.failure()
-                    raise
+                    return _enrich_error(exc)
                 if isinstance(result, dict) and "error" in result:
                     breaker.failure()
                 else:
@@ -1334,7 +1338,7 @@ async def _run_scan(
             async def _call_catalyst(item: dict[str, Any]) -> Any:
                 breaker = _resolve_breaker(item)
                 if not breaker.allow():
-                    return CircuitBreakerOpenError(f"circuit_open:{breaker.provider}")
+                    return {"error": f"circuit_open:{breaker.provider}"}
                 try:
                     result = await asyncio.wait_for(
                         asyncio.to_thread(
@@ -1342,9 +1346,9 @@ async def _run_scan(
                         ),
                         timeout=per_item_timeout,
                     )
-                except Exception:
+                except Exception as exc:
                     breaker.failure()
-                    raise
+                    return _enrich_error(exc)
                 if isinstance(result, dict) and "error" in result:
                     breaker.failure()
                 else:
@@ -1357,30 +1361,29 @@ async def _run_scan(
                 "enrich_price",
                 price_targets,
                 _call_price,
+                worker_count=price_num_workers,
             )
             profile_pairs = await _run_enrich_stage(
                 "enrich_profile",
                 profile_catalyst_targets,
                 _call_profile,
+                worker_count=other_num_workers,
             )
             fundamentals_pairs = await _run_enrich_stage(
                 "enrich_fundamentals",
                 profile_catalyst_targets,
                 _call_fundamentals,
+                worker_count=other_num_workers,
             )
             catalyst_pairs = await _run_enrich_stage(
                 "enrich_catalyst",
                 profile_catalyst_targets,
                 _call_catalyst,
+                worker_count=other_num_workers,
             )
 
             # ── Circuit breaker snapshot in trace ──
             breaker_snapshots = {name: b.snapshot() for name, b in _BREAKERS_BY_PROVIDER.items()}
-
-            price_results = [res for _, res in price_pairs]
-            profile_results = [res for _, res in profile_pairs]
-            fundamentals_results = [res for _, res in fundamentals_pairs]
-            catalyst_results = [res for _, res in catalyst_pairs]
             # Fields a data provider may legitimately surface today or in the
             # future. Anything outside this allow-list is ignored on purpose.
             _RICH_FIELDS = (
@@ -1457,10 +1460,13 @@ async def _run_scan(
                         item_provenance.setdefault(field, {"source": result_source})
 
             price_error_counts: dict[str, int] = {}
-            for item, price_res in zip(price_targets, price_results):
+            for item, price_res in price_pairs:
                 if isinstance(price_res, Exception):
-                    item["price_error"] = str(price_res)
-                    price_error_counts["exception"] = price_error_counts.get("exception", 0) + 1
+                    mapped = _enrich_error(price_res)
+                    err = mapped["error"]
+                    item["price_error"] = err
+                    price_error_counts[err] = price_error_counts.get(err, 0) + 1
+                    price_res = mapped
                 elif isinstance(price_res, dict) and "error" in price_res:
                     err = str(price_res.get("error"))
                     item["price_error"] = err
@@ -1470,14 +1476,15 @@ async def _run_scan(
                         item["price_attempts"] = attempts
                 _merge(item, price_res)
 
-            for item, profile_res, fundamentals_res, catalyst_res in zip(
-                profile_catalyst_targets, profile_results, fundamentals_results, catalyst_results
-            ):
+            for item, profile_res in profile_pairs:
                 _merge(item, profile_res)
+            for item, fundamentals_res in fundamentals_pairs:
                 _merge(item, fundamentals_res)
+            for item, catalyst_res in catalyst_pairs:
                 _merge(item, catalyst_res)
 
-            # ── Catalyst fallback: OpenBB data → technical thesis when Finnhub empty ──
+            # ── Catalyst fallback: earnings / MA / momentum only. Liquidity
+            #    at a price is not a 2-week thesis (GRTS delisted leak).
             for item in profile_catalyst_targets:
                 has_catalyst = (
                     item.get("catalyst")

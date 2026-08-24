@@ -1338,6 +1338,7 @@ body::after {
   z-index: 1000;
   display: flex;
   align-items: stretch;
+  overflow: hidden;
   transform: translateX(calc(100% - 32px));
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1558,13 +1559,21 @@ body::after {
   color: var(--text-muted);
 }
 
-/* ── PIPELINE/DEBUG CARDS (from events.js showDebugCards) ── */
+/* Decision Trace is a debug dump. Keep it out of the trader layout.
+   Open-access must not unhide it — that overflowed the chart. */
 .bob-runtime {
   display: none;
 }
-body.is-open-access .bob-runtime,
 body.show-debug-cards .bob-runtime {
   display: block;
+  flex: 0 0 auto;
+  max-height: 220px;
+  overflow: auto;
+  margin: 0;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  font: 11px/1.35 var(--font-mono);
 }
 
 /* ── ANIMATIONS ── */

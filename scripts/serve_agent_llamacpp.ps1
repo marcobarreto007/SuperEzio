@@ -46,6 +46,24 @@ if ($LoraPath -and -not (Test-Path $LoraPath)) {
     $LoraPath = $null
 }
 
+# Vision projector: load full BF16 mmproj on GPU. Do not cut ctx/layers.
+# If VRAM OOMs, llama-server fails at load — that is the experiment.
+$mmprojFileName = "mmproj-BF16.gguf"
+$mmprojCandidates = @()
+if ($ModelPath) {
+    $mmprojCandidates += Join-Path (Split-Path -Parent $ModelPath) $mmprojFileName
+}
+if ($ModelsDir) {
+    $mmprojCandidates += Join-Path $ModelsDir $mmprojFileName
+}
+if ($env:USERPROFILE) {
+    $mmprojCandidates += Join-Path $env:USERPROFILE "models\qwen3.8-27b\$mmprojFileName"
+}
+$MmprojPath = $mmprojCandidates | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
+if (-not $MmprojPath) {
+    Write-Host "WARNING: $mmprojFileName not found - starting TEXT-ONLY" -ForegroundColor Yellow
+}
+
 if (-not $LlamaServerPath) {
     Write-Host "ERROR: llama-server.exe not found." -ForegroundColor Red
     exit 1
@@ -85,6 +103,7 @@ Write-Host " SuperEzio CEO Server (ZERO-CLOUD)" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host "Model      : $(Split-Path -Leaf $ModelPath)"
 Write-Host "LoRA       : $(if ($LoraPath) { $LoraPath } else { 'NONE' })"
+Write-Host "Vision     : $(if ($MmprojPath) { $MmprojPath } else { 'OFF (mmproj missing)' })"
 Write-Host "Server     : $LlamaServerPath"
 Write-Host "Version    : $version"
 Write-Host "CUDA       : $(if ($hasCuda) { 'YES' } else { 'NO (CPU-only)' })"
@@ -126,6 +145,10 @@ $args = @(
 
 if ($LoraPath) {
     $args += @("--lora", $LoraPath)
+}
+
+if ($MmprojPath) {
+    $args += @("--mmproj", $MmprojPath)
 }
 
 & $LlamaServerPath @args

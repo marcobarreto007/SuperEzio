@@ -121,6 +121,44 @@ def test_currency_market_mismatch_blocks_fast_trade_candidate():
     assert decide_final_action(confidence, failures) != "BUY_CANDIDATE"
 
 
+def test_usd_quote_on_to_ticker_is_currency_market_mismatch():
+    """TD.TO priced in USD (NYSE TD at ~117) must not ship as a TSX candidate."""
+    candidate = _strong_candidate(
+        ticker="TD.TO",
+        name="Toronto-Dominion Bank",
+        market="Canada",
+        exchange="TSX",
+        currency="USD",
+        price=117.0,
+        catalyst="TD.TO reports Q2 earnings on 2026-08-27 after market close.",
+    )
+    ok, failures = evaluate_quality_gates(candidate)
+    assert not ok
+    assert "currency_market_mismatch" in failures
+    assert decide_final_action(
+        compute_model_confidence(candidate, gate_failures=failures), failures
+    ) == "REJECT_ALL"
+
+
+def test_cad_quote_on_tsx_ticker_remains_eligible():
+    """A healthy CAD quote on TSX must still pass — do not break good Canadian data."""
+    candidate = _strong_candidate(
+        ticker="TD.TO",
+        name="Toronto-Dominion Bank",
+        market="Canada",
+        exchange="TSX",
+        currency="CAD",
+        price=117.0,
+        catalyst="TD.TO reports Q2 earnings on 2026-08-27 after market close.",
+    )
+    ok, failures = evaluate_quality_gates(candidate)
+    assert ok, failures
+    assert "currency_market_mismatch" not in failures
+    assert decide_final_action(
+        compute_model_confidence(candidate, gate_failures=failures), failures
+    ) == "BUY_CANDIDATE"
+
+
 def test_fictitious_liquid_ticker_without_provenance_fails_closed():
     candidate = {
         "ticker": "ZZZZ",

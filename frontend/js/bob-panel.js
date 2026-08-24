@@ -20,14 +20,15 @@
   }
 
   function ensureHost() {
-    var panel = document.getElementById("live-panel");
+    var panel = document.getElementById("expert-panel-cards");
     if (!panel) return null;
     var existing = document.getElementById("bob-runtime");
     if (existing) return existing;
     var host = document.createElement("section");
     host.id = "bob-runtime";
     host.className = "bob-runtime";
-    panel.appendChild(host);
+    host.setAttribute("aria-hidden", "true");
+    panel.insertBefore(host, panel.firstChild);
     return host;
   }
 
