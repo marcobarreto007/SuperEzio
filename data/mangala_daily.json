@@ -1,44 +1,44 @@
 {
-  "scanned_at": "2026-08-24T15:32:23.971938+00:00",
+  "scanned_at": "2026-08-24T17:49:26.334536+00:00",
   "count": 5,
   "opportunities": [
     {
-      "ticker": "PLUG",
-      "price": 2.2,
-      "volume": 31167124,
-      "name": "PLUG",
-      "score": 51,
-      "signal": "MEH",
+      "ticker": "SNDL",
+      "price": 1.38,
+      "volume": 612137,
+      "name": "SNDL",
+      "score": 65,
+      "signal": "WATCH",
       "factors": {
         "volume": 30,
         "whale": 5,
-        "momentum": 0,
-        "rsi": 8,
-        "catalyst": 8
+        "momentum": 5,
+        "rsi": 15,
+        "catalyst": 10
       },
       "whale_status": "FRACO",
       "whale_score": 0,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
+      "pump_risk": "ALERT",
+      "pump_score": 77,
       "flip_plan": {
-        "entry": 2.23,
-        "target_5pct": 2.34,
-        "stop_3pct": 2.16,
+        "entry": 1.36,
+        "target_5pct": 1.43,
+        "stop_3pct": 1.32,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-24T15:32:03.476206+00:00"
+      "scanned_at": "2026-08-24T17:49:26.318908+00:00"
     },
     {
       "ticker": "TLRY",
-      "price": 4.68,
-      "volume": 1447033,
+      "price": 4.71,
+      "volume": 2111607,
       "name": "TLRY",
-      "score": 51,
+      "score": 56,
       "signal": "MEH",
       "factors": {
         "volume": 30,
         "whale": 5,
-        "momentum": 0,
+        "momentum": 5,
         "rsi": 8,
         "catalyst": 8
       },
@@ -52,85 +52,85 @@
         "stop_3pct": 4.58,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-24T15:32:23.970909+00:00"
+      "scanned_at": "2026-08-24T17:49:11.271895+00:00"
     },
     {
       "ticker": "RIG",
-      "price": 5.67,
-      "volume": 11798510,
+      "price": 5.76,
+      "volume": 26432700,
       "name": "RIG",
-      "score": 48,
+      "score": 53,
       "signal": "MEH",
       "factors": {
         "volume": 30,
         "whale": 5,
-        "momentum": 0,
-        "rsi": 3,
+        "momentum": 3,
+        "rsi": 5,
         "catalyst": 10
       },
       "whale_status": "FRACO",
       "whale_score": 0,
+      "pump_risk": "ALERT",
+      "pump_score": 77,
+      "flip_plan": {
+        "entry": 5.77,
+        "target_5pct": 6.06,
+        "stop_3pct": 5.6,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-08-24T17:48:50.845007+00:00"
+    },
+    {
+      "ticker": "PLUG",
+      "price": 2.18,
+      "volume": 47031922,
+      "name": "PLUG",
+      "score": 51,
+      "signal": "MEH",
+      "factors": {
+        "volume": 30,
+        "whale": 5,
+        "momentum": 3,
+        "rsi": 5,
+        "catalyst": 8
+      },
+      "whale_status": "FRACO",
+      "whale_score": 20,
       "pump_risk": "CLEAN",
       "pump_score": 0,
       "flip_plan": {
-        "entry": 5.68,
-        "target_5pct": 5.96,
-        "stop_3pct": 5.51,
+        "entry": 2.19,
+        "target_5pct": 2.3,
+        "stop_3pct": 2.12,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-24T15:32:16.609274+00:00"
+      "scanned_at": "2026-08-24T17:48:27.551038+00:00"
     },
     {
       "ticker": "NIO",
-      "price": 4.42,
-      "volume": 16770176,
+      "price": 4.39,
+      "volume": 28049171,
       "name": "NIO",
-      "score": 46,
+      "score": 43,
       "signal": "MEH",
       "factors": {
         "volume": 30,
         "whale": 5,
         "momentum": 0,
-        "rsi": 3,
+        "rsi": 0,
         "catalyst": 8
       },
       "whale_status": "FRACO",
-      "whale_score": 0,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
+      "whale_score": 20,
+      "pump_risk": "ALERT",
+      "pump_score": 77,
       "flip_plan": {
-        "entry": 4.43,
-        "target_5pct": 4.65,
-        "stop_3pct": 4.3,
+        "entry": 4.39,
+        "target_5pct": 4.61,
+        "stop_3pct": 4.26,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-24T15:32:11.502116+00:00"
-    },
-    {
-      "ticker": "NOK",
-      "price": 9.97,
-      "volume": 25182639,
-      "name": "NOK",
-      "score": 36,
-      "signal": "PASS",
-      "factors": {
-        "volume": 20,
-        "whale": 5,
-        "momentum": 0,
-        "rsi": 3,
-        "catalyst": 8
-      },
-      "whale_status": "FRACO",
-      "whale_score": 0,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
-      "flip_plan": {
-        "entry": 9.97,
-        "target_5pct": 10.47,
-        "stop_3pct": 9.67,
-        "max_hold_days": 5
-      },
-      "scanned_at": "2026-08-24T15:32:07.538817+00:00"
+      "scanned_at": "2026-08-24T17:48:42.157791+00:00"
     }
   ]
 }
