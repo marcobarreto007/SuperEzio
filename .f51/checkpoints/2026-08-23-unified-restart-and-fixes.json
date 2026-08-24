@@ -1,0 +1,68 @@
+{
+  "date_local": "2026-08-23",
+  "session": "unified-restart-and-fixes-2026-08-23",
+  "status": "DELIVERED",
+  "objective": "Registro canonico unificado do dia 2026-08-23: queda do CEO e recuperacao + 3 correcoes aprovadas pelo operador (smoke language check, watchdog do CEO, prompts PT) com evidencia completa.",
+  "predecessor_sessions": [
+    "2026-08-23-casual-greeting-intent-fix.json (arquivado deste latest.json)",
+    "restart-ceo-20260823.json (detalhe: queda e recuperacao)",
+    "post-restart-fixes-20260823.json (detalhe: as 3 correcoes)",
+    "td-universe-lock-2026-08-23 (registrado no RISK_REGISTER)"
+  ],
+  "incident": {
+    "root_cause": "serve_agent_llamacpp.ps1 roda o llama-server em foreground, preso a janela do terminal. ~21:10Z a janela/sessao foi encerrada e matou o processo sem mensagem de shutdown (log terminou em task saudavel a 19.8 tok/s; event log do Windows limpo). Sem supervisor, nada religou: 49 min em MAN_AT_WORK.",
+    "timeline": "21:10Z CEO morto | 21:19Z API reiniciada (gate td-universe) | 21:28Z MAN_AT_WORK ativado (fail-closed correto) | 21:54Z CEO relancado detached | 21:59Z MAN_AT_WORK limpo automaticamente (duracao 30:46) | 22:38Z watchdog ativo | 22:41Z smoke verde.",
+    "recovery": "CEO relancado DETACHED via Start-Process (Hidden), logs ceo-serve-20260823*.log. API recuperou sozinha (loop autonomico, exit em ~3.8 min). Alerta latest_alert.txt marcado MAN_AT_WORK CLEARED."
+  },
+  "runtime_state": {
+    "ceo": "llama-server :8080 UP (Qwen3.8-27B-UD-IQ2_XXS, CUDA, ctx 8192), lancamento detached, log runtime/logs/ceo-serve-20260823*.log",
+    "api": "agent_server :8002 UP, v4.2.0, health 200 sem MAN_AT_WORK, relancada detached 18:39 local para carregar prompts novos",
+    "watchdog": "watchdog_ceo.ps1 ATIVO (health a cada 30s, grace 3 ciclos, anti-crashloop max 4/h), log runtime/logs/watchdog_ceo.log",
+    "safety": "SUPEREZIO_LIVE_TRADING_DISABLED=1; postgres :5432; cloudflared tunel ativo com JWT"
+  },
+  "fixes": {
+    "1_smoke_language_check": {
+      "change": "browser_smoke.py: checagem de idioma restrita ao segmento SUA EXPLICACAO do modelo (corte no primeiro '## '), ignorando trace EN do pipeline; novo campo languageSegLength.",
+      "evidence": "smoke verde: languageOk=true, hasEnMarkers=false, enMarker=null, console_errors=[], screenshot output/playwright/superezio-browser-smoke-20260823-184132.png"
+    },
+    "2_ceo_watchdog": {
+      "change": "scripts/watchdog_ceo.ps1 novo: relance detached do CEO em queda, janela anti-crashloop, log proprio. Causa raiz do incidente eliminada.",
+      "evidence": "ativo desde 18:38 local; init log registrado. Residual: integracao ao boot + rehearsal de queda controlada pendentes de decisao do operador."
+    },
+    "3_pt_prompts": {
+      "change": "src/core/pipeline/prompts/builder.py: instrucoes das secoes traduzidas para PT. Contratos preservados: headers '## *', 'RULES:', '[MODULO] MISSING - confidence reduced', 'Bob's read', 'MANDATORY FORMAT'.",
+      "evidence": "pytest tests/test_pipeline_integration.py + tests/contracts/test_contract_agent.py = 125 passed; ruff limpo; probe ao vivo: 0 marcadores EN no stream de 2806 chars (antes: 8)."
+    }
+  },
+  "tests_run": {
+    "pytest_targeted": "125 passed (1 falha intermediaria 'RULES' = contrato nao mapeado, label restaurado)",
+    "ruff": "ok nos arquivos alterados",
+    "browser_smoke": "verde (2 falhas anteriores rastreadas a falso positivo de idioma)",
+    "probe_live": "stream completo capturado, 0 EN markers pos-fix",
+    "nao_executado": "suíte completa de 2160 testes (escopo foi o menor conjunto que valida as mudancas)"
+  },
+  "risks": {
+    "INV-R53": "CEO sem watchdog [HIGH] -> MITIGATED 2026-08-23 (watchdog ativo); residual: boot integration + rehearsal",
+    "INV-R54": "Trace EN no chat + falso positivo do smoke [MEDIUM] -> MITIGATED 2026-08-23 (evidencia acima)",
+    "INV-R51": "Manifest TD TTL 7 dias [MEDIUM] - ABERTO",
+    "INV-R52": "Allowlist TD nao reconfirmada em fonte oficial [MEDIUM] - ABERTO",
+    "INV-R50": "Quote sem finnhub parcial [LOW] - ABERTO"
+  },
+  "commits": {
+    "f4b996f": "restart do CEO + alerta + runtime state",
+    "d0c92c4": "codigo das 3 correcoes (commitado por sessao paralela com add amplo; conteudo verificado integro via git show)",
+    "53c94f8": "checkpoint das correcoes + flips INV-R53/R54",
+    "pendente": "commit desta unificacao (rename do latest.json antigo + novo latest.json + headers alinhados)"
+  },
+  "lessons": [
+    "Sessoes paralelas compartilham a working tree: nunca git add -A; sempre add explicito (incidente d0c92c4).",
+    "Start-Process -WorkingDirectory falhou para python -m; usar cmd /c 'cd /d <proj> && python -m ...' para lancar detached.",
+    "/health do llama-server responde ok ANTES do modelo carregar; prontidao real = 'model loaded' no log + inferencia.",
+    "MAN_AT_WORK limpa sozinho em ate ~10 min (loop autonomico, checagem a cada 5 ciclos de 120s)."
+  ],
+  "gates": {
+    "github": "DISK ONLY respeitado",
+    "product_dirs": "mudanca em src/ autorizada explicitamente pelo operador; contratos preservados (pytest prova)",
+    "definicao_de_pronto": "TASK_BOARD e RISK_REGISTER atualizados e alinhados a este checkpoint"
+  }
+}

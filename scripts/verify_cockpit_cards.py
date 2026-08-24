@@ -16,6 +16,8 @@ from typing import Any
 
 from playwright.sync_api import Page, sync_playwright
 
+from browser_smoke import _auth_bootstrap  # same dir; also loads .env.local on import
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASE_URL = "http://localhost:8002"
@@ -111,7 +113,15 @@ def run_verification(
             slow_mo=slow_mo,
             args=["--no-sandbox", "--disable-web-security"],
         )
-        page = browser.new_page(viewport={"width": 1440, "height": 980})
+        token = _auth_bootstrap(base_url)
+        context = browser.new_context(viewport={"width": 1440, "height": 980})
+        if token:
+            # Public mode: the token must exist before the first fetch or the
+            # UI boots into the login wall and every pipeline call 401s.
+            context.add_init_script(
+                f"localStorage.setItem('sz_access_token', {json.dumps(token)});"
+            )
+        page = context.new_page()
         page.on(
             "console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None
         )
@@ -125,6 +135,9 @@ def run_verification(
         # 2. Take initial state
         initial = check_card_state(page)
         timeline.append({"t": 0, "label": "initial", "cards": initial})
+
+        # Dismiss auth modal if it still shows (defensive; token usually skips it)
+        page.evaluate("() => { if (window.SZ?.auth?.hideModal) window.SZ.auth.hideModal(); }")
 
         # 3. Open Bob chat panel
         page.evaluate("() => document.getElementById('live-panel')?.classList.add('is-open')")
@@ -171,23 +184,32 @@ def run_verification(
                 if stable_cycles >= 3:  # Stable for 3+ seconds
                     break
 
+        # Cards alone can flip WAIT->READY on component readiness without a
+        # real analysis, so Bob's answer is the proof the pipeline actually ran.
+        chat_deadline = time.time() + 180
+        chat_ok = False
+        while time.time() < chat_deadline:
+            chat_ok = page.evaluate(
+                """() => {
+                    const msgs = document.querySelectorAll('#chat .msg-ceo');
+                    if (msgs.length === 0) return false;
+                    const last = msgs[msgs.length - 1];
+                    const text = last && last.innerText ? last.innerText : '';
+                    return text.length > 50 && !text.includes('failed') && !text.includes('Erro');
+                }"""
+            )
+            if chat_ok:
+                break
+            page.wait_for_timeout(2000)
+
         # Final snapshot
         final = check_card_state(page)
         timeline.append(
             {"t": int(time.time() - last_snapshot_time), "label": "final", "cards": final}
         )
 
-        # Check if Bob answered
-        chat_ok = page.evaluate(
-            """() => {
-                const msgs = document.querySelectorAll('#chat .msg-ceo');
-                if (msgs.length === 0) return false;
-                const last = msgs[msgs.length - 1];
-                return last && last.innerText && last.innerText.length > 50;
-            }"""
-        )
-
         page.screenshot(path=str(screenshot_path), full_page=True)
+        context.close()
         browser.close()
 
     return {
@@ -246,7 +268,9 @@ def main() -> int:
     )  # More than initial + final = intermediate updates
 
     output = {
-        "ok": healthy >= 3,  # At least 3 out of 5 cards healthy
+        # At least 3/5 cards healthy AND Bob actually answered — card flips
+        # alone are not proof the pipeline ran (login-wall false positive).
+        "ok": healthy >= 3 and result["chat_responded"],
         "health_pct": health_pct,
         "healthy_cards": healthy,
         "total_cards": len(INITIAL_STATES),
