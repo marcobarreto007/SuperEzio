@@ -342,19 +342,21 @@ class ModelGateway:
     async def stream_generate_api(
         self,
         provider: ModelProvider,
-        prompt: str,
+        prompt: str = "",
         system_prompt: str = "",
         max_tokens: int | None = None,
         temperature: float | None = None,
         json_mode: bool = False,
         assistant_prefix: str = "",
         tools: List[Dict[str, Any]] | None = None,
+        messages: List[Dict[str, Any]] | None = None,
     ) -> AsyncGenerator[str, None]:
         """Gera resposta via API OpenAI-compatible (Streaming).
 
         assistant_prefix: texto inicial forçado na resposta do assistente.
         Injeta como mensagem role=assistant no final da lista — impede que o
         modelo dispare filtros de recusa antes de gerar conteúdo (prefill trick).
+        messages: when set, sent as-is (vision image_url parts included).
         """
         client = AsyncOpenAI(
             base_url=provider.base_url,
@@ -362,19 +364,23 @@ class ModelGateway:
             timeout=provider.timeout_s,
         )
 
-        messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": prompt})
+        if messages:
+            api_messages = _openai_messages(messages)
+        else:
+            api_messages = []
+            if system_prompt:
+                api_messages.append({"role": "system", "content": system_prompt})
+            api_messages.append({"role": "user", "content": prompt})
         if assistant_prefix:
-            messages.append({"role": "assistant", "content": assistant_prefix})
+            api_messages.append({"role": "assistant", "content": assistant_prefix})
 
         tok = max_tokens if max_tokens is not None else provider.max_tokens
         temp = temperature if temperature is not None else provider.temperature
+        use_json = bool(json_mode) and not _has_image_content(api_messages)
 
         kwargs = {
             "model": provider.model,
-            "messages": messages,
+            "messages": api_messages,
             "max_tokens": tok,
             "temperature": temp,
             "stream": True,
@@ -383,7 +389,7 @@ class ModelGateway:
             kwargs["tools"] = tools
 
         self._apply_deepseek_options(provider, kwargs)
-        if json_mode:
+        if use_json:
             kwargs["response_format"] = {"type": "json_object"}
 
         try:
@@ -749,6 +755,7 @@ class ModelGateway:
         assistant_prefix: str = "",
         allow_fallback: bool = True,
         tools: List[Dict[str, Any]] | None = None,
+        messages: List[Dict[str, Any]] | None = None,
     ) -> "AsyncGenerator[str, None]":
         """Stream generate Assíncrono (Non-blocking)."""
 
@@ -784,6 +791,7 @@ class ModelGateway:
                         temperature=temperature,
                         assistant_prefix=assistant_prefix,
                         tools=tools,
+                        messages=messages,
                     ):
                         emitted = True
                         yield chunk
