@@ -1,0 +1,30 @@
+{
+  "date_local": "2026-08-23",
+  "session": "open-access-full-product-20260823",
+  "status": "DELIVERED",
+  "objective": "Produto aberto para distribuicao a 5 pessoas: sem identificacao, UI completa, paper trade sem 2FA, pipeline visivel e consultado por inteiro. Execucao live permanece congelada.",
+  "operator_decision": "Tirar trancas de identificacao e refletir 100% acesso ao sistema, nao um modo guest reduzido.",
+  "delivered": {
+    "login_wall": "Removida. /health.auth_required=false; /auth/me retorna guest_open sem token; modal de Sign In nao e injetado.",
+    "product_surfaces": "Chat, chart, expert panel, SDCA lab, ops console, + Trade, Sugestao, Analisar com Bob — todos usaveis anonimamente.",
+    "trading_2fa": "SUPEREZIO_OPEN_ACCESS=1 ignora X-Trading-Token / X-API-Key em paper e rascunhos TD locais.",
+    "pipeline_ui": "body.is-open-access liga debug cards e mostra .bob-runtime (passos do pipeline visiveis).",
+    "pipeline_consult": "Pergunta de compra nao pula Trinity. Template do Bob lista DATA/MATH/EXPERTS/F51/SDCA/NEURAL/TRINITY/PENNYLAB/RAG/GUARDRAIL.",
+    "live_probe_previous": "Compro TD.TO ou nao? 143.8s STREAM_END; DATA_COLLECTED, MATH_REPORT (10/14), 9 experts, F51, NEURAL, SDCA, RAG, GUARDRAIL, TRINITY, agent. trinity_skipped=false."
+  },
+  "still_frozen": [
+    "F51_TRADING_EXECUTION_FREEZE=true",
+    "SUPEREZIO_LIVE_TRADING_DISABLED=1",
+    "Nenhuma ordem e transmitida ao broker",
+    "Registro publico de contas continua 403"
+  ],
+  "verification": {
+    "pytest_targeted": "auth public gate 8/8; open-access paper trade sem token 200 submitted_to_broker=false; casual/buy-not-simple passed",
+    "ruff": "PASS nos arquivos tocados",
+    "live_get": "/health 200 auth_required=false; /auth/me guest_open; /cockpit/summary 200; /metrics 200",
+    "browser": "sem Sign In no DOM; chat focado; botoes Trade/Ops/SDCA/Sugestao presentes",
+    "ceo": ":8080 LISTENING (PID 20244) nao reiniciado"
+  },
+  "risk": "INV-R55 — URL publica com OPEN_ACCESS permite uso anonimo do copiloto (custo DeepSeek). Reversivel: SUPEREZIO_OPEN_ACCESS=0 e restart da API.",
+  "github": "DISK ONLY — nenhum push/pull/fetch/gh"
+}

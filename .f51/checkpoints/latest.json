@@ -1,8 +1,18 @@
 {
   "date_local": "2026-08-23",
-  "session": "cockpit-web-verification-2026-08-23",
+  "session": "open-access-full-product-20260823",
   "status": "DELIVERED",
-  "objective": "Testar o cockpit do sistema direto da pagina web, com evidencia objetiva; corrigir falso positivo do verify_cockpit_cards.py em public mode.",
+  "objective": "Produto aberto para 5 pessoas: sem identificacao, acesso 100% ao copiloto (chat, cockpit, pipeline visivel, paper trade). Live freeze intacto. Detalhes: open-access-full-product-20260823.json. Predecessor: cockpit-web-verification-2026-08-23.",
+  "open_access_full_product_20260823": {
+    "status": "DELIVERED",
+    "auth_required": false,
+    "guest": "guest_open",
+    "login_wall": "removed",
+    "paper_trade_2fa": "skipped_when_OPEN_ACCESS",
+    "live_execution": "FROZEN",
+    "pipeline_live": "Compro TD.TO: DATA+MATH+9 experts+F51+NEURAL+SDCA+RAG+GUARDRAIL+TRINITY+STREAM_END 143.8s",
+    "risk": "INV-R55"
+  },
   "predecessor_sessions": [
     "2026-08-23-unified-restart-and-fixes.json (arquivado deste latest.json)"
   ],

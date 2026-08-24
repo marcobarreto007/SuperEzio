@@ -5,6 +5,18 @@ Session: unified-restart-and-fixes-2026-08-23 (consolida td-universe-lock, casua
 
 ## Active Risks
 
+### INV-R55 - OPEN_ACCESS na URL publica (5 pessoas) [HIGH]
+
+- Classification: exposure / identification removed by operator decision.
+- Risk: `SUPEREZIO_OPEN_ACCESS=1` com tunel publico (`supereziorealtime.com`) deixa
+  chat, cockpit, metrics e paper-trade sem identificacao. Qualquer um com a URL
+  usa o copiloto (custo DeepSeek dos experts). Nao transmite ordem live
+  (`LIVE_TRADING_DISABLED` + `EXECUTION_FREEZE` intactos).
+- Mitigation: flag reversivel; desligar `SUPEREZIO_OPEN_ACCESS` e reiniciar :8002
+  restaura JWT. Registro de contas permanece 403.
+- Status: ACCEPTED 2026-08-23 — decisao do operador para distribuicao a 5 pessoas.
+
+
 ### INV-R53 - CEO llama-server sem supervisor (queda por janela fechada) [HIGH]
 
 - Classification: operational resilience / runtime supervision.

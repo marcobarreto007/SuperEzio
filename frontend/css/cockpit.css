@@ -1562,6 +1562,10 @@ body::after {
 .bob-runtime {
   display: none;
 }
+body.is-open-access .bob-runtime,
+body.show-debug-cards .bob-runtime {
+  display: block;
+}
 
 /* ── ANIMATIONS ── */
 @keyframes priceUpdate {

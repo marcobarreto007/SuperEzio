@@ -2520,9 +2520,14 @@ _TRADING_TOKEN_TTL = 900  # 15 minutes
 
 
 def _require_trading_auth(request: Request) -> str:
-    """Verify second-factor trading token. Skipped if SUPEREZIO_API_KEY is not configured (dev mode)."""
-    if not os.getenv("SUPEREZIO_API_KEY"):
-        return ""  # dev mode — no trading auth required
+    """Verify second-factor trading token.
+
+    Skipped when ``SUPEREZIO_API_KEY`` is unset (dev) or
+    ``SUPEREZIO_OPEN_ACCESS=1`` (trusted distribution — no identification).
+    Live broker transmission remains independently frozen.
+    """
+    if _open_access_enabled() or not os.getenv("SUPEREZIO_API_KEY"):
+        return ""
     token = request.headers.get("X-Trading-Token", "")
     if not token:
         raise HTTPException(status_code=401, detail="Trading requires X-Trading-Token header")
@@ -2535,9 +2540,15 @@ def _require_trading_auth(request: Request) -> str:
     return token
 
 
-def _require_td_ticket_auth(request: Request) -> str:
-    """Fail closed for live-manual artifacts even when the rest of the app is in dev mode."""
+def _open_access_enabled() -> bool:
+    return os.getenv("SUPEREZIO_OPEN_ACCESS", "").strip().lower() in {"1", "true", "yes", "on"}
 
+
+def _require_td_ticket_auth(request: Request) -> str:
+    """Live-manual TD drafts. Open-access skips the API-key factor; freeze still holds."""
+
+    if _open_access_enabled():
+        return ""
     if not os.getenv("SUPEREZIO_API_KEY"):
         raise HTTPException(
             status_code=503,

@@ -1,0 +1,211 @@
+{
+  "elapsed_s": 143.8,
+  "saw_stream_end": true,
+  "event_types": {
+    "CHART_DATA": 1,
+    "STREAM_START": 1,
+    "PIPELINE_STEP": 27,
+    "CASE_OPENED": 1,
+    "DATA_COLLECTED": 1,
+    "MATH_REPORT": 1,
+    "EXPERT_STARTED": 9,
+    "EXPERT_DONE": 9,
+    "PENNYLAB_DETECTION": 1,
+    "F51_VERDICT": 1,
+    "CRISIS_MATH": 1,
+    "NEURAL_DECISION": 1,
+    "SDCA_FIREWALL": 1,
+    "GUARDRAIL_HUB": 1,
+    "TRINITY_DELIBERATION": 1,
+    "CHUNK": 1,
+    "EXPLANATION_CHUNK": 5,
+    "STREAM_END": 1
+  },
+  "pipeline_steps": [
+    {
+      "step": "graph",
+      "status": "started",
+      "reason": null
+    },
+    {
+      "step": "orchestrator_primary",
+      "status": "started",
+      "reason": null
+    },
+    {
+      "step": "orchestrator_primary",
+      "status": "completed",
+      "reason": null
+    },
+    {
+      "step": "auto_full_analysis",
+      "status": "started",
+      "reason": null
+    },
+    {
+      "step": "data",
+      "status": "started",
+      "reason": null
+    },
+    {
+      "step": "professional_collector",
+      "status": "completed",
+      "reason": null
+    },
+    {
+      "step": "data",
+      "status": "completed",
+      "reason": null
+    },
+    {
+      "step": "experts",
+      "status": "completed",
+      "reason": null
+    },
+    {
+      "step": "f51_verdict",
+      "status": "started",
+      "reason": null
+    },
+    {
+      "step": "f51_verdict",
+      "status": "completed",
+      "reason": null
+    },
+    {
+      "step": "neural_decision",
+      "status": "started",
+      "reason": null
+    },
+    {
+      "step": "neural_decision",
+      "status": "completed",
+      "reason": null
+    },
+    {
+      "step": "sdca_firewall",
+      "status": "started",
+      "reason": null
+    },
+    {
+      "step": "sdca_firewall",
+      "status": "completed",
+      "reason": null
+    },
+    {
+      "step": "rag_forensics",
+      "status": "started",
+      "reason": null
+    },
+    {
+      "step": "rag_forensics",
+      "status": "completed",
+      "reason": null
+    },
+    {
+      "step": "guardrail_hub",
+      "status": "started",
+      "reason": null
+    },
+    {
+      "step": "guardrail_hub",
+      "status": "completed",
+      "reason": null
+    },
+    {
+      "step": "auto_full_analysis",
+      "status": "completed",
+      "reason": null
+    },
+    {
+      "step": "trinity",
+      "status": "started",
+      "reason": null
+    },
+    {
+      "step": "trinity",
+      "status": "completed",
+      "reason": null
+    },
+    {
+      "step": "agent_primary",
+      "status": "started",
+      "reason": null
+    },
+    {
+      "step": "agent_primary",
+      "status": "started",
+      "reason": null
+    },
+    {
+      "step": "agent_primary",
+      "status": "completed",
+      "reason": null
+    },
+    {
+      "step": "explanation",
+      "status": "started",
+      "reason": null
+    },
+    {
+      "step": "explanation",
+      "status": "completed",
+      "reason": null
+    },
+    {
+      "step": "graph",
+      "status": "completed",
+      "reason": null
+    }
+  ],
+  "trinity_skipped_flag": false,
+  "math": {
+    "ticker": "TD.TO",
+    "coverage": {
+      "total_modules": 14,
+      "ok_modules": 10,
+      "skipped_modules": 4,
+      "error_modules": 0,
+      "ok": [
+        "price_series",
+        "technical_indicators",
+        "return_metrics",
+        "sharpe_sortino",
+        "drawdown",
+        "var_cvar",
+        "kelly",
+        "return_bootstrap",
+        "portfolio_hrp",
+        "penny_momentum"
+      ],
+      "skipped": [
+        "dcf_proxy",
+        "crisis_aggregate",
+        "f51_unified",
+        "trading_losses"
+      ],
+      "errors": []
+    },
+    "summary_keys": [
+      "latest_price",
+      "return_annualized",
+      "volatility_annualized",
+      "sharpe",
+      "max_drawdown",
+      "var_95",
+      "kelly_fraction",
+      "crisis_score",
+      "bootstrap_expected_return",
+      "f51_decision_score"
+    ]
+  },
+  "content_len": 1342,
+  "cited_markers": [
+    "F51",
+    "SDCA",
+    "GUARD"
+  ],
+  "errors": [],
+  "first_chars": "DADOS DO PIPELINE: RSI=34.115927 MACD={'macd': -0.871621, 'signal': 0.263775, 'histogram': -1.135396} F51=0.828 SDCA=ALLOW\n\nSUA EXPLICACAO: A decisão do pipeline para TD.TO é NEUTRAL (com score de -0.046), indicando cautela e ausência de viés claro para compra ou venda imediata. O filtro de risco cognitivo **SDCA** aprovou a operação (**ALLOW**), com risco moderado detectado, mas o firewall **F51*",
+  "last_chars": "74, com drawdown máximo de -0.080048. Os módulos **dcf_proxy**, **crisis_aggregate** e **trading_losses** foram pulados por falta de dados, impossibilitando avaliação de valor intrínseco ou estresse sistêmico. Diante do veredito neutro e da cautela do F51, a recomendação é não comprar agora; aguarde confirmação técnica (MACD cruzando para positivo) ou melhora no score F51 antes de executar ordens."
+}

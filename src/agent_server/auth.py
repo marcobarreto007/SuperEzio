@@ -267,9 +267,10 @@ def _is_dev_mode() -> bool:
 def _open_access() -> bool:
     """Operator opt-in: anonymous guests, no login wall.
 
-    Used for a small trusted distribution. Trading endpoints still require
-    their own factor (``SUPEREZIO_API_KEY``) when configured. Registration
-    stays closed in public mode.
+    Used for a small trusted distribution. Paper trading and local TD drafts
+    skip the second identification factor. Live broker transmission stays
+    independently frozen (``SUPEREZIO_LIVE_TRADING_DISABLED`` /
+    ``F51_TRADING_EXECUTION_FREEZE``). Registration stays closed in public mode.
     """
     return os.getenv("SUPEREZIO_OPEN_ACCESS", "").strip().lower() in {"1", "true", "yes", "on"}
 

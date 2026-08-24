@@ -41,7 +41,7 @@ def validate_answer_against_verdict(answer: str, verdict: dict) -> dict:
     if numbers_found < 2:
         issues.append(f"Only {numbers_found}/4 pipeline numbers referenced")
 
-    # Check module NAMES mentioned (RSI, MACD, F51, SDCA)
+    # Check module NAMES mentioned (RSI, MACD, F51, SDCA, plus full stack when present)
     answer_upper = answer.upper() if answer else ""
     required_modules = []
     if math.get("rsi") not in (None, "N/A"):
@@ -52,6 +52,16 @@ def validate_answer_against_verdict(answer: str, verdict: dict) -> dict:
         required_modules.append("F51")
     if verdict.get("sdca", {}).get("decision") not in (None, "N/A"):
         required_modules.append("SDCA")
+    if verdict.get("neural", {}).get("decision") not in (None, "N/A"):
+        required_modules.append("NEURAL")
+    if verdict.get("experts", {}).get("consensus") not in (None, "N/A"):
+        required_modules.append("EXPERT")
+    if str(verdict.get("trinity", {}).get("status") or "").startswith("RAN"):
+        required_modules.append("TRINITY")
+    if verdict.get("pennylab", {}).get("decision") not in (None, "N/A"):
+        required_modules.append("PENNY")
+    if verdict.get("rag", {}).get("status") == "RAN":
+        required_modules.append("RAG")
 
     modules_found = 0
     missing_modules = []
@@ -100,6 +110,35 @@ def build_verdict_dict(state: dict) -> dict:
     neural = state.get("neural_decision") or {}
 
     expert_consensus = state.get("expert_consensus") or {}
+    trinity_report = state.get("trinity_report") or ""
+    pennylab = state.get("pennylab") or state.get("pennylab_result") or {}
+    guardrail = state.get("guardrail_hub") or {}
+    rag = state.get("rag_context") or state.get("rag_forensics") or ""
+
+    trinity_status = "SKIPPED"
+    if isinstance(trinity_report, str) and len(trinity_report) > 10:
+        trinity_status = "RAN"
+    elif isinstance(state.get("trinity_structured"), dict):
+        structured = state["trinity_structured"]
+        if structured.get("skipped"):
+            trinity_status = f"SKIPPED:{structured.get('reason') or 'fast_path'}"
+        else:
+            trinity_status = "RAN"
+
+    pennylab_decision = "N/A"
+    if isinstance(pennylab, dict) and pennylab:
+        pennylab_decision = pennylab.get("decision") or pennylab.get("verdict") or "RAN"
+
+    guard_ready = "N/A"
+    if isinstance(guardrail, dict) and guardrail:
+        hub_summary = guardrail.get("summary") if isinstance(guardrail.get("summary"), dict) else {}
+        guard_ready = guardrail.get("ready", hub_summary.get("ready", "RAN"))
+
+    rag_status = "MISSING"
+    if isinstance(rag, str) and rag.strip():
+        rag_status = "RAN"
+    elif isinstance(rag, dict) and rag:
+        rag_status = "RAN"
 
     return {
         "ticker": str(state.get("ticker", "") or ""),
@@ -121,6 +160,18 @@ def build_verdict_dict(state: dict) -> dict:
         },
         "experts": {
             "consensus": expert_consensus.get("decision", "N/A"),
+        },
+        "trinity": {
+            "status": trinity_status,
+        },
+        "pennylab": {
+            "decision": pennylab_decision,
+        },
+        "guardrail": {
+            "ready": guard_ready,
+        },
+        "rag": {
+            "status": rag_status,
         },
     }
 

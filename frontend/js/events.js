@@ -18,7 +18,8 @@
   // (state.js mirrors SZ.config.showDebugCards, default false in content.js).
   // Verdict cards (F51/SDCA/Neural) always render — they are core output.
   function showDebugCards() {
-    return Boolean(window.SZ_SHOW_DEBUG_CARDS);
+    return Boolean(window.SZ_SHOW_DEBUG_CARDS)
+      || (document.body && document.body.classList.contains("is-open-access"));
   }
 
   function getCeoBubble() {

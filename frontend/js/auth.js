@@ -263,14 +263,22 @@
       return;
     }
     injectModal();
-    if (modalEl) modalEl.classList.add("auth-overlay--visible");
+    if (modalEl) {
+      modalEl.removeAttribute("hidden");
+      modalEl.setAttribute("aria-hidden", "false");
+      modalEl.classList.add("auth-overlay--visible");
+    }
     // Switch to login tab
     var loginTab = document.querySelector('[data-auth-tab="login"]');
     if (loginTab) loginTab.click();
   }
 
   function hideModal() {
-    if (modalEl) modalEl.classList.remove("auth-overlay--visible");
+    if (modalEl) {
+      modalEl.classList.remove("auth-overlay--visible");
+      modalEl.setAttribute("hidden", "");
+      modalEl.setAttribute("aria-hidden", "true");
+    }
   }
 
   function startRefreshTimer() {
@@ -325,8 +333,11 @@
         var required = result.body && result.body.auth_required;
         if (required === false) {
           setAuthRequired(false);
+          if (document.body) document.body.classList.add("is-open-access");
+          if (window.SZ && window.SZ.config) window.SZ.config.showDebugCards = true;
+          window.SZ_SHOW_DEBUG_CARDS = true;
           hideModal();
-          console.log("SuperEzio: open access — skipping login");
+          console.log("SuperEzio: open access — skipping login, full product UI");
           return;
         }
         if (required === true) {
@@ -377,7 +388,9 @@
   }
 
   function init() {
-    injectModal();
+    // Do not inject the login wall until /health says auth is required.
+    // Injecting it hidden still leaked Sign In into the accessibility tree
+    // and on some mobile browsers the overlay competed with the chat input.
     if (isAuthenticated()) {
       startRefreshTimer();
     }

@@ -724,6 +724,29 @@ def test_trading_token_fails_closed_without_api_key_configuration(
     assert response.status_code == 503
 
 
+def test_open_access_skips_trading_second_factor(client_with_mock_pipeline, monkeypatch):
+    """Trusted distribution: paper trade works without X-Trading-Token / X-API-Key."""
+    monkeypatch.setenv("SUPEREZIO_OPEN_ACCESS", "1")
+    monkeypatch.setenv("SUPEREZIO_API_KEY", "configured-for-test")
+    monkeypatch.setenv("SUPEREZIO_JWT_SECRET", "jwt-test-secret-at-least-32-characters")
+    monkeypatch.setenv("SUPEREZIO_PUBLIC_MODE", "1")
+    _, client = client_with_mock_pipeline
+
+    response = client.post(
+        "/trade/execute",
+        json={
+            "ticker": "TD.TO",
+            "action": "buy",
+            "qty": 1,
+            "limit_price": 100,
+            "message": "open-access paper ticket",
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["submitted_to_broker"] is False
+
+
 def test_frontend_registration_uses_login_contract_and_eight_character_password() -> None:
     from pathlib import Path
 
