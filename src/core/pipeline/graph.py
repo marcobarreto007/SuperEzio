@@ -211,6 +211,24 @@ def _is_simple_query(state: dict) -> bool:
         "vale a pena",
         "ou não",
         "ou nao",
+        "analisa",
+        "analise",
+        "análise",
+        "analyze",
+        "grafico",
+        "gráfico",
+        "chart",
+        "vela",
+        "velas",
+        "candle",
+        "porque",
+        "por que",
+        "evidencia",
+        "evidência",
+        "experts",
+        "expert",
+        "duvida",
+        "dúvida",
     )
     if any(kw in msg for kw in decision_keywords):
         return False
@@ -273,8 +291,6 @@ def _is_simple_query(state: dict) -> bool:
         "status",
         "indicador",
         "indicadores",
-        "gráfico",
-        "grafico",
         "quote",
         "cotation",
     }
@@ -522,16 +538,19 @@ async def _auto_full_analysis(
             route,
         )
 
-    # Market experts only run after market/ticker evidence is actually present.
-    # SKIP if data came from learner cache (already pre-computed)
+    # Market experts run after evidence exists. Cache may skip the committee
+    # only on a true quote/indicator fast-path — never on a decision.
     expert_results: list[dict[str, Any]] = []
     data_from_cache = working_state.get("_data_from_cache") or (
         isinstance(working_state.get("data"), dict)
         and working_state["data"].get("price", {}).get("source") == "learner_24_7_cache"
     )
+    # Cache can skip the expert committee only on true quote/indicator fast-path.
+    # Decision, chart, and analysis questions still consult the living stack.
+    skip_experts_for_cache = bool(data_from_cache) and _is_simple_query(working_state)
     should_run_market_stack = (
         not _is_casual
-        and not data_from_cache
+        and not skip_experts_for_cache
         and bool(working_state.get("scan") or working_state.get("data"))
         and (
             should_collect_market
@@ -539,7 +558,7 @@ async def _auto_full_analysis(
             or working_state.get("force_auto_market_stack")
         )
     )
-    if data_from_cache:
+    if skip_experts_for_cache:
         _mark_step("experts", {"status": "skipped", "reason": "cache_hit"})
     if should_run_market_stack:
         if not ticker:

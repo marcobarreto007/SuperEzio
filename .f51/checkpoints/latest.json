@@ -1,44 +1,23 @@
 {
   "date_local": "2026-08-23",
-  "session": "save-multiwave-chart-visual-20260823",
+  "session": "bob-living-organism-consult-20260823",
   "status": "DELIVERED",
-  "objective": "Salvar a arvore multi-sessao sob ordem do operador: validar com gates objetivos o que estava solto, reparar HEAD quebrado (import chart_image sem arquivo no repo) e commitar.",
+  "objective": "Bob so decide depois de consultar o organismo; duvida volta para os experts.",
   "predecessor": "bob-chart-vision-evidence-20260823",
-  "incident_parallel_commit": {
-    "what": "Durante os gates deste save, uma sessao paralela commitou 59f1310 (scan resilience + finnhub caching + cockpit UI) e levou junto agent.py que importa core.pipeline.chart_image — mas chart_image.py ficou UNTRACKED. HEAD ficou incoerente: checkout limpo morreria no ImportError; smoke so passava porque o arquivo existia solto na arvore.",
-    "repair": "Commitar chart_image.py + test_chart_visual.py + gateway.py (suporte a mensagens multimodais) + agent.py (wiring final) — feito neste save."
+  "problema": "Fast-path pulava Trinity em pergunta de grafico; cache pulava o comite; run_experts nao podia ser chamado de novo.",
+  "patch": {
+    "graph.py": "analisa/grafico/porque nunca skip Trinity; cache so pula experts em quote simples",
+    "agent.py": "reconsulta experts se comite fino/errado; contrato ECOSSISTEMA VIVO",
+    "tool_executor.py": "run_experts semi-repeatable (2) com args.question"
   },
-  "chart_visual_wave": {
-    "feature": "Bob enxerga o grafico: gateway.generate_api aceita messages com partes image_url (json_mode desligado quando ha imagem, chaves internas como _chart_facts removidas antes da chamada); chart_image.py (343 linhas) constroi a mensagem visual a partir do estado do pipeline; agent.py anexa a mensagem com evidence contract e regra PT: sem confirmacao visual + numeros + catalisador, acao e WAIT.",
-    "files": [
-      "src/core/pipeline/chart_image.py (novo)",
-      "tests/test_chart_visual.py (novo)",
-      "src/core/model_serving/gateway.py",
-      "src/core/pipeline/nodes/agent.py"
-    ]
-  },
-  "tests_run": {
-    "pytest_direcionado_onda_scan": "154 passed (8 arquivos tocados pelo 59f1310: scan loop, api routes sync, finnhub provider/symbols, mangala gate parity, market scan candidate gate, trade order, scan enrich resilience)",
-    "pytest_direcionado_onda_chart": "66 passed (test_chart_visual, test_gateway, test_agent_market_scan_loop)",
-    "browser_smoke": "VERDE pos-frontend-open-access: health ok com auth_required=false, 126 candles TD.TO, canvas 1041x511 com 7 canvases pintados, resposta NOVA do Bob em PT via stream (3851 chars, STREAM_END, 109.9s), 0 erros de console. Screenshot: output/playwright/superezio-browser-smoke-20260823-231325.png",
-    "ruff": "limpo em TODOS os arquivos tocados (ondas scan + chart). 100 erros pre-existentes em arquivos nao tocados (E701/E702 estilo), identicos no HEAD — nao desta onda",
-    "secrets_scan": "diff completo + arquivos novos: nada encontrado (so memoria de conversa em data/*.jsonl, fora do commit por politica)"
+  "verification": {
+    "pytest_slice": "test_organism_consult 4 pass; casual+trinity 11 pass; scan loop 12 pass; chart visual 8 pass",
+    "ruff": "clean",
+    "known_unrelated": "3 test_auto_full_analysis KeyError math_report em finance-only — math_if nao foi tocado neste patch"
   },
   "still_true": {
-    "open_access": "auth_required=false, guest_open, sem login wall",
     "live_execution": "FROZEN",
-    "github": "DISK ONLY respeitado em toda a cadeia"
-  },
-  "excluded_from_commit": {
-    "data/bob_pain_log.jsonl": "dataset runtime bruto — politica do save: never save raw datasets",
-    "data/conversation_memory.jsonl": "idem (memoria RAG de conversas)"
-  },
-  "risks": {
-    "nota": "Nenhum risco novo inventariado por este save. INV-R55 (open access) permanece o risco dominante da noite. A feature chart-visual muda o caminho de prompt do Bob (anexo de imagem) — coberta por test_chart_visual + gateway tests, mas validacao visual ao vivo com grafico real anexado ainda pendente (proximo passo sugerido)."
-  },
-  "gates": {
     "github": "DISK ONLY",
-    "product_dirs": "src/ foi alterado — porem sob ordem explicita do operador ('commita e salva as mudancas'), com HEAD quebrado a reparar; contratos cobertos por 220 testes direcionados verdes",
-    "smoke": "pytest acompanhou browser_smoke conforme regra do projeto"
+    "vision": "mmproj loaded on :8080"
   }
 }

@@ -71,7 +71,11 @@ def _check_lesson_block(ticker: str) -> dict[str, Any] | None:
 
 
 _REPEATABLE_TOOLS = {"final_answer"}
-_SEMI_REPEATABLE_LIMITS: dict[str, int] = {"collect_data": 2, "calculate": 5}
+_SEMI_REPEATABLE_LIMITS: dict[str, int] = {
+    "collect_data": 2,
+    "calculate": 5,
+    "run_experts": 2,
+}
 
 
 def _paper_order_submission_error(state: dict, args: dict) -> str:
@@ -741,6 +745,16 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             # or we run node_expert for all roles in a loop to populate expert_results.
             # For simplicity, we just run the fundamental and technical experts directly, then run node_collect_experts logic.
             # But graph.py used Send() for experts. We will just run them sequentially here for the agent.
+            doubt = str(args.get("question") or args.get("doubt") or "").strip()
+            expert_state = dict(state)
+            if doubt:
+                prior = str(expert_state.get("data_context") or "")
+                expert_state["data_context"] = (
+                    prior
+                    + "\n\nBOB FOLLOW-UP DOUBT (resolve this before any buy/sell verdict): "
+                    + doubt
+                )
+                expert_state["expert_consult_question"] = doubt
             roles = [
                 "macro_risk",
                 "fundamental_value",
@@ -751,11 +765,17 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             ]
             results = []
             for role in roles:
-                res = await node_expert({**state, "role": role}, gateway=gateway)
+                res = await node_expert({**expert_state, "role": role}, gateway=gateway)
                 if "expert_results" in res:
                     results.extend(res["expert_results"])
 
-            result = await node_collect_experts({**state, "expert_results": results})
+            result = await node_collect_experts({**expert_state, "expert_results": results})
+            if doubt:
+                result = {
+                    **result,
+                    "expert_consult_question": doubt,
+                    "data_context": expert_state.get("data_context"),
+                }
 
         elif tool_name == "neural_decision":
             result = await node_neural_decision(state)

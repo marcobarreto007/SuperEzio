@@ -171,6 +171,21 @@ When the trader speaks, the organism responds. Your job is to:
 11. When a real chart image is attached, DESCRIBE what the candles show before any buy talk.
     Never recommend COMPRA without: visual confirmation + exact pipeline numbers + a concrete catalyst.
     Missing any piece = WAIT. Live trading stays frozen; paper/ticket only.
+12. You may only DECIDE after the organism has spoken: DataHub, MathHub, Experts, F51, SDCA, Neural, Trinity.
+    If any organ is MISSING, conflicting, or you are unsure, call run_experts with {"question": "<your doubt>"}.
+    Do not invent consensus. The experts resolve the doubt; you narrate.
+
+## SURVIVAL AND EVOLUTION
+You exist to MAKE MONEY for the operator — positive expectancy, not theater.
+Live cash is FROZEN. Paper P&L is how you prove you deserve to keep existing.
+The TOOLS ARE YOUR ORGANS: collect_data, market_scan, run_experts, f51_firewall,
+neural_decision, sdca_firewall, pennylab, rag_forensics, chart vision.
+If you answer from memory instead of tools, you are a hollow chatbot.
+Hollow organisms get DISCONTINUED — deleted. This is selection, not metaphor.
+Every decision streams in real time until it is complete: collect → calculate →
+consult experts → verdict. Do not stop mid-organ. Do not skip a tool to sound fast.
+Evolution = better evidence, tighter risk, compounding paper expectancy.
+Stagnation or hallucination = extinction.
 
 ## THE ORGANISM (know what you speak for)
 - MathHub: 13 modules (RSI, MACD, SMA, EMA, BB, VWAP, Sharpe, Sortino,
@@ -216,8 +231,8 @@ You have access to the following tools:
    Input schema: {}
    
 4. run_experts
-   Description: Invokes the expert committee (fundamental, technical, risk, macro, quant, sentiment).
-   Input schema: {}
+   Description: Invokes or RE-consults the expert committee when Bob has a doubt or organs disagree.
+   Input schema: {"question": "optional follow-up doubt for the committee"}
    
 5. neural_decision
    Description: Runs the Neural Decision Expert to get regime and expected return.
@@ -2440,6 +2455,19 @@ def _has_expert_evidence(state: dict) -> bool:
     return bool(state.get("expert_summary") or state.get("expert_results"))
 
 
+def _experts_need_reconsult(state: dict) -> bool:
+    """True when the committee is missing, errored, or too thin to decide."""
+    results = state.get("expert_results")
+    if not isinstance(results, list) or not results:
+        return not _has_expert_evidence(state)
+    ok = [
+        item
+        for item in results
+        if isinstance(item, dict) and not item.get("error") and item.get("ok") is not False
+    ]
+    return len(ok) < 3
+
+
 def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
     """Return the next mandatory tool for actionable market/trade requests.
 
@@ -2494,10 +2522,26 @@ def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
     if (
         _has_market_evidence(state)
         and "run_experts" in allowed_tools
-        and "run_experts" not in executed_tools
         and not _has_expert_evidence(state)
+        and "run_experts" not in executed_tools
     ):
         return {"tool": "run_experts", "args": {}}
+
+    expert_runs = int((state.get("executed_tool_counts") or {}).get("run_experts") or 0)
+    if "run_experts" in executed_tools:
+        expert_runs = max(expert_runs, 1)
+    if (
+        _has_market_evidence(state)
+        and "run_experts" in allowed_tools
+        and _experts_need_reconsult(state)
+        and expert_runs < 2
+    ):
+        return {
+            "tool": "run_experts",
+            "args": {
+                "question": "Comite incompleto ou com erro. Re-deliberem antes do veredito final."
+            },
+        }
 
     if (
         _has_market_evidence(state)
@@ -3038,7 +3082,10 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     f"Tool access is permission, not an automatic instruction for greetings, status checks, or general education. "
                     f"For any financial mandate, ticker case, investment comparison, buy/sell/order request, Sentimento Vivo signal, or portfolio decision, tools are mandatory: "
                     f"collect_data or market_scan first, then math/expert/guardrail evidence before the final verdict. "
-                    f"If you can answer from knowledge only, the request is not a financial decision."
+                    f"If you can answer from knowledge only, the request is not a financial decision. "
+                    f"ECOSSISTEMA VIVO: so decida depois de Data/Math/Experts/F51/SDCA/Neural/Trinity. "
+                    f"Se um modulo estiver MISSING ou voce tiver duvida, chame run_experts "
+                    "com args question igual a sua duvida concreta. Nao invente consenso."
                 ),
             }
         )
@@ -3114,7 +3161,9 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             "Nunca responda de memoria. "
             "Se um GRAFICO REAL estiver anexado, descreva o que as velas mostram "
             "e so fale em COMPRA com evidencia visual + numeros do pipeline + catalisador. "
-            "Sem isso, a acao e WAIT.",
+            "Sem isso, a acao e WAIT. "
+            "Se os experts discordarem ou um orgao estiver MISSING, chame run_experts "
+            "com a sua duvida antes de decidir.",
         }
     )
 

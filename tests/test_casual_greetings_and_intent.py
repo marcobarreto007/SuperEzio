@@ -60,4 +60,6 @@ def test_buy_question_does_not_skip_trinity():
 
     assert _is_simple_query({"message": "Compro TD.TO ou nao?", "ticker": "TD.TO"}) is False
     assert _is_simple_query({"message": "TD.TO recomenda?", "ticker": "TD.TO"}) is False
+    assert _is_simple_query({"message": "analisa o grafico de TD.TO", "ticker": "TD.TO"}) is False
+    assert _is_simple_query({"message": "porque comprar TD.TO", "ticker": "TD.TO"}) is False
     assert _is_simple_query({"message": "TD.TO rsi", "ticker": "TD.TO"}) is True
