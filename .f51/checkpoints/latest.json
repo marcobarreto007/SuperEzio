@@ -1,30 +1,27 @@
 {
   "date_local": "2026-08-25",
-  "session": "audit-and-harden-f51-20260824",
+  "session": "demo-recovery-20260825",
   "status": "DELIVERED",
-  "objective": "Auditoria completa do caminho de trade (FSM, idempotencia, journal, gates, fronteira LLM, frontend) com correcao cirurgica: 14 commits, zero regressao.",
-  "predecessor": "full-regression-fix-20260824",
-  "problema": "Auditoria levantou 11 defeitos, do critico ao cosmetico: healthcheck 200 com cerebro caido (main.py:811); PaperJournal nao-append-only com perda de linha corrompida e truncagem nao-atomica (paper_journal.py:226); buraco de borda na janela de idempotencia (idempotency/__init__.py:48, workflow_store.py:81); except:pass no caminho de dinheiro; lost update intra e cross-process no journal; MAN_AT_WORK nunca enforcado no trade e engajando com 1 probe falho; stop_loss_price do modelo contornando a aprovacao de $500; limit_price do modelo chegando ao adapter IBKR sem colar; calculate despachado mas fora do Literal; frontend descartando detail do 503 e ignorando idempotent_replay.",
+  "objective": "Post-mortem da demo de 24/08 (falhou na frente de amigos) + correcao dos estranguladores de capacidade e da qualidade de resposta ao visitante.",
+  "predecessor": "audit-and-harden-f51-20260824",
+  "problema": "Demo falhou com evidencia no log do CEO: dois prompts de 37.564 e 34.641 tokens rejeitados pelo llama-server com 400 cru (janela local 8192, prompt do Bob ja rodava a ~95% dela) as 18:49-18:52 de 24/08, servindo IP externo. Agravantes medidos: slot unico (-np 1) com resposta media de ~118s (fila invisivel = tela 'travada'); pergunta sem ticker recebia dump de modulos (RSI=N/A, WAIT...) em vez da resposta; nota interna '[Pipeline validation note: ...]' vazada na resposta publica; clique em ticker desabilitava o input de chat por minutos; 'Bob hit a runtime error' com dump tecnico como fallback.",
   "patch": {
-    "healthcheck": "522f0df — 503 fail-closed com contrato JSON identico (status/detail/**identity) quando a sonda de consciencia falha",
-    "paper_journal": "47fff47 + 886b956 + 588cffb — escrita atomica (tmp+fsync+os.replace), quarentena de linha corrompida, RLock intra-processo, lock de arquivo msvcrt cross-process no span RMW (regiao do byte 0, r+b, probe por subprocesso)",
-    "idempotencia": "8d6ae5a + 2e0b0be — build_trade_intent_fingerprints (janela atual+anterior) com fingerprint_aliases no create_ticket; make_idempotency_keys + claim_idempotency_keys no caminho paper",
-    "man_at_work": "b16c66c + eb9a9bc — entrada so com 3 falhas consecutivas (reusa contador do Organ) + recovery a cada ciclo; GATE 1.5 enforcado em evaluate_trade_gate fail-closed (MAN_AT_WORK / MAN_AT_WORK_UNAVAILABLE)",
-    "stop_loss": "be5cd08 — stop sempre derivado de limit_price * (1 - default_stop_pct); stop proposto pelo modelo ignorado (bypass de $500 fechado)",
-    "collar": "3dc38350 — GATE 9.5 LIMIT_PRICE_COLLAR: banda 5% (ref <=180s) / 10% (velha), evidencia completa; auto_execute_paper passa data_age_s",
-    "costura_llm": "9e439a3 — calculate no Literal; drops de tool call invalida logados (fail-soft, sem extra=forbid)",
-    "frontend": "eb9a9bc + be6ab58 — fetchJson propaga detail do 503; cockpit distingue 503 degradado de offline e le idempotent_replay ('ja estava registrado — ticket X'); branch morto brokerConfirmed removido; contrato fixado em teste",
-    "observabilidade": "2dbcb3a — log estruturado em yfinance intraday, pain log e cancel_open_order",
-    "taxonomia": "ffb5837 — core.trading.reason_codes + teste de conformidade que extrai literais do gate"
+    "infra": "8e1b342 — serve_agent_llamacpp.ps1: ContextLength 8192 -> 16384; CEO reiniciado pelo watchdog e confirmado ao vivo (Context 16,384 tokens). API reiniciada com logs em disco (padrao start.ps1) e rodando o HEAD.",
+    "guarda_contexto": "77abceb — gateway: local_context_fits (heuristica ~3 chars/token + 768 tokens/imagem) rejeita >8000 tokens ANTES do llama-server e loga aviso acima de 6500; testada deterministicamente.",
+    "fallback_honesto": "77abceb + 8e1b342 — CHUNK de erro fala com o visitante ('espaco de contexto insuficiente... pergunta mais curta'); detalhe tecnico so no evento ERROR estruturado.",
+    "conteudo": "8e1b342 — nota de validacao interna removida da resposta publica (so log). 8cd1103 + fc81a19 — cabecalho DADOS DO PIPELINE condicional: so com ticker real; sem ticker, resposta natural direta. VALIDADO AO VIVO: smoke final responde a pergunta de alocacao de CAD 25.000 em linguagem natural (antes: dump RSI=N/A).",
+    "frontend": "8e1b342 — input de chat nao e mais desabilitado durante o run (backend serializa com 429 estruturado).",
+    "runbook": "77abceb — docs/runbooks/DEMO_RUNBOOK.md: pre-flight de 30 min (slot livre, health, janela, codigo, rede, cache quente), script de demo, tabela sintoma->acao.",
+    "arvore": "3f6e666 — src/runtime/ e src/data/bob_pain_log.jsonl ignorados (byproducts de cwd=src); data/*.jsonl desstaged (politica raw datasets)."
   },
   "verification": {
-    "full_suite": "2240 passed, 0 failed, 3 skipped em 713.19s (servidor :8002 VIVO — testes de smoke executam e passam; baseline da sessao: 2201 passed / 11 skipped)",
-    "targeted": "f51_trade_gate 60 + auto_full_analysis 21 + paper_journal 22 + contract_pipeline/bob_sovereign/pipeline_integration/market_scan_loop 103 + journal regressao 60 + idempotency_window 4 — todos verdes",
-    "prova_negativa": "cada correcao com teste que falha contra o codigo original (git stash push/pop), incluindo: healthcheck assert 200==503, journal '' == '{...}', 2 tickets vs 1 na borda, gate MAN_AT_WORK caindo em IBKR_OFFLINE",
-    "smoke": "browser_smoke VERDE com servidor vivo: bobMsgCount 1, resposta PT valida, stream completo, canvas 1041x511 7 canvases, 0 console errors; screenshot output/playwright/superezio-browser-smoke-20260824-222042.png",
-    "ruff": "check limpo em src/ e tests/; format limpo nos arquivos tocados (5 arquivos pre-existentes seguem falhando format-check: endpoints.py, agent.py, collector.py, penny_scanner.py, finnhub_provider.py — tarefa dedicada, nao misturada)"
+    "full_suite": "2243 passed, 0 failed, 3 skipped em 646.15s (servidor vivo: testes de smoke executam)",
+    "targeted": "gateway_context_guard 3 + bob_sovereign/agent_visual_fit 19 + gateway 72 + stress 13 + api_routes_sync 55 — todos verdes durante a rodada",
+    "smoke": "browser_smoke com SUPEREZIO_SMOKE_CHAT=1 VERDE na stack nova: ok:true, resposta em PT natural para pergunta sem ticker (validacao ao vivo da correcao), 78.9s, 0 console errors; screenshot output/playwright/superezio-browser-smoke-20260825-102255.png",
+    "runtime": "CEO :8080 com 16,384 tokens confirmado (log do llama-server); API :8002 no HEAD com logs em runtime/logs/api-8002-latest.log; ambos health 200",
+    "ruff": "check limpo em src/ e tests/"
   },
-  "risks": "INV-R57 (MAN_AT_WORK enforcado no trade: 3 falhas consecutivas do :8080 engajam o modo e o GATE 1.5 bloqueia ordens ate recuperacao — intencional, fail-closed); INV-R58 (colar de preco: ordens cujo limit_price desvia >banda do preco DataHub passam a ser recusadas; banda larga de proposito por causa de penny + referencia de 5 min); INV-R59 (stop do modelo ignorado: payloads que enviam stop_loss_price mudam de risco calculado); INV-R60 (lock cross-process: msvcrt.locking nao cobre nao-Windows — fallback para thread-lock so, repo e Windows-first); INV-R61 (fetchJson agora propaga detail — consumidores de /health que comparavam string de erro exata podem ver texto novo).",
+  "risks": "INV-R62 (janela 16384: KV cache q8_0 ~2GB — VRAM no limite da 3060; se o carregamento falhar por VRAM, voltar para 8192 e podar prompt no cliente); INV-R63 (resposta natural sem ticker: instrucao condicional no prompt e no template — medir se a analise COM ticker mantem o cabecalho obrigatorio); INV-R64 (input de chat sempre ativo: runs concorrentes dependem do 429 estruturado por sessao — ja testado em test_task_submit_active_session_returns_structured_429).",
   "still_true": {
     "live_execution": "FROZEN",
     "github": "DISK ONLY",
