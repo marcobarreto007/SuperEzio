@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,7 @@ from core.trading.workflow_store import (
     WorkflowConflictError,
     WorkflowStoreError,
     build_trade_intent_fingerprint,
+    build_trade_intent_fingerprints,
 )
 
 
@@ -38,6 +40,57 @@ def test_ticket_is_idempotent_across_store_restart(tmp_path: Path) -> None:
     assert created_again is False
     assert second["ticket_id"] == first["ticket_id"] == "ticket-1"
     assert TradeWorkflowStore(db).list_tickets() == [second]
+
+
+def test_fingerprint_pair_closes_window_boundary() -> None:
+    """Duas tentativas da mesma intencao a 2s de distancia devem se reconhecer.
+
+    A janela e truncada contra o relogio de parede, entao 10:04:59 e 10:05:01
+    caem em janelas diferentes — exatamente quando um retry e mais provavel.
+    """
+    intent = {"symbol": "TD", "side": "BUY", "quantity": 10, "limit_price": 110.0}
+    before = datetime(2026, 8, 24, 10, 4, 59, tzinfo=timezone.utc)
+    after = datetime(2026, 8, 24, 10, 5, 1, tzinfo=timezone.utc)
+
+    first_current, _ = build_trade_intent_fingerprints(intent, now=before)
+    second_current, second_previous = build_trade_intent_fingerprints(intent, now=after)
+
+    # A borda continua existindo na chave crua da janela atual...
+    assert first_current != second_current
+    # ...mas o retry reconhece a tentativa anterior pelo alias.
+    assert second_previous == first_current
+
+
+def test_create_ticket_replays_across_window_boundary(tmp_path: Path) -> None:
+    """Retry cruzando a borda da janela nao pode criar um segundo ticket."""
+    db = tmp_path / "workflow.sqlite3"
+    store = TradeWorkflowStore(db)
+    intent = {"symbol": "TD", "side": "BUY", "quantity": 10, "limit_price": 110.0}
+    before = datetime(2026, 8, 24, 10, 4, 59, tzinfo=timezone.utc)
+    after = datetime(2026, 8, 24, 10, 5, 1, tzinfo=timezone.utc)
+
+    first_fingerprint, _ = build_trade_intent_fingerprints(intent, now=before)
+    retry_fingerprint, retry_previous = build_trade_intent_fingerprints(intent, now=after)
+
+    first, created = store.create_ticket(
+        _ticket(ticket_id="ticket-boundary", fingerprint=first_fingerprint)
+    )
+    second, created_again = store.create_ticket(
+        _ticket(ticket_id="ticket-boundary-retry", fingerprint=retry_fingerprint),
+        fingerprint_aliases=[retry_previous],
+    )
+
+    assert created is True
+    assert created_again is False, "retry cruzando a borda deve ser replay, nao ticket novo"
+    assert second["ticket_id"] == first["ticket_id"] == "ticket-boundary"
+    assert len(store.list_tickets()) == 1
+
+
+def test_create_ticket_rejects_malformed_fingerprint_alias(tmp_path: Path) -> None:
+    """Alias fora do formato SHA-256 e recusado, nunca ignorado em silencio."""
+    store = TradeWorkflowStore(tmp_path / "workflow.sqlite3")
+    with pytest.raises(WorkflowStoreError, match="fingerprint aliases"):
+        store.create_ticket(_ticket(), fingerprint_aliases=["not-a-sha256"])
 
 
 def test_ticket_id_collision_fails_closed(tmp_path: Path) -> None:

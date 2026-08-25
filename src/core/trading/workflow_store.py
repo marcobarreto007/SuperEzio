@@ -9,9 +9,9 @@ import os
 import re
 import sqlite3
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from core.paths import resolve_project_path
 
@@ -88,6 +88,32 @@ def build_trade_intent_fingerprint(
         "window_start_utc": window_start,
     }
     return hashlib.sha256(_canonical_json(canonical).encode("utf-8")).hexdigest()
+
+
+def build_trade_intent_fingerprints(
+    intent: Mapping[str, Any],
+    *,
+    now: datetime | None = None,
+    window_seconds: int = 300,
+) -> tuple[str, str]:
+    """Return the current-window fingerprint plus the previous-window one.
+
+    The window is truncated against the wall clock, so two attempts at the same
+    intent seconds apart (10:04:59 and 10:05:01) fall in different windows and
+    would otherwise produce two distinct keys — defeating dedup exactly when a
+    retry is most likely. Recognising the previous window closes that edge
+    without changing what a key means: past two windows it is a new intent.
+    """
+
+    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    return (
+        build_trade_intent_fingerprint(intent, now=current, window_seconds=window_seconds),
+        build_trade_intent_fingerprint(
+            intent,
+            now=current - timedelta(seconds=window_seconds),
+            window_seconds=window_seconds,
+        ),
+    )
 
 
 class TradeWorkflowStore:
@@ -198,8 +224,19 @@ class TradeWorkflowStore:
         )
         return record
 
-    def create_ticket(self, ticket: Mapping[str, Any]) -> tuple[dict[str, Any], bool]:
-        """Persist one immutable ticket intent; return the existing row on retry."""
+    def create_ticket(
+        self,
+        ticket: Mapping[str, Any],
+        *,
+        fingerprint_aliases: Sequence[str] | None = None,
+    ) -> tuple[dict[str, Any], bool]:
+        """Persist one immutable ticket intent; return the existing row on retry.
+
+        ``fingerprint_aliases`` lets a caller declare other fingerprints that
+        denote the same business intent — notably the previous time window. If
+        any of them is already stored, that ticket comes back as a replay
+        instead of a second ticket being created for the same intent.
+        """
 
         ticket_id = str(ticket.get("ticket_id") or "").strip()
         fingerprint = str(ticket.get("fingerprint") or "").strip().lower()
@@ -215,12 +252,27 @@ class TradeWorkflowStore:
                 "new tickets must explicitly declare submitted_to_broker=false"
             )
 
+        candidates = [fingerprint]
+        for alias in fingerprint_aliases or ():
+            normalized = str(alias).strip().lower()
+            if not _HEX_64.fullmatch(normalized):
+                raise WorkflowStoreError(
+                    "fingerprint aliases must be 64-character lowercase SHA-256"
+                )
+            if normalized not in candidates:
+                candidates.append(normalized)
+
         now = _utc_now()
         record_json = _canonical_json(ticket)
         with self._lock, self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
+            # Placeholders are generated from the candidate count, never from
+            # caller data, so this stays a parameterised query.
+            placeholders = ",".join("?" for _ in candidates)
             existing = connection.execute(
-                "SELECT * FROM trade_tickets WHERE fingerprint = ?", (fingerprint,)
+                f"SELECT * FROM trade_tickets WHERE fingerprint IN ({placeholders}) "
+                "ORDER BY created_at LIMIT 1",
+                tuple(candidates),
             ).fetchone()
             if existing is not None:
                 connection.commit()

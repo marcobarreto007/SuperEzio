@@ -55,7 +55,7 @@ from core.trading.canada_money_gate import (
 from core.trading.workflow_store import (
     WorkflowConflictError,
     WorkflowStoreError,
-    build_trade_intent_fingerprint,
+    build_trade_intent_fingerprints,
     get_trade_workflow_store,
 )
 from data.data_hub import hub
@@ -2615,7 +2615,7 @@ async def execute_trade_fast(payload: dict[str, Any], request: Request) -> dict[
     if qty <= 0:
         raise HTTPException(status_code=400, detail="qty must be positive")
 
-    fingerprint = build_trade_intent_fingerprint(
+    fingerprint, previous_window_fingerprint = build_trade_intent_fingerprints(
         {
             "ticker": ticker,
             "action": action,
@@ -2646,13 +2646,20 @@ async def execute_trade_fast(payload: dict[str, Any], request: Request) -> dict[
         ),
     }
     try:
-        stored, created = get_trade_workflow_store().create_ticket(ticket)
+        # The five-minute window is truncated against the wall clock, so a retry
+        # at 10:05:01 of an intent first sent at 10:04:59 would otherwise mint a
+        # second ticket and break this endpoint's own idempotency contract.
+        stored, created = get_trade_workflow_store().create_ticket(
+            ticket, fingerprint_aliases=[previous_window_fingerprint]
+        )
     except (WorkflowStoreError, WorkflowConflictError) as exc:
         raise HTTPException(status_code=503, detail="trade status store is unavailable") from exc
 
     return {
         "ok": False,
-        "order_id": order_id,
+        # On a replay the caller must get the ticket that actually exists, not
+        # the id derived from the current window.
+        "order_id": str(stored.get("ticket_id") or order_id),
         "idempotent_replay": not created,
         **stored,
     }
