@@ -56,6 +56,10 @@ runtime/quarantine/
 runtime/validation/
 runtime/quality_probe/
 runtime/traces/
+# Byproducts do servidor rodando com cwd=src/ (paths relativos ao cwd):
+# dumps de prompt e pain log espelhado — o canônico vive em runtime/ e data/.
+src/runtime/
+src/data/bob_pain_log.jsonl
 
 # Models (massive GGUF / safetensors files)
 /models/*
