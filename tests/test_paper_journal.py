@@ -298,6 +298,49 @@ class TestPaperJournal:
         with pytest.raises(RuntimeError, match="Tests may not write"):
             prod_journal._append({"trade_id": "must-not-exist"})
 
+    def test_corrupt_line_is_quarantined_not_destroyed(self, tmp_path, sample_trade):
+        """Linha corrompida sobrevive ao _rewrite, preservada em arquivo-irmao.
+
+        Antes: _read_all descartava a linha com um warning e o _rewrite
+        seguinte persistia apenas os sobreviventes — apagando a evidencia
+        permanentemente, sem backup e sem trilha.
+        """
+        journal = PaperJournal(tmp_path / "paper.jsonl")
+        journal.open_trade(sample_trade)
+
+        corrupt = '{"trade_id": "corrupt-001", "ticker": "MSFT"'  # JSON truncado
+        with open(journal.path, "a", encoding="utf-8") as f:
+            f.write(corrupt + "\n")
+
+        # close_trade percorre _read_all -> _rewrite, o caminho destrutivo
+        journal.close_trade("test-001", exit_price=200.0)
+
+        quarantine = journal.path.with_name(journal.path.name + ".quarantine")
+        assert quarantine.exists(), "linha corrompida deve ser preservada, nao descartada"
+        assert corrupt in quarantine.read_text(encoding="utf-8")
+        assert journal.count() == 1  # journal segue sem a linha invalida
+
+    def test_rewrite_leaves_journal_intact_when_write_fails(self, tmp_path, sample_trade):
+        """Falha no meio do _rewrite nao pode truncar o journal.
+
+        Antes: open(path, "w") truncava o arquivo ANTES de escrever, entao uma
+        excecao durante a gravacao deixava o journal vazio ou pela metade.
+        """
+        journal = PaperJournal(tmp_path / "paper.jsonl")
+        journal.open_trade(sample_trade)
+        original = journal.path.read_text(encoding="utf-8")
+        assert original.strip(), "pre-condicao: journal precisa ter conteudo"
+
+        # Entrada nao-serializavel na primeira posicao: json.dumps levanta antes
+        # de qualquer escrita valida sair.
+        entries = [{"trade_id": "bad", "payload": object()}] + journal.list_all()
+        with pytest.raises(TypeError):
+            journal._rewrite(entries)
+
+        assert journal.path.read_text(encoding="utf-8") == original, (
+            "journal original deve permanecer intacto apos falha de escrita"
+        )
+
     def test_default_constructor_honors_isolated_env_path(self, monkeypatch, tmp_path):
         isolated = tmp_path / "default-paper-journal.jsonl"
         monkeypatch.setenv("SUPEREZIO_PAPER_JOURNAL_PATH", str(isolated))

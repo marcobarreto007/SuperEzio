@@ -187,19 +187,34 @@ class PaperJournal:
             raise RuntimeError("Journal provenance is required")
         return prepared
 
+    def _quarantine_raw_line(self, raw_line: str) -> None:
+        """Preserva uma linha corrompida antes que um _rewrite a apague.
+
+        Append puro num arquivo-irmao: nunca trunca e nunca levanta para o
+        chamador. A leitura precede o _rewrite em todos os caminhos de escrita,
+        entao a linha e salva antes de poder ser destruida.
+        """
+        try:
+            quarantine_path = self._path.with_name(self._path.name + ".quarantine")
+            with open(quarantine_path, "a", encoding="utf-8") as f:
+                f.write(raw_line.rstrip("\n") + "\n")
+        except OSError:
+            logger.exception("Could not quarantine corrupt journal line")
+
     def _read_all(self) -> list[dict[str, Any]]:
         """Le todas as entradas do journal."""
         if not self._path.exists():
             return []
         entries = []
         with open(self._path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
+            for raw_line in f:
+                line = raw_line.strip()
                 if line:
                     try:
                         entries.append(json.loads(line))
                     except json.JSONDecodeError:
-                        logger.warning("Skipping corrupt journal line")
+                        self._quarantine_raw_line(raw_line)
+                        logger.warning("Quarantined corrupt journal line")
         return entries
 
     def _append(self, entry: dict[str, Any]) -> None:
@@ -223,9 +238,16 @@ class PaperJournal:
                 f"To reset it, delete the file manually with explicit intent."
             )
         self._assert_write_allowed()
-        with open(self._path, "w", encoding="utf-8") as f:
+        # Escrita atomica: grava num temporario no mesmo diretorio e troca com
+        # os.replace. open(path, "w") truncava o journal ANTES de escrever, entao
+        # um crash no meio da gravacao deixava o arquivo vazio ou pela metade.
+        tmp_path = self._path.with_name(self._path.name + ".tmp")
+        with open(tmp_path, "w", encoding="utf-8") as f:
             for entry in entries:
                 f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, self._path)
 
     def open_trade(self, trade: PaperTrade) -> str:
         """Abre um novo trade paper. Retorna o trade_id."""
