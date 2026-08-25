@@ -37,6 +37,38 @@ from ..config.secrets import load_local_env
 
 logger = logging.getLogger(__name__)
 
+# Local llama window is 8192 tokens. Guard thresholds: reject above HARD (the
+# request would die with a raw 400), warn near the limit (generation also needs
+# headroom). Estimates are conservative: ~3.5 chars/token for PT/EN text and
+# 768 tokens per image (llama.cpp mmproj patch heuristic) — over-estimating is
+# the safe direction for a fail-fast guard.
+LOCAL_CONTEXT_HARD_TOKEN_CAP = 8000
+_LOCAL_CONTEXT_IMAGE_TOKENS = 768
+
+
+def local_context_fits(messages: List[Dict[str, str]]) -> tuple[bool, int, str]:
+    """Estimate input tokens and decide whether they fit the local window.
+
+    Returns (fits, estimated_tokens, reason). Pure and deterministic — no I/O.
+    """
+    estimated = 0
+    for message in messages:
+        content = message.get("content", "")
+        if isinstance(content, list):
+            for part in content:
+                if not isinstance(part, dict):
+                    continue
+                part_type = part.get("type")
+                if part_type == "text":
+                    estimated += len(str(part.get("text") or "")) // 3
+                elif part_type == "image_url":
+                    estimated += _LOCAL_CONTEXT_IMAGE_TOKENS
+        else:
+            estimated += len(str(content or "")) // 3
+    if estimated > LOCAL_CONTEXT_HARD_TOKEN_CAP:
+        return False, estimated, "over_hard_cap"
+    return True, estimated, "fits"
+
 
 def _has_image_content(messages: List[Dict[str, Any]] | None) -> bool:
     """True when any message carries an OpenAI image_url part."""
@@ -876,6 +908,22 @@ class ModelGateway:
         provider_obj = self._providers_for_request(
             preferred_provider, allow_fallback=allow_fallback
         )[0]
+
+        # ── Local-context pre-flight guard ──
+        # The local llama window is 8192 tokens. Requests far beyond it were
+        # rejected by llama-server with a raw 400 (demo failure 24/08: two
+        # requests of 34k-37k tokens), surfacing as "runtime error". Fail here
+        # first, with an actionable message, instead of sending garbage.
+        if provider_obj.name in ("agent", "local_orchestrator"):
+            ok, estimated, _reason = local_context_fits(messages)
+            if not ok:
+                raise RuntimeError(
+                    "local_context_exceeded: prompt estimates at ~"
+                    f"{estimated} tokens, the local window is 8192. "
+                    "Shorten the conversation (or attach fewer images) and retry."
+                )
+            if estimated > 6500:
+                logger.warning("local_context_near_limit: %s tokens of 8192", estimated)
 
         # Extrai assistant prefix do último message se role=assistant
         prefix = assistant_prefix

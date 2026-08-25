@@ -3537,7 +3537,14 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         return {
             "agent_tool_call": {
                 "tool": "final_answer",
-                "args": {"content": f"Internal agent error: {exc}"},
+                "args": {
+                    "content": (
+                        "O meu cerebro local ficou sem espaco de contexto para esta conversa. "
+                        "Recomece com uma pergunta mais curta (um ticker especifico ajuda) e sem anexos."
+                        if "local_context_exceeded" in str(exc)
+                        else f"Internal agent error: {exc}"
+                    )
+                },
             },
             "bob_thesis": state.get("bob_thesis", ""),
             "bob_reasoning_trace": state.get("bob_reasoning_trace", []),

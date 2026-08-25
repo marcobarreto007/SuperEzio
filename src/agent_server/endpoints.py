@@ -1954,17 +1954,17 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                 # paths: if nothing reached the user, surface a structured
                 # fallback CHUNK so the frontend has something to render.
                 if final_content_length == 0:
+                    # Honest visitor-facing fallback — no technical dump on
+                    # screen. The structured detail stays in the ERROR event
+                    # above for the operator. Context-overflow is the common
+                    # cause (local llama window is 8192 tokens).
+                    honest_reason = "do meu cerebro sobrecarregado"
+                    if "context" in (provider_error or err_detail).lower():
+                        honest_reason = "de espaco de contexto insuficiente no meu cerebro local"
                     fallback_chunk = (
-                        "Bob hit a runtime error while preparing this answer.\n"
-                        f"- route: {route_used}\n"
-                        f"- detected_intent: {detected_intent}\n"
-                        f"- scanner_invoked: {scanner_invoked}\n"
-                        f"- agent_called: {agent_called}\n"
-                        f"- error: {provider_error or err_detail}\n"
-                        "\n"
-                        "Suggestion: retry with a narrower question (specific "
-                        "ticker or educational framework) so the pipeline can "
-                        "route to a smaller, more reliable path."
+                        f"Desculpa — nao consegui preparar esta resposta agora por causa {honest_reason}.\n"
+                        "Tente de novo em alguns instantes com uma pergunta mais curta "
+                        "(um ticker especifico ajuda muito), ou sem anexos."
                     )
                     final_content_length = len(fallback_chunk)
                     yield (
