@@ -1,9 +1,69 @@
 # F51 Risk Register
 
-Updated: 2026-08-24
-Session: full-regression-fix-20260824 (consolida o reparo das 5 falhas pre-existentes da suíte completa — ver .f51/checkpoints/latest.json)
+Updated: 2026-08-25
+Session: audit-and-harden-f51-20260824 (auditoria do caminho de trade + 15 correções cirúrgicas — ver .f51/checkpoints/latest.json)
 
 ## Active Risks
+
+### INV-R61 - fetchJson propaga detail do 503 [LOW]
+
+- Classification: frontend contract / observability change.
+- Risk: `fetchJson` (frontend/js/api.js) agora propaga o `detail` do body em erros HTTP.
+  Consumidores que comparavam a string exata do erro (ou que esperavam nunca receber
+  503 de /health) podem ver texto novo — ex. "CORE MAN_AT_WORK mode active" no label
+  do cockpit em vez de "CORE OFFLINE".
+- Mitigation: contrato fixado em `tests/test_api_routes_sync.py`
+  (test_frontend_trade_confirmation_requires_explicit_broker_confirmation atualizado);
+  auth.js já tolerava 503 antes; smoke verde com servidor vivo.
+- Status: MITIGATED 2026-08-25.
+
+### INV-R60 - Lock cross-process do journal so cobre Windows [LOW]
+
+- Classification: platform / portability.
+- Risk: `_journal_file_lock` (paper_journal.py) usa msvcrt.locking; em não-Windows o
+  fallback é thread-lock apenas e o lost update cross-process volta a ser possível.
+  O repo é Windows-first (ambiente atual), então exposição real é zero hoje.
+- Mitigation: fallback explícito + teste determinístico com subprocesso
+  (tests/test_paper_journal.py::test_journal_file_lock_blocks_other_processes).
+- Status: ACCEPTED 2026-08-25.
+
+### INV-R59 - stop_loss_price do modelo ignorado [MEDIUM]
+
+- Classification: contract / behavior change no caminho de submissão paper.
+- Risk: `_submit_paper_order` deixou de honrar stop_loss_price dos args (commit
+  be5cd08) — o stop é sempre derivado de `limit_price * (1 - default_stop_pct)`.
+  Payloads existentes que enviam stop customizado têm o risco calculado alterado
+  (testes atualizados: 501→1000 e 5010→5000). Fecha o bypass da aprovação humana
+  de $500 via stop apertado proposto pelo modelo.
+- Mitigation: testes de risco atualizados com comentário do motivo; approval gate
+  intocado.
+- Status: MITIGATED 2026-08-25.
+
+### INV-R58 - Colar de preço LIMIT_PRICE_COLLAR [MEDIUM]
+
+- Classification: trade gate / false-positive de recusa.
+- Risk: GATE 9.5 (commit 3dc38350) recusa limit_price com desvio >5% (referência
+  ≤180s) ou >10% (referência velha/desconhecida) do preço DataHub. Em penny stock
+  com mercado em movimento rápido (scan de até 5 min), ordens legítimas podem ser
+  recusadas — trade-off intencional contra preço alucinado/placeholder.
+- Mitigation: banda condicionada à idade da referência (data_age_s passado por
+  auto_execute_paper); o caminho TD mantém colar próprio de 2% com quote
+  multi-provedor; evidência completa no BLOCK (deviation_pct, band_pct, data_age_s).
+- Status: MITIGATED 2026-08-25.
+
+### INV-R57 - MAN_AT_WORK enforcado no caminho de trade [MEDIUM]
+
+- Classification: trade gate / fail-closed.
+- Risk: GATE 1.5 (commit eb9a9bc) bloqueia toda ordem quando MAN_AT_WORK está ativo
+  ou quando a sonda de consciência está inacessível (MAN_AT_WORK_UNAVAILABLE).
+  Combinado com o hardening b16c66c (entrada só com 3 falhas consecutivas, recovery
+  a cada ciclo), um restart do llama.cpp não congela mais o trading por ~11 min —
+  mas 3 falhas reais do CEO (:8080) param as ordens até a recuperação. Intencional.
+- Mitigation: fail-closed com motivo estruturado; testes de gate (normal/bloqueio/
+  unavailable) em tests/test_f51_trade_gate.py.
+- Status: MITIGATED 2026-08-25.
+
+### INV-R56 - Classificador casual exige saudacao de mensagem inteira [LOW]
 
 ### INV-R56 - Classificador casual exige saudacao de mensagem inteira [LOW]
 
