@@ -521,6 +521,11 @@ def infer_cognitive_contract(
         )
     else:
         allowed_tools = ["bob_search", "rag_forensics", "final_answer"]
+        # Pergunta financeira substantiva sem ticker (alocacao, estrategia):
+        # o comite de experts pode deliberar de verdade — responder de memoria
+        # com EXPERTS=N/A era o 'ele nao pergunta aos experts' cronico das demos.
+        if looks_financially_substantive(raw):
+            allowed_tools.insert(-1, "run_experts")
         cognitive_mode = "ANSWER_ONLY"
         information_need = "general_answer"
         answer_contract = (
@@ -1804,6 +1809,42 @@ def detect_capital_allocation_intent(message: str) -> bool:
 
     matches = sum(1 for p in _CAPITAL_USE_HINTS if re.search(p, normalized, re.IGNORECASE))
     return matches >= 2
+
+
+_SUBSTANTIVE_FINANCIAL_TOKENS = (
+    "aloc",
+    "invest",
+    "reserva",
+    "divid",
+    "etf",
+    "estrategia",
+    "estratégia",
+    "portfolio",
+    "portfólio",
+    "aposent",
+    "renda fixa",
+    "juros",
+    "tesouro",
+    "ação",
+    "acoes",
+    "allocate",
+    "retirement",
+    "savings",
+    "dividend",
+)
+
+
+def looks_financially_substantive(message: str) -> bool:
+    """Conservador: a pergunta fala de alocacao/estrategia/investimento?
+
+    detect_complex_finance_intent erra para perguntas de alocacao (medido:
+    'alocar 25.000 CAD entre reserva, dividas, ETFs' classifica False). Este
+    detector cobre o caso com tokens simples e e usado para liberar a
+    deliberacao do comite de experts na rota sem ticker — nunca para liberar
+    ordem nem acesso a dado de mercado.
+    """
+    lowered = (message or "").lower()
+    return any(token in lowered for token in _SUBSTANTIVE_FINANCIAL_TOKENS)
 
 
 def detect_complex_finance_intent(message: str) -> bool:

@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from src.core.pipeline.nodes.agent import (
-    _forced_tool_call_before_final,
-    _looks_financially_substantive,
-)
+from src.core.pipeline.nodes.agent import _forced_tool_call_before_final
+from src.core.pipeline.intents import looks_financially_substantive
 
 
 def test_allocation_question_is_financially_substantive() -> None:
@@ -13,12 +11,12 @@ def test_allocation_question_is_financially_substantive() -> None:
         "Moro no Canada, tenho CAD 25.000 para alocar entre reserva de "
         "emergencia, dividas, ETFs, equipamento e educacao."
     )
-    assert _looks_financially_substantive(message) is True
+    assert looks_financially_substantive(message) is True
 
 
 def test_smalltalk_is_not_financially_substantive() -> None:
-    assert _looks_financially_substantive("oi bob") is False
-    assert _looks_financially_substantive("como vai?") is False
+    assert looks_financially_substantive("oi bob") is False
+    assert looks_financially_substantive("como vai?") is False
 
 
 def test_gate_forces_run_experts_for_no_ticker_allocation() -> None:
