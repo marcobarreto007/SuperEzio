@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import time
 from dataclasses import dataclass
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -45,7 +48,10 @@ def cancel_open_order(order_id: str, *, host: str, port: int) -> bool:
                 ib.sleep(1)
                 return True
         return False
-    except Exception:
+    except Exception as exc:
+        # Um cancelamento que nao aconteceu precisa deixar rastro: sem log, este
+        # False fica indistinguivel de "ordem nao encontrada" no caminho do dinheiro.
+        logger.warning("cancel_open_order failed for %s: %s", order_id, exc)
         return False
     finally:
         if ib is not None:

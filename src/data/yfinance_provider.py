@@ -6,10 +6,13 @@ No API key. Used after Finnhub and Twelve Data fail or are unavailable.
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from .finnhub_symbols import finnhub_symbol_variants
+
+logger = logging.getLogger(__name__)
 
 
 class _SuppressYFinanceOutput:
@@ -153,8 +156,11 @@ class YFinanceProvider:
                         timestamp = intraday.index[-1]
                         if hasattr(timestamp, "to_pydatetime"):
                             as_of = timestamp.to_pydatetime().astimezone(timezone.utc).isoformat()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    # O preco anterior (possivelmente o fechamento de ontem) segue
+                    # adiante com as_of=None. Sem este log a degradacao era invisivel
+                    # para quem consome o quote a jusante.
+                    logger.warning("yfinance intraday refresh failed for %s: %s", symbol, exc)
 
                 exchange = None
                 currency = None

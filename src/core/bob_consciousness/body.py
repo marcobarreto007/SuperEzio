@@ -685,8 +685,10 @@ Action: NO TRADING ORDERS UNTIL CLEARED
                     )
                     + "\n"
                 )
-        except Exception:
-            pass
+        except Exception as exc:
+            # O pain log e trilha de auditoria do auto-heal. Perder uma escrita
+            # em silencio apaga a evidencia de que o organismo sentiu dor.
+            logger.warning("pain_log_write_failed: %s", exc)
 
     # â”€â”€ Self-Healing â”€â”€
 
