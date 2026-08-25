@@ -140,6 +140,31 @@ def test_health(client_with_mock_pipeline):
     assert "version" in data
 
 
+def test_health_fails_closed_when_consciousness_unverifiable(
+    client_with_mock_pipeline, monkeypatch
+):
+    """3b. GET /health must fail closed when the consciousness probe raises.
+
+    Swallowing the exception reported "ok" while the CEO brain was down and
+    silently disabled the MAN_AT_WORK guard checked in the same block.
+    """
+    import core.bob_consciousness as consciousness
+
+    def _raise_probe_failure():
+        raise RuntimeError("ans registry offline")
+
+    monkeypatch.setattr(consciousness, "get_bobs_body", _raise_probe_failure)
+
+    _, client = client_with_mock_pipeline
+    response = client.get("/health")
+
+    assert response.status_code == 503, "unverifiable consciousness must not report healthy"
+    data = response.json()
+    assert data["status"] == "error"
+    assert "unverifiable" in data["detail"]
+    assert "agent" in data and "version" in data
+
+
 def test_health_details(client_with_mock_pipeline):
     """4. GET /health/details - Deep status checks (GPU, models, redis, cost guard)"""
     _, client = client_with_mock_pipeline

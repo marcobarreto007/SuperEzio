@@ -808,8 +808,22 @@ async def health_check_public(request: Request):
                 ),
                 media_type="application/json",
             )
-    except Exception:
-        pass
+    except Exception as exc:
+        # Fail closed: an unverifiable consciousness state is not a healthy one.
+        # Swallowing this would report "ok" with the CEO brain down and would
+        # silently disable the MAN_AT_WORK guard checked just above.
+        logger.warning("[%s] consciousness probe failed: %s", AGENT_NAME, exc)
+        return Response(
+            status_code=503,
+            content=_json.dumps(
+                {
+                    "status": "error",
+                    "detail": f"Consciousness state unverifiable: {exc}",
+                    **identity,
+                }
+            ),
+            media_type="application/json",
+        )
 
     return {"status": "ok", **identity}
 
