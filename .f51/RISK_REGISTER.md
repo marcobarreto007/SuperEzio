@@ -1,9 +1,43 @@
 # F51 Risk Register
 
 Updated: 2026-08-25
-Session: audit-and-harden-f51-20260824 (auditoria do caminho de trade + 15 correções cirúrgicas — ver .f51/checkpoints/latest.json)
+Session: demo-recovery-20260825 (post-mortem da demo de 24/08 + correção dos estranguladores — ver .f51/checkpoints/latest.json)
 
 ## Active Risks
+
+### INV-R64 - Input de chat sempre ativo durante run [LOW]
+
+- Classification: frontend / concurrency behavior.
+- Risk: `setBobBusy` (frontend/js/init.js) não desabilita mais o input durante um run —
+  travar por minutos ao clicar num ticker parecia tela congelada (demo de 24/08). Runs
+  concorrentes agora dependem do 429 estruturado por sessão do backend.
+- Mitigation: `tests/stress/test_concurrency.py` cobre o rate-limit por sessão;
+  serialização testada em 50 task_submit simultâneos.
+- Status: MITIGATED 2026-08-25.
+
+### INV-R63 - Resposta natural sem ticker via instrução condicional [LOW]
+
+- Classification: prompt / answer quality.
+- Risk: o cabeçalho obrigatório "DADOS DO PIPELINE" foi tornado condicional (instrução
+  final + template de resposta, commits 8cd1103/fc81a19). Sem ticker, resposta natural
+  direta (validado ao vivo no smoke); COM ticker, o cabeçalho continua obrigatório.
+  Mudança de prompt sempre tem risco de regressão de formato.
+- Mitigation: smoke com SUPEREZIO_SMOKE_CHAT=1 valida o fluxo sem ticker; analisar o
+  fluxo com ticker na próxima rodada de teste.
+- Status: MITIGATED 2026-08-25.
+
+### INV-R62 - Janela 16384 no limite de VRAM da 3060 [MEDIUM]
+
+- Classification: infrastructure / capacity.
+- Risk: KV cache q8_0 para 16.384 tokens (~2GB estimado) em GPU com ~1,2GB livres antes
+  da troca. Se o carregamento falhar por VRAM no próximo boot (watchdog/start), o CEO
+  não sobe. Mitigação de fallback: voltar o default para 8192 em
+  `scripts/serve_agent_llamacpp.ps1` e podar prompt no cliente.
+- Mitigation: troca validada ao vivo (CEO carregou e serve em 16.384); monitorar
+  `nvidia-smi` e o log do llama-server no próximo boot.
+- Status: MONITOR 2026-08-25.
+
+### INV-R61 - fetchJson propaga detail do 503 [LOW]
 
 ### INV-R61 - fetchJson propaga detail do 503 [LOW]
 
