@@ -20,6 +20,32 @@ from .body import get_bobs_body
 
 logger = get_logger(__name__)
 
+# Consecutive failed CEO probes (60s cycle) before MAN_AT_WORK engages. The
+# ceo_brain Organ (body.py) already counts consecutive failures and resets the
+# counter on any success — a single 5s timeout (e.g. llama.cpp restarting on
+# the local profile) must not freeze trading.
+MAN_AT_WORK_FAILURE_THRESHOLD = 3
+
+
+def _should_enter_man_at_work(
+    report: dict[str, Any], consecutive_failures: int | None = None
+) -> tuple[bool, int]:
+    """Decide whether CEO downtime should engage MAN_AT_WORK mode.
+
+    Mirrors the circuit-breaker pattern from body.py's Organ: only N
+    *consecutive* failed probes engage the mode, and a success resets the
+    counter. Returns (engage_now, effective_failure_count).
+    """
+    ceo_status = report.get("organs", {}).get("ceo_brain", {})
+    if ceo_status.get("healthy", True):
+        return False, 0
+    failures = (
+        ceo_status.get("consecutive_failures", 0)
+        if consecutive_failures is None
+        else consecutive_failures
+    )
+    return failures >= MAN_AT_WORK_FAILURE_THRESHOLD, failures
+
 
 class AutonomicNervousSystem:
     """Bob's background health monitor — runs forever."""
@@ -68,27 +94,28 @@ class AutonomicNervousSystem:
                 # Quick scan every cycle (circuit breakers handled inside Organ.check())
                 report = self._body.full_body_scan()
 
-                # Check if CEO (brain) is down → enter MAN_AT_WORK mode
+                # Check if CEO (brain) is down → enter MAN_AT_WORK mode.
+                # Hardened: only N *consecutive* failed probes engage the mode
+                # (counter maintained by the ceo_brain Organ in body.py).
                 ceo_status = report["organs"].get("ceo_brain", {})
-                if not ceo_status.get("healthy", True):
-                    if not self._body.is_man_at_work():
-                        # CEO is dead and we're not in MAN_AT_WORK yet - enter it
-                        reason = f"CEO Brain down: {ceo_status.get('error', 'unknown')}"
-                        self._body.enter_man_at_work_mode(reason)
-                        logger.critical("man_at_work: NO TRADING ORDERS until CEO recovers")
+                engage, _ = _should_enter_man_at_work(report)
+                if engage and not self._body.is_man_at_work():
+                    # CEO is dead and we're not in MAN_AT_WORK yet - enter it
+                    reason = f"CEO Brain down: {ceo_status.get('error', 'unknown')}"
+                    self._body.enter_man_at_work_mode(reason)
+                    logger.critical("man_at_work: NO TRADING ORDERS until CEO recovers")
 
                 # If in MAN_AT_WORK mode, run diagnostic loop only
                 if self._body.is_man_at_work():
-                    # Slow diagnostic scan - check if we can recover
-                    if self._cycles % 5 == 0:  # Every 5 cycles
-                        logger.info(
-                            "man_at_work: diagnostic scan %d - checking for recovery", self._cycles
-                        )
+                    # Diagnostic scan every cycle - check if we can recover
+                    logger.info(
+                        "man_at_work: diagnostic scan %d - checking for recovery", self._cycles
+                    )
 
-                        # Check if CEO recovered
-                        if ceo_status.get("healthy", False):
-                            logger.info("man_at_work: CEO recovered - exiting MAN_AT_WORK mode")
-                            self._body.exit_man_at_work_mode()
+                    # Check if CEO recovered
+                    if ceo_status.get("healthy", False):
+                        logger.info("man_at_work: CEO recovered - exiting MAN_AT_WORK mode")
+                        self._body.exit_man_at_work_mode()
 
                     time.sleep(120)  # 2 min intervals in MAN_AT_WORK mode
                     continue
