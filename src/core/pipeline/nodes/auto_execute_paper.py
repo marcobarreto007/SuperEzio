@@ -18,9 +18,9 @@ from langgraph.config import get_stream_writer
 
 from core.config.logging_config import get_logger, bind_trace
 from core.idempotency import (
-    make_idempotency_key,
+    make_idempotency_keys,
+    claim_idempotency_keys,
     is_duplicate,
-    mark_processed,
     enqueue_dead_letter,
 )
 from core.trading.execution_policy import (
@@ -149,13 +149,17 @@ async def auto_execute_paper(state: dict) -> dict:
     # ═══════════════════════════════════════════════════════════
     # IDEMPOTENCY CHECK — Persistent dedup across restarts
     # ═══════════════════════════════════════════════════════════
-    idem_key = make_idempotency_key(
+    idem_keys = make_idempotency_keys(
         ticker=ticker,
         qty=qty,
         limit_price=limit_price,
         window_minutes=_IDEMPOTENCY_WINDOW_MINUTES,
     )
-    if is_duplicate(idem_key):
+    # idem_keys[0] is the current window and stays the key we log and report;
+    # idem_keys[1] is the previous window, which closes the boundary hole where
+    # a retry seconds later would otherwise mint a brand-new key.
+    idem_key = idem_keys[0]
+    if any(is_duplicate(key) for key in idem_keys):
         logger.warning(
             "auto_execute_duplicate_blocked",
             ticker=ticker,
@@ -214,7 +218,9 @@ async def auto_execute_paper(state: dict) -> dict:
             )
             record_blocked_order(gate_decision, message=message, ticker=ticker, run_id=run_id)
             # Record idempotency key even for blocked orders (prevents retry spam)
-            mark_processed(idem_key, {"status": "blocked", "reason": gate_decision.reason_code})
+            claim_idempotency_keys(
+                idem_keys, {"status": "blocked", "reason": gate_decision.reason_code}
+            )
             return {
                 "paper_exec_blocked": gate_decision.reason_code,
                 "paper_exec_block_reason": gate_decision.reason,
@@ -231,12 +237,13 @@ async def auto_execute_paper(state: dict) -> dict:
     # ATOMIC IDEMPOTENCY CLAIM — the ALLOW path was only protected by the
     # is_duplicate() pre-check above, which is a plain existence test (TOCTOU:
     # two concurrent requests for the same ticker/qty/price/window can both
-    # pass it before either writes the marker). mark_processed() now claims
-    # the key with an exclusive file create; only the first caller to reach
-    # here for this key proceeds to submit. A lost race is treated as a
-    # duplicate, not silently re-submitted.
+    # pass it before either writes the marker). claim_idempotency_keys() now
+    # claims EVERY key of this intent with an exclusive file create; only the
+    # first caller to reach here proceeds to submit, and a lost race on any one
+    # key counts as duplicate. Claiming just the current window would still let
+    # two attempts either side of a window boundary each win their own key.
     # ═══════════════════════════════════════════════════════════
-    if not mark_processed(idem_key, {"status": "allowed"}):
+    if not claim_idempotency_keys(idem_keys, {"status": "allowed"}):
         logger.warning(
             "auto_execute_duplicate_blocked_race",
             ticker=ticker,

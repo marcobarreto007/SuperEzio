@@ -794,9 +794,9 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             try:
                 from core.pipeline.f51_trade_gate import evaluate_trade_gate, record_blocked_order
                 from core.idempotency import (
-                    make_idempotency_key,
+                    make_idempotency_keys,
+                    claim_idempotency_keys,
                     is_duplicate,
-                    mark_processed,
                 )
 
                 ticker_raw = args.get("ticker", "").upper()
@@ -808,9 +808,12 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                 thesis_ticker = str(state.get("ticker", "") or "").upper()
                 run_id = state.get("run_id", "")
 
-                # Idempotency check
-                idem_key = make_idempotency_key(ticker_raw, qty_raw, price_raw)
-                if is_duplicate(idem_key):
+                # Idempotency check across the current AND previous window: the
+                # window is truncated against the wall clock, so a retry seconds
+                # later can otherwise mint a brand-new key and submit twice.
+                idem_keys = make_idempotency_keys(ticker_raw, qty_raw, price_raw)
+                idem_key = idem_keys[0]
+                if any(is_duplicate(key) for key in idem_keys):
                     logger.warning(
                         "tool_executor_duplicate_blocked",
                         ticker=ticker_raw,
@@ -847,8 +850,8 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                     record_blocked_order(
                         gate_decision, message=msg, ticker=ticker_raw, run_id=run_id
                     )
-                    mark_processed(
-                        idem_key, {"status": "blocked", "reason": gate_decision.reason_code}
+                    claim_idempotency_keys(
+                        idem_keys, {"status": "blocked", "reason": gate_decision.reason_code}
                     )
                     logger.info(
                         "tool_executor_gate_blocked",
@@ -867,10 +870,12 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                 # ALLOW path: atomic idempotency claim
                 # The is_duplicate() pre-check above is a plain existence test with TOCTOU:
                 # two concurrent requests for the same key can both pass it before either
-                # writes the marker. mark_processed() now claims the key with exclusive
-                # file create (O_CREAT|O_EXCL); only the first caller wins, the loser is
-                # treated as duplicate and not silently re-submitted.
-                if not mark_processed(idem_key, {"status": "allowed"}):
+                # writes the marker. claim_idempotency_keys() now claims EVERY key of
+                # this intent with exclusive file create (O_CREAT|O_EXCL); only the first
+                # caller wins, and a lost race on any one key counts as duplicate rather
+                # than a silent re-submission. Claiming just the current window would
+                # still let two attempts either side of a boundary each win their own.
+                if not claim_idempotency_keys(idem_keys, {"status": "allowed"}):
                     logger.warning(
                         "tool_executor_duplicate_blocked_race",
                         ticker=ticker_raw,

@@ -16,7 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +34,8 @@ def make_idempotency_key(
     qty: int,
     limit_price: float,
     window_minutes: int = 5,
+    *,
+    now: datetime | None = None,
 ) -> str:
     """Generate a deterministic idempotency key for a trade order.
 
@@ -42,14 +44,60 @@ def make_idempotency_key(
 
     The 5-minute window means if you genuinely want to submit the same
     order again after 5 minutes, it gets a NEW key (it's a new intent).
+
+    NOTE: the window is truncated against the wall clock, so this key alone
+    has a boundary hole — 10:04:59 and 10:05:01 land in different windows.
+    Callers guarding real submissions must use `make_idempotency_keys` and
+    `claim_idempotency_keys`, which cover the previous window too.
     """
     # Truncate timestamp to window boundary
-    now = datetime.now(timezone.utc)
-    window_epoch = int(now.timestamp() / (window_minutes * 60)) * (window_minutes * 60)
+    current = now or datetime.now(timezone.utc)
+    window_epoch = int(current.timestamp() / (window_minutes * 60)) * (window_minutes * 60)
 
     payload = f"{ticker.upper()}|{int(qty)}|{limit_price:.2f}|{window_epoch}"
     key = hashlib.sha256(payload.encode()).hexdigest()[:16]
     return f"idem-{key}"
+
+
+def make_idempotency_keys(
+    ticker: str,
+    qty: int,
+    limit_price: float,
+    window_minutes: int = 5,
+    *,
+    now: datetime | None = None,
+) -> tuple[str, str]:
+    """Return the current-window key plus the previous-window one.
+
+    A retry seconds after the first attempt can straddle a window boundary and
+    would otherwise get a brand-new key — defeating dedup exactly when a retry
+    is most likely. Checking both windows closes that edge without changing
+    what a key means: past two windows it is genuinely a new intent.
+    """
+    current = now or datetime.now(timezone.utc)
+    return (
+        make_idempotency_key(ticker, qty, limit_price, window_minutes, now=current),
+        make_idempotency_key(
+            ticker,
+            qty,
+            limit_price,
+            window_minutes,
+            now=current - timedelta(minutes=window_minutes),
+        ),
+    )
+
+
+def claim_idempotency_keys(
+    keys: tuple[str, ...] | list[str],
+    metadata: dict[str, Any] | None = None,
+) -> bool:
+    """Claim every key that denotes one intent; a lost claim means duplicate.
+
+    Claiming only the current window would leave the boundary race open: two
+    concurrent attempts landing either side of it would each win their own key
+    and both submit. Requiring all keys means exactly one caller proceeds.
+    """
+    return all(mark_processed(key, metadata) for key in keys)
 
 
 # ═══════════════════════════════════════════════════════════════
