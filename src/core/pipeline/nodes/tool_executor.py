@@ -461,9 +461,11 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
     sizing_config = adaptive_sizing_config(state)
     if sizing_config["max_position_pct"] <= 0:
         return {"submit_paper_order_error": "adaptive_config:max_position_zero"}
-    stop_loss_price = float(
-        args.get("stop_loss_price") or limit_price * (1 - sizing_config["default_stop_pct"])
-    )
+    # Stop is ALWAYS derived from entry price and the adaptive default.
+    # A model-proposed stop_loss_price in args is intentionally ignored:
+    # honoring it let the model shrink the calculated risk and slip under
+    # the approval_gate auto-approval threshold (risk <= $500) without a human.
+    stop_loss_price = float(limit_price * (1 - sizing_config["default_stop_pct"]))
 
     # ── Approval gate FIRST (before position sizing) ──
     # The gate must evaluate the REQUESTED risk, not the capped risk,

@@ -490,6 +490,12 @@ async def test_submit_paper_order_pending_when_risk_exceeds_approval(monkeypatch
     reset_kill_switch_for_test()
     reset_approval_gate_for_test()
 
+    # NOTE: the stop_loss_price in args (94.99) is INTENTIONALLY IGNORED by
+    # _submit_paper_order — honoring a model-proposed stop let the model shrink
+    # the calculated risk and slip under the $500 auto-approval threshold.
+    # Risk is always derived from entry price and the default stop (5% -> 95.0).
+    # qty=100 would land exactly on the $500 auto-approve boundary and fall
+    # through to broker submission, so qty=200 keeps the pending path covered.
     result = await tool_executor_module._submit_paper_order(
         {
             "run_id": "approval-pending-test",
@@ -499,7 +505,7 @@ async def test_submit_paper_order_pending_when_risk_exceeds_approval(monkeypatch
         {
             "ticker": "PLUG",
             "action": "buy",
-            "qty": 100,
+            "qty": 200,
             "order_type": "LMT",
             "limit_price": 100.0,
             "stop_loss_price": 94.99,
@@ -508,7 +514,8 @@ async def test_submit_paper_order_pending_when_risk_exceeds_approval(monkeypatch
 
     assert result["submit_paper_order_error"].startswith("approval_pending:apr-")
     assert result["paper_approval_request"]["status"] == "pending"
-    assert result["paper_approval_request"]["risk_amount"] == pytest.approx(501.0)
+    # risk = (100 - 95.0 derived stop) * 200 = 1000, NOT (100 - 94.99) * 200
+    assert result["paper_approval_request"]["risk_amount"] == pytest.approx(1000.0)
 
 
 @pytest.mark.asyncio
@@ -542,8 +549,11 @@ async def test_submit_paper_order_caps_qty_before_approval(monkeypatch):
     assert result["position_sizing"]["requested_qty"] == 1000
     assert result["position_sizing"]["approved_qty"] == 100
     assert result["position_sizing"]["capped"] is True
-    # risk_amount now calculated on REQUESTED qty (1000), not capped qty (100)
-    assert result["paper_approval_request"]["risk_amount"] == pytest.approx(5010.0)
+    # risk_amount now calculated on REQUESTED qty (1000), not capped qty (100).
+    # The args stop_loss_price (94.99) is intentionally ignored — stop is always
+    # derived from entry price and the default stop (5% -> 95.0), so risk is
+    # (100 - 95.0) * 1000 = 5000, NOT (100 - 94.99) * 1000 = 5010.
+    assert result["paper_approval_request"]["risk_amount"] == pytest.approx(5000.0)
 
 
 @pytest.mark.asyncio
