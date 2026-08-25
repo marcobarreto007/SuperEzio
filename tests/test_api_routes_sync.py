@@ -1638,7 +1638,13 @@ def test_frontend_bob_submit_blocks_parallel_requests():
 
 
 def test_frontend_trade_confirmation_requires_explicit_broker_confirmation():
-    """HTTP 200 with ok=false must never be rendered as a submitted broker order."""
+    """HTTP 200 with ok=false must never be rendered as a submitted broker order.
+
+    The endpoint always returns ok:false + submitted_to_broker:false (ticket
+    pending validation), so the submit handler may never claim a broker
+    confirmation at all — the old dead branch that could, was removed, and the
+    replay contract (idempotent_replay) must be recognized explicitly.
+    """
     from pathlib import Path
 
     cockpit_js = Path("frontend/js/cockpit.js").read_text(encoding="utf-8")
@@ -1646,8 +1652,9 @@ def test_frontend_trade_confirmation_requires_explicit_broker_confirmation():
     end = cockpit_js.index("function handleTradeCancelClick", start)
     trade_submit = cockpit_js[start:end]
 
-    assert "r.ok && data && data.ok === true && data.submitted_to_broker === true" in trade_submit
+    assert "data.idempotent_replay === true" in trade_submit
     assert "Not submitted to broker" in trade_submit
+    assert "Broker confirmed" not in trade_submit
     assert "if (r.ok) {" not in trade_submit
     assert "Paper order submitted" not in trade_submit
 

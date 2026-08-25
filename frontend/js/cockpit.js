@@ -1036,7 +1036,7 @@
         refreshMangala();
       } else if (r.ok && data && data.order_id) {
         var pendingStatus = data.status || data.phase || 'pending validation';
-        showTradeConfirm(cardId, 'Ticket ' + data.order_id + ' — not submitted to broker (' + String(pendingStatus).replace(/_/g, ' ') + ')');
+        showTradeConfirm(cardId, 'Ticket ' + data.order_id + ' — Not submitted to broker (' + String(pendingStatus).replace(/_/g, ' ') + ')');
       } else {
         var errMsg = data.detail || data.error || data.reason || 'Unknown error';
         showTradeConfirm(cardId, 'Error: ' + (typeof errMsg === 'string' ? errMsg.substring(0, 120) : 'unknown'));
