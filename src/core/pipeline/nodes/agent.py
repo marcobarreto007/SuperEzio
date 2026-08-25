@@ -2503,16 +2503,31 @@ def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
     when the user is asking for a scan, ticker analysis, or paper trade.
     """
 
-    if not _has_actionable_market_request(state):
-        return None
-    if state.get("submit_paper_order_result") or state.get("submit_paper_order_error"):
-        return None
-
     allowed_tools = set(state.get("allowed_tools") or [])
     executed_tools = set(state.get("executed_tools") or [])
     ticker = _normalize_ticker_symbol(
         state.get("ticker") or (state.get("data") or {}).get("ticker")
     )
+    # Pergunta financeira substantiva SEM ticker (alocacao, estrategia, carreira
+    # financeira): sem dados de mercado nao ha o que coletar, mas o comite de
+    # experts pode e DEVE deliberar — responder de memoria com EXPERTS=N/A era
+    # o 'ele nao pergunta aos experts' cronico das demos.
+    no_ticker_financial = (
+        not ticker
+        and not _has_market_evidence(state)
+        and bool(detect_complex_finance_intent(state.get("message", "")))
+        and "run_experts" in allowed_tools
+        and "run_experts" not in executed_tools
+        and not _has_expert_evidence(state)
+    )
+
+    if not _has_actionable_market_request(state) and not no_ticker_financial:
+        return None
+    if state.get("submit_paper_order_result") or state.get("submit_paper_order_error"):
+        return None
+
+    if no_ticker_financial:
+        return {"tool": "run_experts", "args": {"question": state.get("message", "")}}
 
     if not ticker and isinstance(state.get("scan"), dict):
         scan = state["scan"]
