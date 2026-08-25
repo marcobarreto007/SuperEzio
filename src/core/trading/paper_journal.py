@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import threading
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -152,6 +153,15 @@ class PaperJournal:
         self._storage_environment = (
             "operator" if self._path.resolve() == _PRODUCTION_JOURNAL else "isolated"
         )
+        # Reentrant so the read-modify-write methods can hold the lock across
+        # their own calls to _read_all/_rewrite (same pattern as
+        # TradeWorkflowStore._lock).
+        #
+        # SCOPE: this closes the intra-process race only. Writers also live in
+        # separate processes (agent_server and the Mangala scan both reach this
+        # journal), and a cross-process lost update remains possible. Closing
+        # that needs an OS file lock and is tracked separately.
+        self._lock = threading.RLock()
 
     @property
     def path(self) -> Path:
@@ -206,7 +216,7 @@ class PaperJournal:
         if not self._path.exists():
             return []
         entries = []
-        with open(self._path, "r", encoding="utf-8") as f:
+        with self._lock, open(self._path, "r", encoding="utf-8") as f:
             for raw_line in f:
                 line = raw_line.strip()
                 if line:
@@ -221,7 +231,7 @@ class PaperJournal:
         """Adiciona uma entrada ao journal."""
         self._assert_write_allowed()
         prepared = self._prepare_new_entry(entry)
-        with open(self._path, "a", encoding="utf-8") as f:
+        with self._lock, open(self._path, "a", encoding="utf-8") as f:
             f.write(json.dumps(prepared, ensure_ascii=False) + "\n")
 
     def _rewrite(self, entries: list[dict[str, Any]]) -> None:
@@ -242,12 +252,13 @@ class PaperJournal:
         # os.replace. open(path, "w") truncava o journal ANTES de escrever, entao
         # um crash no meio da gravacao deixava o arquivo vazio ou pela metade.
         tmp_path = self._path.with_name(self._path.name + ".tmp")
-        with open(tmp_path, "w", encoding="utf-8") as f:
-            for entry in entries:
-                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(tmp_path, self._path)
+        with self._lock:
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                for entry in entries:
+                    f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_path, self._path)
 
     def open_trade(self, trade: PaperTrade) -> str:
         """Abre um novo trade paper. Retorna o trade_id."""
@@ -391,34 +402,40 @@ class PaperJournal:
         exit_reason: str = "manual",
         exit_date: str | None = None,
     ) -> PaperTrade | None:
-        """Fecha um trade existente e registra o resultado."""
-        entries = self._read_all()
-        for i, entry in enumerate(entries):
-            if entry.get("trade_id") == trade_id:
-                paper_fields = set(PaperTrade.__dataclass_fields__)
-                trade = PaperTrade(
-                    **{
-                        k: v
-                        for k, v in entry.items()
-                        if k in paper_fields and k not in ("created_at", "updated_at")
-                    }
-                )
-                trade.created_at = entry.get("created_at", "")
-                trade.updated_at = entry.get("updated_at", "")
-                trade.close_trade(
-                    exit_price=exit_price, exit_date=exit_date, exit_reason=exit_reason
-                )
-                updated = entry.copy()
-                updated.update(trade.to_dict())
-                entries[i] = updated
-                self._rewrite(entries)
-                logger.info(
-                    "Paper trade closed: %s outcome=%s pnl=%.2f",
-                    trade_id,
-                    trade.outcome,
-                    trade.pnl_amount or 0,
-                )
-                return trade
+        """Fecha um trade existente e registra o resultado.
+
+        O lock cobre leitura E escrita: sem ele, dois fechamentos concorrentes
+        leem a mesma lista, cada um aplica a sua mudanca e o segundo _rewrite
+        sobrescreve o primeiro — um fechamento perdido em silencio.
+        """
+        with self._lock:
+            entries = self._read_all()
+            for i, entry in enumerate(entries):
+                if entry.get("trade_id") == trade_id:
+                    paper_fields = set(PaperTrade.__dataclass_fields__)
+                    trade = PaperTrade(
+                        **{
+                            k: v
+                            for k, v in entry.items()
+                            if k in paper_fields and k not in ("created_at", "updated_at")
+                        }
+                    )
+                    trade.created_at = entry.get("created_at", "")
+                    trade.updated_at = entry.get("updated_at", "")
+                    trade.close_trade(
+                        exit_price=exit_price, exit_date=exit_date, exit_reason=exit_reason
+                    )
+                    updated = entry.copy()
+                    updated.update(trade.to_dict())
+                    entries[i] = updated
+                    self._rewrite(entries)
+                    logger.info(
+                        "Paper trade closed: %s outcome=%s pnl=%.2f",
+                        trade_id,
+                        trade.outcome,
+                        trade.pnl_amount or 0,
+                    )
+                    return trade
         logger.warning("Trade not found: %s", trade_id)
         return None
 
@@ -430,34 +447,38 @@ class PaperJournal:
         what_went_wrong: str = "",
         lesson_learned: str = "",
     ) -> PaperTrade | None:
-        """Adiciona reflexao post-mortem a um trade fechado."""
-        entries = self._read_all()
-        for i, entry in enumerate(entries):
-            if entry.get("trade_id") == trade_id:
-                paper_fields = set(PaperTrade.__dataclass_fields__)
-                trade = PaperTrade(
-                    **{
-                        k: v
-                        for k, v in entry.items()
-                        if k in paper_fields and k not in ("created_at", "updated_at")
-                    }
-                )
-                trade.created_at = entry.get("created_at", "")
-                trade.updated_at = entry.get("updated_at", "")
-                trade.add_reflection(
-                    thesis_correct=thesis_correct,
-                    what_went_right=what_went_right,
-                    what_went_wrong=what_went_wrong,
-                    lesson_learned=lesson_learned,
-                )
-                updated = entry.copy()
-                updated.update(trade.to_dict())
-                entries[i] = updated
-                self._rewrite(entries)
-                logger.info(
-                    "Reflection added to trade: %s thesis_correct=%s", trade_id, thesis_correct
-                )
-                return trade
+        """Adiciona reflexao post-mortem a um trade fechado.
+
+        Mesmo motivo do close_trade: o lock precisa cobrir leitura e escrita.
+        """
+        with self._lock:
+            entries = self._read_all()
+            for i, entry in enumerate(entries):
+                if entry.get("trade_id") == trade_id:
+                    paper_fields = set(PaperTrade.__dataclass_fields__)
+                    trade = PaperTrade(
+                        **{
+                            k: v
+                            for k, v in entry.items()
+                            if k in paper_fields and k not in ("created_at", "updated_at")
+                        }
+                    )
+                    trade.created_at = entry.get("created_at", "")
+                    trade.updated_at = entry.get("updated_at", "")
+                    trade.add_reflection(
+                        thesis_correct=thesis_correct,
+                        what_went_right=what_went_right,
+                        what_went_wrong=what_went_wrong,
+                        lesson_learned=lesson_learned,
+                    )
+                    updated = entry.copy()
+                    updated.update(trade.to_dict())
+                    entries[i] = updated
+                    self._rewrite(entries)
+                    logger.info(
+                        "Reflection added to trade: %s thesis_correct=%s", trade_id, thesis_correct
+                    )
+                    return trade
         logger.warning("Trade not found for reflection: %s", trade_id)
         return None
 

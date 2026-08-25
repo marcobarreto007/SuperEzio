@@ -298,6 +298,45 @@ class TestPaperJournal:
         with pytest.raises(RuntimeError, match="Tests may not write"):
             prod_journal._append({"trade_id": "must-not-exist"})
 
+    def test_close_trade_holds_the_lock_across_read_and_write(self, tmp_path, sample_trade):
+        """close_trade precisa reter o lock durante leitura E escrita.
+
+        Sem isso, dois fechamentos concorrentes leem a mesma lista, cada um
+        aplica a sua mudanca e o segundo _rewrite sobrescreve o primeiro — um
+        fechamento perdido em silencio. Verificado de forma deterministica: de
+        outra thread, um acquire nao-bloqueante falha enquanto o lock e retido.
+        """
+        import threading
+
+        journal = PaperJournal(tmp_path / "paper.jsonl")
+        journal.open_trade(sample_trade)
+
+        acquired_from_other_thread: list[bool] = []
+        original_rewrite = journal._rewrite
+
+        def _spy(entries):
+            result: list[bool] = []
+
+            def _probe():
+                if journal._lock.acquire(blocking=False):
+                    result.append(True)
+                    journal._lock.release()
+                else:
+                    result.append(False)
+
+            prober = threading.Thread(target=_probe)
+            prober.start()
+            prober.join()
+            acquired_from_other_thread.extend(result)
+            return original_rewrite(entries)
+
+        journal._rewrite = _spy
+        journal.close_trade("test-001", exit_price=200.0)
+
+        assert acquired_from_other_thread == [False], (
+            "o lock deve estar retido durante o _rewrite de close_trade"
+        )
+
     def test_corrupt_line_is_quarantined_not_destroyed(self, tmp_path, sample_trade):
         """Linha corrompida sobrevive ao _rewrite, preservada em arquivo-irmao.
 
