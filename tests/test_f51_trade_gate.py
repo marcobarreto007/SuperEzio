@@ -158,6 +158,50 @@ class TestManAtWorkGate:
         assert result.reason_code == "MAN_AT_WORK_UNAVAILABLE"
 
 
+class TestLimitPriceCollar:
+    """GATE 9.5: limit_price do modelo preso a referencia do DataHub."""
+
+    def _patch_reference(self, monkeypatch, price):
+        import core.pipeline.f51_trade_gate as gate_module
+
+        monkeypatch.setattr(
+            gate_module,
+            "resolve_and_validate_ticker",
+            lambda symbol: (symbol, price, None),
+        )
+
+    def test_deviation_beyond_band_blocks(self, monkeypatch):
+        monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "false")
+        self._patch_reference(monkeypatch, 100.0)
+        result = evaluate_trade_gate(
+            message="comprar 10 AAPL", ticker="AAPL", qty=10, limit_price=150.0, data_age_s=10
+        )
+        assert result.status == "BLOCK"
+        assert result.reason_code == "LIMIT_PRICE_COLLAR"
+        assert result.evidence["deviation_pct"] == 50.0
+
+    def test_fresh_reference_tightens_band(self, monkeypatch):
+        monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "false")
+        self._patch_reference(monkeypatch, 100.0)
+        # 7% de desvio: dentro da banda de referencia velha (10%), fora da fresca (5%)
+        fresh = evaluate_trade_gate(
+            message="comprar 10 AAPL", ticker="AAPL", qty=10, limit_price=107.0, data_age_s=10
+        )
+        stale = evaluate_trade_gate(
+            message="comprar 10 AAPL", ticker="AAPL", qty=10, limit_price=107.0, data_age_s=600
+        )
+        assert fresh.reason_code == "LIMIT_PRICE_COLLAR"
+        assert stale.reason_code != "LIMIT_PRICE_COLLAR"
+
+    def test_within_band_does_not_collar(self, monkeypatch):
+        monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "false")
+        self._patch_reference(monkeypatch, 100.0)
+        result = evaluate_trade_gate(
+            message="comprar 10 AAPL", ticker="AAPL", qty=10, limit_price=103.0, data_age_s=10
+        )
+        assert result.reason_code != "LIMIT_PRICE_COLLAR"
+
+
 class TestNonTradeIntent:
     def test_explain_sentiment_not_trade(self):
         assert is_explicit_trade_intent("me explica o que e sentimento vivo") is False

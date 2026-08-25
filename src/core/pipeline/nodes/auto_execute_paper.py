@@ -195,6 +195,9 @@ async def auto_execute_paper(state: dict) -> dict:
             qty=qty,
             limit_price=limit_price,
             run_id=run_id,
+            # Idade da referencia de preco do scan (SCAN_CACHE_TTL de 5 min):
+            # alimenta a banda do colar LIMIT_PRICE_COLLAR.
+            data_age_s=data_age_s,
         )
 
         if gate_decision.status != "ALLOW":

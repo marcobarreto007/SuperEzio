@@ -457,6 +457,7 @@ def evaluate_trade_gate(
     qty: int = 0,
     limit_price: float = 0.0,
     run_id: str = "",
+    data_age_s: float = 0.0,
 ) -> TradeGateDecision:
     decision = TradeGateDecision()
     gates_checked: list[tuple[str, bool, str]] = []
@@ -596,6 +597,41 @@ def evaluate_trade_gate(
             evidence={"ticker": ticker, "error": validation_error},
         )
     gates_checked.append(("ticker_validation", True, f"ok:{validated_ticker}"))
+
+    # GATE 9.5: LIMIT PRICE COLLAR
+    # limit_price pode vir do texto do modelo (tool submit_paper_order). A
+    # referencia resolve do DataHub e pode estar ate ~5 min velha no caminho
+    # paper (SCAN_CACHE_TTL_SECONDS=300), e o universo Mangala e penny stock -
+    # uma banda fixa apertada recusaria movimento legitimo (o proprio flip plan
+    # assume stop de 3%). Banda condicionada a idade da referencia: <=180s -> 5%,
+    # mais velha ou desconhecida -> 10%. Teto implicito: desvios alem da banda
+    # sao placeholder ou alucinacao. O caminho TD tem colar proprio de 2% com
+    # quote multi-provedor <=120s (td_direct_ticket.py) e nao passa por aqui.
+    if resolved_price and resolved_price > 0 and limit_price > 0:
+        deviation_pct = abs(limit_price - resolved_price) / resolved_price * 100.0
+        band_pct = 5.0 if data_age_s <= 180.0 else 10.0
+        if deviation_pct > band_pct:
+            gates_checked.append(("limit_price_collar", False, f"deviation_{deviation_pct:.1f}pct"))
+            return _build(
+                decision,
+                "BLOCK",
+                "LIMIT_PRICE_COLLAR",
+                (
+                    f"limit_price {limit_price} deviates {deviation_pct:.1f}% from the "
+                    f"DataHub reference {resolved_price} (band {band_pct}%)."
+                ),
+                gates_checked,
+                evidence={
+                    "limit_price": limit_price,
+                    "resolved_price": resolved_price,
+                    "deviation_pct": round(deviation_pct, 2),
+                    "data_age_s": data_age_s,
+                    "band_pct": band_pct,
+                },
+            )
+        gates_checked.append(("limit_price_collar", True, f"deviation_{deviation_pct:.1f}pct"))
+    else:
+        gates_checked.append(("limit_price_collar", True, "skipped_no_reference"))
 
     # GATE 9: IBKR Health
     ibkr_online = is_ibkr_connectable()
