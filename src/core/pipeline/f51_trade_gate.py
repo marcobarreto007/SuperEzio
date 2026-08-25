@@ -432,6 +432,24 @@ def build_order_gate_metadata(
 # ═══════════════════════════════════════════════════════════════
 
 
+def _man_at_work_violation() -> tuple[bool, str]:
+    """Return (blocked, reason_code) for the MAN_AT_WORK gate.
+
+    Fail closed: if the consciousness singleton itself cannot be inspected,
+    the trade path blocks — an unverifiable guard is a dead guard.
+    """
+    try:
+        from core.bob_consciousness import get_bobs_body
+
+        allowed, reason = get_bobs_body().check_man_at_work_guard("trading")
+        if allowed:
+            return False, ""
+        return True, "MAN_AT_WORK"
+    except Exception as exc:
+        logger.warning("man_at_work_guard_unavailable", error=str(exc)[:200])
+        return True, "MAN_AT_WORK_UNAVAILABLE"
+
+
 def evaluate_trade_gate(
     message: str,
     ticker: str,
@@ -456,6 +474,23 @@ def evaluate_trade_gate(
             gates_checked,
         )
     gates_checked.append(("freeze", True, "ok"))
+
+    # GATE 1.5: MAN_AT_WORK
+    # Hard guard for the consciousness state. Before hardening (commit b16c66c)
+    # enforcing this here would have frozen trading on every single failed CEO
+    # probe (~11 min per llama.cpp restart); the mode now engages only after 3
+    # consecutive failures, so blocking here is safe by design.
+    man_at_work_blocked, man_at_work_reason_code = _man_at_work_violation()
+    if man_at_work_blocked:
+        gates_checked.append(("man_at_work", False, "man_at_work_active"))
+        return _build(
+            decision,
+            "BLOCK",
+            man_at_work_reason_code,
+            "MAN_AT_WORK mode active: trading blocked. System in diagnostic mode.",
+            gates_checked,
+        )
+    gates_checked.append(("man_at_work", True, "ok"))
 
     # GATE 2: Non-Trade Intent
     if not is_explicit_trade_intent(message):

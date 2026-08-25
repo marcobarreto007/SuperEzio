@@ -58,7 +58,27 @@
 
   async function fetchJson(path, opts = {}) {
     const r = await fetchWithAuth(path, opts);
-    if (!r.ok) throw new Error(path + " " + r.status);
+    if (!r.ok) {
+      // Propagate the server's `detail` (e.g. "MAN_AT_WORK mode active" from
+      // /health) instead of discarding it — mirrors submitTask's pattern.
+      let detail = "";
+      let rawDetail = null;
+      try {
+        const data = await r.clone().json();
+        rawDetail = data.detail || data.error || "";
+        if (rawDetail && typeof rawDetail === "object") {
+          detail = rawDetail.message || rawDetail.detail || JSON.stringify(rawDetail);
+        } else {
+          detail = rawDetail || "";
+        }
+      } catch (_) {
+        try { detail = await r.text(); } catch (_) { detail = ""; }
+      }
+      const err = new Error(detail ? path + " " + r.status + ": " + detail : path + " " + r.status);
+      err.status = r.status;
+      err.detail = rawDetail;
+      throw err;
+    }
     return r.json();
   }
 

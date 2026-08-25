@@ -117,6 +117,47 @@ class TestExecutionFreeze:
         assert result.reason_code != "EXECUTION_FREEZE"
 
 
+class TestManAtWorkGate:
+    """GATE 1.5: MAN_AT_WORK hard-block no caminho de trade."""
+
+    def _patch_guard(self, monkeypatch, result, raises=False):
+        import core.bob_consciousness as consciousness
+
+        class _FakeBody:
+            def check_man_at_work_guard(self, operation="trading"):
+                if raises:
+                    raise RuntimeError("ans registry offline")
+                return result
+
+        monkeypatch.setattr(consciousness, "get_bobs_body", lambda: _FakeBody())
+
+    def test_normal_mode_does_not_block(self, monkeypatch):
+        monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "false")
+        self._patch_guard(monkeypatch, (True, ""))
+        result = evaluate_trade_gate(
+            message="comprar 10 AAPL", ticker="AAPL", qty=10, limit_price=150.0
+        )
+        assert result.reason_code != "MAN_AT_WORK"
+
+    def test_man_at_work_blocks_with_reason_code(self, monkeypatch):
+        monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "false")
+        self._patch_guard(monkeypatch, (False, "MAN_AT_WORK mode: trading blocked"))
+        result = evaluate_trade_gate(
+            message="comprar 10 AAPL", ticker="AAPL", qty=10, limit_price=150.0
+        )
+        assert result.status == "BLOCK"
+        assert result.reason_code == "MAN_AT_WORK"
+
+    def test_unverifiable_guard_fails_closed(self, monkeypatch):
+        monkeypatch.setenv("F51_TRADING_EXECUTION_FREEZE", "false")
+        self._patch_guard(monkeypatch, (True, ""), raises=True)
+        result = evaluate_trade_gate(
+            message="comprar 10 AAPL", ticker="AAPL", qty=10, limit_price=150.0
+        )
+        assert result.status == "BLOCK"
+        assert result.reason_code == "MAN_AT_WORK_UNAVAILABLE"
+
+
 class TestNonTradeIntent:
     def test_explain_sentiment_not_trade(self):
         assert is_explicit_trade_intent("me explica o que e sentimento vivo") is False

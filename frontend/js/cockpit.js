@@ -57,17 +57,21 @@
   }
 
   /* ── Connection State ── */
-  function setConnection(online) {
+  function setConnection(online, degradedReason) {
     var dot = $("sys-dot");
     var label = $("cockpit-connection");
+    var degraded = !online && Boolean(degradedReason);
+    var labelText = online
+      ? "CORE ONLINE"
+      : (degraded ? ("CORE " + degradedReason.substring(0, 40)) : "CORE OFFLINE");
     if (dot) {
       dot.classList.toggle("status-dot--on", Boolean(online));
       dot.classList.toggle("status-dot--off", !online);
-      dot.title = online ? "Core online" : "Core offline";
+      dot.title = online ? "Core online" : (degraded ? "Core degraded: " + degradedReason : "Core offline");
     }
     if (label) {
       label.classList.toggle("is-online", Boolean(online));
-      label.textContent = online ? "CORE ONLINE" : "CORE OFFLINE";
+      label.textContent = labelText;
     }
   }
 
@@ -862,11 +866,19 @@
 
   async function refreshAll() {
     var online = false;
+    var degradedReason = null;
     try {
       var health = await window.SZ.api.fetchHealth();
       online = health && health.status === "ok";
-    } catch (e) { online = false; }
-    setConnection(online);
+    } catch (e) {
+      // 503 from /health means the server is ALIVE but degraded (MAN_AT_WORK,
+      // CEO brain unreachable, ...). Only a network-level failure is "offline".
+      if (e && e.status === 503) {
+        degradedReason = (e.detail && (typeof e.detail === 'string' ? e.detail : e.detail.detail)) || 'degraded';
+      }
+      online = false;
+    }
+    setConnection(online, degradedReason);
 
     if (!online) {
       if (window.SZ.statusBar && window.SZ.state.operationalSnapshot) {
@@ -1016,15 +1028,15 @@
         body: JSON.stringify({ ticker: ticker, action: action, qty: qty })
       });
       var data = await r.json();
-      var brokerConfirmed = r.ok && data && data.ok === true && data.submitted_to_broker === true;
-      if (brokerConfirmed) {
-        var msg = 'Broker confirmed submission: ' + action.toUpperCase() + ' ' + qty + ' ' + ticker;
-        showTradeConfirm(cardId, msg);
-        form.classList.remove('is-open');
+      if (data && data.idempotent_replay === true) {
+        // The server deduplicated this intent: it is the SAME ticket, not a
+        // second order. Say so — silently showing "pending" again would make
+        // the user believe two orders were queued.
+        showTradeConfirm(cardId, 'This order was already registered — ticket ' + (data.order_id || 'unknown'));
         refreshMangala();
-      } else if (r.ok && data && data.submitted_to_broker === false) {
+      } else if (r.ok && data && data.order_id) {
         var pendingStatus = data.status || data.phase || 'pending validation';
-        showTradeConfirm(cardId, 'Not submitted to broker — ' + String(pendingStatus).replace(/_/g, ' '));
+        showTradeConfirm(cardId, 'Ticket ' + data.order_id + ' — not submitted to broker (' + String(pendingStatus).replace(/_/g, ' ') + ')');
       } else {
         var errMsg = data.detail || data.error || data.reason || 'Unknown error';
         showTradeConfirm(cardId, 'Error: ' + (typeof errMsg === 'string' ? errMsg.substring(0, 120) : 'unknown'));
