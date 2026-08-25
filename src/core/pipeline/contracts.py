@@ -219,5 +219,9 @@ class AgentToolCall(BaseModel):
         "query_expert",
         "call_math_calculator",
         "get_live_financial_data",
+        # Dispatched by tool_executor (_calculate, reads `expression`) but was
+        # missing from the Literal — any `calculate` call from the LLM died in
+        # model_validate. Added so the dispatch path is reachable.
+        "calculate",
     ]
     args: dict[str, Any] = Field(default_factory=dict)

@@ -434,6 +434,17 @@ def _parse_tool_calls(text: str) -> list[dict[str, Any]]:
     of silently dropping the second and subsequent calls.
     """
     calls: list[dict[str, Any]] = []
+
+    def _log_invalid(raw_obj: object, exc: Exception) -> None:
+        # Invalid tool calls are dropped (fail-soft: a local model emits
+        # free-form JSON), but the drop must leave a trace — a silent pass
+        # makes a lost call indistinguishable from "model said nothing".
+        logger.warning(
+            "agent_tool_call_invalid_dropped: %s | %s",
+            str(raw_obj)[:200],
+            str(exc)[:200],
+        )
+
     # First try parsing the whole text as one JSON array
     stripped = text.strip()
     try:
@@ -443,15 +454,15 @@ def _parse_tool_calls(text: str) -> list[dict[str, Any]]:
                 if isinstance(item, dict) and "tool" in item:
                     try:
                         calls.append(AgentToolCall.model_validate(item).model_dump())
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        _log_invalid(item, exc)
             if calls:
                 return calls
         elif isinstance(parsed, dict) and "tool" in parsed:
             try:
                 return [AgentToolCall.model_validate(parsed).model_dump()]
-            except Exception:
-                pass
+            except Exception as exc:
+                _log_invalid(parsed, exc)
     except (json.JSONDecodeError, TypeError, ValueError):
         pass
 
@@ -463,8 +474,8 @@ def _parse_tool_calls(text: str) -> list[dict[str, Any]]:
             if isinstance(obj, dict) and "tool" in obj:
                 try:
                     calls.append(AgentToolCall.model_validate(obj).model_dump())
-                except Exception:
-                    pass
+                except Exception as exc:
+                    _log_invalid(obj, exc)
         except (json.JSONDecodeError, TypeError, ValueError):
             continue
     return calls
