@@ -6,7 +6,7 @@
 param(
     [int]$Port = 8080,
     [string]$TensorSplit = "12",
-    [int]$ContextLength = 8192,
+    [int]$ContextLength = 16384,
     [int]$Slots = 1,
     [string]$LlamaServerPath = $env:SUPEREZIO_LLAMA_SERVER_EXE
 )
@@ -124,7 +124,7 @@ if (-not $hasCuda) {
 Write-Host "Starting llama-server..." -ForegroundColor Green
 
 # Perfil 2026-08-21: UD-IQ2_XXS na unica GPU real (RTX 3060 12GB), tensor split 12,
-# cache q8_0 e contexto 8192.
+# cache q8_0 e contexto 16384 (dobrado 2026-08-25: prompt rodava a 95% de 8192 e a demo estourou com prompts de 34k+ tokens).
 # MTP (--spec-type draft-mtp) nao cabe no VRAM livre da 3060 com Q4; nao usar.
 $args = @(
     "-m", $ModelPath,

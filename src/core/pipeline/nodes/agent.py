@@ -3116,6 +3116,11 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                     f"ECOSSISTEMA VIVO: so decida depois de Data/Math/Experts/F51/SDCA/Neural/Trinity. "
                     f"Se um modulo estiver MISSING ou voce tiver duvida, chame run_experts "
                     "com args question igual a sua duvida concreta. Nao invente consenso."
+                    f"Se a pergunta do usuario NAO envolve um ativo especifico (sem ticker, "
+                    "sem pedido de trade), NAO despeje relatorios de modulos nem jargao "
+                    "interno (RSI=N/A, WAIT, gates etc.) — responda a pergunta dele em "
+                    "linguagem natural e clara, e diga que para uma analise de ativo "
+                    "especifico ele pode fornecer um ticker."
                 ),
             }
         )
@@ -3437,21 +3442,15 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 pipeline_vdict = build_verdict_dict(state)
                 validation = validate_answer_against_verdict(content, pipeline_vdict)
                 if not validation["passed"]:
+                    # Internal signal only — the demo of 2026-08-24 leaked
+                    # "[Pipeline validation note: ...]" into the public answer.
                     logger.warning(f"Bob answer validation failed: {validation['reason']}")
-                    # Add correction note to Bob's answer
-                    content += f"\n\n[Pipeline validation note: {validation['reason']}]"
 
                 # ── Inject portfolio snapshot BEFORE the CHUNK ──
                 pf = _get_portfolio_snapshot(state)
                 if pf:
                     writer({"type": "CHUNK", "content": pf})
-                if bob_streamed_live:
-                    note = ""
-                    marker = "[Pipeline validation note:"
-                    if marker in content:
-                        note = content[content.find(marker) :]
-                        writer({"type": "CHUNK", "content": "\n\n" + note})
-                else:
+                if not bob_streamed_live:
                     writer({"type": "CHUNK", "content": content})
                 writer(
                     {

@@ -466,9 +466,10 @@
     if (!window.SZ.state) window.SZ.state = {};
     window.SZ.state.bobBusy = !!isBusy;
     window.SZ.state.activeBobRunId = isBusy ? (runId || window.SZ.state.activeBobRunId || "") : "";
-    var inp = document.getElementById("user-inp");
     var btn = document.getElementById("send-btn");
-    if (inp) inp.disabled = !!isBusy;
+    // O input de chat NAO e mais desabilitado durante o run: travar por
+    // minutos (auto-analise ao clicar num ticker) parecia tela congelada.
+    // O backend serializa runs concorrentes com 429 estruturado.
     if (btn) {
       btn.disabled = !!isBusy;
       btn.classList.toggle("is-busy", !!isBusy);
