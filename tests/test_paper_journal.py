@@ -337,6 +337,46 @@ class TestPaperJournal:
             "o lock deve estar retido durante o _rewrite de close_trade"
         )
 
+    def test_journal_file_lock_blocks_other_processes(self, tmp_path):
+        """O lock de arquivo bloqueia OUTRO PROCESSO (nao thread).
+
+        msvcrt.locking e per-processo — threads do mesmo processo compartilham
+        o lock, entao a prova so vale com um subprocesso tentando LK_NBLCK na
+        mesma regiao. close_trade e add_reflection usam _journal_file_lock no
+        span completo de leitura+escrita.
+        """
+        import subprocess
+        import sys
+
+        from core.trading.paper_journal import _journal_file_lock
+
+        journal = PaperJournal(tmp_path / "paper.jsonl")
+        lock_path = journal.path.with_name(journal.path.name + ".lock")
+        probe_code = (
+            "import sys, msvcrt\n"
+            "h = open(sys.argv[1], 'r+b')\n"
+            "h.seek(0)\n"
+            "try:\n"
+            "    msvcrt.locking(h.fileno(), msvcrt.LK_NBLCK, 1)\n"
+            "    print('unlocked')\n"
+            "except OSError:\n"
+            "    print('locked')\n"
+        )
+
+        def _probe() -> str:
+            result = subprocess.run(
+                [sys.executable, "-c", probe_code, str(lock_path)],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            assert not result.stderr, f"probe subprocesso falhou: {result.stderr}"
+            return result.stdout.strip()
+
+        with _journal_file_lock(journal.path):
+            assert _probe() == "locked", "outro processo deve encontrar o arquivo trancado"
+        assert _probe() == "unlocked", "o lock deve ser liberado ao sair do contexto"
+
     def test_corrupt_line_is_quarantined_not_destroyed(self, tmp_path, sample_trade):
         """Linha corrompida sobrevive ao _rewrite, preservada em arquivo-irmao.
 

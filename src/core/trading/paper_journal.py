@@ -8,6 +8,7 @@ Funciona offline - nao depende de IBKR conectado.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import os
@@ -22,6 +23,45 @@ logger = logging.getLogger(__name__)
 DEFAULT_JOURNAL_PATH = (
     Path(__file__).resolve().parent.parent.parent.parent / "data" / "paper_journal.jsonl"
 )
+
+try:
+    import msvcrt as _msvcrt  # Windows advisory region locks
+except ImportError:  # pragma: no cover - this repo runs on Windows
+    _msvcrt = None
+
+
+@contextlib.contextmanager
+def _journal_file_lock(path: Path):
+    """Cross-process advisory lock on a sibling .lock file.
+
+    The RLock only serializes threads inside ONE process. agent_server (:8002)
+    and the Mangala scan are separate processes writing the same journal, so
+    composite read-modify-write operations (close_trade, add_reflection) also
+    take this OS-level lock. Windows: msvcrt region lock on the first byte;
+    the lock file is never truncated (opened in a+b mode).
+    """
+    if _msvcrt is None:  # non-Windows: fall back to thread-lock only
+        yield
+        return
+    lock_path = path.with_name(path.name + ".lock")
+    if not lock_path.exists():
+        # Regiao trancada: byte 0. O arquivo precisa existir e ter conteudo
+        # para msvcrt.locking poder travar a regiao.
+        lock_path.write_bytes(b"\0")
+    # r+b (nunca a+b): em modo append o ponteiro fica em EOF apos qualquer
+    # escrita e o lock sairia numa regiao diferente da que os outros usam.
+    handle = open(lock_path, "r+b")
+    try:
+        handle.seek(0)
+        _msvcrt.locking(handle.fileno(), _msvcrt.LK_LOCK, 1)
+        yield
+    finally:
+        try:
+            _msvcrt.locking(handle.fileno(), _msvcrt.LK_UNLCK, 1)
+        except OSError:
+            pass
+        handle.close()
+
 
 # Production guard: the real journal must never be silently truncated.
 # Tests use tempfile.NamedTemporaryFile, never this path.
@@ -157,10 +197,10 @@ class PaperJournal:
         # their own calls to _read_all/_rewrite (same pattern as
         # TradeWorkflowStore._lock).
         #
-        # SCOPE: this closes the intra-process race only. Writers also live in
+        # SCOPE: this closes the intra-process race. Writers also live in
         # separate processes (agent_server and the Mangala scan both reach this
-        # journal), and a cross-process lost update remains possible. Closing
-        # that needs an OS file lock and is tracked separately.
+        # journal), so the composite read-modify-write operations additionally
+        # take the OS file lock (_journal_file_lock) on a sibling .lock file.
         self._lock = threading.RLock()
 
     @property
@@ -408,7 +448,7 @@ class PaperJournal:
         leem a mesma lista, cada um aplica a sua mudanca e o segundo _rewrite
         sobrescreve o primeiro — um fechamento perdido em silencio.
         """
-        with self._lock:
+        with self._lock, _journal_file_lock(self._path):
             entries = self._read_all()
             for i, entry in enumerate(entries):
                 if entry.get("trade_id") == trade_id:
@@ -451,7 +491,7 @@ class PaperJournal:
 
         Mesmo motivo do close_trade: o lock precisa cobrir leitura e escrita.
         """
-        with self._lock:
+        with self._lock, _journal_file_lock(self._path):
             entries = self._read_all()
             for i, entry in enumerate(entries):
                 if entry.get("trade_id") == trade_id:
