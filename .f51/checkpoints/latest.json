@@ -1,24 +1,30 @@
 {
-  "date_local": "2026-08-24",
-  "session": "full-regression-fix-20260824",
+  "date_local": "2026-08-25",
+  "session": "audit-and-harden-f51-20260824",
   "status": "DELIVERED",
-  "objective": "Resolva tudo: zerar as 5 falhas pre-existentes da suíte completa sem remover comportamento — so melhorar.",
-  "predecessor": "bob-survival-sse-20260823",
-  "problema": "Suíte completa em 39dacd2: 5 failed / 2201 passed. (a) 3x KeyError math_report em test_auto_full_analysis — guarda do 54cebc8 (`data or should_collect_market`) pulava o MathHub em respostas sem dados, quebrando o contrato de PipelineState; alem disso o classificador casual tratava 'oi bob, status rapido sem operar' como saudacao pura. (b) test_yfinance_fundamentals_tsx esperava a cadeia de fundamentals pre-TMX (rota tmx prioridade 25 entrou 2026-08-23) e dependia de falha de rede real do TMX para cair no yfinance. (c) test_market_scanner injetava candidatos REAIS (PLUG/NIO/TLRY) pelas 3 camadas suplementares de descoberta (penny_scanner_yfinance com rede real, watchlist pennylab 40 simbolos, seed mangala_daily.json do disco).",
+  "objective": "Auditoria completa do caminho de trade (FSM, idempotencia, journal, gates, fronteira LLM, frontend) com correcao cirurgica: 14 commits, zero regressao.",
+  "predecessor": "full-regression-fix-20260824",
+  "problema": "Auditoria levantou 11 defeitos, do critico ao cosmetico: healthcheck 200 com cerebro caido (main.py:811); PaperJournal nao-append-only com perda de linha corrompida e truncagem nao-atomica (paper_journal.py:226); buraco de borda na janela de idempotencia (idempotency/__init__.py:48, workflow_store.py:81); except:pass no caminho de dinheiro; lost update intra e cross-process no journal; MAN_AT_WORK nunca enforcado no trade e engajando com 1 probe falho; stop_loss_price do modelo contornando a aprovacao de $500; limit_price do modelo chegando ao adapter IBKR sem colar; calculate despachado mas fora do Literal; frontend descartando detail do 503 e ignorando idempotent_replay.",
   "patch": {
-    "graph.py": "guarda do MathHub em _auto_full_analysis: `if not _is_casual:` — toda resposta nao-casual carrega math_report (chave declarada de PipelineState), mesmo sem dados coletados; saudacoes puras continuam no fast-path",
-    "intents.py": "_is_casual_message exige saudacao de mensagem INTEIRA (_CASUAL_TOKENS + _residual_content): 'oi bob' continua casual; 'oi bob, status rapido sem operar' vira pipeline completo. Matriz pinned do 54cebc8 intacta (16/16 na validacao manual)",
-    "test_market_scanner.py": "isolamento hermetico das 3 camadas suplementares: scan_penny_stocks -> [], _PENNY_WATCHLIST -> [], SUPEREZIO_MANGALA_SEED_PATH -> caminho inexistente",
-    "test_yfinance_fundamentals_tsx.py": "espera ['finnhub','tmx','yfinance'] + stub _OfflineTmx (sem GraphQL real) — roteamento deterministico ate o yfinance fake"
+    "healthcheck": "522f0df — 503 fail-closed com contrato JSON identico (status/detail/**identity) quando a sonda de consciencia falha",
+    "paper_journal": "47fff47 + 886b956 + 588cffb — escrita atomica (tmp+fsync+os.replace), quarentena de linha corrompida, RLock intra-processo, lock de arquivo msvcrt cross-process no span RMW (regiao do byte 0, r+b, probe por subprocesso)",
+    "idempotencia": "8d6ae5a + 2e0b0be — build_trade_intent_fingerprints (janela atual+anterior) com fingerprint_aliases no create_ticket; make_idempotency_keys + claim_idempotency_keys no caminho paper",
+    "man_at_work": "b16c66c + eb9a9bc — entrada so com 3 falhas consecutivas (reusa contador do Organ) + recovery a cada ciclo; GATE 1.5 enforcado em evaluate_trade_gate fail-closed (MAN_AT_WORK / MAN_AT_WORK_UNAVAILABLE)",
+    "stop_loss": "be5cd08 — stop sempre derivado de limit_price * (1 - default_stop_pct); stop proposto pelo modelo ignorado (bypass de $500 fechado)",
+    "collar": "3dc38350 — GATE 9.5 LIMIT_PRICE_COLLAR: banda 5% (ref <=180s) / 10% (velha), evidencia completa; auto_execute_paper passa data_age_s",
+    "costura_llm": "9e439a3 — calculate no Literal; drops de tool call invalida logados (fail-soft, sem extra=forbid)",
+    "frontend": "eb9a9bc + be6ab58 — fetchJson propaga detail do 503; cockpit distingue 503 degradado de offline e le idempotent_replay ('ja estava registrado — ticket X'); branch morto brokerConfirmed removido; contrato fixado em teste",
+    "observabilidade": "2dbcb3a — log estruturado em yfinance intraday, pain log e cancel_open_order",
+    "taxonomia": "ffb5837 — core.trading.reason_codes + teste de conformidade que extrai literais do gate"
   },
   "verification": {
-    "targeted": "test_auto_full_analysis 21 + test_casual_greetings_and_intent 11 = 32 passed; test_market_scanner 4 passed (3.1s, sem rede); test_yfinance_fundamentals_tsx 8 passed",
-    "affected_batteries": "contracts agent/complex_finance/endpoints + api_routes_sync + pipeline_integration + guardrail_hub + trinity: 261 passed",
-    "full_suite": "2209 passed, 0 failed, 3 skipped em 694.93s (baseline pre-fix: 5 failed / 2201 passed)",
-    "smoke": "browser_smoke VERDE: 126 candles TD.TO timestamps validos, canvas 1041x511 7 canvases, STREAM_END, resposta PT 3886 chars 108.9s, 0 erros console. Servidor :8002 REINICIADO 2026-08-24 (PID 18732, PYTHONPATH=src, log runtime/logs/agent_server_20260824_restart.log): probe 'oi bob, status rapido sem operar' agora roda pipeline completo com MATH_REPORT; 'oi bob' responde cumprimento canonico em 0.4s sem MATH_REPORT (fast-path preservado)",
-    "ruff": "check + format limpos nos 4 arquivos tocados"
+    "full_suite": "2240 passed, 0 failed, 3 skipped em 713.19s (servidor :8002 VIVO — testes de smoke executam e passam; baseline da sessao: 2201 passed / 11 skipped)",
+    "targeted": "f51_trade_gate 60 + auto_full_analysis 21 + paper_journal 22 + contract_pipeline/bob_sovereign/pipeline_integration/market_scan_loop 103 + journal regressao 60 + idempotency_window 4 — todos verdes",
+    "prova_negativa": "cada correcao com teste que falha contra o codigo original (git stash push/pop), incluindo: healthcheck assert 200==503, journal '' == '{...}', 2 tickets vs 1 na borda, gate MAN_AT_WORK caindo em IBKR_OFFLINE",
+    "smoke": "browser_smoke VERDE com servidor vivo: bobMsgCount 1, resposta PT valida, stream completo, canvas 1041x511 7 canvases, 0 console errors; screenshot output/playwright/superezio-browser-smoke-20260824-222042.png",
+    "ruff": "check limpo em src/ e tests/; format limpo nos arquivos tocados (5 arquivos pre-existentes seguem falhando format-check: endpoints.py, agent.py, collector.py, penny_scanner.py, finnhub_provider.py — tarefa dedicada, nao misturada)"
   },
-  "risks": "INV-R56 (classificador casual: escopo do fast-path estreitado — aberturas com conteudo real agora rodam pipeline completo; intencional)",
+  "risks": "INV-R57 (MAN_AT_WORK enforcado no trade: 3 falhas consecutivas do :8080 engajam o modo e o GATE 1.5 bloqueia ordens ate recuperacao — intencional, fail-closed); INV-R58 (colar de preco: ordens cujo limit_price desvia >banda do preco DataHub passam a ser recusadas; banda larga de proposito por causa de penny + referencia de 5 min); INV-R59 (stop do modelo ignorado: payloads que enviam stop_loss_price mudam de risco calculado); INV-R60 (lock cross-process: msvcrt.locking nao cobre nao-Windows — fallback para thread-lock so, repo e Windows-first); INV-R61 (fetchJson agora propaga detail — consumidores de /health que comparavam string de erro exata podem ver texto novo).",
   "still_true": {
     "live_execution": "FROZEN",
     "github": "DISK ONLY",
