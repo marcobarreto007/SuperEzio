@@ -2456,6 +2456,42 @@ def _final_payload(content: str, iterations: int) -> dict[str, Any]:
     }
 
 
+_SUBSTANTIVE_FINANCIAL_TOKENS = (
+    "aloc",
+    "invest",
+    "reserva",
+    "divid",
+    "etf",
+    "estrategia",
+    "estratégia",
+    "portfolio",
+    "portfólio",
+    "aposent",
+    "renda fixa",
+    "juros",
+    "tesouro",
+    "ação",
+    "acoes",
+    "allocate",
+    "retirement",
+    "savings",
+    "dividend",
+)
+
+
+def _looks_financially_substantive(message: str) -> bool:
+    """Conservador: a pergunta fala de alocacao/estrategia/investimento?
+
+    detect_complex_finance_intent erra para perguntas de alocacao (medido:
+    a pergunta do smoke 'alocar 25.000 CAD entre reserva, dividas, ETFs'
+    classifica False). Este detector cobre o caso com tokens simples, e e
+    usado apenas para forcar a deliberacao do comite de experts — nunca para
+    liberar ordem nem acesso a dado de mercado.
+    """
+    lowered = (message or "").lower()
+    return any(token in lowered for token in _SUBSTANTIVE_FINANCIAL_TOKENS)
+
+
 def _has_actionable_market_request(state: dict) -> bool:
     message = state.get("message", "")
     route = state.get("route", "")
@@ -2515,7 +2551,10 @@ def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
     no_ticker_financial = (
         not ticker
         and not _has_market_evidence(state)
-        and bool(detect_complex_finance_intent(state.get("message", "")))
+        and (
+            bool(detect_complex_finance_intent(state.get("message", "")))
+            or _looks_financially_substantive(state.get("message", ""))
+        )
         and "run_experts" in allowed_tools
         and "run_experts" not in executed_tools
         and not _has_expert_evidence(state)
