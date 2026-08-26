@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relatório do Sistema</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#0E1517; --surface:#151F22; --surface2:#1A262A; --line:#243135;
+    --ink:#E7EFEA; --muted:#93A39C; --faint:#6B7A73;
+    --accent:#D98E4A; --teal:#4FB3AD; --good:#6FBF73; --warn:#D99A4A; --bad:#E07A6A;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --ground:#F4F6F2; --surface:#FFFFFF; --surface2:#EEF1EC; --line:#D9E0D9;
+      --ink:#1B2420; --muted:#5B6A62; --faint:#85928B;
+      --accent:#A65B1E; --teal:#1F6F6B; --good:#2E7D32; --warn:#9A6500; --bad:#C0392B;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0E1517; --surface:#151F22; --surface2:#1A262A; --line:#243135;
+    --ink:#E7EFEA; --muted:#93A39C; --faint:#6B7A73;
+    --accent:#D98E4A; --teal:#4FB3AD; --good:#6FBF73; --warn:#D99A4A; --bad:#E07A6A;
+  }
+  :root[data-theme="light"]{
+    --ground:#F4F6F2; --surface:#FFFFFF; --surface2:#EEF1EC; --line:#D9E0D9;
+    --ink:#1B2420; --muted:#5B6A62; --faint:#85928B;
+    --accent:#A65B1E; --teal:#1F6F6B; --good:#2E7D32; --warn:#9A6500; --bad:#C0392B;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--ground); color:var(--ink);
+    font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:16px; line-height:1.6;
+  }
+  .wrap{max-width:880px;margin:0 auto;padding:48px 28px 72px}
+  .mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace}
+
+  /* header */
+  header{border-bottom:1px solid var(--line);padding-bottom:28px;margin-bottom:36px}
+  .eyebrow{
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--muted);margin:0 0 14px;
+  }
+  h1{
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:clamp(26px,4.2vw,40px);
+    line-height:1.15;margin:0 0 6px;text-wrap:balance;letter-spacing:-.01em;
+  }
+  .sub{color:var(--muted);margin:0;max-width:64ch}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .chip{
+    display:inline-flex;align-items:center;gap:7px;
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;
+    border:1px solid var(--line);border-radius:2px;padding:4px 10px;
+    background:var(--surface);color:var(--muted);
+  }
+  .dot{width:7px;height:7px;border-radius:50%;flex:none}
+  .dot.ok{background:var(--good)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
+  .chip b{color:var(--ink);font-weight:600}
+
+  /* sections */
+  section{margin-bottom:44px}
+  h2{
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:15px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--accent);margin:0 0 18px;
+    display:flex;align-items:baseline;gap:10px;
+  }
+  h2 .no{color:var(--faint);font-weight:400}
+  h3{font-size:16px;margin:22px 0 8px;text-wrap:balance}
+  p{max-width:68ch}
+  .muted{color:var(--muted)}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+  .kpi{
+    background:var(--surface);border:1px solid var(--line);border-radius:2px;
+    padding:14px 16px;
+  }
+  .kpi .v{
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:24px;font-weight:700;
+    font-variant-numeric:tabular-nums;display:block;line-height:1.2;
+  }
+  .kpi .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+
+  /* terminal evidence */
+  .term{
+    background:var(--surface);border:1px solid var(--line);border-radius:2px;
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;
+    padding:16px 18px;overflow-x:auto;margin:14px 0;
+  }
+  .term .p{color:var(--faint)}
+  .term .cmd{color:var(--teal)}
+  .term .out{color:var(--ink);white-space:pre}
+  .term .ok{color:var(--good)} .term .warn{color:var(--warn)} .term .bad{color:var(--bad)}
+
+  /* timeline */
+  ol.phases{list-style:none;counter-reset:ph;margin:0;padding:0;display:grid;gap:12px}
+  ol.phases li{
+    counter-increment:ph;display:grid;grid-template-columns:44px 1fr;gap:14px;
+    border:1px solid var(--line);border-radius:2px;background:var(--surface);padding:14px 16px;
+  }
+  ol.phases li::before{
+    content:counter(ph,decimal-leading-zero);
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;color:var(--accent);
+    border-right:1px solid var(--line);padding-right:14px;line-height:1.6;
+  }
+  ol.phases .t{font-weight:600}
+  ol.phases .d{color:var(--muted);font-size:14px}
+
+  /* tables */
+  table{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0}
+  th{
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 10px;
+    border-bottom:1px solid var(--line);
+  }
+  td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  td:first-child{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12.5px;color:var(--teal);white-space:nowrap}
+  .tblwrap{overflow-x:auto}
+  .tag{
+    display:inline-block;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;
+    border-radius:2px;padding:1px 7px;border:1px solid var(--line);color:var(--muted);
+  }
+  .tag.good{color:var(--good);border-color:var(--good)} .tag.warn{color:var(--warn);border-color:var(--warn)}
+  .tag.bad{color:var(--bad);border-color:var(--bad)}
+
+  footer{
+    border-top:1px solid var(--line);padding-top:18px;margin-top:56px;
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;color:var(--faint);
+  }
+  a{color:var(--teal)}
+  @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">SuperEzio · F51 · 2026-08-26</p>
+    <h1>Relatório do Sistema</h1>
+    <p class="sub">Estado consolidado após a missão de limpeza ruff 0.16.4 — runtime, qualidade de código, evidências e itens abertos.</p>
+    <div class="chips">
+      <span class="chip"><span class="dot ok"></span>Gateway :8080 <b>OK</b></span>
+      <span class="chip"><span class="dot ok"></span>API :8002 <b>OK</b> v4.2.0</span>
+      <span class="chip"><span class="dot ok"></span>ruff check <b>0 erros</b></span>
+      <span class="chip"><span class="dot ok"></span>format <b>715 limpos</b></span>
+      <span class="chip"><span class="dot ok"></span>pytest <b>2218 passou</b></span>
+      <span class="chip"><span class="dot warn"></span>live_model <b>explícito</b></span>
+    </div>
+  </header>
+
+  <section>
+    <h2><span class="no">01</span>Estado agora</h2>
+    <div class="grid2">
+      <div class="kpi"><span class="v">0</span><span class="l">erros ruff check .</span></div>
+      <div class="kpi"><span class="v">715</span><span class="l">arquivos formatados</span></div>
+      <div class="kpi"><span class="v">2218</span><span class="l">testes passando</span></div>
+      <div class="kpi"><span class="v">3</span><span class="l">skipped · 1 deselected</span></div>
+    </div>
+    <div class="term">
+      <div><span class="p">$</span> <span class="cmd">ruff check .</span></div>
+      <div class="out">All checks passed!</div>
+      <div><span class="p">$</span> <span class="cmd">ruff format --check .</span></div>
+      <div class="out">715 files already formatted</div>
+      <div><span class="p">$</span> <span class="cmd">python -m pytest tests/ -q</span></div>
+      <div class="out ok">2218 passed, 3 skipped, 1 deselected in 618.37s (0:10:18) — exit 0</div>
+      <div><span class="p">$</span> <span class="cmd">curl -s :8080/health · :8002/health</span></div>
+      <div class="out">{"status":"ok"}
+{"status":"ok","agent":"generic_agent","version":"4.2.0","auth_required":false}</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="no">02</span>A missão</h2>
+    <p class="muted">Do gatilho ao fechamento: 2056 erros de lint inexistentes na v0.15.22 → baseline limpo na v0.16.4. 33 agentes, ~470 arquivos, 10 commits locais.</p>
+    <ol class="phases">
+      <li>
+        <div>
+          <div class="t">Fase 1 — autofix e format</div>
+          <div class="d">1465 auto-fixes seguros + 64 arquivos formatados. Baseline novo commitado (<span class="mono">eb3beefd</span>).</div>
+        </div>
+      </li>
+      <li>
+        <div>
+          <div class="t">Fase 2 — regras mecânicas</div>
+          <div class="d">101 fixes + 19 SIM102 colapsados à mão. Uma regressão minha no sandbox <span class="mono">custom_tools.py</span> foi pega pelos testes de escape e corrigida — 26 testes verdes.</div>
+        </div>
+      </li>
+      <li>
+        <div>
+          <div class="t">Fase 3 — BLE001/S110 (552 sites)</div>
+          <div class="d">33 agentes em arquivos disjuntos: estreitamento real onde o conjunto de exceções era pequeno, <span class="mono">noqa</span> justificado em fronteiras deliberadas de melhor esforço, S110 resolvidos por log em debug. Um agente rodou <span class="mono">git stash</span> sozinho (28 arquivos) — recuperado do <span class="mono">stash@{0}</span>, nada perdido.</div>
+        </div>
+      </li>
+      <li>
+        <div>
+          <div class="t">Fase 4 — verificação e fechamento</div>
+          <div class="d">Sweep final (endpoints, DTZ, RUF046, PLW1510, F841…), teste vivo de contrato separado da suíte determinística, suíte completa verde. <span class="mono">ruff==0.16.4</span> pinado no pyproject.</div>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2><span class="no">03</span>Runtime</h2>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Serviço</th><th>Estado</th><th>Detalhe</th></tr></thead>
+        <tbody>
+          <tr><td>:8080</td><td><span class="tag good">OK</span></td><td>Gateway de modelos local (zero-cloud) — health 200. Circuito <span class="mono">model.deepseek</span> reaberto após timeouts das 16:37–16:46.</td></tr>
+          <tr><td>:8002</td><td><span class="tag good">OK</span></td><td>API SuperEzio v4.2.0 — health 200, auth desativada no momento.</td></tr>
+          <tr><td>Modelo</td><td><span class="tag warn">Qwen IQ2_XXS</span></td><td>Qwen3.8-27B-UD-IQ2_XXS (quantização extrema). Cumpre o contrato de alocação 10/10 em captura viva, mas a saída varia entre runs (temperatura &gt; 0) — candidato a melhor quantização ou prompt.</td></tr>
+          <tr><td>Pain log</td><td><span class="tag good">OK</span></td><td><span class="mono">api_heart</span> com timeouts às 16:37–16:46 (gateway recuperado). Sem circuit breakers abertos agora.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="no">04</span>Itens abertos</h2>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Item</th><th>Estado</th><th>Ação</th></tr></thead>
+        <tbody>
+          <tr><td>stash@{0}</td><td><span class="tag warn">pendente</span></td><td>28 arquivos do incidente do stash (backup). Decisão do operador: dropar ou manter.</td></tr>
+          <tr><td>Contrato vivo</td><td><span class="tag warn">explícito</span></td><td><span class="mono">test_cad_25k_allocation_answer_contract</span> roda com <span class="mono">-m live_model</span>; falha intermitente é variância de modelo, não código.</td></tr>
+          <tr><td>Sessão paralela</td><td><span class="tag warn">compartilhada</span></td><td>Árvore git compartilhada com outra janela: <span class="mono">data/*.jsonl</span> fora de commit; lição de git-ops registrada na memória.</td></tr>
+          <tr><td>Skills deprecated</td><td><span class="tag good">estável</span></td><td>Pasta <span class="mono">deprecated/</span> com stub documental — gate <span class="mono">check_agents</span> verde.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="no">05</span>Comandos canônicos</h2>
+    <div class="term">
+      <div><span class="p">$</span> <span class="cmd">python -m ruff check . && python -m ruff format --check .</span></div>
+      <div><span class="p">$</span> <span class="cmd">python -m pytest tests/ -q</span> <span class="out">— suíte determinística</span></div>
+      <div><span class="p">$</span> <span class="cmd">python -m pytest -m live_model tests/ -q</span> <span class="out">— contrato vivo (exige modelo + API de pé)</span></div>
+      <div><span class="p">$</span> <span class="cmd">python -m agent_server.main</span> <span class="out">— API (a partir de src/)</span></div>
+    </div>
+  </section>
+
+  <footer>
+    SuperEzio · F51 · gerado em 2026-08-26 · 1259 commits no repositório local · DISK ONLY — GitHub bloqueado
+  </footer>
+
+</div>
+</body>
+</html>
