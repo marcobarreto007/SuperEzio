@@ -121,6 +121,13 @@ def _section_experts(data: dict[str, Any]) -> str:
     rows = ""
     for name, exp in experts.items():
         verdict = exp.get("verdict", "?")
+        # Skip empty experts: no verdict ("?" or "") AND no Bob-readable
+        # summary means the entry carries no content — rendering it would
+        # show a meaningless "? 0%" row (measured 2026-08-24: the empty
+        # red_team_agent_1 / judge / auditor entries).
+        verdict_empty = not str(verdict).strip() or str(verdict).strip() == "?"
+        if verdict_empty and not str(exp.get("bob_readable", "")).strip():
+            continue
         conf = _num(exp.get("confidence", 0))
         color = "#4ade80" if conf >= 70 else ("#fbbf24" if conf >= 40 else "#f87171")
         rows += f"""<tr>

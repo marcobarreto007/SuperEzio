@@ -420,6 +420,58 @@ def _sse_visible_after_think(text: str) -> str:
     return visible
 
 
+def _trim_to_sentence_boundary(text: str) -> str:
+    """Cut a trailing mid-word truncation back to the last sentence boundary.
+
+    A max_tokens cut leaves a punctuation-less fragment at the end (measured
+    2026-08-24: the PAR answer ended at "(-47.37%). igh" and a spliced note
+    ended "82.8%.Hub risk score is 0.00" with no separator).
+
+    Rules:
+    - Text already ending in sentence punctuation (. ! ? newline) is intact
+      and returned unchanged.
+    - Otherwise the tail after the last sentence boundary is treated as cut
+      debris: if it is shorter than 40 chars it is removed, trimming the
+      answer back to a complete sentence.
+    - A punctuation-less text with no boundary at all is a pure fragment and
+      is removed entirely when short (< 40 chars); longer texts are kept
+      (they are prose, not a cut).
+    - A "." between digits is a decimal point ("0.00", "82.8%"), never a
+      sentence boundary — cutting there would leave a mid-number fragment.
+    - Structured JSON tool calls (complete or truncated) are never cut:
+      sentence boundaries inside a JSON payload are not prose boundaries.
+    """
+    if not text:
+        return text
+    stripped = text.rstrip()
+    if not stripped:
+        return text
+    if stripped[-1] in ".!?" or text[-1] == "\n":
+        return stripped
+    if stripped.lstrip().startswith(("{", "[", "```")) or stripped.endswith(("}", "]")):
+        return stripped
+    boundary = -1
+    for i in range(len(stripped) - 1, -1, -1):
+        if stripped[i] in ".!?\n":
+            # A "." between digits is a decimal point ("0.00", "82.8%") —
+            # never a sentence boundary; cutting there would leave a
+            # mid-number fragment like "0.".
+            if (
+                stripped[i] == "."
+                and 0 < i < len(stripped) - 1
+                and (stripped[i - 1].isdigit() and stripped[i + 1].isdigit())
+            ):
+                continue
+            boundary = i
+            break
+    if boundary < 0:
+        return stripped if len(stripped) >= 40 else ""
+    tail = stripped[boundary + 1 :].strip()
+    if len(tail) < 40:
+        return stripped[: boundary + 1]
+    return stripped
+
+
 def _parse_tool_call(text: str) -> dict[str, Any] | None:
     """Extract the first valid JSON tool-call object from *text*."""
     calls = _parse_tool_calls(text)
@@ -3314,6 +3366,12 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                             writer({"type": "CHUNK", "run_id": run_id, "content": delta})
                             emitted_visible = visible
             raw = "".join(raw_parts)
+            # Stream path: the visible chunks were ALREADY emitted token by
+            # token above, so this cleanup cannot retract what the operator
+            # saw live — it only ensures the raw text parsed/recorded
+            # downstream (final answer, reasoning, evidence) is not left
+            # with a mid-word max_tokens cut. emitted_visible is untouched.
+            raw = _trim_to_sentence_boundary(raw)
             bob_streamed_live = bool(emitted_visible)
         else:
             raw = await gateway.chat_completion(
@@ -3323,6 +3381,10 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 preferred_provider=AGENT_PROVIDER_NAME,
                 json_mode=False if (bob_sovereign or chart_message) else True,
             )
+            # Non-stream path: trim a mid-word max_tokens cut back to the
+            # last sentence boundary BEFORE the CHUNK writer emits it, so
+            # the operator-visible text and the evidence record are clean.
+            raw = _trim_to_sentence_boundary(raw)
         writer(
             {
                 "type": "PIPELINE_STEP",

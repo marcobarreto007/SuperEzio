@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import logging
 import os
 from collections import deque
 from typing import Any
@@ -15,6 +16,8 @@ from core.audit.decision_trace import DecisionTraceLogger
 from core.model_serving.providers import get_deepseek_max_tokens
 from core.trading.outcome_learning import get_effective_expert_weights
 from .expert_dialogue import ExpertDialogue
+
+logger = logging.getLogger(__name__)
 
 # Module-level dedup: prevent collect_experts from running twice per run_id
 # when both pennylab and f51_verdict paths converge on it.
@@ -46,6 +49,42 @@ _NEGATIVE_VERDICTS = {
     "MANIPULATED",
     "SUSPICIOUS",
 }
+
+# Every verdict value the analyst prompts can emit (EXPERT_PROMPTS below).
+# Used to repair the observed key-swap corruption where the model writes the
+# verdict into the "ticker" field (e.g. {"expert":"macro_risk",
+# "ticker":"CAUTIOUS","confidence":62}) — measured 2026-08-24.
+_KNOWN_VERDICTS = frozenset(
+    {
+        # macro_risk
+        "RISK_ON",
+        "RISK_OFF",
+        "CAUTIOUS",
+        "NEUTRAL",
+        "NO_DATA",
+        # fundamental_value
+        "UNDERVALUED",
+        "FAIR",
+        "OVERVALUED",
+        # momentum_technical
+        "BULLISH",
+        "BEARISH",
+        "OVERSOLD",
+        "OVERBOUGHT",
+        # contrarian_opportunity
+        "OPPORTUNITY",
+        "TRAP",
+        "NO_EDGE",
+        # sentiment
+        "FEARFUL",
+        "EUPHORIC",
+        # social_forensics
+        "MANIPULATED",
+        "SUSPICIOUS",
+        "CLEAN",
+        "INCONCLUSIVE",
+    }
+)
 
 
 def calculate_weighted_expert_consensus(
@@ -666,6 +705,44 @@ async def node_collect_experts(state: dict) -> dict:
                 if start == -1 or end == -1 or end <= start:
                     raise
                 json_match = _json.loads(clean[start : end + 1])
+
+            # (a) Repair the observed key-swap corruption: the model
+            # sometimes writes the verdict into "ticker" and leaves verdict
+            # missing or holding the ticker symbol (measured 2026-08-24:
+            # {"expert":"macro_risk","ticker":"CAUTIOUS","confidence":62}).
+            # Move the enum value back to verdict; ticker is restored from
+            # context instead of guessing.
+            ticker_field = json_match.get("ticker")
+            verdict_field = json_match.get("verdict")
+            if (
+                str(ticker_field).strip().upper() in _KNOWN_VERDICTS
+                and str(verdict_field).strip().upper() not in _KNOWN_VERDICTS
+            ):
+                json_match["verdict"] = str(ticker_field).strip().upper()
+                json_match["ticker"] = (
+                    state.get("ticker")
+                    or (state.get("data") or {}).get("ticker")
+                    or (state.get("math_report") or {}).get("ticker")
+                    or ""
+                )
+                verdict_field = json_match["verdict"]
+                logger.warning(
+                    "expert_verdict_key_swap_repaired: role=%s verdict=%s",
+                    role,
+                    verdict_field,
+                )
+
+            # (c) Entries with neither a verdict nor a Bob-readable summary
+            # carry no content — drop them instead of surfacing a "? 0%"
+            # line in the report and a zero-weight phantom in the consensus.
+            empty_verdict = (
+                not str(verdict_field or "").strip() or str(verdict_field).strip() == "?"
+            )
+            if empty_verdict and not str(json_match.get("bob_readable") or "").strip():
+                logger.warning("expert_json_empty_discarded: role=%s", role)
+                bob_lines.append(f"[{role}] [EMPTY] discarded (no verdict, no summary)")
+                raw_lines.append(f"[{role}][discarded] {raw[:200]}")
+                continue
             parsed[role] = json_match
 
             verdict = json_match.get("verdict", "?")
@@ -717,11 +794,15 @@ async def node_collect_experts(state: dict) -> dict:
 
             raw_lines.append(f"[{role}][ok] {bob_readable[:200]}")
 
-        except (_json.JSONDecodeError, ValueError, TypeError):
-            # Not valid JSON: use raw text truncated.
-            bob_lines.append(f"[{role}] [RAW] not JSON:")
-            bob_lines.append(f"  {raw[:300]}")
-            raw_lines.append(f"[{role}][ok] {raw[:900]}")
+        except (_json.JSONDecodeError, ValueError, TypeError) as exc:
+            # (b) Malformed JSON (observed "}": "PAR", "verdict" fragments):
+            # the entry is discarded entirely — never stored in
+            # expert_structured and never echoed into the summary — the
+            # fragment is only logged, so it cannot leak into downstream
+            # reports or the consensus.
+            logger.warning("expert_json_discarded: role=%s err=%s", role, str(exc)[:200])
+            bob_lines.append(f"[{role}] [INVALID_JSON] discarded (malformed response)")
+            raw_lines.append(f"[{role}][discarded] {raw[:200]}")
 
     failed = [role for role, r in results.items() if not r.get("ok")]
     if failed:

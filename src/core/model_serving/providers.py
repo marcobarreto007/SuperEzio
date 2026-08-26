@@ -40,8 +40,12 @@ DAYTRADE_AUDITOR_PROVIDER_NAME = "daytrade_auditor"
 LOCAL_QWEN_BASE_URL = "http://127.0.0.1:8080/v1"
 # 512 cut complex verdict answers mid-sentence (reproduced 2026-08-22:
 # decisive TD.TO answer ended at "...impede uma validacao de" before the
-# recommendation). 1024 fits comfortably: ctx 8192, prompt ~2-3k tokens.
-LOCAL_MAX_TOKENS = 1024
+# recommendation). 1024 fit comfortably (ctx 8192, prompt ~2-3k tokens) but
+# the final-answer generation alone took ~105s of the 248s measured run
+# (2026-08-24, "cara pesquisa um papel pra investir" -> PAR). 700 keeps the
+# answer direct (~30% faster generation) while staying well above the 512
+# truncation floor.
+LOCAL_MAX_TOKENS = 700
 # Retained for import compatibility with older callers. External expert calls
 # use ``get_deepseek_max_tokens`` and are not clamped to this local value.
 LOCAL_EXPERT_MAX_TOKENS = 192
