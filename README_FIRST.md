@@ -78,7 +78,7 @@ powershell -ExecutionPolicy Bypass -File stop.ps1
 
 This is an educational framework, not financial advice. It never submits live/real-capital orders. IBKR paper orders can be transmitted only when explicitly enabled and all safety/readiness gates pass; TD Direct Investing remains a manual workflow with no broker transport. The system does not guarantee returns or replace a licensed financial advisor.
 
-The local CEO and expert roles run on your machine through the same server on port 8080. External market-data providers are optional and controlled by `.env`; if enabled, they receive only the data required for market-data collection. No external provider receives LLM prompts as a fallback.
+The local CEO and orchestrator run on your machine through the shared llama-server on port 8080. Financial experts, the day-trade judge, and auditor are pinned to the official external DeepSeek HTTPS API (`https://api.deepseek.com`, `allow_fallback: false` — see `config/runtime.yml:67-77`); neither tier may fall back to the other. External market-data providers are optional and controlled by `.env`; if enabled, they receive only the data required for market-data collection. No external provider receives LLM prompts as a fallback.
 
 ## Support
 

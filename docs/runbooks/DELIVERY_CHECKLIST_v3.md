@@ -8,7 +8,7 @@
 ## ⬜ PRÉ-VOO
 
 - [ ] GPUs livres: `nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader`
-      (perfil canônico: RTX 3060 12 GB + RTX 2070 8 GB, tensor split `12,8`; investigar consumo concorrente antes do boot)
+      (perfil canônico: única GPU funcional RTX 3060 12 GB, tensor split `12` — config/runtime.yml:44-48; a RTX 2070 8 GB existe fisicamente mas está em estado FAILED, Code 31, e não é usada)
 - [ ] `.env.local` hibrido: agent em `http://127.0.0.1:8080/v1`, model `Qwen3.8-27B-UD-IQ2_XXS`, DeepSeek em `https://api.deepseek.com`, model `deepseek-v4-pro` e `SUPEREZIO_DEEPSEEK_API_KEY` preenchida sem ser impressa/commitada
 - [ ] TWS Paper (opcional nesta fase; obrigatório para loops de ordem): porta 7497, TIF DAY default desmarcado (M1)
 

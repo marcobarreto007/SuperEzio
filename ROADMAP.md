@@ -1,11 +1,11 @@
 # SuperEzio Financeiro Roadmap - Bob Core Runtime
 
-Atualizado em 2026-08-20.
+Atualizado em 2026-08-26. Topologia híbrida vigente desde 2026-08-21 — fonte canônica: `config/runtime.yml` e `config/model_manifest.json`.
 
 ## Estado Atual
 
-- Runtime zero-cloud local: API/UI `8002` e servidor LLM compartilhado `8080`.
-- Modelo operacional: `Qwen3.8-27B-Q4_K_M.gguf`; CEO, orquestrador, experts, judge e auditor usam o mesmo endpoint local.
+- Runtime híbrido: API/UI `8002`, servidor LLM compartilhado `8080` (CEO/orquestrador local).
+- Modelo operacional: `Qwen3.8-27B-UD-IQ2_XXS.gguf` (8.4GB, local `:8080`); experts financeiros, judge e auditor pinados no DeepSeek V4 Pro externo (`https://api.deepseek.com`, `allow_fallback: false`). Sem fallback cruzado entre tiers.
 - Modo de produto: pesquisa e validacao paper.
 - Broker: offline ate a probe real do IBKR/TWS confirmar `port_open=true`.
 - GitHub: bloqueado por politica DISK ONLY.

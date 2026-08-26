@@ -69,7 +69,7 @@ Fonte: `.f51/GITHUB_POLICY.json`. Modo **DISK ONLY**.
 | `/save` | Salva estado + commit local |
 | `/agent-lab` | Testa e evolui agentes |
 
-## F51 Skills (27 skills)
+## F51 Skills (32 skills)
 
 Mantidas em `.claude/skills/`. Skills nucleares: inventory, contracts, runtime, refactor, tests, audit, release, money-gate.
 Agentes referenciam skills como capacidade atômica. Skills não são agentes — são ferramentas conceituais.
@@ -94,8 +94,9 @@ python scripts/browser_smoke.py
 
 ## Política de MCPs
 
-MCPs permitidos: filesystem, playwright, firebase, context7, ide.
-Playwright OBRIGATÓRIO com pytest. GitHub BLOQUEADO.
+MCP autorizado: apenas `chrome-devtools-plugin` / `chrome_devtools` (testes de UI e
+depuração do frontend — ver CLAUDE.md, seção "MCPs Registrados e Autorizados").
+Playwright (biblioteca pytest) OBRIGATÓRIO com pytest. GitHub BLOQUEADO.
 
 ## Autonomia e Bypass de Permissões (Claude Code)
 

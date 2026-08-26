@@ -26,7 +26,8 @@ Official config file: `config/runtime.yml`.
 Official CEO model (2026-08-21, canonical single-GPU switch — commit 03d7fd7):
 
 ```text
-%USERPROFILE%\models\qwen3.8-27b\Qwen3.8-27B-UD-IQ2_XXS.gguf
+models/Qwen3.8-27B-UD-IQ2_XXS.gguf      # canonical logical path (config/runtime.yml:30)
+%USERPROFILE%\models\qwen3.8-27b\Qwen3.8-27B-UD-IQ2_XXS.gguf   # physical file; config.ps1 probes this path
 # or the absolute file supplied through SUPEREZIO_MODEL_PATH
 ```
 

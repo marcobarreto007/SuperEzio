@@ -1,4 +1,3 @@
-<!-- MOVED 2026-08-26 para deprecated/. Canônica: f51-contracts (ver .claude/skills/deprecated/README.md) -->
 ---
 name: f51-contract-watchdog
 description: Watchdog ativo de contratos — protege API, schema JSON, CLI args, config, env vars, banco e caminhos publicos. Se alterar contrato, sinalizar antes de editar.

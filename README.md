@@ -145,11 +145,14 @@ The browser smoke requires the API on port `8002`. On 2026-08-21 the suite colle
 
 ## Docker Quick Start
 
-Before starting Compose, place `Qwen3.8-27B-Q4_K_M.gguf` in the repository's
-`models/` directory. The GGUF is intentionally not versioned or copied into the
-API image; Compose mounts that directory read-only at `/models`. Export
-`SUPEREZIO_DEEPSEEK_API_KEY` in the host environment before starting Compose;
-Compose requires it for the external expert tier.
+Before starting Compose, make sure the Qwen GGUF is installed on the host:
+on this machine the files live under `%USERPROFILE%\models\qwen3.8-27b\`
+(e.g. `Qwen3.8-27B-UD-IQ2_XXS.gguf`, 8.4 GB; `config.ps1` resolves that path
+automatically — the repository `models/` directory contains no GGUF). The GGUF
+is intentionally not versioned or copied into the API image; Compose mounts the
+`models/` directory read-only at `/models`. Export `SUPEREZIO_DEEPSEEK_API_KEY`
+in the host environment before starting Compose; Compose requires it for the
+external expert tier.
 
 ```powershell
 docker compose up -d                                  # Start local services (bob-ceo on 8080, api-server on 8002)

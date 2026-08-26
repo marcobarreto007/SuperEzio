@@ -1,24 +1,27 @@
 {
-  "date_local": "2026-08-26",
-  "session": "agent-army-legacy-remediation-20260826",
+  "date_local": "2026-08-25",
+  "session": "pipeline-quality-20260825",
   "status": "DELIVERED",
-  "objective": "Remediar legado do exército: criar cemitérios deprecated/ (agentes e skills), mover 5 skills duplicatas confirmadas, corrigir referências, arquivar cópia stale .agents/skills/.",
-  "predecessor": "pipeline-quality-20260825",
-  "problema": "Auditoria de legado (docs/audit/LEGACY_AUDIT_2026-08-26.md §2.5): f51-contract-watchdog ≈90% duplicata de f51-contracts; arqueologist ≈85% do agente recon-researcher; f51-orchestrator ≈80% do captain; f51-executor ≈100% do product-implementer; f51-metrics-dash ≈60% de f51-observability; deprecated/ listado em AGENT_ORCHESTRATION.md:44 e agent-lab.md:25 mas inexistente no disco; .agents/skills/ (30 skills, gitignored) parecia oficial.",
+  "objective": "Consertar 4 defeitos medidos no run real PAR (relatorio do filho): resposta de 248s, JSON de experts corrompido, truncamento no meio da palavra, linhas vazias no relatorio.",
+  "predecessor": "audit-and-harden-f51-20260824",
+  "problema": "Demo falhou com evidencia no log do CEO: dois prompts de 37.564 e 34.641 tokens rejeitados pelo llama-server com 400 cru (janela local 8192, prompt do Bob ja rodava a ~95% dela) as 18:49-18:52 de 24/08, servindo IP externo. Agravantes medidos: slot unico (-np 1) com resposta media de ~118s (fila invisivel = tela 'travada'); pergunta sem ticker recebia dump de modulos (RSI=N/A, WAIT...) em vez da resposta; nota interna '[Pipeline validation note: ...]' vazada na resposta publica; clique em ticker desabilitava o input de chat por minutos; 'Bob hit a runtime error' com dump tecnico como fallback.",
   "patch": {
-    "cemiterios": ".claude/agents/deprecated/ + .claude/skills/deprecated/ criados com README de política; ciclo candidate→deprecated→killed do /agent-lab volta a ter caminho real.",
-    "skills_movidas": "git mv de 5 skills → .claude/skills/deprecated/ (f51-contract-watchdog, arqueologist, f51-orchestrator, f51-executor, f51-metrics-dash); canônica anotada no topo de cada SKILL.md.",
-    "referencias": "api-contract-verifier.md:22 passa a citar só f51-contracts; related-skills corrigidos em f51-circuit-breaker, f51-idempotency, f51-prop-test, f51-observability; .claude/commands varridos (zero referências).",
-    "stale_copy": ".agents/skills/ (30 skills) → .f51/archive/2026-08-26/.agents-skills-stale/ (preservada versionada).",
-    "relatorio": "docs/audit/LEGACY_AUDIT_2026-08-26.md §6.1 anexada (seção 6 da sessão paralela preservada)."
+    "infra": "8e1b342 — serve_agent_llamacpp.ps1: ContextLength 8192 -> 16384; CEO reiniciado pelo watchdog e confirmado ao vivo (Context 16,384 tokens). API reiniciada com logs em disco (padrao start.ps1) e rodando o HEAD.",
+    "guarda_contexto": "77abceb — gateway: local_context_fits (heuristica ~3 chars/token + 768 tokens/imagem) rejeita >8000 tokens ANTES do llama-server e loga aviso acima de 6500; testada deterministicamente.",
+    "fallback_honesto": "77abceb + 8e1b342 — CHUNK de erro fala com o visitante ('espaco de contexto insuficiente... pergunta mais curta'); detalhe tecnico so no evento ERROR estruturado.",
+    "conteudo": "8e1b342 — nota de validacao interna removida da resposta publica (so log). 8cd1103 + fc81a19 — cabecalho DADOS DO PIPELINE condicional: so com ticker real; sem ticker, resposta natural direta. VALIDADO AO VIVO: smoke final responde a pergunta de alocacao de CAD 25.000 em linguagem natural (antes: dump RSI=N/A).",
+    "frontend": "8e1b342 — input de chat nao e mais desabilitado durante o run (backend serializa com 429 estruturado).",
+    "runbook": "77abceb — docs/runbooks/DEMO_RUNBOOK.md: pre-flight de 30 min (slot livre, health, janela, codigo, rede, cache quente), script de demo, tabela sintoma->acao.",
+    "arvore": "3f6e666 — src/runtime/ e src/data/bob_pain_log.jsonl ignorados (byproducts de cwd=src); data/*.jsonl desstaged (politica raw datasets)."
   },
   "verification": {
-    "grep_pos_move": "zero referências às 5 skills movidas em .claude/agents/, .claude/commands/ e nas 4 skills sobreviventes corrigidas.",
-    "git_mv": "5 renames R100 + 2 READMEs de cemitério + 4 edições related-skills + 1 edição de agente + 5 anotações de canônica.",
-    "archive": "30 diretórios de skills em .f51/archive/2026-08-26/.agents-skills-stale/.",
-    "nao_executado": "pytest/ruff/smoke não rodados — mudança restrita a .claude/ e docs/, sem código de produto."
+    "full_suite": "2247 passed, 1 failed, 3 skipped em 748.61s; a falha unica era o pin de verified_at do manifest TD (TTL expirado ao meio-dia, INV-R51) — manifest re-verificado na fonte oficial (lista US completa) e teste corrigido para exigir frescor de 7 dias; verificado em isolamento: 1/1 verde. Total efetivo da rodada: 2248 verdes.",
+    "targeted": "15 testes novos de qualidade (parser, trimmer, cap, renderer) + 193 bateria do implementador, todos verdes.",
+    "smoke": "smoke pos-fix VERDE: 93.6s (antes 137s — cap 700 tokens funcionando), 1802 chars, 0 console errors.",
+    "runtime": "CEO :8080 com 16,384 tokens confirmado (log do llama-server); API :8002 no HEAD com logs em runtime/logs/api-8002-latest.log; ambos health 200",
+    "ruff": "check limpo em src/ e tests/"
   },
-  "risks": "Sessão paralela (swarm 5 agentes) está movendo arquivos para o MESMO .f51/archive/2026-08-26/ (colisão de caminho por data); 39 renames dela permanecem staged FORA deste commit (isolado via índice temporário). 16 skills órfãs seguem aguardando decisão do operador; model-gateway-verifier.md ainda sem entrada no manual.",
+  "risks": "INV-R62 (janela 16384: KV cache q8_0 ~2GB — VRAM no limite da 3060; se o carregamento falhar por VRAM, voltar para 8192 e podar prompt no cliente); INV-R63 (resposta natural sem ticker: instrucao condicional no prompt e no template — medir se a analise COM ticker mantem o cabecalho obrigatorio); INV-R64 (input de chat sempre ativo: runs concorrentes dependem do 429 estruturado por sessao — ja testado em test_task_submit_active_session_returns_structured_429).",
   "still_true": {
     "live_execution": "FROZEN",
     "github": "DISK ONLY",

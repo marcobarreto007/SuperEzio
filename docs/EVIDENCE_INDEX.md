@@ -12,7 +12,7 @@ This index separates verified evidence from claims that still need a fresh proof
 | Packaging commit | `fd8429e chore(packaging): harden portable buyer kit` | Historical local commit, no GitHub push |
 | Frontpage audit | `docs/internal/audits/frontpage_correspondence_audit_2026-06-03.md` | Current UI correspondence audit |
 | Final packaging plan | `docs/runbooks/FINAL_PACKAGING_PLAN.md` | Current packaging gate |
-| Browser smoke screenshot | `output/playwright/superezio-browser-smoke-20260603-101308.png` | Exists locally, generated output |
+| Browser smoke screenshot | `output/playwright/superezio-browser-smoke-20260720-235915.png` | Exists locally, generated output (oldest real screenshot in `output/playwright/` as of 2026-08-26) |
 
 ## Historical Packaging Checkpoint Snapshot
 
