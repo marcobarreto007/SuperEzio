@@ -1,27 +1,26 @@
 {
-  "date_local": "2026-08-25",
-  "session": "pipeline-quality-20260825",
+  "date_local": "2026-08-26",
+  "session": "savekeeper-doc-contract-remediation-20260826",
   "status": "DELIVERED",
-  "objective": "Consertar 4 defeitos medidos no run real PAR (relatorio do filho): resposta de 248s, JSON de experts corrompido, truncamento no meio da palavra, linhas vazias no relatorio.",
-  "predecessor": "audit-and-harden-f51-20260824",
-  "problema": "Demo falhou com evidencia no log do CEO: dois prompts de 37.564 e 34.641 tokens rejeitados pelo llama-server com 400 cru (janela local 8192, prompt do Bob ja rodava a ~95% dela) as 18:49-18:52 de 24/08, servindo IP externo. Agravantes medidos: slot unico (-np 1) com resposta media de ~118s (fila invisivel = tela 'travada'); pergunta sem ticker recebia dump de modulos (RSI=N/A, WAIT...) em vez da resposta; nota interna '[Pipeline validation note: ...]' vazada na resposta publica; clique em ticker desabilitava o input de chat por minutos; 'Bob hit a runtime error' com dump tecnico como fallback.",
+  "objective": "Remediar sujeira documental e de contratos pós-auditoria (docs/audit/LEGACY_AUDIT_2026-08-26.md §2.4/§2.5/§3): corrigir docs divergentes da config real, marcar duplicatas SUPERSEDED, corrigir mentiras de contratos e adicionar vulture/deptry ao extras dev.",
+  "predecessor": "agent-army-legacy-remediation-20260826",
+  "problema": "Divergências docs vs config real (experts rodam via DeepSeek HTTPS externo, não no :8080 local; modelo atual Qwen3.8-27B-UD-IQ2_XXS; GGUF físico em %USERPROFILE%\\models\\qwen3.8-27b\\; screenshot 20260603 inexistente; MCPs fantasma; 27 vs 32 skills; RTX 2070 em estado FAILED); duplicatas doc sem banner; INVENTORY.json declara core/auth live (0 importers em src/); live-modules.contract.md:188 ambíguo; manual de orquestração sem model-gateway-verifier; f51-dead-code sem vulture/deptry instaláveis.",
   "patch": {
-    "infra": "8e1b342 — serve_agent_llamacpp.ps1: ContextLength 8192 -> 16384; CEO reiniciado pelo watchdog e confirmado ao vivo (Context 16,384 tokens). API reiniciada com logs em disco (padrao start.ps1) e rodando o HEAD.",
-    "guarda_contexto": "77abceb — gateway: local_context_fits (heuristica ~3 chars/token + 768 tokens/imagem) rejeita >8000 tokens ANTES do llama-server e loga aviso acima de 6500; testada deterministicamente.",
-    "fallback_honesto": "77abceb + 8e1b342 — CHUNK de erro fala com o visitante ('espaco de contexto insuficiente... pergunta mais curta'); detalhe tecnico so no evento ERROR estruturado.",
-    "conteudo": "8e1b342 — nota de validacao interna removida da resposta publica (so log). 8cd1103 + fc81a19 — cabecalho DADOS DO PIPELINE condicional: so com ticker real; sem ticker, resposta natural direta. VALIDADO AO VIVO: smoke final responde a pergunta de alocacao de CAD 25.000 em linguagem natural (antes: dump RSI=N/A).",
-    "frontend": "8e1b342 — input de chat nao e mais desabilitado durante o run (backend serializa com 429 estruturado).",
-    "runbook": "77abceb — docs/runbooks/DEMO_RUNBOOK.md: pre-flight de 30 min (slot livre, health, janela, codigo, rede, cache quente), script de demo, tabela sintoma->acao.",
-    "arvore": "3f6e666 — src/runtime/ e src/data/bob_pain_log.jsonl ignorados (byproducts de cwd=src); data/*.jsonl desstaged (politica raw datasets)."
+    "docs_divergentes": "README_FIRST.md:81 corrigido (experts DeepSeek externo, allow_fallback:false); ROADMAP.md:3+7-8 corrigidos (UD-IQ2_XXS + topologia híbrida, fonte config/model_manifest.json); README.md:148-151 Docker Quick Start aponta %USERPROFILE%\\models\\qwen3.8-27b\\; EVIDENCE_INDEX.md:15 screenshot trocada para a real mais antiga (2026-07-20); RUNBOOK.md:29 espelha runtime.yml:30 + caminho físico; AGENTS.md:72 27→32 skills; AGENTS.md:97 MCPs restritos a chrome-devtools-plugin; DELIVERY_CHECKLIST_v3.md:11 única GPU RTX 3060 tensor_split \"12\".",
+    "duplicatas": "docs/TWO_PHASE_ORDER.md recebeu banner SUPERSEDED (canônica: docs/architecture/TWO_PHASE_ORDER.md); par ARCHITECTURE_ONEPAGER.md/SUPEREZIO_DOCS.md fechado (SUPEREZIO_DOCS.md já tinha HISTORICO/SUPERSEDED — referência cruzada adicionada no ONEPAGER).",
+    "contratos": "INVENTORY.json:99 core/auth → classification dead (0 importers em src/, auth real em src/agent_server/auth.py); INVENTORY.json experts/technical_neural nota corrigida (pipeline_hook com 0 chamadores); live-modules.contract.md:188 precisada (callers reais do pennylab pipeline_hook) + nota Not live para technical_neural.",
+    "orquestracao": "AGENT_ORCHESTRATION.md: árvore recebe model-gateway-verifier.md (existe e está ativo) e one-shots 21→22.",
+    "historicos": "F51_NITRO_TRAINING_WHITEPAPER.md marcado HISTORICO/PENDENTE (nitro_training.py e nitro_train.ps1 não existem no repo); plano superpowers 2026-05-23 anotado com equivalentes atuais (evaluate_investment_quality.py, investment_answer_quality.py).",
+    "tooling": "pyproject.toml: vulture>=2.3 e deptry>=0.12 adicionados ao extras dev (habilita varredura f51-dead-code)."
   },
   "verification": {
-    "full_suite": "2247 passed, 1 failed, 3 skipped em 748.61s; a falha unica era o pin de verified_at do manifest TD (TTL expirado ao meio-dia, INV-R51) — manifest re-verificado na fonte oficial (lista US completa) e teste corrigido para exigir frescor de 7 dias; verificado em isolamento: 1/1 verde. Total efetivo da rodada: 2248 verdes.",
-    "targeted": "15 testes novos de qualidade (parser, trimmer, cap, renderer) + 193 bateria do implementador, todos verdes.",
-    "smoke": "smoke pos-fix VERDE: 93.6s (antes 137s — cap 700 tokens funcionando), 1802 chars, 0 console errors.",
-    "runtime": "CEO :8080 com 16,384 tokens confirmado (log do llama-server); API :8002 no HEAD com logs em runtime/logs/api-8002-latest.log; ambos health 200",
-    "ruff": "check limpo em src/ e tests/"
+    "grep_importers": "core/auth: 0 importers em src/ (só tests/test_auth.py); pennylab/pipeline_hook.py tem callers reais (heartbeat.py:387, tool_executor.py:24); technical_neural pipeline_hook: 0 chamadores.",
+    "grep_fs": "nitro_training.py e scripts/nitro_train.ps1 inexistentes; scripts atuais invest QA = evaluate_investment_quality.py + investment_answer_quality.py; 32 skills em .claude/skills/; model-gateway-verifier.md presente; screenshot 20260720-235915 presente em output/playwright/.",
+    "config_real": "config/runtime.yml:67-77 (DeepSeek externo, allow_fallback:false), :44-48 (tensor_split \"12\"), :30 (path GGUF); config/model_manifest.json (UD-IQ2_XXS, %USERPROFILE%\\models\\qwen3.8-27b\\).",
+    "contrato_inventario": "test_contract_runtime_official.py valida apenas entrypoints/versões do INVENTORY — classificação de módulo alterada sem quebrar contrato.",
+    "nao_executado": "pytest/ruff/smoke não rodados — mudança restrita a docs/, .f51/ e pyproject.toml, sem código de produto."
   },
-  "risks": "INV-R62 (janela 16384: KV cache q8_0 ~2GB — VRAM no limite da 3060; se o carregamento falhar por VRAM, voltar para 8192 e podar prompt no cliente); INV-R63 (resposta natural sem ticker: instrucao condicional no prompt e no template — medir se a analise COM ticker mantem o cabecalho obrigatorio); INV-R64 (input de chat sempre ativo: runs concorrentes dependem do 429 estruturado por sessao — ja testado em test_task_submit_active_session_returns_structured_429).",
+  "risks": "Mudanças pendentes de outras sessões em config/td_tradable_universe.json, data/*.jsonl, data/mangala_daily.json e src/data/bob_pain_log.jsonl NÃO incluídas nos commits (escopo estrito por arquivo). Verificação independente (kb-domain-reviewer) recomendada antes do gate de consistência.",
   "still_true": {
     "live_execution": "FROZEN",
     "github": "DISK ONLY",
