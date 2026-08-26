@@ -1,5 +1,12 @@
 # Investment QA Contract Hardening Implementation Plan
 
+> **ATENÇÃO (atualizado 2026-08-26):** os scripts citados neste plano —
+> `scripts/invest_api_qa.py` e `scripts/invest_qa.py` — **não existem mais** na
+> árvore. Equivalentes atuais: `scripts/evaluate_investment_quality.py` e
+> `scripts/investment_answer_quality.py`. Os passos deste plano histórico
+> permanecem como registro do contrato de qualidade; antes de qualquer execução,
+> mapear os passos para os scripts atuais.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make Bob's investment QA route fail honestly, recover deterministically, and stop shipping malformed, fake-ticker, or ETF-overlap answers.

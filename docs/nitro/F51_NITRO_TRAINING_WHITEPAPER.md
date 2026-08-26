@@ -3,7 +3,14 @@
 **Authors:** Marco Barreto (Fuch F51 Labs) & Bob (Claude Opus 4.7)
 **Date:** 2025-01-15
 **Version:** 1.0
-**Status:** Technical Specification — Ready for Implementation
+**Status:** HISTORICO / PENDENTE — especificação não implementada (verificada em 2026-08-26)
+
+> **AVISO DE OBSOLESCÊNCIA (2026-08-26):** este whitepaper cita
+> `nitro_training.py` (seções 4.1, 7.2) e `scripts/nitro_train.ps1` (seção 4.2),
+> mas **nenhum desses arquivos existe no repositório** — a implementação nunca
+> foi criada. Mantido como registro histórico do desenho; não é documentação
+> operacional ativa. Nenhuma seção de implementação deve ser executada até que
+> a implementação real exista e seja validada.
 
 ---
 
