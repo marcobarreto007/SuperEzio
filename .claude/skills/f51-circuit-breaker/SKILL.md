@@ -4,7 +4,7 @@ description: "Implementa circuit breaker com tenacity para chamadas externas (IB
 compatibility: "SuperEzio bootstrap layer"
 allowed-tools: "Read, Edit, Write, Bash, Grep, Diff"
 depends-on: [f51-contracts, f51-runtime]
-related-skills: [f51-idempotency, f51-executor, f51-audit]
+related-skills: [f51-idempotency, f51-audit]
 ---
 
 # f51-circuit-breaker

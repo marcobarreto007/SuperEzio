@@ -19,7 +19,7 @@ Regras:
 - NÃO alterar contratos — apenas reportar discrepâncias
 - NÃO modificar código de produto
 - Toda discrepância precisa de evidência (contrato declarado vs código real)
-- Usar `.claude/skills/f51-contract-watchdog/SKILL.md` e `.claude/skills/f51-contracts/SKILL.md` como referência
+- Usar `.claude/skills/f51-contracts/SKILL.md` como referência
 
 Nunca:
 - Criar ou deletar contratos sem gate explícito

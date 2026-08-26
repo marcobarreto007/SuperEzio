@@ -1,3 +1,4 @@
+<!-- MOVED 2026-08-26 para deprecated/. Canônica: agente captain (ver .claude/skills/deprecated/README.md) -->
 ---
 name: f51-orchestrator
 description: "Orquestrador central — coordena múltiplos agentes em paralelo, integra relatórios, aplica gates. Triggers: orquestrar, coordenar, orquestrador, orquestra, paralelo, múltiplos agentes, swarm manual, dispatcher."
