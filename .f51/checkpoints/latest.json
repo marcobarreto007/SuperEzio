@@ -1,30 +1,24 @@
 {
   "date_local": "2026-08-26",
-  "session": "army-and-doc-remediation-20260826",
+  "session": "validacao-pendentes-20260826",
   "status": "DELIVERED",
-  "objective": "Remediação pós-auditoria consolidada (2 linhas): (A) exército — cemitérios deprecated/, 5 skills duplicatas movidas, .agents/skills stale arquivado; (B) docs/contratos — docs divergentes da config real corrigidos, duplicatas SUPERSEDED, contratos precisados, vulture/deptry no extras dev.",
-  "predecessor": "pipeline-quality-20260825",
-  "problema": "Auditoria docs/audit/LEGACY_AUDIT_2026-08-26.md: exército com 5 skills duplicatas (watchdog≈90% contracts, arqueologist≈85% recon-researcher, orchestrator≈80% captain, executor≈100% implementer, metrics-dash≈60% observability), deprecated/ inexistente (AGENT_ORCHESTRATION.md:44, agent-lab.md:25), .agents/skills/ stale gitignored parecia oficial; docs divergentes da config real (experts via DeepSeek externo, GGUF em %USERPROFILE%\\models\\, MCPs fantasma, 27 vs 32 skills); INVENTORY.json declarava core/auth live (0 importers).",
+  "objective": "Validar mudanças pendentes do working tree via orquestração F51 (8 agentes em 2 waves) e fechar a pendência registrada no checkpoint anterior (config/td_tradable_universe.json, data/*.jsonl, tests/* fora dos commits). Commit f5a32d25: 12 arquivos, +233/-104.",
+  "predecessor": "army-and-doc-remediation-20260826",
+  "problema": "16 arquivos listados como modificados no snapshot; sessão paralela ativa commitando no mesmo tree (HEAD avançou 3x durante a auditoria: 9486e9f2, 2443ebb6, revert/restore 2cf27b42) e pytest (PID 23676) rodando em paralelo.",
   "patch": {
-    "exército_cemiterios": ".claude/agents/deprecated/ + .claude/skills/deprecated/ criados com README de política (ciclo candidate→deprecated→killed volta a ter caminho real).",
-    "exército_skills": "git mv de 5 skills → .claude/skills/deprecated/ (f51-contract-watchdog, arqueologist, f51-orchestrator, f51-executor, f51-metrics-dash); canônica anotada no topo de cada SKILL.md; .claude/commands varridos (zero referências).",
-    "exército_refs": "api-contract-verifier.md:22 passa a citar só f51-contracts; related-skills sem as movidas em f51-circuit-breaker, f51-idempotency, f51-prop-test, f51-observability.",
-    "exército_archive": ".agents/skills/ (30 skills stale gitignored) → .f51/archive/2026-08-26/.agents-skills-stale/ (preservada versionada).",
-    "exército_reparo": "commit 2cf27b42 (sessão paralela, índice antigo) reverteu por acidente a remediação do exército no HEAD; estado do working tree (intacto) re-commitado em chore(army) de reparo — trabalho documental de 2cf27b42 preservado.",
-    "docs_divergentes": "README_FIRST.md:81, ROADMAP.md, README.md:148-151, EVIDENCE_INDEX.md:15, RUNBOOK.md:29, AGENTS.md:72+97, DELIVERY_CHECKLIST_v3.md:11 corrigidos contra config/runtime.yml e config/model_manifest.json (fonte canônica).",
-    "duplicatas": "TWO_PHASE_ORDER.md (raiz) marcado SUPERSEDED; par ARCHITECTURE_ONEPAGER/SUPEREZIO_DOCS referência cruzada.",
-    "contratos": "INVENTORY.json:99 core/auth → classification dead; live-modules.contract.md:188 precisado (callers reais, Not live para technical_neural); AGENT_ORCHESTRATION.md recebeu model-gateway-verifier.md (22º agente).",
-    "historicos": "F51_NITRO_TRAINING_WHITEPAPER.md marcado HISTORICO/PENDENTE; plano superpowers 2026-05-23 anotado com equivalentes atuais.",
-    "tooling": "pyproject.toml: vulture>=2.3 e deptry>=0.12 no extras dev (habilita f51-dead-code)."
+    "commit_f5a32d25": "12 arquivos commitados: 7 testes com diff real = formatação pura ruff (zero semântica, provado por md5 vs `ruff format` do HEAD); config/td_tradable_universe.json = refresh legítimo (generated_at 2026-08-26T00:50Z, TTL 7d, +9/-7 símbolos, GFR.V→GFR.R normalização NYSE); data/bob_pain_log.jsonl (+63), data/conversation_memory.jsonl (+16), src/data/bob_pain_log.jsonl (+14) = appends com schema idêntico ao escritor oficial; data/mangala_daily.json = rescan com schema preservado.",
+    "nao_commitado": "4 testes (test_contract_model_serving, test_ceo_fallback, test_components_data, test_docker_zero_cloud_contract) confirmados byte-idênticos ao HEAD (git add no-op) — 'M' era artefato de stat-cache/sessão paralela, não conteúdo.",
+    "gates_parciais": "ruff check PASS nos 11 testes modificados; git diff --check limpo (só warnings CRLF). pytest completo NÃO rodado pelo orquestrador: suíte de sessão paralela ativa (PID 23676) no mesmo tree (evidência dela: smoke chat OK, qualidade 0.82)."
   },
   "verification": {
-    "grep_pos_move": "zero referências às 5 skills movidas em .claude/agents/ e .claude/commands/ (pós-reparo re-verificado).",
-    "estado_final": ".claude/skills/ = 27 ativas + 5 deprecated; .claude/agents/deprecated/README.md presente; .f51/archive/2026-08-26/.agents-skills-stale/ com 30 skills; HEAD contém fc5160df + reparo + 2cf27b42 (docs dela preservados).",
-    "grep_importers": "core/auth: 0 importers em src/; technical_neural pipeline_hook: 0 chamadores; pennylab tem callers reais.",
-    "config_real": "config/runtime.yml:67-77 (DeepSeek externo), :44-48 (tensor_split \"12\"), :30 (GGUF); config/model_manifest.json (UD-IQ2_XXS).",
-    "nao_executado": "pytest/ruff/smoke não rodados — mudanças restritas a .claude/, docs/, .f51/ e pyproject.toml; sem código de produto."
+    "contratos": "api-contract-verifier: PASS em 5 contratos (.f51/contracts/*) — nenhum drift; diffs de testes são formatação; manifest TD válido/fresco (0.56d < TTL 7d); dados compatíveis com escritores (body.py:672-687, mangala.py:139-161, collector.py:1064-1082).",
+    "regressao": "f51-regression-hunter: 0 regressões, 0 drift no diff; produto (src/ apps/ core/ pipelines/) com zero linhas alteradas.",
+    "runtime": "runtime-verifier: API :8002 e CEO :8080 live (health 200), sem restart desde 08-25, GPU RTX 3060 ok; 0 erros críticos nos logs (169 linhas 'error' = yfinance 'possibly delisted' apenas); checkpoint anterior confirmado ao vivo.",
+    "no_mock": "no-mock-police: PASS em todos os mocks de teste (explícitos, restaurados, seam correto); produção 0 crítico; 2 médio pré-existentes (crisis_expert.py:30-34 notifier silencioso; batch_expert_runner.py:155-156 except:pass).",
+    "working_tree": "limpo pós-commit (git status vazio).",
+    "nao_executado": "pytest completo e browser_smoke standalone pelo orquestrador — suíte paralela em execução no mesmo tree; aguardar término para gate final."
   },
-  "risks": "Colisão de sessões paralelas no working tree compartilhado (MEMORY.md parallel-sessions): commit 2cf27b42 montado sobre índice anterior ao fc5160df reverteu a remediação do exército — reparado, mas recomenda-se serializar commits ou usar índice temporário consistentemente. Mudanças em config/td_tradable_universe.json, data/*.jsonl, src/data/bob_pain_log.jsonl e tests/* permanecem fora dos commits (escopo estrito). 16 skills órfãs seguem aguardando decisão do operador (matar/fundir/manter).",
+  "risks": "1) Sessão paralela ainda ativa no mesmo tree (pytest PID 23676 + commits) — serializar commits; verificar HEAD antes de qualquer novo commit. 2) INV-R62 ativo: VRAM 90.6% (RTX 3060, ~1GB livre com n_ctx 16384) — prompts longos podem falhar por OOM de KV. 3) /health/details reporta package_present:true estático quando ib_insync/ib_async ausentes — sinal de readiness enganoso (falso positivo). 4) Dor api_heart pain=75 (14:20:51Z) gravada healed=false — transiente, monitorar. 5) Drift latente: test_mangala_daily_gate_parity.py:33-40 hardcoda scan de 08-22 (determinístico, mas pinça artefato obsoleto). 6) 2 médio pré-existentes em produção (notifier crise silencioso, except:pass DB). 7) SKILLS_CHECK.md/docs claude-ops-catalog podem ter ficado stale com o move de 5 skills para deprecated/ (verificar na próxima auditoria).",
   "still_true": {
     "live_execution": "FROZEN",
     "github": "DISK ONLY",
