@@ -129,3 +129,34 @@
   - `runtime/checkpoints/latest.json` (nada em src/scripts/docs referencia; atualizado 2026-08-23)
   - Resolução proposta para gate futuro: eleger `.f51/checkpoints/` como única autoridade e migrar/arquivar o segundo.
 - **Commit:** escopado — apenas `.f51/archive/2026-08-26/` + este relatório. Mudanças de outras sessões em `data/`, `config/`, `tests/` não incluídas.
+
+### 6.1 Remediação executada — exército de agentes (agent-explorer)
+
+- **Escopo:** duplicatas de skills confirmadas na auditoria (§2.5) + cemitério oficial inexistente + cópia stale `.agents/skills/`.
+- **Regras respeitadas:** zero deleções (git mv); zero alterações em `src/`/produto; skills ainda referenciadas por agentes ativos (f51-tests, f51-quality-gate, f51-release) intocadas.
+- **Cemitérios criados:** `.claude/agents/deprecated/` e `.claude/skills/deprecated/` (READMEs com política/canônicas) — resolve o caminho fantasma de `docs/AGENT_ORCHESTRATION.md:44` e `.claude/commands/agent-lab.md:25`.
+- **Skills movidas (5) → `.claude/skills/deprecated/`** (canônica anotada no topo de cada SKILL.md):
+
+  | Skill movida | Canônica | Duplicata |
+  |---|---|---|
+  | f51-contract-watchdog | f51-contracts | ~90% |
+  | arqueologist | agente recon-researcher | ~85% |
+  | f51-orchestrator | agente captain | ~80% |
+  | f51-executor | agente product-implementer | ~100% |
+  | f51-metrics-dash | f51-observability | ~60% |
+
+- **Referências corrigidas (arquivo:linha):**
+  - `.claude/agents/api-contract-verifier.md:22` — removida menção a f51-contract-watchdog; mantida só f51-contracts.
+  - `.claude/skills/f51-circuit-breaker/SKILL.md:7` — related-skills sem f51-executor.
+  - `.claude/skills/f51-idempotency/SKILL.md:7` — related-skills sem f51-executor.
+  - `.claude/skills/f51-prop-test/SKILL.md:7` — related-skills sem f51-executor.
+  - `.claude/skills/f51-observability/SKILL.md:7` — related-skills sem f51-metrics-dash.
+  - `.claude/commands/*.md` — varridos; nenhuma referência às 5 movidas.
+- **Cópia stale movida:** `.agents/skills/` (30 skills, gitignored) → `.f51/archive/2026-08-26/.agents-skills-stale/` (versionada; `.agents/` fica vazio no disco).
+- **Sobrou para decisão do operador:**
+  - 16 skills órfãs (§2.5) não movidas — exigem decisão skill a skill (matar/fundir/manter).
+  - `docs/claude-ops-catalog.md:12` ainda lista `arqueologist` como grupo permitido (doc de 2026-05-21).
+  - `.f51/SKILLS_CHECK.md` (2026-06-01) audita 22 skills; hoje são 32 — re-auditar as 10 novas.
+  - `model-gateway-verifier.md` ainda sem entrada no manual `AGENT_ORCHESTRATION.md` (registrar).
+  - Referências históricas a `arqueologist` em `docs/architecture/RECLAMATION_REPORT.md:12` — mantidas como registro.
+- **Commit:** escopado — `.claude/skills/deprecated/`, `.claude/agents/deprecated/`, referências corrigidas, `.f51/archive/2026-08-26/.agents-skills-stale/`, este relatório e checkpoint. Os 39 renames da higiene estrutural (§6) NÃO entram neste commit (sessão paralela).

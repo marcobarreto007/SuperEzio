@@ -4,7 +4,7 @@ description: "Instala e configura structured logging (structlog), métricas Prom
 compatibility: "SuperEzio bootstrap layer"
 allowed-tools: "Read, Edit, Write, Bash, Grep, Glob, Diff"
 depends-on: [f51-contracts, f51-runtime]
-related-skills: [f51-refactor, f51-audit, f51-metrics-dash]
+related-skills: [f51-refactor, f51-audit]
 ---
 
 # f51-observability
