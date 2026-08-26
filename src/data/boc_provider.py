@@ -14,7 +14,7 @@ Séries disponíveis:
 import json
 import threading as _threading
 import urllib.request
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 # Séries Bank of Canada Valet API
@@ -48,7 +48,7 @@ def _fetch_boc_series(
     url = f"https://www.bankofcanada.ca/valet/observations/{series_id}/json?recent={recent}"
 
     cache_key = f"boc_{series_id}_{recent}"
-    now = datetime.now().timestamp()
+    now = datetime.now(UTC).timestamp()
 
     with _cache_lock:
         if cache_key in _cache and (now - _cache_ts.get(cache_key, 0)) < _CACHE_TTL:
@@ -152,5 +152,5 @@ def get_macro_summary_ca() -> dict[str, Any]:
         "cpi": get_cpi(),
         "usd_cad": get_usd_cad(),
         "country": "Canada",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }

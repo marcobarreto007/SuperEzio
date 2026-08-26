@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 
 @dataclass
@@ -22,7 +23,7 @@ def _ascii_lower(text: str) -> str:
 class SanityCheck:
     """Lightweight post-generation checks with no model dependency."""
 
-    _MAGNITUDE_WORDS: dict[str, int] = {
+    _MAGNITUDE_WORDS: ClassVar[dict[str, int]] = {
         "mil": 1_000,
         "milhar": 1_000,
         "milhao": 1_000_000,

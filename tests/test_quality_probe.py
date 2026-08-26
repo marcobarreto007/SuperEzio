@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
-from typing import Any, Self
+from typing import Any, ClassVar, Self
 
 import pytest
 
@@ -166,7 +166,7 @@ def test_atomic_write_replaces_file(tmp_path: Path) -> None:
 
 class _SlowResponse:
     status_code = 200
-    headers = {"content-type": "application/x-ndjson"}
+    headers: ClassVar[dict[str, str]] = {"content-type": "application/x-ndjson"}
 
     async def __aenter__(self) -> Self:
         return self

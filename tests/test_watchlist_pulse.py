@@ -1,11 +1,12 @@
 from datetime import UTC, datetime
+from typing import ClassVar
 
 from core.sentiment.curator import SentimentCurator
 from core.sentiment.watchlist_pulse import PulseReport, WatchlistPulse
 
 
 class FakeMonitor:
-    watchlist = ["TLRY", "AAPL"]
+    watchlist: ClassVar[list[str]] = ["TLRY", "AAPL"]
 
     def get_sentiment_snapshot(self, ticker):
         if ticker == "AAPL":

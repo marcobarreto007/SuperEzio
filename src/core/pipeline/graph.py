@@ -447,7 +447,10 @@ async def _auto_full_analysis(
                 _merge_node_update,
                 _mark_step,
             )
-        except Exception as collect_err:
+        # Catch amplo deliberado: node_collector é fronteira de melhor
+        # esforço (rede/scanner podem falhar de formas imprevisíveis); o
+        # pipeline segue com erro registrado em vez de abortar.
+        except Exception as collect_err:  # noqa: BLE001
             _merge_node_update(
                 working_state,
                 output,
@@ -517,7 +520,10 @@ async def _auto_full_analysis(
                     "numbers": math_report.get("numbers"),
                 }
             )
-        except Exception as exc:
+        # Catch amplo deliberado: MathHub degrada internamente, mas erros
+        # residuais (matemática/format) não podem abortar o pipeline — vão
+        # para a lista de erros e o fluxo segue.
+        except Exception as exc:  # noqa: BLE001
             _merge_node_update(
                 working_state,
                 output,
@@ -608,7 +614,10 @@ async def _auto_full_analysis(
                         expert_result.setdefault("provider", EXPERT_PROVIDERS.get(role, "unknown"))
                         out.append(expert_result)
                     return out
-                except Exception as exc:
+                # Fronteira de melhor esforço: chamada LLM (node_expert) falha
+                # de formas heterogêneas (rede, parse, provider); o expert vira
+                # resultado de erro estruturado, nunca aborta o stack.
+                except Exception as exc:  # noqa: BLE001
                     return [
                         {
                             "role": role,
@@ -641,7 +650,9 @@ async def _auto_full_analysis(
                 {**working_state, "expert_results": expert_results}
             )
             _merge_node_update(working_state, output, collect_res)
-        except Exception as exc:
+        # Nó de pipeline arbitrário (comitê de experts) — catch amplo
+        # deliberado: falha vira resumo de erro, o pipeline segue.
+        except Exception as exc:  # noqa: BLE001
             _merge_node_update(
                 working_state,
                 output,
@@ -682,7 +693,9 @@ async def _auto_full_analysis(
                             gateway=gateway,
                         )
                         return list(res.get("expert_results", []))
-                    except Exception as exc:
+                    # Mesma fronteira de melhor esforço do expert: falha do
+                    # juiz vira resultado de erro estruturado.
+                    except Exception as exc:  # noqa: BLE001
                         return [
                             {
                                 "role": f"judge_agent_{idx}",
@@ -712,7 +725,9 @@ async def _auto_full_analysis(
                 )
                 if auditor_res.get("expert_results"):
                     auditor_result = auditor_res["expert_results"][0]
-            except Exception as exc:
+            # Fronteira de melhor esforço: auditor falho vira resultado de
+            # erro estruturado em vez de abortar o stack de decisão.
+            except Exception as exc:  # noqa: BLE001
                 auditor_result = {
                     "role": "auditor_agent",
                     "ok": False,
@@ -732,7 +747,10 @@ async def _auto_full_analysis(
         _merge_node_update(working_state, output, {"portfolio_snapshot": portfolio_context})
         _mark_step("system_status")
         _mark_step("portfolio_snapshot")
-    except Exception as exc:
+    # Fronteira deliberada de melhor esforço: snapshot IBKR roda em executor
+    # (thread) e pode falhar de muitas formas (timeout, rede, ib_insync);
+    # qualquer falha degrada para "IBKR offline", nunca aborta o turno.
+    except Exception as exc:  # noqa: BLE001
         logger.warning(
             "IBKR snapshot failed (%s: %s) — falling back to offline", type(exc).__name__, exc
         )
@@ -815,7 +833,10 @@ async def _auto_full_analysis(
                     "pump_dump": {"phase": _pump_res.phase, "score": _pump_res.score},
                 }
             )
-        except Exception as exc:
+        # Catch amplo deliberado: bloco PennyLab importa e executa experts
+        # arbitrários; detecção é complementar (não crítica) — qualquer
+        # falha vira erro registrado, o pipeline segue.
+        except Exception as exc:  # noqa: BLE001
             _merge_node_update(
                 working_state,
                 output,
@@ -861,7 +882,10 @@ async def _auto_full_analysis(
                 _merge_node_update(working_state, output, mangala_update)
 
             _mark_step("mangala_scan")
-        except Exception as exc:
+        # Catch amplo deliberado: scan Mangala importa scanners e hubs
+        # arbitrários; caça de oportunidades é melhor esforço — falha vira
+        # erro registrado, o pipeline segue.
+        except Exception as exc:  # noqa: BLE001
             _merge_node_update(
                 working_state,
                 output,
@@ -885,7 +909,10 @@ async def _auto_full_analysis(
         for label, node in decision_nodes:
             try:
                 result = await node(working_state)
-            except Exception as exc:
+            # Fronteira de melhor esforço: nós de decisão arbitrários (f51,
+            # neural, sdca, rag, guardrails) falham de formas imprevisíveis;
+            # o erro é registrado e os demais nós do loop seguem.
+            except Exception as exc:  # noqa: BLE001
                 _merge_node_update(
                     working_state, output, {"errors": [f"auto_full_analysis.{label}:{exc}"]}
                 )
@@ -895,7 +922,9 @@ async def _auto_full_analysis(
         try:
             result = await node_sdca_firewall(working_state)
             _merge_node_update(working_state, output, result)
-        except Exception as exc:
+        # Nó de pipeline arbitrário — catch amplo deliberado: falha vira erro
+        # registrado e o guardrail a seguir ainda roda.
+        except Exception as exc:  # noqa: BLE001
             _merge_node_update(
                 working_state, output, {"errors": [f"auto_full_analysis.sdca_firewall:{exc}"]}
             )
@@ -903,7 +932,9 @@ async def _auto_full_analysis(
             result = await node_guardrail_hub(working_state)
             _merge_node_update(working_state, output, result)
             _mark_step("guardrails")
-        except Exception as exc:
+        # Nó de pipeline arbitrário — catch amplo deliberado: falha de
+        # guardrails vira erro registrado, nunca aborta o turno.
+        except Exception as exc:  # noqa: BLE001
             _merge_node_update(
                 working_state, output, {"errors": [f"auto_full_analysis.guardrail_hub:{exc}"]}
             )
@@ -1063,7 +1094,9 @@ class PipelineApp:
         if self.gateway:
             try:
                 self.gateway.unload_all()
-            except Exception as exc:
+            # Catch amplo deliberado: shutdown não pode falhar por erro de
+            # descarregamento de gateway — melhor esforço com log.
+            except Exception as exc:  # noqa: BLE001
                 logger.warning("Gateway unload error during shutdown: %s", exc)
 
     async def stream_events(
@@ -1084,8 +1117,9 @@ class PipelineApp:
         try:
             evidence = EvidenceRun(prompt=message, ticker=ticker, run_id=run_id)
             evidence.start()
-        except Exception:
-            pass
+        # Evidência é best-effort: falha ao iniciar não pode abortar o turno.
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("[evidence] Failed to start evidence run: %s", exc)
 
         # ── Bob Memory: UnifiedRetriever com perfil + contexto formatado ──
         try:
@@ -1123,10 +1157,14 @@ class PipelineApp:
                         logger.debug(
                             "[memory] Injected learning context (%d chars)", len(learning_context)
                         )
-            except Exception as exc:
+            # Melhor esforço deliberado: lições do FeedbackLoop são
+            # enriquecimento — falha não pode abortar o contexto.
+            except Exception as exc:  # noqa: BLE001
                 logger.debug("[memory] Failed to load learning context: %s", exc)
 
-        except Exception as exc:
+        # Catch amplo deliberado: memória (retriever/perfil/contexto) é
+        # melhor esforço — falha degrada para sem contexto, nunca aborta.
+        except Exception as exc:  # noqa: BLE001
             logger.warning("[memory] Failed to load unified context: %s", exc)
 
         def _finalize_evidence() -> None:
@@ -1145,7 +1183,9 @@ class PipelineApp:
                 generate_html_report(evidence, run_dir)
                 evidence_saved = True
                 logger.info("[evidence] Saved: %s", run_dir)
-            except Exception as exc:
+            # Melhor esforço deliberado: falha ao salvar evidência não pode
+            # abortar a resposta do pipeline.
+            except Exception as exc:  # noqa: BLE001
                 logger.warning("[evidence] Save failed: %s", exc)
 
         initial: dict[str, Any] = {
@@ -1242,8 +1282,10 @@ class PipelineApp:
                                     evidence.record_risk(payload)
                                 elif evt_type == "F51_VERDICT":
                                     evidence.record_verdict(payload)
-                            except Exception:
-                                pass
+                            # Gravação de evidência é best-effort: falha
+                            # pontual não pode quebrar o stream.
+                            except Exception as exc:  # noqa: BLE001
+                                logger.debug("[evidence] event record skipped: %s", exc)
 
                         yield payload
                     elif payload is not None:
@@ -1273,8 +1315,10 @@ class PipelineApp:
                                             rejected=rejected,
                                             sources_used=sources_used,
                                         )
-                        except Exception:
-                            pass
+                        # Gravação de evidência é best-effort: falha no
+                        # processamento de updates não pode quebrar o stream.
+                        except Exception as exc:  # noqa: BLE001
+                            logger.debug("[evidence] updates record skipped: %s", exc)
                     continue
 
             _finalize_evidence()
@@ -1285,13 +1329,18 @@ class PipelineApp:
                 "status": "completed",
                 "evidence_run_id": evidence.run_id if evidence else None,
             }
-        except Exception as exc:
+        # Fronteira final do stream: o grafo inteiro (nós arbitrários) roda
+        # aqui — qualquer falha vira evento ERROR para o cliente, nunca deixa
+        # o stream morrer silenciosamente.
+        except Exception as exc:  # noqa: BLE001
             detail = str(exc) or exc.__class__.__name__
             if evidence is not None:
                 try:
                     evidence.record_error("pipeline", detail)
-                except Exception:
-                    pass
+                # Best-effort: falha ao registrar erro não pode mascarar o
+                # erro principal do pipeline.
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("[evidence] error record skipped: %s", exc)
             yield {"type": "ERROR", "run_id": run_id, "detail": detail[:500]}
 
         finally:
@@ -1353,10 +1402,14 @@ class PipelineApp:
                         graph_bridge = get_graph_bridge()
                         graph_bridge.ingest_conversation_turn(turn)
                         logger.debug("[memory] Ingested turn into knowledge graph")
-                    except Exception as e:
+                    # Ingestão no Knowledge Graph é melhor esforço; falha não
+                    # pode abortar o salvamento do turno.
+                    except Exception as e:  # noqa: BLE001
                         logger.debug("[memory] Graph ingestion skipped: %s", e)
 
-                except Exception as exc:
+                # Catch amplo deliberado: persistência de memória é melhor
+                # esforço — falha não pode abortar o encerramento do turno.
+                except Exception as exc:  # noqa: BLE001
                     logger.warning("[memory] Failed to save conversation turn: %s", exc)
 
     async def chat_async(

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from statistics import mean
-from typing import Any
+from typing import Any, ClassVar
 
 from pydantic import BaseModel, Field
 
@@ -51,7 +51,7 @@ class DNAEngine:
     """Manages the full gene pool, mutation cycles, and crystallisation."""
 
     # ---- 9 initial genes ---------------------------------------------------
-    _GENE_DEFINITIONS: list[dict[str, Any]] = [
+    _GENE_DEFINITIONS: ClassVar[list[dict[str, Any]]] = [
         # Mangala conviction / watch thresholds
         {
             "name": "mangala.high_conviction",

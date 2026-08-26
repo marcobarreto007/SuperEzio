@@ -5,6 +5,7 @@ import socket
 from collections.abc import Iterator
 from contextlib import contextmanager
 from types import SimpleNamespace
+from typing import ClassVar
 
 from fastapi.testclient import TestClient
 
@@ -121,7 +122,7 @@ def test_missing_expert_key_does_not_take_down_public_liveness(monkeypatch) -> N
     from core import bob_consciousness
 
     class HealthyBody:
-        organs: dict = {}
+        organs: ClassVar[dict] = {}
 
         @staticmethod
         def is_man_at_work() -> bool:

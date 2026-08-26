@@ -8,6 +8,7 @@ from __future__ import annotations
 import math
 import re
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 from .formulas import clamp
 from .formulas import proxy_reward as proxy_formula
@@ -133,7 +134,7 @@ class AdversarialCritic:
     Pode usar LLM externo ou fallback baseado em regras.
     """
 
-    CHECKLIST = [
+    CHECKLIST: ClassVar[list[str]] = [
         "Contradiz premissa?",
         "Funciona em casos limite (0, 1, -1, ∞)?",
         "Substituindo na equação original, confere?",

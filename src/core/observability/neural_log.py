@@ -11,7 +11,7 @@ import json
 import logging
 import os
 import warnings
-from datetime import datetime
+from datetime import UTC, datetime
 from functools import wraps
 from queue import Queue
 from typing import Any
@@ -61,7 +61,7 @@ class NeuralLogHandler(logging.Handler):
 
     def emit(self, record):
         log_entry = {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "phase": getattr(record, "phase", "SYSTEM"),
             "event": getattr(record, "event", record.levelname),
             "data": getattr(record, "data", {}),

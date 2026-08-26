@@ -113,39 +113,53 @@ class YFinanceProvider:
                 fast = getattr(ticker, "fast_info", None)
                 price = None
                 if fast is not None:
+                    # Fronteira deliberada de melhor esforco: qualquer falha no
+                    # probe de preco do fast_info degrada o campo para None em
+                    # vez de derrubar o quote (yfinance levanta conjunto amplo
+                    # de excecoes internas, rede e rate-limit).
                     try:
                         price = getattr(fast, "last_price", None) or getattr(
                             fast, "regular_market_price", None
                         )
-                    except Exception:
+                    except Exception:  # noqa: BLE001
                         price = None
                 if price is None:
+                    # Fronteira deliberada de melhor esforco: Ticker.info dispara
+                    # fetch completo do quoteSummary, com superficie ampla de
+                    # excecoes — falha degrada o preco para None, nao o quote.
                     try:
                         info = getattr(ticker, "info", None) or {}
                         price = info.get("regularMarketPrice") or info.get("currentPrice")
-                    except Exception:
+                    except Exception:  # noqa: BLE001
                         price = None
                 if price is None or float(price) <= 0:
+                    # Fallback de melhor esforco: falha no history (rate-limit,
+                    # rede, schema) mantem price=None e segue para o erro final;
+                    # loga em nivel baixo para diagnostico sem ruido.
                     try:
                         hist = ticker.history(period="5d")
                         if hist is not None and not hist.empty:
                             price = float(hist["Close"].iloc[-1])
-                    except Exception:
-                        pass
+                    except Exception as exc:  # noqa: BLE001
+                        logger.debug("yfinance history fallback failed for %s: %s", symbol, exc)
                 if price is None or float(price) <= 0:
                     return {"error": "yfinance_no_price"}
 
                 volume = None
                 if fast is not None:
+                    # Fronteira deliberada de melhor esforco: falha no probe de
+                    # volume degrada o campo para None, sem derrubar o quote.
                     try:
                         volume = getattr(fast, "last_volume", None)
-                    except Exception:
+                    except Exception:  # noqa: BLE001
                         volume = None
                 if volume is None:
+                    # Fronteira deliberada de melhor esforco: falha no volume via
+                    # Ticker.info degrada o campo para None, sem derrubar o quote.
                     try:
                         info = getattr(ticker, "info", None) or {}
                         volume = info.get("averageVolume") or info.get("volume")
-                    except Exception:
+                    except Exception:  # noqa: BLE001
                         volume = None
 
                 as_of = None
@@ -156,20 +170,24 @@ class YFinanceProvider:
                         timestamp = intraday.index[-1]
                         if hasattr(timestamp, "to_pydatetime"):
                             as_of = timestamp.to_pydatetime().astimezone(UTC).isoformat()
-                except Exception as exc:
-                    # O preco anterior (possivelmente o fechamento de ontem) segue
-                    # adiante com as_of=None. Sem este log a degradacao era invisivel
-                    # para quem consome o quote a jusante.
+                except Exception as exc:  # noqa: BLE001
+                    # Fronteira deliberada de melhor esforco: o preco anterior
+                    # (possivelmente o fechamento de ontem) segue adiante com
+                    # as_of=None. Sem este log a degradacao era invisivel para
+                    # quem consome o quote a jusante.
                     logger.warning("yfinance intraday refresh failed for %s: %s", symbol, exc)
 
                 exchange = None
                 currency = None
                 if fast is not None:
+                    # Fronteira deliberada de melhor esforco: falha no probe de
+                    # exchange/currency degrada ambos para None; loga em nivel
+                    # baixo para diagnostico sem derrubar o quote.
                     try:
                         exchange = getattr(fast, "exchange", None)
                         currency = getattr(fast, "currency", None)
-                    except Exception:
-                        pass
+                    except Exception as exc:  # noqa: BLE001
+                        logger.debug("yfinance exchange/currency probe failed for %s: %s", symbol, exc)
 
             return {
                 "symbol": symbol,
@@ -182,7 +200,10 @@ class YFinanceProvider:
                 "currency": str(currency or "").upper() or None,
                 "as_of": as_of,
             }
-        except Exception as exc:
+        # Fronteira deliberada de melhor esforco: contrato do provider e devolver
+        # dict de erro em vez de levantar — consumidores checam "error" e fazem
+        # fallback para a proxima fonte.
+        except Exception as exc:  # noqa: BLE001
             return {"error": f"yfinance: {exc}"}
 
     def get_candles(
@@ -239,7 +260,10 @@ class YFinanceProvider:
                 "source": "yfinance",
                 "provider": "yfinance",
             }
-        except Exception as exc:
+        # Fronteira deliberada de melhor esforco: contrato do provider e devolver
+        # dict de erro em vez de levantar — consumidores checam "error" e fazem
+        # fallback para a proxima fonte.
+        except Exception as exc:  # noqa: BLE001
             return {"error": f"yfinance: {exc}"}
 
     def get_profile(
@@ -287,7 +311,10 @@ class YFinanceProvider:
                 "source": "yfinance",
                 "provider": "yfinance",
             }
-        except Exception as exc:
+        # Fronteira deliberada de melhor esforco: contrato do provider e devolver
+        # dict de erro em vez de levantar — consumidores checam "error" e fazem
+        # fallback para a proxima fonte.
+        except Exception as exc:  # noqa: BLE001
             return {"error": f"yfinance: {exc}"}
 
     def get_fundamentals(
@@ -362,5 +389,8 @@ class YFinanceProvider:
             if len(payload) <= 4:  # only symbol/yahoo_symbol/source/provider
                 return {"error": "yfinance_no_fundamentals", "symbol": symbol}
             return payload
-        except Exception as exc:
+        # Fronteira deliberada de melhor esforco: contrato do provider e devolver
+        # dict de erro em vez de levantar — consumidores checam "error" e fazem
+        # fallback para a proxima fonte.
+        except Exception as exc:  # noqa: BLE001
             return {"error": f"yfinance: {exc}"}

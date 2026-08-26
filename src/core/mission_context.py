@@ -7,7 +7,7 @@ the product/runtime posture Bob should understand before answering users.
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -83,11 +83,11 @@ def _resolve_apprenticeship_status(
         return stored_status
 
     try:
-        end_date = datetime.strptime(str(end_date_raw), "%Y-%m-%d").date()
+        end_date = datetime.strptime(str(end_date_raw), "%Y-%m-%d").replace(tzinfo=UTC).date()
     except (ValueError, TypeError):
         return stored_status
 
-    current_date = today if today is not None else datetime.now().date()
+    current_date = today if today is not None else datetime.now(UTC).date()
     if current_date > end_date:
         return "expired"
     return stored_status

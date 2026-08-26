@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import re
+from datetime import UTC
 from decimal import ROUND_FLOOR, Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
@@ -2859,7 +2860,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     if is_status_check and portfolio and "offline" not in portfolio.lower():
         from datetime import datetime as _dt
 
-        now = _dt.now().strftime("%H:%M")
+        now = _dt.now(UTC).strftime("%H:%M")
         content = (
             f"#{' ' * 20}PORTFOLIO STATUS — {now}\n\n"
             f"{portfolio}\n"
@@ -3132,7 +3133,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         )
         active_system_prompt = pipeline_explainer + "\n\n" + active_system_prompt
 
-        now_str = dt_now.now().strftime("%Y-%m-%d %H:%M:%S UTC")
+        now_str = dt_now.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
         risk = state.get("risk_tolerance", "moderada")
         bob_intent = state.get("bob_intent", state.get("intent", "general_question"))
 

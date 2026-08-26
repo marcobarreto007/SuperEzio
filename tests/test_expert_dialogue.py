@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 import pytest
 
 from core.pipeline.nodes.expert_dialogue import ExpertDialogue, extract_verdict_payload
@@ -87,7 +89,7 @@ async def test_expert_dialogue_respects_external_limits_and_disables_fallback(mo
 @pytest.mark.asyncio
 async def test_expert_dialogue_missing_provider_fails_without_calling_gateway():
     class MissingProviderGateway:
-        providers = []
+        providers: ClassVar[list] = []
 
         async def chat_completion(self, **kwargs):
             raise AssertionError("missing provider must not fall through")

@@ -1,5 +1,7 @@
 """Contract tests for expert nodes: fan-out execution and result collection."""
 
+from typing import ClassVar
+
 import src.core.pipeline.nodes.experts as experts_node
 from src.core.pipeline.nodes.experts import (
     EXPERT_PROVIDERS,
@@ -180,7 +182,7 @@ def test_node_expert_red_team_fallback_survives_stray_braces_in_context(monkeypa
 
     class _FakeGateway:
         last_provider_used = "deepseek"
-        calls = []
+        calls: ClassVar[list] = []
 
         async def chat_completion(self, **kwargs):
             self.calls.append(kwargs)

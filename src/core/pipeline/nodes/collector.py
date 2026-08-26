@@ -84,7 +84,7 @@ def _cache_is_fresh(trade_ctx: dict[str, Any]) -> bool:
         dt = datetime.fromisoformat(str(scanned_at))
         age = (datetime.now(UTC) - dt).total_seconds()
         return age <= _SCAN_CACHE_TTL_SECONDS
-    except Exception:
+    except (TypeError, ValueError):
         return False
 
 
@@ -148,7 +148,9 @@ def _try_fast_cache(ticker: str, writer) -> dict | None:
         )
 
         return {"data": data, "data_context": data_context, "_data_from_cache": True}
-    except Exception:
+        # Fronteira de melhor esforço: cache é otimização — qualquer falha
+        # degrada para a coleta ao vivo, nunca quebra o pipeline.
+    except Exception:  # noqa: BLE001
         return None  # Any error → fall through to live collection
 
 
@@ -318,9 +320,11 @@ async def node_collector(state: dict, *, config=None) -> dict:
         full_data: dict[str, Any] = {}
         full_ctx = ""
         if top_ticker:
+            # Fronteira de melhor esforço: falha na coleta completa do top
+            # candidato vira dict de erro — o scan segue sem enriquecimento.
             try:
                 full_data, full_ctx = await _collect_professional(top_ticker, writer, run_id)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 full_data = {"ticker": top_ticker, "data_quality": "error"}
 
         return {
@@ -355,6 +359,8 @@ async def _collect_professional(ticker: str, writer, run_id: str) -> tuple[dict[
     t0 = time.time()
 
     collector = ProfessionalCollector()
+    # Fronteira de melhor esforço: falha do coletor vira dict de erro
+    # rastreável (timeout ou genérico), nunca exceção propagada.
     try:
         data = await asyncio.wait_for(
             collector.collect(ticker, overall_timeout=timeout_s),
@@ -369,7 +375,7 @@ async def _collect_professional(ticker: str, writer, run_id: str) -> tuple[dict[
             "source_errors": ["professional_collector_timeout"],
             "price": {"error": "timeout"},
         }
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         data = {
             "analysis_id": f"{ticker}-err",
             "ticker": ticker,
@@ -624,8 +630,10 @@ def _generate_fallback_catalyst(item: dict[str, Any]) -> dict[str, Any]:
                 )
                 risk = f"binary event risk around the scheduled {earnings_date} earnings release"
                 evidence_inputs = ["earnings_date"]
-        except Exception:
-            pass
+        except (TypeError, ValueError):
+            # Data inválida ou não parseável — segue sem tese de earnings,
+            # e o gate rejeita o candidato honestamente.
+            logger.debug("earnings_date não parseável ignorado: %r", earnings_date)
 
     # Priority 2: bullish moving-average alignment
     if (
@@ -759,6 +767,8 @@ def _apply_candidate_gate(
 
 def _safe_get_price(hub_obj: Any, ticker: str, *, market: str | None = None) -> dict[str, Any]:
     """Call hub.get_price defensively — never propagate provider errors."""
+    # Fronteira de melhor esforço: erro de provedor vira dict de erro,
+    # nunca exceção propagada — o gate rejeita o candidato honestamente.
     try:
         result = hub_obj.get_price(ticker, market=market)
     except TypeError:
@@ -776,6 +786,8 @@ def _safe_get_profile(hub_obj: Any, ticker: str) -> dict[str, Any]:
     fn = getattr(hub_obj, "get_profile", None)
     if not callable(fn):
         return {}
+    # Fronteira de melhor esforço: hub de dados pode falhar por provedor —
+    # erro vira dict de erro, nunca exceção propagada.
     try:
         result = fn(ticker)
     except Exception as exc:  # noqa: BLE001
@@ -788,6 +800,8 @@ def _safe_get_fundamentals(hub_obj: Any, ticker: str) -> dict[str, Any]:
     fn = getattr(hub_obj, "get_fundamentals", None)
     if not callable(fn):
         return {}
+    # Fronteira de melhor esforço: hub de dados pode falhar por provedor —
+    # erro vira dict de erro, nunca exceção propagada.
     try:
         result = fn(ticker)
     except Exception as exc:  # noqa: BLE001
@@ -805,6 +819,8 @@ def _safe_get_short_term_catalyst(hub_obj: Any, ticker: str) -> dict[str, Any]:
     route_fn = getattr(hub_obj, "route", None)
     if not callable(route_fn):
         return {}
+    # Fronteira de melhor esforço: hub de dados pode falhar por provedor —
+    # erro vira dict de erro, nunca exceção propagada.
     try:
         result = route_fn("short_term_catalyst", ticker)
     except Exception as exc:  # noqa: BLE001
@@ -893,6 +909,8 @@ async def _run_scan(
                     limit=scan_max_total,
                     max_price=requested_max_price,
                 )
+            # Melhor esforço: OpenBB indisponível degrada para o fallback
+            # FinanceDatabase, sem quebrar o scan.
             except Exception as exc:  # noqa: BLE001
                 source_errors.append(f"openbb_discovery: {exc}")
                 obb_items = []
@@ -951,6 +969,8 @@ async def _run_scan(
                             sector=explicit_sector,
                             limit=per_country_limit,
                         )
+                # Melhor esforço: falha de um país não derruba o scan —
+                # registra o erro e segue para o próximo país.
                 except Exception as exc:  # noqa: BLE001
                     source_errors.append(f"scanner_{country}: {exc}")
                     fetch_errors += 1
@@ -1016,12 +1036,16 @@ async def _run_scan(
                 )
                 if added:
                     provider_sources_used.add("penny_scanner_yfinance")
+            # Melhor esforço: penny scanner falho só registra o erro; o scan
+            # continua com os candidatos já coletados.
             except Exception as exc:  # noqa: BLE001
                 source_errors.append(f"penny_scanner: {exc}")
                 registry.stage_failed("fetch_tickers", str(exc)[:200], provider="penny_scanner")
     except ImportError:
         source_errors.append("scanner: module_archived")
         registry.stage_failed("fetch_tickers", "module_archived", provider="scanner")
+    # Melhor esforço: falha geral do scanner degrada para o seed diário
+    # (Mangala) e segue com o que tiver sido coletado.
     except Exception as exc:  # noqa: BLE001
         source_errors.append(f"scanner: {exc}")
         registry.stage_failed("fetch_tickers", str(exc)[:200], provider="scanner")
@@ -1048,7 +1072,9 @@ async def _run_scan(
                     elif sym.endswith(".V"):
                         candidate["exchange"] = "TSXV"
                     raw_candidates.append(candidate)
-        except Exception as exc:
+        # Melhor esforço: watchlist pennylab é opcional — falha vira warning
+        # e o scan segue sem ela.
+        except Exception as exc:  # noqa: BLE001
             logger.warning("Failed to merge pennylab watchlist: %s", exc)
 
     # ── Discovery seed: the daily Mangala scan is the discovery layer that
@@ -1092,6 +1118,8 @@ async def _run_scan(
                         "scan seeded %d candidates from mangala_daily (live scanner thin)",
                         seeded,
                     )
+        # Melhor esforço: seed diário é opcional — falha vira warning,
+        # nunca quebra o scan.
         except Exception as exc:  # noqa: BLE001
             logger.warning("mangala_daily seed failed: %s", exc)
 
@@ -1225,7 +1253,9 @@ async def _run_scan(
                             return
                         try:
                             result = await call_fn(item)
-                        except Exception as exc:
+                        # Melhor esforço por item: falha vira resultado de
+                        # erro e o worker segue para o próximo item.
+                        except Exception as exc:  # noqa: BLE001
                             result = _enrich_error(exc)
                         out_pairs.append((item, result))
                         done_count += 1
@@ -1289,7 +1319,9 @@ async def _run_scan(
                         asyncio.to_thread(_safe_get_price, hub, ticker, market=market),
                         timeout=per_item_timeout,
                     )
-                except Exception as exc:
+                # Melhor esforço por provedor: falha registra no circuit
+                # breaker e vira dict de erro — nunca propaga.
+                except Exception as exc:  # noqa: BLE001
                     breaker.failure()
                     return _enrich_error(exc)
                 if isinstance(result, dict) and "error" in result:
@@ -1307,7 +1339,9 @@ async def _run_scan(
                         asyncio.to_thread(_safe_get_profile, hub, item.get("ticker", "")),
                         timeout=per_item_timeout,
                     )
-                except Exception as exc:
+                # Melhor esforço por provedor: falha registra no circuit
+                # breaker e vira dict de erro — nunca propaga.
+                except Exception as exc:  # noqa: BLE001
                     breaker.failure()
                     return _enrich_error(exc)
                 if isinstance(result, dict) and "error" in result:
@@ -1325,7 +1359,9 @@ async def _run_scan(
                         asyncio.to_thread(_safe_get_fundamentals, hub, item.get("ticker", "")),
                         timeout=per_item_timeout,
                     )
-                except Exception as exc:
+                # Melhor esforço por provedor: falha registra no circuit
+                # breaker e vira dict de erro — nunca propaga.
+                except Exception as exc:  # noqa: BLE001
                     breaker.failure()
                     return _enrich_error(exc)
                 if isinstance(result, dict) and "error" in result:
@@ -1345,7 +1381,9 @@ async def _run_scan(
                         ),
                         timeout=per_item_timeout,
                     )
-                except Exception as exc:
+                # Melhor esforço por provedor: falha registra no circuit
+                # breaker e vira dict de erro — nunca propaga.
+                except Exception as exc:  # noqa: BLE001
                     breaker.failure()
                     return _enrich_error(exc)
                 if isinstance(result, dict) and "error" in result:

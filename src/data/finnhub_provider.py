@@ -19,7 +19,7 @@ from __future__ import annotations
 import os
 import threading
 import time
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import requests
@@ -424,7 +424,7 @@ class FinnhubProvider:
             {symbol, catalyst, invalidation, event_date, confidence, source}
             or {"error": "no_catalyst_in_window"} when nothing schedulable.
         """
-        today = date.today()
+        today = datetime.now(UTC).date()  # UTC: earnings calendar is day-granular; avoids local-tz drift
         end = today + timedelta(days=window_days)
         variants = finnhub_symbol_variants(symbol)
         last_error = "no_catalyst_in_window"
@@ -594,7 +594,7 @@ class FinnhubProvider:
         token = (query or "").strip().upper().split()[0]
         if not token:
             return {"error": "invalid_query"}
-        end = date.today()
+        end = datetime.now(UTC).date()  # UTC: news window is day-granular; avoids local-tz drift
         start = end - timedelta(days=30)
         variants = finnhub_symbol_variants(token)
         last_error = "no_news"

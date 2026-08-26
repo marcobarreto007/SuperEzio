@@ -629,7 +629,9 @@ class FeedbackLoop:
             results["theses_closed"] = len(closed_theses)
             if closed_theses:
                 logger.info("Closed %d aged theses", len(closed_theses))
-        except Exception as e:
+        # Fronteira de melhor esforço: falha na revisão de teses antigas não pode
+        # derrubar o ciclo de aprendizado inteiro.
+        except Exception as e:  # noqa: BLE001
             logger.warning("Aged thesis review failed: %s", e)
 
         # 1. Analisa padrões
@@ -644,7 +646,9 @@ class FeedbackLoop:
             results["patterns_found"] = len(all_patterns)
 
             logger.info("Found %d patterns", len(all_patterns))
-        except Exception as e:
+        # Fronteira de melhor esforço: falha na análise de padrões não pode
+        # derrubar o ciclo de aprendizado.
+        except Exception as e:  # noqa: BLE001
             logger.warning("Pattern analysis failed: %s", e)
 
         # 2. Extrai lições
@@ -657,18 +661,24 @@ class FeedbackLoop:
             results["lessons_extracted"] = len(lessons)
 
             logger.info("Extracted %d lessons", len(lessons))
-        except Exception as e:
+        # Fronteira de melhor esforço: falha na extração de lições não pode
+        # derrubar o ciclo de aprendizado.
+        except Exception as e:  # noqa: BLE001
             logger.warning("Lesson extraction failed: %s", e)
 
         try:
             results["bias_report"] = self.analyze_confidence_bias()
-        except Exception as e:
+        # Fronteira de melhor esforço: falha na análise de bias não pode
+        # derrubar o ciclo de aprendizado.
+        except Exception as e:  # noqa: BLE001
             logger.warning("Bias analysis failed: %s", e)
 
         # Compute reward and expert weights exactly once per terminal outcome.
         try:
             results["adaptive_outcomes"] = self._update_adaptive_from_closed_trades()
-        except Exception as e:
+        # Fronteira de melhor esforço: falha na atualização adaptativa não pode
+        # derrubar o ciclo de aprendizado.
+        except Exception as e:  # noqa: BLE001
             logger.warning("Adaptive outcome update failed: %s", e)
 
         # 3. Atualiza XP baseado em trades fechados
@@ -676,7 +686,9 @@ class FeedbackLoop:
             xp_results = self._update_xp_from_closed_trades()
             results["xp_updates"] = xp_results
             logger.info("XP updated: %d events", len(xp_results.get("events", [])))
-        except Exception as e:
+        # Fronteira de melhor esforço: falha na atualização de XP não pode
+        # derrubar o ciclo de aprendizado.
+        except Exception as e:  # noqa: BLE001
             logger.warning("XP update failed: %s", e)
 
         # 4. Gera relatório para Bob
@@ -684,7 +696,9 @@ class FeedbackLoop:
             bob_context = self.render_for_bob()
             results["bob_context"] = bob_context
             logger.info("Generated Bob context (%d chars)", len(bob_context))
-        except Exception as e:
+        # Fronteira de melhor esforço: falha na geração do contexto do Bob não pode
+        # derrubar o ciclo de aprendizado.
+        except Exception as e:  # noqa: BLE001
             logger.warning("Bob context generation failed: %s", e)
 
         logger.info(
@@ -828,7 +842,9 @@ class FeedbackLoop:
                 patterns.append(
                     f"• Melhor risco: {top_risk.description} (win rate: {top_risk.win_rate * 100:.0f}%)"
                 )
-        except Exception as e:
+        # Fronteira de melhor esforço: falha ao renderizar padrões não pode
+        # derrubar a geração do contexto do Bob.
+        except Exception as e:  # noqa: BLE001
             logger.warning("Pattern rendering failed: %s", e)
 
         if patterns:
@@ -998,7 +1014,8 @@ class FeedbackLoop:
                 exit_date = _parse_utc_datetime(exit_date_str)
                 if exit_date is None or exit_date < cutoff:
                     continue
-            except Exception:
+            except (TypeError, ValueError) as exc:
+                logger.warning("Invalid exit date for trade %s: %s", trade_id, exc)
                 continue
 
             outcome = trade.get("outcome", "")
@@ -1030,7 +1047,9 @@ class FeedbackLoop:
                         win_count += 1
                     elif outcome == "loss":
                         loss_count += 1
-            except Exception as e:
+            # Fronteira de melhor esforço: falha ao registrar XP de um trade não
+            # pode derrubar o ciclo de aprendizado.
+            except Exception as e:  # noqa: BLE001
                 logger.warning("Failed to record XP for trade %s: %s", trade_id, e)
 
         # Registrar streaks
@@ -1038,14 +1057,18 @@ class FeedbackLoop:
             try:
                 streak_event = self._xp_system.record_streak("win", win_count)
                 events.append(streak_event.to_dict())
-            except Exception as e:
+            # Fronteira de melhor esforço: falha ao registrar streak não pode
+            # derrubar o ciclo de aprendizado.
+            except Exception as e:  # noqa: BLE001
                 logger.warning("Failed to record win streak: %s", e)
 
         elif loss_count >= 3:
             try:
                 streak_event = self._xp_system.record_streak("loss", loss_count)
                 events.append(streak_event.to_dict())
-            except Exception as e:
+            # Fronteira de melhor esforço: falha ao registrar streak não pode
+            # derrubar o ciclo de aprendizado.
+            except Exception as e:  # noqa: BLE001
                 logger.warning("Failed to record loss streak: %s", e)
 
         return {

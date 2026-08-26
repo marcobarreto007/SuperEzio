@@ -437,7 +437,9 @@ class ProviderMesh:
         except TimeoutError:
             self.record_failure(name)
             return {"error": f"{name}_timeout_{timeout}s"}
-        except Exception as exc:
+        # Fronteira de melhor esforço do mesh: exceção de qualquer provider
+        # vira dict de erro (e falha contabilizada), nunca propaga para a coleta.
+        except Exception as exc:  # noqa: BLE001
             self.record_failure(name)
             return {"error": f"{name}_error: {type(exc).__name__}: {exc}"}
 
@@ -660,7 +662,9 @@ class ProfessionalCollector:
                 "source": result.get("provider", "datahub"),
                 "timestamp": _now_iso(),
             }
-        except Exception as exc:
+        # Fronteira de melhor esforço do provider: falha vira dict de erro,
+        # nunca exceção — o mesh trata o provider como indisponível.
+        except Exception as exc:  # noqa: BLE001
             return {"error": f"hub_price: {exc}"}
 
     @staticmethod
@@ -677,7 +681,9 @@ class ProfessionalCollector:
                 "source": "datahub",
                 "timestamp": _now_iso(),
             }
-        except Exception as exc:
+        # Fronteira de melhor esforço do provider: falha vira dict de erro,
+        # nunca exceção — o mesh trata o provider como indisponível.
+        except Exception as exc:  # noqa: BLE001
             return {"error": f"hub_fundamentals: {exc}"}
 
     @staticmethod
@@ -702,7 +708,9 @@ class ProfessionalCollector:
                 "source": "datahub",
                 "timestamp": _now_iso(),
             }
-        except Exception as exc:
+        # Fronteira de melhor esforço do provider: falha vira dict de erro,
+        # nunca exceção — o mesh trata o provider como indisponível.
+        except Exception as exc:  # noqa: BLE001
             return {"error": f"hub_profile: {exc}"}
 
     @staticmethod
@@ -715,7 +723,9 @@ class ProfessionalCollector:
             if not isinstance(result, dict):
                 return {"error": "newsapi_invalid_result"}
             return {**result, "timestamp": result.get("timestamp", _now_iso())}
-        except Exception as exc:
+        # Fronteira de melhor esforço do provider: falha vira dict de erro,
+        # nunca exceção — o mesh trata o provider como indisponível.
+        except Exception as exc:  # noqa: BLE001
             return {"error": f"newsapi: {exc}"}
 
     @staticmethod
@@ -733,7 +743,9 @@ class ProfessionalCollector:
                 "source": result.get("source", "news_scout"),
                 "timestamp": _now_iso(),
             }
-        except Exception as exc:
+        # Fronteira de melhor esforço do provider: falha vira dict de erro,
+        # nunca exceção — o mesh trata o provider como indisponível.
+        except Exception as exc:  # noqa: BLE001
             return {"error": f"news_scout: {exc}"}
 
     @staticmethod
@@ -749,7 +761,9 @@ class ProfessionalCollector:
             provider = WolframProvider()
             result = provider.query(ticker)
             return result if isinstance(result, dict) else {"error": "wolfram_invalid_result"}
-        except Exception as exc:
+        # Fronteira de melhor esforço do provider: falha vira dict de erro,
+        # nunca exceção — o mesh trata o provider como indisponível.
+        except Exception as exc:  # noqa: BLE001
             return {"error": f"wolfram: {exc}"}
 
     @staticmethod
@@ -766,7 +780,9 @@ class ProfessionalCollector:
                 "source": result.get("source", "reddit_pulse"),
                 "timestamp": _now_iso(),
             }
-        except Exception as exc:
+        # Fronteira de melhor esforço do provider: falha vira dict de erro,
+        # nunca exceção — o mesh trata o provider como indisponível.
+        except Exception as exc:  # noqa: BLE001
             return {"error": f"reddit_pulse: {exc}"}
 
     # ── Main collection ──────────────────────────────────────────────────
@@ -849,8 +865,10 @@ class ProfessionalCollector:
             candles_result = await asyncio.to_thread(hub.get_candles, ticker, timeframe="6M")
             if "error" not in candles_result:
                 ohlcv = candles_result.get("candles", [])
-        except Exception:
-            pass  # OHLCV is optional, don't fail the whole collection
+        # OHLCV é opcional: falha aqui não pode derrubar a coleta inteira.
+        # Skip deliberado — loga em nível baixo para diagnóstico sem ruído.
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("ohlcv indisponível para %s: %s", ticker, exc)
 
         data = {
             "analysis_id": analysis_id,
@@ -880,7 +898,9 @@ class ProfessionalCollector:
             market = "CA" if exchange in ("TSX", "TSXV") else "US"
             result = await asyncio.to_thread(hub.get_macro, market)
             return result if isinstance(result, dict) else {"error": "macro_invalid_result"}
-        except Exception as exc:
+        # Fronteira de melhor esforço do provider: falha vira dict de erro,
+        # nunca exceção — o mesh trata o provider como indisponível.
+        except Exception as exc:  # noqa: BLE001
             return {"error": f"macro: {exc}"}
 
     async def _collect_technicals(self, ticker: str) -> dict:
@@ -917,7 +937,9 @@ class ProfessionalCollector:
                 "source": "datahub_technicals",
                 "timestamp": _now_iso(),
             }
-        except Exception as exc:
+        # Fronteira de melhor esforço do provider: falha vira dict de erro,
+        # nunca exceção — o mesh trata o provider como indisponível.
+        except Exception as exc:  # noqa: BLE001
             return {"error": f"technicals: {exc}"}
 
     @staticmethod

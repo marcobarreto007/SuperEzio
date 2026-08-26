@@ -17,7 +17,7 @@ import logging
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 logger = logging.getLogger(__name__)
 
@@ -227,7 +227,7 @@ class EntityExtractor:
     TICKER_PATTERN = r"\b([A-Z]{1,5})\b"
 
     # Verdict keywords
-    VERDICTS = {
+    VERDICTS: ClassVar[set[str]] = {
         "buy",
         "sell",
         "hold",
@@ -240,7 +240,7 @@ class EntityExtractor:
     }
 
     # Expert types
-    EXPERTS = {
+    EXPERTS: ClassVar[set[str]] = {
         "fundamental",
         "technical",
         "sentiment",
@@ -248,7 +248,7 @@ class EntityExtractor:
     }
 
     # Regime keywords
-    REGIMES = {
+    REGIMES: ClassVar[set[str]] = {
         "bull",
         "bear",
         "sideways",

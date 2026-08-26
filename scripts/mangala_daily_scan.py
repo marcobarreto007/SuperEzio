@@ -161,7 +161,12 @@ def _get_data_hub():
         from data.data_hub import hub
 
         return hub
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
+        # Fronteira de melhor esforço: o import instancia o singleton
+        # `hub = DataHub()` no module level do data_hub, podendo falhar de
+        # formas heterogêneas (import falho, OSError no load_local_env,
+        # registro de providers). Sem hub o scan segue degradado, mas não
+        # pode derrubar o processo.
         logger.warning("MangalaScan: DataHub unavailable: %s", exc)
         return None
 
@@ -172,7 +177,9 @@ def _get_social_whale(data_hub: Any) -> Any | None:
         return None
     try:
         return data_hub.get_provider("social_whale")
-    except Exception:
+    except Exception:  # noqa: BLE001
+        # Fronteira de melhor esforço: lookup de provider é rota externa do
+        # DataHub; qualquer falha apenas desativa o sinal de whale.
         return None
 
 
@@ -198,7 +205,10 @@ def _get_pennylab_data(social_whale: Any, ticker: str) -> dict[str, Any]:
         if isinstance(whale_data, dict) and "error" not in whale_data:
             result["whale_score"] = int(whale_data.get("whale_score", 0) or 0)
             result["whale_signal"] = str(whale_data.get("signal", "CLEAN"))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
+        # Fronteira de melhor esforço: chamada ao SocialWhaleProvider é
+        # externa (rede/API); falha só degrada o score de whale, mantendo o
+        # scan vivo.
         logger.debug("MangalaScan: whale signal failed for %s: %s", ticker, exc)
 
     # ── Pump detection ──
@@ -207,7 +217,9 @@ def _get_pennylab_data(social_whale: Any, ticker: str) -> dict[str, Any]:
         if isinstance(pump_data, dict) and "error" not in pump_data:
             result["pump_score"] = int(pump_data.get("pump_risk", 0) or 0)
             result["pump_signal"] = str(pump_data.get("signal", "CLEAN"))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
+        # Fronteira de melhor esforço: chamada ao SocialWhaleProvider é
+        # externa (rede/API); falha só degrada o pump risk, mantendo o scan.
         logger.debug("MangalaScan: pump detection failed for %s: %s", ticker, exc)
 
     return result
@@ -225,8 +237,10 @@ def _get_candidates(data_hub: Any) -> list[dict[str, Any]]:
         candidates = scan_penny_stocks(max_price=MAX_PRICE, min_volume=MIN_VOLUME)
         if candidates:
             return candidates
-    except Exception:
-        pass
+    except Exception as exc:  # noqa: BLE001
+        # Fronteira de melhor esforço: scanner opcional; qualquer falha cai
+        # para o fallback via DataHub (lista vazia nunca derruba o scan).
+        logger.debug("MangalaScan: penny scanner unavailable: %s", exc)
 
     # Fallback: use DataHub to build a candidate list
     # Try trending stocks from ApeWisdom or SocialWhale
@@ -252,8 +266,10 @@ def _get_candidates(data_hub: Any) -> list[dict[str, Any]]:
                             )
                     if candidates:
                         return candidates
-    except Exception:
-        pass
+    except Exception as exc:  # noqa: BLE001
+        # Fronteira de melhor esforço: trending stocks é fonte externa
+        # (rede/API) com conversões variadas; falha apenas retorna lista vazia.
+        logger.debug("MangalaScan: trending fallback failed: %s", exc)
 
     logger.warning("MangalaScan: no scanner available")
     return []
@@ -284,8 +300,10 @@ def _collect_stock_data(data_hub: Any, ticker: str, candidate: dict[str, Any]) -
                     result["prev_close"] = float(quote["previous_close"])
                 if quote.get("percent_change") is not None:
                     result["change_pct"] = float(quote["percent_change"])
-    except Exception:
-        pass
+    except Exception as exc:  # noqa: BLE001
+        # Fronteira de melhor esforço: quote vem de provider externo (rede/API)
+        # com conversões numéricas variadas; falha mantém os valores iniciais.
+        logger.debug("MangalaScan: quote failed for %s: %s", ticker, exc)
 
     # ── Candles (technicals) ──
     try:
@@ -327,10 +345,14 @@ def _collect_stock_data(data_hub: Any, ticker: str, candidate: dict[str, Any]) -
                         rsi_val = rsi(closes)
                         if rsi_val is not None:
                             result["rsi"] = round(rsi_val, 1)
-                    except Exception:
-                        pass
-    except Exception:
-        pass
+                    except (ImportError, ValueError, TypeError, ZeroDivisionError) as exc:
+                        # RSI é enriquecimento opcional (matemática pura +
+                        # import opcional); falha não invalida o scan.
+                        logger.debug("MangalaScan: rsi failed for %s: %s", ticker, exc)
+    except Exception as exc:  # noqa: BLE001
+        # Fronteira de melhor esforço: candles vêm de provider externo; falha
+        # apenas deixa o ticker sem técnicos (momentum/RSI).
+        logger.debug("MangalaScan: candles failed for %s: %s", ticker, exc)
 
     # ── News ──
     try:
@@ -341,8 +363,10 @@ def _collect_stock_data(data_hub: Any, ticker: str, candidate: dict[str, Any]) -
                 result["news_headlines"] = [
                     str(n.get("title", n.get("headline", ""))) for n in news[:3]
                 ]
-    except Exception:
-        pass
+    except Exception as exc:  # noqa: BLE001
+        # Fronteira de melhor esforço: news vem de provider externo; falha
+        # apenas deixa o ticker sem notícias/catalisadores.
+        logger.debug("MangalaScan: news failed for %s: %s", ticker, exc)
 
     # ── Sentiment ──
     try:
@@ -350,8 +374,10 @@ def _collect_stock_data(data_hub: Any, ticker: str, candidate: dict[str, Any]) -
             sentiment = data_hub.get_sentiment_summary(ticker)
             if isinstance(sentiment, dict) and "error" not in sentiment:
                 result["sentiment"] = sentiment
-    except Exception:
-        pass
+    except Exception as exc:  # noqa: BLE001
+        # Fronteira de melhor esforço: sentimento vem de provider externo;
+        # falha apenas deixa o ticker sem score de sentimento.
+        logger.debug("MangalaScan: sentiment failed for %s: %s", ticker, exc)
 
     return result
 
@@ -366,8 +392,10 @@ def _calculate_mangala_score(stock_data: dict[str, Any]) -> dict[str, Any]:
         from core.pipeline.nodes.mangala import calculate_mangala_score as _calc
 
         return _calc(stock_data)
-    except Exception:
-        pass
+    except Exception as exc:  # noqa: BLE001
+        # Fronteira de melhor esforço: engine de scoring pode falhar de formas
+        # heterogêneas; o fallback é o scoring inline abaixo.
+        logger.debug("MangalaScan: mangala scoring engine unavailable: %s", exc)
 
     # Inline fallback scoring
     factors: dict[str, int] = {
@@ -602,7 +630,9 @@ def run_daily_scan() -> list[dict[str, Any]]:
                 pump_risk,
             )
 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
+            # Fronteira de melhor esforço: um ticker com dados ruidosos não
+            # pode derrubar o scan dos demais candidatos.
             logger.debug("MangalaScan: failed for %s: %s", candidate.get("ticker"), exc)
             continue
 
@@ -637,7 +667,7 @@ def _save_scan_results(opportunities: list[MangalaOpportunity]) -> None:
         with open(DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2, ensure_ascii=False)
         logger.info("MangalaScan: saved %d opportunities to %s", len(opportunities), DATA_FILE)
-    except Exception as exc:
+    except (OSError, TypeError, ValueError) as exc:
         logger.warning("MangalaScan: failed to save results: %s", exc)
 
 
@@ -655,7 +685,7 @@ def load_latest_scan() -> dict[str, Any]:
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
         return data
-    except Exception as exc:
+    except (OSError, ValueError) as exc:
         logger.warning("MangalaScan: failed to load scan data: %s", exc)
         return {}
 
@@ -686,7 +716,9 @@ async def background_scan_loop() -> None:
 
         try:
             await asyncio.to_thread(run_daily_scan)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
+            # Fronteira de melhor esforço: um ciclo falho não pode matar o
+            # loop de background; o próximo ciclo continua tentando.
             logger.warning("MangalaScan: scan cycle failed: %s", exc)
 
 

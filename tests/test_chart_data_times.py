@@ -77,6 +77,6 @@ def test_ohlcv_builder_parses_iso_datetime_and_epoch(monkeypatch):
     ]
     ohlcv = _build_ohlcv(candles)
     date_epoch = int(
-        datetime.strptime("2026-08-19", "%Y-%m-%d").timestamp()
-    )  # naive date -> local tz, matches endpoint behavior
+        datetime.fromisoformat("2026-08-19").timestamp()
+    )  # naive local, mirrors endpoint fromisoformat parsing
     assert [c["time"] for c in ohlcv] == [1787284800, 1787284800, date_epoch]

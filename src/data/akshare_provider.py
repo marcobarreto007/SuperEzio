@@ -14,7 +14,7 @@ Ticker format: AKShare uses "105.{TICKER}" for US stocks (e.g. "105.AAPL").
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, ClassVar
 
 _AKSHARE_IMPORT_ERROR: str | None = None
 
@@ -179,7 +179,7 @@ class AKShareProvider:
     # Candles (OHLCV history)
     # ------------------------------------------------------------------
 
-    _PERIOD_MAP: dict[str, str] = {
+    _PERIOD_MAP: ClassVar[dict[str, str]] = {
         "1D": "daily",
         "1W": "weekly",
         "1M": "monthly",

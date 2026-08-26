@@ -35,7 +35,7 @@ OUTPUT:
 from __future__ import annotations
 
 import asyncio
-from datetime import date
+from datetime import UTC, datetime
 from typing import Any
 
 from ..observability.neural_log import log_event
@@ -242,7 +242,8 @@ class FraudPatternAnalyst:
         }
         collected_at = str(market_data.get("collected_at") or "")
         normalized["data_date"] = (
-            collected_at[:10] if len(collected_at) >= 10 else date.today().isoformat()
+            # UTC: data usada como chave (evidence_id/data_date); evita dependencia de fuso local
+            collected_at[:10] if len(collected_at) >= 10 else datetime.now(UTC).date().isoformat()
         )
         normalized["evidence_base_id"] = (
             market_data.get("analysis_id")
@@ -347,7 +348,7 @@ class FraudPatternAnalyst:
         """Execução síncrona via DataHub (chamada em thread separada)."""
         from data.data_hub import hub
 
-        today_str = date.today().isoformat()
+        today_str = datetime.now(UTC).date().isoformat()  # UTC: chave de data do contexto diario
 
         candles_result = hub.get_candles(ticker, timeframe="3M")
         if "error" in candles_result:
@@ -460,7 +461,7 @@ class FraudPatternAnalyst:
     ) -> tuple[bool, str | None]:
         """Avalia uma regra individual. Retorna (fired, evidence_id)."""
         rule_id = rule["rule_id"]
-        today = market_data.get("data_date", date.today().isoformat())
+        today = market_data.get("data_date", datetime.now(UTC).date().isoformat())  # UTC: default de data_date
 
         if rule_id == "extreme_volume_spike":
             z = market_data.get("volume_z_score")
@@ -576,7 +577,7 @@ class FraudPatternAnalyst:
         signals: list[str] = []
         evidence_ids: list[str] = []
         limitations: list[str] = []
-        today = market_data.get("data_date", date.today().isoformat())
+        today = market_data.get("data_date", datetime.now(UTC).date().isoformat())  # UTC: default de data_date
         whale_score = 0.0
 
         volume_z = market_data.get("volume_z_score")

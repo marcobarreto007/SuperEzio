@@ -1,5 +1,7 @@
 """Smoke tests — F51Engine.run() pipeline deterministico."""
 
+from typing import ClassVar
+
 from f51.graph import Context, F51Engine, Graph, Node, NodeResult
 
 
@@ -114,7 +116,7 @@ class TestGraph:
 class TestF51EngineSmoke:
     """Smoke tests — F51Engine.run() com grafo default deterministico."""
 
-    REQUIRED_KEYS = {
+    REQUIRED_KEYS: ClassVar[set[str]] = {
         "confidence",
         "threshold",
         "passed",

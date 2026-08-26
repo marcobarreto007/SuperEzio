@@ -786,7 +786,7 @@ def _parse_candle_time(raw: Any) -> int:
     except Exception:
         for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
             try:
-                return int(datetime.strptime(raw_str, fmt).timestamp())
+                return int(datetime.strptime(raw_str, fmt).replace(tzinfo=UTC).timestamp())
             except ValueError:
                 continue
     return 0

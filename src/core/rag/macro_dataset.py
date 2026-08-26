@@ -7,7 +7,7 @@ que alimentam o CrisisMathExpert.
 
 import json
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import pandas as pd
@@ -52,7 +52,7 @@ class MacroDataset:
             "count": len(df),
             "metadata": metadata or {},
         }
-        self.index["last_update"] = datetime.now().isoformat()
+        self.index["last_update"] = datetime.now(UTC).isoformat()
         self._save_index()
 
     def get_series(self, name: str, country: str) -> pd.DataFrame | None:

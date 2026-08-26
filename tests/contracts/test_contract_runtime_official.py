@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 import yaml
@@ -238,7 +239,7 @@ def test_public_health_exposes_validation_mode_without_sensitive_paths(monkeypat
     from core import bob_consciousness
 
     class HealthyBody:
-        organs: dict = {}
+        organs: ClassVar[dict] = {}
 
         @staticmethod
         def is_man_at_work() -> bool:

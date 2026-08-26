@@ -42,8 +42,9 @@ def get_adaptive_config() -> dict[str, Any]:
         config["xp_total"] = getattr(xp, "total_xp", 0)
         config["xp_level"] = getattr(xp, "level_name", "Novice")
 
-        # XP is descriptive only. Gamification must never loosen a risk gate.
-    except Exception:
+        # XP é apenas descritivo: fronteira deliberada de melhor esforço —
+        # gamificação nunca pode afrouxar um gate de risco nem derrubar a config.
+    except Exception:  # noqa: BLE001, S110
         pass
 
     # ── Pain System (DOMINATES — pain overrides everything) ──
@@ -72,7 +73,9 @@ def get_adaptive_config() -> dict[str, Any]:
             config["pain_mode"] = "elevated"
             config["buy_confidence_threshold"] = 80
             config["max_position_pct"] = 0.15
-    except Exception:
+        # Fronteira deliberada de melhor esforço: se a leitura do corpo falhar,
+        # segue com os padrões — dor indisponível não pode derrubar o runtime.
+    except Exception:  # noqa: BLE001, S110
         pass
 
     # ── Auto-Calibration (refines only — never overrides pain) ──
@@ -91,7 +94,9 @@ def get_adaptive_config() -> dict[str, Any]:
                 )
                 config["max_position_pct"] = min(config["max_position_pct"], cal_position)
                 config["stop_loss_pct"] = max(config["stop_loss_pct"], cal_stop)
-        except Exception:
+            # Auto-calibração refina apenas: fronteira deliberada de melhor esforço —
+            # falha aqui preserva a config atual e nunca sobrescreve a dor.
+        except Exception:  # noqa: BLE001, S110
             pass
 
     # ── Durable outcome learning (weights only, never an order action) ──
@@ -106,7 +111,9 @@ def get_adaptive_config() -> dict[str, Any]:
             "durable_outcomes_available" if DEFAULT_OUTCOME_DB.exists() else "baseline_only"
         )
         config["learning_method"] = "directional_multiclass_brier_skill_with_shrinkage"
-    except Exception:
+        # Aprendizado durável é opcional (pesos apenas): fronteira deliberada de
+        # melhor esforço — falha mantém o baseline e nunca vira ordem.
+    except Exception:  # noqa: BLE001, S110
         pass
 
     # Clamp safety bounds
@@ -159,7 +166,9 @@ def inject_portfolio_context(state: dict[str, Any], capital: float = 10000.0) ->
                 ]
                 if returns_list:
                     ticker_returns[ticker] = returns_list
-    except Exception:
+        # Cache histórico é aprimoramento opcional: fronteira deliberada de melhor
+        # esforço — falha cai no fallback de números estruturados.
+    except Exception:  # noqa: BLE001, S110
         pass
 
     if ticker_returns:
@@ -167,7 +176,9 @@ def inject_portfolio_context(state: dict[str, Any], capital: float = 10000.0) ->
             from core.math.portfolio import portfolio_snapshot_for_bob
 
             return portfolio_snapshot_for_bob(ticker_returns, capital, numbers)
-        except Exception:
+            # Snapshot é aprimoramento opcional: fronteira deliberada de melhor
+            # esforço — falha cai no fallback de números estruturados.
+        except Exception:  # noqa: BLE001, S110
             pass
 
     # Fallback: just structured numbers
@@ -175,7 +186,9 @@ def inject_portfolio_context(state: dict[str, Any], capital: float = 10000.0) ->
         from core.math.portfolio import structured_numbers_context
 
         return structured_numbers_context(numbers)
-    except Exception:
+        # Fallback final: fronteira deliberada de melhor esforço — se nem os
+        # números estruturados renderizarem, devolve contexto vazio.
+    except Exception:  # noqa: BLE001
         return ""
 
 

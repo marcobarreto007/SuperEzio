@@ -489,10 +489,14 @@ def _inject_feedback_loop(state: dict, observations: list[str]):
             cal = feedback.calibrate_confidence()
             if cal.get("status") == "calibrated":
                 observations.append(f"CALIBRAGEM: {cal.get('interpretation', '')}")
+        # Fronteira de melhor esforço deliberada: calibragem é enriquecimento opcional;
+        # falha aqui não pode derrubar a injeção das observações de feedback.
         except Exception:
-            pass
+            logger.debug("Falha ao calibrar confiança do feedback loop; seguindo sem calibragem", exc_info=True)
+    # Fronteira de melhor esforço deliberada: feedback loop é opcional; indisponibilidade
+    # (módulo ausente, banco fora do ar) não pode derrubar a construção das observações.
     except Exception:
-        pass
+        logger.debug("Feedback loop indisponível; seguindo sem feedback", exc_info=True)
 
 
 def _inject_rag_knowledge(state: dict, observations: list[str]):
@@ -507,8 +511,10 @@ def _inject_rag_knowledge(state: dict, observations: list[str]):
             if rag_results:
                 rag_ctx = forensic_rag.format_context(rag_results, max_chars=800)
                 observations.append("RAG KNOWLEDGE:\n" + rag_ctx)
+    # Fronteira de melhor esforço deliberada: conhecimento RAG é opcional; falha no
+    # import, na busca ou na formatação não pode derrubar a construção das observações.
     except Exception:
-        pass
+        logger.debug("RAG knowledge indisponível; seguindo sem contexto RAG", exc_info=True)
 
 
 def _inject_evidence(state: dict, observations: list[str]):
@@ -529,8 +535,10 @@ def _inject_evidence(state: dict, observations: list[str]):
             if precomputed:
                 summary = get_expert_summary(ticker)
                 observations.append(f"PRE-COMPUTED EXPERT ANALYSIS (24/7 learner):\n{summary}")
+        # Fronteira de melhor esforço deliberada: análise pré-computada de experts é
+        # enriquecimento opcional; falha não impede a construção das observações.
         except Exception:
-            pass
+            logger.debug("Análise pré-computada de experts indisponível; seguindo sem ela", exc_info=True)
 
         # Inject cached OHLCV summary
         try:
@@ -550,8 +558,10 @@ def _inject_evidence(state: dict, observations: list[str]):
                     f"  30d avg close: ${sum(closes) / len(closes):.2f}\n"
                     f"  30d avg volume: {sum(volumes) / len(volumes):,.0f}"
                 )
+        # Fronteira de melhor esforço deliberada: cache OHLCV é enriquecimento opcional;
+        # falha não pode derrubar a injeção de evidências.
         except Exception:
-            pass
+            logger.debug("Cache OHLCV indisponível; seguindo sem resumo de preços", exc_info=True)
     if state.get("data_context"):
         ctx = str(state.get("data_context"))
         # Never truncate mid-number or mid-word

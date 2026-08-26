@@ -113,7 +113,9 @@ class Organ:
                 self.consecutive_failures = 0
                 self.circuit_open_until = 0  # Close circuit on success
             return healthy
-        except Exception as e:
+        # Fronteira deliberada de melhor esforço: check_fn é callable
+        # arbitrário (qualquer órgão); a sonda nunca pode derrubar o scan.
+        except Exception as e:  # noqa: BLE001
             self.last_health = False
             self.last_error = str(e)[:200]
             self.consecutive_failures += 1
@@ -128,7 +130,9 @@ class Organ:
         try:
             self.heal_attempts += 1
             return self.auto_heal_fn()
-        except Exception:
+        # Fronteira deliberada de melhor esforço: auto_heal_fn é callable
+        # arbitrário; tentativa de cura nunca pode derrubar o Bob.
+        except Exception:  # noqa: BLE001
             return False
 
 
@@ -178,7 +182,7 @@ def _check_ceo_health() -> tuple:
             if data.get("status") == "ok":
                 return True, ""
             return False, f"CEO health status: {data.get('status', 'unknown')}"
-    except Exception as e:
+    except (OSError, ValueError) as e:
         return False, f"CEO unreachable: {str(e)[:100]}"
 
 
@@ -193,7 +197,7 @@ def _check_api_health() -> tuple:
             if data.get("status") == "ok":
                 return True, ""
             return False, f"API status: {data.get('status', 'unknown')}"
-    except Exception as e:
+    except (OSError, ValueError) as e:
         return False, f"API unreachable: {str(e)[:100]}"
 
 
@@ -226,7 +230,10 @@ def _check_datahub_health() -> tuple:
         for symbol in symbols:
             try:
                 result = hub.get_price(symbol)
-            except Exception as exc:
+            # Fronteira deliberada de melhor esforço: a cadeia de providers
+            # (yfinance, twelve data, etc.) levanta tipos heterogêneos; a
+            # falha de um símbolo não pode abortar o scan de saúde.
+            except Exception as exc:  # noqa: BLE001
                 failures.append(f"{symbol}: {str(exc)[:60]}")
                 continue
             if not isinstance(result, dict):
@@ -243,7 +250,9 @@ def _check_datahub_health() -> tuple:
 
         detail = "; ".join(failures[:3])
         return False, f"DataHub probes exhausted ({detail})"
-    except Exception as e:
+    # Fronteira deliberada de melhor esforço: DataHub()/list_active() tocam
+    # providers de rede; a sonda reporta e nunca derruba o scanner.
+    except Exception as e:  # noqa: BLE001
         return False, f"DataHub error: {str(e)[:100]}"
 
 
@@ -255,7 +264,7 @@ def _check_ibkr_health() -> tuple:
         s.connect(("127.0.0.1", 7497))
         s.close()
         return True, ""
-    except Exception as e:
+    except OSError as e:
         return False, f"IBKR offline: {str(e)[:100]}"
 
 
@@ -267,7 +276,7 @@ def _check_journal_health() -> tuple:
 
         healthy = is_journal_healthy(str(PaperJournal().path))
         return (True, "") if healthy else (False, "Journal storage probe failed")
-    except Exception as e:
+    except (ImportError, OSError) as e:
         return False, f"Journal unwritable: {str(e)[:100]}"
 
 
@@ -283,7 +292,9 @@ def _check_openbb_scanner() -> tuple:
                 return True, f"{len(results)} tickers"
             return False, "Scanner returned empty"
         return False, "OpenBB not available"
-    except Exception as e:
+    # Fronteira deliberada de melhor esforço: scan_equities mapeia objetos do
+    # OpenBB com tipos heterogêneos; a sonda reporta e nunca derruba o scan.
+    except Exception as e:  # noqa: BLE001
         return False, f"Scanner error: {str(e)[:100]}"
 
 
@@ -294,7 +305,7 @@ def _check_settings_valid() -> tuple:
 
         s = get_settings()
         return True, f"freeze={s.f51_trading_execution_freeze}"
-    except Exception as e:
+    except (ImportError, RuntimeError) as e:
         return False, f"Settings invalid: {str(e)[:100]}"
 
 
@@ -307,7 +318,7 @@ def _check_dead_letter_queue() -> tuple:
         if count > 10:
             return False, f"Dead letter queue growing: {count} pending"
         return True, f"{count} pending"
-    except Exception as e:
+    except (ImportError, OSError) as e:
         return False, f"DLQ check error: {str(e)[:100]}"
 
 
@@ -324,7 +335,7 @@ def _check_historical_cache() -> tuple:
         if count < 10:
             return False, f"Only {count} tickers cached (need >10)"
         return True, f"{count} tickers cached"
-    except Exception as e:
+    except (OSError, sqlite3.Error) as e:
         return False, f"Cache error: {str(e)[:100]}"
 
 
@@ -338,7 +349,7 @@ def _check_circuit_breakers() -> tuple:
         if open_circuits:
             return False, f"Open circuits: {[c['circuit'] for c in open_circuits]}"
         return True, f"{len(circuits)} circuits healthy"
-    except Exception as e:
+    except (ImportError, AttributeError) as e:
         return False, f"Circuit check error: {str(e)[:100]}"
 
 
@@ -356,7 +367,9 @@ def _heal_datahub() -> bool:
         hub.providers.clear()
         hub._register_default_routes()
         return True
-    except Exception:
+    # Fronteira deliberada de melhor esforço: a cura toca internals do DataHub;
+    # falha na tentativa é reportada como "não curado", nunca exceção.
+    except Exception:  # noqa: BLE001
         return False
 
 
@@ -367,7 +380,7 @@ def _heal_journal() -> bool:
 
         DEFAULT_JOURNAL_PATH.parent.mkdir(parents=True, exist_ok=True)
         return True
-    except Exception:
+    except (ImportError, OSError):
         return False
 
 
@@ -509,7 +522,7 @@ class BobsBody:
             )
             with open(alert_path, "w", encoding="utf-8") as f:
                 f.write(cleared)
-        except Exception as e:
+        except OSError as e:
             logger.error("man_at_work: failed to persist clear: %s", str(e)[:200])
 
     def _save_diagnostic_snapshot(self, trigger_reason: str) -> None:
@@ -565,7 +578,7 @@ class BobsBody:
 
             logger.info("man_at_work: diagnostic snapshot saved to %s", diag_path)
 
-        except Exception as e:
+        except (OSError, TypeError, ValueError) as e:
             logger.error("man_at_work: failed to save snapshot: %s", str(e)[:200])
 
     def _notify_technician(self, reason: str) -> None:
@@ -592,7 +605,7 @@ Action: NO TRADING ORDERS UNTIL CLEARED
             with open(alert_path, "w", encoding="utf-8") as f:
                 f.write(alert_msg.strip())
 
-        except Exception as e:
+        except OSError as e:
             logger.error("man_at_work: failed to notify: %s", str(e)[:200])
 
     def check_man_at_work_guard(self, operation: str = "trading") -> tuple[bool, str]:
@@ -687,7 +700,7 @@ Action: NO TRADING ORDERS UNTIL CLEARED
                     )
                     + "\n"
                 )
-        except Exception as exc:
+        except (OSError, TypeError, ValueError) as exc:
             # O pain log e trilha de auditoria do auto-heal. Perder uma escrita
             # em silencio apaga a evidencia de que o organismo sentiu dor.
             logger.warning("pain_log_write_failed: %s", exc)

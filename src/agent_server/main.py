@@ -71,7 +71,7 @@ FRONTEND_DIR = ROOT_DIR / "frontend"
 try:
     _conf = get_config()
     conf_port = _conf.server.port if _conf and _conf.server else None
-except Exception:
+except (OSError, ValueError):
     conf_port = None
 
 PORT = int(conf_port or os.getenv("SUPEREZIO_PORT", "8002"))
@@ -91,7 +91,7 @@ def _deepseek_expert_readiness() -> dict[str, object]:
         from core.config.settings import Settings
 
         settings = Settings(_env_file=None)
-    except Exception:
+    except (ImportError, ValueError):
         return {
             "provider": "deepseek",
             "role": "financial_experts",
@@ -219,10 +219,13 @@ def _load_sentiment_watchlist(storage=None) -> list[str]:
         parsed = [_clean_watchlist_ticker(item) for item in raw.split(",")]
         return list(dict.fromkeys(ticker for ticker in parsed if ticker))
 
+    # Best-effort deliberado: watchlist é enriquecimento de sentimento — se a
+    # storage (sqlite/disco) falhar, loga e segue com lista vazia. Tipos de
+    # erro heterogêneos (sqlite3.Error, OSError, ...) justificam catch amplo.
     try:
         store = storage or get_investor_storage()
         rows = store.get_watchlist()
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.warning("[%s] sentiment watchlist unavailable: %s", AGENT_NAME, exc)
         return []
 
@@ -275,12 +278,15 @@ async def lifespan(app: FastAPI):
     import sys
 
     # Configure structured logging FIRST (before any logger is used)
+    # Best-effort deliberado de boot: se a configuração de logging falhar,
+    # seguimos com o default do structlog — o servidor não deve deixar de subir
+    # por causa disso (log e continua; tipos de erro heterogêneos do structlog).
     try:
         from core.config.logging_config import configure_logging
 
         configure_logging()
         logger.info("structlog_configured: ok")
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.warning("structlog_configuration_failed: %s", str(exc)[:200])
 
     logger.info("[%s] Agent Server starting on %s:%s...", AGENT_NAME, HOST, PORT)
@@ -344,6 +350,9 @@ async def lifespan(app: FastAPI):
     if os.getenv("SUPEREZIO_ANS_SCAN", "1") != "1":
         logger.info("[%s] Bob ANS disabled (SUPEREZIO_ANS_SCAN!=1)", AGENT_NAME)
     else:
+        # Início do ANS é melhor esforço: falha degrada (warning) e o servidor
+        # segue vivo. Import + start de thread levantam tipos variados — catch
+        # amplo deliberado.
         try:
             from core.bob_consciousness import start_ans
 
@@ -351,7 +360,7 @@ async def lifespan(app: FastAPI):
             logger.info(
                 "[%s] Bob's autonomic nervous system started — heartbeat active", AGENT_NAME
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             logger.warning("[%s] Bob ANS failed to start: %s", AGENT_NAME, str(exc)[:200])
 
     # ── Start HeartbeatLoop (F51 Body — feature flag) ──
@@ -366,7 +375,9 @@ async def lifespan(app: FastAPI):
                 "[%s] F51 Body HeartbeatLoop started (SUPEREZIO_CORPO_HEARTBEAT=1)",
                 AGENT_NAME,
             )
-        except Exception as exc:
+        # Ativação do Body é feature flag opcional: falha vira warning e o
+        # servidor segue (catch amplo deliberado de melhor esforço).
+        except Exception as exc:  # noqa: BLE001
             logger.warning("[%s] F51 Body HeartbeatLoop failed: %s", AGENT_NAME, str(exc)[:200])
 
     # ── Start Mangala Daily Proactive Scan (background opportunity scanner) ──
@@ -382,7 +393,9 @@ async def lifespan(app: FastAPI):
             logger.info(
                 "[%s] Mangala proactive scan started — scanning every 15/60 min", AGENT_NAME
             )
-        except Exception as exc:
+        # Início do scan é melhor esforço: falha degrada (warning) e o servidor
+        # segue vivo (catch amplo deliberado).
+        except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "[%s] Mangala proactive scan failed to start: %s", AGENT_NAME, str(exc)[:200]
             )
@@ -390,29 +403,35 @@ async def lifespan(app: FastAPI):
     yield
 
     # ── Stop Mangala Daily Proactive Scan ──
+    # Parada best-effort no shutdown: se o stop falhar não há mais o que
+    # corrigir — loga em debug e segue o teardown (catch amplo deliberado).
     try:
         from scripts.mangala_daily_scan import stop_background_scan
 
         stop_background_scan()
         logger.info("[%s] Mangala proactive scan stopped", AGENT_NAME)
-    except Exception:
-        pass
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("[%s] Mangala proactive scan stop failed: %s", AGENT_NAME, exc)
 
     # ── Stop Bob's ANS ──
+    # Parada best-effort no shutdown: falha não pode abortar o teardown —
+    # loga em debug e segue (catch amplo deliberado).
     try:
         from core.bob_consciousness import stop_ans
 
         stop_ans()
-    except Exception:
-        pass
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("[%s] Bob ANS stop failed: %s", AGENT_NAME, exc)
 
     # ── Stop HeartbeatLoop (F51 Body) ──
+    # Parada best-effort no shutdown: falha não pode abortar o teardown —
+    # loga em debug e segue (catch amplo deliberado).
     try:
         if hasattr(app.state, "body") and app.state.body is not None:
             await app.state.body["heartbeat"].stop()
             logger.info("[%s] F51 Body HeartbeatLoop stopped", AGENT_NAME)
-    except Exception:
-        pass
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("[%s] F51 Body HeartbeatLoop stop failed: %s", AGENT_NAME, exc)
 
     logger.info("[%s] Agent Server shutting down...", AGENT_NAME)
     _stop_sentiment_services(app)
@@ -548,7 +567,10 @@ async def bob_health():
             "scans": report.get("scan_id", ""),
             "ans": ans.status,
         }
-    except Exception as e:
+    # Endpoint de saúde do Bob nunca deve estourar 500: a introspecção do
+    # corpo levanta tipos variados; falha vira resposta degradada — catch
+    # amplo deliberado.
+    except Exception as e:  # noqa: BLE001
         return {"bob": "unconscious", "error": str(e)[:200]}
 
 
@@ -559,7 +581,9 @@ async def bob_pain():
         from core.bob_consciousness import bob_pain_summary
 
         return {"pain_report": bob_pain_summary()}
-    except Exception as e:
+    # Endpoint de saúde do Bob nunca deve estourar 500: introspecção levanta
+    # tipos variados; falha vira resposta degradada — catch amplo deliberado.
+    except Exception as e:  # noqa: BLE001
         return {"pain_report": f"Bob is unconscious: {str(e)[:200]}"}
 
 
@@ -576,7 +600,9 @@ async def bob_heal():
             "still_sick": result["still_sick"],
             "details": result["heal_attempts"],
         }
-    except Exception as e:
+    # Endpoint de saúde do Bob nunca deve estourar 500: ciclo heal/rescan é
+    # arbitrário; falha vira resposta degradada — catch amplo deliberado.
+    except Exception as e:  # noqa: BLE001
         return {"healed": 0, "error": str(e)[:200]}
 
 
@@ -589,7 +615,9 @@ async def bob_ibkr_recover():
         service = get_ibkr_service()
         result = service.force_recovery_attempt()
         return result
-    except Exception as e:
+    # Endpoint de recuperação nunca deve estourar 500: o serviço IBKR levanta
+    # tipos variados; falha vira resposta degradada — catch amplo deliberado.
+    except Exception as e:  # noqa: BLE001
         return {"success": False, "error": str(e)[:200]}
 
 
@@ -664,7 +692,9 @@ async def prometheus_metrics_endpoint():
         from core.config.settings import is_frozen
 
         superezio_execution_freeze.set(1 if is_frozen() else 0)
-    except Exception as exc:
+    # Métricas nunca podem derrubar o endpoint: leitura de freeze falha →
+    # fallback seguro assume congelado (catch amplo deliberado).
+    except Exception as exc:  # noqa: BLE001
         logger.warning("prometheus_freeze_gauge_failed", error=str(exc)[:120])
         superezio_execution_freeze.set(1)  # SAFE: assume frozen
 
@@ -673,7 +703,9 @@ async def prometheus_metrics_endpoint():
 
         superezio_ibkr_connectivity.set(1 if is_ibkr_connectable() else 0)
         superezio_journal_health.set(1 if is_journal_healthy() else 0)
-    except Exception as exc:
+    # Métricas nunca podem derrubar o endpoint: falha de conectividade →
+    # fallback seguro zera os gauges (catch amplo deliberado).
+    except Exception as exc:  # noqa: BLE001
         logger.warning("prometheus_connectivity_gauge_failed", error=str(exc)[:120])
         superezio_ibkr_connectivity.set(0)
         superezio_journal_health.set(0)
@@ -682,7 +714,9 @@ async def prometheus_metrics_endpoint():
         from core.idempotency import count_dead_letters
 
         superezio_dead_letters_pending.set(count_dead_letters())
-    except Exception as exc:
+    # Métricas nunca podem derrubar o endpoint: falha de leitura → fallback
+    # -1 (indeterminado) no gauge (catch amplo deliberado).
+    except Exception as exc:  # noqa: BLE001
         logger.warning("prometheus_dead_letters_gauge_failed", error=str(exc)[:120])
         superezio_dead_letters_pending.set(-1)
 
@@ -694,7 +728,9 @@ async def prometheus_metrics_endpoint():
             superezio_circuit_breaker_state.labels(circuit=str(circuit["circuit"])).set(
                 circuit_values.get(str(circuit["state"]), 2)
             )
-    except Exception as exc:
+    # Métricas nunca podem derrubar o endpoint: falha de leitura dos circuit
+    # breakers é logada e o gauge fica sem atualização (catch amplo deliberado).
+    except Exception as exc:  # noqa: BLE001
         logger.warning("prometheus_circuit_gauge_failed", error=str(exc)[:120])
 
     return Response(
@@ -807,7 +843,9 @@ async def health_check_public(request: Request):
                 ),
                 media_type="application/json",
             )
-    except Exception as exc:
+    # Catch amplo deliberado (fail-closed): falha de verificação do estado de
+    # consciência vira 503 — nunca derruba o /health.
+    except Exception as exc:  # noqa: BLE001
         # Fail closed: an unverifiable consciousness state is not a healthy one.
         # Swallowing this would report "ok" with the CEO brain down and would
         # silently disable the MAN_AT_WORK guard checked just above.
@@ -848,7 +886,10 @@ def _probe_gpu_torch() -> dict | None:
                 }
             )
         return {"available": True, "devices": devices, "status": "ok", "source": "torch"}
-    except Exception:
+    # Probe de GPU é melhor esforço: falha de driver/placa (RuntimeError,
+    # OSError, ...) degrada para o próximo probe (nvidia-smi), nunca derruba o
+    # endpoint — catch amplo deliberado.
+    except Exception:  # noqa: BLE001
         return None
 
 
@@ -984,7 +1025,7 @@ def health_check():
                 else:
                     # Cloud model: skip socket probe (the local port doesn't apply to cloud APIs)
                     reachable = True
-            except Exception as exc:
+            except (OSError, ValueError) as exc:
                 logger.debug("[%s] local model probe failed (%s): %s", AGENT_NAME, name, exc)
         local_models[name] = {
             "url": url or None,
@@ -1013,7 +1054,7 @@ def health_check():
                 }
     except ImportError:
         redis_info = {"status": "no_driver"}
-    except Exception as exc:
+    except (ValueError, redis.exceptions.RedisError) as exc:
         redis_info = {"status": "error", "detail": str(exc)[:120]}
     health["checks"]["redis"] = redis_info
 
@@ -1059,7 +1100,9 @@ def health_check():
                 if experts_info["configured"] and not runtime_external:
                     experts_info["configured"] = False
                     experts_info["status"] = "misconfigured_runtime_topology"
-    except Exception as exc:
+    # Health check é melhor esforço: introspecção de provedores falha →
+    # degrada o payload com campo de erro, nunca derruba o endpoint.
+    except Exception as exc:  # noqa: BLE001
         logger.warning("[%s] provider summary unavailable: %s", AGENT_NAME, exc)
         health["checks"]["providers_introspection_error"] = str(exc)[:200]
 
@@ -1078,14 +1121,18 @@ def health_check():
         from core.resilience import get_all_circuits_health as _get_circuits_health
 
         health["checks"]["circuit_breakers"] = _get_circuits_health()
-    except Exception as exc:
+    # Health check é melhor esforço: falha de leitura dos circuit breakers
+    # degrada o payload, nunca derruba o endpoint (catch amplo deliberado).
+    except Exception as exc:  # noqa: BLE001
         logger.warning("[%s] circuit_breakers status unavailable: %s", AGENT_NAME, exc)
         health["checks"]["circuit_breakers"] = {"error": str(exc)[:200]}
 
     # â”€â”€ Cost guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     try:
         health["checks"]["cost_guard"] = get_cost_guard().status()
-    except Exception as exc:
+    # Health check é melhor esforço: falha do cost guard degrada o payload,
+    # nunca derruba o endpoint (catch amplo deliberado).
+    except Exception as exc:  # noqa: BLE001
         logger.warning("[%s] cost_guard status unavailable: %s", AGENT_NAME, exc)
         health["checks"]["cost_guard"] = {
             "error": "unavailable",
@@ -1108,7 +1155,9 @@ def health_check():
             "positions_count": portfolio.get("positions_count", 0),
             "orders_count": portfolio.get("orders_count", 0),
         }
-    except Exception as exc:
+    # Health check é melhor esforço: snapshot do broker falha → degrada a
+    # missão para o estático e loga, nunca derruba o endpoint (catch amplo).
+    except Exception as exc:  # noqa: BLE001
         logger.warning("[%s] runtime broker overlay unavailable: %s", AGENT_NAME, exc)
         health["mission"] = mission
         health["checks"]["runtime_broker"] = {
@@ -1158,7 +1207,9 @@ async def get_metrics():
         from core.config.settings import is_frozen
 
         base["trading_frozen"] = is_frozen()
-    except Exception:
+    # Fallback seguro deliberado: se o estado de freeze não puder ser lido,
+    # assume congelado (default seguro) — catch amplo mantido de propósito.
+    except Exception:  # noqa: BLE001
         base["trading_frozen"] = True
     base["prometheus_endpoint"] = "/metrics/prometheus"
     return base
@@ -1188,7 +1239,7 @@ async def health_dashboard():
         if tmpl.exists():
             html = tmpl.read_text(encoding="utf-8")
             return Response(content=html, media_type="text/html; charset=utf-8")
-    except Exception as exc:
+    except (ImportError, OSError, ValueError) as exc:
         logger.warning("health_dashboard_template_failed", error=str(exc)[:120])
     return Response(
         content="<html><body><h1>Health Dashboard</h1><p>Template not found</p></body></html>",
@@ -1220,7 +1271,9 @@ async def health_dashboard_data():
                 "base_url": p.base_url,
                 "priority": p.priority,
             }
-    except Exception as exc:
+    # Dashboard é melhor esforço: introspecção de provedores falha → degrada
+    # o payload com campo de erro, nunca derruba o endpoint (catch amplo).
+    except Exception as exc:  # noqa: BLE001
         providers_status = {"error": str(exc)[:200]}
 
     all_metrics = metrics.get_all()
@@ -1251,7 +1304,9 @@ async def health_dashboard_data():
             "critical": scan.get("critical_count", 0),
             "pain": scan.get("overall_pain", 0),
         }
-    except Exception:
+    # Dashboard é melhor esforço: scan do corpo falha → degrada para zeros,
+    # nunca derruba o endpoint (catch amplo deliberado).
+    except Exception:  # noqa: BLE001
         bob_status = {"healthy": 0, "sick": 0, "critical": 0, "pain": 0}
 
     return {

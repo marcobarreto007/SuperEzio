@@ -69,7 +69,7 @@ def fetch_and_cache_ticker(ticker: str, force: bool = False) -> int:
     try:
         import yfinance as yf
 
-        end = datetime.now()
+        end = datetime.now(UTC)
         start = end - timedelta(days=LOOKBACK_DAYS + 10)  # +10 buffer
 
         stock = yf.Ticker(ticker)
@@ -121,7 +121,7 @@ def get_cached_ohlcv(ticker: str, days: int = 180) -> list[dict[str, Any]]:
     Returns list of {date, open, high, low, close, volume} dicts.
     """
     conn = _get_db()
-    cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+    cutoff = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%d")
     rows = conn.execute(
         """SELECT date, open, high, low, close, volume 
            FROM ohlcv_cache 

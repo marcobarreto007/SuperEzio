@@ -16,7 +16,7 @@ def _validate_observation_date(value: str) -> str:
         raise ValueError("date must not be empty")
     try:
         if _MONTH_RE.fullmatch(value):
-            datetime.strptime(value, "%Y-%m")
+            datetime.strptime(value, "%Y-%m").replace(tzinfo=UTC)
         else:
             datetime.fromisoformat(value)
     except ValueError as exc:
@@ -26,7 +26,8 @@ def _validate_observation_date(value: str) -> str:
 
 def _date_sort_key(value: str) -> datetime:
     if _MONTH_RE.fullmatch(value):
-        return datetime.strptime(value, "%Y-%m")
+        # naive UTC: month keys must stay naive to sort against the fromisoformat branch below
+        return datetime.strptime(value, "%Y-%m").replace(tzinfo=UTC).replace(tzinfo=None)
     parsed = datetime.fromisoformat(value)
     if parsed.tzinfo is not None:
         parsed = parsed.astimezone(UTC).replace(tzinfo=None)

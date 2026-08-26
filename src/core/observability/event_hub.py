@@ -14,7 +14,7 @@ import threading as _threading
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from .neural_log import log_event
@@ -32,7 +32,7 @@ class EventEnvelope:
     event_type: str
     payload: dict[str, Any]
     correlation_id: str = ""
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     source: str = "f51-kernel"
 
     def to_dict(self) -> dict[str, Any]:
@@ -53,7 +53,7 @@ class EventEnvelope:
             event_type=data.get("event_type", "unknown"),
             payload=data.get("payload", {}),
             correlation_id=data.get("correlation_id", ""),
-            timestamp=data.get("timestamp", datetime.now().isoformat()),
+            timestamp=data.get("timestamp", datetime.now(UTC).isoformat()),
             source=data.get("source", "unknown"),
         )
 

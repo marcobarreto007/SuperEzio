@@ -1,6 +1,7 @@
 """Smoke tests — core math functions (puras, deterministicas)."""
 
 import math
+from typing import ClassVar
 
 import pytest
 
@@ -81,7 +82,7 @@ class TestUtils:
 
 
 class TestIndicators:
-    PRICES = [10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0]
+    PRICES: ClassVar[list[float]] = [10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0]
 
     def test_sma_ok(self):
         result = sma(self.PRICES, period=3)
@@ -182,7 +183,7 @@ class TestIndicators:
 
 
 class TestRisk:
-    RETURNS = [0.01, -0.02, 0.03, 0.01, -0.005, 0.02, -0.01, 0.015, 0.025, -0.015]
+    RETURNS: ClassVar[list[float]] = [0.01, -0.02, 0.03, 0.01, -0.005, 0.02, -0.01, 0.015, 0.025, -0.015]
 
     def test_log_return(self):
         assert log_return(110, 100) == pytest.approx(0.0953, rel=0.01)

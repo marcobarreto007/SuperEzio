@@ -66,8 +66,10 @@ def _check_lesson_block(ticker: str) -> dict[str, Any] | None:
                         return lesson
             except (TypeError, ValueError, __import__("json").JSONDecodeError):
                 continue
-    except Exception:
-        pass
+    # Leitura do learning log é melhor esforço: falha aqui não pode bloquear a ordem.
+    # Tipos possíveis: OSError (leitura), ValueError (UnicodeDecodeError), AttributeError (estrutura inesperada).
+    except (OSError, ValueError, AttributeError) as exc:
+        logger.debug("learning_log_read_failed", error=str(exc)[:200])
     return None
 
 
@@ -108,7 +110,8 @@ def _paper_order_submission_error(state: dict, args: dict) -> str:
         if kill_state.is_active:
             reason = kill_state.reason.value if kill_state.reason else "unknown"
             return f"kill_switch_active:{reason}"
-    except Exception as exc:
+    # Preflight do kill switch é melhor esforço: indisponibilidade não bloqueia a submissão.
+    except Exception as exc:  # noqa: BLE001
         logger.warning("kill_switch_preflight_unavailable", error=str(exc)[:200])
     return ""
 
@@ -213,7 +216,9 @@ async def _gather_social_context(ticker: str, query: str) -> str:
                     f"TITLE: {title[:300]}\n"
                     f"BODY: {selftext[:400]}\n"
                 )
-        except Exception as e:
+        # Falha de rede/parse num subreddit não derruba a coleta social.
+        # Tipos possíveis: OSError (urlopen/timeout), ValueError (JSON), TypeError/AttributeError (JSON não confiável).
+        except (OSError, TypeError, ValueError, AttributeError) as e:
             posts.append(f"[r/{subreddit}] FETCH_ERROR: {e}")
 
     await asyncio.to_thread(lambda: [_fetch(s) for s in subreddits])
@@ -271,7 +276,8 @@ async def _run_pennylab(state: dict) -> dict:
             "pennylab": result,
             "data_context": data_context,
         }
-    except Exception as exc:
+    # Análise PennyLab é fronteira de melhor esforço: hook externo pode levantar qualquer erro.
+    except Exception as exc:  # noqa: BLE001
         logger.error("pennylab analysis failed for %s: %s", ticker, exc)
         return {
             "pennylab": {"ticker": ticker, "decision": None, "error": str(exc)[:200]},
@@ -354,7 +360,8 @@ def _extract_backtest_tickers(state: dict, args: dict[str, Any]) -> list[str]:
 def _fetch_backtest_ohlcv(tickers: list[str], timeframe: str) -> dict[str, list[dict[str, Any]]]:
     try:
         from data.data_hub import hub
-    except Exception:
+    # Import opcional de melhor esforço: hub indisponível apenas devolve dados vazios.
+    except Exception:  # noqa: BLE001
         return {}
 
     out: dict[str, list[dict[str, Any]]] = {}
@@ -364,7 +371,8 @@ def _fetch_backtest_ohlcv(tickers: list[str], timeframe: str) -> dict[str, list[
             candles = result.get("candles") or result.get("ohlcv") or []
             if candles:
                 out[ticker] = candles
-        except Exception as exc:
+        # Fetch por ticker é melhor esforço: falha num ticker não derruba o backtest.
+        except Exception as exc:  # noqa: BLE001
             logger.warning("penny momentum candle fetch failed for %s: %s", ticker, exc)
     return out
 
@@ -518,7 +526,8 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
                     "capped": requested_qty > size.shares or size.capped,
                     "reason": size.size_reason,
                 }
-            except Exception:
+            # Fallback deliberado: sizer indisponível não bloqueia a submissão pendente.
+            except Exception:  # noqa: BLE001
                 pos_sizing = {
                     "requested_qty": requested_qty,
                     "approved_qty": 0,
@@ -529,7 +538,8 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
                 "paper_approval_request": approval_payload,
                 "position_sizing": pos_sizing,
             }
-    except Exception as exc:
+    # Fronteira de melhor esforço: erro inesperado no approval gate vira payload de erro, sem derrubar o pipeline.
+    except Exception as exc:  # noqa: BLE001
         return {"submit_paper_order_error": f"approval_gate_error:{str(exc)[:160]}"}
 
     # ── Position sizing ──
@@ -563,7 +573,8 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
                 size.shares,
             )
             qty = float(size.shares)
-    except Exception as exc:
+    # Fronteira de melhor esforço: erro no position sizer vira payload de erro, sem derrubar o pipeline.
+    except Exception as exc:  # noqa: BLE001
         return {"submit_paper_order_error": f"position_sizer_error:{str(exc)[:160]}"}
 
     try:
@@ -620,7 +631,8 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
         }
     except ValueError as exc:
         return {"submit_paper_order_error": f"prepared_order_invalid:{str(exc)[:160]}"}
-    except Exception as exc:
+    # Fronteira de melhor esforço: falha na ponte de execução vira payload de erro, sem derrubar o pipeline.
+    except Exception as exc:  # noqa: BLE001
         return {"submit_paper_order_error": f"bridge_error:{str(exc)[:200]}"}
 
 
@@ -631,7 +643,8 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
 
     try:
         validated_call = AgentToolCall.model_validate(tool_call)
-    except Exception as exc:
+    # ValidationError do Pydantic v2 é subclasse de ValueError — único erro esperado de model_validate.
+    except ValueError as exc:
         return {
             "tool_blocked": {
                 "tool": str(tool_call.get("tool", "invalid"))
@@ -913,7 +926,8 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                     "reason": "f51_trade_gate_unavailable",
                     "message": "Ordem bloqueada: F51 Trade Gate indisponível.",
                 }
-            except Exception as exc:
+            # Fronteira fail-closed do F51 Trade Gate: erro inesperado bloqueia a ordem.
+            except Exception as exc:  # noqa: BLE001
                 logger.error("tool_executor_gate_error", error=str(exc)[:200])
                 return {
                     "blocked": True,
@@ -970,8 +984,9 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                             "message": f"Ordem bloqueada pelo FeedbackLoop: {block_reason}",
                         }
                         return result
-                except Exception:
-                    pass  # FeedbackLoop indisponível não bloqueia o trade
+                # FeedbackLoop indisponível não bloqueia o trade (fronteira de melhor esforço).
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("feedback_loop_unavailable", error=str(exc)[:200])
 
             if ticker and not state.get("_experts_ran_for", "") == ticker:
                 writer = get_stream_writer()
@@ -1005,7 +1020,8 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                         for er in res.get("expert_results", []):
                             er.setdefault("role", role)
                             expert_results.append(er)
-                    except Exception as exc:
+                    # Falha num expert não derruba o comitê: vira resultado com erro, por papel.
+                    except Exception as exc:  # noqa: BLE001
                         expert_results.append({"role": role, "ok": False, "error": str(exc)[:100]})
                 state["expert_results"] = expert_results
                 state["_experts_ran_for"] = ticker
@@ -1113,11 +1129,13 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
 
                 try:
                     price_data = await tool_get_market_price(ticker)
-                except Exception as e:
+                # Fronteira de melhor esforço: falha no fetch de preço vira payload de erro.
+                except Exception as e:  # noqa: BLE001
                     price_data = {"error": f"price_fetch_failed: {e}"}
                 try:
                     risk_data = await tool_calculate_risk_metrics(ticker)
-                except Exception as e:
+                # Fronteira de melhor esforço: falha no cálculo de risco vira payload de erro.
+                except Exception as e:  # noqa: BLE001
                     risk_data = {"error": f"risk_calc_failed: {e}"}
 
                 collector_res = await node_collector(
@@ -1153,7 +1171,8 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                         "result": calc_result,
                         "last_tool_result": f"calculate('{expression}') = {calc_result}",
                     }
-                except Exception as e:
+                # Fronteira de melhor esforço: falha na calculadora vira payload de erro.
+                except Exception as e:  # noqa: BLE001
                     result = {"error": f"calculate_failed: {e}"}
 
         else:
@@ -1167,7 +1186,8 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             "ticker": state.get("ticker", ""),  # Preserve ticker
         }
 
-    except Exception as exc:
+    # Fronteira externa do executor: qualquer falha de tool vira payload de erro para o agente.
+    except Exception as exc:  # noqa: BLE001
         logger.error("tool_execution_failed", tool=tool_name, error=str(exc)[:200])
         return {
             "executed_tools": next_executed_tools,

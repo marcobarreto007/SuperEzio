@@ -115,7 +115,9 @@ def scan_mangala_opportunities(
                     **result,
                 }
             )
-        except Exception as exc:
+        # Fronteira de melhor esforço por candidato: um ticker com dados
+        # malformados não pode derrubar o scan inteiro; loga e segue.
+        except Exception as exc:  # noqa: BLE001
             logger.debug("Mangala score failed for %s: %s", candidate.get("ticker"), exc)
             continue
 
@@ -228,20 +230,26 @@ def _get_candidates(scanner: Any) -> list[dict[str, Any]]:
         if hasattr(scanner, "scan_equities"):
             try:
                 return scanner.scan_equities(max_price=MAX_PRICE) or []
-            except Exception:
-                pass
+            except Exception as exc:  # noqa: BLE001
+                # Melhor esforço: scanner plugável pode falhar de formas
+                # imprevisíveis; cai para a próxima opção do fallback.
+                logger.debug("Mangala: scan_equities falhou, tentando próximo: %s", exc)
         if callable(scanner):
             try:
                 return scanner(max_price=MAX_PRICE, min_volume=MIN_VOLUME) or []
-            except Exception:
-                pass
+            except Exception as exc:  # noqa: BLE001
+                # Melhor esforço: callable plugável pode falhar de formas
+                # imprevisíveis; cai para o fallback embutido.
+                logger.debug("Mangala: scanner callable falhou, tentando fallback: %s", exc)
 
     # Fallback: use penny_scanner
     try:
         from core.scanner.penny_scanner import scan_penny_stocks
 
         return scan_penny_stocks(max_price=MAX_PRICE, min_volume=MIN_VOLUME)
-    except Exception:
+    except Exception:  # noqa: BLE001
+        # Fronteira de melhor esforço: sem scanner disponível, o Mangala
+        # degrada para vazio em vez de derrubar o pipeline.
         logger.warning("Mangala: no scanner available")
         return []
 
@@ -269,8 +277,10 @@ def _collect_stock_data(
                     result["prev_close"] = float(quote["previous_close"])
                 if quote.get("percent_change") is not None:
                     result["change_pct"] = float(quote["percent_change"])
-    except Exception:
-        pass
+    except Exception as exc:  # noqa: BLE001
+        # Melhor esforço: quote é dado opcional; se o hub falhar, segue
+        # com o preço/volume do candidato e loga em debug.
+        logger.debug("Mangala: quote falhou para %s: %s", ticker, exc)
 
     # ── Candles (technicals + momentum) ──
     try:
@@ -311,8 +321,10 @@ def _collect_stock_data(
                     rsi_val = rsi(closes)
                     if rsi_val is not None:
                         result["rsi"] = round(rsi_val, 1)
-    except Exception:
-        pass
+    except Exception as exc:  # noqa: BLE001
+        # Melhor esforço: candles são opcionais; sem eles o score degrada
+        # (momentum/RSI zerados) sem derrubar o scan.
+        logger.debug("Mangala: candles falharam para %s: %s", ticker, exc)
 
     # ── News & catalyst ──
     try:
@@ -323,8 +335,10 @@ def _collect_stock_data(
                 result["news_headlines"] = [
                     str(n.get("title", n.get("headline", ""))) for n in news[:3]
                 ]
-    except Exception:
-        pass
+    except Exception as exc:  # noqa: BLE001
+        # Melhor esforço: news/catalyst é dado opcional; falha aqui
+        # apenas reduz o score de catalyst.
+        logger.debug("Mangala: news falhou para %s: %s", ticker, exc)
 
     # ── Sentiment ──
     try:
@@ -332,8 +346,10 @@ def _collect_stock_data(
             sentiment = data_hub.get_sentiment_summary(ticker)
             if isinstance(sentiment, dict) and "error" not in sentiment:
                 result["sentiment"] = sentiment
-    except Exception:
-        pass
+    except Exception as exc:  # noqa: BLE001
+        # Melhor esforço: sentimento é dado opcional; falha aqui apenas
+        # reduz o score de catalyst.
+        logger.debug("Mangala: sentiment falhou para %s: %s", ticker, exc)
 
     return result
 

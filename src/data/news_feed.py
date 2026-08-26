@@ -169,7 +169,11 @@ def _fetch_ddg_news(query: str, limit: int) -> list[dict]:
                 )
             )
         return items
-    except Exception as e:
+    # ddgs é biblioteca de terceiros com API instável: conjunto de exceções
+    # aberto (DDGException, AttributeError/KeyError por drift de API, etc.).
+    # Fronteira deliberada de melhor esforço — falha de uma fonte não pode
+    # derrubar o crawl.
+    except Exception as e:  # noqa: BLE001
         if "No results found" not in str(e):
             logger.warning("[NEWS] DDG News falhou: %s", e)
         return []
@@ -193,7 +197,9 @@ def _fetch_ddg_text(query: str, limit: int) -> list[dict]:
                 )
             )
         return items
-    except Exception as e:
+    # Mesma fronteira de melhor esforço do DDG News: biblioteca de terceiros
+    # com conjunto aberto de exceções; fallback nunca pode derrubar o crawl.
+    except Exception as e:  # noqa: BLE001
         logger.warning("[NEWS] DDG Text falhou: %s", e)
         return []
 
@@ -223,7 +229,7 @@ def _fetch_google_news_rss(query: str, limit: int) -> list[dict]:
             if t:
                 items.append(_make_item(t, d, lnk, "Google News", p))
         return items
-    except Exception as e:
+    except (ValueError, TypeError, OSError, _requests.RequestException) as e:
         logger.warning("[NEWS] Google News RSS falhou: %s", e)
         return []
 
@@ -258,7 +264,7 @@ def _fetch_yahoo_finance_rss(query: str, limit: int) -> list[dict]:
             if t:
                 items.append(_make_item(t, d, lnk, "Yahoo Finance", p))
         return items
-    except Exception as e:
+    except (ValueError, TypeError, OSError, _requests.RequestException) as e:
         logger.warning("[NEWS] Yahoo Finance RSS falhou: %s", e)
         return []
 
@@ -297,7 +303,7 @@ def _fetch_marketwatch_scrape(query: str, limit: int) -> list[dict]:
             if t:
                 items.append(_make_item(t, "", href, "MarketWatch"))
         return items
-    except Exception as e:
+    except (ValueError, TypeError, OSError, _requests.RequestException) as e:
         logger.warning("[NEWS] MarketWatch scrape falhou: %s", e)
         return []
 
@@ -327,7 +333,7 @@ def _fetch_brave(query: str, limit: int, api_key: str) -> list[dict]:
                 )
             )
         return items
-    except Exception as e:
+    except (ValueError, TypeError, OSError, _requests.RequestException) as e:
         logger.warning("[NEWS] Brave falhou: %s", e)
         return []
 
@@ -372,7 +378,7 @@ def _fetch_bing_news_rss(query: str, limit: int) -> list[dict]:
             if t:
                 items.append(_make_item(t, d, lnk, "Bing News", p))
         return items
-    except Exception as e:
+    except (ValueError, TypeError, OSError, _requests.RequestException) as e:
         logger.warning("[NEWS] Bing News RSS falhou: %s", e)
         return []
 
@@ -437,7 +443,7 @@ class NewsScout:
                     )
                 )
             return items
-        except Exception as e:
+        except (ValueError, TypeError, OSError, _requests.RequestException) as e:
             logger.warning("[NEWS] NewsAPI falhou: %s", e)
             return []
 
@@ -471,7 +477,10 @@ class NewsScout:
                 query,
             )
             return []
-        except Exception as exc:
+        # Fronteira deliberada de melhor esforço: get_news é a API pública do
+        # agente e nunca deve propagar exceção — qualquer falha do crawl vira
+        # warning e lista vazia (timeout já tratado no except acima).
+        except Exception as exc:  # noqa: BLE001
             logger.warning("[NEWS] Crawl error for '%s': %s", query, exc)
             return []
 

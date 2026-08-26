@@ -1,5 +1,7 @@
 """Smoke tests — ModelGateway routing, fallback, aliases (deterministico)."""
 
+from typing import ClassVar
+
 import pytest
 
 import core.model_serving.gateway as gateway_module
@@ -602,7 +604,7 @@ class TestJsonModeWithImageWarning:
                 message = MockMessage()
 
             class MockResponse:
-                choices = [MockChoice()]
+                choices: ClassVar[list[MockChoice]] = [MockChoice()]
 
             return MockResponse()
 
@@ -651,7 +653,7 @@ class TestJsonModeWithImageWarning:
                 message = MockMessage()
 
             class MockResponse:
-                choices = [MockChoice()]
+                choices: ClassVar[list[MockChoice]] = [MockChoice()]
 
             return MockResponse()
 
