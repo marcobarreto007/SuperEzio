@@ -1,171 +1,39 @@
-# SuperEzio — F51 Bootstrap Operational Layer
+# SuperEzio
 
-## REGRA CRITICA: GITHUB BLOQUEADO
+## O que é
 
-Fonte mandataria: `.f51/GITHUB_POLICY.json`
+Runtime local e camada operacional do ecossistema F51: um agente de trading (Bob) com chat, dados de mercado e execução de ordens, para um operador que roda tudo em disco local, sem nuvem.
 
-Este projeto esta em modo **DISK ONLY**.
+## Comandos
+- instalar: pip install -e ".[dev]"
+- rodar: python -m agent_server.main (a partir de src/)
+- testes: python -m pytest tests/ -q
+- lint: python -m ruff check src tests && python -m ruff format --check src tests
 
-Regra clara:
-- NUNCA usar GitHub neste projeto.
-- NUNCA executar `git push`, `git pull`, `git fetch` ou `gh`.
-- NUNCA usar GitHub Actions, pull requests, GitHub API, conector GitHub ou MCP GitHub.
-- Commits locais sao permitidos e **obrigatorios apos cada mudanca minima** — nao esperar "salva".
-- Se uma tarefa exigir GitHub, parar e reportar bloqueio.
+## Arquitetura em cinco linhas
+- entrada: dados de mercado (IBKR, DataHub) via market-data-puller + mensagens do operador no chat
+- núcleo: Bob (agent_server) + gateway de modelos local :8080 + teses em runtime/theses + execução com journal e idempotency
+- persistência: runtime/ (teses, reports, checkpoints) + data/ (logs) + .f51/ (estado operacional)
+- saída: frontend web (chat) + relatórios de tese + logs estruturados
+- fora do escopo deste repositório: GitHub, nuvem, dinheiro real (corretora), MCPs não aprovados
 
-## Missão do projeto
-
-Transformar o ecossistema F51 em entrega previsível: decisões auditáveis, runtime estável, testes determinísticos, e execução orientada a receita sem dispersão técnica.
-
-## Regra mestra (gating)
-
-**Sem feature antes de:** inventário, contratos, runtime e testes.
-
-Ordem mínima obrigatória:
-1. Inventário (`.f51/INVENTORY_TEMPLATE.json` + estado atual)
-2. Contratos (`docs/architecture/ARCHITECTURE_TEMPLATE.md` + contratos públicos)
-3. Runtime (`docs/runbooks/RUNBOOK_TEMPLATE.md` + health checks)
-4. Testes (plano + execução com evidência)
-
-## Comandos permitidos (bootstrap / operação)
-
-```bash
-python -m agent_server.main
-python -m pytest tests/ -q
-python -m ruff check src tests
-python -m ruff format --check src tests
-python scripts/browser_smoke.py
-```
-
-**Regra Playwright:** Todo `pytest` deve ser acompanhado de `python scripts/browser_smoke.py`.
-O servidor precisa estar live. Se o servidor não estiver reachable, o smoke é skipped com
-warning visível no output do pytest (via fixture condicional em `tests/conftest.py`).
-
-**Modo visível (headed):** Para assistir o browser executando em tempo real:
-```bash
-# Standalone (sempre visível com --headed):
-python scripts/browser_smoke.py --headed
-
-# Via pytest (abre browser visível com slow_mo 300ms por ação):
-$env:SUPEREZIO_SMOKE_HEADED = "1"
-python -m pytest tests/ -q
-
-# Velocidade customizada (ms por ação):
-$env:SUPEREZIO_SMOKE_SLOW_MO = "500"
-```
-
-**Modo chat real:** Para validar o pipeline completo com resposta do Bob:
-```bash
-$env:SUPEREZIO_SMOKE_CHAT = "1"
-python scripts/browser_smoke.py --headed
-```
-
-Se um comando não existir no ambiente, reportar explicitamente no checkpoint.
+## Regras invioláveis
+1. Nunca editar arquivo fora deste diretório.
+2. Nunca ler nem commitar .env, chave ou credencial.
+3. Mudança de comportamento sempre vem com teste.
+4. Migração de banco é sempre reversível.
+5. Dependência nova só depois de me perguntar.
+6. Nunca usar GitHub neste projeto (DISK ONLY — fonte mandataria: .f51/GITHUB_POLICY.json).
 
 ## Definição de pronto
+Uma tarefa está pronta quando, e só quando:
+- pytest -q passa inteiro
+- ruff check . está limpo
+- o comando de aceite da spec retorna 0
+- o diff cabe numa revisão de dez minutos
 
-Uma tarefa só é “pronta” quando:
-- objetivo e escopo estão claros em `.f51/TASK_BOARD.md`;
-- risco atualizado em `.f51/RISK_REGISTER.md`;
-- checkpoint atualizado em `.f51/checkpoints/latest.json`;
-- testes relevantes executados com evidência de resultado;
-- sem mudança silenciosa de contrato público.
-
-## Política de testes
-
-- Testes devem ser determinísticos.
-- Proibido depender de rede externa para testes unitários.
-- Sempre executar o menor conjunto de testes que valide a mudança e, quando necessário, suíte ampliada.
-- Relatar: o que rodou, o que passou, o que não foi executado e por quê.
-
-## Política de arquivos
-
-- Não apagar, mover ou renomear arquivos sem tarefa explícita.
-- Não alterar diretórios de produto durante bootstrap operacional:
-      - `apps/`, `src/`, `packages/`, `core/`, `pipelines/`
-- Artefatos operacionais e documentação devem ficar em:
-      - `.f51/`, `.claude/skills/`, `docs/`, `runtime/checkpoints/`
-
-## Política de mocks
-
-- Não usar mock para mascarar bug real de integração crítica.
-- Mock só quando necessário para isolamento de unidade.
-- Todo mock deve ser explícito, rastreável e removível.
-
-## Política de refatoração segura
-
-- Refatorar somente com escopo pequeno e reversível.
-- Sem mistura de refatoração + feature na mesma tarefa.
-- Preservar APIs/contratos públicos, exceto se houver gate de contrato aprovado.
-- Exigir evidência de não regressão (testes + checkpoint).
-
-## Responsabilidade operacional dos agentes
-
-- Todo agente deve atualizar `.f51/checkpoints/latest.json` ao concluir etapa.
-- Toda execução deve produzir relatório objetivo (o que fez, evidências, riscos, próximo passo).
-- Proibido improvisar escopo fora do gate de decisão.
-
-## Política F51 de MCPs
-
-MCP permitido somente se cumprir pelo menos uma função:
-1. Reduzir erro operacional
-2. Testar produto real
-3. Auditar entrega
-4. Acessar documentação necessária
-5. Preparar venda/demo
-
-Proibido:
-- Instalar MCP por curiosidade
-- Dar acesso amplo ao filesystem
-- Usar token com escopo exagerado
-- Deixar MCP sem descrição no AGENTS.md/CLAUDE.md
-
-### MCPs Registrados e Autorizados
-- `chrome-devtools-plugin` / `chrome_devtools`: Avaliação e execução de scripts em sessões locais do Chrome para testes de UI e depuração do frontend do SuperEzio.
-
-## Playbook 2026 — Exército de Agentes
-
-Fonte: Playbook 2026 — Exercitos de Claude Code.
-
-### Estrutura
-
-```
-.claude/agents/     # 22 agentes versionados (5 delivery + 3 market + verifiers/meta/captain)
-.claude/commands/   # /swarm, /save, /agent-lab
-.agent_bus/runtime/ # Memória volátil (gitignored)
-docs/AGENT_ORCHESTRATION.md
-docs/AGENT_OPERATING_SYSTEM.md
-```
-
-### Comandos do exército
-
-| Comando | Ação |
-|---------|------|
-| `/swarm <objetivo>` | Auditoria ampla; delivery normal seleciona agentes pelo risco |
-| `/save` | Salva docs + checkpoint + commit local |
-| `/agent-lab` | Testa, compara e evolui agentes |
-
-### Regra de ouro
-
-Token infinito não resolve agente ruim. O que resolve é:
-```
-missão clara
-+ contexto certo
-+ evidência obrigatória
-+ verificação
-+ seleção natural de agentes
-```
-
-### Gates obrigatórios (antes de declarar pronto)
-
-```powershell
-git status --short
-git diff --check
-python -m ruff check src/ tests/
-python -m pytest tests/ -q
-```
-
-### Pontuação de agente (0-30)
-
-Evidência + Utilidade + Precisão + Escopo + Verificação + Concisão.
-Elite: 26+ | Bom: 21-25 | Fraco: 10-15 | Substituir: <10.
+## Como falar comigo
+- Português, direto. Discordou? Diga antes de executar, não depois.
+- Antes de código novo, mostre o plano e espere o OK.
+- Travou duas vezes no mesmo erro: pare e pergunte.
+- Não diga que terminou sem colar a saída do comando que prova.
