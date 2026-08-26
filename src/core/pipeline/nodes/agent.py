@@ -77,7 +77,11 @@ def _fit_messages_to_local_context(
 
     def total_chars() -> int:
         # Only count text content; multimodal messages are exempt from budget
-        return sum(_message_text(message.get("content", "")).__len__() for message in fitted if not isinstance(message.get("content"), list))
+        return sum(
+            _message_text(message.get("content", "")).__len__()
+            for message in fitted
+            if not isinstance(message.get("content"), list)
+        )
 
     def trim(index: int, minimum: int) -> None:
         # Never trim multimodal messages (content is list)
@@ -580,8 +584,7 @@ def _has_exchange_currency_provenance(item: dict[str, Any]) -> bool:
 
 def _price_provider_exceptions(errors: list[Any]) -> bool:
     return any(
-        "price_provider" in str(err).lower() and "exception" in str(err).lower()
-        for err in errors
+        "price_provider" in str(err).lower() and "exception" in str(err).lower() for err in errors
     )
 
 
@@ -2811,7 +2814,9 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     # ── Casual greeting shortcut ──
     from core.pipeline.intents import _is_casual_message
 
-    is_casual = _is_casual_message(state.get("message", "")) or state.get("cognitive_mode") == "CASUAL"
+    is_casual = (
+        _is_casual_message(state.get("message", "")) or state.get("cognitive_mode") == "CASUAL"
+    )
     if is_casual:
         content = (
             "Tudo ótimo por aqui! Bob a postos e conectado ao Cockpit. "
@@ -3006,7 +3011,9 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     _detected_intent = state.get("intent", "")
     from core.pipeline.intents import _is_casual_message
 
-    is_casual = _is_casual_message(state.get("message", "")) or state.get("cognitive_mode") == "CASUAL"
+    is_casual = (
+        _is_casual_message(state.get("message", "")) or state.get("cognitive_mode") == "CASUAL"
+    )
     if (
         is_casual
         and iterations == 0

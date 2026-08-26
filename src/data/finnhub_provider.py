@@ -160,9 +160,7 @@ class FinnhubProvider:
 
             requested = (symbol or "").strip().upper()
             canadian_suffixes = (".TO", ".V", ".CN")
-            if requested.endswith(canadian_suffixes) and not variant.endswith(
-                canadian_suffixes
-            ):
+            if requested.endswith(canadian_suffixes) and not variant.endswith(canadian_suffixes):
                 last_error = "no_quote"
                 continue
 

@@ -65,7 +65,9 @@ def scan_penny_stocks(max_price: float = 5.0, min_volume: int = 100_000) -> list
             volume = None
             if fast is not None:
                 try:
-                    price = getattr(fast, "last_price", None) or getattr(fast, "regular_market_price", None)
+                    price = getattr(fast, "last_price", None) or getattr(
+                        fast, "regular_market_price", None
+                    )
                     volume = getattr(fast, "last_volume", None)
                 except Exception:
                     pass

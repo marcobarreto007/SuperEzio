@@ -1483,8 +1483,12 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
         # Ticker from UI field takes priority; fall back to message text detection
         is_casual = _is_casual_message(raw_message)
         is_broker_status = detect_broker_status_intent(raw_message)
-        explicit_ticker = "" if (is_casual or is_broker_status) else str(payload.get("ticker") or "").strip()
-        detected_ticker = "" if (is_casual or is_broker_status) else explicit_ticker or detect_ticker(raw_message)
+        explicit_ticker = (
+            "" if (is_casual or is_broker_status) else str(payload.get("ticker") or "").strip()
+        )
+        detected_ticker = (
+            "" if (is_casual or is_broker_status) else explicit_ticker or detect_ticker(raw_message)
+        )
 
         # Hard block context leak for advisory / scan / casual intents.
         # - Complex finance / capital allocation / casual: chart context must never leak.
