@@ -260,15 +260,21 @@ def create_code_executor_tool():
         for node in ast.walk(tree):
             if isinstance(node, (ast.Import, ast.ImportFrom)):
                 return "Error: imports are not allowed in sandbox"
-            if isinstance(node, ast.Attribute):
-                if isinstance(node.attr, str) and node.attr.startswith("__"):
-                    return f"Error: access to dunder attribute '{node.attr}' is blocked"
+            if (
+                isinstance(node, ast.Attribute)
+                and isinstance(node.attr, str)
+                and node.attr.startswith("__")
+            ):
+                return f"Error: access to dunder attribute '{node.attr}' is blocked"
             if isinstance(node, ast.Call):
                 if isinstance(node.func, ast.Name) and node.func.id in FORBIDDEN_NAMES:
                     return f"Error: calling '{node.func.id}' is forbidden in sandbox"
-                if isinstance(node.func, ast.Attribute) and isinstance(node.func.attr, str):
-                    if node.func.attr in FORBIDDEN_NAMES:
-                        return f"Error: calling '{node.func.attr}' is forbidden in sandbox"
+                if (
+                    isinstance(node.func, ast.Attribute)
+                    and isinstance(node.func.attr, str)
+                    and node.func.attr in FORBIDDEN_NAMES
+                ):
+                    return f"Error: calling '{node.func.attr}' is forbidden in sandbox"
         return None
 
     def execute_python(code: str) -> str:

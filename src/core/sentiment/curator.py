@@ -306,9 +306,13 @@ class SentimentCurator:
                 if item.get("institutional") and item["source"] != "reddit_pulse"
             ]
             reddit_score = _number(reddit.get("sentiment_score") or reddit.get("score"))
-            if reddit_score is not None and reddit_score > 0.35 and institutional_scores:
-                if sum(institutional_scores) / len(institutional_scores) <= 0.1:
-                    flags.append("POSSIBLE_PUMP")
+            if (
+                reddit_score is not None
+                and reddit_score > 0.35
+                and institutional_scores
+                and sum(institutional_scores) / len(institutional_scores) <= 0.1
+            ):
+                flags.append("POSSIBLE_PUMP")
 
         fundamentals = sources.get("fundamentals")
         if isinstance(fundamentals, Mapping):

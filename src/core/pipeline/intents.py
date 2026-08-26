@@ -324,13 +324,12 @@ def _is_casual_message(message: str) -> bool:
     }
     if len(words) <= 7 and not any(w in financial_action_words for w in words):
         for pat in patterns:
-            if re.search(pat, text) or re.search(pat, cleaned):
+            if (re.search(pat, text) or re.search(pat, cleaned)) and not _residual_content(text):
                 # The greeting must span the WHOLE message. "oi bob" is a
                 # casual greeting; "oi bob, status rapido sem operar" carries
                 # a real request and must reach the full pipeline (MathHub
                 # included) — only pure pleasantry tokens may remain.
-                if not _residual_content(text):
-                    return True
+                return True
 
     return False
 
@@ -2220,10 +2219,11 @@ def detect_ticker(message: str) -> str:
     digit_matches = re.findall(r"\b([A-Za-z]{1,5}\d{1,2})\b", raw)
     for match in digit_matches:
         upper = match.upper()
-        if upper not in COMMON_WORDS:
-            # NÃ£o sobrescrever se jÃ¡ tem sufixo explÃ­cito
-            if not any(c[0] == upper or c[0].startswith(upper + ".") for c in candidates):
-                candidates.append((upper, 90, len(upper)))
+        # Não sobrescrever se já tem sufixo explícito
+        if upper not in COMMON_WORDS and not any(
+            c[0] == upper or c[0].startswith(upper + ".") for c in candidates
+        ):
+            candidates.append((upper, 90, len(upper)))
 
     # 3.5 Ticker numÃ©rico curto (ex: 6M, 88E, 3M) â€” comum em microcaps/OTC
     # BUT: reject monetary amounts.  "5K", "10k", "2M", "500B" are NOT tickers.
@@ -2231,9 +2231,12 @@ def detect_ticker(message: str) -> str:
     num_prefix_matches = re.findall(r"\b(\d{1,2}[A-Za-z]{1,5})\b", raw)
     for match in num_prefix_matches:
         upper = match.upper()
-        if upper not in COMMON_WORDS and not any(c[0] == upper for c in candidates):
-            if not _AMOUNT_SUFFIXES.match(upper):
-                candidates.append((upper, 80, len(upper)))
+        if (
+            upper not in COMMON_WORDS
+            and not any(c[0] == upper for c in candidates)
+            and not _AMOUNT_SUFFIXES.match(upper)
+        ):
+            candidates.append((upper, 80, len(upper)))
 
     # 4. Ãndices (^BVSP, ^GSPC)
     idx_matches = re.findall(r"(\^[A-Za-z]+)\b", raw)
@@ -2768,13 +2771,18 @@ def parse_user_intent(
         )
 
     ctx = trade_order_context or {}
-    if ctx.get("mode") in {"DECISIVE_TRADE_ORDER", "DECISIVE_TRADE_ORDER_FOLLOWUP"}:
-        if detect_another_trade_recommendation_intent(raw):
-            filters = infer_scan_filters(raw)
-            if ctx.get("universe") and not filters.get("country"):
-                if "US_CANADA" in str(ctx.get("universe", "")):
-                    filters = {**filters}
-            return done(
+    if (
+        ctx.get("mode") in {"DECISIVE_TRADE_ORDER", "DECISIVE_TRADE_ORDER_FOLLOWUP"}
+        and detect_another_trade_recommendation_intent(raw)
+    ):
+        filters = infer_scan_filters(raw)
+        if (
+            ctx.get("universe")
+            and not filters.get("country")
+            and "US_CANADA" in str(ctx.get("universe", ""))
+        ):
+            filters = {**filters}
+        return done(
                 IntentParse(
                     route="market_scan",
                     intent="another_trade_recommendation",

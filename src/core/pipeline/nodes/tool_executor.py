@@ -674,25 +674,31 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
     paper_order_has_broker_result = bool(
         state.get("submit_paper_order_result") or state.get("submit_paper_order_error")
     )
-    if tool_name == "submit_paper_order" and tool_name in executed_tools:
-        if not paper_order_has_broker_result:
-            executed_tools = [tool for tool in executed_tools if tool != tool_name]
-            executed_tool_counts = {
-                key: value for key, value in executed_tool_counts.items() if key != tool_name
+    if (
+        tool_name == "submit_paper_order"
+        and tool_name in executed_tools
+        and not paper_order_has_broker_result
+    ):
+        executed_tools = [tool for tool in executed_tools if tool != tool_name]
+        executed_tool_counts = {
+            key: value for key, value in executed_tool_counts.items() if key != tool_name
+        }
+        semi_count = 0
+    if (
+        tool_name in executed_tools
+        and not repeatable
+        and (semi_limit is None or semi_count >= semi_limit)
+    ):
+        writer = get_stream_writer()
+        writer(
+            {
+                "type": "PIPELINE_STEP",
+                "run_id": state.get("run_id", ""),
+                "step": tool_name,
+                "status": "blocked_duplicate",
             }
-            semi_count = 0
-    if tool_name in executed_tools and not repeatable:
-        if semi_limit is None or semi_count >= semi_limit:
-            writer = get_stream_writer()
-            writer(
-                {
-                    "type": "PIPELINE_STEP",
-                    "run_id": state.get("run_id", ""),
-                    "step": tool_name,
-                    "status": "blocked_duplicate",
-                }
-            )
-            return _tool_blocked_payload(state, tool_name, "it already executed in this run")
+        )
+        return _tool_blocked_payload(state, tool_name, "it already executed in this run")
         # else: within semi-repeatable limit — allow again
 
     next_executed_tool_counts = dict(executed_tool_counts)

@@ -415,12 +415,11 @@ def build_agent_prompt(
     # Also route explicit capital_allocation / personal_finance intents
     # (deterministic parser) to the structured complex finance prompt.
     _advisory_intents = {"general_question", "capital_allocation", "personal_finance"}
-    if intent in _advisory_intents and not has_financial:
-        if detect_complex_finance_intent(raw_message) or intent in (
-            "capital_allocation",
-            "personal_finance",
-        ):
-            return _build_complex_finance_prompt(raw_message)
+    if intent in _advisory_intents and not has_financial and (
+        detect_complex_finance_intent(raw_message)
+        or intent in ("capital_allocation", "personal_finance")
+    ):
+        return _build_complex_finance_prompt(raw_message)
 
     msg_has_ticker = bool(re.search(r"\b[A-Z]{1,5}(?:\.[A-Z]{1,2})?\b", raw_message))
     if intent == "general_question" and not has_financial and not msg_has_ticker:

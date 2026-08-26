@@ -50,11 +50,13 @@ class CircuitBreaker:
         return self._state
 
     def _maybe_transition(self):
-        if self._state == "OPEN":
-            if time.monotonic() - self._last_failure_time >= self.recovery_timeout_s:
-                self._state = "HALF_OPEN"
-                self._half_open_attempts = 0
-                logger.info("CircuitBreaker(%s): OPEN -> HALF_OPEN", self.name)
+        if (
+            self._state == "OPEN"
+            and time.monotonic() - self._last_failure_time >= self.recovery_timeout_s
+        ):
+            self._state = "HALF_OPEN"
+            self._half_open_attempts = 0
+            logger.info("CircuitBreaker(%s): OPEN -> HALF_OPEN", self.name)
 
     def success(self):
         if self._state == "HALF_OPEN":

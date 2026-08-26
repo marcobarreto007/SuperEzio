@@ -292,15 +292,21 @@ def scan_penny_stocks(
             skipped += 1
             continue
 
-        if filters.max_price is not None and signal.price is not None:
-            if signal.price > filters.max_price:
-                skipped += 1
-                continue
+        if (
+            filters.max_price is not None
+            and signal.price is not None
+            and signal.price > filters.max_price
+        ):
+            skipped += 1
+            continue
 
-        if filters.min_volume is not None and signal.volume is not None:
-            if signal.volume < filters.min_volume:
-                skipped += 1
-                continue
+        if (
+            filters.min_volume is not None
+            and signal.volume is not None
+            and signal.volume < filters.min_volume
+        ):
+            skipped += 1
+            continue
 
         if signal.bid is not None and signal.ask is not None and signal.bid > 0:
             spread_pct = (signal.ask - signal.bid) / signal.bid * 100

@@ -171,11 +171,10 @@ class AdversarialCritic:
 
         mcap = features.get("market_cap", 0)
         price = features.get("price", 0)
-        if mcap > 0 and price > 0:
-            # Se market_cap < 50M e price > 10, microcap caro = alerta
-            if mcap < 50_000_000 and price > 10:
-                issues.append("microcap_preco_alto")
-                robustness *= 0.8
+        # Se market_cap < 50M e price > 10, microcap caro = alerta
+        if mcap > 0 and price > 0 and mcap < 50_000_000 and price > 10:
+            issues.append("microcap_preco_alto")
+            robustness *= 0.8
 
         vol = features.get("annual_volatility", 0)
         var95 = features.get("var_95", 0)

@@ -533,14 +533,15 @@ class FraudPatternAnalyst:
 
     def _check_data_absence(self, rule_id: str, market_data: dict[str, Any]) -> str | None:
         """Returns a limitation note if a required data field is missing."""
-        if rule_id in ("microcap_concentration", "price_spike_high_volatility"):
-            if market_data.get("market_cap") is None:
-                return f"{rule_id}_skipped: market_cap not available from DataHub for this ticker"
+        if (
+            rule_id in ("microcap_concentration", "price_spike_high_volatility")
+            and market_data.get("market_cap") is None
+        ):
+            return f"{rule_id}_skipped: market_cap not available from DataHub for this ticker"
         if rule_id == "no_revenue_with_operations" and market_data.get("revenue") is None:
             return f"{rule_id}_skipped: totalRevenue not available from DataHub for this ticker"
-        if rule_id == "vague_hype_sector_description":
-            if not (market_data.get("description") or "").strip():
-                return f"{rule_id}_skipped: company description not available from DataHub for this ticker"
+        if rule_id == "vague_hype_sector_description" and not (market_data.get("description") or "").strip():
+            return f"{rule_id}_skipped: company description not available from DataHub for this ticker"
         return None
 
     # ------------------------------------------------------------------

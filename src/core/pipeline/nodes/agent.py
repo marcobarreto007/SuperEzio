@@ -947,9 +947,11 @@ def _should_use_decisive_mode(state: dict) -> bool:
     trade_ctx = state.get("trade_order_context") or {}
     if intent == "another_trade_recommendation":
         return True
-    if trade_ctx.get("mode") in {"DECISIVE_TRADE_ORDER", "DECISIVE_TRADE_ORDER_FOLLOWUP"}:
-        if detect_another_trade_recommendation_intent(message):
-            return True
+    if (
+        trade_ctx.get("mode") in {"DECISIVE_TRADE_ORDER", "DECISIVE_TRADE_ORDER_FOLLOWUP"}
+        and detect_another_trade_recommendation_intent(message)
+    ):
+        return True
     return bool(detect_decisive_trade_intent(message))
 
 

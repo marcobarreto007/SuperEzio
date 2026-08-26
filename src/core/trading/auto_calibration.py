@@ -428,11 +428,10 @@ class AutoCalibrator:
         # Aplicar mudanças se solicitado
         for event in recommended_changes:
             event.applied = False
-            if should_apply:
-                if self.update_parameter(event.param_name, event.new_value):
-                    event.applied = True
-                    self._history.append(event)
-                    self._save_event(event)
+            if should_apply and self.update_parameter(event.param_name, event.new_value):
+                event.applied = True
+                self._history.append(event)
+                self._save_event(event)
 
         # Calcular health score
         if drawdown_pct > 20.0 or recent_loss_streak >= 5:
