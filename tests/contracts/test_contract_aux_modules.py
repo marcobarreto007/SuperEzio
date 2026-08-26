@@ -211,33 +211,6 @@ def test_math_trading_losses_import():
 
 
 # ============================================================================
-# Audit
-# ============================================================================
-
-
-def test_audit_log_import():
-    from core.audit.decision_logger import DecisionLogger
-
-    assert DecisionLogger is not None
-
-
-def test_audit_record_decision(monkeypatch, tmp_path):
-    from core.audit.decision_logger import DecisionLogger
-
-    trace_dir = tmp_path / "traces"
-    monkeypatch.setenv("SUPEREZIO_TRACE_DIR", str(trace_dir))
-    logger = DecisionLogger()
-    # Must not raise
-    logger.record_decision(
-        run_id="test-run-001",
-        step="contract_test",
-        decision="ALLOW",
-        rationale={"reason": "testing"},
-    )
-    assert list(trace_dir.glob("decision_trace_*.jsonl"))
-
-
-# ============================================================================
 # F51 Adapter
 # ============================================================================
 

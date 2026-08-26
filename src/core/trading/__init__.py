@@ -26,7 +26,6 @@ from .broker import (
     Position,
     SimulatedBroker,
 )
-from .expert_weights import ExpertRecord, ExpertWeightRouter
 from .kill_switch import KillSwitch, KillSwitchReason, KillSwitchState
 from .position_sizer import PositionSize, PositionSizer
 from .reward import RewardComponents, RewardFunction, TradeOutcome
@@ -40,8 +39,6 @@ __all__ = [
     "BrokerAdapter",
     "EmailAlerter",
     "EmailConfig",
-    "ExpertRecord",
-    "ExpertWeightRouter",
     "GateConfig",
     "get_approval_gate",
     "KillSwitch",

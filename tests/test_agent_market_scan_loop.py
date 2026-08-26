@@ -46,14 +46,6 @@ async def test_market_scan_run_experts_does_not_raise_collect_experts_import_err
 
 
 @pytest.mark.asyncio
-async def test_collect_experts_compat_shim_imports():
-    from src.core.pipeline.nodes.collect_experts import node_collect_experts as shim_collect
-    from src.core.pipeline.nodes.experts import node_collect_experts as experts_collect
-
-    assert shim_collect is experts_collect
-
-
-@pytest.mark.asyncio
 async def test_market_scan_result_finalizes_without_reentering_tool_loop(monkeypatch):
     """Scan results must finalise through the LLM gateway and respect the output format."""
     from src.core.pipeline.nodes import agent as agent_module

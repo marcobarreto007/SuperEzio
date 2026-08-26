@@ -1,19 +1,19 @@
 {
-  "scanned_at": "2026-08-26T14:31:27.963579+00:00",
+  "scanned_at": "2026-08-26T14:47:06.819271+00:00",
   "count": 5,
   "opportunities": [
     {
       "ticker": "TLRY",
-      "price": 4.78,
-      "volume": 918587,
+      "price": 4.76,
+      "volume": 1025238,
       "name": "TLRY",
-      "score": 58,
+      "score": 54,
       "signal": "MEH",
       "factors": {
         "volume": 30,
         "whale": 5,
         "momentum": 3,
-        "rsi": 12,
+        "rsi": 8,
         "catalyst": 8
       },
       "whale_status": "FRACO",
@@ -21,43 +21,17 @@
       "pump_risk": "CLEAN",
       "pump_score": 0,
       "flip_plan": {
-        "entry": 4.81,
-        "target_5pct": 5.05,
-        "stop_3pct": 4.67,
+        "entry": 4.77,
+        "target_5pct": 5.01,
+        "stop_3pct": 4.63,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-26T14:31:27.963579+00:00"
-    },
-    {
-      "ticker": "NIO",
-      "price": 4.43,
-      "volume": 4461392,
-      "name": "NIO",
-      "score": 53,
-      "signal": "MEH",
-      "factors": {
-        "volume": 30,
-        "whale": 5,
-        "momentum": 3,
-        "rsi": 5,
-        "catalyst": 10
-      },
-      "whale_status": "FRACO",
-      "whale_score": 20,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
-      "flip_plan": {
-        "entry": 4.44,
-        "target_5pct": 4.66,
-        "stop_3pct": 4.31,
-        "max_hold_days": 5
-      },
-      "scanned_at": "2026-08-26T14:31:15.232788+00:00"
+      "scanned_at": "2026-08-26T14:47:06.819271+00:00"
     },
     {
       "ticker": "PLUG",
-      "price": 2.2,
-      "volume": 15442258,
+      "price": 2.18,
+      "volume": 22537506,
       "name": "PLUG",
       "score": 50,
       "signal": "MEH",
@@ -73,17 +47,43 @@
       "pump_risk": "CLEAN",
       "pump_score": 0,
       "flip_plan": {
-        "entry": 2.21,
-        "target_5pct": 2.32,
-        "stop_3pct": 2.14,
+        "entry": 2.2,
+        "target_5pct": 2.31,
+        "stop_3pct": 2.13,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-26T14:30:55.614885+00:00"
+      "scanned_at": "2026-08-26T14:46:36.254789+00:00"
+    },
+    {
+      "ticker": "NIO",
+      "price": 4.43,
+      "volume": 5061128,
+      "name": "NIO",
+      "score": 50,
+      "signal": "MEH",
+      "factors": {
+        "volume": 30,
+        "whale": 5,
+        "momentum": 0,
+        "rsi": 5,
+        "catalyst": 10
+      },
+      "whale_status": "FRACO",
+      "whale_score": 20,
+      "pump_risk": "CLEAN",
+      "pump_score": 0,
+      "flip_plan": {
+        "entry": 4.43,
+        "target_5pct": 4.65,
+        "stop_3pct": 4.3,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-08-26T14:46:50.891058+00:00"
     },
     {
       "ticker": "RIG",
-      "price": 5.67,
-      "volume": 4490488,
+      "price": 5.66,
+      "volume": 5416594,
       "name": "RIG",
       "score": 46,
       "signal": "MEH",
@@ -104,17 +104,17 @@
         "stop_3pct": 5.51,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-26T14:31:01.579182+00:00"
+      "scanned_at": "2026-08-26T14:46:42.913106+00:00"
     },
     {
       "ticker": "BB",
-      "price": 7.68,
-      "volume": 1258106,
+      "price": 7.66,
+      "volume": 1490403,
       "name": "BB",
-      "score": 24,
+      "score": 29,
       "signal": "PASS",
       "factors": {
-        "volume": 10,
+        "volume": 15,
         "whale": 5,
         "momentum": 0,
         "rsi": 3,
@@ -125,12 +125,12 @@
       "pump_risk": "CLEAN",
       "pump_score": 0,
       "flip_plan": {
-        "entry": 7.67,
-        "target_5pct": 8.05,
-        "stop_3pct": 7.44,
+        "entry": 7.68,
+        "target_5pct": 8.06,
+        "stop_3pct": 7.45,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-26T14:31:19.575152+00:00"
+      "scanned_at": "2026-08-26T14:46:58.455895+00:00"
     }
   ]
 }

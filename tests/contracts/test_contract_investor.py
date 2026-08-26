@@ -1,32 +1,6 @@
-"""Contract tests for Investor Committee, Fraud Analyst, and Cost Guard."""
+"""Contract tests for Fraud Analyst, Cost Guard, and Investor Storage."""
 
 from __future__ import annotations
-
-
-# ---------------------------------------------------------------------------
-# Investor Committee (Family Investor Committee)
-# ---------------------------------------------------------------------------
-
-
-def test_investor_committee_imports():
-    from core.investor.committee import InvestorCommittee
-
-    assert InvestorCommittee is not None
-
-
-def test_investor_committee_instantiation():
-    from core.investor.committee import InvestorCommittee
-
-    committee = InvestorCommittee()
-    assert committee is not None
-    assert hasattr(committee, "analyze")
-
-
-def test_investor_committee_has_members():
-    from core.investor.committee import InvestorCommittee
-
-    committee = InvestorCommittee()
-    assert hasattr(committee, "_parse_and_validate") or hasattr(committee, "_detect_fomo")
 
 
 # ---------------------------------------------------------------------------
@@ -87,11 +61,9 @@ def test_investor_modules_importable():
     import importlib
 
     modules = [
-        "core.investor.committee",
         "core.investor.cost_guard",
         "core.investor.fraud_analyst",
         "core.investor.fraud_memory",
-        "core.investor.prompts",
         "core.investor.storage",
     ]
 

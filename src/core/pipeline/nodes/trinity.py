@@ -4,9 +4,8 @@ Responsibility: Two LLMs deliberate on a trading decision during the pipeline.
 Genie provides quick tactical reads; Deep provides rigorous quantitative
 analysis. Consensus/dissent drives the final verdict for Bob.
 
-NOT the same as core.investor.committee.InvestorCommittee — that module
-formats pre-computed expert verdicts for human display. This module runs
-real-time LLM-to-LLM dialogue inside the pipeline execution.
+This module runs real-time LLM-to-LLM dialogue inside the pipeline
+execution, as opposed to aggregating pre-computed expert verdicts.
 """
 
 from __future__ import annotations

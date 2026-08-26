@@ -1,3 +1,6 @@
-from .pipeline_hook import run_technical_neural_analysis, analyze_technical_neural_sync
+"""Technical neural expert package.
 
-__all__ = ["run_technical_neural_analysis", "analyze_technical_neural_sync"]
+The live surface lives in the ``expert`` subpackage (``TechnicalNeuralExpert``).
+The legacy ``pipeline_hook`` module (run_technical_neural_analysis /
+analyze_technical_neural_sync) had zero callers and was removed 2026-08-26.
+"""

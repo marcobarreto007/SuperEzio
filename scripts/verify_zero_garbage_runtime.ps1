@@ -84,7 +84,7 @@ if ($envText -match 'FINNHUB_API_KEY=\S{18,}') {
 
 # ---- Boot smoke (OPUS §9) ---------------------------------------------------
 # Imports agent_server.main without binding sockets. Catches ImportError
-# landmines (e.g. the collect_experts regression) before the test suites run.
+# landmines before the test suites run.
 Write-Host ""
 Write-Host "[>] Boot smoke (import agent_server.main)" -ForegroundColor Cyan
 $bootProbe = "import importlib, sys; sys.path.insert(0, 'src'); importlib.import_module('agent_server.main'); print('[OK] agent_server.main importable')"
@@ -100,7 +100,6 @@ if ($LASTEXITCODE -ne 0) {
 
 # ---- Suite definitions ------------------------------------------------------
 $suites = @(
-    @{ Name = 'collect_experts shim regression (Test L)';                 Cmd = 'python -m pytest tests/test_collect_experts_shim.py -x --tb=short' },
     @{ Name = 'Finnhub provider contract (Tests G, H)';                   Cmd = 'python -m pytest tests/test_finnhub_provider.py -x --tb=short' },
     @{ Name = 'Finnhub symbol normalization';                             Cmd = 'python -m pytest tests/test_finnhub_symbols.py -x --tb=short' },
     @{ Name = 'No-empty-response + §8 trace (Test K-strengthened)';       Cmd = 'python -m pytest tests/test_no_empty_response_and_trace.py -x --tb=short' },
