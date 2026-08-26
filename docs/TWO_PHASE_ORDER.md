@@ -1,5 +1,10 @@
 # Two-Phase Order Design
 
+> **SUPERSEDED (2026-08-26).** Duplicata histórica — a versão canônica deste
+> documento é `docs/architecture/TWO_PHASE_ORDER.md` ("Two-Phase Paper Order —
+> Execução Imediata + Validação Assíncrona"). Este arquivo é mantido apenas
+> como registro; não use este conteúdo como fonte para o contrato atual.
+
 ## Problem
 Current pipeline takes ~120s to complete a trade request because:
 1. Market scan (10-20s)

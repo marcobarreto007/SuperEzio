@@ -1,5 +1,9 @@
 # SuperEzio - Architecture Overview
 
+> Visão corrente (arquitetura híbrida :8080 local + DeepSeek externo). A
+> duplicata histórica é `docs/architecture/SUPEREZIO_DOCS.md`, marcada
+> **HISTORICO / SUPERSEDED** (estado de 2026-06-16) — não usar como fonte atual.
+
 ## System Diagram
 
 ```text
