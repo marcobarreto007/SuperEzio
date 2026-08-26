@@ -68,6 +68,7 @@ if __name__ == "__main__":
                 errors="replace",
                 capture_output=True,
                 timeout=child_timeout + 5.0,
+                check=False,  # falha é diagnosticada via stdout/stderr/returncode abaixo, não via exceção
             )
         except subprocess.TimeoutExpired:
             return _timeout_data(ticker, child_timeout)

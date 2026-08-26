@@ -615,6 +615,7 @@ def _check_concentration(ticker: str, position_value: float, run_id: str) -> boo
             capture_output=True,
             text=True,
             timeout=10,
+            check=False,  # returncode é verificado abaixo (0 = posição lida OK)
         )
         if proc.returncode == 0:
             data = _json.loads(proc.stdout.strip())
@@ -687,7 +688,7 @@ def _journal_trade(
                         # Background learning cycle
                         import threading
 
-                        def _run_learning_cycle():
+                        def _run_learning_cycle(ot=ot):
                             try:
                                 from core.trading.feedback_loop import get_feedback_loop
 

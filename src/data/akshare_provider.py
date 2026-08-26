@@ -75,7 +75,8 @@ def _us_stock_names_via_subprocess(timeout_s: float = 25.0) -> dict[str, Any]:
             [sys.executable, "-c", _AKSHARE_NAMES_CHILD],
             capture_output=True,
             timeout=timeout_s,
-        )
+            check=False,
+        )  # returncode verificado logo abaixo; erro vira dict de erro
     except subprocess.TimeoutExpired:
         return {"error": "akshare_js_timeout"}
 

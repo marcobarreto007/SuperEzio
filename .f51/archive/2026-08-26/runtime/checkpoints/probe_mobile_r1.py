@@ -80,7 +80,10 @@ with sync_playwright() as pw:
         ctx.add_init_script(f"localStorage.setItem('sz_access_token', {json.dumps(token)});")
         page = ctx.new_page()
         errs = []
-        page.on("console", lambda m: errs.append(m.text) if m.type == "error" else None)
+        page.on(
+            "console",
+            lambda m, errs=errs: errs.append(m.text) if m.type == "error" else None,
+        )
         page.goto(BASE, wait_until="domcontentloaded", timeout=30000)
         page.wait_for_timeout(3500)
         data = probe(page)

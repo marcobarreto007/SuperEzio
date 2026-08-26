@@ -398,7 +398,7 @@ async def main():
                     headers={"Content-Type": "application/json"},
                     method="POST",
                 )
-                resp = urllib.request.urlopen(req, timeout=10)
+                resp = urllib.request.urlopen(req, timeout=10)  # noqa: ASYNC210 — probe diagnóstico síncrono; reescrever para httpx.AsyncClient é trabalho separado
                 data = json.loads(resp.read())
                 token = data.get("access_token", "")
                 print(f"  [OK] Logged in as '{username}', got JWT token")
@@ -418,7 +418,7 @@ async def main():
                         headers={"Content-Type": "application/json"},
                         method="POST",
                     )
-                    resp = urllib.request.urlopen(req, timeout=10)
+                    resp = urllib.request.urlopen(req, timeout=10)  # noqa: ASYNC210 — probe diagnóstico síncrono; reescrever para httpx.AsyncClient é trabalho separado
                     print(f"  [OK] Registered '{username}'")
                     # Login after register
                     req = urllib.request.Request(
@@ -427,12 +427,12 @@ async def main():
                         headers={"Content-Type": "application/json"},
                         method="POST",
                     )
-                    resp = urllib.request.urlopen(req, timeout=10)
+                    resp = urllib.request.urlopen(req, timeout=10)  # noqa: ASYNC210 — probe diagnóstico síncrono; reescrever para httpx.AsyncClient é trabalho separado
                     data = json.loads(resp.read())
                     token = data.get("access_token", "")
                     print(f"  [OK] Logged in as '{username}'")
                     break
-                except Exception:
+                except Exception:  # noqa: S112 — sonda: usuário pode ainda não existir; tenta registrar/próximo candidato
                     continue
 
         if not token:

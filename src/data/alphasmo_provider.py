@@ -38,6 +38,7 @@ def _check_alphasmo() -> bool:
             capture_output=True,
             text=True,
             timeout=30,
+            check=False,  # returncode é lido abaixo para setar _ALPHASMO_AVAILABLE
         )
         _ALPHASMO_AVAILABLE = result.returncode == 0
     except Exception:
@@ -49,7 +50,8 @@ def _run_alphasmo(args: list[str], timeout: int = 30) -> dict[str, Any] | list[A
     """Run ``npx alphasmo {args} --json`` and return the parsed output."""
     cmd = ["npx", "--yes", "alphasmo", *args, "--json"]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        # check=False: falha é diagnosticada via returncode/stderr abaixo
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
     except subprocess.TimeoutExpired:
         logger.warning("[AlphaSMO] command timed out: %s", args)
         return None

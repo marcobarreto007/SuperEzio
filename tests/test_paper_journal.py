@@ -368,6 +368,7 @@ class TestPaperJournal:
                 capture_output=True,
                 text=True,
                 timeout=60,
+                check=False,  # falha é validada abaixo via assert de stderr/stdout
             )
             assert not result.stderr, f"probe subprocesso falhou: {result.stderr}"
             return result.stdout.strip()

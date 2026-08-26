@@ -123,6 +123,7 @@ class ImmuneSystem:
                 text=True,
                 timeout=timeout,
                 env={**os.environ, "DISABLE_OTEL": "1"},
+                check=False,  # returncode é verificado abaixo para montar a mensagem de resultado
             )
             if result.returncode == 0:
                 return True, f"Import OK: {module_name}"

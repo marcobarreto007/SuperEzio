@@ -1,5 +1,7 @@
 """Contract tests for F51 Engine — formulas.py + gates.py invariants."""
 
+from dataclasses import FrozenInstanceError
+
 import pytest
 
 from src.f51.formulas import (
@@ -31,7 +33,7 @@ def test_weights_default_values():
 
 def test_weights_are_frozen():
     w = FormulaWeights.default()
-    with pytest.raises(Exception):
+    with pytest.raises(FrozenInstanceError):
         w.veracity = 1.0
 
 

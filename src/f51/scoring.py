@@ -159,7 +159,7 @@ class RiskEngine:
         for rule in self.rules:
             try:
                 fired, evidence = rule.evaluate(data)
-            except Exception:
+            except Exception:  # noqa: S112 — regra que falha é ignorada (não derruba o engine); módulo sem logger
                 continue
 
             if fired:

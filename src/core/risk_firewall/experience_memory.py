@@ -208,7 +208,7 @@ def load_experience_memory(memory_path: str | Path | None = None) -> list[Experi
                     continue
                 try:
                     episodes.append(ExperienceEpisode.model_validate_json(raw))
-                except Exception:
+                except Exception:  # noqa: S112 — linha JSONL inválida é pulada por contrato de resiliência; módulo sem logger
                     continue
     if memory_path is None:
         seen = {episode.id for episode in episodes}

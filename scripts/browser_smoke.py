@@ -291,7 +291,7 @@ def _chat_api_check(
                 continue
             try:
                 obj = json.loads(line)
-            except Exception:
+            except Exception:  # noqa: S112 — linha não-JSON no stream NDJSON é ignorada por contrato; script sem logger
                 continue
             etype = obj.get("type")
             if etype == "CHUNK":

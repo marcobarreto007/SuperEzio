@@ -3,6 +3,7 @@
 import time
 
 import pytest
+from pydantic import ValidationError
 
 from src.core.ports.protocol import A2AMessage, MessageType
 
@@ -123,20 +124,20 @@ def test_create_response_different_type():
 
 
 def test_missing_from_raises():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         A2AMessage.model_validate({"to": "bob", "type": "TASK.SUBMIT"})
 
 
 def test_missing_to_raises():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         A2AMessage.model_validate({"from": "ui", "type": "TASK.SUBMIT"})
 
 
 def test_missing_type_raises():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         A2AMessage.model_validate({"from": "ui", "to": "bob"})
 
 
 def test_invalid_type_raises():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         A2AMessage.model_validate({"from": "ui", "to": "bob", "type": "INVALID_TYPE"})

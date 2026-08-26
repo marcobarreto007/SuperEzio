@@ -619,7 +619,7 @@ class ModelGateway:
 
                             with concurrent.futures.ThreadPoolExecutor() as executor:
                                 future = executor.submit(
-                                    lambda: asyncio.run(
+                                    lambda provider=provider: asyncio.run(
                                         self.generate_api(
                                             provider,
                                             prompt,
@@ -727,7 +727,7 @@ class ModelGateway:
 
                     q: queue.Queue = queue.Queue()
 
-                    def run_async_stream():
+                    def run_async_stream(q=q, provider=provider):
                         async def task():
                             try:
                                 async for chunk in self.stream_generate_api(

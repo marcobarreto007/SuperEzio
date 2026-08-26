@@ -24,7 +24,9 @@ def test_release_builder_excludes_operator_state_and_verifies_manifest(tmp_path:
         "-OutputDirectory",
         str(tmp_path),
     ]
-    completed = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, timeout=180)
+    completed = subprocess.run(
+        command, cwd=ROOT, capture_output=True, text=True, timeout=180, check=False
+    )  # check=False: returncode é assertado na linha seguinte
     assert completed.returncode == 0, completed.stderr or completed.stdout
 
     zip_path = next(tmp_path.glob("SuperEzio-V1-*.zip"))

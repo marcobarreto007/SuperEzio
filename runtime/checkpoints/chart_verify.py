@@ -440,7 +440,7 @@ async def ensure_server():
 
     try:
         req = urllib.request.Request("http://127.0.0.1:8002/health")
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with urllib.request.urlopen(req, timeout=5) as resp:  # noqa: ASYNC210 — probe diagnóstico síncrono; reescrever para httpx.AsyncClient é trabalho separado
             if resp.status == 200:
                 print("[INFO] Server already running")
                 return True
@@ -460,11 +460,11 @@ async def ensure_server():
         time.sleep(1)
         try:
             req = urllib.request.Request("http://127.0.0.1:8002/health")
-            with urllib.request.urlopen(req, timeout=2) as resp:
+            with urllib.request.urlopen(req, timeout=2) as resp:  # noqa: ASYNC210 — probe diagnóstico síncrono; reescrever para httpx.AsyncClient é trabalho separado
                 if resp.status == 200:
                     print(f"[INFO] Server started (PID: {proc.pid})")
                     return proc
-        except Exception:
+        except Exception:  # noqa: S112 — sonda: health check pode falhar durante o boot; o loop tenta de novo
             continue
 
     print("[WARN] Server may not have started properly")

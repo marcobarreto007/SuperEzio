@@ -250,7 +250,6 @@ class ForensicRAG:
         except Exception:
             return self._keyword_search(query, top_k)
 
-        global _faiss_index
         if _faiss_index is not None:
             qvec_f32 = qvec.astype(np.float32)
             scores, indices = _faiss_index.search(qvec_f32, min(top_k, _faiss_index.ntotal))
@@ -330,7 +329,7 @@ class ForensicRAG:
 
     def add_document(self, doc_id: str, text: str, source: str = "runtime"):
         """Add a document at runtime. Updates FAISS index incrementally if available."""
-        global _embeddings_cache, _faiss_index
+        global _embeddings_cache  # _faiss_index é apenas lido aqui (add() no objeto)
         _documents_cache.append({"id": doc_id, "text": text, "source": source})
 
         embedder = self._get_embedder()
@@ -357,7 +356,7 @@ class ForensicRAG:
 
     def save_index(self, path: str | None = None):
         """Persist a safe immutable generation and atomically publish it."""
-        global _faiss_index, _documents_cache
+        # _faiss_index e _documents_cache são apenas lidos aqui (persistência); sem global
 
         target = Path(resolve_project_path(path or FAISS_INDEX_DIR))
         generation_id = uuid.uuid4().hex

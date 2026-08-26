@@ -429,7 +429,8 @@ class IBKRService:
                     for trade in method() or []:
                         add_trade(trade)
                     self._ib.sleep(min(max(timeout, 0.1), 3.0))
-                except Exception:
+                except Exception as exc:
+                    logger.debug("[IBKRService] order method %s failed: %s", method_name, exc)
                     continue
 
             # Then collect any trades that arrived asynchronously while ib_insync
@@ -438,7 +439,8 @@ class IBKRService:
                 try:
                     for trade in getattr(self._ib, accessor)() or []:
                         add_trade(trade)
-                except Exception:
+                except Exception as exc:
+                    logger.debug("[IBKRService] accessor %s failed: %s", accessor, exc)
                     continue
 
             with self._lock:

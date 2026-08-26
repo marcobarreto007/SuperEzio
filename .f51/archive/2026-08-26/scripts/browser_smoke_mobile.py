@@ -141,7 +141,10 @@ def run_mobile_smoke(base_url: str, timeout_ms: int) -> dict[str, Any]:
             page = context.new_page()
             console_errors: list[str] = []
             page.on(
-                "console", lambda m: console_errors.append(m.text) if m.type == "error" else None
+                "console",
+                lambda m, console_errors=console_errors: console_errors.append(m.text)
+                if m.type == "error"
+                else None,
             )
             page.goto(base_url, wait_until="domcontentloaded", timeout=timeout_ms)
             page.wait_for_timeout(3000)
