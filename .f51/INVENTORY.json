@@ -96,7 +96,7 @@
         {"name": "core/math", "path": "src/core/math/", "files": 6, "classification": "core", "risk": "low", "notes": "Indicators, risk, crisis, financial_engine, trading_losses, utils"},
         {"name": "core/model_serving", "path": "src/core/model_serving/", "files": 3, "classification": "core", "risk": "high", "notes": "ModelGateway + providers (CEO, DeepSeek, local_orchestrator)"},
         {"name": "core/observability", "path": "src/core/observability/", "files": 3, "classification": "core", "risk": "low", "notes": "Debug logger, event hub, neural log"},
-        {"name": "core/auth", "path": "src/core/auth/", "files": 2, "classification": "core", "risk": "high", "notes": "JWT auth — models.py (SQLite+bcrypt), service.py (PyJWT+refresh rotation)"},
+        {"name": "core/auth", "path": "src/core/auth/", "files": 2, "classification": "dead", "risk": "low", "notes": "DEAD CODE — 0 importers em src/ (somente tests/test_auth.py); JWT auth real vive em src/agent_server/auth.py"},
         {"name": "core/paths", "path": "src/core/paths/", "files": 1, "classification": "core", "risk": "low", "notes": "PROJECT_ROOT resolution (__init__.py com código real)"},
         {"name": "core/pipeline", "path": "src/core/pipeline/", "files": 18, "classification": "pipeline", "risk": "high", "notes": "LangGraph StateGraph: graph, contracts, intents, security, 11 nodes, prompts"},
         {"name": "core/ports", "path": "src/core/ports/", "files": 5, "classification": "core", "risk": "medium", "notes": "Abstract interfaces: model_gateway, data_collector, audit_log, health_probe, protocol"},
@@ -111,7 +111,7 @@
         {"name": "experts/crisis", "path": "src/experts/crisis/", "files": 20, "classification": "core", "risk": "medium", "notes": "12 crisis models + ensemble + quantum_expert + tool_adapter + schemas + report"},
         {"name": "experts/neural_decision", "path": "src/experts/neural_decision/", "files": 1, "classification": "core", "risk": "medium", "notes": "NeuralDecisionExpert (Torch MLP + regime detection)"},
         {"name": "experts/pennylab", "path": "src/experts/pennylab/", "files": 14, "classification": "core", "risk": "medium", "notes": "4 penny-stock experts + scoring + RAG hooks + lab journal + CLI + schemas + pipeline hook"},
-        {"name": "experts/technical_neural", "path": "src/experts/technical_neural/", "files": 3, "classification": "core", "risk": "medium", "notes": "Technical neural expert + Torch MLP + pipeline hook"},
+        {"name": "experts/technical_neural", "path": "src/experts/technical_neural/", "files": 3, "classification": "core", "risk": "medium", "notes": "Technical neural expert + Torch MLP; pipeline_hook (run_technical_neural_analysis/analyze_technical_neural_sync) com 0 chamadores em src/ e tests/ — nao e pipeline integration"},
         {"name": "f51", "path": "src/f51/", "files": 5, "classification": "core", "risk": "medium", "notes": "F51 verdict engine: graph, formulas, scoring, detectors, gates"},
         {"name": "tools", "path": "src/tools/", "files": 1, "classification": "pipeline", "risk": "low", "notes": "Custom tool registry for LangGraph agent"}
     ],

@@ -32,6 +32,7 @@ O exército de agentes do SuperEzio não é um bando de agentes falando ao mesmo
 ├── runtime-verifier.md          # Runtime — health checks, GPU, processos, logs
 ├── training-verifier.md         # Treino — classifica scripts, valida datasets
 ├── api-contract-verifier.md     # Contratos — breaking changes, schema drift
+├── model-gateway-verifier.md    # Gateway — provider cascade, latência, fallback, GGUF
 ├── frontend-ux-reviewer.md      # Frontend — smoke test, acessibilidade, chat
 ├── kb-domain-reviewer.md        # Conhecimento — precisão conceitual, docs
 ├── savekeeper.md                # Verdade durável — docs, checkpoints, changelog
@@ -44,7 +45,7 @@ O exército de agentes do SuperEzio não é um bando de agentes falando ao mesmo
 └── deprecated/                  # Cemitério de agentes
 ```
 
-O **Captain** é o único agente **residente**. Os outros 21 são one-shot disparados por ele ou pela sessão.
+O **Captain** é o único agente **residente**. Os outros 22 são one-shot disparados por ele ou pela sessão.
 O trio `market-*` segue o padrão de separação de poderes dos templates oficiais da Anthropic
 (data-puller → builder → auditor) — ver `docs/architecture/AGENT_PATTERNS_ANTHROPIC_FS.md`.
 O Captain executa o ciclo selecionado pelo risco:

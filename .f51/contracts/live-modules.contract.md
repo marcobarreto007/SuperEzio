@@ -185,13 +185,14 @@ defined inline.
   - 4 experts in `experts/`: `liquidity_risk_expert`, `pump_dump_expert`, `veracity_gate`, `volume_spike_expert`, `whale_print_expert`
   - `PennyLabScoring` in `scoring.py`
   - `PennyLabSchemas` in `schemas.py`
-  - `pipeline_hook.py` â€” pipeline integration
+  - `pipeline_hook.py` â€” pipeline integration (`run_pennylab_analysis`, `analyze_ticker_sync`; live callers: `src/core/body/heartbeat.py`, `src/core/pipeline/nodes/tool_executor.py`)
   - `rag_hooks.py` â€” fraud RAG integration
   - `cli.py` â€” manual CLI for penny stock analysis
 - **Invariants:**
   1. Each expert returns a `PennyLabSignal` with risk level âˆˆ {LOW, MEDIUM, HIGH, CRITICAL}
   2. `PennyLabScoring.composite_score(expert_signals) -> float` âˆˆ [0, 1]
   3. Volume spike detection uses z-score â‰¥ 2.0 as threshold
+- **Not live (reconciled 2026-08-26):** `src/experts/technical_neural/pipeline_hook.py` â€” `run_technical_neural_analysis`, `analyze_technical_neural_sync` have zero callers in `src/` and `tests/`; they are not pipeline integration and are not part of the live surface.
 
 ## 15. Trading Engine
 
