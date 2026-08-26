@@ -25315,3 +25315,7 @@
 {"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-26T14:25:58.174513+00:00", "healed": false}
 {"organ": "circuit_breakers_immune", "category": "defense", "pain": 50, "error": "Open circuits: ['model.deepseek']", "timestamp": "2026-08-26T14:26:42.630431+00:00", "healed": false}
 {"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-26T14:33:12.193110+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-26T14:49:02.078370+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-26T14:50:00.436791+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-26T14:55:25.590327+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-26T14:56:32.456980+00:00", "healed": false}

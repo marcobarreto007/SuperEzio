@@ -84,9 +84,7 @@ def has_real_data(card: dict[str, Any], card_key: str) -> bool:
         if current != init_val:
             return True
     # Also check body content - if there's meaningful content, it has data
-    if card.get("body_length", 0) > 50:
-        return True
-    return False
+    return card.get("body_length", 0) > 50
 
 
 def run_verification(

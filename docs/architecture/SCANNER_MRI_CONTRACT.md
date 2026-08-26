@@ -22,19 +22,19 @@ Every scanner event emitted to the UI and logged to the registry MUST conform to
 
 ```python
 SCAN_EVENT = {
-    "type": "SCAN_EVENT",             # discriminator for UI routing
-    "scan_id": str,                   # unique per scan, generated at INIT
-    "stage": str,                     # stage name (see §2)
-    "provider": str | None,           # provider name for per-provider events
-    "status": str,                    # "started" | "heartbeat" | "completed" | "failed"
-    "elapsed_ms": int,                # milliseconds since scan INIT
-    "counts": {                       # stage-specific counters
+    "type": "SCAN_EVENT",  # discriminator for UI routing
+    "scan_id": str,  # unique per scan, generated at INIT
+    "stage": str,  # stage name (see §2)
+    "provider": str | None,  # provider name for per-provider events
+    "status": str,  # "started" | "heartbeat" | "completed" | "failed"
+    "elapsed_ms": int,  # milliseconds since scan INIT
+    "counts": {  # stage-specific counters
         "total": int | None,
         "done": int | None,
         "errors": int | None,
     },
-    "error": str | None,              # human-readable error if status=failed
-    "data": dict | None,              # stage-specific payload (optional)
+    "error": str | None,  # human-readable error if status=failed
+    "data": dict | None,  # stage-specific payload (optional)
 }
 ```
 
@@ -125,10 +125,10 @@ operates under these rules:
 
 ```python
 CIRCUIT_BREAKER = {
-    "failure_threshold": 5,     # consecutive failures to open
-    "success_threshold": 2,     # consecutive successes to close (half-open)
+    "failure_threshold": 5,  # consecutive failures to open
+    "success_threshold": 2,  # consecutive successes to close (half-open)
     "half_open_cooldown_ms": 10000,  # time before attempting half-open
-    "scope": "per_provider",    # each provider has its own breaker
+    "scope": "per_provider",  # each provider has its own breaker
 }
 ```
 
@@ -148,17 +148,17 @@ If a stage fails (timeout, circuit open, or exception), the scan produces a
 ```python
 PARTIAL_RESULT = {
     "scan_id": str,
-    "status": "partial",           # "complete" | "partial" | "failed"
-    "failing_stage": str,          # which stage caused partial result
+    "status": "partial",  # "complete" | "partial" | "failed"
+    "failing_stage": str,  # which stage caused partial result
     "failing_provider": str | None,
-    "failing_reason": str,         # human-readable
-    "candidates": [...],           # candidates that passed before failure
+    "failing_reason": str,  # human-readable
+    "candidates": [...],  # candidates that passed before failure
     "candidate_count": int,
     "rejected": [...],
     "rejected_count": int,
-    "stages_completed": [str],     # list of stages that finished
-    "stages_failed": [str],        # list of stages that failed
-    "events": [SCAN_EVENT, ...],   # full event log for this scan
+    "stages_completed": [str],  # list of stages that finished
+    "stages_failed": [str],  # list of stages that failed
+    "events": [SCAN_EVENT, ...],  # full event log for this scan
 }
 ```
 
@@ -175,12 +175,12 @@ class ScanEventRegistry:
     """Append-only event log for a single scan."""
 
     scan_id: str
-    events: list[dict]        # all SCAN_EVENTs in order
-    started_at: float         # time.monotonic() at INIT
-    finished_at: float | None # time.monotonic() at FINALIZE
+    events: list[dict]  # all SCAN_EVENTs in order
+    started_at: float  # time.monotonic() at INIT
+    finished_at: float | None  # time.monotonic() at FINALIZE
 
     def emit(self, event: dict) -> None: ...
-    def snapshot(self) -> dict: ...      # full state for debugging
+    def snapshot(self) -> dict: ...  # full state for debugging
     def failing_stage(self) -> str | None: ...
     def elapsed_ms(self) -> int: ...
 ```

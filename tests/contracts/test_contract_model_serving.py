@@ -93,7 +93,7 @@ def test_build_default_providers_agent_present(monkeypatch):
     )
 
     cfg = UniversalConfig()
-    providers, gateway_config = build_default_providers(cfg)
+    providers, _gateway_config = build_default_providers(cfg)
     by_name = {p.name: p for p in providers}
 
     assert AGENT_PROVIDER_NAME in by_name

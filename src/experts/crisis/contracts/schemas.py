@@ -18,7 +18,7 @@ def _validate_observation_date(value: str) -> str:
         if _MONTH_RE.fullmatch(value):
             datetime.strptime(value, "%Y-%m")
         else:
-            datetime.fromisoformat(value.replace("Z", "+00:00"))
+            datetime.fromisoformat(value)
     except ValueError as exc:
         raise ValueError("date must be ISO-8601 or YYYY-MM") from exc
     return value
@@ -27,7 +27,7 @@ def _validate_observation_date(value: str) -> str:
 def _date_sort_key(value: str) -> datetime:
     if _MONTH_RE.fullmatch(value):
         return datetime.strptime(value, "%Y-%m")
-    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    parsed = datetime.fromisoformat(value)
     if parsed.tzinfo is not None:
         parsed = parsed.astimezone(UTC).replace(tzinfo=None)
     return parsed

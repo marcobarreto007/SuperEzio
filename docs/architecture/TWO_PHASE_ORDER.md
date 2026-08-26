@@ -43,21 +43,28 @@ async def execute_trade(payload: dict):
     action = payload.get("action", "buy")
     qty = int(payload.get("qty", 1))
     limit_price = float(payload.get("limit_price", 0))
-    
+
     # Submit AGORA
-    result = await _submit_paper_order(state, {
-        "ticker": ticker, "action": action, 
-        "qty": qty, "limit_price": limit_price,
-        "order_type": "LMT"
-    })
-    
+    result = await _submit_paper_order(
+        state,
+        {
+            "ticker": ticker,
+            "action": action,
+            "qty": qty,
+            "limit_price": limit_price,
+            "order_type": "LMT",
+        },
+    )
+
     # Pipeline em background
-    asyncio.create_task(_run_pipeline_background(
-        message=payload.get("message"),
-        order_result=result,
-        session_id=payload.get("session_id")
-    ))
-    
+    asyncio.create_task(
+        _run_pipeline_background(
+            message=payload.get("message"),
+            order_result=result,
+            session_id=payload.get("session_id"),
+        )
+    )
+
     return result  # Retorna em <2s
 ```
 

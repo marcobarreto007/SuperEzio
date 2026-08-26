@@ -32,10 +32,10 @@ SUPEREZIO_GLM_CODE_PLAN_API_KEY=your_key_here
 ```python
 # When local provider is requested:
 providers = [
-    agent (local),           # Try first
-    ceo_fallback_glm,       # Fallback if local fails
-    deepseek_v4,            # Next fallback
-    gemini_2_5_flash,       # Last resort
+    agent(local),  # Try first
+    ceo_fallback_glm,  # Fallback if local fails
+    deepseek_v4,  # Next fallback
+    gemini_2_5_flash,  # Last resort
 ]
 ```
 

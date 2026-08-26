@@ -30,7 +30,7 @@ def _nonnegative(value: Any, field: str) -> float:
 
 def _timestamp(value: Any, field: str) -> datetime:
     try:
-        parsed = datetime.fromisoformat(str(value or "").replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(str(value or ""))
     except ValueError as exc:
         raise TDCostGateError(f"{field} must be an ISO-8601 datetime") from exc
     if parsed.tzinfo is None:

@@ -118,7 +118,7 @@ class ModelGateway:
 
     def __init__(
         self,
-        providers: list[ModelProvider] = None,
+        providers: list[ModelProvider] | None = None,
         config: GatewayConfig = None,
         audit=None,
     ):
@@ -154,7 +154,7 @@ class ModelGateway:
         raise RuntimeError("No model provider is available.")
 
     def _providers_for_request(
-        self, preferred_provider: str = None, allow_fallback: bool = True
+        self, preferred_provider: str | None = None, allow_fallback: bool = True
     ) -> list[ModelProvider]:
         """Policy: prioritizes the requested provider, falls back to list order.
 
@@ -561,7 +561,7 @@ class ModelGateway:
         system_prompt: str = "",
         max_tokens: int | None = None,
         temperature: float | None = None,
-        preferred_provider: str = None,
+        preferred_provider: str | None = None,
         json_mode: bool = False,
         assistant_prefix: str = "",
         allow_fallback: bool = True,
@@ -700,7 +700,7 @@ class ModelGateway:
         system_prompt: str = "",
         max_tokens: int | None = None,
         temperature: float | None = None,
-        preferred_provider: str = None,
+        preferred_provider: str | None = None,
         assistant_prefix: str = "",
     ) -> Generator[str, None, None]:
         """Stream generate com fallback (Síncrono para compatibilidade)."""
@@ -792,7 +792,7 @@ class ModelGateway:
         system_prompt: str = "",
         max_tokens: int | None = None,
         temperature: float | None = None,
-        preferred_provider: str = None,
+        preferred_provider: str | None = None,
         assistant_prefix: str = "",
         allow_fallback: bool = True,
         tools: list[dict[str, Any]] | None = None,
@@ -892,7 +892,7 @@ class ModelGateway:
         json_mode: bool = False,
         temperature: float = 0.7,
         max_tokens: int | None = None,
-        preferred_provider: str = None,
+        preferred_provider: str | None = None,
         assistant_prefix: str = "",
         allow_fallback: bool = True,
     ) -> str:
@@ -980,7 +980,7 @@ class ModelGateway:
         json_mode: bool = False,
         temperature: float = 0.7,
         max_tokens: int | None = None,
-        preferred_provider: str = None,
+        preferred_provider: str | None = None,
         assistant_prefix: str = "",
         allow_fallback: bool = True,
     ) -> AsyncGenerator[str, None]:

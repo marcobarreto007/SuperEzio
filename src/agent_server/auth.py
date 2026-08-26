@@ -398,9 +398,7 @@ def _is_public_path(path: str) -> bool:
         return True
     if any(path == p or path.startswith(p + "/") for p in _PUBLIC_PREFIXES):
         return True
-    if path in _PUBLIC_AUTH_PATHS:
-        return True
-    return False
+    return path in _PUBLIC_AUTH_PATHS
 
 
 # ---------------------------------------------------------------------------

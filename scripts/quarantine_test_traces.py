@@ -13,7 +13,7 @@ from typing import Any
 
 def _parse_timestamp(row: dict[str, Any]) -> datetime | None:
     try:
-        return datetime.fromisoformat(str(row.get("timestamp") or "").replace("Z", "+00:00"))
+        return datetime.fromisoformat(str(row.get("timestamp") or ""))
     except ValueError:
         return None
 
@@ -68,7 +68,7 @@ def main() -> int:
     parser.add_argument("output_dir", type=Path)
     parser.add_argument("--since", required=True)
     args = parser.parse_args()
-    since = datetime.fromisoformat(args.since.replace("Z", "+00:00"))
+    since = datetime.fromisoformat(args.since)
     if since.tzinfo is None:
         raise SystemExit("--since must include a timezone")
     print(json.dumps(quarantine_test_interval(args.source, args.output_dir, since), indent=2))

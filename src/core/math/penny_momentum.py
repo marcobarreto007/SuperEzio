@@ -381,7 +381,7 @@ def _parse_observed_at(value: Any) -> datetime:
         raise ValueError("bar_datetime_is_required")
     else:
         try:
-            observed = datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
+            observed = datetime.fromisoformat(str(value).strip())
         except ValueError as exc:
             raise ValueError("invalid_bar_datetime") from exc
     return observed.astimezone(UTC) if observed.tzinfo is not None else observed

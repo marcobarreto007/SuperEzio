@@ -441,7 +441,7 @@ def _man_at_work_violation() -> tuple[bool, str]:
     try:
         from core.bob_consciousness import get_bobs_body
 
-        allowed, reason = get_bobs_body().check_man_at_work_guard("trading")
+        allowed, _reason = get_bobs_body().check_man_at_work_guard("trading")
         if allowed:
             return False, ""
         return True, "MAN_AT_WORK"

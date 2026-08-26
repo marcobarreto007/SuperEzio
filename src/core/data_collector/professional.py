@@ -127,9 +127,7 @@ def _is_penny(ticker: str, price: float | None = None) -> bool:
     t = ticker.upper()
     if t.endswith(".V"):
         return True  # TSX-V is almost all penny stocks
-    if price is not None and price < 5.0:
-        return True
-    return False
+    return bool(price is not None and price < 5.0)
 
 
 # ── Circuit Breaker ──────────────────────────────────────────────────────────
@@ -242,9 +240,7 @@ class DataQualityFilter:
         # NO_DATA / empty results are technically valid but useless
         if result.get("sentiment_label") == "NO_DATA" and result.get("news_count", 1) == 0:
             return False
-        if result.get("signal_label") == "NO_DATA":
-            return False
-        return True
+        return result.get("signal_label") != "NO_DATA"
 
     @staticmethod
     def score_freshness(timestamp: str | None) -> float:
@@ -252,7 +248,7 @@ class DataQualityFilter:
         if not timestamp:
             return 0.3  # Unknown freshness = mediocre
         try:
-            dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+            dt = datetime.fromisoformat(timestamp)
             age_sec = (datetime.now(UTC) - dt).total_seconds()
         except (ValueError, TypeError):
             return 0.3
@@ -359,9 +355,7 @@ class ProviderMesh:
             return False
         if self._breakers[name].is_open:
             return False
-        if spec.required_key and not os.getenv(spec.required_key):
-            return False
-        return True
+        return not (spec.required_key and not os.getenv(spec.required_key))
 
     def select(
         self,

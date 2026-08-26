@@ -223,7 +223,7 @@ def _venue_text(candidate: dict[str, Any]) -> str:
 
 def _ticker_is_canada_listed(ticker: str) -> bool:
     upper = ticker.upper()
-    return upper.endswith(".TO") or upper.endswith(".V")
+    return upper.endswith((".TO", ".V"))
 
 
 def _is_canada_venue(candidate: dict[str, Any], ticker: str) -> bool:
@@ -251,9 +251,7 @@ def _currency_contradicts_venue(candidate: dict[str, Any], ticker: str) -> bool:
         return False
     if currency == "USD" and _is_canada_venue(candidate, ticker):
         return True
-    if currency != "USD" and _is_us_venue(candidate):
-        return True
-    return False
+    return bool(currency != "USD" and _is_us_venue(candidate))
 
 
 def evaluate_quality_gates(candidate: dict[str, Any]) -> tuple[bool, list[str]]:

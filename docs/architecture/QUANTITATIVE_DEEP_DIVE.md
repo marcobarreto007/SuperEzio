@@ -118,9 +118,7 @@ $$\lambda(t) = \mu + \sum_{t_i < t} \alpha e^{-\beta(t - t_i)}$$
 
 O código percorre os dias de pânico passados (retornos $< -2\%$) e aplica o decaimento exponencial correto com base na distância temporal da observação atual:
 ```python
-def _hawkes_intensity(
-    events: list[float], t: float, mu: float, alpha: float, beta: float
-) -> float:
+def _hawkes_intensity(events: list[float], t: float, mu: float, alpha: float, beta: float) -> float:
     lam = mu
     for ti in events:
         if ti < t:

@@ -176,7 +176,7 @@ def test_empty_response_blocked(client_with_mock_pipeline):
 
 # Test C — "o que houve" after failed answer explains failure
 def test_what_happened_after_failed_answer(client_with_mock_pipeline):
-    mock_p, client = client_with_mock_pipeline
+    _mock_p, client = client_with_mock_pipeline
     session_id = "session-what-happened-test"
 
     # Pre-populate session history with a failure for MACRO_THESIS

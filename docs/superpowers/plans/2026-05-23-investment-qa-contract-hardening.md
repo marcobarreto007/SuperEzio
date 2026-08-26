@@ -408,7 +408,9 @@ def _investment_fallback_answer(message: str) -> str:
             "Confidence: 76"
         )
 
-    if any(term in msg for term in ("dollar-cost", "dca", "wait for a correction", "market timing")):
+    if any(
+        term in msg for term in ("dollar-cost", "dca", "wait for a correction", "market timing")
+    ):
         return (
             "1. **Question Classification** — DCA_VS_WAIT.\n"
             "2. **Default recommendation** — Dollar-cost average instead of waiting for a perfect correction unless the money is needed within 12 months.\n"
@@ -508,7 +510,9 @@ With:
 message = state.get("message", "")
 content = (
     _investment_fallback_answer(message)
-    if is_complex_finance or detect_complex_finance_intent(message) or detect_capital_allocation_intent(message)
+    if is_complex_finance
+    or detect_complex_finance_intent(message)
+    or detect_capital_allocation_intent(message)
     else "Bob could not choose a safe tool for this request. Please ask a narrower question."
 )
 ```
@@ -548,7 +552,9 @@ async def test_investment_final_answer_with_fake_ticker_is_replaced(monkeypatch)
 
     class FakeTickerGateway:
         async def chat_completion(self, *args, **kwargs):
-            return '{"tool":"final_answer","args":{"content":"Allocate 20% to VOOE and 80% to SPY."}}'
+            return (
+                '{"tool":"final_answer","args":{"content":"Allocate 20% to VOOE and 80% to SPY."}}'
+            )
 
     events = []
     monkeypatch.setattr(agent_module, "get_stream_writer", lambda: events.append)
@@ -576,8 +582,7 @@ from ..investment_quality import evaluate_investment_answer
 
 quality = evaluate_investment_answer(state.get("message", ""), str(content))
 if not quality.ok and any(
-    reason.startswith("fake_ticker:") or reason == "bad_fallback_text"
-    for reason in quality.reasons
+    reason.startswith("fake_ticker:") or reason == "bad_fallback_text" for reason in quality.reasons
 ):
     content = _investment_fallback_answer(state.get("message", ""))
 ```

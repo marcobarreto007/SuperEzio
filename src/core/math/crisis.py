@@ -196,7 +196,7 @@ def crisis_evaluate(model_name: str, data: dict[str, Any]) -> dict[str, Any]:
 
 def crisis_aggregate(
     data: dict[str, Any],
-    models: list[str] = None,
+    models: list[str] | None = None,
 ) -> dict[str, Any]:
     """Roda todos (ou lista específica de) modelos CrisisMath e agrega scores.
 

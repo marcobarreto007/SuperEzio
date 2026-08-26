@@ -119,7 +119,7 @@ async def test_generic_two_week_profit_prompt_defaults_to_us_canada(monkeypatch)
     all_tickers = [c.get("ticker") for c in result["candidates"]]
     all_tickers += [r.get("ticker") for r in result["rejected"]]
     assert not any(
-        isinstance(t, str) and (t.endswith(".SZ") or t.endswith(".SS")) for t in all_tickers
+        isinstance(t, str) and (t.endswith((".SZ", ".SS"))) for t in all_tickers
     )
 
 

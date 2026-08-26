@@ -42,11 +42,13 @@ Nenhum template recorta ou reordena o conteúdo do `{context}`. A única coisa q
 `experts.py:248-253`:
 
 ```python
-role,
+(role,)
 (
-    f"You are SuperEzio's {role} expert. Provide concise, data-driven analysis in English. Be quantitative.",
-    f"Analyze {ticker} as a {role} expert.\n\nContext:\n{context[:3000]}\n\nProvide a structured assessment with key metrics and risk flags.",
-),
+    (
+        f"You are SuperEzio's {role} expert. Provide concise, data-driven analysis in English. Be quantitative.",
+        f"Analyze {ticker} as a {role} expert.\n\nContext:\n{context[:3000]}\n\nProvide a structured assessment with key metrics and risk flags.",
+    ),
+)
 ```
 
 Isso é usado para `red_team_agent_N`, `judge_agent_N`, `auditor_agent` — todos os papéis "de segunda camada" da arquitetura (veto, julgamento, auditoria). Eles recebem literalmente o mesmo texto template com `{role}` interpolado no nome, e o mesmo `context` (só truncado em 3000 caracteres, sem seleção de conteúdo). **O juiz e o auditor, que deveriam ver "tudo no final" segundo a arquitetura descrita, na prática veem exatamente o mesmo pacote que qualquer especialista individual via — não um resumo consolidado dos vereditos dos outros.**

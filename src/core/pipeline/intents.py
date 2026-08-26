@@ -1932,9 +1932,7 @@ def detect_complex_finance_intent(message: str) -> bool:
         return True
     if hint_count >= 1 and has_structural:
         return True
-    if has_structural and len(normalized.split()) > 15:
-        return True
-    return False
+    return bool(has_structural and len(normalized.split()) > 15)
 
 
 SCAN_COMMAND_HINTS = (
@@ -2424,9 +2422,7 @@ def _is_market_scan_request(message: str) -> bool:
     if is_scan_command and has_financial_hint and not wants_specific_analysis:
         return True
     # Investment verbs without ticker â†’ the user wants opportunities, not a chat
-    if has_hint(message, INVESTMENT_ACTION_HINTS) and not detect_ticker(message):
-        return True
-    return False
+    return bool(has_hint(message, INVESTMENT_ACTION_HINTS) and not detect_ticker(message))
 
 
 def _needs_ticker_for_requested_analysis(message: str, ticker: str = "") -> bool:
@@ -2541,9 +2537,7 @@ def detect_decisive_trade_intent(message: str) -> bool:
         return True
     if has_allocation and (has_fast_trade or has_explosive):
         return True
-    if has_explosive and has_fast_trade:
-        return True
-    return False
+    return bool(has_explosive and has_fast_trade)
 
 
 def detect_another_trade_recommendation_intent(message: str) -> bool:
@@ -2587,9 +2581,7 @@ def should_block_vague_financial_prompt(
     normalized = normalize_message(raw_message)
     if any(re.search(pattern, normalized) for pattern in DIRECT_UNSCOPED_RECOMMENDATION_PATTERNS):
         return True
-    if has_hint(raw_message, EDUCATIONAL_OR_RISK_CONTEXT_HINTS):
-        return False
-    return True
+    return not has_hint(raw_message, EDUCATIONAL_OR_RISK_CONTEXT_HINTS)
 
 
 def infer_scan_filters(message: str) -> dict[str, str | None]:

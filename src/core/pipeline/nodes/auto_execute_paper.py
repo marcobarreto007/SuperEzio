@@ -567,7 +567,7 @@ def _resolve_limit_price(state: dict, scan: dict, ticker: str) -> tuple[float, f
                 collected = c.get("collected_at") or scan.get("collected_at") or ""
                 if collected:
                     try:
-                        collected_dt = datetime.fromisoformat(str(collected).replace("Z", "+00:00"))
+                        collected_dt = datetime.fromisoformat(str(collected))
                         data_age_s = (datetime.now(UTC) - collected_dt).total_seconds()
                     except Exception:
                         pass

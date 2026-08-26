@@ -38,7 +38,7 @@ def _preserve_iso_date(value: Any) -> str | None:
         return None
     text = str(value).strip()
     try:
-        datetime.fromisoformat(text.replace("Z", "+00:00"))
+        datetime.fromisoformat(text)
     except ValueError:
         return None
     return text

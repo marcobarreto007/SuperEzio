@@ -1067,7 +1067,7 @@ def test_td_commission_free_route_exposes_official_108_etf_universe(
     from datetime import datetime, timedelta
 
     verified_at = datetime.fromisoformat(
-        str(data["manifest"]["verified_at"]).replace("Z", "+00:00")
+        str(data["manifest"]["verified_at"])
     )
     assert verified_at > datetime.now(UTC) - timedelta(days=7), (
         f"manifest stale: {data['manifest']['verified_at']}"
@@ -1512,7 +1512,7 @@ def test_task_submit_empty_fallback(client_with_mock_pipeline):
 
 def test_task_submit_what_happened_intercept(client_with_mock_pipeline):
     """13c. POST /task/submit - Intercepts "o que houve" immediately after a failure"""
-    mock_p, client = client_with_mock_pipeline
+    _mock_p, client = client_with_mock_pipeline
     session_id = "session-failure-test"
 
     # Pre-populate session history with a failure record

@@ -1328,9 +1328,7 @@ def _should_force_contract_fallback(state: dict, content: str) -> bool:
         return True
     if _is_portfolio_concentration_question(message) and _has_tax_overstatement(content):
         return True
-    if _is_dca_macro_question(message) and _has_unsupported_macro_precision(content):
-        return True
-    return False
+    return bool(_is_dca_macro_question(message) and _has_unsupported_macro_precision(content))
 
 
 def _has_actionable_market_request(state: dict) -> bool:
@@ -1345,9 +1343,7 @@ def _has_actionable_market_request(state: dict) -> bool:
     if should_use and should_use(state):
         return True
     is_paper = _get_agent_attr("_is_paper_training_request")
-    if is_paper and is_paper(message):
-        return True
-    return False
+    return bool(is_paper and is_paper(message))
 
 
 def _has_market_evidence(state: dict) -> bool:

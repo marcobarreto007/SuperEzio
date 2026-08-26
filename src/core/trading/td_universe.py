@@ -185,7 +185,7 @@ def _load_tradable_manifest() -> dict[str, Any] | None:
 def _manifest_age_days(data: dict[str, Any]) -> float | None:
     generated = str(data.get("generated_at") or "")
     try:
-        stamp = datetime.fromisoformat(generated.replace("Z", "+00:00"))
+        stamp = datetime.fromisoformat(generated)
     except ValueError:
         return None
     if stamp.tzinfo is None:

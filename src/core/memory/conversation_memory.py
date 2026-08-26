@@ -244,7 +244,7 @@ class ConversationMemory:
 
         for turn in self._cache.get(session_id, []):
             try:
-                turn_dt = datetime.fromisoformat(turn.timestamp.replace("Z", "+00:00"))
+                turn_dt = datetime.fromisoformat(turn.timestamp)
                 if turn_dt >= cutoff:
                     recent.append(turn)
             except ValueError:
@@ -285,7 +285,7 @@ class ConversationMemory:
         filtered = [t for t in candidates if t.ticker_discussed.upper() == ticker]
         # Ordena por timestamp (mais recente primeiro)
         filtered.sort(
-            key=lambda t: datetime.fromisoformat(t.timestamp.replace("Z", "+00:00")),
+            key=lambda t: datetime.fromisoformat(t.timestamp),
             reverse=True,
         )
         return filtered[:limit]
@@ -301,14 +301,14 @@ class ConversationMemory:
         for turn in candidates:
             if turn.thesis_formed:
                 try:
-                    turn_dt = datetime.fromisoformat(turn.timestamp.replace("Z", "+00:00"))
+                    turn_dt = datetime.fromisoformat(turn.timestamp)
                     if turn_dt >= cutoff:
                         theses.append(turn)
                 except ValueError:
                     continue
 
         theses.sort(
-            key=lambda t: datetime.fromisoformat(t.timestamp.replace("Z", "+00:00")),
+            key=lambda t: datetime.fromisoformat(t.timestamp),
             reverse=True,
         )
         return theses

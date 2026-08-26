@@ -71,7 +71,7 @@ def detect_market(ticker: str) -> str:
     t = ticker.upper()
     if t.endswith(".SA"):
         return "BR"
-    if t.endswith(".TO") or t.endswith(".V"):
+    if t.endswith((".TO", ".V")):
         return "CA"
     return "US"
 

@@ -121,19 +121,33 @@ from trl import SFTTrainer
 from transformers import TrainingArguments
 
 model, tokenizer = FastLanguageModel.from_pretrained(
-    '/workspace/hf-30b', max_seq_length=1024, load_in_4bit=True)
+    "/workspace/hf-30b", max_seq_length=1024, load_in_4bit=True
+)
 model = FastLanguageModel.get_peft_model(
-    model, r=32, lora_alpha=32, use_gradient_checkpointing='unsloth')
+    model, r=32, lora_alpha=32, use_gradient_checkpointing="unsloth"
+)
 
-ds = load_dataset('json', data_files='/workspace/train.jsonl', split='train')
+ds = load_dataset("json", data_files="/workspace/train.jsonl", split="train")
 
 trainer = SFTTrainer(
-    model=model, tokenizer=tokenizer, train_dataset=ds, dataset_text_field='text',
-    args=TrainingArguments(per_device_train_batch_size=1, gradient_accumulation_steps=8,
-        max_steps=400, learning_rate=2e-4, bf16=True, output_dir='/workspace/outputs',
-        save_strategy='no', optim='adamw_8bit', report_to='none'))
+    model=model,
+    tokenizer=tokenizer,
+    train_dataset=ds,
+    dataset_text_field="text",
+    args=TrainingArguments(
+        per_device_train_batch_size=1,
+        gradient_accumulation_steps=8,
+        max_steps=400,
+        learning_rate=2e-4,
+        bf16=True,
+        output_dir="/workspace/outputs",
+        save_strategy="no",
+        optim="adamw_8bit",
+        report_to="none",
+    ),
+)
 trainer.train()
-model.save_pretrained('/workspace/outputs')
+model.save_pretrained("/workspace/outputs")
 ```
 
 **Estimativas:**
@@ -149,25 +163,26 @@ model.save_pretrained('/workspace/outputs')
 from safetensors.torch import load_file
 from gguf import GGUFWriter
 
-lora = load_file('adapter_model.safetensors')
+lora = load_file("adapter_model.safetensors")
 keep = {}
 for name, w in lora.items():
-    if '_exps' in name or 'experts' in name: continue
+    if "_exps" in name or "experts" in name:
+        continue
     # ... mapear nomes PEFT → GGUF ...
-    parts = name.replace('base_model.model.model.layers.', 'blk.')
-    parts = parts.replace('q_proj.lora_A.weight', 'attn_q.weight.lora_a')
+    parts = name.replace("base_model.model.model.layers.", "blk.")
+    parts = parts.replace("q_proj.lora_A.weight", "attn_q.weight.lora_a")
     # ... (todos os mapeamentos)
     keep[parts] = w
 
-writer = GGUFWriter('output.gguf', 'qwen3moe')
-writer.add_string('general.type', 'adapter')
-writer.add_string('adapter.type', 'lora')
+writer = GGUFWriter("output.gguf", "qwen3moe")
+writer.add_string("general.type", "adapter")
+writer.add_string("adapter.type", "lora")
 for name, w in keep.items():
     writer.add_tensor(name, w.float().numpy())
 writer.write_header_to_file()
 writer.write_kv_data_to_file()
 writer.write_ti_data_to_file()
-with open('output.gguf', 'ab') as fp:
+with open("output.gguf", "ab") as fp:
     for name in keep:
         writer.write_tensor_data(keep[name].float().numpy())
     writer.write_padding(fp, 32)

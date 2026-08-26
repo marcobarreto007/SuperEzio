@@ -45,11 +45,10 @@ class PennylabVeracityGate:
         if signal.volume is not None and signal.volume < 0:
             violations.append(f"volume={signal.volume} inválido (negativo)")
 
-        if signal.bid is not None and signal.ask is not None:
-            if signal.bid > signal.ask:
-                violations.append(
-                    f"bid={signal.bid} > ask={signal.ask} (bid/ask invertidos — dado corrompido)"
-                )
+        if signal.bid is not None and signal.ask is not None and signal.bid > signal.ask:
+            violations.append(
+                f"bid={signal.bid} > ask={signal.ask} (bid/ask invertidos — dado corrompido)"
+            )
 
         if signal.price is not None and signal.prev_close is not None and signal.prev_close > 0:
             change_pct = abs((signal.price - signal.prev_close) / signal.prev_close * 100)

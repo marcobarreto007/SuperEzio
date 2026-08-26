@@ -107,7 +107,7 @@ def _utc_datetime(value: Any, field: str) -> datetime:
         if not text:
             raise TDDirectTicketError(f"{field} is required")
         try:
-            parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+            parsed = datetime.fromisoformat(text)
         except ValueError as exc:
             raise TDDirectTicketError(f"{field} must be an ISO-8601 datetime") from exc
     if parsed.tzinfo is None:

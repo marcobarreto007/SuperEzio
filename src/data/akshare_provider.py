@@ -340,7 +340,7 @@ class AKShareProvider:
         if t_raw.isupper() and t_raw.endswith("M"):
             return None
         t = t_raw.lower()
-        if t.endswith("m") or t.endswith("min"):
+        if t.endswith(("m", "min")):
             return True
         return None
 

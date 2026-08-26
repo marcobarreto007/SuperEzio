@@ -1,44 +1,23 @@
 {
   "date_local": "2026-08-26",
-  "session": "army-wave5-orphan-decision-20260826",
+  "session": "save-state-and-docs-formatting-20260826",
   "status": "DELIVERED",
-  "objective": "Onda 5 (decisão skill a skill): resolver as 11 skills órfãs de orquestração — 6 deprecadas (audit, dependency-scout, loop-breaker, regression-hunter, release, test-finder), 5 mantidas (inventory, money-gate, env-guard, no-mock-police, windows-compat); referências limpas em 14 skills ativas.",
-  "predecessor": "agent-army-legacy-remediation-20260826",
-  "problema": "Auditoria §2.5: 16 skills sem referência de agentes/comandos/docs ativos; 5 já deprecadas na onda 1; 11 restantes precisavam de decisão individual com evidência (grep de referências em agents/commands/skills-ativas/docs/.f51).",
+  "objective": "Salvar estado operacional, formatacao de docs/skills e dados runtime em commit local.",
+  "predecessor": "army-wave5-orphan-decision-20260826",
+  "problema": "Modificacoes de formatacao de codigo em documentacao e skills, alem de atualizacoes de dados de runtime (bob_pain_log, mangala_daily) pendentes de persistencia em disco.",
   "patch": {
-    "deprecadas_6": "git mv → .claude/skills/deprecated/: f51-audit (→f51-quality-gate), f51-dependency-scout (→f51-dead-code), f51-loop-breaker (→agent-lab.md stop conditions), f51-regression-hunter (→f51-quality-gate+f51-tests), f51-release (→f51-quality-gate+release-readiness-manager), f51-test-finder (→f51-tests); canônica anotada no topo de cada SKILL.md; README do cemitério atualizado (11 skills).",
-    "mantidas_5": "f51-inventory (mandatória regra mestra CLAUDE.md gate 1 + depends-on real de f51-contracts/f51-dead-code), f51-money-gate (MONEY_GATE.md lido pelo captain), f51-env-guard (função única, citada por secure-scan), f51-no-mock-police (política de mocks CLAUDE.md), f51-windows-compat (projeto Windows-first).",
-    "refs_limpas": "14 skills ativas tiveram related-skills/depends-on sem as 6 deprecadas: circuit-breaker, contracts, dead-code, env-guard, idempotency, money-gate, observability, productizer, prop-test, refactor, runtime, safety-science, secure-scan (depends-on), tests (linha removida).",
-    "relatorio": "docs/audit/LEGACY_AUDIT_2026-08-26.md §6.2 com tabela decisão→evidência; saldo final 21 ativas + 11 deprecated."
+    "docs_formatting": "Formatacao de snippets python em documentacao tecnica (nitro, architecture, training kb, plans, fallback) e skills.",
+    "runtime_data": "Registros de runtime em data/bob_pain_log.jsonl e data/mangala_daily.json atualizados."
   },
   "verification": {
-    "grep_refs": "zero referências às 6 deprecadas em .claude/skills ativas, .claude/agents/ e .claude/commands/ (verificado pós-edição).",
-    "contagem": "21 skills ativas + 11 deprecated (+README); 22 agentes; 3 comandos.",
-    "criterio_inventory": "CLAUDE.md regra mestra (inventário = gate 1); f51-contracts depends-on [f51-inventory]; f51-dead-code depends-on [f51-inventory]; .f51/INVENTORY.json + INVENTORY_TEMPLATE.json existem.",
-    "nao_executado": "pytest/ruff/smoke não rodados — mudança restrita a .claude/skills, docs/ e checkpoint."
+    "git_status": "Working tree validado e commit local executado conforme regra DISK ONLY.",
+    "criterio_disk_only": "Nenhum comando de push/pull/fetch/gh executado (GITHUB_POLICY.json)."
   },
-  "risks": "Sessão paralela ativa removendo código morto em src/ (staged deletions de decision_logger, core/auth, investor/committee, collect_experts, expert_weights, reason_codes, pipeline_hook + M em scripts/ e endpoints.py) — fora deste commit (índice temporário); conflito de escrita no .f51/checkpoints/latest.json (sessão paralela o reescreveu 2x durante a onda) — este checkpoint documenta o estado consolidado no momento do commit. 30 dias: revisar deprecated/ para arquivar ou matar.",
   "still_true": {
     "live_execution": "FROZEN",
     "github": "DISK ONLY",
     "vision": "mmproj loaded on :8080",
     "open_access": "SUPEREZIO_OPEN_ACCESS from .env.local"
-  },
-  "closing": {
-    "session": "legacy-audit-remediation-20260826",
-    "date_local": "2026-08-26",
-    "status": "DELIVERED",
-    "predecessor": "validacao-pendentes-20260826",
-    "objective": "Onda final do operador: re-auditar skills e fechar o board da auditoria+remediacao 2026-08-26 (extensao do trabalho consolidado em army-and-doc-remediation-20260826).",
-    "patch": {
-      "skills_reaudit": ".f51/SKILLS_CHECK.md re-auditado — 32/32 skills atuais (27 ativas + 5 deprecated) com os 7 criterios; as 10 criadas pos-2026-06-01 (f51-circuit-breaker, f51-dead-code, f51-env-guard, f51-idempotency, f51-metrics-dash→deprecated, f51-observability, f51-orchestrator→deprecated, f51-prop-test, f51-secure-scan, tese-tracker) auditadas pela primeira vez: 9 APTO, 1 CONDICIONAL (tese-tracker — criterio 6 checkpoint F); 5 deprecated registradas com re-auditoria agendada em 30 dias; GAP-5/GAP-6/GAP-7 abertos, GAP-1..4 historicos preservados como resolvidos.",
-      "task_board": ".f51/TASK_BOARD.md — entrada Done da auditoria+remediacao 2026-08-26 com commits f34e0f3, 9486e9f2, 2cf27b42/8d32b819/a3cdd8ec/8a3ba1bb/cd3766ad, fc5160df/2443ebb6, f5a32d25; 7 pendencias abertas [ ] (P0 segredos bloqueado pelo operador, build_release exclusions, format src/, dead code src/, skills orfas, re-auditoria deprecated 30d, tese-tracker checkpoint)."
-    },
-    "verification": {
-      "leitura_direta": "32/32 SKILL.md lidos e avaliados por criterio (frontmatter, Quando usar, Nunca fazer, checkpoint, entregaveis); falha real encontrada: tese-tracker com 0 mencoes a .f51/checkpoints/latest.json.",
-      "grep": "checkpoint counts por skill; conteudo das secoes Nunca fazer/Entregaveis minimos confirmado por grep -A; working tree limpo antes e depois dos commits.",
-      "nao_executado": "pytest/ruff/smoke nao rodados — mudanca restrita a .f51/ (docs operacionais), sem codigo de produto."
-    },
-    "risks": "tese-tracker CONDICIONAL exige remediacao pequena (mencao ao checkpoint) — item registrado no board; decisao sobre 5 skills deprecated em 30 dias; cluster de 6 skills de gate e 4 orfas aguardando decisao do operador; P0 segredos (rotacao Questrade/DeepSeek + purge) permanece BLOQUEADO pelo operador."
   }
 }
+

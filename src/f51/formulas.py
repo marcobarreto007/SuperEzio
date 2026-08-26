@@ -140,7 +140,7 @@ def proxy_reward(
 
 def heuristic_uncertainty(
     text: str = "",
-    numeric_features: dict[str, float] = None,
+    numeric_features: dict[str, float] | None = None,
 ) -> float:
     """Estimativa de incerteza baseada em features textuais e numéricas.
 

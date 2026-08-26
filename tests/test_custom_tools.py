@@ -148,4 +148,4 @@ def test_execute_python_enabled_runs_simple_code(execute_python):
 )
 def test_execute_python_blocks_known_sandbox_escapes(execute_python, payload):
     result = execute_python(payload)
-    assert result.startswith("Error:") or result.startswith("Erro:")
+    assert result.startswith(("Error:", "Erro:"))

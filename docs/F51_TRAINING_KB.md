@@ -114,17 +114,26 @@ C:\llama.cpp\build\bin\llama-finetune-qlora.exe `
 ### Unsloth Cloud (Linux)
 ```python
 model, tokenizer = FastLanguageModel.from_pretrained(
-    "/workspace/models/hf-30b", max_seq_length=1024, load_in_4bit=True,
+    "/workspace/models/hf-30b",
+    max_seq_length=1024,
+    load_in_4bit=True,
     device_map="auto",  # multi-GPU
 )
 model = FastLanguageModel.get_peft_model(
-    model, r=32, lora_alpha=32, use_gradient_checkpointing="unsloth",
+    model,
+    r=32,
+    lora_alpha=32,
+    use_gradient_checkpointing="unsloth",
 )
 trainer = SFTTrainer(
-    model=model, train_dataset=dataset,
+    model=model,
+    train_dataset=dataset,
     args=TrainingArguments(
-        per_device_train_batch_size=1, gradient_accumulation_steps=8,
-        bf16=True, max_steps=300, learning_rate=2e-4,
+        per_device_train_batch_size=1,
+        gradient_accumulation_steps=8,
+        bf16=True,
+        max_steps=300,
+        learning_rate=2e-4,
     ),
 )
 ```
@@ -178,25 +187,27 @@ vastai destroy instance <ID>
 
 ```python
 # Só funciona com gguf-py do MESMO commit do llama.cpp
-import sys; sys.path.insert(0, 'C:/llama.cpp/gguf-py')
+import sys
+
+sys.path.insert(0, "C:/llama.cpp/gguf-py")
 from gguf import GGUFWriter
 from safetensors.torch import load_file
 
-lora = load_file('adapter_model.safetensors')
+lora = load_file("adapter_model.safetensors")
 keep = {}
 for name, w in lora.items():
-    if '_exps' in name or 'experts' in name:  # PULAR experts MoE
+    if "_exps" in name or "experts" in name:  # PULAR experts MoE
         continue
     # Mapear PEFT names → GGUF internal names
-    parts = name.replace('base_model.model.model.layers.', 'blk.')
-    parts = parts.replace('q_proj.lora_A.weight', 'attn_q.weight.lora_a')
+    parts = name.replace("base_model.model.model.layers.", "blk.")
+    parts = parts.replace("q_proj.lora_A.weight", "attn_q.weight.lora_a")
     # ... (ver script completo em scripts/convert_peft_to_gguf.py)
     keep[parts] = w
 
-writer = GGUFWriter('output.gguf', 'qwen3moe')
-writer.add_string('general.type', 'adapter')
-writer.add_string('adapter.type', 'lora')
-writer.add_float32('adapter.lora.alpha', 32.0)
+writer = GGUFWriter("output.gguf", "qwen3moe")
+writer.add_string("general.type", "adapter")
+writer.add_string("adapter.type", "lora")
+writer.add_float32("adapter.lora.alpha", 32.0)
 for name in sorted(keep.keys()):
     writer.add_tensor(name, keep[name].cpu().float().numpy())
 writer.close()

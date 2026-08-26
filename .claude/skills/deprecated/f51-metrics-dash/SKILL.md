@@ -42,37 +42,27 @@ from prometheus_client import Counter, Gauge, Histogram, generate_latest
 orders_total = Counter(
     "superezio_orders_total",
     "Total de ordens processadas",
-    ["status", "ticker"]  # status: allowed|blocked|error
+    ["status", "ticker"],  # status: allowed|blocked|error
 )
 gate_failures_total = Counter(
-    "superezio_gate_failures_total",
-    "Falhas por gate",
-    ["gate", "reason_code"]
+    "superezio_gate_failures_total", "Falhas por gate", ["gate", "reason_code"]
 )
 
 # Gauges
-execution_freeze = Gauge(
-    "superezio_execution_freeze",
-    "1 se FREEZE está ativo, 0 caso contrário"
-)
+execution_freeze = Gauge("superezio_execution_freeze", "1 se FREEZE está ativo, 0 caso contrário")
 ibkr_connectivity = Gauge(
-    "superezio_ibkr_connectivity",
-    "1 se IBKR está reachable, 0 caso contrário"
+    "superezio_ibkr_connectivity", "1 se IBKR está reachable, 0 caso contrário"
 )
-journal_health = Gauge(
-    "superezio_journal_health",
-    "1 se journal está writable, 0 caso contrário"
-)
+journal_health = Gauge("superezio_journal_health", "1 se journal está writable, 0 caso contrário")
 
 # Histogramas
 pipeline_duration_seconds = Histogram(
     "superezio_pipeline_duration_seconds",
     "Latência do pipeline completo",
-    buckets=[0.1, 0.5, 1, 2, 5, 10, 30, 60]
+    buckets=[0.1, 0.5, 1, 2, 5, 10, 30, 60],
 )
 gate_evaluation_duration_seconds = Histogram(
-    "superezio_gate_evaluation_duration_seconds",
-    "Latência da avaliação dos 10 gates"
+    "superezio_gate_evaluation_duration_seconds", "Latência da avaliação dos 10 gates"
 )
 ```
 

@@ -143,7 +143,7 @@ def test_make_decision():
         whale_suspicion=0.9, pump_probability=0.5, trap_risk=0.8, liquidity_risk=0.7
     )
     sig = SignalInput(ticker="TEST")
-    decision, risks, entry, exits = make_decision(
+    decision, _risks, _entry, _exits = make_decision(
         scores, confidence=0.9, veracity_passed=True, signal=sig
     )
     assert decision is not None

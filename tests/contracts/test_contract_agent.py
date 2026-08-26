@@ -518,7 +518,7 @@ def test_evaluate_module_coverage_missing():
         "data": {"price": {"value": 100}, "technicals": {"rsi": 50}},
         "ticker": "AAPL",
     }
-    required, missing = _evaluate_module_coverage("The price is good", state)
+    _required, missing = _evaluate_module_coverage("The price is good", state)
     assert "technical" in missing
 
 

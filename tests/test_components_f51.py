@@ -193,7 +193,7 @@ def test_spider_sense_clean():
     from src.f51.detectors import SpiderSense
 
     ss = SpiderSense()
-    danger, alerts = ss.detect("AAPL reported earnings in line with expectations.")
+    danger, _alerts = ss.detect("AAPL reported earnings in line with expectations.")
     assert isinstance(danger, float)
     assert 0 <= danger <= 1
 

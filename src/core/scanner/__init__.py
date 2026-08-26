@@ -111,9 +111,9 @@ class MarketScanner:
 
     def scan_equities_detailed(
         self,
-        country: str = None,
-        sector: str = None,
-        industry: str = None,
+        country: str | None = None,
+        sector: str | None = None,
+        industry: str | None = None,
         limit: int = 10,
     ) -> list[dict]:
         """Like scan_equities, but keeps the VERIFIED exchange per ticker.
@@ -151,9 +151,9 @@ class MarketScanner:
 
     def scan_equities(
         self,
-        country: str = None,
-        sector: str = None,
-        industry: str = None,
+        country: str | None = None,
+        sector: str | None = None,
+        industry: str | None = None,
         limit: int = 10,
         max_price: float | None = None,
     ) -> list[str]:
@@ -190,7 +190,7 @@ class MarketScanner:
             _log_event("SCANNER", "SCAN_ERROR", {"type": "equities", "error": str(e)})
             return []
 
-    def scan_etfs(self, category: str = None, limit: int = 10) -> list[str]:
+    def scan_etfs(self, category: str | None = None, limit: int = 10) -> list[str]:
         """Retorna lista de tickers de ETFs."""
         cache_key = f"etf:{category}:{limit}"
         cached = self._get_cached(cache_key)

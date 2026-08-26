@@ -419,7 +419,7 @@ def _sse_visible_after_think(text: str) -> str:
         return ""
     visible = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
     stripped = visible.lstrip()
-    if stripped.startswith("{") or stripped.startswith("```"):
+    if stripped.startswith(("{", "```")):
         return ""
     return visible
 
@@ -2498,9 +2498,7 @@ def _should_force_contract_fallback(state: dict, content: str) -> bool:
         return True
     if _is_portfolio_concentration_question(message) and _has_tax_overstatement(content):
         return True
-    if _is_dca_macro_question(message) and _has_unsupported_macro_precision(content):
-        return True
-    return False
+    return bool(_is_dca_macro_question(message) and _has_unsupported_macro_precision(content))
 
 
 def _final_payload(content: str, iterations: int) -> dict[str, Any]:
@@ -2526,9 +2524,7 @@ def _has_actionable_market_request(state: dict) -> bool:
     if _is_paper_training_request(message):
         return True
     # FALLBACK: if ticker is present and this is a market question, it's actionable
-    if state.get("ticker") and not state.get("data"):
-        return True
-    return False
+    return bool(state.get("ticker") and not state.get("data"))
 
 
 def _has_market_evidence(state: dict) -> bool:

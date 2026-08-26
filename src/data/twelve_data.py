@@ -32,7 +32,7 @@ class TwelveDataProvider:
     Requer TWELVE_DATA_API_KEY configurada no ambiente ou .env.
     """
 
-    def __init__(self, api_key: str = None):
+    def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.getenv("TWELVE_DATA_API_KEY")
         if not self.api_key:
             raise RuntimeError("TWELVE_DATA_API_KEY is required but not set")

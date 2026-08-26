@@ -416,7 +416,7 @@ class TestComputeConfidence:
 
 class TestMakeDecision:
     def test_veracity_failed(self):
-        decision, risks, entry, exits = make_decision(
+        decision, risks, _entry, _exits = make_decision(
             PennylabScores(),
             confidence=0.8,
             veracity_passed=False,
@@ -426,7 +426,7 @@ class TestMakeDecision:
         assert len(risks) > 0
 
     def test_low_confidence_watch_only(self):
-        decision, risks, entry, exits = make_decision(
+        decision, _risks, _entry, _exits = make_decision(
             PennylabScores(),
             confidence=0.1,
             veracity_passed=True,
@@ -435,7 +435,7 @@ class TestMakeDecision:
         assert decision == Decision.WATCH_ONLY
 
     def test_critical_liquidity_no_trade(self):
-        decision, risks, entry, exits = make_decision(
+        decision, _risks, _entry, _exits = make_decision(
             PennylabScores(liquidity_risk=0.85),
             confidence=0.8,
             veracity_passed=True,
@@ -444,7 +444,7 @@ class TestMakeDecision:
         assert decision == Decision.NO_TRADE
 
     def test_trap_pump_no_trade(self):
-        decision, risks, entry, exits = make_decision(
+        decision, _risks, _entry, _exits = make_decision(
             PennylabScores(pump_probability=0.80, trap_risk=0.85),
             confidence=0.8,
             veracity_passed=True,
@@ -453,7 +453,7 @@ class TestMakeDecision:
         assert decision == Decision.NO_TRADE
 
     def test_whale_micro_entry(self):
-        decision, risks, entry, exits = make_decision(
+        decision, _risks, _entry, _exits = make_decision(
             PennylabScores(whale_suspicion=0.75, trap_risk=0.20, liquidity_risk=0.20),
             confidence=0.5,
             veracity_passed=True,
@@ -462,7 +462,7 @@ class TestMakeDecision:
         assert decision == Decision.MICRO_ENTRY
 
     def test_whale_paper_trade(self):
-        decision, risks, entry, exits = make_decision(
+        decision, _risks, _entry, _exits = make_decision(
             PennylabScores(whale_suspicion=0.80, trap_risk=0.30, liquidity_risk=0.30),
             confidence=0.5,
             veracity_passed=True,
@@ -471,7 +471,7 @@ class TestMakeDecision:
         assert decision == Decision.PAPER_TRADE
 
     def test_clean_setup_bullish(self):
-        decision, risks, entry, exits = make_decision(
+        decision, _risks, _entry, _exits = make_decision(
             PennylabScores(
                 whale_suspicion=0.10,
                 pump_probability=0.10,
@@ -486,7 +486,7 @@ class TestMakeDecision:
         assert decision == Decision.BULLISH
 
     def test_elevated_risk_bearish(self):
-        decision, risks, entry, exits = make_decision(
+        decision, _risks, _entry, _exits = make_decision(
             PennylabScores(trap_risk=0.55, expected_loss=0.05),
             confidence=0.5,
             veracity_passed=True,
@@ -495,7 +495,7 @@ class TestMakeDecision:
         assert decision == Decision.BEARISH
 
     def test_default_watch_only(self):
-        decision, risks, entry, exits = make_decision(
+        decision, _risks, _entry, _exits = make_decision(
             PennylabScores(
                 whale_suspicion=0.40,
                 pump_probability=0.30,

@@ -781,7 +781,7 @@ def _parse_candle_time(raw: Any) -> int:
     from datetime import datetime
 
     try:
-        dt = datetime.fromisoformat(raw_str.replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(raw_str)
         return int(dt.timestamp())
     except Exception:
         for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):

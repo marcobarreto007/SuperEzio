@@ -33,7 +33,7 @@ class MacroDataset:
         with open(self.index_path, "w", encoding="utf-8") as f:
             json.dump(self.index, f, indent=2)
 
-    def add_series(self, name: str, country: str, df: pd.DataFrame, metadata: dict = None):
+    def add_series(self, name: str, country: str, df: pd.DataFrame, metadata: dict | None = None):
         """
         Adiciona uma série ao dataset gigante.
         df deve ter 'date' e o valor da série.

@@ -64,7 +64,7 @@ def _parse_as_of(value: Any) -> datetime:
     if isinstance(value, (int, float)):
         return datetime.fromtimestamp(float(value), tz=UTC)
     try:
-        parsed = datetime.fromisoformat(str(value or "").replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(str(value or ""))
     except ValueError as exc:
         raise PermanentQuoteError("provider quote timestamp is missing or invalid") from exc
     if parsed.tzinfo is None:

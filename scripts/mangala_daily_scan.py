@@ -117,9 +117,7 @@ def is_market_hours(dt: datetime | None = None) -> bool:
         return False
     if hour == MARKET_OPEN_HOUR and minute < MARKET_OPEN_MINUTE:
         return False
-    if hour == MARKET_CLOSE_HOUR and minute > MARKET_CLOSE_MINUTE:
-        return False
-    return True
+    return not (hour == MARKET_CLOSE_HOUR and minute > MARKET_CLOSE_MINUTE)
 
 
 def get_scan_interval() -> int:

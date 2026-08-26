@@ -55,18 +55,30 @@ CONTEXT_SIZES = [4096, 8192, 16384, 32768, 65536, 131072, 262144]
 
 # Test prompts (3 themes)
 THEMES = [
-    ("code", "Write a Python web scraper for Canadian auction sites with rate limiting and error handling. Include class-based design, async support, and logging."),
-    ("creative", "Describe in vivid detail a Montreal winter morning. Include sensory details: sounds of snow crunching, smell of maple from the bakery, the way light hits the snow."),
-    ("analysis", "Analyze the economic impact of DDR5 RAM pricing on consumer AI inference. Compare cost-per-token between GPU-all and tiered placement approaches."),
+    (
+        "code",
+        "Write a Python web scraper for Canadian auction sites with rate limiting and error handling. Include class-based design, async support, and logging.",
+    ),
+    (
+        "creative",
+        "Describe in vivid detail a Montreal winter morning. Include sensory details: sounds of snow crunching, smell of maple from the bakery, the way light hits the snow.",
+    ),
+    (
+        "analysis",
+        "Analyze the economic impact of DDR5 RAM pricing on consumer AI inference. Compare cost-per-token between GPU-all and tiered placement approaches.",
+    ),
 ]
 
+
 def measure(prompt: str, max_tokens: int = 200, temperature: float = 0.7) -> dict:
-    payload = json.dumps({
-        "model": "qwen3-coder-next",
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": max_tokens,
-        "temperature": temperature,
-    }).encode()
+    payload = json.dumps(
+        {
+            "model": "qwen3-coder-next",
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+        }
+    ).encode()
 
     req = urllib.request.Request(
         f"{API}/chat/completions",
@@ -94,6 +106,7 @@ def measure(prompt: str, max_tokens: int = 200, temperature: float = 0.7) -> dic
         "prompt_tok_per_s": round(prompt_tps, 2),
     }
 
+
 def run_benchmark():
     results = []
     for ctx_label in CONTEXT_SIZES:
@@ -104,8 +117,11 @@ def run_benchmark():
             r["context_target"] = ctx_label
             r["theme"] = theme_name
             results.append(r)
-            print(f"  ctx={ctx_label:>7} theme={theme_name:<10} gen={r['gen_tok_per_s']:>6.1f} t/s  prompt={r['prompt_tok_per_s']:>6.1f} t/s")
+            print(
+                f"  ctx={ctx_label:>7} theme={theme_name:<10} gen={r['gen_tok_per_s']:>6.1f} t/s  prompt={r['prompt_tok_per_s']:>6.1f} t/s"
+            )
     return results
+
 
 if __name__ == "__main__":
     print("F51 Nitro Benchmark")
@@ -118,8 +134,10 @@ if __name__ == "__main__":
         runs = [r for r in results if r["context_target"] == ctx]
         gen_tps = [r["gen_tok_per_s"] for r in runs]
         prompt_tps = [r["prompt_tok_per_s"] for r in runs]
-        print(f"ctx={ctx:>7}: gen={statistics.mean(gen_tps):>6.1f} ± {statistics.stdev(gen_tps):>4.1f} t/s  "
-              f"prompt={statistics.mean(prompt_tps):>6.1f} t/s")
+        print(
+            f"ctx={ctx:>7}: gen={statistics.mean(gen_tps):>6.1f} ± {statistics.stdev(gen_tps):>4.1f} t/s  "
+            f"prompt={statistics.mean(prompt_tps):>6.1f} t/s"
+        )
 ```
 
 ## 5. Metrics to Record

@@ -720,9 +720,8 @@ def _apply_candidate_gate(
     if max_price is not None and isinstance(price, (int, float)) and price > max_price:
         return False, "price_above_requested_max"
 
-    if not allow_penny_otc:
-        if isinstance(price, (int, float)) and price < 1.0:
-            return False, "penny_filtered"
+    if not allow_penny_otc and isinstance(price, (int, float)) and price < 1.0:
+        return False, "penny_filtered"
 
     # TD specialization (operator decision 2026-08-23): the tradable universe
     # is ONLY exchanges supported by TD Direct Investing — TSX, TSXV, NYSE,
@@ -1039,7 +1038,7 @@ async def _run_scan(
                         "ticker": sym,
                         "source": "pennylab_watchlist",
                         "market": "Canada"
-                        if (sym.endswith(".TO") or sym.endswith(".V"))
+                        if (sym.endswith((".TO", ".V")))
                         else ("Brazil" if sym.endswith(".SA") else "United States"),
                     }
                     # A .TO/.V suffix proves the TSX/TSXV listing venue —
