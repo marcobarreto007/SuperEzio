@@ -69,3 +69,11 @@ ao day-trading do SuperEzio. Princípio herdado verbatim do original:
 - Conviction que só sobe (viés de confirmação disfarçado de score)
 - Invalidação vaga ("se o mercado piorar") — deve ser preço/evento específico
 - Catalyst sem resultado real registrado depois que passou
+
+## Entregáveis mínimos
+
+1. `runtime/theses/<TICKER>.json` atualizado com os 5 passos acima
+2. Checkpoint canônico atualizado em `.f51/checkpoints/latest.json` com sessão,
+   ticker, e status da tese (viva/morta/atualizada)
+3. Evidência de que invalidação e conviction foram revisados (não apenas copiados)
+

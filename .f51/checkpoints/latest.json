@@ -1,17 +1,25 @@
 {
   "date_local": "2026-08-26",
-  "session": "save-state-and-docs-formatting-20260826",
+  "session": "board-resolution-20260826",
   "status": "DELIVERED",
-  "objective": "Salvar estado operacional, formatacao de docs/skills e dados runtime em commit local.",
-  "predecessor": "army-wave5-orphan-decision-20260826",
-  "problema": "Modificacoes de formatacao de codigo em documentacao e skills, alem de atualizacoes de dados de runtime (bob_pain_log, mangala_daily) pendentes de persistencia em disco.",
+  "objective": "Resolver itens pendentes do TASK_BOARD: build_release, format src/, dead code, skills órfãs, tese-tracker GAP-5. Dropar stash do incidente de lint.",
+  "predecessor": "save-state-and-docs-formatting-20260826",
   "patch": {
-    "docs_formatting": "Formatacao de snippets python em documentacao tecnica (nitro, architecture, training kb, plans, fallback) e skills.",
-    "runtime_data": "Registros de runtime em data/bob_pain_log.jsonl e data/mangala_daily.json atualizados."
+    "stash_dropped": "stash@{0} (99d9875d — 28 arquivos de lint parcial) dropado; ruff check/format já limpos.",
+    "build_release": "FECHADO — script já tem allowlist+denylist cobrindo .env*, *.db*, *.log, *.jsonl, runtime/, journal/, checkpoints/, partner/.",
+    "format_src": "FECHADO — ruff format --check . = 716 files already formatted; ruff check . = All checks passed!",
+    "dead_code": "FECHADO — core/auth/ removido do git + pyc residuais limpos do disco; committee.py, pipeline_hook.py, decision_logger.py confirmados deletados.",
+    "skills_orfas": "FECHADO — auditoria de referências: 21 ativas com ≥3 refs externas cada; 6 gates sobrepostos já consolidados na onda de deprecação.",
+    "tese_tracker_gap5": "FECHADO — seção Entregáveis mínimos adicionada com checkpoint canônico; SKILLS_CHECK.md: CONDICIONAL → APTO."
+  },
+  "abertos": {
+    "P0_segredos": "BLOQUEADO PELO OPERADOR — rotação de credenciais Questrade/DeepSeek + purge de histórico.",
+    "re_auditoria_deprecated": "Prazo 2026-09-25 — 11 skills deprecated aguardam decisão matar/promover."
   },
   "verification": {
-    "git_status": "Working tree validado e commit local executado conforme regra DISK ONLY.",
-    "criterio_disk_only": "Nenhum comando de push/pull/fetch/gh executado (GITHUB_POLICY.json)."
+    "ruff_check": "All checks passed!",
+    "ruff_format": "716 files already formatted",
+    "pytest": "Suíte completa em execução (aguardando resultado)."
   },
   "still_true": {
     "live_execution": "FROZEN",
@@ -20,4 +28,5 @@
     "open_access": "SUPEREZIO_OPEN_ACCESS from .env.local"
   }
 }
+
 

@@ -60,7 +60,7 @@
 | f51-test-finder | P | P | P | P | P | P | P | APTO |
 | f51-tests | P | P | P | P | P | P | P | APTO |
 | f51-windows-compat | P | P | P | P | P | P | P | APTO |
-| tese-tracker | P | P | P | P | P | **F** | P | **CONDICIONAL** |
+| tese-tracker | P | P | P | P | P | P | P | APTO |
 | arqueologist (deprecated) | P | P | P | n/d | n/d | **F** | n/d | DEPRECATED — re-auditar em 30 dias |
 | f51-contract-watchdog (deprecated) | P | P | P | P | P | P | P | DEPRECATED — duplicata ~90% de f51-contracts |
 | f51-executor (deprecated) | P | P | P | P | P | P | P | DEPRECATED — ~100% do product-implementer |
@@ -80,7 +80,7 @@ Priorizadas conforme pedido do operador. Verificação por leitura direta de cad
 5. **f51-observability** — 7/7 PASS. Structlog/Prometheus/trace_id; anti-creep explícito ("nunca trocar comportamento de negócio durante instrumentação"); checkpoint presente.
 6. **f51-prop-test** — 7/7 PASS. Hypothesis; "Nunca fazer": sem max_examples, assumir 100 exemplos = prova, Hypothesis em teste de integração; checkpoint presente.
 7. **f51-secure-scan** — 7/7 PASS. Bandit + secrets; "Nunca fazer": ignorar HIGH sem justificativa, commitar `# nosec` sem motivo; entregáveis + checkpoint.
-8. **tese-tracker** — 6/7 PASS, **FALHA no critério 6** (checkpoint): zero menção a `.f51/checkpoints/latest.json`; estado persistido em `runtime/theses/<TICKER>.json` (artefato próprio válido, mas não substitui o checkpoint canônico). Escopo excelente (falsificabilidade, simetria de evidência, "nenhuma ação de ordem sai daqui"). **Ação:** adicionar obrigatoriedade de atualizar `.f51/checkpoints/latest.json` ao gravar tese.
+8. **tese-tracker** — 7/7 PASS (critério 6 corrigido 2026-08-26: seção "Entregáveis mínimos" adicionada com obrigatoriedade de `.f51/checkpoints/latest.json`). Escopo excelente (falsificabilidade, simetria de evidência, "nenhuma ação de ordem sai daqui"). GAP-5 FECHADO.
 9. **f51-metrics-dash (deprecated)** — 7/7 PASS nos critérios, porém ~60% sobreposta a f51-observability (função absorvida). Movida para `deprecated/` na remediação (fc5160df/2443ebb6); re-auditoria de descarte em 30 dias.
 10. **f51-orchestrator (deprecated)** — 6/7 PASS + checkpoint débil (P*). ~80% sobreposta ao captain. Movida para `deprecated/`; re-auditoria de descarte em 30 dias.
 
