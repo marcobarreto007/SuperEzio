@@ -577,6 +577,7 @@ class TestAgentP2CapitalAllocationQuality:
         assert "Confidence: <0-100>" in COMPLEX_FINANCE_SYSTEM_PROMPT
         assert "Pick exactly ONE verdict" in COMPLEX_FINANCE_SYSTEM_PROMPT
 
+    @pytest.mark.live_model
     def test_cad_25k_allocation_answer_contract(self):
         """Add contract test: CAD 25k allocation answer must contain emergency fund gate,
         debt interest gate, business cashflow gate, tax-account note, and no unsupported exact probability.
