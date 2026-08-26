@@ -1,11 +1,10 @@
 """Validated, audit-friendly data contracts for CrisisMathExpert."""
 
-from datetime import datetime, timezone
 import re
-from typing import Any, Literal, Optional
+from datetime import UTC, datetime
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
-
 
 _MONTH_RE = re.compile(r"^\d{4}-\d{2}$")
 
@@ -30,7 +29,7 @@ def _date_sort_key(value: str) -> datetime:
         return datetime.strptime(value, "%Y-%m")
     parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     if parsed.tzinfo is not None:
-        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+        parsed = parsed.astimezone(UTC).replace(tzinfo=None)
     return parsed
 
 
@@ -38,17 +37,17 @@ class MacroObservation(BaseModel):
     model_config = ConfigDict(allow_inf_nan=False)
 
     date: str
-    credit_to_gdp: Optional[float] = None
-    credit_growth_yoy: Optional[float] = None
-    gdp_growth_yoy: Optional[float] = None
-    debt_service_ratio: Optional[float] = None
-    house_price_index: Optional[float] = None
-    rent_index: Optional[float] = None
-    income_index: Optional[float] = None
-    equity_index: Optional[float] = None
-    policy_rate: Optional[float] = None
-    unemployment_rate: Optional[float] = None
-    inflation_yoy: Optional[float] = None
+    credit_to_gdp: float | None = None
+    credit_growth_yoy: float | None = None
+    gdp_growth_yoy: float | None = None
+    debt_service_ratio: float | None = None
+    house_price_index: float | None = None
+    rent_index: float | None = None
+    income_index: float | None = None
+    equity_index: float | None = None
+    policy_rate: float | None = None
+    unemployment_rate: float | None = None
+    inflation_yoy: float | None = None
 
     _valid_date = field_validator("date")(_validate_observation_date)
 
@@ -58,20 +57,20 @@ class MarketObservation(BaseModel):
 
     date: str
     close: float = Field(gt=0.0)
-    volume: Optional[float] = None
-    realized_volatility: Optional[float] = None
-    credit_spread: Optional[float] = None
-    vix_like_index: Optional[float] = None
+    volume: float | None = None
+    realized_volatility: float | None = None
+    credit_spread: float | None = None
+    vix_like_index: float | None = None
 
     _valid_date = field_validator("date")(_validate_observation_date)
 
 
 class CrisisInput(BaseModel):
-    country: Optional[str] = None
-    asset_symbol: Optional[str] = None
+    country: str | None = None
+    asset_symbol: str | None = None
     frequency: Literal["daily", "weekly", "monthly", "quarterly", "annual"] = "monthly"
     observations: list[MacroObservation] = Field(default_factory=list)
-    market_series: Optional[list[MarketObservation]] = None
+    market_series: list[MarketObservation] | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
@@ -101,9 +100,9 @@ class SensorResult(BaseModel):
     method_kind: Literal[
         "statistical_model", "econometric_model", "deterministic", "heuristic", "unavailable"
     ] = "heuristic"
-    horizon: Optional[str] = None
+    horizon: str | None = None
     sample_size: int = Field(default=0, ge=0)
-    as_of: Optional[str] = None
+    as_of: str | None = None
     calibration_status: Literal[
         "not_applicable",
         "not_calibrated",
@@ -117,7 +116,7 @@ class SensorResult(BaseModel):
 
     @field_validator("as_of")
     @classmethod
-    def validate_as_of(cls, value: Optional[str]) -> Optional[str]:
+    def validate_as_of(cls, value: str | None) -> str | None:
         return _validate_observation_date(value) if value is not None else None
 
     @model_validator(mode="after")
@@ -148,8 +147,8 @@ class CrisisReport(BaseModel):
     bubble_risk_score: float = Field(ge=0.0, le=1.0, strict=True)
     liquidity_stress_score: float = Field(ge=0.0, le=1.0, strict=True)
     credit_fragility_score: float = Field(ge=0.0, le=1.0, strict=True)
-    bank_fragility_score: Optional[float] = Field(default=None, ge=0.0, le=1.0, strict=True)
-    contagion_risk_score: Optional[float] = Field(default=None, ge=0.0, le=1.0, strict=True)
+    bank_fragility_score: float | None = Field(default=None, ge=0.0, le=1.0, strict=True)
+    contagion_risk_score: float | None = Field(default=None, ge=0.0, le=1.0, strict=True)
     final_risk_score: float = Field(ge=0.0, le=1.0, strict=True)
     regime: Literal["normal", "overheating", "stress", "crisis", "unavailable"]
     alert_level: Literal["green", "yellow", "red", "black", "unavailable"]

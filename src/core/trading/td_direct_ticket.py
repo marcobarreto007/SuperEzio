@@ -11,15 +11,15 @@ import json
 import math
 import os
 import re
-from datetime import datetime, timedelta, timezone
+from collections.abc import Mapping
+from datetime import UTC, datetime, timedelta
 from decimal import ROUND_CEILING, Decimal
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from core.paths import resolve_project_path
 from core.trading.td_universe import TD_EXCHANGE_CURRENCY as _EXCHANGE_CURRENCY
 from core.trading.td_universe import normalize_td_exchange
-
 
 DEFAULT_TICKET_LOG = resolve_project_path("runtime/td_direct/tickets.jsonl")
 DEFAULT_COMMISSION_MANIFEST = resolve_project_path("config/td_direct_commission_free_etfs.json")
@@ -112,7 +112,7 @@ def _utc_datetime(value: Any, field: str) -> datetime:
             raise TDDirectTicketError(f"{field} must be an ISO-8601 datetime") from exc
     if parsed.tzinfo is None:
         raise TDDirectTicketError(f"{field} must include a timezone")
-    return parsed.astimezone(timezone.utc)
+    return parsed.astimezone(UTC)
 
 
 def _normalize_symbol(raw_symbol: Any, exchange: str) -> tuple[str, str | None]:
@@ -145,7 +145,7 @@ def td_commission_eligibility(
     try:
         manifest = json.loads(path.read_text(encoding="utf-8"))
         verified_date = datetime.fromisoformat(str(manifest["verified_at"])).date()
-        manifest_age_days = (datetime.now(timezone.utc).date() - verified_date).days
+        manifest_age_days = (datetime.now(UTC).date() - verified_date).days
         max_age_days = _positive_env_int("SUPEREZIO_TD_COMMISSION_LIST_MAX_AGE_DAYS", "7")
         if manifest_age_days < 0 or manifest_age_days > max_age_days:
             raise ValueError("commission-free manifest is stale or future-dated")
@@ -190,7 +190,7 @@ def load_td_commission_free_manifest(
         canadian = manifest["symbols"]["CAN"]
         us = manifest["symbols"]["US"]
         verified_date = datetime.fromisoformat(str(manifest["verified_at"])).date()
-        age_days = (datetime.now(timezone.utc).date() - verified_date).days
+        age_days = (datetime.now(UTC).date() - verified_date).days
         max_age_days = _positive_env_int("SUPEREZIO_TD_COMMISSION_LIST_MAX_AGE_DAYS", "7")
         if age_days < 0 or age_days > max_age_days:
             raise ValueError("commission-free manifest is stale or future-dated")
@@ -227,7 +227,7 @@ def build_td_direct_ticket(
     if unknown_fields:
         raise TDDirectTicketError("unsupported fields: " + ", ".join(unknown_fields))
 
-    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    current = (now or datetime.now(UTC)).astimezone(UTC)
     # Canonical exchange comes from the td_universe contract: provider
     # spellings (AMEX, NYSE American, ARCA, ...) normalize to the six
     # TD-supported venues before currency and symbol checks.

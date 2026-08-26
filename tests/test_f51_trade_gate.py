@@ -5,21 +5,21 @@ These tests enforce the "fail closed" principle.
 
 import os
 import sys
+
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from core.pipeline.f51_trade_gate import (
+    TradeGateDecision,
     build_order_gate_metadata,
+    evaluate_trade_gate,
     is_execution_frozen,
+    is_explicit_trade_intent,
+    is_journal_healthy,
     is_ticker_blacklisted,
     is_valid_ticker_format,
-    is_explicit_trade_intent,
-    evaluate_trade_gate,
-    TradeGateDecision,
-    is_journal_healthy,
 )
-
 
 _NEURAL_GATE = {
     "allowed": True,

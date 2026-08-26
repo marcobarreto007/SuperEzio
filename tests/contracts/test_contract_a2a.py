@@ -1,9 +1,10 @@
 """Contract tests for A2A Protocol — MessageType + A2AMessage invariants."""
 
 import time
-import pytest
-from src.core.ports.protocol import A2AMessage, MessageType
 
+import pytest
+
+from src.core.ports.protocol import A2AMessage, MessageType
 
 # ---------------------------------------------------------------------------
 # MessageType enum

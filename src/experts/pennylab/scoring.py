@@ -10,18 +10,15 @@ Princípio: Python calcula. LLM orquestra. Marco decide.
 
 from __future__ import annotations
 
-from typing import List, Tuple
-
-from .schemas import Decision, PennylabScores, PennylabReport, SignalInput, DataQuality
-from .config import THRESHOLDS, MAX_PRICE_PENNY
-from .mathcore_adapter import _clamp, build_mathcore_verdict
-
+from .config import MAX_PRICE_PENNY, THRESHOLDS
 from .experts import (
+    LiquidityRiskExpert,
+    PumpDumpExpert,
     VolumeSpikeExpert,
     WhalePrintExpert,
-    PumpDumpExpert,
-    LiquidityRiskExpert,
 )
+from .mathcore_adapter import _clamp, build_mathcore_verdict
+from .schemas import DataQuality, Decision, PennylabReport, PennylabScores, SignalInput
 
 # Instâncias singleton dos experts
 _volume_expert = VolumeSpikeExpert()
@@ -35,13 +32,13 @@ _liquidity_expert = LiquidityRiskExpert()
 # ---------------------------------------------------------------------------
 
 
-def compute_scores(signal: SignalInput) -> Tuple[PennylabScores, List[str]]:
+def compute_scores(signal: SignalInput) -> tuple[PennylabScores, list[str]]:
     """
     Orquestra os 4 experts e combina scores.
     Retorna (scores 0-1, evidências).
     Nunca fabrica dados — scores ficam em 0.0 se dado ausente.
     """
-    evidence: List[str] = []
+    evidence: list[str] = []
 
     vol = _volume_expert.evaluate(signal)
     whale = _whale_expert.evaluate(signal)
@@ -107,7 +104,7 @@ def make_decision(
     confidence: float,
     veracity_passed: bool,
     signal: SignalInput,
-) -> Tuple[Decision, List[str], List[str], List[str]]:
+) -> tuple[Decision, list[str], list[str], list[str]]:
     """
     Aplica as regras de decisão centrais — hierarquia de 7 níveis.
     Retorna (Decision, risks, entry_conditions, exit_conditions).
@@ -122,9 +119,9 @@ def make_decision(
       7. Risco elevado (BEARISH)      → BEARISH
       8. Default                      → WATCH_ONLY
     """
-    risks: List[str] = []
-    entry: List[str] = []
-    exits: List[str] = []
+    risks: list[str] = []
+    entry: list[str] = []
+    exits: list[str] = []
     t = THRESHOLDS
 
     # ── Regra 0: VeracityGate ──

@@ -32,7 +32,9 @@ def replay(
     restored = ticket
     if ticket["status"] == "AUDIT_WRITE_FAILED":
         restored_status = (
-            "DRAFT_QUOTE_VERIFIED" if ticket.get("quote", {}).get("evidence_hash") else "DRAFT_UNVERIFIED_QUOTE"
+            "DRAFT_QUOTE_VERIFIED"
+            if ticket.get("quote", {}).get("evidence_hash")
+            else "DRAFT_UNVERIFIED_QUOTE"
         )
         restored = store.transition_ticket(
             ticket_id,

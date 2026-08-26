@@ -86,9 +86,7 @@ class CircuitBreaker:
         self._consecutive_failures += 1
         self._consecutive_successes = 0
 
-        if self.state == CircuitState.HALF_OPEN:
-            self.state = CircuitState.OPEN
-        elif (
+        if self.state == CircuitState.HALF_OPEN or (
             self.state == CircuitState.CLOSED
             and self._consecutive_failures >= self.failure_threshold
         ):

@@ -7,6 +7,7 @@ Output: JSON with position pct of equity.
 
 import json
 import sys
+
 from ib_insync import IB
 
 

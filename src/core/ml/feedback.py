@@ -6,7 +6,7 @@ import glob
 import json
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -33,10 +33,10 @@ def save_feedback(
         "msg_id": msg_id,
         "rating": rating,
         "comment": comment,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "trace": trace or {},
     }
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = datetime.now(UTC).strftime("%Y-%m-%d")
     path = _resolve_feedback_dir() / f"feedback-{today}.jsonl"
     with path.open("a", encoding="utf-8") as feedback_file:
         feedback_file.write(json.dumps(entry, ensure_ascii=False) + "\n")

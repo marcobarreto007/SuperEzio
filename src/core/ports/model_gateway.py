@@ -6,7 +6,8 @@ nunca da implementação concreta (OpenAI-compatible, local, etc.).
 
 from __future__ import annotations
 
-from typing import Any, AsyncGenerator, Protocol
+from collections.abc import AsyncGenerator
+from typing import Any, Protocol
 
 
 class ModelGatewayPort(Protocol):

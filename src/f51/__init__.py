@@ -20,61 +20,62 @@ Módulos:
 """
 
 from __future__ import annotations
-from .graph import F51Engine, Graph, Node, Context, NodeResult
+
+from .detectors import TRAP_PATTERNS, DifficultyEstimator, SpiderAlert, SpiderSense
 from .formulas import (
-    unified_decision,
     DecisionFactors,
     FormulaWeights,
     combined_risk,
-    proxy_reward,
     heuristic_uncertainty,
+    proxy_reward,
     sigmoid,
-    t_norm,
     t_conorm,
-)
-from .detectors import SpiderSense, SpiderAlert, DifficultyEstimator, TRAP_PATTERNS
-from .scoring import (
-    PlatinumScorer,
-    Candidate,
-    DeterministicScorer,
-    RiskEngine,
-    RiskRule,
+    t_norm,
+    unified_decision,
 )
 from .gates import (
-    VeracityGate,
-    VeracityResult,
     AdversarialCritic,
     CriticResult,
     ProxyReward,
+    VeracityGate,
+    VeracityResult,
+)
+from .graph import Context, F51Engine, Graph, Node, NodeResult
+from .scoring import (
+    Candidate,
+    DeterministicScorer,
+    PlatinumScorer,
+    RiskEngine,
+    RiskRule,
 )
 
 __all__ = [
+    "TRAP_PATTERNS",
+    "AdversarialCritic",
+    "Candidate",
+    "Context",
+    "CriticResult",
+    "DecisionFactors",
+    "DeterministicScorer",
+    "DifficultyEstimator",
     "F51Engine",
+    "FormulaWeights",
     "Graph",
     "Node",
-    "Context",
     "NodeResult",
-    "unified_decision",
-    "DecisionFactors",
-    "FormulaWeights",
-    "combined_risk",
-    "proxy_reward",
-    "heuristic_uncertainty",
-    "sigmoid",
-    "t_norm",
-    "t_conorm",
-    "SpiderSense",
-    "SpiderAlert",
-    "DifficultyEstimator",
-    "TRAP_PATTERNS",
     "PlatinumScorer",
-    "Candidate",
-    "DeterministicScorer",
+    "ProxyReward",
     "RiskEngine",
     "RiskRule",
+    "SpiderAlert",
+    "SpiderSense",
     "VeracityGate",
     "VeracityResult",
-    "AdversarialCritic",
-    "CriticResult",
-    "ProxyReward",
+    "combined_risk",
+    "heuristic_uncertainty",
+    "proxy_reward",
+    "sigmoid",
+    "t_conorm",
+    "t_norm",
+    "unified_decision",
 ]

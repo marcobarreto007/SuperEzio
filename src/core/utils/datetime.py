@@ -7,7 +7,7 @@ Previously duplicated 4x across:
 - agent_server/endpoints.py
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -24,7 +24,7 @@ def parse_iso_datetime(value: Any) -> datetime | None:
             text = text[:-1] + "+00:00"
         parsed = datetime.fromisoformat(text)
         if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=timezone.utc)
+            parsed = parsed.replace(tzinfo=UTC)
         return parsed
     except (TypeError, ValueError):
         return None

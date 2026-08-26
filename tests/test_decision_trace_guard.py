@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 
-import core.audit.decision_trace as decision_trace
+from core.audit import decision_trace
 from core.audit.decision_trace import DecisionTraceLogger, is_synthetic_run_id
 
 

@@ -357,9 +357,10 @@ def test_journal_concurrent_read_write(journal):
 
     Simula multiplos componentes lendo e escrevendo no journal simultaneamente.
     """
-    from core.trading.paper_journal import PaperJournal, PaperTrade
     import concurrent.futures
     import threading
+
+    from core.trading.paper_journal import PaperJournal, PaperTrade
 
     n_writers = 10
     trades_per_writer = 50

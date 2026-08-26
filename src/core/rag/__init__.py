@@ -6,9 +6,9 @@ from .macro_dataset import MacroDataset, macro_engine
 
 __all__ = [
     "ForensicRAG",
-    "forensic_rag",
     "FraudPatternMatcher",
-    "fraud_patterns",
     "MacroDataset",
+    "forensic_rag",
+    "fraud_patterns",
     "macro_engine",
 ]

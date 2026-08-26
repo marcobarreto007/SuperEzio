@@ -13,11 +13,12 @@ import json
 import math
 import sys
 import tempfile
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from statistics import fmean, median
-from typing import Any, Iterable
+from typing import Any
 
 import numpy as np
 
@@ -28,8 +29,8 @@ if str(ROOT) not in sys.path:
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from data.yfinance_provider import YFinanceProvider  # noqa: E402
-from experts.technical_neural.expert.neural_expert import TechnicalNeuralExpert  # noqa: E402
+from data.yfinance_provider import YFinanceProvider
+from experts.technical_neural.expert.neural_expert import TechnicalNeuralExpert
 
 
 @dataclass(frozen=True)
@@ -107,7 +108,7 @@ def _strategy_metrics(
     return {
         "policy": "long_when_UP_else_cash",
         "turnover_cost": float(turnover_cost),
-        "observations": int(len(forward_returns)),
+        "observations": len(forward_returns),
         "invested_fraction": float(np.mean(positions)) if len(positions) else 0.0,
         "strategy": strategy,
         "buy_and_hold": benchmark,
@@ -206,7 +207,7 @@ def evaluate_case(
             candle_count=candle_count,
             train_candles=train_count,
             holdout_candles=holdout_count,
-            holdout_observations=int(len(indices)),
+            holdout_observations=len(indices),
             holdout_start=full_prepared.timestamps[int(indices[0])].isoformat(),
             holdout_end=full_prepared.timestamps[int(indices[-1])].isoformat(),
             probabilistic={
@@ -300,7 +301,7 @@ def run_evaluation(
 
     return {
         "schema_version": 1,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "method": {
             "data": "observed adjusted daily OHLCV from yfinance",
             "split": "80% chronological development prefix, 20% untouched future holdout",

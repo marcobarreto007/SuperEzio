@@ -13,11 +13,10 @@ from pathlib import Path
 import pytest
 
 from src.core.pipeline.nodes.mangala_tracker import (
-    MangalaTracker,
     FlipRecord,
+    MangalaTracker,
     get_mangala_tracker,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -290,6 +289,7 @@ def test_flip_syncs_to_paper_journal():
     """Flip no Mangala gera entrada no PaperJournal."""
     # Usando journal temporario para isolar
     import tempfile
+
     from core.trading.paper_journal import PaperJournal
 
     tmp_paper = tempfile.NamedTemporaryFile(delete=False, suffix=".jsonl", mode="w")

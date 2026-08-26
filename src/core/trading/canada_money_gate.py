@@ -6,15 +6,15 @@ import hashlib
 import json
 import math
 import re
-from datetime import date, datetime, time, timezone
-from typing import Any, Literal, Mapping
+from collections.abc import Mapping
+from datetime import UTC, date, datetime, time
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from core.config.settings import Settings, get_settings
 from core.trading.kill_switch import get_kill_switch
 from core.trading.workflow_store import TradeWorkflowStore, WorkflowConflictError
-
 
 _ACCOUNT_ALIAS = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{2,31}$")
 _OPERATOR = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$")
@@ -112,7 +112,7 @@ def resolve_usd_cad_evidence(*, now: datetime | None = None) -> dict[str, Any]:
 
     from data.boc_provider import get_usd_cad
 
-    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    current = (now or datetime.now(UTC)).astimezone(UTC)
     result = get_usd_cad()
     if result.get("error"):
         raise CanadaMoneyGateError("Bank of Canada USD/CAD evidence is unavailable")
@@ -123,7 +123,7 @@ def resolve_usd_cad_evidence(*, now: datetime | None = None) -> dict[str, Any]:
         raise CanadaMoneyGateError("Bank of Canada USD/CAD evidence is invalid") from exc
     if not math.isfinite(rate) or rate <= 0:
         raise CanadaMoneyGateError("Bank of Canada USD/CAD rate is invalid")
-    observed_at = datetime.combine(observed_date, time.min, tzinfo=timezone.utc)
+    observed_at = datetime.combine(observed_date, time.min, tzinfo=UTC)
     age_days = (current.date() - observed_date).days
     if age_days < 0 or age_days > 7:
         raise CanadaMoneyGateError("Bank of Canada USD/CAD evidence is stale or future-dated")
@@ -156,14 +156,14 @@ class CanadaMoneyGate:
         fx_evidence: Mapping[str, Any] | None = None,
         now: datetime | None = None,
     ) -> dict[str, Any]:
-        current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+        current = (now or datetime.now(UTC)).astimezone(UTC)
         try:
             snapshot = TDAccountSnapshot.model_validate(snapshot_payload)
         except ValidationError as exc:
             raise CanadaMoneyGateError(
                 f"invalid TD account snapshot: {exc.errors()[0]['msg']}"
             ) from exc
-        captured_at = snapshot.captured_at.astimezone(timezone.utc)
+        captured_at = snapshot.captured_at.astimezone(UTC)
         age_seconds = (current - captured_at).total_seconds()
         if (
             age_seconds < -5
@@ -313,7 +313,7 @@ class CanadaMoneyGate:
         snapshot_record = snapshot.model_dump(mode="json")
         snapshot_hash = _canonical_hash(snapshot_record)
         account_scope = hashlib.sha256(
-            f"{snapshot.operator}|{snapshot.account_alias}|{snapshot.account_type}".encode("utf-8")
+            f"{snapshot.operator}|{snapshot.account_alias}|{snapshot.account_type}".encode()
         ).hexdigest()
         evidence = {
             "passed": True,

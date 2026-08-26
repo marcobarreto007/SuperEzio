@@ -23,7 +23,6 @@ import datetime
 import logging
 import os
 import re
-from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +133,7 @@ def _make_item(
     url: str,
     source: str,
     published_date: str = "",
-) -> Dict:
+) -> dict:
     score, label = _sentiment(f"{title} {snippet}")
     return {
         "title": title,
@@ -150,7 +149,7 @@ def _make_item(
 # ── Fontes individuais ───────────────────────────────────────────────────────
 
 
-def _fetch_ddg_news(query: str, limit: int) -> List[Dict]:
+def _fetch_ddg_news(query: str, limit: int) -> list[dict]:
     """DuckDuckGo News — argumento posicional correto para ddgs >= 7.x."""
     if _DDGS is None:
         return []
@@ -176,7 +175,7 @@ def _fetch_ddg_news(query: str, limit: int) -> List[Dict]:
         return []
 
 
-def _fetch_ddg_text(query: str, limit: int) -> List[Dict]:
+def _fetch_ddg_text(query: str, limit: int) -> list[dict]:
     """DuckDuckGo Text search como fallback para news."""
     if _DDGS is None:
         return []
@@ -199,7 +198,7 @@ def _fetch_ddg_text(query: str, limit: int) -> List[Dict]:
         return []
 
 
-def _fetch_google_news_rss(query: str, limit: int) -> List[Dict]:
+def _fetch_google_news_rss(query: str, limit: int) -> list[dict]:
     """Google News RSS — gratuito, sem chave."""
     if not _HAS_REQUESTS:
         return []
@@ -229,7 +228,7 @@ def _fetch_google_news_rss(query: str, limit: int) -> List[Dict]:
         return []
 
 
-def _fetch_yahoo_finance_rss(query: str, limit: int) -> List[Dict]:
+def _fetch_yahoo_finance_rss(query: str, limit: int) -> list[dict]:
     """Yahoo Finance RSS — gratuito, sem chave."""
     if not _HAS_REQUESTS:
         return []
@@ -264,12 +263,12 @@ def _fetch_yahoo_finance_rss(query: str, limit: int) -> List[Dict]:
         return []
 
 
-def _fetch_reuters_rss(limit: int) -> List[Dict]:
+def _fetch_reuters_rss(limit: int) -> list[dict]:
     """Reuters Business/Markets RSS — desativado (feeds.reuters.com está offline)."""
     return []
 
 
-def _fetch_marketwatch_scrape(query: str, limit: int) -> List[Dict]:
+def _fetch_marketwatch_scrape(query: str, limit: int) -> list[dict]:
     """MarketWatch search scraping leve via requests + regex."""
     if not _HAS_REQUESTS:
         return []
@@ -303,7 +302,7 @@ def _fetch_marketwatch_scrape(query: str, limit: int) -> List[Dict]:
         return []
 
 
-def _fetch_brave(query: str, limit: int, api_key: str) -> List[Dict]:
+def _fetch_brave(query: str, limit: int, api_key: str) -> list[dict]:
     """Brave Search API — requer BRAVE_SEARCH_API_KEY."""
     if not _HAS_REQUESTS:
         return []
@@ -333,7 +332,7 @@ def _fetch_brave(query: str, limit: int, api_key: str) -> List[Dict]:
         return []
 
 
-def _fetch_bing_news_rss(query: str, limit: int) -> List[Dict]:
+def _fetch_bing_news_rss(query: str, limit: int) -> list[dict]:
     """Bing News RSS — gratuito, sem chave, boa cobertura de mercados."""
     if not _HAS_REQUESTS:
         return []
@@ -393,8 +392,8 @@ class NewsScout:
     """
 
     def __init__(self) -> None:
-        self.brave_key: Optional[str] = os.getenv("BRAVE_SEARCH_API_KEY")
-        self.newsapi_key: Optional[str] = os.getenv("NEWSAPI_KEY")
+        self.brave_key: str | None = os.getenv("BRAVE_SEARCH_API_KEY")
+        self.newsapi_key: str | None = os.getenv("NEWSAPI_KEY")
         self._crawl_done: bool = False
         sources = [
             "DDG",
@@ -410,7 +409,7 @@ class NewsScout:
             sources.insert(1, "NewsAPI")
         logger.info("[NEWS] NewsScout iniciado | fontes: %s", ", ".join(sources))
 
-    def _fetch_newsapi(self, query: str, limit: int) -> List[Dict]:
+    def _fetch_newsapi(self, query: str, limit: int) -> list[dict]:
         """NewsAPI — fonte premium com chave."""
         if not self.newsapi_key or not _HAS_REQUESTS:
             return []
@@ -442,7 +441,7 @@ class NewsScout:
             logger.warning("[NEWS] NewsAPI falhou: %s", e)
             return []
 
-    def get_news(self, query: str, limit: int = 5) -> List[Dict]:
+    def get_news(self, query: str, limit: int = 5) -> list[dict]:
         """
         Busca notícias em cascata até atingir `limit` resultados.
         Combina e de-duplica por título.
@@ -476,15 +475,15 @@ class NewsScout:
             logger.warning("[NEWS] Crawl error for '%s': %s", query, exc)
             return []
 
-    def _crawl_all_sources(self, query: str, limit: int) -> List[Dict]:
+    def _crawl_all_sources(self, query: str, limit: int) -> list[dict]:
         """
         Executa o crawl multi-source em cascata.
         Extraída para ser chamada via ThreadPoolExecutor com timeout.
         """
-        collected: List[Dict] = []
+        collected: list[dict] = []
         seen_titles: set = set()
 
-        def _add(items: List[Dict]) -> None:
+        def _add(items: list[dict]) -> None:
             for item in items:
                 key = item["title"].lower()[:60]
                 if key not in seen_titles and item["title"]:
@@ -537,7 +536,7 @@ class NewsScout:
 
         return collected[:limit]
 
-    def get_sentiment_summary(self, symbol: str) -> Dict:
+    def get_sentiment_summary(self, symbol: str) -> dict:
         """Retorna resumo de sentimento para um ativo."""
         news = self.get_news(symbol, limit=10)
         if not news:

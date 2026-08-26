@@ -17,7 +17,7 @@ import logging
 import os
 import time
 import urllib.parse
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ class WolframProvider:
             time.sleep(self._min_interval - elapsed)
         self._last_call = time.monotonic()
 
-    def query(self, input_str: str, *, timeout: float = 12.0) -> Dict[str, Any]:
+    def query(self, input_str: str, *, timeout: float = 12.0) -> dict[str, Any]:
         """Raw Wolfram Alpha query — returns structured result."""
         if not self.api_key or not _HAS_REQUESTS:
             return {"error": "wolfram_api_key_missing", "input": input_str}
@@ -127,7 +127,7 @@ class WolframProvider:
         mean_return: float,
         volatility: float,
         risk_free: float = 0.04,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Verify Sharpe ratio computation."""
         template = _QUANT_TEMPLATES["sharpe"].format(
             mean_return=mean_return,
@@ -143,7 +143,7 @@ class WolframProvider:
         tte: float,
         rate: float = 0.04,
         sigma: float = 0.25,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Verify Black-Scholes option pricing."""
         template = _QUANT_TEMPLATES["black_scholes"].format(
             spot=spot, strike=strike, tte=tte, rate=rate, sigma=sigma
@@ -156,7 +156,7 @@ class WolframProvider:
         confidence: float = 0.95,
         horizon: int = 1,
         sigma: float = 0.25,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Verify Value-at-Risk computation."""
         template = _QUANT_TEMPLATES["var_parametric"].format(
             pv=portfolio_value,
@@ -171,7 +171,7 @@ class WolframProvider:
         initial: float,
         final: float,
         years: float,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Verify Compound Annual Growth Rate."""
         template = _QUANT_TEMPLATES["compound_growth"].format(
             initial=initial, final=final, years=years
@@ -183,18 +183,18 @@ class WolframProvider:
         mean: float,
         std: float,
         threshold: float,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Verify probability computation (e.g., Monte Carlo output)."""
         template = _QUANT_TEMPLATES["monte_carlo_prob"].format(
             mean=mean, std=std, threshold=threshold
         )
         return self.query(template)
 
-    def compute(self, expression: str) -> Dict[str, Any]:
+    def compute(self, expression: str) -> dict[str, Any]:
         """Generic mathematical computation."""
         return self.query(expression)
 
-    def verify_f51_output(self, score: float, confidence: float) -> Dict[str, Any]:
+    def verify_f51_output(self, score: float, confidence: float) -> dict[str, Any]:
         """Range-check legacy F51 numerical scores without implying calibration."""
         checks = []
         checks.append(f"is {score} between 0 and 1")

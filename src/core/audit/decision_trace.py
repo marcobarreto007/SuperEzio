@@ -10,12 +10,11 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from core.paths import resolve_project_path
-
 
 # Thread lock for SQLite writes
 _WRITE_LOCK = threading.Lock()
@@ -45,7 +44,7 @@ def is_synthetic_run_id(run_id: str) -> bool:
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _json_safe(value: Any) -> Any:
@@ -211,7 +210,7 @@ class DecisionTraceLogger:
 
     @property
     def current_file(self) -> Path:
-        return self.output_dir / f"decision_trace_{datetime.now(timezone.utc):%Y%m%d}.jsonl"
+        return self.output_dir / f"decision_trace_{datetime.now(UTC):%Y%m%d}.jsonl"
 
     def start_node(
         self,

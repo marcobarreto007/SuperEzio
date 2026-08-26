@@ -11,7 +11,6 @@ if TYPE_CHECKING:
 from ..intents import detect_complex_finance_intent
 from ._prompts import MODEL_PROMPTS
 
-
 # ---------------------------------------------------------------------------
 # System prompt
 # ---------------------------------------------------------------------------

@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 """LoRA training on cloud A100 using PEFT + transformers."""
+
 import json
-import os
 from dataclasses import dataclass
-from typing import Dict, List
 
 import torch
 from datasets import Dataset
+from peft import LoraConfig, TaskType, get_peft_model
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
-    TrainingArguments,
     Trainer,
+    TrainingArguments,
 )
-from peft import LoraConfig, get_peft_model, TaskType
 
 
 @dataclass
@@ -23,7 +22,7 @@ class Config:
     output_dir: str = "/root/lora_f51_v9"
     rank: int = 16
     alpha: int = 32
-    target_modules: List[str] = None
+    target_modules: list[str] = None
     max_length: int = 512
     per_device_train_batch_size: int = 4
     gradient_accumulation_steps: int = 4
@@ -33,15 +32,23 @@ class Config:
 
     def __post_init__(self):
         if self.target_modules is None:
-            self.target_modules = ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+            self.target_modules = [
+                "q_proj",
+                "v_proj",
+                "k_proj",
+                "o_proj",
+                "gate_proj",
+                "up_proj",
+                "down_proj",
+            ]
 
 
-def load_jsonl(path: str) -> List[Dict]:
+def load_jsonl(path: str) -> list[dict]:
     with open(path, "r", encoding="utf-8") as f:
         return [json.loads(line) for line in f]
 
 
-def format_conversation(example: Dict) -> str:
+def format_conversation(example: dict) -> str:
     """Format conversation for Qwen chat format."""
     messages = example["messages"]
     text = ""
@@ -82,11 +89,13 @@ def main():
     )
 
     # Create dataset
-    dataset = Dataset.from_dict({
-        "input_ids": encodings["input_ids"],
-        "attention_mask": encodings["attention_mask"],
-        "labels": encodings["input_ids"].clone(),
-    })
+    dataset = Dataset.from_dict(
+        {
+            "input_ids": encodings["input_ids"],
+            "attention_mask": encodings["attention_mask"],
+            "labels": encodings["input_ids"].clone(),
+        }
+    )
 
     # Load model
     print(f"Loading model {config.model_name}...")

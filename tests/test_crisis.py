@@ -4,40 +4,42 @@ from datetime import date, timedelta
 
 import numpy as np
 import pytest
-from hypothesis import given, settings, strategies as st
+from hypothesis import given, settings
+from hypothesis import strategies as st
 from pydantic import ValidationError
+
 from experts.crisis.contracts.schemas import (
     CrisisInput,
+    CrisisReport,
     MacroObservation,
     MarketObservation,
     SensorResult,
-    CrisisReport,
 )
 from experts.crisis.logic.ensemble import aggregate_scores
-from experts.crisis.logic.scoring import classify_alert_level, classify_regime
 from experts.crisis.logic.normalization import clamp, minmax_score, percentile_rank
+from experts.crisis.logic.scoring import classify_alert_level, classify_regime
 from experts.crisis.models.bis_credit_gap import BISCreditGapModel
-from experts.crisis.models.markov_regime import (
-    MarkovRegimeModel,
-    _fit_gaussian_hmm,
-    _forward_filter,
-)
-from experts.crisis.models.shiller_valuation import ShillerValuationModel
-from experts.crisis.models.minsky_keen import MinskyKeenModel
-from experts.crisis.models.hawkes_stress import _fit_exponential_hawkes
 from experts.crisis.models.growth_at_risk import (
     GrowthAtRiskModel,
     _pinball_loss,
     _quantile_regression,
 )
-from experts.crisis.models.network_contagion import NetworkContagionModel
-from experts.crisis.models.systemic_bank_risk import SystemicBankRiskModel
+from experts.crisis.models.hawkes_stress import _fit_exponential_hawkes
 from experts.crisis.models.lppls_bubble import (
     LPPLSBubbleModel,
+    _lppls_fit_quality,
     _second_derivative,
     _zero_crossings,
-    _lppls_fit_quality,
 )
+from experts.crisis.models.markov_regime import (
+    MarkovRegimeModel,
+    _fit_gaussian_hmm,
+    _forward_filter,
+)
+from experts.crisis.models.minsky_keen import MinskyKeenModel
+from experts.crisis.models.network_contagion import NetworkContagionModel
+from experts.crisis.models.shiller_valuation import ShillerValuationModel
+from experts.crisis.models.systemic_bank_risk import SystemicBankRiskModel
 
 
 def _month(index: int) -> str:

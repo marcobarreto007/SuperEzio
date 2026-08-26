@@ -258,8 +258,9 @@ async def get_cockpit_summary(request: Request) -> dict:
             "ibkr": _check_ibkr_health(),
             "guardrails": _get_guardrail_counts(),
             "kill_switch": _get_kill_switch_state(),
-        }
+        },
     }
+
 
 @router.get("/cockpit/portfolio")
 async def get_cockpit_portfolio() -> dict:

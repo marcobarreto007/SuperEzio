@@ -16,7 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -51,7 +51,7 @@ def make_idempotency_key(
     `claim_idempotency_keys`, which cover the previous window too.
     """
     # Truncate timestamp to window boundary
-    current = now or datetime.now(timezone.utc)
+    current = now or datetime.now(UTC)
     window_epoch = int(current.timestamp() / (window_minutes * 60)) * (window_minutes * 60)
 
     payload = f"{ticker.upper()}|{int(qty)}|{limit_price:.2f}|{window_epoch}"
@@ -74,7 +74,7 @@ def make_idempotency_keys(
     is most likely. Checking both windows closes that edge without changing
     what a key means: past two windows it is genuinely a new intent.
     """
-    current = now or datetime.now(timezone.utc)
+    current = now or datetime.now(UTC)
     return (
         make_idempotency_key(ticker, qty, limit_price, window_minutes, now=current),
         make_idempotency_key(
@@ -139,7 +139,7 @@ def mark_processed(idempotency_key: str, metadata: dict[str, Any] | None = None)
     dedup_file = _ensure_dedup_dir() / f"{idempotency_key}.json"
     record = {
         "idempotency_key": idempotency_key,
-        "processed_at": datetime.now(timezone.utc).isoformat(),
+        "processed_at": datetime.now(UTC).isoformat(),
         "metadata": metadata or {},
     }
     payload = json.dumps(record, ensure_ascii=False).encode("utf-8")
@@ -187,7 +187,7 @@ def enqueue_dead_letter(
 
     Returns the dead letter file path.
     """
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S")
     filename = f"{timestamp}_{ticker}_{action}.json"
     dead_file = _ensure_dead_letter_dir() / filename
 
@@ -198,7 +198,7 @@ def enqueue_dead_letter(
         "limit_price": limit_price,
         "action": action,
         "failure_reason": reason,
-        "failed_at": datetime.now(timezone.utc).isoformat(),
+        "failed_at": datetime.now(UTC).isoformat(),
         "state_snapshot": state_snapshot or {},
         "replay_status": "pending",
     }

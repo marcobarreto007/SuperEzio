@@ -15,15 +15,15 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
-from .schemas import SignalInput, DataQuality, ScanFilter, ScanResult
+from .schemas import DataQuality, ScanFilter, ScanResult, SignalInput
 
 logger = logging.getLogger(__name__)
 
 
-def _safe_float(value, default=None) -> Optional[float]:
+def _safe_float(value, default=None) -> float | None:
     if value is None:
         return default
     try:
@@ -32,7 +32,7 @@ def _safe_float(value, default=None) -> Optional[float]:
         return default
 
 
-def _safe_int(value, default=None) -> Optional[int]:
+def _safe_int(value, default=None) -> int | None:
     if value is None:
         return default
     try:
@@ -46,7 +46,7 @@ def _safe_int(value, default=None) -> Optional[int]:
 # ---------------------------------------------------------------------------
 
 
-def _try_datahub(ticker: str) -> Optional[SignalInput]:
+def _try_datahub(ticker: str) -> SignalInput | None:
     """
     Tenta obter preço via DataHub (Twelve Data → Alpha Vantage).
     É a fonte mais rápida e confiável.
@@ -61,7 +61,7 @@ def _try_datahub(ticker: str) -> Optional[SignalInput]:
                 price=_safe_float(result.get("price")),
                 data_quality=DataQuality.REAL,
                 source=f"datahub:{result.get('provider', 'unknown')}",
-                as_of=datetime.now(timezone.utc).isoformat(),
+                as_of=datetime.now(UTC).isoformat(),
             )
     except ImportError:
         logger.debug("DataHub não disponível")
@@ -71,7 +71,7 @@ def _try_datahub(ticker: str) -> Optional[SignalInput]:
     return None
 
 
-def _try_collector(ticker: str, timeout: float = 15.0) -> Optional[SignalInput]:
+def _try_collector(ticker: str, timeout: float = 15.0) -> SignalInput | None:
     """
     Tenta obter dados completos via DataCollector (10 fontes em paralelo).
     Roda o loop assíncrono internamente.
@@ -93,7 +93,7 @@ def _try_collector(ticker: str, timeout: float = 15.0) -> Optional[SignalInput]:
     return None
 
 
-def _map_collector_to_signal(ticker: str, data: Dict[str, Any]) -> SignalInput:
+def _map_collector_to_signal(ticker: str, data: dict[str, Any]) -> SignalInput:
     """Mapeia o output do DataCollector para SignalInput do PennyLab."""
     rt = data.get("realtime_price", {}) if isinstance(data.get("realtime_price"), dict) else {}
     tech = data.get("technicals", {}) if isinstance(data.get("technicals"), dict) else {}
@@ -115,11 +115,11 @@ def _map_collector_to_signal(ticker: str, data: Dict[str, Any]) -> SignalInput:
         rsi_14=_safe_float(tech.get("rsi_14") or tech.get("rsi")),
         data_quality=DataQuality.REAL,
         source=f"collector:{data.get('data_quality', 'unknown')}",
-        as_of=data.get("collected_at") or datetime.now(timezone.utc).isoformat(),
+        as_of=data.get("collected_at") or datetime.now(UTC).isoformat(),
     )
 
 
-def _try_hub_fallback(ticker: str) -> Optional[SignalInput]:
+def _try_hub_fallback(ticker: str) -> SignalInput | None:
     """Fallback final: DataHub candles + profile (substitui yfinance)."""
     try:
         from data.data_hub import hub
@@ -157,7 +157,7 @@ def _try_hub_fallback(ticker: str) -> Optional[SignalInput]:
             shares_float=shares_float,
             data_quality=DataQuality.REAL,
             source="datahub:fallback",
-            as_of=datetime.now(timezone.utc).isoformat(),
+            as_of=datetime.now(UTC).isoformat(),
         )
     except ImportError:
         logger.debug("DataHub não disponível")
@@ -228,7 +228,7 @@ def fetch_signal(ticker_symbol: str, fast: bool = False) -> SignalInput:
 # Scan de tickers
 # ---------------------------------------------------------------------------
 
-_PENNY_WATCHLIST: List[str] = [
+_PENNY_WATCHLIST: list[str] = [
     "SNDL",
     "HIVE",
     "TLRY",
@@ -274,14 +274,14 @@ _PENNY_WATCHLIST: List[str] = [
 
 def scan_penny_stocks(
     filters: ScanFilter,
-    watchlist: Optional[List[str]] = None,
-    max_parallel: int = 10,  # noqa: ARG001 — reserved for async batch scanning
+    watchlist: list[str] | None = None,
+    max_parallel: int = 10,
 ) -> ScanResult:
     """
     Escaneia tickers da watchlist filtrando por preço e volume.
     Usa a stack real do SuperEzio (DataHub → DataCollector).
     """
-    candidates: List[str] = []
+    candidates: list[str] = []
     skipped: int = 0
     tickers = watchlist or _PENNY_WATCHLIST
 

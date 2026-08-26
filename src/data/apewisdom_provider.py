@@ -13,7 +13,7 @@ failure (empty list or dict) — never raises.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class ApeWisdomProvider:
 
     # ── public API ──────────────────────────────────────────────────────
 
-    def get_trending_stocks(self, page: int = 1) -> List[Dict[str, Any]]:
+    def get_trending_stocks(self, page: int = 1) -> list[dict[str, Any]]:
         """Return top trending stocks from Reddit/WSB.
 
         Each item::
@@ -81,7 +81,7 @@ class ApeWisdomProvider:
             logger.warning("[ApeWisdom] get_trending_stocks failed: %s", exc)
             return []
 
-    def get_sentiment(self, ticker: str) -> Dict[str, Any]:
+    def get_sentiment(self, ticker: str) -> dict[str, Any]:
         """Return retail sentiment for a single ticker.
 
         Looks up *ticker* in the trending list since ApeWisdom does not
@@ -106,7 +106,7 @@ class ApeWisdomProvider:
             "note": "ticker_not_found_in_trending",
         }
 
-    def get_retail_buzz(self) -> Dict[str, Any]:
+    def get_retail_buzz(self) -> dict[str, Any]:
         """Return a summary of the overall retail market buzz."""
         stocks = self.get_trending_stocks(page=1)
 

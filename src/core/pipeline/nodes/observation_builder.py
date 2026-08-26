@@ -112,9 +112,7 @@ def format_math_report(report: dict) -> str:
     extra = {k: v for k, v in report.items() if k not in shown_keys and not k.startswith("_")}
     if extra:
         for k, v in extra.items():
-            if isinstance(v, (int, float)):
-                lines.append(f"{k}: {v}")
-            elif isinstance(v, str):
+            if isinstance(v, (int, float)) or isinstance(v, str):
                 lines.append(f"{k}: {v}")
     return "\n".join(lines)
 

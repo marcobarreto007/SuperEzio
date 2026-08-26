@@ -1,6 +1,7 @@
-import requests
 import os
-from typing import Dict, Any
+from typing import Any
+
+import requests
 
 
 def _log_event(phase: str, event: str, data: dict | None = None) -> None:
@@ -67,7 +68,7 @@ class AlphaVantageProvider:
             raise RuntimeError("ALPHA_VANTAGE_API_KEY is required but not set")
         self.base_url = "https://www.alphavantage.co/query"
 
-    def get_quote(self, symbol: str) -> Dict[str, Any]:
+    def get_quote(self, symbol: str) -> dict[str, Any]:
         """Obtém cotação em tempo real (Global Quote)."""
         params = {"function": "GLOBAL_QUOTE", "symbol": symbol, "apikey": self.api_key}
         try:
@@ -88,7 +89,7 @@ class AlphaVantageProvider:
             _log_event("ALPHA_VANTAGE", "ERROR", {"symbol": symbol, "error": str(e)})
             return {"error": str(e)}
 
-    def get_ohlcv(self, symbol: str, timeframe: str = "6M") -> Dict[str, Any]:
+    def get_ohlcv(self, symbol: str, timeframe: str = "6M") -> dict[str, Any]:
         """OHLCV candles via AlphaVantage — padronizado para o DataHub."""
         function, interval, outputsize = _AV_CANDLE_MAP.get(
             timeframe, ("TIME_SERIES_DAILY", None, "compact")
@@ -118,7 +119,7 @@ class AlphaVantageProvider:
             _log_event("ALPHA_VANTAGE", "OHLCV_ERROR", {"symbol": symbol, "error": str(e)})
             return {"error": str(e)}
 
-    def get_profile(self, symbol: str) -> Dict[str, Any]:
+    def get_profile(self, symbol: str) -> dict[str, Any]:
         """Company overview (nome, setor, market cap, moeda, exchange)."""
         params = {"function": "OVERVIEW", "symbol": symbol, "apikey": self.api_key}
         try:
@@ -142,7 +143,7 @@ class AlphaVantageProvider:
             _log_event("ALPHA_VANTAGE", "PROFILE_ERROR", {"symbol": symbol, "error": str(e)})
             return {"error": str(e)}
 
-    def get_treasury_yield(self, maturity: str = "10year") -> Dict[str, Any]:
+    def get_treasury_yield(self, maturity: str = "10year") -> dict[str, Any]:
         """US Treasury yield para uma maturity específica (3month, 2year, 5year, 7year, 10year, 30year)."""
         params = {
             "function": "TREASURY_YIELD",

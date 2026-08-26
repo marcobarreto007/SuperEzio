@@ -8,7 +8,8 @@ bootstrap that resamples only the observed return series supplied by a caller.
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
 

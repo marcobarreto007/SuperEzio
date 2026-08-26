@@ -96,12 +96,11 @@ Isso é o que o frontpage vai mostrar no painel do Genie.
 
 ```python
 class WatchlistPulse:
-    def __init__(self, monitor: LiveMonitor, curator: SentimentCurator):
-        ...
-    
+    def __init__(self, monitor: LiveMonitor, curator: SentimentCurator): ...
+
     def get_pulse(self, ticker: str) -> PulseReport:
         """Snapshot completo de sentimento para um ticker."""
-    
+
     def get_all_pulses(self) -> list[PulseReport]:
         """Pulso de todos os tickers na watchlist."""
 ```

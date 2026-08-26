@@ -7,9 +7,12 @@ Importadas de core.mathcore.base e unificadas das duplicatas em:
 """
 
 from __future__ import annotations
+
 import math
-from typing import Sequence
+from collections.abc import Sequence
+
 import numpy as np
+
 from .utils import clamp
 
 TRADING_DAYS_YEAR = 252
@@ -71,11 +74,9 @@ def max_drawdown(equity_curve: Sequence[float]) -> float:
     peak = equity_curve[0]
     max_dd = 0.0
     for val in equity_curve:
-        if val > peak:
-            peak = val
+        peak = max(peak, val)
         dd = (val - peak) / peak
-        if dd < max_dd:
-            max_dd = dd
+        max_dd = min(max_dd, dd)
     return max_dd
 
 

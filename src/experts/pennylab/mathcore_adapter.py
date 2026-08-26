@@ -9,10 +9,8 @@ Escala unificada: 0-1.
 
 from __future__ import annotations
 
-from typing import Dict
-
-from core.math.utils import clamp as _clamp  # noqa: F401 (re-export)
 from core.math.risk import simple_return as _simple_return  # noqa: F401 (re-export)
+from core.math.utils import clamp as _clamp  # noqa: F401 (re-export)
 
 from .schemas import PennylabScores
 
@@ -57,7 +55,7 @@ def build_mathcore_verdict(scores: PennylabScores) -> str:
     )
     alert = score_to_alert(max_score)
 
-    components: Dict[str, str] = {
+    components: dict[str, str] = {
         "whale": score_to_alert(scores.whale_suspicion),
         "pump": score_to_alert(scores.pump_probability),
         "trap": score_to_alert(scores.trap_risk),

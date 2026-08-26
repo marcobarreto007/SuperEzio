@@ -20,6 +20,7 @@ Modelos:
 """
 
 from __future__ import annotations
+
 from typing import Any
 
 # ── Imports dos modelos originais ──────────────────────────────────────
@@ -30,7 +31,6 @@ from experts.crisis.contracts.schemas import (
     SensorResult,
 )
 from experts.crisis.logic.scoring import classify_alert_level, classify_regime
-
 from experts.crisis.models.bis_credit_gap import BISCreditGapModel
 from experts.crisis.models.credit_asset_growth import CreditAssetGrowthModel
 from experts.crisis.models.debt_service_ratio import DebtServiceRatioModel

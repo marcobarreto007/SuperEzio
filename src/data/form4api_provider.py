@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, List
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +87,7 @@ class Form4APIProvider:
         ticker: str,
         limit: int = 20,
         significant_only: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Return recent insider trades for *ticker*.
 
         Parameters
@@ -160,7 +160,7 @@ class Form4APIProvider:
                 "error": f"form4api_error: {exc}",
             }
 
-    def get_cluster_signals(self) -> Dict[str, Any]:
+    def get_cluster_signals(self) -> dict[str, Any]:
         """Return cluster buy/sell signals across the market.
 
         .. note::
@@ -232,7 +232,7 @@ class Form4APIProvider:
 
     def get_recent_filings(
         self, ticker: str | None = None, limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Return most recent Form 4 filings, optionally filtered by *ticker*."""
         if not self.healthy:
             return []
@@ -273,7 +273,7 @@ class Form4APIProvider:
     # ── helpers ─────────────────────────────────────────────────────────
 
     @staticmethod
-    def _normalize_trades(ticker: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _normalize_trades(ticker: str, data: dict[str, Any]) -> dict[str, Any]:
         """Normalise raw Form4API JSON into the canonical result shape.
 
         The API returns::
@@ -285,8 +285,8 @@ class Form4APIProvider:
         if isinstance(rows, dict):
             rows = [rows]
 
-        buys: List[Dict[str, Any]] = []
-        sells: List[Dict[str, Any]] = []
+        buys: list[dict[str, Any]] = []
+        sells: list[dict[str, Any]] = []
 
         for row in rows:
             if not isinstance(row, dict):

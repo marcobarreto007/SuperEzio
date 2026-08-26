@@ -31,7 +31,7 @@ by the shared news_feed._make_item helper.
 from __future__ import annotations
 
 import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 import requests
 
@@ -70,7 +70,7 @@ class YahooConversationProvider:
         *,
         limit: int = 5,
         **_: Any,
-    ) -> List[Dict[str, Any]] | Dict[str, Any]:
+    ) -> list[dict[str, Any]] | dict[str, Any]:
         """Relevant ticker news via the Yahoo v1 search endpoint.
 
         Returns NewsScout-schema items (with sentiment fields) filtered by
@@ -97,7 +97,7 @@ class YahooConversationProvider:
         if not isinstance(rows, list) or not rows:
             return {"error": "yahoo_no_news", "symbol": symbol}
 
-        items: List[Dict[str, Any]] = []
+        items: list[dict[str, Any]] = []
         for row in rows:
             if not isinstance(row, dict):
                 continue
@@ -110,7 +110,7 @@ class YahooConversationProvider:
             published = ""
             if isinstance(published_ts, (int, float)) and published_ts:
                 published = datetime.datetime.fromtimestamp(
-                    float(published_ts), tz=datetime.timezone.utc
+                    float(published_ts), tz=datetime.UTC
                 ).isoformat()
             item = _make_item(
                 title=title,
@@ -127,7 +127,7 @@ class YahooConversationProvider:
             return {"error": "yahoo_no_relevant_news", "symbol": symbol}
         return items[: max(1, limit)]
 
-    def get_sentiment_summary(self, symbol: str, *, limit: int = 10) -> Dict[str, Any]:
+    def get_sentiment_summary(self, symbol: str, *, limit: int = 10) -> dict[str, Any]:
         """News-driven sentiment for a ticker (same contract as NewsScout).
 
         Returns {symbol, sentiment_score, sentiment_label, news_count,

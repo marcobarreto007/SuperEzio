@@ -12,8 +12,8 @@ from __future__ import annotations
 import logging
 import os
 import re
-from datetime import datetime, timezone
-from typing import Any, Dict, List
+from datetime import UTC, datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +134,7 @@ class NewsAPIProvider:
     def healthy(self) -> bool:
         return self._healthy
 
-    def get_news(self, query: str, limit: int = 8) -> List[Dict[str, Any]]:
+    def get_news(self, query: str, limit: int = 8) -> list[dict[str, Any]]:
         """Fetch news articles for a query.
 
         Returns list of articles with sentiment score, source, URL, and
@@ -192,7 +192,7 @@ class NewsAPIProvider:
             logger.warning("[NewsAPI] fetch failed: %s", exc)
             return []
 
-    def get_sentiment_summary(self, symbol: str) -> Dict[str, Any]:
+    def get_sentiment_summary(self, symbol: str) -> dict[str, Any]:
         """Sentiment summary for a ticker symbol."""
         ticker_clean = re.sub(r"\.(TO|V|SA|to|v|sa)$", "", symbol)
         query = f"{ticker_clean}"
@@ -231,10 +231,10 @@ class NewsAPIProvider:
             "top_headline_url": news[0].get("url", ""),
             "top_headline_source": news[0].get("source", ""),
             "source": "newsapi",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
-    def get_market_sentiment(self) -> Dict[str, Any]:
+    def get_market_sentiment(self) -> dict[str, Any]:
         """Broad market sentiment from top headlines."""
         news = self.get_news("market S&P500 NASDAQ TSX", limit=15)
         if not news:
@@ -254,5 +254,5 @@ class NewsAPIProvider:
             "total_articles": len(news),
             "top_headlines": [n["title"] for n in news[:5]],
             "source": "newsapi",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Crisis Expert
 # ---------------------------------------------------------------------------
@@ -52,7 +51,7 @@ def test_crisis_ensemble_aggregate_empty():
 
 
 def test_crisis_schemas_import():
-    from experts.crisis.contracts.schemas import CrisisInput, SensorResult, CrisisReport
+    from experts.crisis.contracts.schemas import CrisisInput, CrisisReport, SensorResult
 
     assert CrisisInput is not None
     assert SensorResult is not None

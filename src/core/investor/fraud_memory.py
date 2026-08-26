@@ -14,9 +14,8 @@ AVISO LEGAL:
 
 from __future__ import annotations
 
-import threading as _threading
-
 import json
+import threading as _threading
 from pathlib import Path
 from typing import Any
 

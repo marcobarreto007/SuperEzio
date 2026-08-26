@@ -6,7 +6,6 @@ from typing import Annotated, Any, Literal, TypedDict
 
 from pydantic import BaseModel, Field
 
-
 # ---------------------------------------------------------------------------
 # Fan-in reducer for expert_results (LangGraph Send fan-out)
 # ---------------------------------------------------------------------------

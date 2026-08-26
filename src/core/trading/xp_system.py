@@ -23,7 +23,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -45,7 +45,7 @@ class Level(Enum):
     GRANDMASTER = (100, 100, "Grandmaster")
 
     @classmethod
-    def from_xp(cls, xp: int) -> "Level":
+    def from_xp(cls, xp: int) -> Level:
         """Retorna nível baseado em XP."""
         for level in cls:
             min_xp, max_xp, _ = level.value
@@ -182,7 +182,7 @@ class XPSystem:
 
     def _generate_event_id(self) -> str:
         """Gera ID único para evento."""
-        return f"xp_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{len(self._events)}"
+        return f"xp_{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}_{len(self._events)}"
 
     def get_level(self) -> Level:
         """Retorna nível atual do Bob."""
@@ -211,7 +211,7 @@ class XPSystem:
             gains_count=self._gains_count,
             losses_count=self._losses_count,
             traumas_count=self._traumas_count,
-            last_updated=datetime.now(timezone.utc).isoformat(),
+            last_updated=datetime.now(UTC).isoformat(),
         )
 
     def _calculate_pain_factor(
@@ -252,7 +252,7 @@ class XPSystem:
         """
         event = XPEvent(
             event_id=self._generate_event_id(),
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             type="gain",
             amount=max(1, amount),
             source=source,
@@ -299,7 +299,7 @@ class XPSystem:
 
         event = XPEvent(
             event_id=self._generate_event_id(),
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             type="loss",
             amount=actual_loss,
             source=source,
@@ -374,7 +374,7 @@ class XPSystem:
             # Sem XP, mas registra evento
             event = XPEvent(
                 event_id=self._generate_event_id(),
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
                 type="gain",
                 amount=0,
                 source="breakeven",

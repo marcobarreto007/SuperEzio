@@ -8,7 +8,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_YML = ROOT / "config" / "runtime.yml"
 INVENTORY = ROOT / ".f51" / "INVENTORY.json"
@@ -92,8 +91,8 @@ def test_runtime_server_contract_matches_agent_server_import(monkeypatch):
 
 
 def test_runtime_registers_public_contract_routes():
-    from agent_server.main import app
     from agent_server.endpoints import router as endpoint_router
+    from agent_server.main import app
 
     paths = {route.path for route in app.routes if hasattr(route, "path")}
     # FastAPI may wrap included routers and hide child paths from app.routes.
@@ -234,8 +233,9 @@ def test_launcher_has_isolated_fail_closed_validation_mode():
 
 def test_public_health_exposes_validation_mode_without_sensitive_paths(monkeypatch):
     from fastapi.testclient import TestClient
+
     from agent_server.main import app
-    import core.bob_consciousness as bob_consciousness
+    from core import bob_consciousness
 
     class HealthyBody:
         organs: dict = {}

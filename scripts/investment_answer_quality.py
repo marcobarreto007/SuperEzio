@@ -8,7 +8,6 @@ from __future__ import annotations
 import re
 from typing import Any
 
-
 BAD_FALLBACK_MARKERS = (
     "could not finalize",
     "couldn't decide on a tool",

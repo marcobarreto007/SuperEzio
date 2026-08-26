@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 import socket
+from collections.abc import Iterator
 from contextlib import contextmanager
 from types import SimpleNamespace
-from typing import Iterator
 
 from fastapi.testclient import TestClient
 
@@ -118,7 +118,7 @@ def test_local_runtime_cannot_masquerade_as_external_deepseek(monkeypatch) -> No
 
 
 def test_missing_expert_key_does_not_take_down_public_liveness(monkeypatch) -> None:
-    import core.bob_consciousness as bob_consciousness
+    from core import bob_consciousness
 
     class HealthyBody:
         organs: dict = {}

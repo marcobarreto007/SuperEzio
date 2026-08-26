@@ -9,10 +9,9 @@ Pure Python + numpy — no external ML framework required.
 from __future__ import annotations
 
 import math
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
-
 
 # ── Directional Loss ────────────────────────────────────────────────────
 

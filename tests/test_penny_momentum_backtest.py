@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 
 import pytest
 
@@ -171,7 +171,7 @@ async def test_tool_executor_missing_data_feeds_error_context(monkeypatch):
 def test_yfinance_datetime_payload_is_accepted_and_observation_is_preserved():
     bars = _bars()
     for index, bar in enumerate(bars):
-        bar["datetime"] = datetime(2026, 1, 1, 14, 30, tzinfo=timezone.utc) + timedelta(days=index)
+        bar["datetime"] = datetime(2026, 1, 1, 14, 30, tzinfo=UTC) + timedelta(days=index)
         del bar["date"]
 
     result = simulate_penny_momentum_backtest({"REAL": bars})

@@ -15,15 +15,16 @@ import os
 import sys
 
 import pytest
-from hypothesis import given, strategies as st, settings
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from core.pipeline.f51_trade_gate import (
-    is_valid_ticker_format,
-    is_ticker_blacklisted,
-    is_explicit_trade_intent,
     _TICKER_BLACKLIST,
+    is_explicit_trade_intent,
+    is_ticker_blacklisted,
+    is_valid_ticker_format,
 )
 
 pytestmark = pytest.mark.property

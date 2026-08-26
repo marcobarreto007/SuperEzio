@@ -7,16 +7,16 @@ Uso pessoal/laboratório. NÃO executa ordens.
 Python calcula. RAG lembra. Experts investigam. LLM orquestra. Marco decide.
 """
 
-from .schemas import SignalInput, PennylabReport, PennylabScores, TradeLog, Decision
-from .scoring import analyze
 from .lab_journal import journal
+from .schemas import Decision, PennylabReport, PennylabScores, SignalInput, TradeLog
+from .scoring import analyze
 
 __all__ = [
-    "SignalInput",
+    "Decision",
     "PennylabReport",
     "PennylabScores",
+    "SignalInput",
     "TradeLog",
-    "Decision",
     "analyze",
     "journal",
 ]

@@ -8,13 +8,13 @@ endpoint normalizes it via _parse_candle_time. These tests pin that contract.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
 
 
 def _make_candles(n: int = 30) -> list[dict]:
-    base = datetime(2026, 8, 1, tzinfo=timezone.utc)
+    base = datetime(2026, 8, 1, tzinfo=UTC)
     return [
         {
             "datetime": (base + timedelta(days=i)).isoformat(),

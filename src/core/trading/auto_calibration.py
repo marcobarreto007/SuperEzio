@@ -19,7 +19,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -181,7 +181,7 @@ class AutoCalibrator:
 
     def _generate_event_id(self) -> str:
         """Gera ID único para evento."""
-        return f"cal_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{len(self._history)}"
+        return f"cal_{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}_{len(self._history)}"
 
     def _save_event(self, event: CalibrationEvent) -> None:
         """Salva evento no disco (append-only)."""
@@ -259,7 +259,7 @@ class AutoCalibrator:
 
         event = CalibrationEvent(
             event_id=self._generate_event_id(),
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             param_name="BUY_CONFIDENCE_THRESHOLD",
             old_value=old_value,
             new_value=new_value,
@@ -318,7 +318,7 @@ class AutoCalibrator:
 
         event = CalibrationEvent(
             event_id=self._generate_event_id(),
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             param_name="MAX_POSITION_PCT",
             old_value=old_value,
             new_value=new_value,
@@ -371,7 +371,7 @@ class AutoCalibrator:
 
         event = CalibrationEvent(
             event_id=self._generate_event_id(),
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             param_name="DEFAULT_STOP_LOSS_PCT",
             old_value=old_value,
             new_value=new_value,
@@ -443,7 +443,7 @@ class AutoCalibrator:
             overall_health = "healthy"
 
         report = CalibrationReport(
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             parameters=self._parameters,
             recommended_changes=recommended_changes,
             performance_metrics=performance_metrics,

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import json
 import inspect
+import json
 import logging
 import math
 import os
@@ -11,9 +11,10 @@ import re
 import sqlite3
 import threading
 from collections import Counter, deque
-from datetime import datetime, timedelta, timezone
+from collections.abc import Mapping
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,7 @@ _TICKER_DENYLIST = {
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 from core.utils.datetime import parse_iso_datetime as _parse_time
@@ -329,7 +330,7 @@ class LiveMonitor:
 
         symbol = str(ticker or "").strip().upper()
         meta = self.get_ticker_meta(symbol)
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+        cutoff = datetime.now(UTC) - timedelta(hours=24)
         with self._lock:
             snapshot = dict(self._snapshots.get(symbol) or {})
             history = [
@@ -634,7 +635,7 @@ class LiveMonitor:
         previous: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
         ticker = str(snapshot.get("ticker") or "").upper()
-        now = _parse_time(snapshot.get("collected_at")) or datetime.now(timezone.utc)
+        now = _parse_time(snapshot.get("collected_at")) or datetime.now(UTC)
         alerts: list[dict[str, Any]] = []
 
         current_score = _number(snapshot.get("sentiment_score"))

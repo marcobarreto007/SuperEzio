@@ -1,18 +1,18 @@
 """Contract tests for F51 Engine — formulas.py + gates.py invariants."""
 
 import pytest
+
 from src.f51.formulas import (
-    FormulaWeights,
     DecisionFactors,
-    unified_decision,
+    FormulaWeights,
     combined_risk,
-    proxy_reward,
-    heuristic_uncertainty,
     decision_threshold,
     expand_budget,
+    heuristic_uncertainty,
+    proxy_reward,
+    unified_decision,
 )
-from src.f51.gates import VeracityGate, AdversarialCritic, ProxyReward, CriticResult
-
+from src.f51.gates import AdversarialCritic, CriticResult, ProxyReward, VeracityGate
 
 # ---------------------------------------------------------------------------
 # FormulaWeights

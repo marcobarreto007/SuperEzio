@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 import sqlite3
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -80,7 +80,7 @@ def fetch_and_cache_ticker(ticker: str, force: bool = False) -> int:
             return 0
 
         conn = _get_db()
-        now_iso = datetime.now(timezone.utc).isoformat()
+        now_iso = datetime.now(UTC).isoformat()
         count = 0
 
         for idx, row in df.iterrows():

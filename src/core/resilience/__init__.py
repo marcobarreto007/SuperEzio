@@ -20,20 +20,22 @@ from __future__ import annotations
 
 import logging as _stdlib_logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
-from core.config.logging_config import get_logger
 from tenacity import (
+    after_log,
+    before_log,
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
-    before_log,
-    after_log,
 )
+
+from core.config.logging_config import get_logger
 
 logger = get_logger(__name__)
 

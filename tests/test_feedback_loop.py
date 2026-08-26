@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from core.trading.feedback_loop import FeedbackLoop
 from core.trading.paper_journal import PaperJournal, PaperTrade
@@ -17,7 +17,7 @@ def _add_closed_trade(
     expert_attribution: dict[str, float] | None = None,
     expert_predictions: dict[str, dict] | None = None,
 ) -> None:
-    entry_dt = datetime.now(timezone.utc) - timedelta(days=1)
+    entry_dt = datetime.now(UTC) - timedelta(days=1)
     trade = PaperTrade(
         trade_id=trade_id,
         ticker="NVDA" if win else "TSLA",

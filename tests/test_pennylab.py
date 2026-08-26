@@ -1,28 +1,29 @@
 """Smoke tests — PennyLab experts, scoring, veracity gate (deterministico, sem rede)."""
 
 import pytest
-from experts.pennylab.schemas import (
-    SignalInput,
-    PennylabScores,
-    PennylabReport,
-    Decision,
-    DataQuality,
-)
+
+from experts.pennylab.config import THRESHOLDS
 from experts.pennylab.experts import (
-    VolumeSpikeExpert,
-    WhalePrintExpert,
-    PumpDumpExpert,
     LiquidityRiskExpert,
     PennylabVeracityGate,
+    PumpDumpExpert,
+    VolumeSpikeExpert,
+    WhalePrintExpert,
+)
+from experts.pennylab.mathcore_adapter import build_mathcore_verdict, score_to_alert
+from experts.pennylab.schemas import (
+    DataQuality,
+    Decision,
+    PennylabReport,
+    PennylabScores,
+    SignalInput,
 )
 from experts.pennylab.scoring import (
-    compute_scores,
-    compute_confidence,
-    make_decision,
     analyze,
+    compute_confidence,
+    compute_scores,
+    make_decision,
 )
-from experts.pennylab.mathcore_adapter import score_to_alert, build_mathcore_verdict
-from experts.pennylab.config import THRESHOLDS
 
 
 def _signal(**kwargs):

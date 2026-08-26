@@ -51,8 +51,12 @@ from tenacity import (
     after_log,
 )
 
+
 class TransientError(Exception): ...
+
+
 class PermanentError(Exception): ...
+
 
 @retry(
     stop=stop_after_attempt(3),
@@ -61,8 +65,7 @@ class PermanentError(Exception): ...
     before=before_log(logger, logging.WARNING),
     after=after_log(logger, logging.DEBUG),
 )
-async def fetch_price_with_retry(ticker: str) -> float | None:
-    ...
+async def fetch_price_with_retry(ticker: str) -> float | None: ...
 ```
 
 ## Entregáveis mínimos

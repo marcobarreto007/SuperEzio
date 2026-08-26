@@ -1,11 +1,13 @@
-import json
 from playwright.sync_api import sync_playwright
 
 results = []
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
-    ctx = browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
+    ctx = browser.new_context(
+        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    )
     page = ctx.new_page()
+
     def on_request(req):
         if "app-money.tmx.com/graphql" in req.url:
             body = None
@@ -14,13 +16,22 @@ with sync_playwright() as p:
             except Exception:
                 pass
             results.append({"kind": "REQ", "url": req.url, "post": body})
+
     def on_response(resp):
         if "app-money.tmx.com/graphql" in resp.url:
             try:
                 body = resp.text()
             except Exception:
                 body = None
-            results.append({"kind": "RESP", "url": resp.url, "status": resp.status, "body": (body or "")[:3000]})
+            results.append(
+                {
+                    "kind": "RESP",
+                    "url": resp.url,
+                    "status": resp.status,
+                    "body": (body or "")[:3000],
+                }
+            )
+
     page.on("request", on_request)
     page.on("response", on_response)
     page.goto("https://money.tmx.com/en/quote/TD.TO", wait_until="networkidle", timeout=60000)

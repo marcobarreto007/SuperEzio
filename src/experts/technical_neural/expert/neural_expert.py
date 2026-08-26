@@ -17,7 +17,7 @@ import os
 import tempfile
 import warnings
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -115,7 +115,7 @@ class TechnicalNeuralExpert:
         if not symbol:
             return self._closed("error", "INVALID_TICKER", ticker="")
 
-        reference_time = self._as_utc(now or datetime.now(timezone.utc))
+        reference_time = self._as_utc(now or datetime.now(UTC))
         try:
             prepared = self._prepare_with_horizon(candles_data)
         except CandleValidationError as exc:
@@ -944,7 +944,7 @@ class TechnicalNeuralExpert:
             if numeric > 10_000_000_000:
                 numeric /= 1000.0
             try:
-                parsed = datetime.fromtimestamp(numeric, tz=timezone.utc)
+                parsed = datetime.fromtimestamp(numeric, tz=UTC)
             except (OSError, OverflowError, ValueError) as exc:
                 raise CandleValidationError("INVALID_CANDLE_TIMESTAMP") from exc
         elif isinstance(value, str):
@@ -960,8 +960,8 @@ class TechnicalNeuralExpert:
     @staticmethod
     def _as_utc(value: datetime) -> datetime:
         if value.tzinfo is None:
-            return value.replace(tzinfo=timezone.utc)
-        return value.astimezone(timezone.utc)
+            return value.replace(tzinfo=UTC)
+        return value.astimezone(UTC)
 
     def _closed(
         self,

@@ -7,8 +7,8 @@ No API key. Used after Finnhub and Twelve Data fail or are unavailable.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List
+from datetime import UTC, datetime
+from typing import Any
 
 from .finnhub_symbols import finnhub_symbol_variants
 
@@ -18,10 +18,10 @@ logger = logging.getLogger(__name__)
 class _SuppressYFinanceOutput:
     """Safe context manager without global sys.stdout mutation."""
 
-    def __enter__(self) -> "_SuppressYFinanceOutput":
+    def __enter__(self) -> _SuppressYFinanceOutput:
         return self
 
-    def __exit__(self, *args: Any) -> None:
+    def __exit__(self, *args: object) -> None:
         pass
 
 
@@ -83,9 +83,9 @@ def _utc_observed_at(value: Any) -> str:
     if not isinstance(observed, datetime):
         raise ValueError("yfinance candle timestamp is not a datetime")
     if observed.tzinfo is None:
-        observed = observed.replace(tzinfo=timezone.utc)
+        observed = observed.replace(tzinfo=UTC)
     else:
-        observed = observed.astimezone(timezone.utc)
+        observed = observed.astimezone(UTC)
     return observed.isoformat()
 
 
@@ -98,7 +98,7 @@ class YFinanceProvider:
         *,
         market: str | None = None,
         **_: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         ysym = yfinance_ticker(symbol, market)
         if not ysym:
             return {"error": "invalid_symbol"}
@@ -155,7 +155,7 @@ class YFinanceProvider:
                         price = float(intraday["Close"].iloc[-1])
                         timestamp = intraday.index[-1]
                         if hasattr(timestamp, "to_pydatetime"):
-                            as_of = timestamp.to_pydatetime().astimezone(timezone.utc).isoformat()
+                            as_of = timestamp.to_pydatetime().astimezone(UTC).isoformat()
                 except Exception as exc:
                     # O preco anterior (possivelmente o fechamento de ontem) segue
                     # adiante com as_of=None. Sem este log a degradacao era invisivel
@@ -192,7 +192,7 @@ class YFinanceProvider:
         *,
         market: str | None = None,
         **_: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         ysym = yfinance_ticker(symbol, market)
         if not ysym:
             return {"error": "invalid_symbol"}
@@ -217,7 +217,7 @@ class YFinanceProvider:
                         raise
             if hist is None or hist.empty:
                 return {"error": "yfinance_no_candles"}
-            candles: List[Dict[str, Any]] = []
+            candles: list[dict[str, Any]] = []
             for ts, row in hist.iterrows():
                 observed_at = _utc_observed_at(ts)
                 candles.append(
@@ -248,7 +248,7 @@ class YFinanceProvider:
         *,
         market: str | None = None,
         **_: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         ysym = yfinance_ticker(symbol, market)
         if not ysym:
             return {"error": "invalid_symbol"}
@@ -296,7 +296,7 @@ class YFinanceProvider:
         *,
         market: str | None = None,
         **_: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Keyless fundamentals for any Yahoo-covered market (incl. .TO/.V).
 
         Uses a single `Ticker.info` call (the same quoteSummary feed as the
@@ -330,7 +330,7 @@ class YFinanceProvider:
                     else:
                         raise
 
-            payload: Dict[str, Any] = {
+            payload: dict[str, Any] = {
                 "symbol": symbol,
                 "yahoo_symbol": ysym,
                 "source": "yfinance",

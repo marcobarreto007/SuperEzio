@@ -7,9 +7,11 @@ que alimentam o CrisisMathExpert.
 
 import json
 import os
-import pandas as pd
-from typing import List, Dict, Any, Optional
 from datetime import datetime
+from typing import Any
+
+import pandas as pd
+
 from core.paths import resolve_project_path
 
 
@@ -53,7 +55,7 @@ class MacroDataset:
         self.index["last_update"] = datetime.now().isoformat()
         self._save_index()
 
-    def get_series(self, name: str, country: str) -> Optional[pd.DataFrame]:
+    def get_series(self, name: str, country: str) -> pd.DataFrame | None:
         key = f"{country}_{name}"
         if key not in self.index["series"]:
             return None
@@ -61,7 +63,7 @@ class MacroDataset:
         filepath = os.path.join(self.data_dir, self.index["series"][key]["file"])
         return pd.read_parquet(filepath)
 
-    def query_context(self, country: str, top_n: int = 12) -> List[Dict[str, Any]]:
+    def query_context(self, country: str, top_n: int = 12) -> list[dict[str, Any]]:
         """
         Retorna um dicionário formatado para o CrisisInput com as últimas observações.
         """

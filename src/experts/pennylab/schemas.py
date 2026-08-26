@@ -7,11 +7,11 @@ todos os campos opcionais refletem ausência de provedor real conectado.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -47,28 +47,28 @@ class SignalInput(BaseModel):
     ticker: str = Field(..., description="Símbolo do ativo (ex: ABCD, SNDL)")
 
     # Preço / volume
-    price: Optional[float] = None  # último preço
-    prev_close: Optional[float] = None
-    volume: Optional[int] = None  # volume do dia
-    avg_volume_10d: Optional[int] = None  # média 10 dias
-    market_cap: Optional[float] = None  # em USD
+    price: float | None = None  # último preço
+    prev_close: float | None = None
+    volume: int | None = None  # volume do dia
+    avg_volume_10d: int | None = None  # média 10 dias
+    market_cap: float | None = None  # em USD
 
     # Spread / liquidez
-    bid: Optional[float] = None
-    ask: Optional[float] = None
-    shares_float: Optional[int] = None  # ações em circulação
+    bid: float | None = None
+    ask: float | None = None
+    shares_float: int | None = None  # ações em circulação
 
     # Técnicos simples
-    rsi_14: Optional[float] = None
-    ema_20: Optional[float] = None
+    rsi_14: float | None = None
+    ema_20: float | None = None
 
     # Metadados de origem
     data_quality: DataQuality = DataQuality.UNAVAILABLE
     source: str = "manual"
-    as_of: Optional[str] = None  # ISO timestamp
+    as_of: str | None = None  # ISO timestamp
 
     # Evidências adicionais (mensagens de fórum, alertas, etc.)
-    external_signals: List[str] = Field(default_factory=list)
+    external_signals: list[str] = Field(default_factory=list)
 
     model_config = ConfigDict(use_enum_values=True)
 
@@ -98,14 +98,14 @@ class PennylabReport(BaseModel):
     decision: Decision
     scores: PennylabScores
     mathcore_verdict: str = ""
-    evidence: List[str] = Field(default_factory=list)
-    risks: List[str] = Field(default_factory=list)
-    entry_conditions: List[str] = Field(default_factory=list)
-    exit_conditions: List[str] = Field(default_factory=list)
+    evidence: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    entry_conditions: list[str] = Field(default_factory=list)
+    exit_conditions: list[str] = Field(default_factory=list)
     confidence: float = Field(0.0, ge=0.0, le=1.0)
     data_quality: DataQuality = DataQuality.UNAVAILABLE
     veracity_passed: bool = True
-    generated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    generated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     # Keep enum instances in-memory (tests and internal logic rely on Enum semantics).
     model_config = ConfigDict(use_enum_values=False)
@@ -121,13 +121,13 @@ class TradeLog(BaseModel):
 
     ticker: str
     entry_price: float
-    exit_price: Optional[float] = None
+    exit_price: float | None = None
     size_usd: float = Field(..., description="Tamanho em USD")
-    pnl_pct: Optional[float] = None
+    pnl_pct: float | None = None
     note: str = ""
     is_paper: bool = True  # sempre True inicialmente
-    logged_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    report_snapshot: Optional[Dict[str, Any]] = None  # snapshot do PennylabReport
+    logged_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+    report_snapshot: dict[str, Any] | None = None  # snapshot do PennylabReport
 
 
 # ---------------------------------------------------------------------------
@@ -136,13 +136,13 @@ class TradeLog(BaseModel):
 
 
 class ScanFilter(BaseModel):
-    max_price: Optional[float] = None
-    min_volume: Optional[int] = None
+    max_price: float | None = None
+    min_volume: int | None = None
     max_spread_pct: float = 5.0  # descarta se spread > X%
 
 
 class ScanResult(BaseModel):
     filters: ScanFilter
-    candidates: List[str] = Field(default_factory=list)
+    candidates: list[str] = Field(default_factory=list)
     skipped: int = 0
     note: str = "Nenhum provedor de scan conectado. Passe tickers manualmente."

@@ -4,16 +4,18 @@ Orquestra nós paralelos com fusão de crença.
 """
 
 from __future__ import annotations
+
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any
 
 from .formulas import (
-    unified_decision,
     DecisionFactors,
+    clamp,
     decision_threshold,
     expand_budget,
-    clamp,
+    unified_decision,
 )
 
 # =============================================================================
@@ -201,8 +203,8 @@ class F51Engine:
 
     def _build_default_graph(self) -> Graph:
         """Constrói o grafo padrão com todos os detectores/scorers/gates."""
-        from .detectors import SpiderSense, DifficultyEstimator
-        from .gates import VeracityGate, AdversarialCritic
+        from .detectors import DifficultyEstimator, SpiderSense
+        from .gates import AdversarialCritic, VeracityGate
 
         spider = SpiderSense()
         estimator = DifficultyEstimator()

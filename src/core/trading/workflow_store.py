@@ -9,12 +9,12 @@ import os
 import re
 import sqlite3
 import threading
-from datetime import datetime, timedelta, timezone
+from collections.abc import Mapping, Sequence
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from core.paths import resolve_project_path
-
 
 DEFAULT_WORKFLOW_DB = resolve_project_path("runtime/trading_state.sqlite3")
 DEFAULT_DEAD_LETTER_DIR = resolve_project_path("journal/dead_letter")
@@ -59,7 +59,7 @@ def _canonical_json(value: Mapping[str, Any]) -> str:
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def resolve_workflow_db_path() -> Path:
@@ -77,7 +77,7 @@ def build_trade_intent_fingerprint(
 
     if window_seconds <= 0:
         raise WorkflowStoreError("window_seconds must be positive")
-    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    current = (now or datetime.now(UTC)).astimezone(UTC)
     window_start = int(current.timestamp()) // window_seconds * window_seconds
     canonical = {
         "account": str(intent.get("account") or intent.get("session_id") or "unknown").strip(),
@@ -105,7 +105,7 @@ def build_trade_intent_fingerprints(
     without changing what a key means: past two windows it is a new intent.
     """
 
-    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    current = (now or datetime.now(UTC)).astimezone(UTC)
     return (
         build_trade_intent_fingerprint(intent, now=current, window_seconds=window_seconds),
         build_trade_intent_fingerprint(

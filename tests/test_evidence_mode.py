@@ -5,11 +5,11 @@ from pathlib import Path
 import pytest
 from fastapi import HTTPException
 
+import core.evidence.run as evidence_run_mod
 from agent_server import endpoints
 from core.evidence.report import generate_html_report
 from core.evidence.run import EvidenceRun
 from core.pipeline.graph import _scan_evidence_payload
-import core.evidence.run as evidence_run_mod
 
 
 def test_evidence_report_escapes_user_content(tmp_path: Path) -> None:

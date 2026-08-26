@@ -1,11 +1,11 @@
 import pytest
 
-from src.core.pipeline.nodes.orchestrator import node_orchestrator
 from src.core.pipeline.nodes.agent import (
     _fit_messages_to_local_context,
     _parse_tool_calls,
     node_agent,
 )
+from src.core.pipeline.nodes.orchestrator import node_orchestrator
 from src.core.pipeline.nodes.tool_executor import node_tool_executor
 
 

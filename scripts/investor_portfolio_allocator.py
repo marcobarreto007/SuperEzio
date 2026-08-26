@@ -13,7 +13,7 @@ import argparse
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 COMMISSION_FREE_MANIFEST = ROOT / "config" / "td_direct_commission_free_etfs.json"
@@ -29,12 +29,12 @@ class AllocationPlan:
     investable_surplus: float
     core_allocation: float
     explore_allocation: float
-    recommended_etfs: List[Dict[str, Any]]
-    account_routing: Dict[str, float]
+    recommended_etfs: list[dict[str, Any]]
+    account_routing: dict[str, float]
     summary_verdict: str
 
 
-def load_commission_free_etfs() -> List[str]:
+def load_commission_free_etfs() -> list[str]:
     if not COMMISSION_FREE_MANIFEST.exists():
         return []
     try:
@@ -87,10 +87,10 @@ def calculate_allocation(
 
     # 5. ETF matching from verified 108 TD Direct commission-free universe
     valid_symbols = set(load_commission_free_etfs())
-    recommended_etfs: List[Dict[str, Any]] = []
+    recommended_etfs: list[dict[str, Any]] = []
 
     if investable_surplus > 0:
-        candidates: List[Dict[str, Any]] = []
+        candidates: list[dict[str, Any]] = []
         if risk_tolerance.lower() == "conservative":
             candidates = [
                 {

@@ -1,6 +1,6 @@
 """Smoke tests — F51Engine.run() pipeline deterministico."""
 
-from f51.graph import F51Engine, Graph, Node, Context, NodeResult
+from f51.graph import Context, F51Engine, Graph, Node, NodeResult
 
 
 class TestNodeResult:

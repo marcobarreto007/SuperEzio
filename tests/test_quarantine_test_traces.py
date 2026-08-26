@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from scripts.quarantine_test_traces import quarantine_test_interval
@@ -19,7 +19,7 @@ def test_quarantine_removes_only_bounded_test_rows(tmp_path: Path) -> None:
     manifest = quarantine_test_interval(
         source,
         tmp_path / "quarantine",
-        datetime(2026, 8, 19, 3, 57, tzinfo=timezone.utc),
+        datetime(2026, 8, 19, 3, 57, tzinfo=UTC),
     )
 
     remaining = [json.loads(line) for line in source.read_text().splitlines()]

@@ -45,6 +45,7 @@ related-skills: [f51-safety-science, f51-audit, f51-circuit-breaker]
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, SecretStr
 
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -55,11 +56,10 @@ class Settings(BaseSettings):
     # ── Security (CRITICAL) ──
     f51_trading_execution_freeze: bool = Field(
         default=True,
-        description="Global kill switch. TRUE = ALL orders blocked. NEVER set to false in production."
+        description="Global kill switch. TRUE = ALL orders blocked. NEVER set to false in production.",
     )
     superezio_enable_paper_order_submit: bool = Field(
-        default=False,
-        description="Enable paper order submission to IBKR TWS."
+        default=False, description="Enable paper order submission to IBKR TWS."
     )
 
     # ── Connectivity (HIGH) ──

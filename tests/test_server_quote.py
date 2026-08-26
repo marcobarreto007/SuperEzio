@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from core.resilience import CircuitState, get_circuit
 from core.trading.server_quote import ServerQuoteError, ServerQuoteService
 
-
-NOW = datetime(2026, 8, 19, 14, 30, tzinfo=timezone.utc)
+NOW = datetime(2026, 8, 19, 14, 30, tzinfo=UTC)
 
 
 class _Provider:

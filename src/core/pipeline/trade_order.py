@@ -404,9 +404,10 @@ def compute_model_confidence(
                 score -= 12
             elif failure == "missing_invalidation":
                 score -= 8
-            elif failure == "missing_catalyst":
-                score -= 10
-            elif failure in {"provider_error", "currency_market_mismatch"}:
+            elif failure == "missing_catalyst" or failure in {
+                "provider_error",
+                "currency_market_mismatch",
+            }:
                 score -= 10
 
     if source_errors:

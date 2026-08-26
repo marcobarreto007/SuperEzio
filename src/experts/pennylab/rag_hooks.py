@@ -10,10 +10,8 @@ Principle: patterns remember. Python computes. Marco decides.
 
 from __future__ import annotations
 
-from typing import List
 
-
-def query_fraud_patterns(ticker: str) -> List[str]:
+def query_fraud_patterns(ticker: str) -> list[str]:
     """
     Query FraudPatternMatcher for known manipulation patterns
     associated with the ticker or sector.
@@ -42,7 +40,7 @@ def query_fraud_patterns(ticker: str) -> List[str]:
         return [f"[fraud] query error: {type(exc).__name__}"]
 
 
-def enrich_with_rag(ticker: str, existing_evidence: List[str]) -> List[str]:
+def enrich_with_rag(ticker: str, existing_evidence: list[str]) -> list[str]:
     """
     Add pattern-matched evidence to the existing list without duplicates.
     Returns a new combined list.

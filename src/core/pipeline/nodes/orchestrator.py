@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 from langgraph.config import get_stream_writer
 
 # Legacy constants â€” referenced by contract tests

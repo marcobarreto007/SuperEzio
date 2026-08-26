@@ -15,18 +15,18 @@ import json
 import threading as _threading
 import urllib.request
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 # Séries Bank of Canada Valet API
-BOC_SERIES: Dict[str, str] = {
+BOC_SERIES: dict[str, str] = {
     "policy_rate": "V39079",  # Target for the overnight rate
     "usd_cad": "FXUSDCAD",  # USD/CAD exchange rate
     "cpi_total": "V41690973",  # Total CPI index
 }
 
 # Cache simples (1 hora, thread-safe)
-_cache: Dict[str, Any] = {}
-_cache_ts: Dict[str, float] = {}
+_cache: dict[str, Any] = {}
+_cache_ts: dict[str, float] = {}
 _cache_lock: _threading.Lock = _threading.Lock()
 _CACHE_TTL = 3600
 
@@ -34,7 +34,7 @@ _CACHE_TTL = 3600
 def _fetch_boc_series(
     series_id: str,
     recent: int = 10,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Busca série do Bank of Canada Valet API.
 
@@ -81,7 +81,7 @@ def _fetch_boc_series(
         return [{"error": str(e)}]
 
 
-def get_policy_rate() -> Dict[str, Any]:
+def get_policy_rate() -> dict[str, Any]:
     """Retorna taxa de juros do Bank of Canada (overnight target rate)."""
     data = _fetch_boc_series(BOC_SERIES["policy_rate"], recent=10)
     if not data or "error" in data[0]:
@@ -96,14 +96,14 @@ def get_policy_rate() -> Dict[str, Any]:
     }
 
 
-def get_usd_cad() -> Dict[str, Any]:
+def get_usd_cad() -> dict[str, Any]:
     """Retorna câmbio USD/CAD."""
     data = _fetch_boc_series(BOC_SERIES["usd_cad"], recent=30)
     if not data or "error" in data[0]:
         return {"error": "Falha ao buscar USD/CAD", "raw": data}
     last = data[0]
 
-    result: Dict[str, Any] = {
+    result: dict[str, Any] = {
         "indicator": "USD/CAD",
         "current_value": float(last["value"]),
         "date": last["date"],
@@ -119,7 +119,7 @@ def get_usd_cad() -> Dict[str, Any]:
     return result
 
 
-def get_cpi() -> Dict[str, Any]:
+def get_cpi() -> dict[str, Any]:
     """Retorna CPI (inflação) YoY do Canadá."""
     data = _fetch_boc_series(BOC_SERIES["cpi_total"], recent=24)
     if not data or "error" in data[0]:
@@ -142,7 +142,7 @@ def get_cpi() -> Dict[str, Any]:
     }
 
 
-def get_macro_summary_ca() -> Dict[str, Any]:
+def get_macro_summary_ca() -> dict[str, Any]:
     """
     Resumo macro completo do Canadá: Policy Rate + CPI + USD/CAD.
     Uma chamada pra todos os dados macro canadenses.

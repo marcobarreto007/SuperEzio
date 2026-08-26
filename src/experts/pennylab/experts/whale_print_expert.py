@@ -10,17 +10,16 @@ Este expert identifica a "impressão digital" desse padrão.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List
 
-from ..schemas import SignalInput
 from ..mathcore_adapter import _clamp
+from ..schemas import SignalInput
 
 
 @dataclass
 class WhalePrintResult:
     score: float  # 0-1
     label: str
-    evidence: List[str] = field(default_factory=list)
+    evidence: list[str] = field(default_factory=list)
     confidence: float = 0.0
 
 
@@ -31,8 +30,8 @@ class WhalePrintExpert:
     """
 
     def evaluate(self, signal: SignalInput) -> WhalePrintResult:
-        evidence: List[str] = []
-        components: List[float] = []
+        evidence: list[str] = []
+        components: list[float] = []
         available = 0
 
         # Float (peso 40%)

@@ -18,7 +18,7 @@ _CA_TICKER_RE = re.compile(r"^[A-Z]{1,5}\.(TO|V)$")
 # single td_universe contract — this module must NOT keep its own venue list.
 # OTC Pink (PNK), OTCQB (OQB), CSE (.CN), NEO (.NE) and other venues are
 # excluded: not TD-tradable, and their tickers waste the enrichment budget.
-from ..trading.td_universe import td_exchange_alias_codes  # noqa: E402
+from ..trading.td_universe import td_exchange_alias_codes
 
 _US_EXCHANGE_WHITELIST = td_exchange_alias_codes({"NYSE", "NASDAQ", "NYSEAMERICAN", "NYSEARCA"})
 _CA_EXCHANGE_WHITELIST = td_exchange_alias_codes({"TSX", "TSXV"})
@@ -55,7 +55,7 @@ class MarketScanner:
         _log_event("SCANNER", "INIT", {"mode": "lazy_load"})
         self._equities = None
         self._etfs = None
-        self._cache: Dict[str, tuple] = {}  # key -> (result, timestamp)
+        self._cache: dict[str, tuple] = {}  # key -> (result, timestamp)
 
     @property
     def equities(self):
@@ -84,7 +84,7 @@ class MarketScanner:
         """Salva resultado no cache."""
         self._cache[key] = (value, time.time())
 
-    def _filter_us_ca_selection(self, selection) -> List[tuple]:
+    def _filter_us_ca_selection(self, selection) -> list[tuple]:
         """Apply the TD venue/ticker/market-cap gates; return (ticker, exchange)."""
         # Both US and Canadian companies trade on major US exchanges.
         # "country" is the incorporation country, not the listing venue.
@@ -115,7 +115,7 @@ class MarketScanner:
         sector: str = None,
         industry: str = None,
         limit: int = 10,
-    ) -> List[dict]:
+    ) -> list[dict]:
         """Like scan_equities, but keeps the VERIFIED exchange per ticker.
 
         The exchange is provenance the collector needs for the TD-universe
@@ -156,7 +156,7 @@ class MarketScanner:
         industry: str = None,
         limit: int = 10,
         max_price: float | None = None,
-    ) -> List[str]:
+    ) -> list[str]:
         """Retorna lista de tickers de acoes baseados nos criterios.
 
         Filters out OTC/Pink Sheets, Nano Caps, and non-major exchanges before
@@ -190,7 +190,7 @@ class MarketScanner:
             _log_event("SCANNER", "SCAN_ERROR", {"type": "equities", "error": str(e)})
             return []
 
-    def scan_etfs(self, category: str = None, limit: int = 10) -> List[str]:
+    def scan_etfs(self, category: str = None, limit: int = 10) -> list[str]:
         """Retorna lista de tickers de ETFs."""
         cache_key = f"etf:{category}:{limit}"
         cached = self._get_cached(cache_key)
@@ -208,13 +208,13 @@ class MarketScanner:
             _log_event("SCANNER", "SCAN_ERROR", {"type": "etfs", "error": str(e)})
             return []
 
-    def get_available_sectors(self) -> List[str]:
+    def get_available_sectors(self) -> list[str]:
         try:
             return sorted(self.equities.data["sector"].dropna().unique().tolist())
         except Exception:
             return []
 
-    def get_available_countries(self) -> List[str]:
+    def get_available_countries(self) -> list[str]:
         try:
             return sorted(self.equities.data["country"].dropna().unique().tolist())
         except Exception:
@@ -222,4 +222,4 @@ class MarketScanner:
 
 
 # ── OpenBB-powered scanner (primary, no API key) ──
-from .openbb_scanner import OpenBBScanner  # noqa: E402, F401
+from .openbb_scanner import OpenBBScanner  # noqa: F401

@@ -6,7 +6,6 @@ from typing import Any
 
 from ..contracts.schemas import SensorResult
 
-
 _PUBLIC_SENSOR_NAMES = {
     "DebtServiceRatioModel": "DebtServicePercentileHeuristic",
     "CreditAssetGrowthModel": "CreditAssetPercentileHeuristic",

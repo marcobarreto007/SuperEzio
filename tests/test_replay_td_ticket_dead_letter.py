@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.replay_td_ticket_dead_letter import replay
 from core.trading.workflow_store import TradeWorkflowStore
+from scripts.replay_td_ticket_dead_letter import replay
 
 
 def test_dead_letter_replay_repairs_claim_without_duplicate(tmp_path: Path) -> None:

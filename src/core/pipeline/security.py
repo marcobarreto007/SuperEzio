@@ -12,19 +12,18 @@ Runtime note:`r`n    ``sanitize_output`` is active in the production pipeline. T
 
 from __future__ import annotations
 
+import hashlib
 import re
 import time
 import uuid
-import hashlib
-from typing import Dict, List, Optional
-from threading import Lock
 from collections import defaultdict
+from threading import Lock
 
 from core.security.constants import FORBIDDEN_OUTPUT_PHRASES
 
-from ..observability.neural_log import log_event
-from ..observability.debug_logger import debug_logger, MODULE_SECURITY
 from ..model_serving.sanitizer import strip_private_model_channels
+from ..observability.debug_logger import MODULE_SECURITY, debug_logger
+from ..observability.neural_log import log_event
 
 # â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -35,7 +34,7 @@ RATE_LIMIT_WINDOW_S = 60.0  # janela de rate limiting (segundos)
 RATE_LIMIT_MAX_CALLS = 30  # mÃ¡ximo de chamadas por janela
 
 # Caracteres / padrÃµes proibidos (injeÃ§Ã£o)
-FORBIDDEN_PATTERNS: List[str] = [
+FORBIDDEN_PATTERNS: list[str] = [
     r"<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>",  # XSS
     r"javascript:",  # XSS href
     r"on\w+\s*=",  # event handlers
@@ -52,7 +51,7 @@ FORBIDDEN_PATTERNS: List[str] = [
 ]
 
 # PII patterns (para filtering de output)
-PII_PATTERNS: Dict[str, str] = {
+PII_PATTERNS: dict[str, str] = {
     "email": r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",
     "cpf": r"\b\d{3}\.\d{3}\.\d{3}-\d{2}\b",
     "cnpj": r"\b\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}\b",
@@ -68,7 +67,7 @@ _request_id_counter: int = 0
 _request_id_lock: Lock = Lock()
 
 # Rate limiting state
-_rate_limit_store: Dict[str, List[float]] = defaultdict(list)
+_rate_limit_store: dict[str, list[float]] = defaultdict(list)
 _rate_limit_lock: Lock = Lock()
 
 # â”€â”€ Core Functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -87,7 +86,7 @@ def generate_request_id() -> str:
     return f"REQ-{seq:05d}-{short_hash}"
 
 
-def validate_input(message: str, context: str = "") -> Optional[str]:
+def validate_input(message: str, context: str = "") -> str | None:
     """
     Valida entrada do usuÃ¡rio. Retorna None se OK, ou string de erro se rejeitado.
 
@@ -170,7 +169,7 @@ def check_rate_limit(
     session_id: str = "default",
     max_calls: int = RATE_LIMIT_MAX_CALLS,
     window_s: float = RATE_LIMIT_WINDOW_S,
-) -> Optional[str]:
+) -> str | None:
     """
     Verifica rate limiting para uma sessÃ£o.
     Retorna None se OK, ou mensagem de erro se excedeu.
@@ -281,7 +280,7 @@ class SecurityContext:
         self.message = message
         self.context = context
         self.session_id = session_id
-        self.error: Optional[str] = None
+        self.error: str | None = None
         self.pii_detected: bool = False
 
         # 1. Validar input
@@ -346,7 +345,7 @@ class SecurityContext:
             safe += f"\n\n[request_id: {self.request_id}]"
         return safe
 
-    def to_headers(self) -> Dict[str, str]:
+    def to_headers(self) -> dict[str, str]:
         """Headers HTTP para tracing."""
         return {
             "X-Request-ID": self.request_id,

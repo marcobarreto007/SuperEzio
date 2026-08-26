@@ -78,7 +78,7 @@ def extract_verdict_payload(text: str) -> dict[str, Any]:
             "parsed": parsed,
         }
 
-    confidence_match = re.search(r"\bconfidence\b[^0-9]*(\d+(?:\.\d+)?)", str(text), re.I)
+    confidence_match = re.search(r"\bconfidence\b[^0-9]*(\d+(?:\.\d+)?)", str(text), re.IGNORECASE)
     confidence = float(confidence_match.group(1)) if confidence_match else None
     return {
         "verdict": _heuristic_verdict(text),

@@ -17,7 +17,7 @@
     "expected_return": float,
     "drawdown_risk": float,
     "uncertainty": float,
-    "regime": str,          # "trend_real", "mean_reverting", "chaotic", etc.
+    "regime": str,  # "trend_real", "mean_reverting", "chaotic", etc.
     "recommendation": str,  # "alerta_forte", "hold", etc.
     "veto": bool,
     "reason": str,

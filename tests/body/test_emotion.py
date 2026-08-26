@@ -5,6 +5,7 @@ Tests for PADEngine — Fase 3 (Emotion) da arquitetura CORPO.
 from __future__ import annotations
 
 import pytest
+
 from core.body import EMOTION_LABELS, EmotionalState, PADEngine
 
 

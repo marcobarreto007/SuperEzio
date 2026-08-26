@@ -14,16 +14,15 @@ import pytest
 from core.math.math_hub import MathHub
 from core.pipeline.nodes.observation_builder import (
     build_observations,
-    format_math_report,
-    format_f51_verdict,
-    format_neural_decision,
-    format_sdca,
-    format_guardrail_hub,
     format_decision_trace,
+    format_f51_verdict,
+    format_guardrail_hub,
+    format_math_report,
+    format_neural_decision,
     format_pennylab,
+    format_sdca,
 )
 from core.pipeline.prompts.builder import build_agent_prompt
-
 
 # ---------------------------------------------------------------------------
 # Helpers

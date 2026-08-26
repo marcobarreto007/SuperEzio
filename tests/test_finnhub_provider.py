@@ -26,8 +26,8 @@ All HTTP is mocked. No real API key required.
 from __future__ import annotations
 
 import importlib
+from typing import Any
 from unittest.mock import patch
-from typing import Any, Dict, Optional
 
 import pytest
 
@@ -49,7 +49,7 @@ class _FakeResponse:
         self,
         *,
         status_code: int = 200,
-        payload: Optional[Dict[str, Any]] = None,
+        payload: dict[str, Any] | None = None,
     ) -> None:
         self.status_code = status_code
         self._payload = payload if payload is not None else {}
@@ -60,7 +60,7 @@ class _FakeResponse:
 
         return _json.dumps(self._payload).encode("utf-8")
 
-    def json(self) -> Dict[str, Any]:
+    def json(self) -> dict[str, Any]:
         return self._payload
 
 

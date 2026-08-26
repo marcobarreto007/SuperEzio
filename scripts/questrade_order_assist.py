@@ -32,7 +32,8 @@ import time
 from pathlib import Path
 
 from dotenv import load_dotenv
-from playwright.sync_api import sync_playwright, Page, TimeoutError as PWTimeout
+from playwright.sync_api import Page, sync_playwright
+from playwright.sync_api import TimeoutError as PWTimeout
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
@@ -79,7 +80,9 @@ def _wait_for_url_no_input(page: Page, url_glob: str, message: str, timeout_s: i
     interaction required at all.
     """
     print(f"\n[WAITING] {message}")
-    print(f"(polling for navigation to match '{url_glob}', up to {timeout_s}s — no terminal input needed)")
+    print(
+        f"(polling for navigation to match '{url_glob}', up to {timeout_s}s — no terminal input needed)"
+    )
     deadline = time.time() + timeout_s
     while time.time() < deadline:
         try:
@@ -161,10 +164,7 @@ def fill_order_ticket(
     page.fill(SELECTORS["quantity_input"], str(quantity))
     page.fill(SELECTORS["limit_price_input"], f"{limit_price:.2f}")
 
-    print(
-        f"\nOrder ticket filled: {side.upper()} {quantity} {ticker} "
-        f"@ LIMIT {limit_price:.2f}"
-    )
+    print(f"\nOrder ticket filled: {side.upper()} {quantity} {ticker} @ LIMIT {limit_price:.2f}")
     print(
         "Nothing has been submitted. Review every field on screen yourself, "
         "then click the confirm/submit button in the browser window if — and "

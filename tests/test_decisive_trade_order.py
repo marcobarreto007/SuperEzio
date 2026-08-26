@@ -10,7 +10,6 @@ Five test scenarios from the acceptance spec:
 
 from __future__ import annotations
 
-
 # ---------------------------------------------------------------------------
 # Helpers — build scan state for testing the deterministic answer renderer
 # ---------------------------------------------------------------------------
@@ -121,7 +120,7 @@ def test_decisive_prompt_with_valid_candidate():
 
 def test_decisive_prompt_with_strong_candidate_is_buy():
     """A strong candidate (catalyst+risk+invalidation+volume) should yield BUY_CANDIDATE."""
-    from src.core.pipeline.nodes.agent import _market_scan_answer, _compute_model_confidence
+    from src.core.pipeline.nodes.agent import _compute_model_confidence, _market_scan_answer
 
     confidence = _compute_model_confidence(_STRONG_CANDIDATE)
     assert confidence >= 65, f"Strong candidate confidence {confidence} should be >= 65"
@@ -225,7 +224,7 @@ def test_liquidity_in_old_format_also_has_units():
 
 def test_weak_candidate_produces_wait():
     """Missing provenance, risk and invalidation must fail closed as REJECT_ALL."""
-    from src.core.pipeline.nodes.agent import _market_scan_answer, _compute_model_confidence
+    from src.core.pipeline.nodes.agent import _compute_model_confidence, _market_scan_answer
 
     confidence = _compute_model_confidence(_WEAK_CANDIDATE)
     assert confidence < 65, f"Weak candidate confidence {confidence} should be < 65"

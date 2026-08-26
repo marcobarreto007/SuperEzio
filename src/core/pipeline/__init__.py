@@ -3,4 +3,4 @@
 from .contracts import PipelineState
 from .graph import PipelineApp, build_graph
 
-__all__ = ["PipelineState", "PipelineApp", "build_graph"]
+__all__ = ["PipelineApp", "PipelineState", "build_graph"]

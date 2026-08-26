@@ -7,12 +7,12 @@ and gateway (cooldown dict).
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
-import asyncio
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -299,9 +299,10 @@ class IBKRService:
         """
         if not force_refresh:
             with self._lock:
-                if time.monotonic() - self._cache_time < _IBKR_CACHE_TTL_SEC:
-                    return list(self._positions_cache)
-                elif self._positions_cache:  # Stale cache available
+                if (
+                    time.monotonic() - self._cache_time < _IBKR_CACHE_TTL_SEC
+                    or self._positions_cache
+                ):
                     return list(self._positions_cache)
 
         # Force refresh
@@ -338,9 +339,10 @@ class IBKRService:
         """
         if not force_refresh:
             with self._lock:
-                if time.monotonic() - self._cache_time < _IBKR_CACHE_TTL_SEC:
-                    return self._equity_cache
-                elif self._equity_cache > 0:  # Stale cache available
+                if (
+                    time.monotonic() - self._cache_time < _IBKR_CACHE_TTL_SEC
+                    or self._equity_cache > 0
+                ):
                     return self._equity_cache
 
         # Force refresh
@@ -516,14 +518,14 @@ class IBKRService:
                 "success": True,
                 "error": None,
                 "failures_reset": failures_before,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
         else:
             return {
                 "success": False,
                 "error": self._last_error,
                 "failures_reset": 0,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
     def is_degraded(self) -> bool:

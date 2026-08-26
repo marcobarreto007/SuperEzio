@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -65,7 +65,7 @@ class KillSwitch:
         else:
             self.state = KillSwitchState(
                 peak_equity=initial_equity,
-                last_reset_utc=datetime.now(timezone.utc).date().isoformat(),
+                last_reset_utc=datetime.now(UTC).date().isoformat(),
             )
             self._persist()
         self._history: list[dict[str, Any]] = []
@@ -155,13 +155,13 @@ class KillSwitch:
         self.state.daily_pnl = 0.0
         self.state.trade_count = 0
         self.state.consecutive_losses = 0
-        self.state.last_reset_utc = datetime.now(timezone.utc).date().isoformat()
+        self.state.last_reset_utc = datetime.now(UTC).date().isoformat()
         if not self.state.is_active or self.state.reason == KillSwitchReason.DAILY_LOSS_LIMIT:
             self.deactivate()
         self._persist()
 
     def _reset_if_new_utc_day(self) -> None:
-        today = datetime.now(timezone.utc).date().isoformat()
+        today = datetime.now(UTC).date().isoformat()
         if self.state.last_reset_utc != today:
             self.reset_day()
 

@@ -7,9 +7,11 @@ This module tests:
 """
 
 from unittest.mock import patch
+
 import pytest
-from src.core.pipeline.nodes.agent import _fit_messages_to_local_context
+
 from src.core.pipeline.chart_image import build_chart_visual_message
+from src.core.pipeline.nodes.agent import _fit_messages_to_local_context
 
 
 class TestMultimodalTrimmingExemption:

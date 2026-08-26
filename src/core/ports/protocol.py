@@ -7,7 +7,7 @@ does not depend on transport-layer code.
 import time
 import uuid
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -36,19 +36,19 @@ class A2AMessage(BaseModel):
     type: MessageType
 
     timestamp: float = Field(default_factory=time.time)
-    deadline_ms: Optional[int] = None
+    deadline_ms: int | None = None
     priority: int = 1
-    budget: Optional[float] = None
+    budget: float | None = None
 
-    payload: Dict[str, Any] = Field(default_factory=dict)
-    attachments: List[Any] = Field(default_factory=list)
+    payload: dict[str, Any] = Field(default_factory=dict)
+    attachments: list[Any] = Field(default_factory=list)
 
     @classmethod
     def create_response(
         cls,
         original_msg: "A2AMessage",
         type: MessageType,
-        payload: Dict[str, Any],
+        payload: dict[str, Any],
         from_agent: str,
     ) -> "A2AMessage":
         return cls(

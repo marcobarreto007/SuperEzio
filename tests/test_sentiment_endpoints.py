@@ -1,7 +1,7 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
 from agent_server.main import app
 
@@ -44,7 +44,7 @@ class FakeMonitor:
                 {
                     "ticker": ticker,
                     "sentiment_score": 0.2,
-                    "collected_at": datetime.now(timezone.utc).isoformat(),
+                    "collected_at": datetime.now(UTC).isoformat(),
                 }
             ],
         }

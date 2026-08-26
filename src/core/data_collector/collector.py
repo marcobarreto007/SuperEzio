@@ -23,19 +23,19 @@ Multi-mercado: detecta automaticamente pelo sufixo do ticker.
 import asyncio
 import json
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict
+from datetime import UTC, datetime
+from typing import Any
 
 from core.math import FinancialEngine
 from core.observability.neural_log import log_event
 from core.paths import project_path
 
-from .scraper import RealTimeScraper
 from ..observability.debug_logger import MODULE_DATA_COLLECTOR, debug_logger
+from .scraper import RealTimeScraper
 
 
 class QuantEngine:
-    def analyze_asset(self, ticker: str) -> Dict[str, Any]:
+    def analyze_asset(self, ticker: str) -> dict[str, Any]:
         """Refuse to fabricate a forecast when no observed series was supplied.
 
         This compatibility entrypoint only receives a ticker. A probability cannot
@@ -51,14 +51,14 @@ class QuantEngine:
         }
 
 
-async def tool_get_market_price(ticker: str) -> Dict[str, Any]:
+async def tool_get_market_price(ticker: str) -> dict[str, Any]:
     return {
         "error": "market_runtime_removed",
         "symbol": ticker,
     }
 
 
-async def tool_calculate_risk_metrics(ticker: str, days: int = 90) -> Dict[str, Any]:
+async def tool_calculate_risk_metrics(ticker: str, days: int = 90) -> dict[str, Any]:
     return {
         "error": "risk_runtime_removed",
         "ticker": ticker,
@@ -77,7 +77,7 @@ def detect_market(ticker: str) -> str:
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _trace_safe_filename(ticker: str) -> str:
@@ -121,15 +121,15 @@ class DataCollector:
 
         return self._quant
 
-    async def _get_crisis_analysis(self, ticker: str) -> Dict[str, Any]:
+    async def _get_crisis_analysis(self, ticker: str) -> dict[str, Any]:
         """Calcula risco sistêmico usando o MacroDataset (Canadá)."""
         try:
-            from experts.crisis.expert.crisis_expert import CrisisMathExpert
+            from core.rag.macro_dataset import macro_engine
             from experts.crisis.contracts.schemas import (
                 CrisisInput,
                 MacroObservation,
             )
-            from core.rag.macro_dataset import macro_engine
+            from experts.crisis.expert.crisis_expert import CrisisMathExpert
 
             market = detect_market(ticker)
             country = {"CA": "Canada", "US": "United States", "BR": "Brazil"}.get(
@@ -152,7 +152,7 @@ class DataCollector:
         except Exception as e:
             return {"error": str(e)}
 
-    async def _get_quantum_analysis(self) -> Dict[str, Any]:
+    async def _get_quantum_analysis(self) -> dict[str, Any]:
         """Compatibility tombstone for the removed no-input random walk."""
         return {
             "status": "removed",
@@ -160,7 +160,7 @@ class DataCollector:
             "replacement": "MathHub.return_bootstrap_requires_observed_returns",
         }
 
-    async def collect_all(self, ticker: str, timeout: float = 60.0) -> Dict[str, Any]:
+    async def collect_all(self, ticker: str, timeout: float = 60.0) -> dict[str, Any]:
         """
         Coleta TODOS os dados disponíveis para um ticker.
         Executa fontes em paralelo. Cada fonte que falhar retorna erro isolado.
@@ -191,7 +191,7 @@ class DataCollector:
                 ),
                 timeout=timeout,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             log_event("DATA_COLLECTOR", "TIMEOUT", {"ticker": ticker, "timeout": timeout})
             debug_logger.warn(
                 MODULE_DATA_COLLECTOR,
@@ -226,7 +226,7 @@ class DataCollector:
 
         market_data = self._safe_result(results[0], "technicals")
 
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             "analysis_id": analysis_id,
             "ticker": ticker,
             "market": detect_market(ticker),
@@ -261,7 +261,7 @@ class DataCollector:
 
         return data
 
-    async def collect_quick(self, ticker: str) -> Dict[str, Any]:
+    async def collect_quick(self, ticker: str) -> dict[str, Any]:
         """Coleta rápida: só preço + quant + macro (sem news, sem risk full)."""
         results = await asyncio.gather(
             self._get_market_data(ticker),
@@ -289,18 +289,18 @@ class DataCollector:
 
     async def _get_market_data(
         self, ticker: str, per_source_timeout: float = 15.0
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """DataHub -> TwelveData -> AlphaVantage com timeout por fonte."""
 
         async def _safe_fetch(
             source_name: str, fetch_func, timeout: float = per_source_timeout
-        ) -> Dict[str, Any]:
+        ) -> dict[str, Any]:
             try:
                 return await asyncio.wait_for(
                     asyncio.to_thread(fetch_func),
                     timeout=timeout,
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 log_event(
                     "DATA_COLLECTOR",
                     f"TIMEOUT_{source_name}",
@@ -337,26 +337,26 @@ class DataCollector:
 
         return data
 
-    async def _get_company_profile(self, ticker: str) -> Dict[str, Any]:
+    async def _get_company_profile(self, ticker: str) -> dict[str, Any]:
         return await asyncio.to_thread(self.engine.get_company_profile, ticker)
 
-    async def _get_quant_analysis(self, ticker: str) -> Dict[str, Any]:
+    async def _get_quant_analysis(self, ticker: str) -> dict[str, Any]:
         return await asyncio.to_thread(self.quant.analyze_asset, ticker)
 
-    async def _get_risk_metrics(self, ticker: str) -> Dict[str, Any]:
+    async def _get_risk_metrics(self, ticker: str) -> dict[str, Any]:
         return await tool_calculate_risk_metrics(ticker, days=90)
 
-    async def _get_sentiment(self, ticker: str) -> Dict[str, Any]:
+    async def _get_sentiment(self, ticker: str) -> dict[str, Any]:
         clean = ticker.replace(".TO", "").replace(".to", "").replace(".V", "").replace(".v", "")
         return await asyncio.to_thread(self._data_hub.get_sentiment_summary, clean)
 
-    async def _get_reddit_signal(self, ticker: str) -> Dict[str, Any]:
+    async def _get_reddit_signal(self, ticker: str) -> dict[str, Any]:
         return await asyncio.to_thread(self._data_hub.get_reddit_signal, ticker)
 
-    async def _get_macro(self, ticker: str, market: str = "US") -> Dict[str, Any]:
+    async def _get_macro(self, ticker: str, market: str = "US") -> dict[str, Any]:
         return await asyncio.to_thread(self._data_hub.get_macro, market)
 
-    async def _get_realtime_price(self, ticker: str) -> Dict[str, Any]:
+    async def _get_realtime_price(self, ticker: str) -> dict[str, Any]:
         return await tool_get_market_price(ticker)
 
     @staticmethod
@@ -366,7 +366,7 @@ class DataCollector:
         return result
 
     @staticmethod
-    def _attach_evidence(data: Dict[str, Any]) -> None:
+    def _attach_evidence(data: dict[str, Any]) -> None:
         ticker = data.get("ticker", "UNKNOWN")
         collected_at = data.get("collected_at") or _now_iso()
         date_part = collected_at[:10]
@@ -416,7 +416,7 @@ class DataCollector:
         data["source_unavailable"] = unavailable
 
     @staticmethod
-    def _persist_trace(data: Dict[str, Any]) -> None:
+    def _persist_trace(data: dict[str, Any]) -> None:
         try:
             trace_dir = project_path("data", "traces")
             trace_dir.mkdir(parents=True, exist_ok=True)
@@ -436,7 +436,7 @@ class DataCollector:
         return str(val) if val is not None else "?"
 
     @staticmethod
-    def format_context(data: Dict[str, Any]) -> str:
+    def format_context(data: dict[str, Any]) -> str:
         """Formata os dados coletados num texto legível para os agentes LLM."""
         fmt = DataCollector._fmt
         ticker = data.get("ticker", "?")

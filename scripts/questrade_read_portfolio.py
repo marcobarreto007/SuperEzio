@@ -8,11 +8,10 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -32,7 +31,7 @@ def read_portfolio(page) -> dict:
         "mode": "read_only_playwright",
         "connected": False,
         "can_submit_orders": False,
-        "scraped_at": datetime.now(timezone.utc).isoformat(),
+        "scraped_at": datetime.now(UTC).isoformat(),
         "equity": None,
         "cash": None,
         "positions": [],
@@ -42,7 +41,7 @@ def read_portfolio(page) -> dict:
     }
 
     # Find dollar amounts
-    amounts = re.findall(r'\$[\d,]+\.?\d*', text)
+    amounts = re.findall(r"\$[\d,]+\.?\d*", text)
     if amounts:
         portfolio["connected"] = True
         nums = []
@@ -58,16 +57,20 @@ def read_portfolio(page) -> dict:
 
     # Find ticker-like patterns near dollar amounts
     for line in text.split("\n"):
-        tickers = re.findall(r'\b[A-Z]{1,5}\b', line)
-        dollars = re.findall(r'\$[\d,]+\.?\d*', line)
+        tickers = re.findall(r"\b[A-Z]{1,5}\b", line)
+        dollars = re.findall(r"\$[\d,]+\.?\d*", line)
         if tickers and dollars:
-            portfolio["positions"].append({
-                "ticker": tickers[0],
-                "value": dollars[0],
-                "raw": line.strip()[:200],
-            })
+            portfolio["positions"].append(
+                {
+                    "ticker": tickers[0],
+                    "value": dollars[0],
+                    "raw": line.strip()[:200],
+                }
+            )
 
-    print(f"Equity: ${portfolio['equity']} | Cash: ${portfolio['cash']} | Posições: {len(portfolio['positions'])}")
+    print(
+        f"Equity: ${portfolio['equity']} | Cash: ${portfolio['cash']} | Posições: {len(portfolio['positions'])}"
+    )
 
     # Screenshot
     screenshot_dir = Path(__file__).resolve().parent.parent / "output" / "playwright"
@@ -79,7 +82,9 @@ def read_portfolio(page) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(description="Questrade portfolio reader (persistent session)")
-    parser.add_argument("--login", action="store_true", help="Abre browser para fazer login (primeiro uso)")
+    parser.add_argument(
+        "--login", action="store_true", help="Abre browser para fazer login (primeiro uso)"
+    )
     parser.add_argument("--headed", action="store_true", help="Mostra browser")
     parser.add_argument("--output", type=str, default=str(OUTPUT_FILE))
     args = parser.parse_args()
@@ -139,7 +144,9 @@ def main():
                 json.dump(portfolio, f, indent=2, ensure_ascii=False, default=str)
 
             print(f"\nSalvo em: {output_path}")
-            print(f"Conectado: {portfolio['connected']} | Equity: ${portfolio['equity']} | Cash: ${portfolio['cash']}")
+            print(
+                f"Conectado: {portfolio['connected']} | Equity: ${portfolio['equity']} | Cash: ${portfolio['cash']}"
+            )
 
         finally:
             context.close()

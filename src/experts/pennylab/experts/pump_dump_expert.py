@@ -11,17 +11,16 @@ Analisa padrão clássico de P&D:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List
 
-from ..schemas import SignalInput
 from ..mathcore_adapter import _clamp, _simple_return
+from ..schemas import SignalInput
 
 
 @dataclass
 class PumpDumpResult:
     score: float  # 0-1
     phase: str
-    evidence: List[str] = field(default_factory=list)
+    evidence: list[str] = field(default_factory=list)
     confidence: float = 0.0
 
 
@@ -32,7 +31,7 @@ class PumpDumpExpert:
     """
 
     def evaluate(self, signal: SignalInput) -> PumpDumpResult:
-        evidence: List[str] = []
+        evidence: list[str] = []
         score = 0.0
         available = 0
 

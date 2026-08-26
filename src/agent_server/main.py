@@ -6,8 +6,8 @@ import subprocess
 import sys
 import time
 import uuid
-from copy import deepcopy
 from contextlib import asynccontextmanager
+from copy import deepcopy
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -23,22 +23,21 @@ _SRC = Path(__file__).resolve().parent.parent
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
-from core.config import get_config  # noqa: E402
-from core.config.secrets import load_local_env  # noqa: E402
-from core.investor.storage import get_investor_storage  # noqa: E402
-from core.mission_context import mission_health_summary  # noqa: E402
-from core.config.logging_config import get_logger, bind_trace, unbind_trace  # noqa: E402
+from core.config import get_config
+from core.config.logging_config import bind_trace, get_logger, unbind_trace
+from core.config.secrets import load_local_env
+from core.investor.storage import get_investor_storage
+from core.mission_context import mission_health_summary
+from core.observability import log_queue, metrics
+from core.paths import PROJECT_ROOT
+from core.sentiment import LiveMonitor, SentimentCurator, WatchlistPulse
 
-from core.observability import log_queue, metrics  # noqa: E402
-from core.paths import PROJECT_ROOT  # noqa: E402
-from core.sentiment import LiveMonitor, SentimentCurator, WatchlistPulse  # noqa: E402
-
-from .auth import (  # noqa: E402
+from .auth import (
     auth_required_for_clients,
     jwt_auth_middleware,
     register_auth_routes,
 )
-from .endpoints import router as a2a_router  # noqa: E402
+from .endpoints import router as a2a_router
 
 # Load local environment before reading runtime configuration.
 # Priority: OS env > .env.local > .env
@@ -313,8 +312,8 @@ async def lifespan(app: FastAPI):
         raise
 
     # === BRAIN INITIALIZATION ===
-    from core.pipeline import build_graph
     from core.model_serving.gateway import create_gateway
+    from core.pipeline import build_graph
 
     logger.info("[%s] Compiling pipeline graph v4...", AGENT_NAME)
     sys.stdout.flush()
@@ -600,11 +599,11 @@ async def bob_ibkr_recover():
 _PROMETHEUS_AVAILABLE = False
 try:
     from prometheus_client import (
+        REGISTRY,
         Counter,
         Gauge,
         Histogram,
         generate_latest,
-        REGISTRY,
     )
 
     _PROMETHEUS_AVAILABLE = True
@@ -943,6 +942,7 @@ def _probe_gpu() -> dict:
 def health_check():
     """Deep health check â€” verifica GPU, modelos, Redis, providers, cache."""
     import socket as _socket
+
     from core.investor.cost_guard import get_cost_guard
     from core.model_serving.gateway import PRIMARY_PROVIDER_NAME
 
@@ -1315,7 +1315,7 @@ def _get_memory_usage_mb() -> float:
                     parts = line.strip().split()
                     if len(parts) >= 2:
                         return round(float(parts[1]) / 1024, 1)
-    except (FileNotFoundError, IOError, IndexError):
+    except (OSError, FileNotFoundError, IndexError):
         pass
     return 0.0
 

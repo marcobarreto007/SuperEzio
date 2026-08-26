@@ -17,8 +17,8 @@ import logging
 import math
 import os
 import re
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone, timedelta
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime, timedelta
 from hashlib import blake2b
 from pathlib import Path
 from typing import Any
@@ -190,7 +190,7 @@ class ConversationMemory:
 
         turn = ConversationTurn(
             session_id=session_id,
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             user_message=user_message,
             bob_response=bob_response,
             context_summary=context_summary,
@@ -239,7 +239,7 @@ class ConversationMemory:
         """Recupera contexto recente da sessão (últimas N horas)."""
         self._ensure_loaded()
 
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+        cutoff = datetime.now(UTC) - timedelta(hours=hours)
         recent = []
 
         for turn in self._cache.get(session_id, []):
@@ -294,7 +294,7 @@ class ConversationMemory:
         """Recupera teses formuladas recentemente."""
         self._ensure_loaded()
 
-        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        cutoff = datetime.now(UTC) - timedelta(days=days)
         candidates = self._cache.get(session_id, []) if session_id else self._all_turns
 
         theses = []

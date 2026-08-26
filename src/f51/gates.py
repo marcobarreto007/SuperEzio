@@ -4,10 +4,13 @@ VeracityGate (checagem de claims) + AdversarialCritic + ProxyReward.
 """
 
 from __future__ import annotations
+
 import math
 import re
 from dataclasses import dataclass, field
-from .formulas import proxy_reward as proxy_formula, clamp
+
+from .formulas import clamp
+from .formulas import proxy_reward as proxy_formula
 
 # =============================================================================
 # VERACITY GATE

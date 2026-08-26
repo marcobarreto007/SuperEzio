@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -16,8 +16,7 @@ from core.trading.td_direct_ticket import (
     td_commission_eligibility,
 )
 
-
-NOW = datetime(2026, 8, 19, 2, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 8, 19, 2, 0, tzinfo=UTC)
 
 
 def _buy_payload(**overrides):

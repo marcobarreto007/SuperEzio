@@ -646,10 +646,10 @@ DIRECT_STOCK_PROMPT = (
 def test_cad_1000_capital_allocation_no_scan():
     """CAD 1,000 allocation prompt must route to capital_allocation, not market_scan."""
     from src.core.pipeline.intents import (
-        parse_user_intent,
-        detect_capital_allocation_intent,
         _is_market_scan_request,
+        detect_capital_allocation_intent,
         detect_complex_finance_intent,
+        parse_user_intent,
     )
 
     # Capital allocation detection must fire
@@ -678,9 +678,9 @@ def test_cad_1000_capital_allocation_no_scan():
 def test_stock_trade_as_one_option_no_scan():
     """Mentioning stock trade as one option among cash/ETF/debt must not trigger scan."""
     from src.core.pipeline.intents import (
-        parse_user_intent,
-        detect_capital_allocation_intent,
         _is_market_scan_request,
+        detect_capital_allocation_intent,
+        parse_user_intent,
     )
 
     assert detect_capital_allocation_intent(STOCK_AS_OPTION_PROMPT), (
@@ -697,7 +697,7 @@ def test_stock_trade_as_one_option_no_scan():
 
 def test_usd_25k_allocation_with_tickers_routes_to_capital_allocation():
     """Allocation with amount/risk/percentages is advisory, not a generic chat answer."""
-    from src.core.pipeline.intents import parse_user_intent, detect_capital_allocation_intent
+    from src.core.pipeline.intents import detect_capital_allocation_intent, parse_user_intent
 
     assert detect_capital_allocation_intent(USD_25K_ALLOCATION_PROMPT)
 
@@ -709,9 +709,9 @@ def test_usd_25k_allocation_with_tickers_routes_to_capital_allocation():
 def test_direct_stock_recommendation_delegates_scan_decision_to_bob():
     """Direct stock recommendation lets Bob decide whether a scan is needed."""
     from src.core.pipeline.intents import (
-        parse_user_intent,
         detect_capital_allocation_intent,
         detect_decisive_trade_intent,
+        parse_user_intent,
     )
 
     # Direct stock recommendation is NOT capital allocation
@@ -816,7 +816,7 @@ SCAN_WITH_CHART_TICKER_PROMPT = (
 
 def test_market_scan_not_hijacked_by_chart_ticker():
     """Explicit scan request must route to market_scan even when chart ticker is set."""
-    from src.core.pipeline.intents import parse_user_intent, _is_market_scan_request
+    from src.core.pipeline.intents import _is_market_scan_request, parse_user_intent
 
     # The message itself IS a market scan request
     assert _is_market_scan_request(SCAN_WITH_CHART_TICKER_PROMPT), (
@@ -1187,7 +1187,7 @@ def test_generic_us_market_without_exchange_rejected():
 
 def test_country_label_item_vouched_by_fresh_manifest(monkeypatch):
     """A venue-less item passes ONLY when the fresh full manifest vouches it."""
-    import core.trading.td_universe as td_universe
+    from core.trading import td_universe
     from src.core.pipeline.nodes.collector import _apply_candidate_gate
 
     monkeypatch.setattr(td_universe, "_tradable_symbols_cached", lambda: frozenset({"NVDA"}))
@@ -1205,7 +1205,7 @@ def test_country_label_item_vouched_by_fresh_manifest(monkeypatch):
 
 def test_country_label_item_rejected_without_manifest(monkeypatch):
     """No venue + no fresh manifest + no vouching symbol -> fail closed."""
-    import core.trading.td_universe as td_universe
+    from core.trading import td_universe
     from src.core.pipeline.nodes.collector import _apply_candidate_gate
 
     monkeypatch.setattr(td_universe, "_tradable_symbols_cached", lambda: None)

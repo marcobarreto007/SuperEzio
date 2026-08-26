@@ -13,7 +13,6 @@ from typing import Any
 
 from .paths import project_path
 
-
 MISSION_CONTEXT_PATH = project_path("config", "mission_context.json")
 LEARNING_LOG_PATH = project_path("data", "learning_log.jsonl")
 

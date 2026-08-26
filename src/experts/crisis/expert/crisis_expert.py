@@ -3,7 +3,6 @@ Main CrisisMathExpert orchestrator.
 """
 
 import logging
-from typing import List
 
 from ..contracts.schemas import CrisisInput, CrisisReport, SensorResult
 from ..io.report import build_crisis_summary, get_default_limitations
@@ -80,7 +79,7 @@ class CrisisMathExpert:
         if input_data.asset_symbol and rag is not None:
             fraud_evidence = rag.search_patterns(input_data.asset_symbol)
         input_data.metadata["fraud_evidence"] = fraud_evidence
-        sensor_results: List[SensorResult] = []
+        sensor_results: list[SensorResult] = []
 
         # 1. Executa sensores
         for sensor in self.sensors:
@@ -94,7 +93,7 @@ class CrisisMathExpert:
                         score=0.0,
                         confidence=0.0,
                         status="error",
-                        explanation=f"Erro interno no sensor: {str(e)}",
+                        explanation=f"Erro interno no sensor: {e!s}",
                         method_kind="unavailable",
                         calibration_status="failed",
                     )

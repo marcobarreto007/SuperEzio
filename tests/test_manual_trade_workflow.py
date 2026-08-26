@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -8,8 +8,7 @@ import pytest
 from core.trading.manual_trade_workflow import ManualTradeWorkflow, ManualTradeWorkflowError
 from core.trading.workflow_store import TradeWorkflowStore
 
-
-NOW = datetime(2026, 8, 19, 4, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 8, 19, 4, 0, tzinfo=UTC)
 
 
 def _ticket(**overrides: object) -> dict[str, object]:

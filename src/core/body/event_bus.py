@@ -19,9 +19,10 @@ Wrapper sobre core.observability.event_hub com namespaces padronizados.
 """
 
 import uuid
-from datetime import datetime, timezone
+from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Awaitable, Callable, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -33,12 +34,11 @@ from core.observability.event_hub import (
     set_event_hub,
 )
 
-
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
-EVENT_NAMESPACES: List[str] = [
+EVENT_NAMESPACES: list[str] = [
     "event:pipeline.math.completed",
     "event:pipeline.f51.verdict",
     "event:pipeline.pennylab.whale",
@@ -77,14 +77,14 @@ class BodyEvent(BaseModel):
     event_type: str = Field(..., description="Namespace do evento (ex: event:body.pain.liver)")
     source: str = Field(default="f51-body", description="Componente de origem")
     timestamp: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat(),
+        default_factory=lambda: datetime.now(UTC).isoformat(),
         description="ISO 8601 timestamp",
     )
     correlation_id: str = Field(
         default_factory=lambda: str(uuid.uuid4()),
         description="ID de correlação para rastreamento",
     )
-    payload: Dict[str, Any] = Field(default_factory=dict, description="Dados do evento")
+    payload: dict[str, Any] = Field(default_factory=dict, description="Dados do evento")
     severity: EventSeverity = Field(default=EventSeverity.INFO, description="Severidade")
 
     def to_envelope(self) -> EventEnvelope:
@@ -133,9 +133,9 @@ class BodyEventBus:
     que adiciona tipagem, namespaces padronizados e método health_check.
     """
 
-    def __init__(self, hub_type: str = "memory", hub: Optional[EventHub] = None):
+    def __init__(self, hub_type: str = "memory", hub: EventHub | None = None):
         self._hub_type = hub_type
-        self._active_topics: Dict[str, List[BodyEventHandler]] = {}
+        self._active_topics: dict[str, list[BodyEventHandler]] = {}
 
         if hub is not None:
             self._hub = hub
@@ -157,9 +157,9 @@ class BodyEventBus:
     async def publish(
         self,
         event_type: str,
-        payload: Optional[Dict[str, Any]] = None,
+        payload: dict[str, Any] | None = None,
         source: str = "f51-body",
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         severity: EventSeverity = EventSeverity.INFO,
     ) -> None:
         """Publica um BodyEvent no barramento."""
@@ -196,7 +196,7 @@ class BodyEventBus:
     # Topic listing
     # ------------------------------------------------------------------
 
-    def list_topics(self) -> List[str]:
+    def list_topics(self) -> list[str]:
         """Retorna lista de tópicos (event_types) com subscrições ativas."""
         return list(self._active_topics.keys())
 
@@ -204,7 +204,7 @@ class BodyEventBus:
     # Health check
     # ------------------------------------------------------------------
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """
         Verifica conectividade do barramento.
 

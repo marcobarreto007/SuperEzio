@@ -1,13 +1,12 @@
 """Testes para PaperJournal (C6) e PerformanceEngine (C7)."""
 
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
 from core.trading.paper_journal import PaperJournal, PaperTrade
-
 
 # Fixtures
 
@@ -470,7 +469,7 @@ class TestPaperJournal:
 
         memory = FakeMemory()
         reviewed = journal.review_aged_closed_theses(
-            now=datetime(2026, 6, 15, tzinfo=timezone.utc),
+            now=datetime(2026, 6, 15, tzinfo=UTC),
             memory=memory,
         )
 
@@ -487,7 +486,7 @@ class TestPaperJournal:
         assert "thesis_closed" in memory.turns[0]["tags"]
 
         second_review = journal.review_aged_closed_theses(
-            now=datetime(2026, 6, 15, tzinfo=timezone.utc),
+            now=datetime(2026, 6, 15, tzinfo=UTC),
             memory=memory,
         )
         assert second_review == []

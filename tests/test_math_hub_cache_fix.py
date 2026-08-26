@@ -7,7 +7,7 @@ MathHub._extract_candles found zero candles and ALL 14 modules were skipped.
 Fix: _try_fast_cache now includes "ohlcv" in the returned data dict.
 """
 
-from datetime import date, timedelta
+from datetime import UTC, date, timedelta
 
 from core.math.math_hub import MathHub
 
@@ -135,10 +135,10 @@ def test_extract_candles_recognizes_datetime_key():
 
 def test_extract_candles_accepts_datetime_object():
     """The yfinance provider stores a datetime object in the 'datetime' key."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     hub = MathHub()
-    dt = datetime(2026, 7, 20, 10, 30, 0, tzinfo=timezone.utc)
+    dt = datetime(2026, 7, 20, 10, 30, 0, tzinfo=UTC)
     candles = hub._extract_candles(
         {
             "ohlcv": [

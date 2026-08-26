@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Mapping, Protocol
-
+from typing import Any, Protocol
 
 logger = logging.getLogger(__name__)
 
@@ -107,13 +107,14 @@ class AlpacaPaperAdapter:
         return self._client
 
     def submit_order(self, order: Order) -> Order:
+        from alpaca.trading.enums import OrderSide as AlpacaSide
+        from alpaca.trading.enums import TimeInForce
         from alpaca.trading.requests import (
-            MarketOrderRequest,
             LimitOrderRequest,
-            StopOrderRequest,
+            MarketOrderRequest,
             StopLimitOrderRequest,
+            StopOrderRequest,
         )
-        from alpaca.trading.enums import OrderSide as AlpacaSide, TimeInForce
 
         client = self._get_client()
         side = AlpacaSide.BUY if order.side == OrderSide.BUY else AlpacaSide.SELL

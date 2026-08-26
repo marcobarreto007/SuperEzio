@@ -20,8 +20,8 @@ Constantes exportadas:
 
 from __future__ import annotations
 
-import os
 import json
+import os
 import re
 import unicodedata
 from copy import deepcopy
@@ -30,7 +30,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from ..observability.debug_logger import debug_logger, MODULE_INTENTS as MODULE_INTENT
+from ..observability.debug_logger import MODULE_INTENTS as MODULE_INTENT
+from ..observability.debug_logger import debug_logger
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_GOLDEN_INTENT_PATH = PROJECT_ROOT / "data" / "intent_golden.jsonl"
@@ -840,7 +841,6 @@ COMMON_WORDS = {
     "IA",
     "HUB",
     "SENSEI",
-    "BOB",
     "DEEPSEEK",
     "TSX",
     "NYSE",
@@ -994,13 +994,10 @@ COMMON_WORDS = {
     "CARTEIRA",
     "COTACAO",
     "COTAÃ‡AO",
-    "COTACAO",
     "RISCO",
     "ALVO",
     "META",
     "TESE",
-    "GAIN",
-    "LOSS",
     "LUCRO",
     "PREJUIZO",
 }

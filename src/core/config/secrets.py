@@ -18,7 +18,6 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
-from typing import Optional
 
 
 def _find_project_root() -> Path:
@@ -39,7 +38,7 @@ def _find_project_root() -> Path:
     return Path.cwd()
 
 
-_PROJECT_ROOT: Optional[Path] = None
+_PROJECT_ROOT: Path | None = None
 _LOADED: bool = False
 
 

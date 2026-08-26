@@ -11,13 +11,13 @@ import hashlib
 import json
 import math
 import sqlite3
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from .reward import RewardFunction, TradeOutcome
-
 
 DEFAULT_OUTCOME_DB = Path(__file__).resolve().parents[3] / "data" / "adaptive_outcomes.sqlite3"
 OUTCOME_SCHEMA_VERSION = 2
@@ -54,8 +54,8 @@ class OutcomeLearningResult:
 def _parse_datetime(value: Any) -> datetime:
     parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
 def _unit_confidence(value: Any) -> float:
@@ -189,7 +189,7 @@ class OutcomeLearningEngine:
                     normalized_weights=self.get_normalized_weights(connection),
                 )
 
-            now = datetime.now(timezone.utc).isoformat()
+            now = datetime.now(UTC).isoformat()
             connection.execute(
                 """INSERT INTO processed_outcomes
                    (event_id, trade_id, schema_version, payload_hash, reward_json, processed_at)

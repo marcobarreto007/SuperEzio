@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from src.core.pipeline.nodes.agent import _forced_tool_call_before_final
 from src.core.pipeline.intents import looks_financially_substantive
+from src.core.pipeline.nodes.agent import _forced_tool_call_before_final
 
 
 def test_allocation_question_is_financially_substantive() -> None:

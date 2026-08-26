@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from collections import deque
 import math
+from collections import deque
 from typing import Any
 
-from langgraph.config import get_stream_writer
 import numpy as np
+from langgraph.config import get_stream_writer
 
 _NEURAL_SEEN: deque[str] = deque(maxlen=64)
 
@@ -277,9 +277,9 @@ def _build_context(data: dict[str, Any], pennylab: dict[str, Any]) -> dict[str, 
         sentiment = {}
 
     if isinstance(macro, dict) and macro:
-        if macro.get("data_quality") == "unavailable":
-            macro_risk = "unknown"
-        elif any(value.get("error") for value in macro.values() if isinstance(value, dict)):
+        if macro.get("data_quality") == "unavailable" or any(
+            value.get("error") for value in macro.values() if isinstance(value, dict)
+        ):
             macro_risk = "unknown"
         elif any(value not in (None, "", {}, []) for value in macro.values()):
             macro_risk = "neutral"

@@ -1,8 +1,9 @@
 """Smoke tests — core math functions (puras, deterministicas)."""
 
 import math
+
 import pytest
-from core.math.utils import sigmoid, clamp, t_norm, t_conorm, percentile_rank, zscore
+
 from core.math.indicators import (
     bollinger,
     calc_macd,
@@ -15,21 +16,22 @@ from core.math.indicators import (
     vwap_deviation,
 )
 from core.math.risk import (
-    log_return,
-    simple_return,
     annualized_return,
-    volatility,
-    sharpe_ratio,
-    sortino_ratio,
-    max_drawdown,
-    var_historic,
     cvar_historic,
+    expectancy,
     kelly_fraction,
     kelly_position_size,
+    log_return,
+    max_drawdown,
     profit_factor,
-    expectancy,
     risk_of_ruin,
+    sharpe_ratio,
+    simple_return,
+    sortino_ratio,
+    var_historic,
+    volatility,
 )
+from core.math.utils import clamp, percentile_rank, sigmoid, t_conorm, t_norm, zscore
 
 
 class TestUtils:

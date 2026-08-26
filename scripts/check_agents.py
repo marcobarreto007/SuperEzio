@@ -105,9 +105,7 @@ def check() -> list[str]:
             if not fm.get(field):
                 issues.append(f"agente {path.name}: frontmatter sem campo '{field}'")
         if fm.get("name") and fm["name"] != name:
-            issues.append(
-                f"agente {path.name}: name '{fm['name']}' difere do arquivo"
-            )
+            issues.append(f"agente {path.name}: name '{fm['name']}' difere do arquivo")
 
     # 2. Frontmatter das skills
     for name, path in skills.items():

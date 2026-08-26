@@ -16,17 +16,16 @@ Regras de veto:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List
 
-from ..schemas import SignalInput, DataQuality
+from ..schemas import DataQuality, SignalInput
 
 
 @dataclass
 class GateResult:
     passed: bool
     confidence: float  # 0-1 confiança no gate
-    violations: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    violations: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
 
 class PennylabVeracityGate:
@@ -36,8 +35,8 @@ class PennylabVeracityGate:
     """
 
     def check(self, signal: SignalInput) -> GateResult:
-        violations: List[str] = []
-        warnings: List[str] = []
+        violations: list[str] = []
+        warnings: list[str] = []
 
         # --- Violações (vetam o relatório) ---
         if signal.price is not None and signal.price <= 0:

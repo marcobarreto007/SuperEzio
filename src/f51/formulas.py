@@ -5,13 +5,14 @@ Funções base (sigmoid, clamp, t_norm, t_conorm) importadas de core.math.
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass
 
 from core.math.utils import (  # noqa: F401 — re-exported by __init__
-    sigmoid,
     clamp,
-    t_norm,
+    sigmoid,
     t_conorm,
+    t_norm,
 )
 
 # =============================================================================

@@ -17,9 +17,8 @@ import tempfile
 import tracemalloc
 from pathlib import Path
 
-from fastapi import Request
-
 import pytest
+from fastapi import Request
 
 pytestmark = [
     pytest.mark.stress,
@@ -101,6 +100,7 @@ async def _submit_task_handler(request: Request):
 
     from fastapi import HTTPException
     from fastapi.responses import StreamingResponse
+
     from core.ports.protocol import A2AMessage, MessageType
 
     try:
@@ -221,6 +221,7 @@ def _concurrent_requests(app, method: str, path: str, n: int, **kwargs):
     internamente), garantindo isolamento entre requisicoes.
     """
     import concurrent.futures
+
     from fastapi.testclient import TestClient
 
     errors: list[tuple[int, str]] = []
@@ -363,8 +364,9 @@ def test_task_submit_rate_limit_per_session(task_app):
     modificamos o handler para que o semaphore persista ate que
     o TestClient leia o stream por completo.
     """
-    from core.ports.protocol import MessageType
     from fastapi.testclient import TestClient
+
+    from core.ports.protocol import MessageType
 
     client = TestClient(task_app)
 

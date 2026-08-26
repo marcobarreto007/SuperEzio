@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta, timezone
-from typing import Any, Mapping
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from .curator import CuratedSentiment, SentimentCurator
 from .live_monitor import LiveMonitor
@@ -186,7 +187,7 @@ class WatchlistPulse:
         return f"{curated.label} {direction}"
 
     def _alerts_24h(self, symbol: str) -> list[dict[str, Any]]:
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+        cutoff = datetime.now(UTC) - timedelta(hours=24)
         alerts = []
         for alert in self.monitor.get_alerts(limit=100):
             if str(alert.get("ticker") or "").upper() != symbol:

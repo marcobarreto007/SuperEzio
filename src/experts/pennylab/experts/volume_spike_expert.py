@@ -10,7 +10,6 @@ Saída: enriquece evidências do SignalInput, não modifica dados brutos.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Tuple
 
 from ..schemas import SignalInput
 
@@ -20,7 +19,7 @@ class VolumeSpikeResult:
     score: float  # 0-1
     ratio: float
     label: str
-    evidence: List[str]
+    evidence: list[str]
     confidence: float
 
 
@@ -44,7 +43,7 @@ class VolumeSpikeExpert:
 
         return VolumeSpikeResult(score, ratio, label, evidence, 1.0)
 
-    def _classify(self, ratio: float) -> Tuple[str, float]:
+    def _classify(self, ratio: float) -> tuple[str, float]:
         if ratio >= 10.0:
             return "EXTREMO", 0.90
         if ratio >= 5.0:

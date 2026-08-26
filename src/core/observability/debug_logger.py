@@ -32,9 +32,9 @@ import logging
 import os
 import time
 import traceback
-from typing import Any, Dict, List, Optional, Set
 from collections import deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any
 
 # ── Module name constants ─────────────────────────────────────────────────
 MODULE_COMMITTEE = "committee"
@@ -71,7 +71,7 @@ DEFAULT_BUFFER_SIZE = 500
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _serialize(obj: Any) -> str:
@@ -103,9 +103,9 @@ class DebugLogger:
 
     def __init__(self, buffer_size: int = DEFAULT_BUFFER_SIZE):
         self.debug_enabled = self._detect_debug_mode()
-        self.module_filter: Set[str] = self._detect_module_filter()
-        self.buffer: deque[Dict[str, Any]] = deque(maxlen=buffer_size)
-        self._timers: Dict[str, float] = {}
+        self.module_filter: set[str] = self._detect_module_filter()
+        self.buffer: deque[dict[str, Any]] = deque(maxlen=buffer_size)
+        self._timers: dict[str, float] = {}
         self._event_count = 0
         self._error_count = 0
         self._neural_log_callback = None  # Será setado pelo pipeline
@@ -178,7 +178,7 @@ class DebugLogger:
         self.debug(MODULE_DEBUGGER, f"Timer ended: {label}", elapsed_ms=round(elapsed_ms, 2))
         return elapsed_ms
 
-    def elapsed_since(self, label: str) -> Optional[float]:
+    def elapsed_since(self, label: str) -> float | None:
         """Retorna ms desde o início do timer sem pará-lo."""
         started = self._timers.get(label)
         if started is None:
@@ -188,8 +188,8 @@ class DebugLogger:
     # ── Buffer operations ──────────────────────────────────────────────
 
     def get_recent_events(
-        self, n: int = 50, module: Optional[str] = None, level: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+        self, n: int = 50, module: str | None = None, level: int | None = None
+    ) -> list[dict[str, Any]]:
         """Retorna os últimos N eventos, opcionalmente filtrados."""
         events = list(self.buffer)
         if module:
@@ -198,13 +198,13 @@ class DebugLogger:
             events = [e for e in events if e.get("level") >= level]
         return events[-n:]
 
-    def get_errors(self, n: int = 20) -> List[Dict[str, Any]]:
+    def get_errors(self, n: int = 20) -> list[dict[str, Any]]:
         """Retorna os últimos N eventos de erro."""
         return self.get_recent_events(n=n, level=LEVEL_WARN)
 
-    def get_module_summary(self) -> Dict[str, Any]:
+    def get_module_summary(self) -> dict[str, Any]:
         """Gera resumo de logs por módulo."""
-        summary: Dict[str, Dict[str, int]] = {}
+        summary: dict[str, dict[str, int]] = {}
         for event in self.buffer:
             mod = event.get("module", "unknown")
             lvl = event.get("level", LEVEL_INFO)
@@ -222,7 +222,7 @@ class DebugLogger:
                 summary[mod][lvl_name] += 1
         return summary
 
-    def dump_all(self) -> Dict[str, Any]:
+    def dump_all(self) -> dict[str, Any]:
         """Dump completo do estado do DebugLogger."""
         return {
             "debug_enabled": self.debug_enabled,
@@ -253,7 +253,7 @@ class DebugLogger:
         self.debug_enabled = False
         self._log_internal(LEVEL_INFO, MODULE_DEBUGGER, "Debug mode DISABLED at runtime", {})
 
-    def set_module_filter(self, modules: List[str]) -> None:
+    def set_module_filter(self, modules: list[str]) -> None:
         """Define filtro de módulos para debug."""
         self.module_filter = set(modules)
         self.info(MODULE_DEBUGGER, "Module filter updated", modules=modules)
@@ -266,7 +266,7 @@ class DebugLogger:
     # ── Internal ───────────────────────────────────────────────────────
 
     def _log_internal(
-        self, level: int, module: str, message: str, data: Optional[Dict] = None
+        self, level: int, module: str, message: str, data: dict | None = None
     ) -> None:
         """Registra um evento no buffer."""
         event = {
@@ -311,7 +311,7 @@ class DebugLogger:
         return bool(env_val)
 
     @staticmethod
-    def _detect_module_filter() -> Set[str]:
+    def _detect_module_filter() -> set[str]:
         """Detecta filtro de módulos do env var SUPEREZIO_DEBUG."""
         env_val = os.environ.get("SUPEREZIO_DEBUG", "").strip()
         if not env_val or env_val == "1" or env_val.lower() == "true":

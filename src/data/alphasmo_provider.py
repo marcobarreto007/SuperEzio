@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 import logging
 import subprocess
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ _ALPHASMO_AVAILABLE: bool | None = None
 
 def _check_alphasmo() -> bool:
     """Return True if the ``alphasmo`` CLI is available via npx."""
-    global _ALPHASMO_AVAILABLE  # noqa: PLW0603
+    global _ALPHASMO_AVAILABLE
     if _ALPHASMO_AVAILABLE is not None:
         return _ALPHASMO_AVAILABLE
     try:
@@ -87,7 +87,7 @@ class AlphaSMOProvider:
     # Insider trades (recent Form 4 filings for a ticker)
     # ------------------------------------------------------------------
 
-    def get_insider_trades(self, ticker: str) -> Dict[str, Any]:
+    def get_insider_trades(self, ticker: str) -> dict[str, Any]:
         """Fetch recent insider (Form 4) trades for a ticker.
 
         Returns:
@@ -138,7 +138,7 @@ class AlphaSMOProvider:
     # Insider summary (confidence scores over 30/90 days)
     # ------------------------------------------------------------------
 
-    def get_insider_summary(self, ticker: str) -> Dict[str, Any]:
+    def get_insider_summary(self, ticker: str) -> dict[str, Any]:
         """Fetch insider confidence scores for a ticker.
 
         Returns:
@@ -184,7 +184,7 @@ class AlphaSMOProvider:
         limit: int = 20,
         min_confidence: int = 60,
         days: int = 90,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Fetch tickers where both institutions and insiders are buying.
 
         This is the flagship AlphaSMO signal.
@@ -241,7 +241,7 @@ class AlphaSMOProvider:
     # Convenience: combined insider data for one ticker
     # ------------------------------------------------------------------
 
-    def get_insider_data(self, ticker: str) -> Dict[str, Any]:
+    def get_insider_data(self, ticker: str) -> dict[str, Any]:
         """Combine insider trades + summary into a single result dict.
 
         Returns:

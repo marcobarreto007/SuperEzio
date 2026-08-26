@@ -75,10 +75,10 @@ def test_gateway_config_defaults():
 
 def test_provider_constants():
     from core.model_serving.providers import (
-        AGENT_PROVIDER_NAME,
         AGENT_MODEL_ID,
-        PRIMARY_PROVIDER_NAME,
+        AGENT_PROVIDER_NAME,
         DEEPSEEK_PROVIDER_NAME,
+        PRIMARY_PROVIDER_NAME,
     )
 
     assert AGENT_PROVIDER_NAME == "agent"

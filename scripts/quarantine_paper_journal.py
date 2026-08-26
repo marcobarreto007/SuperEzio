@@ -12,7 +12,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-
 TEST_FIXTURE_SIGNATURES = {
     ("AAPL", 100.0, 1.0),
     ("AAPL", 100.0, 10.0),

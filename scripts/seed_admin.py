@@ -39,9 +39,9 @@ _SRC = Path(__file__).resolve().parent.parent / "src"
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
-from fastapi import HTTPException  # noqa: E402
+from fastapi import HTTPException
 
-from agent_server.auth import AuthDB, UserCreate  # noqa: E402
+from agent_server.auth import AuthDB, UserCreate
 
 # ---------------------------------------------------------------------------
 # Arg parsing

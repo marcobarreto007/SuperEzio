@@ -1,9 +1,10 @@
 """Fixtures compartilhados para testes do SuperEzio."""
 
 import os
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 # Garante que src/ e tests/ estão no path para importar módulos e helpers
 _PROJECT_ROOT = str(Path(__file__).parent.parent)
@@ -23,10 +24,10 @@ os.environ["SUPEREZIO_DATA_DIR"] = str(_PYTEST_OUTPUT / "investor-data")
 os.environ["SUPEREZIO_PAPER_JOURNAL_PATH"] = str(_PYTEST_OUTPUT / "paper-journal.jsonl")
 os.environ["SUPEREZIO_BOB_PAIN_LOG"] = str(_PYTEST_OUTPUT / "bob-pain-log.jsonl")
 
-from helpers import (  # noqa: E402
-    CANNED_TECHNICALS,
+from helpers import (
     CANNED_DATA_COLLECTED,
     CANNED_EXPERT_RESPONSE,
+    CANNED_TECHNICALS,
     FakeGateway,
 )
 

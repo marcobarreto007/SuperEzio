@@ -1,6 +1,5 @@
 import os
-import sys
-import time
+
 import requests
 from playwright.sync_api import sync_playwright
 
@@ -38,9 +37,19 @@ with sync_playwright() as p:
     page = context.new_page()
 
     # Captura logs e erros do console
-    page.on("console", lambda msg: console_logs.append(f"[{msg.type}] {msg.text}") if msg.type != "error" else console_errors.append(msg.text))
+    page.on(
+        "console",
+        lambda msg: (
+            console_logs.append(f"[{msg.type}] {msg.text}")
+            if msg.type != "error"
+            else console_errors.append(msg.text)
+        ),
+    )
     page.on("pageerror", lambda err: console_errors.append(f"[PageError] {err}"))
-    page.on("requestfailed", lambda req: failed_requests.append(f"{req.method} {req.url} - {req.failure}"))
+    page.on(
+        "requestfailed",
+        lambda req: failed_requests.append(f"{req.method} {req.url} - {req.failure}"),
+    )
 
     # Navega para o domínio real
     page.goto("https://supereziorealtime.com", timeout=30000, wait_until="domcontentloaded")

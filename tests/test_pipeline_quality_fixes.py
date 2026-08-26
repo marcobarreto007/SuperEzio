@@ -33,7 +33,7 @@ def _expert_collect_harness(monkeypatch):
     """node_collect_experts writes SSE events and reads learned weights —
     both are silenced so the tests exercise only the parser."""
     monkeypatch.setattr(experts_node, "get_stream_writer", lambda: _noop_writer)
-    monkeypatch.setattr(experts_node, "get_effective_expert_weights", lambda: {})
+    monkeypatch.setattr(experts_node, "get_effective_expert_weights", dict)
 
 
 def _run_collect(state: dict) -> dict:

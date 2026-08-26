@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -192,7 +192,7 @@ def test_manifest_state_missing(isolated_manifest) -> None:
 
 
 def test_manifest_state_fresh(isolated_manifest) -> None:
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     _write_manifest(
         isolated_manifest,
         generated_at=now,
@@ -207,7 +207,7 @@ def test_manifest_state_fresh(isolated_manifest) -> None:
 
 
 def test_manifest_state_stale_degrades_to_allowlist(isolated_manifest) -> None:
-    old = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    old = (datetime.now(UTC) - timedelta(days=30)).isoformat()
     _write_manifest(
         isolated_manifest,
         generated_at=old,

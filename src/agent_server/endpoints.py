@@ -5,19 +5,15 @@ import os
 import re
 import secrets
 import time
-from core.config.logging_config import get_logger
 from collections.abc import AsyncGenerator
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from sse_starlette.sse import EventSourceResponse
 
-# ML guards: lazy CPU-only quality telemetry.
-from core.ml.reward_gate import reward_gate
-from core.ml.sanity import sanity_check
-
+from core.config.logging_config import get_logger
 from core.math.indicators import (
     calc_bollinger,
     calc_ema,
@@ -25,32 +21,37 @@ from core.math.indicators import (
     calc_rsi,
     calc_sma,
 )
+
+# ML guards: lazy CPU-only quality telemetry.
+from core.ml.reward_gate import reward_gate
+from core.ml.sanity import sanity_check
 from core.pipeline.intents import (
     _is_casual_message,
-    detect_ticker,
-    should_block_vague_financial_prompt,
-    has_hint,
-    detect_complex_finance_intent,
+    detect_broker_status_intent,
     detect_capital_allocation_intent,
+    detect_complex_finance_intent,
     detect_decisive_trade_intent,
     detect_market_scan_intent,
-    detect_broker_status_intent,
+    detect_ticker,
+    has_hint,
     parse_user_intent,
+    should_block_vague_financial_prompt,
 )
+from core.ports.protocol import A2AMessage, MessageType  # .protocol facade removido (49f6d01)
 from core.risk_firewall import DecisionCandidate, evaluate_decision_with_sdca
+from core.trading.approval_gate import approval_request_to_dict
+from core.trading.canada_money_gate import (
+    CanadaMoneyGate,
+    CanadaMoneyGateError,
+    resolve_usd_cad_evidence,
+)
+from core.trading.manual_trade_workflow import ManualTradeWorkflow, ManualTradeWorkflowError
+from core.trading.server_quote import ServerQuoteError, resolve_server_quote
 from core.trading.td_direct_ticket import (
     TDDirectTicketError,
     append_td_direct_ticket,
     build_td_direct_ticket,
     load_td_commission_free_manifest,
-)
-from core.trading.approval_gate import approval_request_to_dict
-from core.trading.manual_trade_workflow import ManualTradeWorkflow, ManualTradeWorkflowError
-from core.trading.server_quote import ServerQuoteError, resolve_server_quote
-from core.trading.canada_money_gate import (
-    CanadaMoneyGate,
-    CanadaMoneyGateError,
-    resolve_usd_cad_evidence,
 )
 from core.trading.workflow_store import (
     WorkflowConflictError,
@@ -59,8 +60,6 @@ from core.trading.workflow_store import (
     get_trade_workflow_store,
 )
 from data.data_hub import hub
-
-from core.ports.protocol import A2AMessage, MessageType  # .protocol facade removido (49f6d01)
 
 logger = get_logger(__name__)
 
@@ -120,7 +119,7 @@ def _parse_iso_datetime(value: Any) -> datetime | None:
             text = text[:-1] + "+00:00"
         parsed = datetime.fromisoformat(text)
         if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=timezone.utc)
+            parsed = parsed.replace(tzinfo=UTC)
         return parsed
     except (TypeError, ValueError):
         return None
@@ -359,8 +358,8 @@ def _first_position_ticker(positions: list[Any]) -> str:
 
 def _cockpit_portfolio_snapshot() -> dict[str, Any]:
     """Get portfolio snapshot from IBKRService (cached, no inline IB())."""
-    from core.mission_context import mission_health_summary
     from adapters.broker import get_ibkr_service
+    from core.mission_context import mission_health_summary
 
     mission = mission_health_summary()
     broker = ((mission.get("broker") or {}).get("ibkr") or {}) if isinstance(mission, dict) else {}
@@ -439,7 +438,7 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
         "journal_path": trade_history.get("path"),
         "selected_ticker": selected_ticker,
         "live_port_warning": bool(connected and not paper),
-        "verified_at": datetime.now(timezone.utc).isoformat(),
+        "verified_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -840,7 +839,7 @@ async def get_chart_data(
             asyncio.to_thread(hub.get_candles, clean_ticker, timeframe=timeframe),
             timeout=10.0,
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         raise HTTPException(
             status_code=504, detail=f"DataHub candles timeout (>10s) for {clean_ticker}"
         )
@@ -859,7 +858,7 @@ async def get_chart_data(
         profile_result = await asyncio.wait_for(
             asyncio.to_thread(hub.get_profile, clean_ticker), timeout=5.0
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning("Profile lookup timed out (>5s) for %s — using fallback", clean_ticker)
         profile_result = {"error": "profile_timeout"}
     if "error" in profile_result:
@@ -2333,7 +2332,7 @@ def get_cockpit_summary(request: Request) -> dict[str, Any]:
     }
 
     return {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "pipeline": pipeline_status,
         "sentiment": sentiment,
         "portfolio": portfolio,
@@ -2414,7 +2413,7 @@ async def get_sentiment_history(
     clean = _sanitize_ticker(ticker)
     monitor = _get_sentiment_monitor(request)
     snapshot = monitor.get_sentiment_snapshot(clean)
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    cutoff = datetime.now(UTC) - timedelta(hours=hours)
     history = []
     for item in snapshot.get("history_24h") or []:
         ts = _parse_iso_datetime(item.get("collected_at"))
@@ -2436,7 +2435,7 @@ async def get_sentiment_history_db(
     if not db_path.exists():
         return {"ticker": clean, "days": days, "history": [], "count": 0}
 
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
     try:
         conn = sqlite3.connect(str(db_path))
         conn.row_factory = sqlite3.Row

@@ -12,12 +12,11 @@ from __future__ import annotations
 
 import hashlib
 import json
-from core.config.logging_config import get_logger
 import os
 import secrets
 import sqlite3
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +24,8 @@ import jwt as _jwt
 from fastapi import FastAPI, HTTPException, Request, Response
 from passlib.context import CryptContext
 from pydantic import BaseModel, field_validator
+
+from core.config.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -242,7 +243,7 @@ class AuthDB:
             token = dict(row)
             if token["used"]:
                 return {"already_used": True, "user_id": token["user_id"]}
-            if datetime.fromisoformat(token["expires_at"]) < datetime.now(timezone.utc):
+            if datetime.fromisoformat(token["expires_at"]) < datetime.now(UTC):
                 return None
             conn.execute("UPDATE refresh_tokens SET used = 1 WHERE id = ?", (token["id"],))
             conn.commit()
@@ -348,7 +349,7 @@ def _create_refresh_token(user_id: int) -> tuple[str, str, str]:
     """
     token = secrets.token_urlsafe(48)
     token_hash = hashlib.sha256(token.encode()).hexdigest()
-    expires_at = (datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)).strftime(
+    expires_at = (datetime.now(UTC) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)).strftime(
         "%Y-%m-%dT%H:%M:%SZ"
     )
     return token, token_hash, expires_at

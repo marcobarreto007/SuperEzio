@@ -18,7 +18,6 @@ import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 
-
 # ===================================================================
 #  Fixtures — JWT secret for endpoint tests
 # ===================================================================
@@ -52,6 +51,8 @@ def api_app(tmp_path, jwt_secret):
     """FastAPI app with the auth router + a /protected endpoint + JWT middleware."""
     from agent_server.auth import (
         AuthDB as ServerAuthDB,
+    )
+    from agent_server.auth import (
         jwt_auth_middleware,
         register_auth_routes,
     )

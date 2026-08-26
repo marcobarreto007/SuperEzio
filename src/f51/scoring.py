@@ -4,11 +4,12 @@ PlatinumScorer (consenso) + PennyLab (determinístico) + RiskEngine (regras).
 """
 
 from __future__ import annotations
-from dataclasses import dataclass
+
 from collections import Counter
+from dataclasses import dataclass
 from typing import Any
 
-from .formulas import sigmoid, clamp, t_conorm
+from .formulas import clamp, sigmoid, t_conorm
 
 # =============================================================================
 # PLATINUM SCORER — consenso entre múltiplas fontes

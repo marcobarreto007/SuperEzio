@@ -4,8 +4,9 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from agent_server.main import app
+
 from agent_server.endpoints import _session_history
+from agent_server.main import app
 from core.bob_consciousness.body import BobsBody
 
 

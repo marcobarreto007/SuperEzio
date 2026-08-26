@@ -22,10 +22,11 @@ import logging
 import os
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ logger = logging.getLogger(__name__)
 # TD-supported exchanges only (TD specialization 2026-08-23). Derived from the
 # single td_universe contract — the previous literal included "OTC", which
 # contradicted the specialization.
-from core.trading.td_universe import td_canonical_exchanges  # noqa: E402
+from core.trading.td_universe import td_canonical_exchanges
 
 _SUPPORTED_EXCHANGES = td_canonical_exchanges()
 
@@ -82,7 +83,7 @@ _EXPECTED_FIELDS: dict[str, frozenset] = {
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _safe_filename(ticker: str) -> str:
@@ -164,7 +165,7 @@ class _CollectorCircuitBreakerAdapter:
 
     @property
     def failures(self) -> int:
-        return self._cb._consecutive_failures  # noqa: SLF001 — adapter boundary
+        return self._cb._consecutive_failures
 
     def record_success(self) -> None:
         self._cb.success()
@@ -252,7 +253,7 @@ class DataQualityFilter:
             return 0.3  # Unknown freshness = mediocre
         try:
             dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-            age_sec = (datetime.now(timezone.utc) - dt).total_seconds()
+            age_sec = (datetime.now(UTC) - dt).total_seconds()
         except (ValueError, TypeError):
             return 0.3
         if age_sec < 60:
@@ -439,7 +440,7 @@ class ProviderMesh:
             else:
                 self.record_failure(name)
             return result if isinstance(result, dict) else {"error": "invalid_result_type"}
-        except asyncio.TimeoutError:
+        except TimeoutError:
             self.record_failure(name)
             return {"error": f"{name}_timeout_{timeout}s"}
         except Exception as exc:
@@ -824,7 +825,7 @@ class ProfessionalCollector:
                 asyncio.gather(*tasks.values(), return_exceptions=True),
                 timeout=overall_timeout,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             gathered = [{"error": f"collect_timeout_{overall_timeout}s"} for _ in tasks]
 
         results: dict[str, Any] = {}
@@ -1043,10 +1044,16 @@ class ProfessionalCollector:
 # Thin wrappers preserve the None-on-insufficient-data contract that the
 # collector callers expect (financial_engine returns safe defaults instead).
 
-from core.math.financial_engine import (  # noqa: E402
+from core.math.financial_engine import (
     _compute_bollinger as _math_bollinger,
+)
+from core.math.financial_engine import (
     _compute_ema as _math_ema,
+)
+from core.math.financial_engine import (
     _compute_macd as _math_macd,
+)
+from core.math.financial_engine import (
     _compute_rsi as _math_rsi,
 )
 

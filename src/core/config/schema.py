@@ -134,7 +134,7 @@ class UniversalConfig:
     triade: TriadeConfig = field(default_factory=TriadeConfig)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "UniversalConfig":
+    def from_dict(cls, data: dict[str, Any]) -> UniversalConfig:
         config = cls()
         config.project_name = data.get("project_name", config.project_name)
         config.version = data.get("version", config.version)
@@ -240,7 +240,7 @@ class UniversalConfig:
             self.server.cors_origins = [item.strip() for item in cors.split(",") if item.strip()]
 
     @classmethod
-    def load(cls, config_path: str = "config/runtime.yml") -> "UniversalConfig":
+    def load(cls, config_path: str = "config/runtime.yml") -> UniversalConfig:
         from .secrets import load_local_env
 
         load_local_env()

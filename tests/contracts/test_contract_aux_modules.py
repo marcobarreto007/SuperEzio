@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 # ============================================================================
 # Observability
 # ============================================================================
@@ -36,7 +35,7 @@ def test_span_context_callable():
 
 
 def test_observability_module_exports():
-    from core.observability.neural_log import log_event, trace_span, metrics
+    from core.observability.neural_log import log_event, metrics, trace_span
 
     # All must be callable or usable
     assert callable(log_event)
@@ -140,7 +139,7 @@ def test_math_utils_t_conorm():
 
 
 def test_math_indicators_import():
-    from core.math.indicators import sma, ema, rsi, macd
+    from core.math.indicators import ema, macd, rsi, sma
 
     assert callable(sma)
     assert callable(ema)
@@ -169,10 +168,10 @@ def test_math_rsi():
 
 def test_math_risk_metrics_import():
     from core.math.risk import (
-        var_historic,
         cvar_historic,
-        sharpe_ratio,
         max_drawdown,
+        sharpe_ratio,
+        var_historic,
     )
 
     assert callable(var_historic)

@@ -206,8 +206,9 @@ class InteractiveBrokersAdapter:
         The isolated worker owns its IB connection, while this adapter remains
         the sole validation boundary for prepared submissions.
         """
-        from core.trading.broker import Order, OrderType, OrderStatus
         import json
+
+        from core.trading.broker import Order, OrderStatus, OrderType
 
         # ═══════════════════════════════════════════════════════
         # F51 LOW-LEVEL GATE — Last line of defense
@@ -316,7 +317,7 @@ class InteractiveBrokersAdapter:
         if service is None:
             return None
 
-        from core.trading.broker import Order, OrderSide, OrderType, OrderStatus
+        from core.trading.broker import Order, OrderSide, OrderStatus, OrderType
 
         try:
             for order_dict in service.get_open_orders():

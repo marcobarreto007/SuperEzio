@@ -11,7 +11,7 @@ import inspect
 import json
 import time
 import unittest.mock
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import httpx
@@ -19,8 +19,8 @@ import pytest
 from fastapi import Request
 from fastapi.testclient import TestClient
 
-from agent_server.main import app
 from agent_server.endpoints import _session_history
+from agent_server.main import app
 from core.observability import log_queue
 from core.pipeline.task_queue import get_task_queue
 
@@ -28,7 +28,7 @@ from core.pipeline.task_queue import get_task_queue
 def _trusted_td_quote(
     *, symbol: str = "TD", exchange: str = "TSX", currency: str = "CAD", price: float = 109.9
 ) -> dict[str, object]:
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     return {
         "symbol": symbol,
         "exchange": exchange,
@@ -73,7 +73,7 @@ def client_with_mock_pipeline(monkeypatch, tmp_path):
     mock_p = MockPipeline()
     original_pipeline = getattr(app.state, "pipeline", None)
     app.state.pipeline = mock_p
-    import agent_server.endpoints as endpoints
+    from agent_server import endpoints
 
     monkeypatch.setenv("SUPEREZIO_COCKPIT_READ_IBKR_ORDERS", "0")
     monkeypatch.setenv("SUPEREZIO_JWT_SECRET", "")  # Dev mode: no JWT required
@@ -212,7 +212,7 @@ def test_health_details_gpu_block_comes_from_probe(client_with_mock_pipeline, mo
 @pytest.mark.asyncio
 async def test_slow_cockpit_probe_does_not_block_liveness(client_with_mock_pipeline, monkeypatch):
     """Slow synchronous probes must run outside the API event loop."""
-    import agent_server.endpoints as endpoints
+    from agent_server import endpoints
 
     slow_snapshot = {
         "provider": "IBKR",
@@ -279,7 +279,7 @@ def test_health_details_probes_port_from_url(client_with_mock_pipeline, monkeypa
 
 def test_health_details_uses_live_cockpit_broker_snapshot(client_with_mock_pipeline, monkeypatch):
     """health/details must not expose stale mission broker account numbers."""
-    import agent_server.endpoints as endpoints
+    from agent_server import endpoints
 
     monkeypatch.setattr(
         endpoints,
@@ -415,7 +415,7 @@ def test_cockpit_portfolio_separates_broker_local_and_history(
     client_with_mock_pipeline, monkeypatch
 ):
     """GET /cockpit/portfolio separates real broker orders from local audit rows."""
-    import agent_server.endpoints as endpoints
+    from agent_server import endpoints
 
     monkeypatch.setattr(
         endpoints,
@@ -488,7 +488,7 @@ def test_cockpit_portfolio_separates_broker_local_and_history(
 
 def test_trade_history_endpoint(client_with_mock_pipeline, monkeypatch):
     """GET /trades/history exposes PaperJournal history to the cockpit."""
-    import agent_server.endpoints as endpoints
+    from agent_server import endpoints
 
     monkeypatch.setattr(
         endpoints,
@@ -512,7 +512,7 @@ def test_trade_history_endpoint(client_with_mock_pipeline, monkeypatch):
 
 def test_cockpit_summary(client_with_mock_pipeline, monkeypatch):
     """GET /cockpit/summary - aggregate frontpage contract."""
-    import agent_server.endpoints as endpoints
+    from agent_server import endpoints
 
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_API_KEY", raising=False)
     monkeypatch.setenv("SUPEREZIO_DEEPSEEK_MODEL", "deepseek-v4-pro")
@@ -580,7 +580,7 @@ def test_trade_execute_creates_pending_ticket_without_broker_submit(
     client_with_mock_pipeline, monkeypatch
 ):
     """POST /trade/execute must not bypass Bob/committee validation."""
-    import core.pipeline.nodes.tool_executor as tool_executor
+    from core.pipeline.nodes import tool_executor
 
     async def fail_if_called(*_args, **_kwargs):
         raise AssertionError("_submit_paper_order must not run from /trade/execute")
@@ -629,7 +629,7 @@ def test_td_ticket_route_creates_live_manual_ticket_without_submit(
     client_with_mock_pipeline, monkeypatch, tmp_path
 ):
     """POST /trade/td-draft creates an audited draft, never a broker order."""
-    import agent_server.endpoints as endpoints
+    from agent_server import endpoints
 
     audit_path = tmp_path / "td-tickets.jsonl"
     from core.trading.td_direct_ticket import append_td_direct_ticket
@@ -804,7 +804,7 @@ def test_frontend_never_logs_or_sends_secret_auth_material() -> None:
 
 
 def test_td_ticket_route_rejects_client_quote_assertions(client_with_mock_pipeline, monkeypatch):
-    import agent_server.endpoints as endpoints
+    from agent_server import endpoints
 
     monkeypatch.setenv("SUPEREZIO_API_KEY", "configured-for-test")
     token = "td-forged-quote-token"
@@ -840,7 +840,7 @@ def test_td_ticket_route_fails_closed_without_api_key(client_with_mock_pipeline,
 def test_td_ticket_audit_failure_writes_dead_letter(
     client_with_mock_pipeline, monkeypatch, tmp_path
 ):
-    import agent_server.endpoints as endpoints
+    from agent_server import endpoints
 
     monkeypatch.setenv("SUPEREZIO_API_KEY", "configured-for-test")
     token = "td-dead-letter-token"
@@ -881,7 +881,7 @@ def test_td_manual_workflow_requires_gates_and_records_only_human_confirmation(
     client_with_mock_pipeline, monkeypatch, tmp_path
 ):
     import adapters.broker as broker_adapters
-    import agent_server.endpoints as endpoints
+    from agent_server import endpoints
     from core.trading.td_direct_ticket import append_td_direct_ticket
 
     monkeypatch.setattr(
@@ -966,7 +966,7 @@ def test_td_manual_workflow_requires_gates_and_records_only_human_confirmation(
                 "buying_power_cad": 50000,
                 "cash_cad": 100000,
                 "margin_enabled": False,
-                "captured_at": datetime.now(timezone.utc).isoformat(),
+                "captured_at": datetime.now(UTC).isoformat(),
                 "operator": "marco",
                 "source_platform": "WEBBROKER",
                 "attested_from_td": True,
@@ -977,7 +977,7 @@ def test_td_manual_workflow_requires_gates_and_records_only_human_confirmation(
     assert gated.status_code == 200
     assert gated.json()["ticket"]["status"] == "GATED"
     assert gated.json()["money_gate"]["passed"] is True
-    preview_time = datetime.now(timezone.utc)
+    preview_time = datetime.now(UTC)
     preview_payload = {
         "operator": "marco",
         "commission_confirmed": True,
@@ -1038,7 +1038,7 @@ def test_td_manual_workflow_requires_gates_and_records_only_human_confirmation(
         json={
             "operator": "marco",
             "confirmation_ref": "TD-ORDER-TEST-1234",
-            "confirmed_at": datetime.now(timezone.utc).isoformat(),
+            "confirmed_at": datetime.now(UTC).isoformat(),
             "broker_status": "OPEN",
         },
     )
@@ -1064,12 +1064,12 @@ def test_td_commission_free_route_exposes_official_108_etf_universe(
     assert data["count"] == 108
     # A data muda a cada re-verificacao (TTL de 7 dias — INV-R51). O contrato
     # exige um timestamp ISO recente, nao uma data congelada.
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     verified_at = datetime.fromisoformat(
         str(data["manifest"]["verified_at"]).replace("Z", "+00:00")
     )
-    assert verified_at > datetime.now(timezone.utc) - timedelta(days=7), (
+    assert verified_at > datetime.now(UTC) - timedelta(days=7), (
         f"manifest stale: {data['manifest']['verified_at']}"
     )
     assert "QQQ" in data["manifest"]["symbols"]["US"]
@@ -1425,7 +1425,7 @@ def test_task_submit_quality_gate_flags_low_score(client_with_mock_pipeline, mon
     """13a.1 POST /task/submit - Quality gate adds trace metadata without fallback."""
     mock_p, client = client_with_mock_pipeline
 
-    import agent_server.endpoints as endpoints
+    from agent_server import endpoints
 
     monkeypatch.setattr(
         endpoints.reward_gate,
@@ -1557,7 +1557,7 @@ def test_feedback_endpoint_round_trip(client_with_mock_pipeline, monkeypatch, tm
     """13d. POST /feedback and GET /feedback/stats - Local feedback capture."""
     _, client = client_with_mock_pipeline
 
-    import core.ml.feedback as feedback
+    from core.ml import feedback
 
     monkeypatch.setattr(feedback, "_FEEDBACK_DIR", tmp_path)
 

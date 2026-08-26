@@ -150,10 +150,14 @@ Adiciona `node_trinity` no pipeline:
 # Depois do auto_full_analysis, ANTES do agent (Bob)
 builder.add_node("trinity", _trinity)
 builder.add_edge("auto_full_analysis", "trinity")
-builder.add_conditional_edges("trinity", route_after_trinity, {
-    "agent": "agent",
-    "respond_blocked": "respond_blocked",
-})
+builder.add_conditional_edges(
+    "trinity",
+    route_after_trinity,
+    {
+        "agent": "agent",
+        "respond_blocked": "respond_blocked",
+    },
+)
 ```
 
 O `route_after_trinity` verifica: se trinity_report indica BLOCK unânime → pula Bob → explanation direto.

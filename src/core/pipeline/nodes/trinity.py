@@ -11,7 +11,8 @@ execution, as opposed to aggregating pre-computed expert verdicts.
 from __future__ import annotations
 
 import os
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from langgraph.config import get_stream_writer
 
@@ -20,7 +21,6 @@ from core.pipeline.prompts.math_prompt import format_math_context
 from core.pipeline.prompts.sentiment_prompt import format_sentiment_context
 
 from .expert_dialogue import ExpertDialogue
-
 
 NEGATIVE_VERDICTS = {
     "AVOID",

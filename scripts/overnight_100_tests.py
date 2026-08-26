@@ -7,7 +7,7 @@ import json
 import time
 import urllib.request
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import NamedTuple
 
@@ -271,14 +271,12 @@ def run_tests() -> dict:
             "error": result.get("error"),
             "prompt_terms_found": prompt["found"],
             "prompt_terms_missing": prompt["missing"],
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         results.append(record)
         with RESULTS_FILE.open("a", encoding="utf-8") as output:
             output.write(json.dumps(record, ensure_ascii=False) + "\n")
-        print(
-            f"[{index:03d}/100] {case.stratum:16s} {str(case.ticker or '-'):12s} {record['status']}"
-        )
+        print(f"[{index:03d}/100] {case.stratum:16s} {case.ticker or '-'!s:12s} {record['status']}")
     passed = sum(record["status"] == "PASS" for record in results)
     by_stratum = {
         name: {
@@ -293,7 +291,7 @@ def run_tests() -> dict:
         "failed": len(results) - passed,
         "pass_rate": round(100 * passed / len(results), 1),
         "by_stratum": by_stratum,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
     RESULTS_FILE.with_suffix(".summary.json").write_text(
         json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8"

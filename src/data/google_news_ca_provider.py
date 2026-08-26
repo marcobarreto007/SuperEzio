@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import re
 import xml.etree.ElementTree as ET
-from typing import Any, Dict, List
+from typing import Any
 
 import requests
 
@@ -58,7 +58,7 @@ class GoogleNewsCAProvider:
         *,
         limit: int = 5,
         **_: Any,
-    ) -> List[Dict[str, Any]] | Dict[str, Any]:
+    ) -> list[dict[str, Any]] | dict[str, Any]:
         """Ticker news from the en-CA Google News RSS feed.
 
         Returns NewsScout-schema items (with sentiment fields), or
@@ -89,7 +89,7 @@ class GoogleNewsCAProvider:
         if not entries:
             return {"error": "gnews_no_items", "symbol": symbol}
 
-        items: List[Dict[str, Any]] = []
+        items: list[dict[str, Any]] = []
         for entry in entries[: max(1, limit)]:
             title = _strip_tags(entry.findtext("title") or "")
             if not title:

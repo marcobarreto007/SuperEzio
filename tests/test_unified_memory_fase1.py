@@ -9,13 +9,13 @@ if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
 import tempfile
-
+from datetime import UTC
 
 from core.memory.unified import (
-    UnifiedRetriever,
     ConversationMemoryAdapter,
     PaperJournalAdapter,
     RetrievalResult,
+    UnifiedRetriever,
 )
 
 
@@ -87,8 +87,9 @@ def test_conversation_adapter_search():
 def test_paper_journal_adapter_ingest():
     """Test paper journal adapter ingests to RAG."""
     with tempfile.TemporaryDirectory() as tmpdir:
+        from datetime import datetime
+
         from core.trading.paper_journal import PaperJournal, PaperTrade
-        from datetime import datetime, timezone
 
         journal_path = Path(tmpdir) / "journal.jsonl"
         journal = PaperJournal(journal_path)
@@ -100,7 +101,7 @@ def test_paper_journal_adapter_ingest():
                 ticker="AAPL",
                 thesis="Strong earnings",
                 direction="long",
-                entry_date=datetime.now(timezone.utc).isoformat(),
+                entry_date=datetime.now(UTC).isoformat(),
                 entry_price=150.0,
                 shares=10,
                 entry_reasoning="Technical breakout",
@@ -123,8 +124,9 @@ def test_paper_journal_adapter_ingest():
 def test_paper_journal_adapter_search():
     """Test paper journal search."""
     with tempfile.TemporaryDirectory() as tmpdir:
+        from datetime import datetime
+
         from core.trading.paper_journal import PaperJournal, PaperTrade
-        from datetime import datetime, timezone
 
         journal_path = Path(tmpdir) / "journal.jsonl"
         journal = PaperJournal(journal_path)
@@ -135,7 +137,7 @@ def test_paper_journal_adapter_search():
                 ticker="NVDA",
                 thesis="AI growth story",
                 direction="long",
-                entry_date=datetime.now(timezone.utc).isoformat(),
+                entry_date=datetime.now(UTC).isoformat(),
                 entry_price=450.0,
                 shares=5,
                 entry_reasoning="AI demand",
@@ -213,9 +215,10 @@ def test_unified_retriever_format_context():
 def test_unified_retriever_ingest_all():
     """Test ingest all sources."""
     with tempfile.TemporaryDirectory() as tmpdir:
+        from datetime import datetime
+
         from core.memory import ConversationMemory
         from core.trading.paper_journal import PaperJournal, PaperTrade
-        from datetime import datetime, timezone
 
         # Setup memória
         mem_path = Path(tmpdir) / "memory.jsonl"
@@ -231,7 +234,7 @@ def test_unified_retriever_ingest_all():
                 ticker="TSLA",
                 thesis="Momentum",
                 direction="long",
-                entry_date=datetime.now(timezone.utc).isoformat(),
+                entry_date=datetime.now(UTC).isoformat(),
                 entry_price=200.0,
                 shares=10,
                 entry_reasoning="Breakout",

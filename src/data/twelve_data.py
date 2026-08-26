@@ -1,7 +1,8 @@
-import requests
 import os
-from datetime import datetime, timezone
-from typing import Dict, Any
+from datetime import UTC, datetime
+from typing import Any
+
+import requests
 
 
 def _log_event(phase: str, event: str, data: dict | None = None) -> None:
@@ -37,7 +38,7 @@ class TwelveDataProvider:
             raise RuntimeError("TWELVE_DATA_API_KEY is required but not set")
         self.base_url = "https://api.twelvedata.com"
 
-    def get_price(self, symbol: str, *, exchange: str | None = None) -> Dict[str, Any]:
+    def get_price(self, symbol: str, *, exchange: str | None = None) -> dict[str, Any]:
         """Obtain a quote with exchange, currency, and market timestamp metadata."""
         url = f"{self.base_url}/quote"
         tw_symbol = symbol
@@ -61,7 +62,7 @@ class TwelveDataProvider:
 
             timestamp = data.get("last_update_at") or data.get("timestamp")
             if isinstance(timestamp, (int, float)):
-                as_of = datetime.fromtimestamp(float(timestamp), tz=timezone.utc).isoformat()
+                as_of = datetime.fromtimestamp(float(timestamp), tz=UTC).isoformat()
             else:
                 as_of = str(timestamp or "").strip() or None
 
@@ -79,7 +80,7 @@ class TwelveDataProvider:
             _log_event("TWELVE_DATA", "ERROR", {"symbol": symbol, "error": str(e)})
             return {"error": str(e)}
 
-    def get_candles(self, symbol: str, timeframe: str = "6M") -> Dict[str, Any]:
+    def get_candles(self, symbol: str, timeframe: str = "6M") -> dict[str, Any]:
         """OHLCV candles via TwelveData /time_series — padronizado para o DataHub."""
         interval, outputsize = _TWELVE_DATA_CANDLE_MAP.get(timeframe, ("1day", 130))
         url = f"{self.base_url}/time_series"

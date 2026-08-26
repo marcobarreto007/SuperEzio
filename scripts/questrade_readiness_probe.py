@@ -22,8 +22,11 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from adapters.broker.questrade_readonly import QuestradeReadOnlyClient, QuestradeReadOnlyError  # noqa: E402
-from core.config.settings import get_settings  # noqa: E402
+from adapters.broker.questrade_readonly import (
+    QuestradeReadOnlyClient,
+    QuestradeReadOnlyError,
+)
+from core.config.settings import get_settings
 
 
 def run_probe(*, practice: bool | None = None) -> dict[str, Any]:

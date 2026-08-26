@@ -12,8 +12,8 @@ import pytest
 
 from core.memory.hybrid import (
     BM25Index,
-    HybridRetriever,
     HybridResult,
+    HybridRetriever,
     get_hybrid_retriever,
 )
 

@@ -11,7 +11,7 @@ import os
 import subprocess
 import sys
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -96,7 +96,7 @@ if __name__ == "__main__":
 
 
 def _timeout_data(ticker: str, timeout_s: float) -> dict[str, Any]:
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     return {
         "analysis_id": f"{ticker}-{uuid.uuid4().hex[:12]}",
         "ticker": ticker,
@@ -110,7 +110,7 @@ def _timeout_data(ticker: str, timeout_s: float) -> dict[str, Any]:
 
 
 def _error_data(ticker: str, detail: str) -> dict[str, Any]:
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     return {
         "analysis_id": f"{ticker}-{uuid.uuid4().hex[:12]}",
         "ticker": ticker,

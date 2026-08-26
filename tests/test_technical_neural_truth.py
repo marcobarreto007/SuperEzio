@@ -6,16 +6,17 @@ import hashlib
 import json
 import math
 import shutil
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import numpy as np
 import pytest
-from hypothesis import given, settings, strategies as st
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from experts.technical_neural.expert import TechnicalNeuralExpert
 
-AS_OF = datetime(2026, 7, 19, tzinfo=timezone.utc)
+AS_OF = datetime(2026, 7, 19, tzinfo=UTC)
 
 
 def _predictable_candles(length: int = 360) -> list[dict[str, object]]:

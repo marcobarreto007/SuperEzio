@@ -26,8 +26,8 @@ __all__ = [
     "RerankPipeline",
     "RetrievalResult",
     "UnifiedRetriever",
-    "get_feedback_loop",
     "get_conversation_memory",
+    "get_feedback_loop",
     "get_graph_bridge",
     "get_hybrid_retriever",
     "get_rerank_pipeline",
@@ -39,10 +39,11 @@ __all__ = [
 ]
 
 # Unified Memory Layer - available for import
-from .unified import (
-    UnifiedRetriever,
-    get_unified_retriever,
-    RetrievalResult,
+from .graph import (
+    GraphMemoryBridge,
+    KnowledgeGraph,
+    get_graph_bridge,
+    reset_graph_bridge,
 )
 from .hybrid import (
     HybridRetriever,
@@ -54,11 +55,10 @@ from .reranker import (
     get_rerank_pipeline,
     reset_rerank_pipeline,
 )
-from .graph import (
-    KnowledgeGraph,
-    GraphMemoryBridge,
-    get_graph_bridge,
-    reset_graph_bridge,
+from .unified import (
+    RetrievalResult,
+    UnifiedRetriever,
+    get_unified_retriever,
 )
 
 

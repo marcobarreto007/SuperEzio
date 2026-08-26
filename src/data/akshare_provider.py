@@ -13,13 +13,13 @@ Ticker format: AKShare uses "105.{TICKER}" for US stocks (e.g. "105.AAPL").
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any, Dict, List
+from datetime import UTC, datetime
+from typing import Any
 
 _AKSHARE_IMPORT_ERROR: str | None = None
 
 try:
-    import akshare as ak  # noqa: F811
+    import akshare as ak
 except ImportError as _exc:
     _AKSHARE_IMPORT_ERROR = str(_exc)
     ak = None  # type: ignore[assignment]
@@ -62,7 +62,7 @@ _AKSHARE_NAMES_CHILD = (
 )
 
 
-def _us_stock_names_via_subprocess(timeout_s: float = 25.0) -> Dict[str, Any]:
+def _us_stock_names_via_subprocess(timeout_s: float = 25.0) -> dict[str, Any]:
     """Obtem a tabela de nomes de US stocks sem arriscar o processo pai.
 
     Retorna ``{"names_csv": ...}`` em sucesso ou ``{"error": ...}``.
@@ -121,7 +121,7 @@ class AKShareProvider:
         *,
         market: str | None = None,
         **_: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Fetch the latest price and volume for a US stock.
 
         Uses the realtime spot endpoint (``stock_us_spot``) which returns a
@@ -196,7 +196,7 @@ class AKShareProvider:
         *,
         market: str | None = None,
         **_: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Fetch historical OHLCV candles.
 
         Supports daily, weekly, monthly periods. For intraday (1/5/15/30/60 min)
@@ -247,7 +247,7 @@ class AKShareProvider:
         df = df.sort_values(by=df.columns[0])
         df = df.tail(lookback)
 
-        candles: List[Dict[str, Any]] = []
+        candles: list[dict[str, Any]] = []
         for _, row in df.iterrows():
             try:
                 date_val = row.iloc[0]
@@ -277,7 +277,7 @@ class AKShareProvider:
             "provider": "akshare",
         }
 
-    def _get_intraday_candles(self, asymbol: str, symbol: str, timeframe: str) -> Dict[str, Any]:
+    def _get_intraday_candles(self, asymbol: str, symbol: str, timeframe: str) -> dict[str, Any]:
         """Fetch intraday minute candles via stock_us_hist_min_em."""
         try:
             df = ak.stock_us_hist_min_em(  # type: ignore[union-attr]
@@ -295,7 +295,7 @@ class AKShareProvider:
         limit = self._intraday_limit(timeframe)
         df = df.tail(limit)
 
-        candles: List[Dict[str, Any]] = []
+        candles: list[dict[str, Any]] = []
         for _, row in df.iterrows():
             try:
                 # Columns: 0=date, 1=open, 2=close, 3=high, 4=low, 5=volume
@@ -370,7 +370,7 @@ class AKShareProvider:
         if value is None:
             return None
         if isinstance(value, datetime):
-            return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+            return value.replace(tzinfo=UTC) if value.tzinfo is None else value
         if isinstance(value, str):
             for fmt in (
                 "%Y-%m-%d",
@@ -379,7 +379,7 @@ class AKShareProvider:
                 "%Y%m%d",
             ):
                 try:
-                    return datetime.strptime(value, fmt).replace(tzinfo=timezone.utc)
+                    return datetime.strptime(value, fmt).replace(tzinfo=UTC)
                 except ValueError:
                     continue
         return None
@@ -394,7 +394,7 @@ class AKShareProvider:
         *,
         market: str | None = None,
         **_: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Fetch company name and basic profile info.
 
         Uses the ``get_us_stock_name`` mapping to find the English name.

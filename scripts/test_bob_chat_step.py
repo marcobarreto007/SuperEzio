@@ -1,5 +1,6 @@
 import os
 import time
+
 import requests
 from playwright.sync_api import sync_playwright
 
@@ -21,20 +22,20 @@ with sync_playwright() as p:
     page = context.new_page()
     page.goto("https://supereziorealtime.com", timeout=60000)
     page.wait_for_selector("#chat", timeout=30000)
-    
+
     # Abre o chat do Bob
     page.click("#bob-chat-tab")
     time.sleep(1)
-    
+
     # Digita 'bob tudo bem'
     print("Digitando 'bob tudo bem'...")
     page.fill("#user-inp", "bob tudo bem")
     page.click("#send-btn")
-    
+
     # Aguarda a resposta do Bob
     print("Aguardando resposta do Bob...")
     page.wait_for_timeout(4000)
-    
+
     page.screenshot(path="output/live_chrome_run/07_bob_chat_result.png")
     print("Screenshot salvo em output/live_chrome_run/07_bob_chat_result.png")
     browser.close()

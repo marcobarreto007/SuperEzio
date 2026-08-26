@@ -15,8 +15,9 @@ import math
 import os
 import subprocess
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from core.resilience import get_circuit
 
@@ -189,11 +190,11 @@ class ProviderRoute:
     name: str
     capabilities: tuple[str, ...]
     factory: ProviderFactory
-    methods: Dict[str, str]
+    methods: dict[str, str]
     priority: int = 100
     required_key: str | None = None
     enabled: bool = True
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class DataHub:
@@ -235,16 +236,16 @@ class DataHub:
         self.tavily_search_path = os.getenv("SUPEREZIO_TAVILY_SEARCH_PATH") or ""
         self.tavily_extract_path = os.getenv("SUPEREZIO_TAVILY_EXTRACT_PATH") or ""
 
-        self.routes: Dict[str, ProviderRoute] = {}
-        self.providers: Dict[str, Any] = {}
+        self.routes: dict[str, ProviderRoute] = {}
+        self.providers: dict[str, Any] = {}
         # Per-instance so the singleton hub and test doubles never share state.
-        self._response_cache: Dict[tuple[str, ...], tuple[float, Any]] = {}
+        self._response_cache: dict[tuple[str, ...], tuple[float, Any]] = {}
         # route name -> API key value that failed authentication. The route is
         # skipped while the env key stays the same; swapping the key re-enables
         # it (operator rotation without a restart).
-        self._auth_failures: Dict[str, str] = {}
+        self._auth_failures: dict[str, str] = {}
         # route name -> monotonic timestamp of the last real provider call.
-        self._last_call: Dict[str, float] = {}
+        self._last_call: dict[str, float] = {}
         if register_defaults:
             self._register_default_routes()
 
@@ -598,7 +599,7 @@ class DataHub:
             )
         )
 
-    def get_news_sentiment(self, symbol: str) -> Dict[str, Any]:
+    def get_news_sentiment(self, symbol: str) -> dict[str, Any]:
         """Get sentiment summary via NewsAPI (primary) or NewsScout (fallback)."""
         result = self.route("sentiment", symbol)
         if "error" not in result:
@@ -606,11 +607,11 @@ class DataHub:
         # Fallback: NewsScout sentiment
         return self.get_sentiment_summary(symbol)
 
-    def get_market_sentiment(self) -> Dict[str, Any]:
+    def get_market_sentiment(self) -> dict[str, Any]:
         """Get broad market sentiment from headlines."""
         return self.route("market_sentiment")
 
-    def run_math_verify(self, expression: str) -> Dict[str, Any]:
+    def run_math_verify(self, expression: str) -> dict[str, Any]:
         """Verify a mathematical expression via Wolfram Alpha."""
         return self.route("math_verify", expression)
 
@@ -632,7 +633,7 @@ class DataHub:
                 return False
         return True
 
-    def get_provider(self, name: str) -> Optional[Any]:
+    def get_provider(self, name: str) -> Any | None:
         """Return a lazy provider instance by name."""
         if name in self.providers:
             return self.providers[name]
@@ -676,7 +677,7 @@ class DataHub:
             for route in routes
         ]
 
-    def check_health(self) -> Dict[str, Any]:
+    def check_health(self) -> dict[str, Any]:
         """Report configured providers and raw key availability."""
         return {
             "providers": {
@@ -937,48 +938,48 @@ class DataHub:
             return str(result.get("error") or "")
         return ""
 
-    def get_price(self, symbol: str, **kwargs: Any) -> Dict[str, Any]:
+    def get_price(self, symbol: str, **kwargs: Any) -> dict[str, Any]:
         """Route price lookup across configured market data providers."""
         return self.route("price", symbol, **kwargs)
 
-    def get_quote(self, symbol: str) -> Dict[str, Any]:
+    def get_quote(self, symbol: str) -> dict[str, Any]:
         """Route quote lookup across configured quote providers."""
         return self.route("quote", symbol)
 
-    def get_candles(self, symbol: str, timeframe: str = "6M") -> Dict[str, Any]:
+    def get_candles(self, symbol: str, timeframe: str = "6M") -> dict[str, Any]:
         """Route OHLCV candles across configured providers."""
         return self.route("candles", symbol, timeframe=timeframe)
 
-    def get_profile(self, symbol: str) -> Dict[str, Any]:
+    def get_profile(self, symbol: str) -> dict[str, Any]:
         """Route company profile across configured providers."""
         return self.route("profile", symbol)
 
-    def get_fundamentals(self, symbol: str) -> Dict[str, Any]:
+    def get_fundamentals(self, symbol: str) -> dict[str, Any]:
         """Route fundamentals (P/E, Beta, EPS, margins, ROE) across configured providers."""
         return self.route("fundamentals", symbol)
 
-    def get_treasury_yield(self, maturity: str = "10year") -> Dict[str, Any]:
+    def get_treasury_yield(self, maturity: str = "10year") -> dict[str, Any]:
         """Route treasury yield lookup."""
         return self.route("treasury", maturity)
 
-    def get_news(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    def get_news(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
         result = self.route("news", query, limit=limit)
         return result if isinstance(result, list) else [result]
 
-    def get_sentiment_summary(self, symbol: str) -> Dict[str, Any]:
+    def get_sentiment_summary(self, symbol: str) -> dict[str, Any]:
         return self.route("sentiment", symbol)
 
-    def get_reddit_signal(self, ticker: str) -> Dict[str, Any]:
+    def get_reddit_signal(self, ticker: str) -> dict[str, Any]:
         """Route Reddit social signal through reddit_pulse."""
         return self.route("reddit", ticker)
 
-    def get_insider_trades(self, ticker: str) -> Dict[str, Any]:
+    def get_insider_trades(self, ticker: str) -> dict[str, Any]:
         """Route insider-trades lookup (Form4API primary, AlphaSMO fallback)."""
         return self.route("insider_trades", ticker)
 
     def get_smart_money_convergence(
         self, limit: int = 20, min_confidence: int = 60, days: int = 90
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Route smart-money convergence signal through AlphaSMO."""
         return self.route(
             "smart_money",
@@ -987,7 +988,7 @@ class DataHub:
             days=days,
         )
 
-    def run_quantum_simulation(self) -> Dict[str, Any]:
+    def run_quantum_simulation(self) -> dict[str, Any]:
         """Compatibility tombstone for a removed no-input random simulation."""
         return {
             "status": "removed",
@@ -995,7 +996,7 @@ class DataHub:
             "replacement": "MathHub.return_bootstrap_requires_observed_returns",
         }
 
-    def get_macro(self, market: str = "US") -> Dict[str, Any]:
+    def get_macro(self, market: str = "US") -> dict[str, Any]:
         """Route macro data by market (CA → BoC, US → Fed)."""
         cap = f"macro_{market.lower()}"
         result = self.route(cap)
@@ -1010,7 +1011,7 @@ class DataHub:
         deep: bool = False,
         topic: str = "general",
         limit: int = 5,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Route web search through Tavily, then DuckDuckGo fallback."""
         if self._get_key("TAVILY_API_KEY") and self.tavily_search_path:
             try:
@@ -1035,11 +1036,10 @@ class DataHub:
                     return parsed
             except Exception as exc:
                 logger.warning("[DATA_HUB] Tavily search failed: %s", exc)
-                pass
 
         return self.search_ddg(query, limit=limit)
 
-    def search_ddg(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    def search_ddg(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
         """Free DuckDuckGo text search fallback."""
         try:
             from ddgs import DDGS
@@ -1057,7 +1057,7 @@ class DataHub:
         except Exception as exc:
             return [{"error": f"DDG Search failed: {exc}"}]
 
-    def extract_web(self, url: str) -> Dict[str, Any]:
+    def extract_web(self, url: str) -> dict[str, Any]:
         """Extract page content through Tavily when configured."""
         if not self._get_key("TAVILY_API_KEY") or not self.tavily_extract_path:
             return {"error": "TAVILY not configured (missing API key or script path)"}

@@ -5,10 +5,8 @@ Import FORBIDDEN_OUTPUT_PHRASES from here rather than redefining locally.
 
 from __future__ import annotations
 
-from typing import List
-
 # Frases proibidas no output financeiro — lista canónica
-FORBIDDEN_OUTPUT_PHRASES: List[str] = [
+FORBIDDEN_OUTPUT_PHRASES: list[str] = [
     "guaranteed",
     "sure profit",
     "safe return",

@@ -1,17 +1,6 @@
 """Observability package."""
 
-from .neural_log import (
-    log_event,
-    log_queue,
-    get_tracer,
-    metrics,
-    SimpleMetrics,
-    setup_telemetry,
-    trace_span,
-    trace_span_async,
-    SpanContext,
-)
-from .debug_logger import debug_logger, DebugLogger
+from .debug_logger import DebugLogger, debug_logger
 from .event_hub import (
     EventEnvelope,
     EventHub,
@@ -21,24 +10,35 @@ from .event_hub import (
     get_event_hub,
     set_event_hub,
 )
+from .neural_log import (
+    SimpleMetrics,
+    SpanContext,
+    get_tracer,
+    log_event,
+    log_queue,
+    metrics,
+    setup_telemetry,
+    trace_span,
+    trace_span_async,
+)
 
 __all__ = [
-    "log_event",
-    "log_queue",
-    "setup_telemetry",
-    "get_tracer",
-    "trace_span",
-    "trace_span_async",
-    "SpanContext",
-    "metrics",
-    "SimpleMetrics",
-    "debug_logger",
     "DebugLogger",
+    "EventEnvelope",
     "EventHub",
     "InMemoryHub",
     "RedisStreamsHub",
-    "EventEnvelope",
+    "SimpleMetrics",
+    "SpanContext",
     "create_event_hub",
+    "debug_logger",
     "get_event_hub",
+    "get_tracer",
+    "log_event",
+    "log_queue",
+    "metrics",
     "set_event_hub",
+    "setup_telemetry",
+    "trace_span",
+    "trace_span_async",
 ]

@@ -4,8 +4,10 @@ SpiderSense (armadilhas) + HeuristicUncertainty (dificuldade).
 """
 
 from __future__ import annotations
+
 import re
 from dataclasses import dataclass, field
+
 from .formulas import heuristic_uncertainty as hu
 
 # =============================================================================

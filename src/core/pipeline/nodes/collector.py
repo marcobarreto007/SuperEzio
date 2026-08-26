@@ -16,20 +16,21 @@ import logging
 import os
 import re
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from langgraph.config import get_stream_writer
 
+from core.trading.td_universe import is_commission_free
+
+from ..circuit_breaker import CircuitBreaker
+from ..scan_registry import ScanEventRegistry
 from ..trade_order import (
     evaluate_quality_gates,
     normalize_liquidity_fields,
     pick_candidate,
     rank_candidates,
 )
-from core.trading.td_universe import is_commission_free
-from ..scan_registry import ScanEventRegistry
-from ..circuit_breaker import CircuitBreaker
 
 _SCAN_CACHE_TTL_SECONDS = 300  # 5 min — ranked candidates are stale after this
 
@@ -81,7 +82,7 @@ def _cache_is_fresh(trade_ctx: dict[str, Any]) -> bool:
         return False
     try:
         dt = datetime.fromisoformat(str(scanned_at))
-        age = (datetime.now(timezone.utc) - dt).total_seconds()
+        age = (datetime.now(UTC) - dt).total_seconds()
         return age <= _SCAN_CACHE_TTL_SECONDS
     except Exception:
         return False
@@ -93,8 +94,8 @@ def _try_fast_cache(ticker: str, writer) -> dict | None:
     Latency: <10ms (SQLite query). This is the 193s → 7s optimization.
     """
     try:
-        from core.trading.historical_cache import get_cached_ohlcv
         from core.trading.batch_expert_runner import get_expert_analysis
+        from core.trading.historical_cache import get_cached_ohlcv
 
         ohlcv = get_cached_ohlcv(ticker, days=5)  # Need at least 1 candle
         experts = get_expert_analysis(ticker)
@@ -359,7 +360,7 @@ async def _collect_professional(ticker: str, writer, run_id: str) -> tuple[dict[
             collector.collect(ticker, overall_timeout=timeout_s),
             timeout=timeout_s + 15,  # Hard limit with cleanup margin
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         data = {
             "analysis_id": f"{ticker}-timeout",
             "ticker": ticker,
@@ -404,8 +405,9 @@ async def _collect_subprocess_fallback(
     ticker: str, writer, run_id: str
 ) -> tuple[dict[str, Any], str]:
     """Fallback: use SubprocessDataCollector."""
-    from ...data_collector import DataCollector
     from adapters.data_collector.subprocess_collector import SubprocessDataCollector
+
+    from ...data_collector import DataCollector
     from ...paths import PROJECT_ROOT
 
     timeout_s = int(os.getenv("SUPEREZIO_DATA_TIMEOUT", "180"))
@@ -610,7 +612,7 @@ def _generate_fallback_catalyst(item: dict[str, Any]) -> dict[str, Any]:
     if earnings_date and provenance.get("earnings_date"):
         try:
             ed = datetime.fromisoformat(str(earnings_date))
-            days = (ed.date() - datetime.now(timezone.utc).date()).days
+            days = (ed.date() - datetime.now(UTC).date()).days
             if 0 <= days <= 14:
                 catalyst = (
                     f"earnings release expected within {days} days "
@@ -1057,8 +1059,8 @@ async def _run_scan(
     #    with live prices. Provenance stamped, never fabricated.
     if len(raw_candidates) < 5:
         try:
-            from pathlib import Path as _Path
             import json as _json
+            from pathlib import Path as _Path
 
             daily_path = _Path(os.getenv("SUPEREZIO_MANGALA_SEED_PATH", "data/mangala_daily.json"))
             if daily_path.exists():
@@ -1248,7 +1250,7 @@ async def _run_scan(
 
                 try:
                     await asyncio.wait_for(_done_event.wait(), timeout=stage_deadline_ms / 1000)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     pass  # deadline fired — preserve what we have
 
                 for w in workers:
@@ -1657,7 +1659,7 @@ async def _run_scan(
         "rejection_summary": rejection_summary,
         "data_quality": "partial" if source_errors else "provider_or_computed",
         "source_errors": source_errors,
-        "collected_at": datetime.now(timezone.utc).isoformat(),
+        "collected_at": datetime.now(UTC).isoformat(),
         "scan_trace": {
             "scan_id": scan_id,
             "raw_candidate_count": len(raw_candidates),
@@ -1712,7 +1714,7 @@ def _scan_from_cached_ranked(
         "source_errors": trade_ctx.get("source_errors") or [],
         "collected_at": trade_ctx.get("scanned_at")
         or trade_ctx.get("collected_at")
-        or datetime.now(timezone.utc).isoformat(),
+        or datetime.now(UTC).isoformat(),
         "from_cache": True,
         "next_cached_entry": next_entry,
         "remaining_after_exclude": len(remaining),

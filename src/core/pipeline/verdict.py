@@ -135,9 +135,7 @@ def build_verdict_dict(state: dict) -> dict:
         guard_ready = guardrail.get("ready", hub_summary.get("ready", "RAN"))
 
     rag_status = "MISSING"
-    if isinstance(rag, str) and rag.strip():
-        rag_status = "RAN"
-    elif isinstance(rag, dict) and rag:
+    if isinstance(rag, str) and rag.strip() or isinstance(rag, dict) and rag:
         rag_status = "RAN"
 
     return {

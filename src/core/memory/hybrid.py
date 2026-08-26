@@ -14,8 +14,8 @@ Técnicas 2026:
 
 from __future__ import annotations
 
-import math
 import logging
+import math
 from collections import Counter
 from dataclasses import dataclass
 from typing import Any

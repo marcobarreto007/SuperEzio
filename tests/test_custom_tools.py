@@ -24,7 +24,6 @@ import sys
 
 import pytest
 
-
 ROOT_SRC = None
 
 

@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import inspect
 import os
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 from langgraph.config import get_stream_writer
 
 from core.audit.decision_trace import DecisionTraceLogger
-
 
 GuardrailRunner = Callable[[dict[str, Any]], dict[str, Any] | Awaitable[dict[str, Any]]]
 

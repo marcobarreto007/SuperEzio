@@ -3,13 +3,14 @@ Tests for HeartbeatLoop — Fase 2 (Heartbeat) da arquitetura CORPO.
 """
 
 import pytest
+
 from core.body import BodyEventBus, HeartbeatLoop
 from core.body.heartbeat import (
-    HeartbeatCycle,
-    HeartbeatStage,
+    DEEP_STAGES,
     FULL_STAGES,
     LIGHT_STAGES,
-    DEEP_STAGES,
+    HeartbeatCycle,
+    HeartbeatStage,
 )
 
 

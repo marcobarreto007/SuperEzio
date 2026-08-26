@@ -20,6 +20,7 @@ Se SIM → BLOQUEAR com mensagem:
 ```python
 # Dentro de submit_paper_order, ANTES de enviar pro IBKR:
 from core.trading.feedback_loop import get_feedback_loop
+
 feedback = get_feedback_loop()
 ticker = args.get("ticker", "")
 message = state.get("message", "")

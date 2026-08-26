@@ -12,6 +12,7 @@ import os
 import sys
 import time
 from pathlib import Path
+
 from playwright.sync_api import sync_playwright
 
 if sys.platform == "win32":
@@ -30,20 +31,21 @@ def run_deep_audit():
         "screenshots": [],
         "overall_score": 0,
         "ux_findings": [],
-        "chat_conversations": []
+        "chat_conversations": [],
     }
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         # Desktop 1080p viewport for rich visual evaluation
         context = browser.new_context(
-            viewport={"width": 1600, "height": 960},
-            device_scale_factor=1
+            viewport={"width": 1600, "height": 960}, device_scale_factor=1
         )
         page = context.new_page()
 
         console_errors = []
-        page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
+        page.on(
+            "console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None
+        )
         page.on("pageerror", lambda err: console_errors.append(str(err)))
 
         print("══════════════════════════════════════════════════════════════")
@@ -71,7 +73,9 @@ def run_deep_audit():
                 canvases: document.querySelectorAll('canvas').length
             };
         }""")
-        print(f"  ✓ Cockpit carregado em {round(time.time() - t0, 2)}s | Canvases: {status_data['canvases']}")
+        print(
+            f"  ✓ Cockpit carregado em {round(time.time() - t0, 2)}s | Canvases: {status_data['canvases']}"
+        )
 
         # ------------------------------------------------------------------
         # CENÁRIO 2: Navegação de Ativos e Gráficos Multiativos
@@ -107,7 +111,9 @@ def run_deep_audit():
             shot_sym = str(AUDIT_DIR / f"audit_02_chart_{sym.replace('.', '_')}.png")
             page.screenshot(path=shot_sym, full_page=False)
             audit_results["screenshots"].append(shot_sym)
-            print(f"  ✓ Ativo {sym}: Gráfico {chart_stats['width']}x{chart_stats['height']}px renderizado em {round(time.time() - t_sym, 2)}s")
+            print(
+                f"  ✓ Ativo {sym}: Gráfico {chart_stats['width']}x{chart_stats['height']}px renderizado em {round(time.time() - t_sym, 2)}s"
+            )
 
         # ------------------------------------------------------------------
         # CENÁRIO 3: Auditoria de Painéis Interativos (SDCA, Experts, Alertas)
@@ -163,17 +169,17 @@ def run_deep_audit():
             {
                 "id": "Q1_ANALISE_TD",
                 "prompt": "Bob, analise TD.TO para mim: vale a pena comprar para longo prazo ou fazer swing trade? Me dê os números e o veredito do firewall.",
-                "expected_aspects": ["RSI", "MACD", "F51", "SDCA", "veredito"]
+                "expected_aspects": ["RSI", "MACD", "F51", "SDCA", "veredito"],
             },
             {
                 "id": "Q2_ESTRATEGIA_ETF",
                 "prompt": "Moro no Canadá e tenho CAD 10.000 para começar no TFSA. Qual a recomendação de alocação de ETFs sem comissão no TD Direct?",
-                "expected_aspects": ["TFSA", "ETFs", "Canadá", "alocação"]
-            }
+                "expected_aspects": ["TFSA", "ETFs", "Canadá", "alocação"],
+            },
         ]
 
         for q in questions:
-            print(f"\n  ➤ Enviando Pergunta: \"{q['prompt'][:60]}...\"")
+            print(f'\n  ➤ Enviando Pergunta: "{q["prompt"][:60]}..."')
             baseline = page.evaluate("() => document.querySelectorAll('#chat .msg-ceo').length")
 
             t_q = time.time()
@@ -191,7 +197,7 @@ def run_deep_audit():
                   return text.length > 50 && !text.includes('Erro:');
                 }}
                 """,
-                timeout=180000
+                timeout=180000,
             )
             elapsed_chat = round(time.time() - t_q, 2)
 
@@ -210,15 +216,21 @@ def run_deep_audit():
             page.screenshot(path=shot_chat, full_page=False)
             audit_results["screenshots"].append(shot_chat)
 
-            print(f"  ✓ Resposta recebida em {elapsed_chat}s ({len(resp_data['fullText'])} caracteres)")
-            print(f"  ✓ Amostra da resposta:\n    \"{resp_data['fullText'][:200].replace(chr(10), ' ')}...\"")
+            print(
+                f"  ✓ Resposta recebida em {elapsed_chat}s ({len(resp_data['fullText'])} caracteres)"
+            )
+            print(
+                f'  ✓ Amostra da resposta:\n    "{resp_data["fullText"][:200].replace(chr(10), " ")}..."'
+            )
 
-            audit_results["chat_conversations"].append({
-                "question": q["prompt"],
-                "response": resp_data["fullText"],
-                "elapsed_s": elapsed_chat,
-                "length": len(resp_data["fullText"])
-            })
+            audit_results["chat_conversations"].append(
+                {
+                    "question": q["prompt"],
+                    "response": resp_data["fullText"],
+                    "elapsed_s": elapsed_chat,
+                    "length": len(resp_data["fullText"]),
+                }
+            )
 
             page.wait_for_timeout(2000)
 

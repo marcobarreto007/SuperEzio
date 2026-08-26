@@ -1,20 +1,21 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from hypothesis import given, settings as hypothesis_settings, strategies as st
+from hypothesis import given
+from hypothesis import settings as hypothesis_settings
+from hypothesis import strategies as st
 
 import core.trading.canada_money_gate as money_gate_module
 from core.config.settings import Settings
 from core.trading.canada_money_gate import CanadaMoneyGate, CanadaMoneyGateError
 from core.trading.workflow_store import TradeWorkflowStore
 
-
-NOW = datetime(2026, 8, 19, 5, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 8, 19, 5, 0, tzinfo=UTC)
 
 
 def _settings(**overrides: object) -> Settings:

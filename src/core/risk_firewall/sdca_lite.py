@@ -399,9 +399,7 @@ def evaluate_decision_with_sdca(candidate: DecisionCandidate) -> RiskFirewallDec
     )
     consequence = score_consequence(candidate, ghost_tokens, matches)
 
-    if final_uncertainty > 0.78 and severe_count >= 2:
-        decision = "BLOCK"
-    elif consequence.utility < 0.45:
+    if final_uncertainty > 0.78 and severe_count >= 2 or consequence.utility < 0.45:
         decision = "BLOCK"
     elif consequence.utility < 0.65:
         decision = "REVIEW"

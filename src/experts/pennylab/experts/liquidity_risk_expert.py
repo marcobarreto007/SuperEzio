@@ -11,10 +11,9 @@ Princípio: se você não consegue sair, a entrada está errada.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List
 
-from ..schemas import SignalInput
 from ..mathcore_adapter import _clamp
+from ..schemas import SignalInput
 
 
 @dataclass
@@ -22,7 +21,7 @@ class LiquidityRiskResult:
     score: float  # 0-1
     label: str
     exit_difficulty: str
-    evidence: List[str] = field(default_factory=list)
+    evidence: list[str] = field(default_factory=list)
     confidence: float = 0.0
 
 
@@ -33,8 +32,8 @@ class LiquidityRiskExpert:
     """
 
     def evaluate(self, signal: SignalInput) -> LiquidityRiskResult:
-        evidence: List[str] = []
-        components: List[float] = []
+        evidence: list[str] = []
+        components: list[float] = []
         available = 0
 
         # Spread (peso 50%)

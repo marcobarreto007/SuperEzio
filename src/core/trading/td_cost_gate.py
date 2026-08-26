@@ -6,9 +6,9 @@ import hashlib
 import json
 import math
 import re
-from datetime import datetime, timedelta, timezone
-from typing import Any, Mapping
-
+from collections.abc import Mapping
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 _OFFICIAL_PLATFORMS = {"WEBBROKER", "TD_APP", "ADVANCED_DASHBOARD", "TD_ACTIVE_TRADER"}
 _OPERATOR = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$")
@@ -35,7 +35,7 @@ def _timestamp(value: Any, field: str) -> datetime:
         raise TDCostGateError(f"{field} must be an ISO-8601 datetime") from exc
     if parsed.tzinfo is None:
         raise TDCostGateError(f"{field} must include a timezone")
-    return parsed.astimezone(timezone.utc)
+    return parsed.astimezone(UTC)
 
 
 def _hash(value: Mapping[str, Any]) -> str:
@@ -52,7 +52,7 @@ def normalize_td_preview_costs(
 ) -> dict[str, Any]:
     """Return immutable economic preview evidence or fail closed."""
 
-    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    current = (now or datetime.now(UTC)).astimezone(UTC)
     operator = actor.strip()
     if not _OPERATOR.fullmatch(operator):
         raise TDCostGateError("operator identity is invalid")

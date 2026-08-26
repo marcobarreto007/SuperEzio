@@ -2,7 +2,7 @@
 
 import pytest
 
-import core.resilience as resilience
+from core import resilience
 from core.resilience import CircuitBreaker, CircuitOpenError, CircuitState
 
 

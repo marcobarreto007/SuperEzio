@@ -1,5 +1,5 @@
-import os
 import time
+
 import requests
 from playwright.sync_api import sync_playwright
 
@@ -19,13 +19,10 @@ print(" -> Token autenticado com sucesso.")
 with sync_playwright() as p:
     print(" -> Abrindo o navegador Chromium VISIVEL na tela...")
     # headless=False para ABRIR VISIVEL NA TELA DO USUARIO
-    browser = p.chromium.launch(
-        headless=False,
-        args=["--start-maximized"]
-    )
+    browser = p.chromium.launch(headless=False, args=["--start-maximized"])
     context = browser.new_context(
         no_viewport=True,
-        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     )
     context.add_init_script(f"localStorage.setItem('sz_access_token', '{token}');")
 

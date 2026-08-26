@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Iterable, Mapping
+from datetime import UTC, datetime
+from typing import Any
 
 from .indicators import bollinger, ema, macd, rsi, sma, vwap, vwap_deviation
 from .risk import (
@@ -71,7 +72,7 @@ def _dig(mapping: Mapping[str, Any], *path: str) -> Any:
 @dataclass
 class MathReport:
     ticker: str = ""
-    generated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    generated_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     status: str = "partial"
     modules: dict[str, dict[str, Any]] = field(default_factory=dict)
     summary: dict[str, Any] = field(default_factory=dict)
@@ -447,7 +448,8 @@ class MathHub:
             return {"status": "skipped", "reason": "no_ticker"}
         try:
             import sqlite3
-            from core.math.portfolio import hrp_allocate, covariance_matrix
+
+            from core.math.portfolio import covariance_matrix, hrp_allocate
 
             # Fetch returns for up to 20 tickers from historical cache
             ticker_returns: dict[str, list[float]] = {}

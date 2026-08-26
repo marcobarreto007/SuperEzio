@@ -1,24 +1,6 @@
 """Contract tests for CEO prompt builder invariants."""
 
-from src.core.pipeline.prompts.builder import (
-    build_agent_prompt,
-    agent_system_prompt,
-    _agent_assistant_prefix,
-    _required_module_presence,
-    _render_module_contract,
-    _evaluate_module_coverage,
-    _format_pennylab,
-    _format_neural_decision,
-    _format_math_report,
-    _format_guardrail_hub,
-    _format_mandamentos,
-    missing_agent_text,
-)
-from src.core.pipeline.prompts._prompts import (
-    QWEN_SYSTEM_PROMPT,
-    QWEN_PERSONA,
-    MODEL_PROMPTS,
-)
+from src.core.mission_context import mission_health_summary, render_mission_context_for_prompt
 from src.core.pipeline.nodes.agent import (
     _apply_grounding_guard,
     _contract_fallback_answer,
@@ -26,8 +8,25 @@ from src.core.pipeline.nodes.agent import (
     _repair_answer_quality,
     _should_force_contract_fallback,
 )
-from src.core.mission_context import mission_health_summary, render_mission_context_for_prompt
-
+from src.core.pipeline.prompts._prompts import (
+    MODEL_PROMPTS,
+    QWEN_PERSONA,
+    QWEN_SYSTEM_PROMPT,
+)
+from src.core.pipeline.prompts.builder import (
+    _agent_assistant_prefix,
+    _evaluate_module_coverage,
+    _format_guardrail_hub,
+    _format_mandamentos,
+    _format_math_report,
+    _format_neural_decision,
+    _format_pennylab,
+    _render_module_contract,
+    _required_module_presence,
+    agent_system_prompt,
+    build_agent_prompt,
+    missing_agent_text,
+)
 
 # ---------------------------------------------------------------------------
 # System prompt

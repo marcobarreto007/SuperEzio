@@ -20,7 +20,7 @@ import json
 import logging
 import sqlite3
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -144,7 +144,7 @@ def run_experts_on_ticker(ticker: str) -> dict[str, Any]:
 
     # Store in DB
     conn = _get_db()
-    now_iso = datetime.now(timezone.utc).isoformat()
+    now_iso = datetime.now(UTC).isoformat()
     for role, analysis in analyses.items():
         try:
             conn.execute(

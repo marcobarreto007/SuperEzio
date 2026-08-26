@@ -13,8 +13,9 @@ from __future__ import annotations
 
 import threading
 import time
-from core.config.logging_config import get_logger
 from typing import Any
+
+from core.config.logging_config import get_logger
 
 from .body import get_bobs_body
 

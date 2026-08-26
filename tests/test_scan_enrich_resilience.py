@@ -12,7 +12,6 @@ import types
 
 import pytest
 
-
 TICKERS = ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AMD"]
 
 
@@ -45,7 +44,7 @@ class _StubHub:
         self.calls = 0
         self._lock = threading.Lock()
 
-    def get_price(self, ticker, market=None):  # noqa: ARG002
+    def get_price(self, ticker, market=None):
         with self._lock:
             self.calls += 1
             self.current += 1
@@ -60,7 +59,7 @@ class _StubHub:
             with self._lock:
                 self.current -= 1
 
-    def list_routes(self, capability=None):  # noqa: ARG002
+    def list_routes(self, capability=None):
         return [{"name": "stub", "configured": True}]
 
 

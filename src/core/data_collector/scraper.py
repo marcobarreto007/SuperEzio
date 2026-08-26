@@ -1,5 +1,7 @@
+from typing import Any
+
 import requests
-from typing import Dict, Any
+
 from core.observability.neural_log import log_event
 
 
@@ -13,7 +15,7 @@ class RealTimeScraper:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
 
-    def get_price(self, ticker: str) -> Dict[str, Any]:
+    def get_price(self, ticker: str) -> dict[str, Any]:
         """Busca preço, variação e volume via query1.finance.yahoo.com."""
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
         try:

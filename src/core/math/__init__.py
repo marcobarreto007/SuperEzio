@@ -12,37 +12,37 @@ Organizado por domínio:
 - crisis.py      → 12 modelos CrisisMath + ensemble + normalization + scoring
 """
 
-from .utils import sigmoid, clamp, t_norm, t_conorm, percentile_rank, zscore
-from .indicators import sma, ema, rsi, macd, bollinger, vwap, vwap_deviation
 from .financial_engine import FinancialEngine
+from .indicators import bollinger, ema, macd, rsi, sma, vwap, vwap_deviation
 from .penny_momentum import PennyMomentumConfig, simulate_penny_momentum_backtest
 from .risk import (
-    volatility,
-    sharpe_ratio,
-    sortino_ratio,
-    max_drawdown,
-    calmar_ratio,
-    beta,
     alpha,
-    var_historic,
+    annualized_return,
+    beta,
+    calmar_ratio,
     cvar_historic,
+    expectancy,
     kelly_fraction,
     kelly_position_size,
-    risk_of_ruin,
-    profit_factor,
-    expectancy,
     log_return,
+    max_drawdown,
+    profit_factor,
+    risk_of_ruin,
+    sharpe_ratio,
     simple_return,
-    annualized_return,
+    sortino_ratio,
+    var_historic,
+    volatility,
 )
 from .trading_losses import (
-    directional_loss,
-    sharpe_loss,
-    quantile_loss,
-    multi_horizon_loss,
-    huber_loss,
     directional_accuracy,
+    directional_loss,
+    huber_loss,
+    multi_horizon_loss,
+    quantile_loss,
+    sharpe_loss,
 )
+from .utils import clamp, percentile_rank, sigmoid, t_conorm, t_norm, zscore
 
 __all__ = [
     # utils

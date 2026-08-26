@@ -28,16 +28,16 @@ def create_body(event_bus_type: str = "memory") -> dict:
 
 
 __all__ = [
+    "EMOTION_LABELS",
+    "LAYER_NAMES",
     "BodyEvent",
     "BodyEventBus",
-    "HeartbeatLoop",
-    "create_body",
     "DNAEngine",
-    "Gene",
     "EmotionalState",
-    "PADEngine",
-    "EMOTION_LABELS",
+    "Gene",
+    "HeartbeatLoop",
     "ImmuneSystem",
     "MemoryLattice",
-    "LAYER_NAMES",
+    "PADEngine",
+    "create_body",
 ]

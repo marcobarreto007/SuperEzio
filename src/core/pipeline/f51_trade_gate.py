@@ -16,7 +16,7 @@ from __future__ import annotations
 import os
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from core.config.logging_config import get_logger
@@ -262,8 +262,8 @@ def is_ibkr_connectable() -> bool:
 
 
 def is_journal_healthy(journal_path: str | None = None) -> bool:
-    from pathlib import Path
     import tempfile
+    from pathlib import Path
 
     try:
         if journal_path:
@@ -300,7 +300,7 @@ def is_journal_healthy(journal_path: str | None = None) -> bool:
 # ═══════════════════════════════════════════════════════════════
 
 
-def resolve_and_validate_ticker(symbol: str) -> "tuple[str | None, float | None, str | None]":
+def resolve_and_validate_ticker(symbol: str) -> tuple[str | None, float | None, str | None]:
     if not symbol:
         return None, None, "missing_ticker"
     symbol = symbol.upper().strip()
@@ -313,8 +313,8 @@ def resolve_and_validate_ticker(symbol: str) -> "tuple[str | None, float | None,
     try:
         from core.resilience import (
             CircuitOpenError,
-            get_circuit,
             get_cached_price,
+            get_circuit,
         )
 
         datahub_cb = get_circuit("datahub", failure_threshold=3, recovery_timeout=30)
@@ -346,7 +346,7 @@ def resolve_and_validate_ticker(symbol: str) -> "tuple[str | None, float | None,
         return symbol, None, None
 
 
-def _fetch_price_from_datahub(symbol: str) -> "tuple[str, float, None] | None":
+def _fetch_price_from_datahub(symbol: str) -> tuple[str, float, None] | None:
     """Fetch price from DataHub. Separated for circuit breaker wrapping."""
     from data.data_hub import DataHub
 
@@ -377,7 +377,7 @@ class TradeGateDecision:
     reason: str = ""
     reason_code: str = "UNKNOWN"
     evidence: dict[str, Any] = field(default_factory=dict)
-    checked_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    checked_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     gates_passed: list[str] = field(default_factory=list)
     gates_failed: list[str] = field(default_factory=list)
 
@@ -714,7 +714,7 @@ def record_blocked_order(
             ticker=ticker or "UNKNOWN",
             thesis=f"BLOCKED: {decision.reason_code} - {decision.reason[:100]}",
             direction="blocked",
-            entry_date=datetime.now(timezone.utc).isoformat(),
+            entry_date=datetime.now(UTC).isoformat(),
             entry_price=0.0,
             shares=0,
             entry_reasoning=f"f51_trade_gate | reason_code={decision.reason_code} | run_id={run_id}",
@@ -727,7 +727,7 @@ def record_blocked_order(
             trade_id,
             exit_price=0.0,
             exit_reason=f"BLOCKED:{decision.reason_code}",
-            exit_date=datetime.now(timezone.utc).isoformat(),
+            exit_date=datetime.now(UTC).isoformat(),
         )
         logger.info("[F51_TRADE_GATE] Blocked order recorded: %s", decision.reason_code)
     except Exception as exc:

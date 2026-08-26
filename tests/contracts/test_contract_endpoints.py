@@ -90,6 +90,7 @@ def test_safe_error_detail():
 def test_get_capabilities_contract():
     """get_capabilities requires a request arg; verify signature and route metadata."""
     import inspect
+
     from agent_server.endpoints import get_capabilities
 
     sig = inspect.signature(get_capabilities)
@@ -100,6 +101,7 @@ def test_get_capabilities_contract():
 def test_product_manifest_contract():
     """product_manifest requires a request arg; verify signature."""
     import inspect
+
     from agent_server.endpoints import product_manifest
 
     sig = inspect.signature(product_manifest)

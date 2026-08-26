@@ -1,6 +1,7 @@
 """Unit tests for the SuperEzio Investor Portfolio Allocator."""
 
 import pytest
+
 from scripts.investor_portfolio_allocator import calculate_allocation
 
 

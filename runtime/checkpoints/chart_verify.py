@@ -156,9 +156,7 @@ async def main():
         lw_loaded = await page.evaluate("typeof LightweightCharts !== 'undefined'")
         results["lightweight_charts_loaded"] = lw_loaded
         if lw_loaded:
-            version = await page.evaluate(
-                "LightweightCharts.version || 'unknown'"
-            )
+            version = await page.evaluate("LightweightCharts.version || 'unknown'")
             print(f"  [OK] Lightweight Charts loaded (version: {version})")
         else:
             print("  [FAIL] Lightweight Charts NOT loaded")
@@ -198,9 +196,13 @@ async def main():
         """)
 
         if live_canvas["exists"]:
-            print(f"  [OK] #live-canvas exists: <{live_canvas['tagName']}> display={live_canvas['display']}")
+            print(
+                f"  [OK] #live-canvas exists: <{live_canvas['tagName']}> display={live_canvas['display']}"
+            )
             for child in live_canvas["children"]:
-                print(f"    child: <{child['tagName']}#{child['id']}> flex={child['flex']} height={child['height']}")
+                print(
+                    f"    child: <{child['tagName']}#{child['id']}> flex={child['flex']} height={child['height']}"
+                )
 
             # Check for specific sub-panes
             pane_ids = [c["id"] for c in live_canvas["children"]]
@@ -213,13 +215,18 @@ async def main():
                 print("  [OK] All 3 panes present: main, RSI (88px), MACD (96px)")
             else:
                 missing = []
-                if not has_main: missing.append("main")
-                if not has_rsi: missing.append("RSI")
-                if not has_macd: missing.append("MACD")
+                if not has_main:
+                    missing.append("main")
+                if not has_rsi:
+                    missing.append("RSI")
+                if not has_macd:
+                    missing.append("MACD")
                 print(f"  [WARN] Missing panes: {', '.join(missing)}")
 
             # Verify RSI height is 88px
-            rsi_pane = next((c for c in live_canvas["children"] if c["id"] == "chart-rsi-pane"), None)
+            rsi_pane = next(
+                (c for c in live_canvas["children"] if c["id"] == "chart-rsi-pane"), None
+            )
             if rsi_pane:
                 expected_h = "88px"
                 actual = rsi_pane.get("height", "unknown")
@@ -227,7 +234,9 @@ async def main():
                 print(f"  [INFO] RSI pane height: {actual} (expected {expected_h}) [{match}]")
 
             # Verify MACD height is 96px
-            macd_pane = next((c for c in live_canvas["children"] if c["id"] == "chart-macd-pane"), None)
+            macd_pane = next(
+                (c for c in live_canvas["children"] if c["id"] == "chart-macd-pane"), None
+            )
             if macd_pane:
                 expected_h = "96px"
                 actual = macd_pane.get("height", "unknown")
@@ -465,9 +474,11 @@ async def ensure_server():
 if __name__ == "__main__":
     result = asyncio.run(main())
     if isinstance(result, dict):
-        all_pass = all([
-            result["page_load"],
-            result["lightweight_charts_loaded"],
-            result["chart_dom_structure"],
-        ])
+        all_pass = all(
+            [
+                result["page_load"],
+                result["lightweight_charts_loaded"],
+                result["chart_dom_structure"],
+            ]
+        )
         sys.exit(0 if all_pass else 1)

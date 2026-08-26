@@ -19,8 +19,9 @@ import asyncio
 import logging
 import os
 import time
+from collections.abc import Callable
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from core.body.event_bus import BodyEventBus, EventSeverity
 
@@ -58,7 +59,7 @@ class HeartbeatStage(str, Enum):
 # Stage definitions per cycle
 # ---------------------------------------------------------------------------
 
-FULL_STAGES: List[HeartbeatStage] = [
+FULL_STAGES: list[HeartbeatStage] = [
     HeartbeatStage.SCAN,
     HeartbeatStage.SCORE,
     HeartbeatStage.VERIFY,
@@ -69,13 +70,13 @@ FULL_STAGES: List[HeartbeatStage] = [
     HeartbeatStage.REFLECT,
 ]
 
-LIGHT_STAGES: List[HeartbeatStage] = [
+LIGHT_STAGES: list[HeartbeatStage] = [
     HeartbeatStage.SCAN,
     HeartbeatStage.TRACK,
     HeartbeatStage.LEARN,
 ]
 
-DEEP_STAGES: List[HeartbeatStage] = FULL_STAGES + [HeartbeatStage.CRYSTALLIZE]
+DEEP_STAGES: list[HeartbeatStage] = FULL_STAGES + [HeartbeatStage.CRYSTALLIZE]
 
 # Intervalos em segundos
 INTERVAL_FULL: int = 300  # 5 minutos
@@ -109,21 +110,21 @@ class HeartbeatLoop:
     def __init__(
         self,
         event_bus: BodyEventBus,
-        stage_callbacks: Optional[Dict[HeartbeatStage, StageCallback]] = None,
-        state: Optional[Dict[str, Any]] = None,
+        stage_callbacks: dict[HeartbeatStage, StageCallback] | None = None,
+        state: dict[str, Any] | None = None,
     ):
         self._bus = event_bus
         self._running = False
-        self._tasks: List[asyncio.Task] = []
-        self._current_cycle: Optional[HeartbeatCycle] = None
-        self._current_stage: Optional[HeartbeatStage] = None
+        self._tasks: list[asyncio.Task] = []
+        self._current_cycle: HeartbeatCycle | None = None
+        self._current_stage: HeartbeatStage | None = None
         self._last_full: float = 0.0
         self._last_light: float = 0.0
         self._last_deep: float = 0.0
         self._beat_count: int = 0
-        self._pain_log: List[Dict[str, Any]] = []
+        self._pain_log: list[dict[str, Any]] = []
         self._stage_callbacks = stage_callbacks or {}
-        self._state: Dict[str, Any] = state or {}
+        self._state: dict[str, Any] = state or {}
 
     # ------------------------------------------------------------------
     # Start / Stop
@@ -166,8 +167,8 @@ class HeartbeatLoop:
     async def beat(
         self,
         cycle: HeartbeatCycle = HeartbeatCycle.LIGHT,
-        state: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        state: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Executa um ciclo de heartbeat manualmente.
         Útil para testes ou sob demanda.
@@ -183,8 +184,8 @@ class HeartbeatLoop:
             self._state = dict(state)
 
         stages = self._stages_for_cycle(cycle)
-        errors: List[str] = []
-        executed: List[str] = []
+        errors: list[str] = []
+        executed: list[str] = []
 
         self._current_cycle = cycle
 
@@ -213,7 +214,7 @@ class HeartbeatLoop:
     # Health
     # ------------------------------------------------------------------
 
-    def health(self) -> Dict[str, Any]:
+    def health(self) -> dict[str, Any]:
         """Retorna estado atual do ciclo de heartbeat."""
         now = time.time()
         return {
@@ -271,7 +272,7 @@ class HeartbeatLoop:
     # Stage execution
     # ------------------------------------------------------------------
 
-    def _stages_for_cycle(self, cycle: HeartbeatCycle) -> List[HeartbeatStage]:
+    def _stages_for_cycle(self, cycle: HeartbeatCycle) -> list[HeartbeatStage]:
         if cycle == HeartbeatCycle.LIGHT:
             return LIGHT_STAGES
         elif cycle == HeartbeatCycle.DEEP:
@@ -354,7 +355,7 @@ class HeartbeatLoop:
                     source="f51-heartbeat",
                     severity=EventSeverity.INFO,
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.debug("Heartbeat VERIFY (node_f51_verdict) timed out")
             except Exception as exc:
                 logger.debug(
@@ -417,7 +418,7 @@ class HeartbeatLoop:
                         source="f51-heartbeat",
                         severity=EventSeverity.INFO,
                     )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.debug("Heartbeat SCAN (Mangala) timed out after 15s")
             except Exception:
                 logger.debug("Heartbeat SCAN (Mangala) unavailable")

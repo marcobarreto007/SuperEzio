@@ -21,7 +21,7 @@ explicit ``{"error": ...}`` dicts — never silent zeros or fabricated data.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import requests
 
@@ -128,7 +128,7 @@ class TmxProvider:
         self.timeout = timeout
 
     # ── internal ──────────────────────────────────────────────────────────
-    def _fetch(self, symbol: str) -> Dict[str, Any]:
+    def _fetch(self, symbol: str) -> dict[str, Any]:
         """Query getQuoteBySymbol; returns the raw company dict or an error."""
         tmx_sym = tmx_symbol(symbol)
         if tmx_sym is None:
@@ -160,7 +160,7 @@ class TmxProvider:
             return {"error": "tmx_no_data"}
         return company
 
-    def _base(self, symbol: str, company: Dict[str, Any]) -> Dict[str, Any]:
+    def _base(self, symbol: str, company: dict[str, Any]) -> dict[str, Any]:
         """Shared envelope fields for every public method."""
         return {
             "symbol": symbol,
@@ -174,7 +174,7 @@ class TmxProvider:
         }
 
     # ── public contract (DataHub) ─────────────────────────────────────────
-    def get_price(self, symbol: str, **_: Any) -> Dict[str, Any]:
+    def get_price(self, symbol: str, **_: Any) -> dict[str, Any]:
         """Real-time price snapshot: last price, volume, change, day range."""
         company = self._fetch(symbol)
         if "error" in company:
@@ -195,7 +195,7 @@ class TmxProvider:
             "vwap": _to_float(company.get("vwap")),
         }
 
-    def get_profile(self, symbol: str, **_: Any) -> Dict[str, Any]:
+    def get_profile(self, symbol: str, **_: Any) -> dict[str, Any]:
         """Company profile: name, sector/industry, description, website, size."""
         company = self._fetch(symbol)
         if "error" in company:
@@ -223,13 +223,13 @@ class TmxProvider:
             else None,
         }
 
-    def get_fundamentals(self, symbol: str, **_: Any) -> Dict[str, Any]:
+    def get_fundamentals(self, symbol: str, **_: Any) -> dict[str, Any]:
         """Key ratios: P/E, dividend yield, beta, EPS, 52-week range, ROE/ROA."""
         company = self._fetch(symbol)
         if "error" in company:
             return company
-        envelope: Dict[str, Any] = self._base(symbol, company)
-        payload: Dict[str, Any] = dict(envelope)
+        envelope: dict[str, Any] = self._base(symbol, company)
+        payload: dict[str, Any] = dict(envelope)
         mappings = (
             ("pe_ratio", "peRatio"),
             ("forward_pe", None),  # not exposed by the TMX API — honest absence

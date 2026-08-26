@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from core.sentiment.curator import SentimentCurator
 from core.sentiment.watchlist_pulse import PulseReport, WatchlistPulse
@@ -33,12 +33,12 @@ class FakeMonitor:
                 {
                     "ticker": "TLRY",
                     "sentiment_score": 0.3,
-                    "collected_at": datetime.now(timezone.utc).isoformat(),
+                    "collected_at": datetime.now(UTC).isoformat(),
                 },
                 {
                     "ticker": "TLRY",
                     "sentiment_score": -0.3,
-                    "collected_at": datetime.now(timezone.utc).isoformat(),
+                    "collected_at": datetime.now(UTC).isoformat(),
                 },
             ],
         }
@@ -48,12 +48,12 @@ class FakeMonitor:
             {
                 "type": "SPIKE",
                 "ticker": "TLRY",
-                "detected_at": datetime.now(timezone.utc).isoformat(),
+                "detected_at": datetime.now(UTC).isoformat(),
             },
             {
                 "type": "SWING",
                 "ticker": "AAPL",
-                "detected_at": datetime.now(timezone.utc).isoformat(),
+                "detected_at": datetime.now(UTC).isoformat(),
             },
         ][:limit]
 

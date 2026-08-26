@@ -15,7 +15,6 @@ import asyncio
 import json
 import os
 import sys
-import time
 import urllib.request
 from pathlib import Path
 
@@ -30,111 +29,321 @@ MOCK_CHART_DATA = {
     "profile": {"name": "Test Corp", "sector": "Technology", "currency": "USD", "exchange": "TEST"},
     "price": {"current": 150.25, "previous_close": 149.80, "change": 0.45, "change_pct": 0.30},
     "ohlcv": [
-        {"time": 1721433600, "open": 150.00, "high": 152.00, "low": 149.50, "close": 151.50, "volume": 1250000},
-        {"time": 1721520000, "open": 151.50, "high": 153.00, "low": 150.80, "close": 152.20, "volume": 1100000},
-        {"time": 1721606400, "open": 152.20, "high": 154.50, "low": 151.00, "close": 151.80, "volume": 1350000},
-        {"time": 1721692800, "open": 151.80, "high": 152.50, "low": 148.00, "close": 149.00, "volume": 1500000},
-        {"time": 1721779200, "open": 149.00, "high": 150.00, "low": 147.50, "close": 148.20, "volume": 980000},
-        {"time": 1721865600, "open": 148.20, "high": 149.80, "low": 146.00, "close": 147.00, "volume": 890000},
-        {"time": 1721952000, "open": 147.00, "high": 150.50, "low": 146.50, "close": 150.00, "volume": 1200000},
-        {"time": 1722038400, "open": 150.00, "high": 153.00, "low": 149.50, "close": 152.50, "volume": 1400000},
-        {"time": 1722124800, "open": 152.50, "high": 157.00, "low": 152.00, "close": 156.50, "volume": 1650000},
-        {"time": 1722211200, "open": 156.50, "high": 158.00, "low": 155.00, "close": 155.80, "volume": 1300000},
-        {"time": 1722297600, "open": 155.80, "high": 156.50, "low": 152.00, "close": 153.00, "volume": 1150000},
-        {"time": 1722384000, "open": 153.00, "high": 154.00, "low": 149.50, "close": 150.50, "volume": 1050000},
-        {"time": 1722470400, "open": 150.50, "high": 151.50, "low": 147.00, "close": 148.50, "volume": 950000},
-        {"time": 1722556800, "open": 148.50, "high": 150.00, "low": 146.50, "close": 147.20, "volume": 880000},
-        {"time": 1722643200, "open": 147.20, "high": 149.50, "low": 144.00, "close": 145.00, "volume": 1020000},
-        {"time": 1722729600, "open": 145.00, "high": 147.00, "low": 143.50, "close": 146.50, "volume": 1100000},
-        {"time": 1722816000, "open": 146.50, "high": 151.00, "low": 146.00, "close": 150.50, "volume": 1250000},
-        {"time": 1722902400, "open": 150.50, "high": 153.50, "low": 149.00, "close": 153.00, "volume": 1350000},
-        {"time": 1722988800, "open": 153.00, "high": 154.00, "low": 151.50, "close": 152.00, "volume": 1200000},
-        {"time": 1723075200, "open": 152.00, "high": 155.50, "low": 151.00, "close": 154.80, "volume": 1400000},
+        {
+            "time": 1721433600,
+            "open": 150.00,
+            "high": 152.00,
+            "low": 149.50,
+            "close": 151.50,
+            "volume": 1250000,
+        },
+        {
+            "time": 1721520000,
+            "open": 151.50,
+            "high": 153.00,
+            "low": 150.80,
+            "close": 152.20,
+            "volume": 1100000,
+        },
+        {
+            "time": 1721606400,
+            "open": 152.20,
+            "high": 154.50,
+            "low": 151.00,
+            "close": 151.80,
+            "volume": 1350000,
+        },
+        {
+            "time": 1721692800,
+            "open": 151.80,
+            "high": 152.50,
+            "low": 148.00,
+            "close": 149.00,
+            "volume": 1500000,
+        },
+        {
+            "time": 1721779200,
+            "open": 149.00,
+            "high": 150.00,
+            "low": 147.50,
+            "close": 148.20,
+            "volume": 980000,
+        },
+        {
+            "time": 1721865600,
+            "open": 148.20,
+            "high": 149.80,
+            "low": 146.00,
+            "close": 147.00,
+            "volume": 890000,
+        },
+        {
+            "time": 1721952000,
+            "open": 147.00,
+            "high": 150.50,
+            "low": 146.50,
+            "close": 150.00,
+            "volume": 1200000,
+        },
+        {
+            "time": 1722038400,
+            "open": 150.00,
+            "high": 153.00,
+            "low": 149.50,
+            "close": 152.50,
+            "volume": 1400000,
+        },
+        {
+            "time": 1722124800,
+            "open": 152.50,
+            "high": 157.00,
+            "low": 152.00,
+            "close": 156.50,
+            "volume": 1650000,
+        },
+        {
+            "time": 1722211200,
+            "open": 156.50,
+            "high": 158.00,
+            "low": 155.00,
+            "close": 155.80,
+            "volume": 1300000,
+        },
+        {
+            "time": 1722297600,
+            "open": 155.80,
+            "high": 156.50,
+            "low": 152.00,
+            "close": 153.00,
+            "volume": 1150000,
+        },
+        {
+            "time": 1722384000,
+            "open": 153.00,
+            "high": 154.00,
+            "low": 149.50,
+            "close": 150.50,
+            "volume": 1050000,
+        },
+        {
+            "time": 1722470400,
+            "open": 150.50,
+            "high": 151.50,
+            "low": 147.00,
+            "close": 148.50,
+            "volume": 950000,
+        },
+        {
+            "time": 1722556800,
+            "open": 148.50,
+            "high": 150.00,
+            "low": 146.50,
+            "close": 147.20,
+            "volume": 880000,
+        },
+        {
+            "time": 1722643200,
+            "open": 147.20,
+            "high": 149.50,
+            "low": 144.00,
+            "close": 145.00,
+            "volume": 1020000,
+        },
+        {
+            "time": 1722729600,
+            "open": 145.00,
+            "high": 147.00,
+            "low": 143.50,
+            "close": 146.50,
+            "volume": 1100000,
+        },
+        {
+            "time": 1722816000,
+            "open": 146.50,
+            "high": 151.00,
+            "low": 146.00,
+            "close": 150.50,
+            "volume": 1250000,
+        },
+        {
+            "time": 1722902400,
+            "open": 150.50,
+            "high": 153.50,
+            "low": 149.00,
+            "close": 153.00,
+            "volume": 1350000,
+        },
+        {
+            "time": 1722988800,
+            "open": 153.00,
+            "high": 154.00,
+            "low": 151.50,
+            "close": 152.00,
+            "volume": 1200000,
+        },
+        {
+            "time": 1723075200,
+            "open": 152.00,
+            "high": 155.50,
+            "low": 151.00,
+            "close": 154.80,
+            "volume": 1400000,
+        },
     ],
     "indicators": {
         "sma20": [
-            {"time": 1721433600, "value": 149.50}, {"time": 1721520000, "value": 150.00},
-            {"time": 1721606400, "value": 150.80}, {"time": 1721692800, "value": 150.00},
-            {"time": 1721779200, "value": 149.50}, {"time": 1721865600, "value": 148.80},
-            {"time": 1721952000, "value": 149.00}, {"time": 1722038400, "value": 150.20},
-            {"time": 1722124800, "value": 151.50}, {"time": 1722211200, "value": 152.80},
-            {"time": 1722297600, "value": 153.00}, {"time": 1722384000, "value": 152.00},
-            {"time": 1722470400, "value": 150.50}, {"time": 1722556800, "value": 149.00},
-            {"time": 1722643200, "value": 148.00}, {"time": 1722729600, "value": 147.50},
-            {"time": 1722816000, "value": 148.00}, {"time": 1722902400, "value": 149.50},
-            {"time": 1722988800, "value": 150.80}, {"time": 1723075200, "value": 151.50},
+            {"time": 1721433600, "value": 149.50},
+            {"time": 1721520000, "value": 150.00},
+            {"time": 1721606400, "value": 150.80},
+            {"time": 1721692800, "value": 150.00},
+            {"time": 1721779200, "value": 149.50},
+            {"time": 1721865600, "value": 148.80},
+            {"time": 1721952000, "value": 149.00},
+            {"time": 1722038400, "value": 150.20},
+            {"time": 1722124800, "value": 151.50},
+            {"time": 1722211200, "value": 152.80},
+            {"time": 1722297600, "value": 153.00},
+            {"time": 1722384000, "value": 152.00},
+            {"time": 1722470400, "value": 150.50},
+            {"time": 1722556800, "value": 149.00},
+            {"time": 1722643200, "value": 148.00},
+            {"time": 1722729600, "value": 147.50},
+            {"time": 1722816000, "value": 148.00},
+            {"time": 1722902400, "value": 149.50},
+            {"time": 1722988800, "value": 150.80},
+            {"time": 1723075200, "value": 151.50},
         ],
         "sma50": [
-            {"time": 1721433600, "value": 147.00}, {"time": 1721520000, "value": 147.50},
-            {"time": 1721606400, "value": 148.00}, {"time": 1721692800, "value": 148.00},
-            {"time": 1721779200, "value": 147.50}, {"time": 1721865600, "value": 147.00},
-            {"time": 1721952000, "value": 147.50}, {"time": 1722038400, "value": 148.00},
-            {"time": 1722124800, "value": 149.00}, {"time": 1722211200, "value": 149.50},
-            {"time": 1722297600, "value": 149.00}, {"time": 1722384000, "value": 148.50},
-            {"time": 1722470400, "value": 148.00}, {"time": 1722556800, "value": 147.50},
-            {"time": 1722643200, "value": 146.50}, {"time": 1722729600, "value": 146.00},
-            {"time": 1722816000, "value": 146.50}, {"time": 1722902400, "value": 147.00},
-            {"time": 1722988800, "value": 147.50}, {"time": 1723075200, "value": 148.00},
+            {"time": 1721433600, "value": 147.00},
+            {"time": 1721520000, "value": 147.50},
+            {"time": 1721606400, "value": 148.00},
+            {"time": 1721692800, "value": 148.00},
+            {"time": 1721779200, "value": 147.50},
+            {"time": 1721865600, "value": 147.00},
+            {"time": 1721952000, "value": 147.50},
+            {"time": 1722038400, "value": 148.00},
+            {"time": 1722124800, "value": 149.00},
+            {"time": 1722211200, "value": 149.50},
+            {"time": 1722297600, "value": 149.00},
+            {"time": 1722384000, "value": 148.50},
+            {"time": 1722470400, "value": 148.00},
+            {"time": 1722556800, "value": 147.50},
+            {"time": 1722643200, "value": 146.50},
+            {"time": 1722729600, "value": 146.00},
+            {"time": 1722816000, "value": 146.50},
+            {"time": 1722902400, "value": 147.00},
+            {"time": 1722988800, "value": 147.50},
+            {"time": 1723075200, "value": 148.00},
         ],
         "ema20": [
-            {"time": 1721433600, "value": 149.80}, {"time": 1721520000, "value": 150.20},
-            {"time": 1721606400, "value": 151.00}, {"time": 1721692800, "value": 150.20},
-            {"time": 1721779200, "value": 149.50}, {"time": 1721865600, "value": 148.50},
-            {"time": 1721952000, "value": 149.00}, {"time": 1722038400, "value": 150.50},
-            {"time": 1722124800, "value": 152.00}, {"time": 1722211200, "value": 153.50},
-            {"time": 1722297600, "value": 153.00}, {"time": 1722384000, "value": 152.00},
-            {"time": 1722470400, "value": 150.50}, {"time": 1722556800, "value": 149.00},
-            {"time": 1722643200, "value": 147.50}, {"time": 1722729600, "value": 147.00},
-            {"time": 1722816000, "value": 148.50}, {"time": 1722902400, "value": 150.00},
-            {"time": 1722988800, "value": 151.00}, {"time": 1723075200, "value": 152.00},
+            {"time": 1721433600, "value": 149.80},
+            {"time": 1721520000, "value": 150.20},
+            {"time": 1721606400, "value": 151.00},
+            {"time": 1721692800, "value": 150.20},
+            {"time": 1721779200, "value": 149.50},
+            {"time": 1721865600, "value": 148.50},
+            {"time": 1721952000, "value": 149.00},
+            {"time": 1722038400, "value": 150.50},
+            {"time": 1722124800, "value": 152.00},
+            {"time": 1722211200, "value": 153.50},
+            {"time": 1722297600, "value": 153.00},
+            {"time": 1722384000, "value": 152.00},
+            {"time": 1722470400, "value": 150.50},
+            {"time": 1722556800, "value": 149.00},
+            {"time": 1722643200, "value": 147.50},
+            {"time": 1722729600, "value": 147.00},
+            {"time": 1722816000, "value": 148.50},
+            {"time": 1722902400, "value": 150.00},
+            {"time": 1722988800, "value": 151.00},
+            {"time": 1723075200, "value": 152.00},
         ],
         "rsi": [
-            {"time": 1721433600, "value": 55.0}, {"time": 1721520000, "value": 58.0},
-            {"time": 1721606400, "value": 62.0}, {"time": 1721692800, "value": 45.0},
-            {"time": 1721779200, "value": 42.0}, {"time": 1721865600, "value": 35.0},
-            {"time": 1721952000, "value": 48.0}, {"time": 1722038400, "value": 55.0},
-            {"time": 1722124800, "value": 65.0}, {"time": 1722211200, "value": 68.0},
-            {"time": 1722297600, "value": 60.0}, {"time": 1722384000, "value": 50.0},
-            {"time": 1722470400, "value": 42.0}, {"time": 1722556800, "value": 38.0},
-            {"time": 1722643200, "value": 30.0}, {"time": 1722729600, "value": 33.0},
-            {"time": 1722816000, "value": 40.0}, {"time": 1722902400, "value": 52.0},
-            {"time": 1722988800, "value": 55.0}, {"time": 1723075200, "value": 60.0},
+            {"time": 1721433600, "value": 55.0},
+            {"time": 1721520000, "value": 58.0},
+            {"time": 1721606400, "value": 62.0},
+            {"time": 1721692800, "value": 45.0},
+            {"time": 1721779200, "value": 42.0},
+            {"time": 1721865600, "value": 35.0},
+            {"time": 1721952000, "value": 48.0},
+            {"time": 1722038400, "value": 55.0},
+            {"time": 1722124800, "value": 65.0},
+            {"time": 1722211200, "value": 68.0},
+            {"time": 1722297600, "value": 60.0},
+            {"time": 1722384000, "value": 50.0},
+            {"time": 1722470400, "value": 42.0},
+            {"time": 1722556800, "value": 38.0},
+            {"time": 1722643200, "value": 30.0},
+            {"time": 1722729600, "value": 33.0},
+            {"time": 1722816000, "value": 40.0},
+            {"time": 1722902400, "value": 52.0},
+            {"time": 1722988800, "value": 55.0},
+            {"time": 1723075200, "value": 60.0},
         ],
         "bb_upper": [
-            {"time": 1721433600, "value": 155.0}, {"time": 1721520000, "value": 156.0},
-            {"time": 1721606400, "value": 157.0}, {"time": 1721692800, "value": 155.0},
-            {"time": 1721779200, "value": 154.0}, {"time": 1721865600, "value": 152.0},
-            {"time": 1721952000, "value": 153.0}, {"time": 1722038400, "value": 155.0},
-            {"time": 1722124800, "value": 158.0}, {"time": 1722211200, "value": 159.0},
-            {"time": 1722297600, "value": 158.0}, {"time": 1722384000, "value": 156.0},
-            {"time": 1722470400, "value": 154.0}, {"time": 1722556800, "value": 152.0},
-            {"time": 1722643200, "value": 150.0}, {"time": 1722729600, "value": 150.0},
-            {"time": 1722816000, "value": 152.0}, {"time": 1722902400, "value": 154.0},
-            {"time": 1722988800, "value": 155.0}, {"time": 1723075200, "value": 156.0},
+            {"time": 1721433600, "value": 155.0},
+            {"time": 1721520000, "value": 156.0},
+            {"time": 1721606400, "value": 157.0},
+            {"time": 1721692800, "value": 155.0},
+            {"time": 1721779200, "value": 154.0},
+            {"time": 1721865600, "value": 152.0},
+            {"time": 1721952000, "value": 153.0},
+            {"time": 1722038400, "value": 155.0},
+            {"time": 1722124800, "value": 158.0},
+            {"time": 1722211200, "value": 159.0},
+            {"time": 1722297600, "value": 158.0},
+            {"time": 1722384000, "value": 156.0},
+            {"time": 1722470400, "value": 154.0},
+            {"time": 1722556800, "value": 152.0},
+            {"time": 1722643200, "value": 150.0},
+            {"time": 1722729600, "value": 150.0},
+            {"time": 1722816000, "value": 152.0},
+            {"time": 1722902400, "value": 154.0},
+            {"time": 1722988800, "value": 155.0},
+            {"time": 1723075200, "value": 156.0},
         ],
         "bb_lower": [
-            {"time": 1721433600, "value": 145.0}, {"time": 1721520000, "value": 145.0},
-            {"time": 1721606400, "value": 146.0}, {"time": 1721692800, "value": 144.0},
-            {"time": 1721779200, "value": 143.0}, {"time": 1721865600, "value": 142.0},
-            {"time": 1721952000, "value": 143.0}, {"time": 1722038400, "value": 144.0},
-            {"time": 1722124800, "value": 146.0}, {"time": 1722211200, "value": 147.0},
-            {"time": 1722297600, "value": 146.0}, {"time": 1722384000, "value": 145.0},
-            {"time": 1722470400, "value": 143.0}, {"time": 1722556800, "value": 142.0},
-            {"time": 1722643200, "value": 141.0}, {"time": 1722729600, "value": 140.0},
-            {"time": 1722816000, "value": 142.0}, {"time": 1722902400, "value": 143.0},
-            {"time": 1722988800, "value": 144.0}, {"time": 1723075200, "value": 145.0},
+            {"time": 1721433600, "value": 145.0},
+            {"time": 1721520000, "value": 145.0},
+            {"time": 1721606400, "value": 146.0},
+            {"time": 1721692800, "value": 144.0},
+            {"time": 1721779200, "value": 143.0},
+            {"time": 1721865600, "value": 142.0},
+            {"time": 1721952000, "value": 143.0},
+            {"time": 1722038400, "value": 144.0},
+            {"time": 1722124800, "value": 146.0},
+            {"time": 1722211200, "value": 147.0},
+            {"time": 1722297600, "value": 146.0},
+            {"time": 1722384000, "value": 145.0},
+            {"time": 1722470400, "value": 143.0},
+            {"time": 1722556800, "value": 142.0},
+            {"time": 1722643200, "value": 141.0},
+            {"time": 1722729600, "value": 140.0},
+            {"time": 1722816000, "value": 142.0},
+            {"time": 1722902400, "value": 143.0},
+            {"time": 1722988800, "value": 144.0},
+            {"time": 1723075200, "value": 145.0},
         ],
         "vwap": [
-            {"time": 1721433600, "value": 150.50}, {"time": 1721520000, "value": 151.00},
-            {"time": 1721606400, "value": 151.80}, {"time": 1721692800, "value": 150.50},
-            {"time": 1721779200, "value": 149.00}, {"time": 1721865600, "value": 148.00},
-            {"time": 1721952000, "value": 148.50}, {"time": 1722038400, "value": 150.00},
-            {"time": 1722124800, "value": 152.00}, {"time": 1722211200, "value": 153.00},
-            {"time": 1722297600, "value": 152.50}, {"time": 1722384000, "value": 151.00},
-            {"time": 1722470400, "value": 149.50}, {"time": 1722556800, "value": 148.00},
-            {"time": 1722643200, "value": 146.50}, {"time": 1722729600, "value": 145.50},
-            {"time": 1722816000, "value": 147.00}, {"time": 1722902400, "value": 149.00},
-            {"time": 1722988800, "value": 150.50}, {"time": 1723075200, "value": 151.50},
+            {"time": 1721433600, "value": 150.50},
+            {"time": 1721520000, "value": 151.00},
+            {"time": 1721606400, "value": 151.80},
+            {"time": 1721692800, "value": 150.50},
+            {"time": 1721779200, "value": 149.00},
+            {"time": 1721865600, "value": 148.00},
+            {"time": 1721952000, "value": 148.50},
+            {"time": 1722038400, "value": 150.00},
+            {"time": 1722124800, "value": 152.00},
+            {"time": 1722211200, "value": 153.00},
+            {"time": 1722297600, "value": 152.50},
+            {"time": 1722384000, "value": 151.00},
+            {"time": 1722470400, "value": 149.50},
+            {"time": 1722556800, "value": 148.00},
+            {"time": 1722643200, "value": 146.50},
+            {"time": 1722729600, "value": 145.50},
+            {"time": 1722816000, "value": 147.00},
+            {"time": 1722902400, "value": 149.00},
+            {"time": 1722988800, "value": 150.50},
+            {"time": 1723075200, "value": 151.50},
         ],
         "macd": {"histogram": [], "line": [], "signal": []},
         "macd_histogram": [],
@@ -199,7 +408,13 @@ async def main():
                     # Try to register
                     req = urllib.request.Request(
                         f"{FRONTEND_URL}/auth/register",
-                        data=json.dumps({"username": username, "email": f"{username}@test.com", "password": "test12345"}).encode(),
+                        data=json.dumps(
+                            {
+                                "username": username,
+                                "email": f"{username}@test.com",
+                                "password": "test12345",
+                            }
+                        ).encode(),
                         headers={"Content-Type": "application/json"},
                         method="POST",
                     )
@@ -217,7 +432,7 @@ async def main():
                     token = data.get("access_token", "")
                     print(f"  [OK] Logged in as '{username}'")
                     break
-                except Exception as e2:
+                except Exception:
                     continue
 
         if not token:
@@ -256,7 +471,9 @@ async def main():
         await page.wait_for_timeout(500)
 
         # Wait for and call chart rendering
-        has_chart_module = await page.evaluate("typeof SZ.chart !== 'undefined' && typeof SZ.chart._apply === 'function'")
+        has_chart_module = await page.evaluate(
+            "typeof SZ.chart !== 'undefined' && typeof SZ.chart._apply === 'function'"
+        )
         if has_chart_module:
             print("  [OK] SZ.chart module detected, calling render...")
             await page.evaluate("SZ.chart._apply();")
@@ -270,15 +487,20 @@ async def main():
             await page.wait_for_timeout(1000)
 
         # If chart still didn't init, call it directly
-        chart_inited = await page.evaluate("typeof SZ !== 'undefined' && SZ.chart && SZ.chart._apply ? true : false")
+        chart_inited = await page.evaluate(
+            "typeof SZ !== 'undefined' && SZ.chart && SZ.chart._apply ? true : false"
+        )
         if not chart_inited:
             print("  [WARN] Chart not initialized, forcing init...")
-            await page.evaluate("""
+            await page.evaluate(
+                """
                 if (typeof SZ !== 'undefined' && SZ.chart && SZ.chart.load) {
                     SZ.state.chartData = arguments[0];
                     SZ.chart.load('TEST', '6M');
                 }
-            """, json.dumps(MOCK_CHART_DATA))
+            """,
+                json.dumps(MOCK_CHART_DATA),
+            )
             await page.wait_for_timeout(2000)
 
         # ── Step 4: Check Lightweight Charts and chart DOM ──
@@ -293,7 +515,9 @@ async def main():
         else:
             print("  [FAIL] Lightweight Charts NOT loaded")
             # Check CDN availability
-            cdn_ok = await page.evaluate("document.querySelector('script[src*=\"lightweight-charts\"]') !== null")
+            cdn_ok = await page.evaluate(
+                "document.querySelector('script[src*=\"lightweight-charts\"]') !== null"
+            )
             print(f"  [INFO] CDN script tag present: {cdn_ok}")
 
         # Chart DOM structure
@@ -321,7 +545,9 @@ async def main():
             results["chart_dom_correct"] = True
             print(f"  [OK] #live-canvas <{dom_info['tag']}> display={dom_info['display']}")
             for child in dom_info["children"]:
-                print(f"    <{child['tag']}#{child['id']}> flex={child['flex']} minH={child['minH']}")
+                print(
+                    f"    <{child['tag']}#{child['id']}> flex={child['flex']} minH={child['minH']}"
+                )
         else:
             print(f"  [FAIL] Chart DOM incomplete: {json.dumps(dom_info)}")
 
@@ -408,13 +634,17 @@ async def main():
 
         if rsi_pane:
             results["rsi_subpane_exists"] = True
-            print(f"  [OK] RSI sub-pane: height={rsi_pane['height']}, canvases={rsi_pane['canvasCount']}, label={rsi_pane['label']}")
+            print(
+                f"  [OK] RSI sub-pane: height={rsi_pane['height']}, canvases={rsi_pane['canvasCount']}, label={rsi_pane['label']}"
+            )
         else:
             print("  [FAIL] RSI sub-pane not found")
 
         if macd_pane:
             results["macd_subpane_exists"] = True
-            print(f"  [OK] MACD sub-pane: height={macd_pane['height']}, canvases={macd_pane['canvasCount']}, label={macd_pane['label']}")
+            print(
+                f"  [OK] MACD sub-pane: height={macd_pane['height']}, canvases={macd_pane['canvasCount']}, label={macd_pane['label']}"
+            )
         else:
             print("  [FAIL] MACD sub-pane not found")
 
@@ -478,7 +708,7 @@ async def main():
             results["dark_theme"] = True
             print("  [OK] Dark surface color detected (rendered from CSS var)")
         else:
-            print(f"  [WARN] Could not detect expected dark surface (#111820)")
+            print("  [WARN] Could not detect expected dark surface (#111820)")
             print(f"    Found: cssSurface={css}, stageBg={stage_bg}")
 
         # Check bull/bear colors
@@ -488,7 +718,9 @@ async def main():
             results["colors_correct"] = True
             print(f"  [OK] Bull/bear colors match: bull={green}, bear={red}")
         else:
-            print(f"  [WARN] Colors mismatch: expected bull=#00e676 bear=#ef5350, got bull={green} bear={red}")
+            print(
+                f"  [WARN] Colors mismatch: expected bull=#00e676 bear=#ef5350, got bull={green} bear={red}"
+            )
 
         # Check stage background for the surface color visually
         stage_actual_bg = await page.evaluate("""

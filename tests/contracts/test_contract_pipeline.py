@@ -1,14 +1,13 @@
 """Contract tests for PipelineState + Pydantic node I/O models."""
 
 from src.core.pipeline.contracts import (
-    PipelineState,
-    AgentToolCall,
-    IntentResult,
     AgentRequest,
+    AgentToolCall,
     ExpertCall,
+    IntentResult,
+    PipelineState,
     _expert_results_reducer,
 )
-
 
 # ---------------------------------------------------------------------------
 # PipelineState TypedDict

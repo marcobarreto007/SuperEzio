@@ -79,7 +79,7 @@ def test_sentiment_watchlist_loads_from_storage(monkeypatch):
 
 
 def test_sentiment_services_start_and_stop(monkeypatch):
-    import agent_server.main as main
+    from agent_server import main
 
     started = []
     stopped = []

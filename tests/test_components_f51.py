@@ -303,7 +303,7 @@ def test_adversarial_critic_llm_exception_fails_closed():
 
 # ── F51 Scoring ──
 def test_platinum_scorer():
-    from src.f51.scoring import PlatinumScorer, Candidate
+    from src.f51.scoring import Candidate, PlatinumScorer
 
     scorer = PlatinumScorer()
     assert scorer is not None

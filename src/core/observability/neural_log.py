@@ -7,14 +7,14 @@ Sistema unificado de observabilidade com:
 - Spans para rastrear o fluxo da Tríade
 """
 
-import logging
 import json
+import logging
 import os
-from queue import Queue
-from datetime import datetime
-from typing import Dict, Any, Optional
-from functools import wraps
 import warnings
+from datetime import datetime
+from functools import wraps
+from queue import Queue
+from typing import Any
 
 # Silencia deprecation ruidoso do OTEL (utcfromtimestamp)
 warnings.filterwarnings(
@@ -33,12 +33,12 @@ OTEL_AVAILABLE = False
 if os.getenv("DISABLE_OTEL") != "1":
     try:
         from opentelemetry import trace
+        from opentelemetry.sdk.resources import Resource
         from opentelemetry.sdk.trace import TracerProvider
         from opentelemetry.sdk.trace.export import (
             ConsoleSpanExporter,
             SimpleSpanProcessor,
         )
-        from opentelemetry.sdk.resources import Resource
         from opentelemetry.trace import Status, StatusCode
 
         OTEL_AVAILABLE = True
@@ -87,7 +87,7 @@ console_handler.setFormatter(console_format)
 neural_logger.addHandler(console_handler)
 
 
-def log_event(phase: str, event: str, data: Optional[Dict[str, Any]] = None) -> None:
+def log_event(phase: str, event: str, data: dict[str, Any] | None = None) -> None:
     """
     Log a neural event to the queue and console.
 
@@ -118,7 +118,7 @@ def log_event(phase: str, event: str, data: Optional[Dict[str, Any]] = None) -> 
 _tracer = None
 
 
-def setup_telemetry(service_name: str = "f51-universal-agent") -> Optional[Any]:
+def setup_telemetry(service_name: str = "f51-universal-agent") -> Any | None:
     """
     Setup OpenTelemetry tracing.
     Returns the tracer instance.
@@ -168,7 +168,7 @@ def get_tracer() -> Any:
 # ============================================
 
 
-def trace_span(name: str, attributes: Optional[Dict[str, Any]] = None):
+def trace_span(name: str, attributes: dict[str, Any] | None = None):
     """
     Decorator to trace a function with OpenTelemetry span.
     Also logs to Neural Log.
@@ -216,7 +216,7 @@ def trace_span(name: str, attributes: Optional[Dict[str, Any]] = None):
     return decorator
 
 
-def trace_span_async(name: str, attributes: Optional[Dict[str, Any]] = None):
+def trace_span_async(name: str, attributes: dict[str, Any] | None = None):
     """
     Async version of trace_span decorator.
     """
@@ -266,7 +266,7 @@ class SpanContext:
             result = do_work()
     """
 
-    def __init__(self, name: str, attributes: Optional[Dict[str, Any]] = None):
+    def __init__(self, name: str, attributes: dict[str, Any] | None = None):
         self.name = name
         self.attributes = attributes or {}
         self.span = None
@@ -309,8 +309,8 @@ class SimpleMetrics:
     """In-memory metrics collector com percentis, latência e erro rate."""
 
     def __init__(self):
-        self._counters: Dict[str, int] = {}
-        self._histograms: Dict[str, list] = {}
+        self._counters: dict[str, int] = {}
+        self._histograms: dict[str, list] = {}
         self._start_time: float = __import__("time").time()
 
     def increment(self, name: str, value: int = 1):
@@ -357,7 +357,7 @@ class SimpleMetrics:
     def uptime_seconds(self) -> float:
         return __import__("time").time() - self._start_time
 
-    def get_all(self) -> Dict[str, Any]:
+    def get_all(self) -> dict[str, Any]:
         histograms = {}
         for k, v in self._histograms.items():
             sv = sorted(v)

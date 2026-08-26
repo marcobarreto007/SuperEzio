@@ -16,8 +16,8 @@ import asyncio
 import json
 import logging
 import sys
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -81,7 +81,7 @@ class MangalaOpportunity:
     pump_risk: str
     pump_score: int
     flip_plan: dict[str, Any]
-    scanned_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    scanned_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -94,7 +94,7 @@ class MangalaOpportunity:
 
 def _now_et() -> datetime:
     """Return current time approximated as US Eastern (UTC-4 EDT / UTC-5 EST)."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     # Simplificacao: EDT = UTC-4 (marco a novembro)
     # Para o proposito do scan, usar UTC-4 é suficiente
     et_hour = (now.hour - 4) % 24
@@ -630,7 +630,7 @@ def _save_scan_results(opportunities: list[MangalaOpportunity]) -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     payload = {
-        "scanned_at": datetime.now(timezone.utc).isoformat(),
+        "scanned_at": datetime.now(UTC).isoformat(),
         "count": len(opportunities),
         "opportunities": [o.to_dict() for o in opportunities],
     }

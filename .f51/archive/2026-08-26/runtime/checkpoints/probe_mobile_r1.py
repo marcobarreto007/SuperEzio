@@ -1,16 +1,22 @@
 """Probe: measure mobile layout geometry at 390x844 and 320x844 (authenticated)."""
-import json, sys
+
+import json
+
 from playwright.sync_api import sync_playwright
 
 BASE = "http://127.0.0.1:8002"
 
+
 def login():
     import urllib.request
+
     payload = json.dumps({"username": "rapha", "password": "12345678"}).encode()
-    req = urllib.request.Request(f"{BASE}/auth/login", data=payload,
-                                 headers={"Content-Type": "application/json"})
+    req = urllib.request.Request(
+        f"{BASE}/auth/login", data=payload, headers={"Content-Type": "application/json"}
+    )
     with urllib.request.urlopen(req, timeout=10) as r:
         return json.loads(r.read().decode())["access_token"]
+
 
 def probe(page):
     return page.evaluate("""() => {
@@ -65,8 +71,12 @@ token = login()
 with sync_playwright() as pw:
     browser = pw.chromium.launch(headless=True)
     for vw, vh in [(390, 844), (320, 844)]:
-        ctx = browser.new_context(viewport={"width": vw, "height": vh},
-                                  device_scale_factor=2, is_mobile=True, has_touch=True)
+        ctx = browser.new_context(
+            viewport={"width": vw, "height": vh},
+            device_scale_factor=2,
+            is_mobile=True,
+            has_touch=True,
+        )
         ctx.add_init_script(f"localStorage.setItem('sz_access_token', {json.dumps(token)});")
         page = ctx.new_page()
         errs = []

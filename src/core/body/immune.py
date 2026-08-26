@@ -16,9 +16,9 @@ import shutil
 import subprocess
 import sys
 import threading
-from datetime import datetime, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Callable
 
 # Default kernel — files that are NEVER allowed to be modified without review.
 # Paths are relative to the project root.
@@ -260,7 +260,7 @@ def _file_hash(path: Path) -> str:
 
 
 def _now_stamp() -> str:
-    return datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
+    return datetime.now(UTC).strftime("%Y%m%d_%H%M%S_%f")
 
 
 def _find_project_root() -> Path:
@@ -273,7 +273,7 @@ def _find_project_root() -> Path:
 
 
 __all__ = [
-    "ImmuneSystem",
     "_DEFAULT_KERNEL",
     "_MAX_MODULE_LINES",
+    "ImmuneSystem",
 ]

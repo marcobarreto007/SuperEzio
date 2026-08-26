@@ -14,6 +14,7 @@ O KillSwitch existe mas NUNCA é chamado. Integrar:
 ```python
 # No graph.py, ANTES de submit_paper_order:
 from core.trading.kill_switch import KillSwitch
+
 kill = get_kill_switch()
 if kill.is_active:
     return {"blocked": True, "reason": kill.state.reason.value}

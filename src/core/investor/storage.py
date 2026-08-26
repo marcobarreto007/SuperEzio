@@ -20,9 +20,9 @@ import json
 import os
 import sqlite3
 import threading as _threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 def _db_path() -> Path:
@@ -32,7 +32,7 @@ def _db_path() -> Path:
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 class InvestorStorage:
@@ -41,7 +41,7 @@ class InvestorStorage:
     Nunca persiste API keys, credenciais ou ordens de corretora.
     """
 
-    def __init__(self, db_path: Optional[Path] = None) -> None:
+    def __init__(self, db_path: Path | None = None) -> None:
         self.db_path = db_path or _db_path()
         self._init_db()
 
@@ -117,8 +117,8 @@ class InvestorStorage:
     def save_decision(
         self,
         ticker: str,
-        user_input: Dict[str, Any],
-        response: Dict[str, Any],
+        user_input: dict[str, Any],
+        response: dict[str, Any],
         model_used: str = "deepseek-v4-pro",
         cost_usd: float = 0.0,
     ) -> int:
@@ -162,7 +162,7 @@ class InvestorStorage:
             )
             return cur.lastrowid
 
-    def list_decisions(self, ticker: Optional[str] = None, limit: int = 20) -> List[Dict]:
+    def list_decisions(self, ticker: str | None = None, limit: int = 20) -> list[dict]:
         with self._connect() as conn:
             if ticker:
                 rows = conn.execute(
@@ -207,8 +207,8 @@ class InvestorStorage:
                 ),
             )
 
-    def usage_today(self) -> Dict[str, Any]:
-        today = datetime.now(timezone.utc).date().isoformat()
+    def usage_today(self) -> dict[str, Any]:
+        today = datetime.now(UTC).date().isoformat()
         with self._connect() as conn:
             row = conn.execute(
                 """
@@ -235,7 +235,7 @@ class InvestorStorage:
             )
             return cur.lastrowid
 
-    def get_watchlist(self) -> List[Dict]:
+    def get_watchlist(self) -> list[dict]:
         with self._connect() as conn:
             rows = conn.execute("SELECT * FROM investor_watchlist ORDER BY id DESC").fetchall()
         return [dict(r) for r in rows]
@@ -244,7 +244,7 @@ class InvestorStorage:
     # investor_notes
     # ------------------------------------------------------------------
 
-    def add_note(self, note: str, ticker: Optional[str] = None) -> int:
+    def add_note(self, note: str, ticker: str | None = None) -> int:
         with self._connect() as conn:
             cur = conn.execute(
                 "INSERT INTO investor_notes (ticker, note, created_at) VALUES (?, ?, ?)",
@@ -252,7 +252,7 @@ class InvestorStorage:
             )
             return cur.lastrowid
 
-    def list_notes(self, ticker: Optional[str] = None, limit: int = 20) -> List[Dict]:
+    def list_notes(self, ticker: str | None = None, limit: int = 20) -> list[dict]:
         with self._connect() as conn:
             if ticker:
                 rows = conn.execute(

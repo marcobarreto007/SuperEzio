@@ -11,7 +11,6 @@ from typing import Any
 
 import httpx
 
-
 LIVE_LOGIN_URL = "https://login.questrade.com/oauth2/token"
 PRACTICE_LOGIN_URL = "https://practicelogin.questrade.com/oauth2/token"
 
@@ -47,7 +46,7 @@ class QuestradeReadOnlyClient:
     def close(self) -> None:
         self._client.close()
 
-    def __enter__(self) -> "QuestradeReadOnlyClient":
+    def __enter__(self) -> QuestradeReadOnlyClient:
         return self
 
     def __exit__(self, *_: object) -> None:

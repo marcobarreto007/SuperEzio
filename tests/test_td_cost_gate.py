@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from core.trading.td_cost_gate import TDCostGateError, normalize_td_preview_costs
 
-
-NOW = datetime(2026, 8, 19, 5, 30, tzinfo=timezone.utc)
+NOW = datetime(2026, 8, 19, 5, 30, tzinfo=UTC)
 
 
 def _ticket(**overrides: object) -> dict[str, object]:

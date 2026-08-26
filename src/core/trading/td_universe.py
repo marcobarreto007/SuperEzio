@@ -24,10 +24,11 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime, timezone
+from collections.abc import Iterable
+from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 # Explicit exclusion markers for non-listed venues. Kept as a distinct
 # concept from the allowlist so OTC gets its own rejection reason
@@ -188,8 +189,8 @@ def _manifest_age_days(data: dict[str, Any]) -> float | None:
     except ValueError:
         return None
     if stamp.tzinfo is None:
-        stamp = stamp.replace(tzinfo=timezone.utc)
-    return (datetime.now(timezone.utc) - stamp).total_seconds() / 86400.0
+        stamp = stamp.replace(tzinfo=UTC)
+    return (datetime.now(UTC) - stamp).total_seconds() / 86400.0
 
 
 def tradable_universe_state() -> dict[str, Any]:

@@ -35,8 +35,8 @@ def register_custom_tools(registry):
           max_dd(equity_csv)   -> máximo drawdown de uma curva
           vol(returns_csv)     -> volatilidade anualizada
         """
-        import math
         import ast
+        import math
         import operator
 
         allowed_ops = {
@@ -86,11 +86,9 @@ def register_custom_tools(registry):
             peak = eq[0]
             max_dd = 0.0
             for v in eq:
-                if v > peak:
-                    peak = v
+                peak = max(peak, v)
                 dd = (v - peak) / peak if peak != 0 else 0
-                if dd < max_dd:
-                    max_dd = dd
+                max_dd = min(max_dd, dd)
             return max_dd
 
         def _vol(returns_csv: str) -> float:
@@ -275,7 +273,7 @@ def create_code_executor_tool():
 
     def execute_python(code: str) -> str:
         import io
-        from contextlib import redirect_stdout, redirect_stderr
+        from contextlib import redirect_stderr, redirect_stdout
 
         err = _validate_ast(code)
         if err:

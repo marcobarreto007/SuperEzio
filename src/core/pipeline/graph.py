@@ -6,31 +6,32 @@ import asyncio
 import os
 import re
 import uuid
-from typing import Any, AsyncGenerator, Generator
-from core.config.logging_config import get_logger
+from collections.abc import AsyncGenerator, Generator
+from typing import Any
 
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 
+from core.config.logging_config import get_logger
 from core.evidence import EvidenceRun, generate_html_report, save_evidence
 from core.math.math_hub import MathHub
 
 from .contracts import PipelineState
 from .nodes import (
     node_agent,
+    node_blocked,
     node_collector,
+    node_explanation,
+    node_orchestrator,
     node_tool_executor,
     route_after_agent,
-    node_explanation,
-    node_blocked,
-    node_orchestrator,
 )
-from .nodes.experts import node_collect_experts, node_expert, EXPERT_PROVIDERS
+from .nodes.experts import EXPERT_PROVIDERS, node_collect_experts, node_expert
 from .nodes.f51 import node_f51_verdict
-from .nodes.neural_decision import node_neural_decision
-from .nodes.sdca_firewall import node_sdca_firewall
-from .nodes.rag import node_rag_forensics
 from .nodes.guardrail_hub import node_guardrail_hub
+from .nodes.neural_decision import node_neural_decision
+from .nodes.rag import node_rag_forensics
+from .nodes.sdca_firewall import node_sdca_firewall
 from .nodes.trinity import node_trinity
 
 logger = get_logger(__name__)
@@ -313,8 +314,6 @@ def _is_simple_query(state: dict) -> bool:
         "o",
         "e",
         "que",
-        "do",
-        "da",
         "dos",
         "das",
         "num",
@@ -748,9 +747,9 @@ async def _auto_full_analysis(
     # Automatico — roda em todo ticker com dados, sem depender do Bob chamar tools
     if ticker and (working_state.get("data") or working_state.get("scan")):
         try:
+            from experts.pennylab.experts.pump_dump_expert import PumpDumpExpert
             from experts.pennylab.experts.volume_spike_expert import VolumeSpikeExpert
             from experts.pennylab.experts.whale_print_expert import WhalePrintExpert
-            from experts.pennylab.experts.pump_dump_expert import PumpDumpExpert
             from experts.pennylab.schemas import SignalInput
 
             _data = working_state.get("data") or {}
@@ -828,8 +827,8 @@ async def _auto_full_analysis(
     if route in {"market_scan", "ticker_analysis"} or _needs_scan:
         try:
             from core.pipeline.nodes.mangala import (
-                scan_mangala_opportunities,
                 format_mangala_for_bob,
+                scan_mangala_opportunities,
             )
             from core.scanner.penny_scanner import scan_penny_stocks
             from data.data_hub import hub as data_hub
@@ -933,7 +932,7 @@ def build_graph(
     gateway=None,
     config=None,
     mandamentos: list[Any] | None = None,
-) -> "PipelineApp":
+) -> PipelineApp:
     """Build, compile, and wrap the SuperEzio pipeline graph.
 
     Returns a PipelineApp instance with shutdown(), chat(), stream_events(),

@@ -5,8 +5,9 @@ Importadas de core.mathcore.base — fonte canônica única.
 """
 
 from __future__ import annotations
+
 import math
-from typing import Sequence
+from collections.abc import Sequence
 
 
 def sigmoid(x: float) -> float:

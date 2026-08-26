@@ -8,14 +8,13 @@ import inspect
 import json
 import math
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from statistics import median
 from typing import Any
 
 from tenacity import Retrying, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from core.resilience import get_circuit
-
 
 _EXCHANGE_ALIASES = {
     "ASE": "AMEX",
@@ -63,14 +62,14 @@ def _positive_env_float(name: str, default: str) -> float:
 
 def _parse_as_of(value: Any) -> datetime:
     if isinstance(value, (int, float)):
-        return datetime.fromtimestamp(float(value), tz=timezone.utc)
+        return datetime.fromtimestamp(float(value), tz=UTC)
     try:
         parsed = datetime.fromisoformat(str(value or "").replace("Z", "+00:00"))
     except ValueError as exc:
         raise PermanentQuoteError("provider quote timestamp is missing or invalid") from exc
     if parsed.tzinfo is None:
         raise PermanentQuoteError("provider quote timestamp must include timezone")
-    return parsed.astimezone(timezone.utc)
+    return parsed.astimezone(UTC)
 
 
 def _normalize_exchange(value: Any) -> str:
@@ -163,7 +162,7 @@ class ServerQuoteService:
         currency: str,
         now: datetime | None = None,
     ) -> dict[str, Any]:
-        current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+        current = (now or datetime.now(UTC)).astimezone(UTC)
         requested_exchange = _normalize_exchange(exchange)
         requested_currency = currency.strip().upper()
         lookup_symbol = _provider_symbol(symbol, requested_exchange)

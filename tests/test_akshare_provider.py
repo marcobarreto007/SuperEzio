@@ -32,7 +32,7 @@ def test_via_subprocess_success(monkeypatch):
     monkeypatch.setattr(
         subprocess,
         "run",
-        lambda *a, **k: _fake_proc(0, stdout="code,name\n105.AAPL,Apple Inc\n".encode("utf-8")),
+        lambda *a, **k: _fake_proc(0, stdout=b"code,name\n105.AAPL,Apple Inc\n"),
     )
     payload = _us_stock_names_via_subprocess()
     assert "names_csv" in payload

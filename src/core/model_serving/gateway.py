@@ -11,29 +11,30 @@ Suporta:
 import asyncio
 import logging
 import time
+from collections.abc import AsyncGenerator, Generator
 from enum import Enum
-from typing import AsyncGenerator, List, Dict, Any, Generator
-
-from ..observability.neural_log import log_event, trace_span, SpanContext, metrics
-from .sanitizer import PrivateChannelFilter, strip_private_model_channels
-from ..resilience import CircuitOpenError, CircuitState, get_circuit
+from typing import Any
 
 # OpenAI SDK for external API operations
 from openai import AsyncOpenAI
 
+from ..config.secrets import load_local_env
+from ..observability.neural_log import SpanContext, log_event, metrics, trace_span
+from ..resilience import CircuitOpenError, CircuitState, get_circuit
+
 # Re-export from providers module for backward compatibility
 from .providers import (  # noqa: F401 — re-exports
-    ModelProvider,
-    GatewayConfig,
-    PRIMARY_PROVIDER_NAME,
-    PRIMARY_MODEL_ID,
-    DEEPSEEK_PROVIDER_NAME,
     AGENT_PROVIDER_NAME,
-    DAYTRADE_JUDGE_PROVIDER_NAME,
     DAYTRADE_AUDITOR_PROVIDER_NAME,
+    DAYTRADE_JUDGE_PROVIDER_NAME,
+    DEEPSEEK_PROVIDER_NAME,
+    PRIMARY_MODEL_ID,
+    PRIMARY_PROVIDER_NAME,
+    GatewayConfig,
+    ModelProvider,
     build_default_providers,
 )
-from ..config.secrets import load_local_env
+from .sanitizer import PrivateChannelFilter, strip_private_model_channels
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ LOCAL_CONTEXT_HARD_TOKEN_CAP = 8000
 _LOCAL_CONTEXT_IMAGE_TOKENS = 768
 
 
-def local_context_fits(messages: List[Dict[str, str]]) -> tuple[bool, int, str]:
+def local_context_fits(messages: list[dict[str, str]]) -> tuple[bool, int, str]:
     """Estimate input tokens and decide whether they fit the local window.
 
     Returns (fits, estimated_tokens, reason). Pure and deterministic — no I/O.
@@ -70,7 +71,7 @@ def local_context_fits(messages: List[Dict[str, str]]) -> tuple[bool, int, str]:
     return True, estimated, "fits"
 
 
-def _has_image_content(messages: List[Dict[str, Any]] | None) -> bool:
+def _has_image_content(messages: list[dict[str, Any]] | None) -> bool:
     """True when any message carries an OpenAI image_url part."""
     for msg in messages or []:
         if not isinstance(msg, dict):
@@ -84,9 +85,9 @@ def _has_image_content(messages: List[Dict[str, Any]] | None) -> bool:
     return False
 
 
-def _openai_messages(raw: List[Dict[str, Any]] | None) -> List[Dict[str, Any]]:
+def _openai_messages(raw: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
     """Drop internal keys (e.g. _chart_facts) before the provider call."""
-    out: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     for msg in raw or []:
         if not isinstance(msg, dict):
             continue
@@ -117,7 +118,7 @@ class ModelGateway:
 
     def __init__(
         self,
-        providers: List[ModelProvider] = None,
+        providers: list[ModelProvider] = None,
         config: GatewayConfig = None,
         audit=None,
     ):
@@ -349,7 +350,7 @@ class ModelGateway:
             )
 
     @staticmethod
-    def _apply_deepseek_options(provider: ModelProvider, kwargs: Dict[str, Any]) -> None:
+    def _apply_deepseek_options(provider: ModelProvider, kwargs: dict[str, Any]) -> None:
         """Apply DeepSeek V4 thinking controls for OpenAI-compatible calls."""
         import os
 
@@ -380,8 +381,8 @@ class ModelGateway:
         temperature: float | None = None,
         json_mode: bool = False,
         assistant_prefix: str = "",
-        tools: List[Dict[str, Any]] | None = None,
-        messages: List[Dict[str, Any]] | None = None,
+        tools: list[dict[str, Any]] | None = None,
+        messages: list[dict[str, Any]] | None = None,
     ) -> AsyncGenerator[str, None]:
         """Gera resposta via API OpenAI-compatible (Streaming).
 
@@ -464,7 +465,7 @@ class ModelGateway:
         temperature: float | None = None,
         json_mode: bool = False,
         assistant_prefix: str = "",
-        messages: List[Dict[str, Any]] | None = None,
+        messages: list[dict[str, Any]] | None = None,
     ) -> str:
         """Gera resposta via API OpenAI-compatible (Não-streaming).
 
@@ -564,7 +565,7 @@ class ModelGateway:
         json_mode: bool = False,
         assistant_prefix: str = "",
         allow_fallback: bool = True,
-        messages: List[Dict[str, Any]] | None = None,
+        messages: list[dict[str, Any]] | None = None,
     ) -> str:
         """Gera resposta com fallback cascade (Síncrono para compatibilidade).
 
@@ -794,8 +795,8 @@ class ModelGateway:
         preferred_provider: str = None,
         assistant_prefix: str = "",
         allow_fallback: bool = True,
-        tools: List[Dict[str, Any]] | None = None,
-        messages: List[Dict[str, Any]] | None = None,
+        tools: list[dict[str, Any]] | None = None,
+        messages: list[dict[str, Any]] | None = None,
         json_mode: bool = False,
     ) -> "AsyncGenerator[str, None]":
         """Stream generate Assíncrono (Non-blocking)."""
@@ -887,7 +888,7 @@ class ModelGateway:
 
     async def chat_completion(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         json_mode: bool = False,
         temperature: float = 0.7,
         max_tokens: int | None = None,
@@ -975,7 +976,7 @@ class ModelGateway:
 
     async def stream_chat_completion(
         self,
-        messages: List[Dict[str, Any]],
+        messages: list[dict[str, Any]],
         json_mode: bool = False,
         temperature: float = 0.7,
         max_tokens: int | None = None,
@@ -1029,7 +1030,6 @@ class ModelGateway:
 
     def unload_all(self) -> None:
         """Cleanup."""
-        pass
 
     @staticmethod
     def _is_a2a_provider(provider: ModelProvider) -> bool:

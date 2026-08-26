@@ -1,4 +1,10 @@
-import json, os, sys, time, urllib.error, urllib.request
+import json
+import os
+import sys
+import time
+import urllib.error
+import urllib.request
+
 from playwright.sync_api import sync_playwright
 
 BASE = os.environ.get("P4_BASE_URL", "http://127.0.0.1:8002")
@@ -6,9 +12,11 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "p4")
 
 try:
     from core.config.secrets import load_local_env
+
     load_local_env()
 except ImportError:
     pass
+
 
 def auth_bootstrap(base_url):
     base = base_url.rstrip("/")
@@ -21,22 +29,42 @@ def auth_bootstrap(base_url):
     password = os.getenv("SUPEREZIO_SMOKE_PASSWORD") or os.getenv("SUPEREZIO_ADMIN_PASSWORD", "")
     if not password:
         raise RuntimeError("SUPEREZIO_ADMIN_PASSWORD missing")
-    payload = json.dumps({"username": os.getenv("SUPEREZIO_SMOKE_USER", "admin"), "password": password}).encode()
-    req = urllib.request.Request(base + "/auth/login", data=payload, headers={"Content-Type": "application/json"})
+    payload = json.dumps(
+        {"username": os.getenv("SUPEREZIO_SMOKE_USER", "admin"), "password": password}
+    ).encode()
+    req = urllib.request.Request(
+        base + "/auth/login", data=payload, headers={"Content-Type": "application/json"}
+    )
     with urllib.request.urlopen(req, timeout=10) as r:
         return json.loads(r.read().decode())["access_token"]
 
+
 BACKEND_KEYS = [
-    "missing_ticker", "missing_ticker_provenance", "missing_exchange",
-    "missing_price", "missing_price_provenance", "missing_liquidity",
-    "missing_liquidity_provenance", "liquidity_below_minimum",
-    "dollar_volume_below_minimum", "missing_catalyst",
-    "missing_catalyst_provenance", "missing_short_term_thesis",
-    "missing_risk", "missing_risk_provenance", "missing_invalidation",
-    "missing_invalidation_provenance", "provider_error",
-    "currency_market_mismatch", "penny_filtered", "otc_filtered",
-    "microcap_filtered", "price_above_requested_max", "quality_gate_failed",
-    "excluded_previous_recommendation", "unknown",
+    "missing_ticker",
+    "missing_ticker_provenance",
+    "missing_exchange",
+    "missing_price",
+    "missing_price_provenance",
+    "missing_liquidity",
+    "missing_liquidity_provenance",
+    "liquidity_below_minimum",
+    "dollar_volume_below_minimum",
+    "missing_catalyst",
+    "missing_catalyst_provenance",
+    "missing_short_term_thesis",
+    "missing_risk",
+    "missing_risk_provenance",
+    "missing_invalidation",
+    "missing_invalidation_provenance",
+    "provider_error",
+    "currency_market_mismatch",
+    "penny_filtered",
+    "otc_filtered",
+    "microcap_filtered",
+    "price_above_requested_max",
+    "quality_gate_failed",
+    "excluded_previous_recommendation",
+    "unknown",
 ]
 
 JS_COCKPIT = (
@@ -86,12 +114,14 @@ JS_OVERFLOW = (
     " innerWidth: window.innerWidth, scrollWidth: document.body.scrollWidth })"
 )
 
+
 def main():
     try:
         _run()
     except Exception as exc:
         print(json.dumps({"fatal": str(exc)}, ensure_ascii=False))
         sys.exit(2)
+
 
 def _run():
     token = auth_bootstrap(BASE)
@@ -100,12 +130,19 @@ def _run():
         browser = pw.chromium.launch(headless=True)
         context = browser.new_context(
             viewport={"width": 390, "height": 844},
-            device_scale_factor=2, is_mobile=True, has_touch=True,
+            device_scale_factor=2,
+            is_mobile=True,
+            has_touch=True,
         )
         if token:
-            context.add_init_script("localStorage.setItem(`sz_access_token`, %s);" % json.dumps(token))
+            context.add_init_script(
+                "localStorage.setItem(`sz_access_token`, %s);" % json.dumps(token)
+            )
         page = context.new_page()
-        page.on("console", lambda m: report["console_errors"].append(m.text) if m.type == "error" else None)
+        page.on(
+            "console",
+            lambda m: report["console_errors"].append(m.text) if m.type == "error" else None,
+        )
         page.on("pageerror", lambda e: report["page_errors"].append(str(e)))
 
         # (a) token login -> cockpit renders
@@ -125,10 +162,13 @@ def _run():
             page.click("#bob-chat-tab", timeout=10000)
             page.wait_for_function(
                 "() => { const bc = document.querySelector(`.bob-chat`);"
-                " return bc && bc.classList.contains(`is-open`); }", timeout=10000)
+                " return bc && bc.classList.contains(`is-open`); }",
+                timeout=10000,
+            )
         page.wait_for_function(
             "() => { const e = document.querySelector(`#user-inp`); return !e.disabled; }",
-            timeout=30000)
+            timeout=30000,
+        )
         before = page.locator(".msg.msg-ceo").count()
         t0 = time.time()
         page.fill("#user-inp", "Oi Bob")
@@ -146,15 +186,19 @@ def _run():
         # (c1) real short scan (best effort, bounded)
         page.wait_for_function(
             "() => { const e = document.querySelector(`#user-inp`); return !e.disabled; }",
-            timeout=120000)
+            timeout=120000,
+        )
         t1 = time.time()
         page.fill("#user-inp", "scaneie o mercado")
         page.click("#send-btn")
         scan_real = {"triggered": False, "elapsed_ms": 0}
         try:
             page.wait_for_selector(".scan-summary", timeout=150000)
-            scan_real = {"triggered": True, "elapsed_ms": int((time.time() - t1) * 1000),
-                         "text": page.locator(".scan-summary").inner_text()[:300]}
+            scan_real = {
+                "triggered": True,
+                "elapsed_ms": int((time.time() - t1) * 1000),
+                "text": page.locator(".scan-summary").inner_text()[:300],
+            }
         except Exception:
             scan_real["elapsed_ms"] = int((time.time() - t1) * 1000)
         report["steps"]["c1_scan_real"] = scan_real
@@ -171,11 +215,19 @@ def _run():
 
     report["console_errors"] = report["console_errors"][:10]
     print(json.dumps(report, indent=2, ensure_ascii=False))
-    ok = (cockpit.get("uinpVisible") and report["steps"]["b_greeting"].get("response_ms") is not None
-          and not synth["rawKeysRendered"] and not synth["bodyOverflowX"] and not synth["chatOverflowX"]
-          and not final["bodyOverflowX"] and not report["console_errors"] and not report["page_errors"])
+    ok = (
+        cockpit.get("uinpVisible")
+        and report["steps"]["b_greeting"].get("response_ms") is not None
+        and not synth["rawKeysRendered"]
+        and not synth["bodyOverflowX"]
+        and not synth["chatOverflowX"]
+        and not final["bodyOverflowX"]
+        and not report["console_errors"]
+        and not report["page_errors"]
+    )
     print("P4_MOBILE_OK" if ok else "P4_MOBILE_FAIL")
     sys.exit(0 if ok else 1)
+
 
 if __name__ == "__main__":
     main()

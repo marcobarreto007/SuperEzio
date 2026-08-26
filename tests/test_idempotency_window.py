@@ -7,7 +7,7 @@ diferentes — exatamente quando um retry e mais provavel.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from core.idempotency import (
     claim_idempotency_keys,
@@ -16,8 +16,8 @@ from core.idempotency import (
     make_idempotency_keys,
 )
 
-BEFORE = datetime(2026, 8, 24, 10, 4, 59, tzinfo=timezone.utc)
-AFTER = datetime(2026, 8, 24, 10, 5, 1, tzinfo=timezone.utc)
+BEFORE = datetime(2026, 8, 24, 10, 4, 59, tzinfo=UTC)
+AFTER = datetime(2026, 8, 24, 10, 5, 1, tzinfo=UTC)
 INTENT = {"ticker": "TD", "qty": 10, "limit_price": 110.0}
 
 
@@ -56,7 +56,7 @@ def test_claim_blocks_retry_across_the_boundary(tmp_path, monkeypatch) -> None:
 def test_two_windows_later_is_genuinely_a_new_intent(tmp_path, monkeypatch) -> None:
     """Passadas duas janelas continua sendo intencao nova — o contrato nao muda."""
     monkeypatch.setenv("SUPEREZIO_DEDUP_DIR", str(tmp_path / "dedup"))
-    much_later = datetime(2026, 8, 24, 10, 20, 0, tzinfo=timezone.utc)
+    much_later = datetime(2026, 8, 24, 10, 20, 0, tzinfo=UTC)
 
     assert claim_idempotency_keys(make_idempotency_keys(**INTENT, now=BEFORE)) is True
 

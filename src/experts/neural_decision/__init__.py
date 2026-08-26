@@ -1,3 +1,3 @@
-from .neural_decision_expert import NeuralDecisionExpert, FeatureContractValidator
+from .neural_decision_expert import FeatureContractValidator, NeuralDecisionExpert
 
-__all__ = ["NeuralDecisionExpert", "FeatureContractValidator"]
+__all__ = ["FeatureContractValidator", "NeuralDecisionExpert"]

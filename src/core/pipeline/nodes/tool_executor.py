@@ -8,16 +8,17 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 
-from ..contracts import AgentToolCall
-from .collector import node_collector
-from .f51 import node_f51_verdict
-from .experts import node_collect_experts, node_expert
-from .neural_decision import node_neural_decision
-from .sdca_firewall import node_sdca_firewall
-from .rag import node_rag_forensics
-from core.math.penny_momentum import PennyMomentumConfig, simulate_penny_momentum_backtest
 from core.config.logging_config import get_logger
 from core.config.settings import get_settings
+from core.math.penny_momentum import PennyMomentumConfig, simulate_penny_momentum_backtest
+
+from ..contracts import AgentToolCall
+from .collector import node_collector
+from .experts import node_collect_experts, node_expert
+from .f51 import node_f51_verdict
+from .neural_decision import node_neural_decision
+from .rag import node_rag_forensics
+from .sdca_firewall import node_sdca_firewall
 
 # PennyLab: imported at module level — no lazy import on hot tool path
 try:
@@ -492,8 +493,8 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
             # Still run position sizing for info even when pending
             pos_sizing = {}
             try:
-                from core.trading.position_sizer import PositionSizer
                 from core.mission_context import get_mission_equity
+                from core.trading.position_sizer import PositionSizer
 
                 paper_equity = float(
                     state.get("paper_equity") or state.get("equity") or get_mission_equity()
@@ -533,8 +534,8 @@ async def _submit_paper_order(state: dict, args: dict) -> dict:
 
     # ── Position sizing ──
     try:
-        from core.trading.position_sizer import PositionSizer
         from core.mission_context import get_mission_equity
+        from core.trading.position_sizer import PositionSizer
 
         paper_equity = float(
             state.get("paper_equity") or state.get("equity") or get_mission_equity()
@@ -794,12 +795,12 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
             # Must pass BEFORE any paper order can proceed.
             # ═══════════════════════════════════════════════════════
             try:
-                from core.pipeline.f51_trade_gate import evaluate_trade_gate, record_blocked_order
                 from core.idempotency import (
-                    make_idempotency_keys,
                     claim_idempotency_keys,
                     is_duplicate,
+                    make_idempotency_keys,
                 )
+                from core.pipeline.f51_trade_gate import evaluate_trade_gate, record_blocked_order
 
                 ticker_raw = args.get("ticker", "").upper()
                 qty_raw = int(
@@ -1100,8 +1101,8 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                 result = {"error": "get_live_financial_data requires ticker"}
             else:
                 from core.data_collector.collector import (
-                    tool_get_market_price,
                     tool_calculate_risk_metrics,
+                    tool_get_market_price,
                 )
 
                 try:

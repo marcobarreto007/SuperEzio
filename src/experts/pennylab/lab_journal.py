@@ -14,12 +14,12 @@ Operações:
 from __future__ import annotations
 
 import json
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from .schemas import TradeLog
 from .config import LAB_JOURNAL_PATH
+from .schemas import TradeLog
 
 
 class LabJournal:
@@ -28,7 +28,7 @@ class LabJournal:
     Thread-safety: não garantida (uso pessoal/local, single-process).
     """
 
-    def __init__(self, path: Optional[Path] = None) -> None:
+    def __init__(self, path: Path | None = None) -> None:
         self.path: Path = path or LAB_JOURNAL_PATH
         self.path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -41,7 +41,7 @@ class LabJournal:
         with open(self.path, "a", encoding="utf-8") as f:
             f.write(entry.model_dump_json() + "\n")
 
-    def append_dict(self, data: Dict[str, Any]) -> None:
+    def append_dict(self, data: dict[str, Any]) -> None:
         """Salva dicionário genérico (para snapshots de report, etc.)."""
         data.setdefault("logged_at", datetime.now(UTC).isoformat())
         with open(self.path, "a", encoding="utf-8") as f:
@@ -51,7 +51,7 @@ class LabJournal:
     # Leitura
     # ------------------------------------------------------------------
 
-    def all_entries(self) -> List[Dict[str, Any]]:
+    def all_entries(self) -> list[dict[str, Any]]:
         """Carrega todas as entradas do journal."""
         if not self.path.exists():
             return []
@@ -66,7 +66,7 @@ class LabJournal:
                         pass  # linha corrompida — ignora silenciosamente
         return entries
 
-    def load_ticker(self, ticker: str) -> List[Dict[str, Any]]:
+    def load_ticker(self, ticker: str) -> list[dict[str, Any]]:
         """Filtra entradas por ticker (case-insensitive)."""
         t = ticker.upper()
         return [e for e in self.all_entries() if e.get("ticker", "").upper() == t]
@@ -75,7 +75,7 @@ class LabJournal:
     # Postmortem
     # ------------------------------------------------------------------
 
-    def postmortem(self, ticker: str) -> Dict[str, Any]:
+    def postmortem(self, ticker: str) -> dict[str, Any]:
         """
         Gera resumo de PnL e estatísticas para um ticker.
         Não faz análise LLM — apenas matemática simples.

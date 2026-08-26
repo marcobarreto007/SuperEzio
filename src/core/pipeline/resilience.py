@@ -14,7 +14,8 @@ import asyncio
 import functools
 import logging
 import time
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +122,7 @@ def resilient_node(
                     if circuit_breaker:
                         circuit_breaker.success()
                     return result
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     last_error = TimeoutError(f"{node_name} timed out after {timeout_s}s")
                     logger.warning("resilient_node(%s): timeout", node_name)
                 except Exception as exc:

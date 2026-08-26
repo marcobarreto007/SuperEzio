@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 
 def adaptive_sizing_config(state: Mapping[str, Any]) -> dict[str, float]:

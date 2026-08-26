@@ -1,14 +1,15 @@
 """Smoke tests — ModelGateway routing, fallback, aliases (deterministico)."""
 
 import pytest
+
 import core.model_serving.gateway as gateway_module
 from core.model_serving.gateway import ModelGateway
 from core.model_serving.providers import (
-    ModelProvider,
-    GatewayConfig,
-    PRIMARY_PROVIDER_NAME,
     AGENT_PROVIDER_NAME,
     DEEPSEEK_PROVIDER_NAME,
+    PRIMARY_PROVIDER_NAME,
+    GatewayConfig,
+    ModelProvider,
 )
 from core.resilience import CircuitBreaker, CircuitState
 
@@ -561,6 +562,7 @@ class TestPortSignatureParity:
     def test_generate_api_signature_parity(self):
         """Port.generate_api tem os mesmos parâmetros que ModelGateway.generate_api."""
         import inspect
+
         from core.ports.model_gateway import ModelGatewayPort
 
         port_sig = inspect.signature(ModelGatewayPort.generate_api)

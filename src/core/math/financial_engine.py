@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from .indicators import ema as canonical_ema
 from .indicators import macd as canonical_macd
@@ -32,7 +32,7 @@ class FinancialEngine:
 
     def get_market_data(
         self, symbol: str, period: str = "1y", interval: str = "1d"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Fetch historical prices and compute RSI, MACD and EMA via DataHub."""
         try:
             from data.data_hub import hub
@@ -94,7 +94,7 @@ class FinancialEngine:
         except Exception as e:
             return {"error": str(e)}
 
-    def get_company_profile(self, symbol: str) -> Dict[str, Any]:
+    def get_company_profile(self, symbol: str) -> dict[str, Any]:
         """Return basic company profile fields via DataHub."""
         try:
             from data.data_hub import hub

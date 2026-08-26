@@ -27,7 +27,7 @@ import json
 import os
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import requests
@@ -200,7 +200,7 @@ def fetch_ca_universe(api_key: str) -> dict[str, list[str]]:
 def build_manifest(sections: dict[str, list[str]], sources: dict[str, str]) -> dict:
     return {
         "schema_version": SCHEMA_VERSION,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "ttl_days": DEFAULT_TTL_DAYS,
         "sources": sources,
         "exchanges": sections,

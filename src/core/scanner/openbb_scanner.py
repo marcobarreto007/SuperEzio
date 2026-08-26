@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +166,7 @@ class OpenBBScanner:
     CACHE_TTL_S = 60  # discovery is near-real-time; short cache
 
     def __init__(self) -> None:
-        self._cache: Dict[str, tuple] = {}  # key → (result, timestamp)
+        self._cache: dict[str, tuple] = {}  # key → (result, timestamp)
 
     @property
     def available(self) -> bool:

@@ -7,8 +7,8 @@ Alpha Vantage TREASURY_YIELD como fallback.
 
 import logging
 import os
-from datetime import datetime, timezone
-from typing import Any, Dict
+from datetime import UTC, datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +29,11 @@ AV_TREASURY_MATURITIES = {
 }
 
 
-def _fetch_via_yfinance() -> Dict[str, Any]:
+def _fetch_via_yfinance() -> dict[str, Any]:
     """Fetch all treasury yields via Yahoo Finance (free, no rate limit)."""
-    result: Dict[str, Any] = {
+    result: dict[str, Any] = {
         "provider": "yfinance_treasury",
-        "collected_at": datetime.now(timezone.utc).isoformat(),
+        "collected_at": datetime.now(UTC).isoformat(),
     }
 
     try:
@@ -47,7 +47,7 @@ def _fetch_via_yfinance() -> Dict[str, Any]:
                 if price is not None:
                     result[name] = {
                         "value": round(float(price), 3),
-                        "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                        "date": datetime.now(UTC).strftime("%Y-%m-%d"),
                     }
                 else:
                     result[name] = {"value": None, "error": "yfinance_no_price"}
@@ -62,16 +62,16 @@ def _fetch_via_yfinance() -> Dict[str, Any]:
         return {"error": f"yfinance_init: {exc}"}
 
 
-def _fetch_via_alpha_vantage(api_key: str) -> Dict[str, Any]:
+def _fetch_via_alpha_vantage(api_key: str) -> dict[str, Any]:
     """Fallback: fetch treasury yields via Alpha Vantage TREASURY_YIELD."""
     import time
 
     import requests
 
     base_url = "https://www.alphavantage.co/query"
-    result: Dict[str, Any] = {
+    result: dict[str, Any] = {
         "provider": "alpha_vantage_treasury",
-        "collected_at": datetime.now(timezone.utc).isoformat(),
+        "collected_at": datetime.now(UTC).isoformat(),
     }
     empty_count = 0
 
@@ -126,7 +126,7 @@ def _fetch_via_alpha_vantage(api_key: str) -> Dict[str, Any]:
     return result
 
 
-def get_macro_summary_us() -> Dict[str, Any]:
+def get_macro_summary_us() -> dict[str, Any]:
     """Busca resumo macro dos EUA.
 
     Primary: Yahoo Finance (free, unlimited).
@@ -150,7 +150,7 @@ def get_macro_summary_us() -> Dict[str, Any]:
     if not api_key:
         return {
             "provider": "none",
-            "collected_at": datetime.now(timezone.utc).isoformat(),
+            "collected_at": datetime.now(UTC).isoformat(),
             "error": "no_treasury_source",
             "yfinance_error": yf_result.get("error", "unavailable"),
             "data_quality": "unavailable",

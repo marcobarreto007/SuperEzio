@@ -50,7 +50,7 @@ def test_sanity_detects_magnitude_mismatch_with_accents():
 
 
 def test_feedback_storage_round_trip(tmp_path, monkeypatch):
-    import core.ml.feedback as feedback
+    from core.ml import feedback
 
     monkeypatch.setattr(feedback, "_FEEDBACK_DIR", tmp_path)
 

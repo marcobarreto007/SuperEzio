@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 
-
 # Import validation helpers — no deep imports at module level
 ROOT = __import__("pathlib").Path(__file__).resolve().parents[2]
 
@@ -88,9 +87,9 @@ def test_build_default_providers_agent_present(monkeypatch):
 
     from core.config.schema import UniversalConfig
     from core.model_serving.providers import (
-        build_default_providers,
-        AGENT_PROVIDER_NAME,
         AGENT_MODEL_ID,
+        AGENT_PROVIDER_NAME,
+        build_default_providers,
     )
 
     cfg = UniversalConfig()
@@ -111,7 +110,7 @@ def test_build_default_providers_primary_is_present(monkeypatch):
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
 
     from core.config.schema import UniversalConfig
-    from core.model_serving.providers import build_default_providers, PRIMARY_PROVIDER_NAME
+    from core.model_serving.providers import PRIMARY_PROVIDER_NAME, build_default_providers
 
     cfg = UniversalConfig()
     providers, _ = build_default_providers(cfg)
@@ -252,7 +251,7 @@ def test_deepseek_limits_respect_specific_and_legacy_env(monkeypatch):
 
 def test_gateway_instantiation():
     from core.model_serving.gateway import ModelGateway
-    from core.model_serving.providers import ModelProvider, GatewayConfig
+    from core.model_serving.providers import GatewayConfig, ModelProvider
 
     p1 = ModelProvider(name="p1", base_url="http://a/v1", api_key="k1", model="m1", priority=-100)
     p2 = ModelProvider(name="p2", base_url="http://b/v1", api_key="k2", model="m2", priority=-200)
@@ -326,7 +325,7 @@ def test_agent_timeout_env_below_floor_is_clamped(monkeypatch):
 
 def test_gateway_max_attempts():
     from core.model_serving.gateway import ModelGateway
-    from core.model_serving.providers import ModelProvider, GatewayConfig
+    from core.model_serving.providers import GatewayConfig, ModelProvider
 
     providers = [
         ModelProvider(name=f"p{i}", base_url=f"http://{i}/v1", api_key="k", model="m", priority=i)

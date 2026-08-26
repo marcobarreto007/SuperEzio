@@ -11,8 +11,8 @@ from core.pipeline.nodes.tool_executor import _SEMI_REPEATABLE_LIMITS
 
 
 def test_survival_contract_is_in_bob_prompt_and_mission():
-    from core.pipeline.nodes.agent import BOB_SOVEREIGN_PROMPT
     from core.mission_context import render_mission_context_for_prompt
+    from core.pipeline.nodes.agent import BOB_SOVEREIGN_PROMPT
 
     assert "DISCONTINUED" in BOB_SOVEREIGN_PROMPT
     assert "TOOLS ARE YOUR ORGANS" in BOB_SOVEREIGN_PROMPT

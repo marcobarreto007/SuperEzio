@@ -17,7 +17,7 @@ import logging
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -37,8 +37,8 @@ def _parse_utc_datetime(value: Any) -> datetime | None:
     except (TypeError, ValueError):
         return None
     if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
 def _extract_confidence(value: Any) -> float | None:
@@ -83,7 +83,7 @@ class Lesson:
     content: str
     source_trade_ids: list[str]
     confidence: float  # 0-1
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     category: str = "general"  # "entry" | "exit" | "thesis" | "risk" | "sector"
     applicable_tickers: list[str] = field(default_factory=list)
     pain_score: float = 0.0  # 0-1, quão dolorosa foi a lição (para XP system)
@@ -100,7 +100,7 @@ class PatternAnalyzer:
 
     def _get_trades(self) -> list[dict]:
         """Carrega trades do journal com cache."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if self._cache and self._cache_time and (now - self._cache_time).seconds < 300:
             return self._cache
 
@@ -153,7 +153,7 @@ class PatternAnalyzer:
                     win_rate=win_rate,
                     avg_pnl=avg_pnl,
                     sample_size=stats["count"],
-                    last_seen=datetime.now(timezone.utc).isoformat(),
+                    last_seen=datetime.now(UTC).isoformat(),
                     tags=["sector", "performance"],
                 )
             )
@@ -211,7 +211,7 @@ class PatternAnalyzer:
                     win_rate=win_rate,
                     avg_pnl=avg_pnl,
                     sample_size=stats["count"],
-                    last_seen=datetime.now(timezone.utc).isoformat(),
+                    last_seen=datetime.now(UTC).isoformat(),
                     tags=["holding_period", "performance"],
                 )
             )
@@ -253,7 +253,7 @@ class PatternAnalyzer:
                     win_rate=accuracy,
                     avg_pnl=0.0,  # N/A para thesis accuracy
                     sample_size=stats["total"],
-                    last_seen=datetime.now(timezone.utc).isoformat(),
+                    last_seen=datetime.now(UTC).isoformat(),
                     tags=["thesis", "accuracy"],
                 )
             )
@@ -357,7 +357,7 @@ class PatternAnalyzer:
                     win_rate=win_rate,
                     avg_pnl=avg_pnl,
                     sample_size=stats["count"],
-                    last_seen=datetime.now(timezone.utc).isoformat(),
+                    last_seen=datetime.now(UTC).isoformat(),
                     tags=["risk", "performance"],
                 )
             )
@@ -374,7 +374,7 @@ class LessonExtractor:
     def extract_from_recent_trades(self, hours: int = 168) -> list[Lesson]:
         """Extrai lições de trades recentes (default: 7 dias)."""
         trades = self._journal.list_all()
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+        cutoff = datetime.now(UTC) - timedelta(hours=hours)
 
         recent = []
         for t in trades:
@@ -470,7 +470,7 @@ Replicar: Buscar setups similares com {theme} confirmado.
 """.strip()
 
         return Lesson(
-            lesson_id=f"streak_{len(wins)}_{datetime.now(timezone.utc).strftime('%Y%m%d')}",
+            lesson_id=f"streak_{len(wins)}_{datetime.now(UTC).strftime('%Y%m%d')}",
             title=title,
             content=content,
             source_trade_ids=[w.get("trade_id", "") for w in wins],
@@ -548,13 +548,12 @@ class LearningLog:
 
     def get_recent_lessons(self, days: int = 7, category: str = "") -> list[Lesson]:
         """Retorna lições recentes."""
-        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        cutoff = datetime.now(UTC) - timedelta(days=days)
 
         recent = [
             lesson
             for lesson in self._lessons.values()
-            if (_parse_utc_datetime(lesson.created_at) or datetime.min.replace(tzinfo=timezone.utc))
-            > cutoff
+            if (_parse_utc_datetime(lesson.created_at) or datetime.min.replace(tzinfo=UTC)) > cutoff
             and (not category or lesson.category == category)
         ]
 
@@ -610,7 +609,7 @@ class FeedbackLoop:
         logger.info("Starting learning cycle...")
 
         results = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "theses_closed": 0,
             "theses_closed_items": [],
             "patterns_found": 0,
@@ -981,7 +980,7 @@ class FeedbackLoop:
 
         # Buscar trades fechados nas últimas 24h que não foram processados para XP
         closed_trades = self._journal.list_closed()
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+        cutoff = datetime.now(UTC) - timedelta(hours=24)
 
         events = []
         win_count = 0

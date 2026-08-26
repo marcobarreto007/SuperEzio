@@ -6,7 +6,7 @@ import json
 import logging
 import os
 import re
-from decimal import Decimal, InvalidOperation, ROUND_FLOOR
+from decimal import ROUND_FLOOR, Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
@@ -18,14 +18,14 @@ from core.evidence.grounding import (
     mentioned_security_symbols,
     mismatched_price_symbols,
 )
+
 from ...mission_context import render_mission_context_for_prompt
 from ..contracts import AgentToolCall
-from ..verdict import build_verdict_dict, validate_answer_against_verdict
 from ..intents import (
     detect_another_trade_recommendation_intent,
     detect_complex_finance_intent,
-    looks_financially_substantive,
     detect_decisive_trade_intent,
+    looks_financially_substantive,
     normalize_message,
 )
 from ..trade_order import (
@@ -38,7 +38,7 @@ from ..trade_order import (
     pick_candidate,
     rank_candidates,
 )
-from ..verdict import build_pipeline_verdict
+from ..verdict import build_pipeline_verdict, build_verdict_dict, validate_answer_against_verdict
 
 logger = logging.getLogger(__name__)
 

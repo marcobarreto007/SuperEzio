@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass, asdict, field
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -38,7 +38,7 @@ class FlipRecord:
     direction: str = "long"
     trade_id: str = ""
     tags: list[str] = field(default_factory=list)
-    recorded_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    recorded_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -133,7 +133,7 @@ class MangalaTracker:
         Returns:
             Profit realizado no flip.
         """
-        now_iso = datetime.now(timezone.utc).isoformat()
+        now_iso = datetime.now(UTC).isoformat()
         entry_date = entry_date or now_iso
         exit_date = exit_date or now_iso
 
@@ -142,7 +142,7 @@ class MangalaTracker:
             (profit / (entry_price * shares)) * 100 if entry_price > 0 and shares > 0 else 0.0
         )
 
-        trade_id = f"mangala-{ticker}-{int(datetime.now(timezone.utc).timestamp() * 1000)}"
+        trade_id = f"mangala-{ticker}-{int(datetime.now(UTC).timestamp() * 1000)}"
 
         record = FlipRecord(
             ticker=ticker.upper(),

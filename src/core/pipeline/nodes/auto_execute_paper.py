@@ -11,21 +11,25 @@ import math
 import re
 import time
 from collections import deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from langgraph.config import get_stream_writer
 
-from core.config.logging_config import get_logger, bind_trace
+from core.config.logging_config import bind_trace, get_logger
 from core.idempotency import (
-    make_idempotency_keys,
     claim_idempotency_keys,
-    is_duplicate,
     enqueue_dead_letter,
+    is_duplicate,
+    make_idempotency_keys,
 )
 from core.trading.execution_policy import (
     adaptive_sizing_config as _adaptive_sizing_config,
+)
+from core.trading.execution_policy import (
     evaluate_neural_execution_gate as _evaluate_neural_execution_gate,
+)
+from core.trading.execution_policy import (
     expert_consensus_block_reason as _expert_consensus_block_reason,
 )
 
@@ -564,7 +568,7 @@ def _resolve_limit_price(state: dict, scan: dict, ticker: str) -> tuple[float, f
                 if collected:
                     try:
                         collected_dt = datetime.fromisoformat(str(collected).replace("Z", "+00:00"))
-                        data_age_s = (datetime.now(timezone.utc) - collected_dt).total_seconds()
+                        data_age_s = (datetime.now(UTC) - collected_dt).total_seconds()
                     except Exception:
                         pass
                 break
@@ -597,9 +601,9 @@ def _check_concentration(ticker: str, position_value: float, run_id: str) -> boo
         return False
 
     try:
+        import json as _json
         import subprocess as _sp
         import sys as _sys
-        import json as _json
 
         check_script = str(
             Path(__file__).resolve().parent.parent.parent.parent.parent
@@ -666,7 +670,7 @@ def _journal_trade(
                         ot["trade_id"],
                         exit_price=fill_price,
                         exit_reason="auto_sell",
-                        exit_date=datetime.now(timezone.utc).isoformat(),
+                        exit_date=datetime.now(UTC).isoformat(),
                     )
                     if closed:
                         journal.add_reflection(
@@ -703,7 +707,7 @@ def _journal_trade(
                 ticker=ticker,
                 thesis=state.get("message", "Auto-executed paper trade")[:200],
                 direction="long" if action.lower() == "buy" else "short",
-                entry_date=datetime.now(timezone.utc).isoformat(),
+                entry_date=datetime.now(UTC).isoformat(),
                 entry_price=limit_price,
                 shares=qty,
                 entry_reasoning=f"auto_execute_paper | route={state.get('route', '?')} | run_id={run_id}",

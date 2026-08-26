@@ -2,6 +2,7 @@ import os
 import sys
 import time
 from pathlib import Path
+
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 
@@ -23,13 +24,11 @@ os.makedirs("output/chromium_live_run", exist_ok=True)
 with sync_playwright() as p:
     print(" -> Lancando Chromium oficial do Playwright na tela (headless=False)...")
     browser = p.chromium.launch(
-        headless=False,
-        slow_mo=1000,
-        args=["--start-maximized", "--no-sandbox"]
+        headless=False, slow_mo=1000, args=["--start-maximized", "--no-sandbox"]
     )
     context = browser.new_context(
         no_viewport=True,
-        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
     )
     context.add_init_script(f"localStorage.setItem('sz_access_token', '{token}');")
 

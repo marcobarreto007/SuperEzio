@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -27,12 +27,12 @@ class EvidenceRun:
         # traceable back to the run that produced it (runtime-verifier
         # 2026-08-23: stream run_id != evidence_run_id).
         mid = run_id or uuid.uuid4().hex[:6]
-        self.run_id = f"{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}_{mid}"
+        self.run_id = f"{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}_{mid}"
         suffix = _safe_run_suffix(ticker)
         if suffix:
             self.run_id += f"_{suffix}"
         self.run_dir = EVIDENCE_DIR / self.run_id
-        self.created_at = datetime.now(timezone.utc).isoformat()
+        self.created_at = datetime.now(UTC).isoformat()
 
         self.prompt: str = prompt
         self.ticker: str = ticker
@@ -52,7 +52,7 @@ class EvidenceRun:
         self.timeline.append(
             {
                 "event": event,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "elapsed_ms": int((time.monotonic() - self._start) * 1000)
                 if hasattr(self, "_start")
                 else 0,
@@ -93,7 +93,7 @@ class EvidenceRun:
             "capability": capability,
             "status": status,
             "data": data or {},
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         self._mark(
             "source_collected",
@@ -109,7 +109,7 @@ class EvidenceRun:
             "ticker": ticker,
             "price": price,
             "source": source,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         self._mark("price_recorded", {"ticker": ticker, "price": price, "source": source})
 
@@ -126,7 +126,7 @@ class EvidenceRun:
             "confidence": confidence,
             "provider": provider,
             "bob_readable": bob_readable,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         self._mark("expert_complete", {"expert": expert_name, "verdict": verdict})
 
@@ -159,7 +159,7 @@ class EvidenceRun:
                 "phase": phase,
                 "error": str(error),
                 "detail": detail or {},
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
         )
         self._mark("error", {"phase": phase, "error": str(error)})

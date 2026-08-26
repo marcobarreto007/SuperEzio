@@ -11,21 +11,21 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-def analyze_ticker_sync(ticker: str) -> Dict[str, Any]:
+def analyze_ticker_sync(ticker: str) -> dict[str, Any]:
     """
     Análise completa síncrona de um ticker via PennyLab.
     Chamada pelo pipeline quando a rota é 'pennylab'.
     Retorna dicionário pronto para serialização.
     """
     from .data_provider import fetch_signal
-    from .scoring import analyze
     from .experts.veracity_gate import PennylabVeracityGate
     from .rag_hooks import enrich_with_rag
+    from .scoring import analyze
 
     signal = fetch_signal(ticker)
     gate = PennylabVeracityGate()
@@ -61,7 +61,7 @@ def analyze_ticker_sync(ticker: str) -> Dict[str, Any]:
     }
 
 
-async def run_pennylab_analysis(ticker: str) -> Dict[str, Any]:
+async def run_pennylab_analysis(ticker: str) -> dict[str, Any]:
     """Wrapper assíncrono para pipeline."""
     import asyncio
 
@@ -101,7 +101,7 @@ def _build_postmortem_prompt(ticker: str, trades: list) -> str:
 async def run_postmortem_llm(
     ticker: str,
     gateway=None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Postmortem com análise LLM para um ticker.
     Se gateway não for fornecido, retorna apenas dados estatísticos.

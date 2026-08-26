@@ -3,20 +3,19 @@
 from __future__ import annotations
 
 from core.pipeline.nodes.mangala import (
-    calculate_mangala_score,
-    format_mangala_for_bob,
-    _score_volume_anomaly,
-    _score_whale_prints,
+    HIGH_CONVICTION,
+    MEH_THRESHOLD,
+    WATCH_THRESHOLD,
+    _build_flip_plan,
+    _determine_signal,
+    _score_catalyst,
     _score_momentum,
     _score_rsi,
-    _score_catalyst,
-    _determine_signal,
-    _build_flip_plan,
-    HIGH_CONVICTION,
-    WATCH_THRESHOLD,
-    MEH_THRESHOLD,
+    _score_volume_anomaly,
+    _score_whale_prints,
+    calculate_mangala_score,
+    format_mangala_for_bob,
 )
-
 
 # ── Fixtures ───────────────────────────────────────────────────────────────
 

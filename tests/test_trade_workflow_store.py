@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -49,8 +49,8 @@ def test_fingerprint_pair_closes_window_boundary() -> None:
     caem em janelas diferentes — exatamente quando um retry e mais provavel.
     """
     intent = {"symbol": "TD", "side": "BUY", "quantity": 10, "limit_price": 110.0}
-    before = datetime(2026, 8, 24, 10, 4, 59, tzinfo=timezone.utc)
-    after = datetime(2026, 8, 24, 10, 5, 1, tzinfo=timezone.utc)
+    before = datetime(2026, 8, 24, 10, 4, 59, tzinfo=UTC)
+    after = datetime(2026, 8, 24, 10, 5, 1, tzinfo=UTC)
 
     first_current, _ = build_trade_intent_fingerprints(intent, now=before)
     second_current, second_previous = build_trade_intent_fingerprints(intent, now=after)
@@ -66,8 +66,8 @@ def test_create_ticket_replays_across_window_boundary(tmp_path: Path) -> None:
     db = tmp_path / "workflow.sqlite3"
     store = TradeWorkflowStore(db)
     intent = {"symbol": "TD", "side": "BUY", "quantity": 10, "limit_price": 110.0}
-    before = datetime(2026, 8, 24, 10, 4, 59, tzinfo=timezone.utc)
-    after = datetime(2026, 8, 24, 10, 5, 1, tzinfo=timezone.utc)
+    before = datetime(2026, 8, 24, 10, 4, 59, tzinfo=UTC)
+    after = datetime(2026, 8, 24, 10, 5, 1, tzinfo=UTC)
 
     first_fingerprint, _ = build_trade_intent_fingerprints(intent, now=before)
     retry_fingerprint, retry_previous = build_trade_intent_fingerprints(intent, now=after)
@@ -207,18 +207,12 @@ def test_new_ticket_requires_explicit_not_submitted(tmp_path: Path) -> None:
 
 
 def test_intent_fingerprint_is_stable_inside_five_minute_window() -> None:
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     intent = {"ticker": "TD", "action": "buy", "qty": 2, "limit_price": 110, "session_id": "s"}
-    first = build_trade_intent_fingerprint(
-        intent, now=datetime(2026, 8, 19, 2, 1, tzinfo=timezone.utc)
-    )
-    retry = build_trade_intent_fingerprint(
-        intent, now=datetime(2026, 8, 19, 2, 4, tzinfo=timezone.utc)
-    )
-    later = build_trade_intent_fingerprint(
-        intent, now=datetime(2026, 8, 19, 2, 5, tzinfo=timezone.utc)
-    )
+    first = build_trade_intent_fingerprint(intent, now=datetime(2026, 8, 19, 2, 1, tzinfo=UTC))
+    retry = build_trade_intent_fingerprint(intent, now=datetime(2026, 8, 19, 2, 4, tzinfo=UTC))
+    later = build_trade_intent_fingerprint(intent, now=datetime(2026, 8, 19, 2, 5, tzinfo=UTC))
 
     assert first == retry
     assert later != first

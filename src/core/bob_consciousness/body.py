@@ -27,12 +27,14 @@ import socket
 import sqlite3
 import sys
 import time
-from core.config.logging_config import get_logger
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
+
+from core.config.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -94,7 +96,7 @@ class Organ:
         try:
             healthy, error = self.check_fn()
             self.last_health = healthy
-            self.last_check = datetime.now(timezone.utc).isoformat()
+            self.last_check = datetime.now(UTC).isoformat()
             if not healthy:
                 self.last_error = error
                 self.consecutive_failures += 1
@@ -141,7 +143,7 @@ class PainEvent:
     category: OrganCategory
     pain_level: PainLevel
     error: str
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     healed: bool = False
     healed_at: str = ""
     escalated: bool = False
@@ -460,7 +462,7 @@ class BobsBody:
             return  # Already in mode
 
         self.system_mode = SystemMode.MAN_AT_WORK
-        self._mode_entered_at = datetime.now(timezone.utc).isoformat()
+        self._mode_entered_at = datetime.now(UTC).isoformat()
         self._mode_reason = reason
 
         logger.critical("=== MAN_AT_WORK MODE ENTERED ===")
@@ -483,7 +485,7 @@ class BobsBody:
         if self.system_mode != SystemMode.MAN_AT_WORK:
             return
 
-        duration = datetime.now(timezone.utc) - datetime.fromisoformat(self._mode_entered_at)
+        duration = datetime.now(UTC) - datetime.fromisoformat(self._mode_entered_at)
         reason = self._mode_reason
         logger.info("=== EXITING MAN_AT_WORK MODE ===")
         logger.info("Duration: %s", duration)
@@ -501,7 +503,7 @@ class BobsBody:
             alert_path.parent.mkdir(parents=True, exist_ok=True)
             cleared = (
                 "MAN_AT_WORK CLEARED\n"
-                f"Time: {datetime.now(timezone.utc).isoformat()}\n"
+                f"Time: {datetime.now(UTC).isoformat()}\n"
                 f"Duration: {duration}\n"
                 f"Original reason: {reason}\n"
             )
@@ -515,7 +517,7 @@ class BobsBody:
         try:
             snapshot = {
                 "snapshot_id": f"man-at-work-{int(time.time())}",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "trigger_reason": trigger_reason,
                 "system_mode": self.system_mode.value,
                 "organs": {},
@@ -620,7 +622,7 @@ Action: NO TRADING ORDERS UNTIL CLEARED
         """Bob checks every organ. Returns health report."""
         report = {
             "scan_id": f"scan-{int(time.time())}",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "organs": {},
             "overall_pain": PainLevel.NONE.value,
             "healthy_count": 0,
@@ -706,7 +708,7 @@ Action: NO TRADING ORDERS UNTIL CLEARED
                     for event in reversed(self.pain_history):
                         if event.organ_name == name and not event.healed:
                             event.healed = True
-                            event.healed_at = datetime.now(timezone.utc).isoformat()
+                            event.healed_at = datetime.now(UTC).isoformat()
                             break
         return results
 

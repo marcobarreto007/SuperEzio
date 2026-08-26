@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
-from datetime import date, datetime, timezone
-from typing import Any, Mapping, Sequence
+from datetime import UTC, date, datetime
+from typing import Any
 
 from .risk import max_drawdown, sharpe_ratio
 
@@ -375,7 +376,7 @@ def _parse_observed_at(value: Any) -> datetime:
     elif isinstance(value, date):
         observed = datetime.combine(value, datetime.min.time())
     elif isinstance(value, (int, float)):
-        observed = datetime.fromtimestamp(float(value), tz=timezone.utc)
+        observed = datetime.fromtimestamp(float(value), tz=UTC)
     elif value is None:
         raise ValueError("bar_datetime_is_required")
     else:
@@ -383,7 +384,7 @@ def _parse_observed_at(value: Any) -> datetime:
             observed = datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
         except ValueError as exc:
             raise ValueError("invalid_bar_datetime") from exc
-    return observed.astimezone(timezone.utc) if observed.tzinfo is not None else observed
+    return observed.astimezone(UTC) if observed.tzinfo is not None else observed
 
 
 def _mathcore_verdict(result: Mapping[str, Any]) -> str:

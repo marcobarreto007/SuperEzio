@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from core.sentiment.curator import CuratedSentiment, SentimentCurator
 
@@ -32,7 +32,7 @@ def test_sentiment_curator_dedupes_and_prefers_reliable_source():
 
 
 def test_sentiment_curator_applies_weights_expiry_and_reddit_flags():
-    old = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
+    old = (datetime.now(UTC) - timedelta(days=3)).isoformat()
     result = SentimentCurator().curate(
         {
             "newsapi": {

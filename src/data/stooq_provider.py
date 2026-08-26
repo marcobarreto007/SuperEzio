@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import csv
 import io
-from typing import Any, Dict
+from typing import Any
 
 import requests
 
@@ -47,7 +47,7 @@ class StooqProvider:
         *,
         market: str | None = None,
         **_: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         stooq_sym = stooq_symbol(symbol, market)
         if not stooq_sym:
             return {"error": "invalid_symbol"}

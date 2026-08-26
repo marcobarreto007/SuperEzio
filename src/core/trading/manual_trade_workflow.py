@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
 import re
-import hashlib
-from datetime import datetime, timezone
-from typing import Any, Mapping
+from collections.abc import Mapping
+from datetime import UTC, datetime
+from typing import Any
 
 from core.trading.approval_gate import (
     ApprovalGate,
@@ -14,13 +15,12 @@ from core.trading.approval_gate import (
     ApprovalStatus,
     GateConfig,
 )
+from core.trading.td_cost_gate import TDCostGateError, normalize_td_preview_costs
 from core.trading.workflow_store import (
     TradeWorkflowStore,
     WorkflowConflictError,
     WorkflowStoreError,
 )
-from core.trading.td_cost_gate import TDCostGateError, normalize_td_preview_costs
-
 
 _REQUIRED_AUTOMATED_GATES = {
     "server_side_quote",
@@ -42,7 +42,7 @@ def _aware_utc(value: Any, field: str) -> datetime:
         raise ManualTradeWorkflowError(f"{field} must be an ISO-8601 datetime") from exc
     if parsed.tzinfo is None:
         raise ManualTradeWorkflowError(f"{field} must include a timezone")
-    return parsed.astimezone(timezone.utc)
+    return parsed.astimezone(UTC)
 
 
 def _nonnegative(value: Any, field: str) -> float:
@@ -158,7 +158,7 @@ class ManualTradeWorkflow:
             raise ManualTradeWorkflowError("TD cost preview must be recorded before approval")
         if not re.fullmatch(r"[0-9a-f]{64}", context_hash):
             raise ManualTradeWorkflowError("approval context hash is missing")
-        current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+        current = (now or datetime.now(UTC)).astimezone(UTC)
         if current > _aware_utc(preview.get("expires_at"), "preview.expires_at"):
             raise ManualTradeWorkflowError("TD cost preview expired before approval")
         request = self.approvals.submit(
@@ -206,7 +206,7 @@ class ManualTradeWorkflow:
         if not re.fullmatch(r"[0-9a-f]{64}", money_hash):
             raise ManualTradeWorkflowError("Money Gate evidence is missing")
         context_hash = hashlib.sha256(
-            f"{ticket['fingerprint']}|{money_hash}|{normalized['evidence_hash']}".encode("utf-8")
+            f"{ticket['fingerprint']}|{money_hash}|{normalized['evidence_hash']}".encode()
         ).hexdigest()
         required_gates = dict(ticket.get("required_gates") or {})
         required_gates["td_order_preview"] = True
@@ -238,7 +238,7 @@ class ManualTradeWorkflow:
             raise ManualTradeWorkflowError("approval does not belong to this ticket")
         if request.context_hash != str(ticket.get("approval_context_hash") or ""):
             raise ManualTradeWorkflowError("approval context does not match TD cost preview")
-        current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+        current = (now or datetime.now(UTC)).astimezone(UTC)
         if current > _aware_utc(
             dict(ticket.get("td_preview") or {}).get("expires_at"), "preview.expires_at"
         ):
@@ -286,7 +286,7 @@ class ManualTradeWorkflow:
         now: datetime | None = None,
     ) -> dict[str, Any]:
         ticket = self._ticket(ticket_id)
-        current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+        current = (now or datetime.now(UTC)).astimezone(UTC)
         if ticket.get("expires_at") and current > _aware_utc(ticket["expires_at"], "expires_at"):
             raise ManualTradeWorkflowError("ticket expired before manual entry")
         try:

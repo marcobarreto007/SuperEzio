@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from difflib import SequenceMatcher
-from typing import Any, Mapping
-
+from typing import Any
 
 SOURCE_WEIGHTS = {
     "newsapi": 1.0,
@@ -33,7 +33,7 @@ class CuratedSentiment:
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 from core.utils.datetime import parse_iso_datetime as _parse_time
@@ -293,9 +293,12 @@ class SentimentCurator:
             coordinated = reddit.get("new_accounts_same_text") or reddit.get(
                 "suspicious_accounts_count"
             )
-            if isinstance(coordinated, list) and len(coordinated) >= 3:
-                flags.append("POSSIBLE_PUMP")
-            elif _number(coordinated) is not None and float(coordinated) >= 3:
+            if (
+                isinstance(coordinated, list)
+                and len(coordinated) >= 3
+                or _number(coordinated) is not None
+                and float(coordinated) >= 3
+            ):
                 flags.append("POSSIBLE_PUMP")
             institutional_scores = [
                 item["score"]

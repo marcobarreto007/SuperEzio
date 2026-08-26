@@ -20,8 +20,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError, sync_playwright
-
+from playwright.sync_api import Page, sync_playwright
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 try:  # load .env.local so public-mode credentials resolve (same as the API)
     from core.config.secrets import load_local_env
@@ -305,18 +305,20 @@ def _chat_api_check(
     # stream also carries pipeline trace sections (## DATA, ## MATH_REPORT...)
     # whose template prose is English by contract and must not fail the check.
     seg = text
-    m = re.search(r"SUA EXPLICA[ÇC][AÃ]O\s*[:=]", text, re.I)
+    m = re.search(r"SUA EXPLICA[ÇC][AÃ]O\s*[:=]", text, re.IGNORECASE)
     if m:
-        seg = text[m.end():]
+        seg = text[m.end() :]
         cut = re.search(r"\n## ", seg)
         if cut:
-            seg = seg[:cut.start()]
+            seg = seg[: cut.start()]
     if not seg.strip():
         seg = text
-    pt = re.search(r"\b(você|não|uma|para|com|como|por|dos|das|ser|pode|deve)\b", seg, re.I)
+    pt = re.search(
+        r"\b(você|não|uma|para|com|como|por|dos|das|ser|pode|deve)\b", seg, re.IGNORECASE
+    )
     # Avoid 'and'/'of'/'is'/'with': they appear in ticker notes and pipeline dumps
     # inside otherwise-Portuguese Bob answers and false-fail the smoke.
-    en = re.search(r"\b(the|your|you|please|however|because)\b", seg, re.I)
+    en = re.search(r"\b(the|your|you|please|however|because)\b", seg, re.IGNORECASE)
     return {
         "sawStreamEnd": saw_end,
         "contentLength": len(text),

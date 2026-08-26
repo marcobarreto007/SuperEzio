@@ -14,9 +14,9 @@ import statistics
 from pathlib import Path
 from typing import Any
 
-from f51 import F51Engine, RiskRule, VeracityGate, SpiderSense, DifficultyEstimator
+from f51 import DifficultyEstimator, F51Engine, RiskRule, SpiderSense, VeracityGate
 from f51.formulas import heuristic_uncertainty
-from f51.graph import Graph, Node, NodeResult, Context
+from f51.graph import Context, Graph, Node, NodeResult
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 FRAUD_RULES_PATH = PROJECT_ROOT / "data" / "fraud_patterns" / "red_flag_rules.json"
@@ -153,8 +153,8 @@ class F51HubAdapter:
         self.estimator = DifficultyEstimator()
         graph = self._build_financial_graph()
         self.engine = F51Engine(graph=graph)
-        from f51.scoring import RiskEngine
         from f51.gates import AdversarialCritic
+        from f51.scoring import RiskEngine
 
         self.risk_engine = RiskEngine(rules=self.rules)
         self.critic = AdversarialCritic()

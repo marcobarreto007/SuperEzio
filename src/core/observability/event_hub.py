@@ -12,9 +12,10 @@ import asyncio
 import json
 import threading as _threading
 from abc import ABC, abstractmethod
-from typing import Callable, Awaitable, Dict, Any, List, Optional
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 from .neural_log import log_event
 
@@ -29,12 +30,12 @@ class EventEnvelope:
     """
 
     event_type: str
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
     correlation_id: str = ""
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
     source: str = "f51-kernel"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "event_type": self.event_type,
             "payload": self.payload,
@@ -47,7 +48,7 @@ class EventEnvelope:
         return json.dumps(self.to_dict())
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "EventEnvelope":
+    def from_dict(cls, data: dict[str, Any]) -> "EventEnvelope":
         return cls(
             event_type=data.get("event_type", "unknown"),
             payload=data.get("payload", {}),
@@ -65,17 +66,14 @@ class EventHub(ABC):
     @abstractmethod
     async def publish(self, event: EventEnvelope) -> None:
         """Publica um evento."""
-        pass
 
     @abstractmethod
     async def subscribe(self, handler: EventHandler) -> None:
         """Registra um handler para receber eventos."""
-        pass
 
     @abstractmethod
     async def subscribe_to(self, event_type: str, handler: EventHandler) -> None:
         """Registra handler para tipo especÃ­fico de evento."""
-        pass
 
 
 class InMemoryHub(EventHub):
@@ -85,9 +83,9 @@ class InMemoryHub(EventHub):
     """
 
     def __init__(self):
-        self._handlers: List[EventHandler] = []
-        self._type_handlers: Dict[str, List[EventHandler]] = {}
-        self._event_queue: Optional[asyncio.Queue] = None
+        self._handlers: list[EventHandler] = []
+        self._type_handlers: dict[str, list[EventHandler]] = {}
+        self._event_queue: asyncio.Queue | None = None
         self._running = False
         self._task = None
         log_event("EVENT_HUB", "INIT", {"type": "in-memory"})
@@ -155,8 +153,8 @@ class RedisStreamsHub(EventHub):
         self.stream_key = stream_key
         self.consumer_group = consumer_group
         self._redis = None
-        self._handlers: List[EventHandler] = []
-        self._type_handlers: Dict[str, List[EventHandler]] = {}
+        self._handlers: list[EventHandler] = []
+        self._type_handlers: dict[str, list[EventHandler]] = {}
         self._consumer_task = None
         self._running = False
 
@@ -289,7 +287,7 @@ def create_event_hub(hub_type: str = "memory", **kwargs) -> EventHub:
 
 
 # Global hub instance (created lazily, thread-safe)
-_global_hub: Optional[EventHub] = None
+_global_hub: EventHub | None = None
 _global_hub_lock: _threading.Lock = _threading.Lock()
 
 

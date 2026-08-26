@@ -11,9 +11,9 @@ import json
 import logging
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 
@@ -31,10 +31,10 @@ FAISS_INDEX_DIR = os.getenv("SUPEREZIO_RAG_INDEX_DIR", "data/faiss_index")
 
 # ── Singleton state ────────────────────────────────────────────────────
 _embedder: Any = None  # SentenceTransformer | None
-_embeddings_cache: Optional[np.ndarray] = None  # (N, dim) normalized
+_embeddings_cache: np.ndarray | None = None  # (N, dim) normalized
 _documents_cache: list[dict[str, Any]] = []
 _faiss_index: Any = None  # faiss.Index | None
-_faiss_available: Optional[bool] = None  # tri-state: None=unchecked, True/False
+_faiss_available: bool | None = None  # tri-state: None=unchecked, True/False
 _index_data_dir: str | None = None  # which data_dir the cache was built for
 
 
@@ -393,7 +393,7 @@ class ForensicRAG:
         manifest = {
             "schema_version": 1,
             "generation": generation_id,
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "document_count": len(documents),
             "documents_sha256": hashlib.sha256(documents_bytes).hexdigest(),
             "index_sha256": index_hash,

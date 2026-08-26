@@ -4,9 +4,9 @@ Simulates a complete paper trade flow WITHOUT touching real money.
 Validates that the entire chain works end-to-end.
 """
 
+import json
 import os
 import sys
-import json
 import time
 import urllib.request
 import uuid

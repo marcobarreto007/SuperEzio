@@ -1,15 +1,16 @@
 """Smoke tests — F51 formulas (puras, deterministicas, sem rede)."""
 
 import pytest
+
 from f51.formulas import (
     DecisionFactors,
     FormulaWeights,
-    unified_decision,
     combined_risk,
-    proxy_reward,
-    heuristic_uncertainty,
     decision_threshold,
     expand_budget,
+    heuristic_uncertainty,
+    proxy_reward,
+    unified_decision,
 )
 
 

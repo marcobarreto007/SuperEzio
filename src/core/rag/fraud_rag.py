@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from typing import Any, List
+from typing import Any
 
 import pandas as pd
 
@@ -125,7 +125,7 @@ class FraudPatternMatcher:
                 ]
                 self._add_pattern_text(" | ".join(str(p) for p in parts if p))
 
-    def search_patterns(self, query: str, limit: int = 3) -> List[str]:
+    def search_patterns(self, query: str, limit: int = 3) -> list[str]:
         results = []
         query_lower = query.lower()
 
@@ -159,7 +159,7 @@ class FraudPatternMatcher:
                 self._embedder_cache = None
         return self._embedder_cache
 
-    def search_semantic(self, query: str, limit: int = 3) -> List[str]:
+    def search_semantic(self, query: str, limit: int = 3) -> list[str]:
         """Semantic search over the knowledge base using embeddings.
 
         Falls back to keyword search when sentence-transformers is unavailable.

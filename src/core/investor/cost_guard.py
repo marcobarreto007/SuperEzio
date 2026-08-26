@@ -1,7 +1,7 @@
 import json
 import os
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +18,7 @@ class CostGuard:
         self._runs_today: int = 0
         # Persist by DAY so a restart never silently resets the budget
         # (client-facing billing guard, 2026-08-23). Corrupt state -> zero.
-        self._day_key = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        self._day_key = datetime.now(UTC).strftime("%Y-%m-%d")
         try:
             state = json.loads(_state_path().read_text(encoding="utf-8"))
             if isinstance(state, dict) and state.get("day") == self._day_key:

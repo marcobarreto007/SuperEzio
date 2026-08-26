@@ -120,8 +120,8 @@ def test_liquidity_risk_expert():
 
 # ── Scoring ──
 def test_compute_scores():
-    from experts.pennylab.scoring import compute_scores
     from experts.pennylab.schemas import SignalInput
+    from experts.pennylab.scoring import compute_scores
 
     sig = SignalInput(
         ticker="TEST",
@@ -136,8 +136,8 @@ def test_compute_scores():
 
 
 def test_make_decision():
-    from experts.pennylab.scoring import make_decision
     from experts.pennylab.schemas import PennylabScores, SignalInput
+    from experts.pennylab.scoring import make_decision
 
     scores = PennylabScores(
         whale_suspicion=0.9, pump_probability=0.5, trap_risk=0.8, liquidity_risk=0.7
@@ -150,8 +150,8 @@ def test_make_decision():
 
 
 def test_compute_confidence():
+    from experts.pennylab.schemas import PennylabScores, SignalInput
     from experts.pennylab.scoring import compute_confidence
-    from experts.pennylab.schemas import SignalInput, PennylabScores
 
     sig = SignalInput(ticker="TEST", price=5.0, volume=2000000, avg_volume_10d=400000)
     scores = PennylabScores()
@@ -160,8 +160,8 @@ def test_compute_confidence():
 
 
 def test_analyze_full():
-    from experts.pennylab.scoring import analyze
     from experts.pennylab.schemas import SignalInput
+    from experts.pennylab.scoring import analyze
 
     sig = SignalInput(
         ticker="TEST",

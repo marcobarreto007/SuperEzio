@@ -7,12 +7,11 @@ genes whose performance exceeds a 70% win-rate threshold.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from statistics import mean
 from typing import Any
 
 from pydantic import BaseModel, Field
-
 
 # ---------------------------------------------------------------------------
 # Gene model
@@ -191,7 +190,7 @@ class DNAEngine:
         gene.current_value = new_value
         gene.history.append(
             {
-                "ts": datetime.now(timezone.utc).isoformat(),
+                "ts": datetime.now(UTC).isoformat(),
                 "old_value": old_value,
                 "new_value": new_value,
                 "win_rate": win_rate,
@@ -242,7 +241,7 @@ class DNAEngine:
         gene = self._genes[gene_name]
         gene.history.append(
             {
-                "ts": datetime.now(timezone.utc).isoformat(),
+                "ts": datetime.now(UTC).isoformat(),
                 "old_value": gene.current_value,
                 "new_value": gene.current_value,
                 "win_rate": None,
@@ -333,7 +332,7 @@ def _coin_flip(probability: float) -> bool:
 def _record_mutation(gene: Gene, reason: str, **extra: Any) -> None:
     gene.history.append(
         {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "old_value": gene.current_value,
             "new_value": gene.current_value,
             "win_rate": None,

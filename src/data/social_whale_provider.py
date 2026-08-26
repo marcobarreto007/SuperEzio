@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +177,7 @@ class SocialWhaleProvider:
     #  Public methods
     # ──────────────────────────────────────────────────────────────────────
 
-    def get_whale_signals(self, ticker: str) -> Dict[str, Any]:
+    def get_whale_signals(self, ticker: str) -> dict[str, Any]:
         """
         Search social media for whale / institutional mentions of *ticker*.
 
@@ -217,7 +217,7 @@ class SocialWhaleProvider:
             "data_status": "OBSERVED",
         }
 
-    def get_pump_detection(self, ticker: str) -> Dict[str, Any]:
+    def get_pump_detection(self, ticker: str) -> dict[str, Any]:
         """
         Detect anomalous pump/dump conversation for *ticker*.
 
@@ -275,7 +275,7 @@ class SocialWhaleProvider:
             "data_status": "OBSERVED",
         }
 
-    def get_social_sentiment(self, ticker: str) -> Dict[str, Any]:
+    def get_social_sentiment(self, ticker: str) -> dict[str, Any]:
         """
         Aggregate social sentiment from Nitter, ApeWisdom, and Reddit.
 
@@ -347,7 +347,7 @@ class SocialWhaleProvider:
             "data_status": "OBSERVED",
         }
 
-    def get_unusual_options_flow(self, ticker: str) -> Dict[str, Any]:
+    def get_unusual_options_flow(self, ticker: str) -> dict[str, Any]:
         """
         Search for unusual options flow / dark pool / large orders.
 
@@ -402,7 +402,7 @@ class SocialWhaleProvider:
     #  Internal: Nitter search
     # ──────────────────────────────────────────────────────────────────────
 
-    def _search(self, query: str, limit: int = 10) -> tuple[list[Dict[str, Any]], str]:
+    def _search(self, query: str, limit: int = 10) -> tuple[list[dict[str, Any]], str]:
         """
         Try Nitter instances in order.
 
@@ -433,7 +433,7 @@ class SocialWhaleProvider:
         return [], "nitter_offline"
 
     @staticmethod
-    def _parse_nitter_tweets(html: str, limit: int) -> list[Dict[str, Any]]:
+    def _parse_nitter_tweets(html: str, limit: int) -> list[dict[str, Any]]:
         """Extract tweet texts from Nitter HTML.
 
         Uses multiple extraction strategies to handle different Nitter
@@ -511,7 +511,7 @@ class SocialWhaleProvider:
         if self._apewisdom is not None:
             return self._apewisdom, True
         try:
-            from .apewisdom_provider import ApeWisdomProvider  # noqa: PLC0415
+            from .apewisdom_provider import ApeWisdomProvider
 
             self._apewisdom = ApeWisdomProvider()
             return self._apewisdom, True
@@ -519,14 +519,14 @@ class SocialWhaleProvider:
             logger.debug("[SocialWhale] ApeWisdom import failed: %s", exc)
             return None, False
 
-    def _fallback_result(self, ticker: str, method: str) -> Dict[str, Any]:
+    def _fallback_result(self, ticker: str, method: str) -> dict[str, Any]:
         """Return an explicit unknown result for unavailable specialized data.
 
         ApeWisdom exposes aggregate retail sentiment. It does not prove whale
         activity, pump/dump language, or unusual options flow, so it must never
         be converted into those semantics.
         """
-        base: Dict[str, Any] = {
+        base: dict[str, Any] = {
             "ticker": ticker,
             "error": "no_data_all_sources_offline",
             "signal": "UNKNOWN",

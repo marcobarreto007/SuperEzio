@@ -19,8 +19,8 @@ from __future__ import annotations
 import os
 import threading
 import time
-from datetime import date, datetime, timedelta, timezone
-from typing import Any, Dict, List
+from datetime import UTC, date, datetime, timedelta
+from typing import Any
 
 import requests
 
@@ -117,7 +117,7 @@ class FinnhubProvider:
         *,
         market: str | None = None,
         include_avg_volume: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Real-time price snapshot, enriched with 10-day average volume when
         Finnhub /stock/metric exposes it on the current key tier.
@@ -164,7 +164,7 @@ class FinnhubProvider:
                 last_error = "no_quote"
                 continue
 
-            payload: Dict[str, Any] = {
+            payload: dict[str, Any] = {
                 "symbol": variant,
                 "requested_symbol": symbol,
                 "price": float(price),
@@ -179,7 +179,7 @@ class FinnhubProvider:
             if quote_timestamp:
                 payload["market_timestamp"] = int(quote_timestamp)
                 payload["as_of"] = datetime.fromtimestamp(
-                    float(quote_timestamp), tz=timezone.utc
+                    float(quote_timestamp), tz=UTC
                 ).isoformat()
 
             if include_avg_volume:
@@ -193,7 +193,7 @@ class FinnhubProvider:
 
         return {"error": last_error, "symbol": symbol, "tried": variants}
 
-    def get_quote(self, symbol: str) -> Dict[str, Any]:
+    def get_quote(self, symbol: str) -> dict[str, Any]:
         """Alias for hub `quote` capability — same payload as get_price."""
         return self.get_price(symbol)
 
@@ -259,7 +259,7 @@ class FinnhubProvider:
     # ─────────────────────────────────────────────────────────────────
     # Company profile
     # ─────────────────────────────────────────────────────────────────
-    def get_profile(self, symbol: str) -> Dict[str, Any]:
+    def get_profile(self, symbol: str) -> dict[str, Any]:
         """
         Company profile: name, exchange, currency, market cap.
 
@@ -317,7 +317,7 @@ class FinnhubProvider:
     # ─────────────────────────────────────────────────────────────────
     # Fundamentals (P/E, Beta, EPS, margins, ROE, sector)
     # ─────────────────────────────────────────────────────────────────
-    def get_fundamentals(self, symbol: str) -> Dict[str, Any]:
+    def get_fundamentals(self, symbol: str) -> dict[str, Any]:
         """
         Extract key fundamental metrics from Finnhub /stock/metric.
 
@@ -382,7 +382,7 @@ class FinnhubProvider:
                 int(float(market_cap_raw) * 1_000_000) if market_cap_raw is not None else None
             )
 
-            payload: Dict[str, Any] = {
+            payload: dict[str, Any] = {
                 "symbol": variant,
                 "requested_symbol": symbol,
                 "source": "finnhub",
@@ -413,7 +413,7 @@ class FinnhubProvider:
 
         return {"error": last_error, "symbol": symbol, "tried": variants}
 
-    def get_short_term_catalyst(self, symbol: str, *, window_days: int = 14) -> Dict[str, Any]:
+    def get_short_term_catalyst(self, symbol: str, *, window_days: int = 14) -> dict[str, Any]:
         """
         Identify a concrete catalyst within the next `window_days` for the
         ticker by querying the earnings calendar. An earnings release inside
@@ -521,11 +521,11 @@ class FinnhubProvider:
         *,
         market: str | None = None,
         **_: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """OHLCV via Finnhub /stock/candle (free tier: D/W/M resolutions)."""
         resolution = self._CANDLE_RESOLUTION.get(timeframe, "D")
         days = self._CANDLE_LOOKBACK_DAYS.get(timeframe, 190)
-        end = datetime.now(timezone.utc)
+        end = datetime.now(UTC)
         start = end - timedelta(days=days)
         params_base = {
             "resolution": resolution,
@@ -556,7 +556,7 @@ class FinnhubProvider:
             if not times:
                 last_error = "no_candles"
                 continue
-            candles: List[Dict[str, Any]] = []
+            candles: list[dict[str, Any]] = []
             opens = data.get("o") or []
             highs = data.get("h") or []
             lows = data.get("l") or []
@@ -565,7 +565,7 @@ class FinnhubProvider:
             for i, ts in enumerate(times):
                 candles.append(
                     {
-                        "datetime": datetime.fromtimestamp(int(ts), tz=timezone.utc).isoformat(),
+                        "datetime": datetime.fromtimestamp(int(ts), tz=UTC).isoformat(),
                         "open": float(opens[i]) if i < len(opens) else None,
                         "high": float(highs[i]) if i < len(highs) else None,
                         "low": float(lows[i]) if i < len(lows) else None,
@@ -589,7 +589,7 @@ class FinnhubProvider:
         *,
         limit: int = 5,
         **_: Any,
-    ) -> List[Dict[str, Any]] | Dict[str, Any]:
+    ) -> list[dict[str, Any]] | dict[str, Any]:
         """Company headlines via /company-news (query treated as ticker)."""
         token = (query or "").strip().upper().split()[0]
         if not token:
@@ -621,7 +621,7 @@ class FinnhubProvider:
             if not isinstance(rows, list) or not rows:
                 last_error = "no_news"
                 continue
-            articles: List[Dict[str, Any]] = []
+            articles: list[dict[str, Any]] = []
             for row in rows[: max(1, limit)]:
                 if not isinstance(row, dict):
                     continue

@@ -1,6 +1,6 @@
 import os
-import sys
 import time
+
 import requests
 from playwright.sync_api import sync_playwright
 
@@ -28,11 +28,11 @@ with sync_playwright() as p:
         executable_path=chrome_exe,
         headless=False,
         slow_mo=1200,  # 1.2 segundos por acao para o usuario ver claramente cada clique
-        args=["--start-maximized", "--no-first-run", "--no-default-browser-check"]
+        args=["--start-maximized", "--no-first-run", "--no-default-browser-check"],
     )
     context = browser.new_context(
         no_viewport=True,
-        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
     )
     context.add_init_script(f"localStorage.setItem('sz_access_token', '{token}');")
 
@@ -83,6 +83,8 @@ with sync_playwright() as p:
         time.sleep(2)
         page.screenshot(path="output/live_chrome_run/05_card_clicked.png")
 
-    print(" -> [5/5] Operacao completa realizada. Mantendo a janela aberta por 180 segundos para voce usar...")
+    print(
+        " -> [5/5] Operacao completa realizada. Mantendo a janela aberta por 180 segundos para voce usar..."
+    )
     time.sleep(180)
     browser.close()

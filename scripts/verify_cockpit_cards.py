@@ -14,10 +14,8 @@ import time
 from pathlib import Path
 from typing import Any
 
-from playwright.sync_api import Page, sync_playwright
-
 from browser_smoke import _auth_bootstrap  # same dir; also loads .env.local on import
-
+from playwright.sync_api import Page, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASE_URL = "http://localhost:8002"

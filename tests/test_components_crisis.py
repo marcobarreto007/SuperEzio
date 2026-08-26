@@ -43,8 +43,8 @@ def test_classify_regime():
 
 # ── Ensemble ──
 def test_aggregate_scores():
-    from experts.crisis.logic.ensemble import aggregate_scores
     from experts.crisis.contracts.schemas import SensorResult
+    from experts.crisis.logic.ensemble import aggregate_scores
 
     results = [
         SensorResult(
@@ -204,8 +204,8 @@ def test_systemic_bank_risk():
 
 # ── Crisis Expert ──
 def test_crisis_expert_analyze():
-    from experts.crisis.expert.crisis_expert import CrisisMathExpert
     from experts.crisis.contracts.schemas import CrisisInput, MacroObservation
+    from experts.crisis.expert.crisis_expert import CrisisMathExpert
 
     expert = CrisisMathExpert()
     obs = MacroObservation(

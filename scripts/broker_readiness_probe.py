@@ -14,7 +14,6 @@ import socket
 import sys
 from typing import Any
 
-
 IBKR_PAPER_PORTS = (7497, 4002)
 IBKR_LIVE_PORTS = (7496, 4001)
 

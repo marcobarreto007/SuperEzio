@@ -6,6 +6,6 @@ from .professional import ProfessionalCollector, get_professional_collector
 __all__ = [
     "DataCollector",
     "ProfessionalCollector",
-    "get_professional_collector",
     "detect_market",
+    "get_professional_collector",
 ]

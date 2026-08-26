@@ -14,8 +14,8 @@ the Organ counter is exercised with an injected check_fn.
 import threading
 
 from core.bob_consciousness.autonomic import (
-    AutonomicNervousSystem,
     MAN_AT_WORK_FAILURE_THRESHOLD,
+    AutonomicNervousSystem,
     _should_enter_man_at_work,
 )
 from core.bob_consciousness.body import (
@@ -24,7 +24,6 @@ from core.bob_consciousness.body import (
     PainLevel,
     SystemMode,
 )
-
 
 # ---------------------------------------------------------------
 # Pure decision function: _should_enter_man_at_work(report[, counter])

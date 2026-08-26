@@ -1,4 +1,5 @@
 import json
+
 from playwright.sync_api import sync_playwright
 
 BASE = "http://127.0.0.1:8002"
@@ -6,7 +7,12 @@ OUT = "runtime/checkpoints"
 
 with sync_playwright() as pw:
     b = pw.chromium.launch(headless=True)
-    ctx = b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx = b.new_context(
+        viewport={"width": 390, "height": 844},
+        device_scale_factor=2,
+        is_mobile=True,
+        has_touch=True,
+    )
     p = ctx.new_page()
     errs = []
     p.on("console", lambda m: errs.append(m.text) if m.type == "error" else None)
@@ -32,7 +38,8 @@ with sync_playwright() as pw:
       };
     }""")
     # bell only, no prior interactions
-    p.tap("#alert-bell-btn"); p.wait_for_timeout(500)
+    p.tap("#alert-bell-btn")
+    p.wait_for_timeout(500)
     info["alerts"] = p.evaluate("""() => {
       const d = document.getElementById('alert-dropdown');
       const x = d.getBoundingClientRect();

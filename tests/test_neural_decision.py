@@ -6,11 +6,11 @@ calibrations, and endpoint integration.
 
 from __future__ import annotations
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
-from experts.neural_decision import NeuralDecisionExpert
 from agent_server.main import app
+from experts.neural_decision import NeuralDecisionExpert
 
 
 # ── Autouse fixture: clear JWT_SECRET so API endpoint tests use dev mode ──

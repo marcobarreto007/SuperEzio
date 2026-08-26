@@ -3,6 +3,7 @@ Tests for BodyEventBus — Fase 1 (Event Bus) da arquitetura CORPO.
 """
 
 import pytest
+
 from core.body import BodyEvent, BodyEventBus, create_body
 
 

@@ -13,8 +13,8 @@ import json
 import logging
 import os
 import threading
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timedelta, timezone
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -77,8 +77,8 @@ def _parse_utc_datetime(value: Any) -> datetime | None:
     except ValueError:
         return None
     if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
 @dataclass
@@ -132,8 +132,8 @@ class PaperTrade:
     lesson_learned: str | None = None
 
     # Metadata
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    updated_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     tags: list[str] = field(default_factory=list)
 
     def close_trade(
@@ -144,7 +144,7 @@ class PaperTrade:
     ) -> None:
         """Fecha o trade e calcula PnL."""
         self.exit_price = exit_price
-        self.exit_date = exit_date or datetime.now(timezone.utc).isoformat()
+        self.exit_date = exit_date or datetime.now(UTC).isoformat()
         self.exit_reason = exit_reason
 
         if self.direction == "long":
@@ -163,7 +163,7 @@ class PaperTrade:
             else:
                 self.outcome = "breakeven"
 
-        self.updated_at = datetime.now(timezone.utc).isoformat()
+        self.updated_at = datetime.now(UTC).isoformat()
 
     def add_reflection(
         self,
@@ -177,7 +177,7 @@ class PaperTrade:
         self.what_went_right = what_went_right or None
         self.what_went_wrong = what_went_wrong or None
         self.lesson_learned = lesson_learned or None
-        self.updated_at = datetime.now(timezone.utc).isoformat()
+        self.updated_at = datetime.now(UTC).isoformat()
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -294,8 +294,7 @@ class PaperJournal:
         tmp_path = self._path.with_name(self._path.name + ".tmp")
         with self._lock:
             with open(tmp_path, "w", encoding="utf-8") as f:
-                for entry in entries:
-                    f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+                f.writelines(json.dumps(entry, ensure_ascii=False) + "\n" for entry in entries)
                 f.flush()
                 os.fsync(f.fileno())
             os.replace(tmp_path, self._path)
@@ -318,7 +317,7 @@ class PaperJournal:
         Engines historically passed lightweight dicts here. Keep the method
         strict enough for audit while preserving extra broker metadata.
         """
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         ticker = str(trade.get("ticker") or trade.get("symbol") or "").strip().upper()
         if not ticker:
             raise ValueError("trade ticker/symbol is required")
@@ -338,7 +337,7 @@ class PaperJournal:
         trade_id = str(
             trade.get("trade_id")
             or trade.get("order_id")
-            or f"paper-{ticker}-{int(datetime.now(timezone.utc).timestamp() * 1000)}"
+            or f"paper-{ticker}-{int(datetime.now(UTC).timestamp() * 1000)}"
         )
         entry_price = float(
             trade.get("entry_price") or trade.get("limit_price") or trade.get("price") or 0.0
@@ -593,15 +592,15 @@ class PaperJournal:
         if min_age_days < 0:
             raise ValueError("min_age_days must be >= 0")
 
-        reference = now or datetime.now(timezone.utc)
+        reference = now or datetime.now(UTC)
         if reference.tzinfo is None:
-            reference = reference.replace(tzinfo=timezone.utc)
-        reference = reference.astimezone(timezone.utc)
+            reference = reference.replace(tzinfo=UTC)
+        reference = reference.astimezone(UTC)
         cutoff = reference - timedelta(days=min_age_days)
 
         entries = self._read_all()
         reviewed: list[dict[str, Any]] = []
-        updated_at = datetime.now(timezone.utc).isoformat()
+        updated_at = datetime.now(UTC).isoformat()
 
         for entry in entries:
             if not entry.get("exit_date") or not entry.get("outcome"):

@@ -14,7 +14,7 @@ import re
 import sys
 import tempfile
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -342,7 +342,7 @@ def _markdown(report: dict[str, Any]) -> str:
 
 
 async def _run(api: str, token: str | None) -> dict[str, Any]:
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     results: list[dict[str, Any]] = []
     runtime_error: str | None = None
     preflight: dict[str, Any] | None = None

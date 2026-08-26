@@ -1,13 +1,19 @@
 import json
+
 from playwright.sync_api import sync_playwright
 
 with sync_playwright() as pw:
     b = pw.chromium.launch(headless=True)
-    ctx = b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx = b.new_context(
+        viewport={"width": 390, "height": 844},
+        device_scale_factor=2,
+        is_mobile=True,
+        has_touch=True,
+    )
     p = ctx.new_page()
     p.goto("http://127.0.0.1:8002", wait_until="load", timeout=25000)
     p.wait_for_timeout(3000)
-    out = p.evaluate("""() => {
+    out = p.evaluate(r"""() => {
       function lum(hex) {
         const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(hex);
         if (!m) return null;

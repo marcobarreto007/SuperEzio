@@ -23,7 +23,6 @@ from src.core.pipeline.nodes.agent import (
 )
 from src.core.pipeline.prompts.builder import build_agent_prompt
 
-
 # ---------------------------------------------------------------------------
 # Test prompts from the mission spec
 # ---------------------------------------------------------------------------
@@ -582,9 +581,9 @@ class TestAgentP2CapitalAllocationQuality:
         """Add contract test: CAD 25k allocation answer must contain emergency fund gate,
         debt interest gate, business cashflow gate, tax-account note, and no unsupported exact probability.
         """
+        import json
         import urllib.error
         import urllib.request
-        import json
 
         # 1. Check if both API and agent servers are running
         try:

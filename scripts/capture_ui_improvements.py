@@ -1,5 +1,5 @@
 import os
-import time
+
 import requests
 from playwright.sync_api import sync_playwright
 
@@ -19,12 +19,12 @@ with sync_playwright() as p:
     context = browser.new_context(viewport={"width": 1440, "height": 900})
     context.add_init_script(f"localStorage.setItem('sz_access_token', '{token}');")
     page = context.new_page()
-    
+
     page.goto("https://supereziorealtime.com", timeout=30000)
     page.wait_for_selector("#chat", timeout=15000)
     page.evaluate("if (window.SZ && window.SZ.loadChart) window.SZ.loadChart('TD.TO', '6M')")
     page.wait_for_timeout(3500)
-    
+
     # 1. Visão geral do Cockpit com Status Limpo e Novo Deck Inferior
     page.screenshot(path="output/ui_improvements/01_cockpit_status_clean.png")
     print(" -> Salvo 01: output/ui_improvements/01_cockpit_status_clean.png")

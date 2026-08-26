@@ -165,7 +165,7 @@ class KnowledgeGraph:
     def query_context(
         self,
         entity_ids: list[str],
-        max_hops: int = 2,  # noqa: ARG001 — reserved for future graph traversal depth
+        max_hops: int = 2,
     ) -> dict[str, Any]:
         """Query contextual neighborhood for entities.
 

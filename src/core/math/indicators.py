@@ -6,9 +6,10 @@ e cálculos em séries (retornando uma lista de mesma dimensão que os preços).
 """
 
 from __future__ import annotations
-from typing import Sequence
-import numpy as np
 
+from collections.abc import Sequence
+
+import numpy as np
 
 # ===========================================================================
 # 1. Cálculos Escalares (Para Decision Engine / Experts)
