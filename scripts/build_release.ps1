@@ -60,7 +60,7 @@ $deniedPrefixes = @(
     ".f51/partner/",
     ".f51/tmp/",
     ".git/",
-    "data/man_at_work/",
+    "data/",
     "journal/",
     "output/",
     "reports/",
@@ -68,17 +68,44 @@ $deniedPrefixes = @(
 )
 $deniedNames = @(".env", ".env.local", ".env.local.bak", "credentials.json")
 
+$deniedSegments = @(
+    "cache",
+    "checkpoints",
+    "journal",
+    "man_at_work",
+    "output",
+    "partner",
+    "runtime",
+    "tmp"
+)
+
+function Test-DeniedSegment {
+    param([Parameter(Mandatory = $true)][string]$NormalizedLowered)
+    foreach ($segment in $NormalizedLowered.Split("/")) {
+        if ($deniedSegments -contains $segment) { return $true }
+        if ($segment -like ".env*" -and $segment -ne ".env.example") { return $true }
+        if ($segment -like "*.db" -or $segment -like "*.db-wal" -or $segment -like "*.db-shm") { return $true }
+        if ($segment -like "*.log") { return $true }
+        if ($segment -like "*.jsonl") { return $true }
+    }
+    return $false
+}
+
 function Test-ReleasePath {
     param([Parameter(Mandatory = $true)][string]$Path)
     $normalized = $Path.Replace("\", "/")
     $lowered = $normalized.ToLowerInvariant()
-    if ($deniedNames -contains $lowered) { return $false }
-    foreach ($prefix in $deniedPrefixes) {
-        if ($lowered.StartsWith($prefix)) { return $false }
-    }
+    # Allowlist first: top-level allowed files and whitelisted data assets
     if ($allowedTopFiles -contains $normalized) { return $true }
     foreach ($prefix in $allowedData) {
         if ($normalized -eq $prefix -or $normalized.StartsWith($prefix)) { return $true }
+    }
+    # Exact-name deny (kept for explicit visibility)
+    if ($deniedNames -contains $lowered) { return $false }
+    # Segment/name-level deny: catches operator state nested anywhere
+    if (Test-DeniedSegment -NormalizedLowered $lowered) { return $false }
+    foreach ($prefix in $deniedPrefixes) {
+        if ($lowered.StartsWith($prefix)) { return $false }
     }
     foreach ($prefix in $allowedRoots) {
         if ($normalized.StartsWith($prefix)) { return $true }
