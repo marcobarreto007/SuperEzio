@@ -104,3 +104,28 @@
 - Gate da auditoria: 5 agentes × relatório estruturado com severidade — 3 com achados críticos (recon, security, agent-explorer)
 - Remediação exige: tarefa no `.f51/TASK_BOARD.md` + gate de contrato + checkpoint atualizado (definição de pronto F51)
 - Próximo passo operacional sugerido: decidir ordem de remediação no `.f51/TASK_BOARD.md`
+
+## 6. Remediação executada — higiene estrutural (2026-08-26)
+
+- **Autorização:** coordenador do swarm (tarefa explícita pós-auditoria). Modo DISK ONLY; nenhum fetch/push.
+- **Regras respeitadas:** zero alterações em `src/`, `apps/`, `core/`, `pipelines/`, `packages/`; zero deleções (tudo via `git mv`, histórico preservado); chaves/.env*/test_token.json/questrade_portfolio.json intocados; `runtime/checkpoints/latest.json` intocado (split-brain documentado abaixo, não resolvido).
+- **Verificação pré-move:** grep repo-wide (excluindo .git/node_modules/.venv/dist/build/.agent_bus) por nome de cada arquivo; nenhuma referência viva de runtime encontrada. Menções históricas registradas, não bloqueantes:
+  - `.f51/checkpoints/2026-08-23-casual-greeting-intent-fix.json:1719` (tmx_redirect.json "aguardando o D3") e `:1437` (browser_smoke_mobile.py) — registros de checkpoint do passado, não dependências
+  - `.f51/CONFIG_MAP.md:53` (requirements-ci.txt) — documentação de config agora stale (classificação "config", risco "version label is stale")
+  - `docs/STATE_OF_THE_UNION.md:247` (família train_qwenlong) — lista histórica de deletados da Wave 4
+  - `runtime/LEGACY_CATALOG.md` (catálogo de legado) e `runtime/train_qwenlong_30b.bat` (stub auto-retired, `exit /b 2`, não invoca o .ps1)
+- **Arquivados: 39 arquivos** → `.f51/archive/2026-08-26/` (git mv, renomes staged):
+
+  | Origem | Destino (.f51/archive/2026-08-26/) |
+  |---|---|
+  | `tmx_redirect.json`, `cockpit_analysis.txt`, `.baseline_tests.txt`, `superezio.spec`, `requirements-ci.txt` (raiz) | `./` |
+  | `runtime/checkpoints/debug_flex.py`, `debug_right.py`, `debug_rows.py`, `mobile-audit-r4.py`, `mobile-contrast-probe.py`, `mobile-probe-r4.py`, `mobile-topbar-768.py`, `mobile-topbar-probe.py`, `probe_mobile_r1.py`, `shots_r1.py` | `runtime/checkpoints/` |
+  | `runtime/checkpoints/tmx_capture/` (20 arquivos: capture_network.py, capture_network2.py, README.md, td_quote.html, quote_symbol.js, 10× *.js bundles, 5× gql_*.json) | `runtime/checkpoints/tmx_capture/` |
+  | `scripts/live_chrome_operator.py`, `chromium_live_operator.py`, `browser_smoke_mobile.py`, `train_qwenlong_30b_gguf_f51.ps1` | `scripts/` |
+
+- **NÃO movidos (fora do escopo desta tarefa):** código morto em `src/` — `core/auth/` (447 LOC), `audit/decision_logger.py`, `trading/expert_weights.py`, `pipeline/nodes/collect_experts.py`, `investor/committee.py`+`prompts.py`+`prompts/financial_prompts.py`, `experts/technical_neural/pipeline_hook.py`, `trading/reason_codes.py` — regra dura proíbe tocar em `src/`; ficam para gate `f51-refactor` com contrato aprovado (achados §1 itens 3-5).
+- **Split-brain de checkpoint — DOCUMENTADO, NÃO resolvido (sessão paralela pode usar ambos):**
+  - `.f51/checkpoints/latest.json` (mandatário — CLAUDE.md "Todo agente deve atualizar .f51/checkpoints/latest.json"; atualizado 2026-08-25)
+  - `runtime/checkpoints/latest.json` (nada em src/scripts/docs referencia; atualizado 2026-08-23)
+  - Resolução proposta para gate futuro: eleger `.f51/checkpoints/` como única autoridade e migrar/arquivar o segundo.
+- **Commit:** escopado — apenas `.f51/archive/2026-08-26/` + este relatório. Mudanças de outras sessões em `data/`, `config/`, `tests/` não incluídas.
