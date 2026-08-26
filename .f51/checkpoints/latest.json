@@ -16,7 +16,9 @@
     "runtime": "runtime-verifier: API :8002 e CEO :8080 live (health 200), sem restart desde 08-25, GPU RTX 3060 ok; 0 erros críticos nos logs (169 linhas 'error' = yfinance 'possibly delisted' apenas); checkpoint anterior confirmado ao vivo.",
     "no_mock": "no-mock-police: PASS em todos os mocks de teste (explícitos, restaurados, seam correto); produção 0 crítico; 2 médio pré-existentes (crisis_expert.py:30-34 notifier silencioso; batch_expert_runner.py:155-156 except:pass).",
     "working_tree": "limpo pós-commit (git status vazio).",
-    "nao_executado": "pytest completo e browser_smoke standalone pelo orquestrador — suíte paralela em execução no mesmo tree; aguardar término para gate final."
+    "gate_final": "pytest subset validador (17 arquivos, 5 grupos): 368 passed, 1 skipped em 53.75s; ruff format --check 7/7; browser_smoke PASS (resposta real do Bob, 86s, 0 console errors) — suíte paralela já havia terminado (PID 23676).",
+    "commits": "f5a32d25 (12 arquivos: 7 testes + manifest + 3 dados), 501b10e1 (checkpoint), 2536257 (mangala rescan), 8092ebbd (appends pós-smoke).",
+    "nao_executado": "pytest suíte COMPLETA (2248 testes) pelo orquestrador — subset validador executado e verde; suíte ampliada fica para gate de release."
   },
   "risks": "1) Sessão paralela ainda ativa no mesmo tree (pytest PID 23676 + commits) — serializar commits; verificar HEAD antes de qualquer novo commit. 2) INV-R62 ativo: VRAM 90.6% (RTX 3060, ~1GB livre com n_ctx 16384) — prompts longos podem falhar por OOM de KV. 3) /health/details reporta package_present:true estático quando ib_insync/ib_async ausentes — sinal de readiness enganoso (falso positivo). 4) Dor api_heart pain=75 (14:20:51Z) gravada healed=false — transiente, monitorar. 5) Drift latente: test_mangala_daily_gate_parity.py:33-40 hardcoda scan de 08-22 (determinístico, mas pinça artefato obsoleto). 6) 2 médio pré-existentes em produção (notifier crise silencioso, except:pass DB). 7) SKILLS_CHECK.md/docs claude-ops-catalog podem ter ficado stale com o move de 5 skills para deprecated/ (verificar na próxima auditoria).",
   "still_true": {
