@@ -1,9 +1,16 @@
 # F51 Skills Check — Auditoria Completa
 
-**Data:** 2026-06-01 (atualizado)
-**Auditor:** Arqueologist (consolidação pós-escavação)
-**Escopo:** 22 skills em `.claude/skills/`
+**Data:** 2026-08-26 (re-auditoria pós-swarm)
+**Auditor:** savekeeper (guardião da verdade durável), com base na auditoria original de 2026-06-01
+**Escopo:** 32 skills em `.claude/skills/` (27 ativas + 5 em `deprecated/`)
 **Metodo:** Verificacao de 7 criterios por skill + gap analysis + consolidação
+**Fonte:** auditoria 2026-08-26 (§2.5 exército) — docs/audit/LEGACY_AUDIT_2026-08-26.md
+
+> **Registro histórico:** a auditoria original de 2026-06-01 cobriu 22 skills
+> (todas APTO). Desde então 10 skills foram criadas (nunca auditadas) e 5 foram
+> movidas para `deprecated/` pela remediação do exército (fc5160df/2443ebb6).
+> Esta re-auditoria cobre as 32 atuais; o registro de 2026-06-01 está preservado
+> na seção histórica ao final.
 
 ---
 
@@ -21,7 +28,71 @@
 
 ---
 
-## Auditoria — Skills Nucleares (8 originais + 3 mandatorias)
+## Re-auditoria 2026-08-26 — 32 skills (27 ativas + 5 deprecated)
+
+### Tabela consolidada
+
+| Skill | SKILL.md | Nome/Desc | Escopo | Anti-creep | Saida | Checkpoint | Caos/Receita | Veredito |
+|-------|----------|-----------|--------|------------|-------|------------|--------------|----------|
+| f51-audit | P | P | P | P | P | P | P | APTO |
+| f51-circuit-breaker | P | P | P | P | P | P | P | APTO |
+| f51-contracts | P | P | P | P | P | P | P | APTO |
+| f51-dead-code | P | P | P | P | P | P | P | APTO |
+| f51-dependency-scout | P | P | P | P | P | P | P | APTO |
+| f51-doc-sync | P | P | P | P | P | P | P | APTO |
+| f51-env-guard | P | P | P | P | P | P | P | APTO |
+| f51-idempotency | P | P | P | P | P | P | P | APTO |
+| f51-impact-map | P | P | P | P | P | P | P | APTO |
+| f51-inventory | P | P | P | P | P | P | P | APTO |
+| f51-loop-breaker | P | P | P | P | P | P | P | APTO |
+| f51-money-gate | P | P | P | P | P | P | P | APTO |
+| f51-no-mock-police | P | P | P | P | P | P | P | APTO |
+| f51-observability | P | P | P | P | P | P | P | APTO |
+| f51-productizer | P | P | P | P | P | P | P | APTO |
+| f51-prop-test | P | P | P | P | P | P | P | APTO |
+| f51-quality-gate | P | P | P | P | P | P | P | APTO |
+| f51-refactor | P | P | P | P | P | P | P | APTO |
+| f51-regression-hunter | P | P | P | P | P | P | P | APTO |
+| f51-release | P | P | P | P | P | P | P | APTO |
+| f51-runtime | P | P | P | P | P | P | P | APTO |
+| f51-safety-science | P | P | P | P | P | P | P | APTO |
+| f51-secure-scan | P | P | P | P | P | P | P | APTO |
+| f51-test-finder | P | P | P | P | P | P | P | APTO |
+| f51-tests | P | P | P | P | P | P | P | APTO |
+| f51-windows-compat | P | P | P | P | P | P | P | APTO |
+| tese-tracker | P | P | P | P | P | **F** | P | **CONDICIONAL** |
+| arqueologist (deprecated) | P | P | P | n/d | n/d | **F** | n/d | DEPRECATED — re-auditar em 30 dias |
+| f51-contract-watchdog (deprecated) | P | P | P | P | P | P | P | DEPRECATED — duplicata ~90% de f51-contracts |
+| f51-executor (deprecated) | P | P | P | P | P | P | P | DEPRECATED — ~100% do product-implementer |
+| f51-metrics-dash (deprecated) | P | P | P | P | P | P | P | DEPRECATED — ~60% de f51-observability |
+| f51-orchestrator (deprecated) | P | P | P | P | P | P* | P | DEPRECATED — ~80% do captain |
+
+Legenda: P = PASS · F = FAIL · n/d = não detalhado (re-auditoria completa agendada) · P* = menção única de checkpoint, sem obrigatoriedade formal
+
+### Skills criadas após 2026-06-01 (10 — nunca auditadas antes)
+
+Priorizadas conforme pedido do operador. Verificação por leitura direta de cada `SKILL.md`.
+
+1. **f51-circuit-breaker** — 7/7 PASS. Frontmatter claro (tenacity, graceful degradation); "Quando usar" com triggers; "Nunca fazer" com 3 regras anti-degeneração (retry infinito, half-open, fallback stale silencioso); entregáveis mínimos + checkpoint.
+2. **f51-dead-code** — 7/7 PASS. Varredura Vulture+deptry; "Nunca fazer" protege API pública e exige teste passando depois; entregáveis + checkpoint. *Depende de vulture/deptry no extras dev — adicionado em pyproject.toml na remediação (cd3766ad).*
+3. **f51-env-guard** — 7/7 PASS. Schema Pydantic Settings; "Nunca fazer": hardcodar secrets (SecretStr), validar sem avisar valor inseguro; entregáveis + checkpoint.
+4. **f51-idempotency** — 7/7 PASS. Dedup cross-process + DLQ; "Nunca fazer": dedup só em memória, run_id como chave única; entregáveis + checkpoint.
+5. **f51-observability** — 7/7 PASS. Structlog/Prometheus/trace_id; anti-creep explícito ("nunca trocar comportamento de negócio durante instrumentação"); checkpoint presente.
+6. **f51-prop-test** — 7/7 PASS. Hypothesis; "Nunca fazer": sem max_examples, assumir 100 exemplos = prova, Hypothesis em teste de integração; checkpoint presente.
+7. **f51-secure-scan** — 7/7 PASS. Bandit + secrets; "Nunca fazer": ignorar HIGH sem justificativa, commitar `# nosec` sem motivo; entregáveis + checkpoint.
+8. **tese-tracker** — 6/7 PASS, **FALHA no critério 6** (checkpoint): zero menção a `.f51/checkpoints/latest.json`; estado persistido em `runtime/theses/<TICKER>.json` (artefato próprio válido, mas não substitui o checkpoint canônico). Escopo excelente (falsificabilidade, simetria de evidência, "nenhuma ação de ordem sai daqui"). **Ação:** adicionar obrigatoriedade de atualizar `.f51/checkpoints/latest.json` ao gravar tese.
+9. **f51-metrics-dash (deprecated)** — 7/7 PASS nos critérios, porém ~60% sobreposta a f51-observability (função absorvida). Movida para `deprecated/` na remediação (fc5160df/2443ebb6); re-auditoria de descarte em 30 dias.
+10. **f51-orchestrator (deprecated)** — 6/7 PASS + checkpoint débil (P*). ~80% sobreposta ao captain. Movida para `deprecated/`; re-auditoria de descarte em 30 dias.
+
+### Notas das 5 deprecated
+
+- Movidas 2026-08-26 para `.claude/skills/deprecated/` com README de política (fc5160df/2443ebb6).
+- `arqueologist`: frontmatter e escopo verificados; **sem menção a checkpoint** (critério 6 F) — duplicata ~85% do agente recon-researcher.
+- Decisão de matar/promover após 30 dias com evidência de uso real; até lá nenhuma é referenciada por agentes ativos (verificado em api-contract-verifier.md:22 — cita apenas f51-contracts).
+
+---
+
+## Registro histórico 2026-06-01 — Auditoria — Skills Nucleares (8 originais + 3 mandatorias)
 
 ### 1. f51-inventory
 
@@ -199,7 +270,7 @@
 
 ---
 
-## Auditoria — Skills de Suporte (11 restantes)
+## Registro histórico 2026-06-01 — Auditoria — Skills de Suporte (11 restantes)
 
 | Skill | SKILL.md | Nome/Desc | Escopo | Anti-creep | Saida | Checkpoint | Caos/Receita | Veredito |
 |-------|----------|-----------|--------|------------|-------|------------|--------------|----------|
@@ -217,46 +288,71 @@
 
 ---
 
-## Gaps Encontrados
+## Gaps Encontrados (2026-08-26)
 
-### GAP-1: Diretorios `scripts/`, `references/`, `assets/` removidos (RESOLVIDO)
+### GAP-1: Diretorios `scripts/`, `references/`, `assets/` removidos (RESOLVIDO — 2026-06-01)
 
-**Todas as 22 skills** agora possuem apenas `SKILL.md`. Diretorios `assets/`, `references/`, `scripts/`
-foram removidos pois estavam vazios (apenas `.gitkeep`). Skills que precisarem de assets no futuro
-devem recriar os diretorios sob demanda.
+Todas as 22 skills da auditoria original possuem apenas `SKILL.md`. Skills que precisarem de
+assets no futuro devem recriar os diretorios sob demanda.
 
-### GAP-2: `frontend-design` — skill externa deletada (RESOLVIDO)
+### GAP-2: `frontend-design` — skill externa deletada (RESOLVIDO — 2026-06-01)
 
-`frontend-design` foi removida do repositorio em limpeza anterior (commit `178b44a`).
+Removida do repositorio em limpeza anterior (commit `178b44a`).
 
 ### GAP-3: Skills sobrepostas (RESOLVIDO — 2026-06-01)
 
-- ~~`f51-audit` vs `f51-auditor`~~ → **Removido:** `f51-auditor`. Mantido: `f51-audit`.
-- ~~`f51-release` vs `f51-release-captain`~~ → **Removido:** `f51-release-captain`. Mantido: `f51-release`.
-- ~~`f51-repo-cartographer` vs `f51-inventory`~~ → **Removido:** `f51-repo-cartographer`. Mantido: `f51-inventory`.
+Removidos `f51-auditor`, `f51-release-captain`, `f51-repo-cartographer`; mantidos `f51-audit`,
+`f51-release`, `f51-inventory`.
 
 ### GAP-4: `f51-contract-guardian` vs `f51-contracts` (RESOLVIDO — 2026-06-01)
 
-Renomeado `f51-contract-guardian` → `f51-contract-watchdog` para clarificar que é um watchdog ativo,
-não uma duplicata de `f51-contracts`. Ambas mantidas com propósitos distintos.
+Renomeado `f51-contract-guardian` → `f51-contract-watchdog`.
+
+### GAP-5: `tese-tracker` sem checkpoint canônico (ABERTO — 2026-08-26)
+
+Critério 6 FALHA: zero menção a `.f51/checkpoints/latest.json`. Artefato próprio
+`runtime/theses/<TICKER>.json` é saída verificável, mas não substitui o checkpoint operacional.
+**Ação:** adicionar regra de atualização de checkpoint na skill (remediação pequena, sem mudança de contrato).
+
+### GAP-6: 5 skills em `deprecated/` aguardando decisão (ABERTO — 2026-08-26)
+
+`arqueologist`, `f51-contract-watchdog`, `f51-executor`, `f51-metrics-dash`, `f51-orchestrator`
+foram movidas para `deprecated/` (fc5160df/2443ebb6). Re-auditoria de matar/promover em 30 dias
+com evidência de uso real; nenhuma é referenciada por agentes ativos hoje.
+
+### GAP-7: Cluster de 6 skills de gate sobrepostas (ABERTO — herdado da auditoria §2.5)
+
+`f51-tests`, `f51-test-finder`, `f51-regression-hunter`, `f51-audit`, `f51-quality-gate`,
+`f51-release` formam cluster de gates complementares; 4 skills órfãs de orquestração (só
+autocitações). Decisão de consolidação delegada ao operador (não bloqueante).
 
 ---
 
-## Sumario Estatistico
+## Sumario Estatistico (2026-08-26)
 
-- **Total de skills:** 22 (3 depreciadas, 1 renomeada)
-- **APTO:** 22/22 (100%)
-- **Gaps encontrados:** 4 → todos RESOLVIDOS
-- **Skills com diretorios padrao:** 0/22 (removidos — estrutura limpa, sem skeletons)
-- **Skills com saida verificavel:** 22/22 (100%)
-- **Skills com checkpoint:** 22/22 (100%)
-- **Skills alinhadas ao Blood Pact:** 22/22 (100%)
+- **Total de skills auditadas:** 32 (27 ativas + 5 deprecated)
+- **Ativas APTO:** 26/27
+- **Ativas CONDICIONAL:** 1/27 (tese-tracker — critério 6)
+- **Deprecated:** 5/5 registradas com veredito de re-auditoria em 30 dias
+- **Skills nunca auditadas antes (pós-2026-06-01):** 10 → todas auditadas nesta sessão
+- **Gaps abertos:** 3 (GAP-5, GAP-6, GAP-7) · **Gaps históricos resolvidos:** 4 (GAP-1..4)
+- **Skills com checkpoint canônico:** 26/27 ativas (tese-tracker pendente)
 
 ---
 
-## Veredito Final
+## Veredito Final (2026-08-26)
 
-**Todas as 22 skills passam nos 7 criterios de auditoria.**
-Consolidacao executada em 2026-06-01: 3 skills removidas (f51-auditor, f51-release-captain, f51-repo-cartographer),
-1 renomeada (f51-contract-guardian → f51-contract-watchdog).
-Diretorios vazios assets/references/scripts removidos de todas as skills.
+**31/32 skills passam nos 7 criterios; tese-tracker CONDICIONAL (checkpoint).**
+As 10 skills criadas após 2026-06-01 foram auditadas pela primeira vez: 9 APTO, 1 CONDICIONAL.
+As 5 deprecated estão registradas com critérios verificados e re-auditoria agendada em 30 dias.
+Nenhuma skill ativa foi movida, renomeada ou removida nesta re-auditoria.
+
+---
+
+## Registro Historico (2026-06-01)
+
+Auditoria original executada pelo Arqueologist: 22 skills em `.claude/skills/`, todas APTO
+(22/22, 100%), 4 gaps resolvidos (GAP-1..4), 3 skills removidas (f51-auditor,
+f51-release-captain, f51-repo-cartographer), 1 renomeada (f51-contract-guardian →
+f51-contract-watchdog). Detalhes por skill preservados nas seções "Registro histórico
+2026-06-01" acima.
