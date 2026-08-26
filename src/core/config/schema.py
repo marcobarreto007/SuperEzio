@@ -260,7 +260,7 @@ class UniversalConfig:
             config = cls.from_dict(data)
             config.apply_env_overrides()
             return config
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — catch amplo deliberado: falha de config nunca derruba o boot, cai para defaults
             logger.warning("[CONFIG] Failed to load %s: %s. Using defaults.", config_path, exc)
             config = cls()
             config.apply_env_overrides()

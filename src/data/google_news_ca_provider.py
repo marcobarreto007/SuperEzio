@@ -76,7 +76,7 @@ class GoogleNewsCAProvider:
                 headers=self.headers,
                 timeout=self.timeout,
             )
-        except Exception as exc:
+        except requests.RequestException as exc:
             return {"error": f"gnews_http: {exc}", "symbol": symbol}
         if response.status_code != 200:
             return {"error": f"gnews_http_{response.status_code}", "symbol": symbol}

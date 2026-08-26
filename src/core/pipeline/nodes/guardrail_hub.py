@@ -53,7 +53,7 @@ class GuardrailHub:
                     reason=normalized["reason"],
                     payload=normalized.get("details", {}),
                 )
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — catch amplo deliberado: guardrail que falha vira resultado ERROR, nunca derruba o hub
                 normalized = self._normalize(
                     check,
                     {

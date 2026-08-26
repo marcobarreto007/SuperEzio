@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from datetime import UTC
 from typing import Any
 
 from langgraph.config import get_stream_writer
@@ -207,7 +208,7 @@ async def _gather_social_context(ticker: str, query: str) -> str:
                 from datetime import datetime
 
                 dt = (
-                    datetime.utcfromtimestamp(created).strftime("%Y-%m-%d %H:%M")
+                    datetime.fromtimestamp(created, tz=UTC).strftime("%Y-%m-%d %H:%M")
                     if created
                     else "?"
                 )
@@ -988,7 +989,7 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                 except Exception as exc:  # noqa: BLE001
                     logger.debug("feedback_loop_unavailable", error=str(exc)[:200])
 
-            if ticker and not state.get("_experts_ran_for", "") == ticker:
+            if ticker and state.get("_experts_ran_for", "") != ticker:
                 writer = get_stream_writer()
                 writer(
                     {

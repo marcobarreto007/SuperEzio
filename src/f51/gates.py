@@ -218,7 +218,7 @@ class AdversarialCritic:
                 errors=errors,
                 reasoning=output,
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — LLM externo pode lançar qualquer exceção; fail closed é deliberado
             # Fail CLOSED: erro no critique adversarial não pode virar "tudo
             # certo com confiança média". Sem crítica real, tratamos como
             # não-validado e com confiança BAIXA (mesmo princípio de

@@ -73,7 +73,7 @@ def _check_auth_db() -> dict:
             result["detail"] = "No users in auth database"
         else:
             result["detail"] = f"{count} operator account(s)"
-    except Exception as exc:
+    except (sqlite3.Error, OSError) as exc:
         result["status"] = "error"
         result["detail"] = str(exc)[:120]
     return result

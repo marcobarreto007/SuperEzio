@@ -7,6 +7,7 @@ import json
 import math
 import shutil
 from datetime import UTC, datetime, timedelta
+from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
@@ -93,7 +94,7 @@ def test_chronological_partitions_have_horizon_gaps() -> None:
     expert = TechnicalNeuralExpert(horizon_bars=3)
     split = expert._chronological_split(300)
     windows = (split.train, split.validation, split.calibration, split.test)
-    for earlier, later in zip(windows, windows[1:]):
+    for earlier, later in pairwise(windows):
         assert earlier[-1] < later[0]
         assert later[0] - earlier[-1] - 1 == expert.horizon_bars
 

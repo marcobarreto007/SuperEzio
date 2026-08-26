@@ -512,14 +512,14 @@ def _parse_tool_calls(text: str) -> list[dict[str, Any]]:
                 if isinstance(item, dict) and "tool" in item:
                     try:
                         calls.append(AgentToolCall.model_validate(item).model_dump())
-                    except Exception as exc:
+                    except Exception as exc:  # noqa: BLE001 — fail-soft deliberado: saída livre-forma do modelo; qualquer falha de validacao e descartada com rastro
                         _log_invalid(item, exc)
             if calls:
                 return calls
         elif isinstance(parsed, dict) and "tool" in parsed:
             try:
                 return [AgentToolCall.model_validate(parsed).model_dump()]
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — fail-soft deliberado: saída livre-forma do modelo; qualquer falha de validacao e descartada com rastro
                 _log_invalid(parsed, exc)
     except (json.JSONDecodeError, TypeError, ValueError):
         pass
@@ -532,7 +532,7 @@ def _parse_tool_calls(text: str) -> list[dict[str, Any]]:
             if isinstance(obj, dict) and "tool" in obj:
                 try:
                     calls.append(AgentToolCall.model_validate(obj).model_dump())
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 — fail-soft deliberado: saída livre-forma do modelo; qualquer falha de validacao e descartada com rastro
                     _log_invalid(obj, exc)
         except (json.JSONDecodeError, TypeError, ValueError):
             continue
@@ -890,7 +890,7 @@ def _get_portfolio_snapshot(state: dict) -> str:
 
         snapshot = fetch_portfolio_snapshot(language="pt")
         return snapshot if "offline" not in snapshot.lower() else ""
-    except Exception:
+    except Exception:  # noqa: BLE001 — fail-soft deliberado: snapshot IBKR indisponivel nao pode derrubar o agente
         return ""
 
 
@@ -948,10 +948,10 @@ def _should_use_decisive_mode(state: dict) -> bool:
     trade_ctx = state.get("trade_order_context") or {}
     if intent == "another_trade_recommendation":
         return True
-    if (
-        trade_ctx.get("mode") in {"DECISIVE_TRADE_ORDER", "DECISIVE_TRADE_ORDER_FOLLOWUP"}
-        and detect_another_trade_recommendation_intent(message)
-    ):
+    if trade_ctx.get("mode") in {
+        "DECISIVE_TRADE_ORDER",
+        "DECISIVE_TRADE_ORDER_FOLLOWUP",
+    } and detect_another_trade_recommendation_intent(message):
         return True
     return bool(detect_decisive_trade_intent(message))
 
@@ -1034,7 +1034,7 @@ def _extract_requested_allocation(message: str) -> int | None:
     suffix = match.group(2)
     if suffix in {"k", "mil"}:
         value *= 1000
-    amount = int(round(value))
+    amount = round(value)
     if amount <= 0:
         return None
     return min(amount, 1_000_000)
@@ -1068,7 +1068,7 @@ def _extract_account_reference(message: str) -> int | None:
     value = float(match.group(1))
     if match.group(2) in {"k", "mil"}:
         value *= 1000
-    amount = int(round(value))
+    amount = round(value)
     return amount if amount > 0 else None
 
 
@@ -1550,7 +1550,9 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
     estimated_qty = _estimate_share_quantity(requested_amount, price)
     prev_excluded = ""
     if is_followup:
-        prev_excluded = trade_ctx.get("primary_ticker") or (next(iter(excluded)) if excluded else "—")
+        prev_excluded = trade_ctx.get("primary_ticker") or (
+            next(iter(excluded)) if excluded else "—"
+        )
 
     is_buy_candidate = decision == "BUY_CANDIDATE" or paper_ticket_pending
     if paper_training:
@@ -3092,8 +3094,8 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             adaptive_context = render_adaptive_context(adaptive_cfg)
             # Inject calibrated params into state for downstream nodes
             state["adaptive_config"] = adaptive_cfg
-        except Exception:
-            pass
+        except Exception as exc:  # enriquecimento opcional deliberado; falha nao pode derrubar o agente (logado em debug)
+            logger.debug("adaptive_config indisponivel: %s", exc, exc_info=True)
 
         # ── Portfolio context (HRP allocation + structured numbers) ──
         portfolio_context = ""
@@ -3101,8 +3103,8 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             from core.trading.adaptive_agent import inject_portfolio_context
 
             portfolio_context = inject_portfolio_context(state)
-        except Exception:
-            pass
+        except Exception as exc:  # enriquecimento opcional deliberado; falha nao pode derrubar o agente (logado em debug)
+            logger.debug("portfolio_context indisponivel: %s", exc, exc_info=True)
 
         active_system_prompt = BOB_SOVEREIGN_PROMPT
         if adaptive_context:
@@ -3337,7 +3339,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
         )
         prompt_path.write_text(full_prompt, encoding="utf-8")
         logger.debug("Prompt saved to %s (%d bytes)", prompt_path, len(full_prompt))
-    except Exception as e:
+    except OSError as e:
         logger.warning("Failed to save prompt to disk: %s", e)
 
     bob_streamed_live = False
@@ -3361,7 +3363,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 temperature=0.7 if bob_sovereign else 0.1,
                 max_tokens=LOCAL_MAX_TOKENS,
                 preferred_provider=AGENT_PROVIDER_NAME,
-                json_mode=False if (bob_sovereign or chart_message) else True,
+                json_mode=not (bob_sovereign or chart_message),
             ):
                 if token:
                     raw_parts.append(token)
@@ -3385,7 +3387,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 temperature=0.7 if bob_sovereign else 0.1,
                 max_tokens=LOCAL_MAX_TOKENS,
                 preferred_provider=AGENT_PROVIDER_NAME,
-                json_mode=False if (bob_sovereign or chart_message) else True,
+                json_mode=not (bob_sovereign or chart_message),
             )
             # Non-stream path: trim a mid-word max_tokens cut back to the
             # last sentence boundary BEFORE the CHUNK writer emits it, so
@@ -3631,7 +3633,7 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
                 "current_datetime": state.get("current_datetime", ""),
             }
 
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — defesa ampla deliberada: erro inesperado no no agente vira resposta final graciosa, nao crash do pipeline
         logger.error(f"Agent error: {exc}")
         return {
             "agent_tool_call": {

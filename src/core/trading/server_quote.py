@@ -185,7 +185,7 @@ class ServerQuoteService:
                 provider_name = futures[future]
                 try:
                     raw_results.append((provider_name, future.result()))
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 — catch amplo deliberado: falha de um provider vira entrada em errors para o consenso fail-closed; exceção crua não pode vazar
                     errors[provider_name] = str(exc)[:240]
         except TimeoutError:
             for future, provider_name in futures.items():

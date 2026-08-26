@@ -644,7 +644,7 @@ class DataHub:
 
         try:
             provider = route.factory()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — factory falha de N formas (chave inválida, dep ausente); provider vira indisponível
             logger.warning("[DATA_HUB] provider factory failed for %s: %s", route.name, exc)
             return None
 
@@ -771,7 +771,7 @@ class DataHub:
                 attempts.append({"provider": route.name, "error": "timeout_30s"})
                 logger.warning("[DATA_HUB] %s: %s timeout (30s)", capability, route.name)
                 continue
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — falha do provider conta no circuit breaker e cai para o próximo (fallback deliberado)
                 _cb._on_failure(exc)
                 attempts.append({"provider": route.name, "error": str(exc)})
                 logger.warning("[DATA_HUB] %s: %s raised — %s", capability, route.name, exc)
@@ -1034,7 +1034,7 @@ class DataHub:
                 parsed = json.loads(result.stdout)
                 if isinstance(parsed, list) and parsed:
                     return parsed
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — subprocesso node/parse falha de N formas; cai para fallback DDG
                 logger.warning("[DATA_HUB] Tavily search failed: %s", exc)
 
         return self.search_ddg(query, limit=limit)
@@ -1054,7 +1054,7 @@ class DataHub:
                     }
                     for item in ddgs.text(query, max_results=limit)
                 ]
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — busca DDG falha de N formas (rede, lib); retorna dict de erro
             return [{"error": f"DDG Search failed: {exc}"}]
 
     def extract_web(self, url: str) -> dict[str, Any]:
@@ -1076,7 +1076,7 @@ class DataHub:
             )
             parsed = json.loads(result.stdout)
             return parsed if isinstance(parsed, dict) else {"content": parsed}
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — extração Tavily falha de N formas; contrato: nunca levantar, retornar dict de erro
             return {"error": str(exc)}
 
 

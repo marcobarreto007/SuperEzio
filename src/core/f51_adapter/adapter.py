@@ -30,7 +30,7 @@ def _load_json(path: Path) -> dict | list:
         return {}
     try:
         return json.loads(path.read_text(encoding="utf-8"))
-    except Exception as exc:
+    except (OSError, ValueError) as exc:  # leitura, decodificacao ou parse do JSON do hub
         logger.warning("[F51_ADAPTER] failed to parse %s: %s", path, exc)
         return {}
 

@@ -374,12 +374,16 @@ class LiveMonitor:
         if self.discovery_enabled:
             try:
                 self.discover_once()
-            except Exception as exc:
+            # Fronteira de melhor esforco: discovery falha vira warning e o
+            # ciclo de coleta da watchlist segue normal.
+            except Exception as exc:  # noqa: BLE001
                 logger.warning("[sentiment.monitor] discovery failed: %s", exc)
         for ticker in list(self.watchlist):
             try:
                 snapshot = self._collect_ticker(ticker)
-            except Exception as exc:
+            # Fronteira de melhor esforco: ticker que falha na coleta vira
+            # warning e o ciclo segue para os demais tickers.
+            except Exception as exc:  # noqa: BLE001
                 logger.warning("[sentiment.monitor] collection failed for %s: %s", ticker, exc)
                 continue
             with self._lock:
@@ -411,7 +415,9 @@ class LiveMonitor:
                 for provider_name, method in discovery_methods:
                     try:
                         batches.append(method(query, limit=10))
-                    except Exception as exc:
+                    # Fronteira de melhor esforco: provider que falha na
+                    # discovery e ignorado; os demais providers seguem.
+                    except Exception as exc:  # noqa: BLE001
                         logger.warning(
                             "[sentiment.monitor] discovery provider %s failed for %r: %s",
                             provider_name,
@@ -421,7 +427,9 @@ class LiveMonitor:
             else:
                 try:
                     batches.append(route_news(query, limit=10))
-                except Exception as exc:
+                # Fronteira de melhor esforco: query de discovery que falha vira
+                # warning e o loop segue para a proxima query.
+                except Exception as exc:  # noqa: BLE001
                     logger.warning(
                         "[sentiment.monitor] discovery query failed for %r: %s", query, exc
                     )
@@ -537,8 +545,10 @@ class LiveMonitor:
             )
             conn.commit()
             conn.close()
-        except Exception:
-            pass  # Non-critical — don't crash the monitor thread
+        # Fronteira de melhor esforco: persistencia local falha vira log de
+        # debug; nunca derruba a thread do monitor.
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("[sentiment.monitor] persist_to_db failed: %s", exc)
 
     def _run_loop(self) -> None:
         while not self._stop_event.is_set():
@@ -571,7 +581,9 @@ class LiveMonitor:
                 continue
             try:
                 result = method(ticker)
-            except Exception as exc:
+            # Fronteira de melhor esforco: provider que falha na coleta e
+            # ignorado; os demais providers seguem.
+            except Exception as exc:  # noqa: BLE001
                 logger.warning(
                     "[sentiment.monitor] provider %s failed for %s: %s",
                     provider_name,
@@ -597,7 +609,9 @@ class LiveMonitor:
                 reddit = data_hub.get_reddit_signal(ticker)
                 if isinstance(reddit, dict) and "error" not in reddit:
                     sources["reddit_pulse"] = reddit
-            except Exception as exc:
+            # Fronteira de melhor esforco: fallback do DataHub falha vira
+            # warning e o snapshot segue com as fontes ja coletadas.
+            except Exception as exc:  # noqa: BLE001
                 logger.warning(
                     "[sentiment.monitor] DataHub fallback failed for %s: %s", ticker, exc
                 )

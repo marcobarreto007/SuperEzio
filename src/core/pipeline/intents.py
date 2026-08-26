@@ -2771,10 +2771,10 @@ def parse_user_intent(
         )
 
     ctx = trade_order_context or {}
-    if (
-        ctx.get("mode") in {"DECISIVE_TRADE_ORDER", "DECISIVE_TRADE_ORDER_FOLLOWUP"}
-        and detect_another_trade_recommendation_intent(raw)
-    ):
+    if ctx.get("mode") in {
+        "DECISIVE_TRADE_ORDER",
+        "DECISIVE_TRADE_ORDER_FOLLOWUP",
+    } and detect_another_trade_recommendation_intent(raw):
         filters = infer_scan_filters(raw)
         if (
             ctx.get("universe")
@@ -2783,18 +2783,18 @@ def parse_user_intent(
         ):
             filters = {**filters}
         return done(
-                IntentParse(
-                    route="market_scan",
-                    intent="another_trade_recommendation",
-                    action="scan_market",
-                    filters=filters,
-                    confidence=0.9,
-                    reasons=("decisive_trade_followup",),
-                    entities=entities,
-                    diary=diary,
-                    pennylab=False,
-                )
+            IntentParse(
+                route="market_scan",
+                intent="another_trade_recommendation",
+                action="scan_market",
+                filters=filters,
+                confidence=0.9,
+                reasons=("decisive_trade_followup",),
+                entities=entities,
+                diary=diary,
+                pennylab=False,
             )
+        )
 
     if ticker and detect_industry_research_intent(raw) and not explicit_ticker_command:
         ticker = ""

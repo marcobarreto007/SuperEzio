@@ -204,7 +204,8 @@ class MangalaTracker:
                     "provenance": "mangala_tracker",
                 }
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
+            # Sync e best-effort: falha do PaperJournal nao pode abortar o flip.
             logger.warning("Could not sync mangala flip to paper journal: %s", exc)
 
     # ── Summary ───────────────────────────────────────────────────

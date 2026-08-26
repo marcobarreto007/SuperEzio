@@ -157,7 +157,7 @@ def evaluate_case(
         try:
             train_prepared = expert._prepare_with_horizon(candles[:train_count])
             qualification, artifact = expert._fit_and_qualify(case.ticker, train_prepared)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — qualquer falha de treino vira caso fechado, nao derruba a avaliacao
             return _closed_case(
                 case,
                 horizon,

@@ -59,7 +59,8 @@ async def node_rag_forensics(state: dict) -> dict:
             }
         )
         return {"rag_context": rag_context}
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
+        # Degradacao deliberada: RAG indisponivel segue com contexto vazio.
         writer(
             {
                 "type": "PIPELINE_STEP",

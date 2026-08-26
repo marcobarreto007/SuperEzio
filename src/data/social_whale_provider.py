@@ -316,7 +316,7 @@ class SocialWhaleProvider:
                     scores.append((ape_raw - 50) / 50.0)  # 0-100 → -1..1
                     mention_count += ape_mentions
                     sources_used.append("apewisdom")
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — fonte externa falha de formas variadas; uma falha de sentimento não derruba o agregado
                 logger.debug("[SocialWhale] ApeWisdom sentiment failed: %s", exc)
 
         if not scores:
@@ -426,7 +426,7 @@ class SocialWhaleProvider:
                 if tweets:
                     instance_name = instance.split("//")[1]
                     return tweets, f"nitter({instance_name})"
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — instância Nitter pode falhar de formas variadas; segue para a próxima em cascata
                 logger.debug("[SocialWhale] Nitter %s failed: %s", instance, exc)
                 continue
 
@@ -462,8 +462,10 @@ class SocialWhaleProvider:
 
         # Strategy 1: find tweet-content / tweet-text blocks
         content_patterns = [
-            (r'<div[^>]*class="[^"]*(?:tweet-content|tweet-text)[^"]*"[^>]*>'
-            r"(.*?)</div>"),
+            (
+                r'<div[^>]*class="[^"]*(?:tweet-content|tweet-text)[^"]*"[^>]*>'
+                r"(.*?)</div>"
+            ),
             r'<p[^>]*class="[^"]*tweet-text[^"]*"[^>]*>(.*?)</p>',
         ]
 
@@ -515,7 +517,7 @@ class SocialWhaleProvider:
 
             self._apewisdom = ApeWisdomProvider()
             return self._apewisdom, True
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — import/instanciação do ApeWisdom pode falhar de formas variadas; fallback explícito (None, False)
             logger.debug("[SocialWhale] ApeWisdom import failed: %s", exc)
             return None, False
 

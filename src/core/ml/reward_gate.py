@@ -114,7 +114,7 @@ class RewardGate:
             elapsed_ms = int((time.time() - t0) * 1000)
             logger.debug("RewardGate score=%.4f (%dms)", model_score, elapsed_ms)
             return QualityScore(model_score, "openassistant_reward_model")
-        except Exception:
+        except Exception:  # noqa: BLE001 — catch amplo deliberado: modelo/tokenizer indisponíveis caem no fallback heurístico determinístico
             logger.warning("RewardGate model unavailable; using heuristic fallback")
             return QualityScore(self._heuristic_score(text), "text_structure_heuristic")
 

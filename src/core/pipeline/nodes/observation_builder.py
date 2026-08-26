@@ -112,7 +112,7 @@ def format_math_report(report: dict) -> str:
     extra = {k: v for k, v in report.items() if k not in shown_keys and not k.startswith("_")}
     if extra:
         for k, v in extra.items():
-            if isinstance(v, (int, float)) or isinstance(v, str):
+            if isinstance(v, (int, float, str)):
                 lines.append(f"{k}: {v}")
     return "\n".join(lines)
 
@@ -492,7 +492,10 @@ def _inject_feedback_loop(state: dict, observations: list[str]):
         # Fronteira de melhor esforço deliberada: calibragem é enriquecimento opcional;
         # falha aqui não pode derrubar a injeção das observações de feedback.
         except Exception:
-            logger.debug("Falha ao calibrar confiança do feedback loop; seguindo sem calibragem", exc_info=True)
+            logger.debug(
+                "Falha ao calibrar confiança do feedback loop; seguindo sem calibragem",
+                exc_info=True,
+            )
     # Fronteira de melhor esforço deliberada: feedback loop é opcional; indisponibilidade
     # (módulo ausente, banco fora do ar) não pode derrubar a construção das observações.
     except Exception:
@@ -538,7 +541,9 @@ def _inject_evidence(state: dict, observations: list[str]):
         # Fronteira de melhor esforço deliberada: análise pré-computada de experts é
         # enriquecimento opcional; falha não impede a construção das observações.
         except Exception:
-            logger.debug("Análise pré-computada de experts indisponível; seguindo sem ela", exc_info=True)
+            logger.debug(
+                "Análise pré-computada de experts indisponível; seguindo sem ela", exc_info=True
+            )
 
         # Inject cached OHLCV summary
         try:

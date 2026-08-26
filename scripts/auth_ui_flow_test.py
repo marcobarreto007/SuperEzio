@@ -280,7 +280,7 @@ def run_verification(
                 ticker,
             )
             results["chart_data"] = chart_fetch
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — fetch do chart best-effort deliberado: falha vira entrada de erro no relatorio
             results["chart_data"] = {"ok": False, "error": str(e)}
 
         # 8. Key UI elements
@@ -304,7 +304,7 @@ def run_verification(
                     hasConnectionStatus: !!document.getElementById('cockpit-connection'),
                 })"""
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — avaliacao de UI best-effort deliberada: falha vira entrada de erro no relatorio
             results["ui_elements"] = {"error": str(e)}
 
         # Screenshot
@@ -338,7 +338,7 @@ def main() -> int:
     except PlaywrightTimeoutError as exc:
         print(json.dumps({"ok": False, "error": f"timeout: {exc}"}, indent=2))
         return 1
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — handler final deliberado: falha generica vira saida JSON e exit 1
         print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
         return 1
 

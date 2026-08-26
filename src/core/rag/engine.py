@@ -161,7 +161,9 @@ class ForensicRAG:
             _embedder = SentenceTransformer(EMBEDDING_MODEL)
             _embedder.to("cpu")
             logger.info("ForensicRAG embedder loaded: %s (CPU)", EMBEDDING_MODEL)
-        except Exception as exc:
+        # Melhor esforco deliberado: modelo opcional indisponivel degrada para
+        # keyword fallback, nunca quebra o RAG.
+        except Exception as exc:  # noqa: BLE001
             logger.warning("Failed to load embedding model: %s — keyword fallback active", exc)
             _embedder = None
         return _embedder
@@ -221,7 +223,9 @@ class ForensicRAG:
                 logger.info("ForensicRAG FAISS index built: %d vectors", _faiss_index.ntotal)
 
             return True
-        except Exception as exc:
+        # Melhor esforco deliberado: falha no embedding degrada para keyword
+        # search, nunca quebra o RAG.
+        except Exception as exc:  # noqa: BLE001
             logger.warning("Embedding failed: %s — keyword fallback active", exc)
             _embeddings_cache = None
             return False
@@ -247,7 +251,9 @@ class ForensicRAG:
                 normalize_embeddings=True,
                 show_progress_bar=False,
             )
-        except Exception:
+        # Melhor esforco deliberado: falha ao vetorizar a query degrada para
+        # keyword search.
+        except Exception:  # noqa: BLE001
             return self._keyword_search(query, top_k)
 
         if _faiss_index is not None:
@@ -346,8 +352,10 @@ class ForensicRAG:
                     _embeddings_cache = np.vstack([_embeddings_cache, vec])
                 logger.debug("ForensicRAG: document %s added to FAISS index", doc_id)
                 return
-            except Exception:
-                pass
+            # Melhor esforco deliberado: falha no add FAISS invalida o cache
+            # abaixo e segue via busca numpy; nao derruba a chamada runtime.
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("ForensicRAG: FAISS add failed for %s: %s", doc_id, exc)
 
         _embeddings_cache = None
         logger.debug("ForensicRAG: added document %s, cache invalidated", doc_id)
@@ -386,7 +394,9 @@ class ForensicRAG:
                 index_bytes = faiss.serialize_index(_faiss_index).tobytes()
                 atomic_write_bytes(generation / "index.faiss", index_bytes)
                 index_hash = hashlib.sha256(index_bytes).hexdigest()
-            except Exception as exc:
+            # Melhor esforco deliberado: indice FAISS nao e obrigatorio na
+            # persistencia; documentos e manifest seguem mesmo sem ele.
+            except Exception as exc:  # noqa: BLE001
                 logger.warning("Failed to save FAISS index: %s", exc)
 
         manifest = {
@@ -461,7 +471,9 @@ class ForensicRAG:
                     len(_documents_cache),
                 )
             return True
-        except Exception as exc:
+        # Melhor esforco deliberado: indice corrompido/incompativel recarrega
+        # do zero; load falho nunca quebra o runtime.
+        except Exception as exc:  # noqa: BLE001
             logger.warning("Failed to load index: %s", exc)
             return False
 

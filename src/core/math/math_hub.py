@@ -427,7 +427,9 @@ class MathHub:
             result = crisis_aggregate(crisis_input)
             status = "ok" if result.get("models_ok", 0) > 0 else "insufficient_data"
             return {"status": status, "values": result}
-        except Exception as exc:
+        # Melhor esforco deliberado: modulo opcional; falha vira status "error"
+        # no report, nunca excecao derrubando o MathHub.
+        except Exception as exc:  # noqa: BLE001
             return {"status": "error", "reason": str(exc)[:200]}
 
     def _return_bootstrap_module(self, returns: list[float]) -> dict[str, Any]:
@@ -439,7 +441,9 @@ class MathHub:
 
             result = StationaryBlockBootstrap(n_scenarios=2_000).run_simulation(returns)
             return {"status": "ok", "values": result}
-        except Exception as exc:
+        # Melhor esforco deliberado: bootstrap e opcional; falha vira status
+        # "error" no report.
+        except Exception as exc:  # noqa: BLE001
             return {"status": "error", "reason": str(exc)[:200]}
 
     def _portfolio_module(self, closes: list[float], ticker: str) -> dict[str, Any]:
@@ -475,7 +479,9 @@ class MathHub:
                         if len(rets) >= 10:
                             ticker_returns[t] = rets
                 conn.close()
-            except Exception:
+            # Leitura de cache local e melhor esforco: DB ausente/corrompido
+            # cai no fallback do ticker atual abaixo, sem derrubar o modulo.
+            except sqlite3.Error:
                 pass
 
             # Fallback: at least include current ticker
@@ -524,7 +530,9 @@ class MathHub:
                     "tickers_used": len(ticker_returns),
                 },
             }
-        except Exception as exc:
+        # Melhor esforco deliberado: HRP/portfolio e opcional; falha vira status
+        # "error" no report.
+        except Exception as exc:  # noqa: BLE001
             return {"status": "error", "reason": str(exc)[:100]}
 
     def _f51_module(
@@ -563,7 +571,9 @@ class MathHub:
             ]
             result = simulate_penny_momentum_backtest({ticker: bars})
             return {"status": "ok", "values": result}
-        except Exception as exc:
+        # Melhor esforco deliberado: modulo opcional; falha vira status "error"
+        # no report.
+        except Exception as exc:  # noqa: BLE001
             return {"status": "error", "reason": str(exc)[:200]}
 
     def _trading_losses_module(self, state: Mapping[str, Any]) -> dict[str, Any]:
@@ -582,7 +592,9 @@ class MathHub:
                     "sharpe_loss": sharpe_loss(actual),
                 },
             }
-        except Exception as exc:
+        # Melhor esforco deliberado: modulo opcional; falha vira status "error"
+        # no report.
+        except Exception as exc:  # noqa: BLE001
             return {"status": "error", "reason": str(exc)[:200]}
 
     def _build_numbers(self, modules: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:

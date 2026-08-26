@@ -52,7 +52,7 @@ def read_portfolio(page) -> dict:
                 pass
         if nums:
             portfolio["equity"] = max(nums)
-            portfolio["cash"] = nums[0] if len(nums) > 1 else nums[0]
+            portfolio["cash"] = nums[0]
         print(f"Valores: {amounts[:10]}")
 
     # Find ticker-like patterns near dollar amounts

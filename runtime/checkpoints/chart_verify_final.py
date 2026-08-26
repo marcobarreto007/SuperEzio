@@ -403,7 +403,7 @@ async def main():
                 token = data.get("access_token", "")
                 print(f"  [OK] Logged in as '{username}', got JWT token")
                 break
-            except Exception:
+            except Exception:  # noqa: BLE001 — sonda: falha de login (usuário inexistente ou rede) dispara tentativa de registro
                 try:
                     # Try to register
                     req = urllib.request.Request(
@@ -432,7 +432,7 @@ async def main():
                     token = data.get("access_token", "")
                     print(f"  [OK] Logged in as '{username}'")
                     break
-                except Exception:  # noqa: S112 — sonda: usuário pode ainda não existir; tenta registrar/próximo candidato
+                except Exception:  # noqa: S112, BLE001 — sonda: usuário pode ainda não existir; tenta registrar/próximo candidato
                     continue
 
         if not token:
@@ -779,7 +779,7 @@ async def main():
 
     # Save report
     report_path = REPO_ROOT / "runtime" / "checkpoints" / "chart_verify_report.json"
-    with open(report_path, "w") as f:
+    with open(report_path, "w") as f:  # noqa: ASYNC230 — probe diagnóstico síncrono; reescrever para aiofiles é trabalho separado
         json.dump(results, f, indent=2, default=str)
     print(f"\n  Report saved: {report_path}")
 

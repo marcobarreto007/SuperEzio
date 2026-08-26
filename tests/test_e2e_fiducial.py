@@ -130,7 +130,7 @@ def test_e2e():
         else:
             passed += 1
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — pipeline externo falha de formas variadas; registra erro e conta falha em vez de crashear
         check(False, f"Pipeline error: {str(e)[:100]}")
         failed += 1
 
@@ -149,7 +149,7 @@ def _api_alive():
         s.connect(("127.0.0.1", 8002))
         s.close()
         return True
-    except Exception:
+    except OSError:
         return False
 
 
@@ -162,7 +162,7 @@ def _bob_alive():
         s.connect(("127.0.0.1", 8080))
         s.close()
         return True
-    except Exception:
+    except OSError:
         return False
 
 

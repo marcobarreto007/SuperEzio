@@ -40,7 +40,7 @@ with sync_playwright() as p:
     print(" -> Abrindo painel do Bob Copilot...")
     try:
         page.click("#bob-chat-tab")
-    except Exception:
+    except Exception:  # noqa: BLE001, S110 — clique best-effort deliberado: aba pode ja estar aberta; segue sem ruido
         pass
     time.sleep(1)
 
@@ -50,7 +50,7 @@ with sync_playwright() as p:
         page.fill("#user-inp", "bob tudo bem")
         page.click("#send-btn")
         print(" -> Mensagem enviada para o Bob.")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — erro de digitacao best-effort deliberado: mensagem visivel e o navegador permanece aberto
         print(" -> Erro ao digitar no chat:", e)
 
     print(" -> Navegador aberto e ativo na sua tela. Aguardando 120 segundos para interacao...")

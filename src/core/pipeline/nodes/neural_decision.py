@@ -121,7 +121,8 @@ async def node_neural_decision(state: dict[str, Any]) -> dict[str, Any]:
         )
         return {"neural_decision": result}
 
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
+        # Fail-closed deliberado: falha do expert vira abstencao, nunca resultado nao calibrado.
         writer({"type": "ERROR", "run_id": run_id, "detail": f"neural_decision: {exc}"})
         writer(
             {

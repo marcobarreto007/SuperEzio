@@ -251,7 +251,9 @@ def is_ibkr_connectable() -> bool:
         s.connect((ibkr_host, ibkr_port))
         s.close()
         return True
-    except Exception as exc:
+    except (
+        OSError
+    ) as exc:  # socket ops levantam apenas OSError (ConnectionRefusedError, timeout, host inválido)
         logger.warning("[F51_TRADE_GATE] IBKR unreachable: %s:%s - %s", ibkr_host, ibkr_port, exc)
         return False
 
@@ -290,7 +292,10 @@ def is_journal_healthy(journal_path: str | None = None) -> bool:
                 probe_path.unlink(missing_ok=True)
         logger.info("[F51_TRADE_GATE] Journal healthy: %s", path)
         return True
-    except Exception as exc:
+    except (
+        ImportError,
+        OSError,
+    ) as exc:  # superfície: import de paper_journal (ImportError) + operações de arquivo (OSError)
         logger.error("[F51_TRADE_GATE] Journal unhealthy: %s", exc)
         return False
 
@@ -325,7 +330,7 @@ def resolve_and_validate_ticker(symbol: str) -> tuple[str | None, float | None, 
                 return result
         except CircuitOpenError:
             logger.warning("datahub_circuit_open_fallback_to_cache", ticker=symbol)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — chamada ao DataHub falha de N formas (rede, parse, provider); fallback para cache é deliberado
             logger.warning("datahub_call_failed_fallback", ticker=symbol, error=str(exc)[:120])
 
         # Graceful degradation: use cached price
@@ -445,7 +450,7 @@ def _man_at_work_violation() -> tuple[bool, str]:
         if allowed:
             return False, ""
         return True, "MAN_AT_WORK"
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — guarda fail-closed: qualquer falha ao inspecionar a consciência bloqueia o trade
         logger.warning("man_at_work_guard_unavailable", error=str(exc)[:200])
         return True, "MAN_AT_WORK_UNAVAILABLE"
 
@@ -730,5 +735,5 @@ def record_blocked_order(
             exit_date=datetime.now(UTC).isoformat(),
         )
         logger.info("[F51_TRADE_GATE] Blocked order recorded: %s", decision.reason_code)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — registrar ordem bloqueada é best-effort; nunca pode quebrar o gate
         logger.error("[F51_TRADE_GATE] Failed to record blocked order: %s", exc)

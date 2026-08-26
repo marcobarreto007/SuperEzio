@@ -134,7 +134,7 @@ def run_investor_audit() -> dict[str, Any]:
                 "market_data": chart_data,
                 "assessed": True,
             }
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — cenario best-effort deliberado: falha registrada no relatorio e a auditoria segue
             report["scenarios"]["scenario_b_asset_analysis"] = {"error": str(exc)}
 
         # Scenario C: Commission-Free ETF Catalog Inspection
@@ -159,7 +159,7 @@ def run_investor_audit() -> dict[str, Any]:
                 };
             }""")
             report["scenarios"]["scenario_c_etf_catalog"] = {"etf_data": etf_data, "assessed": True}
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — cenario best-effort deliberado: falha registrada no relatorio e a auditoria segue
             report["scenarios"]["scenario_c_etf_catalog"] = {"error": str(exc)}
 
         # Scenario D: Money Gate & TD Limit Ticket Validation
@@ -191,7 +191,7 @@ def run_investor_audit() -> dict[str, Any]:
                 "ticket_result": ticket_eval,
                 "assessed": True,
             }
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — cenario best-effort deliberado: falha registrada no relatorio e a auditoria segue
             report["scenarios"]["scenario_d_ticket_gate"] = {"error": str(exc)}
 
         browser.close()

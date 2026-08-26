@@ -56,7 +56,7 @@ def _http_json(
         raw = response.read().decode("utf-8")
     data = json.loads(raw)
     if not isinstance(data, dict):
-        raise AssertionError(f"{url} did not return a JSON object")
+        raise TypeError(f"{url} did not return a JSON object")
     return data
 
 
@@ -291,7 +291,9 @@ def _chat_api_check(
                 continue
             try:
                 obj = json.loads(line)
-            except Exception:  # noqa: S112 — linha não-JSON no stream NDJSON é ignorada por contrato; script sem logger
+            except (
+                json.JSONDecodeError
+            ):  # linha não-JSON no stream NDJSON é ignorada por contrato; script sem logger
                 continue
             etype = obj.get("type")
             if etype == "CHUNK":
@@ -491,7 +493,7 @@ def main() -> int:
     except PlaywrightTimeoutError as exc:
         print(json.dumps({"ok": False, "error": f"timeout: {exc}"}, indent=2))
         return 1
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — CLI: qualquer erro vira JSON de saída com código 1; nada pode vazar sem formato
         print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
         return 1
 

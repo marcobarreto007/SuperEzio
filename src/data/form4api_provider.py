@@ -153,7 +153,7 @@ class Form4APIProvider:
                 "ticker": ticker.upper(),
                 "error": "form4api_unreachable — check network / DNS",
             }
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — catch amplo deliberado: provedor externo falha de formas variadas (rede, timeout, JSON); retorna erro estruturado
             logger.warning("[Form4API] get_insider_trades(%s) failed: %s", ticker, exc)
             return {
                 "ticker": ticker.upper(),
@@ -221,7 +221,7 @@ class Form4APIProvider:
                 "cluster_sells": [],
                 "total_signals": 0,
             }
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — catch amplo deliberado: provedor externo falha de formas variadas (rede, timeout, JSON); retorna erro estruturado
             logger.warning("[Form4API] get_cluster_signals failed: %s", exc)
             return {
                 "error": f"form4api_error: {exc}",
@@ -266,7 +266,7 @@ class Form4APIProvider:
                 }
                 for r in rows
             ]
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — catch amplo deliberado: provedor externo falha de formas variadas (rede, timeout, JSON); retorna erro estruturado
             logger.warning("[Form4API] get_recent_filings failed: %s", exc)
             return []
 

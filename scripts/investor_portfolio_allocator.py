@@ -44,7 +44,7 @@ def load_commission_free_etfs() -> list[str]:
             can = symbols.get("CAN", [])
             us = symbols.get("US", [])
             return can + us
-    except Exception:
+    except (OSError, json.JSONDecodeError):
         return []
 
 

@@ -212,7 +212,7 @@ def send_task(message: str, ticker: str | None = None, session_id: str = "") -> 
                     events.append(json.loads(raw_line.decode("utf-8", errors="replace")))
                 except json.JSONDecodeError:
                     continue
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — fronteira de rede fail-open: qualquer falha vira registro de erro no JSONL, nao derruba a bateria de 100 testes
         return {"error": str(exc), "events": events, "final_content": ""}
     result = {"events": events, "chunks": [], "run_id": "", "error": None}
     for event in events:

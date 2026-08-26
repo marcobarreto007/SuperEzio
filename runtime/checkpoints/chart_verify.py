@@ -85,7 +85,7 @@ async def main():
             await page.wait_for_timeout(5000)
             results["page_load"] = True
             print("  [OK] Page loaded")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — falha de navegação vira FAIL no relatório; qualquer erro do Playwright deve ser capturado
             print(f"  [FAIL] Page load error: {e}")
             await browser.close()
             return results
@@ -115,7 +115,7 @@ async def main():
                     await page.fill("#auth-reg-password", "test12345")
                     await page.click(".auth-submit")
                     await page.wait_for_timeout(2000)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — fluxo de auth é best-effort: qualquer erro vira WARN e a verificação segue
                 print(f"  [WARN] Auth handling error: {e}")
         else:
             print("  [INFO] No auth modal — dev mode or already authenticated")
@@ -427,7 +427,7 @@ async def main():
 
     # Write results JSON
     report_path = REPO_ROOT / "runtime" / "checkpoints" / "chart_verify_report.json"
-    with open(report_path, "w") as f:
+    with open(report_path, "w") as f:  # noqa: ASYNC230 — probe diagnóstico síncrono; reescrever para aiofiles é trabalho separado
         json.dump(results, f, indent=2, default=str)
     print(f"  Report saved: {report_path}")
 
@@ -444,11 +444,11 @@ async def ensure_server():
             if resp.status == 200:
                 print("[INFO] Server already running")
                 return True
-    except Exception:
+    except Exception:  # noqa: BLE001,S110 — sonda: se o health check falhar (servidor fora), o script tenta subir o servidor
         pass
 
     print("[INFO] Starting server...")
-    proc = subprocess.Popen(
+    proc = subprocess.Popen(  # noqa: ASYNC220 — probe diagnóstico síncrono; reescrever é trabalho separado
         SERVER_START_CMD,
         cwd=str(REPO_ROOT),
         stdout=subprocess.PIPE,
@@ -457,14 +457,14 @@ async def ensure_server():
 
     # Wait for server to be ready
     for i in range(15):
-        time.sleep(1)
+        time.sleep(1)  # noqa: ASYNC251 — probe diagnóstico síncrono; reescrever é trabalho separado
         try:
             req = urllib.request.Request("http://127.0.0.1:8002/health")
             with urllib.request.urlopen(req, timeout=2) as resp:  # noqa: ASYNC210 — probe diagnóstico síncrono; reescrever para httpx.AsyncClient é trabalho separado
                 if resp.status == 200:
                     print(f"[INFO] Server started (PID: {proc.pid})")
                     return proc
-        except Exception:  # noqa: S112 — sonda: health check pode falhar durante o boot; o loop tenta de novo
+        except Exception:  # noqa: BLE001,S112 — sonda: health check pode falhar durante o boot; o loop tenta de novo
             continue
 
     print("[WARN] Server may not have started properly")

@@ -79,7 +79,7 @@ def _http_ok(base_url: str, timeout_s: float = 5.0) -> bool:
     try:
         with urllib.request.urlopen(f"{base_url.rstrip('/')}/health", timeout=timeout_s) as r:
             return r.status == 200
-    except Exception:
+    except Exception:  # noqa: BLE001 — probe de saúde: qualquer falha de rede/timeout = servidor não saudável (fail-closed)
         return False
 
 
@@ -142,9 +142,9 @@ def run_mobile_smoke(base_url: str, timeout_ms: int) -> dict[str, Any]:
             console_errors: list[str] = []
             page.on(
                 "console",
-                lambda m, console_errors=console_errors: console_errors.append(m.text)
-                if m.type == "error"
-                else None,
+                lambda m, console_errors=console_errors: (
+                    console_errors.append(m.text) if m.type == "error" else None
+                ),
             )
             page.goto(base_url, wait_until="domcontentloaded", timeout=timeout_ms)
             page.wait_for_timeout(3000)
@@ -165,7 +165,7 @@ def main() -> int:
 
     try:
         result = run_mobile_smoke(args.base_url, args.timeout_ms)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — CLI: qualquer falha do smoke vira JSON de erro com exit code 1, não traceback
         print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
         return 1
 

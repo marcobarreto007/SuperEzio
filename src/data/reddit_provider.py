@@ -242,7 +242,7 @@ class RedditPulse:
                         time_filter=time_filter,
                     )
                 )
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - deliberado: falha vira erro por subreddit.
                 errors.append(f"r/{subreddit}: {exc}")
 
         qualified = self._dedupe_and_rank(posts)
@@ -371,7 +371,7 @@ class RedditPulse:
             )
             if result:
                 return result
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - deliberado: fonte caiu; segue para o fallback.
             last_error = f"r/{subreddit} pushshift: {exc}"
 
         # Try 2: old.reddit.com — public JSON with User-Agent header
@@ -386,7 +386,7 @@ class RedditPulse:
             )
             if result:
                 return result
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - deliberado: fonte caiu; segue para o fallback.
             last_error = f"r/{subreddit} old_reddit: {exc}"
 
         # Both sources failed or returned empty
@@ -500,7 +500,7 @@ class RedditPulse:
                     "provider_errors": errors,
                     "fallback_source": "apewisdom",
                 }
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - deliberado: fallback ApeWisdom falhou vira erro.
             errors.append(f"apewisdom_fallback: {exc}")
 
         # ApeWisdom also failed — return empty signal
@@ -723,7 +723,7 @@ class RedditTickerSentiment:
                     sort=sort,
                     time_filter=time_filter,
                 )
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - deliberado: falha vira erro por subreddit.
                 errors.append(f"r/{subreddit}: {exc}")
                 continue
 

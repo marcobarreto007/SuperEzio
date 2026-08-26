@@ -740,7 +740,7 @@ class ModelGateway:
                                 ):
                                     q.put(chunk)
                                 q.put(None)
-                            except Exception as exc:
+                            except Exception as exc:  # noqa: BLE001 — falha do stream é empacotada na queue para re-lançar no thread principal
                                 q.put(exc)
                                 q.put(None)
 
@@ -761,7 +761,7 @@ class ModelGateway:
                         yield item
                     self._mark_provider_success(provider.name, circuit)
                     return
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 — falha de provider é classificada para retry/fallback; catch amplo deliberado
                     failure_kind = self._classify_provider_failure(exc)
                     self._record_provider_error(provider, exc, failure_kind)
                     if emitted or failure_kind is _FailureKind.PERMANENT:
@@ -851,7 +851,7 @@ class ModelGateway:
                             },
                         )
                     return
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 — falha de provider é classificada para retry/fallback; catch amplo deliberado
                     failure_kind = self._classify_provider_failure(exc)
                     self._record_provider_error(provider, exc, failure_kind)
                     if emitted or failure_kind is _FailureKind.PERMANENT:

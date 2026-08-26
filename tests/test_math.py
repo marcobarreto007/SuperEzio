@@ -183,7 +183,18 @@ class TestIndicators:
 
 
 class TestRisk:
-    RETURNS: ClassVar[list[float]] = [0.01, -0.02, 0.03, 0.01, -0.005, 0.02, -0.01, 0.015, 0.025, -0.015]
+    RETURNS: ClassVar[list[float]] = [
+        0.01,
+        -0.02,
+        0.03,
+        0.01,
+        -0.005,
+        0.02,
+        -0.01,
+        0.015,
+        0.025,
+        -0.015,
+    ]
 
     def test_log_return(self):
         assert log_return(110, 100) == pytest.approx(0.0953, rel=0.01)

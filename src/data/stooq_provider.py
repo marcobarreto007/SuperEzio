@@ -56,7 +56,7 @@ class StooqProvider:
         try:
             response = requests.get(self.base_url, params=params, timeout=self.timeout)
             response.raise_for_status()
-        except Exception as exc:
+        except requests.RequestException as exc:
             return {"error": f"stooq_http: {exc}"}
 
         text = response.text.strip()

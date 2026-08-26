@@ -130,7 +130,7 @@ class WatchlistPulse:
                 meta = getter(symbol)
                 if isinstance(meta, Mapping):
                     return dict(meta)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110 — hook de meta é código externo: falha cai no fallback de discovery
                 pass
         discovery = snapshot.get("discovery")
         if isinstance(discovery, Mapping) and discovery:

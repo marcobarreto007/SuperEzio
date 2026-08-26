@@ -231,7 +231,7 @@ _validation_error: Exception | None = None
 
 try:
     _settings = Settings()
-except Exception as exc:
+except Exception as exc:  # noqa: BLE001 — catch amplo deliberado: qualquer falha de validacao no boot e capturada e reportada em get_settings()
     _validation_error = exc
 
 

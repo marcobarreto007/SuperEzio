@@ -77,7 +77,7 @@ class ApeWisdomProvider:
                 for item in results
                 if item.get("ticker") or item.get("symbol")
             ]
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — catch amplo deliberado: garantia de resiliência do provider (nunca levanta; degrada para lista vazia com warning)
             logger.warning("[ApeWisdom] get_trending_stocks failed: %s", exc)
             return []
 

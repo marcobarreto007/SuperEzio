@@ -37,7 +37,8 @@ BLOCK_VERDICTS = {"AVOID", "BLOCK", "MANIPULATED"}
 def _safe_writer():
     try:
         return get_stream_writer()
-    except Exception:
+    except Exception:  # noqa: BLE001
+        # Writer e opcional fora do runtime de stream: sem writer, eventos viram no-op.
         return lambda _event: None
 
 

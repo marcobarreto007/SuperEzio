@@ -183,7 +183,7 @@ class AlpacaPaperAdapter:
             client = self._get_client()
             client.cancel_order_by_id(order_id)
             return True
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - deliberado: cancelamento falhou vira False.
             logger.warning("Cancel order %s failed: %s", order_id, exc)
             return False
 
@@ -192,7 +192,7 @@ class AlpacaPaperAdapter:
             client = self._get_client()
             result = client.get_order_by_id(order_id)
             return _alpaca_to_order(result)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - deliberado: falha vira None (não encontrado).
             logger.warning("Alpaca get_order(%s) failed: %s", order_id, exc)
             return None
 
@@ -201,7 +201,7 @@ class AlpacaPaperAdapter:
             client = self._get_client()
             positions = client.get_all_positions()
             return [_alpaca_to_position(p) for p in positions]
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - deliberado: falha vira lista vazia.
             logger.warning("Alpaca get_positions failed: %s", exc)
             return []
 
@@ -210,7 +210,7 @@ class AlpacaPaperAdapter:
             client = self._get_client()
             account = client.get_account()
             return float(account.equity)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - deliberado: falha vira sentinela 0.0.
             # IMPORTANT: returning 0.0 on broker failure is a sentinel, not real equity.
             # Callers MUST check for provider errors before sizing positions.
             logger.warning("Alpaca get_account_equity failed: %s (returning 0.0 sentinel)", exc)

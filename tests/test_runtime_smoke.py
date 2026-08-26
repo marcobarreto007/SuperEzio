@@ -247,8 +247,9 @@ def test_message_type_enum():
 
 
 def test_a2a_message_validation():
-    from core.ports.protocol import A2AMessage
     from pydantic import ValidationError
+
+    from core.ports.protocol import A2AMessage
 
     with pytest.raises(ValidationError):
         A2AMessage.model_validate({"from": "ui"})  # missing to and type

@@ -102,15 +102,15 @@ def fetch_and_cache_ticker(ticker: str, force: bool = False) -> int:
                     ),
                 )
                 count += 1
-            except Exception:
-                pass
+            except Exception as exc:  # noqa: BLE001 — linha de candle malformada é pulada sem derrubar o cache do ticker; loga em debug
+                logger.debug("row_skipped_ohlcv: %s %s — %s", ticker, date_str, exc)
 
         conn.commit()
         conn.close()
         logger.info("cached_ohlcv: %s -> %d candles", ticker, count)
         return count
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — falha de fetch não derruba o batch; retorna 0 candles
         logger.warning("fetch_failed_ohlcv: %s — %s", ticker, str(e)[:100])
         return 0
 

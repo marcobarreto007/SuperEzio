@@ -68,7 +68,7 @@ with sync_playwright() as p:
             page.screenshot(path="output/live_chrome_run/03_typed_greeting.png")
             page.click("#send-btn")
             print(" -> Mensagem 'bob tudo bem' enviada.")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — operacao manual nao deve abortar por falha de interacao com o chat
             print(" -> Aviso ao interagir com chat:", e)
 
     time.sleep(4)

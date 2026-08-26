@@ -86,7 +86,7 @@ def _serialize(obj: Any) -> str:
         return None
     try:
         return str(obj)[:500]
-    except Exception:
+    except Exception:  # noqa: BLE001 — __str__ arbitrário pode lançar qualquer exceção; serialização de log nunca pode falhar
         return "<unserializable>"
 
 
@@ -286,8 +286,8 @@ class DebugLogger:
                 self._neural_log_callback(
                     f"DEBUG_{module.upper()}", event["level_name"], event["data"]
                 )
-            except Exception:
-                pass  # Não quebrar por causa de callback de log
+            except Exception as exc:  # noqa: BLE001 — callback de log externo não pode quebrar o logger; loga em debug
+                logging.getLogger(__name__).debug("neural_log callback failed: %s", exc)
 
         # Console output (só em debug mode ou errors)
         if self.debug_enabled or level >= LEVEL_WARN:

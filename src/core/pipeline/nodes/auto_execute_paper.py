@@ -236,7 +236,9 @@ async def auto_execute_paper(state: dict) -> dict:
     except ImportError:
         logger.warning("trade_gate_unavailable_blocking_all")
         return {"paper_exec_blocked": "F51_TRADE_GATE_UNAVAILABLE"}
-    except Exception as exc:
+    # Fronteira fail-closed do trade gate: erro inesperado bloqueia a ordem
+    # (nunca deixa passar) e devolve codigo auditavel no resultado.
+    except Exception as exc:  # noqa: BLE001
         logger.error("trade_gate_error", error=str(exc)[:200])
         return {"paper_exec_blocked": f"f51_trade_gate_error:{str(exc)[:120]}"}
 
@@ -309,7 +311,9 @@ async def auto_execute_paper(state: dict) -> dict:
                         "reason": size.size_reason,
                     }
                 )
-    except Exception as exc:
+    # Fronteira de melhor esforco: falha no sizing bloqueia a ordem com motivo
+    # auditavel no journal, sem derrubar o pipeline.
+    except Exception as exc:  # noqa: BLE001
         writer(
             {
                 "type": "PIPELINE_STEP",
@@ -348,7 +352,9 @@ async def auto_execute_paper(state: dict) -> dict:
                 "paper_exec_blocked": f"kill_switch:{reason}",
                 "submit_paper_order_error": f"kill_switch_active:{reason}",
             }
-    except Exception as exc:
+    # Fronteira de melhor esforco: preflight do kill switch indisponivel vira
+    # warning; a decisao real de bloqueio segue nos gates abaixo.
+    except Exception as exc:  # noqa: BLE001
         logger.warning("kill switch preflight unavailable: %s", exc)
 
     writer(
@@ -569,8 +575,9 @@ def _resolve_limit_price(state: dict, scan: dict, ticker: str) -> tuple[float, f
                     try:
                         collected_dt = datetime.fromisoformat(str(collected))
                         data_age_s = (datetime.now(UTC) - collected_dt).total_seconds()
-                    except Exception:
-                        pass
+                    except (ValueError, TypeError):
+                        # Timestamp invalido: mantem data_age_s = 0 e segue.
+                        logger.debug("collected_at unparseable: %r", collected)
                 break
     if limit_price <= 0:
         limit_price = float(state.get("latest_price", 0)) or 0
@@ -636,8 +643,10 @@ def _check_concentration(ticker: str, position_value: float, run_id: str) -> boo
                     }
                 )
                 return True
-    except Exception:
-        pass
+    # Fronteira de melhor esforco: checagem de concentracao indisponivel nao
+    # bloqueia a ordem; falha vira log de debug e segue.
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("concentration check failed: %s", exc)
     return False
 
 
@@ -695,7 +704,10 @@ def _journal_trade(
                                 fb = get_feedback_loop()
                                 fb.run_learning_cycle()
                                 logger.info("learning_cycle_completed", trade_id=ot["trade_id"])
-                            except Exception as e:
+                            # Fronteira de melhor esforco em thread de fundo:
+                            # ciclo de aprendizado falho vira warning e nunca
+                            # derruba a thread do journal.
+                            except Exception as e:  # noqa: BLE001
                                 logger.warning("learning_cycle_failed", error=str(e)[:200])
 
                         threading.Thread(target=_run_learning_cycle, daemon=True).start()
@@ -727,7 +739,9 @@ def _journal_trade(
                 limit_price=limit_price,
             )
             return trade_id
-    except Exception as exc:
+    # Fronteira de melhor esforco: falha de escrita no journal vai para a
+    # dead letter queue para replay manual, sem derrubar a execucao.
+    except Exception as exc:  # noqa: BLE001
         # Journal write failed → dead letter queue
         logger.error("journal_write_failed_dead_letter", ticker=ticker, error=str(exc)[:200])
         enqueue_dead_letter(

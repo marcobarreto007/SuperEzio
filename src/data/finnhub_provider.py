@@ -20,7 +20,7 @@ import os
 import threading
 import time
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, ClassVar
 
 import requests
 
@@ -41,7 +41,9 @@ def _log_event(phase: str, event: str, data: dict | None = None) -> None:
         from core.observability.neural_log import log_event
 
         log_event(phase, event, data or {})
-    except Exception:
+    # Fronteira deliberada de telemetria: log que falha nunca pode derrubar a
+    # chamada de dados que o originou.
+    except Exception:  # noqa: BLE001, S110
         pass
 
 
@@ -139,7 +141,7 @@ class FinnhubProvider:
                     params={"symbol": variant, "token": self.api_key},
                     timeout=self.timeout,
                 )
-            except Exception as exc:
+            except (requests.RequestException, OSError) as exc:
                 _log_event(
                     "FINNHUB",
                     "QUOTE_ERROR",
@@ -236,7 +238,10 @@ class FinnhubProvider:
             if ttl > 0:
                 self._metrics_cache[key] = (time.monotonic(), metric)
             return metric
-        except Exception:
+        # Fronteira de melhor esforco: resposta de metrica invalida/indisponivel
+        # vira None (cache miss); JSON nao confiavel pode levantar erros
+        # variados, entao o catch amplo e intencional.
+        except Exception:  # noqa: BLE001
             return None
 
     def _fetch_avg_volume(self, symbol: str) -> float | None:
@@ -277,7 +282,7 @@ class FinnhubProvider:
                     params={"symbol": variant, "token": self.api_key},
                     timeout=self.timeout,
                 )
-            except Exception as exc:
+            except (requests.RequestException, OSError) as exc:
                 _log_event(
                     "FINNHUB",
                     "PROFILE_ERROR",
@@ -424,7 +429,9 @@ class FinnhubProvider:
             {symbol, catalyst, invalidation, event_date, confidence, source}
             or {"error": "no_catalyst_in_window"} when nothing schedulable.
         """
-        today = datetime.now(UTC).date()  # UTC: earnings calendar is day-granular; avoids local-tz drift
+        today = datetime.now(
+            UTC
+        ).date()  # UTC: earnings calendar is day-granular; avoids local-tz drift
         end = today + timedelta(days=window_days)
         variants = finnhub_symbol_variants(symbol)
         last_error = "no_catalyst_in_window"
@@ -441,7 +448,7 @@ class FinnhubProvider:
                     },
                     timeout=self.timeout,
                 )
-            except Exception as exc:
+            except (requests.RequestException, OSError) as exc:
                 _log_event(
                     "FINNHUB",
                     "CATALYST_ERROR",
@@ -460,7 +467,7 @@ class FinnhubProvider:
                 last_error = "no_catalyst_in_window"
                 continue
 
-            event = sorted(events, key=lambda e: e.get("date") or "")[0]
+            event = min(events, key=lambda e: e.get("date") or "")
             event_date = event.get("date")
             eps_est = event.get("epsEstimate")
             rev_est = event.get("revenueEstimate")
@@ -495,7 +502,7 @@ class FinnhubProvider:
     # ─────────────────────────────────────────────────────────────────
     # Candles (OHLCV)
     # ─────────────────────────────────────────────────────────────────
-    _CANDLE_RESOLUTION: dict[str, str] = {
+    _CANDLE_RESOLUTION: ClassVar[dict[str, str]] = {
         "1D": "5",
         "1W": "60",
         "1M": "D",
@@ -504,7 +511,7 @@ class FinnhubProvider:
         "1Y": "D",
         "5Y": "W",
     }
-    _CANDLE_LOOKBACK_DAYS: dict[str, int] = {
+    _CANDLE_LOOKBACK_DAYS: ClassVar[dict[str, int]] = {
         "1D": 5,
         "1W": 12,
         "1M": 35,
@@ -542,7 +549,7 @@ class FinnhubProvider:
                     params={**params_base, "symbol": variant, "token": self.api_key},
                     timeout=self.timeout,
                 )
-            except Exception as exc:
+            except (requests.RequestException, OSError) as exc:
                 last_error = str(exc)
                 continue
             if response.status_code != 200:
@@ -611,7 +618,7 @@ class FinnhubProvider:
                     },
                     timeout=self.timeout,
                 )
-            except Exception as exc:
+            except (requests.RequestException, OSError) as exc:
                 last_error = str(exc)
                 continue
             if response.status_code != 200:

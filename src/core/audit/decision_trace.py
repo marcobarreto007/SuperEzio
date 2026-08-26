@@ -292,8 +292,8 @@ class DecisionTraceLogger:
                 input_summary=json.dumps(payload)[:200] if payload else "",
                 output_summary=reason[:500],
             )
-        except Exception:
-            pass  # SQLite is optional backup
+        except Exception:  # noqa: BLE001, S110 — SQLite é backup opcional: falha de escrita não pode derrubar o trace
+            pass
 
         return entry
 

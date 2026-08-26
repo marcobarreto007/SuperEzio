@@ -152,8 +152,8 @@ def run_experts_on_ticker(ticker: str) -> dict[str, Any]:
                    VALUES (?, ?, ?, ?, ?)""",
                 (ticker, role, json.dumps(analysis), 0.5, now_iso),
             )
-        except Exception:
-            pass
+        except Exception:  # noqa: BLE001 — deliberado: persistência best-effort não pode derrubar o pipeline
+            logger.debug("Falha ao persistir análise do expert para %s: %s", ticker, role)
     conn.commit()
     conn.close()
 

@@ -73,7 +73,7 @@ class EmailAlerter:
                 )
             logger.info("Email alert sent: %s", subject)
             return True
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — catch amplo deliberado: falha de e-mail não pode derrubar o loop de trading; degrada para False com log
             logger.error("Failed to send email alert: %s", exc)
             return False
 

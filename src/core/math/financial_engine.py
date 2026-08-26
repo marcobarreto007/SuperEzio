@@ -14,7 +14,7 @@ except ImportError:
 
 try:
     from ..observability.neural_log import log_event as _log_event
-except Exception as exc:
+except Exception as exc:  # noqa: BLE001 — telemetria opcional nunca pode quebrar o engine financeiro; fallback no-op
     logger.debug("[ENGINE] neural_log unavailable: %s", exc)
 
     def _log_event(phase, event, data=None):  # type: ignore[misc]
@@ -91,7 +91,7 @@ class FinancialEngine:
                 "last_updated": str(candles[-1].get("time", "")),
             }
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — contrato público do método: falha vira dict de erro, nunca exceção
             return {"error": str(e)}
 
     def get_company_profile(self, symbol: str) -> dict[str, Any]:
@@ -117,7 +117,7 @@ class FinancialEngine:
                 "beta": result.get("beta"),
                 "summary": result.get("summary"),
             }
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — contrato público do método: falha vira dict de erro, nunca exceção
             logger.warning("[ENGINE] profile lookup failed for %s: %s", symbol, exc)
             return {"error": str(exc), "symbol": symbol}
 

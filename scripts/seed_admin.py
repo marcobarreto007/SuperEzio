@@ -32,6 +32,8 @@ import os
 import sys
 from pathlib import Path
 
+import pydantic
+
 # ---------------------------------------------------------------------------
 # Ensure src/ is on sys.path so that agent_server.auth is importable from scripts/
 # ---------------------------------------------------------------------------
@@ -121,7 +123,7 @@ def main(argv: list[str] | None = None) -> None:
     # --- Validate credentials via Pydantic before hitting the DB ---
     try:
         payload = UserCreate(username=username, email=email, password=password)
-    except Exception as exc:
+    except pydantic.ValidationError as exc:
         print(f"ERROR: Invalid credentials — {exc}", file=sys.stderr)
         sys.exit(1)
 

@@ -89,7 +89,9 @@ def run_client_e2e() -> dict[str, Any]:
                 "status_code": status_code,
                 "cockpit_state": cockpit_state,
             }
-        except Exception as exc:
+        # Melhor esforco deliberado: um step que falha nao aborta o E2E inteiro;
+        # registra o erro, segue para o proximo e o report final decide.
+        except Exception as exc:  # noqa: BLE001
             results["steps"]["01_cockpit_load"] = {"ok": False, "error": str(exc)}
             results["errors"].append(f"Step 1 failed: {exc}")
 
@@ -128,7 +130,9 @@ def run_client_e2e() -> dict[str, Any]:
                 "ok": chart_eval.get("ok", False),
                 "data": chart_eval,
             }
-        except Exception as exc:
+        # Melhor esforco deliberado: um step que falha nao aborta o E2E inteiro;
+        # registra o erro, segue para o proximo e o report final decide.
+        except Exception as exc:  # noqa: BLE001
             results["steps"]["02_chart_test"] = {"ok": False, "error": str(exc)}
             results["errors"].append(f"Step 2 failed: {exc}")
 
@@ -153,7 +157,9 @@ def run_client_e2e() -> dict[str, Any]:
                 "ok": td_eval.get("ok", False),
                 "data": td_eval,
             }
-        except Exception as exc:
+        # Melhor esforco deliberado: um step que falha nao aborta o E2E inteiro;
+        # registra o erro, segue para o proximo e o report final decide.
+        except Exception as exc:  # noqa: BLE001
             results["steps"]["03_td_commission_free"] = {"ok": False, "error": str(exc)}
             results["errors"].append(f"Step 3 failed: {exc}")
 
@@ -206,7 +212,9 @@ def run_client_e2e() -> dict[str, Any]:
                 "before": chat_panel_info,
                 "after": chat_after,
             }
-        except Exception as exc:
+        # Melhor esforco deliberado: um step que falha nao aborta o E2E inteiro;
+        # registra o erro, segue para o proximo e o report final decide.
+        except Exception as exc:  # noqa: BLE001
             results["steps"]["04_bob_chat"] = {"ok": False, "error": str(exc)}
             results["errors"].append(f"Step 4 failed: {exc}")
 
@@ -224,7 +232,9 @@ def run_client_e2e() -> dict[str, Any]:
                 return { ok: false };
             }""")
             results["steps"]["05_mangala_scan"] = mangala_eval
-        except Exception as exc:
+        # Melhor esforco deliberado: um step que falha nao aborta o E2E inteiro;
+        # registra o erro e o report final decide.
+        except Exception as exc:  # noqa: BLE001
             results["steps"]["05_mangala_scan"] = {"ok": False, "error": str(exc)}
 
         # Step 6: Auth Modal & Security Flow
@@ -254,7 +264,9 @@ def run_client_e2e() -> dict[str, Any]:
                 "ok": auth_modal_info.get("modalExists", False),
                 "data": auth_modal_info,
             }
-        except Exception as exc:
+        # Melhor esforco deliberado: um step que falha nao aborta o E2E inteiro;
+        # registra o erro e o report final decide.
+        except Exception as exc:  # noqa: BLE001
             results["steps"]["06_auth_modal"] = {"ok": False, "error": str(exc)}
 
         browser.close()

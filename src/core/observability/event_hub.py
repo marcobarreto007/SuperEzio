@@ -113,7 +113,9 @@ class InMemoryHub(EventHub):
         for handler in self._handlers:
             try:
                 await handler(event)
-            except Exception as e:
+            # Fronteira de melhor esforco: handler com falha nao derruba o hub;
+            # erro e registrado e o evento segue para os demais handlers.
+            except Exception as e:  # noqa: BLE001
                 log_event("EVENT_HUB", "HANDLER_ERROR", {"error": str(e)})
 
         # Call type-specific handlers
@@ -121,7 +123,9 @@ class InMemoryHub(EventHub):
             for handler in self._type_handlers[event.event_type]:
                 try:
                     await handler(event)
-                except Exception as e:
+                # Fronteira de melhor esforco: handler com falha nao derruba o
+                # hub; erro e registrado e os demais handlers seguem.
+                except Exception as e:  # noqa: BLE001
                     log_event("EVENT_HUB", "HANDLER_ERROR", {"error": str(e)})
 
     async def subscribe(self, handler: EventHandler) -> None:
@@ -172,7 +176,9 @@ class RedisStreamsHub(EventHub):
                     await self._redis.xgroup_create(
                         self.stream_key, self.consumer_group, id="0", mkstream=True
                     )
-                except Exception:
+                # Skip deliberado: xgroup_create falha quando o grupo ja existe
+                # (esperado na reconexao) — nao ha o que tratar.
+                except Exception:  # noqa: BLE001, S110
                     pass  # Group already exists
 
                 log_event("EVENT_HUB", "REDIS_CONNECTED", {"url": self.redis_url})
@@ -234,10 +240,14 @@ class RedisStreamsHub(EventHub):
 
                             # Acknowledge message
                             await redis.xack(self.stream_key, self.consumer_group, msg_id)
-                        except Exception as e:
+                        # Fronteira de melhor esforco: mensagem com falha e
+                        # registrada e o loop segue para a proxima mensagem.
+                        except Exception as e:  # noqa: BLE001
                             log_event("EVENT_HUB", "CONSUME_ERROR", {"error": str(e)})
 
-            except Exception as e:
+            # Fronteira de melhor esforco: erro no loop de consumo e registrado
+            # e o loop aguarda 1s antes de tentar de novo.
+            except Exception as e:  # noqa: BLE001
                 log_event("EVENT_HUB", "CONSUME_LOOP_ERROR", {"error": str(e)})
                 await asyncio.sleep(1)
 
@@ -245,14 +255,18 @@ class RedisStreamsHub(EventHub):
         for handler in self._handlers:
             try:
                 await handler(event)
-            except Exception as e:
+            # Fronteira de melhor esforco: handler com falha nao derruba o hub;
+            # erro e registrado e o evento segue para os demais handlers.
+            except Exception as e:  # noqa: BLE001
                 log_event("EVENT_HUB", "HANDLER_ERROR", {"error": str(e)})
 
         if event.event_type in self._type_handlers:
             for handler in self._type_handlers[event.event_type]:
                 try:
                     await handler(event)
-                except Exception as e:
+                # Fronteira de melhor esforco: handler com falha nao derruba o
+                # hub; erro e registrado e os demais handlers seguem.
+                except Exception as e:  # noqa: BLE001
                     log_event("EVENT_HUB", "HANDLER_ERROR", {"error": str(e)})
 
     async def close(self) -> None:

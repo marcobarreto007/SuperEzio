@@ -29,17 +29,17 @@ class TestRewardCompute:
     def _make_outcome(self, **overrides):
         from core.trading.reward import TradeOutcome
 
-        defaults = dict(
-            symbol="AAPL",
-            side="buy",
-            entry_price=100.0,
-            exit_price=110.0,
-            qty=10,
-            pnl=100.0,
-            hold_duration_seconds=3600.0,
-            confidence_at_entry=0.8,
-            verdict_at_entry=0.7,
-        )
+        defaults = {
+            "symbol": "AAPL",
+            "side": "buy",
+            "entry_price": 100.0,
+            "exit_price": 110.0,
+            "qty": 10,
+            "pnl": 100.0,
+            "hold_duration_seconds": 3600.0,
+            "confidence_at_entry": 0.8,
+            "verdict_at_entry": 0.7,
+        }
         defaults.update(overrides)
         return TradeOutcome(**defaults)
 

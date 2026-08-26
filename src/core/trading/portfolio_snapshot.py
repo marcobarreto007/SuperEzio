@@ -109,7 +109,7 @@ def fetch_portfolio_snapshot(language: str = "en") -> str:
             + f"  Cash: ${cash:,.2f}\n"
         )
 
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — catch amplo deliberado: contrato "IBKR offline"; ib_insync lança exceções variadas e o fallback nunca levanta
         logger.warning("IBKR portfolio snapshot failed: %s", exc)
         return "IBKR offline — portfolio data unavailable"
 

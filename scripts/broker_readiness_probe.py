@@ -92,13 +92,13 @@ def probe_ibkr(
                     result["account_equity"] = item.value
                     break
             result["positions_count"] = len(ib.positions())
-    except Exception as exc:  # pragma: no cover - depends on local broker state.
+    except Exception as exc:  # pragma: no cover  # noqa: BLE001 - erro vira resultado, não exceção.
         result["error"] = _safe_error(exc)
     finally:
         if ib is not None:
             try:
                 ib.disconnect()
-            except Exception:
+            except Exception:  # noqa: S110, BLE001 - desconexão best-effort; erro já registrado.
                 pass
 
     return result
@@ -144,7 +144,7 @@ def probe_alpaca_paper(timeout: float = 10.0) -> dict[str, Any]:
         result["account_status"] = str(getattr(account, "status", "unknown"))
         result["account_equity"] = str(getattr(account, "equity", ""))
         result["positions_count"] = len(positions)
-    except Exception as exc:  # pragma: no cover - depends on external credentials.
+    except Exception as exc:  # pragma: no cover  # noqa: BLE001 - erro vira resultado, não exceção.
         result["error"] = _safe_error(exc)
 
     return result

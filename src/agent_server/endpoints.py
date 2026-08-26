@@ -233,8 +233,9 @@ def _cockpit_ibkr_open_orders() -> list[dict[str, Any]]:
             normalized = _normalize_order_row(order_dict, source="ibkr")
             if normalized and _is_active_order_status(normalized.get("status", "")):
                 rows.append(normalized)
+        # IBKR best-effort: ordens abertas indisponiveis viram lista vazia, nunca 500.
         return rows
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.debug("IBKR open-order read failed for cockpit: %s", exc)
         return []
 
@@ -333,8 +334,9 @@ def _cockpit_trade_history(limit: int = 50) -> dict[str, Any]:
             "count": len(trades),
             "stats": stats,
             "trades": trades[:max_rows],
+            # Fronteira de melhor esforco: historico de trades do cockpit nao pode derrubar o endpoint.
         }
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.debug("Paper journal read failed for cockpit: %s", exc)
         return {
             "source": "paper_journal",
@@ -478,8 +480,9 @@ def _cockpit_status_snapshot(
         settings = Settings(_env_file=None)
         deep_model = settings.superezio_deepseek_model
         deep_configured = settings.deepseek_experts_configured
+        # Fallback deliberado: config invalida degrada para defaults, o cockpit segue.
         deep_configuration_status = settings.deepseek_configuration_status
-    except Exception:
+    except Exception:  # noqa: BLE001
         deep_model = None
         deep_configured = False
         deep_configuration_status = "invalid_configuration"
@@ -783,7 +786,7 @@ def _parse_candle_time(raw: Any) -> int:
     try:
         dt = datetime.fromisoformat(raw_str)
         return int(dt.timestamp())
-    except Exception:
+    except ValueError:
         for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
             try:
                 return int(datetime.strptime(raw_str, fmt).replace(tzinfo=UTC).timestamp())
@@ -1005,8 +1008,9 @@ async def stream_chart_data(
                             yield {"event": "candle", "data": json.dumps(payload)}
 
                         last_sig = signature
+                # Gerador de eventos best-effort: falha de um evento nao pode matar o generator.
 
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 yield {
                     "event": "error",
                     "data": json.dumps(
@@ -1554,8 +1558,9 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                 trade_order_context=trade_order_context or None,
             )
             detected_intent = initial_intent.intent or "unknown"
+            # Fallback deliberado: intent nao parseada vira unknown, o stream segue.
             route_used = initial_intent.route or "unknown"
-        except Exception:
+        except Exception:  # noqa: BLE001
             detected_intent = "unknown"
             route_used = "unknown"
         scanner_invoked = False
@@ -1860,6 +1865,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                                     "Sanity warnings: %s",
                                     "; ".join(quality_warnings),
                                 )
+                    # Quality gate best-effort: falha do gate nao pode derrubar o stream (ja logado).
                     except Exception:
                         logger.exception("ML quality gate error; passing through")
 
@@ -1945,8 +1951,9 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
                     "Client disconnected for session=%s msg=%s", session_id, envelope.msg_id
                 )
                 tq.cancel(task.run_id)
+                # Stream best-effort: erro de streaming encerra o canal com erro rastreado.
                 raise
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 fallback_used = True
                 err_detail = _safe_error_detail(exc)
                 if provider_error is None:
@@ -2022,6 +2029,7 @@ async def submit_task(envelope: A2AMessage, request: Request) -> StreamingRespon
     except HTTPException:
         tq.complete(task.run_id)
         raise
+    # Stream best-effort: erro no stream encerra com erro parcial, nunca 500.
     except Exception as exc:
         tq.complete(task.run_id)
         raise HTTPException(status_code=500, detail=_safe_error_detail(exc)) from exc
@@ -2216,8 +2224,9 @@ async def get_cockpit_mangala() -> dict[str, Any]:
         tracker = get_mangala_tracker()
         summary = tracker.compound_summary()
         summary["status"] = "ok"
+        # Fronteira de melhor esforco: leitura do cockpit nao pode derrubar o endpoint.
         return summary
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.warning("Mangala tracker unavailable: %s", exc)
         return {
             "status": "unavailable",
@@ -2261,8 +2270,9 @@ async def get_cockpit_mangala_opportunities() -> dict[str, Any]:
                 "opportunities": [],
             }
         data["status"] = "ok"
+        # Fronteira de melhor esforco: leitura do cockpit nao pode derrubar o endpoint.
         return data
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.warning("Mangala opportunities unavailable: %s", exc)
         return {
             "status": "unavailable",
@@ -2309,7 +2319,7 @@ def get_cockpit_summary(request: Request) -> dict[str, Any]:
             _cnt = _conn.execute("SELECT COUNT(*) FROM sentiment_history").fetchone()
             sentiment["db_rows"] = int(_cnt[0]) if _cnt else 0
             _conn.close()
-    except Exception:
+    except sqlite3.Error:
         sentiment["db_rows"] = -1  # unavailable
 
     portfolio = _cockpit_portfolio_snapshot()
@@ -2448,7 +2458,7 @@ async def get_sentiment_history_db(
             (clean, cutoff),
         ).fetchall()
         conn.close()
-    except Exception:
+    except sqlite3.Error:
         return {
             "ticker": clean,
             "days": days,
@@ -2963,7 +2973,8 @@ async def get_training_orders() -> dict[str, Any]:
                     )
                 except json.JSONDecodeError:
                     continue
-        except Exception as exc:
+        # Fronteira de melhor esforco: falha ao ler ordens de treino vira lista vazia, nunca 500.
+        except Exception as exc:  # noqa: BLE001
             logger.warning("Failed to load training orders", error=str(exc)[:200])
 
     return {

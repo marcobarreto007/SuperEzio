@@ -1,7 +1,6 @@
 import random
 import re
 import time
-from typing import Dict, List
 
 import financedatabase as fd
 
@@ -36,7 +35,7 @@ def _is_valid_us_ca_ticker(symbol: str) -> bool:
 
 try:
     from ..observability.neural_log import log_event as _log_event
-except Exception:
+except ImportError:
 
     def _log_event(phase, event, data=None):  # type: ignore[misc]
         pass
@@ -131,7 +130,9 @@ class MarketScanner:
             rng = random.Random(time.time())
             rng.shuffle(pairs)
             return [{"ticker": s, "exchange": exc} for s, exc in pairs[:limit]]
-        except Exception as e:
+        # Melhor esforco deliberado: falha no scan vira lista vazia + log do
+        # evento, nunca excecao derrubando o pipeline.
+        except Exception as e:  # noqa: BLE001
             _log_event("SCANNER", "SCAN_ERROR", {"type": "equities", "error": str(e)})
             return []
 
@@ -145,7 +146,9 @@ class MarketScanner:
             if industry:
                 kwargs["industry"] = industry
             return self.equities.select(**kwargs)
-        except Exception as e:
+        # Melhor esforco deliberado: FinanceDatabase pode falhar (rede/API);
+        # vira None + log, e o chamador decide o fallback.
+        except Exception as e:  # noqa: BLE001
             _log_event("SCANNER", "SCAN_ERROR", {"type": "select", "error": str(e)})
             return None
 
@@ -186,7 +189,9 @@ class MarketScanner:
             self._set_cached(cache_key, result)
             return result
 
-        except Exception as e:
+        # Melhor esforco deliberado: falha no scan vira lista vazia + log do
+        # evento, nunca excecao derrubando o pipeline.
+        except Exception as e:  # noqa: BLE001
             _log_event("SCANNER", "SCAN_ERROR", {"type": "equities", "error": str(e)})
             return []
 
@@ -204,20 +209,24 @@ class MarketScanner:
             result = list(selection.index)[:limit]
             self._set_cached(cache_key, result)
             return result
-        except Exception as e:
+        # Melhor esforco deliberado: falha no scan vira lista vazia + log do
+        # evento, nunca excecao derrubando o pipeline.
+        except Exception as e:  # noqa: BLE001
             _log_event("SCANNER", "SCAN_ERROR", {"type": "etfs", "error": str(e)})
             return []
 
     def get_available_sectors(self) -> list[str]:
         try:
             return sorted(self.equities.data["sector"].dropna().unique().tolist())
-        except Exception:
+        # Melhor esforco deliberado: base indisponivel retorna lista vazia.
+        except Exception:  # noqa: BLE001
             return []
 
     def get_available_countries(self) -> list[str]:
         try:
             return sorted(self.equities.data["country"].dropna().unique().tolist())
-        except Exception:
+        # Melhor esforco deliberado: base indisponivel retorna lista vazia.
+        except Exception:  # noqa: BLE001
             return []
 
 

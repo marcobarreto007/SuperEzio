@@ -53,7 +53,7 @@ if __name__ == "__main__":
         env.setdefault("DISABLE_OTEL", "1")
 
         try:
-            completed = subprocess.run(
+            completed = subprocess.run(  # noqa: ASYNC221 — coletor síncrono deliberado; migrar para asyncio é trabalho separado
                 [
                     self.executable,
                     "-c",
@@ -77,7 +77,7 @@ if __name__ == "__main__":
             if line.startswith("__SUPEREZIO_JSON__"):
                 try:
                     return json.loads(line.removeprefix("__SUPEREZIO_JSON__"))
-                except Exception as exc:
+                except json.JSONDecodeError as exc:
                     return _error_data(ticker, f"collector_json_parse: {exc}")
 
         stderr = (completed.stderr or "").strip()

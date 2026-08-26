@@ -69,8 +69,8 @@ def scan_penny_stocks(max_price: float = 5.0, min_volume: int = 100_000) -> list
                         fast, "regular_market_price", None
                     )
                     volume = getattr(fast, "last_volume", None)
-                except Exception:
-                    pass
+                except Exception as exc:  # noqa: BLE001 — fast_info do yfinance pode lançar vários tipos; fallback é o history()
+                    logger.debug("fast_info unavailable for %s: %s", ticker, exc)
 
             if price is None or float(price) <= 0:
                 hist = stock.history(period="1d")
@@ -100,7 +100,7 @@ def scan_penny_stocks(max_price: float = 5.0, min_volume: int = 100_000) -> list
                 "exchange": exchange,
                 "source": "yfinance_penny",
             }
-        except Exception:
+        except Exception:  # noqa: BLE001 — falha de um ticker não derruba o scan inteiro; retorna None e segue
             return None
 
     with ThreadPoolExecutor(max_workers=10) as executor:

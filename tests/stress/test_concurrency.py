@@ -105,7 +105,7 @@ async def _submit_task_handler(request: Request):
 
     try:
         body = await request.json()
-    except Exception:
+    except ValueError:  # JSONDecodeError (subclasse de ValueError) — corpo malformado vira 400
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
     envelope = A2AMessage(**body)
@@ -239,7 +239,7 @@ def _concurrent_requests(app, method: str, path: str, n: int, **kwargs):
             else:
                 raise ValueError(f"Unsupported method: {method}")
             return resp
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — coleta deliberada de qualquer falha de thread; o assert sobre errors é a evidência
             errors.append((i, str(e)))
             return None
 
@@ -327,7 +327,7 @@ def test_50_simultaneous_task_submit(task_app):
     def _safe_submit(i: int):
         try:
             return _submit_one(f"session-{i:04d}", i)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — coleta deliberada de qualquer falha de thread; o assert sobre errors é a evidência
             errors.append((i, str(e)))
             return None
 

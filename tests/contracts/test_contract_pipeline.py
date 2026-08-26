@@ -1,5 +1,7 @@
 """Contract tests for PipelineState + Pydantic node I/O models."""
 
+from pydantic import ValidationError
+
 from src.core.pipeline.contracts import (
     AgentRequest,
     AgentToolCall,
@@ -136,7 +138,7 @@ def test_agent_tool_call_accepts_known_tool():
 def test_agent_tool_call_rejects_unknown_tool():
     try:
         AgentToolCall.model_validate({"tool": "legacy_magic_tool", "args": {}})
-    except Exception as exc:
+    except ValidationError as exc:
         assert "legacy_magic_tool" in str(exc)
     else:
         raise AssertionError("unknown agent tools must be rejected")

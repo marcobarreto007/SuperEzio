@@ -101,7 +101,7 @@ class TestPropTickerBlacklist:
         try:
             result = is_ticker_blacklisted(s)
             assert isinstance(result, bool)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — property exige capturar qualquer crash de input aleatorio
             pytest.fail(f"is_ticker_blacklisted crashed on {s!r}: {exc}")
 
     def test_valid_tickers_not_blacklisted(self):
@@ -170,7 +170,7 @@ class TestPropExplicitTradeIntent:
         try:
             result = is_explicit_trade_intent(s)
             assert isinstance(result, bool)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — property exige capturar qualquer crash de input aleatorio
             pytest.fail(f"is_explicit_trade_intent crashed on {s!r}: {exc}")
 
     def test_question_marks_block_trade(self):

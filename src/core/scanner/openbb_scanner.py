@@ -225,7 +225,8 @@ class OpenBBScanner:
                 if result is not None and hasattr(result, "results") and result.results:
                     method = attempt  # use the one that worked
                     break
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
+                # Falha de um metodo de discovery nao aborta o scan: segue no fallback.
                 logger.debug("OpenBB: discovery %s failed, trying fallback: %s", attempt, exc)
                 continue
 

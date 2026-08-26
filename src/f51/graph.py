@@ -123,7 +123,7 @@ class Graph:
                 t0 = time.time()
                 try:
                     result = node.fn(ctx)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 — erro de um nó não derruba o DAG; vira NodeResult.error
                     result = NodeResult(node=node_name, error=str(e))
                 result.elapsed_ms = (time.time() - t0) * 1000
                 ctx.add(node_name, result)

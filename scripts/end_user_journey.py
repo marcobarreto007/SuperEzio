@@ -123,7 +123,7 @@ def run_end_user_journey():
                 drawer_btn.click()
                 page.wait_for_timeout(800)
                 expert_panel_opened = True
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 — sonda de UI opcional: drawer ausente não deve abortar a jornada
             pass
 
         shot_03 = str(OUTPUT_DIR / "03_expert_panel_interaction.png")

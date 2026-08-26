@@ -90,7 +90,7 @@ def _resolve_fallback(
         try:
             state = args[0] if args else {}
             return fallback_value(state, error)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — fallback callable nunca pode levantar; falha vira dict de erro
             logger.error("resilient_node: fallback callable failed: %s", exc)
             return {"errors": [f"fallback_failed:{exc}"]}
     return fallback_value
@@ -127,7 +127,7 @@ def resilient_node(
                 except TimeoutError:
                     last_error = TimeoutError(f"{node_name} timed out after {timeout_s}s")
                     logger.warning("resilient_node(%s): timeout", node_name)
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 — qualquer falha do nó dispara retry/fallback (contrato do decorator)
                     last_error = exc
                     logger.warning(
                         "resilient_node(%s): attempt %d/%d failed: %s",
@@ -160,7 +160,7 @@ def resilient_node(
                     if circuit_breaker:
                         circuit_breaker.success()
                     return result
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 — qualquer falha do nó dispara retry/fallback (contrato do decorator)
                     last_error = exc
                     logger.warning(
                         "resilient_node(%s): attempt %d/%d failed: %s",
@@ -207,7 +207,7 @@ def try_run(
     try:
         result = func(*args, **kwargs)
         return result, None
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — contrato "never raises": qualquer erro vira (fallback, exc)
         log = getattr(logger, log_level, logger.debug)
         log("%s: failed - %s", label, exc)
         return fallback, exc
@@ -225,7 +225,7 @@ async def try_run_async(
     try:
         result = await func(*args, **kwargs)
         return result, None
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — contrato "never raises": qualquer erro vira (fallback, exc)
         log = getattr(logger, log_level, logger.debug)
         log("%s: failed - %s", label, exc)
         return fallback, exc

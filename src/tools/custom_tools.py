@@ -137,7 +137,7 @@ def register_custom_tools(registry):
             if isinstance(result, float):
                 result = round(result, 6)
             return f"Resultado: {result}"
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — deliberado: erro de avaliação vira mensagem amigável para o usuário
             return f"Erro: {e}"
 
     registry.register(
@@ -330,13 +330,13 @@ def create_code_executor_tool():
 
         try:
             with redirect_stdout(stdout), redirect_stderr(stderr):
-                exec(code, {"__builtins__": safe_builtins})  # nosec: B102 — sandboxed with restricted builtins
+                exec(code, {"__builtins__": safe_builtins})  # noqa: S102 — exec deliberado: sandbox de execução de código do usuário com guards (builtins restritos)
             output = stdout.getvalue()
             error = stderr.getvalue()
             if error:
                 return f"Stderr:\n{error}\n\nStdout:\n{output}"
             return output if output else "(código executado sem output)"
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — deliberado: erro de execução do código do usuário vira mensagem amigável
             return f"Erro: {e}"
 
     return execute_python

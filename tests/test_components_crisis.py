@@ -102,16 +102,16 @@ def test_sensor_result():
 def _make_crisis_input(**kw):
     from experts.crisis.contracts.schemas import CrisisInput, MacroObservation
 
-    defaults = dict(
-        credit_to_gdp=160.0,
-        policy_rate=5.0,
-        gdp_growth_yoy=1.5,
-        inflation_yoy=3.2,
-        unemployment_rate=6.0,
-        debt_service_ratio=14.5,
-        credit_growth_yoy=4.0,
-        house_price_index=120.0,
-    )
+    defaults = {
+        "credit_to_gdp": 160.0,
+        "policy_rate": 5.0,
+        "gdp_growth_yoy": 1.5,
+        "inflation_yoy": 3.2,
+        "unemployment_rate": 6.0,
+        "debt_service_ratio": 14.5,
+        "credit_growth_yoy": 4.0,
+        "house_price_index": 120.0,
+    }
     defaults.update(kw)
     # 24 months of data (models like BIS need ≥12)
     obs_list = []

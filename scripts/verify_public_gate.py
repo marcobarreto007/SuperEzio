@@ -46,7 +46,7 @@ def _fetch(base_url: str, path: str) -> tuple[int, str]:
             return resp.status, resp.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as exc:
         return exc.code, exc.read().decode("utf-8", "replace")
-    except Exception as exc:  # connection refused etc.
+    except Exception as exc:  # noqa: BLE001 — rede ampla deliberada (connection refused, timeout, dns): falha vira codigo 0 = "inalcancavel"
         return 0, str(exc)
 
 
@@ -63,7 +63,7 @@ def run_checks(base_url: str) -> dict[str, Any]:
     auth_required = True
     try:
         auth_required = json.loads(health_body).get("auth_required", True)
-    except Exception:
+    except json.JSONDecodeError:
         auth_required = True
     results["auth_required"] = auth_required
     results["open_access"] = auth_required is False
@@ -95,7 +95,7 @@ def run_checks(base_url: str) -> dict[str, Any]:
             code = resp.status
     except urllib.error.HTTPError as exc:
         code = exc.code
-    except Exception:
+    except Exception:  # noqa: BLE001 — rede ampla deliberada: falha de conexao no probe de registro vira codigo 0 = "inalcancavel"
         code = 0
     check("G4 register -> 403", code == 403, f"got {code}")
 

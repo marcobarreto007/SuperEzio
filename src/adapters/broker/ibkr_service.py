@@ -145,7 +145,9 @@ class IBKRService:
             self._last_error = "ib_insync not installed"
             logger.warning("[IBKRService] %s", self._last_error)
             return False
-        except Exception as exc:
+        # Fronteira deliberada de conexao: qualquer falha de rede/TWS deve virar
+        # estado de erro auditavel (log + retorno False), sem subir.
+        except Exception as exc:  # noqa: BLE001
             self._last_error = str(exc)[:200]
             self._consecutive_failures += 1
             logger.warning("[IBKRService] Connection failed: %s", self._last_error)
@@ -167,8 +169,9 @@ class IBKRService:
             if self._ib is not None and self._connected:
                 self._ib.disconnect()
                 logger.info("[IBKRService] Disconnected")
-        except Exception:
-            pass
+        # Desconexao e melhor esforco: nunca deve derrubar o shutdown do servico.
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("[IBKRService] Disconnect error: %s", exc)
         finally:
             self._connected = False
             self._ib = None
@@ -178,7 +181,9 @@ class IBKRService:
         while not self._stop_event.is_set():
             try:
                 self._refresh()
-            except Exception as exc:
+            # Fronteira de melhor esforco: o loop de refresh nunca pode morrer;
+            # falha vira warning + contador de falhas para cooldown.
+            except Exception as exc:  # noqa: BLE001
                 logger.warning("[IBKRService] Refresh error: %s", exc)
                 self._consecutive_failures += 1
                 self._last_error = str(exc)[:200]
@@ -261,7 +266,9 @@ class IBKRService:
 
             logger.debug("[IBKRService] Refreshed positions: %d items", len(positions))
 
-        except Exception as exc:
+        # Fronteira de melhor esforco: posicoes indisponiveis viram warning +
+        # contador de falhas; o cache anterior permanece valido.
+        except Exception as exc:  # noqa: BLE001
             logger.warning("[IBKRService] Positions refresh failed: %s", exc)
             self._consecutive_failures += 1
             return  # Don't fetch equity if positions failed
@@ -280,7 +287,9 @@ class IBKRService:
 
             logger.debug("[IBKRService] Refreshed equity: $%s", equity)
 
-        except Exception as exc:
+        # Fronteira de melhor esforco: equity indisponivel vira warning,
+        # sem derrubar o ciclo de refresh.
+        except Exception as exc:  # noqa: BLE001
             logger.warning("[IBKRService] Equity refresh failed: %s", exc)
 
         # Reset failure counter on success
@@ -429,7 +438,9 @@ class IBKRService:
                     for trade in method() or []:
                         add_trade(trade)
                     self._ib.sleep(min(max(timeout, 0.1), 3.0))
-                except Exception as exc:
+                # Fronteira de melhor esforco: tenta o proximo metodo de leitura
+                # de ordens se um deles falhar (ib_insync levanta erros variados).
+                except Exception as exc:  # noqa: BLE001
                     logger.debug("[IBKRService] order method %s failed: %s", method_name, exc)
                     continue
 
@@ -439,7 +450,9 @@ class IBKRService:
                 try:
                     for trade in getattr(self._ib, accessor)() or []:
                         add_trade(trade)
-                except Exception as exc:
+                # Fronteira de melhor esforco: acesso assincrono a trades pode
+                # falhar por ordem; continua com os demais accessors.
+                except Exception as exc:  # noqa: BLE001
                     logger.debug("[IBKRService] accessor %s failed: %s", accessor, exc)
                     continue
 
@@ -453,7 +466,9 @@ class IBKRService:
 
             return orders
 
-        except Exception as exc:
+        # Fronteira de melhor esforco: falha ao listar ordens vira warning +
+        # fallback para lista vazia (servico indisponivel).
+        except Exception as exc:  # noqa: BLE001
             logger.warning("[IBKRService] Open orders failed: %s", exc)
             return []
 

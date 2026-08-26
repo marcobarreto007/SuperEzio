@@ -66,7 +66,7 @@ async def node_explanation(state: dict) -> dict:
         )
         return {"explanation": "(streamed)"}
 
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — catch amplo deliberado: falha do ExplainEngine vira erro rastreado, não derruba o pipeline
         writer(
             {
                 "type": "ERROR",

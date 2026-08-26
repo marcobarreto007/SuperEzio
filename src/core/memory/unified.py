@@ -75,7 +75,8 @@ class ConversationMemoryAdapter:
                     source="conversation_memory",
                 )
                 ingested += 1
-            except Exception as e:
+            # Fronteira de melhor esforco: turno que falha nao impede os demais.
+            except Exception as e:  # noqa: BLE001
                 logger.warning("Failed to ingest turn %s: %s", doc_id, e)
 
         logger.info(
@@ -157,7 +158,8 @@ class PaperJournalAdapter:
                     source="paper_journal",
                 )
                 ingested += 1
-            except Exception as e:
+            # Fronteira de melhor esforco: trade que falha nao impede os demais.
+            except Exception as e:  # noqa: BLE001
                 logger.warning("Failed to ingest trade %s: %s", doc_id, e)
 
         logger.info("PaperJournal: ingested %d trades to RAG", ingested)
@@ -428,14 +430,14 @@ class UnifiedRetriever:
         if recent_turns:
             ticker_counts = Counter(t.ticker_discussed for t in recent_turns if t.ticker_discussed)
             if ticker_counts:
-                for ticker, count in ticker_counts.most_common(5):
+                for sym, count in ticker_counts.most_common(5):
                     latest = max(
-                        (t for t in recent_turns if t.ticker_discussed == ticker),
+                        (t for t in recent_turns if t.ticker_discussed == sym),
                         key=lambda x: x.timestamp,
                         default=None,
                     )
                     verdict = latest.verdict if latest else "N/A"
-                    lines.append(f"- {ticker} ({count}x) — último veredito: {verdict}")
+                    lines.append(f"- {sym} ({count}x) — último veredito: {verdict}")
             else:
                 lines.append("- (Nenhum ticker analisado)")
         else:
@@ -456,7 +458,9 @@ class UnifiedRetriever:
                     lines.append(f"- Lições registradas: {stats.get('lessons_logged', 0)}")
                 else:
                     lines.append("- (Nenhum trade fechado ainda)")
-        except Exception:
+        # Fronteira de melhor esforco: aprendizado indisponivel vira linha de
+        # fallback no relatorio, sem derrubar a geracao.
+        except Exception:  # noqa: BLE001
             lines.append("- (Aprendizado indisponível)")
         lines.append("")
 
@@ -477,12 +481,16 @@ class UnifiedRetriever:
             counts["conversation"] = self._conv_adapter.ingest_to_rag(
                 self._forensic_rag, session_id=session_id
             )
-        except Exception as e:
+        # Fronteira de melhor esforco: ingestao parcial e contada; falha em uma
+        # fonte nao impede as demais.
+        except Exception as e:  # noqa: BLE001
             logger.warning("Failed to ingest conversations: %s", e)
 
         try:
             counts["paper_trades"] = self._journal_adapter.ingest_to_rag(self._forensic_rag)
-        except Exception as e:
+        # Fronteira de melhor esforco: ingestao parcial e contada; falha em uma
+        # fonte nao impede as demais.
+        except Exception as e:  # noqa: BLE001
             logger.warning("Failed to ingest paper trades: %s", e)
 
         counts["total"] = counts["conversation"] + counts["paper_trades"]
@@ -503,13 +511,17 @@ class UnifiedRetriever:
         if "conversation" in sources:
             try:
                 all_results.extend(self._conv_adapter.search(query, top_k=top_k))
-            except Exception as e:
+            # Fronteira de melhor esforco: fonte que falha na busca e ignorada
+            # e as demais continuam sendo consultadas.
+            except Exception as e:  # noqa: BLE001
                 logger.warning("Conversation search failed: %s", e)
 
         if "paper_trade" in sources:
             try:
                 all_results.extend(self._journal_adapter.search(query, top_k=top_k))
-            except Exception as e:
+            # Fronteira de melhor esforco: fonte que falha na busca e ignorada
+            # e as demais continuam sendo consultadas.
+            except Exception as e:  # noqa: BLE001
                 logger.warning("Paper trade search failed: %s", e)
 
         if "fraud_pattern" in sources:
@@ -526,7 +538,9 @@ class UnifiedRetriever:
                                 score=float(r["score"]),
                             )
                         )
-                except Exception as e:
+                # Fronteira de melhor esforco: RAG indisponivel na busca vira
+                # warning e o resultado unificado segue sem essa fonte.
+                except Exception as e:  # noqa: BLE001
                     logger.warning("ForensicRAG search failed: %s", e)
 
         all_results.sort(key=lambda r: r.score, reverse=True)
@@ -538,8 +552,10 @@ class UnifiedRetriever:
             return "[UNIFIED_MEMORY] No relevant memories found."
 
         lines = [
-            ("[UNIFIED_MEMORY] — Relevant context from conversations, "
-            "paper trades, and fraud patterns:")
+            (
+                "[UNIFIED_MEMORY] — Relevant context from conversations, "
+                "paper trades, and fraud patterns:"
+            )
         ]
 
         used = len(lines[0])

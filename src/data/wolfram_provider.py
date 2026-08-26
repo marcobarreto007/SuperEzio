@@ -118,7 +118,7 @@ class WolframProvider:
                 "timing": query_result.get("timing", 0),
             }
 
-        except Exception as exc:
+        except (_requests.RequestException, ValueError) as exc:
             logger.warning("[Wolfram] query failed: %s", exc)
             return {"error": f"wolfram_exception: {exc}", "input": input_str}
 

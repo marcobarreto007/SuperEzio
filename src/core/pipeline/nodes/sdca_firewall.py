@@ -140,7 +140,8 @@ async def node_sdca_firewall(state: dict[str, Any]) -> dict[str, Any]:
         elif decision.decision == "REVIEW":
             update["sdca_review_required"] = True
         return update
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
+        # Firewall nunca derruba o pipeline: falha vira payload de erro com evidencia.
         writer({"type": "ERROR", "run_id": run_id, "detail": f"sdca_firewall: {exc}"})
         writer(
             {

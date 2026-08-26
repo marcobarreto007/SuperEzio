@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 import json
+import queue
 import time
 import unittest.mock
 from datetime import UTC, datetime
@@ -1066,9 +1067,7 @@ def test_td_commission_free_route_exposes_official_108_etf_universe(
     # exige um timestamp ISO recente, nao uma data congelada.
     from datetime import datetime, timedelta
 
-    verified_at = datetime.fromisoformat(
-        str(data["manifest"]["verified_at"])
-    )
+    verified_at = datetime.fromisoformat(str(data["manifest"]["verified_at"]))
     assert verified_at > datetime.now(UTC) - timedelta(days=7), (
         f"manifest stale: {data['manifest']['verified_at']}"
     )
@@ -1202,7 +1201,7 @@ def test_neural_logs(client_with_mock_pipeline):
     while not log_queue.empty():
         try:
             log_queue.get_nowait()
-        except Exception:
+        except queue.Empty:
             break
     log_queue.put("Test Log Entry: Agent initialized.")
 
@@ -1785,13 +1784,13 @@ def test_trade_history_exposes_semantic_counts(client_with_mock_pipeline):
     assert response.status_code == 200
     stats = response.json()["stats"]
     assert {
-            "journal_records",
-            "open_hypotheses",
-            "closed_trades",
-            "broker_orders",
-            "broker_fills",
-            "broker_open_positions",
-        }.issubset(stats)
+        "journal_records",
+        "open_hypotheses",
+        "closed_trades",
+        "broker_orders",
+        "broker_fills",
+        "broker_open_positions",
+    }.issubset(stats)
     assert stats["broker_orders"] == stats["broker_fills"] == stats["broker_open_positions"] == 0
 
 

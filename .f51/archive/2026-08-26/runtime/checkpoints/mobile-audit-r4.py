@@ -80,7 +80,9 @@ def run_case(pw, name, vw, vh, dpr, is_mobile, has_touch):
                 "() => document.getElementById('live-canvas') && document.getElementById('live-canvas').children.length > 0",
                 timeout=15000,
             )
-        except Exception:
+        # Skip deliberado: se o canvas demorar a renderizar, o script segue
+        # mesmo sem ele (o estado e medido depois em page.evaluate).
+        except Exception:  # noqa: BLE001, S110
             pass
         page.wait_for_timeout(2500)
         data = {
@@ -103,7 +105,9 @@ def run_case(pw, name, vw, vh, dpr, is_mobile, has_touch):
                 shot(page, "r4-" + name + "-drawer")
                 page.tap("#expert-panel-backdrop")
                 page.wait_for_timeout(400)
-            except Exception as e:
+            # Fronteira de melhor esforco da auditoria: probe que falha registra
+            # o erro no relatorio e a auditoria segue para o proximo probe.
+            except Exception as e:  # noqa: BLE001
                 data["drawer"] = {"error": str(e)}
             try:
                 page.tap("#bob-chat-tab")
@@ -116,7 +120,9 @@ def run_case(pw, name, vw, vh, dpr, is_mobile, has_touch):
                 shot(page, "r4-" + name + "-chat")
                 page.tap("#bob-chat-close")
                 page.wait_for_timeout(400)
-            except Exception as e:
+            # Fronteira de melhor esforco da auditoria: probe que falha registra
+            # o erro no relatorio e a auditoria segue para o proximo probe.
+            except Exception as e:  # noqa: BLE001
                 data["bob_chat"] = {"error": str(e)}
             try:
                 page.tap("#ticker-inp")
@@ -129,7 +135,9 @@ def run_case(pw, name, vw, vh, dpr, is_mobile, has_touch):
                 }""")
                 shot(page, "r4-" + name + "-autocomplete")
                 page.fill("#ticker-inp", "")
-            except Exception as e:
+            # Fronteira de melhor esforco da auditoria: probe que falha registra
+            # o erro no relatorio e a auditoria segue para o proximo probe.
+            except Exception as e:  # noqa: BLE001
                 data["autocomplete"] = {"error": str(e)}
             try:
                 page.tap("#alert-bell-btn")
@@ -142,7 +150,9 @@ def run_case(pw, name, vw, vh, dpr, is_mobile, has_touch):
                 shot(page, "r4-" + name + "-alerts")
                 page.keyboard.press("Escape")
                 page.wait_for_timeout(300)
-            except Exception as e:
+            # Fronteira de melhor esforco da auditoria: probe que falha registra
+            # o erro no relatorio e a auditoria segue para o proximo probe.
+            except Exception as e:  # noqa: BLE001
                 data["alerts"] = {"error": str(e)}
             try:
                 page.tap("#sdca-lab-btn")
@@ -155,7 +165,9 @@ def run_case(pw, name, vw, vh, dpr, is_mobile, has_touch):
                 shot(page, "r4-" + name + "-sdca")
                 page.tap("#sdca-lab-close")
                 page.wait_for_timeout(300)
-            except Exception as e:
+            # Fronteira de melhor esforco da auditoria: probe que falha registra
+            # o erro no relatorio e a auditoria segue para o proximo probe.
+            except Exception as e:  # noqa: BLE001
                 data["sdca_lab"] = {"error": str(e)}
     finally:
         browser.close()

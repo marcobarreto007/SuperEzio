@@ -49,7 +49,7 @@ def _check_server(url: str, timeout: int = 5) -> bool:
         req = urllib.request.Request(url)
         urllib.request.urlopen(req, timeout=timeout)
         return True
-    except Exception:
+    except OSError:
         return False
 
 

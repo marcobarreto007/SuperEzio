@@ -179,7 +179,7 @@ def crisis_evaluate(model_name: str, data: dict[str, Any]) -> dict[str, Any]:
             "calibration_status": result.calibration_status,
             "details": result.details,
         }
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — catch amplo deliberado: falha de um modelo vira resultado de erro, nunca quebra o agregado
         return {
             "model": model_name,
             "score": 0.0,

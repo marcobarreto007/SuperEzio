@@ -96,7 +96,7 @@ def _browser_smoke_server_up(base_url: str) -> bool:
     try:
         urllib.request.urlopen(f"{base_url.rstrip('/')}/health", timeout=3)
         return True
-    except Exception:
+    except OSError:
         return False
 
 

@@ -196,7 +196,8 @@ class FraudPatternMatcher:
                         f"[SEMANTIC_MATCH sim={scores[i]:.2f}]: {self.knowledge_base[i][:800]}..."
                     )
             return results
-        except Exception:
+        except Exception:  # noqa: BLE001
+            # Fallback deliberado: falha de embedding degrada para busca por palavras-chave.
             return self.search_patterns(query, limit)
 
 

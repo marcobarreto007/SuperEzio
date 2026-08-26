@@ -50,7 +50,7 @@ def main():
         else:
             print(f"Login failed: {e.code} {e.read().decode()[:200]}")
             return 1
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — script de diagnostico: qualquer falha de login deve virar print limpo e exit 1, nunca traceback
         print(f"Login error: {e}")
         return 1
     print(f"[OK] Login OK, token={token[:20]}...")

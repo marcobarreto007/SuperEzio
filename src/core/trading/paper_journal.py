@@ -50,17 +50,16 @@ def _journal_file_lock(path: Path):
         lock_path.write_bytes(b"\0")
     # r+b (nunca a+b): em modo append o ponteiro fica em EOF apos qualquer
     # escrita e o lock sairia numa regiao diferente da que os outros usam.
-    handle = open(lock_path, "r+b")
-    try:
-        handle.seek(0)
-        _msvcrt.locking(handle.fileno(), _msvcrt.LK_LOCK, 1)
-        yield
-    finally:
+    with open(lock_path, "r+b") as handle:
         try:
-            _msvcrt.locking(handle.fileno(), _msvcrt.LK_UNLCK, 1)
-        except OSError:
-            pass
-        handle.close()
+            handle.seek(0)
+            _msvcrt.locking(handle.fileno(), _msvcrt.LK_LOCK, 1)
+            yield
+        finally:
+            try:
+                _msvcrt.locking(handle.fileno(), _msvcrt.LK_UNLCK, 1)
+            except OSError:
+                pass
 
 
 # Production guard: the real journal must never be silently truncated.
@@ -668,7 +667,7 @@ class PaperJournal:
                     from core.memory.conversation_memory import get_conversation_memory
 
                     memory_client = get_conversation_memory()
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 — deliberado: memória é best-effort; falha ao carregar não pode quebrar o fechamento de tese
                     logger.warning("Could not load conversation memory for thesis close: %s", exc)
                     memory_client = None
 
@@ -698,7 +697,7 @@ class PaperJournal:
                             category="thesis_closed",
                         )
                         review["memory_recorded"] = True
-                    except Exception as exc:
+                    except Exception as exc:  # noqa: BLE001 — deliberado: gravação em memória é best-effort; falha não pode quebrar o fechamento de tese
                         logger.warning(
                             "Could not record thesis close for %s in memory: %s",
                             trade_id,

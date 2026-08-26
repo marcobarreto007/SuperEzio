@@ -188,7 +188,7 @@ class NewsAPIProvider:
 
             return articles
 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — catch amplo deliberado: falha de rede, parse ou formato do payload degrada para [] com warning (contrato do provider)
             logger.warning("[NewsAPI] fetch failed: %s", exc)
             return []
 

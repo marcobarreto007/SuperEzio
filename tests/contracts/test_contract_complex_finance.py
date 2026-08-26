@@ -590,7 +590,7 @@ class TestAgentP2CapitalAllocationQuality:
             req = urllib.request.Request("http://127.0.0.1:8002/health")
             urllib.request.urlopen(req, timeout=3)
             api_ok = True
-        except Exception:
+        except Exception:  # noqa: BLE001 — deliberado: qualquer falha de health check indica API fora do ar; teste deve pular
             api_ok = False
 
         if not api_ok:
@@ -658,7 +658,7 @@ class TestAgentP2CapitalAllocationQuality:
         try:
             resp = urllib.request.urlopen(req, timeout=300)
             body = resp.read().decode("utf-8")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — deliberado: falha de rede/API vira falha de teste com mensagem
             pytest.fail(f"Failed to submit task to local API: {e}")
 
         lines = [line.strip() for line in body.strip().split("\n") if line.strip()]
@@ -744,11 +744,11 @@ class TestAgentP2CapitalAllocationQuality:
                 ), (
                     f"Found unsupported exact probability/return: '{match}' without illustrative label in context: '{context_window}'"
                 )
-        except AssertionError as e:
+        except AssertionError:
             print("\n--- FULL CONTENT ON FAILURE ---")
             print(full_content)
             print("--------------------------------\n")
-            raise e
+            raise
 
 
 @pytest.mark.asyncio

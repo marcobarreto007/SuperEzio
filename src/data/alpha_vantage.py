@@ -9,7 +9,7 @@ def _log_event(phase: str, event: str, data: dict | None = None) -> None:
         from core.observability.neural_log import log_event
 
         log_event(phase, event, data or {})
-    except Exception:
+    except Exception:  # noqa: BLE001,S110 — telemetria é best-effort: falha de log nunca pode derrubar o chamador
         pass
 
 
@@ -85,7 +85,7 @@ class AlphaVantageProvider:
                 "volume": int(quote.get("06. volume", 0)),
                 "source": "alpha_vantage",
             }
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — contrato do provider: falha vira dict de erro, nunca levanta
             _log_event("ALPHA_VANTAGE", "ERROR", {"symbol": symbol, "error": str(e)})
             return {"error": str(e)}
 
@@ -115,7 +115,7 @@ class AlphaVantageProvider:
                 return {"error": "No time series data found"}
 
             return {"symbol": symbol, "candles": candles}
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — contrato do provider: falha vira dict de erro, nunca levanta
             _log_event("ALPHA_VANTAGE", "OHLCV_ERROR", {"symbol": symbol, "error": str(e)})
             return {"error": str(e)}
 
@@ -139,7 +139,7 @@ class AlphaVantageProvider:
                     else None
                 ),
             }
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — contrato do provider: falha vira dict de erro, nunca levanta
             _log_event("ALPHA_VANTAGE", "PROFILE_ERROR", {"symbol": symbol, "error": str(e)})
             return {"error": str(e)}
 
@@ -156,7 +156,7 @@ class AlphaVantageProvider:
             if data.get("Error Message") or data.get("Note"):
                 return {"error": data.get("Error Message") or data.get("Note")}
             return {"maturity": maturity, "data": data.get("data", [])}
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — contrato do provider: falha vira dict de erro, nunca levanta
             _log_event(
                 "ALPHA_VANTAGE",
                 "TREASURY_ERROR",

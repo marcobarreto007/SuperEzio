@@ -471,7 +471,7 @@ class GraphMemoryBridge:
 
         # Group by type
         by_type: dict[str, list[str]] = defaultdict(list)
-        for eid, entity in context["entities"].items():
+        for entity in context["entities"].values():
             by_type[entity["type"]].append(entity["name"])
 
         for entity_type, names in sorted(by_type.items()):

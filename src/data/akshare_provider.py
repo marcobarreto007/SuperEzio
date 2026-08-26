@@ -98,7 +98,9 @@ def _parse_names_csv(csv_text: str):
 
     try:
         return pd.read_csv(io.StringIO(csv_text))
-    except Exception:
+    except (
+        ValueError
+    ):  # ParserError/EmptyDataError/UnicodeDecodeError do pandas são subclasses de ValueError
         return None
 
 
@@ -173,7 +175,7 @@ class AKShareProvider:
                 "source": "akshare",
                 "provider": "akshare",
             }
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — akshare falha de N formas (rede, parse); contrato do provider: dict de erro
             return {"error": f"akshare_get_price: {exc}"}
 
     # ------------------------------------------------------------------
@@ -237,7 +239,7 @@ class AKShareProvider:
                 end_date="22220101",
                 adjust="",
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — akshare falha de N formas (rede, parse); contrato do provider: dict de erro
             return {"error": f"akshare_hist: {exc}"}
 
         if df is None or df.empty:
@@ -286,7 +288,7 @@ class AKShareProvider:
                 start_date="1979-09-01 09:32:00",
                 end_date="2222-01-01 09:32:00",
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — akshare falha de N formas (rede, parse); contrato do provider: dict de erro
             return {"error": f"akshare_intraday: {exc}"}
 
         if df is None or df.empty:
@@ -411,7 +413,7 @@ class AKShareProvider:
         # inteiro nesta maquina — rodar isolado em subprocesso (INV-R29).
         try:
             payload = _us_stock_names_via_subprocess()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — falha no subprocesso de nomes (V8/morte do filho) vira dict de erro
             return {"error": f"akshare_profile: {exc}"}
 
         if "error" in payload:

@@ -386,7 +386,11 @@ def test_journal_concurrent_read_write(journal):
                     expected_holding_period="swing",
                 )
                 local_journal.open_trade(trade)
-        except Exception as e:
+        # Catch amplo deliberado: em teste de estresse com escritores
+        # concorrentes, qualquer falha do writer deve ser capturada e
+        # reportada em `errors` para o assert final — propagar direto
+        # silenciaria o erro dentro da thread do executor.
+        except Exception as e:  # noqa: BLE001
             with lock:
                 errors.append(f"Writer {worker_id}: {e}")
 

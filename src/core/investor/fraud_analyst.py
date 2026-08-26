@@ -341,7 +341,7 @@ class FraudPatternAnalyst:
         """Busca dados de mercado via DataHub em thread pool (não bloqueia o event loop)."""
         try:
             return await asyncio.to_thread(self._fetch_market_data_sync, ticker)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — fail-soft deliberado: falha de mercado vira dict de erro com ticker
             return {"error": str(exc), "ticker": ticker}
 
     def _fetch_market_data_sync(self, ticker: str) -> dict[str, Any]:
@@ -384,7 +384,7 @@ class FraudPatternAnalyst:
                 market_cap = profile.get("market_cap")
                 description = ""
                 revenue = None
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 — enriquecimento best-effort deliberado: perfil indisponivel mantem defaults e segue
             pass
 
         return {
@@ -461,7 +461,9 @@ class FraudPatternAnalyst:
     ) -> tuple[bool, str | None]:
         """Avalia uma regra individual. Retorna (fired, evidence_id)."""
         rule_id = rule["rule_id"]
-        today = market_data.get("data_date", datetime.now(UTC).date().isoformat())  # UTC: default de data_date
+        today = market_data.get(
+            "data_date", datetime.now(UTC).date().isoformat()
+        )  # UTC: default de data_date
 
         if rule_id == "extreme_volume_spike":
             z = market_data.get("volume_z_score")
@@ -541,8 +543,13 @@ class FraudPatternAnalyst:
             return f"{rule_id}_skipped: market_cap not available from DataHub for this ticker"
         if rule_id == "no_revenue_with_operations" and market_data.get("revenue") is None:
             return f"{rule_id}_skipped: totalRevenue not available from DataHub for this ticker"
-        if rule_id == "vague_hype_sector_description" and not (market_data.get("description") or "").strip():
-            return f"{rule_id}_skipped: company description not available from DataHub for this ticker"
+        if (
+            rule_id == "vague_hype_sector_description"
+            and not (market_data.get("description") or "").strip()
+        ):
+            return (
+                f"{rule_id}_skipped: company description not available from DataHub for this ticker"
+            )
         return None
 
     # ------------------------------------------------------------------
@@ -577,7 +584,9 @@ class FraudPatternAnalyst:
         signals: list[str] = []
         evidence_ids: list[str] = []
         limitations: list[str] = []
-        today = market_data.get("data_date", datetime.now(UTC).date().isoformat())  # UTC: default de data_date
+        today = market_data.get(
+            "data_date", datetime.now(UTC).date().isoformat()
+        )  # UTC: default de data_date
         whale_score = 0.0
 
         volume_z = market_data.get("volume_z_score")

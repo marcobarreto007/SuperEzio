@@ -118,7 +118,7 @@ async def node_f51_verdict(state: dict) -> dict:
         )
         return {"f51_verdict": verdict}
 
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — catch amplo deliberado: falha do F51 vira erro rastreado no state, não derruba o pipeline
         writer(
             {
                 "type": "ERROR",

@@ -96,7 +96,7 @@ def _get_provider(pname: str):
             from src.data.stooq_provider import StooqProvider
 
             return StooqProvider()
-    except Exception:
+    except Exception:  # noqa: BLE001 — instanciação de provider falhou (dep ausente/chave inválida) → pula o provider
         return None
 
 
@@ -108,7 +108,7 @@ def _price(pname: str, prov, sym: str) -> dict:
             return prov.get_price(sym)
         elif pname == "yfinance" or pname == "stooq":
             return prov.get_price(sym, market="US")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — falha do provider vira dict de erro no relatório; o teste nunca quebra
         return {"error": f"exc:{e}"}
 
 
@@ -122,7 +122,7 @@ def _candles(pname: str, prov, sym: str, tf="1M") -> dict:
             return prov.get_candles(sym, timeframe=tf, market="US")
         elif pname == "stooq":
             return {"error": "no_candles"}
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — falha do provider vira dict de erro no relatório; o teste nunca quebra
         return {"error": f"exc:{e}"}
 
 
@@ -166,7 +166,7 @@ def run_prices():
                     r = fut.result(timeout=PROVIDER_TIMEOUT)
                 except concurrent.futures.TimeoutError:
                     r = {"error": "timeout"}
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 — exceção da thread do provider vira dict de erro no relatório
                     r = {"error": f"exec:{e}"}
                 results[ticker][pn] = r
                 if "error" in r:
@@ -202,7 +202,7 @@ def run_candles():
                     r = fut.result(timeout=PROVIDER_TIMEOUT)
                 except concurrent.futures.TimeoutError:
                     r = {"error": "timeout"}
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 — exceção da thread do provider vira dict de erro no relatório
                     r = {"error": f"exec:{e}"}
                 candle_results[ticker][pn] = r
         print("done")
@@ -319,7 +319,7 @@ def hist_close(days=15) -> list[dict]:
                 fd = str(cdl[0].get("datetime", cdl[0].get("time", "")))
                 ld = str(cdl[-1].get("datetime", cdl[-1].get("time", "")))
                 old = fd < ld
-            except:
+            except Exception:  # noqa: BLE001 — candle malformado (sem datetime) → assume ordem antiga (fallback deliberado)
                 old = True
             idx = max(0, len(cdl) - days - 1) if old else min(len(cdl) - 1, days)
             cv = float(cdl[idx].get("close", 0))
@@ -422,7 +422,7 @@ def candle_summary() -> str:
                 l = str(cdl[-1].get("datetime", cdl[-1].get("time", "?")))[:10]
                 lc = cdl[-1].get("close", "?")
                 lines.append(f"    {pn:16s}: {len(cdl)} candles, {f}..{l}, close={lc}")
-            except:
+            except Exception:  # noqa: BLE001 — candle malformado → linha resumida sem datas (fallback deliberado)
                 lines.append(f"    {pn:16s}: {len(cdl)} candles")
     return "\n".join(lines)
 

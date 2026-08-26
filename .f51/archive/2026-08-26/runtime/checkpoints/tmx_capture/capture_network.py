@@ -16,7 +16,7 @@ with sync_playwright() as p:
         if "json" in ct or "graphql" in resp.url or "api" in resp.url.lower():
             try:
                 body = resp.text()
-            except Exception:
+            except Exception:  # noqa: BLE001 — leitura do corpo pode falhar (rede/timeout); fallback deliberado para body=None
                 body = None
             seen.append({"url": resp.url, "status": resp.status, "ct": ct, "body": body[:2000]})
 

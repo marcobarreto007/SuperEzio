@@ -250,7 +250,7 @@ class ExpertDialogue:
             }
             self.history.append(result)
             return result
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — catch amplo deliberado: falha num round vira resultado de erro registrado e o diálogo segue
             result = {
                 "round": round_no,
                 "role": role,

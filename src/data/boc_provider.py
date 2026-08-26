@@ -77,7 +77,7 @@ def _fetch_boc_series(
                 _cache_ts[cache_key] = now
             return result
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — catch amplo deliberado: contrato do provider — falha de rede, parse ou formato vira dict de erro, nunca levanta
         return [{"error": str(e)}]
 
 

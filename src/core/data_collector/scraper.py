@@ -37,6 +37,6 @@ class RealTimeScraper:
                 "timestamp": meta.get("regularMarketTime"),
                 "method": "realtime_api_fallback",
             }
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — catch amplo deliberado: scraper fallback retorna dict de erro, nunca levanta excecao
             log_event("SCRAPER", "ERROR", {"ticker": ticker, "error": str(e)})
             return {"error": str(e)}

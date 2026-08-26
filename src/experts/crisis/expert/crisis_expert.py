@@ -68,7 +68,7 @@ class CrisisMathExpert:
             from core.rag.fraud_rag import fraud_patterns
 
             return fraud_patterns
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — deliberado: sem matcher de fraudes, o expert segue em modo degradado
             logger.warning("Fraud pattern matcher unavailable for CrisisMath: %s", exc)
             return None
 
@@ -86,7 +86,7 @@ class CrisisMathExpert:
             try:
                 res = sensor.evaluate(input_data)
                 sensor_results.append(res)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — isolamento deliberado: falha de um sensor é registrada e o ciclo segue
                 sensor_results.append(
                     SensorResult(
                         sensor_name=sensor.__class__.__name__,

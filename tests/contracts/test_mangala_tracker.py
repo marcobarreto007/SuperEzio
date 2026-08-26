@@ -25,7 +25,7 @@ from src.core.pipeline.nodes.mangala_tracker import (
 
 def _make_tracker(starting_capital: float = 20.0) -> MangalaTracker:
     """Cria um tracker isolado com journal temporario."""
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".jsonl", mode="w")
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".jsonl", mode="w")  # noqa: SIM115 — cria arquivo temporário e fecha; o path é reaberto via Path/PaperJournal
     tmp.close()
     return MangalaTracker(
         starting_capital=starting_capital,
@@ -98,7 +98,7 @@ def test_tracker_custom_starting_capital():
 
 def test_tracker_rebuilds_from_journal():
     """Tracker reconstroi estado do journal ao inicializar."""
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".jsonl", mode="w")
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".jsonl", mode="w")  # noqa: SIM115 — cria arquivo temporário e fecha; o path é reaberto via Path/PaperJournal
     tmp.write(
         json.dumps(
             {
@@ -292,11 +292,11 @@ def test_flip_syncs_to_paper_journal():
 
     from core.trading.paper_journal import PaperJournal
 
-    tmp_paper = tempfile.NamedTemporaryFile(delete=False, suffix=".jsonl", mode="w")
+    tmp_paper = tempfile.NamedTemporaryFile(delete=False, suffix=".jsonl", mode="w")  # noqa: SIM115 — cria arquivo temporário e fecha; o path é reaberto via Path/PaperJournal
     tmp_paper.close()
     paper_journal = PaperJournal(path=Path(tmp_paper.name))
 
-    tmp_mangala = tempfile.NamedTemporaryFile(delete=False, suffix=".jsonl", mode="w")
+    tmp_mangala = tempfile.NamedTemporaryFile(delete=False, suffix=".jsonl", mode="w")  # noqa: SIM115 — cria arquivo temporário e fecha; o path é reaberto via Path/PaperJournal
     tmp_mangala.close()
     tracker = MangalaTracker(
         starting_capital=20.0,
@@ -328,7 +328,7 @@ def test_flip_syncs_to_paper_journal():
                     "tags": ["mangala", "flip"],
                 }
             )
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 — deliberado em teste: falha de sync não deve interromper o flip
             pass
 
     tracker._sync_to_paper_journal = _test_sync  # type: ignore[method-assign]

@@ -140,7 +140,7 @@ async def run_postmortem_llm(
             max_tokens=500,
         )
         base["llm_analysis"] = response
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — falha do gateway de LLM não pode derrubar o postmortem; cai para stats-only
         logger.warning(f"Postmortem LLM falhou para {ticker}: {e}")
         base["llm_analysis"] = None
         base["llm_error"] = str(e)

@@ -44,7 +44,9 @@ def _load_learning_lessons(max_lessons: int = 10) -> list[dict[str, Any]]:
             reverse=True,
         )
         return lessons[:max_lessons]
-    except Exception:
+    # Conjunto pequeno: leitura do arquivo (OSError) e conversoes/ordenacao
+    # das lessons (ValueError/TypeError).
+    except (OSError, ValueError, TypeError):
         return []
 
 
@@ -56,7 +58,9 @@ def load_mission_context(path: str | Path | None = None) -> dict[str, Any]:
         return {}
     try:
         payload = json.loads(context_path.read_text(encoding="utf-8"))
-    except Exception:
+    # Conjunto pequeno: leitura do arquivo (OSError) e JSON invalido
+    # (ValueError/JSONDecodeError).
+    except (OSError, ValueError):
         return {}
     return payload if isinstance(payload, dict) else {}
 
@@ -397,7 +401,8 @@ def get_mission_equity(path: str | Path | None = None) -> float:
             if eq_str:
                 # Ex: "10000.00 USD"
                 return float(str(eq_str).split()[0])
-    except Exception:
+    # Conjunto pequeno: apenas a conversao float() pode falhar aqui.
+    except (ValueError, TypeError):
         pass
 
     # 2. Tentar ler do broker.ibkr.account_equity
@@ -407,7 +412,8 @@ def get_mission_equity(path: str | Path | None = None) -> float:
             eq_str = ibkr.get("account_equity")
             if eq_str:
                 return float(eq_str)
-    except Exception:
+    # Conjunto pequeno: apenas a conversao float() pode falhar aqui.
+    except (ValueError, TypeError):
         pass
 
     return 10000.0

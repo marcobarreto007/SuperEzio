@@ -149,7 +149,7 @@ class DataCollector:
                 "report": report.model_dump(mode="json"),
                 "data_source": "MacroDataset",
             }
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — fail-soft deliberado: falha de fonte vira erro isolado e a coleta segue
             return {"error": str(e)}
 
     async def _get_quantum_analysis(self) -> dict[str, Any]:
@@ -307,7 +307,7 @@ class DataCollector:
                     {"ticker": ticker, "timeout": timeout},
                 )
                 return {"error": f"{source_name} timeout after {timeout}s"}
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — fail-soft deliberado por fonte: erro de provedor externo registrado e isolado
                 log_event(
                     "DATA_COLLECTOR",
                     f"ERROR_{source_name}",
@@ -426,7 +426,7 @@ class DataCollector:
                 json.dumps(data, ensure_ascii=False, indent=2, default=str),
                 encoding="utf-8",
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — trace best-effort deliberado: falha de persistencia nao pode derrubar a coleta
             log_event("DATA_COLLECTOR", "TRACE_WRITE_FAIL", {"error": str(exc)})
 
     @staticmethod

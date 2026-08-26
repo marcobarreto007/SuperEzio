@@ -568,7 +568,7 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
 
         return {"expert_results": [result_payload]}
 
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — catch amplo deliberado: falha do expert vira payload de erro no stream, não derruba o grafo
         writer(
             {
                 "type": "EXPERT_DONE",

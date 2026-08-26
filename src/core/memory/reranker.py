@@ -69,7 +69,7 @@ class CrossEncoderReranker:
             )
             logger.info("CrossEncoderReranker: loaded %s", self.model_name)
             return self._model
-        except (ImportError, Exception) as e:
+        except (ImportError, Exception) as e:  # noqa: BLE001 — catch amplo deliberado: modelo é lazy-load opcional, qualquer falha de import/carregamento cai no fallback
             logger.warning("CrossEncoder unavailable: %s", e)
             return None
 

@@ -121,7 +121,6 @@ def run_deep_audit():
         print("\n▶ [CENÁRIO 3] Interagindo com Ferramentas Avançadas...")
 
         # 1. SDCA Lab
-        sdca_opened = False
         try:
             sdca_btn = page.locator("#sdca-lab-btn, button:has-text('SDCA')").first
             if sdca_btn.is_visible():
@@ -130,14 +129,13 @@ def run_deep_audit():
                 shot_sdca = str(AUDIT_DIR / "audit_03_sdca_lab.png")
                 page.screenshot(path=shot_sdca, full_page=False)
                 audit_results["screenshots"].append(shot_sdca)
-                sdca_opened = True
                 print("  ✓ Painel SDCA Lab inspecionado e fotografado.")
                 # Fechar
                 close_btn = page.locator("#sdca-lab-close").first
                 if close_btn.is_visible():
                     close_btn.click()
                     page.wait_for_timeout(400)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — sonda de UI opcional: falha no painel SDCA não pode abortar a auditoria
             print("  ! SDCA Lab:", e)
 
         # 2. Alert Bell
@@ -151,7 +149,7 @@ def run_deep_audit():
                 audit_results["screenshots"].append(shot_alerts)
                 page.keyboard.press("Escape")
                 print("  ✓ Central de Alertas inspecionada.")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — sonda de UI opcional: falha na Central de Alertas não pode abortar a auditoria
             print("  ! Alertas:", e)
 
         # ------------------------------------------------------------------

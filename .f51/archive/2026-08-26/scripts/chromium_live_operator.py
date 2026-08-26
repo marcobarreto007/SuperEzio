@@ -64,7 +64,7 @@ with sync_playwright() as p:
             user_inp.fill("bob tudo bem")
             page.click("#send-btn")
             print(" -> Mensagem 'bob tudo bem' enviada com sucesso no Chromium.")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — operacao manual nao deve abortar por falha de interacao com o chat
             print(" -> Detalhe chat:", e)
 
     time.sleep(4)

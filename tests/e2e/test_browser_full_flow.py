@@ -70,7 +70,7 @@ def _server_healthy(url: str, timeout_s: float = 5.0) -> bool:
     try:
         resp = urllib.request.urlopen(f"{url.rstrip('/')}/health", timeout=timeout_s)
         return resp.status == 200
-    except Exception:
+    except Exception:  # noqa: BLE001 — probe de saúde: qualquer falha de rede/timeout = servidor não saudável (fail-closed)
         return False
 
 
@@ -314,7 +314,7 @@ def test_full_browser_flow(server: subprocess.Popen | None, browser) -> None:
                 )
                 page.wait_for_timeout(1000)
                 _screenshot(page, "step-02-login-complete")
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 — dev mode: overlay de auth ausente/indisponível não deve bloquear o fluxo
             pass  # Dev mode — no login needed
 
         # ═════════════════════════════════════════════════════════════════

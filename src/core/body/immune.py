@@ -130,7 +130,7 @@ class ImmuneSystem:
             return False, f"Import FAILED: {result.stderr.strip() or result.stdout.strip()}"
         except subprocess.TimeoutExpired:
             return False, f"Import TIMEOUT (>={timeout}s): {module_name}"
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — fronteira defensiva: import test nunca pode levantar; subprocess documenta OSError/ValueError/SubprocessError
             return False, f"Import ERROR: {exc}"
 
     def anti_bloat_check(self, module_path: str) -> tuple[bool, int]:
@@ -175,7 +175,7 @@ class ImmuneSystem:
             mutated = mutator(original)
             with open(abs_path, "w", encoding="utf-8") as fh:
                 fh.write(mutated)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — mutator é callable arbitrário: qualquer erro de escrita deve reverter e reportar, nunca levantar
             self._rollback(rel_path, backup)
             return False, f"Mutation write FAILED: {exc}"
 

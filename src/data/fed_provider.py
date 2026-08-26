@@ -51,14 +51,14 @@ def _fetch_via_yfinance() -> dict[str, Any]:
                     }
                 else:
                     result[name] = {"value": None, "error": "yfinance_no_price"}
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — falha de um símbolo não derruba o fetch de treasury inteiro
                 logger.warning("[FED] yfinance failed for %s: %s", symbol, exc)
                 result[name] = {"value": None, "error": f"yfinance: {exc}"}
 
         return result
     except ImportError:
         return {"error": "yfinance_not_installed"}
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — init do yfinance pode falhar de várias formas; fallback Alpha Vantage existe
         return {"error": f"yfinance_init: {exc}"}
 
 
@@ -116,7 +116,7 @@ def _fetch_via_alpha_vantage(api_key: str) -> dict[str, Any]:
             else:
                 empty_count += 1
                 result[name] = {"value": None, "error": "no data"}
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — falha do fallback é registrada e o fluxo segue para o próximo vencimento
             logger.warning("[FED] Alpha Vantage failed for %s: %s", maturity, exc)
             result[name] = {"value": None, "error": str(exc)[:100]}
 

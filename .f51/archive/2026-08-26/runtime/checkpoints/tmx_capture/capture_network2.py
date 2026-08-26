@@ -13,7 +13,7 @@ with sync_playwright() as p:
             body = None
             try:
                 body = req.post_data
-            except Exception:
+            except Exception:  # noqa: S110, BLE001 - best-effort: falha em post_data é aceita.
                 pass
             results.append({"kind": "REQ", "url": req.url, "post": body})
 
@@ -21,7 +21,7 @@ with sync_playwright() as p:
         if "app-money.tmx.com/graphql" in resp.url:
             try:
                 body = resp.text()
-            except Exception:
+            except Exception:  # noqa: BLE001 - best-effort: falha vira corpo vazio (None).
                 body = None
             results.append(
                 {

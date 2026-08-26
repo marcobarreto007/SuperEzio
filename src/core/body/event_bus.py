@@ -224,7 +224,7 @@ class BodyEventBus:
                 "active_topics_count": len(self._active_topics),
                 "active_topics": self.list_topics(),
             }
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — health_check deve reportar qualquer falha do hub (ex: redis fora) como status error, nunca estourar excecao
             return {
                 "status": "error",
                 "hub_type": self._hub_type,

@@ -752,7 +752,7 @@ Action: NO TRADING ORDERS UNTIL CLEARED
             f"Sick: {report['sick_count']} | Critical: {report['critical_count']}",
             "",
         ]
-        for name, organ in self.organs.items():
+        for name in self.organs:
             status = "OK" if report["organs"][name]["healthy"] else "SICK"
             icon = {100: "â˜ ", 75: "ðŸ”´", 50: "ðŸŸ ", 25: "ðŸŸ¡", 10: "âšª", 0: "ðŸŸ¢"}.get(
                 report["organs"][name]["pain"], "?"

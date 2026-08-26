@@ -81,7 +81,7 @@ def _utc_observed_at(value: Any) -> str:
     """Return the actual observed instant without relabelling an aware zone."""
     observed = value.to_pydatetime() if hasattr(value, "to_pydatetime") else value
     if not isinstance(observed, datetime):
-        raise ValueError("yfinance candle timestamp is not a datetime")
+        raise TypeError("yfinance candle timestamp is not a datetime")
     if observed.tzinfo is None:
         observed = observed.replace(tzinfo=UTC)
     else:
@@ -187,7 +187,9 @@ class YFinanceProvider:
                         exchange = getattr(fast, "exchange", None)
                         currency = getattr(fast, "currency", None)
                     except Exception as exc:  # noqa: BLE001
-                        logger.debug("yfinance exchange/currency probe failed for %s: %s", symbol, exc)
+                        logger.debug(
+                            "yfinance exchange/currency probe failed for %s: %s", symbol, exc
+                        )
 
             return {
                 "symbol": symbol,

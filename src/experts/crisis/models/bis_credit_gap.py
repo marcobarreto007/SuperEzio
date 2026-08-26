@@ -12,7 +12,11 @@ from . import BaseCrisisModel
 
 class BISCreditGapModel:
     MIN_OBSERVATIONS = 12
-    HP_LAMBDA: ClassVar[dict[str, float]] = {"annual": 1600.0, "quarterly": 400_000.0, "monthly": 32_400_000.0}
+    HP_LAMBDA: ClassVar[dict[str, float]] = {
+        "annual": 1600.0,
+        "quarterly": 400_000.0,
+        "monthly": 32_400_000.0,
+    }
 
     def evaluate(self, input_data: CrisisInput) -> SensorResult:
         valid = [item for item in input_data.observations if item.credit_to_gdp is not None]

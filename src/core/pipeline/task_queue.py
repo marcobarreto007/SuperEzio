@@ -95,8 +95,12 @@ class TaskQueue:
                         logger.warning(
                             "[task_queue] Task %s timed out after %.0fs", run_id, task.elapsed
                         )
-            except Exception:
-                pass
+            except (
+                Exception
+            ) as exc:  # watchdog nunca pode morrer; falha de iteração é logada e o loop segue
+                logger.debug(
+                    "[task_queue] erro no watchdog ao varrer tasks: %s", exc, exc_info=True
+                )
             await asyncio.sleep(TASK_WATCHDOG_SECONDS)
 
     def submit(self, message: str, session_id: str = "") -> Task | None:

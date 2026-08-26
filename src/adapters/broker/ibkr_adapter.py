@@ -140,7 +140,7 @@ def _low_level_gate_check(order: Any) -> bool:
         s.settimeout(2.0)
         s.connect((ibkr_host, ibkr_port))
         s.close()
-    except Exception as exc:
+    except OSError as exc:
         logger.error("low_level_gate_blocked_ibkr_offline: %s:%s — %s", ibkr_host, ibkr_port, exc)
         return False
 
@@ -151,7 +151,9 @@ def _low_level_gate_check(order: Any) -> bool:
         if not is_journal_healthy():
             logger.error("low_level_gate_blocked_journal_unhealthy")
             return False
-    except Exception:
+    # Catch amplo deliberado: qualquer falha na checagem do journal bloqueia o
+    # gate (fail-closed); a excecao nunca deve subir para o chamador.
+    except Exception:  # noqa: BLE001
         logger.error("low_level_gate_blocked_journal_unhealthy")
         return False
 
@@ -293,7 +295,9 @@ class InteractiveBrokersAdapter:
                     else None,
                     client_id=str(data.get("client_id")) if data.get("client_id") else None,
                 )
-        except Exception as exc:
+        # Melhor esforco deliberado: falha do worker vira ordem REJECTED com
+        # log, nunca excecao subindo para o chamador.
+        except Exception as exc:  # noqa: BLE001
             logger.warning("IBKR submit_order failed: %s", exc)
 
         return Order(
@@ -332,7 +336,9 @@ class InteractiveBrokersAdapter:
                         status=OrderStatus.SUBMITTED,
                         filled_price=None,
                     )
-        except Exception as exc:
+        # Melhor esforco deliberado: servico indisponivel retorna None, nunca
+        # excecao para o chamador.
+        except Exception as exc:  # noqa: BLE001
             logger.warning("IBKR get_order failed: %s", exc)
         return None
 
@@ -346,7 +352,8 @@ class InteractiveBrokersAdapter:
             for pos in service.get_positions():
                 if pos.get("symbol") == symbol.upper():
                     return float(pos.get("current_price", 0))
-        except Exception as exc:
+        # Melhor esforco deliberado: falha de leitura de preco retorna 0.0.
+        except Exception as exc:  # noqa: BLE001
             logger.warning("IBKR get_market_price failed for %s: %s", symbol, exc)
         return 0.0
 
@@ -384,7 +391,9 @@ class InteractiveBrokersAdapter:
                     )
                 )
             return positions
-        except Exception as exc:
+        # Melhor esforco deliberado: falha de leitura de posicoes retorna lista
+        # vazia, nunca excecao.
+        except Exception as exc:  # noqa: BLE001
             logger.warning("IBKR get_positions failed: %s", exc)
             return []
 
@@ -396,6 +405,7 @@ class InteractiveBrokersAdapter:
 
         try:
             return service.get_account_equity()
-        except Exception as exc:
+        # Melhor esforco deliberado: falha de leitura de equity retorna 0.0.
+        except Exception as exc:  # noqa: BLE001
             logger.warning("IBKR get_account_equity failed: %s", exc)
             return 0.0

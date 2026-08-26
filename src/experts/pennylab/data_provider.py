@@ -65,7 +65,7 @@ def _try_datahub(ticker: str) -> SignalInput | None:
             )
     except ImportError:
         logger.debug("DataHub não disponível")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - deliberado: DataHub falhou; fallback segue em debug.
         logger.debug(f"DataHub falhou para {ticker}: {e}")
 
     return None
@@ -87,7 +87,7 @@ def _try_collector(ticker: str, timeout: float = 15.0) -> SignalInput | None:
         return _map_collector_to_signal(ticker, data)
     except ImportError:
         logger.debug("DataCollector não disponível")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - deliberado: DataCollector falhou; segue fallback.
         logger.debug(f"DataCollector falhou para {ticker}: {e}")
 
     return None
@@ -142,8 +142,8 @@ def _try_hub_fallback(ticker: str) -> SignalInput | None:
             profile = hub.get_profile(ticker)
             if "error" not in profile:
                 market_cap = _safe_float(profile.get("market_cap"))
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001 - deliberado: perfil é enriquecimento opcional.
+            logger.debug("Perfil não disponível para %s: %s", ticker, exc)
 
         return SignalInput(
             ticker=ticker,
@@ -161,7 +161,7 @@ def _try_hub_fallback(ticker: str) -> SignalInput | None:
         )
     except ImportError:
         logger.debug("DataHub não disponível")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - deliberado: fallback final falhou; sinal indisponível.
         logger.debug(f"DataHub fallback falhou para {ticker}: {e}")
 
     return None

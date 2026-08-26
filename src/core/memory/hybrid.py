@@ -171,7 +171,7 @@ class HybridRetriever:
                 self._embedder.to("cpu")
                 logger.info("HybridRetriever: using SentenceTransformers")
                 return self._embedder
-            except (ImportError, Exception) as e:
+            except (ImportError, Exception) as e:  # noqa: BLE001 — fallback deliberado: qualquer falha do SentenceTransformers cai para hash embeddings
                 logger.warning("SentenceTransformers unavailable: %s, using hash embeddings", e)
                 self.use_st = False
 

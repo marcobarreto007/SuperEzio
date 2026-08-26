@@ -194,7 +194,7 @@ class HeartbeatLoop:
             try:
                 await self._execute_stage(stage, cycle)
                 executed.append(stage.value)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - deliberado: erro vira dor, não quebra o ciclo.
                 error_msg = f"{stage.value}: {e}"
                 errors.append(error_msg)
                 await self._register_pain(stage, str(e))
@@ -241,7 +241,7 @@ class HeartbeatLoop:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.exception("Erro no _main_loop: %s", e)
+                logger.exception("Erro no _main_loop")
                 await self._register_pain(HeartbeatStage.SCAN, str(e))
 
             await asyncio.sleep(1)
@@ -357,7 +357,7 @@ class HeartbeatLoop:
                 )
             except TimeoutError:
                 logger.debug("Heartbeat VERIFY (node_f51_verdict) timed out")
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - deliberado: fora do contexto langgraph.
                 logger.debug(
                     "Heartbeat VERIFY (node_f51_verdict) unavailable"
                     " (fora do contexto langgraph): %s",
@@ -394,7 +394,7 @@ class HeartbeatLoop:
                     source="f51-heartbeat",
                     severity=EventSeverity.INFO,
                 )
-            except Exception:
+            except Exception:  # noqa: BLE001 - deliberado: scanner opcional; falha vira debug.
                 logger.debug("Heartbeat SCAN (Pennylab) unavailable for ticker=%s", ticker)
 
         # ── Mangala (feature flag + FULL/DEEP) ──
@@ -420,7 +420,7 @@ class HeartbeatLoop:
                     )
             except TimeoutError:
                 logger.debug("Heartbeat SCAN (Mangala) timed out after 15s")
-            except Exception:
+            except Exception:  # noqa: BLE001 - deliberado: scanner opcional; falha vira debug.
                 logger.debug("Heartbeat SCAN (Mangala) unavailable")
 
     # ------------------------------------------------------------------

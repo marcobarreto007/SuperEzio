@@ -48,17 +48,21 @@ def cancel_open_order(order_id: str, *, host: str, port: int) -> bool:
                 ib.sleep(1)
                 return True
         return False
-    except Exception as exc:
+    # Melhor esforco deliberado: transporte IBKR pode falhar (conexao/API);
+    # o chamador recebe False com log, nunca excecao.
+    except Exception as exc:  # noqa: BLE001
         # Um cancelamento que nao aconteceu precisa deixar rastro: sem log, este
         # False fica indistinguivel de "ordem nao encontrada" no caminho do dinheiro.
         logger.warning("cancel_open_order failed for %s: %s", order_id, exc)
         return False
     finally:
         if ib is not None:
+            # Melhor esforco deliberado: desconexao falha nao pode mascarar o
+            # resultado principal; loga em debug para rastreio.
             try:
                 ib.disconnect()
-            except Exception:
-                pass
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("IBKR disconnect after cancel failed: %s", exc)
 
 
 def run_prepared_order(order: Any, *, host: str, port: int) -> BrokerTransportResult:
@@ -95,14 +99,18 @@ def run_prepared_order(order: Any, *, host: str, port: int) -> BrokerTransportRe
             "avg_price": float(getattr(trade.orderStatus, "avgFillPrice", 0) or 0),
         }
         return BrokerTransportResult(returncode=0, stdout=json.dumps(payload))
-    except Exception as exc:
+    # Melhor esforco deliberado: falha de execucao vira payload de erro para o
+    # adapter classificar como REJECTED; nunca excecao.
+    except Exception as exc:  # noqa: BLE001
         return BrokerTransportResult(
             returncode=1,
             stdout=json.dumps({"error": str(exc)[:200]}),
         )
     finally:
         if ib is not None:
+            # Melhor esforco deliberado: desconexao falha nao pode mascarar o
+            # resultado principal; loga em debug para rastreio.
             try:
                 ib.disconnect()
-            except Exception:
-                pass
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("IBKR disconnect after order failed: %s", exc)

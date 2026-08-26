@@ -162,7 +162,7 @@ class AutonomicNervousSystem:
                         self._body.system_mode.value,
                     )
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — loop do daemon nao pode morrer: erro de ciclo e logado e o ciclo continua
                 logger.error("bob_ans_cycle_error: %s", str(e)[:200])
 
             time.sleep(self._scan_interval)

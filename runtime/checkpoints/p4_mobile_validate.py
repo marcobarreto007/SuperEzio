@@ -25,7 +25,7 @@ def auth_bootstrap(base_url):
             return None
     except urllib.error.HTTPError as exc:
         if exc.code != 401:
-            raise RuntimeError("auth/me returned {}".format(exc.code))
+            raise RuntimeError(f"auth/me returned {exc.code}")
     password = os.getenv("SUPEREZIO_SMOKE_PASSWORD") or os.getenv("SUPEREZIO_ADMIN_PASSWORD", "")
     if not password:
         raise RuntimeError("SUPEREZIO_ADMIN_PASSWORD missing")
@@ -118,7 +118,7 @@ JS_OVERFLOW = (
 def main():
     try:
         _run()
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — handler fatal deliberado: qualquer falha do run inteiro vira relatorio fatal e exit 2
         print(json.dumps({"fatal": str(exc)}, ensure_ascii=False))
         sys.exit(2)
 
@@ -136,7 +136,7 @@ def _run():
         )
         if token:
             context.add_init_script(
-                "localStorage.setItem(`sz_access_token`, {});".format(json.dumps(token))
+                f"localStorage.setItem(`sz_access_token`, {json.dumps(token)});"
             )
         page = context.new_page()
         page.on(
@@ -177,7 +177,7 @@ def _run():
         try:
             page.wait_for_function(JS_WAIT_RESP % before, timeout=45000)
             response_ms = int((time.time() - t0) * 1000)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — passo best-effort deliberado: timeout/resposta ausente registrado no relatorio e o check segue
             report["steps"]["b_chat_error"] = str(exc)
         readable = page.evaluate(JS_READABLE)
         report["steps"]["b_greeting"] = {"response_ms": response_ms, "readable": readable}
@@ -199,7 +199,7 @@ def _run():
                 "elapsed_ms": int((time.time() - t1) * 1000),
                 "text": page.locator(".scan-summary").inner_text()[:300],
             }
-        except Exception:
+        except Exception:  # noqa: BLE001 — scan real best-effort deliberado: falha registrada com elapsed e o check segue
             scan_real["elapsed_ms"] = int((time.time() - t1) * 1000)
         report["steps"]["c1_scan_real"] = scan_real
 

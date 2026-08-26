@@ -41,7 +41,7 @@ def _check_alphasmo() -> bool:
             check=False,  # returncode é lido abaixo para setar _ALPHASMO_AVAILABLE
         )
         _ALPHASMO_AVAILABLE = result.returncode == 0
-    except Exception:
+    except Exception:  # noqa: BLE001 — deliberado: CLI externa indisponível degrada para False em vez de quebrar o import
         _ALPHASMO_AVAILABLE = False
     return _ALPHASMO_AVAILABLE
 
@@ -55,7 +55,7 @@ def _run_alphasmo(args: list[str], timeout: int = 30) -> dict[str, Any] | list[A
     except subprocess.TimeoutExpired:
         logger.warning("[AlphaSMO] command timed out: %s", args)
         return None
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — deliberado: falha da CLI externa degrada para None com warning
         logger.warning("[AlphaSMO] command failed: %s", exc)
         return None
 

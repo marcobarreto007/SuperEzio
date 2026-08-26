@@ -10,7 +10,7 @@ def _log_event(phase: str, event: str, data: dict | None = None) -> None:
         from core.observability.neural_log import log_event
 
         log_event(phase, event, data or {})
-    except Exception:
+    except Exception:  # noqa: S110, BLE001 - observabilidade não pode derrubar o provider.
         pass
 
 
@@ -76,7 +76,7 @@ class TwelveDataProvider:
                 "as_of": as_of,
                 "market_timestamp": data.get("timestamp"),
             }
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - deliberado: falha da API vira dict de erro.
             _log_event("TWELVE_DATA", "ERROR", {"symbol": symbol, "error": str(e)})
             return {"error": str(e)}
 
@@ -126,6 +126,6 @@ class TwelveDataProvider:
                 "symbol": symbol,
                 "candles": candles,
             }
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - deliberado: falha da API vira dict de erro.
             _log_event("TWELVE_DATA", "CANDLES_ERROR", {"symbol": symbol, "error": str(e)})
             return {"error": str(e)}

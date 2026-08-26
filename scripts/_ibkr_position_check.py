@@ -51,7 +51,7 @@ def main():
         )
         sys.exit(0)
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — fronteira de subprocess fail-closed: qualquer falha vira JSON de erro com exit 1
         print(json.dumps({"error": str(e)[:200]}))
         sys.exit(1)
 

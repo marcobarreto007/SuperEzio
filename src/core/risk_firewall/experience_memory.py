@@ -156,7 +156,7 @@ def _load_fraud_pattern_episodes() -> list[ExperienceEpisode]:
                         regime="fraud_pattern",
                     )
                 )
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 — corpus local de fraude corrompido não pode quebrar o carregamento; módulo sem logger
             pass
 
     if cases_path.exists():
@@ -208,7 +208,7 @@ def load_experience_memory(memory_path: str | Path | None = None) -> list[Experi
                     continue
                 try:
                     episodes.append(ExperienceEpisode.model_validate_json(raw))
-                except Exception:  # noqa: S112 — linha JSONL inválida é pulada por contrato de resiliência; módulo sem logger
+                except Exception:  # noqa: BLE001, S112 — linha JSONL inválida é pulada por contrato de resiliência; módulo sem logger
                     continue
     if memory_path is None:
         seen = {episode.id for episode in episodes}

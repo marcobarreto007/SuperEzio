@@ -935,6 +935,7 @@ def _probe_gpu_nvidia_smi() -> tuple[dict | None, str]:
         proc = subprocess.run(
             ["nvidia-smi", "--query-gpu=name,memory.used,memory.free", "--format=csv"],
             capture_output=True,
+            check=False,  # probe best-effort: sem nvidia-smi, GPU reporta indisponível
             text=True,
             timeout=3,
         )
