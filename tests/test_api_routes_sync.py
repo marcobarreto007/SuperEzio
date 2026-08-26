@@ -554,10 +554,10 @@ def test_cockpit_summary(client_with_mock_pipeline, monkeypatch):
     assert "sentiment" in data
     assert "portfolio" in data
     assert data["portfolio"]["provider"] == "IBKR"
-    assert set(["genie", "deep", "bob", "status"]).issubset(data)
-    assert set(["pulses", "alerts"]).issubset(data["genie"])
-    assert set(["last_math", "last_experts", "last_trinity"]).issubset(data["deep"])
-    assert set(["last_decision", "portfolio", "guardrails"]).issubset(data["bob"])
+    assert {"genie", "deep", "bob", "status"}.issubset(data)
+    assert {"pulses", "alerts"}.issubset(data["genie"])
+    assert {"last_math", "last_experts", "last_trinity"}.issubset(data["deep"])
+    assert {"last_decision", "portfolio", "guardrails"}.issubset(data["bob"])
     assert "approvals" in data["bob"]
     assert data["bob"]["portfolio"]["provider"] == "IBKR"
     assert data["status"]["ibkr"]["status"] == "online"
@@ -1784,16 +1784,14 @@ def test_trade_history_exposes_semantic_counts(client_with_mock_pipeline):
     response = client.get("/trades/history")
     assert response.status_code == 200
     stats = response.json()["stats"]
-    assert set(
-        [
+    assert {
             "journal_records",
             "open_hypotheses",
             "closed_trades",
             "broker_orders",
             "broker_fills",
             "broker_open_positions",
-        ]
-    ).issubset(stats)
+        }.issubset(stats)
     assert stats["broker_orders"] == stats["broker_fills"] == stats["broker_open_positions"] == 0
 
 

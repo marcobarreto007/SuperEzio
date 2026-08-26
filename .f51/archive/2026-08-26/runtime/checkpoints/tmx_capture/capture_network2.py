@@ -44,6 +44,6 @@ for r in results:
         out.append("\n===== REQUEST =====")
         out.append(r["post"] or "")
     else:
-        out.append("\n===== RESPONSE %s =====" % r["status"])
+        out.append("\n===== RESPONSE {} =====".format(r["status"]))
         out.append((r["body"] or "")[:3000])
 print("\n".join(out)[:12000])

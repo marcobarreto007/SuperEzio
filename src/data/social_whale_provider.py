@@ -462,8 +462,8 @@ class SocialWhaleProvider:
 
         # Strategy 1: find tweet-content / tweet-text blocks
         content_patterns = [
-            r'<div[^>]*class="[^"]*(?:tweet-content|tweet-text)[^"]*"[^>]*>'
-            r"(.*?)</div>",
+            (r'<div[^>]*class="[^"]*(?:tweet-content|tweet-text)[^"]*"[^>]*>'
+            r"(.*?)</div>"),
             r'<p[^>]*class="[^"]*tweet-text[^"]*"[^>]*>(.*?)</p>',
         ]
 

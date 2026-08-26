@@ -307,7 +307,7 @@ def test_attached_chart_context_blocks_false_no_data_answer(client_with_mock_pip
     lines = [line.strip() for line in response.text.strip().split("\n") if line.strip()]
     events = [json.loads(line) for line in lines]
     content = "".join(ev.get("content", "") for ev in events if ev.get("type") == "CHUNK")
-    stream_end = [ev for ev in events if ev.get("type") == "STREAM_END"][0]
+    stream_end = next(ev for ev in events if ev.get("type") == "STREAM_END")
     trace = stream_end["trace"]
 
     assert "Nao ha preco" not in content

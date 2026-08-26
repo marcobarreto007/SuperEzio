@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Self
 
 from .finnhub_symbols import finnhub_symbol_variants
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class _SuppressYFinanceOutput:
     """Safe context manager without global sys.stdout mutation."""
 
-    def __enter__(self) -> _SuppressYFinanceOutput:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *args: object) -> None:

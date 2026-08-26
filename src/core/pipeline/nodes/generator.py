@@ -421,7 +421,7 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
     estimated_qty = estimate_qty(requested_amount, price) if estimate_qty else "—"
     prev_excluded = ""
     if is_followup:
-        prev_excluded = trade_ctx.get("primary_ticker") or (list(excluded)[0] if excluded else "—")
+        prev_excluded = trade_ctx.get("primary_ticker") or (next(iter(excluded)) if excluded else "—")
 
     sections = _build_candidate_sections(
         portuguese=portuguese,
@@ -485,7 +485,7 @@ def _build_reject_all_sections(
 ) -> tuple[str, dict[str, Any] | None]:
     sections: list[str] = []
     if is_followup:
-        prev = trade_ctx.get("primary_ticker") or (list(excluded)[0] if excluded else "?")
+        prev = trade_ctx.get("primary_ticker") or (next(iter(excluded)) if excluded else "?")
         if portuguese:
             sections = [
                 "# Bob Model Order",

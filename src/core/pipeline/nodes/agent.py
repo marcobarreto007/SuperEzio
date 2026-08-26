@@ -1342,7 +1342,7 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
     sections: list[str] = []
 
     if is_followup and entry is None:
-        prev = trade_ctx.get("primary_ticker") or (list(excluded)[0] if excluded else "?")
+        prev = trade_ctx.get("primary_ticker") or (next(iter(excluded)) if excluded else "?")
         if portuguese:
             sections.extend(
                 [
@@ -1549,7 +1549,7 @@ def _render_decisive_trade_order(state: dict) -> tuple[str, dict[str, Any] | Non
     estimated_qty = _estimate_share_quantity(requested_amount, price)
     prev_excluded = ""
     if is_followup:
-        prev_excluded = trade_ctx.get("primary_ticker") or (list(excluded)[0] if excluded else "—")
+        prev_excluded = trade_ctx.get("primary_ticker") or (next(iter(excluded)) if excluded else "—")
 
     is_buy_candidate = decision == "BUY_CANDIDATE" or paper_ticket_pending
     if paper_training:

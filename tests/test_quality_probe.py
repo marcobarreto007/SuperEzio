@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 import pytest
 
@@ -168,7 +168,7 @@ class _SlowResponse:
     status_code = 200
     headers = {"content-type": "application/x-ndjson"}
 
-    async def __aenter__(self) -> _SlowResponse:
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(self, *args: object) -> None:

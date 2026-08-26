@@ -7,7 +7,7 @@ cancellation method. It uses only GET requests, including token refresh.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Self
 
 import httpx
 
@@ -46,7 +46,7 @@ class QuestradeReadOnlyClient:
     def close(self) -> None:
         self._client.close()
 
-    def __enter__(self) -> QuestradeReadOnlyClient:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *_: object) -> None:

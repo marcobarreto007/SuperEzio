@@ -328,7 +328,7 @@ def _is_simple_query(state: dict) -> bool:
     }
     allowed = simple_keywords | stopwords
 
-    words = set(w.strip(".,!?;:()[]{}\"'") for w in msg_clean.split())
+    words = {w.strip(".,!?;:()[]{}\"'") for w in msg_clean.split()}
     meaningful = {w for w in words if len(w) > 1}
     extra = meaningful - allowed
     if extra:

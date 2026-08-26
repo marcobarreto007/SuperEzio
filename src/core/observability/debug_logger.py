@@ -316,7 +316,7 @@ class DebugLogger:
         env_val = os.environ.get("SUPEREZIO_DEBUG", "").strip()
         if not env_val or env_val == "1" or env_val.lower() == "true":
             return set()  # All modules
-        return set(m.strip() for m in env_val.split(",") if m.strip())
+        return {m.strip() for m in env_val.split(",") if m.strip()}
 
     def set_neural_log_callback(self, callback):
         """Define callback para integração com neural_log.log_event."""

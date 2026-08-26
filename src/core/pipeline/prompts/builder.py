@@ -426,9 +426,9 @@ def build_agent_prompt(
         return "\n\n".join(
             [
                 MODEL_PROMPTS["local"]["persona"],
-                "Answer the user's question directly in natural language. "
+                ("Answer the user's question directly in natural language. "
                 "If the user asks for financial education or general risk advice, "
-                "give practical guidance without pretending market data was collected.",
+                "give practical guidance without pretending market data was collected."),
                 f"USER: {raw_message}",
             ]
         )
@@ -454,7 +454,7 @@ def build_agent_prompt(
     )
 
     parts = [
-        "PIPELINE_OBLIGATION: "
+        ("PIPELINE_OBLIGATION: "
         "You are NOT a standalone LLM. A 10-node deterministic pipeline ran "
         "BEFORE this prompt. Its output is below. EVERY module with data "
         "MUST appear in your answer. The RL RewardFunction and SDCA-Lite Cognitive "
@@ -498,7 +498,7 @@ def build_agent_prompt(
         "- Nunca emita ordem direta de compra/venda/short.\n"
         "- Cite evidence_ids para toda afirmacao.\n"
         "- Seja direto, mas mantenha as afirmacoes proporcionais a incerteza e a qualidade dos dados."
-        "",
+        ""),
         f"TASK: {raw_message}",
         f"INTENT: {intent} route={route}",
         horizon_constraint,

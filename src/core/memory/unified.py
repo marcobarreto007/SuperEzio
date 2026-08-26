@@ -538,8 +538,8 @@ class UnifiedRetriever:
             return "[UNIFIED_MEMORY] No relevant memories found."
 
         lines = [
-            "[UNIFIED_MEMORY] — Relevant context from conversations, "
-            "paper trades, and fraud patterns:"
+            ("[UNIFIED_MEMORY] — Relevant context from conversations, "
+            "paper trades, and fraud patterns:")
         ]
 
         used = len(lines[0])

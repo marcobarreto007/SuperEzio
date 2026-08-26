@@ -30,7 +30,7 @@ print(f"Results: {len(results4)} (expected 0)")
 print("\n=== Test 5: Document stats ===")
 docs = forensic_rag._load_documents()
 print(f"Total documents indexed: {len(docs)}")
-sources = set(d["source"] for d in docs)
+sources = {d["source"] for d in docs}
 for s in sources:
     count = sum(1 for d in docs if d["source"] == s)
     print(f"  {s}: {count} docs")

@@ -25,7 +25,7 @@ def auth_bootstrap(base_url):
             return None
     except urllib.error.HTTPError as exc:
         if exc.code != 401:
-            raise RuntimeError("auth/me returned %s" % exc.code)
+            raise RuntimeError("auth/me returned {}".format(exc.code))
     password = os.getenv("SUPEREZIO_SMOKE_PASSWORD") or os.getenv("SUPEREZIO_ADMIN_PASSWORD", "")
     if not password:
         raise RuntimeError("SUPEREZIO_ADMIN_PASSWORD missing")
@@ -136,7 +136,7 @@ def _run():
         )
         if token:
             context.add_init_script(
-                "localStorage.setItem(`sz_access_token`, %s);" % json.dumps(token)
+                "localStorage.setItem(`sz_access_token`, {});".format(json.dumps(token))
             )
         page = context.new_page()
         page.on(
