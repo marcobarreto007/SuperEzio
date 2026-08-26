@@ -5,6 +5,7 @@ This module tests:
 2. Text-only trimming behavior is preserved
 3. Chart-visual errors are differentiated (ValueError vs technical errors)
 """
+
 from unittest.mock import patch
 import pytest
 from src.core.pipeline.nodes.agent import _fit_messages_to_local_context
@@ -25,7 +26,12 @@ class TestMultimodalTrimmingExemption:
                 "role": "user",
                 "content": [
                     {"type": "text", "text": "Chart caption"},
-                    {"type": "image_url", "image_url": {"url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="}},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+                        },
+                    },
                 ],
             },
             {"role": "user", "content": "Final instruction"},
@@ -41,8 +47,12 @@ class TestMultimodalTrimmingExemption:
                 break
 
         assert multimodal_msg is not None, "Multimodal message should not be removed"
-        assert isinstance(multimodal_msg["content"], list), "Multimodal content should remain a list"
-        assert len(multimodal_msg["content"]) == 2, "Multimodal content should preserve both text and image parts"
+        assert isinstance(multimodal_msg["content"], list), (
+            "Multimodal content should remain a list"
+        )
+        assert len(multimodal_msg["content"]) == 2, (
+            "Multimodal content should preserve both text and image parts"
+        )
 
     def test_text_only_messages_still_get_trimmed(self):
         """Text-only messages are still trimmed when budget is exceeded."""
@@ -57,7 +67,9 @@ class TestMultimodalTrimmingExemption:
 
         # Check that text messages were trimmed
         for msg in fitted:
-            if isinstance(msg.get("content"), str) and msg["content"].startswith("Pipeline Report:"):
+            if isinstance(msg.get("content"), str) and msg["content"].startswith(
+                "Pipeline Report:"
+            ):
                 assert "[TRUNCATED TO FIT LOCAL CONTEXT]" in msg["content"]
                 assert len(msg["content"]) < len(messages[1]["content"])
 
@@ -94,7 +106,9 @@ class TestMultimodalTrimmingExemption:
         # Pipeline Report should be trimmed (it's a trimmable prefix)
         pipeline_msg = None
         for msg in fitted:
-            if isinstance(msg.get("content"), str) and msg["content"].startswith("Pipeline Report:"):
+            if isinstance(msg.get("content"), str) and msg["content"].startswith(
+                "Pipeline Report:"
+            ):
                 pipeline_msg = msg
                 break
 
@@ -116,7 +130,9 @@ class TestMultimodalTrimmingExemption:
         # Pipeline Report should be trimmed to prefix + 512 chars
         pipeline_msg = None
         for msg in fitted:
-            if isinstance(msg.get("content"), str) and msg["content"].startswith("Pipeline Report:"):
+            if isinstance(msg.get("content"), str) and msg["content"].startswith(
+                "Pipeline Report:"
+            ):
                 pipeline_msg = msg
                 break
 

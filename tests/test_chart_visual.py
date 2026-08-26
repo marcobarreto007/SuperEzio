@@ -131,9 +131,7 @@ def test_chat_completion_forwards_image_messages_without_flattening():
         api_key="local-served",
         backend="openai_compatible",
     )
-    gw = ModelGateway(
-        providers=[provider], config=GatewayConfig(retry_attempts=1, retry_delay_s=0)
-    )
+    gw = ModelGateway(providers=[provider], config=GatewayConfig(retry_attempts=1, retry_delay_s=0))
 
     original = ModelGateway.generate_api
     ModelGateway.generate_api = fake_api  # type: ignore[method-assign]
@@ -163,9 +161,7 @@ def test_chat_completion_forwards_image_messages_without_flattening():
 
 def test_exact_boundary_of_20_candles_is_minimum():
     """Boundary test: exactly 20 candles should be the minimum accepted."""
-    msg = build_chart_visual_message(
-        {"ticker": "TEST", "data": {"ohlcv": _candles(MIN_CANDLES)}}
-    )
+    msg = build_chart_visual_message({"ticker": "TEST", "data": {"ohlcv": _candles(MIN_CANDLES)}})
     assert msg is not None
     assert msg["role"] == "user"
     assert isinstance(msg["content"], list)
@@ -219,11 +215,9 @@ def test_empty_ticker_string_returns_none():
 
 def test_empty_ticker_with_ticker_allowed_generates_chart():
     """Test that empty ticker with ticker_allowed flag still generates chart."""
-    msg = build_chart_visual_message({
-        "ticker": "",
-        "ticker_allowed": True,
-        "data": {"ohlcv": _candles(25)}
-    })
+    msg = build_chart_visual_message(
+        {"ticker": "", "ticker_allowed": True, "data": {"ohlcv": _candles(25)}}
+    )
     assert msg is not None
     assert msg["role"] == "user"
     assert isinstance(msg["content"], list)

@@ -314,7 +314,9 @@ def test_provider_factory_keeps_agent_local_and_pins_experts_to_deepseek(monkeyp
     assert by_name[PRIMARY_PROVIDER_NAME].backend == "openai_compatible"
     assert by_name[PRIMARY_PROVIDER_NAME].base_url == "http://127.0.0.1:8080/v1"
     assert by_name[PRIMARY_PROVIDER_NAME].model == AGENT_MODEL_ID
-    assert by_name[PRIMARY_PROVIDER_NAME].max_tokens == 512  # orchestrator cap comes from config, not LOCAL_MAX_TOKENS
+    assert (
+        by_name[PRIMARY_PROVIDER_NAME].max_tokens == 512
+    )  # orchestrator cap comes from config, not LOCAL_MAX_TOKENS
     assert by_name[PRIMARY_PROVIDER_NAME].timeout_s == cfg.models["orchestrator"].timeout_s
     assert cfg.models["agent"].timeout_s == 600
     assert gateway_config.timeout_s == 600
@@ -353,7 +355,9 @@ def test_runtime_checkpoint_tracks_official_entrypoints():
     assert params["agent_port"] == 8080
     assert params["api_entrypoint"] == "python -m agent_server.main"
     assert params["agent_entrypoint"].endswith("scripts/serve_agent_llamacpp.ps1 -Port 8080")
-    assert params["model_path"] == (r"C:\Users\marco\models\qwen3.8-27b\Qwen3.8-27B-UD-IQ2_XXS.gguf")
+    assert params["model_path"] == (
+        r"C:\Users\marco\models\qwen3.8-27b\Qwen3.8-27B-UD-IQ2_XXS.gguf"
+    )
     assert params.get("lora_path") in (None, "")
 
 

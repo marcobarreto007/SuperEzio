@@ -135,9 +135,10 @@ def test_usd_quote_on_to_ticker_is_currency_market_mismatch():
     ok, failures = evaluate_quality_gates(candidate)
     assert not ok
     assert "currency_market_mismatch" in failures
-    assert decide_final_action(
-        compute_model_confidence(candidate, gate_failures=failures), failures
-    ) == "REJECT_ALL"
+    assert (
+        decide_final_action(compute_model_confidence(candidate, gate_failures=failures), failures)
+        == "REJECT_ALL"
+    )
 
 
 def test_cad_quote_on_tsx_ticker_remains_eligible():
@@ -154,9 +155,10 @@ def test_cad_quote_on_tsx_ticker_remains_eligible():
     ok, failures = evaluate_quality_gates(candidate)
     assert ok, failures
     assert "currency_market_mismatch" not in failures
-    assert decide_final_action(
-        compute_model_confidence(candidate, gate_failures=failures), failures
-    ) == "BUY_CANDIDATE"
+    assert (
+        decide_final_action(compute_model_confidence(candidate, gate_failures=failures), failures)
+        == "BUY_CANDIDATE"
+    )
 
 
 def test_fictitious_liquid_ticker_without_provenance_fails_closed():

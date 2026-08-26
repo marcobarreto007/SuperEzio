@@ -528,9 +528,7 @@ async def test_fundamentals_failures_do_not_skip_catalyst_enrichment(monkeypatch
     # Penny-universe additions may legitimately reject (OTC venue lock) —
     # what matters is that every stubbed listed candidate made it through.
     # Cap is 5 and the stub set has 6 — at least 5 stubs must survive.
-    stub_hits = sum(
-        any(c.get("ticker") == t for c in result["candidates"]) for t in tickers
-    )
+    stub_hits = sum(any(c.get("ticker") == t for c in result["candidates"]) for t in tickers)
     assert stub_hits >= 5
     assert len(result["candidates"]) == 5
     breakers = result["scan_trace"]["circuit_breakers"]

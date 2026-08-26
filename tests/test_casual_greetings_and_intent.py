@@ -25,8 +25,12 @@ from core.pipeline.case import create_case
 def test_intent_classification_matrix(msg, ui_ticker, expected_case, expected_intent):
     case = create_case(msg, ticker=ui_ticker)
     parsed = parse_user_intent(msg, ticker=ui_ticker)
-    assert case.case_type.value == expected_case, f"Expected case {expected_case} for '{msg}', got {case.case_type.value}"
-    assert parsed.intent == expected_intent, f"Expected intent {expected_intent} for '{msg}', got {parsed.intent}"
+    assert case.case_type.value == expected_case, (
+        f"Expected case {expected_case} for '{msg}', got {case.case_type.value}"
+    )
+    assert parsed.intent == expected_intent, (
+        f"Expected intent {expected_intent} for '{msg}', got {parsed.intent}"
+    )
 
 
 @pytest.mark.asyncio
@@ -43,7 +47,9 @@ async def test_casual_greeting_pipeline_fast_path():
             steps.append(ev)
     p.shutdown()
 
-    assert any("Tudo ótimo por aqui" in c or "Bob a postos" in c for c in chunks), f"Expected casual greeting reply, got: {chunks}"
+    assert any("Tudo ótimo por aqui" in c or "Bob a postos" in c for c in chunks), (
+        f"Expected casual greeting reply, got: {chunks}"
+    )
     assert not any(s.get("step") == "f51_firewall" and s.get("status") == "failed" for s in steps)
 
 

@@ -569,9 +569,7 @@ class TestPortSignatureParity:
         port_params = set(port_sig.parameters.keys())
         impl_params = set(impl_sig.parameters.keys())
 
-        assert port_params == impl_params, (
-            f"Port params {port_params} != impl params {impl_params}"
-        )
+        assert port_params == impl_params, f"Port params {port_params} != impl params {impl_params}"
 
 
 class TestJsonModeWithImageWarning:
@@ -598,22 +596,29 @@ class TestJsonModeWithImageWarning:
             class MockChoice:
                 class MockMessage:
                     content = "{}"
+
                 message = MockMessage()
+
             class MockResponse:
                 choices = [MockChoice()]
+
             return MockResponse()
 
         class MockClient:
             class MockChat:
                 class MockCompletions:
                     create = mock_create
+
                 completions = MockCompletions()
+
             chat = MockChat()
 
             async def close(self):
                 pass
 
-        monkeypatch.setattr("core.model_serving.gateway.AsyncOpenAI", lambda *args, **kwargs: MockClient())
+        monkeypatch.setattr(
+            "core.model_serving.gateway.AsyncOpenAI", lambda *args, **kwargs: MockClient()
+        )
 
         with caplog.at_level(logging.WARNING):
             await gateway.generate_api(
@@ -640,22 +645,29 @@ class TestJsonModeWithImageWarning:
             class MockChoice:
                 class MockMessage:
                     content = "{}"
+
                 message = MockMessage()
+
             class MockResponse:
                 choices = [MockChoice()]
+
             return MockResponse()
 
         class MockClient:
             class MockChat:
                 class MockCompletions:
                     create = mock_create
+
                 completions = MockCompletions()
+
             chat = MockChat()
 
             async def close(self):
                 pass
 
-        monkeypatch.setattr("core.model_serving.gateway.AsyncOpenAI", lambda *args, **kwargs: MockClient())
+        monkeypatch.setattr(
+            "core.model_serving.gateway.AsyncOpenAI", lambda *args, **kwargs: MockClient()
+        )
 
         with caplog.at_level(logging.WARNING):
             await gateway.generate_api(
