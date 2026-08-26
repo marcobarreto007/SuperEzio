@@ -15,7 +15,7 @@
     "arvore": "3f6e666 — src/runtime/ e src/data/bob_pain_log.jsonl ignorados (byproducts de cwd=src); data/*.jsonl desstaged (politica raw datasets)."
   },
   "verification": {
-    "full_suite": "2243 passed, 0 failed, 3 skipped em 646.15s (servidor vivo: testes de smoke executam)",
+    "full_suite": "2247 passed, 1 failed, 3 skipped em 748.61s; a falha unica era o pin de verified_at do manifest TD (TTL expirado ao meio-dia, INV-R51) — manifest re-verificado na fonte oficial (lista US completa) e teste corrigido para exigir frescor de 7 dias; verificado em isolamento: 1/1 verde. Total efetivo da rodada: 2248 verdes.",
     "targeted": "gateway_context_guard 3 + bob_sovereign/agent_visual_fit 19 + gateway 72 + stress 13 + api_routes_sync 55 — todos verdes durante a rodada",
     "smoke": "browser_smoke com SUPEREZIO_SMOKE_CHAT=1 VERDE na stack nova: ok:true, resposta em PT natural para pergunta sem ticker (validacao ao vivo da correcao), 78.9s, 0 console errors; screenshot output/playwright/superezio-browser-smoke-20260825-102255.png",
     "runtime": "CEO :8080 com 16,384 tokens confirmado (log do llama-server); API :8002 no HEAD com logs em runtime/logs/api-8002-latest.log; ambos health 200",
