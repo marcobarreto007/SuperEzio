@@ -19,7 +19,7 @@
   "verification": {
     "ruff_check": "All checks passed!",
     "ruff_format": "716 files already formatted",
-    "pytest": "Suíte completa em execução (aguardando resultado)."
+    "pytest": "2218 passed, 0 failed, 3 skipped, 1 deselected em 611s (10m11s)."
   },
   "still_true": {
     "live_execution": "FROZEN",
