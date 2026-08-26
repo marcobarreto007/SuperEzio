@@ -1062,7 +1062,16 @@ def test_td_commission_free_route_exposes_official_108_etf_universe(
     assert response.status_code == 200
     data = response.json()
     assert data["count"] == 108
-    assert data["manifest"]["verified_at"] == "2026-08-18"
+    # A data muda a cada re-verificacao (TTL de 7 dias — INV-R51). O contrato
+    # exige um timestamp ISO recente, nao uma data congelada.
+    from datetime import datetime, timedelta, timezone
+
+    verified_at = datetime.fromisoformat(
+        str(data["manifest"]["verified_at"]).replace("Z", "+00:00")
+    )
+    assert verified_at > datetime.now(timezone.utc) - timedelta(days=7), (
+        f"manifest stale: {data['manifest']['verified_at']}"
+    )
     assert "QQQ" in data["manifest"]["symbols"]["US"]
 
 
