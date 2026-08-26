@@ -1,9 +1,11 @@
 """F51 Training Script — Unsloth + Qwen 2.5 1.5B → LoRA → GGUF."""
-from unsloth import FastLanguageModel
-from datasets import load_dataset
-from trl import SFTTrainer
-from transformers import TrainingArguments
+
 import os
+
+from datasets import load_dataset
+from transformers import TrainingArguments
+from trl import SFTTrainer
+from unsloth import FastLanguageModel
 
 MODEL_NAME = "unsloth/Qwen2.5-1.5B-Instruct"
 DATA_PATH = os.getenv("F51_DATA", "/workspace/datasets/f51_train.jsonl")
@@ -31,6 +33,7 @@ model = FastLanguageModel.get_peft_model(
 print(f"[F51] Loading dataset: {DATA_PATH}")
 dataset = load_dataset("json", data_files=DATA_PATH, split="train")
 
+
 def format_example(example):
     instruction = example.get("instruction", "")
     input_text = example.get("input", "")
@@ -40,6 +43,7 @@ def format_example(example):
     else:
         prompt = f"### Instruction:\n{instruction}\n\n### Response:\n{output}"
     return {"text": prompt}
+
 
 dataset = dataset.map(format_example)
 print(f"[F51] Dataset: {len(dataset)} examples")
