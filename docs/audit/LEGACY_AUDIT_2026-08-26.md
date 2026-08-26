@@ -160,3 +160,28 @@
   - `model-gateway-verifier.md` ainda sem entrada no manual `AGENT_ORCHESTRATION.md` (registrar).
   - Referências históricas a `arqueologist` em `docs/architecture/RECLAMATION_REPORT.md:12` — mantidas como registro.
 - **Commit:** escopado — `.claude/skills/deprecated/`, `.claude/agents/deprecated/`, referências corrigidas, `.f51/archive/2026-08-26/.agents-skills-stale/`, este relatório e checkpoint. Os 39 renames da higiene estrutural (§6) NÃO entram neste commit (sessão paralela).
+
+### 6.2 Remediação executada — órfãs de orquestração, decisão skill a skill (onda 5)
+
+- **Escopo:** 11 candidatas órfãs (zero referências de agentes/comandos) avaliadas individualmente; 6 deprecadas, 5 mantidas.
+- **Deprecadas (6) → `.claude/skills/deprecated/`** com canônica anotada:
+
+  | Skill | Decisão | Evidência da verificação |
+  |---|---|---|
+  | f51-audit | DEPRECAR → f51-quality-gate | 0 agentes/0 comandos; 13 citações são related-skills de frontmatter (autocitações do cluster); depends-on dela existia só em f51-release (também deprecada); função de severidade/BLOCK = release-readiness-manager |
+  | f51-dependency-scout | DEPRECAR → f51-dead-code | ~40% overlap (deps órfãs via deptry já em f51-dead-code, ativa e usada por code-quality-reviewer); upgrade-risk/CVE sem dono (0 agentes); só SKILLS_CHECK.md (histórico) cita |
+  | f51-loop-breaker | DEPRECAR → agent-lab.md | nome colide com f51-circuit-breaker ativo (protegida); função "cortar loop" já é stop condition do agent-lab.md:49 ("Same failure repeated twice → stop the loop"); 0 agentes |
+  | f51-regression-hunter | DEPRECAR → f51-quality-gate + f51-tests | cluster gate com só autocitações (f51-prop-test related-skills); verificação pós-patch é papel dos agentes verifiers; 0 agentes/0 comandos |
+  | f51-release | DEPRECAR → f51-quality-gate + release-readiness-manager | mesmo entregável do quality-gate (PASS/FAIL/HOLD vs PASS/FAIL/PARTIAL); agente release-readiness-manager ativo executa release na prática e NÃO referencia a skill; 0 agentes |
+  | f51-test-finder | DEPRECAR → f51-tests | ~100% duplicata de f51-tests (ativa, usada por code-quality-reviewer e runtime-verifier); 0 agentes a usam |
+
+- **Mantidas (5) com evidência:**
+  - f51-inventory — MANDATÓRIA: regra mestra do CLAUDE.md ("Sem feature antes de: inventário...") gate 1; depends-on REAL de f51-contracts e f51-dead-code (ativas); contrato .f51/INVENTORY.json + INVENTORY_TEMPLATE.json existem.
+  - f51-money-gate — função única (GO/DEFER/NO-GO por receita); .f51/MONEY_GATE.md lido pelo captain.md:55; 7 skills ativas citam.
+  - f51-env-guard — função única (validação de env via Pydantic Settings); citada por f51-secure-scan (ativa); sem duplicata.
+  - f51-no-mock-police — função única (caçar mocks em produção); alinhada à política de mocks do CLAUDE.md; sem duplicata.
+  - f51-windows-compat — função única (Windows/PowerShell/venv/paths); projeto Windows-first (runtime .ps1); sem duplicata.
+
+- **Referências corrigidas (related-skills/depends-on) em 14 skills ativas:** f51-circuit-breaker, f51-contracts, f51-dead-code, f51-env-guard, f51-idempotency, f51-money-gate, f51-observability, f51-productizer, f51-prop-test, f51-refactor, f51-runtime, f51-safety-science, f51-secure-scan (depends-on), f51-tests (linha related-skills removida). Verificado: zero referências às 6 deprecadas em .claude/skills ativas, .claude/agents/ e .claude/commands/.
+- **Docs históricos mantidos como registro:** .f51/SKILLS_CHECK.md, .f51/BOOTSTRAP_REPORT.md, .f51/CONFIG_MAP.md (menção a sessão "f51-inventory-full-sweep", não à skill), docs/audit/LEGACY_AUDIT_2026-08-26.md §2.5.
+- **Saldo final do exército:** 21 skills ativas + 11 deprecated; 22 agentes; 3 comandos.

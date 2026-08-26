@@ -1,3 +1,4 @@
+<!-- MOVED 2026-08-26 (onda 5) para deprecated/. Canônica: f51-tests (ver README) -->
 ---
 name: f51-test-finder
 description: Descobre como testar o projeto de verdade, sem chute e sem comando inventado. Identifica framework, comandos validos, testes quebrados, testes ausentes e teste minimo da mudanca.

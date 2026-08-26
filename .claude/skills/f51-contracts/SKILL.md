@@ -4,7 +4,7 @@ description: "Use quando validar APIs, schemas, assinaturas, formatos de respost
 compatibility: "SuperEzio bootstrap layer"
 allowed-tools: "Read, Grep, Tests, JSON, Diff"
 depends-on: [f51-inventory]
-related-skills: [f51-refactor, f51-tests, f51-audit]
+related-skills: [f51-refactor, f51-tests]
 ---
 
 # f51-contracts

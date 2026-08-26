@@ -4,7 +4,7 @@ description: "Transforma projeto técnico em produto vendável. Triggers: moneti
 compatibility: "SuperEzio bootstrap layer"
 allowed-tools: "Read, Grep, Glob, Bash (read-only)"
 depends-on: [f51-inventory, f51-money-gate]
-related-skills: [f51-release, f51-doc-sync]
+related-skills: [f51-doc-sync]
 ---
 
 # f51-productizer

@@ -4,7 +4,7 @@ description: "Testes de propriedade com Hypothesis para todos os validadores de 
 compatibility: "SuperEzio bootstrap layer"
 allowed-tools: "Read, Edit, Write, Bash, Grep, Diff"
 depends-on: [f51-contracts, f51-tests]
-related-skills: [f51-regression-hunter, f51-quality-gate]
+related-skills: [f51-quality-gate]
 ---
 
 # f51-prop-test

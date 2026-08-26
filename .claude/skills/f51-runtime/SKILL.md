@@ -4,7 +4,7 @@ description: "Use quando validar boot, health checks, variáveis de ambiente, po
 compatibility: "SuperEzio bootstrap layer"
 allowed-tools: "Read, Terminal, Logs, JSON"
 depends-on: [f51-inventory]
-related-skills: [f51-tests, f51-audit, f51-contracts]
+related-skills: [f51-tests, f51-contracts]
 ---
 
 # f51-runtime

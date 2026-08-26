@@ -4,7 +4,7 @@ description: "Mantém pesquisas científicas seguras em saúde: revisão de lite
 compatibility: "SuperEzio bootstrap layer"
 allowed-tools: "Read, Grep, Glob, WebSearch, Bash (read-only)"
 depends-on: []
-related-skills: [f51-audit, f51-money-gate]
+related-skills: [f51-money-gate]
 ---
 
 # f51-safety-science

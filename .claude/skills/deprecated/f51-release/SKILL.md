@@ -1,3 +1,4 @@
+<!-- MOVED 2026-08-26 (onda 5) para deprecated/. Canônica: f51-quality-gate + agente release-readiness-manager (ver README) -->
 ---
 name: f51-release
 description: "Use quando fechar o quality gate final, consolidar evidências e decidir PASS ou FAIL para entrega. Triggers: release, prontidão, quality gate, pre-delivery, final check."

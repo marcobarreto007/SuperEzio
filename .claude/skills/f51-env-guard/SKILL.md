@@ -4,7 +4,7 @@ description: "Valida todas as variáveis de ambiente com Pydantic Settings schem
 compatibility: "SuperEzio bootstrap layer"
 allowed-tools: "Read, Edit, Write, Bash, Grep, Diff"
 depends-on: [f51-contracts, f51-runtime]
-related-skills: [f51-safety-science, f51-audit, f51-circuit-breaker]
+related-skills: [f51-safety-science, f51-circuit-breaker]
 ---
 
 # f51-env-guard

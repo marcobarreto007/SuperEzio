@@ -1,3 +1,4 @@
+<!-- MOVED 2026-08-26 (onda 5) para deprecated/. Funcao absorvida por .claude/commands/agent-lab.md (stop conditions) (ver README) -->
 ---
 name: f51-loop-breaker
 description: Quando o agente fica rodando no mesmo erro, corta o ciclo. Detecta tentativa repetida, suposicao falsa, comando inutil e falta de evidencia.

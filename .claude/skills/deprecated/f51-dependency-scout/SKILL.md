@@ -1,3 +1,4 @@
+<!-- MOVED 2026-08-26 (onda 5) para deprecated/. Canônica: f51-dead-code (deps orfas) (ver README) -->
 ---
 name: f51-dependency-scout
 description: Analisa dependencias, versoes, lockfiles, vulnerabilidades obvias e risco de upgrade. Nao atualizar sem plano. Primeiro mapear.

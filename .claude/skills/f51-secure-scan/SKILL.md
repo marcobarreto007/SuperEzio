@@ -3,7 +3,7 @@ name: f51-secure-scan
 description: "Scanner de segurança SAST com Bandit + validação de secrets e vulnerabilidades. Detecta injeção, secrets expostos, e más práticas de segurança. Triggers: security, bandit, SAST, vulnerability, secret, scan, segurança, vulnerabilidade."
 compatibility: "SuperEzio bootstrap layer"
 allowed-tools: "Read, Edit, Write, Bash, Grep, Diff"
-depends-on: [f51-contracts, f51-audit]
+depends-on: [f51-contracts]
 related-skills: [f51-quality-gate, f51-dead-code, f51-env-guard]
 ---
 

@@ -4,7 +4,7 @@ description: "Implementa idempotency key persistente, deduplicação cross-proce
 compatibility: "SuperEzio bootstrap layer"
 allowed-tools: "Read, Edit, Write, Bash, Grep, Diff"
 depends-on: [f51-contracts, f51-money-gate]
-related-skills: [f51-circuit-breaker, f51-audit]
+related-skills: [f51-circuit-breaker]
 ---
 
 # f51-idempotency

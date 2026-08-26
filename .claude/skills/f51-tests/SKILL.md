@@ -4,7 +4,6 @@ description: "Use quando montar plano de testes por risco, executar testes deter
 compatibility: "SuperEzio bootstrap layer"
 allowed-tools: "Read, Terminal, Test Runner, JSON"
 depends-on: [f51-contracts, f51-runtime]
-related-skills: [f51-audit, f51-release]
 ---
 
 # f51-tests

@@ -1,3 +1,4 @@
+<!-- MOVED 2026-08-26 (onda 5) para deprecated/. Canônica: f51-quality-gate + f51-tests (ver README) -->
 ---
 name: f51-regression-hunter
 description: Caça regressões após patches. Compara comportamento antes/depois e identifica quebras sutis.

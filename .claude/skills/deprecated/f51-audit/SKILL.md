@@ -1,3 +1,4 @@
+<!-- MOVED 2026-08-26 (onda 5) para deprecated/. Canônica: f51-quality-gate (ver README) -->
 ---
 name: f51-audit
 description: "Use quando auditar risco, regressão, conformidade operacional e bloqueios antes de release ou handoff. Triggers: audit, auditoria, regressão, conformidade, blocker, pre-release."

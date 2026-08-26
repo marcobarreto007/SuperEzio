@@ -4,7 +4,7 @@ description: "Use quando decidir prioridade, corte de escopo e GO/DEFER/NO-GO co
 compatibility: "SuperEzio bootstrap layer"
 allowed-tools: "Read, Plan, Report, JSON"
 depends-on: []
-related-skills: [f51-inventory, f51-audit, f51-release]
+related-skills: [f51-inventory]
 ---
 
 # f51-money-gate

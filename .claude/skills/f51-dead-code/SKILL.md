@@ -4,7 +4,7 @@ description: "Detecta e remove código morto com Vulture + deptry. Varredura aut
 compatibility: "SuperEzio bootstrap layer"
 allowed-tools: "Read, Edit, Write, Bash, Grep, Diff"
 depends-on: [f51-inventory, f51-contracts]
-related-skills: [f51-refactor, f51-quality-gate, f51-audit]
+related-skills: [f51-refactor, f51-quality-gate]
 ---
 
 # f51-dead-code

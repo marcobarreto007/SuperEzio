@@ -4,7 +4,7 @@ description: "Use quando fizer simplificação pequena, reversível e sem mudan�
 compatibility: "SuperEzio bootstrap layer"
 allowed-tools: "Read, Edit, Tests, Diff"
 depends-on: [f51-contracts, f51-tests]
-related-skills: [f51-audit, f51-runtime]
+related-skills: [f51-runtime]
 ---
 
 # f51-refactor
