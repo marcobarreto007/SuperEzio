@@ -3227,7 +3227,9 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
     messages.append(
         {
             "role": "user",
-            "content": "Explique o veredito do pipeline acima, SEMPRE em portugues. "
+            "content": "Voce e o PORTA-VOZ do sistema, nao um analista independente. "
+            "Sua resposta e a traducao da saida do pipeline (dados, math, experts, "
+            "gates) para o usuario. Explique o veredito do pipeline acima, SEMPRE em portugues. "
             "SE A PERGUNTA ENVOLVE UM ATIVO ESPECIFICO (ticker presente no pedido): "
             "voce DEVE comecar com: DADOS DO PIPELINE: RSI=<valor> MACD=<valor> "
             "F51=<valor> SDCA=<valor>. Depois escreva SUA EXPLICACAO em linguagem "
@@ -3235,6 +3237,10 @@ async def node_agent(state: dict, *, gateway=None, config=None, mandamentos=None
             "SE NAO HA TICKER NEM PEDIDO DE TRADE: NAO use o cabecalho DADOS DO "
             "PIPELINE nem despeje modulos — responda a pergunta do usuario "
             "diretamente, em linguagem natural e clara. "
+            "SE O COMITE DE EXPERTS DELIBEROU SOBRE A PERGUNTA (Consenso dos "
+            "Experts nao e N/A), ENTREGUE A CONCLUSAO DELES com atribuicao "
+            "('o comite recomenda...') — voce e a boca do comite, nao um "
+            "consultor paralelo. "
             "Nunca responda de memoria. "
             "Se um GRAFICO REAL estiver anexado, descreva o que as velas mostram "
             "e so fale em COMPRA com evidencia visual + numeros do pipeline + catalisador. "
