@@ -154,8 +154,10 @@ async def test_stage_deadline_fail_closed_missing_price_no_crash(monkeypatch):
     counts = _price_provider_counts(result)
     assert "missing_price" in summary
     assert summary["missing_price"] >= 1
+    assert counts.get("stage_abandoned", 0) >= 1
     _assert_exception_not_dominant(counts)
     assert result.get("rejected_count", 0) >= 1
+    assert any(r.get("price_error") == "stage_abandoned" for r in result["rejected"])
 
 
 @pytest.mark.asyncio
@@ -181,3 +183,47 @@ async def test_price_stage_default_concurrency_stays_at_two(monkeypatch):
     counts = _price_provider_counts(result)
     assert "missing_price" in summary or counts
     _assert_exception_not_dominant(counts)
+
+
+@pytest.mark.asyncio
+async def test_derived_deadline_lets_full_price_budget_finish(monkeypatch):
+    from src.core.pipeline.nodes.collector import _run_scan
+
+    class _PricedHub(_StubHub):
+        def get_price(self, ticker, market=None):
+            with self._lock:
+                self.calls += 1
+                self.current += 1
+                self.max_seen = max(self.max_seen, self.current)
+            try:
+                if self.delay:
+                    time.sleep(self.delay)
+                return {"price": 12.5, "symbol": ticker, "provider": "stub", "currency": "USD"}
+            finally:
+                with self._lock:
+                    self.current -= 1
+
+    hub = _PricedHub(delay=0.02)
+    _install_scan_stubs(monkeypatch, hub)
+    monkeypatch.delenv("SUPEREZIO_SCAN_STAGE_DEADLINE_MS", raising=False)
+    monkeypatch.setenv("SUPEREZIO_SCAN_ENRICH_TIMEOUT_MS", "2000")
+    monkeypatch.setenv("SUPEREZIO_SCAN_PRICE_CONCURRENCY", "2")
+
+    result = await _run_scan(
+        "What stock would you recommend if I want to profit within the next 2 weeks?",
+        {"country": "United States"},
+    )
+
+    counts = _price_provider_counts(result)
+    assert hub.calls == 8
+    assert counts.get("stage_abandoned", 0) == 0
+    _assert_exception_not_dominant(counts)
+
+
+def test_yfinance_sits_before_paced_price_routes():
+    from data.data_hub import DataHub
+
+    hub = DataHub(register_defaults=True)
+    ordered = [r["name"] for r in sorted(hub.list_routes("price"), key=lambda x: x["priority"])]
+    assert ordered.index("yfinance") < ordered.index("twelve_data")
+    assert ordered.index("yfinance") < ordered.index("alpha_vantage")

@@ -8,12 +8,14 @@ from data.data_hub import DataHub, ProviderRoute
 def test_market_price_route_order() -> None:
     hub = DataHub(register_defaults=True)
     routes = hub.list_routes("price")
-    # Chain (2026-08-22): finnhub (priority 1) -> twelve_data -> yfinance
+    # Chain: finnhub (1) -> yfinance (2) -> alpha_vantage (3) -> twelve_data (12)
+    # yfinance is the keyless fallback before paced Twelve/Alpha routes.
     # AKShare removed from price (downloads 893 stocks, 3+ min!)
     # Stooq removed — API offline (HTTP 404)
     ordered = [r["name"] for r in sorted(routes, key=lambda x: x["priority"])]
     assert ordered[0] == "finnhub"
-    assert ordered.index("twelve_data") < ordered.index("yfinance")
+    assert ordered.index("yfinance") < ordered.index("alpha_vantage")
+    assert ordered.index("yfinance") < ordered.index("twelve_data")
 
 
 def test_finnhub_has_candles_and_news_capabilities() -> None:

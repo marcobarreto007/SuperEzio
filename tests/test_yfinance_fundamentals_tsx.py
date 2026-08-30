@@ -152,9 +152,8 @@ def test_datahub_routes_fundamentals_to_yfinance_when_finnhub_key_missing(
 
     hub = DataHub(register_defaults=True)
     fundamentals_routes = [r["name"] for r in hub.list_routes("fundamentals")]
-    # TMX (priority 25, Canadian fallback) joined the chain on 2026-08-23,
-    # sitting just above the yfinance last resort.
-    assert fundamentals_routes == ["finnhub", "tmx", "yfinance"]
+    # yfinance is the keyless fallback (priority 2) before TMX (25).
+    assert fundamentals_routes == ["finnhub", "yfinance", "tmx"]
 
     result = hub.get_fundamentals("TD.TO")
 

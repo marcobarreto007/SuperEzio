@@ -263,7 +263,7 @@ def test_datahub_registers_tmx_as_canadian_fallback():
     assert tmx["priority"] == 25
     assert set(tmx["capabilities"]) == {"price", "market_price", "quote", "profile", "fundamentals"}
     assert tmx["configured"] is True  # keyless
-    assert tmx["priority"] < routes["yfinance"]["priority"]
+    assert tmx["priority"] > routes["yfinance"]["priority"]
     # Canadian fallback: must never outrank the general-purpose price chain.
     assert tmx["priority"] > routes["twelve_data"]["priority"]
 

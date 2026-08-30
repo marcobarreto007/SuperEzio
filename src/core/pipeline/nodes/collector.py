@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 import os
 import re
 import time
@@ -1184,14 +1185,21 @@ async def _run_scan(
         except ImportError:
             hub = None
         if hub is not None:
-            per_item_timeout = float(os.getenv("SUPEREZIO_SCAN_ENRICH_TIMEOUT_MS", "10000")) / 1000
-            stage_deadline_ms = int(os.getenv("SUPEREZIO_SCAN_STAGE_DEADLINE_MS", "30000"))
+            per_item_timeout_ms = int(os.getenv("SUPEREZIO_SCAN_ENRICH_TIMEOUT_MS", "10000"))
+            per_item_timeout = per_item_timeout_ms / 1000
             # Price stage defaults to 2 workers so a 24-row enrich cannot
             # burst Finnhub's 60 req/min cap (DELIVERY.md §2.4). Profile /
             # catalyst / fundamentals stay on a small pool and run as later
             # sequential stages — they must not multiply 24×3 parallel calls.
             price_num_workers = max(1, int(os.getenv("SUPEREZIO_SCAN_PRICE_CONCURRENCY", "2")))
             other_num_workers = max(1, int(os.getenv("SUPEREZIO_SCAN_ENRICH_CONCURRENCY", "4")))
+            deadline_raw = os.getenv("SUPEREZIO_SCAN_STAGE_DEADLINE_MS")
+            if deadline_raw is None or not str(deadline_raw).strip():
+                n_items = max(1, len(price_targets))
+                waves = math.ceil(n_items / price_num_workers)
+                stage_deadline_ms = max(30000, waves * per_item_timeout_ms + 5000)
+            else:
+                stage_deadline_ms = int(deadline_raw)
 
             def _enrich_error(exc: BaseException) -> dict[str, str]:
                 if isinstance(exc, (TimeoutError, asyncio.TimeoutError)):
@@ -1304,6 +1312,10 @@ async def _run_scan(
                         total=total,
                         errors=error_count,
                     )
+                finished_ids = {id(item) for item, _ in out_pairs}
+                for item in items:
+                    if id(item) not in finished_ids:
+                        out_pairs.append((item, {"error": "stage_abandoned"}))
                 return out_pairs
 
             # ── Enrich callables (shared breaker logic) ──

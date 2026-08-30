@@ -324,9 +324,9 @@ class DataHub:
                     "market_price": "get_price",
                     "candles": "get_candles",
                 },
-                priority=1,
+                priority=12,
                 required_key="TWELVE_DATA_API_KEY",
-                metadata={"role": "primary_market_data"},
+                metadata={"role": "paced_market_data"},
             )
         )
 
@@ -342,9 +342,9 @@ class DataHub:
                     "profile": "get_profile",
                     "fundamentals": "get_fundamentals",
                 },
-                priority=30,
+                priority=2,
                 required_key=None,
-                metadata={"role": "last_resort_market_data"},
+                metadata={"role": "primary_fallback_market_data"},
             )
         )
 
@@ -391,8 +391,9 @@ class DataHub:
         # Real-time quotes straight from the Toronto Stock Exchange site
         # (money.tmx.com GraphQL). Canadian fallback: only resolves TSX/TSXV
         # listings — bare US symbols map to the TSX-listed CDR, so it must
-        # never outrank twelve_data/alpha_vantage for the general price
-        # chain; sits just above the yfinance last resort (2026-08-23).
+        # never outrank finnhub/yfinance/alpha_vantage/twelve_data for the
+        # general price chain (2026-08-30: yfinance is the keyless fallback
+        # before paced Twelve/Alpha routes).
         self.register_provider(
             ProviderRoute(
                 name="tmx",
