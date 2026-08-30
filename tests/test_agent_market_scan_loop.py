@@ -390,6 +390,9 @@ def test_empty_scan_with_price_provider_exceptions_does_not_invent_candidate():
     assert "preco falhou" in answer.lower()
     assert "GRTS" not in answer
     assert "ideia de compra" not in answer.lower() or "nao e ideia de compra" in answer.lower()
+    assert "US_CANADA_LIQUID" not in answer
+    assert "price_routes_active" not in answer
+    assert "Limite de dados" not in answer
 
 
 def test_candidate_without_venue_currency_is_not_formatted_as_buy_idea():

@@ -1799,19 +1799,32 @@ def _market_scan_answer(state: dict) -> str:
     if _should_use_decisive_mode(state) or detect_decisive_trade_intent(message):
         return _decisive_trade_order_answer(state)
 
+    if state.get("intent") == "capital_allocation":
+        from ..scan_verdict import render_small_capital_speech
+
+        scan_payload = state.get("scan")
+        return render_small_capital_speech(
+            message, scan_payload if isinstance(scan_payload, dict) else None
+        )
+
     scan = state.get("scan") or {}
     candidates = [c for c in scan.get("candidates", []) if isinstance(c, dict)]
     rejected_count = int(scan.get("rejected_count", 0) or 0)
     rejection_summary = scan.get("rejection_summary") or {}
     universe = scan.get("universe") or "unspecified"
     filters = scan.get("filters") or {}
-    errors = scan.get("source_errors") or []
 
     portuguese = _is_portuguese_request(message)
     labels = _REJECTION_LABELS_PT if portuguese else _REJECTION_LABELS_EN
     top_reasons = _top_rejection_reasons(rejection_summary, labels)
     displayable = [item for item in candidates if _has_exchange_currency_provenance(item)]
-    hub_price_failed = _price_provider_exceptions(errors)
+
+    if not displayable:
+        from ..scan_verdict import build_scan_verdict, render_scan_speech
+
+        verdict = build_scan_verdict(state)
+        logger.info("scan_verdict_trace errors=%s", list(verdict.source_errors)[:5])
+        return render_scan_speech(verdict, portuguese=portuguese)
 
     if portuguese:
         sections: list[str] = []
@@ -1827,17 +1840,8 @@ def _market_scan_answer(state: dict) -> str:
         )
         sections.append("")
         sections.append("5) Candidatos:")
-        if displayable:
-            for item in displayable[:6]:
-                sections.extend(_format_candidate_block_pt(item))
-        else:
-            sections.append(
-                "Nenhum candidato passou nos gates minimos de qualidade de dados para uma ideia de pesquisa de 2 semanas."
-            )
-            if hub_price_failed:
-                sections.append(
-                    "O data hub falhou: o preco falhou para a maioria dos nomes. Nenhum ticker e inventado como candidato."
-                )
+        for item in displayable[:6]:
+            sections.extend(_format_candidate_block_pt(item))
         sections.append("")
         sections.append(f"6) Resumo de rejeicoes: {rejected_count} ticker(s) descartado(s).")
         if top_reasons:
@@ -1859,14 +1863,6 @@ def _market_scan_answer(state: dict) -> str:
         sections.append(
             "8) Aviso: apenas pesquisa. Sem garantia de lucro. Decisao de compra/venda e sua responsabilidade."
         )
-        if not displayable:
-            sections.append("")
-            sections.append(
-                "Proximo prompt sugerido: 'Repita o scan com teto de preco, liquidez minima, janela de catalisador e retorne REJECT_ALL se nenhum candidato passar.'"
-            )
-        if errors:
-            sections.append("")
-            sections.append("Limite de dados: " + "; ".join(str(err) for err in errors[:3]))
         return "\n".join(sections)
 
     sections = []
@@ -1882,17 +1878,8 @@ def _market_scan_answer(state: dict) -> str:
     )
     sections.append("")
     sections.append("5) Candidates:")
-    if displayable:
-        for item in displayable[:6]:
-            sections.extend(_format_candidate_block_en(item))
-    else:
-        sections.append(
-            "No candidate passed the minimum data-quality gates for a 2-week research idea."
-        )
-        if hub_price_failed:
-            sections.append(
-                "The data hub failed to price most names. No ticker is invented as a candidate."
-            )
+    for item in displayable[:6]:
+        sections.extend(_format_candidate_block_en(item))
     sections.append("")
     sections.append(f"6) Rejected candidates summary: {rejected_count} ticker(s) discarded.")
     if top_reasons:
@@ -1914,14 +1901,6 @@ def _market_scan_answer(state: dict) -> str:
     sections.append(
         "8) Caveat: research only. No guaranteed profit. The buy/sell decision is your own responsibility."
     )
-    if not displayable:
-        sections.append("")
-        sections.append(
-            "Suggested next prompt: 'Repeat the scan with max price, minimum liquidity, catalyst window, and return REJECT_ALL if no candidate passes.'"
-        )
-    if errors:
-        sections.append("")
-        sections.append("Data limit: " + "; ".join(str(err) for err in errors[:3]))
     return "\n".join(sections)
 
 
@@ -2454,10 +2433,11 @@ def _contract_fallback_answer(state: dict) -> str:
         return _market_scan_answer(state)
     if _is_etf_comparison_question(message) or _is_portfolio_concentration_question(message):
         return _advisory_knowledge_fallback_answer(state)
-    if mode == "CAPITAL_ALLOCATION" or state.get("intent") in (
-        "capital_allocation",
-        "personal_finance",
-    ):
+    if mode == "CAPITAL_ALLOCATION" or state.get("intent") == "capital_allocation":
+        from ..scan_verdict import render_small_capital_speech
+
+        return render_small_capital_speech(state.get("message", ""), state.get("scan"))
+    if state.get("intent") == "personal_finance":
         return _complex_finance_fallback_answer(state.get("message", ""))
     if mode == "INDUSTRY_RESEARCH":
         return _industry_research_fallback_answer(state)

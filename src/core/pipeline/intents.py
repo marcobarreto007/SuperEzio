@@ -1803,6 +1803,40 @@ def detect_capital_allocation_intent(message: str) -> bool:
     if allocation_with_amount:
         return True
 
+    # PT/EN small-ticket apply: "tenho 100 CAD para investir" is allocation,
+    # not a 2-week US/Canada discovery scan. Discovery verbs and mini-cap
+    # / decisive trade stay on the scanner.
+    monetary = bool(
+        re.search(
+            r"(?:[$]\s*\d|\bcad\s*\d|\busd\s*\d|\b\d[\d,]*(?:\.\d+)?\s*(?:cad|usd)\b)",
+            normalized,
+            re.IGNORECASE,
+        )
+    )
+    apply_verb = bool(
+        re.search(
+            r"\b(?:investir|invista|aplicar|aplique|alocar|aloque|invest(?:ing|ment)?)\b",
+            normalized,
+            re.IGNORECASE,
+        )
+    )
+    discovery = bool(
+        re.search(
+            r"\b(?:encontre|procure|busque|pesquise|find|search|shortlist|mini\s*cap|small[- ]cap)\b",
+            normalized,
+            re.IGNORECASE,
+        )
+    )
+    if (
+        monetary
+        and apply_verb
+        and not discovery
+        and not detect_ticker(message)
+        and not has_hint(message, PENNY_ASSET_HINTS)
+        and not detect_decisive_trade_intent(message)
+    ):
+        return True
+
     matches = sum(1 for p in _CAPITAL_USE_HINTS if re.search(p, normalized, re.IGNORECASE))
     return matches >= 2
 
@@ -2383,7 +2417,12 @@ def _has_penny_asset_hint(message: str) -> bool:
 
 def _has_scan_scope(message: str) -> bool:
     normalized = normalize_message(message)
-    return has_hint(message, SCOPE_KEYWORDS) or re.search(r"\bcad\b", normalized) is not None
+    if has_hint(message, SCOPE_KEYWORDS):
+        return True
+    # "100 CAD" is currency, not a Canada geography hint.
+    if re.search(r"(?:\d[\d,]*(?:\.\d+)?\s*cad|cad\s*\d)", normalized, re.IGNORECASE):
+        return False
+    return re.search(r"\bcad\b", normalized) is not None
 
 
 def _is_market_scan_request(message: str) -> bool:
@@ -2417,6 +2456,8 @@ def _is_market_scan_request(message: str) -> bool:
     if detect_decisive_trade_intent(message) and not wants_specific_analysis:
         return True
     if has_scan and has_scope:
+        return True
+    if has_scan and has_penny_asset and not wants_specific_analysis:
         return True
     if has_penny_asset and is_scan_command and not wants_specific_analysis:
         return True

@@ -300,6 +300,43 @@ def _format_mandamentos(mandamentos: list[Any]) -> str:
     return "\n".join(lines)
 
 
+def _small_ticket_amount(raw_message: str) -> float | None:
+    match = re.search(
+        r"(?:cad\s*([\d.,]+)|([\d.,]+)\s*cad|usd\s*([\d.,]+)|\$\s*([\d.,]+))",
+        raw_message or "",
+        re.IGNORECASE,
+    )
+    if not match:
+        return None
+    raw = next((group for group in match.groups() if group), "")
+    raw = raw.replace(",", "")
+    try:
+        return float(raw)
+    except ValueError:
+        return None
+
+
+def _build_small_capital_prompt(raw_message: str) -> str:
+    """Short mouth prompt for a small cash pile — not the 12-section CFO dump."""
+    return "\n\n".join(
+        [
+            MODEL_PROMPTS["local"]["persona"],
+            (
+                "SMALL CAPITAL ADVISORY:\n"
+                "The user has a small cash pile and asked what to do with it.\n"
+                "Answer in the user's language in at most 12 short lines.\n"
+                "Do NOT describe a market scan. Do NOT invent a ticker.\n"
+                "Do NOT use the 12-section complex finance contract.\n"
+                "Do NOT mention REJECT_ALL, US_CANADA_LIQUID, price_routes_active, "
+                "or data-limit telemetry.\n"
+                "Opinion: stay in cash unless they give a priced ticker. Live trading is frozen.\n"
+                "Next step: ask for a ticker (e.g. TD.TO) or an explicit mini-cap scan with catalyst."
+            ),
+            f"USER: {raw_message}",
+        ]
+    )
+
+
 def _build_complex_finance_prompt(raw_message: str) -> str:
     """Build a specialized CEO prompt for complex finance advisory questions.
 
@@ -423,6 +460,9 @@ def build_agent_prompt(
             or intent in ("capital_allocation", "personal_finance")
         )
     ):
+        amount = _small_ticket_amount(raw_message)
+        if intent == "capital_allocation" and amount is not None and amount <= 500:
+            return _build_small_capital_prompt(raw_message)
         return _build_complex_finance_prompt(raw_message)
 
     msg_has_ticker = bool(re.search(r"\b[A-Z]{1,5}(?:\.[A-Z]{1,2})?\b", raw_message))
