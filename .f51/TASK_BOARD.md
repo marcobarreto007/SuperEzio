@@ -2,6 +2,8 @@
 
 ## Backlog
 
+- [x] 2026-08-29 - **Boca Ornith texto-only**: PNG/chart image nao vai mais para `:8080` (default `attach_image=False` + strip no gateway). Evidencia: consult TD.TO 186.6s orgaos ok / boca 500 `image input is not supported`; pytest 148 passed chart/gateway/agent. Restart da API necessario para valer no processo vivo.
+
 - [ ] 2026-08-26 - **P0 — segredos: rotação Questrade/DeepSeek + purge de histórico**: chave DeepSeek real reusada como Anthropic no histórico (`scripts/update_key.py` @ 6b159db1) e perfil Chromium Questrade completo (275 blobs) em `runtime/questrade_profile/`. **BLOQUEADO PELO OPERADOR** (proibido tocar chaves/credenciais e fazer purge). Reabrir quando o operador autorizar; requer filter-repo + rotação nos portais.
 - [ ] 2026-09-25 - **Re-auditoria deprecated**: matar/promover as 11 skills em `.claude/skills/deprecated/` com evidência de uso real (GAP-6 no SKILLS_CHECK.md). Prazo: 30 dias da deprecação (2026-08-26).
 - [x] 2026-08-26 - **build_release exclusions**: FECHADO — `build_release.ps1` já possui allowlist+denylist robustas: `.env*`, `*.db*`, `*.log`, `*.jsonl`, `runtime/`, `journal/`, `checkpoints/`, `partner/`, `cache/`, `man_at_work/`, `output/`, `tmp/` excluídos. Verificado por leitura direta do script.

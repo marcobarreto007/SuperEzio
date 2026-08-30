@@ -527,7 +527,7 @@ class TestStreamingFailurePolicy:
 
 class TestStreamChatCompletion:
     @pytest.mark.asyncio
-    async def test_forwards_vision_messages_and_json_mode(self, monkeypatch):
+    async def test_strips_vision_messages_for_local_mouth(self, monkeypatch):
         gateway = _gateway(_provider(AGENT_PROVIDER_NAME, backend="openai_compatible"))
         captured = {}
 
@@ -554,8 +554,9 @@ class TestStreamChatCompletion:
             )
         ]
         assert chunks == ["WAIT"]
-        assert captured["messages"] == msgs
-        assert captured["json_mode"] is False
+        assert captured.get("messages") in (None, [])
+        assert "leia o grafico" in captured["prompt"]
+        assert "image_url" not in captured["prompt"]
 
 
 class TestPortSignatureParity:
@@ -584,7 +585,7 @@ class TestJsonModeWithImageWarning:
         """json_mode=True + image_url deve emitir warning em generate_api."""
         import logging
 
-        gateway = _gateway(_provider(AGENT_PROVIDER_NAME, backend="openai_compatible"))
+        gateway = _gateway(_provider(DEEPSEEK_PROVIDER_NAME, backend="openai_compatible"))
         msgs = [
             {
                 "role": "user",

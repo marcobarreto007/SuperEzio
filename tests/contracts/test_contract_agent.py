@@ -38,6 +38,10 @@ def test_agent_system_prompt_is_natural_language_advisor():
     assert "natural-language financial analysis" in prompt
     assert "user's language" in prompt
     assert "not broker execution" in prompt
+    assert "mouth of SuperEzio" in prompt
+    assert "interchangeable adjuvant" in prompt
+    assert "CEO of SuperEzio" not in prompt
+    assert "you are the CEO" not in prompt
 
 
 def test_agent_system_prompt_non_empty():

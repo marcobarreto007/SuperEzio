@@ -139,3 +139,42 @@ def test_missing_expert_key_does_not_take_down_public_liveness(monkeypatch) -> N
 
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
+
+
+def test_unhealthy_adjuvant_voice_degrades_public_liveness_without_503(monkeypatch) -> None:
+    from core import bob_consciousness
+
+    class VoiceDownBody:
+        organs: ClassVar[dict] = {
+            "ceo_brain": SimpleNamespace(
+                last_health=False,
+                last_check="2026-08-29T00:00:00+00:00",
+                last_error="connection refused",
+            )
+        }
+
+        @staticmethod
+        def is_man_at_work() -> bool:
+            return False
+
+    monkeypatch.setattr(bob_consciousness, "get_bobs_body", lambda: VoiceDownBody())
+    original_pipeline = getattr(app.state, "pipeline", None)
+    app.state.pipeline = object()
+    try:
+        response = TestClient(app).get("/health")
+    finally:
+        app.state.pipeline = original_pipeline
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "degraded"
+    assert payload["voice"] == "down"
+    assert "agent" in payload
+    assert "version" in payload
+    assert "auth_required" in payload
+    detail = str(payload.get("detail", "")).lower()
+    assert "adjuvant" in detail
+    assert "unreachable" in detail
+    assert "died" not in detail
+    assert "dead" not in detail
+    assert "ceo brain unreachable" not in detail

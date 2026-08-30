@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import asyncio
 
-from core.model_serving.gateway import ModelGateway, _has_image_content, _openai_messages
+from core.model_serving.gateway import (
+    ModelGateway,
+    _has_image_content,
+    _openai_messages,
+    _strip_image_content,
+)
 from core.model_serving.providers import GatewayConfig, ModelProvider
 from core.pipeline.chart_image import (
     MIN_CANDLES,
@@ -57,8 +62,20 @@ def test_render_png_is_real_png_and_facts_match_series():
     assert "SMA20" in facts["trend"].upper()
 
 
-def test_build_message_attaches_image_when_candles_exist():
+def test_build_message_is_text_only_by_default():
     msg = build_chart_visual_message({"ticker": "TD.TO", "data": {"ohlcv": _candles(30)}})
+    assert msg is not None
+    assert msg["role"] == "user"
+    assert isinstance(msg["content"], str)
+    assert "CONTRATO DE EVIDENCIA" in msg["content"]
+    assert "TD.TO" in msg["content"]
+    assert "image_url" not in msg["content"]
+
+
+def test_build_message_attaches_image_when_opted_in():
+    msg = build_chart_visual_message(
+        {"ticker": "TD.TO", "data": {"ohlcv": _candles(30)}}, attach_image=True
+    )
     assert msg is not None
     assert msg["role"] == "user"
     assert isinstance(msg["content"], list)
@@ -105,7 +122,22 @@ def test_has_image_content_and_openai_strip_internal_keys():
     assert _has_image_content([{"role": "user", "content": "texto"}]) is False
 
 
-def test_chat_completion_forwards_image_messages_without_flattening():
+def test_strip_image_content_keeps_caption_text():
+    raw = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "GRAFICO REAL ANEXADO ticker=TD.TO"},
+                {"type": "image_url", "image_url": {"url": "data:image/png;base64,abc"}},
+            ],
+        }
+    ]
+    cleaned = _strip_image_content(raw)
+    assert cleaned[0]["content"] == "GRAFICO REAL ANEXADO ticker=TD.TO"
+    assert _has_image_content(cleaned) is False
+
+
+def test_chat_completion_strips_images_for_local_mouth():
     captured: dict = {}
 
     async def fake_api(
@@ -122,7 +154,7 @@ def test_chat_completion_forwards_image_messages_without_flattening():
         captured["messages"] = messages
         captured["json_mode"] = json_mode
         captured["prompt"] = prompt
-        return "vi o grafico"
+        return "WAIT"
 
     provider = ModelProvider(
         name="agent",
@@ -130,6 +162,7 @@ def test_chat_completion_forwards_image_messages_without_flattening():
         priority=0,
         api_key="local-served",
         backend="openai_compatible",
+        is_local=True,
     )
     gw = ModelGateway(providers=[provider], config=GatewayConfig(retry_attempts=1, retry_delay_s=0))
 
@@ -152,16 +185,17 @@ def test_chat_completion_forwards_image_messages_without_flattening():
     finally:
         ModelGateway.generate_api = original  # type: ignore[method-assign]
 
-    assert out == "vi o grafico"
-    assert captured["messages"] == msgs
-    assert captured["json_mode"] is False
-    assert captured["prompt"] == ""
-    assert _has_image_content(captured["messages"]) is True
+    assert out == "WAIT"
+    assert captured["messages"] is None
+    assert "analisa" in captured["prompt"]
+    assert "image_url" not in captured["prompt"]
 
 
 def test_exact_boundary_of_20_candles_is_minimum():
     """Boundary test: exactly 20 candles should be the minimum accepted."""
-    msg = build_chart_visual_message({"ticker": "TEST", "data": {"ohlcv": _candles(MIN_CANDLES)}})
+    msg = build_chart_visual_message(
+        {"ticker": "TEST", "data": {"ohlcv": _candles(MIN_CANDLES)}}, attach_image=True
+    )
     assert msg is not None
     assert msg["role"] == "user"
     assert isinstance(msg["content"], list)
@@ -198,7 +232,9 @@ def test_all_candles_with_zero_volume():
     rows = _candles(25, start=100.0)
     for row in rows:
         row["volume"] = 0
-    msg = build_chart_visual_message({"ticker": "ZERO_VOL", "data": {"ohlcv": rows}})
+    msg = build_chart_visual_message(
+        {"ticker": "ZERO_VOL", "data": {"ohlcv": rows}}, attach_image=True
+    )
     assert msg is not None
     assert msg["role"] == "user"
     assert isinstance(msg["content"], list)
@@ -216,7 +252,8 @@ def test_empty_ticker_string_returns_none():
 def test_empty_ticker_with_ticker_allowed_generates_chart():
     """Test that empty ticker with ticker_allowed flag still generates chart."""
     msg = build_chart_visual_message(
-        {"ticker": "", "ticker_allowed": True, "data": {"ohlcv": _candles(25)}}
+        {"ticker": "", "ticker_allowed": True, "data": {"ohlcv": _candles(25)}},
+        attach_image=True,
     )
     assert msg is not None
     assert msg["role"] == "user"

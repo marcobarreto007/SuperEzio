@@ -1,32 +1,30 @@
 {
-  "date_local": "2026-08-26",
-  "session": "board-resolution-20260826",
-  "status": "DELIVERED",
-  "objective": "Resolver itens pendentes do TASK_BOARD: build_release, format src/, dead code, skills órfãs, tese-tracker GAP-5. Dropar stash do incidente de lint.",
-  "predecessor": "save-state-and-docs-formatting-20260826",
+  "date_local": "2026-08-29",
+  "session": "ornith-text-only-mouth-20260829",
+  "status": "DELIVERED_SLICE",
+  "objective": "Boca local Ornith texto-only; orgaos decidem; imagem nao vai para :8080.",
+  "predecessor": "system-over-model-20260829",
   "patch": {
-    "stash_dropped": "stash@{0} (99d9875d — 28 arquivos de lint parcial) dropado; ruff check/format já limpos.",
-    "build_release": "FECHADO — script já tem allowlist+denylist cobrindo .env*, *.db*, *.log, *.jsonl, runtime/, journal/, checkpoints/, partner/.",
-    "format_src": "FECHADO — ruff format --check . = 716 files already formatted; ruff check . = All checks passed!",
-    "dead_code": "FECHADO — core/auth/ removido do git + pyc residuais limpos do disco; committee.py, pipeline_hook.py, decision_logger.py confirmados deletados.",
-    "skills_orfas": "FECHADO — auditoria de referências: 21 ativas com ≥3 refs externas cada; 6 gates sobrepostos já consolidados na onda de deprecação.",
-    "tese_tracker_gap5": "FECHADO — seção Entregáveis mínimos adicionada com checkpoint canônico; SKILLS_CHECK.md: CONDICIONAL → APTO."
-  },
-  "abertos": {
-    "P0_segredos": "BLOQUEADO PELO OPERADOR — rotação de credenciais Questrade/DeepSeek + purge de histórico.",
-    "re_auditoria_deprecated": "Prazo 2026-09-25 — 11 skills deprecated aguardam decisão matar/promover."
+    "model": "Ornith-1.0-9B-Q4_K_M em models\\ + :8080 ctx 8192 sem mmproj (commit 08f759f1)",
+    "vision": "build_chart_visual_message default texto; gateway strip image_url no mouth local",
+    "identity": "mission_context + BOB_SOVEREIGN: Bob = boca, nao CEO/cerebro"
   },
   "verification": {
-    "ruff_check": "All checks passed!",
-    "ruff_format": "716 files already formatted",
-    "pytest": "2218 passed, 0 failed, 3 skipped, 1 deselected em 611s (10m11s)."
+    "boot": "start.ps1 2026-08-29 22:33 — CEO 22s, API 5s, /v1/models = Ornith GGUF",
+    "ping": "POST :8080/v1/chat/completions 'Vivo' 24.8s",
+    "consult_td": "186.6s orgaos ok, boca morreu com image input is not supported (antes deste patch)",
+    "pytest": "148 passed chart/gateway/agent/organism/health 20.73s; ruff clean nos tocados"
+  },
+  "debt_next_slice": {
+    "restart_api": "API :8002 precisa restart para carregar o strip; llama ja e Ornith",
+    "label_qwen": "health/details provider_agent ainda pode herdar SUPEREZIO_AGENT_MODEL=Qwen 27B do env",
+    "gpu_smi": "nvidia-smi desta maquina reportou RTX 2070 8GB, nao 3060 12GB",
+    "playwright": "browser_smoke falhou: chromium ausente no sandbox cache",
+    "newsapi_429": "NewsAPI quota 24h estourada no consult"
   },
   "still_true": {
     "live_execution": "FROZEN",
     "github": "DISK ONLY",
-    "vision": "mmproj loaded on :8080",
-    "open_access": "SUPEREZIO_OPEN_ACCESS from .env.local"
+    "intelligence": "pipeline organs, not the LLM"
   }
 }
-
-

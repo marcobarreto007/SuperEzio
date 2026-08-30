@@ -85,6 +85,56 @@ def _has_image_content(messages: list[dict[str, Any]] | None) -> bool:
     return False
 
 
+def _is_text_only_mouth(provider: Any) -> bool:
+    """Local CEO/orchestrator has no mmproj. Images 500 the llama-server."""
+    name = getattr(provider, "name", "")
+    return bool(getattr(provider, "is_local", False)) or name in {
+        "agent",
+        "local_orchestrator",
+    }
+
+
+def _strip_image_content(
+    messages: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
+    """Drop image_url parts. Keep caption text. Local mouth is text-only."""
+    out: list[dict[str, Any]] = []
+    for msg in messages or []:
+        if not isinstance(msg, dict):
+            continue
+        content = msg.get("content")
+        if not isinstance(content, list):
+            out.append(dict(msg))
+            continue
+        texts: list[str] = []
+        kept: list[dict[str, Any]] = []
+        dropped_image = False
+        for part in content:
+            if not isinstance(part, dict):
+                continue
+            if part.get("type") == "image_url":
+                dropped_image = True
+                continue
+            if part.get("type") == "text":
+                texts.append(str(part.get("text") or ""))
+            else:
+                kept.append(part)
+        new_msg = {k: v for k, v in msg.items() if k != "content"}
+        if kept:
+            new_msg["content"] = [{"type": "text", "text": t} for t in texts if t] + kept
+        elif texts:
+            new_msg["content"] = "\n".join(t for t in texts if t)
+        elif dropped_image:
+            new_msg["content"] = (
+                "GRAFICO OMITIDO: a boca local e texto-only. "
+                "Use os numeros do pipeline (preco, RSI, MACD, F51, SDCA)."
+            )
+        else:
+            new_msg["content"] = ""
+        out.append(new_msg)
+    return out
+
+
 def _openai_messages(raw: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
     """Drop internal keys (e.g. _chart_facts) before the provider call."""
     out: list[dict[str, Any]] = []
@@ -404,6 +454,8 @@ class ModelGateway:
             if system_prompt:
                 api_messages.append({"role": "system", "content": system_prompt})
             api_messages.append({"role": "user", "content": prompt})
+        if _is_text_only_mouth(provider):
+            api_messages = _strip_image_content(api_messages)
         if assistant_prefix:
             api_messages.append({"role": "assistant", "content": assistant_prefix})
 
@@ -487,6 +539,8 @@ class ModelGateway:
             if system_prompt:
                 api_messages.append({"role": "system", "content": system_prompt})
             api_messages.append({"role": "user", "content": prompt})
+        if _is_text_only_mouth(provider):
+            api_messages = _strip_image_content(api_messages)
         if assistant_prefix:
             api_messages.append({"role": "assistant", "content": assistant_prefix})
 
@@ -910,6 +964,9 @@ class ModelGateway:
             preferred_provider, allow_fallback=allow_fallback
         )[0]
 
+        if _is_text_only_mouth(provider_obj):
+            messages = _strip_image_content(messages)
+
         # ── Local-context pre-flight guard ──
         # The local llama window is 8192 tokens. Requests far beyond it were
         # rejected by llama-server with a raw 400 (demo failure 24/08: two
@@ -991,6 +1048,12 @@ class ModelGateway:
             content = msgs[-1].get("content", "")
             prefix = prefix or (content if isinstance(content, str) else "")
             msgs = msgs[:-1]
+
+        stream_provider = self._providers_for_request(
+            preferred_provider, allow_fallback=allow_fallback
+        )[0]
+        if _is_text_only_mouth(stream_provider):
+            msgs = _strip_image_content(msgs)
 
         if _has_image_content(msgs):
             async for chunk in self.stream_generate_async(

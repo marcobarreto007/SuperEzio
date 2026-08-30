@@ -181,10 +181,10 @@ class TestChartVisualErrorHandling:
 
             # build_chart_visual_message should raise (agent catches it)
             with pytest.raises(RuntimeError, match="OOM during render"):
-                build_chart_visual_message(state)
+                build_chart_visual_message(state, attach_image=True)
 
     def test_successful_chart_generation(self):
-        """Successful chart generation should return multimodal message."""
+        """Successful chart generation is text-only for the local mouth."""
         state = {
             "ticker": "TEST",
             "data": {
@@ -195,17 +195,14 @@ class TestChartVisualErrorHandling:
             },
         }
 
-        # This should not raise
         result = build_chart_visual_message(state)
 
-        # Should return multimodal message
         assert result is not None
         assert result["role"] == "user"
         content = result["content"]
-        assert isinstance(content, list)
-        assert len(content) == 2  # text + image
-        assert content[0]["type"] == "text"
-        assert content[1]["type"] == "image_url"
+        assert isinstance(content, str)
+        assert "CONTRATO DE EVIDENCIA" in content
+        assert "image_url" not in content
 
     def test_insufficient_candles_before_render(self):
         """When candles < MIN_CANDLES, should return fail-closed before render."""

@@ -1,7 +1,8 @@
-"""Render a real OHLCV chart for Bob's vision path.
+"""Chart evidence for the local mouth.
 
-The PNG is generated from the same candles the pipeline already collected.
-No screenshot, no mock series. Fail closed when candles are missing or short.
+Default path is text-only: the same OHLCV facts the pipeline already has.
+PNG attach is opt-in (`attach_image=True`) for the retired vision mouth.
+Fail closed when candles are missing or short.
 """
 
 from __future__ import annotations
@@ -317,10 +318,13 @@ def evidence_contract_text(facts: dict[str, Any], has_chart: bool) -> str:
     )
 
 
-def build_chart_visual_message(state: dict[str, Any]) -> dict[str, Any] | None:
-    """OpenAI-style user message with chart image, or a fail-closed text notice.
+def build_chart_visual_message(
+    state: dict[str, Any], *, attach_image: bool = False
+) -> dict[str, Any] | None:
+    """User message with chart facts, or a fail-closed text notice.
 
     Returns None when the turn is not a ticker/trade case (no hollow chart leak).
+    Local mouth (Ornith) is text-only — PNG is not attached unless attach_image.
     """
     ticker, candles = extract_ohlcv(state)
     needs_chart = bool(ticker) or bool(state.get("ticker_allowed"))
@@ -330,9 +334,12 @@ def build_chart_visual_message(state: dict[str, Any]) -> dict[str, Any] | None:
     if len(candles) < MIN_CANDLES:
         return {"role": "user", "content": evidence_contract_text({}, False)}
 
-    png = render_ohlcv_png(ticker or "UNKNOWN", candles)
     facts = chart_facts(ticker or "UNKNOWN", candles)
     caption = evidence_contract_text(facts, True)
+    if not attach_image:
+        return {"role": "user", "content": caption, "_chart_facts": facts}
+
+    png = render_ohlcv_png(ticker or "UNKNOWN", candles)
     return {
         "role": "user",
         "content": [

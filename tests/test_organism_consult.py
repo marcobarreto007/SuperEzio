@@ -24,6 +24,31 @@ def test_survival_contract_is_in_bob_prompt_and_mission():
     assert _SEMI_REPEATABLE_LIMITS.get("run_experts") == 2
 
 
+def test_identity_contract_system_is_intelligence_model_is_adjuvant():
+    from core.mission_context import render_mission_context_for_prompt
+    from core.pipeline.nodes.agent import BOB_SOVEREIGN_PROMPT
+
+    prompt = BOB_SOVEREIGN_PROMPT
+    assert "MOUTH" in prompt
+    assert "interchangeable adjuvant" in prompt
+    assert "SYSTEM is the intelligence" in prompt
+    assert "model swap does not change the product" in prompt
+    assert "only the mouth disappears" in prompt
+    assert "CEO of SuperEzio" not in prompt
+    assert "CEO brain" not in prompt
+    assert "pipeline is your brain" not in prompt
+
+    mission = render_mission_context_for_prompt()
+    assert "mouth of SuperEzio" in mission
+    assert "interchangeable adjuvant" in mission
+    assert "intelligence is the system" in mission
+    assert "CEO of SuperEzio" not in mission
+    assert "CEO brain" not in mission
+    assert "My local brain is Bob Core" not in mission
+    assert "ceo_server" not in mission
+    assert "local_voice" in mission
+
+
 def test_sse_hides_think_and_tool_json_but_types_verdict():
     assert _sse_visible_after_think("<think>planning organs") == ""
     assert _sse_visible_after_think('{"tool": "run_experts", "args": {}}') == ""
