@@ -351,10 +351,10 @@ def run_smoke(
         headers=auth_headers,
     )
     primary_model = (cockpit.get("status") or {}).get("primary_model")
-    if primary_model != "Qwen3.8-27B-UD-IQ2_XXS":
+    if primary_model != "Ornith-1.0-9B-Q4_K_M":
         raise AssertionError(
             f"cockpit reports wrong primary model: {primary_model!r} "
-            f"(contract: Qwen3.8-27B-UD-IQ2_XXS)"
+            f"(contract: Ornith-1.0-9B-Q4_K_M)"
         )
     out_dir = ROOT / "output" / "playwright"
     out_dir.mkdir(parents=True, exist_ok=True)

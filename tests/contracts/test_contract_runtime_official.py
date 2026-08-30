@@ -67,7 +67,7 @@ def test_canonical_inventory_and_contract_match_the_official_runtime():
     assert launcher["canonical"] is True
     assert cfg["models"]["agent"]["model_id"] == manifest["agent"]["model"]
     assert cfg["models"]["agent"]["context_length"] == 8192
-    assert "Qwen3.8-27B-UD-IQ2_XXS" in contract
+    assert "Ornith-1.0-9B-Q4_K_M" in contract
     assert "8082" not in canonical_text
     assert "80B" not in canonical_text
 
@@ -197,7 +197,7 @@ def test_agent_runtime_config_matches_manifest_and_script():
     assert agent_cfg["server_url"] == agent_manifest["server_url"]
     assert agent_cfg["backend"] == "openai_compatible"
     assert agent_cfg["is_local"] is True
-    assert agent_cfg["path"] == "models/Qwen3.8-27B-UD-IQ2_XXS.gguf"
+    assert agent_cfg["path"] == "models/Ornith-1.0-9B-Q4_K_M.gguf"
     assert agent_cfg["preferred_llama_server"] == "llama.cpp/bin/llama-server.exe"
     assert "C:\\Users\\" not in RUNTIME_YML.read_text(encoding="utf-8")
     assert "C:\\\\Users\\\\" not in MODEL_MANIFEST.read_text(encoding="utf-8")
@@ -357,7 +357,7 @@ def test_runtime_checkpoint_tracks_official_entrypoints():
     assert params["api_entrypoint"] == "python -m agent_server.main"
     assert params["agent_entrypoint"].endswith("scripts/serve_agent_llamacpp.ps1 -Port 8080")
     assert params["model_path"] == (
-        r"C:\Users\marco\models\qwen3.8-27b\Qwen3.8-27B-UD-IQ2_XXS.gguf"
+        r"C:\Users\marco\Desktop\SuperEzio\models\Ornith-1.0-9B-Q4_K_M.gguf"
     )
     assert params.get("lora_path") in (None, "")
 

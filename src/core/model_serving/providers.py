@@ -24,7 +24,7 @@ AGENT_PROVIDER_NAME = "agent"
 # Model id served by the shared local llama-server (perfil cc). Single-model
 # llama-server accepts any requested name; /v1/models reports the loaded file
 # path. This id is the canonical name of the quant in use.
-AGENT_MODEL_ID = "Qwen3.8-27B-UD-IQ2_XXS"
+AGENT_MODEL_ID = "Ornith-1.0-9B-Q4_K_M"
 PRIMARY_PROVIDER_NAME = "local_orchestrator"
 PRIMARY_MODEL_ID = AGENT_MODEL_ID
 DEEPSEEK_PROVIDER_NAME = "deepseek"
@@ -34,9 +34,8 @@ DEEPSEEK_OFFICIAL_MODELS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})
 DAYTRADE_JUDGE_PROVIDER_NAME = "daytrade_judge"
 DAYTRADE_AUDITOR_PROVIDER_NAME = "daytrade_auditor"
 
-# Shared local llama-server (perfil cc — 2026-08-21):
-# Qwen3.8-27B-UD-IQ2_XXS (8.4 GB) on the single real GPU (RTX 3060 12GB, -ts 12),
-# context 8192, single slot. One server serves Claude Code AND SuperEzio.
+# Shared local llama-server: Ornith-1.0-9B-Q4_K_M (~5.9 GB) on the RTX 3060
+# 12GB, context 8192, single slot. Operator mouth — organs decide.
 LOCAL_QWEN_BASE_URL = "http://127.0.0.1:8080/v1"
 # 512 cut complex verdict answers mid-sentence (reproduced 2026-08-22:
 # decisive TD.TO answer ended at "...impede uma validacao de" before the

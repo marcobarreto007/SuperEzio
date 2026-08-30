@@ -15,16 +15,15 @@ $script:EnvExampleFile = Join-Path $SuperEzioRoot ".env.example"
 $script:CeoPort = if ($env:SUPEREZIO_MODEL_PORT) { [int]$env:SUPEREZIO_MODEL_PORT } else { 8080 }
 $script:ApiPort = if ($env:SUPEREZIO_PORT) { [int]$env:SUPEREZIO_PORT } else { 8002 }
 $script:ModelsDir = Join-Path $SuperEzioRoot "models"
-# Single-GPU (RTX 3060 12GB) default: Unsloth Dynamic v3 2-bit quant (8.4GB)
-# fits VRAM-only with headroom for 8-16K context. Swap to
-# "Qwen3.8-27B-Q4_K_M.gguf" when running 2 GPUs or CPU offload.
-$modelFileName = "Qwen3.8-27B-UD-IQ2_XXS.gguf"
+# Operator mouth (RTX 3060 12GB): Ornith-1.0-9B Q4_K_M (~5.9GB).
+# System organs decide; this GGUF only routes tools and narrates the cockpit.
+$modelFileName = "Ornith-1.0-9B-Q4_K_M.gguf"
 $modelCandidates = @(
     $env:SUPEREZIO_MODEL_PATH,
     (Join-Path $ModelsDir $modelFileName)
 )
 if ($env:USERPROFILE) {
-    $modelCandidates += Join-Path $env:USERPROFILE "models\qwen3.8-27b\$modelFileName"
+    $modelCandidates += Join-Path $env:USERPROFILE "models\ornith-1.0-9b\$modelFileName"
 }
 $script:ModelPath = $modelCandidates | Where-Object {
     $_ -and (Test-Path -LiteralPath $_)

@@ -24,11 +24,11 @@ server:
 # ---------------------------------------------------------------------------
 models:
   agent:
-    name: Qwen3.8-27B Local (shared cc)
+    name: Ornith-1.0-9B Local (operator)
     provider_name: agent
-    model_id: Qwen3.8-27B-UD-IQ2_XXS
-    path: models/Qwen3.8-27B-UD-IQ2_XXS.gguf
-    quantization: UD-IQ2_XXS
+    model_id: Ornith-1.0-9B-Q4_K_M
+    path: models/Ornith-1.0-9B-Q4_K_M.gguf
+    quantization: Q4_K_M
     server_url: http://127.0.0.1:8080/v1
     backend: openai_compatible
     role: agent
@@ -40,24 +40,23 @@ models:
     timeout_s: 600
     script: scripts/serve_agent_llamacpp.ps1
     preferred_llama_server: llama.cpp/bin/llama-server.exe
-    # Perfil 2026-08-21: -ngl all -sm layer -ts 12, cache q8_0, contexto 8192,
-    # UD-IQ2_XXS (Unsloth Dynamic v3, 8.4GB) na unica GPU funcional
-    # (RTX 3060 12GB). presence-penalty 1.5. MTP desligado.
+    # Perfil 2026-08-29: Ornith-1.0-9B Q4_K_M (~5.9GB) na RTX 3060 12GB.
+    # Operador de tools; orgaos decidem. Sem visao. MTP desligado.
     context_length: 8192
     gpu_layers: all
     tensor_split: "12"
     slots: 1
     thinking: disabled
     model_type: local_gguf
-    base_model: Qwen3.8-27B
+    base_model: Ornith-1.0-9B
     # Servidor compartilhado com o Claude Code (perfil cc): um servidor, um
     # slot. NAO subir segunda instancia (VRAM nao aguenta dois servidores).
 
   orchestrator:
-    name: Qwen3.8-27B Local (shared cc)
+    name: Ornith-1.0-9B Local (operator)
     provider_name: local_orchestrator
     path: http://127.0.0.1:8080/v1
-    model_id: Qwen3.8-27B-UD-IQ2_XXS
+    model_id: Ornith-1.0-9B-Q4_K_M
     backend: openai_compatible
     role: orchestrator
     is_local: true

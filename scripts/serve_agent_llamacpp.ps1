@@ -1,12 +1,12 @@
-# SuperEzio CEO local server (ZERO-CLOUD).
-# Sobe Qwen3.8-27B-UD-IQ2_XXS na porta 8080. Um servidor por vez — a unica GPU
+# SuperEzio operator mouth (ZERO-CLOUD).
+# Sobe Ornith-1.0-9B-Q4_K_M na porta 8080. Um servidor por vez — a unica GPU
 # real desta maquina (RTX 3060 12GB) nao aguenta duas instancias.
 # Sources config.ps1 for portable path detection and keeps command-line overrides.
 
 param(
     [int]$Port = 8080,
     [string]$TensorSplit = "12",
-    [int]$ContextLength = 16384,
+    [int]$ContextLength = 8192,
     [int]$Slots = 1,
     [string]$LlamaServerPath = $env:SUPEREZIO_LLAMA_SERVER_EXE
 )
@@ -46,23 +46,9 @@ if ($LoraPath -and -not (Test-Path $LoraPath)) {
     $LoraPath = $null
 }
 
-# Vision projector: load full BF16 mmproj on GPU. Do not cut ctx/layers.
-# If VRAM OOMs, llama-server fails at load — that is the experiment.
-$mmprojFileName = "mmproj-BF16.gguf"
-$mmprojCandidates = @()
-if ($ModelPath) {
-    $mmprojCandidates += Join-Path (Split-Path -Parent $ModelPath) $mmprojFileName
-}
-if ($ModelsDir) {
-    $mmprojCandidates += Join-Path $ModelsDir $mmprojFileName
-}
-if ($env:USERPROFILE) {
-    $mmprojCandidates += Join-Path $env:USERPROFILE "models\qwen3.8-27b\$mmprojFileName"
-}
-$MmprojPath = $mmprojCandidates | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
-if (-not $MmprojPath) {
-    Write-Host "WARNING: $mmprojFileName not found - starting TEXT-ONLY" -ForegroundColor Yellow
-}
+# Operator mouth is text-only. Do not attach the old 27B mmproj — it steals
+# VRAM and is the wrong projector for Ornith.
+$MmprojPath = $null
 
 if (-not $LlamaServerPath) {
     Write-Host "ERROR: llama-server.exe not found." -ForegroundColor Red
@@ -123,9 +109,8 @@ if (-not $hasCuda) {
 
 Write-Host "Starting llama-server..." -ForegroundColor Green
 
-# Perfil 2026-08-21: UD-IQ2_XXS na unica GPU real (RTX 3060 12GB), tensor split 12,
-# cache q8_0 e contexto 16384 (dobrado 2026-08-25: prompt rodava a 95% de 8192 e a demo estourou com prompts de 34k+ tokens).
-# MTP (--spec-type draft-mtp) nao cabe no VRAM livre da 3060 com Q4; nao usar.
+# Perfil operador 2026-08-29: Ornith-1.0-9B Q4_K_M na RTX 3060 12GB,
+# cache q8_0, contexto 8192, sem visao. MTP desligado.
 $args = @(
     "-m", $ModelPath,
     "-ngl", "all",
@@ -138,9 +123,7 @@ $args = @(
     "--cache-type-k", "q8_0",
     "--cache-type-v", "q8_0",
     "--reasoning", "off",
-    # Unsloth Dynamic v3 guidance: quants below Q2_K_XL need presence
-    # penalty >= 1.5 to avoid repetition loops.
-    "--presence-penalty", "1.5"
+    "--jinja"
 )
 
 if ($LoraPath) {

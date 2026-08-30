@@ -15,7 +15,7 @@ def test_compose_uses_local_ceo_and_required_deepseek_experts() -> None:
 
     assert ceo["image"] == "ghcr.io/ggml-org/llama.cpp:server-cuda"
     assert ceo["ports"] == ["8080:8080"]
-    assert "/models/Qwen3.8-27B-UD-IQ2_XXS.gguf" in ceo["command"]
+    assert "/models/Ornith-1.0-9B-Q4_K_M.gguf" in ceo["command"]
     for expected in ("all", "layer", "12,8", "8192"):
         assert expected in ceo["command"]
 

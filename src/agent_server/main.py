@@ -787,10 +787,14 @@ async def favicon():
 async def health_check_public(request: Request):
     """Public liveness probe — real health status with proper HTTP codes.
 
-    Returns 503 if any critical component is unhealthy:
+    Returns 503 only for critical liveness failures:
     - Pipeline not initialized
-    - MAN_AT_WORK mode active (CEO offline or critical)
-    - CEO Brain unreachable (verified by ANS background health monitor)
+    - MAN_AT_WORK mode active
+    - Consciousness state unverifiable (probe raise)
+
+    Local adjuvant voice (ceo_brain / :8080) down is degraded, not a
+    liveness failure: HTTP 200 with status "degraded". The product stays
+    live; intelligence is the pipeline.
 
     Docker healthcheck uses curl -f, which treats 503 as failure.
     Detailed health (GPU, providers, redis, cost guard, base URLs) is at
@@ -817,7 +821,8 @@ async def health_check_public(request: Request):
             media_type="application/json",
         )
 
-    # 2. MAN_AT_WORK active?  + 3. CEO Brain healthy? (uses ANS cached state)
+    # 2. MAN_AT_WORK active? (liveness 503)
+    # 3. Adjuvant local voice (ceo_brain / :8080): degraded, not liveness failure
     try:
         from core.bob_consciousness import get_bobs_body
 
@@ -832,17 +837,12 @@ async def health_check_public(request: Request):
             )
         ceo = body.organs.get("ceo_brain")
         if ceo and ceo.last_check and not ceo.last_health:
-            return Response(
-                status_code=503,
-                content=_json.dumps(
-                    {
-                        "status": "error",
-                        "detail": f"CEO Brain unreachable: {ceo.last_error}",
-                        **identity,
-                    }
-                ),
-                media_type="application/json",
-            )
+            return {
+                "status": "degraded",
+                "voice": "down",
+                "detail": f"Adjuvant local voice unreachable: {ceo.last_error}",
+                **identity,
+            }
     # Catch amplo deliberado (fail-closed): falha de verificação do estado de
     # consciência vira 503 — nunca derruba o /health.
     except Exception as exc:  # noqa: BLE001
@@ -1068,7 +1068,7 @@ def health_check():
         "provider": PRIMARY_PROVIDER_NAME,
         "role": "ceo",
         "topology": "local",
-        "model": os.getenv("SUPEREZIO_AGENT_MODEL", "Qwen3.8-27B-UD-IQ2_XXS"),
+        "model": os.getenv("SUPEREZIO_AGENT_MODEL", "Ornith-1.0-9B-Q4_K_M"),
         "base_url": ceo_runtime["url"],
         "reachable": ceo_runtime["reachable"],
         "status": ceo_runtime["status"],

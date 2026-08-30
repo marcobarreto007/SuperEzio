@@ -6,10 +6,10 @@
     "agent":  {
                 "provider_name":  "agent",
                 "persona":  "Bob",
-                "base_model":  "Qwen3.8-27B",
-                "model":  "Qwen3.8-27B-UD-IQ2_XXS",
-                "path":  "models/Qwen3.8-27B-UD-IQ2_XXS.gguf",
-                "quantization":  "UD-IQ2_XXS (8.4 GB)",
+                "base_model":  "Ornith-1.0-9B",
+                "model":  "Ornith-1.0-9B-Q4_K_M",
+                "path":  "models/Ornith-1.0-9B-Q4_K_M.gguf",
+                "quantization":  "Q4_K_M (~5.9 GB)",
                 "server_url":  "http://127.0.0.1:8080/v1",
                 "priority":  -10,
                 "backend":  "openai_compatible",
@@ -24,7 +24,7 @@
                 "gpus":  "RTX 3060 12GB",
                 "speculative":  "disabled (no VRAM headroom on a single RTX 3060 with UD-IQ2_XXS)",
                 "launch_profile":  "scripts/serve_agent_llamacpp.ps1 -Port 8080",
-                "availability":  "GGUF PRESENT at %USERPROFILE%\\models\\qwen3.8-27b\\ (Q4_K_M 15.9GB, UD-IQ2_XXS 8.4GB, UD-IQ3_XXS 11.1GB, mmproj-BF16 0.9GB; downloaded 2026-08-14/15) — config.ps1 resolves this path automatically",
+                "availability":  "GGUF at models/Ornith-1.0-9B-Q4_K_M.gguf (bartowski Q4_K_M of deepreinforce-ai/Ornith-1.0-9B) — config.ps1 resolves this path automatically",
                 "model_type":  "dense",
                 "shared_with":  "Claude Code perfil cc — one server, one slot"
             },
@@ -32,7 +32,7 @@
                       "local_orchestrator":  {
                                                  "provider_name":  "local_orchestrator",
                                                  "base_url":  "http://127.0.0.1:8080/v1",
-                                                 "model":  "Qwen3.8-27B-UD-IQ2_XXS",
+                                                 "model":  "Ornith-1.0-9B-Q4_K_M",
                                                  "priority":  0,
                                                  "role":  "orchestrator (local)"
                                              },

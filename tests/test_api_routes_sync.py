@@ -134,7 +134,7 @@ def test_health(client_with_mock_pipeline):
     assert response.status_code in (200, 503), f"Expected 200 or 503, got {response.status_code}"
     data = response.json()
     if response.status_code == 200:
-        assert data["status"] == "ok"
+        assert data["status"] in ("ok", "degraded")
         assert "auth_required" in data
         assert isinstance(data["auth_required"], bool)
     assert "agent" in data
@@ -566,7 +566,7 @@ def test_cockpit_summary(client_with_mock_pipeline, monkeypatch):
     assert data["status"]["guardrails"]["status"] == "unknown"
     assert data["status"]["guardrails"]["ok"] is None
     assert data["status"]["guardrails"]["total"] is None
-    assert data["status"]["primary_model"] == "Qwen3.8-27B-UD-IQ2_XXS"
+    assert data["status"]["primary_model"] == "Ornith-1.0-9B-Q4_K_M"
     assert data["status"]["deep"] == {
         "status": "degraded",
         "provider": "deepseek",
