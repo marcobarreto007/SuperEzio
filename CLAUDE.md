@@ -13,6 +13,7 @@ Runtime local e camada operacional do ecossistema F51: um agente de trading (Bob
 ## Arquitetura em cinco linhas
 - entrada: dados de mercado (IBKR, DataHub) via market-data-puller + mensagens do operador no chat
 - núcleo: Bob (agent_server) + gateway de modelos local :8080 + teses em runtime/theses + execução com journal e idempotency
+- boca: Ornith-1.0-9B-Q4_K_M em `:8080` (texto-only). **Nao e abliterado** — recusa da boca nao e decisao do sistema; inteligencia = pipeline
 - persistência: runtime/ (teses, reports, checkpoints) + data/ (logs) + .f51/ (estado operacional)
 - saída: frontend web (chat) + relatórios de tese + logs estruturados
 - fora do escopo deste repositório: GitHub, nuvem, dinheiro real (corretora), MCPs não aprovados

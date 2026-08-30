@@ -1,9 +1,22 @@
 # F51 Risk Register
 
-Updated: 2026-08-25
-Session: demo-recovery-20260825 (post-mortem da demo de 24/08 + correção dos estranguladores — ver .f51/checkpoints/latest.json)
+Updated: 2026-08-30
+Session: cad100-alloc-api-restart-20260830 (Ornith nao abliterado; API :8002 recarregou 0eb62ff1+1e74ac25)
 
 ## Active Risks
+
+### INV-R65 - Boca Ornith nao e abliterada [MEDIUM]
+
+- Classification: mouth / refusal vs pipeline decision.
+- Risk: `Ornith-1.0-9B-Q4_K_M` e o GGUF de fala em `:8080`. Nao e um checkpoint
+  abliterado. Quando o caminho ainda pergunta ao LLM, a boca pode recusar
+  (safety stock) mesmo com o pipeline ja tendo decidido. Isso nao e freeze de
+  live nem bug de rota — e o modelo. Alocacao pequena (100 CAD + investir) agora
+  fala pelo renderer deterministico, sem passar pela boca.
+- Mitigation: nao tratar recusa da boca como "o sistema recusou". Trocar GGUF
+  so com OK do operador. `health/details` ainda pode rotular Qwen via env
+  `SUPEREZIO_AGENT_MODEL`; o processo em `:8080` serve Ornith.
+- Status: ACCEPTED 2026-08-30 (operador).
 
 ### INV-R64 - Input de chat sempre ativo durante run [LOW]
 

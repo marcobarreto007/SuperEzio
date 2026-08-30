@@ -1,30 +1,36 @@
 {
-  "date_local": "2026-08-29",
-  "session": "ornith-text-only-mouth-20260829",
+  "date_local": "2026-08-30",
+  "session": "cad100-alloc-api-restart-20260830",
   "status": "DELIVERED_SLICE",
-  "objective": "Boca local Ornith texto-only; orgaos decidem; imagem nao vai para :8080.",
-  "predecessor": "system-over-model-20260829",
+  "objective": "100 CAD+investir = alocacao curta; enrich com yfinance antes das rotas paced; API :8002 recarregada; boca Ornith nao e abliterada.",
+  "predecessor": "ornith-text-only-mouth-20260829",
   "patch": {
-    "model": "Ornith-1.0-9B-Q4_K_M em models\\ + :8080 ctx 8192 sem mmproj (commit 08f759f1)",
-    "vision": "build_chart_visual_message default texto; gateway strip image_url no mouth local",
-    "identity": "mission_context + BOB_SOVEREIGN: Bob = boca, nao CEO/cerebro"
+    "commits": ["0eb62ff1", "1e74ac25"],
+    "intent": "detect_capital_allocation_intent cobre investir+CAD; CAD com numero nao e geografia",
+    "speech": "scan_verdict.py — CHUNK sem REJECT_ALL/US_CANADA_LIQUID/price_routes_active",
+    "price_chain": "finnhub(1) -> yfinance(2) -> alpha(3) -> twelve_data(12) -> tmx(25)",
+    "enrich": "stage_abandoned nos itens que o deadline abandona; deadline derivado so se SUPEREZIO_SCAN_STAGE_DEADLINE_MS unset"
   },
   "verification": {
-    "boot": "start.ps1 2026-08-29 22:33 — CEO 22s, API 5s, /v1/models = Ornith GGUF",
-    "ping": "POST :8080/v1/chat/completions 'Vivo' 24.8s",
-    "consult_td": "186.6s orgaos ok, boca morreu com image input is not supported (antes deste patch)",
-    "pytest": "148 passed chart/gateway/agent/organism/health 20.73s; ruff clean nos tocados"
+    "ruff": "All checks passed (src/ tests/)",
+    "pytest": "2231 passed, 2 skipped, 1 deselected in 589.82s",
+    "api_restart": "killed python PID 8136 on :8002; spawned PID 7468; health 200 in ~4s; llama PID 18408 untouched",
+    "health_8002": "{\"status\":\"ok\",\"agent\":\"generic_agent\",\"version\":\"4.2.0\"}",
+    "llama_8080": "models/Ornith-1.0-9B-Q4_K_M.gguf still serving"
+  },
+  "operator_truth": {
+    "mouth": "Ornith-1.0-9B-Q4_K_M is NOT abliterated. Mouth refusals are the GGUF safety stock, not pipeline GO/NO-GO.",
+    "intelligence": "pipeline organs, not the LLM"
   },
   "debt_next_slice": {
-    "restart_api": "API :8002 precisa restart para carregar o strip; llama ja e Ornith",
-    "label_qwen": "health/details provider_agent ainda pode herdar SUPEREZIO_AGENT_MODEL=Qwen 27B do env",
-    "gpu_smi": "nvidia-smi desta maquina reportou RTX 2070 8GB, nao 3060 12GB",
-    "playwright": "browser_smoke falhou: chromium ausente no sandbox cache",
-    "newsapi_429": "NewsAPI quota 24h estourada no consult"
+    "label_qwen": "health/details provider_agent still may inherit SUPEREZIO_AGENT_MODEL=Qwen 27B; process on :8080 is Ornith",
+    "gpu_smi": "nvidia-smi on this machine reported RTX 2070 8GB, not 3060 12GB",
+    "playwright": "browser_smoke failed earlier: chromium missing in sandbox cache"
   },
   "still_true": {
     "live_execution": "FROZEN",
     "github": "DISK ONLY",
-    "intelligence": "pipeline organs, not the LLM"
+    "intelligence": "pipeline organs, not the LLM",
+    "mouth_not_abliterated": true
   }
 }

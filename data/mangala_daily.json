@@ -1,136 +1,136 @@
 {
-  "scanned_at": "2026-08-26T22:03:42.412792+00:00",
+  "scanned_at": "2026-08-30T13:03:20.667645+00:00",
   "count": 5,
   "opportunities": [
     {
-      "ticker": "SNDL",
-      "price": 1.38,
-      "volume": 994701,
-      "name": "SNDL",
-      "score": 65,
+      "ticker": "RIG",
+      "price": 5.8,
+      "volume": 34881300,
+      "name": "RIG",
+      "score": 61,
       "signal": "WATCH",
       "factors": {
         "volume": 30,
         "whale": 5,
-        "momentum": 5,
+        "momentum": 3,
         "rsi": 15,
-        "catalyst": 10
+        "catalyst": 8
       },
       "whale_status": "FRACO",
       "whale_score": 20,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
+      "pump_risk": "ALERT",
+      "pump_score": 64,
       "flip_plan": {
-        "entry": 1.38,
-        "target_5pct": 1.45,
-        "stop_3pct": 1.34,
+        "entry": 5.8,
+        "target_5pct": 6.09,
+        "stop_3pct": 5.63,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-26T22:03:42.410754+00:00"
+      "scanned_at": "2026-08-30T13:02:40.777665+00:00"
+    },
+    {
+      "ticker": "SNDL",
+      "price": 1.36,
+      "volume": 1179800,
+      "name": "SNDL",
+      "score": 57,
+      "signal": "MEH",
+      "factors": {
+        "volume": 30,
+        "whale": 5,
+        "momentum": 5,
+        "rsi": 12,
+        "catalyst": 5
+      },
+      "whale_status": "FRACO",
+      "whale_score": 20,
+      "pump_risk": "ALERT",
+      "pump_score": 64,
+      "flip_plan": {
+        "entry": 1.35,
+        "target_5pct": 1.42,
+        "stop_3pct": 1.31,
+        "max_hold_days": 5
+      },
+      "scanned_at": "2026-08-30T13:03:12.852666+00:00"
     },
     {
       "ticker": "PLUG",
-      "price": 2.17,
-      "volume": 78453994,
+      "price": 2.19,
+      "volume": 46565700,
       "name": "PLUG",
-      "score": 53,
+      "score": 56,
       "signal": "MEH",
       "factors": {
         "volume": 30,
         "whale": 5,
         "momentum": 3,
-        "rsi": 5,
+        "rsi": 8,
         "catalyst": 10
       },
       "whale_status": "FRACO",
       "whale_score": 20,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
+      "pump_risk": "ALERT",
+      "pump_score": 64,
       "flip_plan": {
-        "entry": 2.17,
-        "target_5pct": 2.28,
-        "stop_3pct": 2.1,
+        "entry": 2.19,
+        "target_5pct": 2.3,
+        "stop_3pct": 2.12,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-26T22:03:34.378183+00:00"
+      "scanned_at": "2026-08-30T13:02:33.879473+00:00"
     },
     {
       "ticker": "NIO",
       "price": 4.37,
-      "volume": 17953276,
+      "volume": 24753800,
       "name": "NIO",
-      "score": 51,
+      "score": 56,
       "signal": "MEH",
       "factors": {
         "volume": 30,
         "whale": 5,
         "momentum": 3,
-        "rsi": 3,
+        "rsi": 8,
         "catalyst": 10
       },
       "whale_status": "FRACO",
       "whale_score": 20,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
+      "pump_risk": "ALERT",
+      "pump_score": 64,
       "flip_plan": {
         "entry": 4.37,
         "target_5pct": 4.59,
         "stop_3pct": 4.24,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-26T22:03:38.162811+00:00"
+      "scanned_at": "2026-08-30T13:02:48.808913+00:00"
     },
     {
       "ticker": "TLRY",
-      "price": 4.64,
-      "volume": 4099494,
+      "price": 4.59,
+      "volume": 3369600,
       "name": "TLRY",
-      "score": 51,
+      "score": 56,
       "signal": "MEH",
       "factors": {
         "volume": 30,
         "whale": 5,
-        "momentum": 3,
-        "rsi": 5,
+        "momentum": 5,
+        "rsi": 8,
         "catalyst": 8
       },
       "whale_status": "FRACO",
       "whale_score": 20,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
+      "pump_risk": "ALERT",
+      "pump_score": 64,
       "flip_plan": {
-        "entry": 4.64,
-        "target_5pct": 4.87,
-        "stop_3pct": 4.5,
+        "entry": 4.59,
+        "target_5pct": 4.82,
+        "stop_3pct": 4.45,
         "max_hold_days": 5
       },
-      "scanned_at": "2026-08-26T22:03:41.357997+00:00"
-    },
-    {
-      "ticker": "RIG",
-      "price": 5.6,
-      "volume": 23494553,
-      "name": "RIG",
-      "score": 46,
-      "signal": "MEH",
-      "factors": {
-        "volume": 30,
-        "whale": 5,
-        "momentum": 0,
-        "rsi": 3,
-        "catalyst": 8
-      },
-      "whale_status": "FRACO",
-      "whale_score": 20,
-      "pump_risk": "CLEAN",
-      "pump_score": 0,
-      "flip_plan": {
-        "entry": 5.6,
-        "target_5pct": 5.88,
-        "stop_3pct": 5.43,
-        "max_hold_days": 5
-      },
-      "scanned_at": "2026-08-26T22:03:35.980947+00:00"
+      "scanned_at": "2026-08-30T13:03:05.021370+00:00"
     }
   ]
 }

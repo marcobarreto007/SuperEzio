@@ -2,6 +2,8 @@
 
 ## Backlog
 
+- [x] 2026-08-30 - **100 CAD investir = alocacao + enrich yfinance primeiro**: commits `0eb62ff1` (rota/fala curta, CAD=moeda, telemetria fora do CHUNK) e `1e74ac25` (yfinance prio 2, twelve prio 12, `stage_abandoned`, deadline derivado se env unset). pytest **2231 passed**, 2 skipped. API :8002 reiniciada 2026-08-30 (PID novo, health 200); llama :8080 Ornith **nao abliterado** — recusa da boca nao e recusa do pipeline. Checkpoint `cad100-alloc-api-restart-20260830`.
+
 - [x] 2026-08-29 - **Boca Ornith texto-only**: PNG/chart image nao vai mais para `:8080` (default `attach_image=False` + strip no gateway). Evidencia: consult TD.TO 186.6s orgaos ok / boca 500 `image input is not supported`; pytest 148 passed chart/gateway/agent. Restart da API necessario para valer no processo vivo.
 
 - [ ] 2026-08-26 - **P0 — segredos: rotação Questrade/DeepSeek + purge de histórico**: chave DeepSeek real reusada como Anthropic no histórico (`scripts/update_key.py` @ 6b159db1) e perfil Chromium Questrade completo (275 blobs) em `runtime/questrade_profile/`. **BLOQUEADO PELO OPERADOR** (proibido tocar chaves/credenciais e fazer purge). Reabrir quando o operador autorizar; requer filter-repo + rotação nos portais.
