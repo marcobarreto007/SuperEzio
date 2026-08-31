@@ -186,5 +186,9 @@
   "autoRun": true,
   "autoEdit": true,
   "autoWrite": true,
-  "skipPermissions": true
+  "skipPermissions": true,
+  "enabledMcpjsonServers": [
+    "context7",
+    "playwright"
+  ]
 }

@@ -1,22 +1,21 @@
 {
   "date_local": "2026-08-30",
-  "session": "cad100-alloc-api-restart-20260830",
+  "session": "timing-probe-mangala-pass-20260830",
   "status": "DELIVERED_SLICE",
-  "objective": "100 CAD+investir = alocacao curta; enrich com yfinance antes das rotas paced; API :8002 recarregada; boca Ornith nao e abliterada.",
-  "predecessor": "ornith-text-only-mouth-20260829",
+  "objective": "Probe de latencia one-shot na :8002 (TTFB/first_chunk/stream_end); re-scan mangala 5/5 PASS; MCP context7+playwright habilitados; zero mudanca de codigo de produto.",
+  "predecessor": "cad100-alloc-api-restart-20260830",
   "patch": {
-    "commits": ["0eb62ff1", "1e74ac25"],
-    "intent": "detect_capital_allocation_intent cobre investir+CAD; CAD com numero nao e geografia",
-    "speech": "scan_verdict.py — CHUNK sem REJECT_ALL/US_CANADA_LIQUID/price_routes_active",
-    "price_chain": "finnhub(1) -> yfinance(2) -> alpha(3) -> twelve_data(12) -> tmx(25)",
-    "enrich": "stage_abandoned nos itens que o deadline abandona; deadline derivado so se SUPEREZIO_SCAN_STAGE_DEADLINE_MS unset"
+    "commits": [],
+    "intent": "commits: [] — hash added post-commit; slice e ops/data apenas (probe + rescan + local MCP settings), nenhum codigo de produto",
+    "probe": "runtime/logs/timed_consult.py — POST :8002 /task/submit (envelope a2a/1.0); mede TTFB, first_chunk, stream_end; conta eventos CHUNK/PIPELINE_STEP/STREAM_END; imprime head/tail da resposta. Marcado 'Not a product module'.",
+    "mangala_rescan": "data/mangala_daily.json — 2026-08-31T00:47Z: 5 oportunidades, TODAS signal PASS (scores 26-36); volume factor 30 -> 0-5; RIG 61/WATCH -> 36/PASS; BB entrou 30/PASS; TLRY saiu",
+    "mcp_settings": ".claude/settings.local.json — context7 e playwright habilitados; playwright segue com debt: chromium ausente no cache do sandbox"
   },
   "verification": {
-    "ruff": "All checks passed (src/ tests/)",
-    "pytest": "2231 passed, 2 skipped, 1 deselected in 589.82s",
-    "api_restart": "killed python PID 8136 on :8002; spawned PID 7468; health 200 in ~4s; llama PID 18408 untouched",
-    "health_8002": "{\"status\":\"ok\",\"agent\":\"generic_agent\",\"version\":\"4.2.0\"}",
-    "llama_8080": "models/Ornith-1.0-9B-Q4_K_M.gguf still serving"
+    "product_code": "no changes in src/ or tests/ this session",
+    "gates_inherited": "pytest 2231 passed, 2 skipped; ruff All checks passed — herdados do predecessor cad100-alloc-api-restart-20260830, nao re-rodados nesta sessao",
+    "ops_scope": "timed_consult.py (runtime/logs/) e o re-scan (data/) sao dados/ops, nao codigo de produto; gates de pytest/ruff nao se aplicam a este diff",
+    "json_valid": "python -c json.load(open('.f51/checkpoints/latest.json')) -> json ok"
   },
   "operator_truth": {
     "mouth": "Ornith-1.0-9B-Q4_K_M is NOT abliterated. Mouth refusals are the GGUF safety stock, not pipeline GO/NO-GO.",
@@ -25,7 +24,7 @@
   "debt_next_slice": {
     "label_qwen": "health/details provider_agent still may inherit SUPEREZIO_AGENT_MODEL=Qwen 27B; process on :8080 is Ornith",
     "gpu_smi": "nvidia-smi on this machine reported RTX 2070 8GB, not 3060 12GB",
-    "playwright": "browser_smoke failed earlier: chromium missing in sandbox cache"
+    "playwright": "MCP server habilitado mas chromium ausente no cache do sandbox — browser_smoke segue falhando ate instalar"
   },
   "still_true": {
     "live_execution": "FROZEN",
