@@ -1,0 +1,32 @@
+{
+  "date_local": "2026-08-31",
+  "session": "ibkr-degraded-fast-path-20260831",
+  "status": "DELIVERED_SLICE",
+  "objective": "Fast path no IBKRService quando broker esta degradado/em cooldown (retorno imediato <0.5s sem bloquear cache_ready_event); cockpit endpoints com wait_timeout=0.0; bateria de 12 testes dedicados.",
+  "predecessor": "timing-probe-mangala-pass-20260830",
+  "patch": {
+    "commits": [],
+    "intent": "src/adapters/broker/ibkr_service.py (fast path nos metodos get_positions e get_account_equity), src/agent_server/endpoints.py (_cockpit_portfolio_snapshot passa wait_timeout=0.0), tests/test_api_routes_sync.py (mock signatures alinhadas), tests/test_ibkr_degraded_fast_path.py (12 testes novos cobrindo cold start, degraded, stop_event, cache e timeouts)",
+    "data_updates": "config/td_direct_commission_free_etfs.json (verified_at 2026-09-01), data/mangala_daily.json (scan 2026-09-01 5/5 PASS), data/bob_pain_log.jsonl"
+  },
+  "verification": {
+    "ruff": "All checks passed! (src/ e tests/ tocados)",
+    "pytest": "67 passed in 16.13s (tests/test_ibkr_degraded_fast_path.py + tests/test_api_routes_sync.py)",
+    "json_valid": "validated"
+  },
+  "operator_truth": {
+    "mouth": "Ornith-1.0-9B-Q4_K_M is NOT abliterated. Mouth refusals are the GGUF safety stock, not pipeline GO/NO-GO.",
+    "intelligence": "pipeline organs, not the LLM"
+  },
+  "debt_next_slice": {
+    "label_qwen": "health/details provider_agent still may inherit SUPEREZIO_AGENT_MODEL=Qwen 27B; process on :8080 is Ornith",
+    "gpu_smi": "nvidia-smi on this machine reported RTX 2070 8GB, not 3060 12GB",
+    "playwright": "MCP server habilitado mas chromium ausente no cache do sandbox — browser_smoke segue falhando ate instalar"
+  },
+  "still_true": {
+    "live_execution": "FROZEN",
+    "github": "DISK ONLY",
+    "intelligence": "pipeline organs, not the LLM",
+    "mouth_not_abliterated": true
+  }
+}

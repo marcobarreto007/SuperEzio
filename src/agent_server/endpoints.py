@@ -372,11 +372,11 @@ def _cockpit_portfolio_snapshot() -> dict[str, Any]:
     service = get_ibkr_service()
     service_status = service.get_status()
 
-    positions = service.get_positions()
-    equity_float = service.get_account_equity()
+    positions = service.get_positions(wait_timeout=0.0)
+    equity_float = service.get_account_equity(wait_timeout=0.0)
     service_status = service.get_status()
 
-    # Use service status after cache reads; first request may wait for the worker refresh.
+    # Use service status after cache reads; wait_timeout=0.0 nunca bloqueia a resposta.
     connected = service_status.get("connected", False) and service_status.get("can_read", False)
     from core.mission_context import get_mission_equity
 

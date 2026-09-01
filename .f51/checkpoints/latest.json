@@ -1,21 +1,18 @@
 {
-  "date_local": "2026-08-30",
-  "session": "timing-probe-mangala-pass-20260830",
+  "date_local": "2026-08-31",
+  "session": "ibkr-degraded-fast-path-20260831",
   "status": "DELIVERED_SLICE",
-  "objective": "Probe de latencia one-shot na :8002 (TTFB/first_chunk/stream_end); re-scan mangala 5/5 PASS; MCP context7+playwright habilitados; zero mudanca de codigo de produto.",
-  "predecessor": "cad100-alloc-api-restart-20260830",
+  "objective": "Fast path no IBKRService quando broker esta degradado/em cooldown (retorno imediato <0.5s sem bloquear cache_ready_event); cockpit endpoints com wait_timeout=0.0; bateria de 12 testes dedicados.",
+  "predecessor": "timing-probe-mangala-pass-20260830",
   "patch": {
     "commits": [],
-    "intent": "commits: [] — hash added post-commit; slice e ops/data apenas (probe + rescan + local MCP settings), nenhum codigo de produto",
-    "probe": "runtime/logs/timed_consult.py — POST :8002 /task/submit (envelope a2a/1.0); mede TTFB, first_chunk, stream_end; conta eventos CHUNK/PIPELINE_STEP/STREAM_END; imprime head/tail da resposta. Marcado 'Not a product module'.",
-    "mangala_rescan": "data/mangala_daily.json — 2026-08-31T00:47Z: 5 oportunidades, TODAS signal PASS (scores 26-36); volume factor 30 -> 0-5; RIG 61/WATCH -> 36/PASS; BB entrou 30/PASS; TLRY saiu",
-    "mcp_settings": ".claude/settings.local.json — context7 e playwright habilitados; playwright segue com debt: chromium ausente no cache do sandbox"
+    "intent": "src/adapters/broker/ibkr_service.py (fast path nos metodos get_positions e get_account_equity), src/agent_server/endpoints.py (_cockpit_portfolio_snapshot passa wait_timeout=0.0), tests/test_api_routes_sync.py (mock signatures alinhadas), tests/test_ibkr_degraded_fast_path.py (12 testes novos cobrindo cold start, degraded, stop_event, cache e timeouts)",
+    "data_updates": "config/td_direct_commission_free_etfs.json (verified_at 2026-09-01), data/mangala_daily.json (scan 2026-09-01 5/5 PASS), data/bob_pain_log.jsonl"
   },
   "verification": {
-    "product_code": "no changes in src/ or tests/ this session",
-    "gates_inherited": "pytest 2231 passed, 2 skipped; ruff All checks passed — herdados do predecessor cad100-alloc-api-restart-20260830, nao re-rodados nesta sessao",
-    "ops_scope": "timed_consult.py (runtime/logs/) e o re-scan (data/) sao dados/ops, nao codigo de produto; gates de pytest/ruff nao se aplicam a este diff",
-    "json_valid": "python -c json.load(open('.f51/checkpoints/latest.json')) -> json ok"
+    "ruff": "All checks passed! (src/ e tests/ tocados)",
+    "pytest": "67 passed in 16.13s (tests/test_ibkr_degraded_fast_path.py + tests/test_api_routes_sync.py)",
+    "json_valid": "validated"
   },
   "operator_truth": {
     "mouth": "Ornith-1.0-9B-Q4_K_M is NOT abliterated. Mouth refusals are the GGUF safety stock, not pipeline GO/NO-GO.",

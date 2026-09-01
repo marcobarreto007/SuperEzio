@@ -2,6 +2,8 @@
 
 ## Backlog
 
+- [x] 2026-08-31 - **IBKRService degraded fast-path + cockpit timeout 0.0**: IBKRService retorna cache imediatamente sem bloquear quando degradado (`is_degraded()` + `_consecutive_failures > 0` ou `_last_error`); cockpit portfolio snapshot usa `wait_timeout=0.0` para resposta <0.5s; 12 testes novos em `tests/test_ibkr_degraded_fast_path.py` (67 passed na bateria sync+fastpath); mangala daily 2026-09-01 atualizado. Checkpoint `ibkr-degraded-fast-path-20260831`.
+
 - [x] 2026-08-30 - **100 CAD investir = alocacao + enrich yfinance primeiro**: commits `0eb62ff1` (rota/fala curta, CAD=moeda, telemetria fora do CHUNK) e `1e74ac25` (yfinance prio 2, twelve prio 12, `stage_abandoned`, deadline derivado se env unset). pytest **2231 passed**, 2 skipped. API :8002 reiniciada 2026-08-30 (PID novo, health 200); llama :8080 Ornith **nao abliterado** — recusa da boca nao e recusa do pipeline. Checkpoint `cad100-alloc-api-restart-20260830`.
 
 - [x] 2026-08-29 - **Boca Ornith texto-only**: PNG/chart image nao vai mais para `:8080` (default `attach_image=False` + strip no gateway). Evidencia: consult TD.TO 186.6s orgaos ok / boca 500 `image input is not supported`; pytest 148 passed chart/gateway/agent. Restart da API necessario para valer no processo vivo.

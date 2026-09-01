@@ -319,6 +319,11 @@ class IBKRService:
             return []
 
         if not force_refresh and threading.current_thread() is not self._thread:
+            # Fast path: if service is degraded/unavailable, return cache immediately without waiting
+            # Cold-start saudavel (nenhuma falha registrada) preserva o wait do primeiro refresh.
+            if self.is_degraded() and (self._consecutive_failures > 0 or self._last_error):
+                with self._lock:
+                    return list(self._positions_cache)
             self._cache_ready_event.wait(timeout=max(0.0, wait_timeout))
             with self._lock:
                 return list(self._positions_cache)
@@ -359,6 +364,11 @@ class IBKRService:
             return 0.0
 
         if not force_refresh and threading.current_thread() is not self._thread:
+            # Fast path: if service is degraded/unavailable, return cache immediately without waiting
+            # Cold-start saudavel (nenhuma falha registrada) preserva o wait do primeiro refresh.
+            if self.is_degraded() and (self._consecutive_failures > 0 or self._last_error):
+                with self._lock:
+                    return self._equity_cache
             self._cache_ready_event.wait(timeout=max(0.0, wait_timeout))
             with self._lock:
                 return self._equity_cache

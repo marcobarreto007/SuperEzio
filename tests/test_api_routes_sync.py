@@ -390,10 +390,10 @@ def test_cockpit_portfolio_marks_connected_after_service_cache_refresh(
                 "can_read": self.status_calls > 1,
             }
 
-        def get_positions(self):
+        def get_positions(self, wait_timeout: float = 2.0):
             return [{"symbol": "PLUG", "ticker": "PLUG", "quantity": 10}]
 
-        def get_account_equity(self):
+        def get_account_equity(self, wait_timeout: float = 2.0):
             return 99995.59
 
         def get_open_orders(self):
