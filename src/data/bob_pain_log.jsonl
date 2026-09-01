@@ -32,3 +32,6 @@
 {"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-25T14:05:58.235281+00:00", "healed": false}
 {"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-25T14:09:07.719409+00:00", "healed": false}
 {"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-08-25T14:12:17.470008+00:00", "healed": false}
+{"organ": "ibkr_muscles", "category": "muscles", "pain": 75, "error": "IBKR offline: timed out", "timestamp": "2026-09-01T01:44:33.573319+00:00", "healed": false}
+{"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "Scanner error: No module named 'src'", "timestamp": "2026-09-01T01:44:33.578862+00:00", "healed": false}
+{"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-09-01T01:44:33.578862+00:00", "healed": false}

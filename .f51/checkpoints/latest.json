@@ -12,6 +12,12 @@
   "verification": {
     "ruff": "All checks passed! (src/ e tests/ tocados)",
     "pytest": "67 passed in 16.13s (tests/test_ibkr_degraded_fast_path.py + tests/test_api_routes_sync.py)",
+    "runtime_restart": "PID 7468 morto (rodava codigo pre-patch desde 2026-08-30 09:40) -> PID 14328 novo com codigo do commit c03131e0; health 200 em <10s; cwd=src/",
+    "latencies_3x": "/cockpit/portfolio 4066ms -> 39,0ms (104x); /cockpit/summary 4141ms -> 97,7ms (42x); /health/details 4151ms -> 109,9ms (38x); /health 9ms -> 2,9ms; pior das 3 medicoes 120,7ms; todos criterios <300ms batidos",
+    "verdict": "PASS — status 200 em tudo, conteudo do cockpit e runtime_broker byte-a-byte identicos ao processo velho (connected=false, mode=offline, equity=10000.00), sem regressao",
+    "evidence_live": "log do processo novo mostra 90x 'ib_insync not installed' (~9/min) entre 01:44:34Z e 01:53:49Z — _last_error setado no processo vivo, exatamente a condicao que o fast-path consome",
+    "evidence_files": "runtime/logs/_old_health_details.json, _new_health_details.json, _old_portfolio.json, _new_portfolio.json — comparacoes antes/depois do restart, serao commitadas como evidencia",
+    "ornith_8080": "PID 18408 intocado, confirmado por netstat antes/depois",
     "json_valid": "validated"
   },
   "operator_truth": {
@@ -21,7 +27,8 @@
   "debt_next_slice": {
     "label_qwen": "health/details provider_agent still may inherit SUPEREZIO_AGENT_MODEL=Qwen 27B; process on :8080 is Ornith",
     "gpu_smi": "nvidia-smi on this machine reported RTX 2070 8GB, not 3060 12GB",
-    "playwright": "MCP server habilitado mas chromium ausente no cache do sandbox — browser_smoke segue falhando ate instalar"
+    "playwright": "MCP server habilitado mas chromium ausente no cache do sandbox — browser_smoke segue falhando ate instalar",
+    "ibkr_warning_noise": "warning 'ib_insync not installed' acumula ~570 linhas/h no stdout enquanto o pacote nao for instalado ou o refresh loop nao ganhar backoff — mitigacao futura fora do escopo do patch"
   },
   "still_true": {
     "live_execution": "FROZEN",
