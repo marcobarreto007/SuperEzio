@@ -45,6 +45,7 @@ def _raw_discovery_entry(ticker: str, price: float, volume: int) -> dict:
         "ticker": ticker,
         "name": ticker,
         "market": "United States",
+        "exchange": "NASDAQ",
         "source": "financedatabase",
         "price": price,
         "volume": volume,

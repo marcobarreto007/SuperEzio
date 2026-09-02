@@ -237,13 +237,20 @@ async def test_valid_candidate_requires_full_data(monkeypatch):
         def scan_equities(self, country=None, sector=None, industry=None, limit=10):
             return ["AAPL", "INCOMPLETE"]
 
+        def scan_equities_detailed(self, country=None, sector=None, industry=None, limit=10):
+            return [
+                {"ticker": "AAPL", "exchange": "NASDAQ"},
+                {"ticker": "INCOMPLETE", "exchange": "NASDAQ"},
+            ]
+
     class StubHub:
-        def get_price(self, ticker):
+        def get_price(self, ticker, market=None):
             if ticker == "AAPL":
                 return {
                     "price": 180.0,
                     "volume": 50_000_000,
                     "currency": "USD",
+                    "exchange": "NASDAQ",
                     "provider": "stub-quote",
                     "catalyst": "Q1 earnings next week with guided revenue beat.",
                     "risk": "Q1 guidance may fall below the current analyst consensus.",
