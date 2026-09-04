@@ -407,6 +407,7 @@ class ModelGateway:
         if provider.name not in {
             DEEPSEEK_PROVIDER_NAME,
             PRIMARY_PROVIDER_NAME,
+            AGENT_PROVIDER_NAME,
             "openai",
         } and "api.deepseek.com" not in (provider.base_url or ""):
             return

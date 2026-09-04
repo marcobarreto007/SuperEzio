@@ -21,10 +21,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 AGENT_PROVIDER_NAME = "agent"
-# Model id served by the shared local llama-server (perfil cc). Single-model
-# llama-server accepts any requested name; /v1/models reports the loaded file
-# path. This id is the canonical name of the quant in use.
-AGENT_MODEL_ID = "Ornith-1.0-9B-Q4_K_M"
+AGENT_MODEL_ID = "deepseek-v4-pro"
 PRIMARY_PROVIDER_NAME = "local_orchestrator"
 PRIMARY_MODEL_ID = AGENT_MODEL_ID
 DEEPSEEK_PROVIDER_NAME = "deepseek"
@@ -34,17 +31,8 @@ DEEPSEEK_OFFICIAL_MODELS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})
 DAYTRADE_JUDGE_PROVIDER_NAME = "daytrade_judge"
 DAYTRADE_AUDITOR_PROVIDER_NAME = "daytrade_auditor"
 
-# Shared local llama-server: Ornith-1.0-9B-Q4_K_M (~5.9 GB) on the RTX 3060
-# 12GB, context 8192, single slot. Operator mouth — organs decide.
 LOCAL_QWEN_BASE_URL = "http://127.0.0.1:8080/v1"
-# 512 cut complex verdict answers mid-sentence (reproduced 2026-08-22:
-# decisive TD.TO answer ended at "...impede uma validacao de" before the
-# recommendation). 1024 fit comfortably (ctx 8192, prompt ~2-3k tokens) but
-# the final-answer generation alone took ~105s of the 248s measured run
-# (2026-08-24, "cara pesquisa um papel pra investir" -> PAR). 700 keeps the
-# answer direct (~30% faster generation) while staying well above the 512
-# truncation floor.
-LOCAL_MAX_TOKENS = 700
+LOCAL_MAX_TOKENS = 1800
 # Retained for import compatibility with older callers. External expert calls
 # use ``get_deepseek_max_tokens`` and are not clamped to this local value.
 LOCAL_EXPERT_MAX_TOKENS = 192
@@ -232,38 +220,10 @@ class ModelProvider:
 def build_default_providers(
     config: "UniversalConfig",
 ) -> tuple[list[ModelProvider], GatewayConfig]:
-    """Build the fail-closed hybrid local/DeepSeek provider list."""
+    """Build the provider list with DeepSeek V4 Pro as default external brain and experts."""
     providers: list[ModelProvider] = []
 
-    orchestrator_config = config.models.get("orchestrator") or config.models.get("ceo")
-
-    local_base_url = _local_only_override("SUPEREZIO_PRIMARY_BASE_URL") or LOCAL_QWEN_BASE_URL
-    local_model = os.getenv("SUPEREZIO_PRIMARY_MODEL", PRIMARY_MODEL_ID)
-
-    providers.append(
-        ModelProvider(
-            name=PRIMARY_PROVIDER_NAME,
-            base_url=local_base_url,
-            api_key=LOCAL_API_KEY_PLACEHOLDER,
-            priority=0,  # HIGHEST priority — local model
-            model=local_model,
-            timeout_s=max(
-                orchestrator_config.timeout_s if orchestrator_config else LOCAL_TIMEOUT_S,
-                LOCAL_TIMEOUT_S,
-            ),
-            max_tokens=min(
-                orchestrator_config.max_tokens if orchestrator_config else LOCAL_MAX_TOKENS,
-                LOCAL_MAX_TOKENS,
-            ),
-            temperature=orchestrator_config.temperature if orchestrator_config else 0.4,
-            is_local=True,
-            backend="openai_compatible",
-        )
-    )
-
-    # Financial experts are an external, provider-pinned trust boundary. A
-    # missing key or unsafe endpoint aborts provider construction; it must not
-    # degrade to the local Qwen model.
+    # Financial experts are an external, provider-pinned trust boundary.
     experts_api_key = _deepseek_api_key()
     experts_base_url = _deepseek_base_url()
     official_endpoint = experts_base_url == DEEPSEEK_OFFICIAL_BASE_URL
@@ -274,6 +234,40 @@ def build_default_providers(
     )
     experts_timeout_s = get_deepseek_timeout_s()
     experts_max_tokens = get_deepseek_max_tokens()
+
+    orchestrator_config = config.models.get("orchestrator") or config.models.get("ceo")
+
+    primary_env_url = os.getenv("SUPEREZIO_PRIMARY_BASE_URL", "").strip()
+    primary_base_url = primary_env_url or experts_base_url
+    primary_is_local = _is_local_url(primary_base_url)
+    primary_model = os.getenv("SUPEREZIO_PRIMARY_MODEL", PRIMARY_MODEL_ID)
+    primary_api_key = (
+        os.getenv("SUPEREZIO_PRIMARY_API_KEY", "").strip()
+        or os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", "").strip()
+        or (LOCAL_API_KEY_PLACEHOLDER if primary_is_local else experts_api_key)
+    )
+
+    providers.append(
+        ModelProvider(
+            name=PRIMARY_PROVIDER_NAME,
+            base_url=primary_base_url,
+            api_key=primary_api_key,
+            priority=0,
+            model=primary_model,
+            timeout_s=max(
+                orchestrator_config.timeout_s if orchestrator_config else experts_timeout_s,
+                experts_timeout_s if not primary_is_local else LOCAL_TIMEOUT_S,
+            ),
+            max_tokens=min(
+                orchestrator_config.max_tokens if orchestrator_config else experts_max_tokens,
+                experts_max_tokens,
+            ),
+            temperature=orchestrator_config.temperature if orchestrator_config else 0.4,
+            is_local=primary_is_local,
+            backend="openai_compatible",
+        )
+    )
+
     providers.append(
         ModelProvider(
             name=DEEPSEEK_PROVIDER_NAME,
@@ -320,30 +314,35 @@ def build_default_providers(
             )
         )
 
-    # Agent (CEO). Local-only by policy: no cloud fallback exists — the former
-    # ceo_fallback_glm provider (api.z.ai) was removed by the zero-cloud
-    # directive. If :8080 is down, the gateway must fail (MAN_AT_WORK).
-    agent_base_url = _local_only_override("SUPEREZIO_AGENT_BASE_URL") or local_base_url
+    # Agent (CEO) — DeepSeek V4 Pro external API running the CEO prompt
+    agent_env_url = os.getenv("SUPEREZIO_AGENT_BASE_URL", "").strip()
+    agent_base_url = agent_env_url or experts_base_url
+    agent_is_local = _is_local_url(agent_base_url)
     agent_model = os.getenv("SUPEREZIO_AGENT_MODEL", AGENT_MODEL_ID)
+    agent_api_key = (
+        os.getenv("SUPEREZIO_AGENT_API_KEY", "").strip()
+        or os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", "").strip()
+        or (LOCAL_API_KEY_PLACEHOLDER if agent_is_local else experts_api_key)
+    )
     providers.append(
         ModelProvider(
             name=AGENT_PROVIDER_NAME,
             base_url=agent_base_url,
-            api_key=os.getenv("SUPEREZIO_AGENT_API_KEY", "") or LOCAL_API_KEY_PLACEHOLDER,
-            priority=-10,  # HIGH priority — local CEO
+            api_key=agent_api_key,
+            priority=-10,  # HIGH priority — CEO
             model=agent_model,
             timeout_s=max(
                 _bounded_int_env(
                     ("SUPEREZIO_AGENT_TIMEOUT_SEC",),
-                    default=LOCAL_TIMEOUT_S,
+                    default=experts_timeout_s if not agent_is_local else LOCAL_TIMEOUT_S,
                     minimum=1,
                     maximum=3600,
                 ),
-                LOCAL_TIMEOUT_S,
+                experts_timeout_s if not agent_is_local else LOCAL_TIMEOUT_S,
             ),
-            max_tokens=LOCAL_MAX_TOKENS,
+            max_tokens=experts_max_tokens if not agent_is_local else LOCAL_MAX_TOKENS,
             temperature=0.4,
-            is_local=True,
+            is_local=agent_is_local,
             backend="openai_compatible",
         )
     )

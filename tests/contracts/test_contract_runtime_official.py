@@ -65,8 +65,7 @@ def test_canonical_inventory_and_contract_match_the_official_runtime():
     assert api["command"] == cfg["server"]["entrypoint"]
     assert launcher["command"] == "setup_superezio.bat run"
     assert launcher["canonical"] is True
-    assert cfg["models"]["agent"]["model_id"] == manifest["agent"]["model"]
-    assert cfg["models"]["agent"]["context_length"] == 8192
+    assert cfg["models"]["agent"]["model_id"] == manifest["agent"]["model"] == "deepseek-v4-pro"
     assert "Ornith-1.0-9B-Q4_K_M" in contract
     assert "8082" not in canonical_text
     assert "80B" not in canonical_text
@@ -189,16 +188,12 @@ def test_agent_runtime_config_matches_manifest_and_script():
 
     agent_cfg = cfg["models"]["agent"]
     agent_manifest = manifest["agent"]
-    model_path = ROOT / agent_cfg["path"]
 
     assert agent_cfg["provider_name"] == "agent"
-    assert agent_cfg["model_id"] == agent_manifest["model"]
-    assert agent_cfg["path"] == agent_manifest["path"]
-    assert agent_cfg["server_url"] == agent_manifest["server_url"]
+    assert agent_cfg["model_id"] == agent_manifest["model"] == "deepseek-v4-pro"
+    assert agent_cfg["base_url"] == agent_manifest["server_url"] == "https://api.deepseek.com"
     assert agent_cfg["backend"] == "openai_compatible"
-    assert agent_cfg["is_local"] is True
-    assert agent_cfg["path"] == "models/Ornith-1.0-9B-Q4_K_M.gguf"
-    assert agent_cfg["preferred_llama_server"] == "llama.cpp/bin/llama-server.exe"
+    assert agent_cfg["is_local"] is False
     assert "C:\\Users\\" not in RUNTIME_YML.read_text(encoding="utf-8")
     assert "C:\\\\Users\\\\" not in MODEL_MANIFEST.read_text(encoding="utf-8")
     assert "SUPEREZIO_MODEL_PATH" in model_config
@@ -214,9 +209,6 @@ def test_agent_runtime_config_matches_manifest_and_script():
     assert "8080" in model_config
     assert "function Initialize-SuperEzioDirs" in model_config
     assert "function Get-SuperEzioPortOwner" in model_config
-    if not model_path.exists():
-        pytest.skip(f"Official agent GGUF not present in this environment: {model_path}")
-    assert model_path.name in model_config
 
 
 def test_launcher_has_isolated_fail_closed_validation_mode():
@@ -302,24 +294,20 @@ def test_provider_factory_keeps_agent_local_and_pins_experts_to_deepseek(monkeyp
     by_name = {provider.name: provider for provider in providers}
 
     assert gateway_config.timeout_s == cfg.gateway.timeout_s
-    assert by_name[AGENT_PROVIDER_NAME].is_local is True
+    assert by_name[AGENT_PROVIDER_NAME].is_local is False
     assert by_name[AGENT_PROVIDER_NAME].backend == "openai_compatible"
-    assert by_name[AGENT_PROVIDER_NAME].base_url == "http://127.0.0.1:8080/v1"
+    assert by_name[AGENT_PROVIDER_NAME].base_url == "https://api.deepseek.com"
     assert by_name[AGENT_PROVIDER_NAME].model == AGENT_MODEL_ID
-    assert (
-        by_name[AGENT_PROVIDER_NAME].max_tokens == 700
-    )  # 1024 cost ~105s of the 248s run; 700 stays above the 512 cut floor (2026-08-24)
-    assert by_name[AGENT_PROVIDER_NAME].timeout_s == 600
+    assert by_name[AGENT_PROVIDER_NAME].max_tokens == 1800
+    assert by_name[AGENT_PROVIDER_NAME].timeout_s == 180
     assert PRIMARY_PROVIDER_NAME == "local_orchestrator"
-    assert by_name[PRIMARY_PROVIDER_NAME].is_local is True
+    assert by_name[PRIMARY_PROVIDER_NAME].is_local is False
     assert by_name[PRIMARY_PROVIDER_NAME].backend == "openai_compatible"
-    assert by_name[PRIMARY_PROVIDER_NAME].base_url == "http://127.0.0.1:8080/v1"
+    assert by_name[PRIMARY_PROVIDER_NAME].base_url == "https://api.deepseek.com"
     assert by_name[PRIMARY_PROVIDER_NAME].model == AGENT_MODEL_ID
-    assert (
-        by_name[PRIMARY_PROVIDER_NAME].max_tokens == 512
-    )  # orchestrator cap comes from config, not LOCAL_MAX_TOKENS
+    assert by_name[PRIMARY_PROVIDER_NAME].max_tokens == 1800
     assert by_name[PRIMARY_PROVIDER_NAME].timeout_s == cfg.models["orchestrator"].timeout_s
-    assert cfg.models["agent"].timeout_s == 600
+    assert cfg.models["agent"].timeout_s == 180
     assert gateway_config.timeout_s == 600
     for name in (
         DEEPSEEK_PROVIDER_NAME,

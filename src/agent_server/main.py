@@ -1002,7 +1002,7 @@ def health_check():
     # â”€â”€ Local models â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     local_models: dict = {}
     for name, url_env, port, default_url in [
-        ("agent", "SUPEREZIO_AGENT_BASE_URL", 8080, "http://127.0.0.1:8080/v1"),
+        ("agent", "SUPEREZIO_AGENT_BASE_URL", 8080, "https://api.deepseek.com"),
         ("agent_lora", "SUPEREZIO_AGENT_LORA_BASE_URL", 8080, ""),
     ]:
         url = os.getenv(url_env, default_url)
@@ -1063,12 +1063,14 @@ def health_check():
     # The CEO remains on the local llama-server. Financial experts are a
     # distinct external DeepSeek tier and require their own credential.
     ceo_runtime = local_models["agent"]
+    ceo_url = str(ceo_runtime.get("url") or "")
+    ceo_is_local = any(h in ceo_url for h in ("127.0.0.1", "localhost", "::1"))
     primary_info = {
         "configured": True,
         "provider": PRIMARY_PROVIDER_NAME,
         "role": "ceo",
-        "topology": "local",
-        "model": os.getenv("SUPEREZIO_AGENT_MODEL", "Ornith-1.0-9B-Q4_K_M"),
+        "topology": "local" if ceo_is_local else "external",
+        "model": os.getenv("SUPEREZIO_AGENT_MODEL", "deepseek-v4-pro"),
         "base_url": ceo_runtime["url"],
         "reachable": ceo_runtime["reachable"],
         "status": ceo_runtime["status"],

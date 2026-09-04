@@ -71,4 +71,12 @@ MODEL_PROMPTS = {
         "system": QWEN_SYSTEM_PROMPT,
         "persona": QWEN_PERSONA,
     },
+    "deepseek": {
+        "system": QWEN_SYSTEM_PROMPT,
+        "persona": QWEN_PERSONA,
+    },
+    "ceo": {
+        "system": QWEN_SYSTEM_PROMPT,
+        "persona": QWEN_PERSONA,
+    },
 }

@@ -162,10 +162,11 @@ class UniversalConfig:
                     engine=section.get("engine", "openai_compatible"),
                     system_prefix=section.get("system_prefix", ""),
                     max_tokens=section.get("max_tokens", 2048),
+                    timeout_s=section.get("timeout_s", 180),
                     temperature=section.get("temperature", 0.7),
                     n_threads=section.get("n_threads", 0),
                     is_local=section.get("is_local", False),
-                    model_id=section.get("model_id", "Ornith-1.0-9B-Q4_K_M"),
+                    model_id=section.get("model_id", "deepseek-v4-pro"),
                 )
 
         if "gateway" in data:

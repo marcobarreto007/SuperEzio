@@ -16,9 +16,9 @@ def test_model_manifest_agent():
     manifest_path = ROOT / "config" / "model_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert "agent" in manifest
-    assert manifest["agent"]["model"] == "Ornith-1.0-9B-Q4_K_M"
+    assert manifest["agent"]["model"] == "deepseek-v4-pro"
     assert manifest["agent"]["backend"] == "openai_compatible"
-    assert manifest["agent"]["server_url"].startswith("http://127.0.0.1")  # zero-cloud
+    assert manifest["agent"]["server_url"].startswith("https://api.deepseek.com")
 
 
 def test_model_manifest_providers():
@@ -82,43 +82,33 @@ def test_provider_constants():
     )
 
     assert AGENT_PROVIDER_NAME == "agent"
-    assert AGENT_MODEL_ID == "Ornith-1.0-9B-Q4_K_M"
+    assert AGENT_MODEL_ID == "deepseek-v4-pro"
     assert PRIMARY_PROVIDER_NAME == "local_orchestrator"
     assert DEEPSEEK_PROVIDER_NAME == "deepseek"
 
 
 def test_provider_boundaries_and_credentials(monkeypatch):
-    """Local providers use a placeholder; external experts use the secret env.
+    """External DeepSeek providers inherit the secret env."""
+    from core.config import reload_config
+    from core.model_serving.providers import build_default_providers
 
-    O client OpenAI recusa requisição sem credencial ("Missing credentials")
-    antes de qualquer HTTP. The two credentials must never be confused.
-    """
-    from core.config import get_config
-    from core.model_serving.providers import LOCAL_API_KEY_PLACEHOLDER, build_default_providers
-
-    cfg = get_config()
     monkeypatch.delenv("SUPEREZIO_AGENT_API_KEY", raising=False)
     monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", "test-deepseek-secret")
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_MODEL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DAYTRADE_JUDGE_MODEL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DAYTRADE_AUDITOR_MODEL", raising=False)
+    cfg = reload_config()
     providers, _ = build_default_providers(cfg)
 
     assert providers, "build_default_providers retornou lista vazia"
     by_name = {p.name: p for p in providers}
-    for name in ("agent", "local_orchestrator"):
-        p = by_name[name]
-        assert p.is_local
-        assert p.base_url.startswith("http://127.0.0.1"), f"{p.name} fora do :8080 local"
-        assert p.api_key == LOCAL_API_KEY_PLACEHOLDER
-    for name in ("deepseek", "daytrade_judge", "daytrade_auditor"):
+    for name in ("agent", "local_orchestrator", "deepseek", "daytrade_judge", "daytrade_auditor"):
         p = by_name[name]
         assert p.is_local is False
         assert p.base_url == "https://api.deepseek.com"
         assert p.model == "deepseek-v4-pro"
         assert p.api_key == "test-deepseek-secret"
-        assert p.api_key != LOCAL_API_KEY_PLACEHOLDER
 
 
 # ── Model Serving: Sanitizer ──

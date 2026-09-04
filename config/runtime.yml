@@ -20,48 +20,35 @@ server:
   venv: .venv
 
 # ---------------------------------------------------------------------------
-# Modelos (CEO local + experts externos provider-pinned)
+# Modelos (DeepSeek V4 Pro externo com prompt CEO + experts)
 # ---------------------------------------------------------------------------
 models:
   agent:
-    name: Ornith-1.0-9B Local (operator)
+    name: DeepSeek V4 Pro (CEO mouth)
     provider_name: agent
-    model_id: Ornith-1.0-9B-Q4_K_M
-    path: models/Ornith-1.0-9B-Q4_K_M.gguf
-    quantization: Q4_K_M
-    server_url: http://127.0.0.1:8080/v1
+    model_id: deepseek-v4-pro
+    base_url: https://api.deepseek.com
     backend: openai_compatible
     role: agent
-    is_local: true
+    is_local: false
+    api_key_env: SUPEREZIO_DEEPSEEK_API_KEY
+    api_key_required: true
     temperature: 0.3
-    # 512 keeps worst-case generation inside the 600s local gateway budget
-    # on the single-GPU IQ2 profile.
-    max_tokens: 512
-    timeout_s: 600
-    script: scripts/serve_agent_llamacpp.ps1
-    preferred_llama_server: llama.cpp/bin/llama-server.exe
-    # Perfil 2026-08-29: Ornith-1.0-9B Q4_K_M (~5.9GB) na RTX 3060 12GB.
-    # Operador de tools; orgaos decidem. Sem visao. MTP desligado.
-    context_length: 8192
-    gpu_layers: all
-    tensor_split: "12"
-    slots: 1
-    thinking: disabled
-    model_type: local_gguf
-    base_model: Ornith-1.0-9B
-    # Servidor compartilhado com o Claude Code (perfil cc): um servidor, um
-    # slot. NAO subir segunda instancia (VRAM nao aguenta dois servidores).
+    max_tokens: 1800
+    timeout_s: 180
 
   orchestrator:
-    name: Ornith-1.0-9B Local (operator)
+    name: DeepSeek V4 Pro (orchestrator)
     provider_name: local_orchestrator
-    path: http://127.0.0.1:8080/v1
-    model_id: Ornith-1.0-9B-Q4_K_M
+    base_url: https://api.deepseek.com
+    model_id: deepseek-v4-pro
     backend: openai_compatible
     role: orchestrator
-    is_local: true
-    max_tokens: 512
-    timeout_s: 600
+    is_local: false
+    api_key_env: SUPEREZIO_DEEPSEEK_API_KEY
+    api_key_required: true
+    max_tokens: 1800
+    timeout_s: 180
 
   experts:
     name: DeepSeek V4 Pro financial experts

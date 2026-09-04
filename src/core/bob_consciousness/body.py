@@ -159,29 +159,36 @@ class PainEvent:
 
 
 def _check_ceo_health() -> tuple:
-    """Check if Bob's brain (shared local llama-server :8080) is alive.
+    """Check if Bob's brain (DeepSeek external API or local endpoint) is alive.
 
-    Zero-cloud policy: the CEO is always the local llama-server — there is
-    no cloud URL to check anymore.
+    When pointing at a local endpoint, probes /health. When pointing at the external
+    DeepSeek API, verifies the required API key configuration.
     """
     try:
         import os
         import urllib.request
 
+        from ..model_serving.providers import _is_local_url
+
         agent_url = (os.getenv("SUPEREZIO_AGENT_BASE_URL") or "").strip()
-        if agent_url and ("localhost" in agent_url or "127.0.0.1" in agent_url):
+        if agent_url and _is_local_url(agent_url):
             # Local llama-server — /health lives at the server root, not under /v1.
             health_url = agent_url.rstrip("/").removesuffix("/v1") + "/health"
-        else:
-            # Default: shared local server (perfil cc). A non-local override is
-            # ignored — zero-cloud policy.
-            health_url = "http://127.0.0.1:8080/health"
-        req = urllib.request.Request(health_url)
-        with urllib.request.urlopen(req, timeout=5) as resp:  # nosec B310 -- loopback-only URL
-            data = json.loads(resp.read())
-            if data.get("status") == "ok":
-                return True, ""
-            return False, f"CEO health status: {data.get('status', 'unknown')}"
+            req = urllib.request.Request(health_url)
+            with urllib.request.urlopen(req, timeout=5) as resp:  # nosec B310 -- loopback-only URL
+                data = json.loads(resp.read())
+                if data.get("status") == "ok":
+                    return True, ""
+                return False, f"CEO health status: {data.get('status', 'unknown')}"
+
+        # External DeepSeek API — verify credential availability
+        api_key = (
+            os.getenv("SUPEREZIO_AGENT_API_KEY", "").strip()
+            or os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", "").strip()
+        )
+        if api_key:
+            return True, ""
+        return False, "CEO unreachable: SUPEREZIO_DEEPSEEK_API_KEY required for external model"
     except (OSError, ValueError) as e:
         return False, f"CEO unreachable: {str(e)[:100]}"
 

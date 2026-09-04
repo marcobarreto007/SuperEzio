@@ -98,9 +98,9 @@ def test_build_default_providers_agent_present(monkeypatch):
 
     assert AGENT_PROVIDER_NAME in by_name
     agent = by_name[AGENT_PROVIDER_NAME]
-    assert agent.is_local is True
+    assert agent.is_local is False
     assert agent.model == AGENT_MODEL_ID
-    assert "8080" in agent.base_url
+    assert "api.deepseek.com" in agent.base_url
 
 
 def test_build_default_providers_primary_is_present(monkeypatch):
@@ -117,8 +117,8 @@ def test_build_default_providers_primary_is_present(monkeypatch):
     by_name = {p.name: p for p in providers}
 
     assert PRIMARY_PROVIDER_NAME in by_name
-    assert by_name[PRIMARY_PROVIDER_NAME].is_local is True
-    assert by_name[PRIMARY_PROVIDER_NAME].model == "Ornith-1.0-9B-Q4_K_M"
+    assert by_name[PRIMARY_PROVIDER_NAME].is_local is False
+    assert by_name[PRIMARY_PROVIDER_NAME].model == "deepseek-v4-pro"
 
 
 def test_experts_are_pinned_to_official_deepseek(monkeypatch):
@@ -320,7 +320,7 @@ def test_agent_timeout_env_below_floor_is_clamped(monkeypatch):
     cfg = UniversalConfig()
     providers, _ = build_default_providers(cfg)
     agent = next(p for p in providers if p.name == AGENT_PROVIDER_NAME)
-    assert agent.timeout_s >= 600
+    assert agent.timeout_s >= 180
 
 
 def test_gateway_max_attempts():
