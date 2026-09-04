@@ -87,6 +87,7 @@ logs/*.txt
 data/man_at_work/diagnosis_*.json
 data/man_at_work/deepseek_advice.txt
 journal/dedup/
+journal/dead_letter/
 .agents/
 .codex/
 runtime/questrade_profile/
@@ -195,4 +196,3 @@ F51-Nitro-MoE/build_worktrees/
 scratch/
 .playwright-mcp/
 llama.cpp-source/
-HANDOFF.md

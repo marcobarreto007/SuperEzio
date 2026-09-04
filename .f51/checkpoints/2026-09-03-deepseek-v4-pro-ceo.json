@@ -1,0 +1,36 @@
+{
+  "date_local": "2026-09-03",
+  "session": "deepseek-v4-pro-ceo-and-idempotency-20260903",
+  "status": "DELIVERED_SLICE",
+  "objective": "Substituicao do cerebro local por deepseek-v4-pro via API externa oficial mantendo prompt do CEO (persona/mandamentos); ancoragem de idempotency e DLQ na raiz do projeto; dedup independente de session_id; script e testes de dead letter replay manual.",
+  "predecessor": "ibkr-degraded-fast-path-20260831",
+  "patch": {
+    "commits": [
+      "b50aa70f"
+    ],
+    "intent": "src/core/model_serving/providers.py, src/core/model_serving/gateway.py, src/core/pipeline/prompts/_prompts.py, src/core/bob_consciousness/body.py, src/agent_server/main.py, src/agent_server/endpoints.py, src/core/idempotency/__init__.py, src/core/pipeline/nodes/auto_execute_paper.py, scripts/replay_dead_letters.py, tests/test_dead_letter_replay.py, tests/test_idempotency_window.py, tests/test_api_routes_sync.py, tests/test_pipeline_quality_fixes.py, tests/contracts/test_contract_model_serving.py, tests/contracts/test_contract_runtime_official.py, runtime/theses/README.md, HANDOFF.md",
+    "data_updates": "data/mangala_daily.json, data/bob_pain_log.jsonl"
+  },
+  "verification": {
+    "ruff": "All checks passed! (src/, tests/, scripts/)",
+    "pytest": "80 passed in 13.78s (tests/test_dead_letter_replay.py, tests/test_idempotency_window.py, tests/test_api_routes_sync.py, tests/test_pipeline_quality_fixes.py) + 673 passed no slice anterior",
+    "model_serving": "deepseek-v4-pro via https://api.deepseek.com com prompt do CEO e fallback seguro",
+    "json_valid": "validated"
+  },
+  "operator_truth": {
+    "ceo_model": "deepseek-v4-pro (API externa oficial, prompt do CEO mantido)",
+    "intelligence": "pipeline organs + official DeepSeek API, not unconstrained LLM",
+    "live_execution": "FROZEN (BROKER_NEUTRAL_VALIDATION_ONLY)"
+  },
+  "debt_next_slice": {
+    "label_qwen": "health/details provider_agent configurado para deepseek-v4-pro; se chave ausente, body reporta MAN_AT_WORK fail-closed",
+    "gpu_smi": "nvidia-smi on this machine reported RTX 2070 8GB, not 3060 12GB",
+    "playwright": "MCP server habilitado mas chromium ausente no cache do sandbox — browser_smoke segue falhando ate instalar"
+  },
+  "still_true": {
+    "live_execution": "FROZEN",
+    "github": "DISK ONLY",
+    "intelligence": "pipeline organs, not the LLM",
+    "mouth_not_abliterated": false
+  }
+}

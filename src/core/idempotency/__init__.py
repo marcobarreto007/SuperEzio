@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from core.config.logging_config import get_logger
+from core.paths import resolve_project_path
 
 logger = get_logger(__name__)
 
@@ -106,7 +107,12 @@ def claim_idempotency_keys(
 
 
 def _ensure_dedup_dir() -> Path:
-    directory = Path(os.getenv("SUPEREZIO_DEDUP_DIR", "journal/dedup"))
+    # O default e ancorado na raiz do projeto (via resolve_project_path), nunca
+    # no cwd: um boot de outro diretorio criaria um dedup novo e reabriria a
+    # janela de duplicata cross-restart. Env continua valendo para testes e
+    # para o modo -IsolatedValidation (start.ps1).
+    configured = os.getenv("SUPEREZIO_DEDUP_DIR", "").strip()
+    directory = Path(configured) if configured else resolve_project_path("journal/dedup")
     directory.mkdir(parents=True, exist_ok=True)
     return directory
 
@@ -165,7 +171,9 @@ def mark_processed(idempotency_key: str, metadata: dict[str, Any] | None = None)
 
 
 def _ensure_dead_letter_dir() -> Path:
-    directory = Path(os.getenv("SUPEREZIO_DEAD_LETTER_DIR", "journal/dead_letter"))
+    # Mesma regra do dedup: ancorado na raiz do projeto, nunca no cwd.
+    configured = os.getenv("SUPEREZIO_DEAD_LETTER_DIR", "").strip()
+    directory = Path(configured) if configured else resolve_project_path("journal/dead_letter")
     directory.mkdir(parents=True, exist_ok=True)
     return directory
 
@@ -222,6 +230,9 @@ def list_dead_letters() -> list[dict[str, Any]]:
         try:
             data = json.loads(f.read_text(encoding="utf-8"))
             if data.get("replay_status") == "pending":
+                # O arquivo que materializa a entrada — necessario para o replay
+                # (o consumidor re-executa a persistencia e marca o status).
+                data["file"] = str(f)
                 entries.append(data)
         except Exception:  # noqa: BLE001 — catch amplo deliberado: um dead letter corrompido nao pode quebrar a listagem inteira
             logger.warning("dead_letter_corrupted", file=str(f))
@@ -231,3 +242,22 @@ def list_dead_letters() -> list[dict[str, Any]]:
 def count_dead_letters() -> int:
     """Count pending dead letter entries."""
     return len(list_dead_letters())
+
+
+def update_dead_letter_status(file: str | Path, *, status: str) -> dict[str, Any]:
+    """Mark one dead letter file as ``done`` or ``failed`` after a replay attempt.
+
+    Write is atomic (tmp file + os.replace) so a crash mid-update never
+    corrupts the queue entry. Callers re-read the updated record.
+    """
+    if status not in {"done", "failed"}:
+        raise ValueError(f"invalid dead letter status: {status!r}")
+    path = Path(file)
+    record = json.loads(path.read_text(encoding="utf-8"))
+    record["replay_status"] = status
+    record["replayed_at"] = datetime.now(UTC).isoformat()
+    tmp_path = path.with_name(path.name + ".tmp")
+    tmp_path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(tmp_path, path)
+    logger.info("dead_letter_status_updated", file=str(path), status=status)
+    return record

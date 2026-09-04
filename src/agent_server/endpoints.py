@@ -2628,13 +2628,18 @@ async def execute_trade_fast(payload: dict[str, Any], request: Request) -> dict[
     if qty <= 0:
         raise HTTPException(status_code=400, detail="qty must be positive")
 
+    # A chave de dedup NUNCA deriva de session_id do browser: retry de outra
+    # sessao geraria fingerprint novo e furaria a idempotency. O intent
+    # economico (ticker/action/qty/preco) e o mesmo, venha de qual sessao vier;
+    # account fixo "fast-trade" preserva as chaves ja emitidas. O session_id
+    # continua no ticket para auditoria, fora da chave.
     fingerprint, previous_window_fingerprint = build_trade_intent_fingerprints(
         {
             "ticker": ticker,
             "action": action,
             "qty": qty,
             "limit_price": limit_price,
-            "session_id": session_id,
+            "account": "fast-trade",
         }
     )
     order_id = f"ticket-{fingerprint[:20]}"

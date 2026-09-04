@@ -63,3 +63,27 @@ def test_two_windows_later_is_genuinely_a_new_intent(tmp_path, monkeypatch) -> N
     later_keys = make_idempotency_keys(**INTENT, now=much_later)
     assert not any(is_duplicate(key) for key in later_keys)
     assert claim_idempotency_keys(later_keys) is True
+
+
+def test_dirs_anchor_to_project_root_when_env_is_absent(monkeypatch, tmp_path) -> None:
+    """Sem env, dedup/dead-letter resolvem contra a raiz do projeto, nunca o cwd.
+
+    Bootar de outro diretorio com o default relativo antigo criaria um
+    journal/dedup novo e reabriria a janela de duplicata cross-restart.
+    """
+    import core.idempotency as idem
+
+    monkeypatch.delenv("SUPEREZIO_DEDUP_DIR", raising=False)
+    monkeypatch.delenv("SUPEREZIO_DEAD_LETTER_DIR", raising=False)
+
+    resolved: list[str] = []
+
+    def fake_resolve(name: str):
+        resolved.append(name)
+        return tmp_path / name
+
+    monkeypatch.setattr("core.idempotency.resolve_project_path", fake_resolve)
+
+    assert idem._ensure_dedup_dir() == tmp_path / "journal" / "dedup"
+    assert idem._ensure_dead_letter_dir() == tmp_path / "journal" / "dead_letter"
+    assert resolved == ["journal/dedup", "journal/dead_letter"]

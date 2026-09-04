@@ -1,9 +1,10 @@
 """Provider dataclasses and the hybrid local/DeepSeek provider factory.
 
-The CEO/agent and orchestrator remain pinned to the shared local Qwen
-runtime. Financial experts, including the day-trade judge and auditor, are
-pinned to the official DeepSeek HTTPS API. These two trust boundaries must
-never silently substitute for one another.
+The CEO/agent and orchestrator remain pinned to the shared local llama-server
+runtime (:8080), today serving Ornith-1.0-9B-Q4_K_M (text-only, no mmproj).
+Financial experts, including the day-trade judge and auditor, are pinned to
+the official DeepSeek HTTPS API. These two trust boundaries must never
+silently substitute for one another.
 """
 
 import ipaddress
@@ -31,6 +32,10 @@ DEEPSEEK_OFFICIAL_MODELS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})
 DAYTRADE_JUDGE_PROVIDER_NAME = "daytrade_judge"
 DAYTRADE_AUDITOR_PROVIDER_NAME = "daytrade_auditor"
 
+# Nome historico: o runtime local :8080 ja serviu Qwen. O endpoint e o mesmo
+# llama-server que hoje serve o modelo configurado em
+# scripts/serve_agent_llamacpp.ps1 (Ornith-1.0-9B-Q4_K_M). Constante mantida
+# para compatibilidade de imports.
 LOCAL_QWEN_BASE_URL = "http://127.0.0.1:8080/v1"
 LOCAL_MAX_TOKENS = 1800
 # Retained for import compatibility with older callers. External expert calls
@@ -284,7 +289,7 @@ def build_default_providers(
     )
 
     # Judge and auditor may use independent DeepSeek model ids, but share the
-    # same authenticated official endpoint and never fall back to local Qwen.
+    # same authenticated official endpoint and never fall back to the local runtime.
     judge_model = _deepseek_model(
         "SUPEREZIO_DAYTRADE_JUDGE_MODEL",
         experts_model,

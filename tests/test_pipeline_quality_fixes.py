@@ -43,10 +43,17 @@ def _run_collect(state: dict) -> dict:
 # ── Defect 1: latency cap ──
 
 
-def test_local_max_tokens_cap_is_700():
-    """1024 cost ~105s of the 248s run; 700 keeps the answer direct while
-    staying well above the 512 truncation floor (2026-08-22)."""
-    assert LOCAL_MAX_TOKENS == 700
+def test_local_max_tokens_cap_is_1800():
+    """Teto de max_tokens do provider local/agente.
+
+    Era 700 (decisao de latencia do cerebro local em 2026-08-22: 1024 custava
+    ~105s de um run de 248s; 700 mantinha a resposta direta e acima do piso de
+    512). O swap b50aa70f passou o cerebro/agente para deepseek-v4-pro via API
+    externa mantendo o prompt do CEO, e o teto subiu para o default DeepSeek
+    (1800) — o provider local remanescente usa o mesmo valor. O pin guarda
+    esse contrato vigente.
+    """
+    assert LOCAL_MAX_TOKENS == 1800
 
 
 # ── Defect 2: expert JSON parsing ──

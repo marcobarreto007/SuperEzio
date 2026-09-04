@@ -2,6 +2,8 @@
 
 ## Backlog
 
+- [x] 2026-09-03 - **Cérebro DeepSeek V4 Pro com prompt CEO + Idempotency & DLQ Replay**: Substituição do cérebro local pelo modelo DeepSeek V4 Pro (`deepseek-v4-pro`) via API externa oficial mantendo integralmente o prompt do CEO (`agent_system_prompt`, persona e mandamentos); ancoragem de dedup e dead-letter queue na raiz do projeto (cross-cwd/restart); dedup de ordem independente de session_id; script `scripts/replay_dead_letters.py` e testes dedicados; 80/80 testes passando e ruff limpo. Checkpoint `deepseek-v4-pro-ceo-and-idempotency-20260903`.
+
 - [x] 2026-08-31 - **IBKRService degraded fast-path + cockpit timeout 0.0**: IBKRService retorna cache imediatamente sem bloquear quando degradado (`is_degraded()` + `_consecutive_failures > 0` ou `_last_error`); cockpit portfolio snapshot usa `wait_timeout=0.0` para resposta <0.5s; 12 testes novos em `tests/test_ibkr_degraded_fast_path.py` (67 passed na bateria sync+fastpath); mangala daily 2026-09-01 atualizado. Checkpoint `ibkr-degraded-fast-path-20260831`.
 
 - [x] 2026-08-30 - **100 CAD investir = alocacao + enrich yfinance primeiro**: commits `0eb62ff1` (rota/fala curta, CAD=moeda, telemetria fora do CHUNK) e `1e74ac25` (yfinance prio 2, twelve prio 12, `stage_abandoned`, deadline derivado se env unset). pytest **2231 passed**, 2 skipped. API :8002 reiniciada 2026-08-30 (PID novo, health 200); llama :8080 Ornith **nao abliterado** — recusa da boca nao e recusa do pipeline. Checkpoint `cad100-alloc-api-restart-20260830`.

@@ -1,39 +1,36 @@
 {
-  "date_local": "2026-08-31",
-  "session": "ibkr-degraded-fast-path-20260831",
+  "date_local": "2026-09-03",
+  "session": "deepseek-v4-pro-ceo-and-idempotency-20260903",
   "status": "DELIVERED_SLICE",
-  "objective": "Fast path no IBKRService quando broker esta degradado/em cooldown (retorno imediato <0.5s sem bloquear cache_ready_event); cockpit endpoints com wait_timeout=0.0; bateria de 12 testes dedicados.",
-  "predecessor": "timing-probe-mangala-pass-20260830",
+  "objective": "Substituicao do cerebro local por deepseek-v4-pro via API externa oficial mantendo prompt do CEO (persona/mandamentos); ancoragem de idempotency e DLQ na raiz do projeto; dedup independente de session_id; script e testes de dead letter replay manual.",
+  "predecessor": "ibkr-degraded-fast-path-20260831",
   "patch": {
-    "commits": [],
-    "intent": "src/adapters/broker/ibkr_service.py (fast path nos metodos get_positions e get_account_equity), src/agent_server/endpoints.py (_cockpit_portfolio_snapshot passa wait_timeout=0.0), tests/test_api_routes_sync.py (mock signatures alinhadas), tests/test_ibkr_degraded_fast_path.py (12 testes novos cobrindo cold start, degraded, stop_event, cache e timeouts)",
-    "data_updates": "config/td_direct_commission_free_etfs.json (verified_at 2026-09-01), data/mangala_daily.json (scan 2026-09-01 5/5 PASS), data/bob_pain_log.jsonl"
+    "commits": [
+      "b50aa70f"
+    ],
+    "intent": "src/core/model_serving/providers.py, src/core/model_serving/gateway.py, src/core/pipeline/prompts/_prompts.py, src/core/bob_consciousness/body.py, src/agent_server/main.py, src/agent_server/endpoints.py, src/core/idempotency/__init__.py, src/core/pipeline/nodes/auto_execute_paper.py, scripts/replay_dead_letters.py, tests/test_dead_letter_replay.py, tests/test_idempotency_window.py, tests/test_api_routes_sync.py, tests/test_pipeline_quality_fixes.py, tests/contracts/test_contract_model_serving.py, tests/contracts/test_contract_runtime_official.py, runtime/theses/README.md, HANDOFF.md",
+    "data_updates": "data/mangala_daily.json, data/bob_pain_log.jsonl"
   },
   "verification": {
-    "ruff": "All checks passed! (src/ e tests/ tocados)",
-    "pytest": "67 passed in 16.13s (tests/test_ibkr_degraded_fast_path.py + tests/test_api_routes_sync.py)",
-    "runtime_restart": "PID 7468 morto (rodava codigo pre-patch desde 2026-08-30 09:40) -> PID 14328 novo com codigo do commit c03131e0; health 200 em <10s; cwd=src/",
-    "latencies_3x": "/cockpit/portfolio 4066ms -> 39,0ms (104x); /cockpit/summary 4141ms -> 97,7ms (42x); /health/details 4151ms -> 109,9ms (38x); /health 9ms -> 2,9ms; pior das 3 medicoes 120,7ms; todos criterios <300ms batidos",
-    "verdict": "PASS — status 200 em tudo, conteudo do cockpit e runtime_broker byte-a-byte identicos ao processo velho (connected=false, mode=offline, equity=10000.00), sem regressao",
-    "evidence_live": "log do processo novo mostra 90x 'ib_insync not installed' (~9/min) entre 01:44:34Z e 01:53:49Z — _last_error setado no processo vivo, exatamente a condicao que o fast-path consome",
-    "evidence_files": "runtime/logs/_old_health_details.json, _new_health_details.json, _old_portfolio.json, _new_portfolio.json — comparacoes antes/depois do restart, serao commitadas como evidencia",
-    "ornith_8080": "PID 18408 intocado, confirmado por netstat antes/depois",
+    "ruff": "All checks passed! (src/, tests/, scripts/)",
+    "pytest": "80 passed in 13.78s (tests/test_dead_letter_replay.py, tests/test_idempotency_window.py, tests/test_api_routes_sync.py, tests/test_pipeline_quality_fixes.py) + 673 passed no slice anterior",
+    "model_serving": "deepseek-v4-pro via https://api.deepseek.com com prompt do CEO e fallback seguro",
     "json_valid": "validated"
   },
   "operator_truth": {
-    "mouth": "Ornith-1.0-9B-Q4_K_M is NOT abliterated. Mouth refusals are the GGUF safety stock, not pipeline GO/NO-GO.",
-    "intelligence": "pipeline organs, not the LLM"
+    "ceo_model": "deepseek-v4-pro (API externa oficial, prompt do CEO mantido)",
+    "intelligence": "pipeline organs + official DeepSeek API, not unconstrained LLM",
+    "live_execution": "FROZEN (BROKER_NEUTRAL_VALIDATION_ONLY)"
   },
   "debt_next_slice": {
-    "label_qwen": "health/details provider_agent still may inherit SUPEREZIO_AGENT_MODEL=Qwen 27B; process on :8080 is Ornith",
+    "label_qwen": "health/details provider_agent configurado para deepseek-v4-pro; se chave ausente, body reporta MAN_AT_WORK fail-closed",
     "gpu_smi": "nvidia-smi on this machine reported RTX 2070 8GB, not 3060 12GB",
-    "playwright": "MCP server habilitado mas chromium ausente no cache do sandbox — browser_smoke segue falhando ate instalar",
-    "ibkr_warning_noise": "warning 'ib_insync not installed' acumula ~570 linhas/h no stdout enquanto o pacote nao for instalado ou o refresh loop nao ganhar backoff — mitigacao futura fora do escopo do patch"
+    "playwright": "MCP server habilitado mas chromium ausente no cache do sandbox — browser_smoke segue falhando ate instalar"
   },
   "still_true": {
     "live_execution": "FROZEN",
     "github": "DISK ONLY",
     "intelligence": "pipeline organs, not the LLM",
-    "mouth_not_abliterated": true
+    "mouth_not_abliterated": false
   }
 }

@@ -663,6 +663,9 @@ def _journal_trade(
 
     On journal write failure, enqueues to dead letter queue for manual replay.
     """
+    # Payload serializado do trade (to_dict) capturado antes do open_trade:
+    # e o que permite ao replay re-persistir fielmente o registro que falhou.
+    journal_entry: dict | None = None
     try:
         from core.trading.paper_journal import PaperJournal, PaperTrade
 
@@ -729,6 +732,7 @@ def _journal_trade(
                 expected_holding_period="swing",
                 **learning_context,
             )
+            journal_entry = trade.to_dict()
             trade_id = journal.open_trade(trade)
             logger.info(
                 "paper_trade_opened",
@@ -744,18 +748,113 @@ def _journal_trade(
     except Exception as exc:  # noqa: BLE001
         # Journal write failed → dead letter queue
         logger.error("journal_write_failed_dead_letter", ticker=ticker, error=str(exc)[:200])
+        snapshot = {"run_id": run_id, "route": state.get("route", "?")}
+        if journal_entry is not None:
+            # Payload serializado do trade que falhou: permite ao replay
+            # re-persistir o registro fielmente sem re-enviar a ordem.
+            snapshot["journal_entry"] = journal_entry
         enqueue_dead_letter(
             ticker=ticker,
             qty=qty,
             limit_price=limit_price,
             action=action,
             reason=f"journal_write_error:{str(exc)[:120]}",
-            state_snapshot={
-                "run_id": run_id,
-                "route": state.get("route", "?"),
-            },
+            state_snapshot=snapshot,
         )
         return f"journal_error_dead_letter:{exc}"
+
+
+def replay_dead_letter_entry(entry: dict) -> dict:
+    """Replay de um dead letter de ordem paper — re-persiste no journal.
+
+    Semantica: a EXECUCAO paper ja aconteceu; o que falhou foi so o registro
+    de auditoria. Replay = re-gravar o journal, NUNCA re-enviar a ordem.
+    Buy: reconstruido do ``journal_entry`` capturado no enqueue (entradas
+    legadas sem ele ganham um trade minimo). Sell: re-tenta fechar o trade
+    aberto do ticker (sem reflection — so o fechamento). Idempotente: trade
+    com o mesmo trade_id ja persistido nao e re-escrito, e entrada ja marcada
+    done/failed nao roda de novo. Erro marca a entrada como ``failed`` sem
+    derrubar o chamador (CLI ou gate futuro).
+    """
+    from core.idempotency import update_dead_letter_status
+    from core.trading.paper_journal import PaperJournal, PaperTrade
+
+    dl_file = entry.get("file")
+    if entry.get("replay_status") != "pending":
+        return {
+            "status": "skipped",
+            "reason": f"already_{entry.get('replay_status')}",
+            "file": dl_file,
+        }
+
+    ticker = str(entry.get("ticker", "")).upper()
+    action = str(entry.get("action", "")).lower()
+    limit_price = float(entry.get("limit_price") or 0.0)
+    snapshot = entry.get("state_snapshot") or {}
+    run_id = str(snapshot.get("run_id") or "")
+
+    def _mark(final_status: str) -> None:
+        if not dl_file:
+            return
+        try:
+            update_dead_letter_status(dl_file, status=final_status)
+        except Exception:  # noqa: BLE001 — arquivo sumiu/corrompido nao pode mascarar o resultado do replay
+            logger.warning("dead_letter_status_update_failed", file=dl_file)
+
+    journal = PaperJournal()
+    try:
+        if action == "sell":
+            trade_id = None
+            for open_trade in journal.list_open():
+                if open_trade.get("ticker") == ticker:
+                    trade_id = str(open_trade["trade_id"])
+                    journal.close_trade(
+                        trade_id,
+                        exit_price=limit_price,
+                        exit_reason="auto_sell_replay",
+                        exit_date=datetime.now(UTC).isoformat(),
+                    )
+                    break
+            if trade_id is None:
+                return {
+                    "status": "skipped",
+                    "reason": f"no_open_trade_for:{ticker}",
+                    "file": dl_file,
+                }
+        else:
+            payload = snapshot.get("journal_entry") or {}
+            if payload:
+                trade = PaperTrade(**payload)
+            else:
+                trade = PaperTrade(
+                    trade_id=f"bob-replay-{int(time.time())}-{ticker}",
+                    ticker=ticker,
+                    thesis=(
+                        f"Dead-letter replay | run_id={run_id}" if run_id else "Dead-letter replay"
+                    ),
+                    direction="long",
+                    entry_date=datetime.now(UTC).isoformat(),
+                    entry_price=limit_price,
+                    shares=int(entry.get("qty") or 0),
+                    entry_reasoning=("replay_dead_letter_entry (legacy entry, sem journal_entry)"),
+                    verdict_at_entry="replay",
+                    risk_assessment="unknown",
+                    expected_holding_period="swing",
+                )
+            if any(
+                open_trade.get("trade_id") == trade.trade_id for open_trade in journal.list_open()
+            ):
+                return {
+                    "status": "skipped",
+                    "reason": f"already_persisted:{trade.trade_id}",
+                    "file": dl_file,
+                }
+            trade_id = journal.open_trade(trade)
+        _mark("done")
+        return {"status": "done", "trade_id": trade_id, "file": dl_file}
+    except Exception as exc:  # noqa: BLE001 — replay falho marca failed e devolve o erro
+        _mark("failed")
+        return {"status": "failed", "error": str(exc)[:200], "file": dl_file}
 
 
 def _normalize_prediction_direction(value: object) -> str | None:

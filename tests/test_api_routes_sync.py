@@ -519,6 +519,9 @@ def test_cockpit_summary(client_with_mock_pipeline, monkeypatch):
     monkeypatch.setenv("SUPEREZIO_DEEPSEEK_MODEL", "deepseek-v4-pro")
     monkeypatch.setenv("SUPEREZIO_DAYTRADE_JUDGE_MODEL", "deepseek-v4-pro")
     monkeypatch.setenv("SUPEREZIO_DAYTRADE_AUDITOR_MODEL", "deepseek-v4-pro")
+    # O cockpit reporta o modelo primario da env; fixa a config canonica para
+    # o teste nao depender do shell que roda o gate.
+    monkeypatch.setenv("SUPEREZIO_PRIMARY_MODEL", "Ornith-1.0-9B-Q4_K_M")
 
     monkeypatch.setattr(
         endpoints,
@@ -624,6 +627,42 @@ def test_trade_execute_creates_pending_ticket_without_broker_submit(
     )
     assert retry.json()["order_id"] == data["order_id"]
     assert retry.json()["idempotent_replay"] is True
+
+
+def test_trade_execute_dedup_is_session_independent(client_with_mock_pipeline):
+    """Session ids do browser nunca entram no fingerprint de dedup.
+
+    Um retry do mesmo intent vindo de outra sessao (outro tab/device) precisa
+    ser detectado como replay — senao a idempotency furaria exatamente quando
+    um retry e mais provavel.
+    """
+    _, client = client_with_mock_pipeline
+
+    first = client.post(
+        "/trade/execute",
+        json={
+            "ticker": "AAPL",
+            "action": "buy",
+            "qty": 2,
+            "limit_price": 99,
+            "session_id": "session-A",
+        },
+    )
+    assert first.status_code == 200
+    assert first.json()["idempotent_replay"] is False
+
+    retry_from_other_session = client.post(
+        "/trade/execute",
+        json={
+            "ticker": "AAPL",
+            "action": "buy",
+            "qty": 2,
+            "limit_price": 99,
+            "session_id": "session-B",
+        },
+    )
+    assert retry_from_other_session.json()["order_id"] == first.json()["order_id"]
+    assert retry_from_other_session.json()["idempotent_replay"] is True
 
 
 def test_td_ticket_route_creates_live_manual_ticket_without_submit(
