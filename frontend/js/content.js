@@ -9,12 +9,12 @@
   }, window.SZ.config || {});
 
   window.SZ.content = Object.assign({
-    logoSub: "Financial Copilot",
-    statusChecking: "Checking...",
-    chartContextPlaceholder: "Chart",
-    assetLabel: "Market snapshot",
-    bobWelcomeTitle: "Bob is online.",
-    bobWelcomeBody: "Ask directly. Market context is attached when your question needs the chart.",
+    logoSub: "Trade e investimentos",
+    statusChecking: "Verificando...",
+    chartContextPlaceholder: "Buscar ativo (ex.: TD.TO)",
+    assetLabel: "Visão de mercado",
+    bobWelcomeTitle: "Seu assistente de investimento no SuperEzio",
+    bobWelcomeBody: "Analise um ativo, compare investimentos ou revise os riscos da sua carteira. Para estudar um trade, informe seu horizonte e limite de perda.",
     sdcaReady: "Ready for local firewall evaluation.",
     sdcaPresetFomo: "FOMO preset",
     sdcaPresetSafe: "Conservative preset",
@@ -23,7 +23,7 @@
       status: "Status",
       gpu: "GPU Acceleration",
       redis: "Redis Database",
-      ceo: "Local Model (CEO)",
+      ceo: "Assistente via API",
       capabilities: "Agent Capabilities",
       manifest: "Product Manifest & Principles",
       principles: "Operating Principles:",

@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>SuperEzio — AI Trading Workbench</title>
-  <meta name="description" content="SuperEzio F51 verdict engine: AI-native trading workbench with multi-agent expert panel.">
+  <title>SuperEzio — Trade e investimentos</title>
+  <meta name="description" content="SuperEzio: sistema de trade e assistente de investimento, com gráficos, análise de ativos, carteira e gestão de risco.">
   <meta name="theme-color" content="#111820">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,7 +39,7 @@
       </div>
       <div class="topbar__search">
         <div class="topbar__ticker-group">
-          <span class="ticker-wrap"><input id="ticker-inp" type="search" placeholder="Search symbol..." autocomplete="off" spellcheck="false" maxlength="10" aria-label="Symbol" enterkeyhint="search" autocapitalize="characters">
+          <span class="ticker-wrap"><input id="ticker-inp" type="search" placeholder="Buscar ativo..." autocomplete="off" spellcheck="false" maxlength="10" aria-label="Symbol" enterkeyhint="search" autocapitalize="characters">
           <!-- hidden select for JS compatibility; button group is the UI -->
           <select id="tf-inp" aria-label="Timeframe" class="topbar__tf-hidden">
             <option value="1D">1D</option>
@@ -65,7 +65,7 @@
     </div>
     <div class="topbar__right">
       <div class="topbar__metric">
-        <span class="topbar__metric-label">ACCOUNT</span>
+        <span class="topbar__metric-label">CARTEIRA</span>
         <strong class="topbar__metric-value mono" id="account-value">$--</strong>
       </div>
       <div class="topbar__metric" id="topbar-pnl">
@@ -106,7 +106,7 @@
         <div class="market-header__info">
           <div class="market-header__ticker">
             <h1><span id="workspace-ticker">--</span><small id="workspace-tf">--</small></h1>
-            <span class="market-header__label" id="asset-label">Market snapshot</span>
+            <span class="market-header__label" id="asset-label">Visão de mercado</span>
           </div>
           <div class="market-header__profile" id="live-profile"></div>
           <button id="analyze-chart-bob-btn" class="analyze-chart-btn" title="Solicitar análise tática do gráfico ao Bob" type="button">
@@ -124,19 +124,19 @@
         </div>
         <div class="market-header__prices">
           <div class="price-cell">
-            <span class="price-cell__label">Last</span>
+            <span class="price-cell__label">Último</span>
             <strong class="price-cell__value mono" id="live-price">--</strong>
           </div>
           <div class="price-cell">
-            <span class="price-cell__label">Chg</span>
+            <span class="price-cell__label">Variação</span>
             <strong class="price-cell__value mono" id="live-change">--</strong>
           </div>
           <div class="price-cell">
-            <span class="price-cell__label">High</span>
+            <span class="price-cell__label">Máxima</span>
             <strong class="price-cell__value mono" id="live-high">--</strong>
           </div>
           <div class="price-cell">
-            <span class="price-cell__label">Low</span>
+            <span class="price-cell__label">Mínima</span>
             <strong class="price-cell__value mono" id="live-low">--</strong>
           </div>
           <div class="price-cell">
@@ -144,7 +144,7 @@
             <strong class="price-cell__value mono" id="live-volume">--</strong>
           </div>
           <div class="price-cell price-cell--mode">
-            <span class="price-cell__label">Mode</span>
+            <span class="price-cell__label">Modo</span>
             <strong class="price-cell__status" id="live-status">SNAPSHOT</strong>
           </div>
         </div>
@@ -160,16 +160,16 @@
       <section class="orders-mirror" id="orders-mirror">
         <div class="orders-mirror__header">
           <div class="orders-mirror__title">
-            <span class="orders-mirror__label">ORDERS &amp; POSITIONS</span>
+            <span class="orders-mirror__label">ORDENS E POSIÇÕES</span>
             <strong id="orders-count">--</strong>
           </div>
         </div>
         <div class="orders-mirror__body">
           <div class="orders-list" id="orders-list">
-            <div class="empty-state">Loading portfolio...</div>
+            <div class="empty-state">Carregando carteira...</div>
           </div>
           <div class="trade-history-list" id="trade-history-list">
-            <div class="empty-state">Loading journal trades...</div>
+            <div class="empty-state">Carregando histórico de trades...</div>
           </div>
         </div>
       </section>
@@ -178,7 +178,7 @@
     <!-- EXPERT PANEL (30%) -->
     <aside class="expert-panel" id="expert-panel">
       <div class="expert-panel__bar">
-        <span class="expert-panel__title">EXPERT PANEL</span>
+        <span class="expert-panel__title">ANÁLISE E RISCO</span>
         <div id="pipeline-progress"></div>
         <span class="expert-panel__status" id="deep-panel-status">READY</span>
       </div>
@@ -332,14 +332,14 @@
       <main class="chat" id="chat" aria-label="Conversation">
         <section class="bob-welcome">
           <div class="bob-copy">
-            <strong id="bob-welcome-title">Bob is online.</strong>
-            <p id="bob-welcome-body">Ask directly. Market context is attached when your question needs the chart.</p>
+            <strong id="bob-welcome-title">Seu assistente de investimento no SuperEzio</strong>
+            <p id="bob-welcome-body">Analise um ativo, compare investimentos ou revise os riscos da sua carteira. Para estudar um trade, informe seu horizonte e limite de perda.</p>
           </div>
         </section>
       </main>
       <div class="bottombar" id="bottombar">
-        <textarea id="user-inp" rows="1" placeholder="Ask Bob..." aria-label="Mensagem para o Bob" autocomplete="off" spellcheck="true" enterkeyhint="send" autocapitalize="sentences"></textarea>
-        <button class="btn btn--primary" id="send-btn" type="button"><i data-lucide="send" width="14" height="14"></i><span>Send</span></button>
+        <textarea id="user-inp" rows="1" placeholder="Pergunte sobre um ativo, trade ou investimento..." aria-label="Mensagem para o Bob" autocomplete="off" spellcheck="true" enterkeyhint="send" autocapitalize="sentences"></textarea>
+        <button class="btn btn--primary" id="send-btn" type="button"><i data-lucide="send" width="14" height="14"></i><span>Enviar</span></button>
       </div>
     </div>
   </aside>
@@ -407,7 +407,7 @@
           <div class="ops-metrics-list">
             <div class="ops-row"><span>Provider</span><strong id="ops-broker-provider">IBKR</strong></div>
             <div class="ops-row"><span>Status</span><strong id="ops-broker-status">Checking...</strong></div>
-            <div class="ops-row"><span>Mode</span><strong id="ops-broker-mode">--</strong></div>
+            <div class="ops-row"><span>Modo</span><strong id="ops-broker-mode">--</strong></div>
             <div class="ops-row"><span>Equity</span><strong id="ops-broker-equity">--</strong></div>
             <div class="ops-row"><span>Positions</span><strong id="ops-broker-positions">--</strong></div>
           </div>
