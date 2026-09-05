@@ -23,20 +23,19 @@ financial experts, day-trade judge, and auditor. Store
 
 Official config file: `config/runtime.yml`.
 
-Official CEO model (2026-08-21, canonical single-GPU switch — commit 03d7fd7):
+Official CEO model (2026-09-04, live GPU re-measure):
 
 ```text
-models/Qwen3.8-27B-UD-IQ2_XXS.gguf      # canonical logical path (config/runtime.yml:30)
-%USERPROFILE%\models\qwen3.8-27b\Qwen3.8-27B-UD-IQ2_XXS.gguf   # physical file; config.ps1 probes this path
+models/Ornith-1.0-9B-Q4_K_M.gguf
 # or the absolute file supplied through SUPEREZIO_MODEL_PATH
 ```
 
-Model: Qwen3.8-27B (dense)
-Quantization: UD-IQ2_XXS (Unsloth Dynamic v3 2-bit, 8.4 GB file)
+Model: Ornith-1.0-9B (dense)
+Quantization: Q4_K_M (~5.6 GB file)
 Context: 8192 tokens
-GPU: all layers offloaded to the single real GPU, RTX 3060 12GB (`-ngl all -sm layer -ts 12`)
-Cache: KV q8_0, flash attention on. MTP disabled (no VRAM headroom with UD-IQ2_XXS).
-Slots: 1 (shared with the Claude Code perfil cc — one server, one queue)
+GPU: offload all layers to the **live** NVIDIA card. Measured 2026-09-04: 1x RTX 2070 8GB. Do **not** pass `-ts 8,6` / `-ts 12,8` — that assumes two GPUs. The RTX 3060 12GB is in Device Manager as `CM_PROB_FAILED_ADD` and does not appear in `nvidia-smi`. `serve_agent_llamacpp.ps1` defaults to `-ts auto` (omit `-ts` on one GPU).
+Cache: KV q8_0 with flash attention on (this llama.cpp build requires `-fa on` for quantized V cache). First prompt eval on a cold 2070/WDDM can take ~60s; measure the second request. MTP disabled (no VRAM headroom on 8GB).
+Slots: 1 (one server, one queue)
 
 Current official model routing:
 

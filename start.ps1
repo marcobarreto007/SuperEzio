@@ -98,6 +98,16 @@ if (-not (Test-Path $ModelPath)) {
 
 Log "Starting CEO (llama-server) on port $CeoPort..." "Cyan"
 Log "Model: $ModelPath" "Gray"
+try {
+    $gpuSnap = & nvidia-smi --query-gpu=index,name,memory.total --format=csv,noheader 2>$null
+    if ($gpuSnap) {
+        Log "Live GPUs: $(($gpuSnap | ForEach-Object { $_.Trim() }) -join '; ')" "Gray"
+    } else {
+        Log "WARNING: nvidia-smi returned no live GPU. CEO may run CPU-only." "Yellow"
+    }
+} catch {
+    Log "WARNING: nvidia-smi unavailable — CEO may fall back to CPU." "Yellow"
+}
 
 $ceoScript = Join-Path $ScriptsDir "serve_agent_llamacpp.ps1"
 $ceoArgs = @(

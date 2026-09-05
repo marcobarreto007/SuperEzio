@@ -8,7 +8,7 @@ Atualizado: 2026-08-21
 
 | Componente | Bind | Contrato |
 |---|---|---|
-| llama-server compartilhado | `127.0.0.1:8080` | Qwen3.8-27B-UD-IQ2_XXS; atende CEO e orquestrador |
+| llama-server compartilhado | `127.0.0.1:8080` | Ornith-1.0-9B-Q4_K_M na GPU viva (RTX 2070 8GB); atende CEO e orquestrador |
 | DeepSeek oficial | `https://api.deepseek.com` | `deepseek-v4-pro`; atende experts financeiros, judge e auditor |
 | API + UI | `127.0.0.1:8002` | FastAPI, pipeline, health e cockpit |
 
@@ -37,7 +37,7 @@ curl.exe -fsS http://127.0.0.1:8002/health
 curl.exe -fsS http://127.0.0.1:8002/health/details
 ```
 
-`/v1/models` deve refletir `Qwen3.8-27B-UD-IQ2_XXS`, conforme `config/model_manifest.json`. A UI fica em `http://127.0.0.1:8002`.
+`/v1/models` deve refletir `Ornith-1.0-9B-Q4_K_M`. A UI fica em `http://127.0.0.1:8002`.
 
 ## Recuperacao
 
@@ -50,6 +50,13 @@ curl.exe -fsS http://127.0.0.1:8002/health/details
 5. Nao redirecione o CEO para DeepSeek como contorno.
 
 Enquanto `:8080` estiver offline, `MAN_AT_WORK` e o comportamento seguro esperado.
+
+### GPU morta ou offload na CPU
+
+1. `nvidia-smi -L` — so conta placa **viva**. `Get-PnpDevice -Class Display` mostra a 3060 se ela falhou no Windows.
+2. Se `llama-server` estiver com `-ts 8,6` ou `-ts 12,8` e so houver 1 GPU no smi, mate `:8080` via `stop.ps1` e suba `scripts/serve_agent_llamacpp.ps1` (default `-ts auto`).
+3. Perfil que cabe na 2070 8GB: `Ornith-1.0-9B-Q4_K_M.gguf`, `-ngl all`, `-c 8192`. Q6_K + ctx 32768 nao cabe.
+4. A 3060 em `CM_PROB_FAILED_ADD` e problema de driver/dispositivo, nao de repo. Nao invente split fantasma. Operador: Device Manager → RTX 3060 → uninstall + scan, ou alinhar o driver ao 610.60 da 2070.
 
 ### Experts DeepSeek indisponiveis
 

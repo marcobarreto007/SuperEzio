@@ -17,7 +17,7 @@ Este runbook elimina os três antes do primeiro convidado chegar.
    (`runtime/logs/ceo-serve-mmproj-*.err.log`) se não há `send_error ...
    exceeds the available context size` recente. Se houver, reiniciar o
    llama-server com `-c 16384` ou `-c 32768` (testar VRAM: `nvidia-smi`;
-   a RTX 3060 12GB aguenta q8_0 maior que 8192).
+   a RTX 2070 8GB viva nao aguenta q8_0 maior que 8192; a 3060 esta FAILED_ADD).
 4. **Código atualizado**: reiniciar a API `:8002` se o processo estiver
    rodando código anterior ao HEAD (`git log --oneline -1` vs horário de
    boot do processo). O frontend é servido do disco — sempre atual.

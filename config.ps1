@@ -15,7 +15,8 @@ $script:EnvExampleFile = Join-Path $SuperEzioRoot ".env.example"
 $script:CeoPort = if ($env:SUPEREZIO_MODEL_PORT) { [int]$env:SUPEREZIO_MODEL_PORT } else { 8080 }
 $script:ApiPort = if ($env:SUPEREZIO_PORT) { [int]$env:SUPEREZIO_PORT } else { 8002 }
 $script:ModelsDir = Join-Path $SuperEzioRoot "models"
-# Operator mouth (RTX 3060 12GB): Ornith-1.0-9B Q4_K_M (~5.9GB).
+# Operator mouth (live GPU 2026-09-04: RTX 2070 8GB). Ornith-1.0-9B Q4_K_M (~5.6GB).
+# RTX 3060 12GB is physically present but CM_PROB_FAILED_ADD — not in nvidia-smi.
 # System organs decide; this GGUF only routes tools and narrates the cockpit.
 $modelFileName = "Ornith-1.0-9B-Q4_K_M.gguf"
 $modelCandidates = @(

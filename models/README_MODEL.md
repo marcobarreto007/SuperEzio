@@ -4,10 +4,12 @@ The local CEO model (Bob) is **Qwen3.8-27B-Q4_K_M** (GGUF, ~15.9 GB).
 
 ## Current machine state (2026-08-21)
 
-- **GPU**: single working NVIDIA RTX 3060 12GB (driver 560.94 / CUDA 12.6).
-  The machine also has an RTX 2070 8GB physically present but in a FAILED
-  state (Windows Code 31, mismatched OEM driver packages) and a P106-100
-  mining card. The runtime assumes 1 GPU until the 2070 is repaired.
+- **GPU** (re-measured 2026-09-04): single **live** NVIDIA RTX 2070 8GB
+  (driver 610.60 / CUDA UMD 13.3). The RTX 3060 12GB is still in the
+  machine but `Get-PnpDevice` reports `Status=Error Problem=CM_PROB_FAILED_ADD`
+  and `nvidia-smi` enumerates only the 2070. Dual-GPU `-ts 8,6` is NO-GO
+  until Marco repairs the 3060 in Device Manager (same driver family as
+  the 2070). The runtime uses 1 live GPU.
 - **Model files**: **PRESENT** at `C:\Users\marco\models\qwen3.8-27b\`
   (downloaded 2026-08-14/15) — `config.ps1` probes this path automatically:
 

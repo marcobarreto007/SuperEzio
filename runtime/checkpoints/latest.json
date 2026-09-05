@@ -1,12 +1,13 @@
 {
-  "date_local": "2026-08-21",
-  "session": "single-gpu-iq2-launch-2026-08-21",
+  "date_local": "2026-09-04",
+  "session": "gpu-2070-live-ornith-rebind-2026-09-04",
   "status": "LIVE",
-  "superseded_note": "Switch canonico 2026-08-21: single-GPU RTX 3060 12GB com UD-IQ2_XXS (8.4GB). Q4_K_M (15.9GB) permanece em disco como perfil de 2 GPUs/offload. RTX 2070 segue em Code 31.",
+  "superseded_note": "Hardware vivo e 1x RTX 2070 8GB. RTX 3060 12GB esta em CM_PROB_FAILED_ADD e nao aparece no nvidia-smi. Boca oficial: Ornith-1.0-9B-Q4_K_M com -ngl all, sem -ts fantasma.",
   "what_was_done": [
-    "Servidor :8080 iniciado direto via llama-server.exe (build 10435) com -ts 12, ctx 8192, presence-penalty 1.5",
-    "/v1/chat/completions respondeu em PT: \"A regra numero um do investimento e proteger o capital\" (27 completion tokens)",
-    "GPU: 9220 MiB / 12288 MiB em uso; health {\"status\":\"ok\"}"
+    "Medido nvidia-smi: GPU0 RTX 2070 8192 MiB; WMI: 3060 Status=Error Problem=CM_PROB_FAILED_ADD",
+    "Processo anterior :8080 era llama.cpp-src com Ornith-1.5 Q6_K -ts 8,6 -c 32768 (assume 2 GPUs)",
+    "stop.ps1 no PID 5804; start oficial tools\\llama.cpp\\llama-server.exe + models\\Ornith-1.0-9B-Q4_K_M.gguf",
+    "Prova: PID 17260 Type C na GPU; /health ok; /v1/models ftype Q4_K Medium n_ctx=8192; ping2 35.92 tok/s"
   ],
   "runtime_parameters": {
     "api_port": 8002,
@@ -14,28 +15,29 @@
     "api_entrypoint": "python -m agent_server.main",
     "agent_entrypoint": "scripts/serve_agent_llamacpp.ps1 -Port 8080",
     "llama_server": "C:\\Users\\marco\\tools\\llama.cpp\\llama-server.exe",
+    "llama_pid": 17260,
     "model_path": "C:\\Users\\marco\\Desktop\\SuperEzio\\models\\Ornith-1.0-9B-Q4_K_M.gguf",
     "lora_path": null,
     "quantization": "Q4_K_M",
     "context_length": 8192,
     "gpu_layers": "all",
-    "tensor_split": "12",
+    "tensor_split": "auto (omitted; 1 live GPU)",
+    "flash_attn": "on (required for q8_0 V cache)",
     "model_type": "dense",
-    "shared_with": "Claude Code perfil cc (one server, one slot)",
-    "cloud_providers": "none (zero-cloud policy)"
+    "cloud_providers": "none for mouth (zero-cloud)"
   },
   "evidence": [
-    "GGUF already present: C:\\Users\\marco\\models\\qwen3.8-27b\\Qwen3.8-27B-Q4_K_M.gguf (17106775008 bytes)",
-    "nvidia-smi: GPU0 RTX 3060 12GB pci 03:00.0, GPU1 RTX 2070 8GB pci 04:00.0, no P106",
-    "24576 CUDA OOM: allocating 313.13 MiB on device 1 (KV/compute); MTP draft also OOM",
-    "8192 live: /health ok, /v1/models n_ctx=8192 ftype=Q4_K Medium; nvidia-smi currently shows only GPU0 3060 12097/12288 (2070 not enumerated)"
+    "nvidia-smi -L: GPU 0: NVIDIA GeForce RTX 2070",
+    "Get-PnpDevice Display: RTX 3060 Status=Error Problem=CM_PROB_FAILED_ADD",
+    "VRAM after bind: 5870 MiB / 8192 MiB; GPU-Util 65% during ping2",
+    "chat ping2: prompt 43.16 tok/s, predicted 35.92 tok/s, 312 ms"
   ],
   "risks": [
-    "CEO depends on the shared cc server on :8080 — if the operator stops it, SuperEzio enters MAN_AT_WORK (by design)",
-    "The two GPUs cannot hold two llama-server instances: SuperEzio and Claude Code share one slot",
-    "24576 does not fit Q4_K_M on 3060+2070 even with empty VRAM, q8_0 and flash attn",
-    "llama.cpp-src MSVC binary is unusable on this GPU pair (no kernel image)"
+    "RTX 3060 FAILED_ADD is hardware/driver — no repo workaround. Dual-GPU stays NO-GO.",
+    "8GB VRAM + desktop Chrome/Cursor leaves little headroom; Q6_K or ctx 32768 will spill or stall",
+    "API :8002 was down before this procedure and was left down (mouth-only restart)",
+    "Cold first prompt on WDDM can take tens of seconds; measure the second request"
   ],
-  "next_step": "Validar o Bob via gateway SuperEzio (python -m agent_server.main usa AGENT_MODEL_ID=Qwen3.8-27B-UD-IQ2_XXS) e rodar browser smoke quando o operador liberar MAN_AT_WORK.",
+  "next_step": "runtime-verifier: re-medir nvidia-smi + GET :8080/health + /v1/models + um ping. 3060 so volta com reparo de Device Manager.",
   "owner": "Marco"
 }

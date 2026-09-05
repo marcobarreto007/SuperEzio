@@ -24,7 +24,7 @@
   },
   "debt_next_slice": {
     "label_qwen": "health/details provider_agent configurado para deepseek-v4-pro; se chave ausente, body reporta MAN_AT_WORK fail-closed",
-    "gpu_smi": "nvidia-smi on this machine reported RTX 2070 8GB, not 3060 12GB",
+    "gpu_smi": "2026-09-04: nvidia-smi enumerates only RTX 2070 8GB. RTX 3060 is CM_PROB_FAILED_ADD. Mouth rebound to Ornith-1.0 Q4_K_M -ngl all without -ts 8,6. ping2 35.92 tok/s.",
     "playwright": "MCP server habilitado mas chromium ausente no cache do sandbox — browser_smoke segue falhando ate instalar"
   },
   "still_true": {
