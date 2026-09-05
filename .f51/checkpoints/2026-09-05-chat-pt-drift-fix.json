@@ -1,0 +1,51 @@
+{
+  "date_local": "2026-09-05",
+  "session": "chat-pt-drift-fix-20260905",
+  "status": "DELIVERED_SLICE",
+  "objective": "Corrigir o drift de idioma do chat (resposta final voltou a ser em portugues de verdade): GLM-5.3 com thinking forcado (pinado desde 2026-09-05 11:15) emitia a deliberacao em ingles; o gateway fazia content or reasoning e o CoT vazava como texto visivel ao usuario; max_tokens=1800 compartilhado (thinking+content) deixava o conteudo PT sem espaco; o fallback de financa complexa era em ingles. Fix em 1 commit (dd3b9200, 5 arquivos: src/core/model_serving/gateway.py, src/core/pipeline/nodes/agent.py, src/core/pipeline/nodes/generator.py, tests/test_gateway.py, tests/test_generator.py). Prova E2E: scripts/browser_smoke.py completo VERDE contra o servidor reiniciado (antes falhava).",
+  "predecessor": "auth-contract-registration-20260905",
+  "patch": {
+    "commits": [
+      "dd3b9200"
+    ],
+    "intent": "dd3b9200 'fix(chat): resposta final em portugues — reasoning nunca vira texto visivel, orcamento GLM com folga e fallback PT': (1) reasoning_content sem marcador nunca vira texto visivel — nem em stream nem em generate — pinado por 5 testes novos (tests/test_gateway.py +255, tests/test_generator.py +13); (2) piso de 4096 tokens de orcamento para GLM (thinking+content com folga); (3) default de SUPEREZIO_GLM_REASONING_EFFORT de high para low (probe: effort low emite content PT direto, sem CoT a consumir o orcamento); (4) fallback de financa complexa responde em PT para queries PT (EN mantido para queries EN); (5) generator.py passa a delegar ao agent (fonte unica do caminho de resposta). Cadeia completa de hoje (referencia): 8ca85d73, f40058b5, 042f2cc3, efa07013, bb094664, 5b58e2f5, c48be940, dd3b9200",
+    "data_updates": ""
+  },
+  "verification": {
+    "pytest_full": "2318 passed, 9 skipped, 1 deselected em 418s (suite completa)",
+    "new_chat_tests": "5 testes novos pinam que reasoning_content sem marcador nunca vira texto visivel (stream e generate)",
+    "browser_smoke_e2e": "VERDE — scripts/browser_smoke.py completo contra o servidor 127.0.0.1:8002 reiniciado com o codigo novo (falhava antes do fix): languageOk=true, hasEnMarkers=false, resposta PT real de 3831 chars em 75.6s",
+    "probe_glm_reasoning_low": "probe com SUPEREZIO_GLM_REASONING_EFFORT=low: GLM-5.3 emite content PT direto",
+    "verifiers_manha": "security-reviewer VERIFIED 7/7 e api-contract-verifier VERIFIED (sessao auth-unique-contract-20260905, ja espelhados na manha; anteriores a dd3b9200 — nao cobrem este slice)",
+    "ruff": "nao reportado nos fatos verificados desta sessao",
+    "json_valid": "validated"
+  },
+  "operator_truth": {
+    "chat_pt_drift_root_cause": "GLM-5.3 com thinking forcado (desde o pin de 2026-09-05 11:15) emitia deliberacao em ingles; gateway fazia content or reasoning e o CoT vazava como resposta ao usuario; max_tokens=1800 compartilhado (thinking+content) deixava o conteudo PT sem espaco",
+    "reasoning_content_policy": "reasoning_content sem marcador nunca vira texto visivel (stream e generate) — pinado por 5 testes novos",
+    "glm_budget_floor": "piso de 4096 tokens de orcamento para GLM (thinking+content com folga)",
+    "glm_reasoning_effort_default": "default de SUPEREZIO_GLM_REASONING_EFFORT mudou de high para low (probe: low emite content PT direto)",
+    "complex_finance_fallback_language": "fallback de financa complexa responde em PT para queries PT; EN mantido para queries EN",
+    "generator_delegates_to_agent": "generator.py delega ao agent (fonte unica do caminho de resposta)",
+    "server_8002": "reiniciado com o codigo novo (roda em background desta sessao; runtime/logs/api-8002-glm.txt em movimento) — observacao operacional",
+    "auth_contract_doc": "contrato de autenticacao registrado em .f51/contracts/agent-server.contract.md (secao Authentication & Authorization) pelo slice anterior (5b58e2f5) — consumidor implementa sem ler codigo",
+    "auth_active_tree": "nenhuma senha hardcoded na arvore ativa (042f2cc3); 8 scripts de validacao leem a env com fail-closed SystemExit",
+    "model_serving_contracts": "contratos hermetical contra o dotenv do operador (fixture autouse neutraliza load_local_env); fallback GLM->DeepSeek por credito coberto por contratos",
+    "operator_hooks": "fora do repo: ~/.claude/settings.json corrigido — hooks com paths absolutos C:/Users/marco/.claude/hooks/*.sh e timeout do Stop 600s",
+    "local_8080": "STANDBY / INACTIVE (0 bytes VRAM weights loaded, RTX 3060 12GB free)",
+    "ceo_model": "glm-5.3 (Z.ai Coding Plan HTTPS API) com fallback automatico para deepseek-v4-pro em falta de credito",
+    "experts_model": "deepseek-v4-pro (API externa oficial DeepSeek HTTPS)",
+    "intelligence": "pipeline organs + official cloud APIs (Z.ai + DeepSeek), not unconstrained LLM",
+    "live_execution": "FROZEN (BROKER_NEUTRAL_VALIDATION_ONLY)"
+  },
+  "debt_next_slice": {
+    "archive_known_password": "senha conhecida do operador ainda em .f51/archive/2026-08-26/scripts/live_chrome_operator.py (trackeado, linha 12) e no historico git inteiro — dono: operador humano (rotacao nos portais + purge via filter-repo); reabrir quando autorizado (bloqueio do P0 segredos 2026-08-26 segue valendo)",
+    "bootstrap_admin_password": "maquina nova agora EXIGE SUPEREZIO_ADMIN_PASSWORD no bootstrap — mudanca intencional aprovada pelo operador; sem acao pendente alem de documentar em runbook futuro"
+  },
+  "still_true": {
+    "live_execution": "FROZEN",
+    "github": "DISK ONLY",
+    "intelligence": "pipeline organs, not the LLM",
+    "mouth_not_abliterated": false
+  }
+}
