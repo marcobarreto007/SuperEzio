@@ -161,9 +161,19 @@ step_seed_admin() {
         echo -e "  ${SKIP} scripts/seed_admin.py not found."
         return
     fi
+    if [ -z "${SUPEREZIO_ADMIN_PASSWORD:-}" ]; then
+        echo -e "  ${FAIL} SUPEREZIO_ADMIN_PASSWORD is required but not set."
+        echo "  Refusing to seed the admin user with a known/default password (fail-closed)."
+        echo "  Generate a strong random password with:"
+        echo '    python -c "import secrets; print(secrets.token_hex(32))"'
+        echo "  Export it and run this script again:"
+        echo "    export SUPEREZIO_ADMIN_PASSWORD=<the token above>"
+        ERR_COUNT=$((ERR_COUNT + 1))
+        return
+    fi
     activate_venv
-    ADMIN_PASS="${SUPEREZIO_ADMIN_PASSWORD:-SuperEzioAdmin2024!}"
-    echo -e "  ${INFO} Seeding admin (admin / ${ADMIN_PASS})..."
+    ADMIN_PASS="${SUPEREZIO_ADMIN_PASSWORD}"
+    echo -e "  ${INFO} Seeding admin (admin / ********)..."
     python scripts/seed_admin.py --username admin --email admin@superezio.com --password "${ADMIN_PASS}" 2>&1 || true
     echo -e "  ${PASS} Admin seed verified."
 }
@@ -211,6 +221,7 @@ summary() {
     else
         echo -e "  ${RED}${FAIL}${NC} ${ERR_COUNT} error(s) found."
         echo "  Fix and run again."
+        exit 1
     fi
     echo ""
 }

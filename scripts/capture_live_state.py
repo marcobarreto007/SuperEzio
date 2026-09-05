@@ -3,9 +3,16 @@ import os
 import requests
 from playwright.sync_api import sync_playwright
 
+password = os.environ.get("SUPEREZIO_ADMIN_PASSWORD")
+if not password:
+    raise SystemExit(
+        "SUPEREZIO_ADMIN_PASSWORD nao definida: exporte a senha do admin antes de rodar "
+        '(gere com: python -c "import secrets; print(secrets.token_hex(32))")'
+    )
+
 r = requests.post(
     "http://127.0.0.1:8002/auth/login",
-    json={"username": "marco", "password": "Marco1234!"},
+    json={"username": "marco", "password": password},
     headers={"User-Agent": "Mozilla/5.0"},
     timeout=15,
 )

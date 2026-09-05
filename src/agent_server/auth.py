@@ -370,7 +370,8 @@ def _decode_access_token(token: str) -> dict[str, Any] | None:
 
 
 # ---------------------------------------------------------------------------
-# Public-path check (mirrors the set in main.py)
+# Public-path check — canonical set for the JWT gate.
+# Single source of truth lives in this module; main.py does not mirror it.
 # ---------------------------------------------------------------------------
 _PUBLIC_EXACT = frozenset(
     {
@@ -411,8 +412,9 @@ async def jwt_auth_middleware(request: Request, call_next):
 
     Behaviour
     ---------
-    * Public routes (same set as ``api_key_auth_middleware`` plus ``/auth/*``):
-      pass through without authentication.
+    * Public routes (see ``_PUBLIC_EXACT`` / ``_PUBLIC_EXACT_TIGHTENED`` /
+      ``_PUBLIC_PREFIXES`` / ``_PUBLIC_AUTH_PATHS`` above) pass through
+      without authentication.
     * Dev mode (``SUPEREZIO_JWT_SECRET`` empty / not set) or open access
       (``SUPEREZIO_OPEN_ACCESS=1``): inject a guest user. A valid Bearer
       token, if present, is still honoured.
@@ -420,8 +422,9 @@ async def jwt_auth_middleware(request: Request, call_next):
       header, validate it, and inject the decoded payload into
       ``request.state.user``.
 
-    Expected to be added **after** ``api_key_auth_middleware`` so that routes
-    protected by the API key still run first.
+    JWT Bearer is the single client identity mechanism. main.py registers
+    this middleware as ``api_jwt_auth_middleware`` (a thin ``@app.middleware``
+    wrapper); there is no separate API-key auth layer in front of it.
     """
     path = request.url.path
 

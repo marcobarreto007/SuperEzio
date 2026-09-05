@@ -11,9 +11,16 @@ os.makedirs("output/playwright_live_run", exist_ok=True)
 
 # 1. Autenticação real
 print("[1/5] Realizando login na API...")
+password = os.environ.get("SUPEREZIO_ADMIN_PASSWORD")
+if not password:
+    raise SystemExit(
+        "SUPEREZIO_ADMIN_PASSWORD nao definida: exporte a senha do admin antes de rodar "
+        '(gere com: python -c "import secrets; print(secrets.token_hex(32))")'
+    )
+
 login_resp = requests.post(
     "http://127.0.0.1:8002/auth/login",
-    json={"username": "marco", "password": "Marco1234!"},
+    json={"username": "marco", "password": password},
     headers={"User-Agent": "Mozilla/5.0"},
     timeout=15,
 )
