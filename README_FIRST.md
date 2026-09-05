@@ -1,85 +1,47 @@
-# SuperEzio - AI Financial Copilot
+# SuperEzio — Trade e assistente de investimento
 
-**Local-first, evidence-based financial analysis for small investors who want a disciplined second opinion.**
+O SuperEzio reúne gráficos, análise de ativos, acompanhamento de carteira e um assistente de investimento. Use o chat para estudar oportunidades, comparar investimentos e construir planos de entrada, saída e gestão de risco. Bob é o assistente dentro do SuperEzio.
 
-## What It Does
+## Instalar
 
-SuperEzio is an AI copilot that:
-
-1. Collects market data: prices, fundamentals, technicals, and macro context from configured sources.
-2. Runs expert analysis: specialized agents assess the same data under an anti-guessing contract.
-3. Applies a risk firewall: the SDCA firewall blocks FOMO, leverage, and stale-signal decisions.
-4. Delivers a bounded verdict: STUDY_MORE, WATCHLIST, WAIT, SMALL_POSITION, or AVOID.
-5. Flags missing data instead of fabricating numbers.
-
-The CEO and orchestrator run on the shared local Qwen3.8-27B server. Financial experts, the day-trade judge, and auditor use the official external DeepSeek API with no cross-provider fallback. Market-data providers may also call their documented external data APIs.
-
-## What You Need
-
-| Requirement | Minimum | Recommended |
-|-------------|---------|-------------|
-| Operating System | Windows 10/11 64-bit | Windows 11 64-bit |
-| RAM | 48 GB | 64 GB |
-| GPU | NVIDIA with 8 GB VRAM | NVIDIA RTX with 16 GB VRAM |
-| Disk Space | 60 GB free | 100 GB free SSD |
-| Python | 3.11+ | 3.12.x |
-| CUDA | 12.0+ | 12.4+ |
-
-## Quick Start
-
-### 1. Bootstrap
+Você precisa de Windows, Python 3.11 ou superior e internet para as APIs externas de inteligência e dados de mercado. Um servidor de modelo local, GPU e CUDA não são requisitos para o assistente em nuvem.
 
 ```powershell
-$env:SUPEREZIO_ADMIN_PASSWORD = "replace-with-a-unique-long-password"
+$env:SUPEREZIO_ADMIN_PASSWORD = "substitua-por-uma-senha-longa-e-unica"
 .\setup_superezio.bat
 ```
 
-This creates the locked Python environment, local secrets, browser runtime, and first operator account.
+Configure suas chaves no arquivo local `.env.local`. Os modelos e endpoints estão em `config/runtime.yml`; o padrão atual usa a API oficial DeepSeek e a variável `SUPEREZIO_DEEPSEEK_API_KEY`. Os provedores de mercado dependem das chaves e permissões contratadas. Nunca compartilhe esse arquivo na entrega a outro cliente.
 
-### 2. Check
-
-```powershell
-powershell -ExecutionPolicy Bypass -File check.ps1
-```
-
-This verifies the machine, model, Python environment, runtime, and ports. If anything fails, it prints the next fix.
-
-### 3. Start
+## Abrir
 
 ```powershell
 .\setup_superezio.bat run
 ```
 
-This starts the shared local Qwen3.8-27B CEO model on port 8080 and the API/UI on port 8002. First load can take several minutes because the model is large.
+Acesse [SuperEzio](http://127.0.0.1:8002) e entre com sua conta. Para encerrar, execute `powershell -ExecutionPolicy Bypass -File stop.ps1`.
 
-### 4. Open
+## Começar a usar
 
-Open:
+1. Busque um ativo, como `MSFT` ou `TD.TO`, e escolha o período do gráfico.
+2. Peça: “Analise TD.TO para swing trade. Mostre fontes, atualidade dos dados, riscos, entrada, invalidação e saída.”
+3. Compare alternativas: “Compare MSFT e um ETF amplo para meu horizonte de investimento.”
+4. Consulte sua carteira e peça uma revisão de concentração e exposição. Informe apenas posições e valores necessários à análise.
+5. Confira se os dados estão disponíveis e atualizados antes de usar uma conclusão. Uma API indisponível ou sem cobertura deve aparecer como limitação, nunca como cotação inventada.
 
-```text
-http://127.0.0.1:8002
-```
+## Operação de trade
 
-Or double-click `OPEN_UI.url`.
+A entrega mantém execução com dinheiro real bloqueada. A integração IBKR em paper depende de conexão, habilitação explícita e aprovação dos controles de risco. TD Direct Investing usa preparação e revisão manual, sem transmissão automática. Uma sugestão no chat não equivale a uma ordem executada.
 
-## How to Stop
+O SuperEzio apoia decisões de investimento, sem promessa de retorno. A disponibilidade dos serviços externos depende de conexão, saldo, cobertura e limites das APIs.
+
+## Verificar a instalação
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File stop.ps1
+powershell -ExecutionPolicy Bypass -File check.ps1
+python -m ruff check src/ tests/
+python -m pytest tests/ -q
+python scripts/browser_smoke.py
 ```
 
-## Example Questions
-
-- "I have CAD 25,000 to allocate. Build a serious framework with risk limits."
-- "MSFT pulled back. What evidence should I study before entering?"
-- "NU has strong momentum. What are the risks, data gaps, and safest next step?"
-
-## Important
-
-This is an educational framework, not financial advice. It never submits live/real-capital orders. IBKR paper orders can be transmitted only when explicitly enabled and all safety/readiness gates pass; TD Direct Investing remains a manual workflow with no broker transport. The system does not guarantee returns or replace a licensed financial advisor.
-
-The local CEO and orchestrator run on your machine through the shared llama-server on port 8080. Financial experts, the day-trade judge, and auditor are pinned to the official external DeepSeek HTTPS API (`https://api.deepseek.com`, `allow_fallback: false` — see `config/runtime.yml:67-77`); neither tier may fall back to the other. External market-data providers are optional and controlled by `.env`; if enabled, they receive only the data required for market-data collection. No external provider receives LLM prompts as a fallback.
-
-## Support
-
-See `docs/` for architecture notes, risk disclosures, and packaging runbooks.
+O teste de navegador exige a API em execução e acesso válido aos provedores. Consulte `docs/runbooks/RUNBOOK.md` para diagnóstico e recuperação.

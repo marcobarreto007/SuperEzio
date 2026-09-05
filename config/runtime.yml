@@ -109,10 +109,6 @@ gateway:
 # Health checks
 # ---------------------------------------------------------------------------
 health:
-  agent:
-    url: http://127.0.0.1:8080/health
-    method: GET
-    expected: ok
   api_public:
     url: http://127.0.0.1:8002/health
     method: GET
@@ -138,16 +134,7 @@ storage:
 # ---------------------------------------------------------------------------
 launch:
   step_1:
-    description: CEO llama-server (perfil cc compartilhado — :8080)
-    # Preferencia: subir via run-cc.ps1 do operador (perfil validado).
-    # Fallback: serve_agent_llamacpp.ps1 sobe o mesmo modelo na :8080.
-    command: powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080
-    wait_for: http://127.0.0.1:8080/health
-    timeout_attempts: 50
-    window_title: SuperEzio CEO
-
-  step_2:
-    description: API agent_server
+    description: SuperEzio API e interface, com inteligencia via APIs externas
     command: python -m agent_server.main
     wait_for: http://127.0.0.1:8002/health
     timeout_attempts: 40
