@@ -10,6 +10,18 @@ ROOT = __import__("pathlib").Path(__file__).resolve().parents[2]
 
 @pytest.fixture(autouse=True)
 def _deepseek_contract_env(monkeypatch):
+    # Hermetic contracts: core.config.secrets.load_local_env() hydrates
+    # os.environ from the operator's secrets/glm_coding_plan.env, .env.local
+    # and .env, and both UniversalConfig() and create_gateway_from_config()
+    # trigger it. Without neutralization the production GLM/DeepSeek wiring
+    # bleeds into these boundary tests (regression 2026-09-05: the agent
+    # provider resolved as GLM from the .env, breaking provider boundaries).
+    import core.config.secrets as _secrets
+    import core.model_serving.gateway as _gateway
+
+    monkeypatch.setattr(_secrets, "load_local_env", lambda: None)
+    monkeypatch.setattr(_gateway, "load_local_env", lambda: None)
+
     monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", "sk-ds-test-only")
     for name in (
         "SUPEREZIO_DEEPSEEK_BASE_URL",
@@ -21,6 +33,19 @@ def _deepseek_contract_env(monkeypatch):
         "SUPEREZIO_ALLOW_CUSTOM_DEEPSEEK_BASE_URL",
         "SUPEREZIO_DAYTRADE_JUDGE_MODEL",
         "SUPEREZIO_DAYTRADE_AUDITOR_MODEL",
+        # Provider-shaping keys that would otherwise leak from the .env:
+        "SUPEREZIO_AGENT_MODEL",
+        "SUPEREZIO_AGENT_BASE_URL",
+        "SUPEREZIO_AGENT_API_KEY",
+        "SUPEREZIO_PRIMARY_MODEL",
+        "SUPEREZIO_PRIMARY_BASE_URL",
+        "SUPEREZIO_PRIMARY_API_KEY",
+        "SUPEREZIO_GLM_CODING_PLAN_API_KEY",
+        "SUPEREZIO_GLM_FALLBACK_TO_DEEPSEEK",
+        "SUPEREZIO_GLM_REASONING_EFFORT",
+        "SUPEREZIO_DEEPSEEK_THINKING",
+        "SUPEREZIO_DEEPSEEK_REASONING_EFFORT",
+        "SUPEREZIO_RUNTIME_PROFILE",
     ):
         monkeypatch.delenv(name, raising=False)
 
@@ -278,9 +303,12 @@ def test_gateway_providers_for_request_agent_no_fallback(monkeypatch):
 
 
 def test_gateway_agent_never_has_cloud_fallback(monkeypatch):
-    """Zero-cloud contract: even with a GLM key configured, no ceo_fallback_glm
-    provider may exist, and the agent/CEO must resolve to itself alone."""
-    monkeypatch.setenv("SUPEREZIO_GLM_CODE_PLAN_API_KEY", "test-key")
+    """Zero-cloud default: with the agent on its default DeepSeek pin (the
+    hermetic default here), no ceo_fallback_glm provider may exist and the
+    agent/CEO must resolve to itself alone — a GLM-pinned agent is a separate
+    contract, covered by test_gateway_glm_agent_falls_back_only_to_deepseek."""
+    monkeypatch.delenv("SUPEREZIO_AGENT_MODEL", raising=False)
+    monkeypatch.delenv("SUPEREZIO_GLM_CODE_PLAN_API_KEY", raising=False)
     monkeypatch.delenv("SUPEREZIO_PRIMARY_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
 
@@ -293,6 +321,59 @@ def test_gateway_agent_never_has_cloud_fallback(monkeypatch):
     assert "ceo_fallback_glm" not in [p.name for p in gw.providers]
     providers = gw._providers_for_request(AGENT_PROVIDER_NAME)
     assert [p.name for p in providers] == [AGENT_PROVIDER_NAME]
+
+
+def test_gateway_glm_agent_falls_back_only_to_deepseek(monkeypatch):
+    """Contract 2026-09-05 (GLM credit fallback): a GLM-pinned agent may fall
+    back ONLY to the plain official DeepSeek provider — never to the
+    orchestrator, judge or auditor — and only while the credit-fallback flag
+    is on (the default) with the request allowing fallback."""
+    from core.config.schema import UniversalConfig
+    from core.model_serving.gateway import create_gateway_from_config
+    from core.model_serving.providers import (
+        AGENT_PROVIDER_NAME,
+        DEEPSEEK_OFFICIAL_BASE_URL,
+        DEEPSEEK_PROVIDER_NAME,
+        GLM_CODING_PLAN_MODEL,
+    )
+
+    monkeypatch.setenv("SUPEREZIO_AGENT_MODEL", GLM_CODING_PLAN_MODEL)
+    monkeypatch.setenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", "sk-glm-test-only")
+
+    cfg = UniversalConfig()
+    gw = create_gateway_from_config(cfg)
+    agent = next(p for p in gw.providers if p.name == AGENT_PROVIDER_NAME)
+    assert agent.base_url.startswith("https://api.z.ai")
+
+    providers = gw._providers_for_request(AGENT_PROVIDER_NAME)
+    assert [p.name for p in providers] == [AGENT_PROVIDER_NAME, DEEPSEEK_PROVIDER_NAME]
+    fallback = providers[1]
+    assert fallback.model == "deepseek-v4-pro"
+    assert fallback.base_url == DEEPSEEK_OFFICIAL_BASE_URL
+
+
+def test_gateway_glm_agent_fallback_off_or_disallowed_is_self_only(monkeypatch):
+    """With the credit fallback flag off — or the request disallowing fallback
+    (allow_fallback=False) — a GLM-pinned agent still resolves to itself
+    alone."""
+    from core.config.schema import UniversalConfig
+    from core.model_serving.gateway import create_gateway_from_config
+    from core.model_serving.providers import AGENT_PROVIDER_NAME, GLM_CODING_PLAN_MODEL
+
+    monkeypatch.setenv("SUPEREZIO_AGENT_MODEL", GLM_CODING_PLAN_MODEL)
+    monkeypatch.setenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", "sk-glm-test-only")
+    monkeypatch.setenv("SUPEREZIO_GLM_FALLBACK_TO_DEEPSEEK", "0")
+
+    cfg = UniversalConfig()
+    gw = create_gateway_from_config(cfg)
+    assert [p.name for p in gw._providers_for_request(AGENT_PROVIDER_NAME)] == [AGENT_PROVIDER_NAME]
+
+    monkeypatch.setenv("SUPEREZIO_GLM_FALLBACK_TO_DEEPSEEK", "1")
+    cfg = UniversalConfig()
+    gw = create_gateway_from_config(cfg)
+    assert [
+        p.name for p in gw._providers_for_request(AGENT_PROVIDER_NAME, allow_fallback=False)
+    ] == [AGENT_PROVIDER_NAME]
 
 
 def test_agent_timeout_invalid_value_fails_cleanly(monkeypatch):

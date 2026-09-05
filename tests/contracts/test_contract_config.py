@@ -175,7 +175,9 @@ def test_glm_sidecar_overrides_stale_env_local(tmp_path, monkeypatch):
     from core.config import secrets
 
     (tmp_path / "secrets").mkdir()
-    (tmp_path / ".env.local").write_text("SUPEREZIO_AGENT_MODEL=deepseek-v4-pro\n", encoding="utf-8")
+    (tmp_path / ".env.local").write_text(
+        "SUPEREZIO_AGENT_MODEL=deepseek-v4-pro\n", encoding="utf-8"
+    )
     (tmp_path / "secrets" / "glm_coding_plan.env").write_text(
         "SUPEREZIO_AGENT_MODEL=glm-5.3\n", encoding="utf-8"
     )
@@ -184,7 +186,9 @@ def test_glm_sidecar_overrides_stale_env_local(tmp_path, monkeypatch):
     monkeypatch.delenv("SUPEREZIO_AGENT_MODEL", raising=False)
     secrets.load_local_env()
     assert os.environ["SUPEREZIO_AGENT_MODEL"] == "glm-5.3"
-    monkeypatch.delenv("SUPEREZIO_AGENT_MODEL", raising=False)
+    # Sem segundo delenv aqui: load_local_env escreve direto no os.environ
+    # (invisível ao monkeypatch), e um delenv pós-load faria o teardown
+    # RESTAURAR o valor envenenado para os testes seguintes do processo.
 
 
 def test_env_files_include_glm_coding_plan_sidecar():

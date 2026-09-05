@@ -93,6 +93,22 @@ def test_provider_boundaries_and_credentials(monkeypatch):
     from core.model_serving.providers import build_default_providers
 
     monkeypatch.delenv("SUPEREZIO_AGENT_API_KEY", raising=False)
+    # Hermetic boundary: reload_config() triggers the .env hydrator
+    # (core.config.secrets.load_local_env), which would otherwise leak the
+    # operator's GLM agent pin (SUPEREZIO_AGENT_MODEL/AGENT_BASE_URL) into this
+    # DeepSeek-boundary test. Neutralize the loader and clear the pins.
+    import core.config.secrets as _secrets
+
+    monkeypatch.setattr(_secrets, "load_local_env", lambda: None)
+    monkeypatch.delenv("SUPEREZIO_AGENT_MODEL", raising=False)
+    monkeypatch.delenv("SUPEREZIO_AGENT_BASE_URL", raising=False)
+    # The operator .env also pins the orchestrator (local_orchestrator) on GLM
+    # via SUPEREZIO_PRIMARY_MODEL — clear the primary pins too, otherwise the
+    # boundary below sees api.z.ai instead of the official DeepSeek endpoint.
+    monkeypatch.delenv("SUPEREZIO_PRIMARY_MODEL", raising=False)
+    monkeypatch.delenv("SUPEREZIO_PRIMARY_BASE_URL", raising=False)
+    monkeypatch.delenv("SUPEREZIO_PRIMARY_API_KEY", raising=False)
+    monkeypatch.delenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", raising=False)
     monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", "test-deepseek-secret")
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_MODEL", raising=False)
