@@ -1,30 +1,31 @@
 {
-  "date_local": "2026-09-03",
-  "session": "deepseek-v4-pro-ceo-and-idempotency-20260903",
+  "date_local": "2026-09-05",
+  "session": "cloud-models-doc-alignment-20260905",
   "status": "DELIVERED_SLICE",
-  "objective": "Substituicao do cerebro local por deepseek-v4-pro via API externa oficial mantendo prompt do CEO (persona/mandamentos); ancoragem de idempotency e DLQ na raiz do projeto; dedup independente de session_id; script e testes de dead letter replay manual.",
-  "predecessor": "ibkr-degraded-fast-path-20260831",
+  "objective": "Alinhamento da documentacao oficial e contratos operacionais para topologia 100% em nuvem (Z.ai GLM-5.3 e DeepSeek V4 Pro HTTPS), eliminando referencias obsoletas a :8080/Ornith/Qwen local e preservando a custodia local DISK ONLY.",
+  "predecessor": "deepseek-v4-pro-ceo-and-idempotency-20260903",
   "patch": {
     "commits": [
-      "b50aa70f"
+      "da150cba"
     ],
-    "intent": "src/core/model_serving/providers.py, src/core/model_serving/gateway.py, src/core/pipeline/prompts/_prompts.py, src/core/bob_consciousness/body.py, src/agent_server/main.py, src/agent_server/endpoints.py, src/core/idempotency/__init__.py, src/core/pipeline/nodes/auto_execute_paper.py, scripts/replay_dead_letters.py, tests/test_dead_letter_replay.py, tests/test_idempotency_window.py, tests/test_api_routes_sync.py, tests/test_pipeline_quality_fixes.py, tests/contracts/test_contract_model_serving.py, tests/contracts/test_contract_runtime_official.py, runtime/theses/README.md, HANDOFF.md",
-    "data_updates": "data/mangala_daily.json, data/bob_pain_log.jsonl"
+    "intent": "CLAUDE.md, docs/ARCHITECTURE_ONEPAGER.md, HANDOFF.md, README.md, docs/runbooks/RUNBOOK.md, docs/runbooks/OPERATIONAL_RUNBOOK.md, .claude/agents/model-gateway-verifier.md, .f51/contracts/runtime.contract.md",
+    "data_updates": ""
   },
   "verification": {
-    "ruff": "All checks passed! (src/, tests/, scripts/)",
-    "pytest": "80 passed in 13.78s (tests/test_dead_letter_replay.py, tests/test_idempotency_window.py, tests/test_api_routes_sync.py, tests/test_pipeline_quality_fixes.py) + 673 passed no slice anterior",
-    "model_serving": "deepseek-v4-pro via https://api.deepseek.com com prompt do CEO e fallback seguro",
+    "ruff": "All checks passed! (src/, tests/)",
+    "pytest": "12 passed in 3.49s (tests/contracts/test_contract_runtime_official.py) + 21 passed (tests/test_runtime_smoke.py, tests/test_integration_runtime.py)",
+    "model_serving": "telemetria ao vivo confirmada em /health/details: Bob no glm-5.3 (Z.ai) e experts no deepseek-v4-pro (DeepSeek HTTPS)",
     "json_valid": "validated"
   },
   "operator_truth": {
-    "ceo_model": "deepseek-v4-pro (API externa oficial, prompt do CEO mantido)",
-    "intelligence": "pipeline organs + official DeepSeek API, not unconstrained LLM",
-    "live_execution": "FROZEN (BROKER_NEUTRAL_VALIDATION_ONLY)"
+    "ceo_model": "glm-5.3 (Z.ai Coding Plan HTTPS API, prompt do CEO mantido)",
+    "experts_model": "deepseek-v4-pro (API externa oficial DeepSeek HTTPS)",
+    "intelligence": "pipeline organs + official cloud APIs (Z.ai + DeepSeek), not unconstrained LLM",
+    "live_execution": "FROZEN (BROKER_NEUTRAL_VALIDATION_ONLY)",
+    "local_8080": "STANDBY / INACTIVE (0 bytes VRAM weights loaded, RTX 3060 12GB free)"
   },
   "debt_next_slice": {
-    "label_qwen": "health/details provider_agent configurado para deepseek-v4-pro; se chave ausente, body reporta MAN_AT_WORK fail-closed",
-    "gpu_smi": "2026-09-04: nvidia-smi enumerates only RTX 2070 8GB. RTX 3060 is CM_PROB_FAILED_ADD. Mouth rebound to Ornith-1.0 Q4_K_M -ngl all without -ts 8,6. ping2 35.92 tok/s.",
+    "broker_paper": "TWS/IB Gateway paper API offline em 127.0.0.1:7497; paper trading rodando em PaperJournal fallback local",
     "playwright": "MCP server habilitado mas chromium ausente no cache do sandbox — browser_smoke segue falhando ate instalar"
   },
   "still_true": {
