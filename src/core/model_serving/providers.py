@@ -1,10 +1,13 @@
-"""Provider dataclasses and the hybrid local/DeepSeek provider factory.
+"""Provider dataclasses and the external cloud provider factory.
 
-The CEO/agent and orchestrator remain pinned to the shared local llama-server
-runtime (:8080), today serving Ornith-1.0-9B-Q4_K_M (text-only, no mmproj).
-Financial experts, including the day-trade judge and auditor, are pinned to
-the official DeepSeek HTTPS API. These two trust boundaries must never
-silently substitute for one another.
+The CEO/agent and orchestrator default to the official DeepSeek HTTPS API
+(deepseek-v4-pro). When pinned to glm-5.x via SUPEREZIO_AGENT_MODEL or
+SUPEREZIO_PRIMARY_MODEL they are served by the Z.ai Coding Plan endpoint, and
+the ModelGateway adds the automatic credit fallback GLM -> DeepSeek
+(SUPEREZIO_GLM_FALLBACK_TO_DEEPSEEK, default on). Financial experts,
+including the day-trade judge and auditor, are pinned to the official
+DeepSeek HTTPS API. Trust boundaries never silently substitute for one
+another except for that explicit credit fallback.
 """
 
 import ipaddress
@@ -78,23 +81,6 @@ def _is_local_url(url: str) -> bool:
         and parsed.hostname == "bob-ceo"
         and parsed.port == 8080
     )
-
-
-def _local_only_override(env_var: str) -> str:
-    """Return the env override only if it points at a local endpoint.
-
-    Cloud URLs are rejected with a warning so a stale .env entry (e.g.
-    SUPEREZIO_AGENT_BASE_URL=https://api.deepseek.com, found in this repo on
-    2026-08-17) can never silently route the CEO/experts to an external API.
-    """
-    value = os.getenv(env_var, "").strip()
-    if value and not _is_local_url(value):
-        logger.warning(
-            "ZERO-CLOUD: %s points at a non-local endpoint — ignored by policy.",
-            env_var,
-        )
-        return ""
-    return value
 
 
 def _env_flag(name: str) -> bool:
