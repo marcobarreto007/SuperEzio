@@ -423,6 +423,22 @@ class ModelGateway:
             kwargs["reasoning_effort"] = os.getenv("SUPEREZIO_DEEPSEEK_REASONING_EFFORT", "high")
             kwargs.pop("temperature", None)
 
+    @staticmethod
+    def _apply_glm_coding_plan_options(provider: ModelProvider, kwargs: dict[str, Any]) -> None:
+        """GLM-5.3 Coding Plan always reasons; disabling thinking 400s the request."""
+        import os
+
+        model = (provider.model or "").strip().lower()
+        if not model.startswith("glm-5"):
+            return
+        effort = os.getenv("SUPEREZIO_GLM_REASONING_EFFORT", "high").strip().lower()
+        if effort not in {"low", "high", "max"}:
+            effort = "high"
+        extra = dict(kwargs.get("extra_body") or {})
+        extra["thinking"] = {"type": "enabled"}
+        extra["reasoning_effort"] = effort
+        kwargs["extra_body"] = extra
+
     async def stream_generate_api(
         self,
         provider: ModelProvider,
@@ -479,6 +495,7 @@ class ModelGateway:
             kwargs["tools"] = tools
 
         self._apply_deepseek_options(provider, kwargs)
+        self._apply_glm_coding_plan_options(provider, kwargs)
         if use_json:
             kwargs["response_format"] = {"type": "json_object"}
 
@@ -560,6 +577,7 @@ class ModelGateway:
             "temperature": temp,
         }
         self._apply_deepseek_options(provider, kwargs)
+        self._apply_glm_coding_plan_options(provider, kwargs)
         if use_json:
             kwargs["response_format"] = {"type": "json_object"}
 

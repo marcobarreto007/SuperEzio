@@ -9,34 +9,44 @@ import time
 import pytest
 
 from core.model_serving.gateway import ModelGateway
-from core.model_serving.providers import build_providers
+from core.model_serving.providers import (
+    GLM_CODING_PLAN_BASE_URL,
+    _normalize_zai_base_url,
+    build_providers,
+)
 
 
 @pytest.fixture(autouse=True)
 def _deepseek_contract_env(monkeypatch):
     monkeypatch.setenv("SUPEREZIO_DEEPSEEK_API_KEY", "test-key")
-    monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)
-    monkeypatch.delenv("SUPEREZIO_DEEPSEEK_MODEL", raising=False)
-    monkeypatch.delenv("SUPEREZIO_ALLOW_CUSTOM_DEEPSEEK_BASE_URL", raising=False)
+    for var in (
+        "SUPEREZIO_DEEPSEEK_BASE_URL",
+        "SUPEREZIO_DEEPSEEK_MODEL",
+        "SUPEREZIO_ALLOW_CUSTOM_DEEPSEEK_BASE_URL",
+        "SUPEREZIO_AGENT_BASE_URL",
+        "SUPEREZIO_PRIMARY_BASE_URL",
+        "SUPEREZIO_AGENT_MODEL",
+        "SUPEREZIO_PRIMARY_MODEL",
+        "SUPEREZIO_GLM_CODING_PLAN_API_KEY",
+        "SUPEREZIO_AGENT_API_KEY",
+        "SUPEREZIO_PRIMARY_API_KEY",
+    ):
+        monkeypatch.delenv(var, raising=False)
 
 
 def test_default_build_has_deepseek_ceo_and_pinned_experts(monkeypatch) -> None:
     monkeypatch.setenv("SUPEREZIO_GLM_CODE_PLAN_API_KEY", "test-key")
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
-    for var in (
-        "SUPEREZIO_AGENT_BASE_URL",
-        "SUPEREZIO_AGENT_MODEL",
-        "SUPEREZIO_PRIMARY_BASE_URL",
-    ):
-        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("SUPEREZIO_AGENT_MODEL", "deepseek-v4-pro")
+    monkeypatch.setenv("SUPEREZIO_PRIMARY_MODEL", "deepseek-v4-pro")
+    monkeypatch.setenv("SUPEREZIO_AGENT_BASE_URL", "https://api.deepseek.com")
+    monkeypatch.setenv("SUPEREZIO_PRIMARY_BASE_URL", "https://api.deepseek.com")
 
     from core.config import get_config
     from core.model_serving.providers import build_default_providers
 
     cfg = get_config()
     for var in (
-        "SUPEREZIO_AGENT_MODEL",
-        "SUPEREZIO_PRIMARY_MODEL",
         "SUPEREZIO_DEEPSEEK_BASE_URL",
         "SUPEREZIO_DEEPSEEK_MODEL",
         "SUPEREZIO_ALLOW_CUSTOM_DEEPSEEK_BASE_URL",
@@ -71,6 +81,44 @@ def test_agent_ceo_never_cascades(monkeypatch) -> None:
         preferred_provider="agent", allow_fallback=True
     )
     assert [p.name for p in providers_to_try] == ["agent"]
+
+
+def test_normalize_zai_general_paas_to_coding_plan() -> None:
+    assert (
+        _normalize_zai_base_url("https://api.z.ai/api/paas/v4") == GLM_CODING_PLAN_BASE_URL
+    )
+    assert (
+        _normalize_zai_base_url("https://api.z.ai/api/paas/v4/chat/completions")
+        == GLM_CODING_PLAN_BASE_URL
+    )
+    assert _normalize_zai_base_url("https://api.deepseek.com") == "https://api.deepseek.com"
+
+
+def test_glm53_coding_plan_rewrites_general_paas_url(monkeypatch) -> None:
+    """Coding Plan keys must not hit /api/paas/v4."""
+    monkeypatch.setenv("SUPEREZIO_AGENT_MODEL", "glm-5.3")
+    monkeypatch.setenv("SUPEREZIO_PRIMARY_MODEL", "glm-5.3")
+    monkeypatch.setenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", "test-coding-plan-key")
+    monkeypatch.setenv("SUPEREZIO_AGENT_BASE_URL", "https://api.z.ai/api/paas/v4")
+    monkeypatch.setenv("SUPEREZIO_PRIMARY_BASE_URL", "https://api.z.ai/api/paas/v4")
+
+    providers, _ = build_providers()
+    by_name = {p.name: p for p in providers}
+    assert by_name["agent"].base_url == "https://api.z.ai/api/coding/paas/v4"
+    assert by_name["agent"].model == "glm-5.3"
+    assert by_name["agent"].is_local is False
+    assert by_name["local_orchestrator"].base_url == "https://api.z.ai/api/coding/paas/v4"
+    assert by_name["deepseek"].base_url == "https://api.deepseek.com"
+    assert by_name["deepseek"].model == "deepseek-v4-pro"
+
+
+def test_glm53_missing_coding_plan_key_fails_closed(monkeypatch) -> None:
+    monkeypatch.setenv("SUPEREZIO_AGENT_MODEL", "glm-5.3")
+    monkeypatch.delenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", raising=False)
+    monkeypatch.delenv("SUPEREZIO_AGENT_API_KEY", raising=False)
+    monkeypatch.delenv("SUPEREZIO_PRIMARY_API_KEY", raising=False)
+    with pytest.raises(RuntimeError, match="GLM_CODING_PLAN_API_KEY"):
+        build_providers()
 
 
 def test_custom_agent_env_override(monkeypatch) -> None:

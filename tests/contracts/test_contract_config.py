@@ -169,6 +169,34 @@ def test_load_local_env_no_error():
     load_local_env()
 
 
+def test_glm_sidecar_overrides_stale_env_local(tmp_path, monkeypatch):
+    import os
+
+    from core.config import secrets
+
+    (tmp_path / "secrets").mkdir()
+    (tmp_path / ".env.local").write_text("SUPEREZIO_AGENT_MODEL=deepseek-v4-pro\n", encoding="utf-8")
+    (tmp_path / "secrets" / "glm_coding_plan.env").write_text(
+        "SUPEREZIO_AGENT_MODEL=glm-5.3\n", encoding="utf-8"
+    )
+    monkeypatch.setattr(secrets, "_PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(secrets, "_LOADED", False)
+    monkeypatch.delenv("SUPEREZIO_AGENT_MODEL", raising=False)
+    secrets.load_local_env()
+    assert os.environ["SUPEREZIO_AGENT_MODEL"] == "glm-5.3"
+    monkeypatch.delenv("SUPEREZIO_AGENT_MODEL", raising=False)
+
+
+def test_env_files_include_glm_coding_plan_sidecar():
+    from pathlib import Path
+
+    from core.config.secrets import _env_files
+
+    names = [p.name for p in _env_files(Path("C:/repo"))]
+    assert names == ["glm_coding_plan.env", ".env.local", ".env"]
+    assert _env_files(Path("C:/repo"))[0] == Path("C:/repo/secrets/glm_coding_plan.env")
+
+
 # ---------------------------------------------------------------------------
 # StorageConfig
 # ---------------------------------------------------------------------------

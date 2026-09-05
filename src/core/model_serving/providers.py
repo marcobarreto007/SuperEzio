@@ -29,6 +29,9 @@ DEEPSEEK_PROVIDER_NAME = "deepseek"
 DEEPSEEK_MODEL_ID = "deepseek-v4-pro"
 DEEPSEEK_OFFICIAL_BASE_URL = "https://api.deepseek.com"
 DEEPSEEK_OFFICIAL_MODELS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})
+GLM_CODING_PLAN_BASE_URL = "https://api.z.ai/api/coding/paas/v4"
+GLM_CODING_PLAN_MODEL = "glm-5.3"
+GLM_CODING_PLAN_HOST = "api.z.ai"
 DAYTRADE_JUDGE_PROVIDER_NAME = "daytrade_judge"
 DAYTRADE_AUDITOR_PROVIDER_NAME = "daytrade_auditor"
 
@@ -145,6 +148,38 @@ def get_deepseek_timeout_s() -> int:
     )
 
 
+def _is_glm_coding_model(model: str) -> bool:
+    return model.strip().lower().startswith("glm-5")
+
+
+def _normalize_zai_base_url(url: str) -> str:
+    """Rewrite the general Z.ai path to the Coding Plan chat endpoint.
+
+    A Coding Plan key fails on ``/api/paas/v4``. Official GLM-5.3 docs pin
+    subscribers to OpenAI Chat Completions at ``/api/coding/paas/v4``.
+    """
+    if not url:
+        return url
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").casefold().rstrip(".")
+    if host != GLM_CODING_PLAN_HOST:
+        return url
+    path = (parsed.path or "").rstrip("/")
+    if path.endswith("/chat/completions"):
+        path = path[: -len("/chat/completions")].rstrip("/")
+    if path in {"/api/paas/v4", "/api/coding/paas/v4"}:
+        return GLM_CODING_PLAN_BASE_URL
+    return url
+
+
+def _glm_coding_plan_key() -> str:
+    return (
+        os.getenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", "").strip()
+        or os.getenv("SUPEREZIO_AGENT_API_KEY", "").strip()
+        or os.getenv("SUPEREZIO_PRIMARY_API_KEY", "").strip()
+    )
+
+
 def _deepseek_api_key() -> str:
     api_key = os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", "").strip()
     if not api_key:
@@ -243,14 +278,25 @@ def build_default_providers(
     orchestrator_config = config.models.get("orchestrator") or config.models.get("ceo")
 
     primary_env_url = os.getenv("SUPEREZIO_PRIMARY_BASE_URL", "").strip()
-    primary_base_url = primary_env_url or experts_base_url
-    primary_is_local = _is_local_url(primary_base_url)
     primary_model = os.getenv("SUPEREZIO_PRIMARY_MODEL", PRIMARY_MODEL_ID)
-    primary_api_key = (
-        os.getenv("SUPEREZIO_PRIMARY_API_KEY", "").strip()
-        or os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", "").strip()
-        or (LOCAL_API_KEY_PLACEHOLDER if primary_is_local else experts_api_key)
-    )
+    if _is_glm_coding_model(primary_model):
+        primary_base_url = _normalize_zai_base_url(primary_env_url or GLM_CODING_PLAN_BASE_URL)
+        primary_is_local = False
+        glm_key = _glm_coding_plan_key()
+        if not glm_key:
+            raise RuntimeError(
+                "SUPEREZIO_GLM_CODING_PLAN_API_KEY is required for glm-5 "
+                "(Coding Plan key, not the general /api/paas/v4 key)"
+            )
+        primary_api_key = glm_key
+    else:
+        primary_base_url = primary_env_url or experts_base_url
+        primary_is_local = _is_local_url(primary_base_url)
+        primary_api_key = (
+            os.getenv("SUPEREZIO_PRIMARY_API_KEY", "").strip()
+            or os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", "").strip()
+            or (LOCAL_API_KEY_PLACEHOLDER if primary_is_local else experts_api_key)
+        )
 
     providers.append(
         ModelProvider(
@@ -321,14 +367,25 @@ def build_default_providers(
 
     # Agent (CEO) — DeepSeek V4 Pro external API running the CEO prompt
     agent_env_url = os.getenv("SUPEREZIO_AGENT_BASE_URL", "").strip()
-    agent_base_url = agent_env_url or experts_base_url
-    agent_is_local = _is_local_url(agent_base_url)
     agent_model = os.getenv("SUPEREZIO_AGENT_MODEL", AGENT_MODEL_ID)
-    agent_api_key = (
-        os.getenv("SUPEREZIO_AGENT_API_KEY", "").strip()
-        or os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", "").strip()
-        or (LOCAL_API_KEY_PLACEHOLDER if agent_is_local else experts_api_key)
-    )
+    if _is_glm_coding_model(agent_model):
+        agent_base_url = _normalize_zai_base_url(agent_env_url or GLM_CODING_PLAN_BASE_URL)
+        agent_is_local = False
+        glm_key = _glm_coding_plan_key()
+        if not glm_key:
+            raise RuntimeError(
+                "SUPEREZIO_GLM_CODING_PLAN_API_KEY is required for glm-5 "
+                "(Coding Plan key, not the general /api/paas/v4 key)"
+            )
+        agent_api_key = glm_key
+    else:
+        agent_base_url = agent_env_url or experts_base_url
+        agent_is_local = _is_local_url(agent_base_url)
+        agent_api_key = (
+            os.getenv("SUPEREZIO_AGENT_API_KEY", "").strip()
+            or os.getenv("SUPEREZIO_DEEPSEEK_API_KEY", "").strip()
+            or (LOCAL_API_KEY_PLACEHOLDER if agent_is_local else experts_api_key)
+        )
     providers.append(
         ModelProvider(
             name=AGENT_PROVIDER_NAME,

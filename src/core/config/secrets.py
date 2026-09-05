@@ -74,6 +74,19 @@ def _parse_dotenv(path: Path) -> dict[str, str]:
     return result
 
 
+def _env_files(root: Path) -> tuple[Path, ...]:
+    """Local override files, first wins. Never commit these paths.
+
+    The GLM Coding Plan sidecar is loaded before ``.env.local`` so a stale
+    DeepSeek CEO pin cannot shadow an explicit brain switch.
+    """
+    return (
+        root / "secrets" / "glm_coding_plan.env",
+        root / ".env.local",
+        root / ".env",
+    )
+
+
 def load_local_env() -> None:
     """Load .env.local and .env into os.environ, respecting existing values."""
     global _LOADED
@@ -87,18 +100,15 @@ def load_local_env() -> None:
     try:
         from dotenv import load_dotenv as _ld
 
-        local = root / ".env.local"
-        base = root / ".env"
-        if local.is_file():
-            _ld(dotenv_path=str(local), override=False)
-        if base.is_file():
-            _ld(dotenv_path=str(base), override=False)
+        for env_file in _env_files(root):
+            if env_file.is_file():
+                _ld(dotenv_path=str(env_file), override=False)
         return
     except ImportError:
         pass
 
     # Fallback: manual parser
-    for env_file in (root / ".env.local", root / ".env"):
+    for env_file in _env_files(root):
         if not env_file.is_file():
             continue
         for key, val in _parse_dotenv(env_file).items():

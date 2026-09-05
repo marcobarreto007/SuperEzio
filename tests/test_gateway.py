@@ -244,6 +244,34 @@ class TestApplyDeepseekOptions:
         assert "extra_body" not in kwargs
 
 
+class TestApplyGlmCodingPlanOptions:
+    def test_non_glm_skipped(self):
+        p = _provider("agent", base_url="https://api.deepseek.com")
+        p.model = "deepseek-v4-pro"
+        kwargs = {}
+        ModelGateway._apply_glm_coding_plan_options(p, kwargs)
+        assert "extra_body" not in kwargs
+
+    def test_glm53_forces_thinking_enabled(self, monkeypatch):
+        monkeypatch.setenv("SUPEREZIO_GLM_REASONING_EFFORT", "low")
+        p = _provider("agent", base_url="https://api.z.ai/api/coding/paas/v4")
+        p.model = "glm-5.3"
+        kwargs = {}
+        ModelGateway._apply_glm_coding_plan_options(p, kwargs)
+        assert kwargs["extra_body"] == {
+            "thinking": {"type": "enabled"},
+            "reasoning_effort": "low",
+        }
+
+    def test_invalid_effort_falls_back_to_high(self, monkeypatch):
+        monkeypatch.setenv("SUPEREZIO_GLM_REASONING_EFFORT", "banana")
+        p = _provider("agent", base_url="https://api.z.ai/api/coding/paas/v4")
+        p.model = "glm-5.3"
+        kwargs = {}
+        ModelGateway._apply_glm_coding_plan_options(p, kwargs)
+        assert kwargs["extra_body"]["reasoning_effort"] == "high"
+
+
 class TestGatewayInit:
     def test_empty_init(self):
         gw = ModelGateway()
