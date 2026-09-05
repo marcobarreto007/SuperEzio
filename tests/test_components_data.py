@@ -27,7 +27,7 @@ def test_model_manifest_providers():
     assert "providers" in manifest
     assert "local_orchestrator" in manifest["providers"]
     assert manifest["providers"]["deepseek"]["base_url"] == "https://api.deepseek.com"
-    assert manifest["providers"]["deepseek"]["model"] == "deepseek-v4-pro"
+    assert manifest["providers"]["deepseek"]["model"] == "deepseek-v4-flash"
     assert manifest["providers"]["deepseek"]["allow_fallback"] is False
 
 
@@ -119,11 +119,19 @@ def test_provider_boundaries_and_credentials(monkeypatch):
 
     assert providers, "build_default_providers retornou lista vazia"
     by_name = {p.name: p for p in providers}
-    for name in ("agent", "local_orchestrator", "deepseek", "daytrade_judge", "daytrade_auditor"):
+    # All-DeepSeek stack (2026-09-05): CEO/orchestrator on pro; the expert
+    # committee (deepseek/judge/auditor) on the flash tier.
+    for name in ("agent", "local_orchestrator"):
         p = by_name[name]
         assert p.is_local is False
         assert p.base_url == "https://api.deepseek.com"
         assert p.model == "deepseek-v4-pro"
+        assert p.api_key == "test-deepseek-secret"
+    for name in ("deepseek", "daytrade_judge", "daytrade_auditor"):
+        p = by_name[name]
+        assert p.is_local is False
+        assert p.base_url == "https://api.deepseek.com"
+        assert p.model == "deepseek-v4-flash"
         assert p.api_key == "test-deepseek-secret"
 
 

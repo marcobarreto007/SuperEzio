@@ -1,8 +1,7 @@
 # SuperEzio Runtime Configuration v4.2.0
 # Fonte canonica de configuracao de runtime.
-# ATUALIZADO: 2026-08-21 - boundary hibrido: CEO/orchestrator no Qwen local
-# compartilhado em :8080; experts financeiros, judge e auditor no DeepSeek
-# HTTPS oficial. Nenhuma das duas fronteiras pode substituir a outra.
+# ATUALIZADO: 2026-09-05 - ALL-DEEPSEEK: CEO/agent e orchestrator em
+# deepseek-v4-pro; experts, judge e auditor em deepseek-v4-flash (API oficial).
 
 project_name: SuperEzio
 version: 4.2.0
@@ -20,7 +19,7 @@ server:
   venv: .venv
 
 # ---------------------------------------------------------------------------
-# Modelos (DeepSeek V4 Pro externo com prompt CEO + experts)
+# Modelos (DeepSeek V4 Pro CEO/orchestrator + V4 Flash experts, API oficial)
 # ---------------------------------------------------------------------------
 models:
   agent:
@@ -51,10 +50,10 @@ models:
     timeout_s: 180
 
   experts:
-    name: DeepSeek V4 Pro financial experts
+    name: DeepSeek V4 Flash financial experts
     provider_name: deepseek
     base_url: https://api.deepseek.com
-    model_id: deepseek-v4-pro
+    model_id: deepseek-v4-flash
     backend: openai_compatible
     role: worker
     is_local: false
@@ -62,7 +61,7 @@ models:
     api_key_required: true
     allow_fallback: false
     max_tokens: 1800
-    timeout_s: 180
+    timeout_s: 60
     roles:
       - fundamental
       - technical
@@ -72,10 +71,10 @@ models:
       - sentiment
 
   daytrade_judge:
-    name: DeepSeek V4 Pro daytrade judge
+    name: DeepSeek V4 Flash daytrade judge
     provider_name: daytrade_judge
     base_url: https://api.deepseek.com
-    model_id: deepseek-v4-pro
+    model_id: deepseek-v4-flash
     backend: openai_compatible
     role: judge
     is_local: false
@@ -83,13 +82,13 @@ models:
     api_key_required: true
     allow_fallback: false
     max_tokens: 1800
-    timeout_s: 180
+    timeout_s: 60
 
   daytrade_auditor:
-    name: DeepSeek V4 Pro daytrade auditor
+    name: DeepSeek V4 Flash daytrade auditor
     provider_name: daytrade_auditor
     base_url: https://api.deepseek.com
-    model_id: deepseek-v4-pro
+    model_id: deepseek-v4-flash
     backend: openai_compatible
     role: auditor
     is_local: false
@@ -97,7 +96,7 @@ models:
     api_key_required: true
     allow_fallback: false
     max_tokens: 1800
-    timeout_s: 180
+    timeout_s: 60
 
 # ---------------------------------------------------------------------------
 # Gateway

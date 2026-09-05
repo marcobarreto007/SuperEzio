@@ -348,7 +348,7 @@ def test_gateway_glm_agent_falls_back_only_to_deepseek(monkeypatch):
     providers = gw._providers_for_request(AGENT_PROVIDER_NAME)
     assert [p.name for p in providers] == [AGENT_PROVIDER_NAME, DEEPSEEK_PROVIDER_NAME]
     fallback = providers[1]
-    assert fallback.model == "deepseek-v4-pro"
+    assert fallback.model == "deepseek-v4-flash"
     assert fallback.base_url == DEEPSEEK_OFFICIAL_BASE_URL
 
 

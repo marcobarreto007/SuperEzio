@@ -276,10 +276,12 @@ async def node_trinity(state: dict[str, Any], *, gateway=None) -> dict[str, Any]
 
     async def _run_genie_lane() -> dict[str, Any]:
         dialogue = ExpertDialogue(gateway, max_rounds=max_rounds)
-        await dialogue.ask("sentiment", "agent", genie_system, genie_user)
+        # Genie runs on DeepSeek too (operator decision 2026-09-05: all-DeepSeek
+        # stack — pro for the CEO, flash tier for the committee lanes).
+        await dialogue.ask("sentiment", "deepseek", genie_system, genie_user)
         follow = _requires_genie_follow_up(state, dialogue.get_verdict())
         if follow:
-            await dialogue.follow_up("sentiment", "agent", follow)
+            await dialogue.follow_up("sentiment", "deepseek", follow)
         return dialogue.get_verdict()
 
     deep_verdict, genie_verdict = await asyncio.gather(_run_deep_lane(), _run_genie_lane())

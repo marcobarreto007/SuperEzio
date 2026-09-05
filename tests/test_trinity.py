@@ -94,8 +94,11 @@ async def test_node_trinity_runs_deep_and_genie_followups():
     result = await node_trinity(_state(), gateway=gateway)
 
     assert len(gateway.calls) == 4
-    deep_calls = [c for c in gateway.calls if c["preferred_provider"] == "deepseek"]
-    genie_calls = [c for c in gateway.calls if c["preferred_provider"] == "agent"]
+    # All-DeepSeek stack: both lanes use the deepseek provider; identify the
+    # lane by its system prompt.
+    assert all(c["preferred_provider"] == "deepseek" for c in gateway.calls)
+    deep_calls = [c for c in gateway.calls if "You are Deep" in c["messages"][0]["content"]]
+    genie_calls = [c for c in gateway.calls if "You are Genie" in c["messages"][0]["content"]]
     assert len(deep_calls) == 2
     assert "[MATH_CONTEXT]" in deep_calls[0]["messages"][1]["content"]
     assert "DCF fair value" in deep_calls[1]["messages"][1]["content"]

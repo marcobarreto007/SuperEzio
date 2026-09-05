@@ -29,7 +29,9 @@ AGENT_MODEL_ID = "deepseek-v4-pro"
 PRIMARY_PROVIDER_NAME = "local_orchestrator"
 PRIMARY_MODEL_ID = AGENT_MODEL_ID
 DEEPSEEK_PROVIDER_NAME = "deepseek"
-DEEPSEEK_MODEL_ID = "deepseek-v4-pro"
+# Experts/judge/auditor run on the fast tier (2026-09-05, operator decision:
+# "tudo DeepSeek"): flash for the committee, pro reserved for CEO/orchestrator.
+DEEPSEEK_MODEL_ID = "deepseek-v4-flash"
 DEEPSEEK_OFFICIAL_BASE_URL = "https://api.deepseek.com"
 DEEPSEEK_OFFICIAL_MODELS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})
 GLM_CODING_PLAN_BASE_URL = "https://api.z.ai/api/coding/paas/v4"

@@ -57,10 +57,15 @@ def test_default_build_has_deepseek_ceo_and_pinned_experts(monkeypatch) -> None:
     providers, _ = build_default_providers(cfg)
     assert providers, "default provider build must not be empty"
     by_name = {p.name: p for p in providers}
-    for name in ("agent", "local_orchestrator", "deepseek", "daytrade_judge", "daytrade_auditor"):
+    # All-DeepSeek stack: CEO/orchestrator pro; committee on flash.
+    for name in ("agent", "local_orchestrator"):
         assert by_name[name].is_local is False
         assert by_name[name].base_url == "https://api.deepseek.com"
         assert by_name[name].model == "deepseek-v4-pro"
+    for name in ("deepseek", "daytrade_judge", "daytrade_auditor"):
+        assert by_name[name].is_local is False
+        assert by_name[name].base_url == "https://api.deepseek.com"
+        assert by_name[name].model == "deepseek-v4-flash"
     names = list(by_name)
     assert "ceo_fallback_glm" not in names
     assert "gemini" not in names
@@ -84,9 +89,7 @@ def test_agent_ceo_never_cascades(monkeypatch) -> None:
 
 
 def test_normalize_zai_general_paas_to_coding_plan() -> None:
-    assert (
-        _normalize_zai_base_url("https://api.z.ai/api/paas/v4") == GLM_CODING_PLAN_BASE_URL
-    )
+    assert _normalize_zai_base_url("https://api.z.ai/api/paas/v4") == GLM_CODING_PLAN_BASE_URL
     assert (
         _normalize_zai_base_url("https://api.z.ai/api/paas/v4/chat/completions")
         == GLM_CODING_PLAN_BASE_URL
@@ -109,7 +112,7 @@ def test_glm53_coding_plan_rewrites_general_paas_url(monkeypatch) -> None:
     assert by_name["agent"].is_local is False
     assert by_name["local_orchestrator"].base_url == "https://api.z.ai/api/coding/paas/v4"
     assert by_name["deepseek"].base_url == "https://api.deepseek.com"
-    assert by_name["deepseek"].model == "deepseek-v4-pro"
+    assert by_name["deepseek"].model == "deepseek-v4-flash"
 
 
 def test_glm53_missing_coding_plan_key_fails_closed(monkeypatch) -> None:
@@ -151,7 +154,10 @@ def test_is_insufficient_credit_error_detection() -> None:
 
     # Keywords in error string
     assert is_insufficient_credit_error(Exception("Account is in arrears, please recharge")) is True
-    assert is_insufficient_credit_error(Exception("insufficient_quota: You exceeded your quota")) is True
+    assert (
+        is_insufficient_credit_error(Exception("insufficient_quota: You exceeded your quota"))
+        is True
+    )
     assert is_insufficient_credit_error(Exception("Model out of credit")) is True
     assert is_insufficient_credit_error(Exception("Balance is insufficient for request")) is True
 
@@ -230,8 +236,10 @@ async def test_glm_out_of_credit_falls_back_to_deepseek_stream_async(monkeypatch
 
     async def fake_stream_generate_api(provider, *args, **kwargs):
         if provider.name == "agent":
+
             class _Http402(Exception):
                 status_code = 402
+
             raise _Http402("Payment Required: insufficient balance")
         if provider.name == "deepseek":
             yield "Deep"
@@ -249,4 +257,3 @@ async def test_glm_out_of_credit_falls_back_to_deepseek_stream_async(monkeypatch
 
 if __name__ == "__main__":
     raise SystemExit("Run via pytest: python -m pytest tests/test_ceo_fallback.py -q")
-
