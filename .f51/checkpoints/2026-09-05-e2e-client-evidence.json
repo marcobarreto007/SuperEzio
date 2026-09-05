@@ -1,0 +1,37 @@
+{
+  "date_local": "2026-09-05",
+  "session": "e2e-client-evidence-20260905",
+  "status": "DELIVERED_SLICE",
+  "objective": "Persistência de evidências E2E de atendimento ao cliente final (planejador financeiro pessoal CAD 25.000 e resposta de mercado TD.TO), salvamento de screenshots de validação UI, memória conversacional, pain log e telemetria operacional com F51/SDCA.",
+  "predecessor": "chat-pt-drift-fix-20260905",
+  "patch": {
+    "commits": [
+      "009dcc4a"
+    ],
+    "intent": "cliente-final-inicio.md, cliente-final-1-resposta.png, cliente-final-2-planejador.png, data/conversation_memory.jsonl, data/bob_pain_log.jsonl, src/data/bob_pain_log.jsonl, data/mangala_daily.json, .f51/TASK_BOARD.md",
+    "data_updates": "conversation_memory, bob_pain_log, mangala_daily"
+  },
+  "verification": {
+    "ruff": "All checks passed! (src/, tests/)",
+    "pytest": "12 passed (tests/contracts/test_contract_runtime_official.py)",
+    "e2e_client_evidence": "Capturas visuais cliente-final-1 e cliente-final-2 comprovam atendimento em portugues direto, sem jargao vazado e aderente ao papel de planejador financeiro",
+    "json_valid": "validated"
+  },
+  "operator_truth": {
+    "ceo_model": "glm-5.3 (Z.ai Coding Plan HTTPS API) com fallback automatico para deepseek-v4-pro em falta de credito",
+    "experts_model": "deepseek-v4-pro (API externa oficial DeepSeek HTTPS)",
+    "intelligence": "pipeline organs + official cloud APIs (Z.ai + DeepSeek), not unconstrained LLM",
+    "live_execution": "FROZEN (BROKER_NEUTRAL_VALIDATION_ONLY)",
+    "local_8080": "STANDBY / INACTIVE (0 bytes VRAM weights loaded, RTX 3060 12GB free)"
+  },
+  "debt_next_slice": {
+    "archive_known_password": "senha conhecida do operador ainda em .f51/archive/2026-08-26/scripts/live_chrome_operator.py (trackeado, linha 12) e no historico git inteiro — dono: operador humano (rotacao nos portais + purge via filter-repo); reabrir quando autorizado",
+    "bootstrap_admin_password": "maquina nova agora EXIGE SUPEREZIO_ADMIN_PASSWORD no bootstrap — mudanca intencional aprovada pelo operador"
+  },
+  "still_true": {
+    "live_execution": "FROZEN",
+    "github": "DISK ONLY",
+    "intelligence": "pipeline organs, not the LLM",
+    "mouth_not_abliterated": false
+  }
+}

@@ -1,0 +1,328 @@
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: F51
+        - generic [ref=e6]: SUPEREZIO
+      - generic [ref=e8]:
+        - generic [ref=e9]:
+          - searchbox "Symbol" [ref=e10]: TD.TO
+          - combobox "Timeframe" [ref=e11] [cursor=pointer]:
+            - option "1D"
+            - option "1W"
+            - option "1M"
+            - option "3M"
+            - option "6M" [selected]
+            - option "1Y"
+            - option "5Y"
+        - tablist "Timeframe" [ref=e12]:
+          - tab "1D" [ref=e13] [cursor=pointer]
+          - tab "1W" [ref=e14] [cursor=pointer]
+          - tab "1M" [ref=e15] [cursor=pointer]
+          - tab "3M" [ref=e16] [cursor=pointer]
+          - tab "6M" [selected] [ref=e17] [cursor=pointer]
+          - tab "1Y" [ref=e18] [cursor=pointer]
+          - tab "5Y" [ref=e19] [cursor=pointer]
+        - button "Reload chart" [ref=e20] [cursor=pointer]
+    - generic [ref=e26]:
+      - generic [ref=e27]:
+        - generic [ref=e28]: ACCOUNT
+        - strong [ref=e29]: $--
+      - generic [ref=e30]:
+        - generic [ref=e31]: P&L
+        - strong [ref=e32]: "--"
+      - generic [ref=e33]:
+        - generic "Core online" [ref=e300]
+        - generic [ref=e35]: CORE ONLINE · RESEARCH MODE · 🛡️ MODO SIMULAÇÃO (PAPER)
+      - button "SuperEzio Paper Trading Ativo — Simulação segura e auditoria registradas." [ref=e301] [cursor=pointer]:
+        - generic [ref=e39]: PAPER SIM
+      - button "SDCA Cognitive Risk Firewall Lab" [ref=e40] [cursor=pointer]
+      - button "Switch to light theme" [ref=e43] [cursor=pointer]
+      - button "Alertas" [ref=e46] [cursor=pointer]
+      - button "System Ops Console" [ref=e50] [cursor=pointer]
+  - generic [ref=e53]:
+    - main "Trading workspace" [ref=e54]:
+      - generic [ref=e55]:
+        - generic [ref=e56]:
+          - generic [ref=e57]:
+            - heading "TD.TO6M" [level=1] [ref=e302]
+            - generic [ref=e59]: Market snapshot
+          - generic [ref=e303]: The Toronto-Dominion Bank | TOR | 275.7B | CAD
+          - button "⚡ Analisar com Bob" [ref=e60] [cursor=pointer]
+          - switch "Análise automática do gráfico ao escolher ativo" [ref=e65] [cursor=pointer]:
+            - generic [ref=e67]: AUTO
+          - button "⚡ Sugestão" [ref=e68] [cursor=pointer]
+        - generic [ref=e73]:
+          - generic [ref=e74]:
+            - generic [ref=e75]: Last
+            - strong [ref=e76]: "168.24"
+          - generic [ref=e77]:
+            - generic [ref=e78]: Chg
+            - strong [ref=e79]: "-0.98%"
+          - generic [ref=e80]:
+            - generic [ref=e81]: High
+            - strong [ref=e82]: "170.32"
+          - generic [ref=e83]:
+            - generic [ref=e84]: Low
+            - strong [ref=e85]: "168.01"
+          - generic [ref=e86]:
+            - generic [ref=e87]: Vol
+            - strong [ref=e88]: 2.9M
+          - generic [ref=e89]:
+            - generic [ref=e90]: Mode
+            - strong [ref=e91]: DATA ONLINE
+      - generic [ref=e94]:
+        - generic [ref=e95]:
+          - table [ref=e97]:
+            - row [ref=e98]:
+              - cell
+              - cell [ref=e99]
+              - cell [ref=e103]
+            - row [ref=e107]:
+              - cell
+              - cell [ref=e108]
+              - cell [ref=e112]
+          - generic:
+            - generic: SMA20
+            - generic: SMA50
+            - generic: EMA20
+            - generic: BB
+            - generic: VWAP
+        - generic [ref=e115]:
+          - table [ref=e117]:
+            - row [ref=e118]:
+              - cell
+              - cell [ref=e119]
+              - cell [ref=e123]
+          - generic: RSI(14)
+        - generic [ref=e127]:
+          - table [ref=e129]:
+            - row [ref=e130]:
+              - cell
+              - cell [ref=e131]
+              - cell [ref=e135]
+          - generic: MACD(12,26,9)
+      - generic [ref=e139]:
+        - generic [ref=e141]:
+          - generic [ref=e142]: ORDERS & POSITIONS
+          - strong [ref=e143]: 0 ord / 0 local
+        - generic [ref=e144]:
+          - generic [ref=e145]:
+            - generic [ref=e305]:
+              - generic [ref=e306]: SIMULAÇÃO ATIVA
+              - generic [ref=e309]: Preservação de Capital
+            - generic [ref=e310]:
+              - generic [ref=e311]:
+                - generic [ref=e312]: 🛡️ DIÁRIO DE TRADES SIMULADOS
+                - generic [ref=e313]: 534 registros
+              - generic [ref=e314]:
+                - generic [ref=e315]: "WR: 0.0%"
+                - generic [ref=e316]: "P&L: +$0.00"
+                - generic [ref=e317]: "Abertas: 532"
+                - generic [ref=e318]: "Fechadas: 2"
+          - generic [ref=e147]:
+            - generic [ref=e319]:
+              - generic [ref=e320]: Teses Gravadas no Journal
+              - strong [ref=e321]: "534"
+            - generic [ref=e322]:
+              - button "AAPL LONG @ $100.00 OPEN" [ref=e323] [cursor=pointer]:
+                - generic [ref=e324]:
+                  - strong [ref=e325]: AAPL
+                  - generic [ref=e326]: LONG
+                - generic [ref=e327]:
+                  - generic [ref=e328]: "@ $100.00"
+                  - generic [ref=e329]: OPEN
+              - button "AAPL LONG @ $100.00 OPEN" [ref=e330] [cursor=pointer]:
+                - generic [ref=e331]:
+                  - strong [ref=e332]: AAPL
+                  - generic [ref=e333]: LONG
+                - generic [ref=e334]:
+                  - generic [ref=e335]: "@ $100.00"
+                  - generic [ref=e336]: OPEN
+              - button "AAPL LONG @ $100.00 OPEN" [ref=e337] [cursor=pointer]:
+                - generic [ref=e338]:
+                  - strong [ref=e339]: AAPL
+                  - generic [ref=e340]: LONG
+                - generic [ref=e341]:
+                  - generic [ref=e342]: "@ $100.00"
+                  - generic [ref=e343]: OPEN
+              - button "GOOGL LONG @ $50.00 OPEN" [ref=e344] [cursor=pointer]:
+                - generic [ref=e345]:
+                  - strong [ref=e346]: GOOGL
+                  - generic [ref=e347]: LONG
+                - generic [ref=e348]:
+                  - generic [ref=e349]: "@ $50.00"
+                  - generic [ref=e350]: OPEN
+              - button "MSFT LONG @ $200.00 OPEN" [ref=e351] [cursor=pointer]:
+                - generic [ref=e352]:
+                  - strong [ref=e353]: MSFT
+                  - generic [ref=e354]: LONG
+                - generic [ref=e355]:
+                  - generic [ref=e356]: "@ $200.00"
+                  - generic [ref=e357]: OPEN
+              - button "AAPL LONG @ $100.00 OPEN" [ref=e358] [cursor=pointer]:
+                - generic [ref=e359]:
+                  - strong [ref=e360]: AAPL
+                  - generic [ref=e361]: LONG
+                - generic [ref=e362]:
+                  - generic [ref=e363]: "@ $100.00"
+                  - generic [ref=e364]: OPEN
+              - button "AAPL LONG @ $100.12 OPEN" [ref=e365] [cursor=pointer]:
+                - generic [ref=e366]:
+                  - strong [ref=e367]: AAPL
+                  - generic [ref=e368]: LONG
+                - generic [ref=e369]:
+                  - generic [ref=e370]: "@ $100.12"
+                  - generic [ref=e371]: OPEN
+              - button "AAPL LONG @ $100.00 OPEN" [ref=e372] [cursor=pointer]:
+                - generic [ref=e373]:
+                  - strong [ref=e374]: AAPL
+                  - generic [ref=e375]: LONG
+                - generic [ref=e376]:
+                  - generic [ref=e377]: "@ $100.00"
+                  - generic [ref=e378]: OPEN
+              - button "GOOGL LONG @ $150.00 OPEN" [ref=e379] [cursor=pointer]:
+                - generic [ref=e380]:
+                  - strong [ref=e381]: GOOGL
+                  - generic [ref=e382]: LONG
+                - generic [ref=e383]:
+                  - generic [ref=e384]: "@ $150.00"
+                  - generic [ref=e385]: OPEN
+              - button "MSFT LONG @ $200.00 OPEN" [ref=e386] [cursor=pointer]:
+                - generic [ref=e387]:
+                  - strong [ref=e388]: MSFT
+                  - generic [ref=e389]: LONG
+                - generic [ref=e390]:
+                  - generic [ref=e391]: "@ $200.00"
+                  - generic [ref=e392]: OPEN
+              - button "AAPL LONG @ $100.00 OPEN" [ref=e393] [cursor=pointer]:
+                - generic [ref=e394]:
+                  - strong [ref=e395]: AAPL
+                  - generic [ref=e396]: LONG
+                - generic [ref=e397]:
+                  - generic [ref=e398]: "@ $100.00"
+                  - generic [ref=e399]: OPEN
+              - button "AAPL LONG @ $155.00 OPEN" [ref=e400] [cursor=pointer]:
+                - generic [ref=e401]:
+                  - strong [ref=e402]: AAPL
+                  - generic [ref=e403]: LONG
+                - generic [ref=e404]:
+                  - generic [ref=e405]: "@ $155.00"
+                  - generic [ref=e406]: OPEN
+    - complementary [ref=e149]:
+      - generic [ref=e150]:
+        - generic [ref=e151]: EXPERT PANEL
+        - generic [ref=e152]:
+          - generic [ref=e407]:
+            - generic "Coleta (done)" [ref=e408]
+            - generic "MathHub (pending)" [ref=e411]
+            - generic "Experts (pending)" [ref=e414]
+            - generic "F51 (pending)" [ref=e417]
+            - generic "SDCA (pending)" [ref=e420]
+            - generic "Trinity (pending)" [ref=e423]
+            - generic "Bob (pending)" [ref=e426]
+          - generic "Available after an F51 verdict" [ref=e174]: "TRUST: --"
+        - generic [ref=e175]: READY
+      - generic [ref=e176]:
+        - article [ref=e177]:
+          - generic [ref=e178]:
+            - generic [ref=e179]: F51
+            - generic [ref=e180]: Veracity Consensus
+            - generic [ref=e181]: READY
+          - generic [ref=e182]:
+            - generic [ref=e428]: No active analysis.
+            - button "+ Trade" [ref=e430] [cursor=pointer]
+          - generic [ref=e184]: data
+        - article [ref=e188]:
+          - generic [ref=e189]:
+            - generic [ref=e190]: SDCA
+            - generic [ref=e191]: Risk Firewall
+            - generic [ref=e192]: READY
+          - generic [ref=e193]: No decision submitted.
+          - generic [ref=e195]: risk
+        - article [ref=e199]:
+          - generic [ref=e200]:
+            - generic [ref=e201]: NRL
+            - generic [ref=e202]: Neural Prediction
+            - generic [ref=e203]: READY
+          - generic [ref=e204]: No active inference.
+          - generic [ref=e206]: signal
+        - article [ref=e210]:
+          - generic [ref=e211]:
+            - generic [ref=e212]: TRI
+            - generic [ref=e213]: Trinity Deliberation
+            - generic [ref=e214]: READY
+          - generic [ref=e215]: No deliberation running.
+          - generic [ref=e217]: consensus
+        - article [ref=e221]:
+          - generic [ref=e222]:
+            - generic [ref=e223]: GRD
+            - generic [ref=e224]: Guardrail Hub
+            - generic [ref=e225]: "--"
+          - generic [ref=e226]: Health evidence unavailable.
+          - generic [ref=e228]: security
+        - article [ref=e232]:
+          - generic [ref=e233]:
+            - generic [ref=e234]: MNG
+            - generic [ref=e235]: Mangala Tracker
+            - generic [ref=e236]: $20.00
+          - generic [ref=e237]:
+            - generic [ref=e238]:
+              - generic [ref=e239]: Starting
+              - generic [ref=e240]: $20.00
+            - generic [ref=e241]:
+              - generic [ref=e242]: Current
+              - generic [ref=e243]: $20.00
+            - generic [ref=e244]:
+              - generic [ref=e245]: 0 flips
+              - generic [ref=e246]: 0% wins
+              - generic [ref=e247]: +$0.00
+            - generic [ref=e249]:
+              - generic [ref=e250]: Progress to $30.00
+              - generic [ref=e251]: 0%
+            - generic [ref=e253]:
+              - generic [ref=e254]: "Growth:"
+              - generic [ref=e255]: +0.0%
+            - button "+ Trade" [ref=e257] [cursor=pointer]
+          - generic [ref=e258]: compounding
+  - contentinfo "System status bar" [ref=e261]:
+    - generic [ref=e262]: "CORE: ONLINE"
+    - generic [ref=e263]: "CEO: ONLINE"
+    - generic [ref=e264]: "DATA: ONLINE"
+    - generic [ref=e265]: "EXECUÇÃO: SIMULADA (PAPER)"
+    - generic [ref=e266]: "MODO: SIMULAÇÃO SEGURA"
+    - generic [ref=e267]: "PIPELINE: IDLE"
+    - generic [ref=e268]: "Cost: $0.00"
+  - complementary "Bob Copilot conversation" [ref=e269]:
+    - button "Open Bob Chat" [ref=e270] [cursor=pointer]:
+      - generic [ref=e273]: Bob
+    - generic [ref=e274]:
+      - generic [ref=e275]:
+        - strong [ref=e281]:
+          - text: BOB
+          - emphasis [ref=e282]: COPILOT
+        - generic [ref=e283]: TD.TO
+        - button "Close Bob Chat" [ref=e284] [cursor=pointer]
+      - main "Conversation" [ref=e288]:
+        - generic [ref=e290]:
+          - strong [ref=e291]: Bob is online.
+          - paragraph [ref=e292]: Ask directly. Market context is attached when your question needs the chart.
+      - generic [ref=e293]:
+        - textbox "Mensagem para o Bob" [active] [ref=e294]:
+          - /placeholder: Ask Bob...
+        - button "Send" [ref=e295] [cursor=pointer]
+  - option "manual" [selected]
+  - option "agent"
+  - option "operator"
+  - option "low" [selected]
+  - option "normal"
+  - option "high"
+  - option "tight" [selected]
+  - option "normal"
+  - option "wide"
+  - option "low" [selected]
+  - option "normal"
+  - option "high"
+  - option "high" [selected]
+  - option "normal"
+  - option "low"
