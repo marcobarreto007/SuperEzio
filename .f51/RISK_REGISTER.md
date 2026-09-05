@@ -619,7 +619,7 @@ Session: cad100-alloc-api-restart-20260830 (Ornith nao abliterado; API :8002 rec
   start/stop com identidade de processo, ZIP allowlisted, checksum e ensaio em VM limpa.
 - Status: Active — bloqueia release V1.
 
-### INV-R37 - Contrato de autenticacao esta dividido [HIGH]
+### INV-R37 - Contrato de autenticacao esta dividido [HIGH -> PARTIALLY RESOLVED 2026-09-05]
 
 - Classification: security / onboarding.
 - Risk: o setup continha credencial administrativa conhecida; frontend e backend misturam
@@ -629,7 +629,19 @@ Session: cad100-alloc-api-restart-20260830 (Ornith nao abliterado; API :8002 rec
   `frontend/api.js` e middleware de `src/agent_server/main.py`.
 - Mitigation: remover toda senha padrao, definir uma unica fronteira de autenticacao,
   documentar bootstrap do primeiro usuario e testar login -> rota protegida -> logout.
-- Status: Active — bloqueia release V1 e qualquer uso financeiro.
+- Resolution: commit 042f2cc3 erradicou a senha administrativa conhecida da arvore ativa —
+  `setup_superezio.sh` exige `SUPEREZIO_ADMIN_PASSWORD` (exit 1 real quando ausente), 8 scripts
+  de validacao leem a env com fail-closed SystemExit, `auth.py` curado (doc-only) e `main.py`
+  verificado sem rota desprotegida. Contrato unico pinado por 3 suites novas hermetical
+  (38+12+5 testes: `test_auth_middleware_prod_matrix.py`, `test_auth_public_paths_contract.py`,
+  `test_credentials_and_bootstrap_contract.py`). Verificadores: security-reviewer VERIFIED 7/7,
+  api-contract-verifier VERIFIED a-e; suite completa 2309 passed / 9 skipped / 1 deselected.
+  Residuo: a senha conhecida permanece em `.f51/archive/2026-08-26/scripts/live_chrome_operator.py`
+  (trackeado) e no historico git inteiro — rotacao + purge via filter-repo bloqueados pelo
+  operador (ver P0 segredos 2026-08-26 no board) — e `/auth/*` + `TokenResponse` ainda nao
+  registrados em `.f51/contracts/agent-server.contract.md`.
+- Status: PARTIALLY RESOLVED 2026-09-05 — bloqueio residual so pelo purge do historico
+  (dono: operador) e pelo registro documental do contrato; arvore ativa fail-closed.
 
 ### INV-R38 - Fontes de verdade de entrega divergem [HIGH -> RESOLVED 2026-08-20]
 
