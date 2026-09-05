@@ -251,3 +251,517 @@ INFO:     127.0.0.1:60406 - "GET /health HTTP/1.1" 200 OK
 {"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:22:20.027234Z"}
 {"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:22:35.040014Z"}
 {"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:22:50.051488Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "d1cd644992fc", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:22:56.784010Z"}
+INFO:     127.0.0.1:60417 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:22:58.338709Z"}
+{"event": "bob_circuit_open: IBKR Muscles (order execution) after 9 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:23:00.349615Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:23:00.349991Z"}
+{"event": "bob_circuit_open: Scanner Eyes (OpenBB) after 9 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:23:00.349991Z"}
+{"event": "bob_circuit_open: Historical Cache (liver) after 9 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:23:00.349991Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:23:00.349991Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 1.0, "event": "http_access", "trace_id": "11447dcbffce", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:23:04.137517Z"}
+INFO:     127.0.0.1:60422 - "GET /health HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:23:05.065125Z"}
+{"event": "[IBKRService] ib_insync not installed", "trace_id": "de728e066ebb", "run_id": "unknown", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:23:08.146179Z"}
+{"method": "GET", "path": "/health/details", "status": 200, "latency_ms": 129.67, "event": "http_access", "trace_id": "de728e066ebb", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:23:08.197412Z"}
+INFO:     127.0.0.1:60423 - "GET /health/details HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:23:20.079172Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:23:35.084396Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:23:50.095102Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 1.04, "event": "http_access", "trace_id": "4dbad37e8ecb", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:24:00.370538Z"}
+INFO:     127.0.0.1:60427 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:24:01.929420Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:24:01.933133Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:24:01.933133Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:24:05.096715Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:24:20.109769Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:24:35.123978Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:24:50.137534Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "0c06e5c4969b", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:25:01.951697Z"}
+INFO:     127.0.0.1:60433 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:25:03.472870Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:25:03.472870Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:25:03.472870Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:25:05.143135Z"}
+{"event": "[IBKRService] ib_insync not installed", "trace_id": "add046bff068", "run_id": "unknown", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:25:16.376268Z"}
+{"method": "GET", "path": "/health/details", "status": 200, "latency_ms": 142.18, "event": "http_access", "trace_id": "add046bff068", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:25:16.427457Z"}
+INFO:     127.0.0.1:60448 - "GET /health/details HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "trace_id": "7b81c1965df8", "run_id": "unknown", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:25:18.780213Z"}
+{"method": "GET", "path": "/health/details", "status": 200, "latency_ms": 109.16, "event": "http_access", "trace_id": "7b81c1965df8", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:25:18.817406Z"}
+INFO:     127.0.0.1:60449 - "GET /health/details HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:25:20.149825Z"}
+{"event": "[IBKRService] ib_insync not installed", "trace_id": "65438f412c7a", "run_id": "unknown", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:25:21.285449Z"}
+{"method": "GET", "path": "/health/details", "status": 200, "latency_ms": 129.51, "event": "http_access", "trace_id": "65438f412c7a", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:25:21.328971Z"}
+INFO:     127.0.0.1:60450 - "GET /health/details HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:25:35.165399Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:25:50.175918Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.54, "event": "http_access", "trace_id": "a02c8cabe082", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:26:03.486498Z"}
+INFO:     127.0.0.1:60457 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:26:05.024508Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:26:05.024508Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:26:05.024508Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:26:05.181053Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:26:20.187145Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:26:35.195977Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:26:50.208148Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "d4adce629156", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:27:05.051580Z"}
+INFO:     127.0.0.1:60464 - "GET /health HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:27:05.220282Z"}
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:27:06.564100Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:27:06.564100Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:27:06.579733Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:27:20.232246Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:27:35.249358Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:27:50.255577Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:28:05.271700Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "20cea2f502e0", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:28:06.595218Z"}
+INFO:     127.0.0.1:60475 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:28:08.102074Z"}
+{"event": "bob_circuit_open: IBKR Muscles (order execution) after 10 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:28:10.112049Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:28:10.115925Z"}
+{"event": "bob_circuit_open: Scanner Eyes (OpenBB) after 10 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:28:10.116432Z"}
+{"event": "bob_circuit_open: Historical Cache (liver) after 10 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:28:10.116432Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:28:10.116432Z"}
+{"event": "bob_vitals: healthy=7 sick=3 pain=75 cycles=30 circuits_open=3 mode=normal", "level": "info", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:28:10.116432Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:28:20.285899Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:28:35.294317Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:28:50.304084Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:29:05.317373Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "ceda6c80caf8", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:29:10.137239Z"}
+INFO:     127.0.0.1:60484 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:29:11.683114Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:29:11.683114Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:29:11.683114Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:29:20.332705Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:29:35.346203Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:29:50.359663Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:30:05.359677Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "1c5fe34e50f7", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:30:11.707258Z"}
+INFO:     127.0.0.1:60504 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:30:13.286157Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:30:13.286157Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:30:13.286157Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:30:20.368037Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:30:35.387519Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:30:50.393497Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "5569be4c5ea8", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:30:58.302115Z"}
+INFO:     127.0.0.1:60528 - "GET /health HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:31:05.407498Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.06, "event": "http_access", "trace_id": "325e2a719cb4", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:31:13.297754Z"}
+INFO:     127.0.0.1:60529 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:31:14.843262Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:31:14.853083Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:31:14.854118Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:31:20.419313Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:31:35.421925Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:31:50.425287Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:32:05.437250Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "b4fdaebdf08f", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:32:14.870520Z"}
+INFO:     127.0.0.1:60550 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:32:16.439462Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:32:16.442472Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:32:16.443783Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:32:20.451728Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:32:35.467315Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:32:50.476357Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:33:05.492142Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "711b58e029cd", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:33:16.460296Z"}
+INFO:     127.0.0.1:60565 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:33:18.002074Z"}
+{"event": "bob_circuit_open: IBKR Muscles (order execution) after 11 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:33:20.018643Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:33:20.018643Z"}
+{"event": "bob_circuit_open: Scanner Eyes (OpenBB) after 11 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:33:20.018643Z"}
+{"event": "bob_circuit_open: Historical Cache (liver) after 11 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:33:20.027252Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:33:20.027252Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:33:20.498636Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:33:35.499718Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:33:50.506448Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:34:05.522205Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "c9280458142d", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:34:20.045147Z"}
+INFO:     127.0.0.1:60570 - "GET /health HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:34:20.536888Z"}
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:34:21.584586Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:34:21.584586Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:34:21.584586Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:34:35.545244Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:34:50.547983Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:35:05.562077Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:35:20.574037Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "a78a8f32e039", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:35:21.617407Z"}
+INFO:     127.0.0.1:60638 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:35:23.190232Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:35:23.194181Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:35:23.195210Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:35:35.587266Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:35:50.593222Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:36:05.595383Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:36:20.607117Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "bf207f22b6b7", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:36:23.195941Z"}
+INFO:     127.0.0.1:60718 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:36:24.829199Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:36:24.829199Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:36:24.829199Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:36:35.609395Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:36:50.624991Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:37:05.634360Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:37:20.641805Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "caddd46c29ae", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:37:24.858221Z"}
+INFO:     127.0.0.1:60800 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:37:26.407733Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:37:26.412258Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:37:26.414331Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:37:35.655839Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:37:50.666049Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:38:05.691121Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:38:20.692002Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "01edc0a87638", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:38:26.430921Z"}
+INFO:     127.0.0.1:60842 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:38:27.972689Z"}
+{"event": "bob_circuit_open: IBKR Muscles (order execution) after 12 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:38:29.990367Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:38:29.990367Z"}
+{"event": "bob_circuit_open: Scanner Eyes (OpenBB) after 12 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:38:29.990367Z"}
+{"event": "bob_circuit_open: Historical Cache (liver) after 12 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:38:29.990367Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:38:29.990367Z"}
+{"event": "bob_vitals: healthy=7 sick=3 pain=75 cycles=40 circuits_open=3 mode=normal", "level": "info", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:38:29.990367Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "88c6b1c65936", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:38:35.285835Z"}
+INFO:     127.0.0.1:60848 - "GET /health HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:38:35.708824Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:38:50.718457Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "99d312e15bbc", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:38:51.506670Z"}
+INFO:     127.0.0.1:60851 - "GET /health HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:39:05.724662Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "ca424c2a7488", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:07.761101Z"}
+INFO:     127.0.0.1:60854 - "GET /health HTTP/1.1" 200 OK
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.98, "event": "http_access", "trace_id": "6b85e3e5d317", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:17.801066Z"}
+INFO:     127.0.0.1:60858 - "GET /health HTTP/1.1" 200 OK
+{"method": "GET", "path": "/", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "b30d24a079e2", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.440395Z"}
+INFO:     127.0.0.1:60859 - "GET / HTTP/1.1" 200 OK
+{"method": "GET", "path": "/css/variables.css", "status": 200, "latency_ms": 65.61, "event": "http_access", "trace_id": "434fd1a3e7d7", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.584145Z"}
+{"method": "GET", "path": "/css/base.css", "status": 200, "latency_ms": 65.61, "event": "http_access", "trace_id": "81ac3fd56189", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.584145Z"}
+{"method": "GET", "path": "/css/cards.css", "status": 200, "latency_ms": 65.61, "event": "http_access", "trace_id": "52ea513d8bfa", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.584145Z"}
+{"method": "GET", "path": "/css/chat.css", "status": 200, "latency_ms": 65.61, "event": "http_access", "trace_id": "bb8c306450b0", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.584145Z"}
+{"method": "GET", "path": "/css/pipeline.css", "status": 200, "latency_ms": 65.61, "event": "http_access", "trace_id": "d4640a5eeeeb", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.584145Z"}
+{"method": "GET", "path": "/css/topbar.css", "status": 200, "latency_ms": 65.61, "event": "http_access", "trace_id": "686a7d9bbe09", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.584145Z"}
+INFO:     127.0.0.1:60860 - "GET /css/variables.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60861 - "GET /css/base.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60865 - "GET /css/cards.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60864 - "GET /css/chat.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60866 - "GET /css/pipeline.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60863 - "GET /css/topbar.css HTTP/1.1" 200 OK
+{"method": "GET", "path": "/css/indicators.css", "status": 200, "latency_ms": 8.6, "event": "http_access", "trace_id": "2c0ea7984def", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.610806Z"}
+{"method": "GET", "path": "/css/sdca.css", "status": 200, "latency_ms": 8.63, "event": "http_access", "trace_id": "b54f50143194", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.611837Z"}
+{"method": "GET", "path": "/css/pennylab.css", "status": 200, "latency_ms": 5.99, "event": "http_access", "trace_id": "1c0b563b0a2a", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.614230Z"}
+{"method": "GET", "path": "/css/crisis.css", "status": 200, "latency_ms": 6.58, "event": "http_access", "trace_id": "f566f8cc8013", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.614921Z"}
+{"method": "GET", "path": "/css/experts.css", "status": 200, "latency_ms": 6.09, "event": "http_access", "trace_id": "675d5012eb2d", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.615329Z"}
+{"method": "GET", "path": "/css/data-quality.css", "status": 200, "latency_ms": 7.5, "event": "http_access", "trace_id": "5ea43c418654", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.615728Z"}
+INFO:     127.0.0.1:60860 - "GET /css/indicators.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60861 - "GET /css/sdca.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60865 - "GET /css/pennylab.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60866 - "GET /css/crisis.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60864 - "GET /css/experts.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60863 - "GET /css/data-quality.css HTTP/1.1" 200 OK
+{"method": "GET", "path": "/css/ops-console.css", "status": 200, "latency_ms": 6.96, "event": "http_access", "trace_id": "419316858fd3", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.634429Z"}
+{"method": "GET", "path": "/css/auth.css", "status": 200, "latency_ms": 5.75, "event": "http_access", "trace_id": "34f18dd48e71", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.636384Z"}
+{"method": "GET", "path": "/css/cockpit.css", "status": 200, "latency_ms": 8.61, "event": "http_access", "trace_id": "d2398c6dcca6", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.636872Z"}
+{"method": "GET", "path": "/js/state.js", "status": 200, "latency_ms": 5.89, "event": "http_access", "trace_id": "ad2cfe7728fd", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.637281Z"}
+{"method": "GET", "path": "/css/charts.css", "status": 200, "latency_ms": 12.23, "event": "http_access", "trace_id": "2b2555d50d43", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.637774Z"}
+{"method": "GET", "path": "/js/content.js", "status": 200, "latency_ms": 7.55, "event": "http_access", "trace_id": "bc3c6a8f37ce", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.638237Z"}
+INFO:     127.0.0.1:60860 - "GET /css/ops-console.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60866 - "GET /css/auth.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60865 - "GET /css/cockpit.css?v=ui-fix-20260823d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60864 - "GET /js/state.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60861 - "GET /css/charts.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60863 - "GET /js/content.js HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/cards.js", "status": 200, "latency_ms": 4.26, "event": "http_access", "trace_id": "cf14dd860247", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.655449Z"}
+{"method": "GET", "path": "/js/auth.js", "status": 200, "latency_ms": 5.78, "event": "http_access", "trace_id": "e4b75000a7dc", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.655913Z"}
+{"method": "GET", "path": "/js/api.js", "status": 200, "latency_ms": 6.52, "event": "http_access", "trace_id": "e784b02a70a6", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.656708Z"}
+{"method": "GET", "path": "/js/trust-score.js", "status": 200, "latency_ms": 6.01, "event": "http_access", "trace_id": "a669a5f7a47a", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.657178Z"}
+{"method": "GET", "path": "/js/chat.js", "status": 200, "latency_ms": 6.94, "event": "http_access", "trace_id": "6a34e836bbc2", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.658118Z"}
+{"method": "GET", "path": "/js/render-pipeline.js", "status": 200, "latency_ms": 7.53, "event": "http_access", "trace_id": "62034f44b016", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.658741Z"}
+INFO:     127.0.0.1:60861 - "GET /js/cards.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60860 - "GET /js/auth.js?v=ui-fix-20260823d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60865 - "GET /js/api.js?v=ui-fix-20260823d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60863 - "GET /js/trust-score.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60866 - "GET /js/chat.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60864 - "GET /js/render-pipeline.js HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/render-crisis.js", "status": 200, "latency_ms": 4.6, "event": "http_access", "trace_id": "9620e9d1654f", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.676616Z"}
+{"method": "GET", "path": "/js/render-experts.js", "status": 200, "latency_ms": 3.48, "event": "http_access", "trace_id": "73f0704c585a", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.677616Z"}
+{"method": "GET", "path": "/js/render-sdca.js", "status": 200, "latency_ms": 7.7, "event": "http_access", "trace_id": "68cef75ba856", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.677616Z"}
+{"method": "GET", "path": "/js/render-pennylab.js", "status": 200, "latency_ms": 7.59, "event": "http_access", "trace_id": "32bea695677f", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.678615Z"}
+{"method": "GET", "path": "/js/render-f51.js", "status": 200, "latency_ms": 8.85, "event": "http_access", "trace_id": "c0c821177c2c", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.678615Z"}
+{"method": "GET", "path": "/js/render-data-quality.js", "status": 200, "latency_ms": 7.18, "event": "http_access", "trace_id": "7c7f7fdf9989", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.680302Z"}
+INFO:     127.0.0.1:60863 - "GET /js/render-crisis.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60866 - "GET /js/render-experts.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60860 - "GET /js/render-sdca.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60865 - "GET /js/render-pennylab.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60861 - "GET /js/render-f51.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60864 - "GET /js/render-data-quality.js HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/render-explanation.js", "status": 200, "latency_ms": 3.77, "event": "http_access", "trace_id": "3b2786d993e3", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.696067Z"}
+{"method": "GET", "path": "/js/render-profile.js", "status": 200, "latency_ms": 4.0, "event": "http_access", "trace_id": "83503b9db03a", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.697066Z"}
+{"method": "GET", "path": "/js/render-neural.js", "status": 200, "latency_ms": 8.77, "event": "http_access", "trace_id": "18e7b6a19961", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.698067Z"}
+{"method": "GET", "path": "/js/live.js", "status": 200, "latency_ms": 5.0, "event": "http_access", "trace_id": "99f82109eb0e", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.699064Z"}
+{"method": "GET", "path": "/js/render-chart.js", "status": 200, "latency_ms": 6.76, "event": "http_access", "trace_id": "30be1112e57b", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.699064Z"}
+{"method": "GET", "path": "/js/render-candles.js", "status": 200, "latency_ms": 7.76, "event": "http_access", "trace_id": "0820eb087f77", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.700064Z"}
+INFO:     127.0.0.1:60865 - "GET /js/render-explanation.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60866 - "GET /js/render-profile.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60863 - "GET /js/render-neural.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60864 - "GET /js/live.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60860 - "GET /js/render-chart.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60861 - "GET /js/render-candles.js HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/chart.js", "status": 200, "latency_ms": 4.5, "event": "http_access", "trace_id": "68c7c64d50d4", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.712563Z"}
+INFO:     127.0.0.1:60865 - "GET /js/chart.js HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/events.js", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "33a949756afc", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.712563Z"}
+{"method": "GET", "path": "/js/health.js", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "5776b0886fd9", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.712563Z"}
+{"method": "GET", "path": "/js/sdca-lab.js", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "3b38a6f03579", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.712563Z"}
+{"method": "GET", "path": "/js/ops-console.js", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "444b655f52a2", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.712563Z"}
+{"method": "GET", "path": "/js/alerts.js", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "97ab1ca253b4", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.712563Z"}
+INFO:     127.0.0.1:60861 - "GET /js/events.js?v=ui-fix-20260823d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60863 - "GET /js/health.js?v=ui-fix-20260823d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60866 - "GET /js/sdca-lab.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60864 - "GET /js/ops-console.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60860 - "GET /js/alerts.js HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/cockpit.js", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "c31f0b7f7ca6", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.729685Z"}
+INFO:     127.0.0.1:60875 - "GET /js/cockpit.js HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/genie-panel.js", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "5f3e0ce0915d", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.729685Z"}
+{"method": "GET", "path": "/js/deep-panel.js", "status": 200, "latency_ms": 13.6, "event": "http_access", "trace_id": "cf6a95b7e92c", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.743287Z"}
+INFO:     127.0.0.1:60876 - "GET /js/genie-panel.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60877 - "GET /js/deep-panel.js HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/blame-panel.js", "status": 200, "latency_ms": 16.33, "event": "http_access", "trace_id": "0216f167945b", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.746018Z"}
+{"method": "GET", "path": "/js/bob-panel.js", "status": 200, "latency_ms": 16.33, "event": "http_access", "trace_id": "a299679330bd", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.746018Z"}
+{"method": "GET", "path": "/js/status-bar.js", "status": 200, "latency_ms": 2.73, "event": "http_access", "trace_id": "baea4ad97873", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.746018Z"}
+INFO:     127.0.0.1:60878 - "GET /js/blame-panel.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60879 - "GET /js/bob-panel.js?v=ui-fix-20260823d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60880 - "GET /js/status-bar.js?v=ui-fix-20260823d HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/init.js", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "26d33a06d9d7", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:18.746018Z"}
+INFO:     127.0.0.1:60875 - "GET /js/init.js?v=ui-fix-20260823d HTTP/1.1" 200 OK
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 1.0, "event": "http_access", "trace_id": "be82eceaa623", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:19.903023Z"}
+INFO:     127.0.0.1:60875 - "GET /health HTTP/1.1" 200 OK
+{"method": "GET", "path": "/cockpit/mangala", "status": 200, "latency_ms": 17.76, "event": "http_access", "trace_id": "07fb7ce3b591", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:19.925818Z"}
+{"method": "GET", "path": "/cockpit/mangala/opportunities", "status": 200, "latency_ms": 18.76, "event": "http_access", "trace_id": "69087f46f93b", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:19.926819Z"}
+{"method": "GET", "path": "/sentiment/pulse", "status": 200, "latency_ms": 18.76, "event": "http_access", "trace_id": "657be1bbe695", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:19.926819Z"}
+{"method": "GET", "path": "/sentiment/alerts", "status": 200, "latency_ms": 18.76, "event": "http_access", "trace_id": "a47eb4220d59", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:19.926819Z"}
+INFO:     127.0.0.1:60879 - "GET /cockpit/mangala HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60878 - "GET /cockpit/mangala/opportunities HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60876 - "GET /sentiment/pulse HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60877 - "GET /sentiment/alerts?limit=20 HTTP/1.1" 200 OK
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.97, "event": "http_access", "trace_id": "87e2cf423c5e", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:19.934823Z"}
+INFO:     127.0.0.1:60879 - "GET /health HTTP/1.1" 200 OK
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 1.03, "event": "http_access", "trace_id": "926232c8c411", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:19.938848Z"}
+INFO:     127.0.0.1:60879 - "GET /health HTTP/1.1" 200 OK
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "6e19ab238da2", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:19.940545Z"}
+INFO:     127.0.0.1:60879 - "GET /health HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "trace_id": "1f4c59700fa2", "run_id": "unknown", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:39:19.942671Z"}
+{"method": "GET", "path": "/favicon.ico", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "8a903d405725", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:19.961015Z"}
+INFO:     127.0.0.1:60879 - "GET /favicon.ico HTTP/1.1" 200 OK
+{"method": "GET", "path": "/cockpit/portfolio", "status": 200, "latency_ms": 62.98, "event": "http_access", "trace_id": "1f4c59700fa2", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:19.994803Z"}
+INFO:     127.0.0.1:60875 - "GET /cockpit/portfolio HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "trace_id": "f5ee1ba87110", "run_id": "unknown", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:39:19.994803Z"}
+{"event": "[IBKRService] ib_insync not installed", "trace_id": "315086108e9b", "run_id": "unknown", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:39:19.994803Z"}
+{"method": "GET", "path": "/health/details", "status": 200, "latency_ms": 164.4, "event": "http_access", "trace_id": "f5ee1ba87110", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:20.070428Z"}
+INFO:     127.0.0.1:60880 - "GET /health/details HTTP/1.1" 200 OK
+{"method": "GET", "path": "/cockpit/portfolio", "status": 200, "latency_ms": 82.04, "event": "http_access", "trace_id": "315086108e9b", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:20.076843Z"}
+INFO:     127.0.0.1:60875 - "GET /cockpit/portfolio HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "trace_id": "8a84eedb463b", "run_id": "unknown", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:39:20.139810Z"}
+{"method": "GET", "path": "/health/details", "status": 200, "latency_ms": 106.83, "event": "http_access", "trace_id": "8a84eedb463b", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:20.183676Z"}
+{"event": "[IBKRService] ib_insync not installed", "trace_id": "46560bf37e88", "run_id": "unknown", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:39:20.362222Z"}
+{"method": "GET", "path": "/cockpit/summary", "status": 200, "latency_ms": 426.43, "event": "http_access", "trace_id": "46560bf37e88", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:20.402605Z"}
+{"event": "[DATA_HUB] candles: finnhub returned unusable result — http_403", "trace_id": "a6df1dd23e15", "run_id": "unknown", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:39:20.619231Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:39:20.726650Z"}
+{"event": "[DATA_HUB] candles: yfinance succeeded", "trace_id": "a6df1dd23e15", "run_id": "unknown", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:39:24.212502Z"}
+{"event": "[DATA_HUB] profile: finnhub returned unusable result — http_403", "trace_id": "a6df1dd23e15", "run_id": "unknown", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:39:24.693802Z"}
+{"event": "[DATA_HUB] profile: yfinance succeeded", "trace_id": "a6df1dd23e15", "run_id": "unknown", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:39:25.085103Z"}
+{"method": "GET", "path": "/api/chart-data/TD.TO", "status": 200, "latency_ms": 4993.57, "event": "http_access", "trace_id": "a6df1dd23e15", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:25.095139Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "749456c83d5c", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:30.016467Z"}
+INFO:     127.0.0.1:60914 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:39:31.549563Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:39:31.549563Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:39:31.549563Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "308a1f9c12b9", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:33.705957Z"}
+INFO:     127.0.0.1:60917 - "GET /health HTTP/1.1" 200 OK
+{"method": "GET", "path": "/", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "748f95db255d", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.387054Z"}
+INFO:     127.0.0.1:60918 - "GET / HTTP/1.1" 200 OK
+{"method": "GET", "path": "/css/variables.css", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "413bb7953940", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.455281Z"}
+{"method": "GET", "path": "/css/base.css", "status": 200, "latency_ms": 15.64, "event": "http_access", "trace_id": "ec421d7b7450", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.470920Z"}
+INFO:     127.0.0.1:60920 - "GET /css/variables.css HTTP/1.1" 200 OK
+{"method": "GET", "path": "/css/topbar.css", "status": 200, "latency_ms": 15.64, "event": "http_access", "trace_id": "a17820b3e8e1", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.470920Z"}
+{"method": "GET", "path": "/css/chat.css", "status": 200, "latency_ms": 15.64, "event": "http_access", "trace_id": "d22f23154b9b", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.470920Z"}
+{"method": "GET", "path": "/css/cards.css", "status": 200, "latency_ms": 15.64, "event": "http_access", "trace_id": "7393f5f17223", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.470920Z"}
+{"method": "GET", "path": "/css/pipeline.css", "status": 200, "latency_ms": 15.64, "event": "http_access", "trace_id": "95b7aebc168a", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.470920Z"}
+INFO:     127.0.0.1:60921 - "GET /css/base.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60924 - "GET /css/topbar.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60925 - "GET /css/chat.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60926 - "GET /css/cards.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60927 - "GET /css/pipeline.css HTTP/1.1" 200 OK
+{"method": "GET", "path": "/css/indicators.css", "status": 200, "latency_ms": 15.62, "event": "http_access", "trace_id": "4facc331d916", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.486545Z"}
+{"method": "GET", "path": "/css/sdca.css", "status": 200, "latency_ms": 15.62, "event": "http_access", "trace_id": "3922c627e751", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.486545Z"}
+{"method": "GET", "path": "/css/pennylab.css", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "ed02c6496c53", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.486545Z"}
+{"method": "GET", "path": "/css/crisis.css", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "cecb86f82035", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.486545Z"}
+INFO:     127.0.0.1:60920 - "GET /css/indicators.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60921 - "GET /css/sdca.css HTTP/1.1" 200 OK
+{"method": "GET", "path": "/css/data-quality.css", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "6070d8ddd11d", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.486545Z"}
+{"method": "GET", "path": "/css/experts.css", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "1844b28d5123", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.486545Z"}
+INFO:     127.0.0.1:60924 - "GET /css/pennylab.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60926 - "GET /css/crisis.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60927 - "GET /css/data-quality.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60925 - "GET /css/experts.css HTTP/1.1" 200 OK
+{"method": "GET", "path": "/css/charts.css", "status": 200, "latency_ms": 194.4, "event": "http_access", "trace_id": "3c317ca77c30", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.696569Z"}
+{"method": "GET", "path": "/css/ops-console.css", "status": 200, "latency_ms": 194.4, "event": "http_access", "trace_id": "c7cd29931a01", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.696569Z"}
+{"method": "GET", "path": "/css/auth.css", "status": 200, "latency_ms": 194.4, "event": "http_access", "trace_id": "4c70269f4b07", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.696569Z"}
+INFO:     127.0.0.1:60920 - "GET /css/charts.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60921 - "GET /css/ops-console.css HTTP/1.1" 200 OK
+{"method": "GET", "path": "/css/cockpit.css", "status": 200, "latency_ms": 194.4, "event": "http_access", "trace_id": "c6b68977440e", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.696569Z"}
+INFO:     127.0.0.1:60926 - "GET /css/auth.css HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/content.js", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "9219cfc20aa7", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.696569Z"}
+{"method": "GET", "path": "/js/state.js", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "c4539ec803aa", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.696569Z"}
+INFO:     127.0.0.1:60924 - "GET /css/cockpit.css?v=ui-fix-20260823d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60925 - "GET /js/content.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60927 - "GET /js/state.js HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/auth.js", "status": 200, "latency_ms": 9.17, "event": "http_access", "trace_id": "58e3ddd9445f", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.721394Z"}
+{"method": "GET", "path": "/js/api.js", "status": 200, "latency_ms": 10.07, "event": "http_access", "trace_id": "0d0ef36dc2a4", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.722288Z"}
+{"method": "GET", "path": "/js/cards.js", "status": 200, "latency_ms": 6.9, "event": "http_access", "trace_id": "c919ffbb8047", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.723289Z"}
+INFO:     127.0.0.1:60930 - "GET /js/auth.js?v=ui-fix-20260823d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60931 - "GET /js/api.js?v=ui-fix-20260823d HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/chat.js", "status": 200, "latency_ms": 7.87, "event": "http_access", "trace_id": "b80721f63e3d", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.726290Z"}
+INFO:     127.0.0.1:60932 - "GET /js/cards.js HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/render-pipeline.js", "status": 200, "latency_ms": 6.9, "event": "http_access", "trace_id": "609fd4767195", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.728291Z"}
+{"method": "GET", "path": "/js/trust-score.js", "status": 200, "latency_ms": 6.0, "event": "http_access", "trace_id": "8f81da3fcf69", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.728291Z"}
+INFO:     127.0.0.1:60933 - "GET /js/chat.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60934 - "GET /js/render-pipeline.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60935 - "GET /js/trust-score.js HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/render-f51.js", "status": 200, "latency_ms": 8.74, "event": "http_access", "trace_id": "373a91a670c7", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.743063Z"}
+INFO:     127.0.0.1:60931 - "GET /js/render-f51.js HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/render-sdca.js", "status": 200, "latency_ms": 7.99, "event": "http_access", "trace_id": "7ff0b5a254e0", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.745311Z"}
+{"method": "GET", "path": "/js/render-data-quality.js", "status": 200, "latency_ms": 5.6, "event": "http_access", "trace_id": "0682e5a0aca4", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.746411Z"}
+{"method": "GET", "path": "/js/render-crisis.js", "status": 200, "latency_ms": 6.75, "event": "http_access", "trace_id": "7f467a586bf0", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.746983Z"}
+{"method": "GET", "path": "/js/render-pennylab.js", "status": 200, "latency_ms": 10.22, "event": "http_access", "trace_id": "3419e6f13dc6", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.747540Z"}
+{"method": "GET", "path": "/js/render-experts.js", "status": 200, "latency_ms": 6.73, "event": "http_access", "trace_id": "b9509120c324", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.748101Z"}
+INFO:     127.0.0.1:60932 - "GET /js/render-sdca.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60935 - "GET /js/render-data-quality.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60933 - "GET /js/render-crisis.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60930 - "GET /js/render-pennylab.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60934 - "GET /js/render-experts.js HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/render-neural.js", "status": 200, "latency_ms": 8.03, "event": "http_access", "trace_id": "38fb12808341", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.764001Z"}
+{"method": "GET", "path": "/js/render-explanation.js", "status": 200, "latency_ms": 6.01, "event": "http_access", "trace_id": "32b96095dfa6", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.765008Z"}
+{"method": "GET", "path": "/js/render-chart.js", "status": 200, "latency_ms": 7.0, "event": "http_access", "trace_id": "47be10da576a", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.766000Z"}
+{"method": "GET", "path": "/js/live.js", "status": 200, "latency_ms": 5.01, "event": "http_access", "trace_id": "2ce7a025929b", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.767003Z"}
+{"method": "GET", "path": "/js/render-candles.js", "status": 200, "latency_ms": 7.03, "event": "http_access", "trace_id": "9c7cac586d2d", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.767003Z"}
+INFO:     127.0.0.1:60931 - "GET /js/render-neural.js HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/render-profile.js", "status": 200, "latency_ms": 7.02, "event": "http_access", "trace_id": "1d11d248003a", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.769004Z"}
+INFO:     127.0.0.1:60932 - "GET /js/render-explanation.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60935 - "GET /js/render-chart.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60930 - "GET /js/live.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60933 - "GET /js/render-candles.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60934 - "GET /js/render-profile.js HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/alerts.js", "status": 200, "latency_ms": 3.0, "event": "http_access", "trace_id": "86d4ec7b97ac", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.784344Z"}
+{"method": "GET", "path": "/js/health.js", "status": 200, "latency_ms": 3.01, "event": "http_access", "trace_id": "aea4ddaffa77", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.785351Z"}
+{"method": "GET", "path": "/js/chart.js", "status": 200, "latency_ms": 8.0, "event": "http_access", "trace_id": "f6ebfd36a66a", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.786340Z"}
+{"method": "GET", "path": "/js/ops-console.js", "status": 200, "latency_ms": 8.0, "event": "http_access", "trace_id": "9f964858847f", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.787340Z"}
+{"method": "GET", "path": "/js/events.js", "status": 200, "latency_ms": 5.99, "event": "http_access", "trace_id": "fdd6d5941cf4", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.787340Z"}
+{"method": "GET", "path": "/js/sdca-lab.js", "status": 200, "latency_ms": 8.0, "event": "http_access", "trace_id": "b3c57a5aa220", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.787340Z"}
+INFO:     127.0.0.1:60933 - "GET /js/alerts.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60934 - "GET /js/health.js?v=ui-fix-20260823d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60932 - "GET /js/chart.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60935 - "GET /js/ops-console.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60930 - "GET /js/events.js?v=ui-fix-20260823d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60931 - "GET /js/sdca-lab.js HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/deep-panel.js", "status": 200, "latency_ms": 6.66, "event": "http_access", "trace_id": "614089534d7f", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.805654Z"}
+{"method": "GET", "path": "/js/status-bar.js", "status": 200, "latency_ms": 3.18, "event": "http_access", "trace_id": "3fc970a8c935", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.806166Z"}
+{"method": "GET", "path": "/js/blame-panel.js", "status": 200, "latency_ms": 4.18, "event": "http_access", "trace_id": "ebdd00e1ebc4", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.806166Z"}
+{"method": "GET", "path": "/js/cockpit.js", "status": 200, "latency_ms": 9.21, "event": "http_access", "trace_id": "a4eb49f8ad5c", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.807207Z"}
+{"method": "GET", "path": "/js/genie-panel.js", "status": 200, "latency_ms": 10.21, "event": "http_access", "trace_id": "21d9a7514955", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.808207Z"}
+{"method": "GET", "path": "/js/bob-panel.js", "status": 200, "latency_ms": 7.22, "event": "http_access", "trace_id": "31e16df7f93c", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.809205Z"}
+INFO:     127.0.0.1:60932 - "GET /js/deep-panel.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60935 - "GET /js/status-bar.js?v=ui-fix-20260823d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60931 - "GET /js/blame-panel.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60934 - "GET /js/cockpit.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60933 - "GET /js/genie-panel.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60930 - "GET /js/bob-panel.js?v=ui-fix-20260823d HTTP/1.1" 200 OK
+{"method": "GET", "path": "/js/init.js", "status": 200, "latency_ms": 3.0, "event": "http_access", "trace_id": "63111de7411a", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.820206Z"}
+INFO:     127.0.0.1:60931 - "GET /js/init.js?v=ui-fix-20260823d HTTP/1.1" 200 OK
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "adb4d83b6965", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.907534Z"}
+INFO:     127.0.0.1:60931 - "GET /health HTTP/1.1" 200 OK
+{"method": "GET", "path": "/cockpit/mangala", "status": 200, "latency_ms": 10.91, "event": "http_access", "trace_id": "e40278b327d7", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.923429Z"}
+{"method": "GET", "path": "/cockpit/mangala/opportunities", "status": 200, "latency_ms": 10.91, "event": "http_access", "trace_id": "154b82065c1b", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.923429Z"}
+{"method": "GET", "path": "/sentiment/pulse", "status": 200, "latency_ms": 9.94, "event": "http_access", "trace_id": "a0eafeb592a1", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.924459Z"}
+{"method": "GET", "path": "/sentiment/alerts", "status": 200, "latency_ms": 9.94, "event": "http_access", "trace_id": "ebfb532cd5e8", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.924459Z"}
+INFO:     127.0.0.1:60930 - "GET /cockpit/mangala HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60934 - "GET /cockpit/mangala/opportunities HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60935 - "GET /sentiment/pulse HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60932 - "GET /sentiment/alerts?limit=20 HTTP/1.1" 200 OK
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "4cf51428a5ae", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.931460Z"}
+INFO:     127.0.0.1:60930 - "GET /health HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "trace_id": "afdf4d349b48", "run_id": "unknown", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:39:34.934430Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "8c99d898ba22", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.939429Z"}
+INFO:     127.0.0.1:60930 - "GET /health HTTP/1.1" 200 OK
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "de6f8e3a21e0", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.944457Z"}
+INFO:     127.0.0.1:60930 - "GET /health HTTP/1.1" 200 OK
+{"method": "GET", "path": "/cockpit/portfolio", "status": 200, "latency_ms": 50.42, "event": "http_access", "trace_id": "afdf4d349b48", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.978878Z"}
+INFO:     127.0.0.1:60931 - "GET /cockpit/portfolio HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "trace_id": "5e1be2a8a76c", "run_id": "unknown", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:39:34.984213Z"}
+{"method": "GET", "path": "/favicon.ico", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "4f65a78542b5", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:34.990012Z"}
+INFO:     127.0.0.1:60932 - "GET /favicon.ico HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "trace_id": "b8b7c3c6349a", "run_id": "unknown", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:39:35.023226Z"}
+{"method": "GET", "path": "/cockpit/portfolio", "status": 200, "latency_ms": 58.17, "event": "http_access", "trace_id": "5e1be2a8a76c", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:35.040053Z"}
+INFO:     127.0.0.1:60931 - "GET /cockpit/portfolio HTTP/1.1" 200 OK
+{"method": "GET", "path": "/api/chart-data/TD.TO", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "785b488b101e", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:35.046561Z"}
+INFO:     127.0.0.1:60931 - "GET /api/chart-data/TD.TO?timeframe=6M HTTP/1.1" 200 OK
+{"method": "GET", "path": "/health/details", "status": 200, "latency_ms": 170.73, "event": "http_access", "trace_id": "b8b7c3c6349a", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:35.083255Z"}
+INFO:     127.0.0.1:60933 - "GET /health/details HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "trace_id": "582e90fb8029", "run_id": "unknown", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:39:35.092769Z"}
+{"method": "GET", "path": "/cockpit/summary", "status": 200, "latency_ms": 145.05, "event": "http_access", "trace_id": "582e90fb8029", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:35.135062Z"}
+INFO:     127.0.0.1:60930 - "GET /cockpit/summary HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "trace_id": "d4a82500a89d", "run_id": "unknown", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:39:35.155778Z"}
+{"method": "GET", "path": "/health/details", "status": 200, "latency_ms": 124.56, "event": "http_access", "trace_id": "d4a82500a89d", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:35.210818Z"}
+INFO:     127.0.0.1:60933 - "GET /health/details HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "trace_id": "9378786d5082", "run_id": "unknown", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:39:35.285214Z"}
+{"method": "GET", "path": "/health/details", "status": 200, "latency_ms": 108.46, "event": "http_access", "trace_id": "9378786d5082", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:39:35.322116Z"}
+INFO:     127.0.0.1:60933 - "GET /health/details HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:39:35.728247Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:39:50.737951Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:40:05.748816Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:40:20.761175Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "94c1462a929f", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:40:31.574285Z"}
+INFO:     127.0.0.1:60957 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:40:33.367256Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:40:33.382885Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:40:33.387089Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:40:35.777090Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:40:50.780498Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:41:05.797354Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:41:20.816724Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.52, "event": "http_access", "trace_id": "d2307c2b9fb8", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:41:33.417383Z"}
+INFO:     127.0.0.1:60968 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:41:34.989038Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:41:34.989038Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:41:34.989038Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:41:35.824390Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:41:50.839781Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:42:05.849566Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:42:20.862155Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 1.28, "event": "http_access", "trace_id": "6f14d615fb75", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:42:35.008570Z"}
+INFO:     127.0.0.1:60979 - "GET /health HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:42:35.874667Z"}
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:42:36.552888Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:42:36.552888Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:42:36.558397Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:42:50.886473Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:43:05.899245Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:43:20.918048Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:43:35.930996Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "1a6e13a2a7a0", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:43:36.561464Z"}
+INFO:     127.0.0.1:60987 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:43:38.125418Z"}
+{"event": "bob_circuit_open: IBKR Muscles (order execution) after 13 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:43:40.138276Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:43:40.138276Z"}
+{"event": "bob_circuit_open: Scanner Eyes (OpenBB) after 13 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:43:40.138276Z"}
+{"event": "bob_circuit_open: Historical Cache (liver) after 13 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:43:40.138276Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:43:40.138276Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:43:50.939092Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:44:05.948390Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:44:20.959646Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:44:35.965242Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "53875d8b3dce", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:44:40.163155Z"}
+INFO:     127.0.0.1:61004 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:44:41.677607Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:44:41.677607Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:44:41.693162Z"}

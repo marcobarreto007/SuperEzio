@@ -1102,7 +1102,7 @@ PRODUCT_MANIFEST = {
         {
             "id": "agent_primary",
             "label": "Bob Core Agent",
-            "description": "Local Bob core via llama.cpp + F51 LoRA consolidates conflicts and chooses one permitted next step.",
+            "description": "Bob core via cloud model consolidates conflicts and chooses one permitted next step.",
         },
     ],
     "decision_modes": [

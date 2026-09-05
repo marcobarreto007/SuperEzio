@@ -1,20 +1,24 @@
 {
   "date_local": "2026-09-05",
-  "session": "cloud-models-doc-alignment-20260905",
+  "session": "launcher-and-prompts-audit-20260905",
   "status": "DELIVERED_SLICE",
-  "objective": "Alinhamento da documentacao oficial e contratos operacionais para topologia 100% em nuvem (Z.ai GLM-5.3 e DeepSeek V4 Pro HTTPS), eliminando referencias obsoletas a :8080/Ornith/Qwen local e preservando a custodia local DISK ONLY.",
-  "predecessor": "deepseek-v4-pro-ceo-and-idempotency-20260903",
+  "objective": "Auditoria completa e correcao dos prompts dos modelos do SuperEzio (Bob/CEO, 6 Experts, Judge, Auditor, Trinity e PennyLab) para alinhamento 100% cloud (Z.ai GLM-5.3 e DeepSeek V4 Pro HTTPS), eliminando vestigios de RTX 5060/llama.cpp em QWEN_PERSONA e endpoints.py, alem de lancador nativo batch e atalho desktop resiliente.",
+  "predecessor": "cloud-models-doc-alignment-20260905",
   "patch": {
     "commits": [
-      "da150cba"
+      "da150cba",
+      "9996437a",
+      "dafe24c1",
+      "70434b69"
     ],
-    "intent": "CLAUDE.md, docs/ARCHITECTURE_ONEPAGER.md, HANDOFF.md, README.md, docs/runbooks/RUNBOOK.md, docs/runbooks/OPERATIONAL_RUNBOOK.md, .claude/agents/model-gateway-verifier.md, .f51/contracts/runtime.contract.md",
+    "intent": "src/core/pipeline/prompts/_prompts.py, src/agent_server/endpoints.py, launch.bat, launcher.ps1, scripts/generate_ico.py, assets/superezio.ico, .f51/TASK_BOARD.md",
     "data_updates": ""
   },
   "verification": {
     "ruff": "All checks passed! (src/, tests/)",
-    "pytest": "12 passed in 3.49s (tests/contracts/test_contract_runtime_official.py) + 21 passed (tests/test_runtime_smoke.py, tests/test_integration_runtime.py)",
-    "model_serving": "telemetria ao vivo confirmada em /health/details: Bob no glm-5.3 (Z.ai) e experts no deepseek-v4-pro (DeepSeek HTTPS)",
+    "pytest": "12 passed (tests/contracts/test_contract_runtime_official.py), 57 passed (tests/contracts/test_contract_agent.py)",
+    "model_prompts_audit": "Bob Core / Sovereign Prompt (mouth-only, interchangeable adjuvant, PT-BR), 6 Experts (anti-guessing contract, context slicing, raw JSON), Trinity (Genie + Deep deliberation), PennyLab Postmortem",
+    "launcher_resilience": "launch.bat nativo com healthcheck automatico e abertura de browser, SuperEzio.lnk no Desktop funcional",
     "json_valid": "validated"
   },
   "operator_truth": {
