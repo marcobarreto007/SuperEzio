@@ -1,31 +1,29 @@
 {
   "date_local": "2026-09-05",
-  "session": "auth-unique-contract-20260905",
+  "session": "auth-contract-registration-20260905",
   "status": "DELIVERED_SLICE",
-  "objective": "Erradicar senha administrativa conhecida da arvore ativa e pinar contrato unico de autenticacao fail-closed (P0, INV-R37): SUPEREZIO_ADMIN_PASSWORD obrigatoria no bootstrap (setup_superezio.sh com exit 1 real), 8 scripts de validacao sem senha hardcoded (fail-closed SystemExit), auth.py curado (doc-only), main.py verificado sem rota desprotegida, 3 suites de teste novas hermetical (38+12+5). Cadeia inclui hermeticizacao dos contratos de model serving contra o dotenv real do operador (regressao 2026-09-05) com 2 contratos novos de fallback GLM->DeepSeek por credito, e alinhamento docstring/remocao de codigo morto em model_serving.",
-  "predecessor": "glm-credit-fallback-to-deepseek-20260905",
+  "objective": "Registrar o contrato de autenticacao na fonte documental oficial do servidor (fecha a divida (c) do board): secao 'Authentication & Authorization' em .f51/contracts/agent-server.contract.md com modos dev/open-access/prod-like/public, superficie publica exata por modo, semantica 401 do middleware, POST /auth/register|login|refresh e GET /auth/me (campos e status codes exatos), tokens HS256 + refresh rotation single-use, invariantes 10-12 e suites de verificacao. Tambem fecha a divida (b) playwright/chromium (commit bb094664 + chromium no cache do sandbox; smoke --skip-chat verde). Divida (a) senha conhecida permanece aberta (dono: operador).",
+  "predecessor": "auth-unique-contract-20260905",
   "patch": {
     "commits": [
-      "8ca85d73",
-      "f40058b5",
-      "042f2cc3"
+      "5b58e2f5",
+      "bb094664"
     ],
-    "intent": "042f2cc3: setup_superezio.sh, 8 scripts de validacao (capture_live_state, capture_ui_improvements, deep_interactive_user_test, open_real_visible_browser, test_bob_chat_step, verify_analyze_with_bob_button, verify_live_browser, verify_live_greeting_browser), src/agent_server/auth.py, tests/test_auth_middleware_prod_matrix.py, tests/test_auth_public_paths_contract.py, tests/test_credentials_and_bootstrap_contract.py; 8ca85d73: tests/contracts/test_contract_config.py, tests/contracts/test_contract_model_serving.py, tests/test_components_data.py; f40058b5: src/core/model_serving/providers.py, src/core/model_serving/sanitizer.py",
+    "intent": "5b58e2f5 (docs-only deste slice): .f51/contracts/agent-server.contract.md (secao Authentication & Authorization + invariantes 10-12 + suites de verificacao; module line ganha auth.py) e .f51/TASK_BOARD.md (dividas (c) contrato /auth/* e (b) playwright/chromium marcadas [x]; P0 residual de autenticacao unica enxugado para o purge da senha); bb094664 (referenciado, nao deste slice): browser_smoke valida modelo cloud (glm-5.3 | deepseek-v4-pro) em vez do perfil local Ornith standby",
     "data_updates": ""
   },
   "verification": {
-    "security_reviewer": "VERIFIED 7/7",
-    "api_contract_verifier": "VERIFIED a-e",
-    "release_readiness": "RELEASE CANDIDATE (tar sha256 53539284168251f2c8be996b122d104b3ed3e2d5ecb52e62c67a7dde188d97ed)",
-    "pytest_full": "2309 passed, 9 skipped, 1 deselected (suite completa apos 042f2cc3); 2254 passed, 9 skipped, 1 deselected apos 8ca85d73",
-    "new_auth_suites": "38+12+5 = 55 testes (matriz prod-like 401/200; tabela-verdade de identidade + paths publicos; contrato estatico de credenciais/bootstrap) — todas hermetical, scrub de env, sem depender do dotenv do operador",
-    "ruff": "limpo nos tocados",
+    "source_of_truth": "contrato extraido com file:line de src/agent_server/auth.py (35-37, 49-107, 260-402, 410-474, 494-621) e src/agent_server/main.py (509-511, 544, 786-811); consumo do frontend conferido em frontend/js/auth.js e frontend/js/api.js (Bearer token, refresh on 401, leitura de detail/error)",
+    "api_contract_verifier": "fatos de entrada VERIFIED pelo api-contract-verifier na sessao (sucessor de auth-unique-contract-20260905: security_reviewer VERIFIED 7/7, api_contract_verifier VERIFIED a-e, release RELEASE CANDIDATE)",
+    "pytest_baseline": "2309 passed, 9 skipped, 1 deselected (suite completa apos 042f2cc3, baseline da sessao auth-unique-contract-20260905; este slice e docs-only, sem toque em src/ ou tests/)",
+    "ruff": "nao se aplica (somente .md/.json editados)",
     "json_valid": "validated"
   },
   "operator_truth": {
     "auth_bootstrap": "setup_superezio.sh EXIGE SUPEREZIO_ADMIN_PASSWORD (exit 1 real quando ausente; geracao via token_hex) — mudanca intencional aprovada pelo operador",
     "auth_active_tree": "nenhuma senha hardcoded na arvore ativa; 8 scripts de validacao leem a env com fail-closed SystemExit; auth.py curado doc-only (zero mudanca de codigo); main.py verificado sem rota desprotegida",
-    "auth_contract": "contrato unico de autenticacao pinado por teste (55 novos); rotas /auth/* e TokenResponse ainda nao registrados em .f51/contracts/agent-server.contract.md",
+    "auth_contract_doc": "contrato de autenticacao registrado em .f51/contracts/agent-server.contract.md (secao Authentication & Authorization): /auth/register, /auth/login, /auth/refresh, /auth/me, schemas UserCreate/LoginRequest/TokenRefresh/UserResponse/TokenResponse, superficie publica por modo e 401 do middleware — consumidor implementa sem ler codigo",
+    "browser_smoke": "chromium instalado no cache do sandbox (chromium-1148/1228 + headless shells); bb094664 valida modelo cloud; smoke --skip-chat verde; rodada completa em verificacao",
     "auth_residual": "senha conhecida do operador permanece em .f51/archive/2026-08-26/scripts/live_chrome_operator.py (trackeado) e no historico git inteiro — tratar como comprometida; rotacao + purge (filter-repo) bloqueados pelo operador",
     "model_serving_contracts": "contratos hermetical contra o dotenv do operador (fixture autouse neutraliza load_local_env); fallback GLM->DeepSeek por credito coberto por 2 contratos novos; strip_private_model_channels alinhado ao contrato testado",
     "ceo_model": "glm-5.3 (Z.ai Coding Plan HTTPS API) com fallback automatico para deepseek-v4-pro em falta de credito",
@@ -37,8 +35,7 @@
   },
   "debt_next_slice": {
     "archive_known_password": "senha conhecida do operador ainda em .f51/archive/2026-08-26/scripts/live_chrome_operator.py (trackeado, linha 12) e no historico git inteiro — dono: operador humano (rotacao nos portais + purge via filter-repo); reabrir quando autorizado (bloqueio do P0 segredos 2026-08-26 segue valendo)",
-    "contract_doc_auth": "rotas /auth/* e schema TokenResponse nao registrados em .f51/contracts/agent-server.contract.md (so /health, /health/details e /trade/td-draft documentados) — registrar fica para o proximo ciclo de contratos",
-    "playwright": "playwright/chromium ausente no cache do sandbox — browser_smoke segue manual ate instalar (herdada da sessao glm-credit-fallback)",
+    "browser_smoke_full_run": "rodada completa do browser_smoke (com chat) em verificacao na sessao corrente; --skip-chat ja verde com chromium instalado",
     "bootstrap_admin_password": "maquina nova agora EXIGE SUPEREZIO_ADMIN_PASSWORD no bootstrap — mudanca intencional aprovada pelo operador; sem acao pendente alem de documentar em runbook futuro"
   },
   "still_true": {
