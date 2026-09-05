@@ -77,8 +77,9 @@
 
   function portfolioSection(state) {
     var pf = state.portfolio || {};
-    var connected = pf.connected === true || String(pf.connection || "").indexOf("connected") >= 0;
-    var equity = pf.equity || "100000.00";
+    var connected = pf.connected === true || String(pf.connection || "").toLowerCase() === "connected";
+    var equity = pf.equity != null && pf.equity !== "" && Number.isFinite(Number(pf.equity))
+      ? Number(pf.equity).toFixed(2) : "Indisponível";
     var orders = Array.isArray(pf.orders) ? pf.orders : (Array.isArray(pf.active_orders) ? pf.active_orders : []);
     var positions = pf.positions || [];
     var rows = "";
@@ -94,14 +95,14 @@
         return '<div class="bob-position-row"><span>' + esc(pos.symbol || pos.ticker || "--") + '</span><strong>' + esc(pos.quantity || pos.shares || 0) + '</strong></div>';
       }).join("");
     } else {
-      rows = '<div class="cockpit-empty">Sem ordens ativas ou posicoes abertas.</div>';
+      rows = '<div class="cockpit-empty">' + (connected ? 'Sem ordens ativas ou posições abertas.' : 'Carteira indisponível. Verifique a conexão com a corretora.') + '</div>';
     }
     return [
       '<section class="cockpit-section">',
         '<div class="cockpit-section__title">Portfolio IBKR</div>',
-        '<div class="bob-portfolio-line"><span>Equity</span><strong>$' + esc(equity) + '</strong></div>',
+        '<div class="bob-portfolio-line"><span>Patrimônio</span><strong>' + esc(equity) + '</strong></div>',
         '<div class="bob-portfolio-line"><span>Status</span><strong>' + esc(connected ? "PAPER CONNECTED" : "OFFLINE") + '</strong></div>',
-        '<div class="bob-portfolio-line"><span>Open orders</span><strong>' + esc(orders.length) + '</strong></div>',
+        '<div class="bob-portfolio-line"><span>Ordens abertas</span><strong>' + esc(connected ? orders.length : '--') + '</strong></div>',
         rows,
       '</section>',
     ].join("");
@@ -112,13 +113,11 @@
     var dataWarn = Boolean(trace.provider_error || (trace.top_rejection_reasons || []).length);
     var rows = GUARDRAIL_LAYERS.map(function (layer) {
       var label = layer[0];
-      var total = layer[1];
       var warn = label.indexOf("Data Quality") >= 0 && dataWarn;
-      var count = warn ? Math.max(0, total - 1) : total;
       return [
-        '<div class="bob-guardrail-row ' + (warn ? "is-warn" : "is-good") + '">',
+        '<div class="bob-guardrail-row is-warn">',
           '<span>' + esc(label) + '</span>',
-          '<strong>(' + count + '/' + total + ')</strong>',
+          '<strong>' + (warn ? 'Dados incompletos' : 'Sem evidência de validação') + '</strong>',
         '</div>',
       ].join("");
     }).join("");
@@ -163,9 +162,9 @@
         var details = await window.SZ.api.fetchHealthDetails();
         var ibkr = (((details || {}).mission || {}).broker || {}).ibkr || {};
         state.portfolio = {
-          connected: String(ibkr.connection || "").indexOf("connected") >= 0 || ibkr.can_read_account === true,
+          connected: String(ibkr.connection || "").toLowerCase() === "connected" || ibkr.can_read_account === true,
           connection: ibkr.connection || "unknown",
-          equity: ibkr.account_equity || "100000.00",
+          equity: ibkr.account_equity,
           positions_count: ibkr.positions_count || 0,
           positions: ibkr.positions || [],
         };
