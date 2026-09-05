@@ -55,6 +55,19 @@ class TestComplexFinanceFallback:
         assert "Final verdict:" in answer
         assert any(v in answer for v in ("PAY_DEBT", "CASH", "ETF", "STOCK_TRADE", "WAIT"))
 
+    def test_portuguese_query_gets_portuguese_answer(self):
+        """Contract 2026-09-05: a PT-BR operator query must receive the
+        fallback in Portuguese — the answer is user-visible text."""
+        answer = _complex_finance_fallback_answer(
+            "tenho CAD 25.000 para alocar entre reserva de emergencia, "
+            "dividas e ETFs. De um framework serio em portugues."
+        )
+        assert "Classificacao da Pergunta" in answer
+        assert "Recomendacao Final" in answer
+        assert "Veredito final:" in answer
+        assert "Question Classification" not in answer
+        assert "Classificacao da Pergunta" in answer
+
 
 class TestAdvisoryKnowledgeFallback:
     def test_etf_comparison(self):

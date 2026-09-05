@@ -793,20 +793,12 @@ def _decisive_trade_order_answer(state: dict) -> str:
 
 
 def _complex_finance_fallback_answer(message: str) -> str:
+    """Single source of truth lives in agent.py (PT for PT queries, 2026-09-05)."""
+    fn = _get_agent_attr("_complex_finance_fallback_answer")
+    if fn is not None:
+        return fn(message)
     msg = (message or "").lower()
-    is_capital = any(
-        token in msg
-        for token in (
-            "allocate",
-            "allocation",
-            "emergency",
-            "debt",
-            "equipment",
-            "education",
-            "cash reserve",
-            "cad",
-        )
-    )
+    is_capital = any(token in msg for token in ("allocate", "cad", "debt", "emergency"))
     classification = "CAPITAL_ALLOCATION" if is_capital else "MACRO_THESIS"
     verdict = "CASH" if "unstable" in msg or "emergency" in msg else "ETF"
     confidence = 74 if is_capital else 68
@@ -814,23 +806,6 @@ def _complex_finance_fallback_answer(message: str) -> str:
         f"1. **Question Classification** — {classification}.\n"
         "2. **Assumptions** — CAD capital, Canadian household context, family stability matters, "
         "income may be unstable, and all scenario numbers are illustrative assumptions, not forecasts.\n"
-        "3. **Missing Data** — debt balances and interest rates, current emergency reserve, monthly expenses, "
-        "TFSA, RRSP, RESP, or FHSA room, tax bracket, business revenue history, and education timeline.\n"
-        "4. **Decision Variables** — liquidity need, emergency fund months, debt interest rate, downside risk, "
-        "reversibility, time-to-cashflow, health/energy constraints, and family stability.\n"
-        "5. **Quantitative Thresholds** — keep 3-6 months of emergency cash reserve first; pay debt above "
-        "6-8% interest before market risk; fund business equipment only when expected payback/time-to-cashflow "
-        "is clear; keep education spending staged and reversible.\n"
-        "6. **Scenario Analysis** — Illustrative downside: unstable income plus no reserve forces asset sales. "
-        "Illustrative base case: reserve plus high-interest debt payoff reduces fragility. Illustrative upside: "
-        "surplus after safety gates can compound through a broad diversified Canadian-listed ETF or productive "
-        "business equipment.\n"
-        "7. **Ranked Allocation / Framework** — 40% emergency cash reserve, 30% high-interest debt payoff, "
-        "15% broad diversified Canadian-listed ETF, 10% side-business equipment only with payback evidence, "
-        "5% education. These illustrative buckets sum to 100% and prioritize survival before upside.\n"
-        "8. **Decision Gates** — If emergency reserve is below 3 months, CASH dominates. If debt interest is "
-        "above 6-8%, PAY_DEBT dominates. If business equipment has fast payback and low execution burden, shift "
-        "some ETF/education budget to equipment. Tax account choices depend on the individual's situation.\n"
         "9. **Final Recommendation** — Build the emergency reserve first, then pay expensive "
         "debt, then deploy remaining surplus gradually into ETF/business/education only after liquidity is safe.\n"
         f"10. **Confidence Level** — {confidence}/100, limited by missing debt rate, monthly expenses, and tax room.\n"

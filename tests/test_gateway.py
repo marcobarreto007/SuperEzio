@@ -263,13 +263,13 @@ class TestApplyGlmCodingPlanOptions:
             "reasoning_effort": "low",
         }
 
-    def test_invalid_effort_falls_back_to_high(self, monkeypatch):
+    def test_invalid_effort_falls_back_to_low(self, monkeypatch):
         monkeypatch.setenv("SUPEREZIO_GLM_REASONING_EFFORT", "banana")
         p = _provider("agent", base_url="https://api.z.ai/api/coding/paas/v4")
         p.model = "glm-5.3"
         kwargs = {}
         ModelGateway._apply_glm_coding_plan_options(p, kwargs)
-        assert kwargs["extra_body"]["reasoning_effort"] == "high"
+        assert kwargs["extra_body"]["reasoning_effort"] == "low"
 
 
 class TestGatewayInit:
@@ -710,3 +710,254 @@ class TestJsonModeWithImageWarning:
             )
 
         assert "json_mode disabled" not in caplog.text
+
+
+class TestStreamReasoningNeverVisible:
+    """Contract 2026-09-05: raw reasoning_content (GLM-5.3/DeepSeek, no channel
+    markers) must never surface as user-visible text. Before this pin, the
+    stream emitted ``content or reasoning``, leaking the English CoT into the
+    answer and burning max_tokens before the real PT content started."""
+
+    @staticmethod
+    def _make_client(chunks):
+        class MockCompletions:
+            def __init__(self, items):
+                self._items = items
+
+            async def _stream(self):
+                for chunk in self._items:
+                    yield chunk
+
+            async def create(self, *_args, **_kwargs):
+                return self._stream()
+
+        class MockChat:
+            def __init__(self, items):
+                self.completions = MockCompletions(items)
+
+        class MockClient:
+            def __init__(self, items):
+                self.chat = MockChat(items)
+
+            async def close(self):
+                pass
+
+        return MockClient(chunks)
+
+    @pytest.mark.asyncio
+    async def test_reasoning_only_emits_nothing(self, monkeypatch):
+        from types import SimpleNamespace
+
+        delta = SimpleNamespace(
+            content=None,
+            reasoning_content=(
+                "Let me analyze this carefully. The user is asking a general "
+                "financial planning question... they live in Canada..."
+            ),
+        )
+        chunk = SimpleNamespace(choices=[SimpleNamespace(delta=delta)])
+        client = self._make_client([chunk, chunk, chunk])
+        monkeypatch.setattr("core.model_serving.gateway.AsyncOpenAI", lambda *_a, **_k: client)
+
+        gateway = _gateway(_provider(AGENT_PROVIDER_NAME, backend="openai_compatible"))
+        provider = gateway.providers[0]
+        out = [c async for c in gateway.stream_generate_api(provider, prompt="oi")]
+        assert out == []
+
+    @pytest.mark.asyncio
+    async def test_reasoning_then_content_emits_only_content(self, monkeypatch):
+        from types import SimpleNamespace
+
+        reasoning = SimpleNamespace(
+            content=None,
+            reasoning_content=("Let me analyze this carefully... 1. Diagnóstico financeiro"),
+        )
+        real = SimpleNamespace(
+            content="Vou analisar seu cenario em portugues.", reasoning_content=None
+        )
+        chunk = lambda d: SimpleNamespace(choices=[SimpleNamespace(delta=d)])
+        client = self._make_client([chunk(reasoning), chunk(real)])
+        monkeypatch.setattr("core.model_serving.gateway.AsyncOpenAI", lambda *_a, **_k: client)
+
+        gateway = _gateway(_provider(AGENT_PROVIDER_NAME, backend="openai_compatible"))
+        provider = gateway.providers[0]
+        out = [c async for c in gateway.stream_generate_api(provider, prompt="oi")]
+        assert out == ["Vou analisar seu cenario em portugues."]
+
+    @pytest.mark.asyncio
+    async def test_plain_content_still_streams(self, monkeypatch):
+        from types import SimpleNamespace
+
+        delta = SimpleNamespace(content="Resposta direta.", reasoning_content=None)
+        chunk = SimpleNamespace(choices=[SimpleNamespace(delta=delta)])
+        client = self._make_client([chunk])
+        monkeypatch.setattr("core.model_serving.gateway.AsyncOpenAI", lambda *_a, **_k: client)
+
+        gateway = _gateway(_provider(AGENT_PROVIDER_NAME, backend="openai_compatible"))
+        provider = gateway.providers[0]
+        out = [c async for c in gateway.stream_generate_api(provider, prompt="oi")]
+        assert out == ["Resposta direta."]
+
+
+class TestGenerateReasoningNeverVisible:
+    """Non-streaming counterpart of the same contract: generate_api must not
+    return raw reasoning_content as the visible answer."""
+
+    @staticmethod
+    def _make_client(message):
+        from types import SimpleNamespace
+
+        class MockCompletions:
+            async def create(self, *_args, **_kwargs):
+                return SimpleNamespace(choices=[SimpleNamespace(message=message)])
+
+        class MockChat:
+            completions = MockCompletions()
+
+        class MockClient:
+            chat = MockChat()
+
+            async def close(self):
+                pass
+
+        return MockClient()
+
+    @pytest.mark.asyncio
+    async def test_reasoning_only_returns_empty(self, monkeypatch):
+        from types import SimpleNamespace
+
+        message = SimpleNamespace(
+            content=None,
+            reasoning_content="Let me analyze this carefully. They live in Canada...",
+        )
+        client = self._make_client(message)
+        monkeypatch.setattr("core.model_serving.gateway.AsyncOpenAI", lambda *_a, **_k: client)
+
+        gateway = _gateway(_provider(AGENT_PROVIDER_NAME, backend="openai_compatible"))
+        provider = gateway.providers[0]
+        out = await gateway.generate_api(provider, prompt="oi")
+        assert out == ""
+
+    @pytest.mark.asyncio
+    async def test_content_wins_over_reasoning(self, monkeypatch):
+        from types import SimpleNamespace
+
+        message = SimpleNamespace(
+            content="Resposta em portugues.",
+            reasoning_content="Let me analyze this carefully...",
+        )
+        client = self._make_client(message)
+        monkeypatch.setattr("core.model_serving.gateway.AsyncOpenAI", lambda *_a, **_k: client)
+
+        gateway = _gateway(_provider(AGENT_PROVIDER_NAME, backend="openai_compatible"))
+        provider = gateway.providers[0]
+        out = await gateway.generate_api(provider, prompt="oi")
+        assert out == "Resposta em portugues."
+
+
+class TestGlmTokenFloor:
+    """Contract 2026-09-05: GLM (thinking forced on, sharing the output
+    budget) gets a 4096-token floor so the visible content survives the
+    deliberation. Non-GLM providers keep their requested budget."""
+
+    @staticmethod
+    def _capture_client(captured: dict):
+        from types import SimpleNamespace
+
+        class MockCompletions:
+            def __init__(self, box):
+                self._box = box
+
+            async def _stream(self):
+                delta = SimpleNamespace(content="ok", reasoning_content=None)
+                yield SimpleNamespace(choices=[SimpleNamespace(delta=delta)])
+
+            async def create(self, *_args, **_kwargs):
+                self._box.update(_kwargs)
+                return self._stream()
+
+        class MockChat:
+            def __init__(self, box):
+                self.completions = MockCompletions(box)
+
+        class MockClient:
+            def __init__(self, box):
+                self.chat = MockChat(box)
+
+            async def close(self):
+                pass
+
+        return MockClient(captured)
+
+    @staticmethod
+    def _glm_provider():
+        p = _provider("agent", base_url="https://api.z.ai/api/coding/paas/v4")
+        p.model = "glm-5.3"
+        return p
+
+    @pytest.mark.asyncio
+    async def test_glm_stream_gets_4096_floor(self, monkeypatch):
+        captured = {}
+        monkeypatch.setattr(
+            "core.model_serving.gateway.AsyncOpenAI",
+            lambda *_a, **_k: self._capture_client(captured),
+        )
+
+        gateway = _gateway(self._glm_provider())
+        provider = gateway.providers[0]
+        out = [c async for c in gateway.stream_generate_api(provider, prompt="oi", max_tokens=100)]
+        assert out == ["ok"]
+        assert captured["max_tokens"] == 4096
+
+    @pytest.mark.asyncio
+    async def test_glm_generate_gets_4096_floor(self, monkeypatch):
+        from types import SimpleNamespace
+
+        captured = {}
+        box = captured
+
+        class MockCompletions:
+            async def create(self, *_args, **_kwargs):
+                box.update(_kwargs)
+                return SimpleNamespace(
+                    choices=[
+                        SimpleNamespace(
+                            message=SimpleNamespace(content="ok", reasoning_content=None)
+                        )
+                    ]
+                )
+
+        class MockChat:
+            completions = MockCompletions()
+
+        class MockClient:
+            chat = MockChat()
+
+            async def close(self):
+                pass
+
+        monkeypatch.setattr(
+            "core.model_serving.gateway.AsyncOpenAI", lambda *_a, **_k: MockClient()
+        )
+
+        gateway = _gateway(self._glm_provider())
+        provider = gateway.providers[0]
+        out = await gateway.generate_api(provider, prompt="oi", max_tokens=100)
+        assert out == "ok"
+        assert captured["max_tokens"] == 4096
+
+    @pytest.mark.asyncio
+    async def test_deepseek_keeps_requested_budget(self, monkeypatch):
+        captured = {}
+        monkeypatch.setattr(
+            "core.model_serving.gateway.AsyncOpenAI",
+            lambda *_a, **_k: self._capture_client(captured),
+        )
+
+        p = _provider(DEEPSEEK_PROVIDER_NAME, base_url="https://api.deepseek.com")
+        p.model = "deepseek-v4-pro"
+        gateway = _gateway(p)
+        provider = gateway.providers[0]
+        out = [c async for c in gateway.stream_generate_api(provider, prompt="oi", max_tokens=100)]
+        assert out == ["ok"]
+        assert captured["max_tokens"] == 100

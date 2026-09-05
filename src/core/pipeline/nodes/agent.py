@@ -1957,11 +1957,54 @@ def _complex_finance_fallback_answer(message: str) -> str:
             "education",
             "cash reserve",
             "cad",
+            # Portuguese surface for PT-BR operators (2026-09-05):
+            "alocar",
+            "alocacao",
+            "emergencia",
+            "dividas",
+            "equipamento",
+            "educacao",
+            "reserva",
         )
     )
     classification = "CAPITAL_ALLOCATION" if is_capital else "MACRO_THESIS"
     verdict = "CASH" if "unstable" in msg or "emergency" in msg else "ETF"
     confidence = 74 if is_capital else 68
+    if _is_portuguese_request(message):
+        return (
+            f"1. **Classificacao da Pergunta** — {classification}.\n"
+            "2. **Premissas** — capital em CAD, contexto de familia canadense, estabilidade familiar importa, "
+            "a renda pode ser instavel e todos os numeros de cenario sao premissas ilustrativas, nao projecoes.\n"
+            "3. **Dados Faltantes** — saldos e taxas de juros das dividas, reserva de emergencia atual, "
+            "despesas mensais, espaco de TFSA, RRSP, RESP ou FHSA, faixa tributaria, historico de receita do "
+            "negocio e cronograma de educacao.\n"
+            "4. **Variaveis de Decisao** — necessidade de liquidez, meses da reserva de emergencia, taxa de "
+            "juros da divida, risco de queda, reversibilidade, tempo ate o fluxo de caixa, restricoes de "
+            "saude/energia e estabilidade familiar.\n"
+            "5. **Limiares Quantitativos** — manter primeiro 3-6 meses de reserva de emergencia; pagar divida "
+            "acima de 6-8% de juros antes de correr risco de mercado; financiar equipamento do negocio somente "
+            "quando o retorno/tempo ate o fluxo de caixa estiver claro; manter gastos com educacao em etapas e "
+            "reversiveis.\n"
+            "6. **Analise de Cenarios** — cenario ilustrativo de queda: renda instavel sem reserva forcaria "
+            "venda de ativos. Cenario base: reserva mais quitar a divida de juros altos reduz a fragilidade. "
+            "Cenario de alta: o excedente apos os portoes de seguranca pode render via ETF canadense "
+            "diversificado de listagem ampla ou equipamento produtivo do negocio.\n"
+            "7. **Alocacao Classificada / Estrutura** — 40% reserva de emergencia, 30% quitar divida de juros "
+            "altos, 15% ETF canadense diversificado de listagem ampla, 10% equipamento do negocio somente com "
+            "evidencia de retorno, 5% educacao. Essas parcelas ilustrativas somam 100% e priorizam "
+            "sobrevivencia antes do ganho.\n"
+            "8. **Portoes de Decisao** — se a reserva de emergencia estiver abaixo de 3 meses, CASH domina. "
+            "Se o juro da divida estiver acima de 6-8%, PAY_DEBT domina. Se o equipamento tiver retorno rapido "
+            "e baixo esforco de execucao, desloque parte do orcamento de ETF/educacao para o equipamento. A "
+            "escolha de contas tributaveis depende da situacao da pessoa.\n"
+            "9. **Recomendacao Final** — construir a reserva de emergencia primeiro, depois pagar a divida "
+            "cara, e so entao aplicar o excedente gradualmente em ETF/negocio/educacao apos a liquidez estar "
+            "segura.\n"
+            f"10. **Nivel de Confianca** — {confidence}/100, limitado pela taxa da divida, despesas mensais e "
+            "espaco tributario faltantes.\n"
+            f"Veredito final: {verdict}\n"
+            f"Confianca: {confidence}"
+        )
     return (
         f"1. **Question Classification** — {classification}.\n"
         "2. **Assumptions** — CAD capital, Canadian household context, family stability matters, "

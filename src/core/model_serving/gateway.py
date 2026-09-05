@@ -530,9 +530,9 @@ class ModelGateway:
         model = (provider.model or "").strip().lower()
         if not model.startswith("glm-5"):
             return
-        effort = os.getenv("SUPEREZIO_GLM_REASONING_EFFORT", "high").strip().lower()
+        effort = os.getenv("SUPEREZIO_GLM_REASONING_EFFORT", "low").strip().lower()
         if effort not in {"low", "high", "max"}:
-            effort = "high"
+            effort = "low"
         extra = dict(kwargs.get("extra_body") or {})
         extra["thinking"] = {"type": "enabled"}
         extra["reasoning_effort"] = effort
@@ -576,6 +576,11 @@ class ModelGateway:
             api_messages.append({"role": "assistant", "content": assistant_prefix})
 
         tok = max_tokens if max_tokens is not None else provider.max_tokens
+        if _is_glm_provider(provider):
+            # Thinking is forced on for GLM (disabling it 400s); the
+            # deliberation shares the output budget, so 1800 leaves no room
+            # for the visible content (2026-09-05: reasoning-only replies).
+            tok = max(tok, 4096)
         temp = temperature if temperature is not None else provider.temperature
         if json_mode and _has_image_content(api_messages):
             logger.warning(
@@ -609,11 +614,17 @@ class ModelGateway:
 
             async for chunk in stream:
                 delta = chunk.choices[0].delta
-                # Thinking models (Qwen3.6) put reasoning in a separate field;
-                # we stream both so the pipeline never receives empty output.
                 content = delta.content or ""
                 reasoning = getattr(delta, "reasoning_content", None) or ""
-                text = content or reasoning
+                # GLM-5.3/DeepSeek emit raw deliberation in reasoning_content
+                # with no channel markers. Streaming it as visible text leaks
+                # the CoT into the user answer and burns max_tokens before the
+                # real content starts (regression 2026-09-05: chat answered in
+                # English, reasoning-only). Only Qwen-style reasoning carrying
+                # explicit channel/think markers is routed to the filter.
+                text = content
+                if not text and ("<|channel|" in reasoning or "<think" in reasoning.lower()):
+                    text = reasoning
                 if text:
                     clean = channel_filter.feed(text)
                     if clean:
@@ -662,6 +673,11 @@ class ModelGateway:
             api_messages.append({"role": "assistant", "content": assistant_prefix})
 
         tok = max_tokens if max_tokens is not None else provider.max_tokens
+        if _is_glm_provider(provider):
+            # Thinking is forced on for GLM (disabling it 400s); the
+            # deliberation shares the output budget, so 1800 leaves no room
+            # for the visible content (2026-09-05: reasoning-only replies).
+            tok = max(tok, 4096)
         temp = temperature if temperature is not None else provider.temperature
         if json_mode and _has_image_content(api_messages):
             logger.warning(
@@ -683,9 +699,13 @@ class ModelGateway:
         try:
             response = await client.chat.completions.create(**kwargs)
             msg = response.choices[0].message
-            # Thinking models may return the answer in reasoning_content
-            # when content is empty (all tokens spent on reasoning).
-            text = msg.content or getattr(msg, "reasoning_content", None) or ""
+            content = msg.content or ""
+            reasoning = getattr(msg, "reasoning_content", None) or ""
+            # Same contract as the streaming path: raw reasoning (GLM/DeepSeek,
+            # no channel markers) must never surface as the visible answer.
+            text = content
+            if not text and ("<|channel|" in reasoning or "<think" in reasoning.lower()):
+                text = reasoning
             result = (assistant_prefix + text) if assistant_prefix else text
             return strip_private_model_channels(result)
         finally:
