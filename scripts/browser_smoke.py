@@ -351,10 +351,19 @@ def run_smoke(
         headers=auth_headers,
     )
     primary_model = (cockpit.get("status") or {}).get("primary_model")
-    if primary_model != "Ornith-1.0-9B-Q4_K_M":
+    # Production contract is 100% cloud: the orchestrator/CEO runs glm-5.3
+    # (Z.ai Coding Plan) or deepseek-v4-pro (official), never the local
+    # llama.cpp profile (Ornith, :8080 standby). Override with
+    # SUPEREZIO_BROWSER_SMOKE_EXPECTED_MODEL to pin an exact id.
+    expected = os.getenv("SUPEREZIO_BROWSER_SMOKE_EXPECTED_MODEL", "").strip()
+    if expected:
+        ok = primary_model == expected
+    else:
+        ok = primary_model in {"glm-5.3", "deepseek-v4-pro"}
+    if not ok:
         raise AssertionError(
             f"cockpit reports wrong primary model: {primary_model!r} "
-            f"(contract: Ornith-1.0-9B-Q4_K_M)"
+            f"(cloud contract: glm-5.3 | deepseek-v4-pro; local Ornith is standby-only)"
         )
     out_dir = ROOT / "output" / "playwright"
     out_dir.mkdir(parents=True, exist_ok=True)
