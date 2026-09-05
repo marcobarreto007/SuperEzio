@@ -33,3 +33,35 @@ def test_portfolio_does_not_invent_balance_or_connection(portfolio, expected, co
             assert "Sem evidência de validação" in text
         finally:
             browser.close()
+
+
+@pytest.mark.parametrize(
+    ("ibkr", "label"),
+    [
+        ({"connection": "disconnected"}, "IBKR OFFLINE"),
+        ({"connection": "connected", "paper_port": True}, "IBKR READ"),
+        (
+            {"connection": "connected", "paper_port": True, "can_submit_orders": True},
+            "IBKR PAPER",
+        ),
+        ({"can_submit_orders": True, "paper_port": False}, "IBKR BLOCKED"),
+    ],
+)
+def test_broker_chip_requires_explicit_order_permission(ibkr, label):
+    script = Path(__file__).resolve().parents[1] / "frontend/js/init.js"
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        try:
+            page = browser.new_page()
+            page.set_content(
+                '<button id="broker-status-btn"><span id="broker-status-label"></span></button>'
+            )
+            page.evaluate("""() => {
+                window.SZ = {};
+                Object.defineProperty(document, 'readyState', {get: () => 'loading'});
+            }""")
+            page.add_script_tag(path=str(script))
+            page.evaluate("ibkr => SZ.updateBrokerStatus({mission: {broker: {ibkr}}})", ibkr)
+            assert page.locator("#broker-status-label").text_content() == label
+        finally:
+            browser.close()

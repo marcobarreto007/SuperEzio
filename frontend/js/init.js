@@ -383,7 +383,7 @@
     var ibkr = getIbkrFromHealthDetails(details);
     var paperTrading = isPaperTradingActive(details);
     var connection = String(ibkr.connection || "");
-    var canRead = ibkr.can_read_account === true || connection.indexOf("connected") >= 0;
+    var canRead = ibkr.can_read_account === true || connection.toLowerCase() === "connected";
     var isPaperPort = ibkr.paper_port === true;
     var canSubmit = ibkr.can_submit_orders === true;
     var paperTrade = paperTrading || (canRead && isPaperPort);
@@ -399,18 +399,22 @@
       state = "off";
       text = "IBKR BLOCKED";
       title = "IBKR is not in paper mode. Live-money execution is blocked by policy.";
-    } else if (paperTrade) {
-      state = "trade";
-      text = "IBKR PAPER";
-      title = "IBKR paper trading active — simulated orders allowed. Training mode.";
+    } else if (canRead && isPaperPort) {
+      state = "read";
+      text = "IBKR READ";
+      title = "IBKR paper conectado para consulta. Envio de ordens não habilitado.";
     } else if (canRead) {
       state = "read";
       text = "IBKR READ";
       title = "IBKR paper link is connected in read-only/no-orders mode";
-    } else {
+    } else if (paperTrading) {
       state = "paper";
       text = "PAPER SIM";
-      title = "SuperEzio Paper Trading Ativo — Simulação segura e auditoria registradas.";
+      title = "Simulação local ativa. Conexão IBKR indisponível.";
+    } else {
+      state = "off";
+      text = "IBKR OFFLINE";
+      title = "Corretora desconectada. Nenhuma autorização de envio de ordens.";
     }
 
     btn.classList.remove("broker-chip--unknown", "broker-chip--read", "broker-chip--trade", "broker-chip--off", "broker-chip--paper");
