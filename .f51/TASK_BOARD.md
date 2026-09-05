@@ -1,5 +1,15 @@
 # F51 Task Board
 
+## Entrega SuperEzio — trade e assistente de investimento (2026-09-05)
+
+- [x] Entrada e configuração cloud corrigidas (26f292e4, 3aa62fc8); contrato de runtime: 12 passed.
+- [x] Painel sem saldo fictício, sem falso conectado e sem aprovação de risco inventada (8a851cde); Chromium via pytest: 4 passed.
+- [x] Identidade e orientação inicial SuperEzio para trade e investimentos (4711e38a).
+- [ ] Concluir launcher/check cloud e revisão independente.
+- [ ] Corrigir falso positivo no smoke: aguardar resposta final, não cartão de telemetria.
+- [ ] Concluir suíte completa, revisão da distribuição e limpeza de legado comprovado.
+- [ ] Gerar pacote de cliente, manifesto, evidências e checkpoint final. Objetivo permanece em execução.
+
 ## Backlog
 
 - [x] 2026-09-05 - **Evidências E2E de atendimento ao cliente final (planejador financeiro e resposta TD.TO)**: Registro das evidências de interação visual e conversacional do cliente final (`cliente-final-inicio.md`, `cliente-final-1-resposta.png`, `cliente-final-2-planejador.png`). Resposta em português de alto nível para consulta de alocação pessoal (CAD 25.000, reserva de emergência vs ETFs de índice) e telemetria operacional com F51/SDCA preservando o papel consultivo sem ordem direta. Memória conversacional e pain log persistidos. 12/12 testes de contrato passando e ruff limpo. Checkpoint `latest.json`.
