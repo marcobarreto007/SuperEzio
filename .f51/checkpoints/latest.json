@@ -1,28 +1,24 @@
 {
   "date_local": "2026-09-05",
-  "session": "launcher-and-prompts-audit-20260905",
+  "session": "glm-credit-fallback-to-deepseek-20260905",
   "status": "DELIVERED_SLICE",
-  "objective": "Auditoria completa e correcao dos prompts dos modelos do SuperEzio (Bob/CEO, 6 Experts, Judge, Auditor, Trinity e PennyLab) para alinhamento 100% cloud (Z.ai GLM-5.3 e DeepSeek V4 Pro HTTPS), eliminando vestigios de RTX 5060/llama.cpp em QWEN_PERSONA e endpoints.py, alem de lancador nativo batch e atalho desktop resiliente.",
-  "predecessor": "cloud-models-doc-alignment-20260905",
+  "objective": "Implementar fallback automatico do GLM-5.3 para DeepSeek V4 Pro no ModelGateway em caso de esgotamento de credito/quota (402, 1301/1302, arrears, insufficient_quota), suprimindo retentativas inuteis e ativando cooldown.",
+  "predecessor": "launcher-and-prompts-audit-20260905",
   "patch": {
     "commits": [
-      "da150cba",
-      "9996437a",
-      "dafe24c1",
-      "70434b69"
+      "80556015"
     ],
-    "intent": "src/core/pipeline/prompts/_prompts.py, src/agent_server/endpoints.py, launch.bat, launcher.ps1, scripts/generate_ico.py, assets/superezio.ico, .f51/TASK_BOARD.md",
+    "intent": "src/core/model_serving/gateway.py, src/core/model_serving/__init__.py, tests/test_ceo_fallback.py, .f51/TASK_BOARD.md",
     "data_updates": ""
   },
   "verification": {
     "ruff": "All checks passed! (src/, tests/)",
-    "pytest": "12 passed (tests/contracts/test_contract_runtime_official.py), 57 passed (tests/contracts/test_contract_agent.py)",
-    "model_prompts_audit": "Bob Core / Sovereign Prompt (mouth-only, interchangeable adjuvant, PT-BR), 6 Experts (anti-guessing contract, context slicing, raw JSON), Trinity (Genie + Deep deliberation), PennyLab Postmortem",
-    "launcher_resilience": "launch.bat nativo com healthcheck automatico e abertura de browser, SuperEzio.lnk no Desktop funcional",
+    "pytest": "10 passed (tests/test_ceo_fallback.py), 12 passed (tests/contracts/test_contract_runtime_official.py), 87 passed (test_ceo_fallback + test_contract_model_serving + test_gateway)",
+    "credit_fallback_verified": "is_insufficient_credit_error detecta 402/1301/1302/arrears/quota; generate() e stream_generate_async() alternam para DeepSeek e colocam GLM em cooldown",
     "json_valid": "validated"
   },
   "operator_truth": {
-    "ceo_model": "glm-5.3 (Z.ai Coding Plan HTTPS API, prompt do CEO mantido)",
+    "ceo_model": "glm-5.3 (Z.ai Coding Plan HTTPS API) com fallback automatico para deepseek-v4-pro em falta de credito",
     "experts_model": "deepseek-v4-pro (API externa oficial DeepSeek HTTPS)",
     "intelligence": "pipeline organs + official cloud APIs (Z.ai + DeepSeek), not unconstrained LLM",
     "live_execution": "FROZEN (BROKER_NEUTRAL_VALIDATION_ONLY)",

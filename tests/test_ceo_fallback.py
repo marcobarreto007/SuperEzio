@@ -133,5 +133,120 @@ def test_custom_agent_env_override(monkeypatch) -> None:
     assert agent.is_local is False
 
 
+def test_is_insufficient_credit_error_detection() -> None:
+    from core.model_serving.gateway import is_insufficient_credit_error
+
+    class _MockHttpError(Exception):
+        def __init__(self, status_code, message="", code=None):
+            super().__init__(message)
+            self.status_code = status_code
+            self.code = code
+
+    # HTTP 402 Payment Required
+    assert is_insufficient_credit_error(_MockHttpError(402, "Payment Required")) is True
+
+    # Z.ai / BigModel error codes
+    assert is_insufficient_credit_error(_MockHttpError(400, "Error", code=1301)) is True
+    assert is_insufficient_credit_error(_MockHttpError(403, "Error", code="1302")) is True
+
+    # Keywords in error string
+    assert is_insufficient_credit_error(Exception("Account is in arrears, please recharge")) is True
+    assert is_insufficient_credit_error(Exception("insufficient_quota: You exceeded your quota")) is True
+    assert is_insufficient_credit_error(Exception("Model out of credit")) is True
+    assert is_insufficient_credit_error(Exception("Balance is insufficient for request")) is True
+
+    # Non-credit errors
+    assert is_insufficient_credit_error(None) is False
+    assert is_insufficient_credit_error(Exception("Connection timed out")) is False
+    assert is_insufficient_credit_error(_MockHttpError(500, "Internal Server Error")) is False
+    assert is_insufficient_credit_error(_MockHttpError(401, "Invalid API key")) is False
+
+
+def test_glm_routes_to_deepseek_fallback_when_allowed(monkeypatch) -> None:
+    monkeypatch.setenv("SUPEREZIO_AGENT_MODEL", "glm-5.3")
+    monkeypatch.setenv("SUPEREZIO_PRIMARY_MODEL", "glm-5.3")
+    monkeypatch.setenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", "test-coding-plan-key")
+    monkeypatch.setenv("SUPEREZIO_AGENT_BASE_URL", "https://api.z.ai/api/coding/paas/v4")
+
+    providers, gw_config = build_providers()
+    gateway = ModelGateway(providers, gw_config)
+
+    # 1. Fallback allowed: returns GLM agent + DeepSeek
+    providers_to_try = gateway._providers_for_request(
+        preferred_provider="agent", allow_fallback=True
+    )
+    names = [p.name for p in providers_to_try]
+    assert names == ["agent", "deepseek"]
+
+    # 2. Fallback disabled: returns GLM agent alone
+    providers_no_fallback = gateway._providers_for_request(
+        preferred_provider="agent", allow_fallback=False
+    )
+    assert [p.name for p in providers_no_fallback] == ["agent"]
+
+    # 3. Agent in cooldown (e.g. after credit exhaustion): routes directly to DeepSeek
+    gateway._provider_cooldown_until["agent"] = time.monotonic() + 1000
+    providers_cooldown = gateway._providers_for_request(
+        preferred_provider="agent", allow_fallback=True
+    )
+    assert [p.name for p in providers_cooldown] == ["deepseek"]
+
+
+def test_glm_out_of_credit_falls_back_to_deepseek_generate(monkeypatch) -> None:
+    monkeypatch.setenv("SUPEREZIO_AGENT_MODEL", "glm-5.3")
+    monkeypatch.setenv("SUPEREZIO_PRIMARY_MODEL", "glm-5.3")
+    monkeypatch.setenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", "test-coding-plan-key")
+    monkeypatch.setenv("SUPEREZIO_AGENT_BASE_URL", "https://api.z.ai/api/coding/paas/v4")
+
+    providers, gw_config = build_providers()
+    gateway = ModelGateway(providers, gw_config)
+
+    async def fake_generate_api(provider, *args, **kwargs):
+        if provider.name == "agent":
+            # Simulate Z.ai out of credit / arrears error
+            raise RuntimeError("Z.ai API error 1301: Account is in arrears / out of credit")
+        if provider.name == "deepseek":
+            return "DeepSeek fallback answer"
+        return "other"
+
+    monkeypatch.setattr(gateway, "generate_api", fake_generate_api)
+
+    result = gateway.generate(prompt="Analyze TD.TO", preferred_provider="agent")
+    assert result == "DeepSeek fallback answer"
+    assert gateway.last_provider_used == "deepseek"
+    # Verify GLM agent was put into cooldown
+    assert "agent" in gateway._provider_cooldown_until
+
+
+@pytest.mark.asyncio
+async def test_glm_out_of_credit_falls_back_to_deepseek_stream_async(monkeypatch) -> None:
+    monkeypatch.setenv("SUPEREZIO_AGENT_MODEL", "glm-5.3")
+    monkeypatch.setenv("SUPEREZIO_PRIMARY_MODEL", "glm-5.3")
+    monkeypatch.setenv("SUPEREZIO_GLM_CODING_PLAN_API_KEY", "test-coding-plan-key")
+    monkeypatch.setenv("SUPEREZIO_AGENT_BASE_URL", "https://api.z.ai/api/coding/paas/v4")
+
+    providers, gw_config = build_providers()
+    gateway = ModelGateway(providers, gw_config)
+
+    async def fake_stream_generate_api(provider, *args, **kwargs):
+        if provider.name == "agent":
+            class _Http402(Exception):
+                status_code = 402
+            raise _Http402("Payment Required: insufficient balance")
+        if provider.name == "deepseek":
+            yield "Deep"
+            yield "Seek"
+
+    monkeypatch.setattr(gateway, "stream_generate_api", fake_stream_generate_api)
+
+    chunks = []
+    async for chunk in gateway.stream_generate_async(prompt="Hi", preferred_provider="agent"):
+        chunks.append(chunk)
+
+    assert "".join(chunks) == "DeepSeek"
+    assert "agent" in gateway._provider_cooldown_until
+
+
 if __name__ == "__main__":
     raise SystemExit("Run via pytest: python -m pytest tests/test_ceo_fallback.py -q")
+

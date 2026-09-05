@@ -10,6 +10,7 @@ Suporta:
 
 import asyncio
 import logging
+import os
 import time
 from collections.abc import AsyncGenerator, Generator
 from enum import Enum
@@ -155,6 +156,91 @@ class _FailureKind(Enum):
     PERMANENT = "permanent"
 
 
+def _is_glm_provider(provider: Any) -> bool:
+    """Check if the provider is a Z.ai GLM model."""
+    if provider is None:
+        return False
+    model = (getattr(provider, "model", "") or "").strip().lower()
+    base_url = (getattr(provider, "base_url", "") or "").strip().lower()
+    return model.startswith("glm") or "api.z.ai" in base_url or "bigmodel" in base_url
+
+
+def is_insufficient_credit_error(exc: Exception | None) -> bool:
+    """Check if an exception indicates the model provider is out of credit / quota / balance."""
+    if exc is None:
+        return False
+
+    # 1. Direct status code check
+    response = getattr(exc, "response", None)
+    status = getattr(exc, "status_code", None) or getattr(response, "status_code", None)
+    if status == 402:
+        return True
+
+    # 2. Extract error code from OpenAI exception or dict payload
+    code = getattr(exc, "code", None)
+    if code is not None:
+        code_str = str(code).strip().lower()
+        if code_str in {
+            "1301",
+            "1302",
+            "insufficient_quota",
+            "quota_exceeded",
+            "out_of_credit",
+            "account_deactivated",
+            "billing_not_active",
+        }:
+            return True
+
+    # 3. Check error string and response body
+    error_text = str(exc).lower()
+    if response is not None:
+        try:
+            resp_text = getattr(response, "text", "") or ""
+            error_text += " " + str(resp_text).lower()
+        except (AttributeError, TypeError, ValueError, RuntimeError):
+            pass
+
+    body = getattr(exc, "body", None)
+    if isinstance(body, dict):
+        error_text += " " + str(body).lower()
+        err_obj = body.get("error")
+        if isinstance(err_obj, dict):
+            b_code = str(err_obj.get("code") or "").lower()
+            if b_code in {
+                "1301",
+                "1302",
+                "insufficient_quota",
+                "quota_exceeded",
+                "out_of_credit",
+            }:
+                return True
+    elif isinstance(body, str):
+        error_text += " " + body.lower()
+
+    credit_keywords = (
+        "insufficient_quota",
+        "insufficient quota",
+        "out of credit",
+        "out_of_credit",
+        "sem credito",
+        "sem crédito",
+        "balance is insufficient",
+        "insufficient balance",
+        "account arrears",
+        "account is in arrears",
+        "arrears",
+        "payment required",
+        "run out of balance",
+        "quota exceeded",
+        "exceeded your current quota",
+        "credit exhausted",
+        "billing",
+        "1301",
+        "1302",
+    )
+    return any(kw in error_text for kw in credit_keywords)
+
+
 class ModelGateway:
     """
     Gateway para modelos com fallback em cascata.
@@ -227,16 +313,29 @@ class ModelGateway:
                 self._provider_errors.pop(name, None)
             return False
 
+        fallback_glm_to_deepseek = os.getenv(
+            "SUPEREZIO_GLM_FALLBACK_TO_DEEPSEEK", "1"
+        ).strip().lower() in {"1", "true", "yes", "on"}
+
         if preferred_provider:
             for p in self.providers:
                 if p.name == preferred_provider:
-                    # Zero-cloud (operator directive 2026-08-17): the agent/CEO
-                    # is local-only — no cloud fallback exists. If :8080 is down,
-                    # the call must fail so the caller can enter MAN_AT_WORK.
-                    # DeepSeek calls are also provider-pinned. Expert responses
-                    # carry role/model provenance; silently replacing DeepSeek
-                    # with Qwen (or a different external model) would turn a
-                    # failed DeepSeek evaluation into apparently valid evidence.
+                    # GLM credit fallback: if the requested provider is running GLM and
+                    # fallback is allowed, provide DeepSeek as fallback.
+                    if allow_fallback and fallback_glm_to_deepseek and _is_glm_provider(p):
+                        deepseek_p = next(
+                            (
+                                other
+                                for other in self.providers
+                                if other.name == DEEPSEEK_PROVIDER_NAME
+                            ),
+                            None,
+                        )
+                        if deepseek_p and deepseek_p != p:
+                            if _skip_cooldown(p.name):
+                                return [deepseek_p]
+                            return [p, deepseek_p]
+
                     if (
                         p.name
                         in {
@@ -730,6 +829,26 @@ class ModelGateway:
                     failure_kind = self._classify_provider_failure(e)
                     self._record_provider_error(provider, e, failure_kind)
 
+                    if is_insufficient_credit_error(e):
+                        _cb.record_failure(e)
+                        self._record_circuit_state(provider.name, _cb)
+                        metrics.increment(f"model.{provider.name}.insufficient_credit")
+                        self._provider_cooldown_until[provider.name] = (
+                            time.monotonic() + self._provider_cooldown_seconds
+                        )
+                        if i + 1 < max_attempts:
+                            next_provider = providers_to_try[i + 1]
+                            logger.warning(
+                                "INSUFFICIENT_CREDIT: Provider %s is out of credit (%s). Falling back to %s.",
+                                provider.name,
+                                e,
+                                next_provider.name,
+                            )
+                            break
+                        raise RuntimeError(
+                            f"Provider {provider.name} is out of credit and no fallback provider available: {e}"
+                        ) from e
+
                     if failure_kind is _FailureKind.PERMANENT:
                         _cb.record_failure(e)
                         self._record_circuit_state(provider.name, _cb)
@@ -837,6 +956,24 @@ class ModelGateway:
                 except Exception as exc:  # noqa: BLE001 — falha de provider é classificada para retry/fallback; catch amplo deliberado
                     failure_kind = self._classify_provider_failure(exc)
                     self._record_provider_error(provider, exc, failure_kind)
+                    if is_insufficient_credit_error(exc):
+                        circuit.record_failure(exc)
+                        self._record_circuit_state(provider.name, circuit)
+                        metrics.increment(f"model.{provider.name}.insufficient_credit")
+                        self._provider_cooldown_until[provider.name] = (
+                            time.monotonic() + self._provider_cooldown_seconds
+                        )
+                        if not emitted and i + 1 < max_attempts:
+                            next_provider = providers_to_try[i + 1]
+                            logger.warning(
+                                "INSUFFICIENT_CREDIT (stream): Provider %s is out of credit (%s). Falling back to %s.",
+                                provider.name,
+                                exc,
+                                next_provider.name,
+                            )
+                            break
+                        yield f"[ERROR] Provider {provider.name} out of credit: {type(exc).__name__}."
+                        return
                     if emitted or failure_kind is _FailureKind.PERMANENT:
                         circuit.record_failure(exc)
                         self._record_circuit_state(provider.name, circuit)
@@ -927,6 +1064,24 @@ class ModelGateway:
                 except Exception as exc:  # noqa: BLE001 — falha de provider é classificada para retry/fallback; catch amplo deliberado
                     failure_kind = self._classify_provider_failure(exc)
                     self._record_provider_error(provider, exc, failure_kind)
+                    if is_insufficient_credit_error(exc):
+                        circuit.record_failure(exc)
+                        self._record_circuit_state(provider.name, circuit)
+                        metrics.increment(f"model.{provider.name}.insufficient_credit")
+                        self._provider_cooldown_until[provider.name] = (
+                            time.monotonic() + self._provider_cooldown_seconds
+                        )
+                        if not emitted and i + 1 < max_attempts:
+                            next_provider = providers_to_try[i + 1]
+                            logger.warning(
+                                "INSUFFICIENT_CREDIT (async stream): Provider %s is out of credit (%s). Falling back to %s.",
+                                provider.name,
+                                exc,
+                                next_provider.name,
+                            )
+                            break
+                        yield f"[ERROR] Provider {provider.name} out of credit: {type(exc).__name__}."
+                        return
                     if emitted or failure_kind is _FailureKind.PERMANENT:
                         circuit.record_failure(exc)
                         self._record_circuit_state(provider.name, circuit)

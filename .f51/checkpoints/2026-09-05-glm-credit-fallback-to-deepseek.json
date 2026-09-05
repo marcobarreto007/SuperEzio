@@ -1,0 +1,37 @@
+{
+  "date_local": "2026-09-05",
+  "session": "glm-credit-fallback-to-deepseek-20260905",
+  "status": "DELIVERED_SLICE",
+  "objective": "Implementar fallback automatico do GLM-5.3 para DeepSeek V4 Pro no ModelGateway em caso de esgotamento de credito/quota (402, 1301/1302, arrears, insufficient_quota), suprimindo retentativas inuteis e ativando cooldown.",
+  "predecessor": "launcher-and-prompts-audit-20260905",
+  "patch": {
+    "commits": [
+      "80556015"
+    ],
+    "intent": "src/core/model_serving/gateway.py, src/core/model_serving/__init__.py, tests/test_ceo_fallback.py, .f51/TASK_BOARD.md",
+    "data_updates": ""
+  },
+  "verification": {
+    "ruff": "All checks passed! (src/, tests/)",
+    "pytest": "10 passed (tests/test_ceo_fallback.py), 12 passed (tests/contracts/test_contract_runtime_official.py), 87 passed (test_ceo_fallback + test_contract_model_serving + test_gateway)",
+    "credit_fallback_verified": "is_insufficient_credit_error detecta 402/1301/1302/arrears/quota; generate() e stream_generate_async() alternam para DeepSeek e colocam GLM em cooldown",
+    "json_valid": "validated"
+  },
+  "operator_truth": {
+    "ceo_model": "glm-5.3 (Z.ai Coding Plan HTTPS API) com fallback automatico para deepseek-v4-pro em falta de credito",
+    "experts_model": "deepseek-v4-pro (API externa oficial DeepSeek HTTPS)",
+    "intelligence": "pipeline organs + official cloud APIs (Z.ai + DeepSeek), not unconstrained LLM",
+    "live_execution": "FROZEN (BROKER_NEUTRAL_VALIDATION_ONLY)",
+    "local_8080": "STANDBY / INACTIVE (0 bytes VRAM weights loaded, RTX 3060 12GB free)"
+  },
+  "debt_next_slice": {
+    "broker_paper": "TWS/IB Gateway paper API offline em 127.0.0.1:7497; paper trading rodando em PaperJournal fallback local",
+    "playwright": "MCP server habilitado mas chromium ausente no cache do sandbox — browser_smoke segue falhando ate instalar"
+  },
+  "still_true": {
+    "live_execution": "FROZEN",
+    "github": "DISK ONLY",
+    "intelligence": "pipeline organs, not the LLM",
+    "mouth_not_abliterated": false
+  }
+}

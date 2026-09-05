@@ -10,6 +10,7 @@ from .gateway import (
     ModelGateway,
     create_gateway,
     create_gateway_from_config,
+    is_insufficient_credit_error,
 )
 from .providers import (
     GatewayConfig,
@@ -26,4 +27,5 @@ __all__ = [
     "build_providers",
     "create_gateway",
     "create_gateway_from_config",
+    "is_insufficient_credit_error",
 ]
