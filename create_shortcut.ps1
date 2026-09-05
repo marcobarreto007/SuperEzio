@@ -2,10 +2,9 @@
 
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$launcherPath = Join-Path $ScriptDir "launcher.ps1"
-
-if (-not (Test-Path -LiteralPath $launcherPath)) {
-    Write-Host "ERROR: launcher.ps1 not found at $launcherPath" -ForegroundColor Red
+$launchBat = Join-Path $ScriptDir "launch.bat"
+if (-not (Test-Path -LiteralPath $launchBat)) {
+    Write-Host "ERROR: launch.bat not found at $launchBat" -ForegroundColor Red
     exit 1
 }
 
@@ -19,17 +18,16 @@ if (Test-Path -LiteralPath $shortcutPath) {
 
 $icoPath = Join-Path $ScriptDir "superezio.ico"
 if (-not (Test-Path -LiteralPath $icoPath)) {
-    $icoPath = "powershell.exe,0"
+    $icoLocation = "cmd.exe,0"
 } else {
-    $icoPath = "$icoPath,0"
+    $icoLocation = "$icoPath,0"
 }
 
 $shortcut = $ws.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = "powershell.exe"
-$shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$launcherPath`""
+$shortcut.TargetPath = $launchBat
 $shortcut.WorkingDirectory = $ScriptDir
 $shortcut.WindowStyle = 1
-$shortcut.IconLocation = $icoPath
+$shortcut.IconLocation = $icoLocation
 $shortcut.Description = "SuperEzio - Quantitative AI Copilot"
 $shortcut.Save()
 
