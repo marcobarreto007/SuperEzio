@@ -65,3 +65,32 @@ def test_broker_chip_requires_explicit_order_permission(ibkr, label):
             assert page.locator("#broker-status-label").text_content() == label
         finally:
             browser.close()
+
+
+def test_offline_portfolio_does_not_fabricate_trading_history():
+    script = Path(__file__).resolve().parents[1] / "frontend/js/init.js"
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        try:
+            page = browser.new_page()
+            page.set_content('<div id="orders-list"></div>')
+            page.evaluate("""() => {
+                window.SZ = {state: {}};
+                Object.defineProperty(document, 'readyState', {get: () => 'loading'});
+            }""")
+            page.add_script_tag(path=str(script))
+            page.evaluate("SZ.renderPortfolioMirror({connected: false})")
+            text = page.locator("#orders-list").text_content()
+            assert "Corretora desconectada" in text
+            assert "534" not in text
+            assert "532" not in text
+            assert "SIMULAÇÃO ATIVA" not in text
+            assert "Resultado" not in text
+            page.evaluate("""SZ.renderPortfolioMirror({connected: false,
+                trade_stats: {journal_records: 0, closed_trades: 0, total_pnl: 0}})""")
+            text = page.locator("#orders-list").text_content()
+            assert "0 registros" in text
+            assert "0 trades fechados" in text
+            assert "Resultado: 0.00" in text
+        finally:
+            browser.close()

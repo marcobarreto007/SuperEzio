@@ -729,46 +729,14 @@
 	    if (visibleRows.length) {
 	      host.innerHTML = visibleRows.join("");
 	    } else if (offlineMode) {
-	      /* Show paper trading mode banner with journal stats when in safe simulation */
-	      var statsHtml = "";
-	      var journalRecords = tradeStats.journal_records || 534;
-	      var winRate = tradeStats.win_rate_pct;
-	      var totalPnl = tradeStats.total_pnl;
-	      var openHypotheses = tradeStats.open_hypotheses || 532;
-	      var closedTrades = tradeStats.closed_trades || 2;
-	      var wins = tradeStats.wins || 0;
-	      var losses = tradeStats.losses || 0;
-
-	      statsHtml = '<div class="paper-summary" style="margin:2px 0 4px;padding:6px 10px;background:var(--bg-tertiary);border-radius:6px;border:1px solid var(--border-subtle);">';
-	      statsHtml += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">';
-	      statsHtml += '<span style="font:700 10px var(--font-mono);color:#00e5ff;letter-spacing:0.04em;">🛡️ DIÁRIO DE TRADES SIMULADOS</span>';
-	      statsHtml += '<span style="font:700 9px var(--font-mono);color:var(--text-muted);background:rgba(255,255,255,0.06);padding:1px 6px;border-radius:3px;">' + esc(String(journalRecords)) + ' registros</span>';
-	      statsHtml += "</div>";
-	      statsHtml += '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">';
-	      if (wins > 0 || losses > 0) {
-	        statsHtml += '<span style="font:700 9px var(--font-mono);color:var(--green-buy);">W: ' + wins + "</span>";
-	        statsHtml += '<span style="font:700 9px var(--font-mono);color:var(--red-sell);">L: ' + losses + "</span>";
-	      }
-	      if (winRate != null) {
-	        statsHtml += '<span style="font:600 9px var(--font-mono);color:var(--text-secondary);">WR: ' + esc(Number(winRate).toFixed(1)) + "%</span>";
-	      }
-	      var pnlVal = totalPnl != null ? Number(totalPnl) : 0;
-	      var pnlCls = pnlVal >= 0 ? "color:var(--green-buy);" : "color:var(--red-sell);";
-	      statsHtml += '<span style="font:700 9px var(--font-mono);' + pnlCls + '">P&L: ' + (pnlVal >= 0 ? "+" : "") + "$" + esc(Math.abs(pnlVal).toFixed(2)) + "</span>";
-	      statsHtml += '<span style="font:600 9px var(--font-mono);color:var(--cyan-info);">Abertas: ' + openHypotheses + "</span>";
-	      statsHtml += '<span style="font:600 9px var(--font-mono);color:var(--text-secondary);">Fechadas: ' + closedTrades + "</span>";
-	      statsHtml += "</div></div>";
-
-	      host.innerHTML = [
-	        '<div class="paper-active-banner" style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px;margin-bottom:4px;border-radius:4px;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.25);">',
-	          '<div style="display:flex;align-items:center;gap:6px;">',
-	            '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#00e5ff;box-shadow:0 0 6px #00e5ff;"></span>',
-	            '<span style="font:700 9px var(--font-mono);color:#00e5ff;letter-spacing:0.04em;">SIMULAÇÃO ATIVA</span>',
-	          '</div>',
-	          '<span style="font:600 9px var(--font-sans);color:var(--text-secondary);">Preservação de Capital</span>',
-	        "</div>",
-	        statsHtml,
-	      ].join("");
+          var summary = '<div class="cockpit-empty">Corretora desconectada. Posições e ordens da corretora indisponíveis.</div>';
+          if (Number.isFinite(tradeStats.journal_records)) {
+            summary += '<div class="paper-summary">Diário local: ' + esc(tradeStats.journal_records) + ' registros';
+            if (Number.isFinite(tradeStats.closed_trades)) summary += ' · ' + esc(tradeStats.closed_trades) + ' trades fechados';
+            if (Number.isFinite(tradeStats.total_pnl)) summary += ' · Resultado: ' + esc(tradeStats.total_pnl.toFixed(2));
+            summary += '</div>';
+          }
+          host.innerHTML = summary;
 	    } else {
 	      host.innerHTML = '<div class="cockpit-empty">No open IBKR broker orders. Manual chart remains available.</div>';
 	    }
