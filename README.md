@@ -1,6 +1,6 @@
 # SuperEzio
 
-SuperEzio is an adaptive financial-analysis organism. Its deterministic modules collect evidence, calculate mathematical signals, enforce risk invariants, record outcomes, and adjust future behavior. Language models are assistants: they interpret, debate, and explain, but they do not own the execution truth and cannot bypass the deterministic policy.
+SuperEzio is a trading system and investment assistant for asset analysis, charts, portfolio monitoring, and risk-aware decisions. Its deterministic modules collect evidence, calculate mathematical signals, enforce risk invariants, record outcomes, and adjust future behavior. Language models are assistants: they interpret, debate, and explain, but they do not own the execution truth and cannot bypass the deterministic policy.
 
 Version boundary: the installable package and public API currently report `4.0.0`; the independently versioned local runtime and model manifest are `4.2.0`. These identifiers describe different contracts and are not interchangeable.
 
@@ -48,7 +48,7 @@ The Mangala Engine (`src/core/pipeline/nodes/mangala.py`) is a multi-agent simul
 - RAG persistence uses checksummed generations and never loads NumPy pickle data.
 - Durable files use same-directory temporary writes followed by atomic replacement.
 - Live execution is fail-safe disabled unless the explicit safety configuration allows it.
-- Cloud model APIs (Z.ai GLM-5.3 and DeepSeek V4 Pro) power the cognitive layers: if API keys or remote endpoints are unavailable, the organism enters `MAN_AT_WORK` and blocks orders. No local LLM server (`:8080`) is required for operation.
+- External model APIs configured in `config/runtime.yml` power the cognitive layers: if API keys or remote endpoints are unavailable, the organism enters `MAN_AT_WORK` and blocks orders. No local LLM server (`:8080`) is required for operation.
 
 The detailed July 2026 verification is in [docs/audit/phase10_organism_truth_and_remediation_2026-07-19.md](docs/audit/phase10_organism_truth_and_remediation_2026-07-19.md).
 
@@ -83,19 +83,20 @@ a JWT secret and installs Playwright Chromium. Never commit or distribute secret
 
 ## Running
 
-The official launcher starts both the local model and the product:
+The official launcher starts the SuperEzio API and trading workspace:
 
 ```powershell
 .\setup_superezio.bat run
 ```
 
-The model server is local on `127.0.0.1:8080`; the API and cockpit are on
-`127.0.0.1:8002`. The GGUF path can be supplied with
-`SUPEREZIO_MODEL_PATH`, and the executable with `SUPEREZIO_LLAMA_SERVER_EXE`.
-Before expert analysis can be ready, set `SUPEREZIO_DEEPSEEK_API_KEY` in the
-ignored local `.env.local`; experts, judge, and auditor use `deepseek-v4-pro`
-at `https://api.deepseek.com`. A missing key is reported explicitly by
-`/health/details` and never triggers a local-model fallback.
+Open `http://127.0.0.1:8002`. No local model server or GPU is required for cloud
+inference. Configure `SUPEREZIO_DEEPSEEK_API_KEY` in the ignored local `.env.local`.
+The canonical defaults in `config/runtime.yml` use `deepseek-v4-pro` for the
+assistant/orchestrator and `deepseek-v4-flash` for experts, judge and auditor,
+at `https://api.deepseek.com`. Provider outages and missing configuration must
+be treated as unavailable analysis, never successful analysis or order approval.
+
+See [README_FIRST.md](README_FIRST.md) for the client workflow.
 
 ## Authentication
 
@@ -133,7 +134,10 @@ python -m pytest tests/ -q
 python scripts/browser_smoke.py
 ```
 
-The browser smoke requires the API on port `8002`. On 2026-08-21 the suite collected 1,975 tests and completed with **1,965 passed, 10 skipped**; use `python -m pytest tests/ --collect-only -q` for the current count instead of treating that snapshot as permanent. The chat step uses the local CEO on port `8080` plus the configured external expert tier. Tests that require live services are marked `integration` and skip when those services are absent.
+The browser smoke requires the API on port `8002` and valid external model and
+market-data access. Use the current test output as delivery evidence; historical
+test counts do not establish readiness. Live-service tests may skip when their
+prerequisites are absent, and those skips must be reported separately.
 
 ## Safety and repository policy
 
@@ -143,26 +147,11 @@ The browser smoke requires the API on port `8002`. On 2026-08-21 the suite colle
 - Do not use production fallbacks with fabricated market data.
 - This repository is operated in disk-only mode: no `git push`, `git pull`, `git fetch`, or GitHub CLI operations.
 
-## Docker Quick Start
+## Deployment scope
 
-Before starting Compose, make sure the Qwen GGUF is installed on the host:
-on this machine the files live under `%USERPROFILE%\models\qwen3.8-27b\`
-(e.g. `Qwen3.8-27B-UD-IQ2_XXS.gguf`, 8.4 GB; `config.ps1` resolves that path
-automatically — the repository `models/` directory contains no GGUF). The GGUF
-is intentionally not versioned or copied into the API image; Compose mounts the
-`models/` directory read-only at `/models`. Export `SUPEREZIO_DEEPSEEK_API_KEY`
-in the host environment before starting Compose; Compose requires it for the
-external expert tier.
-
-```powershell
-docker compose up -d                                  # Start local services (bob-ceo on 8080, api-server on 8002)
-docker compose logs -f                                # Tail logs from all services
-docker compose ps                                     # Check health status of each service
-docker compose exec api-server python -m pytest -q    # Run tests inside the api container
-docker compose down -v                                # Stop and remove volumes (caution: deletes data)
-```
-
-See `docker-compose.yml` for service topology, networks, and healthcheck configuration.
+The supported client entrypoint is the Windows launcher above. The existing
+Docker deployment files require a separate compatibility review before use with
+the cloud runtime; they are not evidence of a verified client installation.
 
 ## License
 

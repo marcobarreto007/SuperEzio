@@ -54,12 +54,17 @@ def test_canonical_inventory_and_contract_match_the_official_runtime():
     canonical_text = INVENTORY.read_text(encoding="utf-8") + "\n" + contract
 
     by_name = {item["name"]: item for item in inventory["entrypoints"]}
-    ceo = by_name["CEO llama.cpp Server"]
+    ceo = by_name["Historical llama.cpp Server"]
     api = by_name["API Server"]
     launcher = by_name["Canonical Windows Product Launcher"]
 
     assert inventory["version"] == cfg["version"] == manifest["version"]
-    assert ceo["port"] == 8080
+    assert ceo["canonical"] is False
+    assert ceo["classification"] == "legacy_optional"
+    assert launcher["port"] == 8002
+    assert list(cfg["launch"]) == ["step_1"]
+    assert cfg["launch"]["step_1"]["command"] == cfg["server"]["entrypoint"]
+    assert all(":8080" not in item["url"] for item in cfg["health"].values())
     assert ceo["command"].endswith("serve_agent_llamacpp.ps1 -Port 8080")
     assert api["port"] == cfg["server"]["port"] == 8002
     assert api["command"] == cfg["server"]["entrypoint"]
@@ -252,7 +257,7 @@ def test_public_health_exposes_validation_mode_without_sensitive_paths(monkeypat
     assert "validation" not in json.dumps(payload.get("paths", {})).lower()
 
 
-def test_provider_factory_keeps_agent_local_and_pins_experts_to_deepseek(monkeypatch):
+def test_provider_factory_uses_cloud_agent_and_pins_experts_to_deepseek(monkeypatch):
     monkeypatch.delenv("SUPEREZIO_PRIMARY_BASE_URL", raising=False)
     monkeypatch.delenv("SUPEREZIO_PRIMARY_MODEL", raising=False)
     monkeypatch.delenv("SUPEREZIO_DEEPSEEK_BASE_URL", raising=False)

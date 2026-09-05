@@ -25,7 +25,7 @@
         {
             "name": "Canonical Windows Product Launcher",
             "command": "setup_superezio.bat run",
-            "port": "8080+8002",
+            "port": 8002,
             "file": "setup_superezio.bat -> start.ps1",
             "classification": "app",
             "canonical": true
@@ -38,11 +38,12 @@
             "classification": "internal_component"
         },
         {
-            "name": "CEO llama.cpp Server",
+            "name": "Historical llama.cpp Server",
             "command": "powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080",
             "port": 8080,
             "file": "scripts/serve_agent_llamacpp.ps1",
-            "classification": "internal_component"
+            "classification": "legacy_optional",
+            "canonical": false
         },
         {
             "name": "Browser Release Smoke",
