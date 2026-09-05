@@ -15,7 +15,7 @@ from core.math.penny_momentum import PennyMomentumConfig, simulate_penny_momentu
 
 from ..contracts import AgentToolCall
 from .collector import node_collector
-from .experts import node_collect_experts, node_expert
+from .experts import node_collect_experts, node_expert, run_experts_parallel
 from .f51 import node_f51_verdict
 from .neural_decision import node_neural_decision
 from .rag import node_rag_forensics
@@ -786,11 +786,9 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                 "sentiment",
                 "social_forensics",
             ]
-            results = []
-            for role in roles:
-                res = await node_expert({**expert_state, "role": role}, gateway=gateway)
-                if "expert_results" in res:
-                    results.extend(res["expert_results"])
+            # Comite em paralelo na nuvem (2026-09-05): o loop serial era heranca
+            # do slot unico do llama-server local; experts rodam na API DeepSeek.
+            results = await run_experts_parallel(expert_state, roles, gateway=gateway)
 
             result = await node_collect_experts({**expert_state, "expert_results": results})
             if doubt:

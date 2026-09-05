@@ -835,3 +835,59 @@ async def node_collect_experts(state: dict) -> dict:
         "expert_weights": expert_weights,
         "expert_consensus": weighted_consensus,
     }
+
+
+def expert_concurrency(role_count: int) -> int:
+    """Concurrency for the cloud expert committee (2026-09-05).
+
+    The old concurrency=1 pinned a single local llama-server inference slot;
+    experts now run on the DeepSeek API and may fan out. Default is all roles
+    in parallel; override with SUPEREZIO_EXPERT_CONCURRENCY (1..role_count).
+    """
+    raw = os.getenv("SUPEREZIO_EXPERT_CONCURRENCY", "").strip()
+    if not raw:
+        return max(1, role_count)
+    try:
+        value = int(raw)
+    except ValueError:
+        return max(1, role_count)
+    return min(max(1, value), max(1, role_count))
+
+
+async def run_experts_parallel(
+    expert_state: dict, roles: list[str], *, gateway=None
+) -> list[dict[str, Any]]:
+    """Fan-out do comite de experts em paralelo (melhor esforco).
+
+    Um expert que falha vira resultado estruturado de erro — nunca aborta o
+    comite. Cada resultado carrega role/provider/replica_id para o collect.
+    """
+    concurrency = expert_concurrency(len(roles))
+    semaphore = asyncio.Semaphore(concurrency)
+
+    async def _run_one(role: str) -> list[dict[str, Any]]:
+        async with semaphore:
+            try:
+                res = await node_expert({**expert_state, "role": role}, gateway=gateway)
+                out: list[dict[str, Any]] = []
+                for expert_result in res.get("expert_results", []):
+                    expert_result.setdefault("role", role)
+                    expert_result.setdefault("replica_id", 1)
+                    expert_result.setdefault("provider", EXPERT_PROVIDERS.get(role, "unknown"))
+                    out.append(expert_result)
+                return out
+            except Exception as exc:  # noqa: BLE001 — melhor esforco: falha vira erro estruturado
+                return [
+                    {
+                        "role": role,
+                        "replica_id": 1,
+                        "ok": False,
+                        "error": str(exc)[:200],
+                        "provider": EXPERT_PROVIDERS.get(role, "?"),
+                    }
+                ]
+
+    results: list[dict[str, Any]] = []
+    for batch in await asyncio.gather(*(_run_one(role) for role in roles)):
+        results.extend(batch)
+    return results

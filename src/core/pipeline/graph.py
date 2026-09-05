@@ -26,7 +26,7 @@ from .nodes import (
     node_tool_executor,
     route_after_agent,
 )
-from .nodes.experts import EXPERT_PROVIDERS, node_collect_experts, node_expert
+from .nodes.experts import EXPERT_PROVIDERS, expert_concurrency, node_collect_experts, node_expert
 from .nodes.f51 import node_f51_verdict
 from .nodes.guardrail_hub import node_guardrail_hub
 from .nodes.neural_decision import node_neural_decision
@@ -589,9 +589,10 @@ async def _auto_full_analysis(
         # The official profile has one inference slot. Replicas above one
         # multiply wall-clock latency without adding model diversity.
         replicas = 1
-        # The canonical llama-server has one slot. Parallel expert requests
-        # only wait in its queue and can expire before generation starts.
-        concurrency = 1
+        # Experts run on the cloud DeepSeek API (2026-09-05): the old
+        # concurrency=1 pinned a single local llama-server slot and serialized
+        # the committee. Fan out now (env SUPEREZIO_EXPERT_CONCURRENCY).
+        concurrency = expert_concurrency(len(roles))
         semaphore = asyncio.Semaphore(concurrency)
 
         async def _run_one_expert(role: str, replica_id: int) -> list[dict[str, Any]]:
