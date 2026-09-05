@@ -1,0 +1,253 @@
+{"event": "structlog_configured: ok", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T14:58:01.194325Z"}
+{"event": "[generic_agent] Agent Server starting on 127.0.0.1:8002...", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T14:58:01.194325Z"}
+{"event": "settings_validated: freeze=True paper_submit=False", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T14:58:01.194325Z"}
+{"event": "[generic_agent] Compiling pipeline graph v4...", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T14:58:01.194325Z"}
+{"event": "[MODEL_GATEWAY] INIT", "level": "info", "logger": "F51-NEURAL", "timestamp": "2026-09-05T14:58:01.194325Z"}
+{"event": "[generic_agent] Pipeline graph ready.", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T14:58:01.210899Z"}
+{"event": "[generic_agent] AuthDB initialized.", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T14:58:01.210899Z"}
+{"event": "[generic_agent] Sentiment monitor started for 0 tickers.", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T14:58:01.210899Z"}
+{"event": "[generic_agent] === SERVER READY ON http://localhost:8002 ===", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T14:58:01.224700Z"}
+{"event": "bob_ans_started: scan_every_60s deep_every_300s", "level": "info", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T14:58:01.227717Z"}
+{"event": "[generic_agent] Bob's autonomic nervous system started — heartbeat active", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T14:58:01.227717Z"}
+{"event": "MangalaScan: background loop started as task", "level": "info", "logger": "scripts.mangala_daily_scan", "timestamp": "2026-09-05T14:58:01.227717Z"}
+{"event": "[generic_agent] Mangala proactive scan started — scanning every 15/60 min", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T14:58:01.227717Z"}
+{"event": "MangalaScan: background loop started — first scan deferred to first interval", "level": "info", "logger": "scripts.mangala_daily_scan", "timestamp": "2026-09-05T14:58:01.227717Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 14.82, "event": "http_access", "trace_id": "7ff4ced00a09", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T14:58:01.758981Z"}
+INFO:     127.0.0.1:59239 - "GET /health HTTP/1.1" 200 OK
+{"event": "[NEWS] NewsScout iniciado | fontes: DDG, NewsAPI, Bing News RSS, Google News RSS, Yahoo Finance RSS, Reuters RSS, MarketWatch", "level": "info", "logger": "data.news_feed", "timestamp": "2026-09-05T14:58:03.090896Z"}
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T14:58:03.327020Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T14:58:05.348605Z"}
+{"event": "OpenTelemetry não instalado. Traces desabilitados.", "level": "warning", "logger": "src.core.observability.neural_log", "timestamp": "2026-09-05T14:58:05.359995Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T14:58:05.393075Z"}
+{"event": "[IBKRService] Daemon thread started", "trace_id": "0cb42f53e11f", "run_id": "unknown", "level": "info", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T14:58:34.218160Z"}
+{"event": "[IBKRService] Started singleton service (clientId=100, host=127.0.0.1, port=7497)", "trace_id": "0cb42f53e11f", "run_id": "unknown", "level": "info", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T14:58:34.218160Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T14:58:34.218160Z"}
+{"event": "[IBKRService] ib_insync not installed", "trace_id": "0cb42f53e11f", "run_id": "unknown", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T14:58:34.218160Z"}
+{"method": "GET", "path": "/health/details", "status": 200, "latency_ms": 3298.72, "event": "http_access", "trace_id": "0cb42f53e11f", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T14:58:34.251410Z"}
+INFO:     127.0.0.1:59284 - "GET /health/details HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T14:58:49.228899Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T14:59:04.240688Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "06f9288bc700", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T14:59:05.424797Z"}
+INFO:     127.0.0.1:59337 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T14:59:06.977526Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T14:59:08.991310Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T14:59:08.991310Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T14:59:19.252605Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T14:59:34.260783Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T14:59:49.275246Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:00:04.277227Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "6b5ca572d576", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:00:09.012943Z"}
+INFO:     127.0.0.1:59438 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:00:10.568499Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:00:12.571229Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:00:12.571229Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:00:19.281681Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:00:34.283331Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:00:49.290931Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:01:04.291848Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "ce0cfd49b277", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:01:12.593485Z"}
+INFO:     127.0.0.1:59516 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:01:14.137073Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:01:16.140098Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:01:16.140098Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:01:19.294019Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:01:34.304760Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:01:49.309891Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:02:04.311619Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "6ea7473a6b6e", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:02:16.164257Z"}
+INFO:     127.0.0.1:59531 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:02:17.681255Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:02:19.327875Z"}
+{"event": "bob_circuit_open: IBKR Muscles (order execution) after 5 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:02:19.696075Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:02:19.701033Z"}
+{"event": "bob_circuit_open: Scanner Eyes (OpenBB) after 5 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:02:19.701033Z"}
+{"event": "bob_circuit_open: Historical Cache (liver) after 5 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:02:19.705033Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:02:19.706034Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:02:34.343119Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:02:49.355782Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:03:04.365954Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:03:19.375399Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "e6c6d10a13a5", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:03:19.722812Z"}
+INFO:     127.0.0.1:59574 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:03:21.241025Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:03:21.241025Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:03:21.241025Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:03:34.385429Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:03:49.393431Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:04:04.408450Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:04:19.416232Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "f62428b8ef7f", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:04:21.271827Z"}
+INFO:     127.0.0.1:59605 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:04:22.828295Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:04:22.828295Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:04:22.828295Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:04:34.419426Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:04:49.427977Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:05:04.447281Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:05:19.451217Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "578106ac769c", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:05:22.850156Z"}
+INFO:     127.0.0.1:59613 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:05:24.400941Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:05:24.400941Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:05:24.400941Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:05:34.452947Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:05:49.455972Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:06:04.464905Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:06:19.474506Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "1b470dd6258c", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:06:24.428850Z"}
+INFO:     127.0.0.1:59620 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:06:25.991028Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:06:25.991028Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:06:25.991028Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:06:34.478614Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:06:49.486534Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:07:04.488249Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:07:19.499857Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "e3cb01829280", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:07:26.023459Z"}
+INFO:     127.0.0.1:59628 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:07:27.581734Z"}
+{"event": "bob_circuit_open: IBKR Muscles (order execution) after 6 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:07:29.595545Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:07:29.595545Z"}
+{"event": "bob_circuit_open: Scanner Eyes (OpenBB) after 6 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:07:29.595545Z"}
+{"event": "bob_circuit_open: Historical Cache (liver) after 6 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:07:29.595545Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:07:29.595545Z"}
+{"event": "bob_vitals: healthy=7 sick=3 pain=75 cycles=10 circuits_open=3 mode=normal", "level": "info", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:07:29.595545Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:07:34.507826Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:07:49.516484Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:08:04.526889Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:08:19.536776Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "110420194804", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:08:29.625895Z"}
+INFO:     127.0.0.1:59669 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:08:31.169110Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:08:31.169110Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:08:31.169110Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:08:34.549918Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:08:49.564069Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:09:04.576561Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:09:19.591682Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "7dd3659c21cc", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:09:31.190281Z"}
+INFO:     127.0.0.1:59678 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:09:32.743406Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:09:32.743406Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:09:32.743406Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:09:34.595856Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:09:49.602670Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:10:04.614624Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:10:19.628530Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "e3d5ead1c5bb", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:10:32.767964Z"}
+INFO:     127.0.0.1:59684 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:10:34.303938Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:10:34.303938Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:10:34.303938Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:10:34.636909Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:10:49.637073Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:11:04.651865Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:11:19.659276Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "0a338d84f798", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:11:34.334122Z"}
+INFO:     127.0.0.1:59691 - "GET /health HTTP/1.1" 200 OK
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:11:34.661014Z"}
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:11:35.874772Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:11:35.874772Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:11:35.874772Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:11:49.661167Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:12:04.666661Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:12:19.683964Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:12:34.698535Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "f2eb6bcb8464", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:12:35.906000Z"}
+INFO:     127.0.0.1:59700 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:12:37.453828Z"}
+{"event": "bob_circuit_open: IBKR Muscles (order execution) after 7 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:12:39.461935Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:12:39.461935Z"}
+{"event": "bob_circuit_open: Scanner Eyes (OpenBB) after 7 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:12:39.461935Z"}
+{"event": "bob_circuit_open: Historical Cache (liver) after 7 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:12:39.461935Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:12:39.461935Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:12:49.713322Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:13:04.720242Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:13:19.731920Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:13:34.744720Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "2b2979e85e8a", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:13:39.491900Z"}
+INFO:     127.0.0.1:59759 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:13:41.008573Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:13:41.024159Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:13:41.024159Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:13:49.754950Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:14:04.765136Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:14:19.775012Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:14:34.789693Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "325bf2702156", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:14:41.042476Z"}
+INFO:     127.0.0.1:59770 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:14:42.567399Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:14:42.567399Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:14:42.567399Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:14:49.804980Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:15:04.809363Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:15:19.818811Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:15:34.820119Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 1.85, "event": "http_access", "trace_id": "4dde0617d522", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:15:42.577490Z"}
+INFO:     127.0.0.1:59883 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:15:44.180556Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:15:44.227462Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:15:44.227462Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:15:49.826857Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:16:04.842390Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:16:19.853711Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:16:34.868774Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "f8440430afd7", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:16:44.245034Z"}
+INFO:     127.0.0.1:59947 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:16:46.928617Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:16:46.937135Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:16:46.937135Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:16:49.872493Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:17:04.875320Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:17:19.885580Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:17:34.888046Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "31a8da405108", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:17:46.963514Z"}
+INFO:     127.0.0.1:60034 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:17:48.488116Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:17:49.895745Z"}
+{"event": "bob_circuit_open: IBKR Muscles (order execution) after 8 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:17:50.496131Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:17:50.498586Z"}
+{"event": "bob_circuit_open: Scanner Eyes (OpenBB) after 8 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:17:50.498586Z"}
+{"event": "bob_circuit_open: Historical Cache (liver) after 8 failures", "level": "warning", "logger": "core.bob_consciousness.body", "timestamp": "2026-09-05T15:17:50.498586Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:17:50.498586Z"}
+{"event": "bob_vitals: healthy=7 sick=3 pain=75 cycles=20 circuits_open=3 mode=normal", "level": "info", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:17:50.498586Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:18:04.900507Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:18:19.902266Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:18:34.913762Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:18:49.916761Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "ee3ba7e0f999", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:18:50.509062Z"}
+INFO:     127.0.0.1:60147 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:18:52.058043Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:18:52.073714Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:18:52.073714Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:19:04.927243Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:19:19.932823Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:19:34.936692Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:19:49.944720Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "1d0d043d1930", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:19:52.092450Z"}
+INFO:     127.0.0.1:60245 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:19:53.630669Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:19:53.630669Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:19:53.630669Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:20:04.967856Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:20:19.977251Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:20:34.987733Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:20:49.990434Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "2f8570997c42", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:20:53.655578Z"}
+INFO:     127.0.0.1:60389 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:20:55.201976Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:20:55.217591Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:20:55.217899Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:21:04.996167Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:21:19.997362Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:21:34.999317Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:21:50.002003Z"}
+{"method": "GET", "path": "/health", "status": 200, "latency_ms": 0.0, "event": "http_access", "trace_id": "a4e17916fe59", "run_id": "unknown", "level": "info", "logger": "__main__", "timestamp": "2026-09-05T15:21:55.232950Z"}
+INFO:     127.0.0.1:60406 - "GET /health HTTP/1.1" 200 OK
+{"event": "[DATA_HUB] price: finnhub succeeded", "level": "info", "logger": "data.data_hub", "timestamp": "2026-09-05T15:21:56.753751Z"}
+{"event": "[F51_TRADE_GATE] Journal healthy: C:\\Users\\marco\\Desktop\\SuperEzio\\data\\paper_journal.jsonl", "level": "info", "logger": "core.pipeline.f51_trade_gate", "timestamp": "2026-09-05T15:21:56.753751Z"}
+{"event": "bob_pain_detected: 3 sick organs, pain=75", "level": "warning", "logger": "core.bob_consciousness.autonomic", "timestamp": "2026-09-05T15:21:56.753751Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:22:05.013806Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:22:20.027234Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:22:35.040014Z"}
+{"event": "[IBKRService] ib_insync not installed", "level": "warning", "logger": "adapters.broker.ibkr_service", "timestamp": "2026-09-05T15:22:50.051488Z"}
