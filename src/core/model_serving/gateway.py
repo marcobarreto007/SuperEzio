@@ -378,6 +378,19 @@ class ModelGateway:
         return min(len(providers_to_try), max(0, self.config.max_fallbacks) + 1)
 
     @staticmethod
+    def _is_rate_limit_error(exc: Exception) -> bool:
+        """429 / rate-limit has its own policy (retry + backoff + cooldown) and
+        must never open the circuit breaker — a parallel burst of 429s (expert
+        fan-out) would otherwise trip the 60s circuit and degrade the whole
+        committee for a quota condition that recovers on its own."""
+        response = getattr(exc, "response", None)
+        status = getattr(exc, "status_code", None) or getattr(response, "status_code", None)
+        if status == 429:
+            return True
+        text = str(exc or "").lower()
+        return "429" in text or "rate limit" in text or "too many requests" in text
+
+    @staticmethod
     def _classify_provider_failure(exc: Exception) -> _FailureKind:
         """Classify only known recoverable failures as transient.
 
@@ -733,8 +746,19 @@ class ModelGateway:
         failure_kind: _FailureKind,
     ) -> None:
         """Record failure after retries are exhausted and log the fallback hop."""
-        circuit.record_failure(exc)
-        self._record_circuit_state(provider_name, circuit)
+        if self._is_rate_limit_error(exc):
+            log_event(
+                "MODEL_GATEWAY",
+                "RATE_LIMIT_EXHAUSTED",
+                {
+                    "provider": provider_name,
+                    "next": next_name or "",
+                    "note": "429 keeps its own retry/cooldown policy; circuit not opened",
+                },
+            )
+        else:
+            circuit.record_failure(exc)
+            self._record_circuit_state(provider_name, circuit)
         if next_name is not None:
             log_event(
                 "MODEL_GATEWAY",

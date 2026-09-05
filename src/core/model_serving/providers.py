@@ -52,7 +52,10 @@ LOCAL_TIMEOUT_S = 600
 DEEPSEEK_DEFAULT_MAX_TOKENS = 1800
 DEEPSEEK_MIN_MAX_TOKENS = 128
 DEEPSEEK_MAX_MAX_TOKENS = 8192
-DEEPSEEK_DEFAULT_TIMEOUT_S = 180
+DEEPSEEK_DEFAULT_TIMEOUT_S = 60
+# Agent (GLM, thinking + 4096-token budget) keeps the 180s floor the experts
+# used to inherit — a long PT answer after deliberation can exceed 60s.
+AGENT_DEFAULT_TIMEOUT_S = 180
 DEEPSEEK_MIN_TIMEOUT_S = 10
 DEEPSEEK_MAX_TIMEOUT_S = 600
 
@@ -382,11 +385,11 @@ def build_default_providers(
             timeout_s=max(
                 _bounded_int_env(
                     ("SUPEREZIO_AGENT_TIMEOUT_SEC",),
-                    default=experts_timeout_s if not agent_is_local else LOCAL_TIMEOUT_S,
+                    default=AGENT_DEFAULT_TIMEOUT_S if not agent_is_local else LOCAL_TIMEOUT_S,
                     minimum=1,
                     maximum=3600,
                 ),
-                experts_timeout_s if not agent_is_local else LOCAL_TIMEOUT_S,
+                AGENT_DEFAULT_TIMEOUT_S if not agent_is_local else LOCAL_TIMEOUT_S,
             ),
             max_tokens=experts_max_tokens if not agent_is_local else LOCAL_MAX_TOKENS,
             temperature=0.4,

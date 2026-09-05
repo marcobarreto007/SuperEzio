@@ -15,7 +15,7 @@ from core.math.penny_momentum import PennyMomentumConfig, simulate_penny_momentu
 
 from ..contracts import AgentToolCall
 from .collector import node_collector
-from .experts import node_collect_experts, node_expert, run_experts_parallel
+from .experts import EXPERT_ROLES, node_collect_experts, node_expert, run_experts_parallel
 from .f51 import node_f51_verdict
 from .neural_decision import node_neural_decision
 from .rag import node_rag_forensics
@@ -778,17 +778,9 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                     + doubt
                 )
                 expert_state["expert_consult_question"] = doubt
-            roles = [
-                "macro_risk",
-                "fundamental_value",
-                "momentum_technical",
-                "contrarian_opportunity",
-                "sentiment",
-                "social_forensics",
-            ]
             # Comite em paralelo na nuvem (2026-09-05): o loop serial era heranca
             # do slot unico do llama-server local; experts rodam na API DeepSeek.
-            results = await run_experts_parallel(expert_state, roles, gateway=gateway)
+            results = await run_experts_parallel(expert_state, EXPERT_ROLES, gateway=gateway)
 
             result = await node_collect_experts({**expert_state, "expert_results": results})
             if doubt:
@@ -997,31 +989,17 @@ async def node_tool_executor(state: dict, *, gateway=None, config=None) -> dict:
                         "mode": "forcing_expert_committee",
                     }
                 )
-                expert_results = []
-                for role in [
-                    "macro_risk",
-                    "fundamental_value",
-                    "momentum_technical",
-                    "contrarian_opportunity",
-                    "sentiment",
-                    "social_forensics",
-                ]:
-                    try:
-                        res = await node_expert(
-                            {
-                                **state,
-                                "role": role,
-                                "ticker": ticker,
-                                "data_context": state.get("data_context", ""),
-                            },
-                            gateway=gateway,
-                        )
-                        for er in res.get("expert_results", []):
-                            er.setdefault("role", role)
-                            expert_results.append(er)
-                    # Falha num expert não derruba o comitê: vira resultado com erro, por papel.
-                    except Exception as exc:  # noqa: BLE001
-                        expert_results.append({"role": role, "ok": False, "error": str(exc)[:100]})
+                # Comite em paralelo (2026-09-05): o loop serial era heranca do
+                # slot unico do llama-server local; experts rodam na API.
+                expert_results = await run_experts_parallel(
+                    {
+                        **state,
+                        "ticker": ticker,
+                        "data_context": state.get("data_context", ""),
+                    },
+                    EXPERT_ROLES,
+                    gateway=gateway,
+                )
                 state["expert_results"] = expert_results
                 state["_experts_ran_for"] = ticker
                 collected = await node_collect_experts(state)

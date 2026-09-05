@@ -173,7 +173,7 @@ def test_experts_are_pinned_to_official_deepseek(monkeypatch):
         assert provider.api_key == "sk-ds-test-only"
         assert provider.is_local is False
         assert provider.max_tokens == 1800
-        assert provider.timeout_s == 180
+        assert provider.timeout_s == 60
 
 
 def test_missing_deepseek_key_fails_closed_without_echoing_secret(monkeypatch):

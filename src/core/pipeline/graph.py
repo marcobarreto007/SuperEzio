@@ -26,7 +26,13 @@ from .nodes import (
     node_tool_executor,
     route_after_agent,
 )
-from .nodes.experts import EXPERT_PROVIDERS, expert_concurrency, node_collect_experts, node_expert
+from .nodes.experts import (
+    EXPERT_PROVIDERS,
+    EXPERT_ROLES,
+    expert_concurrency,
+    node_collect_experts,
+    node_expert,
+)
 from .nodes.f51 import node_f51_verdict
 from .nodes.guardrail_hub import node_guardrail_hub
 from .nodes.neural_decision import node_neural_decision
@@ -577,14 +583,7 @@ async def _auto_full_analysis(
                 if ticker:
                     working_state["ticker"] = ticker
 
-        roles = [
-            "macro_risk",
-            "fundamental_value",
-            "momentum_technical",
-            "contrarian_opportunity",
-            "sentiment",
-            "social_forensics",
-        ]
+        roles = EXPERT_ROLES
 
         # The official profile has one inference slot. Replicas above one
         # multiply wall-clock latency without adding model diversity.

@@ -4,13 +4,21 @@ from core.pipeline.nodes.trinity import node_trinity
 
 
 class RecordingGateway:
-    def __init__(self, responses):
-        self.responses = list(responses)
+    """Routes responses per lane (Deep vs Genie) so the parallel gather in
+    node_trinity (2026-09-05) stays deterministic: each lane pops from its own
+    queue, identified by the system prompt."""
+
+    def __init__(self, deep_responses, genie_responses=None):
+        self.deep_responses = list(deep_responses)
+        self.genie_responses = list(genie_responses or [])
         self.calls = []
 
     async def chat_completion(self, **kwargs):
         self.calls.append(kwargs)
-        return self.responses.pop(0)
+        system = str(kwargs["messages"][0]["content"])
+        if "You are Deep" in system:
+            return self.deep_responses.pop(0)
+        return self.genie_responses.pop(0)
 
 
 def _state():
@@ -73,23 +81,27 @@ async def test_node_trinity_skips_without_gateway():
 @pytest.mark.asyncio
 async def test_node_trinity_runs_deep_and_genie_followups():
     gateway = RecordingGateway(
-        [
+        deep_responses=[
             '{"verdict":"OVERVALUED","confidence":68,"bob_readable":"DCF below market."}',
             '{"verdict":"OVERVALUED","confidence":72,"bob_readable":"Still below market."}',
+        ],
+        genie_responses=[
             '{"verdict":"SUSPICIOUS","confidence":72,"bob_readable":"Reddit spike looks coordinated."}',
             '{"verdict":"SUSPICIOUS","confidence":80,"bob_readable":"Duplicate social pattern confirmed."}',
-        ]
+        ],
     )
 
     result = await node_trinity(_state(), gateway=gateway)
 
     assert len(gateway.calls) == 4
-    assert gateway.calls[0]["preferred_provider"] == "deepseek"
-    assert "[MATH_CONTEXT]" in gateway.calls[0]["messages"][1]["content"]
-    assert "DCF fair value" in gateway.calls[1]["messages"][1]["content"]
-    assert gateway.calls[2]["preferred_provider"] == "gemini"
-    assert "[SENTIMENT_CONTEXT]" in gateway.calls[2]["messages"][1]["content"]
-    assert "Reddit/social spike" in gateway.calls[3]["messages"][1]["content"]
+    deep_calls = [c for c in gateway.calls if c["preferred_provider"] == "deepseek"]
+    genie_calls = [c for c in gateway.calls if c["preferred_provider"] == "agent"]
+    assert len(deep_calls) == 2
+    assert "[MATH_CONTEXT]" in deep_calls[0]["messages"][1]["content"]
+    assert "DCF fair value" in deep_calls[1]["messages"][1]["content"]
+    assert len(genie_calls) == 2
+    assert "[SENTIMENT_CONTEXT]" in genie_calls[0]["messages"][1]["content"]
+    assert "Reddit/social spike" in genie_calls[1]["messages"][1]["content"]
     assert "GENIE (sentiment)" in result["trinity_report"]
     assert "DEEP (fundamental)" in result["trinity_report"]
     assert "CONSENSUS: Both negative. No divergence." in result["trinity_report"]
@@ -100,10 +112,10 @@ async def test_node_trinity_runs_deep_and_genie_followups():
 @pytest.mark.asyncio
 async def test_node_trinity_marks_unanimous_block():
     gateway = RecordingGateway(
-        [
-            '{"verdict":"BLOCK","confidence":90,"bob_readable":"Math blocks it."}',
-            '{"verdict":"AVOID","confidence":91,"bob_readable":"Social risk blocks it."}',
-        ]
+        deep_responses=['{"verdict":"BLOCK","confidence":90,"bob_readable":"Math blocks it."}'],
+        genie_responses=[
+            '{"verdict":"AVOID","confidence":91,"bob_readable":"Social risk blocks it."}'
+        ],
     )
     state = _state()
     state["math_report"]["modules"]["dcf_proxy"]["values"]["dcf_value_per_share"] = 1.84

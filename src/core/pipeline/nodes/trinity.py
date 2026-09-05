@@ -10,6 +10,7 @@ execution, as opposed to aggregating pre-computed expert verdicts.
 
 from __future__ import annotations
 
+import asyncio
 import os
 from collections.abc import Mapping
 from typing import Any
@@ -250,14 +251,6 @@ async def node_trinity(state: dict[str, Any], *, gateway=None) -> dict[str, Any]
         "confidence, reasoning, top_signals, top_risks, and bob_readable."
     )
     deep_user = f"Ticker: {ticker}\n\n{math_context}\n\nGive the fundamental/value verdict for Bob."
-    deep_first = ExpertDialogue(gateway, max_rounds=max_rounds)
-    await deep_first.ask("fundamental_value", "deepseek", deep_system, deep_user)
-    deep_prelim = deep_first.get_verdict()
-    deep_follow = _requires_deep_follow_up(math_report, deep_prelim)
-    if deep_follow:
-        await deep_first.follow_up("fundamental_value", "deepseek", deep_follow)
-    deep_verdict = deep_first.get_verdict()
-
     genie_system = (
         "You are Genie, SuperEzio's sentiment and information-quality adviser. "
         "Use only the supplied sentiment context. Output raw JSON with verdict, "
@@ -268,13 +261,28 @@ async def node_trinity(state: dict[str, Any], *, gateway=None) -> dict[str, Any]
         f"{sentiment_context}\n\n"
         "Give the sentiment/social-forensics verdict for Bob."
     )
-    genie_first = ExpertDialogue(gateway, max_rounds=max_rounds)
-    await genie_first.ask("sentiment", "gemini", genie_system, genie_user)
-    genie_prelim = genie_first.get_verdict()
-    genie_follow = _requires_genie_follow_up(state, genie_prelim)
-    if genie_follow:
-        await genie_first.follow_up("sentiment", "gemini", genie_follow)
-    genie_verdict = genie_first.get_verdict()
+
+    # Lanes run in parallel (2026-09-05): Genie and Deep have no cross
+    # dependency — only the consensus below joins them. Genie was pinned to a
+    # nonexistent "gemini" provider (always provider_not_configured); it now
+    # runs on the agent provider (GLM) for model diversity vs Deep (DeepSeek).
+    async def _run_deep_lane() -> dict[str, Any]:
+        dialogue = ExpertDialogue(gateway, max_rounds=max_rounds)
+        await dialogue.ask("fundamental_value", "deepseek", deep_system, deep_user)
+        follow = _requires_deep_follow_up(math_report, dialogue.get_verdict())
+        if follow:
+            await dialogue.follow_up("fundamental_value", "deepseek", follow)
+        return dialogue.get_verdict()
+
+    async def _run_genie_lane() -> dict[str, Any]:
+        dialogue = ExpertDialogue(gateway, max_rounds=max_rounds)
+        await dialogue.ask("sentiment", "agent", genie_system, genie_user)
+        follow = _requires_genie_follow_up(state, dialogue.get_verdict())
+        if follow:
+            await dialogue.follow_up("sentiment", "agent", follow)
+        return dialogue.get_verdict()
+
+    deep_verdict, genie_verdict = await asyncio.gather(_run_deep_lane(), _run_genie_lane())
 
     consensus, bob_decision, blocked = _consensus_and_decision(genie_verdict, deep_verdict)
     report = _format_trinity_report(

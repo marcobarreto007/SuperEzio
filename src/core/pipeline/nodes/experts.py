@@ -7,6 +7,7 @@ import hashlib
 import json
 import logging
 import os
+import time
 from collections import deque
 from typing import Any
 
@@ -25,7 +26,11 @@ logger = logging.getLogger(__name__)
 # Without this, the entire downstream chain (neural → rag → ceo → explanation)
 # executes twice, doubling latency.
 _COLLECT_SEEN: deque[str] = deque(maxlen=64)
-_EXPERT_CACHE: dict[str, dict[str, Any]] = {}
+# Expert cache: on by default since 2026-09-05 with a short TTL. The key
+# includes data_context, so a fresh quote naturally breaks the cache; the TTL
+# bounds staleness for repeated identical contexts (same ticker, same window).
+_EXPERT_CACHE_TTL_S = int(os.getenv("SUPEREZIO_EXPERT_CACHE_TTL", "300"))
+_EXPERT_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 _EXPERT_CACHE_LOCK = asyncio.Lock()
 _RESEARCH_BUDGET_LOCK = asyncio.Lock()
 _RESEARCH_TOKENS_SPENT = 0
@@ -142,7 +147,7 @@ def _is_strict_json_enabled() -> bool:
 
 
 def _is_cache_enabled() -> bool:
-    return os.getenv("SUPEREZIO_CACHE_LLM_RESPONSES", "0").strip().lower() in {
+    return os.getenv("SUPEREZIO_CACHE_LLM_RESPONSES", "1").strip().lower() in {
         "1",
         "true",
         "yes",
@@ -202,6 +207,15 @@ async def _reserve_research_tokens(requested_tokens: int) -> tuple[bool, int, in
 
 
 # Expert roles mapped to the provider-pinned external DeepSeek boundary.
+EXPERT_ROLES: list[str] = [
+    "macro_risk",
+    "fundamental_value",
+    "momentum_technical",
+    "contrarian_opportunity",
+    "sentiment",
+    "social_forensics",
+]
+
 EXPERT_PROVIDERS: dict[str, str] = {
     "macro_risk": "deepseek",
     "fundamental_value": "deepseek",
@@ -429,7 +443,11 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
     cache_key = _cache_key(role, ticker, provider_name, context)
     if _is_cache_enabled():
         async with _EXPERT_CACHE_LOCK:
-            cached = _EXPERT_CACHE.get(cache_key)
+            entry = _EXPERT_CACHE.get(cache_key)
+            if entry is not None and time.monotonic() - entry[0] >= _EXPERT_CACHE_TTL_S:
+                _EXPERT_CACHE.pop(cache_key, None)
+                entry = None
+            cached = entry[1] if entry is not None else None
         if cached:
             return {"expert_results": [{**cached, "cached": True, "replica_id": replica_id}]}
 
@@ -564,7 +582,7 @@ async def node_expert(state: dict, *, gateway=None) -> dict:
         }
         if _is_cache_enabled():
             async with _EXPERT_CACHE_LOCK:
-                _EXPERT_CACHE[cache_key] = result_payload
+                _EXPERT_CACHE[cache_key] = (time.monotonic(), result_payload)
 
         return {"expert_results": [result_payload]}
 

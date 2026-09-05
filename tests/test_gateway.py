@@ -961,3 +961,49 @@ class TestGlmTokenFloor:
         out = [c async for c in gateway.stream_generate_api(provider, prompt="oi", max_tokens=100)]
         assert out == ["ok"]
         assert captured["max_tokens"] == 100
+
+
+class TestRateLimitVsCircuit:
+    """Contract 2026-09-05: an exhausted 429 (rate limit) must NOT open the
+    circuit breaker — it has its own retry/cooldown policy, and a parallel
+    burst (expert fan-out) would otherwise trip the 60s circuit for a quota
+    condition that recovers on its own."""
+
+    def test_rate_limit_exhausted_keeps_circuit_closed(self, monkeypatch):
+        deepseek = _provider(DEEPSEEK_PROVIDER_NAME, priority=-300)
+        gateway = _gateway(deepseek, retry_attempts=2, retry_delay_s=0)
+        calls = 0
+
+        async def fail_429(provider, *_args, **_kwargs):
+            nonlocal calls
+            calls += 1
+            raise _HTTPFailure(429)
+            yield  # pragma: no cover
+
+        monkeypatch.setattr(gateway, "stream_generate_api", fail_429)
+        # Threshold 1: even a single exhausted failure would open a normal
+        # circuit — rate limit must keep it closed regardless.
+        circuit = CircuitBreaker("test.rate-limit", failure_threshold=1)
+        monkeypatch.setattr(gateway_module, "get_circuit", lambda *_a, **_k: circuit)
+
+        chunks = list(gateway.stream_generate("prompt", preferred_provider=DEEPSEEK_PROVIDER_NAME))
+
+        assert calls == 2  # retry_attempts=2 -> 2 attempts, all exhausted
+        assert len(chunks) == 1 and "ERROR" in chunks[0]
+        assert circuit.state == CircuitState.CLOSED  # 429 never opened it
+
+    def test_permanent_failure_still_opens_circuit(self, monkeypatch):
+        deepseek = _provider(DEEPSEEK_PROVIDER_NAME, priority=-300)
+        gateway = _gateway(deepseek, retry_attempts=2, retry_delay_s=0)
+
+        async def fail_401(provider, *_args, **_kwargs):
+            raise _HTTPFailure(401)
+            yield  # pragma: no cover
+
+        monkeypatch.setattr(gateway, "stream_generate_api", fail_401)
+        circuit = CircuitBreaker("test.permanent", failure_threshold=1)
+        monkeypatch.setattr(gateway_module, "get_circuit", lambda *_a, **_k: circuit)
+
+        list(gateway.stream_generate("prompt", preferred_provider=DEEPSEEK_PROVIDER_NAME))
+
+        assert circuit.state == CircuitState.OPEN
