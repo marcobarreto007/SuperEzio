@@ -17,13 +17,20 @@ if (Test-Path -LiteralPath $shortcutPath) {
     Remove-Item -LiteralPath $shortcutPath -Force
 }
 
+$icoPath = Join-Path $ScriptDir "superezio.ico"
+if (-not (Test-Path -LiteralPath $icoPath)) {
+    $icoPath = "powershell.exe,0"
+} else {
+    $icoPath = "$icoPath,0"
+}
+
 $shortcut = $ws.CreateShortcut($shortcutPath)
 $shortcut.TargetPath = "powershell.exe"
 $shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$launcherPath`""
 $shortcut.WorkingDirectory = $ScriptDir
-$shortcut.WindowStyle = 3
-$shortcut.IconLocation = "powershell.exe,0"
-$shortcut.Description = "SuperEzio - AI Financial Copilot"
+$shortcut.WindowStyle = 1
+$shortcut.IconLocation = $icoPath
+$shortcut.Description = "SuperEzio - Quantitative AI Copilot"
 $shortcut.Save()
 
 if (Test-Path -LiteralPath $shortcutPath) {
