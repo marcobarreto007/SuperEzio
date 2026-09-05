@@ -3,6 +3,15 @@
 Updated: 2026-08-30
 Session: cad100-alloc-api-restart-20260830 (Ornith nao abliterado; API :8002 recarregou 0eb62ff1+1e74ac25)
 
+## Entrega cliente — 2026-09-05
+
+- Resolvido: saldo 100000 e contagens 534/532 eram padrões fictícios na interface. Removidos em 8a851cde e 05e0865f; nove casos Chromium cobrem carteira indisponível, zeros reais e permissões.
+- Resolvido: substring de disconnected classificava corretora como conectada; chips agora distinguem consulta, desconectado e envio paper explícito (e86086a7).
+- Resolvido: painel exibia aprovação de controles sem eventos comprobatórios; agora informa ausência de evidência (8a851cde).
+- Em validação: launcher cliente ainda estava acoplado a modelo local apesar da configuração cloud. Correção de scripts em curso.
+- Em validação: smoke DOM aceitava cartão de risco antes da resposta final. Não usar o sucesso anterior como prova de resposta visível completa.
+- Distribuição: arquivos históricos e dados do operador não podem entrar no pacote cliente. A dívida histórica de credenciais não é encerrada por excluir arquivos do ZIP.
+
 ## Active Risks
 
 ### INV-R65 - Boca Ornith nao e abliterada [MEDIUM]
