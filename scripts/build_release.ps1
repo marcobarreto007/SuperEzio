@@ -56,6 +56,7 @@ $deniedPrefixes = @(
     ".agent_bus/",
     ".claude/settings",
     ".f51/cache/",
+    ".f51/archive/",
     ".f51/checkpoints/",
     ".f51/partner/",
     ".f51/tmp/",
@@ -69,6 +70,12 @@ $deniedPrefixes = @(
 $deniedNames = @(".env", ".env.local", ".env.local.bak", "credentials.json")
 
 $deniedSegments = @(
+    "archive",
+    "deprecated",
+    "legacy",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
     "cache",
     "checkpoints",
     "journal",
@@ -95,10 +102,12 @@ function Test-ReleasePath {
     param([Parameter(Mandatory = $true)][string]$Path)
     $normalized = $Path.Replace("\", "/")
     $lowered = $normalized.ToLowerInvariant()
-    # Allowlist first: top-level allowed files and whitelisted data assets
+    # Exact top-level templates and public datasets are the only exceptions.
     if ($allowedTopFiles -contains $normalized) { return $true }
+    if ($normalized -in @("data/eval_questions.jsonl", "data/intent_golden.jsonl")) { return $true }
+    if (Test-DeniedSegment -NormalizedLowered $lowered) { return $false }
     foreach ($prefix in $allowedData) {
-        if ($normalized -eq $prefix -or $normalized.StartsWith($prefix)) { return $true }
+        if ($prefix.EndsWith("/") -and $normalized.StartsWith($prefix)) { return $true }
     }
     # Exact-name deny (kept for explicit visibility)
     if ($deniedNames -contains $lowered) { return $false }

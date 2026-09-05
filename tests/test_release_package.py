@@ -52,6 +52,10 @@ def test_release_builder_excludes_operator_state_and_verifies_manifest(tmp_path:
             "/output/",
             "/.claude/settings.local.json",
             "/.f51/checkpoints/",
+            "/archive/",
+            "/deprecated/",
+            "/legacy/",
+            "/__pycache__/",
         )
         assert not any(marker in name for marker in forbidden for name in names)
         manifest = json.loads(archive.read("SuperEzio-V1/RELEASE_MANIFEST.json"))
