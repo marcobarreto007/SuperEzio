@@ -11,10 +11,10 @@
   execução paper sai só do pipeline (`auto_execute_paper`) com journal
   append-only, idempotency cross-restart e dead letter queue com replay manual
   (`scripts/replay_dead_letters.py`).
-- **Modelos**: boca local `:8080` = Ornith-1.0-9B-Q4_K_M (llama-server,
-  texto-only, NÃO abliterado — recusa dele não é decisão do sistema).
-  Watchdog do CEO: `scripts/watchdog_ceo.ps1`. Experts externos DeepSeek:
-  pinned, fail-closed, sem fallback para o local. API/UI/chat: `:8002`
+- **Modelos**: 100% cloud model APIs. Bob/CEO e orquestrador via Z.ai GLM-5.3
+  (ou DeepSeek V4 Pro) preservando a persona executiva e mandamentos; experts
+  financeiros, judge e auditor via DeepSeek V4 Pro HTTPS API oficial. Não requer
+  nem roda servidor local em :8080. API/UI/chat única em `:8002`
   (`agent_server.main`, porta única).
 - **Mercado**: DataHub (roteador multi-provider com cache) + IBKRService
   (posições/equity; degraded usa fast-path com cache quente) + scan Mangala

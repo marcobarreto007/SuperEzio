@@ -48,7 +48,7 @@ The Mangala Engine (`src/core/pipeline/nodes/mangala.py`) is a multi-agent simul
 - RAG persistence uses checksummed generations and never loads NumPy pickle data.
 - Durable files use same-directory temporary writes followed by atomic replacement.
 - Live execution is fail-safe disabled unless the explicit safety configuration allows it.
-- The CEO/orchestrator local LLM process is required: if it is unavailable, the organism enters `MAN_AT_WORK` and blocks orders. Financial experts are independently pinned to the official DeepSeek API and never fall back to the local CEO model.
+- Cloud model APIs (Z.ai GLM-5.3 and DeepSeek V4 Pro) power the cognitive layers: if API keys or remote endpoints are unavailable, the organism enters `MAN_AT_WORK` and blocks orders. No local LLM server (`:8080`) is required for operation.
 
 The detailed July 2026 verification is in [docs/audit/phase10_organism_truth_and_remediation_2026-07-19.md](docs/audit/phase10_organism_truth_and_remediation_2026-07-19.md).
 

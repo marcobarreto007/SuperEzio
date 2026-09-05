@@ -29,12 +29,12 @@ incorporates the detailed module contracts but does not duplicate them.
 | CEO (llama.cpp) | `scripts/serve_agent_llamacpp.ps1 -Port 8080` | 8080 | `http://127.0.0.1:8080/health` |
 | API (FastAPI) | `python -m agent_server.main` | 8002 | `http://127.0.0.1:8002/health` |
 
-The supported CEO/orchestrator model is `Ornith-1.0-9B-Q4_K_M` (DeepReinforce Ornith 1.0, Q4_K_M, ~5.9GB) with an 8192-token
-context on the shared local llama.cpp server. Financial experts, day-trade
-judge, and auditor are pinned to `deepseek-v4-pro` on the official DeepSeek
-HTTPS API. No cross-provider fallback is permitted. The GGUF, llama.cpp
-executable, and a local `SUPEREZIO_DEEPSEEK_API_KEY` are external machine
-prerequisites and are not included in the release ZIP.
+The production runtime operates 100% on external cloud model APIs: Z.ai (`https://api.z.ai/api/coding/paas/v4`, `glm-5.3`)
+for Bob CEO / orchestrator, and the official DeepSeek HTTPS API (`https://api.deepseek.com`, `deepseek-v4-pro`)
+for financial experts, day-trade judge, and auditor.
+The local llama.cpp server profile with `Ornith-1.0-9B-Q4_K_M` (~5.9GB) on `:8080` remains documented as a historical/standby reference.
+No cross-provider fallback is permitted. API keys (`SUPEREZIO_DEEPSEEK_API_KEY`, `SUPEREZIO_GLM_CODING_PLAN_API_KEY`)
+are external machine prerequisites stored only in `.env.local`.
 
 ## Configuration
 

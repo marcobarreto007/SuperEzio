@@ -8,48 +8,40 @@ Atualizado: 2026-08-21
 
 | Componente | Bind | Contrato |
 |---|---|---|
-| llama-server compartilhado | `127.0.0.1:8080` | Ornith-1.0-9B-Q4_K_M na GPU viva (RTX 2070 8GB); atende CEO e orquestrador |
+| Z.ai Coding Plan | `https://api.z.ai` | `glm-5.3`; atende Bob CEO e orquestrador |
 | DeepSeek oficial | `https://api.deepseek.com` | `deepseek-v4-pro`; atende experts financeiros, judge e auditor |
 | API + UI | `127.0.0.1:8002` | FastAPI, pipeline, health e cockpit |
 
-Nao existe fallback cruzado: CEO/orquestrador nunca caem para DeepSeek, e experts nunca caem para Qwen. Se o llama-server cair, o sistema deve entrar em `MAN_AT_WORK` e bloquear ordens. Sem `SUPEREZIO_DEEPSEEK_API_KEY`, a API pode manter liveness, mas `/health/details` reporta o tier de experts como indisponivel.
+Se as chaves de API não estiverem configuradas em `.env.local`, a API mantém liveness em `:8002`, mas `/health/details` reporta o tier de modelos como indisponível e o sistema entra em fail-closed `MAN_AT_WORK`.
 
 ## Iniciar na ordem correta
 
-No diretorio raiz do projeto:
+No diretório raiz do projeto:
 
 ```powershell
-# Terminal 1 — modelo local compartilhado
-powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080
-
-# Terminal 2 — API e UI, depois que :8080 responder
+$env:PYTHONPATH = "src;$env:PYTHONPATH"
 python -m agent_server.main
 ```
 
-Antes do boot da API, configure `SUPEREZIO_DEEPSEEK_API_KEY` em `.env.local`.
+Antes do boot da API, configure `SUPEREZIO_DEEPSEEK_API_KEY` e `SUPEREZIO_GLM_CODING_PLAN_API_KEY` em `.env.local`.
 
 ## Verificar saude
 
 ```powershell
-curl.exe -fsS http://127.0.0.1:8080/health
-curl.exe -fsS http://127.0.0.1:8080/v1/models
 curl.exe -fsS http://127.0.0.1:8002/health
 curl.exe -fsS http://127.0.0.1:8002/health/details
 ```
 
-`/v1/models` deve refletir `Ornith-1.0-9B-Q4_K_M`. A UI fica em `http://127.0.0.1:8002`.
+A UI fica em `http://127.0.0.1:8002`. O cockpit exibe os cards de telemetria, gráficos e chat.
 
 ## Recuperacao
 
-### Modelo local offline
+### Provedor em nuvem offline ou chave ausente
 
-1. Confirme o dono da porta com `Get-NetTCPConnection -LocalPort 8080 -ErrorAction SilentlyContinue`.
-2. Consulte `runtime/logs/` e corrija a causa de boot, GPU ou modelo.
-3. Reinicie o launcher local em `:8080`.
-4. Confirme `/health` e `/v1/models` antes de testar a API.
-5. Nao redirecione o CEO para DeepSeek como contorno.
-
-Enquanto `:8080` estiver offline, `MAN_AT_WORK` e o comportamento seguro esperado.
+1. Confirme conectividade de rede com `https://api.z.ai` e `https://api.deepseek.com`.
+2. Verifique se `SUPEREZIO_DEEPSEEK_API_KEY` e `SUPEREZIO_GLM_CODING_PLAN_API_KEY` estão presentes em `.env.local`.
+3. Consulte `/health/details` na seção `checks.providers_summary`.
+4. Enquanto as chaves forem inválidas ou a conexão externa falhar, `MAN_AT_WORK` é o comportamento seguro esperado.
 
 ### GPU morta ou offload na CPU
 

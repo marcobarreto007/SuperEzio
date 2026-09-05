@@ -2,68 +2,59 @@
 
 Updated: 2026-08-21
 Policy: DISK ONLY. GitHub is blocked by `.f51/GITHUB_POLICY.json`.
-Model policy: HYBRID TRUST BOUNDARY — CEO/orchestrator use the shared local
-llama-server on `127.0.0.1:8080`; financial experts, judge, and auditor use
-the official DeepSeek HTTPS API. Neither tier may fall back to the other.
+Model policy: CLOUD MODEL APIs — CEO/orchestrator use Z.ai GLM-5.3 (or DeepSeek V4 Pro)
+via HTTPS API; financial experts, judge, and auditor use the official DeepSeek HTTPS API.
+No local model server (:8080) is required.
 
 Version boundary: Python package and public API `4.0.0`; runtime configuration and model manifest `4.2.0`.
 
 ## Runtime Definition
 
-SuperEzio has two official local runtime processes:
+SuperEzio has one official local runtime process for the product:
 
 | Component | Entrypoint | Bind | Purpose |
 | --- | --- | --- | --- |
-| CEO llama-server | `powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080` | `127.0.0.1:8080` | Local OpenAI-compatible LLM endpoint for CEO and orchestrator. |
 | FastAPI agent server | `python -m agent_server.main` | `127.0.0.1:8002` | Browser UI, A2A envelope, pipeline, health, product routes. |
 
-External dependency: official DeepSeek API (`https://api.deepseek.com`) for
-financial experts, day-trade judge, and auditor. Store
-`SUPEREZIO_DEEPSEEK_API_KEY` only in ignored local environment files.
+External dependencies:
+- Z.ai Coding Plan API (`https://api.z.ai/api/coding/paas/v4`) for Bob CEO / orchestrator (`glm-5.3`).
+- Official DeepSeek API (`https://api.deepseek.com`) for financial experts, day-trade judge, and auditor (`deepseek-v4-pro`).
+Store keys (`SUPEREZIO_GLM_CODING_PLAN_API_KEY`, `SUPEREZIO_DEEPSEEK_API_KEY`) only in ignored local environment files (`.env.local`).
 
 Official config file: `config/runtime.yml`.
 
-Official CEO model (2026-09-04, live GPU re-measure):
-
-```text
-models/Ornith-1.0-9B-Q4_K_M.gguf
-# or the absolute file supplied through SUPEREZIO_MODEL_PATH
-```
-
-Model: Ornith-1.0-9B (dense)
-Quantization: Q4_K_M (~5.6 GB file)
-Context: 8192 tokens
-GPU: offload all layers to the **live** NVIDIA card. Measured 2026-09-04: 1x RTX 2070 8GB. Do **not** pass `-ts 8,6` / `-ts 12,8` — that assumes two GPUs. The RTX 3060 12GB is in Device Manager as `CM_PROB_FAILED_ADD` and does not appear in `nvidia-smi`. `serve_agent_llamacpp.ps1` defaults to `-ts auto` (omit `-ts` on one GPU).
-Cache: KV q8_0 with flash attention on (this llama.cpp build requires `-fa on` for quantized V cache). First prompt eval on a cold 2070/WDDM can take ~60s; measure the second request. MTP disabled (no VRAM headroom on 8GB).
-Slots: 1 (one server, one queue)
-
 Current official model routing:
 
-- `agent`: local OpenAI-compatible llama.cpp endpoint at `http://127.0.0.1:8080/v1`. Never falls back to another provider — if the server is down the system enters MAN_AT_WORK.
-- `local_orchestrator`: local orchestrator route using the same endpoint.
+- `agent`: Z.ai Coding Plan endpoint (`https://api.z.ai/api/coding/paas/v4`, model `glm-5.3`) running the CEO prompt/mandamentos, or official DeepSeek API (`deepseek-v4-pro`).
+- `local_orchestrator`: orchestrator route using the same cloud model.
 - `deepseek`: financial experts pinned to `deepseek-v4-pro` at `https://api.deepseek.com`.
 - `daytrade_judge` and `daytrade_auditor`: independently pinned DeepSeek roles using the same authenticated external endpoint.
-- Missing/invalid DeepSeek configuration fails closed; it never redirects expert traffic to Qwen. A local CEO failure likewise never redirects Bob to DeepSeek.
+- Missing/invalid cloud configuration fails closed (MAN_AT_WORK).
 
 Official Windows launcher: `start.ps1`, invoked directly or through `setup_superezio.bat run`.
 
 ## Manual Start
 
-From the project root:
+### Production Mode (100% Cloud Models)
+From the project root, start the API server directly (models are served via external HTTPS APIs):
 
 ```powershell
-# Terminal 1 - CEO
-powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080
-
-# Terminal 2 - API
 $env:PYTHONPATH = "src;$env:PYTHONPATH"
 python -m agent_server.main
 ```
 
-Before Terminal 2, configure this secret in `.env.local` (never commit it):
+Before starting, configure your cloud secrets in `.env.local` (never commit it):
 
 ```ini
 SUPEREZIO_DEEPSEEK_API_KEY=your-deepseek-api-key
+SUPEREZIO_GLM_CODING_PLAN_API_KEY=your-zai-api-key
+```
+
+### Standby / Historical Local Serving Profile (Optional)
+If testing or running the legacy local model server on `:8080`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/serve_agent_llamacpp.ps1 -Port 8080
 ```
 
 For launcher validation without starting servers:

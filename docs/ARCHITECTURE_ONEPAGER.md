@@ -1,6 +1,6 @@
 # SuperEzio - Architecture Overview
 
-> Visão corrente (arquitetura híbrida :8080 local + DeepSeek externo). A
+> Visão corrente (arquitetura 100% cloud model APIs + local data/state). A
 > duplicata histórica é `docs/architecture/SUPEREZIO_DOCS.md`, marcada
 > **HISTORICO / SUPERSEDED** (estado de 2026-06-16) — não usar como fonte atual.
 
@@ -29,13 +29,12 @@ FastAPI Server (:8002)
     |    +-- news/social/filings      NewsAPI, News Scout, Reddit Pulse, ApeWisdom,
     |                                 Social Whale, Form4API
     |
-    +--> Model Gateway
-         +-- Shared local llama-server (:8080)
-         |   +-- Bob CEO              Qwen3.8-27B
-         |   +-- orchestrator         role prompt on the same model
-         +-- Official DeepSeek HTTPS API
-             +-- financial experts    deepseek-v4-pro
-             +-- judge/auditor        provider-pinned roles
+    +--> Model Gateway (Cloud APIs)
+         +-- Z.ai Coding Plan HTTPS API (api.z.ai)
+         |   +-- Bob CEO / Orchestrator   glm-5.3
+         +-- Official DeepSeek HTTPS API (api.deepseek.com)
+             +-- financial experts        deepseek-v4-pro
+             +-- judge/auditor            provider-pinned roles
 ```
 
 ## Tech Stack
@@ -45,8 +44,8 @@ FastAPI Server (:8002)
 | API | FastAPI + uvicorn + streaming NDJSON responses |
 | Pipeline | LangGraph DAG with conditional routing |
 | Validation | Pydantic v2 |
-| LLM Roles | Qwen3.8-27B local for CEO/orchestrator; deepseek-v4-pro external for experts/judge/auditor |
-| Model Serving | llama.cpp locally plus the official DeepSeek OpenAI-compatible HTTPS API |
+| LLM Roles | Z.ai GLM-5.3 for CEO/orchestrator; deepseek-v4-pro external for experts/judge/auditor |
+| Model Serving | Official cloud HTTPS APIs (Z.ai OpenAI-compatible and DeepSeek HTTPS API) |
 | Data | DataHub capability routing across 15 providers: AKShare, Alpha Vantage, AlphaSMO, ApeWisdom, BoC Macro, Fed Macro, Finnhub, Form4API, News Scout, NewsAPI, Reddit Pulse, Social Whale, Twelve Data, Wolfram, and yfinance |
 | AI/ML | PyTorch, transformers, sentence-transformers, FAISS |
 | Observability | Traces, metrics, and structured logs |
@@ -66,8 +65,8 @@ FastAPI Server (:8002)
 
 ## Key Design Decisions
 
-- Hybrid trust boundary: CEO/orchestrator use local `127.0.0.1:8080`; experts/judge/auditor use official DeepSeek. No role crosses tiers as a fallback.
-- Fail closed: if the local model server is unavailable, SuperEzio enters `MAN_AT_WORK` and blocks order submission.
+- Cloud model boundary: CEO/orchestrator use Z.ai GLM-5.3 (or official DeepSeek); experts/judge/auditor use official DeepSeek HTTPS API. No local model server (:8080) is required for operation.
+- Fail closed: if cloud model APIs or API keys are unavailable, SuperEzio enters `MAN_AT_WORK` and blocks order submission.
 - Traceable evidence: collected financial numbers are expected to carry provider/source metadata where available.
 - Missing data blocks conclusions: the system prefers STUDY_MORE over guessing.
 - Single pipeline: one graph keeps routing predictable instead of splitting behavior across hidden modes.
