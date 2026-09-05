@@ -319,7 +319,7 @@ def test_provider_factory_keeps_agent_local_and_pins_experts_to_deepseek(monkeyp
         assert provider.base_url == DEEPSEEK_OFFICIAL_BASE_URL
         assert provider.model == DEEPSEEK_MODEL_ID
         assert provider.max_tokens == 1800
-        assert provider.timeout_s == 180
+        assert provider.timeout_s == 60
         assert provider.api_key == "runtime-contract-test-key"
 
     raw_cfg = _runtime_config()
