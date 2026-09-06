@@ -205,3 +205,4 @@ runtime/desktop-build/
 runtime/desktop-self-test/
 runtime/desktop-smoke/
 
+runtime/desktop-packaged-smoke/
