@@ -27,7 +27,7 @@ def test_portfolio_does_not_invent_balance_or_connection(portfolio, expected, co
             page.evaluate("window.SZ.bobPanel.render()")
             text = page.locator("#bob-runtime").text_content()
             assert expected in text
-            assert ("PAPER CONNECTED" in text) is connected
+            assert ("CONSULTA CONECTADA" in text) is connected
             assert "100000" not in text
             assert page.locator(".bob-guardrail-row.is-good").count() == 0
             assert "Sem evidência de validação" in text

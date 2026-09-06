@@ -101,7 +101,7 @@
       '<section class="cockpit-section">',
         '<div class="cockpit-section__title">Portfolio IBKR</div>',
         '<div class="bob-portfolio-line"><span>Patrimônio</span><strong>' + esc(equity) + '</strong></div>',
-        '<div class="bob-portfolio-line"><span>Status</span><strong>' + esc(connected ? "PAPER CONNECTED" : "OFFLINE") + '</strong></div>',
+        '<div class="bob-portfolio-line"><span>Status</span><strong>' + esc(connected ? "CONSULTA CONECTADA" : "OFFLINE") + '</strong></div>',
         '<div class="bob-portfolio-line"><span>Ordens abertas</span><strong>' + esc(connected ? orders.length : '--') + '</strong></div>',
         rows,
       '</section>',
