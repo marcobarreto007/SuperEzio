@@ -56,3 +56,5 @@
 {"organ": "scanner_eyes", "category": "senses", "pain": 25, "error": "Scanner error: No module named 'src'", "timestamp": "2026-09-05T23:44:00.991577+00:00", "healed": false}
 {"organ": "cache_liver", "category": "memory", "pain": 25, "error": "Only 0 tickers cached (need >10)", "timestamp": "2026-09-05T23:44:00.994588+00:00", "healed": false}
 {"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-09-05T23:44:43.343922+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-09-05T23:50:17.477400+00:00", "healed": false}
+{"organ": "api_heart", "category": "heart", "pain": 75, "error": "API unreachable: timed out", "timestamp": "2026-09-06T00:00:57.291457+00:00", "healed": false}
