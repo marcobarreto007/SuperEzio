@@ -323,14 +323,28 @@ def _build_small_capital_prompt(raw_message: str) -> str:
             MODEL_PROMPTS["local"]["persona"],
             (
                 "SMALL CAPITAL ADVISORY:\n"
-                "The user has a small cash pile and asked what to do with it.\n"
-                "Answer in the user's language in at most 12 short lines.\n"
+                "The user has a small cash pile and asks for an investment "
+                "suggestion (amount + risk profile) without naming a ticker and "
+                "without requesting a trade, scan, or order.\n"
+                "Answer in Portuguese (or the user's language) in at most 12 short lines.\n"
+                "Answer structure, in this order:\n"
+                "1) short profile read: available capital + declared risk appetite;\n"
+                "2) 2 to 4 compatible product/strategy classes under explicit "
+                "illustrative premises -- never invent a ticker, never quote "
+                "yield, return, or live price;\n"
+                "3) explicit honesty: no live market data was collected in this run;\n"
+                "4) next step offering exactly two options: the user names a "
+                "candidate ticker and you run the verification gates ticker by "
+                'ticker, OR the user authorizes a scan (e.g. "pode escanear").\n'
                 "Do NOT describe a market scan. Do NOT invent a ticker.\n"
                 "Do NOT use the 12-section complex finance contract.\n"
                 "Do NOT mention REJECT_ALL, US_CANADA_LIQUID, price_routes_active, "
                 "or data-limit telemetry.\n"
-                "Opinion: stay in cash unless they give a priced ticker. Live trading is frozen.\n"
-                "Next step: ask for a ticker (e.g. TD.TO) or an explicit mini-cap scan with catalyst."
+                "Do NOT default to 'stay in cash': that verdict belongs only to a "
+                "later step, when no verifiable candidate survives the ticker/scan "
+                "check. Do NOT make asking for a ticker the whole answer.\n"
+                "Tone: educational decision support, never regulated personalized "
+                "financial advice."
             ),
             f"USER: {raw_message}",
         ]

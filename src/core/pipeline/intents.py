@@ -6,6 +6,7 @@ FunÃ§Ãµes pÃºblicas exportadas:
   - detect_diary_intent(message) -> bool
   - detect_market_scan_intent(message) -> bool
   - detect_decisive_trade_intent(message) -> bool
+  - is_product_strategy_suggestion(message) -> bool
   - detect_another_trade_recommendation_intent(message) -> bool
   - detect_pennylab_intent(message) -> bool
   - detect_complex_finance_intent(message) -> bool
@@ -471,11 +472,16 @@ def infer_cognitive_contract(
         or action == "collect_data"
         or (route == "agent" and intent == "bob_decides" and detect_ticker(raw))
     )
+    # A rota vaga delegada (route=general, intent=market_scan, action=answer)
+    # e decisao de fala do operador, nao um pedido de scan: action=answer nunca
+    # concede scanner so pelo intent. A relacao crua com o mercado (detector de
+    # scan) so vale em rotas que nao resolveram para general/answer.
+    delegated_answer = route == "general" and action == "answer"
     scan_requested = bool(
         route == "market_scan"
-        or intent in {"market_scan", "another_trade_recommendation"}
+        or (intent in {"market_scan", "another_trade_recommendation"} and action != "answer")
         or action == "scan_market"
-        or detect_market_scan_intent(raw)
+        or (detect_market_scan_intent(raw) and not delegated_answer)
     )
     decisive_trade = detect_decisive_trade_intent(raw)
 
@@ -1374,10 +1380,188 @@ DECISIVE_TRADE_HINTS = (
     "quero lucrar",
     "quero ganhar",
     "recomendar para comprar",
+)
+
+# "escolhe/escolha" so e decisive quando existe contexto de ordem/trade/
+# ticker/scan/treino (composite). Sozinho ("escolhe um produto pra mim") e um
+# pedido de sugestao de produto/estrategia sem ticker -> o Bob responde
+# framework/produto na rota general (action=answer), sem scanner.
+ESCOLHE_PICK_HINTS = (
     "escolhe",
     "escolha",
     "escolhe pra mim",
     "escolhe para mim",
+    "escolha pra mim",
+    "escolha para mim",
+)
+
+# Vocabulario que marca contexto de execucao de mercado (ordem/trade/ticker/
+# scan/treino). Usado (a) para liberar "escolhe/escolha" como decisive apenas
+# nesse contexto e (b) para excluir da sugestao de produto quem fala de
+# operar/treinar/escaneiar/acionar papel.
+_MARKET_EXECUTION_CONTEXT_HINTS = (
+    # ordem / order
+    "ordem",
+    "ordens",
+    "oredem",
+    "oredens",
+    "order",
+    "orders",
+    "submit",
+    "send",
+    # trade / operacao
+    "trade",
+    "trades",
+    "trading",
+    "transacao",
+    "transacoes",
+    "compra",
+    "comprar",
+    "compre",
+    "venda",
+    "vender",
+    "operar",
+    "operacao",
+    "operacoes",
+    "posicao",
+    "posicoes",
+    "entrada",
+    "entara",
+    "saida",
+    "stop loss",
+    "stop",
+    # acao/ticker — escolher papel, nao produto/estrategia
+    "acao",
+    "acoes",
+    "stock",
+    "stocks",
+    "ticker",
+    "tickers",
+    "acao de centavo",
+    "acoes de centavo",
+    # horizonte de trade
+    "1 hora",
+    "uma hora",
+    "one hour",
+    "4 horas",
+    "quatro horas",
+    "intraday",
+    "scalp",
+    "rapida",
+    "rapidas",
+    "rapido",
+    "rapidos",
+    # scan / discovery
+    "scan",
+    "scanear",
+    "screen",
+    "screener",
+    "shortlist",
+    "pesquise",
+    "pesquisar",
+    "pesquisa",
+    "busque",
+    "busca",
+    "buscar",
+    "procure",
+    "procura",
+    "encontre",
+    "encontra",
+    "encontrar",
+    "oportunidades",
+    "opurtunidades",
+    "opportunity",
+    "opportunities",
+    "penny stock",
+    "penny stocks",
+    "pennystock",
+    "small cap",
+    "small caps",
+    "small-cap",
+    "small-caps",
+    "microcap",
+    "microcaps",
+    "micro cap",
+    "micro caps",
+    "mini cap",
+    "mini caps",
+    "me lista",
+    "lista de",
+    "acoes de",
+    "stocks in",
+    # treino / paper
+    "treino",
+    "treinar",
+    "treinamento",
+    "training",
+    "train",
+    "paper",
+    "simulado",
+    "aprendizagem",
+)
+
+# Verbos de pedido de sugestao de produto/estrategia de investimento.
+_PRODUCT_SUGGESTION_VERB_HINTS = (
+    "escolhe",
+    "escolha",
+    "escolher",
+    "escolhe pra mim",
+    "escolhe para mim",
+    "escolha pra mim",
+    "escolha para mim",
+    "sugere",
+    "sugira",
+    "sugerir",
+    "me sugere",
+    "me sugira",
+    "recomenda",
+    "recomende",
+    "recomendar",
+    "me recomenda",
+    "me indica",
+    "me indique",
+    "me diga um produto",
+    "me diga o produto",
+    "me da um produto",
+    "me de um produto",
+)
+
+# Substantivos que nomeiam o alvo da sugestao: produto/estrategia/framework.
+_PRODUCT_STRATEGY_NOUN_HINTS = (
+    "produto",
+    "produtos",
+    "estrategia",
+    "estrategias",
+    "framework",
+    "carteira",
+    "investimento",
+    "investimentos",
+)
+
+# Perfil de risco explícito na mensagem.
+_RISK_PROFILE_HINT_WORDS = (
+    "risco",
+    "riscos",
+    "risk",
+    "risks",
+    "risky",
+    "arriscado",
+    "conservador",
+    "conservadora",
+    "conservative",
+    "moderado",
+    "moderada",
+    "moderate",
+    "agressivo",
+    "agressiva",
+    "aggressive",
+    "arrojado",
+    "arrojada",
+)
+
+_AMOUNT_HINT_PATTERN = re.compile(
+    r"(?:[$]\s*\d|\b(?:cad|usd|brl)\s*\d|\b\d[\d.,]*(?:\.\d+)?\s*(?:cad|usd|brl)\b"
+    r"|\b\d[\d.,]*\s*(?:k|mil|milhao|milhoes|reais)\b)"
 )
 
 ANOTHER_TRADE_HINTS = (
@@ -1763,6 +1947,11 @@ def detect_capital_allocation_intent(message: str) -> bool:
         r"\bkeep\s+(?:it\s+)?as\s+cash\b",
         r"\bcash\s*,?\s*invest\b",
         r"\bcapital\s+alloc",
+        # PT: reserva de emergencia e comparacao reserva vs ETF sao decisoes de
+        # alocacao de capital, nao scan ("reserva vs etf", "reserva de
+        # emergencia vs investir em etf").
+        r"\breserva\s+de\s+emergencia\b",
+        r"\breserva\b.*\bvs\b.*\betfs?\b|\betfs?\b.*\bvs\b.*\breserva\b",
     )
     normalized = normalize_message(message)
     allocation_action = re.search(
@@ -2436,6 +2625,9 @@ def _is_market_scan_request(message: str) -> bool:
         return False
     if detect_operational_status_request(message) or detect_negative_trade_instruction(message):
         return False
+    # Sugestao de produto/estrategia sem ticker e resposta advisory, nao scan.
+    if is_product_strategy_suggestion(message):
+        return False
     # Negative scan clauses block incidental scan words, but act as exclusions
     # when a positive discovery command names an allowed scope.
     normalized = normalize_message(message)
@@ -2495,6 +2687,81 @@ def detect_market_scan_intent(message: str) -> bool:
     return _is_market_scan_request(message)
 
 
+# Acronimos financeiros comuns que aparecem em CAPS mas nao sao ticker.
+_TICKER_LIKE_STOP_WORDS = frozenset(
+    {
+        "AI",
+        "CAD",
+        "USD",
+        "EUR",
+        "GBP",
+        "BRL",
+        "CDN",
+        "ETF",
+        "ETFS",
+        "FII",
+        "FIIS",
+        "IPO",
+        "REIT",
+        "REITS",
+        "GIC",
+        "TSX",
+        "B3",
+    }
+)
+
+
+def _has_inline_ticker_like_token(message: str) -> bool:
+    """Aproxima detect_ticker sem chamar detect_ticker.
+
+    detect_ticker recursa via detect_broker_status_intent ->
+    detect_decisive_trade_intent, entao nao pode ser chamado dentro do
+    detector de sugestao de produto nem do composite de "escolhe/escolha".
+    Considera sufixos (.TO/.SA/.V), padroes com digito (PETR4/BOVA11) e tokens
+    em CAPS dentro de mensagem em caixa mista, ignorando acronimos financeiros.
+    """
+    if not message:
+        return False
+    if re.search(r"\b[A-Za-z]{1,6}\d{0,2}\.(?:SA|TO|V)\b", message):
+        return True
+    if re.search(r"\b[A-Z]{2,6}\d{1,2}\b", message):
+        return True
+    if not re.search(r"[a-z]", message):
+        # Mensagem inteira em CAPS (caixa alta) nao e lista de tickers.
+        return False
+    for token in re.findall(r"\b[A-Z]{2,6}\b", message):
+        if token not in _TICKER_LIKE_STOP_WORDS:
+            return True
+    return False
+
+
+def is_product_strategy_suggestion(message: str) -> bool:
+    """Detecta pedido de sugestao de produto/estrategia de investimento sem ticker.
+
+    True quando o operador usa verbo de sugestao ("escolhe/escolha", "sugere",
+    "recomenda", "me diga um produto"...) e NAO fala de ordem/trade/ticker/
+    scan/treino, com contexto financeiro: valor + perfil de risco OU alvo
+    nomeado (produto/estrategia/framework). Nesse caso o Bob deve responder
+    framework/produto (route=general, action=answer, sem scanner) em vez de
+    cair no DECISIVE_TRADE_ORDER com scan + REJECT_ALL.
+    """
+    if not message or not message.strip():
+        return False
+    if not has_hint(message, _PRODUCT_SUGGESTION_VERB_HINTS):
+        return False
+    if _has_inline_ticker_like_token(message) or has_hint(
+        message,
+        _MARKET_EXECUTION_CONTEXT_HINTS,
+    ):
+        return False
+    if has_hint(message, _PRODUCT_STRATEGY_NOUN_HINTS):
+        return True
+    normalized = normalize_message(message)
+    has_amount = _AMOUNT_HINT_PATTERN.search(normalized) is not None
+    has_risk_profile = has_hint(message, _RISK_PROFILE_HINT_WORDS)
+    return has_amount and has_risk_profile
+
+
 def detect_decisive_trade_intent(message: str) -> bool:
     """Detect if the user is asking for a decisive buy/trade recommendation.
 
@@ -2503,7 +2770,17 @@ def detect_decisive_trade_intent(message: str) -> bool:
     """
     if not message or not message.strip():
         return False
+    # Sugestao de produto/estrategia sem ticker nao e ordem/trade: o Bob
+    # responde framework/produto na rota general em vez de scan + REJECT_ALL.
+    if is_product_strategy_suggestion(message):
+        return False
     if has_hint(message, DECISIVE_TRADE_HINTS):
+        return True
+    # "escolhe/escolha" so e decisive quando ha contexto de ordem/trade/ticker/
+    # scan/treino (composite); sozinho e pedido de sugestao (rota general).
+    if has_hint(message, ESCOLHE_PICK_HINTS) and (
+        _has_inline_ticker_like_token(message) or has_hint(message, _MARKET_EXECUTION_CONTEXT_HINTS)
+    ):
         return True
 
     normalized = normalize_message(message)
@@ -2883,6 +3160,25 @@ def parse_user_intent(
                 filters={},
                 confidence=0.9,
                 reasons=("portfolio_concentration_advisory_detected",),
+                entities=entities,
+                diary=diary,
+                pennylab=False,
+            )
+        )
+
+    # Sugestao de produto/estrategia sem ticker (valor+perfil de risco+verbo de
+    # sugestao, ou produto/estrategia nomeado, sem vocabulario de ordem/trade/
+    # ticker/scan/treino) -> o Bob responde framework/produto; nunca vira
+    # DECISIVE_TRADE_ORDER com scan + REJECT_ALL.
+    if is_product_strategy_suggestion(raw):
+        return done(
+            IntentParse(
+                route="general",
+                intent="personal_finance",
+                action="answer",
+                filters={},
+                confidence=0.88,
+                reasons=("product_strategy_suggestion_detected",),
                 entities=entities,
                 diary=diary,
                 pennylab=False,

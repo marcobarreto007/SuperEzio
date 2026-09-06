@@ -58,14 +58,19 @@ def test_mini_cap_prompt_stays_market_scan():
 
 
 def test_operator_cad100_speech_is_short_and_has_no_scan_telemetry():
+    """Contract 2026-09-05: a suggestion request (capital + risk profile, no
+    ticker) gets a product-strategy suggestion — not the old "stay in cash /
+    give me a ticker (TD.TO)" scan dead-end."""
     state = {"message": OPERATOR_CAD100, "intent": "capital_allocation"}
     answer = _contract_fallback_answer(state)
     lowered = answer.lower()
     for token in _TELEMETRY:
         assert token not in answer, token
-    assert "caixa" in lowered or "cash" in lowered
-    assert "td.to" in lowered
-    assert len(_nonempty_lines(answer)) <= 12
+    assert "fica em caixa" not in lowered
+    assert "td.to" not in lowered
+    assert "100" in lowered
+    assert "alto risco" in lowered or "risco" in lowered
+    assert len(_nonempty_lines(answer)) <= 16
     assert "2 semanas" not in lowered
 
 

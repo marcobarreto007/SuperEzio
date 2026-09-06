@@ -1794,8 +1794,113 @@ def _decisive_trade_order_answer(state: dict) -> str:
     return answer
 
 
+def _is_product_strategy_suggestion(state: dict) -> bool:
+    """True quando a mensagem pede sugestao de produto/estrategia SEM ticker.
+
+    Gate do slice 'sugestao sem ticker': perguntas de alocacao/planejamento
+    (route general, action answer) sao conselho — nunca requisicao de scan.
+    O ROUTER exporta `is_product_strategy_suggestion` em intents.py; o import
+    e LAZY para este node funcionar antes e depois da lane do router.
+    Fallback local espelha o contrato atual do router (capital_allocation e
+    personal_finance com action="answer"); concentracao de carteira,
+    comparacao de ETFs e macro de DCA continuam advisory classico.
+    """
+    if state.get("ticker"):
+        return False
+    if state.get("route") in {"market_scan", "ticker_analysis"}:
+        return False
+    if state.get("intent") in {"market_scan", "ticker_analysis", "another_trade_recommendation"}:
+        return False
+    message = state.get("message", "")
+    try:
+        from ..intents import is_product_strategy_suggestion
+
+        return bool(is_product_strategy_suggestion(message))
+    except ImportError:
+        pass
+    if state.get("action") != "answer":
+        return False
+    if state.get("intent") not in {"capital_allocation", "personal_finance"}:
+        return False
+    return not (
+        _is_etf_comparison_question(message)
+        or _is_portfolio_concentration_question(message)
+        or _is_dca_macro_question(message)
+    )
+
+
+def _is_personal_finance_planning(message: str) -> bool:
+    """'reserva vs ETF', dividas, emergencia, educacao: planejamento pessoal —
+    recebe framework (complex finance), nunca render de produto nem scan."""
+    raw = (message or "").lower()
+    return any(
+        token in raw
+        for token in (
+            "reserva",
+            "emergencia",
+            "divida",
+            "dívida",
+            "debt",
+            "emergency",
+            "educacao",
+            "equipamento",
+            "gasto",
+            "planejamento",
+            "aposentadoria",
+            "retirement",
+        )
+    )
+
+
+def _is_investment_suggestion_request(message: str) -> bool:
+    """'investir 1000 cad em alto risco': investimento com perfil/valor sem
+    ticker — recebe sugestao de produto/estrategia."""
+    raw = (message or "").lower()
+    has_invest_verb = any(
+        token in raw for token in ("investir", "invest", "aplicar", "colocar", "comprar")
+    )
+    has_risk_or_amount = any(
+        token in raw
+        for token in (
+            "risco",
+            "risk",
+            "alto",
+            "alto retorno",
+            "agressiv",
+            "conservador",
+            "retorno maximo",
+            "cad ",
+            "usd ",
+            "$",
+        )
+    )
+    return has_invest_verb and has_risk_or_amount
+
+
+def _render_strategy_suggestion_answer(state: dict) -> str:
+    """Resposta deterministica PT/EN para sugestao de produto sem ticker.
+
+    Renderizador novo vive em ..strategy_speech; import e LAZY porque o
+    modulo chega na integracao final. Sem o modulo, cai no fallback PT de
+    complex finance que ja existia (mesmo contrato de conselho sem mercado).
+    """
+    try:
+        from ..strategy_speech import render_product_strategy_suggestion
+
+        return render_product_strategy_suggestion(state.get("message", ""), scan=state.get("scan"))
+    except ImportError:
+        logger.debug("strategy_speech indisponivel: fallback _complex_finance_fallback_answer")
+        return _complex_finance_fallback_answer(state.get("message", ""))
+
+
 def _market_scan_answer(state: dict) -> str:
     message = state.get("message", "")
+    # Sugestao sem ticker: scan no estado (ou despejo de scan) nunca substitui
+    # a resposta — despacha para o renderizador de sugestao antes de qualquer
+    # render deterministico de mercado.
+    if _is_product_strategy_suggestion(state):
+        return _render_strategy_suggestion_answer(state)
+
     if _should_use_decisive_mode(state) or detect_decisive_trade_intent(message):
         return _decisive_trade_order_answer(state)
 
@@ -2470,16 +2575,27 @@ def _contract_fallback_answer(state: dict) -> str:
             "CENSORSHIP_SKIPPED: _contract_fallback_answer -- pipeline has data, trusting Bob"
         )
         return ""
+    # Sugestao sem ticker: fallback de contrato responde com a sugestao de
+    # produto, nunca com render de scan/ordem (mesmo se scan vazou no estado).
+    if _is_product_strategy_suggestion(state):
+        return _render_strategy_suggestion_answer(state)
     mode = state.get("cognitive_mode", "ADVISORY_KNOWLEDGE")
     message = state.get("message", "")
+    # Planejamento pessoal ("reserva vs ETF", dividas) vem ANTES de qualquer
+    # comparacao de ETFs/advisory: recebe framework, nunca scan.
+    if _is_personal_finance_planning(message):
+        return _complex_finance_fallback_answer(message)
     if state.get("scan"):
         return _market_scan_answer(state)
     if _is_etf_comparison_question(message) or _is_portfolio_concentration_question(message):
         return _advisory_knowledge_fallback_answer(state)
     if mode == "CAPITAL_ALLOCATION" or state.get("intent") == "capital_allocation":
+        if _is_investment_suggestion_request(message):
+            # "investir 1000 em alto risco" sem ticker: sugestao de produto.
+            return _render_strategy_suggestion_answer(state)
         from ..scan_verdict import render_small_capital_speech
 
-        return render_small_capital_speech(state.get("message", ""), state.get("scan"))
+        return render_small_capital_speech(message, state.get("scan"))
     if state.get("intent") == "personal_finance":
         return _complex_finance_fallback_answer(state.get("message", ""))
     if mode == "INDUSTRY_RESEARCH":
@@ -2513,6 +2629,12 @@ def _should_force_contract_fallback(state: dict, content: str) -> bool:
     if state.get("scan"):
         return True
 
+    # Sugestao sem ticker: se o LLM despejar texto de scan/reject na resposta
+    # (relatorio de pesquisa, candidatos, REJECT_ALL), o fallback de contrato
+    # assume com a resposta de sugestao — nunca deixa scan vazar no conselho.
+    if _is_product_strategy_suggestion(state) and _leaks_scan_or_reject_text(text):
+        return True
+
     scan_leak_markers = (
         "short-term opportunity research",
         "market research report",
@@ -2534,6 +2656,26 @@ def _should_force_contract_fallback(state: dict, content: str) -> bool:
     return bool(_is_dca_macro_question(message) and _has_unsupported_macro_precision(content))
 
 
+def _leaks_scan_or_reject_text(text: str) -> bool:
+    """True quando o texto carrega superficie do render deterministico de scan
+    ou de veredito REJECT_ALL (PT e EN) — sinal de vazamento num conselho."""
+    return any(
+        marker in text
+        for marker in (
+            "short-term opportunity research",
+            "market research report",
+            "approximately 2 weeks",
+            "candidates:",
+            "run a market_scan",
+            "only have collected data",
+            "relatorio de pesquisa de mercado",
+            "resumo de rejeicoes",
+            "universo do scan",
+            "reject_all",
+        )
+    )
+
+
 def _final_payload(content: str, iterations: int) -> dict[str, Any]:
     return {
         "final": content,
@@ -2547,6 +2689,11 @@ def _has_actionable_market_request(state: dict) -> bool:
     message = state.get("message", "")
     route = state.get("route", "")
     intent = state.get("intent", "")
+    # Sugestao de produto/estrategia sem ticker (action="answer",
+    # capital_allocation/personal_finance) e conselho, nao requisicao de
+    # mercado: sem scan, sem collect_data, sem modo decisivo.
+    if _is_product_strategy_suggestion(state):
+        return False
     # Route-based check (most reliable)
     if route in {"market_scan", "ticker_analysis"}:
         return True
@@ -2639,7 +2786,10 @@ def _forced_tool_call_before_final(state: dict) -> dict[str, Any] | None:
     ):
         return {"tool": "collect_data", "args": {"ticker": ticker}}
 
-    if not _has_market_evidence(state):
+    if not _has_market_evidence(state) and not _is_product_strategy_suggestion(state):
+        # Sugestao sem ticker nunca forca market_scan (a precedencia de
+        # run_experts acima continua valendo; o scan ficaria so para pedidos
+        # reais de mercado). A ordem run_experts -> scan e preservada.
         if "market_scan" in allowed_tools and state.get("scanner_allowed", False):
             return {"tool": "market_scan", "args": {"query": state.get("message", "")}}
         if (
