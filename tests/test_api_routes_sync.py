@@ -1659,7 +1659,7 @@ def test_frontend_ops_console_integration():
     assert "PAPER" in cockpit_js
     assert "positions_count" in cockpit_js
     assert "orders_count" in cockpit_js
-    assert "Open orders" in bob_js
+    assert "Ordens abertas" in bob_js
     assert "No open IBKR broker orders" in init_js
     assert "ops-console-close" in init_js
     assert "SZ.opsConsole.toggle" in init_js

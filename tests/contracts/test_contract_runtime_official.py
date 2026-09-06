@@ -71,7 +71,8 @@ def test_canonical_inventory_and_contract_match_the_official_runtime():
     assert launcher["command"] == "setup_superezio.bat run"
     assert launcher["canonical"] is True
     assert cfg["models"]["agent"]["model_id"] == manifest["agent"]["model"] == "deepseek-v4-pro"
-    assert "Ornith-1.0-9B-Q4_K_M" in contract
+    assert "deepseek-v4-pro" in contract
+    assert "deepseek-v4-flash" in contract
     assert "8082" not in canonical_text
     assert "80B" not in canonical_text
 
