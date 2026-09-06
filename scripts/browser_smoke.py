@@ -222,7 +222,11 @@ def _submit_chat(page: Page, prompt: str, timeout_ms: int) -> dict[str, Any]:
           const bobMsgs = document.querySelectorAll('#chat .msg-ceo');
           if (bobMsgs.length <= {baseline}) return false;
           const last = bobMsgs[bobMsgs.length - 1];
-          const text = last.innerText || '';
+          if (last.dataset.done !== '1') return false;
+          const bubble = last.querySelector('.msg-bubble');
+          const text = bubble ? Array.from(bubble.childNodes)
+            .filter(node => node.nodeType === Node.TEXT_NODE)
+            .map(node => node.textContent).join('') : '';
           return text.length > 20 && !text.includes('Erro:');
         }}
         """,
@@ -233,11 +237,15 @@ def _submit_chat(page: Page, prompt: str, timeout_ms: int) -> dict[str, Any]:
         () => {
           const bobMsgs = document.querySelectorAll('#chat .msg-ceo');
           const lastBob = bobMsgs[bobMsgs.length - 1];
-          const text = lastBob ? (lastBob.innerText || '') : '';
+          const bubble = lastBob?.querySelector('.msg-bubble');
+          const text = bubble ? Array.from(bubble.childNodes)
+            .filter(node => node.nodeType === Node.TEXT_NODE)
+            .map(node => node.textContent).join('') : '';
           const userMsgs = document.querySelectorAll('#chat .msg-user');
           const typing = document.getElementById('typing');
           return {
             responseLength: text.length,
+            finished: lastBob?.dataset.done === '1',
             bobMsgCount: bobMsgs.length,
             userMsgCount: userMsgs.length,
             typingVisible: typing ? typing.style.display !== 'none' : null,
