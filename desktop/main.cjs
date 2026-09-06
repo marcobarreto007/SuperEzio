@@ -5,7 +5,7 @@ const path = require('node:path');
 const net = require('node:net');
 const {pathToFileURL} = require('node:url');
 const {validateSettings} = require('./settings.cjs');
-const {provisionFromDotenv} = require('./autoprovision.cjs');
+const {loadDotenv, provisionFromDotenv, hasLaunchKeys} = require('./autoprovision.cjs');
 let window, backend, quitting = false, starting = false;
 const setupURL = pathToFileURL(path.join(__dirname, 'setup.html')).href;
 const smoke = process.argv.includes('--desktop-smoke');
@@ -34,6 +34,17 @@ function readSettings() {
   if (!fs.existsSync(settingsPath())) return null;
   if (!safeStorage.isEncryptionAvailable()) throw new Error('Proteção de credenciais do Windows indisponível.');
   return validateSettings(JSON.parse(safeStorage.decryptString(fs.readFileSync(settingsPath()))));
+}
+function tryReadSettings() {
+  try { return readSettings(); } catch { return null; }
+}
+function resolveDevPython() {
+  if (process.env.SUPEREZIO_PYTHON) return process.env.SUPEREZIO_PYTHON;
+  const win = path.join(__dirname, '..', '.venv', 'Scripts', 'python.exe');
+  if (fs.existsSync(win)) return win;
+  const unix = path.join(__dirname, '..', '.venv', 'bin', 'python');
+  if (fs.existsSync(unix)) return unix;
+  return 'python';
 }
 function persistSettings(settings) {
   if (!safeStorage.isEncryptionAvailable()) throw new Error('Proteção de credenciais do Windows indisponível.');
@@ -68,14 +79,19 @@ async function launch(settings) {
     if (packagedExe && fs.existsSync(packagedExe)) { command = packagedExe; commandArgs = []; childCwd = dataRoot; }
     else if (fs.existsSync(devExe)) { command = devExe; commandArgs = []; childCwd = dataRoot; }
     else if (!app.isPackaged) {
-      // Dev sem PyInstaller: sobe o backend Python direto (cwd=src, quirk do repo).
-      command = process.env.SUPEREZIO_PYTHON || 'python'; commandArgs = ['-m', 'agent_server.main'];
-      childCwd = path.join(__dirname, '..', 'src');
+      // Dev sem PyInstaller: mesmo entry do empacotado (copia frontend/config
+      // para o workspace). O .env do repo entra em `env` abaixo — o Python
+      // isolado em SUPEREZIO_DESKTOP_DATA_DIR NÃO relê o dotenv da raiz.
+      const backendPy = path.join(__dirname, '..', 'scripts', 'desktop_backend.py');
+      if (!fs.existsSync(backendPy)) throw new Error('scripts/desktop_backend.py não encontrado.');
+      command = resolveDevPython(); commandArgs = [backendPy];
+      childCwd = path.join(__dirname, '..');
     }
     else throw new Error('Backend não encontrado. Reinstale o SuperEzio.');
     const logPath = path.join(app.getPath('userData'), 'backend.log');
     const log = fs.openSync(logPath, 'a');
-    const env = {...process.env, ...settings, SUPEREZIO_PORT: String(port), SUPEREZIO_HOST: '127.0.0.1',
+    const dotenvEnv = loadDotenv(dotenvDirs());
+    const env = {...process.env, ...dotenvEnv, ...settings, SUPEREZIO_PORT: String(port), SUPEREZIO_HOST: '127.0.0.1',
       SUPEREZIO_DESKTOP_DATA_DIR: dataRoot, F51_TRADING_EXECUTION_FREEZE: '1',
       SUPEREZIO_LIVE_TRADING_DISABLED: '1', SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT: '0'};
     delete env.PYTHONPATH; delete env.PYTHONHOME;
@@ -124,9 +140,19 @@ app.whenReady().then(async () => {
   try {
     // Sem chave salva: usa as do dotenv do projeto automaticamente — sem tela
     // (também no --desktop-smoke: o backend é fail-closed sem chave).
-    let settings = readSettings() || provisionFromDotenv(dotenvDirs());
-    if (settings && !smoke) persistSettings(settings);
-    if (settings) await launch(settings); else await makeWindow(true).loadURL(setupURL);
+    const dotenvEnv = loadDotenv(dotenvDirs());
+    let settings = tryReadSettings();
+    if (!settings) {
+      const provisioned = provisionFromDotenv(dotenvDirs());
+      if (provisioned && !smoke) {
+        try { persistSettings(validateSettings(provisioned)); settings = provisioned; }
+        catch { /* GLM-only ou incompleto: não cifra; o dotenv inteiro vai no spawn */ }
+      } else if (provisioned) {
+        settings = provisioned;
+      }
+    }
+    if (settings || hasLaunchKeys(dotenvEnv)) await launch(settings || {});
+    else await makeWindow(true).loadURL(setupURL);
   } catch (error) {
     if (smoke) { fs.writeFileSync(path.join(app.getPath('userData'),'desktop-smoke-error.txt'), error.message); app.exit(1); }
     else { dialog.showErrorBox('SuperEzio', error.message); makeWindow(true).loadURL(setupURL); }

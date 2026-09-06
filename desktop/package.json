@@ -25,6 +25,7 @@
       "main.cjs",
       "preload.cjs",
       "settings.cjs",
+      "autoprovision.cjs",
       "setup.html",
       "setup.js",
       "package.json"

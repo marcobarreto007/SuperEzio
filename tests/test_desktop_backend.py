@@ -1,10 +1,13 @@
 """Customer data isolation and packaged resource installation contracts."""
 
+import json
 from pathlib import Path
 
 import pytest
 
 from scripts.desktop_backend import prepare_workspace
+
+REPO = Path(__file__).resolve().parents[1]
 
 
 def resources(tmp_path: Path) -> Path:
@@ -38,3 +41,12 @@ def test_cannot_use_installation_as_customer_data(tmp_path):
     source = resources(tmp_path)
     with pytest.raises(ValueError, match="separate"):
         prepare_workspace(source, source)
+
+
+def test_electron_package_ships_autoprovision_and_injects_full_dotenv():
+    pkg = json.loads((REPO / "desktop" / "package.json").read_text(encoding="utf-8"))
+    assert "autoprovision.cjs" in pkg["build"]["files"]
+    main = (REPO / "desktop" / "main.cjs").read_text(encoding="utf-8")
+    assert "loadDotenv(dotenvDirs())" in main
+    assert "...dotenvEnv" in main
+    assert "hasLaunchKeys(dotenvEnv)" in main

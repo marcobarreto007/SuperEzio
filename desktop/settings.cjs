@@ -1,4 +1,10 @@
-const allowed = new Set(['SUPEREZIO_DEEPSEEK_API_KEY', 'FINNHUB_API_KEY', 'TWELVE_DATA_API_KEY', 'ALPHA_VANTAGE_API_KEY']);
+const allowed = new Set([
+  'SUPEREZIO_DEEPSEEK_API_KEY',
+  'SUPEREZIO_GLM_CODING_PLAN_API_KEY',
+  'FINNHUB_API_KEY',
+  'TWELVE_DATA_API_KEY',
+  'ALPHA_VANTAGE_API_KEY',
+]);
 function validateSettings(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Configuração inválida.');
   const result = {};

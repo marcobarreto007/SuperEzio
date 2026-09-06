@@ -9,10 +9,25 @@ const path = require('node:path');
 
 const AUTO_KEYS = [
   'SUPEREZIO_DEEPSEEK_API_KEY',
+  'SUPEREZIO_GLM_CODING_PLAN_API_KEY',
   'FINNHUB_API_KEY',
   'TWELVE_DATA_API_KEY',
   'ALPHA_VANTAGE_API_KEY',
 ];
+
+// Mesma ordem do runtime Python (core.config.secrets._env_files): first-wins.
+const DOTENV_RELATIVE = [
+  path.join('secrets', 'glm_coding_plan.env'),
+  '.env.local',
+  '.env',
+];
+
+function hasLaunchKeys(env) {
+  if (!env || typeof env !== 'object') return false;
+  const deepseek = String(env.SUPEREZIO_DEEPSEEK_API_KEY || '').trim();
+  const glm = String(env.SUPEREZIO_GLM_CODING_PLAN_API_KEY || '').trim();
+  return Boolean(deepseek || glm);
+}
 
 function parseDotenv(file) {
   const result = {};
@@ -35,17 +50,38 @@ function parseDotenv(file) {
   return result;
 }
 
-function provisionFromDotenv(dirs) {
-  const merged = {};
-  for (const dir of dirs) {
-    Object.assign(merged, parseDotenv(path.join(dir, '.env')));
-    Object.assign(merged, parseDotenv(path.join(dir, '.env.local'))); // .env.local vence
+function loadDotenvFromDir(dir) {
+  const local = {};
+  for (const rel of DOTENV_RELATIVE) {
+    const parsed = parseDotenv(path.join(dir, rel));
+    for (const [name, value] of Object.entries(parsed)) {
+      const trimmed = String(value || '').trim();
+      if (!(name in local) && trimmed) local[name] = trimmed;
+    }
   }
+  return local;
+}
+
+function loadDotenv(dirs) {
+  const merged = {};
+  for (const dir of dirs) Object.assign(merged, loadDotenvFromDir(dir));
+  return merged;
+}
+
+function provisionFromDotenv(dirs) {
+  const merged = loadDotenv(dirs);
   const settings = {};
   for (const name of AUTO_KEYS) {
-    if (merged[name] && merged[name].trim()) settings[name] = merged[name].trim();
+    if (merged[name]) settings[name] = merged[name];
   }
   return Object.keys(settings).length ? settings : null;
 }
 
-module.exports = {parseDotenv, provisionFromDotenv, AUTO_KEYS};
+module.exports = {
+  parseDotenv,
+  loadDotenv,
+  provisionFromDotenv,
+  hasLaunchKeys,
+  AUTO_KEYS,
+  DOTENV_RELATIVE,
+};
