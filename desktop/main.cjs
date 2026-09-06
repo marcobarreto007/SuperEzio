@@ -5,6 +5,7 @@ const path = require('node:path');
 const net = require('node:net');
 const {pathToFileURL} = require('node:url');
 const {validateSettings} = require('./settings.cjs');
+const {provisionFromDotenv} = require('./autoprovision.cjs');
 let window, backend, quitting = false, starting = false;
 const setupURL = pathToFileURL(path.join(__dirname, 'setup.html')).href;
 const smoke = process.argv.includes('--desktop-smoke');
@@ -34,6 +35,21 @@ function readSettings() {
   if (!safeStorage.isEncryptionAvailable()) throw new Error('Proteção de credenciais do Windows indisponível.');
   return validateSettings(JSON.parse(safeStorage.decryptString(fs.readFileSync(settingsPath()))));
 }
+function persistSettings(settings) {
+  if (!safeStorage.isEncryptionAvailable()) throw new Error('Proteção de credenciais do Windows indisponível.');
+  const target = settingsPath(); fs.mkdirSync(path.dirname(target), {recursive: true});
+  fs.writeFileSync(target + '.tmp', safeStorage.encryptString(JSON.stringify(settings)));
+  fs.renameSync(target + '.tmp', target);
+}
+// ── Auto-provision (módulo puro em autoprovision.cjs): em dev lê o dotenv da
+// raiz do repositório; no instalado, o do perfil do usuário. Sem tela manual
+// quando as chaves já existem na máquina.
+function dotenvDirs() {
+  const dirs = [];
+  if (!app.isPackaged) dirs.push(path.join(__dirname, '..')); // dev: raiz do repositório
+  dirs.push(app.getPath('userData'));                          // instalado: perfil do usuário
+  return dirs;
+}
 async function freePort() {
   return new Promise((resolve, reject) => { const server = net.createServer(); server.once('error', reject);
     server.listen(0, '127.0.0.1', () => { const port = server.address().port; server.close(() => resolve(port)); }); });
@@ -46,16 +62,24 @@ async function launch(settings) {
     const port = await freePort();
     const dataRoot = path.join(app.getPath('userData'), 'workspace');
     fs.mkdirSync(dataRoot, {recursive: true});
-    const executable = app.isPackaged ? path.join(process.resourcesPath, 'backend', 'SuperEzioBackend.exe')
-      : path.join(__dirname, '..', 'dist', 'desktop-backend', 'SuperEzioBackend', 'SuperEzioBackend.exe');
-    if (!fs.existsSync(executable)) throw new Error('Backend não encontrado. Reinstale o SuperEzio.');
+    let command, commandArgs, childCwd;
+    const packagedExe = app.isPackaged ? path.join(process.resourcesPath, 'backend', 'SuperEzioBackend.exe') : null;
+    const devExe = path.join(__dirname, '..', 'dist', 'desktop-backend', 'SuperEzioBackend', 'SuperEzioBackend.exe');
+    if (packagedExe && fs.existsSync(packagedExe)) { command = packagedExe; commandArgs = []; childCwd = dataRoot; }
+    else if (fs.existsSync(devExe)) { command = devExe; commandArgs = []; childCwd = dataRoot; }
+    else if (!app.isPackaged) {
+      // Dev sem PyInstaller: sobe o backend Python direto (cwd=src, quirk do repo).
+      command = process.env.SUPEREZIO_PYTHON || 'python'; commandArgs = ['-m', 'agent_server.main'];
+      childCwd = path.join(__dirname, '..', 'src');
+    }
+    else throw new Error('Backend não encontrado. Reinstale o SuperEzio.');
     const logPath = path.join(app.getPath('userData'), 'backend.log');
     const log = fs.openSync(logPath, 'a');
     const env = {...process.env, ...settings, SUPEREZIO_PORT: String(port), SUPEREZIO_HOST: '127.0.0.1',
       SUPEREZIO_DESKTOP_DATA_DIR: dataRoot, F51_TRADING_EXECUTION_FREEZE: '1',
       SUPEREZIO_LIVE_TRADING_DISABLED: '1', SUPEREZIO_ENABLE_PAPER_ORDER_SUBMIT: '0'};
     delete env.PYTHONPATH; delete env.PYTHONHOME;
-    backend = spawn(executable, [], {cwd: dataRoot, env, windowsHide: true, stdio: ['ignore', log, log]});
+    backend = spawn(command, commandArgs, {cwd: childCwd, env, windowsHide: true, stdio: ['ignore', log, log]});
     fs.closeSync(log);
     const child = backend;
     let failure;
@@ -87,10 +111,7 @@ ipcMain.handle('settings:save', async (event, input) => {
   if (event.senderFrame.url !== setupURL) throw new Error('Origem não autorizada.');
   try {
     const settings = validateSettings(input);
-    if (!safeStorage.isEncryptionAvailable()) throw new Error('Proteção de credenciais do Windows indisponível.');
-    const target = settingsPath(); fs.mkdirSync(path.dirname(target), {recursive: true});
-    fs.writeFileSync(target + '.tmp', safeStorage.encryptString(JSON.stringify(settings)));
-    fs.renameSync(target + '.tmp', target);
+    persistSettings(settings);
     await launch(settings); return {ok: true};
   } catch (error) { return {ok: false, error: error.message}; }
 });
@@ -101,7 +122,10 @@ app.whenReady().then(async () => {
     {label:'Ajuda',submenu:[{label:'Abrir logs',click:() => shell.openPath(app.getPath('userData'))},{label:'Sobre',click:() => dialog.showMessageBox({title:'SuperEzio',message:`SuperEzio ${app.getVersion()}`,detail:'Trade e assistente de investimento. Execução com dinheiro real bloqueada.'})}]}
   ]));
   try {
-    const settings = smoke ? {} : readSettings();
+    // Sem chave salva: usa as do dotenv do projeto automaticamente — sem tela
+    // (também no --desktop-smoke: o backend é fail-closed sem chave).
+    let settings = readSettings() || provisionFromDotenv(dotenvDirs());
+    if (settings && !smoke) persistSettings(settings);
     if (settings) await launch(settings); else await makeWindow(true).loadURL(setupURL);
   } catch (error) {
     if (smoke) { fs.writeFileSync(path.join(app.getPath('userData'),'desktop-smoke-error.txt'), error.message); app.exit(1); }

@@ -3,10 +3,13 @@
 Aplicativo Electron com backend Python compilado e incluído. O cliente não precisa
 instalar Node.js, Python ou um modelo local de linguagem.
 
-O instalador cria atalhos no menu Iniciar e na área de trabalho. Na primeira
-abertura, informe sua chave DeepSeek e as chaves opcionais de dados de mercado.
-As chaves são cifradas com a proteção do Windows (Electron safeStorage), fora
-da pasta de instalação. Ajuda → Abrir logs abre os dados locais do aplicativo.
+O instalador cria atalhos no menu Iniciar e na área de trabalho. As chaves de
+API são usadas automaticamente quando existem em um `.env`/`.env.local`: em
+desenvolvimento, o da raiz do repositório; no instalado, um `.env` colocado no
+perfil do usuário (Ajuda → Abrir logs mostra a pasta). A tela de configuração
+manual só aparece se nenhuma chave for encontrada na máquina. As chaves são
+cifradas com a proteção do Windows (Electron safeStorage), fora da pasta de
+instalação. Ajuda → Abrir logs abre os dados locais do aplicativo.
 
 Dados e configuração ficam no perfil do usuário. Desinstalar não apaga os dados
 automaticamente. O backend usa loopback e uma porta livre escolhida a cada execução;
