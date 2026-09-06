@@ -201,17 +201,17 @@ def test_agent_runtime_config_matches_manifest_and_script():
     assert agent_cfg["is_local"] is False
     assert "C:\\Users\\" not in RUNTIME_YML.read_text(encoding="utf-8")
     assert "C:\\\\Users\\\\" not in MODEL_MANIFEST.read_text(encoding="utf-8")
-    assert "SUPEREZIO_MODEL_PATH" in model_config
-    assert "SUPEREZIO_LLAMA_SERVER_EXE" in model_config
-    assert 'Join-Path $SuperEzioRoot "models"' in model_config
+    assert "SUPEREZIO_MODEL_PATH" not in model_config
+    assert "SUPEREZIO_LLAMA_SERVER_EXE" not in model_config
+    assert 'Join-Path $SuperEzioRoot "models"' not in model_config
     assert "C:\\Users\\marco" not in model_config
     assert "llama-server.exe" in script
     assert "SUPEREZIO_LLAMA_SERVER_EXE" in script
     assert "SUPEREZIO_CUDA_BIN" in script
     assert "C:\\Users\\marco" not in script
     assert '"--port", $Port' in script
-    assert "$script:CeoPort" in model_config
-    assert "8080" in model_config
+    assert "$script:CeoPort" not in model_config
+    assert "8080" not in model_config
     assert "function Initialize-SuperEzioDirs" in model_config
     assert "function Get-SuperEzioPortOwner" in model_config
 
