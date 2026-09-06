@@ -1,7 +1,7 @@
 {
   "date_local": "2026-09-05",
   "session": "superezio-client-delivery",
-  "status": "IN_PROGRESS",
+  "status": "DELIVERED_LOCAL_WINDOWS",
   "objective": "Entregar SuperEzio como sistema de trade e assistente de investimento usando APIs externas, com validação independente e limpeza de legado comprovado.",
   "predecessor": "e2e-client-evidence-20260905",
   "commits": [
@@ -11,18 +11,16 @@
     "4711e38a"
   ],
   "verification": {
-    "runtime_contract": "12 passed",
-    "portfolio_browser": "4 passed",
-    "lint_baseline": "All checks passed",
-    "browser_smoke": "API, gráfico e canvas passaram; falso positivo na resposta DOM identificado, correção pendente"
+    "pytest": "2346 passed, 9 skipped, 1 deselected in 443.54s",
+    "ruff": "All checks passed!",
+    "format": "430 files already formatted",
+    "portfolio_browser": "9 passed after final independent review correction",
+    "trade_smoke": "TD.TO: 129 candles, DOM answer 3197 chars finished=true, API 2665 chars PT, no console errors",
+    "investment_smoke": "DOM answer 4221 chars finished=true, API Portuguese, no console errors",
+    "release": "Manifest and SHA256 per file; archive/deprecated/legacy/runtime/local env/personal journal excluded",
+    "runtime": "Restarted :8002; public and detailed health HTTP 200; offline equity null and can_submit_orders false"
   },
-  "pending": [
-    "launcher cloud",
-    "full pytest baseline",
-    "independent review",
-    "corrected UI smoke",
-    "legacy cleanup and release artifact"
-  ],
+  "pending": [],
   "still_true": {
     "github": "DISK ONLY",
     "live_execution": "FROZEN"
@@ -30,5 +28,13 @@
   "inherited_unresolved_debt": {
     "archive_known_password": "senha conhecida do operador ainda em .f51/archive/2026-08-26/scripts/live_chrome_operator.py (trackeado, linha 12) e no historico git inteiro — dono: operador humano (rotacao nos portais + purge via filter-repo); reabrir quando autorizado",
     "bootstrap_admin_password": "maquina nova agora EXIGE SUPEREZIO_ADMIN_PASSWORD no bootstrap — mudanca intencional aprovada pelo operador"
-  }
+  },
+  "limitations": [
+    "Live-money execution frozen; broker execution was not exercised",
+    "9 skipped and 1 deselected test are not passes",
+    "Clean-machine installation not exercised; Windows launcher and bootstrap contracts tested",
+    "Historical credential debt retained, excluded from client package",
+    "Local instance loopback only and reports auth_required false"
+  ],
+  "report": "docs/CLIENT_DELIVERY_2026-09-05.md"
 }

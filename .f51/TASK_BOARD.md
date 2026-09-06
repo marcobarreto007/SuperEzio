@@ -5,10 +5,10 @@
 - [x] Entrada e configuração cloud corrigidas (26f292e4, 3aa62fc8); contrato de runtime: 12 passed.
 - [x] Painel sem saldo fictício, sem falso conectado e sem aprovação de risco inventada (8a851cde); Chromium via pytest: 4 passed.
 - [x] Identidade e orientação inicial SuperEzio para trade e investimentos (4711e38a).
-- [ ] Concluir launcher/check cloud e revisão independente.
-- [ ] Corrigir falso positivo no smoke: aguardar resposta final, não cartão de telemetria.
-- [ ] Concluir suíte completa, revisão da distribuição e limpeza de legado comprovado.
-- [ ] Gerar pacote de cliente, manifesto, evidências e checkpoint final. Objetivo permanece em execução.
+- [x] Launcher/check cloud e revisão independente concluídos; parada segura por PID e início do processo.
+- [x] Smoke corrigido; consultoria e trade TD.TO passaram com resposta final visível.
+- [x] Suíte completa: 2346 passed, 9 skipped, 1 deselected. Distribuição exclui archive/deprecated/legacy e dados do operador; documentação e startup legados substituídos.
+- [x] Pacote Windows com manifesto/checksum; relatório docs/CLIENT_DELIVERY_2026-09-05.md e checkpoint final. Runtime corrigido em :8002. Dinheiro real continua bloqueado.
 
 ## Backlog
 

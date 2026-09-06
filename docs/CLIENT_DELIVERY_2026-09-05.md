@@ -23,7 +23,7 @@ Data: 2026-09-05. Produto: sistema de trade e assistente de investimento.
 - Contratos de runtime e rotas: 68 testes passaram.
 - Launcher: 3 testes PowerShell passaram (isolamento, timeout e proteção contra PID reutilizado).
 - Pacote: teste de ZIP/manifesto passou; 753 checksums verificados na primeira construção.
-- Suite completa: resultado final registrado no checkpoint da entrega.
+- Suite completa: **2346 passed, 9 skipped, 1 deselected in 443.54s**. Log local: `output/pytest-client-final.log`. Os nove skips e o teste live_model deselecionado não são apresentados como testes aprovados.
 
 ## Fluxos reais
 

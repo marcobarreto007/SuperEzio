@@ -5,7 +5,8 @@ carteira, análise de risco e assistência à decisão. Bob é o assistente do p
 
 ## Estado da entrega
 
-Validação em andamento. Este arquivo substitui o handoff operacional antigo,
+Entrega local Windows validada: 2346 testes passaram, 9 ignorados e 1 deselecionado.
+Lint limpo; smoke real de trade e consultoria aprovado. Este arquivo substitui o handoff operacional antigo,
 que descrevia modelos locais e comandos incompatíveis com a configuração atual.
 O histórico de versões permanece nos commits locais.
 
@@ -42,6 +43,6 @@ exposta anteriormente: a dívida histórica permanece registrada no checkpoint.
 
 ## Evidências
 
-As evidências finais serão registradas em `.f51/checkpoints/latest.json` e no
-relatório de entrega. Não trate um teste com serviços externos ignorados como
-prova de integração completa. O objetivo só será concluído após os gates finais.
+As evidências estão em `.f51/checkpoints/latest.json` e em
+`docs/CLIENT_DELIVERY_2026-09-05.md`. Não trate um teste com serviços externos ignorados como
+prova de integração completa. Os limites da validação e da instalação estão registrados no relatório.
