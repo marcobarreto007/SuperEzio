@@ -38,11 +38,8 @@ $configPath = Join-Path $ScriptDir "config.ps1"
 if (Test-Path $configPath) {
     . $configPath
 } else {
-    $PythonExe = $null
-    $LlamaServerPath = $null
-    $ModelPath = Join-Path $ScriptDir "models"
-    $CeoPort = 8080
-    $ApiPort = 8002
+    Fail "config.ps1 missing." "Restore the application installation."
+    exit 1
 }
 
 Write-Host "--- Operating System ---" -ForegroundColor White
@@ -94,81 +91,24 @@ if ($PythonExe) {
 Write-Host "--- Hardware ---" -ForegroundColor White
 $totalRam = (Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory
 $ramGB = [math]::Round($totalRam / 1GB)
-if ($ramGB -ge 48) {
-    Pass "RAM: ${ramGB} GB"
-} elseif ($ramGB -ge 32) {
-    Warn "RAM: ${ramGB} GB. 48 GB+ recommended for the 80B model."
+if ($ramGB -ge 4) {
+    Pass "RAM: ${ramGB} GB (cloud inference)"
 } else {
-    Fail "RAM: ${ramGB} GB. 48 GB+ required for this kit." "Add RAM or use a smaller model."
-}
-
-if ($PythonExe) {
-    try {
-        $gpuAvailable = & $PythonExe -c "import torch; print(torch.cuda.is_available())" 2>&1
-        if ($gpuAvailable -match "True") {
-            $gpuName = & $PythonExe -c "import torch; print(torch.cuda.get_device_name(0))" 2>&1
-            $vramRaw = & $PythonExe -c "import torch; print(torch.cuda.get_device_properties(0).total_memory // 1024 // 1024)" 2>&1
-            $vramMB = [int]$vramRaw
-            Pass "GPU: $gpuName (${vramMB} MB VRAM)"
-        } else {
-            Warn "No CUDA GPU detected. The model may run CPU-only."
-        }
-    } catch {
-        Warn "Could not check GPU through torch."
-    }
-} else {
-    Warn "GPU check skipped because Python was not found."
+    Warn "RAM: ${ramGB} GB. 4 GB+ recommended for the application."
 }
 
 $drive = (Get-Item $ScriptDir).PSDrive.Name
 $freeBytes = (Get-PSDrive -Name $drive).Free
 $diskGB = [math]::Round($freeBytes / 1GB)
-if ($diskGB -ge 60) {
+if ($diskGB -ge 2) {
     Pass "Disk: ${diskGB} GB free"
-} elseif ($diskGB -ge 40) {
-    Warn "Disk: ${diskGB} GB free. This is tight; model needs roughly 47 GB."
 } else {
-    Fail "Disk: ${diskGB} GB free." "Free space or use an external SSD."
-}
-
-Write-Host "--- llama.cpp ---" -ForegroundColor White
-if ($LlamaServerPath) {
-    Pass "llama-server: $LlamaServerPath"
-    $verOut = ""
-    try {
-        $verOut = & $LlamaServerPath --version 2>&1 | Select-Object -First 1
-    } catch {}
-
-    if ($verOut) {
-        Pass "llama-server runs"
-    } else {
-        Warn "llama-server found but version check failed."
-    }
-
-    $isCuda = ($LlamaServerPath -match "cuda|build-cuda") -or ($verOut -match "cuda")
-    if ($isCuda) {
-        Pass "CUDA-capable llama.cpp path/version"
-    } else {
-        Warn "Non-CUDA build detected. GPU acceleration may be unavailable."
-    }
-} else {
-    Fail "llama-server.exe not found." "Set `$env:SUPEREZIO_LLAMA_SERVER_EXE or install llama.cpp."
-}
-
-Write-Host "--- Model ---" -ForegroundColor White
-if ($ModelPath -and (Test-Path $ModelPath)) {
-    $modelSizeGB = [math]::Round((Get-Item $ModelPath).Length / 1GB)
-    Pass "Model: ${modelSizeGB} GB ($ModelPath)"
-} else {
-    if (-not (Test-Path $ModelsDir)) {
-        New-Item -ItemType Directory -Force -Path $ModelsDir | Out-Null
-    }
-    Fail "Model not found." "Download the GGUF model to: $ModelsDir"
+    Fail "Disk: ${diskGB} GB free." "Free at least 2 GB for logs and local data."
 }
 
 Write-Host "--- Network ---" -ForegroundColor White
-foreach ($port in @($CeoPort, $ApiPort)) {
-    $svc = if ($port -eq $CeoPort) { "CEO" } else { "API" }
+foreach ($port in @($ApiPort)) {
+    $svc = "API"
     $owner = Get-SuperEzioPortOwner -Port $port
     if ($owner) {
         Fail "Port $port in use by PID $($owner.Pid) ($($owner.ProcessName)) [$svc]" "If SuperEzio is already running, this is expected. For a clean start, run stop.ps1 first."
@@ -178,11 +118,11 @@ foreach ($port in @($CeoPort, $ApiPort)) {
 }
 
 Write-Host "--- Configuration ---" -ForegroundColor White
-if (Test-Path $EnvFile) {
-    Pass ".env exists"
+if ((Test-Path $EnvFile) -or (Test-Path (Join-Path $ScriptDir ".env.local"))) {
+    Pass "Local configuration file exists (provider credentials validated by the application)"
 } elseif (Test-Path $EnvExampleFile) {
     Warn ".env missing. Copy .env.example to .env if you want external data/provider keys."
-    Warn "The local CEO can run without cloud keys, but market-data coverage may be reduced."
+    Warn "Configure external model provider credentials before using the investment assistant."
 } else {
     Fail ".env and .env.example missing." "Create a .env file from the documented template."
 }
@@ -190,7 +130,7 @@ if (Test-Path $EnvFile) {
 Write-Host "--- Python Packages ---" -ForegroundColor White
 if ($PythonExe) {
     $missing = @()
-    foreach ($dep in @("fastapi", "uvicorn", "langgraph", "yfinance", "torch", "openai", "pydantic", "httpx")) {
+    foreach ($dep in @("fastapi", "uvicorn", "langgraph", "yfinance", "openai", "pydantic", "httpx")) {
         try {
             $null = & $PythonExe -c "import $dep" 2>&1
             if ($LASTEXITCODE -ne 0) {

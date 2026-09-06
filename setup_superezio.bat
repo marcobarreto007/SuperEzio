@@ -16,7 +16,9 @@ call :header
 call :step_python
 if %ERR_COUNT% NEQ 0 goto :summary
 call :step_venv
+if %ERR_COUNT% NEQ 0 goto :summary
 call :step_install_deps
+if %ERR_COUNT% NEQ 0 goto :summary
 call :step_playwright
 call :step_env_file
 call :step_jwt_secret
@@ -172,7 +174,8 @@ if not defined SUPEREZIO_ADMIN_PASSWORD (
 )
 ".venv\Scripts\python.exe" scripts/seed_admin.py --username admin --email admin@superezio.com
 if errorlevel 1 (
-    echo [INFO] Admin pode ja existir - prosseguindo.
+    echo [FAIL] Falha ao verificar admin.
+    set /a ERR_COUNT+=1
 ) else (
     echo [OK] Admin seed criado: admin.
 )
@@ -181,7 +184,7 @@ goto :eof
 :step_run
 call :header
 echo.
-echo  [INFO] Iniciando CEO :8080 e API :8002 pelo launcher oficial.
+echo  [INFO] Iniciando API :8002 com modelos externos pelo launcher oficial.
 echo.
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0start.ps1"
 if errorlevel 1 exit /b %errorlevel%
@@ -216,3 +219,4 @@ if !ERR_COUNT! EQU 0 (
 )
 echo.
 pause
+exit /b !ERR_COUNT!

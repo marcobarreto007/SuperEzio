@@ -11,29 +11,9 @@ $script:DocsDir = Join-Path $SuperEzioRoot "docs"
 $script:EnvFile = Join-Path $SuperEzioRoot ".env"
 $script:EnvExampleFile = Join-Path $SuperEzioRoot ".env.example"
 
-# Official zero-cloud runtime: shared local llama-server on 8080 and API on 8002.
-$script:CeoPort = if ($env:SUPEREZIO_MODEL_PORT) { [int]$env:SUPEREZIO_MODEL_PORT } else { 8080 }
+# Cloud model providers are configured by config/runtime.yml and environment.
 $script:ApiPort = if ($env:SUPEREZIO_PORT) { [int]$env:SUPEREZIO_PORT } else { 8002 }
-$script:ModelsDir = Join-Path $SuperEzioRoot "models"
-# Operator mouth (live GPU 2026-09-04: RTX 2070 8GB). Ornith-1.0-9B Q4_K_M (~5.6GB).
-# RTX 3060 12GB is physically present but CM_PROB_FAILED_ADD — not in nvidia-smi.
-# System organs decide; this GGUF only routes tools and narrates the cockpit.
-$modelFileName = "Ornith-1.0-9B-Q4_K_M.gguf"
-$modelCandidates = @(
-    $env:SUPEREZIO_MODEL_PATH,
-    (Join-Path $ModelsDir $modelFileName)
-)
-if ($env:USERPROFILE) {
-    $modelCandidates += Join-Path $env:USERPROFILE "models\ornith-1.0-9b\$modelFileName"
-}
-$script:ModelPath = $modelCandidates | Where-Object {
-    $_ -and (Test-Path -LiteralPath $_)
-} | Select-Object -First 1
-if (-not $ModelPath) {
-    # Keep the failure message actionable even before the model is installed.
-    $script:ModelPath = Join-Path $ModelsDir $modelFileName
-}
-$script:LoraPath = $null
+if ($ApiPort -lt 1 -or $ApiPort -gt 65535) { throw "SUPEREZIO_PORT must be between 1 and 65535" }
 
 function Resolve-SuperEzioPythonExecutable {
     param([Parameter(Mandatory = $true)][string]$Command, [string[]]$Arguments = @())
@@ -60,28 +40,7 @@ function Get-SuperEzioPython {
     return $null
 }
 
-function Get-SuperEzioLlamaServer {
-    $candidates = @(
-        $env:SUPEREZIO_LLAMA_SERVER_EXE,
-        (Join-Path $SuperEzioRoot "llama.cpp\bin\llama-server.exe")
-    )
-    if ($env:USERPROFILE) {
-        $candidates += Join-Path $env:USERPROFILE "tools\llama.cpp\llama-server.exe"
-    }
-    try {
-        $inPath = Get-Command llama-server.exe -ErrorAction SilentlyContinue
-        if ($inPath) { $candidates += $inPath.Source }
-    } catch {}
-    foreach ($candidate in $candidates) {
-        if ($candidate -and (Test-Path -LiteralPath $candidate)) {
-            return (Resolve-Path -LiteralPath $candidate).Path
-        }
-    }
-    return $null
-}
-
 $script:PythonExe = Get-SuperEzioPython
-$script:LlamaServerPath = Get-SuperEzioLlamaServer
 if ($env:PYTHONPATH) {
     if (($env:PYTHONPATH -split ';') -notcontains $SrcDir) { $env:PYTHONPATH = "$SrcDir;$env:PYTHONPATH" }
 } else {
@@ -124,7 +83,6 @@ function Initialize-SuperEzioDirs {
 function Write-SuperEzioConfig {
     Write-Host "Root        : $SuperEzioRoot"
     Write-Host "Python      : $(if ($PythonExe) { $PythonExe } else { 'NOT FOUND' })"
-    Write-Host "llama-server: $(if ($LlamaServerPath) { $LlamaServerPath } else { 'NOT FOUND' })"
-    Write-Host "Model       : $ModelPath"
-    Write-Host "Ports       : CEO=$CeoPort, API=$ApiPort"
+    Write-Host "AI providers: configured external APIs"
+    Write-Host "API port    : $ApiPort"
 }

@@ -1,5 +1,5 @@
 # SuperEzio START script.
-# Starts CEO (llama-server :8080) and API (FastAPI :8002), verifies health,
+# Starts API (FastAPI :8002) with the configured external model providers,
 # then opens the browser unless -SkipBrowser is provided.
 
 param(
@@ -64,7 +64,7 @@ Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 
 $blockedPorts = @()
-foreach ($port in @($CeoPort, $ApiPort)) {
+foreach ($port in @($ApiPort)) {
     $owner = Get-SuperEzioPortOwner -Port $port
     if ($owner) {
         $blockedPorts += $owner
@@ -80,74 +80,8 @@ if ($blockedPorts.Count -gt 0) {
     exit 7
 }
 
-$bobLog = Join-Path $LogsDir "bob-$CeoPort-latest.log"
-$bobErrLog = Join-Path $LogsDir "bob-$CeoPort-latest.err.log"
-Remove-Item -LiteralPath $bobLog, $bobErrLog -Force -ErrorAction SilentlyContinue
-
-if (-not $LlamaServerPath) {
-    Log "ERROR: llama-server.exe not found. Set `$env:SUPEREZIO_LLAMA_SERVER_EXE or install llama.cpp." "Red"
-    Log "Cannot start CEO without llama-server." "Red"
-    exit 2
-}
-
-if (-not (Test-Path $ModelPath)) {
-    Log "ERROR: Model not found at $ModelPath" "Red"
-    Log "Download the model .gguf file to the models/ folder." "Yellow"
-    exit 3
-}
-
-Log "Starting CEO (llama-server) on port $CeoPort..." "Cyan"
-Log "Model: $ModelPath" "Gray"
-try {
-    $gpuSnap = & nvidia-smi --query-gpu=index,name,memory.total --format=csv,noheader 2>$null
-    if ($gpuSnap) {
-        Log "Live GPUs: $(($gpuSnap | ForEach-Object { $_.Trim() }) -join '; ')" "Gray"
-    } else {
-        Log "WARNING: nvidia-smi returned no live GPU. CEO may run CPU-only." "Yellow"
-    }
-} catch {
-    Log "WARNING: nvidia-smi unavailable — CEO may fall back to CPU." "Yellow"
-}
-
-$ceoScript = Join-Path $ScriptsDir "serve_agent_llamacpp.ps1"
-$ceoArgs = @(
-    "-NoProfile",
-    "-ExecutionPolicy", "Bypass",
-    "-File", "`"$ceoScript`"",
-    "-Port", "$CeoPort",
-    "-LlamaServerPath", "`"$LlamaServerPath`""
-)
-
-Start-Process -FilePath "powershell.exe" `
-    -ArgumentList $ceoArgs `
-    -WorkingDirectory $ScriptDir `
-    -WindowStyle Hidden `
-    -RedirectStandardOutput $bobLog `
-    -RedirectStandardError $bobErrLog
-
-Log "Waiting for CEO (port $CeoPort)..." "Yellow"
-$ceoUp = $false
-$deadline = (Get-Date).AddMinutes($HealthTimeoutMinutes)
-while ((Get-Date) -lt $deadline) {
-    if (Test-SuperEzioHealth -Port $CeoPort -TimeoutSec 5) {
-        $ceoUp = $true
-        break
-    }
-    Write-Host "." -NoNewline -ForegroundColor Yellow
-    Start-Sleep -Seconds 5
-}
-Write-Host ""
-
-if ($ceoUp) {
-    Log "CEO healthy on port $CeoPort" "Green"
-} else {
-    Log "ERROR: CEO did not become healthy within $HealthTimeoutMinutes minutes." "Red"
-    Log "Check logs: $bobErrLog" "Yellow"
-    exit 4
-}
-
-$apiLog = Join-Path $LogsDir "api-8002-latest.log"
-$apiErrLog = Join-Path $LogsDir "api-8002-latest.err.log"
+$apiLog = Join-Path $LogsDir "api-$ApiPort-latest.log"
+$apiErrLog = Join-Path $LogsDir "api-$ApiPort-latest.err.log"
 Remove-Item -LiteralPath $apiLog, $apiErrLog -Force -ErrorAction SilentlyContinue
 
 if (-not $PythonExe) {
@@ -158,17 +92,21 @@ if (-not $PythonExe) {
 Log "Starting API on port $ApiPort..." "Cyan"
 Log "Python: $PythonExe" "Gray"
 
-Start-Process -FilePath $PythonExe `
+$apiProcess = Start-Process -FilePath $PythonExe `
     -ArgumentList @("-m", "agent_server.main") `
     -WorkingDirectory $ScriptDir `
     -WindowStyle Hidden `
     -RedirectStandardOutput $apiLog `
-    -RedirectStandardError $apiErrLog
+    -RedirectStandardError $apiErrLog `
+    -PassThru -ErrorAction Stop
+
+@{ Pid = $apiProcess.Id; StartTime = $apiProcess.StartTime.ToUniversalTime().ToString("o") } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $RuntimeDir "api-process.json")
 
 Log "Waiting for API (port $ApiPort)..." "Yellow"
 $apiUp = $false
-$deadline = (Get-Date).AddMinutes(3)
+$deadline = (Get-Date).AddMinutes($HealthTimeoutMinutes)
 while ((Get-Date) -lt $deadline) {
+    if ($apiProcess.HasExited) { break }
     if (Test-SuperEzioHealth -Port $ApiPort -TimeoutSec 5) {
         $apiUp = $true
         break
@@ -181,7 +119,8 @@ Write-Host ""
 if ($apiUp) {
     Log "API healthy on port $ApiPort" "Green"
 } else {
-    Log "ERROR: API did not become healthy within 3 minutes." "Red"
+    if (-not $apiProcess.HasExited) { $apiProcess | Stop-Process -Force }
+    Log "ERROR: API did not become healthy within $HealthTimeoutMinutes minutes." "Red"
     Log "Check logs: $apiErrLog" "Yellow"
     exit 6
 }
@@ -190,7 +129,7 @@ Write-Host ""
 Write-Host "============================================" -ForegroundColor Green
 Write-Host "  SuperEzio is running" -ForegroundColor Green
 Write-Host "============================================" -ForegroundColor Green
-Write-Host "  CEO  : http://127.0.0.1:$CeoPort/v1" -ForegroundColor White
+Write-Host "  AI   : configured external APIs" -ForegroundColor White
 Write-Host "  API  : http://127.0.0.1:$ApiPort" -ForegroundColor White
 Write-Host "  UI   : http://127.0.0.1:$ApiPort" -ForegroundColor White
 Write-Host "  Logs : $LogsDir" -ForegroundColor Gray

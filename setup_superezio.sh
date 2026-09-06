@@ -105,14 +105,15 @@ step_venv() {
 step_install_deps() {
     step_num "Installing dependencies (pip install -e .)..."
     activate_venv
-    pip install -e . 2>&1 | grep -v "already satisfied" || true
+    python -m pip install -r requirements-lock.txt
+    python -m pip install --no-deps --no-build-isolation -e .
     echo -e "  ${PASS} Dependencies installed."
 }
 
 step_playwright() {
     step_num "Installing Playwright Chromium..."
     activate_venv
-    python -m playwright install chromium 2>&1 || true
+    python -m playwright install chromium
     echo -e "  ${PASS} Playwright Chromium installed."
 }
 
@@ -172,9 +173,8 @@ step_seed_admin() {
         return
     fi
     activate_venv
-    ADMIN_PASS="${SUPEREZIO_ADMIN_PASSWORD}"
     echo -e "  ${INFO} Seeding admin (admin / ********)..."
-    python scripts/seed_admin.py --username admin --email admin@superezio.com --password "${ADMIN_PASS}" 2>&1 || true
+    python scripts/seed_admin.py --username admin --email admin@superezio.com
     echo -e "  ${PASS} Admin seed verified."
 }
 
