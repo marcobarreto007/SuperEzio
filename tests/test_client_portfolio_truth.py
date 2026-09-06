@@ -17,7 +17,7 @@ def test_account_equity_requires_available_broker_data(monkeypatch, connected, b
     service.get_account_equity.return_value = balance
     service.get_status.return_value = {"connected": connected, "can_read": connected}
     monkeypatch.setattr("adapters.broker.get_ibkr_service", lambda: service)
-    monkeypatch.setattr("core.mission_context.mission_health_summary", lambda: {})
+    monkeypatch.setattr("core.mission_context.mission_health_summary", dict)
     monkeypatch.setattr("core.mission_context.get_mission_equity", lambda: 100000)
     monkeypatch.setattr(endpoints, "_cockpit_ibkr_open_orders", lambda *a, **k: [])
     monkeypatch.setattr(endpoints, "_cockpit_local_order_tickets", lambda *a, **k: [])
